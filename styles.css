@@ -693,26 +693,47 @@ body.dragging-cursor * {
 .drop-anchor {
   position: absolute;
   height: 4px;
-  background: var(--color-emerald-400);
-  border-radius: 0;
+  background: radial-gradient(circle, rgba(165,180,252,1) 0%, rgba(99,102,241,1) 80%);
+  box-shadow: 0 0 16px 4px rgba(99,102,241,0.7), 0 0 32px 8px rgba(165,180,252,0.5);
+  border-radius: 2px;
   pointer-events: none;
   z-index: 100;
   display: none;
 }
 
-.drop-anchor.vertical::before,
+/* Vertical version (column insertion) */
+.drop-anchor.vertical {
+  width: 4px;
+  margin-bottom: -8px; /* Increase negative margin to extend further */
+}
+
+/* Top cap for vertical anchor */
+.drop-anchor.vertical::before {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 2px;
+  background: inherit;
+  box-shadow: inherit;
+  border-radius: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 0;
+}
+
+/* Bottom cap for vertical anchor with extra glow */
 .drop-anchor.vertical::after {
   content: "";
   position: absolute;
   width: 12px;
   height: 2px;
   background: inherit;
+  box-shadow: 0 0 20px 6px rgba(99,102,241,1); /* Stronger glow at bottom */
+  border-radius: 2px;
   left: 50%;
   transform: translateX(-50%);
+  bottom: 0;
 }
-
-.drop-anchor.vertical::before { top: 0; }
-.drop-anchor.vertical::after { bottom: 0; }
 
 /* Ghost element that follows cursor while dragging */
 .ghost-drag {

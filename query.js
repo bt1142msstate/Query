@@ -213,14 +213,15 @@ dropAnchor.className = 'drop-anchor';
 document.body.appendChild(dropAnchor);
 
 /* Unified helper to position the drop-anchor */
-function positionDropAnchor(isBubble, rect, tableRect, clientX){
+function positionDropAnchor(isBubble, rect, table, clientX){
   if(isBubble){
     dropAnchor.classList.add('vertical');
     const insertLeft = (clientX - rect.left) < rect.width/2;
+    // Add extra 16px to the height to ensure it reaches the bottom
     dropAnchor.style.width  = '4px';
-    dropAnchor.style.height = tableRect.height + 'px';
+    dropAnchor.style.height = (table.offsetHeight + 16) + 'px';
     dropAnchor.style.left   = (insertLeft ? rect.left : rect.right) + window.scrollX - 2 + 'px';
-    dropAnchor.style.top    = tableRect.top + window.scrollY + 'px';
+    dropAnchor.style.top    = table.getBoundingClientRect().top + window.scrollY + 'px';
   }else{
     dropAnchor.classList.remove('vertical');
     dropAnchor.style.width  = rect.width + 'px';
@@ -2484,7 +2485,7 @@ function addDragAndDrop(table){
         th.classList.add('th-drag-over');
       }
       const rect = th.getBoundingClientRect();
-      positionDropAnchor(isBubbleDrag, rect, table.getBoundingClientRect(), e.clientX);
+      positionDropAnchor(isBubbleDrag, rect, table, e.clientX);
     });
     th.addEventListener('dragleave', ()=>{
       clearDropAnchor();
@@ -2492,7 +2493,7 @@ function addDragAndDrop(table){
     th.addEventListener('dragover', e=>{
       e.preventDefault();
       const rect = th.getBoundingClientRect();
-      positionDropAnchor(isBubbleDrag, rect, table.getBoundingClientRect(), e.clientX);
+      positionDropAnchor(isBubbleDrag, rect, table, e.clientX);
     });
     th.addEventListener('drop', e=>{
       e.preventDefault();
@@ -2541,7 +2542,7 @@ function addDragAndDrop(table){
         targetHeader.classList.add('th-drag-over');
       }
       const rect = targetHeader.getBoundingClientRect();
-      positionDropAnchor(isBubbleDrag, rect, table.getBoundingClientRect(), e.clientX);
+      positionDropAnchor(isBubbleDrag, rect, table, e.clientX);
     });
 
     td.addEventListener('dragover', e=>{
@@ -2549,7 +2550,7 @@ function addDragAndDrop(table){
       const colIndex = parseInt(td.dataset.colIndex,10);
       const targetHeader = table.querySelector(`thead th[data-col-index="${colIndex}"]`);
       const rect = targetHeader.getBoundingClientRect();
-      positionDropAnchor(isBubbleDrag, rect, table.getBoundingClientRect(), e.clientX);
+      positionDropAnchor(isBubbleDrag, rect, table, e.clientX);
     });
 
     td.addEventListener('dragleave', ()=>{
