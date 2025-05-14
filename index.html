@@ -781,7 +781,7 @@
           class="ml-3 text-red-600 text-sm font-semibold"></span>
   </div>
   <div class="max-w-5xl mx-auto">
-    <div class="overflow-x-auto shadow rounded-lg mb-6 relative max-w-[50vw] mx-auto">
+    <div class="overflow-x-auto shadow rounded-lg mb-6 relative max-w-[50vw] mx-auto" style="background: #fff;">
       <table id="example-table" class="min-w-full divide-y divide-gray-200 bg-white">
         <thead></thead>
         <tbody></tbody>
@@ -872,8 +872,13 @@
         </svg>
       </button>
       <button id="toggle-queries"
-              class="px-3 py-1 text-xs font-semibold rounded bg-blue-200 text-blue-800 hover:bg-blue-300 transition-colors">
-        Queries
+              class="p-2 rounded-full bg-blue-200 text-blue-800 hover:bg-blue-300 transition-colors"
+              aria-label="Queries">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 pointer-events-none">
+          <rect x="3" y="5" width="18" height="14" rx="2"/>
+          <line x1="8" y1="9" x2="16" y2="9"/>
+          <line x1="8" y1="13" x2="14" y2="13"/>
+        </svg>
       </button>
 
     </div>

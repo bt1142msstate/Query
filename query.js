@@ -42,7 +42,23 @@ let queryRunning = false;
 
 // Download button reference
 const downloadBtn = document.getElementById('download-btn');
-if (downloadBtn) downloadBtn.disabled = true; // Always start disabled
+if (downloadBtn) {
+  downloadBtn.disabled = false; // Always enabled
+  downloadBtn.addEventListener('click', () => {
+    if (!queryBox) return;
+    const blob = new Blob([queryBox.value], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'query.json';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 0);
+  });
+}
 
 /* Enable Run button only when query JSON has something to run */
 function updateRunBtnState(){
@@ -51,10 +67,8 @@ function updateRunBtnState(){
     const q = JSON.parse(queryBox.value || '{}');
     const hasFields = Array.isArray(q.DesiredColumnOrder) && q.DesiredColumnOrder.length > 0;
     runBtn.disabled = !hasFields || queryRunning;
-    if(downloadBtn) downloadBtn.disabled = runBtn.disabled;
   }catch{
     runBtn.disabled = true;
-    if(downloadBtn) downloadBtn.disabled = true;
   }
 }
 // Initial check
@@ -106,9 +120,6 @@ if(runBtn){
       tableWrapper.style.overflowY = '';
       window.removeEventListener('resize', adjustTableHeight);
     }
-
-    // --- Download button should always be disabled while running ---
-    if(downloadBtn) downloadBtn.disabled = queryRunning || runBtn.disabled;
 
     if(queryRunning){
       console.log('Query started…');   // TODO: start real query here
