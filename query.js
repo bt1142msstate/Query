@@ -36,19 +36,30 @@ document.querySelectorAll('.collapse-btn').forEach(btn=>{
 
 /* --- Run / Stop query toggle --- */
 const runBtn  = document.getElementById('run-query-btn');
+const downloadBtn = document.getElementById('download-btn'); // Add download button reference
 const runIcon = document.getElementById('run-icon');
 const stopIcon= document.getElementById('stop-icon');
 let queryRunning = false;
 
-/* Enable Run button only when query JSON has something to run */
+/* Enable Run and Download buttons only when query JSON has something to run */
 function updateRunBtnState(){
   if(!runBtn) return;
   try{
     const q = JSON.parse(queryBox.value || '{}');
     const hasFields = Array.isArray(q.DesiredColumnOrder) && q.DesiredColumnOrder.length > 0;
-    runBtn.disabled = !hasFields || queryRunning;
+    const shouldEnable = hasFields && !queryRunning;
+    
+    runBtn.disabled = !shouldEnable;
+    
+    // Also control download button with same logic
+    if(downloadBtn) {
+      downloadBtn.disabled = !shouldEnable;
+    }
   }catch{
     runBtn.disabled = true;
+    if(downloadBtn) {
+      downloadBtn.disabled = true;
+    }
   }
 }
 // Initial check
@@ -1569,9 +1580,7 @@ document.addEventListener('dragstart', e=>{
   e.dataTransfer.setData('bubble-field', bubble.textContent.trim());
   e.dataTransfer.effectAllowed='copy';
   isBubbleDrag = true;
-  
   // Clone bubble and wrap it in a padded container so box-shadow glow isn't clipped
-  // (do this BEFORE hiding the original)
   const wrapper = document.createElement('div');
   const pad = 16;                               // 8 px padding on all sides
   wrapper.style.position = 'absolute';
@@ -1587,23 +1596,12 @@ document.addEventListener('dragstart', e=>{
   const gw = wrapper.offsetWidth;
   const gh = wrapper.offsetHeight;
   e.dataTransfer.setDragImage(wrapper, gw / 2, gh / 2);
-  
-  // Now hide the original bubble after creating the drag image
-  bubble.style.opacity = '0';
-  
   // Remove wrapper after dragstart to clean up
   setTimeout(() => wrapper.remove(), 0);
 });
 
 document.addEventListener('dragend', e=>{
-  const bubble = e.target.closest('.bubble');
-  if(bubble) {
-    isBubbleDrag = false;
-    // Delay restoring the original bubble's visibility to allow the drag animation to complete
-    setTimeout(() => {
-      bubble.style.opacity = '';
-    }, 100);
-  }
+  if(e.target.closest('.bubble')) isBubbleDrag = false;
 });
 
 /* Render/update the filter pill list for a given field */
