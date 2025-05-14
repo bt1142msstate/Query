@@ -27,6 +27,9 @@ let currentCategory = 'All';
 // Data structures
 const activeFilters = {};   // { fieldName: { logical:'And'|'Or', filters:[{cond,val},…] } }
 
+// Global set to track which bubbles are animating back
+const animatingBackBubbles = new Set();
+
 /* ===== Modal helpers for JSON / Queries panels ===== */
 function openModal(panelId){
   const panel = document.getElementById(panelId);
@@ -341,43 +344,51 @@ function resetActive(){
   // then restore the origin bubble's appearance when the animation ends.
   document.querySelectorAll('.active-bubble').forEach(clone=>{
     const origin = clone._origin;
-    
     // Check if origin is still in the DOM
     const originInDOM = origin && document.body.contains(origin);
-    
     if (originInDOM) {
       // Original bubble still exists - animate clone back to it
       const nowRect = origin.getBoundingClientRect();
       clone.style.top  = nowRect.top + 'px';
       clone.style.left = nowRect.left + 'px';
-      // Temporarily hide the origin bubble so the clone can fully overlap it
+      // Hide the origin bubble so the clone can fully overlap it
       origin.style.opacity = '0';
-      
+      origin.style.visibility = 'hidden';
+      // Track this field as animating back
+      const fieldName = origin.textContent.trim();
+      animatingBackBubbles.add(fieldName);
       // Start the reverse animation
       clone.classList.remove('enlarge-bubble');  // shrink first
       clone.classList.remove('active-bubble');   // then fly back
       clone.addEventListener('transitionend', ()=>{
         clone.remove();                          // remove clone after it snaps back
-        origin.style.opacity = '';
-        origin.classList.remove('bubble-disabled'); // re-enable origin
-        
-        // Apply the correct styling to the original bubble
-        applyCorrectBubbleStyling(origin);
+        // Remove from animating set
+        animatingBackBubbles.delete(fieldName);
+        // Always update the currently rendered bubble for this field
+        requestAnimationFrame(() => {
+          const bubbles = Array.from(document.querySelectorAll('.bubble'));
+          bubbles.forEach(b => {
+            if (b.textContent.trim() === fieldName) {
+              b.style.visibility = '';
+              b.style.opacity = '1';
+              b.classList.remove('bubble-disabled');
+              applyCorrectBubbleStyling(b);
+            }
+          });
+        });
       }, { once:true });
     } else {
       // Origin bubble is gone - just remove the clone immediately without animating
       clone.remove();
-      
       // Try to find a bubble with matching text to enable if needed
       if (origin) {
         const fieldName = origin.textContent.trim();
+        animatingBackBubbles.delete(fieldName);
         const matchingBubble = Array.from(document.querySelectorAll('.bubble'))
           .find(b => b.textContent.trim() === fieldName);
-        
         if (matchingBubble) {
           matchingBubble.style.opacity = '';
           matchingBubble.classList.remove('bubble-disabled');
-          
           // Apply the correct styling to the matching bubble
           applyCorrectBubbleStyling(matchingBubble);
         }
@@ -1235,6 +1246,11 @@ function renderBubbles(){
         } else {
           existingBubble.setAttribute('draggable', 'true');
         }
+        // If animatingBack, keep it hidden
+        if (existingBubble.dataset.animatingBack === 'true') {
+          existingBubble.style.visibility = 'hidden';
+          existingBubble.style.opacity = '0';
+        }
         listDiv.appendChild(existingBubble);
       } else {
         // Create new bubble if it didn't exist before
@@ -1250,6 +1266,13 @@ function renderBubbles(){
         div.dataset.type = def.type;
         if(def.values)  div.dataset.values  = JSON.stringify(def.values);
         if(def.filters) div.dataset.filters = JSON.stringify(def.filters);
+        // If the old bubble was animating back, preserve that state
+        const old = existingBubbleMap.get(def.name);
+        if (old && old.dataset.animatingBack === 'true') {
+          div.dataset.animatingBack = 'true';
+          div.style.visibility = 'hidden';
+          div.style.opacity = '0';
+        }
         // Apply the correct styling to the new bubble
         applyCorrectBubbleStyling(div);
         listDiv.appendChild(div);
@@ -1271,6 +1294,13 @@ function renderBubbles(){
       div.dataset.type = def.type;
       if(def.values)  div.dataset.values  = JSON.stringify(def.values);
       if(def.filters) div.dataset.filters = JSON.stringify(def.filters);
+      // If a bubble with this name is animating back, keep it hidden
+      const old = document.querySelector('.bubble[data-animating-back="true"][data-type][data-type="'+def.type+'"]');
+      if (old && old.textContent.trim() === def.name) {
+        div.dataset.animatingBack = 'true';
+        div.style.visibility = 'hidden';
+        div.style.opacity = '0';
+      }
       // Apply the correct styling to the bubble
       applyCorrectBubbleStyling(div);
       listDiv.appendChild(div);
@@ -1311,6 +1341,17 @@ function renderBubbles(){
     // Re-draw scrollbar
     updateScrollBar();
   }
+  // After all bubbles are created/appended:
+  Array.from(listDiv.children).forEach(bubble => {
+    const fieldName = bubble.textContent.trim();
+    if (animatingBackBubbles.has(fieldName)) {
+      bubble.style.visibility = 'hidden';
+      bubble.style.opacity = '0';
+    } else {
+      bubble.style.visibility = '';
+      bubble.style.opacity = '';
+    }
+  });
 }
 
 // --- Keep bubble scrollbar height in sync on window resize ---
