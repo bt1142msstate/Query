@@ -287,22 +287,22 @@ input, textarea, select, [contenteditable] {
 
 /* Bubble with active filter */
 .bubble-filter {
-  /* Use purple gradient for bubble background */
+  /* Change from purple gradient to white */
   background: radial-gradient(
     circle at 30% 30%,
-    rgba(224, 231, 255, 0.9) 0%,
-    rgba(165, 180, 252, 0.7) 40%,
-    rgba(99, 102, 241, 0.6) 100%
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.8) 40%,
+    rgba(240, 240, 240, 0.75) 100%
   ) !important;
   
-  /* Remove purple glow, keep standard shadows */
+  /* Change shadow for white theme */
   box-shadow:
-    inset -4px -4px 6px rgba(255, 255, 255, 0.5),
-    inset 4px 4px 6px rgba(0, 0, 0, 0.1),
-    0 2px 4px rgba(0, 0, 0, 0.08);
+    inset -4px -4px 6px rgba(255, 255, 255, 0.7),
+    inset 4px 4px 6px rgba(0, 0, 0, 0.05),
+    0 2px 4px rgba(0, 0, 0, 0.1);
     
-  color: var(--color-white) !important;
-  border: 1px solid rgba(224, 231, 255, 0.5);
+  color: var(--color-black) !important;
+  border: 1px solid rgba(200, 200, 200, 0.5);
 }
 
 /* Restore original before element */
@@ -474,8 +474,10 @@ input, textarea, select, [contenteditable] {
 }
 
 .condition-btn.active {
-  background: rgba(99, 102, 241, 0.9);
-  color: var(--color-white);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--color-black);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 #condition-input-wrapper {
@@ -614,8 +616,9 @@ input, textarea, select, [contenteditable] {
 }
 
 .logical-toggle.active {
-  background: var(--color-indigo-500);
-  color: var(--color-white);
+  background: var(--color-white);
+  color: var(--color-black);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* Show/Hide dual-toggle */
@@ -639,8 +642,9 @@ input, textarea, select, [contenteditable] {
 }
 
 .toggle-half.active {
-  background: var(--color-indigo-500);
-  color: var(--color-white);
+  background: var(--color-white);
+  color: var(--color-black);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .toggle-half:hover:not(.active) {
@@ -684,18 +688,74 @@ input, textarea, select, [contenteditable] {
 }
 
 #category-bar .category-btn.active {
-  background: var(--color-indigo-500);
-  color: var(--color-white);
+  background: var(--color-white);
+  color: var(--color-black);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* ==========================================
    8. TABLE STYLES
    ========================================== */
 
+/* Table container */
+.overflow-x-auto.shadow.rounded-lg.mb-6.relative {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12), 0 4px 10px rgba(0, 0, 0, 0.08);
+  border-radius: var(--border-radius-xl);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(4px);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+/* Remove the hover transformation effect */
+.overflow-x-auto.shadow.rounded-lg.mb-6.relative:hover {
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15), 0 5px 12px rgba(0, 0, 0, 0.1);
+}
+
 #example-table {
-  border-bottom-left-radius: var(--border-radius-lg);
-  border-bottom-right-radius: var(--border-radius-lg);
+  border-radius: var(--border-radius-lg);
   overflow: hidden;
+  width: 100%;
+}
+
+/* Table headers */
+#example-table thead {
+  background: linear-gradient(to right, rgba(245, 245, 245, 0.95), rgba(250, 250, 250, 0.95));
+  border-bottom: 2px solid rgba(220, 220, 220, 0.8);
+}
+
+#example-table th {
+  font-weight: 600;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 1rem 1.5rem !important;
+  position: relative;
+  transition: background-color 0.2s ease;
+}
+
+/* Table rows */
+#example-table tbody tr {
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+#example-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+#example-table tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Alternating row colors */
+#example-table tbody tr:nth-child(even) {
+  background-color: rgba(0, 0, 0, 0.01);
+}
+
+/* Table cells */
+#example-table td {
+  padding: 1rem 1.5rem !important;
+  color: #444;
 }
 
 /* Index-card table lines */
@@ -766,8 +826,8 @@ body.dragging-cursor * {
 .drop-anchor {
   position: absolute;
   height: 4px;
-  background: radial-gradient(circle, rgba(165,180,252,1) 0%, rgba(99,102,241,1) 80%);
-  box-shadow: 0 0 16px 4px rgba(99,102,241,0.7), 0 0 32px 8px rgba(165,180,252,0.5);
+  background: radial-gradient(circle, rgba(100,181,246,1) 0%, rgba(30,136,229,1) 80%);
+  box-shadow: 0 0 16px 4px rgba(33,150,243,0.3), 0 0 32px 8px rgba(33,150,243,0.2);
   border-radius: 2px;
   pointer-events: none;
   z-index: 100;
@@ -794,14 +854,14 @@ body.dragging-cursor * {
   top: 0;
 }
 
-/* Bottom cap for vertical anchor with extra glow */
+/* Bottom cap for vertical anchor with blue glow */
 .drop-anchor.vertical::after {
   content: "";
   position: absolute;
   width: 12px;
   height: 2px;
   background: inherit;
-  box-shadow: 0 0 20px 6px rgba(99,102,241,1); /* Stronger glow at bottom */
+  box-shadow: 0 0 20px 6px rgba(33,150,243,0.5);
   border-radius: 2px;
   left: 50%;
   transform: translateX(-50%);
