@@ -1063,4 +1063,19 @@ th:hover .th-trash {
 
 #download-btn:hover #download-arrow {
   animation: jump 0.7s cubic-bezier(.4,1.6,.6,1) infinite;
+}
+
+/* Prevent wrapping in Queries table and allow columns to fit content */
+#queries-container table {
+  table-layout: auto !important;
+  width: 100%;
+}
+#queries-container th, #queries-container td {
+  white-space: nowrap;
+  width: auto;
+  max-width: none;
+  overflow: visible;
+}
+#queries-container td {
+  vertical-align: top;
 } 
