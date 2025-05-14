@@ -2860,15 +2860,19 @@ function renderQueries(){
   const container = document.getElementById('queries-container');
   if(!container) return;
   const rows = exampleQueries.map(q=>{
-    const fields = q.jsonConfig?.DesiredColumnOrder?.join(', ') || '—';
+    // Display each field on its own line
+    const fields = q.jsonConfig?.DesiredColumnOrder?.length
+      ? q.jsonConfig.DesiredColumnOrder.map(f => `<div>${f}</div>`).join('')
+      : '—';
+    // Display each filter on its own line
     const fieldGroups = q.jsonConfig?.FilterGroups || [];
     const firstGroupFilters = fieldGroups[0]?.Filters || [];
     const filtersSummary = firstGroupFilters.length
       ? firstGroupFilters.map(ff=>{
           const op = ff.FieldOperator.replace(/([A-Z])/g,' $1').trim();
           const vals = ff.Values.join(', ');
-          return `${ff.FieldName} ${op.toLowerCase()} "${vals}"`;
-        }).join('; ')
+          return `<div>${ff.FieldName} ${op.toLowerCase()} "${vals}"</div>`;
+        }).join('')
       : 'None';
     // Stop button for running queries, stacked above the label with a separator
     const stopBtn = q.running ? `
