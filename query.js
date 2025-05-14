@@ -1031,6 +1031,7 @@ const clearSearchBtn = document.getElementById('clear-search-btn');
 /* ---------- Field definitions: name, type, optional values, optional filters ---------- */
 const fieldDefs = [
   { "name": "Library", "type": "string", "values": ["TRLS-A", "TRLS-B", "TRLS-C", "MLTN-A", "MLTN-B", "WSPR-X"], "filters": ["equals"], "desc": "The library branch", "category": "Item", "multiSelect": true },
+  { "name": "Author", "type": "string", "filters": ["contains", "starts", "equals"], "category": "Catalog" },
   { "name": "Title", "type": "string", "filters": ["contains", "starts", "equals"], "category": "Catalog" },
   { "name": "Price", "type": "money", "desc": "Cost of item", "category": "Catalog" },
   { "name": "Call Number", "type": "string", "filters": ["contains", "equals", "between"], "category": "Call #" },
@@ -2652,12 +2653,13 @@ const exampleQueries = [
     id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
     running: false,
     jsonConfig: {
-      DesiredColumnOrder: ["Title","Author","Publish Date"],
+      DesiredColumnOrder: ["Title","Author","Publication Date"],
       FilterGroups: [
         {
           LogicalOperator: "And",
           Filters: [
-            { FieldName:"Author", FieldOperator:"Contains", Values:["Huxley"] }
+            { FieldName:"Author", FieldOperator:"Contains", Values:["Huxley"] },
+            { FieldName:"Title", FieldOperator:"Contains", Values:["Brave"] }
           ]
         }
       ]
@@ -2670,12 +2672,87 @@ const exampleQueries = [
     running: true,
     jsonConfig: {
       DesiredColumnOrder: ["Title","Call Number","Home Location"],
-      FilterGroups: []
+      FilterGroups: [
+        {
+          LogicalOperator: "Or",
+          Filters: [
+            { FieldName:"Home Location", FieldOperator:"Equals", Values:["TRLS-A"] }
+          ]
+        }
+      ]
     },
     startTime: '2025-05-05T14:02:00Z',
     endTime:   null
+  },
+  {
+    id: 'b2c3d479-58cc-4372-a567-0e02f47ac10b',
+    running: false,
+    jsonConfig: {
+      DesiredColumnOrder: ["Barcode","Item Type","Price"],
+      FilterGroups: [
+        {
+          LogicalOperator: "And",
+          Filters: [
+            { FieldName:"Price", FieldOperator:"GreaterThan", Values:["10"] },
+            { FieldName:"Item Type", FieldOperator:"Equals", Values:["Book"] }
+          ]
+        }
+      ]
+    },
+    startTime: '2025-05-06T09:00:00Z',
+    endTime:   '2025-05-06T09:01:00Z'
+  },
+  {
+    id: 'c3d479f4-7ac1-0b58-cc43-72a5670e02b2',
+    running: false,
+    jsonConfig: {
+      DesiredColumnOrder: ["Library","Catalog Key","Item Creation Date"],
+      FilterGroups: [
+        {
+          LogicalOperator: "And",
+          Filters: [
+            { FieldName:"Library", FieldOperator:"Equals", Values:["MLTN-A"] },
+            { FieldName:"Item Creation Date", FieldOperator:"Between", Values:["2023-01-01","2023-12-31"] }
+          ]
+        }
+      ]
+    },
+    startTime: '2025-05-07T10:15:00Z',
+    endTime:   '2025-05-07T10:16:00Z'
   }
 ];
+
+// Helper to load a query config into the main UI
+function loadQueryConfig(q) {
+  if(!q || !q.jsonConfig) return;
+  // Load fields
+  displayedFields = [...q.jsonConfig.DesiredColumnOrder];
+  showExampleTable(displayedFields);
+  // Clear filters and reapply from query
+  Object.keys(activeFilters).forEach(k=>delete activeFilters[k]);
+  document.querySelectorAll('.bubble-filter').forEach(b=>{
+    b.classList.remove('bubble-filter');
+    b.removeAttribute('data-filtered');
+  });
+  if(q.jsonConfig.FilterGroups && q.jsonConfig.FilterGroups.length){
+    q.jsonConfig.FilterGroups.forEach(group => {
+      group.Filters.forEach(ff => {
+        if (!activeFilters[ff.FieldName]) {
+          activeFilters[ff.FieldName] = { logical: group.LogicalOperator, filters: [] };
+        }
+        activeFilters[ff.FieldName].filters.push({ cond: ff.FieldOperator.toLowerCase(), val: ff.Values.join('|') });
+        const bubbleEl = Array.from(document.querySelectorAll('.bubble'))
+          .find(b=>b.textContent.trim() === ff.FieldName);
+        if(bubbleEl){
+          bubbleEl.classList.add('bubble-filter');
+          bubbleEl.dataset.filtered = 'true';
+        }
+      });
+    });
+  }
+  // Update JSON display
+  updateQueryJson();
+}
 
 function renderQueries(){
   const container = document.getElementById('queries-container');
@@ -2691,17 +2768,41 @@ function renderQueries(){
           return `${ff.FieldName} ${op.toLowerCase()} "${vals}"`;
         }).join('; ')
       : 'None';
+    // Stop button for running queries, stacked above the label with a separator
+    const stopBtn = q.running ? `
+      <div class="flex flex-col items-center">
+        <button class="inline-flex items-center justify-center p-1 rounded-full bg-red-100 hover:bg-red-200 text-red-600" title="Stop" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
+        <span class="text-green-600 font-semibold mt-1">Running</span>
+      </div>
+    ` : '';
+    // Reuse button for all queries (refresh/circular arrow icon)
+    const reuseBtn = `<button class="reuse-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" title="Reuse Query" tabindex="-1" data-query-id="${q.id}" style="margin-left:4px;"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><path d=\"M23 4v6h-6M1 20v-6h6\"/><path d=\"M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15\"/></svg></button>`;
+    // Duration calculation
+    let duration = '—';
+    if (q.startTime && q.endTime) {
+      const start = new Date(q.startTime);
+      const end = new Date(q.endTime);
+      let seconds = Math.floor((end - start) / 1000);
+      if (seconds >= 60) {
+        const min = Math.floor(seconds / 60);
+        const sec = seconds % 60;
+        duration = `${min}m ${sec}s`;
+      } else {
+        duration = `${seconds}s`;
+      }
+    }
     return `
       <tr class="border-b hover:bg-blue-50 cursor-pointer">
         <td class="px-4 py-2 text-xs">${fields}</td>
         <td class="px-4 py-2 text-xs">${filtersSummary}</td>
         <td class="px-4 py-2 font-mono text-xs text-gray-700">${q.id}</td>
         <td class="px-4 py-2 text-center">
-          ${q.running ? '<span class="text-green-600 font-semibold">Running</span>' :
-                        '<span class="text-gray-500">Finished</span>'}
+          ${q.running ? stopBtn : '<span class="text-gray-500">Finished</span>'}
         </td>
         <td class="px-4 py-2 text-xs">${new Date(q.startTime).toLocaleString()}</td>
         <td class="px-4 py-2 text-xs">${q.endTime ? new Date(q.endTime).toLocaleString() : '—'}</td>
+        <td class="px-4 py-2 text-xs text-center">${duration}</td>
+        <td class="px-4 py-2 text-center">${reuseBtn}</td>
       </tr>
     `;
   }).join('');
@@ -2715,11 +2816,23 @@ function renderQueries(){
           <th class="px-4 py-2 text-center">Status</th>
           <th class="px-4 py-2 text-left">Start</th>
           <th class="px-4 py-2 text-left">End</th>
+          <th class="px-4 py-2 text-center">Duration</th>
+          <th class="px-4 py-2 text-center">Reuse</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>
   `;
+
+  // Attach click handlers to reuse buttons
+  container.querySelectorAll('.reuse-query-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.getAttribute('data-query-id');
+      const q = exampleQueries.find(q => q.id === id);
+      loadQueryConfig(q);
+    });
+  });
 }
 
 // Handle click on a table row to load its jsonConfig
@@ -2830,10 +2943,18 @@ document.querySelectorAll('.collapse-btn').forEach(btn => {
     const panel = document.getElementById(targetId);
     if (!panel) return;
 
-    const isHidden = panel.style.display === 'none';
-    panel.style.display = isHidden ? '' : 'none';
-    // Toggle the symbol between minus (collapse) and plus (expand)
-    btn.innerHTML = isHidden ? '&#x2212;' : '&#x2b;';
+    // Only toggle icon for collapse/expand buttons, not for modal close X buttons
+    // The modal close X buttons are for 'json-panel' and 'queries-panel'
+    if (targetId !== 'json-panel' && targetId !== 'queries-panel') {
+      const isHidden = panel.style.display === 'none';
+      panel.style.display = isHidden ? '' : 'none';
+      // Toggle the symbol between minus (collapse) and plus (expand)
+      btn.innerHTML = isHidden ? '&#x2212;' : '&#x2b;';
+    } else {
+      // For modal close buttons, just close the modal
+      panel.classList.add('hidden');
+      overlay.classList.remove('show');
+    }
   });
 });
 
