@@ -3225,19 +3225,9 @@ document.querySelectorAll('.collapse-btn').forEach(btn => {
     const targetId = btn.dataset.target;
     const panel = document.getElementById(targetId);
     if (!panel) return;
-
-    // Only toggle icon for collapse/expand buttons, not for modal close X buttons
-    // The modal close X buttons are for 'json-panel' and 'queries-panel'
-    if (targetId !== 'json-panel' && targetId !== 'queries-panel') {
-      const isHidden = panel.style.display === 'none';
-      panel.style.display = isHidden ? '' : 'none';
-      // Toggle the symbol between minus (collapse) and plus (expand)
-      btn.innerHTML = isHidden ? '&#x2212;' : '&#x2b;';
-    } else {
-      // For modal close buttons, just close the modal
-      panel.classList.add('hidden');
-      overlay.classList.remove('show');
-    }
+    // For modal close buttons, just close the modal (add 'hidden')
+    panel.classList.add('hidden');
+    overlay.classList.remove('show');
   });
 });
 
