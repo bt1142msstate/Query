@@ -1924,6 +1924,11 @@ document.addEventListener('touchmove', e => {
     touchDragGhost.style.left = `${touch.clientX - touchDragGhost.offsetWidth / 2}px`;
     touchDragGhost.style.top = `${touch.clientY - touchDragGhost.offsetHeight / 2}px`;
     
+    // Clear all previous visual indicators first
+    document.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
+    document.querySelectorAll('.drag-hover').forEach(el => el.classList.remove('drag-hover'));
+    clearDropAnchor();
+    
     // Detect drop targets
     const elementsUnderTouch = document.elementsFromPoint(touch.clientX, touch.clientY);
     
@@ -1941,27 +1946,28 @@ document.addEventListener('touchmove', e => {
     
     if (tableContainer || tableHeader) {
       if (tableHeader) {
-        // Clear any existing highlights
-        document.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
         // Highlight the current header
         tableHeader.classList.add('th-drag-over');
         
-        // Show drop anchor for visual feedback
+        // Use the same drop anchor positioning function that mouse dragging uses
         const table = tableHeader.closest('table');
         const rect = tableHeader.getBoundingClientRect();
         positionDropAnchor(true, rect, table, touch.clientX);
-        dropAnchor.style.display = 'block';
       } else if (tableContainer) {
-        // Just show we're over the table
+        // Just show we're over the table with a highlight
         tableContainer.classList.add('drag-hover');
+        
+        // If we have no columns yet, show a horizontal drop anchor
+        const table = tableContainer.querySelector('table');
+        if (table && (!displayedFields || displayedFields.length === 0)) {
+          const rect = table.getBoundingClientRect();
+          // Use horizontal anchor (isBubble = false)
+          positionDropAnchor(false, rect, table, touch.clientX);
+        }
       }
       
       dropTargetFound = true;
     } else {
-      // Not over a drop target
-      document.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
-      document.querySelectorAll('.drag-hover').forEach(el => el.classList.remove('drag-hover'));
-      dropAnchor.style.display = 'none';
       dropTargetFound = false;
     }
     
@@ -2028,10 +2034,10 @@ document.addEventListener('touchend', e => {
   isBubbleDrag = false;
   dropTargetFound = false;
   
-  // Clear any visual indicators
+  // Clear any visual indicators using the shared function
   document.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
   document.querySelectorAll('.drag-hover').forEach(el => el.classList.remove('drag-hover'));
-  dropAnchor.style.display = 'none';
+  clearDropAnchor();
 }, { passive: true });
 
 /* Render/update the filter pill list for a given field */
@@ -3470,6 +3476,55 @@ document.querySelectorAll('.collapse-btn').forEach(btn => {
     overlay.classList.remove('show');
   });
 });
+
+// Mobile hamburger menu functionality
+const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+const mobileMenuDropdown = document.getElementById('mobile-menu-dropdown');
+
+if (mobileMenuToggle && mobileMenuDropdown) {
+  // Toggle dropdown visibility when hamburger is clicked
+  mobileMenuToggle.addEventListener('click', () => {
+    mobileMenuDropdown.classList.toggle('show');
+  });
+  
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!mobileMenuToggle.contains(e.target) && !mobileMenuDropdown.contains(e.target)) {
+      mobileMenuDropdown.classList.remove('show');
+    }
+  });
+  
+  // Mobile menu item click handlers
+  document.getElementById('mobile-run-query')?.addEventListener('click', () => {
+    mobileMenuDropdown.classList.remove('show');
+    // Trigger the same action as the run query button
+    document.getElementById('run-query-btn')?.click();
+  });
+  
+  document.getElementById('mobile-download')?.addEventListener('click', () => {
+    mobileMenuDropdown.classList.remove('show');
+    // Trigger the same action as the download button
+    document.getElementById('download-btn')?.click();
+  });
+  
+  document.getElementById('mobile-toggle-json')?.addEventListener('click', () => {
+    mobileMenuDropdown.classList.remove('show');
+    // Trigger the same action as the JSON toggle button
+    document.getElementById('toggle-json')?.click();
+  });
+  
+  document.getElementById('mobile-toggle-queries')?.addEventListener('click', () => {
+    mobileMenuDropdown.classList.remove('show');
+    // Trigger the same action as the queries toggle button
+    document.getElementById('toggle-queries')?.click();
+  });
+  
+  document.getElementById('mobile-toggle-help')?.addEventListener('click', () => {
+    mobileMenuDropdown.classList.remove('show');
+    // Trigger the same action as the help toggle button
+    document.getElementById('toggle-help')?.click();
+  });
+}
 
 /* Update the count in the Selected category button */
 function updateCategoryCounts() {
