@@ -322,6 +322,9 @@ function resetActive(){
       // Temporarily hide the origin bubble so the clone can fully overlap it
       origin.style.opacity = '0';
       
+      const fieldName = origin.textContent.trim();
+      const shouldBePurple = activeFilters[fieldName] || displayedFields.includes(fieldName);
+      
       // Start the reverse animation
       clone.classList.remove('enlarge-bubble');  // shrink first
       clone.classList.remove('active-bubble');   // then fly back
@@ -329,6 +332,15 @@ function resetActive(){
         clone.remove();                          // remove clone after it snaps back
         origin.style.opacity = '';
         origin.classList.remove('bubble-disabled'); // re-enable origin
+        
+        // Apply purple styling if needed for the original bubble
+        if (shouldBePurple) {
+          origin.classList.add('bubble-filter');
+          origin.setAttribute('data-filtered', 'true');
+        } else {
+          origin.classList.remove('bubble-filter');
+          origin.removeAttribute('data-filtered');
+        }
       }, { once:true });
     } else {
       // Origin bubble is gone - just remove the clone immediately without animating
@@ -342,6 +354,16 @@ function resetActive(){
         if (matchingBubble) {
           matchingBubble.style.opacity = '';
           matchingBubble.classList.remove('bubble-disabled');
+          
+          // Apply purple styling if needed for the matching bubble
+          const shouldBePurple = activeFilters[fieldName] || displayedFields.includes(fieldName);
+          if (shouldBePurple) {
+            matchingBubble.classList.add('bubble-filter');
+            matchingBubble.setAttribute('data-filtered', 'true');
+          } else {
+            matchingBubble.classList.remove('bubble-filter');
+            matchingBubble.removeAttribute('data-filtered');
+          }
         }
       }
     }
