@@ -36,30 +36,25 @@ document.querySelectorAll('.collapse-btn').forEach(btn=>{
 
 /* --- Run / Stop query toggle --- */
 const runBtn  = document.getElementById('run-query-btn');
-const downloadBtn = document.getElementById('download-btn'); // Add download button reference
 const runIcon = document.getElementById('run-icon');
 const stopIcon= document.getElementById('stop-icon');
 let queryRunning = false;
 
-/* Enable Run and Download buttons only when query JSON has something to run */
+// Download button reference
+const downloadBtn = document.getElementById('download-btn');
+if (downloadBtn) downloadBtn.disabled = true; // Always start disabled
+
+/* Enable Run button only when query JSON has something to run */
 function updateRunBtnState(){
   if(!runBtn) return;
   try{
     const q = JSON.parse(queryBox.value || '{}');
     const hasFields = Array.isArray(q.DesiredColumnOrder) && q.DesiredColumnOrder.length > 0;
-    const shouldEnable = hasFields && !queryRunning;
-    
-    runBtn.disabled = !shouldEnable;
-    
-    // Also control download button with same logic
-    if(downloadBtn) {
-      downloadBtn.disabled = !shouldEnable;
-    }
+    runBtn.disabled = !hasFields || queryRunning;
+    if(downloadBtn) downloadBtn.disabled = runBtn.disabled;
   }catch{
     runBtn.disabled = true;
-    if(downloadBtn) {
-      downloadBtn.disabled = true;
-    }
+    if(downloadBtn) downloadBtn.disabled = true;
   }
 }
 // Initial check
@@ -111,6 +106,9 @@ if(runBtn){
       tableWrapper.style.overflowY = '';
       window.removeEventListener('resize', adjustTableHeight);
     }
+
+    // --- Download button should always be disabled while running ---
+    if(downloadBtn) downloadBtn.disabled = queryRunning || runBtn.disabled;
 
     if(queryRunning){
       console.log('Query started…');   // TODO: start real query here
