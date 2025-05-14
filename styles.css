@@ -703,7 +703,9 @@ input, textarea, select, [contenteditable] {
   border-radius: var(--border-radius-xl);
   border: 1px solid rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(4px);
-  background: rgba(255, 255, 255, 0.92);
+  background: #fff;
+  z-index: 10;
+  position: relative;
 }
 
 /* Remove the hover transformation effect */
@@ -1144,6 +1146,7 @@ th:hover .th-trash {
   box-shadow: 0 0 6px 2px rgba(255, 255, 200, 0.8);
   pointer-events: none;
   opacity: 0;
+  z-index: 1;
   animation:
     fadeIn var(--fadeInDur, 2s) ease-out forwards,
     drift var(--dur, 20s) ease-in-out infinite alternate,
