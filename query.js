@@ -3539,11 +3539,10 @@ function updateCategoryCounts() {
     return Array.isArray(c) ? c.includes('Marc') : c === 'Marc';
   }).length;
 
-  // If count is 0, rebuild the category bar to remove Selected
-  if (selectedCount === 0) {
-    const categoryBar = document.getElementById('category-bar');
-    if (categoryBar) {
-      // Rebuild the category bar without Selected
+  const categoryBar = document.getElementById('category-bar');
+  if (categoryBar) {
+    if (selectedCount === 0) {
+      // If count is 0, rebuild the category bar without Selected
       categoryBar.innerHTML = categories.map(cat => {
         if (cat === 'Selected') return '';
         let count;
@@ -3557,11 +3556,17 @@ function updateCategoryCounts() {
             return Array.isArray(c) ? c.includes(cat) : c === cat;
           }).length;
         }
-        return `<button data-category="${cat}" class="category-btn ${cat==='All' ? 'active' : ''}">${cat} (${count})</button>`;
+        return `<button data-category="${cat}" class="category-btn ${cat === currentCategory ? 'active' : ''}">${cat} (${count})</button>`;
       }).join('');
+      
       // Reattach click handlers
       document.querySelectorAll('#category-bar .category-btn').forEach(btn => {
         btn.addEventListener('click', () => {
+          // If we were in the Selected category and it's now gone, switch to All
+          if (currentCategory === 'Selected') {
+            currentCategory = 'All';
+          }
+          
           currentCategory = btn.dataset.category;
           document.querySelectorAll('#category-bar .category-btn').forEach(b =>
             b.classList.toggle('active', b === btn)
@@ -3570,19 +3575,14 @@ function updateCategoryCounts() {
           renderBubbles();
         });
       });
-      
-      // Also update mobile selector
-      updateMobileSelector(selectedCount, marcCount);
-    }
-  }
-    // Update the count if Selected category exists
-    const selectedBtn = document.querySelector('#category-bar .category-btn[data-category="Selected"]');
-    if (selectedBtn) {
-      selectedBtn.textContent = `Selected (${selectedCount})`;
     } else {
-      // If Selected category doesn't exist but count > 0, rebuild category bar to add it
-      const categoryBar = document.getElementById('category-bar');
-      if (categoryBar) {
+      // If Selected count > 0, ensure Selected category exists
+      const selectedBtn = document.querySelector('#category-bar .category-btn[data-category="Selected"]');
+      if (selectedBtn) {
+        // Just update the count text
+        selectedBtn.textContent = `Selected (${selectedCount})`;
+      } else {
+        // Rebuild the category bar to include Selected
         categoryBar.innerHTML = categories.map(cat => {
           let count;
           if (cat === 'All') {
@@ -3597,8 +3597,9 @@ function updateCategoryCounts() {
               return Array.isArray(c) ? c.includes(cat) : c === cat;
             }).length;
           }
-          return `<button data-category="${cat}" class="category-btn ${cat==='All' ? 'active' : ''}">${cat} (${count})</button>`;
+          return `<button data-category="${cat}" class="category-btn ${cat === currentCategory ? 'active' : ''}">${cat} (${count})</button>`;
         }).join('');
+        
         // Reattach click handlers
         document.querySelectorAll('#category-bar .category-btn').forEach(btn => {
           btn.addEventListener('click', () => {
@@ -3610,30 +3611,30 @@ function updateCategoryCounts() {
             renderBubbles();
           });
         });
-        
-        // Also update mobile selector
-        updateMobileSelector(selectedCount, marcCount);
       }
     }
+    
     // Always update Marc count if present
     const marcBtn = document.querySelector('#category-bar .category-btn[data-category="Marc"]');
     if (marcBtn) {
       marcBtn.textContent = `Marc (${marcCount})`;
     }
-    
-    // Update mobile selector option texts
-    const mobileSelector = document.getElementById('mobile-category-selector');
-    if (mobileSelector) {
-      Array.from(mobileSelector.options).forEach(option => {
-        const cat = option.value;
-        if (cat === 'Selected') {
-          option.textContent = `Selected (${selectedCount})`;
-        } else if (cat === 'Marc') {
-          option.textContent = `Marc (${marcCount})`;
-        }
-      });
-    }
   }
+  
+  // Update mobile selector
+  updateMobileSelector(selectedCount, marcCount);
+  
+  // If we're in the Selected category and the count is 0, switch to All
+  if (currentCategory === 'Selected' && selectedCount === 0) {
+    currentCategory = 'All';
+    const allBtn = document.querySelector('#category-bar .category-btn[data-category="All"]');
+    if (allBtn) {
+      allBtn.classList.add('active');
+    }
+    scrollRow = 0;
+    renderBubbles();
+  }
+}
   
 /* Helper function to update the mobile selector when categories change */
 function updateMobileSelector(selectedCount, marcCount) {
@@ -3677,8 +3678,9 @@ function updateMobileSelector(selectedCount, marcCount) {
     mobileSelector.appendChild(option);
   });
   
-  // If the current category doesn't exist, select All
-  if (!Array.from(mobileSelector.options).some(opt => opt.value === currentValue)) {
+  // If the current category doesn't exist or is Selected with count 0, select All
+  if (!Array.from(mobileSelector.options).some(opt => opt.value === currentValue) || 
+      (currentValue === 'Selected' && selectedCount === 0)) {
     mobileSelector.value = 'All';
   }
 }
