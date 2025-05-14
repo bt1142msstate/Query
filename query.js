@@ -305,6 +305,36 @@ function updateQueryJson(){
   if(queryBox) queryBox.value = JSON.stringify(query, null, 2);
   updateRunBtnState();
 }
+
+// Helper function to check if a field should have purple styling
+function shouldFieldHavePurpleStyling(fieldName) {
+  // Check if the field has active filters
+  const hasFilters = activeFilters[fieldName] && 
+                    activeFilters[fieldName].filters && 
+                    activeFilters[fieldName].filters.length > 0;
+  
+  // Check if the field is displayed as a column
+  const isDisplayed = displayedFields.includes(fieldName);
+  
+  return hasFilters || isDisplayed;
+}
+
+// Helper function to apply correct styling to a bubble element
+function applyCorrectBubbleStyling(bubbleElement) {
+  if (!bubbleElement) return;
+  
+  const fieldName = bubbleElement.textContent.trim();
+  
+  if (shouldFieldHavePurpleStyling(fieldName)) {
+    bubbleElement.classList.add('bubble-filter');
+    bubbleElement.setAttribute('data-filtered', 'true');
+  } else {
+    bubbleElement.classList.remove('bubble-filter');
+    bubbleElement.removeAttribute('data-filtered');
+  }
+}
+
+// Apply the helper to the resetActive function
 function resetActive(){
   // For every floating clone, animate it back to its origin,
   // then restore the origin bubble's appearance when the animation ends.
@@ -322,9 +352,6 @@ function resetActive(){
       // Temporarily hide the origin bubble so the clone can fully overlap it
       origin.style.opacity = '0';
       
-      const fieldName = origin.textContent.trim();
-      const shouldBePurple = activeFilters[fieldName] || displayedFields.includes(fieldName);
-      
       // Start the reverse animation
       clone.classList.remove('enlarge-bubble');  // shrink first
       clone.classList.remove('active-bubble');   // then fly back
@@ -333,14 +360,8 @@ function resetActive(){
         origin.style.opacity = '';
         origin.classList.remove('bubble-disabled'); // re-enable origin
         
-        // Apply purple styling if needed for the original bubble
-        if (shouldBePurple) {
-          origin.classList.add('bubble-filter');
-          origin.setAttribute('data-filtered', 'true');
-        } else {
-          origin.classList.remove('bubble-filter');
-          origin.removeAttribute('data-filtered');
-        }
+        // Apply the correct styling to the original bubble
+        applyCorrectBubbleStyling(origin);
       }, { once:true });
     } else {
       // Origin bubble is gone - just remove the clone immediately without animating
@@ -351,24 +372,19 @@ function resetActive(){
         const fieldName = origin.textContent.trim();
         const matchingBubble = Array.from(document.querySelectorAll('.bubble'))
           .find(b => b.textContent.trim() === fieldName);
+        
         if (matchingBubble) {
           matchingBubble.style.opacity = '';
           matchingBubble.classList.remove('bubble-disabled');
           
-          // Apply purple styling if needed for the matching bubble
-          const shouldBePurple = activeFilters[fieldName] || displayedFields.includes(fieldName);
-          if (shouldBePurple) {
-            matchingBubble.classList.add('bubble-filter');
-            matchingBubble.setAttribute('data-filtered', 'true');
-          } else {
-            matchingBubble.classList.remove('bubble-filter');
-            matchingBubble.removeAttribute('data-filtered');
-          }
+          // Apply the correct styling to the matching bubble
+          applyCorrectBubbleStyling(matchingBubble);
         }
       }
     }
   });
 }
+
 overlay.addEventListener('click',()=>{
   overlay.classList.remove('show');
   resetActive();
@@ -984,12 +1000,14 @@ confirmBtn.addEventListener('click', e => {
       activeFilters[field] = { logical: 'And', filters: [] };
     }
     activeFilters[field].filters.push({ cond, val: finalVal });
-    const bubbleEl = Array.from(document.querySelectorAll('.bubble'))
-      .find(b => b.textContent.trim() === field);
-    if (bubbleEl) {
-      bubbleEl.classList.add('bubble-filter');
-      bubbleEl.setAttribute('data-filtered', 'true');
-    }
+    
+    // Update all bubbles for this field
+    document.querySelectorAll('.bubble').forEach(b => {
+      if (b.textContent.trim() === field) {
+        applyCorrectBubbleStyling(b);
+      }
+    });
+    
     renderConditionList(field);
     updateQueryJson();
   }
@@ -1183,7 +1201,7 @@ function renderBubbles(){
     // Show bubbles that are either displayed or have filters
     list = filteredDefs.filter(d => {
       const fieldName = d.name;
-      return displayedFields.includes(fieldName) || activeFilters[fieldName];
+      return shouldFieldHavePurpleStyling(fieldName);
     });
   } else {
     list = filteredDefs.filter(d => {
@@ -1223,11 +1241,8 @@ function renderBubbles(){
           div.setAttribute('draggable', 'true');
         }
         
-        // Apply bubble-filter class if this field has active filters OR is displayed as a column
-        if (activeFilters[def.name] || displayedFields.includes(def.name)) {
-          div.classList.add('bubble-filter');
-          div.setAttribute('data-filtered', 'true');
-        }
+        // Apply the correct styling to the new bubble
+        applyCorrectBubbleStyling(div);
         
         listDiv.appendChild(div);
       }
@@ -1250,11 +1265,8 @@ function renderBubbles(){
         div.setAttribute('draggable', 'true');
       }
       
-      // Apply bubble-filter class if this field has active filters OR is displayed as a column
-      if (activeFilters[def.name] || displayedFields.includes(def.name)) {
-        div.classList.add('bubble-filter');
-        div.setAttribute('data-filtered', 'true');
-      }
+      // Apply the correct styling to the bubble
+      applyCorrectBubbleStyling(div);
       
       listDiv.appendChild(div);
     });
@@ -1402,7 +1414,7 @@ if (categoryBar) {
   // Calculate selected count first
   const selectedCount = fieldDefs.filter(d => {
     const fieldName = d.name;
-    return displayedFields.includes(fieldName) || activeFilters[fieldName];
+    return shouldFieldHavePurpleStyling(fieldName);
   }).length;
 
   categoryBar.innerHTML = categories.map(cat => {
@@ -1671,11 +1683,10 @@ function renderConditionList(field){
   container.innerHTML = '';            // clear previous render
   const data = activeFilters[field];
   if(!data || !data.filters.length) {
-    // Remove flag from bubble
+    // Update styling for all bubbles with this field name
     document.querySelectorAll('.bubble').forEach(b=>{
       if(b.textContent.trim()===field) {
-        b.removeAttribute('data-filtered');
-        b.classList.remove('bubble-filter');
+        applyCorrectBubbleStyling(b);
       }
     });
     
@@ -2386,19 +2397,14 @@ function removeColumn(table, colIndex){
 
   refreshColIndices(table);
 
-  // Re-enable dragging on the bubble for this field
+  // Update styling for the bubble for this field
   if (fieldName) {
-    const bubbleEl = Array.from(document.querySelectorAll('.bubble'))
-      .find(b => b.textContent.trim() === fieldName);
-    if (bubbleEl) {
-      bubbleEl.setAttribute('draggable', 'true');
-      
-      // Remove purple styling only if it doesn't have active filters
-      if (!activeFilters[fieldName]) {
-        bubbleEl.classList.remove('bubble-filter');
-        bubbleEl.removeAttribute('data-filtered');
+    document.querySelectorAll('.bubble').forEach(bubbleEl => {
+      if (bubbleEl.textContent.trim() === fieldName) {
+        bubbleEl.setAttribute('draggable', 'true');
+        applyCorrectBubbleStyling(bubbleEl);
       }
-    }
+    });
   }
 
   // Update JSON to reflect removed column
@@ -2693,16 +2699,12 @@ function showExampleTable(fields){
       const field = bubbleEl.textContent.trim();
       if(displayedFields.includes(field)){
         bubbleEl.removeAttribute('draggable');
-        // Apply purple style to bubbles that are displayed as columns
-        bubbleEl.classList.add('bubble-filter');
-        bubbleEl.setAttribute('data-filtered', 'true');
+        // Apply styling consistently using our helper
+        applyCorrectBubbleStyling(bubbleEl);
       } else {
         bubbleEl.setAttribute('draggable','true');
-        // Keep the bubble-filter class if it has active filters
-        if (!activeFilters[field]) {
-          bubbleEl.classList.remove('bubble-filter');
-          bubbleEl.removeAttribute('data-filtered');
-        }
+        // Apply styling consistently using our helper
+        applyCorrectBubbleStyling(bubbleEl);
       }
     });
     updateQueryJson();
@@ -3032,7 +3034,7 @@ document.querySelectorAll('.collapse-btn').forEach(btn => {
 function updateCategoryCounts() {
   const selectedCount = fieldDefs.filter(d => {
     const fieldName = d.name;
-    return displayedFields.includes(fieldName) || activeFilters[fieldName];
+    return shouldFieldHavePurpleStyling(fieldName);
   }).length;
 
   // Helper to count Marc fields
