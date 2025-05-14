@@ -12,14 +12,17 @@
   
   <!-- New Header Bar -->
   <div id="header-bar" class="fixed top-0 left-0 right-0 bg-indigo-800 text-white shadow-lg py-3 px-6 flex justify-between items-center z-50">
-    <div class="w-32 flex items-center justify-start">
+    <div class="w-32 flex items-center justify-start" style="min-width: 32px; gap:2px;">
       <!-- Modern Q logo, white background, black Q, same size as buttons -->
-      <span class="inline-flex items-center justify-center rounded-full bg-white shadow-md" style="width:32px;height:32px;">
+      <span class="inline-flex items-center justify-center rounded-full bg-white shadow-md" style="width:32px;height:32px;aspect-ratio:1/1;">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="12" cy="12" r="8.5" fill="none" stroke="#111" stroke-width="2"/>
           <path d="M16.5 16.5L20 20" stroke="#111" stroke-width="2" stroke-linecap="round"/>
           <path d="M12 8.5a3.5 3.5 0 1 1 0 7a3.5 3.5 0 0 1 0-7z" fill="none" stroke="#111" stroke-width="2"/>
         </svg>
+      </span>
+      <span class="flex items-center text-sm font-semibold" style="color:#fff; z-index:20; white-space:nowrap;">
+        uery Prototype
       </span>
     </div>
     <div id="header-controls" class="flex gap-2">
