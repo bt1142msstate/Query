@@ -1556,6 +1556,54 @@ if (categoryBar) {
       renderBubbles();
     });
   });
+  
+  // Also populate the mobile selector
+  const mobileSelector = document.getElementById('mobile-category-selector');
+  if (mobileSelector) {
+    // Clear existing options
+    mobileSelector.innerHTML = '';
+    
+    // Add options for each category
+    categories.forEach(cat => {
+      // Skip Selected category if count is 0
+      if (cat === 'Selected' && selectedCount === 0) return;
+      
+      let count;
+      if (cat === 'All') {
+        count = fieldDefs.length;
+      } else if (cat === 'Selected') {
+        count = selectedCount;
+      } else {
+        count = fieldDefs.filter(d => {
+          const c = d.category;
+          return Array.isArray(c) ? c.includes(cat) : c === cat;
+        }).length;
+      }
+      
+      const option = document.createElement('option');
+      option.value = cat;
+      option.textContent = `${cat} (${count})`;
+      option.selected = cat === 'All'; // Default to 'All'
+      mobileSelector.appendChild(option);
+    });
+    
+    // Add change event listener
+    mobileSelector.addEventListener('change', () => {
+      // Prevent navigation if overlay is shown or a bubble is enlarged
+      if (overlay.classList.contains('show') || document.querySelector('.active-bubble')) return;
+      
+      currentCategory = mobileSelector.value;
+      
+      // Sync the desktop category buttons
+      document.querySelectorAll('#category-bar .category-btn').forEach(btn =>
+        btn.classList.toggle('active', btn.dataset.category === currentCategory)
+      );
+      
+      scrollRow = 0;
+      renderBubbles();
+    });
+  }
+  
   // (Bubble scrollbar navigation handled below)
   const track = document.getElementById('bubble-scrollbar-track');
   const thumb = document.getElementById('bubble-scrollbar-thumb');
@@ -3275,8 +3323,11 @@ function updateCategoryCounts() {
           renderBubbles();
         });
       });
+      
+      // Also update mobile selector
+      updateMobileSelector(selectedCount, marcCount);
     }
-  } else {
+  }
     // Update the count if Selected category exists
     const selectedBtn = document.querySelector('#category-bar .category-btn[data-category="Selected"]');
     if (selectedBtn) {
@@ -3312,6 +3363,9 @@ function updateCategoryCounts() {
             renderBubbles();
           });
         });
+        
+        // Also update mobile selector
+        updateMobileSelector(selectedCount, marcCount);
       }
     }
     // Always update Marc count if present
@@ -3319,5 +3373,65 @@ function updateCategoryCounts() {
     if (marcBtn) {
       marcBtn.textContent = `Marc (${marcCount})`;
     }
+    
+    // Update mobile selector option texts
+    const mobileSelector = document.getElementById('mobile-category-selector');
+    if (mobileSelector) {
+      Array.from(mobileSelector.options).forEach(option => {
+        const cat = option.value;
+        if (cat === 'Selected') {
+          option.textContent = `Selected (${selectedCount})`;
+        } else if (cat === 'Marc') {
+          option.textContent = `Marc (${marcCount})`;
+        }
+      });
+    }
+  }
+  
+/* Helper function to update the mobile selector when categories change */
+function updateMobileSelector(selectedCount, marcCount) {
+  const mobileSelector = document.getElementById('mobile-category-selector');
+  if (!mobileSelector) return;
+  
+  // Save current selection
+  const currentValue = mobileSelector.value;
+  
+  // Clear existing options
+  mobileSelector.innerHTML = '';
+  
+  // Add options for each category
+  categories.forEach(cat => {
+    // Skip Selected category if count is 0
+    if (cat === 'Selected' && selectedCount === 0) return;
+    
+    let count;
+    if (cat === 'All') {
+      count = fieldDefs.length;
+    } else if (cat === 'Selected') {
+      count = selectedCount;
+    } else if (cat === 'Marc') {
+      count = marcCount;
+    } else {
+      count = fieldDefs.filter(d => {
+        const c = d.category;
+        return Array.isArray(c) ? c.includes(cat) : c === cat;
+      }).length;
+    }
+    
+    const option = document.createElement('option');
+    option.value = cat;
+    option.textContent = `${cat} (${count})`;
+    
+    // Restore selection if it still exists
+    if (cat === currentValue) {
+      option.selected = true;
+    }
+    
+    mobileSelector.appendChild(option);
+  });
+  
+  // If the current category doesn't exist, select All
+  if (!Array.from(mobileSelector.options).some(opt => opt.value === currentValue)) {
+    mobileSelector.value = 'All';
   }
 }
