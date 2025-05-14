@@ -574,10 +574,22 @@ function createGroupedSelector(values, isMultiSelect, currentValues = []) {
   optionsContainer.className = 'grouped-options-container';
   container.appendChild(optionsContainer);
   
+  // Process values to handle both old format (string) and new format (objects with display/literal)
+  const processedValues = values.map(val => {
+    if (typeof val === 'string') {
+      // Old format - use the same value for both display and literal
+      return { display: val, literal: val, raw: val };
+    } else {
+      // New format with display and literal properties
+      return { ...val, raw: val.display };
+    }
+  });
+  
   // Extract groups (prefixes before dash)
   const groups = new Map();
-  values.forEach(val => {
-    const parts = val.split('-');
+  processedValues.forEach(val => {
+    const displayText = val.display;
+    const parts = displayText.split('-');
     if (parts.length > 1) {
       const groupName = parts[0];
       if (!groups.has(groupName)) {
@@ -617,8 +629,10 @@ function createGroupedSelector(values, isMultiSelect, currentValues = []) {
       groupCheckbox.className = 'group-checkbox';
       groupCheckbox.dataset.group = groupName;
       
-      // Check if all group items are selected
-      const allSelected = groupValues.every(val => currentValues.includes(val));
+      // Check if all group items are selected by comparing literals
+      const allSelected = groupValues.every(val => 
+        currentValues.includes(val.literal)
+      );
       groupCheckbox.checked = allSelected && groupValues.length > 0;
       
       // Handle group selection
@@ -651,14 +665,16 @@ function createGroupedSelector(values, isMultiSelect, currentValues = []) {
       const optionItem = document.createElement('div');
       optionItem.className = 'option-item';
       optionItem.dataset.group = groupName;
-      optionItem.dataset.value = val;
+      optionItem.dataset.value = val.literal;
+      optionItem.dataset.display = val.display;
       
       const input = document.createElement('input');
       input.type = isMultiSelect ? 'checkbox' : 'radio';
       input.name = 'condition-value';
-      input.value = val;
-      input.dataset.value = val;
-      input.checked = currentValues.includes(val);
+      input.value = val.literal;
+      input.dataset.value = val.literal;
+      input.dataset.display = val.display;
+      input.checked = currentValues.includes(val.literal);
       
       // For radio buttons and checkboxes, handle the change event
       input.addEventListener('change', () => {
@@ -671,8 +687,8 @@ function createGroupedSelector(values, isMultiSelect, currentValues = []) {
       });
       
       const label = document.createElement('label');
-      // Show only the part after the dash or the full value if no dash
-      const displayText = val.includes('-') ? val.split('-')[1] : val;
+      // Show only the part after the dash or the full display text if no dash
+      const displayText = val.display.includes('-') ? val.display.split('-')[1] : val.display;
       label.textContent = displayText;
       
       optionItem.appendChild(input);
@@ -726,10 +742,11 @@ function createGroupedSelector(values, isMultiSelect, currentValues = []) {
         // Check each option in the group
         Array.from(group.options.querySelectorAll('.option-item')).forEach(item => {
           const value = item.dataset.value.toLowerCase();
+          const display = item.dataset.display.toLowerCase();
           const label = item.querySelector('label');
           const displayText = label.textContent.toLowerCase();
           
-          if (value.includes(searchTerm) || displayText.includes(searchTerm)) {
+          if (value.includes(searchTerm) || display.includes(searchTerm) || displayText.includes(searchTerm)) {
             item.style.display = '';
             matchingItems.push(item);
             hasMatch = true;
@@ -755,7 +772,7 @@ function createGroupedSelector(values, isMultiSelect, currentValues = []) {
     }
   });
   
-  // Helper method to get selected values
+  // Helper method to get selected values (return literal values for JSON)
   container.getSelectedValues = function() {
     const selected = [];
     this.querySelectorAll('input[type="checkbox"]:checked, input[type="radio"]:checked').forEach(input => {
@@ -766,7 +783,18 @@ function createGroupedSelector(values, isMultiSelect, currentValues = []) {
     return selected;
   };
   
-  // Expose method to set values
+  // Helper method to get display values for UI
+  container.getSelectedDisplayValues = function() {
+    const selected = [];
+    this.querySelectorAll('input[type="checkbox"]:checked, input[type="radio"]:checked').forEach(input => {
+      if (input.dataset.display && !input.classList.contains('group-checkbox')) {
+        selected.push(input.dataset.display);
+      }
+    });
+    return selected;
+  };
+  
+  // Expose method to set values (using literal values)
   container.setSelectedValues = function(values) {
     const valueSet = new Set(values);
     this.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(input => {
@@ -955,21 +983,27 @@ confirmBtn.addEventListener('click', e => {
   const isTextInputVisible = conditionInput.style.display !== 'none';
   const isSelectVisible = sel && sel.style.display !== 'none';
   const isContainerVisible = selContainer && selContainer.style.display !== 'none';
-  let newValues = [];
+  
+  // Variable to store literal values for JSON
+  let newLiteralValues = [];
+  
   if (isContainerVisible) {
-    newValues = selContainer.getSelectedValues();
+    // Use the literal values for storage in JSON
+    newLiteralValues = selContainer.getSelectedValues();
   } else if (isSelectVisible) {
     if (sel.multiple) {
-      newValues = Array.from(sel.selectedOptions).map(o => o.value);
+      newLiteralValues = Array.from(sel.selectedOptions).map(o => o.value);
     } else {
-      newValues = [sel.value];
+      newLiteralValues = [sel.value];
     }
   } else if (cond === 'between') {
-    newValues = [`${val}|${val2}`];
+    newLiteralValues = [`${val}|${val2}`];
   } else {
-    newValues = [val];
+    newLiteralValues = [val];
   }
-  let finalValues = [...newValues];
+  
+  let finalLiteralValues = [...newLiteralValues];
+  
   if (isMultiSelect && cond === 'equals') {
     if (!activeFilters[field]) {
       activeFilters[field] = { logical: 'And', filters: [] };
@@ -977,40 +1011,43 @@ confirmBtn.addEventListener('click', e => {
     const existingEqualsIdx = activeFilters[field].filters.findIndex(f => f.cond === 'equals');
     if (existingEqualsIdx !== -1) {
       const existingVals = activeFilters[field].filters[existingEqualsIdx].val.split(',');
-      finalValues = [...new Set([...existingVals, ...newValues])];
+      finalLiteralValues = [...new Set([...existingVals, ...newLiteralValues])];
       activeFilters[field].filters.splice(existingEqualsIdx, 1);
     }
   }
-  const finalVal = finalValues.join(',');
+  
+  const finalVal = finalLiteralValues.join(',');
+  
   if (!isMultiSelect || cond !== 'equals') {
-  const fieldType = bubble.dataset.type || 'string';
-  const newFilterObj = { cond, val: finalVal };
+    const fieldType = bubble.dataset.type || 'string';
+    const newFilterObj = { cond, val: finalVal };
     const existingSet = activeFilters[field];
-  const conflictMsg = getContradictionMessage(existingSet, newFilterObj, fieldType, field);
+    const conflictMsg = getContradictionMessage(existingSet, newFilterObj, fieldType, field);
     if (conflictMsg) {
       [conditionInput, document.getElementById('condition-input-2')].forEach(inp => {
         if (inp) inp.classList.add('error');
-    });
-    const errorLabel = document.getElementById('filter-error');
+      });
+      const errorLabel = document.getElementById('filter-error');
       if (errorLabel) {
-      errorLabel.textContent = conflictMsg;
-      errorLabel.style.display = 'block';
-    }
+        errorLabel.textContent = conflictMsg;
+        errorLabel.style.display = 'block';
+      }
       setTimeout(() => {
         if (errorLabel) errorLabel.style.display = 'none';
         [conditionInput, document.getElementById('condition-input-2')].forEach(inp => {
           if (inp) inp.classList.remove('error');
-      });
-    }, 3000);
+        });
+      }, 3000);
       return;
-  } else {
-    const errorLabel = document.getElementById('filter-error');
+    } else {
+      const errorLabel = document.getElementById('filter-error');
       if (errorLabel) errorLabel.style.display = 'none';
       [conditionInput, document.getElementById('condition-input-2')].forEach(inp => {
         if (inp) inp.classList.remove('error');
-    });
+      });
+    }
   }
-  }
+  
   if (cond && cond !== 'display') {
     if (!activeFilters[field]) {
       activeFilters[field] = { logical: 'And', filters: [] };
@@ -1027,9 +1064,11 @@ confirmBtn.addEventListener('click', e => {
     renderConditionList(field);
     updateQueryJson();
   }
+  
   conditionInput.value = '';
   document.getElementById('condition-input-2').value = '';
   positionInputWrapper();
+  
   if (isMultiSelect && isContainerVisible && cond === 'equals') {
     const currentFilter = activeFilters[field]?.filters.find(f => f.cond === 'equals');
     if (currentFilter) {
@@ -1106,7 +1145,14 @@ document.addEventListener('keydown',e=>{
 
 /* ---------- Field definitions: name, type, optional values, optional filters ---------- */
 const fieldDefs = [
-  { "name": "Library", "type": "string", "values": ["TRLS-A", "TRLS-B", "TRLS-C", "MLTN-A", "MLTN-B", "WSPR-X"], "filters": ["equals"], "desc": "The library branch", "category": "Item", "multiSelect": true },
+  { "name": "Library", "type": "string", "values": [
+    { "display": "TRLS-A", "literal": "1" },
+    { "display": "TRLS-B", "literal": "2" },
+    { "display": "TRLS-C", "literal": "3" },
+    { "display": "MLTN-A", "literal": "4" },
+    { "display": "MLTN-B", "literal": "5" },
+    { "display": "WSPR-X", "literal": "6" }
+  ], "filters": ["equals"], "desc": "The library branch", "category": "Item", "multiSelect": true },
   { "name": "Author", "type": "string", "filters": ["contains", "starts", "equals"], "category": "Catalog" },
   { "name": "Title", "type": "string", "filters": ["contains", "starts", "equals"], "category": "Catalog" },
   { "name": "Price", "type": "money", "desc": "Cost of item", "category": "Catalog" },
@@ -1128,10 +1174,17 @@ const fieldDefs = [
   { "name": "Extended Info Offset", "type": "number", "category": "Item" },
   { "name": "Current Location", "type": "string", "category": "Item" },
   { "name": "Last Charged Date", "type": "date", "category": ["Item", "Dates"] },
-  { "name": "Permanent/Temporary", "type": "string", "values": ["Y", "N"], "filters": ["equals"], "category": "Item" },
+  { "name": "Permanent/Temporary", "type": "string", "values": [
+    { "display": "Yes", "literal": "Y" },
+    { "display": "No", "literal": "N" }
+  ], "filters": ["equals"], "category": "Item" },
   { "name": "Reserve Control Key", "type": "number", "category": "Item" },
   { "name": "Last User Key", "type": "string", "category": "Item" },
-  { "name": "Recirculation Flag", "type": "string", "values": ["Y", "N", "M"], "filters": ["equals"], "category": "Item" },
+  { "name": "Recirculation Flag", "type": "string", "values": [
+    { "display": "Yes", "literal": "Y" },
+    { "display": "No", "literal": "N" },
+    { "display": "Maybe", "literal": "M" }
+  ], "filters": ["equals"], "category": "Item" },
   { "name": "Inventory Date", "type": "date", "category": ["Item", "Dates"] },
   { "name": "Inventory Count", "type": "number", "category": "Item" },
   { "name": "Available Hold Key", "type": "number", "category": "Item" },
@@ -1171,14 +1224,21 @@ const fieldDefs = [
   { "name": "Catalog System Date Modified", "type": "date", "category": ["Catalog", "Dates"] },
   { "name": "Call Number Key", "type": "string", "category": "Call #" },
   { "name": "Analytic Position", "type": "number", "category": "Item" },
-  { "name": "Bound-with Level", "type": "string", "values": ["NONE", "CHILD", "PARENT"], "filters": ["equals"], "category": "Item" },
+  { "name": "Bound-with Level", "type": "string", "values": [
+    { "display": "None", "literal": "NONE" },
+    { "display": "Child", "literal": "CHILD" },
+    { "display": "Parent", "literal": "PARENT" }
+  ], "filters": ["equals"], "category": "Item" },
   { "name": "Number of Copies", "type": "number", "category": ["Item"] },
   { "name": "System Date Modified", "type": "date", "category": ["Item", "Dates"] },
   { "name": "Call-level Holds", "type": "number", "category": "Item" },
   { "name": "Number of Reserve Controls", "type": "number", "category": "Item" },
   { "name": "Number of Copies on Reserve", "type": "number", "category": "Item" },
   { "name": "Number of Visible Copies", "type": "number", "category": "Item" },
-  { "name": "Shadowed Flag", "type": "string", "values": ["Y", "N"], "filters": ["equals"], "category": "Item" },
+  { "name": "Shadowed Flag", "type": "string", "values": [
+    { "display": "Yes", "literal": "Y" },
+    { "display": "No", "literal": "N" }
+  ], "filters": ["equals"], "category": "Item" },
   { "name": "Shelving Key", "type": "string", "category": "Item" },
   { "name": "Base Call Number", "type": "string", "category": "Item" },
   { "name": "Item Number", "type": "string", "category": "Item" }
@@ -1795,17 +1855,44 @@ function renderConditionList(field){
   });
   list.appendChild(toggle);
 
+  // Look up field definition to get value mapping
+  const fieldDef = fieldDefs.find(f => f.name === field);
+  const hasValuePairs = fieldDef && fieldDef.values && fieldDef.values.length > 0 && 
+                       typeof fieldDef.values[0] === 'object' && fieldDef.values[0].display;
+  
+  // Create mapping of literal to display values for this field
+  const literalToDisplayMap = new Map();
+  if (hasValuePairs) {
+    fieldDef.values.forEach(val => {
+      literalToDisplayMap.set(val.literal, val.display);
+    });
+  }
+
   // Pills
   data.filters.forEach((f,idx)=>{
     const pill = document.createElement('span');
     pill.className = 'cond-pill';
 
-    // Show nicer wording for BETWEEN: replace "|" with " and "
+    // Show display value instead of literal in the pill UI
     let displayVal = f.val;
+    
     if (f.cond === 'between') {
+      // For BETWEEN, replace "|" with " and "
       const parts = f.val.split('|');
       displayVal = parts.join(' and ');
+    } else if (f.cond === 'equals' && hasValuePairs) {
+      // For EQUALS with value pairs, map the literal values to display values
+      if (f.val.includes(',')) {
+        // Handle multi-select values
+        const literals = f.val.split(',');
+        const displays = literals.map(lit => literalToDisplayMap.get(lit) || lit);
+        displayVal = displays.join(', ');
+      } else {
+        // Single value
+        displayVal = literalToDisplayMap.get(f.val) || f.val;
+      }
     }
+    
     pill.textContent = `${f.cond.toUpperCase()} ${displayVal}`;
     pill.title = 'Click to remove';
     pill.style.cursor='pointer';
@@ -1866,11 +1953,32 @@ function renderConditionList(field){
   updateCategoryCounts();
 }
 
-// Helper to build condition panel for a bubble (was inside attachBubbleHandlers before)
+// Helper function to build condition panel for a bubble (was inside attachBubbleHandlers before)
 function buildConditionPanel(bubble){
   selectedField = bubble.textContent.trim();
   const type = bubble.dataset.type || 'string';
-  const listJson = bubble.dataset.values ? JSON.parse(bubble.dataset.values) : null;
+  let listValues = null;
+  let hasValuePairs = false;
+  
+  // Handle both old and new values format
+  try {
+    if (bubble.dataset.values) {
+      const parsedValues = JSON.parse(bubble.dataset.values);
+      if (parsedValues.length > 0) {
+        if (typeof parsedValues[0] === 'object' && parsedValues[0].display && parsedValues[0].literal) {
+          // New format with display/literal pairs
+          hasValuePairs = true;
+          listValues = parsedValues;
+        } else {
+          // Old string format
+          listValues = parsedValues;
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Error parsing values:", e);
+  }
+  
   const perBubble = bubble.dataset.filters ? JSON.parse(bubble.dataset.filters) : null;
   const isSpecialMarc = selectedField === 'Marc';
   conditionPanel.innerHTML = '';
@@ -1911,41 +2019,41 @@ function buildConditionPanel(bubble){
     });
   } else {
     // Normal field - add condition buttons as usual
-  const conds = perBubble ? perBubble
-                : (listJson && listJson.length) ? ['equals']
+    const conds = perBubble ? perBubble
+                : (listValues && listValues.length) ? ['equals']
                 : (typeConditions[type] || typeConditions.string);
     conds.forEach(label => {
-    const slug = label.split(' ')[0];
-    const btnEl = document.createElement('button');
-    btnEl.className = 'condition-btn';
-    btnEl.dataset.cond = slug;
-    btnEl.textContent = label[0].toUpperCase()+label.slice(1);
-    conditionPanel.appendChild(btnEl);
-  });
+      const slug = label.split(' ')[0];
+      const btnEl = document.createElement('button');
+      btnEl.className = 'condition-btn';
+      btnEl.dataset.cond = slug;
+      btnEl.textContent = label[0].toUpperCase()+label.slice(1);
+      conditionPanel.appendChild(btnEl);
+    });
   }
 
   // --- Dual toggle (Show / Hide) ---
   if (!isSpecialMarc) {
-  const toggleGroup = document.createElement('div');
-  toggleGroup.className = 'inline-flex';
-  ['Show','Hide'].forEach(label=>{
-    const btn = document.createElement('button');
-    btn.className = 'toggle-half';
-    btn.dataset.cond = label.toLowerCase();
-    btn.textContent = label;
-    if(label === 'Show' ? displayedFields.includes(selectedField) : !displayedFields.includes(selectedField)){
-      btn.classList.add('active');
-    }
-    toggleGroup.appendChild(btn);
-  });
-  conditionPanel.appendChild(toggleGroup);
+    const toggleGroup = document.createElement('div');
+    toggleGroup.className = 'inline-flex';
+    ['Show','Hide'].forEach(label=>{
+      const btn = document.createElement('button');
+      btn.className = 'toggle-half';
+      btn.dataset.cond = label.toLowerCase();
+      btn.textContent = label;
+      if(label === 'Show' ? displayedFields.includes(selectedField) : !displayedFields.includes(selectedField)){
+        btn.classList.add('active');
+      }
+      toggleGroup.appendChild(btn);
+    });
+    conditionPanel.appendChild(toggleGroup);
   }
 
   const dynamicBtns = conditionPanel.querySelectorAll('.condition-btn, .toggle-half');
   dynamicBtns.forEach(btn=>btn.addEventListener('click', isSpecialMarc ? marcConditionBtnHandler : conditionBtnHandler));
 
   // Swap text input for select if bubble has list values
-  if(listJson && listJson.length){
+  if(listValues && listValues.length){
     const fieldDef = fieldDefs.find(f => f.name === selectedField);
     const isMultiSelect = fieldDef && fieldDef.multiSelect;
     // Clean up any existing selectors
@@ -1953,17 +2061,24 @@ function buildConditionPanel(bubble){
     let existingContainer = document.getElementById('condition-select-container');
     if (existingSelect) existingSelect.parentNode.removeChild(existingSelect);
     if (existingContainer) existingContainer.parentNode.removeChild(existingContainer);
+    
     // Get current values if it's a filter update
-    let currentValues = [];
+    let currentLiteralValues = [];
     if (activeFilters[selectedField]) {
       const filter = activeFilters[selectedField].filters.find(f => f.cond === 'equals');
       if (filter) {
-        currentValues = filter.val.split(',').map(v => v.trim());
+        currentLiteralValues = filter.val.split(',').map(v => v.trim());
       }
     }
-    if (listJson.some(val => val.includes('-'))) {
+    
+    // Check if any values have dashes for grouped selector
+    const hasDashes = hasValuePairs 
+      ? listValues.some(val => val.display.includes('-'))
+      : listValues.some(val => val.includes('-'));
+    
+    if (hasDashes) {
       // Use grouped selector for values with dash
-      const selector = createGroupedSelector(listJson, isMultiSelect, currentValues);
+      const selector = createGroupedSelector(listValues, isMultiSelect, currentLiteralValues);
       inputWrapper.insertBefore(selector, confirmBtn);
       conditionInput.style.display = 'none';
     } else {
@@ -1974,13 +2089,23 @@ function buildConditionPanel(bubble){
       if (isMultiSelect) {
         select.setAttribute('multiple', 'multiple');
       }
-      select.innerHTML = listJson.map(v => {
-        const selected = currentValues.includes(v) ? 'selected' : '';
-        return `<option ${selected}>${v}</option>`;
+      
+      // Create options with proper display/literal handling
+      select.innerHTML = listValues.map(v => {
+        if (hasValuePairs) {
+          // New format with display/literal pairs
+          const selected = currentLiteralValues.includes(v.literal) ? 'selected' : '';
+          return `<option value="${v.literal}" data-display="${v.display}" ${selected}>${v.display}</option>`;
+        } else {
+          // Old string format
+          const selected = currentLiteralValues.includes(v) ? 'selected' : '';
+          return `<option value="${v}" ${selected}>${v}</option>`;
+        }
       }).join('');
+      
       inputWrapper.insertBefore(select, confirmBtn);
-    select.style.display = 'block';
-    conditionInput.style.display = 'none';
+      select.style.display = 'block';
+      conditionInput.style.display = 'none';
     }
   } else {
     if(document.getElementById('condition-select')){
