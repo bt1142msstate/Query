@@ -152,6 +152,54 @@ input, textarea, select, [contenteditable] {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+/* Mobile Menu Styles */
+#mobile-menu-toggle {
+  align-items: center;
+  opacity: 0;
+  animation: fadeIn 0.5s ease-out forwards;
+  animation-delay: 0.6s;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#mobile-menu-toggle:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+#mobile-menu-toggle:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#mobile-menu-dropdown {
+  transform: translateY(-10px);
+  opacity: 0;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  pointer-events: none;
+}
+
+#mobile-menu-dropdown.show {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#mobile-menu-dropdown div {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+/* Responsive Header Controls */
+@media (max-width: 900px) {
+  #header-controls {
+    display: none !important;
+  }
+  
+  #mobile-menu-toggle {
+    display: flex !important;
+  }
+}
+
 @keyframes slideDown {
   0% { transform: translateY(-100%); }
   100% { transform: translateY(0); }
@@ -942,16 +990,44 @@ body.dragging-cursor * {
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
   will-change: transform;
   touch-action: none;
+  /* Enhanced visual effects for better visibility */
+  opacity: 0.9 !important;
+  box-shadow: 0 0 20px 5px rgba(59, 130, 246, 0.4) !important;
+  animation: touchGhostPulse 1.5s ease-in-out infinite;
+  border: 2px solid rgba(59, 130, 246, 0.6);
 }
 
-/* Highlight style for table containers during drag */
-.drag-hover {
-  box-shadow: 0 0 0 2px var(--color-blue-500), 0 12px 30px rgba(0, 0, 0, 0.15), 0 5px 12px rgba(0, 0, 0, 0.1) !important;
-  transition: box-shadow 0.2s ease;
+/* Pulsing animation for touch drag ghost */
+@keyframes touchGhostPulse {
+  0% { box-shadow: 0 0 15px 2px rgba(59, 130, 246, 0.3); transform: scale(0.9); }
+  50% { box-shadow: 0 0 25px 8px rgba(59, 130, 246, 0.5); transform: scale(1.0); }
+  100% { box-shadow: 0 0 15px 2px rgba(59, 130, 246, 0.3); transform: scale(0.9); }
 }
 
-/* Support for touch drag on mobile */
+/* Enhanced table highlight effects for touch interaction */
 @media (pointer: coarse) {
+  .drag-hover {
+    box-shadow: 0 0 0 3px var(--color-blue-500), 0 12px 30px rgba(0, 0, 0, 0.2), 0 5px 12px rgba(0, 0, 0, 0.15) !important;
+    transition: box-shadow 0.2s ease;
+  }
+  
+  .th-drag-over {
+    background-color: var(--color-blue-300) !important;
+    transition: background-color 0.2s ease;
+  }
+  
+  .drop-anchor {
+    height: 6px !important; /* Thicker for touch */
+    background: radial-gradient(circle, rgba(66, 153, 225, 1) 0%, rgba(49, 130, 206, 1) 80%) !important;
+    box-shadow: 0 0 20px 6px rgba(49, 130, 206, 0.5), 0 0 40px 10px rgba(49, 130, 206, 0.3) !important;
+    border-radius: 3px !important;
+  }
+  
+  .drop-anchor.vertical {
+    width: 6px !important; /* Thicker for touch */
+  }
+  
+  /* Bubble touch styles */
   .bubble {
     /* Slightly bigger touch target on mobile */
     transform-origin: center center;
