@@ -1569,6 +1569,10 @@ document.addEventListener('dragstart', e=>{
   e.dataTransfer.setData('bubble-field', bubble.textContent.trim());
   e.dataTransfer.effectAllowed='copy';
   isBubbleDrag = true;
+  
+  // Hide the original bubble during drag
+  bubble.style.opacity = '0';
+  
   // Clone bubble and wrap it in a padded container so box-shadow glow isn't clipped
   const wrapper = document.createElement('div');
   const pad = 16;                               // 8 px padding on all sides
@@ -1590,7 +1594,12 @@ document.addEventListener('dragstart', e=>{
 });
 
 document.addEventListener('dragend', e=>{
-  if(e.target.closest('.bubble')) isBubbleDrag = false;
+  const bubble = e.target.closest('.bubble');
+  if(bubble) {
+    isBubbleDrag = false;
+    // Restore the original bubble's visibility
+    bubble.style.opacity = '';
+  }
 });
 
 /* Render/update the filter pill list for a given field */
