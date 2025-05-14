@@ -1300,8 +1300,8 @@ function renderBubbles(){
       const existingBubble = existingBubbleMap.get(def.name);
       if (existingBubble) {
         // Preserve the existing bubble
-        // Ensure Marc bubble is never draggable
-        if (def.isSpecialMarc) {
+        // Ensure Marc bubble or already displayed fields are never draggable
+        if (def.isSpecialMarc || displayedFields.includes(def.name)) {
           existingBubble.setAttribute('draggable', 'false');
         } else {
           existingBubble.setAttribute('draggable', 'true');
@@ -1316,7 +1316,7 @@ function renderBubbles(){
         // Create new bubble if it didn't exist before
         const div = document.createElement('div');
         div.className = 'bubble';
-        if(def.isSpecialMarc) {
+        if(def.isSpecialMarc || displayedFields.includes(def.name)) {
           div.setAttribute('draggable', 'false');
         } else {
           div.setAttribute('draggable', 'true');
@@ -1344,7 +1344,8 @@ function renderBubbles(){
     list.forEach(def => {
       const div = document.createElement('div');
       div.className = 'bubble';
-      if(def.isSpecialMarc) {
+      if(def.isSpecialMarc || displayedFields.includes(def.name)) {
+        // Make bubble non-draggable if it's Marc or already displayed
         div.setAttribute('draggable', 'false');
       } else {
         div.setAttribute('draggable', 'true');
@@ -1756,7 +1757,16 @@ document.addEventListener('click', e=>{
 document.addEventListener('dragstart', e=>{
   const bubble = e.target.closest('.bubble');
   if(!bubble) return;
-  e.dataTransfer.setData('bubble-field', bubble.textContent.trim());
+  
+  // Check if this bubble is already displayed in the table
+  const fieldName = bubble.textContent.trim();
+  if(displayedFields.includes(fieldName)) {
+    // Prevent dragging of already displayed bubbles
+    e.preventDefault();
+    return;
+  }
+  
+  e.dataTransfer.setData('bubble-field', fieldName);
   e.dataTransfer.effectAllowed='copy';
   isBubbleDrag = true;
   // Clone bubble and wrap it in a padded container so box-shadow glow isn't clipped
