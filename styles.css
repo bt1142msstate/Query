@@ -219,8 +219,43 @@ input, textarea, select, [contenteditable] {
 
 /* Bubble with active filter */
 .bubble-filter {
-  background: var(--color-emerald-500) !important;
+  /* Use purple gradient for bubble background */
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(224, 231, 255, 0.9) 0%,
+    rgba(165, 180, 252, 0.7) 40%,
+    rgba(99, 102, 241, 0.6) 100%
+  ) !important;
+  
+  /* Remove purple glow, keep standard shadows */
+  box-shadow:
+    inset -4px -4px 6px rgba(255, 255, 255, 0.5),
+    inset 4px 4px 6px rgba(0, 0, 0, 0.1),
+    0 2px 4px rgba(0, 0, 0, 0.08);
+    
   color: var(--color-white) !important;
+  border: 1px solid rgba(224, 231, 255, 0.5);
+}
+
+/* Restore original before element */
+.bubble-filter::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: none;
+  z-index: -1;
+}
+
+/* Use normal bubble shimmer with slight purple tint */
+.bubble-filter::after {
+  animation: bubbleShimmer 6s ease-in-out infinite;
+  width: 22%;
+  height: 22%;
+  opacity: 0.9;
+  box-shadow: none;
 }
 
 /* Bubble container layout */

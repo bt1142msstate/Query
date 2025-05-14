@@ -1,4 +1,32 @@
-const overlay=document.getElementById('overlay');const conditionPanel=document.getElementById('condition-panel');const inputWrapper=document.getElementById('condition-input-wrapper');const conditionInput=document.getElementById('condition-input');const confirmBtn=document.getElementById('confirm-btn');
+// DOM Elements
+const overlay = document.getElementById('overlay');
+const conditionPanel = document.getElementById('condition-panel');
+const inputWrapper = document.getElementById('condition-input-wrapper');
+const conditionInput = document.getElementById('condition-input');
+const confirmBtn = document.getElementById('confirm-btn');
+const runBtn = document.getElementById('run-query-btn');
+const runIcon = document.getElementById('run-icon');
+const stopIcon = document.getElementById('stop-icon');
+const downloadBtn = document.getElementById('download-btn');
+const queryBox = document.getElementById('query-json');
+const queryInput = document.getElementById('query-input');
+const clearSearchBtn = document.getElementById('clear-search-btn');
+
+// State variables
+let queryRunning = false;
+let displayedFields = [];
+let selectedField = '';
+let totalRows = 0;          // total rows in #bubble-list
+let scrollRow = 0;          // current top row (0-based)
+let rowHeight = 0;          // computed once per render
+let hoverScrollArea = false;  // true when cursor over bubbles or scrollbar
+let isBubbleDrag = false;
+let hoverTh = null;           // keeps track of which header we're over
+let currentCategory = 'All';
+
+// Data structures
+const activeFilters = {};   // { fieldName: { logical:'And'|'Or', filters:[{cond,val},…] } }
+
 /* ===== Modal helpers for JSON / Queries panels ===== */
 function openModal(panelId){
   const panel = document.getElementById(panelId);
@@ -35,13 +63,9 @@ document.querySelectorAll('.collapse-btn').forEach(btn=>{
 });
 
 /* --- Run / Stop query toggle --- */
-const runBtn  = document.getElementById('run-query-btn');
-const runIcon = document.getElementById('run-icon');
-const stopIcon= document.getElementById('stop-icon');
-let queryRunning = false;
+// queryRunning already declared at the top
 
 // Download button reference
-const downloadBtn = document.getElementById('download-btn');
 if (downloadBtn) {
   downloadBtn.disabled = false; // Always enabled
   downloadBtn.addEventListener('click', () => {
@@ -221,7 +245,7 @@ headerTrash.innerHTML = `
     <path d="M9 3h6a1 1 0 0 1 1 1v1h4v2H4V5h4V4a1 1 0 0 1 1-1Zm-3 6h12l-.8 11.2A2 2 0 0 1 15.2 22H8.8a2 2 0 0 1-1.99-1.8L6 9Z"/>
   </svg>
 `;
-let hoverTh = null;           // keeps track of which header we're over
+// hoverTh already declared at the top
 headerTrash.addEventListener('click', e=>{
   e.stopPropagation();
   if(hoverTh){
@@ -231,12 +255,10 @@ headerTrash.addEventListener('click', e=>{
   }
 });
 
-let isBubbleDrag = false;
+// isBubbleDrag already declared at the top
 
-let displayedFields = [];
-let selectedField='';
-const activeFilters = {};   // { fieldName: { logical:'And'|'Or', filters:[{cond,val},…] } }
-const queryBox = document.getElementById('query-json');
+// displayedFields, selectedField, and activeFilters are already declared at the top
+
 /* ---------- Helper: map UI condition slugs to C# enum names ---------- */
 function mapOperator(cond){
   switch(cond){
@@ -1025,8 +1047,6 @@ document.addEventListener('keydown',e=>{
     `translateY(-${scrollRow * rowHeight}px)`;
   updateScrollBar();
 });
-const queryInput=document.getElementById('query-input');
-const clearSearchBtn = document.getElementById('clear-search-btn');
 
 /* ---------- Field definitions: name, type, optional values, optional filters ---------- */
 const fieldDefs = [
@@ -1126,12 +1146,7 @@ const derivedCats = Array.from(derivedCatSet);
 
 // Prepend the universal "All" filter, preserving first-seen order
 const categories = ['All', 'Selected', ...derivedCats];
-let currentCategory = 'All';
-
-let totalRows = 0;          // total rows in #bubble-list
-let scrollRow = 0;          // current top row (0-based)
-let rowHeight = 0;          // computed once per render
-let hoverScrollArea = false;  // true when cursor over bubbles or scrollbar
+// currentCategory, totalRows, scrollRow, rowHeight, and hoverScrollArea already declared at the top
 
 function renderBubbles(){
   const container = document.getElementById('bubble-container');
@@ -1185,28 +1200,42 @@ function renderBubbles(){
         } else {
           div.setAttribute('draggable', 'true');
         }
+        
+        // Apply bubble-filter class if this field has active filters OR is displayed as a column
+        if (activeFilters[def.name] || displayedFields.includes(def.name)) {
+          div.classList.add('bubble-filter');
+          div.setAttribute('data-filtered', 'true');
+        }
+        
         listDiv.appendChild(div);
       }
     });
   } else {
     // For other categories, do the normal render
     listDiv.innerHTML = '';
-  list.forEach(def=>{
-    const div = document.createElement('div');
-    div.className = 'bubble';
-    div.setAttribute('draggable','true');
+    list.forEach(def => {
+      const div = document.createElement('div');
+      div.className = 'bubble';
+      div.setAttribute('draggable','true');
       div.tabIndex = 0;
-    div.textContent = def.name;
-    div.dataset.type = def.type;
-    if(def.values)  div.dataset.values  = JSON.stringify(def.values);
-    if(def.filters) div.dataset.filters = JSON.stringify(def.filters);
+      div.textContent = def.name;
+      div.dataset.type = def.type;
+      if(def.values)  div.dataset.values  = JSON.stringify(def.values);
+      if(def.filters) div.dataset.filters = JSON.stringify(def.filters);
       if (def.isSpecialMarc) {
         div.setAttribute('draggable', 'false');
       } else {
         div.setAttribute('draggable', 'true');
       }
-    listDiv.appendChild(div);
-  });
+      
+      // Apply bubble-filter class if this field has active filters OR is displayed as a column
+      if (activeFilters[def.name] || displayedFields.includes(def.name)) {
+        div.classList.add('bubble-filter');
+        div.setAttribute('data-filtered', 'true');
+      }
+      
+      listDiv.appendChild(div);
+    });
   }
 
   // --- Dimension calc on first bubble ---
@@ -2341,6 +2370,12 @@ function removeColumn(table, colIndex){
       .find(b => b.textContent.trim() === fieldName);
     if (bubbleEl) {
       bubbleEl.setAttribute('draggable', 'true');
+      
+      // Remove purple styling only if it doesn't have active filters
+      if (!activeFilters[fieldName]) {
+        bubbleEl.classList.remove('bubble-filter');
+        bubbleEl.removeAttribute('data-filtered');
+      }
     }
   }
 
@@ -2636,12 +2671,25 @@ function showExampleTable(fields){
       const field = bubbleEl.textContent.trim();
       if(displayedFields.includes(field)){
         bubbleEl.removeAttribute('draggable');
+        // Apply purple style to bubbles that are displayed as columns
+        bubbleEl.classList.add('bubble-filter');
+        bubbleEl.setAttribute('data-filtered', 'true');
       } else {
         bubbleEl.setAttribute('draggable','true');
+        // Keep the bubble-filter class if it has active filters
+        if (!activeFilters[field]) {
+          bubbleEl.classList.remove('bubble-filter');
+          bubbleEl.removeAttribute('data-filtered');
+        }
       }
     });
     updateQueryJson();
     updateCategoryCounts();
+    
+    // Re-render bubbles to ensure consistent styling
+    if (currentCategory === 'Selected') {
+      renderBubbles();
+    }
   }
 }
 
