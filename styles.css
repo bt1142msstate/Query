@@ -658,6 +658,11 @@ th[draggable="true"] {
   cursor: grab;
   user-select: none;
   transition: background-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast);
+  padding-right: 48px !important; /* Increased from 32px to 48px for more space */
+  position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 th[draggable="true"]:active {
@@ -775,10 +780,16 @@ body.dragging-cursor * {
 .th-trash {
   position: absolute;
   top: 50%;
-  right: 8px;
+  right: 12px; /* Increased from 8px to 12px */
   transform: translateY(-50%);
   display: none;
   cursor: pointer;
+  /* Keep spacing but remove background */
+  padding: 2px;
+  border-radius: 4px;
+  min-width: 22px;
+  text-align: center;
+  margin-left: 16px; /* Added explicit margin to ensure minimum spacing */
 }
 
 .th-trash svg {

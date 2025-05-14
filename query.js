@@ -384,6 +384,8 @@ function resetActive(){
       }
     }
   });
+  // After all clones are removed and origin restored, re-enable bubble interaction
+  setTimeout(() => renderBubbles(), 0);
 }
 
 overlay.addEventListener('click',()=>{
@@ -406,6 +408,8 @@ overlay.addEventListener('click',()=>{
       p.classList.add('hidden');
     }
   });
+  // After closing overlay, re-enable bubble interaction
+  setTimeout(() => renderBubbles(), 0);
 });
 
 // Handler for dynamic/static condition buttons
@@ -843,7 +847,7 @@ confirmBtn.addEventListener('click', e => {
       if (!existingBubble) {
         const div = document.createElement('div');
         div.className = 'bubble';
-        div.setAttribute('draggable', 'true');
+        div.setAttribute('draggable', dynamicMarcField === 'Marc' ? 'false' : 'true');
         div.tabIndex = 0;
         div.textContent = dynamicMarcField;
         div.dataset.type = 'string';
@@ -1225,26 +1229,29 @@ function renderBubbles(){
       const existingBubble = existingBubbleMap.get(def.name);
       if (existingBubble) {
         // Preserve the existing bubble
+        // Ensure Marc bubble is never draggable
+        if (def.isSpecialMarc) {
+          existingBubble.setAttribute('draggable', 'false');
+        } else {
+          existingBubble.setAttribute('draggable', 'true');
+        }
         listDiv.appendChild(existingBubble);
       } else {
         // Create new bubble if it didn't exist before
         const div = document.createElement('div');
         div.className = 'bubble';
-        div.setAttribute('draggable', 'true');
+        if(def.isSpecialMarc) {
+          div.setAttribute('draggable', 'false');
+        } else {
+          div.setAttribute('draggable', 'true');
+        }
         div.tabIndex = 0;
         div.textContent = def.name;
         div.dataset.type = def.type;
         if(def.values)  div.dataset.values  = JSON.stringify(def.values);
         if(def.filters) div.dataset.filters = JSON.stringify(def.filters);
-        if (def.isSpecialMarc) {
-          div.setAttribute('draggable', 'false');
-        } else {
-          div.setAttribute('draggable', 'true');
-        }
-        
         // Apply the correct styling to the new bubble
         applyCorrectBubbleStyling(div);
-        
         listDiv.appendChild(div);
       }
     });
@@ -1254,21 +1261,18 @@ function renderBubbles(){
     list.forEach(def => {
       const div = document.createElement('div');
       div.className = 'bubble';
-      div.setAttribute('draggable','true');
+      if(def.isSpecialMarc) {
+        div.setAttribute('draggable', 'false');
+      } else {
+        div.setAttribute('draggable', 'true');
+      }
       div.tabIndex = 0;
       div.textContent = def.name;
       div.dataset.type = def.type;
       if(def.values)  div.dataset.values  = JSON.stringify(def.values);
       if(def.filters) div.dataset.filters = JSON.stringify(def.filters);
-      if (def.isSpecialMarc) {
-        div.setAttribute('draggable', 'false');
-      } else {
-        div.setAttribute('draggable', 'true');
-      }
-      
       // Apply the correct styling to the bubble
       applyCorrectBubbleStyling(div);
-      
       listDiv.appendChild(div);
     });
   }
@@ -2108,7 +2112,7 @@ confirmBtn.onclick = function(e) {
       if (!existingBubble) {
         const div = document.createElement('div');
         div.className = 'bubble';
-        div.setAttribute('draggable', 'true');
+        div.setAttribute('draggable', dynamicMarcField === 'Marc' ? 'false' : 'true');
         div.tabIndex = 0;
         div.textContent = dynamicMarcField;
         div.dataset.type = 'string';
@@ -2402,7 +2406,11 @@ function removeColumn(table, colIndex){
   if (fieldName) {
     document.querySelectorAll('.bubble').forEach(bubbleEl => {
       if (bubbleEl.textContent.trim() === fieldName) {
-        bubbleEl.setAttribute('draggable', 'true');
+        if (fieldName === 'Marc') {
+          bubbleEl.setAttribute('draggable', 'false');
+        } else {
+          bubbleEl.setAttribute('draggable', 'true');
+        }
         applyCorrectBubbleStyling(bubbleEl);
       }
     });
@@ -2436,7 +2444,20 @@ function addDragAndDrop(table){
     h.addEventListener('mouseenter', ()=>{
       h.classList.add('th-hover');
       hoverTh = h;
+      
+      // Ensure the header has enough width for the trash icon
+      const headerText = h.textContent.trim();
+      const headerWidth = h.offsetWidth;
+      
+      // Append the trash icon
       h.appendChild(headerTrash);
+      
+      // Position trash icon with minimum spacing from text
+      const textWidth = headerText.length * 8; // Approximate text width
+      const minRightPosition = Math.max(headerWidth - 30, textWidth + 12);
+      
+      // Always keep the icon visible
+      headerTrash.style.display = 'block';
     });
     h.addEventListener('mouseleave', ()=>{
       h.classList.remove('th-hover');
@@ -2654,7 +2675,13 @@ function showExampleTable(fields){
       }
     }
     // Re-enable dragging on every bubble
-    document.querySelectorAll('.bubble').forEach(b=>b.setAttribute('draggable','true'));
+    document.querySelectorAll('.bubble').forEach(b => {
+      if (b.textContent.trim() === 'Marc') {
+        b.setAttribute('draggable', 'false');
+      } else {
+        b.setAttribute('draggable', 'true');
+      }
+    });
     updateQueryJson();
     updateCategoryCounts();
     return;
@@ -2698,7 +2725,9 @@ function showExampleTable(fields){
     // Disable dragging for bubbles already displayed; enable for others
     document.querySelectorAll('.bubble').forEach(bubbleEl => {
       const field = bubbleEl.textContent.trim();
-      if(displayedFields.includes(field)){
+      if (field === 'Marc') {
+        bubbleEl.setAttribute('draggable', 'false');
+      } else if(displayedFields.includes(field)){
         bubbleEl.removeAttribute('draggable');
         // Apply styling consistently using our helper
         applyCorrectBubbleStyling(bubbleEl);
