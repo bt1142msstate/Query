@@ -1570,10 +1570,8 @@ document.addEventListener('dragstart', e=>{
   e.dataTransfer.effectAllowed='copy';
   isBubbleDrag = true;
   
-  // Hide the original bubble during drag
-  bubble.style.opacity = '0';
-  
   // Clone bubble and wrap it in a padded container so box-shadow glow isn't clipped
+  // (do this BEFORE hiding the original)
   const wrapper = document.createElement('div');
   const pad = 16;                               // 8 px padding on all sides
   wrapper.style.position = 'absolute';
@@ -1589,6 +1587,10 @@ document.addEventListener('dragstart', e=>{
   const gw = wrapper.offsetWidth;
   const gh = wrapper.offsetHeight;
   e.dataTransfer.setDragImage(wrapper, gw / 2, gh / 2);
+  
+  // Now hide the original bubble after creating the drag image
+  bubble.style.opacity = '0';
+  
   // Remove wrapper after dragstart to clean up
   setTimeout(() => wrapper.remove(), 0);
 });
@@ -1597,8 +1599,10 @@ document.addEventListener('dragend', e=>{
   const bubble = e.target.closest('.bubble');
   if(bubble) {
     isBubbleDrag = false;
-    // Restore the original bubble's visibility
-    bubble.style.opacity = '';
+    // Delay restoring the original bubble's visibility to allow the drag animation to complete
+    setTimeout(() => {
+      bubble.style.opacity = '';
+    }, 100);
   }
 });
 
