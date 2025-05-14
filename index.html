@@ -69,6 +69,15 @@
           <line x1="8" y1="13" x2="14" y2="13"/>
         </svg>
       </button>
+      <button id="toggle-help"
+              class="p-2 rounded-full bg-purple-200 text-purple-800 hover:bg-purple-300 transition-colors"
+              aria-label="Help">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 pointer-events-none">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+      </button>
     </div>
   </div>
   
@@ -174,6 +183,46 @@
         <!-- list will be injected here -->
       </div>
     </div><!-- end queries-panel -->
+
+    <!-- HELP PANEL -->
+    <div id="help-panel" class="w-full modal-panel hidden">
+      <h2 class="mt-8 mb-0 px-3 py-2 rounded-t bg-purple-100 text-purple-800 font-semibold text-sm uppercase tracking-wider border border-purple-200 flex items-center justify-between">
+        <span>Help</span>
+        <button class="collapse-btn p-1.5 rounded hover:bg-purple-200 focus:outline-none transition-colors ml-2" data-target="help-panel" aria-label="Close">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="#7e22ce" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+            <line x1="4" y1="4" x2="16" y2="16" />
+            <line x1="16" y1="4" x2="4" y2="16" />
+          </svg>
+        </button>
+      </h2>
+      <div id="help-container" class="w-full -mt-px border border-purple-200 border-t-0 rounded-b overflow-y-auto bg-white p-4">
+        <h3 class="text-lg font-semibold mb-3">Getting Started</h3>
+        <p class="mb-3">Use this tool to build library item queries and reports.</p>
+        
+        <h4 class="text-md font-semibold mt-4 mb-2">Working with Bubbles</h4>
+        <ul class="list-disc pl-5 mb-3">
+          <li>Click a bubble to view filter options</li>
+          <li>Drag bubbles to the table area to add columns</li>
+          <li>White bubbles indicate fields that are already filtered or displayed</li>
+        </ul>
+        
+        <h4 class="text-md font-semibold mt-4 mb-2">Building Queries</h4>
+        <ul class="list-disc pl-5 mb-3">
+          <li>Apply filters by clicking bubbles and selecting conditions</li>
+          <li>Rearrange columns by dragging table headers</li>
+          <li>Remove columns by hovering over a header and clicking the trash icon</li>
+          <li>View and edit your query JSON by clicking the JSON button</li>
+        </ul>
+        
+        <h4 class="text-md font-semibold mt-4 mb-2">Running Queries</h4>
+        <ul class="list-disc pl-5 mb-3">
+          <li>Click the green play button to run your query</li>
+          <li>Click it again (stop icon) to cancel a running query</li>
+          <li>Download results using the download button</li>
+          <li>View your query history in the Queries panel</li>
+        </ul>
+      </div>
+    </div><!-- end help-panel -->
   </div>
 <script src="query.js"></script>
 </body>

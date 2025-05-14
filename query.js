@@ -49,6 +49,7 @@ function closeModal(panelId){
 }
 document.getElementById('toggle-json')?.addEventListener('click', () => openModal('json-panel'));
 document.getElementById('toggle-queries')?.addEventListener('click', () => openModal('queries-panel'));
+document.getElementById('toggle-help')?.addEventListener('click', () => openModal('help-panel'));
 document.querySelectorAll('.collapse-btn').forEach(btn=>{
   btn.addEventListener('click', () => closeModal(btn.dataset.target));
 });
@@ -413,7 +414,7 @@ overlay.addEventListener('click',()=>{
   if(sel) sel.style.display = 'none';
   // (No longer clear bubble-cond-list here; keep for re-render)
   // Also hide JSON / Queries modals if they are open
-  ['json-panel','queries-panel'].forEach(id=>{
+  ['json-panel','queries-panel','help-panel'].forEach(id=>{
     const p = document.getElementById(id);
     if(p && !p.classList.contains('hidden')){
       p.classList.add('hidden');
