@@ -693,6 +693,38 @@ input, textarea, select, [contenteditable] {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+/* Mobile category selector (hidden by default) */
+#mobile-category-selector {
+  display: none;
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto 1rem;
+  padding: 0.5rem 1rem;
+  background: var(--color-white);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: var(--border-radius-lg);
+  font-weight: 600;
+  color: var(--color-black);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23333333'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive styling */
+@media (max-width: 900px) {
+  #category-bar {
+    display: none;
+  }
+  
+  #mobile-category-selector {
+    display: block;
+  }
+}
+
 /* ==========================================
    8. TABLE STYLES
    ========================================== */
