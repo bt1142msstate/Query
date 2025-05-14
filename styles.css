@@ -1050,4 +1050,17 @@ th:hover .th-trash {
 @keyframes fadeIn {
   from { opacity: 0; }
   to   { opacity: 1; }
+}
+
+@keyframes jump {
+  0%   { transform: translateY(0); }
+  20%  { transform: translateY(-4px); }
+  40%  { transform: translateY(-6px); }
+  60%  { transform: translateY(-4px); }
+  80%  { transform: translateY(-1px); }
+  100% { transform: translateY(0); }
+}
+
+#download-btn:hover #download-arrow {
+  animation: jump 0.7s cubic-bezier(.4,1.6,.6,1) infinite;
 } 
