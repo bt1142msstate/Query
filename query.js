@@ -1842,6 +1842,198 @@ document.addEventListener('dragend', e=>{
   if(e.target.closest('.bubble')) isBubbleDrag = false;
 });
 
+/* ------------------------------------------------------------------
+   Touch support for dragging bubbles on touchscreen devices
+   ------------------------------------------------------------------*/
+
+// Variables to track touch interactions
+let touchDragBubble = null;
+let touchDragGhost = null;
+let touchStartX = 0;
+let touchStartY = 0;
+let touchTarget = null;
+let dropTargetFound = false;
+
+// Helper to create a ghost bubble for touch dragging
+function createTouchDragGhost(bubble) {
+  const ghost = bubble.cloneNode(true);
+  ghost.classList.add('touch-drag-ghost');
+  // Make the ghost floating above everything and partially transparent
+  ghost.style.position = 'fixed';
+  ghost.style.zIndex = '1000';
+  ghost.style.opacity = '0.8';
+  ghost.style.pointerEvents = 'none';
+  ghost.style.boxShadow = '0 5px 15px rgba(0, 0, 0, 0.3)';
+  ghost.style.transform = 'scale(0.9)';
+  
+  // Add to the document
+  document.body.appendChild(ghost);
+  return ghost;
+}
+
+// Touch start handler for bubbles
+document.addEventListener('touchstart', e => {
+  // Only process if we're touching a bubble
+  const bubble = e.target.closest('.bubble');
+  if (!bubble) return;
+  
+  // Skip if this bubble is already displayed or not draggable
+  const fieldName = bubble.textContent.trim();
+  if (displayedFields.includes(fieldName) || bubble.getAttribute('draggable') === 'false') {
+    return;
+  }
+  
+  // Record the starting touch point
+  const touch = e.touches[0];
+  touchStartX = touch.clientX;
+  touchStartY = touch.clientY;
+  touchTarget = bubble;
+  
+  // We don't create the ghost immediately, only after determining it's a drag
+}, { passive: true });
+
+// Touch move handler for dragging
+document.addEventListener('touchmove', e => {
+  // Skip if no active touch target
+  if (!touchTarget) return;
+  
+  const touch = e.touches[0];
+  const deltaX = touch.clientX - touchStartX;
+  const deltaY = touch.clientY - touchStartY;
+  
+  // Require minimum movement to initiate drag (prevent accidental drags)
+  const minDragDistance = 10; // pixels
+  if (!touchDragBubble && (Math.abs(deltaX) > minDragDistance || Math.abs(deltaY) > minDragDistance)) {
+    // Now we're sure this is a drag, create the ghost
+    touchDragBubble = touchTarget;
+    touchDragGhost = createTouchDragGhost(touchTarget);
+    
+    // Set initial ghost position
+    touchDragGhost.style.left = `${touch.clientX - touchDragGhost.offsetWidth / 2}px`;
+    touchDragGhost.style.top = `${touch.clientY - touchDragGhost.offsetHeight / 2}px`;
+    
+    // Set data attributes for drop handling
+    touchDragGhost.dataset.fieldName = touchTarget.textContent.trim();
+    
+    // Set global drag state
+    isBubbleDrag = true;
+  }
+  
+  // If we have a ghost, move it with the touch
+  if (touchDragGhost) {
+    touchDragGhost.style.left = `${touch.clientX - touchDragGhost.offsetWidth / 2}px`;
+    touchDragGhost.style.top = `${touch.clientY - touchDragGhost.offsetHeight / 2}px`;
+    
+    // Detect drop targets
+    const elementsUnderTouch = document.elementsFromPoint(touch.clientX, touch.clientY);
+    
+    // Find if we're over the table
+    const tableContainer = elementsUnderTouch.find(el => 
+      el.classList.contains('overflow-x-auto') && 
+      el.classList.contains('shadow') && 
+      el.classList.contains('rounded-lg')
+    );
+    
+    // Find if we're over a table header
+    const tableHeader = elementsUnderTouch.find(el => 
+      el.tagName === 'TH' && el.hasAttribute('draggable')
+    );
+    
+    if (tableContainer || tableHeader) {
+      if (tableHeader) {
+        // Clear any existing highlights
+        document.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
+        // Highlight the current header
+        tableHeader.classList.add('th-drag-over');
+        
+        // Show drop anchor for visual feedback
+        const table = tableHeader.closest('table');
+        const rect = tableHeader.getBoundingClientRect();
+        positionDropAnchor(true, rect, table, touch.clientX);
+        dropAnchor.style.display = 'block';
+      } else if (tableContainer) {
+        // Just show we're over the table
+        tableContainer.classList.add('drag-hover');
+      }
+      
+      dropTargetFound = true;
+    } else {
+      // Not over a drop target
+      document.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
+      document.querySelectorAll('.drag-hover').forEach(el => el.classList.remove('drag-hover'));
+      dropAnchor.style.display = 'none';
+      dropTargetFound = false;
+    }
+    
+    // Prevent default to disable page scrolling while dragging
+    e.preventDefault();
+  }
+}, { passive: false });
+
+// Touch end handler for dropping
+document.addEventListener('touchend', e => {
+  // Skip if no drag is in progress
+  if (!touchDragGhost || !touchDragBubble) {
+    // Reset tracking vars in case touchstart fired but no drag occurred
+    touchTarget = null;
+    return;
+  }
+  
+  // Get last touch position
+  const lastTouch = e.changedTouches[0];
+  const elementsAtRelease = document.elementsFromPoint(lastTouch.clientX, lastTouch.clientY);
+  
+  // Find potential drop targets
+  const tableContainer = elementsAtRelease.find(el => 
+    el.classList.contains('overflow-x-auto') && 
+    el.classList.contains('shadow') && 
+    el.classList.contains('rounded-lg')
+  );
+  
+  const tableHeader = elementsAtRelease.find(el => 
+    el.tagName === 'TH' && el.hasAttribute('draggable')
+  );
+  
+  // Get field name from the bubble
+  const fieldName = touchDragBubble.textContent.trim();
+  
+  // Check if we should add this field
+  if ((tableContainer || tableHeader) && !displayedFields.includes(fieldName)) {
+    if (tableHeader) {
+      // Find position to insert based on the header's position
+      const colIndex = parseInt(tableHeader.dataset.colIndex, 10);
+      const rect = tableHeader.getBoundingClientRect();
+      const insertAt = (lastTouch.clientX - rect.left) < rect.width/2 ? colIndex : colIndex + 1;
+      
+      // Insert at the specific position
+      displayedFields.splice(insertAt, 0, fieldName);
+    } else {
+      // Drop on table container, add to end
+      displayedFields.push(fieldName);
+    }
+    
+    // Update the table with the new field
+    showExampleTable(displayedFields);
+  }
+  
+  // Clean up
+  if (touchDragGhost) {
+    touchDragGhost.remove();
+    touchDragGhost = null;
+  }
+  
+  // Reset all tracking variables
+  touchDragBubble = null;
+  touchTarget = null;
+  isBubbleDrag = false;
+  dropTargetFound = false;
+  
+  // Clear any visual indicators
+  document.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
+  document.querySelectorAll('.drag-hover').forEach(el => el.classList.remove('drag-hover'));
+  dropAnchor.style.display = 'none';
+}, { passive: true });
+
 /* Render/update the filter pill list for a given field */
 function renderConditionList(field){
   const container = document.getElementById('bubble-cond-list');

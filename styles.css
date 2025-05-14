@@ -934,6 +934,35 @@ body.dragging-cursor * {
   pointer-events: none;
 }
 
+/* Touch drag ghost for touchscreen devices */
+.touch-drag-ghost {
+  z-index: var(--z-drag-ghost);
+  transform-origin: center center;
+  transition: transform 0.1s ease;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  will-change: transform;
+  touch-action: none;
+}
+
+/* Highlight style for table containers during drag */
+.drag-hover {
+  box-shadow: 0 0 0 2px var(--color-blue-500), 0 12px 30px rgba(0, 0, 0, 0.15), 0 5px 12px rgba(0, 0, 0, 0.1) !important;
+  transition: box-shadow 0.2s ease;
+}
+
+/* Support for touch drag on mobile */
+@media (pointer: coarse) {
+  .bubble {
+    /* Slightly bigger touch target on mobile */
+    transform-origin: center center;
+    touch-action: none; /* Prevent browser handling of touches */
+  }
+  
+  .bubble:active {
+    transform: scale(1.05);
+  }
+}
+
 /* Column header trash icon */
 .th-wrapper {
   position: relative;
