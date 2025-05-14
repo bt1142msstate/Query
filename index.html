@@ -887,7 +887,7 @@
     <div id="json-panel" class="w-full modal-panel hidden">
       <h2 class="mt-8 mb-0 px-3 py-2 rounded-t bg-yellow-100 text-yellow-800 font-semibold text-sm uppercase tracking-wider border border-yellow-200 flex items-center justify-between">
         <span>JSON</span>
-        <div class="flex gap-2 ml-auto">
+        <div class="flex gap-2 ml-auto items-center">
           <button id="copy-json-btn"
                   class="p-1.5 rounded hover:bg-yellow-200 focus:outline-none transition-colors"
                   aria-label="Copy JSON to clipboard">
@@ -895,6 +895,12 @@
                  stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+          </button>
+          <button class="collapse-btn p-1.5 rounded hover:bg-yellow-200 focus:outline-none transition-colors ml-2" data-target="json-panel" aria-label="Close">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="#ca8a04" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+              <line x1="4" y1="4" x2="16" y2="16" />
+              <line x1="16" y1="4" x2="4" y2="16" />
             </svg>
           </button>
         </div>
@@ -910,6 +916,12 @@
     <div id="queries-panel" class="w-full modal-panel hidden">
       <h2 class="mt-8 mb-0 px-3 py-2 rounded-t bg-blue-100 text-blue-800 font-semibold text-sm uppercase tracking-wider border border-blue-200 flex items-center justify-between">
         <span>Queries</span>
+        <button class="collapse-btn p-1.5 rounded hover:bg-blue-200 focus:outline-none transition-colors ml-2" data-target="queries-panel" aria-label="Close">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+            <line x1="4" y1="4" x2="16" y2="16" />
+            <line x1="16" y1="4" x2="4" y2="16" />
+          </svg>
+        </button>
       </h2>
       <div id="queries-container"
            class="w-full -mt-px border border-blue-200 border-t-0 rounded-b overflow-x-auto bg-white">
