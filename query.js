@@ -2967,16 +2967,33 @@ function addDragAndDrop(table){
       document.body.classList.add('dragging-cursor');
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', th.dataset.colIndex);
-      // --- build a compact drag image that shrinks to fit its content ---
-      const ghost = th.cloneNode(true);
+      // --- build a mini drag image for the column header ---
+      // Instead of cloning, create a new element with the same text and color
+      const ghost = document.createElement('div');
+      const text = th.textContent.trim();
+      ghost.textContent = text;
+      // Copy computed color from the original th
+      const thStyle = window.getComputedStyle(th);
+      ghost.style.color = thStyle.color;
       ghost.classList.add('ghost-drag');
-      ghost.classList.remove('th-dragging','th-hover');  // strip purple/hover styles
-      ghost.style.width = 'auto';               // shrink to fit
+      // Mini style:
+      ghost.style.width = 'auto';
+      ghost.style.fontSize = '0.8rem';
+      ghost.style.padding = '2px 8px';
+      ghost.style.background = '#fff';
+      ghost.style.borderRadius = '6px';
+      ghost.style.boxShadow = '0 2px 8px rgba(0,0,0,0.12)';
+      ghost.style.opacity = '0.95';
+      ghost.style.pointerEvents = 'none';
+      ghost.style.position = 'absolute';
+      ghost.style.top = '-9999px';
+      ghost.style.left = '-9999px';
       document.body.appendChild(ghost);
       // Center cursor over the ghost's middle
       e.dataTransfer.setDragImage(ghost, ghost.offsetWidth / 2, ghost.offsetHeight / 2);
       // remember for clean-up
       th._ghost = ghost;
+      setTimeout(() => { if (ghost.parentNode) ghost.parentNode.removeChild(ghost); }, 0);
     });
     th.addEventListener('dragend', ()=>{
       th.classList.remove('th-dragging');

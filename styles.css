@@ -959,7 +959,7 @@ body.dragging-cursor * {
   padding: 0.25rem 0.5rem;
   font-size: 0.875rem;
   font-weight: 600;
-  background: var(--color-emerald-400);
+  background: var(--color-black);
   color: var(--color-white);
   border-radius: var(--border-radius-sm);
   white-space: nowrap;
@@ -979,7 +979,7 @@ body.dragging-cursor * {
   height: 0;
   border-left: 12px solid transparent;
   border-right: 12px solid transparent;
-  border-bottom: 10px solid var(--color-emerald-400);
+  border-bottom: 10px solid var(--color-black);
   pointer-events: none;
 }
 
