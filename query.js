@@ -30,6 +30,41 @@ const activeFilters = {};   // { fieldName: { logical:'And'|'Or', filters:[{cond
 // Global set to track which bubbles are animating back
 const animatingBackBubbles = new Set();
 
+// Add at the top with other state variables:
+let isBubbleAnimating = false;
+
+// Add at the top with other state variables:
+let isInputLocked = false;
+let inputLockTimeout = null;
+
+// Add a full-screen overlay for pointer-events blocking
+let inputBlockOverlay = document.getElementById('input-block-overlay');
+if (!inputBlockOverlay) {
+  inputBlockOverlay = document.createElement('div');
+  inputBlockOverlay.id = 'input-block-overlay';
+  inputBlockOverlay.style.position = 'fixed';
+  inputBlockOverlay.style.top = '0';
+  inputBlockOverlay.style.left = '0';
+  inputBlockOverlay.style.width = '100vw';
+  inputBlockOverlay.style.height = '100vh';
+  inputBlockOverlay.style.zIndex = '99999';
+  inputBlockOverlay.style.pointerEvents = 'none';
+  inputBlockOverlay.style.background = 'rgba(0,0,0,0)';
+  inputBlockOverlay.style.display = 'none';
+  document.body.appendChild(inputBlockOverlay);
+}
+function lockInput(duration = 600) {
+  isInputLocked = true;
+  inputBlockOverlay.style.pointerEvents = 'all';
+  inputBlockOverlay.style.display = 'block';
+  if (inputLockTimeout) clearTimeout(inputLockTimeout);
+  inputLockTimeout = setTimeout(() => {
+    isInputLocked = false;
+    inputBlockOverlay.style.pointerEvents = 'none';
+    inputBlockOverlay.style.display = 'none';
+  }, duration);
+}
+
 /* ===== Modal helpers for JSON / Queries panels ===== */
 function openModal(panelId){
   const panel = document.getElementById(panelId);
@@ -1685,10 +1720,19 @@ if (categoryBar) {
    Delegated bubble events  (click / dragstart / dragend)
    ------------------------------------------------------------------*/
 document.addEventListener('click', e=>{
+  if (isInputLocked) {
+    e.stopPropagation();
+    e.preventDefault();
+    return;
+  }
   const bubble = e.target.closest('.bubble');
   if(!bubble) return;
   // Prevent duplicate active bubble
   if(document.querySelector('.active-bubble')) return;
+  // Prevent clicking bubbles while animation is running
+  if (isBubbleAnimating) return;
+  isBubbleAnimating = true;
+  lockInput(600); // Lock input for animation duration + buffer (adjust as needed)
 
   // Store current category so it doesn't get reset
   const savedCategory = currentCategory; 
@@ -1808,6 +1852,9 @@ document.addEventListener('click', e=>{
       inputWrapper.classList.add('show');
     }
     clone.removeEventListener('transitionend',t);
+    // Animation is done, allow bubble clicks again
+    isBubbleAnimating = false;
+    // (input lock will be released by timer)
   });
   requestAnimationFrame(()=> clone.classList.add('active-bubble'));
 
