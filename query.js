@@ -1284,10 +1284,20 @@ function renderBubbles(){
     list = filteredDefs;
   } else if (currentCategory === 'Selected') {
     // Show bubbles that are either displayed or have filters
-    list = filteredDefs.filter(d => {
-      const fieldName = d.name;
-      return shouldFieldHavePurpleStyling(fieldName);
+    // Order: displayedFields first (in their order), then any remaining filtered fields with active filters
+    const displayedSet = new Set(displayedFields);
+    const filteredSelected = filteredDefs.filter(d => shouldFieldHavePurpleStyling(d.name));
+    // 1. Bubbles for displayedFields (in order)
+    let orderedList = displayedFields
+      .map(name => filteredSelected.find(d => d.name === name))
+      .filter(Boolean);
+    // 2. Any remaining filtered fields with active filters (not already in displayedFields)
+    filteredSelected.forEach(d => {
+      if (!displayedSet.has(d.name) && !orderedList.includes(d)) {
+        orderedList.push(d);
+      }
     });
+    list = orderedList;
   } else {
     list = filteredDefs.filter(d => {
       const cat = d.category;
@@ -2809,6 +2819,10 @@ function moveColumn(table, fromIndex, toIndex){
   // 3️⃣  Refresh index metadata
   refreshColIndices(table);
   updateQueryJson();
+  // 4️⃣  If in Selected category, re-render bubbles to match new order
+  if (currentCategory === 'Selected') {
+    renderBubbles();
+  }
 }
 
 function removeColumn(table, colIndex){
