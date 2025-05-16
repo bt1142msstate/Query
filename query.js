@@ -836,69 +836,77 @@ confirmBtn.addEventListener('click', e => {
   const isSpecialMarc = fieldDef && fieldDef.isSpecialMarc;
   if (isSpecialMarc) {
     const marcInput = document.getElementById('marc-field-input');
-    const marcNumber = marcInput?.value?.trim();
-    if (!marcNumber || !/^\d{1,3}$/.test(marcNumber)) {
+    const marcNumbersRaw = marcInput?.value?.trim();
+    if (!marcNumbersRaw) {
       const errorLabel = document.getElementById('filter-error');
       if (errorLabel) {
-        errorLabel.textContent = 'Please enter a valid Marc field number';
+        errorLabel.textContent = 'Please enter at least one Marc field number';
         errorLabel.style.display = 'block';
         setTimeout(() => { errorLabel.style.display = 'none'; }, 3000);
       }
       return;
     }
-    if (!cond) return;
-    if (!val) {
+    // Split on comma, trim, and filter valid 1-3 digit numbers
+    const marcNumbers = marcNumbersRaw.split(',').map(s => s.trim()).filter(s => /^\d{1,3}$/.test(s));
+    if (marcNumbers.length === 0) {
       const errorLabel = document.getElementById('filter-error');
       if (errorLabel) {
-        errorLabel.textContent = 'Please enter a filter value';
+        errorLabel.textContent = 'Please enter valid Marc field numbers (1-3 digits, comma separated)';
         errorLabel.style.display = 'block';
         setTimeout(() => { errorLabel.style.display = 'none'; }, 3000);
       }
       return;
     }
-    const dynamicMarcField = `Marc${marcNumber}`;
-    if (dynamicMarcField === 'Marc') return;
-    if (!fieldDefs.some(f => f.name === dynamicMarcField)) {
-      const newDef = {
-        name: dynamicMarcField,
-        type: 'string',
-        category: 'Marc',
-        desc: `MARC ${marcNumber} field`
-      };
-      fieldDefs.push(newDef);
-      filteredDefs.push({ ...newDef });
-    }
-    if (!activeFilters[dynamicMarcField]) {
-      activeFilters[dynamicMarcField] = { logical: 'And', filters: [] };
-    }
-    const alreadyExists = activeFilters[dynamicMarcField].filters.some(f => f.cond === cond && f.val === val);
-    if (!alreadyExists) {
-      activeFilters[dynamicMarcField].filters.push({ cond, val });
-    }
+    let firstMarcField = null;
+    marcNumbers.forEach((marcNumber, idx) => {
+      const dynamicMarcField = `Marc${marcNumber}`;
+      if (dynamicMarcField === 'Marc') return;
+      if (!fieldDefs.some(f => f.name === dynamicMarcField)) {
+        const newDef = {
+          name: dynamicMarcField,
+          type: 'string',
+          category: 'Marc',
+          desc: `MARC ${marcNumber} field`
+        };
+        fieldDefs.push(newDef);
+        filteredDefs.push({ ...newDef });
+      }
+      // Ensure the new Marc field is shown as a column in the table
+      if (!displayedFields.includes(dynamicMarcField)) {
+        displayedFields.push(dynamicMarcField);
+        showExampleTable(displayedFields);
+      }
+      // Only add a filter to the first Marc field if both a condition and value are supplied
+      if (idx === 0 && cond && val) {
+        if (!activeFilters[dynamicMarcField]) {
+          activeFilters[dynamicMarcField] = { logical: 'And', filters: [] };
+        }
+        const alreadyExists = activeFilters[dynamicMarcField].filters.some(f => f.cond === cond && f.val === val);
+        if (!alreadyExists) {
+          activeFilters[dynamicMarcField].filters.push({ cond, val });
+        }
+      }
+      if (!firstMarcField) firstMarcField = dynamicMarcField;
+      // Manual bubble creation - create bubble if it doesn't exist
+      const bubblesList = document.getElementById('bubble-list');
+      if (bubblesList) {
+        const existingBubble = Array.from(bubblesList.children).find(b => b.textContent.trim() === dynamicMarcField);
+        if (!existingBubble) {
+          const div = document.createElement('div');
+          div.className = 'bubble';
+          div.setAttribute('draggable', dynamicMarcField === 'Marc' ? 'false' : 'true');
+          div.tabIndex = 0;
+          div.textContent = dynamicMarcField;
+          div.dataset.type = 'string';
+          bubblesList.appendChild(div);
+        }
+      }
+    });
     if (activeFilters['Marc']) delete activeFilters['Marc'];
     currentCategory = 'Marc';
     document.querySelectorAll('#category-bar .category-btn').forEach(btn =>
       btn.classList.toggle('active', btn.dataset.category === 'Marc')
     );
-    // Manual bubble creation - create bubble if it doesn't exist
-    const bubblesList = document.getElementById('bubble-list');
-    if (bubblesList) {
-      const existingBubble = Array.from(bubblesList.children).find(b => b.textContent.trim() === dynamicMarcField);
-      if (!existingBubble) {
-        const div = document.createElement('div');
-        div.className = 'bubble';
-        div.setAttribute('draggable', dynamicMarcField === 'Marc' ? 'false' : 'true');
-        div.tabIndex = 0;
-        div.textContent = dynamicMarcField;
-        div.dataset.type = 'string';
-        bubblesList.appendChild(div);
-      }
-    }
-    // Ensure the new Marc field is shown as a column in the table
-    if (!displayedFields.includes(dynamicMarcField)) {
-      displayedFields.push(dynamicMarcField);
-      showExampleTable(displayedFields);
-    }
     updateQueryJson();
     resetActive();
     overlay.click();
