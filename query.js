@@ -3273,12 +3273,12 @@ function renderQueries(){
     // Stop button for running queries, stacked above the label with a separator
     const stopBtn = q.running ? `
       <div class="flex flex-col items-center">
-        <button class="inline-flex items-center justify-center p-1 rounded-full bg-red-100 hover:bg-red-200 text-red-600" title="Stop" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
+        <button class="inline-flex items-center justify-center p-1 rounded-full bg-red-100 hover:bg-red-200 text-red-600" tabindex="-1" data-tooltip="Stop"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
         <span class="text-green-600 font-semibold mt-1">Running</span>
       </div>
     ` : '';
     // Reuse button for all queries (refresh/circular arrow icon)
-    const reuseBtn = `<button class="reuse-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" title="Reuse Query" tabindex="-1" data-query-id="${q.id}" style="margin-left:4px;"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><path d=\"M23 4v6h-6M1 20v-6h6\"/><path d=\"M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15\"/></svg></button>`;
+    const reuseBtn = `<button class="reuse-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" tabindex="-1" data-query-id="${q.id}" style="margin-left:4px;" data-tooltip="Reuse Query"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><path d=\"M23 4v6h-6M1 20v-6h6\"/><path d=\"M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15\"/></svg></button>`;
     // Duration calculation
     let duration = '—';
     if (q.startTime && q.endTime) {
@@ -3980,3 +3980,124 @@ function checkMobileMode() {
 }
 window.addEventListener('DOMContentLoaded', checkMobileMode);
 window.addEventListener('resize', checkMobileMode);
+
+/* =========================
+   Custom Tooltip Component
+   ========================= */
+const TooltipManager = (() => {
+  let tooltipEl = null;
+  let arrowEl = null;
+  let currentTarget = null;
+  let hideTimeout = null;
+
+  function createTooltip() {
+    tooltipEl = document.createElement('div');
+    tooltipEl.className = 'custom-tooltip';
+    arrowEl = document.createElement('div');
+    arrowEl.className = 'custom-tooltip-arrow';
+    arrowEl.innerHTML = '<svg width="14" height="7"><polygon points="0,0 7,7 14,0" fill="#222"/></svg>';
+    tooltipEl.appendChild(arrowEl);
+    document.body.appendChild(tooltipEl);
+  }
+
+  function showTooltip(target, text, event) {
+    if (!tooltipEl) createTooltip();
+    tooltipEl.textContent = '';
+    tooltipEl.appendChild(arrowEl); // keep arrow at end
+    tooltipEl.setAttribute('role', 'tooltip');
+    tooltipEl.setAttribute('aria-live', 'polite');
+    tooltipEl.style.display = 'block';
+    tooltipEl.classList.add('show');
+    tooltipEl.style.opacity = '0';
+    // Set text
+    tooltipEl.insertBefore(document.createTextNode(text), arrowEl);
+    // Position
+    positionTooltip(target, event);
+    setTimeout(() => { tooltipEl.classList.add('show'); tooltipEl.style.opacity = '1'; }, 10);
+    currentTarget = target;
+  }
+
+  function hideTooltip() {
+    if (!tooltipEl) return;
+    tooltipEl.classList.remove('show');
+    tooltipEl.style.opacity = '0';
+    hideTimeout = setTimeout(() => {
+      tooltipEl.style.display = 'none';
+      tooltipEl.textContent = '';
+      tooltipEl.appendChild(arrowEl);
+      currentTarget = null;
+    }, 120);
+  }
+
+  function positionTooltip(target, event) {
+    if (!tooltipEl) return;
+    const rect = target.getBoundingClientRect();
+    const scrollY = window.scrollY || window.pageYOffset;
+    const scrollX = window.scrollX || window.pageXOffset;
+    let top = rect.top + scrollY - tooltipEl.offsetHeight - 10;
+    let left = rect.left + scrollX + rect.width / 2 - tooltipEl.offsetWidth / 2;
+    let arrowDirection = 'arrow-up';
+    let arrowOffset = tooltipEl.offsetWidth / 2; // default: center
+    let anchorX = rect.left + rect.width / 2 + scrollX;
+    // If mouse event, follow mouse
+    if (event && event.type && event.type.startsWith('mouse')) {
+      anchorX = event.clientX + scrollX;
+      left = anchorX - tooltipEl.offsetWidth / 2;
+      top = rect.top + scrollY - tooltipEl.offsetHeight - 14;
+    }
+    // Clamp to viewport
+    const minLeft = 8;
+    const maxLeft = window.innerWidth - tooltipEl.offsetWidth - 8;
+    let clampedLeft = Math.max(minLeft, Math.min(left, maxLeft));
+    // If tooltip would go above viewport, show below element
+    if (top < scrollY + 4) {
+      top = rect.bottom + scrollY + 14;
+      arrowDirection = 'arrow-down';
+    }
+    tooltipEl.style.left = clampedLeft + 'px';
+    tooltipEl.style.top = top + 'px';
+    // Arrow direction class
+    tooltipEl.classList.remove('arrow-up', 'arrow-down');
+    tooltipEl.classList.add(arrowDirection);
+    // Arrow horizontal position: anchorX relative to tooltip left
+    let arrowLeft = anchorX - clampedLeft;
+    // Clamp arrow within tooltip
+    const arrowMargin = 12;
+    arrowLeft = Math.max(arrowMargin, Math.min(arrowLeft, tooltipEl.offsetWidth - arrowMargin));
+    arrowEl.style.left = arrowLeft + 'px';
+    arrowEl.style.right = '';
+    arrowEl.style.transform = 'translateX(-50%)' + (arrowDirection === 'arrow-down' ? ' rotate(180deg)' : '');
+  }
+
+  // Attach listeners globally
+  function attach() {
+    document.addEventListener('mouseover', e => {
+      const el = e.target.closest('[data-tooltip]');
+      if (!el) return;
+      if (hideTimeout) clearTimeout(hideTimeout);
+      const text = el.getAttribute('data-tooltip');
+      if (text) showTooltip(el, text, e);
+    });
+    document.addEventListener('mousemove', e => {
+      if (currentTarget && tooltipEl && tooltipEl.style.display === 'block') {
+        positionTooltip(currentTarget, e);
+      }
+    });
+    document.addEventListener('mouseout', e => {
+      if (e.target.closest('[data-tooltip]')) hideTooltip();
+    });
+    document.addEventListener('focusin', e => {
+      const el = e.target.closest('[data-tooltip]');
+      if (!el) return;
+      if (hideTimeout) clearTimeout(hideTimeout);
+      const text = el.getAttribute('data-tooltip');
+      if (text) showTooltip(el, text);
+    });
+    document.addEventListener('focusout', e => {
+      if (e.target.closest('[data-tooltip]')) hideTooltip();
+    });
+    window.addEventListener('scroll', () => { if (tooltipEl) hideTooltip(); });
+  }
+  attach();
+  return { show: showTooltip, hide: hideTooltip };
+})();
