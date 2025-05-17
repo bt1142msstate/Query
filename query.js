@@ -67,7 +67,7 @@ function lockInput(duration = 600) {
 
 /* ===== Modal helpers for JSON / Queries panels ===== */
 // Centralized modal panel IDs
-const MODAL_PANEL_IDS = ['json-panel', 'queries-panel', 'help-panel'];
+const MODAL_PANEL_IDS = ['json-panel', 'queries-panel', 'help-panel', 'templates-panel'];
 
 // Close all modal panels
 function closeAllModals() {
@@ -155,6 +155,7 @@ window.addEventListener('keydown', e => {
 document.getElementById('toggle-json')?.addEventListener('click', () => openModal('json-panel'));
 document.getElementById('toggle-queries')?.addEventListener('click', () => openModal('queries-panel'));
 document.getElementById('toggle-help')?.addEventListener('click', () => openModal('help-panel'));
+document.getElementById('toggle-templates')?.addEventListener('click', () => openModal('templates-panel'));
 document.querySelectorAll('.collapse-btn').forEach(btn=>{
   btn.addEventListener('click', () => closeModal(btn.dataset.target));
 });
@@ -459,7 +460,10 @@ function resetActive(){
   
   // For every floating clone, animate it back to its origin,
   // then restore the origin bubble's appearance when the animation ends.
-  document.querySelectorAll('.active-bubble').forEach(clone=>{
+  const clones = document.querySelectorAll('.active-bubble');
+  if (clones.length > 0) isBubbleAnimatingBack = true;
+  let bubblesToRemove = [];
+  clones.forEach(clone=>{
     const origin = clone._origin;
     // Check if origin is still in the DOM
     const originInDOM = origin && document.body.contains(origin);
@@ -481,18 +485,32 @@ function resetActive(){
         clone.remove();                          // remove clone after it snaps back
         // Remove from animating set
         animatingBackBubbles.delete(fieldName);
-        // Always update the currently rendered bubble for this field
+        // After animation, only update or remove the affected bubble
         requestAnimationFrame(() => {
           const bubbles = Array.from(document.querySelectorAll('.bubble'));
           bubbles.forEach(b => {
             if (b.textContent.trim() === fieldName) {
+              // If the field is no longer present (e.g., filter removed), remove the bubble
+              const stillExists = fieldDefs.some(d => d.name === fieldName) && shouldFieldHavePurpleStyling(fieldName);
+              if (!stillExists && currentCategory === 'Selected') {
+                b.remove();
+              } else {
               b.style.visibility = '';
               b.style.opacity = '1';
               b.classList.remove('bubble-disabled');
               applyCorrectBubbleStyling(b);
+              }
             }
           });
         });
+        // If all animations are done, allow rendering if needed
+        if (animatingBackBubbles.size === 0) {
+          isBubbleAnimatingBack = false;
+          if (pendingRenderBubbles) {
+            renderBubbles();
+            pendingRenderBubbles = false;
+          }
+        }
       }, { once:true });
     } else {
       // Origin bubble is gone - just remove the clone immediately without animating
@@ -504,16 +522,34 @@ function resetActive(){
         const matchingBubble = Array.from(document.querySelectorAll('.bubble'))
           .find(b => b.textContent.trim() === fieldName);
         if (matchingBubble) {
+          // If the field is no longer present, remove the bubble
+          const stillExists = fieldDefs.some(d => d.name === fieldName) && shouldFieldHavePurpleStyling(fieldName);
+          if (!stillExists && currentCategory === 'Selected') {
+            matchingBubble.remove();
+          } else {
           matchingBubble.style.opacity = '';
           matchingBubble.classList.remove('bubble-disabled');
-          // Apply the correct styling to the matching bubble
           applyCorrectBubbleStyling(matchingBubble);
+          }
+        }
+      }
+      // If all animations are done, allow rendering if needed
+      if (animatingBackBubbles.size === 0) {
+        isBubbleAnimatingBack = false;
+        if (pendingRenderBubbles) {
+          renderBubbles();
+          pendingRenderBubbles = false;
         }
       }
     }
   });
   // After all clones are removed and origin restored, re-enable bubble interaction
-  setTimeout(() => renderBubbles(), 0);
+  setTimeout(() => {
+    if (clones.length === 0) {
+      isBubbleAnimatingBack = false;
+      safeRenderBubbles();
+    }
+  }, 0);
 }
 
 overlay.addEventListener('click',()=>{
@@ -543,8 +579,10 @@ overlay.addEventListener('click',()=>{
     }
   });
   // After closing overlay, re-enable bubble interaction
-  setTimeout(() => renderBubbles(), 0);
+  setTimeout(() => safeRenderBubbles(), 0);
   overlay.classList.remove('bubble-active');
+  const headerBar = document.getElementById('header-bar');
+  if (headerBar) headerBar.classList.remove('header-hide');
 });
 
 // Handler for dynamic/static condition buttons
@@ -1176,7 +1214,7 @@ confirmBtn.addEventListener('click', e => {
         
         // If the category is 'Selected', refresh the display
         if (currentCategory === 'Selected') {
-          renderBubbles();
+          safeRenderBubbles();
         }
       }
     } catch (error) {
@@ -1212,7 +1250,7 @@ confirmBtn.addEventListener('click', e => {
   overlay.click();
   
   // Force a bubbles re-render to ensure display is updated
-  renderBubbles();
+  safeRenderBubbles();
   updateCategoryCounts();
   overlay.classList.remove('bubble-active');
 });
@@ -1263,7 +1301,7 @@ document.addEventListener('keydown',e=>{
     
     // Reset scroll position and re-render bubbles
     scrollRow = 0;
-    renderBubbles();
+    safeRenderBubbles();
     return; // consume event
   }
   const downPressed = e.key === 'ArrowDown' || e.key.toLowerCase() === 's';
@@ -1687,7 +1725,7 @@ if (categoryBar) {
         b.classList.toggle('active', b === btn)
       );
       scrollRow = 0;
-      renderBubbles();
+      safeRenderBubbles();
     });
   });
   
@@ -1734,7 +1772,7 @@ if (categoryBar) {
       );
       
       scrollRow = 0;
-      renderBubbles();
+      safeRenderBubbles();
     });
   }
   
@@ -1880,6 +1918,8 @@ document.addEventListener('click', e=>{
     }
   }, 60);
   if (clone) overlay.classList.add('bubble-active');
+  const headerBar = document.getElementById('header-bar');
+  if (clone && headerBar) headerBar.classList.add('header-hide');
 });
 
 document.addEventListener('dragstart', e=>{
@@ -1921,203 +1961,7 @@ document.addEventListener('dragend', e=>{
   if(e.target.closest('.bubble')) isBubbleDrag = false;
 });
 
-/* ------------------------------------------------------------------
-   Touch support for dragging bubbles on touchscreen devices
-   ------------------------------------------------------------------*/
 
-// Variables to track touch interactions
-let touchDragBubble = null;
-let touchDragGhost = null;
-let touchStartX = 0;
-let touchStartY = 0;
-let touchTarget = null;
-let dropTargetFound = false;
-
-// Helper to create a ghost bubble for touch dragging
-function createTouchDragGhost(bubble) {
-  const ghost = bubble.cloneNode(true);
-  ghost.classList.add('touch-drag-ghost');
-  // Make the ghost floating above everything and partially transparent
-  ghost.style.position = 'fixed';
-  ghost.style.zIndex = '1000';
-  ghost.style.opacity = '0.8';
-  ghost.style.pointerEvents = 'none';
-  ghost.style.boxShadow = '0 5px 15px rgba(0, 0, 0, 0.3)';
-  ghost.style.transform = 'scale(0.9)';
-  
-  // Add to the document
-  document.body.appendChild(ghost);
-  return ghost;
-}
-
-// Touch start handler for bubbles
-document.addEventListener('touchstart', e => {
-  // Only process if we're touching a bubble
-  const bubble = e.target.closest('.bubble');
-  if (!bubble) return;
-  
-  // Skip if this bubble is already displayed or not draggable
-  const fieldName = bubble.textContent.trim();
-  if (displayedFields.includes(fieldName) || bubble.getAttribute('draggable') === 'false') {
-    return;
-  }
-  
-  // Record the starting touch point
-  const touch = e.touches[0];
-  touchStartX = touch.clientX;
-  touchStartY = touch.clientY;
-  touchTarget = bubble;
-  
-  // We don't create the ghost immediately, only after determining it's a drag
-}, { passive: true });
-
-// Touch move handler for dragging
-document.addEventListener('touchmove', e => {
-  // Skip if no active touch target
-  if (!touchTarget) return;
-  
-  const touch = e.touches[0];
-  const deltaX = touch.clientX - touchStartX;
-  const deltaY = touch.clientY - touchStartY;
-  
-  // Require minimum movement to initiate drag (prevent accidental drags)
-  const minDragDistance = 10; // pixels
-  if (!touchDragBubble && (Math.abs(deltaX) > minDragDistance || Math.abs(deltaY) > minDragDistance)) {
-    // Now we're sure this is a drag, create the ghost
-    touchDragBubble = touchTarget;
-    touchDragGhost = createTouchDragGhost(touchTarget);
-    
-    // Set initial ghost position
-    touchDragGhost.style.left = `${touch.clientX - touchDragGhost.offsetWidth / 2}px`;
-    touchDragGhost.style.top = `${touch.clientY - touchDragGhost.offsetHeight / 2}px`;
-    
-    // Set data attributes for drop handling
-    touchDragGhost.dataset.fieldName = touchTarget.textContent.trim();
-    
-    // Set global drag state
-    isBubbleDrag = true;
-  }
-  
-  // If we have a ghost, move it with the touch
-  if (touchDragGhost) {
-    touchDragGhost.style.left = `${touch.clientX - touchDragGhost.offsetWidth / 2}px`;
-    touchDragGhost.style.top = `${touch.clientY - touchDragGhost.offsetHeight / 2}px`;
-    
-    // Clear all previous visual indicators first
-    document.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
-    document.querySelectorAll('.drag-hover').forEach(el => el.classList.remove('drag-hover'));
-    clearDropAnchor();
-    
-    // Detect drop targets
-    const elementsUnderTouch = document.elementsFromPoint(touch.clientX, touch.clientY);
-    
-    // Find if we're over the table
-    const tableContainer = elementsUnderTouch.find(el => 
-      el.classList.contains('overflow-x-auto') && 
-      el.classList.contains('shadow') && 
-      el.classList.contains('rounded-lg')
-    );
-    
-    // Find if we're over a table header
-    const tableHeader = elementsUnderTouch.find(el => 
-      el.tagName === 'TH' && el.hasAttribute('draggable')
-    );
-    
-    if (tableContainer || tableHeader) {
-      if (tableHeader) {
-        // Highlight the current header
-        tableHeader.classList.add('th-drag-over');
-        
-        // Use the same drop anchor positioning function that mouse dragging uses
-        const table = tableHeader.closest('table');
-        const rect = tableHeader.getBoundingClientRect();
-        positionDropAnchor(true, rect, table, touch.clientX);
-      } else if (tableContainer) {
-        // Just show we're over the table with a highlight
-        tableContainer.classList.add('drag-hover');
-        
-        // If we have no columns yet, show a horizontal drop anchor
-        const table = tableContainer.querySelector('table');
-        if (table && (!displayedFields || displayedFields.length === 0)) {
-          const rect = table.getBoundingClientRect();
-          // Use horizontal anchor (isBubble = false)
-          positionDropAnchor(false, rect, table, touch.clientX);
-        }
-      }
-      
-      dropTargetFound = true;
-    } else {
-      dropTargetFound = false;
-    }
-    
-    // Prevent default to disable page scrolling while dragging
-    e.preventDefault();
-  }
-}, { passive: false });
-
-// Touch end handler for dropping
-document.addEventListener('touchend', e => {
-  // Skip if no drag is in progress
-  if (!touchDragGhost || !touchDragBubble) {
-    // Reset tracking vars in case touchstart fired but no drag occurred
-    touchTarget = null;
-    return;
-  }
-  
-  // Get last touch position
-  const lastTouch = e.changedTouches[0];
-  const elementsAtRelease = document.elementsFromPoint(lastTouch.clientX, lastTouch.clientY);
-  
-  // Find potential drop targets
-  const tableContainer = elementsAtRelease.find(el => 
-    el.classList.contains('overflow-x-auto') && 
-    el.classList.contains('shadow') && 
-    el.classList.contains('rounded-lg')
-  );
-  
-  const tableHeader = elementsAtRelease.find(el => 
-    el.tagName === 'TH' && el.hasAttribute('draggable')
-  );
-  
-  // Get field name from the bubble
-  const fieldName = touchDragBubble.textContent.trim();
-  
-  // Check if we should add this field
-  if ((tableContainer || tableHeader) && !displayedFields.includes(fieldName)) {
-    if (tableHeader) {
-      // Find position to insert based on the header's position
-      const colIndex = parseInt(tableHeader.dataset.colIndex, 10);
-      const rect = tableHeader.getBoundingClientRect();
-      const insertAt = (lastTouch.clientX - rect.left) < rect.width/2 ? colIndex : colIndex + 1;
-      
-      // Insert at the specific position
-      displayedFields.splice(insertAt, 0, fieldName);
-    } else {
-      // Drop on table container, add to end
-      displayedFields.push(fieldName);
-    }
-    
-    // Update the table with the new field
-    showExampleTable(displayedFields);
-  }
-  
-  // Clean up
-  if (touchDragGhost) {
-    touchDragGhost.remove();
-    touchDragGhost = null;
-  }
-  
-  // Reset all tracking variables
-  touchDragBubble = null;
-  touchTarget = null;
-  isBubbleDrag = false;
-  dropTargetFound = false;
-  
-  // Clear any visual indicators using the shared function
-  document.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
-  document.querySelectorAll('.drag-hover').forEach(el => el.classList.remove('drag-hover'));
-  clearDropAnchor();
-}, { passive: true });
 
 /* Render/update the filter pill list for a given field */
 function renderConditionList(field){
@@ -2144,7 +1988,7 @@ function renderConditionList(field){
       // If this was the last filter for the field, and the field is no longer displayed, re-render
       const stillSelected = shouldFieldHavePurpleStyling(field);
       if (!stillSelected) {
-      renderBubbles();
+      safeRenderBubbles();
       }
     }
     return;
@@ -2218,7 +2062,7 @@ function renderConditionList(field){
       renderConditionList(field);
       updateCategoryCounts();
       if (currentCategory === 'Selected') {
-        renderBubbles();
+        safeRenderBubbles();
       }
     });
     list.appendChild(pill.getElement());
@@ -2644,7 +2488,7 @@ queryInput.addEventListener('input', () => {
     }
   }
   scrollRow = 0;
-  renderBubbles();
+  safeRenderBubbles();
 });
 
 if(clearSearchBtn){
@@ -2826,7 +2670,7 @@ function moveColumn(table, fromIndex, toIndex){
   updateQueryJson();
   // 4️⃣  If in Selected category, re-render bubbles to match new order
   if (currentCategory === 'Selected') {
-    renderBubbles();
+    safeRenderBubbles();
   }
 }
 
@@ -2876,7 +2720,7 @@ function removeColumn(table, colIndex){
   updateCategoryCounts();
   // Re-render bubbles if we're in Selected category
   if (currentCategory === 'Selected') {
-    renderBubbles();
+    safeRenderBubbles();
   }
 }
 
@@ -3208,7 +3052,7 @@ function showExampleTable(fields){
     updateCategoryCounts();
     // Re-render bubbles to ensure consistent styling
     if (currentCategory === 'Selected') {
-      renderBubbles();
+      safeRenderBubbles();
     }
     // --- Ensure trashcan is always attached and clickable ---
     // Attach mouseenter/mouseleave to all headers to show trashcan
@@ -3591,6 +3435,12 @@ if (mobileMenuToggle && mobileMenuDropdown) {
     // Trigger the same action as the help toggle button
     document.getElementById('toggle-help')?.click();
   });
+  
+  document.getElementById('mobile-toggle-templates')?.addEventListener('click', () => {
+    mobileMenuDropdown.classList.remove('show');
+    // Trigger the same action as the templates toggle button
+    document.getElementById('toggle-templates')?.click();
+  });
 }
 
 // Consolidated function to render both category bar and mobile selector
@@ -3635,7 +3485,7 @@ function renderCategorySelectors(selectedCount, marcCount) {
             b.classList.toggle('active', b === btn)
           );
           scrollRow = 0;
-          renderBubbles();
+          safeRenderBubbles();
         });
       });
   }
@@ -3692,7 +3542,7 @@ function updateCategoryCounts() {
       allBtn.classList.add('active');
     }
     scrollRow = 0;
-    renderBubbles();
+    safeRenderBubbles();
   }
 }
   
@@ -4017,7 +3867,7 @@ window.addEventListener('resize', updateHeaderHeightVar);
 
 // Accessibility: Add ARIA attributes to modal panels on page load
 window.addEventListener('DOMContentLoaded', () => {
-  const MODAL_PANEL_IDS = ['json-panel', 'queries-panel', 'help-panel'];
+  const MODAL_PANEL_IDS = ['json-panel', 'queries-panel', 'help-panel', 'templates-panel'];
   MODAL_PANEL_IDS.forEach(id => {
     const panel = document.getElementById(id);
     if (panel) {
@@ -4229,16 +4079,7 @@ const TooltipManager = (() => {
     document.addEventListener('dragend', () => {
       isDragging = false;
     });
-    // Hide tooltip on touch drag start (for touch devices)
-    document.addEventListener('touchstart', e => {
-      if (e.target.closest('.bubble') || e.target.closest('th[draggable="true"]')) {
-        isDragging = true;
-        hideTooltip();
-      }
-    }, { passive: true });
-    document.addEventListener('touchend', () => {
-      isDragging = false;
-    }, { passive: true });
+
     // On click, update tooltip if data-tooltip changed
     document.addEventListener('click', e => {
       const el = e.target.closest('[data-tooltip]');
@@ -4307,4 +4148,304 @@ class FilterPill {
   getElement() {
     return this.el;
   }
+}
+
+/* ------------------------------------------------------------------
+   Query Templates functionality
+   ------------------------------------------------------------------*/
+
+// Helper to get templates from local storage
+function getTemplates() {
+  try {
+    const templates = JSON.parse(localStorage.getItem('queryTemplates') || '[]');
+    return Array.isArray(templates) ? templates : [];
+  } catch (e) {
+    console.error('Error loading templates:', e);
+    return [];
+  }
+}
+
+// Helper to save templates to local storage
+function saveTemplates(templates) {
+  try {
+    localStorage.setItem('queryTemplates', JSON.stringify(templates));
+  } catch (e) {
+    console.error('Error saving templates:', e);
+  }
+}
+
+// Save current query as a template
+function saveCurrentAsTemplate() {
+  try {
+    const currentQuery = JSON.parse(queryBox.value || '{}');
+    
+    // Don't save empty queries
+    if (!currentQuery.DesiredColumnOrder || !currentQuery.DesiredColumnOrder.length) {
+      showError('Cannot save an empty query as a template. Please add at least one column.');
+      return;
+    }
+    
+    // Prompt for template name
+    const templateName = window.prompt('Enter a name for this template:', '');
+    if (!templateName) return; // User cancelled
+    
+    const templates = getTemplates();
+    
+    // Check for duplicates
+    const existingIndex = templates.findIndex(t => t.name === templateName);
+    if (existingIndex >= 0) {
+      const overwrite = window.confirm(`A template named "${templateName}" already exists. Do you want to replace it?`);
+      if (!overwrite) return;
+      templates[existingIndex] = { name: templateName, query: currentQuery, date: new Date().toISOString() };
+    } else {
+      // Add new template
+      templates.push({
+        name: templateName,
+        query: currentQuery,
+        date: new Date().toISOString()
+      });
+    }
+    
+    saveTemplates(templates);
+    renderTemplates();
+    
+    // Show success message
+    const message = document.createElement('div');
+    message.className = 'fixed bottom-4 right-4 bg-green-100 border border-green-500 text-green-700 px-4 py-3 rounded-md shadow-lg z-50';
+    message.innerHTML = `
+      <div class="flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        <span>Template "${templateName}" saved successfully!</span>
+      </div>
+    `;
+    document.body.appendChild(message);
+    setTimeout(() => {
+      message.style.opacity = '0';
+      message.style.transition = 'opacity 0.5s ease';
+      setTimeout(() => document.body.removeChild(message), 500);
+    }, 3000);
+  } catch (e) {
+    console.error('Error saving template:', e);
+    showError('Failed to save template. Please try again.');
+  }
+}
+
+// Apply a template
+function applyTemplate(template) {
+  try {
+    if (confirm(`Load the template "${template.name}"? This will replace your current query.`)) {
+      // Apply the query columns
+      displayedFields = [...(template.query.DesiredColumnOrder || [])];
+      
+      // Clear and reapply filters from FilterGroups
+      Object.keys(activeFilters).forEach(k => delete activeFilters[k]);
+      if (template.query.FilterGroups && Array.isArray(template.query.FilterGroups)) {
+        template.query.FilterGroups.forEach(group => {
+          const logical = group.LogicalOperator || 'And';
+          (group.Filters || []).forEach(ff => {
+            const field = ff.FieldName;
+            if (!activeFilters[field]) {
+              activeFilters[field] = { logical, filters: [] };
+            }
+            activeFilters[field].logical = logical;
+            activeFilters[field].filters.push({
+              cond: ff.FieldOperator.toLowerCase(),
+              val: ff.Values.join(ff.FieldOperator.toLowerCase() === 'between' ? '|' : ',')
+            });
+          });
+        });
+      }
+      
+      // Rebuild the table and refresh UI
+      showExampleTable(displayedFields);
+      updateQueryJson();
+      updateCategoryCounts();
+      safeRenderBubbles();
+      
+      // Show success notification
+      const message = document.createElement('div');
+      message.className = 'fixed bottom-4 right-4 bg-blue-100 border border-blue-500 text-blue-700 px-4 py-3 rounded-md shadow-lg z-50';
+      message.innerHTML = `
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+          <span>Template "${template.name}" loaded!</span>
+        </div>
+      `;
+      document.body.appendChild(message);
+      setTimeout(() => {
+        message.style.opacity = '0';
+        message.style.transition = 'opacity 0.5s ease';
+        setTimeout(() => document.body.removeChild(message), 500);
+      }, 3000);
+      
+      // Close the templates panel
+      closeModal('templates-panel');
+    }
+  } catch (e) {
+    console.error('Error applying template:', e);
+    showError('Failed to apply template. It may be corrupted.');
+  }
+}
+
+// Delete a template
+function deleteTemplate(template, element) {
+  if (confirm(`Are you sure you want to delete the template "${template.name}"?`)) {
+    const templates = getTemplates();
+    const newTemplates = templates.filter(t => t.name !== template.name);
+    saveTemplates(newTemplates);
+    
+    // Remove from UI with animation
+    element.style.maxHeight = element.scrollHeight + 'px';
+    element.style.opacity = '1';
+    
+    setTimeout(() => {
+      element.style.maxHeight = '0';
+      element.style.opacity = '0';
+      element.style.paddingTop = '0';
+      element.style.paddingBottom = '0';
+      element.style.marginBottom = '0';
+      
+      setTimeout(() => {
+        if (element.parentNode) {
+          element.parentNode.removeChild(element);
+        }
+        // Check if list is empty
+        if (newTemplates.length === 0) {
+          renderTemplates(); // Show empty state
+        }
+      }, 300);
+    }, 0);
+  }
+}
+
+// Render the templates list
+function renderTemplates() {
+  const templatesContainer = document.getElementById('templates-list');
+  if (!templatesContainer) return;
+  
+  const templates = getTemplates();
+  
+  if (!templates.length) {
+    templatesContainer.innerHTML = `
+      <p class="text-center text-gray-500 italic py-4">No templates saved yet. Create a query and click "Save Current" to create your first template.</p>
+    `;
+    return;
+  }
+  
+  templatesContainer.innerHTML = '';
+  
+  // Sort by newest first
+  templates.sort((a, b) => new Date(b.date) - new Date(a.date));
+  
+  templates.forEach(template => {
+    const item = document.createElement('div');
+    item.className = 'py-4 first:pt-0 last:pb-0 transition-all duration-300';
+    item.style.overflow = 'hidden';
+    
+    // Format date nicely
+    let dateDisplay = 'Unknown date';
+    try {
+      const date = new Date(template.date);
+      dateDisplay = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (e) {}
+    
+    // Calculate stats
+    const columnCount = template.query.DesiredColumnOrder?.length || 0;
+    
+    let filterCount = 0;
+    if (template.query.FilterGroups) {
+      template.query.FilterGroups.forEach(group => {
+        filterCount += (group.Filters?.length || 0);
+      });
+    }
+    
+    item.innerHTML = `
+      <div class="flex justify-between items-start">
+        <div>
+          <h4 class="font-semibold text-teal-800">${template.name}</h4>
+          <div class="text-sm text-gray-500 mt-1">Created: ${dateDisplay}</div>
+          <div class="text-sm text-gray-600 mt-2 flex items-center gap-4">
+            <span class="flex items-center gap-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M3 18h18M3 6h18"></path>
+              </svg>
+              ${columnCount} Column${columnCount !== 1 ? 's' : ''}
+            </span>
+            <span class="flex items-center gap-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9M3 12h9M3 16h9M3 20h9M17 8l2 2 4-4"></path>
+              </svg>
+              ${filterCount} Filter${filterCount !== 1 ? 's' : ''}
+            </span>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button class="load-template-btn p-1.5 rounded-full bg-black text-white hover:bg-gray-800 flex items-center justify-center transition-colors" data-template-name="${template.name}" aria-label="Load Template" data-tooltip="Load Template">
+            <svg fill="none" viewBox="0 0 24 24" class="w-5 h-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5.36,13.65,3.15,17.38A1.08,1.08,0,0,0,4.09,19H11"/>
+              <path d="M16,19l3.93.05a1.07,1.07,0,0,0,.92-1.62l-3.38-5.87"/>
+              <path d="M15.09,7.33,13,3.54a1.08,1.08,0,0,0-1.87,0l-3.46,6"/>
+              <polyline points="9.3 17 11 19 9 21"/>
+              <polyline points="16.52 13.92 17.4 11.45 20.13 12.18"/>
+              <polyline points="10.22 9.06 7.64 9.53 6.91 6.8"/>
+            </svg>
+          </button>
+          <button class="delete-template-btn p-1.5 rounded-full bg-black text-white hover:bg-red-600 focus:outline-none transition-colors" data-template-name="${template.name}" aria-label="Delete Template">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+              <path d="M3 6h18"></path>
+              <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+    `;
+    
+    templatesContainer.appendChild(item);
+    
+    // Add event listeners to buttons
+    const loadBtn = item.querySelector('.load-template-btn');
+    loadBtn.addEventListener('click', () => {
+      const templateToLoad = templates.find(t => t.name === template.name);
+      if (templateToLoad) {
+        applyTemplate(templateToLoad);
+      }
+    });
+    
+    const deleteBtn = item.querySelector('.delete-template-btn');
+    deleteBtn.addEventListener('click', () => {
+      deleteTemplate(template, item);
+    });
+  });
+}
+
+// Initialize templates functionality
+document.addEventListener('DOMContentLoaded', () => {
+  // Render templates list on page load
+  renderTemplates();
+  
+  // Add event listener to the Save Template button
+  const saveTemplateBtn = document.getElementById('save-template-btn');
+  if (saveTemplateBtn) {
+    saveTemplateBtn.addEventListener('click', saveCurrentAsTemplate);
+  }
+});
+
+// Add a global flag to block bubble rendering during animation
+let isBubbleAnimatingBack = false;
+let pendingRenderBubbles = false;
+
+// Replace all direct calls to renderBubbles() with a helper:
+function safeRenderBubbles() {
+  if (isBubbleAnimatingBack) {
+    pendingRenderBubbles = true;
+    return;
+  }
+  renderBubbles();
+  pendingRenderBubbles = false;
 }
