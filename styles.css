@@ -63,12 +63,14 @@
   --z-condition-list: 70;
   --z-filter-error: 75;
   --z-drag-ghost: 1000;
-  --z-header: 100;
+  --z-header: 1100;
   
   /* Transitions */
   --transition-fast: 0.15s ease;
   --transition-normal: 0.25s ease;
   --transition-slow: 0.45s ease;
+  
+  --header-height: 64px;
 }
 
 /* ==========================================
@@ -110,6 +112,7 @@ input, textarea, select, [contenteditable] {
    ========================================== */
 
 #header-bar {
+  height: var(--header-height);
   z-index: var(--z-header);
   background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(10px);
@@ -217,19 +220,18 @@ input, textarea, select, [contenteditable] {
 
 .modal-panel {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: var(--z-condition-panel);
-  width: 50vw;
-  height: 50vh;
-  max-width: 50vw;
-  max-height: 50vh;
+  top: var(--header-height);
+  left: 0;
+  width: 100vw;
+  height: calc(100vh - var(--header-height));
+  max-width: none;
+  max-height: none;
   overflow: auto;
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.97);
   backdrop-filter: blur(14px);
-  border-radius: var(--border-radius-xl);
-  box-shadow: var(--shadow-2xl);
+  border-radius: 0;
+  box-shadow: none;
+  z-index: var(--z-condition-panel);
   display: flex;
   flex-direction: column;
 }
@@ -406,28 +408,6 @@ input, textarea, select, [contenteditable] {
   padding: 1rem !important;
   overflow: visible !important;
   transition: width 0.35s ease, height 0.35s ease, font-size 0.35s ease, padding 0.35s ease;
-}
-
-.bubble-desc {
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translate(-50%, 42px);
-  padding: 1rem 1.25rem 0.9rem;
-  font-size: 0.9rem;
-  color: var(--color-black);
-  text-align: left;
-  line-height: 1.4;
-  max-width: 50vw;
-  min-width: 400px;
-  min-height: 200px;
-  max-height: 200px;
-  background: #fafaf7;
-  border: 1px solid var(--color-gray-300);
-  border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-md);
-  pointer-events: none;
-  overflow: hidden;
 }
 
 /* Disabled bubble (original that was cloned) */
@@ -839,25 +819,6 @@ input, textarea, select, [contenteditable] {
 #example-table td {
   padding: 1rem 1.5rem !important;
   color: #444;
-}
-
-/* Index-card table lines */
-.index-card-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.index-card-table td {
-  border-bottom: 1px solid var(--color-gray-200);
-  padding: 4px 0;
-  height: 25px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.index-card-table tr:last-child td {
-  border-bottom: none;
 }
 
 /* ==========================================
