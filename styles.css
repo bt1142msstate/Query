@@ -1310,4 +1310,48 @@ th:hover .th-trash {
 }
 #queries-container td {
   vertical-align: top;
+}
+
+/* ==========================================
+   CUSTOM TOOLTIP COMPONENT
+   ========================================== */
+.custom-tooltip {
+  position: absolute;
+  z-index: 2000;
+  background: #222;
+  color: #fff;
+  padding: 0.5em 0.75em;
+  border-radius: 0.5em;
+  font-size: 0.95em;
+  font-weight: 500;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-8px) scale(0.98);
+  transition: opacity 0.18s cubic-bezier(.4,0,.2,1), transform 0.18s cubic-bezier(.4,0,.2,1);
+  white-space: pre-line;
+  max-width: 260px;
+  line-height: 1.3;
+}
+.custom-tooltip.show {
+  opacity: 1;
+  transform: translateY(-14px) scale(1);
+}
+.custom-tooltip-arrow {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 7px;
+  pointer-events: none;
+}
+.custom-tooltip.arrow-up .custom-tooltip-arrow {
+  bottom: -7px;
+}
+.custom-tooltip.arrow-down .custom-tooltip-arrow {
+  top: -7px;
+  transform: translateX(-50%) rotate(180deg);
+}
+.custom-tooltip-arrow svg {
+  display: block;
 } 
