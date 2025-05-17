@@ -855,6 +855,32 @@ function createGroupedSelector(values, isMultiSelect, currentValues = []) {
   return container;
 }
 
+// Add this helper function to show error messages with consistent styling and timeout
+function showError(message, inputElements = [], duration = 3000) {
+  const errorLabel = document.getElementById('filter-error');
+  
+  // Add error styling to all provided input elements
+  inputElements.forEach(inp => {
+    if (inp) inp.classList.add('error');
+  });
+  
+  // Display the error message
+  if (errorLabel) {
+    errorLabel.textContent = message;
+    errorLabel.style.display = 'block';
+  }
+  
+  // Clear the error after timeout
+  setTimeout(() => {
+    if (errorLabel) errorLabel.style.display = 'none';
+    inputElements.forEach(inp => {
+      if (inp) inp.classList.remove('error');
+    });
+  }, duration);
+  
+  return false; // Return false for easy return in validation functions
+}
+
 confirmBtn.addEventListener('click', e => {
   e.stopPropagation();
   const bubble = document.querySelector('.active-bubble');
@@ -873,24 +899,12 @@ confirmBtn.addEventListener('click', e => {
     const marcInput = document.getElementById('marc-field-input');
     const marcNumbersRaw = marcInput?.value?.trim();
     if (!marcNumbersRaw) {
-      const errorLabel = document.getElementById('filter-error');
-      if (errorLabel) {
-        errorLabel.textContent = 'Please enter at least one Marc field number';
-        errorLabel.style.display = 'block';
-        setTimeout(() => { errorLabel.style.display = 'none'; }, 3000);
-      }
-      return;
+      return showError('Please enter at least one Marc field number', [marcInput]);
     }
     // Split on comma, trim, and filter valid 1-3 digit numbers
     const marcNumbers = marcNumbersRaw.split(',').map(s => s.trim()).filter(s => /^\d{1,3}$/.test(s));
     if (marcNumbers.length === 0) {
-      const errorLabel = document.getElementById('filter-error');
-      if (errorLabel) {
-        errorLabel.textContent = 'Please enter valid Marc field numbers (1-3 digits, comma separated)';
-        errorLabel.style.display = 'block';
-        setTimeout(() => { errorLabel.style.display = 'none'; }, 3000);
-      }
-      return;
+      return showError('Please enter valid Marc field numbers (1-3 digits, comma separated)', [marcInput]);
     }
     let firstMarcField = null;
     marcNumbers.forEach((marcNumber, idx) => {
@@ -952,27 +966,12 @@ confirmBtn.addEventListener('click', e => {
   // Check if this is a multiSelect field
   const isMultiSelect = fieldDef && fieldDef.multiSelect;
   if (cond && cond !== 'display') {
-    const errorLabel = document.getElementById('filter-error');
     const tintInputs = [conditionInput, document.getElementById('condition-input-2')];
-    const showAlert = msg => {
-      tintInputs.forEach(inp => {
-        if (inp) inp.classList.add('error');
-      });
-      if (errorLabel) {
-        errorLabel.textContent = msg;
-        errorLabel.style.display = 'block';
-      }
-      setTimeout(() => {
-        if (errorLabel) errorLabel.style.display = 'none';
-        tintInputs.forEach(inp => {
-          if (inp) inp.classList.remove('error');
-        });
-      }, 3000);
-    };
+    
     if (cond === 'between' && (val === '' || val2 === '')) {
-      showAlert('Please enter both values');
-      return;
+      return showError('Please enter both values', tintInputs);
     }
+    
     if (cond !== 'between') {
       const isTextInputVisible = conditionInput.style.display !== 'none';
       const isTextInputEmpty = val === '';
@@ -980,13 +979,13 @@ confirmBtn.addEventListener('click', e => {
       const isSelectEmpty = isSelectVisible && sel.value === '';
       const isContainerVisible = selContainer && selContainer.style.display !== 'none';
       const isContainerEmpty = isContainerVisible && selContainer.getSelectedValues().length === 0;
+      
       if ((isTextInputVisible && isTextInputEmpty) ||
         (isSelectVisible && isSelectEmpty) ||
         (isContainerVisible && isContainerEmpty)) {
-      showAlert('Please enter a value');
-      return;
+        return showError('Please enter a value', tintInputs);
+      }
     }
-  }
   }
   if (cond === 'between') {
     const type = bubble.dataset.type || 'string';
@@ -997,25 +996,8 @@ confirmBtn.addEventListener('click', e => {
       a = new Date(a).getTime(); b = new Date(b).getTime();
     }
     if (a === b) {
-      const errorLabel = document.getElementById('filter-error');
       const tintInputs = [conditionInput, document.getElementById('condition-input-2')];
-      const showAlert = msg => {
-        tintInputs.forEach(inp => {
-          if (inp) inp.classList.add('error');
-        });
-        if (errorLabel) {
-          errorLabel.textContent = msg;
-          errorLabel.style.display = 'block';
-        }
-        setTimeout(() => {
-          if (errorLabel) errorLabel.style.display = 'none';
-          tintInputs.forEach(inp => {
-            if (inp) inp.classList.remove('error');
-          });
-        }, 3000);
-      };
-      showAlert('Between values must be different');
-      return;
+      return showError('Between values must be different', tintInputs);
     }
     if (a > b) {
       conditionInput.value = val2;
@@ -1071,18 +1053,7 @@ confirmBtn.addEventListener('click', e => {
       [conditionInput, document.getElementById('condition-input-2')].forEach(inp => {
         if (inp) inp.classList.add('error');
       });
-      const errorLabel = document.getElementById('filter-error');
-      if (errorLabel) {
-        errorLabel.textContent = conflictMsg;
-        errorLabel.style.display = 'block';
-      }
-      setTimeout(() => {
-        if (errorLabel) errorLabel.style.display = 'none';
-        [conditionInput, document.getElementById('condition-input-2')].forEach(inp => {
-          if (inp) inp.classList.remove('error');
-        });
-      }, 3000);
-      return;
+      return showError(conflictMsg, [conditionInput, document.getElementById('condition-input-2')]);
     } else {
       const errorLabel = document.getElementById('filter-error');
       if (errorLabel) errorLabel.style.display = 'none';
@@ -2158,13 +2129,8 @@ function renderConditionList(field){
         if(conflictMsg) break;
       }
       if(conflictMsg){
-        // Show same error badge the input uses
-        const errorLabel = document.getElementById('filter-error');
-        if(errorLabel){
-          errorLabel.textContent = conflictMsg;
-          errorLabel.style.display = 'block';
-          setTimeout(()=>{ if(errorLabel) errorLabel.style.display='none'; }, 3000);
-        }
+        // Replace the inline error display with our reusable function
+        showError(conflictMsg, [conditionInput, document.getElementById('condition-input-2')]);
         return;   // refuse to switch to AND
       }
     }
@@ -3769,4 +3735,260 @@ function updateMobileSelector(selectedCount, marcCount) {
       (currentValue === 'Selected' && selectedCount === 0)) {
     mobileSelector.value = 'All';
   }
+}
+
+/* ------------------------------------------------------------------
+   Unified drag and drop handlers to reduce duplicate code
+   ------------------------------------------------------------------*/
+const dragDropManager = {
+  // Track state
+  isBubbleDrag: false,
+  hoverTh: null,
+  
+  // Initialize drag-and-drop for a table
+  initTableDragDrop(table) {
+    if (!table) return;
+    
+    // Ensure every header/cell has an up-to-date col index
+    refreshColIndices(table);
+    const scrollContainer = document.querySelector('.overflow-x-auto.shadow.rounded-lg.mb-6');
+    const headers = table.querySelectorAll('th[draggable="true"]');
+    
+    // Add header hover tracking
+    headers.forEach(th => {
+      th.addEventListener('mouseenter', () => this.handleHeaderEnter(th));
+      th.addEventListener('mouseleave', () => this.handleHeaderLeave(th));
+      th.addEventListener('dragstart', (e) => this.handleHeaderDragStart(e, th, scrollContainer));
+      th.addEventListener('dragend', () => this.handleHeaderDragEnd(th, scrollContainer));
+      th.addEventListener('dragenter', (e) => this.handleDragEnter(e, th, table));
+      th.addEventListener('dragleave', () => this.handleDragLeave());
+      th.addEventListener('dragover', (e) => this.handleDragOver(e, th, table));
+      th.addEventListener('drop', (e) => this.handleDrop(e, th, table));
+    });
+    
+    // Handle body cell events
+    const bodyCells = table.querySelectorAll('tbody td');
+    bodyCells.forEach(td => {
+      td.addEventListener('dragenter', (e) => this.handleCellDragEnter(e, td, table));
+      td.addEventListener('dragover', (e) => this.handleCellDragOver(e, td, table));
+      td.addEventListener('dragleave', () => this.handleDragLeave());
+      td.addEventListener('drop', (e) => this.handleCellDrop(e, td, table));
+    });
+  },
+  
+  // Header hover handlers
+  handleHeaderEnter(th) {
+    th.classList.add('th-hover');
+    this.hoverTh = th;
+    th.appendChild(headerTrash);
+    headerTrash.style.display = 'block';
+  },
+  
+  handleHeaderLeave(th) {
+    th.classList.remove('th-hover');
+    this.hoverTh = null;
+    if (headerTrash.parentNode) headerTrash.parentNode.removeChild(headerTrash);
+  },
+  
+  // Header drag start/end
+  handleHeaderDragStart(e, th, scrollContainer) {
+    this.isBubbleDrag = false; // this is a column drag
+    th.classList.add('th-dragging');
+    th.classList.remove('th-hover');
+    if (scrollContainer) scrollContainer.classList.add('dragging-scroll-lock');
+    document.body.classList.add('dragging-cursor');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', th.dataset.colIndex);
+    
+    // Create drag ghost
+    const ghost = document.createElement('div');
+    ghost.textContent = th.textContent.trim();
+    const thStyle = window.getComputedStyle(th);
+    ghost.style.color = thStyle.color;
+    ghost.classList.add('ghost-drag');
+    ghost.style.width = 'auto';
+    ghost.style.fontSize = '0.8rem';
+    ghost.style.padding = '2px 8px';
+    ghost.style.background = '#fff';
+    ghost.style.borderRadius = '6px';
+    ghost.style.boxShadow = '0 2px 8px rgba(0,0,0,0.12)';
+    ghost.style.opacity = '0.95';
+    ghost.style.pointerEvents = 'none';
+    ghost.style.position = 'absolute';
+    ghost.style.top = '-9999px';
+    ghost.style.left = '-9999px';
+    document.body.appendChild(ghost);
+    e.dataTransfer.setDragImage(ghost, ghost.offsetWidth / 2, ghost.offsetHeight / 2);
+    th._ghost = ghost;
+    setTimeout(() => { if (ghost.parentNode) ghost.parentNode.removeChild(ghost); }, 0);
+  },
+  
+  handleHeaderDragEnd(th, scrollContainer) {
+    th.classList.remove('th-dragging');
+    if (scrollContainer) scrollContainer.classList.remove('dragging-scroll-lock');
+    document.body.classList.remove('dragging-cursor');
+    document.querySelectorAll('th').forEach(h => h.classList.remove('th-hover'));
+    document.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
+    clearDropAnchor();
+    if (th._ghost) {
+      th._ghost.remove();
+      delete th._ghost;
+    }
+  },
+  
+  // Common drag event handlers
+  handleDragEnter(e, element, table) {
+    e.preventDefault();
+    // Clear any existing highlight
+    table.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
+    if (!element.classList.contains('th-dragging')) {
+      element.classList.add('th-drag-over');
+    }
+    const rect = element.getBoundingClientRect();
+    positionDropAnchor(this.isBubbleDrag, rect, table, e.clientX);
+  },
+  
+  handleDragLeave() {
+    clearDropAnchor();
+  },
+  
+  handleDragOver(e, element, table) {
+    e.preventDefault();
+    const rect = element.getBoundingClientRect();
+    positionDropAnchor(this.isBubbleDrag, rect, table, e.clientX);
+  },
+  
+  // Cell-specific handlers
+  handleCellDragEnter(e, td, table) {
+    e.preventDefault();
+    table.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
+    const colIndex = parseInt(td.dataset.colIndex, 10);
+    const targetHeader = table.querySelector(`thead th[data-col-index="${colIndex}"]`);
+    if (targetHeader && !targetHeader.classList.contains('th-dragging')) {
+      targetHeader.classList.add('th-drag-over');
+    }
+    const rect = targetHeader.getBoundingClientRect();
+    positionDropAnchor(this.isBubbleDrag, rect, table, e.clientX);
+  },
+  
+  handleCellDragOver(e, td, table) {
+    e.preventDefault();
+    const colIndex = parseInt(td.dataset.colIndex, 10);
+    const targetHeader = table.querySelector(`thead th[data-col-index="${colIndex}"]`);
+    const rect = targetHeader.getBoundingClientRect();
+    positionDropAnchor(this.isBubbleDrag, rect, table, e.clientX);
+  },
+  
+  // Drop handlers
+  handleDrop(e, th, table) {
+    e.preventDefault();
+    e.stopPropagation();
+    const toIndex = parseInt(th.dataset.colIndex, 10);
+    
+    // Column reorder drop
+    const fromIndexStr = e.dataTransfer.getData('text/plain').trim();
+    if (/^\d+$/.test(fromIndexStr)) {
+      const fromIndex = parseInt(fromIndexStr, 10);
+      if (fromIndex !== toIndex) {
+        moveColumn(table, fromIndex, toIndex);
+        refreshColIndices(table);
+      }
+      th.classList.remove('th-drag-over');
+      clearDropAnchor();
+      return;
+    }
+    
+    // Bubble drop - insert new field
+    const bubbleField = e.dataTransfer.getData('bubble-field');
+    if (bubbleField && !displayedFields.includes(bubbleField)) {
+      const rect = th.getBoundingClientRect();
+      const insertAt = (e.clientX - rect.left) < rect.width/2 ? toIndex : toIndex + 1;
+      displayedFields.splice(insertAt, 0, bubbleField);
+      showExampleTable(displayedFields);
+    }
+    
+    th.classList.remove('th-drag-over');
+    clearDropAnchor();
+  },
+  
+  handleCellDrop(e, td, table) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const toIndex = parseInt(td.dataset.colIndex, 10);
+    
+    // Bubble drop
+    const bubbleField = e.dataTransfer.getData('bubble-field');
+    if (bubbleField) {
+      if (!displayedFields.includes(bubbleField)) {
+        const rect = td.getBoundingClientRect();
+        const insertAt = (e.clientX - rect.left) < rect.width/2 ? toIndex : toIndex + 1;
+        displayedFields.splice(insertAt, 0, bubbleField);
+        showExampleTable(displayedFields);
+      }
+      clearDropAnchor();
+      return;
+    }
+    
+    // Header reorder drop
+    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
+    if (!isNaN(fromIndex) && fromIndex !== toIndex) {
+      moveColumn(table, fromIndex, toIndex);
+      refreshColIndices(table);
+    }
+    
+    // Clear visual states
+    table.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
+    clearDropAnchor();
+  },
+  
+  // Set bubble drag state for tracking
+  setBubbleDrag(state) {
+    this.isBubbleDrag = state;
+  }
+};
+
+// Update existing document-level event listeners
+document.addEventListener('dragstart', e => {
+  const bubble = e.target.closest('.bubble');
+  if (!bubble) return;
+  
+  // Check if this bubble is already displayed in the table
+  const fieldName = bubble.textContent.trim();
+  if (displayedFields.includes(fieldName)) {
+    // Prevent dragging of already displayed bubbles
+    e.preventDefault();
+    return;
+  }
+  
+  e.dataTransfer.setData('bubble-field', fieldName);
+  e.dataTransfer.effectAllowed = 'copy';
+  dragDropManager.setBubbleDrag(true);
+  
+  // Clone bubble and wrap it in a padded container
+  const wrapper = document.createElement('div');
+  const pad = 16;
+  wrapper.style.position = 'absolute';
+  wrapper.style.top = '-9999px';
+  wrapper.style.left = '-9999px';
+  wrapper.style.padding = pad / 2 + 'px';
+  wrapper.style.pointerEvents = 'none';
+  wrapper.style.boxSizing = 'content-box';
+  const ghost = bubble.cloneNode(true);
+  ghost.style.overflow = 'visible';
+  wrapper.appendChild(ghost);
+  document.body.appendChild(wrapper);
+  const gw = wrapper.offsetWidth;
+  const gh = wrapper.offsetHeight;
+  e.dataTransfer.setDragImage(wrapper, gw / 2, gh / 2);
+  setTimeout(() => wrapper.remove(), 0);
+});
+
+document.addEventListener('dragend', e => {
+  if (e.target.closest('.bubble')) dragDropManager.setBubbleDrag(false);
+});
+
+// Replace the old addDragAndDrop function with the new manager
+function addDragAndDrop(table) {
+  dragDropManager.initTableDragDrop(table);
 }
