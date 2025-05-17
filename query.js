@@ -4236,6 +4236,20 @@ const TooltipManager = (() => {
     document.addEventListener('touchend', () => {
       isDragging = false;
     }, { passive: true });
+    // On click, update tooltip if data-tooltip changed
+    document.addEventListener('click', e => {
+      const el = e.target.closest('[data-tooltip]');
+      if (!el) return;
+      const text = el.getAttribute('data-tooltip');
+      if (currentTarget === el && tooltipEl && tooltipEl.style.display === 'block') {
+        // If tooltip is already showing for this element, update text if changed
+        if (tooltipEl.textContent !== text) {
+          showTooltip(el, text, e);
+        }
+      } else if (text) {
+        showTooltip(el, text, e);
+      }
+    });
   }
   attach();
   return { show: showTooltip, hide: hideTooltip };
