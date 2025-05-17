@@ -108,6 +108,20 @@ input, textarea, select, [contenteditable] {
   display: block;
 }
 
+#overlay.bubble-active {
+  animation: overlayDarken 2s forwards;
+  animation-fill-mode: forwards;
+}
+
+@keyframes overlayDarken {
+  from {
+    background: rgba(0, 0, 0, 0);
+  }
+  to {
+    background: rgba(30, 41, 59, 0.7);
+  }
+}
+
 /* ==========================================
    1.1 HEADER BAR STYLES
    ========================================== */
