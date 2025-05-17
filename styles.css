@@ -1354,4 +1354,10 @@ th:hover .th-trash {
 }
 .custom-tooltip-arrow svg {
   display: block;
+}
+
+/* Filter pill trash can hover effect */
+.filter-trash:hover svg path {
+  stroke: #e11d48 !important;
+  fill: #e11d48 !important;
 } 
