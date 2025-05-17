@@ -76,6 +76,8 @@ function closeAllModals() {
     if (p) p.classList.add('hidden');
   });
   overlay.classList.remove('show');
+  // Accessibility: unhide main content
+  setMainContentAriaHidden(false);
 }
 
 // Focus management helpers
@@ -121,6 +123,8 @@ function openModal(panelId) {
   }
   // Trap focus
   trapFocus(panel);
+  // Accessibility: hide main content from screen readers
+  setMainContentAriaHidden(true, panelId);
 }
 
 // Close a specific modal panel
@@ -3926,3 +3930,88 @@ function updateHeaderHeightVar() {
 // Update on page load and window resize
 window.addEventListener('DOMContentLoaded', updateHeaderHeightVar);
 window.addEventListener('resize', updateHeaderHeightVar);
+
+// Accessibility: Add ARIA attributes to modal panels on page load
+window.addEventListener('DOMContentLoaded', () => {
+  const MODAL_PANEL_IDS = ['json-panel', 'queries-panel', 'help-panel'];
+  MODAL_PANEL_IDS.forEach(id => {
+    const panel = document.getElementById(id);
+    if (panel) {
+      panel.setAttribute('role', 'dialog');
+      panel.setAttribute('aria-modal', 'true');
+      // Prefer aria-labelledby if a heading exists, else fallback to aria-label
+      const heading = panel.querySelector('h2, h1, .modal-title');
+      if (heading && heading.id) {
+        panel.setAttribute('aria-labelledby', heading.id);
+      } else if (heading) {
+        // Generate a unique id if needed
+        const uniqueId = id + '-label';
+        heading.id = uniqueId;
+        panel.setAttribute('aria-labelledby', uniqueId);
+      } else {
+        // Fallback: use aria-label
+        panel.setAttribute('aria-label', id.replace(/-panel$/, '').replace(/\b\w/g, c => c.toUpperCase()));
+      }
+    }
+  });
+});
+
+// Helper to set aria-hidden on main content except header and open modal
+function setMainContentAriaHidden(hidden, openPanelId = null) {
+  const pageBody = document.getElementById('page-body');
+  if (pageBody) pageBody.setAttribute('aria-hidden', hidden ? 'true' : 'false');
+  // Optionally, hide other main containers if present
+  // e.g., document.getElementById('main-content')?.setAttribute('aria-hidden', hidden ? 'true' : 'false');
+  // Unhide the open modal and header
+  if (openPanelId) {
+    const panel = document.getElementById(openPanelId);
+    if (panel) panel.setAttribute('aria-hidden', 'false');
+  }
+  const header = document.getElementById('header-bar');
+  if (header) header.setAttribute('aria-hidden', 'false');
+}
+
+// Update openModal/closeAllModals to manage aria-hidden
+function openModal(panelId) {
+  closeAllModals();
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
+  panel.classList.remove('hidden');
+  overlay.classList.add('show');
+  // Focus first focusable element
+  const focusable = getFocusableElements(panel);
+  if (focusable.length) {
+    setTimeout(() => focusable[0].focus(), 0);
+  }
+  // Trap focus
+  trapFocus(panel);
+  // Accessibility: hide main content from screen readers
+  setMainContentAriaHidden(true, panelId);
+}
+
+function closeAllModals() {
+  MODAL_PANEL_IDS.forEach(id => {
+    const p = document.getElementById(id);
+    if (p) p.classList.add('hidden');
+  });
+  overlay.classList.remove('show');
+  // Accessibility: unhide main content
+  setMainContentAriaHidden(false);
+}
+
+// Utility to get the mobile breakpoint from CSS variable
+function getMobileBreakpoint() {
+  return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--mobile-breakpoint').trim(), 10);
+}
+
+// Example usage: log if in mobile mode on load and resize
+function checkMobileMode() {
+  const bp = getMobileBreakpoint();
+  const isMobile = window.innerWidth <= bp;
+  // You can use isMobile for conditional UI logic
+  // For demonstration, log to console
+  // console.log('Mobile mode:', isMobile);
+  // (Replace with real responsive logic as needed)
+}
+window.addEventListener('DOMContentLoaded', checkMobileMode);
+window.addEventListener('resize', checkMobileMode);
