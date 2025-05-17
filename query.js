@@ -66,22 +66,88 @@ function lockInput(duration = 600) {
 }
 
 /* ===== Modal helpers for JSON / Queries panels ===== */
-function openModal(panelId){
+// Centralized modal panel IDs
+const MODAL_PANEL_IDS = ['json-panel', 'queries-panel', 'help-panel'];
+
+// Close all modal panels
+function closeAllModals() {
+  MODAL_PANEL_IDS.forEach(id => {
+    const p = document.getElementById(id);
+    if (p) p.classList.add('hidden');
+  });
+  overlay.classList.remove('show');
+}
+
+// Focus management helpers
+function getFocusableElements(panel) {
+  return panel.querySelectorAll(
+    'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+  );
+}
+
+function trapFocus(panel) {
+  const focusable = getFocusableElements(panel);
+  if (!focusable.length) return;
+  let first = focusable[0];
+  let last = focusable[focusable.length - 1];
+  panel.addEventListener('keydown', function(e) {
+    if (e.key === 'Tab') {
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    }
+  });
+}
+
+// Open a modal panel, close others, focus first element, trap focus
+function openModal(panelId) {
+  closeAllModals();
   const panel = document.getElementById(panelId);
-  if(!panel) return;
+  if (!panel) return;
   panel.classList.remove('hidden');
   overlay.classList.add('show');
+  // Focus first focusable element
+  const focusable = getFocusableElements(panel);
+  if (focusable.length) {
+    setTimeout(() => focusable[0].focus(), 0);
+  }
+  // Trap focus
+  trapFocus(panel);
 }
-function closeModal(panelId){
+
+// Close a specific modal panel
+function closeModal(panelId) {
   const panel = document.getElementById(panelId);
-  if(!panel) return;
+  if (!panel) return;
   panel.classList.add('hidden');
-  if(!document.querySelector('.active-bubble') &&
-     !document.querySelector('#json-panel:not(.hidden)') &&
-     !document.querySelector('#queries-panel:not(.hidden)')){
+  // If no other modal is open, hide overlay
+  const anyOpen = MODAL_PANEL_IDS.some(id => {
+    const p = document.getElementById(id);
+    return p && !p.classList.contains('hidden');
+  });
+  if (!document.querySelector('.active-bubble') && !anyOpen) {
     overlay.classList.remove('show');
   }
 }
+
+// Escape key closes modals
+window.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    // Only close if a modal is open
+    if (overlay.classList.contains('show')) {
+      closeAllModals();
+    }
+  }
+});
+
 document.getElementById('toggle-json')?.addEventListener('click', () => openModal('json-panel'));
 document.getElementById('toggle-queries')?.addEventListener('click', () => openModal('queries-panel'));
 document.getElementById('toggle-help')?.addEventListener('click', () => openModal('help-panel'));
@@ -1167,19 +1233,19 @@ const fieldDefs = [
     { "display": "MLTN-A", "literal": "4" },
     { "display": "MLTN-B", "literal": "5" },
     { "display": "WSPR-X", "literal": "6" }
-  ], "filters": ["equals"], "desc": "The library branch", "category": "Item", "multiSelect": true },
+  ], "filters": ["equals"], "category": "Item", "multiSelect": true },
   { "name": "Author", "type": "string", "filters": ["contains", "starts", "equals"], "category": "Catalog" },
   { "name": "Title", "type": "string", "filters": ["contains", "starts", "equals"], "category": "Catalog" },
-  { "name": "Price", "type": "money", "desc": "Cost of item", "category": "Catalog" },
+  { "name": "Price", "type": "money", "category": "Catalog" },
   { "name": "Call Number", "type": "string", "filters": ["contains", "equals", "between"], "category": "Call #" },
   { "name": "Catalog Key", "type": "string", "filters": ["equals"], "category": "Catalog" },
-  { "name": "Barcode", "type": "string", "desc": "Barcode identifier for the item", "category": "Item" },
+  { "name": "Barcode", "type": "string", "category": "Item" },
   { "name": "Item Type", "type": "string", "category": "Item" },
-  { "name": "Home Location", "type": "string", "desc": "Location within the library where the item is stored", "category": "Item" },
+  { "name": "Home Location", "type": "string", "category": "Item" },
   { "name": "Marc", "type": "string", "category": "Marc", "isSpecialMarc": true, "desc": "Create custom MARC field filters by specifying a MARC field number" },
-  { "name": "Item Creation Date", "type": "date", "desc": "Date when the item record was created in the system", "category": ["Item", "Dates"] },
-  { "name": "Item Total Charges", "type": "number", "desc": "Total check-outs + renewals since creation", "category": "Item" },
-  { "name": "Item Last Used", "type": "date", "desc": "Last date the item was checked out or used", "category": ["Item", "Dates"] },
+  { "name": "Item Creation Date", "type": "date", "category": ["Item", "Dates"] },
+  { "name": "Item Total Charges", "type": "number", "category": "Item" },
+  { "name": "Item Last Used", "type": "date", "category": ["Item", "Dates"] },
   { "name": "Number of Bills", "type": "number", "category": "Item" },
   { "name": "Number of Current Charges", "type": "number", "category": "Item" },
   { "name": "Category1", "type": "string", "category": "Item" },
@@ -3847,3 +3913,16 @@ function getLiteralToDisplayMap(fieldDef) {
   }
   return map;
 }
+
+// Dynamically set --header-height CSS variable based on actual header height
+function updateHeaderHeightVar() {
+  const header = document.getElementById('header-bar');
+  if (header) {
+    const height = header.offsetHeight;
+    document.documentElement.style.setProperty('--header-height', height + 'px');
+  }
+}
+
+// Update on page load and window resize
+window.addEventListener('DOMContentLoaded', updateHeaderHeightVar);
+window.addEventListener('resize', updateHeaderHeightVar);
