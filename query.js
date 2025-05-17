@@ -908,18 +908,18 @@ confirmBtn.addEventListener('click', e => {
     }
     let firstMarcField = null;
     marcNumbers.forEach((marcNumber, idx) => {
-      const dynamicMarcField = `Marc${marcNumber}`;
-      if (dynamicMarcField === 'Marc') return;
-      if (!fieldDefs.some(f => f.name === dynamicMarcField)) {
-        const newDef = {
-          name: dynamicMarcField,
-          type: 'string',
-          category: 'Marc',
-          desc: `MARC ${marcNumber} field`
-        };
-        fieldDefs.push(newDef);
-        filteredDefs.push({ ...newDef });
-      }
+    const dynamicMarcField = `Marc${marcNumber}`;
+    if (dynamicMarcField === 'Marc') return;
+    if (!fieldDefs.some(f => f.name === dynamicMarcField)) {
+      const newDef = {
+        name: dynamicMarcField,
+        type: 'string',
+        category: 'Marc',
+        desc: `MARC ${marcNumber} field`
+      };
+      fieldDefs.push(newDef);
+      filteredDefs.push({ ...newDef });
+    }
       // Ensure the new Marc field is shown as a column in the table
       if (!displayedFields.includes(dynamicMarcField)) {
         displayedFields.push(dynamicMarcField);
@@ -927,29 +927,29 @@ confirmBtn.addEventListener('click', e => {
       }
       // Only add a filter to the first Marc field if both a condition and value are supplied
       if (idx === 0 && cond && val) {
-        if (!activeFilters[dynamicMarcField]) {
-          activeFilters[dynamicMarcField] = { logical: 'And', filters: [] };
-        }
-        const alreadyExists = activeFilters[dynamicMarcField].filters.some(f => f.cond === cond && f.val === val);
-        if (!alreadyExists) {
-          activeFilters[dynamicMarcField].filters.push({ cond, val });
-        }
+    if (!activeFilters[dynamicMarcField]) {
+      activeFilters[dynamicMarcField] = { logical: 'And', filters: [] };
+    }
+    const alreadyExists = activeFilters[dynamicMarcField].filters.some(f => f.cond === cond && f.val === val);
+    if (!alreadyExists) {
+      activeFilters[dynamicMarcField].filters.push({ cond, val });
+    }
       }
       if (!firstMarcField) firstMarcField = dynamicMarcField;
-      // Manual bubble creation - create bubble if it doesn't exist
-      const bubblesList = document.getElementById('bubble-list');
-      if (bubblesList) {
-        const existingBubble = Array.from(bubblesList.children).find(b => b.textContent.trim() === dynamicMarcField);
-        if (!existingBubble) {
-          const div = document.createElement('div');
-          div.className = 'bubble';
-          div.setAttribute('draggable', dynamicMarcField === 'Marc' ? 'false' : 'true');
-          div.tabIndex = 0;
-          div.textContent = dynamicMarcField;
-          div.dataset.type = 'string';
-          bubblesList.appendChild(div);
-        }
+    // Manual bubble creation - create bubble if it doesn't exist
+    const bubblesList = document.getElementById('bubble-list');
+    if (bubblesList) {
+      const existingBubble = Array.from(bubblesList.children).find(b => b.textContent.trim() === dynamicMarcField);
+      if (!existingBubble) {
+        const div = document.createElement('div');
+        div.className = 'bubble';
+        div.setAttribute('draggable', dynamicMarcField === 'Marc' ? 'false' : 'true');
+        div.tabIndex = 0;
+        div.textContent = dynamicMarcField;
+        div.dataset.type = 'string';
+        bubblesList.appendChild(div);
       }
+    }
     });
     if (activeFilters['Marc']) delete activeFilters['Marc'];
     currentCategory = 'Marc';
@@ -984,8 +984,8 @@ confirmBtn.addEventListener('click', e => {
         (isSelectVisible && isSelectEmpty) ||
         (isContainerVisible && isContainerEmpty)) {
         return showError('Please enter a value', tintInputs);
-      }
     }
+  }
   }
   if (cond === 'between') {
     const type = bubble.dataset.type || 'string';
@@ -1279,6 +1279,38 @@ const derivedCats = Array.from(derivedCatSet);
 const categories = ['All', 'Selected', ...derivedCats];
 // currentCategory, totalRows, scrollRow, rowHeight, and hoverScrollArea already declared at the top
 
+// Helper to create or update a bubble element
+function createOrUpdateBubble(def, existingBubble = null) {
+  const fieldName = def.name;
+  let bubble = existingBubble || document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.textContent = fieldName;
+  bubble.tabIndex = 0;
+  bubble.dataset.type = def.type;
+  if (def.values) bubble.dataset.values = JSON.stringify(def.values);
+  if (def.filters) bubble.dataset.filters = JSON.stringify(def.filters);
+  // Draggable logic
+  if (def.isSpecialMarc || displayedFields.includes(fieldName)) {
+    bubble.setAttribute('draggable', 'false');
+  } else {
+    bubble.setAttribute('draggable', 'true');
+  }
+  // Animating back state
+  if (animatingBackBubbles.has(fieldName)) {
+    bubble.dataset.animatingBack = 'true';
+    bubble.style.visibility = 'hidden';
+    bubble.style.opacity = '0';
+  } else {
+    bubble.style.visibility = '';
+    bubble.style.opacity = '';
+    bubble.removeAttribute('data-animating-back');
+  }
+  // Apply correct styling
+  applyCorrectBubbleStyling(bubble);
+  return bubble;
+}
+
+// Refactor renderBubbles to use the helper
 function renderBubbles(){
   const container = document.getElementById('bubble-container');
   const listDiv   = document.getElementById('bubble-list');
@@ -1289,15 +1321,11 @@ function renderBubbles(){
   if (currentCategory === 'All') {
     list = filteredDefs;
   } else if (currentCategory === 'Selected') {
-    // Show bubbles that are either displayed or have filters
-    // Order: displayedFields first (in their order), then any remaining filtered fields with active filters
     const displayedSet = new Set(displayedFields);
     const filteredSelected = filteredDefs.filter(d => shouldFieldHavePurpleStyling(d.name));
-    // 1. Bubbles for displayedFields (in order)
     let orderedList = displayedFields
       .map(name => filteredSelected.find(d => d.name === name))
       .filter(Boolean);
-    // 2. Any remaining filtered fields with active filters (not already in displayedFields)
     filteredSelected.forEach(d => {
       if (!displayedSet.has(d.name) && !orderedList.includes(d)) {
         orderedList.push(d);
@@ -1313,83 +1341,19 @@ function renderBubbles(){
 
   // If we're in Selected category, preserve existing bubbles
   if (currentCategory === 'Selected') {
-    // Get existing bubbles
     const existingBubbles = Array.from(listDiv.children);
     const existingBubbleMap = new Map(existingBubbles.map(b => [b.textContent.trim(), b]));
-    
-    // Clear the list
     listDiv.innerHTML = '';
-    
-    // Add bubbles back in the new order, reusing existing ones
     list.forEach(def => {
       const existingBubble = existingBubbleMap.get(def.name);
-      if (existingBubble) {
-        // Preserve the existing bubble
-        // Ensure Marc bubble or already displayed fields are never draggable
-        if (def.isSpecialMarc || displayedFields.includes(def.name)) {
-          existingBubble.setAttribute('draggable', 'false');
-        } else {
-          existingBubble.setAttribute('draggable', 'true');
-        }
-        // If animatingBack, keep it hidden
-        if (existingBubble.dataset.animatingBack === 'true') {
-          existingBubble.style.visibility = 'hidden';
-          existingBubble.style.opacity = '0';
-        }
-        listDiv.appendChild(existingBubble);
-      } else {
-        // Create new bubble if it didn't exist before
-        const div = document.createElement('div');
-        div.className = 'bubble';
-        if(def.isSpecialMarc || displayedFields.includes(def.name)) {
-          div.setAttribute('draggable', 'false');
-        } else {
-          div.setAttribute('draggable', 'true');
-        }
-        div.tabIndex = 0;
-        div.textContent = def.name;
-        div.dataset.type = def.type;
-        if(def.values)  div.dataset.values  = JSON.stringify(def.values);
-        if(def.filters) div.dataset.filters = JSON.stringify(def.filters);
-        // If the old bubble was animating back, preserve that state
-        const old = existingBubbleMap.get(def.name);
-        if (old && old.dataset.animatingBack === 'true') {
-          div.dataset.animatingBack = 'true';
-          div.style.visibility = 'hidden';
-          div.style.opacity = '0';
-        }
-        // Apply the correct styling to the new bubble
-        applyCorrectBubbleStyling(div);
-        listDiv.appendChild(div);
-      }
+      const bubble = createOrUpdateBubble(def, existingBubble);
+      listDiv.appendChild(bubble);
     });
   } else {
-    // For other categories, do the normal render
     listDiv.innerHTML = '';
     list.forEach(def => {
-      const div = document.createElement('div');
-      div.className = 'bubble';
-      if(def.isSpecialMarc || displayedFields.includes(def.name)) {
-        // Make bubble non-draggable if it's Marc or already displayed
-        div.setAttribute('draggable', 'false');
-      } else {
-        div.setAttribute('draggable', 'true');
-      }
-      div.tabIndex = 0;
-      div.textContent = def.name;
-      div.dataset.type = def.type;
-      if(def.values)  div.dataset.values  = JSON.stringify(def.values);
-      if(def.filters) div.dataset.filters = JSON.stringify(def.filters);
-      // If a bubble with this name is animating back, keep it hidden
-      const old = document.querySelector('.bubble[data-animating-back="true"][data-type][data-type="'+def.type+'"]');
-      if (old && old.textContent.trim() === def.name) {
-        div.dataset.animatingBack = 'true';
-        div.style.visibility = 'hidden';
-        div.style.opacity = '0';
-      }
-      // Apply the correct styling to the bubble
-      applyCorrectBubbleStyling(div);
-      listDiv.appendChild(div);
+      const bubble = createOrUpdateBubble(def);
+      listDiv.appendChild(bubble);
     });
   }
 
@@ -1710,80 +1674,12 @@ document.addEventListener('click', e=>{
 
   // Animate clone to centre + build panel
   const rect = bubble.getBoundingClientRect();
-  // Look up description for this field
+  // Look up description for this field (no longer used for index card)
   const fieldName = bubble.textContent.trim();
-  const descText = (fieldDefs.find(d => d.name === fieldName) || {}).desc || '';
+  // const descText = (fieldDefs.find(d => d.name === fieldName) || {}).desc || '';
   const clone = bubble.cloneNode(true);
   clone.dataset.filterFor = fieldName;
-  if(descText){
-    const descEl = document.createElement('div');
-    descEl.className = 'bubble-desc';
-    // Build index-card table: auto-wrap description into ruled rows
-    const maxDisplayRows = 8;   // total ruled lines after title (incl. description)
-    const charsPerRow   = 65;   // rough estimate for row capacity at current width
-    const totalCharBudget = maxDisplayRows * charsPerRow;
-
-    // Break description into word-wrapped lines that fit the index card width
-    const words   = descText.split(/\s+/);
-    let exceededBudget = false;
-    const descLines = [];
-    let currentLine = '';
-    let consumed = 0;
-    words.forEach(word=>{
-      // Stop early if budget exhausted
-      if(consumed >= totalCharBudget){
-        exceededBudget = true;
-        return;
-      }
-      const prospective = (currentLine + ' ' + word).trim();
-      if(prospective.length > charsPerRow){
-        descLines.push(currentLine.trim());
-        consumed += currentLine.trim().length;
-        currentLine = word;
-      }else{
-        currentLine = prospective;
-      }
-    });
-    if(currentLine.trim()) {
-      descLines.push(currentLine.trim());
-      consumed += currentLine.trim().length;
-    }
-
-    /* If we exceeded the maximum display rows, keep only the first (max-1)
-       and use the last row to show an ellipsis.
-       If the budget was exceeded (even if not row count), also show ellipsis. */
-    let truncated = false;
-    if(descLines.length > maxDisplayRows){
-      descLines.splice(maxDisplayRows - 1);   // leave space for final ellipsis row
-      truncated = true;
-    }else if(exceededBudget || consumed >= totalCharBudget){
-      // Content spills past the last visible row even if row count is within limit
-      truncated = true;
-      // ensure exactly maxDisplayRows-1 real lines
-      while(descLines.length > maxDisplayRows - 1){
-        descLines.pop();
-      }
-    }
-
-    // Build the index-card table rows
-    let tableHTML = '<table class="index-card-table"><tbody>';
-    tableHTML += `<tr><td><strong>${fieldName}</strong></td></tr>`;  // title row
-    descLines.forEach(line=>{
-      tableHTML += `<tr><td>${line}</td></tr>`;
-    });
-
-    // Pad with blank ruled rows up to maxDisplayRows
-    const blanksNeeded = Math.max(0, maxDisplayRows - descLines.length);
-    for(let i=0;i<blanksNeeded; i++){
-      tableHTML += '<tr><td>&nbsp;</td></tr>';
-    }
-    tableHTML += '</tbody></table>';
-    descEl.innerHTML = tableHTML;
-    /* Ensure description min-width is twice the enlarged bubble's width (≈200px × 2) */
-    descEl.style.minWidth = (200 * 2) + 'px';        // 400px
-    descEl.style.minHeight = '200px';                // match expanded bubble height
-    clone.appendChild(descEl);
-  }
+  // Remove all index card/descEl logic here
   clone._origin = bubble;
   clone.style.position='fixed';
   clone.style.top = rect.top+'px';
@@ -2145,16 +2041,8 @@ function renderConditionList(field){
 
   // Look up field definition to get value mapping
   const fieldDef = fieldDefs.find(f => f.name === field);
-  const hasValuePairs = fieldDef && fieldDef.values && fieldDef.values.length > 0 && 
-                       typeof fieldDef.values[0] === 'object' && fieldDef.values[0].display;
-  
-  // Create mapping of literal to display values for this field
-  const literalToDisplayMap = new Map();
-  if (hasValuePairs) {
-    fieldDef.values.forEach(val => {
-      literalToDisplayMap.set(val.literal, val.display);
-    });
-  }
+  const literalToDisplayMap = getLiteralToDisplayMap(fieldDef);
+  const hasValuePairs = literalToDisplayMap.size > 0;
 
   // Pills
   data.filters.forEach((f,idx)=>{
@@ -2163,7 +2051,6 @@ function renderConditionList(field){
 
     // Show display value instead of literal in the pill UI
     let displayVal = f.val;
-    
     if (f.cond === 'between') {
       // For BETWEEN, replace "|" with " and "
       const parts = f.val.split('|');
@@ -2180,7 +2067,6 @@ function renderConditionList(field){
         displayVal = literalToDisplayMap.get(f.val) || f.val;
       }
     }
-    
     pill.textContent = `${f.cond.toUpperCase()} ${displayVal}`;
     pill.title = 'Click to remove';
     pill.style.cursor='pointer';
@@ -3578,104 +3464,72 @@ if (mobileMenuToggle && mobileMenuDropdown) {
   });
 }
 
-/* Update the count in the Selected category button */
-function updateCategoryCounts() {
-  const selectedCount = fieldDefs.filter(d => {
-    const fieldName = d.name;
-    return shouldFieldHavePurpleStyling(fieldName);
-  }).length;
-
-  // Helper to count Marc fields
-  const marcCount = fieldDefs.filter(d => {
-    const c = d.category;
-    return Array.isArray(c) ? c.includes('Marc') : c === 'Marc';
-  }).length;
-
+// Consolidated function to render both category bar and mobile selector
+function renderCategorySelectors(selectedCount, marcCount) {
   const categoryBar = document.getElementById('category-bar');
+  const mobileSelector = document.getElementById('mobile-category-selector');
+  
+  // Helper to get count for a category
+  function getCount(cat) {
+    if (cat === 'All') return fieldDefs.length;
+    if (cat === 'Selected') return selectedCount;
+    if (cat === 'Marc') return marcCount;
+    return fieldDefs.filter(d => {
+    const c = d.category;
+      return Array.isArray(c) ? c.includes(cat) : c === cat;
+  }).length;
+  }
+
+  // Render desktop category bar
   if (categoryBar) {
-    if (selectedCount === 0) {
-      // If count is 0, rebuild the category bar without Selected
       categoryBar.innerHTML = categories.map(cat => {
-        if (cat === 'Selected') return '';
-        let count;
-        if (cat === 'All') {
-          count = fieldDefs.length;
-        } else if (cat === 'Marc') {
-          count = marcCount;
-        } else {
-          count = fieldDefs.filter(d => {
-            const c = d.category;
-            return Array.isArray(c) ? c.includes(cat) : c === cat;
-          }).length;
-        }
-        return `<button data-category="${cat}" class="category-btn ${cat === currentCategory ? 'active' : ''}">${cat} (${count})</button>`;
+      if (cat === 'Selected' && selectedCount === 0) return '';
+      return `<button data-category="${cat}" class="category-btn ${cat === currentCategory ? 'active' : ''}">${cat} (${getCount(cat)})</button>`;
       }).join('');
-      
-      // Reattach click handlers
-      document.querySelectorAll('#category-bar .category-btn').forEach(btn => {
+    // Attach click handlers
+    categoryBar.querySelectorAll('.category-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-          // If we were in the Selected category and it's now gone, switch to All
-          if (currentCategory === 'Selected') {
-            currentCategory = 'All';
-          }
-          
           currentCategory = btn.dataset.category;
-          document.querySelectorAll('#category-bar .category-btn').forEach(b =>
+        categoryBar.querySelectorAll('.category-btn').forEach(b =>
             b.classList.toggle('active', b === btn)
           );
           scrollRow = 0;
           renderBubbles();
         });
       });
-    } else {
-      // If Selected count > 0, ensure Selected category exists
-      const selectedBtn = document.querySelector('#category-bar .category-btn[data-category="Selected"]');
-      if (selectedBtn) {
-        // Just update the count text
-        selectedBtn.textContent = `Selected (${selectedCount})`;
-      } else {
-        // Rebuild the category bar to include Selected
-        categoryBar.innerHTML = categories.map(cat => {
-          let count;
-          if (cat === 'All') {
-            count = fieldDefs.length;
-          } else if (cat === 'Selected') {
-            count = selectedCount;
-          } else if (cat === 'Marc') {
-            count = marcCount;
-          } else {
-            count = fieldDefs.filter(d => {
-              const c = d.category;
-              return Array.isArray(c) ? c.includes(cat) : c === cat;
-            }).length;
-          }
-          return `<button data-category="${cat}" class="category-btn ${cat === currentCategory ? 'active' : ''}">${cat} (${count})</button>`;
-        }).join('');
-        
-        // Reattach click handlers
-        document.querySelectorAll('#category-bar .category-btn').forEach(btn => {
-          btn.addEventListener('click', () => {
-            currentCategory = btn.dataset.category;
-            document.querySelectorAll('#category-bar .category-btn').forEach(b =>
-              b.classList.toggle('active', b === btn)
-            );
-            scrollRow = 0;
-            renderBubbles();
-          });
-        });
-      }
-    }
-    
-    // Always update Marc count if present
-    const marcBtn = document.querySelector('#category-bar .category-btn[data-category="Marc"]');
-    if (marcBtn) {
-      marcBtn.textContent = `Marc (${marcCount})`;
+  }
+
+  // Render mobile selector
+  if (mobileSelector) {
+    const currentValue = mobileSelector.value;
+    mobileSelector.innerHTML = '';
+    categories.forEach(cat => {
+      if (cat === 'Selected' && selectedCount === 0) return;
+      const option = document.createElement('option');
+      option.value = cat;
+      option.textContent = `${cat} (${getCount(cat)})`;
+      if (cat === currentValue) option.selected = true;
+      mobileSelector.appendChild(option);
+    });
+    // If the current category doesn't exist or is Selected with count 0, select All
+    if (!Array.from(mobileSelector.options).some(opt => opt.value === currentValue) ||
+        (currentValue === 'Selected' && selectedCount === 0)) {
+      mobileSelector.value = 'All';
     }
   }
-  
-  // Update mobile selector
-  updateMobileSelector(selectedCount, marcCount);
-  
+}
+
+// Replace all category bar/mobile selector update logic with the new function
+function updateCategoryCounts() {
+  const selectedCount = fieldDefs.filter(d => {
+    const fieldName = d.name;
+    return shouldFieldHavePurpleStyling(fieldName);
+  }).length;
+  const marcCount = fieldDefs.filter(d => {
+    const c = d.category;
+    return Array.isArray(c) ? c.includes('Marc') : c === 'Marc';
+  }).length;
+  renderCategorySelectors(selectedCount, marcCount);
   // If we're in the Selected category and the count is 0, switch to All
   if (currentCategory === 'Selected' && selectedCount === 0) {
     currentCategory = 'All';
@@ -3688,54 +3542,8 @@ function updateCategoryCounts() {
   }
 }
   
-/* Helper function to update the mobile selector when categories change */
-function updateMobileSelector(selectedCount, marcCount) {
-  const mobileSelector = document.getElementById('mobile-category-selector');
-  if (!mobileSelector) return;
-  
-  // Save current selection
-  const currentValue = mobileSelector.value;
-  
-  // Clear existing options
-  mobileSelector.innerHTML = '';
-  
-  // Add options for each category
-  categories.forEach(cat => {
-    // Skip Selected category if count is 0
-    if (cat === 'Selected' && selectedCount === 0) return;
-    
-    let count;
-    if (cat === 'All') {
-      count = fieldDefs.length;
-    } else if (cat === 'Selected') {
-      count = selectedCount;
-    } else if (cat === 'Marc') {
-      count = marcCount;
-    } else {
-      count = fieldDefs.filter(d => {
-        const c = d.category;
-        return Array.isArray(c) ? c.includes(cat) : c === cat;
-      }).length;
-    }
-    
-    const option = document.createElement('option');
-    option.value = cat;
-    option.textContent = `${cat} (${count})`;
-    
-    // Restore selection if it still exists
-    if (cat === currentValue) {
-      option.selected = true;
-    }
-    
-    mobileSelector.appendChild(option);
-  });
-  
-  // If the current category doesn't exist or is Selected with count 0, select All
-  if (!Array.from(mobileSelector.options).some(opt => opt.value === currentValue) || 
-      (currentValue === 'Selected' && selectedCount === 0)) {
-    mobileSelector.value = 'All';
-  }
-}
+// Initial render of category bar and mobile selector
+updateCategoryCounts();
 
 /* ------------------------------------------------------------------
    Unified drag and drop handlers to reduce duplicate code
@@ -3991,4 +3799,51 @@ document.addEventListener('dragend', e => {
 // Replace the old addDragAndDrop function with the new manager
 function addDragAndDrop(table) {
   dragDropManager.initTableDragDrop(table);
+}
+
+// Helper to reset and configure condition input fields
+function resetConditionInputs(type = 'string', showSecondInput = false) {
+  const inp1 = document.getElementById('condition-input');
+  const inp2 = document.getElementById('condition-input-2');
+  const betweenLbl = document.getElementById('between-label');
+  // Set input types
+  const htmlType = (type === 'date') ? 'date' : (type === 'money' || type === 'number') ? 'number' : 'text';
+  if (inp1) inp1.type = htmlType;
+  if (inp2) inp2.type = htmlType;
+  // Show/hide second input and label
+  if (inp2 && betweenLbl) {
+    inp2.style.display = showSecondInput ? 'block' : 'none';
+    betweenLbl.style.display = showSecondInput ? 'inline' : 'none';
+  }
+  // Clear values and error states
+  if (inp1) {
+    inp1.value = '';
+    inp1.classList.remove('error');
+  }
+  if (inp2) {
+    inp2.value = '';
+    inp2.classList.remove('error');
+  }
+  // Remove error label
+  const errorLabel = document.getElementById('filter-error');
+  if (errorLabel) errorLabel.style.display = 'none';
+}
+
+// Use the helper in buildConditionPanel, conditionBtnHandler, marcConditionBtnHandler, and after confirming a filter
+// In buildConditionPanel, after configuring inputs for type:
+//   resetConditionInputs(type, false);
+// In conditionBtnHandler and marcConditionBtnHandler, when toggling between/other:
+//   resetConditionInputs(type, cond === 'between');
+// After confirming a filter (in confirmBtn click handler):
+//   resetConditionInputs(type, false);
+
+// Helper to create a literal-to-display map for a field definition
+function getLiteralToDisplayMap(fieldDef) {
+  const map = new Map();
+  if (fieldDef && fieldDef.values && fieldDef.values.length > 0 && typeof fieldDef.values[0] === 'object' && fieldDef.values[0].display) {
+    fieldDef.values.forEach(val => {
+      map.set(val.literal, val.display);
+    });
+  }
+  return map;
 }
