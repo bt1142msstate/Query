@@ -1063,7 +1063,7 @@ th:hover .th-trash {
 
 /* Search box focus effect */
 #query-input:focus {
-  outline: 2px solid var(--color-blue-500);
+  outline: 2px solid #fff;
   outline-offset: 2px;
   box-shadow: none;
 }
