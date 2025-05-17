@@ -1349,38 +1349,67 @@ const derivedCats = Array.from(derivedCatSet);
 const categories = ['All', 'Selected', ...derivedCats];
 // currentCategory, totalRows, scrollRow, rowHeight, and hoverScrollArea already declared at the top
 
-// Helper to create or update a bubble element
-function createOrUpdateBubble(def, existingBubble = null) {
-  const fieldName = def.name;
-  let bubble = existingBubble || document.createElement('div');
-  bubble.className = 'bubble';
-  bubble.textContent = fieldName;
-  bubble.tabIndex = 0;
-  bubble.dataset.type = def.type;
-  if (def.values) bubble.dataset.values = JSON.stringify(def.values);
-  if (def.filters) bubble.dataset.filters = JSON.stringify(def.filters);
-  // Draggable logic
-  if (def.isSpecialMarc || displayedFields.includes(fieldName)) {
-    bubble.setAttribute('draggable', 'false');
-  } else {
-    bubble.setAttribute('draggable', 'true');
+// Bubble UI component class
+class Bubble {
+  constructor(def, state = {}) {
+    this.def = def;
+    this.state = state;
+    this.el = document.createElement('div');
+    this.el.className = 'bubble';
+    this.el.tabIndex = 0;
+    this.update();
   }
-  // Animating back state
-  if (animatingBackBubbles.has(fieldName)) {
-    bubble.dataset.animatingBack = 'true';
-    bubble.style.visibility = 'hidden';
-    bubble.style.opacity = '0';
-  } else {
-    bubble.style.visibility = '';
-    bubble.style.opacity = '';
-    bubble.removeAttribute('data-animating-back');
+
+  update(state = {}) {
+    // Merge new state
+    Object.assign(this.state, state);
+    const { def } = this;
+    const fieldName = def.name;
+    this.el.textContent = fieldName;
+    this.el.dataset.type = def.type;
+    if (def.values) this.el.dataset.values = JSON.stringify(def.values);
+    if (def.filters) this.el.dataset.filters = JSON.stringify(def.filters);
+    // Draggable logic
+    if (def.isSpecialMarc || displayedFields.includes(fieldName)) {
+      this.el.setAttribute('draggable', 'false');
+    } else {
+      this.el.setAttribute('draggable', 'true');
+    }
+    // Animating back state
+    if (animatingBackBubbles.has(fieldName)) {
+      this.el.dataset.animatingBack = 'true';
+      this.el.style.visibility = 'hidden';
+      this.el.style.opacity = '0';
+    } else {
+      this.el.style.visibility = '';
+      this.el.style.opacity = '';
+      this.el.removeAttribute('data-animating-back');
+    }
+    // Apply correct styling
+    applyCorrectBubbleStyling(this.el);
   }
-  // Apply correct styling
-  applyCorrectBubbleStyling(bubble);
-  return bubble;
+
+  getElement() {
+    return this.el;
+  }
 }
 
-// Refactor renderBubbles to use the helper
+// Refactor createOrUpdateBubble to use Bubble class
+function createOrUpdateBubble(def, existingBubble = null) {
+  let bubbleInstance;
+  if (existingBubble && existingBubble._bubbleInstance) {
+    bubbleInstance = existingBubble._bubbleInstance;
+    bubbleInstance.update();
+    return bubbleInstance.getElement();
+  } else {
+    bubbleInstance = new Bubble(def);
+    const el = bubbleInstance.getElement();
+    el._bubbleInstance = bubbleInstance;
+    return el;
+  }
+}
+
+// Refactor renderBubbles to use Bubble class (via createOrUpdateBubble)
 function renderBubbles(){
   const container = document.getElementById('bubble-container');
   const listDiv   = document.getElementById('bubble-list');
@@ -1416,14 +1445,14 @@ function renderBubbles(){
     listDiv.innerHTML = '';
     list.forEach(def => {
       const existingBubble = existingBubbleMap.get(def.name);
-      const bubble = createOrUpdateBubble(def, existingBubble);
-      listDiv.appendChild(bubble);
+      const bubbleEl = createOrUpdateBubble(def, existingBubble);
+      listDiv.appendChild(bubbleEl);
     });
   } else {
     listDiv.innerHTML = '';
     list.forEach(def => {
-      const bubble = createOrUpdateBubble(def);
-      listDiv.appendChild(bubble);
+      const bubbleEl = createOrUpdateBubble(def);
+      listDiv.appendChild(bubbleEl);
     });
   }
 
@@ -1435,33 +1464,20 @@ function renderBubbles(){
     rowHeight  = firstBubble.getBoundingClientRect().height + gap;
     const bubbleW = firstBubble.offsetWidth;
     const rowsVisible = 2;
-
-    /* Two-row viewport size (2 rows + 1 gap) */
     const twoRowsH = rowHeight * rowsVisible - gap;
     const sixColsW = bubbleW * 6 + gap * 5;
-    // add padding (6px top+bottom, 4px left+right) then shave 8 px off the bottom
-    const fudge   = 8;               // clip amount so 3rd row never shows
+    const fudge   = 8;
     const paddedH = twoRowsH + 12 - fudge;
-    const paddedW = sixColsW + 8;    // +8 for 4px left & right
-
+    const paddedW = sixColsW + 8;
     container.style.height = paddedH + 'px';
     container.style.width  = paddedW + 'px';
-
-    // Ensure the scrollbar container matches viewport height
     const scrollCont = document.querySelector('.bubble-scrollbar-container');
     if (scrollCont) scrollCont.style.height = paddedH + 'px';
-
-    // total rows in list
     totalRows  = Math.ceil(list.length / 6);
-    // Constrain scrollRow if list got shorter
     if(scrollRow > totalRows - rowsVisible) scrollRow = Math.max(0, totalRows - rowsVisible);
-    // Set initial translate for list
     listDiv.style.transform = `translateY(-${scrollRow * rowHeight}px)`;
-
-    // Re-draw scrollbar
     updateScrollBar();
   }
-  // After all bubbles are created/appended:
   Array.from(listDiv.children).forEach(bubble => {
     const fieldName = bubble.textContent.trim();
     if (animatingBackBubbles.has(fieldName)) {
@@ -2045,29 +2061,23 @@ document.addEventListener('touchend', e => {
 /* Render/update the filter pill list for a given field */
 function renderConditionList(field){
   const container = document.getElementById('bubble-cond-list');
-  container.innerHTML = '';            // clear previous render
+  container.innerHTML = '';
   const data = activeFilters[field];
   if(!data || !data.filters.length) {
-    // Update styling for all bubbles with this field name
     document.querySelectorAll('.bubble').forEach(b=>{
       if(b.textContent.trim()===field) {
         applyCorrectBubbleStyling(b);
       }
     });
-    
-    // Reset any active selectors for this field
     const selContainer = document.getElementById('condition-select-container');
     if (selContainer) {
-      // Reset all checkboxes if this is the field we're currently editing
       if (selectedField === field) {
         selContainer.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(input => {
           input.checked = false;
         });
       }
     }
-    
     updateCategoryCounts();
-    // Re-render bubbles if we're in Selected category
     if (currentCategory === 'Selected') {
       renderBubbles();
     }
@@ -2077,16 +2087,13 @@ function renderConditionList(field){
   const list = document.createElement('div');
   list.className = 'cond-list';
 
-  // Logical toggle with validation
+  // Logical toggle with validation (unchanged)
   const toggle = document.createElement('span');
   toggle.className = 'logical-toggle' + (data.logical==='And' ? ' active':'');
   toggle.textContent = data.logical.toUpperCase();
-
   toggle.addEventListener('click', ()=>{
     const newLogical = (data.logical === 'And') ? 'Or' : 'And';
-
     if(newLogical === 'And'){
-      // Validate that the whole set of filters is not self-contradictory
       const fieldType = (fieldDefs.find(d => d.name === field) || {}).type || 'string';
       let conflictMsg = null;
       for(let i=0;i<data.filters.length;i++){
@@ -2095,13 +2102,10 @@ function renderConditionList(field){
         if(conflictMsg) break;
       }
       if(conflictMsg){
-        // Replace the inline error display with our reusable function
         showError(conflictMsg, [conditionInput, document.getElementById('condition-input-2')]);
-        return;   // refuse to switch to AND
+        return;
       }
     }
-
-    // Passed validation → commit toggle
     data.logical = newLogical;
     toggle.textContent = data.logical.toUpperCase();
     toggle.classList.toggle('active', data.logical==='And');
@@ -2109,42 +2113,13 @@ function renderConditionList(field){
   });
   list.appendChild(toggle);
 
-  // Look up field definition to get value mapping
+  // Use FilterPill for each filter
   const fieldDef = fieldDefs.find(f => f.name === field);
-  const literalToDisplayMap = getLiteralToDisplayMap(fieldDef);
-  const hasValuePairs = literalToDisplayMap.size > 0;
-
-  // Pills
-  data.filters.forEach((f,idx)=>{
-    const pill = document.createElement('span');
-    pill.className = 'cond-pill';
-
-    // Show display value instead of literal in the pill UI
-    let displayVal = f.val;
-    if (f.cond === 'between') {
-      // For BETWEEN, replace "|" with " and "
-      const parts = f.val.split('|');
-      displayVal = parts.join(' and ');
-    } else if (f.cond === 'equals' && hasValuePairs) {
-      // For EQUALS with value pairs, map the literal values to display values
-      if (f.val.includes(',')) {
-        // Handle multi-select values
-        const literals = f.val.split(',');
-        const displays = literals.map(lit => literalToDisplayMap.get(lit) || lit);
-        displayVal = displays.join(', ');
-      } else {
-        // Single value
-        displayVal = literalToDisplayMap.get(f.val) || f.val;
-      }
-    }
-    pill.textContent = `${f.cond.toUpperCase()} ${displayVal}`;
-    pill.title = 'Click to remove';
-    pill.style.cursor='pointer';
-    pill.addEventListener('click',()=>{
+  data.filters.forEach((f, idx) => {
+    const pill = new FilterPill(f, fieldDef, () => {
       data.filters.splice(idx,1);
       if(data.filters.length===0){
         delete activeFilters[field];
-        // Remove flag from bubble
         document.querySelectorAll('.bubble').forEach(b=>{
           if(b.textContent.trim()===field) {
             b.removeAttribute('data-filtered');
@@ -2152,19 +2127,13 @@ function renderConditionList(field){
           }
         });
       }
-      
-      // Reset any UI selectors for this field
       const selContainer = document.getElementById('condition-select-container');
       if (selContainer && selectedField === field) {
         if (f.cond === 'equals') {
-          // For equals condition, if we're showing a selector, reset its state
           selContainer.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(input => {
-            // For multi-select, only clear the value that was removed
             if (input.value === f.val || input.dataset.value === f.val) {
               input.checked = false;
             } 
-            
-            // For comma-separated values, check each one
             if (f.val.includes(',')) {
               const valueSet = new Set(f.val.split(','));
               if (valueSet.has(input.value) || valueSet.has(input.dataset.value)) {
@@ -2172,8 +2141,6 @@ function renderConditionList(field){
               }
             }
           });
-          
-          // Also reset any group checkboxes
           selContainer.querySelectorAll('.group-checkbox').forEach(checkbox => {
             const groupName = checkbox.dataset.group;
             const groupOptions = selContainer.querySelectorAll(`.option-item[data-group="${groupName}"] input`);
@@ -2181,16 +2148,14 @@ function renderConditionList(field){
           });
         }
       }
-      
       updateQueryJson();
-      renderConditionList(field);      // refresh UI
+      renderConditionList(field);
       updateCategoryCounts();
-      // Re-render bubbles if we're in Selected category
       if (currentCategory === 'Selected') {
         renderBubbles();
       }
     });
-    list.appendChild(pill);
+    list.appendChild(pill.getElement());
   });
 
   container.appendChild(list);
@@ -3762,7 +3727,7 @@ const dragDropManager = {
     e.preventDefault();
     e.stopPropagation();
     const toIndex = parseInt(th.dataset.colIndex, 10);
-    
+  
     // Column reorder drop
     const fromIndexStr = e.dataTransfer.getData('text/plain').trim();
     if (/^\d+$/.test(fromIndexStr)) {
@@ -3794,7 +3759,7 @@ const dragDropManager = {
     e.stopPropagation();
     
     const toIndex = parseInt(td.dataset.colIndex, 10);
-    
+  
     // Bubble drop
     const bubbleField = e.dataTransfer.getData('bubble-field');
     if (bubbleField) {
@@ -3948,7 +3913,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const uniqueId = id + '-label';
         heading.id = uniqueId;
         panel.setAttribute('aria-labelledby', uniqueId);
-      } else {
+    } else {
         // Fallback: use aria-label
         panel.setAttribute('aria-label', id.replace(/-panel$/, '').replace(/\b\w/g, c => c.toUpperCase()));
       }
@@ -3966,7 +3931,7 @@ function setMainContentAriaHidden(hidden, openPanelId = null) {
   if (openPanelId) {
     const panel = document.getElementById(openPanelId);
     if (panel) panel.setAttribute('aria-hidden', 'false');
-  }
+    }
   const header = document.getElementById('header-bar');
   if (header) header.setAttribute('aria-hidden', 'false');
 }
@@ -3987,8 +3952,8 @@ function openModal(panelId) {
   trapFocus(panel);
   // Accessibility: hide main content from screen readers
   setMainContentAriaHidden(true, panelId);
-}
-
+    }
+    
 function closeAllModals() {
   MODAL_PANEL_IDS.forEach(id => {
     const p = document.getElementById(id);
