@@ -451,6 +451,12 @@ function applyCorrectBubbleStyling(bubbleElement) {
 
 // Apply the helper to the resetActive function
 function resetActive(){
+  // Ensure input lock is always cleared
+  isInputLocked = false;
+  inputBlockOverlay.style.pointerEvents = 'none';
+  inputBlockOverlay.style.display = 'none';
+  if (inputLockTimeout) clearTimeout(inputLockTimeout);
+  
   // For every floating clone, animate it back to its origin,
   // then restore the origin bubble's appearance when the animation ends.
   document.querySelectorAll('.active-bubble').forEach(clone=>{
@@ -515,6 +521,13 @@ overlay.addEventListener('click',()=>{
   resetActive();
   conditionPanel.classList.remove('show');
   inputWrapper.classList.remove('show');
+  
+  // Always ensure input lock is cleared when overlay is clicked
+  isInputLocked = false;
+  inputBlockOverlay.style.pointerEvents = 'none';
+  inputBlockOverlay.style.display = 'none';
+  if (inputLockTimeout) clearTimeout(inputLockTimeout);
+  
   // Remove all .active from condition buttons
   const btns = conditionPanel.querySelectorAll('.condition-btn');
   btns.forEach(b=>b.classList.remove('active'));
@@ -522,7 +535,6 @@ overlay.addEventListener('click',()=>{
   // Hide select if present
   const sel = document.getElementById('condition-select');
   if(sel) sel.style.display = 'none';
-  // (No longer clear bubble-cond-list here; keep for re-render)
   // Also hide JSON / Queries modals if they are open
   ['json-panel','queries-panel','help-panel'].forEach(id=>{
     const p = document.getElementById(id);
@@ -1034,17 +1046,25 @@ confirmBtn.addEventListener('click', e => {
     updateQueryJson();
     resetActive();
     overlay.click();
+    // Make sure to reset lock state when done
+    isInputLocked = false;
+    inputBlockOverlay.style.pointerEvents = 'none';
+    inputBlockOverlay.style.display = 'none';
+    if (inputLockTimeout) clearTimeout(inputLockTimeout);
     return;
   }
 
   // --- Normal (non-Marc) field logic below ---
   // Check if this is a multiSelect field
   const isMultiSelect = fieldDef && fieldDef.multiSelect;
+  
+  // Validate condition input
   if (cond && cond !== 'display') {
     const tintInputs = [conditionInput, document.getElementById('condition-input-2')];
     
     if (cond === 'between' && (val === '' || val2 === '')) {
-      return showError('Please enter both values', tintInputs);
+      showError('Please enter both values', tintInputs);
+      return;
     }
     
     if (cond !== 'between') {
@@ -1058,10 +1078,13 @@ confirmBtn.addEventListener('click', e => {
       if ((isTextInputVisible && isTextInputEmpty) ||
         (isSelectVisible && isSelectEmpty) ||
         (isContainerVisible && isContainerEmpty)) {
-        return showError('Please enter a value', tintInputs);
+        showError('Please enter a value', tintInputs);
+      return;
     }
   }
   }
+  
+  // Validate between values - ensure start is before end
   if (cond === 'between') {
     const type = bubble.dataset.type || 'string';
     let a = val, b = val2;
@@ -1071,9 +1094,10 @@ confirmBtn.addEventListener('click', e => {
       a = new Date(a).getTime(); b = new Date(b).getTime();
     }
     if (a === b) {
-      const tintInputs = [conditionInput, document.getElementById('condition-input-2')];
-      return showError('Between values must be different', tintInputs);
+      showError('Between values must be different', [conditionInput, document.getElementById('condition-input-2')]);
+      return;
     }
+    // If start > end, swap them
     if (a > b) {
       conditionInput.value = val2;
       document.getElementById('condition-input-2').value = val;
@@ -1081,91 +1105,114 @@ confirmBtn.addEventListener('click', e => {
       val2 = document.getElementById('condition-input-2').value.trim();
     }
   }
+  
+  // Filter application
+  if (cond && cond !== 'display') {
+    try {
+      if (!activeFilters[field]) {
+        activeFilters[field] = { logical: 'And', filters: [] };
+      }
+      
+      // Determine which type of input is visible
   const isTextInputVisible = conditionInput.style.display !== 'none';
   const isSelectVisible = sel && sel.style.display !== 'none';
   const isContainerVisible = selContainer && selContainer.style.display !== 'none';
   
-  // Variable to store literal values for JSON
-  let newLiteralValues = [];
-  
-  if (isContainerVisible) {
-    // Use the literal values for storage in JSON
-    newLiteralValues = selContainer.getSelectedValues();
-  } else if (isSelectVisible) {
+      // Get the value to apply
+      let filterValue = val;
+      if (cond === 'between') {
+        filterValue = `${val}|${val2}`;
+      } else if (isContainerVisible && selContainer) {
+        filterValue = selContainer.getSelectedValues().join(',');
+      } else if (isSelectVisible && sel) {
     if (sel.multiple) {
-      newLiteralValues = Array.from(sel.selectedOptions).map(o => o.value);
+          filterValue = Array.from(sel.selectedOptions).map(o => o.value).join(',');
     } else {
-      newLiteralValues = [sel.value];
-    }
-  } else if (cond === 'between') {
-    newLiteralValues = [`${val}|${val2}`];
-  } else {
-    newLiteralValues = [val];
-  }
-  
-  let finalLiteralValues = [...newLiteralValues];
-  
+          filterValue = sel.value;
+        }
+      }
+      
+      // Check for logical contradictions
+      const fieldType = bubble.dataset.type || 'string';
+      const newFilterObj = { cond, val: filterValue };
+      const existingSet = activeFilters[field];
+      const conflictMsg = getContradictionMessage(existingSet, newFilterObj, fieldType, field);
+      if (conflictMsg) {
+        showError(conflictMsg, [conditionInput, document.getElementById('condition-input-2')]);
+        return;
+      }
+      
+      // Add the filter if it's not empty
+      if (filterValue !== '') {
+        console.log(`Applying filter for ${field}: ${cond} ${filterValue}`);
+        
+        // For multi-select equals, merge with existing values
   if (isMultiSelect && cond === 'equals') {
-    if (!activeFilters[field]) {
-      activeFilters[field] = { logical: 'And', filters: [] };
-    }
     const existingEqualsIdx = activeFilters[field].filters.findIndex(f => f.cond === 'equals');
     if (existingEqualsIdx !== -1) {
       const existingVals = activeFilters[field].filters[existingEqualsIdx].val.split(',');
-      finalLiteralValues = [...new Set([...existingVals, ...newLiteralValues])];
-      activeFilters[field].filters.splice(existingEqualsIdx, 1);
-    }
-  }
-  
-  const finalVal = finalLiteralValues.join(',');
-  
-  if (!isMultiSelect || cond !== 'equals') {
-    const fieldType = bubble.dataset.type || 'string';
-    const newFilterObj = { cond, val: finalVal };
-    const existingSet = activeFilters[field];
-    const conflictMsg = getContradictionMessage(existingSet, newFilterObj, fieldType, field);
-    if (conflictMsg) {
-      [conditionInput, document.getElementById('condition-input-2')].forEach(inp => {
-        if (inp) inp.classList.add('error');
-      });
-      return showError(conflictMsg, [conditionInput, document.getElementById('condition-input-2')]);
+            const newVals = filterValue.split(',');
+            const uniqueVals = [...new Set([...existingVals, ...newVals])];
+            activeFilters[field].filters[existingEqualsIdx].val = uniqueVals.join(',');
+            console.log(`Updated multiselect filter for ${field} with values: ${uniqueVals.join(',')}`);
+          } else {
+            activeFilters[field].filters.push({ cond, val: filterValue });
+          }
     } else {
-      const errorLabel = document.getElementById('filter-error');
-      if (errorLabel) errorLabel.style.display = 'none';
-      [conditionInput, document.getElementById('condition-input-2')].forEach(inp => {
-        if (inp) inp.classList.remove('error');
-      });
-    }
-  }
-  
-  if (cond && cond !== 'display') {
-    if (!activeFilters[field]) {
-      activeFilters[field] = { logical: 'And', filters: [] };
-    }
-    activeFilters[field].filters.push({ cond, val: finalVal });
-    
-    // Update all bubbles for this field
+          activeFilters[field].filters.push({ cond, val: filterValue });
+        }
+        
+        // Update the field styling in all bubbles for this field
     document.querySelectorAll('.bubble').forEach(b => {
       if (b.textContent.trim() === field) {
         applyCorrectBubbleStyling(b);
       }
     });
     
+        // Update the conditions list display
     renderConditionList(field);
     updateQueryJson();
-  }
-  
-  conditionInput.value = '';
-  document.getElementById('condition-input-2').value = '';
-  positionInputWrapper();
-  
-  if (isMultiSelect && isContainerVisible && cond === 'equals') {
-    const currentFilter = activeFilters[field]?.filters.find(f => f.cond === 'equals');
-    if (currentFilter) {
-      const currentVals = currentFilter.val.split(',');
-      selContainer.setSelectedValues(currentVals);
+        
+        // If the category is 'Selected', refresh the display
+        if (currentCategory === 'Selected') {
+          renderBubbles();
+        }
+      }
+    } catch (error) {
+      console.error('Error applying filter:', error);
+      showError('Error applying filter: ' + error.message, []);
+      return;
     }
   }
+  
+  // Handle display option (Show/Hide column)
+  if (cond === 'display' || cond === 'show' || cond === 'hide') {
+    if (cond === 'show' && !displayedFields.includes(field)) {
+      displayedFields.push(field);
+      showExampleTable(displayedFields);
+    } else if ((cond === 'hide' || cond === 'display') && displayedFields.includes(field)) {
+      const idx = displayedFields.indexOf(field);
+      displayedFields.splice(idx, 1);
+      showExampleTable(displayedFields);
+    }
+  }
+  
+  // Clear inputs for next use
+  conditionInput.value = '';
+  document.getElementById('condition-input-2').value = '';
+  
+  // Cleanup and reset UI state
+  isInputLocked = false;
+  inputBlockOverlay.style.pointerEvents = 'none';
+  inputBlockOverlay.style.display = 'none';
+  if (inputLockTimeout) clearTimeout(inputLockTimeout);
+  
+  // Close the overlay
+  overlay.click();
+  
+  // Force a bubbles re-render to ensure display is updated
+  renderBubbles();
+  updateCategoryCounts();
 });
 
 document.addEventListener('keydown',e=>{
@@ -2089,8 +2136,13 @@ function renderConditionList(field){
       }
     }
     updateCategoryCounts();
+    // Only re-render bubbles if the field was in Selected and is now gone
     if (currentCategory === 'Selected') {
+      // If this was the last filter for the field, and the field is no longer displayed, re-render
+      const stillSelected = shouldFieldHavePurpleStyling(field);
+      if (!stillSelected) {
       renderBubbles();
+      }
     }
     return;
   }
@@ -2510,6 +2562,11 @@ confirmBtn.onclick = function(e) {
     updateQueryJson();
     resetActive();
     overlay.click();
+    // Make sure to reset lock state when done
+    isInputLocked = false;
+    inputBlockOverlay.style.pointerEvents = 'none';
+    inputBlockOverlay.style.display = 'none';
+    if (inputLockTimeout) clearTimeout(inputLockTimeout);
     return;
   } else {
     // Normal field handling
@@ -4183,3 +4240,54 @@ const TooltipManager = (() => {
   attach();
   return { show: showTooltip, hide: hideTooltip };
 })();
+
+// FilterPill UI component class
+class FilterPill {
+  constructor(filter, fieldDef, onRemove) {
+    this.filter = filter;
+    this.fieldDef = fieldDef;
+    this.onRemove = onRemove;
+    this.el = document.createElement('span');
+    this.el.className = 'cond-pill';
+    this.render();
+  }
+
+  render() {
+    const { filter, fieldDef } = this;
+    // Try to get a user-friendly label for the filter value
+    let valueLabel = filter.val;
+    if (fieldDef && fieldDef.values && typeof fieldDef.values[0] === 'object') {
+      // Map literal to display if possible
+      const map = new Map(fieldDef.values.map(v => [v.literal, v.display]));
+      if (filter.cond.toLowerCase() === 'between') {
+        valueLabel = filter.val.split('|').map(v => map.get(v) || v).join(' - ');
+      } else {
+        valueLabel = filter.val.split(',').map(v => map.get(v) || v).join(', ');
+      }
+    } else if (filter.cond.toLowerCase() === 'between') {
+      valueLabel = filter.val.split('|').join(' - ');
+    }
+    // Operator label (always show full word)
+    let opLabel = filter.cond.charAt(0).toUpperCase() + filter.cond.slice(1);
+    // Trash can SVG (exactly as headerTrash)
+    const trashSVG = `<button type="button" class="filter-trash" aria-label="Remove filter" tabindex="0" style="background:none;border:none;padding:0;margin-left:0.7em;display:flex;align-items:center;cursor:pointer;color:#888;">
+      <svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20">
+        <path d="M9 3h6a1 1 0 0 1 1 1v1h4v2H4V5h4V4a1 1 0 0 1 1-1Zm-3 6h12l-.8 11.2A2 2 0 0 1 15.2 22H8.8a2 2 0 0 1-1.99-1.8L6 9Z"/>
+      </svg>
+    </button>`;
+    // Render pill content with trash can at the end using flex
+    this.el.style.display = 'flex';
+    this.el.style.alignItems = 'center';
+    this.el.style.justifyContent = 'space-between';
+    this.el.innerHTML = `<span>${opLabel} <b>${valueLabel}</b></span>${trashSVG}`;
+    // Remove handler
+    this.el.querySelector('.filter-trash').onclick = (e) => {
+      e.stopPropagation();
+      if (this.onRemove) this.onRemove();
+    };
+  }
+
+  getElement() {
+    return this.el;
+  }
+}
