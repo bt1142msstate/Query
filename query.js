@@ -544,6 +544,7 @@ overlay.addEventListener('click',()=>{
   });
   // After closing overlay, re-enable bubble interaction
   setTimeout(() => renderBubbles(), 0);
+  overlay.classList.remove('bubble-active');
 });
 
 // Handler for dynamic/static condition buttons
@@ -1213,6 +1214,7 @@ confirmBtn.addEventListener('click', e => {
   // Force a bubbles re-render to ensure display is updated
   renderBubbles();
   updateCategoryCounts();
+  overlay.classList.remove('bubble-active');
 });
 
 document.addEventListener('keydown',e=>{
@@ -1877,6 +1879,7 @@ document.addEventListener('click', e=>{
       if (marcBubble) clone._origin = marcBubble;
     }
   }, 60);
+  if (clone) overlay.classList.add('bubble-active');
 });
 
 document.addEventListener('dragstart', e=>{
