@@ -816,7 +816,10 @@ input, textarea, select, [contenteditable] {
   text-transform: uppercase;
   letter-spacing: 0.03em;
   padding: 1rem 1.5rem !important;
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: linear-gradient(to right, rgba(245, 245, 245, 0.95), rgba(250, 250, 250, 0.95));
   transition: background-color 0.2s ease;
 }
 
@@ -1348,4 +1351,30 @@ th:hover .th-trash {
 }
 @keyframes minuteHandAnim {
   100% { transform: rotate(360deg); }
+}
+
+/* Template description width */
+.template-description {
+  width: 50%;
+  max-width: 50%;
+  min-width: 220px;
+  display: block;
+  word-break: break-word;
+}
+@media (max-width: 900px) {
+  .template-description {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+}
+
+/* Ensure header text never overlaps trash icon */
+.th-text {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 32px; /* Reserve space for trash icon */
 } 
