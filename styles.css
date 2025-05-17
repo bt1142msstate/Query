@@ -72,6 +72,7 @@
   
   --header-height: 64px;
   --mobile-breakpoint: 900px;
+  --clock-speed: 4s;
 }
 
 /* ==========================================
@@ -136,6 +137,13 @@ input, textarea, select, [contenteditable] {
   transform: translateY(-100%);
   animation: slideDown 0.4s ease-out forwards;
   animation-delay: 0.1s;
+  transition: opacity 0.5s cubic-bezier(.4,0,.2,1), transform 0.5s cubic-bezier(.4,0,.2,1);
+}
+
+#header-bar.header-hide {
+  opacity: 0;
+  transform: translateY(-100%);
+  pointer-events: none;
 }
 
 #header-bar h1 {
@@ -960,63 +968,6 @@ body.dragging-cursor * {
   pointer-events: none;
 }
 
-/* Touch drag ghost for touchscreen devices */
-.touch-drag-ghost {
-  z-index: var(--z-drag-ghost);
-  transform-origin: center center;
-  transition: transform 0.1s ease;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
-  will-change: transform;
-  touch-action: none;
-  /* Enhanced visual effects for better visibility */
-  opacity: 0.9 !important;
-  box-shadow: 0 0 20px 5px rgba(59, 130, 246, 0.4) !important;
-  animation: touchGhostPulse 1.5s ease-in-out infinite;
-  border: 2px solid rgba(59, 130, 246, 0.6);
-}
-
-/* Pulsing animation for touch drag ghost */
-@keyframes touchGhostPulse {
-  0% { box-shadow: 0 0 15px 2px rgba(59, 130, 246, 0.3); transform: scale(0.9); }
-  50% { box-shadow: 0 0 25px 8px rgba(59, 130, 246, 0.5); transform: scale(1.0); }
-  100% { box-shadow: 0 0 15px 2px rgba(59, 130, 246, 0.3); transform: scale(0.9); }
-}
-
-/* Enhanced table highlight effects for touch interaction */
-@media (pointer: coarse) {
-  .drag-hover {
-    box-shadow: 0 0 0 3px var(--color-blue-500), 0 12px 30px rgba(0, 0, 0, 0.2), 0 5px 12px rgba(0, 0, 0, 0.15) !important;
-    transition: box-shadow 0.2s ease;
-  }
-  
-  .th-drag-over {
-    background-color: var(--color-blue-300) !important;
-    transition: background-color 0.2s ease;
-  }
-  
-  .drop-anchor {
-    height: 6px !important; /* Thicker for touch */
-    background: radial-gradient(circle, rgba(66, 153, 225, 1) 0%, rgba(49, 130, 206, 1) 80%) !important;
-    box-shadow: 0 0 20px 6px rgba(49, 130, 206, 0.5), 0 0 40px 10px rgba(49, 130, 206, 0.3) !important;
-    border-radius: 3px !important;
-  }
-  
-  .drop-anchor.vertical {
-    width: 6px !important; /* Thicker for touch */
-  }
-  
-  /* Bubble touch styles */
-  .bubble {
-    /* Slightly bigger touch target on mobile */
-    transform-origin: center center;
-    touch-action: none; /* Prevent browser handling of touches */
-  }
-  
-  .bubble:active {
-    transform: scale(1.05);
-  }
-}
-
 /* Column header trash icon */
 .th-wrapper {
   position: relative;
@@ -1374,4 +1325,27 @@ th:hover .th-trash {
 .filter-trash:hover svg path {
   stroke: #e11d48 !important;
   fill: #e11d48 !important;
+}
+
+.history-animated .clock-hour {
+  transform-origin: 12px 12px;
+  transition: transform 0.3s;
+}
+.history-animated .clock-minute {
+  transform-origin: 12px 12px;
+  transition: transform 0.3s;
+}
+#toggle-queries:hover .history-animated .clock-hour,
+#mobile-toggle-queries:hover .history-animated .clock-hour {
+  animation: hourHandAnim calc(var(--clock-speed) * 12) linear infinite;
+}
+#toggle-queries:hover .history-animated .clock-minute,
+#mobile-toggle-queries:hover .history-animated .clock-minute {
+  animation: minuteHandAnim var(--clock-speed) linear infinite;
+}
+@keyframes hourHandAnim {
+  100% { transform: rotate(360deg); }
+}
+@keyframes minuteHandAnim {
+  100% { transform: rotate(360deg); }
 } 
