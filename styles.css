@@ -71,6 +71,7 @@
   --transition-slow: 0.45s ease;
   
   --header-height: 64px;
+  --mobile-breakpoint: 900px;
 }
 
 /* ==========================================
@@ -194,6 +195,7 @@ input, textarea, select, [contenteditable] {
 }
 
 /* Responsive Header Controls */
+/* Note: CSS variables are not supported in media queries in all browsers, so we keep 900px but document the variable for future use in JS or preprocessors. */
 @media (max-width: 900px) {
   #header-controls {
     display: none !important;
