@@ -200,8 +200,11 @@ function updateRunBtnState(){
     const q = JSON.parse(queryBox.value || '{}');
     const hasFields = Array.isArray(q.DesiredColumnOrder) && q.DesiredColumnOrder.length > 0;
     runBtn.disabled = !hasFields || queryRunning;
+    // Set tooltip based on running state
+    runBtn.setAttribute('data-tooltip', queryRunning ? 'Stop Query' : 'Run Query');
   }catch{
     runBtn.disabled = true;
+    runBtn.setAttribute('data-tooltip', 'Run Query');
   }
 }
 // Initial check
@@ -214,6 +217,8 @@ if(runBtn){
     runBtn.classList.toggle('running', queryRunning);
     runIcon.classList.toggle('hidden', queryRunning);
     stopIcon.classList.toggle('hidden', !queryRunning);
+    // Update tooltip
+    runBtn.setAttribute('data-tooltip', queryRunning ? 'Stop Query' : 'Run Query');
 
     // --- Hide/show ancillary UI and resize the table while the query runs ---
     const searchContainer = document.getElementById('query-input')?.parentElement?.parentElement;
@@ -3141,10 +3146,33 @@ function showExampleTable(fields){
     });
     updateQueryJson();
     updateCategoryCounts();
-    
     // Re-render bubbles to ensure consistent styling
     if (currentCategory === 'Selected') {
       renderBubbles();
+    }
+    // --- Ensure trashcan is always attached and clickable ---
+    // Attach mouseenter/mouseleave to all headers to show trashcan
+    const headers = newTable.querySelectorAll('th[draggable="true"]');
+    headers.forEach(h => {
+      h.addEventListener('mouseenter', () => {
+        h.classList.add('th-hover');
+        hoverTh = h;
+        h.appendChild(headerTrash);
+        headerTrash.style.display = 'block';
+      });
+      h.addEventListener('mouseleave', () => {
+        h.classList.remove('th-hover');
+        hoverTh = null;
+        if (headerTrash.parentNode) headerTrash.parentNode.removeChild(headerTrash);
+      });
+    });
+    // If only one column, attach trashcan immediately (simulate hover)
+    if (headers.length === 1) {
+      const h = headers[0];
+      h.classList.add('th-hover');
+      hoverTh = h;
+      h.appendChild(headerTrash);
+      headerTrash.style.display = 'block';
     }
   }
 }
