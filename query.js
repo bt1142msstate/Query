@@ -1453,7 +1453,6 @@ class Bubble {
   }
 
   update(state = {}) {
-    // Merge new state
     Object.assign(this.state, state);
     const { def } = this;
     const fieldName = def.name;
@@ -1461,19 +1460,35 @@ class Bubble {
     this.el.dataset.type = def.type;
     if (def.values) this.el.dataset.values = JSON.stringify(def.values);
     if (def.filters) this.el.dataset.filters = JSON.stringify(def.filters);
-    // Set tooltip to description if available
-    if (def.desc) {
-      this.el.setAttribute('data-tooltip', def.desc);
+    // Tooltip: description + filters (if any)
+    let tooltip = def.desc || '';
+    // Build a fake FilterGroups array for this field from activeFilters
+    const af = activeFilters[fieldName];
+    let filterTooltip = '';
+    if (af && af.filters && af.filters.length > 0) {
+      const fakeGroup = [{
+        Filters: af.filters.map(f => ({
+          FieldName: fieldName,
+          FieldOperator: mapOperator(f.cond),
+          Values: f.cond === 'between' ? f.val.split('|') : f.val.split(',')
+        }))
+      }];
+      filterTooltip = formatFiltersTooltip(fieldName, fakeGroup);
+    }
+    if (filterTooltip) {
+      tooltip += (tooltip ? '\n\u2014\n' : '');
+      tooltip += filterTooltip;
+    }
+    if (tooltip) {
+      this.el.setAttribute('data-tooltip', tooltip);
     } else {
       this.el.removeAttribute('data-tooltip');
     }
-    // Draggable logic
     if (def.isSpecialMarc || displayedFields.includes(fieldName)) {
       this.el.setAttribute('draggable', 'false');
     } else {
       this.el.setAttribute('draggable', 'true');
     }
-    // Animating back state
     if (animatingBackBubbles.has(fieldName)) {
       this.el.dataset.animatingBack = 'true';
       this.el.style.visibility = 'hidden';
@@ -1483,7 +1498,6 @@ class Bubble {
       this.el.style.opacity = '';
       this.el.removeAttribute('data-animating-back');
     }
-    // Apply correct styling
     applyCorrectBubbleStyling(this.el);
   }
 
@@ -3008,7 +3022,7 @@ function showExampleTable(fields){
   // Build header
   let theadHTML = '<tr>';
   displayedFields.forEach((f,i)=>{
-    theadHTML += `<th draggable="true" data-col-index="${i}" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">${f}</th>`;
+    theadHTML += `<th draggable="true" data-col-index="${i}" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"><span class='th-text'>${f}</span></th>`;
   });
   theadHTML += '</tr>';
 
@@ -3193,27 +3207,28 @@ function loadQueryConfig(q) {
 function renderQueries(){
   const container = document.getElementById('queries-container');
   if(!container) return;
+  // Use an eye icon SVG for both columns and filters
+  const viewIconSVG = `<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1.5 12s4-7 10.5-7 10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3.5"/></svg>`;
   const rows = exampleQueries.map(q=>{
-    // Display each field on its own line
-    const fields = q.jsonConfig?.DesiredColumnOrder?.length
-      ? q.jsonConfig.DesiredColumnOrder.map(f => `<div>${f}</div>`).join('')
-      : '—';
-    // Display each filter on its own line
-    const fieldGroups = q.jsonConfig?.FilterGroups || [];
-    const firstGroupFilters = fieldGroups[0]?.Filters || [];
-    const filtersSummary = firstGroupFilters.length
-      ? firstGroupFilters.map(ff=>{
-          const op = ff.FieldOperator.replace(/([A-Z])/g,' $1').trim();
-          const vals = ff.Values.join(', ');
-          return `<div>${ff.FieldName} ${op.toLowerCase()} "${vals}"</div>`;
-        }).join('')
-      : 'None';
-    // Stop button for running queries, stacked above the label with a separator
+    // Use tooltip for columns
+    const columns = q.jsonConfig?.DesiredColumnOrder || [];
+    const columnsTooltip = formatColumnsTooltip(columns);
+    const columnsSummary = columns.length && columnsTooltip
+      ? `<span class="inline-flex items-center gap-1" data-tooltip="${columnsTooltip.replace(/"/g, '&quot;')}">
+            ${viewIconSVG}
+         </span>`
+      : '<span class="text-gray-400">None</span>';
+    // Use tooltip for filters
+    const filterGroups = q.jsonConfig?.FilterGroups || [];
+    const filterTooltip = formatFiltersTooltip(null, filterGroups);
+    const filtersSummary = filterGroups.length && filterTooltip
+      ? `<span class="inline-flex items-center gap-1" data-tooltip="${filterTooltip.replace(/"/g, '&quot;')}">
+            ${viewIconSVG}
+         </span>`
+      : '<span class="text-gray-400">None</span>';
+    // Stop button for running queries (no 'Running' label)
     const stopBtn = q.running ? `
-      <div class="flex flex-col items-center">
-        <button class="inline-flex items-center justify-center p-1 rounded-full bg-red-100 hover:bg-red-200 text-red-600" tabindex="-1" data-tooltip="Stop"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
-        <span class="text-green-600 font-semibold mt-1">Running</span>
-      </div>
+      <button class="inline-flex items-center justify-center p-1 rounded-full bg-red-100 hover:bg-red-200 text-red-600" tabindex="-1" data-tooltip="Stop"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
     ` : '';
     // Reuse button for all queries (refresh/circular arrow icon)
     const reuseBtn = `<button class="reuse-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" tabindex="-1" data-query-id="${q.id}" style="margin-left:4px;" data-tooltip="Reuse Query"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><path d=\"M23 4v6h-6M1 20v-6h6\"/><path d=\"M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15\"/></svg></button>`;
@@ -3233,7 +3248,7 @@ function renderQueries(){
     }
     return `
       <tr class="border-b hover:bg-blue-50 cursor-pointer">
-        <td class="px-4 py-2 text-xs">${fields}</td>
+        <td class="px-4 py-2 text-xs">${columnsSummary}</td>
         <td class="px-4 py-2 text-xs">${filtersSummary}</td>
         <td class="px-4 py-2 font-mono text-xs text-gray-700">${q.id}</td>
         <td class="px-4 py-2 text-center">
@@ -3242,7 +3257,7 @@ function renderQueries(){
         <td class="px-4 py-2 text-xs">${new Date(q.startTime).toLocaleString()}</td>
         <td class="px-4 py-2 text-xs">${q.endTime ? new Date(q.endTime).toLocaleString() : '—'}</td>
         <td class="px-4 py-2 text-xs text-center">${duration}</td>
-        <td class="px-4 py-2 text-center">${reuseBtn}</td>
+        <td class="px-4 py-2 text-xs text-center">${reuseBtn}</td>
       </tr>
     `;
   }).join('');
@@ -4178,19 +4193,15 @@ function saveTemplates(templates) {
 function saveCurrentAsTemplate() {
   try {
     const currentQuery = JSON.parse(queryBox.value || '{}');
-    
     // Don't save empty queries
     if (!currentQuery.DesiredColumnOrder || !currentQuery.DesiredColumnOrder.length) {
       showError('Cannot save an empty query as a template. Please add at least one column.');
       return;
     }
-    
     // Prompt for template name
     const templateName = window.prompt('Enter a name for this template:', '');
     if (!templateName) return; // User cancelled
-    
     const templates = getTemplates();
-    
     // Check for duplicates
     const existingIndex = templates.findIndex(t => t.name === templateName);
     if (existingIndex >= 0) {
@@ -4205,10 +4216,8 @@ function saveCurrentAsTemplate() {
         date: new Date().toISOString()
       });
     }
-    
     saveTemplates(templates);
     renderTemplates();
-    
     // Show success message
     const message = document.createElement('div');
     message.className = 'fixed bottom-4 right-4 bg-green-100 border border-green-500 text-green-700 px-4 py-3 rounded-md shadow-lg z-50';
@@ -4236,9 +4245,34 @@ function saveCurrentAsTemplate() {
 function applyTemplate(template) {
   try {
     if (confirm(`Load the template "${template.name}"? This will replace your current query.`)) {
-      // Apply the query columns
+      // --- Ensure all Marc fields in the template exist in fieldDefs/filteredDefs ---
+      const allFields = new Set([...(template.query.DesiredColumnOrder || [])]);
+      if (template.query.FilterGroups && Array.isArray(template.query.FilterGroups)) {
+        template.query.FilterGroups.forEach(group => {
+          (group.Filters || []).forEach(ff => {
+            allFields.add(ff.FieldName);
+          });
+        });
+      }
+      allFields.forEach(field => {
+        if (typeof field === 'string' && field.startsWith('Marc')) {
+          if (!fieldDefs.some(d => d.name === field)) {
+            // Add to fieldDefs and filteredDefs
+            const def = {
+              name: field,
+              label: field,
+              desc: 'Custom MARC field',
+              category: 'Marc',
+              type: 'string',
+              // Add any other default properties as needed
+            };
+            fieldDefs.push(def);
+            filteredDefs.push(def);
+          }
+        }
+      });
+      // --- Apply the query columns ---
       displayedFields = [...(template.query.DesiredColumnOrder || [])];
-      
       // Clear and reapply filters from FilterGroups
       Object.keys(activeFilters).forEach(k => delete activeFilters[k]);
       if (template.query.FilterGroups && Array.isArray(template.query.FilterGroups)) {
@@ -4257,13 +4291,11 @@ function applyTemplate(template) {
           });
         });
       }
-      
       // Rebuild the table and refresh UI
       showExampleTable(displayedFields);
       updateQueryJson();
       updateCategoryCounts();
       safeRenderBubbles();
-      
       // Show success notification
       const message = document.createElement('div');
       message.className = 'fixed bottom-4 right-4 bg-blue-100 border border-blue-500 text-blue-700 px-4 py-3 rounded-md shadow-lg z-50';
@@ -4281,7 +4313,6 @@ function applyTemplate(template) {
         message.style.transition = 'opacity 0.5s ease';
         setTimeout(() => document.body.removeChild(message), 500);
       }, 3000);
-      
       // Close the templates panel
       closeModal('templates-panel');
     }
@@ -4326,56 +4357,56 @@ function deleteTemplate(template, element) {
 function renderTemplates() {
   const templatesContainer = document.getElementById('templates-list');
   if (!templatesContainer) return;
-  
   const templates = getTemplates();
-  
-  if (!templates.length) {
+  // Get search value
+  const searchInput = document.getElementById('templates-search');
+  const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
+  let filteredTemplates = templates;
+  if (searchTerm) {
+    filteredTemplates = templates.filter(t =>
+      t.name.toLowerCase().includes(searchTerm)
+    );
+  }
+  if (!filteredTemplates.length) {
     templatesContainer.innerHTML = `
-      <p class="text-center text-gray-500 italic py-4">No templates saved yet. Create a query and click "Save Current" to create your first template.</p>
+      <p class="text-center text-gray-500 italic py-4">No templates found.</p>
     `;
     return;
   }
-  
   templatesContainer.innerHTML = '';
-  
   // Sort by newest first
-  templates.sort((a, b) => new Date(b.date) - new Date(a.date));
-  
-  templates.forEach(template => {
+  filteredTemplates.sort((a, b) => new Date(b.date) - new Date(a.date));
+  filteredTemplates.forEach(template => {
     const item = document.createElement('div');
     item.className = 'py-4 first:pt-0 last:pb-0 transition-all duration-300';
     item.style.overflow = 'hidden';
-    
     // Format date nicely
     let dateDisplay = 'Unknown date';
     try {
       const date = new Date(template.date);
       dateDisplay = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } catch (e) {}
-    
     // Calculate stats
     const columnCount = template.query.DesiredColumnOrder?.length || 0;
-    
     let filterCount = 0;
     if (template.query.FilterGroups) {
       template.query.FilterGroups.forEach(group => {
         filterCount += (group.Filters?.length || 0);
       });
     }
-    
     item.innerHTML = `
       <div class="flex justify-between items-start">
         <div>
           <h4 class="font-semibold text-teal-800">${template.name}</h4>
           <div class="text-sm text-gray-500 mt-1">Created: ${dateDisplay}</div>
           <div class="text-sm text-gray-600 mt-2 flex items-center gap-4">
-            <span class="flex items-center gap-1">
+            <span class="flex items-center gap-1" data-tooltip="${formatColumnsTooltip(template.query.DesiredColumnOrder || [])}">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M3 18h18M3 6h18"></path>
               </svg>
               ${columnCount} Column${columnCount !== 1 ? 's' : ''}
             </span>
-            <span class="flex items-center gap-1">
+            <span class="flex items-center gap-1" data-tooltip="${formatFiltersTooltip(null, template.query.FilterGroups)}">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9M3 12h9M3 16h9M3 20h9M17 8l2 2 4-4"></path>
               </svg>
@@ -4405,9 +4436,7 @@ function renderTemplates() {
         </div>
       </div>
     `;
-    
     templatesContainer.appendChild(item);
-    
     // Add event listeners to buttons
     const loadBtn = item.querySelector('.load-template-btn');
     loadBtn.addEventListener('click', () => {
@@ -4416,7 +4445,6 @@ function renderTemplates() {
         applyTemplate(templateToLoad);
       }
     });
-    
     const deleteBtn = item.querySelector('.delete-template-btn');
     deleteBtn.addEventListener('click', () => {
       deleteTemplate(template, item);
@@ -4434,6 +4462,11 @@ document.addEventListener('DOMContentLoaded', () => {
   if (saveTemplateBtn) {
     saveTemplateBtn.addEventListener('click', saveCurrentAsTemplate);
   }
+  // Attach search event listener on DOMContentLoaded
+  const searchInput = document.getElementById('templates-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', renderTemplates);
+  }
 });
 
 // Add a global flag to block bubble rendering during animation
@@ -4448,4 +4481,26 @@ function safeRenderBubbles() {
   }
   renderBubbles();
   pendingRenderBubbles = false;
+}
+
+// Helper to format filters for tooltips (used by both bubbles and templates)
+function formatFiltersTooltip(fieldName, filterGroups) {
+  if (!filterGroups || !Array.isArray(filterGroups)) return '';
+  let lines = [];
+  filterGroups.forEach(group => {
+    (group.Filters || []).forEach(f => {
+      if (!fieldName || f.FieldName === fieldName) {
+        let op = f.FieldOperator.replace(/([A-Z])/g, ' $1').trim().toLowerCase();
+        let vals = (f.Values || []).join(', ');
+        lines.push(`${f.FieldName}: ${op} ${vals}`);
+      }
+    });
+  });
+  return lines.join('\n');
+}
+
+// Helper to format columns for tooltips (used by templates, can be reused elsewhere)
+function formatColumnsTooltip(columns) {
+  if (!Array.isArray(columns) || columns.length === 0) return '';
+  return columns.join('\n');
 }
