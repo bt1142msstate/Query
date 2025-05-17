@@ -1237,96 +1237,96 @@ const fieldDefs = [
     { "display": "MLTN-A", "literal": "4" },
     { "display": "MLTN-B", "literal": "5" },
     { "display": "WSPR-X", "literal": "6" }
-  ], "filters": ["equals"], "category": "Item", "multiSelect": true },
-  { "name": "Author", "type": "string", "filters": ["contains", "starts", "equals"], "category": "Catalog" },
-  { "name": "Title", "type": "string", "filters": ["contains", "starts", "equals"], "category": "Catalog" },
-  { "name": "Price", "type": "money", "category": "Catalog" },
-  { "name": "Call Number", "type": "string", "filters": ["contains", "equals", "between"], "category": "Call #" },
-  { "name": "Catalog Key", "type": "string", "filters": ["equals"], "category": "Catalog" },
-  { "name": "Barcode", "type": "string", "category": "Item" },
-  { "name": "Item Type", "type": "string", "category": "Item" },
-  { "name": "Home Location", "type": "string", "category": "Item" },
+  ], "filters": ["equals"], "category": "Item", "multiSelect": true, "desc": "Owning library for the item" },
+  { "name": "Author", "type": "string", "filters": ["contains", "starts", "equals"], "category": "Catalog", "desc": "The author or creator of the item" },
+  { "name": "Title", "type": "string", "filters": ["contains", "starts", "equals"], "category": "Catalog", "desc": "The title of the item" },
+  { "name": "Price", "type": "money", "category": "Catalog", "desc": "The price of the item" },
+  { "name": "Call Number", "type": "string", "filters": ["contains", "equals", "between"], "category": "Call #", "desc": "The call number assigned to the item" },
+  { "name": "Catalog Key", "type": "string", "filters": ["equals"], "category": "Catalog", "desc": "Unique catalog key for the item" },
+  { "name": "Barcode", "type": "string", "category": "Item", "desc": "Barcode identifier for the item" },
+  { "name": "Item Type", "type": "string", "category": "Item", "desc": "Type or format of the item (e.g., book, DVD)" },
+  { "name": "Home Location", "type": "string", "category": "Item", "desc": "Home location or shelving location of the item" },
   { "name": "Marc", "type": "string", "category": "Marc", "isSpecialMarc": true, "desc": "Create custom MARC field filters by specifying a MARC field number" },
-  { "name": "Item Creation Date", "type": "date", "category": ["Item", "Dates"] },
-  { "name": "Item Total Charges", "type": "number", "category": "Item" },
-  { "name": "Item Last Used", "type": "date", "category": ["Item", "Dates"] },
-  { "name": "Number of Bills", "type": "number", "category": "Item" },
-  { "name": "Number of Current Charges", "type": "number", "category": "Item" },
-  { "name": "Category1", "type": "string", "category": "Item" },
-  { "name": "Category2", "type": "string", "category": "Item" },
-  { "name": "Copy Hold Count", "type": "number", "category": "Item" },
-  { "name": "In-House Charges", "type": "number", "category": "Item" },
-  { "name": "Extended Info Offset", "type": "number", "category": "Item" },
-  { "name": "Current Location", "type": "string", "category": "Item" },
-  { "name": "Last Charged Date", "type": "date", "category": ["Item", "Dates"] },
+  { "name": "Item Creation Date", "type": "date", "category": ["Item", "Dates"], "desc": "Date the item record was created" },
+  { "name": "Item Total Charges", "type": "number", "category": "Item", "desc": "Total number of times the item has been charged (checked out)" },
+  { "name": "Item Last Used", "type": "date", "category": ["Item", "Dates"], "desc": "Date the item was last used or checked out" },
+  { "name": "Number of Bills", "type": "number", "category": "Item", "desc": "Number of bills associated with the item" },
+  { "name": "Number of Current Charges", "type": "number", "category": "Item", "desc": "Number of current charges on the item" },
+  { "name": "Category1", "type": "string", "category": "Item", "desc": "Custom category 1 for the item" },
+  { "name": "Category2", "type": "string", "category": "Item", "desc": "Custom category 2 for the item" },
+  { "name": "Copy Hold Count", "type": "number", "category": "Item", "desc": "Number of holds on this copy" },
+  { "name": "In-House Charges", "type": "number", "category": "Item", "desc": "Number of in-house uses (not checked out)" },
+  { "name": "Extended Info Offset", "type": "number", "category": "Item", "desc": "Offset for extended information in the item record" },
+  { "name": "Current Location", "type": "string", "category": "Item", "desc": "Current location of the item (may differ from home location)" },
+  { "name": "Last Charged Date", "type": "date", "category": ["Item", "Dates"], "desc": "Date the item was last checked out" },
   { "name": "Permanent/Temporary", "type": "string", "values": [
     { "display": "Yes", "literal": "Y" },
     { "display": "No", "literal": "N" }
-  ], "filters": ["equals"], "category": "Item" },
-  { "name": "Reserve Control Key", "type": "number", "category": "Item" },
-  { "name": "Last User Key", "type": "string", "category": "Item" },
+  ], "filters": ["equals"], "category": "Item", "desc": "Indicates if the item is permanent or temporary" },
+  { "name": "Reserve Control Key", "type": "number", "category": "Item", "desc": "Key for reserve control on the item" },
+  { "name": "Last User Key", "type": "string", "category": "Item", "desc": "Key of the last user who checked out the item" },
   { "name": "Recirculation Flag", "type": "string", "values": [
     { "display": "Yes", "literal": "Y" },
     { "display": "No", "literal": "N" },
     { "display": "Maybe", "literal": "M" }
-  ], "filters": ["equals"], "category": "Item" },
-  { "name": "Inventory Date", "type": "date", "category": ["Item", "Dates"] },
-  { "name": "Inventory Count", "type": "number", "category": "Item" },
-  { "name": "Available Hold Key", "type": "number", "category": "Item" },
-  { "name": "Publication Date", "type": "date", "category": ["Item", "Dates"] },
-  { "name": "Catalog Accountability", "type": "number", "category": "Catalog" },
-  { "name": "Catalog Last Callnum", "type": "number", "category": "Catalog" },
-  { "name": "Catalog MARClist Offset", "type": "number", "category": "Catalog" },
-  { "name": "Catalog Format", "type": "string", "category": "Catalog" },
-  { "name": "Catalog # of Libraries", "type": "number", "category": "Catalog" },
-  { "name": "Catalog # of Title Holds", "type": "number", "category": "Catalog" },
-  { "name": "Catalog IMMS Material Type", "type": "string", "category": "Catalog" },
-  { "name": "Catalog # of Total Holds", "type": "number", "category": "Catalog" },
-  { "name": "Catalog MARC Offset/Link", "type": "number", "category": "Catalog" },
-  { "name": "Catalog # of Callnums", "type": "number", "category": "Catalog" },
-  { "name": "Catalog Creation Date", "type": "date", "category": ["Catalog", "Dates"] },
-  { "name": "Catalog Cataloged Date", "type": "date", "category": ["Catalog", "Dates"] },
-  { "name": "Catalog Last Modified Date", "type": "date", "category": ["Catalog", "Dates"] },
-  { "name": "Catalog Created Login", "type": "string", "category": "Catalog" },
-  { "name": "Catalog BRS Status", "type": "number", "category": "Catalog" },
-  { "name": "Catalog Last Modified By", "type": "string", "category": "Catalog" },
-  { "name": "Catalog Material Type", "type": "string", "category": "Catalog" },
-  { "name": "Catalog Collection Category", "type": "string", "category": "Catalog" },
-  { "name": "Catalog New Material Date", "type": "date", "category": ["Catalog", "Dates"] },
-  { "name": "Catalog Non-Return Period", "type": "string", "category": "Catalog" },
-  { "name": "Catalog Period Until Rotatable", "type": "string", "category": "Catalog" },
-  { "name": "Catalog Minimum Performance", "type": "number", "category": "Catalog" },
-  { "name": "Catalog Maximum Performance", "type": "number", "category": "Catalog" },
-  { "name": "Catalog Period Performance", "type": "string", "category": "Catalog" },
-  { "name": "Catalog # of Visible Callnums", "type": "number", "category": "Catalog" },
-  { "name": "Catalog # of Shadow Callnums", "type": "number", "category": "Catalog" },
-  { "name": "Catalog # of Copies on Open Order", "type": "number", "category": "Catalog" },
-  { "name": "Catalog Review Record Flag", "type": "number", "category": "Catalog" },
-  { "name": "Catalog Heading Offset", "type": "number", "category": "Catalog" },
-  { "name": "Catalog MARC File Number", "type": "number", "category": "Catalog" },
-  { "name": "Catalog Shadowed Flag", "type": "number", "category": "Catalog" },
-  { "name": "Catalog Hold Exempt Date", "type": "date", "category": ["Catalog", "Dates"] },
-  { "name": "Catalog System Date Modified", "type": "date", "category": ["Catalog", "Dates"] },
-  { "name": "Call Number Key", "type": "string", "category": "Call #" },
-  { "name": "Analytic Position", "type": "number", "category": "Item" },
+  ], "filters": ["equals"], "category": "Item", "desc": "Indicates if the item can be recirculated" },
+  { "name": "Inventory Date", "type": "date", "category": ["Item", "Dates"], "desc": "Date the item was last inventoried" },
+  { "name": "Inventory Count", "type": "number", "category": "Item", "desc": "Number of times the item has been inventoried" },
+  { "name": "Available Hold Key", "type": "number", "category": "Item", "desc": "Key for available holds on the item" },
+  { "name": "Publication Date", "type": "date", "category": ["Item", "Dates"], "desc": "Publication date of the item" },
+  { "name": "Catalog Accountability", "type": "number", "category": "Catalog", "desc": "Accountability code for the catalog record" },
+  { "name": "Catalog Last Callnum", "type": "number", "category": "Catalog", "desc": "Last call number used in the catalog record" },
+  { "name": "Catalog MARClist Offset", "type": "number", "category": "Catalog", "desc": "Offset for MARC list in the catalog record" },
+  { "name": "Catalog Format", "type": "string", "category": "Catalog", "desc": "Format of the catalog record (e.g., MARC, Dublin Core)" },
+  { "name": "Catalog # of Libraries", "type": "number", "category": "Catalog", "desc": "Number of libraries associated with the catalog record" },
+  { "name": "Catalog # of Title Holds", "type": "number", "category": "Catalog", "desc": "Number of title-level holds in the catalog" },
+  { "name": "Catalog IMMS Material Type", "type": "string", "category": "Catalog", "desc": "IMMS material type code for the catalog record" },
+  { "name": "Catalog # of Total Holds", "type": "number", "category": "Catalog", "desc": "Total number of holds in the catalog" },
+  { "name": "Catalog MARC Offset/Link", "type": "number", "category": "Catalog", "desc": "Offset or link to MARC data in the catalog record" },
+  { "name": "Catalog # of Callnums", "type": "number", "category": "Catalog", "desc": "Number of call numbers in the catalog record" },
+  { "name": "Catalog Creation Date", "type": "date", "category": ["Catalog", "Dates"], "desc": "Date the catalog record was created" },
+  { "name": "Catalog Cataloged Date", "type": "date", "category": ["Catalog", "Dates"], "desc": "Date the item was cataloged" },
+  { "name": "Catalog Last Modified Date", "type": "date", "category": ["Catalog", "Dates"], "desc": "Date the catalog record was last modified" },
+  { "name": "Catalog Created Login", "type": "string", "category": "Catalog", "desc": "Login of the user who created the catalog record" },
+  { "name": "Catalog BRS Status", "type": "number", "category": "Catalog", "desc": "BRS status code for the catalog record" },
+  { "name": "Catalog Last Modified By", "type": "string", "category": "Catalog", "desc": "User who last modified the catalog record" },
+  { "name": "Catalog Material Type", "type": "string", "category": "Catalog", "desc": "Material type of the catalog record" },
+  { "name": "Catalog Collection Category", "type": "string", "category": "Catalog", "desc": "Collection category for the catalog record" },
+  { "name": "Catalog New Material Date", "type": "date", "category": ["Catalog", "Dates"], "desc": "Date new material was added to the catalog" },
+  { "name": "Catalog Non-Return Period", "type": "string", "category": "Catalog", "desc": "Non-return period for the catalog record" },
+  { "name": "Catalog Period Until Rotatable", "type": "string", "category": "Catalog", "desc": "Period until the item can be rotated" },
+  { "name": "Catalog Minimum Performance", "type": "number", "category": "Catalog", "desc": "Minimum performance value for the catalog record" },
+  { "name": "Catalog Maximum Performance", "type": "number", "category": "Catalog", "desc": "Maximum performance value for the catalog record" },
+  { "name": "Catalog Period Performance", "type": "string", "category": "Catalog", "desc": "Performance period for the catalog record" },
+  { "name": "Catalog # of Visible Callnums", "type": "number", "category": "Catalog", "desc": "Number of visible call numbers in the catalog record" },
+  { "name": "Catalog # of Shadow Callnums", "type": "number", "category": "Catalog", "desc": "Number of shadowed call numbers in the catalog record" },
+  { "name": "Catalog # of Copies on Open Order", "type": "number", "category": "Catalog", "desc": "Number of copies on open order in the catalog record" },
+  { "name": "Catalog Review Record Flag", "type": "number", "category": "Catalog", "desc": "Review record flag for the catalog record" },
+  { "name": "Catalog Heading Offset", "type": "number", "category": "Catalog", "desc": "Heading offset in the catalog record" },
+  { "name": "Catalog MARC File Number", "type": "number", "category": "Catalog", "desc": "MARC file number for the catalog record" },
+  { "name": "Catalog Shadowed Flag", "type": "number", "category": "Catalog", "desc": "Shadowed flag for the catalog record" },
+  { "name": "Catalog Hold Exempt Date", "type": "date", "category": ["Catalog", "Dates"], "desc": "Date the catalog record was exempted from holds" },
+  { "name": "Catalog System Date Modified", "type": "date", "category": ["Catalog", "Dates"], "desc": "System date the catalog record was last modified" },
+  { "name": "Call Number Key", "type": "string", "category": "Call #", "desc": "Key for the call number" },
+  { "name": "Analytic Position", "type": "number", "category": "Item", "desc": "Analytic position for the item" },
   { "name": "Bound-with Level", "type": "string", "values": [
     { "display": "None", "literal": "NONE" },
     { "display": "Child", "literal": "CHILD" },
     { "display": "Parent", "literal": "PARENT" }
-  ], "filters": ["equals"], "category": "Item" },
-  { "name": "Number of Copies", "type": "number", "category": ["Item"] },
-  { "name": "System Date Modified", "type": "date", "category": ["Item", "Dates"] },
-  { "name": "Call-level Holds", "type": "number", "category": "Item" },
-  { "name": "Number of Reserve Controls", "type": "number", "category": "Item" },
-  { "name": "Number of Copies on Reserve", "type": "number", "category": "Item" },
-  { "name": "Number of Visible Copies", "type": "number", "category": "Item" },
+  ], "filters": ["equals"], "category": "Item", "desc": "Bound-with level for the item" },
+  { "name": "Number of Copies", "type": "number", "category": ["Item"], "desc": "Number of copies of the item" },
+  { "name": "System Date Modified", "type": "date", "category": ["Item", "Dates"], "desc": "System date the item was last modified" },
+  { "name": "Call-level Holds", "type": "number", "category": "Item", "desc": "Number of call-level holds on the item" },
+  { "name": "Number of Reserve Controls", "type": "number", "category": "Item", "desc": "Number of reserve controls for the item" },
+  { "name": "Number of Copies on Reserve", "type": "number", "category": "Item", "desc": "Number of copies of the item on reserve" },
+  { "name": "Number of Visible Copies", "type": "number", "category": "Item", "desc": "Number of visible copies of the item" },
   { "name": "Shadowed Flag", "type": "string", "values": [
     { "display": "Yes", "literal": "Y" },
     { "display": "No", "literal": "N" }
-  ], "filters": ["equals"], "category": "Item" },
-  { "name": "Shelving Key", "type": "string", "category": "Item" },
-  { "name": "Base Call Number", "type": "string", "category": "Item" },
-  { "name": "Item Number", "type": "string", "category": "Item" }
+  ], "filters": ["equals"], "category": "Item", "desc": "Indicates if the item is shadowed" },
+  { "name": "Shelving Key", "type": "string", "category": "Item", "desc": "Shelving key for the item" },
+  { "name": "Base Call Number", "type": "string", "category": "Item", "desc": "Base call number for the item" },
+  { "name": "Item Number", "type": "string", "category": "Item", "desc": "Unique item number" }
 ];
 
 
@@ -1369,6 +1369,12 @@ class Bubble {
     this.el.dataset.type = def.type;
     if (def.values) this.el.dataset.values = JSON.stringify(def.values);
     if (def.filters) this.el.dataset.filters = JSON.stringify(def.filters);
+    // Set tooltip to description if available
+    if (def.desc) {
+      this.el.setAttribute('data-tooltip', def.desc);
+    } else {
+      this.el.removeAttribute('data-tooltip');
+    }
     // Draggable logic
     if (def.isSpecialMarc || displayedFields.includes(fieldName)) {
       this.el.setAttribute('draggable', 'false');
@@ -3519,7 +3525,19 @@ function renderCategorySelectors(selectedCount, marcCount) {
   if (categoryBar) {
       categoryBar.innerHTML = categories.map(cat => {
       if (cat === 'Selected' && selectedCount === 0) return '';
-      return `<button data-category="${cat}" class="category-btn ${cat === currentCategory ? 'active' : ''}">${cat} (${getCount(cat)})</button>`;
+      // Tooltip descriptions for each category
+      let tooltip = '';
+      switch (cat) {
+        case 'All': tooltip = 'Show all available fields'; break;
+        case 'Selected': tooltip = 'Show fields currently in use (displayed or filtered)'; break;
+        case 'Marc': tooltip = 'MARC-specific fields and custom MARC field filters'; break;
+        case 'Call #': tooltip = 'Fields related to call numbers'; break;
+        case 'Catalog': tooltip = 'Fields from the catalog record'; break;
+        case 'Item': tooltip = 'Fields specific to the item record'; break;
+        case 'Dates': tooltip = 'Fields representing dates'; break;
+        default: tooltip = `Show fields in the ${cat} category`;
+      }
+      return `<button data-category="${cat}" class="category-btn ${cat === currentCategory ? 'active' : ''}" data-tooltip="${tooltip}">${cat} (${getCount(cat)})</button>`;
       }).join('');
     // Attach click handlers
     categoryBar.querySelectorAll('.category-btn').forEach(btn => {
@@ -3540,9 +3558,22 @@ function renderCategorySelectors(selectedCount, marcCount) {
     mobileSelector.innerHTML = '';
     categories.forEach(cat => {
       if (cat === 'Selected' && selectedCount === 0) return;
+      // Tooltip descriptions for each category
+      let tooltip = '';
+      switch (cat) {
+        case 'All': tooltip = 'Show all available fields'; break;
+        case 'Selected': tooltip = 'Show fields currently in use (displayed or filtered)'; break;
+        case 'Marc': tooltip = 'MARC-specific fields and custom MARC field filters'; break;
+        case 'Call #': tooltip = 'Fields related to call numbers'; break;
+        case 'Catalog': tooltip = 'Fields from the catalog record'; break;
+        case 'Item': tooltip = 'Fields specific to the item record'; break;
+        case 'Dates': tooltip = 'Fields representing dates'; break;
+        default: tooltip = `Show fields in the ${cat} category`;
+      }
       const option = document.createElement('option');
       option.value = cat;
       option.textContent = `${cat} (${getCount(cat)})`;
+      option.setAttribute('data-tooltip', tooltip);
       if (cat === currentValue) option.selected = true;
       mobileSelector.appendChild(option);
     });
@@ -3989,6 +4020,7 @@ const TooltipManager = (() => {
   let arrowEl = null;
   let currentTarget = null;
   let hideTimeout = null;
+  let isDragging = false; // Track drag state
 
   function createTooltip() {
     tooltipEl = document.createElement('div');
@@ -4001,6 +4033,7 @@ const TooltipManager = (() => {
   }
 
   function showTooltip(target, text, event) {
+    if (isDragging) return; // Do not show tooltip while dragging
     if (!tooltipEl) createTooltip();
     tooltipEl.textContent = '';
     tooltipEl.appendChild(arrowEl); // keep arrow at end
@@ -4072,6 +4105,7 @@ const TooltipManager = (() => {
   // Attach listeners globally
   function attach() {
     document.addEventListener('mouseover', e => {
+      if (isDragging) return;
       const el = e.target.closest('[data-tooltip]');
       if (!el) return;
       if (hideTimeout) clearTimeout(hideTimeout);
@@ -4079,6 +4113,7 @@ const TooltipManager = (() => {
       if (text) showTooltip(el, text, e);
     });
     document.addEventListener('mousemove', e => {
+      if (isDragging) return;
       if (currentTarget && tooltipEl && tooltipEl.style.display === 'block') {
         positionTooltip(currentTarget, e);
       }
@@ -4087,6 +4122,7 @@ const TooltipManager = (() => {
       if (e.target.closest('[data-tooltip]')) hideTooltip();
     });
     document.addEventListener('focusin', e => {
+      if (isDragging) return;
       const el = e.target.closest('[data-tooltip]');
       if (!el) return;
       if (hideTimeout) clearTimeout(hideTimeout);
@@ -4097,6 +4133,24 @@ const TooltipManager = (() => {
       if (e.target.closest('[data-tooltip]')) hideTooltip();
     });
     window.addEventListener('scroll', () => { if (tooltipEl) hideTooltip(); });
+    // Hide tooltip on dragstart, show again on dragend
+    document.addEventListener('dragstart', () => {
+      isDragging = true;
+      hideTooltip();
+    });
+    document.addEventListener('dragend', () => {
+      isDragging = false;
+    });
+    // Hide tooltip on touch drag start (for touch devices)
+    document.addEventListener('touchstart', e => {
+      if (e.target.closest('.bubble') || e.target.closest('th[draggable="true"]')) {
+        isDragging = true;
+        hideTooltip();
+      }
+    }, { passive: true });
+    document.addEventListener('touchend', () => {
+      isDragging = false;
+    }, { passive: true });
   }
   attach();
   return { show: showTooltip, hide: hideTooltip };
