@@ -22,7 +22,7 @@ Save, reuse, and manage query templates. Access your query history for quick mod
 
 🛠️ MARC Field Support
 
-Add and filter on any MARC field (assuming your system supports the MARC standard). Group multiple MARC field values into a single column (e.g., value1, value2), or separate them into individual columns (e.g., Marc590, Marc590 2nd).
+Add and filter on any MARC field (assuming your system supports the MARC standard). Group multiple MARC field values into a single column (e.g., value1, value2), or separate them into individual columns (e.g., Marc590, 2nd Marc590).
 
 🤖 AI Support (Coming Soon)
 
