@@ -6,7 +6,7 @@ Key Features
 
 🧩 Visual Query Building
 
-Add columns and filters with intuitive “field bubbles.” Rearrange columns simply by dragging column headers in the dynamic table for the exact report layout you need.
+Add columns and filters with intuitive “field bubbles”—just click to add or remove fields and filters. Instantly rearrange your report by dragging column headers in the dynamic table to get the exact layout you want.
 
 📄 Excel File Output
 
@@ -22,7 +22,7 @@ Save, reuse, and manage query templates. Access your query history for quick mod
 
 🛠️ MARC Field Support
 
-Add and filter on any MARC field (assuming your system supports the MARC standard).
+Add and filter on any MARC field (assuming your system supports the MARC standard). Group multiple MARC field values into a single column (e.g., value1, value2), or separate them into individual columns (e.g., Marc590, Marc590 2nd).
 
 🤖 AI Support (Coming Soon)
 
