@@ -36,6 +36,8 @@ let isBubbleAnimating = false;
 // Add at the top with other state variables:
 let isInputLocked = false;
 let inputLockTimeout = null;
+// Universal flag to disable run/download controls
+let controlsDisabled = false;
 
 // Add a full-screen overlay for pointer-events blocking
 let inputBlockOverlay = document.getElementById('input-block-overlay');
@@ -147,9 +149,30 @@ document.querySelectorAll('.collapse-btn').forEach(btn=>{
 /* --- Run / Stop query toggle --- */
 // queryRunning already declared at the top
 
-// Download button reference
+// Update run/download controls together
+function updateActionButtonsState(){
+  if(runBtn){
+    let hasFields = false;
+    try{
+      const q = JSON.parse(queryBox.value || '{}');
+      hasFields = Array.isArray(q.DesiredColumnOrder) && q.DesiredColumnOrder.length > 0;
+    }catch{}
+    runBtn.disabled = controlsDisabled || !hasFields || queryRunning;
+    runBtn.setAttribute('data-tooltip', queryRunning ? 'Stop Query' : 'Run Query');
+  }
+  if(downloadBtn){
+    const table = document.querySelector('#example-table tbody');
+    const hasRows = table && table.querySelectorAll('tr').length > 0 && displayedFields.length > 0;
+    downloadBtn.disabled = controlsDisabled || !hasRows;
+  }
+}
+
+function setControlsDisabled(disabled){
+  controlsDisabled = disabled;
+  updateActionButtonsState();
+}
 if (downloadBtn) {
-  downloadBtn.disabled = false; // Always enabled
+  updateActionButtonsState();
   downloadBtn.addEventListener('click', () => {
     if (!queryBox) return;
     const blob = new Blob([queryBox.value], { type: 'application/json' });
@@ -166,22 +189,8 @@ if (downloadBtn) {
   });
 }
 
-/* Enable Run button only when query JSON has something to run */
-function updateRunBtnState(){
-  if(!runBtn) return;
-  try{
-    const q = JSON.parse(queryBox.value || '{}');
-    const hasFields = Array.isArray(q.DesiredColumnOrder) && q.DesiredColumnOrder.length > 0;
-    runBtn.disabled = !hasFields || queryRunning;
-    // Set tooltip based on running state
-    runBtn.setAttribute('data-tooltip', queryRunning ? 'Stop Query' : 'Run Query');
-  }catch{
-    runBtn.disabled = true;
-    runBtn.setAttribute('data-tooltip', 'Run Query');
-  }
-}
-// Initial check
-updateRunBtnState();
+// Initial state update for controls
+updateActionButtonsState();
 
 if(runBtn){
   runBtn.addEventListener('click', ()=>{
@@ -236,7 +245,7 @@ if(runBtn){
       console.log('Query started…');   // TODO: start real query here
     }else{
       console.log('Query stopped.');   // TODO: stop/abort query here
-      updateRunBtnState();
+      updateActionButtonsState();
     }
   });
 }
@@ -408,7 +417,7 @@ function updateQueryJson(){
   }
 
   if(queryBox) queryBox.value = JSON.stringify(query, null, 2);
-  updateRunBtnState();
+  updateActionButtonsState();
 }
 
 // Helper function to check if a field should have purple styling
@@ -2765,6 +2774,7 @@ function showExampleTable(fields){
     });
     updateQueryJson();
     updateCategoryCounts();
+    updateActionButtonsState();
     return;
   }
 
@@ -2820,6 +2830,7 @@ function showExampleTable(fields){
     });
     updateQueryJson();
     updateCategoryCounts();
+    updateActionButtonsState();
     // Re-render bubbles to ensure consistent styling
     if (currentCategory === 'Selected') {
       safeRenderBubbles();
@@ -2852,6 +2863,7 @@ function showExampleTable(fields){
 }
 
 updateQueryJson();
+updateActionButtonsState();
 
 /* ---------- Example Queries data & renderer ---------- */
 const exampleQueries = [
