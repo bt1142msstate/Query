@@ -38,7 +38,7 @@ A responsive, mobile-friendly interface is on the roadmap.
 
 ⸻
 
-Note: Query is focused solely on generating list item reports. Non list reporting such as Stat reports, charting and advanced data visualizations are not currently supported.
+Note: Query is focused solely on generating list item reports. Non list reporting such as charting and advanced data visualizations are not currently supported.
 
 
 It's currently still in development so there are no use notes yet.
