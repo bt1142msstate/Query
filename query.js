@@ -393,7 +393,8 @@ function mapOperator(cond){
 function updateQueryJson(){
   const query = {
     DesiredColumnOrder: [...displayedFields].filter(field => field !== 'Marc'),
-    FilterGroups: []
+    FilterGroups: [],
+    GroupMethod: "ExpandIntoColumns" // Always include this
   };
 
   // Active filters → logical group per field
@@ -417,6 +418,22 @@ function updateQueryJson(){
     };
     query.FilterGroups.push(group);
   });
+
+  // Add CustomFields for custom MARC fields (Marc###, but not 'Marc')
+  const customMarcFields = fieldDefs
+    .filter(f => /^Marc\d+$/.test(f.name))
+    .map(f => ({
+      FieldName: f.name,
+      Tool: "prtentry", // Default, adjust if needed
+      OutputFlag: "e",
+      FilterFlag: "e",
+      RawOutputSegments: 1,
+      DataType: "string",
+      RequiredEqualFilter: f.name.replace(/^Marc/, "")
+    }));
+  if (customMarcFields.length > 0) {
+    query.CustomFields = customMarcFields;
+  }
 
   if(queryBox) queryBox.value = JSON.stringify(query, null, 2);
   updateRunBtnState();
@@ -2433,44 +2450,6 @@ confirmBtn.onclick = function(e) {
     // Normal field handling
     originalConfirmBtnClick.call(this, e);
   }
-};
-
-// Extra protection: prevent filters on base Marc
-updateQueryJson = function() {
-  // Safety check: never allow filtering the main Marc field
-  if (activeFilters['Marc']) {
-    delete activeFilters['Marc'];
-  }
-  
-  const query = {
-    DesiredColumnOrder: [...displayedFields].filter(field => field !== 'Marc'),
-    FilterGroups: []
-  };
-
-  // Active filters → logical group per field
-  Object.entries(activeFilters).forEach(([field,data])=>{
-    // Skip the special Marc field itself
-    if (field === 'Marc') return;
-    
-    // Filter out any filters with empty values
-    const validFilters = data.filters.filter(f => f.val !== '');
-    if (validFilters.length === 0) return;
-    const group = {
-      LogicalOperator: data.logical,
-      Filters: validFilters.map(f => {
-        const vals = (f.cond === 'between') ? f.val.split('|') : [f.val];
-        return {
-          FieldName: field,
-          FieldOperator: mapOperator(f.cond),
-          Values: vals
-        };
-      })
-    };
-    query.FilterGroups.push(group);
-  });
-
-  if(queryBox) queryBox.value = JSON.stringify(query, null, 2);
-  updateRunBtnState();
 };
 
 // Replace search input listener to filter all fieldDefs, not just visible bubbles
