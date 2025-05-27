@@ -3973,7 +3973,7 @@ function saveCurrentAsTemplate() {
       });
     }
     saveTemplates(templates);
-    renderTemplates();
+    TemplateManager.renderTemplates();
     // Show success message
     const message = document.createElement('div');
     message.className = 'fixed bottom-4 right-4 bg-green-100 border border-green-500 text-green-700 px-4 py-3 rounded-md shadow-lg z-50';
@@ -4102,7 +4102,7 @@ function deleteTemplate(template, element) {
         }
         // Check if list is empty
         if (newTemplates.length === 0) {
-          renderTemplates(); // Show empty state
+          TemplateManager.renderTemplates(); // Show empty state
         }
       }, 300);
     }, 0);
@@ -4207,21 +4207,30 @@ function renderTemplates() {
     });
   });
 }
+const TemplateManager = {
+  getTemplates,
+  saveTemplates,
+  saveCurrentAsTemplate,
+  applyTemplate,
+  deleteTemplate,
+  renderTemplates
+};
+
 
 // Initialize templates functionality
 document.addEventListener('DOMContentLoaded', () => {
   // Render templates list on page load
-  renderTemplates();
+  TemplateManager.renderTemplates();
   
   // Add event listener to the Save Template button
   const saveTemplateBtn = document.getElementById('save-template-btn');
   if (saveTemplateBtn) {
-    saveTemplateBtn.addEventListener('click', saveCurrentAsTemplate);
+    saveTemplateBtn.addEventListener('click', TemplateManager.saveCurrentAsTemplate);
   }
   // Attach search event listener on DOMContentLoaded
   const searchInput = document.getElementById('templates-search');
   if (searchInput) {
-    searchInput.addEventListener('input', renderTemplates);
+    searchInput.addEventListener('input', TemplateManager.renderTemplates);
   }
 });
 
