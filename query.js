@@ -3175,14 +3175,21 @@ const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
 const mobileMenuDropdown = document.getElementById('mobile-menu-dropdown');
 
 if (mobileMenuToggle && mobileMenuDropdown) {
-  // Toggle dropdown visibility when hamburger is clicked
+  // Toggle overlay visibility when hamburger is clicked
   mobileMenuToggle.addEventListener('click', () => {
     mobileMenuDropdown.classList.toggle('show');
   });
-  
-  // Close dropdown when clicking outside
-  document.addEventListener('click', (e) => {
-    if (!mobileMenuToggle.contains(e.target) && !mobileMenuDropdown.contains(e.target)) {
+
+  // Close when tapping blank area of the overlay
+  mobileMenuDropdown.addEventListener('click', (e) => {
+    if (e.target === mobileMenuDropdown) {
+      mobileMenuDropdown.classList.remove('show');
+    }
+  });
+
+  // Escape key closes the overlay
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && mobileMenuDropdown.classList.contains('show')) {
       mobileMenuDropdown.classList.remove('show');
     }
   });
