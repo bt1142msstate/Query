@@ -124,10 +124,16 @@ window.addEventListener('keydown', e => {
   }
 });
 
-document.getElementById('toggle-json')?.addEventListener('click', () => openModal('json-panel'));
-document.getElementById('toggle-queries')?.addEventListener('click', () => openModal('queries-panel'));
-document.getElementById('toggle-help')?.addEventListener('click', () => openModal('help-panel'));
-document.getElementById('toggle-templates')?.addEventListener('click', () => openModal('templates-panel'));
+// Consolidated desktop modal toggles
+const panelToggles = {
+  'toggle-json': 'json-panel',
+  'toggle-queries': 'queries-panel',
+  'toggle-help': 'help-panel',
+  'toggle-templates': 'templates-panel'
+};
+Object.entries(panelToggles).forEach(([btnId, panelId]) => {
+  document.getElementById(btnId)?.addEventListener('click', () => openModal(panelId));
+});
 document.querySelectorAll('.collapse-btn').forEach(btn=>{
   btn.addEventListener('click', () => closeModal(btn.dataset.target));
 });
@@ -3184,38 +3190,25 @@ if (mobileMenuToggle && mobileMenuDropdown) {
   // Mobile menu item click handlers
   document.getElementById('mobile-run-query')?.addEventListener('click', () => {
     mobileMenuDropdown.classList.remove('show');
-    // Trigger the same action as the run query button
     document.getElementById('run-query-btn')?.click();
   });
-  
+
   document.getElementById('mobile-download')?.addEventListener('click', () => {
     mobileMenuDropdown.classList.remove('show');
-    // Trigger the same action as the download button
     document.getElementById('download-btn')?.click();
   });
-  
-  document.getElementById('mobile-toggle-json')?.addEventListener('click', () => {
-    mobileMenuDropdown.classList.remove('show');
-    // Trigger the same action as the JSON toggle button
-    document.getElementById('toggle-json')?.click();
-  });
-  
-  document.getElementById('mobile-toggle-queries')?.addEventListener('click', () => {
-    mobileMenuDropdown.classList.remove('show');
-    // Trigger the same action as the queries toggle button
-    document.getElementById('toggle-queries')?.click();
-  });
-  
-  document.getElementById('mobile-toggle-help')?.addEventListener('click', () => {
-    mobileMenuDropdown.classList.remove('show');
-    // Trigger the same action as the help toggle button
-    document.getElementById('toggle-help')?.click();
-  });
-  
-  document.getElementById('mobile-toggle-templates')?.addEventListener('click', () => {
-    mobileMenuDropdown.classList.remove('show');
-    // Trigger the same action as the templates toggle button
-    document.getElementById('toggle-templates')?.click();
+
+  const mobilePanelToggles = {
+    'mobile-toggle-json': 'json-panel',
+    'mobile-toggle-queries': 'queries-panel',
+    'mobile-toggle-help': 'help-panel',
+    'mobile-toggle-templates': 'templates-panel'
+  };
+  Object.entries(mobilePanelToggles).forEach(([btnId, panelId]) => {
+    document.getElementById(btnId)?.addEventListener('click', () => {
+      mobileMenuDropdown.classList.remove('show');
+      openModal(panelId);
+    });
   });
 }
 
