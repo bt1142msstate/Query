@@ -67,7 +67,7 @@ function lockInput(duration = 600) {
 
 /* ===== Modal helpers for JSON / Queries panels ===== */
 // Centralized modal panel IDs
-const MODAL_PANEL_IDS = ['json-panel', 'queries-panel', 'help-panel', 'templates-panel'];
+const MODAL_PANEL_IDS = ['json-panel', 'queries-panel', 'help-panel', 'templates-panel', 'mobile-menu-dropdown'];
 
 
 // Focus management helpers
@@ -3259,49 +3259,17 @@ const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
 const mobileMenuDropdown = document.getElementById('mobile-menu-dropdown');
 
 if (mobileMenuToggle && mobileMenuDropdown) {
-  const toggleMobileMenu = () => {
-    mobileMenuDropdown.classList.toggle('hidden');
-    mobileMenuDropdown.classList.toggle('show');
-    if (mobileMenuDropdown.classList.contains('show')) {
-      overlay.classList.add('show');
-    } else {
-      overlay.classList.remove('show');
-    }
-  };
+  // Open the menu using the standard modal helper
+  mobileMenuToggle.addEventListener('click', () => openModal('mobile-menu-dropdown'));
 
-  // Toggle overlay visibility when hamburger is clicked
-  mobileMenuToggle.addEventListener('click', toggleMobileMenu);
-
-  // Close when tapping blank area of the overlay
-  mobileMenuDropdown.addEventListener('click', (e) => {
-    if (e.target === mobileMenuDropdown) {
-      mobileMenuDropdown.classList.add('hidden');
-      mobileMenuDropdown.classList.remove('show');
-      overlay.classList.remove('show');
-    }
-  });
-
-  // Escape key closes the overlay
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && mobileMenuDropdown.classList.contains('show')) {
-      mobileMenuDropdown.classList.add('hidden');
-      mobileMenuDropdown.classList.remove('show');
-      overlay.classList.remove('show');
-    }
-  });
-  
   // Mobile menu item click handlers
   document.getElementById('mobile-run-query')?.addEventListener('click', () => {
-    mobileMenuDropdown.classList.add('hidden');
-    mobileMenuDropdown.classList.remove('show');
-    overlay.classList.remove('show');
+    closeModal('mobile-menu-dropdown');
     document.getElementById('run-query-btn')?.click();
   });
 
   document.getElementById('mobile-download')?.addEventListener('click', () => {
-    mobileMenuDropdown.classList.add('hidden');
-    mobileMenuDropdown.classList.remove('show');
-    overlay.classList.remove('show');
+    closeModal('mobile-menu-dropdown');
     document.getElementById('download-btn')?.click();
   });
 
@@ -3313,9 +3281,7 @@ if (mobileMenuToggle && mobileMenuDropdown) {
   };
   Object.entries(mobilePanelToggles).forEach(([btnId, panelId]) => {
     document.getElementById(btnId)?.addEventListener('click', () => {
-      mobileMenuDropdown.classList.add('hidden');
-      mobileMenuDropdown.classList.remove('show');
-      overlay.classList.remove('show');
+      closeModal('mobile-menu-dropdown');
       openModal(panelId);
     });
   });
@@ -3745,7 +3711,7 @@ window.addEventListener('resize', updateHeaderHeightVar);
 
 // Accessibility: Add ARIA attributes to modal panels on page load
 window.addEventListener('DOMContentLoaded', () => {
-  const MODAL_PANEL_IDS = ['json-panel', 'queries-panel', 'help-panel', 'templates-panel'];
+  const MODAL_PANEL_IDS = ['json-panel', 'queries-panel', 'help-panel', 'templates-panel', 'mobile-menu-dropdown'];
   MODAL_PANEL_IDS.forEach(id => {
     const panel = document.getElementById(id);
     if (panel) {
