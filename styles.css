@@ -200,13 +200,16 @@ input, textarea, select, [contenteditable] {
 
 #mobile-menu-dropdown {
   position: fixed;
-  inset: 0;
+  top: var(--header-height);
+  left: 0;
+  width: 100vw;
+  height: calc(100vh - var(--header-height));
   display: none;
   flex-direction: column;
   background: rgba(255, 255, 255, 0.97);
   backdrop-filter: blur(12px);
   overflow-y: auto;
-  z-index: calc(var(--z-overlay) + 1);
+  z-index: var(--z-condition-panel);
 }
 
 #mobile-menu-dropdown.show {
