@@ -3175,14 +3175,18 @@ const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
 const mobileMenuDropdown = document.getElementById('mobile-menu-dropdown');
 
 if (mobileMenuToggle && mobileMenuDropdown) {
-  // Toggle overlay visibility when hamburger is clicked
-  mobileMenuToggle.addEventListener('click', () => {
+  const toggleMobileMenu = () => {
+    mobileMenuDropdown.classList.toggle('hidden');
     mobileMenuDropdown.classList.toggle('show');
-  });
+  };
+
+  // Toggle overlay visibility when hamburger is clicked
+  mobileMenuToggle.addEventListener('click', toggleMobileMenu);
 
   // Close when tapping blank area of the overlay
   mobileMenuDropdown.addEventListener('click', (e) => {
     if (e.target === mobileMenuDropdown) {
+      mobileMenuDropdown.classList.add('hidden');
       mobileMenuDropdown.classList.remove('show');
     }
   });
@@ -3190,17 +3194,20 @@ if (mobileMenuToggle && mobileMenuDropdown) {
   // Escape key closes the overlay
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && mobileMenuDropdown.classList.contains('show')) {
+      mobileMenuDropdown.classList.add('hidden');
       mobileMenuDropdown.classList.remove('show');
     }
   });
   
   // Mobile menu item click handlers
   document.getElementById('mobile-run-query')?.addEventListener('click', () => {
+    mobileMenuDropdown.classList.add('hidden');
     mobileMenuDropdown.classList.remove('show');
     document.getElementById('run-query-btn')?.click();
   });
 
   document.getElementById('mobile-download')?.addEventListener('click', () => {
+    mobileMenuDropdown.classList.add('hidden');
     mobileMenuDropdown.classList.remove('show');
     document.getElementById('download-btn')?.click();
   });
@@ -3213,6 +3220,7 @@ if (mobileMenuToggle && mobileMenuDropdown) {
   };
   Object.entries(mobilePanelToggles).forEach(([btnId, panelId]) => {
     document.getElementById(btnId)?.addEventListener('click', () => {
+      mobileMenuDropdown.classList.add('hidden');
       mobileMenuDropdown.classList.remove('show');
       openModal(panelId);
     });
