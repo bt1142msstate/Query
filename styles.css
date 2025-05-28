@@ -206,7 +206,7 @@ input, textarea, select, [contenteditable] {
   background: rgba(255, 255, 255, 0.97);
   backdrop-filter: blur(12px);
   overflow-y: auto;
-  z-index: var(--z-overlay);
+  z-index: calc(var(--z-overlay) + 1);
 }
 
 #mobile-menu-dropdown.show {
