@@ -3085,26 +3085,41 @@ function renderQueries(){
     `;
   }).join('');
 
-  container.innerHTML = `
-    <table class="min-w-full text-sm">
-      <thead class="bg-blue-50">
-        <tr>
-          <th class="px-4 py-2 text-left">Displaying</th>
-          <th class="px-4 py-2 text-left">Filters</th>
-          <th class="px-4 py-2 text-left">ID</th>
-          <th class="px-4 py-2 text-center">Status</th>
-          <th class="px-4 py-2 text-left">Start</th>
-          <th class="px-4 py-2 text-left">End</th>
-          <th class="px-4 py-2 text-center">Duration</th>
-          <th class="px-4 py-2 text-center">Reuse</th>
-        </tr>
-      </thead>
+  const tableHead = `
+    <thead class="bg-blue-50">
+      <tr>
+        <th class="px-4 py-2 text-left">Displaying</th>
+        <th class="px-4 py-2 text-left">Filters</th>
+        <th class="px-4 py-2 text-left">ID</th>
+        <th class="px-4 py-2 text-center">Status</th>
+        <th class="px-4 py-2 text-left">Start</th>
+        <th class="px-4 py-2 text-left">End</th>
+        <th class="px-4 py-2 text-center">Duration</th>
+        <th class="px-4 py-2 text-center">Reuse</th>
+      </tr>
+    </thead>`;
+
+  const runningTable = runningRows ? `
+    <table class="min-w-full text-sm mb-6">
+      <caption class="bg-blue-100 text-left px-4 py-2 font-semibold">Running Queries</caption>
+      ${tableHead}
       <tbody>
-        ${runningRows ? `<tr class=\"bg-blue-100\"><td colspan=\"8\" class=\"px-4 py-2 font-semibold\">Running Queries</td></tr>${runningRows}` : ''}
-        ${doneRows ? `<tr class=\"bg-blue-100\"><td colspan=\"8\" class=\"px-4 py-2 font-semibold\">Completed Queries</td></tr>${doneRows}` : ''}
+        ${runningRows}
       </tbody>
     </table>
-  `;
+  ` : '';
+
+  const doneTable = doneRows ? `
+    <table class="min-w-full text-sm">
+      <caption class="bg-blue-100 text-left px-4 py-2 font-semibold">Completed Queries</caption>
+      ${tableHead}
+      <tbody>
+        ${doneRows}
+      </tbody>
+    </table>
+  ` : '';
+
+  container.innerHTML = runningTable + doneTable;
 
   // Attach click handlers to reuse buttons
   container.querySelectorAll('.reuse-query-btn').forEach(btn => {
