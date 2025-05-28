@@ -149,7 +149,6 @@ document.querySelectorAll('.collapse-btn').forEach(btn=>{
 
 // Download button reference
 if (downloadBtn) {
-  downloadBtn.disabled = false; // Always enabled
   downloadBtn.addEventListener('click', () => {
     if (!queryBox) return;
     const blob = new Blob([queryBox.value], { type: 'application/json' });
@@ -166,22 +165,28 @@ if (downloadBtn) {
   });
 }
 
-/* Enable Run button only when query JSON has something to run */
-function updateRunBtnState(){
-  if(!runBtn) return;
-  try{
-    const q = JSON.parse(queryBox.value || '{}');
-    const hasFields = Array.isArray(q.DesiredColumnOrder) && q.DesiredColumnOrder.length > 0;
-    runBtn.disabled = !hasFields || queryRunning;
-    // Set tooltip based on running state
-    runBtn.setAttribute('data-tooltip', queryRunning ? 'Stop Query' : 'Run Query');
-  }catch{
-    runBtn.disabled = true;
-    runBtn.setAttribute('data-tooltip', 'Run Query');
+// Update run and download button states together
+function updateButtonStates(){
+  if(runBtn){
+    try{
+      const q = JSON.parse(queryBox.value || '{}');
+      const hasFields = Array.isArray(q.DesiredColumnOrder) && q.DesiredColumnOrder.length > 0;
+      runBtn.disabled = !hasFields || queryRunning;
+      runBtn.setAttribute('data-tooltip', queryRunning ? 'Stop Query' : 'Run Query');
+    }catch{
+      runBtn.disabled = true;
+      runBtn.setAttribute('data-tooltip', 'Run Query');
+    }
+  }
+
+  if(downloadBtn){
+    const table = document.getElementById('example-table');
+    const hasData = displayedFields.length > 0 && table && table.querySelectorAll('tbody tr').length > 0;
+    downloadBtn.disabled = !hasData;
   }
 }
 // Initial check
-updateRunBtnState();
+updateButtonStates();
 
 if(runBtn){
   runBtn.addEventListener('click', ()=>{
@@ -236,7 +241,7 @@ if(runBtn){
       console.log('Query started…');   // TODO: start real query here
     }else{
       console.log('Query stopped.');   // TODO: stop/abort query here
-      updateRunBtnState();
+      updateButtonStates();
     }
   });
 }
@@ -408,7 +413,7 @@ function updateQueryJson(){
   }
 
   if(queryBox) queryBox.value = JSON.stringify(query, null, 2);
-  updateRunBtnState();
+  updateButtonStates();
 }
 
 // Helper function to check if a field should have purple styling
