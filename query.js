@@ -2980,7 +2980,9 @@ function renderQueries(){
   if(!container) return;
   // Use an eye icon SVG for both columns and filters
   const viewIconSVG = `<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1.5 12s4-7 10.5-7 10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3.5"/></svg>`;
-  const runningRows = exampleQueries.filter(q => q.running).map(q=>{
+  const runningList = exampleQueries.filter(q => q.running);
+  const doneList = exampleQueries.filter(q => !q.running);
+  const runningRows = runningList.map(q=>{
     // Use tooltip for columns
     const columns = q.jsonConfig?.DesiredColumnOrder || [];
     const columnsTooltip = formatColumnsTooltip(columns);
@@ -3033,7 +3035,7 @@ function renderQueries(){
     `;
   }).join('');
 
-  const doneRows = exampleQueries.filter(q => !q.running).map(q=>{
+  const doneRows = doneList.map(q=>{
     const columns = q.jsonConfig?.DesiredColumnOrder || [];
     const columnsTooltip = formatColumnsTooltip(columns);
     const columnsSummary = columns.length && columnsTooltip
@@ -3098,28 +3100,34 @@ function renderQueries(){
         <th class="px-4 py-2 text-center">Reuse</th>
       </tr>
     </thead>`;
+  const runningCount = runningList.length;
+  const doneCount = doneList.length;
 
-  const runningTable = runningRows ? `
-    <table class="min-w-full text-sm mb-6">
-      <caption class="bg-blue-100 text-left px-4 py-2 font-semibold">Running Queries</caption>
-      ${tableHead}
-      <tbody>
-        ${runningRows}
-      </tbody>
-    </table>
+  const runningSection = runningRows ? `
+    <details class="mb-6" open>
+      <summary class="bg-blue-100 text-left px-4 py-2 font-semibold cursor-pointer">${runningCount} Running</summary>
+      <table class="min-w-full text-sm">
+        ${tableHead}
+        <tbody>
+          ${runningRows}
+        </tbody>
+      </table>
+    </details>
   ` : '';
 
-  const doneTable = doneRows ? `
-    <table class="min-w-full text-sm">
-      <caption class="bg-blue-100 text-left px-4 py-2 font-semibold">Completed Queries</caption>
-      ${tableHead}
-      <tbody>
-        ${doneRows}
-      </tbody>
-    </table>
+  const doneSection = doneRows ? `
+    <details open>
+      <summary class="bg-blue-100 text-left px-4 py-2 font-semibold cursor-pointer">${doneCount} Completed</summary>
+      <table class="min-w-full text-sm">
+        ${tableHead}
+        <tbody>
+          ${doneRows}
+        </tbody>
+      </table>
+    </details>
   ` : '';
 
-  container.innerHTML = runningTable + doneTable;
+  container.innerHTML = runningSection + doneSection;
 
   // Attach click handlers to reuse buttons
   container.querySelectorAll('.reuse-query-btn').forEach(btn => {
