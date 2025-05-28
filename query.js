@@ -554,6 +554,10 @@ function resetActive(){
 
 overlay.addEventListener('click',()=>{
   overlay.classList.remove('show');
+  if (mobileMenuDropdown && mobileMenuDropdown.classList.contains('show')) {
+    mobileMenuDropdown.classList.add('hidden');
+    mobileMenuDropdown.classList.remove('show');
+  }
   resetActive();
   conditionPanel.classList.remove('show');
   inputWrapper.classList.remove('show');
@@ -3178,6 +3182,11 @@ if (mobileMenuToggle && mobileMenuDropdown) {
   const toggleMobileMenu = () => {
     mobileMenuDropdown.classList.toggle('hidden');
     mobileMenuDropdown.classList.toggle('show');
+    if (mobileMenuDropdown.classList.contains('show')) {
+      overlay.classList.add('show');
+    } else {
+      overlay.classList.remove('show');
+    }
   };
 
   // Toggle overlay visibility when hamburger is clicked
@@ -3188,6 +3197,7 @@ if (mobileMenuToggle && mobileMenuDropdown) {
     if (e.target === mobileMenuDropdown) {
       mobileMenuDropdown.classList.add('hidden');
       mobileMenuDropdown.classList.remove('show');
+      overlay.classList.remove('show');
     }
   });
 
@@ -3196,6 +3206,7 @@ if (mobileMenuToggle && mobileMenuDropdown) {
     if (e.key === 'Escape' && mobileMenuDropdown.classList.contains('show')) {
       mobileMenuDropdown.classList.add('hidden');
       mobileMenuDropdown.classList.remove('show');
+      overlay.classList.remove('show');
     }
   });
   
@@ -3203,12 +3214,14 @@ if (mobileMenuToggle && mobileMenuDropdown) {
   document.getElementById('mobile-run-query')?.addEventListener('click', () => {
     mobileMenuDropdown.classList.add('hidden');
     mobileMenuDropdown.classList.remove('show');
+    overlay.classList.remove('show');
     document.getElementById('run-query-btn')?.click();
   });
 
   document.getElementById('mobile-download')?.addEventListener('click', () => {
     mobileMenuDropdown.classList.add('hidden');
     mobileMenuDropdown.classList.remove('show');
+    overlay.classList.remove('show');
     document.getElementById('download-btn')?.click();
   });
 
@@ -3222,6 +3235,7 @@ if (mobileMenuToggle && mobileMenuDropdown) {
     document.getElementById(btnId)?.addEventListener('click', () => {
       mobileMenuDropdown.classList.add('hidden');
       mobileMenuDropdown.classList.remove('show');
+      overlay.classList.remove('show');
       openModal(panelId);
     });
   });
