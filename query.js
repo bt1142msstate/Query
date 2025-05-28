@@ -3249,6 +3249,7 @@ document.querySelectorAll('.collapse-btn').forEach(btn => {
     if (!panel) return;
     // For modal close buttons, just close the modal (add 'hidden')
     panel.classList.add('hidden');
+    panel.classList.remove('show'); // for mobile menu dropdown
     overlay.classList.remove('show');
   });
 });
