@@ -199,16 +199,18 @@ input, textarea, select, [contenteditable] {
 }
 
 #mobile-menu-dropdown {
-  transform: translateY(-10px);
-  opacity: 0;
-  transition: transform 0.2s ease, opacity 0.2s ease;
-  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(12px);
+  overflow-y: auto;
+  z-index: var(--z-overlay);
 }
 
 #mobile-menu-dropdown.show {
-  transform: translateY(0);
-  opacity: 1;
-  pointer-events: auto;
+  display: flex;
 }
 
 #mobile-menu-dropdown div {
