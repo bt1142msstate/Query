@@ -221,6 +221,15 @@ input, textarea, select, [contenteditable] {
   transition: background-color 0.15s ease;
 }
 
+/* Ensure consistent sizing for mobile menu options */
+.mobile-menu-item {
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+}
+
 /* Responsive Header Controls */
 /* Note: CSS variables are not supported in media queries in all browsers, so we keep 900px but document the variable for future use in JS or preprocessors. */
 @media (max-width: 900px) {
