@@ -1016,6 +1016,20 @@ function showError(message, inputElements = [], duration = 3000) {
   return false; // Return false for easy return in validation functions
 }
 
+// Helper function to finalize actions after confirm button is clicked
+function finalizeConfirmAction() {
+  updateQueryJson();
+  // Clear specific inputs if they exist and were used
+  const condInput2 = document.getElementById('condition-input-2');
+  if (condInput2) condInput2.value = '';
+
+  const marcInput = document.getElementById('marc-field-input');
+  if (marcInput) marcInput.value = '';
+
+  overlay.click(); // This handles most UI reset including generic inputs, and calls safeRenderBubbles via resetActive
+  updateCategoryCounts(); // This is data-dependent and needs to be explicit
+}
+
 confirmBtn.addEventListener('click', e => {
   e.stopPropagation();
   const bubble = document.querySelector('.active-bubble');
@@ -1091,7 +1105,7 @@ confirmBtn.addEventListener('click', e => {
     document.querySelectorAll('#category-bar .category-btn').forEach(btn =>
       btn.classList.toggle('active', btn.dataset.category === 'Marc')
     );
-    updateQueryJson();
+    finalizeConfirmAction();
     resetActive();
     overlay.click();
     // Make sure to reset lock state when done
@@ -1219,7 +1233,7 @@ confirmBtn.addEventListener('click', e => {
     
         // Update the conditions list display
     renderConditionList(field);
-    updateQueryJson();
+    finalizeConfirmAction();
         
         // If the category is 'Selected', refresh the display
         if (currentCategory === 'Selected') {
@@ -1245,23 +1259,7 @@ confirmBtn.addEventListener('click', e => {
     }
   }
   
-  // Clear inputs for next use
-  conditionInput.value = '';
-  document.getElementById('condition-input-2').value = '';
-  
-  // Cleanup and reset UI state
-  isInputLocked = false;
-  inputBlockOverlay.style.pointerEvents = 'none';
-  inputBlockOverlay.style.display = 'none';
-  if (inputLockTimeout) clearTimeout(inputLockTimeout);
-  
-  // Close the overlay
-  overlay.click();
-  
-  // Force a bubbles re-render to ensure display is updated
-  safeRenderBubbles();
-  updateCategoryCounts();
-  overlay.classList.remove('bubble-active');
+  finalizeConfirmAction();
 });
 
 document.addEventListener('keydown',e=>{
@@ -2428,15 +2426,8 @@ confirmBtn.onclick = function(e) {
       }
     }
     
-    // Update JSON
-    updateQueryJson();
-    resetActive();
-    overlay.click();
-    // Make sure to reset lock state when done
-    isInputLocked = false;
-    inputBlockOverlay.style.pointerEvents = 'none';
-    inputBlockOverlay.style.display = 'none';
-    if (inputLockTimeout) clearTimeout(inputLockTimeout);
+    // Update JSON, reset UI, and manage locks via the helper
+    finalizeConfirmAction();
     return;
   } else {
     // Normal field handling
@@ -2980,6 +2971,60 @@ function loadQueryConfig(q) {
   updateQueryJson();
 }
 
+// Helper function to create HTML for a single query row
+function createQueriesTableRowHtml(q, viewIconSVG) {
+  // Use tooltip for columns
+  const columns = q.jsonConfig?.DesiredColumnOrder || [];
+  const columnsTooltip = formatColumnsTooltip(columns);
+  const columnsSummary = columns.length && columnsTooltip
+    ? `<span class="inline-flex items-center gap-1" data-tooltip="${columnsTooltip.replace(/"/g, '&quot;')}">
+          ${viewIconSVG}
+       </span>`
+    : '<span class="text-gray-400">None</span>';
+  // Use tooltip for filters
+  const filterGroups = q.jsonConfig?.FilterGroups || [];
+  const filterTooltip = formatFiltersTooltip(null, filterGroups);
+  const filtersSummary = filterGroups.length && filterTooltip
+    ? `<span class="inline-flex items-center gap-1" data-tooltip="${filterTooltip.replace(/"/g, '&quot;')}">
+          ${viewIconSVG}
+       </span>`
+    : '<span class="text-gray-400">None</span>';
+  // Stop button for running queries (no 'Running' label)
+  const stopBtn = q.running ? `
+    <button class="inline-flex items-center justify-center p-1 rounded-full bg-red-100 hover:bg-red-200 text-red-600" tabindex="-1" data-tooltip="Stop"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
+  ` : '';
+  // Reuse button for all queries (refresh/circular arrow icon)
+  const reuseBtn = `<button class="reuse-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" tabindex="-1" data-query-id="${q.id}" style="margin-left:4px;" data-tooltip="Reuse Query"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><path d=\"M23 4v6h-6M1 20v-6h6\"/><path d=\"M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15\"/></svg></button>`;
+  // Duration calculation
+  let duration = '—';
+  if (q.startTime && q.endTime) {
+    const start = new Date(q.startTime);
+    const end = new Date(q.endTime);
+    let seconds = Math.floor((end - start) / 1000);
+    if (seconds >= 60) {
+      const min = Math.floor(seconds / 60);
+      const sec = seconds % 60;
+      duration = `${min}m ${sec}s`;
+    } else {
+      duration = `${seconds}s`;
+    }
+  }
+  return `
+    <tr class="border-b hover:bg-blue-50 cursor-pointer" data-query-id="${q.id}">
+      <td class="px-4 py-2 text-xs">${columnsSummary}</td>
+      <td class="px-4 py-2 text-xs">${filtersSummary}</td>
+      <td class="px-4 py-2 font-mono text-xs text-gray-700">${q.id}</td>
+      <td class="px-4 py-2 text-center">
+        ${q.running ? stopBtn : '<span class="text-gray-500">Finished</span>'}
+      </td>
+      <td class="px-4 py-2 text-xs">${new Date(q.startTime).toLocaleString()}</td>
+      <td class="px-4 py-2 text-xs">${q.endTime ? new Date(q.endTime).toLocaleString() : '—'}</td>
+      <td class="px-4 py-2 text-xs text-center">${duration}</td>
+      <td class="px-4 py-2 text-xs text-center">${reuseBtn}</td>
+    </tr>
+  `;
+}
+
 function renderQueries(){
   const container = document.getElementById('queries-container');
   if(!container) return;
@@ -2987,110 +3032,9 @@ function renderQueries(){
   const viewIconSVG = `<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1.5 12s4-7 10.5-7 10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3.5"/></svg>`;
   const runningList = exampleQueries.filter(q => q.running);
   const doneList = exampleQueries.filter(q => !q.running);
-  const runningRows = runningList.map(q=>{
-    // Use tooltip for columns
-    const columns = q.jsonConfig?.DesiredColumnOrder || [];
-    const columnsTooltip = formatColumnsTooltip(columns);
-    const columnsSummary = columns.length && columnsTooltip
-      ? `<span class="inline-flex items-center gap-1" data-tooltip="${columnsTooltip.replace(/"/g, '&quot;')}">
-            ${viewIconSVG}
-         </span>`
-      : '<span class="text-gray-400">None</span>';
-    // Use tooltip for filters
-    const filterGroups = q.jsonConfig?.FilterGroups || [];
-    const filterTooltip = formatFiltersTooltip(null, filterGroups);
-    const filtersSummary = filterGroups.length && filterTooltip
-      ? `<span class="inline-flex items-center gap-1" data-tooltip="${filterTooltip.replace(/"/g, '&quot;')}">
-            ${viewIconSVG}
-         </span>`
-      : '<span class="text-gray-400">None</span>';
-    // Stop button for running queries (no 'Running' label)
-    const stopBtn = q.running ? `
-      <button class="inline-flex items-center justify-center p-1 rounded-full bg-red-100 hover:bg-red-200 text-red-600" tabindex="-1" data-tooltip="Stop"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
-    ` : '';
-    // Reuse button for all queries (refresh/circular arrow icon)
-    const reuseBtn = `<button class="reuse-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" tabindex="-1" data-query-id="${q.id}" style="margin-left:4px;" data-tooltip="Reuse Query"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><path d=\"M23 4v6h-6M1 20v-6h6\"/><path d=\"M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15\"/></svg></button>`;
-    // Duration calculation
-    let duration = '—';
-    if (q.startTime && q.endTime) {
-      const start = new Date(q.startTime);
-      const end = new Date(q.endTime);
-      let seconds = Math.floor((end - start) / 1000);
-      if (seconds >= 60) {
-        const min = Math.floor(seconds / 60);
-        const sec = seconds % 60;
-        duration = `${min}m ${sec}s`;
-      } else {
-        duration = `${seconds}s`;
-      }
-    }
-    return `
-      <tr class="border-b hover:bg-blue-50 cursor-pointer" data-query-id="${q.id}">
-        <td class="px-4 py-2 text-xs">${columnsSummary}</td>
-        <td class="px-4 py-2 text-xs">${filtersSummary}</td>
-        <td class="px-4 py-2 font-mono text-xs text-gray-700">${q.id}</td>
-        <td class="px-4 py-2 text-center">
-          ${q.running ? stopBtn : '<span class="text-gray-500">Finished</span>'}
-        </td>
-        <td class="px-4 py-2 text-xs">${new Date(q.startTime).toLocaleString()}</td>
-        <td class="px-4 py-2 text-xs">${q.endTime ? new Date(q.endTime).toLocaleString() : '—'}</td>
-        <td class="px-4 py-2 text-xs text-center">${duration}</td>
-        <td class="px-4 py-2 text-xs text-center">${reuseBtn}</td>
-      </tr>
-    `;
-  }).join('');
-
-  const doneRows = doneList.map(q=>{
-    const columns = q.jsonConfig?.DesiredColumnOrder || [];
-    const columnsTooltip = formatColumnsTooltip(columns);
-    const columnsSummary = columns.length && columnsTooltip
-      ? `<span class="inline-flex items-center gap-1" data-tooltip="${columnsTooltip.replace(/"/g, '&quot;')}">
-            ${viewIconSVG}
-         </span>`
-      : '<span class="text-gray-400">None</span>';
-
-    const filterGroups = q.jsonConfig?.FilterGroups || [];
-    const filterTooltip = formatFiltersTooltip(null, filterGroups);
-    const filtersSummary = filterGroups.length && filterTooltip
-      ? `<span class="inline-flex items-center gap-1" data-tooltip="${filterTooltip.replace(/"/g, '&quot;')}">
-            ${viewIconSVG}
-         </span>`
-      : '<span class="text-gray-400">None</span>';
-
-    const stopBtn = q.running ? `
-      <button class="inline-flex items-center justify-center p-1 rounded-full bg-red-100 hover:bg-red-200 text-red-600" tabindex="-1" data-tooltip="Stop"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
-    ` : '';
-
-    const reuseBtn = `<button class="reuse-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" tabindex="-1" data-query-id="${q.id}" style="margin-left:4px;" data-tooltip="Reuse Query"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><path d=\"M23 4v6h-6M1 20v-6h6\"/><path d=\"M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15\"/></svg></button>`;
-
-    let duration = '—';
-    if (q.startTime && q.endTime) {
-      const start = new Date(q.startTime);
-      const end = new Date(q.endTime);
-      let seconds = Math.floor((end - start) / 1000);
-      if (seconds >= 60) {
-        const min = Math.floor(seconds / 60);
-        const sec = seconds % 60;
-        duration = `${min}m ${sec}s`;
-      } else {
-        duration = `${seconds}s`;
-      }
-    }
-    return `
-      <tr class="border-b hover:bg-blue-50 cursor-pointer" data-query-id="${q.id}">
-        <td class="px-4 py-2 text-xs">${columnsSummary}</td>
-        <td class="px-4 py-2 text-xs">${filtersSummary}</td>
-        <td class="px-4 py-2 font-mono text-xs text-gray-700">${q.id}</td>
-        <td class="px-4 py-2 text-center">
-          ${q.running ? stopBtn : '<span class="text-gray-500">Finished</span>'}
-        </td>
-        <td class="px-4 py-2 text-xs">${new Date(q.startTime).toLocaleString()}</td>
-        <td class="px-4 py-2 text-xs">${q.endTime ? new Date(q.endTime).toLocaleString() : '—'}</td>
-        <td class="px-4 py-2 text-xs text-center">${duration}</td>
-        <td class="px-4 py-2 text-xs text-center">${reuseBtn}</td>
-      </tr>
-    `;
-  }).join('');
+  
+  const runningRows = runningList.map(q => createQueriesTableRowHtml(q, viewIconSVG)).join('');
+  const doneRows = doneList.map(q => createQueriesTableRowHtml(q, viewIconSVG)).join('');
 
   const tableHead = `
     <thead class="bg-blue-50">
@@ -3227,24 +3171,24 @@ const jsonPanel = document.getElementById('json-panel');
 const queriesPanel = document.getElementById('queries-panel');
 const toggleJsonBtn = document.getElementById('toggle-json');
 const toggleQueriesBtn = document.getElementById('toggle-queries');
-let currentPanel = 'json';          // JSON shown by default
-queriesPanel.style.display = 'none';// hide Queries initially
+// let currentPanel = 'json';          // JSON shown by default
+// queriesPanel.style.display = 'none';// hide Queries initially
 
-function showPanel(id){
-  jsonPanel.style.display    = id === 'json'    ? '' : 'none';
-  queriesPanel.style.display = id === 'queries' ? '' : 'none';
-  currentPanel = id;
-}
+// function showPanel(id){
+//   jsonPanel.style.display    = id === 'json'    ? '' : 'none';
+//   queriesPanel.style.display = id === 'queries' ? '' : 'none';
+//   currentPanel = id;
+// }
 
 /* ------------------------------------------------------------------
    Top-right panel toggle & collapse buttons
    ------------------------------------------------------------------*/
 
 // Click the JSON / Queries toggle buttons
-if (toggleJsonBtn && toggleQueriesBtn) {
-  toggleJsonBtn.addEventListener('click', () => showPanel('json'));
-  toggleQueriesBtn.addEventListener('click', () => showPanel('queries'));
-}
+// if (toggleJsonBtn && toggleQueriesBtn) {
+//   toggleJsonBtn.addEventListener('click', () => showPanel('json'));
+//   toggleQueriesBtn.addEventListener('click', () => showPanel('queries'));
+// }
 
 // Collapse buttons (little "-" in the panel headers)
 document.querySelectorAll('.collapse-btn').forEach(btn => {
@@ -3293,25 +3237,14 @@ if (mobileMenuToggle && mobileMenuDropdown) {
 }
 
 // Consolidated function to render both category bar and mobile selector
-function renderCategorySelectors(selectedCount, marcCount) {
+function renderCategorySelectors(categoryCounts) {
   const categoryBar = document.getElementById('category-bar');
   const mobileSelector = document.getElementById('mobile-category-selector');
-  
-  // Helper to get count for a category
-  function getCount(cat) {
-    if (cat === 'All') return fieldDefs.length;
-    if (cat === 'Selected') return selectedCount;
-    if (cat === 'Marc') return marcCount;
-    return fieldDefs.filter(d => {
-    const c = d.category;
-      return Array.isArray(c) ? c.includes(cat) : c === cat;
-  }).length;
-  }
 
   // Render desktop category bar
   if (categoryBar) {
       categoryBar.innerHTML = categories.map(cat => {
-      if (cat === 'Selected' && selectedCount === 0) return '';
+      if (cat === 'Selected' && categoryCounts.Selected === 0) return '';
       // Tooltip descriptions for each category
       let tooltip = '';
       switch (cat) {
@@ -3324,7 +3257,7 @@ function renderCategorySelectors(selectedCount, marcCount) {
         case 'Dates': tooltip = 'Fields representing dates'; break;
         default: tooltip = `Show fields in the ${cat} category`;
       }
-      return `<button data-category="${cat}" class="category-btn ${cat === currentCategory ? 'active' : ''}" data-tooltip="${tooltip}">${cat} (${getCount(cat)})</button>`;
+      return `<button data-category="${cat}" class="category-btn ${cat === currentCategory ? 'active' : ''}" data-tooltip="${tooltip}">${cat} (${categoryCounts[cat]})</button>`;
       }).join('');
     // Attach click handlers
     categoryBar.querySelectorAll('.category-btn').forEach(btn => {
@@ -3344,7 +3277,7 @@ function renderCategorySelectors(selectedCount, marcCount) {
     const currentValue = mobileSelector.value;
     mobileSelector.innerHTML = '';
     categories.forEach(cat => {
-      if (cat === 'Selected' && selectedCount === 0) return;
+      if (cat === 'Selected' && categoryCounts.Selected === 0) return;
       // Tooltip descriptions for each category
       let tooltip = '';
       switch (cat) {
@@ -3359,14 +3292,14 @@ function renderCategorySelectors(selectedCount, marcCount) {
       }
       const option = document.createElement('option');
       option.value = cat;
-      option.textContent = `${cat} (${getCount(cat)})`;
+      option.textContent = `${cat} (${categoryCounts[cat]})`;
       option.setAttribute('data-tooltip', tooltip);
       if (cat === currentValue) option.selected = true;
       mobileSelector.appendChild(option);
     });
     // If the current category doesn't exist or is Selected with count 0, select All
     if (!Array.from(mobileSelector.options).some(opt => opt.value === currentValue) ||
-        (currentValue === 'Selected' && selectedCount === 0)) {
+        (currentValue === 'Selected' && categoryCounts.Selected === 0)) {
       mobileSelector.value = 'All';
     }
   }
@@ -3374,21 +3307,31 @@ function renderCategorySelectors(selectedCount, marcCount) {
 
 // Replace all category bar/mobile selector update logic with the new function
 function updateCategoryCounts() {
-  const selectedCount = fieldDefs.filter(d => {
-    const fieldName = d.name;
-    return shouldFieldHavePurpleStyling(fieldName);
-  }).length;
-  const marcCount = fieldDefs.filter(d => {
-    const c = d.category;
-    return Array.isArray(c) ? c.includes('Marc') : c === 'Marc';
-  }).length;
-  renderCategorySelectors(selectedCount, marcCount);
+  const categoryCounts = {};
+  categories.forEach(cat => {
+    if (cat === 'All') {
+      categoryCounts.All = fieldDefs.length;
+    } else if (cat === 'Selected') {
+      categoryCounts.Selected = fieldDefs.filter(d => shouldFieldHavePurpleStyling(d.name)).length;
+    } else {
+      categoryCounts[cat] = fieldDefs.filter(d => {
+        const c = d.category;
+        return Array.isArray(c) ? c.includes(cat) : c === cat;
+      }).length;
+    }
+  });
+
+  renderCategorySelectors(categoryCounts);
+
   // If we're in the Selected category and the count is 0, switch to All
-  if (currentCategory === 'Selected' && selectedCount === 0) {
+  if (currentCategory === 'Selected' && categoryCounts.Selected === 0) {
     currentCategory = 'All';
     const allBtn = document.querySelector('#category-bar .category-btn[data-category="All"]');
     if (allBtn) {
       allBtn.classList.add('active');
+      // Also update the mobile selector to 'All'
+      const mobileSelector = document.getElementById('mobile-category-selector');
+      if (mobileSelector) mobileSelector.value = 'All';
     }
     scrollRow = 0;
     safeRenderBubbles();
