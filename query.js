@@ -559,12 +559,6 @@ overlay.addEventListener('click',()=>{ // Keep this, but simplify its body
   conditionPanel.classList.remove('show');
   inputWrapper.classList.remove('show');
   
-  // Always ensure input lock is cleared when overlay is clicked
-  isInputLocked = false;
-  inputBlockOverlay.style.pointerEvents = 'none';
-  inputBlockOverlay.style.display = 'none';
-  if (inputLockTimeout) clearTimeout(inputLockTimeout);
-  
   // Remove all .active from condition buttons
   const btns = conditionPanel.querySelectorAll('.condition-btn');
   btns.forEach(b=>b.classList.remove('active'));
