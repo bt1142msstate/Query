@@ -104,10 +104,14 @@ function closeModal(panelId) {
   const panel = document.getElementById(panelId);
   if (!panel) return;
   panel.classList.add('hidden');
+  panel.classList.remove('show'); // Ensure 'show' class is removed
   // If no other modal is open, hide overlay
   const anyOpen = MODAL_PANEL_IDS.some(id => {
+    // Don't count the panel we just closed
+    if (id === panelId) return false;
     const p = document.getElementById(id);
-    return p && !p.classList.contains('hidden');
+    // A panel is open if it's not hidden AND has the 'show' class
+    return p && !p.classList.contains('hidden') && p.classList.contains('show');
   });
   if (!document.querySelector('.active-bubble') && !anyOpen) {
     overlay.classList.remove('show');
@@ -552,13 +556,11 @@ function resetActive(){
   }, 0);
 }
 
-overlay.addEventListener('click',()=>{
-  overlay.classList.remove('show');
-  if (mobileMenuDropdown && mobileMenuDropdown.classList.contains('show')) {
-    mobileMenuDropdown.classList.add('hidden');
-    mobileMenuDropdown.classList.remove('show');
-  }
-  resetActive();
+overlay.addEventListener('click',()=>{ // Keep this, but simplify its body
+  closeAllModals(); // This will hide overlay and all panels with 'hidden' and remove 'show'
+  resetActive(); // Handles bubble animations and state
+
+  // Close non-modal UI elements (condition panel, input wrapper)
   conditionPanel.classList.remove('show');
   inputWrapper.classList.remove('show');
   
@@ -572,16 +574,19 @@ overlay.addEventListener('click',()=>{
   const btns = conditionPanel.querySelectorAll('.condition-btn');
   btns.forEach(b=>b.classList.remove('active'));
   conditionInput.value='';
+
   // Hide select if present
   const sel = document.getElementById('condition-select');
   if(sel) sel.style.display = 'none';
-  // Also hide JSON / Queries modals if they are open
+  // Also hide JSON / Queries modals if they are open (Handled by closeAllModals now)
+  /*
   ['json-panel','queries-panel','help-panel'].forEach(id=>{
     const p = document.getElementById(id);
     if(p && !p.classList.contains('hidden')){
       p.classList.add('hidden');
     }
   });
+  */
   // After closing overlay, re-enable bubble interaction
   setTimeout(() => safeRenderBubbles(), 0);
   overlay.classList.remove('bubble-active');
@@ -3755,6 +3760,7 @@ function openModal(panelId) {
   const panel = document.getElementById(panelId);
   if (!panel) return;
   panel.classList.remove('hidden');
+  panel.classList.add('show'); // Ensure 'show' class is added
   overlay.classList.add('show');
   // Focus first focusable element
   const focusable = getFocusableElements(panel);
@@ -3770,7 +3776,10 @@ function openModal(panelId) {
 function closeAllModals() {
   MODAL_PANEL_IDS.forEach(id => {
     const p = document.getElementById(id);
-    if (p) p.classList.add('hidden');
+    if (p) {
+      p.classList.add('hidden');
+      p.classList.remove('show'); // Ensure 'show' class is removed
+    }
   });
   overlay.classList.remove('show');
   // Accessibility: unhide main content
