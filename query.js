@@ -568,15 +568,7 @@ overlay.addEventListener('click',()=>{ // Keep this, but simplify its body
   // Hide select if present
   const sel = document.getElementById('condition-select');
   if(sel) sel.style.display = 'none';
-  // Also hide JSON / Queries modals if they are open (Handled by closeAllModals now)
-  /*
-  ['json-panel','queries-panel','help-panel'].forEach(id=>{
-    const p = document.getElementById(id);
-    if(p && !p.classList.contains('hidden')){
-      p.classList.add('hidden');
-    }
-  });
-  */
+
   // After closing overlay, re-enable bubble interaction
   setTimeout(() => safeRenderBubbles(), 0);
   overlay.classList.remove('bubble-active');
@@ -1024,231 +1016,186 @@ confirmBtn.addEventListener('click', e => {
   e.stopPropagation();
   const bubble = document.querySelector('.active-bubble');
   if (!bubble) return;
+
   const field = bubble.dataset.filterFor || bubble.textContent.trim();
   const cond = document.querySelector('.condition-btn.active')?.dataset.cond;
   const val = conditionInput.value.trim();
   const val2 = document.getElementById('condition-input-2').value.trim();
   const sel = document.getElementById('condition-select');
   const selContainer = document.getElementById('condition-select-container');
-
-  // Special handling for Marc creator bubble
   const fieldDef = fieldDefs.find(f => f.name === field);
   const isSpecialMarc = fieldDef && fieldDef.isSpecialMarc;
+
   if (isSpecialMarc) {
     const marcInput = document.getElementById('marc-field-input');
     const marcNumbersRaw = marcInput?.value?.trim();
     if (!marcNumbersRaw) {
       return showError('Please enter at least one Marc field number', [marcInput]);
     }
-    // Split on comma, trim, and filter valid 1-3 digit numbers
     const marcNumbers = marcNumbersRaw.split(',').map(s => s.trim()).filter(s => /^\d{1,3}$/.test(s));
     if (marcNumbers.length === 0) {
       return showError('Please enter valid Marc field numbers (1-3 digits, comma separated)', [marcInput]);
     }
     let firstMarcField = null;
     marcNumbers.forEach((marcNumber, idx) => {
-    const dynamicMarcField = `Marc${marcNumber}`;
-    if (dynamicMarcField === 'Marc') return;
-    if (!fieldDefs.some(f => f.name === dynamicMarcField)) {
-      const newDef = {
-        name: dynamicMarcField,
-        type: 'string',
-        category: 'Marc',
-        desc: `MARC ${marcNumber} field`
-      };
-      fieldDefs.push(newDef);
-      filteredDefs.push({ ...newDef });
-    }
-      // Ensure the new Marc field is shown as a column in the table
+      const dynamicMarcField = `Marc${marcNumber}`;
+      if (dynamicMarcField === 'Marc') return; 
+      if (!fieldDefs.some(f => f.name === dynamicMarcField)) {
+        const newDef = {
+          name: dynamicMarcField,
+          type: 'string',
+          category: 'Marc',
+          desc: `MARC ${marcNumber} field`
+        };
+        fieldDefs.push(newDef);
+        filteredDefs.push({ ...newDef });
+      }
       if (!displayedFields.includes(dynamicMarcField)) {
         displayedFields.push(dynamicMarcField);
         showExampleTable(displayedFields);
       }
-      // Only add a filter to the first Marc field if both a condition and value are supplied
       if (idx === 0 && cond && val) {
-    if (!activeFilters[dynamicMarcField]) {
-      activeFilters[dynamicMarcField] = { logical: 'And', filters: [] };
-    }
-    const alreadyExists = activeFilters[dynamicMarcField].filters.some(f => f.cond === cond && f.val === val);
-    if (!alreadyExists) {
-      activeFilters[dynamicMarcField].filters.push({ cond, val });
-    }
+        if (!activeFilters[dynamicMarcField]) {
+          activeFilters[dynamicMarcField] = { logical: 'And', filters: [] };
+        }
+        const alreadyExists = activeFilters[dynamicMarcField].filters.some(f => f.cond === cond && f.val === val);
+        if (!alreadyExists) {
+          activeFilters[dynamicMarcField].filters.push({ cond, val });
+        }
       }
       if (!firstMarcField) firstMarcField = dynamicMarcField;
-    // Manual bubble creation - create bubble if it doesn't exist
-    const bubblesList = document.getElementById('bubble-list');
-    if (bubblesList) {
-      const existingBubble = Array.from(bubblesList.children).find(b => b.textContent.trim() === dynamicMarcField);
-      if (!existingBubble) {
-        const div = document.createElement('div');
-        div.className = 'bubble';
-        div.setAttribute('draggable', dynamicMarcField === 'Marc' ? 'false' : 'true');
-        div.tabIndex = 0;
-        div.textContent = dynamicMarcField;
-        div.dataset.type = 'string';
-        bubblesList.appendChild(div);
+      const bubblesList = document.getElementById('bubble-list');
+      if (bubblesList) {
+        const existingBubble = Array.from(bubblesList.children).find(b => b.textContent.trim() === dynamicMarcField);
+        if (!existingBubble) {
+          const div = document.createElement('div');
+          div.className = 'bubble';
+          div.setAttribute('draggable', dynamicMarcField === 'Marc' ? 'false' : 'true');
+          div.tabIndex = 0;
+          div.textContent = dynamicMarcField;
+          div.dataset.type = 'string';
+          bubblesList.appendChild(div);
+        }
       }
-    }
     });
     if (activeFilters['Marc']) delete activeFilters['Marc'];
     currentCategory = 'Marc';
     document.querySelectorAll('#category-bar .category-btn').forEach(btn =>
       btn.classList.toggle('active', btn.dataset.category === 'Marc')
     );
-    finalizeConfirmAction();
-    resetActive();
-    overlay.click();
-    // Make sure to reset lock state when done
-    isInputLocked = false;
-    inputBlockOverlay.style.pointerEvents = 'none';
-    inputBlockOverlay.style.display = 'none';
-    if (inputLockTimeout) clearTimeout(inputLockTimeout);
-    return;
-  }
-
-  // --- Normal (non-Marc) field logic below ---
-  // Check if this is a multiSelect field
-  const isMultiSelect = fieldDef && fieldDef.multiSelect;
-  
-  // Validate condition input
-  if (cond && cond !== 'display') {
-    const tintInputs = [conditionInput, document.getElementById('condition-input-2')];
-    
-    if (cond === 'between' && (val === '' || val2 === '')) {
-      showError('Please enter both values', tintInputs);
-      return;
-    }
-    
-    if (cond !== 'between') {
-      const isTextInputVisible = conditionInput.style.display !== 'none';
-      const isTextInputEmpty = val === '';
-      const isSelectVisible = sel && sel.style.display !== 'none';
-      const isSelectEmpty = isSelectVisible && sel.value === '';
-      const isContainerVisible = selContainer && selContainer.style.display !== 'none';
-      const isContainerEmpty = isContainerVisible && selContainer.getSelectedValues().length === 0;
-      
-      if ((isTextInputVisible && isTextInputEmpty) ||
-        (isSelectVisible && isSelectEmpty) ||
-        (isContainerVisible && isContainerEmpty)) {
-        showError('Please enter a value', tintInputs);
-      return;
-    }
-  }
-  }
-  
-  // Validate between values - ensure start is before end
-  if (cond === 'between') {
-    const type = bubble.dataset.type || 'string';
-    let a = val, b = val2;
-    if (type === 'number' || type === 'money') {
-      a = parseFloat(a); b = parseFloat(b);
-    } else if (type === 'date') {
-      a = new Date(a).getTime(); b = new Date(b).getTime();
-    }
-    if (a === b) {
-      showError('Between values must be different', [conditionInput, document.getElementById('condition-input-2')]);
-      return;
-    }
-    // If start > end, swap them
-    if (a > b) {
-      conditionInput.value = val2;
-      document.getElementById('condition-input-2').value = val;
-      val = conditionInput.value.trim();
-      val2 = document.getElementById('condition-input-2').value.trim();
-    }
-  }
-  
-  // Filter application
-  if (cond && cond !== 'display') {
-    try {
-      if (!activeFilters[field]) {
-        activeFilters[field] = { logical: 'And', filters: [] };
-      }
-      
-      // Determine which type of input is visible
-  const isTextInputVisible = conditionInput.style.display !== 'none';
-  const isSelectVisible = sel && sel.style.display !== 'none';
-  const isContainerVisible = selContainer && selContainer.style.display !== 'none';
-  
-      // Get the value to apply
-      let filterValue = val;
-      if (cond === 'between') {
-        filterValue = `${val}|${val2}`;
-      } else if (isContainerVisible && selContainer) {
-        filterValue = selContainer.getSelectedValues().join(',');
-      } else if (isSelectVisible && sel) {
-    if (sel.multiple) {
-          filterValue = Array.from(sel.selectedOptions).map(o => o.value).join(',');
-    } else {
-          filterValue = sel.value;
-        }
-      }
-      
-      // Check for logical contradictions
-      const fieldType = bubble.dataset.type || 'string';
-      const newFilterObj = { cond, val: filterValue };
-      const existingSet = activeFilters[field];
-      const conflictMsg = getContradictionMessage(existingSet, newFilterObj, fieldType, field);
-      if (conflictMsg) {
-        showError(conflictMsg, [conditionInput, document.getElementById('condition-input-2')]);
+  } else {
+    const isMultiSelect = fieldDef && fieldDef.multiSelect;
+    if (cond && cond !== 'display') {
+      const tintInputs = [conditionInput, document.getElementById('condition-input-2')];
+      if (cond === 'between' && (val === '' || val2 === '')) {
+        showError('Please enter both values', tintInputs);
         return;
       }
-      
-      // Add the filter if it's not empty
-      if (filterValue !== '') {
-        console.log(`Applying filter for ${field}: ${cond} ${filterValue}`);
-        
-        // For multi-select equals, merge with existing values
-  if (isMultiSelect && cond === 'equals') {
-    const existingEqualsIdx = activeFilters[field].filters.findIndex(f => f.cond === 'equals');
-    if (existingEqualsIdx !== -1) {
-      const existingVals = activeFilters[field].filters[existingEqualsIdx].val.split(',');
-            const newVals = filterValue.split(',');
-            const uniqueVals = [...new Set([...existingVals, ...newVals])];
-            activeFilters[field].filters[existingEqualsIdx].val = uniqueVals.join(',');
-            console.log(`Updated multiselect filter for ${field} with values: ${uniqueVals.join(',')}`);
+      if (cond !== 'between') {
+        const isTextInputVisible = conditionInput.style.display !== 'none';
+        const isTextInputEmpty = val === '';
+        const isSelectVisible = sel && sel.style.display !== 'none';
+        const isSelectEmpty = isSelectVisible && sel.value === '';
+        const isContainerVisible = selContainer && selContainer.style.display !== 'none';
+        const isContainerEmpty = isContainerVisible && selContainer.getSelectedValues().length === 0;
+        if ((isTextInputVisible && isTextInputEmpty) ||
+          (isSelectVisible && isSelectEmpty) ||
+          (isContainerVisible && isContainerEmpty)) {
+          showError('Please enter a value', tintInputs);
+          return;
+        }
+      }
+    }
+    if (cond === 'between') {
+      const type = bubble.dataset.type || 'string';
+      let a = val, b = val2;
+      if (type === 'number' || type === 'money') {
+        a = parseFloat(a); b = parseFloat(b);
+      } else if (type === 'date') {
+        a = new Date(a).getTime(); b = new Date(b).getTime();
+      }
+      if (a === b) {
+        showError('Between values must be different', [conditionInput, document.getElementById('condition-input-2')]);
+        return;
+      }
+      if (a > b) {
+        conditionInput.value = val2;
+        document.getElementById('condition-input-2').value = val;
+        val = conditionInput.value.trim();
+        val2 = document.getElementById('condition-input-2').value.trim();
+      }
+    }
+    if (cond && cond !== 'display') {
+      try {
+        if (!activeFilters[field]) {
+          activeFilters[field] = { logical: 'And', filters: [] };
+        }
+        const isTextInputVisible = conditionInput.style.display !== 'none';
+        const isSelectVisible = sel && sel.style.display !== 'none';
+        const isContainerVisible = selContainer && selContainer.style.display !== 'none';
+        let filterValue = val;
+        if (cond === 'between') {
+          filterValue = `${val}|${val2}`;
+        } else if (isContainerVisible && selContainer) {
+          filterValue = selContainer.getSelectedValues().join(',');
+        } else if (isSelectVisible && sel) {
+          if (sel.multiple) {
+            filterValue = Array.from(sel.selectedOptions).map(o => o.value).join(',');
+          } else {
+            filterValue = sel.value;
+          }
+        }
+        const fieldType = bubble.dataset.type || 'string';
+        const newFilterObj = { cond, val: filterValue };
+        const existingSet = activeFilters[field];
+        const conflictMsg = getContradictionMessage(existingSet, newFilterObj, fieldType, field);
+        if (conflictMsg) {
+          showError(conflictMsg, [conditionInput, document.getElementById('condition-input-2')]);
+          return;
+        }
+        if (filterValue !== '') {
+          console.log(`Applying filter for ${field}: ${cond} ${filterValue}`);
+          if (isMultiSelect && cond === 'equals') {
+            const existingEqualsIdx = activeFilters[field].filters.findIndex(f => f.cond === 'equals');
+            if (existingEqualsIdx !== -1) {
+              const existingVals = activeFilters[field].filters[existingEqualsIdx].val.split(',');
+              const newVals = filterValue.split(',');
+              const uniqueVals = [...new Set([...existingVals, ...newVals])];
+              activeFilters[field].filters[existingEqualsIdx].val = uniqueVals.join(',');
+              console.log(`Updated multiselect filter for ${field} with values: ${uniqueVals.join(',')}`);
+            } else {
+              activeFilters[field].filters.push({ cond, val: filterValue });
+            }
           } else {
             activeFilters[field].filters.push({ cond, val: filterValue });
           }
-    } else {
-          activeFilters[field].filters.push({ cond, val: filterValue });
+          document.querySelectorAll('.bubble').forEach(b => {
+            if (b.textContent.trim() === field) {
+              applyCorrectBubbleStyling(b);
+            }
+          });
+          renderConditionList(field);
+          if (currentCategory === 'Selected') {
+            safeRenderBubbles();
+          }
         }
-        
-        // Update the field styling in all bubbles for this field
-    document.querySelectorAll('.bubble').forEach(b => {
-      if (b.textContent.trim() === field) {
-        applyCorrectBubbleStyling(b);
+      } catch (error) {
+        console.error('Error applying filter:', error);
+        showError('Error applying filter: ' + error.message, []);
+        return;
       }
-    });
-    
-        // Update the conditions list display
-    renderConditionList(field);
-    finalizeConfirmAction();
-        
-        // If the category is 'Selected', refresh the display
-        if (currentCategory === 'Selected') {
-          safeRenderBubbles();
-        }
+    }
+    if (cond === 'display' || cond === 'show' || cond === 'hide') {
+      if (cond === 'show' && !displayedFields.includes(field)) {
+        displayedFields.push(field);
+        showExampleTable(displayedFields);
+      } else if ((cond === 'hide' || cond === 'display') && displayedFields.includes(field)) {
+        const idx = displayedFields.indexOf(field);
+        displayedFields.splice(idx, 1);
+        showExampleTable(displayedFields);
       }
-    } catch (error) {
-      console.error('Error applying filter:', error);
-      showError('Error applying filter: ' + error.message, []);
-      return;
     }
   }
-  
-  // Handle display option (Show/Hide column)
-  if (cond === 'display' || cond === 'show' || cond === 'hide') {
-    if (cond === 'show' && !displayedFields.includes(field)) {
-      displayedFields.push(field);
-      showExampleTable(displayedFields);
-    } else if ((cond === 'hide' || cond === 'display') && displayedFields.includes(field)) {
-      const idx = displayedFields.indexOf(field);
-      displayedFields.splice(idx, 1);
-      showExampleTable(displayedFields);
-    }
-  }
-  
   finalizeConfirmAction();
 });
 
@@ -2304,127 +2251,6 @@ function marcConditionBtnHandler(e) {
   positionInputWrapper();
 }
 
-// Original confirm button handler to handle Marc fields
-const originalConfirmBtnClick = confirmBtn.onclick;
-confirmBtn.onclick = function(e) {
-  e.stopPropagation();
-  const bubble = document.querySelector('.active-bubble');
-  if (!bubble) return;
-  
-  const field = bubble.dataset.filterFor || bubble.textContent.trim();
-  const fieldDef = fieldDefs.find(f => f.name === field);
-  const isSpecialMarc = fieldDef && fieldDef.isSpecialMarc;
-  
-  if (isSpecialMarc) {
-    // Special handling for Marc fields
-    const marcInput = document.getElementById('marc-field-input');
-    const marcNumber = marcInput?.value?.trim();
-    
-    if (!marcNumber || !/^\d{1,3}$/.test(marcNumber)) {
-      // Show error if Marc number is invalid
-      const errorLabel = document.getElementById('filter-error');
-      if (errorLabel) {
-        errorLabel.textContent = 'Please enter a valid Marc field number';
-        errorLabel.style.display = 'block';
-        setTimeout(() => { errorLabel.style.display = 'none'; }, 3000);
-      }
-      return;
-    }
-    
-    const cond = document.querySelector('.condition-btn.active')?.dataset.cond;
-    if (!cond) return;
-    
-    const val = conditionInput.value.trim();
-    if (!val) {
-      // Show error if no filter value
-      const errorLabel = document.getElementById('filter-error');
-      if (errorLabel) {
-        errorLabel.textContent = 'Please enter a filter value';
-        errorLabel.style.display = 'block';
-        setTimeout(() => { errorLabel.style.display = 'none'; }, 3000);
-      }
-      return;
-    }
-    
-    // Create a dynamic Marc field
-    const dynamicMarcField = `Marc${marcNumber}`;
-    
-    // Add field definition if it doesn't exist
-    let fieldExists = fieldDefs.some(f => f.name === dynamicMarcField);
-    if (!fieldExists) {
-      fieldDefs.push({
-        name: dynamicMarcField,
-        type: "string",
-        category: "Marc",
-        desc: `MARC ${marcNumber} field`
-      });
-      
-      // Make sure it's in filtered definitions too
-      filteredDefs.push({
-        name: dynamicMarcField,
-        type: "string",
-        category: "Marc",
-        desc: `MARC ${marcNumber} field`
-      });
-      
-      // Automatically add the new field as a column in the table
-      if (!displayedFields.includes(dynamicMarcField)) {
-        displayedFields.push(dynamicMarcField);
-        // Update the table to show the new column
-        showExampleTable(displayedFields);
-      }
-    }
-    
-    // Add the filter to the new field (not the base Marc)
-    if (!activeFilters[dynamicMarcField]) {
-      activeFilters[dynamicMarcField] = { logical: 'And', filters: [] };
-    }
-    const alreadyExists = activeFilters[dynamicMarcField].filters.some(f => f.cond === cond && f.val === val);
-    if (!alreadyExists) {
-      activeFilters[dynamicMarcField].filters.push({ cond, val });
-    }
-    
-    // Ensure the field is displayed in the table (even if it already existed)
-    if (!displayedFields.includes(dynamicMarcField)) {
-      displayedFields.push(dynamicMarcField);
-      showExampleTable(displayedFields);
-    }
-    
-    // Only switch to Marc category if we're not in a category that already shows Marc fields
-    // or if this is the first Marc field being created
-    const marcFieldsExist = fieldDefs.some(f => f.name.startsWith('Marc') && f.name !== 'Marc');
-    const isInMarcVisibleCategory = currentCategory === 'Marc' || currentCategory === 'All' || currentCategory === 'Selected';
-    if (!isInMarcVisibleCategory || !marcFieldsExist) {
-      currentCategory = 'Marc';
-      document.querySelectorAll('#category-bar .category-btn').forEach(btn =>
-        btn.classList.toggle('active', btn.dataset.category === currentCategory)
-      );
-    }
-    
-    // Manual bubble creation - create bubble if it doesn't exist
-    const bubblesList = document.getElementById('bubble-list');
-    if (bubblesList) {
-      const existingBubble = Array.from(bubblesList.children).find(b => b.textContent.trim() === dynamicMarcField);
-      if (!existingBubble) {
-        const div = document.createElement('div');
-        div.className = 'bubble';
-        div.setAttribute('draggable', dynamicMarcField === 'Marc' ? 'false' : 'true');
-        div.tabIndex = 0;
-        div.textContent = dynamicMarcField;
-        div.dataset.type = 'string';
-        bubblesList.appendChild(div);
-      }
-    }
-    
-    // Update JSON, reset UI, and manage locks via the helper
-    finalizeConfirmAction();
-    return;
-  } else {
-    // Normal field handling
-    originalConfirmBtnClick.call(this, e);
-  }
-};
-
 // Replace search input listener to filter all fieldDefs, not just visible bubbles
 queryInput.addEventListener('input', () => {
   // Only switch to "All" category when searching if no bubble is active and no overlay is shown
@@ -3161,24 +2987,6 @@ const jsonPanel = document.getElementById('json-panel');
 const queriesPanel = document.getElementById('queries-panel');
 const toggleJsonBtn = document.getElementById('toggle-json');
 const toggleQueriesBtn = document.getElementById('toggle-queries');
-// let currentPanel = 'json';          // JSON shown by default
-// queriesPanel.style.display = 'none';// hide Queries initially
-
-// function showPanel(id){
-//   jsonPanel.style.display    = id === 'json'    ? '' : 'none';
-//   queriesPanel.style.display = id === 'queries' ? '' : 'none';
-//   currentPanel = id;
-// }
-
-/* ------------------------------------------------------------------
-   Top-right panel toggle & collapse buttons
-   ------------------------------------------------------------------*/
-
-// Click the JSON / Queries toggle buttons
-// if (toggleJsonBtn && toggleQueriesBtn) {
-//   toggleJsonBtn.addEventListener('click', () => showPanel('json'));
-//   toggleQueriesBtn.addEventListener('click', () => showPanel('queries'));
-// }
 
 // Collapse buttons (little "-" in the panel headers)
 document.querySelectorAll('.collapse-btn').forEach(btn => {
