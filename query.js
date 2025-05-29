@@ -118,16 +118,6 @@ function closeModal(panelId) {
   }
 }
 
-// Escape key closes modals
-window.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    // Only close if a modal is open
-    if (overlay.classList.contains('show')) {
-      closeAllModals();
-    }
-  }
-});
-
 // Consolidated desktop modal toggles
 const panelToggles = {
   'toggle-json': 'json-panel',
