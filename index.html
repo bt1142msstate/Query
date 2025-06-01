@@ -189,7 +189,19 @@
           class="ml-3 text-red-600 text-sm font-semibold"></span>
   </div>
   <div class="max-w-5xl mx-auto">
-    <div class="overflow-x-auto shadow rounded-lg mb-6 relative max-w-[50vw] mx-auto" style="background: #fff;">
+    <!-- Editable Table Name Header -->
+    <div class="mb-4 text-center">
+      <input 
+        type="text" 
+        id="table-name-input"
+        placeholder="Enter table name..."
+        value="Query Results"
+        class="text-xl font-semibold bg-transparent border-none text-center focus:outline-none focus:bg-white focus:px-3 focus:py-1 focus:rounded-lg focus:shadow-md transition-all duration-200 text-gray-800 min-w-0 max-w-md"
+        style="width: auto; min-width: 200px;"
+      />
+    </div>
+    
+    <div class="overflow-x-auto shadow rounded-lg mb-6 relative max-w-[50vw] mx-auto" style="background: #fff; height: 400px;">
       <table id="example-table" class="min-w-full divide-y divide-gray-200 bg-white">
         <thead></thead>
         <tbody></tbody>
@@ -362,5 +374,6 @@
       </div>
     </div><!-- end templates-panel -->
   </div>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 <script src="query.js"></script>
 </body>

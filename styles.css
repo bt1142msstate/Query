@@ -1448,4 +1448,75 @@ th:hover .th-trash {
   max-width: 100%;
   white-space: nowrap;
   padding-right: 32px; /* Reserve space for trash icon */
+}
+
+/* ==========================================
+   14. TABLE NAME INPUT STYLING
+   ========================================== */
+
+#table-name-input {
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border-radius: 0 0 12px 12px;
+  padding: 8px 16px;
+  margin: 0 auto;
+  display: block;
+  text-align: center;
+  font-weight: 600;
+  color: #374151;
+  background: white;
+  border: 2px solid rgba(59, 130, 246, 0.2);
+  border-top: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  line-height: 1.2;
+  width: auto;
+  min-width: 200px;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+#table-name-input:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+#table-name-input:focus {
+  background: white !important;
+  border-color: #3b82f6 !important;
+  border-top: none !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  cursor: text;
+  transform: translateY(-2px);
+}
+
+#table-name-input::placeholder {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+/* Custom scrollbar for the input */
+#table-name-input::-webkit-scrollbar {
+  height: 4px;
+}
+
+#table-name-input::-webkit-scrollbar-track {
+  background: rgba(156, 163, 175, 0.2);
+  border-radius: 2px;
+}
+
+#table-name-input::-webkit-scrollbar-thumb {
+  background: rgba(107, 114, 128, 0.6);
+  border-radius: 2px;
+}
+
+#table-name-input::-webkit-scrollbar-thumb:hover {
+  background: rgba(75, 85, 99, 0.8);
+}
+
+/* Ensure the input doesn't interfere with the overall layout */
+#table-name-input:focus {
+  z-index: 10;
+  position: relative;
 } 
