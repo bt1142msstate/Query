@@ -291,7 +291,7 @@ input, textarea, select, [contenteditable] {
 
 .modal-panel > h2 {
   margin: 0;
-  border-radius: var(--border-radius-xl) var(--border-radius-xl) 0 0;
+  border-radius: 0;
 }
 
 #copy-json-btn.copied svg {
