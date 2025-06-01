@@ -4430,7 +4430,6 @@ function renderVirtualTable() {
       td.dataset.colIndex = colIndex;
       
       const cellValue = rowData[field] || '—';
-      td.textContent = cellValue;
       
       // Apply the same fixed width as the header
       const width = calculatedColumnWidths[field] || 150;
@@ -4438,31 +4437,46 @@ function renderVirtualTable() {
       td.style.minWidth = `${width}px`;
       td.style.maxWidth = `${width}px`;
       
-      // Always prevent browser tooltips
-      td.removeAttribute('title');
-      td.title = '';
-      
-      // Add event listeners to prevent any browser tooltip behavior
-      td.addEventListener('mouseenter', function(e) {
-        // Remove any title attribute to prevent browser tooltips
-        this.removeAttribute('title');
-        this.title = '';
-      });
-      
-      // Check if content would be visually truncated based on column width
+      // Check if content would be visually truncated and handle it manually
       if (typeof cellValue === 'string' && cellValue.length > 0 && cellValue !== '—') {
         // Create a temporary canvas to measure text width
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         ctx.font = '14px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto';
         
-        const textWidth = ctx.measureText(cellValue).width;
         const availableWidth = width - 48; // Subtract padding (24px left + 24px right)
+        const fullTextWidth = ctx.measureText(cellValue).width;
         
-        // Add tooltip if text would be truncated
-        if (textWidth > availableWidth) {
+        // If text is too wide, truncate it manually and add tooltip
+        if (fullTextWidth > availableWidth) {
+          // Binary search to find maximum characters that fit
+          let left = 0;
+          let right = cellValue.length;
+          let maxFitChars = 0;
+          
+          while (left <= right) {
+            const mid = Math.floor((left + right) / 2);
+            const testText = cellValue.substring(0, mid) + '...';
+            const testWidth = ctx.measureText(testText).width;
+            
+            if (testWidth <= availableWidth) {
+              maxFitChars = mid;
+              left = mid + 1;
+            } else {
+              right = mid - 1;
+            }
+          }
+          
+          // Set truncated text with ellipsis
+          const truncatedText = cellValue.substring(0, maxFitChars) + '...';
+          td.textContent = truncatedText;
           td.setAttribute('data-tooltip', cellValue);
+        } else {
+          // Text fits, no truncation needed
+          td.textContent = cellValue;
         }
+      } else {
+        td.textContent = cellValue;
       }
       
       tr.appendChild(td);
