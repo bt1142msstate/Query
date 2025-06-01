@@ -2832,6 +2832,7 @@ updateQueryJson();
 const exampleQueries = [
   {
     id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+    name: 'Huxley Brave Works',
     running: false,
     jsonConfig: {
       DesiredColumnOrder: ["Title","Author","Publication Date"],
@@ -2850,6 +2851,7 @@ const exampleQueries = [
   },
   {
     id: '9f8b7a6c-1234-4d56-a789-0123456789ab',
+    name: 'TRLS-A Location Items',
     running: true,
     jsonConfig: {
       DesiredColumnOrder: ["Title","Call Number","Home Location"],
@@ -2867,6 +2869,7 @@ const exampleQueries = [
   },
   {
     id: 'b2c3d479-58cc-4372-a567-0e02f47ac10b',
+    name: 'Expensive Books',
     running: false,
     jsonConfig: {
       DesiredColumnOrder: ["Barcode","Item Type","Price"],
@@ -2885,6 +2888,7 @@ const exampleQueries = [
   },
   {
     id: 'c3d479f4-7ac1-0b58-cc43-72a5670e02b2',
+    name: 'MLTN-A 2023 Items',
     running: false,
     jsonConfig: {
       DesiredColumnOrder: ["Library","Catalog Key","Item Creation Date"],
@@ -2957,8 +2961,8 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
   const stopBtn = q.running ? `
     <button class="inline-flex items-center justify-center p-1 rounded-full bg-red-100 hover:bg-red-200 text-red-600" tabindex="-1" data-tooltip="Stop"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
   ` : '';
-  // Reuse button for all queries (refresh/circular arrow icon)
-  const reuseBtn = `<button class="reuse-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" tabindex="-1" data-query-id="${q.id}" style="margin-left:4px;" data-tooltip="Reuse Query"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><path d=\"M23 4v6h-6M1 20v-6h6\"/><path d=\"M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15\"/></svg></button>`;
+  // Load button only for completed queries (download icon)
+  const loadBtn = !q.running ? `<button class="load-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" tabindex="-1" data-query-id="${q.id}" style="margin-left:4px;" data-tooltip="Load Query"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>` : '';
   // Duration calculation
   let duration = '—';
   if (q.startTime && q.endTime) {
@@ -2973,20 +2977,34 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
       duration = `${seconds}s`;
     }
   }
-  return `
-    <tr class="border-b hover:bg-blue-50 cursor-pointer" data-query-id="${q.id}">
-      <td class="px-4 py-2 text-xs">${columnsSummary}</td>
-      <td class="px-4 py-2 text-xs">${filtersSummary}</td>
-      <td class="px-4 py-2 font-mono text-xs text-gray-700">${q.id}</td>
-      <td class="px-4 py-2 text-center">
-        ${q.running ? stopBtn : '<span class="text-gray-500">Finished</span>'}
-      </td>
-      <td class="px-4 py-2 text-xs">${new Date(q.startTime).toLocaleString()}</td>
-      <td class="px-4 py-2 text-xs">${q.endTime ? new Date(q.endTime).toLocaleString() : '—'}</td>
-      <td class="px-4 py-2 text-xs text-center">${duration}</td>
-      <td class="px-4 py-2 text-xs text-center">${reuseBtn}</td>
-    </tr>
-  `;
+  
+  // Different row structure for running vs completed queries
+  if (q.running) {
+    return `
+      <tr class="border-b hover:bg-blue-50 cursor-pointer" data-query-id="${q.id}">
+        <td class="px-4 py-2 text-xs text-center font-mono">${q.name || q.id}</td>
+        <td class="px-4 py-2 text-xs text-center">${columnsSummary}</td>
+        <td class="px-4 py-2 text-xs text-center">${filtersSummary}</td>
+        <td class="px-4 py-2 text-center">${stopBtn}</td>
+        <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
+      </tr>
+    `;
+  } else {
+    return `
+      <tr class="border-b hover:bg-blue-50 cursor-pointer" data-query-id="${q.id}">
+        <td class="px-4 py-2 text-xs text-center font-mono">${q.name || q.id}</td>
+        <td class="px-4 py-2 text-xs text-center">${columnsSummary}</td>
+        <td class="px-4 py-2 text-xs text-center">${filtersSummary}</td>
+        <td class="px-4 py-2 text-center">
+          <span class="text-gray-500">Finished</span>
+        </td>
+        <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
+        <td class="px-4 py-2 text-xs text-center">${q.endTime ? new Date(q.endTime).toLocaleString() : '—'}</td>
+        <td class="px-4 py-2 text-xs text-center">${duration}</td>
+        <td class="px-4 py-2 text-xs text-center">${loadBtn}</td>
+      </tr>
+    `;
+  }
 }
 
 function renderQueries(){
@@ -3000,19 +3018,32 @@ function renderQueries(){
   const runningRows = runningList.map(q => createQueriesTableRowHtml(q, viewIconSVG)).join('');
   const doneRows = doneList.map(q => createQueriesTableRowHtml(q, viewIconSVG)).join('');
 
-  const tableHead = `
+  // Different table headers for running vs completed queries
+  const runningTableHead = `
     <thead class="bg-blue-50">
       <tr>
-        <th class="px-4 py-2 text-left">Displaying</th>
-        <th class="px-4 py-2 text-left">Filters</th>
-        <th class="px-4 py-2 text-left">ID</th>
+        <th class="px-4 py-2 text-center">Name</th>
+        <th class="px-4 py-2 text-center">Displaying</th>
+        <th class="px-4 py-2 text-center">Filters</th>
         <th class="px-4 py-2 text-center">Status</th>
-        <th class="px-4 py-2 text-left">Start</th>
-        <th class="px-4 py-2 text-left">End</th>
-        <th class="px-4 py-2 text-center">Duration</th>
-        <th class="px-4 py-2 text-center">Reuse</th>
+        <th class="px-4 py-2 text-center">Start</th>
       </tr>
     </thead>`;
+
+  const completedTableHead = `
+    <thead class="bg-blue-50">
+      <tr>
+        <th class="px-4 py-2 text-center">Name</th>
+        <th class="px-4 py-2 text-center">Displaying</th>
+        <th class="px-4 py-2 text-center">Filters</th>
+        <th class="px-4 py-2 text-center">Status</th>
+        <th class="px-4 py-2 text-center">Start</th>
+        <th class="px-4 py-2 text-center">End</th>
+        <th class="px-4 py-2 text-center">Duration</th>
+        <th class="px-4 py-2 text-center">Load</th>
+      </tr>
+    </thead>`;
+
   const runningCount = runningList.length;
   const doneCount = doneList.length;
 
@@ -3020,7 +3051,7 @@ function renderQueries(){
     <details class="mb-6" open>
       <summary class="bg-blue-100 text-left px-4 py-2 font-semibold cursor-pointer">${runningCount} Running</summary>
       <table class="min-w-full text-sm">
-        ${tableHead}
+        ${runningTableHead}
         <tbody>
           ${runningRows}
         </tbody>
@@ -3032,7 +3063,7 @@ function renderQueries(){
     <details open>
       <summary class="bg-blue-100 text-left px-4 py-2 font-semibold cursor-pointer">${doneCount} Completed</summary>
       <table class="min-w-full text-sm">
-        ${tableHead}
+        ${completedTableHead}
         <tbody>
           ${doneRows}
         </tbody>
@@ -3042,8 +3073,8 @@ function renderQueries(){
 
   container.innerHTML = runningSection + doneSection;
 
-  // Attach click handlers to reuse buttons
-  container.querySelectorAll('.reuse-query-btn').forEach(btn => {
+  // Attach click handlers to load buttons
+  container.querySelectorAll('.load-query-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const id = btn.getAttribute('data-query-id');
