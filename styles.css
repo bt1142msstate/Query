@@ -1463,6 +1463,7 @@ th:hover .th-trash {
   display: block;
   text-align: center;
   font-weight: 600;
+  font-size: 0.875rem;
   color: #374151;
   background: white;
   border: 2px solid rgba(59, 130, 246, 0.2);
