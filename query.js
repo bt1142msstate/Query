@@ -26,7 +26,7 @@ let currentCategory = 'All';
 
 // Virtual scrolling state for table
 let virtualTableData = [];
-let visibleTableRows = 100;  // number of rows to show at once
+let visibleTableRows = 25;  // number of rows to show at once
 let tableRowHeight = 42;    // estimated row height in pixels
 let tableScrollTop = 0;
 let tableScrollContainer = null;
@@ -351,16 +351,36 @@ function updateButtonStates(){
   }
 
   if(downloadBtn){
-    // Check if we have displayed fields, virtual table data, and a table name
     const tableNameInput = document.getElementById('table-name-input');
     const tableName = tableNameInput ? tableNameInput.value.trim() : '';
     const hasData = displayedFields.length > 0 && virtualTableData.length > 0;
     const hasName = tableName && tableName !== '';
-    
-    downloadBtn.disabled = !hasData || !hasName;
-    
-    // Update tooltip based on what's missing
-    if (!hasData && !hasName) {
+
+    // Check for duplicate template or query history name (case-insensitive, trimmed)
+    let isDuplicateName = false;
+    if (hasName) {
+      try {
+        const templates = getTemplates();
+        const templateMatch = templates.some(t => (t.name || '').trim().toLowerCase() === tableName.toLowerCase());
+        // Check exampleQueries for duplicate name
+        const queryMatch = Array.isArray(window.exampleQueries)
+          ? window.exampleQueries.some(q => (q.name || '').trim().toLowerCase() === tableName.toLowerCase())
+          : (typeof exampleQueries !== 'undefined' && Array.isArray(exampleQueries))
+            ? exampleQueries.some(q => (q.name || '').trim().toLowerCase() === tableName.toLowerCase())
+            : false;
+        isDuplicateName = templateMatch || queryMatch;
+      } catch (e) {
+        // If error, don't block download
+        isDuplicateName = false;
+      }
+    }
+
+    downloadBtn.disabled = !hasData || !hasName || isDuplicateName;
+
+    // Update tooltip based on what's missing or duplicate
+    if (isDuplicateName) {
+      downloadBtn.setAttribute('data-tooltip', 'A query or template with this name already exists');
+    } else if (!hasData && !hasName) {
       downloadBtn.setAttribute('data-tooltip', 'Add columns and name your table to download');
     } else if (!hasData) {
       downloadBtn.setAttribute('data-tooltip', 'Add columns to download');
