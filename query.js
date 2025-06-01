@@ -24,6 +24,14 @@ let isBubbleDrag = false;
 let hoverTh = null;           // keeps track of which header we're over
 let currentCategory = 'All';
 
+// Virtual scrolling state for table
+let virtualTableData = [];
+let visibleTableRows = 100;  // number of rows to show at once
+let tableRowHeight = 42;    // estimated row height in pixels
+let tableScrollTop = 0;
+let tableScrollContainer = null;
+let calculatedColumnWidths = {}; // Store calculated optimal widths for each column
+
 // Data structures
 const activeFilters = {};   // { fieldName: { logical:'And'|'Or', filters:[{cond,val},…] } }
 
@@ -150,14 +158,32 @@ document.querySelectorAll('.collapse-btn').forEach(btn=>{
 // Download button reference
 if (downloadBtn) {
   downloadBtn.addEventListener('click', () => {
-    if (!queryBox) return;
-    const blob = new Blob([queryBox.value], { type: 'application/json' });
+    if (!displayedFields.length || !virtualTableData.length) return;
+    
+    // Create CSV content from virtual table data
+    const headers = displayedFields.join(',');
+    const rows = virtualTableData.map(row => 
+      displayedFields.map(field => {
+        const value = row[field] || '';
+        // Escape CSV values that contain commas or quotes
+        if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+          return `"${value.replace(/"/g, '""')}"`;
+        }
+        return value;
+      }).join(',')
+    );
+    
+    const csvContent = [headers, ...rows].join('\n');
+    
+    // Create and download the file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'query.json';
+    a.download = `query-results-${virtualTableData.length}-rows.csv`;
     document.body.appendChild(a);
     a.click();
+    
     setTimeout(() => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
@@ -180,8 +206,8 @@ function updateButtonStates(){
   }
 
   if(downloadBtn){
-    const table = document.getElementById('example-table');
-    const hasData = displayedFields.length > 0 && table && table.querySelectorAll('tbody tr').length > 0;
+    // Check if we have displayed fields and virtual table data
+    const hasData = displayedFields.length > 0 && virtualTableData.length > 0;
     downloadBtn.disabled = !hasData;
   }
 }
@@ -314,16 +340,54 @@ function positionDropAnchor(isBubble, rect, table, clientX){
   if(isBubble){
     dropAnchor.classList.add('vertical');
     const insertLeft = (clientX - rect.left) < rect.width/2;
-    // Add extra 16px to the height to ensure it reaches the bottom
+    
+    // For virtual scrolling tables, use the container height instead of table height
+    const tableContainer = table.closest('.overflow-x-auto.shadow.rounded-lg.mb-6.relative');
+    const anchorHeight = tableContainer ? tableContainer.offsetHeight : table.offsetHeight;
+    
     dropAnchor.style.width  = '4px';
-    dropAnchor.style.height = (table.offsetHeight + 16) + 'px';
+    dropAnchor.style.height = anchorHeight + 'px';
     dropAnchor.style.left   = (insertLeft ? rect.left : rect.right) + window.scrollX - 2 + 'px';
-    dropAnchor.style.top    = table.getBoundingClientRect().top + window.scrollY + 'px';
+    dropAnchor.style.top    = (tableContainer ? tableContainer.getBoundingClientRect().top : table.getBoundingClientRect().top) + window.scrollY + 'px';
   }else{
+    // Horizontal anchor for column reordering
     dropAnchor.classList.remove('vertical');
-    dropAnchor.style.width  = rect.width + 'px';
+    
+    // Get table container bounds to constrain the anchor
+    const tableContainer = table.closest('.overflow-x-auto.shadow.rounded-lg.mb-6.relative');
+    const containerRect = tableContainer ? tableContainer.getBoundingClientRect() : null;
+    
+    // Calculate anchor position
+    let anchorLeft = rect.left + window.scrollX;
+    let anchorWidth = rect.width;
+    
+    // Constrain anchor within visible container bounds
+    if (containerRect) {
+      const containerLeft = containerRect.left + window.scrollX;
+      const containerRight = containerRect.right + window.scrollX;
+      
+      // Clip left edge
+      if (anchorLeft < containerLeft) {
+        const clipAmount = containerLeft - anchorLeft;
+        anchorLeft = containerLeft;
+        anchorWidth = Math.max(0, anchorWidth - clipAmount);
+      }
+      
+      // Clip right edge
+      if (anchorLeft + anchorWidth > containerRight) {
+        anchorWidth = Math.max(0, containerRight - anchorLeft);
+      }
+      
+      // Don't show anchor if it's completely clipped
+      if (anchorWidth <= 0) {
+        dropAnchor.style.display = 'none';
+        return;
+      }
+    }
+    
+    dropAnchor.style.width  = anchorWidth + 'px';
     dropAnchor.style.height = '4px';
-    dropAnchor.style.left   = rect.left + window.scrollX + 'px';
+    dropAnchor.style.left   = anchorLeft + 'px';
     dropAnchor.style.top    = rect.bottom + window.scrollY - 2 + 'px';
   }
   dropAnchor.style.display = 'block';
@@ -2436,30 +2500,48 @@ function refreshColIndices(table){
 function moveColumn(table, fromIndex, toIndex){
   if(fromIndex === toIndex) return;
 
-  // 1️⃣  Move the cells in every row
-  const rows = table.querySelectorAll('tr');
-  rows.forEach(row=>{
-    const cells = row.children;
-    if(fromIndex < cells.length && toIndex < cells.length){
-      const moving = cells[fromIndex];
-      if(fromIndex < toIndex){
-        row.insertBefore(moving, cells[toIndex].nextSibling);
-      }else{
-        row.insertBefore(moving, cells[toIndex]);
-      }
-    }
-  });
-
-  // 2️⃣  Keep displayedFields order in sync
+  // 1️⃣  Keep displayedFields order in sync first
   if(fromIndex < displayedFields.length && toIndex < displayedFields.length){
     const [movedField] = displayedFields.splice(fromIndex,1);
     displayedFields.splice(toIndex,0,movedField);
   }
 
-  // 3️⃣  Refresh index metadata
+  // 2️⃣  Update the table header
+  const headerRow = table.querySelector('thead tr');
+  if (headerRow) {
+    const headers = Array.from(headerRow.children);
+    if (fromIndex < headers.length && toIndex < headers.length) {
+      const moving = headers[fromIndex];
+      if (fromIndex < toIndex) {
+        headerRow.insertBefore(moving, headers[toIndex].nextSibling);
+      } else {
+        headerRow.insertBefore(moving, headers[toIndex]);
+      }
+    }
+  }
+
+  // 3️⃣  Recalculate column widths for new order
+  if (virtualTableData.length > 0) {
+    calculatedColumnWidths = calculateOptimalColumnWidths(displayedFields, virtualTableData);
+    
+    // Update header widths
+    headerRow.querySelectorAll('th').forEach((th, index) => {
+      const field = displayedFields[index];
+      const width = calculatedColumnWidths[field] || 150;
+      th.style.width = `${width}px`;
+      th.style.minWidth = `${width}px`;
+      th.style.maxWidth = `${width}px`;
+    });
+  }
+
+  // 4️⃣  Re-render virtual table with new column order
+  renderVirtualTable();
+
+  // 5️⃣  Refresh index metadata
   refreshColIndices(table);
   updateQueryJson();
-  // 4️⃣  If in Selected category, re-render bubbles to match new order
+  
+  // 6️⃣  If in Selected category, re-render bubbles to match new order
   if (currentCategory === 'Selected') {
     safeRenderBubbles();
   }
@@ -2470,19 +2552,37 @@ function removeColumn(table, colIndex){
   const headerCell = table.querySelector(`thead th[data-col-index="${colIndex}"]`);
   const fieldName  = headerCell ? headerCell.textContent.trim() : null;
 
-  // Remove the column cells from every row
-  const rows = table.querySelectorAll('tr');
-  rows.forEach(row=>{
-    const cells = row.children;
-    if(colIndex < cells.length){
-      cells[colIndex].remove();
-    }
-  });
-
-  // Update the displayedFields list so re-building the table doesn't resurrect removed columns
+  // Update the displayedFields list first
   if(fieldName){
     const idx = displayedFields.indexOf(fieldName);
     if(idx !== -1) displayedFields.splice(idx,1);
+  }
+
+  // Remove the header cell
+  if (headerCell) {
+    headerCell.remove();
+  }
+
+  // Re-render virtual table with new column structure
+  if (displayedFields.length > 0) {
+    // Recalculate column widths for remaining fields
+    if (virtualTableData.length > 0) {
+      calculatedColumnWidths = calculateOptimalColumnWidths(displayedFields, virtualTableData);
+      
+      // Update remaining header widths
+      const headerRow = table.querySelector('thead tr');
+      if (headerRow) {
+        headerRow.querySelectorAll('th').forEach((th, index) => {
+          const field = displayedFields[index];
+          const width = calculatedColumnWidths[field] || 150;
+          th.style.width = `${width}px`;
+          th.style.minWidth = `${width}px`;
+          th.style.maxWidth = `${width}px`;
+        });
+      }
+    }
+    
+    renderVirtualTable();
   }
 
   refreshColIndices(table);
@@ -2523,6 +2623,7 @@ function showExampleTable(fields){
   if(!Array.isArray(fields) || fields.length === 0){
     // No columns left → clear table area and reset states
     displayedFields = [];
+    virtualTableData = [];
     const container = document.querySelector('.overflow-x-auto.shadow.rounded-lg.mb-6');
     /* Ensure placeholder table has the same height as a fully populated table (≈220 px) */
     let placeholderH = 220;                         // fallback
@@ -2601,57 +2702,104 @@ function showExampleTable(fields){
   });
   displayedFields = uniqueFields;
 
-  // Build header
+  // Generate sample data if not already generated or if fields changed
+  if (virtualTableData.length === 0 || virtualTableData.length < 30000) {
+    console.log('Generating 30,000 sample rows...');
+    virtualTableData = generateSampleData(30000);
+    console.log('Sample data generated successfully');
+  }
+
+  // Calculate optimal column widths based on all data
+  console.log('Calculating optimal column widths...');
+  calculatedColumnWidths = calculateOptimalColumnWidths(displayedFields, virtualTableData);
+  console.log('Column widths calculated:', calculatedColumnWidths);
+
+  // Build header with fixed widths
   let theadHTML = '<tr>';
   displayedFields.forEach((f,i)=>{
-    theadHTML += `<th draggable="true" data-col-index="${i}" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"><span class='th-text'>${f}</span></th>`;
+    const width = calculatedColumnWidths[f] || 150; // fallback width
+    theadHTML += `<th draggable="true" data-col-index="${i}" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50" style="width: ${width}px; min-width: ${width}px; max-width: ${width}px;"><span class='th-text'>${f}</span></th>`;
   });
   theadHTML += '</tr>';
 
-  // Build three placeholder rows
-  let tbodyHTML = '';
-  for(let r = 0; r < 3; r++){
-    tbodyHTML += '<tr>';
-    displayedFields.forEach(()=>{ tbodyHTML += '<td class="px-6 py-4 whitespace-nowrap">...</td>'; });
-    tbodyHTML += '</tr>';
-  }
-
+  // Create virtual table structure
   const tableHTML = `
     <table id="example-table" class="min-w-full divide-y divide-gray-200 bg-white">
-      <thead class="bg-gray-50">${theadHTML}</thead>
-      <tbody class="divide-y divide-gray-200">${tbodyHTML}</tbody>
+      <thead class="sticky top-0 z-20 bg-gray-50">${theadHTML}</thead>
+      <tbody class="divide-y divide-gray-200">
+        <!-- Virtual rows will be inserted here -->
+      </tbody>
     </table>`;
 
   // Replace the original sample-data table in place
   const container = document.querySelector('.overflow-x-auto.shadow.rounded-lg.mb-6');
   if (container) {
+    // Set up container for virtual scrolling
+    container.style.height = '600px'; // Fixed height for virtual scrolling
+    container.style.overflowY = 'auto';
     container.innerHTML = tableHTML;
+    
+    // Set up scroll container reference
+    tableScrollContainer = container;
+    tableScrollTop = 0;
+    
+    // Add scroll event listener
+    container.addEventListener('scroll', handleTableScroll);
+    
     const newTable = container.querySelector('#example-table');
+    
+    // Calculate actual row height from a rendered row
+    if (virtualTableData.length > 0) {
+      // Temporarily render one row to measure height
+      const tbody = newTable.querySelector('tbody');
+      const tempRow = document.createElement('tr');
+      tempRow.className = 'hover:bg-gray-50';
+      displayedFields.forEach((field, colIndex) => {
+        const td = document.createElement('td');
+        td.className = 'px-6 py-3 whitespace-nowrap text-sm text-gray-900';
+        td.textContent = virtualTableData[0][field] || '—';
+        tempRow.appendChild(td);
+      });
+      tbody.appendChild(tempRow);
+      
+      // Measure and remove
+      const measuredHeight = tempRow.offsetHeight;
+      if (measuredHeight > 0) {
+        tableRowHeight = measuredHeight;
+      }
+      tbody.removeChild(tempRow);
+    }
+    
+    // Initial render of virtual table
+    renderVirtualTable();
+    
+    // Set up drag and drop
     addDragAndDrop(newTable);
     attachBubbleDropTarget(container);
-    // Disable dragging for bubbles already displayed; enable for others
+    
+    // Update bubble dragging states
     document.querySelectorAll('.bubble').forEach(bubbleEl => {
       const field = bubbleEl.textContent.trim();
       if (field === 'Marc') {
         bubbleEl.setAttribute('draggable', 'false');
       } else if(displayedFields.includes(field)){
         bubbleEl.removeAttribute('draggable');
-        // Apply styling consistently using our helper
         applyCorrectBubbleStyling(bubbleEl);
       } else {
         bubbleEl.setAttribute('draggable','true');
-        // Apply styling consistently using our helper
         applyCorrectBubbleStyling(bubbleEl);
       }
     });
+    
     updateQueryJson();
     updateCategoryCounts();
-    // Re-render bubbles to ensure consistent styling
+    
+    // Re-render bubbles if we're in Selected category
     if (currentCategory === 'Selected') {
       safeRenderBubbles();
     }
-    // --- Ensure trashcan is always attached and clickable ---
-    // Attach mouseenter/mouseleave to all headers to show trashcan
+    
+    // Attach header hover handlers for trash can
     const headers = newTable.querySelectorAll('th[draggable="true"]');
     headers.forEach(h => {
       h.addEventListener('mouseenter', () => {
@@ -2666,7 +2814,8 @@ function showExampleTable(fields){
         if (headerTrash.parentNode) headerTrash.parentNode.removeChild(headerTrash);
       });
     });
-    // If only one column, attach trashcan immediately (simulate hover)
+    
+    // If only one column, attach trashcan immediately
     if (headers.length === 1) {
       const h = headers[0];
       h.classList.add('th-hover');
@@ -3145,6 +3294,8 @@ const dragDropManager = {
   // Track state
   isBubbleDrag: false,
   hoverTh: null,
+  autoScrollInterval: null,
+  scrollContainer: null,
   
   // Initialize drag-and-drop for a table
   initTableDragDrop(table) {
@@ -3153,6 +3304,7 @@ const dragDropManager = {
     // Ensure every header/cell has an up-to-date col index
     refreshColIndices(table);
     const scrollContainer = document.querySelector('.overflow-x-auto.shadow.rounded-lg.mb-6');
+    this.scrollContainer = scrollContainer;
     const headers = table.querySelectorAll('th[draggable="true"]');
     
     // Add header hover tracking
@@ -3175,6 +3327,49 @@ const dragDropManager = {
       td.addEventListener('dragleave', () => this.handleDragLeave());
       td.addEventListener('drop', (e) => this.handleCellDrop(e, td, table));
     });
+  },
+
+  // Auto-scroll functionality
+  startAutoScroll(direction, container) {
+    if (this.autoScrollInterval) return; // Already scrolling
+    
+    this.autoScrollInterval = setInterval(() => {
+      const scrollAmount = 15; // pixels per scroll step
+      if (direction === 'left') {
+        container.scrollLeft = Math.max(0, container.scrollLeft - scrollAmount);
+      } else if (direction === 'right') {
+        container.scrollLeft += scrollAmount;
+      }
+    }, 50); // scroll every 50ms for smooth scrolling
+  },
+
+  stopAutoScroll() {
+    if (this.autoScrollInterval) {
+      clearInterval(this.autoScrollInterval);
+      this.autoScrollInterval = null;
+    }
+  },
+
+  checkAutoScroll(e, container) {
+    if (!container) return;
+    
+    const rect = container.getBoundingClientRect();
+    const scrollThreshold = 300; // Increased from 50px to 100px for earlier triggering
+    const mouseX = e.clientX;
+    
+    // Check if near left edge
+    if (mouseX < rect.left + scrollThreshold && container.scrollLeft > 0) {
+      this.startAutoScroll('left', container);
+    }
+    // Check if near right edge
+    else if (mouseX > rect.right - scrollThreshold && 
+             container.scrollLeft < container.scrollWidth - container.clientWidth) {
+      this.startAutoScroll('right', container);
+    }
+    // Stop auto-scroll if not near edges
+    else {
+      this.stopAutoScroll();
+    }
   },
   
   // Header hover handlers
@@ -3231,6 +3426,7 @@ const dragDropManager = {
     document.querySelectorAll('th').forEach(h => h.classList.remove('th-hover'));
     document.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
     clearDropAnchor();
+    this.stopAutoScroll(); // Stop auto-scroll when drag ends
     if (th._ghost) {
       th._ghost.remove();
       delete th._ghost;
@@ -3247,16 +3443,27 @@ const dragDropManager = {
     }
     const rect = element.getBoundingClientRect();
     positionDropAnchor(this.isBubbleDrag, rect, table, e.clientX);
+    
+    // Check for auto-scroll when dragging columns
+    if (!this.isBubbleDrag && this.scrollContainer) {
+      this.checkAutoScroll(e, this.scrollContainer);
+    }
   },
   
   handleDragLeave() {
     clearDropAnchor();
+    // Note: Don't stop auto-scroll here as dragLeave fires frequently during drag
   },
   
   handleDragOver(e, element, table) {
     e.preventDefault();
     const rect = element.getBoundingClientRect();
     positionDropAnchor(this.isBubbleDrag, rect, table, e.clientX);
+    
+    // Check for auto-scroll when dragging columns
+    if (!this.isBubbleDrag && this.scrollContainer) {
+      this.checkAutoScroll(e, this.scrollContainer);
+    }
   },
   
   // Cell-specific handlers
@@ -3270,6 +3477,11 @@ const dragDropManager = {
     }
     const rect = targetHeader.getBoundingClientRect();
     positionDropAnchor(this.isBubbleDrag, rect, table, e.clientX);
+    
+    // Check for auto-scroll when dragging columns
+    if (!this.isBubbleDrag && this.scrollContainer) {
+      this.checkAutoScroll(e, this.scrollContainer);
+    }
   },
   
   handleCellDragOver(e, td, table) {
@@ -3278,6 +3490,11 @@ const dragDropManager = {
     const targetHeader = table.querySelector(`thead th[data-col-index="${colIndex}"]`);
     const rect = targetHeader.getBoundingClientRect();
     positionDropAnchor(this.isBubbleDrag, rect, table, e.clientX);
+    
+    // Check for auto-scroll when dragging columns
+    if (!this.isBubbleDrag && this.scrollContainer) {
+      this.checkAutoScroll(e, this.scrollContainer);
+    }
   },
   
   // Drop handlers
@@ -3285,6 +3502,9 @@ const dragDropManager = {
     e.preventDefault();
     e.stopPropagation();
     const toIndex = parseInt(th.dataset.colIndex, 10);
+    
+    // Stop auto-scroll when dropping
+    this.stopAutoScroll();
   
     // Column reorder drop
     const fromIndexStr = e.dataTransfer.getData('text/plain').trim();
@@ -3317,6 +3537,9 @@ const dragDropManager = {
     e.stopPropagation();
     
     const toIndex = parseInt(td.dataset.colIndex, 10);
+    
+    // Stop auto-scroll when dropping
+    this.stopAutoScroll();
   
     // Bubble drop
     const bubbleField = e.dataTransfer.getData('bubble-field');
@@ -4046,6 +4269,13 @@ document.addEventListener('DOMContentLoaded', () => {
   if (searchInput) {
     searchInput.addEventListener('input', TemplateManager.renderTemplates);
   }
+  
+  // Initialize with some sample columns to demonstrate virtual scrolling
+  setTimeout(() => {
+    console.log('Initializing with sample columns for virtual scrolling demo...');
+    displayedFields = ['Title', 'Author', 'Call Number', 'Library', 'Item Type'];
+    showExampleTable(displayedFields);
+  }, 500);
 });
 
 // Add a global flag to block bubble rendering during animation
@@ -4082,4 +4312,226 @@ function formatFiltersTooltip(fieldName, filterGroups) {
 function formatColumnsTooltip(columns) {
   if (!Array.isArray(columns) || columns.length === 0) return '';
   return columns.join('\n');
+}
+
+// Helper function to generate sample data for testing
+function generateSampleData(rowCount = 30000) {
+  const sampleAuthors = ['Smith, John', 'Johnson, Mary', 'Williams, Robert', 'Brown, Patricia', 'Jones, Michael', 'Garcia, Linda', 'Miller, William', 'Davis, Elizabeth', 'Rodriguez, James', 'Martinez, Barbara'];
+  const sampleTitles = ['The Great Adventure', 'Mystery of the Lost City', 'Modern Cooking Techniques', 'History of Science', 'Digital Photography', 'Programming Fundamentals', 'Art and Culture', 'Music Theory Basics', 'Environmental Studies', 'Psychology Today'];
+  const sampleCallNumbers = ['QA76.73', 'PS3566', 'TX714', 'Q125', 'TR267', 'QA76.6', 'N7260', 'MT6', 'GE105', 'BF121'];
+  const sampleLibraries = ['TRLS-A', 'TRLS-B', 'TRLS-C', 'MLTN-A', 'MLTN-B', 'WSPR-X'];
+  const sampleItemTypes = ['Book', 'DVD', 'CD', 'Magazine', 'eBook', 'Audiobook'];
+  const sampleLocations = ['Fiction', 'Non-Fiction', 'Reference', 'Periodicals', 'Children', 'Young Adult'];
+
+  const data = [];
+  for (let i = 0; i < rowCount; i++) {
+    const row = {};
+    
+    // Generate data for each potential field
+    row['Author'] = sampleAuthors[Math.floor(Math.random() * sampleAuthors.length)];
+    
+    // Add a really long title for the first row to test ellipsis
+    if (i === 0) {
+      row['Title'] = 'The Extraordinarily Long and Comprehensive Guide to Understanding the Complexities of Modern Digital Data Management Systems and Their Implementation in Enterprise Environments: A Complete Reference Manual';
+    } else {
+      row['Title'] = `${sampleTitles[Math.floor(Math.random() * sampleTitles.length)]} ${i + 1}`;
+    }
+    
+    row['Call Number'] = `${sampleCallNumbers[Math.floor(Math.random() * sampleCallNumbers.length)]}.${Math.floor(Math.random() * 999).toString().padStart(3, '0')}`;
+    row['Library'] = sampleLibraries[Math.floor(Math.random() * sampleLibraries.length)];
+    row['Item Type'] = sampleItemTypes[Math.floor(Math.random() * sampleItemTypes.length)];
+    row['Home Location'] = sampleLocations[Math.floor(Math.random() * sampleLocations.length)];
+    row['Barcode'] = `${Math.floor(Math.random() * 90000000) + 10000000}`;
+    row['Price'] = `$${(Math.random() * 100 + 5).toFixed(2)}`;
+    row['Catalog Key'] = `cat${Math.floor(Math.random() * 1000000)}`;
+    row['Publication Date'] = `${Math.floor(Math.random() * 50) + 1970}-${Math.floor(Math.random() * 12) + 1}-${Math.floor(Math.random() * 28) + 1}`;
+    row['Item Creation Date'] = `${Math.floor(Math.random() * 5) + 2019}-${Math.floor(Math.random() * 12) + 1}-${Math.floor(Math.random() * 28) + 1}`;
+    row['Item Total Charges'] = Math.floor(Math.random() * 50);
+    row['Number of Copies'] = Math.floor(Math.random() * 10) + 1;
+    
+    // Add more sample fields as needed
+    fieldDefs.forEach(field => {
+      if (!row[field.name]) {
+        switch (field.type) {
+          case 'string':
+            row[field.name] = `Sample ${field.name} ${i + 1}`;
+            break;
+          case 'number':
+            row[field.name] = Math.floor(Math.random() * 1000);
+            break;
+          case 'money':
+            row[field.name] = `$${(Math.random() * 1000).toFixed(2)}`;
+            break;
+          case 'date':
+            row[field.name] = `${Math.floor(Math.random() * 50) + 1970}-${Math.floor(Math.random() * 12) + 1}-${Math.floor(Math.random() * 28) + 1}`;
+            break;
+          default:
+            row[field.name] = `Sample ${i + 1}`;
+        }
+      }
+    });
+    
+    data.push(row);
+  }
+  return data;
+}
+
+// Virtual scrolling helper functions
+function calculateVisibleRows() {
+  if (!tableScrollContainer) return { start: 0, end: 0 };
+  
+  const containerHeight = tableScrollContainer.clientHeight;
+  const headerHeight = 40; // approximate header height
+  const availableHeight = containerHeight - headerHeight;
+  
+  const startIndex = Math.floor(tableScrollTop / tableRowHeight);
+  const endIndex = Math.min(
+    virtualTableData.length,
+    startIndex + Math.ceil(availableHeight / tableRowHeight) + 2 // buffer rows
+  );
+  
+  return { start: Math.max(0, startIndex), end: endIndex };
+}
+
+function renderVirtualTable() {
+  if (!tableScrollContainer || !virtualTableData.length || !displayedFields.length) return;
+  
+  const table = tableScrollContainer.querySelector('#example-table');
+  if (!table) return;
+  
+  const tbody = table.querySelector('tbody');
+  const { start, end } = calculateVisibleRows();
+  
+  // Clear existing body rows
+  tbody.innerHTML = '';
+  
+  // Create spacer for rows above visible area
+  if (start > 0) {
+    const topSpacer = document.createElement('tr');
+    const spacerCell = document.createElement('td');
+    spacerCell.setAttribute('colspan', displayedFields.length.toString());
+    spacerCell.style.height = `${start * tableRowHeight}px`;
+    spacerCell.style.padding = '0';
+    spacerCell.style.border = 'none';
+    topSpacer.appendChild(spacerCell);
+    tbody.appendChild(topSpacer);
+  }
+  
+  // Render visible rows
+  for (let i = start; i < end; i++) {
+    const rowData = virtualTableData[i];
+    const tr = document.createElement('tr');
+    tr.className = 'hover:bg-gray-50';
+    tr.style.height = `${tableRowHeight}px`;
+    
+    displayedFields.forEach((field, colIndex) => {
+      const td = document.createElement('td');
+      td.className = 'px-6 py-3 whitespace-nowrap text-sm text-gray-900';
+      td.dataset.colIndex = colIndex;
+      
+      const cellValue = rowData[field] || '—';
+      td.textContent = cellValue;
+      
+      // Apply the same fixed width as the header
+      const width = calculatedColumnWidths[field] || 150;
+      td.style.width = `${width}px`;
+      td.style.minWidth = `${width}px`;
+      td.style.maxWidth = `${width}px`;
+      
+      // Always prevent browser tooltips
+      td.removeAttribute('title');
+      td.title = '';
+      
+      // Add event listeners to prevent any browser tooltip behavior
+      td.addEventListener('mouseenter', function(e) {
+        // Remove any title attribute to prevent browser tooltips
+        this.removeAttribute('title');
+        this.title = '';
+      });
+      
+      // Check if content would be visually truncated based on column width
+      if (typeof cellValue === 'string' && cellValue.length > 0 && cellValue !== '—') {
+        // Create a temporary canvas to measure text width
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.font = '14px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto';
+        
+        const textWidth = ctx.measureText(cellValue).width;
+        const availableWidth = width - 48; // Subtract padding (24px left + 24px right)
+        
+        // Add tooltip if text would be truncated
+        if (textWidth > availableWidth) {
+          td.setAttribute('data-tooltip', cellValue);
+        }
+      }
+      
+      tr.appendChild(td);
+    });
+    
+    tbody.appendChild(tr);
+  }
+  
+  // Create spacer for rows below visible area
+  const remainingRows = virtualTableData.length - end;
+  if (remainingRows > 0) {
+    const bottomSpacer = document.createElement('tr');
+    const spacerCell = document.createElement('td');
+    spacerCell.setAttribute('colspan', displayedFields.length.toString());
+    spacerCell.style.height = `${remainingRows * tableRowHeight}px`;
+    spacerCell.style.padding = '0';
+    spacerCell.style.border = 'none';
+    bottomSpacer.appendChild(spacerCell);
+    tbody.appendChild(bottomSpacer);
+  }
+  
+  // Re-apply drag and drop to the new rows
+  addDragAndDrop(table);
+}
+
+function handleTableScroll(e) {
+  tableScrollTop = e.target.scrollTop;
+  renderVirtualTable();
+}
+
+// Function to calculate optimal column widths from all data
+function calculateOptimalColumnWidths(fields, data) {
+  if (!data.length || !fields.length) return {};
+  
+  const widths = {};
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  // Set font to match table cells - use the actual computed styles
+  ctx.font = '14px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto';
+  
+  // Calculate max width based on 50 characters
+  const maxCharacterWidth = ctx.measureText('A'.repeat(50)).width;
+  
+  fields.forEach(field => {
+    let maxWidth = 0;
+    
+    // Check header width first (uppercase) - ensure headers are considered
+    const headerWidth = ctx.measureText(field.toUpperCase()).width;
+    maxWidth = Math.max(maxWidth, headerWidth);
+    
+    // Sample data to find max content width (check every 100th row for performance)
+    const sampleStep = Math.max(1, Math.floor(data.length / 1000)); // Sample ~1000 rows max
+    
+    for (let i = 0; i < data.length; i += sampleStep) {
+      const value = data[i][field];
+      if (value != null) {
+        const textWidth = ctx.measureText(String(value)).width;
+        maxWidth = Math.max(maxWidth, textWidth);
+      }
+    }
+    
+    // Add padding (24px left + 24px right from px-6 class) + some buffer
+    const paddingAndBuffer = 48 + 20; // 48px padding + 20px buffer
+    
+    // Clamp to minimum 120px and maximum based on 50 characters
+    const maxWidthWithPadding = maxCharacterWidth + paddingAndBuffer;
+    widths[field] = Math.max(120, Math.min(maxWidthWithPadding, maxWidth + paddingAndBuffer));
+  });
+  
+  return widths;
 }
