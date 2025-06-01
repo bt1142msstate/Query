@@ -915,29 +915,6 @@ input, textarea, select, [contenteditable] {
   padding: 1rem 1.5rem !important;
   color: #444;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 0; /* This forces the ellipsis to work with fixed widths */
-  pointer-events: auto; /* Ensure our tooltips work */
-}
-
-/* Prevent ALL browser tooltips on table cells */
-#example-table td {
-  cursor: default;
-}
-
-#example-table td:hover {
-  cursor: default;
-}
-
-/* Completely disable browser tooltips */
-#example-table td::after {
-  content: attr(title);
-  display: none;
-}
-
-#example-table td[title]:hover::after {
-  display: none;
 }
 
 /* ==========================================
