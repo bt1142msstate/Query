@@ -2842,6 +2842,7 @@ const exampleQueries = [
     id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
     name: 'Huxley Brave Works',
     running: false,
+    cancelled: false,
     jsonConfig: {
       DesiredColumnOrder: ["Title","Author","Publication Date"],
       FilterGroups: [
@@ -2861,6 +2862,7 @@ const exampleQueries = [
     id: '9f8b7a6c-1234-4d56-a789-0123456789ab',
     name: 'TRLS-A Location Items',
     running: true,
+    cancelled: false,
     jsonConfig: {
       DesiredColumnOrder: ["Title","Call Number","Home Location"],
       FilterGroups: [
@@ -2879,6 +2881,7 @@ const exampleQueries = [
     id: 'b2c3d479-58cc-4372-a567-0e02f47ac10b',
     name: 'Expensive Books',
     running: false,
+    cancelled: false,
     jsonConfig: {
       DesiredColumnOrder: ["Barcode","Item Type","Price"],
       FilterGroups: [
@@ -2898,6 +2901,7 @@ const exampleQueries = [
     id: 'c3d479f4-7ac1-0b58-cc43-72a5670e02b2',
     name: 'MLTN-A 2023 Items',
     running: false,
+    cancelled: false,
     jsonConfig: {
       DesiredColumnOrder: ["Library","Catalog Key","Item Creation Date"],
       FilterGroups: [
@@ -2912,6 +2916,25 @@ const exampleQueries = [
     },
     startTime: '2025-05-07T10:15:00Z',
     endTime:   '2025-05-07T10:16:00Z'
+  },
+  {
+    id: 'd4e5f6a7-1234-5678-9abc-def012345678',
+    name: 'Large Dataset Query',
+    running: false,
+    cancelled: true,
+    jsonConfig: {
+      DesiredColumnOrder: ["Title","Author","Call Number","Library","Item Type","Price"],
+      FilterGroups: [
+        {
+          LogicalOperator: "Or",
+          Filters: [
+            { FieldName:"Library", FieldOperator:"Equals", Values:["TRLS-A","TRLS-B","MLTN-A"] }
+          ]
+        }
+      ]
+    },
+    startTime: '2025-05-08T11:30:00Z',
+    cancelledTime: '2025-05-08T11:35:00Z'
   }
 ];
 
@@ -2970,12 +2993,14 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
     <button class="inline-flex items-center justify-center p-1 rounded-full bg-red-100 hover:bg-red-200 text-red-600" tabindex="-1" data-tooltip="Stop"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
   ` : '';
   // Load button only for completed queries (download icon)
-  const loadBtn = !q.running ? `<button class="load-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" tabindex="-1" data-query-id="${q.id}" style="margin-left:4px;" data-tooltip="Load Query"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>` : '';
+  const loadBtn = !q.running && !q.cancelled ? `<button class="load-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" tabindex="-1" data-query-id="${q.id}" style="margin-left:4px;" data-tooltip="Load Query"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>` : '';
+  // Rerun button only for cancelled queries (refresh/replay icon)
+  const rerunBtn = q.cancelled ? `<button class="rerun-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-green-600" tabindex="-1" data-query-id="${q.id}" style="margin-left:4px;" data-tooltip="Rerun Query"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg></button>` : '';
   // Duration calculation
   let duration = '—';
-  if (q.startTime && q.endTime) {
+  if (q.startTime && (q.endTime || q.cancelledTime)) {
     const start = new Date(q.startTime);
-    const end = new Date(q.endTime);
+    const end = new Date(q.endTime || q.cancelledTime);
     let seconds = Math.floor((end - start) / 1000);
     if (seconds >= 60) {
       const min = Math.floor(seconds / 60);
@@ -2986,7 +3011,7 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
     }
   }
   
-  // Different row structure for running vs completed queries
+  // Different row structure for running vs completed vs cancelled queries
   if (q.running) {
     return `
       <tr class="border-b hover:bg-blue-50 cursor-pointer" data-query-id="${q.id}">
@@ -2997,15 +3022,24 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
         <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
       </tr>
     `;
+  } else if (q.cancelled) {
+    return `
+      <tr class="border-b hover:bg-red-50 cursor-pointer" data-query-id="${q.id}">
+        <td class="px-4 py-2 text-xs text-center font-mono">${q.name || q.id}</td>
+        <td class="px-4 py-2 text-xs text-center">${columnsSummary}</td>
+        <td class="px-4 py-2 text-xs text-center">${filtersSummary}</td>
+        <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
+        <td class="px-4 py-2 text-xs text-center">${q.cancelledTime ? new Date(q.cancelledTime).toLocaleString() : '—'}</td>
+        <td class="px-4 py-2 text-xs text-center">${duration}</td>
+        <td class="px-4 py-2 text-xs text-center">${rerunBtn}</td>
+      </tr>
+    `;
   } else {
     return `
       <tr class="border-b hover:bg-blue-50 cursor-pointer" data-query-id="${q.id}">
         <td class="px-4 py-2 text-xs text-center font-mono">${q.name || q.id}</td>
         <td class="px-4 py-2 text-xs text-center">${columnsSummary}</td>
         <td class="px-4 py-2 text-xs text-center">${filtersSummary}</td>
-        <td class="px-4 py-2 text-center">
-          <span class="text-gray-500">Finished</span>
-        </td>
         <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
         <td class="px-4 py-2 text-xs text-center">${q.endTime ? new Date(q.endTime).toLocaleString() : '—'}</td>
         <td class="px-4 py-2 text-xs text-center">${duration}</td>
@@ -3027,7 +3061,8 @@ function renderQueries(){
   const viewIconSVG = `<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1.5 12s4-7 10.5-7 10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3.5"/></svg>`;
   
   let runningList = exampleQueries.filter(q => q.running);
-  let doneList = exampleQueries.filter(q => !q.running);
+  let doneList = exampleQueries.filter(q => !q.running && !q.cancelled);
+  let cancelledList = exampleQueries.filter(q => q.cancelled);
   
   // Apply search filter if there's a search term
   if (searchTerm) {
@@ -3041,10 +3076,16 @@ function renderQueries(){
       q.id.toLowerCase().includes(searchTerm) ||
       (q.jsonConfig?.DesiredColumnOrder || []).some(col => col.toLowerCase().includes(searchTerm))
     );
+    cancelledList = cancelledList.filter(q => 
+      (q.name && q.name.toLowerCase().includes(searchTerm)) ||
+      q.id.toLowerCase().includes(searchTerm) ||
+      (q.jsonConfig?.DesiredColumnOrder || []).some(col => col.toLowerCase().includes(searchTerm))
+    );
   }
   
   const runningRows = runningList.map(q => createQueriesTableRowHtml(q, viewIconSVG)).join('');
   const doneRows = doneList.map(q => createQueriesTableRowHtml(q, viewIconSVG)).join('');
+  const cancelledRows = cancelledList.map(q => createQueriesTableRowHtml(q, viewIconSVG)).join('');
 
   // Different table headers for running vs completed queries
   const runningTableHead = `
@@ -3053,7 +3094,7 @@ function renderQueries(){
         <th class="px-4 py-2 text-center">Name</th>
         <th class="px-4 py-2 text-center">Displaying</th>
         <th class="px-4 py-2 text-center">Filters</th>
-        <th class="px-4 py-2 text-center">Status</th>
+        <th class="px-4 py-2 text-center">Stop/Cancel</th>
         <th class="px-4 py-2 text-center">Start</th>
       </tr>
     </thead>`;
@@ -3064,7 +3105,6 @@ function renderQueries(){
         <th class="px-4 py-2 text-center">Name</th>
         <th class="px-4 py-2 text-center">Displaying</th>
         <th class="px-4 py-2 text-center">Filters</th>
-        <th class="px-4 py-2 text-center">Status</th>
         <th class="px-4 py-2 text-center">Start</th>
         <th class="px-4 py-2 text-center">End</th>
         <th class="px-4 py-2 text-center">Duration</th>
@@ -3072,13 +3112,27 @@ function renderQueries(){
       </tr>
     </thead>`;
 
+  const cancelledTableHead = `
+    <thead class="bg-red-50">
+      <tr>
+        <th class="px-4 py-2 text-center">Name</th>
+        <th class="px-4 py-2 text-center">Displaying</th>
+        <th class="px-4 py-2 text-center">Filters</th>
+        <th class="px-4 py-2 text-center">Start</th>
+        <th class="px-4 py-2 text-center">Cancelled</th>
+        <th class="px-4 py-2 text-center">Duration</th>
+        <th class="px-4 py-2 text-center">Rerun</th>
+      </tr>
+    </thead>`;
+
   const runningCount = runningList.length;
   const doneCount = doneList.length;
+  const cancelledCount = cancelledList.length;
 
   let content = '';
 
   // Show "no results" message if search returns nothing
-  if (searchTerm && runningCount === 0 && doneCount === 0) {
+  if (searchTerm && runningCount === 0 && doneCount === 0 && cancelledCount === 0) {
     content = `<p class="text-center text-gray-500 italic py-4">No queries found matching "${searchTerm}".</p>`;
   } else {
     const runningSection = runningRows ? `
@@ -3094,7 +3148,7 @@ function renderQueries(){
     ` : '';
 
     const doneSection = doneRows ? `
-      <details open>
+      <details class="mb-6" open>
         <summary class="bg-blue-100 text-left px-4 py-2 font-semibold cursor-pointer">${doneCount} Completed</summary>
         <table class="min-w-full text-sm">
           ${completedTableHead}
@@ -3105,13 +3159,40 @@ function renderQueries(){
       </details>
     ` : '';
 
-    content = runningSection + doneSection;
+    const cancelledSection = cancelledRows ? `
+      <details>
+        <summary class="bg-red-100 text-left px-4 py-2 font-semibold cursor-pointer">${cancelledCount} Cancelled</summary>
+        <table class="min-w-full text-sm">
+          ${cancelledTableHead}
+          <tbody>
+            ${cancelledRows}
+          </tbody>
+        </table>
+      </details>
+    ` : (cancelledCount === 0 && !searchTerm ? `
+      <details>
+        <summary class="bg-red-100 text-left px-4 py-2 font-semibold cursor-pointer">0 Cancelled</summary>
+        <p class="text-center text-gray-500 italic py-4">No cancelled queries yet.</p>
+      </details>
+    ` : '');
+
+    content = runningSection + doneSection + cancelledSection;
   }
 
   container.innerHTML = content;
 
   // Attach click handlers to load buttons
   container.querySelectorAll('.load-query-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.getAttribute('data-query-id');
+      const q = exampleQueries.find(q => q.id === id);
+      loadQueryConfig(q);
+    });
+  });
+  
+  // Attach click handlers to rerun buttons
+  container.querySelectorAll('.rerun-query-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const id = btn.getAttribute('data-query-id');
@@ -3835,7 +3916,6 @@ const TooltipManager = (() => {
   let currentTarget = null;
   let hideTimeout = null;
   let isDragging = false; // Track drag state
-  let isVisible = false; // Track visibility state
 
   function createTooltip() {
     tooltipEl = document.createElement('div');
@@ -3875,20 +3955,13 @@ const TooltipManager = (() => {
       }
     }, 10);
     currentTarget = target;
-    isVisible = true;
   }
 
   function hideTooltip() {
-    if (!tooltipEl || !isVisible) return;
-    
-    // Clear any existing timeout
-    if (hideTimeout) {
-      clearTimeout(hideTimeout);
-    }
+    if (!tooltipEl) return;
     
     tooltipEl.classList.remove('show');
     tooltipEl.style.opacity = '0';
-    isVisible = false;
     
     hideTimeout = setTimeout(() => {
       if (tooltipEl) {
@@ -3914,7 +3987,6 @@ const TooltipManager = (() => {
       tooltipEl.appendChild(arrowEl);
     }
     currentTarget = null;
-    isVisible = false;
   }
 
   function positionTooltip(target, event) {
@@ -3963,7 +4035,6 @@ const TooltipManager = (() => {
       if (isDragging) return;
       const el = e.target.closest('[data-tooltip]');
       if (!el) return;
-      if (hideTimeout) clearTimeout(hideTimeout);
       const text = el.getAttribute('data-tooltip');
       if (text) showTooltip(el, text, e);
     });
@@ -3971,34 +4042,19 @@ const TooltipManager = (() => {
     document.addEventListener('mousemove', e => {
       if (isDragging) return;
       if (currentTarget && tooltipEl && tooltipEl.style.display === 'block') {
-        // Check if we're still over the target or its children
-        const elementUnderMouse = document.elementFromPoint(e.clientX, e.clientY);
-        if (elementUnderMouse && (elementUnderMouse === currentTarget || currentTarget.contains(elementUnderMouse))) {
-          positionTooltip(currentTarget, e);
-        } else {
-          // Mouse left the target, hide tooltip
-          hideTooltip();
-        }
+        positionTooltip(currentTarget, e);
       }
     });
     
     document.addEventListener('mouseout', e => {
       const el = e.target.closest('[data-tooltip]');
-      if (el) {
-        // Add a small delay to prevent flickering when moving between child elements
-        setTimeout(() => {
-          if (currentTarget === el) {
-            hideTooltip();
-          }
-        }, 50);
-      }
+      if (el) hideTooltip();
     });
     
     document.addEventListener('focusin', e => {
       if (isDragging) return;
       const el = e.target.closest('[data-tooltip]');
       if (!el) return;
-      if (hideTimeout) clearTimeout(hideTimeout);
       const text = el.getAttribute('data-tooltip');
       if (text) showTooltip(el, text);
     });
@@ -4007,9 +4063,8 @@ const TooltipManager = (() => {
       if (e.target.closest('[data-tooltip]')) hideTooltip();
     });
     
-    // Hide tooltip on scroll, click, or escape
+    // Hide tooltip on scroll or escape
     window.addEventListener('scroll', forceHide);
-    document.addEventListener('click', forceHide);
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') forceHide();
     });
