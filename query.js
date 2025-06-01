@@ -3153,13 +3153,16 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
     const start = new Date(q.startTime);
     const end = new Date(q.endTime || q.cancelledTime);
     let seconds = Math.floor((end - start) / 1000);
-    if (seconds >= 60) {
-      const min = Math.floor(seconds / 60);
-      const sec = seconds % 60;
-      duration = `${min}m ${sec}s`;
-    } else {
-      duration = `${seconds}s`;
-    }
+    duration = formatDuration(seconds);
+  }
+  
+  // Calculate elapsed time for running queries
+  let runningDuration = '—';
+  if (q.running && q.startTime) {
+    const start = new Date(q.startTime);
+    const now = new Date();
+    let seconds = Math.floor((now - start) / 1000);
+    runningDuration = formatDuration(seconds);
   }
   
   // Different row structure for running vs completed vs cancelled queries
@@ -3171,6 +3174,7 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
         <td class="px-4 py-2 text-xs text-center">${filtersSummary}</td>
         <td class="px-4 py-2 text-center">${stopBtn}</td>
         <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
+        <td class="px-4 py-2 text-xs text-center">${runningDuration}</td>
       </tr>
     `;
   } else if (q.cancelled) {
@@ -3197,6 +3201,35 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
         <td class="px-4 py-2 text-xs text-center">${loadBtn}</td>
       </tr>
     `;
+  }
+}
+
+// Global variable to track the update interval
+let queryDurationUpdateInterval = null;
+
+// Function to start real-time updates for running query durations
+function startQueryDurationUpdates() {
+  if (queryDurationUpdateInterval) return; // Already running
+  
+  queryDurationUpdateInterval = setInterval(() => {
+    // Only update if queries panel is visible and there are running queries
+    const queriesPanel = document.getElementById('queries-panel');
+    const hasRunningQueries = exampleQueries.some(q => q.running);
+    
+    if (queriesPanel && !queriesPanel.classList.contains('hidden') && hasRunningQueries) {
+      renderQueries(); // Re-render to update durations
+    } else if (!hasRunningQueries) {
+      // Stop updates if no running queries
+      stopQueryDurationUpdates();
+    }
+  }, 1000); // Update every second
+}
+
+// Function to stop real-time updates
+function stopQueryDurationUpdates() {
+  if (queryDurationUpdateInterval) {
+    clearInterval(queryDurationUpdateInterval);
+    queryDurationUpdateInterval = null;
   }
 }
 
@@ -3247,6 +3280,7 @@ function renderQueries(){
         <th class="px-4 py-2 text-center">Filters</th>
         <th class="px-4 py-2 text-center">Stop/Cancel</th>
         <th class="px-4 py-2 text-center">Start</th>
+        <th class="px-4 py-2 text-center">Duration</th>
       </tr>
     </thead>`;
 
@@ -3403,6 +3437,12 @@ document.getElementById('copy-json-btn').addEventListener('click', () => {
 
 // Initial render of example Queries list
 renderQueries();
+
+// Start duration updates if there are running queries
+if (exampleQueries.some(q => q.running)) {
+  // Don't start immediately - only when the panel is opened
+  // The openModal function will handle starting updates
+}
 
 // Arrow-key scrolling when focus is on a bubble, the scrollbar thumb, or when hovering over bubble grid/scrollbar
 document.addEventListener('keydown', e=>{
@@ -4017,6 +4057,12 @@ function openModal(panelId) {
   panel.classList.remove('hidden');
   panel.classList.add('show'); // Ensure 'show' class is added
   overlay.classList.add('show');
+  
+  // Start real-time updates if opening queries panel and there are running queries
+  if (panelId === 'queries-panel' && exampleQueries.some(q => q.running)) {
+    startQueryDurationUpdates();
+  }
+  
   // Focus first focusable element
   const focusable = getFocusableElements(panel);
   if (focusable.length) {
@@ -4037,6 +4083,10 @@ function closeAllModals() {
     }
   });
   overlay.classList.remove('show');
+  
+  // Stop duration updates when all modals are closed
+  stopQueryDurationUpdates();
+  
   // Accessibility: unhide main content
   setMainContentAriaHidden(false);
 }
@@ -4945,4 +4995,35 @@ function calculateOptimalColumnWidths(fields, data) {
   });
   
   return widths;
+}
+
+// Helper function to format duration in a comprehensive way
+function formatDuration(seconds) {
+  if (seconds < 60) {
+    return `${seconds}s`;
+  }
+  
+  const days = Math.floor(seconds / (24 * 60 * 60));
+  const hours = Math.floor((seconds % (24 * 60 * 60)) / (60 * 60));
+  const minutes = Math.floor((seconds % (60 * 60)) / 60);
+  const remainingSeconds = seconds % 60;
+  
+  const parts = [];
+  if (days > 0) parts.push(`${days} day${days !== 1 ? 's' : ''}`);
+  if (hours > 0) parts.push(`${hours} hr${hours !== 1 ? 's' : ''}`);
+  if (minutes > 0) parts.push(`${minutes} min`);
+  if (remainingSeconds > 0 || parts.length === 0) parts.push(`${remainingSeconds} sec`);
+  
+  return parts.join(' ');
+}
+
+// Helper to get templates from local storage
+function getTemplates() {
+  try {
+    const templates = JSON.parse(localStorage.getItem('queryTemplates') || '[]');
+    return Array.isArray(templates) ? templates : [];
+  } catch (e) {
+    console.error('Error loading templates:', e);
+    return [];
+  }
 }
