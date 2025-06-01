@@ -279,7 +279,12 @@
       </h2>
       <div id="queries-container"
            class="w-full -mt-px border border-blue-200 border-t-0 rounded-b overflow-x-auto bg-white">
-        <!-- list will be injected here -->
+        <div id="queries-search-wrapper" class="sticky top-0 z-10 bg-white pb-2 px-4 pt-4">
+          <input id="queries-search" type="text" placeholder="Search queries..." class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-200 text-sm" />
+        </div>
+        <div id="queries-list">
+          <!-- list will be injected here -->
+        </div>
       </div>
     </div><!-- end queries-panel -->
 

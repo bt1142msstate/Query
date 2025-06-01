@@ -258,22 +258,30 @@ function toggleQueryInterface(isQueryRunning) {
 if(runBtn){
   runBtn.addEventListener('click', ()=>{
     if(runBtn.disabled) return;   // ignore when inactive
-    queryRunning = !queryRunning;
-    runBtn.classList.toggle('running', queryRunning);
-    runIcon.classList.toggle('hidden', queryRunning);
-    stopIcon.classList.toggle('hidden', !queryRunning);
-    // Update tooltip
-    runBtn.setAttribute('data-tooltip', queryRunning ? 'Stop Query' : 'Run Query');
-
-    // Toggle UI elements and table height
-    toggleQueryInterface(queryRunning);
-
-    if(queryRunning){
-      console.log('Query started…');   // TODO: start real query here
-    }else{
-      console.log('Query stopped.');   // TODO: stop/abort query here
-      updateButtonStates();
-    }
+    
+    // Show "not implemented yet" message
+    const message = document.createElement('div');
+    message.className = 'fixed bottom-4 right-4 bg-blue-100 border border-blue-500 text-blue-700 px-4 py-3 rounded-md shadow-lg z-50';
+    message.innerHTML = `
+      <div class="flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>Query execution is not implemented yet</span>
+      </div>
+    `;
+    document.body.appendChild(message);
+    
+    // Remove message after 3 seconds
+    setTimeout(() => {
+      message.style.opacity = '0';
+      message.style.transition = 'opacity 0.5s ease';
+      setTimeout(() => {
+        if (document.body.contains(message)) {
+          document.body.removeChild(message);
+        }
+      }, 500);
+    }, 3000);
   });
 }
 
@@ -3008,12 +3016,32 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
 }
 
 function renderQueries(){
-  const container = document.getElementById('queries-container');
+  const container = document.getElementById('queries-list');
   if(!container) return;
+  
+  // Get search value
+  const searchInput = document.getElementById('queries-search');
+  const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
+  
   // Use an eye icon SVG for both columns and filters
   const viewIconSVG = `<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1.5 12s4-7 10.5-7 10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3.5"/></svg>`;
-  const runningList = exampleQueries.filter(q => q.running);
-  const doneList = exampleQueries.filter(q => !q.running);
+  
+  let runningList = exampleQueries.filter(q => q.running);
+  let doneList = exampleQueries.filter(q => !q.running);
+  
+  // Apply search filter if there's a search term
+  if (searchTerm) {
+    runningList = runningList.filter(q => 
+      (q.name && q.name.toLowerCase().includes(searchTerm)) ||
+      q.id.toLowerCase().includes(searchTerm) ||
+      (q.jsonConfig?.DesiredColumnOrder || []).some(col => col.toLowerCase().includes(searchTerm))
+    );
+    doneList = doneList.filter(q => 
+      (q.name && q.name.toLowerCase().includes(searchTerm)) ||
+      q.id.toLowerCase().includes(searchTerm) ||
+      (q.jsonConfig?.DesiredColumnOrder || []).some(col => col.toLowerCase().includes(searchTerm))
+    );
+  }
   
   const runningRows = runningList.map(q => createQueriesTableRowHtml(q, viewIconSVG)).join('');
   const doneRows = doneList.map(q => createQueriesTableRowHtml(q, viewIconSVG)).join('');
@@ -3047,31 +3075,40 @@ function renderQueries(){
   const runningCount = runningList.length;
   const doneCount = doneList.length;
 
-  const runningSection = runningRows ? `
-    <details class="mb-6" open>
-      <summary class="bg-blue-100 text-left px-4 py-2 font-semibold cursor-pointer">${runningCount} Running</summary>
-      <table class="min-w-full text-sm">
-        ${runningTableHead}
-        <tbody>
-          ${runningRows}
-        </tbody>
-      </table>
-    </details>
-  ` : '';
+  let content = '';
 
-  const doneSection = doneRows ? `
-    <details open>
-      <summary class="bg-blue-100 text-left px-4 py-2 font-semibold cursor-pointer">${doneCount} Completed</summary>
-      <table class="min-w-full text-sm">
-        ${completedTableHead}
-        <tbody>
-          ${doneRows}
-        </tbody>
-      </table>
-    </details>
-  ` : '';
+  // Show "no results" message if search returns nothing
+  if (searchTerm && runningCount === 0 && doneCount === 0) {
+    content = `<p class="text-center text-gray-500 italic py-4">No queries found matching "${searchTerm}".</p>`;
+  } else {
+    const runningSection = runningRows ? `
+      <details class="mb-6" open>
+        <summary class="bg-blue-100 text-left px-4 py-2 font-semibold cursor-pointer">${runningCount} Running</summary>
+        <table class="min-w-full text-sm">
+          ${runningTableHead}
+          <tbody>
+            ${runningRows}
+          </tbody>
+        </table>
+      </details>
+    ` : '';
 
-  container.innerHTML = runningSection + doneSection;
+    const doneSection = doneRows ? `
+      <details open>
+        <summary class="bg-blue-100 text-left px-4 py-2 font-semibold cursor-pointer">${doneCount} Completed</summary>
+        <table class="min-w-full text-sm">
+          ${completedTableHead}
+          <tbody>
+            ${doneRows}
+          </tbody>
+        </table>
+      </details>
+    ` : '';
+
+    content = runningSection + doneSection;
+  }
+
+  container.innerHTML = content;
 
   // Attach click handlers to load buttons
   container.querySelectorAll('.load-query-btn').forEach(btn => {
@@ -3798,6 +3835,7 @@ const TooltipManager = (() => {
   let currentTarget = null;
   let hideTimeout = null;
   let isDragging = false; // Track drag state
+  let isVisible = false; // Track visibility state
 
   function createTooltip() {
     tooltipEl = document.createElement('div');
@@ -3812,6 +3850,13 @@ const TooltipManager = (() => {
   function showTooltip(target, text, event) {
     if (isDragging) return; // Do not show tooltip while dragging
     if (!tooltipEl) createTooltip();
+    
+    // Clear any pending hide timeout
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+      hideTimeout = null;
+    }
+    
     tooltipEl.textContent = '';
     tooltipEl.appendChild(arrowEl); // keep arrow at end
     tooltipEl.setAttribute('role', 'tooltip');
@@ -3823,20 +3868,53 @@ const TooltipManager = (() => {
     tooltipEl.insertBefore(document.createTextNode(text), arrowEl);
     // Position
     positionTooltip(target, event);
-    setTimeout(() => { tooltipEl.classList.add('show'); tooltipEl.style.opacity = '1'; }, 10);
+    setTimeout(() => { 
+      if (tooltipEl) {
+        tooltipEl.classList.add('show'); 
+        tooltipEl.style.opacity = '1'; 
+      }
+    }, 10);
     currentTarget = target;
+    isVisible = true;
   }
 
   function hideTooltip() {
-    if (!tooltipEl) return;
+    if (!tooltipEl || !isVisible) return;
+    
+    // Clear any existing timeout
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+    }
+    
     tooltipEl.classList.remove('show');
     tooltipEl.style.opacity = '0';
+    isVisible = false;
+    
     hideTimeout = setTimeout(() => {
+      if (tooltipEl) {
+        tooltipEl.style.display = 'none';
+        tooltipEl.textContent = '';
+        tooltipEl.appendChild(arrowEl);
+      }
+      currentTarget = null;
+      hideTimeout = null;
+    }, 120);
+  }
+
+  function forceHide() {
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+      hideTimeout = null;
+    }
+    if (tooltipEl) {
+      tooltipEl.classList.remove('show');
+      tooltipEl.style.opacity = '0';
       tooltipEl.style.display = 'none';
       tooltipEl.textContent = '';
       tooltipEl.appendChild(arrowEl);
-      currentTarget = null;
-    }, 120);
+    }
+    currentTarget = null;
+    isVisible = false;
   }
 
   function positionTooltip(target, event) {
@@ -3889,15 +3967,33 @@ const TooltipManager = (() => {
       const text = el.getAttribute('data-tooltip');
       if (text) showTooltip(el, text, e);
     });
+    
     document.addEventListener('mousemove', e => {
       if (isDragging) return;
       if (currentTarget && tooltipEl && tooltipEl.style.display === 'block') {
-        positionTooltip(currentTarget, e);
+        // Check if we're still over the target or its children
+        const elementUnderMouse = document.elementFromPoint(e.clientX, e.clientY);
+        if (elementUnderMouse && (elementUnderMouse === currentTarget || currentTarget.contains(elementUnderMouse))) {
+          positionTooltip(currentTarget, e);
+        } else {
+          // Mouse left the target, hide tooltip
+          hideTooltip();
+        }
       }
     });
+    
     document.addEventListener('mouseout', e => {
-      if (e.target.closest('[data-tooltip]')) hideTooltip();
+      const el = e.target.closest('[data-tooltip]');
+      if (el) {
+        // Add a small delay to prevent flickering when moving between child elements
+        setTimeout(() => {
+          if (currentTarget === el) {
+            hideTooltip();
+          }
+        }, 50);
+      }
     });
+    
     document.addEventListener('focusin', e => {
       if (isDragging) return;
       const el = e.target.closest('[data-tooltip]');
@@ -3906,14 +4002,22 @@ const TooltipManager = (() => {
       const text = el.getAttribute('data-tooltip');
       if (text) showTooltip(el, text);
     });
+    
     document.addEventListener('focusout', e => {
       if (e.target.closest('[data-tooltip]')) hideTooltip();
     });
-    window.addEventListener('scroll', () => { if (tooltipEl) hideTooltip(); });
+    
+    // Hide tooltip on scroll, click, or escape
+    window.addEventListener('scroll', forceHide);
+    document.addEventListener('click', forceHide);
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') forceHide();
+    });
+    
     // Hide tooltip on dragstart, show again on dragend
     document.addEventListener('dragstart', () => {
       isDragging = true;
-      hideTooltip();
+      forceHide();
     });
     document.addEventListener('dragend', () => {
       isDragging = false;
@@ -3935,7 +4039,7 @@ const TooltipManager = (() => {
     });
   }
   attach();
-  return { show: showTooltip, hide: hideTooltip };
+  return { show: showTooltip, hide: hideTooltip, forceHide: forceHide };
 })();
 
 // FilterPill UI component class
@@ -4299,6 +4403,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const searchInput = document.getElementById('templates-search');
   if (searchInput) {
     searchInput.addEventListener('input', TemplateManager.renderTemplates);
+  }
+  
+  // Attach queries search event listener
+  const queriesSearchInput = document.getElementById('queries-search');
+  if (queriesSearchInput) {
+    queriesSearchInput.addEventListener('input', renderQueries);
   }
   
   // Initialize with some sample columns to demonstrate virtual scrolling
