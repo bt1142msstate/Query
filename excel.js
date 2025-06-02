@@ -155,7 +155,7 @@ const ExcelExporter = (() => {
       name: safeTableName,
       ref: 'A1',
       headerRow: true,
-      style: { theme: 'TableStyleLight8', showRowStripes: true },
+      style: { theme: 'TableStyleMedium4', showRowStripes: true },
       columns: displayedFields.map(f => ({ name: f, filterButton: true })),
       rows: tableRows
     });
