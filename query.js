@@ -2635,7 +2635,6 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
         <td class="px-4 py-2 text-xs text-center">${columnsSummary}</td>
         <td class="px-4 py-2 text-xs text-center">${filtersSummary}</td>
         <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
-        <td class="px-4 py-2 text-xs text-center">${q.cancelledTime ? new Date(q.cancelledTime).toLocaleString() : '—'}</td>
         <td class="px-4 py-2 text-xs text-center">${duration}</td>
         <td class="px-4 py-2 text-xs text-center">${rerunBtn}</td>
       </tr>
@@ -2647,7 +2646,6 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
         <td class="px-4 py-2 text-xs text-center">${columnsSummary}</td>
         <td class="px-4 py-2 text-xs text-center">${filtersSummary}</td>
         <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
-        <td class="px-4 py-2 text-xs text-center">${q.endTime ? new Date(q.endTime).toLocaleString() : '—'}</td>
         <td class="px-4 py-2 text-xs text-center">${duration}</td>
         <td class="px-4 py-2 text-xs text-center">${loadBtn}</td>
         <td class="px-4 py-2 text-xs text-center">${rerunBtn}</td>
@@ -2727,38 +2725,36 @@ function renderQueries(){
   const runningTableHead = `
     <thead class="bg-blue-50">
       <tr>
-        <th class="px-4 py-2 text-center">Name</th>
-        <th class="px-4 py-2 text-center">Displaying</th>
-        <th class="px-4 py-2 text-center">Filters</th>
-        <th class="px-4 py-2 text-center">Stop/Cancel</th>
-        <th class="px-4 py-2 text-center">Start</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Query name or identifier">Name</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Columns being displayed in the query results">Displaying</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Active filters applied to the query">Filters</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Stop the currently running query">Stop/Cancel</th>
+        <th class="px-4 py-2 text-center" data-tooltip="When this query was started">Started</th>
       </tr>
     </thead>`;
 
   const completedTableHead = `
     <thead class="bg-blue-50">
       <tr>
-        <th class="px-4 py-2 text-center">Name</th>
-        <th class="px-4 py-2 text-center">Displaying</th>
-        <th class="px-4 py-2 text-center">Filters</th>
-        <th class="px-4 py-2 text-center">Start</th>
-        <th class="px-4 py-2 text-center">End</th>
-        <th class="px-4 py-2 text-center">Duration</th>
-        <th class="px-4 py-2 text-center">Results</th>
-        <th class="px-4 py-2 text-center">Rerun</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Query name or identifier">Name</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Columns being displayed in the query results">Displaying</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Active filters applied to the query">Filters</th>
+        <th class="px-4 py-2 text-center" data-tooltip="When this query was last executed">Last Run</th>
+        <th class="px-4 py-2 text-center" data-tooltip="How long the query took to complete">Duration</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Load the query results or view report">Results</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Re-execute this query with the same settings">Rerun</th>
       </tr>
     </thead>`;
 
   const cancelledTableHead = `
     <thead class="bg-red-50">
       <tr>
-        <th class="px-4 py-2 text-center">Name</th>
-        <th class="px-4 py-2 text-center">Displaying</th>
-        <th class="px-4 py-2 text-center">Filters</th>
-        <th class="px-4 py-2 text-center">Start</th>
-        <th class="px-4 py-2 text-center">Cancelled</th>
-        <th class="px-4 py-2 text-center">Duration</th>
-        <th class="px-4 py-2 text-center">Rerun</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Query name or identifier">Name</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Columns being displayed in the query results">Displaying</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Active filters applied to the query">Filters</th>
+        <th class="px-4 py-2 text-center" data-tooltip="When this query was last executed before cancellation">Last Run</th>
+        <th class="px-4 py-2 text-center" data-tooltip="How long the query ran before being cancelled">Duration</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Re-execute this query with the same settings">Rerun</th>
       </tr>
     </thead>`;
 
