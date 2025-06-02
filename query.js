@@ -175,30 +175,20 @@ function updateButtonStates(){
     const tableName = tableNameInput ? tableNameInput.value.trim() : '';
     const hasData = displayedFields.length > 0 && virtualTableData.length > 0;
     const hasName = tableName && tableName !== '';
-    
-    // Check for duplicate query history name (case-insensitive, trimmed)
-    let isDuplicateName = false;
-    if (hasName) {
-      try {
-        // Only check exampleQueries for duplicate name
-        const queryMatch = Array.isArray(window.exampleQueries)
-          ? window.exampleQueries.some(q => (q.name || '').trim().toLowerCase() === tableName.toLowerCase())
-          : (typeof exampleQueries !== 'undefined' && Array.isArray(exampleQueries))
-            ? exampleQueries.some(q => (q.name || '').trim().toLowerCase() === tableName.toLowerCase())
-            : false;
-        isDuplicateName = queryMatch;
-      } catch (e) {
-        // If error, don't block download
-        isDuplicateName = false;
+
+    // Add/remove error styling based on table name presence
+    if (tableNameInput) {
+      if (!hasName && hasData) {
+        tableNameInput.classList.add('error');
+      } else {
+        tableNameInput.classList.remove('error');
       }
     }
 
-    downloadBtn.disabled = !hasData || !hasName || isDuplicateName;
+    downloadBtn.disabled = !hasData || !hasName;
     
-    // Update tooltip based on what's missing or duplicate
-    if (isDuplicateName) {
-      downloadBtn.setAttribute('data-tooltip', 'A query with this name already exists');
-    } else if (!hasData && !hasName) {
+    // Update tooltip based on what's missing
+    if (!hasData && !hasName) {
       downloadBtn.setAttribute('data-tooltip', 'Add columns and name your table to download');
     } else if (!hasData) {
       downloadBtn.setAttribute('data-tooltip', 'Add columns to download');
@@ -3911,15 +3901,22 @@ document.addEventListener('DOMContentLoaded', () => {
       updateButtonStates(); // Update download button state when table name changes
     });
     
-    // Resize when window resizes (to update max width based on table)
-    window.addEventListener('resize', autoResizeInput);
+    // Add immediate visual feedback for empty table name
+    tableNameInput.addEventListener('blur', () => {
+      updateButtonStates(); // Trigger validation when user leaves the input
+    });
     
-    // Handle focus/blur for better UX
+    // Remove error styling when user starts typing
     tableNameInput.addEventListener('focus', () => {
       if (tableNameInput.value === 'Query Results') {
         tableNameInput.select();
       }
+      // Remove error styling when user focuses on input to start typing
+      tableNameInput.classList.remove('error');
     });
+    
+    // Resize when window resizes (to update max width based on table)
+    window.addEventListener('resize', autoResizeInput);
   }
   
   // Initialize with some sample columns to demonstrate virtual scrolling

@@ -1520,4 +1520,22 @@ th:hover .th-trash {
 #table-name-input:focus {
   z-index: 10;
   position: relative;
-} 
+}
+
+/* Error state styling for empty table name input */
+#table-name-input.error {
+  border-color: #ef4444 !important;
+  background-color: #fef2f2 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1), 0 4px 12px rgba(239, 68, 68, 0.15) !important;
+}
+
+#table-name-input.error:hover {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15), 0 4px 12px rgba(220, 38, 38, 0.2) !important;
+}
+
+#table-name-input.error:focus {
+  border-color: #dc2626 !important;
+  background-color: #fef2f2 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2), 0 4px 12px rgba(220, 38, 38, 0.25) !important;
+}
