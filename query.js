@@ -357,7 +357,7 @@ function updateButtonStates(){
     const tableName = tableNameInput ? tableNameInput.value.trim() : '';
     const hasData = displayedFields.length > 0 && virtualTableData.length > 0;
     const hasName = tableName && tableName !== '';
-
+    
     // Check for duplicate query history name (case-insensitive, trimmed)
     let isDuplicateName = false;
     if (hasName) {
@@ -376,7 +376,7 @@ function updateButtonStates(){
     }
 
     downloadBtn.disabled = !hasData || !hasName || isDuplicateName;
-
+    
     // Update tooltip based on what's missing or duplicate
     if (isDuplicateName) {
       downloadBtn.setAttribute('data-tooltip', 'A query with this name already exists');
@@ -524,60 +524,19 @@ dropAnchor.className = 'drop-anchor';
 document.body.appendChild(dropAnchor);
 
 /* Unified helper to position the drop-anchor */
-function positionDropAnchor(isBubble, rect, table, clientX){
-  if(isBubble){
-    dropAnchor.classList.add('vertical');
-    const insertLeft = (clientX - rect.left) < rect.width/2;
-    
-    // For virtual scrolling tables, use the container height instead of table height
-    const tableContainer = table.closest('.overflow-x-auto.shadow.rounded-lg.mb-6.relative');
-    const anchorHeight = tableContainer ? tableContainer.offsetHeight : table.offsetHeight;
-    
-    dropAnchor.style.width  = '4px';
-    dropAnchor.style.height = anchorHeight + 'px';
-    dropAnchor.style.left   = (insertLeft ? rect.left : rect.right) + window.scrollX - 2 + 'px';
-    dropAnchor.style.top    = (tableContainer ? tableContainer.getBoundingClientRect().top : table.getBoundingClientRect().top) + window.scrollY + 'px';
-  }else{
-    // Horizontal anchor for column reordering
-    dropAnchor.classList.remove('vertical');
-    
-    // Get table container bounds to constrain the anchor
-    const tableContainer = table.closest('.overflow-x-auto.shadow.rounded-lg.mb-6.relative');
-    const containerRect = tableContainer ? tableContainer.getBoundingClientRect() : null;
-    
-    // Calculate anchor position
-    let anchorLeft = rect.left + window.scrollX;
-    let anchorWidth = rect.width;
-    
-    // Constrain anchor within visible container bounds
-    if (containerRect) {
-      const containerLeft = containerRect.left + window.scrollX;
-      const containerRight = containerRect.right + window.scrollX;
-      
-      // Clip left edge
-      if (anchorLeft < containerLeft) {
-        const clipAmount = containerLeft - anchorLeft;
-        anchorLeft = containerLeft;
-        anchorWidth = Math.max(0, anchorWidth - clipAmount);
-      }
-      
-      // Clip right edge
-      if (anchorLeft + anchorWidth > containerRight) {
-        anchorWidth = Math.max(0, containerRight - anchorLeft);
-      }
-      
-      // Don't show anchor if it's completely clipped
-      if (anchorWidth <= 0) {
-        dropAnchor.style.display = 'none';
-        return;
-      }
-    }
-    
-    dropAnchor.style.width  = anchorWidth + 'px';
-    dropAnchor.style.height = '4px';
-    dropAnchor.style.left   = anchorLeft + 'px';
-    dropAnchor.style.top    = rect.bottom + window.scrollY - 2 + 'px';
-  }
+function positionDropAnchor(rect, table, clientX){
+  // Both bubble insertion and column reordering use vertical anchors for consistency
+  dropAnchor.classList.add('vertical');
+  const insertLeft = (clientX - rect.left) < rect.width/2;
+  
+  // For virtual scrolling tables, use the container height instead of table height
+  const tableContainer = table.closest('.overflow-x-auto.shadow.rounded-lg.mb-6.relative');
+  const anchorHeight = tableContainer ? tableContainer.offsetHeight : table.offsetHeight;
+  
+  dropAnchor.style.width  = '4px';
+  dropAnchor.style.height = anchorHeight + 'px';
+  dropAnchor.style.left   = (insertLeft ? rect.left : rect.right) + window.scrollX - 2 + 'px';
+  dropAnchor.style.top    = (tableContainer ? tableContainer.getBoundingClientRect().top : table.getBoundingClientRect().top) + window.scrollY + 'px';
   dropAnchor.style.display = 'block';
 }
 
@@ -1784,63 +1743,63 @@ if (categoryBar) {
   // Use the imported functions for initial setup
   updateCategoryCounts();
 }
-
+    
 // Bubble scrollbar navigation
-const track = document.getElementById('bubble-scrollbar-track');
-const thumb = document.getElementById('bubble-scrollbar-thumb');
-let isThumbDragging = false;
-if (thumb && track) {
-  thumb.tabIndex = 0;                     // allow arrow-key control
-  thumb.addEventListener('pointerdown', e => {
-    isThumbDragging = true;
-    thumb.setPointerCapture(e.pointerId);
-  });
-  thumb.addEventListener('pointerup', e => {
-    if (!isThumbDragging) return;
-    isThumbDragging = false;
-    thumb.releasePointerCapture(e.pointerId);
-    // Snap to the segment that the *thumb center* currently overlaps
-    const rect = track.getBoundingClientRect();
-    let y = parseFloat(thumb.style.top) || 0;           // current thumb top
-    const thumbH = thumb.offsetHeight;
-    const centerY = y + thumbH / 2;                     // center of thumb
-    const maxStartRow = Math.max(0, totalRows - 2);
-    const segmentH = rect.height / (maxStartRow + 1);
-    scrollRow = Math.min(
-      maxStartRow,
-      Math.max(0, Math.floor(centerY / segmentH))
-    );
-    document.getElementById('bubble-list').style.transform = `translateY(-${scrollRow * rowHeight}px)`;
-    updateScrollBar();
-  });
-  thumb.addEventListener('pointermove', e => {
-    if (!isThumbDragging) return;
-    const rect = track.getBoundingClientRect();
-    const maxY = rect.height - thumb.offsetHeight;   // keep pill fully inside
-    let y = e.clientY - rect.top;
-    y = Math.max(0, Math.min(y, maxY));              // clamp 0 … maxY
-    // Free thumb move
-    thumb.style.top = y + 'px';
-    const ratio = y / maxY;      /* use draggable range to map rows */
-    const maxStartRow = Math.max(0, totalRows - 2);
-    const virtualRow = ratio * maxStartRow;
-    document.getElementById('bubble-list').style.transform = `translateY(-${virtualRow * rowHeight}px)`;
-  });
+  const track = document.getElementById('bubble-scrollbar-track');
+  const thumb = document.getElementById('bubble-scrollbar-thumb');
+  let isThumbDragging = false;
+  if (thumb && track) {
+    thumb.tabIndex = 0;                     // allow arrow-key control
+    thumb.addEventListener('pointerdown', e => {
+      isThumbDragging = true;
+      thumb.setPointerCapture(e.pointerId);
+    });
+    thumb.addEventListener('pointerup', e => {
+      if (!isThumbDragging) return;
+      isThumbDragging = false;
+      thumb.releasePointerCapture(e.pointerId);
+      // Snap to the segment that the *thumb center* currently overlaps
+      const rect = track.getBoundingClientRect();
+      let y = parseFloat(thumb.style.top) || 0;           // current thumb top
+      const thumbH = thumb.offsetHeight;
+      const centerY = y + thumbH / 2;                     // center of thumb
+      const maxStartRow = Math.max(0, totalRows - 2);
+      const segmentH = rect.height / (maxStartRow + 1);
+      scrollRow = Math.min(
+        maxStartRow,
+        Math.max(0, Math.floor(centerY / segmentH))
+      );
+      document.getElementById('bubble-list').style.transform = `translateY(-${scrollRow * rowHeight}px)`;
+      updateScrollBar();
+    });
+    thumb.addEventListener('pointermove', e => {
+      if (!isThumbDragging) return;
+      const rect = track.getBoundingClientRect();
+      const maxY = rect.height - thumb.offsetHeight;   // keep pill fully inside
+      let y = e.clientY - rect.top;
+      y = Math.max(0, Math.min(y, maxY));              // clamp 0 … maxY
+      // Free thumb move
+      thumb.style.top = y + 'px';
+      const ratio = y / maxY;      /* use draggable range to map rows */
+      const maxStartRow = Math.max(0, totalRows - 2);
+      const virtualRow = ratio * maxStartRow;
+      document.getElementById('bubble-list').style.transform = `translateY(-${virtualRow * rowHeight}px)`;
+    });
 
-  track.addEventListener('click', e=>{
-    const rect = track.getBoundingClientRect();
-    let y = e.clientY - rect.top;
-    const maxY = rect.height - thumb.offsetHeight;   // ensure click maps within bounds
-    y = Math.max(0, Math.min(y, maxY));
-    const maxStartRow = Math.max(0, totalRows - 2);
-    const segmentH = rect.height / (maxStartRow + 1);
-    scrollRow = Math.min(
-      maxStartRow,
-      Math.floor(y / segmentH)
-    );
-    document.getElementById('bubble-list').style.transform = `translateY(-${scrollRow * rowHeight}px)`;
-    updateScrollBar();
-  });
+    track.addEventListener('click', e=>{
+      const rect = track.getBoundingClientRect();
+      let y = e.clientY - rect.top;
+      const maxY = rect.height - thumb.offsetHeight;   // ensure click maps within bounds
+      y = Math.max(0, Math.min(y, maxY));
+      const maxStartRow = Math.max(0, totalRows - 2);
+      const segmentH = rect.height / (maxStartRow + 1);
+      scrollRow = Math.min(
+        maxStartRow,
+        Math.floor(y / segmentH)
+      );
+      document.getElementById('bubble-list').style.transform = `translateY(-${scrollRow * rowHeight}px)`;
+      updateScrollBar();
+    });
 }
 
 /* ------------------------------------------------------------------
@@ -3239,9 +3198,9 @@ if (mobileMenuToggle && mobileMenuDropdown) {
 function renderCategorySelectorsLocal(categoryCounts) {
   renderCategorySelectors(categoryCounts, currentCategory, (newCategory) => {
     currentCategory = newCategory;
-    scrollRow = 0;
-    safeRenderBubbles();
-  });
+          scrollRow = 0;
+          safeRenderBubbles();
+        });
 }
 
 // Replace all category bar/mobile selector update logic with the new function
@@ -3422,7 +3381,7 @@ const dragDropManager = {
       element.classList.add('th-drag-over');
     }
     const rect = element.getBoundingClientRect();
-    positionDropAnchor(this.isBubbleDrag, rect, table, e.clientX);
+    positionDropAnchor(rect, table, e.clientX);
     
     // Check for auto-scroll when dragging columns
     if (!this.isBubbleDrag && this.scrollContainer) {
@@ -3438,7 +3397,7 @@ const dragDropManager = {
   handleDragOver(e, element, table) {
     e.preventDefault();
     const rect = element.getBoundingClientRect();
-    positionDropAnchor(this.isBubbleDrag, rect, table, e.clientX);
+    positionDropAnchor(rect, table, e.clientX);
     
     // Check for auto-scroll when dragging columns
     if (!this.isBubbleDrag && this.scrollContainer) {
@@ -3456,7 +3415,7 @@ const dragDropManager = {
       targetHeader.classList.add('th-drag-over');
     }
     const rect = targetHeader.getBoundingClientRect();
-    positionDropAnchor(this.isBubbleDrag, rect, table, e.clientX);
+    positionDropAnchor(rect, table, e.clientX);
     
     // Check for auto-scroll when dragging columns
     if (!this.isBubbleDrag && this.scrollContainer) {
@@ -3469,7 +3428,7 @@ const dragDropManager = {
     const colIndex = parseInt(td.dataset.colIndex, 10);
     const targetHeader = table.querySelector(`thead th[data-col-index="${colIndex}"]`);
     const rect = targetHeader.getBoundingClientRect();
-    positionDropAnchor(this.isBubbleDrag, rect, table, e.clientX);
+    positionDropAnchor(rect, table, e.clientX);
     
     // Check for auto-scroll when dragging columns
     if (!this.isBubbleDrag && this.scrollContainer) {
@@ -3491,7 +3450,14 @@ const dragDropManager = {
     if (/^\d+$/.test(fromIndexStr)) {
       const fromIndex = parseInt(fromIndexStr, 10);
       if (fromIndex !== toIndex) {
-        moveColumn(table, fromIndex, toIndex);
+        // Calculate insertion position based on mouse position relative to drop target
+        const rect = th.getBoundingClientRect();
+        const insertAt = (e.clientX - rect.left) < rect.width/2 ? toIndex : toIndex + 1;
+        
+        // Adjust insertion index when moving from left to right
+        const finalInsertAt = fromIndex < insertAt ? insertAt - 1 : insertAt;
+        
+        moveColumn(table, fromIndex, finalInsertAt);
         refreshColIndices(table);
       }
       th.classList.remove('th-drag-over');
@@ -3537,7 +3503,15 @@ const dragDropManager = {
     // Header reorder drop
     const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
     if (!isNaN(fromIndex) && fromIndex !== toIndex) {
-      moveColumn(table, fromIndex, toIndex);
+      // Calculate insertion position based on mouse position relative to drop target
+      const targetHeader = table.querySelector(`thead th[data-col-index="${toIndex}"]`);
+      const rect = targetHeader.getBoundingClientRect();
+      const insertAt = (e.clientX - rect.left) < rect.width/2 ? toIndex : toIndex + 1;
+      
+      // Adjust insertion index when moving from left to right
+      const finalInsertAt = fromIndex < insertAt ? insertAt - 1 : insertAt;
+      
+      moveColumn(table, fromIndex, finalInsertAt);
       refreshColIndices(table);
     }
     
@@ -3707,7 +3681,7 @@ function openModal(panelId) {
   trapFocus(panel);
   // Accessibility: hide main content from screen readers
   setMainContentAriaHidden(true, panelId);
-}
+    }
     
 function closeAllModals() {
   MODAL_PANEL_IDS.forEach(id => {
