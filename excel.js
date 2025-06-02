@@ -90,15 +90,23 @@ const ExcelExporter = (() => {
 
     const safeTableName = tableName.replace(/[^a-zA-Z0-9_]/g, '_');
 
-    ws['!freeze'] = { xSplit: 0, ySplit: 1 }; // Freeze header row
+    // Freeze the first row so headers stay visible when scrolling
+    ws['!freeze'] = {
+      xSplit: 0,
+      ySplit: 1,
+      topLeftCell: { r: 1, c: 0 },
+      activePane: 'bottomLeft',
+      state: 'frozen'
+    };
 
+    // Define a simple table so Excel will preserve row striping
     ws['!tables'] = [{
       ref: tableRef,
       name: safeTableName,
       headerRowCount: 1,
       totalsRowCount: 0,
       style: {
-        theme: "TableStyleMedium9",
+        theme: "TableStyleLight1",
         showFirstColumn: false,
         showLastColumn: false,
         showRowStripes: true,
@@ -116,20 +124,20 @@ const ExcelExporter = (() => {
         if (!ws[cell_address]) continue;
         if (R === 0) {
           ws[cell_address].s = {
-            font: { bold: true, color: { rgb: "FFFFFF" } },
-            fill: { fgColor: { rgb: "4472C4" } },
+            font: { bold: true, color: { rgb: "333333" } },
+            fill: { fgColor: { rgb: "F5F5F5" } },
             alignment: { horizontal: "center", vertical: "center" },
             border: {
-              top: { style: "medium", color: { rgb: "FFFFFF" } },
-              bottom: { style: "medium", color: { rgb: "FFFFFF" } },
-              left: { style: "medium", color: { rgb: "FFFFFF" } },
-              right: { style: "medium", color: { rgb: "FFFFFF" } }
+              top: { style: "medium", color: { rgb: "E0E0E0" } },
+              bottom: { style: "medium", color: { rgb: "E0E0E0" } },
+              left: { style: "medium", color: { rgb: "E0E0E0" } },
+              right: { style: "medium", color: { rgb: "E0E0E0" } }
             }
           };
         } else {
           const isEvenRow = R % 2 === 0;
           ws[cell_address].s = {
-            fill: { fgColor: { rgb: isEvenRow ? "FDFDFD" : "FFFFFF" } },
+            fill: { fgColor: { rgb: isEvenRow ? "FAFAFA" : "FFFFFF" } },
             alignment: { horizontal: "left", vertical: "center" },
             border: {
               top: { style: "thin", color: { rgb: "E0E0E0" } },
