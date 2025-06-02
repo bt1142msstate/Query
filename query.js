@@ -22,8 +22,6 @@ let totalRows = 0;          // total rows in #bubble-list
 let scrollRow = 0;          // current top row (0-based)
 let rowHeight = 0;          // computed once per render
 let hoverScrollArea = false;  // true when cursor over bubbles or scrollbar
-let isBubbleDrag = false;
-let hoverTh = null;           // keeps track of which header we're over
 let currentCategory = 'All';
 
 // Virtual scrolling state for table
@@ -374,17 +372,15 @@ headerTrash.innerHTML = `
     <path d="M9 3h6a1 1 0 0 1 1 1v1h4v2H4V5h4V4a1 1 0 0 1 1-1Zm-3 6h12l-.8 11.2A2 2 0 0 1 15.2 22H8.8a2 2 0 0 1-1.99-1.8L6 9Z"/>
   </svg>
 `;
-// hoverTh already declared at the top
-headerTrash.addEventListener('click', e=>{
+headerTrash.addEventListener('click', e => {
   e.stopPropagation();
-  if(hoverTh){
-    const idx = parseInt(hoverTh.dataset.colIndex, 10);
-    const table = hoverTh.closest('table');
+  const th = dragDropManager.hoverTh;
+  if (th) {
+    const idx = parseInt(th.dataset.colIndex, 10);
+    const table = th.closest('table');
     removeColumn(table, idx);
   }
 });
-
-// isBubbleDrag already declared at the top
 
 // displayedFields, selectedField, and activeFilters are already declared at the top
 
@@ -1709,44 +1705,6 @@ document.addEventListener('click', e=>{
   if (clone && headerBar) headerBar.classList.add('header-hide');
 });
 
-document.addEventListener('dragstart', e=>{
-  const bubble = e.target.closest('.bubble');
-  if(!bubble) return;
-  
-  // Check if this bubble is already displayed in the table
-  const fieldName = bubble.textContent.trim();
-  if(displayedFields.includes(fieldName)) {
-    // Prevent dragging of already displayed bubbles
-    e.preventDefault();
-    return;
-  }
-  
-  e.dataTransfer.setData('bubble-field', fieldName);
-  e.dataTransfer.effectAllowed='copy';
-  isBubbleDrag = true;
-  // Clone bubble and wrap it in a padded container so box-shadow glow isn't clipped
-  const wrapper = document.createElement('div');
-  const pad = 16;                               // 8 px padding on all sides
-  wrapper.style.position = 'absolute';
-  wrapper.style.top = '-9999px';
-  wrapper.style.left = '-9999px';
-  wrapper.style.padding = pad / 2 + 'px';       // half pad each side
-  wrapper.style.pointerEvents = 'none';
-  wrapper.style.boxSizing = 'content-box';      // pad expands bounding box
-  const ghost = bubble.cloneNode(true);
-  ghost.style.overflow = 'visible';
-  wrapper.appendChild(ghost);
-  document.body.appendChild(wrapper);
-  const gw = wrapper.offsetWidth;
-  const gh = wrapper.offsetHeight;
-  e.dataTransfer.setDragImage(wrapper, gw / 2, gh / 2);
-  // Remove wrapper after dragstart to clean up
-  setTimeout(() => wrapper.remove(), 0);
-});
-
-document.addEventListener('dragend', e=>{
-  if(e.target.closest('.bubble')) isBubbleDrag = false;
-});
 
 
 
@@ -2466,13 +2424,13 @@ function showExampleTable(fields){
     headers.forEach(h => {
       h.addEventListener('mouseenter', () => {
         h.classList.add('th-hover');
-        hoverTh = h;
+        dragDropManager.hoverTh = h;
         h.appendChild(headerTrash);
         headerTrash.style.display = 'block';
       });
       h.addEventListener('mouseleave', () => {
         h.classList.remove('th-hover');
-        hoverTh = null;
+        dragDropManager.hoverTh = null;
         if (headerTrash.parentNode) headerTrash.parentNode.removeChild(headerTrash);
       });
     });
@@ -2481,7 +2439,7 @@ function showExampleTable(fields){
     if (headers.length === 1) {
       const h = headers[0];
       h.classList.add('th-hover');
-      hoverTh = h;
+      dragDropManager.hoverTh = h;
       h.appendChild(headerTrash);
       headerTrash.style.display = 'block';
     }
