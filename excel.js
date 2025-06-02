@@ -62,9 +62,17 @@ const ExcelExporter = (() => {
     const tableNameInput = document.getElementById('table-name-input');
     const tableName = tableNameInput ? tableNameInput.value.trim() || 'Query Results' : 'Query Results';
 
-    const wb = XLSX.utils.book_new();
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet(tableName);
 
-    const wsData = [displayedFields];
+    worksheet.views = [{ state: 'frozen', ySplit: 1 }];
+
+    worksheet.columns = displayedFields.map(field => ({
+      header: field,
+      key: field,
+      width: Math.max(12, Math.min(50, Math.round(((calculatedColumnWidths && calculatedColumnWidths[field]) || 150) / 7)))
+    }));
+
     virtualTableData.forEach(row => {
       const rowData = displayedFields.map(field => {
         const value = row[field] || '';
@@ -74,107 +82,40 @@ const ExcelExporter = (() => {
         }
         return value;
       });
-      wsData.push(rowData);
+      worksheet.addRow(rowData);
     });
 
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-    const colWidths = displayedFields.map(field => {
-      const width = (calculatedColumnWidths && calculatedColumnWidths[field]) || 150;
-      return { wch: Math.max(12, Math.min(50, Math.round(width / 7))) };
+    displayedFields.forEach((field, idx) => {
+      const column = worksheet.getColumn(idx + 1);
+      if (field && (field.toLowerCase().includes('price') || field.toLowerCase().includes('cost'))) {
+        column.numFmt = '"$"#,##0.00';
+      } else if (field && (field.toLowerCase().includes('date') || field.toLowerCase().includes('time'))) {
+        column.numFmt = 'mm/dd/yyyy';
+      }
     });
-    ws['!cols'] = colWidths;
-
-    const range = XLSX.utils.decode_range(ws['!ref']);
-    const tableRef = `A1:${XLSX.utils.encode_cell({r: range.e.r, c: range.e.c})}`;
 
     const safeTableName = tableName.replace(/[^a-zA-Z0-9_]/g, '_');
-
-    // Freeze the first row so headers stay visible when scrolling
-    ws['!freeze'] = {
-      xSplit: 0,
-      ySplit: 1,
-      topLeftCell: { r: 1, c: 0 },
-      activePane: 'bottomLeft',
-      state: 'frozen'
-    };
-
-    // Define a simple table so Excel will preserve row striping
-    ws['!tables'] = [{
-      ref: tableRef,
+    worksheet.addTable({
       name: safeTableName,
-      headerRowCount: 1,
-      totalsRowCount: 0,
-      style: {
-        theme: "TableStyleLight1",
-        showFirstColumn: false,
-        showLastColumn: false,
-        showRowStripes: true,
-        showColumnStripes: false
-      },
-      columns: displayedFields.map(field => ({
-        name: field,
-        totalsRowFunction: "none"
-      }))
-    }];
-
-    for (let R = 0; R <= range.e.r; ++R) {
-      for (let C = 0; C <= range.e.c; ++C) {
-        const cell_address = XLSX.utils.encode_cell({r:R, c:C});
-        if (!ws[cell_address]) continue;
-        if (R === 0) {
-          ws[cell_address].s = {
-            font: { bold: true, color: { rgb: "333333" } },
-            fill: { fgColor: { rgb: "F5F5F5" } },
-            alignment: { horizontal: "center", vertical: "center" },
-            border: {
-              top: { style: "medium", color: { rgb: "E0E0E0" } },
-              bottom: { style: "medium", color: { rgb: "E0E0E0" } },
-              left: { style: "medium", color: { rgb: "E0E0E0" } },
-              right: { style: "medium", color: { rgb: "E0E0E0" } }
-            }
-          };
-        } else {
-          const isEvenRow = R % 2 === 0;
-          ws[cell_address].s = {
-            fill: { fgColor: { rgb: isEvenRow ? "FAFAFA" : "FFFFFF" } },
-            alignment: { horizontal: "left", vertical: "center" },
-            border: {
-              top: { style: "thin", color: { rgb: "E0E0E0" } },
-              bottom: { style: "thin", color: { rgb: "E0E0E0" } },
-              left: { style: "thin", color: { rgb: "E0E0E0" } },
-              right: { style: "thin", color: { rgb: "E0E0E0" } }
-            }
-          };
-          const fieldName = displayedFields[C];
-          if (fieldName && (fieldName.toLowerCase().includes('price') || fieldName.toLowerCase().includes('cost'))) {
-            ws[cell_address].s.numFmt = '"$"#,##0.00';
-          } else if (fieldName && (fieldName.toLowerCase().includes('date') || fieldName.toLowerCase().includes('time'))) {
-            ws[cell_address].s.numFmt = 'mm/dd/yyyy';
-          }
-        }
-      }
-    }
-
-    ws['!autofilter'] = { ref: tableRef };
-
-    XLSX.utils.book_append_sheet(wb, ws, tableName);
-
-    wb.Props = {
-      Title: tableName,
-      Subject: "Database Query Export",
-      Author: "Query Tool",
-      CreatedDate: new Date()
-    };
+      ref: 'A1',
+      headerRow: true,
+      style: { theme: 'TableStyleLight1', showRowStripes: true },
+      columns: displayedFields.map(f => ({ name: f })),
+      rows: virtualTableData.map(row => displayedFields.map(f => row[f] || ''))
+    });
 
     const safeFileName = tableName.replace(/[^a-zA-Z0-9\-_\s]/g, '').replace(/\s+/g, '-');
     const filename = `${safeFileName}.xlsx`;
 
-    XLSX.writeFile(wb, filename, {
-      bookType: 'xlsx',
-      type: 'binary',
-      cellStyles: true,
-      sheetStubs: false
+    workbook.xlsx.writeBuffer().then(buffer => {
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
     });
   }
 
