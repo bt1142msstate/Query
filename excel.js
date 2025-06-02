@@ -86,11 +86,27 @@ const ExcelExporter = (() => {
 
     virtualTableData.forEach(row => {
       const rowData = displayedFields.map(field => {
-        const value = row[field] || '';
-        if (typeof value === 'string' && value.startsWith('$')) {
-          const numValue = parseFloat(value.replace('$', '').replace(',', ''));
+        const raw = row[field];
+        const value = (raw === undefined || raw === null) ? '' : raw;
+
+        // ---- Money strings like "$1,234.56" ----
+        if (typeof value === 'string' && value.trim().startsWith('$')) {
+          const numValue = parseFloat(value.replace(/[$,]/g, ''));
           return isNaN(numValue) ? value : numValue;
         }
+
+        // ---- Date‑like strings e.g. "2025-06-02" ----
+        if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+          const asDate = new Date(value);
+          return isNaN(asDate.getTime()) ? value : asDate;
+        }
+
+        // ---- Plain numeric strings e.g. "1,234.56" ----
+        if (typeof value === 'string' && /^-?[0-9,]+(\.[0-9]+)?$/.test(value.trim())) {
+          const numValue = parseFloat(value.replace(/,/g, ''));
+          return isNaN(numValue) ? value : numValue;
+        }
+
         return value;
       });
       worksheet.addRow(rowData);
@@ -98,10 +114,18 @@ const ExcelExporter = (() => {
 
     displayedFields.forEach((field, idx) => {
       const column = worksheet.getColumn(idx + 1);
-      if (field && (field.toLowerCase().includes('price') || field.toLowerCase().includes('cost'))) {
+      const lower = field ? field.toLowerCase() : '';
+
+      if (lower.includes('price') || lower.includes('cost')) {
         column.numFmt = '"$"#,##0.00';
-      } else if (field && (field.toLowerCase().includes('date') || field.toLowerCase().includes('time'))) {
+      } else if (lower.includes('date') || lower.includes('time')) {
         column.numFmt = 'mm/dd/yyyy';
+      } else {
+        // Sample the first non‑empty value in the column to see if it's numeric
+        const sample = virtualTableData.find(r => r[field] !== undefined && r[field] !== null)?.[field];
+        if (typeof sample === 'number') {
+          column.numFmt = '#,##0.00';
+        }
       }
     });
 
@@ -115,11 +139,6 @@ const ExcelExporter = (() => {
       rows: virtualTableData.map(row => displayedFields.map(f => row[f] || ''))
     });
 
-    const lastColLetter = columnNumberToLetter(displayedFields.length);
-    worksheet.autoFilter = {
-      from: 'A1',
-      to: `${lastColLetter}${virtualTableData.length + 1}`
-    };
 
     const safeFileName = tableName.replace(/[^a-zA-Z0-9\-_\s]/g, '').replace(/\s+/g, '-');
     const filename = `${safeFileName}.xlsx`;
