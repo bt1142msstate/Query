@@ -59,6 +59,17 @@ const ExcelExporter = (() => {
       return;
     }
 
+    function columnNumberToLetter(number) {
+      let temp;
+      let letter = '';
+      while (number > 0) {
+        temp = (number - 1) % 26;
+        letter = String.fromCharCode(65 + temp) + letter;
+        number = Math.floor((number - temp - 1) / 26);
+      }
+      return letter;
+    }
+
     const tableNameInput = document.getElementById('table-name-input');
     const tableName = tableNameInput ? tableNameInput.value.trim() || 'Query Results' : 'Query Results';
 
@@ -100,9 +111,15 @@ const ExcelExporter = (() => {
       ref: 'A1',
       headerRow: true,
       style: { theme: 'TableStyleLight1', showRowStripes: true },
-      columns: displayedFields.map(f => ({ name: f })),
+      columns: displayedFields.map(f => ({ name: f, filterButton: true })),
       rows: virtualTableData.map(row => displayedFields.map(f => row[f] || ''))
     });
+
+    const lastColLetter = columnNumberToLetter(displayedFields.length);
+    worksheet.autoFilter = {
+      from: 'A1',
+      to: `${lastColLetter}${virtualTableData.length + 1}`
+    };
 
     const safeFileName = tableName.replace(/[^a-zA-Z0-9\-_\s]/g, '').replace(/\s+/g, '-');
     const filename = `${safeFileName}.xlsx`;
