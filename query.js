@@ -612,8 +612,21 @@ function conditionBtnHandler(e){
         displayedFields.splice(idx,1);
       }
       showExampleTable(displayedFields);
+      
+      // Update the show/hide button states after the operation
+      const toggleButtons = conditionPanel.querySelectorAll('.toggle-half');
+      toggleButtons.forEach(toggleBtn => {
+        toggleBtn.classList.remove('active');
+        const toggleCond = toggleBtn.dataset.cond;
+        if(toggleCond === 'show' && displayedFields.includes(selectedField)){
+          toggleBtn.classList.add('active');
+        } else if(toggleCond === 'hide' && !displayedFields.includes(selectedField)){
+          toggleBtn.classList.add('active');
+        }
+      });
     }
-    overlay.click();
+    // Don't close the enlarged bubble for show/hide operations
+    // Allow user to continue interacting with the bubble
     return;
   }
   // Show second input and "and" label only for "between"
