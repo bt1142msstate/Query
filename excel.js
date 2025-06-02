@@ -84,32 +84,51 @@ const ExcelExporter = (() => {
       width: Math.max(12, Math.min(50, Math.round(((calculatedColumnWidths && calculatedColumnWidths[field]) || 150) / 7)))
     }));
 
+    // Accumulate typed rows for the Excel table definition
+    const tableRows = [];
     virtualTableData.forEach(row => {
       const rowData = displayedFields.map(field => {
         const raw = row[field];
         const value = (raw === undefined || raw === null) ? '' : raw;
 
-        // ---- Money strings like "$1,234.56" ----
-        if (typeof value === 'string' && value.trim().startsWith('$')) {
-          const numValue = parseFloat(value.replace(/[$,]/g, ''));
-          return isNaN(numValue) ? value : numValue;
-        }
+        // Only attempt type‑coercion for strings
+        if (typeof value === 'string') {
+          const trimmed = value.trim();
 
-        // ---- Date‑like strings e.g. "2025-06-02" ----
-        if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
-          const asDate = new Date(value);
-          return isNaN(asDate.getTime()) ? value : asDate;
-        }
+          /* ---------- Money "$1,234.56" ---------- */
+          if (trimmed.startsWith('$')) {
+            const numValue = parseFloat(trimmed.replace(/[$,]/g, ''));
+            if (!isNaN(numValue)) return numValue;
+          }
 
-        // ---- Plain numeric strings e.g. "1,234.56" ----
-        if (typeof value === 'string' && /^-?[0-9,]+(\.[0-9]+)?$/.test(value.trim())) {
-          const numValue = parseFloat(value.replace(/,/g, ''));
-          return isNaN(numValue) ? value : numValue;
+          /* ---------- Negative numbers "(1,234.56)" ---------- */
+          if (/^\(\s*-?[0-9,]+(\.[0-9]+)?\s*\)$/.test(trimmed)) {
+            const numValue = -parseFloat(trimmed.replace(/[\(\),\s]/g, ''));
+            if (!isNaN(numValue)) return numValue;
+          }
+
+          /* ---------- Plain numeric strings "1,234.56" ---------- */
+          if (/^-?[0-9,]+(\.[0-9]+)?$/.test(trimmed)) {
+            const numValue = parseFloat(trimmed.replace(/,/g, ''));
+            if (!isNaN(numValue)) return numValue;
+          }
+
+          /* ---------- Flexible date strings "1995-7-2" or "1995/7/2" ---------- */
+          if (/^\d{4}[-\/]\d{1,2}[-\/]\d{1,2}$/.test(trimmed)) {
+            const parts = trimmed.split(/[-\/]/).map(Number);
+            const asDate = new Date(parts[0], parts[1] - 1, parts[2]);
+            if (!isNaN(asDate.getTime())) return asDate;
+          }
+
+          /* ---------- Fallback: anything Date.parse can understand ---------- */
+          const parsed = Date.parse(trimmed);
+          if (!isNaN(parsed)) return new Date(parsed);
         }
 
         return value;
       });
       worksheet.addRow(rowData);
+      tableRows.push(rowData);
     });
 
     displayedFields.forEach((field, idx) => {
@@ -121,9 +140,11 @@ const ExcelExporter = (() => {
       } else if (lower.includes('date') || lower.includes('time')) {
         column.numFmt = 'mm/dd/yyyy';
       } else {
-        // Sample the first non‑empty value in the column to see if it's numeric
+        // Sample a value that made it into the sheet to infer type
         const sample = virtualTableData.find(r => r[field] !== undefined && r[field] !== null)?.[field];
-        if (typeof sample === 'number') {
+        if (sample instanceof Date) {
+          column.numFmt = 'mm/dd/yyyy';
+        } else if (typeof sample === 'number') {
           column.numFmt = '#,##0.00';
         }
       }
@@ -134,9 +155,9 @@ const ExcelExporter = (() => {
       name: safeTableName,
       ref: 'A1',
       headerRow: true,
-      style: { theme: 'TableStyleLight1', showRowStripes: true },
+      style: { theme: 'TableStyleLight8', showRowStripes: true },
       columns: displayedFields.map(f => ({ name: f, filterButton: true })),
-      rows: virtualTableData.map(row => displayedFields.map(f => row[f] || ''))
+      rows: tableRows
     });
 
 
