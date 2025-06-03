@@ -2173,7 +2173,10 @@ function moveColumn(table, fromIndex, toIndex){
   }
 
   // 4️⃣  Re-render virtual table with new column order
-  renderVirtualTable();
+  // Use setTimeout to ensure drag state is fully cleared before re-rendering
+  setTimeout(() => {
+    renderVirtualTable();
+  }, 0);
 
   // 5️⃣  Refresh index metadata
   refreshColIndices(table);
