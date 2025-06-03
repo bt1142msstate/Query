@@ -2100,6 +2100,21 @@ function attachBubbleDropTarget(container){
   container.addEventListener('drop', e=>{
     e.preventDefault();
     if(e.target.closest('th')) return;   // header drop already handled
+
+    // Check for column reorder drop when dropping beyond the last header
+    let fromIndexStr = e.dataTransfer.getData('application/x-column-index') ||
+                       e.dataTransfer.getData('text/plain');
+    const fromIndex = parseInt(fromIndexStr, 10);
+    if(!isNaN(fromIndex)){
+      const table = container.querySelector('#example-table');
+      if(table){
+        moveColumn(table, fromIndex, displayedFields.length - 1);
+        setTimeout(() => refreshColIndices(table), 10);
+      }
+      return;
+    }
+
+    // Bubble drop handling
     const field = e.dataTransfer.getData('bubble-field');   // will be '' if not a bubble
     if(field && !displayedFields.includes(field)){
       displayedFields.push(field);
@@ -3141,6 +3156,17 @@ const dragDropManager = {
     }
   },
 
+  // Helper used by drop handlers to perform column reordering
+  performColumnDrop(fromIndex, toIndex, clientX, rect, table) {
+    if (fromIndex === toIndex) return;
+    const dropOnLeftHalf = clientX - rect.left < rect.width * 0.5;
+    let finalInsertAt = dropOnLeftHalf ? toIndex : toIndex + 1;
+    if (fromIndex < finalInsertAt) finalInsertAt = Math.max(0, finalInsertAt - 1);
+    finalInsertAt = Math.max(0, Math.min(finalInsertAt, displayedFields.length));
+    moveColumn(table, fromIndex, finalInsertAt);
+    setTimeout(() => refreshColIndices(table), 10);
+  },
+
   checkAutoScroll(e, container) {
     if (!container) return;
     
@@ -3334,46 +3360,19 @@ const dragDropManager = {
     this.stopAutoScroll();
   
     // Column reorder drop - try both data formats for better compatibility
-    let fromIndexStr = e.dataTransfer.getData('application/x-column-index') || 
+    let fromIndexStr = e.dataTransfer.getData('application/x-column-index') ||
                        e.dataTransfer.getData('text/plain');
     fromIndexStr = fromIndexStr.trim();
-    
+
     if (/^\d+$/.test(fromIndexStr)) {
       const fromIndex = parseInt(fromIndexStr, 10);
-      if (fromIndex !== toIndex && !isNaN(fromIndex) && !isNaN(toIndex)) {
-        // More robust position calculation
+      if (!isNaN(fromIndex)) {
         const rect = th.getBoundingClientRect();
-        const mouseRelativeX = e.clientX - rect.left;
-        const dropOnLeftHalf = mouseRelativeX < rect.width * 0.5;
-        
-        let finalInsertAt;
-        if (dropOnLeftHalf) {
-          // Insert before this column
-          finalInsertAt = toIndex;
-        } else {
-          // Insert after this column
-          finalInsertAt = toIndex + 1;
-        }
-        
-        // Adjust for moving from left to right
-        if (fromIndex < finalInsertAt) {
-          finalInsertAt = Math.max(0, finalInsertAt - 1);
-        }
-        
-        // Ensure indices are within bounds
-        finalInsertAt = Math.max(0, Math.min(finalInsertAt, displayedFields.length));
-        
-        console.log(`Moving column from ${fromIndex} to ${finalInsertAt}`);
-        moveColumn(table, fromIndex, finalInsertAt);
-        
-        // Small delay before refreshing indices to ensure DOM updates are complete
-        setTimeout(() => {
-          refreshColIndices(table);
-        }, 10);
+        this.performColumnDrop(fromIndex, toIndex, e.clientX, rect, table);
+        th.classList.remove('th-drag-over');
+        clearDropAnchor();
+        return;
       }
-      th.classList.remove('th-drag-over');
-      clearDropAnchor();
-      return;
     }
     
     // Bubble drop - insert new field
@@ -3424,35 +3423,10 @@ const dragDropManager = {
     const fromIndex = parseInt(fromIndexStr, 10);
     
     if (!isNaN(fromIndex) && fromIndex !== toIndex) {
-      // Calculate insertion position based on mouse position relative to drop target
       const targetHeader = table.querySelector(`thead th[data-col-index="${toIndex}"]`);
       if (targetHeader) {
         const rect = targetHeader.getBoundingClientRect();
-        const mouseRelativeX = e.clientX - rect.left;
-        const dropOnLeftHalf = mouseRelativeX < rect.width * 0.5;
-        
-        let finalInsertAt;
-        if (dropOnLeftHalf) {
-          finalInsertAt = toIndex;
-        } else {
-          finalInsertAt = toIndex + 1;
-        }
-        
-        // Adjust for moving from left to right
-        if (fromIndex < finalInsertAt) {
-          finalInsertAt = Math.max(0, finalInsertAt - 1);
-        }
-        
-        // Ensure indices are within bounds
-        finalInsertAt = Math.max(0, Math.min(finalInsertAt, displayedFields.length));
-        
-        console.log(`Moving column from ${fromIndex} to ${finalInsertAt}`);
-        moveColumn(table, fromIndex, finalInsertAt);
-        
-        // Small delay before refreshing indices
-        setTimeout(() => {
-          refreshColIndices(table);
-        }, 10);
+        this.performColumnDrop(fromIndex, toIndex, e.clientX, rect, table);
       }
     }
     
