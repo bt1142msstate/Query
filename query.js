@@ -419,7 +419,7 @@ function updateQueryJson(){
   });
 
   // Add CustomFields for custom MARC fields (Marc###, but not 'Marc')
-  const customMarcFields = fieldDefs
+  const customMarcFields = getAllFieldDefs()
     .filter(f => /^Marc\d+$/.test(f.name))
     .map(f => ({
       FieldName: f.name,
@@ -499,7 +499,7 @@ function resetActive(){
           bubbles.forEach(b => {
             if (b.textContent.trim() === fieldName) {
               // If the field is no longer present (e.g., filter removed), remove the bubble
-              const stillExists = fieldDefs.some(d => d.name === fieldName) && shouldFieldHavePurpleStyling(fieldName);
+              const stillExists = fieldDefs.has(fieldName) && shouldFieldHavePurpleStyling(fieldName);
               if (!stillExists && currentCategory === 'Selected') {
                 b.remove();
               } else {
@@ -531,7 +531,7 @@ function resetActive(){
           .find(b => b.textContent.trim() === fieldName);
         if (matchingBubble) {
           // If the field is no longer present, remove the bubble
-          const stillExists = fieldDefs.some(d => d.name === fieldName) && shouldFieldHavePurpleStyling(fieldName);
+          const stillExists = fieldDefs.has(fieldName) && shouldFieldHavePurpleStyling(fieldName);
           if (!stillExists && currentCategory === 'Selected') {
             matchingBubble.remove();
           } else {
@@ -1050,7 +1050,7 @@ confirmBtn.addEventListener('click', e => {
   const val2 = document.getElementById('condition-input-2').value.trim();
   const sel = document.getElementById('condition-select');
   const selContainer = document.getElementById('condition-select-container');
-  const fieldDef = fieldDefs.find(f => f.name === field);
+  const fieldDef = fieldDefs.get(field);
   const isSpecialMarc = fieldDef && fieldDef.isSpecialMarc;
 
   if (isSpecialMarc) {
@@ -1067,14 +1067,14 @@ confirmBtn.addEventListener('click', e => {
     marcNumbers.forEach((marcNumber, idx) => {
       const dynamicMarcField = `Marc${marcNumber}`;
       if (dynamicMarcField === 'Marc') return; 
-      if (!fieldDefs.some(f => f.name === dynamicMarcField)) {
+      if (!fieldDefs.has(dynamicMarcField)) {
         const newDef = {
           name: dynamicMarcField,
           type: 'string',
           category: 'Marc',
           desc: `MARC ${marcNumber} field`
         };
-        fieldDefs.push(newDef);
+        fieldDefs.set(dynamicMarcField, newDef);
         filteredDefs.push({ ...newDef });
       }
       if (!displayedFields.includes(dynamicMarcField)) {
@@ -1758,7 +1758,7 @@ function renderConditionList(field){
   toggle.addEventListener('click', ()=>{
     const newLogical = (data.logical === 'And') ? 'Or' : 'And';
     if(newLogical === 'And'){
-      const fieldType = (fieldDefs.find(d => d.name === field) || {}).type || 'string';
+      const fieldType = (fieldDefs.get(field) || {}).type || 'string';
       let conflictMsg = null;
       for(let i=0;i<data.filters.length;i++){
         const preceding = { logical:'And', filters:data.filters.slice(0,i) };
@@ -1778,7 +1778,7 @@ function renderConditionList(field){
   list.appendChild(toggle);
 
   // Use FilterPill for each filter
-  const fieldDef = fieldDefs.find(f => f.name === field);
+  const fieldDef = fieldDefs.get(field);
   data.filters.forEach((f, idx) => {
     const pill = new FilterPill(f, fieldDef, () => {
       data.filters.splice(idx,1);
@@ -1927,7 +1927,7 @@ function buildConditionPanel(bubble){
 
   // Swap text input for select if bubble has list values
   if(listValues && listValues.length){
-    const fieldDef = fieldDefs.find(f => f.name === selectedField);
+    const fieldDef = fieldDefs.get(selectedField);
     const isMultiSelect = fieldDef && fieldDef.multiSelect;
     // Clean up any existing selectors
     let existingSelect = document.getElementById('condition-select');
@@ -2068,7 +2068,7 @@ queryInput.addEventListener('input', () => {
   const allBtn = document.querySelector('#category-bar .category-btn[data-category="All"]');
   if(allBtn){
     if(term === ''){
-      const total = fieldDefs.length;
+      const total = fieldDefs.size;
       allBtn.textContent = `All (${total})`;
     }else{
       allBtn.textContent = `Search (${filteredDefs.length})`;
@@ -3641,7 +3641,7 @@ function applyTemplate(template) {
       }
       allFields.forEach(field => {
         if (typeof field === 'string' && field.startsWith('Marc')) {
-          if (!fieldDefs.some(d => d.name === field)) {
+          if (!fieldDefs.has(field)) {
             // Add to fieldDefs and filteredDefs
             const def = {
               name: field,
@@ -3651,7 +3651,7 @@ function applyTemplate(template) {
               type: 'string',
               // Add any other default properties as needed
             };
-            fieldDefs.push(def);
+            fieldDefs.set(field, def);
             filteredDefs.push(def);
           }
         }

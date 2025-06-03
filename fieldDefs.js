@@ -1,7 +1,7 @@
 /* Field definitions and category management */
 
-// Main field definitions array (global)
-const fieldDefs = [
+// Field definitions data array
+const fieldDefsArray = [
   { "name": "Library", "type": "string", "values": [
     { "Name": "TRLS-A", "RawValue": "1", "Description": "Main branch, downtown" },
     { "Name": "TRLS-B", "RawValue": "2", "Description": "Branch library, north side" },
@@ -101,12 +101,18 @@ const fieldDefs = [
   { "name": "Item Number", "type": "string", "category": "Item", "desc": "Unique item number" }
 ];
 
+// Main field definitions Map (global) - keyed by field name
+const fieldDefs = new Map(fieldDefsArray.map(field => [field.name, field]));
+
+// Helper function to get all field definitions as array (for compatibility)
+const getAllFieldDefs = () => Array.from(fieldDefs.values());
+
 // Filtered definitions (starts as full set, gets filtered by search)
-let filteredDefs = [...fieldDefs];
+let filteredDefs = [...getAllFieldDefs()];
 
 // Derive categories from field definitions
 const derivedCatSet = new Set();
-fieldDefs.forEach(d => {
+getAllFieldDefs().forEach(d => {
   const cat = d.category;
   if (Array.isArray(cat)) {
     cat.forEach(c => derivedCatSet.add(c));
@@ -135,15 +141,16 @@ function shouldFieldHavePurpleStylingBase(fieldName, displayedFields, activeFilt
 // Function to calculate category counts
 function calculateCategoryCounts(displayedFields, activeFilters) {
   const categoryCounts = {};
+  const allFieldDefs = getAllFieldDefs();
   categories.forEach(cat => {
     if (cat === 'All') {
-      categoryCounts.All = fieldDefs.length;
+      categoryCounts.All = allFieldDefs.length;
     } else if (cat === 'Selected') {
-      categoryCounts.Selected = fieldDefs.filter(d => 
+      categoryCounts.Selected = allFieldDefs.filter(d => 
         shouldFieldHavePurpleStylingBase(d.name, displayedFields, activeFilters)
       ).length;
     } else {
-      categoryCounts[cat] = fieldDefs.filter(d => {
+      categoryCounts[cat] = allFieldDefs.filter(d => {
         const c = d.category;
         return Array.isArray(c) ? c.includes(cat) : c === cat;
       }).length;
@@ -224,9 +231,9 @@ function renderCategorySelectors(categoryCounts, currentCategory, onCategoryChan
 // Function to update filtered definitions based on search
 function updateFilteredDefs(searchTerm) {
   if (searchTerm === '') {
-    filteredDefs = [...fieldDefs];
+    filteredDefs = [...getAllFieldDefs()];
   } else {
-    filteredDefs = fieldDefs.filter(d => d.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    filteredDefs = getAllFieldDefs().filter(d => d.name.toLowerCase().includes(searchTerm.toLowerCase()));
   }
   return filteredDefs;
 } 
