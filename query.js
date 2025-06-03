@@ -2120,26 +2120,49 @@ if(initialContainer) {
 // === Drag-and-drop helpers ===
 // Sync data-col-index attributes for every header and body cell
 function refreshColIndices(table){
+  if (!table) return;
+  
   const ths = table.querySelectorAll('thead th');
   ths.forEach((th, i)=>{
     th.dataset.colIndex = i;
-    if(!th.hasAttribute('draggable')) th.setAttribute('draggable','true');
+    // Ensure headers are draggable and have proper classes
+    if(!th.hasAttribute('draggable')) {
+      th.setAttribute('draggable','true');
+    }
     if(!th.classList.contains('th-wrapper')){
       th.classList.add('th-wrapper');
     }
+    // Clear any old event listener flags to allow re-attachment
+    delete th._dragListenersAttached;
   });
-  const rows = table.querySelectorAll('tbody tr');
-  rows.forEach(row=>{
-    Array.from(row.children).forEach((cell,i)=>{
-      cell.dataset.colIndex = i;
+  
+  // Update body cell indices (using more robust selector)
+  const bodyRows = table.querySelectorAll('tbody tr:not(.spacer-row)');
+  bodyRows.forEach(row=>{
+    const cells = Array.from(row.children);
+    cells.forEach((cell, i)=>{
+      if (cell.tagName.toLowerCase() === 'td') {
+        cell.dataset.colIndex = i;
+      }
     });
   });
 }
 function moveColumn(table, fromIndex, toIndex){
   if(fromIndex === toIndex) return;
+  
+  // Validate indices
+  if (fromIndex < 0 || toIndex < 0 || fromIndex >= displayedFields.length) {
+    console.warn('Invalid column move indices:', fromIndex, toIndex);
+    return;
+  }
+  
+  // Ensure toIndex is within valid range
+  toIndex = Math.max(0, Math.min(toIndex, displayedFields.length));
+
+  console.log(`Moving column: ${displayedFields[fromIndex]} from ${fromIndex} to ${toIndex}`);
 
   // 1️⃣  Keep displayedFields order in sync first
-  if(fromIndex < displayedFields.length && toIndex < displayedFields.length){
+  if(fromIndex < displayedFields.length && toIndex <= displayedFields.length){
     const [movedField] = displayedFields.splice(fromIndex,1);
     displayedFields.splice(toIndex,0,movedField);
   }
@@ -2148,12 +2171,25 @@ function moveColumn(table, fromIndex, toIndex){
   const headerRow = table.querySelector('thead tr');
   if (headerRow) {
     const headers = Array.from(headerRow.children);
-    if (fromIndex < headers.length && toIndex < headers.length) {
+    if (fromIndex < headers.length && toIndex <= headers.length) {
       const moving = headers[fromIndex];
-      if (fromIndex < toIndex) {
-        headerRow.insertBefore(moving, headers[toIndex].nextSibling);
+      
+      // Handle the DOM movement more carefully
+      if (toIndex >= headers.length) {
+        // Insert at the end
+        headerRow.appendChild(moving);
+      } else if (fromIndex < toIndex) {
+        // Moving right: insert after the target position
+        const nextSibling = headers[toIndex];
+        if (nextSibling) {
+          headerRow.insertBefore(moving, nextSibling);
+        } else {
+          headerRow.appendChild(moving);
+        }
       } else {
-        headerRow.insertBefore(moving, headers[toIndex]);
+        // Moving left: insert before the target position
+        const target = headers[toIndex];
+        headerRow.insertBefore(moving, target);
       }
     }
   }
@@ -2163,7 +2199,8 @@ function moveColumn(table, fromIndex, toIndex){
     calculatedColumnWidths = calculateOptimalColumnWidths(displayedFields, virtualTableData);
     
     // Update header widths
-    headerRow.querySelectorAll('th').forEach((th, index) => {
+    const updatedHeaders = headerRow.querySelectorAll('th');
+    updatedHeaders.forEach((th, index) => {
       const field = displayedFields[index];
       const width = calculatedColumnWidths[field] || 150;
       th.style.width = `${width}px`;
@@ -2175,9 +2212,11 @@ function moveColumn(table, fromIndex, toIndex){
   // 4️⃣  Re-render virtual table with new column order
   renderVirtualTable();
 
-  // 5️⃣  Refresh index metadata
-  refreshColIndices(table);
-  updateQueryJson();
+  // 5️⃣  Refresh index metadata (with delay to ensure DOM is settled)
+  setTimeout(() => {
+    refreshColIndices(table);
+    updateQueryJson();
+  }, 50);
   
   // 6️⃣  If in Selected category, re-render bubbles to match new order
   if (currentCategory === 'Selected') {
@@ -3020,6 +3059,8 @@ const dragDropManager = {
   hoverTh: null,
   autoScrollInterval: null,
   scrollContainer: null,
+  dragInProgress: false,
+  lastDropTime: 0,
   
   // Initialize drag-and-drop for a table
   initTableDragDrop(table) {
@@ -3031,8 +3072,9 @@ const dragDropManager = {
     this.scrollContainer = scrollContainer;
     const headers = table.querySelectorAll('th[draggable="true"]');
     
-    // Add header hover tracking
+    // Clear any existing event listeners to prevent duplicates
     headers.forEach(th => {
+      if (th._dragListenersAttached) return;
       th.addEventListener('mouseenter', () => this.handleHeaderEnter(th));
       th.addEventListener('mouseleave', () => this.handleHeaderLeave(th));
       th.addEventListener('dragstart', (e) => this.handleHeaderDragStart(e, th, scrollContainer));
@@ -3041,16 +3083,41 @@ const dragDropManager = {
       th.addEventListener('dragleave', () => this.handleDragLeave());
       th.addEventListener('dragover', (e) => this.handleDragOver(e, th, table));
       th.addEventListener('drop', (e) => this.handleDrop(e, th, table));
+      th._dragListenersAttached = true;
     });
     
-    // Handle body cell events
-    const bodyCells = table.querySelectorAll('tbody td');
-    bodyCells.forEach(td => {
-      td.addEventListener('dragenter', (e) => this.handleCellDragEnter(e, td, table));
-      td.addEventListener('dragover', (e) => this.handleCellDragOver(e, td, table));
-      td.addEventListener('dragleave', () => this.handleDragLeave());
-      td.addEventListener('drop', (e) => this.handleCellDrop(e, td, table));
+    // Handle body cell events - use event delegation for better performance
+    this.attachCellEventDelegation(table);
+  },
+
+  // Use event delegation for body cells to handle virtual scrolling better
+  attachCellEventDelegation(table) {
+    const tbody = table.querySelector('tbody');
+    if (!tbody || tbody._cellDelegationAttached) return;
+    
+    tbody.addEventListener('dragenter', (e) => {
+      const td = e.target.closest('td');
+      if (td) this.handleCellDragEnter(e, td, table);
     });
+    
+    tbody.addEventListener('dragover', (e) => {
+      const td = e.target.closest('td');
+      if (td) this.handleCellDragOver(e, td, table);
+    });
+    
+    tbody.addEventListener('dragleave', (e) => {
+      // Only handle if we're leaving the tbody itself, not just moving between cells
+      if (!tbody.contains(e.relatedTarget)) {
+        this.handleDragLeave();
+      }
+    });
+    
+    tbody.addEventListener('drop', (e) => {
+      const td = e.target.closest('td');
+      if (td) this.handleCellDrop(e, td, table);
+    });
+    
+    tbody._cellDelegationAttached = true;
   },
 
   // Auto-scroll functionality
@@ -3078,19 +3145,22 @@ const dragDropManager = {
     if (!container) return;
     
     const rect = container.getBoundingClientRect();
-    const scrollThreshold = 300; // Increased from 50px to 100px for earlier triggering
+    const scrollThreshold = 100; // Reduced from 300px to 100px for more conservative auto-scroll
     const mouseX = e.clientX;
     
+    // Only auto-scroll if we have room to scroll
+    const canScrollLeft = container.scrollLeft > 0;
+    const canScrollRight = container.scrollLeft < (container.scrollWidth - container.clientWidth);
+    
     // Check if near left edge
-    if (mouseX < rect.left + scrollThreshold && container.scrollLeft > 0) {
+    if (mouseX < rect.left + scrollThreshold && canScrollLeft) {
       this.startAutoScroll('left', container);
     }
-    // Check if near right edge
-    else if (mouseX > rect.right - scrollThreshold && 
-             container.scrollLeft < container.scrollWidth - container.clientWidth) {
+    // Check if near right edge  
+    else if (mouseX > rect.right - scrollThreshold && canScrollRight) {
       this.startAutoScroll('right', container);
     }
-    // Stop auto-scroll if not near edges
+    // Stop auto-scroll if not near edges or can't scroll further
     else {
       this.stopAutoScroll();
     }
@@ -3112,15 +3182,26 @@ const dragDropManager = {
   
   // Header drag start/end
   handleHeaderDragStart(e, th, scrollContainer) {
+    // Prevent multiple drag operations
+    if (this.dragInProgress) {
+      e.preventDefault();
+      return;
+    }
+    
+    this.dragInProgress = true;
     this.isBubbleDrag = false; // this is a column drag
     th.classList.add('th-dragging');
     th.classList.remove('th-hover');
     if (scrollContainer) scrollContainer.classList.add('dragging-scroll-lock');
     document.body.classList.add('dragging-cursor');
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', th.dataset.colIndex);
     
-    // Create drag ghost
+    // Store column index more robustly
+    const colIndex = th.dataset.colIndex;
+    e.dataTransfer.setData('text/plain', colIndex);
+    e.dataTransfer.setData('application/x-column-index', colIndex);
+    
+    // Create drag ghost with more robust styling
     const ghost = document.createElement('div');
     ghost.textContent = th.textContent.trim();
     const thStyle = window.getComputedStyle(th);
@@ -3128,8 +3209,9 @@ const dragDropManager = {
     ghost.classList.add('ghost-drag');
     ghost.style.width = 'auto';
     ghost.style.fontSize = '0.8rem';
-    ghost.style.padding = '2px 8px';
+    ghost.style.padding = '4px 12px';
     ghost.style.background = '#fff';
+    ghost.style.border = '1px solid #ddd';
     ghost.style.borderRadius = '6px';
     ghost.style.boxShadow = '0 2px 8px rgba(0,0,0,0.12)';
     ghost.style.opacity = '0.95';
@@ -3137,20 +3219,33 @@ const dragDropManager = {
     ghost.style.position = 'absolute';
     ghost.style.top = '-9999px';
     ghost.style.left = '-9999px';
+    ghost.style.zIndex = '10000';
     document.body.appendChild(ghost);
-    e.dataTransfer.setDragImage(ghost, ghost.offsetWidth / 2, ghost.offsetHeight / 2);
+    
+    // Set drag image with error handling
+    try {
+      e.dataTransfer.setDragImage(ghost, ghost.offsetWidth / 2, ghost.offsetHeight / 2);
+    } catch (error) {
+      console.warn('Could not set drag image:', error);
+    }
+    
     th._ghost = ghost;
     setTimeout(() => { if (ghost.parentNode) ghost.parentNode.removeChild(ghost); }, 0);
   },
   
   handleHeaderDragEnd(th, scrollContainer) {
+    // Add small delay to prevent rapid successive operations
+    setTimeout(() => {
+      this.dragInProgress = false;
+    }, 100);
+    
     th.classList.remove('th-dragging');
     if (scrollContainer) scrollContainer.classList.remove('dragging-scroll-lock');
     document.body.classList.remove('dragging-cursor');
     document.querySelectorAll('th').forEach(h => h.classList.remove('th-hover'));
     document.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
     clearDropAnchor();
-    this.stopAutoScroll(); // Stop auto-scroll when drag ends
+    this.stopAutoScroll();
     if (th._ghost) {
       th._ghost.remove();
       delete th._ghost;
@@ -3225,25 +3320,56 @@ const dragDropManager = {
   handleDrop(e, th, table) {
     e.preventDefault();
     e.stopPropagation();
+    
+    // Prevent rapid successive drops
+    const now = Date.now();
+    if (now - this.lastDropTime < 200) {
+      return;
+    }
+    this.lastDropTime = now;
+    
     const toIndex = parseInt(th.dataset.colIndex, 10);
     
     // Stop auto-scroll when dropping
     this.stopAutoScroll();
   
-    // Column reorder drop
-    const fromIndexStr = e.dataTransfer.getData('text/plain').trim();
+    // Column reorder drop - try both data formats for better compatibility
+    let fromIndexStr = e.dataTransfer.getData('application/x-column-index') || 
+                       e.dataTransfer.getData('text/plain');
+    fromIndexStr = fromIndexStr.trim();
+    
     if (/^\d+$/.test(fromIndexStr)) {
       const fromIndex = parseInt(fromIndexStr, 10);
-      if (fromIndex !== toIndex) {
-        // Calculate insertion position based on mouse position relative to drop target
+      if (fromIndex !== toIndex && !isNaN(fromIndex) && !isNaN(toIndex)) {
+        // More robust position calculation
         const rect = th.getBoundingClientRect();
-        const insertAt = (e.clientX - rect.left) < rect.width/2 ? toIndex : toIndex + 1;
+        const mouseRelativeX = e.clientX - rect.left;
+        const dropOnLeftHalf = mouseRelativeX < rect.width * 0.5;
         
-        // Adjust insertion index when moving from left to right
-        const finalInsertAt = fromIndex < insertAt ? insertAt - 1 : insertAt;
+        let finalInsertAt;
+        if (dropOnLeftHalf) {
+          // Insert before this column
+          finalInsertAt = toIndex;
+        } else {
+          // Insert after this column
+          finalInsertAt = toIndex + 1;
+        }
         
+        // Adjust for moving from left to right
+        if (fromIndex < finalInsertAt) {
+          finalInsertAt = Math.max(0, finalInsertAt - 1);
+        }
+        
+        // Ensure indices are within bounds
+        finalInsertAt = Math.max(0, Math.min(finalInsertAt, displayedFields.length));
+        
+        console.log(`Moving column from ${fromIndex} to ${finalInsertAt}`);
         moveColumn(table, fromIndex, finalInsertAt);
-        refreshColIndices(table);
+        
+        // Small delay before refreshing indices to ensure DOM updates are complete
+        setTimeout(() => {
+          refreshColIndices(table);
+        }, 10);
       }
       th.classList.remove('th-drag-over');
       clearDropAnchor();
@@ -3267,6 +3393,13 @@ const dragDropManager = {
     e.preventDefault();
     e.stopPropagation();
     
+    // Prevent rapid successive drops
+    const now = Date.now();
+    if (now - this.lastDropTime < 200) {
+      return;
+    }
+    this.lastDropTime = now;
+    
     const toIndex = parseInt(td.dataset.colIndex, 10);
     
     // Stop auto-scroll when dropping
@@ -3285,19 +3418,42 @@ const dragDropManager = {
       return;
     }
     
-    // Header reorder drop
-    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
+    // Header reorder drop - try both data formats
+    let fromIndexStr = e.dataTransfer.getData('application/x-column-index') || 
+                       e.dataTransfer.getData('text/plain');
+    const fromIndex = parseInt(fromIndexStr, 10);
+    
     if (!isNaN(fromIndex) && fromIndex !== toIndex) {
       // Calculate insertion position based on mouse position relative to drop target
       const targetHeader = table.querySelector(`thead th[data-col-index="${toIndex}"]`);
-      const rect = targetHeader.getBoundingClientRect();
-      const insertAt = (e.clientX - rect.left) < rect.width/2 ? toIndex : toIndex + 1;
-      
-      // Adjust insertion index when moving from left to right
-      const finalInsertAt = fromIndex < insertAt ? insertAt - 1 : insertAt;
-      
-      moveColumn(table, fromIndex, finalInsertAt);
-      refreshColIndices(table);
+      if (targetHeader) {
+        const rect = targetHeader.getBoundingClientRect();
+        const mouseRelativeX = e.clientX - rect.left;
+        const dropOnLeftHalf = mouseRelativeX < rect.width * 0.5;
+        
+        let finalInsertAt;
+        if (dropOnLeftHalf) {
+          finalInsertAt = toIndex;
+        } else {
+          finalInsertAt = toIndex + 1;
+        }
+        
+        // Adjust for moving from left to right
+        if (fromIndex < finalInsertAt) {
+          finalInsertAt = Math.max(0, finalInsertAt - 1);
+        }
+        
+        // Ensure indices are within bounds
+        finalInsertAt = Math.max(0, Math.min(finalInsertAt, displayedFields.length));
+        
+        console.log(`Moving column from ${fromIndex} to ${finalInsertAt}`);
+        moveColumn(table, fromIndex, finalInsertAt);
+        
+        // Small delay before refreshing indices
+        setTimeout(() => {
+          refreshColIndices(table);
+        }, 10);
+      }
     }
     
     // Clear visual states
@@ -4153,8 +4309,8 @@ function renderVirtualTable() {
     tbody.appendChild(bottomSpacer);
   }
   
-  // Re-apply drag and drop to the new rows
-  addDragAndDrop(table);
+  // Re-apply drag and drop event delegation to handle new cells
+  dragDropManager.attachCellEventDelegation(table);
 }
 
 function handleTableScroll(e) {
