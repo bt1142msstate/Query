@@ -3,12 +3,12 @@
 // Main field definitions array (global)
 const fieldDefs = [
   { "name": "Library", "type": "string", "values": [
-    { "display": "TRLS-A", "literal": "1" },
-    { "display": "TRLS-B", "literal": "2" },
-    { "display": "TRLS-C", "literal": "3" },
-    { "display": "MLTN-A", "literal": "4" },
-    { "display": "MLTN-B", "literal": "5" },
-    { "display": "WSPR-X", "literal": "6" }
+    { "Name": "TRLS-A", "RawValue": "1", "Description": "Main branch, downtown" },
+    { "Name": "TRLS-B", "RawValue": "2", "Description": "Branch library, north side" },
+    { "Name": "TRLS-C", "RawValue": "3", "Description": "Branch library, west side" },
+    { "Name": "MLTN-A", "RawValue": "4", "Description": "Milton main library" },
+    { "Name": "MLTN-B", "RawValue": "5", "Description": "Milton branch library" },
+    { "Name": "WSPR-X", "RawValue": "6", "Description": "Whisper special collection" }
   ], "filters": ["equals"], "category": "Item", "multiSelect": true, "desc": "Owning library for the item" },
   { "name": "Author", "type": "string", "filters": ["contains", "starts", "equals"], "category": "Catalog", "desc": "The author or creator of the item" },
   { "name": "Title", "type": "string", "filters": ["contains", "starts", "equals"], "category": "Catalog", "desc": "The title of the item" },
@@ -32,15 +32,15 @@ const fieldDefs = [
   { "name": "Current Location", "type": "string", "category": "Item", "desc": "Current location of the item (may differ from home location)" },
   { "name": "Last Charged Date", "type": "date", "category": ["Item", "Dates"], "desc": "Date the item was last checked out" },
   { "name": "Permanent/Temporary", "type": "string", "values": [
-    { "display": "Yes", "literal": "Y" },
-    { "display": "No", "literal": "N" }
+    { "Name": "Yes", "RawValue": "Y", "Description": "Permanent item" },
+    { "Name": "No", "RawValue": "N", "Description": "Temporary item" }
   ], "filters": ["equals"], "category": "Item", "desc": "Indicates if the item is permanent or temporary" },
   { "name": "Reserve Control Key", "type": "number", "category": "Item", "desc": "Key for reserve control on the item" },
   { "name": "Last User Key", "type": "string", "category": "Item", "desc": "Key of the last user who checked out the item" },
   { "name": "Recirculation Flag", "type": "string", "values": [
-    { "display": "Yes", "literal": "Y" },
-    { "display": "No", "literal": "N" },
-    { "display": "Maybe", "literal": "M" }
+    { "Name": "Yes", "RawValue": "Y", "Description": "Item can be recirculated" },
+    { "Name": "No", "RawValue": "N", "Description": "Item cannot be recirculated" },
+    { "Name": "Maybe", "RawValue": "M", "Description": "Recirculation status depends on conditions" }
   ], "filters": ["equals"], "category": "Item", "desc": "Indicates if the item can be recirculated" },
   { "name": "Inventory Date", "type": "date", "category": ["Item", "Dates"], "desc": "Date the item was last inventoried" },
   { "name": "Inventory Count", "type": "number", "category": "Item", "desc": "Number of times the item has been inventoried" },
@@ -82,9 +82,9 @@ const fieldDefs = [
   { "name": "Call Number Key", "type": "string", "category": "Call #", "desc": "Key for the call number" },
   { "name": "Analytic Position", "type": "number", "category": "Item", "desc": "Analytic position for the item" },
   { "name": "Bound-with Level", "type": "string", "values": [
-    { "display": "None", "literal": "NONE" },
-    { "display": "Child", "literal": "CHILD" },
-    { "display": "Parent", "literal": "PARENT" }
+    { "Name": "None", "RawValue": "NONE", "Description": "Not part of a bound-with relationship" },
+    { "Name": "Child", "RawValue": "CHILD", "Description": "Child item in a bound-with relationship" },
+    { "Name": "Parent", "RawValue": "PARENT", "Description": "Parent item in a bound-with relationship" }
   ], "filters": ["equals"], "category": "Item", "desc": "Bound-with level for the item" },
   { "name": "Number of Copies", "type": "number", "category": ["Item"], "desc": "Number of copies of the item" },
   { "name": "System Date Modified", "type": "date", "category": ["Item", "Dates"], "desc": "System date the item was last modified" },
@@ -93,8 +93,8 @@ const fieldDefs = [
   { "name": "Number of Copies on Reserve", "type": "number", "category": "Item", "desc": "Number of copies of the item on reserve" },
   { "name": "Number of Visible Copies", "type": "number", "category": "Item", "desc": "Number of visible copies of the item" },
   { "name": "Shadowed Flag", "type": "string", "values": [
-    { "display": "Yes", "literal": "Y" },
-    { "display": "No", "literal": "N" }
+    { "Name": "Yes", "RawValue": "Y", "Description": "Item is shadowed from public view" },
+    { "Name": "No", "RawValue": "N", "Description": "Item is visible to the public" }
   ], "filters": ["equals"], "category": "Item", "desc": "Indicates if the item is shadowed" },
   { "name": "Shelving Key", "type": "string", "category": "Item", "desc": "Shelving key for the item" },
   { "name": "Base Call Number", "type": "string", "category": "Item", "desc": "Base call number for the item" },
