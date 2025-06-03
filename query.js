@@ -748,14 +748,20 @@ function createGroupedSelector(values, isMultiSelect, currentValues = []) {
   optionsContainer.className = 'grouped-options-container';
   container.appendChild(optionsContainer);
   
-  // Process values to handle both old format (string) and new format (objects with display/literal)
+  // Process values to handle both old format (string) and new format (objects with Name/RawValue)
   const processedValues = values.map(val => {
     if (typeof val === 'string') {
       // Old format - use the same value for both display and literal
       return { display: val, literal: val, raw: val };
     } else {
-      // New format with display and literal properties
-      return { ...val, raw: val.display };
+      // New format with Name, RawValue, and Description properties
+      return { 
+        ...val, 
+        raw: val.Name, 
+        display: val.Name, 
+        literal: val.RawValue,
+        description: val.Description || ''
+      };
     }
   });
   
@@ -1832,8 +1838,8 @@ function buildConditionPanel(bubble){
     if (bubble.dataset.values) {
       const parsedValues = JSON.parse(bubble.dataset.values);
       if (parsedValues.length > 0) {
-        if (typeof parsedValues[0] === 'object' && parsedValues[0].display && parsedValues[0].literal) {
-          // New format with display/literal pairs
+        if (typeof parsedValues[0] === 'object' && parsedValues[0].Name && parsedValues[0].RawValue) {
+          // New format with Name/RawValue pairs
           hasValuePairs = true;
           listValues = parsedValues;
         } else {
@@ -1940,7 +1946,7 @@ function buildConditionPanel(bubble){
     
     // Check if any values have dashes for grouped selector
     const hasDashes = hasValuePairs 
-      ? listValues.some(val => val.display.includes('-'))
+      ? listValues.some(val => val.Name.includes('-'))
       : listValues.some(val => val.includes('-'));
     
     if (hasDashes) {
@@ -1960,9 +1966,9 @@ function buildConditionPanel(bubble){
       // Create options with proper display/literal handling
       select.innerHTML = listValues.map(v => {
         if (hasValuePairs) {
-          // New format with display/literal pairs
-          const selected = currentLiteralValues.includes(v.literal) ? 'selected' : '';
-          return `<option value="${v.literal}" data-display="${v.display}" ${selected}>${v.display}</option>`;
+          // New format with Name/RawValue pairs
+          const selected = currentLiteralValues.includes(v.RawValue) ? 'selected' : '';
+          return `<option value="${v.RawValue}" data-display="${v.Name}" ${selected}>${v.Name}</option>`;
         } else {
           // Old string format
           const selected = currentLiteralValues.includes(v) ? 'selected' : '';
@@ -3378,12 +3384,12 @@ function resetConditionInputs(type = 'string', showSecondInput = false) {
   if (errorLabel) errorLabel.style.display = 'none';
 }
 
-// Helper to create a literal-to-display map for a field definition
+// Helper to create a RawValue-to-Name map for a field definition
 function getLiteralToDisplayMap(fieldDef) {
   const map = new Map();
-  if (fieldDef && fieldDef.values && fieldDef.values.length > 0 && typeof fieldDef.values[0] === 'object' && fieldDef.values[0].display) {
+  if (fieldDef && fieldDef.values && fieldDef.values.length > 0 && typeof fieldDef.values[0] === 'object' && fieldDef.values[0].Name) {
     fieldDef.values.forEach(val => {
-      map.set(val.literal, val.display);
+      map.set(val.RawValue, val.Name);
     });
   }
   return map;
@@ -3509,8 +3515,8 @@ class FilterPill {
     // Try to get a user-friendly label for the filter value
     let valueLabel = filter.val;
     if (fieldDef && fieldDef.values && typeof fieldDef.values[0] === 'object') {
-      // Map literal to display if possible
-      const map = new Map(fieldDef.values.map(v => [v.literal, v.display]));
+      // Map RawValue to Name if possible
+      const map = new Map(fieldDef.values.map(v => [v.RawValue, v.Name]));
       if (filter.cond.toLowerCase() === 'between') {
         valueLabel = filter.val.split('|').map(v => map.get(v) || v).join(' - ');
       } else {
