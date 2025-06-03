@@ -3025,32 +3025,104 @@ const dragDropManager = {
   initTableDragDrop(table) {
     if (!table) return;
     
+    // Don't reinitialize during an active drag operation
+    if (document.body.classList.contains('dragging-cursor')) {
+      return;
+    }
+    
+    // Clean up any existing event listeners to prevent duplicates
+    this.cleanupTableListeners(table);
+    
     // Ensure every header/cell has an up-to-date col index
     refreshColIndices(table);
     const scrollContainer = document.querySelector('.overflow-x-auto.shadow.rounded-lg.mb-6');
     this.scrollContainer = scrollContainer;
+    
+    // Get all header cells
     const headers = table.querySelectorAll('th[draggable="true"]');
+    
+    // Store references to the bound event handlers for cleanup
+    table._dragDropListeners = table._dragDropListeners || {};
     
     // Add header hover tracking
     headers.forEach(th => {
-      th.addEventListener('mouseenter', () => this.handleHeaderEnter(th));
-      th.addEventListener('mouseleave', () => this.handleHeaderLeave(th));
-      th.addEventListener('dragstart', (e) => this.handleHeaderDragStart(e, th, scrollContainer));
-      th.addEventListener('dragend', () => this.handleHeaderDragEnd(th, scrollContainer));
-      th.addEventListener('dragenter', (e) => this.handleDragEnter(e, th, table));
-      th.addEventListener('dragleave', () => this.handleDragLeave());
-      th.addEventListener('dragover', (e) => this.handleDragOver(e, th, table));
-      th.addEventListener('drop', (e) => this.handleDrop(e, th, table));
+      // Create handler references for this header
+      const listeners = {
+        mouseenter: (e) => this.handleHeaderEnter(th),
+        mouseleave: (e) => this.handleHeaderLeave(th),
+        dragstart: (e) => this.handleHeaderDragStart(e, th, scrollContainer),
+        dragend: (e) => this.handleHeaderDragEnd(th, scrollContainer),
+        dragenter: (e) => this.handleDragEnter(e, th, table),
+        dragleave: (e) => this.handleDragLeave(),
+        dragover: (e) => this.handleDragOver(e, th, table),
+        drop: (e) => this.handleDrop(e, th, table)
+      };
+      
+      // Store references to listeners
+      th._dragDropListeners = listeners;
+      
+      // Add all event listeners
+      Object.entries(listeners).forEach(([event, handler]) => {
+        th.addEventListener(event, handler);
+      });
     });
     
     // Handle body cell events
     const bodyCells = table.querySelectorAll('tbody td');
     bodyCells.forEach(td => {
-      td.addEventListener('dragenter', (e) => this.handleCellDragEnter(e, td, table));
-      td.addEventListener('dragover', (e) => this.handleCellDragOver(e, td, table));
-      td.addEventListener('dragleave', () => this.handleDragLeave());
-      td.addEventListener('drop', (e) => this.handleCellDrop(e, td, table));
+      // Create handler references for this cell
+      const listeners = {
+        dragenter: (e) => this.handleCellDragEnter(e, td, table),
+        dragover: (e) => this.handleCellDragOver(e, td, table),
+        dragleave: (e) => this.handleDragLeave(),
+        drop: (e) => this.handleCellDrop(e, td, table)
+      };
+      
+      // Store references to listeners
+      td._dragDropListeners = listeners;
+      
+      // Add all event listeners
+      Object.entries(listeners).forEach(([event, handler]) => {
+        td.addEventListener(event, handler);
+      });
     });
+  },
+  
+  // Clean up existing event listeners before adding new ones
+  cleanupTableListeners(table) {
+    if (!table) return;
+    
+    try {
+      // Remove header listeners
+      table.querySelectorAll('th').forEach(th => {
+        if (th._dragDropListeners) {
+          Object.entries(th._dragDropListeners).forEach(([event, handler]) => {
+            try {
+              th.removeEventListener(event, handler);
+            } catch (err) {
+              console.warn('Error removing event listener from header:', err);
+            }
+          });
+          delete th._dragDropListeners;
+        }
+      });
+      
+      // Remove cell listeners
+      table.querySelectorAll('td').forEach(td => {
+        if (td._dragDropListeners) {
+          Object.entries(td._dragDropListeners).forEach(([event, handler]) => {
+            try {
+              td.removeEventListener(event, handler);
+            } catch (err) {
+              console.warn('Error removing event listener from cell:', err);
+            }
+          });
+          delete td._dragDropListeners;
+        }
+      });
+    } catch (error) {
+      console.error('Error in cleanupTableListeners:', error);
+    }
   },
 
   // Auto-scroll functionality
@@ -3139,8 +3211,20 @@ const dragDropManager = {
     ghost.style.left = '-9999px';
     document.body.appendChild(ghost);
     e.dataTransfer.setDragImage(ghost, ghost.offsetWidth / 2, ghost.offsetHeight / 2);
+    
+    // Store a reference to the ghost for cleanup
+    if (th._ghost && th._ghost.parentNode) {
+      th._ghost.parentNode.removeChild(th._ghost);
+    }
     th._ghost = ghost;
-    setTimeout(() => { if (ghost.parentNode) ghost.parentNode.removeChild(ghost); }, 0);
+    
+    // Don't remove the ghost immediately as it causes issues in some browsers
+    // Instead, hide it after it's been used as the drag image
+    setTimeout(() => {
+      if (ghost.parentNode) {
+        ghost.style.visibility = 'hidden';
+      }
+    }, 0);
   },
   
   handleHeaderDragEnd(th, scrollContainer) {
@@ -3151,8 +3235,12 @@ const dragDropManager = {
     document.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
     clearDropAnchor();
     this.stopAutoScroll(); // Stop auto-scroll when drag ends
+    
+    // Clean up the ghost element
     if (th._ghost) {
-      th._ghost.remove();
+      if (th._ghost.parentNode) {
+        th._ghost.parentNode.removeChild(th._ghost);
+      }
       delete th._ghost;
     }
   },
@@ -4054,8 +4142,18 @@ function renderVirtualTable() {
   const table = tableScrollContainer.querySelector('#example-table');
   if (!table) return;
   
+  // Check if a drag operation is in progress - don't re-render during active drag
+  if (document.body.classList.contains('dragging-cursor')) {
+    return;
+  }
+  
   const tbody = table.querySelector('tbody');
   const { start, end } = calculateVisibleRows();
+  
+  // Clean up existing event listeners on body cells before clearing them
+  if (typeof dragDropManager !== 'undefined' && dragDropManager.cleanupTableListeners) {
+    dragDropManager.cleanupTableListeners(table);
+  }
   
   // Clear existing body rows
   tbody.innerHTML = '';
@@ -4158,6 +4256,11 @@ function renderVirtualTable() {
 }
 
 function handleTableScroll(e) {
+  // Don't process scroll events during active drag
+  if (document.body.classList.contains('dragging-cursor')) {
+    return;
+  }
+  
   tableScrollTop = e.target.scrollTop;
   renderVirtualTable();
 }
