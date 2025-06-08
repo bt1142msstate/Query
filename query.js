@@ -34,104 +34,6 @@ const animatingBackBubbles = new Set();
 // Add at the top with other state variables:
 let isBubbleAnimating = false;
 
-// Add at the top with other state variables:
-let isInputLocked = false;
-let inputLockTimeout = null;
-
-// Add a full-screen overlay for pointer-events blocking
-let inputBlockOverlay = document.getElementById('input-block-overlay');
-if (!inputBlockOverlay) {
-  inputBlockOverlay = document.createElement('div');
-  inputBlockOverlay.id = 'input-block-overlay';
-  inputBlockOverlay.style.position = 'fixed';
-  inputBlockOverlay.style.top = '0';
-  inputBlockOverlay.style.left = '0';
-  inputBlockOverlay.style.width = '100vw';
-  inputBlockOverlay.style.height = '100vh';
-  inputBlockOverlay.style.zIndex = '99999';
-  inputBlockOverlay.style.pointerEvents = 'none';
-  inputBlockOverlay.style.background = 'rgba(0,0,0,0)';
-  inputBlockOverlay.style.display = 'none';
-  document.body.appendChild(inputBlockOverlay);
-}
-function lockInput(duration = 600) {
-  isInputLocked = true;
-  inputBlockOverlay.style.pointerEvents = 'all';
-  inputBlockOverlay.style.display = 'block';
-  if (inputLockTimeout) clearTimeout(inputLockTimeout);
-  inputLockTimeout = setTimeout(() => {
-    isInputLocked = false;
-    inputBlockOverlay.style.pointerEvents = 'none';
-    inputBlockOverlay.style.display = 'none';
-  }, duration);
-}
-
-/* ===== Modal helpers for JSON / Queries panels ===== */
-// Centralized modal panel IDs
-const MODAL_PANEL_IDS = ['json-panel', 'queries-panel', 'help-panel', 'templates-panel', 'mobile-menu-dropdown'];
-
-
-// Focus management helpers
-function getFocusableElements(panel) {
-  return panel.querySelectorAll(
-    'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
-  );
-}
-
-function trapFocus(panel) {
-  const focusable = getFocusableElements(panel);
-  if (!focusable.length) return;
-  let first = focusable[0];
-  let last = focusable[focusable.length - 1];
-  panel.addEventListener('keydown', function(e) {
-    if (e.key === 'Tab') {
-      if (e.shiftKey) {
-        if (document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        }
-      } else {
-        if (document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    }
-  });
-}
-
-// Close a specific modal panel
-function closeModal(panelId) {
-  const panel = document.getElementById(panelId);
-  if (!panel) return;
-  panel.classList.add('hidden');
-  panel.classList.remove('show'); // Ensure 'show' class is removed
-  // If no other modal is open, hide overlay
-  const anyOpen = MODAL_PANEL_IDS.some(id => {
-    // Don't count the panel we just closed
-    if (id === panelId) return false;
-    const p = document.getElementById(id);
-    // A panel is open if it's not hidden AND has the 'show' class
-    return p && !p.classList.contains('hidden') && p.classList.contains('show');
-  });
-  if (!document.querySelector('.active-bubble') && !anyOpen) {
-    overlay.classList.remove('show');
-  }
-}
-
-// Consolidated desktop modal toggles
-const panelToggles = {
-  'toggle-json': 'json-panel',
-  'toggle-queries': 'queries-panel',
-  'toggle-help': 'help-panel',
-  'toggle-templates': 'templates-panel'
-};
-Object.entries(panelToggles).forEach(([btnId, panelId]) => {
-  document.getElementById(btnId)?.addEventListener('click', () => openModal(panelId));
-});
-document.querySelectorAll('.collapse-btn').forEach(btn=>{
-  btn.addEventListener('click', () => closeModal(btn.dataset.target));
-});
 // Pressing Enter in any condition field = click Confirm
 ['condition-input','condition-input-2','condition-select'].forEach(id=>{
   const el=document.getElementById(id);
@@ -144,6 +46,8 @@ document.querySelectorAll('.collapse-btn').forEach(btn=>{
     });
   }
 });
+
+
 
 /* --- Run / Stop query toggle --- */
 // queryRunning already declared at the top
@@ -454,10 +358,10 @@ function applyCorrectBubbleStyling(bubbleElement) {
 // Apply the helper to the resetActive function
 function resetActive(){
   // Ensure input lock is always cleared
-  isInputLocked = false;
-  inputBlockOverlay.style.pointerEvents = 'none';
-  inputBlockOverlay.style.display = 'none';
-  if (inputLockTimeout) clearTimeout(inputLockTimeout);
+  if (window.ModalSystem) {
+    // Clear the input lock through the modal system (no direct access to internal state)
+    window.ModalSystem.lockInput(0); // This will clear any existing lock immediately
+  }
   
   // For every floating clone, animate it back to its origin,
   // then restore the origin bubble's appearance when the animation ends.
@@ -554,7 +458,7 @@ function resetActive(){
 }
 
 overlay.addEventListener('click',()=>{ // Keep this, but simplify its body
-  closeAllModals(); // This will hide overlay and all panels with 'hidden' and remove 'show'
+  window.ModalSystem.closeAllModals(); // This will hide overlay and all panels with 'hidden' and remove 'show'
   resetActive(); // Handles bubble animations and state
 
   // Close non-modal UI elements (condition panel, input wrapper)
@@ -2903,57 +2807,7 @@ document.addEventListener('keydown', e=>{
   e.preventDefault();                         // stop page scroll
 });
 
-/* ---------- Panel toggle + collapse ---------- */
-const jsonPanel = document.getElementById('json-panel');
-const queriesPanel = document.getElementById('queries-panel');
-const toggleJsonBtn = document.getElementById('toggle-json');
-const toggleQueriesBtn = document.getElementById('toggle-queries');
 
-// Collapse buttons (little "-" in the panel headers)
-document.querySelectorAll('.collapse-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const targetId = btn.dataset.target;
-    const panel = document.getElementById(targetId);
-    if (!panel) return;
-    // For modal close buttons, just close the modal (add 'hidden')
-    panel.classList.add('hidden');
-    panel.classList.remove('show'); // for mobile menu dropdown
-    overlay.classList.remove('show');
-  });
-});
-
-// Mobile hamburger menu functionality
-const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-const mobileMenuDropdown = document.getElementById('mobile-menu-dropdown');
-
-if (mobileMenuToggle && mobileMenuDropdown) {
-  // Open the menu using the standard modal helper
-  mobileMenuToggle.addEventListener('click', () => openModal('mobile-menu-dropdown'));
-
-  // Mobile menu item click handlers
-  document.getElementById('mobile-run-query')?.addEventListener('click', () => {
-    closeModal('mobile-menu-dropdown');
-    document.getElementById('run-query-btn')?.click();
-  });
-
-  document.getElementById('mobile-download')?.addEventListener('click', () => {
-    closeModal('mobile-menu-dropdown');
-    document.getElementById('download-btn')?.click();
-  });
-
-  const mobilePanelToggles = {
-    'mobile-toggle-json': 'json-panel',
-    'mobile-toggle-queries': 'queries-panel',
-    'mobile-toggle-help': 'help-panel',
-    'mobile-toggle-templates': 'templates-panel'
-  };
-  Object.entries(mobilePanelToggles).forEach(([btnId, panelId]) => {
-    document.getElementById(btnId)?.addEventListener('click', () => {
-      closeModal('mobile-menu-dropdown');
-      openModal(panelId);
-    });
-  });
-}
 
 // Consolidated function to render both category bar and mobile selector
 function renderCategorySelectorsLocal(categoryCounts) {
@@ -3472,96 +3326,7 @@ function updateHeaderHeightVar() {
 window.addEventListener('DOMContentLoaded', updateHeaderHeightVar);
 window.addEventListener('resize', updateHeaderHeightVar);
 
-// Accessibility: Add ARIA attributes to modal panels on page load
-window.addEventListener('DOMContentLoaded', () => {
-  const MODAL_PANEL_IDS = ['json-panel', 'queries-panel', 'help-panel', 'templates-panel', 'mobile-menu-dropdown'];
-  MODAL_PANEL_IDS.forEach(id => {
-    const panel = document.getElementById(id);
-    if (panel) {
-      panel.setAttribute('role', 'dialog');
-      panel.setAttribute('aria-modal', 'true');
-      // Prefer aria-labelledby if a heading exists, else fallback to aria-label
-      const heading = panel.querySelector('h2, h1, .modal-title');
-      if (heading && heading.id) {
-        panel.setAttribute('aria-labelledby', heading.id);
-      } else if (heading) {
-        // Generate a unique id if needed
-        const uniqueId = id + '-label';
-        heading.id = uniqueId;
-        panel.setAttribute('aria-labelledby', uniqueId);
-    } else {
-        // Fallback: use aria-label
-        panel.setAttribute('aria-label', id.replace(/-panel$/, '').replace(/\b\w/g, c => c.toUpperCase()));
-      }
-    }
-  });
-});
 
-// Helper to set aria-hidden on main content except header and open modal
-function setMainContentAriaHidden(hidden, openPanelId = null) {
-  const pageBody = document.getElementById('page-body');
-  if (pageBody) pageBody.setAttribute('aria-hidden', hidden ? 'true' : 'false');
-  // Optionally, hide other main containers if present
-  // e.g., document.getElementById('main-content')?.setAttribute('aria-hidden', hidden ? 'true' : 'false');
-  // Unhide the open modal and header
-  if (openPanelId) {
-    const panel = document.getElementById(openPanelId);
-    if (panel) panel.setAttribute('aria-hidden', 'false');
-    }
-  const header = document.getElementById('header-bar');
-  if (header) header.setAttribute('aria-hidden', 'false');
-}
-
-// Update openModal/closeAllModals to manage aria-hidden
-function openModal(panelId) {
-  closeAllModals();
-  const panel = document.getElementById(panelId);
-  if (!panel) return;
-  panel.classList.remove('hidden');
-  panel.classList.add('show'); // Ensure 'show' class is added
-  overlay.classList.add('show');
-  
-  // Focus first focusable element
-  const focusable = getFocusableElements(panel);
-  if (focusable.length) {
-    setTimeout(() => focusable[0].focus(), 0);
-  }
-  // Trap focus
-  trapFocus(panel);
-  // Accessibility: hide main content from screen readers
-  setMainContentAriaHidden(true, panelId);
-    }
-    
-function closeAllModals() {
-  MODAL_PANEL_IDS.forEach(id => {
-    const p = document.getElementById(id);
-    if (p) {
-      p.classList.add('hidden');
-      p.classList.remove('show'); // Ensure 'show' class is removed
-    }
-  });
-  overlay.classList.remove('show');
-  
-  // Accessibility: unhide main content
-  setMainContentAriaHidden(false);
-}
-
-// Utility to get the mobile breakpoint from CSS variable
-function getMobileBreakpoint() {
-  return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--mobile-breakpoint').trim(), 10);
-}
-
-// Example usage: log if in mobile mode on load and resize
-function checkMobileMode() {
-  const bp = getMobileBreakpoint();
-  const isMobile = window.innerWidth <= bp;
-  // You can use isMobile for conditional UI logic
-  // For demonstration, log to console
-  // console.log('Mobile mode:', isMobile);
-  // (Replace with real responsive logic as needed)
-}
-window.addEventListener('DOMContentLoaded', checkMobileMode);
-window.addEventListener('resize', checkMobileMode);
 
 // FilterPill UI component class
 class FilterPill {
