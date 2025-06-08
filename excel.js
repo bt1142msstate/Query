@@ -55,7 +55,7 @@ const ExcelExporter = (() => {
       return;
     }
 
-    if (!Array.isArray(displayedFields) || !displayedFields.length || !Array.isArray(virtualTableData) || !virtualTableData.length) {
+    if (!Array.isArray(displayedFields) || !displayedFields.length || !Array.isArray(VirtualTable.virtualTableData) || !VirtualTable.virtualTableData.length) {
       return;
     }
 
@@ -81,12 +81,12 @@ const ExcelExporter = (() => {
     worksheet.columns = displayedFields.map(field => ({
       header: field,
       key: field,
-      width: Math.max(12, Math.min(50, Math.round(((calculatedColumnWidths && calculatedColumnWidths[field]) || 150) / 7)))
+      width: Math.max(12, Math.min(50, Math.round(((VirtualTable.calculatedColumnWidths && VirtualTable.calculatedColumnWidths[field]) || 150) / 7)))
     }));
 
     // Accumulate typed rows for the Excel table definition
     const tableRows = [];
-    virtualTableData.forEach(row => {
+    VirtualTable.virtualTableData.forEach(row => {
       const rowData = displayedFields.map(field => {
         const raw = row[field];
         const value = (raw === undefined || raw === null) ? '' : raw;
