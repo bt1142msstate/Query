@@ -9,7 +9,7 @@
 
 /* ===== Modal Panel Configuration ===== */
 // Centralized modal panel IDs
-const MODAL_PANEL_IDS = ['json-panel', 'queries-panel', 'help-panel', 'templates-panel', 'mobile-menu-dropdown'];
+const MODAL_PANEL_IDS = ['json-panel', 'queries-panel', 'help-panel', 'mobile-menu-dropdown'];
 
 /* ===== Input Locking System ===== */
 // Input locking state variables
@@ -213,8 +213,7 @@ function initializeModalSystem() {
   const panelToggles = {
     'toggle-json': 'json-panel',
     'toggle-queries': 'queries-panel',
-    'toggle-help': 'help-panel',
-    'toggle-templates': 'templates-panel'
+    'toggle-help': 'help-panel'
   };
   
   Object.entries(panelToggles).forEach(([btnId, panelId]) => {
@@ -261,8 +260,7 @@ function initializeModalSystem() {
   const mobilePanelToggles = {
     'mobile-toggle-json': 'json-panel',
     'mobile-toggle-queries': 'queries-panel',
-    'mobile-toggle-help': 'help-panel',
-    'mobile-toggle-templates': 'templates-panel'
+    'mobile-toggle-help': 'help-panel'
   };
   
   Object.entries(mobilePanelToggles).forEach(([btnId, panelId]) => {
