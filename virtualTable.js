@@ -264,52 +264,60 @@ function handleTableScroll(e) {
   renderVirtualTable();
 }
 
-// Function to calculate optimal column widths from all data
-function calculateOptimalColumnWidths(fields, data) {
-  if (!data.rows || !data.rows.length || !fields.length) return {};
-  
-  const widths = {};
+// Centralized function to calculate optimal column width for a single field
+function calculateFieldWidth(fieldName, data = null) {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   
-  // Set font to match table cells - use the actual computed styles
+  // Set font to match table cells
   ctx.font = '14px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto';
   
-  // Calculate max width based on 50 characters
-  const maxCharacterWidth = ctx.measureText('A'.repeat(50)).width;
+  let maxWidth = 0;
   
-  fields.forEach(field => {
-    let maxWidth = 0;
-    
-    // Check header width first (uppercase) - ensure headers are considered
-    const headerWidth = ctx.measureText(field.toUpperCase()).width;
-    maxWidth = Math.max(maxWidth, headerWidth);
-    
-    // Get the column index for this field
-    const columnIndex = data.columnMap.get(field);
-    if (columnIndex === undefined) {
-      // Field not found, use minimum width
-      widths[field] = 120;
-      return;
-    }
-    
-    // Check data to find max content width (check every 100th row for performance)
-    const sampleStep = Math.max(1, Math.floor(data.rows.length / 1000)); // Sample ~1000 rows max
-    
-    for (let i = 0; i < data.rows.length; i += sampleStep) {
-      const value = data.rows[i][columnIndex];
-      if (value != null) {
-        const textWidth = ctx.measureText(String(value)).width;
-        maxWidth = Math.max(maxWidth, textWidth);
+  // 1. Always measure header width (uppercase, as it appears in the table)
+  const headerWidth = ctx.measureText(fieldName.toUpperCase()).width;
+  maxWidth = Math.max(maxWidth, headerWidth);
+  
+  // 2. If we have data, measure content width
+  if (data && data.rows && data.rows.length > 0) {
+    const columnIndex = data.columnMap.get(fieldName);
+    if (columnIndex !== undefined) {
+      // Sample data for performance (check every nth row)
+      const sampleStep = Math.max(1, Math.floor(data.rows.length / 1000));
+      
+      for (let i = 0; i < data.rows.length; i += sampleStep) {
+        const value = data.rows[i][columnIndex];
+        if (value != null) {
+          const textWidth = ctx.measureText(String(value)).width;
+          maxWidth = Math.max(maxWidth, textWidth);
+        }
       }
     }
-    
-    // Add padding (24px left + 24px right from px-6 class) + some buffer
-    const paddingAndBuffer = 48 + 20; // 48px padding + 20px buffer
-    
-    // Clamp to minimum 120px and maximum based on 50 characters
-    const maxWidthWithPadding = maxCharacterWidth + paddingAndBuffer;
-    widths[field] = Math.max(120, Math.min(maxWidthWithPadding, maxWidth + paddingAndBuffer));
+  }
+  
+  // 3. For fields not in data (showing "..."), ensure reasonable width for the placeholder
+  if (!data || !data.columnMap || !data.columnMap.has(fieldName)) {
+    const placeholderWidth = ctx.measureText('...').width;
+    maxWidth = Math.max(maxWidth, placeholderWidth);
+  }
+  
+  // 4. Add padding (24px left + 24px right from px-6 class) + buffer for comfort
+  const paddingAndBuffer = 48 + 32; // 48px padding + 32px buffer
+  
+  // 5. Calculate max character width for clamping
+  const maxCharacterWidth = ctx.measureText('A'.repeat(50)).width + paddingAndBuffer;
+  
+  // 6. Clamp to reasonable bounds: min 150px, max 50 characters worth
+  return Math.max(150, Math.min(maxCharacterWidth, maxWidth + paddingAndBuffer));
+}
+
+// Function to calculate optimal column widths from all data
+function calculateOptimalColumnWidths(fields, data) {
+  if (!fields.length) return {};
+  
+  const widths = {};
+  fields.forEach(field => {
+    widths[field] = calculateFieldWidth(field, data);
   });
   
   return widths;
@@ -422,6 +430,7 @@ window.VirtualTable = {
   calculateVisibleRows,
   renderVirtualTable,
   handleTableScroll,
+  calculateFieldWidth,
   calculateOptimalColumnWidths,
   setupVirtualTable,
   measureRowHeight,
