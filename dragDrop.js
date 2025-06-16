@@ -133,7 +133,42 @@ function refreshColIndices(table) {
   });
 }
 
+// Helper function to find all related columns (including duplicates) for a field
+function findRelatedColumnIndices(fieldName) {
+  // Extract base field name (remove ordinal prefixes like "2nd ", "3rd ")
+  const baseFieldName = fieldName.replace(/^\d+(st|nd|rd|th)\s+/, '');
+  
+  // Find all columns with this base field name
+  const relatedIndices = [];
+  window.displayedFields.forEach((field, index) => {
+    const fieldBase = field.replace(/^\d+(st|nd|rd|th)\s+/, '');
+    if (fieldBase === baseFieldName) {
+      relatedIndices.push(index);
+    }
+  });
+  
+  return relatedIndices.sort((a, b) => a - b);
+}
+
 function moveColumn(table, fromIndex, toIndex) {
+  if (fromIndex === toIndex) return;
+
+  const fromFieldName = window.displayedFields[fromIndex];
+  if (!fromFieldName) return;
+  
+  // Find all related columns (including duplicates)
+  const relatedIndices = findRelatedColumnIndices(fromFieldName);
+  
+  // If moving a single column (no duplicates)
+  if (relatedIndices.length === 1) {
+    moveSingleColumn(table, fromIndex, toIndex);
+  } else {
+    // Moving a column that has duplicates - move the entire group
+    moveColumnGroup(table, relatedIndices, toIndex);
+  }
+}
+
+function moveSingleColumn(table, fromIndex, toIndex) {
   if (fromIndex === toIndex) return;
 
   // 1️⃣ Keep displayedFields order in sync first
@@ -155,19 +190,85 @@ function moveColumn(table, fromIndex, toIndex) {
       }
     }
   }
+  
+  finalizeMoveOperation(table);
+}
 
+function moveColumnGroup(table, groupIndices, targetIndex) {
+  // Extract all related fields as a group
+  const groupFields = groupIndices.map(index => window.displayedFields[index]);
+  
+  // Remove all related fields from their current positions (in reverse order to maintain indices)
+  for (let i = groupIndices.length - 1; i >= 0; i--) {
+    window.displayedFields.splice(groupIndices[i], 1);
+  }
+  
+  // Adjust target index if we removed items before it
+  let adjustedTargetIndex = targetIndex;
+  for (const removedIndex of groupIndices) {
+    if (removedIndex < targetIndex) {
+      adjustedTargetIndex--;
+    }
+  }
+  
+  // Insert all group fields at the target position
+  groupFields.forEach((field, i) => {
+    window.displayedFields.splice(adjustedTargetIndex + i, 0, field);
+  });
+  
+  // Rebuild the header row completely since we moved multiple columns
+  const headerRow = table.querySelector('thead tr');
+  if (headerRow) {
+    headerRow.innerHTML = '';
+    window.displayedFields.forEach((field, index) => {
+      // Check if this field exists in the current data
+      const virtualTableData = window.VirtualTable?.virtualTableData;
+      const fieldExistsInData = virtualTableData && virtualTableData.columnMap && virtualTableData.columnMap.has(field);
+      
+      const th = document.createElement('th');
+      th.draggable = true;
+      th.dataset.colIndex = index;
+      th.className = 'px-6 py-3 text-left text-xs font-medium uppercase tracking-wider bg-gray-50';
+      
+      if (fieldExistsInData) {
+        th.classList.add('text-gray-500');
+      } else {
+        th.classList.add('text-red-500');
+        th.style.color = '#ef4444 !important';
+        th.setAttribute('data-tooltip', 'This field is not in the current data. Run a new query to populate it.');
+      }
+      
+      const span = document.createElement('span');
+      span.className = 'th-text';
+      span.textContent = field;
+      if (!fieldExistsInData) {
+        span.style.color = '#ef4444 !important';
+      }
+      
+      th.appendChild(span);
+      headerRow.appendChild(th);
+    });
+  }
+  
+  finalizeMoveOperation(table);
+}
+
+function finalizeMoveOperation(table) {
   // 3️⃣ Recalculate column widths for new order
   if (VirtualTable.virtualTableData.length > 0) {
     VirtualTable.calculatedColumnWidths = VirtualTable.calculateOptimalColumnWidths(window.displayedFields, VirtualTable.virtualTableData);
     
     // Update header widths
-    headerRow.querySelectorAll('th').forEach((th, index) => {
-      const field = window.displayedFields[index];
-      const width = VirtualTable.calculatedColumnWidths[field] || 150;
-      th.style.width = `${width}px`;
-      th.style.minWidth = `${width}px`;
-      th.style.maxWidth = `${width}px`;
-    });
+    const headerRow = table.querySelector('thead tr');
+    if (headerRow) {
+      headerRow.querySelectorAll('th').forEach((th, index) => {
+        const field = window.displayedFields[index];
+        const width = VirtualTable.calculatedColumnWidths[field] || 150;
+        th.style.width = `${width}px`;
+        th.style.minWidth = `${width}px`;
+        th.style.maxWidth = `${width}px`;
+      });
+    }
   }
 
   // 4️⃣ Re-render virtual table with new column order
@@ -372,9 +473,27 @@ const dragDropManager = {
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', th.dataset.colIndex);
     
+    // Check if this is part of a group with duplicates
+    const colIndex = parseInt(th.dataset.colIndex, 10);
+    const fieldName = window.displayedFields[colIndex];
+    const relatedIndices = findRelatedColumnIndices(fieldName);
+    
+    // Highlight all related columns being moved
+    relatedIndices.forEach(index => {
+      const relatedHeader = document.querySelector(`thead th[data-col-index="${index}"]`);
+      if (relatedHeader) {
+        relatedHeader.classList.add('th-dragging');
+      }
+    });
+    
     // Create drag ghost
     const ghost = document.createElement('div');
-    ghost.textContent = th.textContent.trim();
+    if (relatedIndices.length > 1) {
+      // Show group indicator in ghost
+      ghost.textContent = `${th.textContent.trim()} (+${relatedIndices.length - 1} more)`;
+    } else {
+      ghost.textContent = th.textContent.trim();
+    }
     const thStyle = window.getComputedStyle(th);
     ghost.style.color = thStyle.color;
     ghost.classList.add('ghost-drag');
@@ -408,11 +527,14 @@ const dragDropManager = {
   },
   
   handleHeaderDragEnd(th, scrollContainer) {
-    th.classList.remove('th-dragging');
+    // Remove dragging class from all headers (in case of group drag)
+    document.querySelectorAll('th').forEach(h => {
+      h.classList.remove('th-dragging', 'th-hover');
+    });
+    document.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
+    
     if (scrollContainer) scrollContainer.classList.remove('dragging-scroll-lock');
     document.body.classList.remove('dragging-cursor');
-    document.querySelectorAll('th').forEach(h => h.classList.remove('th-hover'));
-    document.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
     clearDropAnchor();
     this.stopAutoScroll(); // Stop auto-scroll when drag ends
     
