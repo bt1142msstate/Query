@@ -2,75 +2,101 @@
 // Handles large dataset rendering with virtual scrolling for performance
 
 // Virtual scrolling state
-let virtualTableData = [];
+let virtualTableData = {
+  headers: [],
+  rows: [],
+  columnMap: new Map()
+};
 let visibleTableRows = 25;  // number of rows to show at once
 let tableRowHeight = 42;    // estimated row height in pixels
 let tableScrollTop = 0;
 let tableScrollContainer = null;
 let calculatedColumnWidths = {}; // Store calculated optimal widths for each column
+let simpleTableInstance = null; // Store the SimpleTable instance
 
-// Helper function to generate sample data for testing
-function generateSampleData(rowCount = 30000) {
-  const sampleAuthors = ['Smith, John', 'Johnson, Mary', 'Williams, Robert', 'Brown, Patricia', 'Jones, Michael', 'Garcia, Linda', 'Miller, William', 'Davis, Elizabeth', 'Rodriguez, James', 'Martinez, Barbara'];
-  const sampleTitles = ['The Great Adventure', 'Mystery of the Lost City', 'Modern Cooking Techniques', 'History of Science', 'Digital Photography', 'Programming Fundamentals', 'Art and Culture', 'Music Theory Basics', 'Environmental Studies', 'Psychology Today'];
-  const sampleCallNumbers = ['QA76.73', 'PS3566', 'TX714', 'Q125', 'TR267', 'QA76.6', 'N7260', 'MT6', 'GE105', 'BF121'];
-  const sampleLibraries = ['TRLS-A', 'TRLS-B', 'TRLS-C', 'MLTN-A', 'MLTN-B', 'WSPR-X'];
-  const sampleItemTypes = ['Book', 'DVD', 'CD', 'Magazine', 'eBook', 'Audiobook'];
-  const sampleLocations = ['Fiction', 'Non-Fiction', 'Reference', 'Periodicals', 'Children', 'Young Adult'];
-
-  const data = [];
-  for (let i = 0; i < rowCount; i++) {
-    const row = {};
+// Load test data and create SimpleTable instance
+async function loadTestData() {
+  try {
+    const response = await fetch('./testJobData.json');
+    const testData = await response.json();
     
-    // Generate data for each potential field
-    row['Author'] = sampleAuthors[Math.floor(Math.random() * sampleAuthors.length)];
+    // Validate that all DesiredColumnOrder fields exist in fieldDefs or are valid Marc fields
+    // Create any missing MARC fields automatically
+    const desiredColumns = testData.DesiredColumnOrder || [];
+    const fieldDefsNames = fieldDefsArray.map(f => f.name);
     
-    // Add a really long title for the first row to test ellipsis
-    if (i === 0) {
-      row['Title'] = 'The Extraordinarily Long and Comprehensive Guide to Understanding the Complexities of Modern Digital Data Management Systems and Their Implementation in Enterprise Environments: A Complete Reference Manual';
-    } else {
-      row['Title'] = `${sampleTitles[Math.floor(Math.random() * sampleTitles.length)]} ${i + 1}`;
+    for (const fieldName of desiredColumns) {
+      const exists = fieldDefsNames.includes(fieldName);
+      const isMarcField = fieldName.startsWith('Marc') && fieldName.length > 4 && /^\d+$/.test(fieldName.substring(4));
+      
+      if (!exists && !isMarcField) {
+        throw new Error(`Field "${fieldName}" from DesiredColumnOrder does not exist in fieldDefs and is not a valid Marc field`);
+      }
+      
+      // Create MARC field definition if it doesn't exist
+      if (isMarcField && !exists) {
+        const marcNumber = fieldName.substring(4);
+        const newMarcFieldDef = {
+          name: fieldName,
+          type: 'string',
+          category: 'Marc',
+          desc: `MARC ${marcNumber} field`
+        };
+        
+        // Add to fieldDefs map
+        fieldDefs.set(fieldName, newMarcFieldDef);
+        
+        // Add to filteredDefs array  
+        filteredDefs.push(newMarcFieldDef);
+        
+        console.log(`Created MARC field definition for: ${fieldName}`);
+      }
     }
     
-    row['Call Number'] = `${sampleCallNumbers[Math.floor(Math.random() * sampleCallNumbers.length)]}.${Math.floor(Math.random() * 999).toString().padStart(3, '0')}`;
-    row['Library'] = sampleLibraries[Math.floor(Math.random() * sampleLibraries.length)];
-    row['Item Type'] = sampleItemTypes[Math.floor(Math.random() * sampleItemTypes.length)];
-    row['Home Location'] = sampleLocations[Math.floor(Math.random() * sampleLocations.length)];
-    row['Barcode'] = `${Math.floor(Math.random() * 90000000) + 10000000}`;
-    row['Price'] = `$${(Math.random() * 100 + 5).toFixed(2)}`;
-    row['Catalog Key'] = `cat${Math.floor(Math.random() * 1000000)}`;
-    row['Publication Date'] = `${Math.floor(Math.random() * 50) + 1970}-${Math.floor(Math.random() * 12) + 1}-${Math.floor(Math.random() * 28) + 1}`;
-    row['Item Creation Date'] = `${Math.floor(Math.random() * 5) + 2019}-${Math.floor(Math.random() * 12) + 1}-${Math.floor(Math.random() * 28) + 1}`;
-    row['Item Total Charges'] = Math.floor(Math.random() * 50);
-    row['Number of Copies'] = Math.floor(Math.random() * 10) + 1;
+    // Create SimpleTable instance from the test data
+    simpleTableInstance = new SimpleTable(testData);
     
-    // Add more sample fields as needed
-    if (typeof fieldDefs !== 'undefined') {
-      fieldDefs.forEach(field => {
-        if (!row[field.name]) {
-          switch (field.type) {
-            case 'string':
-              row[field.name] = `Sample ${field.name} ${i + 1}`;
-              break;
-            case 'number':
-              row[field.name] = Math.floor(Math.random() * 1000);
-              break;
-            case 'money':
-              row[field.name] = `$${(Math.random() * 1000).toFixed(2)}`;
-              break;
-            case 'date':
-              row[field.name] = `${Math.floor(Math.random() * 50) + 1970}-${Math.floor(Math.random() * 12) + 1}-${Math.floor(Math.random() * 28) + 1}`;
-              break;
-            default:
-              row[field.name] = `Sample ${i + 1}`;
-          }
-        }
-      });
+    // Get the raw 2D table data directly (like C# version)
+    const rawTable = simpleTableInstance.getRawTable();
+    
+    if (rawTable.length === 0) {
+      throw new Error('SimpleTable returned empty raw table data');
     }
     
-    data.push(row);
+    // Store the 2D table data directly - headers are row 0, data starts at row 1
+    const headers = rawTable[0];
+    const dataRows = rawTable.slice(1);
+    
+    // Store as 2D array with header mapping for column lookup
+    virtualTableData = {
+      headers: headers,
+      rows: dataRows,
+      columnMap: new Map(headers.map((header, index) => [header, index]))
+    };
+    
+    console.log('Loaded test data with SimpleTable (2D array):', {
+      rows: dataRows.length,
+      columns: headers,
+      dimensions: simpleTableInstance.getDimensions(),
+      desiredColumnOrder: testData.DesiredColumnOrder,
+      actualHeaders: headers,
+      simpleTableDesiredOrder: simpleTableInstance.desiredColumnOrder,
+      columnMap: Object.fromEntries(virtualTableData.columnMap)
+    });
+    
+    // Log the MARC fields that were created
+    const createdMarcFields = desiredColumns.filter(name => 
+      name.startsWith('Marc') && name.length > 4 && /^\d+$/.test(name.substring(4))
+    );
+    if (createdMarcFields.length > 0) {
+      console.log('MARC fields created from test data:', createdMarcFields);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Failed to load test data:', error);
+    throw new Error('Test data is required but could not be loaded: ' + error.message);
   }
-  return data;
 }
 
 // Virtual scrolling helper functions
@@ -83,7 +109,7 @@ function calculateVisibleRows() {
   
   const startIndex = Math.floor(tableScrollTop / tableRowHeight);
   const endIndex = Math.min(
-    virtualTableData.length,
+    virtualTableData.rows.length, // Use rows array length
     startIndex + Math.ceil(availableHeight / tableRowHeight) + 2 // buffer rows
   );
   
@@ -91,7 +117,7 @@ function calculateVisibleRows() {
 }
 
 function renderVirtualTable() {
-  if (!tableScrollContainer || !virtualTableData.length || !window.displayedFields || !window.displayedFields.length) return;
+  if (!tableScrollContainer || !virtualTableData.rows || !virtualTableData.rows.length || !window.displayedFields || !window.displayedFields.length) return;
   
   const table = tableScrollContainer.querySelector('#example-table');
   if (!table) return;
@@ -126,7 +152,7 @@ function renderVirtualTable() {
   
   // Render visible rows
   for (let i = start; i < end; i++) {
-    const rowData = virtualTableData[i];
+    const rowData = virtualTableData.rows[i]; // Access the 2D array row
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-gray-50';
     tr.style.height = `${tableRowHeight}px`;
@@ -136,7 +162,24 @@ function renderVirtualTable() {
       td.className = 'px-6 py-3 whitespace-nowrap text-sm text-gray-900';
       td.dataset.colIndex = colIndex;
       
-      const cellValue = rowData[field] || '—';
+      // Get the column index for this field and access the data by index
+      const columnIndex = virtualTableData.columnMap.get(field);
+      let cellValue;
+      
+      if (columnIndex !== undefined && rowData[columnIndex] !== undefined) {
+        // Field exists in data and has a value
+        cellValue = rowData[columnIndex];
+      } else if (columnIndex === undefined) {
+        // Field doesn't exist in the current data - show "..." to indicate query rerun needed
+        cellValue = '...';
+        td.style.color = '#ef4444';
+        td.style.fontStyle = 'italic';
+        td.style.fontWeight = '500';
+        td.setAttribute('data-tooltip', 'This field is not in the current data. Run a new query to populate it.');
+      } else {
+        // Field exists but value is empty/undefined - show em dash
+        cellValue = '—';
+      }
       
       // Apply the same fixed width as the header
       const width = calculatedColumnWidths[field] || 150;
@@ -193,7 +236,7 @@ function renderVirtualTable() {
   }
   
   // Create spacer for rows below visible area
-  const remainingRows = virtualTableData.length - end;
+  const remainingRows = virtualTableData.rows.length - end;
   if (remainingRows > 0) {
     const bottomSpacer = document.createElement('tr');
     const spacerCell = document.createElement('td');
@@ -223,7 +266,7 @@ function handleTableScroll(e) {
 
 // Function to calculate optimal column widths from all data
 function calculateOptimalColumnWidths(fields, data) {
-  if (!data.length || !fields.length) return {};
+  if (!data.rows || !data.rows.length || !fields.length) return {};
   
   const widths = {};
   const canvas = document.createElement('canvas');
@@ -242,11 +285,19 @@ function calculateOptimalColumnWidths(fields, data) {
     const headerWidth = ctx.measureText(field.toUpperCase()).width;
     maxWidth = Math.max(maxWidth, headerWidth);
     
-    // Sample data to find max content width (check every 100th row for performance)
-    const sampleStep = Math.max(1, Math.floor(data.length / 1000)); // Sample ~1000 rows max
+    // Get the column index for this field
+    const columnIndex = data.columnMap.get(field);
+    if (columnIndex === undefined) {
+      // Field not found, use minimum width
+      widths[field] = 120;
+      return;
+    }
     
-    for (let i = 0; i < data.length; i += sampleStep) {
-      const value = data[i][field];
+    // Check data to find max content width (check every 100th row for performance)
+    const sampleStep = Math.max(1, Math.floor(data.rows.length / 1000)); // Sample ~1000 rows max
+    
+    for (let i = 0; i < data.rows.length; i += sampleStep) {
+      const value = data.rows[i][columnIndex];
       if (value != null) {
         const textWidth = ctx.measureText(String(value)).width;
         maxWidth = Math.max(maxWidth, textWidth);
@@ -265,12 +316,17 @@ function calculateOptimalColumnWidths(fields, data) {
 }
 
 // Function to set up virtual table container and event listeners
-function setupVirtualTable(container, fields) {
-  // Generate sample data if not already generated or if fields changed
-  if (virtualTableData.length === 0 || virtualTableData.length < 30000) {
-    console.log('Generating 30,000 sample rows...');
-    virtualTableData = generateSampleData(30000);
-    console.log('Sample data generated successfully');
+async function setupVirtualTable(container, fields) {
+  // Load test data if not already loaded
+  if (!virtualTableData.rows || virtualTableData.rows.length === 0) {
+    console.log('Loading test data...');
+    try {
+      await loadTestData();
+      console.log(`Test data loaded successfully: ${virtualTableData.rows.length} rows`);
+    } catch (error) {
+      console.error('Failed to set up virtual table:', error);
+      throw new Error('Cannot set up virtual table without test data');
+    }
   }
 
   // Calculate optimal column widths based on all data
@@ -294,7 +350,7 @@ function setupVirtualTable(container, fields) {
 
 // Function to measure row height from a rendered row
 function measureRowHeight(table, fields) {
-  if (virtualTableData.length > 0) {
+  if (virtualTableData.rows && virtualTableData.rows.length > 0) {
     // Temporarily render one row to measure height
     const tbody = table.querySelector('tbody');
     const tempRow = document.createElement('tr');
@@ -302,7 +358,13 @@ function measureRowHeight(table, fields) {
     fields.forEach((field, colIndex) => {
       const td = document.createElement('td');
       td.className = 'px-6 py-3 whitespace-nowrap text-sm text-gray-900';
-      td.textContent = virtualTableData[0][field] || '—';
+      
+      // Get the column index for this field and access the data by index
+      const columnIndex = virtualTableData.columnMap.get(field);
+      const cellValue = (columnIndex !== undefined && virtualTableData.rows[0][columnIndex] !== undefined) 
+        ? virtualTableData.rows[0][columnIndex] : '—';
+      
+      td.textContent = cellValue;
       tempRow.appendChild(td);
     });
     tbody.appendChild(tempRow);
@@ -318,10 +380,15 @@ function measureRowHeight(table, fields) {
 
 // Function to clear virtual table data
 function clearVirtualTableData() {
-  virtualTableData = [];
+  virtualTableData = {
+    headers: [],
+    rows: [],
+    columnMap: new Map()
+  };
   calculatedColumnWidths = {};
   tableScrollTop = 0;
   tableScrollContainer = null;
+  simpleTableInstance = null;
 }
 
 // Function to get virtual table state
@@ -348,9 +415,10 @@ window.VirtualTable = {
   set tableScrollTop(value) { tableScrollTop = value; },
   get tableScrollContainer() { return tableScrollContainer; },
   set tableScrollContainer(value) { tableScrollContainer = value; },
+  get simpleTableInstance() { return simpleTableInstance; },
   
   // Functions
-  generateSampleData,
+  loadTestData,
   calculateVisibleRows,
   renderVirtualTable,
   handleTableScroll,

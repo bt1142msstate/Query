@@ -13,10 +13,11 @@ const downloadBtn = document.getElementById('download-btn');
 const queryBox = document.getElementById('query-json');
 const queryInput = document.getElementById('query-input');
 const clearSearchBtn = document.getElementById('clear-search-btn');
+const groupMethodSelect = document.getElementById('group-method-select');
 
 // State variables
 let queryRunning = false;
-let displayedFields = [];
+let displayedFields = []; // Will be populated from test data
 window.displayedFields = displayedFields; // Make globally accessible for VirtualTable module
 let selectedField = '';
 let totalRows = 0;          // total rows in #bubble-list
@@ -24,6 +25,124 @@ let scrollRow = 0;          // current top row (0-based)
 let rowHeight = 0;          // computed once per render
 let hoverScrollArea = false;  // true when cursor over bubbles or scrollbar
 let currentCategory = 'All';
+
+// Query state tracking for run button icon
+let lastExecutedQueryState = null; // Store the state when query was last run
+let currentQueryState = null;       // Current state for comparison
+
+// Function to capture current query state
+function getCurrentQueryState() {
+  // Use base field names only (no duplicates like "2nd Marc590")
+  const baseFields = [...displayedFields]
+    .filter(field => field !== 'Marc')
+    .map(field => {
+      // Remove ordinal prefixes like "2nd ", "3rd ", etc.
+      return field.replace(/^\d+(st|nd|rd|th)\s+/, '');
+    })
+    .filter((field, index, array) => {
+      // Remove duplicates (keep only first occurrence of each base field name)
+      return array.indexOf(field) === index;
+    });
+  
+  return {
+    displayedFields: baseFields,
+    activeFilters: JSON.parse(JSON.stringify(activeFilters)),
+    groupMethod: window.VirtualTable?.simpleTableInstance?.groupMethod || "ExpandIntoColumns"
+  };
+}
+
+// Function to compare query states
+function hasQueryChanged() {
+  if (!lastExecutedQueryState) return false; // Initial load should show refresh (we have testJobData loaded)
+  
+  const current = getCurrentQueryState();
+  
+  // Compare displayed fields
+  if (JSON.stringify(current.displayedFields.sort()) !== JSON.stringify(lastExecutedQueryState.displayedFields.sort())) {
+    return true;
+  }
+  
+  // Compare filters
+  if (JSON.stringify(current.activeFilters) !== JSON.stringify(lastExecutedQueryState.activeFilters)) {
+    return true;
+  }
+  
+  // Compare group method
+  if (current.groupMethod !== lastExecutedQueryState.groupMethod) {
+    return true;
+  }
+  
+  return false;
+}
+
+// Function to update run button icon based on query state
+function updateRunButtonIcon() {
+  const runIcon = document.getElementById('run-icon');
+  const refreshIcon = document.getElementById('refresh-icon');
+  const stopIcon = document.getElementById('stop-icon');
+  const runBtn = document.getElementById('run-query-btn');
+  const mobileRunQuery = document.getElementById('mobile-run-query');
+  
+  // State 1: Query is running - show stop icon
+  if (queryRunning) {
+    runIcon.classList.add('hidden');
+    refreshIcon.classList.add('hidden');
+    stopIcon.classList.remove('hidden');
+    runBtn.disabled = false;
+    runBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    runBtn.classList.add('bg-red-500', 'hover:bg-red-600');
+    runBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
+    runBtn.setAttribute('data-tooltip', 'Stop Query');
+    runBtn.setAttribute('aria-label', 'Stop query');
+    if (mobileRunQuery) {
+      mobileRunQuery.setAttribute('data-tooltip', 'Stop Query');
+    }
+    return;
+  }
+  
+  // Reset button styling for non-running states
+  runBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
+  runBtn.classList.add('bg-green-500', 'hover:bg-green-600');
+  stopIcon.classList.add('hidden');
+  
+  // State 2: No columns - disabled (show run icon but disabled)
+  if (!displayedFields || displayedFields.length === 0) {
+    runIcon.classList.remove('hidden');
+    refreshIcon.classList.add('hidden');
+    runBtn.disabled = true;
+    runBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    runBtn.setAttribute('data-tooltip', 'Add columns to enable query');
+    runBtn.setAttribute('aria-label', 'Add columns to enable query');
+    if (mobileRunQuery) {
+      mobileRunQuery.setAttribute('data-tooltip', 'Add columns to enable query');
+    }
+    return;
+  }
+  
+  // Re-enable button for states 3 & 4
+  runBtn.disabled = false;
+  runBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+  
+  // State 3: Query has changed - show run icon
+  if (hasQueryChanged()) {
+    runIcon.classList.remove('hidden');
+    refreshIcon.classList.add('hidden');
+    runBtn.setAttribute('data-tooltip', 'Run Query');
+    runBtn.setAttribute('aria-label', 'Run query');
+    if (mobileRunQuery) {
+      mobileRunQuery.setAttribute('data-tooltip', 'Run Query');
+    }
+  } else {
+    // State 4: No changes - show refresh icon
+    runIcon.classList.add('hidden');
+    refreshIcon.classList.remove('hidden');
+    runBtn.setAttribute('data-tooltip', 'Refresh Data');
+    runBtn.setAttribute('aria-label', 'Refresh data');
+    if (mobileRunQuery) {
+      mobileRunQuery.setAttribute('data-tooltip', 'Refresh Data');
+    }
+  }
+}
 
 // Data structures
 const activeFilters = {};   // { fieldName: { logical:'And'|'Or', filters:[{cond,val},…] } }
@@ -70,7 +189,7 @@ function updateButtonStates(){
   if(downloadBtn){
     const tableNameInput = document.getElementById('table-name-input');
     const tableName = tableNameInput ? tableNameInput.value.trim() : '';
-    const hasData = displayedFields.length > 0 && virtualTableData.length > 0;
+    const hasData = displayedFields.length > 0 && VirtualTable.virtualTableData && VirtualTable.virtualTableData.rows && VirtualTable.virtualTableData.rows.length > 0;
     const hasName = tableName && tableName !== '';
 
     // Add/remove error styling based on table name presence
@@ -142,7 +261,26 @@ function toggleQueryInterface(isQueryRunning) {
 
 if(runBtn){
   runBtn.addEventListener('click', ()=>{
-    if(runBtn.disabled) return;   // ignore when inactive
+    if(runBtn.disabled) return;   // ignore when disabled
+    
+    // If query is running, stop it
+    if (queryRunning) {
+      queryRunning = false;
+      updateRunButtonIcon();
+      return;
+    }
+    
+    // Start query execution
+    queryRunning = true;
+    updateRunButtonIcon();
+    
+    // Simulate query execution (since real execution isn't implemented yet)
+    setTimeout(() => {
+      queryRunning = false;
+      // Update the last executed query state to current state
+      lastExecutedQueryState = getCurrentQueryState();
+      updateRunButtonIcon();
+    }, 2000); // Simulate 2 second execution
     
     // Show "not implemented yet" message
     const message = document.createElement('div');
@@ -241,13 +379,76 @@ function mapOperator(cond){
 
 /** Rebuild the query JSON and show it */
 function updateQueryJson(){
+  // Filter out duplicate field names (2nd, 3rd, etc.) and get only base field names
+  const baseFields = [...displayedFields]
+    .filter(field => field !== 'Marc')
+    .map(field => {
+      // Remove ordinal prefixes like "2nd ", "3rd ", etc.
+      return field.replace(/^\d+(st|nd|rd|th)\s+/, '');
+    })
+    .filter((field, index, array) => {
+      // Remove duplicates (keep only first occurrence of each base field name)
+      return array.indexOf(field) === index;
+    });
+  
   const query = {
-    DesiredColumnOrder: [...displayedFields].filter(field => field !== 'Marc'),
+    DesiredColumnOrder: baseFields,
     FilterGroups: [],
-    GroupMethod: "ExpandIntoColumns" // Always include this
+    GroupMethod: "ExpandIntoColumns" // Default value
   };
+  
+  // Update run button icon based on query changes
+  updateRunButtonIcon();
 
-  // Active filters → logical group per field
+  // If we have a loaded SimpleTable instance, extract configuration from it
+  if (typeof window.VirtualTable !== 'undefined' && window.VirtualTable.simpleTableInstance) {
+    const simpleTable = window.VirtualTable.simpleTableInstance;
+    
+    // Extract GroupMethod from SimpleTable
+    if (simpleTable.groupMethod !== undefined) {
+      // Convert JavaScript string enum to C# enum string
+      switch (simpleTable.groupMethod) {
+        case 'None': // GroupMethod.NONE
+          query.GroupMethod = "None";
+          break;
+        case 'Commas': // GroupMethod.COMMAS
+          query.GroupMethod = "Commas";
+          break;
+        case 'ExpandIntoColumns': // GroupMethod.EXPAND_INTO_COLUMNS
+          query.GroupMethod = "ExpandIntoColumns";
+          break;
+        default:
+          query.GroupMethod = "ExpandIntoColumns";
+      }
+    }
+    
+    // Extract GroupByField from SimpleTable
+    if (simpleTable.groupByField) {
+      query.GroupByField = simpleTable.groupByField;
+    }
+    
+    // Extract AllowDuplicateFields from SimpleTable
+    if (simpleTable.allowDuplicateFields && simpleTable.allowDuplicateFields.size > 0) {
+      query.AllowDuplicateFields = Array.from(simpleTable.allowDuplicateFields);
+    }
+    
+    // Extract FilterGroups from SimpleTable (if any were configured in the JSON)
+    if (simpleTable.filterGroups && simpleTable.filterGroups.length > 0) {
+      const simpleTableFilterGroups = simpleTable.filterGroups.map(group => ({
+        LogicalOperator: group.logicalOperator || "And",
+        Filters: group.filters.map(filter => ({
+          FieldName: filter.fieldName,
+          FieldOperator: filter.fieldOperator,
+          Values: filter.values
+        }))
+      }));
+      
+      // Merge with any active UI filters
+      query.FilterGroups = [...simpleTableFilterGroups];
+    }
+  }
+
+  // Active filters from UI → logical group per field
   Object.entries(activeFilters).forEach(([field,data])=>{
     // Skip the special Marc field itself
     if (field === 'Marc') return;
@@ -446,13 +647,15 @@ function conditionBtnHandler(e){
 
   if(cond === 'show' || cond === 'hide'){
     if(selectedField){
-      if(cond === 'show' && !displayedFields.includes(selectedField)){
-        displayedFields.push(selectedField);
+      if(cond === 'show'){
+        window.DragDropSystem.restoreFieldWithDuplicates(selectedField);
       }else if(cond === 'hide' && displayedFields.includes(selectedField)){
         const idx = displayedFields.indexOf(selectedField);
         displayedFields.splice(idx,1);
       }
-      showExampleTable(displayedFields);
+      showExampleTable(displayedFields).catch(error => {
+        console.error('Error updating table:', error);
+      });
       
       // Update the show/hide button states after the operation
       const toggleButtons = conditionPanel.querySelectorAll('.toggle-half');
@@ -926,12 +1129,14 @@ confirmBtn.addEventListener('click', e => {
           desc: `MARC ${marcNumber} field`
         };
         fieldDefs.set(dynamicMarcField, newDef);
-        filteredDefs.push({ ...newDef });
+        
+        // Ensure the field is in filteredDefs immediately
+        if (!filteredDefs.find(d => d.name === dynamicMarcField)) {
+          filteredDefs.push({ ...newDef });
+        }
       }
-      if (!displayedFields.includes(dynamicMarcField)) {
-        displayedFields.push(dynamicMarcField);
-        showExampleTable(displayedFields);
-      }
+      window.DragDropSystem.restoreFieldWithDuplicates(dynamicMarcField);
+      // Don't call showExampleTable here - we'll do it once after all fields are added
       if (idx === 0 && cond && val) {
         if (!activeFilters[dynamicMarcField]) {
           activeFilters[dynamicMarcField] = { logical: 'And', filters: [] };
@@ -942,25 +1147,48 @@ confirmBtn.addEventListener('click', e => {
         }
       }
       if (!firstMarcField) firstMarcField = dynamicMarcField;
-      const bubblesList = document.getElementById('bubble-list');
-      if (bubblesList) {
-        const existingBubble = Array.from(bubblesList.children).find(b => b.textContent.trim() === dynamicMarcField);
-        if (!existingBubble) {
-          const div = document.createElement('div');
-          div.className = 'bubble';
-          div.setAttribute('draggable', dynamicMarcField === 'Marc' ? 'false' : 'true');
-          div.tabIndex = 0;
-          div.textContent = dynamicMarcField;
-          div.dataset.type = 'string';
-          bubblesList.appendChild(div);
-        }
-      }
     });
+    
+    // Update the table with all new fields at once
+    if (marcNumbers.length > 0) {
+      showExampleTable(displayedFields).catch(error => {
+        console.error('Error updating table:', error);
+      });
+    }
+    
+    // After creating all new Marc fields, re-render bubbles to show them properly
+    if (marcNumbers.length > 0) {
+      // Clear any active search to ensure new MARC fields are visible
+      const queryInput = document.getElementById('query-input');
+      if (queryInput && queryInput.value.trim()) {
+        queryInput.value = '';
+        updateFilteredDefs(''); // Reset filteredDefs to show all fields
+      }
+      
+      // Wait for table operations to complete and ensure fields are fully set up
+      setTimeout(() => {
+        // Verify the fields are in the right places
+        console.log('MARC fields created:', marcNumbers.map(n => `Marc${n}`));
+        console.log('displayedFields:', displayedFields);
+        console.log('filteredDefs contains MARC fields:', marcNumbers.map(n => `Marc${n}`).map(field => 
+          filteredDefs.find(d => d.name === field) ? 'YES' : 'NO'
+        ));
+        
+        // Switch to Selected category first to show the newly added fields
+        currentCategory = 'Selected';
+        document.querySelectorAll('#category-bar .category-btn').forEach(btn =>
+          btn.classList.toggle('active', btn.dataset.category === 'Selected')
+        );
+        
+        // Update category counts to include new fields
+        updateCategoryCounts();
+        
+        // Re-render bubbles to show the newly created Marc fields
+        safeRenderBubbles();
+      }, 200);
+    }
+    
     if (activeFilters['Marc']) delete activeFilters['Marc'];
-    currentCategory = 'Marc';
-    document.querySelectorAll('#category-bar .category-btn').forEach(btn =>
-      btn.classList.toggle('active', btn.dataset.category === 'Marc')
-    );
   } else {
     const isMultiSelect = fieldDef && fieldDef.multiSelect;
     if (cond && cond !== 'display') {
@@ -1064,13 +1292,17 @@ confirmBtn.addEventListener('click', e => {
       }
     }
     if (cond === 'display' || cond === 'show' || cond === 'hide') {
-      if (cond === 'show' && !displayedFields.includes(field)) {
-        displayedFields.push(field);
-        showExampleTable(displayedFields);
+      if (cond === 'show') {
+        window.DragDropSystem.restoreFieldWithDuplicates(field);
+        showExampleTable(displayedFields).catch(error => {
+          console.error('Error updating table:', error);
+        });
       } else if ((cond === 'hide' || cond === 'display') && displayedFields.includes(field)) {
         const idx = displayedFields.indexOf(field);
         displayedFields.splice(idx, 1);
-        showExampleTable(displayedFields);
+        showExampleTable(displayedFields).catch(error => {
+          console.error('Error updating table:', error);
+        });
       }
     }
   }
@@ -1948,12 +2180,109 @@ body.classList.add('night');         // use night-sky background
 const initialContainer = document.querySelector('.overflow-x-auto.shadow.rounded-lg.mb-6');
 if(initialContainer) {
   window.DragDropSystem.attachBubbleDropTarget(initialContainer);
-  // Initial render of empty table placeholder
-  showExampleTable(displayedFields);
+  // Initial render - load the DesiredColumnOrder from test data
+  (async () => {
+    try {
+      // Load test data to get the processed table with correct column order
+      await VirtualTable.loadTestData();
+      const simpleTable = VirtualTable.simpleTableInstance;
+      if (simpleTable) {
+        // Use the actual headers from the processed table (which should be in DesiredColumnOrder)
+        const headers = simpleTable.getHeaders();
+        console.log('Initial table setup - headers from SimpleTable:', headers);
+        console.log('Initial table setup - desiredColumnOrder:', simpleTable.desiredColumnOrder);
+        
+        if (headers && headers.length > 0) {
+          // Use the headers from the processed SimpleTable (already in correct order)
+          displayedFields = [...headers];
+          window.displayedFields = displayedFields;
+          console.log('Set displayedFields to:', displayedFields);
+          // Update the query JSON to reflect the correct columns from the SimpleTable
+          updateQueryJson();
+          await showExampleTable(displayedFields);
+          // Update button states after fields are loaded
+          updateButtonStates();
+          // Set initial executed state since we're loading with test data
+          lastExecutedQueryState = getCurrentQueryState();
+          // Initialize run button icon
+          updateRunButtonIcon();
+          // Set the GroupBy method selector to match the SimpleTable instance
+          if (groupMethodSelect) {
+            groupMethodSelect.value = simpleTable.groupMethod;
+          }
+          // Re-render bubbles to show any newly created MARC fields
+          safeRenderBubbles();
+          updateCategoryCounts();
+        } else {
+          console.warn('No headers found in SimpleTable, showing empty placeholder');
+          displayedFields = [];
+          window.displayedFields = displayedFields;
+          await showExampleTable(displayedFields);
+          updateButtonStates();
+        }
+      } else {
+        console.warn('No SimpleTable instance found, showing empty placeholder');
+        displayedFields = [];
+        window.displayedFields = displayedFields;
+        await showExampleTable(displayedFields);
+        updateButtonStates();
+      }
+    } catch (error) {
+      console.error('Error initializing table:', error);
+      displayedFields = [];
+      window.displayedFields = displayedFields;
+      await showExampleTable(displayedFields);
+      updateButtonStates();
+    }
+  })();
+}
+
+// GroupBy method change handler
+if (groupMethodSelect) {
+  groupMethodSelect.addEventListener('change', async () => {
+    const newGroupMethod = groupMethodSelect.value;
+    console.log('Changing GroupBy method to:', newGroupMethod);
+    
+    // Get the current SimpleTable instance
+    const simpleTable = VirtualTable.simpleTableInstance;
+    if (simpleTable) {
+      // Change the group method
+      simpleTable.changeGroupMethod(newGroupMethod);
+      
+      // Update the virtual table data
+      const rawTable = simpleTable.getRawTable();
+      if (rawTable.length > 0) {
+        const headers = rawTable[0];
+        const dataRows = rawTable.slice(1);
+        
+        // Update virtualTableData
+        VirtualTable.virtualTableData = {
+          headers: headers,
+          rows: dataRows,
+          columnMap: new Map(headers.map((header, index) => [header, index]))
+        };
+        
+        // Update displayedFields to match new headers
+        displayedFields = [...headers];
+        window.displayedFields = displayedFields;
+        
+        console.log('Updated table with new GroupBy method:', {
+          method: newGroupMethod,
+          headers: headers,
+          rows: dataRows.length
+        });
+        
+        // Refresh the table display
+        await showExampleTable(displayedFields);
+        updateQueryJson();
+        updateButtonStates();
+      }
+    }
+  });
 }
 
 // === Example table builder ===
-function showExampleTable(fields){
+async function showExampleTable(fields){
   if(!Array.isArray(fields) || fields.length === 0){
     // No columns left → clear table area and reset states
     displayedFields = [];
@@ -1986,9 +2315,11 @@ function showExampleTable(fields){
         placeholderTh.addEventListener('drop', e => {
           e.preventDefault();
           const field = e.dataTransfer.getData('bubble-field');
-          if (field && !displayedFields.includes(field)) {
-            displayedFields.push(field);
-            showExampleTable(displayedFields);
+          if (field) {
+            window.DragDropSystem.restoreFieldWithDuplicates(field);
+            showExampleTable(displayedFields).catch(error => {
+              console.error('Error updating table:', error);
+            });
           }
         });
         placeholderTh.addEventListener('dragenter', e => {
@@ -2029,30 +2360,24 @@ function showExampleTable(fields){
   displayedFields = uniqueFields;
   window.displayedFields = displayedFields;
 
-  // Generate sample data if not already generated or if fields changed
-  if (VirtualTable.virtualTableData.length === 0 || VirtualTable.virtualTableData.length < 30000) {
-    console.log('Generating 30,000 sample rows...');
-    VirtualTable.virtualTableData = VirtualTable.generateSampleData(30000);
-    console.log('Sample data generated successfully');
-  }
-
-  // Calculate optimal column widths based on all data
-  console.log('Calculating optimal column widths...');
-  VirtualTable.calculatedColumnWidths = VirtualTable.calculateOptimalColumnWidths(displayedFields, VirtualTable.virtualTableData);
-  console.log('Column widths calculated:', VirtualTable.calculatedColumnWidths);
-
-  // Build header with fixed widths
-  let theadHTML = '<tr>';
-  displayedFields.forEach((f,i)=>{
-    const width = VirtualTable.calculatedColumnWidths[f] || 150; // fallback width
-    theadHTML += `<th draggable="true" data-col-index="${i}" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50" style="width: ${width}px; min-width: ${width}px; max-width: ${width}px;"><span class='th-text'>${f}</span></th>`;
-  });
-  theadHTML += '</tr>';
-
-  // Create virtual table structure
+  // Create initial table structure
   const tableHTML = `
     <table id="example-table" class="min-w-full divide-y divide-gray-200 bg-white">
-      <thead class="sticky top-0 z-20 bg-gray-50">${theadHTML}</thead>
+      <thead class="sticky top-0 z-20 bg-gray-50">
+        <tr>
+          ${displayedFields.map((f,i) => {
+            // Check if this field exists in the current data
+            const virtualTableData = window.VirtualTable?.virtualTableData;
+            const fieldExistsInData = virtualTableData && virtualTableData.columnMap && virtualTableData.columnMap.has(f);
+            
+            if (fieldExistsInData) {
+              return `<th draggable="true" data-col-index="${i}" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50"><span class='th-text'>${f}</span></th>`;
+            } else {
+              return `<th draggable="true" data-col-index="${i}" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider bg-gray-50" style="color: #ef4444 !important;" data-tooltip="This field is not in the current data. Run a new query to populate it."><span class='th-text' style="color: #ef4444 !important;">${f}</span></th>`;
+            }
+          }).join('')}
+        </tr>
+      </thead>
       <tbody class="divide-y divide-gray-200">
         <!-- Virtual rows will be inserted here -->
       </tbody>
@@ -2063,18 +2388,40 @@ function showExampleTable(fields){
   if (container) {
     // Set up container for virtual scrolling
     container.innerHTML = tableHTML;
-    VirtualTable.setupVirtualTable(container, displayedFields);
     
-    const newTable = container.querySelector('#example-table');
+    try {
+      await VirtualTable.setupVirtualTable(container, displayedFields);
+    } catch (error) {
+      console.error('Error setting up virtual table:', error);
+      // Show error message to user
+      container.innerHTML = `
+        <div class="p-6 text-center">
+          <div class="text-red-600 font-semibold mb-2">Error Loading Data</div>
+          <div class="text-gray-600">Failed to load test data. Please ensure testJobData.json is available.</div>
+          <div class="text-sm text-gray-500 mt-2">${error.message}</div>
+        </div>`;
+      return;
+    }
+
+    // Now that setupVirtualTable has calculated widths, update header widths
+    const table = container.querySelector('#example-table');
+    const headerRow = table.querySelector('thead tr');
+    headerRow.querySelectorAll('th').forEach((th, index) => {
+      const field = displayedFields[index];
+      const width = VirtualTable.calculatedColumnWidths[field] || 150;
+      th.style.width = `${width}px`;
+      th.style.minWidth = `${width}px`;
+      th.style.maxWidth = `${width}px`;
+    });
     
     // Calculate actual row height from a rendered row
-    VirtualTable.measureRowHeight(newTable, displayedFields);
+    VirtualTable.measureRowHeight(table, displayedFields);
     
     // Initial render of virtual table
     VirtualTable.renderVirtualTable();
     
     // Set up drag and drop
-    window.DragDropSystem.addDragAndDrop(newTable);
+    window.DragDropSystem.addDragAndDrop(table);
     window.DragDropSystem.attachBubbleDropTarget(container);
     
     // Update bubble dragging states
@@ -2094,13 +2441,16 @@ function showExampleTable(fields){
     updateQueryJson();
     updateCategoryCounts();
     
+    // Update button states after table setup
+    updateButtonStates();
+    
     // Re-render bubbles if we're in Selected category
     if (currentCategory === 'Selected') {
       safeRenderBubbles();
     }
     
     // Attach header hover handlers for trash can
-    const headers = newTable.querySelectorAll('th[draggable="true"]');
+    const headers = table.querySelectorAll('th[draggable="true"]');
     headers.forEach(h => {
       h.addEventListener('mouseenter', () => {
         h.classList.add('th-hover');
@@ -2125,8 +2475,6 @@ function showExampleTable(fields){
     }
   }
 }
-
-updateQueryJson();
 
 // Arrow-key scrolling when focus is on a bubble, the scrollbar thumb, or when hovering over bubble grid/scrollbar
 document.addEventListener('keydown', e=>{
@@ -2355,15 +2703,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Resize when window resizes (to update max width based on table)
     window.addEventListener('resize', autoResizeInput);
-  }
-  
-  // Initialize with some sample columns to demonstrate virtual scrolling
-  setTimeout(() => {
-    console.log('Initializing with sample columns for virtual scrolling demo...');
-    displayedFields = ['Title', 'Author', 'Call Number', 'Library', 'Item Type'];
-    window.displayedFields = displayedFields;
-    showExampleTable(displayedFields);
-  }, 500);
+  }    // Remove fallback demo columns: always use loaded test data for displayedFields
+    // (No fallback to ['Title', 'Author', ...])
+    // The initial table setup after test data load will set displayedFields correctly.
+
 });
 
 // Add a global flag to block bubble rendering during animation

@@ -1,5 +1,84 @@
 // Drag & Drop System for column reordering and bubble dropping
 
+// Store information about removed columns with their duplicates for restoration
+window.removedColumnInfo = window.removedColumnInfo || new Map();
+
+// Helper function to check if any duplicate of a field exists in displayedFields
+function fieldOrDuplicatesExist(fieldName) {
+  // Extract base field name (remove ordinal prefixes like "2nd ", "3rd ")
+  const baseFieldName = fieldName.replace(/^\d+(st|nd|rd|th)\s+/, '');
+  
+  // Check if any column in displayedFields is related to this field
+  const relatedColumns = window.displayedFields.filter(displayedField => {
+    const displayedBase = displayedField.replace(/^\d+(st|nd|rd|th)\s+/, '');
+    return displayedBase === baseFieldName;
+  });
+  
+  return relatedColumns.length > 0;
+}
+
+// Helper function to restore field with its duplicates from stored information
+function restoreFieldWithDuplicates(fieldName, insertAt = -1) {
+  // Check if any duplicate of this field already exists
+  if (fieldOrDuplicatesExist(fieldName)) {
+    return false;
+  }
+  
+  // Check if we have stored duplicate information for this field
+  const storedInfo = window.removedColumnInfo.get(fieldName);
+  
+  if (storedInfo && storedInfo.columnNames) {
+    // Remove the stored info since we're restoring
+    window.removedColumnInfo.delete(fieldName);
+    
+    // Insert all duplicate columns at the specified position
+    if (insertAt >= 0 && insertAt <= window.displayedFields.length) {
+      // Insert all duplicate columns at the specific position
+      storedInfo.columnNames.forEach((columnName, index) => {
+        window.displayedFields.splice(insertAt + index, 0, columnName);
+      });
+    } else {
+      // Append all duplicate columns at the end
+      storedInfo.columnNames.forEach(columnName => {
+        window.displayedFields.push(columnName);
+      });
+    }
+    
+    return true;
+  } else {
+    // No stored info, check if this field exists in the original data
+    const virtualTableData = window.VirtualTable?.virtualTableData;
+    if (virtualTableData && virtualTableData.headers) {
+      const relatedColumns = virtualTableData.headers.filter(header => {
+        return header === fieldName || header.match(new RegExp(`^\\d+(st|nd|rd|th)\\s+${fieldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`));
+      });
+      
+      if (relatedColumns.length > 0) {
+        // Insert all related columns from original data
+        if (insertAt >= 0 && insertAt <= window.displayedFields.length) {
+          relatedColumns.forEach((columnName, index) => {
+            window.displayedFields.splice(insertAt + index, 0, columnName);
+          });
+        } else {
+          relatedColumns.forEach(columnName => {
+            window.displayedFields.push(columnName);
+          });
+        }
+        
+        return true;
+      }
+    }
+    
+    // Fallback to single field - this will show "..." in the table
+    if (insertAt >= 0 && insertAt <= window.displayedFields.length) {
+      window.displayedFields.splice(insertAt, 0, fieldName);
+    } else {
+      window.displayedFields.push(fieldName);
+    }
+    return true; // Changed to true since we did add the field
+  }
+}
+
 // Create drop anchor element for visual feedback during drag operations
 const dropAnchor = document.createElement('div');
 dropAnchor.className = 'drop-anchor';
@@ -112,16 +191,40 @@ function removeColumn(table, colIndex) {
   const headerCell = table.querySelector(`thead th[data-col-index="${colIndex}"]`);
   const fieldName = headerCell ? headerCell.textContent.trim() : null;
 
-  // Update the displayedFields list first
-  if (fieldName) {
-    const idx = window.displayedFields.indexOf(fieldName);
-    if (idx !== -1) window.displayedFields.splice(idx, 1);
-  }
+  if (!fieldName) return;
 
-  // Remove the header cell
-  if (headerCell) {
-    headerCell.remove();
-  }
+  // Extract base field name (remove ordinal prefixes like "2nd ", "3rd ")
+  const baseFieldName = fieldName.replace(/^\d+(st|nd|rd|th)\s+/, '');
+  
+  // Find all columns with this base field name (including duplicates)
+  const allRelatedColumns = Array.from(table.querySelectorAll('thead th')).filter(th => {
+    const text = th.textContent.trim();
+    return text === baseFieldName || text.match(new RegExp(`^\\d+(st|nd|rd|th)\\s+${baseFieldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`));
+  });
+
+  // Store information about removed columns for restoration
+  const removedColumnNames = allRelatedColumns.map(th => th.textContent.trim());
+  const removedColumnIndices = allRelatedColumns.map(th => parseInt(th.dataset.colIndex, 10)).sort((a, b) => a - b);
+  
+  window.removedColumnInfo.set(baseFieldName, {
+    columnNames: removedColumnNames,
+    originalIndices: removedColumnIndices,
+    removedAt: Date.now()
+  });
+
+  // Remove all related columns from displayedFields array
+  allRelatedColumns.forEach(relatedHeader => {
+    const relatedFieldName = relatedHeader.textContent.trim();
+    const idx = window.displayedFields.indexOf(relatedFieldName);
+    if (idx !== -1) {
+      window.displayedFields.splice(idx, 1);
+    }
+  });
+
+  // Remove all related header cells from DOM
+  allRelatedColumns.forEach(relatedHeader => {
+    relatedHeader.remove();
+  });
 
   // Re-render virtual table with new column structure
   if (window.displayedFields.length > 0) {
@@ -147,11 +250,11 @@ function removeColumn(table, colIndex) {
 
   refreshColIndices(table);
 
-  // Update styling for the bubble for this field
-  if (fieldName) {
+  // Update styling for the bubble for this field (use base field name)
+  if (baseFieldName) {
     document.querySelectorAll('.bubble').forEach(bubbleEl => {
-      if (bubbleEl.textContent.trim() === fieldName) {
-        if (fieldName === 'Marc') {
+      if (bubbleEl.textContent.trim() === baseFieldName) {
+        if (baseFieldName === 'Marc') {
           bubbleEl.setAttribute('draggable', 'false');
         } else {
           bubbleEl.setAttribute('draggable', 'true');
@@ -163,6 +266,8 @@ function removeColumn(table, colIndex) {
 
   // Update JSON to reflect removed column
   updateQueryJson();
+  // Update button states after removing column
+  updateButtonStates();
   // If no columns left, reset to placeholder view
   if (window.displayedFields.length === 0) {
     showExampleTable(window.displayedFields);
@@ -183,9 +288,10 @@ function attachBubbleDropTarget(container) {
     e.preventDefault();
     if (e.target.closest('th')) return; // header drop already handled
     const field = e.dataTransfer.getData('bubble-field'); // will be '' if not a bubble
-    if (field && !window.displayedFields.includes(field)) {
-      window.displayedFields.push(field);
-      showExampleTable(window.displayedFields);
+    if (field) {
+      if (restoreFieldWithDuplicates(field)) {
+        showExampleTable(window.displayedFields);
+      }
     }
   });
   container._bubbleDropSetup = true;
@@ -414,11 +520,12 @@ const dragDropManager = {
     
     // Bubble drop - insert new field
     const bubbleField = e.dataTransfer.getData('bubble-field');
-    if (bubbleField && !window.displayedFields.includes(bubbleField)) {
+    if (bubbleField) {
       const rect = th.getBoundingClientRect();
       const insertAt = (e.clientX - rect.left) < rect.width/2 ? toIndex : toIndex + 1;
-      window.displayedFields.splice(insertAt, 0, bubbleField);
-      showExampleTable(window.displayedFields);
+      if (restoreFieldWithDuplicates(bubbleField, insertAt)) {
+        showExampleTable(window.displayedFields);
+      }
     }
     
     th.classList.remove('th-drag-over');
@@ -437,10 +544,9 @@ const dragDropManager = {
     // Bubble drop
     const bubbleField = e.dataTransfer.getData('bubble-field');
     if (bubbleField) {
-      if (!window.displayedFields.includes(bubbleField)) {
-        const rect = td.getBoundingClientRect();
-        const insertAt = (e.clientX - rect.left) < rect.width/2 ? toIndex : toIndex + 1;
-        window.displayedFields.splice(insertAt, 0, bubbleField);
+      const rect = td.getBoundingClientRect();
+      const insertAt = (e.clientX - rect.left) < rect.width/2 ? toIndex : toIndex + 1;
+      if (restoreFieldWithDuplicates(bubbleField, insertAt)) {
         showExampleTable(window.displayedFields);
       }
       clearDropAnchor();
@@ -642,5 +748,6 @@ window.DragDropSystem = {
   moveColumn,
   removeColumn,
   positionDropAnchor,
-  clearDropAnchor
+  clearDropAnchor,
+  restoreFieldWithDuplicates
 };

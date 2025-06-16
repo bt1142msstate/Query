@@ -236,4 +236,16 @@ function updateFilteredDefs(searchTerm) {
     filteredDefs = getAllFieldDefs().filter(d => d.name.toLowerCase().includes(searchTerm.toLowerCase()));
   }
   return filteredDefs;
-} 
+}
+
+// Export global variables and functions for use in other modules
+window.fieldDefs = fieldDefs;
+window.fieldDefsArray = fieldDefsArray;
+window.filteredDefs = filteredDefs;
+window.categories = categories;
+window.getAllFieldDefs = getAllFieldDefs;
+window.updateFilteredDefs = updateFilteredDefs;
+window.shouldFieldHavePurpleStylingBase = shouldFieldHavePurpleStylingBase;
+window.calculateCategoryCounts = calculateCategoryCounts;
+window.renderCategorySelectors = renderCategorySelectors;
+window.updateCategoryCounts = updateCategoryCounts; 
