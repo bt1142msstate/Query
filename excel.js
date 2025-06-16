@@ -17,7 +17,7 @@ const ExcelExporter = (() => {
     if (downloadBtn.disabled) {
       const tableNameInput = document.getElementById('table-name-input');
       const tableName = tableNameInput ? tableNameInput.value.trim() : '';
-      const hasData = Array.isArray(displayedFields) && displayedFields.length > 0 && Array.isArray(virtualTableData) && virtualTableData.length > 0;
+      const hasData = Array.isArray(displayedFields) && displayedFields.length > 0 && VirtualTable.virtualTableData && VirtualTable.virtualTableData.rows && VirtualTable.virtualTableData.rows.length > 0;
       const hasName = tableName && tableName !== '';
 
       let messageText = '';
@@ -55,7 +55,7 @@ const ExcelExporter = (() => {
       return;
     }
 
-    if (!Array.isArray(displayedFields) || !displayedFields.length || !Array.isArray(VirtualTable.virtualTableData) || !VirtualTable.virtualTableData.length) {
+    if (!Array.isArray(displayedFields) || !displayedFields.length || !VirtualTable.virtualTableData || !VirtualTable.virtualTableData.rows || !VirtualTable.virtualTableData.rows.length) {
       return;
     }
 
@@ -86,9 +86,17 @@ const ExcelExporter = (() => {
 
     // Accumulate typed rows for the Excel table definition
     const tableRows = [];
-    VirtualTable.virtualTableData.forEach(row => {
+    
+    // Access the virtual table data correctly - it's now a 2D array format
+    const virtualData = VirtualTable.virtualTableData;
+    const headers = virtualData.headers;
+    const dataRows = virtualData.rows;
+    
+    dataRows.forEach(row => {
       const rowData = displayedFields.map(field => {
-        const raw = row[field];
+        // Get the column index for this field
+        const colIndex = virtualData.columnMap.get(field);
+        const raw = (colIndex !== undefined) ? row[colIndex] : undefined;
         const value = (raw === undefined || raw === null) ? '' : raw;
 
         // Only attempt type‑coercion for strings
@@ -141,7 +149,9 @@ const ExcelExporter = (() => {
         column.numFmt = 'mm/dd/yyyy';
       } else {
         // Sample a value that made it into the sheet to infer type
-        const sample = virtualTableData.find(r => r[field] !== undefined && r[field] !== null)?.[field];
+        const virtualData = VirtualTable.virtualTableData;
+        const colIndex = virtualData.columnMap.get(field);
+        const sample = (colIndex !== undefined && virtualData.rows.length > 0) ? virtualData.rows[0][colIndex] : null;
         if (sample instanceof Date) {
           column.numFmt = 'mm/dd/yyyy';
         } else if (typeof sample === 'number') {
