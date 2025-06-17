@@ -30,6 +30,140 @@ function fieldOrDuplicatesExist(fieldName) {
 }
 
 /**
+ * Centralized Column Management System
+ * Provides unified functions for adding/removing columns consistently across all interfaces
+ */
+
+/**
+ * Gets all duplicate groups in the current displayedFields.
+ * @function getDuplicateGroups
+ * @returns {Array<{baseField: string, start: number, end: number}>} Array of duplicate groups
+ */
+function getDuplicateGroups() {
+  if (!window.displayedFields || window.displayedFields.length === 0) {
+    return [];
+  }
+  
+  const groups = [];
+  const fieldCounts = new Map();
+  
+  // First pass: count occurrences of each base field
+  window.displayedFields.forEach(field => {
+    const baseField = window.getBaseFieldName(field);
+    fieldCounts.set(baseField, (fieldCounts.get(baseField) || 0) + 1);
+  });
+  
+  // Second pass: identify groups of fields that appear more than once
+  let i = 0;
+  while (i < window.displayedFields.length) {
+    const field = window.displayedFields[i];
+    const baseField = window.getBaseFieldName(field);
+    
+    // If this base field appears more than once, it's a duplicate group
+    if (fieldCounts.get(baseField) > 1) {
+      const start = i;
+      let end = i;
+      
+      // Find the end of this group (all consecutive fields with same base name)
+      while (end < window.displayedFields.length) {
+        const currentField = window.displayedFields[end];
+        const currentBase = window.getBaseFieldName(currentField);
+        if (currentBase !== baseField) {
+          break;
+        }
+        end++;
+      }
+      
+      groups.push({ baseField, start, end: end - 1 });
+      i = end; // Skip to after this group
+    } else {
+      i++; // Single field, move to next
+    }
+  }
+  
+  return groups;
+}
+
+/**
+ * Validates if an insertion position would break up duplicate field groups.
+ * @function isValidInsertPosition
+ * @param {number} insertAt - The proposed insertion index
+ * @returns {boolean} True if the position is valid (won't break up duplicates)
+ */
+function isValidInsertPosition(insertAt) {
+  // For now, just return true to allow all positions
+  return true;
+}
+
+/**
+ * Finds a valid insertion position that won't break duplicate groups.
+ * @function findValidInsertPosition
+ * @param {number} preferredPosition - The desired insertion position
+ * @returns {number} A valid insertion position
+ */
+function findValidInsertPosition(preferredPosition) {
+  // For now, just return the preferred position (no validation)
+  return preferredPosition;
+}
+
+/**
+ * Centralized function to add a column using the same logic as drag/drop operations.
+ * @function addColumn
+ * @param {string} fieldName - The field name to add
+ * @param {number} [insertAt=-1] - Position to insert at (-1 for end)
+ * @returns {boolean} True if column was successfully added
+ */
+function addColumn(fieldName, insertAt = -1) {
+  // Check if any duplicate of this field already exists
+  if (fieldOrDuplicatesExist(fieldName)) {
+    return false;
+  }
+  
+  const success = restoreFieldWithDuplicates(fieldName, insertAt);
+  
+  if (success) {
+    // Trigger the same updates as successful drag/drop
+    showExampleTable(window.displayedFields);
+    updateQueryJson();
+    updateButtonStates();
+    updateCategoryCounts();
+    
+    // Re-render bubbles if we're in Selected category
+    if (window.currentCategory === 'Selected') {
+      safeRenderBubbles();
+    }
+  }
+  
+  return success;
+}
+
+/**
+ * Centralized function to remove a column using the same logic as trash operations.
+ * @function removeColumnByName
+ * @param {string} fieldName - The field name to remove
+ * @returns {boolean} True if column was successfully removed
+ */
+function removeColumnByName(fieldName) {
+  // Find the column in the current table
+  const table = document.getElementById('example-table');
+  if (!table) return false;
+  
+  // Find the header with this field name
+  const headerCell = Array.from(table.querySelectorAll('thead th')).find(th => 
+    th.textContent.trim() === fieldName
+  );
+  
+  if (!headerCell) return false;
+  
+  const colIndex = parseInt(headerCell.dataset.colIndex, 10);
+  if (isNaN(colIndex)) return false;
+  
+  // Use the existing sophisticated removeColumn logic
+  removeColumn(table, colIndex);
+  return true;
+}
+
+/**
  * Restores a field and its duplicates from stored information or original data.
  * Attempts to restore from removedColumnInfo first, then falls back to original headers.
  * @function restoreFieldWithDuplicates
@@ -240,25 +374,47 @@ function getSampleColumnData(fieldName, maxSamples = 3) {
 
 /**
  * Positions the visual drop anchor during drag operations.
- * Shows where the dragged item will be inserted.
+ * Hides the anchor when hovering within duplicate field groups.
  * @function positionDropAnchor
  * @param {DOMRect} rect - Bounding rectangle of the target element
  * @param {HTMLElement} table - The table element
  * @param {number} clientX - Mouse X coordinate
+ * @param {number} colIndex - Column index for validation
  */
-function positionDropAnchor(rect, table, clientX) {
-  // Both bubble insertion and column reordering use vertical anchors for consistency
-  dropAnchor.classList.add('vertical');
+function positionDropAnchor(rect, table, clientX, colIndex) {
   const insertLeft = (clientX - rect.left) < rect.width/2;
+  const insertAt = insertLeft ? colIndex : colIndex + 1;
+  
+  // Check if this position would be within a duplicate group
+  if (window.displayedFields && window.displayedFields.length > 1 && 
+      insertAt > 0 && insertAt < window.displayedFields.length) {
+    
+    const beforeField = window.displayedFields[insertAt - 1];
+    const afterField = window.displayedFields[insertAt];
+    
+    if (beforeField && afterField) {
+      const beforeBase = window.getBaseFieldName(beforeField);
+      const afterBase = window.getBaseFieldName(afterField);
+      
+      // If trying to insert between duplicates, hide the anchor
+      if (beforeBase === afterBase) {
+        dropAnchor.style.display = 'none';
+        return;
+      }
+    }
+  }
+  
+  // Position is valid, show the anchor
+  dropAnchor.classList.add('vertical');
   
   // For virtual scrolling tables, use the container height instead of table height
   const tableContainer = table.closest('.overflow-x-auto.shadow.rounded-lg.mb-6.relative');
   const anchorHeight = tableContainer ? tableContainer.offsetHeight : table.offsetHeight;
   
-  dropAnchor.style.width  = '4px';
+  dropAnchor.style.width = '4px';
   dropAnchor.style.height = anchorHeight + 'px';
-  dropAnchor.style.left   = (insertLeft ? rect.left : rect.right) + window.scrollX - 2 + 'px';
-  dropAnchor.style.top    = (tableContainer ? tableContainer.getBoundingClientRect().top : table.getBoundingClientRect().top) + window.scrollY + 'px';
+  dropAnchor.style.left = (insertLeft ? rect.left : rect.right) + window.scrollX - 2 + 'px';
+  dropAnchor.style.top = (tableContainer ? tableContainer.getBoundingClientRect().top : table.getBoundingClientRect().top) + window.scrollY + 'px';
   dropAnchor.style.display = 'block';
 }
 
@@ -578,13 +734,13 @@ const dragDropManager = {
     if (this.autoScrollInterval) return; // Already scrolling
     
     this.autoScrollInterval = setInterval(() => {
-      const scrollAmount = 15; // pixels per scroll step
+      const scrollAmount = 30; // pixels per scroll step (increased from 15)
       if (direction === 'left') {
         container.scrollLeft = Math.max(0, container.scrollLeft - scrollAmount);
       } else if (direction === 'right') {
         container.scrollLeft += scrollAmount;
       }
-    }, 50); // scroll every 50ms for smooth scrolling
+    }, 30); // scroll every 30ms for faster, smooth scrolling (decreased from 50ms)
   },
 
   stopAutoScroll() {
@@ -708,7 +864,8 @@ const dragDropManager = {
       element.classList.add('th-drag-over');
     }
     const rect = element.getBoundingClientRect();
-    positionDropAnchor(rect, table, e.clientX);
+    const colIndex = parseInt(element.dataset.colIndex, 10);
+    positionDropAnchor(rect, table, e.clientX, colIndex);
     
     // Check for auto-scroll when dragging columns
     if (!this.isBubbleDrag && this.scrollContainer) {
@@ -724,7 +881,8 @@ const dragDropManager = {
   handleDragOver(e, element, table) {
     e.preventDefault();
     const rect = element.getBoundingClientRect();
-    positionDropAnchor(rect, table, e.clientX);
+    const colIndex = parseInt(element.dataset.colIndex, 10);
+    positionDropAnchor(rect, table, e.clientX, colIndex);
     
     // Check for auto-scroll when dragging columns
     if (!this.isBubbleDrag && this.scrollContainer) {
@@ -742,7 +900,7 @@ const dragDropManager = {
       targetHeader.classList.add('th-drag-over');
     }
     const rect = targetHeader.getBoundingClientRect();
-    positionDropAnchor(rect, table, e.clientX);
+    positionDropAnchor(rect, table, e.clientX, colIndex);
     
     // Check for auto-scroll when dragging columns
     if (!this.isBubbleDrag && this.scrollContainer) {
@@ -755,7 +913,7 @@ const dragDropManager = {
     const colIndex = parseInt(td.dataset.colIndex, 10);
     const targetHeader = table.querySelector(`thead th[data-col-index="${colIndex}"]`);
     const rect = targetHeader.getBoundingClientRect();
-    positionDropAnchor(rect, table, e.clientX);
+    positionDropAnchor(rect, table, e.clientX, colIndex);
     
     // Check for auto-scroll when dragging columns
     if (!this.isBubbleDrag && this.scrollContainer) {
@@ -1165,5 +1323,14 @@ window.DragDropSystem = {
   removeColumn,
   positionDropAnchor,
   clearDropAnchor,
-  restoreFieldWithDuplicates
+  restoreFieldWithDuplicates,
+  addColumn,
+  removeColumnByName,
+  getDuplicateGroups,
+  isValidInsertPosition,
+  findValidInsertPosition
 };
+
+// Also export centralized functions globally for easy access
+window.addColumn = addColumn;
+window.removeColumnByName = removeColumnByName;

@@ -142,19 +142,35 @@ const ExcelExporter = (() => {
       const column = worksheet.getColumn(idx + 1);
       const lower = field ? field.toLowerCase() : '';
 
+      // Money fields - currency formatting
       if (lower.includes('price') || lower.includes('cost')) {
         column.numFmt = '"$"#,##0.00';
-      } else if (lower.includes('date') || lower.includes('time')) {
+      } 
+      // Date/time fields - date formatting
+      else if (lower.includes('date') || lower.includes('time')) {
         column.numFmt = 'mm/dd/yyyy';
-      } else {
+      } 
+      // Whole number fields - integer formatting (no decimals, no commas)
+      else if (lower.includes('barcode') || lower.includes('count') || lower.includes('number') || 
+               lower.includes('key') || lower.includes('charges') || lower.includes('bills') || 
+               lower.includes('inventory') || lower.includes('hold') || lower.includes('offset')) {
+        column.numFmt = '0'; // No decimal places, no commas for whole numbers
+      } 
+      else {
         // Sample a value that made it into the sheet to infer type
         const virtualData = VirtualTable.virtualTableData;
         const colIndex = virtualData.columnMap.get(field);
         const sample = (colIndex !== undefined && virtualData.rows.length > 0) ? virtualData.rows[0][colIndex] : null;
+        
         if (sample instanceof Date) {
           column.numFmt = 'mm/dd/yyyy';
         } else if (typeof sample === 'number') {
-          column.numFmt = '#,##0.00';
+          // Check if it's a whole number by seeing if it equals its integer value
+          if (Number.isInteger(sample)) {
+            column.numFmt = '0'; // Whole number formatting (no commas)
+          } else {
+            column.numFmt = '#,##0.00'; // Decimal formatting
+          }
         }
       }
     });
