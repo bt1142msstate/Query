@@ -816,7 +816,7 @@ input, textarea, select, [contenteditable] {
 /* Table container */
 .overflow-x-auto.shadow.rounded-lg.mb-6.relative {
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12), 0 4px 10px rgba(0, 0, 0, 0.08);
-  border-radius: var(--border-radius-xl) var(--border-radius-xl) 0 0; /* Only round top corners */
+  border-radius: var(--border-radius-xl) var(--border-radius-xl) 0 var(--border-radius-xl); /* Round all corners except bottom-right */
   border: 1px solid rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(4px);
   background: #fff;
@@ -855,6 +855,8 @@ input, textarea, select, [contenteditable] {
   border: 1px solid rgba(107, 114, 128, 0.2);
   min-height: 40px;
 }
+
+
 
 .overflow-x-auto.shadow.rounded-lg.mb-6.relative::-webkit-scrollbar-thumb:hover {
   background: rgba(75, 85, 99, 0.9);
@@ -913,6 +915,14 @@ input, textarea, select, [contenteditable] {
 
 #example-table tbody tr:last-child {
   border-bottom: none;
+}
+
+#example-table tbody tr:last-child td:first-child {
+  border-bottom-left-radius: var(--border-radius-lg);
+}
+
+#example-table tbody tr:last-child td:last-child {
+  border-bottom-right-radius: var(--border-radius-lg);
 }
 
 #example-table tbody tr:hover {

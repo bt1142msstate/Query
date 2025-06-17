@@ -197,9 +197,33 @@ const TooltipManager = (() => {
     });
 
     // Hide tooltip on scroll or escape
-    window.addEventListener('scroll', forceHide);
+    window.addEventListener('scroll', forceHide, true); // Use capture to catch all scroll events
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') forceHide();
+    });
+    
+    // Additional cleanup for mouse movements outside target area
+    let mouseDistanceCheck = null;
+    document.addEventListener('mousemove', e => {
+      if (isDragging) return;
+      
+      // Debounce the distance check for performance
+      if (mouseDistanceCheck) clearTimeout(mouseDistanceCheck);
+      
+      mouseDistanceCheck = setTimeout(() => {
+        if (currentTarget && tooltipEl && tooltipEl.style.display === 'block') {
+          // Check if mouse is still reasonably close to the target element
+          const rect = currentTarget.getBoundingClientRect();
+          const mouseX = e.clientX;
+          const mouseY = e.clientY;
+          
+          // If mouse is far from the target (with generous buffer), hide tooltip
+          if (mouseX < rect.left - 50 || mouseX > rect.right + 50 || 
+              mouseY < rect.top - 50 || mouseY > rect.bottom + 50) {
+            forceHide();
+          }
+        }
+      }, 50);
     });
 
     // Hide tooltip on dragstart, show again on dragend
