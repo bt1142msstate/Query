@@ -530,7 +530,7 @@ input, textarea, select, [contenteditable] {
   display: flex;
   opacity: 0;
   pointer-events: none;
-  gap: A1rem;
+  gap: 1rem;
   transition: opacity 0.35s ease;
 }
 
@@ -599,7 +599,9 @@ input, textarea, select, [contenteditable] {
 .confirm-btn {
   width: 2rem;
   height: 2rem;
-  border-radius: var(--border-radius-full);
+  min-width: 2rem;
+  min-height: 2rem;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -609,6 +611,7 @@ input, textarea, select, [contenteditable] {
   font-weight: 700;
   box-shadow: var(--shadow-lg);
   transition: background 0.2s, transform 0.2s;
+  flex-shrink: 0;
 }
 
 .confirm-btn:hover {
