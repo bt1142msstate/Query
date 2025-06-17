@@ -245,10 +245,12 @@ function updateButtonStates(){
       const q = JSON.parse(queryBox.value || '{}');
       const hasFields = Array.isArray(q.DesiredColumnOrder) && q.DesiredColumnOrder.length > 0;
       runBtn.disabled = !hasFields || queryRunning;
-      runBtn.setAttribute('data-tooltip', queryRunning ? 'Stop Query' : 'Run Query');
+      // Use the sophisticated icon/tooltip update function instead of simple tooltip
+      updateRunButtonIcon();
     }catch{
       runBtn.disabled = true;
-      runBtn.setAttribute('data-tooltip', 'Run Query');
+      // Use the sophisticated icon/tooltip update function instead of simple tooltip
+      updateRunButtonIcon();
     }
   }
 
@@ -685,15 +687,14 @@ function conditionBtnHandler(e){
 
   if(cond === 'show' || cond === 'hide'){
     if(selectedField){
+      let success = false;
       if(cond === 'show'){
-        window.DragDropSystem.restoreFieldWithDuplicates(selectedField);
+        // Use centralized addColumn function (same logic as drag/drop)
+        success = window.addColumn ? window.addColumn(selectedField) : false;
       }else if(cond === 'hide' && displayedFields.includes(selectedField)){
-        const idx = displayedFields.indexOf(selectedField);
-        displayedFields.splice(idx,1);
+        // Use centralized removeColumnByName function (same logic as trash)
+        success = window.removeColumnByName ? window.removeColumnByName(selectedField) : false;
       }
-      showExampleTable(displayedFields).catch(error => {
-        console.error('Error updating table:', error);
-      });
       
       // Update the show/hide button states after the operation
       const toggleButtons = conditionPanel.querySelectorAll('.toggle-half');

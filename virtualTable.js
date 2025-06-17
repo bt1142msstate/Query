@@ -201,6 +201,34 @@ function renderVirtualTable() {
         cellValue = '—';
       }
       
+      // Apply formatting based on field type (same logic as Excel export)
+      const lower = field ? field.toLowerCase() : '';
+      let displayValue = cellValue;
+      
+      // Money fields - currency formatting
+      if ((lower.includes('price') || lower.includes('cost')) && typeof cellValue === 'number') {
+        displayValue = '$' + cellValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+      // Date fields - date formatting  
+      else if ((lower.includes('date') || lower.includes('time')) && cellValue instanceof Date) {
+        displayValue = cellValue.toLocaleDateString('en-US');
+      }
+      // Whole number fields - no decimal formatting
+      else if ((lower.includes('barcode') || lower.includes('count') || lower.includes('number') || 
+                lower.includes('key') || lower.includes('charges') || lower.includes('bills') || 
+                lower.includes('inventory') || lower.includes('hold') || lower.includes('offset')) && 
+               typeof cellValue === 'number' && Number.isInteger(cellValue)) {
+        displayValue = cellValue.toLocaleString('en-US', { maximumFractionDigits: 0 });
+      }
+      // Other numbers - preserve formatting
+      else if (typeof cellValue === 'number') {
+        if (Number.isInteger(cellValue)) {
+          displayValue = cellValue.toLocaleString('en-US', { maximumFractionDigits: 0 });
+        } else {
+          displayValue = cellValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+      }
+      
       // Apply the same fixed width as the header
       const width = calculatedColumnWidths[field] || 150;
       td.style.width = `${width}px`;
@@ -208,22 +236,22 @@ function renderVirtualTable() {
       td.style.maxWidth = `${width}px`;
       
       // Check if content would be visually truncated and handle it manually
-      if (typeof cellValue === 'string' && cellValue.length > 0 && cellValue !== '—') {
+      if (typeof displayValue === 'string' && displayValue.length > 0 && displayValue !== '—') {
         const availableWidth = width - 48; // Subtract padding (24px left + 24px right)
-        const fullTextWidth = window.TextMeasurement.measureText(cellValue);
+        const fullTextWidth = window.TextMeasurement.measureText(displayValue);
         
         // If text is too wide, truncate it manually and add tooltip
         if (fullTextWidth > availableWidth) {
-          const maxFitChars = window.TextMeasurement.findMaxFittingChars(cellValue, availableWidth);
-          const truncatedText = cellValue.substring(0, maxFitChars) + '...';
+          const maxFitChars = window.TextMeasurement.findMaxFittingChars(displayValue, availableWidth);
+          const truncatedText = displayValue.substring(0, maxFitChars) + '...';
           td.textContent = truncatedText;
-          td.setAttribute('data-tooltip', cellValue);
+          td.setAttribute('data-tooltip', displayValue);
         } else {
           // Text fits, no truncation needed
-          td.textContent = cellValue;
+          td.textContent = displayValue;
         }
       } else {
-        td.textContent = cellValue;
+        td.textContent = displayValue;
       }
       
       tr.appendChild(td);
