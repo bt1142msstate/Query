@@ -606,7 +606,7 @@ function resetActive(){
   }, 0);
 }
 
-overlay.addEventListener('click',()=>{ // Keep this, but simplify its body
+overlay.addEventListener('click',()=>{ 
   window.ModalSystem.closeAllModals(); // This will hide overlay and all panels with 'hidden' and remove 'show'
   resetActive(); // Handles bubble animations and state
 
