@@ -1,6 +1,52 @@
 // Field definitions loaded from fieldDefs.js
 
-// DOM Elements
+// Utility Functions
+function getBaseFieldName(fieldName) {
+  // Remove ordinal prefixes like "2nd ", "3rd ", etc.
+  return fieldName.replace(/^\d+(st|nd|rd|th)\s+/, '');
+}
+
+function showToastMessage(message, type = 'info', duration = 3000) {
+  const toast = document.createElement('div');
+  const bgColor = type === 'error' ? 'bg-red-100 border-red-500 text-red-700' : 'bg-blue-100 border-blue-500 text-blue-700';
+  toast.className = `fixed bottom-4 right-4 ${bgColor} px-4 py-3 rounded-md shadow-lg z-50 border`;
+  
+  const iconPath = type === 'error' 
+    ? 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+    : 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z';
+    
+  toast.innerHTML = `
+    <div class="flex items-center gap-2">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${iconPath}"></path>
+      </svg>
+      <span>${message}</span>
+    </div>
+  `;
+  
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), duration);
+}
+
+// Centralized DOM element cache
+const DOM = {
+  get overlay() { return this._overlay ||= document.getElementById('overlay'); },
+  get conditionPanel() { return this._conditionPanel ||= document.getElementById('condition-panel'); },
+  get inputWrapper() { return this._inputWrapper ||= document.getElementById('condition-input-wrapper'); },
+  get conditionInput() { return this._conditionInput ||= document.getElementById('condition-input'); },
+  get confirmBtn() { return this._confirmBtn ||= document.getElementById('confirm-btn'); },
+  get runBtn() { return this._runBtn ||= document.getElementById('run-query-btn'); },
+  get runIcon() { return this._runIcon ||= document.getElementById('run-icon'); },
+  get refreshIcon() { return this._refreshIcon ||= document.getElementById('refresh-icon'); },
+  get stopIcon() { return this._stopIcon ||= document.getElementById('stop-icon'); },
+  get downloadBtn() { return this._downloadBtn ||= document.getElementById('download-btn'); },
+  get queryBox() { return this._queryBox ||= document.getElementById('query-json'); },
+  get queryInput() { return this._queryInput ||= document.getElementById('query-input'); },
+  get clearSearchBtn() { return this._clearSearchBtn ||= document.getElementById('clear-search-btn'); },
+  get groupMethodSelect() { return this._groupMethodSelect ||= document.getElementById('group-method-select'); }
+};
+
+// Legacy DOM Elements (for backward compatibility - can be removed eventually)
 const overlay = document.getElementById('overlay');
 const conditionPanel = document.getElementById('condition-panel');
 const inputWrapper = document.getElementById('condition-input-wrapper');
@@ -36,8 +82,7 @@ function getCurrentQueryState() {
   const baseFields = [...displayedFields]
     .filter(field => field !== 'Marc')
     .map(field => {
-      // Remove ordinal prefixes like "2nd ", "3rd ", etc.
-      return field.replace(/^\d+(st|nd|rd|th)\s+/, '');
+      return getBaseFieldName(field);
     })
     .filter((field, index, array) => {
       // Remove duplicates (keep only first occurrence of each base field name)
@@ -283,28 +328,7 @@ if(runBtn){
     }, 2000); // Simulate 2 second execution
     
     // Show "not implemented yet" message
-    const message = document.createElement('div');
-    message.className = 'fixed bottom-4 right-4 bg-blue-100 border border-blue-500 text-blue-700 px-4 py-3 rounded-md shadow-lg z-50';
-    message.innerHTML = `
-      <div class="flex items-center gap-2">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-        </svg>
-        <span>Query execution is not implemented yet</span>
-      </div>
-    `;
-    document.body.appendChild(message);
-    
-    // Remove message after 3 seconds
-    setTimeout(() => {
-      message.style.opacity = '0';
-      message.style.transition = 'opacity 0.5s ease';
-      setTimeout(() => {
-        if (document.body.contains(message)) {
-          document.body.removeChild(message);
-        }
-      }, 500);
-    }, 3000);
+    showToastMessage('Query execution is not implemented yet', 'info');
   });
 }
 
@@ -383,8 +407,7 @@ function updateQueryJson(){
   const baseFields = [...displayedFields]
     .filter(field => field !== 'Marc')
     .map(field => {
-      // Remove ordinal prefixes like "2nd ", "3rd ", etc.
-      return field.replace(/^\d+(st|nd|rd|th)\s+/, '');
+      return getBaseFieldName(field);
     })
     .filter((field, index, array) => {
       // Remove duplicates (keep only first occurrence of each base field name)
