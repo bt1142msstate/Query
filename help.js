@@ -1,4 +1,8 @@
-// Help overlay functionality
+/**
+ * Help overlay functionality
+ * Manages the help panel content and provides programmatic access to help system.
+ * @module Help
+ */
 (function initializeHelp() {
   
   // Help panel content structure
@@ -38,7 +42,11 @@
     ]
   };
 
-  // Function to generate help panel HTML
+  /**
+   * Generates the complete HTML for the help panel based on content structure.
+   * @function generateHelpHTML
+   * @returns {string} Complete HTML string for the help panel
+   */
   function generateHelpHTML() {
     const sectionsHTML = helpContent.sections.map(section => {
       if (section.items) {
@@ -78,7 +86,11 @@
     `;
   }
 
-  // Function to inject help panel into the DOM
+  /**
+   * Injects the help panel into the DOM at the appropriate location.
+   * Removes existing panel if present and creates a new one.
+   * @function injectHelpPanel
+   */
   function injectHelpPanel() {
     // Find the existing help panel if it exists
     const existingPanel = document.getElementById('help-panel');
@@ -101,7 +113,11 @@
     }
   }
 
-  // Function to setup help panel event handlers
+  /**
+   * Sets up event handlers for the help panel.
+   * Note: Most modal functionality is handled by the main modal system.
+   * @function setupHelpEventHandlers
+   */
   function setupHelpEventHandlers() {
     // The main modal system in query.js already handles:
     // - toggle-help button click
@@ -116,14 +132,22 @@
     console.log('Help panel initialized and ready');
   }
 
-  // Function to update help content programmatically (if needed)
+  /**
+   * Updates help content programmatically and re-renders the panel.
+   * @function updateHelpContent
+   * @param {Object} newContent - New content object to merge with existing content
+   */
   function updateHelpContent(newContent) {
     Object.assign(helpContent, newContent);
     injectHelpPanel();
     setupHelpEventHandlers();
   }
 
-  // Initialize help panel when DOM is ready
+  /**
+   * Initializes the help panel when DOM is ready.
+   * Handles both cases where DOM is already loaded and still loading.
+   * @function initializeHelpPanel
+   */
   function initializeHelpPanel() {
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => {

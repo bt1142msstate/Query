@@ -1,3 +1,8 @@
+/**
+ * Fireflies Animation Module
+ * Creates animated firefly elements that drift across the screen with realistic glowing effects.
+ * @module Fireflies
+ */
 (function createFireflies(){
   /* Weighted color palette: common → rare */
   const glowPalette = [
@@ -7,6 +12,11 @@
     { color: '#ff946e', weight: 0.04 },  // reddish-orange (rare)
     { color: '#8afcff', weight: 0.01 }   // bluish-green (very rare)
   ];
+  /**
+   * Selects a glow color from weighted palette (common to rare colors).
+   * @function pickGlow
+   * @returns {string} Hex color code for the firefly glow
+   */
   function pickGlow(){
     const r = Math.random();
     let sum = 0;
@@ -19,6 +29,11 @@
 
   const COUNT = 30;
 
+  /**
+   * Creates a single firefly element with random properties and animations.
+   * Handles position, movement, size, glow color, and animation timings.
+   * @function createOneFirefly
+   */
   function createOneFirefly(){
     const f = document.createElement('div');
     f.className = 'firefly';

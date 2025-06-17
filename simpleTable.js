@@ -30,9 +30,17 @@ const LogicalOperator = {
 };
 
 /**
- * Represents a single filter condition
+ * Represents a single filter condition for data filtering.
+ * @class Filter
  */
 class Filter {
+    /**
+     * Creates a new Filter instance.
+     * @constructor
+     * @param {string} fieldName - The name of the field to filter on
+     * @param {string} operator - The filter operator (from FilterOperator enum)
+     * @param {Array|string} [values=[]] - The values to filter by
+     */
     constructor(fieldName, operator, values = []) {
         this.fieldName = fieldName;
         this.operator = operator;
@@ -41,23 +49,43 @@ class Filter {
 }
 
 /**
- * Represents a group of filters with a logical operator
+ * Represents a group of filters combined with a logical operator.
+ * @class FilterGroup
  */
 class FilterGroup {
+    /**
+     * Creates a new FilterGroup instance.
+     * @constructor
+     * @param {string} [logicalOperator=LogicalOperator.AND] - How to combine filters (AND/OR)
+     * @param {Filter[]} [filters=[]] - Array of Filter instances
+     */
     constructor(logicalOperator = LogicalOperator.AND, filters = []) {
         this.logicalOperator = logicalOperator;
         this.filters = filters;
     }
 
+    /**
+     * Adds a filter to this group.
+     * @method addFilter
+     * @param {Filter} filter - The filter to add
+     */
     addFilter(filter) {
         this.filters.push(filter);
     }
 }
 
 /**
- * Field specification for a column
+ * Field specification defining column properties for data processing.
+ * @class FieldSpec
  */
 class FieldSpec {
+    /**
+     * Creates a new FieldSpec instance.
+     * @constructor
+     * @param {string} fieldName - The name of the field
+     * @param {number} [rawOutputSegments=1] - Number of raw data segments this field uses
+     * @param {string} [dataType='string'] - The data type for this field
+     */
     constructor(fieldName, rawOutputSegments = 1, dataType = 'string') {
         this.fieldName = fieldName;
         this.rawOutputSegments = rawOutputSegments;
@@ -66,9 +94,23 @@ class FieldSpec {
 }
 
 /**
- * JavaScript implementation of SimpleTable
+ * JavaScript implementation of SimpleTable for data processing and manipulation.
+ * Provides filtering, grouping, and column reordering functionality.
+ * @class SimpleTable
  */
 class SimpleTable {
+    /**
+     * Creates a new SimpleTable instance from configuration.
+     * @constructor
+     * @param {Object|string} config - Configuration object or JSON string
+     * @param {string[]} config.DataLines - Raw data lines to process
+     * @param {Object[]} config.RawColumnOrder - Column specifications
+     * @param {string[]} config.DesiredColumnOrder - Desired column order
+     * @param {Object[]} config.FilterGroups - Filter groups to apply
+     * @param {string} config.GroupByField - Field to group by
+     * @param {string[]} config.AllowDuplicateFields - Fields that allow duplicates
+     * @param {string} config.GroupMethod - Grouping method to use
+     */
     constructor(config) {
         // Parse config if it's a string
         if (typeof config === 'string') {

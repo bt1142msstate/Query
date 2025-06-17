@@ -1,4 +1,8 @@
-// Query History Management Module
+/**
+ * Query History Management Module
+ * Handles display and management of query history, including running, completed, and cancelled queries.
+ * @module QueryHistory
+ */
 
 /* ---------- Example Queries data & renderer ---------- */
 const exampleQueries = [
@@ -105,7 +109,15 @@ const exampleQueries = [
   }
 ];
 
-// Helper to load a query config into the main UI
+/**
+ * Loads a query configuration into the main UI.
+ * Updates displayed fields, filters, and JSON display to match the selected query.
+ * @function loadQueryConfig
+ * @param {Object} q - The query object to load
+ * @param {Object} q.jsonConfig - The query configuration
+ * @param {string[]} q.jsonConfig.DesiredColumnOrder - Array of column names
+ * @param {Object[]} q.jsonConfig.FilterGroups - Array of filter groups
+ */
 function loadQueryConfig(q) {
   if(!q || !q.jsonConfig) return;
   
@@ -152,7 +164,14 @@ function loadQueryConfig(q) {
   }
 }
 
-// Helper function to create HTML for a single query row
+/**
+ * Creates HTML for a single query row in the queries table.
+ * Handles different display formats for running, completed, and cancelled queries.
+ * @function createQueriesTableRowHtml
+ * @param {Object} q - The query object
+ * @param {string} viewIconSVG - SVG icon for view buttons
+ * @returns {string} HTML string for the table row
+ */
 function createQueriesTableRowHtml(q, viewIconSVG) {
   // Use tooltip for columns
   const columns = q.jsonConfig?.DesiredColumnOrder || [];
@@ -232,7 +251,11 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
 // Global variable to track the update interval
 let queryDurationUpdateInterval = null;
 
-// Function to start real-time updates for running query durations
+/**
+ * Starts real-time updates for running query durations.
+ * Updates every second while there are running queries and the panel is visible.
+ * @function startQueryDurationUpdates
+ */
 function startQueryDurationUpdates() {
   if (queryDurationUpdateInterval) return; // Already running
   
@@ -250,7 +273,10 @@ function startQueryDurationUpdates() {
   }, 1000); // Update every second
 }
 
-// Function to stop real-time updates
+/**
+ * Stops real-time duration updates for running queries.
+ * @function stopQueryDurationUpdates
+ */
 function stopQueryDurationUpdates() {
   if (queryDurationUpdateInterval) {
     clearInterval(queryDurationUpdateInterval);
@@ -258,6 +284,11 @@ function stopQueryDurationUpdates() {
   }
 }
 
+/**
+ * Renders the complete queries list with search filtering.
+ * Groups queries by status (running, completed, cancelled) and displays them in tables.
+ * @function renderQueries
+ */
 function renderQueries(){
   const container = document.getElementById('queries-list');
   if(!container) return;
@@ -410,7 +441,11 @@ function renderQueries(){
   });
 }
 
-// Handle click on a table row to load its jsonConfig
+/**
+ * Handles clicks on query table rows to load their configuration.
+ * @function handleQueryRowClick
+ * @param {Event} e - The click event
+ */
 function handleQueryRowClick(e) {
   const row = e.target.closest('#queries-container tbody tr[data-query-id]');
   if(!row) return;
@@ -421,7 +456,11 @@ function handleQueryRowClick(e) {
   loadQueryConfig(q);
 }
 
-// Query History System object for external access
+/**
+ * Query History System object providing external access to history functionality.
+ * @namespace QueryHistorySystem
+ * @global
+ */
 const QueryHistorySystem = {
   exampleQueries,
   loadQueryConfig,

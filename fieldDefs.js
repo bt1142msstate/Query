@@ -1,4 +1,8 @@
-/* Field definitions and category management */
+/**
+ * Field definitions and category management
+ * Contains all available field definitions with their properties, categories, and filtering options.
+ * @module FieldDefs
+ */
 
 // Field definitions data array
 const fieldDefsArray = [
@@ -104,7 +108,11 @@ const fieldDefsArray = [
 // Main field definitions Map (global) - keyed by field name
 const fieldDefs = new Map(fieldDefsArray.map(field => [field.name, field]));
 
-// Helper function to get all field definitions as array (for compatibility)
+/**
+ * Gets all field definitions as an array for compatibility.
+ * @function getAllFieldDefs
+ * @returns {Object[]} Array of all field definition objects
+ */
 const getAllFieldDefs = () => Array.from(fieldDefs.values());
 
 // Filtered definitions (starts as full set, gets filtered by search)
@@ -125,7 +133,14 @@ const derivedCats = Array.from(derivedCatSet);
 // Complete categories list with universal filters
 const categories = ['All', 'Selected', ...derivedCats];
 
-// Helper function to check if a field should have purple styling
+/**
+ * Checks if a field should have purple styling (filtered or displayed).
+ * @function shouldFieldHavePurpleStylingBase
+ * @param {string} fieldName - The name of the field to check
+ * @param {string[]} displayedFields - Array of currently displayed field names
+ * @param {Object} activeFilters - Object containing active filter configurations
+ * @returns {boolean} True if field should have purple styling
+ */
 function shouldFieldHavePurpleStylingBase(fieldName, displayedFields, activeFilters) {
   // Check if the field has active filters
   const hasFilters = activeFilters[fieldName] && 
@@ -138,7 +153,13 @@ function shouldFieldHavePurpleStylingBase(fieldName, displayedFields, activeFilt
   return hasFilters || isDisplayed;
 }
 
-// Function to calculate category counts
+/**
+ * Calculates the count of fields in each category.
+ * @function calculateCategoryCounts
+ * @param {string[]} displayedFields - Array of currently displayed field names
+ * @param {Object} activeFilters - Object containing active filter configurations
+ * @returns {Object} Object mapping category names to field counts
+ */
 function calculateCategoryCounts(displayedFields, activeFilters) {
   const categoryCounts = {};
   const allFieldDefs = getAllFieldDefs();
@@ -159,7 +180,14 @@ function calculateCategoryCounts(displayedFields, activeFilters) {
   return categoryCounts;
 }
 
-// Function to render category selectors (both desktop and mobile)
+/**
+ * Renders category selectors for both desktop and mobile interfaces.
+ * Creates clickable category buttons with counts and tooltips.
+ * @function renderCategorySelectors
+ * @param {Object} categoryCounts - Object mapping category names to counts
+ * @param {string} currentCategory - Currently selected category
+ * @param {Function} onCategoryChange - Callback function when category changes
+ */
 function renderCategorySelectors(categoryCounts, currentCategory, onCategoryChange) {
   const categoryBar = document.getElementById('category-bar');
   const mobileSelector = document.getElementById('mobile-category-selector');
@@ -228,7 +256,13 @@ function renderCategorySelectors(categoryCounts, currentCategory, onCategoryChan
   }
 }
 
-// Function to update filtered definitions based on search
+/**
+ * Updates the filtered definitions array based on search term.
+ * Filters field definitions by name matching the search term.
+ * @function updateFilteredDefs
+ * @param {string} searchTerm - The search term to filter by
+ * @returns {Object[]} Array of filtered field definition objects
+ */
 function updateFilteredDefs(searchTerm) {
   if (searchTerm === '') {
     filteredDefs = [...getAllFieldDefs()];

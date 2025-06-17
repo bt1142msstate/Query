@@ -1,7 +1,14 @@
-/* =========================
-   Excel Exporter Module
-   ========================= */
+/**
+ * Excel Exporter Module
+ * Handles exporting table data to Excel files with proper formatting and type detection.
+ * @module ExcelExporter
+ */
 const ExcelExporter = (() => {
+  /**
+   * Attaches the download event listener to the download button.
+   * @function attach
+   * @memberof ExcelExporter
+   */
   function attach() {
     const downloadBtn = document.getElementById('download-btn');
     if (downloadBtn) {
@@ -9,6 +16,12 @@ const ExcelExporter = (() => {
     }
   }
 
+  /**
+   * Handles the download button click event.
+   * Validates data availability, creates Excel workbook, and triggers download.
+   * @function handleDownload
+   * @memberof ExcelExporter
+   */
   function handleDownload() {
     const downloadBtn = document.getElementById('download-btn');
     if (!downloadBtn) return;
@@ -39,6 +52,12 @@ const ExcelExporter = (() => {
       return;
     }
 
+    /**
+     * Converts a column number to Excel column letter(s) (1=A, 26=Z, 27=AA).
+     * @function columnNumberToLetter
+     * @param {number} number - The column number to convert
+     * @returns {string} The Excel column letter(s)
+     */
     function columnNumberToLetter(number) {
       let temp;
       let letter = '';

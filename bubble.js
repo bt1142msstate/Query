@@ -1,5 +1,20 @@
-// Bubble UI component class
+/**
+ * Bubble UI component class for field selection and filtering.
+ * Represents a draggable field that can be clicked to set filters.
+ * @class Bubble
+ */
 class Bubble {
+  /**
+   * Creates a new Bubble instance.
+   * @constructor
+   * @param {Object} def - Field definition object
+   * @param {string} def.name - Field name
+   * @param {string} def.type - Field data type
+   * @param {string} def.desc - Field description
+   * @param {Array} [def.values] - Predefined values for the field
+   * @param {Array} [def.filters] - Available filter conditions
+   * @param {Object} [state={}] - Initial state object
+   */
   constructor(def, state = {}) {
     this.def = def;
     this.state = state;
@@ -9,6 +24,12 @@ class Bubble {
     this.update();
   }
 
+  /**
+   * Updates the bubble's visual state and properties.
+   * Applies styling, tooltips, and drag behavior based on current state.
+   * @method update
+   * @param {Object} [state={}] - State updates to apply
+   */
   update(state = {}) {
     Object.assign(this.state, state);
     const { def } = this;
@@ -58,12 +79,22 @@ class Bubble {
     applyCorrectBubbleStyling(this.el);
   }
 
+  /**
+   * Returns the DOM element for this bubble.
+   * @method getElement
+   * @returns {HTMLElement} The bubble's DOM element
+   */
   getElement() {
     return this.el;
   }
 }
 
-// Helper function to apply correct styling to a bubble element
+/**
+ * Applies correct styling to a bubble element based on its filter state.
+ * Adds purple styling for filtered fields, removes it for unfiltered fields.
+ * @function applyCorrectBubbleStyling
+ * @param {HTMLElement} bubbleElement - The bubble DOM element to style
+ */
 function applyCorrectBubbleStyling(bubbleElement) {
   if (!bubbleElement) return;
   
@@ -78,7 +109,14 @@ function applyCorrectBubbleStyling(bubbleElement) {
   }
 }
 
-// Refactor createOrUpdateBubble to use Bubble class
+/**
+ * Creates a new bubble or updates an existing one using the Bubble class.
+ * Reuses existing bubble instances when possible for performance.
+ * @function createOrUpdateBubble
+ * @param {Object} def - Field definition object
+ * @param {HTMLElement|null} [existingBubble=null] - Existing bubble element to update
+ * @returns {HTMLElement} The bubble DOM element
+ */
 function createOrUpdateBubble(def, existingBubble = null) {
   let bubbleInstance;
   if (existingBubble && existingBubble._bubbleInstance) {
@@ -93,7 +131,11 @@ function createOrUpdateBubble(def, existingBubble = null) {
   }
 }
 
-// Refactor renderBubbles to use Bubble class (via createOrUpdateBubble)
+/**
+ * Renders all bubbles for the current category and search filter.
+ * Handles different categories (All, Selected, specific categories) with appropriate ordering.
+ * @function renderBubbles
+ */
 function renderBubbles(){
   // Safety check for required globals
   if (typeof filteredDefs === 'undefined' || typeof currentCategory === 'undefined') {
@@ -196,6 +238,11 @@ function safeRenderBubbles() {
   pendingRenderBubbles = false;
 }
 
+/**
+ * Updates the custom scrollbar for the bubble container.
+ * Creates colored segments representing different scroll positions.
+ * @function updateScrollBar
+ */
 function updateScrollBar(){
   // Safety check for required globals
   if (typeof totalRows === 'undefined' || typeof scrollRow === 'undefined') {
@@ -237,7 +284,12 @@ function updateScrollBar(){
   thumb.style.top = `${topPos}px`;
 }
 
-// Build condition panel UI for bubble interactions
+/**
+ * Builds the condition panel UI when a bubble is clicked.
+ * Creates filter buttons, input fields, and show/hide toggles based on field type.
+ * @function buildConditionPanel
+ * @param {HTMLElement} bubble - The clicked bubble element
+ */
 function buildConditionPanel(bubble){
   selectedField = bubble.textContent.trim();
   const type = bubble.dataset.type || 'string';
@@ -413,7 +465,12 @@ function buildConditionPanel(bubble){
   }
 }
 
-// Initialize bubble event handlers and render
+/**
+ * Initializes the bubble system with event handlers and initial rendering.
+ * Sets up scroll handling, click events, and drag/drop functionality.
+ * @function initializeBubbles
+ * @returns {boolean} True if initialization succeeded, false if required globals unavailable
+ */
 function initializeBubbles() {
   // Only initialize if all required globals are available
   if (typeof activeFilters === 'undefined' || typeof displayedFields === 'undefined') {
