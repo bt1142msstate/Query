@@ -508,6 +508,11 @@ function initializeBubbles() {
     clone.dataset.filterFor = fieldName;
     // Remove all index card/descEl logic here
     clone._origin = bubble;
+    // Store the original position for accurate return animation
+    clone._originalRect = {
+      top: rect.top,
+      left: rect.left
+    };
     clone.style.position='fixed';
     clone.style.top = rect.top+'px';
     clone.style.left=rect.left+'px';
