@@ -1,16 +1,22 @@
 // Drag & Drop System for column reordering and bubble dropping
 
+// Utility function for field name processing
+function getBaseFieldName(fieldName) {
+  // Remove ordinal prefixes like "2nd ", "3rd ", etc.
+  return fieldName.replace(/^\d+(st|nd|rd|th)\s+/, '');
+}
+
 // Store information about removed columns with their duplicates for restoration
 window.removedColumnInfo = window.removedColumnInfo || new Map();
 
 // Helper function to check if any duplicate of a field exists in displayedFields
 function fieldOrDuplicatesExist(fieldName) {
   // Extract base field name (remove ordinal prefixes like "2nd ", "3rd ")
-  const baseFieldName = fieldName.replace(/^\d+(st|nd|rd|th)\s+/, '');
+  const baseFieldName = getBaseFieldName(fieldName);
   
   // Check if any column in displayedFields is related to this field
   const relatedColumns = window.displayedFields.filter(displayedField => {
-    const displayedBase = displayedField.replace(/^\d+(st|nd|rd|th)\s+/, '');
+    const displayedBase = getBaseFieldName(displayedField);
     return displayedBase === baseFieldName;
   });
   
@@ -136,12 +142,12 @@ function refreshColIndices(table) {
 // Helper function to find all related columns (including duplicates) for a field
 function findRelatedColumnIndices(fieldName) {
   // Extract base field name (remove ordinal prefixes like "2nd ", "3rd ")
-  const baseFieldName = fieldName.replace(/^\d+(st|nd|rd|th)\s+/, '');
+  const baseFieldName = getBaseFieldName(fieldName);
   
   // Find all columns with this base field name
   const relatedIndices = [];
   window.displayedFields.forEach((field, index) => {
-    const fieldBase = field.replace(/^\d+(st|nd|rd|th)\s+/, '');
+    const fieldBase = getBaseFieldName(field);
     if (fieldBase === baseFieldName) {
       relatedIndices.push(index);
     }
@@ -255,7 +261,7 @@ function moveColumnGroup(table, groupIndices, targetIndex) {
 
 function finalizeMoveOperation(table) {
   // 3️⃣ Recalculate column widths for new order
-  if (VirtualTable.virtualTableData.length > 0) {
+  if (VirtualTable.virtualTableData.rows && VirtualTable.virtualTableData.rows.length > 0) {
     VirtualTable.calculatedColumnWidths = VirtualTable.calculateOptimalColumnWidths(window.displayedFields, VirtualTable.virtualTableData);
     
     // Update header widths
@@ -295,7 +301,7 @@ function removeColumn(table, colIndex) {
   if (!fieldName) return;
 
   // Extract base field name (remove ordinal prefixes like "2nd ", "3rd ")
-  const baseFieldName = fieldName.replace(/^\d+(st|nd|rd|th)\s+/, '');
+  const baseFieldName = getBaseFieldName(fieldName);
   
   // Find all columns with this base field name (including duplicates)
   const allRelatedColumns = Array.from(table.querySelectorAll('thead th')).filter(th => {
@@ -330,7 +336,7 @@ function removeColumn(table, colIndex) {
   // Re-render virtual table with new column structure
   if (window.displayedFields.length > 0) {
     // Recalculate column widths for remaining fields
-    if (VirtualTable.virtualTableData.length > 0) {
+    if (VirtualTable.virtualTableData.rows && VirtualTable.virtualTableData.rows.length > 0) {
       VirtualTable.calculatedColumnWidths = VirtualTable.calculateOptimalColumnWidths(window.displayedFields, VirtualTable.virtualTableData);
       
       // Update remaining header widths
