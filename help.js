@@ -145,20 +145,14 @@
 
   /**
    * Initializes the help panel when DOM is ready.
-   * Handles both cases where DOM is already loaded and still loading.
+   * Uses shared DOM ready utility to eliminate duplicate patterns.
    * @function initializeHelpPanel
    */
   function initializeHelpPanel() {
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => {
-        injectHelpPanel();
-        setupHelpEventHandlers();
-      });
-    } else {
-      // DOM is already ready
+    window.onDOMReady(() => {
       injectHelpPanel();
       setupHelpEventHandlers();
-    }
+    });
   }
 
   // Public API (attach to window if needed for external access)

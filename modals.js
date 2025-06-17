@@ -216,12 +216,12 @@ function initializeModalSystem() {
     'toggle-help': 'help-panel'
   };
   
+  // Use shared event utility to reduce duplicate code
+  const toggleHandlers = {};
   Object.entries(panelToggles).forEach(([btnId, panelId]) => {
-    const btn = document.getElementById(btnId);
-    if (btn) {
-      btn.addEventListener('click', () => openModal(panelId));
-    }
+    toggleHandlers[btnId] = () => openModal(panelId);
   });
+  window.EventUtils.attachBulkClickListeners(toggleHandlers);
   
   // Collapse buttons (close buttons in panel headers)
   document.querySelectorAll('.collapse-btn').forEach(btn => {
@@ -331,15 +331,10 @@ window.ModalSystem = {
 
 /* ===== Auto-initialization ===== */
 // Initialize the modal system when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeModalSystem);
-} else {
-  // DOM is already ready
-  initializeModalSystem();
-}
+window.onDOMReady(initializeModalSystem);
 
-// Also run mobile mode check on load and resize
-window.addEventListener('DOMContentLoaded', () => {
+// Also run mobile mode check on load and resize  
+window.onDOMReady(() => {
   const isMobile = checkMobileMode();
   // You can use isMobile for conditional UI logic if needed
 });
