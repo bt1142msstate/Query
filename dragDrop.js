@@ -1,10 +1,6 @@
 // Drag & Drop System for column reordering and bubble dropping
 
-// Utility function for field name processing
-function getBaseFieldName(fieldName) {
-  // Remove ordinal prefixes like "2nd ", "3rd ", etc.
-  return fieldName.replace(/^\d+(st|nd|rd|th)\s+/, '');
-}
+// Use shared utility function from query.js
 
 // Store information about removed columns with their duplicates for restoration
 window.removedColumnInfo = window.removedColumnInfo || new Map();
@@ -12,11 +8,11 @@ window.removedColumnInfo = window.removedColumnInfo || new Map();
 // Helper function to check if any duplicate of a field exists in displayedFields
 function fieldOrDuplicatesExist(fieldName) {
   // Extract base field name (remove ordinal prefixes like "2nd ", "3rd ")
-  const baseFieldName = getBaseFieldName(fieldName);
+  const baseFieldName = window.getBaseFieldName(fieldName);
   
   // Check if any column in displayedFields is related to this field
   const relatedColumns = window.displayedFields.filter(displayedField => {
-    const displayedBase = getBaseFieldName(displayedField);
+    const displayedBase = window.getBaseFieldName(displayedField);
     return displayedBase === baseFieldName;
   });
   
@@ -56,7 +52,9 @@ function restoreFieldWithDuplicates(fieldName, insertAt = -1) {
     const virtualTableData = window.VirtualTable?.virtualTableData;
     if (virtualTableData && virtualTableData.headers) {
       const relatedColumns = virtualTableData.headers.filter(header => {
-        return header === fieldName || header.match(new RegExp(`^\\d+(st|nd|rd|th)\\s+${fieldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`));
+        const baseFieldName = window.getBaseFieldName(fieldName);
+        const headerBase = window.getBaseFieldName(header);
+        return header === fieldName || headerBase === baseFieldName;
       });
       
       if (relatedColumns.length > 0) {
@@ -85,7 +83,7 @@ function restoreFieldWithDuplicates(fieldName, insertAt = -1) {
   }
 }
 
-// Create drop anchor element for visual feedback during drag operations
+// Global drop anchor element for visual feedback during drag operations
 const dropAnchor = document.createElement('div');
 dropAnchor.className = 'drop-anchor';
 document.body.appendChild(dropAnchor);
@@ -142,12 +140,12 @@ function refreshColIndices(table) {
 // Helper function to find all related columns (including duplicates) for a field
 function findRelatedColumnIndices(fieldName) {
   // Extract base field name (remove ordinal prefixes like "2nd ", "3rd ")
-  const baseFieldName = getBaseFieldName(fieldName);
+  const baseFieldName = window.getBaseFieldName(fieldName);
   
   // Find all columns with this base field name
   const relatedIndices = [];
   window.displayedFields.forEach((field, index) => {
-    const fieldBase = getBaseFieldName(field);
+    const fieldBase = window.getBaseFieldName(field);
     if (fieldBase === baseFieldName) {
       relatedIndices.push(index);
     }
@@ -301,7 +299,7 @@ function removeColumn(table, colIndex) {
   if (!fieldName) return;
 
   // Extract base field name (remove ordinal prefixes like "2nd ", "3rd ")
-  const baseFieldName = getBaseFieldName(fieldName);
+  const baseFieldName = window.getBaseFieldName(fieldName);
   
   // Find all columns with this base field name (including duplicates)
   const allRelatedColumns = Array.from(table.querySelectorAll('thead th')).filter(th => {
