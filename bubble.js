@@ -237,7 +237,7 @@ function updateScrollBar(){
   thumb.style.top = `${topPos}px`;
 }
 
-// Helper function to build condition panel for a bubble (was inside attachBubbleHandlers before)
+// Build condition panel UI for bubble interactions
 function buildConditionPanel(bubble){
   selectedField = bubble.textContent.trim();
   const type = bubble.dataset.type || 'string';
