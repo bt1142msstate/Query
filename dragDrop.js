@@ -391,6 +391,7 @@ function attachBubbleDropTarget(container) {
     const field = e.dataTransfer.getData('bubble-field'); // will be '' if not a bubble
     if (field) {
       if (restoreFieldWithDuplicates(field)) {
+        dragDropManager.dropSuccessful = true;
         showExampleTable(window.displayedFields);
       }
     }
@@ -405,6 +406,12 @@ const dragDropManager = {
   hoverTh: null,
   autoScrollInterval: null,
   scrollContainer: null,
+  draggedBubble: null,
+  draggedBubbleOriginalRect: null,
+  dropSuccessful: false,
+  lastDragX: 0,
+  lastDragY: 0,
+  isAnimating: false,
   
   // Auto-scroll functionality
   startAutoScroll(direction, container) {
@@ -646,6 +653,7 @@ const dragDropManager = {
       const rect = th.getBoundingClientRect();
       const insertAt = (e.clientX - rect.left) < rect.width/2 ? toIndex : toIndex + 1;
       if (restoreFieldWithDuplicates(bubbleField, insertAt)) {
+        dragDropManager.dropSuccessful = true;
         showExampleTable(window.displayedFields);
       }
     }
@@ -669,6 +677,7 @@ const dragDropManager = {
       const rect = td.getBoundingClientRect();
       const insertAt = (e.clientX - rect.left) < rect.width/2 ? toIndex : toIndex + 1;
       if (restoreFieldWithDuplicates(bubbleField, insertAt)) {
+        dragDropManager.dropSuccessful = true;
         showExampleTable(window.displayedFields);
       }
       clearDropAnchor();
@@ -829,11 +838,17 @@ document.addEventListener('dragstart', e => {
     return;
   }
   
+  // Store original position and bubble for potential return animation
+  dragDropManager.draggedBubble = bubble;
+  dragDropManager.draggedBubbleOriginalRect = bubble.getBoundingClientRect();
+  dragDropManager.dropSuccessful = false;
+  
   e.dataTransfer.setData('bubble-field', fieldName);
-  e.dataTransfer.effectAllowed = 'copy';
+  e.dataTransfer.effectAllowed = 'copyMove'; // Allow both copy and move
+  e.dataTransfer.dropEffect = 'move'; // Set the drop effect
   dragDropManager.setBubbleDrag(true);
   
-  // Clone bubble and wrap it in a padded container
+  // Clone bubble and wrap it in a padded container BEFORE fading original
   const wrapper = document.createElement('div');
   const pad = 16;
   wrapper.style.position = 'absolute';
@@ -850,10 +865,144 @@ document.addEventListener('dragstart', e => {
   const gh = wrapper.offsetHeight;
   e.dataTransfer.setDragImage(wrapper, gw / 2, gh / 2);
   setTimeout(() => wrapper.remove(), 0);
+  
+  // NOW fade the original bubble after the ghost is created
+  bubble.style.opacity = '0.3';
 });
 
+// Comprehensive drag event handling to prevent browser snap-back animations
+document.addEventListener('dragover', e => {
+  if (dragDropManager.isBubbleDrag) {
+    e.preventDefault(); // Always prevent default for bubble drags
+    e.dataTransfer.dropEffect = 'move'; // Signal that this is a valid drop zone
+    
+    // Track mouse position within viewport bounds
+    const margin = 50; // pixels from edge
+    const clampedX = Math.max(margin, Math.min(window.innerWidth - margin, e.clientX));
+    const clampedY = Math.max(margin, Math.min(window.innerHeight - margin, e.clientY));
+    
+    dragDropManager.lastDragX = clampedX;
+    dragDropManager.lastDragY = clampedY;
+  }
+});
+
+document.addEventListener('drop', e => {
+  if (dragDropManager.isBubbleDrag) {
+    e.preventDefault(); // Prevent browser's default drop behavior
+  }
+});
+
+// Window-level handlers to catch drags that go outside the document
+window.addEventListener('dragover', e => {
+  if (dragDropManager.isBubbleDrag) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move'; // Always signal valid drop
+  }
+}, { capture: true });
+
+window.addEventListener('drop', e => {
+  if (dragDropManager.isBubbleDrag) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move'; // Signal successful drop
+  }
+}, { capture: true });
+
 document.addEventListener('dragend', e => {
-  if (e.target.closest('.bubble')) dragDropManager.setBubbleDrag(false);
+  const bubble = e.target.closest('.bubble');
+  if (bubble && dragDropManager.draggedBubble) { // Only handle if we have a tracked drag
+    console.log('Dragend event fired for:', bubble.textContent.trim());
+    dragDropManager.setBubbleDrag(false);
+    
+    // Check if drop was actually successful by looking at if the field was added to displayedFields
+    const fieldName = bubble.textContent.trim();
+    const wasActuallyDropped = window.displayedFields && window.displayedFields.includes(fieldName);
+    
+    // If the bubble was NOT successfully dropped, animate it back
+    if (!wasActuallyDropped && dragDropManager.draggedBubble && dragDropManager.draggedBubbleOriginalRect && !dragDropManager.isAnimating) {
+      console.log('Starting return animation for:', fieldName);
+      dragDropManager.isAnimating = true;
+      const originalRect = dragDropManager.draggedBubbleOriginalRect;
+      const originalBubble = dragDropManager.draggedBubble;
+      
+      // Keep the original bubble faded during the return animation
+      // (it's already at 0.3 opacity from the drag start)
+      
+      // Create a clone for return animation - use the original bubble but restore full opacity for the clone
+      const returnClone = bubble.cloneNode(true);
+      returnClone.style.position = 'fixed';
+      returnClone.style.zIndex = '1001';
+      returnClone.style.pointerEvents = 'none';
+      returnClone.style.opacity = '1'; // Make sure clone is full opacity regardless of original state
+      
+      // Clear any inherited transitions that might cause conflicts
+      returnClone.style.transition = 'transform 0.45s ease';
+      returnClone.style.transform = 'translate(0, 0)';
+      
+      // Start at last drag position, with fallback to center if position is invalid
+      let startX = dragDropManager.lastDragX - 25;
+      let startY = dragDropManager.lastDragY - 15;
+      
+      // Fallback to center of screen if we lost tracking (dragged off-screen)
+      if (dragDropManager.lastDragX === 0 && dragDropManager.lastDragY === 0) {
+        startX = window.innerWidth / 2 - 25;
+        startY = window.innerHeight / 2 - 15;
+        console.log('Using fallback position - bubble was dragged off-screen');
+      }
+      
+      // Ensure position is within viewport bounds
+      const margin = 50;
+      startX = Math.max(margin, Math.min(window.innerWidth - margin, startX));
+      startY = Math.max(margin, Math.min(window.innerHeight - margin, startY));
+      returnClone.style.top = startY + 'px';
+      returnClone.style.left = startX + 'px';
+      
+      document.body.appendChild(returnClone);
+      
+      // Force reflow to ensure initial position is set
+      returnClone.offsetHeight;
+      
+      // Calculate exact distance and animate using transform
+      const deltaX = originalRect.left - startX;  // horizontal distance
+      const deltaY = originalRect.top - startY;   // vertical distance
+      
+      // Use requestAnimationFrame to ensure transform animation starts after initial position
+      requestAnimationFrame(() => {
+        returnClone.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+      });
+      
+      // After animation completes, remove clone and restore original opacity
+      returnClone.addEventListener('transitionend', function cleanup() {
+        console.log('Animation finished for:', fieldName);
+        returnClone.remove();
+        originalBubble.style.opacity = ''; // Restore original to full opacity
+        dragDropManager.isAnimating = false;
+      }, { once: true });
+      
+      // Fallback cleanup
+      setTimeout(() => {
+        if (returnClone.parentNode) {
+          console.log('Fallback cleanup for:', fieldName);
+          returnClone.remove();
+        }
+        originalBubble.style.opacity = ''; // Restore original to full opacity
+        dragDropManager.isAnimating = false;
+      }, 600);
+    } else {
+      // If drop was successful or no animation needed, just restore the original bubble
+      if (dragDropManager.draggedBubble) {
+        dragDropManager.draggedBubble.style.opacity = '';
+        dragDropManager.draggedBubble.style.visibility = '';
+      }
+    }
+    
+    // Reset drag state
+    dragDropManager.draggedBubble = null;
+    dragDropManager.draggedBubbleOriginalRect = null;
+    dragDropManager.dropSuccessful = false;
+    dragDropManager.lastDragX = 0;
+    dragDropManager.lastDragY = 0;
+    dragDropManager.isAnimating = false;
+  }
 });
 
 // Public API function for initializing drag and drop on a table

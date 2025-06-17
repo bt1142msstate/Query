@@ -515,9 +515,17 @@ function resetActive(){
     const originInDOM = origin && document.body.contains(origin);
     if (originInDOM) {
       // Original bubble still exists - animate clone back to it
-      const nowRect = origin.getBoundingClientRect();
-      clone.style.top  = nowRect.top + 'px';
-      clone.style.left = nowRect.left + 'px';
+      // Use stored original position for accurate return animation
+      const originalRect = clone._originalRect;
+      if (originalRect) {
+        clone.style.top  = originalRect.top + 'px';
+        clone.style.left = originalRect.left + 'px';
+      } else {
+        // Fallback to current position if original position wasn't stored
+        const nowRect = origin.getBoundingClientRect();
+        clone.style.top  = nowRect.top + 'px';
+        clone.style.left = nowRect.left + 'px';
+      }
       // Hide the origin bubble so the clone can fully overlap it
       origin.style.opacity = '0';
       origin.style.visibility = 'hidden';
