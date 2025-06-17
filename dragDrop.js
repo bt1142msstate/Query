@@ -115,6 +115,130 @@ headerTrash.innerHTML = `
 `;
 
 /**
+ * Creates a visual column drag ghost that shows a preview of the column being dragged.
+ * @function createColumnDragGhost
+ * @param {HTMLElement} th - The header element being dragged
+ * @param {number[]} relatedIndices - Array of column indices for related columns
+ * @returns {HTMLElement} The ghost element for dragging
+ */
+function createColumnDragGhost(th, relatedIndices) {
+  const ghost = document.createElement('div');
+  ghost.style.background = '#fff';
+  ghost.style.border = '2px solid #3b82f6';
+  ghost.style.borderRadius = '8px';
+  ghost.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+  ghost.style.opacity = '0.95';
+  ghost.style.minWidth = '120px';
+  ghost.style.maxWidth = '200px';
+  ghost.style.fontSize = '12px';
+  ghost.style.fontFamily = 'ui-sans-serif, system-ui, sans-serif';
+  ghost.style.pointerEvents = 'none'; // Ensure no pointer interactions
+  
+  // Create header section
+  const header = document.createElement('div');
+  header.style.background = '#f8fafc';
+  header.style.borderBottom = '1px solid #e2e8f0';
+  header.style.padding = '8px 12px';
+  header.style.fontWeight = '600';
+  header.style.fontSize = '11px';
+  header.style.color = '#374151';
+  header.style.textAlign = 'center';
+  header.style.borderTopLeftRadius = '6px';
+  header.style.borderTopRightRadius = '6px';
+  
+  if (relatedIndices.length > 1) {
+    header.textContent = `${th.textContent.trim()} (+${relatedIndices.length - 1})`;
+  } else {
+    header.textContent = th.textContent.trim();
+  }
+  
+  ghost.appendChild(header);
+  
+  // Create data preview section
+  const dataPreview = document.createElement('div');
+  dataPreview.style.padding = '6px 12px';
+  
+  // Get sample data from the column
+  const colIndex = parseInt(th.dataset.colIndex, 10);
+  const fieldName = window.displayedFields[colIndex];
+  const sampleData = getSampleColumnData(fieldName, 3); // Get 3 sample values
+  
+  sampleData.forEach((value, index) => {
+    const cell = document.createElement('div');
+    cell.style.padding = '2px 0';
+    cell.style.color = '#6b7280';
+    cell.style.fontSize = '10px';
+    cell.style.overflow = 'hidden';
+    cell.style.textOverflow = 'ellipsis';
+    cell.style.whiteSpace = 'nowrap';
+    
+    // Add subtle background alternation
+    if (index % 2 === 1) {
+      cell.style.background = '#f9fafb';
+      cell.style.margin = '0 -6px';
+      cell.style.padding = '2px 6px';
+    }
+    
+    cell.textContent = value;
+    dataPreview.appendChild(cell);
+  });
+  
+  ghost.appendChild(dataPreview);
+  
+  // Add dots indicator if there's more data
+  if (sampleData.length > 0) {
+    const dots = document.createElement('div');
+    dots.style.textAlign = 'center';
+    dots.style.color = '#9ca3af';
+    dots.style.fontSize = '10px';
+    dots.style.padding = '2px';
+    dots.textContent = '⋯';
+    ghost.appendChild(dots);
+  }
+  
+  return ghost;
+}
+
+/**
+ * Gets sample data from a column for the drag ghost preview.
+ * @function getSampleColumnData
+ * @param {string} fieldName - Name of the field to get data for
+ * @param {number} maxSamples - Maximum number of sample values to return
+ * @returns {string[]} Array of sample values
+ */
+function getSampleColumnData(fieldName, maxSamples = 3) {
+  const virtualTableData = window.VirtualTable?.virtualTableData;
+  if (!virtualTableData || !virtualTableData.rows || virtualTableData.rows.length === 0) {
+    return ['No data', 'available', '...'];
+  }
+  
+  const columnIndex = virtualTableData.columnMap.get(fieldName);
+  if (columnIndex === undefined) {
+    return ['...', '(no data)', '...'];
+  }
+  
+  const samples = [];
+  const maxRows = Math.min(virtualTableData.rows.length, maxSamples);
+  
+  for (let i = 0; i < maxRows; i++) {
+    const value = virtualTableData.rows[i][columnIndex];
+    let displayValue = '';
+    
+    if (value === null || value === undefined || value === '') {
+      displayValue = '—';
+    } else if (typeof value === 'string' && value.length > 15) {
+      displayValue = value.substring(0, 15) + '…';
+    } else {
+      displayValue = String(value);
+    }
+    
+    samples.push(displayValue);
+  }
+  
+  return samples.length > 0 ? samples : ['(empty)', 'column', '...'];
+}
+
+/**
  * Positions the visual drop anchor during drag operations.
  * Shows where the dragged item will be inserted.
  * @function positionDropAnchor
@@ -529,24 +653,9 @@ const dragDropManager = {
       }
     });
     
-    // Create drag ghost
-    const ghost = document.createElement('div');
-    if (relatedIndices.length > 1) {
-      // Show group indicator in ghost
-      ghost.textContent = `${th.textContent.trim()} (+${relatedIndices.length - 1} more)`;
-    } else {
-      ghost.textContent = th.textContent.trim();
-    }
-    const thStyle = window.getComputedStyle(th);
-    ghost.style.color = thStyle.color;
+    // Create drag ghost that looks like a column preview
+    const ghost = createColumnDragGhost(th, relatedIndices);
     ghost.classList.add('ghost-drag');
-    ghost.style.width = 'auto';
-    ghost.style.fontSize = '0.8rem';
-    ghost.style.padding = '2px 8px';
-    ghost.style.background = '#fff';
-    ghost.style.borderRadius = '6px';
-    ghost.style.boxShadow = '0 2px 8px rgba(0,0,0,0.12)';
-    ghost.style.opacity = '0.95';
     ghost.style.pointerEvents = 'none';
     ghost.style.position = 'absolute';
     ghost.style.top = '-9999px';
