@@ -107,7 +107,12 @@ function getCurrentQueryState() {
   };
 }
 
-// Function to compare query states
+/**
+ * Compares current query state with last executed state to detect changes.
+ * Used to determine if the query has been modified since last execution.
+ * @function hasQueryChanged
+ * @returns {boolean} True if query has changed since last execution
+ */
 function hasQueryChanged() {
   if (!lastExecutedQueryState) return false; // Initial load should show refresh (we have testJobData loaded)
   
@@ -131,7 +136,11 @@ function hasQueryChanged() {
   return false;
 }
 
-// Function to update run button icon based on query state
+/**
+ * Updates the run button icon based on query state changes.
+ * Shows play icon for new queries, refresh icon for modified queries, stop icon when running.
+ * @function updateRunButtonIcon
+ */
 function updateRunButtonIcon() {
   const runIcon = document.getElementById('run-icon');
   const refreshIcon = document.getElementById('refresh-icon');

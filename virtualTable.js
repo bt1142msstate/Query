@@ -1,5 +1,9 @@
-// Virtual Table Module
-// Handles large dataset rendering with virtual scrolling for performance
+/**
+ * Virtual Table Module
+ * Handles large dataset rendering with virtual scrolling for performance optimization.
+ * Provides efficient rendering of thousands of rows by only displaying visible rows.
+ * @module VirtualTable
+ */
 
 // Virtual scrolling state
 let virtualTableData = {
@@ -14,7 +18,14 @@ let tableScrollContainer = null;
 let calculatedColumnWidths = {}; // Store calculated optimal widths for each column
 let simpleTableInstance = null; // Store the SimpleTable instance
 
-// Load test data and create SimpleTable instance
+/**
+ * Loads test data from testJobData.json and creates a SimpleTable instance.
+ * Automatically creates MARC field definitions for any MARC fields referenced in DesiredColumnOrder.
+ * @async
+ * @function loadTestData
+ * @returns {Promise<boolean>} True if data loaded successfully
+ * @throws {Error} If test data cannot be loaded or parsed
+ */
 async function loadTestData() {
   try {
     const response = await fetch('./testJobData.json');
@@ -99,7 +110,12 @@ async function loadTestData() {
   }
 }
 
-// Virtual scrolling helper functions
+/**
+ * Calculates which table rows should be visible based on current scroll position.
+ * Used for virtual scrolling to only render visible rows for performance.
+ * @function calculateVisibleRows
+ * @returns {{start: number, end: number}} Object containing start and end row indices
+ */
 function calculateVisibleRows() {
   if (!tableScrollContainer) return { start: 0, end: 0 };
   
@@ -116,6 +132,12 @@ function calculateVisibleRows() {
   return { start: Math.max(0, startIndex), end: endIndex };
 }
 
+/**
+ * Renders only the visible portion of the virtual table based on scroll position.
+ * Creates spacer elements for non-visible rows to maintain proper scrolling.
+ * Handles text truncation and tooltips for long content.
+ * @function renderVirtualTable
+ */
 function renderVirtualTable() {
   if (!tableScrollContainer || !virtualTableData.rows || !virtualTableData.rows.length || !window.displayedFields || !window.displayedFields.length) return;
   
@@ -254,6 +276,12 @@ function renderVirtualTable() {
   }
 }
 
+/**
+ * Handles scroll events for the virtual table container.
+ * Updates scroll position and triggers re-rendering of visible rows.
+ * @function handleTableScroll
+ * @param {Event} e - The scroll event
+ */
 function handleTableScroll(e) {
   // Don't process scroll events during active drag
   if (document.body.classList.contains('dragging-cursor')) {
@@ -264,7 +292,16 @@ function handleTableScroll(e) {
   renderVirtualTable();
 }
 
-// Centralized function to calculate optimal column width for a single field
+/**
+ * Calculates the optimal width for a table column based on header and content.
+ * Uses canvas text measurement for accurate width calculation.
+ * @function calculateFieldWidth
+ * @param {string} fieldName - The name of the field/column
+ * @param {Object|null} data - Optional table data for content width measurement
+ * @param {Array} data.rows - Array of row data
+ * @param {Map} data.columnMap - Map of field names to column indices
+ * @returns {number} Optimal column width in pixels (min 150px, max ~50 characters)
+ */
 function calculateFieldWidth(fieldName, data = null) {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
@@ -311,7 +348,13 @@ function calculateFieldWidth(fieldName, data = null) {
   return Math.max(150, Math.min(maxCharacterWidth, maxWidth + paddingAndBuffer));
 }
 
-// Function to calculate optimal column widths from all data
+/**
+ * Calculates optimal widths for all specified table columns.
+ * @function calculateOptimalColumnWidths
+ * @param {string[]} fields - Array of field names to calculate widths for
+ * @param {Object} data - Table data containing rows and column mapping
+ * @returns {Object} Object mapping field names to optimal widths in pixels
+ */
 function calculateOptimalColumnWidths(fields, data) {
   if (!fields.length) return {};
   
@@ -323,7 +366,16 @@ function calculateOptimalColumnWidths(fields, data) {
   return widths;
 }
 
-// Function to set up virtual table container and event listeners
+/**
+ * Sets up a virtual table with the specified container and fields.
+ * Loads test data if not already loaded, calculates column widths, and sets up scrolling.
+ * @async
+ * @function setupVirtualTable
+ * @param {HTMLElement} container - The DOM element to contain the virtual table
+ * @param {string[]} fields - Array of field names to display as columns
+ * @returns {Promise<{virtualTableData: Object, calculatedColumnWidths: Object}>} Table data and column widths
+ * @throws {Error} If test data cannot be loaded
+ */
 async function setupVirtualTable(container, fields) {
   // Load test data if not already loaded
   if (!virtualTableData.rows || virtualTableData.rows.length === 0) {
@@ -356,7 +408,13 @@ async function setupVirtualTable(container, fields) {
   return { virtualTableData, calculatedColumnWidths };
 }
 
-// Function to measure row height from a rendered row
+/**
+ * Measures the actual height of a table row by temporarily rendering one.
+ * Updates the global tableRowHeight variable for virtual scrolling calculations.
+ * @function measureRowHeight
+ * @param {HTMLElement} table - The table element to measure
+ * @param {string[]} fields - Array of field names for the columns
+ */
 function measureRowHeight(table, fields) {
   if (virtualTableData.rows && virtualTableData.rows.length > 0) {
     // Temporarily render one row to measure height
@@ -386,7 +444,11 @@ function measureRowHeight(table, fields) {
   }
 }
 
-// Function to clear virtual table data
+/**
+ * Clears all virtual table data and resets state variables.
+ * Used when switching between different datasets or clearing the table.
+ * @function clearVirtualTableData
+ */
 function clearVirtualTableData() {
   virtualTableData = {
     headers: [],
@@ -399,7 +461,11 @@ function clearVirtualTableData() {
   simpleTableInstance = null;
 }
 
-// Function to get virtual table state
+/**
+ * Returns the current state of the virtual table for debugging or external access.
+ * @function getVirtualTableState
+ * @returns {Object} Object containing all virtual table state variables
+ */
 function getVirtualTableState() {
   return {
     virtualTableData,
@@ -410,7 +476,12 @@ function getVirtualTableState() {
   };
 }
 
-// Export functions for use in other modules
+/**
+ * Global VirtualTable object containing all virtual table functionality.
+ * Exported to window for use by other modules.
+ * @namespace VirtualTable
+ * @global
+ */
 window.VirtualTable = {
   // State
   get virtualTableData() { return virtualTableData; },

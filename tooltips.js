@@ -1,6 +1,12 @@
-/* =========================
-   Custom Tooltip Component
-   ========================= */
+/**
+ * Custom Tooltip Component
+ * Provides intelligent tooltip positioning and behavior for elements with data-tooltip attributes.
+ * @module TooltipManager
+ */
+/**
+ * Tooltip manager handling tooltip creation, positioning, and lifecycle.
+ * @namespace TooltipManager
+ */
 const TooltipManager = (() => {
   let tooltipEl = null;
   let arrowEl = null;
@@ -8,6 +14,11 @@ const TooltipManager = (() => {
   let hideTimeout = null;
   let isDragging = false; // Track drag state
 
+  /**
+   * Creates the tooltip DOM element and arrow.
+   * @function createTooltip
+   * @memberof TooltipManager
+   */
   function createTooltip() {
     tooltipEl = document.createElement('div');
     tooltipEl.className = 'custom-tooltip';
@@ -18,6 +29,14 @@ const TooltipManager = (() => {
     document.body.appendChild(tooltipEl);
   }
 
+  /**
+   * Shows a tooltip for the specified target element.
+   * @function showTooltip
+   * @memberof TooltipManager
+   * @param {HTMLElement} target - The element to show tooltip for
+   * @param {string} text - The tooltip text to display
+   * @param {Event} [event] - Optional mouse event for positioning
+   */
   function showTooltip(target, text, event) {
     if (isDragging) return; // Do not show tooltip while dragging
     if (!tooltipEl) createTooltip();
@@ -48,6 +67,11 @@ const TooltipManager = (() => {
     currentTarget = target;
   }
 
+  /**
+   * Hides the currently visible tooltip with a delay.
+   * @function hideTooltip
+   * @memberof TooltipManager
+   */
   function hideTooltip() {
     if (!tooltipEl) return;
 
@@ -65,6 +89,11 @@ const TooltipManager = (() => {
     }, 120);
   }
 
+  /**
+   * Immediately hides the tooltip without delay.
+   * @function forceHide
+   * @memberof TooltipManager
+   */
   function forceHide() {
     if (hideTimeout) {
       clearTimeout(hideTimeout);
@@ -80,6 +109,14 @@ const TooltipManager = (() => {
     currentTarget = null;
   }
 
+  /**
+   * Positions the tooltip relative to the target element.
+   * Handles viewport boundary detection and arrow positioning.
+   * @function positionTooltip
+   * @memberof TooltipManager
+   * @param {HTMLElement} target - The target element
+   * @param {Event} [event] - Optional mouse event for cursor-following
+   */
   function positionTooltip(target, event) {
     if (!tooltipEl) return;
     const rect = target.getBoundingClientRect();
@@ -120,7 +157,12 @@ const TooltipManager = (() => {
     arrowEl.style.transform = 'translateX(-50%)' + (arrowDirection === 'arrow-down' ? ' rotate(180deg)' : '');
   }
 
-  // Attach listeners globally
+  /**
+   * Attaches global event listeners for tooltip functionality.
+   * Handles mouse events, focus events, drag events, and keyboard shortcuts.
+   * @function attach
+   * @memberof TooltipManager
+   */
   function attach() {
     document.addEventListener('mouseover', e => {
       if (isDragging) return;

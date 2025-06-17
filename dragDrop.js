@@ -1,11 +1,21 @@
-// Drag & Drop System for column reordering and bubble dropping
+/**
+ * Drag & Drop System for column reordering and bubble dropping.
+ * Handles dragging bubbles to table headers and reordering columns.
+ * @module DragDrop
+ */
 
 // Use shared utility function from query.js
 
 // Store information about removed columns with their duplicates for restoration
 window.removedColumnInfo = window.removedColumnInfo || new Map();
 
-// Helper function to check if any duplicate of a field exists in displayedFields
+/**
+ * Checks if a field or any of its duplicates exists in displayedFields.
+ * Uses base field name comparison to detect related columns.
+ * @function fieldOrDuplicatesExist
+ * @param {string} fieldName - The field name to check for
+ * @returns {boolean} True if field or its duplicates exist in displayedFields
+ */
 function fieldOrDuplicatesExist(fieldName) {
   // Extract base field name (remove ordinal prefixes like "2nd ", "3rd ")
   const baseFieldName = window.getBaseFieldName(fieldName);
@@ -19,7 +29,14 @@ function fieldOrDuplicatesExist(fieldName) {
   return relatedColumns.length > 0;
 }
 
-// Helper function to restore field with its duplicates from stored information
+/**
+ * Restores a field and its duplicates from stored information or original data.
+ * Attempts to restore from removedColumnInfo first, then falls back to original headers.
+ * @function restoreFieldWithDuplicates
+ * @param {string} fieldName - The field name to restore
+ * @param {number} [insertAt=-1] - Position to insert at (-1 for end)
+ * @returns {boolean} True if field was successfully restored
+ */
 function restoreFieldWithDuplicates(fieldName, insertAt = -1) {
   // Check if any duplicate of this field already exists
   if (fieldOrDuplicatesExist(fieldName)) {
@@ -97,7 +114,14 @@ headerTrash.innerHTML = `
   </svg>
 `;
 
-// Drop anchor positioning and management
+/**
+ * Positions the visual drop anchor during drag operations.
+ * Shows where the dragged item will be inserted.
+ * @function positionDropAnchor
+ * @param {DOMRect} rect - Bounding rectangle of the target element
+ * @param {HTMLElement} table - The table element
+ * @param {number} clientX - Mouse X coordinate
+ */
 function positionDropAnchor(rect, table, clientX) {
   // Both bubble insertion and column reordering use vertical anchors for consistency
   dropAnchor.classList.add('vertical');
