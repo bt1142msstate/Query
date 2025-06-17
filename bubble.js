@@ -460,6 +460,77 @@ function initializeBubbles() {
     el.addEventListener('wheel', handleWheelScroll, { passive:false });
   });
 
+  // Add scrollbar thumb dragging functionality
+  const thumb = document.getElementById('bubble-scrollbar-thumb');
+  const track = document.getElementById('bubble-scrollbar-track');
+  
+  if (thumb && track) {
+    let isDragging = false;
+    let startY = 0;
+    let startScrollRow = 0;
+    
+    // Thumb drag functionality
+    thumb.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      startY = e.clientY;
+      startScrollRow = scrollRow;
+      document.body.style.cursor = 'grabbing';
+      e.preventDefault();
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      
+      const deltaY = e.clientY - startY;
+      const trackHeight = track.clientHeight;
+      const rowsVisible = 2;
+      const maxStartRow = Math.max(0, totalRows - rowsVisible);
+      const segmentHeight = trackHeight / (maxStartRow + 1);
+      
+      const rowDelta = Math.round(deltaY / segmentHeight);
+      const newRow = Math.max(0, Math.min(maxStartRow, startScrollRow + rowDelta));
+      
+      if (newRow !== scrollRow) {
+        scrollRow = newRow;
+        const listDiv = document.getElementById('bubble-list');
+        if (listDiv) {
+          listDiv.style.transform = `translateY(-${scrollRow * rowHeight}px)`;
+        }
+        updateScrollBar();
+      }
+    });
+    
+    document.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        document.body.style.cursor = '';
+      }
+    });
+    
+    // Track click functionality - jump to clicked position
+    track.addEventListener('click', (e) => {
+      if (e.target === thumb) return; // Don't handle clicks on thumb
+      
+      const rect = track.getBoundingClientRect();
+      const clickY = e.clientY - rect.top;
+      const trackHeight = track.clientHeight;
+      const rowsVisible = 2;
+      const maxStartRow = Math.max(0, totalRows - rowsVisible);
+      
+      const targetRow = Math.round((clickY / trackHeight) * maxStartRow);
+      const newRow = Math.max(0, Math.min(maxStartRow, targetRow));
+      
+      if (newRow !== scrollRow) {
+        scrollRow = newRow;
+        const listDiv = document.getElementById('bubble-list');
+        if (listDiv) {
+          listDiv.style.transform = `translateY(-${scrollRow * rowHeight}px)`;
+        }
+        updateScrollBar();
+      }
+    });
+  }
+
   // --- Keep bubble scrollbar height in sync on window resize ---
   window.addEventListener('resize', () => {
     const container = document.getElementById('bubble-container');
