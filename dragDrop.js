@@ -299,11 +299,19 @@ function finalizeMoveOperation(table) {
     }
   }
 
-  // 4️⃣ Re-render virtual table with new column order
-  // Use setTimeout to ensure drag state is fully cleared before re-rendering
-  setTimeout(() => {
-    VirtualTable.renderVirtualTable();
-  }, 0);
+  // 4️⃣ Temporarily clear drag state and force virtual table re-render
+  const wasDragging = document.body.classList.contains('dragging-cursor');
+  if (wasDragging) {
+    document.body.classList.remove('dragging-cursor');
+  }
+  
+  // Force immediate re-render since displayedFields has changed
+  VirtualTable.renderVirtualTable();
+  
+  // Restore drag state if it was active (will be cleared properly in dragend)
+  if (wasDragging) {
+    document.body.classList.add('dragging-cursor');
+  }
 
   // 5️⃣ Refresh index metadata
   refreshColIndices(table);

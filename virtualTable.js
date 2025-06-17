@@ -175,13 +175,11 @@ function renderVirtualTable() {
   // Render visible rows
   for (let i = start; i < end; i++) {
     const rowData = virtualTableData.rows[i]; // Access the 2D array row
-    const tr = document.createElement('tr');
-    tr.className = 'hover:bg-gray-50';
+    const tr = window.TableBuilder.createRow();
     tr.style.height = `${tableRowHeight}px`;
     
     window.displayedFields.forEach((field, colIndex) => {
-      const td = document.createElement('td');
-      td.className = 'px-6 py-3 whitespace-nowrap text-sm text-gray-900';
+      const td = window.TableBuilder.createCell('', 'px-6 py-3 whitespace-nowrap text-sm text-gray-900');
       td.dataset.colIndex = colIndex;
       
       // Get the column index for this field and access the data by index
@@ -211,35 +209,12 @@ function renderVirtualTable() {
       
       // Check if content would be visually truncated and handle it manually
       if (typeof cellValue === 'string' && cellValue.length > 0 && cellValue !== '—') {
-        // Create a temporary canvas to measure text width
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        ctx.font = '14px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto';
-        
         const availableWidth = width - 48; // Subtract padding (24px left + 24px right)
-        const fullTextWidth = ctx.measureText(cellValue).width;
+        const fullTextWidth = window.TextMeasurement.measureText(cellValue);
         
         // If text is too wide, truncate it manually and add tooltip
         if (fullTextWidth > availableWidth) {
-          // Binary search to find maximum characters that fit
-          let left = 0;
-          let right = cellValue.length;
-          let maxFitChars = 0;
-          
-          while (left <= right) {
-            const mid = Math.floor((left + right) / 2);
-            const testText = cellValue.substring(0, mid) + '...';
-            const testWidth = ctx.measureText(testText).width;
-            
-            if (testWidth <= availableWidth) {
-              maxFitChars = mid;
-              left = mid + 1;
-            } else {
-              right = mid - 1;
-            }
-          }
-          
-          // Set truncated text with ellipsis
+          const maxFitChars = window.TextMeasurement.findMaxFittingChars(cellValue, availableWidth);
           const truncatedText = cellValue.substring(0, maxFitChars) + '...';
           td.textContent = truncatedText;
           td.setAttribute('data-tooltip', cellValue);
@@ -303,16 +278,10 @@ function handleTableScroll(e) {
  * @returns {number} Optimal column width in pixels (min 150px, max ~50 characters)
  */
 function calculateFieldWidth(fieldName, data = null) {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  
-  // Set font to match table cells
-  ctx.font = '14px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto';
-  
   let maxWidth = 0;
   
   // 1. Always measure header width (uppercase, as it appears in the table)
-  const headerWidth = ctx.measureText(fieldName.toUpperCase()).width;
+  const headerWidth = window.TextMeasurement.measureText(fieldName.toUpperCase());
   maxWidth = Math.max(maxWidth, headerWidth);
   
   // 2. If we have data, measure content width
@@ -325,7 +294,7 @@ function calculateFieldWidth(fieldName, data = null) {
       for (let i = 0; i < data.rows.length; i += sampleStep) {
         const value = data.rows[i][columnIndex];
         if (value != null) {
-          const textWidth = ctx.measureText(String(value)).width;
+          const textWidth = window.TextMeasurement.measureText(String(value));
           maxWidth = Math.max(maxWidth, textWidth);
         }
       }
@@ -334,7 +303,7 @@ function calculateFieldWidth(fieldName, data = null) {
   
   // 3. For fields not in data (showing "..."), ensure reasonable width for the placeholder
   if (!data || !data.columnMap || !data.columnMap.has(fieldName)) {
-    const placeholderWidth = ctx.measureText('...').width;
+    const placeholderWidth = window.TextMeasurement.measureText('...');
     maxWidth = Math.max(maxWidth, placeholderWidth);
   }
   
@@ -342,7 +311,7 @@ function calculateFieldWidth(fieldName, data = null) {
   const paddingAndBuffer = 48 + 32; // 48px padding + 32px buffer
   
   // 5. Calculate max character width for clamping
-  const maxCharacterWidth = ctx.measureText('A'.repeat(50)).width + paddingAndBuffer;
+  const maxCharacterWidth = window.TextMeasurement.measureText('A'.repeat(50)) + paddingAndBuffer;
   
   // 6. Clamp to reasonable bounds: min 150px, max 50 characters worth
   return Math.max(150, Math.min(maxCharacterWidth, maxWidth + paddingAndBuffer));

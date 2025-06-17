@@ -223,9 +223,8 @@ function renderResultsTable(data) {
     return;
   }
 
-  // Create table element
-  const table = document.createElement('table');
-  table.className = 'min-w-full divide-y divide-gray-200';
+  // Create table using shared utility
+  const table = window.TableBuilder.createTable();
 
   // Create header
   const thead = document.createElement('thead');
@@ -233,9 +232,7 @@ function renderResultsTable(data) {
   const headerRow = document.createElement('tr');
 
   rawTable[0].forEach(header => {
-    const th = document.createElement('th');
-    th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
-    th.textContent = header;
+    const th = window.TableBuilder.createHeader(header);
     headerRow.appendChild(th);
   });
 
@@ -248,13 +245,10 @@ function renderResultsTable(data) {
 
   // Add data rows (skip header row at index 0)
   for (let i = 1; i < rawTable.length; i++) {
-    const tr = document.createElement('tr');
-    tr.className = 'hover:bg-gray-50';
+    const tr = window.TableBuilder.createRow();
 
     rawTable[i].forEach(cell => {
-      const td = document.createElement('td');
-      td.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-900';
-      td.textContent = cell || '';
+      const td = window.TableBuilder.createCell(cell || '', 'px-6 py-4 whitespace-nowrap text-sm text-gray-900');
       tr.appendChild(td);
     });
 
@@ -337,9 +331,4 @@ window.ResultsModal = {
 };
 
 // Initialize when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeResultsModal);
-} else {
-  // DOM is already ready
-  initializeResultsModal();
-}
+window.onDOMReady(initializeResultsModal);

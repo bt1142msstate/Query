@@ -57,20 +57,21 @@ const DOM = {
   get groupMethodSelect() { return this._groupMethodSelect ||= document.getElementById('group-method-select'); }
 };
 
-// Legacy DOM Elements - Use DOM cache above for new code
-const overlay = document.getElementById('overlay');
-const conditionPanel = document.getElementById('condition-panel');
-const inputWrapper = document.getElementById('condition-input-wrapper');
-const conditionInput = document.getElementById('condition-input');
-const confirmBtn = document.getElementById('confirm-btn');
-const runBtn = document.getElementById('run-query-btn');
-const runIcon = document.getElementById('run-icon');
-const stopIcon = document.getElementById('stop-icon');
-const downloadBtn = document.getElementById('download-btn');
-const queryBox = document.getElementById('query-json');
-const queryInput = document.getElementById('query-input');
-const clearSearchBtn = document.getElementById('clear-search-btn');
-const groupMethodSelect = document.getElementById('group-method-select');
+// Legacy DOM Elements - DEPRECATED: Use DOM cache above for all new code
+// These are kept temporarily for compatibility until all references are updated
+const overlay = DOM.overlay;
+const conditionPanel = DOM.conditionPanel;
+const inputWrapper = DOM.inputWrapper;
+const conditionInput = DOM.conditionInput;
+const confirmBtn = DOM.confirmBtn;
+const runBtn = DOM.runBtn;
+const runIcon = DOM.runIcon;
+const stopIcon = DOM.stopIcon;
+const downloadBtn = DOM.downloadBtn;
+const queryBox = DOM.queryBox;
+const queryInput = DOM.queryInput;
+const clearSearchBtn = DOM.clearSearchBtn;
+const groupMethodSelect = DOM.groupMethodSelect;
 
 // State variables
 let queryRunning = false;
@@ -2058,7 +2059,7 @@ function updateHeaderHeightVar() {
 }
 
 // Update on page load and window resize
-window.addEventListener('DOMContentLoaded', updateHeaderHeightVar);
+window.onDOMReady(updateHeaderHeightVar);
 window.addEventListener('resize', updateHeaderHeightVar);
 
 
@@ -2115,7 +2116,7 @@ class FilterPill {
 }
 
 // Initialize table name input functionality on DOM ready
-document.addEventListener('DOMContentLoaded', () => {
+window.onDOMReady(() => {
   // Attach queries search event listener
   const queriesSearchInput = document.getElementById('queries-search');
   if (queriesSearchInput) {

@@ -475,7 +475,7 @@ const QueryHistorySystem = {
 window.QueryHistorySystem = QueryHistorySystem;
 
 // Initialize query history functionality
-document.addEventListener('DOMContentLoaded', () => {
+window.onDOMReady(() => {
   // Initial render of example Queries list
   renderQueries();
 
