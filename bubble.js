@@ -357,7 +357,7 @@ function buildConditionPanel(bubble){
     // Normal field - add condition buttons as usual
     const conds = perBubble ? perBubble
                 : (listValues && listValues.length) ? ['equals']
-                : (typeConditions[type] || typeConditions.string);
+                : (window.typeConditions[type] || window.typeConditions.string);
     conds.forEach(label => {
       const slug = label.split(' ')[0];
       const btnEl = document.createElement('button');
@@ -450,7 +450,7 @@ function buildConditionPanel(bubble){
     if(document.getElementById('condition-select-container')){
       document.getElementById('condition-select-container').style.display='none';
     }
-    configureInputsForType(type);
+    window.configureInputsForType(type);
     conditionInput.style.display = 'block';
   }
 
@@ -610,7 +610,7 @@ function initializeBubbles() {
 
   // Delegated bubble click events
   document.addEventListener('click', e=>{
-    if (isInputLocked) {
+    if (window.modalManager && window.modalManager.isInputLocked) {
       e.stopPropagation();
       e.preventDefault();
       return;
@@ -620,9 +620,9 @@ function initializeBubbles() {
     // Prevent duplicate active bubble
     if(document.querySelector('.active-bubble')) return;
     // Prevent clicking bubbles while animation is running
-    if (isBubbleAnimating) return;
-    isBubbleAnimating = true;
-    lockInput(600); // Lock input for animation duration + buffer (adjust as needed)
+    if (window.isBubbleAnimating) return;
+    window.isBubbleAnimating = true;
+    window.lockInput && window.lockInput(600); // Lock input for animation duration + buffer (adjust as needed)
 
     // Store current category so it doesn't get reset
     const savedCategory = currentCategory; 
@@ -672,7 +672,7 @@ function initializeBubbles() {
             conditionPanel.querySelector('.condition-btn');
       if (defaultBtn) {
         defaultBtn.classList.add('active');
-        conditionBtnHandler({ currentTarget: defaultBtn, stopPropagation(){}, preventDefault(){} });
+        window.handleConditionBtnClick({ currentTarget: defaultBtn, stopPropagation(){}, preventDefault(){} });
       }
       // Show input wrapper right away if there are existing filters
       if (activeFilters[selectedField]) {
@@ -680,7 +680,7 @@ function initializeBubbles() {
       }
       clone.removeEventListener('transitionend',t);
       // Animation is done, allow bubble clicks again
-      isBubbleAnimating = false;
+      window.isBubbleAnimating = false;
       // (input lock will be released by timer)
     });
     requestAnimationFrame(()=> clone.classList.add('active-bubble'));

@@ -87,51 +87,14 @@ if(runBtn){
 }
 
 // --- Condition templates by type ---
-const typeConditions = {
-  string: ['contains','starts','equals'],     // no "between" for plain strings
-  number: ['greater','less','equals','between'],
-  money : ['greater','less','equals','between'],
-  date  : ['before','after','equals','between']
-};
+// typeConditions now in filterManager.js (window.typeConditions)
 
 /* Re-position the input capsule so it keeps a constant gap above the condition buttons */
 // positionInputWrapper is now in queryUI.js - relying on window.positionInputWrapper
 
 /* ---------- Input helpers to avoid duplicated numeric-config blocks ---------- */
-function setNumericProps(inputs, allowDecimal){
-  inputs.forEach(inp=>{
-    inp.setAttribute('inputmode', allowDecimal ? 'decimal' : 'numeric');
-    inp.setAttribute('step', allowDecimal ? '0.01' : '1');
-    inp.onkeypress = e=>{
-      const regex = allowDecimal ? /[0-9.]/ : /[0-9]/;
-      if(!regex.test(e.key)) e.preventDefault();
-    };
-  });
-}
-function clearNumericProps(inputs){
-  inputs.forEach(inp=>{
-    inp.removeAttribute('inputmode');
-    inp.removeAttribute('step');
-    inp.onkeypress = null;
-  });
-}
-function configureInputsForType(type){
-  const inp1 = document.getElementById('condition-input');
-  const inp2 = document.getElementById('condition-input-2');
-  const inputs=[inp1,inp2];
-  const isMoney  = type==='money';
-  const isNumber = type==='number';
-  const htmlType = (type==='date') ? 'date' : (isMoney||isNumber) ? 'number':'text';
-  inputs.forEach(inp=> inp.type = htmlType);
+// Input helpers (setNumericProps, clearNumericProps, configureInputsForType) now in filterManager.js
 
-  if(isMoney){
-    setNumericProps(inputs,true);
-  }else if(isNumber){
-    setNumericProps(inputs,false);
-  }else{
-    clearNumericProps(inputs);
-  }
-}
 // displayedFields, selectedField, and activeFilters are already declared at the top
 
 /* ---------- Helper: map UI condition slugs to C# enum names ---------- */

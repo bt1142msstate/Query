@@ -603,3 +603,49 @@ window.marcConditionBtnHandler = function(e) {
     // Re-position after toggling second input visibility
     if (window.positionInputWrapper) window.positionInputWrapper();
 };
+
+// --- Condition templates by type ---
+window.typeConditions = {
+  string: ['contains','starts','equals'],     // no "between" for plain strings
+  number: ['greater','less','equals','between'],
+  money : ['greater','less','equals','between'],
+  date  : ['before','after','equals','between']
+};
+
+/* ---------- Input helpers to avoid duplicated numeric-config blocks ---------- */
+function setNumericProps(inputs, allowDecimal){
+  inputs.forEach(inp=>{
+    inp.setAttribute('inputmode', allowDecimal ? 'decimal' : 'numeric');
+    inp.setAttribute('step', allowDecimal ? '0.01' : '1');
+    inp.onkeypress = e=>{
+      const regex = allowDecimal ? /[0-9.]/ : /[0-9]/;
+      if(!regex.test(e.key)) e.preventDefault();
+    };
+  });
+}
+
+function clearNumericProps(inputs){
+  inputs.forEach(inp=>{
+    inp.removeAttribute('inputmode');
+    inp.removeAttribute('step');
+    inp.onkeypress = null;
+  });
+}
+
+window.configureInputsForType = function(type){
+  const inp1 = document.getElementById('condition-input');
+  const inp2 = document.getElementById('condition-input-2');
+  const inputs=[inp1,inp2];
+  const isMoney  = type==='money';
+  const isNumber = type==='number';
+  const htmlType = (type==='date') ? 'date' : (isMoney||isNumber) ? 'number':'text';
+  inputs.forEach(inp=> inp.type = htmlType);
+
+  if(isMoney){
+    setNumericProps(inputs,true);
+  }else if(isNumber){
+    setNumericProps(inputs,false);
+  }else{
+    clearNumericProps(inputs);
+  }
+};
