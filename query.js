@@ -3,6 +3,8 @@
 // Local aliases
 const getBaseFieldName = window.getBaseFieldName;
 const showToastMessage = window.showToastMessage;
+const confirmBtn = document.getElementById('confirm-btn');
+const runBtn = document.getElementById('run-query-btn');
 
 // DOM elements and State variables are managed globally (queryUI.js, queryState.js)
 
@@ -13,7 +15,7 @@ const showToastMessage = window.showToastMessage;
     el.addEventListener('keydown',e=>{
       if(e.key==='Enter'){
         e.preventDefault();
-        if(window.confirmBtn) window.confirmBtn.click();
+        if(confirmBtn) confirmBtn.click();
       }
     });
   }
@@ -24,9 +26,9 @@ const showToastMessage = window.showToastMessage;
 // Initial check
 if(window.updateButtonStates) window.updateButtonStates();
 
-if(window.runBtn){
-  window.runBtn.addEventListener('click', ()=>{
-    if(window.runBtn.disabled) return;   // ignore when disabled
+if(runBtn){
+  runBtn.addEventListener('click', ()=>{
+    if(runBtn.disabled) return;   // ignore when disabled
     
     // If query is running, stop it
     if (window.queryRunning) {
@@ -90,7 +92,7 @@ if (overlay) {
 // Add this helper function to show error messages with consistent styling and timeout
 // showError is now in queryUI.js - relying on window.showError
 
-confirmBtn.addEventListener('click', window.handleFilterConfirm);
+if (confirmBtn) confirmBtn.addEventListener('click', window.handleFilterConfirm);
 
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&overlay.classList.contains('show')){overlay.click();return;}
@@ -401,6 +403,8 @@ function updateCategoryCounts() {
     window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
   }
 }
+
+window.updateCategoryCounts = updateCategoryCounts;
   
 // Initial render of category bar and mobile selector
 updateCategoryCounts();

@@ -282,4 +282,3 @@ window.updateFilteredDefs = updateFilteredDefs;
 window.shouldFieldHavePurpleStylingBase = shouldFieldHavePurpleStylingBase;
 window.calculateCategoryCounts = calculateCategoryCounts;
 window.renderCategorySelectors = renderCategorySelectors;
-window.updateCategoryCounts = updateCategoryCounts; 
