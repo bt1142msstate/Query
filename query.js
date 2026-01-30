@@ -5,7 +5,7 @@ const getBaseFieldName = window.getBaseFieldName;
 const showToastMessage = window.showToastMessage;
 const confirmBtn = document.getElementById('confirm-btn');
 const runBtn = document.getElementById('run-query-btn');
-const queryInput = document.getElementById('query-input');
+const searchInput = document.getElementById('query-input');
 const clearSearchBtn = document.getElementById('clear-search-btn');
 
 // DOM elements and State variables are managed globally (queryUI.js, queryState.js)
@@ -189,7 +189,7 @@ if (categoryBar) {
 // Special handler for marc condition buttons now in filterManager.js
 
 // Replace search input listener to filter all fieldDefs, not just visible bubbles
-if (queryInput) queryInput.addEventListener('input', () => {
+if (searchInput) searchInput.addEventListener('input', () => {
   // Only switch to "All" category when searching if no bubble is active and no overlay is shown
   if (!document.querySelector('.active-bubble') && !overlay.classList.contains('show')) {
   currentCategory = 'All';
@@ -199,7 +199,7 @@ if (queryInput) queryInput.addEventListener('input', () => {
   );
   }
   
-  const term = queryInput.value.trim().toLowerCase();
+  const term = searchInput.value.trim().toLowerCase();
   if(clearSearchBtn) clearSearchBtn.classList.toggle('hidden', term==='');
   
   // Use imported updateFilteredDefs function
@@ -221,9 +221,11 @@ if (queryInput) queryInput.addEventListener('input', () => {
 
 if(clearSearchBtn){
   clearSearchBtn.addEventListener('click', ()=>{
-    queryInput.value = '';
-    queryInput.dispatchEvent(new Event('input'));
-    queryInput.focus();
+    if(searchInput) {
+      searchInput.value = '';
+      searchInput.dispatchEvent(new Event('input'));
+      searchInput.focus();
+    }
   });
 }
 
