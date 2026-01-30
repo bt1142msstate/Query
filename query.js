@@ -7,6 +7,7 @@ const confirmBtn = document.getElementById('confirm-btn');
 const runBtn = document.getElementById('run-query-btn');
 const searchInput = document.getElementById('query-input');
 const clearSearchBtn = document.getElementById('clear-search-btn');
+const groupMethodSelect = document.getElementById('group-method-select');
 
 // DOM elements and State variables are managed globally (queryUI.js, queryState.js)
 
