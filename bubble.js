@@ -386,7 +386,7 @@ function buildConditionPanel(bubble){
   }
 
   const dynamicBtns = conditionPanel.querySelectorAll('.condition-btn, .toggle-half');
-  dynamicBtns.forEach(btn=>btn.addEventListener('click', isSpecialMarc ? marcConditionBtnHandler : conditionBtnHandler));
+  dynamicBtns.forEach(btn=>btn.addEventListener('click', isSpecialMarc ? window.marcConditionBtnHandler : window.handleConditionBtnClick));
 
   // Swap text input for select if bubble has list values
   if(listValues && listValues.length){
@@ -722,6 +722,108 @@ function formatFiltersTooltip(fieldName, filterGroups) {
   return lines.join('\n');
 }
 
+/**
+ * Resets active/enlarged bubbles, animating them back to their original position.
+ * Handles the cleanup of clones and restoration of original bubbles.
+ */
+function resetActiveBubbles() {
+  // Ensure input lock is always cleared
+  if (window.ModalSystem) {
+    window.ModalSystem.lockInput(0);
+  }
+  
+  const clones = document.querySelectorAll('.active-bubble');
+  if (clones.length > 0) window.isBubbleAnimatingBack = true; 
+  
+  clones.forEach(clone => {
+    const origin = clone._origin;
+    const originInDOM = origin && document.body.contains(origin);
+    const fieldName = origin ? origin.textContent.trim() : (clone.textContent ? clone.textContent.trim() : '');
+
+    if (originInDOM) {
+      if (window.animatingBackBubbles) window.animatingBackBubbles.add(fieldName);
+      
+      const originalRect = clone._originalRect;
+      if (originalRect) {
+        clone.style.top  = originalRect.top + 'px';
+        clone.style.left = originalRect.left + 'px';
+      } else {
+        const nowRect = origin.getBoundingClientRect();
+        clone.style.top  = nowRect.top + 'px';
+        clone.style.left = nowRect.left + 'px';
+      }
+
+      origin.style.opacity = '0';
+      origin.style.visibility = 'hidden';
+      
+      clone.classList.remove('enlarge-bubble');
+      clone.classList.remove('active-bubble');
+      
+      clone.addEventListener('transitionend', () => {
+        clone.remove();
+        if (window.animatingBackBubbles) window.animatingBackBubbles.delete(fieldName);
+        
+        requestAnimationFrame(() => {
+          const bubbles = Array.from(document.querySelectorAll('.bubble'));
+          bubbles.forEach(b => {
+             if (b.textContent.trim() === fieldName) {
+                const stillExists = window.fieldDefs.has(fieldName) && window.shouldFieldHavePurpleStyling(fieldName);
+                if (!stillExists && window.currentCategory === 'Selected') {
+                    b.remove();
+                } else {
+                    b.style.visibility = '';
+                    b.style.opacity = '1';
+                    b.classList.remove('bubble-disabled');
+                    window.BubbleSystem && window.BubbleSystem.applyCorrectBubbleStyling(b);
+                }
+             }
+          });
+        });
+        
+        if (window.animatingBackBubbles && window.animatingBackBubbles.size === 0) {
+            window.isBubbleAnimatingBack = false;
+            if (window.pendingRenderBubbles) {
+                window.BubbleSystem.renderBubbles();
+                window.pendingRenderBubbles = false;
+            }
+        }
+      }, { once: true });
+    } else {
+      clone.remove();
+      if (origin) {
+         if (window.animatingBackBubbles) window.animatingBackBubbles.delete(fieldName);
+         const matchingBubble = Array.from(document.querySelectorAll('.bubble'))
+              .find(b => b.textContent.trim() === fieldName);
+          if (matchingBubble) {
+               const stillExists = window.fieldDefs.has(fieldName) && window.shouldFieldHavePurpleStyling(fieldName);
+              if (!stillExists && window.currentCategory === 'Selected') {
+                matchingBubble.remove();
+              } else {
+                matchingBubble.style.opacity = '';
+                matchingBubble.classList.remove('bubble-disabled');
+                window.BubbleSystem && window.BubbleSystem.applyCorrectBubbleStyling(matchingBubble);
+              }
+          }
+      }
+      
+      if (window.animatingBackBubbles && window.animatingBackBubbles.size === 0) {
+        window.isBubbleAnimatingBack = false;
+        if (window.pendingRenderBubbles) {
+          window.BubbleSystem.renderBubbles();
+          window.pendingRenderBubbles = false;
+        }
+      }
+    }
+  });
+  
+  setTimeout(() => {
+    if (clones.length === 0) {
+      window.isBubbleAnimatingBack = false;
+      window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
+    }
+  }, 0);
+}
+
 // Export the main functions that query.js needs
 if (typeof window !== 'undefined') {
   window.BubbleSystem = {
@@ -733,6 +835,7 @@ if (typeof window !== 'undefined') {
     updateScrollBar,
     buildConditionPanel,
     initializeBubbles,
-    formatFiltersTooltip
+    formatFiltersTooltip,
+    resetActiveBubbles
   };
 }
