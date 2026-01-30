@@ -52,21 +52,26 @@ if(window.runBtn){
 }
 
 // Overlay click handler
-if (window.overlay) {
-  window.overlay.addEventListener('click',()=>{ 
+const overlay = document.getElementById('overlay');
+if (overlay) {
+  overlay.addEventListener('click',()=>{ 
     if(window.ModalSystem) window.ModalSystem.closeAllModals(); 
     if(window.BubbleSystem) window.BubbleSystem.resetActiveBubbles();
 
     // Close non-modal UI elements (condition panel, input wrapper)
-    if(window.conditionPanel) window.conditionPanel.classList.remove('show');
-    if(window.inputWrapper) window.inputWrapper.classList.remove('show');
+    const conditionPanel = document.getElementById('condition-panel');
+    const inputWrapper = document.getElementById('condition-input-wrapper');
+    const conditionInput = document.getElementById('condition-input');
+
+    if(conditionPanel) conditionPanel.classList.remove('show');
+    if(inputWrapper) inputWrapper.classList.remove('show');
     
     // Remove all .active from condition buttons
-    if(window.conditionPanel) {
-      const btns = window.conditionPanel.querySelectorAll('.condition-btn');
+    if(conditionPanel) {
+      const btns = conditionPanel.querySelectorAll('.condition-btn');
       btns.forEach(b=>b.classList.remove('active'));
     }
-    if(window.conditionInput) window.conditionInput.value='';
+    if(conditionInput) conditionInput.value='';
 
     // Hide select if present
     const sel = document.getElementById('condition-select');
@@ -76,7 +81,7 @@ if (window.overlay) {
     const safeRenderBubbles = window.safeRenderBubbles || (window.BubbleSystem ? window.BubbleSystem.safeRenderBubbles : null);
     if(safeRenderBubbles) setTimeout(() => safeRenderBubbles(), 0);
     
-    window.overlay.classList.remove('bubble-active');
+    overlay.classList.remove('bubble-active');
     const headerBar = document.getElementById('header-bar');
     if (headerBar) headerBar.classList.remove('header-hide');
   });
