@@ -5,7 +5,8 @@
  */
 
 // Field definitions data array
-const fieldDefsArray = [
+// Exporting this mainly for tests or bulk operations
+export const fieldDefsArray = [
   { "name": "Library", "type": "string", "values": [
     { "Name": "TRLS-A", "RawValue": "1", "Description": "Main branch, downtown" },
     { "Name": "TRLS-B", "RawValue": "2", "Description": "Branch library, north side" },
@@ -106,17 +107,20 @@ const fieldDefsArray = [
 ];
 
 // Main field definitions Map (global) - keyed by field name
-const fieldDefs = new Map(fieldDefsArray.map(field => [field.name, field]));
+export const fieldDefs = new Map(fieldDefsArray.map(field => [field.name, field]));
 
 /**
  * Gets all field definitions as an array for compatibility.
  * @function getAllFieldDefs
  * @returns {Object[]} Array of all field definition objects
  */
-const getAllFieldDefs = () => Array.from(fieldDefs.values());
+export const getAllFieldDefs = () => Array.from(fieldDefs.values());
 
 // Filtered definitions (starts as full set, gets filtered by search)
-let filteredDefs = [...getAllFieldDefs()];
+// We export an object to hold this state that can be imported
+export const fieldDefState = {
+  filteredDefs: [...getAllFieldDefs()]
+};
 
 // Derive categories from field definitions
 const derivedCatSet = new Set();
@@ -131,7 +135,7 @@ getAllFieldDefs().forEach(d => {
 const derivedCats = Array.from(derivedCatSet);
 
 // Complete categories list with universal filters
-const categories = ['All', 'Selected', ...derivedCats];
+export const categories = ['All', 'Selected', ...derivedCats];
 
 /**
  * Checks if a field should have purple styling (filtered or displayed).
@@ -141,7 +145,7 @@ const categories = ['All', 'Selected', ...derivedCats];
  * @param {Object} activeFilters - Object containing active filter configurations
  * @returns {boolean} True if field should have purple styling
  */
-function shouldFieldHavePurpleStylingBase(fieldName, displayedFields, activeFilters) {
+export function shouldFieldHavePurpleStylingBase(fieldName, displayedFields, activeFilters) {
   // Check if the field has active filters
   const hasFilters = activeFilters[fieldName] && 
                     activeFilters[fieldName].filters && 
@@ -160,7 +164,7 @@ function shouldFieldHavePurpleStylingBase(fieldName, displayedFields, activeFilt
  * @param {Object} activeFilters - Object containing active filter configurations
  * @returns {Object} Object mapping category names to field counts
  */
-function calculateCategoryCounts(displayedFields, activeFilters) {
+export function calculateCategoryCounts(displayedFields, activeFilters) {
   const categoryCounts = {};
   const allFieldDefs = getAllFieldDefs();
   categories.forEach(cat => {
@@ -188,7 +192,7 @@ function calculateCategoryCounts(displayedFields, activeFilters) {
  * @param {string} currentCategory - Currently selected category
  * @param {Function} onCategoryChange - Callback function when category changes
  */
-function renderCategorySelectors(categoryCounts, currentCategory, onCategoryChange) {
+export function renderCategorySelectors(categoryCounts, currentCategory, onCategoryChange) {
   const categoryBar = document.getElementById('category-bar');
   const mobileSelector = document.getElementById('mobile-category-selector');
 
@@ -263,22 +267,17 @@ function renderCategorySelectors(categoryCounts, currentCategory, onCategoryChan
  * @param {string} searchTerm - The search term to filter by
  * @returns {Object[]} Array of filtered field definition objects
  */
-function updateFilteredDefs(searchTerm) {
+export function updateFilteredDefs(searchTerm) {
   if (searchTerm === '') {
-    filteredDefs = [...getAllFieldDefs()];
+    fieldDefState.filteredDefs = [...getAllFieldDefs()];
   } else {
-    filteredDefs = getAllFieldDefs().filter(d => d.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    fieldDefState.filteredDefs = getAllFieldDefs().filter(d => d.name.toLowerCase().includes(searchTerm.toLowerCase()));
   }
-  return filteredDefs;
+  return fieldDefState.filteredDefs;
 }
 
-// Export global variables and functions for use in other modules
+// Temporary Global Exposure (for transition)
 window.fieldDefs = fieldDefs;
 window.fieldDefsArray = fieldDefsArray;
-window.filteredDefs = filteredDefs;
-window.categories = categories;
 window.getAllFieldDefs = getAllFieldDefs;
-window.updateFilteredDefs = updateFilteredDefs;
 window.shouldFieldHavePurpleStylingBase = shouldFieldHavePurpleStylingBase;
-window.calculateCategoryCounts = calculateCategoryCounts;
-window.renderCategorySelectors = renderCategorySelectors;
