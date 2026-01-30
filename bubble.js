@@ -291,6 +291,9 @@ function updateScrollBar(){
  * @param {HTMLElement} bubble - The clicked bubble element
  */
 function buildConditionPanel(bubble){
+  const conditionPanel = document.getElementById('condition-panel');
+  if(!conditionPanel) return;
+
   selectedField = bubble.textContent.trim();
   const type = bubble.dataset.type || 'string';
   let listValues = null;
@@ -650,7 +653,8 @@ function initializeBubbles() {
     bubble.style.opacity = '0';          // hide origin immediately
     bubble.dataset.filterFor = bubble.textContent.trim();          // add attribute
 
-    overlay.classList.add('show');
+    const overlay = document.getElementById('overlay');
+    if(overlay) overlay.classList.add('show');
     buildConditionPanel(bubble);
     
     // Restore the saved category
@@ -665,18 +669,22 @@ function initializeBubbles() {
         clone.classList.add('enlarge-bubble');
         return;
       }
-      conditionPanel.classList.add('show');
-      // After the panel is visible, auto-activate Equals (or first option)
-      const defaultBtn =
-            conditionPanel.querySelector('.condition-btn[data-cond="equals"]') ||
-            conditionPanel.querySelector('.condition-btn');
-      if (defaultBtn) {
-        defaultBtn.classList.add('active');
-        window.handleConditionBtnClick({ currentTarget: defaultBtn, stopPropagation(){}, preventDefault(){} });
+      const conditionPanel = document.getElementById('condition-panel');
+      if(conditionPanel) {
+        conditionPanel.classList.add('show');
+        // After the panel is visible, auto-activate Equals (or first option)
+        const defaultBtn =
+              conditionPanel.querySelector('.condition-btn[data-cond="equals"]') ||
+              conditionPanel.querySelector('.condition-btn');
+        if (defaultBtn) {
+          defaultBtn.classList.add('active');
+          window.handleConditionBtnClick({ currentTarget: defaultBtn, stopPropagation(){}, preventDefault(){} });
+        }
       }
       // Show input wrapper right away if there are existing filters
       if (activeFilters[selectedField]) {
-        inputWrapper.classList.add('show');
+        const inputWrapper = document.getElementById('condition-input-wrapper');
+        if(inputWrapper) inputWrapper.classList.add('show');
       }
       clone.removeEventListener('transitionend',t);
       // Animation is done, allow bubble clicks again
@@ -693,7 +701,7 @@ function initializeBubbles() {
         if (marcBubble) clone._origin = marcBubble;
       }
     }, 60);
-    if (clone) overlay.classList.add('bubble-active');
+    if (clone && overlay) overlay.classList.add('bubble-active');
     const headerBar = document.getElementById('header-bar');
     if (clone && headerBar) headerBar.classList.add('header-hide');
   });
