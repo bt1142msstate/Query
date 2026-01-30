@@ -41,7 +41,7 @@ class Bubble {
     // Tooltip: description + filters (if any)
     let tooltip = def.desc || '';
     // Build a fake FilterGroups array for this field from activeFilters
-    const af = window.activeFilters && window.activeFilters[fieldName];
+    const af = activeFilters[fieldName];
     let filterTooltip = '';
     if (af && af.filters && af.filters.length > 0) {
       const fakeGroup = [{
@@ -62,12 +62,12 @@ class Bubble {
     } else {
       this.el.removeAttribute('data-tooltip');
     }
-    if (def.isSpecialMarc || (window.displayedFields && window.displayedFields.includes(fieldName))) {
+    if (def.isSpecialMarc || displayedFields.includes(fieldName)) {
       this.el.setAttribute('draggable', 'false');
     } else {
       this.el.setAttribute('draggable', 'true');
     }
-    if (window.animatingBackBubbles && window.animatingBackBubbles.has(fieldName)) {
+    if (animatingBackBubbles.has(fieldName)) {
       this.el.dataset.animatingBack = 'true';
       this.el.style.visibility = 'hidden';
       this.el.style.opacity = '0';
@@ -225,17 +225,17 @@ function renderBubbles(){
 // Replace all direct calls to renderBubbles() with a helper:
 function safeRenderBubbles() {
   // Safety check for required globals
-  if (typeof window.isBubbleAnimatingBack === 'undefined') {
+  if (typeof isBubbleAnimatingBack === 'undefined') {
     console.log('safeRenderBubbles: Required globals not available yet');
     return;
   }
   
-  if (window.isBubbleAnimatingBack) {
-    window.pendingRenderBubbles = true;
+  if (isBubbleAnimatingBack) {
+    pendingRenderBubbles = true;
     return;
   }
   renderBubbles();
-  window.pendingRenderBubbles = false;
+  pendingRenderBubbles = false;
 }
 
 /**
@@ -291,9 +291,6 @@ function updateScrollBar(){
  * @param {HTMLElement} bubble - The clicked bubble element
  */
 function buildConditionPanel(bubble){
-  const conditionPanel = document.getElementById('condition-panel');
-  if(!conditionPanel) return;
-
   selectedField = bubble.textContent.trim();
   const type = bubble.dataset.type || 'string';
   let listValues = null;
@@ -393,7 +390,7 @@ function buildConditionPanel(bubble){
 
   // Swap text input for select if bubble has list values
   if(listValues && listValues.length){
-    const fieldDef = window.fieldDefs.get(selectedField);
+    const fieldDef = fieldDefs.get(selectedField);
     const isMultiSelect = fieldDef && fieldDef.multiSelect;
     // Clean up any existing selectors
     let existingSelect = document.getElementById('condition-select');
@@ -476,7 +473,7 @@ function buildConditionPanel(bubble){
  */
 function initializeBubbles() {
   // Only initialize if all required globals are available
-  if (typeof window.activeFilters === 'undefined' || typeof window.displayedFields === 'undefined') {
+  if (typeof activeFilters === 'undefined' || typeof displayedFields === 'undefined') {
     console.log('Bubble system: Required globals not yet available, skipping initialization');
     return false;
   }
@@ -628,7 +625,7 @@ function initializeBubbles() {
     window.lockInput && window.lockInput(600); // Lock input for animation duration + buffer (adjust as needed)
 
     // Store current category so it doesn't get reset
-    const savedCategory = window.currentCategory; 
+    const savedCategory = currentCategory; 
 
     // Animate clone to centre + build panel
     const rect = bubble.getBoundingClientRect();
@@ -653,15 +650,14 @@ function initializeBubbles() {
     bubble.style.opacity = '0';          // hide origin immediately
     bubble.dataset.filterFor = bubble.textContent.trim();          // add attribute
 
-    const overlay = document.getElementById('overlay');
-    if(overlay) overlay.classList.add('show');
+    overlay.classList.add('show');
     buildConditionPanel(bubble);
     
     // Restore the saved category
-    window.currentCategory = savedCategory;
+    currentCategory = savedCategory;
     // Re-sync category bar UI to match the preserved category
     document.querySelectorAll('#category-bar .category-btn').forEach(btn =>
-      btn.classList.toggle('active', btn.dataset.category === window.currentCategory)
+      btn.classList.toggle('active', btn.dataset.category === currentCategory)
     );
 
     clone.addEventListener('transitionend',function t(){
@@ -669,22 +665,18 @@ function initializeBubbles() {
         clone.classList.add('enlarge-bubble');
         return;
       }
-      const conditionPanel = document.getElementById('condition-panel');
-      if(conditionPanel) {
-        conditionPanel.classList.add('show');
-        // After the panel is visible, auto-activate Equals (or first option)
-        const defaultBtn =
-              conditionPanel.querySelector('.condition-btn[data-cond="equals"]') ||
-              conditionPanel.querySelector('.condition-btn');
-        if (defaultBtn) {
-          defaultBtn.classList.add('active');
-          window.handleConditionBtnClick({ currentTarget: defaultBtn, stopPropagation(){}, preventDefault(){} });
-        }
+      conditionPanel.classList.add('show');
+      // After the panel is visible, auto-activate Equals (or first option)
+      const defaultBtn =
+            conditionPanel.querySelector('.condition-btn[data-cond="equals"]') ||
+            conditionPanel.querySelector('.condition-btn');
+      if (defaultBtn) {
+        defaultBtn.classList.add('active');
+        window.handleConditionBtnClick({ currentTarget: defaultBtn, stopPropagation(){}, preventDefault(){} });
       }
       // Show input wrapper right away if there are existing filters
-      if (window.activeFilters && window.activeFilters[selectedField]) {
-        const inputWrapper = document.getElementById('condition-input-wrapper');
-        if(inputWrapper) inputWrapper.classList.add('show');
+      if (activeFilters[selectedField]) {
+        inputWrapper.classList.add('show');
       }
       clone.removeEventListener('transitionend',t);
       // Animation is done, allow bubble clicks again
@@ -701,7 +693,7 @@ function initializeBubbles() {
         if (marcBubble) clone._origin = marcBubble;
       }
     }, 60);
-    if (clone && overlay) overlay.classList.add('bubble-active');
+    if (clone) overlay.classList.add('bubble-active');
     const headerBar = document.getElementById('header-bar');
     if (clone && headerBar) headerBar.classList.add('header-hide');
   });

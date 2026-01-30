@@ -1142,7 +1142,6 @@ function addDragAndDrop(table) {
 
 // Export the drag and drop system
 window.DragDropSystem = {
-  headerTrash,
   dragDropManager,
   addDragAndDrop,
   attachBubbleDropTarget,

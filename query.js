@@ -1,15 +1,37 @@
 // Field definitions loaded from fieldDefs.js
 
-// Local aliases
-const getBaseFieldName = window.getBaseFieldName;
-const showToastMessage = window.showToastMessage;
-const confirmBtn = document.getElementById('confirm-btn');
-const runBtn = document.getElementById('run-query-btn');
-const searchInput = document.getElementById('query-input');
-const clearSearchBtn = document.getElementById('clear-search-btn');
-const groupMethodSelect = document.getElementById('group-method-select');
+// Utility Functions - Available globally
+// getBaseFieldName is now in queryState.js
 
-// DOM elements and State variables are managed globally (queryUI.js, queryState.js)
+// Local alias for this file
+const getBaseFieldName = window.getBaseFieldName;
+
+// showToastMessage is now in toast.js
+// Local alias for this file
+const showToastMessage = window.showToastMessage;
+
+// DOM elements cache is now in queryUI.js
+// Legacy aliases are assigned in queryUI.js to window to maintain compatibility
+
+// State variables are now in queryState.js
+// We rely on the global window variables defined there.
+// window.displayedFields, window.queryRunning, etc.
+
+// Query state tracking is now in queryState.js
+
+// getCurrentQueryState is now in queryState.js
+
+// hasQueryChanged is now in queryState.js
+
+// updateRunButtonIcon is now in queryUI.js
+
+// Data structures
+// activeFilters is in queryState.js - accessing via window.activeFilters
+
+// Global set to track which bubbles are animating back
+// animatingBackBubbles is in queryState.js
+
+// isBubbleAnimating is in queryState.js
 
 // Pressing Enter in any condition field = click Confirm
 ['condition-input','condition-input-2','condition-select'].forEach(id=>{
@@ -18,84 +40,117 @@ const groupMethodSelect = document.getElementById('group-method-select');
     el.addEventListener('keydown',e=>{
       if(e.key==='Enter'){
         e.preventDefault();
-        if(confirmBtn) confirmBtn.click();
+        confirmBtn.click();
       }
     });
   }
 });
 
-/* --- Run / Stop query toggle --- */
 
+
+/* --- Run / Stop query toggle --- */
+// queryRunning already declared at the top
+
+
+// updateButtonStates is now in queryUI.js - relying on window.updateButtonStates
 // Initial check
-if(window.updateButtonStates) window.updateButtonStates();
+window.updateButtonStates();
+
+// toggleQueryInterface is now in queryUI.js - relying on window.toggleQueryInterface
 
 if(runBtn){
   runBtn.addEventListener('click', ()=>{
     if(runBtn.disabled) return;   // ignore when disabled
     
     // If query is running, stop it
-    if (window.queryRunning) {
-      window.queryRunning = false;
-      if(window.updateRunButtonIcon) window.updateRunButtonIcon();
+    if (queryRunning) {
+      queryRunning = false;
+      updateRunButtonIcon();
       return;
     }
     
     // Start query execution
-    window.queryRunning = true;
-    if(window.updateRunButtonIcon) window.updateRunButtonIcon();
+    queryRunning = true;
+    updateRunButtonIcon();
     
     // Simulate query execution (since real execution isn't implemented yet)
     setTimeout(() => {
-      window.queryRunning = false;
+      queryRunning = false;
       // Update the last executed query state to current state
-      if(window.getCurrentQueryState) window.lastExecutedQueryState = window.getCurrentQueryState();
-      if(window.updateRunButtonIcon) window.updateRunButtonIcon();
+      lastExecutedQueryState = getCurrentQueryState();
+      updateRunButtonIcon();
     }, 2000); // Simulate 2 second execution
     
-    if(showToastMessage) showToastMessage('Query execution is not implemented yet', 'info');
+    // Show "not implemented yet" message
+    showToastMessage('Query execution is not implemented yet', 'info');
   });
 }
 
-// Overlay click handler
-const overlay = document.getElementById('overlay');
-if (overlay) {
-  overlay.addEventListener('click',()=>{ 
-    if(window.ModalSystem) window.ModalSystem.closeAllModals(); 
-    if(window.BubbleSystem) window.BubbleSystem.resetActiveBubbles();
+// --- Condition templates by type ---
+// typeConditions now in filterManager.js (window.typeConditions)
 
-    // Close non-modal UI elements (condition panel, input wrapper)
-    const conditionPanel = document.getElementById('condition-panel');
-    const inputWrapper = document.getElementById('condition-input-wrapper');
-    const conditionInput = document.getElementById('condition-input');
+/* Re-position the input capsule so it keeps a constant gap above the condition buttons */
+// positionInputWrapper is now in queryUI.js - relying on window.positionInputWrapper
 
-    if(conditionPanel) conditionPanel.classList.remove('show');
-    if(inputWrapper) inputWrapper.classList.remove('show');
-    
-    // Remove all .active from condition buttons
-    if(conditionPanel) {
-      const btns = conditionPanel.querySelectorAll('.condition-btn');
-      btns.forEach(b=>b.classList.remove('active'));
-    }
-    if(conditionInput) conditionInput.value='';
+/* ---------- Input helpers to avoid duplicated numeric-config blocks ---------- */
+// Input helpers (setNumericProps, clearNumericProps, configureInputsForType) now in filterManager.js
 
-    // Hide select if present
-    const sel = document.getElementById('condition-select');
-    if(sel) sel.style.display = 'none';
+// displayedFields, selectedField, and activeFilters are already declared at the top
 
-    // After closing overlay, re-enable bubble interaction
-    const safeRenderBubbles = window.safeRenderBubbles || (window.BubbleSystem ? window.BubbleSystem.safeRenderBubbles : null);
-    if(safeRenderBubbles) setTimeout(() => safeRenderBubbles(), 0);
-    
-    overlay.classList.remove('bubble-active');
-    const headerBar = document.getElementById('header-bar');
-    if (headerBar) headerBar.classList.remove('header-hide');
-  });
-}
+/* ---------- Helper: map UI condition slugs to C# enum names ---------- */
+// mapOperator is now in queryUI.js - local alias if needed, or just use it where needed via window.
+// But wait, updateQueryJson uses it. updateQueryJson is also moved.
+
+/** Rebuild the query JSON and show it */
+// updateQueryJson is now in queryUI.js - relying on window.updateQueryJson
+
+// Helper function to check if a field should have purple styling
+// shouldFieldHavePurpleStyling is now in queryUI.js - relying on window.shouldFieldHavePurpleStyling
+
+
+// Apply the helper to the resetActive function
+// resetActive moved to bubble.js as resetActiveBubbles
+
+
+overlay.addEventListener('click',()=>{ 
+  window.ModalSystem.closeAllModals(); // This will hide overlay and all panels with 'hidden' and remove 'show'
+  window.BubbleSystem && window.BubbleSystem.resetActiveBubbles(); // Handles bubble animations and state
+
+  // Close non-modal UI elements (condition panel, input wrapper)
+  conditionPanel.classList.remove('show');
+  inputWrapper.classList.remove('show');
+  
+  // Remove all .active from condition buttons
+  const btns = conditionPanel.querySelectorAll('.condition-btn');
+  btns.forEach(b=>b.classList.remove('active'));
+  conditionInput.value='';
+
+  // Hide select if present
+  const sel = document.getElementById('condition-select');
+  if(sel) sel.style.display = 'none';
+
+  // After closing overlay, re-enable bubble interaction
+  setTimeout(() => safeRenderBubbles(), 0);
+  overlay.classList.remove('bubble-active');
+  const headerBar = document.getElementById('header-bar');
+  if (headerBar) headerBar.classList.remove('header-hide');
+});
+
+// conditionBtnHandler moved to filterManager.js as handleConditionBtnClick
+
+// Remove static conditionBtns handler and attach to dynamic buttons only
+// (No static .condition-btn in markup anymore)
+
+/* ---------- Check for contradiction & return human-readable reason ---------- */
+// getContradictionMessage is now in queryUI.js - relying on window.getContradictionMessage
+
+/* Create a custom grouped selector for options with the dash delimiter */
+// createGroupedSelector is now in queryUI.js - relying on window.createGroupedSelector
 
 // Add this helper function to show error messages with consistent styling and timeout
 // showError is now in queryUI.js - relying on window.showError
 
-if (confirmBtn) confirmBtn.addEventListener('click', window.handleFilterConfirm);
+confirmBtn.addEventListener('click', window.handleFilterConfirm);
 
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&overlay.classList.contains('show')){overlay.click();return;}
@@ -190,7 +245,7 @@ if (categoryBar) {
 // Special handler for marc condition buttons now in filterManager.js
 
 // Replace search input listener to filter all fieldDefs, not just visible bubbles
-if (searchInput) searchInput.addEventListener('input', () => {
+queryInput.addEventListener('input', () => {
   // Only switch to "All" category when searching if no bubble is active and no overlay is shown
   if (!document.querySelector('.active-bubble') && !overlay.classList.contains('show')) {
   currentCategory = 'All';
@@ -200,7 +255,7 @@ if (searchInput) searchInput.addEventListener('input', () => {
   );
   }
   
-  const term = searchInput.value.trim().toLowerCase();
+  const term = queryInput.value.trim().toLowerCase();
   if(clearSearchBtn) clearSearchBtn.classList.toggle('hidden', term==='');
   
   // Use imported updateFilteredDefs function
@@ -222,11 +277,9 @@ if (searchInput) searchInput.addEventListener('input', () => {
 
 if(clearSearchBtn){
   clearSearchBtn.addEventListener('click', ()=>{
-    if(searchInput) {
-      searchInput.value = '';
-      searchInput.dispatchEvent(new Event('input'));
-      searchInput.focus();
-    }
+    queryInput.value = '';
+    queryInput.dispatchEvent(new Event('input'));
+    queryInput.focus();
   });
 }
 
@@ -350,7 +403,200 @@ if (groupMethodSelect) {
   });
 }
 
+// === Example table builder ===
+async function showExampleTable(fields){
+  if(!Array.isArray(fields) || fields.length === 0){
+    // No columns left → clear table area and reset states
+    displayedFields = [];
+    window.displayedFields = displayedFields;
+    VirtualTable.clearVirtualTableData();
+    const container = document.querySelector('.overflow-x-auto.shadow.rounded-lg.mb-6');
+    /* Ensure placeholder table has the same height as the table container */
+    const placeholderH = 400;                       // Fixed height to match container
+    if(container){
+      container.style.minHeight = placeholderH + 'px';
+      container.style.height    = placeholderH + 'px';
+      container.innerHTML = `
+        <table id="example-table" class="min-w-full divide-y divide-gray-200 bg-white">
+          <thead>
+            <tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" colspan="1">
+              Drag a bubble here to add your first column
+            </th></tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            <tr><td class="px-6 py-4 whitespace-nowrap">...</td></tr>
+            <tr><td class="px-6 py-4 whitespace-nowrap">...</td></tr>
+            <tr><td class="px-6 py-4 whitespace-nowrap">...</td></tr>
+          </tbody>
+        </table>`;
+      // Ensure placeholder header accepts drops
+      window.DragDropSystem.attachBubbleDropTarget(container);
+      const placeholderTh = container.querySelector('thead th');
+      if (placeholderTh) {
+        placeholderTh.addEventListener('dragover', e => e.preventDefault());
+        placeholderTh.addEventListener('drop', e => {
+          e.preventDefault();
+          const field = e.dataTransfer.getData('bubble-field');
+          if (field) {
+            window.DragDropSystem.restoreFieldWithDuplicates(field);
+            showExampleTable(displayedFields).catch(error => {
+              console.error('Error updating table:', error);
+            });
+          }
+        });
+        placeholderTh.addEventListener('dragenter', e => {
+          placeholderTh.classList.add('th-drag-over');
+        });
+        placeholderTh.addEventListener('dragleave', e => {
+          placeholderTh.classList.remove('th-drag-over');
+        });
+        // Also highlight placeholder when dragging anywhere over the empty table container
+        container.addEventListener('dragover', e => {
+          if (displayedFields.length === 0) {
+            placeholderTh.classList.add('th-drag-over');
+          }
+        });
+        container.addEventListener('dragleave', e => {
+          placeholderTh.classList.remove('th-drag-over');
+        });
+      }
+    }
+    // Re-enable dragging on every bubble
+    document.querySelectorAll('.bubble').forEach(b => {
+      if (b.textContent.trim() === 'Marc') {
+        b.setAttribute('draggable', 'false');
+      } else {
+        b.setAttribute('draggable', 'true');
+      }
+    });
+    updateQueryJson();
+    updateCategoryCounts();
+    return;
+  }
 
+  // Remove duplicates, preserve order
+  const uniqueFields = [];
+  fields.forEach(f => {
+    if (!uniqueFields.includes(f)) uniqueFields.push(f);
+  });
+  displayedFields = uniqueFields;
+  window.displayedFields = displayedFields;
+
+  // Create initial table structure
+  const tableHTML = `
+    <table id="example-table" class="min-w-full divide-y divide-gray-200 bg-white">
+      <thead class="sticky top-0 z-20 bg-gray-50">
+        <tr>
+          ${displayedFields.map((f,i) => {
+            // Check if this field exists in the current data
+            const virtualTableData = window.VirtualTable?.virtualTableData;
+            const fieldExistsInData = virtualTableData && virtualTableData.columnMap && virtualTableData.columnMap.has(f);
+            
+            if (fieldExistsInData) {
+              return `<th draggable="true" data-col-index="${i}" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50"><span class='th-text'>${f}</span></th>`;
+            } else {
+              return `<th draggable="true" data-col-index="${i}" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider bg-gray-50" style="color: #ef4444 !important;" data-tooltip="This field is not in the current data. Run a new query to populate it."><span class='th-text' style="color: #ef4444 !important;">${f}</span></th>`;
+            }
+          }).join('')}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200">
+        <!-- Virtual rows will be inserted here -->
+      </tbody>
+    </table>`;
+
+  // Replace the original sample-data table in place
+  const container = document.querySelector('.overflow-x-auto.shadow.rounded-lg.mb-6');
+  if (container) {
+    // Set up container for virtual scrolling
+    container.innerHTML = tableHTML;
+    
+    try {
+      await VirtualTable.setupVirtualTable(container, displayedFields);
+    } catch (error) {
+      console.error('Error setting up virtual table:', error);
+      // Show error message to user
+      container.innerHTML = `
+        <div class="p-6 text-center">
+          <div class="text-red-600 font-semibold mb-2">Error Loading Data</div>
+          <div class="text-gray-600">Failed to load test data. Please ensure testJobData.json is available.</div>
+          <div class="text-sm text-gray-500 mt-2">${error.message}</div>
+        </div>`;
+      return;
+    }
+
+    // Now that setupVirtualTable has calculated widths, update header widths
+    const table = container.querySelector('#example-table');
+    const headerRow = table.querySelector('thead tr');
+    headerRow.querySelectorAll('th').forEach((th, index) => {
+      const field = displayedFields[index];
+      const width = VirtualTable.calculatedColumnWidths[field] || 150;
+      th.style.width = `${width}px`;
+      th.style.minWidth = `${width}px`;
+      th.style.maxWidth = `${width}px`;
+    });
+    
+    // Calculate actual row height from a rendered row
+    VirtualTable.measureRowHeight(table, displayedFields);
+    
+    // Initial render of virtual table
+    VirtualTable.renderVirtualTable();
+    
+    // Set up drag and drop
+    window.DragDropSystem.addDragAndDrop(table);
+    window.DragDropSystem.attachBubbleDropTarget(container);
+    
+    // Update bubble dragging states
+    document.querySelectorAll('.bubble').forEach(bubbleEl => {
+      const field = bubbleEl.textContent.trim();
+      if (field === 'Marc') {
+        bubbleEl.setAttribute('draggable', 'false');
+      } else if(displayedFields.includes(field)){
+        bubbleEl.removeAttribute('draggable');
+        window.BubbleSystem && window.BubbleSystem.applyCorrectBubbleStyling(bubbleEl);
+      } else {
+        bubbleEl.setAttribute('draggable','true');
+        window.BubbleSystem && window.BubbleSystem.applyCorrectBubbleStyling(bubbleEl);
+      }
+    });
+    
+    updateQueryJson();
+    updateCategoryCounts();
+    
+    // Update button states after table setup
+    updateButtonStates();
+    
+    // Re-render bubbles if we're in Selected category
+    if (currentCategory === 'Selected') {
+      window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
+    }
+    
+    // Attach header hover handlers for trash can
+    const headers = table.querySelectorAll('th[draggable="true"]');
+    headers.forEach(h => {
+      h.addEventListener('mouseenter', () => {
+        h.classList.add('th-hover');
+        dragDropManager.hoverTh = h;
+        h.appendChild(headerTrash);
+        headerTrash.style.display = 'block';
+      });
+      h.addEventListener('mouseleave', () => {
+        h.classList.remove('th-hover');
+        dragDropManager.hoverTh = null;
+        if (headerTrash.parentNode) headerTrash.parentNode.removeChild(headerTrash);
+      });
+    });
+    
+    // If only one column, attach trashcan immediately
+    if (headers.length === 1) {
+      const h = headers[0];
+      h.classList.add('th-hover');
+      dragDropManager.hoverTh = h;
+      h.appendChild(headerTrash);
+      headerTrash.style.display = 'block';
+    }
+  }
+}
 
 // Arrow-key scrolling when focus is on a bubble, the scrollbar thumb, or when hovering over bubble grid/scrollbar
 document.addEventListener('keydown', e=>{
@@ -408,8 +654,6 @@ function updateCategoryCounts() {
     window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
   }
 }
-
-window.updateCategoryCounts = updateCategoryCounts;
   
 // Initial render of category bar and mobile selector
 updateCategoryCounts();

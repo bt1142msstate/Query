@@ -4,8 +4,8 @@
  * @module QueryUI
  */
 
-// Local DOM element cache
-const DOM = {
+// Centralized DOM element cache
+window.DOM = {
   get overlay() { return this._overlay ||= document.getElementById('overlay'); },
   get conditionPanel() { return this._conditionPanel ||= document.getElementById('condition-panel'); },
   get inputWrapper() { return this._inputWrapper ||= document.getElementById('condition-input-wrapper'); },
@@ -22,7 +22,28 @@ const DOM = {
   get groupMethodSelect() { return this._groupMethodSelect ||= document.getElementById('group-method-select'); }
 };
 
-// Legacy global assignments removed. Modules should fetch their own elements.
+// Legacy DOM Elements - DEPRECATED: Use DOM cache above for all new code
+// These are kept temporarily for compatibility until all references are updated
+// We assign them to window so they are available globally as before
+window.overlay = document.getElementById('overlay'); // Initial fetch, though DOM getter is better
+window.conditionPanel = document.getElementById('condition-panel');
+window.inputWrapper = document.getElementById('condition-input-wrapper');
+window.conditionInput = document.getElementById('condition-input');
+window.confirmBtn = document.getElementById('confirm-btn');
+window.runBtn = document.getElementById('run-query-btn');
+window.runIcon = document.getElementById('run-icon');
+window.stopIcon = document.getElementById('stop-icon');
+window.downloadBtn = document.getElementById('download-btn');
+window.queryBox = document.getElementById('query-json');
+window.queryInput = document.getElementById('query-input');
+window.clearSearchBtn = document.getElementById('clear-search-btn');
+window.groupMethodSelect = document.getElementById('group-method-select');
+
+// Update legacy references when DOM is ready/refreshed if needed, 
+// strictly speaking the getters in query.js were cleaner but we need them global.
+// The code in query.js used `const overlay = DOM.overlay;` which froze the reference.
+// Here we just rely on `document.getElementById` being fast enough or the DOM cache.
+
 
 /**
  * Updates the run button icon based on query state changes.
@@ -101,9 +122,9 @@ window.updateRunButtonIcon = function() {
  * Updates run and download button states together
  */
 window.updateButtonStates = function() {
-  const runBtn = DOM.runBtn;
-  const downloadBtn = DOM.downloadBtn;
-  const queryBox = DOM.queryBox;
+  const runBtn = window.DOM.runBtn;
+  const downloadBtn = window.DOM.downloadBtn;
+  const queryBox = window.DOM.queryBox;
 
   if(runBtn){
     try{
@@ -197,8 +218,8 @@ window.toggleQueryInterface = function(isQueryRunning) {
 
 /* Re-position the input capsule so it keeps a constant gap above the condition buttons */
 window.positionInputWrapper = function(){
-  const inputWrapper = DOM.inputWrapper;
-  const conditionPanel = DOM.conditionPanel;
+  const inputWrapper = window.DOM.inputWrapper;
+  const conditionPanel = window.DOM.conditionPanel;
   
   if(!inputWrapper.classList.contains('show')) return;
   const panelRect   = conditionPanel.getBoundingClientRect();
@@ -318,7 +339,7 @@ window.updateQueryJson = function(){
     }
   }
 
-  const queryBox = DOM.queryBox;
+  const queryBox = window.DOM.queryBox;
   if(queryBox) queryBox.value = JSON.stringify(query, null, 2);
   window.updateButtonStates();
 };
