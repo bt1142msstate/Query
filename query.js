@@ -1,3 +1,14 @@
+/**
+ * Main Application Logic
+ * Orchestrates the interaction between components.
+ * Now refactored to use ES Modules.
+ */
+
+import { DOM, toggleQueryInterface, updateButtonStates, updateRunButtonIcon, positionInputWrapper, updateQueryJson } from './queryUI.js';
+import { queryState, getBaseFieldName, getCurrentQueryState, hasQueryChanged } from './queryState.js';
+import { fieldDefsArray, getAllFieldDefs, updateFilteredDefs, updateCategoryCounts } from './fieldDefs.js';
+import { showToastMessage } from './toast.js';
+
 // Field definitions loaded from fieldDefs.js
 // Utility functions and state management are now loaded from external modules
 // (queryState.js, toast.js, queryUI.js, etc.)
@@ -18,7 +29,7 @@
 
 
 /* --- Run / Stop query toggle --- */
-// queryRunning already declared at the top
+// queryState.queryRunning already declared at the top
 
 
 // updateButtonStates is now in queryUI.js - relying on window.updateButtonStates
@@ -27,31 +38,33 @@ window.updateButtonStates();
 
 // toggleQueryInterface is now in queryUI.js - relying on window.toggleQueryInterface
 
-if(runBtn){
-  runBtn.addEventListener('click', ()=>{
-    if(runBtn.disabled) return;   // ignore when disabled
+if(DOM.runBtn){
+  DOM.runBtn.addEventListener('click', ()=>{
+    if(DOM.runBtn.disabled) return;   // ignore when disabled
     
     // If query is running, stop it
-    if (queryRunning) {
-      queryRunning = false;
+    if (queryState.queryRunning) {
+      queryState.queryRunning = false;
       updateRunButtonIcon();
+      toggleQueryInterface(false);
       return;
     }
     
     // Start query execution
-    queryRunning = true;
+    queryState.queryRunning = true;
     updateRunButtonIcon();
+    toggleQueryInterface(true);
     
     // Simulate query execution (since real execution isn't implemented yet)
     setTimeout(() => {
-      queryRunning = false;
+      queryState.queryRunning = false;
       // Update the last executed query state to current state
-      lastExecutedQueryState = getCurrentQueryState();
+      queryState.lastExecutedQueryState = getCurrentQueryState();
       updateRunButtonIcon();
+      toggleQueryInterface(false);
+      
+      showToastMessage('Query executed successfully', 'success');
     }, 2000); // Simulate 2 second execution
-    
-    // Show "not implemented yet" message
-    showToastMessage('Query execution is not implemented yet', 'info');
   });
 }
 
@@ -64,32 +77,32 @@ if(runBtn){
 /* ---------- Input helpers to avoid duplicated numeric-config blocks ---------- */
 // Input helpers (setNumericProps, clearNumericProps, configureInputsForType) now in filterManager.js
 
-// displayedFields, selectedField, and activeFilters are already declared at the top
+// queryState.displayedFields, queryState.selectedField, and queryState.activeFilters are already declared at the top
 
 /* ---------- Helper: map UI condition slugs to C# enum names ---------- */
 
 
 
-overlay.addEventListener('click',()=>{ 
-  window.ModalSystem.closeAllModals(); // This will hide overlay and all panels with 'hidden' and remove 'show'
-  window.BubbleSystem && window.BubbleSystem.resetActiveBubbles(); // Handles bubble animations and state
+DOM.overlay.addEventListener('click',()=>{ 
+  window.ModalSystem && window.ModalSystem.closeAllModals(); 
+  window.BubbleSystem && window.BubbleSystem.resetActiveBubbles(); 
 
   // Close non-modal UI elements (condition panel, input wrapper)
-  conditionPanel.classList.remove('show');
-  inputWrapper.classList.remove('show');
+  DOM.conditionPanel.classList.remove('show');
+  DOM.inputWrapper.classList.remove('show');
   
   // Remove all .active from condition buttons
-  const btns = conditionPanel.querySelectorAll('.condition-btn');
+  const btns = DOM.conditionPanel.querySelectorAll('.condition-btn');
   btns.forEach(b=>b.classList.remove('active'));
-  conditionInput.value='';
+  DOM.conditionInput.value='';
 
   // Hide select if present
   const sel = document.getElementById('condition-select');
   if(sel) sel.style.display = 'none';
 
   // After closing overlay, re-enable bubble interaction
-  setTimeout(() => safeRenderBubbles(), 0);
-  overlay.classList.remove('bubble-active');
+  setTimeout(() => window.BubbleSystem && window.BubbleSystem.safeRenderBubbles(), 0);
+  DOM.overlay.classList.remove('bubble-active');
   const headerBar = document.getElementById('header-bar');
   if (headerBar) headerBar.classList.remove('header-hide');
 });
@@ -101,7 +114,7 @@ confirmBtn.addEventListener('click', window.handleFilterConfirm);
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&overlay.classList.contains('show')){overlay.click();return;}
   // Bubble-grid scroll: allow ArrowUp/Down and W/S as aliases when hovering grid/scrollbar
-  if(!hoverScrollArea) return;
+  if(!queryState.hoverScrollArea) return;
   // Category navigation: ArrowLeft / ArrowRight or A / D keys when hovering the bubble area
   const rightPressed = e.key === 'ArrowRight' || e.key.toLowerCase() === 'd';
   const leftPressed  = e.key === 'ArrowLeft'  || e.key.toLowerCase() === 'a';
@@ -135,31 +148,31 @@ document.addEventListener('keydown',e=>{
     const newCategory = visibleCatButtons[newButtonIndex].dataset.category;
     
     // Update current category
-    currentCategory = newCategory;
+    queryState.currentCategory = newCategory;
     
     // Update UI
     visibleCatButtons.forEach(btn => 
-      btn.classList.toggle('active', btn.dataset.category === currentCategory)
+      btn.classList.toggle('active', btn.dataset.category === queryState.currentCategory)
     );
     
     // Reset scroll position and re-render bubbles
-    scrollRow = 0;
+    queryState.scrollRow = 0;
     window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
     return; // consume event
   }
   const downPressed = e.key === 'ArrowDown' || e.key.toLowerCase() === 's';
   const upPressed   = e.key === 'ArrowUp'   || e.key.toLowerCase() === 'w';
   const rowsVisible = 2;
-  const maxStartRow = Math.max(0, totalRows - rowsVisible);
-  if(downPressed && scrollRow < maxStartRow){
-    scrollRow++;
-  }else if(upPressed && scrollRow > 0){
-    scrollRow--;
+  const maxStartRow = Math.max(0, queryState.totalRows - rowsVisible);
+  if(downPressed && queryState.scrollRow < maxStartRow){
+    queryState.scrollRow++;
+  }else if(upPressed && queryState.scrollRow > 0){
+    queryState.scrollRow--;
   }else{
     return;   // no change
   }
   document.getElementById('bubble-list').style.transform =
-    `translateY(-${scrollRow * rowHeight}px)`;
+    `translateY(-${queryState.scrollRow * queryState.rowHeight}px)`;
   window.BubbleSystem && window.BubbleSystem.updateScrollBar();
 });
 
@@ -188,35 +201,37 @@ if (categoryBar) {
 // Special handler for marc condition buttons now in filterManager.js
 
 // Replace search input listener to filter all fieldDefs, not just visible bubbles
-queryInput.addEventListener('input', () => {
-  // Only switch to "All" category when searching if no bubble is active and no overlay is shown
-  if (!document.querySelector('.active-bubble') && !overlay.classList.contains('show')) {
-  currentCategory = 'All';
-  // Update the segmented toggle UI to reflect the change
-  document.querySelectorAll('#category-bar .category-btn').forEach(b =>
-    b.classList.toggle('active', b.dataset.category === 'All')
-  );
-  }
-  
-  const term = queryInput.value.trim().toLowerCase();
-  if(clearSearchBtn) clearSearchBtn.classList.toggle('hidden', term==='');
-  
-  // Use imported updateFilteredDefs function
-  updateFilteredDefs(term);
-  
-  // Update label of the "All" segment → "Search (n)" when searching
-  const allBtn = document.querySelector('#category-bar .category-btn[data-category="All"]');
-  if(allBtn){
-    if(term === ''){
-      const total = fieldDefs.size;
-      allBtn.textContent = `All (${total})`;
-    }else{
-      allBtn.textContent = `Search (${filteredDefs.length})`;
+if(DOM.queryInput) {
+  DOM.queryInput.addEventListener('input', () => {
+    // Only switch to "All" category when searching if no bubble is active and no overlay is shown
+    if (!document.querySelector('.active-bubble') && !DOM.overlay.classList.contains('show')) {
+    queryState.currentCategory = 'All';
+    // Update the segmented toggle UI to reflect the change
+    document.querySelectorAll('#category-bar .category-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.category === 'All')
+    );
     }
-  }
-  scrollRow = 0;
-  window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
-});
+    
+    const term = DOM.queryInput.value.trim().toLowerCase();
+    if(DOM.clearSearchBtn) DOM.clearSearchBtn.classList.toggle('hidden', term==='');
+    
+    // Use imported updateFilteredDefs function
+    const filtered = updateFilteredDefs(term);
+    
+    // Update label of the "All" segment → "Search (n)" when searching
+    const allBtn = document.querySelector('#category-bar .category-btn[data-category="All"]');
+    if(allBtn){
+      if(term === ''){
+        const total = getAllFieldDefs().length;
+        allBtn.textContent = `All (${total})`;
+      }else{
+        allBtn.textContent = `Search (${filtered.length})`;
+      }
+    }
+    queryState.scrollRow = 0;
+    window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
+  });
+}
 
 if(clearSearchBtn){
   clearSearchBtn.addEventListener('click', ()=>{
@@ -251,16 +266,16 @@ if(initialContainer) {
         
         if (headers && headers.length > 0) {
           // Use the headers from the processed SimpleTable (already in correct order)
-          displayedFields = [...headers];
-          window.displayedFields = displayedFields;
-          console.log('Set displayedFields to:', displayedFields);
+          queryState.displayedFields = [...headers];
+          window.displayedFields = queryState.displayedFields;
+          console.log('Set queryState.displayedFields to:', queryState.displayedFields);
           // Update the query JSON to reflect the correct columns from the SimpleTable
           updateQueryJson();
-          await showExampleTable(displayedFields);
+          await showExampleTable(queryState.displayedFields);
           // Update button states after fields are loaded
           updateButtonStates();
           // Set initial executed state since we're loading with test data
-          lastExecutedQueryState = getCurrentQueryState();
+          queryState.lastExecutedQueryState = getCurrentQueryState();
           // Initialize run button icon
           updateRunButtonIcon();
           // Set the GroupBy method selector to match the SimpleTable instance
@@ -274,27 +289,27 @@ if(initialContainer) {
           updateCategoryCounts();
         } else {
           console.warn('No headers found in SimpleTable, showing empty placeholder');
-          displayedFields = [];
-          window.displayedFields = displayedFields;
-          await showExampleTable(displayedFields);
+          queryState.displayedFields = [];
+          window.displayedFields = queryState.displayedFields;
+          await showExampleTable(queryState.displayedFields);
           updateButtonStates();
           // Initialize bubble system even with empty fields
           // window.BubbleSystem && window.BubbleSystem.initializeBubbles();
         }
       } else {
         console.warn('No SimpleTable instance found, showing empty placeholder');
-        displayedFields = [];
-        window.displayedFields = displayedFields;
-        await showExampleTable(displayedFields);
+        queryState.displayedFields = [];
+        window.displayedFields = queryState.displayedFields;
+        await showExampleTable(queryState.displayedFields);
         updateButtonStates();
         // Initialize bubble system even with empty fields
         // window.BubbleSystem && window.BubbleSystem.initializeBubbles();
       }
     } catch (error) {
       console.error('Error initializing table:', error);
-      displayedFields = [];
-      window.displayedFields = displayedFields;
-      await showExampleTable(displayedFields);
+      queryState.displayedFields = [];
+      window.displayedFields = queryState.displayedFields;
+      await showExampleTable(queryState.displayedFields);
       updateButtonStates();
       // Initialize bubble system even with empty fields
       // window.BubbleSystem && window.BubbleSystem.initializeBubbles();
@@ -327,9 +342,9 @@ if (groupMethodSelect) {
           columnMap: new Map(headers.map((header, index) => [header, index]))
         };
         
-        // Update displayedFields to match new headers
-        displayedFields = [...headers];
-        window.displayedFields = displayedFields;
+        // Update queryState.displayedFields to match new headers
+        queryState.displayedFields = [...headers];
+        window.displayedFields = queryState.displayedFields;
         
         console.log('Updated table with new GroupBy method:', {
           method: newGroupMethod,
@@ -338,7 +353,7 @@ if (groupMethodSelect) {
         });
         
         // Refresh the table display
-        await showExampleTable(displayedFields);
+        await showExampleTable(queryState.displayedFields);
         updateQueryJson();
         updateButtonStates();
       }
@@ -350,8 +365,8 @@ if (groupMethodSelect) {
 async function showExampleTable(fields){
   if(!Array.isArray(fields) || fields.length === 0){
     // No columns left → clear table area and reset states
-    displayedFields = [];
-    window.displayedFields = displayedFields;
+    queryState.displayedFields = [];
+    window.displayedFields = queryState.displayedFields;
     VirtualTable.clearVirtualTableData();
     const container = document.querySelector('.overflow-x-auto.shadow.rounded-lg.mb-6');
     /* Ensure placeholder table has the same height as the table container */
@@ -382,7 +397,7 @@ async function showExampleTable(fields){
           const field = e.dataTransfer.getData('bubble-field');
           if (field) {
             window.DragDropSystem.restoreFieldWithDuplicates(field);
-            showExampleTable(displayedFields).catch(error => {
+            showExampleTable(queryState.displayedFields).catch(error => {
               console.error('Error updating table:', error);
             });
           }
@@ -395,7 +410,7 @@ async function showExampleTable(fields){
         });
         // Also highlight placeholder when dragging anywhere over the empty table container
         container.addEventListener('dragover', e => {
-          if (displayedFields.length === 0) {
+          if (queryState.displayedFields.length === 0) {
             placeholderTh.classList.add('th-drag-over');
           }
         });
@@ -422,15 +437,15 @@ async function showExampleTable(fields){
   fields.forEach(f => {
     if (!uniqueFields.includes(f)) uniqueFields.push(f);
   });
-  displayedFields = uniqueFields;
-  window.displayedFields = displayedFields;
+  queryState.displayedFields = uniqueFields;
+  window.displayedFields = queryState.displayedFields;
 
   // Create initial table structure
   const tableHTML = `
     <table id="example-table" class="min-w-full divide-y divide-gray-200 bg-white">
       <thead class="sticky top-0 z-20 bg-gray-50">
         <tr>
-          ${displayedFields.map((f,i) => {
+          ${queryState.displayedFields.map((f,i) => {
             // Check if this field exists in the current data
             const virtualTableData = window.VirtualTable?.virtualTableData;
             const fieldExistsInData = virtualTableData && virtualTableData.columnMap && virtualTableData.columnMap.has(f);
@@ -455,7 +470,7 @@ async function showExampleTable(fields){
     container.innerHTML = tableHTML;
     
     try {
-      await VirtualTable.setupVirtualTable(container, displayedFields);
+      await VirtualTable.setupVirtualTable(container, queryState.displayedFields);
     } catch (error) {
       console.error('Error setting up virtual table:', error);
       // Show error message to user
@@ -472,7 +487,7 @@ async function showExampleTable(fields){
     const table = container.querySelector('#example-table');
     const headerRow = table.querySelector('thead tr');
     headerRow.querySelectorAll('th').forEach((th, index) => {
-      const field = displayedFields[index];
+      const field = queryState.displayedFields[index];
       const width = VirtualTable.calculatedColumnWidths[field] || 150;
       th.style.width = `${width}px`;
       th.style.minWidth = `${width}px`;
@@ -480,7 +495,7 @@ async function showExampleTable(fields){
     });
     
     // Calculate actual row height from a rendered row
-    VirtualTable.measureRowHeight(table, displayedFields);
+    VirtualTable.measureRowHeight(table, queryState.displayedFields);
     
     // Initial render of virtual table
     VirtualTable.renderVirtualTable();
@@ -494,7 +509,7 @@ async function showExampleTable(fields){
       const field = bubbleEl.textContent.trim();
       if (field === 'Marc') {
         bubbleEl.setAttribute('draggable', 'false');
-      } else if(displayedFields.includes(field)){
+      } else if(queryState.displayedFields.includes(field)){
         bubbleEl.removeAttribute('draggable');
         window.BubbleSystem && window.BubbleSystem.applyCorrectBubbleStyling(bubbleEl);
       } else {
@@ -510,7 +525,7 @@ async function showExampleTable(fields){
     updateButtonStates();
     
     // Re-render bubbles if we're in Selected category
-    if (currentCategory === 'Selected') {
+    if (queryState.currentCategory === 'Selected') {
       window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
     }
     
@@ -549,20 +564,20 @@ document.addEventListener('keydown', e=>{
   const isBubble = focussed?.classList && focussed.classList.contains('bubble');
   const isThumb  = focussed?.id === 'bubble-scrollbar-thumb';
 
-  if(!isBubble && !isThumb && !hoverScrollArea) return;   // only act if focus or hover
+  if(!isBubble && !isThumb && !queryState.hoverScrollArea) return;   // only act if focus or hover
 
-  const maxStartRow = Math.max(0, totalRows - 2);
-  if(e.key === 'ArrowDown' && scrollRow < maxStartRow){
-    scrollRow++;
-  }else if(e.key === 'ArrowUp' && scrollRow > 0){
-    scrollRow--;
+  const maxStartRow = Math.max(0, queryState.totalRows - 2);
+  if(e.key === 'ArrowDown' && queryState.scrollRow < maxStartRow){
+    queryState.scrollRow++;
+  }else if(e.key === 'ArrowUp' && queryState.scrollRow > 0){
+    queryState.scrollRow--;
   }else{
     return;                                  // no movement
   }
 
   // Apply new scroll position
   document.getElementById('bubble-list').style.transform =
-    `translateY(-${scrollRow * rowHeight}px)`;
+    `translateY(-${queryState.scrollRow * queryState.rowHeight}px)`;
   window.BubbleSystem && window.BubbleSystem.updateScrollBar();
   e.preventDefault();                         // stop page scroll
 });
@@ -571,21 +586,21 @@ document.addEventListener('keydown', e=>{
 
 // Consolidated function to render both category bar and mobile selector
 function renderCategorySelectorsLocal(categoryCounts) {
-  renderCategorySelectors(categoryCounts, currentCategory, (newCategory) => {
-    currentCategory = newCategory;
-          scrollRow = 0;
+  renderCategorySelectors(categoryCounts, queryState.currentCategory, (newCategory) => {
+    queryState.currentCategory = newCategory;
+          queryState.scrollRow = 0;
           window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
         });
 }
 
 // Replace all category bar/mobile selector update logic with the new function
 function updateCategoryCounts() {
-  const categoryCounts = calculateCategoryCounts(displayedFields, activeFilters);
+  const categoryCounts = calculateCategoryCounts(queryState.displayedFields, queryState.activeFilters);
   renderCategorySelectorsLocal(categoryCounts);
 
   // If we're in the Selected category and the count is 0, switch to All
-  if (currentCategory === 'Selected' && categoryCounts.Selected === 0) {
-    currentCategory = 'All';
+  if (queryState.currentCategory === 'Selected' && categoryCounts.Selected === 0) {
+    queryState.currentCategory = 'All';
     const allBtn = document.querySelector('#category-bar .category-btn[data-category="All"]');
     if (allBtn) {
       allBtn.classList.add('active');
@@ -593,7 +608,7 @@ function updateCategoryCounts() {
       const mobileSelector = document.getElementById('mobile-category-selector');
       if (mobileSelector) mobileSelector.value = 'All';
     }
-    scrollRow = 0;
+    queryState.scrollRow = 0;
     window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
   }
 }
@@ -724,9 +739,9 @@ window.onDOMReady(() => {
     
     // Resize when window resizes (to update max width based on table)
     window.addEventListener('resize', autoResizeInput);
-  }    // Remove fallback demo columns: always use loaded test data for displayedFields
+  }    // Remove fallback demo columns: always use loaded test data for queryState.displayedFields
     // (No fallback to ['Title', 'Author', ...])
-    // The initial table setup after test data load will set displayedFields correctly.
+    // The initial table setup after test data load will set queryState.displayedFields correctly.
 
 });
 
