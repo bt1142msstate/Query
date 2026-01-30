@@ -1,37 +1,6 @@
 // Field definitions loaded from fieldDefs.js
-
-// Utility Functions - Available globally
-// getBaseFieldName is now in queryState.js
-
-// Local alias for this file
-const getBaseFieldName = window.getBaseFieldName;
-
-// showToastMessage is now in toast.js
-// Local alias for this file
-const showToastMessage = window.showToastMessage;
-
-// DOM elements cache is now in queryUI.js
-// Legacy aliases are assigned in queryUI.js to window to maintain compatibility
-
-// State variables are now in queryState.js
-// We rely on the global window variables defined there.
-// window.displayedFields, window.queryRunning, etc.
-
-// Query state tracking is now in queryState.js
-
-// getCurrentQueryState is now in queryState.js
-
-// hasQueryChanged is now in queryState.js
-
-// updateRunButtonIcon is now in queryUI.js
-
-// Data structures
-// activeFilters is in queryState.js - accessing via window.activeFilters
-
-// Global set to track which bubbles are animating back
-// animatingBackBubbles is in queryState.js
-
-// isBubbleAnimating is in queryState.js
+// Utility functions and state management are now loaded from external modules
+// (queryState.js, toast.js, queryUI.js, etc.)
 
 // Pressing Enter in any condition field = click Confirm
 ['condition-input','condition-input-2','condition-select'].forEach(id=>{
@@ -98,18 +67,7 @@ if(runBtn){
 // displayedFields, selectedField, and activeFilters are already declared at the top
 
 /* ---------- Helper: map UI condition slugs to C# enum names ---------- */
-// mapOperator is now in queryUI.js - local alias if needed, or just use it where needed via window.
-// But wait, updateQueryJson uses it. updateQueryJson is also moved.
 
-/** Rebuild the query JSON and show it */
-// updateQueryJson is now in queryUI.js - relying on window.updateQueryJson
-
-// Helper function to check if a field should have purple styling
-// shouldFieldHavePurpleStyling is now in queryUI.js - relying on window.shouldFieldHavePurpleStyling
-
-
-// Apply the helper to the resetActive function
-// resetActive moved to bubble.js as resetActiveBubbles
 
 
 overlay.addEventListener('click',()=>{ 
@@ -136,19 +94,7 @@ overlay.addEventListener('click',()=>{
   if (headerBar) headerBar.classList.remove('header-hide');
 });
 
-// conditionBtnHandler moved to filterManager.js as handleConditionBtnClick
 
-// Remove static conditionBtns handler and attach to dynamic buttons only
-// (No static .condition-btn in markup anymore)
-
-/* ---------- Check for contradiction & return human-readable reason ---------- */
-// getContradictionMessage is now in queryUI.js - relying on window.getContradictionMessage
-
-/* Create a custom grouped selector for options with the dash delimiter */
-// createGroupedSelector is now in queryUI.js - relying on window.createGroupedSelector
-
-// Add this helper function to show error messages with consistent styling and timeout
-// showError is now in queryUI.js - relying on window.showError
 
 confirmBtn.addEventListener('click', window.handleFilterConfirm);
 
@@ -220,10 +166,7 @@ document.addEventListener('keydown',e=>{
 /* ---------- Field definitions: name, type, optional values, optional filters ---------- */
 // Now imported from fieldDefs.js
 
-// Helper function to check if a field should have purple styling (wrapper for imported function)
-function shouldFieldHavePurpleStyling(fieldName) {
-  return shouldFieldHavePurpleStylingBase(fieldName, displayedFields, activeFilters);
-}
+
 
 // ... existing code ...
 
@@ -787,11 +730,6 @@ window.onDOMReady(() => {
 
 });
 
-// Add a global flag to block bubble rendering during animation
-let isBubbleAnimatingBack = false;
-let pendingRenderBubbles = false;
+// Globals for bubble animation are defined in queryState.js (window.isBubbleAnimatingBack, etc.)
 
-// Replace all direct calls to renderBubbles() with a helper:
-
-// formatDuration is now in queryUI.js - relying on window.formatDuration
 

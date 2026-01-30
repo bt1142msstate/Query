@@ -100,7 +100,8 @@ function applyCorrectBubbleStyling(bubbleElement) {
   
   const fieldName = bubbleElement.textContent.trim();
   
-  if (shouldFieldHavePurpleStyling(fieldName)) {
+  // Use global base function directly to avoid dependency on query.js
+  if (window.shouldFieldHavePurpleStylingBase(fieldName, window.displayedFields, window.activeFilters)) {
     bubbleElement.classList.add('bubble-filter');
     bubbleElement.setAttribute('data-filtered', 'true');
   } else {
@@ -153,7 +154,7 @@ function renderBubbles(){
     list = filteredDefs;
   } else if (currentCategory === 'Selected') {
     const displayedSet = new Set(displayedFields);
-    const filteredSelected = filteredDefs.filter(d => shouldFieldHavePurpleStyling(d.name));
+    const filteredSelected = filteredDefs.filter(d => window.shouldFieldHavePurpleStylingBase(d.name, window.displayedFields, window.activeFilters));
     let orderedList = displayedFields
       .map(name => filteredSelected.find(d => d.name === name))
       .filter(Boolean);
