@@ -41,7 +41,7 @@ class Bubble {
     // Tooltip: description + filters (if any)
     let tooltip = def.desc || '';
     // Build a fake FilterGroups array for this field from activeFilters
-    const af = activeFilters[fieldName];
+    const af = window.activeFilters && window.activeFilters[fieldName];
     let filterTooltip = '';
     if (af && af.filters && af.filters.length > 0) {
       const fakeGroup = [{
@@ -62,12 +62,12 @@ class Bubble {
     } else {
       this.el.removeAttribute('data-tooltip');
     }
-    if (def.isSpecialMarc || displayedFields.includes(fieldName)) {
+    if (def.isSpecialMarc || (window.displayedFields && window.displayedFields.includes(fieldName))) {
       this.el.setAttribute('draggable', 'false');
     } else {
       this.el.setAttribute('draggable', 'true');
     }
-    if (animatingBackBubbles.has(fieldName)) {
+    if (window.animatingBackBubbles && window.animatingBackBubbles.has(fieldName)) {
       this.el.dataset.animatingBack = 'true';
       this.el.style.visibility = 'hidden';
       this.el.style.opacity = '0';
@@ -225,17 +225,17 @@ function renderBubbles(){
 // Replace all direct calls to renderBubbles() with a helper:
 function safeRenderBubbles() {
   // Safety check for required globals
-  if (typeof isBubbleAnimatingBack === 'undefined') {
+  if (typeof window.isBubbleAnimatingBack === 'undefined') {
     console.log('safeRenderBubbles: Required globals not available yet');
     return;
   }
   
-  if (isBubbleAnimatingBack) {
-    pendingRenderBubbles = true;
+  if (window.isBubbleAnimatingBack) {
+    window.pendingRenderBubbles = true;
     return;
   }
   renderBubbles();
-  pendingRenderBubbles = false;
+  window.pendingRenderBubbles = false;
 }
 
 /**
@@ -393,7 +393,7 @@ function buildConditionPanel(bubble){
 
   // Swap text input for select if bubble has list values
   if(listValues && listValues.length){
-    const fieldDef = fieldDefs.get(selectedField);
+    const fieldDef = window.fieldDefs.get(selectedField);
     const isMultiSelect = fieldDef && fieldDef.multiSelect;
     // Clean up any existing selectors
     let existingSelect = document.getElementById('condition-select');
@@ -476,7 +476,7 @@ function buildConditionPanel(bubble){
  */
 function initializeBubbles() {
   // Only initialize if all required globals are available
-  if (typeof activeFilters === 'undefined' || typeof displayedFields === 'undefined') {
+  if (typeof window.activeFilters === 'undefined' || typeof window.displayedFields === 'undefined') {
     console.log('Bubble system: Required globals not yet available, skipping initialization');
     return false;
   }
@@ -628,7 +628,7 @@ function initializeBubbles() {
     window.lockInput && window.lockInput(600); // Lock input for animation duration + buffer (adjust as needed)
 
     // Store current category so it doesn't get reset
-    const savedCategory = currentCategory; 
+    const savedCategory = window.currentCategory; 
 
     // Animate clone to centre + build panel
     const rect = bubble.getBoundingClientRect();
@@ -658,10 +658,10 @@ function initializeBubbles() {
     buildConditionPanel(bubble);
     
     // Restore the saved category
-    currentCategory = savedCategory;
+    window.currentCategory = savedCategory;
     // Re-sync category bar UI to match the preserved category
     document.querySelectorAll('#category-bar .category-btn').forEach(btn =>
-      btn.classList.toggle('active', btn.dataset.category === currentCategory)
+      btn.classList.toggle('active', btn.dataset.category === window.currentCategory)
     );
 
     clone.addEventListener('transitionend',function t(){
@@ -682,7 +682,7 @@ function initializeBubbles() {
         }
       }
       // Show input wrapper right away if there are existing filters
-      if (activeFilters[selectedField]) {
+      if (window.activeFilters && window.activeFilters[selectedField]) {
         const inputWrapper = document.getElementById('condition-input-wrapper');
         if(inputWrapper) inputWrapper.classList.add('show');
       }
