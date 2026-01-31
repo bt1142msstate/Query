@@ -10,20 +10,20 @@
  * @function onDOMReady
  * @param {Function} callback - Function to execute when DOM is ready
  */
-export function onDOMReady(callback) {
+window.onDOMReady = function(callback) {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', callback);
   } else {
     callback();
   }
-}
+};
 
 /**
  * Text Measurement Utility - Measures text width using canvas
  * Shared canvas instance to avoid creating multiple canvas elements.
  * @namespace TextMeasurement
  */
-export const TextMeasurement = {
+window.TextMeasurement = {
   canvas: document.createElement('canvas'),
   
   get ctx() {
@@ -77,7 +77,7 @@ export const TextMeasurement = {
  * Event Handler Utilities - Bulk event listener attachment
  * @namespace EventUtils
  */
-export const EventUtils = {
+window.EventUtils = {
   /**
    * Attaches click event listeners to multiple elements by ID.
    * @param {Object} elementIdToHandlerMap - Map of element IDs to click handlers
@@ -110,7 +110,7 @@ export const EventUtils = {
  * Table Builder Utilities - Common table creation patterns
  * @namespace TableBuilder
  */
-export const TableBuilder = {
+window.TableBuilder = {
   /**
    * Creates a table element with standard styling.
    * @param {string} [className] - CSS class for the table
@@ -163,6 +163,3 @@ export const TableBuilder = {
     return tr;
   }
 };
-
-// Backwards compatibility for now (though we aim to remove this)
-window.onDOMReady = onDOMReady;

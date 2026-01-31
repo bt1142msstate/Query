@@ -4,7 +4,7 @@
  * @module Toast
  */
 
-export function showToastMessage(message, type = 'info', duration = 3000) {
+window.showToastMessage = function(message, type = 'info', duration = 3000) {
   const toast = document.createElement('div');
   
   // Support different toast types
@@ -29,4 +29,7 @@ export function showToastMessage(message, type = 'info', duration = 3000) {
   
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), duration);
-}
+};
+
+// Local alias for export (if we were using modules, but we're using globals)
+// const showToastMessage = window.showToastMessage;

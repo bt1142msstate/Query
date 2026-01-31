@@ -4,8 +4,6 @@
  * @module FilterManager
  */
 
-import { queryState } from './queryState.js';
-
 /**
  * FilterPill UI component class
  * Represents a single active filter condition pill in the UI.
@@ -94,7 +92,7 @@ window.renderConditionList = function(field) {
     if (!container) return;
     
     container.innerHTML = '';
-    const data = queryState.activeFilters[field];
+    const data = window.activeFilters[field];
 
     if (!data || !data.filters.length) {
         // Reset specific styling if no filters exist
@@ -167,7 +165,7 @@ window.renderConditionList = function(field) {
         const pill = new FilterPill(f, fieldDef, () => {
             data.filters.splice(idx, 1);
             if (data.filters.length === 0) {
-                delete queryState.activeFilters[field];
+                delete window.activeFilters[field];
                 document.querySelectorAll('.bubble').forEach(b => {
                     if (b.textContent.trim() === field) {
                         b.removeAttribute('data-filtered');
@@ -371,8 +369,8 @@ window.handleFilterConfirm = function(e) {
     // Applying logic
     if (cond && cond !== 'display') {
         try {
-            if (!queryState.activeFilters[field]) {
-                queryState.activeFilters[field] = { logical: 'And', filters: [] };
+            if (!window.activeFilters[field]) {
+                window.activeFilters[field] = { logical: 'And', filters: [] };
             }
 
             const isContainerVisible = selContainer && selContainer.style.display !== 'none';
@@ -394,7 +392,7 @@ window.handleFilterConfirm = function(e) {
 
             const fieldType = bubble.dataset.type || 'string';
             const newFilterObj = { cond, val: filterValue };
-            const existingSet = queryState.activeFilters[field];
+            const existingSet = window.activeFilters[field];
             
             // Check for contradictions
             const conflictMsg = window.getContradictionMessage(existingSet, newFilterObj, fieldType, field);
@@ -408,17 +406,17 @@ window.handleFilterConfirm = function(e) {
                 
                 // Merge equal filters for MultiSelect fields
                 if (isMultiSelect && cond === 'equals') {
-                    const existingEqualsIdx = queryState.activeFilters[field].filters.findIndex(f => f.cond === 'equals');
+                    const existingEqualsIdx = window.activeFilters[field].filters.findIndex(f => f.cond === 'equals');
                     if (existingEqualsIdx !== -1) {
-                        const existingVals = queryState.activeFilters[field].filters[existingEqualsIdx].val.split(',');
+                        const existingVals = window.activeFilters[field].filters[existingEqualsIdx].val.split(',');
                         const newVals = filterValue.split(',');
                         const uniqueVals = [...new Set([...existingVals, ...newVals])];
-                        queryState.activeFilters[field].filters[existingEqualsIdx].val = uniqueVals.join(',');
+                        window.activeFilters[field].filters[existingEqualsIdx].val = uniqueVals.join(',');
                     } else {
-                        queryState.activeFilters[field].filters.push({ cond, val: filterValue });
+                        window.activeFilters[field].filters.push({ cond, val: filterValue });
                     }
                 } else {
-                    queryState.activeFilters[field].filters.push({ cond, val: filterValue });
+                    window.activeFilters[field].filters.push({ cond, val: filterValue });
                 }
 
                 // Update UI state
@@ -497,12 +495,12 @@ function handleMarcFieldConfirm(cond, val) {
 
         // Apply filter if one was selected
         if (idx === 0 && cond && val) {
-            if (!queryState.activeFilters[dynamicMarcField]) {
-                queryState.activeFilters[dynamicMarcField] = { logical: 'And', filters: [] };
+            if (!window.activeFilters[dynamicMarcField]) {
+                window.activeFilters[dynamicMarcField] = { logical: 'And', filters: [] };
             }
-            const alreadyExists = queryState.activeFilters[dynamicMarcField].filters.some(f => f.cond === cond && f.val === val);
+            const alreadyExists = window.activeFilters[dynamicMarcField].filters.some(f => f.cond === cond && f.val === val);
             if (!alreadyExists) {
-                queryState.activeFilters[dynamicMarcField].filters.push({ cond, val });
+                window.activeFilters[dynamicMarcField].filters.push({ cond, val });
             }
         }
     });
@@ -530,7 +528,7 @@ function handleMarcFieldConfirm(cond, val) {
         }, 200);
     }
     
-    if (queryState.activeFilters['Marc']) delete queryState.activeFilters['Marc'];
+    if (window.activeFilters['Marc']) delete window.activeFilters['Marc'];
 }
 
 // Global confirm action finalizer
