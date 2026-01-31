@@ -20,7 +20,7 @@ import { showToastMessage } from './toast.js';
     el.addEventListener('keydown',e=>{
       if(e.key==='Enter'){
         e.preventDefault();
-        confirmBtn.click();
+        DOM.confirmBtn.click();
       }
     });
   }
@@ -109,10 +109,10 @@ DOM.overlay.addEventListener('click',()=>{
 
 
 
-confirmBtn.addEventListener('click', window.handleFilterConfirm);
+DOM.confirmBtn.addEventListener('click', window.handleFilterConfirm);
 
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'&&overlay.classList.contains('show')){overlay.click();return;}
+  if(e.key==='Escape'&&DOM.overlay.classList.contains('show')){DOM.overlay.click();return;}
   // Bubble-grid scroll: allow ArrowUp/Down and W/S as aliases when hovering grid/scrollbar
   if(!queryState.hoverScrollArea) return;
   // Category navigation: ArrowLeft / ArrowRight or A / D keys when hovering the bubble area
@@ -120,7 +120,7 @@ document.addEventListener('keydown',e=>{
   const leftPressed  = e.key === 'ArrowLeft'  || e.key.toLowerCase() === 'a';
   if (rightPressed || leftPressed) {
     // Prevent navigation if overlay is shown or a bubble is enlarged
-    if (overlay.classList.contains('show') || document.querySelector('.active-bubble')) return;
+    if (DOM.overlay.classList.contains('show') || document.querySelector('.active-bubble')) return;
     
     // Get visible category buttons from the DOM
     const visibleCatButtons = Array.from(document.querySelectorAll('#category-bar .category-btn'));
