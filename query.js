@@ -233,11 +233,11 @@ if(DOM.queryInput) {
   });
 }
 
-if(clearSearchBtn){
-  clearSearchBtn.addEventListener('click', ()=>{
-    queryInput.value = '';
-    queryInput.dispatchEvent(new Event('input'));
-    queryInput.focus();
+if(DOM.clearSearchBtn){
+  DOM.clearSearchBtn.addEventListener('click', ()=>{
+    DOM.queryInput.value = '';
+    DOM.queryInput.dispatchEvent(new Event('input'));
+    DOM.queryInput.focus();
   });
 }
 
@@ -279,8 +279,8 @@ if(initialContainer) {
           // Initialize run button icon
           updateRunButtonIcon();
           // Set the GroupBy method selector to match the SimpleTable instance
-          if (groupMethodSelect) {
-            groupMethodSelect.value = simpleTable.groupMethod;
+          if (DOM.groupMethodSelect) {
+            DOM.groupMethodSelect.value = simpleTable.groupMethod;
           }
           // Initialize bubble system now that all variables are ready
           if (window.BubbleSystem) {
@@ -318,9 +318,9 @@ if(initialContainer) {
 }
 
 // GroupBy method change handler
-if (groupMethodSelect) {
-  groupMethodSelect.addEventListener('change', async () => {
-    const newGroupMethod = groupMethodSelect.value;
+if (DOM.groupMethodSelect) {
+  DOM.groupMethodSelect.addEventListener('change', async () => {
+    const newGroupMethod = DOM.groupMethodSelect.value;
     console.log('Changing GroupBy method to:', newGroupMethod);
     
     // Get the current SimpleTable instance
