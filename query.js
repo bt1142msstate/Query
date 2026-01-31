@@ -6,7 +6,7 @@
 
 import { DOM, toggleQueryInterface, updateButtonStates, updateRunButtonIcon, positionInputWrapper, updateQueryJson } from './queryUI.js';
 import { queryState, getBaseFieldName, getCurrentQueryState, hasQueryChanged } from './queryState.js';
-import { fieldDefsArray, getAllFieldDefs, updateFilteredDefs, updateCategoryCounts } from './fieldDefs.js';
+import { fieldDefsArray, getAllFieldDefs, updateFilteredDefs, calculateCategoryCounts, renderCategorySelectors } from './fieldDefs.js';
 import { showToastMessage } from './toast.js';
 
 // Field definitions loaded from fieldDefs.js
