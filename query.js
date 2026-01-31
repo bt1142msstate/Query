@@ -682,7 +682,12 @@ window.onDOMReady(() => {
   // Attach queries search event listener
   const queriesSearchInput = document.getElementById('queries-search');
   if (queriesSearchInput) {
-    queriesSearchInput.addEventListener('input', renderQueries);
+    // Check if QueryHistorySystem is available globally or renderQueries is available
+    if (window.QueryHistorySystem && window.QueryHistorySystem.renderQueries) {
+        queriesSearchInput.addEventListener('input', window.QueryHistorySystem.renderQueries);
+    } else if (typeof renderQueries === 'function') {
+        queriesSearchInput.addEventListener('input', renderQueries); 
+    }
   }
   
   const tableNameInput = document.getElementById('table-name-input');
