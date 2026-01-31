@@ -5,7 +5,7 @@
  * @module VirtualTable
  */
 
-import { fieldDefs, fieldDefState } from './fieldDefs.js';
+import { fieldDefs, fieldDefState, fieldDefsArray } from './fieldDefs.js';
 
 // Virtual scrolling state
 let virtualTableData = {
