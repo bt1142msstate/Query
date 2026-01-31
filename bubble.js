@@ -250,7 +250,7 @@ function updateScrollBar(){
   /* Hide scrollbar container entirely when no scrolling is needed */
   const scrollbarContainer = document.querySelector('.bubble-scrollbar-container');
   if(scrollbarContainer){
-    const needScroll = totalRows > 2;   // rowsVisible = 2
+    const needScroll = queryState.totalRows > 2;   // rowsVisible = 2
     scrollbarContainer.style.display = needScroll ? 'block' : 'none';
   }
 

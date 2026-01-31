@@ -5,6 +5,8 @@
  * @module VirtualTable
  */
 
+import { fieldDefs, fieldDefState } from './fieldDefs.js';
+
 // Virtual scrolling state
 let virtualTableData = {
   headers: [],
@@ -58,7 +60,7 @@ async function loadTestData() {
         fieldDefs.set(fieldName, newMarcFieldDef);
         
         // Add to filteredDefs array  
-        filteredDefs.push(newMarcFieldDef);
+        fieldDefState.filteredDefs.push(newMarcFieldDef);
         
         console.log(`Created MARC field definition for: ${fieldName}`);
       }
