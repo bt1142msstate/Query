@@ -1,14 +1,9 @@
 /**
  * Bubble UI component class for field selection and filtering.
  * Represents a draggable field that can be clicked to set filters.
- * @module Bubble
+ * @class Bubble
  */
-
-import { queryState } from './queryState.js';
-import { fieldDefState, fieldDefs, shouldFieldHavePurpleStylingBase } from './fieldDefs.js';
-import { DOM } from './queryUI.js';
-
-export class Bubble {
+class Bubble {
   /**
    * Creates a new Bubble instance.
    * @constructor
@@ -46,17 +41,17 @@ export class Bubble {
     // Tooltip: description + filters (if any)
     let tooltip = def.desc || '';
     // Build a fake FilterGroups array for this field from activeFilters
-    const af = queryState.activeFilters[fieldName];
+    const af = activeFilters[fieldName];
     let filterTooltip = '';
     if (af && af.filters && af.filters.length > 0) {
       const fakeGroup = [{
         Filters: af.filters.map(f => ({
           FieldName: fieldName,
-          FieldOperator: window.mapOperator ? window.mapOperator(f.cond) : f.cond,
+          FieldOperator: mapOperator(f.cond),
           Values: f.cond === 'between' ? f.val.split('|') : f.val.split(',')
         }))
       }];
-      filterTooltip = window.formatFiltersTooltip ? window.formatFiltersTooltip(fieldName, fakeGroup) : '';
+      filterTooltip = formatFiltersTooltip(fieldName, fakeGroup);
     }
     if (filterTooltip) {
       tooltip += (tooltip ? '\n\u2014\n' : '');
@@ -67,12 +62,12 @@ export class Bubble {
     } else {
       this.el.removeAttribute('data-tooltip');
     }
-    if (def.isSpecialMarc || queryState.displayedFields.includes(fieldName)) {
+    if (def.isSpecialMarc || displayedFields.includes(fieldName)) {
       this.el.setAttribute('draggable', 'false');
     } else {
       this.el.setAttribute('draggable', 'true');
     }
-    if (queryState.animatingBackBubbles.has(fieldName)) {
+    if (animatingBackBubbles.has(fieldName)) {
       this.el.dataset.animatingBack = 'true';
       this.el.style.visibility = 'hidden';
       this.el.style.opacity = '0';
@@ -94,22 +89,19 @@ export class Bubble {
   }
 }
 
-// Global exposure for non-module scripts
-window.Bubble = Bubble;
-
 /**
  * Applies correct styling to a bubble element based on its filter state.
  * Adds purple styling for filtered fields, removes it for unfiltered fields.
  * @function applyCorrectBubbleStyling
  * @param {HTMLElement} bubbleElement - The bubble DOM element to style
  */
-export function applyCorrectBubbleStyling(bubbleElement) {
+function applyCorrectBubbleStyling(bubbleElement) {
   if (!bubbleElement) return;
   
   const fieldName = bubbleElement.textContent.trim();
   
   // Use global base function directly to avoid dependency on query.js
-  if (shouldFieldHavePurpleStylingBase(fieldName, window.displayedFields, window.activeFilters)) {
+  if (window.shouldFieldHavePurpleStylingBase(fieldName, window.displayedFields, window.activeFilters)) {
     bubbleElement.classList.add('bubble-filter');
     bubbleElement.setAttribute('data-filtered', 'true');
   } else {
@@ -146,8 +138,11 @@ function createOrUpdateBubble(def, existingBubble = null) {
  * @function renderBubbles
  */
 function renderBubbles(){
-  // Safety check for required globals (commented out as imports are used)
-  // if (typeof filteredDefs === 'undefined' || typeof currentCategory === 'undefined') { return; }
+  // Safety check for required globals
+  if (typeof filteredDefs === 'undefined' || typeof currentCategory === 'undefined') {
+    console.log('renderBubbles: Required globals not available yet');
+    return;
+  }
   
   const container = document.getElementById('bubble-container');
   const listDiv   = document.getElementById('bubble-list');
@@ -155,12 +150,12 @@ function renderBubbles(){
 
   // Apply category + search filter
   let list;
-  if (queryState.currentCategory === 'All') {
-    list = fieldDefState.filteredDefs;
-  } else if (queryState.currentCategory === 'Selected') {
-    const displayedSet = new Set(queryState.displayedFields);
-    const filteredSelected = fieldDefState.filteredDefs.filter(d => shouldFieldHavePurpleStylingBase(d.name, queryState.displayedFields, queryState.activeFilters));
-    let orderedList = queryState.displayedFields
+  if (currentCategory === 'All') {
+    list = filteredDefs;
+  } else if (currentCategory === 'Selected') {
+    const displayedSet = new Set(displayedFields);
+    const filteredSelected = filteredDefs.filter(d => window.shouldFieldHavePurpleStylingBase(d.name, window.displayedFields, window.activeFilters));
+    let orderedList = displayedFields
       .map(name => filteredSelected.find(d => d.name === name))
       .filter(Boolean);
     filteredSelected.forEach(d => {
@@ -170,14 +165,14 @@ function renderBubbles(){
     });
     list = orderedList;
   } else {
-    list = fieldDefState.filteredDefs.filter(d => {
+    list = filteredDefs.filter(d => {
       const cat = d.category;
-      return Array.isArray(cat) ? cat.includes(queryState.currentCategory) : cat === queryState.currentCategory;
+      return Array.isArray(cat) ? cat.includes(currentCategory) : cat === currentCategory;
     });
   }
 
   // If we're in Selected category, preserve existing bubbles
-  if (queryState.currentCategory === 'Selected') {
+  if (currentCategory === 'Selected') {
     const existingBubbles = Array.from(listDiv.children);
     const existingBubbleMap = new Map(existingBubbles.map(b => [b.textContent.trim(), b]));
     listDiv.innerHTML = '';
@@ -199,10 +194,10 @@ function renderBubbles(){
   if(firstBubble){
     const gapVal = getComputedStyle(listDiv).getPropertyValue('gap') || '0px';
     const gap = parseFloat(gapVal) || 0;
-    queryState.rowHeight  = firstBubble.getBoundingClientRect().height + gap;
+    rowHeight  = firstBubble.getBoundingClientRect().height + gap;
     const bubbleW = firstBubble.offsetWidth;
     const rowsVisible = 2;
-    const twoRowsH = queryState.rowHeight * rowsVisible - gap;
+    const twoRowsH = rowHeight * rowsVisible - gap;
     const sixColsW = bubbleW * 6 + gap * 5;
     const fudge   = 8;
     const paddedH = twoRowsH + 12 - fudge;
@@ -211,14 +206,14 @@ function renderBubbles(){
     container.style.width  = paddedW + 'px';
     const scrollCont = document.querySelector('.bubble-scrollbar-container');
     if (scrollCont) scrollCont.style.height = paddedH + 'px';
-    queryState.totalRows  = Math.ceil(list.length / 6);
-    if(queryState.scrollRow > queryState.totalRows - rowsVisible) queryState.scrollRow = Math.max(0, queryState.totalRows - rowsVisible);
-    listDiv.style.transform = `translateY(-${queryState.scrollRow * queryState.rowHeight}px)`;
+    totalRows  = Math.ceil(list.length / 6);
+    if(scrollRow > totalRows - rowsVisible) scrollRow = Math.max(0, totalRows - rowsVisible);
+    listDiv.style.transform = `translateY(-${scrollRow * rowHeight}px)`;
     updateScrollBar();
   }
   Array.from(listDiv.children).forEach(bubble => {
     const fieldName = bubble.textContent.trim();
-    if (queryState.animatingBackBubbles.has(fieldName)) {
+    if (animatingBackBubbles.has(fieldName)) {
       bubble.style.visibility = 'hidden';
       bubble.style.opacity = '0';
     } else {
@@ -231,14 +226,17 @@ function renderBubbles(){
 // Replace all direct calls to renderBubbles() with a helper:
 function safeRenderBubbles() {
   // Safety check for required globals
-  // if (typeof queryState.isBubbleAnimatingBack === 'undefined') { return; }
+  if (typeof isBubbleAnimatingBack === 'undefined') {
+    console.log('safeRenderBubbles: Required globals not available yet');
+    return;
+  }
   
-  if (queryState.isBubbleAnimatingBack) {
-    queryState.pendingRenderBubbles = true;
+  if (isBubbleAnimatingBack) {
+    pendingRenderBubbles = true;
     return;
   }
   renderBubbles();
-  queryState.pendingRenderBubbles = false;
+  pendingRenderBubbles = false;
 }
 
 /**
@@ -247,10 +245,16 @@ function safeRenderBubbles() {
  * @function updateScrollBar
  */
 function updateScrollBar(){
+  // Safety check for required globals
+  if (typeof totalRows === 'undefined' || typeof scrollRow === 'undefined') {
+    console.log('updateScrollBar: Required globals not available yet');
+    return;
+  }
+  
   /* Hide scrollbar container entirely when no scrolling is needed */
   const scrollbarContainer = document.querySelector('.bubble-scrollbar-container');
   if(scrollbarContainer){
-    const needScroll = queryState.totalRows > 2;   // rowsVisible = 2
+    const needScroll = totalRows > 2;   // rowsVisible = 2
     scrollbarContainer.style.display = needScroll ? 'block' : 'none';
   }
 
@@ -258,7 +262,7 @@ function updateScrollBar(){
   const thumb = document.getElementById('bubble-scrollbar-thumb');
   if(!track || !thumb) return;
 
-  const maxStartRow = Math.max(0, queryState.totalRows - 2);   // rowsVisible =2
+  const maxStartRow = Math.max(0, totalRows - 2);   // rowsVisible =2
   const trackH = track.clientHeight;
 
   // Build segments (one per start row)
@@ -277,7 +281,7 @@ function updateScrollBar(){
   // Thumb size = half a segment
   const thumbH   = segmentH/2;
   thumb.style.height = `${thumbH}px`;
-  const topPos = segmentH*queryState.scrollRow + (segmentH-thumbH)/2;
+  const topPos = segmentH*scrollRow + (segmentH-thumbH)/2;
   thumb.style.top = `${topPos}px`;
 }
 
@@ -288,7 +292,7 @@ function updateScrollBar(){
  * @param {HTMLElement} bubble - The clicked bubble element
  */
 function buildConditionPanel(bubble){
-  queryState.selectedField = bubble.textContent.trim();
+  selectedField = bubble.textContent.trim();
   const type = bubble.dataset.type || 'string';
   let listValues = null;
   let hasValuePairs = false;
@@ -314,9 +318,10 @@ function buildConditionPanel(bubble){
   
   const perBubble = bubble.dataset.filters ? JSON.parse(bubble.dataset.filters) : null;
   const isSpecialMarc = selectedField === 'Marc';
-  DOM.conditionPanel.innerHTML = '';
+  conditionPanel.innerHTML = '';
 
   // Always remove any existing marcInputGroup from the inputWrapper
+  const inputWrapper = document.getElementById('condition-input-wrapper');
   const oldMarcInput = document.getElementById('marc-field-input');
   if (oldMarcInput && oldMarcInput.parentNode) oldMarcInput.parentNode.remove();
 
@@ -335,10 +340,10 @@ function buildConditionPanel(bubble){
     marcInput.className = 'marc-field-input condition-field';
     marcInput.id = 'marc-field-input';
     marcInputGroup.appendChild(marcInput);
-    // Insert after DOM.conditionInput in DOM.inputWrapper
+    // Insert after conditionInput in inputWrapper
     const refNode = document.getElementById('condition-input');
-    if (refNode && DOM.inputWrapper) {
-      DOM.inputWrapper.insertBefore(marcInputGroup, refNode.nextSibling);
+    if (refNode && inputWrapper) {
+      inputWrapper.insertBefore(marcInputGroup, refNode.nextSibling);
     }
     // Add filter buttons
     const standardConds = ['contains', 'starts', 'equals'];
@@ -347,7 +352,7 @@ function buildConditionPanel(bubble){
       btn.className = 'condition-btn';
       btn.dataset.cond = label.split(' ')[0];
       btn.textContent = label[0].toUpperCase() + label.slice(1);
-      DOM.conditionPanel.appendChild(btn);
+      conditionPanel.appendChild(btn);
     });
   } else {
     // Normal field - add condition buttons as usual
@@ -360,7 +365,7 @@ function buildConditionPanel(bubble){
       btnEl.className = 'condition-btn';
       btnEl.dataset.cond = slug;
       btnEl.textContent = label[0].toUpperCase()+label.slice(1);
-      DOM.conditionPanel.appendChild(btnEl);
+      conditionPanel.appendChild(btnEl);
     });
   }
 
@@ -378,10 +383,10 @@ function buildConditionPanel(bubble){
       }
       toggleGroup.appendChild(btn);
     });
-    DOM.conditionPanel.appendChild(toggleGroup);
+    conditionPanel.appendChild(toggleGroup);
   }
 
-  const dynamicBtns = DOM.conditionPanel.querySelectorAll('.condition-btn, .toggle-half');
+  const dynamicBtns = conditionPanel.querySelectorAll('.condition-btn, .toggle-half');
   dynamicBtns.forEach(btn=>btn.addEventListener('click', isSpecialMarc ? window.marcConditionBtnHandler : window.handleConditionBtnClick));
 
   // Swap text input for select if bubble has list values
@@ -411,8 +416,8 @@ function buildConditionPanel(bubble){
     if (hasDashes) {
       // Use grouped selector for values with dash
       const selector = createGroupedSelector(listValues, isMultiSelect, currentLiteralValues);
-      DOM.inputWrapper.insertBefore(selector, DOM.confirmBtn);
-      DOM.conditionInput.style.display = 'none';
+      inputWrapper.insertBefore(selector, confirmBtn);
+      conditionInput.style.display = 'none';
     } else {
       // Use standard select for simple values
       let select = document.createElement('select');
@@ -435,9 +440,9 @@ function buildConditionPanel(bubble){
         }
       }).join('');
       
-      DOM.inputWrapper.insertBefore(select, DOM.confirmBtn);
+      inputWrapper.insertBefore(select, confirmBtn);
       select.style.display = 'block';
-      DOM.conditionInput.style.display = 'none';
+      conditionInput.style.display = 'none';
     }
   } else {
     if(document.getElementById('condition-select')){
@@ -447,7 +452,7 @@ function buildConditionPanel(bubble){
       document.getElementById('condition-select-container').style.display='none';
     }
     window.configureInputsForType(type);
-    DOM.conditionInput.style.display = 'block';
+    conditionInput.style.display = 'block';
   }
 
   // Show existing filters, if any
@@ -646,7 +651,7 @@ function initializeBubbles() {
     bubble.style.opacity = '0';          // hide origin immediately
     bubble.dataset.filterFor = bubble.textContent.trim();          // add attribute
 
-    DOM.overlay.classList.add('show');
+    overlay.classList.add('show');
     buildConditionPanel(bubble);
     
     // Restore the saved category
@@ -661,18 +666,18 @@ function initializeBubbles() {
         clone.classList.add('enlarge-bubble');
         return;
       }
-      DOM.conditionPanel.classList.add('show');
+      conditionPanel.classList.add('show');
       // After the panel is visible, auto-activate Equals (or first option)
       const defaultBtn =
-            DOM.conditionPanel.querySelector('.condition-btn[data-cond="equals"]') ||
-            DOM.conditionPanel.querySelector('.condition-btn');
+            conditionPanel.querySelector('.condition-btn[data-cond="equals"]') ||
+            conditionPanel.querySelector('.condition-btn');
       if (defaultBtn) {
         defaultBtn.classList.add('active');
         window.handleConditionBtnClick({ currentTarget: defaultBtn, stopPropagation(){}, preventDefault(){} });
       }
       // Show input wrapper right away if there are existing filters
       if (activeFilters[selectedField]) {
-        DOM.inputWrapper.classList.add('show');
+        inputWrapper.classList.add('show');
       }
       clone.removeEventListener('transitionend',t);
       // Animation is done, allow bubble clicks again
@@ -689,7 +694,7 @@ function initializeBubbles() {
         if (marcBubble) clone._origin = marcBubble;
       }
     }, 60);
-    if (clone) DOM.overlay.classList.add('bubble-active');
+    if (clone) overlay.classList.add('bubble-active');
     const headerBar = document.getElementById('header-bar');
     if (clone && headerBar) headerBar.classList.add('header-hide');
   });

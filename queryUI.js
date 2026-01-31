@@ -4,13 +4,8 @@
  * @module QueryUI
  */
 
-// Import necessary dependencies
-// IMPORTANT: We need queryState but it is imported by the module that imports us
-// To break circular dependencies, we accept state as arguments or access via window temporarily during transition
-import { queryState, getBaseFieldName, hasQueryChanged, getCurrentQueryState } from './queryState.js';
-
-// Centralized DOM element cache as export
-export const DOM = {
+// Centralized DOM element cache
+window.DOM = {
   get overlay() { return this._overlay ||= document.getElementById('overlay'); },
   get conditionPanel() { return this._conditionPanel ||= document.getElementById('condition-panel'); },
   get inputWrapper() { return this._inputWrapper ||= document.getElementById('condition-input-wrapper'); },
@@ -27,12 +22,35 @@ export const DOM = {
   get groupMethodSelect() { return this._groupMethodSelect ||= document.getElementById('group-method-select'); }
 };
 
+// Legacy DOM Elements - DEPRECATED: Use DOM cache above for all new code
+// These are kept temporarily for compatibility until all references are updated
+// We assign them to window so they are available globally as before
+window.overlay = document.getElementById('overlay'); // Initial fetch, though DOM getter is better
+window.conditionPanel = document.getElementById('condition-panel');
+window.inputWrapper = document.getElementById('condition-input-wrapper');
+window.conditionInput = document.getElementById('condition-input');
+window.confirmBtn = document.getElementById('confirm-btn');
+window.runBtn = document.getElementById('run-query-btn');
+window.runIcon = document.getElementById('run-icon');
+window.stopIcon = document.getElementById('stop-icon');
+window.downloadBtn = document.getElementById('download-btn');
+window.queryBox = document.getElementById('query-json');
+window.queryInput = document.getElementById('query-input');
+window.clearSearchBtn = document.getElementById('clear-search-btn');
+window.groupMethodSelect = document.getElementById('group-method-select');
+
+// Update legacy references when DOM is ready/refreshed if needed, 
+// strictly speaking the getters in query.js were cleaner but we need them global.
+// The code in query.js used `const overlay = DOM.overlay;` which froze the reference.
+// Here we just rely on `document.getElementById` being fast enough or the DOM cache.
+
+
 /**
  * Updates the run button icon based on query state changes.
  * Shows play icon for new queries, refresh icon for modified queries, stop icon when running.
  * @function updateRunButtonIcon
  */
-export function updateRunButtonIcon() {
+window.updateRunButtonIcon = function() {
   const runIcon = document.getElementById('run-icon');
   const refreshIcon = document.getElementById('refresh-icon');
   const stopIcon = document.getElementById('stop-icon');
@@ -40,7 +58,7 @@ export function updateRunButtonIcon() {
   const mobileRunQuery = document.getElementById('mobile-run-query');
   
   // State 1: Query is running - show stop icon
-  if (queryState.queryRunning) {
+  if (window.queryRunning) {
     runIcon.classList.add('hidden');
     refreshIcon.classList.add('hidden');
     stopIcon.classList.remove('hidden');
@@ -62,7 +80,7 @@ export function updateRunButtonIcon() {
   stopIcon.classList.add('hidden');
   
   // State 2: No columns - disabled (show run icon but disabled)
-  if (!queryState.displayedFields || queryState.displayedFields.length === 0) {
+  if (!window.displayedFields || window.displayedFields.length === 0) {
     runIcon.classList.remove('hidden');
     refreshIcon.classList.add('hidden');
     runBtn.disabled = true;
@@ -80,7 +98,7 @@ export function updateRunButtonIcon() {
   runBtn.classList.remove('opacity-50', 'cursor-not-allowed');
   
   // State 3: Query has changed - show run icon
-  if (hasQueryChanged()) {
+  if (window.hasQueryChanged()) {
     runIcon.classList.remove('hidden');
     refreshIcon.classList.add('hidden');
     runBtn.setAttribute('data-tooltip', 'Run Query');
@@ -98,35 +116,34 @@ export function updateRunButtonIcon() {
       mobileRunQuery.setAttribute('data-tooltip', 'Refresh Data');
     }
   }
-}
+};
 
 /**
  * Updates run and download button states together
  */
-export function updateButtonStates() {
-  const runBtn = DOM.runBtn;
-  const downloadBtn = DOM.downloadBtn;
-  const queryBox = DOM.queryBox;
+window.updateButtonStates = function() {
+  const runBtn = window.DOM.runBtn;
+  const downloadBtn = window.DOM.downloadBtn;
+  const queryBox = window.DOM.queryBox;
 
   if(runBtn){
     try{
       const q = JSON.parse(queryBox.value || '{}');
       const hasFields = Array.isArray(q.DesiredColumnOrder) && q.DesiredColumnOrder.length > 0;
-      runBtn.disabled = !hasFields || queryState.queryRunning;
+      runBtn.disabled = !hasFields || window.queryRunning;
       // Use the sophisticated icon/tooltip update function instead of simple tooltip
-      updateRunButtonIcon();
+      window.updateRunButtonIcon();
     }catch{
       runBtn.disabled = true;
       // Use the sophisticated icon/tooltip update function instead of simple tooltip
-      updateRunButtonIcon();
+      window.updateRunButtonIcon();
     }
   }
 
   if(downloadBtn){
     const tableNameInput = document.getElementById('table-name-input');
     const tableName = tableNameInput ? tableNameInput.value.trim() : '';
-    // Note: VirtualTable access via window until we import it
-    const hasData = queryState.displayedFields.length > 0 && window.VirtualTable?.virtualTableData?.rows?.length > 0;
+    const hasData = displayedFields.length > 0 && VirtualTable.virtualTableData && VirtualTable.virtualTableData.rows && VirtualTable.virtualTableData.rows.length > 0;
     const hasName = tableName && tableName !== '';
 
     // Add/remove error styling based on table name presence
@@ -151,12 +168,12 @@ export function updateButtonStates() {
       downloadBtn.setAttribute('data-tooltip', 'Download Excel file');
     }
   }
-}
+};
 
 /**
  * Helper function to manage UI changes when a query starts/stops
  */
-export function toggleQueryInterface(isQueryRunning) {
+window.toggleQueryInterface = function(isQueryRunning) {
   const searchContainer = document.getElementById('query-input')?.parentElement?.parentElement;
   const categoryBar     = document.getElementById('category-bar');
   const bubbleGrid      = document.getElementById('bubble-container');
@@ -194,15 +211,15 @@ export function toggleQueryInterface(isQueryRunning) {
     tableWrapper.style.overflowY = '';
     window.removeEventListener('resize', adjustTableHeight);
   }
-}
+};
 
 /* ---------- Check for contradiction & return human-readable reason ---------- */
 // getContradictionMessage moved to filterManager.js
 
 /* Re-position the input capsule so it keeps a constant gap above the condition buttons */
-export function positionInputWrapper(){
-  const inputWrapper = DOM.inputWrapper;
-  const conditionPanel = DOM.conditionPanel;
+window.positionInputWrapper = function(){
+  const inputWrapper = window.DOM.inputWrapper;
+  const conditionPanel = window.DOM.conditionPanel;
   
   if(!inputWrapper.classList.contains('show')) return;
   const panelRect   = conditionPanel.getBoundingClientRect();
@@ -210,15 +227,15 @@ export function positionInputWrapper(){
   const GAP = 12;                        // px gap between capsule and buttons
   const top = panelRect.top - wrapperRect.height - GAP;
   inputWrapper.style.top = `${top}px`;
-}
+};
 
 /** Rebuild the query JSON and show it */
-export function updateQueryJson(){
+window.updateQueryJson = function(){
   // Filter out duplicate field names (2nd, 3rd, etc.) and get only base field names
-  const baseFields = [...queryState.displayedFields]
+  const baseFields = [...window.displayedFields]
     .filter(field => field !== 'Marc')
     .map(field => {
-      return getBaseFieldName(field);
+      return window.getBaseFieldName(field);
     })
     .filter((field, index, array) => {
       // Remove duplicates (keep only first occurrence of each base field name)
@@ -232,7 +249,7 @@ export function updateQueryJson(){
   };
   
   // Update run button icon based on query changes
-  updateRunButtonIcon();
+  window.updateRunButtonIcon();
 
   // If we have a loaded SimpleTable instance, extract configuration from it
   if (typeof window.VirtualTable !== 'undefined' && window.VirtualTable.simpleTableInstance) {
@@ -282,15 +299,14 @@ export function updateQueryJson(){
     }
   }
 
-  // Add UI active filters
-  Object.entries(queryState.activeFilters).forEach(([field, data]) => {
+  // Active filters from UI → logical group per field
+  Object.entries(window.activeFilters).forEach(([field,data])=>{
     // Skip the special Marc field itself
     if (field === 'Marc') return;
     
     // Filter out any filters with empty values
     const validFilters = data.filters.filter(f => f.val !== '');
     if (validFilters.length === 0) return;
-    
     const group = {
       LogicalOperator: data.logical,
       Filters: validFilters.map(f => {
@@ -306,12 +322,12 @@ export function updateQueryJson(){
   });
 
   // Add CustomFields for custom MARC fields (Marc###, but not 'Marc')
-  if (typeof window.getAllFieldDefs === 'function') {
+  if (window.getAllFieldDefs) {
     const customMarcFields = window.getAllFieldDefs()
       .filter(f => /^Marc\d+$/.test(f.name))
       .map(f => ({
         FieldName: f.name,
-        Tool: "prtentry",
+        Tool: "prtentry", // Default, adjust if needed
         OutputFlag: "e",
         FilterFlag: "e",
         RawOutputSegments: 1,
@@ -322,19 +338,11 @@ export function updateQueryJson(){
       query.CustomFields = customMarcFields;
     }
   }
-  
-  // Update the textarea
-  DOM.queryBox.value = JSON.stringify(query, null, 2);
-  updateButtonStates();
-}
 
-// Global exposure for transition
-window.DOM = DOM;
-window.updateRunButtonIcon = updateRunButtonIcon;
-window.updateButtonStates = updateButtonStates;
-window.toggleQueryInterface = toggleQueryInterface;
-window.positionInputWrapper = positionInputWrapper;
-window.updateQueryJson = updateQueryJson;
+  const queryBox = window.DOM.queryBox;
+  if(queryBox) queryBox.value = JSON.stringify(query, null, 2);
+  window.updateButtonStates();
+};
 
 /* ---------- Helper: map UI condition slugs to C# enum names ---------- */
 function mapOperator(cond){
