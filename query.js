@@ -40,6 +40,7 @@ if(runBtn){
     
     // Start query execution
     (async () => {
+      let currentQueryId = null;
       try {
         queryRunning = true;
         updateRunButtonIcon();
@@ -97,6 +98,55 @@ if(runBtn){
             },
             body: JSON.stringify(payload)
         });
+        
+        // Capture Query ID and register in history
+        currentQueryId = response.headers.get('X-Query-Id');
+        if (currentQueryId && window.addQueryToHistory) {
+             // Construct compatible jsonConfig for history restoration
+             const historyConfig = {
+                DesiredColumnOrder: state.displayedFields,
+                FilterGroups: []
+             };
+
+             if (state.activeFilters) {
+                const group = {
+                    LogicalOperator: 'AND',
+                    Filters: []
+                };
+                Object.entries(state.activeFilters).forEach(([fieldName, filterGroup]) => {
+                    if (filterGroup && filterGroup.filters) {
+                        filterGroup.filters.forEach(f => {
+                            group.Filters.push({
+                                FieldName: fieldName,
+                                FieldOperator: f.cond, // Preserve original friendly condition
+                                Values: [f.val]
+                            });
+                        });
+                    }
+                });
+                if (group.Filters.length > 0) {
+                    historyConfig.FilterGroups.push(group);
+                }
+             }
+
+             const newQuery = {
+                id: currentQueryId,
+                name: `Query ${currentQueryId.substring(0,8)}`,
+                query: payload,
+                jsonConfig: historyConfig,
+                startTime: new Date().toISOString(),
+                status: 'running',
+                running: true,
+                resultCount: 0
+             };
+             
+             window.addQueryToHistory(newQuery);
+             
+             // Start external polling for status
+             if (window.QueryHistorySystem && window.QueryHistorySystem.startQueryDurationUpdates) {
+                 window.QueryHistorySystem.startQueryDurationUpdates();
+             }
+        }
 
         if (!response.ok) {
             throw new Error(`Server error: ${response.status} ${response.statusText}`);
@@ -124,6 +174,18 @@ if(runBtn){
         });
 
         console.log(`Received ${rows.length} rows`);
+        
+        // Mark as complete in history
+        if (currentQueryId && window.QueryHistorySystem) {
+             const q = window.QueryHistorySystem.exampleQueries.find(q => q.id === currentQueryId);
+             if (q) {
+                 q.running = false;
+                 q.status = 'complete';
+                 q.resultCount = rows.length;
+                 q.endTime = new Date().toISOString();
+                 window.QueryHistorySystem.renderQueries();
+             }
+        }
 
         // Update VirtualTable
         if (window.VirtualTable) {
@@ -172,6 +234,19 @@ if(runBtn){
 
       } catch (error) {
         console.error('Query execution failed:', error);
+        
+        // Mark as failed in history
+        if (currentQueryId && window.QueryHistorySystem) {
+             const q = window.QueryHistorySystem.exampleQueries.find(q => q.id === currentQueryId);
+             if (q) {
+                 q.running = false;
+                 q.status = 'failed';
+                 q.error = error.message;
+                 q.endTime = new Date().toISOString();
+                 window.QueryHistorySystem.renderQueries();
+             }
+        }
+        
         showToastMessage('Query execution failed: ' + error.message, 'error');
       } finally {
         queryRunning = false;
