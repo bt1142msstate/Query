@@ -21,39 +21,6 @@ class Bubble {
     this.el = document.createElement('div');
     this.el.className = 'bubble';
     this.el.tabIndex = 0;
-    
-    // Interactive droplet stretching effect on hover
-    this.el.addEventListener('mousemove', (e) => {
-        if (this.el.hasAttribute('data-dragging') || this.el.classList.contains('active-bubble')) return;
-        
-        const rect = this.el.getBoundingClientRect();
-        if (rect.width === 0) return;
-        
-        const x = (e.clientX - rect.left) / rect.width; // 0 to 1
-        const y = (e.clientY - rect.top) / rect.height; // 0 to 1
-        
-        const pullX = (x - 0.5) * 2; // -1 to +1
-        const pullY = (y - 0.5) * 2; // -1 to +1
-        
-        // Calculate corner sharpness for teardrop effect (drops towards ~20%)
-        const tl = 50 - Math.max(0, -pullX) * Math.max(0, -pullY) * 30;
-        const tr = 50 - Math.max(0,  pullX) * Math.max(0, -pullY) * 30;
-        const br = 50 - Math.max(0,  pullX) * Math.max(0,  pullY) * 30;
-        const bl = 50 - Math.max(0, -pullX) * Math.max(0,  pullY) * 30;
-        
-        // Physical pull
-        const moveX = pullX * 8;
-        const moveY = pullY * 8;
-        
-        this.el.style.borderRadius = `${tl}% ${tr}% ${br}% ${bl}%`;
-        this.el.style.transform = `scale(1.05) translate(${moveX}px, ${moveY}px)`;
-    });
-
-    this.el.addEventListener('mouseleave', () => {
-        this.el.style.borderRadius = '';
-        this.el.style.transform = '';
-    });
-
     this.update();
   }
 

@@ -323,7 +323,7 @@ input, textarea, select, [contenteditable] {
   text-shadow: 0 1px 2px rgba(0,0,0,0.3);
   position: relative;
   z-index: 1;
-  transition: top var(--transition-slow), left var(--transition-slow), transform 0.1s ease-out, box-shadow 0.2s ease, border-radius 0.1s ease-out;
+  transition: top var(--transition-slow), left var(--transition-slow), transform 0.2s ease, box-shadow 0.2s ease;
   
   /* Realistic Glass / Soap Bubble */
   background: radial-gradient(
@@ -344,23 +344,10 @@ input, textarea, select, [contenteditable] {
     inset 2px 2px 10px rgba(255, 255, 255, 0.3),
     0 4px 10px rgba(0, 0, 0, 0.15),
     0 0 15px rgba(100, 200, 255, 0.1);
-
-  animation: bubbleFloat 4s ease-in-out infinite;
-}
-
-.bubble:nth-child(even) {
-  animation-delay: 1s;
-  animation-duration: 5s;
-}
-
-.bubble:nth-child(3n) {
-  animation-delay: 2s;
-  animation-duration: 4.5s;
 }
 
 .bubble:hover {
-  transform: scale(1.05) translateY(-2px);
-  animation-play-state: paused;
+  transform: scale(1.05);
   box-shadow:
     inset -5px -5px 15px rgba(255, 255, 255, 0.15),
     inset 2px 2px 10px rgba(255, 255, 255, 0.4),
@@ -372,7 +359,6 @@ input, textarea, select, [contenteditable] {
 .bubble[draggable="false"] {
   cursor: default;
   opacity: 0.8;
-  animation-play-state: paused;
   background: radial-gradient(
     130% 130% at 30% 30%, 
     rgba(200, 200, 200, 0.15) 15%, 
@@ -419,12 +405,6 @@ input, textarea, select, [contenteditable] {
     rgba(255, 255, 255, 0.4) 40%,
     rgba(255, 255, 255, 0.0) 70%
   );
-}
-
-@keyframes bubbleFloat {
-  0%   { transform: translateY(0px); }
-  50%  { transform: translateY(-4px); }
-  100% { transform: translateY(0px); }
 }
 
 @keyframes rotate {
