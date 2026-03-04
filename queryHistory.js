@@ -40,37 +40,78 @@ async function fetchQueryStatus() {
     const data = await response.json();
     if (!data.queries) return;
     
-    // Update local queries based on backend status
-    let changed = false;
-    Object.entries(data.queries).forEach(([id, info]) => {
-      const existingQuery = exampleQueries.find(q => q.id === id);
-      if (existingQuery) {
-        if (existingQuery.running && info.status !== 'running') {
-            existingQuery.running = false;
-            existingQuery.cancelled = (info.status === 'canceled');
-            existingQuery.status = info.status;
-            changed = true;
+    const newHistory = [];
+    
+    // Sort server queries by ID descending (newest first)
+    const serverQueries = Object.entries(data.queries).map(([id, info]) => ({
+        id, 
+        ...info 
+    })).sort((a,b) => (b.id.localeCompare(a.id)));
+    
+    serverQueries.forEach(sq => {
+        // Prepare UI Config from request payload if available
+        let jsonConfig = null;
+        if (sq.request && sq.request.ui_config) {
+            jsonConfig = sq.request.ui_config;
+        } else if (sq.request) {
+            // Fallback: reconstruct minimal config from raw request
+            jsonConfig = {
+                DesiredColumnOrder: sq.request.display_fields || [],
+                FilterGroups: []
+            };
+            if (sq.request.filters && sq.request.filters.length > 0) {
+                 const group = { LogicalOperator: 'AND', Filters: [] };
+                 sq.request.filters.forEach(f => {
+                     // Reverse map operator roughly
+                     let opName = 'equals';
+                     if (f.operator === '>') opName = 'greater';
+                     if (f.operator === '<') opName = 'less';
+                     if (f.operator === '>=') opName = 'greater'; 
+                     if (f.operator === '<=') opName = 'less';    
+                     
+                     group.Filters.push({
+                        FieldName: f.field,
+                        FieldOperator: opName,
+                        Values: [f.value]
+                     });
+                 });
+                 jsonConfig.FilterGroups.push(group);
+            }
         }
-      } else {
-        // New query found on server (maybe from another tab)
-        // Add it if it's running
-        if (info.status === 'running') {
-            // We might lack full config here, but add what we can
-            // For now, only track queries originating from this session/client
+        
+        const qData = {
+            id: sq.id,
+            name: sq.name || (sq.request ? sq.request.name : 'Unknown Query'),
+            status: sq.status,
+            running: (sq.status === 'running'),
+            cancelled: (sq.status === 'canceled'),
+            startTime: sq.start_time,
+            endTime: sq.end_time || '-',
+            duration: '-', 
+            jsonConfig: jsonConfig,
+            resultCount: sq.row_count !== undefined ? sq.row_count : (sq.start_time && sq.end_time ? '?' : '-')
+        };
+        
+        if (sq.start_time && sq.end_time) {
+             const start = new Date(sq.start_time.replace(/-/g, '/')); 
+             const end = new Date(sq.end_time.replace(/-/g, '/'));
+             if (!isNaN(start) && !isNaN(end)) {
+                 const diff = Math.floor((end - start) / 1000);
+                 qData.duration = `${diff}s`;
+             }
+        } else if (sq.start_time && sq.status === 'running') {
+             const start = new Date(sq.start_time.replace(/-/g, '/'));
+             if (!isNaN(start)) {
+                 const diff = Math.floor((Date.now() - start) / 1000);
+                 qData.duration = `${diff}s...`;
+             }
         }
-      }
+        
+        newHistory.push(qData);
     });
 
-    // Mark queries as done if they are not in the backend list anymore but we think they are running
-    // (This handles cases where the server restarted or dropped the query tracking)
-    /* 
-       Actually, the backend keeps tracking for a while. 
-       If it's gone from backend and we say it's running, it probably finished long ago or server restarted. 
-       Let's mark them as 'unknown' or 'complete' if they are old? 
-       For now, let's rely on the user to manually clear or checking 'status' property.
-    */
-
-    if (changed) renderQueries();
+    exampleQueries = newHistory;
+    renderQueries();
     
   } catch (e) {
     console.warn('Failed to fetch query status', e);
@@ -296,53 +337,8 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
 
 
 // Ensure global access
-window.addQueryToHistory = function(query) {
-  exampleQueries.unshift(query);
-  if (exampleQueries.length > 50) exampleQueries.pop();
-  renderQueries();
-};
-
-window.fetchQueryStatus = async function() {
-    try {
-        const response = await fetch('https://mlp.sirsi.net/uhtbin/query_api.pl', {
-            method: 'POST',
-            body: JSON.stringify({ action: 'status' })
-        });
-        if (!response.ok) return;
-        const data = await response.json();
-        const queriesMap = data.queries || {};
-        
-        let changed = false;
-        
-        // Update existing queries
-        exampleQueries.forEach(q => {
-            if (q.running && queriesMap[q.id]) {
-                const s = queriesMap[q.id].status;
-                if (s !== 'running') {
-                    q.running = false;
-                    q.cancelled = (s === 'canceled');
-                    q.status = s;
-                    q.endTime = new Date().toISOString(); 
-                    changed = true;
-                }
-            } else if (q.running && !queriesMap[q.id]) {
-                // Query finished but dropped from backend cache?
-                // Or backend restarted?
-                // Mark as unknown or complete? Let's check if it's been running too long (e.g. > 1h)
-                // For now, assume completed if dropped from active list
-                q.running = false;
-                q.status = 'complete'; // optimistic
-                q.endTime = new Date().toISOString();
-                changed = true;
-            }
-        });
-        
-        if (changed) renderQueries();
-        
-    } catch (e) {
-        console.warn('Status fetch failed', e);
-    }
-}
+window.addQueryToHistory = addQueryToHistory;
+window.fetchQueryStatus = fetchQueryStatus;
 
 /**
  * Starts real-time updates for running query durations.
@@ -613,4 +609,7 @@ window.onDOMReady(() => {
 
   // Add row click event listener
   document.addEventListener('click', handleQueryRowClick);
+
+  // Initial fetch of query history
+  setTimeout(() => { if (window.fetchQueryStatus) window.fetchQueryStatus(); }, 500);
 });

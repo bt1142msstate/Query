@@ -50,12 +50,40 @@ if(runBtn){
         const state = window.getCurrentQueryState();
         const tableNameInput = document.getElementById('table-name-input');
         const queryName = tableNameInput ? tableNameInput.value.trim() : '';
+
+        // Construct history config (UI state) to send to backend for restoration
+        const historyConfig = {
+            DesiredColumnOrder: state.displayedFields,
+            FilterGroups: []
+        };
+
+        if (state.activeFilters) {
+            const group = {
+                LogicalOperator: 'AND',
+                Filters: []
+            };
+            Object.entries(state.activeFilters).forEach(([fieldName, filterGroup]) => {
+                if (filterGroup && filterGroup.filters) {
+                    filterGroup.filters.forEach(f => {
+                        group.Filters.push({
+                            FieldName: fieldName,
+                            FieldOperator: f.cond, 
+                            Values: [f.val]
+                        });
+                    });
+                }
+            });
+            if (group.Filters.length > 0) {
+                historyConfig.FilterGroups.push(group);
+            }
+        }
         
         const payload = {
             action: 'run',
             name: queryName || undefined,
             filters: [],
-            display_fields: state.displayedFields
+            display_fields: state.displayedFields,
+            ui_config: historyConfig
         };
 
         // Helper to map operator
@@ -108,33 +136,6 @@ if(runBtn){
         // Capture Query ID and register in history
         currentQueryId = response.headers.get('X-Query-Id');
         if (currentQueryId && window.addQueryToHistory) {
-             // Construct compatible jsonConfig for history restoration
-             const historyConfig = {
-                DesiredColumnOrder: state.displayedFields,
-                FilterGroups: []
-             };
-
-             if (state.activeFilters) {
-                const group = {
-                    LogicalOperator: 'AND',
-                    Filters: []
-                };
-                Object.entries(state.activeFilters).forEach(([fieldName, filterGroup]) => {
-                    if (filterGroup && filterGroup.filters) {
-                        filterGroup.filters.forEach(f => {
-                            group.Filters.push({
-                                FieldName: fieldName,
-                                FieldOperator: f.cond, // Preserve original friendly condition
-                                Values: [f.val]
-                            });
-                        });
-                    }
-                });
-                if (group.Filters.length > 0) {
-                    historyConfig.FilterGroups.push(group);
-                }
-             }
-
              const newQuery = {
                 id: currentQueryId,
                 name: queryName || `Query ${currentQueryId.substring(0,8)}`,
