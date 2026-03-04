@@ -120,7 +120,7 @@ const ExcelExporter = (() => {
 
         if (type === 'date') {
           const dt = parseSirsDate(raw);
-          return dt !== null ? dt : ''; // blank for 0 / invalid
+          return dt !== null ? dt : 'Never'; // "Never" for 0 / invalid dates
         }
 
         if (type === 'number') {
