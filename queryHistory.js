@@ -250,8 +250,112 @@ function loadQueryConfig(q) {
   }
 }
 
-/**
- * Creates HTML for a single query row in the queries table.
+/** * Loads query results from backend.
+ * @async
+ * @function loadQueryResults
+ * @param {string} queryId - The ID of the query to load results for
+ */
+async function loadQueryResults(queryId) {
+    const q = exampleQueries.find(q => q.id === queryId);
+    if (!q) return;
+
+    // Load configuration first
+    loadQueryConfig(q);
+    
+    // Show toast indicating loading
+    if (typeof showToastMessage === 'function') {
+        showToastMessage('Fetching results...', 'info');
+    }
+
+    try {
+        const response = await fetch('https://mlp.sirsi.net/uhtbin/query_api.pl', {
+            method: 'POST',
+            body: JSON.stringify({ action: 'get_results', query_id: queryId })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        }
+
+        const text = await response.text();
+        
+        // Use X-Raw-Columns or fallback to config used
+        const rawColsHeader = response.headers.get('X-Raw-Columns');
+        // Ensure displayedFields is updated after loadQueryConfig
+        const currentDisplayedFields = window.displayedFields || (q.jsonConfig ? q.jsonConfig.DesiredColumnOrder : []);
+        
+        const rawColumns = rawColsHeader ? rawColsHeader.split('|') : currentDisplayedFields;
+        
+        const lines = text.split('\n').filter(line => line.trim().length > 0);
+        
+        const headers = currentDisplayedFields;
+        
+        const rows = lines.map(line => {
+            const values = line.split('|');
+            const obj = {};
+            // Map raw columns to values
+            rawColumns.forEach((h, i) => {
+                obj[h] = values[i] !== undefined ? values[i] : '';
+            });
+            // Ensure all requested headers exist
+            headers.forEach(h => {
+                if (!(h in obj)) obj[h] = '';
+            });
+            return obj;
+        });
+
+        console.log(`Loaded ${rows.length} rows from history`);
+
+        if (window.VirtualTable) {
+            const columnMap = new Map();
+            headers.forEach((h, i) => columnMap.set(h, i));
+            
+            // Map object rows back to array of values in headers order
+            const tableRows = rows.map(r => headers.map(h => r[h]));
+            
+            const newTableData = {
+                headers: headers,
+                rows: tableRows,
+                columnMap: columnMap
+            };
+            
+            window.VirtualTable.virtualTableData = newTableData;
+            
+            if (typeof showExampleTable === 'function') {
+                await showExampleTable(headers);
+            } else {
+                window.VirtualTable.renderVirtualTable();
+                window.VirtualTable.calculateOptimalColumnWidths(); 
+            }
+            
+            window.totalRows = rows.length;
+            window.scrollRow = 0;
+            if (window.BubbleSystem && typeof window.BubbleSystem.updateScrollBar === 'function') {
+                window.BubbleSystem.updateScrollBar();
+            }
+            if (typeof window.updateButtonStates === 'function') {
+                window.updateButtonStates();
+            }
+        }
+        
+        if (typeof showToastMessage === 'function') {
+            showToastMessage(`Loaded ${rows.length} results.`, 'success');
+        }
+        
+        // Close modal if open
+        if (window.ModalSystem && window.ModalSystem.closeAllModals) {
+             window.ModalSystem.closeAllModals();
+        }
+
+    } catch (error) {
+        console.error('Failed to load results:', error);
+        if (typeof showToastMessage === 'function') {
+            showToastMessage('Failed to load results: ' + error.message, 'error');
+        }
+    }
+}
+
+/** * Creates HTML for a single query row in the queries table.
  * Handles different display formats for running, completed, and cancelled queries.
  * @function createQueriesTableRowHtml
  * @param {Object} q - The query object
@@ -515,8 +619,7 @@ function renderQueries(){
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const id = btn.getAttribute('data-query-id');
-      const q = exampleQueries.find(q => q.id === id);
-      loadQueryConfig(q);
+      loadQueryResults(id);
     });
   });
   
@@ -583,11 +686,16 @@ const QueryHistorySystem = {
   startQueryDurationUpdates,
   stopQueryDurationUpdates,
   renderQueries,
-  handleQueryRowClick
+  handleQueryRowClick,
+  cancelQuery
 };
 
 // Make QueryHistorySystem globally accessible
 window.QueryHistorySystem = QueryHistorySystem;
+
+// Backwards compatibility or global helper
+window.cancelQuery = cancelQuery;
+window.loadQueryResults = loadQueryResults;
 
 // Initialize query history functionality
 window.onDOMReady(() => {
