@@ -348,17 +348,26 @@ function calculateFieldWidth(fieldName, data = null) {
 /**
  * Calculates optimal widths for all specified table columns.
  * @function calculateOptimalColumnWidths
- * @param {string[]} fields - Array of field names to calculate widths for
- * @param {Object} data - Table data containing rows and column mapping
+ * @param {string[]} [fields] - Array of field names to calculate widths for. Defaults to global virtualTableData.headers.
+ * @param {Object} [data] - Table data containing rows and column mapping. Defaults to global virtualTableData.
  * @returns {Object} Object mapping field names to optimal widths in pixels
  */
 function calculateOptimalColumnWidths(fields, data) {
-  if (!fields.length) return {};
+  // Use global data if arguments not provided
+  const targetFields = fields || virtualTableData.headers;
+  const targetData = data || virtualTableData;
+
+  if (!targetFields || !targetFields.length) return {};
   
   const widths = {};
-  fields.forEach(field => {
-    widths[field] = calculateFieldWidth(field, data);
+  targetFields.forEach(field => {
+    widths[field] = calculateFieldWidth(field, targetData);
   });
+  
+  // If we operated on the global data without explicit arguments, update the cache
+  if (!fields && !data) {
+    calculatedColumnWidths = widths;
+  }
   
   return widths;
 }
