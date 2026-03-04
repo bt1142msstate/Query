@@ -552,7 +552,7 @@ async function showExampleTable(fields){
       container.innerHTML = `
         <div class="p-6 text-center">
           <div class="text-red-600 font-semibold mb-2">Error Loading Data</div>
-          <div class="text-gray-600">Failed to load test data. Please ensure testJobData.json is available.</div>
+          <div class="text-gray-600">Failed to initialize table view.</div>
           <div class="text-sm text-gray-500 mt-2">${error.message}</div>
         </div>`;
       return;
