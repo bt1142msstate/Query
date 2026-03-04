@@ -5,109 +5,154 @@
  */
 
 /* ---------- Example Queries data & renderer ---------- */
-const exampleQueries = [
-  {
-    id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-    name: 'Huxley Brave Works',
-    running: false,
-    cancelled: false,
-    jsonConfig: {
-      DesiredColumnOrder: ["Title","Author","Year of Publication"],
-      FilterGroups: [
-        {
-          LogicalOperator: "And",
-          Filters: [
-            { FieldName:"Author", FieldOperator:"Contains", Values:["Huxley"] },
-            { FieldName:"Title", FieldOperator:"Contains", Values:["Brave"] }
-          ]
-        }
-      ]
-    },
-    resultCount: 42,
-    startTime: '2025-05-05T13:45:00Z',
-    endTime:   '2025-05-05T13:46:05Z'
-  },
-  {
-    id: '9f8b7a6c-1234-4d56-a789-0123456789ab',
-    name: 'TRLS-A Location Items',
-    running: true,
-    cancelled: false,
-    jsonConfig: {
-      DesiredColumnOrder: ["Title","Call Number","Home Location"],
-      FilterGroups: [
-        {
-          LogicalOperator: "Or",
-          Filters: [
-            { FieldName:"Home Location", FieldOperator:"Equals", Values:["TRLS-A"] }
-          ]
-        }
-      ]
-    },
-    startTime: '2025-05-05T14:02:00Z',
-    endTime:   null
-  },
-  {
-    id: 'b2c3d479-58cc-4372-a567-0e02f47ac10b',
-    name: 'Expensive Books',
-    running: false,
-    cancelled: false,
-    jsonConfig: {
-      DesiredColumnOrder: ["Item Id","Item Type","Price"],
-      FilterGroups: [
-        {
-          LogicalOperator: "And",
-          Filters: [
-            { FieldName:"Price", FieldOperator:"GreaterThan", Values:["10"] },
-            { FieldName:"Item Type", FieldOperator:"Equals", Values:["Book"] }
-          ]
-        }
-      ]
-    },
-    resultCount: 1567,
-    startTime: '2025-05-06T09:00:00Z',
-    endTime:   '2025-05-06T09:01:00Z'
-  },
-  {
-    id: 'c3d479f4-7ac1-0b58-cc43-72a5670e02b2',
-    name: 'MLTN-A 2023 Items',
-    running: false,
-    cancelled: false,
-    jsonConfig: {
-      DesiredColumnOrder: ["Item Library","Catalog Key","Item Date Created"],
-      FilterGroups: [
-        {
-          LogicalOperator: "And",
-          Filters: [
-            { FieldName:"Item Library", FieldOperator:"Equals", Values:["MLTN-A"] },
-            { FieldName:"Item Date Created", FieldOperator:"Between", Values:["2023-01-01","2023-12-31"] }
-          ]
-        }
-      ]
-    },
-    resultCount: 110,
-    startTime: '2025-05-07T10:15:00Z',
-    endTime:   '2025-05-07T10:16:00Z'
-  },
-  {
-    id: 'd4e5f6a7-1234-5678-9abc-def012345678',
-    name: 'Large Dataset Query',
-    running: false,
-    cancelled: true,
-    jsonConfig: {
-      DesiredColumnOrder: ["Title","Author","Call Number","Item Library","Item Type","Price"],
-      FilterGroups: [
-        {
-          LogicalOperator: "Or",
-          Filters: [
-            { FieldName:"Item Library", FieldOperator:"Equals", Values:["TRLS-A","TRLS-B","MLTN-A"] }
-          ]
-        }
-      ]
-    },
-    startTime: '2025-05-08T11:30:00Z',
-    cancelledTime: '2025-05-08T11:35:00Z'
+let exampleQueries = [];
+
+/**
+ * Adds a new query to the history list.
+ * @function addQueryToHistory
+ * @param {Object} query - The query object to add
+ */
+function addQueryToHistory(query) {
+  exampleQueries.unshift(query);
+  // Keep only last 50 queries
+  if (exampleQueries.length > 50) {
+    exampleQueries.pop();
   }
-];
+  renderQueries();
+}
+
+/**
+ * Fetches status of all queries from the backend.
+ * Updates the local query history with current status.
+ * @async
+ * @function fetchQueryStatus
+ */
+async function fetchQueryStatus() {
+  try {
+    const response = await fetch('https://mlp.sirsi.net/uhtbin/query_api.pl', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'status' })
+    });
+    
+    if (!response.ok) return;
+    
+    const data = await response.json();
+    if (!data.queries) return;
+    
+    // Update local queries based on backend status
+    let changed = false;
+    Object.entries(data.queries).forEach(([id, info]) => {
+      const existingQuery = exampleQueries.find(q => q.id === id);
+      if (existingQuery) {
+        if (existingQuery.running && info.status !== 'running') {
+            existingQuery.running = false;
+            existingQuery.cancelled = (info.status === 'canceled');
+            existingQuery.status = info.status;
+            changed = true;
+        }
+      } else {
+        // New query found on server (maybe from another tab)
+        // Add it if it's running
+        if (info.status === 'running') {
+            // We might lack full config here, but add what we can
+            // For now, only track queries originating from this session/client
+        }
+      }
+    });
+
+    // Mark queries as done if they are not in the backend list anymore but we think they are running
+    // (This handles cases where the server restarted or dropped the query tracking)
+    /* 
+       Actually, the backend keeps tracking for a while. 
+       If it's gone from backend and we say it's running, it probably finished long ago or server restarted. 
+       Let's mark them as 'unknown' or 'complete' if they are old? 
+       For now, let's rely on the user to manually clear or checking 'status' property.
+    */
+
+    if (changed) renderQueries();
+    
+  } catch (e) {
+    console.warn('Failed to fetch query status', e);
+  }
+}
+
+/**
+ * Cancels a running query.
+ * @async
+ * @function cancelQuery
+ * @param {string} queryId - The ID of the query to cancel
+ */
+async function cancelQuery(queryId) {
+  try {
+    const response = await fetch('https://mlp.sirsi.net/uhtbin/query_api.pl', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'cancel', query_id: queryId })
+    });
+    
+    if (response.ok) {
+        const q = exampleQueries.find(q => q.id === queryId);
+        if(q) {
+            q.running = false;
+            q.cancelled = true;
+            q.status = 'canceled';
+            renderQueries();
+        }
+        showToastMessage(`Query ${queryId} cancelled`, 'info');
+    } else {
+        showToastMessage('Failed to cancel query', 'error');
+    }
+  } catch (e) {
+    console.error('Error cancelling query:', e);
+    showToastMessage('Error cancelling query', 'error');
+  }
+}
+
+
+/* ---------- Tooltip Formatters ---------- */
+
+/**
+ * Formats a list of column names into a tooltip string.
+ * @function formatColumnsTooltip
+ * @param {string[]} columns - Array of column names
+ * @returns {string} Formatted tooltip text
+ */
+window.formatColumnsTooltip = function(columns) {
+  if (!columns || !columns.length) return 'None';
+  if (columns.length <= 5) return columns.join(', ');
+  const remainder = columns.length - 5;
+  return columns.slice(0, 5).join(', ') + (remainder > 0 ? ` + ${remainder} more` : '');
+};
+
+/**
+ * Formats filter groups into a tooltip string.
+ * @function formatFiltersTooltip
+ * @param {Object} _unused - placeholder
+ * @param {Object[]} filterGroups - Array of filter groups
+ * @returns {string} Formatted tooltip text
+ */
+window.formatFiltersTooltip = function(_unused, filterGroups) {
+  if (!filterGroups || !filterGroups.length) return 'None';
+  
+  const lines = [];
+  filterGroups.forEach((group, i) => {
+    // if (i > 0) lines.push(group.LogicalOperator || 'AND'); 
+    // Simplify for tooltip
+    
+    if (group.Filters) {
+        group.Filters.forEach(f => {
+            let op = f.FieldOperator;
+            if (op === 'equals') op = '=';
+            else if (op === 'greater') op = '>';
+            else if (op === 'less') op = '<';
+            else if (op === 'contains') op = 'contains';
+            
+            lines.push(`${f.FieldName} ${op} ${f.Values.join('|')}`);
+        });
+    }
+  });
+  
+  return lines.join(', ');
+};
 
 /**
  * Loads a query configuration into the main UI.
@@ -193,7 +238,7 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
 
   // Stop button for running queries (no 'Running' label)
   const stopBtn = q.running ? `
-    <button class="inline-flex items-center justify-center p-1 rounded-full bg-red-100 hover:bg-red-200 text-red-600" tabindex="-1" data-tooltip="Stop"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
+    <button class="stop-query-btn inline-flex items-center justify-center p-1 rounded-full bg-red-100 hover:bg-red-200 text-red-600" tabindex="-1" data-query-id="${q.id}" data-tooltip="Stop"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
   ` : '';
   
   // Load button only for completed queries (report icon)
@@ -248,29 +293,78 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
   }
 }
 
-// Global variable to track the update interval
-let queryDurationUpdateInterval = null;
+
+// Ensure global access
+window.addQueryToHistory = function(query) {
+  exampleQueries.unshift(query);
+  if (exampleQueries.length > 50) exampleQueries.pop();
+  renderQueries();
+};
+
+window.fetchQueryStatus = async function() {
+    try {
+        const response = await fetch('https://mlp.sirsi.net/uhtbin/query_api.pl', {
+            method: 'POST',
+            body: JSON.stringify({ action: 'status' })
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        const queriesMap = data.queries || {};
+        
+        let changed = false;
+        
+        // Update existing queries
+        exampleQueries.forEach(q => {
+            if (q.running && queriesMap[q.id]) {
+                const s = queriesMap[q.id].status;
+                if (s !== 'running') {
+                    q.running = false;
+                    q.cancelled = (s === 'canceled');
+                    q.status = s;
+                    q.endTime = new Date().toISOString(); 
+                    changed = true;
+                }
+            } else if (q.running && !queriesMap[q.id]) {
+                // Query finished but dropped from backend cache?
+                // Or backend restarted?
+                // Mark as unknown or complete? Let's check if it's been running too long (e.g. > 1h)
+                // For now, assume completed if dropped from active list
+                q.running = false;
+                q.status = 'complete'; // optimistic
+                q.endTime = new Date().toISOString();
+                changed = true;
+            }
+        });
+        
+        if (changed) renderQueries();
+        
+    } catch (e) {
+        console.warn('Status fetch failed', e);
+    }
+}
 
 /**
  * Starts real-time updates for running query durations.
- * Updates every second while there are running queries and the panel is visible.
+ * Updates every second while there are running queries.
  * @function startQueryDurationUpdates
  */
 function startQueryDurationUpdates() {
   if (queryDurationUpdateInterval) return; // Already running
   
   queryDurationUpdateInterval = setInterval(() => {
-    // Only update if queries panel is visible and there are running queries
-    const queriesPanel = document.getElementById('queries-panel');
     const hasRunningQueries = exampleQueries.some(q => q.running);
-    
-    if (queriesPanel && !queriesPanel.classList.contains('hidden') && hasRunningQueries) {
-      renderQueries(); // Re-render to update durations
-    } else if (!hasRunningQueries) {
-      // Stop updates if no running queries
+    if (hasRunningQueries) {
+        // Update UI durations
+        renderQueries(); 
+        
+        // Poll backend status every 5 seconds (approx) using modulo check
+        if (Date.now() % 5000 < 1000) {
+             window.fetchQueryStatus();
+        }
+    } else {
       stopQueryDurationUpdates();
     }
-  }, 1000); // Update every second
+  }, 1000); 
 }
 
 /**
@@ -436,7 +530,32 @@ function renderQueries(){
       e.stopPropagation();
       const id = btn.getAttribute('data-query-id');
       const q = exampleQueries.find(q => q.id === id);
+      q.running = true; 
+      q.startTime = new Date().toISOString();
+      q.endTime = null;
+      q.cancelled = false;
+      q.status = 'running';
+      
+      // We would ideally call the backend 'run' here, but queryHistory.js 
+      // is UI-focused. The user should probably load config then click Run.
+      // But for "Rerun", let's just populate the UI and simulate a click on the main Run button?
+      // For now, load config and let user run it.
       loadQueryConfig(q);
+      
+      // If we *really* wanted to run immediately, we'd need to emit an event or call a global run function.
+      // Let's stick to loading config + focus on main Run button.
+      document.getElementById('run-btn')?.click(); // Try to click run button if config loaded
+    });
+  });
+
+  // Attach click handlers to stop/cancel buttons
+  container.querySelectorAll('.stop-query-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.getAttribute('data-query-id');
+      if (confirm('Are you sure you want to cancel this query?')) {
+        cancelQuery(id);
+      }
     });
   });
 }
