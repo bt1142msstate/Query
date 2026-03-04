@@ -50,7 +50,7 @@ window.groupMethodSelect = document.getElementById('group-method-select');
  * Shows play icon for new queries, refresh icon for modified queries, stop icon when running.
  * @function updateRunButtonIcon
  */
-window.updateRunButtonIcon = function() {
+window.updateRunButtonIcon = function(validationError) {
   const runIcon = document.getElementById('run-icon');
   const refreshIcon = document.getElementById('refresh-icon');
   const stopIcon = document.getElementById('stop-icon');
@@ -78,6 +78,20 @@ window.updateRunButtonIcon = function() {
   runBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
   runBtn.classList.add('bg-green-500', 'hover:bg-green-600');
   stopIcon.classList.add('hidden');
+  
+  // Custom Validation Error (like missing name) - disabled
+  if (validationError) {
+    runIcon.classList.remove('hidden');
+    refreshIcon.classList.add('hidden');
+    runBtn.disabled = true;
+    runBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    runBtn.setAttribute('data-tooltip', validationError);
+    runBtn.setAttribute('aria-label', validationError);
+    if (mobileRunQuery) {
+      mobileRunQuery.setAttribute('data-tooltip', validationError);
+    }
+    return;
+  }
   
   // State 2: No columns - disabled (show run icon but disabled)
   if (!window.displayedFields || window.displayedFields.length === 0) {
@@ -126,13 +140,25 @@ window.updateButtonStates = function() {
   const downloadBtn = window.DOM.downloadBtn;
   const queryBox = window.DOM.queryBox;
 
+  const tableNameInput = document.getElementById('table-name-input');
+  const tableName = tableNameInput ? tableNameInput.value.trim() : '';
+  const hasName = tableName && tableName !== '';
+
   if(runBtn){
     try{
       const q = JSON.parse(queryBox.value || '{}');
       const hasFields = Array.isArray(q.DesiredColumnOrder) && q.DesiredColumnOrder.length > 0;
-      runBtn.disabled = !hasFields || window.queryRunning;
+      
+      let validationError = null;
+      if (!hasName) {
+        validationError = "Please name your query to run";
+        runBtn.disabled = true;
+      } else {
+        runBtn.disabled = !hasFields || window.queryRunning;
+      }
+      
       // Use the sophisticated icon/tooltip update function instead of simple tooltip
-      window.updateRunButtonIcon();
+      window.updateRunButtonIcon(validationError);
     }catch{
       runBtn.disabled = true;
       // Use the sophisticated icon/tooltip update function instead of simple tooltip
@@ -141,14 +167,12 @@ window.updateButtonStates = function() {
   }
 
   if(downloadBtn){
-    const tableNameInput = document.getElementById('table-name-input');
-    const tableName = tableNameInput ? tableNameInput.value.trim() : '';
     const hasData = displayedFields.length > 0 && VirtualTable.virtualTableData && VirtualTable.virtualTableData.rows && VirtualTable.virtualTableData.rows.length > 0;
-    const hasName = tableName && tableName !== '';
 
     // Add/remove error styling based on table name presence
     if (tableNameInput) {
-      if (!hasName && hasData) {
+      // Show error styling if they try to run/download without a name, or if they have queries built up but no name
+      if (!hasName && (hasData || (displayedFields && displayedFields.length > 0))) {
         tableNameInput.classList.add('error');
       } else {
         tableNameInput.classList.remove('error');
