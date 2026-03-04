@@ -640,7 +640,9 @@ function initializeBubbles() {
     // Store the original position for accurate return animation
     clone._originalRect = {
       top: rect.top,
-      left: rect.left
+      left: rect.left,
+      width: rect.width,
+      height: rect.height
     };
     clone.style.position='fixed';
     clone.style.top = rect.top+'px';
@@ -745,14 +747,29 @@ function resetActiveBubbles() {
       if (window.animatingBackBubbles) window.animatingBackBubbles.add(fieldName);
       
       const originalRect = clone._originalRect;
+      
+      // Override standard CSS to apply a smooth "all" transition while returning back
+      clone.style.transition = 'all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)';
+      
+      // Disable backdrop filter which causes massive GPU redraw lag during active layout reflows!
+      clone.style.backdropFilter = 'none';
+      clone.style.webkitBackdropFilter = 'none';
+
       if (originalRect) {
         clone.style.top  = originalRect.top + 'px';
         clone.style.left = originalRect.left + 'px';
+        if (originalRect.width) clone.style.width = originalRect.width + 'px';
+        if (originalRect.height) clone.style.height = originalRect.height + 'px';
       } else {
         const nowRect = origin.getBoundingClientRect();
         clone.style.top  = nowRect.top + 'px';
         clone.style.left = nowRect.left + 'px';
       }
+      
+      clone.style.transform = 'translate(0, 0)'; 
+      // Unset these so they animate naturally back to inherited .bubble styles
+      clone.style.fontSize = ''; 
+      clone.style.padding = '';
 
       origin.style.opacity = '0';
       origin.style.visibility = 'hidden';
