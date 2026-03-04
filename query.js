@@ -48,8 +48,12 @@ if(runBtn){
         document.getElementById('table-container')?.classList.add('table-querying');
         
         const state = window.getCurrentQueryState();
+        const tableNameInput = document.getElementById('table-name-input');
+        const queryName = tableNameInput ? tableNameInput.value.trim() : '';
+        
         const payload = {
             action: 'run',
+            name: queryName || undefined,
             filters: [],
             display_fields: state.displayedFields
         };
@@ -133,7 +137,7 @@ if(runBtn){
 
              const newQuery = {
                 id: currentQueryId,
-                name: `Query ${currentQueryId.substring(0,8)}`,
+                name: queryName || `Query ${currentQueryId.substring(0,8)}`,
                 query: payload,
                 jsonConfig: historyConfig,
                 startTime: new Date().toISOString(),
