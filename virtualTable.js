@@ -284,32 +284,14 @@ function calculateOptimalColumnWidths(fields, data) {
 
 /**
  * Sets up a virtual table with the specified container and fields.
- * Loads test data if not already loaded, calculates column widths, and sets up scrolling.
+ * Initializes scrolling and column widths.
  * @async
  * @function setupVirtualTable
  * @param {HTMLElement} container - The DOM element to contain the virtual table
  * @param {string[]} fields - Array of field names to display as columns
  * @returns {Promise<{virtualTableData: Object, calculatedColumnWidths: Object}>} Table data and column widths
- * @throws {Error} If test data cannot be loaded
  */
 async function setupVirtualTable(container, fields) {
-  // Load test data if not already loaded
-  if (!virtualTableData.rows || virtualTableData.rows.length === 0) {
-    console.log('Loading test data...');
-    try {
-      await loadTestData();
-      console.log(`Test data loaded successfully: ${virtualTableData.rows.length} rows`);
-    } catch (error) {
-      console.error('Failed to set up virtual table:', error);
-      throw new Error('Cannot set up virtual table without test data');
-    }
-  }
-
-  // Calculate optimal column widths based on all data
-  console.log('Calculating optimal column widths...');
-  calculatedColumnWidths = calculateOptimalColumnWidths(fields, virtualTableData);
-  console.log('Column widths calculated:', calculatedColumnWidths);
-
   // Set up container for virtual scrolling
   container.style.height = '400px'; // Fixed height for virtual scrolling
   container.style.overflowY = 'auto';
@@ -317,6 +299,17 @@ async function setupVirtualTable(container, fields) {
   // Set up scroll container reference
   tableScrollContainer = container;
   tableScrollTop = 0;
+
+  // Calculate widths if we have data and fields
+  if (virtualTableData && virtualTableData.rows && virtualTableData.rows.length > 0 && fields && fields.length > 0) {
+    console.log('Calculating optimal column widths...');
+    calculatedColumnWidths = calculateOptimalColumnWidths(fields, virtualTableData);
+    console.log('Column widths calculated:', calculatedColumnWidths);
+  } else {
+    // Just initialize empty if no data yet
+    calculatedColumnWidths = {};
+  }
+
   
   // Add scroll event listener
   container.addEventListener('scroll', handleTableScroll);
@@ -413,7 +406,6 @@ window.VirtualTable = {
   get simpleTableInstance() { return simpleTableInstance; },
   
   // Functions
-  loadTestData,
   calculateVisibleRows,
   renderVirtualTable,
   handleTableScroll,
