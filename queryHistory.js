@@ -6,6 +6,7 @@
 
 /* ---------- Example Queries data & renderer ---------- */
 let exampleQueries = [];
+let queryDurationUpdateInterval = null;
 
 /**
  * Adds a new query to the history list.
