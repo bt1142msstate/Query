@@ -200,8 +200,8 @@ function renderBubbles(){
     const twoRowsH = rowHeight * rowsVisible - gap;
     const sixColsW = bubbleW * 6 + gap * 5;
     const fudge   = 8;
-    const paddedH = twoRowsH + 12 - fudge;
-    const paddedW = sixColsW + 8;
+    const paddedH = twoRowsH + 20 - fudge;
+    const paddedW = sixColsW + 20;
     container.style.height = paddedH + 'px';
     container.style.width  = paddedW + 'px';
     const scrollCont = document.querySelector('.bubble-scrollbar-container');
