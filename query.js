@@ -39,19 +39,145 @@ if(runBtn){
     }
     
     // Start query execution
-    queryRunning = true;
-    updateRunButtonIcon();
-    
-    // Simulate query execution (since real execution isn't implemented yet)
-    setTimeout(() => {
-      queryRunning = false;
-      // Update the last executed query state to current state
-      lastExecutedQueryState = getCurrentQueryState();
-      updateRunButtonIcon();
-    }, 2000); // Simulate 2 second execution
-    
-    // Show "not implemented yet" message
-    showToastMessage('Query execution is not implemented yet', 'info');
+    (async () => {
+      try {
+        queryRunning = true;
+        updateRunButtonIcon();
+        
+        const state = window.getCurrentQueryState();
+        const payload = {
+            action: 'run',
+            filters: [],
+            display_fields: state.displayedFields
+        };
+
+        // Helper to map operator
+        const mapOperator = (cond, val) => {
+            switch (cond) {
+                case 'equals': return { op: '=', val: val };
+                case 'greater': return { op: '>', val: val };
+                case 'less': return { op: '<', val: val };
+                // Optimistic mapping for unsupported operators
+                case 'starts': return { op: '=', val: val + '*' };
+                case 'contains': return { op: '=', val: '*' + val + '*' };
+                case 'between': 
+                    const parts = val.split('|');
+                    if (parts.length === 2) return { op: 'between', val: parts };
+                    return { op: '=', val: val };
+                default: return { op: '=', val: val };
+            }
+        };
+
+        // Flatten filters
+        if (state.activeFilters) {
+            Object.entries(state.activeFilters).forEach(([fieldName, filterGroup]) => {
+                if (filterGroup && filterGroup.filters) {
+                    filterGroup.filters.forEach(filter => {
+                        const { op, val } = mapOperator(filter.cond, filter.val);
+                        if (op === 'between') {
+                            payload.filters.push({ field: fieldName, operator: '>=', value: val[0] });
+                            payload.filters.push({ field: fieldName, operator: '<=', value: val[1] });
+                        } else {
+                            if (op === '=' && (val.includes('*') || val.includes('?'))) {
+                                // If wildcard used, assume backend supports it with =
+                            }
+                            payload.filters.push({ field: fieldName, operator: op, value: val });
+                        }
+                    });
+                }
+            });
+        }
+
+        console.log('Sending query payload:', payload);
+
+        const response = await fetch('https://mlp.sirsi.net/uhtbin/query_api.pl', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        }
+
+        const text = await response.text();
+        
+        // Parse pipe-delimited response
+        // Assumption: First line is headers? Or headers match display_fields?
+        // The API docs say "Returns a stream of pipe-delimited text".
+        // It doesn't explicitly say headers are included.
+        // But usually standard Sel commands output data directly.
+        // We will assume the column order matches display_fields.
+        
+        const lines = text.split('\n').filter(line => line.trim().length > 0);
+        const headers = state.displayedFields;
+        const rows = lines.map(line => {
+            const values = line.split('|');
+            // Create object keyed by header
+            const obj = {};
+            headers.forEach((h, i) => {
+                obj[h] = values[i] !== undefined ? values[i] : '';
+            });
+            return obj;
+        });
+
+        console.log(`Received ${rows.length} rows`);
+
+        // Update VirtualTable
+        if (window.VirtualTable) {
+            // Re-use SimpleTable logic if possible, or manually set data
+            // VirtualTable.virtualTableData expects { headers, rows, columnMap }
+            
+            const columnMap = new Map();
+            headers.forEach((h, i) => columnMap.set(h, i));
+            
+            const newTableData = {
+                headers: headers,
+                rows: rows.map(r => {
+                    // Convert object back to array of values in order for VirtualTable?
+                    // Wait, VirtualTable.rows might be array of arrays?
+                    // Let's check virtualTable.js
+                    // It seems virtualTable.js uses objects in calculateFieldWidth: data.columnMap.get(fieldName)
+                    // But accessing row content?
+                    // row[columnIndex]?
+                    // Let's check renderVirtualTable in virtualTable.js
+                    return headers.map(h => r[h]);
+                }),
+                columnMap: columnMap
+            };
+            
+            // Wait, scan virtualTable.js render function to be sure about row format
+            // ... (I'll check this briefly) ...
+            
+            // For now, assume it's like SimpleTable: rows are arrays of strings?
+            // "data.rows" in calculateFieldWidth snippet: `data.rows.length`
+            // `data.columnMap.get(fieldName)` -> index.
+            // So rows are likely arrays of values.
+            
+            window.VirtualTable.virtualTableData = newTableData;
+            window.VirtualTable.renderVirtualTable();
+            window.VirtualTable.calculateOptimalColumnWidths(); // Re-calculate widths
+            
+            // Update totalRows state
+            window.totalRows = rows.length;
+            window.scrollRow = 0;
+            if (window.BubbleSystem) window.BubbleSystem.updateScrollBar();
+        }
+        
+        // Update last executed state
+        window.lastExecutedQueryState = window.getCurrentQueryState();
+        showToastMessage(`Query completed. Loaded ${rows.length} results.`, 'success');
+
+      } catch (error) {
+        console.error('Query execution failed:', error);
+        showToastMessage('Query execution failed: ' + error.message, 'error');
+      } finally {
+        queryRunning = false;
+        updateRunButtonIcon();
+      }
+    })();
   });
 }
 
