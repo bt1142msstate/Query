@@ -35,6 +35,7 @@ if(runBtn){
     if (queryRunning) {
       queryRunning = false;
       updateRunButtonIcon();
+      document.getElementById('table-container')?.classList.remove('table-querying');
       return;
     }
     
@@ -44,6 +45,7 @@ if(runBtn){
       try {
         queryRunning = true;
         updateRunButtonIcon();
+        document.getElementById('table-container')?.classList.add('table-querying');
         
         const state = window.getCurrentQueryState();
         const payload = {
@@ -254,6 +256,7 @@ if(runBtn){
       } finally {
         queryRunning = false;
         updateRunButtonIcon();
+        document.getElementById('table-container')?.classList.remove('table-querying');
       }
     })();
   });
