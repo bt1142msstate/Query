@@ -303,17 +303,10 @@ input, textarea, select, [contenteditable] {
    3. BUBBLE STYLES & ANIMATIONS
    ========================================== */
 
-@keyframes morphBubble {
-  0%   { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
-  50%  { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
-  100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
-}
-
 .bubble {
   width: 100px;
   height: 100px;
-  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-  animation: morphBubble 8s ease-in-out infinite reverse;
+  border-radius: var(--border-radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -330,40 +323,44 @@ input, textarea, select, [contenteditable] {
   text-shadow: 0 1px 2px rgba(0,0,0,0.3);
   position: relative;
   z-index: 1;
-  transition: top var(--transition-slow), left var(--transition-slow), transform var(--transition-slow);
+  transition: top var(--transition-slow), left var(--transition-slow), transform 0.2s ease, box-shadow 0.2s ease;
   
   /* Realistic Glass / Soap Bubble */
   background: radial-gradient(
     130% 130% at 30% 30%, 
-    rgba(255, 255, 255, 0.2) 15%, 
+    rgba(255, 255, 255, 0.15) 15%, 
     rgba(255, 255, 255, 0.05) 40%, 
-    rgba(255, 255, 255, 0.02) 60%, 
+    rgba(255, 255, 255, 0.0) 60%, 
     rgba(148, 163, 184, 0.1) 100%
   );
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-bottom-color: rgba(255, 255, 255, 0.1);
-  border-right-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(1px);
+  -webkit-backdrop-filter: blur(1px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+  border-right-color: rgba(255, 255, 255, 0.05);
 
   box-shadow:
     inset -5px -5px 15px rgba(255, 255, 255, 0.1),
     inset 2px 2px 10px rgba(255, 255, 255, 0.3),
     0 4px 10px rgba(0, 0, 0, 0.15),
     0 0 15px rgba(100, 200, 255, 0.1);
+
+  animation: bubbleFloat 4s ease-in-out infinite;
 }
 
 .bubble:nth-child(even) {
-  animation: morphBubble 9s ease-in-out infinite alternate;
+  animation-delay: 1s;
+  animation-duration: 5s;
 }
 
 .bubble:nth-child(3n) {
-  animation-duration: 7.5s;
-  animation-direction: alternate-reverse;
+  animation-delay: 2s;
+  animation-duration: 4.5s;
 }
 
 .bubble:hover {
-  transform: scale(1.05);
+  transform: scale(1.05) translateY(-2px);
+  animation-play-state: paused;
   box-shadow:
     inset -5px -5px 15px rgba(255, 255, 255, 0.15),
     inset 2px 2px 10px rgba(255, 255, 255, 0.4),
@@ -375,6 +372,7 @@ input, textarea, select, [contenteditable] {
 .bubble[draggable="false"] {
   cursor: default;
   opacity: 0.8;
+  animation-play-state: paused;
   background: radial-gradient(
     130% 130% at 30% 30%, 
     rgba(200, 200, 200, 0.15) 15%, 
@@ -397,7 +395,7 @@ input, textarea, select, [contenteditable] {
   width: 20%;
   height: 10%;
   border-radius: 50%;
-  background: radial-gradient(ellipse at center, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 70%);
+  background: radial-gradient(ellipse at center, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 70%);
   filter: blur(1px);
   transform: rotate(-45deg);
   pointer-events: none;
@@ -409,26 +407,24 @@ input, textarea, select, [contenteditable] {
   position: absolute;
   top: 15%;
   left: 15%;
-  width: 30%;
-  height: 18%;
+  width: 25%;
+  height: 15%;
   border-radius: 50%;
-  filter: blur(0.5px);
+  filter: blur(1px);
   pointer-events: none;
-  animation: bubbleShimmer 6s ease-in-out infinite;
   
   background: radial-gradient(
     120% 120% at 30% 30%,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(255, 255, 255, 0.6) 40%,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 0.4) 40%,
     rgba(255, 255, 255, 0.0) 70%
   );
-  box-shadow: 0 0 5px rgba(255,255,255,0.5);
 }
 
-@keyframes bubbleShimmer {
-  0%   { transform: translate(0, 0) scale(1); opacity: 0.9; }
-  50%  { transform: translate(5%, 5%) scale(1.05); opacity: 0.7; }
-  100% { transform: translate(0, 0) scale(1); opacity: 0.9; }
+@keyframes bubbleFloat {
+  0%   { transform: translateY(0px); }
+  50%  { transform: translateY(-4px); }
+  100% { transform: translateY(0px); }
 }
 
 @keyframes rotate {
@@ -442,31 +438,31 @@ input, textarea, select, [contenteditable] {
     130% 130% at 30% 30%, 
     rgba(255, 255, 255, 0.95) 0%, 
     rgba(240, 245, 255, 0.85) 50%, 
-    rgba(220, 230, 250, 0.7) 100%
+    rgba(220, 230, 250, 0.8) 100%
   ) !important;
   
   box-shadow:
     inset -5px -5px 15px rgba(255, 255, 255, 0.8),
     inset 2px 2px 10px rgba(255, 255, 255, 0.5),
-    0 4px 12px rgba(0, 0, 0, 0.15),
-    0 0 20px rgba(255, 255, 255, 0.4);
+    0 4px 10px rgba(0, 0, 0, 0.1),
+    0 0 15px rgba(255, 255, 255, 0.3);
     
   color: #1e3a8a !important; /* Dark blue text */
   text-shadow: none;
   border: 1px solid rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(8px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 /* Hide secondary reflection for filled bubble */
 .bubble-filter::before {
-  opacity: 0.3;
+  opacity: 0.2;
 }
 
 .bubble-filter::after {
-  animation: bubbleShimmer 6s ease-in-out infinite;
-  width: 30%;
-  height: 18%;
-  opacity: 0.7;
+  width: 25%;
+  height: 15%;
+  opacity: 0.6;
   box-shadow: none;
   background: radial-gradient(
     120% 120% at 30% 30%,
