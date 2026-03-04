@@ -231,6 +231,7 @@ if(runBtn){
             window.totalRows = rows.length;
             window.scrollRow = 0;
             if (window.BubbleSystem) window.BubbleSystem.updateScrollBar();
+            if (window.updateButtonStates) window.updateButtonStates();
         }
         
         // Update last executed state
