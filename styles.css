@@ -909,9 +909,11 @@ input, textarea, select, [contenteditable] {
 }
 
 #example-table {
-  border-radius: var(--border-radius-lg);
+  /* border-radius removed to prevent conflict with container/cells */
   width: auto; /* Allow table to expand to natural width */
   min-width: 100%; /* Ensure it's at least full width */
+  border-collapse: separate; /* Required for border-radius on cells to work reliably */
+  border-spacing: 0;
 }
 
 /* Table headers */
@@ -934,6 +936,14 @@ input, textarea, select, [contenteditable] {
   height: var(--table-header-height);
   box-sizing: border-box;
   box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.12), inset 0 -1px 0 rgba(0, 0, 0, 0.12);
+}
+
+#example-table thead tr:first-child th:first-child {
+  border-top-left-radius: var(--border-radius-lg);
+}
+
+#example-table thead tr:first-child th:last-child {
+  border-top-right-radius: var(--border-radius-lg);
 }
 
 /* Remove border from the last header column */
