@@ -722,8 +722,10 @@ const dragDropManager = {
     e.preventDefault();
     table.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
     const colIndex = parseInt(td.dataset.colIndex, 10);
+    if (isNaN(colIndex)) return;
     const targetHeader = table.querySelector(`thead th[data-col-index="${colIndex}"]`);
-    if (targetHeader && !targetHeader.classList.contains('th-dragging')) {
+    if (!targetHeader) return;
+    if (!targetHeader.classList.contains('th-dragging')) {
       targetHeader.classList.add('th-drag-over');
     }
     const rect = targetHeader.getBoundingClientRect();
@@ -738,7 +740,9 @@ const dragDropManager = {
   handleCellDragOver(e, td, table) {
     e.preventDefault();
     const colIndex = parseInt(td.dataset.colIndex, 10);
+    if (isNaN(colIndex)) return;
     const targetHeader = table.querySelector(`thead th[data-col-index="${colIndex}"]`);
+    if (!targetHeader) return;
     const rect = targetHeader.getBoundingClientRect();
     positionDropAnchor(rect, table, e.clientX, colIndex);
     
@@ -842,21 +846,15 @@ const dragDropManager = {
   // Clean up existing event listeners before adding new ones
   cleanupTableListeners(table) {
     if (!table) return;
-    
     try {
-      // ONLY remove cell listeners! We NEVER replace headers, so their listeners stay bound safely.
-      table.querySelectorAll('td').forEach(td => {
-        if (td._dragDropListeners) {
-          Object.entries(td._dragDropListeners).forEach(([event, handler]) => {
-            try {
-              td.removeEventListener(event, handler);
-            } catch (err) {
-              console.warn('Error removing event listener from cell:', err);
-            }
-          });
-          delete td._dragDropListeners;
-        }
-      });
+      // Remove delegated tbody listeners
+      const tbody = table.querySelector('tbody');
+      if (tbody && tbody._dragDropListeners) {
+        Object.entries(tbody._dragDropListeners).forEach(([event, handler]) => {
+          try { tbody.removeEventListener(event, handler); } catch (err) {}
+        });
+        delete tbody._dragDropListeners;
+      }
     } catch (error) {
       console.error('Error in cleanupTableListeners:', error);
     }
@@ -866,62 +864,71 @@ const dragDropManager = {
   initTableDragDrop(table) {
     if (!table) return;
     
-    // Clean up any existing td event listeners to prevent duplicates
-    this.cleanupTableListeners(table);
-    
     // Ensure every header/cell has an up-to-date col index
     refreshColIndices(table);
     const scrollContainer = document.querySelector('.overflow-x-auto.shadow.rounded-lg.mb-6');
     this.scrollContainer = scrollContainer;
     
-    // Initialize headers only completely linearly (if they aren't initialized yet).
+    // Bind header listeners only once (headers are never replaced)
     if (!table._headersDragInitialized) {
       const headers = table.querySelectorAll('th[draggable="true"]');
-      
-      // Add header hover tracking
       headers.forEach(th => {
-        // Create handler references for this header
         const listeners = {
-          mouseenter: (e) => this.handleHeaderEnter(th),
-          mouseleave: (e) => this.handleHeaderLeave(th),
+          mouseenter: () => this.handleHeaderEnter(th),
+          mouseleave: () => this.handleHeaderLeave(th),
           dragstart: (e) => this.handleHeaderDragStart(e, th, scrollContainer),
-          dragend: (e) => this.handleHeaderDragEnd(th, scrollContainer),
+          dragend:   (e) => this.handleHeaderDragEnd(th, scrollContainer),
           dragenter: (e) => this.handleDragEnter(e, th, table),
-          dragleave: (e) => this.handleDragLeave(),
-          dragover: (e) => this.handleDragOver(e, th, table),
-          drop: (e) => this.handleDrop(e, th, table)
+          dragleave: () => this.handleDragLeave(),
+          dragover:  (e) => this.handleDragOver(e, th, table),
+          drop:      (e) => this.handleDrop(e, th, table)
         };
-        
-        // Store references to listeners
         th._dragDropListeners = listeners;
-        
-        // Add all event listeners
         Object.entries(listeners).forEach(([event, handler]) => {
           th.addEventListener(event, handler);
         });
       });
-      // prevent re-initializing
       table._headersDragInitialized = true;
     }
     
-    // Handle body cell events
-    const bodyCells = table.querySelectorAll('tbody td');
-    bodyCells.forEach(td => {
-      // Create handler references for this cell
-      const listeners = {
-        dragenter: (e) => this.handleCellDragEnter(e, td, table),
-        dragover: (e) => this.handleCellDragOver(e, td, table),
-        dragleave: (e) => this.handleDragLeave(),
-        drop: (e) => this.handleCellDrop(e, td, table)
-      };
-      
-      // Store references to listeners
-      td._dragDropListeners = listeners;
-      
-      // Add all event listeners
-      Object.entries(listeners).forEach(([event, handler]) => {
-        td.addEventListener(event, handler);
-      });
+    // Use event delegation on tbody so that dynamically rendered rows (virtual
+    // scroll) are always covered — no need to rebind on every scroll render.
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return;
+    
+    // Remove any previous delegated listeners before re-binding
+    this.cleanupTableListeners(table);
+    
+    const getValidTd = (e) => {
+      const td = e.target.closest('td');
+      if (!td) return null;
+      const colIndex = parseInt(td.dataset.colIndex, 10);
+      if (isNaN(colIndex)) return null; // spacer cell — ignore
+      return td;
+    };
+    
+    const tbodyListeners = {
+      dragenter: (e) => {
+        const td = getValidTd(e);
+        if (td) this.handleCellDragEnter(e, td, table);
+      },
+      dragover: (e) => {
+        const td = getValidTd(e);
+        if (td) this.handleCellDragOver(e, td, table);
+      },
+      dragleave: (e) => {
+        // Only clear when leaving the tbody entirely, not between cells
+        if (!tbody.contains(e.relatedTarget)) this.handleDragLeave();
+      },
+      drop: (e) => {
+        const td = getValidTd(e);
+        if (td) this.handleCellDrop(e, td, table);
+      }
+    };
+    
+    tbody._dragDropListeners = tbodyListeners;
+    Object.entries(tbodyListeners).forEach(([event, handler]) => {
+      tbody.addEventListener(event, handler);
     });
   }
 };
