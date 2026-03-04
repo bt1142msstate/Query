@@ -91,48 +91,45 @@ const ExcelExporter = (() => {
     const headers = virtualData.headers;
     const dataRows = virtualData.rows;
     
+    // Build a type lookup from fieldDefs for all displayed fields
+    const fieldTypeMap = new Map();
+    displayedFields.forEach(field => {
+      const def = window.fieldDefs && window.fieldDefs.get(field);
+      fieldTypeMap.set(field, def ? def.type : 'string');
+    });
+
+    // Parse a raw YYYYMMDD integer (e.g. 20200914) into a JS Date.
+    // Returns null for 0 / falsy values so they export as blank.
+    function parseSirsDate(raw) {
+      const n = typeof raw === 'string' ? parseInt(raw, 10) : raw;
+      if (!n || isNaN(n)) return null;
+      const y = Math.floor(n / 10000);
+      const m = Math.floor((n % 10000) / 100) - 1; // 0-based month
+      const d = n % 100;
+      const dt = new Date(y, m, d);
+      return isNaN(dt.getTime()) ? null : dt;
+    }
+
     dataRows.forEach(row => {
       const rowData = displayedFields.map(field => {
-        // Get the column index for this field
         const colIndex = virtualData.columnMap.get(field);
         const raw = (colIndex !== undefined) ? row[colIndex] : undefined;
-        const value = (raw === undefined || raw === null) ? '' : raw;
+        if (raw === undefined || raw === null) return '';
 
-        // Only attempt type‑coercion for strings
-        if (typeof value === 'string') {
-          const trimmed = value.trim();
+        const type = fieldTypeMap.get(field);
 
-          /* ---------- Money "$1,234.56" ---------- */
-          if (trimmed.startsWith('$')) {
-            const numValue = parseFloat(trimmed.replace(/[$,]/g, ''));
-            if (!isNaN(numValue)) return numValue;
-          }
-
-          /* ---------- Negative numbers "(1,234.56)" ---------- */
-          if (/^\(\s*-?[0-9,]+(\.[0-9]+)?\s*\)$/.test(trimmed)) {
-            const numValue = -parseFloat(trimmed.replace(/[\(\),\s]/g, ''));
-            if (!isNaN(numValue)) return numValue;
-          }
-
-          /* ---------- Plain numeric strings "1,234.56" ---------- */
-          if (/^-?[0-9,]+(\.[0-9]+)?$/.test(trimmed)) {
-            const numValue = parseFloat(trimmed.replace(/,/g, ''));
-            if (!isNaN(numValue)) return numValue;
-          }
-
-          /* ---------- Flexible date strings "1995-7-2" or "1995/7/2" ---------- */
-          if (/^\d{4}[-\/]\d{1,2}[-\/]\d{1,2}$/.test(trimmed)) {
-            const parts = trimmed.split(/[-\/]/).map(Number);
-            const asDate = new Date(parts[0], parts[1] - 1, parts[2]);
-            if (!isNaN(asDate.getTime())) return asDate;
-          }
-
-          /* ---------- Fallback: anything Date.parse can understand ---------- */
-          const parsed = Date.parse(trimmed);
-          if (!isNaN(parsed)) return new Date(parsed);
+        if (type === 'date') {
+          const dt = parseSirsDate(raw);
+          return dt !== null ? dt : ''; // blank for 0 / invalid
         }
 
-        return value;
+        if (type === 'number') {
+          const n = typeof raw === 'number' ? raw : parseFloat(String(raw).replace(/,/g, ''));
+          return isNaN(n) ? '' : n;
+        }
+
+        // boolean, string, or anything else - keep as-is
+        return raw;
       });
       worksheet.addRow(rowData);
       tableRows.push(rowData);
@@ -140,39 +137,22 @@ const ExcelExporter = (() => {
 
     displayedFields.forEach((field, idx) => {
       const column = worksheet.getColumn(idx + 1);
-      const lower = field ? field.toLowerCase() : '';
+      const type = fieldTypeMap.get(field);
 
-      // Money fields - currency formatting
-      if (lower.includes('price') || lower.includes('cost')) {
-        column.numFmt = '"$"#,##0.00';
-      } 
-      // Date/time fields - date formatting
-      else if (lower.includes('date') || lower.includes('time')) {
+      if (type === 'date') {
         column.numFmt = 'mm/dd/yyyy';
-      } 
-      // Whole number fields - integer formatting (no decimals, no commas)
-      else if (lower.includes('barcode') || lower.includes('count') || lower.includes('number') || 
-               lower.includes('key') || lower.includes('charges') || lower.includes('bills') || 
-               lower.includes('inventory') || lower.includes('hold') || lower.includes('offset')) {
-        column.numFmt = '0'; // No decimal places, no commas for whole numbers
-      } 
-      else {
-        // Sample a value that made it into the sheet to infer type
-        const virtualData = VirtualTable.virtualTableData;
+      } else if (type === 'number') {
+        // Check first non-empty value to decide integer vs decimal
         const colIndex = virtualData.columnMap.get(field);
-        const sample = (colIndex !== undefined && virtualData.rows.length > 0) ? virtualData.rows[0][colIndex] : null;
-        
-        if (sample instanceof Date) {
-          column.numFmt = 'mm/dd/yyyy';
-        } else if (typeof sample === 'number') {
-          // Check if it's a whole number by seeing if it equals its integer value
-          if (Number.isInteger(sample)) {
-            column.numFmt = '0'; // Whole number formatting (no commas)
-          } else {
-            column.numFmt = '#,##0.00'; // Decimal formatting
-          }
-        }
+        const sample = colIndex !== undefined
+          ? virtualData.rows.map(r => r[colIndex]).find(v => v !== null && v !== undefined && v !== '')
+          : null;
+        const isDecimal = sample !== undefined && sample !== null && !Number.isInteger(
+          typeof sample === 'number' ? sample : parseFloat(String(sample))
+        );
+        column.numFmt = isDecimal ? '#,##0.00' : '0';
       }
+      // string / boolean: no special numeric format needed
     });
 
     const safeTableName = tableName.replace(/[^a-zA-Z0-9_]/g, '_');

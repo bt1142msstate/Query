@@ -737,6 +737,24 @@ const dragDropManager = {
     }
   },
   
+  // Fallback: show drop anchor based on mouse X vs header positions (used for spacer cells / empty tables)
+  handleDragOverByX(e, table) {
+    e.preventDefault();
+    const headers = Array.from(table.querySelectorAll('thead th[data-col-index]'));
+    if (!headers.length) return;
+    let best = headers[0];
+    let bestDist = Infinity;
+    headers.forEach(th => {
+      const rect = th.getBoundingClientRect();
+      const center = rect.left + rect.width / 2;
+      const dist = Math.abs(e.clientX - center);
+      if (dist < bestDist) { bestDist = dist; best = th; }
+    });
+    const colIndex = parseInt(best.dataset.colIndex, 10);
+    const rect = best.getBoundingClientRect();
+    positionDropAnchor(rect, table, e.clientX, colIndex);
+  },
+
   handleCellDragOver(e, td, table) {
     e.preventDefault();
     const colIndex = parseInt(td.dataset.colIndex, 10);
@@ -911,10 +929,12 @@ const dragDropManager = {
       dragenter: (e) => {
         const td = getValidTd(e);
         if (td) this.handleCellDragEnter(e, td, table);
+        else this.handleDragOverByX(e, table); // spacer / empty table fallback
       },
       dragover: (e) => {
         const td = getValidTd(e);
         if (td) this.handleCellDragOver(e, td, table);
+        else this.handleDragOverByX(e, table); // spacer / empty table fallback
       },
       dragleave: (e) => {
         // Only clear when leaving the tbody entirely, not between cells
@@ -923,6 +943,22 @@ const dragDropManager = {
       drop: (e) => {
         const td = getValidTd(e);
         if (td) this.handleCellDrop(e, td, table);
+        else {
+          // Dropped on spacer/empty area — derive column from X position
+          e.preventDefault();
+          e.stopPropagation();
+          const headers = Array.from(table.querySelectorAll('thead th[data-col-index]'));
+          if (!headers.length) return;
+          let best = headers[0];
+          let bestDist = Infinity;
+          headers.forEach(th => {
+            const rect = th.getBoundingClientRect();
+            const center = rect.left + rect.width / 2;
+            const dist = Math.abs(e.clientX - center);
+            if (dist < bestDist) { bestDist = dist; best = th; }
+          });
+          this.handleDrop(e, best, table);
+        }
       }
     };
     
