@@ -320,61 +320,98 @@ input, textarea, select, [contenteditable] {
   line-height: 1.1;
   cursor: pointer;
   color: var(--color-white) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
   position: relative;
   z-index: 1;
   transition: top var(--transition-slow), left var(--transition-slow), transform var(--transition-slow);
   
+  /* Realistic Glass / Soap Bubble */
   background: radial-gradient(
-    circle at 30% 30%,
-    rgba(255, 255, 255, 0.6) 0%,
-    rgba(173, 216, 230, 0.2) 50%,
-    rgba(173, 216, 230, 0.05) 100%
+    130% 130% at 30% 30%, 
+    rgba(255, 255, 255, 0.2) 15%, 
+    rgba(255, 255, 255, 0.05) 40%, 
+    rgba(255, 255, 255, 0.02) 60%, 
+    rgba(148, 163, 184, 0.1) 100%
   );
-  
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+  border-right-color: rgba(255, 255, 255, 0.1);
+
   box-shadow:
-    inset -4px -4px 6px rgba(255, 255, 255, 0.5),
-    inset 4px 4px 6px rgba(0, 0, 0, 0.1),
-    0 2px 4px rgba(0, 0, 0, 0.08),
-    0 0 8px rgba(255, 255, 255, 0.25);
+    inset -5px -5px 15px rgba(255, 255, 255, 0.1),
+    inset 2px 2px 10px rgba(255, 255, 255, 0.3),
+    0 4px 10px rgba(0, 0, 0, 0.15),
+    0 0 15px rgba(100, 200, 255, 0.1);
 }
 
 .bubble:hover {
   transform: scale(1.05);
+  box-shadow:
+    inset -5px -5px 15px rgba(255, 255, 255, 0.15),
+    inset 2px 2px 10px rgba(255, 255, 255, 0.4),
+    0 6px 15px rgba(0, 0, 0, 0.2),
+    0 0 20px rgba(100, 200, 255, 0.2);
 }
 
 /* Non-draggable bubbles */
 .bubble[draggable="false"] {
   cursor: default;
+  opacity: 0.8;
+  background: radial-gradient(
+    130% 130% at 30% 30%, 
+    rgba(200, 200, 200, 0.15) 15%, 
+    rgba(200, 200, 200, 0.05) 40%, 
+    rgba(200, 200, 200, 0.02) 60%, 
+    rgba(100, 100, 100, 0.1) 100%
+  );
 }
 
 .bubble[draggable="false"]:hover {
   transform: scale(1);
 }
 
+/* Secondary reflection (bottom right) */
+.bubble::before {
+  content: "";
+  position: absolute;
+  bottom: 12%;
+  right: 12%;
+  width: 20%;
+  height: 10%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 70%);
+  filter: blur(1px);
+  transform: rotate(-45deg);
+  pointer-events: none;
+}
+
+/* Main specular highlight (top left) */
 .bubble::after {
   content: "";
   position: absolute;
-  top: 18%;
-  left: 18%;
-  width: 22%;
-  height: 22%;
+  top: 15%;
+  left: 15%;
+  width: 30%;
+  height: 18%;
   border-radius: 50%;
-  filter: blur(1px);
+  filter: blur(0.5px);
   pointer-events: none;
   animation: bubbleShimmer 6s ease-in-out infinite;
   
   background: radial-gradient(
-    circle at 35% 35%,
+    120% 120% at 30% 30%,
     rgba(255, 255, 255, 0.95) 0%,
     rgba(255, 255, 255, 0.6) 40%,
-    rgba(255, 255, 255, 0.15) 70%,
-    transparent 100%
+    rgba(255, 255, 255, 0.0) 70%
   );
+  box-shadow: 0 0 5px rgba(255,255,255,0.5);
 }
 
 @keyframes bubbleShimmer {
   0%   { transform: translate(0, 0) scale(1); opacity: 0.9; }
-  50%  { transform: translate(10%, 10%) scale(1.1); opacity: 0.6; }
+  50%  { transform: translate(5%, 5%) scale(1.05); opacity: 0.7; }
   100% { transform: translate(0, 0) scale(1); opacity: 0.9; }
 }
 
@@ -383,45 +420,43 @@ input, textarea, select, [contenteditable] {
   100% { transform: rotate(360deg); }
 }
 
-/* Bubble with active filter */
+/* Bubble with active filter - Frosted/Filled Glass */
 .bubble-filter {
-  /* Change from purple gradient to white */
   background: radial-gradient(
-    circle at 30% 30%,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(255, 255, 255, 0.8) 40%,
-    rgba(240, 240, 240, 0.75) 100%
+    130% 130% at 30% 30%, 
+    rgba(255, 255, 255, 0.95) 0%, 
+    rgba(240, 245, 255, 0.85) 50%, 
+    rgba(220, 230, 250, 0.7) 100%
   ) !important;
   
-  /* Change shadow for white theme */
   box-shadow:
-    inset -4px -4px 6px rgba(255, 255, 255, 0.7),
-    inset 4px 4px 6px rgba(0, 0, 0, 0.05),
-    0 2px 4px rgba(0, 0, 0, 0.1);
+    inset -5px -5px 15px rgba(255, 255, 255, 0.8),
+    inset 2px 2px 10px rgba(255, 255, 255, 0.5),
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    0 0 20px rgba(255, 255, 255, 0.4);
     
-  color: var(--color-black) !important;
-  border: 1px solid rgba(200, 200, 200, 0.5);
+  color: #1e3a8a !important; /* Dark blue text */
+  text-shadow: none;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
 }
 
-/* Restore original before element */
+/* Hide secondary reflection for filled bubble */
 .bubble-filter::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: none;
-  z-index: -1;
+  opacity: 0.3;
 }
 
-/* Use normal bubble shimmer with slight purple tint */
 .bubble-filter::after {
   animation: bubbleShimmer 6s ease-in-out infinite;
-  width: 22%;
-  height: 22%;
-  opacity: 0.9;
+  width: 30%;
+  height: 18%;
+  opacity: 0.7;
   box-shadow: none;
+  background: radial-gradient(
+    120% 120% at 30% 30%,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0) 70%
+  );
 }
 
 /* Bubble container layout */
