@@ -18,8 +18,8 @@
 
 
 /* --- Run / Stop query toggle --- */
-// queryRunning already declared at the top
-
+let queryRunning = false;
+let currentQueryId = null;
 
 // updateButtonStates is now in queryUI.js - relying on window.updateButtonStates
 // Initial check
@@ -33,6 +33,15 @@ if(runBtn){
     
     // If query is running, stop it
     if (queryRunning) {
+      if (currentQueryId && typeof window.cancelQuery === 'function') {
+          showToastMessage('Cancelling query...', 'info');
+          window.cancelQuery(currentQueryId).then(() => {
+              showToastMessage('Query cancelled.', 'info');
+          }).catch(err => {
+              console.error('Cancellation failed', err);
+          });
+      }
+      
       queryRunning = false;
       updateRunButtonIcon();
       document.getElementById('table-container')?.classList.remove('table-querying');
@@ -41,7 +50,7 @@ if(runBtn){
     
     // Start query execution
     (async () => {
-      let currentQueryId = null;
+      currentQueryId = null;
       try {
         queryRunning = true;
         updateRunButtonIcon();
@@ -161,6 +170,12 @@ if(runBtn){
 
         const text = await response.text();
         
+        // If user stopped the query while waiting for response, abort processing
+        if (!queryRunning) {
+             console.log('Query stopped by user, discarding response.');
+             return;
+        }
+        
         // Parse pipe-delimited response
         // Use X-Raw-Columns to understand the actual output order from backend,
         // then map into the requested state.displayedFields order.
@@ -250,6 +265,12 @@ if(runBtn){
         showToastMessage(`Query completed. Loaded ${rows.length} results.`, 'success');
 
       } catch (error) {
+        // Checking if the query was manually stopped by the user
+        if (!queryRunning) {
+             console.log('Query execution interrupted by user stop/cancel.');
+             return;
+        }
+
         console.error('Query execution failed:', error);
         
         // Mark as failed in history
