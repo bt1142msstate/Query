@@ -166,13 +166,12 @@ window.formatColumnsTooltip = function(columns) {
 };
 
 /**
- * Formats filter groups into a tooltip string.
- * @function formatFiltersTooltip
- * @param {Object} _unused - placeholder
+ * Formats filter groups into a tooltip string for history display.
+ * @function formatHistoryFiltersTooltip
  * @param {Object[]} filterGroups - Array of filter groups
  * @returns {string} Formatted tooltip text
  */
-window.formatFiltersTooltip = function(_unused, filterGroups) {
+window.formatHistoryFiltersTooltip = function(filterGroups) {
   if (!filterGroups || !filterGroups.length) return 'None';
   
   const lines = [];
@@ -188,7 +187,7 @@ window.formatFiltersTooltip = function(_unused, filterGroups) {
             else if (op === 'less') op = '<';
             else if (op === 'contains') op = 'contains';
             
-            lines.push(`${f.FieldName} ${op} ${f.Values.join('|')}`);
+            lines.push(`${f.FieldName || ''} ${op} ${f.Values ? f.Values.join('|') : ''}`);
         });
     }
   });
@@ -271,7 +270,7 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
     
   // Use tooltip for filters
   const filterGroups = q.jsonConfig?.FilterGroups || [];
-  const filterTooltip = typeof formatFiltersTooltip === 'function' ? formatFiltersTooltip(null, filterGroups) : '';
+  const filterTooltip = typeof formatHistoryFiltersTooltip === 'function' ? formatHistoryFiltersTooltip(filterGroups) : '';
   const filtersSummary = filterGroups.length && filterTooltip
     ? `<span class="inline-flex items-center gap-1" data-tooltip="${filterTooltip.replace(/"/g, '&quot;')}">
           ${viewIconSVG}
@@ -284,7 +283,7 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
   ` : '';
   
   // Load button only for completed queries (report icon)
-  const loadBtn = !q.running && !q.cancelled ? `<button class="load-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" tabindex="-1" data-query-id="${q.id}" style="margin-left:4px;" data-tooltip="Open results - ${q.resultCount || 0} rows"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></button>` : '';
+  const loadBtn = !q.running && !q.cancelled ? `<button class="load-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" tabindex="-1" data-query-id="${q.id}" style="margin-left:4px;" data-tooltip="Open results - ${q.resultCount !== undefined ? q.resultCount : 'Unknown'} rows"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></button>` : '';
   
   // Rerun button for both completed and cancelled queries (refresh/replay icon)
   const rerunBtn = (!q.running) ? `<button class="rerun-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-green-600" tabindex="-1" data-query-id="${q.id}" style="margin-left:4px;" data-tooltip="Rerun Query"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg></button>` : '';
