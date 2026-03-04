@@ -78,7 +78,7 @@ const fieldDefsArray = [
     // --- Item Fields (Selitem) ---
     { "name": "Item Id", "type": "string", "filters": ["equals"], "category": "Item", "desc": "Barcode identifier of the Physical Copy" },
     { "name": "Item Key", "type": "string", "filters": ["equals"], "category": "Item", "desc": "Unique identifier for a specific Physical Copy" },
-    { "name": "Library", "type": "string", "filters": ["equals"], "category": "Item", "desc": "Library where item is located", "multiSelect": true, "values": [
+    { "name": "Item Library", "type": "string", "filters": ["equals"], "category": "Item", "desc": "Library where item is located", "multiSelect": true, "values": [
         { "Name": "TRLS-A", "RawValue": "TRLS-A" }, { "Name": "TRLS-B", "RawValue": "TRLS-B" }, { "Name": "TRLS-C", "RawValue": "TRLS-C" },
         { "Name": "MLTN-A", "RawValue": "MLTN-A" }, { "Name": "MLTN-B", "RawValue": "MLTN-B" }, { "Name": "WSPR-X", "RawValue": "WSPR-X" }
     ] },
@@ -86,17 +86,16 @@ const fieldDefsArray = [
     { "name": "Current Location", "type": "string", "filters": ["equals"], "category": "Item", "desc": "Current physical location of the item" },
     { "name": "Item Type", "type": "string", "filters": ["equals"], "category": "Item", "desc": "Type or format of the item (e.g., book, DVD)" },
     { "name": "Price", "type": "money", "filters": ["greater", "less", "equals", "between"], "category": "Item", "desc": "The price of the item" },
-    { "name": "Number of Bills", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Number of User Fine/Fees" },
+    { "name": "Bill Count", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Number of User Fine/Fees" },
     { "name": "Charge Count", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Number of current Checkouts" },
-    { "name": "Total Charges", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Total lifetime Checkouts" },
-    { "name": "Copy Number", "type": "number", "filters": ["equals"], "category": "Item", "desc": "Sequence number of the copy" },
+    { "name": "Item Total Charges", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Total number of times this Physical Copy has been Checked out" },
     { "name": "Permanent", "type": "boolean", "filters": ["equals"], "category": "Item", "desc": "Is item permanent" },
-    { "name": "Circulate", "type": "boolean", "filters": ["equals"], "category": "Item", "desc": "Can item circulate" },
-    { "name": "Shadowed", "type": "boolean", "filters": ["equals"], "category": "Item", "desc": "Is item hidden from public" },
-    { "name": "Date Created", "type": "date", "filters": ["before", "after", "equals", "between"], "category": "Item", "desc": "Date item record was created" },
+    { "name": "Recirculation Flags", "type": "boolean", "filters": ["equals"], "category": "Item", "desc": "Indicates if the item can be recirculated" },
+    { "name": "Item Shadowed", "type": "boolean", "filters": ["equals"], "category": "Item", "desc": "Is item hidden from public" },
+    { "name": "Item Date Created", "type": "date", "filters": ["before", "after", "equals", "between"], "category": "Item", "desc": "Date item record was created" },
     { "name": "Date Last Used", "type": "date", "filters": ["before", "after", "equals", "between"], "category": "Item", "desc": "Date the Physical Copy was last used" },
-    { "name": "Last Charged Date", "type": "date", "filters": ["before", "after", "equals", "between"], "category": "Item", "desc": "Date the copy was last checked out" },
-    { "name": "Inventory Date", "type": "date", "filters": ["before", "after", "equals", "between"], "category": "Item", "desc": "Date the copy was last inventoried" },
+    { "name": "Date Last Charged", "type": "date", "filters": ["before", "after", "equals", "between"], "category": "Item", "desc": "Date the copy was last checked out" },
+    { "name": "Date Inventoried", "type": "date", "filters": ["before", "after", "equals", "between"], "category": "Item", "desc": "Date the copy was last inventoried" },
     { "name": "Last User Key", "type": "string", "filters": ["equals"], "category": "Item", "desc": "User ID of the last patron to switch status" },
     { "name": "Inventory Count", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Number of times inventoried" },
     { "name": "In-House Charges", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Number of times used in-house" },

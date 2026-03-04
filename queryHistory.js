@@ -73,13 +73,13 @@ const exampleQueries = [
     running: false,
     cancelled: false,
     jsonConfig: {
-      DesiredColumnOrder: ["Library","Catalog Key","Date Created"],
+      DesiredColumnOrder: ["Item Library","Catalog Key","Item Date Created"],
       FilterGroups: [
         {
           LogicalOperator: "And",
           Filters: [
-            { FieldName:"Library", FieldOperator:"Equals", Values:["MLTN-A"] },
-            { FieldName:"Date Created", FieldOperator:"Between", Values:["2023-01-01","2023-12-31"] }
+            { FieldName:"Item Library", FieldOperator:"Equals", Values:["MLTN-A"] },
+            { FieldName:"Item Date Created", FieldOperator:"Between", Values:["2023-01-01","2023-12-31"] }
           ]
         }
       ]
@@ -94,12 +94,12 @@ const exampleQueries = [
     running: false,
     cancelled: true,
     jsonConfig: {
-      DesiredColumnOrder: ["Title","Author","Call Number","Library","Item Type","Price"],
+      DesiredColumnOrder: ["Title","Author","Call Number","Item Library","Item Type","Price"],
       FilterGroups: [
         {
           LogicalOperator: "Or",
           Filters: [
-            { FieldName:"Library", FieldOperator:"Equals", Values:["TRLS-A","TRLS-B","MLTN-A"] }
+            { FieldName:"Item Library", FieldOperator:"Equals", Values:["TRLS-A","TRLS-B","MLTN-A"] }
           ]
         }
       ]
