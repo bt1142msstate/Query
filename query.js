@@ -155,20 +155,23 @@ if(runBtn){
         const text = await response.text();
         
         // Parse pipe-delimited response
-        // Assumption: First line is headers? Or headers match display_fields?
-        // The API docs say "Returns a stream of pipe-delimited text".
-        // It doesn't explicitly say headers are included.
-        // But usually standard Sel commands output data directly.
-        // We will assume the column order matches display_fields.
+        // Use X-Raw-Columns to understand the actual output order from backend,
+        // then map into the requested state.displayedFields order.
+        const rawColsHeader = response.headers.get('X-Raw-Columns');
+        const rawColumns = rawColsHeader ? rawColsHeader.split('|') : state.displayedFields;
         
         const lines = text.split('\n').filter(line => line.trim().length > 0);
-        const headers = state.displayedFields;
+        const headers = state.displayedFields; // Requested order
         const rows = lines.map(line => {
             const values = line.split('|');
-            // Create object keyed by header
+            // Create object keyed by raw output columns
             const obj = {};
-            headers.forEach((h, i) => {
+            rawColumns.forEach((h, i) => {
                 obj[h] = values[i] !== undefined ? values[i] : '';
+            });
+            // Ensure all requested headers exist
+            headers.forEach(h => {
+                if (!(h in obj)) obj[h] = '';
             });
             return obj;
         });
