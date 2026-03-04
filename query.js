@@ -363,67 +363,31 @@ body.classList.add('night');         // use night-sky background
 const initialContainer = document.querySelector('.overflow-x-auto.shadow.rounded-lg.mb-6');
 if(initialContainer) {
   window.DragDropSystem.attachBubbleDropTarget(initialContainer);
-  // Initial render - load the DesiredColumnOrder from test data
+  // Initial render - Initialize systems without data for real queries
   (async () => {
     try {
-      // Load test data to get the processed table with correct column order
-      await VirtualTable.loadTestData();
-      const simpleTable = VirtualTable.simpleTableInstance;
-      if (simpleTable) {
-        // Use the actual headers from the processed table (which should be in DesiredColumnOrder)
-        const headers = simpleTable.getHeaders();
-        console.log('Initial table setup - headers from SimpleTable:', headers);
-        console.log('Initial table setup - desiredColumnOrder:', simpleTable.desiredColumnOrder);
-        
-        if (headers && headers.length > 0) {
-          // Use the headers from the processed SimpleTable (already in correct order)
-          displayedFields = [...headers];
-          window.displayedFields = displayedFields;
-          console.log('Set displayedFields to:', displayedFields);
-          // Update the query JSON to reflect the correct columns from the SimpleTable
-          updateQueryJson();
-          await showExampleTable(displayedFields);
-          // Update button states after fields are loaded
-          updateButtonStates();
-          // Set initial executed state since we're loading with test data
-          lastExecutedQueryState = getCurrentQueryState();
-          // Initialize run button icon
-          updateRunButtonIcon();
-          // Set the GroupBy method selector to match the SimpleTable instance
-          if (groupMethodSelect) {
-            groupMethodSelect.value = simpleTable.groupMethod;
-          }
-          // Initialize bubble system now that all variables are ready
-          if (window.BubbleSystem) {
-            window.BubbleSystem.initializeBubbles();
-          }
-          updateCategoryCounts();
-        } else {
-          console.warn('No headers found in SimpleTable, showing empty placeholder');
-          displayedFields = [];
-          window.displayedFields = displayedFields;
-          await showExampleTable(displayedFields);
-          updateButtonStates();
-          // Initialize bubble system even with empty fields
-          // window.BubbleSystem && window.BubbleSystem.initializeBubbles();
-        }
-      } else {
-        console.warn('No SimpleTable instance found, showing empty placeholder');
-        displayedFields = [];
-        window.displayedFields = displayedFields;
-        await showExampleTable(displayedFields);
-        updateButtonStates();
-        // Initialize bubble system even with empty fields
-        // window.BubbleSystem && window.BubbleSystem.initializeBubbles();
+      console.log('Initializing application for live queries (test data disabled)');
+      
+      // Initialize empty fields
+      window.displayedFields = [];
+      
+      // Update UI
+      if (typeof showExampleTable === 'function') {
+        await showExampleTable([]);
       }
-    } catch (error) {
-      console.error('Error initializing table:', error);
-      displayedFields = [];
-      window.displayedFields = displayedFields;
-      await showExampleTable(displayedFields);
       updateButtonStates();
-      // Initialize bubble system even with empty fields
-      // window.BubbleSystem && window.BubbleSystem.initializeBubbles();
+      updateRunButtonIcon();
+      
+      // Initialize systems
+      if (window.BubbleSystem) {
+         window.BubbleSystem.initializeBubbles();
+      }
+      if (typeof updateCategoryCounts === 'function') {
+        updateCategoryCounts();
+      }
+      
+    } catch (error) {
+      console.error('Error initializing application:', error);
     }
   })();
 }
