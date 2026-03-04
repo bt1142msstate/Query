@@ -316,7 +316,7 @@ input, textarea, select, [contenteditable] {
   white-space: normal;
   word-wrap: break-word;
   overflow-wrap: anywhere;
-  overflow: visible;
+  overflow: hidden;
   line-height: 1.1;
   cursor: pointer;
   color: var(--color-white) !important;
@@ -454,10 +454,9 @@ input, textarea, select, [contenteditable] {
 /* Bubble container layout */
 #bubble-container {
   min-height: 180px;
-  padding: 10px 10px;
+  padding: 6px 4px;
   box-sizing: content-box;
   transition: opacity 0.35s ease;
-  overflow: visible;
 }
 
 /* Paging fade animation */
