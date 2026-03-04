@@ -323,7 +323,7 @@ input, textarea, select, [contenteditable] {
   text-shadow: 0 1px 2px rgba(0,0,0,0.3);
   position: relative;
   z-index: 1;
-  transition: top var(--transition-slow), left var(--transition-slow), transform 0.2s ease, box-shadow 0.2s ease;
+  transition: top var(--transition-slow), left var(--transition-slow), transform 0.1s ease-out, box-shadow 0.2s ease, border-radius 0.1s ease-out;
   
   /* Realistic Glass / Soap Bubble */
   background: radial-gradient(
