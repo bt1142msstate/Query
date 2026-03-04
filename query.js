@@ -229,8 +229,14 @@ if(runBtn){
             // So rows are likely arrays of values.
             
             window.VirtualTable.virtualTableData = newTableData;
-            window.VirtualTable.renderVirtualTable();
-            window.VirtualTable.calculateOptimalColumnWidths(); // Re-calculate widths
+            
+            // Re-render the full table to reset red column headers and redraw the rows with new widths
+            if (typeof showExampleTable === 'function') {
+                await showExampleTable(state.displayedFields);
+            } else {
+                window.VirtualTable.renderVirtualTable();
+                window.VirtualTable.calculateOptimalColumnWidths(); 
+            }
             
             // Update totalRows state
             window.totalRows = rows.length;
