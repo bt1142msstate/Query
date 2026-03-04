@@ -131,8 +131,8 @@ const fieldDefsArray = [
 // Helper to quickly find field def
 const fieldDefs = new Map(fieldDefsArray.map(field => [field.name, field]));
 
-// Categories array - derived from fields or manual
-const categories = ['All', 'Catalog', 'Call #', 'Item', 'Metrics', 'Transit', 'Marc'];
+// Categories array - Including "Selected" for filtered view
+const categories = ['All', 'Selected', 'Catalog', 'Call #', 'Item', 'Metrics', 'Transit', 'Marc'];
 
 // Initialize filtered defs
 let filteredDefs = [...fieldDefsArray];
@@ -162,6 +162,128 @@ function updateFilteredDefs(searchTerm) {
   return filteredDefs;
 }
 
+/**
+ * Checks if a field should have purple styling (filtered or displayed).
+ * @function shouldFieldHavePurpleStylingBase
+ * @param {string} fieldName - The name of the field to check
+ * @param {string[]} displayedFields - Array of currently displayed field names
+ * @param {Object} activeFilters - Object containing active filter configurations
+ * @returns {boolean} True if field should have purple styling
+ */
+function shouldFieldHavePurpleStylingBase(fieldName, displayedFields, activeFilters) {
+  // Check if the field has active filters
+  const hasFilters = activeFilters[fieldName] && 
+                    activeFilters[fieldName].filters && 
+                    activeFilters[fieldName].filters.length > 0;
+  
+  // Check if the field is displayed as a column
+  const isDisplayed = displayedFields.includes(fieldName);
+  
+  return hasFilters || isDisplayed;
+}
+
+/**
+ * Calculates the count of fields in each category.
+ * @function calculateCategoryCounts
+ * @param {string[]} displayedFields - Array of currently displayed field names
+ * @param {Object} activeFilters - Object containing active filter configurations
+ * @returns {Object} Object mapping category names to field counts
+ */
+function calculateCategoryCounts(displayedFields, activeFilters) {
+  const categoryCounts = {};
+  categories.forEach(cat => {
+    if (cat === 'All') {
+      categoryCounts.All = fieldDefsArray.length;
+    } else if (cat === 'Selected') {
+      categoryCounts.Selected = fieldDefsArray.filter(d => 
+        shouldFieldHavePurpleStylingBase(d.name, displayedFields || [], activeFilters || {})
+      ).length;
+    } else {
+      categoryCounts[cat] = fieldDefsArray.filter(d => {
+        const c = d.category;
+        return Array.isArray(c) ? c.includes(cat) : c === cat;
+      }).length;
+    }
+  });
+  return categoryCounts;
+}
+
+/**
+ * Renders category selectors for both desktop and mobile interfaces.
+ * Creates clickable category buttons with counts and tooltips.
+ * @function renderCategorySelectors
+ * @param {Object} categoryCounts - Object mapping category names to counts
+ * @param {string} currentCategory - Currently selected category
+ * @param {Function} onCategoryChange - Callback function when category changes
+ */
+function renderCategorySelectors(categoryCounts, currentCategory, onCategoryChange) {
+  const categoryBar = document.getElementById('category-bar');
+  const mobileSelector = document.getElementById('mobile-category-selector');
+
+  // Render desktop category bar
+  if (categoryBar) {
+    categoryBar.innerHTML = categories.map(cat => {
+      if (cat === 'Selected' && categoryCounts.Selected === 0) return '';
+      // Tooltip descriptions for each category
+      let tooltip = '';
+      switch (cat) {
+        case 'All': tooltip = 'Show all available fields'; break;
+        case 'Selected': tooltip = 'Show fields currently in use (displayed or filtered)'; break;
+        case 'Marc': tooltip = 'MARC-specific fields and custom MARC field filters'; break;
+        case 'Call #': tooltip = 'Fields related to call numbers'; break;
+        case 'Catalog': tooltip = 'Fields from the catalog record'; break;
+        case 'Item': tooltip = 'Fields specific to the item record'; break;
+        case 'Dates': tooltip = 'Fields representing dates'; break;
+        default: tooltip = `Show fields in the ${cat} category`;
+      }
+      return `<button data-category="${cat}" class="category-btn ${cat === currentCategory ? 'active' : ''}" data-tooltip="${tooltip}">${cat} (${categoryCounts[cat]})</button>`;
+    }).join('');
+    
+    // Attach click handlers
+    categoryBar.querySelectorAll('.category-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const newCategory = btn.dataset.category;
+        onCategoryChange(newCategory);
+        categoryBar.querySelectorAll('.category-btn').forEach(b =>
+          b.classList.toggle('active', b === btn)
+        );
+      });
+    });
+  }
+
+  // Render mobile selector
+  if (mobileSelector) {
+    const currentValue = mobileSelector.value;
+    mobileSelector.innerHTML = '';
+    categories.forEach(cat => {
+      if (cat === 'Selected' && categoryCounts.Selected === 0) return;
+      // Tooltip descriptions for each category
+      let tooltip = '';
+      switch (cat) {
+        case 'All': tooltip = 'Show all available fields'; break;
+        case 'Selected': tooltip = 'Show fields currently in use (displayed or filtered)'; break;
+        case 'Marc': tooltip = 'MARC-specific fields and custom MARC field filters'; break;
+        case 'Call #': tooltip = 'Fields related to call numbers'; break;
+        case 'Catalog': tooltip = 'Fields from the catalog record'; break;
+        case 'Item': tooltip = 'Fields specific to the item record'; break;
+        case 'Dates': tooltip = 'Fields representing dates'; break;
+        default: tooltip = `Show fields in the ${cat} category`;
+      }
+      const option = document.createElement('option');
+      option.value = cat;
+      option.textContent = `${cat} (${categoryCounts[cat]})`;
+      option.setAttribute('data-tooltip', tooltip);
+      if (cat === currentValue) option.selected = true;
+      mobileSelector.appendChild(option);
+    });
+    // If the current category doesn't exist or is Selected with count 0, select All
+    if (!Array.from(mobileSelector.options).some(opt => opt.value === currentValue) ||
+        (currentValue === 'Selected' && categoryCounts.Selected === 0)) {
+      mobileSelector.value = 'All';
+    }
+  }
+}
+
 // Export global variables and functions for use in other modules
 window.fieldDefs = fieldDefs;
 window.fieldDefsArray = fieldDefsArray;
@@ -169,15 +291,6 @@ window.filteredDefs = filteredDefs;
 window.categories = categories;
 window.getAllFieldDefs = getAllFieldDefs;
 window.updateFilteredDefs = updateFilteredDefs;
-window.shouldFieldHavePurpleStylingBase = function(field) { return false; };
-window.calculateCategoryCounts = function() {
-    const counts = {};
-    window.categories.forEach(c => counts[c] = 0);
-    window.fieldDefsArray.forEach(f => {
-        if (counts[f.category] !== undefined) counts[f.category]++;
-    });
-    return counts;
-};
-window.renderCategorySelectors = function() {
-    if (typeof updateCategoryCounts === 'function') updateCategoryCounts();
-};
+window.shouldFieldHavePurpleStylingBase = shouldFieldHavePurpleStylingBase;
+window.calculateCategoryCounts = calculateCategoryCounts;
+window.renderCategorySelectors = renderCategorySelectors;
