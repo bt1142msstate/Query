@@ -77,12 +77,6 @@ const ExcelExporter = (() => {
 
     worksheet.views = [{ state: 'frozen', ySplit: 1 }];
 
-    worksheet.columns = displayedFields.map(field => ({
-      header: field,
-      key: field,
-      width: Math.max(12, Math.min(50, Math.round(((VirtualTable.calculatedColumnWidths && VirtualTable.calculatedColumnWidths[field]) || 150) / 7)))
-    }));
-
     // Accumulate typed rows for the Excel table definition
     const tableRows = [];
     
@@ -96,6 +90,33 @@ const ExcelExporter = (() => {
     displayedFields.forEach(field => {
       const def = window.fieldDefs && window.fieldDefs.get(field);
       fieldTypeMap.set(field, def ? def.type : 'string');
+    });
+
+    worksheet.columns = displayedFields.map(field => {
+      let maxLen = field.length;
+      const colIndex = virtualData.columnMap.get(field);
+      const type = fieldTypeMap.get(field);
+      
+      if (colIndex !== undefined) {
+        dataRows.forEach(row => {
+          let val = row[colIndex];
+          if (val !== undefined && val !== null) {
+            if (type === 'date') val = '12/31/2000'; // typical date length
+            else if (type === 'number') val = String(val).replace(/,/g, '');
+            else val = String(val);
+            maxLen = Math.max(maxLen, val.length);
+          }
+        });
+      }
+      
+      // Add padding for header filters/icons and cap max width at 60
+      const charWidth = Math.max(4, Math.min(60, maxLen + 2));
+      
+      return {
+        header: field,
+        key: field,
+        width: charWidth
+      };
     });
 
     // Parse a raw YYYYMMDD integer (e.g. 20200914) into a JS Date.
