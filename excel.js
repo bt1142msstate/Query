@@ -141,6 +141,7 @@ const ExcelExporter = (() => {
 
       if (type === 'date') {
         column.numFmt = 'mm/dd/yyyy';
+        column.alignment = { horizontal: 'right' };
       } else if (type === 'number') {
         // Check first non-empty value to decide integer vs decimal
         const colIndex = virtualData.columnMap.get(field);
@@ -151,8 +152,12 @@ const ExcelExporter = (() => {
           typeof sample === 'number' ? sample : parseFloat(String(sample))
         );
         column.numFmt = isDecimal ? '#,##0.00' : '0';
+        column.alignment = { horizontal: 'right' };
+      } else if (type === 'boolean') {
+        column.alignment = { horizontal: 'center' };
+      } else {
+        column.alignment = { horizontal: 'left' };
       }
-      // string / boolean: no special numeric format needed
     });
 
     const safeTableName = tableName.replace(/[^a-zA-Z0-9_]/g, '_');
