@@ -332,6 +332,38 @@
       </div>
     </div><!-- end help-panel -->
   </div>
+<!-- Filter Side Panel -->
+<aside id="filter-side-panel" class="panel-hidden" aria-label="Filter panel">
+  <!-- Tab strip: always visible, click to toggle panel open/closed -->
+  <button id="filter-panel-tab" aria-label="Toggle filter panel" title="Show/hide active filters">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+    </svg>
+    <span id="fp-count-badge" class="fp-count-badge" style="display:none;"></span>
+  </button>
+  <!-- Expanded content area -->
+  <div id="filter-panel-content">
+    <div id="filter-panel-header">
+      <span id="filter-panel-title">Filters</span>
+      <button id="filter-panel-collapse-btn" class="fp-icon-btn" aria-label="Collapse" title="Collapse panel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
+          <polyline id="fp-chevron" points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+    </div>
+    <div id="filter-panel-body"></div>
+    <div id="filter-panel-footer">
+      <button id="filter-panel-add-btn" class="fp-add-filter-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Add Filter
+      </button>
+    </div>
+  </div>
+</aside>
+
 <!-- ExcelJS for generating spreadsheets with freeze panes support -->
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="utils.js"></script>
