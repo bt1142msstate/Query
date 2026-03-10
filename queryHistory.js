@@ -257,6 +257,14 @@ function loadQueryConfig(q) {
   if (typeof updateQueryJson === 'function') {
     updateQueryJson();
   }
+
+  // Update button state to "Refresh" instead of "Run Query" since it's an existing query
+  if (typeof window.getCurrentQueryState === 'function') {
+    window.lastExecutedQueryState = window.getCurrentQueryState();
+  }
+  if (typeof window.updateButtonStates === 'function') {
+    window.updateButtonStates();
+  }
 }
 
 /** * Loads query results from backend.
