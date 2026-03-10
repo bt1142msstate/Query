@@ -417,7 +417,7 @@ input, textarea, select, [contenteditable] {
   100% { transform: rotate(360deg); }
 }
 
-/* Bubble with active filter - Frosted/Filled Glass + static emerald aura */
+/* Bubble selected (displayed or filtered) - Frosted/Filled Glass */
 .bubble-filter {
   background: radial-gradient(
     130% 130% at 30% 30%, 
@@ -429,9 +429,7 @@ input, textarea, select, [contenteditable] {
   box-shadow:
     inset -5px -5px 15px rgba(255, 255, 255, 0.8),
     inset 2px 2px 10px rgba(255, 255, 255, 0.5),
-    0 4px 10px rgba(0, 0, 0, 0.1),
-    0 0 14px 4px rgba(52, 211, 153, 0.55),
-    0 0 28px rgba(52, 211, 153, 0.2);
+    0 4px 10px rgba(0, 0, 0, 0.1);
 
   color: #1e3a8a !important;
   text-shadow: none;
@@ -440,9 +438,19 @@ input, textarea, select, [contenteditable] {
   -webkit-backdrop-filter: none;
 }
 
+/* Bubble with active filter conditions — adds emerald aura on top of glass style */
+.bubble-active-filter {
+  box-shadow:
+    inset -5px -5px 15px rgba(255, 255, 255, 0.8),
+    inset 2px 2px 10px rgba(255, 255, 255, 0.5),
+    0 4px 10px rgba(0, 0, 0, 0.1),
+    0 0 14px 4px rgba(52, 211, 153, 0.55),
+    0 0 28px rgba(52, 211, 153, 0.2);
+}
+
 /* Suppress aura while the bubble is enlarged/active */
-.active-bubble.bubble-filter,
-.enlarge-bubble.bubble-filter {
+.active-bubble.bubble-active-filter,
+.enlarge-bubble.bubble-active-filter {
   box-shadow:
     inset -5px -5px 15px rgba(255, 255, 255, 0.8),
     inset 2px 2px 10px rgba(255, 255, 255, 0.5),
@@ -1665,6 +1673,7 @@ th:hover .th-trash {
   -webkit-backdrop-filter: blur(14px);
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-right: none;
+  border-radius: 8px 0 0 8px;
   box-shadow: 2px 0 12px rgba(0, 0, 0, 0.07);
 }
 
@@ -1681,7 +1690,7 @@ th:hover .th-trash {
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-left: none;
-  border-radius: 0 10px 10px 0;
+  border-radius: 0;
   cursor: pointer;
   display: flex;
   flex-direction: column;

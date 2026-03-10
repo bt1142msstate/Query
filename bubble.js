@@ -108,6 +108,10 @@ function applyCorrectBubbleStyling(bubbleElement) {
     bubbleElement.classList.remove('bubble-filter');
     bubbleElement.removeAttribute('data-filtered');
   }
+
+  // Aura only when the field has actual filter conditions set (not just displayed)
+  const hasActiveFilters = !!(window.activeFilters?.[fieldName]?.filters?.length);
+  bubbleElement.classList.toggle('bubble-active-filter', hasActiveFilters);
 }
 
 /**
