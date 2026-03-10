@@ -316,9 +316,6 @@ input, textarea, select, [contenteditable] {
   white-space: normal;
   word-wrap: break-word;
   overflow-wrap: anywhere;
-  /* overflow:clip prevents the sub-pixel jagged edge caused by overflow:hidden
-     creating a new stacking context at the border-radius boundary */
-  overflow: clip;
   line-height: 1.1;
   cursor: pointer;
   color: var(--color-white) !important;
@@ -378,7 +375,7 @@ input, textarea, select, [contenteditable] {
   transform: scale(1);
 }
 
-/* Secondary reflection (bottom right) — no filter:blur so overflow:hidden doesn't create jagged clip */
+/* Secondary reflection (bottom right) */
 .bubble::before {
   content: "";
   position: absolute;
