@@ -100,12 +100,8 @@ function renderVirtualTable() {
         // Field exists in data and has a value
         cellValue = rowData[columnIndex];
       } else if (columnIndex === undefined) {
-        // Field doesn't exist in the current data - show "..." to indicate query rerun needed
-        cellValue = '...';
-        td.style.color = '#ef4444';
-        td.style.fontStyle = 'italic';
-        td.style.fontWeight = '500';
-        td.setAttribute('data-tooltip', 'This field is not in the current data. Run a new query to populate it.');
+        // Field doesn't exist in the current data - show empty
+        cellValue = '';
       } else {
         // Field exists but value is empty/undefined - show em dash
         cellValue = '—';
