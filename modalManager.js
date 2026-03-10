@@ -142,6 +142,7 @@ class ModalManager {
   initialize() {
     // Desktop: Bind click events to the toggle buttons
     const panelToggles = {
+      'toggle-filters': 'filter-panel',
       'toggle-json': 'json-panel',
       'toggle-queries': 'queries-panel',
       'toggle-help': 'help-panel'
@@ -181,6 +182,7 @@ class ModalManager {
 
     // Mobile: Panel Toggles
     const mobilePanelToggles = {
+        'mobile-toggle-filters': 'filter-panel',
         'mobile-toggle-json': 'json-panel',
         'mobile-toggle-queries': 'queries-panel',
         'mobile-toggle-help': 'help-panel'
