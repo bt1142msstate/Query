@@ -435,24 +435,33 @@ input, textarea, select, [contenteditable] {
   -webkit-backdrop-filter: none;
 }
 
-/* Bubble with active filter conditions — adds emerald aura on top of glass style */
-.bubble-active-filter {
-  box-shadow:
-    inset -5px -5px 15px rgba(255, 255, 255, 0.8),
-    inset 2px 2px 10px rgba(255, 255, 255, 0.5),
-    0 4px 10px rgba(0, 0, 0, 0.1),
-    0 0 14px 4px rgba(52, 211, 153, 0.55),
-    0 0 28px rgba(52, 211, 153, 0.2);
+/* Bubble with active filter — rainbow aura ring via spinning conic-gradient */
+.bubble-active-filter::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    #ff4040, #ff9000, #ffdd00, #00dd88, #00aaff, #9955ff, #ff44cc, #ff4040
+  );
+  filter: blur(9px);
+  opacity: 0.82;
+  z-index: -1;
+  animation: rainbow-spin 3s linear infinite;
+  pointer-events: none;
+  transform-origin: center;
 }
 
-/* Suppress aura while the bubble is enlarged/active */
-.active-bubble.bubble-active-filter,
-.enlarge-bubble.bubble-active-filter {
-  box-shadow:
-    inset -5px -5px 15px rgba(255, 255, 255, 0.8),
-    inset 2px 2px 10px rgba(255, 255, 255, 0.5),
-    0 6px 18px rgba(0, 0, 0, 0.1),
-    0 0 0 4px rgba(255, 255, 255, 0.4);
+@keyframes rainbow-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Suppress rainbow ring while the bubble is enlarged/active */
+.active-bubble.bubble-active-filter::before,
+.enlarge-bubble.bubble-active-filter::before {
+  opacity: 0;
+  animation: none;
 }
 
 /* Hide secondary reflection for filled bubble */
@@ -1699,7 +1708,7 @@ th:hover .th-trash {
 /* When content is open: tab becomes the right cap of the card */
 #filter-side-panel.panel-open #filter-panel-tab {
   border-left: none;
-  border-radius: 0 8px 8px 0;
+  border-radius: 0 12px 12px 0;
   box-shadow: 4px 0 12px rgba(0, 0, 0, 0.06);
 }
 
