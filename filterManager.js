@@ -210,6 +210,7 @@ window.renderConditionList = function(field) {
 
     container.appendChild(list);
     window.updateCategoryCounts && window.updateCategoryCounts();
+    window.FilterSidePanel && window.FilterSidePanel.update();
 };
 
 /**
@@ -545,8 +546,379 @@ window.finalizeConfirmAction = function() {
     const overlay = document.getElementById('overlay');
     if (overlay) overlay.click();
     
+    window.FilterSidePanel && window.FilterSidePanel.update();
     window.updateCategoryCounts && window.updateCategoryCounts();
 };
+
+/* ==========================================
+   FILTER SIDE PANEL
+   Collapsible side panel showing all active filters,
+   supporting inline edit, remove, add-condition, and add-field.
+   ========================================== */
+window.FilterSidePanel = (function () {
+    let isOpen = false;
+
+    const $ = id => document.getElementById(id);
+
+    function hasAnyFilters() {
+        return window.activeFilters &&
+            Object.keys(window.activeFilters).some(
+                k => window.activeFilters[k] &&
+                     window.activeFilters[k].filters &&
+                     window.activeFilters[k].filters.length > 0
+            );
+    }
+
+    function setChevron(open) {
+        const chevron = $('fp-chevron');
+        if (!chevron) return;
+        // open → point right (collapse); closed → point left (expand)
+        chevron.setAttribute('points', open ? '15 18 9 12 15 6' : '9 18 15 12 9 6');
+    }
+
+    function open() {
+        isOpen = true;
+        const panel = $('filter-side-panel');
+        if (panel) panel.classList.add('panel-open');
+        setChevron(true);
+    }
+
+    function close() {
+        isOpen = false;
+        const panel = $('filter-side-panel');
+        if (panel) panel.classList.remove('panel-open');
+        setChevron(false);
+    }
+
+    function toggle() {
+        isOpen ? close() : open();
+    }
+
+    function hideFully() {
+        isOpen = false;
+        const panel = $('filter-side-panel');
+        if (panel) {
+            panel.classList.remove('panel-open');
+            panel.classList.add('panel-hidden');
+        }
+    }
+
+    function reveal() {
+        const panel = $('filter-side-panel');
+        if (panel) panel.classList.remove('panel-hidden');
+    }
+
+    /* --- Label helpers --- */
+    function condLabel(cond) {
+        const map = {
+            contains: 'Contains', starts: 'Starts with', equals: 'Equals',
+            greater: 'Greater than', less: 'Less than', between: 'Between',
+            before: 'Before', after: 'After', doesnotcontain: 'Does not contain'
+        };
+        return map[cond] || (cond.charAt(0).toUpperCase() + cond.slice(1));
+    }
+
+    function buildValueLabel(filter, fieldDef) {
+        let valueLabel = filter.val;
+        const isBetween = filter.cond.toLowerCase() === 'between';
+        if (fieldDef && fieldDef.type === 'date') {
+            if (isBetween) {
+                const parts = filter.val.split('|');
+                if (parts.length === 2) valueLabel = `${parts[0]} – ${parts[1]}`;
+            }
+        } else if (fieldDef && fieldDef.values && fieldDef.values.length > 0) {
+            const valMap = window.getLiteralToDisplayMap
+                ? window.getLiteralToDisplayMap(fieldDef)
+                : (typeof fieldDef.values[0] === 'object'
+                    ? new Map(fieldDef.values.map(v => [v.RawValue, v.Name]))
+                    : new Map());
+            if (valMap.size > 0) {
+                if (isBetween) {
+                    valueLabel = filter.val.split('|').map(v => valMap.get(v) || v).join(' – ');
+                } else {
+                    valueLabel = filter.val.split(',').map(v => valMap.get(v) || v).join(', ');
+                }
+            }
+        } else if (isBetween) {
+            valueLabel = filter.val.split('|').join(' – ');
+        }
+        return valueLabel;
+    }
+
+    /* --- Inline edit form --- */
+    function startInlineEdit(field, filterIndex, rowEl) {
+        const filterData = window.activeFilters[field];
+        if (!filterData) return;
+        const filter = filterData.filters[filterIndex];
+        if (!filter) return;
+
+        const fieldDef = window.fieldDefs ? window.fieldDefs.get(field) : null;
+        const fieldType = (fieldDef && fieldDef.type) || 'string';
+        const availableConds = (fieldDef && fieldDef.filters)
+            ? fieldDef.filters
+            : (window.typeConditions && window.typeConditions[fieldType])
+                || (window.typeConditions && window.typeConditions.string)
+                || ['contains', 'starts', 'equals'];
+
+        const isBetweenNow = filter.cond === 'between';
+        const vals = isBetweenNow ? filter.val.split('|') : [filter.val, ''];
+
+        const form = document.createElement('div');
+        form.className = 'fp-edit-form';
+
+        // Condition select
+        const condSel = document.createElement('select');
+        condSel.className = 'fp-edit-cond-select';
+        availableConds.forEach(c => {
+            const slug = c.split(' ')[0];
+            const opt = document.createElement('option');
+            opt.value = slug;
+            opt.textContent = condLabel(slug);
+            if (slug === filter.cond) opt.selected = true;
+            condSel.appendChild(opt);
+        });
+
+        const inputType = (fieldType === 'date') ? 'date'
+            : (fieldType === 'number' || fieldType === 'money') ? 'number' : 'text';
+
+        const val1 = document.createElement('input');
+        val1.className = 'fp-edit-val-input';
+        val1.type = inputType;
+        val1.value = vals[0];
+        val1.placeholder = 'Value';
+
+        const sep = document.createElement('span');
+        sep.className = 'fp-edit-separator';
+        sep.textContent = '–';
+
+        const val2 = document.createElement('input');
+        val2.className = 'fp-edit-val-input';
+        val2.type = inputType;
+        val2.value = vals[1];
+        val2.placeholder = 'To';
+
+        function syncBetween() {
+            const bet = condSel.value === 'between';
+            sep.style.display = bet ? '' : 'none';
+            val2.style.display = bet ? '' : 'none';
+        }
+        condSel.addEventListener('change', syncBetween);
+        syncBetween();
+
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'fp-edit-save-btn';
+        saveBtn.textContent = '✓';
+        saveBtn.title = 'Save';
+        saveBtn.addEventListener('click', () => {
+            const newCond = condSel.value;
+            let newVal = val1.value.trim();
+            const newVal2 = val2.value.trim();
+            if (!newVal) return;
+            if (newCond === 'between') {
+                if (!newVal2) return;
+                newVal = `${newVal}|${newVal2}`;
+            }
+            filterData.filters[filterIndex] = { cond: newCond, val: newVal };
+            window.updateQueryJson && window.updateQueryJson();
+            window.renderConditionList && window.renderConditionList(field);
+            update();
+        });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'fp-edit-cancel-btn';
+        cancelBtn.textContent = '✕';
+        cancelBtn.title = 'Cancel';
+        cancelBtn.addEventListener('click', () => update());
+
+        const btns = document.createElement('div');
+        btns.className = 'fp-edit-btns';
+        btns.appendChild(saveBtn);
+        btns.appendChild(cancelBtn);
+
+        form.appendChild(condSel);
+        form.appendChild(val1);
+        form.appendChild(sep);
+        form.appendChild(val2);
+        form.appendChild(btns);
+
+        rowEl.replaceWith(form);
+    }
+
+    /* --- Open bubble condition panel for adding a condition to an existing field --- */
+    function openBubbleForField(field) {
+        // First try to find a non-disabled bubble in the current view
+        const bubble = Array.from(document.querySelectorAll('.bubble')).find(
+            b => b.textContent.trim() === field && !b.classList.contains('bubble-disabled')
+        );
+        if (bubble) {
+            bubble.click();
+            return;
+        }
+        // If not visible, search for the field via the search input
+        const queryInput = document.getElementById('query-input');
+        if (queryInput) {
+            queryInput.value = field;
+            queryInput.dispatchEvent(new Event('input', { bubbles: true }));
+            queryInput.focus();
+            queryInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    /* --- Rebuild panel body from window.activeFilters --- */
+    function update() {
+        const body = $('filter-panel-body');
+        if (!body) return;
+
+        const hasFilters = hasAnyFilters();
+        if (!hasFilters) {
+            hideFully();
+            return;
+        }
+
+        // If was fully hidden, reveal + open automatically
+        const panel = $('filter-side-panel');
+        if (panel && panel.classList.contains('panel-hidden')) {
+            reveal();
+            open();
+        }
+
+        // Update count badge
+        const countBadge = $('fp-count-badge');
+        if (countBadge) {
+            const total = Object.values(window.activeFilters)
+                .reduce((s, v) => s + (v.filters ? v.filters.length : 0), 0);
+            countBadge.textContent = total;
+            countBadge.style.display = total > 0 ? '' : 'none';
+        }
+
+        const titleEl = $('filter-panel-title');
+        if (titleEl) {
+            const total = Object.values(window.activeFilters)
+                .reduce((s, v) => s + (v.filters ? v.filters.length : 0), 0);
+            titleEl.textContent = `Filters (${total})`;
+        }
+
+        body.innerHTML = '';
+
+        for (const field of Object.keys(window.activeFilters)) {
+            const data = window.activeFilters[field];
+            if (!data || !data.filters || data.filters.length === 0) continue;
+
+            const fieldDef = window.fieldDefs ? window.fieldDefs.get(field) : null;
+
+            const group = document.createElement('div');
+            group.className = 'fp-field-group';
+
+            // Field header row
+            const fieldHeader = document.createElement('div');
+            fieldHeader.className = 'fp-field-header';
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'fp-field-name';
+            nameSpan.textContent = field;
+            fieldHeader.appendChild(nameSpan);
+            group.appendChild(fieldHeader);
+
+            // AND / OR toggle (only when > 1 filter on the field)
+            if (data.filters.length > 1) {
+                const logicBtn = document.createElement('button');
+                logicBtn.className = 'fp-logic-toggle' + (data.logical === 'And' ? ' active' : '');
+                logicBtn.textContent = data.logical.toUpperCase();
+                logicBtn.title = 'Click to switch AND / OR logic';
+                logicBtn.addEventListener('click', () => {
+                    data.logical = data.logical === 'And' ? 'Or' : 'And';
+                    window.updateQueryJson && window.updateQueryJson();
+                    update();
+                });
+                group.appendChild(logicBtn);
+            }
+
+            // Condition rows
+            const condsList = document.createElement('div');
+            condsList.className = 'fp-conds-list';
+
+            data.filters.forEach((f, idx) => {
+                const valueLabel = buildValueLabel(f, fieldDef);
+                const row = document.createElement('div');
+                row.className = 'fp-cond-row';
+
+                const textSpan = document.createElement('span');
+                textSpan.className = 'fp-cond-text';
+                textSpan.innerHTML = `<span class="fp-cond-op">${condLabel(f.cond)}</span> <b>${valueLabel}</b>`;
+
+                const actions = document.createElement('div');
+                actions.className = 'fp-cond-actions';
+
+                const editBtn = document.createElement('button');
+                editBtn.className = 'fp-cond-btn fp-edit-btn';
+                editBtn.title = 'Edit this condition';
+                editBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+                editBtn.addEventListener('click', e => {
+                    e.stopPropagation();
+                    startInlineEdit(field, idx, row);
+                });
+
+                const delBtn = document.createElement('button');
+                delBtn.className = 'fp-cond-btn fp-del-btn';
+                delBtn.title = 'Remove this filter';
+                delBtn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14"><path d="M9 3h6a1 1 0 0 1 1 1v1h4v2H4V5h4V4a1 1 0 0 1 1-1Zm-3 6h12l-.8 11.2A2 2 0 0 1 15.2 22H8.8a2 2 0 0 1-1.99-1.8L6 9Z"/></svg>`;
+                delBtn.addEventListener('click', e => {
+                    e.stopPropagation();
+                    data.filters.splice(idx, 1);
+                    if (data.filters.length === 0) delete window.activeFilters[field];
+                    window.updateQueryJson && window.updateQueryJson();
+                    window.renderConditionList && window.renderConditionList(field);
+                    // renderConditionList will call update(), but call it directly too
+                    update();
+                });
+
+                actions.appendChild(editBtn);
+                actions.appendChild(delBtn);
+                row.appendChild(textSpan);
+                row.appendChild(actions);
+                condsList.appendChild(row);
+            });
+
+            group.appendChild(condsList);
+
+            // Add condition button
+            const addCondBtn = document.createElement('button');
+            addCondBtn.className = 'fp-add-cond-btn';
+            addCondBtn.textContent = '+ Add condition';
+            addCondBtn.addEventListener('click', () => openBubbleForField(field));
+            group.appendChild(addCondBtn);
+
+            body.appendChild(group);
+        }
+    }
+
+    /* --- Wire up static buttons on DOMContentLoaded --- */
+    function init() {
+        const tabBtn = $('filter-panel-tab');
+        const collapseBtn = $('filter-panel-collapse-btn');
+        const addBtn = $('filter-panel-add-btn');
+
+        if (tabBtn) {
+            tabBtn.addEventListener('click', e => { e.stopPropagation(); toggle(); });
+        }
+        if (collapseBtn) {
+            collapseBtn.addEventListener('click', e => { e.stopPropagation(); close(); });
+        }
+        if (addBtn) {
+            addBtn.addEventListener('click', e => {
+                e.stopPropagation();
+                const qi = document.getElementById('query-input');
+                if (qi) {
+                    qi.focus();
+                    qi.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+
+    return { update, open, close, toggle };
+}());
 
 /**
  * Special handler for condition buttons when in Marc mode
