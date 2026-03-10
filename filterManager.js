@@ -569,29 +569,26 @@ window.FilterSidePanel = (function () {
             );
     }
 
-    function setChevron(open) {
-        const chevron = $('fp-chevron');
-        if (!chevron) return;
-        // open → < (left, collapse); closed → > (right, expand)
-        chevron.setAttribute('points', open ? '15 18 9 12 15 6' : '9 18 15 12 9 6');
-    }
-
     function open() {
         isOpen = true;
         const panel = $('filter-side-panel');
-        if (panel) panel.classList.add('panel-open');
-        setChevron(true);
+        if (panel) {
+            panel.classList.remove('panel-hidden');
+            panel.classList.add('panel-open');
+        }
     }
 
     function close() {
-        isOpen = false;
-        const panel = $('filter-side-panel');
-        if (panel) panel.classList.remove('panel-open');
-        setChevron(false);
+        hideFully();
     }
 
     function toggle() {
-        isOpen ? close() : open();
+        const panel = $('filter-side-panel');
+        if (panel && panel.classList.contains('panel-hidden')) {
+            open();
+        } else {
+            hideFully();
+        }
     }
 
     function hideFully() {
@@ -601,11 +598,6 @@ window.FilterSidePanel = (function () {
             panel.classList.remove('panel-open');
             panel.classList.add('panel-hidden');
         }
-    }
-
-    function reveal() {
-        const panel = $('filter-side-panel');
-        if (panel) panel.classList.remove('panel-hidden');
     }
 
     /* --- Label helpers --- */
@@ -778,7 +770,6 @@ window.FilterSidePanel = (function () {
         // If was fully hidden, reveal + open automatically
         const panel = $('filter-side-panel');
         if (panel && panel.classList.contains('panel-hidden')) {
-            reveal();
             open();
         }
 
@@ -894,14 +885,10 @@ window.FilterSidePanel = (function () {
     /* --- Wire up static buttons on DOMContentLoaded --- */
     function init() {
         const tabBtn = $('filter-panel-tab');
-        const collapseBtn = $('filter-panel-collapse-btn');
         const addBtn = $('filter-panel-add-btn');
 
         if (tabBtn) {
             tabBtn.addEventListener('click', e => { e.stopPropagation(); toggle(); });
-        }
-        if (collapseBtn) {
-            collapseBtn.addEventListener('click', e => { e.stopPropagation(); close(); });
         }
         if (addBtn) {
             addBtn.addEventListener('click', e => {
