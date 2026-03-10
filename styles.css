@@ -1657,7 +1657,7 @@ th:hover .th-trash {
   display: flex;
   flex-direction: row;
   pointer-events: auto;
-  max-height: 400px;           /* matches table height */
+  height: 400px;           /* matches table height */
 }
 
 #filter-side-panel.panel-hidden {
@@ -1673,59 +1673,9 @@ th:hover .th-trash {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(0, 0, 0, 0.1);
-  border-right: none;
-  border-radius: 12px 0 0 12px;
+  border-radius: 12px;
   box-shadow: -6px 0 32px rgba(0, 0, 0, 0.13), 0 8px 24px rgba(0, 0, 0, 0.08);
-}
-
-/* Tab — floating pill button when collapsed, right cap when content open */
-#filter-panel-tab {
-  flex-shrink: 0;
-  width: 36px;
-  background: rgba(255, 255, 255, 0.97);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 8px;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  padding-top: 12px;
-  gap: 6px;
-  color: #6b7280;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 1px 4px rgba(0, 0, 0, 0.06);
-  transition: background 0.2s, color 0.2s, border-radius 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s;
-}
-
-/* When content is open: tab becomes the right cap of the card */
-#filter-side-panel.panel-open #filter-panel-tab {
-  border-left: none;
-  border-radius: 0 12px 12px 0;
-  box-shadow: 4px 0 12px rgba(0, 0, 0, 0.06);
-}
-
-#filter-panel-tab:hover {
-  background: white;
-  color: #374151;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16), 0 1px 4px rgba(0, 0, 0, 0.08);
-}
-
-/* Filter count badge on the tab */
-#fp-count-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
-  border-radius: 9999px;
-  background: var(--color-emerald-400);
-  color: white;
-  font-size: 0.62rem;
-  font-weight: 700;
-  line-height: 1;
+  overflow: hidden; /* clips the header and footer to the rounded corners */
 }
 
 /* Panel header */
