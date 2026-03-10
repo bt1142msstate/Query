@@ -582,6 +582,7 @@ async function showExampleTable(fields){
           e.preventDefault();
           const field = e.dataTransfer.getData('bubble-field');
           if (field) {
+            window.DragDropSystem.dragDropManager.dropSuccessful = true;
             window.DragDropSystem.restoreFieldWithDuplicates(field);
             showExampleTable(displayedFields).catch(error => {
               console.error('Error updating table:', error);
