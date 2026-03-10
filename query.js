@@ -654,9 +654,9 @@ async function showExampleTable(fields){
             }
             
             if (fieldExistsInData) {
-              return `<th draggable="true" data-col-index="${i}" class="px-6 py-3 ${alignClass} text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50"><span class='th-text'>${f}</span></th>`;
+              return `<th draggable="true" data-col-index="${i}" class="sortable-header px-6 py-3 ${alignClass} text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors" data-sort-field="${f}"><div class="flex items-center gap-1 ${alignClass === 'text-right' ? 'justify-end' : alignClass === 'text-center' ? 'justify-center' : 'justify-start'}"><span class='th-text'>${f}</span><span class='sort-icon text-gray-400'></span></div></th>`;
             } else {
-              return `<th draggable="true" data-col-index="${i}" class="px-6 py-3 ${alignClass} text-xs font-medium uppercase tracking-wider bg-gray-50" style="color: #ef4444 !important;" data-tooltip="This field is not in the current data. Run a new query to populate it."><span class='th-text' style="color: #ef4444 !important;">${f}</span></th>`;
+              return `<th draggable="true" data-col-index="${i}" class="px-6 py-3 ${alignClass} text-xs font-medium uppercase tracking-wider bg-gray-50" style="color: #ef4444 !important;" data-tooltip="This field is not in the current data. Run a new query to populate it."><div class="flex items-center gap-1 ${alignClass === 'text-right' ? 'justify-end' : alignClass === 'text-center' ? 'justify-center' : 'justify-start'}"><span class='th-text' style="color: #ef4444 !important;">${f}</span></div></th>`;
             }
           }).join('')}
         </tr>
@@ -703,6 +703,43 @@ async function showExampleTable(fields){
     // Initial render of virtual table
     VirtualTable.renderVirtualTable();
     
+    // Set up table sorting click handlers
+    const sortableHeaders = table.querySelectorAll('th.sortable-header');
+    sortableHeaders.forEach(th => {
+      th.addEventListener('click', (e) => {
+        // Prevent sorting if clicking the trash can
+        if (e.target.closest('#header-trash')) return;
+        
+        const field = th.getAttribute('data-sort-field');
+        if (field && window.VirtualTable && window.VirtualTable.sortTableBy) {
+          window.VirtualTable.sortTableBy(field);
+        }
+      });
+    });
+
+    // Make sure updateSortHeadersUI exists on window
+    if (!window.updateSortHeadersUI) {
+      window.updateSortHeadersUI = (sortColumn, sortDirection) => {
+        document.querySelectorAll('#example-table th').forEach(th => {
+          const iconSpan = th.querySelector('.sort-icon');
+          if (iconSpan) {
+            if (th.getAttribute('data-sort-field') === sortColumn) {
+              iconSpan.innerHTML = sortDirection === 'asc' ? ' ↑' : ' ↓';
+              iconSpan.className = 'sort-icon text-green-600 font-bold ml-1';
+            } else {
+              iconSpan.innerHTML = '';
+              iconSpan.className = 'sort-icon text-gray-400 ml-1';
+            }
+          }
+        });
+      };
+    }
+    // Re-apply sort UI state on table render
+    const state = window.VirtualTable.getVirtualTableState ? window.VirtualTable.getVirtualTableState() : null;
+    if (state && state.currentSortColumn && window.updateSortHeadersUI) {
+      window.updateSortHeadersUI(state.currentSortColumn, state.currentSortDirection);
+    }
+
     // Set up drag and drop
     window.DragDropSystem.addDragAndDrop(table);
     window.DragDropSystem.attachBubbleDropTarget(container);
