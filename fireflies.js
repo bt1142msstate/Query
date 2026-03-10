@@ -102,7 +102,9 @@
         if (ff.y < -margin) ff.y = h + margin;
         else if (ff.y > h + margin) ff.y = -margin;
         
-        ff.el.style.transform = `translate3d(${ff.x.toFixed(1)}px, ${ff.y.toFixed(1)}px, 0)`;
+        // Use the individual CSS `translate` property so it composes with
+        // the CSS animation's `transform: scale()` instead of fighting it.
+        ff.el.style.translate = `${ff.x.toFixed(1)}px ${ff.y.toFixed(1)}px`;
     }
     
     requestAnimationFrame(animate);
