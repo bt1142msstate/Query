@@ -435,33 +435,30 @@ input, textarea, select, [contenteditable] {
   -webkit-backdrop-filter: none;
 }
 
-/* Bubble with active filter — rainbow aura ring via spinning conic-gradient */
-.bubble-active-filter::before {
-  content: '';
-  position: absolute;
-  inset: -8px;
-  border-radius: 50%;
-  background: conic-gradient(
-    from 0deg,
-    #ff4040, #ff9000, #ffdd00, #00dd88, #00aaff, #9955ff, #ff44cc, #ff4040
-  );
-  filter: blur(9px);
-  opacity: 0.82;
-  z-index: -1;
-  animation: rainbow-spin 3s linear infinite;
-  pointer-events: none;
-  transform-origin: center;
+/* Bubble with active filter — rainbow aura via animated box-shadow */
+.bubble-active-filter {
+  animation: rainbow-glow 3s linear infinite;
 }
 
-@keyframes rainbow-spin {
-  to { transform: rotate(360deg); }
+@keyframes rainbow-glow {
+  0%   { box-shadow: inset -5px -5px 15px rgba(255,255,255,0.8), inset 2px 2px 10px rgba(255,255,255,0.5), 0 4px 10px rgba(0,0,0,0.1), 0 0 15px 4px rgba(255, 0, 0, 0.6), 0 0 28px rgba(255, 0, 0, 0.3); }
+  17%  { box-shadow: inset -5px -5px 15px rgba(255,255,255,0.8), inset 2px 2px 10px rgba(255,255,255,0.5), 0 4px 10px rgba(0,0,0,0.1), 0 0 15px 4px rgba(255, 128, 0, 0.6), 0 0 28px rgba(255, 128, 0, 0.3); }
+  33%  { box-shadow: inset -5px -5px 15px rgba(255,255,255,0.8), inset 2px 2px 10px rgba(255,255,255,0.5), 0 4px 10px rgba(0,0,0,0.1), 0 0 15px 4px rgba(255, 255, 0, 0.6), 0 0 28px rgba(255, 255, 0, 0.3); }
+  50%  { box-shadow: inset -5px -5px 15px rgba(255,255,255,0.8), inset 2px 2px 10px rgba(255,255,255,0.5), 0 4px 10px rgba(0,0,0,0.1), 0 0 15px 4px rgba(0, 255, 0, 0.6), 0 0 28px rgba(0, 255, 0, 0.3); }
+  67%  { box-shadow: inset -5px -5px 15px rgba(255,255,255,0.8), inset 2px 2px 10px rgba(255,255,255,0.5), 0 4px 10px rgba(0,0,0,0.1), 0 0 15px 4px rgba(0, 128, 255, 0.6), 0 0 28px rgba(0, 128, 255, 0.3); }
+  83%  { box-shadow: inset -5px -5px 15px rgba(255,255,255,0.8), inset 2px 2px 10px rgba(255,255,255,0.5), 0 4px 10px rgba(0,0,0,0.1), 0 0 15px 4px rgba(128, 0, 255, 0.6), 0 0 28px rgba(128, 0, 255, 0.3); }
+  100% { box-shadow: inset -5px -5px 15px rgba(255,255,255,0.8), inset 2px 2px 10px rgba(255,255,255,0.5), 0 4px 10px rgba(0,0,0,0.1), 0 0 15px 4px rgba(255, 0, 0, 0.6), 0 0 28px rgba(255, 0, 0, 0.3); }
 }
 
 /* Suppress rainbow ring while the bubble is enlarged/active */
-.active-bubble.bubble-active-filter::before,
-.enlarge-bubble.bubble-active-filter::before {
-  opacity: 0;
+.active-bubble.bubble-active-filter,
+.enlarge-bubble.bubble-active-filter {
   animation: none;
+  box-shadow:
+    inset -5px -5px 15px rgba(255, 255, 255, 0.8),
+    inset 2px 2px 10px rgba(255, 255, 255, 0.5),
+    0 6px 18px rgba(0, 0, 0, 0.1),
+    0 0 0 4px rgba(255, 255, 255, 0.4);
 }
 
 /* Hide secondary reflection for filled bubble */
@@ -484,8 +481,8 @@ input, textarea, select, [contenteditable] {
 /* Bubble container layout */
 #bubble-container {
   min-height: 180px;
-  padding: 30px;
-  margin: -30px;
+  padding: 6px 16px;
+  margin: 0 -16px;
   box-sizing: content-box;
   transition: opacity 0.35s ease;
 }
