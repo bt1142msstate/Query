@@ -484,7 +484,8 @@ input, textarea, select, [contenteditable] {
 /* Bubble container layout */
 #bubble-container {
   min-height: 180px;
-  padding: 6px 4px;
+  padding: 30px;
+  margin: -30px;
   box-sizing: content-box;
   transition: opacity 0.35s ease;
 }
