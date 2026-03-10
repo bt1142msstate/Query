@@ -540,14 +540,34 @@ function attachBubbleDropTarget(container) {
   });
   container.addEventListener('drop', e => {
     e.preventDefault();
-    if (e.target.closest('th')) return; // header drop already handled
-    const field = e.dataTransfer.getData('bubble-field'); // will be '' if not a bubble
+    if (e.target.closest('th') || e.target.closest('tbody')) return; // handled by header/body listeners
+    
+    const table = container.querySelector('table');
+    if (table) {
+      const headers = Array.from(table.querySelectorAll('thead th[data-col-index]'));
+      if (headers.length > 0) {
+        let best = headers[0];
+        let bestDist = Infinity;
+        headers.forEach(th => {
+          const rect = th.getBoundingClientRect();
+          const center = rect.left + rect.width / 2;
+          const dist = Math.abs(e.clientX - center);
+          if (dist < bestDist) { bestDist = dist; best = th; }
+        });
+        dragDropManager.handleDrop(e, best, table);
+        return;
+      }
+    }
+
+    // Fallback if no table headers
+    const field = e.dataTransfer.getData('bubble-field');
     if (field) {
       if (restoreFieldWithDuplicates(field)) {
         dragDropManager.dropSuccessful = true;
         showExampleTable(window.displayedFields);
       }
     }
+    clearDropAnchor();
   });
   container._bubbleDropSetup = true;
 }
