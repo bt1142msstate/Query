@@ -250,7 +250,7 @@ function positionDropAnchor(rect, table, clientX, colIndex) {
   dropAnchor.classList.add('vertical');
   
   // For virtual scrolling tables, use the container height instead of table height
-  const tableContainer = table.closest('.overflow-x-auto.shadow.rounded-lg.mb-6.relative');
+  const tableContainer = table.closest('.overflow-x-auto');
   const anchorHeight = tableContainer ? tableContainer.offsetHeight : table.offsetHeight;
   
   dropAnchor.style.width = '4px';
@@ -527,7 +527,17 @@ function removeColumn(table, colIndex) {
 // Bubble drop target functionality
 function attachBubbleDropTarget(container) {
   if (container._bubbleDropSetup) return; // guard against double-bind
-  container.addEventListener('dragover', e => e.preventDefault());
+  container.addEventListener('dragover', e => {
+    e.preventDefault();
+    if (e.target.closest('th') || e.target.closest('tbody')) return; // handled by header/body listeners
+    const table = container.querySelector('table');
+    if (table) dragDropManager.handleDragOverByX(e, table);
+  });
+  container.addEventListener('dragleave', e => {
+    if (!container.contains(e.relatedTarget)) {
+      clearDropAnchor();
+    }
+  });
   container.addEventListener('drop', e => {
     e.preventDefault();
     if (e.target.closest('th')) return; // header drop already handled
@@ -920,6 +930,8 @@ const dragDropManager = {
     const getValidTd = (e) => {
       const td = e.target.closest('td');
       if (!td) return null;
+      // If it's a spacer cell (has colspan), treat it as an empty area
+      if (td.hasAttribute('colspan')) return null;
       const colIndex = parseInt(td.dataset.colIndex, 10);
       if (isNaN(colIndex)) return null; // spacer cell — ignore
       return td;
