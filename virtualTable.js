@@ -123,8 +123,8 @@ function renderVirtualTable() {
   const { start, end } = calculateVisibleRows();
   
   // Clean up existing event listeners on body cells before clearing them
-  if (typeof dragDropManager !== 'undefined' && dragDropManager.cleanupTableListeners) {
-    dragDropManager.cleanupTableListeners(table);
+  if (window.DragDropSystem && window.DragDropSystem.dragDropManager && window.DragDropSystem.dragDropManager.cleanupTableListeners) {
+    window.DragDropSystem.dragDropManager.cleanupTableListeners(table);
   }
   
   // Clear existing body rows
@@ -260,7 +260,9 @@ function renderVirtualTable() {
   }
   
   // Re-apply drag and drop to the new rows
-  if (typeof addDragAndDrop !== 'undefined') {
+  if (window.DragDropSystem && window.DragDropSystem.addDragAndDrop) {
+    window.DragDropSystem.addDragAndDrop(table);
+  } else if (typeof addDragAndDrop !== 'undefined') {
     addDragAndDrop(table);
   }
 }
