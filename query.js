@@ -18,7 +18,7 @@
 
 
 /* --- Run / Stop query toggle --- */
-let queryRunning = false;
+// queryRunning state is tracked in window.queryRunning (from queryState.js)
 let currentQueryId = null;
 
 // updateButtonStates is now in queryUI.js - relying on window.updateButtonStates
@@ -32,7 +32,7 @@ if(runBtn){
     if(runBtn.disabled) return;   // ignore when disabled
     
     // If query is running, stop it
-    if (queryRunning) {
+    if (window.queryRunning) {
       if (currentQueryId && typeof window.cancelQuery === 'function') {
           showToastMessage('Cancelling query...', 'info');
           window.cancelQuery(currentQueryId).then(() => {
@@ -42,8 +42,8 @@ if(runBtn){
           });
       }
       
-      queryRunning = false;
-      updateRunButtonIcon();
+      window.queryRunning = false;
+      window.updateRunButtonIcon();
       document.getElementById('table-container')?.classList.remove('table-querying');
       return;
     }
@@ -52,8 +52,8 @@ if(runBtn){
     (async () => {
       currentQueryId = null;
       try {
-        queryRunning = true;
-        updateRunButtonIcon();
+        window.queryRunning = true;
+        window.updateRunButtonIcon();
         document.getElementById('table-container')?.classList.add('table-querying');
         
         const state = window.getCurrentQueryState();
@@ -171,7 +171,7 @@ if(runBtn){
         const text = await response.text();
         
         // If user stopped the query while waiting for response, abort processing
-        if (!queryRunning) {
+        if (!window.queryRunning) {
              console.log('Query stopped by user, discarding response.');
              return;
         }
@@ -266,7 +266,7 @@ if(runBtn){
 
       } catch (error) {
         // Checking if the query was manually stopped by the user
-        if (!queryRunning) {
+        if (!window.queryRunning) {
              console.log('Query execution interrupted by user stop/cancel.');
              return;
         }
@@ -287,8 +287,8 @@ if(runBtn){
         
         showToastMessage('Query execution failed: ' + error.message, 'error');
       } finally {
-        queryRunning = false;
-        updateRunButtonIcon();
+        window.queryRunning = false;
+        window.updateRunButtonIcon();
         document.getElementById('table-container')?.classList.remove('table-querying');
       }
     })();
@@ -490,7 +490,7 @@ if(initialContainer) {
         await showExampleTable([]);
       }
       updateButtonStates();
-      updateRunButtonIcon();
+      window.updateRunButtonIcon();
       
       // Initialize systems
       if (window.BubbleSystem) {
