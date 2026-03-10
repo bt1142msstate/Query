@@ -730,8 +730,10 @@ window.getContradictionMessage = function(existing, newF, fieldType, fieldLabel)
 
 window.updateGlobalFilterPanel = function() {
     const list = document.getElementById('filters-list');
-    const panel = document.getElementById('side-filter-panel');
-    const badge = document.getElementById('side-filter-count-badge');
+    const badge = document.getElementById('filter-count-badge');
+    const mobileBadge = document.getElementById('mobile-filter-count-badge');
+    const toggleBtn = document.getElementById('toggle-filters');
+    const mobileToggleBtn = document.getElementById('mobile-toggle-filters');
     const noFilters = document.getElementById('no-filters-message');
     
     if (!list) return;
@@ -795,20 +797,33 @@ window.updateGlobalFilterPanel = function() {
         list.appendChild(fieldEl);
     });
     
-    if (panel) {
-        if (totalFilters > 0) {
-            panel.classList.remove('hidden');
-            panel.classList.add('flex', 'flex-col');
-            if (badge) {
-                badge.textContent = totalFilters;
-                badge.style.display = 'flex';
-            }
-            if (noFilters) noFilters.style.display = 'none';
-        } else {
+    if (totalFilters > 0) {
+        if(badge) {
+            badge.textContent = totalFilters;
+            badge.style.display = 'flex';
+        }
+        if (mobileBadge) {
+            mobileBadge.textContent = totalFilters;
+            mobileBadge.style.display = 'flex';
+        }
+        if(toggleBtn) {
+            toggleBtn.style.display = 'block';
+        }
+        if (mobileToggleBtn) {
+            mobileToggleBtn.style.display = 'flex';
+        }
+        if (noFilters) noFilters.style.display = 'none';
+    } else {
+        if(badge) badge.style.display = 'none';
+        if (mobileBadge) mobileBadge.style.display = 'none';
+        if(toggleBtn) toggleBtn.style.display = 'none';
+        if (mobileToggleBtn) mobileToggleBtn.style.display = 'none';
+        if (noFilters) noFilters.style.display = 'block';
+        
+        // Hide panel if currently open and no filters
+        const panel = document.getElementById('filter-panel');
+        if (panel && !panel.classList.contains('hidden')) {
             panel.classList.add('hidden');
-            panel.classList.remove('flex', 'flex-col');
-            if (badge) badge.style.display = 'none';
-            if (noFilters) noFilters.style.display = 'block';
         }
     }
 };
