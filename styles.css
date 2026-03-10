@@ -316,16 +316,20 @@ input, textarea, select, [contenteditable] {
   white-space: normal;
   word-wrap: break-word;
   overflow-wrap: anywhere;
-  overflow: hidden;
+  /* overflow:clip prevents the sub-pixel jagged edge caused by overflow:hidden
+     creating a new stacking context at the border-radius boundary */
+  overflow: clip;
   line-height: 1.1;
   cursor: pointer;
   color: var(--color-white) !important;
   text-shadow: 0 1px 2px rgba(0,0,0,0.3);
   position: relative;
   z-index: 1;
-  /* GPU compositing fixes anti-aliasing jaggies on border-radius + overflow:hidden */
+  /* GPU compositing for smooth transforms */
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
   will-change: transform;
   transition: top var(--transition-slow), left var(--transition-slow), transform 0.2s ease, box-shadow 0.2s ease;
   
@@ -337,8 +341,6 @@ input, textarea, select, [contenteditable] {
     rgba(255, 255, 255, 0.0) 60%, 
     rgba(148, 163, 184, 0.1) 100%
   );
-  backdrop-filter: blur(1px);
-  -webkit-backdrop-filter: blur(1px);
   border: 1px solid rgba(255, 255, 255, 0.25);
   border-bottom-color: rgba(255, 255, 255, 0.05);
   border-right-color: rgba(255, 255, 255, 0.05);
@@ -415,27 +417,7 @@ input, textarea, select, [contenteditable] {
   100% { transform: rotate(360deg); }
 }
 
-/* Aura pulse for bubbles with active filters */
-@keyframes filterAura {
-  0%, 100% {
-    box-shadow:
-      inset -5px -5px 15px rgba(255, 255, 255, 0.8),
-      inset 2px 2px 10px rgba(255, 255, 255, 0.5),
-      0 4px 10px rgba(0, 0, 0, 0.1),
-      0 0 10px 3px rgba(52, 211, 153, 0.55),
-      0 0 18px rgba(52, 211, 153, 0.15);
-  }
-  50% {
-    box-shadow:
-      inset -5px -5px 15px rgba(255, 255, 255, 0.8),
-      inset 2px 2px 10px rgba(255, 255, 255, 0.5),
-      0 6px 14px rgba(0, 0, 0, 0.12),
-      0 0 20px 7px rgba(52, 211, 153, 0.7),
-      0 0 32px rgba(52, 211, 153, 0.25);
-  }
-}
-
-/* Bubble with active filter - Frosted/Filled Glass + aura */
+/* Bubble with active filter - Frosted/Filled Glass + static emerald aura */
 .bubble-filter {
   background: radial-gradient(
     130% 130% at 30% 30%, 
@@ -444,18 +426,23 @@ input, textarea, select, [contenteditable] {
     rgba(220, 230, 250, 0.8) 100%
   ) !important;
   
-  color: #1e3a8a !important; /* Dark blue text */
+  box-shadow:
+    inset -5px -5px 15px rgba(255, 255, 255, 0.8),
+    inset 2px 2px 10px rgba(255, 255, 255, 0.5),
+    0 4px 10px rgba(0, 0, 0, 0.1),
+    0 0 14px 4px rgba(52, 211, 153, 0.55),
+    0 0 28px rgba(52, 211, 153, 0.2);
+
+  color: #1e3a8a !important;
   text-shadow: none;
   border: 1px solid rgba(255, 255, 255, 0.8);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  animation: filterAura 2.2s ease-in-out infinite;
 }
 
 /* Suppress aura while the bubble is enlarged/active */
 .active-bubble.bubble-filter,
 .enlarge-bubble.bubble-filter {
-  animation: none;
   box-shadow:
     inset -5px -5px 15px rgba(255, 255, 255, 0.8),
     inset 2px 2px 10px rgba(255, 255, 255, 0.5),
@@ -1357,34 +1344,6 @@ th:hover .th-trash {
   box-shadow: var(--shadow-sm);
   font-style: italic;
 }
-
-/* ==========================================
-   13. FIREFLY ANIMATION
-   ========================================== */
-
-.firefly {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: var(--size, 3px);
-  height: var(--size, 3px);
-  border-radius: 50%;
-  background: var(--glow, #fff9ae);
-  box-shadow: 0 0 var(--blur, 6px) var(--spread, 2px) var(--glow, rgba(255, 249, 174, 0.8));
-  pointer-events: none;
-  opacity: 0;
-  z-index: 10;
-  animation: firefly-flash var(--blinkDur, 6s) ease-in-out infinite var(--blinkDelay, 0s);
-  will-change: transform, opacity;
-}
-
-@keyframes firefly-flash {
-  0%, 75% { opacity: 0; transform: scale(0.6); }
-  85%     { opacity: 1; transform: scale(1.2); }
-  90%     { opacity: 1; transform: scale(1.2); }
-  98%, 100% { opacity: 0; transform: scale(0.6); }
-}
-
 
 @keyframes jump {
   0%   { transform: translateY(0); }
