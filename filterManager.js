@@ -773,15 +773,6 @@ window.FilterSidePanel = (function () {
             open();
         }
 
-        // Update count badge
-        const countBadge = $('fp-count-badge');
-        if (countBadge) {
-            const total = Object.values(window.activeFilters)
-                .reduce((s, v) => s + (v.filters ? v.filters.length : 0), 0);
-            countBadge.textContent = total;
-            countBadge.style.display = total > 0 ? '' : 'none';
-        }
-
         const titleEl = $('filter-panel-title');
         if (titleEl) {
             const total = Object.values(window.activeFilters)
@@ -884,12 +875,8 @@ window.FilterSidePanel = (function () {
 
     /* --- Wire up static buttons on DOMContentLoaded --- */
     function init() {
-        const tabBtn = $('filter-panel-tab');
         const addBtn = $('filter-panel-add-btn');
 
-        if (tabBtn) {
-            tabBtn.addEventListener('click', e => { e.stopPropagation(); toggle(); });
-        }
         if (addBtn) {
             addBtn.addEventListener('click', e => {
                 e.stopPropagation();
