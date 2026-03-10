@@ -241,6 +241,15 @@ function loadQueryConfig(q) {
           }
         });
       });
+      // Ensure the filter panel shows up right away if there are filters
+      if (window.FilterSidePanel && window.FilterSidePanel.update) {
+        window.FilterSidePanel.update();
+      }
+    } else {
+      // If no filters were loaded but panel was open, it should re-evaluate to close
+      if (window.FilterSidePanel && window.FilterSidePanel.update) {
+        window.FilterSidePanel.update();
+      }
     }
   }
   
