@@ -571,9 +571,6 @@ async function showExampleTable(fields){
             </th></tr>
           </thead>
           <tbody class="divide-y divide-gray-200">
-            <tr><td class="px-6 py-4 whitespace-nowrap">...</td></tr>
-            <tr><td class="px-6 py-4 whitespace-nowrap">...</td></tr>
-            <tr><td class="px-6 py-4 whitespace-nowrap">...</td></tr>
           </tbody>
         </table>`;
       // Ensure placeholder header accepts drops
