@@ -1664,30 +1664,56 @@ th:hover .th-trash {
    15. FILTER SIDE PANEL
    ========================================== */
 
-#filter-side-panel {
-  position: fixed;
-  right: 0;
-  top: var(--header-height);
-  bottom: 0;
-  width: 280px;
+/* Wrapper: filter panel + table side by side */
+#table-with-filter {
   display: flex;
-  flex-direction: row;
-  /* Collapsed: only the 36px tab strip is visible */
-  transform: translateX(calc(100% - 36px));
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 38;
-  pointer-events: auto;
+  align-items: stretch;
+  gap: 0;
+  margin-bottom: 0;
 }
 
-#filter-side-panel.panel-open {
-  transform: translateX(0);
+/* Table column fills remaining width */
+#table-column {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Filter panel: in-flow flex row [content | tab].                     */
+/* Content collapses via max-width; tab (right edge) is always visible.*/
+#filter-side-panel {
+  display: flex;
+  flex-direction: row;
+  flex-shrink: 0;
+  align-self: stretch;
+  position: relative;
+  z-index: 10;
 }
 
 #filter-side-panel.panel-hidden {
   display: none;
 }
 
-/* Left tab strip (always visible when panel is not panel-hidden) */
+/* Content area — collapses to 0 width, expands to 240px */
+#filter-panel-content {
+  width: 240px;
+  max-width: 0;
+  overflow: hidden;
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-right: none;
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.07);
+}
+
+#filter-side-panel.panel-open #filter-panel-content {
+  max-width: 240px;
+}
+
+/* Tab strip — right edge of panel, always visible, borders the table */
 #filter-panel-tab {
   flex-shrink: 0;
   width: 36px;
@@ -1695,8 +1721,8 @@ th:hover .th-trash {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(0, 0, 0, 0.1);
-  border-right: none;
-  border-radius: 10px 0 0 10px;
+  border-left: none;
+  border-radius: 0 10px 10px 0;
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -1705,9 +1731,8 @@ th:hover .th-trash {
   padding-top: 12px;
   gap: 6px;
   color: #6b7280;
-  box-shadow: -3px 0 14px rgba(0, 0, 0, 0.09);
+  box-shadow: 3px 0 14px rgba(0, 0, 0, 0.07);
   transition: background 0.2s, color 0.2s;
-  position: relative;
 }
 
 #filter-panel-tab:hover {
@@ -1731,20 +1756,6 @@ th:hover .th-trash {
   line-height: 1;
 }
 
-/* The scrollable content area (right of the tab) */
-#filter-panel-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: rgba(255, 255, 255, 0.97);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-right: none;
-  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
-
 /* Panel header */
 #filter-panel-header {
   display: flex;
@@ -1754,6 +1765,7 @@ th:hover .th-trash {
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   background: rgba(249, 250, 251, 0.9);
   flex-shrink: 0;
+  min-width: 240px;
 }
 
 #filter-panel-title {
@@ -1788,6 +1800,7 @@ th:hover .th-trash {
   overflow-y: auto;
   padding: 8px 10px;
   overscroll-behavior: contain;
+  min-width: 240px;
 }
 
 #filter-panel-body::-webkit-scrollbar {
@@ -1808,6 +1821,7 @@ th:hover .th-trash {
   flex-shrink: 0;
   padding: 8px 10px 12px;
   border-top: 1px solid rgba(0, 0, 0, 0.07);
+  min-width: 240px;
 }
 
 .fp-add-filter-btn {

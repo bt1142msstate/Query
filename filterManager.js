@@ -572,7 +572,7 @@ window.FilterSidePanel = (function () {
     function setChevron(open) {
         const chevron = $('fp-chevron');
         if (!chevron) return;
-        // open → point right (collapse); closed → point left (expand)
+        // open → < (left, collapse); closed → > (right, expand)
         chevron.setAttribute('points', open ? '15 18 9 12 15 6' : '9 18 15 12 9 6');
     }
 
