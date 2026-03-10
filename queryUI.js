@@ -255,11 +255,6 @@ window.positionInputWrapper = function(){
 
 /** Rebuild the query JSON and show it */
 window.updateQueryJson = function(){
-  // Update the global filter panel as well
-  if (typeof window.updateGlobalFilterPanel === 'function') {
-      window.updateGlobalFilterPanel();
-  }
-
   // Filter out duplicate field names (2nd, 3rd, etc.) and get only base field names
   const baseFields = [...window.displayedFields]
     .filter(field => field !== 'Marc')

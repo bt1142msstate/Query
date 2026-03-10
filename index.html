@@ -68,16 +68,6 @@
         </svg>
       </button>
 
-      <!-- Filter panel button -->
-      <button id="toggle-filters"
-              class="p-2 rounded-full relative bg-red-200 text-red-800 hover:bg-red-300 transition-colors hidden"
-              aria-label="Show Filters" data-tooltip="Show Active Filters">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 pointer-events-none">
-          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-        </svg>
-        <span id="filter-count-badge" class="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center hidden">0</span>
-      </button>
-
       <button id="toggle-json"
               class="p-2 rounded-full bg-yellow-200 text-yellow-800 hover:bg-yellow-300 transition-colors"
               data-tooltip="Show Query JSON">
@@ -166,15 +156,6 @@
           </g>
         </svg>
         <span>Queries</span>
-      </div>
-      <div class="mobile-menu-item border-b border-gray-200 hover:bg-gray-100 hidden" id="mobile-toggle-filters" data-tooltip="Show Active Filters">
-        <div class="relative">
-          <svg class="w-5 h-5 text-red-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-          </svg>
-          <span id="mobile-filter-count-badge" class="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">0</span>
-        </div>
-        <span>Filters</span>
       </div>
 
       <div class="mobile-menu-item hover:bg-gray-100" id="mobile-toggle-help" data-tooltip="Show Help">
@@ -350,27 +331,6 @@
         </ul>
       </div>
     </div><!-- end help-panel -->
-
-    <!-- FILTER PANEL -->
-    <div id="filter-panel" class="w-full modal-panel hidden">
-      <h2 class="mt-8 mb-0 px-3 py-2 bg-red-100 text-red-800 font-semibold text-sm uppercase tracking-wider border border-red-200 flex items-center justify-between">
-        <span>Active Filters</span>
-        <button class="collapse-btn p-1.5 rounded hover:bg-red-200 focus:outline-none transition-colors ml-2" data-target="filter-panel" aria-label="Close">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
-            <line x1="4" y1="4" x2="16" y2="16" />
-            <line x1="16" y1="4" x2="4" y2="16" />
-          </svg>
-        </button>
-      </h2>
-      <div id="filter-container" class="w-full -mt-px border border-red-200 border-t-0 rounded-b overflow-y-auto bg-white p-4">
-        <div id="filters-list" class="space-y-3">
-          <!-- Filter items will be rendered here -->
-        </div>
-        <div id="no-filters-message" class="text-gray-500 italic text-center py-6 hidden">
-          No active filters
-        </div>
-      </div>
-    </div><!-- end filter-panel -->
   </div>
 <!-- ExcelJS for generating spreadsheets with freeze panes support -->
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
