@@ -108,30 +108,50 @@ function renderVirtualTable() {
       }
       
       // Apply formatting based on field type (same logic as Excel export)
+      const fieldDef = window.fieldDefs ? window.fieldDefs.get(field) : null;
+      const type = fieldDef ? fieldDef.type : 'string';
       const lower = field ? field.toLowerCase() : '';
       let displayValue = cellValue;
       
-      // Money fields - currency formatting
-      if ((lower.includes('price') || lower.includes('cost')) && typeof cellValue === 'number') {
-        displayValue = '$' + cellValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      }
-      // Date fields - date formatting  
-      else if ((lower.includes('date') || lower.includes('time')) && cellValue instanceof Date) {
-        displayValue = cellValue.toLocaleDateString('en-US');
-      }
-      // Whole number fields - no decimal formatting
-      else if ((lower.includes('barcode') || lower.includes('count') || lower.includes('number') || 
-                lower.includes('key') || lower.includes('charges') || lower.includes('bills') || 
-                lower.includes('inventory') || lower.includes('hold') || lower.includes('offset')) && 
-               typeof cellValue === 'number' && Number.isInteger(cellValue)) {
-        displayValue = cellValue.toLocaleString('en-US', { maximumFractionDigits: 0 });
-      }
-      // Other numbers - preserve formatting
-      else if (typeof cellValue === 'number') {
-        if (Number.isInteger(cellValue)) {
-          displayValue = cellValue.toLocaleString('en-US', { maximumFractionDigits: 0 });
-        } else {
-          displayValue = cellValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      if (cellValue !== '' && cellValue !== '—' && cellValue !== undefined && cellValue !== null) {
+        if (type === 'date' || lower.includes('date') || lower.includes('time')) {
+          const raw = cellValue;
+          const n = typeof raw === 'string' ? parseInt(raw, 10) : raw;
+          if (!n || isNaN(n)) {
+            displayValue = 'Never';
+          } else {
+            const y = Math.floor(n / 10000);
+            const m = Math.floor((n % 10000) / 100) - 1;
+            const d = n % 100;
+            const dt = new Date(y, m, d);
+            if (isNaN(dt.getTime())) {
+              displayValue = 'Never';
+            } else {
+              // Same as Excel "mm/dd/yyyy"
+              displayValue = `${(m + 1).toString().padStart(2, '0')}/${d.toString().padStart(2, '0')}/${y}`;
+            }
+            td.style.textAlign = 'right';
+          }
+        } 
+        else if (type === 'number' || type === 'money' || typeof cellValue === 'number' || lower.includes('price') || lower.includes('cost')) {
+          const n = typeof cellValue === 'number' ? cellValue : parseFloat(String(cellValue).replace(/,/g, ''));
+          if (!isNaN(n)) {
+            if (type === 'money' || lower.includes('price') || lower.includes('cost')) {
+              displayValue = '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              td.style.textAlign = 'right';
+            } else {
+              // check if integer
+              if (Number.isInteger(n) || lower.includes('barcode') || lower.includes('count') || lower.includes('number') || lower.includes('key')) {
+                displayValue = n.toLocaleString('en-US', { maximumFractionDigits: 0 });
+              } else {
+                displayValue = n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              }
+              td.style.textAlign = 'right';
+            }
+          }
+        } 
+        else if (type === 'boolean') {
+          td.style.textAlign = 'center';
         }
       }
       

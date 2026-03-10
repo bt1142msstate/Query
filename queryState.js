@@ -63,7 +63,7 @@ window.getCurrentQueryState = function() {
  * @returns {boolean} True if query has changed since last execution
  */
 window.hasQueryChanged = function() {
-  if (!window.lastExecutedQueryState) return false; // Initial load should show refresh (we have testJobData loaded)
+  if (!window.lastExecutedQueryState) return true; // Initial load should show play icon (brand new query)
   
   const current = window.getCurrentQueryState();
   
