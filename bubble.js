@@ -162,15 +162,6 @@ function renderBubbles(){
     let orderedList = displayedFields
       .map(name => filteredSelected.find(d => d.name === name))
       .filter(Boolean);
-    
-    // Sort to bring bubbles with active filters to the top
-    orderedList.sort((a, b) => {
-      const aFilter = window.activeFilters && window.activeFilters[a.name] && window.activeFilters[a.name].filters && window.activeFilters[a.name].filters.length > 0;
-      const bFilter = window.activeFilters && window.activeFilters[b.name] && window.activeFilters[b.name].filters && window.activeFilters[b.name].filters.length > 0;
-      if (aFilter && !bFilter) return -1;
-      if (!aFilter && bFilter) return 1;
-      return 0;
-    });
 
     filteredSelected.forEach(d => {
       if (!displayedSet.has(d.name) && !orderedList.includes(d)) {
@@ -184,6 +175,16 @@ function renderBubbles(){
       return Array.isArray(cat) ? cat.includes(currentCategory) : cat === currentCategory;
     });
   }
+
+  // Always sort bubbles so that active filters are displayed at the very top,
+  // respecting the original natural category or selected order as secondary.
+  list.sort((a, b) => {
+    const aFilter = window.activeFilters && window.activeFilters[a.name] && window.activeFilters[a.name].filters && window.activeFilters[a.name].filters.length > 0;
+    const bFilter = window.activeFilters && window.activeFilters[b.name] && window.activeFilters[b.name].filters && window.activeFilters[b.name].filters.length > 0;
+    if (aFilter && !bFilter) return -1;
+    if (!aFilter && bFilter) return 1;
+    return 0; // retain original order
+  });
 
   // If we're in Selected category, preserve existing bubbles
   if (currentCategory === 'Selected') {

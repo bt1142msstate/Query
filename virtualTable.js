@@ -18,7 +18,67 @@ let tableScrollContainer = null;
 let calculatedColumnWidths = {}; // Store calculated optimal widths for each column
 let simpleTableInstance = null; // Store the SimpleTable instance
 
+// Keep track of sorting state
+let currentSortColumn = null;
+let currentSortDirection = 'asc'; // 'asc' or 'desc'
 
+/**
+ * Sorts the virtual table data by the specified column.
+ * Toggles direction if already sorted by this column.
+ * @function sortTableBy
+ * @param {string} fieldName - The field to sort by
+ */
+function sortTableBy(fieldName) {
+  if (!virtualTableData.rows || virtualTableData.rows.length === 0) return;
+  const colIndex = virtualTableData.columnMap.get(fieldName);
+  if (colIndex === undefined) return;
+
+  // Toggle direction if same column
+  if (currentSortColumn === fieldName) {
+    currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+  } else {
+    currentSortColumn = fieldName;
+    currentSortDirection = 'asc';
+  }
+
+  // Find the exact field definition for sorting typing
+  const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
+  const type = fieldDef ? fieldDef.type : 'string';
+
+  virtualTableData.rows.sort((a, b) => {
+    let valA = a[colIndex];
+    let valB = b[colIndex];
+
+    // Handle nulls/undefined/empty
+    const emptyA = valA === undefined || valA === null || valA === '';
+    const emptyB = valB === undefined || valB === null || valB === '';
+    
+    if (emptyA && emptyB) return 0;
+    if (emptyA) return currentSortDirection === 'asc' ? 1 : -1;
+    if (emptyB) return currentSortDirection === 'asc' ? -1 : 1;
+
+    let res = 0;
+    if (type === 'number' || type === 'money') {
+      const numA = typeof valA === 'number' ? valA : parseFloat(String(valA).replace(/,/g, ''));
+      const numB = typeof valB === 'number' ? valB : parseFloat(String(valB).replace(/,/g, ''));
+      res = (numA || 0) - (numB || 0);
+    } else if (type === 'date') {
+      const numA = parseInt(valA, 10) || 0;
+      const numB = parseInt(valB, 10) || 0;
+      res = numA - numB;
+    } else {
+      res = String(valA).localeCompare(String(valB));
+    }
+
+    return currentSortDirection === 'asc' ? res : -res;
+  });
+
+  // Re-render and update headers UI
+  renderVirtualTable();
+  if (window.updateSortHeadersUI) {
+    window.updateSortHeadersUI(currentSortColumn, currentSortDirection);
+  }
+}
 
 /**
  * Calculates which table rows should be visible based on current scroll position.
@@ -430,5 +490,6 @@ window.VirtualTable = {
   setupVirtualTable,
   measureRowHeight,
   clearVirtualTableData,
-  getVirtualTableState
+  getVirtualTableState,
+  sortTableBy
 };
