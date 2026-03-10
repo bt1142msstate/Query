@@ -727,3 +727,103 @@ window.getContradictionMessage = function(existing, newF, fieldType, fieldLabel)
   }
   return null;
 };
+
+window.updateGlobalFilterPanel = function() {
+    const list = document.getElementById('filters-list');
+    const badge = document.getElementById('filter-count-badge');
+    const mobileBadge = document.getElementById('mobile-filter-count-badge');
+    const toggleBtn = document.getElementById('toggle-filters');
+    const mobileToggleBtn = document.getElementById('mobile-toggle-filters');
+    const noFilters = document.getElementById('no-filters-message');
+    
+    if (!list) return;
+    list.innerHTML = '';
+    
+    let totalFilters = 0;
+    const activeFilters = window.activeFilters || {};
+    
+    Object.entries(activeFilters).forEach(([field, data]) => {
+        if (!data || !data.filters || data.filters.length === 0) return;
+        totalFilters += data.filters.length;
+        
+        const fieldEl = document.createElement('div');
+        fieldEl.className = 'border border-red-200 rounded-md p-3 bg-red-50 mb-3';
+        
+        const header = document.createElement('div');
+        header.className = 'font-semibold text-sm text-red-800 mb-2 flex items-center justify-between pb-1 border-b border-red-200';
+        
+        const titleSpan = document.createElement('span');
+        titleSpan.textContent = field;
+        header.appendChild(titleSpan);
+        
+        if (data.filters.length > 1) {
+            const logicSpan = document.createElement('span');
+            logicSpan.className = 'text-[10px] px-1.5 py-0.5 rounded bg-red-200 text-red-800 font-bold ml-2 uppercase tracking-wide';
+            logicSpan.textContent = data.logical || 'AND';
+            titleSpan.appendChild(logicSpan);
+        }
+        
+        fieldEl.appendChild(header);
+        
+        const pillsContainer = document.createElement('div');
+        pillsContainer.className = 'flex flex-wrap gap-2 mt-2';
+        
+        const fieldDef = window.fieldDefs ? window.fieldDefs.get(field) : null;
+        
+        data.filters.forEach((f, idx) => {
+            const pill = new FilterPill(f, fieldDef, () => {
+                data.filters.splice(idx, 1);
+                if (data.filters.length === 0) {
+                    delete window.activeFilters[field];
+                    document.querySelectorAll('.bubble').forEach(b => {
+                        if (b.textContent.trim() === field) {
+                            b.removeAttribute('data-filtered');
+                            b.classList.remove('bubble-filter');
+                        }
+                    });
+                }
+                
+                // Keep condition list updated if viewing same field
+                if (window.selectedField === field && typeof window.renderConditionList === 'function') {
+                    window.renderConditionList(field);
+                }
+                
+                window.updateQueryJson(); // Re-render everything
+            });
+            pillsContainer.appendChild(pill.el);
+        });
+        
+        fieldEl.appendChild(pillsContainer);
+        list.appendChild(fieldEl);
+    });
+    
+    if (totalFilters > 0) {
+        if(badge) {
+            badge.textContent = totalFilters;
+            badge.style.display = 'flex';
+        }
+        if (mobileBadge) {
+            mobileBadge.textContent = totalFilters;
+            mobileBadge.style.display = 'flex';
+        }
+        if(toggleBtn) {
+            toggleBtn.style.display = 'block';
+        }
+        if (mobileToggleBtn) {
+            mobileToggleBtn.style.display = 'flex';
+        }
+        if (noFilters) noFilters.style.display = 'none';
+    } else {
+        if(badge) badge.style.display = 'none';
+        if (mobileBadge) mobileBadge.style.display = 'none';
+        if(toggleBtn) toggleBtn.style.display = 'none';
+        if (mobileToggleBtn) mobileToggleBtn.style.display = 'none';
+        if (noFilters) noFilters.style.display = 'block';
+        
+        // Hide panel if currently open and no filters
+        const panel = document.getElementById('filter-panel');
+        if (panel && !panel.classList.contains('hidden')) {
+            panel.classList.add('hidden');
+        }
+    }
+};
