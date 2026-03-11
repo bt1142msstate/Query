@@ -598,14 +598,14 @@ input, textarea, select, [contenteditable] {
   overflow-y: auto;
   opacity: 0;
   pointer-events: none;
-  transform: translate(-50%, -50%) scale(0.95);
-  transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transform: translate(-50%, -50%);
+  transition: opacity 0.2s ease;
 }
 
 #filter-card.show {
   opacity: 1;
   pointer-events: auto;
-  transform: translate(-50%, -50%) scale(1);
+  transform: translate(-50%, -50%);
 }
 
 #filter-card-header {
