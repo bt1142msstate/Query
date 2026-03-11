@@ -36,8 +36,9 @@ const TooltipManager = (() => {
    * @param {HTMLElement} target - The element to show tooltip for
    * @param {string} text - The tooltip text to display
    * @param {Event} [event] - Optional mouse event for positioning
+   * @param {boolean} [isHtml=false] - Whether the text contains HTML
    */
-  function showTooltip(target, text, event) {
+  function showTooltip(target, text, event, isHtml = false) {
     if (isDragging) return; // Do not show tooltip while dragging
     if (!tooltipEl) createTooltip();
 
@@ -53,9 +54,22 @@ const TooltipManager = (() => {
     tooltipEl.setAttribute('aria-live', 'polite');
     tooltipEl.style.display = 'block';
     tooltipEl.classList.add('show');
+    
+    if (isHtml) {
+      tooltipEl.classList.add('is-html');
+    } else {
+      tooltipEl.classList.remove('is-html');
+    }
+
     tooltipEl.style.opacity = '0';
     // Set text
-    tooltipEl.insertBefore(document.createTextNode(text), arrowEl);
+    if (isHtml) {
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = text;
+      tooltipEl.insertBefore(wrapper, arrowEl);
+    } else {
+      tooltipEl.insertBefore(document.createTextNode(text), arrowEl);
+    }
     // Position
     positionTooltip(target, event);
     setTimeout(() => {
@@ -166,10 +180,11 @@ const TooltipManager = (() => {
   function attach() {
     document.addEventListener('mouseover', e => {
       if (isDragging) return;
-      const el = e.target.closest('[data-tooltip]');
+      const el = e.target.closest('[data-tooltip], [data-tooltip-html]');
       if (!el) return;
-      const text = el.getAttribute('data-tooltip');
-      if (text) showTooltip(el, text, e);
+      const isHtml = el.hasAttribute('data-tooltip-html');
+      const text = isHtml ? el.getAttribute('data-tooltip-html') : el.getAttribute('data-tooltip');
+      if (text) showTooltip(el, text, e, isHtml);
     });
 
     document.addEventListener('mousemove', e => {
@@ -180,20 +195,21 @@ const TooltipManager = (() => {
     });
 
     document.addEventListener('mouseout', e => {
-      const el = e.target.closest('[data-tooltip]');
+      const el = e.target.closest('[data-tooltip], [data-tooltip-html]');
       if (el) hideTooltip();
     });
 
     document.addEventListener('focusin', e => {
       if (isDragging) return;
-      const el = e.target.closest('[data-tooltip]');
+      const el = e.target.closest('[data-tooltip], [data-tooltip-html]');
       if (!el) return;
-      const text = el.getAttribute('data-tooltip');
-      if (text) showTooltip(el, text);
+      const isHtml = el.hasAttribute('data-tooltip-html');
+      const text = isHtml ? el.getAttribute('data-tooltip-html') : el.getAttribute('data-tooltip');
+      if (text) showTooltip(el, text, undefined, isHtml);
     });
 
     document.addEventListener('focusout', e => {
-      if (e.target.closest('[data-tooltip]')) hideTooltip();
+      if (e.target.closest('[data-tooltip], [data-tooltip-html]')) hideTooltip();
     });
 
     // Hide tooltip on scroll or escape
@@ -237,16 +253,21 @@ const TooltipManager = (() => {
 
     // On click, update tooltip if data-tooltip changed
     document.addEventListener('click', e => {
-      const el = e.target.closest('[data-tooltip]');
+      const el = e.target.closest('[data-tooltip], [data-tooltip-html]');
       if (!el) return;
-      const text = el.getAttribute('data-tooltip');
+      const isHtml = el.hasAttribute('data-tooltip-html');
+      const text = isHtml ? el.getAttribute('data-tooltip-html') : el.getAttribute('data-tooltip');
       if (currentTarget === el && tooltipEl && tooltipEl.style.display === 'block') {
         // If tooltip is already showing for this element, update text if changed
-        if (tooltipEl.textContent !== text) {
-          showTooltip(el, text, e);
+        const currentContent = isHtml ? tooltipEl.innerHTML : tooltipEl.textContent;
+        // Basic check to prevent unnecessary updates, might not be perfect for HTML due to serialization differences but sufficient
+        if (currentContent !== text && !isHtml) { // For simplicity, only check change on text
+          showTooltip(el, text, e, isHtml);
+        } else if (isHtml) {
+          showTooltip(el, text, e, isHtml);
         }
       } else if (text) {
-        showTooltip(el, text, e);
+        showTooltip(el, text, e, isHtml);
       }
     });
   }
