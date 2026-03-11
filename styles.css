@@ -865,7 +865,7 @@ input, textarea, select, [contenteditable] {
 /* Table container */
 .overflow-x-auto.shadow.rounded-lg.mb-6.relative {
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12), 0 4px 10px rgba(0, 0, 0, 0.08);
-  border-radius: var(--border-radius-xl) var(--border-radius-xl) 0 var(--border-radius-xl); /* Round all corners except bottom-right */
+  border-radius: var(--border-radius-xl); /* Round all corners */
   border: 1px solid rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(4px);
   background: #fff;

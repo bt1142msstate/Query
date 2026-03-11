@@ -640,6 +640,15 @@ function initializeBubbles() {
     }
     const bubble = e.target.closest('.bubble');
     if(!bubble) return;
+    
+    // Disable opening index cards and modifying conditions while querying
+    if (window.queryRunning) {
+      if (window.showToastMessage) window.showToastMessage("Cannot edit conditions while a query is running", "warning");
+      e.stopPropagation();
+      e.preventDefault();
+      return;
+    }
+
     // Prevent duplicate active bubble
     if(document.querySelector('.active-bubble')) return;
     // Prevent clicking bubbles while animation is running
