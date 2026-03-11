@@ -316,7 +316,10 @@ window.handleFilterConfirm = function(e) {
         return;
     }
 
-    const isMultiSelect = fieldDef && fieldDef.multiSelect;
+    
+        const isMultiSelect = fieldDef && fieldDef.multiSelect;
+        const wantsModal = isMultiSelect && listValues;
+
 
     // Validation
     if (cond && cond !== 'display') {
@@ -687,7 +690,10 @@ window.FilterSidePanel = (function () {
                }
            } catch(e) {}
         }
+        
         const isMultiSelect = fieldDef && fieldDef.multiSelect;
+        const wantsModal = isMultiSelect && listValues;
+
 
         let val1;
         if (listValues) {
@@ -786,6 +792,21 @@ window.FilterSidePanel = (function () {
         form.appendChild(sep);
         form.appendChild(val2);
         form.appendChild(btns);
+
+        if (wantsModal) {
+            form.classList.add('fp-modal-mode');
+            const overlay = document.getElementById('overlay');
+            if (overlay) overlay.classList.add('show');
+            const bgClick = () => update();
+            if (overlay) overlay.addEventListener('click', bgClick);
+            
+            const origUpdate = update;
+            update = () => {
+                if (overlay) overlay.classList.remove('show');
+                if (overlay) overlay.removeEventListener('click', bgClick);
+                origUpdate();
+            };
+        }
 
         rowEl.replaceWith(form);
     }
