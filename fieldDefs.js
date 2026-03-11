@@ -35,8 +35,11 @@ window.loadFieldDefinitions = async function loadFieldDefinitions() {
             }
         }
         
-        // Handle both plain array (old style) and wrapped response
-        fieldDefsArray = Array.isArray(data) ? [...data] : [...data.fields];
+        fieldDefsArray = Array.isArray(data) ? [...data] : (data.fields ? [...data.fields] : []);
+        
+        if (fieldDefsArray.length === 0) {
+           console.warn("Received empty field definitions", data);
+        }
         
         // Append special Marc field
         fieldDefsArray.push({ 
