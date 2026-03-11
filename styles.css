@@ -494,7 +494,7 @@ input, textarea, select, [contenteditable] {
   transform: translate(-50%, -50%) !important;
   z-index: var(--z-bubble) !important;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25), 0 0 0 4px rgba(255, 255, 255, 0.4);
-  transition: top var(--transition-slow), left var(--transition-slow), background 0.3s ease;
+  transition: top var(--transition-slow), left var(--transition-slow), transform var(--transition-slow), background 0.3s ease;
 }
 
 /* Second-stage enlargement */
@@ -505,7 +505,13 @@ input, textarea, select, [contenteditable] {
   font-size: 1.25rem !important;
   padding: 1rem !important;
   overflow: visible !important;
-  transition: width 0.35s ease, height 0.35s ease, font-size 0.35s ease, padding 0.35s ease, border-radius 0.35s ease;
+  background: rgba(255, 255, 255, 0.94) !important;
+  color: transparent !important;
+  text-shadow: none !important;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: width 0.35s ease, height 0.35s ease, font-size 0.35s ease, padding 0.35s ease, border-radius 0.35s ease, background 0.35s ease, color 0.2s ease, box-shadow 0.35s ease, text-shadow 0.2s ease, opacity 0.2s ease;
 }
 
 /* Disabled bubble (original that was cloned) */
