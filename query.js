@@ -861,7 +861,22 @@ function updateCategoryCounts() {
 }
   
 // Initial render of category bar and mobile selector
-updateCategoryCounts();
+// We now load fields dynamically from the backend first!
+(async function initDynamicFields() {
+    try {
+        if (window.loadFieldDefinitions) {
+            await window.loadFieldDefinitions();
+        }
+        updateCategoryCounts();
+        
+        // Ensure Bubble system finishes drawing the newly loaded fields
+        if (window.BubbleSystem) {
+          window.BubbleSystem.safeRenderBubbles();
+        }
+    } catch (err) {
+        console.error("Failed async initialization:", err);
+    }
+})();
 
 // Initialize bubble system early (before any bubble calls)
 if (window.BubbleSystem) {
