@@ -499,12 +499,13 @@ input, textarea, select, [contenteditable] {
 
 /* Second-stage enlargement */
 .enlarge-bubble {
-  width: 200px !important;
-  height: 200px !important;
+  width: min(90vw, 480px) !important;
+  height: 350px !important;
+  border-radius: 1.5rem !important;
   font-size: 1.25rem !important;
   padding: 1rem !important;
   overflow: visible !important;
-  transition: width 0.35s ease, height 0.35s ease, font-size 0.35s ease, padding 0.35s ease;
+  transition: width 0.35s ease, height 0.35s ease, font-size 0.35s ease, padding 0.35s ease, border-radius 0.35s ease;
 }
 
 /* Disabled bubble (original that was cloned) */
@@ -576,7 +577,6 @@ input, textarea, select, [contenteditable] {
   position: fixed;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%) scale(0.92);
   z-index: var(--z-filter-card);
   width: min(90vw, 480px);
   max-height: 85vh;
@@ -591,7 +591,8 @@ input, textarea, select, [contenteditable] {
   overflow-y: auto;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transform: translate(-50%, -50%) scale(0.95);
+  transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 #filter-card.show {
