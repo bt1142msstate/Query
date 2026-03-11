@@ -694,11 +694,18 @@ function initializeBubbles() {
       btn.classList.toggle('active', btn.dataset.category === currentCategory)
     );
 
-    clone.addEventListener('transitionend',function t(){
+    clone.addEventListener('transitionend',function t(e){
       if(!clone.classList.contains('enlarge-bubble')){
-        clone.classList.add('enlarge-bubble');
+        // Only trigger the enlarge phase once a primary positioning transition finishes
+        if(e.propertyName === 'top' || e.propertyName === 'left' || e.propertyName === 'transform') {
+          clone.classList.add('enlarge-bubble');
+        }
         return;
       }
+      
+      // Enlarge phase is ongoing, wait for width or height to finish
+      if(e.propertyName !== 'width' && e.propertyName !== 'height') return;
+
       conditionPanel.classList.add('show');
       // Reveal the unified filter card
       const filterCard = document.getElementById('filter-card');
