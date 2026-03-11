@@ -1645,19 +1645,15 @@ th:hover .th-trash {
 #table-with-filter {
   display: flex;
   flex-direction: row;
-  align-items: stretch;
+  align-items: stretch; /* Matches height of panel to the table */
   gap: 12px;
   width: 100%;
-  min-height: 400px;
-  height: calc(100vh - var(--header-height, 60px) - 160px);
-  max-height: 800px; /* Scalable height for both table and filter panel */
 }
 
 /* On smaller screens, wrap the panel to sit above the table instead of overlapping */
 @media (max-width: 1024px) {
   #table-with-filter {
     flex-direction: column;
-    height: auto;
   }
 }
 
@@ -1666,12 +1662,11 @@ th:hover .th-trash {
   flex: 1;
   min-width: 0; /* allows table container to shrink properly */
   width: 100%;
-  display: flex;
-  flex-direction: column;
 }
 
+/* Table container styling handled inline or in other CSS but usually needs space */
 #table-container {
-  flex: 1; /* make sure it takes the full height of table-column */
+  /* Removed flex: 1 to let it keep its custom height (e.g., 400px) */
 }
 
 /* Panel stays within the flow, allowing table to shrink when present */
@@ -1679,7 +1674,7 @@ th:hover .th-trash {
   flex-shrink: 0;
   display: flex;
   flex-direction: row;
-  align-self: stretch;
+  align-self: stretch; /* Stretches to fill table-with-filter */
 }
 
 #filter-side-panel.panel-hidden {
