@@ -499,8 +499,6 @@ input, textarea, select, [contenteditable] {
 
 /* Second-stage enlargement */
 .enlarge-bubble {
-  width: min(90vw, 480px) !important;
-  height: 350px !important;
   border-radius: 1.5rem !important;
   font-size: 1.25rem !important;
   padding: 1rem !important;
