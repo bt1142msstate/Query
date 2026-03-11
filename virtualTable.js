@@ -200,8 +200,12 @@ function renderVirtualTable() {
               displayValue = '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
               td.style.textAlign = 'right';
             } else {
+              // check if it should be unformatted entirely
+              if (lower.includes('year') || lower.includes('barcode') || lower.includes('key')) {
+                displayValue = n.toString();
+              }
               // check if integer
-              if (Number.isInteger(n) || lower.includes('barcode') || lower.includes('count') || lower.includes('number') || lower.includes('key')) {
+              else if (Number.isInteger(n) || lower.includes('count') || lower.includes('number')) {
                 displayValue = n.toLocaleString('en-US', { maximumFractionDigits: 0 });
               } else {
                 displayValue = n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
