@@ -692,9 +692,13 @@ window.FilterSidePanel = (function () {
         let val1;
         if (listValues) {
             val1 = document.createElement('select');
-            val1.className = 'fp-edit-val-input fp-edit-cond-select'; // Reuse similar style 
-            if (isMultiSelect) val1.multiple = true;
-            if (isMultiSelect) val1.style.minHeight = '70px'; // Make multiple options visible
+            val1.className = 'fp-edit-val-input fp-edit-cond-select'; // Reuse similar style
+            if (isMultiSelect) {
+                val1.multiple = true;
+                val1.style.minHeight = '70px'; // Make multiple options visible
+                val1.style.maxHeight = '200px'; // Prevent it from getting too tall
+                val1.style.overflowY = 'auto'; // allow scrolling inside dropdown
+            }
             
             const currentVals = vals[0].split(',').map(v => v.trim());
             
