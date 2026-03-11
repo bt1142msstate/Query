@@ -237,6 +237,106 @@ window.toggleQueryInterface = function(isQueryRunning) {
   }
 };
 
+/* ---------- Table morph animation ---------- */
+window.startTableQueryAnimation = function() {
+  const tableContainer = document.getElementById('table-container');
+  if (!tableContainer) return;
+
+  // Cleanup old bubble if it exists
+  const oldBubble = document.getElementById('table-query-bubble');
+  if (oldBubble) oldBubble.remove();
+  
+  // Create our bubble element
+  const bubble = document.createElement('div');
+  bubble.id = 'table-query-bubble';
+  bubble.className = 'table-query-bubble';
+  bubble.textContent = 'Querying...';
+  
+  // Get initial container dimensions
+  const rect = tableContainer.getBoundingClientRect();
+  bubble.style.width = rect.width + 'px';
+  bubble.style.height = rect.height + 'px';
+  bubble.style.top = (rect.top + rect.height/2) + 'px';
+  bubble.style.left = (rect.left + rect.width/2) + 'px';
+  bubble.style.borderRadius = '0.5rem'; // matching rounded-lg
+  
+  document.body.appendChild(bubble);
+  tableContainer.classList.add('table-container-hidden');
+  
+  // Force reflow
+  void bubble.offsetWidth;
+  
+  // Animate to a circle
+  bubble.style.width = '350px';
+  bubble.style.height = '350px';
+  bubble.style.top = '50%';
+  bubble.style.left = '50%';
+  bubble.style.borderRadius = '50%';
+};
+
+window.endTableQueryAnimation = function() {
+  const tableContainer = document.getElementById('table-container');
+  const bubble = document.getElementById('table-query-bubble');
+  
+  if (!bubble || !tableContainer) {
+    if (tableContainer) tableContainer.classList.remove('table-container-hidden');
+    return;
+  }
+  
+  // Measure new dimensions
+  const rect = tableContainer.getBoundingClientRect();
+  
+  // Calculate dynamic transition speed (scaling the morph time to the container size)
+  const morphDuration = Math.max(0.4, (rect.width + rect.height) / 1800);
+  bubble.style.setProperty('--morph-duration', `${morphDuration}s`);
+  
+  // Morph back to table size
+  const targetWidth = rect.width + 'px';
+  const targetHeight = rect.height + 'px';
+  
+  const willChange = (bubble.style.width !== targetWidth) || (bubble.style.height !== targetHeight);
+
+  bubble.style.width = targetWidth;
+  bubble.style.height = targetHeight;
+  bubble.style.top = (rect.top + rect.height/2) + 'px';
+  bubble.style.left = (rect.left + rect.width/2) + 'px';
+  bubble.style.borderRadius = '0.5rem';
+  
+  const finishAnim = () => {
+    // Pop effect!
+    bubble.classList.add('popping');
+    if (window.createBubblePopParticles) {
+      window.createBubblePopParticles(bubble);
+    }
+    
+    tableContainer.classList.remove('table-container-hidden');
+    
+    setTimeout(() => {
+      if (bubble.parentNode) bubble.remove();
+    }, 400); // Wait for popping opacity fade
+  };
+
+  if (!willChange) {
+    finishAnim();
+  } else {
+    let finished = false;
+    bubble.addEventListener('transitionend', function handler(e) {
+      if (e.propertyName !== 'width' && e.propertyName !== 'height') return;
+      if (finished) return;
+      finished = true;
+      bubble.removeEventListener('transitionend', handler);
+      finishAnim();
+    });
+    // Safety fallback just in case transitionend drops
+    setTimeout(() => {
+      if (!finished) {
+        finished = true;
+        finishAnim();
+      }
+    }, (morphDuration * 1000) + 100);
+  }
+};
+
 /* ---------- Check for contradiction & return human-readable reason ---------- */
 // getContradictionMessage moved to filterManager.js
 

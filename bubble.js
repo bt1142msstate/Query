@@ -311,7 +311,7 @@ function updateScrollBar(){
  * Creates visual water-like splash particles when a bubble pops into the filter card
  * @param {HTMLElement} bubbleClone The final enlarged bubble clone element
  */
-function createBubblePopParticles(bubbleClone) {
+window.createBubblePopParticles = function(bubbleClone) {
   const rect = bubbleClone.getBoundingClientRect();
   const centerX = rect.left + rect.width / 2;
   const centerY = rect.top + rect.height / 2;
@@ -320,6 +320,7 @@ function createBubblePopParticles(bubbleClone) {
   for (let i = 0; i < numParticles; i++) {
     const particle = document.createElement('div');
     particle.className = 'bubble-particle';
+    particle.style.zIndex = getComputedStyle(bubbleClone).zIndex;
     
     // Pick a random angle around the circle
     const angle = Math.random() * Math.PI * 2;
@@ -805,7 +806,7 @@ function initializeBubbles() {
       }
       // Hide the bubble clone with a pop and reveal the card
       clone.classList.add('popping');
-      createBubblePopParticles(clone);
+      window.createBubblePopParticles(clone);
       
       // Removed duplicate pre-activation code since we did it above
       clone.removeEventListener('transitionend',t);
