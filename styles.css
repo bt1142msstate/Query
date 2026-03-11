@@ -619,10 +619,18 @@ input, textarea, select, [contenteditable] {
 #condition-input-wrapper {
   position: fixed;
   left: 50%;
-  top: max(50% + 80px, 300px);
+  top: max(50% + 120px, 300px);
   transform: translateX(-50%);
   z-index: var(--z-condition-input);
   display: none;
+}
+
+@media (min-width: 800px) {
+  #condition-input-wrapper {
+    left: calc(50% + 120px);
+    top: 50%;
+    transform: translateY(-50%);
+  }
 }
 
 #condition-input-wrapper.show {
@@ -1202,8 +1210,14 @@ th:hover .th-trash {
 
 /* Base condition list for dropdowns */
 #condition-select[multiple] {
-  max-height: calc(100vh - max(50vh + 80px, 300px) - 20px);
+  max-height: calc(100vh - max(50vh + 120px, 300px) - 20px);
   overflow-y: auto;
+}
+
+@media (min-width: 800px) {
+  #condition-select[multiple] {
+    max-height: 80vh;
+  }
 }
 
 /* ==========================================
@@ -1211,7 +1225,7 @@ th:hover .th-trash {
    ========================================== */
 
 .grouped-selector {
-  max-height: calc(100vh - max(50vh + 80px, 300px) - 20px);
+  max-height: calc(100vh - max(50vh + 120px, 300px) - 20px);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--border-radius-lg);
   background: white;
@@ -1221,6 +1235,12 @@ th:hover .th-trash {
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
+}
+
+@media (min-width: 800px) {
+  .grouped-selector {
+    max-height: 80vh;
+  }
 }
 
 .search-wrapper {
