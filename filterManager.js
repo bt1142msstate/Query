@@ -605,9 +605,10 @@ window.FilterSidePanel = (function () {
         const map = {
             contains: 'Contains', starts: 'Starts with', equals: 'Equals',
             greater: 'Greater than', less: 'Less than', between: 'Between',
-            before: 'Before', after: 'After', doesnotcontain: 'Does not contain'
+            before: 'Before', after: 'After', doesnotcontain: 'Does not contain',
+            on_or_after: 'On or after', on_or_before: 'On or before'
         };
-        return map[cond] || (cond.charAt(0).toUpperCase() + cond.slice(1));
+        return map[cond] || (cond.charAt(0).toUpperCase() + cond.slice(1).replace(/_/g, ' '));
     }
 
     function buildValueLabel(filter, fieldDef) {
@@ -955,7 +956,7 @@ window.typeConditions = {
   string: ['contains','starts','equals'],     // no "between" for plain strings
   number: ['greater','less','equals','between'],
   money : ['greater','less','equals','between'],
-  date  : ['before','after','equals','between']
+  date  : ['equals','before','after','on_or_before','on_or_after','between']
 };
 
 /* ---------- Input helpers to avoid duplicated numeric-config blocks ---------- */
@@ -1024,7 +1025,9 @@ window.getContradictionMessage = function(existing, newF, fieldType, fieldLabel)
       case 'less':    return `be less than ${vals[0]}`;
       case 'between': return `be between ${vals[0]} and ${vals[1]}`;
       case 'before':  return `be before ${vals[0]}`;
+      case 'on_or_before': return `be on or before ${vals[0]}`;
       case 'after':   return `be after ${vals[0]}`;
+      case 'on_or_after':  return `be on or after ${vals[0]}`;
       default:        return `${f.cond} ${vals.join(' and ')}`;
     }
   };
