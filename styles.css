@@ -573,7 +573,7 @@ input, textarea, select, [contenteditable] {
 #condition-panel {
   position: fixed;
   left: 50%;
-  top: calc(50% - 180px);
+  top: max(calc(50vh - 180px), 80px);
   transform: translateX(-50%);
   z-index: var(--z-condition-panel);
   display: flex;
