@@ -170,11 +170,10 @@ function renderVirtualTable() {
       // Apply formatting based on field type (same logic as Excel export)
       const fieldDef = window.fieldDefs ? window.fieldDefs.get(field) : null;
       const type = fieldDef ? fieldDef.type : 'string';
-      const lower = field ? field.toLowerCase() : '';
       let displayValue = cellValue;
       
       if (cellValue !== '' && cellValue !== '—' && cellValue !== undefined && cellValue !== null) {
-        if (type === 'date' || lower.includes('date') || lower.includes('time')) {
+        if (type === 'date') {
           const raw = cellValue;
           const n = typeof raw === 'string' ? parseInt(raw, 10) : raw;
           if (!n || isNaN(n)) {
@@ -190,28 +189,23 @@ function renderVirtualTable() {
               // Same as Excel "mm/dd/yyyy"
               displayValue = `${(m + 1).toString().padStart(2, '0')}/${d.toString().padStart(2, '0')}/${y}`;
             }
-            td.style.textAlign = 'right';
           }
+          td.style.textAlign = 'right';
         } 
-        else if (type === 'number' || type === 'money' || typeof cellValue === 'number' || lower.includes('price') || lower.includes('cost')) {
+        else if (type === 'number' || type === 'money') {
           const n = typeof cellValue === 'number' ? cellValue : parseFloat(String(cellValue).replace(/,/g, ''));
           if (!isNaN(n)) {
-            if (type === 'money' || lower.includes('price') || lower.includes('cost')) {
+            if (type === 'money') {
               displayValue = '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-              td.style.textAlign = 'right';
             } else {
-              // check if it should be unformatted entirely
-              if (lower.includes('year') || lower.includes('barcode') || lower.includes('key')) {
+              // Excel checks integer to determine fractional formatting
+              if (Number.isInteger(n)) {
                 displayValue = n.toString();
-              }
-              // check if integer
-              else if (Number.isInteger(n) || lower.includes('count') || lower.includes('number')) {
-                displayValue = n.toLocaleString('en-US', { maximumFractionDigits: 0 });
               } else {
                 displayValue = n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
               }
-              td.style.textAlign = 'right';
             }
+            td.style.textAlign = 'right';
           }
         } 
         else if (type === 'boolean') {
