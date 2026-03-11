@@ -700,6 +700,15 @@ function initializeBubbles() {
         return;
       }
       conditionPanel.classList.add('show');
+      // Reveal the unified filter card
+      const filterCard = document.getElementById('filter-card');
+      if (filterCard) {
+        const titleEl = document.getElementById('filter-card-title');
+        if (titleEl) titleEl.textContent = selectedField;
+        filterCard.classList.add('show');
+      }
+      // Hide the bubble clone behind the card
+      clone.style.opacity = '0';
       // After the panel is visible, auto-activate Equals (or first option)
       const defaultBtn =
             conditionPanel.querySelector('.condition-btn[data-cond="equals"]') ||
@@ -778,6 +787,9 @@ function resetActiveBubbles() {
       if (window.animatingBackBubbles) window.animatingBackBubbles.add(fieldName);
       
       const originalRect = clone._originalRect;
+      
+      // Restore bubble clone visibility before fly-back
+      clone.style.opacity = '1';
       
       // Override standard CSS to apply a smooth "all" transition while returning back
       clone.style.transition = 'all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)';

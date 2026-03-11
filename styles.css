@@ -58,6 +58,7 @@
   /* Z-index layers */
   --z-overlay: 40;
   --z-bubble: 50;
+  --z-filter-card: 55;
   --z-condition-panel: 60;
   --z-condition-input: 65;
   --z-condition-list: 70;
@@ -570,27 +571,57 @@ input, textarea, select, [contenteditable] {
    5. CONDITION PANEL & FILTERS
    ========================================== */
 
-#condition-panel {
+/* ---- Unified Filter Card ---- */
+#filter-card {
   position: fixed;
+  top: 50%;
   left: 50%;
-  top: calc(50% - 180px);
-  transform: translateX(-50%);
-  z-index: var(--z-condition-panel);
+  transform: translate(-50%, -50%) scale(0.92);
+  z-index: var(--z-filter-card);
+  width: min(90vw, 480px);
+  max-height: 85vh;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  width: 90vw;
-  max-width: 600px;
-  max-height: 40vh;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 1.5rem;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.6);
+  overflow-x: hidden;
   overflow-y: auto;
   opacity: 0;
   pointer-events: none;
-  gap: 1rem;
-  transition: opacity 0.35s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
-#condition-panel.show {
+#filter-card.show {
   opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+#filter-card-header {
+  padding: 1rem 1.25rem 0.75rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  font-weight: 700;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  text-align: center;
+  letter-spacing: 0.01em;
+}
+
+/* ---- Condition Panel (operator buttons) ---- */
+#condition-panel {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 1rem;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* .show still toggled by JS for state tracking — no visual change needed */
+#condition-panel.show {
   pointer-events: auto;
 }
 
@@ -617,31 +648,17 @@ input, textarea, select, [contenteditable] {
 }
 
 #condition-input-wrapper {
-  position: fixed;
-  left: 50%;
-  top: max(50% + 120px, 300px);
-  transform: translateX(-50%);
-  z-index: var(--z-condition-input);
   display: none;
-}
-
-@media (min-width: 800px) {
-  #condition-input-wrapper {
-    left: calc(50% + 120px);
-    top: 50%;
-    transform: translateY(-50%);
-  }
+  flex-shrink: 0;
 }
 
 #condition-input-wrapper.show {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(12px);
-  border-radius: var(--border-radius-xl);
-  box-shadow: var(--shadow-xl);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .condition-field {
@@ -722,12 +739,9 @@ input, textarea, select, [contenteditable] {
    ========================================== */
 
 #bubble-cond-list {
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + 0.5rem);
-  transform: translateX(-50%);
-  z-index: var(--z-condition-list);
-  width: 100%;
+  padding: 0.25rem 1rem;
+  overflow-x: auto;
+  flex-shrink: 0;
 }
 
 .cond-list {
@@ -1210,14 +1224,8 @@ th:hover .th-trash {
 
 /* Base condition list for dropdowns */
 #condition-select[multiple] {
-  max-height: calc(100vh - max(50vh + 120px, 300px) - 20px);
+  max-height: 50vh;
   overflow-y: auto;
-}
-
-@media (min-width: 800px) {
-  #condition-select[multiple] {
-    max-height: 80vh;
-  }
 }
 
 /* ==========================================
@@ -1225,7 +1233,7 @@ th:hover .th-trash {
    ========================================== */
 
 .grouped-selector {
-  max-height: calc(100vh - max(50vh + 120px, 300px) - 20px);
+  max-height: 50vh;
   border: 1px solid var(--color-gray-200);
   border-radius: var(--border-radius-lg);
   background: white;
@@ -1235,12 +1243,6 @@ th:hover .th-trash {
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
-}
-
-@media (min-width: 800px) {
-  .grouped-selector {
-    max-height: 80vh;
-  }
 }
 
 .search-wrapper {
