@@ -921,6 +921,8 @@ input, textarea, select, [contenteditable] {
 
 #example-table {
   border-radius: var(--border-radius-lg);
+  border-collapse: separate;
+  border-spacing: 0;
   width: auto; /* Allow table to expand to natural width */
   min-width: 100%; /* Ensure it's at least full width */
 }
@@ -929,6 +931,8 @@ input, textarea, select, [contenteditable] {
 #example-table thead {
   background: linear-gradient(to right, rgba(245, 245, 245, 0.95), rgba(250, 250, 250, 0.95));
   border-bottom: 2px solid rgba(220, 220, 220, 0.8);
+  border-top-left-radius: var(--border-radius-lg);
+  border-top-right-radius: var(--border-radius-lg);
 }
 
 #example-table th {
@@ -948,9 +952,14 @@ input, textarea, select, [contenteditable] {
 }
 
 /* Remove border from the last header column */
+#example-table th:first-child {
+  border-top-left-radius: var(--border-radius-lg);
+}
+
 #example-table th:last-child {
   padding-right: calc(1.5rem + 12px) !important;
   border-right: none;
+  border-top-right-radius: var(--border-radius-lg);
 }
 
 /* Table rows */
