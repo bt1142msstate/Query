@@ -269,8 +269,6 @@ window.startTableQueryAnimation = function() {
   // Animate to a circle
   bubble.style.width = '350px';
   bubble.style.height = '350px';
-  bubble.style.top = '50%';
-  bubble.style.left = '50%';
   bubble.style.borderRadius = '50%';
 };
 
