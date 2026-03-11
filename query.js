@@ -99,11 +99,20 @@ if(runBtn){
         const mapOperator = (cond, val) => {
             switch (cond) {
                 case 'equals': return { op: '=', val: val };
-                case 'greater': return { op: '>', val: val };
-                case 'less': return { op: '<', val: val };
+                case 'does_not_equal': return { op: '!=', val: val };
+                case 'greater': 
+                case 'after': return { op: '>', val: val };
+                case 'less': 
+                case 'before': return { op: '<', val: val };
+                case 'greater_or_equal': 
+                case 'on_or_after': return { op: '>=', val: val };
+                case 'less_or_equal': 
+                case 'on_or_before': return { op: '<=', val: val };
                 // Optimistic mapping for unsupported operators
-                case 'starts': return { op: '=', val: val + '*' };
+                case 'starts': 
+                case 'starts_with': return { op: '=', val: val + '*' };
                 case 'contains': return { op: '=', val: '*' + val + '*' };
+                case 'does_not_contain': return { op: '!=', val: '*' + val + '*' };
                 case 'between': 
                     const parts = val.split('|');
                     if (parts.length === 2) return { op: 'between', val: parts };
