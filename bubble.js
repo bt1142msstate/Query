@@ -742,6 +742,33 @@ function initializeBubbles() {
 
     overlay.classList.add('show');
     buildConditionPanel(bubble);
+
+    // --- Pre-populate filter card to accurately measure target dimensions ---
+    const filterCard = document.getElementById('filter-card');
+    const inputWrapper = document.getElementById('condition-input-wrapper');
+    if (filterCard) {
+      const titleEl = document.getElementById('filter-card-title');
+      if (titleEl) titleEl.textContent = fieldName;
+    }
+    const defaultBtn = conditionPanel.querySelector('.condition-btn[data-cond="equals"]') || conditionPanel.querySelector('.condition-btn');
+    if (defaultBtn) {
+      defaultBtn.classList.add('active');
+      if(window.handleConditionBtnClick) window.handleConditionBtnClick({ currentTarget: defaultBtn, stopPropagation(){}, preventDefault(){} });
+    }
+    if (window.renderConditionList) {
+      window.renderConditionList(fieldName);
+    }
+    if (inputWrapper && activeFilters[fieldName]) {
+      inputWrapper.classList.add('show');
+    }
+    
+    let targetWidth = 480;
+    let targetHeight = 350;
+    if (filterCard) {
+      const fcRect = filterCard.getBoundingClientRect();
+      if(fcRect.width > 0) targetWidth = fcRect.width;
+      if(fcRect.height > 0) targetHeight = fcRect.height;
+    }
     
     // Restore the saved category
     currentCategory = savedCategory;
@@ -754,7 +781,12 @@ function initializeBubbles() {
       if(!clone.classList.contains('enlarge-bubble')){
         // Only trigger the enlarge phase once a primary positioning transition finishes
         if(e.propertyName === 'top' || e.propertyName === 'left' || e.propertyName === 'transform') {
-          clone.classList.add('enlarge-bubble');
+          // Apply exact computed dimensions for the morph
+          requestAnimationFrame(() => {
+            clone.classList.add('enlarge-bubble');
+            clone.style.setProperty('width', `${targetWidth}px`, 'important');
+            clone.style.setProperty('height', `${targetHeight}px`, 'important');
+          });
         }
         return;
       }
@@ -764,28 +796,14 @@ function initializeBubbles() {
 
       conditionPanel.classList.add('show');
       // Reveal the unified filter card
-      const filterCard = document.getElementById('filter-card');
       if (filterCard) {
-        const titleEl = document.getElementById('filter-card-title');
-        if (titleEl) titleEl.textContent = selectedField;
         filterCard.classList.add('show');
       }
       // Hide the bubble clone with a pop and reveal the card
       clone.classList.add('popping');
       createBubblePopParticles(clone);
       
-      // After the panel is visible, auto-activate Equals (or first option)
-      const defaultBtn =
-            conditionPanel.querySelector('.condition-btn[data-cond="equals"]') ||
-            conditionPanel.querySelector('.condition-btn');
-      if (defaultBtn) {
-        defaultBtn.classList.add('active');
-        window.handleConditionBtnClick({ currentTarget: defaultBtn, stopPropagation(){}, preventDefault(){} });
-      }
-      // Show input wrapper right away if there are existing filters
-      if (activeFilters[selectedField]) {
-        inputWrapper.classList.add('show');
-      }
+      // Removed duplicate pre-activation code since we did it above
       clone.removeEventListener('transitionend',t);
       // Animation is done, allow bubble clicks again
       window.isBubbleAnimating = false;
