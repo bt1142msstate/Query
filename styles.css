@@ -1645,7 +1645,7 @@ th:hover .th-trash {
 #table-with-filter {
   display: flex;
   flex-direction: row;
-  align-items: stretch; /* Matches height of panel to the table */
+  align-items: flex-start;
   gap: 12px;
   width: 100%;
 }
@@ -1664,17 +1664,12 @@ th:hover .th-trash {
   width: 100%;
 }
 
-/* Table container styling handled inline or in other CSS but usually needs space */
-#table-container {
-  /* Removed flex: 1 to let it keep its custom height (e.g., 400px) */
-}
-
 /* Panel stays within the flow, allowing table to shrink when present */
 #filter-side-panel {
   flex-shrink: 0;
   display: flex;
   flex-direction: row;
-  align-self: stretch; /* Stretches to fill table-with-filter */
+  height: 400px; /* matches table height */
 }
 
 #filter-side-panel.panel-hidden {
@@ -1686,8 +1681,6 @@ th:hover .th-trash {
   width: 240px;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  max-height: 100%;
   background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -2096,30 +2089,4 @@ th:hover .th-trash {
     height: 1px;
     background: rgba(252, 211, 77, 0.3);
     margin: 0 8px;
-}
-
-/* Modal mode for editing large list filters in the side panel */
-.fp-edit-form.fp-modal-mode {
-  position: fixed !important;
-  left: 50% !important;
-  top: 50% !important;
-  transform: translate(-50%, -50%) !important;
-  z-index: 10001 !important; /* Above overlay */
-  background: white;
-  padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-  width: 90%;
-  max-width: 500px;
-  flex-direction: column;
-}
-
-.fp-edit-form.fp-modal-mode select[multiple] {
-  max-height: 300px !important;
-  min-height: 200px !important;
-}
-
-.fp-edit-form.fp-modal-mode .fp-edit-btns {
-  justify-content: flex-end;
-  margin-top: 12px;
 }

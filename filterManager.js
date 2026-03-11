@@ -316,10 +316,7 @@ window.handleFilterConfirm = function(e) {
         return;
     }
 
-    
-        const isMultiSelect = fieldDef && fieldDef.multiSelect;
-        const wantsModal = isMultiSelect && listValues;
-
+    const isMultiSelect = fieldDef && fieldDef.multiSelect;
 
     // Validation
     if (cond && cond !== 'display') {
@@ -690,21 +687,14 @@ window.FilterSidePanel = (function () {
                }
            } catch(e) {}
         }
-        
         const isMultiSelect = fieldDef && fieldDef.multiSelect;
-        const wantsModal = isMultiSelect && listValues;
-
 
         let val1;
         if (listValues) {
             val1 = document.createElement('select');
-            val1.className = 'fp-edit-val-input fp-edit-cond-select'; // Reuse similar style
-            if (isMultiSelect) {
-                val1.multiple = true;
-                val1.style.minHeight = '70px'; // Make multiple options visible
-                val1.style.maxHeight = '200px'; // Prevent it from getting too tall
-                val1.style.overflowY = 'auto'; // allow scrolling inside dropdown
-            }
+            val1.className = 'fp-edit-val-input fp-edit-cond-select'; // Reuse similar style 
+            if (isMultiSelect) val1.multiple = true;
+            if (isMultiSelect) val1.style.minHeight = '70px'; // Make multiple options visible
             
             const currentVals = vals[0].split(',').map(v => v.trim());
             
@@ -792,21 +782,6 @@ window.FilterSidePanel = (function () {
         form.appendChild(sep);
         form.appendChild(val2);
         form.appendChild(btns);
-
-        if (wantsModal) {
-            form.classList.add('fp-modal-mode');
-            const overlay = document.getElementById('overlay');
-            if (overlay) overlay.classList.add('show');
-            const bgClick = () => update();
-            if (overlay) overlay.addEventListener('click', bgClick);
-            
-            const origUpdate = update;
-            update = () => {
-                if (overlay) overlay.classList.remove('show');
-                if (overlay) overlay.removeEventListener('click', bgClick);
-                origUpdate();
-            };
-        }
 
         rowEl.replaceWith(form);
     }
