@@ -4,136 +4,68 @@
  * @module FieldDefs
  */
 
-// Field definitions data array - aligned with SirsiCommandCreator.pm
-const fieldDefsArray = [
-    // --- Catalog Fields (Selcatalog) ---
-    { "name": "Catalog Key", "type": "string", "filters": ["equals"], "category": "Catalog", "desc": "Unique identifier for the Title Record" },
-    { "name": "Title", "type": "string", "filters": ["contains", "starts", "equals"], "category": "Catalog", "desc": "Full title of the work" },
-    { "name": "Title (Short)", "type": "string", "filters": ["contains", "starts", "equals"], "category": "Catalog", "desc": "Brief title or title fragment" },
-    { "name": "Author", "type": "string", "filters": ["contains", "starts", "equals"], "category": "Catalog", "desc": "The author or creator of the item" },
-    { "name": "Author Display", "type": "string", "filters": ["contains"], "category": "Catalog", "desc": "Formatted author name for display" },
-    { "name": "Author Browse", "type": "string", "filters": ["starts"], "category": "Catalog", "desc": "Heading string used for author browsing" },
-    { "name": "Author Key", "type": "string", "filters": ["equals"], "category": "Catalog", "desc": "Key used for author indexing" },
-    { "name": "Subject Display", "type": "string", "filters": ["contains"], "category": "Catalog", "desc": "Subject headings formatted for display" },
-    { "name": "Subject Browse", "type": "string", "filters": ["starts"], "category": "Catalog", "desc": "Heading string used for subject browsing" },
-    { "name": "Year of Publication", "type": "number", "filters": ["greater", "less", "equals", "between"], "category": "Catalog", "desc": "Publication year parsed from the record" },
-    { "name": "Catalog Date Created", "type": "date", "filters": ["equals", "before", "after", "on_or_before", "on_or_after", "between"], "category": "Catalog", "desc": "Date the Title Record was created" },
-    { "name": "Date Cataloged", "type": "date", "filters": ["equals", "before", "after", "on_or_before", "on_or_after", "between"], "category": "Catalog", "desc": "Date the Title Record was formally cataloged" },
-    { "name": "Date Last Modified", "type": "date", "filters": ["equals", "before", "after", "on_or_before", "on_or_after", "between"], "category": "Catalog", "desc": "Date of the last user modification" },
-    { "name": "Created By", "type": "string", "filters": ["equals"], "category": "Catalog", "desc": "User ID who created the record" },
-    { "name": "Modified By", "type": "string", "filters": ["equals"], "category": "Catalog", "desc": "User ID who last modified the record" },
-    { "name": "Format", "type": "string", "filters": ["equals"], "category": "Catalog", "desc": "Configuration Rule for Bibliographic format" },
-    { "name": "Material Type", "type": "string", "filters": ["equals"], "category": "Catalog", "desc": "Configuration Rule for material type" },
-    { "name": "Collection Category", "type": "string", "filters": ["equals"], "category": "Catalog", "desc": "Configuration Rule for Collection Category" },
-    { "name": "Title Hold Count", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Number of Reservations placed on this Title Record" },
-    { "name": "Total Holds", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Total number of Reservations linked" },
-    { "name": "Call Number Count", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Total number of Call Numbers linked" },
-    { "name": "Library Count", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Number of libraries holding Physical Copies" },
-    { "name": "Catalog Shadowed", "type": "boolean", "filters": ["equals"], "category": "Catalog", "desc": "Indicates if the Title Record is Hidden" },
-    { "name": "IMMS Material Type", "type": "string", "filters": ["equals"], "category": "Catalog", "desc": "Material type code used by IMMS" },
-    { "name": "Non-return Period", "type": "string", "filters": ["equals"], "category": "Catalog", "desc": "Period during which the Physical Copy cannot be returned" },
-    { "name": "Period Until Rotatable", "type": "string", "filters": ["equals"], "category": "Catalog", "desc": "Time period before local Physical Copies become rotatable" },
-    { "name": "Minimum Performance", "type": "number", "filters": ["greater", "less", "equals"], "category": "Catalog", "desc": "Minimum Checkout performance threshold" },
-    { "name": "Maximum Performance", "type": "number", "filters": ["greater", "less", "equals"], "category": "Catalog", "desc": "Maximum Checkout performance threshold" },
-    { "name": "Period Performance", "type": "string", "filters": ["equals"], "category": "Catalog", "desc": "Performance metrics over a specific period" },
-    { "name": "New Material Date", "type": "date", "filters": ["equals", "before", "after", "on_or_before", "on_or_after", "between"], "category": "Catalog", "desc": "Date until which the Physical Copy is considered 'New'" },
-    { "name": "Hold Exempt Date", "type": "date", "filters": ["equals", "before", "after", "on_or_before", "on_or_after", "between"], "category": "Catalog", "desc": "Date until which the Title Record is exempt from Reservations" },
-    { "name": "Last Callnum", "type": "number", "filters": ["greater", "less", "equals"], "category": "Catalog", "desc": "Sequence number of the last Call Number created" },
-    { "name": "Catalog Accountability", "type": "number", "filters": ["greater", "less", "equals"], "category": "Catalog", "desc": "Accountability claim count" },
-    { "name": "Review Records", "type": "boolean", "filters": ["equals"], "category": "Catalog", "desc": "Indicates if the record is flagged for review" },
-    { "name": "Heading Offset", "type": "number", "filters": ["equals"], "category": "Catalog", "desc": "Offset to the heading entry" },
-    { "name": "Marc File Number", "type": "number", "filters": ["equals"], "category": "Catalog", "desc": "Index identifier of the MARC file" },
-    { "name": "Marclist Offset", "type": "number", "filters": ["equals"], "category": "Catalog", "desc": "Internal data pointer to the MARClist file" },
-    { "name": "MARC Offset Number", "type": "string", "filters": ["equals"], "category": "Catalog", "desc": "Internal data pointer to the record within the MARC file" },
-    { "name": "Catalog System Date Modified", "type": "date", "filters": ["equals", "before", "after", "on_or_before", "on_or_after", "between"], "category": "Catalog", "desc": "Date the Title Record was last modified by the system" },
-    { "name": "Status", "type": "number", "filters": ["equals"], "category": "Catalog", "desc": "Internal status flags" },
-    { "name": "Catalog Input Strings", "type": "string", "filters": ["contains"], "category": "Catalog", "desc": "Original input strings" },
-    { "name": "Entries", "type": "string", "filters": ["contains"], "category": "Catalog", "desc": "Symphony entry IDs" },
-    { "name": "Visible Call Number Count", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Number of Call Numbers visible" },
-    { "name": "Shadow Call Number Count", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Number of Hidden from public view Call Numbers" },
-    { "name": "Copies on Open Order", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Number of Physical Copies currently on open order" },
-    { "name": "Flexible Key", "type": "string", "filters": ["equals"], "category": "Catalog", "desc": "Flexible key" },
+// Field definitions dynamically loaded from backend
+let fieldDefsArray = [];
+let fieldDefs = new Map();
+let filteredDefs = [];
+let isFieldsLoaded = false;
 
-    // --- Call Number Fields (Selcallnum) ---
-    { "name": "Call Number", "type": "string", "filters": ["contains", "equals", "between"], "category": "Call #", "desc": "The call number assigned to the item" },
-    { "name": "Call Number Key", "type": "string", "filters": ["equals"], "category": "Call #", "desc": "Unique identifier for the Call Number" },
-    { "name": "Call Number Library", "type": "string", "filters": ["equals"], "category": "Call #", "desc": "Library organization owning this Call Number" },
-    { "name": "Classification", "type": "string", "filters": ["equals"], "category": "Call #", "desc": "Configuration Rule for classification" },
-    { "name": "Call Number Shadowed", "type": "boolean", "filters": ["equals"], "category": "Call #", "desc": "Indicates if the Call Number is Hidden" },
-    { "name": "Copy Count", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Number of Physical Copies" },
-    { "name": "Call Hold Count", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Number of Reservations placed specifically" },
-    { "name": "Base Call Number", "type": "string", "filters": ["contains"], "category": "Call #", "desc": "Base portion of the Call Number" },
-    { "name": "Analytic Position", "type": "number", "filters": ["equals"], "category": "Call #", "desc": "Position within a series of chapters" },
-    { "name": "Bound-with Level", "type": "string", "filters": ["equals"], "category": "Call #", "desc": "Indication of bound-with relationship level" },
-    { "name": "Visible Copies", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Number of Physical Copies visible" },
-    { "name": "Copies on Reserve", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Number of Physical Copies currently on academic reserve" },
-    { "name": "Reserve Control Records", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Number of linked academic reserve records" },
-    { "name": "Shelving Key", "type": "string", "filters": ["contains"], "category": "Call #", "desc": "Normalized key used for sorting Physical Copies" },
-    { "name": "Call Number Regex", "type": "string", "filters": ["contains"], "category": "Call #", "desc": "Matches Call Numbers" },
-    { "name": "Call Number System Date Modified", "type": "date", "filters": ["equals", "before", "after", "on_or_before", "on_or_after", "between"], "category": "Call #", "desc": "Date the Call Number record was last modified" },
-    { "name": "Analytics", "type": "string", "filters": ["contains"], "category": "Call #", "desc": "Chapter entries" },
-    { "name": "Call Number Input Strings", "type": "string", "filters": ["contains"], "category": "Call #", "desc": "Original input strings" },
+window.loadFieldDefinitions = async function loadFieldDefinitions() {
+    if (isFieldsLoaded) return fieldDefsArray;
     
-    // --- Item Fields (Selitem) ---
-    { "name": "Item Id", "type": "string", "filters": ["equals"], "category": "Item", "desc": "Barcode identifier of the Physical Copy" },
-    { "name": "Item Key", "type": "string", "filters": ["equals"], "category": "Item", "desc": "Unique identifier for a specific Physical Copy" },
-    { "name": "Item Library", "type": "string", "filters": ["equals"], "category": "Item", "desc": "Library where item is located", "multiSelect": true, "values": [
-        { "Name": "TRLS-A", "RawValue": "TRLS-A" }, { "Name": "TRLS-B", "RawValue": "TRLS-B" }, { "Name": "TRLS-C", "RawValue": "TRLS-C" },
-        { "Name": "MLTN-A", "RawValue": "MLTN-A" }, { "Name": "MLTN-B", "RawValue": "MLTN-B" }, { "Name": "WSPR-X", "RawValue": "WSPR-X" }
-    ] },
-    { "name": "Home Location", "type": "string", "filters": ["equals"], "category": "Item", "desc": "Home location or shelving location of the item" },
-    { "name": "Current Location", "type": "string", "filters": ["equals"], "category": "Item", "desc": "Current physical location of the item" },
-    { "name": "Item Type", "type": "string", "filters": ["equals"], "category": "Item", "desc": "Type or format of the item (e.g., book, DVD)" },
-    { "name": "Price", "type": "money", "filters": ["greater", "less", "equals", "between"], "category": "Item", "desc": "The price of the item" },
-    { "name": "Bill Count", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Number of User Fine/Fees" },
-    { "name": "Charge Count", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Number of current Checkouts" },
-    { "name": "Item Total Charges", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Total number of times this Physical Copy has been Checked out" },
-    { "name": "Permanent", "type": "boolean", "filters": ["equals"], "category": "Item", "desc": "Is item permanent" },
-    { "name": "Recirculation Flags", "type": "boolean", "filters": ["equals"], "category": "Item", "desc": "Indicates if the item can be recirculated" },
-    { "name": "Item Shadowed", "type": "boolean", "filters": ["equals"], "category": "Item", "desc": "Is item hidden from public" },
-    { "name": "Item Date Created", "type": "date", "filters": ["equals", "before", "after", "on_or_before", "on_or_after", "between"], "category": "Item", "desc": "Date item record was created" },
-    { "name": "Date Last Used", "type": "date", "filters": ["equals", "before", "after", "on_or_before", "on_or_after", "between"], "category": "Item", "desc": "Date the Physical Copy was last used" },
-    { "name": "Date Last Charged", "type": "date", "filters": ["equals", "before", "after", "on_or_before", "on_or_after", "between"], "category": "Item", "desc": "Date the copy was last checked out" },
-    { "name": "Date Inventoried", "type": "date", "filters": ["equals", "before", "after", "on_or_before", "on_or_after", "between"], "category": "Item", "desc": "Date the copy was last inventoried" },
-    { "name": "Last User Key", "type": "string", "filters": ["equals"], "category": "Item", "desc": "User ID of the last patron to switch status" },
-    { "name": "Inventory Count", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Number of times inventoried" },
-    { "name": "In-House Charges", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Number of times used in-house" },
-    { "name": "Available Hold Key", "type": "string", "filters": ["equals"], "category": "Item", "desc": "Key of the hold available for this copy" },
-    { "name": "User Hold Key", "type": "string", "filters": ["equals"], "category": "Item", "desc": "Key of the hold filling this copy" },
-    { "name": "Category1", "type": "string", "filters": ["equals"], "category": "Item", "desc": "Statistical Category 1" },
-    { "name": "Category2", "type": "string", "filters": ["equals"], "category": "Item", "desc": "Statistical Category 2" },
-    { "name": "Category3", "type": "string", "filters": ["equals"], "category": "Item", "desc": "Statistical Category 3" },
-    { "name": "Category4", "type": "string", "filters": ["equals"], "category": "Item", "desc": "Statistical Category 4" },
-    { "name": "Category5", "type": "string", "filters": ["equals"], "category": "Item", "desc": "Statistical Category 5" },
-    { "name": "Media Desk", "type": "string", "filters": ["equals"], "category": "Item", "desc": "Media desk location" },
-    { "name": "Reserve Desk", "type": "string", "filters": ["equals"], "category": "Item", "desc": "Reserve desk location" },
-    { "name": "Distribution Key", "type": "string", "filters": ["equals"], "category": "Item", "desc": "Distribution key" },
-    { "name": "Item Accountability", "type": "number", "filters": ["greater", "less", "equals"], "category": "Item", "desc": "Accountability claim count" },
-    { "name": "Pieces", "type": "number", "filters": ["greater", "less", "equals"], "category": "Item", "desc": "Number of pieces" },
-    { "name": "Transit Status", "type": "number", "filters": ["equals"], "category": "Item", "desc": "Transit status flag" },
-    { "name": "Item Input Strings", "type": "string", "filters": ["contains"], "category": "Item", "desc": "Original input strings" },
-    { "name": "Extended Info Offset", "type": "number", "filters": ["equals"], "category": "Item", "desc": "Internal pointer to extended info" },
-    
-    // --- Transit Fields (Seltransit) ---
-    { "name": "Transit Destination Library", "type": "string", "filters": ["equals"], "category": "Transit", "desc": "Library the item is being sent to" },
-    { "name": "Transit Source Library", "type": "string", "filters": ["equals"], "category": "Transit", "desc": "Library the item was sent from (From)" },
-    { "name": "Transit Creating Library", "type": "string", "filters": ["equals"], "category": "Transit", "desc": "Library that created the transit record" },
-    { "name": "Transit Date Sent", "type": "date", "filters": ["equals", "before", "after", "on_or_before", "on_or_after", "between"], "category": "Transit", "desc": "Date the item was put in transit" },
-    { "name": "Transit Reason", "type": "string", "filters": ["equals"], "category": "Transit", "desc": "Reason for transit" },
-    { "name": "Transit Hold Key", "type": "string", "filters": ["equals"], "category": "Transit", "desc": "Key of the hold triggering this transit" },
+    try {
+        const response = await fetch('https://mlp.sirsi.net/uhtbin/query_api.pl', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'get_fields' })
+        });
+        
+        if (!response.ok) {
+            throw new Error('HTTP error: ' + response.status);
+        }
+        
+        const data = await response.json();
+        
+        fieldDefsArray = [...data];
+        
+        // Append special Marc field
+        fieldDefsArray.push({ 
+            "name": "Marc", 
+            "type": "string", 
+            "category": "Marc", 
+            "isSpecialMarc": true, 
+            "desc": "Create custom MARC field filters by specifying a MARC field number" 
+        });
 
-    // --- Special ---
-    { "name": "Marc", "type": "string", "category": "Marc", "isSpecialMarc": true, "desc": "Create custom MARC field filters by specifying a MARC field number" }
-];
+        // Initialize helper map and filter array
+        fieldDefs.clear();
+        fieldDefsArray.forEach(field => fieldDefs.set(field.name, field));
+        filteredDefs = [...fieldDefsArray];
 
-// Helper to quickly find field def
-const fieldDefs = new Map(fieldDefsArray.map(field => [field.name, field]));
+        window.fieldDefsArray = fieldDefsArray;
+        window.fieldDefs = fieldDefs;
+        window.filteredDefs = filteredDefs;
+        
+        isFieldsLoaded = true;
+        return fieldDefsArray;
+    } catch (e) {
+        console.error("Failed to load backend field mappings.", e);
+        if (window.showToastMessage) {
+            window.showToastMessage("Could not load field settings from backend", "error");
+        }
+        return [];
+    }
+}
+
+// Ensure the map export remains attached after loading
+// fieldDefs was already initialized at the top
+fieldDefs = new Map(fieldDefsArray.map(field => [field.name, field]));
 
 // Categories array - Including "Selected" for filtered view
 const categories = ['All', 'Selected', 'Catalog', 'Call #', 'Item', 'Metrics', 'Transit', 'Marc'];
 
 // Initialize filtered defs
-let filteredDefs = [...fieldDefsArray];
+filteredDefs = [...fieldDefsArray];
 
 /**
  * Returns all field definitions.
