@@ -253,3 +253,82 @@ const TooltipManager = (() => {
   attach();
   return { show: showTooltip, hide: hideTooltip, forceHide: forceHide };
 })();
+
+/**
+ * Standardized formatter for filter tooltips across the application.
+ * Accepts an array of FilterGroups and generates structured HTML.
+ * @param {Array} filterGroups - Array of groups containing {LogicalOperator, Filters: [{FieldName, FieldOperator, Values}]}
+ * @param {string} [title=""] - Optional title for the tooltip
+ * @returns {string} HTML string for data-tooltip-html
+ */
+window.formatStandardFilterTooltipHTML = function(filterGroups, title = "") {
+  if (!filterGroups || filterGroups.length === 0) return '';
+  
+  let hasFilters = false;
+  
+  const opMap = {
+      'Equals': '=',
+      'GreaterThan': '>',
+      'LessThan': '<',
+      'Between': 'between',
+      'Contains': 'contains',
+      'DoesNotContain': 'does not contain',
+      'LessThanOrEqual': '<=',
+      'GreaterThanOrEqual': '>='
+  };
+  
+  let html = '<div class="tt-filter-container">';
+  if (title) {
+      html += '<div class="tt-filter-title">' + title + '</div>';
+  }
+  html += '<ul class="tt-filter-list">';
+  
+  filterGroups.forEach((group, gIdx) => {
+    if (!group.Filters || group.Filters.length === 0) return;
+    
+    // Support OR/AND logic between groups if necessary
+    if (gIdx > 0) {
+        let logicOp = group.LogicalOperator || 'AND';
+        html += '<li class="tt-logic">' + logicOp.toUpperCase() + '</li>';
+    }
+    
+    group.Filters.forEach((f, fIdx) => {
+      hasFilters = true;
+      let op = opMap[f.FieldOperator] || f.FieldOperator;
+      if (!opMap[f.FieldOperator] && typeof f.FieldOperator === 'string') {
+          let capitalized = f.FieldOperator.charAt(0).toUpperCase() + f.FieldOperator.slice(1);
+          op = opMap[capitalized] || f.FieldOperator;
+      }
+      
+      let valStr = '';
+      if (f.Values && f.Values.length > 0) {
+          if ((f.FieldOperator === 'Between' || op === 'between') && f.Values.length >= 2) {
+              valStr = '<span class="tt-val">' + escapeHtml(f.Values[0]) + '</span> <span class="tt-op">and</span> <span class="tt-val">' + escapeHtml(f.Values[1]) + '</span>';
+          } else {
+              valStr = '<span class="tt-val">' + escapeHtml(f.Values.join(', ')) + '</span>';
+          }
+      }
+      
+      html += '<li class="tt-filter-item">';
+      html += '  <span class="tt-field">' + escapeHtml(f.FieldName || '') + '</span>';
+      html += '  <span class="tt-op">' + escapeHtml(op) + '</span>';
+      html += '  ' + valStr;
+      html += '</li>';
+    });
+  });
+  
+  html += '</ul></div>';
+  
+  return hasFilters ? html : '';
+};
+
+// Helper function to escape HTML to prevent XSS in tooltips
+function escapeHtml(unsafe) {
+    if (typeof unsafe !== 'string') return unsafe;
+    return unsafe
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
+}

@@ -39,28 +39,35 @@ class Bubble {
     if (def.values) this.el.dataset.values = JSON.stringify(def.values);
     if (def.filters) this.el.dataset.filters = JSON.stringify(def.filters);
     // Tooltip: description + filters (if any)
-    let tooltip = def.desc || '';
+    let descValue = def.desc || '';
     // Build a fake FilterGroups array for this field from activeFilters
     const af = activeFilters[fieldName];
-    let filterTooltip = '';
+    let filterTooltipHtml = '';
+    
     if (af && af.filters && af.filters.length > 0) {
       const fakeGroup = [{
+        LogicalOperator: af.logical,
         Filters: af.filters.map(f => ({
           FieldName: fieldName,
           FieldOperator: mapOperator(f.cond),
           Values: f.cond === 'between' ? f.val.split('|') : f.val.split(',')
         }))
       }];
-      filterTooltip = formatFiltersTooltip(fieldName, fakeGroup);
+      filterTooltipHtml = window.formatStandardFilterTooltipHTML(fakeGroup, "Active Filters");
     }
-    if (filterTooltip) {
-      tooltip += (tooltip ? '\n\u2014\n' : '');
-      tooltip += filterTooltip;
-    }
-    if (tooltip) {
-      this.el.setAttribute('data-tooltip', tooltip);
+
+    if (filterTooltipHtml) {
+      if (descValue) {
+        filterTooltipHtml = `<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.2);color:#f8fafc;font-size:0.9rem;">${descValue}</div>` + filterTooltipHtml;
+      }
+      this.el.removeAttribute('data-tooltip');
+      this.el.setAttribute('data-tooltip-html', filterTooltipHtml);
+    } else if (descValue) {
+      this.el.removeAttribute('data-tooltip-html');
+      this.el.setAttribute('data-tooltip', descValue);
     } else {
       this.el.removeAttribute('data-tooltip');
+      this.el.removeAttribute('data-tooltip-html');
     }
     if (def.isSpecialMarc || displayedFields.includes(fieldName)) {
       this.el.setAttribute('draggable', 'false');
