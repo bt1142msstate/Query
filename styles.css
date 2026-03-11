@@ -1974,3 +1974,21 @@ th:hover .th-trash {
 .fp-edit-cancel-btn:hover {
   background: #d1d5db;
 }
+
+/* Drag and Drop for Filter Panel */
+.fp-field-group[draggable="true"] {
+  cursor: grab;
+}
+
+.fp-field-group.fp-dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.fp-field-group.fp-drag-over-top {
+  border-top: 2px solid #6366f1;
+}
+
+.fp-field-group.fp-drag-over-bottom {
+  border-bottom: 2px solid #6366f1;
+}
