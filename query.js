@@ -323,9 +323,11 @@ overlay.addEventListener('click',()=>{
   window.ModalSystem.closeAllModals(); // This will hide overlay and all panels with 'hidden' and remove 'show'
   window.BubbleSystem && window.BubbleSystem.resetActiveBubbles(); // Handles bubble animations and state
 
-  // Close non-modal UI elements (condition panel, input wrapper)
+  // Close non-modal UI elements (condition panel, input wrapper, filter card)
   conditionPanel.classList.remove('show');
   inputWrapper.classList.remove('show');
+  const filterCard = document.getElementById('filter-card');
+  if (filterCard) filterCard.classList.remove('show');
   
   // Remove all .active from condition buttons
   const btns = conditionPanel.querySelectorAll('.condition-btn');

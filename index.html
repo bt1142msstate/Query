@@ -164,15 +164,20 @@
     </div>
   </div>
   
-  <div id="condition-panel" class="gap-4"></div>
-  <div id="condition-input-wrapper">
+  <div id="filter-card">
+    <div id="filter-card-header">
+      <span id="filter-card-title"></span>
+    </div>
+    <div id="condition-panel" class="gap-4"></div>
     <div id="bubble-cond-list"></div>
-    <input id="condition-input" class="condition-field" type="text" placeholder="Enter value…" />
-    <span id="between-label" class="mx-2 font-semibold" style="display:none;">‑</span>
-    <input id="condition-input-2" class="condition-field" type="text" placeholder="Enter value…" style="display:none;" />
-    <button id="confirm-btn" class="confirm-btn" data-tooltip="Confirm">&#10003;</button>
-    <span id="filter-error"
-          class="ml-3 text-red-600 text-sm font-semibold"></span>
+    <div id="condition-input-wrapper">
+      <input id="condition-input" class="condition-field" type="text" placeholder="Enter value…" />
+      <span id="between-label" class="mx-2 font-semibold" style="display:none;">‑</span>
+      <input id="condition-input-2" class="condition-field" type="text" placeholder="Enter value…" style="display:none;" />
+      <button id="confirm-btn" class="confirm-btn" data-tooltip="Confirm">&#10003;</button>
+      <span id="filter-error"
+            class="ml-3 text-red-600 text-sm font-semibold"></span>
+    </div>
   </div>
   <div class="max-w-5xl mx-auto">
     <!-- Editable Table Name Header (outside flex row so panel aligns with table only) -->
