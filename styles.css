@@ -573,7 +573,7 @@ input, textarea, select, [contenteditable] {
 #condition-panel {
   position: fixed;
   left: 50%;
-  top: max(calc(50vh - 180px), 80px);
+  top: max(calc(50vh - 180px), calc(var(--header-height, 64px) + 24px));
   transform: translateX(-50%);
   z-index: var(--z-condition-panel);
   display: flex;
@@ -627,7 +627,7 @@ input, textarea, select, [contenteditable] {
 
 #condition-input-wrapper.show {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
   background: rgba(255, 255, 255, 0.75);
@@ -716,7 +716,7 @@ input, textarea, select, [contenteditable] {
 #bubble-cond-list {
   position: absolute;
   left: 50%;
-  bottom: calc(100% + 0.5rem);
+  top: calc(100% + 0.5rem);
   transform: translateX(-50%);
   z-index: var(--z-condition-list);
   width: 100%;
@@ -724,6 +724,9 @@ input, textarea, select, [contenteditable] {
 
 .cond-list {
   min-width: 100%;
+  /* Calculate max-height intelligently so it expands downwards without overflowing */
+  max-height: calc(100vh - var(--wrapper-top, 80px) - 60px);
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -1202,7 +1205,7 @@ th:hover .th-trash {
 
 /* Base condition list for dropdowns */
 #condition-select[multiple] {
-  max-height: calc(100vh - max(50vh + 80px, 300px) - 20px);
+  max-height: 40vh;
   overflow-y: auto;
 }
 
@@ -1211,7 +1214,7 @@ th:hover .th-trash {
    ========================================== */
 
 .grouped-selector {
-  max-height: calc(100vh - max(50vh + 80px, 300px) - 20px);
+  max-height: 40vh;
   border: 1px solid var(--color-gray-200);
   border-radius: var(--border-radius-lg);
   background: white;
@@ -1658,7 +1661,7 @@ th:hover .th-trash {
 #table-with-filter {
   display: flex;
   flex-direction: row;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
   width: 100%;
 }
