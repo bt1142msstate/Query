@@ -2001,3 +2001,56 @@ th:hover .th-trash {
 .fp-field-group.fp-drag-over-bottom {
   border-bottom: 2px solid #6366f1;
 }
+
+/* Filter Tooltips */
+.tt-filter-container {
+    text-align: left;
+    min-width: max-content;
+}
+.tt-filter-title {
+    font-weight: bold;
+    margin-bottom: 6px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    color: #e2e8f0;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.tt-filter-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.tt-filter-item {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: baseline;
+    font-size: 0.85rem;
+}
+.tt-field {
+    color: #c4b5fd;
+    font-weight: 600;
+}
+.tt-op {
+    color: #9ca3af;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+.tt-val {
+    color: #ffffff;
+    font-weight: 500;
+    background: rgba(255,255,255,0.1);
+    padding: 1px 4px;
+    border-radius: 3px;
+}
+.tt-logic {
+    font-size: 0.7rem;
+    color: #fcd34d;
+    font-weight: bold;
+    margin-left: 6px;
+}

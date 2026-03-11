@@ -391,12 +391,25 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
     
   // Use tooltip for filters
   const filterGroups = q.jsonConfig?.FilterGroups || [];
-  const filterTooltip = typeof formatHistoryFiltersTooltip === 'function' ? formatHistoryFiltersTooltip(filterGroups) : '';
-  const filtersSummary = filterGroups.length && filterTooltip
-    ? `<span class="inline-flex items-center gap-1" data-tooltip="${filterTooltip.replace(/"/g, '&quot;')}">
-          ${viewIconSVG}
-       </span>`
-    : '<span class="text-gray-400">None</span>';
+  let filtersSummary = '<span class="text-gray-400">None</span>';
+  
+  if (filterGroups.length > 0) {
+      if (typeof window.formatStandardFilterTooltipHTML === 'function') {
+          const filterHtml = window.formatStandardFilterTooltipHTML(filterGroups, "Query Filters");
+          // Use base64 or carefully escaped HTML if placing in attribute
+          filtersSummary = `<span class="inline-flex items-center gap-1" data-tooltip-html="${filterHtml.replace(/"/g, '&quot;')}">
+            ${viewIconSVG}
+          </span>`;
+      } else {
+          // Fallback
+          const filterTooltip = typeof formatHistoryFiltersTooltip === 'function' ? formatHistoryFiltersTooltip(filterGroups) : '';
+          if (filterTooltip) {
+              filtersSummary = `<span class="inline-flex items-center gap-1" data-tooltip="${filterTooltip.replace(/"/g, '&quot;')}">
+                ${viewIconSVG}
+              </span>`;
+          }
+      }
+  }
 
   // Stop button for running queries (no 'Running' label)
   const stopBtn = q.running ? `
