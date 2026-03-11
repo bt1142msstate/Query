@@ -308,6 +308,62 @@ function updateScrollBar(){
 }
 
 /**
+ * Creates visual water-like splash particles when a bubble pops into the filter card
+ * @param {HTMLElement} bubbleClone The final enlarged bubble clone element
+ */
+function createBubblePopParticles(bubbleClone) {
+  const rect = bubbleClone.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  const numParticles = 25;
+
+  for (let i = 0; i < numParticles; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'bubble-particle';
+    
+    // Pick a random angle around the circle
+    const angle = Math.random() * Math.PI * 2;
+    // Set an initial position somewhat near the edge of the expanded container
+    const radiusX = (rect.width / 2) * (0.8 + Math.random() * 0.3);
+    const radiusY = (rect.height / 2) * (0.8 + Math.random() * 0.3);
+    
+    const startX = centerX + Math.cos(angle) * radiusX;
+    const startY = centerY + Math.sin(angle) * radiusY;
+
+    // Set origin
+    particle.style.left = `${startX}px`;
+    particle.style.top = `${startY}px`;
+
+    // Randomize drop size
+    const size = Math.random() * 10 + 4; // Between 4px and 14px
+    particle.style.width = `${size}px`;
+    particle.style.height = `${size}px`;
+
+    // Calculate outward explosion velocity
+    const burstSpeed = 20 + Math.random() * 50; 
+    const travelX = Math.cos(angle) * burstSpeed;
+    // Add downward gravity onto the Y travel
+    const gravity = 60 + Math.random() * 60;
+    const travelY = Math.sin(angle) * burstSpeed + gravity;
+
+    // Apply CSS variables for the animation
+    particle.style.setProperty('--tx', `${travelX}px`);
+    particle.style.setProperty('--ty', `${travelY}px`);
+
+    // Randomize slightly off-sync durations
+    const duration = 0.35 + Math.random() * 0.25; 
+    particle.style.animation = `bubble-pop-anim ${duration}s ease-in forwards`;
+
+    document.body.appendChild(particle);
+
+    // Clean up
+    setTimeout(() => {
+      if (particle.parentNode) particle.remove();
+    }, duration * 1000);
+  }
+}
+
+/**
  * Builds the condition panel UI when a bubble is clicked.
  * Creates filter buttons, input fields, and show/hide toggles based on field type.
  * @function buildConditionPanel
@@ -716,6 +772,8 @@ function initializeBubbles() {
       }
       // Hide the bubble clone with a pop and reveal the card
       clone.classList.add('popping');
+      createBubblePopParticles(clone);
+      
       // After the panel is visible, auto-activate Equals (or first option)
       const defaultBtn =
             conditionPanel.querySelector('.condition-btn[data-cond="equals"]') ||

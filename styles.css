@@ -515,6 +515,41 @@ input, textarea, select, [contenteditable] {
   transform: translate(-50%, -50%) !important;
 }
 
+/* Water Splash Particles for Bubble Pop */
+.bubble-particle {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: var(--z-bubble);
+  background: radial-gradient(
+    130% 130% at 30% 30%, 
+    rgba(255, 255, 255, 0.9) 15%, 
+    rgba(255, 255, 255, 0.5) 40%, 
+    rgba(255, 255, 255, 0.1) 60%, 
+    rgba(148, 163, 184, 0.2) 100%
+  );
+  box-shadow: 
+    inset -1px -1px 3px rgba(255, 255, 255, 0.3),
+    inset 1px 1px 3px rgba(255, 255, 255, 0.6),
+    0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  transform: translate(-50%, -50%) scale(1);
+}
+
+@keyframes bubble-pop-anim {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  40% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0.2);
+    opacity: 0;
+  }
+}
+
 /* Disabled bubble (original that was cloned) */
 .bubble-disabled {
   opacity: 0.35;
