@@ -327,10 +327,10 @@ function buildConditionPanel(bubble){
         if (typeof parsedValues[0] === 'object' && parsedValues[0].Name && parsedValues[0].RawValue) {
           // New format with Name/RawValue pairs
           hasValuePairs = true;
-          listValues = parsedValues;
+          listValues = parsedValues.sort((a, b) => a.Name.localeCompare(b.Name, undefined, { numeric: true, sensitivity: 'base' }));
         } else {
           // Old string format
-          listValues = parsedValues;
+          listValues = parsedValues.sort((a, b) => a.toString().localeCompare(b.toString(), undefined, { numeric: true, sensitivity: 'base' }));
         }
       }
     }
