@@ -714,8 +714,8 @@ function initializeBubbles() {
         if (titleEl) titleEl.textContent = selectedField;
         filterCard.classList.add('show');
       }
-      // Hide the bubble clone behind the card
-      clone.style.opacity = '0';
+      // Hide the bubble clone with a pop and reveal the card
+      clone.classList.add('popping');
       // After the panel is visible, auto-activate Equals (or first option)
       const defaultBtn =
             conditionPanel.querySelector('.condition-btn[data-cond="equals"]') ||
