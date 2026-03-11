@@ -631,6 +631,7 @@ const dragDropManager = {
   
   // Header hover handlers
   handleHeaderEnter(th) {
+    if (window.queryRunning) return;
     th.classList.add('th-hover');
     this.hoverTh = th;
     th.appendChild(headerTrash);
@@ -645,6 +646,10 @@ const dragDropManager = {
   
   // Header drag start/end
   handleHeaderDragStart(e, th, scrollContainer) {
+    if (window.queryRunning) {
+      e.preventDefault();
+      return;
+    }
     this.isBubbleDrag = false; // this is a column drag
     th.classList.add('th-dragging');
     th.classList.remove('th-hover');
@@ -1004,6 +1009,7 @@ const dragDropManager = {
 // Set up trash icon click handler
 headerTrash.addEventListener('click', e => {
   e.stopPropagation();
+  if (window.queryRunning) return;
   const th = dragDropManager.hoverTh;
   if (th) {
     const idx = parseInt(th.dataset.colIndex, 10);
@@ -1014,6 +1020,10 @@ headerTrash.addEventListener('click', e => {
 
 // Document-level event listeners for bubble dragging
 document.addEventListener('dragstart', e => {
+  if (window.queryRunning) {
+    e.preventDefault();
+    return;
+  }
   const bubble = e.target.closest('.bubble');
   if (!bubble) return;
   
