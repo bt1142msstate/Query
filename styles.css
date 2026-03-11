@@ -509,11 +509,10 @@ input, textarea, select, [contenteditable] {
   transition: width 0.35s ease, height 0.35s ease, font-size 0.35s ease, padding 0.35s ease, border-radius 0.35s ease, opacity 0.15s ease, transform 0.15s ease;
 }
 
-/* Realistic pop effect when the bubble disappears */
+/* Optional pop effect when the bubble disappears */
 .enlarge-bubble.popping {
   opacity: 0 !important;
-  transform: translate(-50%, -50%) scale(1.15) !important;
-  transition: opacity 0.1s ease-out, transform 0.15s cubic-bezier(0.1, 0.9, 0.2, 1) !important;
+  transform: translate(-50%, -50%) !important;
 }
 
 /* Disabled bubble (original that was cloned) */
