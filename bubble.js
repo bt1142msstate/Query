@@ -700,23 +700,15 @@ function initializeBubbles() {
         return;
       }
       conditionPanel.classList.add('show');
-      // Morph bubble clone into the filter card
+      // Reveal the unified filter card
       const filterCard = document.getElementById('filter-card');
       if (filterCard) {
         const titleEl = document.getElementById('filter-card-title');
         if (titleEl) titleEl.textContent = selectedField;
-        // Start in bubble-sized circle state
-        filterCard.classList.add('morphing');
-        // Hide clone — card now covers it
-        clone.style.opacity = '0';
-        // Two rAFs: let browser paint .morphing, then transition to full card
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            filterCard.classList.remove('morphing');
-            filterCard.classList.add('show');
-          });
-        });
+        filterCard.classList.add('show');
       }
+      // Hide the bubble clone behind the card
+      clone.style.opacity = '0';
       // After the panel is visible, auto-activate Equals (or first option)
       const defaultBtn =
             conditionPanel.querySelector('.condition-btn[data-cond="equals"]') ||
@@ -796,9 +788,6 @@ function resetActiveBubbles() {
       
       const originalRect = clone._originalRect;
       
-      // Hide filter card before fly-back
-      const filterCard = document.getElementById('filter-card');
-      if (filterCard) filterCard.classList.remove('show', 'morphing');
       // Restore bubble clone visibility before fly-back
       clone.style.opacity = '1';
       
