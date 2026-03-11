@@ -44,7 +44,7 @@ if(runBtn){
       
       window.queryRunning = false;
       window.updateRunButtonIcon();
-      document.getElementById('table-container')?.classList.remove('table-querying');
+      if (window.endTableQueryAnimation) window.endTableQueryAnimation();
       return;
     }
     
@@ -54,7 +54,7 @@ if(runBtn){
       try {
         window.queryRunning = true;
         window.updateRunButtonIcon();
-        document.getElementById('table-container')?.classList.add('table-querying');
+        if (window.startTableQueryAnimation) window.startTableQueryAnimation();
         
         const state = window.getCurrentQueryState();
         const tableNameInput = document.getElementById('table-name-input');
@@ -298,7 +298,7 @@ if(runBtn){
       } finally {
         window.queryRunning = false;
         window.updateRunButtonIcon();
-        document.getElementById('table-container')?.classList.remove('table-querying');
+        if (window.endTableQueryAnimation) window.endTableQueryAnimation();
       }
     })();
   });
