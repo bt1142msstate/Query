@@ -63,7 +63,6 @@ const fieldDefsArray = [
     { "name": "Copy Count", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Number of Physical Copies" },
     { "name": "Call Hold Count", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Number of Reservations placed specifically" },
     { "name": "Base Call Number", "type": "string", "filters": ["contains"], "category": "Call #", "desc": "Base portion of the Call Number" },
-    { "name": "Call Number Text", "type": "string", "filters": ["contains"], "category": "Call #", "desc": "Display text of the Call Number" },
     { "name": "Analytic Position", "type": "number", "filters": ["equals"], "category": "Call #", "desc": "Position within a series of chapters" },
     { "name": "Bound-with Level", "type": "string", "filters": ["equals"], "category": "Call #", "desc": "Indication of bound-with relationship level" },
     { "name": "Visible Copies", "type": "number", "filters": ["greater", "less", "equals"], "category": "Metrics", "desc": "Number of Physical Copies visible" },
