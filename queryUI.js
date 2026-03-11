@@ -247,14 +247,10 @@ window.positionInputWrapper = function(){
   
   if(!inputWrapper.classList.contains('show')) return;
   const panelRect   = conditionPanel.getBoundingClientRect();
+  const wrapperRect = inputWrapper.getBoundingClientRect();
   const GAP = 12;                        // px gap between capsule and buttons
   
-  // Calculate a baseline height for a single-row capsule (approx 66px).
-  // We use this instead of the dynamic wrapperRect.height so that large 
-  // dropdowns expand downwards instead of pushing the wrapper to the ceiling.
-  let baseHeight = 66; 
-
-  let top = panelRect.top - baseHeight - GAP;
+  let top = panelRect.top - wrapperRect.height - GAP;
   
   // Overlap the condition panel instead of going off the top edge of the window
   const headerHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-height')) || 64;
@@ -266,6 +262,8 @@ window.positionInputWrapper = function(){
   inputWrapper.style.top = `${top}px`;
   // Pass the exact top position to CSS so `.cond-list` knows how much vertical space to use
   inputWrapper.style.setProperty('--wrapper-top', `${top}px`);
+  // Pass the panel top position to CSS mostly for limiting dropdown heights above the panel
+  inputWrapper.style.setProperty('--panel-top', `${panelRect.top}px`);
 };
 
 /** Rebuild the query JSON and show it */

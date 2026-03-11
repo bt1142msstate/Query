@@ -1205,8 +1205,18 @@ th:hover .th-trash {
 
 /* Base condition list for dropdowns */
 #condition-select[multiple] {
-  max-height: 40vh;
+  max-height: calc(var(--panel-top, 50vh) - 120px);
   overflow-y: auto;
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  width: max-content;
+  min-width: 100%;
+  z-index: 100;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
 }
 
 /* ==========================================
@@ -1214,16 +1224,21 @@ th:hover .th-trash {
    ========================================== */
 
 .grouped-selector {
-  max-height: 40vh;
+  max-height: calc(var(--panel-top, 50vh) - 120px);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--border-radius-lg);
   background: white;
   padding: 0;
   min-width: 250px;
   max-width: 400px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
 }
 
 .search-wrapper {
