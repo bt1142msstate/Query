@@ -674,11 +674,50 @@ window.FilterSidePanel = (function () {
         const inputType = (fieldType === 'date') ? 'date'
             : (fieldType === 'number' || fieldType === 'money') ? 'number' : 'text';
 
-        const val1 = document.createElement('input');
-        val1.className = 'fp-edit-val-input';
-        val1.type = inputType;
-        val1.value = vals[0];
-        val1.placeholder = 'Value';
+        let listValues = null;
+        let hasValuePairs = false;
+        if (fieldDef && fieldDef.values) {
+           try {
+               let parsed = typeof fieldDef.values === 'string' ? JSON.parse(fieldDef.values) : fieldDef.values;
+               if (Array.isArray(parsed) && parsed.length > 0) {
+                   listValues = parsed;
+                   if (typeof parsed[0] === 'object' && parsed[0].Name && parsed[0].RawValue) {
+                       hasValuePairs = true;
+                   }
+               }
+           } catch(e) {}
+        }
+        const isMultiSelect = fieldDef && fieldDef.multiSelect;
+
+        let val1;
+        if (listValues) {
+            val1 = document.createElement('select');
+            val1.className = 'fp-edit-val-input fp-edit-cond-select'; // Reuse similar style 
+            if (isMultiSelect) val1.multiple = true;
+            if (isMultiSelect) val1.style.minHeight = '70px'; // Make multiple options visible
+            
+            const currentVals = vals[0].split(',').map(v => v.trim());
+            
+            listValues.forEach(v => {
+                const opt = document.createElement('option');
+                if (hasValuePairs) {
+                    opt.value = v.RawValue;
+                    opt.textContent = v.Name;
+                    if (currentVals.includes(String(v.RawValue))) opt.selected = true;
+                } else {
+                    opt.value = v;
+                    opt.textContent = v;
+                    if (currentVals.includes(String(v))) opt.selected = true;
+                }
+                val1.appendChild(opt);
+            });
+        } else {
+            val1 = document.createElement('input');
+            val1.className = 'fp-edit-val-input';
+            val1.type = inputType;
+            val1.value = vals[0];
+            val1.placeholder = 'Value';
+        }
 
         const sep = document.createElement('span');
         sep.className = 'fp-edit-separator';
@@ -704,7 +743,17 @@ window.FilterSidePanel = (function () {
         saveBtn.title = 'Save';
         saveBtn.addEventListener('click', () => {
             const newCond = condSel.value;
-            let newVal = val1.value.trim();
+            let newVal;
+            if (val1.tagName && val1.tagName.toLowerCase() === 'select') {
+                if (val1.multiple) {
+                    newVal = Array.from(val1.selectedOptions).map(o => o.value).join(',');
+                } else {
+                    newVal = val1.value;
+                }
+            } else {
+                newVal = val1.value.trim();
+            }
+
             const newVal2 = val2.value.trim();
             if (!newVal) return;
             if (newCond === 'between') {
