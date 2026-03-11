@@ -26,7 +26,17 @@ window.loadFieldDefinitions = async function loadFieldDefinitions() {
         
         const data = await response.json();
         
-        fieldDefsArray = [...data];
+        let errorMsg = null;
+        if (data.error) {
+            errorMsg = data.error;
+            console.error("Backend reported an issue when loading fields:", errorMsg);
+            if (window.showToastMessage) {
+                window.showToastMessage("Warning: " + errorMsg, "warning");
+            }
+        }
+        
+        // Handle both plain array (old style) and wrapped response
+        fieldDefsArray = Array.isArray(data) ? [...data] : [...data.fields];
         
         // Append special Marc field
         fieldDefsArray.push({ 
