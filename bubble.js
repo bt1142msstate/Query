@@ -342,16 +342,16 @@ function createBubblePopParticles(bubbleClone) {
     // Calculate outward explosion velocity
     const burstSpeed = 20 + Math.random() * 50; 
     const travelX = Math.cos(angle) * burstSpeed;
-    // Add downward gravity onto the Y travel (increased gravity for longer fall)
-    const gravity = 100 + Math.random() * 120;
+    // Add downward gravity onto the Y travel
+    const gravity = 60 + Math.random() * 60;
     const travelY = Math.sin(angle) * burstSpeed + gravity;
 
     // Apply CSS variables for the animation
     particle.style.setProperty('--tx', `${travelX}px`);
     particle.style.setProperty('--ty', `${travelY}px`);
 
-    // Randomize slightly off-sync durations (increased duration for longer fall)
-    const duration = 0.65 + Math.random() * 0.45; 
+    // Randomize slightly off-sync durations
+    const duration = 0.35 + Math.random() * 0.25; 
     particle.style.animation = `bubble-pop-anim ${duration}s ease-in forwards`;
 
     document.body.appendChild(particle);
