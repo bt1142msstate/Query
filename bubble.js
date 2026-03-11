@@ -770,6 +770,10 @@ function initializeBubbles() {
       if(fcRect.height > 0) targetHeight = fcRect.height;
     }
     
+    // Scale animation duration based on target expanding size
+    const morphDuration = Math.max(0.35, (targetWidth + targetHeight) / 1800);
+    clone.style.setProperty('--morph-duration', `${morphDuration}s`);
+    
     // Restore the saved category
     currentCategory = savedCategory;
     // Re-sync category bar UI to match the preserved category
