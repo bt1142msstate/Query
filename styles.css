@@ -1200,12 +1200,18 @@ th:hover .th-trash {
   box-shadow: none;
 }
 
+/* Base condition list for dropdowns */
+#condition-select[multiple] {
+  max-height: calc(100vh - max(50vh + 80px, 300px) - 20px);
+  overflow-y: auto;
+}
+
 /* ==========================================
    11. GROUPED SELECTOR STYLES
    ========================================== */
 
 .grouped-selector {
-  max-height: 300px;
+  max-height: calc(100vh - max(50vh + 80px, 300px) - 20px);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--border-radius-lg);
   background: white;
@@ -1230,7 +1236,7 @@ th:hover .th-trash {
 
 .grouped-options-container {
   overflow-y: auto;
-  max-height: 250px;
+  flex-grow: 1;
   padding: 0.5rem;
 }
 
