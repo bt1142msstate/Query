@@ -882,18 +882,20 @@ input, textarea, select, [contenteditable] {
 
 .overflow-x-auto.shadow.rounded-lg.mb-6.relative::-webkit-scrollbar-track {
   background: rgba(156, 163, 175, 0.9);
+  border-bottom-right-radius: var(--border-radius-xl);
+  border-bottom-left-radius: var(--border-radius-xl);
 }
 
 /* Vertical scrollbar track styling */
 .overflow-x-auto.shadow.rounded-lg.mb-6.relative::-webkit-scrollbar-track:vertical {
-  border-radius: 0;
+  border-bottom-right-radius: var(--border-radius-xl);
   margin-top: calc(var(--table-header-height) - 4px);
 }
 
 /* Horizontal scrollbar track styling */
 .overflow-x-auto.shadow.rounded-lg.mb-6.relative::-webkit-scrollbar-track:horizontal {
   background: transparent;
-  border-radius: 0;
+  border-bottom-left-radius: var(--border-radius-xl);
   margin-top: 0;
   margin-left: 0;
 }
@@ -914,7 +916,7 @@ input, textarea, select, [contenteditable] {
 /* Handle scrollbar corner where vertical and horizontal meet */
 .overflow-x-auto.shadow.rounded-lg.mb-6.relative::-webkit-scrollbar-corner {
   background: rgba(156, 163, 175, 0.9);
-  border-radius: 0;
+  border-bottom-right-radius: var(--border-radius-xl);
 }
 
 /* Remove the hover transformation effect */
