@@ -577,6 +577,12 @@ input, textarea, select, [contenteditable] {
   transform: translateX(-50%);
   z-index: var(--z-condition-panel);
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 90vw;
+  max-width: 600px;
+  max-height: 40vh;
+  overflow-y: auto;
   opacity: 0;
   pointer-events: none;
   gap: 1rem;
@@ -613,6 +619,7 @@ input, textarea, select, [contenteditable] {
 #condition-input-wrapper {
   position: fixed;
   left: 50%;
+  top: max(50% + 80px, 300px);
   transform: translateX(-50%);
   z-index: var(--z-condition-input);
   display: none;
