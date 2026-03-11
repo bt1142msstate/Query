@@ -791,13 +791,97 @@ window.FilterSidePanel = (function () {
 
             const group = document.createElement('div');
             group.className = 'fp-field-group';
+            // Removed direct draggable="true" here to prevent text selection interference
+            group.dataset.field = field;
+
+            // --- Drag & Drop for reordering fields ---
+            group.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', field);
+                e.dataTransfer.effectAllowed = 'move';
+                // Slight delay so the drag image isn't semi-transparent
+                setTimeout(() => group.classList.add('fp-dragging'), 0);
+            });
+
+            group.addEventListener('dragend', () => {
+                group.removeAttribute('draggable');
+                group.classList.remove('fp-dragging');
+                document.querySelectorAll('.fp-field-group').forEach(g => {
+                    g.classList.remove('fp-drag-over-top', 'fp-drag-over-bottom');
+                });
+            });
+
+            group.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                
+                const rect = group.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+                if (e.clientY < midY) {
+                    group.classList.add('fp-drag-over-top');
+                    group.classList.remove('fp-drag-over-bottom');
+                } else {
+                    group.classList.add('fp-drag-over-bottom');
+                    group.classList.remove('fp-drag-over-top');
+                }
+            });
+
+            group.addEventListener('dragleave', () => {
+                group.classList.remove('fp-drag-over-top', 'fp-drag-over-bottom');
+            });
+
+            group.addEventListener('drop', (e) => {
+                e.preventDefault();
+                group.classList.remove('fp-drag-over-top', 'fp-drag-over-bottom');
+                
+                const draggedField = e.dataTransfer.getData('text/plain');
+                if (!draggedField || draggedField === field) return;
+                
+                const draggedGroup = body.querySelector(`.fp-field-group[data-field="${CSS.escape(draggedField)}"]`);
+                if (!draggedGroup) return;
+
+                const rect = group.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+                
+                // Move DOM element
+                if (e.clientY < midY) {
+                    body.insertBefore(draggedGroup, group);
+                } else {
+                    body.insertBefore(draggedGroup, group.nextSibling);
+                }
+                
+                // Reorder activeFilters object keys
+                const newActiveFilters = {};
+                for (const child of body.children) {
+                    if (child.classList.contains('fp-field-group')) {
+                        const f = child.dataset.field;
+                        if (f && window.activeFilters[f]) {
+                            newActiveFilters[f] = window.activeFilters[f];
+                        }
+                    }
+                }
+                window.activeFilters = newActiveFilters;
+                window.updateQueryJson && window.updateQueryJson();
+            });
 
             // Field header row
             const fieldHeader = document.createElement('div');
             fieldHeader.className = 'fp-field-header';
+            
+            // Drag handle
+            const dragHandle = document.createElement('span');
+            dragHandle.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>`; 
+            dragHandle.className = 'fp-drag-handle';
+            dragHandle.title = 'Drag to reorder';
+            dragHandle.style.cssText = 'margin-right: 8px; cursor: grab; color: #9ca3af; display: inline-flex; align-items: center; user-select: none;';
+            dragHandle.addEventListener('mousedown', () => group.setAttribute('draggable', 'true'));
+            dragHandle.addEventListener('mouseup', () => group.removeAttribute('draggable'));
+            dragHandle.addEventListener('mouseleave', () => group.removeAttribute('draggable'));
+            
             const nameSpan = document.createElement('span');
             nameSpan.className = 'fp-field-name';
             nameSpan.textContent = field;
+            
+            fieldHeader.appendChild(dragHandle);
             fieldHeader.appendChild(nameSpan);
             group.appendChild(fieldHeader);
 
