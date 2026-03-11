@@ -1645,15 +1645,17 @@ th:hover .th-trash {
 #table-with-filter {
   display: flex;
   flex-direction: row;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 12px;
   width: 100%;
+  height: 500px; /* Fixed height for both table and filter panel */
 }
 
 /* On smaller screens, wrap the panel to sit above the table instead of overlapping */
 @media (max-width: 1024px) {
   #table-with-filter {
     flex-direction: column;
+    height: auto;
   }
 }
 
@@ -1662,6 +1664,12 @@ th:hover .th-trash {
   flex: 1;
   min-width: 0; /* allows table container to shrink properly */
   width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+#table-container {
+  flex: 1; /* make sure it takes the full height of table-column */
 }
 
 /* Panel stays within the flow, allowing table to shrink when present */
@@ -1669,11 +1677,7 @@ th:hover .th-trash {
   flex-shrink: 0;
   display: flex;
   flex-direction: row;
-  align-self: flex-start;
-  position: sticky;
-  top: calc(var(--header-height) + 20px);
-  height: calc(100vh - var(--header-height) - 40px);
-  max-height: 800px;
+  align-self: stretch;
 }
 
 #filter-side-panel.panel-hidden {
