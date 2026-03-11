@@ -504,7 +504,7 @@ input, textarea, select, [contenteditable] {
   padding: 1rem !important;
   overflow: visible !important;
   /* Keep Original Bubble Coloring / Styles */
-  transition: width 0.35s ease, height 0.35s ease, font-size 0.35s ease, padding 0.35s ease, border-radius 0.35s ease, opacity 0.15s ease, transform 0.15s ease;
+  transition: width var(--morph-duration, 0.35s) ease, height var(--morph-duration, 0.35s) ease, font-size var(--morph-duration, 0.35s) ease, padding var(--morph-duration, 0.35s) ease, border-radius var(--morph-duration, 0.35s) ease, opacity 0.15s ease, transform 0.15s ease;
 }
 
 /* Optional pop effect when the bubble disappears */
