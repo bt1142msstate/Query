@@ -16,7 +16,7 @@ const ExcelExporter = (() => {
    * @memberof ExcelExporter
    */
   function attach() {
-    const downloadBtn = document.getElementById('download-btn');
+    const downloadBtn = window.DOM?.downloadBtn || document.getElementById('download-btn');
     if (downloadBtn) {
       downloadBtn.addEventListener('click', handleDownload);
     }
@@ -89,7 +89,7 @@ const ExcelExporter = (() => {
    * @memberof ExcelExporter
    */
   function handleDownload() {
-    const downloadBtn = document.getElementById('download-btn');
+    const downloadBtn = window.DOM?.downloadBtn || document.getElementById('download-btn');
     if (!downloadBtn) return;
 
     // Check if button is disabled and show message

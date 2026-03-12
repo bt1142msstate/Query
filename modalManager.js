@@ -6,7 +6,7 @@
  */
 class ModalManager {
   constructor() {
-    this.overlay = document.getElementById('overlay');
+    this.overlay = window.DOM?.overlay || document.getElementById('overlay');
     this.panels = ['json-panel', 'queries-panel', 'help-panel', 'mobile-menu-dropdown'];
     this.activePanel = null;
     
@@ -165,7 +165,7 @@ class ModalManager {
     if (mobileRunQuery) {
         mobileRunQuery.addEventListener('click', () => {
             this.closePanel('mobile-menu-dropdown');
-            const runBtn = document.getElementById('run-query-btn');
+        const runBtn = window.DOM?.runBtn || document.getElementById('run-query-btn');
             if(runBtn) runBtn.click();
         });
     }
@@ -174,7 +174,7 @@ class ModalManager {
     if (mobileDownload) {
         mobileDownload.addEventListener('click', () => {
             this.closePanel('mobile-menu-dropdown');
-            const downloadBtn = document.getElementById('download-btn');
+        const downloadBtn = window.DOM?.downloadBtn || document.getElementById('download-btn');
             if(downloadBtn) downloadBtn.click();
         });
     }
