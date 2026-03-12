@@ -153,7 +153,6 @@ const ExcelExporter = (() => {
         const str = String(raw);
         return str.includes('\x1F') ? str.split('\x1F').join('\n') : raw;
       });
-      worksheet.addRow(rowData);
       tableRows.push(rowData);
     });
 
