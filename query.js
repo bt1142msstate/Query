@@ -25,8 +25,6 @@ let currentQueryId = null;
 // Initial check
 window.updateButtonStates();
 
-// toggleQueryInterface is now in queryUI.js - relying on window.toggleQueryInterface
-
 if(runBtn){
   runBtn.addEventListener('click', ()=>{
     if(runBtn.disabled) return;   // ignore when disabled
@@ -837,34 +835,6 @@ function updateCategoryCounts() {
 // Initialize bubble system early (before any bubble calls)
 if (window.BubbleSystem) {
   window.BubbleSystem.initializeBubbles();
-}
-
-// Helper to reset and configure condition input fields
-function resetConditionInputs(type = 'string', showSecondInput = false) {
-  const inp1 = document.getElementById('condition-input');
-  const inp2 = document.getElementById('condition-input-2');
-  const betweenLbl = document.getElementById('between-label');
-  // Set input types
-  const htmlType = (type === 'date') ? 'date' : (type === 'money' || type === 'number') ? 'number' : 'text';
-  if (inp1) inp1.type = htmlType;
-  if (inp2) inp2.type = htmlType;
-  // Show/hide second input and label
-  if (inp2 && betweenLbl) {
-    inp2.style.display = showSecondInput ? 'block' : 'none';
-    betweenLbl.style.display = showSecondInput ? 'inline' : 'none';
-  }
-  // Clear values and error states
-  if (inp1) {
-    inp1.value = '';
-    inp1.classList.remove('error');
-  }
-  if (inp2) {
-    inp2.value = '';
-    inp2.classList.remove('error');
-  }
-  // Remove error label
-  const errorLabel = document.getElementById('filter-error');
-  if (errorLabel) errorLabel.style.display = 'none';
 }
 
 // Helper to create a RawValue-to-Name map for a field definition

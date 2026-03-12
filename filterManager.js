@@ -601,9 +601,6 @@ window.registerDynamicField = function(fieldName, opts = {}) {
     if (window.filteredDefs && !window.filteredDefs.find(d => d.name === fieldName)) {
         window.filteredDefs.push({ ...newDef });
     }
-    if (window.syncAvailableCategories) {
-        window.syncAvailableCategories();
-    }
 };
 
 // Global confirm action finalizer

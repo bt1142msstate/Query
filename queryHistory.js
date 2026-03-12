@@ -764,9 +764,7 @@ const QueryHistorySystem = {
 // Make QueryHistorySystem globally accessible
 window.QueryHistorySystem = QueryHistorySystem;
 
-// Backwards compatibility or global helper
 window.cancelQuery = cancelQuery;
-window.loadQueryResults = loadQueryResults;
 
 // Initialize query history functionality
 window.onDOMReady(() => {

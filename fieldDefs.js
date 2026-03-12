@@ -43,10 +43,6 @@ function getAvailableCategories() {
   return [...SYSTEM_CATEGORIES, ...derivedCategories];
 }
 
-function syncAvailableCategories() {
-  window.categories = getAvailableCategories();
-}
-
 window.loadFieldDefinitions = async function loadFieldDefinitions() {
     if (isFieldsLoaded) return fieldDefsArray;
     
@@ -263,10 +259,6 @@ function renderCategorySelectors(categoryCounts, currentCategory, onCategoryChan
 window.fieldDefs = fieldDefs;
 window.fieldDefsArray = fieldDefsArray;
 window.filteredDefs = filteredDefs;
-window.categories = getAvailableCategories();
-window.getAvailableCategories = getAvailableCategories;
-window.syncAvailableCategories = syncAvailableCategories;
-window.getAllFieldDefs = getAllFieldDefs;
 window.updateFilteredDefs = updateFilteredDefs;
 window.shouldFieldHavePurpleStylingBase = shouldFieldHavePurpleStylingBase;
 window.calculateCategoryCounts = calculateCategoryCounts;
