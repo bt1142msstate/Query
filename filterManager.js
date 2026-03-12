@@ -567,12 +567,35 @@ window.registerDynamicField = function(fieldName, opts = {}) {
         });
     }
 
+    // Resolve special_payload from the parent's template by substituting captured values.
+    // e.g. field_template "Marc{tag}" + fieldName "Marc590" → special_payload { type:"marc", tag:"590" }
+    let resolvedPayload = opts.special_payload || null;
+    if (!resolvedPayload && parentDef && parentDef.special_payload_template && parentDef.field_template) {
+        // Build a capturing regex from field_template: "Marc{tag}" → "^Marc(.+)$"
+        const keys = [];
+        const capturingPattern = parentDef.field_template.replace(/\{([^}]+)\}/g, (_, key) => {
+            keys.push(key);
+            return '(.+)';
+        });
+        const match = new RegExp('^' + capturingPattern + '$').exec(fieldName);
+        if (match) {
+            resolvedPayload = JSON.parse(JSON.stringify(parentDef.special_payload_template));
+            keys.forEach((key, i) => {
+                for (const pKey in resolvedPayload) {
+                    if (typeof resolvedPayload[pKey] === 'string') {
+                        resolvedPayload[pKey] = resolvedPayload[pKey].replace(`{${key}}`, match[i + 1]);
+                    }
+                }
+            });
+        }
+    }
+
     const newDef = {
         name: fieldName,
         type: opts.type || (parentDef ? parentDef.type : 'string'),
         category: opts.category || (parentDef ? parentDef.category : 'Other'),
         desc: opts.desc || (parentDef ? `${parentDef.name} custom field: ${fieldName}` : fieldName),
-        special_payload: opts.special_payload || null
+        special_payload: resolvedPayload
     };
 
     window.fieldDefs.set(fieldName, newDef);
