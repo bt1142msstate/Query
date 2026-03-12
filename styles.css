@@ -1718,11 +1718,11 @@ th:hover .th-trash {
   overflow: hidden;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  transition: width var(--morph-duration, 0.6s) cubic-bezier(0.4, 0, 0.2, 1),
-              height var(--morph-duration, 0.6s) cubic-bezier(0.4, 0, 0.2, 1),
-              top var(--morph-duration, 0.6s) cubic-bezier(0.4, 0, 0.2, 1),
-              left var(--morph-duration, 0.6s) cubic-bezier(0.4, 0, 0.2, 1),
-              border-radius var(--morph-duration, 0.6s) cubic-bezier(0.4, 0, 0.2, 1),
+  transition: width var(--morph-duration, 0.6s) ease,
+              height var(--morph-duration, 0.6s) ease,
+              top var(--morph-duration, 0.6s) ease,
+              left var(--morph-duration, 0.6s) ease,
+              border-radius var(--morph-duration, 0.6s) ease,
               opacity 0.2s ease-out;
   transform: translate(-50%, -50%);
   pointer-events: none;

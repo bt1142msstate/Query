@@ -270,7 +270,7 @@ window.startTableQueryAnimation = function() {
   bubble.style.height = rect.height + 'px';
   bubble.style.top = (rect.top + rect.height/2) + 'px';
   bubble.style.left = (rect.left + rect.width/2) + 'px';
-  bubble.style.borderRadius = '0.5rem'; // matching rounded-lg
+  bubble.style.borderRadius = '1.5rem'; // Keep rounder so the start is immediately visibly morphing a bubble
   
   document.body.appendChild(bubble);
   tableContainer.classList.add('table-container-hidden');
@@ -331,7 +331,7 @@ window.endTableQueryAnimation = function() {
   bubble.style.height = targetHeight;
   bubble.style.top = (rect.top + rect.height/2) + 'px';
   bubble.style.left = (rect.left + rect.width/2) + 'px';
-  bubble.style.borderRadius = '0.5rem';
+  bubble.style.borderRadius = '1.5rem'; // Keep it rounder like standard bubbles to look good
   
   const finishAnim = () => {
     // Pop effect!
