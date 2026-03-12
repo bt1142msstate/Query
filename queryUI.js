@@ -272,7 +272,6 @@ function createTableQueryCircuitOverlay() {
   function addSegment(a, b) {
     if (!a || !b) return;
     if (a.key === b.key) return;
-    if (a.col !== b.col && a.row !== b.row) return;
 
     const key = [a.key, b.key].sort().join('|');
     if (segmentKeys.has(key)) return;
@@ -283,14 +282,29 @@ function createTableQueryCircuitOverlay() {
   }
 
   function routeManhattan(a, b) {
-    if (Math.random() < 0.5) {
-      const bend = point(a.col, b.row);
-      addSegment(a, bend);
-      addSegment(bend, b);
-    } else {
-      const bend = point(b.col, a.row);
-      addSegment(a, bend);
-      addSegment(bend, b);
+    let curr = a;
+    while (curr.key !== b.key) {
+      const dx = b.col - curr.col;
+      const dy = b.row - curr.row;
+      
+      let nextCol = curr.col;
+      let nextRow = curr.row;
+
+      if (Math.abs(dx) > 0 && Math.abs(dy) > 0 && Math.random() < 0.6) {
+        // Diagonal 45 degree step
+        nextCol += Math.sign(dx);
+        nextRow += Math.sign(dy);
+      } else if (Math.abs(dx) > Math.abs(dy)) {
+        // Horizontal step
+        nextCol += Math.sign(dx);
+      } else {
+        // Vertical step
+        nextRow += Math.sign(dy);
+      }
+      
+      const next = point(nextCol, nextRow);
+      addSegment(curr, next);
+      curr = next;
     }
   }
 
@@ -346,7 +360,7 @@ function createTableQueryCircuitOverlay() {
     const trace = document.createElement('div');
     trace.className = 'table-query-circuit-trace';
 
-    const angle = a.row === b.row ? 0 : 90;
+    let angle = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
     const length = Math.hypot(b.x - a.x, b.y - a.y);
     const centerX = (a.x + b.x) / 2;
     const centerY = (a.y + b.y) / 2;
