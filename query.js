@@ -25,17 +25,9 @@ window.buildQueryPayload = function() {
     const tableNameInput = document.getElementById('table-name-input');
     const queryName = tableNameInput ? tableNameInput.value.trim() : '';
 
-    // Use the canonical (non-expanded) field list maintained by syncCanonicalFields.
-    // syncCanonicalFields is called by updateQueryJson after every mutation and also
-    // by setSplitColumnsMode; we call it here too as a safety net.
-    if (typeof window.syncCanonicalFields === 'function') window.syncCanonicalFields();
-    const canonicalFields = window.canonicalFields.length > 0
-        ? window.canonicalFields
-        : state.displayedFields; // fallback when canonicalFields not yet populated
-
-    // ui_config stores the canonical column order for history restoration
+    // Construct history config (ui_config) sent along for history restoration
     const historyConfig = {
-        DesiredColumnOrder: canonicalFields,
+        DesiredColumnOrder: state.displayedFields,
         FilterGroups: []
     };
     if (state.activeFilters) {
@@ -52,7 +44,7 @@ window.buildQueryPayload = function() {
 
     const standardDisplayFields = [];
     const specialFields = [];
-    canonicalFields.forEach(field => {
+    state.displayedFields.forEach(field => {
         const fieldDef = window.fieldDefs ? window.fieldDefs.get(field) : null;
         if (fieldDef && fieldDef.special_payload) {
             const isDuplicate = specialFields.some(sf => JSON.stringify(sf) === JSON.stringify(fieldDef.special_payload));

@@ -620,9 +620,6 @@ function setSplitColumnsMode(active) {
     window.displayedFields.push(...virtualTableData.headers);
   }
 
-  // Keep canonicalFields in sync after the mode switch
-  if (typeof window.syncCanonicalFields === 'function') window.syncCanonicalFields();
-
   // Recalculate column widths and re-render
   calculatedColumnWidths = calculateOptimalColumnWidths(virtualTableData.headers, virtualTableData);
   renderVirtualTable();

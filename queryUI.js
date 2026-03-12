@@ -412,9 +412,6 @@ window.positionInputWrapper = function(){
 
 /** Rebuild the query JSON and show it */
 window.updateQueryJson = function(){
-  // Keep canonicalFields in sync — this is the authoritative non-expanded field list
-  if (typeof window.syncCanonicalFields === 'function') window.syncCanonicalFields();
-
   // Update run button icon based on query changes
   window.updateRunButtonIcon();
 
