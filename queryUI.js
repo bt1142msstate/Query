@@ -369,9 +369,9 @@ function createTableQueryCircuitOverlay() {
 
   // Render traces — electron duration proportional to trace length for consistent speed
   const ELECTRON_SPEED = 28; // percent of container width per second
-  const COLOR_SIGNAL = '#22d3ee';
-  const COLOR_ALT    = '#34d399';
-  const COLOR_POWER  = '#facc15';
+  const COLOR_SIGNAL = '#d4a017';   // warm gold
+  const COLOR_ALT    = '#f0c040';   // bright gold accent
+  const COLOR_POWER  = '#c8861a';   // deeper bronze for bus rails
 
   segments.forEach(({ a, b, type }) => {
     const trace = document.createElement('div');

@@ -2256,13 +2256,13 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
   pointer-events: none;
   z-index: 1;
   overflow: hidden;
-  /* Dark PCB substrate — deep green-tinted black */
-  background-color: #040c08;
+  /* Black PCB substrate with faint gold grid */
+  background-color: #090807;
   background-image:
-    repeating-linear-gradient(0deg,  rgba(34, 211, 238, 0.04) 0 1px, transparent 1px 24px),
-    repeating-linear-gradient(90deg, rgba(34, 211, 238, 0.04) 0 1px, transparent 1px 24px),
-    radial-gradient(ellipse 110% 90% at 50% 50%, rgba(0, 50, 28, 0.40) 0%, rgba(4, 12, 8, 0.92) 65%),
-    linear-gradient(180deg, #040d08 0%, #030b06 100%);
+    repeating-linear-gradient(0deg,  rgba(212, 160, 23, 0.05) 0 1px, transparent 1px 24px),
+    repeating-linear-gradient(90deg, rgba(212, 160, 23, 0.05) 0 1px, transparent 1px 24px),
+    radial-gradient(ellipse 110% 90% at 50% 50%, rgba(40, 22, 0, 0.55) 0%, rgba(9, 8, 7, 0.95) 65%),
+    linear-gradient(180deg, #0a0804 0%, #070603 100%);
 }
 
 .table-query-circuit.active {
@@ -2275,7 +2275,7 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
   filter: saturate(0.4);
 }
 
-/* Ambient glow layer — soft coloured blooms behind the traces */
+/* Ambient glow layer — warm gold blooms behind the traces */
 .table-query-circuit::before {
   content: '';
   position: absolute;
@@ -2283,10 +2283,10 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
   border-radius: inherit;
   pointer-events: none;
   background:
-    radial-gradient(circle at 22% 28%, rgba(34, 211, 238, 0.14), transparent 50%),
-    radial-gradient(circle at 76% 70%, rgba(52, 211, 153, 0.10), transparent 45%),
-    radial-gradient(circle at 60% 15%, rgba(250, 204, 21, 0.10), transparent 42%);
-  filter: blur(20px);
+    radial-gradient(circle at 22% 28%, rgba(212, 160, 23, 0.16), transparent 50%),
+    radial-gradient(circle at 76% 70%, rgba(200, 134, 26, 0.12), transparent 45%),
+    radial-gradient(circle at 60% 15%, rgba(240, 192, 64, 0.10), transparent 42%);
+  filter: blur(22px);
   animation: circuit-glow-pan 7s ease-in-out infinite alternate;
 }
 
@@ -2302,8 +2302,8 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
   opacity: 0.72;
   transform: translate(-50%, -50%) rotate(var(--trace-angle));
   transform-origin: center;
-  /* subtle copper glow — not blurry, stays crisp */
-  box-shadow: 0 0 3px var(--trace-color), 0 0 8px rgba(34, 211, 238, 0.10);
+  /* warm gold glow — stays crisp like polished copper */
+  box-shadow: 0 0 3px var(--trace-color), 0 0 8px rgba(212, 160, 23, 0.18);
   overflow: visible;
 }
 
@@ -2311,7 +2311,7 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
 .table-query-circuit-trace.power {
   height: 3px;
   opacity: 0.88;
-  box-shadow: 0 0 5px var(--trace-color), 0 0 12px rgba(250, 204, 21, 0.18);
+  box-shadow: 0 0 5px var(--trace-color), 0 0 14px rgba(200, 134, 26, 0.30);
 }
 
 /* Via nodes — hollow ring like a drilled via/through-hole pad */
@@ -2321,9 +2321,9 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
   height: 6px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: #040c08;
-  border: 1.5px solid rgba(34, 211, 238, 0.85);
-  box-shadow: 0 0 5px rgba(34, 211, 238, 0.50), 0 0 10px rgba(34, 211, 238, 0.14);
+  background: #090807;
+  border: 1.5px solid rgba(212, 160, 23, 0.85);
+  box-shadow: 0 0 5px rgba(212, 160, 23, 0.55), 0 0 10px rgba(212, 160, 23, 0.18);
   animation: circuit-node-spark 2.2s ease-in-out infinite;
   animation-delay: var(--node-delay, 0s);
 }
@@ -2333,18 +2333,18 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
   width: 10px;
   height: 10px;
   border-radius: 2px;
-  background: rgba(34, 211, 238, 0.10);
-  border: 2px solid rgba(34, 211, 238, 0.90);
-  box-shadow: 0 0 7px rgba(34, 211, 238, 0.65), 0 0 16px rgba(34, 211, 238, 0.22);
+  background: rgba(212, 160, 23, 0.12);
+  border: 2px solid rgba(212, 160, 23, 0.92);
+  box-shadow: 0 0 8px rgba(212, 160, 23, 0.70), 0 0 18px rgba(212, 160, 23, 0.28);
 }
 
 /* Junction nodes — filled bright dot at 3-way+ intersections */
 .table-query-circuit-node.junction {
   width: 7px;
   height: 7px;
-  background: rgba(34, 211, 238, 0.50);
-  border: 1.5px solid rgba(34, 211, 238, 0.90);
-  box-shadow: 0 0 6px rgba(34, 211, 238, 0.60), 0 0 12px rgba(34, 211, 238, 0.20);
+  background: rgba(212, 160, 23, 0.55);
+  border: 1.5px solid rgba(240, 192, 64, 0.92);
+  box-shadow: 0 0 7px rgba(212, 160, 23, 0.65), 0 0 14px rgba(212, 160, 23, 0.25);
 }
 
 /* Electron pulse — elongated comet that travels the full trace */
@@ -2356,9 +2356,9 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
   height: 3px;
   border-radius: 2px;
   transform: translateY(-50%);
-  /* leading bright tip, fading tail — comet shape */
-  background: linear-gradient(90deg, transparent 0%, var(--pulse-color) 55%, rgba(255, 255, 255, 0.92) 100%);
-  box-shadow: 0 0 6px var(--pulse-color), 0 0 14px var(--pulse-color);
+  /* leading bright tip, fading gold tail — comet shape */
+  background: linear-gradient(90deg, transparent 0%, var(--pulse-color) 50%, rgba(255, 240, 180, 0.96) 100%);
+  box-shadow: 0 0 7px var(--pulse-color), 0 0 16px rgba(212, 160, 23, 0.55);
   opacity: 0;
   animation: circuit-pulse-run var(--pulse-duration) linear infinite;
   animation-delay: var(--pulse-delay);
