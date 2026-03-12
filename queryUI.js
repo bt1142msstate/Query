@@ -250,15 +250,18 @@ window.startTableQueryAnimation = function() {
   const bubble = document.createElement('div');
   bubble.id = 'table-query-bubble';
   bubble.className = 'table-query-bubble';
-
-  // Add water inner child for swooshing
-  const water = document.createElement('div');
-  water.className = 'water-fill';
-  bubble.appendChild(water);
-
+  
   const textNode = document.createElement('span');
-  textNode.className = 'query-text';
+  textNode.className = 'table-query-bubble-text';
   textNode.textContent = 'Querying...';
+  textNode.style.position = 'relative';
+  textNode.style.zIndex = '2';
+  
+  const aurora = document.createElement('div');
+  aurora.id = 'table-query-aurora';
+  aurora.className = 'table-query-aurora';
+  
+  bubble.appendChild(aurora);
   bubble.appendChild(textNode);
   
   // Get initial container dimensions
@@ -279,19 +282,39 @@ window.startTableQueryAnimation = function() {
   bubble.style.width = '350px';
   bubble.style.height = '350px';
   bubble.style.borderRadius = '50%';
+
+  // Fade in the aurora effect after it circles
+  setTimeout(() => {
+    if (document.getElementById('table-query-aurora')) {
+      document.getElementById('table-query-aurora').classList.add('active');
+    }
+  }, 600);
 };
 
 window.endTableQueryAnimation = function() {
   const tableContainer = document.getElementById('table-container');
   const bubble = document.getElementById('table-query-bubble');
+  const aurora = document.getElementById('table-query-aurora');
   
   if (!bubble || !tableContainer) {
     if (tableContainer) tableContainer.classList.remove('table-container-hidden');
     return;
   }
-  
-  // Measure new dimensions
-  const rect = tableContainer.getBoundingClientRect();
+
+  // Fade out the aurora effect before expanding
+  if (aurora && aurora.classList.contains('active')) {
+    aurora.classList.remove('active');
+    setTimeout(() => {
+      startExpansionMorph();
+    }, 300);
+  } else {
+    if (aurora) aurora.remove();
+    startExpansionMorph();
+  }
+
+  function startExpansionMorph() {
+    // Measure new dimensions
+    const rect = tableContainer.getBoundingClientRect();
   
   // Calculate dynamic transition speed (scaling the morph time to the container size)
   const morphDuration = Math.max(0.4, (rect.width + rect.height) / 1800);
@@ -342,6 +365,7 @@ window.endTableQueryAnimation = function() {
       }
     }, (morphDuration * 1000) + 100);
   }
+  } // End of startExpansionMorph
 };
 
 /* ---------- Check for contradiction & return human-readable reason ---------- */

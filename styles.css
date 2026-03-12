@@ -1768,29 +1768,6 @@ th:hover .th-trash {
   transform: translate(-50%, -50%) !important;
 }
 
-/* Internal contents: water fill effect during querying */
-.water-fill {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 250%;
-  height: 250%;
-  background: rgba(147, 197, 253, 0.4); /* soft blue water */
-  border-radius: 40% 45% 42% 48%;
-  animation: water-spin 6s linear infinite;
-  transform: translate(-50%, -50%);
-  z-index: 1;
-}
-
-@keyframes water-spin {
-  0% { transform: translate(-50%, -50%) rotate(0deg); }
-  100% { transform: translate(-50%, -50%) rotate(360deg); }
-}
-
-.query-text {
-  z-index: 2;
-}
-
 .table-container-hidden {
   opacity: 0 !important;
   transition: opacity 0.3s ease;
@@ -2250,3 +2227,48 @@ th:hover .th-trash {
     background: rgba(252, 211, 77, 0.3);
     margin: 0 8px;
 }
+
+.table-query-aurora {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.table-query-aurora.active {
+  opacity: 1;
+}
+
+.table-query-aurora::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    from 180deg at 50% 50%,
+    transparent 0deg,
+    rgba(56, 189, 248, 0.5) 60deg,
+    rgba(168, 85, 247, 0.7) 120deg,
+    rgba(236, 72, 153, 0.6) 180deg,
+    rgba(168, 85, 247, 0.7) 240deg,
+    rgba(56, 189, 248, 0.5) 300deg,
+    transparent 360deg
+  );
+  filter: blur(35px);
+  animation: rotate-aurora 4s linear infinite;
+}
+
+@keyframes rotate-aurora {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
