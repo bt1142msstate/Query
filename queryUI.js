@@ -250,7 +250,16 @@ window.startTableQueryAnimation = function() {
   const bubble = document.createElement('div');
   bubble.id = 'table-query-bubble';
   bubble.className = 'table-query-bubble';
-  bubble.textContent = 'Querying...';
+  
+  // Add storm inner layers and text
+  bubble.innerHTML = `
+    <div class="storm-container">
+      <div class="storm-swirl"></div>
+      <div class="storm-swirl shadow-swirl"></div>
+      <div class="storm-swirl highlight-swirl"></div>
+    </div>
+    <span class="query-text">Querying...</span>
+  `;
   
   // Get initial container dimensions
   const rect = tableContainer.getBoundingClientRect();
@@ -288,51 +297,64 @@ window.endTableQueryAnimation = function() {
   const morphDuration = Math.max(0.4, (rect.width + rect.height) / 1800);
   bubble.style.setProperty('--morph-duration', `${morphDuration}s`);
   
-  // Morph back to table size
-  const targetWidth = rect.width + 'px';
-  const targetHeight = rect.height + 'px';
+  const stormContainer = bubble.querySelector('.storm-container');
+  const queryText = bubble.querySelector('.query-text');
   
-  const willChange = (bubble.style.width !== targetWidth) || (bubble.style.height !== targetHeight);
-
-  bubble.style.width = targetWidth;
-  bubble.style.height = targetHeight;
-  bubble.style.top = (rect.top + rect.height/2) + 'px';
-  bubble.style.left = (rect.left + rect.width/2) + 'px';
-  bubble.style.borderRadius = '0.5rem';
-  
-  const finishAnim = () => {
-    // Pop effect!
-    bubble.classList.add('popping');
-    if (window.createBubblePopParticles) {
-      window.createBubblePopParticles(bubble);
-    }
-    
-    tableContainer.classList.remove('table-container-hidden');
-    
-    setTimeout(() => {
-      if (bubble.parentNode) bubble.remove();
-    }, 400); // Wait for popping opacity fade
-  };
-
-  if (!willChange) {
-    finishAnim();
-  } else {
-    let finished = false;
-    bubble.addEventListener('transitionend', function handler(e) {
-      if (e.propertyName !== 'width' && e.propertyName !== 'height') return;
-      if (finished) return;
-      finished = true;
-      bubble.removeEventListener('transitionend', handler);
-      finishAnim();
-    });
-    // Safety fallback just in case transitionend drops
-    setTimeout(() => {
-      if (!finished) {
-        finished = true;
-        finishAnim();
-      }
-    }, (morphDuration * 1000) + 100);
+  if (stormContainer) {
+    stormContainer.classList.add('clearing');
   }
+  if (queryText) {
+    queryText.style.opacity = '0';
+    queryText.style.transition = 'opacity 0.4s ease';
+  }
+
+  // Morph back to table size after storm fades
+  setTimeout(() => {
+    const targetWidth = rect.width + 'px';
+    const targetHeight = rect.height + 'px';
+    
+    const willChange = (bubble.style.width !== targetWidth) || (bubble.style.height !== targetHeight);
+
+    bubble.style.width = targetWidth;
+    bubble.style.height = targetHeight;
+    bubble.style.top = (rect.top + rect.height/2) + 'px';
+    bubble.style.left = (rect.left + rect.width/2) + 'px';
+    bubble.style.borderRadius = '0.5rem';
+    
+    const finishAnim = () => {
+      // Pop effect!
+      bubble.classList.add('popping');
+      if (window.createBubblePopParticles) {
+        window.createBubblePopParticles(bubble);
+      }
+      
+      tableContainer.classList.remove('table-container-hidden');
+      
+      setTimeout(() => {
+        if (bubble.parentNode) bubble.remove();
+      }, 400); // Wait for popping opacity fade
+    };
+
+    if (!willChange) {
+      finishAnim();
+    } else {
+      let finished = false;
+      bubble.addEventListener('transitionend', function handler(e) {
+        if (e.propertyName !== 'width' && e.propertyName !== 'height') return;
+        if (finished) return;
+        finished = true;
+        bubble.removeEventListener('transitionend', handler);
+        finishAnim();
+      });
+      // Safety fallback just in case transitionend drops
+      setTimeout(() => {
+        if (!finished) {
+          finished = true;
+          finishAnim();
+        }
+      }, (morphDuration * 1000) + 100);
+    }
+  }, 400); // Wait for storm clear animation
 };
 
 /* ---------- Check for contradiction & return human-readable reason ---------- */
