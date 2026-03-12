@@ -111,155 +111,96 @@ const ExcelExporter = (() => {
 
     worksheet.views = [{ state: 'frozen', ySplit: 1 }];
 
-    // Access the virtual table data
+    // VirtualTable.setSplitColumnsMode() already expanded virtualTableData and
+    // updated window.displayedFields when split mode is active, so we just read
+    // from them directly — no separate column-expansion logic needed here.
     const virtualData = VirtualTable.virtualTableData;
     const dataRows = virtualData.rows;
 
-    // Build a type lookup from fieldDefs for all displayed fields
+    // Build a type lookup. For split columns like "Marc590 1", fall back to the
+    // base field name ("Marc590") to find the type definition.
     const fieldTypeMap = new Map();
     displayedFields.forEach(field => {
-      const def = window.fieldDefs && window.fieldDefs.get(field);
+      let def = window.fieldDefs && window.fieldDefs.get(field);
+      if (!def) {
+        // Strip trailing " N" suffix for split columns (e.g. "Marc590 1" → "Marc590")
+        const baseName = field.replace(/ \d+$/, '');
+        def = window.fieldDefs && window.fieldDefs.get(baseName);
+      }
       fieldTypeMap.set(field, def ? def.type : 'string');
     });
 
     // Parse a raw YYYYMMDD integer (e.g. 20200914) into a JS Date.
-    // Returns null for 0 / falsy values so they export as blank.
     function parseSirsDate(raw) {
       const n = typeof raw === 'string' ? parseInt(raw, 10) : raw;
       if (!n || isNaN(n)) return null;
       const y = Math.floor(n / 10000);
-      const m = Math.floor((n % 10000) / 100) - 1; // 0-based month
+      const m = Math.floor((n % 10000) / 100) - 1;
       const d = n % 100;
       const dt = new Date(y, m, d);
       return isNaN(dt.getTime()) ? null : dt;
     }
 
-    // Coerce a raw value to its typed export value (date object, number, or string).
-    function coerceValue(raw, type) {
-      if (raw === undefined || raw === null || raw === '') return '';
-
-      if (type === 'date') {
-        const dt = parseSirsDate(raw);
-        return dt !== null ? dt : 'Never';
-      }
-      if (type === 'number') {
-        const n = typeof raw === 'number' ? raw : parseFloat(String(raw).replace(/[$,]/g, ''));
-        return isNaN(n) ? '' : n;
-      }
-      return raw;
-    }
-
-    // -------------------------------------------------------------------------
-    // Build the expanded column list.
-    // For fields that contain \x1F multi-values AND splitMultiValues is on,
-    // we replace the single column with N numbered columns where N = the max
-    // number of values found across all rows for that field.
-    // -------------------------------------------------------------------------
-
-    // Maps original field name → max number of \x1F-delimited values in any row.
-    const multiMaxCount = new Map();
-
-    if (splitMultiValues) {
-      displayedFields.forEach(field => {
-        const colIndex = virtualData.columnMap.get(field);
-        if (colIndex === undefined) return;
-        let max = 1;
-        dataRows.forEach(row => {
-          const raw = row[colIndex];
-          if (raw != null && typeof raw === 'string' && raw.includes('\x1F')) {
-            const count = raw.split('\x1F').length;
-            if (count > max) max = count;
-          }
-        });
-        if (max > 1) multiMaxCount.set(field, max);
-      });
-    }
-
-    // Flatten displayedFields into the final export columns array.
-    // Each entry: { header, sourceField, valueIndex (null = single, 0-based for split) }
-    const exportCols = [];
-    displayedFields.forEach(field => {
-      const max = multiMaxCount.get(field);
-      if (max !== undefined) {
-        for (let i = 0; i < max; i++) {
-          exportCols.push({ header: `${field} ${i + 1}`, sourceField: field, valueIndex: i });
-        }
-      } else {
-        exportCols.push({ header: field, sourceField: field, valueIndex: null });
-      }
-    });
-
     // Build worksheet column widths
-    worksheet.columns = exportCols.map(col => {
-      let maxLen = col.header.length;
-      const colIndex = virtualData.columnMap.get(col.sourceField);
-      const type = fieldTypeMap.get(col.sourceField);
+    worksheet.columns = displayedFields.map(field => {
+      let maxLen = field.length;
+      const colIndex = virtualData.columnMap.get(field);
+      const type = fieldTypeMap.get(field);
 
       if (colIndex !== undefined) {
         dataRows.forEach(row => {
-          let raw = row[colIndex];
-          if (raw === undefined || raw === null) return;
-
-          // If split mode & this is a multi-value col, pull the specific slice
-          if (col.valueIndex !== null && typeof raw === 'string' && raw.includes('\x1F')) {
-            const parts = raw.split('\x1F');
-            raw = parts[col.valueIndex] ?? '';
-          }
-
-          let val;
+          let val = row[colIndex];
+          if (val === undefined || val === null) return;
           if (type === 'date') val = '12/31/2000';
-          else if (type === 'number') val = String(raw).replace(/[$,]/g, '');
-          else val = String(raw);
-
+          else if (type === 'number') val = String(val).replace(/[$,]/g, '');
+          else val = String(val).replace(/\x1F/g, ' '); // flatten for length estimate
           maxLen = Math.max(maxLen, val.length);
         });
       }
 
-      return { header: col.header, key: col.header, width: Math.max(4, Math.min(60, maxLen + 2)) };
+      return { header: field, key: field, width: Math.max(4, Math.min(60, maxLen + 2)) };
     });
 
     // Build data rows
     const tableRows = [];
     dataRows.forEach(row => {
-      const rowData = exportCols.map(col => {
-        const colIndex = virtualData.columnMap.get(col.sourceField);
-        let raw = (colIndex !== undefined) ? row[colIndex] : undefined;
-
+      const rowData = displayedFields.map(field => {
+        const colIndex = virtualData.columnMap.get(field);
+        const raw = (colIndex !== undefined) ? row[colIndex] : undefined;
         if (raw === undefined || raw === null) return '';
 
-        const type = fieldTypeMap.get(col.sourceField);
-        const isMulti = typeof raw === 'string' && raw.includes('\x1F');
+        const type = fieldTypeMap.get(field);
 
-        if (col.valueIndex !== null) {
-          // Split-column mode: pull only the value at this index
-          const parts = isMulti ? raw.split('\x1F') : [raw];
-          raw = parts[col.valueIndex] ?? '';
-          return coerceValue(raw, type);
+        if (type === 'date') {
+          const dt = parseSirsDate(raw);
+          return dt !== null ? dt : 'Never';
         }
-
-        // Single-column mode
-        if (isMulti) {
-          // Stacked newlines in one cell
+        if (type === 'number') {
+          const n = typeof raw === 'number' ? raw : parseFloat(String(raw).replace(/[$,]/g, ''));
+          return isNaN(n) ? '' : n;
+        }
+        // In stacked mode \x1F values become newlines; in split mode virtualTableData
+        // already has individual values so \x1F won't be present.
+        if (typeof raw === 'string' && raw.includes('\x1F')) {
           return raw.split('\x1F').join('\n');
         }
-        return coerceValue(raw, type);
+        return raw;
       });
       tableRows.push(rowData);
     });
 
-    // Apply column formatting after columns are defined
-    exportCols.forEach((col, idx) => {
+    // Apply column formatting
+    displayedFields.forEach((field, idx) => {
       const column = worksheet.getColumn(idx + 1);
-      const type = fieldTypeMap.get(col.sourceField);
-      const isMultiCol = col.valueIndex !== null || (!splitMultiValues && multiMaxCount.size === 0 && col.header.startsWith('Marc'));
+      const type = fieldTypeMap.get(field);
 
       if (type === 'date') {
         column.numFmt = 'mm/dd/yyyy';
         column.alignment = { horizontal: 'right' };
       } else if (type === 'number') {
-        const colIndex = virtualData.columnMap.get(col.sourceField);
+        const colIndex = virtualData.columnMap.get(field);
         const sample = colIndex !== undefined
-          ? virtualData.rows.map(r => r[colIndex]).find(v => v !== null && v !== undefined && v !== '')
+          ? dataRows.map(r => r[colIndex]).find(v => v !== null && v !== undefined && v !== '')
           : null;
         const isDecimal = sample !== undefined && sample !== null && !Number.isInteger(
           typeof sample === 'number' ? sample : parseFloat(String(sample))
@@ -269,9 +210,9 @@ const ExcelExporter = (() => {
       } else if (type === 'boolean') {
         column.alignment = { horizontal: 'center' };
       } else {
-        // Wrap text for stacked multi-value cells (not needed when split into separate cols)
+        // Wrap text only when in stacked mode and the column has multi-values
         const needsWrap = !splitMultiValues && (() => {
-          const cIdx = virtualData.columnMap.get(col.sourceField);
+          const cIdx = virtualData.columnMap.get(field);
           if (cIdx === undefined) return false;
           return dataRows.some(r => r[cIdx] != null && typeof r[cIdx] === 'string' && r[cIdx].includes('\x1F'));
         })();
@@ -285,7 +226,7 @@ const ExcelExporter = (() => {
       ref: 'A1',
       headerRow: true,
       style: { theme: 'TableStyleMedium4', showRowStripes: true },
-      columns: exportCols.map(c => ({ name: c.header, filterButton: true })),
+      columns: displayedFields.map(f => ({ name: f, filterButton: true })),
       rows: tableRows
     });
 
