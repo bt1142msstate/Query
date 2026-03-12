@@ -2236,14 +2236,14 @@ th:hover .th-trash {
   height: 100%;
   border-radius: inherit;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity 1.2s ease-in-out;
   pointer-events: none;
   z-index: 1;
   overflow: hidden;
 }
 
 .table-query-aurora.active {
-  opacity: 1;
+  opacity: 0.85; /* Slight transparency so it looks like it's inside the glass */
 }
 
 .table-query-aurora::before {
@@ -2256,19 +2256,20 @@ th:hover .th-trash {
   background: conic-gradient(
     from 180deg at 50% 50%,
     transparent 0deg,
-    rgba(56, 189, 248, 0.5) 60deg,
-    rgba(168, 85, 247, 0.7) 120deg,
-    rgba(236, 72, 153, 0.6) 180deg,
-    rgba(168, 85, 247, 0.7) 240deg,
-    rgba(56, 189, 248, 0.5) 300deg,
+    rgba(56, 189, 248, 0.6) 60deg,
+    rgba(168, 85, 247, 0.8) 120deg,
+    rgba(236, 72, 153, 0.7) 180deg,
+    rgba(168, 85, 247, 0.8) 240deg,
+    rgba(56, 189, 248, 0.6) 300deg,
     transparent 360deg
   );
-  filter: blur(35px);
-  animation: rotate-aurora 4s linear infinite;
+  filter: blur(40px) hue-rotate(0deg);
+  animation: rotate-aurora 6s cubic-bezier(0.4, 0.0, 0.6, 1) infinite alternate;
 }
 
 @keyframes rotate-aurora {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% { transform: rotate(0deg) scale(1); filter: blur(40px) hue-rotate(0deg); }
+  50% { transform: rotate(180deg) scale(1.1); filter: blur(50px) hue-rotate(90deg); }
+  100% { transform: rotate(360deg) scale(1.05); filter: blur(45px) hue-rotate(180deg); }
 }
 

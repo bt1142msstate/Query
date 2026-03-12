@@ -283,12 +283,13 @@ window.startTableQueryAnimation = function() {
   bubble.style.height = '350px';
   bubble.style.borderRadius = '50%';
 
-  // Fade in the aurora effect after it circles
+  // Fade in the aurora effect during/after it circles
+  // Start the fade soon after the shape morph begins 
   setTimeout(() => {
     if (document.getElementById('table-query-aurora')) {
       document.getElementById('table-query-aurora').classList.add('active');
     }
-  }, 600);
+  }, 200);
 };
 
 window.endTableQueryAnimation = function() {
@@ -301,12 +302,12 @@ window.endTableQueryAnimation = function() {
     return;
   }
 
-  // Fade out the aurora effect before expanding
+  // Slowly fade out the aurora effect before expanding back to the table
   if (aurora && aurora.classList.contains('active')) {
     aurora.classList.remove('active');
     setTimeout(() => {
       startExpansionMorph();
-    }, 300);
+    }, 1200); // Wait for the new 1.2s fade-out transition to finish
   } else {
     if (aurora) aurora.remove();
     startExpansionMorph();
