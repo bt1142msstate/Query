@@ -265,6 +265,11 @@ function loadQueryConfig(q) {
     updateQueryJson();
   }
 
+  // Ensure bubbles re-render to reflect their new filter state and positions
+  if (window.BubbleSystem && typeof window.BubbleSystem.safeRenderBubbles === 'function') {
+    window.BubbleSystem.safeRenderBubbles();
+  }
+
   // Update button state to "Refresh" instead of "Run Query" since it's an existing query
   if (typeof window.getCurrentQueryState === 'function') {
     window.lastExecutedQueryState = window.getCurrentQueryState();
@@ -345,6 +350,7 @@ async function loadQueryResults(queryId) {
             
             window.VirtualTable.virtualTableData = newTableData;
             
+            // Re-render the full table to reset red column headers and redraw the rows with new widths
             if (typeof showExampleTable === 'function') {
                 await showExampleTable(headers);
             } else {
@@ -352,11 +358,15 @@ async function loadQueryResults(queryId) {
                 window.VirtualTable.calculateOptimalColumnWidths(); 
             }
             
-            window.totalRows = rows.length;
-            window.scrollRow = 0;
-            if (window.BubbleSystem && typeof window.BubbleSystem.updateScrollBar === 'function') {
-                window.BubbleSystem.updateScrollBar();
+            // Re-render the bubbles to update grouping for new active filters
+            if (window.BubbleSystem && typeof window.BubbleSystem.safeRenderBubbles === 'function') {
+                window.BubbleSystem.safeRenderBubbles();
             }
+            
+            // Reset bubble scroll position since we may have new filters/selected fields
+            const bc = document.getElementById('bubble-container');
+            if(bc) bc.scrollTop = 0;
+            
             if (typeof window.updateButtonStates === 'function') {
                 window.updateButtonStates();
             }

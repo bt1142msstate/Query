@@ -559,53 +559,37 @@ input, textarea, select, [contenteditable] {
    4. BUBBLE SCROLLBAR & NAVIGATION
    ========================================== */
 
-.bubble-scrollbar-container {
-  width: 16px;
-  height: 100%;
-  margin-left: 1rem;
-  position: relative;
-}
-
-.bubble-scrollbar-track {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  width: 8px;
-  height: 100%;
-  transform: translateX(-50%);
-  background: rgba(255, 255, 255, 0.15); /* Slightly frosty brighter track */
-  border-radius: 4px;
-  overflow: hidden;
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); /* Give it a little physical depth */
-}
-
-.bubble-scrollbar-segment {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  pointer-events: auto;
-  z-index: 1;
-  cursor: pointer;
-}
-
-.bubble-scrollbar-thumb {
-  position: absolute;
-  left: 50%;
+/* Unified custom scrollbar for bubble-container or any custom-scrollbar class */
+.custom-scrollbar::-webkit-scrollbar {
   width: 12px;
-  height: 40px;
-  background: rgba(167, 139, 250, 0.9); /* A nice subdued glowing purple */
-  border-radius: var(--border-radius-full);
-  transform: translateX(-50%);
-  cursor: grab;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.15); 
+  border-radius: 8px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); 
+  border: 2px solid transparent; 
+  background-clip: padding-box;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(167, 139, 250, 0.9);
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0); 
+  background-clip: padding-box;
   transition: background-color var(--transition-fast);
 }
-
-.bubble-scrollbar-thumb:active {
-  cursor: grabbing;
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(196, 181, 253, 1);
+  border: 2px solid transparent; 
+  background-clip: padding-box;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:active {
+  background: rgba(167, 139, 250, 1);
 }
 
-.bubble-scrollbar-thumb:hover {
-  background: rgba(196, 181, 253, 1); /* Brighter hover state */
+/* Firefox support fallback */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(167, 139, 250, 0.9) rgba(255, 255, 255, 0.15);
 }
 
 /* ==========================================

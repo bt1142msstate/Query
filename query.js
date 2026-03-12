@@ -287,10 +287,12 @@ if(runBtn){
                 window.VirtualTable.calculateOptimalColumnWidths(); 
             }
             
-            // Update totalRows state
-            window.totalRows = rows.length;
-            window.scrollRow = 0;
-            if (window.BubbleSystem) window.BubbleSystem.updateScrollBar();
+            // Re-render the bubbles to reflect the new state
+            if (window.BubbleSystem) window.BubbleSystem.safeRenderBubbles();
+
+            // Reset bubble scroll back to the top
+            const bc = document.getElementById('bubble-container');
+            if (bc) bc.scrollTop = 0;
             if (window.updateButtonStates) window.updateButtonStates();
             
             // Restore split columns mode if it was active before the query ran
@@ -434,24 +436,11 @@ document.addEventListener('keydown',e=>{
     );
     
     // Reset scroll position and re-render bubbles
-    scrollRow = 0;
+    const bc = document.getElementById('bubble-container');
+    if (bc) bc.scrollTop = 0;
     window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
     return; // consume event
   }
-  const downPressed = e.key === 'ArrowDown' || e.key.toLowerCase() === 's';
-  const upPressed   = e.key === 'ArrowUp'   || e.key.toLowerCase() === 'w';
-  const rowsVisible = 2;
-  const maxStartRow = Math.max(0, totalRows - rowsVisible);
-  if(downPressed && scrollRow < maxStartRow){
-    scrollRow++;
-  }else if(upPressed && scrollRow > 0){
-    scrollRow--;
-  }else{
-    return;   // no change
-  }
-  document.getElementById('bubble-list').style.transform =
-    `translateY(-${scrollRow * rowHeight}px)`;
-  window.BubbleSystem && window.BubbleSystem.updateScrollBar();
 });
 
 /* ---------- Field definitions: name, type, optional values, optional filters ---------- */
@@ -505,7 +494,8 @@ queryInput.addEventListener('input', () => {
       allBtn.textContent = `Search (${filteredDefs.length})`;
     }
   }
-  scrollRow = 0;
+  const bc = document.getElementById('bubble-container');
+  if(bc) bc.scrollTop = 0;
   window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
 });
 
@@ -848,31 +838,6 @@ async function showExampleTable(fields){
   }
 }
 
-// Arrow-key scrolling when focus is on a bubble, the scrollbar thumb, or when hovering over bubble grid/scrollbar
-document.addEventListener('keydown', e=>{
-  if(e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
-
-  const focussed = document.activeElement;
-  const isBubble = focussed?.classList && focussed.classList.contains('bubble');
-  const isThumb  = focussed?.id === 'bubble-scrollbar-thumb';
-
-  if(!isBubble && !isThumb && !hoverScrollArea) return;   // only act if focus or hover
-
-  const maxStartRow = Math.max(0, totalRows - 2);
-  if(e.key === 'ArrowDown' && scrollRow < maxStartRow){
-    scrollRow++;
-  }else if(e.key === 'ArrowUp' && scrollRow > 0){
-    scrollRow--;
-  }else{
-    return;                                  // no movement
-  }
-
-  // Apply new scroll position
-  document.getElementById('bubble-list').style.transform =
-    `translateY(-${scrollRow * rowHeight}px)`;
-  window.BubbleSystem && window.BubbleSystem.updateScrollBar();
-  e.preventDefault();                         // stop page scroll
-});
 
 
 
@@ -880,7 +845,8 @@ document.addEventListener('keydown', e=>{
 function renderCategorySelectorsLocal(categoryCounts) {
   renderCategorySelectors(categoryCounts, currentCategory, (newCategory) => {
     currentCategory = newCategory;
-          scrollRow = 0;
+          const bc = document.getElementById('bubble-container');
+          if(bc) bc.scrollTop = 0;
           window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
         });
 }
@@ -900,7 +866,8 @@ function updateCategoryCounts() {
       const mobileSelector = document.getElementById('mobile-category-selector');
       if (mobileSelector) mobileSelector.value = 'All';
     }
-    scrollRow = 0;
+    const bc = document.getElementById('bubble-container');
+    if(bc) bc.scrollTop = 0;
     window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
   }
 }

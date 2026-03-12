@@ -278,7 +278,7 @@ function renderBubbles(){
   if(firstBubble){
     const gapVal = getComputedStyle(listDiv).getPropertyValue('gap') || '0px';
     const gap = parseFloat(gapVal) || 0;
-    rowHeight  = firstBubble.getBoundingClientRect().height + gap;
+    const rowHeight = firstBubble.getBoundingClientRect().height + gap;
     const bubbleW = firstBubble.offsetWidth;
     const rowsVisible = 2;
     const twoRowsH = rowHeight * rowsVisible - gap;
@@ -286,14 +286,11 @@ function renderBubbles(){
     const fudge   = 8;
     const paddedH = twoRowsH + 12 - fudge;
     const paddedW = sixColsW + 8;
+    
+    // Use native scrolling by defining strict max-height
     container.style.height = paddedH + 'px';
     container.style.width  = paddedW + 'px';
-    const scrollCont = document.querySelector('.bubble-scrollbar-container');
-    if (scrollCont) scrollCont.style.height = paddedH + 'px';
-    totalRows  = Math.ceil(list.length / 6);
-    if(scrollRow > totalRows - rowsVisible) scrollRow = Math.max(0, totalRows - rowsVisible);
-    listDiv.style.transform = `translateY(-${scrollRow * rowHeight}px)`;
-    updateScrollBar();
+    listDiv.style.transform = 'none'; // reset any residual transforms
   }
   Array.from(listDiv.children).forEach(bubble => {
     const fieldName = bubble.textContent.trim();
@@ -321,57 +318,6 @@ function safeRenderBubbles() {
   }
   renderBubbles();
   pendingRenderBubbles = false;
-}
-
-/**
- * Updates the custom scrollbar for the bubble container.
- * Creates a CSS gradient track and scales thumb proportionally.
- * @function updateScrollBar
- */
-function updateScrollBar(){
-  // Safety check for required globals
-  if (typeof totalRows === 'undefined' || typeof scrollRow === 'undefined') {
-    return;
-  }
-  
-  /* Hide scrollbar container entirely when no scrolling is needed */
-  const scrollbarContainer = document.querySelector('.bubble-scrollbar-container');
-  if(scrollbarContainer){
-    const needScroll = totalRows > 2;   // rowsVisible = 2
-    scrollbarContainer.style.display = needScroll ? 'block' : 'none';
-  }
-
-  const track = document.getElementById('bubble-scrollbar-track');
-  const thumb = document.getElementById('bubble-scrollbar-thumb');
-  if(!track || !thumb) return;
-
-  const maxStartRow = Math.max(0, totalRows - 2);   // rowsVisible = 2
-  const trackH = track.clientHeight;
-
-  // Build unicolor track background using CSS
-  // Only update when totalRows actually changes to avoid style thrashing
-  if (track.dataset.lastTotalRows !== String(totalRows)) {
-    track.dataset.lastTotalRows = totalRows;
-    
-    // Clear old DOM segments just in case they were left over from before
-    track.querySelectorAll('.bubble-scrollbar-segment').forEach(s=>s.remove());
-    
-    // A frosty track to stand out against the background but remain sleek
-    track.style.background = 'rgba(255, 255, 255, 0.15)';
-  }
-
-  // Calculate thumb height proportionally (with minimum size 24px)
-  const visibleRatio = totalRows > 0 ? (2 / totalRows) : 1;
-  let thumbH = Math.max(24, trackH * visibleRatio);
-  thumbH = Math.min(thumbH, trackH); // constrain to max track height just in case
-  
-  // Calculate relative top position percentage
-  const scrollRatio = maxStartRow > 0 ? (scrollRow / maxStartRow) : 0;
-  const maxTopPos = trackH - thumbH;
-  const topPos = scrollRatio * maxTopPos;
-
-  thumb.style.height = `${thumbH}px`;
-  thumb.style.top = `${topPos}px`;
 }
 
 /**
@@ -655,136 +601,17 @@ function initializeBubbles() {
 
   // Attach mouseenter / mouseleave on bubble grid & scrollbar (for arrow-key scroll)
   const bubbleContainer   = document.getElementById('bubble-container');
-  const scrollContainer   = document.querySelector('.bubble-scrollbar-container');
-  [bubbleContainer, scrollContainer].forEach(el=>{
+  [bubbleContainer].forEach(el=>{
     if(!el) return;
     el.addEventListener('mouseenter', ()=> hoverScrollArea = true);
     el.addEventListener('mouseleave', ()=> hoverScrollArea = false);
   });
 
-  // Wheel scroll support for bubble grid / scrollbar
-  function handleWheelScroll(e){
-    e.preventDefault();          // keep page from scrolling
-    const rowsVisible = 2;
-    const maxStartRow = Math.max(0, totalRows - rowsVisible);
-    const delta = e.deltaY > 0 ? 1 : -1;
-    const newRow = Math.max(0, Math.min(maxStartRow, scrollRow + delta));
-    if(newRow !== scrollRow){
-      scrollRow = newRow;
-      const listDiv = document.getElementById('bubble-list');
-      if(listDiv) listDiv.style.transform = 
-        `translateY(-${scrollRow * rowHeight}px)`;
-      updateScrollBar();
-    }
-  }
-
-  // Listen for wheel events when hovering over grid or custom scrollbar
-  [bubbleContainer, scrollContainer].forEach(el=>{
-    if(!el) return;
-    el.addEventListener('wheel', handleWheelScroll, { passive:false });
-  });
-
-  // Add scrollbar thumb dragging functionality
-  const thumb = document.getElementById('bubble-scrollbar-thumb');
-  const track = document.getElementById('bubble-scrollbar-track');
-  
-  if (thumb && track) {
-    let isDragging = false;
-    let startY = 0;
-    let startScrollRow = 0;
-    
-    // Thumb drag functionality
-    thumb.addEventListener('mousedown', (e) => {
-      isDragging = true;
-      startY = e.clientY;
-      startScrollRow = scrollRow;
-      document.body.style.cursor = 'grabbing';
-      e.preventDefault();
-    });
-    
-    document.addEventListener('mousemove', (e) => {
-      if (!isDragging) return;
-      
-      const deltaY = e.clientY - startY;
-      const trackHeight = track.clientHeight;
-      const thumbHeight = thumb.clientHeight;
-      const maxScrollPixels = trackHeight - thumbHeight;
-      const rowsVisible = 2;
-      const maxStartRow = Math.max(0, totalRows - rowsVisible);
-      
-      if (maxScrollPixels <= 0) return;
-
-      const startRatio = maxStartRow > 0 ? (startScrollRow / maxStartRow) : 0;
-      let newY = (startRatio * maxScrollPixels) + deltaY;
-      newY = Math.max(0, Math.min(maxScrollPixels, newY));
-      
-      const newRatio = newY / maxScrollPixels;
-      const exactRow = newRatio * maxStartRow;
-      const newRow = Math.round(exactRow);
-      
-      if (newRow !== scrollRow) {
-        scrollRow = newRow;
-        const listDiv = document.getElementById('bubble-list');
-        if (listDiv) {
-          listDiv.style.transform = `translateY(-${scrollRow * rowHeight}px)`;
-        }
-        
-        // Use requestAnimationFrame to prevent layout thrashing while dragging
-        if (!window._scrollbarUpdatePending) {
-          window._scrollbarUpdatePending = true;
-          requestAnimationFrame(() => {
-            updateScrollBar();
-            window._scrollbarUpdatePending = false;
-          });
-        }
-      }
-    });
-    
-    document.addEventListener('mouseup', () => {
-      if (isDragging) {
-        isDragging = false;
-        document.body.style.cursor = '';
-      }
-    });
-    
-    // Track click functionality - jump to clicked position
-    track.addEventListener('click', (e) => {
-      if (e.target === thumb) return; // Don't handle clicks on thumb
-      
-      const rect = track.getBoundingClientRect();
-      const clickY = e.clientY - rect.top;
-      const trackHeight = track.clientHeight;
-      const thumbHeight = thumb.clientHeight;
-      const maxScrollPixels = trackHeight - thumbHeight;
-      const rowsVisible = 2;
-      const maxStartRow = Math.max(0, totalRows - rowsVisible);
-      
-      if (maxScrollPixels <= 0) return;
-      
-      // Center the thumb rigidly on the click coordinate
-      let targetY = clickY - (thumbHeight / 2);
-      targetY = Math.max(0, Math.min(maxScrollPixels, targetY));
-      
-      const ratio = targetY / maxScrollPixels;
-      const newRow = Math.max(0, Math.min(maxStartRow, Math.round(ratio * maxStartRow)));
-      
-      if (newRow !== scrollRow) {
-        scrollRow = newRow;
-        const listDiv = document.getElementById('bubble-list');
-        if (listDiv) {
-          listDiv.style.transform = `translateY(-${scrollRow * rowHeight}px)`;
-        }
-        updateScrollBar();
-      }
-    });
-  }
-
-  // --- Keep bubble scrollbar height in sync on window resize ---
+  // --- Keep bubble container size in sync on window resize ---
   window.addEventListener('resize', () => {
     const container = document.getElementById('bubble-container');
     const listDiv   = document.getElementById('bubble-list');
-    const scrollCont= document.querySelector('.bubble-scrollbar-container');
-    if (!container || !listDiv || !scrollCont) return;
+    if (!container || !listDiv) return;
     const firstBubble = listDiv.querySelector('.bubble');
     if (!firstBubble) return;
     const gapVal = getComputedStyle(listDiv).getPropertyValue('gap') || '0px';
@@ -795,8 +622,6 @@ function initializeBubbles() {
     const sixColsW = firstBubble.offsetWidth * 6 + gap * 5;
     container.style.height = paddedH + 'px';
     container.style.width  = sixColsW  + 'px';
-    scrollCont.style.height = paddedH + 'px';
-    updateScrollBar();
   });
 
   // Delegated bubble click events
@@ -1211,7 +1036,6 @@ if (typeof window !== 'undefined') {
     createOrUpdateBubble,
     renderBubbles,
     safeRenderBubbles,
-    updateScrollBar,
     buildConditionPanel,
     initializeBubbles,
     formatFiltersTooltip,
