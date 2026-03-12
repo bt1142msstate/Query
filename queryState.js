@@ -14,7 +14,10 @@ window.getBaseFieldName = function(fieldName) {
 window.queryRunning = false;
 window.displayedFields = []; // Will be populated from test data
 window.selectedField = '';
-window.hoverScrollArea = false;  // true when cursor over bubbles or scrollbar (used for keyboard nav)
+window.totalRows = 0;          // total rows in #bubble-list
+window.scrollRow = 0;          // current top row (0-based)
+window.rowHeight = 0;          // computed once per render
+window.hoverScrollArea = false;  // true when cursor over bubbles or scrollbar
 window.currentCategory = 'All';
 
 // Query state tracking for run button icon

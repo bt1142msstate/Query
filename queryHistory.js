@@ -358,15 +358,13 @@ async function loadQueryResults(queryId) {
                 window.VirtualTable.calculateOptimalColumnWidths(); 
             }
             
+            // Reset bubble scroll position before re-rendering
+            window.scrollRow = 0;
             // Re-render the bubbles to update grouping for new active filters
             if (window.BubbleSystem && typeof window.BubbleSystem.safeRenderBubbles === 'function') {
                 window.BubbleSystem.safeRenderBubbles();
             }
-            
-            // Reset bubble scroll position since we may have new filters/selected fields
-            const bc = document.getElementById('bubble-container');
-            if(bc) bc.scrollTop = 0;
-            
+            // updateScrollBar is handled by the container's 'scroll' event
             if (typeof window.updateButtonStates === 'function') {
                 window.updateButtonStates();
             }
