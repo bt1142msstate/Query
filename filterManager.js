@@ -501,9 +501,6 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
     
     // Dynamically add field definition if missing
     window.registerDynamicField(dynamicFieldName, {
-        type: fieldDef.type || 'string',
-        category: fieldDef.category || null,
-        desc: `${fieldDef.name} custom: ${Object.values(inputVals).join(', ')}`,
         special_payload: specialPayload
     });
     
