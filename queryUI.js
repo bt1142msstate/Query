@@ -412,136 +412,17 @@ window.positionInputWrapper = function(){
 
 /** Rebuild the query JSON and show it */
 window.updateQueryJson = function(){
-  // Filter out duplicate field names (2nd, 3rd, etc.) and get only base field names
-  const baseFields = [...window.displayedFields]
-    .filter(field => {
-      const def = window.fieldDefs ? window.fieldDefs.get(field) : null;
-      return !(def && def.is_buildable);
-    })
-    .map(field => {
-      return window.getBaseFieldName(field);
-    })
-    .filter((field, index, array) => {
-      // Remove duplicates (keep only first occurrence of each base field name)
-      return array.indexOf(field) === index;
-    });
-  
-  const query = {
-    DesiredColumnOrder: baseFields,
-    FilterGroups: [],
-    GroupMethod: "ExpandIntoColumns" // Default value
-  };
-  
   // Update run button icon based on query changes
   window.updateRunButtonIcon();
 
-  // If we have a loaded SimpleTable instance, extract configuration from it
-  if (typeof window.VirtualTable !== 'undefined' && window.VirtualTable.simpleTableInstance) {
-    const simpleTable = window.VirtualTable.simpleTableInstance;
-    
-    // Extract GroupMethod from SimpleTable
-    if (simpleTable.groupMethod !== undefined) {
-      // Convert JavaScript string enum to C# enum string
-      switch (simpleTable.groupMethod) {
-        case 'None': // GroupMethod.NONE
-          query.GroupMethod = "None";
-          break;
-        case 'Commas': // GroupMethod.COMMAS
-          query.GroupMethod = "Commas";
-          break;
-        case 'ExpandIntoColumns': // GroupMethod.EXPAND_INTO_COLUMNS
-          query.GroupMethod = "ExpandIntoColumns";
-          break;
-        default:
-          query.GroupMethod = "ExpandIntoColumns";
-      }
-    }
-    
-    // Extract GroupByField from SimpleTable
-    if (simpleTable.groupByField) {
-      query.GroupByField = simpleTable.groupByField;
-    }
-    
-    // Extract AllowDuplicateFields from SimpleTable
-    if (simpleTable.allowDuplicateFields && simpleTable.allowDuplicateFields.size > 0) {
-      query.AllowDuplicateFields = Array.from(simpleTable.allowDuplicateFields);
-    }
-    
-    // Extract FilterGroups from SimpleTable (if any were configured in the JSON)
-    if (simpleTable.filterGroups && simpleTable.filterGroups.length > 0) {
-      const simpleTableFilterGroups = simpleTable.filterGroups.map(group => ({
-        LogicalOperator: group.logicalOperator || "And",
-        Filters: group.filters.map(filter => ({
-          FieldName: filter.fieldName,
-          FieldOperator: filter.fieldOperator,
-          Values: filter.values
-        }))
-      }));
-      
-      // Merge with any active UI filters
-      query.FilterGroups = [...simpleTableFilterGroups];
-    }
-  }
-
-  // Active filters from UI → logical group per field
-  Object.entries(window.activeFilters).forEach(([field,data])=>{
-    // Skip the buildable base fields themselves
-    const fieldDef = window.fieldDefs ? window.fieldDefs.get(field) : null;
-    if (fieldDef && fieldDef.is_buildable) return;
-    
-    // Filter out any filters with empty values
-    const validFilters = data.filters.filter(f => f.val !== '');
-    if (validFilters.length === 0) return;
-    const group = {
-      LogicalOperator: data.logical,
-      Filters: validFilters.map(f => {
-        const vals = (f.cond === 'between') ? f.val.split('|') : [f.val];
-        return {
-          FieldName: field,
-          FieldOperator: mapOperator(f.cond),
-          Values: vals
-        };
-      })
-    };
-    query.FilterGroups.push(group);
-  });
-
-  // Add CustomFields for fields that have special payloads
-  if (window.getAllFieldDefs) {
-    const customFields = window.getAllFieldDefs()
-      .filter(f => f.special_payload && f.special_payload.type === 'marc')
-      .map(f => ({
-        FieldName: f.name,
-        Tool: "prtentry", // Default, adjust if needed
-        OutputFlag: "e",
-        FilterFlag: "e",
-        RawOutputSegments: 1,
-        DataType: "string",
-        RequiredEqualFilter: f.special_payload.tag
-      }));
-    if (customFields.length > 0) {
-      query.CustomFields = customFields;
-    }
-  }
-
   const queryBox = window.DOM.queryBox;
-  if(queryBox) queryBox.value = JSON.stringify(query, null, 2);
+  if (queryBox) {
+    if (typeof window.buildQueryPayload === 'function') {
+      queryBox.value = JSON.stringify(window.buildQueryPayload(), null, 2);
+    }
+  }
   window.updateButtonStates();
 };
-
-/* ---------- Helper: map UI condition slugs to C# enum names ---------- */
-function mapOperator(cond){
-  switch(cond){
-    case 'greater': return 'GreaterThan';
-    case 'less':    return 'LessThan';
-    case 'equals':  return 'Equals';
-    case 'between': return 'Between';
-    case 'contains':return 'Contains';
-    case 'starts':  return 'Contains';         // "Starts With" → "Contains"
-    case 'doesnotcontain': return 'DoesNotContain';
-    default: return cond.charAt(0).toUpperCase() + cond.slice(1);
-  }
-}
 
 // Helper function to check if a field should have purple styling
 window.shouldFieldHavePurpleStyling = function(fieldName) {
