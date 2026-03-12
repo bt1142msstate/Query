@@ -231,7 +231,6 @@
         type="text" 
         id="table-name-input"
         placeholder="Enter table name..."
-        value="Query Results"
         class="text-xl font-semibold bg-transparent border-none text-center focus:outline-none focus:bg-white focus:px-3 focus:py-1 focus:rounded-lg focus:shadow-md transition-all duration-200 text-gray-800 min-w-0 max-w-md"
         style="width: auto; min-width: 200px;"
         data-tooltip="Enter a name for your table"
@@ -373,31 +372,174 @@
         </button>
       </h2>
       <div id="help-container" class="w-full -mt-px border border-purple-200 border-t-0 rounded-b overflow-y-auto bg-white p-4">
-        <h3 class="text-lg font-semibold mb-3">Getting Started</h3>
-        <p class="mb-3">Use this tool to build library item queries and reports.</p>
-        
-        <h4 class="text-md font-semibold mt-4 mb-2">Working with Bubbles</h4>
-        <ul class="list-disc pl-5 mb-3">
-          <li>Click a bubble to view filter options</li>
-          <li>Drag bubbles to the table area to add columns</li>
-          <li>White bubbles indicate fields that are already filtered or displayed</li>
-        </ul>
-        
-        <h4 class="text-md font-semibold mt-4 mb-2">Building Queries</h4>
-        <ul class="list-disc pl-5 mb-3">
-          <li>Apply filters by clicking bubbles and selecting conditions</li>
-          <li>Rearrange columns by dragging table headers</li>
-          <li>Remove columns by hovering over a header and clicking the trash icon</li>
-          <li>View and copy the exact query JSON payload by clicking the JSON button</li>
-        </ul>
-        
-        <h4 class="text-md font-semibold mt-4 mb-2">Running Queries</h4>
-        <ul class="list-disc pl-5 mb-3">
-          <li>Click the green play button to run your query</li>
-          <li>Click it again (stop icon) to cancel a running query</li>
-          <li>Download results using the download button</li>
-          <li>View your query history in the Queries panel</li>
-        </ul>
+        <div class="help-shell">
+          <section class="help-hero">
+            <div class="help-hero-copy">
+              <span class="help-kicker">Query Guide</span>
+              <h3>Build library reports without guessing what the tool is doing.</h3>
+              <p>Start with bubbles, shape the result table, run the query, then reuse or export what worked. The interface is designed so the visual state stays aligned with the backend payload.</p>
+            </div>
+            <div class="help-summary-grid">
+              <article class="help-summary-card">
+                <span class="help-summary-label">1. Build</span>
+                <strong>Choose columns and filters from bubbles.</strong>
+              </article>
+              <article class="help-summary-card">
+                <span class="help-summary-label">2. Run</span>
+                <strong>Execute the flat backend query with the play button.</strong>
+              </article>
+              <article class="help-summary-card">
+                <span class="help-summary-label">3. Review</span>
+                <strong>Inspect results, history, JSON, and exports.</strong>
+              </article>
+            </div>
+          </section>
+
+          <section class="help-card-grid">
+            <article class="help-card help-card-wide">
+              <div class="help-card-heading">
+                <span class="help-card-tag">Workflow</span>
+                <h4>Recommended order</h4>
+              </div>
+              <ol class="help-step-list">
+                <li>
+                  <span class="help-step-number">01</span>
+                  <div>
+                    <strong>Find a field.</strong>
+                    <p>Use the search bar or category tabs to narrow the bubble list to the field you want.</p>
+                  </div>
+                </li>
+                <li>
+                  <span class="help-step-number">02</span>
+                  <div>
+                    <strong>Choose how it should be used.</strong>
+                    <p>Drag a bubble to the table to add a column, or click it to open filter controls for that field.</p>
+                  </div>
+                </li>
+                <li>
+                  <span class="help-step-number">03</span>
+                  <div>
+                    <strong>Refine the query.</strong>
+                    <p>Add more fields, reorder columns, and confirm filter values until the JSON matches the result shape you expect.</p>
+                  </div>
+                </li>
+                <li>
+                  <span class="help-step-number">04</span>
+                  <div>
+                    <strong>Run, review, reuse.</strong>
+                    <p>Run the query, inspect history, reload useful configurations, and export results when the table looks right.</p>
+                  </div>
+                </li>
+              </ol>
+            </article>
+
+            <article class="help-card">
+              <div class="help-card-heading">
+                <span class="help-card-tag">Bubbles</span>
+                <h4>How field bubbles behave</h4>
+              </div>
+              <ul class="help-detail-list">
+                <li>Click a bubble to open the filter card for that field.</li>
+                <li>Drag a bubble into the table area to add it as a displayed column.</li>
+                <li>Displayed or filtered bubbles stay visually marked so you can scan the current query quickly.</li>
+                <li>Some fields offer grouped lists or boolean pills because those values come from backend field metadata.</li>
+              </ul>
+            </article>
+
+            <article class="help-card">
+              <div class="help-card-heading">
+                <span class="help-card-tag">Filters</span>
+                <h4>How filtering works now</h4>
+              </div>
+              <ul class="help-detail-list">
+                <li>Filtering is flat and backend-aligned. There is no AND/OR group builder in the current query model.</li>
+                <li>Equals filters on selector fields replace the previous selection instead of stacking conflicting values.</li>
+                <li>The side filter panel and the bubble panel both edit the same live filter state.</li>
+                <li>Panels stay open after applying values so you can keep refining a field without reopening it.</li>
+              </ul>
+            </article>
+
+            <article class="help-card">
+              <div class="help-card-heading">
+                <span class="help-card-tag">Table</span>
+                <h4>Working with results</h4>
+              </div>
+              <ul class="help-detail-list">
+                <li>Drag table headers to reorder columns after you add them.</li>
+                <li>Remove columns from the table when they are no longer needed.</li>
+                <li>The split export toggle changes how multi-value cells are written when exporting results.</li>
+                <li>Clearing the query resets the current working state so you can start over cleanly.</li>
+              </ul>
+            </article>
+
+            <article class="help-card">
+              <div class="help-card-heading">
+                <span class="help-card-tag">Panels</span>
+                <h4>What each top button does</h4>
+              </div>
+              <div class="help-actions-grid">
+                <div class="help-action-item"><span class="help-action-pill run">Run</span><p>Runs the current query. While active, the button switches to stop mode.</p></div>
+                <div class="help-action-item"><span class="help-action-pill export">Download</span><p>Exports the current result set using the active multi-value export mode.</p></div>
+                <div class="help-action-item"><span class="help-action-pill clear">Clear</span><p>Removes the current query setup and result state.</p></div>
+                <div class="help-action-item"><span class="help-action-pill json">JSON</span><p>Shows the exact payload being built for the current query.</p></div>
+                <div class="help-action-item"><span class="help-action-pill history">Queries</span><p>Shows running, completed, failed, and cancelled history entries.</p></div>
+                <div class="help-action-item"><span class="help-action-pill help">Help</span><p>Opens this guide and summarizes the current interaction model.</p></div>
+              </div>
+            </article>
+
+            <article class="help-card help-card-wide">
+              <div class="help-card-heading">
+                <span class="help-card-tag">History</span>
+                <h4>Query history and recovery</h4>
+              </div>
+              <div class="help-two-column">
+                <div>
+                  <p class="help-mini-heading">What you can do</p>
+                  <ul class="help-detail-list compact">
+                    <li>Reload a past query’s displayed columns and filters.</li>
+                    <li>Open saved results for completed runs.</li>
+                    <li>Cancel a query that is still running.</li>
+                    <li>Rerun a previous query from the history panel.</li>
+                  </ul>
+                </div>
+                <div>
+                  <p class="help-mini-heading">Status meanings</p>
+                  <ul class="help-status-list">
+                    <li><span class="help-status running">Running</span><span>Currently executing on the backend.</span></li>
+                    <li><span class="help-status complete">Completed</span><span>Finished successfully and ready to reload.</span></li>
+                    <li><span class="help-status failed">Failed</span><span>Stopped because of an error or interrupted backend state.</span></li>
+                    <li><span class="help-status canceled">Cancelled</span><span>Stopped intentionally before completion.</span></li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <article class="help-card help-card-wide help-callout-card">
+              <div class="help-card-heading">
+                <span class="help-card-tag">Practical Tips</span>
+                <h4>Things that save time</h4>
+              </div>
+              <div class="help-tip-grid">
+                <div class="help-tip-item">
+                  <strong>Use JSON as a truth check.</strong>
+                  <p>If the UI feels off, open the JSON panel. It shows the real query payload the backend will receive.</p>
+                </div>
+                <div class="help-tip-item">
+                  <strong>Use history for repeat work.</strong>
+                  <p>If a report is close to what you need, reload it from query history instead of rebuilding it manually.</p>
+                </div>
+                <div class="help-tip-item">
+                  <strong>Prefer selectors for policy fields.</strong>
+                  <p>When a field offers a list or boolean pill, use it instead of typing freeform text to avoid bad literals.</p>
+                </div>
+                <div class="help-tip-item">
+                  <strong>Refine before exporting.</strong>
+                  <p>Check split export mode and column order first so the downloaded file matches how you intend to use it.</p>
+                </div>
+              </div>
+            </article>
+          </section>
+        </div>
       </div>
     </div><!-- end help-panel -->
   </div>
