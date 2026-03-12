@@ -138,7 +138,6 @@ window.updateRunButtonIcon = function(validationError) {
 window.updateButtonStates = function() {
   const runBtn = window.DOM.runBtn;
   const downloadBtn = window.DOM.downloadBtn;
-  const queryBox = window.DOM.queryBox;
 
   const tableNameInput = document.getElementById('table-name-input');
   const tableName = tableNameInput ? tableNameInput.value.trim() : '';
@@ -146,8 +145,13 @@ window.updateButtonStates = function() {
 
   if(runBtn){
     try{
-      const q = JSON.parse(queryBox.value || '{}');
-      const hasFields = Array.isArray(q.DesiredColumnOrder) && q.DesiredColumnOrder.length > 0;
+      const payload = window.buildBackendQueryPayload ? window.buildBackendQueryPayload(tableName) : null;
+      const hasFields = !!(
+        payload && (
+          (Array.isArray(payload.display_fields) && payload.display_fields.length > 0) ||
+          (Array.isArray(payload.special_fields) && payload.special_fields.length > 0)
+        )
+      );
       
       let validationError = null;
       if (!hasName) {
@@ -639,135 +643,225 @@ window.positionInputWrapper = function(){
   inputWrapper.style.setProperty('--panel-top', `${panelRect.top}px`);
 };
 
-/** Rebuild the query JSON and show it */
-window.updateQueryJson = function(){
-  // Filter out duplicate field names (2nd, 3rd, etc.) and get only base field names
-  const baseFields = [...window.displayedFields]
+function normalizeLogicalOperator(operator) {
+  if (!operator) return 'And';
+  const normalized = String(operator).trim().toLowerCase();
+  return normalized === 'or' ? 'Or' : 'And';
+}
+
+function mapConfigOperatorToBackend(fieldOperator, values) {
+  switch (fieldOperator) {
+    case 'Equals':
+      return [{ operator: '=', value: values[0] ?? '' }];
+    case 'DoesNotEqual':
+      return [{ operator: '!=', value: values[0] ?? '' }];
+    case 'GreaterThan':
+      return [{ operator: '>', value: values[0] ?? '' }];
+    case 'LessThan':
+      return [{ operator: '<', value: values[0] ?? '' }];
+    case 'GreaterThanOrEqual':
+      return [{ operator: '>=', value: values[0] ?? '' }];
+    case 'LessThanOrEqual':
+      return [{ operator: '<=', value: values[0] ?? '' }];
+    case 'Between':
+      if (values.length >= 2) {
+        return [
+          { operator: '>=', value: values[0] ?? '' },
+          { operator: '<=', value: values[1] ?? '' }
+        ];
+      }
+      return [{ operator: '=', value: values[0] ?? '' }];
+    case 'DoesNotContain':
+      return [{ operator: '!=', value: `*${values[0] ?? ''}*` }];
+    case 'Contains':
+      return [{ operator: '=', value: `*${values[0] ?? ''}*` }];
+    default:
+      return [{ operator: '=', value: values[0] ?? '' }];
+  }
+}
+
+window.getNormalizedDisplayedFields = function(fields = window.displayedFields) {
+  return [...fields]
     .filter(field => {
       const def = window.fieldDefs ? window.fieldDefs.get(field) : null;
       return !(def && def.is_buildable);
     })
-    .map(field => {
-      return window.getBaseFieldName(field);
-    })
-    .filter((field, index, array) => {
-      // Remove duplicates (keep only first occurrence of each base field name)
-      return array.indexOf(field) === index;
-    });
-  
-  const query = {
-    DesiredColumnOrder: baseFields,
-    FilterGroups: [],
-    GroupMethod: "ExpandIntoColumns" // Default value
-  };
-  
-  // Update run button icon based on query changes
-  window.updateRunButtonIcon();
+    .map(field => window.getBaseFieldName(field))
+    .filter((field, index, array) => array.indexOf(field) === index);
+};
 
-  // If we have a loaded SimpleTable instance, extract configuration from it
+window.buildQueryUiConfig = function() {
+  const query = {
+    DesiredColumnOrder: window.getNormalizedDisplayedFields(),
+    FilterGroups: [],
+    GroupMethod: 'ExpandIntoColumns'
+  };
+
   if (typeof window.VirtualTable !== 'undefined' && window.VirtualTable.simpleTableInstance) {
     const simpleTable = window.VirtualTable.simpleTableInstance;
-    
-    // Extract GroupMethod from SimpleTable
+
     if (simpleTable.groupMethod !== undefined) {
-      // Convert JavaScript string enum to C# enum string
       switch (simpleTable.groupMethod) {
-        case 'None': // GroupMethod.NONE
-          query.GroupMethod = "None";
+        case 'None':
+          query.GroupMethod = 'None';
           break;
-        case 'Commas': // GroupMethod.COMMAS
-          query.GroupMethod = "Commas";
+        case 'Commas':
+          query.GroupMethod = 'Commas';
           break;
-        case 'ExpandIntoColumns': // GroupMethod.EXPAND_INTO_COLUMNS
-          query.GroupMethod = "ExpandIntoColumns";
+        case 'ExpandIntoColumns':
+          query.GroupMethod = 'ExpandIntoColumns';
           break;
         default:
-          query.GroupMethod = "ExpandIntoColumns";
+          query.GroupMethod = 'ExpandIntoColumns';
       }
     }
-    
-    // Extract GroupByField from SimpleTable
+
     if (simpleTable.groupByField) {
       query.GroupByField = simpleTable.groupByField;
     }
-    
-    // Extract AllowDuplicateFields from SimpleTable
+
     if (simpleTable.allowDuplicateFields && simpleTable.allowDuplicateFields.size > 0) {
       query.AllowDuplicateFields = Array.from(simpleTable.allowDuplicateFields);
     }
-    
-    // Extract FilterGroups from SimpleTable (if any were configured in the JSON)
+
     if (simpleTable.filterGroups && simpleTable.filterGroups.length > 0) {
-      const simpleTableFilterGroups = simpleTable.filterGroups.map(group => ({
-        LogicalOperator: group.logicalOperator || "And",
+      query.FilterGroups = simpleTable.filterGroups.map(group => ({
+        LogicalOperator: normalizeLogicalOperator(group.logicalOperator),
         Filters: group.filters.map(filter => ({
           FieldName: filter.fieldName,
           FieldOperator: filter.fieldOperator,
-          Values: filter.values
+          Values: Array.isArray(filter.values) ? [...filter.values] : [filter.values]
         }))
       }));
-      
-      // Merge with any active UI filters
-      query.FilterGroups = [...simpleTableFilterGroups];
     }
   }
 
-  // Active filters from UI → logical group per field
-  Object.entries(window.activeFilters).forEach(([field,data])=>{
-    // Skip the buildable base fields themselves
+  Object.entries(window.activeFilters).forEach(([field, data]) => {
     const fieldDef = window.fieldDefs ? window.fieldDefs.get(field) : null;
     if (fieldDef && fieldDef.is_buildable) return;
-    
-    // Filter out any filters with empty values
-    const validFilters = data.filters.filter(f => f.val !== '');
+
+    const validFilters = (data.filters || []).filter(filter => filter.val !== '');
     if (validFilters.length === 0) return;
-    const group = {
-      LogicalOperator: data.logical,
-      Filters: validFilters.map(f => {
-        const vals = (f.cond === 'between') ? f.val.split('|') : [f.val];
-        return {
-          FieldName: field,
-          FieldOperator: mapOperator(f.cond),
-          Values: vals
-        };
-      })
-    };
-    query.FilterGroups.push(group);
+
+    query.FilterGroups.push({
+      LogicalOperator: normalizeLogicalOperator(data.logical),
+      Filters: validFilters.map(filter => ({
+        FieldName: field,
+        FieldOperator: mapOperator(filter.cond),
+        Values: filter.cond === 'between' ? filter.val.split('|') : [filter.val]
+      }))
+    });
   });
 
-  // Add CustomFields for fields that have special payloads
   if (window.getAllFieldDefs) {
     const customFields = window.getAllFieldDefs()
-      .filter(f => f.special_payload && f.special_payload.type === 'marc')
-      .map(f => ({
-        FieldName: f.name,
-        Tool: "prtentry", // Default, adjust if needed
-        OutputFlag: "e",
-        FilterFlag: "e",
+      .filter(field => field.special_payload && field.special_payload.type === 'marc')
+      .map(field => ({
+        FieldName: field.name,
+        Tool: 'prtentry',
+        OutputFlag: 'e',
+        FilterFlag: 'e',
         RawOutputSegments: 1,
-        DataType: "string",
-        RequiredEqualFilter: f.special_payload.tag
+        DataType: 'string',
+        RequiredEqualFilter: field.special_payload.tag
       }));
+
     if (customFields.length > 0) {
       query.CustomFields = customFields;
     }
   }
 
+  return query;
+};
+
+window.buildBackendQueryPayload = function(queryName = '') {
+  const uiConfig = window.buildQueryUiConfig();
+  const standardDisplayFields = [];
+  const specialFields = [];
+
+  window.displayedFields.forEach(field => {
+    const fieldDef = window.fieldDefs ? window.fieldDefs.get(field) : null;
+    if (fieldDef && fieldDef.special_payload) {
+      const isDuplicate = specialFields.some(existing => JSON.stringify(existing) === JSON.stringify(fieldDef.special_payload));
+      if (!isDuplicate) {
+        specialFields.push(fieldDef.special_payload);
+      }
+      return;
+    }
+
+    const baseField = window.getBaseFieldName(field);
+    if (!standardDisplayFields.includes(baseField)) {
+      standardDisplayFields.push(baseField);
+    }
+  });
+
+  const payload = {
+    action: 'run',
+    name: queryName || undefined,
+    filters: [],
+    display_fields: standardDisplayFields,
+    special_fields: specialFields,
+    ui_config: uiConfig
+  };
+
+  uiConfig.FilterGroups.forEach(group => {
+    (group.Filters || []).forEach(filter => {
+      const values = Array.isArray(filter.Values) ? filter.Values : [filter.Values];
+      mapConfigOperatorToBackend(filter.FieldOperator, values).forEach(({ operator, value }) => {
+        payload.filters.push({
+          field: filter.FieldName,
+          operator,
+          value
+        });
+      });
+    });
+  });
+
+  return payload;
+};
+
+/** Rebuild the query JSON and show it */
+window.updateQueryJson = function(){
+  const tableNameInput = document.getElementById('table-name-input');
+  const queryName = tableNameInput ? tableNameInput.value.trim() : '';
+  const payload = window.buildBackendQueryPayload(queryName);
+
+  window.updateRunButtonIcon();
+
   const queryBox = window.DOM.queryBox;
-  if(queryBox) queryBox.value = JSON.stringify(query, null, 2);
+  if(queryBox) queryBox.value = JSON.stringify(payload, null, 2);
   window.updateButtonStates();
 };
 
 /* ---------- Helper: map UI condition slugs to C# enum names ---------- */
 function mapOperator(cond){
   switch(cond){
-    case 'greater': return 'GreaterThan';
-    case 'less':    return 'LessThan';
-    case 'equals':  return 'Equals';
-    case 'between': return 'Between';
-    case 'contains':return 'Contains';
-    case 'starts':  return 'Contains';         // "Starts With" → "Contains"
-    case 'doesnotcontain': return 'DoesNotContain';
+    case 'greater':
+    case 'after':
+      return 'GreaterThan';
+    case 'less':
+    case 'before':
+      return 'LessThan';
+    case 'equals':
+      return 'Equals';
+    case 'does_not_equal':
+    case 'doesnotequal':
+      return 'DoesNotEqual';
+    case 'greater_or_equal':
+    case 'on_or_after':
+      return 'GreaterThanOrEqual';
+    case 'less_or_equal':
+    case 'on_or_before':
+      return 'LessThanOrEqual';
+    case 'between':
+      return 'Between';
+    case 'contains':
+    case 'starts':
+    case 'starts_with':
+      return 'Contains';
+    case 'does_not_contain':
+    case 'doesnotcontain':
+      return 'DoesNotContain';
     default: return cond.charAt(0).toUpperCase() + cond.slice(1);
   }
 }

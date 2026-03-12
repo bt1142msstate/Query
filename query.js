@@ -66,105 +66,11 @@ if(runBtn){
         const state = window.getCurrentQueryState();
         const tableNameInput = document.getElementById('table-name-input');
         const queryName = tableNameInput ? tableNameInput.value.trim() : '';
-
-        // Construct history config (UI state) to send to backend for restoration
-        const historyConfig = {
-            DesiredColumnOrder: state.displayedFields,
-            FilterGroups: []
+        const payload = window.buildBackendQueryPayload(queryName);
+        const historyConfig = payload.ui_config || {
+          DesiredColumnOrder: state.displayedFields,
+          FilterGroups: []
         };
-
-        if (state.activeFilters) {
-            const group = {
-                LogicalOperator: 'AND',
-                Filters: []
-            };
-            Object.entries(state.activeFilters).forEach(([fieldName, filterGroup]) => {
-                if (filterGroup && filterGroup.filters) {
-                    filterGroup.filters.forEach(f => {
-                        group.Filters.push({
-                            FieldName: fieldName,
-                            FieldOperator: f.cond, 
-                            Values: [f.val]
-                        });
-                    });
-                }
-            });
-            if (group.Filters.length > 0) {
-                historyConfig.FilterGroups.push(group);
-            }
-        }
-        
-        const standardDisplayFields = [];
-        const specialFields = [];
-        
-        state.displayedFields.forEach(field => {
-            const fieldDef = window.fieldDefs.get(field);
-            // Handle dynamically built fields that have a special API payload
-            if (fieldDef && fieldDef.special_payload) {
-                // To avoid sending duplicates if displayed multiple times
-                const isDuplicate = specialFields.some(sf => JSON.stringify(sf) === JSON.stringify(fieldDef.special_payload));
-                if (!isDuplicate) {
-                    specialFields.push(fieldDef.special_payload);
-                }
-            } else {
-                standardDisplayFields.push(field);
-            }
-        });
-
-        const payload = {
-            action: 'run',
-            name: queryName || undefined,
-            filters: [],
-            display_fields: standardDisplayFields,
-            special_fields: specialFields,
-            ui_config: historyConfig
-        };
-
-        // Helper to map operator
-        const mapOperator = (cond, val) => {
-            switch (cond) {
-                case 'equals': return { op: '=', val: val };
-                case 'does_not_equal': return { op: '!=', val: val };
-                case 'greater': 
-                case 'after': return { op: '>', val: val };
-                case 'less': 
-                case 'before': return { op: '<', val: val };
-                case 'greater_or_equal': 
-                case 'on_or_after': return { op: '>=', val: val };
-                case 'less_or_equal': 
-                case 'on_or_before': return { op: '<=', val: val };
-                // Optimistic mapping for unsupported operators
-                case 'starts': 
-                case 'starts_with': return { op: '=', val: val + '*' };
-                case 'contains': return { op: '=', val: '*' + val + '*' };
-                case 'does_not_contain': return { op: '!=', val: '*' + val + '*' };
-                case 'between': 
-                    const parts = val.split('|');
-                    if (parts.length === 2) return { op: 'between', val: parts };
-                    return { op: '=', val: val };
-                default: return { op: '=', val: val };
-            }
-        };
-
-        // Flatten filters
-        if (state.activeFilters) {
-            Object.entries(state.activeFilters).forEach(([fieldName, filterGroup]) => {
-                if (filterGroup && filterGroup.filters) {
-                    filterGroup.filters.forEach(filter => {
-                        const { op, val } = mapOperator(filter.cond, filter.val);
-                        if (op === 'between') {
-                            payload.filters.push({ field: fieldName, operator: '>=', value: val[0] });
-                            payload.filters.push({ field: fieldName, operator: '<=', value: val[1] });
-                        } else {
-                            if (op === '=' && (val.includes('*') || val.includes('?'))) {
-                                // If wildcard used, assume backend supports it with =
-                            }
-                            payload.filters.push({ field: fieldName, operator: op, value: val });
-                        }
-                    });
-                }
-            });
-        }
 
         console.log('Sending query payload:', payload);
 
