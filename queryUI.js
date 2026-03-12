@@ -424,6 +424,30 @@ window.updateQueryJson = function(){
   window.updateButtonStates();
 };
 
+/* ---------- Helper: map UI condition slugs to C# enum names ---------- */
+// Used by bubble.js tooltip rendering and other modules that need friendly operator names.
+window.mapOperator = function mapOperator(cond) {
+  switch (cond) {
+    case 'greater':         return 'GreaterThan';
+    case 'less':            return 'LessThan';
+    case 'equals':          return 'Equals';
+    case 'does_not_equal':  return 'DoesNotEqual';
+    case 'between':         return 'Between';
+    case 'contains':        return 'Contains';
+    case 'starts':
+    case 'starts_with':     return 'StartsWith';
+    case 'does_not_contain':
+    case 'doesnotcontain':  return 'DoesNotContain';
+    case 'greater_or_equal':
+    case 'on_or_after':     return 'GreaterThanOrEqual';
+    case 'less_or_equal':
+    case 'on_or_before':    return 'LessThanOrEqual';
+    case 'after':           return 'GreaterThan';
+    case 'before':          return 'LessThan';
+    default: return cond.charAt(0).toUpperCase() + cond.slice(1);
+  }
+};
+
 // Helper function to check if a field should have purple styling
 window.shouldFieldHavePurpleStyling = function(fieldName) {
   // Check if field or its duplicates are displayed
