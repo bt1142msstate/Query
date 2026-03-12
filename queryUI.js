@@ -275,6 +275,12 @@ window.startTableQueryAnimation = function() {
   document.body.appendChild(bubble);
   tableContainer.classList.add('table-container-hidden');
   
+  // Fade out filter panel if it's there
+  const filterPanel = document.getElementById('filter-side-panel');
+  if (filterPanel) {
+    filterPanel.classList.add('fade-out');
+  }
+
   // Force reflow
   void bubble.offsetWidth;
   
@@ -342,6 +348,12 @@ window.endTableQueryAnimation = function() {
     
     tableContainer.classList.remove('table-container-hidden');
     
+    // Fade filter panel back in
+    const filterPanel = document.getElementById('filter-side-panel');
+    if (filterPanel) {
+      filterPanel.classList.remove('fade-out');
+    }
+
     setTimeout(() => {
       if (bubble.parentNode) bubble.remove();
     }, 400); // Wait for popping opacity fade
