@@ -1350,13 +1350,11 @@ th:hover .th-trash {
 .group-options {
   margin-left: 1.5rem;
   margin-bottom: 0.75rem;
-  max-height: 200px;
-  overflow: hidden;
-  transition: max-height var(--transition-normal);
+  overflow: visible;
 }
 
 .group-options.collapsed {
-  max-height: 0;
+  display: none;
   margin-bottom: 0;
   overflow: hidden;
 }
