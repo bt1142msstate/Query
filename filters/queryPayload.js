@@ -195,32 +195,42 @@ window.normalizeUiConfigFilters = function(input) {
 };
 
 window.buildQueryUiConfig = function() {
+  const backendFilters = typeof window.buildBackendFilters === 'function'
+    ? window.buildBackendFilters()
+    : [];
+
   const query = {
     DesiredColumnOrder: window.getNormalizedDisplayedFields(),
-    Filters: []
+    Filters: backendFilters.map(filter => ({ ...filter }))
   };
-
-  Object.entries(window.activeFilters).forEach(([field, data]) => {
-    const fieldDef = window.fieldDefs ? window.fieldDefs.get(field) : null;
-    if (fieldDef && fieldDef.is_buildable) return;
-
-    const validFilters = (data.filters || []).filter(filter => filter.val !== '');
-    if (validFilters.length === 0) return;
-
-    validFilters.forEach(filter => {
-      query.Filters.push({
-        FieldName: field,
-        FieldOperator: window.mapUiCondToFieldOperator(filter.cond),
-        Values: filter.cond === 'between' ? filter.val.split('|') : [filter.val]
-      });
-    });
-  });
 
   return query;
 };
 
+window.buildBackendFilters = function() {
+  const filters = [];
+
+  Object.entries(window.activeFilters).forEach(([fieldName, filterGroup]) => {
+    const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
+    if (fieldDef && fieldDef.is_buildable) return;
+
+    (filterGroup?.filters || []).forEach(filter => {
+      if (filter.val === '') return;
+
+      mapActiveFilterToBackend(filter.cond, filter.val).forEach(({ operator, value }) => {
+        filters.push({
+          field: fieldName,
+          operator,
+          value
+        });
+      });
+    });
+  });
+
+  return filters;
+};
+
 window.buildBackendQueryPayload = function(queryName = '') {
-  const uiConfig = window.buildQueryUiConfig();
   const standardDisplayFields = [];
   const specialFields = [];
 
@@ -243,25 +253,10 @@ window.buildBackendQueryPayload = function(queryName = '') {
   const payload = {
     action: 'run',
     name: queryName || undefined,
-    filters: [],
+    filters: typeof window.buildBackendFilters === 'function' ? window.buildBackendFilters() : [],
     display_fields: standardDisplayFields,
-    special_fields: specialFields,
-    ui_config: uiConfig
+    special_fields: specialFields
   };
-
-  Object.entries(window.activeFilters).forEach(([fieldName, filterGroup]) => {
-    (filterGroup?.filters || []).forEach(filter => {
-      if (filter.val === '') return;
-
-      mapActiveFilterToBackend(filter.cond, filter.val).forEach(({ operator, value }) => {
-        payload.filters.push({
-          field: fieldName,
-          operator,
-          value
-        });
-      });
-    });
-  });
 
   return payload;
 };
