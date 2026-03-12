@@ -158,16 +158,27 @@ async function cancelQuery(queryId) {
 /* ---------- Tooltip Formatters ---------- */
 
 /**
- * Formats a list of column names into a tooltip string.
+ * Formats a list of column names into an HTML tooltip.
  * @function formatColumnsTooltip
  * @param {string[]} columns - Array of column names
- * @returns {string} Formatted tooltip text
+ * @returns {string} Formatted tooltip HTML
  */
 window.formatColumnsTooltip = function(columns) {
-  if (!columns || !columns.length) return 'None';
-  if (columns.length <= 5) return columns.join(', ');
-  const remainder = columns.length - 5;
-  return columns.slice(0, 5).join(', ') + (remainder > 0 ? ` + ${remainder} more` : '');
+  if (!columns || !columns.length) return '';
+
+  let html = '<div class="tt-filter-container tt-columns-container">';
+  html += '<div class="tt-filter-title">Displayed Columns</div>';
+  html += '<ol class="tt-filter-list tt-columns-list">';
+
+  columns.forEach((column, index) => {
+    html += '<li class="tt-filter-item tt-column-item">';
+    html += `  <span class="tt-column-index">${index + 1}</span>`;
+    html += `  <span class="tt-column-name">${escapeHtml(column || '')}</span>`;
+    html += '</li>';
+  });
+
+  html += '</ol></div>';
+  return html;
 };
 
 /**
@@ -471,7 +482,7 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
   const columns = q.jsonConfig?.DesiredColumnOrder || [];
   const columnsTooltip = typeof formatColumnsTooltip === 'function' ? formatColumnsTooltip(columns) : '';
   const columnsSummary = columns.length && columnsTooltip
-    ? `<span class="inline-flex items-center gap-1" data-tooltip="${columnsTooltip.replace(/"/g, '&quot;')}">
+    ? `<span class="inline-flex items-center gap-1" data-tooltip-html="${columnsTooltip.replace(/"/g, '&quot;')}">
           ${viewIconSVG}
        </span>`
     : '<span class="text-gray-400">None</span>';
