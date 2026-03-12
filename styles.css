@@ -2201,6 +2201,39 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
     font-size: 0.85rem;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
+  .tt-columns-container {
+    min-width: 240px;
+    max-width: 340px;
+  }
+  .tt-columns-list {
+    gap: 6px;
+  }
+  .tt-column-item {
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .tt-column-index {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    border-radius: 9999px;
+    background: rgba(167, 139, 250, 0.18);
+    border: 1px solid rgba(167, 139, 250, 0.28);
+    color: #ddd6fe;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+    flex: 0 0 auto;
+  }
+  .tt-column-name {
+    color: #f8fafc;
+    font-weight: 600;
+    line-height: 1.35;
+    word-break: break-word;
+  }
 .tt-field {
     color: #a78bfa;
     font-weight: 600;

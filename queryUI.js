@@ -678,6 +678,128 @@ function normalizeLogicalOperator(operator) {
   return normalized === 'or' ? 'Or' : 'And';
 }
 
+window.mapFieldOperatorToUiCond = function(operator) {
+  const normalized = String(operator || '').trim();
+  switch (normalized) {
+    case 'Equals':
+    case 'equals':
+    case '=':
+      return 'equals';
+    case 'DoesNotEqual':
+    case 'does_not_equal':
+    case 'doesnotequal':
+    case '!=':
+      return 'does_not_equal';
+    case 'GreaterThan':
+    case 'greater':
+    case '>':
+      return 'greater';
+    case 'LessThan':
+    case 'less':
+    case '<':
+      return 'less';
+    case 'GreaterThanOrEqual':
+    case 'greater_or_equal':
+    case '>=':
+      return 'greater_or_equal';
+    case 'LessThanOrEqual':
+    case 'less_or_equal':
+    case '<=':
+      return 'less_or_equal';
+    case 'Contains':
+    case 'contains':
+      return 'contains';
+    case 'DoesNotContain':
+    case 'does_not_contain':
+    case 'doesnotcontain':
+      return 'doesnotcontain';
+    case 'Between':
+    case 'between':
+      return 'between';
+    case 'Before':
+    case 'before':
+      return 'before';
+    case 'After':
+    case 'after':
+      return 'after';
+    case 'OnOrBefore':
+    case 'on_or_before':
+      return 'on_or_before';
+    case 'OnOrAfter':
+    case 'on_or_after':
+      return 'on_or_after';
+    default:
+      return normalized.toLowerCase();
+  }
+};
+
+window.formatFieldOperatorForDisplay = function(operator) {
+  const uiCond = window.mapFieldOperatorToUiCond(operator);
+  switch (uiCond) {
+    case 'equals':
+      return '=';
+    case 'does_not_equal':
+      return '!=';
+    case 'greater':
+      return '>';
+    case 'less':
+      return '<';
+    case 'greater_or_equal':
+      return '>=';
+    case 'less_or_equal':
+      return '<=';
+    case 'contains':
+      return 'contains';
+    case 'doesnotcontain':
+      return 'does not contain';
+    case 'between':
+      return 'between';
+    case 'before':
+      return 'before';
+    case 'after':
+      return 'after';
+    case 'on_or_before':
+      return 'on or before';
+    case 'on_or_after':
+      return 'on or after';
+    default:
+      return String(operator || '');
+  }
+};
+
+window.mapUiCondToFieldOperator = function(cond) {
+  switch(cond){
+    case 'greater':
+    case 'after':
+      return 'GreaterThan';
+    case 'less':
+    case 'before':
+      return 'LessThan';
+    case 'equals':
+      return 'Equals';
+    case 'does_not_equal':
+    case 'doesnotequal':
+      return 'DoesNotEqual';
+    case 'greater_or_equal':
+    case 'on_or_after':
+      return 'GreaterThanOrEqual';
+    case 'less_or_equal':
+    case 'on_or_before':
+      return 'LessThanOrEqual';
+    case 'between':
+      return 'Between';
+    case 'contains':
+    case 'starts':
+    case 'starts_with':
+      return 'Contains';
+    case 'does_not_contain':
+    case 'doesnotcontain':
+      return 'DoesNotContain';
+    default:
+      return cond.charAt(0).toUpperCase() + cond.slice(1);
+  }
+};
+
 function mapActiveFilterToBackend(condition, rawValue) {
   switch (condition) {
     case 'equals':
@@ -745,7 +867,7 @@ window.buildQueryUiConfig = function() {
       LogicalOperator: normalizeLogicalOperator(data.logical),
       Filters: validFilters.map(filter => ({
         FieldName: field,
-        FieldOperator: mapOperator(filter.cond),
+        FieldOperator: window.mapUiCondToFieldOperator(filter.cond),
         Values: filter.cond === 'between' ? filter.val.split('|') : [filter.val]
       }))
     });
@@ -815,37 +937,7 @@ window.updateQueryJson = function(){
 };
 
 /* ---------- Helper: map UI condition slugs to C# enum names ---------- */
-function mapOperator(cond){
-  switch(cond){
-    case 'greater':
-    case 'after':
-      return 'GreaterThan';
-    case 'less':
-    case 'before':
-      return 'LessThan';
-    case 'equals':
-      return 'Equals';
-    case 'does_not_equal':
-    case 'doesnotequal':
-      return 'DoesNotEqual';
-    case 'greater_or_equal':
-    case 'on_or_after':
-      return 'GreaterThanOrEqual';
-    case 'less_or_equal':
-    case 'on_or_before':
-      return 'LessThanOrEqual';
-    case 'between':
-      return 'Between';
-    case 'contains':
-    case 'starts':
-    case 'starts_with':
-      return 'Contains';
-    case 'does_not_contain':
-    case 'doesnotcontain':
-      return 'DoesNotContain';
-    default: return cond.charAt(0).toUpperCase() + cond.slice(1);
-  }
-}
+const mapOperator = window.mapUiCondToFieldOperator;
 
 // Helper function to check if a field should have purple styling
 window.shouldFieldHavePurpleStyling = function(fieldName) {
