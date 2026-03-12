@@ -2352,8 +2352,8 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
 
 @keyframes circuit-pulse-run {
   0% { left: -8px; opacity: 0; }
-  12% { opacity: 1; }
-  96% { opacity: 1; }
+  5% { opacity: 1; }
+  98% { opacity: 1; }
   100% { left: calc(100% + 8px); opacity: 0; }
 }
 
