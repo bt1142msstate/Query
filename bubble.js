@@ -38,8 +38,11 @@ class Bubble {
     this.el.dataset.type = def.type;
     if (def.values) this.el.dataset.values = JSON.stringify(def.values);
     if (def.filters) this.el.dataset.filters = JSON.stringify(def.filters);
-    // Tooltip: description + filters (if any)
+    
+    // Tooltip construction
+    let categoryValue = def.category || '';
     let descValue = def.desc || '';
+    
     // Build a fake FilterGroups array for this field from activeFilters
     const af = activeFilters[fieldName];
     let filterTooltipHtml = '';
@@ -56,19 +59,33 @@ class Bubble {
       filterTooltipHtml = window.formatStandardFilterTooltipHTML(fakeGroup, "Active Filters");
     }
 
-    if (filterTooltipHtml) {
-      if (descValue) {
-        filterTooltipHtml = `<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.2);color:#f8fafc;font-size:0.9rem;">${descValue}</div>` + filterTooltipHtml;
-      }
+    let tooltipContentHtml = '';
+    
+    if (categoryValue) {
+      tooltipContentHtml += `<div style="font-weight:600;margin-bottom:4px;color:#cbd5e1;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;">${categoryValue}</div>`;
+    }
+    
+    if (descValue) {
+      let descStyle = filterTooltipHtml ? 'margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.2);' : '';
+      tooltipContentHtml += `<div style="${descStyle}color:#f8fafc;font-size:0.9rem;">${descValue}</div>`;
+    } else if (filterTooltipHtml && categoryValue) {
+      tooltipContentHtml += `<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.2);"></div>`;
+    }
+    
+    tooltipContentHtml += filterTooltipHtml;
+
+    if (tooltipContentHtml) {
       this.el.removeAttribute('data-tooltip');
-      this.el.setAttribute('data-tooltip-html', filterTooltipHtml);
+      this.el.setAttribute('data-tooltip-html', tooltipContentHtml);
     } else if (descValue) {
+      // Fallback just in case
       this.el.removeAttribute('data-tooltip-html');
       this.el.setAttribute('data-tooltip', descValue);
     } else {
       this.el.removeAttribute('data-tooltip');
       this.el.removeAttribute('data-tooltip-html');
     }
+
     if (def.isSpecialMarc || displayedFields.includes(fieldName)) {
       this.el.setAttribute('draggable', 'false');
     } else {
