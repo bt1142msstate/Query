@@ -11,6 +11,11 @@ let virtualTableData = {
   rows: [],
   columnMap: new Map()
 };
+
+// Stores the original collapsed data so split mode can be toggled on/off non-destructively
+let rawTableData = null;
+let splitColumnsActive = false;
+
 let visibleTableRows = 25;  // number of rows to show at once
 let tableRowHeight = 42;    // estimated row height in pixels
 let tableScrollTop = 0;
@@ -508,10 +513,145 @@ function getVirtualTableState() {
  * @namespace VirtualTable
  * @global
  */
+/**
+ * Expands multi-value cells (\x1F-delimited) into separate numbered columns.
+ * Operates on rawTableData → virtualTableData non-destructively.
+ * @function expandMultiValueColumns
+ */
+function expandMultiValueColumns() {
+  if (!rawTableData || !rawTableData.rows || !rawTableData.rows.length) return;
+
+  // Find max count for every multi-value column
+  const multiMax = new Map();
+  rawTableData.headers.forEach(field => {
+    const idx = rawTableData.columnMap.get(field);
+    if (idx === undefined) return;
+    let max = 1;
+    rawTableData.rows.forEach(row => {
+      const v = row[idx];
+      if (v != null && typeof v === 'string' && v.includes('\x1F')) {
+        const c = v.split('\x1F').length;
+        if (c > max) max = c;
+      }
+    });
+    if (max > 1) multiMax.set(field, max);
+  });
+
+  if (multiMax.size === 0) {
+    // Nothing to split — just mirror raw data
+    virtualTableData = {
+      headers: [...rawTableData.headers],
+      rows: rawTableData.rows.map(r => [...r]),
+      columnMap: new Map(rawTableData.columnMap)
+    };
+    return;
+  }
+
+  // Build expanded header list
+  const newHeaders = [];
+  rawTableData.headers.forEach(field => {
+    const max = multiMax.get(field);
+    if (max !== undefined) {
+      for (let i = 0; i < max; i++) newHeaders.push(`${field} ${i + 1}`);
+    } else {
+      newHeaders.push(field);
+    }
+  });
+
+  const newColumnMap = new Map(newHeaders.map((h, i) => [h, i]));
+
+  const newRows = rawTableData.rows.map(row => {
+    const newRow = [];
+    rawTableData.headers.forEach(field => {
+      const srcIdx = rawTableData.columnMap.get(field);
+      const raw = srcIdx !== undefined ? row[srcIdx] : undefined;
+      const max = multiMax.get(field);
+      if (max !== undefined) {
+        const parts = (raw != null && typeof raw === 'string' && raw.includes('\x1F'))
+          ? raw.split('\x1F')
+          : [raw ?? ''];
+        for (let i = 0; i < max; i++) newRow.push(parts[i] ?? '');
+      } else {
+        newRow.push(raw ?? '');
+      }
+    });
+    return newRow;
+  });
+
+  virtualTableData = { headers: newHeaders, rows: newRows, columnMap: newColumnMap };
+}
+
+/**
+ * Toggles split-column mode on/off.
+ * When enabled, multi-value columns are expanded into N numbered columns and the
+ * table re-renders. When disabled, the raw collapsed data is restored.
+ * Also updates window.displayedFields to match the active view.
+ * @function setSplitColumnsMode
+ * @param {boolean} active
+ */
+function setSplitColumnsMode(active) {
+  splitColumnsActive = active;
+  window.splitColumnsActive = active;
+
+  if (active) {
+    // Snapshot raw data if not already saved (first time switching to split)
+    if (!rawTableData || rawTableData.headers.length === 0) {
+      rawTableData = {
+        headers: [...virtualTableData.headers],
+        rows: virtualTableData.rows.map(r => [...r]),
+        columnMap: new Map(virtualTableData.columnMap)
+      };
+    }
+    expandMultiValueColumns();
+  } else {
+    // Restore raw data
+    if (rawTableData && rawTableData.headers.length > 0) {
+      virtualTableData = {
+        headers: [...rawTableData.headers],
+        rows: rawTableData.rows.map(r => [...r]),
+        columnMap: new Map(rawTableData.columnMap)
+      };
+    }
+  }
+
+  // Sync displayedFields with the active view's headers
+  if (window.displayedFields) {
+    window.displayedFields.length = 0;
+    window.displayedFields.push(...virtualTableData.headers);
+  }
+
+  // Recalculate column widths and re-render
+  calculatedColumnWidths = calculateOptimalColumnWidths(virtualTableData.headers, virtualTableData);
+  renderVirtualTable();
+
+  // Update the column header row in the table DOM
+  if (typeof window.updateTableHeaders === 'function') {
+    window.updateTableHeaders(virtualTableData.headers);
+  } else if (typeof showExampleTable === 'function') {
+    showExampleTable(virtualTableData.headers).catch(() => {});
+  }
+}
+
 window.VirtualTable = {
   // State
   get virtualTableData() { return virtualTableData; },
-  set virtualTableData(value) { virtualTableData = value; },
+  set virtualTableData(v) {
+    virtualTableData = v;
+    // When new data is loaded from outside, update rawTableData so split mode
+    // always has a fresh snapshot to work from.
+    rawTableData = {
+      headers: [...v.headers],
+      rows: v.rows.map(r => [...r]),
+      columnMap: new Map(v.columnMap)
+    };
+    // Reset split mode — caller will re-expand if needed
+    splitColumnsActive = false;
+    window.splitColumnsActive = false;
+    // Reset the toggle button UI if present
+    if (typeof window.resetSplitColumnsToggleUI === 'function') {
+      window.resetSplitColumnsToggleUI();
+    }
+  },
   get calculatedColumnWidths() { return calculatedColumnWidths; },
   set calculatedColumnWidths(value) { calculatedColumnWidths = value; },
   get tableRowHeight() { return tableRowHeight; },
@@ -532,5 +672,9 @@ window.VirtualTable = {
   measureRowHeight,
   clearVirtualTableData,
   getVirtualTableState,
-  sortTableBy
+  sortTableBy,
+  setSplitColumnsMode,
+  expandMultiValueColumns,
+  get splitColumnsActive() { return splitColumnsActive; },
+  get rawTableData() { return rawTableData; }
 };
