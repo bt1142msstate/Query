@@ -287,11 +287,16 @@ if(runBtn){
                 window.VirtualTable.calculateOptimalColumnWidths(); 
             }
             
-            // Reset bubble scroll back to the top before re-rendering
-            window.scrollRow = 0;
-            // Re-render the bubbles to reflect the new state
+            // Re-render the bubbles to reflect the new state and calculate the correct totalRows
             if (window.BubbleSystem) window.BubbleSystem.safeRenderBubbles();
-            // updateScrollBar is handled by the container's 'scroll' event
+
+            // Reset bubble scroll back to the top
+            if (window.BubbleSystem && typeof window.BubbleSystem.resetBubbleScroll === 'function') {
+              window.BubbleSystem.resetBubbleScroll();
+            } else {
+              window.scrollRow = 0;
+              if (window.BubbleSystem) window.BubbleSystem.updateScrollBar();
+            }
             if (window.updateButtonStates) window.updateButtonStates();
             
             // Restore split columns mode if it was active before the query ran
@@ -435,24 +440,24 @@ document.addEventListener('keydown',e=>{
     );
     
     // Reset scroll position and re-render bubbles
-    scrollRow = 0;
+    if (window.BubbleSystem && typeof window.BubbleSystem.resetBubbleScroll === 'function') {
+      window.BubbleSystem.resetBubbleScroll();
+    } else {
+      scrollRow = 0;
+    }
     window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
     return; // consume event
   }
   const downPressed = e.key === 'ArrowDown' || e.key.toLowerCase() === 's';
   const upPressed   = e.key === 'ArrowUp'   || e.key.toLowerCase() === 'w';
-  const bubbleContainerKbd = document.getElementById('bubble-container');
-  const maxScrollPxKbd = bubbleContainerKbd ? Math.max(0, bubbleContainerKbd.scrollHeight - bubbleContainerKbd.clientHeight) : 0;
-  const maxScrollRowKbd = (rowHeight > 0 && maxScrollPxKbd > 0) ? Math.floor(maxScrollPxKbd / rowHeight) : 0;
-  if(downPressed && scrollRow < maxScrollRowKbd){
-    scrollRow++;
-  }else if(upPressed && scrollRow > 0){
-    scrollRow--;
-  }else{
-    return;   // no change
+  if (downPressed || upPressed) {
+    const moved = window.BubbleSystem && typeof window.BubbleSystem.scrollBubblesByRows === 'function'
+      ? window.BubbleSystem.scrollBubblesByRows(downPressed ? 1 : -1)
+      : false;
+    if (!moved) return;
+  } else {
+    return;
   }
-  if (bubbleContainerKbd) bubbleContainerKbd.scrollTop = scrollRow * rowHeight;
-  // 'scroll' event on container fires updateScrollBar automatically
 });
 
 /* ---------- Field definitions: name, type, optional values, optional filters ---------- */
@@ -506,7 +511,11 @@ queryInput.addEventListener('input', () => {
       allBtn.textContent = `Search (${filteredDefs.length})`;
     }
   }
-  scrollRow = 0;
+  if (window.BubbleSystem && typeof window.BubbleSystem.resetBubbleScroll === 'function') {
+    window.BubbleSystem.resetBubbleScroll();
+  } else {
+    scrollRow = 0;
+  }
   window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
 });
 
@@ -859,20 +868,12 @@ document.addEventListener('keydown', e=>{
 
   if(!isBubble && !isThumb && !hoverScrollArea) return;   // only act if focus or hover
 
-  const bubbleContainerEl = document.getElementById('bubble-container');
-  const maxScrollPx = bubbleContainerEl ? Math.max(0, bubbleContainerEl.scrollHeight - bubbleContainerEl.clientHeight) : 0;
-  const maxScrollRow = (rowHeight > 0 && maxScrollPx > 0) ? Math.floor(maxScrollPx / rowHeight) : 0;
-  if(e.key === 'ArrowDown' && scrollRow < maxScrollRow){
-    scrollRow++;
-  }else if(e.key === 'ArrowUp' && scrollRow > 0){
-    scrollRow--;
-  }else{
+  const moved = window.BubbleSystem && typeof window.BubbleSystem.scrollBubblesByRows === 'function'
+    ? window.BubbleSystem.scrollBubblesByRows(e.key === 'ArrowDown' ? 1 : -1)
+    : false;
+  if(!moved){
     return;                                  // no movement
   }
-
-  // Apply new scroll position
-  if (bubbleContainerEl) bubbleContainerEl.scrollTop = scrollRow * rowHeight;
-  // 'scroll' event on container fires updateScrollBar automatically
   e.preventDefault();                         // stop page scroll
 });
 
@@ -882,7 +883,11 @@ document.addEventListener('keydown', e=>{
 function renderCategorySelectorsLocal(categoryCounts) {
   renderCategorySelectors(categoryCounts, currentCategory, (newCategory) => {
     currentCategory = newCategory;
-          scrollRow = 0;
+          if (window.BubbleSystem && typeof window.BubbleSystem.resetBubbleScroll === 'function') {
+            window.BubbleSystem.resetBubbleScroll();
+          } else {
+            scrollRow = 0;
+          }
           window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
         });
 }
@@ -902,7 +907,11 @@ function updateCategoryCounts() {
       const mobileSelector = document.getElementById('mobile-category-selector');
       if (mobileSelector) mobileSelector.value = 'All';
     }
-    scrollRow = 0;
+    if (window.BubbleSystem && typeof window.BubbleSystem.resetBubbleScroll === 'function') {
+      window.BubbleSystem.resetBubbleScroll();
+    } else {
+      scrollRow = 0;
+    }
     window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
   }
 }
