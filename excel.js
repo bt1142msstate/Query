@@ -149,8 +149,9 @@ const ExcelExporter = (() => {
           return isNaN(n) ? '' : n;
         }
 
-        // boolean, string, or anything else - keep as-is
-        return raw;
+        // boolean, string, or anything else — replace multi-value delimiter with newline for Excel
+        const str = String(raw);
+        return str.includes('\x1F') ? str.split('\x1F').join('\n') : raw;
       });
       worksheet.addRow(rowData);
       tableRows.push(rowData);
@@ -177,7 +178,8 @@ const ExcelExporter = (() => {
       } else if (type === 'boolean') {
         column.alignment = { horizontal: 'center' };
       } else {
-        column.alignment = { horizontal: 'left' };
+        const isMarc = field.startsWith('Marc');
+        column.alignment = { horizontal: 'left', wrapText: isMarc };
       }
     });
 
