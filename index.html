@@ -267,10 +267,17 @@
          class="mb-4 flex w-max gap-0 mx-auto"></div>
     <!-- Mobile category selector (only shown on small screens) -->
     <select id="mobile-category-selector" class="mb-4 hidden"></select>
-    <!-- bubble grid + native scrollbar -->
+    <!-- bubble grid + scrollbar -->
     <div class="flex items-start justify-center">
-      <div id="bubble-container" class="overflow-y-auto pr-2 custom-scrollbar" style="max-width:720px; overflow-x: hidden;">
+      <div id="bubble-container" style="max-width:720px;">
         <div id="bubble-list" class="flex flex-wrap gap-4 justify-center"></div>
+      </div>
+      <!-- Bubble pagination -->
+      <div id="bubble-nav" class="ml-4 flex flex-col items-center">
+        <div id="bubble-scrollbar" class="bubble-scrollbar-container">
+          <div id="bubble-scrollbar-track" class="bubble-scrollbar-track"></div>
+          <div id="bubble-scrollbar-thumb" class="bubble-scrollbar-thumb"></div>
+        </div>
       </div>
     </div> <!-- end wrapper -->
 

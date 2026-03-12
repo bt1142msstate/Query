@@ -287,12 +287,11 @@ if(runBtn){
                 window.VirtualTable.calculateOptimalColumnWidths(); 
             }
             
+            // Reset bubble scroll back to the top before re-rendering
+            window.scrollRow = 0;
             // Re-render the bubbles to reflect the new state
             if (window.BubbleSystem) window.BubbleSystem.safeRenderBubbles();
-
-            // Reset bubble scroll back to the top
-            const bc = document.getElementById('bubble-container');
-            if (bc) bc.scrollTop = 0;
+            // updateScrollBar is handled by the container's 'scroll' event
             if (window.updateButtonStates) window.updateButtonStates();
             
             // Restore split columns mode if it was active before the query ran
@@ -436,11 +435,24 @@ document.addEventListener('keydown',e=>{
     );
     
     // Reset scroll position and re-render bubbles
-    const bc = document.getElementById('bubble-container');
-    if (bc) bc.scrollTop = 0;
+    scrollRow = 0;
     window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
     return; // consume event
   }
+  const downPressed = e.key === 'ArrowDown' || e.key.toLowerCase() === 's';
+  const upPressed   = e.key === 'ArrowUp'   || e.key.toLowerCase() === 'w';
+  const bubbleContainerKbd = document.getElementById('bubble-container');
+  const maxScrollPxKbd = bubbleContainerKbd ? Math.max(0, bubbleContainerKbd.scrollHeight - bubbleContainerKbd.clientHeight) : 0;
+  const maxScrollRowKbd = (rowHeight > 0 && maxScrollPxKbd > 0) ? Math.floor(maxScrollPxKbd / rowHeight) : 0;
+  if(downPressed && scrollRow < maxScrollRowKbd){
+    scrollRow++;
+  }else if(upPressed && scrollRow > 0){
+    scrollRow--;
+  }else{
+    return;   // no change
+  }
+  if (bubbleContainerKbd) bubbleContainerKbd.scrollTop = scrollRow * rowHeight;
+  // 'scroll' event on container fires updateScrollBar automatically
 });
 
 /* ---------- Field definitions: name, type, optional values, optional filters ---------- */
@@ -494,8 +506,7 @@ queryInput.addEventListener('input', () => {
       allBtn.textContent = `Search (${filteredDefs.length})`;
     }
   }
-  const bc = document.getElementById('bubble-container');
-  if(bc) bc.scrollTop = 0;
+  scrollRow = 0;
   window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
 });
 
@@ -838,6 +849,32 @@ async function showExampleTable(fields){
   }
 }
 
+// Arrow-key scrolling when focus is on a bubble, the scrollbar thumb, or when hovering over bubble grid/scrollbar
+document.addEventListener('keydown', e=>{
+  if(e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+
+  const focussed = document.activeElement;
+  const isBubble = focussed?.classList && focussed.classList.contains('bubble');
+  const isThumb  = focussed?.id === 'bubble-scrollbar-thumb';
+
+  if(!isBubble && !isThumb && !hoverScrollArea) return;   // only act if focus or hover
+
+  const bubbleContainerEl = document.getElementById('bubble-container');
+  const maxScrollPx = bubbleContainerEl ? Math.max(0, bubbleContainerEl.scrollHeight - bubbleContainerEl.clientHeight) : 0;
+  const maxScrollRow = (rowHeight > 0 && maxScrollPx > 0) ? Math.floor(maxScrollPx / rowHeight) : 0;
+  if(e.key === 'ArrowDown' && scrollRow < maxScrollRow){
+    scrollRow++;
+  }else if(e.key === 'ArrowUp' && scrollRow > 0){
+    scrollRow--;
+  }else{
+    return;                                  // no movement
+  }
+
+  // Apply new scroll position
+  if (bubbleContainerEl) bubbleContainerEl.scrollTop = scrollRow * rowHeight;
+  // 'scroll' event on container fires updateScrollBar automatically
+  e.preventDefault();                         // stop page scroll
+});
 
 
 
@@ -845,8 +882,7 @@ async function showExampleTable(fields){
 function renderCategorySelectorsLocal(categoryCounts) {
   renderCategorySelectors(categoryCounts, currentCategory, (newCategory) => {
     currentCategory = newCategory;
-          const bc = document.getElementById('bubble-container');
-          if(bc) bc.scrollTop = 0;
+          scrollRow = 0;
           window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
         });
 }
@@ -866,8 +902,7 @@ function updateCategoryCounts() {
       const mobileSelector = document.getElementById('mobile-category-selector');
       if (mobileSelector) mobileSelector.value = 'All';
     }
-    const bc = document.getElementById('bubble-container');
-    if(bc) bc.scrollTop = 0;
+    scrollRow = 0;
     window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
   }
 }
