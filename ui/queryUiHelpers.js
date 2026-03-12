@@ -50,6 +50,7 @@ window.shouldFieldHavePurpleStyling = function(fieldName) {
 window.createGroupedSelector = function(values, isMultiSelect, currentValues = []) {
   const container = document.createElement('div');
   container.className = 'grouped-selector';
+  container.id = 'condition-select-container';
 
   const searchInput = document.createElement('input');
   searchInput.type = 'text';
@@ -69,8 +70,13 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
   values.forEach(value => {
     const display = typeof value === 'object' ? (value.Name || value.Display || value.name || value.display || value.RawValue) : value;
     const literal = typeof value === 'object' ? (value.RawValue ?? value.Value ?? value.value ?? value.Name ?? value.Display) : value;
-    const group = typeof value === 'object' ? (value.Group || value.group || '') : '';
-    const normalized = { display: String(display), literal: String(literal) };
+    const explicitGroup = typeof value === 'object' ? (value.Group || value.group || '') : '';
+    const displayText = String(display);
+    const derivedGroup = !explicitGroup && displayText.includes('-')
+      ? displayText.split('-')[0].trim()
+      : '';
+    const group = explicitGroup || derivedGroup;
+    const normalized = { display: displayText, literal: String(literal) };
 
     if (group) {
       if (!groupedData.has(group)) groupedData.set(group, []);

@@ -1,0 +1,320 @@
+function initializeBubbleInteractions() {
+  if (typeof activeFilters === 'undefined' || typeof displayedFields === 'undefined') {
+    console.log('Bubble system: Required globals not yet available, skipping initialization');
+    return false;
+  }
+
+  try {
+    window.BubbleSystem.renderBubbles();
+  } catch (error) {
+    console.error('Error during bubble initialization:', error);
+    return false;
+  }
+
+  if (window._bubbleEventsInitialized) return true;
+  window._bubbleEventsInitialized = true;
+
+  const bubbleContainer = document.getElementById('bubble-container');
+  const scrollContainer = document.querySelector('.bubble-scrollbar-container');
+  [bubbleContainer, scrollContainer].forEach(el => {
+    if (!el) return;
+    el.addEventListener('mouseenter', () => hoverScrollArea = true);
+    el.addEventListener('mouseleave', () => hoverScrollArea = false);
+  });
+
+  function handleWheelScroll(e) {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 1 : -1;
+    window.BubbleSystem.scrollBubblesByRows(delta);
+  }
+
+  [bubbleContainer, scrollContainer].forEach(el => {
+    if (!el) return;
+    el.addEventListener('wheel', handleWheelScroll, { passive: false });
+  });
+
+  const thumb = document.getElementById('bubble-scrollbar-thumb');
+  const track = document.getElementById('bubble-scrollbar-track');
+
+  if (thumb && track) {
+    let isDragging = false;
+    let startY = 0;
+    let startScrollRow = 0;
+
+    thumb.addEventListener('mousedown', e => {
+      isDragging = true;
+      startY = e.clientY;
+      startScrollRow = scrollRow;
+      document.body.style.cursor = 'grabbing';
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', e => {
+      if (!isDragging) return;
+
+      const deltaY = e.clientY - startY;
+      const trackHeight = track.clientHeight;
+      const thumbHeight = thumb.clientHeight;
+      const maxScrollPixels = trackHeight - thumbHeight;
+      const maxStartRow = window.BubbleSystem.getBubbleMaxStartRow();
+
+      if (maxScrollPixels <= 0) return;
+
+      const startRatio = maxStartRow > 0 ? (startScrollRow / maxStartRow) : 0;
+      let newY = (startRatio * maxScrollPixels) + deltaY;
+      newY = Math.max(0, Math.min(maxScrollPixels, newY));
+
+      const newRatio = newY / maxScrollPixels;
+      const exactRow = newRatio * maxStartRow;
+      const newRow = Math.round(exactRow);
+
+      window.BubbleSystem.applyBubbleScrollRow(newRow);
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        document.body.style.cursor = '';
+      }
+    });
+
+    track.addEventListener('click', e => {
+      if (e.target === thumb) return;
+
+      const rect = track.getBoundingClientRect();
+      const clickY = e.clientY - rect.top;
+      const trackHeight = track.clientHeight;
+      const thumbHeight = thumb.clientHeight;
+      const maxScrollPixels = trackHeight - thumbHeight;
+      const maxStartRow = window.BubbleSystem.getBubbleMaxStartRow();
+
+      if (maxScrollPixels <= 0) return;
+
+      let targetY = clickY - (thumbHeight / 2);
+      targetY = Math.max(0, Math.min(maxScrollPixels, targetY));
+
+      const ratio = targetY / maxScrollPixels;
+      const newRow = Math.max(0, Math.min(maxStartRow, Math.round(ratio * maxStartRow)));
+
+      window.BubbleSystem.applyBubbleScrollRow(newRow);
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    const container = document.getElementById('bubble-container');
+    const listDiv = document.getElementById('bubble-list');
+    const scrollCont = document.querySelector('.bubble-scrollbar-container');
+    if (!container || !listDiv || !scrollCont) return;
+    const firstBubble = listDiv.querySelector('.bubble');
+    if (!firstBubble) return;
+    const gapVal = getComputedStyle(listDiv).getPropertyValue('gap') || '0px';
+    const gap = parseFloat(gapVal) || 0;
+    const fudge = 8;
+    const twoRowsH = (firstBubble.getBoundingClientRect().height + gap) * 2 - gap;
+    const paddedH = twoRowsH + 12 - fudge;
+    const sixColsW = firstBubble.offsetWidth * 6 + gap * 5;
+    container.style.height = paddedH + 'px';
+    container.style.width = sixColsW + 'px';
+    scrollCont.style.height = paddedH + 'px';
+    window.BubbleSystem.applyBubbleScrollRow(scrollRow, { force: true });
+  });
+
+  document.addEventListener('click', e => {
+    const overlay = window.BubbleSystem.getOverlayElement();
+    const conditionPanel = window.BubbleSystem.getConditionPanelElement();
+    const targetEl = e.target instanceof Element ? e.target : e.target && e.target.parentElement;
+    const bubble = targetEl ? targetEl.closest('.bubble') : null;
+    window.BubbleSystem.bubbleDebugLog('document.click', {
+      rawTargetNodeType: e.target && e.target.nodeType,
+      targetTag: targetEl && targetEl.tagName,
+      targetClass: targetEl && targetEl.className,
+      resolvedBubble: bubble ? bubble.textContent.trim() : null,
+      hasActiveBubble: !!document.querySelector('.active-bubble, .bubble-clone'),
+      isBubbleAnimating: !!window.isBubbleAnimating,
+      isOverlayOpen: !!(overlay && overlay.classList.contains('show'))
+    });
+
+    if (window.modalManager && window.modalManager.isInputLocked) {
+      window.BubbleSystem.bubbleDebugLog('click.blocked.inputLocked');
+      e.stopPropagation();
+      e.preventDefault();
+      return;
+    }
+    if (!bubble) return;
+
+    if (window.queryRunning) {
+      window.BubbleSystem.bubbleDebugLog('click.blocked.queryRunning', { bubble: bubble.textContent.trim() });
+      if (window.showToastMessage) window.showToastMessage('Cannot edit conditions while a query is running', 'warning');
+      e.stopPropagation();
+      e.preventDefault();
+      return;
+    }
+
+    if (document.querySelector('.active-bubble, .bubble-clone')) {
+      window.BubbleSystem.bubbleDebugLog('click.blocked.activeBubbleAlreadyOpen', { bubble: bubble.textContent.trim() });
+      return;
+    }
+    if (window.isBubbleAnimating) {
+      window.BubbleSystem.bubbleDebugLog('click.blocked.isBubbleAnimating', { bubble: bubble.textContent.trim() });
+      return;
+    }
+    window.isBubbleAnimating = true;
+    window.lockInput && window.lockInput(600);
+
+    const savedCategory = currentCategory;
+    const rect = bubble.getBoundingClientRect();
+    const fieldName = bubble.textContent.trim();
+    window.BubbleSystem.bubbleDebugLog('click.open.start', { fieldName });
+    const clone = bubble.cloneNode(true);
+    clone.dataset.filterFor = fieldName;
+    clone.classList.add('bubble-clone');
+    clone._origin = bubble;
+    clone._originalRect = {
+      top: rect.top,
+      left: rect.left,
+      width: rect.width,
+      height: rect.height
+    };
+    clone.style.position = 'fixed';
+    clone.style.top = rect.top + 'px';
+    clone.style.left = rect.left + 'px';
+    clone.style.pointerEvents = 'none';
+    clone.style.color = getComputedStyle(bubble).color;
+    document.body.appendChild(clone);
+    bubble.classList.add('bubble-disabled');
+    bubble.style.opacity = '0';
+    bubble.dataset.filterFor = bubble.textContent.trim();
+
+    let filterCard = window.BubbleSystem.getFilterCardElement();
+    if (filterCard && !document.getElementById('filter-card')) {
+      document.body.appendChild(filterCard);
+      filterCard.offsetHeight;
+    }
+    if (!window.filterCard && filterCard) {
+      window.filterCard = filterCard;
+    }
+
+    if (overlay) {
+      overlay.classList.add('show');
+    }
+    window.BubbleSystem.buildConditionPanel(bubble);
+
+    const inputWrapper = window.BubbleSystem.getInputWrapperElement() || (filterCard ? filterCard.querySelector('#condition-input-wrapper') : null);
+    if (filterCard) {
+      const titleEl = window.BubbleSystem.getFilterCardTitleElement(filterCard);
+      if (titleEl) titleEl.textContent = fieldName;
+    }
+    const defaultBtn = conditionPanel
+      ? (conditionPanel.querySelector('.condition-btn[data-cond="equals"]') || conditionPanel.querySelector('.condition-btn'))
+      : null;
+    if (defaultBtn) {
+      defaultBtn.classList.add('active');
+      if (window.handleConditionBtnClick) window.handleConditionBtnClick({ currentTarget: defaultBtn, stopPropagation() {}, preventDefault() {} });
+    }
+    if (window.renderConditionList) {
+      window.renderConditionList(fieldName);
+    }
+    if (inputWrapper && activeFilters[fieldName]) {
+      inputWrapper.classList.add('show');
+    }
+
+    let targetWidth = 480;
+    let targetHeight = 350;
+    if (filterCard) {
+      const fcRect = filterCard.getBoundingClientRect();
+      if (fcRect.width > 0) targetWidth = fcRect.width;
+      if (fcRect.height > 0) targetHeight = fcRect.height;
+    }
+
+    const morphDuration = Math.max(0.35, (targetWidth + targetHeight) / 1800);
+    clone.style.setProperty('--morph-duration', `${morphDuration}s`);
+
+    currentCategory = savedCategory;
+    document.querySelectorAll('#category-bar .category-btn').forEach(btn =>
+      btn.classList.toggle('active', btn.dataset.category === currentCategory)
+    );
+
+    clone.addEventListener('transitionend', function t(e) {
+      window.BubbleSystem.bubbleDebugLog('clone.transitionend', {
+        fieldName,
+        propertyName: e.propertyName,
+        enlarged: clone.classList.contains('enlarge-bubble')
+      });
+      if (!clone.classList.contains('enlarge-bubble')) {
+        if (e.propertyName === 'top' || e.propertyName === 'left' || e.propertyName === 'transform') {
+          requestAnimationFrame(() => {
+            clone.classList.add('enlarge-bubble');
+            clone.style.setProperty('width', `${targetWidth}px`, 'important');
+            clone.style.setProperty('height', `${targetHeight}px`, 'important');
+          });
+        }
+        return;
+      }
+
+      if (e.propertyName !== 'width' && e.propertyName !== 'height') return;
+
+      if (conditionPanel) {
+        conditionPanel.classList.add('show');
+      }
+      if (filterCard) {
+        filterCard.classList.add('show');
+      }
+      clone.classList.add('popping');
+      window.createBubblePopParticles(clone);
+
+      clone.removeEventListener('transitionend', t);
+      window.isBubbleAnimating = false;
+      window.BubbleSystem.bubbleDebugLog('click.open.complete', { fieldName });
+    });
+    requestAnimationFrame(() => clone.classList.add('active-bubble'));
+
+    setTimeout(() => {
+      if (!document.body.contains(clone._origin)) {
+        let baseFieldName = fieldName;
+        const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
+        if (fieldDef && fieldDef.special_payload) {
+          baseFieldName = fieldDef.category;
+        }
+
+        const fallbackBubble = Array.from(document.querySelectorAll('.bubble')).find(b => b.textContent.trim() === baseFieldName);
+        if (fallbackBubble) clone._origin = fallbackBubble;
+      }
+    }, 60);
+    if (clone && overlay) overlay.classList.add('bubble-active');
+    const headerBar = window.DOM?.headerBar || document.getElementById('header-bar');
+    if (clone && headerBar) headerBar.classList.add('header-hide');
+  });
+
+  document.addEventListener('mouseover', e => {
+    const targetEl = e.target instanceof Element ? e.target : e.target && e.target.parentElement;
+    const bubble = targetEl ? targetEl.closest('.bubble') : null;
+    if (!bubble) return;
+    window.BubbleSystem.bubbleDebugLog('bubble.mouseover', {
+      bubble: bubble.textContent ? bubble.textContent.trim() : null,
+      targetTag: targetEl && targetEl.tagName,
+      targetClass: targetEl && targetEl.className
+    });
+  });
+
+  document.addEventListener('mouseout', e => {
+    const targetEl = e.target instanceof Element ? e.target : e.target && e.target.parentElement;
+    const bubble = targetEl ? targetEl.closest('.bubble') : null;
+    if (!bubble) return;
+    const relatedEl = e.relatedTarget instanceof Element
+      ? e.relatedTarget
+      : e.relatedTarget && e.relatedTarget.parentElement;
+    const stayedWithinBubble = !!(relatedEl && bubble.contains(relatedEl));
+    window.BubbleSystem.bubbleDebugLog('bubble.mouseout', {
+      bubble: bubble.textContent ? bubble.textContent.trim() : null,
+      relatedTag: relatedEl && relatedEl.tagName,
+      relatedClass: relatedEl && relatedEl.className,
+      stayedWithinBubble
+    });
+  });
+
+  return true;
+}
+
+window.BubbleInteraction = {
+  initializeBubbles: initializeBubbleInteractions
+};
