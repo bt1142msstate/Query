@@ -444,7 +444,7 @@ function createTableQueryCircuitOverlay() {
 
     const angle = a.row === b.row ? 0 : 90;
     const length = Math.hypot(b.x - a.x, b.y - a.y);
-    const pulseDuration = Math.max(0.9, length / 16);
+    const pulseDuration = Math.max(0.52, length / 26);
     const centerX = (a.x + b.x) / 2;
     const centerY = (a.y + b.y) / 2;
     const colorA = colors[Math.floor(Math.random() * colors.length)];
@@ -542,13 +542,12 @@ window.startTableQueryAnimation = function() {
   bubble.style.left = '50%';
   bubble.style.borderRadius = '50%';
 
-  // Fade in the circuit effect during/after it circles
-  // Start the fade soon after the shape morph begins 
+  // Fade in the circuit effect shortly after the shape morph begins.
   setTimeout(() => {
     if (document.getElementById('table-query-circuit')) {
       document.getElementById('table-query-circuit').classList.add('active');
     }
-  }, 200);
+  }, 120);
 };
 
 window.endTableQueryAnimation = function() {
@@ -562,13 +561,16 @@ window.endTableQueryAnimation = function() {
     return;
   }
 
-  // Slowly fade out the circuit effect before expanding back to the table
+  const circuitFadeDuration = 220;
+  const circuitFadeLead = 240;
+
+  // Fade out the circuit effect fully, then leave a short beat before the table starts morphing back.
   if (circuit && circuit.classList.contains('active')) {
     circuit.classList.add('fading-out');
     circuit.classList.remove('active');
     setTimeout(() => {
       startExpansionMorph();
-    }, 650);
+    }, circuitFadeDuration + circuitFadeLead);
   } else {
     if (circuit) circuit.remove();
     startExpansionMorph();
