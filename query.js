@@ -291,12 +291,7 @@ if(runBtn){
             if (window.BubbleSystem) window.BubbleSystem.safeRenderBubbles();
 
             // Reset bubble scroll back to the top
-            if (window.BubbleSystem && typeof window.BubbleSystem.resetBubbleScroll === 'function') {
-              window.BubbleSystem.resetBubbleScroll();
-            } else {
-              window.scrollRow = 0;
-              if (window.BubbleSystem) window.BubbleSystem.updateScrollBar();
-            }
+            resetBubbleScrollState();
             if (window.updateButtonStates) window.updateButtonStates();
             
             // Restore split columns mode if it was active before the query ran
@@ -395,6 +390,19 @@ overlay.addEventListener('click',()=>{
 
 confirmBtn.addEventListener('click', window.handleFilterConfirm);
 
+function resetBubbleScrollState() {
+  if (window.BubbleSystem && typeof window.BubbleSystem.resetBubbleScroll === 'function') {
+    window.BubbleSystem.resetBubbleScroll();
+  } else {
+    scrollRow = 0;
+  }
+}
+
+function scrollBubbleRows(deltaRows) {
+  return !!(window.BubbleSystem && typeof window.BubbleSystem.scrollBubblesByRows === 'function' &&
+    window.BubbleSystem.scrollBubblesByRows(deltaRows));
+}
+
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&overlay.classList.contains('show')){overlay.click();return;}
   // Bubble-grid scroll: allow ArrowUp/Down and W/S as aliases when hovering grid/scrollbar
@@ -440,20 +448,14 @@ document.addEventListener('keydown',e=>{
     );
     
     // Reset scroll position and re-render bubbles
-    if (window.BubbleSystem && typeof window.BubbleSystem.resetBubbleScroll === 'function') {
-      window.BubbleSystem.resetBubbleScroll();
-    } else {
-      scrollRow = 0;
-    }
+    resetBubbleScrollState();
     window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
     return; // consume event
   }
   const downPressed = e.key === 'ArrowDown' || e.key.toLowerCase() === 's';
   const upPressed   = e.key === 'ArrowUp'   || e.key.toLowerCase() === 'w';
   if (downPressed || upPressed) {
-    const moved = window.BubbleSystem && typeof window.BubbleSystem.scrollBubblesByRows === 'function'
-      ? window.BubbleSystem.scrollBubblesByRows(downPressed ? 1 : -1)
-      : false;
+    const moved = scrollBubbleRows(downPressed ? 1 : -1);
     if (!moved) return;
   } else {
     return;
@@ -511,11 +513,7 @@ queryInput.addEventListener('input', () => {
       allBtn.textContent = `Search (${filteredDefs.length})`;
     }
   }
-  if (window.BubbleSystem && typeof window.BubbleSystem.resetBubbleScroll === 'function') {
-    window.BubbleSystem.resetBubbleScroll();
-  } else {
-    scrollRow = 0;
-  }
+  resetBubbleScrollState();
   window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
 });
 
@@ -868,9 +866,7 @@ document.addEventListener('keydown', e=>{
 
   if(!isBubble && !isThumb && !hoverScrollArea) return;   // only act if focus or hover
 
-  const moved = window.BubbleSystem && typeof window.BubbleSystem.scrollBubblesByRows === 'function'
-    ? window.BubbleSystem.scrollBubblesByRows(e.key === 'ArrowDown' ? 1 : -1)
-    : false;
+  const moved = scrollBubbleRows(e.key === 'ArrowDown' ? 1 : -1);
   if(!moved){
     return;                                  // no movement
   }
@@ -883,11 +879,7 @@ document.addEventListener('keydown', e=>{
 function renderCategorySelectorsLocal(categoryCounts) {
   renderCategorySelectors(categoryCounts, currentCategory, (newCategory) => {
     currentCategory = newCategory;
-          if (window.BubbleSystem && typeof window.BubbleSystem.resetBubbleScroll === 'function') {
-            window.BubbleSystem.resetBubbleScroll();
-          } else {
-            scrollRow = 0;
-          }
+          resetBubbleScrollState();
           window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
         });
 }
@@ -907,11 +899,7 @@ function updateCategoryCounts() {
       const mobileSelector = document.getElementById('mobile-category-selector');
       if (mobileSelector) mobileSelector.value = 'All';
     }
-    if (window.BubbleSystem && typeof window.BubbleSystem.resetBubbleScroll === 'function') {
-      window.BubbleSystem.resetBubbleScroll();
-    } else {
-      scrollRow = 0;
-    }
+    resetBubbleScrollState();
     window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
   }
 }
