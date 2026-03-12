@@ -94,7 +94,7 @@ const ExcelExporter = (() => {
 
     // Check if button is disabled and show message
     if (downloadBtn.disabled) {
-      const tableNameInput = document.getElementById('table-name-input');
+      const tableNameInput = window.DOM?.tableNameInput || document.getElementById('table-name-input');
       const tableName = tableNameInput ? tableNameInput.value.trim() : '';
       const hasData = Array.isArray(displayedFields) && displayedFields.length > 0 && VirtualTable.virtualTableData && VirtualTable.virtualTableData.rows && VirtualTable.virtualTableData.rows.length > 0;
       const hasName = tableName && tableName !== '';
@@ -118,7 +118,7 @@ const ExcelExporter = (() => {
       return;
     }
 
-    const tableNameInput = document.getElementById('table-name-input');
+    const tableNameInput = window.DOM?.tableNameInput || document.getElementById('table-name-input');
     const tableName = tableNameInput ? tableNameInput.value.trim() || 'Query Results' : 'Query Results';
 
     const workbook = new ExcelJS.Workbook();

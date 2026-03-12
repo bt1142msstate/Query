@@ -64,7 +64,7 @@ if(dom.runBtn){
         if (window.startTableQueryAnimation) window.startTableQueryAnimation();
         
         const state = window.getCurrentQueryState();
-        const tableNameInput = document.getElementById('table-name-input');
+        const tableNameInput = dom.tableNameInput;
         const queryName = tableNameInput ? tableNameInput.value.trim() : '';
         const payload = window.buildBackendQueryPayload(queryName);
         const historyConfig = payload.ui_config || {
@@ -288,7 +288,7 @@ dom.overlay.addEventListener('click',()=>{
   // After closing overlay, re-enable bubble interaction
   setTimeout(() => safeRenderBubbles(), 0);
   dom.overlay.classList.remove('bubble-active');
-  const headerBar = document.getElementById('header-bar');
+  const headerBar = dom.headerBar;
   if (headerBar) headerBar.classList.remove('header-hide');
 });
 
@@ -382,7 +382,7 @@ document.addEventListener('keydown',e=>{
 window.addEventListener('resize', positionInputWrapper);
 
 // Build dynamic category bar
-const categoryBar = document.getElementById('category-bar');
+const categoryBar = dom.categoryBar;
 if (categoryBar) {
   // Use the imported functions for initial setup
   updateCategoryCounts();
@@ -786,8 +786,8 @@ function renderCategorySelectorsLocal(categoryCounts) {
 // Replace all category bar/mobile selector update logic with the new function
 function updateCategoryCounts() {
   if (!window.hasLoadedFieldDefinitions || !window.hasLoadedFieldDefinitions()) {
-    const categoryBar = document.getElementById('category-bar');
-    const mobileSelector = document.getElementById('mobile-category-selector');
+    const categoryBar = dom.categoryBar;
+    const mobileSelector = dom.mobileCategorySelector;
     if (categoryBar) {
       categoryBar.innerHTML = '';
     }
@@ -808,7 +808,7 @@ function updateCategoryCounts() {
     if (allBtn) {
       allBtn.classList.add('active');
       // Also update the mobile selector to 'All'
-      const mobileSelector = document.getElementById('mobile-category-selector');
+      const mobileSelector = dom.mobileCategorySelector;
       if (mobileSelector) mobileSelector.value = 'All';
     }
     resetBubbleScrollState();
@@ -852,7 +852,7 @@ function getLiteralToDisplayMap(fieldDef) {
 
 // Dynamically set --header-height CSS variable based on actual header height
 function updateHeaderHeightVar() {
-  const header = document.getElementById('header-bar');
+  const header = dom.headerBar;
   if (header) {
     const height = header.offsetHeight;
     document.documentElement.style.setProperty('--header-height', height + 'px');
@@ -875,7 +875,7 @@ window.onDOMReady(() => {
     queriesSearchInput.addEventListener('input', renderQueries);
   }
   
-  const tableNameInput = document.getElementById('table-name-input');
+  const tableNameInput = dom.tableNameInput;
   if (tableNameInput) {
     // Auto-resize input based on content
     function autoResizeInput() {

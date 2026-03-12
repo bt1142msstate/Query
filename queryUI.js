@@ -10,6 +10,8 @@ window.DOM = {
   get conditionPanel() { return this._conditionPanel ||= document.getElementById('condition-panel'); },
   get inputWrapper() { return this._inputWrapper ||= document.getElementById('condition-input-wrapper'); },
   get conditionInput() { return this._conditionInput ||= document.getElementById('condition-input'); },
+  get conditionInput2() { return this._conditionInput2 ||= document.getElementById('condition-input-2'); },
+  get betweenLabel() { return this._betweenLabel ||= document.getElementById('between-label'); },
   get confirmBtn() { return this._confirmBtn ||= document.getElementById('confirm-btn'); },
   get runBtn() { return this._runBtn ||= document.getElementById('run-query-btn'); },
   get runIcon() { return this._runIcon ||= document.getElementById('run-icon'); },
@@ -18,8 +20,13 @@ window.DOM = {
   get downloadBtn() { return this._downloadBtn ||= document.getElementById('download-btn'); },
   get queryBox() { return this._queryBox ||= document.getElementById('query-json'); },
   get queryInput() { return this._queryInput ||= document.getElementById('query-input'); },
+  get tableNameInput() { return this._tableNameInput ||= document.getElementById('table-name-input'); },
   get clearSearchBtn() { return this._clearSearchBtn ||= document.getElementById('clear-search-btn'); },
-  get groupMethodSelect() { return this._groupMethodSelect ||= document.getElementById('group-method-select'); }
+  get groupMethodSelect() { return this._groupMethodSelect ||= document.getElementById('group-method-select'); },
+  get filterError() { return this._filterError ||= document.getElementById('filter-error'); },
+  get headerBar() { return this._headerBar ||= document.getElementById('header-bar'); },
+  get categoryBar() { return this._categoryBar ||= document.getElementById('category-bar'); },
+  get mobileCategorySelector() { return this._mobileCategorySelector ||= document.getElementById('mobile-category-selector'); }
 };
 
 
@@ -105,7 +112,7 @@ window.updateButtonStates = function() {
   const runBtn = window.DOM.runBtn;
   const downloadBtn = window.DOM.downloadBtn;
 
-  const tableNameInput = document.getElementById('table-name-input');
+  const tableNameInput = window.DOM.tableNameInput;
   const tableName = tableNameInput ? tableNameInput.value.trim() : '';
   const hasName = tableName && tableName !== '';
 
@@ -830,7 +837,7 @@ window.buildBackendQueryPayload = function(queryName = '') {
 
 /** Rebuild the query JSON and show it */
 window.updateQueryJson = function(){
-  const tableNameInput = document.getElementById('table-name-input');
+  const tableNameInput = window.DOM.tableNameInput;
   const queryName = tableNameInput ? tableNameInput.value.trim() : '';
   const payload = window.buildBackendQueryPayload(queryName);
 
@@ -1182,7 +1189,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
 
 // Add this helper function to show error messages with consistent styling and timeout
 window.showError = function(message, inputElements = [], duration = 3000) {
-  const errorLabel = document.getElementById('filter-error');
+  const errorLabel = window.DOM.filterError;
   
   // Add error styling to all provided input elements
   inputElements.forEach(inp => {

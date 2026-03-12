@@ -65,12 +65,24 @@ function getFilterConditionInputElement() {
     return window.DOM?.conditionInput || document.getElementById('condition-input');
 }
 
+function getFilterConditionInput2Element() {
+    return window.DOM?.conditionInput2 || document.getElementById('condition-input-2');
+}
+
+function getFilterBetweenLabelElement() {
+    return window.DOM?.betweenLabel || document.getElementById('between-label');
+}
+
 function getFilterOverlayElement() {
     return window.DOM?.overlay || document.getElementById('overlay');
 }
 
 function getFilterQueryInputElement() {
     return window.DOM?.queryInput || document.getElementById('query-input');
+}
+
+function getFilterErrorLabelElement() {
+    return window.DOM?.filterError || document.getElementById('filter-error');
 }
 
 class FilterPill {
@@ -180,7 +192,7 @@ window.renderConditionList = function(field) {
             if (conflictMsg) {
                 window.showError(conflictMsg, [
                     getFilterConditionInputElement(), 
-                    document.getElementById('condition-input-2')
+                    getFilterConditionInput2Element()
                 ]);
                 return;
             }
@@ -257,11 +269,11 @@ window.handleConditionBtnClick = function(e) {
     const conditionPanel = getFilterConditionPanelElement();
     const inputWrapper = getFilterInputWrapperElement();
     const conditionInput = getFilterConditionInputElement();
-    const conditionInput2 = document.getElementById('condition-input-2');
-    const betweenLbl = document.getElementById('between-label');
+    const conditionInput2 = getFilterConditionInput2Element();
+    const betweenLbl = getFilterBetweenLabelElement();
     const sel = document.getElementById('condition-select');
 
-    if (!conditionPanel || !inputWrapper || !conditionInput) return;
+    if (!conditionPanel || !inputWrapper || !conditionInput || !conditionInput2 || !betweenLbl) return;
 
     // Update active class
     const all = conditionPanel.querySelectorAll('.condition-btn');
@@ -332,12 +344,12 @@ window.handleFilterConfirm = function(e) {
     
     const conditionPanel = getFilterConditionPanelElement();
     const conditionInput = getFilterConditionInputElement();
-    const conditionInput2 = document.getElementById('condition-input-2');
+    const conditionInput2 = getFilterConditionInput2Element();
     const sel = document.getElementById('condition-select');
     const selContainer = document.getElementById('condition-select-container');
     const overlay = getFilterOverlayElement();
 
-    if (!conditionPanel || !conditionInput) return;
+    if (!conditionPanel || !conditionInput || !conditionInput2) return;
     
     const field = bubble.dataset.filterFor || bubble.textContent.trim();
     const activeBtn = document.querySelector('.condition-btn.active');
@@ -646,7 +658,7 @@ window.registerDynamicField = function(fieldName, opts = {}) {
 window.finalizeConfirmAction = function() {
     window.updateQueryJson();
     
-    const condInput2 = document.getElementById('condition-input-2');
+    const condInput2 = getFilterConditionInput2Element();
     if (condInput2) condInput2.value = '';
 
     const marcInput = document.getElementById('marc-field-input');
@@ -1120,10 +1132,10 @@ window.buildableConditionBtnHandler = function(e) {
     const conditionPanel = getFilterConditionPanelElement();
     const conditionInput = getFilterConditionInputElement();
     const inputWrapper = getFilterInputWrapperElement();
-    const conditionInput2 = document.getElementById('condition-input-2');
-    const betweenLbl = document.getElementById('between-label');
+    const conditionInput2 = getFilterConditionInput2Element();
+    const betweenLbl = getFilterBetweenLabelElement();
 
-    if (!conditionPanel || !conditionInput) return;
+    if (!conditionPanel || !conditionInput || !conditionInput2 || !betweenLbl) return;
     
     // Update active state
     const all = conditionPanel.querySelectorAll('.condition-btn');
@@ -1142,7 +1154,7 @@ window.buildableConditionBtnHandler = function(e) {
         
         const firstVal = value.split(',')[0].trim();
         if (!firstVal || (patternStr && !new RegExp(patternStr).test(firstVal))) {
-            const errorLabel = document.getElementById('filter-error');
+            const errorLabel = getFilterErrorLabelElement();
             if (errorLabel) {
                 errorLabel.textContent = errorMsg;
                 errorLabel.style.display = 'block';
@@ -1207,8 +1219,8 @@ function clearNumericProps(inputs){
 
 window.configureInputsForType = function(type){
     const inp1 = getFilterConditionInputElement();
-  const inp2 = document.getElementById('condition-input-2');
-  const inputs=[inp1,inp2];
+    const inp2 = getFilterConditionInput2Element();
+    const inputs=[inp1,inp2].filter(Boolean);
   const isMoney  = type==='money';
   const isNumber = type==='number';
   const htmlType = (type==='date') ? 'date' : (isMoney||isNumber) ? 'number':'text';

@@ -179,8 +179,8 @@ function calculateCategoryCounts(displayedFields, activeFilters) {
  * @param {Function} onCategoryChange - Callback function when selector changes
  */
 function renderCategorySelectors(categoryCounts, currentCategory, onCategoryChange) {
-  const categoryBar = document.getElementById('category-bar');
-  const mobileSelector = document.getElementById('mobile-category-selector');
+  const categoryBar = window.DOM?.categoryBar || document.getElementById('category-bar');
+  const mobileSelector = window.DOM?.mobileCategorySelector || document.getElementById('mobile-category-selector');
 
   if (!window.hasLoadedFieldDefinitions()) {
     if (categoryBar) {
