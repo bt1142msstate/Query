@@ -83,6 +83,16 @@ class Bubble {
       this.el.style.opacity = '';
       this.el.removeAttribute('data-animating-back');
     }
+
+    // If the overlay is closed, clear any stale disabled visuals that may linger after rapid close/open cycles.
+    const overlayEl = document.getElementById('overlay');
+    const isOverlayOpen = !!(overlayEl && overlayEl.classList.contains('show'));
+    if (!isOverlayOpen) {
+      this.el.classList.remove('bubble-disabled');
+      this.el.style.filter = '';
+      this.el.removeAttribute('data-filter-for');
+    }
+
     applyCorrectBubbleStyling(this.el);
   }
 
