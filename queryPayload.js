@@ -1,0 +1,230 @@
+function normalizeLogicalOperator(operator) {
+  if (!operator) return 'And';
+  const normalized = String(operator).trim().toLowerCase();
+  return normalized === 'or' ? 'Or' : 'And';
+}
+
+const FIELD_OPERATOR_TO_UI_COND = {
+  Equals: 'equals',
+  equals: 'equals',
+  '=': 'equals',
+  DoesNotEqual: 'does_not_equal',
+  does_not_equal: 'does_not_equal',
+  doesnotequal: 'does_not_equal',
+  '!=': 'does_not_equal',
+  GreaterThan: 'greater',
+  greater: 'greater',
+  '>': 'greater',
+  LessThan: 'less',
+  less: 'less',
+  '<': 'less',
+  GreaterThanOrEqual: 'greater_or_equal',
+  greater_or_equal: 'greater_or_equal',
+  '>=': 'greater_or_equal',
+  LessThanOrEqual: 'less_or_equal',
+  less_or_equal: 'less_or_equal',
+  '<=': 'less_or_equal',
+  Contains: 'contains',
+  contains: 'contains',
+  DoesNotContain: 'doesnotcontain',
+  does_not_contain: 'doesnotcontain',
+  doesnotcontain: 'doesnotcontain',
+  Between: 'between',
+  between: 'between',
+  Before: 'before',
+  before: 'before',
+  After: 'after',
+  after: 'after',
+  OnOrBefore: 'on_or_before',
+  on_or_before: 'on_or_before',
+  OnOrAfter: 'on_or_after',
+  on_or_after: 'on_or_after'
+};
+
+const UI_COND_TO_FIELD_OPERATOR = {
+  greater: 'GreaterThan',
+  after: 'GreaterThan',
+  less: 'LessThan',
+  before: 'LessThan',
+  equals: 'Equals',
+  does_not_equal: 'DoesNotEqual',
+  doesnotequal: 'DoesNotEqual',
+  greater_or_equal: 'GreaterThanOrEqual',
+  on_or_after: 'GreaterThanOrEqual',
+  less_or_equal: 'LessThanOrEqual',
+  on_or_before: 'LessThanOrEqual',
+  between: 'Between',
+  contains: 'Contains',
+  starts: 'Contains',
+  starts_with: 'Contains',
+  does_not_contain: 'DoesNotContain',
+  doesnotcontain: 'DoesNotContain'
+};
+
+const UI_FILTER_TO_BACKEND = {
+  equals: [{ operator: '=', valueTransform: value => value }],
+  does_not_equal: [{ operator: '!=', valueTransform: value => value }],
+  greater: [{ operator: '>', valueTransform: value => value }],
+  after: [{ operator: '>', valueTransform: value => value }],
+  less: [{ operator: '<', valueTransform: value => value }],
+  before: [{ operator: '<', valueTransform: value => value }],
+  greater_or_equal: [{ operator: '>=', valueTransform: value => value }],
+  on_or_after: [{ operator: '>=', valueTransform: value => value }],
+  less_or_equal: [{ operator: '<=', valueTransform: value => value }],
+  on_or_before: [{ operator: '<=', valueTransform: value => value }],
+  starts: [{ operator: '=', valueTransform: value => `${value}*` }],
+  starts_with: [{ operator: '=', valueTransform: value => `${value}*` }],
+  contains: [{ operator: '=', valueTransform: value => `*${value}*` }],
+  does_not_contain: [{ operator: '!=', valueTransform: value => `*${value}*` }]
+};
+
+window.mapFieldOperatorToUiCond = function(operator) {
+  const normalized = String(operator || '').trim();
+  return FIELD_OPERATOR_TO_UI_COND[normalized] || normalized.toLowerCase();
+};
+
+window.formatFieldOperatorForDisplay = function(operator) {
+  const uiCond = window.mapFieldOperatorToUiCond(operator);
+  switch (uiCond) {
+    case 'equals':
+      return '=';
+    case 'does_not_equal':
+      return '!=';
+    case 'greater':
+      return '>';
+    case 'less':
+      return '<';
+    case 'greater_or_equal':
+      return '>=';
+    case 'less_or_equal':
+      return '<=';
+    case 'contains':
+      return 'contains';
+    case 'doesnotcontain':
+      return 'does not contain';
+    case 'between':
+      return 'between';
+    case 'before':
+      return 'before';
+    case 'after':
+      return 'after';
+    case 'on_or_before':
+      return 'on or before';
+    case 'on_or_after':
+      return 'on or after';
+    default:
+      return String(operator || '');
+  }
+};
+
+window.mapUiCondToFieldOperator = function(cond) {
+  const normalized = String(cond || '').trim();
+  return UI_COND_TO_FIELD_OPERATOR[normalized] || (normalized.charAt(0).toUpperCase() + normalized.slice(1));
+};
+
+function mapActiveFilterToBackend(condition, rawValue) {
+  if (condition === 'between') {
+    const parts = String(rawValue).split('|');
+    if (parts.length >= 2) {
+      return [
+        { operator: '>=', value: parts[0] },
+        { operator: '<=', value: parts[1] }
+      ];
+    }
+
+    return [{ operator: '=', value: rawValue }];
+  }
+
+  const mappings = UI_FILTER_TO_BACKEND[String(condition || '').trim()];
+  if (!mappings) {
+    return [{ operator: '=', value: rawValue }];
+  }
+
+  return mappings.map(({ operator, valueTransform }) => ({
+    operator,
+    value: valueTransform(rawValue)
+  }));
+}
+
+window.getNormalizedDisplayedFields = function(fields = window.displayedFields) {
+  return [...fields]
+    .filter(field => {
+      const def = window.fieldDefs ? window.fieldDefs.get(field) : null;
+      return !(def && def.is_buildable);
+    })
+    .map(field => window.getBaseFieldName(field))
+    .filter((field, index, array) => array.indexOf(field) === index);
+};
+
+window.buildQueryUiConfig = function() {
+  const query = {
+    DesiredColumnOrder: window.getNormalizedDisplayedFields(),
+    FilterGroups: []
+  };
+
+  Object.entries(window.activeFilters).forEach(([field, data]) => {
+    const fieldDef = window.fieldDefs ? window.fieldDefs.get(field) : null;
+    if (fieldDef && fieldDef.is_buildable) return;
+
+    const validFilters = (data.filters || []).filter(filter => filter.val !== '');
+    if (validFilters.length === 0) return;
+
+    query.FilterGroups.push({
+      LogicalOperator: normalizeLogicalOperator(data.logical),
+      Filters: validFilters.map(filter => ({
+        FieldName: field,
+        FieldOperator: window.mapUiCondToFieldOperator(filter.cond),
+        Values: filter.cond === 'between' ? filter.val.split('|') : [filter.val]
+      }))
+    });
+  });
+
+  return query;
+};
+
+window.buildBackendQueryPayload = function(queryName = '') {
+  const uiConfig = window.buildQueryUiConfig();
+  const standardDisplayFields = [];
+  const specialFields = [];
+
+  window.displayedFields.forEach(field => {
+    const fieldDef = window.fieldDefs ? window.fieldDefs.get(field) : null;
+    if (fieldDef && fieldDef.special_payload) {
+      const isDuplicate = specialFields.some(existing => JSON.stringify(existing) === JSON.stringify(fieldDef.special_payload));
+      if (!isDuplicate) {
+        specialFields.push(fieldDef.special_payload);
+      }
+      return;
+    }
+
+    const baseField = window.getBaseFieldName(field);
+    if (!standardDisplayFields.includes(baseField)) {
+      standardDisplayFields.push(baseField);
+    }
+  });
+
+  const payload = {
+    action: 'run',
+    name: queryName || undefined,
+    filters: [],
+    display_fields: standardDisplayFields,
+    special_fields: specialFields,
+    ui_config: uiConfig
+  };
+
+  Object.entries(window.activeFilters).forEach(([fieldName, filterGroup]) => {
+    (filterGroup?.filters || []).forEach(filter => {
+      if (filter.val === '') return;
+
+      mapActiveFilterToBackend(filter.cond, filter.val).forEach(({ operator, value }) => {
+        payload.filters.push({
+          field: fieldName,
+          operator,
+          value
+        });
+      });
+    });
+  });
+
+  return payload;
+};
