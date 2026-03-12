@@ -465,6 +465,7 @@ window.endTableQueryAnimation = function() {
 
   // Slowly fade out the circuit effect before expanding back to the table
   if (circuit && circuit.classList.contains('active')) {
+    circuit.classList.add('fading-out');
     circuit.classList.remove('active');
     setTimeout(() => {
       startExpansionMorph();
