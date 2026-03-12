@@ -1807,6 +1807,13 @@ th:hover .th-trash {
   display: flex;
   flex-direction: row;
   height: 400px; /* matches table height */
+  transition: opacity 0.4s ease;
+  opacity: 1;
+}
+
+#filter-side-panel.fade-out {
+  opacity: 0 !important;
+  pointer-events: none;
 }
 
 #filter-side-panel.panel-hidden {
