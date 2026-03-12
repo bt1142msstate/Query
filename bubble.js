@@ -107,12 +107,27 @@ class Bubble {
 }
 
 function bubbleDebugLog(eventName, payload = {}) {
-  if (!window || window.BUBBLE_DEBUG !== true) return;
+  if (!window) return;
+  const debugEnabled = window.BUBBLE_DEBUG === true || (window.localStorage && window.localStorage.getItem('BUBBLE_DEBUG') === '1');
+  if (!debugEnabled) return;
   try {
     console.log(`[BubbleDebug] ${eventName}`, payload);
   } catch (_) {
     // Never allow debug logging to interfere with UI interactions.
   }
+}
+
+if (typeof window !== 'undefined' && typeof window.setBubbleDebug !== 'function') {
+  window.setBubbleDebug = function setBubbleDebug(enabled = true) {
+    const nextValue = !!enabled;
+    window.BUBBLE_DEBUG = nextValue;
+    try {
+      window.localStorage && window.localStorage.setItem('BUBBLE_DEBUG', nextValue ? '1' : '0');
+    } catch (_) {
+      // Ignore storage restrictions.
+    }
+    console.log(`[BubbleDebug] ${nextValue ? 'enabled' : 'disabled'}`);
+  };
 }
 
 /**
@@ -873,6 +888,34 @@ function initializeBubbles() {
     if (clone) overlay.classList.add('bubble-active');
     const headerBar = document.getElementById('header-bar');
     if (clone && headerBar) headerBar.classList.add('header-hide');
+  });
+
+  // Hover diagnostics for bubbles, even when tooltip attributes are absent.
+  document.addEventListener('mouseover', e => {
+    const targetEl = e.target instanceof Element ? e.target : e.target && e.target.parentElement;
+    const bubble = targetEl ? targetEl.closest('.bubble') : null;
+    if (!bubble) return;
+    bubbleDebugLog('bubble.mouseover', {
+      bubble: bubble.textContent ? bubble.textContent.trim() : null,
+      targetTag: targetEl && targetEl.tagName,
+      targetClass: targetEl && targetEl.className
+    });
+  });
+
+  document.addEventListener('mouseout', e => {
+    const targetEl = e.target instanceof Element ? e.target : e.target && e.target.parentElement;
+    const bubble = targetEl ? targetEl.closest('.bubble') : null;
+    if (!bubble) return;
+    const relatedEl = e.relatedTarget instanceof Element
+      ? e.relatedTarget
+      : e.relatedTarget && e.relatedTarget.parentElement;
+    const stayedWithinBubble = !!(relatedEl && bubble.contains(relatedEl));
+    bubbleDebugLog('bubble.mouseout', {
+      bubble: bubble.textContent ? bubble.textContent.trim() : null,
+      relatedTag: relatedEl && relatedEl.tagName,
+      relatedClass: relatedEl && relatedEl.className,
+      stayedWithinBubble
+    });
   });
   
   return true;

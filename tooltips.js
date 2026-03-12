@@ -15,7 +15,9 @@ const TooltipManager = (() => {
   let isDragging = false; // Track drag state
 
   function tooltipDebugLog(eventName, payload = {}) {
-    if (!window || window.BUBBLE_DEBUG !== true) return;
+    if (!window) return;
+    const debugEnabled = window.BUBBLE_DEBUG === true || (window.localStorage && window.localStorage.getItem('BUBBLE_DEBUG') === '1');
+    if (!debugEnabled) return;
     try {
       console.log(`[TooltipDebug] ${eventName}`, payload);
     } catch (_) {
