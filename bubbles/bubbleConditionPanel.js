@@ -134,6 +134,7 @@ function buildBubbleConditionPanel(bubble) {
 
   const dynamicBtns = conditionPanel.querySelectorAll('.condition-btn, .toggle-half');
   dynamicBtns.forEach(btn => btn.addEventListener('click', isBuildable ? window.buildableConditionBtnHandler : window.handleConditionBtnClick));
+  confirmBtn.style.display = '';
 
   if (listValues && listValues.length) {
     const fieldDef = fieldDefs.get(selectedField);
@@ -158,12 +159,19 @@ function buildBubbleConditionPanel(bubble) {
       : listValues.some(val => val.includes('-'));
 
     const selector = isBooleanField && listValues.length === 2
-      ? createBooleanPillSelector(listValues, currentLiteralValues[0] || '')
+      ? createBooleanPillSelector(listValues, currentLiteralValues[0] || '', {
+          onChange: () => {
+            confirmBtn.click();
+          }
+        })
       : createGroupedSelector(listValues, isMultiSelect, currentLiteralValues, {
           enableGrouping: shouldGroupValues && hasDashes
         });
     inputWrapper.insertBefore(selector, confirmBtn);
     conditionInput.style.display = 'none';
+    if (isBooleanField && listValues.length === 2) {
+      confirmBtn.style.display = 'none';
+    }
   } else {
     const existingSelect = document.getElementById('condition-select');
     const existingContainer = document.getElementById('condition-select-container');
@@ -171,6 +179,7 @@ function buildBubbleConditionPanel(bubble) {
     if (existingContainer) existingContainer.style.display = 'none';
     window.configureInputsForType(type);
     conditionInput.style.display = 'block';
+    confirmBtn.style.display = '';
   }
 
   renderConditionList(selectedField);

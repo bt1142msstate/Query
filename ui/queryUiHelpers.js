@@ -47,7 +47,8 @@ window.shouldFieldHavePurpleStyling = function(fieldName) {
   );
 };
 
-window.createBooleanPillSelector = function(values, currentValue = '') {
+window.createBooleanPillSelector = function(values, currentValue = '', options = {}) {
+  const onChange = typeof options.onChange === 'function' ? options.onChange : null;
   const normalizedValues = (Array.isArray(values) ? values : []).slice(0, 2).map(value => {
     const display = typeof value === 'object'
       ? (value.Name || value.Display || value.name || value.display || value.RawValue)
@@ -90,8 +91,14 @@ window.createBooleanPillSelector = function(values, currentValue = '') {
       }
 
       button.addEventListener('click', () => {
+        if (selectedValue === option.literal) {
+          return;
+        }
         selectedValue = option.literal;
         render();
+        if (onChange) {
+          onChange(option.literal, option.display);
+        }
       });
 
       container.appendChild(button);
