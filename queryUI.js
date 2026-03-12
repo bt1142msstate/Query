@@ -761,30 +761,80 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     }
   });
   
-  // Extract groups (prefixes before dash)
-  const groups = new Map();
+  // Build candidate groups by "prefix-..." and keep non-prefixed values ungrouped.
+  const candidateGroups = new Map();
+  const ungroupedValues = [];
+
   processedValues.forEach(val => {
-    const displayText = val.display;
-    const parts = displayText.split('-');
-    if (parts.length > 1) {
-      const groupName = parts[0];
-      if (!groups.has(groupName)) {
-        groups.set(groupName, []);
-      }
-      groups.get(groupName).push(val);
+    const displayText = (val.display || '').trim();
+    const dashIndex = displayText.indexOf('-');
+    const hasPrefixGroup = dashIndex > 0;
+    if (!hasPrefixGroup) {
+      ungroupedValues.push(val);
+      return;
+    }
+
+    const groupName = displayText.slice(0, dashIndex).trim();
+    if (!groupName) {
+      ungroupedValues.push(val);
+      return;
+    }
+
+    if (!candidateGroups.has(groupName)) candidateGroups.set(groupName, []);
+    candidateGroups.get(groupName).push(val);
+  });
+
+  // Only keep true groups (2+ items). Singletons are flattened.
+  const groupedData = new Map();
+  candidateGroups.forEach((vals, name) => {
+    if (vals.length > 1) {
+      groupedData.set(name, vals);
     } else {
-      // Handle values without dash
-      if (!groups.has('Other')) {
-        groups.set('Other', []);
-      }
-      groups.get('Other').push(val);
+      ungroupedValues.push(vals[0]);
     }
   });
-  
+
   // Group header + selection section
-  const groupElements = []; // Store references to groups for search functionality
-  
-  for (const [groupName, groupValues] of groups) {
+  const groupElements = []; // Store references for search functionality
+  const flatOptionItems = [];
+
+  function createOptionItem(val, groupName = '', stripPrefix = false) {
+    const optionItem = document.createElement('div');
+    optionItem.className = 'option-item';
+    optionItem.dataset.group = groupName;
+    optionItem.dataset.value = val.literal;
+    optionItem.dataset.display = val.display;
+
+    const input = document.createElement('input');
+    input.type = isMultiSelect ? 'checkbox' : 'radio';
+    input.name = 'condition-value';
+    input.value = val.literal;
+    input.dataset.value = val.literal;
+    input.dataset.display = val.display;
+    input.checked = currentValues.includes(val.literal);
+
+    input.addEventListener('change', () => {
+      if (isMultiSelect && groupName) {
+        const groupOptions = optionsContainer.querySelectorAll(`.option-item[data-group="${groupName}"] input`);
+        const allChecked = Array.from(groupOptions).every(opt => opt.checked);
+        const groupCheckbox = optionsContainer.querySelector(`.group-checkbox[data-group="${groupName}"]`);
+        if (groupCheckbox) groupCheckbox.checked = allChecked;
+      }
+    });
+
+    const label = document.createElement('label');
+    let displayText = val.display;
+    if (stripPrefix && typeof displayText === 'string' && displayText.includes('-')) {
+      displayText = displayText.split('-').slice(1).join('-').trim();
+    }
+    label.textContent = displayText;
+
+    optionItem.appendChild(input);
+    optionItem.appendChild(label);
+    return optionItem;
+  }
+
+  for (const [groupName, groupValues] of groupedData) {
     const groupSection = document.createElement('div');
     groupSection.className = 'group-section';
     groupSection.dataset.group = groupName;
@@ -838,38 +888,9 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     groupOptions.className = 'group-options collapsed';
     
     groupValues.forEach(val => {
-      const optionItem = document.createElement('div');
-      optionItem.className = 'option-item';
-      optionItem.dataset.group = groupName;
-      optionItem.dataset.value = val.literal;
-      optionItem.dataset.display = val.display;
-      
-      const input = document.createElement('input');
-      input.type = isMultiSelect ? 'checkbox' : 'radio';
-      input.name = 'condition-value';
-      input.value = val.literal;
-      input.dataset.value = val.literal;
-      input.dataset.display = val.display;
-      input.checked = currentValues.includes(val.literal);
-      
-      // For radio buttons and checkboxes, handle the change event
-      input.addEventListener('change', () => {
-        // Update group checkbox if all items in group are checked
-        if (isMultiSelect) {
-          const groupOptions = groupSection.querySelectorAll(`.option-item[data-group="${groupName}"] input`);
-          const allChecked = Array.from(groupOptions).every(opt => opt.checked);
-          groupSection.querySelector(`.group-checkbox[data-group="${groupName}"]`).checked = allChecked;
-        }
-      });
-      
-      const label = document.createElement('label');
-      // Show only the part after the dash or the full display text if no dash
-      const displayText = val.display.includes('-') ? val.display.split('-')[1] : val.display;
-      label.textContent = displayText;
-      
-      optionItem.appendChild(input);
-      optionItem.appendChild(label);
+      const optionItem = createOptionItem(val, groupName, true);
       groupOptions.appendChild(optionItem);
+      flatOptionItems.push(optionItem);
     });
     
     groupSection.appendChild(groupOptions);
@@ -890,6 +911,14 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
       toggleIcon.innerHTML = groupOptions.classList.contains('collapsed') ? '&#9656;' : '&#9662;';
     });
   }
+
+  // Render ungrouped options as standalone rows (no synthetic "Other" group).
+  ungroupedValues.forEach(val => {
+    const optionItem = createOptionItem(val);
+    optionItem.classList.add('ungrouped-option');
+    optionsContainer.appendChild(optionItem);
+    flatOptionItems.push(optionItem);
+  });
   
   // Search functionality
   searchInput.addEventListener('input', e => {
@@ -910,10 +939,15 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
           label.innerHTML = label.textContent;
         });
       });
+
+      flatOptionItems.forEach(item => {
+        item.style.display = '';
+        const label = item.querySelector('label');
+        label.innerHTML = label.textContent;
+      });
     } else {
       groupElements.forEach(group => {
         let hasMatch = false;
-        const matchingItems = [];
         
         // Check each option in the group
         Array.from(group.options.querySelectorAll('.option-item')).forEach(item => {
@@ -924,7 +958,6 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
           
           if (value.includes(searchTerm) || display.includes(searchTerm) || displayText.includes(searchTerm)) {
             item.style.display = '';
-            matchingItems.push(item);
             hasMatch = true;
             
             // Highlight matching text
@@ -943,6 +976,22 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
         if (hasMatch) {
           group.options.classList.remove('collapsed');
           group.header.querySelector('.toggle-icon').innerHTML = '&#9662;';
+        }
+      });
+
+      flatOptionItems.forEach(item => {
+        const value = item.dataset.value.toLowerCase();
+        const display = item.dataset.display.toLowerCase();
+        const label = item.querySelector('label');
+        const displayText = label.textContent.toLowerCase();
+
+        if (value.includes(searchTerm) || display.includes(searchTerm) || displayText.includes(searchTerm)) {
+          item.style.display = '';
+          const originalText = label.textContent;
+          const regex = new RegExp(`(${searchTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi');
+          label.innerHTML = originalText.replace(regex, '<span class="highlight">$1</span>');
+        } else {
+          item.style.display = 'none';
         }
       });
     }
@@ -981,7 +1030,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     
     // Update group checkboxes
     if (isMultiSelect) {
-      groups.forEach((_, groupName) => {
+      groupedData.forEach((_, groupName) => {
         const groupOptions = this.querySelectorAll(`.option-item[data-group="${groupName}"] input`);
         const allChecked = Array.from(groupOptions).every(opt => opt.checked);
         const groupCheckbox = this.querySelector(`.group-checkbox[data-group="${groupName}"]`);
