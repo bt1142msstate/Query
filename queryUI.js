@@ -258,7 +258,7 @@ function createTableQueryCircuitOverlay() {
   const segments = [];
   const segmentKeys = new Set();
   const usedNodes = new Map();
-  const busRows = [...new Set([2, rows - 3])].sort((a, b) => a - b);
+  const busRows = [Math.floor(rows / 2)];
   const busCols = [...new Set([2, cols - 3])].sort((a, b) => a - b);
 
   function point(col, row) {
@@ -379,7 +379,7 @@ function createTableQueryCircuitOverlay() {
     });
   });
 
-  const branchCount = randomInt(5, 7);
+  const branchCount = randomInt(5, 6);
   for (let i = 0; i < branchCount; i++) {
     const side = randomInt(0, 3);
     let start;
@@ -391,7 +391,7 @@ function createTableQueryCircuitOverlay() {
     connectEdgeFeed(start, nearestHub(start, hubs));
   }
 
-  const spurCount = randomInt(3, 5);
+  const spurCount = randomInt(2, 4);
   for (let i = 0; i < spurCount; i++) {
     if (Math.random() < 0.5) {
       const trunkCol = busCols[randomInt(0, busCols.length - 1)];
@@ -418,6 +418,9 @@ function createTableQueryCircuitOverlay() {
     const centerY = (a.y + b.y) / 2;
     const colorA = colors[Math.floor(Math.random() * colors.length)];
     const colorB = colors[Math.floor(Math.random() * colors.length)];
+    const degreeA = usedNodes.get(a.key) || 0;
+    const degreeB = usedNodes.get(b.key) || 0;
+    const pulseEligible = length >= 7.5 && degreeA <= 2 && degreeB <= 2;
 
     trace.style.setProperty('--trace-angle', `${angle}deg`);
     trace.style.setProperty('--trace-len', `${length.toFixed(2)}%`);
@@ -427,7 +430,7 @@ function createTableQueryCircuitOverlay() {
     trace.style.setProperty('--trace-color-b', colorB);
     trace.style.setProperty('--trace-flicker-delay', `${(-Math.random() * 3).toFixed(2)}s`);
 
-    if (Math.random() < 0.65) {
+    if (pulseEligible && Math.random() < 0.55) {
       const pulse = document.createElement('span');
       pulse.className = 'table-query-circuit-pulse';
       pulse.style.setProperty('--pulse-duration', `${(0.9 + Math.random() * 1.4).toFixed(2)}s`);
