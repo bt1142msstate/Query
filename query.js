@@ -87,11 +87,29 @@ if(runBtn){
             }
         }
         
+        const standardDisplayFields = [];
+        const specialFields = [];
+        
+        state.displayedFields.forEach(field => {
+            const fieldDef = window.fieldDefs.get(field);
+            // Handle dynamically built fields that have a special API payload
+            if (fieldDef && fieldDef.special_payload) {
+                // To avoid sending duplicates if displayed multiple times
+                const isDuplicate = specialFields.some(sf => JSON.stringify(sf) === JSON.stringify(fieldDef.special_payload));
+                if (!isDuplicate) {
+                    specialFields.push(fieldDef.special_payload);
+                }
+            } else {
+                standardDisplayFields.push(field);
+            }
+        });
+
         const payload = {
             action: 'run',
             name: queryName || undefined,
             filters: [],
-            display_fields: state.displayedFields,
+            display_fields: standardDisplayFields,
+            special_fields: specialFields,
             ui_config: historyConfig
         };
 
@@ -628,7 +646,9 @@ async function showExampleTable(fields){
     }
     // Re-enable dragging on every bubble
     document.querySelectorAll('.bubble').forEach(b => {
-      if (b.textContent.trim() === 'Marc') {
+      const fieldName = b.textContent.trim();
+      const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
+      if (fieldDef && fieldDef.is_buildable) {
         b.setAttribute('draggable', 'false');
       } else {
         b.setAttribute('draggable', 'true');
@@ -765,7 +785,8 @@ async function showExampleTable(fields){
     // Update bubble dragging states
     document.querySelectorAll('.bubble').forEach(bubbleEl => {
       const field = bubbleEl.textContent.trim();
-      if (field === 'Marc') {
+      const fieldDef = window.fieldDefs ? window.fieldDefs.get(field) : null;
+      if (fieldDef && fieldDef.is_buildable) {
         bubbleEl.setAttribute('draggable', 'false');
       } else if(displayedFields.includes(field)){
         bubbleEl.removeAttribute('draggable');

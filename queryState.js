@@ -40,7 +40,10 @@ window.pendingRenderBubbles = false;
 window.getCurrentQueryState = function() {
   // Use base field names only (no duplicates like "2nd Marc590")
   const baseFields = [...window.displayedFields]
-    .filter(field => field !== 'Marc')
+    .filter(field => {
+      const def = window.fieldDefs ? window.fieldDefs.get(field) : null;
+      return !(def && def.is_buildable);
+    })
     .map(field => {
       return window.getBaseFieldName(field);
     })

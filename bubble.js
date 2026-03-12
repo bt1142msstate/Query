@@ -97,7 +97,7 @@ class Bubble {
       this.el.removeAttribute('data-tooltip-html');
     }
 
-    if (def.isSpecialMarc || displayedFields.includes(fieldName)) {
+    if (def.is_buildable || displayedFields.includes(fieldName)) {
       this.el.setAttribute('draggable', 'false');
     } else {
       this.el.setAttribute('draggable', 'true');
@@ -458,36 +458,51 @@ function buildConditionPanel(bubble){
   }
   
   const perBubble = bubble.dataset.filters ? JSON.parse(bubble.dataset.filters) : null;
-  const isSpecialMarc = selectedField === 'Marc';
+  const fieldDefInfo = window.fieldDefs ? window.fieldDefs.get(selectedField) : null;
+  const isBuildable = fieldDefInfo && fieldDefInfo.is_buildable;
   conditionPanel.innerHTML = '';
 
-  // Always remove any existing marcInputGroup from the inputWrapper
+  // Always remove any existing dynamic builder inputs or marcInputGroups from the inputWrapper
   const inputWrapper = document.getElementById('condition-input-wrapper');
   const oldMarcInput = document.getElementById('marc-field-input');
   if (oldMarcInput && oldMarcInput.parentNode) oldMarcInput.parentNode.remove();
+  document.querySelectorAll('.dynamic-input-group').forEach(el => el.remove());
 
-  if (isSpecialMarc) {
-    // For the special Marc field, create a Marc number input
-    const marcInputGroup = document.createElement('div');
-    marcInputGroup.className = 'marc-input-group';
-    const marcLabel = document.createElement('label');
-    marcLabel.textContent = 'Marc Field Number:';
-    marcLabel.className = 'marc-label';
-    marcInputGroup.appendChild(marcLabel);
-    const marcInput = document.createElement('input');
-    marcInput.type = 'text';
-    marcInput.pattern = '[0-9]+';
-    marcInput.placeholder = 'Enter 3-digit Marc field';
-    marcInput.className = 'marc-field-input condition-field';
-    marcInput.id = 'marc-field-input';
-    marcInputGroup.appendChild(marcInput);
-    // Insert after conditionInput in inputWrapper
-    const refNode = document.getElementById('condition-input');
-    if (refNode && inputWrapper) {
-      inputWrapper.insertBefore(marcInputGroup, refNode.nextSibling);
+  if (isBuildable) {
+    if (fieldDefInfo.builder_inputs) {
+      // Loop backwards so insertBefore places them in correct order
+      [...fieldDefInfo.builder_inputs].reverse().forEach(input => {
+        const group = document.createElement('div');
+        group.className = 'dynamic-input-group marc-input-group';
+        
+        const label = document.createElement('label');
+        label.textContent = input.label;
+        label.className = 'dynamic-label marc-label';
+        
+        const inputEl = document.createElement('input');
+        inputEl.type = input.type;
+        inputEl.pattern = input.pattern;
+        inputEl.placeholder = input.placeholder;
+        inputEl.dataset.inputId = input.id;
+        inputEl.dataset.errorMsg = input.error_msg || 'Invalid input';
+        inputEl.className = 'dynamic-builder-input condition-field';
+        if (input.id === 'tag') {
+           inputEl.id = 'marc-field-input'; // Keep this id for backward compatibility right now just in case
+           inputEl.classList.add('marc-field-input');
+        }
+        
+        group.appendChild(label);
+        group.appendChild(inputEl);
+        
+        const refNode = document.getElementById('condition-input');
+        if (refNode && inputWrapper) {
+          inputWrapper.insertBefore(group, refNode.nextSibling);
+        }
+      });
     }
+
     // Add filter buttons
-    const standardConds = ['contains', 'starts', 'equals'];
+    const standardConds = fieldDefInfo.filters && fieldDefInfo.filters.length > 0 ? fieldDefInfo.filters : ['contains', 'starts', 'equals'];
     standardConds.forEach(label => {
       const btn = document.createElement('button');
       btn.className = 'condition-btn';
@@ -511,7 +526,7 @@ function buildConditionPanel(bubble){
   }
 
   // --- Dual toggle (Show / Hide) ---
-  if (!isSpecialMarc) {
+  if (!isBuildable) {
     const toggleGroup = document.createElement('div');
     toggleGroup.className = 'inline-flex';
     ['Show','Hide'].forEach(label=>{
@@ -528,7 +543,7 @@ function buildConditionPanel(bubble){
   }
 
   const dynamicBtns = conditionPanel.querySelectorAll('.condition-btn, .toggle-half');
-  dynamicBtns.forEach(btn=>btn.addEventListener('click', isSpecialMarc ? window.marcConditionBtnHandler : window.handleConditionBtnClick));
+  dynamicBtns.forEach(btn=>btn.addEventListener('click', isBuildable ? window.buildableConditionBtnHandler : window.handleConditionBtnClick));
 
   // Swap text input for select if bubble has list values
   if(listValues && listValues.length){
@@ -599,10 +614,11 @@ function buildConditionPanel(bubble){
   // Show existing filters, if any
   renderConditionList(selectedField);
 
-  // Focus the Marc field input if this is the Marc bubble
-  if (isSpecialMarc) {
+  // Focus the first dynamic builder input if this is a buildable bubble
+  if (isBuildable) {
     setTimeout(() => {
-      document.getElementById('marc-field-input')?.focus();
+      const firstInput = document.querySelector('.dynamic-builder-input');
+      if (firstInput) firstInput.focus();
     }, 300);
   }
 }
@@ -919,9 +935,16 @@ function initializeBubbles() {
     // After: clone._origin = bubble;
     setTimeout(() => {
       if (!document.body.contains(clone._origin)) {
-        // Try to find the Marc creator bubble again
-        const marcBubble = Array.from(document.querySelectorAll('.bubble')).find(b => b.textContent.trim() === 'Marc');
-        if (marcBubble) clone._origin = marcBubble;
+        // Try to find the creator bubble again
+        let baseFieldName = fieldName;
+        const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
+        if (fieldDef && fieldDef.special_payload) {
+          // It's a generated field, probably originated from its category base (e.g., 'Marc')
+          baseFieldName = fieldDef.category; 
+        }
+        
+        const fallbackBubble = Array.from(document.querySelectorAll('.bubble')).find(b => b.textContent.trim() === baseFieldName);
+        if (fallbackBubble) clone._origin = fallbackBubble;
       }
     }, 60);
     if (clone) overlay.classList.add('bubble-active');

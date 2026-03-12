@@ -40,15 +40,6 @@ window.loadFieldDefinitions = async function loadFieldDefinitions() {
         if (fieldDefsArray.length === 0) {
            console.warn("Received empty field definitions", data);
         }
-        
-        // Append special Marc field
-        fieldDefsArray.push({ 
-            "name": "Marc", 
-            "type": "string", 
-            "category": "Marc", 
-            "isSpecialMarc": true, 
-            "desc": "Create custom MARC field filters by specifying a MARC field number" 
-        });
 
         // Initialize helper map and filter array
         fieldDefs.clear();
