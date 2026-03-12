@@ -43,6 +43,17 @@ function getAvailableCategories() {
   return [...SYSTEM_CATEGORIES, ...derivedCategories];
 }
 
+function getSelectorTooltip(categoryName) {
+  switch (categoryName) {
+    case 'All':
+      return 'Show all available fields';
+    case 'Selected':
+      return 'Show fields currently in use (displayed or filtered)';
+    default:
+      return `Show fields grouped under ${categoryName}`;
+  }
+}
+
 window.loadFieldDefinitions = async function loadFieldDefinitions() {
     if (isFieldsLoaded) return fieldDefsArray;
     
@@ -205,13 +216,7 @@ function renderCategorySelectors(categoryCounts, currentCategory, onCategoryChan
   if (categoryBar) {
     categoryBar.innerHTML = categories.map(cat => {
       if (cat === 'Selected' && categoryCounts.Selected === 0) return '';
-      // Tooltip descriptions for each selector group
-      let tooltip = '';
-      switch (cat) {
-        case 'All': tooltip = 'Show all available fields'; break;
-        case 'Selected': tooltip = 'Show fields currently in use (displayed or filtered)'; break;
-        default: tooltip = `Show fields grouped under ${cat}`;
-      }
+      const tooltip = getSelectorTooltip(cat);
       return `<button data-category="${cat}" class="category-btn ${cat === currentCategory ? 'active' : ''}" data-tooltip="${tooltip}">${cat} (${categoryCounts[cat]})</button>`;
     }).join('');
     
@@ -233,13 +238,7 @@ function renderCategorySelectors(categoryCounts, currentCategory, onCategoryChan
     mobileSelector.innerHTML = '';
     categories.forEach(cat => {
       if (cat === 'Selected' && categoryCounts.Selected === 0) return;
-      // Tooltip descriptions for each selector group
-      let tooltip = '';
-      switch (cat) {
-        case 'All': tooltip = 'Show all available fields'; break;
-        case 'Selected': tooltip = 'Show fields currently in use (displayed or filtered)'; break;
-        default: tooltip = `Show fields grouped under ${cat}`;
-      }
+      const tooltip = getSelectorTooltip(cat);
       const option = document.createElement('option');
       option.value = cat;
       option.textContent = `${cat} (${categoryCounts[cat]})`;

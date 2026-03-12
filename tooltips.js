@@ -8,6 +8,7 @@
  * @namespace TooltipManager
  */
 const TooltipManager = (() => {
+  const TOOLTIP_SELECTOR = '[data-tooltip], [data-tooltip-html]';
   let tooltipEl = null;
   let arrowEl = null;
   let currentTarget = null;
@@ -45,6 +46,31 @@ const TooltipManager = (() => {
     document.body.appendChild(tooltipEl);
   }
 
+  function resetTooltipContent() {
+    tooltipEl.textContent = '';
+    tooltipEl.appendChild(arrowEl);
+  }
+
+  function hideTooltipElement() {
+    if (!tooltipEl) return;
+    tooltipEl.classList.remove('show');
+    tooltipEl.style.opacity = '0';
+    tooltipEl.style.display = 'none';
+    resetTooltipContent();
+  }
+
+  function readTooltipContent(el) {
+    const isHtml = el.hasAttribute('data-tooltip-html');
+    return {
+      isHtml,
+      text: isHtml ? el.getAttribute('data-tooltip-html') : el.getAttribute('data-tooltip')
+    };
+  }
+
+  function isTooltipVisible() {
+    return !!(tooltipEl && tooltipEl.style.display === 'block');
+  }
+
   /**
    * Shows a tooltip for the specified target element.
    * @function showTooltip
@@ -71,8 +97,7 @@ const TooltipManager = (() => {
       hideTimeout = null;
     }
 
-    tooltipEl.textContent = '';
-    tooltipEl.appendChild(arrowEl); // keep arrow at end
+    resetTooltipContent();
     tooltipEl.setAttribute('role', 'tooltip');
     tooltipEl.setAttribute('aria-live', 'polite');
     tooltipEl.style.display = 'block';
@@ -120,11 +145,7 @@ const TooltipManager = (() => {
     tooltipEl.style.opacity = '0';
 
     hideTimeout = setTimeout(() => {
-      if (tooltipEl) {
-        tooltipEl.style.display = 'none';
-        tooltipEl.textContent = '';
-        tooltipEl.appendChild(arrowEl);
-      }
+      hideTooltipElement();
       currentTarget = null;
       hideTimeout = null;
     }, 120);
@@ -140,13 +161,7 @@ const TooltipManager = (() => {
       clearTimeout(hideTimeout);
       hideTimeout = null;
     }
-    if (tooltipEl) {
-      tooltipEl.classList.remove('show');
-      tooltipEl.style.opacity = '0';
-      tooltipEl.style.display = 'none';
-      tooltipEl.textContent = '';
-      tooltipEl.appendChild(arrowEl);
-    }
+    hideTooltipElement();
     currentTarget = null;
     tooltipDebugLog('forceHide');
   }
@@ -167,7 +182,6 @@ const TooltipManager = (() => {
     let top = rect.top + scrollY - tooltipEl.offsetHeight - 10;
     let left = rect.left + scrollX + rect.width / 2 - tooltipEl.offsetWidth / 2;
     let arrowDirection = 'arrow-up';
-    let arrowOffset = tooltipEl.offsetWidth / 2; // default: center
     let anchorX = rect.left + rect.width / 2 + scrollX;
     // If mouse event, follow mouse
     if (event && event.type && event.type.startsWith('mouse')) {
@@ -208,26 +222,25 @@ const TooltipManager = (() => {
   function attach() {
     document.addEventListener('mouseover', e => {
       if (isDragging) return;
-      const el = closestFromTarget(e.target, '[data-tooltip], [data-tooltip-html]');
+      const el = closestFromTarget(e.target, TOOLTIP_SELECTOR);
       if (!el) return;
       tooltipDebugLog('mouseover', {
         targetText: el.textContent ? el.textContent.trim() : null,
         rawTargetNodeType: e.target && e.target.nodeType
       });
-      const isHtml = el.hasAttribute('data-tooltip-html');
-      const text = isHtml ? el.getAttribute('data-tooltip-html') : el.getAttribute('data-tooltip');
+      const { isHtml, text } = readTooltipContent(el);
       if (text) showTooltip(el, text, e, isHtml);
     });
 
     document.addEventListener('mousemove', e => {
       if (isDragging) return;
-      if (currentTarget && tooltipEl && tooltipEl.style.display === 'block') {
+      if (currentTarget && isTooltipVisible()) {
         positionTooltip(currentTarget, e);
       }
     });
 
     document.addEventListener('mouseout', e => {
-      const el = closestFromTarget(e.target, '[data-tooltip], [data-tooltip-html]');
+      const el = closestFromTarget(e.target, TOOLTIP_SELECTOR);
       if (!el) return;
       const relatedEl = e.relatedTarget instanceof Element
         ? e.relatedTarget
@@ -244,18 +257,17 @@ const TooltipManager = (() => {
 
     document.addEventListener('focusin', e => {
       if (isDragging) return;
-      const el = closestFromTarget(e.target, '[data-tooltip], [data-tooltip-html]');
+      const el = closestFromTarget(e.target, TOOLTIP_SELECTOR);
       if (!el) return;
       tooltipDebugLog('focusin', {
         targetText: el.textContent ? el.textContent.trim() : null
       });
-      const isHtml = el.hasAttribute('data-tooltip-html');
-      const text = isHtml ? el.getAttribute('data-tooltip-html') : el.getAttribute('data-tooltip');
+      const { isHtml, text } = readTooltipContent(el);
       if (text) showTooltip(el, text, undefined, isHtml);
     });
 
     document.addEventListener('focusout', e => {
-      if (closestFromTarget(e.target, '[data-tooltip], [data-tooltip-html]')) hideTooltip();
+      if (closestFromTarget(e.target, TOOLTIP_SELECTOR)) hideTooltip();
     });
 
     // Hide tooltip on scroll or escape
@@ -273,7 +285,7 @@ const TooltipManager = (() => {
       if (mouseDistanceCheck) clearTimeout(mouseDistanceCheck);
       
       mouseDistanceCheck = setTimeout(() => {
-        if (currentTarget && tooltipEl && tooltipEl.style.display === 'block') {
+        if (currentTarget && isTooltipVisible()) {
           // Check if mouse is still reasonably close to the target element
           const rect = currentTarget.getBoundingClientRect();
           const mouseX = e.clientX;
@@ -299,11 +311,10 @@ const TooltipManager = (() => {
 
     // On click, update tooltip if data-tooltip changed
     document.addEventListener('click', e => {
-      const el = closestFromTarget(e.target, '[data-tooltip], [data-tooltip-html]');
+      const el = closestFromTarget(e.target, TOOLTIP_SELECTOR);
       if (!el) return;
-      const isHtml = el.hasAttribute('data-tooltip-html');
-      const text = isHtml ? el.getAttribute('data-tooltip-html') : el.getAttribute('data-tooltip');
-      if (currentTarget === el && tooltipEl && tooltipEl.style.display === 'block') {
+      const { isHtml, text } = readTooltipContent(el);
+      if (currentTarget === el && isTooltipVisible()) {
         // If tooltip is already showing for this element, update text if changed
         const currentContent = isHtml ? tooltipEl.innerHTML : tooltipEl.textContent;
         // Basic check to prevent unnecessary updates, might not be perfect for HTML due to serialization differences but sufficient
