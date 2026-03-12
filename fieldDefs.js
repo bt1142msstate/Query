@@ -1,6 +1,6 @@
 /**
- * Field definitions and category management
- * Contains all available field definitions with their properties, categories, and filtering options.
+ * Field definitions and field-group management.
+ * Contains backend-provided field definitions and selector helpers.
  * @module FieldDefs
  */
 
@@ -154,11 +154,11 @@ function shouldFieldHavePurpleStylingBase(fieldName, displayedFields, activeFilt
 }
 
 /**
- * Calculates the count of fields in each category.
+ * Calculates the count of fields in each selector group.
  * @function calculateCategoryCounts
  * @param {string[]} displayedFields - Array of currently displayed field names
  * @param {Object} activeFilters - Object containing active filter configurations
- * @returns {Object} Object mapping category names to field counts
+ * @returns {Object} Object mapping selector group names to field counts
  */
 function calculateCategoryCounts(displayedFields, activeFilters) {
   const categoryCounts = {};
@@ -181,12 +181,12 @@ function calculateCategoryCounts(displayedFields, activeFilters) {
 }
 
 /**
- * Renders category selectors for both desktop and mobile interfaces.
- * Creates clickable category buttons with counts and tooltips.
+ * Renders field-group selectors for both desktop and mobile interfaces.
+ * Creates clickable selector buttons with counts and tooltips.
  * @function renderCategorySelectors
- * @param {Object} categoryCounts - Object mapping category names to counts
- * @param {string} currentCategory - Currently selected category
- * @param {Function} onCategoryChange - Callback function when category changes
+ * @param {Object} categoryCounts - Object mapping selector group names to counts
+ * @param {string} currentCategory - Currently selected selector group
+ * @param {Function} onCategoryChange - Callback function when selector changes
  */
 function renderCategorySelectors(categoryCounts, currentCategory, onCategoryChange) {
   const categoryBar = document.getElementById('category-bar');
@@ -209,12 +209,12 @@ function renderCategorySelectors(categoryCounts, currentCategory, onCategoryChan
   if (categoryBar) {
     categoryBar.innerHTML = categories.map(cat => {
       if (cat === 'Selected' && categoryCounts.Selected === 0) return '';
-      // Tooltip descriptions for each category
+      // Tooltip descriptions for each selector group
       let tooltip = '';
       switch (cat) {
         case 'All': tooltip = 'Show all available fields'; break;
         case 'Selected': tooltip = 'Show fields currently in use (displayed or filtered)'; break;
-        default: tooltip = `Show fields in the ${cat} category`;
+        default: tooltip = `Show fields grouped under ${cat}`;
       }
       return `<button data-category="${cat}" class="category-btn ${cat === currentCategory ? 'active' : ''}" data-tooltip="${tooltip}">${cat} (${categoryCounts[cat]})</button>`;
     }).join('');
@@ -237,12 +237,12 @@ function renderCategorySelectors(categoryCounts, currentCategory, onCategoryChan
     mobileSelector.innerHTML = '';
     categories.forEach(cat => {
       if (cat === 'Selected' && categoryCounts.Selected === 0) return;
-      // Tooltip descriptions for each category
+      // Tooltip descriptions for each selector group
       let tooltip = '';
       switch (cat) {
         case 'All': tooltip = 'Show all available fields'; break;
         case 'Selected': tooltip = 'Show fields currently in use (displayed or filtered)'; break;
-        default: tooltip = `Show fields in the ${cat} category`;
+        default: tooltip = `Show fields grouped under ${cat}`;
       }
       const option = document.createElement('option');
       option.value = cat;

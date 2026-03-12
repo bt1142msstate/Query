@@ -35,7 +35,11 @@ class Bubble {
     const { def } = this;
     const fieldName = def.name;
     this.el.textContent = fieldName;
-    this.el.dataset.type = def.type;
+    if (def.type) {
+      this.el.dataset.type = def.type;
+    } else {
+      delete this.el.dataset.type;
+    }
     if (def.values) this.el.dataset.values = JSON.stringify(def.values);
     if (def.filters) this.el.dataset.filters = JSON.stringify(def.filters);
     

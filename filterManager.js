@@ -546,32 +546,30 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
 }
 
 /**
- * Ensures a dynamically-created field (e.g. Marc590) is registered in all three
- * field registries (fieldDefs Map, fieldDefsArray, filteredDefs) so it shows up
- * in category filtering and counts. Safe to call multiple times for the same field.
+ * Ensures a dynamically-created field is registered in the in-memory field registries
+ * so it participates in selector filtering and counts. Safe to call multiple times
+ * for the same field.
  *
- * @param {string} fieldName - The resolved field name (e.g. "Marc590")
+ * @param {string} fieldName - The resolved field name
  * @param {Object} [opts] - Optional overrides: type, category, desc, special_payload
  */
 window.registerDynamicField = function(fieldName, opts = {}) {
     if (!fieldName || window.fieldDefs.has(fieldName)) return;
 
-    // Try to derive category from a matching is_buildable parent template
+    // Copy metadata from a matching buildable parent template when available.
     let parentDef = null;
     if (window.fieldDefsArray) {
         parentDef = window.fieldDefsArray.find(d => {
             if (!d.is_buildable || !d.field_template) return false;
-            // Build a regex from the template, replacing {key} placeholders with \S+
+            // Build a regex from the template, replacing {key} placeholders with dynamic segments.
             const pattern = d.field_template.replace(/\{[^}]+\}/g, '[^|]+');
             return new RegExp('^' + pattern + '$').test(fieldName);
         });
     }
 
     // Resolve special_payload from the parent's template by substituting captured values.
-    // e.g. field_template "Marc{tag}" + fieldName "Marc590" → special_payload { type:"marc", tag:"590" }
     let resolvedPayload = opts.special_payload || null;
     if (!resolvedPayload && parentDef && parentDef.special_payload_template && parentDef.field_template) {
-        // Build a capturing regex from field_template: "Marc{tag}" → "^Marc(.+)$"
         const keys = [];
         const capturingPattern = parentDef.field_template.replace(/\{([^}]+)\}/g, (_, key) => {
             keys.push(key);
@@ -592,9 +590,9 @@ window.registerDynamicField = function(fieldName, opts = {}) {
 
     const newDef = {
         name: fieldName,
-        type: opts.type || (parentDef ? parentDef.type : 'string'),
+        type: opts.type ?? (parentDef ? parentDef.type : null),
         category: opts.category || (parentDef ? parentDef.category : null),
-        desc: opts.desc || (parentDef ? `${parentDef.name} custom field: ${fieldName}` : fieldName),
+        desc: opts.desc ?? (parentDef ? parentDef.desc : ''),
         special_payload: resolvedPayload
     };
 
