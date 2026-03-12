@@ -247,19 +247,22 @@ function createTableQueryCircuitOverlay() {
   circuit.id = 'table-query-circuit';
   circuit.className = 'table-query-circuit';
 
-  const cols = 10;
+  const cols = 12;
   const rows = 10;
-  const xMin = 9;
+  const xMin = 8;
   const yMin = 9;
-  const xStep = 82 / (cols - 1);
-  const yStep = 82 / (rows - 1);
+  const xStep = 84 / (cols - 1);
+  const yStep = 80 / (rows - 1);
 
   const colors = ['#22d3ee', '#38bdf8', '#34d399', '#facc15'];
   const segments = [];
-  const segmentKeys = new Set();
+  const segmentIndex = new Map();
   const usedNodes = new Map();
-  const busRows = [Math.floor(rows / 2)];
-  const busCols = [...new Set([2, cols - 3])].sort((a, b) => a - b);
+  const chips = [];
+  const connectors = [];
+  const busRows = [randomInt(2, 3), randomInt(rows - 4, rows - 3)].sort((a, b) => a - b);
+  const busCols = [randomInt(2, 3), randomInt(cols - 4, cols - 3)].sort((a, b) => a - b);
+  const serviceRows = [1, rows - 2];
 
   function point(col, row) {
     return {
@@ -275,22 +278,33 @@ function createTableQueryCircuitOverlay() {
     usedNodes.set(pt.key, (usedNodes.get(pt.key) || 0) + 1);
   }
 
-  function addSegment(a, b) {
+  function addSegment(a, b, options = {}) {
     if (!a || !b) return;
     if (a.key === b.key) return;
     if (a.col !== b.col && a.row !== b.row) return;
 
     const key = [a.key, b.key].sort().join('|');
-    if (segmentKeys.has(key)) return;
-    segmentKeys.add(key);
-    segments.push({ a, b });
+    if (segmentIndex.has(key)) {
+      const existing = segments[segmentIndex.get(key)];
+      existing.width = Math.max(existing.width, options.width || 3);
+      existing.pulseChance = Math.max(existing.pulseChance, options.pulseChance || 0);
+      return;
+    }
+
+    segmentIndex.set(key, segments.length);
+    segments.push({
+      a,
+      b,
+      width: options.width || 3,
+      pulseChance: options.pulseChance ?? 0.35
+    });
     addNodeUsage(a);
     addNodeUsage(b);
   }
 
-  function addPath(points) {
+  function addPath(points, options = {}) {
     for (let i = 0; i < points.length - 1; i++) {
-      addSegment(points[i], points[i + 1]);
+      addSegment(points[i], points[i + 1], options);
     }
   }
 
@@ -304,111 +318,131 @@ function createTableQueryCircuitOverlay() {
     }, candidates[0]);
   }
 
-  function nearestHub(p, hubs) {
-    let best = hubs[0];
-    let bestDist = Infinity;
-    hubs.forEach(h => {
-      const d = Math.abs(h.col - p.col) + Math.abs(h.row - p.row);
-      if (d < bestDist) {
-        best = h;
-        bestDist = d;
+  function routePadToNetwork(pad) {
+    const padPoint = pad.point;
+
+    if (pad.side === 'left' || pad.side === 'right') {
+      const targetCol = pad.side === 'left' ? busCols[0] : busCols[busCols.length - 1];
+      const targetRow = nearestValue(padPoint.row, busRows);
+      addPath([
+        padPoint,
+        point(targetCol, padPoint.row),
+        point(targetCol, targetRow)
+      ], { width: 2, pulseChance: 0.22 });
+      return;
+    }
+
+    const targetRow = pad.side === 'top' ? busRows[0] : busRows[busRows.length - 1];
+    const targetCol = nearestValue(padPoint.col, busCols);
+    addPath([
+      padPoint,
+      point(padPoint.col, targetRow),
+      point(targetCol, targetRow)
+    ], { width: 2, pulseChance: 0.2 });
+  }
+
+  function createChip(col, row, width, height) {
+    const chip = { col, row, width, height, pads: [] };
+    chips.push(chip);
+
+    const padRows = Array.from({ length: height }, (_, index) => row + index);
+    const padCols = Array.from({ length: width }, (_, index) => col + index);
+
+    if (col - 1 >= 1) {
+      addSegment(point(col - 1, row), point(col - 1, row + height - 1), { width: 2, pulseChance: 0.12 });
+      padRows.forEach(padRow => {
+        const pad = { point: point(col - 1, padRow), side: 'left' };
+        chip.pads.push(pad);
+        addNodeUsage(pad.point);
+      });
+    }
+
+    if (col + width <= cols - 2) {
+      addSegment(point(col + width, row), point(col + width, row + height - 1), { width: 2, pulseChance: 0.12 });
+      padRows.forEach(padRow => {
+        const pad = { point: point(col + width, padRow), side: 'right' };
+        chip.pads.push(pad);
+        addNodeUsage(pad.point);
+      });
+    }
+
+    if (Math.random() < 0.7 && row - 1 >= 1) {
+      padCols.forEach((padCol, index) => {
+        if (index !== 0 && index !== padCols.length - 1 && Math.random() < 0.45) return;
+        const pad = { point: point(padCol, row - 1), side: 'top' };
+        chip.pads.push(pad);
+        addNodeUsage(pad.point);
+      });
+    }
+
+    if (Math.random() < 0.8 && row + height <= rows - 2) {
+      padCols.forEach((padCol, index) => {
+        if (index !== 0 && index !== padCols.length - 1 && Math.random() < 0.45) return;
+        const pad = { point: point(padCol, row + height), side: 'bottom' };
+        chip.pads.push(pad);
+        addNodeUsage(pad.point);
+      });
+    }
+
+    chip.pads
+      .filter((_, index) => index % 2 === 0 || Math.random() < 0.28)
+      .forEach(routePadToNetwork);
+  }
+
+  function createBottomConnectorBank() {
+    const count = randomInt(5, 7);
+    const startCol = randomInt(3, cols - count - 2);
+
+    for (let index = 0; index < count; index++) {
+      const col = startCol + index;
+      connectors.push({ col, row: rows - 1 });
+
+      const feedPoint = point(col, rows - 2);
+      addNodeUsage(feedPoint);
+
+      if (index % 2 === 0 || Math.random() < 0.4) {
+        addPath([
+          feedPoint,
+          point(col, busRows[busRows.length - 1]),
+          point(nearestValue(col, busCols), busRows[busRows.length - 1])
+        ], { width: 2, pulseChance: 0.16 });
       }
-    });
-    return best;
+    }
   }
 
-  function routeAlongPreferredCorridor(a, b) {
-    if (a.col === b.col || a.row === b.row) {
-      addSegment(a, b);
-      return;
-    }
+  busRows.forEach(row => addSegment(point(1, row), point(cols - 2, row), { width: 4, pulseChance: 0.72 }));
+  busCols.forEach(col => addSegment(point(col, 1), point(col, rows - 2), { width: 4, pulseChance: 0.64 }));
+  serviceRows.forEach(row => addSegment(point(2, row), point(cols - 3, row), { width: 2, pulseChance: 0.14 }));
 
-    const preferredRow = nearestValue(Math.round((a.row + b.row) / 2), busRows);
-    const preferredCol = nearestValue(Math.round((a.col + b.col) / 2), busCols);
-    const rowCost = Math.abs(a.row - preferredRow) + Math.abs(b.row - preferredRow);
-    const colCost = Math.abs(a.col - preferredCol) + Math.abs(b.col - preferredCol);
+  const chipCandidates = [
+    { col: randomInt(3, 4), row: randomInt(2, 3), width: randomInt(2, 3), height: randomInt(2, 3) },
+    { col: randomInt(6, 7), row: randomInt(2, 4), width: randomInt(2, 3), height: randomInt(2, 3) },
+    { col: randomInt(4, 6), row: randomInt(5, 6), width: 2, height: randomInt(2, 3), optional: true }
+  ];
 
-    if (rowCost <= colCost) {
-      addPath([
-        a,
-        point(a.col, preferredRow),
-        point(b.col, preferredRow),
-        b
-      ]);
-      return;
-    }
-
-    addPath([
-      a,
-      point(preferredCol, a.row),
-      point(preferredCol, b.row),
-      b
-    ]);
-  }
-
-  function connectEdgeFeed(start, target) {
-    if (start.col === 0 || start.col === cols - 1) {
-      const entryCol = start.col === 0 ? busCols[0] : busCols[busCols.length - 1];
-      const busRow = nearestValue(start.row, busRows);
-      addPath([
-        start,
-        point(entryCol, start.row),
-        point(entryCol, busRow)
-      ]);
-      routeAlongPreferredCorridor(point(entryCol, busRow), target);
-      return;
-    }
-
-    const entryRow = start.row === 0 ? busRows[0] : busRows[busRows.length - 1];
-    const busCol = nearestValue(start.col, busCols);
-    addPath([
-      start,
-      point(start.col, entryRow),
-      point(busCol, entryRow)
-    ]);
-    routeAlongPreferredCorridor(point(busCol, entryRow), target);
-  }
-
-  busRows.forEach(row => addSegment(point(1, row), point(cols - 2, row)));
-  busCols.forEach(col => addSegment(point(col, 1), point(col, rows - 2)));
-
-  const hubs = [];
-  busRows.forEach(row => {
-    busCols.forEach(col => {
-      hubs.push(point(col, row));
-    });
+  chipCandidates.forEach(candidate => {
+    if (candidate.optional && Math.random() < 0.45) return;
+    createChip(candidate.col, candidate.row, candidate.width, candidate.height);
   });
 
-  const branchCount = randomInt(5, 6);
-  for (let i = 0; i < branchCount; i++) {
-    const side = randomInt(0, 3);
-    let start;
-    if (side === 0) start = point(0, randomInt(0, rows - 1));
-    else if (side === 1) start = point(cols - 1, randomInt(0, rows - 1));
-    else if (side === 2) start = point(randomInt(0, cols - 1), 0);
-    else start = point(randomInt(0, cols - 1), rows - 1);
+  createBottomConnectorBank();
 
-    connectEdgeFeed(start, nearestHub(start, hubs));
+  for (let i = 0; i < randomInt(2, 4); i++) {
+    const trunkCol = busCols[randomInt(0, busCols.length - 1)];
+    const stubRow = nearestValue(randomInt(2, rows - 3), busRows);
+    const direction = Math.random() < 0.5 ? -1 : 1;
+    const endRow = Math.max(1, Math.min(rows - 2, stubRow + direction * randomInt(1, 2)));
+    addSegment(point(trunkCol, stubRow), point(trunkCol, endRow), { width: 2, pulseChance: 0.14 });
   }
 
-  const spurCount = randomInt(2, 4);
-  for (let i = 0; i < spurCount; i++) {
-    if (Math.random() < 0.5) {
-      const trunkCol = busCols[randomInt(0, busCols.length - 1)];
-      const startRow = busRows[randomInt(0, busRows.length - 1)];
-      const direction = Math.random() < 0.5 ? -1 : 1;
-      const endRow = Math.max(1, Math.min(rows - 2, startRow + direction * 1));
-      addSegment(point(trunkCol, startRow), point(trunkCol, endRow));
-    } else {
-      const trunkRow = busRows[randomInt(0, busRows.length - 1)];
-      const startCol = busCols[randomInt(0, busCols.length - 1)];
-      const direction = Math.random() < 0.5 ? -1 : 1;
-      const endCol = Math.max(1, Math.min(cols - 2, startCol + direction * 1));
-      addSegment(point(startCol, trunkRow), point(endCol, trunkRow));
-    }
+  for (let i = 0; i < randomInt(2, 3); i++) {
+    const serviceRow = serviceRows[randomInt(0, serviceRows.length - 1)];
+    const startCol = randomInt(2, cols - 4);
+    const endCol = Math.min(cols - 3, startCol + randomInt(1, 2));
+    addSegment(point(startCol, serviceRow), point(endCol, serviceRow), { width: 2, pulseChance: 0.12 });
   }
 
-  segments.forEach(({ a, b }) => {
+  segments.forEach(({ a, b, width, pulseChance }) => {
     const trace = document.createElement('div');
     trace.className = 'table-query-circuit-trace';
 
@@ -418,28 +452,45 @@ function createTableQueryCircuitOverlay() {
     const centerY = (a.y + b.y) / 2;
     const colorA = colors[Math.floor(Math.random() * colors.length)];
     const colorB = colors[Math.floor(Math.random() * colors.length)];
-    const degreeA = usedNodes.get(a.key) || 0;
-    const degreeB = usedNodes.get(b.key) || 0;
-    const pulseEligible = length >= 7.5 && degreeA <= 2 && degreeB <= 2;
 
     trace.style.setProperty('--trace-angle', `${angle}deg`);
     trace.style.setProperty('--trace-len', `${length.toFixed(2)}%`);
     trace.style.setProperty('--trace-x', `${centerX.toFixed(2)}%`);
     trace.style.setProperty('--trace-y', `${centerY.toFixed(2)}%`);
+    trace.style.setProperty('--trace-thickness', `${width}px`);
     trace.style.setProperty('--trace-color-a', colorA);
     trace.style.setProperty('--trace-color-b', colorB);
     trace.style.setProperty('--trace-flicker-delay', `${(-Math.random() * 3).toFixed(2)}s`);
 
-    if (pulseEligible && Math.random() < 0.55) {
+    if (Math.random() < pulseChance) {
       const pulse = document.createElement('span');
       pulse.className = 'table-query-circuit-pulse';
       pulse.style.setProperty('--pulse-duration', `${(0.9 + Math.random() * 1.4).toFixed(2)}s`);
       pulse.style.setProperty('--pulse-delay', `${(-Math.random() * 1.6).toFixed(2)}s`);
       pulse.style.setProperty('--pulse-color', colorA);
+      pulse.style.setProperty('--pulse-size', `${Math.max(7, width + 5)}px`);
       trace.appendChild(pulse);
     }
 
     circuit.appendChild(trace);
+  });
+
+  chips.forEach(chip => {
+    const chipEl = document.createElement('div');
+    chipEl.className = 'table-query-circuit-chip';
+    chipEl.style.left = `${(xMin + (chip.col + (chip.width - 1) / 2) * xStep).toFixed(2)}%`;
+    chipEl.style.top = `${(yMin + (chip.row + (chip.height - 1) / 2) * yStep).toFixed(2)}%`;
+    chipEl.style.width = `${(chip.width * xStep * 0.78).toFixed(2)}%`;
+    chipEl.style.height = `${(chip.height * yStep * 0.74).toFixed(2)}%`;
+    circuit.appendChild(chipEl);
+  });
+
+  connectors.forEach(connector => {
+    const connectorEl = document.createElement('div');
+    connectorEl.className = 'table-query-circuit-connector';
+    connectorEl.style.left = `${(xMin + connector.col * xStep).toFixed(2)}%`;
+    connectorEl.style.top = `${(yMin + connector.row * yStep).toFixed(2)}%`;
+    circuit.appendChild(connectorEl);
   });
 
   usedNodes.forEach((degree, key) => {
