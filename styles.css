@@ -2379,8 +2379,8 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
   height: 2px;
   transform: translateY(-50%);
   background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, color-mix(in srgb, var(--pulse-color) 58%, white 42%) 48%, color-mix(in srgb, var(--pulse-color) 82%, #67e8f9 18%) 100%);
-  filter: blur(0.35px);
-  opacity: 0.72;
+  filter: blur(0.4px);
+  opacity: 0.76;
   animation: circuit-pulse-trail calc(var(--pulse-duration) * 0.38) ease-in-out infinite;
   animation-delay: var(--pulse-delay);
 }
@@ -2394,10 +2394,11 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
   transform: translate(-50%, -50%);
   background: rgba(255, 255, 255, 0.95);
   box-shadow:
-    -5px -3px 0 0 color-mix(in srgb, var(--pulse-color) 74%, white 26%),
-    -7px 2px 0 0 rgba(255, 255, 255, 0.7);
-  opacity: 0.45;
-  animation: circuit-pulse-sparks 0.32s steps(2, end) infinite;
+    -4px -2px 0 0 color-mix(in srgb, var(--pulse-color) 74%, white 26%),
+    -7px 1px 0 0 rgba(255, 255, 255, 0.66),
+    -8px 4px 0 0 color-mix(in srgb, var(--pulse-color) 56%, white 44%);
+  opacity: 0.58;
+  animation: circuit-pulse-sparks 0.26s steps(2, end) infinite;
   animation-delay: var(--pulse-delay);
 }
 
@@ -2415,14 +2416,14 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
 }
 
 @keyframes circuit-pulse-trail {
-  0%, 100% { opacity: 0.24; transform: translateY(-50%) scaleX(0.72); }
-  50% { opacity: 0.7; transform: translateY(-50%) scaleX(1.02); }
+  0%, 100% { opacity: 0.28; transform: translateY(-50%) scaleX(0.72); }
+  50% { opacity: 0.76; transform: translateY(-50%) scaleX(1.03); }
 }
 
 @keyframes circuit-pulse-sparks {
-  0% { opacity: 0.18; transform: translate(-50%, -50%) scale(0.75) rotate(0deg); }
-  50% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.05) rotate(10deg); }
-  100% { opacity: 0.22; transform: translate(-50%, -50%) scale(0.88) rotate(-8deg); }
+  0% { opacity: 0.24; transform: translate(-50%, -50%) scale(0.8) rotate(0deg); }
+  50% { opacity: 0.62; transform: translate(-50%, -50%) scale(1.08) rotate(11deg); }
+  100% { opacity: 0.3; transform: translate(-50%, -50%) scale(0.9) rotate(-8deg); }
 }
 
 @keyframes circuit-glow-pan {
