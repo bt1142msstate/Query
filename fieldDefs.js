@@ -95,7 +95,6 @@ window.loadFieldDefinitions = async function loadFieldDefinitions() {
         window.filteredDefs = filteredDefs;
         
         isFieldsLoaded = true;
-        syncAvailableCategories();
         return fieldDefsArray;
     } catch (e) {
         console.error("Failed to load backend field mappings.", e);
