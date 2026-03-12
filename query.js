@@ -454,10 +454,6 @@ if(initialContainer) {
       updateButtonStates();
       window.updateRunButtonIcon();
       
-      // Initialize systems
-      if (window.BubbleSystem) {
-         window.BubbleSystem.initializeBubbles();
-      }
       if (typeof updateCategoryCounts === 'function') {
         updateCategoryCounts();
       }
