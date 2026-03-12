@@ -243,146 +243,180 @@ function createTableQueryCircuitOverlay() {
   circuit.id = 'table-query-circuit';
   circuit.className = 'table-query-circuit';
 
-  const cols = 10;
-  const rows = 10;
-  const xMin = 9;
-  const yMin = 9;
-  const xStep = 82 / (cols - 1);
-  const yStep = 82 / (rows - 1);
+  const cols = 12;
+  const rows = 9;
+  const xMin = 6;
+  const yMin = 8;
+  const xStep = 88 / (cols - 1);
+  const yStep = 84 / (rows - 1);
 
-  const colors = ['#22d3ee', '#38bdf8', '#34d399', '#facc15'];
   const segments = [];
   const segmentKeys = new Set();
   const usedNodes = new Map();
+  const hubKeySet = new Set();
 
-  function point(col, row) {
-    return {
-      col,
-      row,
-      x: xMin + col * xStep,
-      y: yMin + row * yStep,
-      key: `${col},${row}`
-    };
+  function pt(col, row) {
+    col = Math.max(0, Math.min(cols - 1, col));
+    row = Math.max(0, Math.min(rows - 1, row));
+    return { col, row, x: xMin + col * xStep, y: yMin + row * yStep, key: `${col},${row}` };
   }
 
-  function addNodeUsage(pt) {
-    usedNodes.set(pt.key, (usedNodes.get(pt.key) || 0) + 1);
+  function addNodeUsage(p, weight = 1) {
+    usedNodes.set(p.key, (usedNodes.get(p.key) || 0) + weight);
   }
 
-  function addSegment(a, b) {
-    if (!a || !b) return;
-    if (a.key === b.key) return;
+  function addSeg(a, b, type = 'signal') {
+    if (!a || !b || a.key === b.key) return;
     if (a.col !== b.col && a.row !== b.row) return;
-
-    const key = [a.key, b.key].sort().join('|');
-    if (segmentKeys.has(key)) return;
-    segmentKeys.add(key);
-    segments.push({ a, b });
-    addNodeUsage(a);
-    addNodeUsage(b);
+    const k = [a.key, b.key].sort().join('|');
+    if (segmentKeys.has(k)) return;
+    segmentKeys.add(k);
+    segments.push({ a, b, type });
+    const w = type === 'power' ? 2 : 1;
+    addNodeUsage(a, w);
+    addNodeUsage(b, w);
   }
 
-  function routeManhattan(a, b) {
+  function routeManhattan(a, b, type = 'signal') {
+    if (a.col === b.col || a.row === b.row) {
+      addSeg(a, b, type);
+      return;
+    }
     if (Math.random() < 0.5) {
-      const bend = point(a.col, b.row);
-      addSegment(a, bend);
-      addSegment(bend, b);
+      const bend = pt(a.col, b.row);
+      addSeg(a, bend, type);
+      addSeg(bend, b, type);
     } else {
-      const bend = point(b.col, a.row);
-      addSegment(a, bend);
-      addSegment(bend, b);
+      const bend = pt(b.col, a.row);
+      addSeg(a, bend, type);
+      addSeg(bend, b, type);
     }
   }
 
-  function randomInt(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
+  function ri(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+  // Horizontal power / ground bus rails
+  const pwrRow = ri(1, 2);
+  const gndRow = ri(rows - 3, rows - 2);
+  for (let c = 0; c < cols - 1; c++) {
+    addSeg(pt(c, pwrRow), pt(c + 1, pwrRow), 'power');
+    addSeg(pt(c, gndRow), pt(c + 1, gndRow), 'power');
   }
 
-  function randomGridPoint() {
-    return point(randomInt(0, cols - 1), randomInt(0, rows - 1));
+  // Vertical supply rails at left / right margins
+  const leftRail  = ri(1, 2);
+  const rightRail = ri(cols - 3, cols - 2);
+  for (let r = 0; r < rows - 1; r++) {
+    addSeg(pt(leftRail,  r), pt(leftRail,  r + 1), 'power');
+    addSeg(pt(rightRail, r), pt(rightRail, r + 1), 'power');
   }
 
-  function nearestHub(p, hubs) {
-    let best = hubs[0];
-    let bestDist = Infinity;
-    hubs.forEach(h => {
-      const d = Math.abs(h.col - p.col) + Math.abs(h.row - p.row);
-      if (d < bestDist) {
-        best = h;
-        bestDist = d;
-      }
-    });
-    return best;
+  // Component hub nodes at bus / rail intersections + midfield positions
+  const rawHubs = [
+    pt(leftRail, pwrRow), pt(leftRail, gndRow),
+    pt(rightRail, pwrRow), pt(rightRail, gndRow),
+  ];
+  for (let i = 0; i < ri(3, 5); i++) {
+    rawHubs.push(pt(ri(leftRail + 1, rightRail - 1), ri(pwrRow + 1, gndRow - 1)));
   }
-
-  const hubCount = randomInt(6, 8);
   const hubs = [];
-  const hubKeys = new Set();
-  while (hubs.length < hubCount) {
-    const p = point(randomInt(1, cols - 2), randomInt(1, rows - 2));
-    if (hubKeys.has(p.key)) continue;
-    hubKeys.add(p.key);
-    hubs.push(p);
+  rawHubs.forEach(h => {
+    if (!hubKeySet.has(h.key)) { hubKeySet.add(h.key); hubs.push(h); }
+  });
+
+  // Wire hubs together with signal traces
+  const sortedHubs = [...hubs].sort((a, b) => a.col - b.col || a.row - b.row);
+  for (let i = 0; i < sortedHubs.length - 1; i++) {
+    routeManhattan(sortedHubs[i], sortedHubs[i + 1], 'signal');
+  }
+  if (hubs.length > 3) routeManhattan(hubs[0], hubs[hubs.length - 1], 'signal');
+
+  // Feed each hub up / down to its nearest bus row
+  hubs.forEach(h => {
+    const toPwr = Math.abs(h.row - pwrRow);
+    const toGnd = Math.abs(h.row - gndRow);
+    const targetRow = toPwr <= toGnd ? pwrRow : gndRow;
+    if (h.row !== targetRow) {
+      for (let r = Math.min(h.row, targetRow); r < Math.max(h.row, targetRow); r++) {
+        addSeg(pt(h.col, r), pt(h.col, r + 1), 'signal');
+      }
+    }
+  });
+
+  // Edge branch traces (connector / pin lines entering from each side)
+  for (let i = 0; i < ri(9, 13); i++) {
+    const side = i % 4;
+    let startPt;
+    if (side === 0) startPt = pt(0, ri(0, rows - 1));
+    else if (side === 1) startPt = pt(cols - 1, ri(0, rows - 1));
+    else if (side === 2) startPt = pt(ri(0, cols - 1), 0);
+    else startPt = pt(ri(0, cols - 1), rows - 1);
+    routeManhattan(startPt, hubs[ri(0, hubs.length - 1)], 'signal');
   }
 
-  const backbone = [...hubs].sort((a, b) => a.col - b.col || a.row - b.row);
-  for (let i = 0; i < backbone.length - 1; i++) {
-    routeManhattan(backbone[i], backbone[i + 1]);
+  // Short stubs — component legs / bypass capacitors
+  for (let i = 0; i < ri(5, 8); i++) {
+    const h   = hubs[ri(0, hubs.length - 1)];
+    const vert = Math.random() < 0.5;
+    const len  = ri(1, 2);
+    const dir  = Math.random() < 0.5 ? 1 : -1;
+    if (vert) {
+      for (let r = 0; r < len; r++) addSeg(pt(h.col, h.row + r * dir), pt(h.col, h.row + (r + 1) * dir));
+    } else {
+      for (let c = 0; c < len; c++) addSeg(pt(h.col + c * dir, h.row), pt(h.col + (c + 1) * dir, h.row));
+    }
   }
 
-  const branchCount = randomInt(10, 14);
-  for (let i = 0; i < branchCount; i++) {
-    const side = randomInt(0, 3);
-    let start;
-    if (side === 0) start = point(0, randomInt(0, rows - 1));
-    else if (side === 1) start = point(cols - 1, randomInt(0, rows - 1));
-    else if (side === 2) start = point(randomInt(0, cols - 1), 0);
-    else start = point(randomInt(0, cols - 1), rows - 1);
+  // Render traces — electron duration proportional to trace length for consistent speed
+  const ELECTRON_SPEED = 28; // percent of container width per second
+  const COLOR_SIGNAL = '#22d3ee';
+  const COLOR_ALT    = '#34d399';
+  const COLOR_POWER  = '#facc15';
 
-    routeManhattan(start, nearestHub(start, hubs));
-  }
-
-  segments.forEach(({ a, b }) => {
+  segments.forEach(({ a, b, type }) => {
     const trace = document.createElement('div');
-    trace.className = 'table-query-circuit-trace';
+    trace.className = `table-query-circuit-trace${type === 'power' ? ' power' : ''}`;
 
-    const angle = a.row === b.row ? 0 : 90;
     const length = Math.hypot(b.x - a.x, b.y - a.y);
-    const centerX = (a.x + b.x) / 2;
-    const centerY = (a.y + b.y) / 2;
-    const colorA = colors[Math.floor(Math.random() * colors.length)];
-    const colorB = colors[Math.floor(Math.random() * colors.length)];
+    const cx     = (a.x + b.x) / 2;
+    const cy     = (a.y + b.y) / 2;
+    const angle  = a.row === b.row ? 0 : 90;
+    const color  = type === 'power' ? COLOR_POWER
+                 : (Math.random() < 0.78 ? COLOR_SIGNAL : COLOR_ALT);
 
     trace.style.setProperty('--trace-angle', `${angle}deg`);
-    trace.style.setProperty('--trace-len', `${length.toFixed(2)}%`);
-    trace.style.setProperty('--trace-x', `${centerX.toFixed(2)}%`);
-    trace.style.setProperty('--trace-y', `${centerY.toFixed(2)}%`);
-    trace.style.setProperty('--trace-color-a', colorA);
-    trace.style.setProperty('--trace-color-b', colorB);
-    trace.style.setProperty('--trace-flicker-delay', `${(-Math.random() * 3).toFixed(2)}s`);
+    trace.style.setProperty('--trace-len',   `${length.toFixed(2)}%`);
+    trace.style.setProperty('--trace-x',     `${cx.toFixed(2)}%`);
+    trace.style.setProperty('--trace-y',     `${cy.toFixed(2)}%`);
+    trace.style.setProperty('--trace-color', color);
 
-    if (Math.random() < 0.65) {
+    if (Math.random() < 0.78) {
       const pulse = document.createElement('span');
       pulse.className = 'table-query-circuit-pulse';
-      pulse.style.setProperty('--pulse-duration', `${(0.9 + Math.random() * 1.4).toFixed(2)}s`);
-      pulse.style.setProperty('--pulse-delay', `${(-Math.random() * 1.6).toFixed(2)}s`);
-      pulse.style.setProperty('--pulse-color', colorA);
+      const dur   = Math.max(0.3, length / ELECTRON_SPEED);
+      const delay = -(Math.random() * dur); // negative → already in motion on load
+      pulse.style.setProperty('--pulse-duration', `${dur.toFixed(2)}s`);
+      pulse.style.setProperty('--pulse-delay',    `${delay.toFixed(2)}s`);
+      pulse.style.setProperty('--pulse-color',    color);
       trace.appendChild(pulse);
     }
 
     circuit.appendChild(trace);
   });
 
+  // Render via / pad nodes
   usedNodes.forEach((degree, key) => {
-    const [colRaw, rowRaw] = key.split(',');
-    const col = Number(colRaw);
-    const row = Number(rowRaw);
-    const node = document.createElement('div');
-    node.className = 'table-query-circuit-node';
+    const [cr, rr] = key.split(',');
+    const col = Number(cr), row = Number(rr);
+    const isHub = hubKeySet.has(key);
+    const node  = document.createElement('div');
+    const classes = ['table-query-circuit-node'];
+    if (isHub)          classes.push('hub');
+    else if (degree >= 3) classes.push('junction');
+    node.className = classes.join(' ');
     node.style.left = `${(xMin + col * xStep).toFixed(2)}%`;
-    node.style.top = `${(yMin + row * yStep).toFixed(2)}%`;
-    node.style.setProperty('--node-size', degree >= 3 ? '8px' : '6px');
-    node.style.setProperty('--node-delay', `${(-Math.random() * 2).toFixed(2)}s`);
+    node.style.top  = `${(yMin + row * yStep).toFixed(2)}%`;
+    node.style.setProperty('--node-delay', `${(-Math.random() * 2.5).toFixed(2)}s`);
     circuit.appendChild(node);
   });
 
