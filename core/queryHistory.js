@@ -55,24 +55,28 @@ function buildHistorySection(sectionKey, count, rows, tableHead, emptyMessage, o
     running: {
       title: 'Running',
       subtitle: 'Queries currently executing on the backend.',
+      accent: 'Live',
       detailsClass: 'history-section running',
       summaryClass: 'history-section-summary running'
     },
     complete: {
       title: 'Completed',
       subtitle: 'Queries with finished results ready to inspect or reload.',
+      accent: 'Ready',
       detailsClass: 'history-section complete',
       summaryClass: 'history-section-summary complete'
     },
     failed: {
       title: 'Failed / Interrupted',
       subtitle: 'Queries that errored, were abandoned, or quit unexpectedly.',
+      accent: 'Needs review',
       detailsClass: 'history-section failed',
       summaryClass: 'history-section-summary failed'
     },
     canceled: {
       title: 'Cancelled',
       subtitle: 'Queries stopped intentionally before they completed.',
+      accent: 'Stopped',
       detailsClass: 'history-section canceled',
       summaryClass: 'history-section-summary canceled'
     }
@@ -87,8 +91,17 @@ function buildHistorySection(sectionKey, count, rows, tableHead, emptyMessage, o
     <details class="${meta.detailsClass}"${openAttr}>
       <summary class="${meta.summaryClass}">
         <span class="history-section-heading">
-          <span class="history-section-title">${count} ${meta.title}</span>
+          <span class="history-section-kicker">${meta.accent}</span>
+          <span class="history-section-title-row">
+            <span class="history-section-title">${meta.title}</span>
+            <span class="history-section-count">${count}</span>
+          </span>
           <span class="history-section-subtitle">${meta.subtitle}</span>
+        </span>
+        <span class="history-section-chevron" aria-hidden="true">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 8l4 4 4-4"></path>
+          </svg>
         </span>
       </summary>
       ${bodyContent}
@@ -542,7 +555,10 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
 
   const nameCell = `
     <div class="history-name-cell">
-      <span class="history-query-name">${q.name || q.id}</span>
+      <div class="history-query-identity">
+        <span class="history-query-name">${q.name || q.id}</span>
+        <span class="history-query-id">${q.id}</span>
+      </div>
       <span class="${statusMeta.badgeClass}">${statusMeta.label}</span>
     </div>`;
 
@@ -760,12 +776,26 @@ function renderQueries(){
   const doneCount = doneList.length;
   const failedCount = failedList.length;
   const cancelledCount = cancelledList.length;
+  const totalCount = runningCount + doneCount + failedCount + cancelledCount;
+  const searchSummary = searchTerm
+    ? `Filtering ${totalCount} matching ${totalCount === 1 ? 'query' : 'queries'}`
+    : `Tracking ${totalCount} recent ${totalCount === 1 ? 'query' : 'queries'}`;
 
   let content = '';
 
   // Show "no results" message if search returns nothing
   if (searchTerm && runningCount === 0 && doneCount === 0 && failedCount === 0 && cancelledCount === 0) {
-    content = `<div class="history-empty-state history-empty-search">No queries found matching "${searchTerm}".</div>`;
+    content = `
+      <div class="history-shell">
+        <section class="history-hero-panel">
+          <div class="history-hero-copy">
+            <span class="history-hero-kicker">Query History</span>
+            <h3>Operational timeline</h3>
+            <p>${searchSummary}</p>
+          </div>
+        </section>
+        <div class="history-empty-state history-empty-search">No queries found matching "${searchTerm}".</div>
+      </div>`;
   } else {
     const runningSection = buildHistorySection('running', runningCount, runningRows, runningTableHead, 'No running queries right now.', true);
     const doneSection = buildHistorySection('complete', doneCount, doneRows, completedTableHead, 'No completed queries yet.', true);
@@ -773,16 +803,31 @@ function renderQueries(){
     const cancelledSection = buildHistorySection('canceled', cancelledCount, cancelledRows, cancelledTableHead, 'No cancelled queries yet.', false);
 
     content = `
-      <div class="history-overview-grid">
-        <div class="history-overview-card running"><span class="history-overview-count">${runningCount}</span><span class="history-overview-label">Running</span></div>
-        <div class="history-overview-card complete"><span class="history-overview-count">${doneCount}</span><span class="history-overview-label">Completed</span></div>
-        <div class="history-overview-card failed"><span class="history-overview-count">${failedCount}</span><span class="history-overview-label">Failed</span></div>
-        <div class="history-overview-card canceled"><span class="history-overview-count">${cancelledCount}</span><span class="history-overview-label">Cancelled</span></div>
+      <div class="history-shell">
+        <section class="history-hero-panel">
+          <div class="history-hero-copy">
+            <span class="history-hero-kicker">Query History</span>
+            <h3>Operational timeline</h3>
+            <p>${searchSummary}</p>
+          </div>
+          <div class="history-hero-meta">
+            <span class="history-hero-chip ${runningCount > 0 ? 'live' : ''}">${runningCount > 0 ? 'Live activity' : 'Idle'}</span>
+            <span class="history-hero-total">${totalCount}</span>
+          </div>
+        </section>
+        <div class="history-overview-grid">
+          <div class="history-overview-card running"><span class="history-overview-count">${runningCount}</span><span class="history-overview-label">Running</span><span class="history-overview-caption">Active backend jobs</span></div>
+          <div class="history-overview-card complete"><span class="history-overview-count">${doneCount}</span><span class="history-overview-label">Completed</span><span class="history-overview-caption">Results ready to load</span></div>
+          <div class="history-overview-card failed"><span class="history-overview-count">${failedCount}</span><span class="history-overview-label">Failed</span><span class="history-overview-caption">Queries needing review</span></div>
+          <div class="history-overview-card canceled"><span class="history-overview-count">${cancelledCount}</span><span class="history-overview-label">Cancelled</span><span class="history-overview-caption">Stopped intentionally</span></div>
+        </div>
+        <div class="history-sections-stack">
+          ${runningSection}
+          ${doneSection}
+          ${failedSection}
+          ${cancelledSection}
+        </div>
       </div>
-      ${runningSection}
-      ${doneSection}
-      ${failedSection}
-      ${cancelledSection}
     `;
   }
 
