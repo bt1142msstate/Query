@@ -254,6 +254,8 @@ function createTableQueryCircuitOverlay() {
   const segments = [];
   const segmentKeys = new Set();
   const usedNodes = new Map();
+  const busRows = [...new Set([2, Math.floor(rows / 2), rows - 3])].sort((a, b) => a - b);
+  const busCols = [...new Set([2, Math.floor(cols / 2), cols - 3])].sort((a, b) => a - b);
 
   function point(col, row) {
     return {
@@ -282,15 +284,9 @@ function createTableQueryCircuitOverlay() {
     addNodeUsage(b);
   }
 
-  function routeManhattan(a, b) {
-    if (Math.random() < 0.5) {
-      const bend = point(a.col, b.row);
-      addSegment(a, bend);
-      addSegment(bend, b);
-    } else {
-      const bend = point(b.col, a.row);
-      addSegment(a, bend);
-      addSegment(bend, b);
+  function addPath(points) {
+    for (let i = 0; i < points.length - 1; i++) {
+      addSegment(points[i], points[i + 1]);
     }
   }
 
@@ -298,8 +294,10 @@ function createTableQueryCircuitOverlay() {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
-  function randomGridPoint() {
-    return point(randomInt(0, cols - 1), randomInt(0, rows - 1));
+  function nearestValue(value, candidates) {
+    return candidates.reduce((best, candidate) => {
+      return Math.abs(candidate - value) < Math.abs(best - value) ? candidate : best;
+    }, candidates[0]);
   }
 
   function nearestHub(p, hubs) {
@@ -315,22 +313,73 @@ function createTableQueryCircuitOverlay() {
     return best;
   }
 
-  const hubCount = randomInt(6, 8);
+  function routeAlongPreferredCorridor(a, b) {
+    if (a.col === b.col || a.row === b.row) {
+      addSegment(a, b);
+      return;
+    }
+
+    const preferredRow = nearestValue(Math.round((a.row + b.row) / 2), busRows);
+    const preferredCol = nearestValue(Math.round((a.col + b.col) / 2), busCols);
+    const rowCost = Math.abs(a.row - preferredRow) + Math.abs(b.row - preferredRow);
+    const colCost = Math.abs(a.col - preferredCol) + Math.abs(b.col - preferredCol);
+
+    if (rowCost <= colCost) {
+      addPath([
+        a,
+        point(a.col, preferredRow),
+        point(b.col, preferredRow),
+        b
+      ]);
+      return;
+    }
+
+    addPath([
+      a,
+      point(preferredCol, a.row),
+      point(preferredCol, b.row),
+      b
+    ]);
+  }
+
+  function connectEdgeFeed(start, target) {
+    if (start.col === 0 || start.col === cols - 1) {
+      const entryCol = start.col === 0 ? busCols[0] : busCols[busCols.length - 1];
+      const busRow = nearestValue(start.row, busRows);
+      addPath([
+        start,
+        point(entryCol, start.row),
+        point(entryCol, busRow)
+      ]);
+      routeAlongPreferredCorridor(point(entryCol, busRow), target);
+      return;
+    }
+
+    const entryRow = start.row === 0 ? busRows[0] : busRows[busRows.length - 1];
+    const busCol = nearestValue(start.col, busCols);
+    addPath([
+      start,
+      point(start.col, entryRow),
+      point(busCol, entryRow)
+    ]);
+    routeAlongPreferredCorridor(point(busCol, entryRow), target);
+  }
+
+  busRows.forEach(row => addSegment(point(1, row), point(cols - 2, row)));
+  busCols.forEach(col => addSegment(point(col, 1), point(col, rows - 2)));
+
   const hubs = [];
-  const hubKeys = new Set();
-  while (hubs.length < hubCount) {
-    const p = point(randomInt(1, cols - 2), randomInt(1, rows - 2));
-    if (hubKeys.has(p.key)) continue;
-    hubKeys.add(p.key);
-    hubs.push(p);
+  busRows.forEach(row => {
+    busCols.forEach(col => {
+      hubs.push(point(col, row));
+    });
+  });
+
+  for (let i = 0; i < hubs.length - 1; i++) {
+    routeAlongPreferredCorridor(hubs[i], hubs[i + 1]);
   }
 
-  const backbone = [...hubs].sort((a, b) => a.col - b.col || a.row - b.row);
-  for (let i = 0; i < backbone.length - 1; i++) {
-    routeManhattan(backbone[i], backbone[i + 1]);
-  }
-
-  const branchCount = randomInt(10, 14);
+  const branchCount = randomInt(8, 11);
   for (let i = 0; i < branchCount; i++) {
     const side = randomInt(0, 3);
     let start;
@@ -339,7 +388,24 @@ function createTableQueryCircuitOverlay() {
     else if (side === 2) start = point(randomInt(0, cols - 1), 0);
     else start = point(randomInt(0, cols - 1), rows - 1);
 
-    routeManhattan(start, nearestHub(start, hubs));
+    connectEdgeFeed(start, nearestHub(start, hubs));
+  }
+
+  const spurCount = randomInt(8, 12);
+  for (let i = 0; i < spurCount; i++) {
+    if (Math.random() < 0.5) {
+      const trunkCol = busCols[randomInt(0, busCols.length - 1)];
+      const startRow = busRows[randomInt(0, busRows.length - 1)];
+      const direction = Math.random() < 0.5 ? -1 : 1;
+      const endRow = Math.max(1, Math.min(rows - 2, startRow + direction * randomInt(1, 2)));
+      addSegment(point(trunkCol, startRow), point(trunkCol, endRow));
+    } else {
+      const trunkRow = busRows[randomInt(0, busRows.length - 1)];
+      const startCol = busCols[randomInt(0, busCols.length - 1)];
+      const direction = Math.random() < 0.5 ? -1 : 1;
+      const endCol = Math.max(1, Math.min(cols - 2, startCol + direction * randomInt(1, 2)));
+      addSegment(point(startCol, trunkRow), point(endCol, trunkRow));
+    }
   }
 
   segments.forEach(({ a, b }) => {
