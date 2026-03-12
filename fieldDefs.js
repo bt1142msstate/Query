@@ -105,13 +105,6 @@ window.loadFieldDefinitions = async function loadFieldDefinitions() {
     }
 }
 
-// Ensure the map export remains attached after loading
-// fieldDefs was already initialized at the top
-fieldDefs = new Map(fieldDefsArray.map(field => [field.name, field]));
-
-// Initialize filtered defs
-filteredDefs = [...fieldDefsArray];
-
 /**
  * Updates the filtered definitions array based on search term.
  * Filters field definitions by name matching the search term.

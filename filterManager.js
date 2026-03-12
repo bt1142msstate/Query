@@ -9,6 +9,50 @@
  * Represents a single active filter condition pill in the UI.
  * (Moved from queryUI.js)
  */
+function getFilterValueMap(fieldDef) {
+    if (!fieldDef || !fieldDef.values || fieldDef.values.length === 0) {
+        return new Map();
+    }
+
+    if (window.getLiteralToDisplayMap) {
+        return window.getLiteralToDisplayMap(fieldDef);
+    }
+
+    return typeof fieldDef.values[0] === 'object'
+        ? new Map(fieldDef.values.map(v => [v.RawValue, v.Name]))
+        : new Map();
+}
+
+function buildFilterValueLabel(filter, fieldDef, betweenSeparator = ' - ') {
+    let valueLabel = filter.val;
+    const isBetween = filter.cond.toLowerCase() === 'between';
+
+    if (fieldDef && fieldDef.type === 'date') {
+        if (isBetween) {
+            const parts = filter.val.split('|');
+            if (parts.length === 2) {
+                valueLabel = `${parts[0]}${betweenSeparator}${parts[1]}`;
+            }
+        }
+        return valueLabel;
+    }
+
+    const valMap = getFilterValueMap(fieldDef);
+    if (valMap.size > 0) {
+        if (isBetween) {
+            return filter.val.split('|').map(v => valMap.get(v) || v).join(betweenSeparator);
+        }
+
+        return filter.val.split(',').map(v => valMap.get(v) || v).join(', ');
+    }
+
+    if (isBetween) {
+        return filter.val.split('|').join(betweenSeparator);
+    }
+
+    return valueLabel;
+}
+
 class FilterPill {
     constructor(filter, fieldDef, onRemove) {
         this.filter = filter; // Note: using 'filter' prop consistent with queryUI version logic
@@ -22,36 +66,7 @@ class FilterPill {
 
     render() {
         const { filter, fieldDef } = this;
-        // Try to get a user-friendly label for the filter value
-        let valueLabel = filter.val;
-        
-        // Handle "Between" operator special display
-        const isBetween = filter.cond.toLowerCase() === 'between';
-        
-        if (fieldDef && fieldDef.type === 'date') {
-             if (isBetween) {
-                const parts = filter.val.split('|');
-                if (parts.length === 2) {
-                    valueLabel = `${parts[0]} - ${parts[1]}`;
-                }
-            }
-        }
-        else if (fieldDef && fieldDef.values && fieldDef.values.length > 0) {
-           // If the field has defined values (like Library), map raw values to names
-           // Prefer using a global map function if available, or build map from values
-           const valMap = window.getLiteralToDisplayMap ? window.getLiteralToDisplayMap(fieldDef) : 
-                (typeof fieldDef.values[0] === 'object' ? new Map(fieldDef.values.map(v => [v.RawValue, v.Name])) : new Map());
-           
-           if (valMap.size > 0) {
-                if (isBetween) {
-                    valueLabel = filter.val.split('|').map(v => valMap.get(v) || v).join(' - ');
-                } else {
-                    valueLabel = filter.val.split(',').map(v => valMap.get(v) || v).join(', ');
-                }
-           }
-        } else if (isBetween) {
-             valueLabel = filter.val.split('|').join(' - ');
-        }
+        const valueLabel = buildFilterValueLabel(filter, fieldDef);
 
         // Operator label (always show full word)
         let opLabel = filter.cond.charAt(0).toUpperCase() + filter.cond.slice(1);
@@ -682,33 +697,6 @@ window.FilterSidePanel = (function () {
         return map[cond] || (cond.charAt(0).toUpperCase() + cond.slice(1).replace(/_/g, ' '));
     }
 
-    function buildValueLabel(filter, fieldDef) {
-        let valueLabel = filter.val;
-        const isBetween = filter.cond.toLowerCase() === 'between';
-        if (fieldDef && fieldDef.type === 'date') {
-            if (isBetween) {
-                const parts = filter.val.split('|');
-                if (parts.length === 2) valueLabel = `${parts[0]} – ${parts[1]}`;
-            }
-        } else if (fieldDef && fieldDef.values && fieldDef.values.length > 0) {
-            const valMap = window.getLiteralToDisplayMap
-                ? window.getLiteralToDisplayMap(fieldDef)
-                : (typeof fieldDef.values[0] === 'object'
-                    ? new Map(fieldDef.values.map(v => [v.RawValue, v.Name]))
-                    : new Map());
-            if (valMap.size > 0) {
-                if (isBetween) {
-                    valueLabel = filter.val.split('|').map(v => valMap.get(v) || v).join(' – ');
-                } else {
-                    valueLabel = filter.val.split(',').map(v => valMap.get(v) || v).join(', ');
-                }
-            }
-        } else if (isBetween) {
-            valueLabel = filter.val.split('|').join(' – ');
-        }
-        return valueLabel;
-    }
-
     /* --- Inline edit form --- */
     function startInlineEdit(field, filterIndex, rowEl) {
         const filterData = window.activeFilters[field];
@@ -1024,7 +1012,7 @@ window.FilterSidePanel = (function () {
             condsList.className = 'fp-conds-list';
 
             data.filters.forEach((f, idx) => {
-                const valueLabel = buildValueLabel(f, fieldDef);
+                const valueLabel = buildFilterValueLabel(f, fieldDef, ' – ');
                 const row = document.createElement('div');
                 row.className = 'fp-cond-row';
 
