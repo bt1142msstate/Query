@@ -61,18 +61,29 @@ class Bubble {
 
     let tooltipContentHtml = '';
     
-    if (categoryValue) {
-      tooltipContentHtml += `<div style="font-weight:600;margin-bottom:4px;color:#cbd5e1;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;">${categoryValue}</div>`;
+    if (categoryValue || filterTooltipHtml) {
+      if (categoryValue || descValue) {
+        tooltipContentHtml += `<div class="tt-filter-container" style="${filterTooltipHtml ? 'margin-bottom: 12px;' : ''}">`;
+        
+        if (categoryValue) {
+          let titleStyle = (!descValue) ? 'border-bottom: none; margin-bottom: 0; padding-bottom: 0;' : '';
+          tooltipContentHtml += `<div class="tt-filter-title" style="color: #93c5fd; display: flex; align-items: center; gap: 6px; ${titleStyle}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            ${categoryValue}
+          </div>`;
+        }
+        
+        if (descValue) {
+          tooltipContentHtml += `<div style="color: #f8fafc; font-size: 0.95rem; line-height: 1.4; padding-top: 2px;">${descValue}</div>`;
+        }
+        
+        tooltipContentHtml += `</div>`;
+      }
+      
+      if (filterTooltipHtml) {
+        tooltipContentHtml += filterTooltipHtml;
+      }
     }
-    
-    if (descValue) {
-      let descStyle = filterTooltipHtml ? 'margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.2);' : '';
-      tooltipContentHtml += `<div style="${descStyle}color:#f8fafc;font-size:0.9rem;">${descValue}</div>`;
-    } else if (filterTooltipHtml && categoryValue) {
-      tooltipContentHtml += `<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.2);"></div>`;
-    }
-    
-    tooltipContentHtml += filterTooltipHtml;
 
     if (tooltipContentHtml) {
       this.el.removeAttribute('data-tooltip');
