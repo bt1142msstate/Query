@@ -858,6 +858,9 @@ function formatFiltersTooltip(fieldName, filterGroups) {
  * Handles the cleanup of clones and restoration of original bubbles.
  */
 function resetActiveBubbles() {
+  // Always clear any generic animating flag so we aren't stuck preventing clicks if closed early
+  window.isBubbleAnimating = false;
+  
   // Ensure input lock is always cleared
   if (window.ModalSystem) {
     window.ModalSystem.lockInput(0);
