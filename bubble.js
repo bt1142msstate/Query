@@ -333,6 +333,12 @@ function renderBubbles(){
     if (scrollCont) scrollCont.style.height = paddedH + 'px';
     totalRows  = Math.ceil(list.length / 6);
     applyBubbleScrollRow(scrollRow, { force: true });
+  } else {
+    // Ensure scroll state cannot keep stale values when nothing is rendered.
+    totalRows = 0;
+    scrollRow = 0;
+    rowHeight = 0;
+    updateScrollBar();
   }
   Array.from(listDiv.children).forEach(bubble => {
     const fieldName = bubble.textContent.trim();
@@ -374,10 +380,13 @@ function updateScrollBar(){
   }
   
   /* Hide scrollbar container entirely when no scrolling is needed */
+  const listDiv = document.getElementById('bubble-list');
+  const renderedBubbleCount = listDiv ? listDiv.querySelectorAll('.bubble').length : 0;
   const scrollbarContainer = document.querySelector('.bubble-scrollbar-container');
   if(scrollbarContainer){
-    const needScroll = totalRows > BUBBLE_VISIBLE_ROWS;
+    const needScroll = renderedBubbleCount > 0 && totalRows > BUBBLE_VISIBLE_ROWS;
     scrollbarContainer.style.display = needScroll ? 'block' : 'none';
+    if (!needScroll) return;
   }
 
   const track = document.getElementById('bubble-scrollbar-track');
