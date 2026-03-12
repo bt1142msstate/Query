@@ -238,6 +238,46 @@ window.toggleQueryInterface = function(isQueryRunning) {
 };
 
 /* ---------- Table morph animation ---------- */
+function createTableQueryCircuitOverlay() {
+  const circuit = document.createElement('div');
+  circuit.id = 'table-query-circuit';
+  circuit.className = 'table-query-circuit';
+
+  const trackCount = 16 + Math.floor(Math.random() * 8);
+  const colors = ['#22d3ee', '#60a5fa', '#34d399', '#f472b6', '#facc15'];
+
+  for (let i = 0; i < trackCount; i++) {
+    const trace = document.createElement('div');
+    trace.className = 'table-query-circuit-trace';
+
+    const angle = (Math.random() < 0.65 ? (Math.random() * 2 - 1) * 18 : (Math.random() * 2 - 1) * 55).toFixed(2);
+    const length = (18 + Math.random() * 36).toFixed(2);
+    const x = (8 + Math.random() * 84).toFixed(2);
+    const y = (8 + Math.random() * 84).toFixed(2);
+    const colorA = colors[Math.floor(Math.random() * colors.length)];
+    const colorB = colors[Math.floor(Math.random() * colors.length)];
+
+    trace.style.setProperty('--trace-angle', `${angle}deg`);
+    trace.style.setProperty('--trace-len', `${length}%`);
+    trace.style.setProperty('--trace-x', `${x}%`);
+    trace.style.setProperty('--trace-y', `${y}%`);
+    trace.style.setProperty('--trace-color-a', colorA);
+    trace.style.setProperty('--trace-color-b', colorB);
+    trace.style.setProperty('--trace-flicker-delay', `${(-Math.random() * 4).toFixed(2)}s`);
+
+    const pulse = document.createElement('span');
+    pulse.className = 'table-query-circuit-pulse';
+    pulse.style.setProperty('--pulse-duration', `${(0.8 + Math.random() * 1.8).toFixed(2)}s`);
+    pulse.style.setProperty('--pulse-delay', `${(-Math.random() * 2.2).toFixed(2)}s`);
+    pulse.style.setProperty('--pulse-color', colorA);
+
+    trace.appendChild(pulse);
+    circuit.appendChild(trace);
+  }
+
+  return circuit;
+}
+
 window.startTableQueryAnimation = function() {
   const tableContainer = document.getElementById('table-container');
   if (!tableContainer) return;
@@ -256,12 +296,10 @@ window.startTableQueryAnimation = function() {
   textNode.textContent = 'Querying...';
   textNode.style.position = 'relative';
   textNode.style.zIndex = '2';
-  
-  const aurora = document.createElement('div');
-  aurora.id = 'table-query-aurora';
-  aurora.className = 'table-query-aurora';
-  
-  bubble.appendChild(aurora);
+
+  const circuit = createTableQueryCircuitOverlay();
+
+  bubble.appendChild(circuit);
   bubble.appendChild(textNode);
   
   // Get initial container dimensions
@@ -294,11 +332,11 @@ window.startTableQueryAnimation = function() {
   bubble.style.left = '50%';
   bubble.style.borderRadius = '50%';
 
-  // Fade in the aurora effect during/after it circles
+  // Fade in the circuit effect during/after it circles
   // Start the fade soon after the shape morph begins 
   setTimeout(() => {
-    if (document.getElementById('table-query-aurora')) {
-      document.getElementById('table-query-aurora').classList.add('active');
+    if (document.getElementById('table-query-circuit')) {
+      document.getElementById('table-query-circuit').classList.add('active');
     }
   }, 200);
 };
@@ -306,7 +344,7 @@ window.startTableQueryAnimation = function() {
 window.endTableQueryAnimation = function() {
   const tableContainer = document.getElementById('table-container');
   const bubble = document.getElementById('table-query-bubble');
-  const aurora = document.getElementById('table-query-aurora');
+  const circuit = document.getElementById('table-query-circuit');
   
   if (!bubble || !tableContainer) {
     if (tableContainer) tableContainer.classList.remove('table-container-hidden');
@@ -314,14 +352,14 @@ window.endTableQueryAnimation = function() {
     return;
   }
 
-  // Slowly fade out the aurora effect before expanding back to the table
-  if (aurora && aurora.classList.contains('active')) {
-    aurora.classList.remove('active');
+  // Slowly fade out the circuit effect before expanding back to the table
+  if (circuit && circuit.classList.contains('active')) {
+    circuit.classList.remove('active');
     setTimeout(() => {
       startExpansionMorph();
-    }, 1200); // Wait for the new 1.2s fade-out transition to finish
+    }, 650);
   } else {
-    if (aurora) aurora.remove();
+    if (circuit) circuit.remove();
     startExpansionMorph();
   }
 
