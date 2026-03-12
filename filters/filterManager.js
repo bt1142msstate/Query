@@ -682,17 +682,7 @@ window.registerDynamicField = function(fieldName, opts = {}) {
 // Global confirm action finalizer
 window.finalizeConfirmAction = function() {
     window.updateQueryJson();
-    
-    const condInput2 = getFilterConditionInput2Element();
-    if (condInput2) condInput2.value = '';
 
-    const marcInput = document.getElementById('marc-field-input');
-    if (marcInput) marcInput.value = '';
-
-    // Click overlay to close panel and reset
-    const overlay = getFilterOverlayElement();
-    if (overlay) overlay.click();
-    
     window.FilterSidePanel && window.FilterSidePanel.update();
     window.updateCategoryCounts && window.updateCategoryCounts();
 };
