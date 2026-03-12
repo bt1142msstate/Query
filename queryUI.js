@@ -444,6 +444,7 @@ function createTableQueryCircuitOverlay() {
 
     const angle = a.row === b.row ? 0 : 90;
     const length = Math.hypot(b.x - a.x, b.y - a.y);
+    const pulseDuration = Math.max(0.9, length / 16);
     const centerX = (a.x + b.x) / 2;
     const centerY = (a.y + b.y) / 2;
     const colorA = colors[Math.floor(Math.random() * colors.length)];
@@ -461,7 +462,7 @@ function createTableQueryCircuitOverlay() {
     if (Math.random() < pulseChance) {
       const pulse = document.createElement('span');
       pulse.className = 'table-query-circuit-pulse';
-      pulse.style.setProperty('--pulse-duration', `${(0.9 + Math.random() * 1.4).toFixed(2)}s`);
+      pulse.style.setProperty('--pulse-duration', `${pulseDuration.toFixed(2)}s`);
       pulse.style.setProperty('--pulse-delay', `${(-Math.random() * 1.6).toFixed(2)}s`);
       pulse.style.setProperty('--pulse-color', colorA);
       pulse.style.setProperty('--pulse-size', `${Math.max(7, width + 5)}px`);
