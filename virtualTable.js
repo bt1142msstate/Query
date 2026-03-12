@@ -679,10 +679,8 @@ function setSplitColumnsMode(active) {
   calculatedColumnWidths = calculateOptimalColumnWidths(virtualTableData.headers, virtualTableData);
   renderVirtualTable();
 
-  // Update the column header row in the table DOM
-  if (typeof window.updateTableHeaders === 'function') {
-    window.updateTableHeaders(virtualTableData.headers);
-  } else if (typeof showExampleTable === 'function') {
+  // Rebuild the example table fallback when it exists.
+  if (typeof showExampleTable === 'function') {
     showExampleTable(virtualTableData.headers).catch(() => {});
   }
 }

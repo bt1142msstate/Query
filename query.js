@@ -434,9 +434,6 @@ if(clearSearchBtn){
 
 const body=document.getElementById('page-body');
 body.classList.add('night');         // use night-sky background
-// === Spawn moving fireflies ===
-// (now loaded via <script src="fireflies.js"></script> in index.html)
-// ... existing code ...
 
 // attach to the initial table container
 const initialContainer = document.querySelector('.overflow-x-auto.shadow.rounded-lg.mb-6');

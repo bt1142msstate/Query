@@ -79,28 +79,6 @@ window.getDuplicateGroups = function() {
 };
 
 /**
- * Validates if an insertion position would break up duplicate field groups.
- * @function isValidInsertPosition
- * @param {number} insertAt - The proposed insertion index
- * @returns {boolean} True if the position is valid (won't break up duplicates)
- */
-window.isValidInsertPosition = function(insertAt) {
-  // For now, just return true to allow all positions
-  return true;
-};
-
-/**
- * Finds a valid insertion position that won't break duplicate groups.
- * @function findValidInsertPosition
- * @param {number} preferredPosition - The desired insertion position
- * @returns {number} A valid insertion position
- */
-window.findValidInsertPosition = function(preferredPosition) {
-  // For now, just return the preferred position (no validation)
-  return preferredPosition;
-};
-
-/**
  * Helper function to find all related columns (including duplicates) for a field
  * @param {string} fieldName - The field name to look for
  * @returns {number[]} Array of indices in displayedFields
