@@ -193,6 +193,13 @@ function initializeBubbleInteractions() {
     if (!window.filterCard && filterCard) {
       window.filterCard = filterCard;
     }
+    if (filterCard) {
+      filterCard.classList.remove('content-ready');
+      if (filterCard._contentRevealTimer) {
+        clearTimeout(filterCard._contentRevealTimer);
+        filterCard._contentRevealTimer = null;
+      }
+    }
 
     if (overlay) {
       overlay.classList.add('show');
@@ -261,6 +268,14 @@ function initializeBubbleInteractions() {
       }
       clone.classList.add('popping');
       window.createBubblePopParticles(clone);
+
+      if (filterCard) {
+        const revealDelay = Math.max(120, Math.min(220, Math.round(morphDuration * 260)));
+        filterCard._contentRevealTimer = setTimeout(() => {
+          filterCard.classList.add('content-ready');
+          filterCard._contentRevealTimer = null;
+        }, revealDelay);
+      }
 
       clone.removeEventListener('transitionend', t);
       window.isBubbleAnimating = false;

@@ -964,6 +964,17 @@ input, textarea, select, [contenteditable] {
   transform: translate(-50%, -50%);
 }
 
+#filter-card > * {
+  opacity: 0;
+  transform: translateY(10px) scale(0.985);
+  transition: opacity 0.18s ease, transform 0.24s ease;
+}
+
+#filter-card.content-ready > * {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
 #filter-card-header {
   padding: 1rem 1.25rem 0.75rem;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
