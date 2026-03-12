@@ -400,3 +400,5 @@ function escapeHtml(unsafe) {
          .replace(/"/g, "&quot;")
          .replace(/'/g, "&#039;");
 }
+
+window.escapeHtml = escapeHtml;
