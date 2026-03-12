@@ -58,6 +58,90 @@ window.FilterSidePanel = (function () {
         return map[cond] || (cond.charAt(0).toUpperCase() + cond.slice(1).replace(/_/g, ' '));
     }
 
+    function parseFieldListValues(fieldDef) {
+        if (!fieldDef || !fieldDef.values) {
+            return { listValues: null, hasValuePairs: false };
+        }
+
+        try {
+            const parsed = typeof fieldDef.values === 'string' ? JSON.parse(fieldDef.values) : fieldDef.values;
+            if (!Array.isArray(parsed) || parsed.length === 0) {
+                return { listValues: null, hasValuePairs: false };
+            }
+
+            const hasValuePairs = typeof parsed[0] === 'object' && parsed[0].Name && parsed[0].RawValue;
+            const listValues = parsed.slice().sort((a, b) => {
+                const aLabel = hasValuePairs ? a.Name : a;
+                const bLabel = hasValuePairs ? b.Name : b;
+                return String(aLabel).localeCompare(String(bLabel), undefined, {
+                    numeric: true,
+                    sensitivity: 'base'
+                });
+            });
+
+            return { listValues, hasValuePairs };
+        } catch (error) {
+            return { listValues: null, hasValuePairs: false };
+        }
+    }
+
+    function createInlineValueEditor(fieldDef, initialValue, options = {}) {
+        const { listValues } = parseFieldListValues(fieldDef);
+        const fieldType = (fieldDef && fieldDef.type) || 'string';
+        const inputType = fieldType === 'date'
+            ? 'date'
+            : (fieldType === 'number' || fieldType === 'money') ? 'number' : 'text';
+        const currentValues = String(initialValue || '')
+            .split(',')
+            .map(value => value.trim())
+            .filter(Boolean);
+
+        if (!listValues) {
+            const input = document.createElement('input');
+            input.className = 'fp-edit-val-input';
+            input.type = inputType;
+            input.value = initialValue;
+            input.placeholder = 'Value';
+            return input;
+        }
+
+        const isMultiSelect = Boolean(fieldDef && fieldDef.multiSelect);
+        const shouldGroupValues = Boolean(fieldDef && fieldDef.groupValues);
+        const isBooleanField = Boolean(fieldDef && fieldDef.type === 'boolean');
+        const hasDashes = listValues.some(value => {
+            const label = typeof value === 'object'
+                ? (value.Name || value.Display || value.name || value.display || value.RawValue)
+                : value;
+            return String(label).includes('-');
+        });
+
+        if (isBooleanField && listValues.length === 2) {
+            return createBooleanPillSelector(listValues, currentValues[0] || '', {
+                onChange: options.onChange
+            });
+        }
+
+        return createGroupedSelector(listValues, isMultiSelect, currentValues, {
+            enableGrouping: shouldGroupValues && hasDashes
+        });
+    }
+
+    function getInlineEditorValues(inputEl) {
+        if (!inputEl) return [];
+        if (typeof inputEl.getSelectedValues === 'function') {
+            return inputEl.getSelectedValues();
+        }
+        if (inputEl.tagName && inputEl.tagName.toLowerCase() === 'select') {
+            if (inputEl.multiple) {
+                return Array.from(inputEl.selectedOptions).map(option => option.value);
+            }
+            return inputEl.value ? [inputEl.value] : [];
+        }
+
+        const value = typeof inputEl.value === 'string' ? inputEl.value.trim() : '';
+        return value ? [value] : [];
+    }
+
     function startInlineEdit(field, filterIndex, rowEl) {
         const filterData = window.activeFilters[field];
         if (!filterData) return;
@@ -92,50 +176,15 @@ window.FilterSidePanel = (function () {
         const inputType = (fieldType === 'date') ? 'date'
             : (fieldType === 'number' || fieldType === 'money') ? 'number' : 'text';
 
-        let listValues = null;
-        let hasValuePairs = false;
-        if (fieldDef && fieldDef.values) {
-           try {
-               let parsed = typeof fieldDef.values === 'string' ? JSON.parse(fieldDef.values) : fieldDef.values;
-               if (Array.isArray(parsed) && parsed.length > 0) {
-                   listValues = parsed;
-                   if (typeof parsed[0] === 'object' && parsed[0].Name && parsed[0].RawValue) {
-                       hasValuePairs = true;
-                   }
-               }
-           } catch(e) {}
-        }
-        const isMultiSelect = fieldDef && fieldDef.multiSelect;
+        let saveEdit = null;
 
-        let val1;
-        if (listValues) {
-            val1 = document.createElement('select');
-            val1.className = 'fp-edit-val-input fp-edit-cond-select';
-            if (isMultiSelect) val1.multiple = true;
-            if (isMultiSelect) val1.style.minHeight = '70px';
-
-            const currentVals = vals[0].split(',').map(v => v.trim());
-
-            listValues.forEach(v => {
-                const opt = document.createElement('option');
-                if (hasValuePairs) {
-                    opt.value = v.RawValue;
-                    opt.textContent = v.Name;
-                    if (currentVals.includes(String(v.RawValue))) opt.selected = true;
-                } else {
-                    opt.value = v;
-                    opt.textContent = v;
-                    if (currentVals.includes(String(v))) opt.selected = true;
+        const val1 = createInlineValueEditor(fieldDef, vals[0], {
+            onChange: () => {
+                if (typeof saveEdit === 'function') {
+                    saveEdit();
                 }
-                val1.appendChild(opt);
-            });
-        } else {
-            val1 = document.createElement('input');
-            val1.className = 'fp-edit-val-input';
-            val1.type = inputType;
-            val1.value = vals[0];
-            val1.placeholder = 'Value';
-        }
+            }
+        });
 
         const sep = document.createElement('span');
         sep.className = 'fp-edit-separator';
@@ -159,18 +208,9 @@ window.FilterSidePanel = (function () {
         saveBtn.className = 'fp-edit-save-btn';
         saveBtn.textContent = '✓';
         saveBtn.title = 'Save';
-        saveBtn.addEventListener('click', () => {
+        saveEdit = () => {
             const newCond = condSel.value;
-            let newVal;
-            if (val1.tagName && val1.tagName.toLowerCase() === 'select') {
-                if (val1.multiple) {
-                    newVal = Array.from(val1.selectedOptions).map(o => o.value).join(',');
-                } else {
-                    newVal = val1.value;
-                }
-            } else {
-                newVal = val1.value.trim();
-            }
+            let newVal = getInlineEditorValues(val1).join(',');
 
             const newVal2 = val2.value.trim();
             if (!newVal) return;
@@ -182,7 +222,8 @@ window.FilterSidePanel = (function () {
             window.updateQueryJson && window.updateQueryJson();
             window.renderConditionList && window.renderConditionList(field);
             update();
-        });
+        };
+        saveBtn.addEventListener('click', saveEdit);
 
         const cancelBtn = document.createElement('button');
         cancelBtn.className = 'fp-edit-cancel-btn';

@@ -2156,6 +2156,34 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
+.fp-edit-form .grouped-selector,
+.fp-edit-form .boolean-pill-selector {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
+.fp-edit-form .grouped-selector {
+  max-height: 16rem;
+}
+
+.fp-edit-form .grouped-options-container {
+  max-height: 12rem;
+}
+
+.fp-edit-form .search-input {
+  font-size: 0.72rem;
+}
+
+.fp-edit-form .boolean-pill-selector {
+  justify-content: stretch;
+}
+
+.fp-edit-form .boolean-pill-option {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 .fp-edit-separator {
   text-align: center;
   color: #9ca3af;
