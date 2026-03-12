@@ -2300,14 +2300,27 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
   left: var(--trace-x);
   top: var(--trace-y);
   width: var(--trace-len);
-  height: 2px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, transparent 0%, var(--trace-color-a) 34%, var(--trace-color-b) 66%, transparent 100%);
-  opacity: 0.28;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--trace-color-a) 0%, var(--trace-color-b) 100%);
+  opacity: 0.34;
   transform: translate(-50%, -50%) rotate(var(--trace-angle));
   transform-origin: center;
   animation: circuit-trace-flicker 2.8s linear infinite;
   animation-delay: var(--trace-flicker-delay);
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.25), inset 0 0 2px rgba(255, 255, 255, 0.2);
+}
+
+.table-query-circuit-node {
+  position: absolute;
+  width: var(--node-size, 6px);
+  height: var(--node-size, 6px);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.95) 0%, rgba(34, 211, 238, 0.95) 45%, rgba(6, 182, 212, 0.75) 100%);
+  box-shadow: 0 0 9px rgba(34, 211, 238, 0.55), 0 0 16px rgba(56, 189, 248, 0.35);
+  animation: circuit-node-spark 2s ease-in-out infinite;
+  animation-delay: var(--node-delay, 0s);
 }
 
 .table-query-circuit-pulse {
@@ -2346,5 +2359,10 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
 @keyframes circuit-node-pulse {
   0%, 100% { opacity: 0.35; }
   50% { opacity: 0.7; }
+}
+
+@keyframes circuit-node-spark {
+  0%, 100% { opacity: 0.55; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.95; transform: translate(-50%, -50%) scale(1.15); }
 }
 
