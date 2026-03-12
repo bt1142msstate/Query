@@ -603,59 +603,83 @@ function normalizeLogicalOperator(operator) {
   return normalized === 'or' ? 'Or' : 'And';
 }
 
+const FIELD_OPERATOR_TO_UI_COND = {
+  Equals: 'equals',
+  equals: 'equals',
+  '=': 'equals',
+  DoesNotEqual: 'does_not_equal',
+  does_not_equal: 'does_not_equal',
+  doesnotequal: 'does_not_equal',
+  '!=': 'does_not_equal',
+  GreaterThan: 'greater',
+  greater: 'greater',
+  '>': 'greater',
+  LessThan: 'less',
+  less: 'less',
+  '<': 'less',
+  GreaterThanOrEqual: 'greater_or_equal',
+  greater_or_equal: 'greater_or_equal',
+  '>=': 'greater_or_equal',
+  LessThanOrEqual: 'less_or_equal',
+  less_or_equal: 'less_or_equal',
+  '<=': 'less_or_equal',
+  Contains: 'contains',
+  contains: 'contains',
+  DoesNotContain: 'doesnotcontain',
+  does_not_contain: 'doesnotcontain',
+  doesnotcontain: 'doesnotcontain',
+  Between: 'between',
+  between: 'between',
+  Before: 'before',
+  before: 'before',
+  After: 'after',
+  after: 'after',
+  OnOrBefore: 'on_or_before',
+  on_or_before: 'on_or_before',
+  OnOrAfter: 'on_or_after',
+  on_or_after: 'on_or_after'
+};
+
+const UI_COND_TO_FIELD_OPERATOR = {
+  greater: 'GreaterThan',
+  after: 'GreaterThan',
+  less: 'LessThan',
+  before: 'LessThan',
+  equals: 'Equals',
+  does_not_equal: 'DoesNotEqual',
+  doesnotequal: 'DoesNotEqual',
+  greater_or_equal: 'GreaterThanOrEqual',
+  on_or_after: 'GreaterThanOrEqual',
+  less_or_equal: 'LessThanOrEqual',
+  on_or_before: 'LessThanOrEqual',
+  between: 'Between',
+  contains: 'Contains',
+  starts: 'Contains',
+  starts_with: 'Contains',
+  does_not_contain: 'DoesNotContain',
+  doesnotcontain: 'DoesNotContain'
+};
+
+const UI_FILTER_TO_BACKEND = {
+  equals: [{ operator: '=', valueTransform: value => value }],
+  does_not_equal: [{ operator: '!=', valueTransform: value => value }],
+  greater: [{ operator: '>', valueTransform: value => value }],
+  after: [{ operator: '>', valueTransform: value => value }],
+  less: [{ operator: '<', valueTransform: value => value }],
+  before: [{ operator: '<', valueTransform: value => value }],
+  greater_or_equal: [{ operator: '>=', valueTransform: value => value }],
+  on_or_after: [{ operator: '>=', valueTransform: value => value }],
+  less_or_equal: [{ operator: '<=', valueTransform: value => value }],
+  on_or_before: [{ operator: '<=', valueTransform: value => value }],
+  starts: [{ operator: '=', valueTransform: value => `${value}*` }],
+  starts_with: [{ operator: '=', valueTransform: value => `${value}*` }],
+  contains: [{ operator: '=', valueTransform: value => `*${value}*` }],
+  does_not_contain: [{ operator: '!=', valueTransform: value => `*${value}*` }]
+};
+
 window.mapFieldOperatorToUiCond = function(operator) {
   const normalized = String(operator || '').trim();
-  switch (normalized) {
-    case 'Equals':
-    case 'equals':
-    case '=':
-      return 'equals';
-    case 'DoesNotEqual':
-    case 'does_not_equal':
-    case 'doesnotequal':
-    case '!=':
-      return 'does_not_equal';
-    case 'GreaterThan':
-    case 'greater':
-    case '>':
-      return 'greater';
-    case 'LessThan':
-    case 'less':
-    case '<':
-      return 'less';
-    case 'GreaterThanOrEqual':
-    case 'greater_or_equal':
-    case '>=':
-      return 'greater_or_equal';
-    case 'LessThanOrEqual':
-    case 'less_or_equal':
-    case '<=':
-      return 'less_or_equal';
-    case 'Contains':
-    case 'contains':
-      return 'contains';
-    case 'DoesNotContain':
-    case 'does_not_contain':
-    case 'doesnotcontain':
-      return 'doesnotcontain';
-    case 'Between':
-    case 'between':
-      return 'between';
-    case 'Before':
-    case 'before':
-      return 'before';
-    case 'After':
-    case 'after':
-      return 'after';
-    case 'OnOrBefore':
-    case 'on_or_before':
-      return 'on_or_before';
-    case 'OnOrAfter':
-    case 'on_or_after':
-      return 'on_or_after';
-    default:
-      return normalized.toLowerCase();
-  }
+  return FIELD_OPERATOR_TO_UI_COND[normalized] || normalized.toLowerCase();
 };
 
 window.formatFieldOperatorForDisplay = function(operator) {
@@ -693,76 +717,32 @@ window.formatFieldOperatorForDisplay = function(operator) {
 };
 
 window.mapUiCondToFieldOperator = function(cond) {
-  switch(cond){
-    case 'greater':
-    case 'after':
-      return 'GreaterThan';
-    case 'less':
-    case 'before':
-      return 'LessThan';
-    case 'equals':
-      return 'Equals';
-    case 'does_not_equal':
-    case 'doesnotequal':
-      return 'DoesNotEqual';
-    case 'greater_or_equal':
-    case 'on_or_after':
-      return 'GreaterThanOrEqual';
-    case 'less_or_equal':
-    case 'on_or_before':
-      return 'LessThanOrEqual';
-    case 'between':
-      return 'Between';
-    case 'contains':
-    case 'starts':
-    case 'starts_with':
-      return 'Contains';
-    case 'does_not_contain':
-    case 'doesnotcontain':
-      return 'DoesNotContain';
-    default:
-      return cond.charAt(0).toUpperCase() + cond.slice(1);
-  }
+  const normalized = String(cond || '').trim();
+  return UI_COND_TO_FIELD_OPERATOR[normalized] || (normalized.charAt(0).toUpperCase() + normalized.slice(1));
 };
 
 function mapActiveFilterToBackend(condition, rawValue) {
-  switch (condition) {
-    case 'equals':
-      return [{ operator: '=', value: rawValue }];
-    case 'does_not_equal':
-      return [{ operator: '!=', value: rawValue }];
-    case 'greater':
-    case 'after':
-      return [{ operator: '>', value: rawValue }];
-    case 'less':
-    case 'before':
-      return [{ operator: '<', value: rawValue }];
-    case 'greater_or_equal':
-    case 'on_or_after':
-      return [{ operator: '>=', value: rawValue }];
-    case 'less_or_equal':
-    case 'on_or_before':
-      return [{ operator: '<=', value: rawValue }];
-    case 'starts':
-    case 'starts_with':
-      return [{ operator: '=', value: `${rawValue}*` }];
-    case 'contains':
-      return [{ operator: '=', value: `*${rawValue}*` }];
-    case 'does_not_contain':
-      return [{ operator: '!=', value: `*${rawValue}*` }];
-    case 'between': {
-      const parts = String(rawValue).split('|');
-      if (parts.length >= 2) {
-        return [
-          { operator: '>=', value: parts[0] },
-          { operator: '<=', value: parts[1] }
-        ];
-      }
-      return [{ operator: '=', value: rawValue }];
+  if (condition === 'between') {
+    const parts = String(rawValue).split('|');
+    if (parts.length >= 2) {
+      return [
+        { operator: '>=', value: parts[0] },
+        { operator: '<=', value: parts[1] }
+      ];
     }
-    default:
-      return [{ operator: '=', value: rawValue }];
+
+    return [{ operator: '=', value: rawValue }];
   }
+
+  const mappings = UI_FILTER_TO_BACKEND[String(condition || '').trim()];
+  if (!mappings) {
+    return [{ operator: '=', value: rawValue }];
+  }
+
+  return mappings.map(({ operator, valueTransform }) => ({
+    operator,
+    value: valueTransform(rawValue)
+  }));
 }
 
 window.getNormalizedDisplayedFields = function(fields = window.displayedFields) {
@@ -860,9 +840,6 @@ window.updateQueryJson = function(){
   if(queryBox) queryBox.value = JSON.stringify(payload, null, 2);
   window.updateButtonStates();
 };
-
-/* ---------- Helper: map UI condition slugs to C# enum names ---------- */
-const mapOperator = window.mapUiCondToFieldOperator;
 
 // Helper function to check if a field should have purple styling
 window.shouldFieldHavePurpleStyling = function(fieldName) {

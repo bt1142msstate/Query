@@ -1026,27 +1026,6 @@ function initializeBubbles() {
   return true;
 }
 
-// Helper to format filters for tooltips (used by bubbles)
-function formatFiltersTooltip(fieldName, filterGroups) {
-  const lines = [];
-  filterGroups.forEach(group => {
-    group.Filters.forEach(filter => {
-      const op = filter.FieldOperator;
-      const vals = filter.Values;
-      let line = `${fieldName} ${op}`;
-      if (vals && vals.length > 0) {
-        if (op === 'between' && vals.length >= 2) {
-          line += ` ${vals[0]} and ${vals[1]}`;
-        } else {
-          line += ` ${vals.join(', ')}`;
-        }
-      }
-      lines.push(line);
-    });
-  });
-  return lines.join('\n');
-}
-
 /**
  * Restores bubble interaction and visual state after close/reset paths.
  * Prevents stale disabled bubbles when close occurs mid-animation.
@@ -1227,7 +1206,6 @@ if (typeof window !== 'undefined') {
     updateScrollBar,
     buildConditionPanel,
     initializeBubbles,
-    formatFiltersTooltip,
     resetActiveBubbles
   };
 }
