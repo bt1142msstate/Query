@@ -258,8 +258,8 @@ function createTableQueryCircuitOverlay() {
   const segments = [];
   const segmentKeys = new Set();
   const usedNodes = new Map();
-  const busRows = [...new Set([2, Math.floor(rows / 2), rows - 3])].sort((a, b) => a - b);
-  const busCols = [...new Set([2, Math.floor(cols / 2), cols - 3])].sort((a, b) => a - b);
+  const busRows = [...new Set([2, rows - 3])].sort((a, b) => a - b);
+  const busCols = [...new Set([2, cols - 3])].sort((a, b) => a - b);
 
   function point(col, row) {
     return {
@@ -379,11 +379,7 @@ function createTableQueryCircuitOverlay() {
     });
   });
 
-  for (let i = 0; i < hubs.length - 1; i++) {
-    routeAlongPreferredCorridor(hubs[i], hubs[i + 1]);
-  }
-
-  const branchCount = randomInt(8, 11);
+  const branchCount = randomInt(5, 7);
   for (let i = 0; i < branchCount; i++) {
     const side = randomInt(0, 3);
     let start;
@@ -395,19 +391,19 @@ function createTableQueryCircuitOverlay() {
     connectEdgeFeed(start, nearestHub(start, hubs));
   }
 
-  const spurCount = randomInt(8, 12);
+  const spurCount = randomInt(3, 5);
   for (let i = 0; i < spurCount; i++) {
     if (Math.random() < 0.5) {
       const trunkCol = busCols[randomInt(0, busCols.length - 1)];
       const startRow = busRows[randomInt(0, busRows.length - 1)];
       const direction = Math.random() < 0.5 ? -1 : 1;
-      const endRow = Math.max(1, Math.min(rows - 2, startRow + direction * randomInt(1, 2)));
+      const endRow = Math.max(1, Math.min(rows - 2, startRow + direction * 1));
       addSegment(point(trunkCol, startRow), point(trunkCol, endRow));
     } else {
       const trunkRow = busRows[randomInt(0, busRows.length - 1)];
       const startCol = busCols[randomInt(0, busCols.length - 1)];
       const direction = Math.random() < 0.5 ? -1 : 1;
-      const endCol = Math.max(1, Math.min(cols - 2, startCol + direction * randomInt(1, 2)));
+      const endCol = Math.max(1, Math.min(cols - 2, startCol + direction * 1));
       addSegment(point(startCol, trunkRow), point(endCol, trunkRow));
     }
   }
