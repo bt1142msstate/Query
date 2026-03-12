@@ -283,6 +283,8 @@ function createTableQueryCircuitOverlay() {
 
   function routeManhattan(a, b) {
     let curr = a;
+    const diagFirst = Math.random() < 0.5;
+
     while (curr.key !== b.key) {
       const dx = b.col - curr.col;
       const dy = b.row - curr.row;
@@ -290,16 +292,26 @@ function createTableQueryCircuitOverlay() {
       let nextCol = curr.col;
       let nextRow = curr.row;
 
-      if (Math.abs(dx) > 0 && Math.abs(dy) > 0 && Math.random() < 0.6) {
-        // Diagonal 45 degree step
-        nextCol += Math.sign(dx);
-        nextRow += Math.sign(dy);
-      } else if (Math.abs(dx) > Math.abs(dy)) {
-        // Horizontal step
-        nextCol += Math.sign(dx);
+      if (diagFirst) {
+        // PCB style 1: Route 45-degrees until one axis aligns, then go straight
+        if (Math.abs(dx) > 0 && Math.abs(dy) > 0) {
+          nextCol += Math.sign(dx);
+          nextRow += Math.sign(dy);
+        } else if (Math.abs(dx) > 0) {
+          nextCol += Math.sign(dx);
+        } else {
+          nextRow += Math.sign(dy);
+        }
       } else {
-        // Vertical step
-        nextRow += Math.sign(dy);
+        // PCB style 2: Route straight until distance remaining is equal on both axes, then 45-degree
+        if (Math.abs(dx) > Math.abs(dy)) {
+          nextCol += Math.sign(dx);
+        } else if (Math.abs(dy) > Math.abs(dx)) {
+          nextRow += Math.sign(dy);
+        } else {
+          nextCol += Math.sign(dx);
+          nextRow += Math.sign(dy);
+        }
       }
       
       const next = point(nextCol, nextRow);
@@ -395,7 +407,7 @@ function createTableQueryCircuitOverlay() {
     node.className = 'table-query-circuit-node';
     node.style.left = `${(xMin + col * xStep).toFixed(2)}%`;
     node.style.top = `${(yMin + row * yStep).toFixed(2)}%`;
-    node.style.setProperty('--node-size', degree >= 3 ? '8px' : '6px');
+    node.style.setProperty('--node-size', degree >= 3 ? '12px' : '8px');
     node.style.setProperty('--node-delay', `${(-Math.random() * 2).toFixed(2)}s`);
     circuit.appendChild(node);
   });
