@@ -509,7 +509,12 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
             special_payload: specialPayload
         };
         window.fieldDefs.set(dynamicFieldName, newDef);
-        
+
+        // Ensure the field is in fieldDefsArray so category counts and filtering work
+        if (!window.fieldDefsArray.find(d => d.name === dynamicFieldName)) {
+            window.fieldDefsArray.push({ ...newDef });
+        }
+
         // Ensure the field is in filteredDefs immediately
         if (!window.filteredDefs.find(d => d.name === dynamicFieldName)) {
             window.filteredDefs.push({ ...newDef });
