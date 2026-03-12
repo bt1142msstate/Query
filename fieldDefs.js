@@ -113,15 +113,6 @@ fieldDefs = new Map(fieldDefsArray.map(field => [field.name, field]));
 filteredDefs = [...fieldDefsArray];
 
 /**
- * Returns all field definitions.
- * @function getAllFieldDefs
- * @returns {Object[]} Array of field definition objects
- */
-function getAllFieldDefs() {
-  return fieldDefsArray;
-}
-
-/**
  * Updates the filtered definitions array based on search term.
  * Filters field definitions by name matching the search term.
  * @function updateFilteredDefs
@@ -130,9 +121,9 @@ function getAllFieldDefs() {
  */
 function updateFilteredDefs(searchTerm) {
   if (searchTerm === '') {
-    filteredDefs = [...getAllFieldDefs()];
+    filteredDefs = [...fieldDefsArray];
   } else {
-    filteredDefs = getAllFieldDefs().filter(d => d.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    filteredDefs = fieldDefsArray.filter(d => d.name.toLowerCase().includes(searchTerm.toLowerCase()));
   }
   // Keep window.filteredDefs in sync so other scripts (e.g. bubble.js) see the updated array
   window.filteredDefs = filteredDefs;
