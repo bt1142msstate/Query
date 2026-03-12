@@ -17,6 +17,7 @@ window.DOM = {
   get refreshIcon() { return this._refreshIcon ||= document.getElementById('refresh-icon'); },
   get stopIcon() { return this._stopIcon ||= document.getElementById('stop-icon'); },
   get downloadBtn() { return this._downloadBtn ||= document.getElementById('download-btn'); },
+  get clearQueryBtn() { return this._clearQueryBtn ||= document.getElementById('clear-query-btn'); },
   get queryBox() { return this._queryBox ||= document.getElementById('query-json'); },
   get queryInput() { return this._queryInput ||= document.getElementById('query-input'); },
   get tableNameInput() { return this._tableNameInput ||= document.getElementById('table-name-input'); },
@@ -99,6 +100,7 @@ window.updateRunButtonIcon = function(validationError) {
 window.updateButtonStates = function() {
   const runBtn = window.DOM.runBtn;
   const downloadBtn = window.DOM.downloadBtn;
+  const clearQueryBtn = window.DOM.clearQueryBtn;
   const tableNameInput = window.DOM.tableNameInput;
   const tableName = tableNameInput ? tableNameInput.value.trim() : '';
   const hasName = tableName !== '';
@@ -156,5 +158,24 @@ window.updateButtonStates = function() {
     } else {
       downloadBtn.setAttribute('data-tooltip', 'Download Excel file');
     }
+  }
+
+  if (clearQueryBtn) {
+    const hasTableName = !!(tableNameInput && tableNameInput.value.trim());
+    const hasQueryText = !!(window.DOM.queryInput && window.DOM.queryInput.value.trim());
+    const hasFields = Array.isArray(window.displayedFields) && window.displayedFields.length > 0;
+    const hasFilters = !!(window.activeFilters && Object.values(window.activeFilters).some(data => data && Array.isArray(data.filters) && data.filters.length > 0));
+    const hasData = !!(
+      window.VirtualTable &&
+      window.VirtualTable.virtualTableData &&
+      Array.isArray(window.VirtualTable.virtualTableData.rows) &&
+      window.VirtualTable.virtualTableData.rows.length > 0
+    );
+    const canClear = hasTableName || hasQueryText || hasFields || hasFilters || hasData;
+
+    clearQueryBtn.disabled = window.queryRunning || !canClear;
+    clearQueryBtn.classList.toggle('opacity-50', clearQueryBtn.disabled);
+    clearQueryBtn.classList.toggle('cursor-not-allowed', clearQueryBtn.disabled);
+    clearQueryBtn.setAttribute('data-tooltip', clearQueryBtn.disabled ? 'Nothing to clear' : 'Clear current query');
   }
 };

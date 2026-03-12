@@ -179,6 +179,18 @@ class ModalManager {
         });
     }
 
+    const mobileClearQuery = document.getElementById('mobile-clear-query');
+    if (mobileClearQuery) {
+      mobileClearQuery.addEventListener('click', () => {
+        this.closePanel('mobile-menu-dropdown');
+        if (typeof window.clearCurrentQuery === 'function') {
+          window.clearCurrentQuery().catch(err => {
+            console.error('Failed to clear query from mobile menu', err);
+          });
+        }
+      });
+    }
+
     // Mobile: Panel Toggles
     const mobilePanelToggles = {
         'mobile-toggle-json': 'json-panel',
