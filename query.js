@@ -789,6 +789,19 @@ function renderCategorySelectorsLocal(categoryCounts) {
 
 // Replace all category bar/mobile selector update logic with the new function
 function updateCategoryCounts() {
+  if (!window.hasLoadedFieldDefinitions || !window.hasLoadedFieldDefinitions()) {
+    const categoryBar = document.getElementById('category-bar');
+    const mobileSelector = document.getElementById('mobile-category-selector');
+    if (categoryBar) {
+      categoryBar.innerHTML = '';
+    }
+    if (mobileSelector) {
+      mobileSelector.innerHTML = '';
+      mobileSelector.value = '';
+    }
+    return;
+  }
+
   const categoryCounts = calculateCategoryCounts(displayedFields, activeFilters);
   renderCategorySelectorsLocal(categoryCounts);
 
