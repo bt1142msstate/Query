@@ -498,7 +498,8 @@ function removeColumn(table, colIndex) {
   if (baseFieldName) {
     document.querySelectorAll('.bubble').forEach(bubbleEl => {
       if (bubbleEl.textContent.trim() === baseFieldName) {
-        if (baseFieldName === 'Marc') {
+        const fieldDef = window.fieldDefs ? window.fieldDefs.get(baseFieldName) : null;
+        if (fieldDef && fieldDef.is_buildable) {
           bubbleEl.setAttribute('draggable', 'false');
         } else {
           bubbleEl.setAttribute('draggable', 'true');

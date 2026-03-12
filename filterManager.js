@@ -307,11 +307,11 @@ window.handleFilterConfirm = function(e) {
     let val2 = conditionInput2.value.trim();
     
     const fieldDef = window.fieldDefs.get(field);
-    const isSpecialMarc = fieldDef && fieldDef.isSpecialMarc;
+    const isBuildable = fieldDef && fieldDef.is_buildable;
 
-    // Special handling for MARC fields
-    if (isSpecialMarc) {
-        handleMarcFieldConfirm(cond, val);
+    // Special handling for buildable fields
+    if (isBuildable) {
+        handleBuildableFieldConfirm(fieldDef, cond, val);
         window.finalizeConfirmAction();
         return;
     }
@@ -458,78 +458,100 @@ window.handleFilterConfirm = function(e) {
 /**
  * Specific logic for MARC fields creation
  */
-function handleMarcFieldConfirm(cond, val) {
-    const marcInput = document.getElementById('marc-field-input');
-    const marcNumbersRaw = marcInput?.value?.trim();
+function handleBuildableFieldConfirm(fieldDef, cond, val) {
+    const inputs = document.querySelectorAll('.dynamic-builder-input');
+    const inputVals = {};
     
-    if (!marcNumbersRaw) {
-        return window.showError('Please enter at least one Marc field number', [marcInput]);
-    }
-    
-    const marcNumbers = marcNumbersRaw.split(',').map(s => s.trim()).filter(s => /^\d{1,3}$/.test(s));
-    
-    if (marcNumbers.length === 0) {
-        return window.showError('Please enter valid Marc field numbers (1-3 digits, comma separated)', [marcInput]);
-    }
-
-    marcNumbers.forEach((marcNumber, idx) => {
-        const dynamicMarcField = `Marc${marcNumber}`;
-        if (dynamicMarcField === 'Marc') return; 
+    // Gather all variables
+    let missingInput = false;
+    for (const inp of inputs) {
+        let value = inp.value.trim();
+        const patternStr = inp.getAttribute('pattern');
+        const errorMsg = inp.dataset.errorMsg || 'Invalid input';
+        const inputId = inp.dataset.inputId;
         
-        // Dynamically add field definition if missing
-        if (!window.fieldDefs.has(dynamicMarcField)) {
-            const newDef = {
-                name: dynamicMarcField,
-                type: 'string',
-                category: 'Marc',
-                desc: `MARC ${marcNumber} field`
-            };
-            window.fieldDefs.set(dynamicMarcField, newDef);
-            
-            // Ensure the field is in filteredDefs immediately
-            if (!window.filteredDefs.find(d => d.name === dynamicMarcField)) {
-                window.filteredDefs.push({ ...newDef });
-            }
+        if (!value || (patternStr && !new RegExp(patternStr).test(value))) {
+           missingInput = true;
+           window.showError(errorMsg, [inp]);
+           break;
         }
         
-        window.DragDropSystem.restoreFieldWithDuplicates(dynamicMarcField);
+        inputVals[inputId] = value;
+    }
+    
+    if (missingInput) return;
 
-        // Apply filter if one was selected
-        if (idx === 0 && cond && val) {
-            if (!window.activeFilters[dynamicMarcField]) {
-                window.activeFilters[dynamicMarcField] = { logical: 'And', filters: [] };
-            }
-            const alreadyExists = window.activeFilters[dynamicMarcField].filters.some(f => f.cond === cond && f.val === val);
-            if (!alreadyExists) {
-                window.activeFilters[dynamicMarcField].filters.push({ cond, val });
+    // Build the dynamic field name from the template
+    let dynamicFieldName = fieldDef.field_template || fieldDef.name;
+    let specialPayload = fieldDef.special_payload_template ? JSON.parse(JSON.stringify(fieldDef.special_payload_template)) : null;
+
+    for (const [key, v] of Object.entries(inputVals)) {
+        dynamicFieldName = dynamicFieldName.replace(`{${key}}`, v);
+        if (specialPayload) {
+            // Replace references in special payload
+            for (const pKey in specialPayload) {
+                if (typeof specialPayload[pKey] === 'string') {
+                    specialPayload[pKey] = specialPayload[pKey].replace(`{${key}}`, v);
+                }
             }
         }
-    });
+    }
+    
+    if (dynamicFieldName === fieldDef.name) return;
+    
+    // Dynamically add field definition if missing
+    if (!window.fieldDefs.has(dynamicFieldName)) {
+        const newDef = {
+            name: dynamicFieldName,
+            type: fieldDef.type || 'string',
+            category: fieldDef.category || 'Other',
+            desc: `${fieldDef.name} custom: ${Object.values(inputVals).join(', ')}`,
+            special_payload: specialPayload
+        };
+        window.fieldDefs.set(dynamicFieldName, newDef);
+        
+        // Ensure the field is in filteredDefs immediately
+        if (!window.filteredDefs.find(d => d.name === dynamicFieldName)) {
+            window.filteredDefs.push({ ...newDef });
+        }
+    }
+    
+    window.DragDropSystem.restoreFieldWithDuplicates(dynamicFieldName);
+
+    // Apply filter if one was selected
+    if (cond && val) {
+        if (!window.activeFilters[dynamicFieldName]) {
+            window.activeFilters[dynamicFieldName] = { logical: 'And', filters: [] };
+        }
+        const alreadyExists = window.activeFilters[dynamicFieldName].filters.some(f => f.cond === cond && f.val === val);
+        if (!alreadyExists) {
+            window.activeFilters[dynamicFieldName].filters.push({ cond, val });
+        }
+    }
 
     // Update table once
-    if (marcNumbers.length > 0) {
-        window.showExampleTable(window.displayedFields).catch(console.error);
-    
-        // Clear search
-        const queryInput = document.getElementById('query-input');
-        if (queryInput && queryInput.value.trim()) {
-            queryInput.value = '';
-            window.updateFilteredDefs(''); 
-        }
+    window.showExampleTable(window.displayedFields).catch(console.error);
 
-        setTimeout(() => {
-            // Switch to Selected category
-            window.currentCategory = 'Selected';
-            document.querySelectorAll('#category-bar .category-btn').forEach(btn =>
-                btn.classList.toggle('active', btn.dataset.category === 'Selected')
-            );
-            
-            window.updateCategoryCounts();
-            window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
-        }, 200);
+    // Clear search
+    const queryInput = document.getElementById('query-input');
+    if (queryInput && queryInput.value.trim()) {
+        queryInput.value = '';
+        window.updateFilteredDefs(''); 
     }
+
+    setTimeout(() => {
+        // Switch to Selected category
+        window.currentCategory = 'Selected';
+        document.querySelectorAll('#category-bar .category-btn').forEach(btn =>
+            btn.classList.toggle('active', btn.dataset.category === 'Selected')
+        );
+        
+        window.updateCategoryCounts();
+        window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
+    }, 200);
     
-    if (window.activeFilters['Marc']) delete window.activeFilters['Marc'];
+    // Clean up base buildable filters just in case
+    if (window.activeFilters[fieldDef.name]) delete window.activeFilters[fieldDef.name];
 }
 
 // Global confirm action finalizer
@@ -1029,9 +1051,9 @@ window.FilterSidePanel = (function () {
 }());
 
 /**
- * Special handler for condition buttons when in Marc mode
+ * Special handler for condition buttons when in a buildable field (e.g., Marc)
  */
-window.marcConditionBtnHandler = function(e) {
+window.buildableConditionBtnHandler = function(e) {
     e.stopPropagation();
     const btn = e.currentTarget;
     const conditionPanel = document.getElementById('condition-panel');
@@ -1047,20 +1069,28 @@ window.marcConditionBtnHandler = function(e) {
     
     const cond = btn.dataset.cond;
     
-    // Get the Marc field number
-    const marcInput = document.getElementById('marc-field-input');
-    const marcNumber = marcInput?.value?.trim();
-    
-    if (!marcNumber || !/^\d{1,3}$/.test(marcNumber)) {
-        // Show error if Marc number is invalid
-        const errorLabel = document.getElementById('filter-error');
-        if (errorLabel) {
-            errorLabel.textContent = 'Please enter a valid Marc field number';
-            errorLabel.style.display = 'block';
-            setTimeout(() => { errorLabel.style.display = 'none'; }, 3000);
+    // Validate the dynamic inputs
+    const inputs = document.querySelectorAll('.dynamic-builder-input');
+    let isValid = true;
+    for (const inp of inputs) {
+        let value = inp.value.trim();
+        const patternStr = inp.getAttribute('pattern');
+        const errorMsg = inp.dataset.errorMsg || 'Invalid input';
+        
+        const firstVal = value.split(',')[0].trim();
+        if (!firstVal || (patternStr && !new RegExp(patternStr).test(firstVal))) {
+            const errorLabel = document.getElementById('filter-error');
+            if (errorLabel) {
+                errorLabel.textContent = errorMsg;
+                errorLabel.style.display = 'block';
+                setTimeout(() => { errorLabel.style.display = 'none'; }, 3000);
+            }
+            isValid = false;
+            break;
         }
-        return;
     }
+    
+    if (!isValid) return;
     
     // Normal condition button behavior (show input field)
     // Show second input and "and" label only for "between"

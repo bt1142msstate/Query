@@ -414,7 +414,10 @@ window.positionInputWrapper = function(){
 window.updateQueryJson = function(){
   // Filter out duplicate field names (2nd, 3rd, etc.) and get only base field names
   const baseFields = [...window.displayedFields]
-    .filter(field => field !== 'Marc')
+    .filter(field => {
+      const def = window.fieldDefs ? window.fieldDefs.get(field) : null;
+      return !(def && def.is_buildable);
+    })
     .map(field => {
       return window.getBaseFieldName(field);
     })
@@ -482,8 +485,9 @@ window.updateQueryJson = function(){
 
   // Active filters from UI → logical group per field
   Object.entries(window.activeFilters).forEach(([field,data])=>{
-    // Skip the special Marc field itself
-    if (field === 'Marc') return;
+    // Skip the buildable base fields themselves
+    const fieldDef = window.fieldDefs ? window.fieldDefs.get(field) : null;
+    if (fieldDef && fieldDef.is_buildable) return;
     
     // Filter out any filters with empty values
     const validFilters = data.filters.filter(f => f.val !== '');
@@ -502,10 +506,10 @@ window.updateQueryJson = function(){
     query.FilterGroups.push(group);
   });
 
-  // Add CustomFields for custom MARC fields (Marc###, but not 'Marc')
+  // Add CustomFields for fields that have special payloads
   if (window.getAllFieldDefs) {
-    const customMarcFields = window.getAllFieldDefs()
-      .filter(f => /^Marc\d+$/.test(f.name))
+    const customFields = window.getAllFieldDefs()
+      .filter(f => f.special_payload && f.special_payload.type === 'marc')
       .map(f => ({
         FieldName: f.name,
         Tool: "prtentry", // Default, adjust if needed
@@ -513,10 +517,10 @@ window.updateQueryJson = function(){
         FilterFlag: "e",
         RawOutputSegments: 1,
         DataType: "string",
-        RequiredEqualFilter: f.name.replace(/^Marc/, "")
+        RequiredEqualFilter: f.special_payload.tag
       }));
-    if (customMarcFields.length > 0) {
-      query.CustomFields = customMarcFields;
+    if (customFields.length > 0) {
+      query.CustomFields = customFields;
     }
   }
 
