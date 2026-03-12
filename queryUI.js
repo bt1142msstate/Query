@@ -698,48 +698,8 @@ window.getNormalizedDisplayedFields = function(fields = window.displayedFields) 
 window.buildQueryUiConfig = function() {
   const query = {
     DesiredColumnOrder: window.getNormalizedDisplayedFields(),
-    FilterGroups: [],
-    GroupMethod: 'ExpandIntoColumns'
+    FilterGroups: []
   };
-
-  if (typeof window.VirtualTable !== 'undefined' && window.VirtualTable.simpleTableInstance) {
-    const simpleTable = window.VirtualTable.simpleTableInstance;
-
-    if (simpleTable.groupMethod !== undefined) {
-      switch (simpleTable.groupMethod) {
-        case 'None':
-          query.GroupMethod = 'None';
-          break;
-        case 'Commas':
-          query.GroupMethod = 'Commas';
-          break;
-        case 'ExpandIntoColumns':
-          query.GroupMethod = 'ExpandIntoColumns';
-          break;
-        default:
-          query.GroupMethod = 'ExpandIntoColumns';
-      }
-    }
-
-    if (simpleTable.groupByField) {
-      query.GroupByField = simpleTable.groupByField;
-    }
-
-    if (simpleTable.allowDuplicateFields && simpleTable.allowDuplicateFields.size > 0) {
-      query.AllowDuplicateFields = Array.from(simpleTable.allowDuplicateFields);
-    }
-
-    if (simpleTable.filterGroups && simpleTable.filterGroups.length > 0) {
-      query.FilterGroups = simpleTable.filterGroups.map(group => ({
-        LogicalOperator: normalizeLogicalOperator(group.logicalOperator),
-        Filters: group.filters.map(filter => ({
-          FieldName: filter.fieldName,
-          FieldOperator: filter.fieldOperator,
-          Values: Array.isArray(filter.values) ? [...filter.values] : [filter.values]
-        }))
-      }));
-    }
-  }
 
   Object.entries(window.activeFilters).forEach(([field, data]) => {
     const fieldDef = window.fieldDefs ? window.fieldDefs.get(field) : null;
@@ -757,24 +717,6 @@ window.buildQueryUiConfig = function() {
       }))
     });
   });
-
-  if (window.getAllFieldDefs) {
-    const customFields = window.getAllFieldDefs()
-      .filter(field => field.special_payload && field.special_payload.type === 'marc')
-      .map(field => ({
-        FieldName: field.name,
-        Tool: 'prtentry',
-        OutputFlag: 'e',
-        FilterFlag: 'e',
-        RawOutputSegments: 1,
-        DataType: 'string',
-        RequiredEqualFilter: field.special_payload.tag
-      }));
-
-    if (customFields.length > 0) {
-      query.CustomFields = customFields;
-    }
-  }
 
   return query;
 };
