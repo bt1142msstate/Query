@@ -33,15 +33,12 @@ class Bubble {
     let filterTooltipHtml = '';
 
     if (af && af.filters && af.filters.length > 0) {
-      const fakeGroup = [{
-        LogicalOperator: af.logical,
-        Filters: af.filters.map(f => ({
-          FieldName: fieldName,
-          FieldOperator: mapBubbleConditionToFieldOperator(f.cond),
-          Values: f.cond === 'between' ? f.val.split('|') : f.val.split(',')
-        }))
-      }];
-      filterTooltipHtml = window.formatStandardFilterTooltipHTML(fakeGroup, 'Active Filters');
+      const filters = af.filters.map(f => ({
+        FieldName: fieldName,
+        FieldOperator: mapBubbleConditionToFieldOperator(f.cond),
+        Values: f.cond === 'between' ? f.val.split('|') : f.val.split(',')
+      }));
+      filterTooltipHtml = window.formatStandardFilterTooltipHTML(filters, 'Active Filters');
     }
 
     let tooltipContentHtml = '';

@@ -181,7 +181,7 @@ if(dom.runBtn){
         const payload = window.buildBackendQueryPayload(queryName);
         const historyConfig = payload.ui_config || {
           DesiredColumnOrder: state.displayedFields,
-          FilterGroups: []
+          Filters: []
         };
 
         console.log('Sending query payload:', payload);

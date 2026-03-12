@@ -175,40 +175,6 @@ window.renderConditionList = function(field) {
     const list = document.createElement('div');
     list.className = 'cond-list';
 
-    // Logical toggle (AND/OR)
-    const toggle = document.createElement('span');
-    toggle.className = 'logical-toggle' + (data.logical === 'And' ? ' active' : '');
-    toggle.textContent = data.logical.toUpperCase();
-    
-    toggle.addEventListener('click', () => {
-        const newLogical = (data.logical === 'And') ? 'Or' : 'And';
-        
-        // Validate logic change
-        if (newLogical === 'And') {
-            const fieldType = (window.fieldDefs.get(field) || {}).type || 'string';
-            let conflictMsg = null;
-            for (let i = 0; i < data.filters.length; i++) {
-                const preceding = { logical: 'And', filters: data.filters.slice(0, i) };
-                conflictMsg = window.getContradictionMessage(preceding, data.filters[i], fieldType, field);
-                if (conflictMsg) break;
-            }
-            if (conflictMsg) {
-                window.showError(conflictMsg, [
-                    getFilterConditionInputElement(), 
-                    getFilterConditionInput2Element()
-                ]);
-                return;
-            }
-        }
-        
-        data.logical = newLogical;
-        toggle.textContent = data.logical.toUpperCase();
-        toggle.classList.toggle('active', data.logical === 'And');
-        window.updateQueryJson();
-    });
-    
-    list.appendChild(toggle);
-
     // Create pills for each filter
     const fieldDef = window.fieldDefs.get(field);
     data.filters.forEach((f, idx) => {
@@ -428,7 +394,7 @@ window.handleFilterConfirm = function(e) {
     if (cond && cond !== 'display') {
         try {
             if (!window.activeFilters[field]) {
-                window.activeFilters[field] = { logical: 'And', filters: [] };
+                window.activeFilters[field] = { filters: [] };
             }
 
             const isContainerVisible = selContainer && selContainer.style.display !== 'none';
@@ -574,7 +540,7 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
     // Apply filter if one was selected
     if (cond && val) {
         if (!window.activeFilters[dynamicFieldName]) {
-            window.activeFilters[dynamicFieldName] = { logical: 'And', filters: [] };
+            window.activeFilters[dynamicFieldName] = { filters: [] };
         }
         const alreadyExists = window.activeFilters[dynamicFieldName].filters.some(f => f.cond === cond && f.val === val);
         if (!alreadyExists) {
@@ -790,7 +756,7 @@ window.configureInputsForType = function(type){
 
 /* ---------- Check for contradiction & return human-readable reason ---------- */
 window.getContradictionMessage = function(existing, newF, fieldType, fieldLabel){
-  if(!existing || existing.logical !== 'And') return null;
+    if(!existing || !Array.isArray(existing.filters)) return null;
 
   const toNum = v=>{
     if(fieldType === 'date'){

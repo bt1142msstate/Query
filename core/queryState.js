@@ -25,7 +25,7 @@ window.lastExecutedQueryState = null; // Store the state when query was last run
 window.currentQueryState = null;       // Current state for comparison
 
 // Data structures
-window.activeFilters = {};   // { fieldName: { logical:'And'|'Or', filters:[{cond,val},…] } }
+window.activeFilters = {};   // { fieldName: { filters:[{cond,val},…] } }
 
 // Global set to track which bubbles are animating back
 window.animatingBackBubbles = new Set();
@@ -54,7 +54,12 @@ window.getCurrentQueryState = function() {
   
   return {
     displayedFields: baseFields,
-    activeFilters: JSON.parse(JSON.stringify(window.activeFilters)),
+    activeFilters: Object.fromEntries(
+      Object.entries(window.activeFilters || {}).map(([field, data]) => [
+        field,
+        { filters: JSON.parse(JSON.stringify((data && data.filters) || [])) }
+      ])
+    ),
     groupMethod: window.VirtualTable?.simpleTableInstance?.groupMethod || "ExpandIntoColumns"
   };
 };

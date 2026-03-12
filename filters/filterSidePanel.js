@@ -381,19 +381,6 @@ window.FilterSidePanel = (function () {
             fieldHeader.appendChild(nameSpan);
             group.appendChild(fieldHeader);
 
-            if (data.filters.length > 1) {
-                const logicBtn = document.createElement('button');
-                logicBtn.className = 'fp-logic-toggle' + (data.logical === 'And' ? ' active' : '');
-                logicBtn.textContent = data.logical.toUpperCase();
-                logicBtn.title = 'Click to switch AND / OR logic';
-                logicBtn.addEventListener('click', () => {
-                    data.logical = data.logical === 'And' ? 'Or' : 'And';
-                    window.updateQueryJson && window.updateQueryJson();
-                    update();
-                });
-                group.appendChild(logicBtn);
-            }
-
             const condsList = document.createElement('div');
             condsList.className = 'fp-conds-list';
 

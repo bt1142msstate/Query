@@ -106,7 +106,7 @@ class SimpleTable {
      * @param {string[]} config.DataLines - Raw data lines to process
      * @param {Object[]} config.RawColumnOrder - Column specifications
      * @param {string[]} config.DesiredColumnOrder - Desired column order
-     * @param {Object[]} config.FilterGroups - Filter groups to apply
+    * @param {Object[]} config.Filters - Flat filters to apply
      * @param {string} config.GroupByField - Field to group by
      * @param {string[]} config.AllowDuplicateFields - Fields that allow duplicates
      * @param {string} config.GroupMethod - Grouping method to use
@@ -130,11 +130,14 @@ class SimpleTable {
             new FieldSpec(field.FieldName, field.RawOutputSegments, field.DataType)
         );
         this.desiredColumnOrder = config.DesiredColumnOrder || [];
-        this.filterGroups = (config.FilterGroups || []).map(group => 
-            new FilterGroup(group.LogicalOperator, group.Filters.map(f => 
+        const normalizedFilters = typeof window.normalizeUiConfigFilters === 'function'
+            ? window.normalizeUiConfigFilters(config)
+            : [];
+        this.filterGroups = normalizedFilters.length > 0
+            ? [new FilterGroup(LogicalOperator.AND, normalizedFilters.map(f => 
                 new Filter(f.FieldName, f.FieldOperator, f.Values)
-            ))
-        );
+            ))]
+            : [];
         this.groupByField = config.GroupByField;
         this.allowDuplicateFields = new Set(config.AllowDuplicateFields || []);
         this.groupMethod = config.GroupMethod || GroupMethod.EXPAND_INTO_COLUMNS;

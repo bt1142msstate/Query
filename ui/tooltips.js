@@ -334,13 +334,16 @@ const TooltipManager = (() => {
 
 /**
  * Standardized formatter for filter tooltips across the application.
- * Accepts an array of FilterGroups and generates structured HTML.
- * @param {Array} filterGroups - Array of groups containing {LogicalOperator, Filters: [{FieldName, FieldOperator, Values}]}
+ * Accepts flat filters or legacy grouped filters and generates structured HTML.
+ * @param {Array|Object} filtersInput - Filters array or ui_config object
  * @param {string} [title=""] - Optional title for the tooltip
  * @returns {string} HTML string for data-tooltip-html
  */
-window.formatStandardFilterTooltipHTML = function(filterGroups, title = "") {
-  if (!filterGroups || filterGroups.length === 0) return '';
+window.formatStandardFilterTooltipHTML = function(filtersInput, title = "") {
+  const filters = typeof window.normalizeUiConfigFilters === 'function'
+    ? window.normalizeUiConfigFilters(filtersInput)
+    : (Array.isArray(filtersInput) ? filtersInput : []);
+  if (!filters || filters.length === 0) return '';
   
   let hasFilters = false;
   
@@ -350,39 +353,29 @@ window.formatStandardFilterTooltipHTML = function(filterGroups, title = "") {
   }
   html += '<ul class="tt-filter-list">';
   
-  filterGroups.forEach((group, gIdx) => {
-    if (!group.Filters || group.Filters.length === 0) return;
+  filters.forEach(f => {
+    hasFilters = true;
+    const op = typeof window.formatFieldOperatorForDisplay === 'function'
+      ? window.formatFieldOperatorForDisplay(f.FieldOperator)
+      : f.FieldOperator;
+    const uiCond = typeof window.mapFieldOperatorToUiCond === 'function'
+      ? window.mapFieldOperatorToUiCond(f.FieldOperator)
+      : String(f.FieldOperator || '').toLowerCase();
     
-    // Support OR/AND logic between groups if necessary
-    if (gIdx > 0) {
-        let logicOp = group.LogicalOperator || 'AND';
-        html += '<li class="tt-logic">' + logicOp.toUpperCase() + '</li>';
+    let valStr = '';
+    if (f.Values && f.Values.length > 0) {
+        if (uiCond === 'between' && f.Values.length >= 2) {
+            valStr = '<span class="tt-val">' + escapeHtml(f.Values[0]) + '</span> <span class="tt-op">and</span> <span class="tt-val">' + escapeHtml(f.Values[1]) + '</span>';
+        } else {
+            valStr = '<span class="tt-val">' + escapeHtml(f.Values.join(', ')) + '</span>';
+        }
     }
     
-    group.Filters.forEach((f, fIdx) => {
-      hasFilters = true;
-      const op = typeof window.formatFieldOperatorForDisplay === 'function'
-        ? window.formatFieldOperatorForDisplay(f.FieldOperator)
-        : f.FieldOperator;
-      const uiCond = typeof window.mapFieldOperatorToUiCond === 'function'
-        ? window.mapFieldOperatorToUiCond(f.FieldOperator)
-        : String(f.FieldOperator || '').toLowerCase();
-      
-      let valStr = '';
-      if (f.Values && f.Values.length > 0) {
-          if (uiCond === 'between' && f.Values.length >= 2) {
-              valStr = '<span class="tt-val">' + escapeHtml(f.Values[0]) + '</span> <span class="tt-op">and</span> <span class="tt-val">' + escapeHtml(f.Values[1]) + '</span>';
-          } else {
-              valStr = '<span class="tt-val">' + escapeHtml(f.Values.join(', ')) + '</span>';
-          }
-      }
-      
-      html += '<li class="tt-filter-item">';
-      html += '  <span class="tt-field">' + escapeHtml(f.FieldName || '') + '</span>';
-      html += '  <span class="tt-op">' + escapeHtml(op) + '</span>';
-      html += '  ' + valStr;
-      html += '</li>';
-    });
+    html += '<li class="tt-filter-item">';
+    html += '  <span class="tt-field">' + escapeHtml(f.FieldName || '') + '</span>';
+    html += '  <span class="tt-op">' + escapeHtml(op) + '</span>';
+    html += '  ' + valStr;
+    html += '</li>';
   });
   
   html += '</ul></div>';
