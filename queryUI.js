@@ -649,34 +649,43 @@ function normalizeLogicalOperator(operator) {
   return normalized === 'or' ? 'Or' : 'And';
 }
 
-function mapConfigOperatorToBackend(fieldOperator, values) {
-  switch (fieldOperator) {
-    case 'Equals':
-      return [{ operator: '=', value: values[0] ?? '' }];
-    case 'DoesNotEqual':
-      return [{ operator: '!=', value: values[0] ?? '' }];
-    case 'GreaterThan':
-      return [{ operator: '>', value: values[0] ?? '' }];
-    case 'LessThan':
-      return [{ operator: '<', value: values[0] ?? '' }];
-    case 'GreaterThanOrEqual':
-      return [{ operator: '>=', value: values[0] ?? '' }];
-    case 'LessThanOrEqual':
-      return [{ operator: '<=', value: values[0] ?? '' }];
-    case 'Between':
-      if (values.length >= 2) {
+function mapActiveFilterToBackend(condition, rawValue) {
+  switch (condition) {
+    case 'equals':
+      return [{ operator: '=', value: rawValue }];
+    case 'does_not_equal':
+      return [{ operator: '!=', value: rawValue }];
+    case 'greater':
+    case 'after':
+      return [{ operator: '>', value: rawValue }];
+    case 'less':
+    case 'before':
+      return [{ operator: '<', value: rawValue }];
+    case 'greater_or_equal':
+    case 'on_or_after':
+      return [{ operator: '>=', value: rawValue }];
+    case 'less_or_equal':
+    case 'on_or_before':
+      return [{ operator: '<=', value: rawValue }];
+    case 'starts':
+    case 'starts_with':
+      return [{ operator: '=', value: `${rawValue}*` }];
+    case 'contains':
+      return [{ operator: '=', value: `*${rawValue}*` }];
+    case 'does_not_contain':
+      return [{ operator: '!=', value: `*${rawValue}*` }];
+    case 'between': {
+      const parts = String(rawValue).split('|');
+      if (parts.length >= 2) {
         return [
-          { operator: '>=', value: values[0] ?? '' },
-          { operator: '<=', value: values[1] ?? '' }
+          { operator: '>=', value: parts[0] },
+          { operator: '<=', value: parts[1] }
         ];
       }
-      return [{ operator: '=', value: values[0] ?? '' }];
-    case 'DoesNotContain':
-      return [{ operator: '!=', value: `*${values[0] ?? ''}*` }];
-    case 'Contains':
-      return [{ operator: '=', value: `*${values[0] ?? ''}*` }];
+      return [{ operator: '=', value: rawValue }];
+    }
     default:
-      return [{ operator: '=', value: values[0] ?? '' }];
+      return [{ operator: '=', value: rawValue }];
   }
 }
 
@@ -804,12 +813,13 @@ window.buildBackendQueryPayload = function(queryName = '') {
     ui_config: uiConfig
   };
 
-  uiConfig.FilterGroups.forEach(group => {
-    (group.Filters || []).forEach(filter => {
-      const values = Array.isArray(filter.Values) ? filter.Values : [filter.Values];
-      mapConfigOperatorToBackend(filter.FieldOperator, values).forEach(({ operator, value }) => {
+  Object.entries(window.activeFilters).forEach(([fieldName, filterGroup]) => {
+    (filterGroup?.filters || []).forEach(filter => {
+      if (filter.val === '') return;
+
+      mapActiveFilterToBackend(filter.cond, filter.val).forEach(({ operator, value }) => {
         payload.filters.push({
-          field: filter.FieldName,
+          field: fieldName,
           operator,
           value
         });
