@@ -797,14 +797,24 @@ function initializeBubbles() {
     bubble.style.opacity = '0';          // hide origin immediately
     bubble.dataset.filterFor = bubble.textContent.trim();          // add attribute
 
+    // Ensure filter card is attached BEFORE calling buildConditionPanel
+    let filterCard = document.getElementById('filter-card') || window.filterCard;
+    if (filterCard && !document.getElementById('filter-card')) {
+      document.body.appendChild(filterCard);
+      // force layout recalculation so transition works
+      filterCard.offsetHeight;
+    }
+    if (!window.filterCard && filterCard) {
+      window.filterCard = filterCard;
+    }
+
     overlay.classList.add('show');
     buildConditionPanel(bubble);
 
     // --- Pre-populate filter card to accurately measure target dimensions ---
-    const filterCard = document.getElementById('filter-card');
-    const inputWrapper = document.getElementById('condition-input-wrapper');
+    const inputWrapper = document.getElementById('condition-input-wrapper') || filterCard.querySelector('#condition-input-wrapper');
     if (filterCard) {
-      const titleEl = document.getElementById('filter-card-title');
+      const titleEl = filterCard.querySelector('#filter-card-title') || document.getElementById('filter-card-title');
       if (titleEl) titleEl.textContent = fieldName;
     }
     const defaultBtn = conditionPanel.querySelector('.condition-btn[data-cond="equals"]') || conditionPanel.querySelector('.condition-btn');
