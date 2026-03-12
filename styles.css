@@ -2306,8 +2306,8 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
   left: var(--trace-x);
   top: var(--trace-y);
   width: var(--trace-len);
-  height: 3px;
-  border-radius: 2px;
+  height: var(--trace-thickness, 3px);
+  border-radius: calc(var(--trace-thickness, 3px) / 2);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0) 35%, rgba(255, 255, 255, 0) 65%, rgba(255, 255, 255, 0.1) 100%),
     linear-gradient(90deg, color-mix(in srgb, var(--trace-color-a) 70%, #052235 30%) 0%, color-mix(in srgb, var(--trace-color-b) 78%, #9fe7ff 22%) 100%);
@@ -2317,6 +2317,47 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
   animation: circuit-trace-flicker 2.8s linear infinite;
   animation-delay: var(--trace-flicker-delay);
   box-shadow: 0 0 8px rgba(56, 189, 248, 0.28), 0 0 18px rgba(34, 211, 238, 0.12), inset 0 0 2px rgba(255, 255, 255, 0.22);
+}
+
+.table-query-circuit-chip {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(37, 99, 235, 0.22) 0%, rgba(15, 23, 42, 0.08) 28%, rgba(3, 10, 24, 0.94) 100%),
+    linear-gradient(90deg, rgba(14, 165, 233, 0.12) 0%, rgba(15, 23, 42, 0.88) 100%);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 8px 20px rgba(2, 6, 23, 0.45), inset 0 0 0 1px rgba(148, 163, 184, 0.08), inset 0 0 18px rgba(56, 189, 248, 0.08);
+}
+
+.table-query-circuit-chip::before,
+.table-query-circuit-chip::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+}
+
+.table-query-circuit-chip::before {
+  inset: 14% 10%;
+  border-radius: 5px;
+  background: repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.09) 0 3px, transparent 3px 8px);
+  opacity: 0.5;
+}
+
+.table-query-circuit-chip::after {
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -1px 0 rgba(2, 6, 23, 0.55);
+}
+
+.table-query-circuit-connector {
+  position: absolute;
+  width: 8px;
+  height: 18px;
+  transform: translate(-50%, -50%);
+  border-radius: 2px 2px 0 0;
+  background: linear-gradient(180deg, #fde68a 0%, #f59e0b 65%, #b45309 100%);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .table-query-circuit-node {
@@ -2379,8 +2420,8 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
   height: 2px;
   transform: translateY(-50%);
   background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, color-mix(in srgb, var(--pulse-color) 58%, white 42%) 48%, color-mix(in srgb, var(--pulse-color) 82%, #67e8f9 18%) 100%);
-  filter: blur(0.4px);
-  opacity: 0.76;
+  filter: blur(0.35px);
+  opacity: 0.72;
   animation: circuit-pulse-trail calc(var(--pulse-duration) * 0.38) ease-in-out infinite;
   animation-delay: var(--pulse-delay);
 }
@@ -2394,11 +2435,10 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
   transform: translate(-50%, -50%);
   background: rgba(255, 255, 255, 0.95);
   box-shadow:
-    -4px -2px 0 0 color-mix(in srgb, var(--pulse-color) 74%, white 26%),
-    -7px 1px 0 0 rgba(255, 255, 255, 0.66),
-    -8px 4px 0 0 color-mix(in srgb, var(--pulse-color) 56%, white 44%);
-  opacity: 0.58;
-  animation: circuit-pulse-sparks 0.26s steps(2, end) infinite;
+    -5px -3px 0 0 color-mix(in srgb, var(--pulse-color) 74%, white 26%),
+    -7px 2px 0 0 rgba(255, 255, 255, 0.7);
+  opacity: 0.45;
+  animation: circuit-pulse-sparks 0.32s steps(2, end) infinite;
   animation-delay: var(--pulse-delay);
 }
 
@@ -2416,14 +2456,14 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
 }
 
 @keyframes circuit-pulse-trail {
-  0%, 100% { opacity: 0.28; transform: translateY(-50%) scaleX(0.72); }
-  50% { opacity: 0.76; transform: translateY(-50%) scaleX(1.03); }
+  0%, 100% { opacity: 0.24; transform: translateY(-50%) scaleX(0.72); }
+  50% { opacity: 0.7; transform: translateY(-50%) scaleX(1.02); }
 }
 
 @keyframes circuit-pulse-sparks {
-  0% { opacity: 0.24; transform: translate(-50%, -50%) scale(0.8) rotate(0deg); }
-  50% { opacity: 0.62; transform: translate(-50%, -50%) scale(1.08) rotate(11deg); }
-  100% { opacity: 0.3; transform: translate(-50%, -50%) scale(0.9) rotate(-8deg); }
+  0% { opacity: 0.18; transform: translate(-50%, -50%) scale(0.75) rotate(0deg); }
+  50% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.05) rotate(10deg); }
+  100% { opacity: 0.22; transform: translate(-50%, -50%) scale(0.88) rotate(-8deg); }
 }
 
 @keyframes circuit-glow-pan {
