@@ -184,10 +184,12 @@ if(dom.runBtn){
         const tableNameInput = dom.tableNameInput;
         const queryName = tableNameInput ? tableNameInput.value.trim() : '';
         const payload = window.buildBackendQueryPayload(queryName);
-        const historyConfig = payload.ui_config || {
-          DesiredColumnOrder: state.displayedFields,
-          Filters: []
-        };
+        const historyConfig = typeof window.buildQueryUiConfig === 'function'
+          ? window.buildQueryUiConfig()
+          : {
+              DesiredColumnOrder: state.displayedFields,
+              Filters: []
+            };
 
         console.log('Sending query payload:', payload);
 
