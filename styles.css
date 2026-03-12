@@ -1288,6 +1288,7 @@ th:hover .th-trash {
   background: white;
   box-shadow: var(--shadow-sm);
   overflow: hidden;
+  margin-inline: auto;
 }
 
 .boolean-pill-option {
@@ -2177,6 +2178,7 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
 
 .fp-edit-form .boolean-pill-selector {
   justify-content: stretch;
+  margin-inline: 0;
 }
 
 .fp-edit-form .boolean-pill-option {

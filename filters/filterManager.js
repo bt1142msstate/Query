@@ -451,9 +451,20 @@ window.handleFilterConfirm = function(e) {
             const fieldType = bubble.dataset.type || 'string';
             const newFilterObj = { cond, val: filterValue };
             const existingSet = window.activeFilters[field];
+            const shouldReplaceExistingEquals = Boolean(
+                cond === 'equals' &&
+                filterValue !== '' &&
+                ((isContainerVisible && !isMultiSelect) || (isSelectVisible && sel && !sel.multiple))
+            );
+            const contradictionSet = shouldReplaceExistingEquals
+                ? {
+                    ...existingSet,
+                    filters: existingSet.filters.filter(existingFilter => existingFilter.cond !== 'equals')
+                }
+                : existingSet;
             
             // Check for contradictions
-            const conflictMsg = window.getContradictionMessage(existingSet, newFilterObj, fieldType, field);
+            const conflictMsg = window.getContradictionMessage(contradictionSet, newFilterObj, fieldType, field);
             if (conflictMsg) {
                 window.showError(conflictMsg, [conditionInput, conditionInput2]);
                 return;
@@ -462,8 +473,16 @@ window.handleFilterConfirm = function(e) {
             if (filterValue !== '') {
                 console.log(`Applying filter for ${field}: ${cond} ${filterValue}`);
                 
+                if (shouldReplaceExistingEquals) {
+                    const existingEqualsIdx = window.activeFilters[field].filters.findIndex(f => f.cond === 'equals');
+                    if (existingEqualsIdx !== -1) {
+                        window.activeFilters[field].filters[existingEqualsIdx].val = filterValue;
+                    } else {
+                        window.activeFilters[field].filters.push({ cond, val: filterValue });
+                    }
+                }
                 // Merge equal filters for MultiSelect fields
-                if (isMultiSelect && cond === 'equals') {
+                else if (isMultiSelect && cond === 'equals') {
                     const existingEqualsIdx = window.activeFilters[field].filters.findIndex(f => f.cond === 'equals');
                     if (existingEqualsIdx !== -1) {
                         const existingVals = window.activeFilters[field].filters[existingEqualsIdx].val.split(',');
