@@ -96,15 +96,21 @@ function calculateVisibleRows() {
   
   const containerHeight = tableScrollContainer.clientHeight;
   const headerHeight = 40; // approximate header height
-  const availableHeight = containerHeight - headerHeight;
+  const availableHeight = containerHeight > 0 ? (containerHeight - headerHeight) : 400;
   
-  const startIndex = Math.floor(tableScrollTop / tableRowHeight);
+  // Add a generous overscan buffer (10 rows above and below) to prevent scroll glitches
+  const overscanRows = 10;
+  
+  const visibleRowsCount = Math.ceil(availableHeight / tableRowHeight);
+  const baseStartIndex = Math.floor(tableScrollTop / tableRowHeight);
+  
+  const startIndex = Math.max(0, baseStartIndex - overscanRows);
   const endIndex = Math.min(
-    virtualTableData.rows.length, // Use rows array length
-    startIndex + Math.ceil(availableHeight / tableRowHeight) + 2 // buffer rows
+    virtualTableData.rows.length,
+    baseStartIndex + visibleRowsCount + overscanRows
   );
   
-  return { start: Math.max(0, startIndex), end: endIndex };
+  return { start: startIndex, end: endIndex };
 }
 
 /**
@@ -233,8 +239,10 @@ function renderVirtualTable() {
         td.style.whiteSpace = 'normal';
         
         const scrollContainer = document.createElement('div');
-        // Constrain height loosely to avoid breaking virtual scroll map completely 
-        scrollContainer.style.maxHeight = '70px'; 
+        // Force strict height confinement to maintain virtual scroll map integrity
+        // Subtract vertical padding to ensure the row height stays exactly at tableRowHeight
+        const paddingOffset = 16; 
+        scrollContainer.style.maxHeight = `${tableRowHeight - paddingOffset > 20 ? tableRowHeight - paddingOffset : 26}px`; 
         scrollContainer.style.overflowY = 'auto';
         scrollContainer.style.paddingRight = '4px'; 
         scrollContainer.style.scrollbarWidth = 'thin'; // Clean scrollbar UI for modern browsers
@@ -314,9 +322,12 @@ function renderVirtualTable() {
 /**
  * Handles scroll events for the virtual table container.
  * Updates scroll position and triggers re-rendering of visible rows.
+ * Uses requestAnimationFrame to prevent layout thrashing and scrolling glitches.
  * @function handleTableScroll
  * @param {Event} e - The scroll event
  */
+let isRenderScheduled = false;
+
 function handleTableScroll(e) {
   // Don't process scroll events during active drag
   if (document.body.classList.contains('dragging-cursor')) {
@@ -324,7 +335,14 @@ function handleTableScroll(e) {
   }
   
   tableScrollTop = e.target.scrollTop;
-  renderVirtualTable();
+  
+  if (!isRenderScheduled) {
+    isRenderScheduled = true;
+    requestAnimationFrame(() => {
+      renderVirtualTable();
+      isRenderScheduled = false;
+    });
+  }
 }
 
 /**
