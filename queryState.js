@@ -13,6 +13,33 @@ window.getBaseFieldName = function(fieldName) {
 // State variables
 window.queryRunning = false;
 window.displayedFields = []; // Will be populated from test data
+
+// Canonical (non-expanded) field list — always the base field names in current column order.
+// Split-mode expansion inflates window.displayedFields with "Field 1", "Field 2" etc.
+// window.canonicalFields is always the collapsed, deduplicated version used to talk to the backend.
+window.canonicalFields = [];
+
+/**
+ * Recomputes window.canonicalFields from the current window.displayedFields.
+ * Strips split-column suffixes (" 1", " 2") and ordinal prefixes ("2nd ") then deduplicates.
+ * Call this anywhere displayedFields changes; it is called automatically by updateQueryJson.
+ */
+window.syncCanonicalFields = function() {
+  const seen = new Set();
+  window.canonicalFields = window.displayedFields
+    .map(f => {
+      f = f.replace(/^\d+(st|nd|rd|th)\s+/, ''); // strip ordinal prefix: "2nd Marc590" → "Marc590"
+      f = f.replace(/ \d+$/, '');                  // strip split suffix:   "Marc590 1"  → "Marc590"
+      return f;
+    })
+    .filter(f => {
+      const def = window.fieldDefs ? window.fieldDefs.get(f) : null;
+      if (def && def.is_buildable) return false; // skip buildable base fields
+      if (seen.has(f)) return false;             // deduplicate
+      seen.add(f);
+      return true;
+    });
+};
 window.selectedField = '';
 window.totalRows = 0;          // total rows in #bubble-list
 window.scrollRow = 0;          // current top row (0-based)
