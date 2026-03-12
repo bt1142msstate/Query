@@ -43,6 +43,11 @@ window.clearCurrentQuery = async function clearCurrentQuery() {
 
   const filterCard = document.getElementById('filter-card') || window.filterCard;
   if (filterCard) {
+    filterCard.classList.remove('content-ready');
+    if (filterCard._contentRevealTimer) {
+      clearTimeout(filterCard._contentRevealTimer);
+      filterCard._contentRevealTimer = null;
+    }
     filterCard.classList.remove('show');
   }
 
@@ -379,6 +384,11 @@ dom.overlay.addEventListener('click',()=>{
   const filterCard = window.filterCard || document.getElementById('filter-card');
   if (filterCard) {
     if (!window.filterCard) window.filterCard = filterCard;
+    filterCard.classList.remove('content-ready');
+    if (filterCard._contentRevealTimer) {
+      clearTimeout(filterCard._contentRevealTimer);
+      filterCard._contentRevealTimer = null;
+    }
     filterCard.classList.remove('show');
     // Destroy the DOM node from the document body after transition
     setTimeout(() => {
