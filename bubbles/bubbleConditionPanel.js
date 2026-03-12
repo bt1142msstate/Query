@@ -141,10 +141,8 @@ function buildBubbleConditionPanel(bubble) {
     const shouldGroupValues = Boolean(fieldDef && fieldDef.groupValues);
     const existingSelect = document.getElementById('condition-select');
     const existingContainer = document.getElementById('condition-select-container');
-    const existingHint = document.getElementById('condition-select-hint');
     if (existingSelect) existingSelect.parentNode.removeChild(existingSelect);
     if (existingContainer) existingContainer.parentNode.removeChild(existingContainer);
-    if (existingHint) existingHint.parentNode.removeChild(existingHint);
 
     let currentLiteralValues = [];
     if (activeFilters[selectedField]) {
@@ -158,47 +156,16 @@ function buildBubbleConditionPanel(bubble) {
       ? listValues.some(val => val.Name.includes('-'))
       : listValues.some(val => val.includes('-'));
 
-    if (shouldGroupValues && hasDashes) {
-      const selector = createGroupedSelector(listValues, isMultiSelect, currentLiteralValues);
-      inputWrapper.insertBefore(selector, confirmBtn);
-      conditionInput.style.display = 'none';
-    } else {
-      const select = document.createElement('select');
-      select.id = 'condition-select';
-      select.className = 'px-3 py-2 rounded border';
-      if (isMultiSelect) {
-        select.setAttribute('multiple', 'multiple');
-        select.size = Math.min(Math.max(listValues.length, 4), 10);
-        select.classList.add('condition-select-multiselect');
-      }
-
-      select.innerHTML = listValues.map(v => {
-        if (hasValuePairs) {
-          const selected = currentLiteralValues.includes(v.RawValue) ? 'selected' : '';
-          return `<option value="${v.RawValue}" data-display="${v.Name}" ${selected}>${v.Name}</option>`;
-        }
-        const selected = currentLiteralValues.includes(v) ? 'selected' : '';
-        return `<option value="${v}" ${selected}>${v}</option>`;
-      }).join('');
-
-      inputWrapper.insertBefore(select, confirmBtn);
-      if (isMultiSelect) {
-        const multiSelectHint = document.createElement('div');
-        multiSelectHint.id = 'condition-select-hint';
-        multiSelectHint.className = 'condition-select-hint';
-        multiSelectHint.textContent = 'Select multiple values with Command-click.';
-        inputWrapper.insertBefore(multiSelectHint, confirmBtn);
-      }
-      select.style.display = 'block';
-      conditionInput.style.display = 'none';
-    }
+    const selector = createGroupedSelector(listValues, isMultiSelect, currentLiteralValues, {
+      enableGrouping: shouldGroupValues && hasDashes
+    });
+    inputWrapper.insertBefore(selector, confirmBtn);
+    conditionInput.style.display = 'none';
   } else {
     const existingSelect = document.getElementById('condition-select');
     const existingContainer = document.getElementById('condition-select-container');
-    const existingHint = document.getElementById('condition-select-hint');
     if (existingSelect) existingSelect.style.display = 'none';
     if (existingContainer) existingContainer.style.display = 'none';
-    if (existingHint) existingHint.style.display = 'none';
     window.configureInputsForType(type);
     conditionInput.style.display = 'block';
   }

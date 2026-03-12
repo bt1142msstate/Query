@@ -1263,23 +1263,6 @@ th:hover .th-trash {
   box-shadow: none;
 }
 
-/* Base condition list for dropdowns */
-#condition-select[multiple] {
-  max-height: 50vh;
-  overflow-y: auto;
-}
-
-.condition-select-multiselect {
-  min-height: 10rem;
-  width: min(24rem, 100%);
-}
-
-.condition-select-hint {
-  margin-top: 0.35rem;
-  color: var(--color-gray-500);
-  font-size: 0.85rem;
-}
-
 /* ==========================================
    11. GROUPED SELECTOR STYLES
    ========================================== */

@@ -47,7 +47,8 @@ window.shouldFieldHavePurpleStyling = function(fieldName) {
   );
 };
 
-window.createGroupedSelector = function(values, isMultiSelect, currentValues = []) {
+window.createGroupedSelector = function(values, isMultiSelect, currentValues = [], options = {}) {
+  const enableGrouping = options.enableGrouping !== false;
   const container = document.createElement('div');
   container.className = 'grouped-selector';
   container.id = 'condition-select-container';
@@ -76,10 +77,10 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     const literal = typeof value === 'object' ? (value.RawValue ?? value.Value ?? value.value ?? value.Name ?? value.Display) : value;
     const explicitGroup = typeof value === 'object' ? (value.Group || value.group || '') : '';
     const displayText = String(display);
-    const derivedGroup = !explicitGroup && displayText.includes('-')
+    const derivedGroup = enableGrouping && !explicitGroup && displayText.includes('-')
       ? displayText.split('-')[0].trim()
       : '';
-    const group = explicitGroup || derivedGroup;
+    const group = enableGrouping ? (explicitGroup || derivedGroup) : '';
     const normalized = { display: displayText, literal: String(literal) };
 
     if (group) {
