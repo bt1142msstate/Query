@@ -17,96 +17,6 @@
 
 
 
-/* --- Shared payload builder --- */
-// Builds the exact JSON object that gets sent to the backend.
-// Used by both the run handler and the JSON preview dialog.
-window.buildQueryPayload = function() {
-    const state = window.getCurrentQueryState();
-    const tableNameInput = document.getElementById('table-name-input');
-    const queryName = tableNameInput ? tableNameInput.value.trim() : '';
-
-    // Construct history config (ui_config) sent along for history restoration
-    const historyConfig = {
-        DesiredColumnOrder: state.displayedFields,
-        FilterGroups: []
-    };
-    if (state.activeFilters) {
-        const group = { LogicalOperator: 'AND', Filters: [] };
-        Object.entries(state.activeFilters).forEach(([fieldName, filterGroup]) => {
-            if (filterGroup && filterGroup.filters) {
-                filterGroup.filters.forEach(f => {
-                    group.Filters.push({ FieldName: fieldName, FieldOperator: f.cond, Values: [f.val] });
-                });
-            }
-        });
-        if (group.Filters.length > 0) historyConfig.FilterGroups.push(group);
-    }
-
-    const standardDisplayFields = [];
-    const specialFields = [];
-    state.displayedFields.forEach(field => {
-        const fieldDef = window.fieldDefs ? window.fieldDefs.get(field) : null;
-        if (fieldDef && fieldDef.special_payload) {
-            const isDuplicate = specialFields.some(sf => JSON.stringify(sf) === JSON.stringify(fieldDef.special_payload));
-            if (!isDuplicate) specialFields.push(fieldDef.special_payload);
-        } else {
-            standardDisplayFields.push(field);
-        }
-    });
-
-    const payload = {
-        action: 'run',
-        name: queryName || undefined,
-        filters: [],
-        display_fields: standardDisplayFields,
-        special_fields: specialFields,
-        ui_config: historyConfig
-    };
-
-    const mapOp = (cond, val) => {
-        switch (cond) {
-            case 'equals':          return { op: '=',  val: val };
-            case 'does_not_equal':  return { op: '!=', val: val };
-            case 'greater':         
-            case 'after':           return { op: '>',  val: val };
-            case 'less':            
-            case 'before':          return { op: '<',  val: val };
-            case 'greater_or_equal':
-            case 'on_or_after':     return { op: '>=', val: val };
-            case 'less_or_equal':   
-            case 'on_or_before':    return { op: '<=', val: val };
-            case 'starts':          
-            case 'starts_with':     return { op: '=',  val: val + '*' };
-            case 'contains':        return { op: '=',  val: '*' + val + '*' };
-            case 'does_not_contain':return { op: '!=', val: '*' + val + '*' };
-            case 'between': {
-                const parts = val.split('|');
-                if (parts.length === 2) return { op: 'between', val: parts };
-                return { op: '=', val: val };
-            }
-            default:                return { op: '=',  val: val };
-        }
-    };
-
-    if (state.activeFilters) {
-        Object.entries(state.activeFilters).forEach(([fieldName, filterGroup]) => {
-            if (filterGroup && filterGroup.filters) {
-                filterGroup.filters.forEach(filter => {
-                    const { op, val } = mapOp(filter.cond, filter.val);
-                    if (op === 'between') {
-                        payload.filters.push({ field: fieldName, operator: '>=', value: val[0] });
-                        payload.filters.push({ field: fieldName, operator: '<=', value: val[1] });
-                    } else {
-                        payload.filters.push({ field: fieldName, operator: op, value: val });
-                    }
-                });
-            }
-        });
-    }
-
-    return payload;
-};
-
 /* --- Run / Stop query toggle --- */
 // queryRunning state is tracked in window.queryRunning (from queryState.js)
 let currentQueryId = null;
@@ -142,20 +52,112 @@ if(runBtn){
     (async () => {
       currentQueryId = null;
       try {
-        // If split/expanded mode is active, collapse back to canonical view before running.
-        // The run always uses canonical field names, so this keeps the UI in sync.
-        if (window.splitColumnsActive && window.VirtualTable && window.VirtualTable.setSplitColumnsMode) {
-          window.VirtualTable.setSplitColumnsMode(false);
-        }
-
         window.queryRunning = true;
         window.updateRunButtonIcon();
         if (window.startTableQueryAnimation) window.startTableQueryAnimation();
         
-        const payload = window.buildQueryPayload();
         const state = window.getCurrentQueryState();
         const tableNameInput = document.getElementById('table-name-input');
         const queryName = tableNameInput ? tableNameInput.value.trim() : '';
+
+        // Construct history config (UI state) to send to backend for restoration
+        const historyConfig = {
+            DesiredColumnOrder: state.displayedFields,
+            FilterGroups: []
+        };
+
+        if (state.activeFilters) {
+            const group = {
+                LogicalOperator: 'AND',
+                Filters: []
+            };
+            Object.entries(state.activeFilters).forEach(([fieldName, filterGroup]) => {
+                if (filterGroup && filterGroup.filters) {
+                    filterGroup.filters.forEach(f => {
+                        group.Filters.push({
+                            FieldName: fieldName,
+                            FieldOperator: f.cond, 
+                            Values: [f.val]
+                        });
+                    });
+                }
+            });
+            if (group.Filters.length > 0) {
+                historyConfig.FilterGroups.push(group);
+            }
+        }
+        
+        const standardDisplayFields = [];
+        const specialFields = [];
+        
+        state.displayedFields.forEach(field => {
+            const fieldDef = window.fieldDefs.get(field);
+            // Handle dynamically built fields that have a special API payload
+            if (fieldDef && fieldDef.special_payload) {
+                // To avoid sending duplicates if displayed multiple times
+                const isDuplicate = specialFields.some(sf => JSON.stringify(sf) === JSON.stringify(fieldDef.special_payload));
+                if (!isDuplicate) {
+                    specialFields.push(fieldDef.special_payload);
+                }
+            } else {
+                standardDisplayFields.push(field);
+            }
+        });
+
+        const payload = {
+            action: 'run',
+            name: queryName || undefined,
+            filters: [],
+            display_fields: standardDisplayFields,
+            special_fields: specialFields,
+            ui_config: historyConfig
+        };
+
+        // Helper to map operator
+        const mapOperator = (cond, val) => {
+            switch (cond) {
+                case 'equals': return { op: '=', val: val };
+                case 'does_not_equal': return { op: '!=', val: val };
+                case 'greater': 
+                case 'after': return { op: '>', val: val };
+                case 'less': 
+                case 'before': return { op: '<', val: val };
+                case 'greater_or_equal': 
+                case 'on_or_after': return { op: '>=', val: val };
+                case 'less_or_equal': 
+                case 'on_or_before': return { op: '<=', val: val };
+                // Optimistic mapping for unsupported operators
+                case 'starts': 
+                case 'starts_with': return { op: '=', val: val + '*' };
+                case 'contains': return { op: '=', val: '*' + val + '*' };
+                case 'does_not_contain': return { op: '!=', val: '*' + val + '*' };
+                case 'between': 
+                    const parts = val.split('|');
+                    if (parts.length === 2) return { op: 'between', val: parts };
+                    return { op: '=', val: val };
+                default: return { op: '=', val: val };
+            }
+        };
+
+        // Flatten filters
+        if (state.activeFilters) {
+            Object.entries(state.activeFilters).forEach(([fieldName, filterGroup]) => {
+                if (filterGroup && filterGroup.filters) {
+                    filterGroup.filters.forEach(filter => {
+                        const { op, val } = mapOperator(filter.cond, filter.val);
+                        if (op === 'between') {
+                            payload.filters.push({ field: fieldName, operator: '>=', value: val[0] });
+                            payload.filters.push({ field: fieldName, operator: '<=', value: val[1] });
+                        } else {
+                            if (op === '=' && (val.includes('*') || val.includes('?'))) {
+                                // If wildcard used, assume backend supports it with =
+                            }
+                            payload.filters.push({ field: fieldName, operator: op, value: val });
+                        }
+                    });
+                }
+            });
+        }
 
         console.log('Sending query payload:', payload);
 
@@ -174,7 +176,7 @@ if(runBtn){
                 id: currentQueryId,
                 name: queryName || `Query ${currentQueryId.substring(0,8)}`,
                 query: payload,
-                jsonConfig: payload.ui_config,
+                jsonConfig: historyConfig,
                 startTime: new Date().toISOString(),
                 status: 'running',
                 running: true,
@@ -690,9 +692,9 @@ async function showExampleTable(fields){
             }
             
             if (fieldExistsInData) {
-              return `<th draggable="true" data-col-index="${i}" class="sortable-header px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors" data-sort-field="${f}"><div class="flex items-center justify-center gap-1"><span class='th-text'>${f}</span><span class='sort-icon text-gray-400'></span></div></th>`;
+              return `<th draggable="true" data-col-index="${i}" class="sortable-header px-6 py-3 ${alignClass} text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors" data-sort-field="${f}"><div class="flex items-center gap-1 ${alignClass === 'text-right' ? 'justify-end' : alignClass === 'text-center' ? 'justify-center' : 'justify-start'}"><span class='th-text'>${f}</span><span class='sort-icon text-gray-400'></span></div></th>`;
             } else {
-              return `<th draggable="true" data-col-index="${i}" class="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider bg-gray-50" style="color: #ef4444 !important;" data-tooltip="This field is not in the current data. Run a new query to populate it."><div class="flex items-center justify-center gap-1"><span class='th-text' style="color: #ef4444 !important;">${f}</span></div></th>`;
+              return `<th draggable="true" data-col-index="${i}" class="px-6 py-3 ${alignClass} text-xs font-medium uppercase tracking-wider bg-gray-50" style="color: #ef4444 !important;" data-tooltip="This field is not in the current data. Run a new query to populate it."><div class="flex items-center gap-1 ${alignClass === 'text-right' ? 'justify-end' : alignClass === 'text-center' ? 'justify-center' : 'justify-start'}"><span class='th-text' style="color: #ef4444 !important;">${f}</span></div></th>`;
             }
           }).join('')}
         </tr>
