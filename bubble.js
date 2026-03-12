@@ -356,8 +356,8 @@ function updateScrollBar(){
     // Clear old DOM segments just in case they were left over from before
     track.querySelectorAll('.bubble-scrollbar-segment').forEach(s=>s.remove());
     
-    // A nice translucent dark purple/blue hue for dark mode
-    track.style.background = 'rgba(30, 27, 75, 0.4)'; // dark semi-transparent track
+    // A frosty track to stand out against the background but remain sleek
+    track.style.background = 'rgba(255, 255, 255, 0.15)';
   }
 
   // Calculate thumb height proportionally (with minimum size 24px)

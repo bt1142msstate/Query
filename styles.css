@@ -573,9 +573,10 @@ input, textarea, select, [contenteditable] {
   width: 8px;
   height: 100%;
   transform: translateX(-50%);
-  background: rgba(30, 27, 75, 0.4); /* Solid fallback */
+  background: rgba(255, 255, 255, 0.15); /* Slightly frosty brighter track */
   border-radius: 4px;
   overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); /* Give it a little physical depth */
 }
 
 .bubble-scrollbar-segment {
