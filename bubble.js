@@ -723,6 +723,7 @@ function initializeBubbles() {
     // const descText = (fieldDefs.find(d => d.name === fieldName) || {}).desc || '';
     const clone = bubble.cloneNode(true);
     clone.dataset.filterFor = fieldName;
+    clone.classList.add('bubble-clone');
     // Remove all index card/descEl logic here
     clone._origin = bubble;
     // Store the original position for accurate return animation
@@ -854,6 +855,24 @@ function formatFiltersTooltip(fieldName, filterGroups) {
 }
 
 /**
+ * Restores bubble interaction and visual state after close/reset paths.
+ * Prevents stale disabled bubbles when close occurs mid-animation.
+ * @param {Set<string>} [skipFields] - Optional fields to skip while fly-back is active.
+ */
+function reconcileBubbleInteractionState(skipFields = new Set()) {
+  const bubbles = Array.from(document.querySelectorAll('.bubble'));
+  bubbles.forEach(b => {
+    const fieldName = b.textContent ? b.textContent.trim() : '';
+    if (skipFields.has(fieldName)) return;
+    b.classList.remove('bubble-disabled');
+    b.style.visibility = '';
+    b.style.opacity = '';
+    b.removeAttribute('data-filter-for');
+    window.BubbleSystem && window.BubbleSystem.applyCorrectBubbleStyling(b);
+  });
+}
+
+/**
  * Resets active/enlarged bubbles, animating them back to their original position.
  * Handles the cleanup of clones and restoration of original bubbles.
  */
@@ -866,7 +885,7 @@ function resetActiveBubbles() {
     window.ModalSystem.lockInput(0);
   }
   
-  const clones = document.querySelectorAll('.active-bubble');
+  const clones = document.querySelectorAll('.active-bubble, .bubble-clone');
   if (clones.length > 0) window.isBubbleAnimatingBack = true; 
   
   clones.forEach(clone => {
@@ -910,6 +929,7 @@ function resetActiveBubbles() {
       
       clone.classList.remove('enlarge-bubble');
       clone.classList.remove('active-bubble');
+      clone.classList.remove('bubble-clone');
       
       clone.addEventListener('transitionend', () => {
         clone.remove();
@@ -926,6 +946,7 @@ function resetActiveBubbles() {
                     b.style.visibility = '';
                     b.style.opacity = '1';
                     b.classList.remove('bubble-disabled');
+                  b.removeAttribute('data-filter-for');
                     window.BubbleSystem && window.BubbleSystem.applyCorrectBubbleStyling(b);
                 }
              }
@@ -938,6 +959,7 @@ function resetActiveBubbles() {
                 window.BubbleSystem.renderBubbles();
                 window.pendingRenderBubbles = false;
             }
+            reconcileBubbleInteractionState();
         }
       }, { once: true });
     } else {
@@ -952,7 +974,9 @@ function resetActiveBubbles() {
                 matchingBubble.remove();
               } else {
                 matchingBubble.style.opacity = '';
+                matchingBubble.style.visibility = '';
                 matchingBubble.classList.remove('bubble-disabled');
+                matchingBubble.removeAttribute('data-filter-for');
                 window.BubbleSystem && window.BubbleSystem.applyCorrectBubbleStyling(matchingBubble);
               }
           }
@@ -964,6 +988,7 @@ function resetActiveBubbles() {
           window.BubbleSystem.renderBubbles();
           window.pendingRenderBubbles = false;
         }
+        reconcileBubbleInteractionState();
       }
     }
   });
@@ -972,8 +997,19 @@ function resetActiveBubbles() {
     if (clones.length === 0) {
       window.isBubbleAnimatingBack = false;
       window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
+      reconcileBubbleInteractionState();
     }
   }, 0);
+
+  // Fallback: some browsers can skip transitionend during rapid close/open.
+  setTimeout(() => {
+    if (!window.isBubbleAnimatingBack) return;
+    window.isBubbleAnimatingBack = false;
+    window.pendingRenderBubbles = false;
+    document.querySelectorAll('.bubble-clone').forEach(c => c.remove());
+    reconcileBubbleInteractionState();
+    window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
+  }, 650);
 }
 
 // Export the main functions that query.js needs
