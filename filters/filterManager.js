@@ -454,7 +454,7 @@ window.handleFilterConfirm = function(e) {
             const shouldReplaceExistingEquals = Boolean(
                 cond === 'equals' &&
                 filterValue !== '' &&
-                ((isContainerVisible && !isMultiSelect) || (isSelectVisible && sel && !sel.multiple))
+                ((isContainerVisible && selContainer) || (isSelectVisible && sel))
             );
             const contradictionSet = shouldReplaceExistingEquals
                 ? {
@@ -481,18 +481,7 @@ window.handleFilterConfirm = function(e) {
                         window.activeFilters[field].filters.push({ cond, val: filterValue });
                     }
                 }
-                // Merge equal filters for MultiSelect fields
-                else if (isMultiSelect && cond === 'equals') {
-                    const existingEqualsIdx = window.activeFilters[field].filters.findIndex(f => f.cond === 'equals');
-                    if (existingEqualsIdx !== -1) {
-                        const existingVals = window.activeFilters[field].filters[existingEqualsIdx].val.split(',');
-                        const newVals = filterValue.split(',');
-                        const uniqueVals = [...new Set([...existingVals, ...newVals])];
-                        window.activeFilters[field].filters[existingEqualsIdx].val = uniqueVals.join(',');
-                    } else {
-                        window.activeFilters[field].filters.push({ cond, val: filterValue });
-                    }
-                } else {
+                else {
                     window.activeFilters[field].filters.push({ cond, val: filterValue });
                 }
 
