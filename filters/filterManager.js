@@ -152,6 +152,9 @@ window.renderConditionList = function(field) {
         // Reset selection container inputs
         const selContainer = document.getElementById('condition-select-container');
         if (selContainer && window.selectedField === field) {
+                 if (typeof selContainer.setSelectedValues === 'function') {
+                     selContainer.setSelectedValues([]);
+                 }
              selContainer.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(input => {
                 input.checked = false;
              });
@@ -225,14 +228,17 @@ window.renderConditionList = function(field) {
             const selContainer = document.getElementById('condition-select-container');
             if (selContainer && window.selectedField === field) {
                 if (f.cond === 'equals') {
-                    // Uncheck options that match the removed filter
-                    const removedVals = f.val.split(',');
-                    const valueSet = new Set(removedVals);
-                    
+                    const remainingEquals = data.filters.find(filterItem => filterItem.cond === 'equals');
+                    const nextValues = remainingEquals ? remainingEquals.val.split(',').map(v => v.trim()).filter(Boolean) : [];
+
+                    if (typeof selContainer.setSelectedValues === 'function') {
+                        selContainer.setSelectedValues(nextValues);
+                    }
+
+                    const valueSet = new Set(nextValues);
                     selContainer.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(input => {
-                        if (input.value === f.val || valueSet.has(input.value) || valueSet.has(input.dataset.value)) {
-                            input.checked = false;
-                        }
+                        const inputValue = input.value || input.dataset.value;
+                        input.checked = valueSet.has(inputValue);
                     });
                     
                     // Update group checkboxes

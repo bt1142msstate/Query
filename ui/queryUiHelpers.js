@@ -47,6 +47,76 @@ window.shouldFieldHavePurpleStyling = function(fieldName) {
   );
 };
 
+window.createBooleanPillSelector = function(values, currentValue = '') {
+  const normalizedValues = (Array.isArray(values) ? values : []).slice(0, 2).map(value => {
+    const display = typeof value === 'object'
+      ? (value.Name || value.Display || value.name || value.display || value.RawValue)
+      : value;
+    const literal = typeof value === 'object'
+      ? (value.RawValue ?? value.Value ?? value.value ?? value.Name ?? value.Display)
+      : value;
+
+    return {
+      display: String(display),
+      literal: String(literal)
+    };
+  });
+
+  const container = document.createElement('div');
+  container.className = 'boolean-pill-selector';
+  container.id = 'condition-select-container';
+
+  let selectedValue = currentValue ? String(currentValue) : '';
+
+  function render() {
+    container.innerHTML = '';
+
+    normalizedValues.forEach((option, index) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'boolean-pill-option';
+      button.dataset.value = option.literal;
+      button.dataset.display = option.display;
+      button.textContent = option.display;
+      button.setAttribute('aria-pressed', selectedValue === option.literal ? 'true' : 'false');
+      if (selectedValue === option.literal) {
+        button.classList.add('active');
+      }
+      if (index === 0) {
+        button.classList.add('is-left');
+      }
+      if (index === normalizedValues.length - 1) {
+        button.classList.add('is-right');
+      }
+
+      button.addEventListener('click', () => {
+        selectedValue = option.literal;
+        render();
+      });
+
+      container.appendChild(button);
+    });
+  }
+
+  container.getSelectedValues = function() {
+    return selectedValue ? [selectedValue] : [];
+  };
+
+  container.getSelectedDisplayValues = function() {
+    const match = normalizedValues.find(option => option.literal === selectedValue);
+    return match ? [match.display] : [];
+  };
+
+  container.setSelectedValues = function(valuesToSet) {
+    const nextValue = Array.isArray(valuesToSet) && valuesToSet.length ? String(valuesToSet[0]) : '';
+    selectedValue = nextValue;
+    render();
+  };
+
+  render();
+  return container;
+};
+
 window.createGroupedSelector = function(values, isMultiSelect, currentValues = [], options = {}) {
   const enableGrouping = options.enableGrouping !== false;
   const container = document.createElement('div');
