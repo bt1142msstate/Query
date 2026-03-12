@@ -360,19 +360,8 @@ input, textarea, select, [contenteditable] {
 
 /* Non-draggable bubbles */
 .bubble[draggable="false"] {
-  cursor: default;
-  opacity: 0.8;
-  background: radial-gradient(
-    130% 130% at 30% 30%, 
-    rgba(200, 200, 200, 0.15) 15%, 
-    rgba(200, 200, 200, 0.05) 40%, 
-    rgba(200, 200, 200, 0.02) 60%, 
-    rgba(100, 100, 100, 0.1) 100%
-  );
-}
-
-.bubble[draggable="false"]:hover {
-  transform: scale(1);
+  cursor: pointer;
+  opacity: 1;
 }
 
 /* Secondary reflection (bottom right) */
