@@ -790,6 +790,7 @@ function initializeBubbles() {
     clone.style.position='fixed';
     clone.style.top = rect.top+'px';
     clone.style.left=rect.left+'px';
+    clone.style.pointerEvents = 'none';
     clone.style.color = getComputedStyle(bubble).color;
     document.body.appendChild(clone);
     bubble.classList.add('bubble-disabled');
@@ -1100,10 +1101,11 @@ function resetActiveBubbles() {
     if (!window.isBubbleAnimatingBack) return;
     window.isBubbleAnimatingBack = false;
     window.pendingRenderBubbles = false;
+    const staleCloneCount = document.querySelectorAll('.bubble-clone').length;
     document.querySelectorAll('.bubble-clone').forEach(c => c.remove());
     reconcileBubbleInteractionState();
     window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
-    bubbleDebugLog('reset.complete', { reason: 'fallback-timeout' });
+    bubbleDebugLog('reset.complete', { reason: 'fallback-timeout', removedStaleClones: staleCloneCount });
   }, 650);
 }
 
