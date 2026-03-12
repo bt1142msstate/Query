@@ -705,7 +705,8 @@ function initializeBubbles() {
       e.preventDefault();
       return;
     }
-    const bubble = e.target.closest('.bubble');
+    const targetEl = e.target instanceof Element ? e.target : e.target && e.target.parentElement;
+    const bubble = targetEl ? targetEl.closest('.bubble') : null;
     if(!bubble) return;
     
     // Disable opening index cards and modifying conditions while querying

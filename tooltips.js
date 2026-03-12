@@ -14,6 +14,11 @@ const TooltipManager = (() => {
   let hideTimeout = null;
   let isDragging = false; // Track drag state
 
+  function closestFromTarget(target, selector) {
+    const el = target instanceof Element ? target : target && target.parentElement;
+    return el ? el.closest(selector) : null;
+  }
+
   /**
    * Creates the tooltip DOM element and arrow.
    * @function createTooltip
@@ -180,7 +185,7 @@ const TooltipManager = (() => {
   function attach() {
     document.addEventListener('mouseover', e => {
       if (isDragging) return;
-      const el = e.target.closest('[data-tooltip], [data-tooltip-html]');
+      const el = closestFromTarget(e.target, '[data-tooltip], [data-tooltip-html]');
       if (!el) return;
       const isHtml = el.hasAttribute('data-tooltip-html');
       const text = isHtml ? el.getAttribute('data-tooltip-html') : el.getAttribute('data-tooltip');
@@ -195,13 +200,13 @@ const TooltipManager = (() => {
     });
 
     document.addEventListener('mouseout', e => {
-      const el = e.target.closest('[data-tooltip], [data-tooltip-html]');
+      const el = closestFromTarget(e.target, '[data-tooltip], [data-tooltip-html]');
       if (el) hideTooltip();
     });
 
     document.addEventListener('focusin', e => {
       if (isDragging) return;
-      const el = e.target.closest('[data-tooltip], [data-tooltip-html]');
+      const el = closestFromTarget(e.target, '[data-tooltip], [data-tooltip-html]');
       if (!el) return;
       const isHtml = el.hasAttribute('data-tooltip-html');
       const text = isHtml ? el.getAttribute('data-tooltip-html') : el.getAttribute('data-tooltip');
@@ -209,7 +214,7 @@ const TooltipManager = (() => {
     });
 
     document.addEventListener('focusout', e => {
-      if (e.target.closest('[data-tooltip], [data-tooltip-html]')) hideTooltip();
+      if (closestFromTarget(e.target, '[data-tooltip], [data-tooltip-html]')) hideTooltip();
     });
 
     // Hide tooltip on scroll or escape
@@ -253,7 +258,7 @@ const TooltipManager = (() => {
 
     // On click, update tooltip if data-tooltip changed
     document.addEventListener('click', e => {
-      const el = e.target.closest('[data-tooltip], [data-tooltip-html]');
+      const el = closestFromTarget(e.target, '[data-tooltip], [data-tooltip-html]');
       if (!el) return;
       const isHtml = el.hasAttribute('data-tooltip-html');
       const text = isHtml ? el.getAttribute('data-tooltip-html') : el.getAttribute('data-tooltip');
