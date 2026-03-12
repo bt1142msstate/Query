@@ -692,9 +692,9 @@ async function showExampleTable(fields){
             }
             
             if (fieldExistsInData) {
-              return `<th draggable="true" data-col-index="${i}" class="sortable-header px-6 py-3 ${alignClass} text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors" data-sort-field="${f}"><div class="flex items-center gap-1 ${alignClass === 'text-right' ? 'justify-end' : alignClass === 'text-center' ? 'justify-center' : 'justify-start'}"><span class='th-text'>${f}</span><span class='sort-icon text-gray-400'></span></div></th>`;
+              return `<th draggable="true" data-col-index="${i}" class="sortable-header px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors" data-sort-field="${f}"><div class="flex items-center justify-center gap-1"><span class='th-text'>${f}</span><span class='sort-icon text-gray-400'></span></div></th>`;
             } else {
-              return `<th draggable="true" data-col-index="${i}" class="px-6 py-3 ${alignClass} text-xs font-medium uppercase tracking-wider bg-gray-50" style="color: #ef4444 !important;" data-tooltip="This field is not in the current data. Run a new query to populate it."><div class="flex items-center gap-1 ${alignClass === 'text-right' ? 'justify-end' : alignClass === 'text-center' ? 'justify-center' : 'justify-start'}"><span class='th-text' style="color: #ef4444 !important;">${f}</span></div></th>`;
+              return `<th draggable="true" data-col-index="${i}" class="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider bg-gray-50" style="color: #ef4444 !important;" data-tooltip="This field is not in the current data. Run a new query to populate it."><div class="flex items-center justify-center gap-1"><span class='th-text' style="color: #ef4444 !important;">${f}</span></div></th>`;
             }
           }).join('')}
         </tr>
