@@ -500,26 +500,12 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
     if (dynamicFieldName === fieldDef.name) return;
     
     // Dynamically add field definition if missing
-    if (!window.fieldDefs.has(dynamicFieldName)) {
-        const newDef = {
-            name: dynamicFieldName,
-            type: fieldDef.type || 'string',
-            category: fieldDef.category || 'Other',
-            desc: `${fieldDef.name} custom: ${Object.values(inputVals).join(', ')}`,
-            special_payload: specialPayload
-        };
-        window.fieldDefs.set(dynamicFieldName, newDef);
-
-        // Ensure the field is in fieldDefsArray so category counts and filtering work
-        if (!window.fieldDefsArray.find(d => d.name === dynamicFieldName)) {
-            window.fieldDefsArray.push({ ...newDef });
-        }
-
-        // Ensure the field is in filteredDefs immediately
-        if (!window.filteredDefs.find(d => d.name === dynamicFieldName)) {
-            window.filteredDefs.push({ ...newDef });
-        }
-    }
+    window.registerDynamicField(dynamicFieldName, {
+        type: fieldDef.type || 'string',
+        category: fieldDef.category || 'Other',
+        desc: `${fieldDef.name} custom: ${Object.values(inputVals).join(', ')}`,
+        special_payload: specialPayload
+    });
     
     window.DragDropSystem.restoreFieldWithDuplicates(dynamicFieldName);
 
@@ -558,6 +544,46 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
     // Clean up base buildable filters just in case
     if (window.activeFilters[fieldDef.name]) delete window.activeFilters[fieldDef.name];
 }
+
+/**
+ * Ensures a dynamically-created field (e.g. Marc590) is registered in all three
+ * field registries (fieldDefs Map, fieldDefsArray, filteredDefs) so it shows up
+ * in category filtering and counts. Safe to call multiple times for the same field.
+ *
+ * @param {string} fieldName - The resolved field name (e.g. "Marc590")
+ * @param {Object} [opts] - Optional overrides: type, category, desc, special_payload
+ */
+window.registerDynamicField = function(fieldName, opts = {}) {
+    if (!fieldName || window.fieldDefs.has(fieldName)) return;
+
+    // Try to derive category from a matching is_buildable parent template
+    let parentDef = null;
+    if (window.fieldDefsArray) {
+        parentDef = window.fieldDefsArray.find(d => {
+            if (!d.is_buildable || !d.field_template) return false;
+            // Build a regex from the template, replacing {key} placeholders with \S+
+            const pattern = d.field_template.replace(/\{[^}]+\}/g, '[^|]+');
+            return new RegExp('^' + pattern + '$').test(fieldName);
+        });
+    }
+
+    const newDef = {
+        name: fieldName,
+        type: opts.type || (parentDef ? parentDef.type : 'string'),
+        category: opts.category || (parentDef ? parentDef.category : 'Other'),
+        desc: opts.desc || (parentDef ? `${parentDef.name} custom field: ${fieldName}` : fieldName),
+        special_payload: opts.special_payload || null
+    };
+
+    window.fieldDefs.set(fieldName, newDef);
+
+    if (window.fieldDefsArray && !window.fieldDefsArray.find(d => d.name === fieldName)) {
+        window.fieldDefsArray.push({ ...newDef });
+    }
+    if (window.filteredDefs && !window.filteredDefs.find(d => d.name === fieldName)) {
+        window.filteredDefs.push({ ...newDef });
+    }
+};
 
 // Global confirm action finalizer
 window.finalizeConfirmAction = function() {

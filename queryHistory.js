@@ -216,6 +216,13 @@ function loadQueryConfig(q) {
   // Load fields
   window.displayedFields.length = 0; // Clear existing array
   window.displayedFields.push(...q.jsonConfig.DesiredColumnOrder);
+
+  // Register any dynamically-built fields (e.g. Marc590) that may not exist
+  // in the current session's fieldDefs registry.
+  if (typeof window.registerDynamicField === 'function') {
+    window.displayedFields.forEach(f => window.registerDynamicField(f));
+  }
+
   showExampleTable(window.displayedFields);
   
   // Clear filters and reapply from query
