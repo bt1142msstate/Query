@@ -1310,7 +1310,7 @@ th:hover .th-trash {
 }
 
 .boolean-pill-option.active {
-  background: var(--color-blue-600);
+  background: var(--color-emerald-500);
   color: white;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
