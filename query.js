@@ -142,6 +142,12 @@ if(runBtn){
     (async () => {
       currentQueryId = null;
       try {
+        // If split/expanded mode is active, collapse back to canonical view before running.
+        // The run always uses canonical field names, so this keeps the UI in sync.
+        if (window.splitColumnsActive && window.VirtualTable && window.VirtualTable.setSplitColumnsMode) {
+          window.VirtualTable.setSplitColumnsMode(false);
+        }
+
         window.queryRunning = true;
         window.updateRunButtonIcon();
         if (window.startTableQueryAnimation) window.startTableQueryAnimation();
