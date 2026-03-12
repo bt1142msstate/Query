@@ -19,13 +19,6 @@ class Bubble {
     const fieldName = def.name;
     this.el.textContent = fieldName;
 
-    const formatFieldTypeLabel = rawType => String(rawType || '')
-      .trim()
-      .split(/[_\s-]+/)
-      .filter(Boolean)
-      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-      .join(' ');
-
     if (def.type) {
       this.el.dataset.type = def.type;
     } else {
@@ -36,7 +29,6 @@ class Bubble {
 
     let categoryValue = def.category || '';
     let descValue = def.desc || '';
-    const fieldTypeLabel = formatFieldTypeLabel(def.type || 'string');
     const af = activeFilters[fieldName];
     let filterTooltipHtml = '';
 
@@ -53,20 +45,16 @@ class Bubble {
     }
 
     let tooltipContentHtml = '';
-    if (categoryValue || descValue || fieldTypeLabel || filterTooltipHtml) {
-      if (categoryValue || descValue || fieldTypeLabel) {
+    if (categoryValue || descValue || filterTooltipHtml) {
+      if (categoryValue || descValue) {
         tooltipContentHtml += `<div class="tt-filter-container" style="${filterTooltipHtml ? 'margin-bottom: 12px;' : ''}">`;
 
         if (categoryValue) {
-          const titleStyle = !descValue && !fieldTypeLabel ? 'border-bottom: none; margin-bottom: 0; padding-bottom: 0;' : '';
+          const titleStyle = !descValue ? 'border-bottom: none; margin-bottom: 0; padding-bottom: 0;' : '';
           tooltipContentHtml += `<div class="tt-filter-title" style="color: #93c5fd; display: flex; align-items: center; gap: 6px; ${titleStyle}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
             ${categoryValue}
           </div>`;
-        }
-
-        if (fieldTypeLabel) {
-          tooltipContentHtml += `<div style="color: #cbd5e1; font-size: 0.82rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; margin-top: ${categoryValue ? '6px' : '0'};">Type: ${fieldTypeLabel}</div>`;
         }
 
         if (descValue) {
@@ -84,9 +72,9 @@ class Bubble {
     if (tooltipContentHtml) {
       this.el.removeAttribute('data-tooltip');
       this.el.setAttribute('data-tooltip-html', tooltipContentHtml);
-    } else if (descValue || fieldTypeLabel) {
+    } else if (descValue) {
       this.el.removeAttribute('data-tooltip-html');
-      this.el.setAttribute('data-tooltip', descValue || `Type: ${fieldTypeLabel}`);
+      this.el.setAttribute('data-tooltip', descValue);
     } else {
       this.el.removeAttribute('data-tooltip');
       this.el.removeAttribute('data-tooltip-html');
