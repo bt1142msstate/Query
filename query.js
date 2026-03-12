@@ -326,8 +326,17 @@ overlay.addEventListener('click',()=>{
   // Close non-modal UI elements (condition panel, input wrapper, filter card)
   conditionPanel.classList.remove('show');
   inputWrapper.classList.remove('show');
-  const filterCard = document.getElementById('filter-card');
-  if (filterCard) filterCard.classList.remove('show');
+  const filterCard = window.filterCard || document.getElementById('filter-card');
+  if (filterCard) {
+    if (!window.filterCard) window.filterCard = filterCard;
+    filterCard.classList.remove('show');
+    // Destroy the DOM node from the document body after transition
+    setTimeout(() => {
+      if (!filterCard.classList.contains('show') && filterCard.parentNode) {
+        filterCard.remove();
+      }
+    }, 250);
+  }
   
   // Remove all .active from condition buttons
   const btns = conditionPanel.querySelectorAll('.condition-btn');
