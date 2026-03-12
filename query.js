@@ -25,7 +25,8 @@ window.buildQueryPayload = function() {
     const tableNameInput = document.getElementById('table-name-input');
     const queryName = tableNameInput ? tableNameInput.value.trim() : '';
 
-    // Construct history config (ui_config) sent along for history restoration
+    // ui_config stores the canonical column order for history restoration
+    // state.displayedFields is already canonical (getCurrentQueryState handles split mode)
     const historyConfig = {
         DesiredColumnOrder: state.displayedFields,
         FilterGroups: []

@@ -38,8 +38,16 @@ window.pendingRenderBubbles = false;
  * @returns {Object} snapshot of current query configuration
  */
 window.getCurrentQueryState = function() {
+  // When split-columns mode is active, window.displayedFields contains expanded names
+  // like "Marc590 1", "Marc590 2". Use rawTableData.headers as the canonical field list
+  // instead so the backend always receives the original field names.
+  const vt = window.VirtualTable;
+  const sourceFields = (vt && vt.splitColumnsActive && vt.rawTableData && vt.rawTableData.headers.length > 0)
+    ? vt.rawTableData.headers
+    : window.displayedFields;
+
   // Use base field names only (no duplicates like "2nd Marc590")
-  const baseFields = [...window.displayedFields]
+  const baseFields = [...sourceFields]
     .filter(field => {
       const def = window.fieldDefs ? window.fieldDefs.get(field) : null;
       return !(def && def.is_buildable);
