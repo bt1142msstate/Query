@@ -93,6 +93,8 @@ function updateFilteredDefs(searchTerm) {
   } else {
     filteredDefs = getAllFieldDefs().filter(d => d.name.toLowerCase().includes(searchTerm.toLowerCase()));
   }
+  // Keep window.filteredDefs in sync so other scripts (e.g. bubble.js) see the updated array
+  window.filteredDefs = filteredDefs;
   return filteredDefs;
 }
 
