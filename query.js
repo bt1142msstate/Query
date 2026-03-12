@@ -50,6 +50,13 @@ if(runBtn){
     
     // Start query execution
     (async () => {
+      // Remember if split mode was active, then disable it to avoid mapping dynamic Field N names.
+      const wasSplitActive = (window.VirtualTable && window.VirtualTable.splitColumnsActive) || window.splitColumnsActive || false;
+      if (wasSplitActive && window.VirtualTable && typeof window.VirtualTable.setSplitColumnsMode === 'function') {
+        window.VirtualTable.setSplitColumnsMode(false);
+        if (window.resetSplitColumnsToggleUI) window.resetSplitColumnsToggleUI();
+      }
+      
       currentQueryId = null;
       try {
         window.queryRunning = true;
@@ -285,6 +292,12 @@ if(runBtn){
             window.scrollRow = 0;
             if (window.BubbleSystem) window.BubbleSystem.updateScrollBar();
             if (window.updateButtonStates) window.updateButtonStates();
+            
+            // Restore split columns mode if it was active before the query ran
+            if (wasSplitActive && window.VirtualTable && typeof window.VirtualTable.setSplitColumnsMode === 'function') {
+                if (window.setSplitColumnsToggleUIActive) window.setSplitColumnsToggleUIActive();
+                window.VirtualTable.setSplitColumnsMode(true);
+            }
         }
         
         // Update last executed state

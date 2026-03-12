@@ -64,6 +64,21 @@ const ExcelExporter = (() => {
         iconStack && iconStack.classList.remove('hidden');
         iconCols  && iconCols.classList.add('hidden');
       };
+      
+      // Make it possible to force it active externally
+      window.setSplitColumnsToggleUIActive = function() {
+        splitMultiValues = true;
+        toggleBtn.classList.replace('bg-white', 'bg-indigo-100');
+        if (!toggleBtn.classList.contains('bg-indigo-100')) toggleBtn.classList.add('bg-indigo-100');
+        toggleBtn.classList.replace('text-black', 'text-indigo-700');
+        if (!toggleBtn.classList.contains('text-indigo-700')) toggleBtn.classList.add('text-indigo-700');
+        toggleBtn.setAttribute('data-tooltip', 'Multi-value export: split into separate columns (click to stack)');
+        
+        const iconStack = document.getElementById('split-toggle-icon-stack');
+        const iconCols  = document.getElementById('split-toggle-icon-cols');
+        iconStack && iconStack.classList.add('hidden');
+        iconCols  && iconCols.classList.remove('hidden');
+      };
     }
   }
 
