@@ -27,6 +27,37 @@ let simpleTableInstance = null; // Store the SimpleTable instance
 let currentSortColumn = null;
 let currentSortDirection = 'asc'; // 'asc' or 'desc'
 
+function getFieldDefinition(fieldName) {
+  if (!window.fieldDefs) return null;
+
+  let fieldDef = window.fieldDefs.get(fieldName);
+  if (fieldDef) return fieldDef;
+
+  const baseName = String(fieldName).replace(/ \d+$/, '');
+  if (baseName !== fieldName) {
+    fieldDef = window.fieldDefs.get(baseName);
+  }
+
+  return fieldDef || null;
+}
+
+function getFieldType(fieldName) {
+  const fieldDef = getFieldDefinition(fieldName);
+  if (fieldDef && fieldDef.type) return fieldDef.type;
+
+  const lower = String(fieldName).toLowerCase();
+  if (lower.includes('price') || lower.includes('cost') || lower.includes('amount')) {
+    return 'money';
+  }
+
+  return 'string';
+}
+
+function parseNumericValue(value) {
+  if (typeof value === 'number') return value;
+  return parseFloat(String(value).replace(/[$,]/g, ''));
+}
+
 /**
  * Sorts the virtual table data by the specified column.
  * Toggles direction if already sorted by this column.
@@ -47,8 +78,7 @@ function sortTableBy(fieldName) {
   }
 
   // Find the exact field definition for sorting typing
-  const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
-  const type = fieldDef ? fieldDef.type : 'string';
+  const type = getFieldType(fieldName);
 
   virtualTableData.rows.sort((a, b) => {
     let valA = a[colIndex];
@@ -64,8 +94,8 @@ function sortTableBy(fieldName) {
 
     let res = 0;
     if (type === 'number' || type === 'money') {
-      const numA = typeof valA === 'number' ? valA : parseFloat(String(valA).replace(/,/g, ''));
-      const numB = typeof valB === 'number' ? valB : parseFloat(String(valB).replace(/,/g, ''));
+      const numA = parseNumericValue(valA);
+      const numB = parseNumericValue(valB);
       res = (numA || 0) - (numB || 0);
     } else if (type === 'date') {
       const numA = parseInt(valA, 10) || 0;
@@ -179,8 +209,7 @@ function renderVirtualTable() {
       }
       
       // Apply formatting based on field type (same logic as Excel export)
-      const fieldDef = window.fieldDefs ? window.fieldDefs.get(field) : null;
-      const type = fieldDef ? fieldDef.type : 'string';
+      const type = getFieldType(field);
       let displayValue = cellValue;
       
       if (cellValue !== '' && cellValue !== '—' && cellValue !== undefined && cellValue !== null) {
@@ -204,7 +233,7 @@ function renderVirtualTable() {
           td.style.textAlign = 'right';
         } 
         else if (type === 'number' || type === 'money') {
-          const n = typeof cellValue === 'number' ? cellValue : parseFloat(String(cellValue).replace(/,/g, ''));
+          const n = parseNumericValue(cellValue);
           if (!isNaN(n)) {
             if (type === 'money') {
               displayValue = '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -366,13 +395,21 @@ function calculateFieldWidth(fieldName, data = null) {
   if (data && data.rows && data.rows.length > 0) {
     const columnIndex = data.columnMap.get(fieldName);
     if (columnIndex !== undefined) {
+      const type = getFieldType(fieldName);
       // Sample data for performance (check every nth row)
       const sampleStep = Math.max(1, Math.floor(data.rows.length / 1000));
       
       for (let i = 0; i < data.rows.length; i += sampleStep) {
         const value = data.rows[i][columnIndex];
         if (value != null) {
-          const textWidth = window.TextMeasurement.measureText(String(value));
+          let measuredValue = String(value);
+          if (type === 'money') {
+            const numericValue = parseNumericValue(value);
+            if (!isNaN(numericValue)) {
+              measuredValue = '$' + numericValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+          }
+          const textWidth = window.TextMeasurement.measureText(measuredValue);
           maxWidth = Math.max(maxWidth, textWidth);
         }
       }
