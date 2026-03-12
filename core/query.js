@@ -193,6 +193,12 @@ if(dom.runBtn){
             },
             body: JSON.stringify(payload)
         });
+
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const errorPayload = await response.json();
+          throw new Error(errorPayload.error || `Server error: ${response.status} ${response.statusText}`);
+        }
         
         // Capture Query ID and register in history
         currentQueryId = response.headers.get('X-Query-Id');
