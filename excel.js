@@ -102,7 +102,7 @@ const ExcelExporter = (() => {
           let val = row[colIndex];
           if (val !== undefined && val !== null) {
             if (type === 'date') val = '12/31/2000'; // typical date length
-            else if (type === 'number') val = String(val).replace(/,/g, '');
+            else if (type === 'number') val = String(val).replace(/[$,]/g, '');
             else val = String(val);
             maxLen = Math.max(maxLen, val.length);
           }
@@ -145,7 +145,7 @@ const ExcelExporter = (() => {
         }
 
         if (type === 'number') {
-          const n = typeof raw === 'number' ? raw : parseFloat(String(raw).replace(/,/g, ''));
+          const n = typeof raw === 'number' ? raw : parseFloat(String(raw).replace(/[$,]/g, ''));
           return isNaN(n) ? '' : n;
         }
 
