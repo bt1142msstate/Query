@@ -2252,7 +2252,7 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
   height: 100%;
   border-radius: inherit;
   opacity: 0;
-  transition: opacity 0.65s ease-in-out;
+  transition: opacity 0.65s ease-in-out, filter 0.65s ease-in-out;
   pointer-events: none;
   z-index: 1;
   overflow: hidden;
@@ -2267,6 +2267,12 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
 
 .table-query-circuit.active {
   opacity: 1;
+  filter: saturate(1);
+}
+
+.table-query-circuit.fading-out {
+  opacity: 0.24;
+  filter: saturate(0.75);
 }
 
 .table-query-circuit::before,
@@ -2346,9 +2352,9 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
 
 @keyframes circuit-pulse-run {
   0% { left: -8px; opacity: 0; }
-  10% { opacity: 1; }
-  88% { opacity: 1; }
-  100% { left: calc(var(--trace-len) + 8px); opacity: 0; }
+  12% { opacity: 1; }
+  96% { opacity: 1; }
+  100% { left: calc(100% + 8px); opacity: 0; }
 }
 
 @keyframes circuit-glow-pan {
