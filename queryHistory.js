@@ -358,13 +358,20 @@ async function loadQueryResults(queryId) {
                 window.VirtualTable.calculateOptimalColumnWidths(); 
             }
             
-            // Reset bubble scroll position before re-rendering
-            window.scrollRow = 0;
             // Re-render the bubbles to update grouping for new active filters
             if (window.BubbleSystem && typeof window.BubbleSystem.safeRenderBubbles === 'function') {
                 window.BubbleSystem.safeRenderBubbles();
             }
-            // updateScrollBar is handled by the container's 'scroll' event
+            
+            // Reset bubble scroll position since we may have new filters/selected fields
+            if (window.BubbleSystem && typeof window.BubbleSystem.resetBubbleScroll === 'function') {
+              window.BubbleSystem.resetBubbleScroll();
+            } else {
+              window.scrollRow = 0;
+              if (window.BubbleSystem && typeof window.BubbleSystem.updateScrollBar === 'function') {
+                window.BubbleSystem.updateScrollBar();
+              }
+            }
             if (typeof window.updateButtonStates === 'function') {
                 window.updateButtonStates();
             }

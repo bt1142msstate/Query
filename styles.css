@@ -473,13 +473,6 @@ input, textarea, select, [contenteditable] {
   margin: 0 -16px;
   box-sizing: content-box;
   transition: opacity 0.35s ease;
-  overflow-x: hidden;
-  overflow-y: scroll;
-  scrollbar-width: none; /* Firefox — hide native scrollbar */
-}
-
-#bubble-container::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Edge — hide native scrollbar */
 }
 
 /* Paging fade animation */
