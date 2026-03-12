@@ -22,28 +22,6 @@ window.DOM = {
   get groupMethodSelect() { return this._groupMethodSelect ||= document.getElementById('group-method-select'); }
 };
 
-// Legacy DOM Elements - DEPRECATED: Use DOM cache above for all new code
-// These are kept temporarily for compatibility until all references are updated
-// We assign them to window so they are available globally as before
-window.overlay = document.getElementById('overlay'); // Initial fetch, though DOM getter is better
-window.conditionPanel = document.getElementById('condition-panel');
-window.inputWrapper = document.getElementById('condition-input-wrapper');
-window.conditionInput = document.getElementById('condition-input');
-window.confirmBtn = document.getElementById('confirm-btn');
-window.runBtn = document.getElementById('run-query-btn');
-window.runIcon = document.getElementById('run-icon');
-window.stopIcon = document.getElementById('stop-icon');
-window.downloadBtn = document.getElementById('download-btn');
-window.queryBox = document.getElementById('query-json');
-window.queryInput = document.getElementById('query-input');
-window.clearSearchBtn = document.getElementById('clear-search-btn');
-window.groupMethodSelect = document.getElementById('group-method-select');
-
-// Update legacy references when DOM is ready/refreshed if needed, 
-// strictly speaking the getters in query.js were cleaner but we need them global.
-// The code in query.js used `const overlay = DOM.overlay;` which froze the reference.
-// Here we just rely on `document.getElementById` being fast enough or the DOM cache.
-
 
 /**
  * Updates the run button icon based on query state changes.
