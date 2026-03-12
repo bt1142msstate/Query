@@ -138,6 +138,7 @@ function buildBubbleConditionPanel(bubble) {
   if (listValues && listValues.length) {
     const fieldDef = fieldDefs.get(selectedField);
     const isMultiSelect = fieldDef && fieldDef.multiSelect;
+    const shouldGroupValues = Boolean(fieldDef && fieldDef.groupValues);
     const existingSelect = document.getElementById('condition-select');
     const existingContainer = document.getElementById('condition-select-container');
     if (existingSelect) existingSelect.parentNode.removeChild(existingSelect);
@@ -155,7 +156,7 @@ function buildBubbleConditionPanel(bubble) {
       ? listValues.some(val => val.Name.includes('-'))
       : listValues.some(val => val.includes('-'));
 
-    if (hasDashes) {
+    if (shouldGroupValues && hasDashes) {
       const selector = createGroupedSelector(listValues, isMultiSelect, currentLiteralValues);
       inputWrapper.insertBefore(selector, confirmBtn);
       conditionInput.style.display = 'none';
