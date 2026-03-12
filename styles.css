@@ -1728,6 +1728,11 @@ th:hover .th-trash {
   pointer-events: none;
 }
 
+.table-query-bubble-text {
+  opacity: 0.78;
+  animation: querying-text-breathe 2.2s ease-in-out infinite;
+}
+
 /* Secondary reflection (bottom right) matching standard bubbles */
 .table-query-bubble::before {
   content: "";
@@ -2319,47 +2324,6 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
   box-shadow: 0 0 8px rgba(56, 189, 248, 0.28), 0 0 18px rgba(34, 211, 238, 0.12), inset 0 0 2px rgba(255, 255, 255, 0.22);
 }
 
-.table-query-circuit-chip {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  border-radius: 8px;
-  background:
-    linear-gradient(180deg, rgba(37, 99, 235, 0.22) 0%, rgba(15, 23, 42, 0.08) 28%, rgba(3, 10, 24, 0.94) 100%),
-    linear-gradient(90deg, rgba(14, 165, 233, 0.12) 0%, rgba(15, 23, 42, 0.88) 100%);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  box-shadow: 0 8px 20px rgba(2, 6, 23, 0.45), inset 0 0 0 1px rgba(148, 163, 184, 0.08), inset 0 0 18px rgba(56, 189, 248, 0.08);
-}
-
-.table-query-circuit-chip::before,
-.table-query-circuit-chip::after {
-  content: '';
-  position: absolute;
-  pointer-events: none;
-}
-
-.table-query-circuit-chip::before {
-  inset: 14% 10%;
-  border-radius: 5px;
-  background: repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.09) 0 3px, transparent 3px 8px);
-  opacity: 0.5;
-}
-
-.table-query-circuit-chip::after {
-  inset: 0;
-  border-radius: inherit;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -1px 0 rgba(2, 6, 23, 0.55);
-}
-
-.table-query-circuit-connector {
-  position: absolute;
-  width: 8px;
-  height: 18px;
-  transform: translate(-50%, -50%);
-  border-radius: 2px 2px 0 0;
-  background: linear-gradient(180deg, #fde68a 0%, #f59e0b 65%, #b45309 100%);
-  box-shadow: 0 0 8px rgba(245, 158, 11, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.3);
-}
-
 .table-query-circuit-node {
   position: absolute;
   width: var(--node-size, 6px);
@@ -2464,6 +2428,11 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
   0% { opacity: 0.18; transform: translate(-50%, -50%) scale(0.75) rotate(0deg); }
   50% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.05) rotate(10deg); }
   100% { opacity: 0.22; transform: translate(-50%, -50%) scale(0.88) rotate(-8deg); }
+}
+
+@keyframes querying-text-breathe {
+  0%, 100% { opacity: 0.72; }
+  50% { opacity: 0.96; }
 }
 
 @keyframes circuit-glow-pan {

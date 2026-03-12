@@ -258,8 +258,6 @@ function createTableQueryCircuitOverlay() {
   const segments = [];
   const segmentIndex = new Map();
   const usedNodes = new Map();
-  const chips = [];
-  const connectors = [];
   const busRows = [randomInt(2, 3), randomInt(rows - 4, rows - 3)].sort((a, b) => a - b);
   const busCols = [randomInt(2, 3), randomInt(cols - 4, cols - 3)].sort((a, b) => a - b);
   const serviceRows = [1, rows - 2];
@@ -342,8 +340,7 @@ function createTableQueryCircuitOverlay() {
   }
 
   function createChip(col, row, width, height) {
-    const chip = { col, row, width, height, pads: [] };
-    chips.push(chip);
+    const pads = [];
 
     const padRows = Array.from({ length: height }, (_, index) => row + index);
     const padCols = Array.from({ length: width }, (_, index) => col + index);
@@ -352,7 +349,7 @@ function createTableQueryCircuitOverlay() {
       addSegment(point(col - 1, row), point(col - 1, row + height - 1), { width: 2, pulseChance: 0.12 });
       padRows.forEach(padRow => {
         const pad = { point: point(col - 1, padRow), side: 'left' };
-        chip.pads.push(pad);
+        pads.push(pad);
         addNodeUsage(pad.point);
       });
     }
@@ -361,7 +358,7 @@ function createTableQueryCircuitOverlay() {
       addSegment(point(col + width, row), point(col + width, row + height - 1), { width: 2, pulseChance: 0.12 });
       padRows.forEach(padRow => {
         const pad = { point: point(col + width, padRow), side: 'right' };
-        chip.pads.push(pad);
+        pads.push(pad);
         addNodeUsage(pad.point);
       });
     }
@@ -370,7 +367,7 @@ function createTableQueryCircuitOverlay() {
       padCols.forEach((padCol, index) => {
         if (index !== 0 && index !== padCols.length - 1 && Math.random() < 0.45) return;
         const pad = { point: point(padCol, row - 1), side: 'top' };
-        chip.pads.push(pad);
+        pads.push(pad);
         addNodeUsage(pad.point);
       });
     }
@@ -379,12 +376,12 @@ function createTableQueryCircuitOverlay() {
       padCols.forEach((padCol, index) => {
         if (index !== 0 && index !== padCols.length - 1 && Math.random() < 0.45) return;
         const pad = { point: point(padCol, row + height), side: 'bottom' };
-        chip.pads.push(pad);
+        pads.push(pad);
         addNodeUsage(pad.point);
       });
     }
 
-    chip.pads
+    pads
       .filter((_, index) => index % 2 === 0 || Math.random() < 0.28)
       .forEach(routePadToNetwork);
   }
@@ -395,7 +392,6 @@ function createTableQueryCircuitOverlay() {
 
     for (let index = 0; index < count; index++) {
       const col = startCol + index;
-      connectors.push({ col, row: rows - 1 });
 
       const feedPoint = point(col, rows - 2);
       addNodeUsage(feedPoint);
@@ -473,24 +469,6 @@ function createTableQueryCircuitOverlay() {
     }
 
     circuit.appendChild(trace);
-  });
-
-  chips.forEach(chip => {
-    const chipEl = document.createElement('div');
-    chipEl.className = 'table-query-circuit-chip';
-    chipEl.style.left = `${(xMin + (chip.col + (chip.width - 1) / 2) * xStep).toFixed(2)}%`;
-    chipEl.style.top = `${(yMin + (chip.row + (chip.height - 1) / 2) * yStep).toFixed(2)}%`;
-    chipEl.style.width = `${(chip.width * xStep * 0.78).toFixed(2)}%`;
-    chipEl.style.height = `${(chip.height * yStep * 0.74).toFixed(2)}%`;
-    circuit.appendChild(chipEl);
-  });
-
-  connectors.forEach(connector => {
-    const connectorEl = document.createElement('div');
-    connectorEl.className = 'table-query-circuit-connector';
-    connectorEl.style.left = `${(xMin + connector.col * xStep).toFixed(2)}%`;
-    connectorEl.style.top = `${(yMin + connector.row * yStep).toFixed(2)}%`;
-    circuit.appendChild(connectorEl);
   });
 
   usedNodes.forEach((degree, key) => {
