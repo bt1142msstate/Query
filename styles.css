@@ -1773,6 +1773,15 @@ th:hover .th-trash {
   pointer-events: none;
 }
 
+body.scene-fade-out > *:not(#header-bar):not(#table-query-bubble):not(.particle):not(#toast-container) {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.particle):not(#toast-container) {
+  transition: opacity 0.5s ease;
+}
+
 /* ==========================================
    15. FILTER SIDE PANEL
    ========================================== */

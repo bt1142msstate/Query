@@ -284,9 +284,14 @@ window.startTableQueryAnimation = function() {
   // Force reflow
   void bubble.offsetWidth;
   
-  // Animate to a circle
+  // Fade out rest of the scene
+  document.body.classList.add('scene-fade-transition', 'scene-fade-out');
+  
+  // Animate to a circle and move to center
   bubble.style.width = '350px';
   bubble.style.height = '350px';
+  bubble.style.top = '50%';
+  bubble.style.left = '50%';
   bubble.style.borderRadius = '50%';
 
   // Fade in the aurora effect during/after it circles
@@ -305,6 +310,7 @@ window.endTableQueryAnimation = function() {
   
   if (!bubble || !tableContainer) {
     if (tableContainer) tableContainer.classList.remove('table-container-hidden');
+    document.body.classList.remove('scene-fade-out', 'scene-fade-transition');
     return;
   }
 
@@ -320,6 +326,13 @@ window.endTableQueryAnimation = function() {
   }
 
   function startExpansionMorph() {
+    // Fade the rest of the scene back in
+    document.body.classList.remove('scene-fade-out');
+    // Remove the transition class after it finishes
+    setTimeout(() => {
+      document.body.classList.remove('scene-fade-transition');
+    }, 600);
+
     // Measure new dimensions
     const rect = tableContainer.getBoundingClientRect();
   
