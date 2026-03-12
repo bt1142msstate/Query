@@ -91,6 +91,9 @@ class ModalManager {
     if (!panel) return;
 
     panel.classList.remove('hidden');
+    if (panelId === 'mobile-menu-dropdown') {
+      panel.classList.add('show');
+    }
     // Force reflow for animation if needed (though existing CSS seems to use hidden class)
     // Existing styles might rely on removing hidden to show.
     
@@ -106,6 +109,9 @@ class ModalManager {
     const panel = document.getElementById(panelId);
     if (!panel) return;
 
+    if (panelId === 'mobile-menu-dropdown') {
+      panel.classList.remove('show');
+    }
     panel.classList.add('hidden');
     
     if (this.activePanel === panelId) {
@@ -127,6 +133,9 @@ class ModalManager {
     this.panels.forEach(pid => {
       const p = document.getElementById(pid);
       if (p && !p.classList.contains('hidden')) {
+        if (pid === 'mobile-menu-dropdown') {
+          p.classList.remove('show');
+        }
         p.classList.add('hidden');
       }
     });
