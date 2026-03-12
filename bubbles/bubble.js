@@ -264,41 +264,43 @@ window.createBubblePopParticles = function(bubbleClone) {
   if (!bubbleClone) return;
 
   const rect = bubbleClone.getBoundingClientRect();
-  const particleCount = 10;
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  const particleCount = 25;
 
   for (let index = 0; index < particleCount; index++) {
     const particle = document.createElement('div');
-    particle.className = 'bubble-pop-particle';
-    particle.style.position = 'fixed';
-    particle.style.left = `${rect.left + rect.width / 2}px`;
-    particle.style.top = `${rect.top + rect.height / 2}px`;
-    particle.style.width = `${6 + Math.random() * 8}px`;
-    particle.style.height = particle.style.width;
-    particle.style.borderRadius = '999px';
-    particle.style.pointerEvents = 'none';
-    particle.style.zIndex = '9999';
-    particle.style.background = Math.random() > 0.5 ? 'rgba(96, 165, 250, 0.5)' : 'rgba(255, 255, 255, 0.65)';
+    particle.className = 'bubble-particle';
+    particle.style.zIndex = getComputedStyle(bubbleClone).zIndex;
 
-    const angle = (Math.PI * 2 * index) / particleCount;
-    const distance = 18 + Math.random() * 26;
-    const x = Math.cos(angle) * distance;
-    const y = Math.sin(angle) * distance;
-    particle.animate(
-      [
-        { transform: 'translate(-50%, -50%) scale(1)', opacity: 0.9 },
-        { transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(0.2)`, opacity: 0 }
-      ],
-      {
-        duration: 350 + Math.random() * 250,
-        easing: 'ease-out',
-        fill: 'forwards'
-      }
-    );
+    const angle = Math.random() * Math.PI * 2;
+    const radiusX = (rect.width / 2) * (0.8 + Math.random() * 0.3);
+    const radiusY = (rect.height / 2) * (0.8 + Math.random() * 0.3);
+    const startX = centerX + Math.cos(angle) * radiusX;
+    const startY = centerY + Math.sin(angle) * radiusY;
+
+    particle.style.left = `${startX}px`;
+    particle.style.top = `${startY}px`;
+
+    const size = Math.random() * 10 + 4;
+    particle.style.width = `${size}px`;
+    particle.style.height = `${size}px`;
+
+    const burstSpeed = 20 + Math.random() * 50;
+    const travelX = Math.cos(angle) * burstSpeed;
+    const gravity = 60 + Math.random() * 60;
+    const travelY = Math.sin(angle) * burstSpeed + gravity;
+
+    particle.style.setProperty('--tx', `${travelX}px`);
+    particle.style.setProperty('--ty', `${travelY}px`);
+
+    const duration = 0.35 + Math.random() * 0.25;
+    particle.style.animation = `bubble-pop-anim ${duration}s ease-in forwards`;
 
     document.body.appendChild(particle);
     setTimeout(() => {
       if (particle.parentNode) particle.remove();
-    }, 700);
+    }, duration * 1000);
   }
 };
 
