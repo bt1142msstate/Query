@@ -2255,6 +2255,9 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
   pointer-events: none;
   z-index: 1;
   overflow: hidden;
+  perspective: 800px;
+  transform-style: preserve-3d;
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.4);
 }
 
 .table-query-aurora.active {
@@ -2290,14 +2293,14 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
 }
 
 @keyframes aurora-wave {
-  0% { transform: translate(0, 0) scale(1) rotate(0deg); filter: blur(40px) hue-rotate(0deg); }
-  50% { transform: translate(-10%, 5%) scale(1.1) rotate(10deg); filter: blur(45px) hue-rotate(30deg); }
-  100% { transform: translate(5%, -10%) scale(0.9) rotate(-10deg); filter: blur(35px) hue-rotate(-15deg); }
+  0% { transform: translate3d(0, 0, -50px) scale(1) rotateX(20deg) rotateY(-15deg) rotateZ(0deg); filter: blur(40px) hue-rotate(0deg); }
+  50% { transform: translate3d(-10%, 5%, 80px) scale(1.15) rotateX(-15deg) rotateY(25deg) rotateZ(10deg); filter: blur(45px) hue-rotate(30deg); }
+  100% { transform: translate3d(5%, -10%, -30px) scale(0.9) rotateX(10deg) rotateY(-20deg) rotateZ(-10deg); filter: blur(35px) hue-rotate(-15deg); }
 }
 
 @keyframes aurora-wave-2 {
-  0% { transform: translate(5%, 10%) scale(0.9) rotate(5deg); filter: blur(35px) hue-rotate(0deg); }
-  50% { transform: translate(-5%, -5%) scale(1.1) rotate(-5deg); filter: blur(50px) hue-rotate(-20deg); }
-  100% { transform: translate(-10%, 5%) scale(1) rotate(15deg); filter: blur(40px) hue-rotate(25deg); }
+  0% { transform: translate3d(5%, 10%, 60px) scale(0.9) rotateX(-20deg) rotateY(15deg) rotateZ(5deg); filter: blur(35px) hue-rotate(0deg); }
+  50% { transform: translate3d(-5%, -5%, -60px) scale(1.1) rotateX(15deg) rotateY(-25deg) rotateZ(-5deg); filter: blur(50px) hue-rotate(-20deg); }
+  100% { transform: translate3d(-10%, 5%, 40px) scale(1) rotateX(-10deg) rotateY(20deg) rotateZ(15deg); filter: blur(40px) hue-rotate(25deg); }
 }
 
