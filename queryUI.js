@@ -51,11 +51,19 @@ window.groupMethodSelect = document.getElementById('group-method-select');
  * @function updateRunButtonIcon
  */
 window.updateRunButtonIcon = function(validationError) {
-  const runIcon = document.getElementById('run-icon');
-  const refreshIcon = document.getElementById('refresh-icon');
-  const stopIcon = document.getElementById('stop-icon');
-  const runBtn = document.getElementById('run-query-btn');
+  const runIcon = window.DOM.runIcon;
+  const refreshIcon = window.DOM.refreshIcon;
+  const stopIcon = window.DOM.stopIcon;
+  const runBtn = window.DOM.runBtn;
   const mobileRunQuery = document.getElementById('mobile-run-query');
+
+  const setRunTooltip = (tooltipText, ariaLabel) => {
+    runBtn.setAttribute('data-tooltip', tooltipText);
+    runBtn.setAttribute('aria-label', ariaLabel);
+    if (mobileRunQuery) {
+      mobileRunQuery.setAttribute('data-tooltip', tooltipText);
+    }
+  };
   
   // State 1: Query is running - show stop icon
   if (window.queryRunning) {
@@ -66,11 +74,7 @@ window.updateRunButtonIcon = function(validationError) {
     runBtn.classList.remove('opacity-50', 'cursor-not-allowed');
     runBtn.classList.add('bg-red-500', 'hover:bg-red-600');
     runBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
-    runBtn.setAttribute('data-tooltip', 'Stop Query');
-    runBtn.setAttribute('aria-label', 'Stop query');
-    if (mobileRunQuery) {
-      mobileRunQuery.setAttribute('data-tooltip', 'Stop Query');
-    }
+    setRunTooltip('Stop Query', 'Stop query');
     return;
   }
   
@@ -85,11 +89,7 @@ window.updateRunButtonIcon = function(validationError) {
     refreshIcon.classList.add('hidden');
     runBtn.disabled = true;
     runBtn.classList.add('opacity-50', 'cursor-not-allowed');
-    runBtn.setAttribute('data-tooltip', validationError);
-    runBtn.setAttribute('aria-label', validationError);
-    if (mobileRunQuery) {
-      mobileRunQuery.setAttribute('data-tooltip', validationError);
-    }
+    setRunTooltip(validationError, validationError);
     return;
   }
   
@@ -99,11 +99,7 @@ window.updateRunButtonIcon = function(validationError) {
     refreshIcon.classList.add('hidden');
     runBtn.disabled = true;
     runBtn.classList.add('opacity-50', 'cursor-not-allowed');
-    runBtn.setAttribute('data-tooltip', 'Add columns to enable query');
-    runBtn.setAttribute('aria-label', 'Add columns to enable query');
-    if (mobileRunQuery) {
-      mobileRunQuery.setAttribute('data-tooltip', 'Add columns to enable query');
-    }
+    setRunTooltip('Add columns to enable query', 'Add columns to enable query');
     return;
   }
   
@@ -115,20 +111,12 @@ window.updateRunButtonIcon = function(validationError) {
   if (window.hasQueryChanged()) {
     runIcon.classList.remove('hidden');
     refreshIcon.classList.add('hidden');
-    runBtn.setAttribute('data-tooltip', 'Run Query');
-    runBtn.setAttribute('aria-label', 'Run query');
-    if (mobileRunQuery) {
-      mobileRunQuery.setAttribute('data-tooltip', 'Run Query');
-    }
+    setRunTooltip('Run Query', 'Run query');
   } else {
     // State 4: No changes - show refresh icon
     runIcon.classList.add('hidden');
     refreshIcon.classList.remove('hidden');
-    runBtn.setAttribute('data-tooltip', 'Refresh Data');
-    runBtn.setAttribute('aria-label', 'Refresh data');
-    if (mobileRunQuery) {
-      mobileRunQuery.setAttribute('data-tooltip', 'Refresh Data');
-    }
+    setRunTooltip('Refresh Data', 'Refresh data');
   }
 };
 
