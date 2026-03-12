@@ -751,16 +751,9 @@ function initializeBubbles() {
  * @param {Set<string>} [skipFields] - Optional fields to skip while fly-back is active.
  */
 function reconcileBubbleInteractionState(skipFields = new Set()) {
-  const bubbles = Array.from(document.querySelectorAll('.bubble'));
-  bubbles.forEach(b => {
-    const fieldName = b.textContent ? b.textContent.trim() : '';
-    if (skipFields.has(fieldName)) return;
-    b.classList.remove('bubble-disabled');
-    b.style.visibility = '';
-    b.style.opacity = '';
-    b.removeAttribute('data-filter-for');
-    window.BubbleSystem && window.BubbleSystem.applyCorrectBubbleStyling(b);
-  });
+  if (window.BubbleReset && typeof window.BubbleReset.reconcileBubbleInteractionState === 'function') {
+    return window.BubbleReset.reconcileBubbleInteractionState(skipFields);
+  }
 }
 
 /**
@@ -768,147 +761,9 @@ function reconcileBubbleInteractionState(skipFields = new Set()) {
  * Handles the cleanup of clones and restoration of original bubbles.
  */
 function resetActiveBubbles() {
-  // Always clear any generic animating flag so we aren't stuck preventing clicks if closed early
-  window.isBubbleAnimating = false;
-  
-  // Ensure input lock is always cleared
-  if (window.ModalSystem) {
-    window.ModalSystem.lockInput(0);
+  if (window.BubbleReset && typeof window.BubbleReset.resetActiveBubbles === 'function') {
+    return window.BubbleReset.resetActiveBubbles();
   }
-  
-  const clones = document.querySelectorAll('.active-bubble, .bubble-clone');
-  bubbleDebugLog('reset.start', { cloneCount: clones.length });
-  if (clones.length > 0) window.isBubbleAnimatingBack = true; 
-  
-  clones.forEach(clone => {
-    const origin = clone._origin;
-    const originInDOM = origin && document.body.contains(origin);
-    const fieldName = origin ? origin.textContent.trim() : (clone.textContent ? clone.textContent.trim() : '');
-
-    if (originInDOM) {
-      if (window.animatingBackBubbles) window.animatingBackBubbles.add(fieldName);
-      
-      const originalRect = clone._originalRect;
-      
-      // Restore bubble clone visibility before fly-back
-      clone.style.opacity = '1';
-      
-      // Override standard CSS to apply a smooth "all" transition while returning back
-      clone.style.transition = 'all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)';
-      
-      // Disable backdrop filter which causes massive GPU redraw lag during active layout reflows!
-      clone.style.backdropFilter = 'none';
-      clone.style.webkitBackdropFilter = 'none';
-
-      if (originalRect) {
-        clone.style.top  = originalRect.top + 'px';
-        clone.style.left = originalRect.left + 'px';
-        if (originalRect.width) clone.style.width = originalRect.width + 'px';
-        if (originalRect.height) clone.style.height = originalRect.height + 'px';
-      } else {
-        const nowRect = origin.getBoundingClientRect();
-        clone.style.top  = nowRect.top + 'px';
-        clone.style.left = nowRect.left + 'px';
-      }
-      
-      clone.style.transform = 'translate(0, 0)'; 
-      // Unset these so they animate naturally back to inherited .bubble styles
-      clone.style.fontSize = ''; 
-      clone.style.padding = '';
-
-      origin.style.opacity = '0';
-      origin.style.visibility = 'hidden';
-      
-      clone.classList.remove('enlarge-bubble');
-      clone.classList.remove('active-bubble');
-      clone.classList.remove('bubble-clone');
-      
-      clone.addEventListener('transitionend', () => {
-        bubbleDebugLog('reset.clone.transitionend', { fieldName });
-        clone.remove();
-        if (window.animatingBackBubbles) window.animatingBackBubbles.delete(fieldName);
-        
-        requestAnimationFrame(() => {
-          const bubbles = Array.from(document.querySelectorAll('.bubble'));
-          bubbles.forEach(b => {
-             if (b.textContent.trim() === fieldName) {
-                const stillExists = window.fieldDefs.has(fieldName) && window.shouldFieldHavePurpleStyling(fieldName);
-                if (!stillExists && window.currentCategory === 'Selected') {
-                    b.remove();
-                } else {
-                    b.style.visibility = '';
-                    b.style.opacity = '1';
-                    b.classList.remove('bubble-disabled');
-                  b.removeAttribute('data-filter-for');
-                    window.BubbleSystem && window.BubbleSystem.applyCorrectBubbleStyling(b);
-                }
-             }
-          });
-        });
-        
-        if (window.animatingBackBubbles && window.animatingBackBubbles.size === 0) {
-            window.isBubbleAnimatingBack = false;
-            if (window.pendingRenderBubbles) {
-                window.BubbleSystem.renderBubbles();
-                window.pendingRenderBubbles = false;
-            }
-            reconcileBubbleInteractionState();
-            bubbleDebugLog('reset.complete', { reason: 'all-transitionend' });
-        }
-      }, { once: true });
-    } else {
-      clone.remove();
-      bubbleDebugLog('reset.clone.removedWithoutOrigin', { fieldName });
-      if (origin) {
-         if (window.animatingBackBubbles) window.animatingBackBubbles.delete(fieldName);
-         const matchingBubble = Array.from(document.querySelectorAll('.bubble'))
-              .find(b => b.textContent.trim() === fieldName);
-          if (matchingBubble) {
-               const stillExists = window.fieldDefs.has(fieldName) && window.shouldFieldHavePurpleStyling(fieldName);
-              if (!stillExists && window.currentCategory === 'Selected') {
-                matchingBubble.remove();
-              } else {
-                matchingBubble.style.opacity = '';
-                matchingBubble.style.visibility = '';
-                matchingBubble.classList.remove('bubble-disabled');
-                matchingBubble.removeAttribute('data-filter-for');
-                window.BubbleSystem && window.BubbleSystem.applyCorrectBubbleStyling(matchingBubble);
-              }
-          }
-      }
-      
-      if (window.animatingBackBubbles && window.animatingBackBubbles.size === 0) {
-        window.isBubbleAnimatingBack = false;
-        if (window.pendingRenderBubbles) {
-          window.BubbleSystem.renderBubbles();
-          window.pendingRenderBubbles = false;
-        }
-        reconcileBubbleInteractionState();
-        bubbleDebugLog('reset.complete', { reason: 'no-origin-clone' });
-      }
-    }
-  });
-  
-  setTimeout(() => {
-    if (clones.length === 0) {
-      window.isBubbleAnimatingBack = false;
-      window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
-      reconcileBubbleInteractionState();
-      bubbleDebugLog('reset.complete', { reason: 'no-clones' });
-    }
-  }, 0);
-
-  // Fallback: some browsers can skip transitionend during rapid close/open.
-  setTimeout(() => {
-    if (!window.isBubbleAnimatingBack) return;
-    window.isBubbleAnimatingBack = false;
-    window.pendingRenderBubbles = false;
-    const staleCloneCount = document.querySelectorAll('.bubble-clone').length;
-    document.querySelectorAll('.bubble-clone').forEach(c => c.remove());
-    reconcileBubbleInteractionState();
-    window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
-    bubbleDebugLog('reset.complete', { reason: 'fallback-timeout', removedStaleClones: staleCloneCount });
-  }, 650);
 }
 
 // Export the main functions that query.js needs
@@ -916,6 +771,7 @@ if (typeof window !== 'undefined') {
   window.BubbleSystem = {
     Bubble,
     applyCorrectBubbleStyling,
+    bubbleDebugLog,
     createOrUpdateBubble,
     applyBubbleScrollRow,
     scrollBubblesByRows,
