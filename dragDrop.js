@@ -1221,9 +1221,7 @@ window.DragDropSystem = {
   restoreFieldWithDuplicates,
   addColumn,
   removeColumnByName,
-  getDuplicateGroups,
-  isValidInsertPosition,
-  findValidInsertPosition
+  getDuplicateGroups
 };
 
 // Also export centralized functions globally for easy access
