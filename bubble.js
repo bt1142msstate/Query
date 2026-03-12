@@ -56,7 +56,7 @@ class Bubble {
         LogicalOperator: af.logical,
         Filters: af.filters.map(f => ({
           FieldName: fieldName,
-          FieldOperator: mapOperator(f.cond),
+          FieldOperator: mapBubbleConditionToFieldOperator(f.cond),
           Values: f.cond === 'between' ? f.val.split('|') : f.val.split(',')
         }))
       }];
@@ -117,7 +117,7 @@ class Bubble {
     }
 
     // If the overlay is closed, clear any stale disabled visuals that may linger after rapid close/open cycles.
-    const overlayEl = document.getElementById('overlay');
+    const overlayEl = getBubbleOverlayElement();
     const isOverlayOpen = !!(overlayEl && overlayEl.classList.contains('show'));
     if (!isOverlayOpen) {
       this.el.classList.remove('bubble-disabled');
@@ -136,6 +136,43 @@ class Bubble {
   getElement() {
     return this.el;
   }
+}
+
+function getBubbleOverlayElement() {
+  return window.DOM?.overlay || document.getElementById('overlay');
+}
+
+function getBubbleConditionPanelElement() {
+  return window.DOM?.conditionPanel || document.getElementById('condition-panel');
+}
+
+function getBubbleInputWrapperElement() {
+  return window.DOM?.inputWrapper || document.getElementById('condition-input-wrapper');
+}
+
+function getBubbleConditionInputElement() {
+  return window.DOM?.conditionInput || document.getElementById('condition-input');
+}
+
+function getBubbleConfirmButtonElement() {
+  return window.DOM?.confirmBtn || document.getElementById('confirm-btn');
+}
+
+function getBubbleFilterCardElement() {
+  return document.getElementById('filter-card') || window.filterCard || null;
+}
+
+function getBubbleFilterCardTitleElement(filterCard = getBubbleFilterCardElement()) {
+  return (filterCard && filterCard.querySelector('#filter-card-title')) || document.getElementById('filter-card-title');
+}
+
+function mapBubbleConditionToFieldOperator(condition) {
+  if (typeof window.mapUiCondToFieldOperator === 'function') {
+    return window.mapUiCondToFieldOperator(condition);
+  }
+
+  const normalized = String(condition || '').trim();
+  return normalized ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : 'Equals';
 }
 
 const BUBBLE_VISIBLE_ROWS = 2;
@@ -481,10 +518,10 @@ window.createBubblePopParticles = function(bubbleClone) {
  * @param {HTMLElement} bubble - The clicked bubble element
  */
 function buildConditionPanel(bubble){
-  const conditionPanel = window.DOM?.conditionPanel || document.getElementById('condition-panel');
-  const inputWrapper = window.DOM?.inputWrapper || document.getElementById('condition-input-wrapper');
-  const conditionInput = window.DOM?.conditionInput || document.getElementById('condition-input');
-  const confirmBtn = window.DOM?.confirmBtn || document.getElementById('confirm-btn');
+  const conditionPanel = getBubbleConditionPanelElement();
+  const inputWrapper = getBubbleInputWrapperElement();
+  const conditionInput = getBubbleConditionInputElement();
+  const confirmBtn = getBubbleConfirmButtonElement();
 
   if (!conditionPanel || !inputWrapper || !conditionInput || !confirmBtn) {
     console.warn('buildConditionPanel skipped: missing condition panel DOM nodes');
@@ -551,7 +588,7 @@ function buildConditionPanel(bubble){
         group.appendChild(label);
         group.appendChild(inputEl);
         
-        const refNode = document.getElementById('condition-input');
+        const refNode = conditionInput;
         if (refNode && inputWrapper) {
           inputWrapper.insertBefore(group, refNode.nextSibling);
         }
@@ -820,8 +857,8 @@ function initializeBubbles() {
 
   // Delegated bubble click events
   document.addEventListener('click', e=>{
-    const overlay = window.DOM?.overlay || document.getElementById('overlay');
-    const conditionPanel = window.DOM?.conditionPanel || document.getElementById('condition-panel');
+    const overlay = getBubbleOverlayElement();
+    const conditionPanel = getBubbleConditionPanelElement();
     const targetEl = e.target instanceof Element ? e.target : e.target && e.target.parentElement;
     const bubble = targetEl ? targetEl.closest('.bubble') : null;
     bubbleDebugLog('document.click', {
@@ -896,7 +933,7 @@ function initializeBubbles() {
     bubble.dataset.filterFor = bubble.textContent.trim();          // add attribute
 
     // Ensure filter card is attached BEFORE calling buildConditionPanel
-    let filterCard = document.getElementById('filter-card') || window.filterCard;
+    let filterCard = getBubbleFilterCardElement();
     if (filterCard && !document.getElementById('filter-card')) {
       document.body.appendChild(filterCard);
       // force layout recalculation so transition works
@@ -912,9 +949,9 @@ function initializeBubbles() {
     buildConditionPanel(bubble);
 
     // --- Pre-populate filter card to accurately measure target dimensions ---
-    const inputWrapper = document.getElementById('condition-input-wrapper') || filterCard.querySelector('#condition-input-wrapper');
+    const inputWrapper = getBubbleInputWrapperElement() || (filterCard ? filterCard.querySelector('#condition-input-wrapper') : null);
     if (filterCard) {
-      const titleEl = filterCard.querySelector('#filter-card-title') || document.getElementById('filter-card-title');
+      const titleEl = getBubbleFilterCardTitleElement(filterCard);
       if (titleEl) titleEl.textContent = fieldName;
     }
     const defaultBtn = conditionPanel
