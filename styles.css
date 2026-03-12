@@ -2332,9 +2332,9 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
 .table-query-circuit-pulse {
   position: absolute;
   top: 50%;
-  left: -8px;
-  width: 8px;
-  height: 8px;
+  left: 0;
+  width: var(--pulse-size, 8px);
+  height: var(--pulse-size, 8px);
   border-radius: 50%;
   transform: translateY(-50%);
   background: var(--pulse-color);
@@ -2351,10 +2351,10 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
 }
 
 @keyframes circuit-pulse-run {
-  0% { left: -8px; opacity: 0; }
-  12% { opacity: 1; }
-  96% { opacity: 1; }
-  100% { left: calc(100% + 8px); opacity: 0; }
+  0% { left: 0; opacity: 0; }
+  10% { opacity: 1; }
+  92% { opacity: 1; }
+  100% { left: calc(100% - var(--pulse-size, 8px)); opacity: 0; }
 }
 
 @keyframes circuit-glow-pan {
