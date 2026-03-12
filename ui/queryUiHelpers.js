@@ -52,14 +52,18 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
   container.className = 'grouped-selector';
   container.id = 'condition-select-container';
 
+  const searchWrapper = document.createElement('div');
+  searchWrapper.className = 'search-wrapper';
+
   const searchInput = document.createElement('input');
   searchInput.type = 'text';
-  searchInput.className = 'grouped-selector-search';
+  searchInput.className = 'search-input';
   searchInput.placeholder = 'Search options...';
-  container.appendChild(searchInput);
+  searchWrapper.appendChild(searchInput);
+  container.appendChild(searchWrapper);
 
   const optionsContainer = document.createElement('div');
-  optionsContainer.className = 'grouped-selector-options';
+  optionsContainer.className = 'grouped-options-container';
   container.appendChild(optionsContainer);
 
   const groupedData = new Map();
@@ -95,7 +99,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
 
     const input = document.createElement('input');
     input.type = isMultiSelect ? 'checkbox' : 'radio';
-    input.name = isMultiSelect ? '' : 'grouped-selector-single';
+    input.name = 'condition-value';
     input.dataset.value = val.literal;
     input.dataset.display = val.display;
     input.checked = currentValues.includes(val.literal);
@@ -111,7 +115,9 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     }
 
     const label = document.createElement('label');
-    label.textContent = val.display;
+    label.textContent = insideGroup
+      ? val.display.replace(new RegExp(`^${groupName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*-\\s*`), '')
+      : val.display;
 
     optionItem.appendChild(input);
     optionItem.appendChild(label);
@@ -119,6 +125,11 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
   }
 
   groupedData.forEach((groupValues, groupName) => {
+    if (groupValues.length < 2) {
+      ungroupedValues.push(...groupValues);
+      return;
+    }
+
     const groupSection = document.createElement('div');
     groupSection.className = 'group-section';
 
