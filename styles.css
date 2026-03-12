@@ -2332,13 +2332,13 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
 .table-query-circuit-pulse {
   position: absolute;
   top: 50%;
-  left: -8px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+  left: -32px;
+  width: 32px;
+  height: 3px;
+  border-radius: 4px;
   transform: translateY(-50%);
-  background: var(--pulse-color);
-  box-shadow: 0 0 8px var(--pulse-color), 0 0 18px var(--pulse-color);
+  background: linear-gradient(to right, transparent 0%, var(--pulse-color) 70%, #ffffff 100%);
+  box-shadow: 8px 0 12px var(--pulse-color), 2px 0 4px #ffffff;
   opacity: 0;
   animation: circuit-pulse-run var(--pulse-duration) linear infinite;
   animation-delay: var(--pulse-delay);
@@ -2351,10 +2351,10 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
 }
 
 @keyframes circuit-pulse-run {
-  0% { left: -8px; opacity: 0; }
+  0% { left: -32px; opacity: 0; }
   5% { opacity: 1; }
   98% { opacity: 1; }
-  100% { left: calc(100% + 8px); opacity: 0; }
+  100% { left: calc(100% + 32px); opacity: 0; }
 }
 
 @keyframes circuit-glow-pan {
