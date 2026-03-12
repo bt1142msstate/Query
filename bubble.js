@@ -148,7 +148,7 @@ function clampBubbleScrollRow(nextRow) {
 }
 
 function applyBubbleScrollRow(nextRow, options = {}) {
-  const { force = false, syncScrollbar = true } = options;
+  const { force = false } = options;
   if (typeof scrollRow === 'undefined') return false;
 
   const clampedRow = clampBubbleScrollRow(nextRow);
@@ -162,9 +162,7 @@ function applyBubbleScrollRow(nextRow, options = {}) {
     listDiv.style.transform = `translateY(-${scrollRow * rowHeight}px)`;
   }
 
-  if (syncScrollbar) {
-    updateScrollBar();
-  }
+  updateScrollBar();
 
   return changed;
 }
@@ -334,7 +332,6 @@ function renderBubbles(){
     const scrollCont = document.querySelector('.bubble-scrollbar-container');
     if (scrollCont) scrollCont.style.height = paddedH + 'px';
     totalRows  = Math.ceil(list.length / 6);
-    if(scrollRow > totalRows - rowsVisible) scrollRow = Math.max(0, totalRows - rowsVisible);
     applyBubbleScrollRow(scrollRow, { force: true });
   }
   Array.from(listDiv.children).forEach(bubble => {
@@ -390,17 +387,8 @@ function updateScrollBar(){
   const maxStartRow = getBubbleMaxStartRow();
   const trackH = track.clientHeight;
 
-  // Build unicolor track background using CSS
-  // Only update when totalRows actually changes to avoid style thrashing
-  if (track.dataset.lastTotalRows !== String(totalRows)) {
-    track.dataset.lastTotalRows = totalRows;
-    
-    // Clear old DOM segments just in case they were left over from before
-    track.querySelectorAll('.bubble-scrollbar-segment').forEach(s=>s.remove());
-    
-    // A frosty track to stand out against the background but remain sleek
-    track.style.background = 'rgba(255, 255, 255, 0.15)';
-  }
+  // Preserve exact frosted look while keeping logic stateless.
+  track.style.background = 'rgba(255, 255, 255, 0.15)';
 
   // Calculate thumb height proportionally (with minimum size 24px)
   const visibleRatio = totalRows > 0 ? (BUBBLE_VISIBLE_ROWS / totalRows) : 1;
