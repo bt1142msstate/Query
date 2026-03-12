@@ -25,10 +25,17 @@ window.buildQueryPayload = function() {
     const tableNameInput = document.getElementById('table-name-input');
     const queryName = tableNameInput ? tableNameInput.value.trim() : '';
 
-    // ui_config stores the canonical column order for history restoration
-    // state.displayedFields is already canonical (getCurrentQueryState handles split mode)
+    // Collapse split-mode expanded names (e.g. "Marc590 1", "Marc590 2") back to their
+    // base field names and deduplicate, so the backend always receives canonical names.
+    const collapseField = f => (window.getBaseFieldName ? window.getBaseFieldName(f) : f.replace(/ \d+$/, ''));
+    const seenFields = new Set();
+    const baseDisplayFields = state.displayedFields
+        .map(collapseField)
+        .filter(f => { if (seenFields.has(f)) return false; seenFields.add(f); return true; });
+
+    // ui_config stores the collapsed (canonical) column order for history restoration
     const historyConfig = {
-        DesiredColumnOrder: state.displayedFields,
+        DesiredColumnOrder: baseDisplayFields,
         FilterGroups: []
     };
     if (state.activeFilters) {
@@ -45,7 +52,7 @@ window.buildQueryPayload = function() {
 
     const standardDisplayFields = [];
     const specialFields = [];
-    state.displayedFields.forEach(field => {
+    baseDisplayFields.forEach(field => {
         const fieldDef = window.fieldDefs ? window.fieldDefs.get(field) : null;
         if (fieldDef && fieldDef.special_payload) {
             const isDuplicate = specialFields.some(sf => JSON.stringify(sf) === JSON.stringify(fieldDef.special_payload));
