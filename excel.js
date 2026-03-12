@@ -167,7 +167,7 @@ const ExcelExporter = (() => {
           let val = row[colIndex];
           if (val === undefined || val === null) return;
           if (type === 'date') val = '12/31/2000';
-          else if (type === 'number') val = String(val).replace(/[$,]/g, '');
+          else if (type === 'number' || type === 'money') val = String(val).replace(/[$,]/g, '');
           else val = String(val).replace(/\x1F/g, ' '); // flatten for length estimate
           maxLen = Math.max(maxLen, val.length);
         });
@@ -190,7 +190,7 @@ const ExcelExporter = (() => {
           const dt = parseSirsDate(raw);
           return dt !== null ? dt : 'Never';
         }
-        if (type === 'number') {
+        if (type === 'number' || type === 'money') {
           const n = typeof raw === 'number' ? raw : parseFloat(String(raw).replace(/[$,]/g, ''));
           return isNaN(n) ? '' : n;
         }
@@ -212,15 +212,19 @@ const ExcelExporter = (() => {
       if (type === 'date') {
         column.numFmt = 'mm/dd/yyyy';
         column.alignment = { horizontal: 'right' };
-      } else if (type === 'number') {
+      } else if (type === 'number' || type === 'money') {
         const colIndex = virtualData.columnMap.get(field);
         const sample = colIndex !== undefined
           ? dataRows.map(r => r[colIndex]).find(v => v !== null && v !== undefined && v !== '')
           : null;
-        const isDecimal = sample !== undefined && sample !== null && !Number.isInteger(
-          typeof sample === 'number' ? sample : parseFloat(String(sample))
-        );
-        column.numFmt = isDecimal ? '#,##0.00' : '0';
+        if (type === 'money') {
+          column.numFmt = '$#,##0.00';
+        } else {
+          const isDecimal = sample !== undefined && sample !== null && !Number.isInteger(
+            typeof sample === 'number' ? sample : parseFloat(String(sample))
+          );
+          column.numFmt = isDecimal ? '#,##0.00' : '0';
+        }
         column.alignment = { horizontal: 'right' };
       } else if (type === 'boolean') {
         column.alignment = { horizontal: 'center' };
