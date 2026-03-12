@@ -481,6 +481,16 @@ window.createBubblePopParticles = function(bubbleClone) {
  * @param {HTMLElement} bubble - The clicked bubble element
  */
 function buildConditionPanel(bubble){
+  const conditionPanel = window.DOM?.conditionPanel || document.getElementById('condition-panel');
+  const inputWrapper = window.DOM?.inputWrapper || document.getElementById('condition-input-wrapper');
+  const conditionInput = window.DOM?.conditionInput || document.getElementById('condition-input');
+  const confirmBtn = window.DOM?.confirmBtn || document.getElementById('confirm-btn');
+
+  if (!conditionPanel || !inputWrapper || !conditionInput || !confirmBtn) {
+    console.warn('buildConditionPanel skipped: missing condition panel DOM nodes');
+    return;
+  }
+
   selectedField = bubble.textContent.trim();
   const type = bubble.dataset.type || 'string';
   let listValues = null;
@@ -511,7 +521,6 @@ function buildConditionPanel(bubble){
   conditionPanel.innerHTML = '';
 
   // Always remove any existing dynamic builder inputs or marcInputGroups from the inputWrapper
-  const inputWrapper = document.getElementById('condition-input-wrapper');
   const oldMarcInput = document.getElementById('marc-field-input');
   if (oldMarcInput && oldMarcInput.parentNode) oldMarcInput.parentNode.remove();
   document.querySelectorAll('.dynamic-input-group').forEach(el => el.remove());
@@ -811,6 +820,8 @@ function initializeBubbles() {
 
   // Delegated bubble click events
   document.addEventListener('click', e=>{
+    const overlay = window.DOM?.overlay || document.getElementById('overlay');
+    const conditionPanel = window.DOM?.conditionPanel || document.getElementById('condition-panel');
     const targetEl = e.target instanceof Element ? e.target : e.target && e.target.parentElement;
     const bubble = targetEl ? targetEl.closest('.bubble') : null;
     bubbleDebugLog('document.click', {
@@ -895,7 +906,9 @@ function initializeBubbles() {
       window.filterCard = filterCard;
     }
 
-    overlay.classList.add('show');
+    if (overlay) {
+      overlay.classList.add('show');
+    }
     buildConditionPanel(bubble);
 
     // --- Pre-populate filter card to accurately measure target dimensions ---
@@ -904,7 +917,9 @@ function initializeBubbles() {
       const titleEl = filterCard.querySelector('#filter-card-title') || document.getElementById('filter-card-title');
       if (titleEl) titleEl.textContent = fieldName;
     }
-    const defaultBtn = conditionPanel.querySelector('.condition-btn[data-cond="equals"]') || conditionPanel.querySelector('.condition-btn');
+    const defaultBtn = conditionPanel
+      ? (conditionPanel.querySelector('.condition-btn[data-cond="equals"]') || conditionPanel.querySelector('.condition-btn'))
+      : null;
     if (defaultBtn) {
       defaultBtn.classList.add('active');
       if(window.handleConditionBtnClick) window.handleConditionBtnClick({ currentTarget: defaultBtn, stopPropagation(){}, preventDefault(){} });
@@ -957,7 +972,9 @@ function initializeBubbles() {
       // Enlarge phase is ongoing, wait for width or height to finish
       if(e.propertyName !== 'width' && e.propertyName !== 'height') return;
 
-      conditionPanel.classList.add('show');
+      if (conditionPanel) {
+        conditionPanel.classList.add('show');
+      }
       // Reveal the unified filter card
       if (filterCard) {
         filterCard.classList.add('show');
@@ -990,7 +1007,7 @@ function initializeBubbles() {
         if (fallbackBubble) clone._origin = fallbackBubble;
       }
     }, 60);
-    if (clone) overlay.classList.add('bubble-active');
+    if (clone && overlay) overlay.classList.add('bubble-active');
     const headerBar = document.getElementById('header-bar');
     if (clone && headerBar) headerBar.classList.add('header-hide');
   });
