@@ -272,6 +272,13 @@ function loadQueryConfig(q) {
   if (typeof window.updateButtonStates === 'function') {
     window.updateButtonStates();
   }
+
+  // Re-render category bar counts and bubble list to reflect the newly loaded fields.
+  // showExampleTable is called fire-and-forget above; its internal updateCategoryCounts
+  // only calls safeRenderBubbles when switching from Selected→All. This explicit call
+  // ensures bubbles are always up-to-date regardless of which category is active.
+  window.updateCategoryCounts && window.updateCategoryCounts();
+  window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
 }
 
 /** * Loads query results from backend.
