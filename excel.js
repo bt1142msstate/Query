@@ -230,6 +230,11 @@ const ExcelExporter = (() => {
       rows: tableRows
     });
 
+    // Center all header cells (row 1) regardless of column data alignment
+    worksheet.getRow(1).eachCell(cell => {
+      cell.alignment = { ...(cell.alignment || {}), horizontal: 'center' };
+    });
+
     const safeFileName = tableName.replace(/[^a-zA-Z0-9\-_\s]/g, '').replace(/\s+/g, '-');
     const filename = `${safeFileName}.xlsx`;
 
