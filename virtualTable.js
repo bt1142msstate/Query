@@ -218,6 +218,47 @@ function renderVirtualTable() {
       td.style.width = `${width}px`;
       td.style.minWidth = `${width}px`;
       td.style.maxWidth = `${width}px`;
+
+      if (typeof displayValue === 'string' && displayValue.includes(';;')) {
+        // Special handling for multi-value cells like MARC field collisions
+        const items = displayValue.split(';;').filter(s => s.trim() !== '');
+        
+        // Override default line-clamp classes
+        td.className = 'px-3 py-2 text-sm text-gray-900 align-top'; 
+        td.style.whiteSpace = 'normal';
+        
+        const scrollContainer = document.createElement('div');
+        // Constrain height loosely to avoid breaking virtual scroll map completely 
+        scrollContainer.style.maxHeight = '70px'; 
+        scrollContainer.style.overflowY = 'auto';
+        scrollContainer.style.paddingRight = '4px'; 
+        scrollContainer.style.scrollbarWidth = 'thin'; // Clean scrollbar UI for modern browsers
+        
+        items.forEach((itm, idx) => {
+           const div = document.createElement('div');
+           div.style.marginBottom = idx < items.length - 1 ? '4px' : '0';
+           div.style.paddingBottom = idx < items.length - 1 ? '4px' : '0';
+           div.style.borderBottom = idx < items.length - 1 ? '1px solid #f3f4f6' : 'none';
+           div.style.wordBreak = 'break-word';
+           div.textContent = itm;
+           scrollContainer.appendChild(div);
+        });
+        
+        // Build an elegant HTML tooltip with a list
+        const tooltipItems = items.map(function(itm) {
+          return '<li>' + (itm.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')) + '</li>';
+        }).join('');
+        const tooltipHtml = '<div class="text-left font-sans text-sm pb-1"><div class="font-bold border-b border-gray-500 pb-1 mb-2">Multiple Values (' + items.length + ')</div><ul class="list-disc pl-4 space-y-1">' + tooltipItems + '</ul></div>';
+        
+        if (window.TooltipManager) {
+           td.setAttribute('data-tooltip-html', tooltipHtml);
+        }
+        
+        td.textContent = '';
+        td.appendChild(scrollContainer);
+        tr.appendChild(td);
+        return; // skip standard truncation below
+      }
       
       // Check if content would be visually truncated and handle it manually
       if (typeof displayValue === 'string' && displayValue.length > 0 && displayValue !== '—') {
