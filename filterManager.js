@@ -53,6 +53,26 @@ function buildFilterValueLabel(filter, fieldDef, betweenSeparator = ' - ') {
     return valueLabel;
 }
 
+function getFilterConditionPanelElement() {
+    return window.DOM?.conditionPanel || document.getElementById('condition-panel');
+}
+
+function getFilterInputWrapperElement() {
+    return window.DOM?.inputWrapper || document.getElementById('condition-input-wrapper');
+}
+
+function getFilterConditionInputElement() {
+    return window.DOM?.conditionInput || document.getElementById('condition-input');
+}
+
+function getFilterOverlayElement() {
+    return window.DOM?.overlay || document.getElementById('overlay');
+}
+
+function getFilterQueryInputElement() {
+    return window.DOM?.queryInput || document.getElementById('query-input');
+}
+
 class FilterPill {
     constructor(filter, fieldDef, onRemove) {
         this.filter = filter; // Note: using 'filter' prop consistent with queryUI version logic
@@ -159,7 +179,7 @@ window.renderConditionList = function(field) {
             }
             if (conflictMsg) {
                 window.showError(conflictMsg, [
-                    document.getElementById('condition-input'), 
+                    getFilterConditionInputElement(), 
                     document.getElementById('condition-input-2')
                 ]);
                 return;
@@ -234,12 +254,14 @@ window.renderConditionList = function(field) {
 window.handleConditionBtnClick = function(e) {
     e.stopPropagation();
     const btn = e.currentTarget;
-    const conditionPanel = document.getElementById('condition-panel');
-    const inputWrapper = document.getElementById('condition-input-wrapper');
-    const conditionInput = document.getElementById('condition-input');
+    const conditionPanel = getFilterConditionPanelElement();
+    const inputWrapper = getFilterInputWrapperElement();
+    const conditionInput = getFilterConditionInputElement();
     const conditionInput2 = document.getElementById('condition-input-2');
     const betweenLbl = document.getElementById('between-label');
     const sel = document.getElementById('condition-select');
+
+    if (!conditionPanel || !inputWrapper || !conditionInput) return;
 
     // Update active class
     const all = conditionPanel.querySelectorAll('.condition-btn');
@@ -308,12 +330,14 @@ window.handleFilterConfirm = function(e) {
     const bubble = document.querySelector('.active-bubble');
     if (!bubble) return;
     
-    const conditionPanel = document.getElementById('condition-panel');
-    const conditionInput = document.getElementById('condition-input');
+    const conditionPanel = getFilterConditionPanelElement();
+    const conditionInput = getFilterConditionInputElement();
     const conditionInput2 = document.getElementById('condition-input-2');
     const sel = document.getElementById('condition-select');
     const selContainer = document.getElementById('condition-select-container');
-    const overlay = document.getElementById('overlay');
+    const overlay = getFilterOverlayElement();
+
+    if (!conditionPanel || !conditionInput) return;
     
     const field = bubble.dataset.filterFor || bubble.textContent.trim();
     const activeBtn = document.querySelector('.condition-btn.active');
@@ -536,7 +560,7 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
     window.showExampleTable(window.displayedFields).catch(console.error);
 
     // Clear search
-    const queryInput = document.getElementById('query-input');
+    const queryInput = getFilterQueryInputElement();
     if (queryInput && queryInput.value.trim()) {
         queryInput.value = '';
         window.updateFilteredDefs(''); 
@@ -629,7 +653,7 @@ window.finalizeConfirmAction = function() {
     if (marcInput) marcInput.value = '';
 
     // Click overlay to close panel and reset
-    const overlay = document.getElementById('overlay');
+    const overlay = getFilterOverlayElement();
     if (overlay) overlay.click();
     
     window.FilterSidePanel && window.FilterSidePanel.update();
@@ -856,7 +880,7 @@ window.FilterSidePanel = (function () {
             return;
         }
         // If not visible, search for the field via the search input
-        const queryInput = document.getElementById('query-input');
+        const queryInput = getFilterQueryInputElement();
         if (queryInput) {
             queryInput.value = field;
             queryInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -1073,7 +1097,7 @@ window.FilterSidePanel = (function () {
         if (addBtn) {
             addBtn.addEventListener('click', e => {
                 e.stopPropagation();
-                const qi = document.getElementById('query-input');
+                const qi = getFilterQueryInputElement();
                 if (qi) {
                     qi.focus();
                     qi.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1093,11 +1117,13 @@ window.FilterSidePanel = (function () {
 window.buildableConditionBtnHandler = function(e) {
     e.stopPropagation();
     const btn = e.currentTarget;
-    const conditionPanel = document.getElementById('condition-panel');
-    const conditionInput = document.getElementById('condition-input');
-    const inputWrapper = document.getElementById('condition-input-wrapper');
+    const conditionPanel = getFilterConditionPanelElement();
+    const conditionInput = getFilterConditionInputElement();
+    const inputWrapper = getFilterInputWrapperElement();
     const conditionInput2 = document.getElementById('condition-input-2');
     const betweenLbl = document.getElementById('between-label');
+
+    if (!conditionPanel || !conditionInput) return;
     
     // Update active state
     const all = conditionPanel.querySelectorAll('.condition-btn');
@@ -1180,7 +1206,7 @@ function clearNumericProps(inputs){
 }
 
 window.configureInputsForType = function(type){
-  const inp1 = document.getElementById('condition-input');
+    const inp1 = getFilterConditionInputElement();
   const inp2 = document.getElementById('condition-input-2');
   const inputs=[inp1,inp2];
   const isMoney  = type==='money';
