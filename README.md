@@ -39,3 +39,13 @@ A responsive, mobile-friendly interface is on the roadmap.
 ⸻
 
 Note: Query is focused solely on generating lists of items. Charting and advanced data visualizations are not currently supported.
+
+Frontend Structure
+
+- `core/`: app orchestration and shared state (`query.js`, `queryHistory.js`, `queryState.js`, `utils.js`)
+- `ui/`: UI-only helpers and overlays (`queryUI.js`, `modalManager.js`, `toast.js`, `tooltips.js`)
+- `filters/`: field definitions, filter logic, payload building, and side panel (`fieldDefs.js`, `filterManager.js`, `filterSidePanel.js`, `queryPayload.js`)
+- `table/`: table rendering, export, columns, and drag/drop (`simpleTable.js`, `virtualTable.js`, `excel.js`, `columnManager.js`, `dragDrop.js`)
+- `bubbles/`: bubble interaction system (`bubble.js`)
+
+Script load order is still controlled by `index.html`, so files should be moved between folders only when their script path is updated there.
