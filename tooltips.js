@@ -333,17 +333,6 @@ window.formatStandardFilterTooltipHTML = function(filterGroups, title = "") {
   
   let hasFilters = false;
   
-  const opMap = {
-      'Equals': '=',
-      'GreaterThan': '>',
-      'LessThan': '<',
-      'Between': 'between',
-      'Contains': 'contains',
-      'DoesNotContain': 'does not contain',
-      'LessThanOrEqual': '<=',
-      'GreaterThanOrEqual': '>='
-  };
-  
   let html = '<div class="tt-filter-container">';
   if (title) {
       html += '<div class="tt-filter-title">' + title + '</div>';
@@ -361,15 +350,16 @@ window.formatStandardFilterTooltipHTML = function(filterGroups, title = "") {
     
     group.Filters.forEach((f, fIdx) => {
       hasFilters = true;
-      let op = opMap[f.FieldOperator] || f.FieldOperator;
-      if (!opMap[f.FieldOperator] && typeof f.FieldOperator === 'string') {
-          let capitalized = f.FieldOperator.charAt(0).toUpperCase() + f.FieldOperator.slice(1);
-          op = opMap[capitalized] || f.FieldOperator;
-      }
+      const op = typeof window.formatFieldOperatorForDisplay === 'function'
+        ? window.formatFieldOperatorForDisplay(f.FieldOperator)
+        : f.FieldOperator;
+      const uiCond = typeof window.mapFieldOperatorToUiCond === 'function'
+        ? window.mapFieldOperatorToUiCond(f.FieldOperator)
+        : String(f.FieldOperator || '').toLowerCase();
       
       let valStr = '';
       if (f.Values && f.Values.length > 0) {
-          if ((f.FieldOperator === 'Between' || op === 'between') && f.Values.length >= 2) {
+          if (uiCond === 'between' && f.Values.length >= 2) {
               valStr = '<span class="tt-val">' + escapeHtml(f.Values[0]) + '</span> <span class="tt-op">and</span> <span class="tt-val">' + escapeHtml(f.Values[1]) + '</span>';
           } else {
               valStr = '<span class="tt-val">' + escapeHtml(f.Values.join(', ')) + '</span>';
