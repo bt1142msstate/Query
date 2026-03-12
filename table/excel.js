@@ -10,6 +10,91 @@ const ExcelExporter = (() => {
   let splitMultiValues = false;
   window.splitColumnsActive = false;
 
+  function getSplitEligibleSummary() {
+    const rawData = window.VirtualTable && window.VirtualTable.rawTableData;
+    if (!rawData || !Array.isArray(rawData.headers) || !Array.isArray(rawData.rows) || rawData.headers.length === 0 || rawData.rows.length === 0) {
+      return { eligible: false, columnCount: 0, valueCount: 0 };
+    }
+
+    let columnCount = 0;
+    let valueCount = 0;
+
+    rawData.headers.forEach((field, columnIndex) => {
+      let fieldHasMultiValues = false;
+
+      rawData.rows.forEach(row => {
+        const raw = row[columnIndex];
+        if (typeof raw === 'string' && raw.includes('\x1F')) {
+          fieldHasMultiValues = true;
+          valueCount += raw.split('\x1F').filter(part => part !== '').length - 1;
+        }
+      });
+
+      if (fieldHasMultiValues) {
+        columnCount += 1;
+      }
+    });
+
+    return {
+      eligible: columnCount > 0,
+      columnCount,
+      valueCount
+    };
+  }
+
+  function buildSplitToggleTooltipHtml(active, summary) {
+    const title = active ? 'Multi-Value Export: Split Columns' : 'Multi-Value Export: Stacked Cells';
+    const stateLine = active
+      ? 'Values are currently expanded into numbered columns for export.'
+      : 'Values are currently kept together inside a single export cell.';
+    const actionLine = summary.eligible
+      ? (active ? 'Click to compact them back into one cell per field.' : 'Click to expand them into separate numbered columns.')
+      : 'No current result columns contain multi-value data to expand or compact.';
+    const statsLine = summary.eligible
+      ? `${summary.columnCount} column${summary.columnCount === 1 ? '' : 's'} can change layout${summary.valueCount > 0 ? `, affecting ${summary.valueCount} extra value${summary.valueCount === 1 ? '' : 's'}` : ''}.`
+      : 'Run or load results that include multi-value fields such as MARC or repeated entries.';
+
+    return `<div class="split-toggle-tooltip"><div class="tt-filter-container"><div class="tt-filter-title" style="color: #93c5fd; display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="18" rx="1"></rect><rect x="14" y="3" width="7" height="18" rx="1"></rect></svg>${title}</div><div style="color: #f8fafc; font-size: 0.95rem; line-height: 1.4; padding-top: 2px;">${stateLine}</div><div style="color: #cbd5e1; font-size: 0.84rem; line-height: 1.45; padding-top: 8px;">${actionLine}</div><div style="color: #94a3b8; font-size: 0.8rem; line-height: 1.45; padding-top: 8px;">${statsLine}</div></div></div>`;
+  }
+
+  function applySplitToggleVisualState(toggleBtn, active, eligible) {
+    const iconStack = document.getElementById('split-toggle-icon-stack');
+    const iconCols  = document.getElementById('split-toggle-icon-cols');
+
+    if (active) {
+      toggleBtn.classList.replace('bg-white', 'bg-indigo-100');
+      toggleBtn.classList.replace('text-black', 'text-indigo-700');
+      iconStack && iconStack.classList.add('hidden');
+      iconCols  && iconCols.classList.remove('hidden');
+    } else {
+      toggleBtn.classList.replace('bg-indigo-100', 'bg-white');
+      if (!toggleBtn.classList.contains('bg-white')) toggleBtn.classList.add('bg-white');
+      toggleBtn.classList.replace('text-indigo-700', 'text-black');
+      if (!toggleBtn.classList.contains('text-black')) toggleBtn.classList.add('text-black');
+      iconStack && iconStack.classList.remove('hidden');
+      iconCols  && iconCols.classList.add('hidden');
+    }
+
+    toggleBtn.setAttribute('aria-disabled', eligible ? 'false' : 'true');
+    toggleBtn.classList.toggle('split-toggle-disabled', !eligible);
+  }
+
+  function updateSplitColumnsToggleState() {
+    const toggleBtn = document.getElementById('split-columns-toggle');
+    if (!toggleBtn) return;
+
+    const summary = getSplitEligibleSummary();
+    if (!summary.eligible) {
+      splitMultiValues = false;
+      window.splitColumnsActive = false;
+    }
+
+    applySplitToggleVisualState(toggleBtn, splitMultiValues, summary.eligible);
+    toggleBtn.removeAttribute('data-tooltip');
+    toggleBtn.setAttribute('data-tooltip-html', buildSplitToggleTooltipHtml(splitMultiValues, summary));
+  }
+  window.updateSplitColumnsToggleState = updateSplitColumnsToggleState;
+
   /**
    * Attaches the download and toggle event listeners.
    * @function attach
@@ -24,26 +109,21 @@ const ExcelExporter = (() => {
     const toggleBtn = document.getElementById('split-columns-toggle');
     if (toggleBtn) {
       toggleBtn.addEventListener('click', () => {
+        const summary = getSplitEligibleSummary();
+        if (!summary.eligible) {
+          updateSplitColumnsToggleState();
+          return;
+        }
+
         splitMultiValues = !splitMultiValues;
 
-        const iconStack = document.getElementById('split-toggle-icon-stack');
-        const iconCols  = document.getElementById('split-toggle-icon-cols');
-
         if (splitMultiValues) {
-          toggleBtn.classList.replace('bg-white', 'bg-indigo-100');
-          toggleBtn.classList.replace('text-black', 'text-indigo-700');
-          toggleBtn.setAttribute('data-tooltip', 'Multi-value export: split into columns (click to stack in one cell)');
-          iconStack && iconStack.classList.add('hidden');
-          iconCols  && iconCols.classList.remove('hidden');
           window.showToastMessage && window.showToastMessage('Multi-values split into separate columns', 'info');
         } else {
-          toggleBtn.classList.replace('bg-indigo-100', 'bg-white');
-          toggleBtn.classList.replace('text-indigo-700', 'text-black');
-          toggleBtn.setAttribute('data-tooltip', 'Multi-value export: stacked in one cell (click to split into columns)');
-          iconStack && iconStack.classList.remove('hidden');
-          iconCols  && iconCols.classList.add('hidden');
           window.showToastMessage && window.showToastMessage('Multi-values stacked in one cell', 'info');
         }
+
+        updateSplitColumnsToggleState();
 
         // Drive the virtual table to match
         if (window.VirtualTable && window.VirtualTable.setSplitColumnsMode) {
@@ -54,31 +134,16 @@ const ExcelExporter = (() => {
       // Called by VirtualTable when new data is loaded so the button resets visually
       window.resetSplitColumnsToggleUI = function() {
         splitMultiValues = false;
-        toggleBtn.classList.replace('bg-indigo-100', 'bg-white');
-        if (!toggleBtn.classList.contains('bg-white')) toggleBtn.classList.add('bg-white');
-        toggleBtn.classList.remove('text-indigo-700');
-        if (!toggleBtn.classList.contains('text-black')) toggleBtn.classList.add('text-black');
-        toggleBtn.setAttribute('data-tooltip', 'Multi-value export: stacked in one cell (click to split into columns)');
-        const iconStack = document.getElementById('split-toggle-icon-stack');
-        const iconCols  = document.getElementById('split-toggle-icon-cols');
-        iconStack && iconStack.classList.remove('hidden');
-        iconCols  && iconCols.classList.add('hidden');
+        updateSplitColumnsToggleState();
       };
       
       // Make it possible to force it active externally
       window.setSplitColumnsToggleUIActive = function() {
         splitMultiValues = true;
-        toggleBtn.classList.replace('bg-white', 'bg-indigo-100');
-        if (!toggleBtn.classList.contains('bg-indigo-100')) toggleBtn.classList.add('bg-indigo-100');
-        toggleBtn.classList.replace('text-black', 'text-indigo-700');
-        if (!toggleBtn.classList.contains('text-indigo-700')) toggleBtn.classList.add('text-indigo-700');
-        toggleBtn.setAttribute('data-tooltip', 'Multi-value export: split into separate columns (click to stack)');
-        
-        const iconStack = document.getElementById('split-toggle-icon-stack');
-        const iconCols  = document.getElementById('split-toggle-icon-cols');
-        iconStack && iconStack.classList.add('hidden');
-        iconCols  && iconCols.classList.remove('hidden');
+        updateSplitColumnsToggleState();
       };
+
+      updateSplitColumnsToggleState();
     }
   }
 

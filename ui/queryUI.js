@@ -178,4 +178,8 @@ window.updateButtonStates = function() {
     clearQueryBtn.classList.toggle('cursor-not-allowed', clearQueryBtn.disabled);
     clearQueryBtn.setAttribute('data-tooltip', clearQueryBtn.disabled ? 'Nothing to clear' : 'Clear current query');
   }
+
+  if (typeof window.updateSplitColumnsToggleState === 'function') {
+    window.updateSplitColumnsToggleState();
+  }
 };

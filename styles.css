@@ -1446,6 +1446,17 @@ th:hover .th-trash {
   animation: jump 0.7s cubic-bezier(.4,1.6,.6,1) infinite;
 }
 
+#split-columns-toggle.split-toggle-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(45%);
+}
+
+#split-columns-toggle.split-toggle-disabled:hover {
+  background-color: white;
+  color: black;
+}
+
 #run-query-btn:hover #refresh-icon {
   animation: rotate 1s linear infinite;
   transform-origin: center;
@@ -1491,6 +1502,15 @@ th:hover .th-trash {
   white-space: normal;
   max-width: 450px;
 }
+
+.custom-tooltip .split-toggle-tooltip {
+  min-width: 18rem;
+}
+
+.custom-tooltip .split-toggle-tooltip .tt-filter-container {
+  margin: 0;
+}
+
 .custom-tooltip.show {
   opacity: 1;
   transform: translateY(-14px) scale(1);
