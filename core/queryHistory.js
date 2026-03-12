@@ -131,10 +131,9 @@ async function fetchQueryStatus() {
             // Fallback: reconstruct minimal config from raw request
             jsonConfig = {
                 DesiredColumnOrder: sq.request.display_fields || [],
-                FilterGroups: []
+          Filters: []
             };
             if (sq.request.filters && sq.request.filters.length > 0) {
-               const group = { LogicalOperator: 'And', Filters: [] };
                  sq.request.filters.forEach(f => {
                  let opName = 'Equals';
                  if (f.operator === '>') opName = 'GreaterThan';
@@ -147,14 +146,13 @@ async function fetchQueryStatus() {
                      opName = 'Contains';
                    }
                  }
-                     
-                     group.Filters.push({
-                        FieldName: f.field,
-                        FieldOperator: opName,
-                        Values: [f.value]
-                     });
+                 
+                 jsonConfig.Filters.push({
+                    FieldName: f.field,
+                    FieldOperator: opName,
+                    Values: [f.value]
                  });
-                 jsonConfig.FilterGroups.push(group);
+                 });
             }
         }
         
@@ -269,28 +267,24 @@ function createTooltipIconSummary(viewIconSVG, attributeName, tooltipContent) {
 }
 
 /**
- * Formats filter groups into a tooltip string for history display.
+ * Formats filters into a tooltip string for history display.
  * @function formatHistoryFiltersTooltip
- * @param {Object[]} filterGroups - Array of filter groups
+ * @param {Object[]|Object} filtersInput - Filters array or ui_config object
  * @returns {string} Formatted tooltip text
  */
-window.formatHistoryFiltersTooltip = function(filterGroups) {
-  if (!filterGroups || !filterGroups.length) return 'None';
+window.formatHistoryFiltersTooltip = function(filtersInput) {
+  const filters = typeof window.normalizeUiConfigFilters === 'function'
+    ? window.normalizeUiConfigFilters(filtersInput)
+    : [];
+  if (!filters.length) return 'None';
   
   const lines = [];
-  filterGroups.forEach((group, i) => {
-    // if (i > 0) lines.push(group.LogicalOperator || 'AND'); 
-    // Simplify for tooltip
-    
-    if (group.Filters) {
-        group.Filters.forEach(f => {
-            const op = typeof window.formatFieldOperatorForDisplay === 'function'
-              ? window.formatFieldOperatorForDisplay(f.FieldOperator)
-              : f.FieldOperator;
+  filters.forEach(f => {
+    const op = typeof window.formatFieldOperatorForDisplay === 'function'
+      ? window.formatFieldOperatorForDisplay(f.FieldOperator)
+      : f.FieldOperator;
 
-            lines.push(`${f.FieldName || ''} ${op} ${f.Values ? f.Values.join('|') : ''}`);
-        });
-    }
+    lines.push(`${f.FieldName || ''} ${op} ${f.Values ? f.Values.join('|') : ''}`);
   });
   
   return lines.join(', ');
@@ -303,7 +297,7 @@ window.formatHistoryFiltersTooltip = function(filterGroups) {
  * @param {Object} q - The query object to load
  * @param {Object} q.jsonConfig - The query configuration
  * @param {string[]} q.jsonConfig.DesiredColumnOrder - Array of column names
- * @param {Object[]} q.jsonConfig.FilterGroups - Array of filter groups
+ * @param {Object[]} q.jsonConfig.Filters - Array of flat filters
  */
 function loadQueryConfig(q) {
   if(!q || !q.jsonConfig) return;
@@ -334,25 +328,32 @@ function loadQueryConfig(q) {
       b.removeAttribute('data-filtered');
     });
     
-    if(q.jsonConfig.FilterGroups && q.jsonConfig.FilterGroups.length){
-      q.jsonConfig.FilterGroups.forEach(group => {
-        group.Filters.forEach(ff => {
-          if (!activeFilters[ff.FieldName]) {
-            activeFilters[ff.FieldName] = { logical: group.LogicalOperator, filters: [] };
-          }
-          activeFilters[ff.FieldName].filters.push({
-            cond: typeof window.mapFieldOperatorToUiCond === 'function'
-              ? window.mapFieldOperatorToUiCond(ff.FieldOperator)
-              : String(ff.FieldOperator || '').toLowerCase(),
-            val: ff.Values.join('|')
-          });
-          const bubbleEl = Array.from(document.querySelectorAll('.bubble'))
-            .find(b => b.textContent.trim() === ff.FieldName);
-          if(bubbleEl){
-            bubbleEl.classList.add('bubble-filter');
-            bubbleEl.dataset.filtered = 'true';
-          }
+    const filters = typeof window.normalizeUiConfigFilters === 'function'
+      ? window.normalizeUiConfigFilters(q.jsonConfig)
+      : [];
+
+    if(filters.length){
+      filters.forEach(ff => {
+        if (!activeFilters[ff.FieldName]) {
+          activeFilters[ff.FieldName] = { filters: [] };
+        }
+
+        const uiCond = typeof window.mapFieldOperatorToUiCond === 'function'
+          ? window.mapFieldOperatorToUiCond(ff.FieldOperator)
+          : String(ff.FieldOperator || '').toLowerCase();
+        const valueGlue = uiCond === 'between' ? '|' : ',';
+
+        activeFilters[ff.FieldName].filters.push({
+          cond: uiCond,
+          val: (ff.Values || []).join(valueGlue)
         });
+
+        const bubbleEl = Array.from(document.querySelectorAll('.bubble'))
+          .find(b => b.textContent.trim() === ff.FieldName);
+        if(bubbleEl){
+          bubbleEl.classList.add('bubble-filter');
+          bubbleEl.dataset.filtered = 'true';
+        }
       });
       // Ensure the filter panel shows up right away if there are filters
       if (window.FilterSidePanel && window.FilterSidePanel.update) {
@@ -517,15 +518,17 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
     : '<span class="text-gray-400">None</span>';
     
   // Use tooltip for filters
-  const filterGroups = q.jsonConfig?.FilterGroups || [];
+  const filters = typeof window.normalizeUiConfigFilters === 'function'
+    ? window.normalizeUiConfigFilters(q.jsonConfig)
+    : [];
   let filtersSummary = '<span class="text-gray-400">None</span>';
   
-  if (filterGroups.length > 0) {
+  if (filters.length > 0) {
       if (typeof window.formatStandardFilterTooltipHTML === 'function') {
-          const filterHtml = window.formatStandardFilterTooltipHTML(filterGroups, "Query Filters");
+          const filterHtml = window.formatStandardFilterTooltipHTML(filters, "Query Filters");
         filtersSummary = createTooltipIconSummary(viewIconSVG, 'data-tooltip-html', filterHtml);
       } else {
-          const filterTooltip = typeof formatHistoryFiltersTooltip === 'function' ? formatHistoryFiltersTooltip(filterGroups) : '';
+          const filterTooltip = typeof formatHistoryFiltersTooltip === 'function' ? formatHistoryFiltersTooltip(filters) : '';
           if (filterTooltip) {
           filtersSummary = createTooltipIconSummary(viewIconSVG, 'data-tooltip', filterTooltip);
           }

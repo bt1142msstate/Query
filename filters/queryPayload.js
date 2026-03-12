@@ -1,9 +1,3 @@
-function normalizeLogicalOperator(operator) {
-  if (!operator) return 'And';
-  const normalized = String(operator).trim().toLowerCase();
-  return normalized === 'or' ? 'Or' : 'And';
-}
-
 const FIELD_OPERATOR_TO_UI_COND = {
   Equals: 'equals',
   equals: 'equals',
@@ -156,10 +150,54 @@ window.getNormalizedDisplayedFields = function(fields = window.displayedFields) 
     .filter((field, index, array) => array.indexOf(field) === index);
 };
 
+window.normalizeUiConfigFilters = function(input) {
+  if (!input) return [];
+
+  const normalizeFilter = filter => {
+    if (!filter || typeof filter !== 'object') return null;
+
+    const fieldName = filter.FieldName || filter.field;
+    if (!fieldName) return null;
+
+    let values = filter.Values;
+    if (!Array.isArray(values)) {
+      if (values === undefined || values === null) {
+        values = filter.value !== undefined ? [filter.value] : [];
+      } else {
+        values = [values];
+      }
+    }
+
+    return {
+      FieldName: fieldName,
+      FieldOperator: filter.FieldOperator || filter.operator || 'Equals',
+      Values: values.map(value => String(value ?? ''))
+    };
+  };
+
+  if (Array.isArray(input)) {
+    if (input.some(item => item && Array.isArray(item.Filters))) {
+      return input.flatMap(group => (group.Filters || []).map(normalizeFilter).filter(Boolean));
+    }
+
+    return input.map(normalizeFilter).filter(Boolean);
+  }
+
+  if (Array.isArray(input.Filters)) {
+    return input.Filters.map(normalizeFilter).filter(Boolean);
+  }
+
+  if (Array.isArray(input.FilterGroups)) {
+    return input.FilterGroups.flatMap(group => (group.Filters || []).map(normalizeFilter).filter(Boolean));
+  }
+
+  return [];
+};
+
 window.buildQueryUiConfig = function() {
   const query = {
     DesiredColumnOrder: window.getNormalizedDisplayedFields(),
-    FilterGroups: []
+    Filters: []
   };
 
   Object.entries(window.activeFilters).forEach(([field, data]) => {
@@ -169,13 +207,12 @@ window.buildQueryUiConfig = function() {
     const validFilters = (data.filters || []).filter(filter => filter.val !== '');
     if (validFilters.length === 0) return;
 
-    query.FilterGroups.push({
-      LogicalOperator: normalizeLogicalOperator(data.logical),
-      Filters: validFilters.map(filter => ({
+    validFilters.forEach(filter => {
+      query.Filters.push({
         FieldName: field,
         FieldOperator: window.mapUiCondToFieldOperator(filter.cond),
         Values: filter.cond === 'between' ? filter.val.split('|') : [filter.val]
-      }))
+      });
     });
   });
 
