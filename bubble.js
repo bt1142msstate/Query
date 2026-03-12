@@ -1045,7 +1045,7 @@ function initializeBubbles() {
       }
     }, 60);
     if (clone && overlay) overlay.classList.add('bubble-active');
-    const headerBar = document.getElementById('header-bar');
+    const headerBar = window.DOM?.headerBar || document.getElementById('header-bar');
     if (clone && headerBar) headerBar.classList.add('header-hide');
   });
 
