@@ -22,6 +22,80 @@ function addQueryToHistory(query) {
   renderQueries();
 }
 
+function classifyQueryStatus(status) {
+  const normalized = String(status || '').toLowerCase();
+  if (normalized === 'running') return 'running';
+  if (normalized === 'complete') return 'complete';
+  if (normalized === 'canceled') return 'canceled';
+  if (normalized === 'failed') return 'failed';
+  return normalized || 'unknown';
+}
+
+function getQueryStatusMeta(status) {
+  const bucket = classifyQueryStatus(status);
+
+  if (bucket === 'running') {
+    return { label: 'Running', rowClass: 'history-row-running', badgeClass: 'history-status-badge status-running' };
+  }
+  if (bucket === 'complete') {
+    return { label: 'Completed', rowClass: 'history-row-complete', badgeClass: 'history-status-badge status-complete' };
+  }
+  if (bucket === 'canceled') {
+    return { label: 'Cancelled', rowClass: 'history-row-canceled', badgeClass: 'history-status-badge status-canceled' };
+  }
+  if (bucket === 'failed') {
+    return { label: 'Failed', rowClass: 'history-row-failed', badgeClass: 'history-status-badge status-failed' };
+  }
+
+  return { label: 'Interrupted', rowClass: 'history-row-failed', badgeClass: 'history-status-badge status-failed' };
+}
+
+function buildHistorySection(sectionKey, count, rows, tableHead, emptyMessage, openByDefault = true) {
+  const meta = {
+    running: {
+      title: 'Running',
+      subtitle: 'Queries currently executing on the backend.',
+      detailsClass: 'history-section running',
+      summaryClass: 'history-section-summary running'
+    },
+    complete: {
+      title: 'Completed',
+      subtitle: 'Queries with finished results ready to inspect or reload.',
+      detailsClass: 'history-section complete',
+      summaryClass: 'history-section-summary complete'
+    },
+    failed: {
+      title: 'Failed / Interrupted',
+      subtitle: 'Queries that errored, were abandoned, or quit unexpectedly.',
+      detailsClass: 'history-section failed',
+      summaryClass: 'history-section-summary failed'
+    },
+    canceled: {
+      title: 'Cancelled',
+      subtitle: 'Queries stopped intentionally before they completed.',
+      detailsClass: 'history-section canceled',
+      summaryClass: 'history-section-summary canceled'
+    }
+  }[sectionKey];
+
+  const openAttr = openByDefault ? ' open' : '';
+  const bodyContent = rows
+    ? `<div class="history-table-shell"><table class="min-w-full text-sm history-table">${tableHead}<tbody>${rows}</tbody></table></div>`
+    : `<div class="history-empty-state">${emptyMessage}</div>`;
+
+  return `
+    <details class="${meta.detailsClass}"${openAttr}>
+      <summary class="${meta.summaryClass}">
+        <span class="history-section-heading">
+          <span class="history-section-title">${count} ${meta.title}</span>
+          <span class="history-section-subtitle">${meta.subtitle}</span>
+        </span>
+      </summary>
+      ${bodyContent}
+    </details>
+  `;
+}
+
 /**
  * Fetches status of all queries from the backend.
  * Updates the local query history with current status.
@@ -88,13 +162,18 @@ async function fetchQueryStatus() {
             id: sq.id,
             name: sq.name || (sq.request ? sq.request.name : 'Unknown Query'),
             status: sq.status,
+            statusBucket: classifyQueryStatus(sq.status),
             running: (sq.status === 'running'),
             cancelled: (sq.status === 'canceled'),
+            failed: (classifyQueryStatus(sq.status) !== 'running'
+              && classifyQueryStatus(sq.status) !== 'complete'
+              && classifyQueryStatus(sq.status) !== 'canceled'),
             startTime: sq.start_time,
             endTime: sq.end_time || '-',
             duration: '-', 
             jsonConfig: jsonConfig,
-            resultCount: sq.row_count !== undefined ? sq.row_count : (sq.start_time && sq.end_time ? '?' : '-')
+            resultCount: sq.row_count !== undefined ? sq.row_count : (sq.start_time && sq.end_time ? '?' : '-'),
+            error: sq.error || sq.warning || ''
         };
         
         if (sq.start_time && sq.end_time) {
@@ -429,6 +508,7 @@ async function loadQueryResults(queryId) {
  * @returns {string} HTML string for the table row
  */
 function createQueriesTableRowHtml(q, viewIconSVG) {
+  const statusMeta = getQueryStatusMeta(q.status);
   // Use tooltip for columns
   const columns = q.jsonConfig?.DesiredColumnOrder || [];
   const columnsTooltip = typeof formatColumnsTooltip === 'function' ? formatColumnsTooltip(columns) : '';
@@ -451,6 +531,17 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
           }
       }
   }
+
+  const escapedReason = (q.error || '').replace(/"/g, '&quot;');
+  const reasonSummary = q.error
+    ? `<span class="history-reason-icon" data-tooltip="${escapedReason}">Issue</span>`
+    : '<span class="text-gray-400">None</span>';
+
+  const nameCell = `
+    <div class="history-name-cell">
+      <span class="history-query-name">${q.name || q.id}</span>
+      <span class="${statusMeta.badgeClass}">${statusMeta.label}</span>
+    </div>`;
 
   // Stop button for running queries (no 'Running' label)
   const stopBtn = q.running ? `
@@ -475,8 +566,8 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
   // Different row structure for running vs completed vs cancelled queries
   if (q.running) {
     return `
-      <tr class="border-b hover:bg-blue-50 cursor-pointer" data-query-id="${q.id}">
-        <td class="px-4 py-2 text-xs text-center font-mono">${q.name || q.id}</td>
+      <tr class="history-row ${statusMeta.rowClass} cursor-pointer" data-query-id="${q.id}">
+        <td class="px-4 py-3 text-xs text-left font-mono">${nameCell}</td>
         <td class="px-4 py-2 text-xs text-center">${columnsSummary}</td>
         <td class="px-4 py-2 text-xs text-center">${filtersSummary}</td>
         <td class="px-4 py-2 text-center">${stopBtn}</td>
@@ -485,8 +576,8 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
     `;
   } else if (q.cancelled) {
     return `
-      <tr class="border-b hover:bg-red-50 cursor-pointer" data-query-id="${q.id}">
-        <td class="px-4 py-2 text-xs text-center font-mono">${q.name || q.id}</td>
+      <tr class="history-row ${statusMeta.rowClass} cursor-pointer" data-query-id="${q.id}">
+        <td class="px-4 py-3 text-xs text-left font-mono">${nameCell}</td>
         <td class="px-4 py-2 text-xs text-center">${columnsSummary}</td>
         <td class="px-4 py-2 text-xs text-center">${filtersSummary}</td>
         <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
@@ -494,10 +585,22 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
         <td class="px-4 py-2 text-xs text-center">${rerunBtn}</td>
       </tr>
     `;
+  } else if (q.failed) {
+    return `
+      <tr class="history-row ${statusMeta.rowClass} cursor-pointer" data-query-id="${q.id}">
+        <td class="px-4 py-3 text-xs text-left font-mono">${nameCell}</td>
+        <td class="px-4 py-2 text-xs text-center">${columnsSummary}</td>
+        <td class="px-4 py-2 text-xs text-center">${filtersSummary}</td>
+        <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
+        <td class="px-4 py-2 text-xs text-center">${duration}</td>
+        <td class="px-4 py-2 text-xs text-center">${reasonSummary}</td>
+        <td class="px-4 py-2 text-xs text-center">${rerunBtn}</td>
+      </tr>
+    `;
   } else {
     return `
-      <tr class="border-b hover:bg-blue-50 cursor-pointer" data-query-id="${q.id}">
-        <td class="px-4 py-2 text-xs text-center font-mono">${q.name || q.id}</td>
+      <tr class="history-row ${statusMeta.rowClass} cursor-pointer" data-query-id="${q.id}">
+        <td class="px-4 py-3 text-xs text-left font-mono">${nameCell}</td>
         <td class="px-4 py-2 text-xs text-center">${columnsSummary}</td>
         <td class="px-4 py-2 text-xs text-center">${filtersSummary}</td>
         <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
@@ -566,7 +669,8 @@ function renderQueries(){
   const viewIconSVG = `<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1.5 12s4-7 10.5-7 10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3.5"/></svg>`;
   
   let runningList = exampleQueries.filter(q => q.running);
-  let doneList = exampleQueries.filter(q => !q.running && !q.cancelled);
+  let doneList = exampleQueries.filter(q => !q.running && !q.cancelled && !q.failed);
+  let failedList = exampleQueries.filter(q => q.failed);
   let cancelledList = exampleQueries.filter(q => q.cancelled);
   
   // Apply search filter if there's a search term
@@ -581,6 +685,12 @@ function renderQueries(){
       q.id.toLowerCase().includes(searchTerm) ||
       (q.jsonConfig?.DesiredColumnOrder || []).some(col => col.toLowerCase().includes(searchTerm))
     );
+    failedList = failedList.filter(q => 
+      (q.name && q.name.toLowerCase().includes(searchTerm)) ||
+      q.id.toLowerCase().includes(searchTerm) ||
+      (q.error && q.error.toLowerCase().includes(searchTerm)) ||
+      (q.jsonConfig?.DesiredColumnOrder || []).some(col => col.toLowerCase().includes(searchTerm))
+    );
     cancelledList = cancelledList.filter(q => 
       (q.name && q.name.toLowerCase().includes(searchTerm)) ||
       q.id.toLowerCase().includes(searchTerm) ||
@@ -590,11 +700,12 @@ function renderQueries(){
   
   const runningRows = runningList.map(q => createQueriesTableRowHtml(q, viewIconSVG)).join('');
   const doneRows = doneList.map(q => createQueriesTableRowHtml(q, viewIconSVG)).join('');
+  const failedRows = failedList.map(q => createQueriesTableRowHtml(q, viewIconSVG)).join('');
   const cancelledRows = cancelledList.map(q => createQueriesTableRowHtml(q, viewIconSVG)).join('');
 
   // Different table headers for running vs completed queries
   const runningTableHead = `
-    <thead class="bg-blue-50">
+    <thead class="history-table-head running">
       <tr>
         <th class="px-4 py-2 text-center" data-tooltip="Query name or identifier">Name</th>
         <th class="px-4 py-2 text-center" data-tooltip="Columns being displayed in the query results">Displaying</th>
@@ -605,7 +716,7 @@ function renderQueries(){
     </thead>`;
 
   const completedTableHead = `
-    <thead class="bg-blue-50">
+    <thead class="history-table-head complete">
       <tr>
         <th class="px-4 py-2 text-center" data-tooltip="Query name or identifier">Name</th>
         <th class="px-4 py-2 text-center" data-tooltip="Columns being displayed in the query results">Displaying</th>
@@ -617,8 +728,21 @@ function renderQueries(){
       </tr>
     </thead>`;
 
+  const failedTableHead = `
+    <thead class="history-table-head failed">
+      <tr>
+        <th class="px-4 py-2 text-center" data-tooltip="Query name or identifier">Name</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Columns being displayed in the query results">Displaying</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Active filters applied to the query">Filters</th>
+        <th class="px-4 py-2 text-center" data-tooltip="When this query last ran">Last Run</th>
+        <th class="px-4 py-2 text-center" data-tooltip="How long the query ran before failing">Duration</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Failure reason or backend warning">Issue</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Re-execute this query with the same settings">Rerun</th>
+      </tr>
+    </thead>`;
+
   const cancelledTableHead = `
-    <thead class="bg-red-50">
+    <thead class="history-table-head canceled">
       <tr>
         <th class="px-4 py-2 text-center" data-tooltip="Query name or identifier">Name</th>
         <th class="px-4 py-2 text-center" data-tooltip="Columns being displayed in the query results">Displaying</th>
@@ -631,56 +755,32 @@ function renderQueries(){
 
   const runningCount = runningList.length;
   const doneCount = doneList.length;
+  const failedCount = failedList.length;
   const cancelledCount = cancelledList.length;
 
   let content = '';
 
   // Show "no results" message if search returns nothing
-  if (searchTerm && runningCount === 0 && doneCount === 0 && cancelledCount === 0) {
-    content = `<p class="text-center text-gray-500 italic py-4">No queries found matching "${searchTerm}".</p>`;
+  if (searchTerm && runningCount === 0 && doneCount === 0 && failedCount === 0 && cancelledCount === 0) {
+    content = `<div class="history-empty-state history-empty-search">No queries found matching "${searchTerm}".</div>`;
   } else {
-    const runningSection = runningRows ? `
-      <details class="mb-6" open>
-        <summary class="bg-blue-100 text-left px-4 py-2 font-semibold cursor-pointer">${runningCount} Running</summary>
-        <table class="min-w-full text-sm">
-          ${runningTableHead}
-          <tbody>
-            ${runningRows}
-          </tbody>
-        </table>
-      </details>
-    ` : '';
+    const runningSection = buildHistorySection('running', runningCount, runningRows, runningTableHead, 'No running queries right now.', true);
+    const doneSection = buildHistorySection('complete', doneCount, doneRows, completedTableHead, 'No completed queries yet.', true);
+    const failedSection = buildHistorySection('failed', failedCount, failedRows, failedTableHead, 'No failed or interrupted queries.', failedCount > 0);
+    const cancelledSection = buildHistorySection('canceled', cancelledCount, cancelledRows, cancelledTableHead, 'No cancelled queries yet.', false);
 
-    const doneSection = doneRows ? `
-      <details class="mb-6" open>
-        <summary class="bg-blue-100 text-left px-4 py-2 font-semibold cursor-pointer">${doneCount} Completed</summary>
-        <table class="min-w-full text-sm">
-          ${completedTableHead}
-          <tbody>
-            ${doneRows}
-          </tbody>
-        </table>
-      </details>
-    ` : '';
-
-    const cancelledSection = cancelledRows ? `
-      <details>
-        <summary class="bg-red-100 text-left px-4 py-2 font-semibold cursor-pointer">${cancelledCount} Cancelled</summary>
-        <table class="min-w-full text-sm">
-          ${cancelledTableHead}
-          <tbody>
-            ${cancelledRows}
-          </tbody>
-        </table>
-      </details>
-    ` : (cancelledCount === 0 && !searchTerm ? `
-      <details>
-        <summary class="bg-red-100 text-left px-4 py-2 font-semibold cursor-pointer">0 Cancelled</summary>
-        <p class="text-center text-gray-500 italic py-4">No cancelled queries yet.</p>
-      </details>
-    ` : '');
-
-    content = runningSection + doneSection + cancelledSection;
+    content = `
+      <div class="history-overview-grid">
+        <div class="history-overview-card running"><span class="history-overview-count">${runningCount}</span><span class="history-overview-label">Running</span></div>
+        <div class="history-overview-card complete"><span class="history-overview-count">${doneCount}</span><span class="history-overview-label">Completed</span></div>
+        <div class="history-overview-card failed"><span class="history-overview-count">${failedCount}</span><span class="history-overview-label">Failed</span></div>
+        <div class="history-overview-card canceled"><span class="history-overview-count">${cancelledCount}</span><span class="history-overview-label">Cancelled</span></div>
+      </div>
+      ${runningSection}
+      ${doneSection}
+      ${failedSection}
+      ${cancelledSection}
+    `;
   }
 
   container.innerHTML = content;
