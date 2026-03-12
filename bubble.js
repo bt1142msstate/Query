@@ -325,13 +325,12 @@ function safeRenderBubbles() {
 
 /**
  * Updates the custom scrollbar for the bubble container.
- * Creates colored segments representing different scroll positions.
+ * Creates a CSS gradient track and scales thumb proportionally.
  * @function updateScrollBar
  */
 function updateScrollBar(){
   // Safety check for required globals
   if (typeof totalRows === 'undefined' || typeof scrollRow === 'undefined') {
-    console.log('updateScrollBar: Required globals not available yet');
     return;
   }
   
@@ -346,26 +345,32 @@ function updateScrollBar(){
   const thumb = document.getElementById('bubble-scrollbar-thumb');
   if(!track || !thumb) return;
 
-  const maxStartRow = Math.max(0, totalRows - 2);   // rowsVisible =2
+  const maxStartRow = Math.max(0, totalRows - 2);   // rowsVisible = 2
   const trackH = track.clientHeight;
 
-  // Build segments (one per start row)
-  track.querySelectorAll('.bubble-scrollbar-segment').forEach(s=>s.remove());
-  const colors = ['#fde68a','#fca5a5','#6ee7b7','#93c5fd','#d8b4fe'];
-  const segmentH = trackH / (maxStartRow + 1);   // exact pixel height for segments and thumb
-  for(let r = 0; r <= maxStartRow; r++){
-    const seg = document.createElement('div');
-    seg.className = 'bubble-scrollbar-segment';
-    seg.style.top = `${r * segmentH}px`;
-    seg.style.height = `${segmentH}px`;
-    seg.style.background = colors[r % colors.length];
-    track.appendChild(seg);
+  // Build unicolor track background using CSS
+  // Only update when totalRows actually changes to avoid style thrashing
+  if (track.dataset.lastTotalRows !== String(totalRows)) {
+    track.dataset.lastTotalRows = totalRows;
+    
+    // Clear old DOM segments just in case they were left over from before
+    track.querySelectorAll('.bubble-scrollbar-segment').forEach(s=>s.remove());
+    
+    // A nice translucent dark purple/blue hue for dark mode
+    track.style.background = 'rgba(30, 27, 75, 0.4)'; // dark semi-transparent track
   }
 
-  // Thumb size = half a segment
-  const thumbH   = segmentH/2;
+  // Calculate thumb height proportionally (with minimum size 24px)
+  const visibleRatio = totalRows > 0 ? (2 / totalRows) : 1;
+  let thumbH = Math.max(24, trackH * visibleRatio);
+  thumbH = Math.min(thumbH, trackH); // constrain to max track height just in case
+  
+  // Calculate relative top position percentage
+  const scrollRatio = maxStartRow > 0 ? (scrollRow / maxStartRow) : 0;
+  const maxTopPos = trackH - thumbH;
+  const topPos = scrollRatio * maxTopPos;
+
   thumb.style.height = `${thumbH}px`;
-  const topPos = segmentH*scrollRow + (segmentH-thumbH)/2;
   thumb.style.top = `${topPos}px`;
 }
 
@@ -644,6 +649,10 @@ function initializeBubbles() {
     return false;
   }
 
+  // Prevent double-binding event listeners on multiple calls
+  if (window._bubbleEventsInitialized) return true;
+  window._bubbleEventsInitialized = true;
+
   // Attach mouseenter / mouseleave on bubble grid & scrollbar (for arrow-key scroll)
   const bubbleContainer   = document.getElementById('bubble-container');
   const scrollContainer   = document.querySelector('.bubble-scrollbar-container');
@@ -698,12 +707,20 @@ function initializeBubbles() {
       
       const deltaY = e.clientY - startY;
       const trackHeight = track.clientHeight;
+      const thumbHeight = thumb.clientHeight;
+      const maxScrollPixels = trackHeight - thumbHeight;
       const rowsVisible = 2;
       const maxStartRow = Math.max(0, totalRows - rowsVisible);
-      const segmentHeight = trackHeight / (maxStartRow + 1);
       
-      const rowDelta = Math.round(deltaY / segmentHeight);
-      const newRow = Math.max(0, Math.min(maxStartRow, startScrollRow + rowDelta));
+      if (maxScrollPixels <= 0) return;
+
+      const startRatio = maxStartRow > 0 ? (startScrollRow / maxStartRow) : 0;
+      let newY = (startRatio * maxScrollPixels) + deltaY;
+      newY = Math.max(0, Math.min(maxScrollPixels, newY));
+      
+      const newRatio = newY / maxScrollPixels;
+      const exactRow = newRatio * maxStartRow;
+      const newRow = Math.round(exactRow);
       
       if (newRow !== scrollRow) {
         scrollRow = newRow;
@@ -711,7 +728,15 @@ function initializeBubbles() {
         if (listDiv) {
           listDiv.style.transform = `translateY(-${scrollRow * rowHeight}px)`;
         }
-        updateScrollBar();
+        
+        // Use requestAnimationFrame to prevent layout thrashing while dragging
+        if (!window._scrollbarUpdatePending) {
+          window._scrollbarUpdatePending = true;
+          requestAnimationFrame(() => {
+            updateScrollBar();
+            window._scrollbarUpdatePending = false;
+          });
+        }
       }
     });
     
@@ -729,11 +754,19 @@ function initializeBubbles() {
       const rect = track.getBoundingClientRect();
       const clickY = e.clientY - rect.top;
       const trackHeight = track.clientHeight;
+      const thumbHeight = thumb.clientHeight;
+      const maxScrollPixels = trackHeight - thumbHeight;
       const rowsVisible = 2;
       const maxStartRow = Math.max(0, totalRows - rowsVisible);
       
-      const targetRow = Math.round((clickY / trackHeight) * maxStartRow);
-      const newRow = Math.max(0, Math.min(maxStartRow, targetRow));
+      if (maxScrollPixels <= 0) return;
+      
+      // Center the thumb rigidly on the click coordinate
+      let targetY = clickY - (thumbHeight / 2);
+      targetY = Math.max(0, Math.min(maxScrollPixels, targetY));
+      
+      const ratio = targetY / maxScrollPixels;
+      const newRow = Math.max(0, Math.min(maxStartRow, Math.round(ratio * maxStartRow)));
       
       if (newRow !== scrollRow) {
         scrollRow = newRow;

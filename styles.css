@@ -573,7 +573,7 @@ input, textarea, select, [contenteditable] {
   width: 8px;
   height: 100%;
   transform: translateX(-50%);
-  background: var(--color-white);
+  background: rgba(30, 27, 75, 0.4); /* Solid fallback */
   border-radius: 4px;
   overflow: hidden;
 }
@@ -590,9 +590,9 @@ input, textarea, select, [contenteditable] {
 .bubble-scrollbar-thumb {
   position: absolute;
   left: 50%;
-  width: 16px;
+  width: 12px;
   height: 40px;
-  background: var(--color-white);
+  background: rgba(167, 139, 250, 0.9); /* A nice subdued glowing purple */
   border-radius: var(--border-radius-full);
   transform: translateX(-50%);
   cursor: grab;
@@ -604,7 +604,7 @@ input, textarea, select, [contenteditable] {
 }
 
 .bubble-scrollbar-thumb:hover {
-  background: var(--color-blue-500);
+  background: rgba(196, 181, 253, 1); /* Brighter hover state */
 }
 
 /* ==========================================
