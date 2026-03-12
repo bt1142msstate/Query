@@ -166,20 +166,28 @@ async function cancelQuery(queryId) {
 window.formatColumnsTooltip = function(columns) {
   if (!columns || !columns.length) return '';
 
-  let html = '<div class="tt-filter-container tt-columns-container">';
-  html += '<div class="tt-filter-title">Displayed Columns</div>';
-  html += '<ol class="tt-filter-list tt-columns-list">';
+  const columnItems = columns.map((column, index) => (
+    '<li class="tt-filter-item tt-column-item">' +
+    `  <span class="tt-column-index">${index + 1}</span>` +
+    `  <span class="tt-column-name">${escapeHtml(column || '')}</span>` +
+    '</li>'
+  )).join('');
 
-  columns.forEach((column, index) => {
-    html += '<li class="tt-filter-item tt-column-item">';
-    html += `  <span class="tt-column-index">${index + 1}</span>`;
-    html += `  <span class="tt-column-name">${escapeHtml(column || '')}</span>`;
-    html += '</li>';
-  });
-
-  html += '</ol></div>';
-  return html;
+  return '<div class="tt-filter-container tt-columns-container">' +
+    '<div class="tt-filter-title">Displayed Columns</div>' +
+    `<ol class="tt-filter-list tt-columns-list">${columnItems}</ol>` +
+    '</div>';
 };
+
+function createTooltipIconSummary(viewIconSVG, attributeName, tooltipContent) {
+  if (!tooltipContent) {
+    return '<span class="text-gray-400">None</span>';
+  }
+
+  return `<span class="inline-flex items-center gap-1" ${attributeName}="${tooltipContent.replace(/"/g, '&quot;')}">`
+    + viewIconSVG
+    + '</span>';
+}
 
 /**
  * Formats filter groups into a tooltip string for history display.
@@ -424,10 +432,8 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
   // Use tooltip for columns
   const columns = q.jsonConfig?.DesiredColumnOrder || [];
   const columnsTooltip = typeof formatColumnsTooltip === 'function' ? formatColumnsTooltip(columns) : '';
-  const columnsSummary = columns.length && columnsTooltip
-    ? `<span class="inline-flex items-center gap-1" data-tooltip-html="${columnsTooltip.replace(/"/g, '&quot;')}">
-          ${viewIconSVG}
-       </span>`
+  const columnsSummary = columns.length
+    ? createTooltipIconSummary(viewIconSVG, 'data-tooltip-html', columnsTooltip)
     : '<span class="text-gray-400">None</span>';
     
   // Use tooltip for filters
@@ -437,17 +443,11 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
   if (filterGroups.length > 0) {
       if (typeof window.formatStandardFilterTooltipHTML === 'function') {
           const filterHtml = window.formatStandardFilterTooltipHTML(filterGroups, "Query Filters");
-          // Use base64 or carefully escaped HTML if placing in attribute
-          filtersSummary = `<span class="inline-flex items-center gap-1" data-tooltip-html="${filterHtml.replace(/"/g, '&quot;')}">
-            ${viewIconSVG}
-          </span>`;
+        filtersSummary = createTooltipIconSummary(viewIconSVG, 'data-tooltip-html', filterHtml);
       } else {
-          // Fallback
           const filterTooltip = typeof formatHistoryFiltersTooltip === 'function' ? formatHistoryFiltersTooltip(filterGroups) : '';
           if (filterTooltip) {
-              filtersSummary = `<span class="inline-flex items-center gap-1" data-tooltip="${filterTooltip.replace(/"/g, '&quot;')}">
-                ${viewIconSVG}
-              </span>`;
+          filtersSummary = createTooltipIconSummary(viewIconSVG, 'data-tooltip', filterTooltip);
           }
       }
   }
