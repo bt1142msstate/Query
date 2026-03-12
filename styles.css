@@ -2303,6 +2303,9 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
 
 .table-query-circuit-trace {
   position: absolute;
+  left: var(--trace-x);
+  top: var(--trace-y);
+  width: var(--trace-len);
   height: 3px;
   border-radius: 2px;
   background: linear-gradient(90deg, var(--trace-color-a) 0%, var(--trace-color-b) 100%);
@@ -2316,28 +2319,26 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
 
 .table-query-circuit-node {
   position: absolute;
-  width: var(--node-size, 8px);
-  height: var(--node-size, 8px);
+  width: var(--node-size, 6px);
+  height: var(--node-size, 6px);
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  border: 2px solid rgba(56, 189, 248, 0.9);
-  background-color: #07111d;
-  box-shadow: 0 0 8px rgba(34, 211, 238, 0.6), inset 0 0 2px rgba(34, 211, 238, 0.4);
-  animation: circuit-node-spark 3s ease-in-out infinite alternate;
+  background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.95) 0%, rgba(34, 211, 238, 0.95) 45%, rgba(6, 182, 212, 0.75) 100%);
+  box-shadow: 0 0 9px rgba(34, 211, 238, 0.55), 0 0 16px rgba(56, 189, 248, 0.35);
+  animation: circuit-node-spark 2s ease-in-out infinite;
   animation-delay: var(--node-delay, 0s);
-  z-index: 2;
 }
 
 .table-query-circuit-pulse {
   position: absolute;
   top: 50%;
-  left: -32px;
-  width: 32px;
-  height: 3px;
-  border-radius: 4px;
+  left: -8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   transform: translateY(-50%);
-  background: linear-gradient(to right, transparent 0%, var(--pulse-color) 70%, #ffffff 100%);
-  box-shadow: 8px 0 12px var(--pulse-color), 2px 0 4px #ffffff;
+  background: var(--pulse-color);
+  box-shadow: 0 0 8px var(--pulse-color), 0 0 18px var(--pulse-color);
   opacity: 0;
   animation: circuit-pulse-run var(--pulse-duration) linear infinite;
   animation-delay: var(--pulse-delay);
@@ -2350,10 +2351,10 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
 }
 
 @keyframes circuit-pulse-run {
-  0% { left: -32px; opacity: 0; }
-  5% { opacity: 1; }
-  98% { opacity: 1; }
-  100% { left: calc(100% + 32px); opacity: 0; }
+  0% { left: -8px; opacity: 0; }
+  12% { opacity: 1; }
+  96% { opacity: 1; }
+  100% { left: calc(100% + 8px); opacity: 0; }
 }
 
 @keyframes circuit-glow-pan {
