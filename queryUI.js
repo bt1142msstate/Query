@@ -198,49 +198,6 @@ window.updateButtonStates = function() {
   }
 };
 
-/**
- * Helper function to manage UI changes when a query starts/stops
- */
-window.toggleQueryInterface = function(isQueryRunning) {
-  const searchContainer = document.getElementById('query-input')?.parentElement?.parentElement;
-  const categoryBar     = document.getElementById('category-bar');
-  const bubbleGrid      = document.getElementById('bubble-container');
-  const bubbleScrollbar = document.querySelector('.bubble-scrollbar-container');
-  const tableWrapper    = document.querySelector('.overflow-x-auto.shadow.rounded-lg.mb-6.relative');
-
-  // Keep a nearly‑full‑screen table during execution
-  const adjustTableHeight = () => {
-    if (!tableWrapper) return;
-    const margin = 24;                         // px gap at the bottom
-    const rect   = tableWrapper.getBoundingClientRect();
-    const newH   = window.innerHeight - rect.top - margin;
-    tableWrapper.style.height    = newH + 'px';
-    tableWrapper.style.maxHeight = newH + 'px';
-    tableWrapper.style.overflowY = 'auto';
-  };
-
-  // Toggle visibility of non‑essential UI pieces
-  [searchContainer, categoryBar, bubbleGrid, bubbleScrollbar].forEach(el => {
-    if (!el) return;
-    if (isQueryRunning) {
-      el.dataset.prevDisplay = el.style.display || '';
-      el.style.display = 'none';
-    } else {
-      el.style.display = el.dataset.prevDisplay || '';
-    }
-  });
-
-  if (isQueryRunning) {
-    adjustTableHeight();
-    window.addEventListener('resize', adjustTableHeight);
-  } else if (tableWrapper) {
-    tableWrapper.style.height    = '';
-    tableWrapper.style.maxHeight = '';
-    tableWrapper.style.overflowY = '';
-    window.removeEventListener('resize', adjustTableHeight);
-  }
-};
-
 /* ---------- Table morph animation ---------- */
 function createTableQueryCircuitOverlay() {
   const circuit = document.createElement('div');
