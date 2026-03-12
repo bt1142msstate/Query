@@ -60,14 +60,19 @@ async function fetchQueryStatus() {
                 FilterGroups: []
             };
             if (sq.request.filters && sq.request.filters.length > 0) {
-                 const group = { LogicalOperator: 'AND', Filters: [] };
+               const group = { LogicalOperator: 'And', Filters: [] };
                  sq.request.filters.forEach(f => {
-                     // Reverse map operator roughly
-                     let opName = 'equals';
-                     if (f.operator === '>') opName = 'greater';
-                     if (f.operator === '<') opName = 'less';
-                     if (f.operator === '>=') opName = 'greater'; 
-                     if (f.operator === '<=') opName = 'less';    
+                 let opName = 'Equals';
+                 if (f.operator === '>') opName = 'GreaterThan';
+                 else if (f.operator === '<') opName = 'LessThan';
+                 else if (f.operator === '>=') opName = 'GreaterThanOrEqual';
+                 else if (f.operator === '<=') opName = 'LessThanOrEqual';
+                 else if (f.operator === '!=') opName = String(f.value || '').includes('*') ? 'DoesNotContain' : 'DoesNotEqual';
+                 else if (f.operator === '=') {
+                   if (String(f.value || '').startsWith('*') || String(f.value || '').endsWith('*')) {
+                     opName = 'Contains';
+                   }
+                 }
                      
                      group.Filters.push({
                         FieldName: f.field,
@@ -182,10 +187,15 @@ window.formatHistoryFiltersTooltip = function(filterGroups) {
     if (group.Filters) {
         group.Filters.forEach(f => {
             let op = f.FieldOperator;
-            if (op === 'equals') op = '=';
-            else if (op === 'greater') op = '>';
-            else if (op === 'less') op = '<';
-            else if (op === 'contains') op = 'contains';
+          if (op === 'equals' || op === 'Equals') op = '=';
+          else if (op === 'greater' || op === 'GreaterThan') op = '>';
+          else if (op === 'less' || op === 'LessThan') op = '<';
+          else if (op === 'greater_or_equal' || op === 'GreaterThanOrEqual') op = '>=';
+          else if (op === 'less_or_equal' || op === 'LessThanOrEqual') op = '<=';
+          else if (op === 'does_not_equal' || op === 'DoesNotEqual') op = '!=';
+          else if (op === 'contains' || op === 'Contains') op = 'contains';
+          else if (op === 'does_not_contain' || op === 'DoesNotContain') op = 'does not contain';
+          else if (op === 'between' || op === 'Between') op = 'between';
             
             lines.push(`${f.FieldName || ''} ${op} ${f.Values ? f.Values.join('|') : ''}`);
         });
@@ -206,6 +216,61 @@ window.formatHistoryFiltersTooltip = function(filterGroups) {
  */
 function loadQueryConfig(q) {
   if(!q || !q.jsonConfig) return;
+
+  const mapHistoryOperatorToUiCond = (operator) => {
+    const normalized = String(operator || '').trim();
+    switch (normalized) {
+      case 'Equals':
+      case 'equals':
+      case '=':
+        return 'equals';
+      case 'DoesNotEqual':
+      case 'does_not_equal':
+      case 'doesnotequal':
+      case '!=':
+        return 'does_not_equal';
+      case 'GreaterThan':
+      case 'greater':
+      case '>':
+        return 'greater';
+      case 'LessThan':
+      case 'less':
+      case '<':
+        return 'less';
+      case 'GreaterThanOrEqual':
+      case 'greater_or_equal':
+      case '>=':
+        return 'greater_or_equal';
+      case 'LessThanOrEqual':
+      case 'less_or_equal':
+      case '<=':
+        return 'less_or_equal';
+      case 'Contains':
+      case 'contains':
+        return 'contains';
+      case 'DoesNotContain':
+      case 'does_not_contain':
+      case 'doesnotcontain':
+        return 'doesnotcontain';
+      case 'Between':
+      case 'between':
+        return 'between';
+      case 'Before':
+      case 'before':
+        return 'before';
+      case 'After':
+      case 'after':
+        return 'after';
+      case 'OnOrBefore':
+      case 'on_or_before':
+        return 'on_or_before';
+      case 'OnOrAfter':
+      case 'on_or_after':
+        return 'on_or_after';
+      default:
+        return normalized.toLowerCase();
+    }
+  };
   
   // Access global variables from query.js
   if (typeof window.displayedFields === 'undefined' || typeof showExampleTable === 'undefined') {
@@ -239,7 +304,7 @@ function loadQueryConfig(q) {
           if (!activeFilters[ff.FieldName]) {
             activeFilters[ff.FieldName] = { logical: group.LogicalOperator, filters: [] };
           }
-          activeFilters[ff.FieldName].filters.push({ cond: ff.FieldOperator.toLowerCase(), val: ff.Values.join('|') });
+          activeFilters[ff.FieldName].filters.push({ cond: mapHistoryOperatorToUiCond(ff.FieldOperator), val: ff.Values.join('|') });
           const bubbleEl = Array.from(document.querySelectorAll('.bubble'))
             .find(b => b.textContent.trim() === ff.FieldName);
           if(bubbleEl){
