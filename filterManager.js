@@ -502,7 +502,7 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
     // Dynamically add field definition if missing
     window.registerDynamicField(dynamicFieldName, {
         type: fieldDef.type || 'string',
-        category: fieldDef.category || 'Other',
+        category: fieldDef.category || null,
         desc: `${fieldDef.name} custom: ${Object.values(inputVals).join(', ')}`,
         special_payload: specialPayload
     });
@@ -593,7 +593,7 @@ window.registerDynamicField = function(fieldName, opts = {}) {
     const newDef = {
         name: fieldName,
         type: opts.type || (parentDef ? parentDef.type : 'string'),
-        category: opts.category || (parentDef ? parentDef.category : 'Other'),
+        category: opts.category || (parentDef ? parentDef.category : null),
         desc: opts.desc || (parentDef ? `${parentDef.name} custom field: ${fieldName}` : fieldName),
         special_payload: resolvedPayload
     };
@@ -605,6 +605,9 @@ window.registerDynamicField = function(fieldName, opts = {}) {
     }
     if (window.filteredDefs && !window.filteredDefs.find(d => d.name === fieldName)) {
         window.filteredDefs.push({ ...newDef });
+    }
+    if (window.syncAvailableCategories) {
+        window.syncAvailableCategories();
     }
 };
 

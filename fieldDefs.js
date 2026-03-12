@@ -9,6 +9,43 @@ let fieldDefsArray = [];
 let fieldDefs = new Map();
 let filteredDefs = [];
 let isFieldsLoaded = false;
+const SYSTEM_CATEGORIES = ['All', 'Selected'];
+
+window.hasLoadedFieldDefinitions = function hasLoadedFieldDefinitions() {
+  return isFieldsLoaded && fieldDefsArray.length > 0;
+};
+
+function normalizeCategoryName(category) {
+  return (typeof category === 'string') ? category.trim() : '';
+}
+
+function getAvailableCategories() {
+  if (!window.hasLoadedFieldDefinitions()) {
+    return [];
+  }
+
+  const seen = new Set();
+  const derivedCategories = [];
+
+  fieldDefsArray.forEach(field => {
+    const categoryValues = Array.isArray(field.category) ? field.category : [field.category];
+    categoryValues.forEach(categoryValue => {
+      const normalized = normalizeCategoryName(categoryValue);
+      if (!normalized || seen.has(normalized)) {
+        return;
+      }
+
+      seen.add(normalized);
+      derivedCategories.push(normalized);
+    });
+  });
+
+  return [...SYSTEM_CATEGORIES, ...derivedCategories];
+}
+
+function syncAvailableCategories() {
+  window.categories = getAvailableCategories();
+}
 
 window.loadFieldDefinitions = async function loadFieldDefinitions() {
     if (isFieldsLoaded) return fieldDefsArray;
@@ -51,6 +88,7 @@ window.loadFieldDefinitions = async function loadFieldDefinitions() {
         window.filteredDefs = filteredDefs;
         
         isFieldsLoaded = true;
+        syncAvailableCategories();
         return fieldDefsArray;
     } catch (e) {
         console.error("Failed to load backend field mappings.", e);
@@ -64,9 +102,6 @@ window.loadFieldDefinitions = async function loadFieldDefinitions() {
 // Ensure the map export remains attached after loading
 // fieldDefs was already initialized at the top
 fieldDefs = new Map(fieldDefsArray.map(field => [field.name, field]));
-
-// Categories array - Including "Selected" for filtered view
-const categories = ['All', 'Selected', 'Catalog', 'Call #', 'Item', 'Metrics', 'Transit', 'Marc'];
 
 // Initialize filtered defs
 filteredDefs = [...fieldDefsArray];
@@ -127,6 +162,7 @@ function shouldFieldHavePurpleStylingBase(fieldName, displayedFields, activeFilt
  */
 function calculateCategoryCounts(displayedFields, activeFilters) {
   const categoryCounts = {};
+  const categories = getAvailableCategories();
   categories.forEach(cat => {
     if (cat === 'All') {
       categoryCounts.All = fieldDefsArray.length;
@@ -156,6 +192,19 @@ function renderCategorySelectors(categoryCounts, currentCategory, onCategoryChan
   const categoryBar = document.getElementById('category-bar');
   const mobileSelector = document.getElementById('mobile-category-selector');
 
+  if (!window.hasLoadedFieldDefinitions()) {
+    if (categoryBar) {
+      categoryBar.innerHTML = '';
+    }
+    if (mobileSelector) {
+      mobileSelector.innerHTML = '';
+      mobileSelector.value = '';
+    }
+    return;
+  }
+
+  const categories = getAvailableCategories();
+
   // Render desktop category bar
   if (categoryBar) {
     categoryBar.innerHTML = categories.map(cat => {
@@ -165,11 +214,6 @@ function renderCategorySelectors(categoryCounts, currentCategory, onCategoryChan
       switch (cat) {
         case 'All': tooltip = 'Show all available fields'; break;
         case 'Selected': tooltip = 'Show fields currently in use (displayed or filtered)'; break;
-        case 'Marc': tooltip = 'MARC-specific fields and custom MARC field filters'; break;
-        case 'Call #': tooltip = 'Fields related to call numbers'; break;
-        case 'Catalog': tooltip = 'Fields from the catalog record'; break;
-        case 'Item': tooltip = 'Fields specific to the item record'; break;
-        case 'Dates': tooltip = 'Fields representing dates'; break;
         default: tooltip = `Show fields in the ${cat} category`;
       }
       return `<button data-category="${cat}" class="category-btn ${cat === currentCategory ? 'active' : ''}" data-tooltip="${tooltip}">${cat} (${categoryCounts[cat]})</button>`;
@@ -198,11 +242,6 @@ function renderCategorySelectors(categoryCounts, currentCategory, onCategoryChan
       switch (cat) {
         case 'All': tooltip = 'Show all available fields'; break;
         case 'Selected': tooltip = 'Show fields currently in use (displayed or filtered)'; break;
-        case 'Marc': tooltip = 'MARC-specific fields and custom MARC field filters'; break;
-        case 'Call #': tooltip = 'Fields related to call numbers'; break;
-        case 'Catalog': tooltip = 'Fields from the catalog record'; break;
-        case 'Item': tooltip = 'Fields specific to the item record'; break;
-        case 'Dates': tooltip = 'Fields representing dates'; break;
         default: tooltip = `Show fields in the ${cat} category`;
       }
       const option = document.createElement('option');
@@ -224,7 +263,9 @@ function renderCategorySelectors(categoryCounts, currentCategory, onCategoryChan
 window.fieldDefs = fieldDefs;
 window.fieldDefsArray = fieldDefsArray;
 window.filteredDefs = filteredDefs;
-window.categories = categories;
+window.categories = getAvailableCategories();
+window.getAvailableCategories = getAvailableCategories;
+window.syncAvailableCategories = syncAvailableCategories;
 window.getAllFieldDefs = getAllFieldDefs;
 window.updateFilteredDefs = updateFilteredDefs;
 window.shouldFieldHavePurpleStylingBase = shouldFieldHavePurpleStylingBase;
