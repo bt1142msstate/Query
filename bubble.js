@@ -106,6 +106,15 @@ class Bubble {
   }
 }
 
+function bubbleDebugLog(eventName, payload = {}) {
+  if (!window || window.BUBBLE_DEBUG !== true) return;
+  try {
+    console.log(`[BubbleDebug] ${eventName}`, payload);
+  } catch (_) {
+    // Never allow debug logging to interfere with UI interactions.
+  }
+}
+
 /**
  * Applies correct styling to a bubble element based on its filter state.
  * Adds purple styling for filtered fields, removes it for unfiltered fields.
@@ -700,17 +709,29 @@ function initializeBubbles() {
 
   // Delegated bubble click events
   document.addEventListener('click', e=>{
+    const targetEl = e.target instanceof Element ? e.target : e.target && e.target.parentElement;
+    const bubble = targetEl ? targetEl.closest('.bubble') : null;
+    bubbleDebugLog('document.click', {
+      rawTargetNodeType: e.target && e.target.nodeType,
+      targetTag: targetEl && targetEl.tagName,
+      targetClass: targetEl && targetEl.className,
+      resolvedBubble: bubble ? bubble.textContent.trim() : null,
+      hasActiveBubble: !!document.querySelector('.active-bubble, .bubble-clone'),
+      isBubbleAnimating: !!window.isBubbleAnimating,
+      isOverlayOpen: !!(overlay && overlay.classList.contains('show'))
+    });
+
     if (window.modalManager && window.modalManager.isInputLocked) {
+      bubbleDebugLog('click.blocked.inputLocked');
       e.stopPropagation();
       e.preventDefault();
       return;
     }
-    const targetEl = e.target instanceof Element ? e.target : e.target && e.target.parentElement;
-    const bubble = targetEl ? targetEl.closest('.bubble') : null;
     if(!bubble) return;
     
     // Disable opening index cards and modifying conditions while querying
     if (window.queryRunning) {
+      bubbleDebugLog('click.blocked.queryRunning', { bubble: bubble.textContent.trim() });
       if (window.showToastMessage) window.showToastMessage("Cannot edit conditions while a query is running", "warning");
       e.stopPropagation();
       e.preventDefault();
@@ -718,9 +739,15 @@ function initializeBubbles() {
     }
 
     // Prevent duplicate active bubble
-    if(document.querySelector('.active-bubble')) return;
+    if(document.querySelector('.active-bubble, .bubble-clone')) {
+      bubbleDebugLog('click.blocked.activeBubbleAlreadyOpen', { bubble: bubble.textContent.trim() });
+      return;
+    }
     // Prevent clicking bubbles while animation is running
-    if (window.isBubbleAnimating) return;
+    if (window.isBubbleAnimating) {
+      bubbleDebugLog('click.blocked.isBubbleAnimating', { bubble: bubble.textContent.trim() });
+      return;
+    }
     window.isBubbleAnimating = true;
     window.lockInput && window.lockInput(600); // Lock input for animation duration + buffer (adjust as needed)
 
@@ -731,6 +758,7 @@ function initializeBubbles() {
     const rect = bubble.getBoundingClientRect();
     // Look up description for this field (no longer used for index card)
     const fieldName = bubble.textContent.trim();
+    bubbleDebugLog('click.open.start', { fieldName });
     // const descText = (fieldDefs.find(d => d.name === fieldName) || {}).desc || '';
     const clone = bubble.cloneNode(true);
     clone.dataset.filterFor = fieldName;
@@ -795,6 +823,11 @@ function initializeBubbles() {
     );
 
     clone.addEventListener('transitionend',function t(e){
+      bubbleDebugLog('clone.transitionend', {
+        fieldName,
+        propertyName: e.propertyName,
+        enlarged: clone.classList.contains('enlarge-bubble')
+      });
       if(!clone.classList.contains('enlarge-bubble')){
         // Only trigger the enlarge phase once a primary positioning transition finishes
         if(e.propertyName === 'top' || e.propertyName === 'left' || e.propertyName === 'transform') {
@@ -824,6 +857,7 @@ function initializeBubbles() {
       clone.removeEventListener('transitionend',t);
       // Animation is done, allow bubble clicks again
       window.isBubbleAnimating = false;
+      bubbleDebugLog('click.open.complete', { fieldName });
       // (input lock will be released by timer)
     });
     requestAnimationFrame(()=> clone.classList.add('active-bubble'));
@@ -897,6 +931,7 @@ function resetActiveBubbles() {
   }
   
   const clones = document.querySelectorAll('.active-bubble, .bubble-clone');
+  bubbleDebugLog('reset.start', { cloneCount: clones.length });
   if (clones.length > 0) window.isBubbleAnimatingBack = true; 
   
   clones.forEach(clone => {
@@ -943,6 +978,7 @@ function resetActiveBubbles() {
       clone.classList.remove('bubble-clone');
       
       clone.addEventListener('transitionend', () => {
+        bubbleDebugLog('reset.clone.transitionend', { fieldName });
         clone.remove();
         if (window.animatingBackBubbles) window.animatingBackBubbles.delete(fieldName);
         
@@ -971,10 +1007,12 @@ function resetActiveBubbles() {
                 window.pendingRenderBubbles = false;
             }
             reconcileBubbleInteractionState();
+            bubbleDebugLog('reset.complete', { reason: 'all-transitionend' });
         }
       }, { once: true });
     } else {
       clone.remove();
+      bubbleDebugLog('reset.clone.removedWithoutOrigin', { fieldName });
       if (origin) {
          if (window.animatingBackBubbles) window.animatingBackBubbles.delete(fieldName);
          const matchingBubble = Array.from(document.querySelectorAll('.bubble'))
@@ -1000,6 +1038,7 @@ function resetActiveBubbles() {
           window.pendingRenderBubbles = false;
         }
         reconcileBubbleInteractionState();
+        bubbleDebugLog('reset.complete', { reason: 'no-origin-clone' });
       }
     }
   });
@@ -1009,6 +1048,7 @@ function resetActiveBubbles() {
       window.isBubbleAnimatingBack = false;
       window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
       reconcileBubbleInteractionState();
+      bubbleDebugLog('reset.complete', { reason: 'no-clones' });
     }
   }, 0);
 
@@ -1020,6 +1060,7 @@ function resetActiveBubbles() {
     document.querySelectorAll('.bubble-clone').forEach(c => c.remove());
     reconcileBubbleInteractionState();
     window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
+    bubbleDebugLog('reset.complete', { reason: 'fallback-timeout' });
   }, 650);
 }
 

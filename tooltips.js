@@ -14,6 +14,15 @@ const TooltipManager = (() => {
   let hideTimeout = null;
   let isDragging = false; // Track drag state
 
+  function tooltipDebugLog(eventName, payload = {}) {
+    if (!window || window.BUBBLE_DEBUG !== true) return;
+    try {
+      console.log(`[TooltipDebug] ${eventName}`, payload);
+    } catch (_) {
+      // Keep debugging non-disruptive.
+    }
+  }
+
   function closestFromTarget(target, selector) {
     const el = target instanceof Element ? target : target && target.parentElement;
     return el ? el.closest(selector) : null;
@@ -46,6 +55,13 @@ const TooltipManager = (() => {
   function showTooltip(target, text, event, isHtml = false) {
     if (isDragging) return; // Do not show tooltip while dragging
     if (!tooltipEl) createTooltip();
+
+    tooltipDebugLog('showTooltip', {
+      targetText: target && target.textContent ? target.textContent.trim() : null,
+      hasHtml: !!isHtml,
+      textLength: text ? text.length : 0,
+      eventType: event && event.type
+    });
 
     // Clear any pending hide timeout
     if (hideTimeout) {
@@ -94,6 +110,10 @@ const TooltipManager = (() => {
   function hideTooltip() {
     if (!tooltipEl) return;
 
+    tooltipDebugLog('hideTooltip', {
+      currentTargetText: currentTarget && currentTarget.textContent ? currentTarget.textContent.trim() : null
+    });
+
     tooltipEl.classList.remove('show');
     tooltipEl.style.opacity = '0';
 
@@ -126,6 +146,7 @@ const TooltipManager = (() => {
       tooltipEl.appendChild(arrowEl);
     }
     currentTarget = null;
+    tooltipDebugLog('forceHide');
   }
 
   /**
@@ -187,6 +208,10 @@ const TooltipManager = (() => {
       if (isDragging) return;
       const el = closestFromTarget(e.target, '[data-tooltip], [data-tooltip-html]');
       if (!el) return;
+      tooltipDebugLog('mouseover', {
+        targetText: el.textContent ? el.textContent.trim() : null,
+        rawTargetNodeType: e.target && e.target.nodeType
+      });
       const isHtml = el.hasAttribute('data-tooltip-html');
       const text = isHtml ? el.getAttribute('data-tooltip-html') : el.getAttribute('data-tooltip');
       if (text) showTooltip(el, text, e, isHtml);
@@ -201,13 +226,27 @@ const TooltipManager = (() => {
 
     document.addEventListener('mouseout', e => {
       const el = closestFromTarget(e.target, '[data-tooltip], [data-tooltip-html]');
-      if (el) hideTooltip();
+      if (!el) return;
+      const relatedEl = e.relatedTarget instanceof Element
+        ? e.relatedTarget
+        : e.relatedTarget && e.relatedTarget.parentElement;
+      tooltipDebugLog('mouseout', {
+        sourceText: el.textContent ? el.textContent.trim() : null,
+        relatedTag: relatedEl && relatedEl.tagName,
+        relatedClass: relatedEl && relatedEl.className,
+        stayedWithinSource: !!(relatedEl && el.contains(relatedEl))
+      });
+      if (relatedEl && el.contains(relatedEl)) return;
+      hideTooltip();
     });
 
     document.addEventListener('focusin', e => {
       if (isDragging) return;
       const el = closestFromTarget(e.target, '[data-tooltip], [data-tooltip-html]');
       if (!el) return;
+      tooltipDebugLog('focusin', {
+        targetText: el.textContent ? el.textContent.trim() : null
+      });
       const isHtml = el.hasAttribute('data-tooltip-html');
       const text = isHtml ? el.getAttribute('data-tooltip-html') : el.getAttribute('data-tooltip');
       if (text) showTooltip(el, text, undefined, isHtml);
