@@ -2,6 +2,8 @@
 // Utility functions and state management are now loaded from external modules
 // (queryState.js, toast.js, queryUI.js, etc.)
 
+const dom = window.DOM;
+
 // Pressing Enter in any condition field = click Confirm
 ['condition-input','condition-input-2','condition-select'].forEach(id=>{
   const el=document.getElementById(id);
@@ -9,7 +11,7 @@
     el.addEventListener('keydown',e=>{
       if(e.key==='Enter'){
         e.preventDefault();
-        confirmBtn.click();
+        dom.confirmBtn?.click();
       }
     });
   }
@@ -25,9 +27,9 @@ let currentQueryId = null;
 // Initial check
 window.updateButtonStates();
 
-if(runBtn){
-  runBtn.addEventListener('click', ()=>{
-    if(runBtn.disabled) return;   // ignore when disabled
+if(dom.runBtn){
+  dom.runBtn.addEventListener('click', ()=>{
+    if(dom.runBtn.disabled) return;   // ignore when disabled
     
     // If query is running, stop it
     if (window.queryRunning) {
@@ -255,13 +257,13 @@ if(runBtn){
 
 
 
-overlay.addEventListener('click',()=>{ 
+dom.overlay.addEventListener('click',()=>{ 
   window.ModalSystem.closeAllModals(); // This will hide overlay and all panels with 'hidden' and remove 'show'
   window.BubbleSystem && window.BubbleSystem.resetActiveBubbles(); // Handles bubble animations and state
 
   // Close non-modal UI elements (condition panel, input wrapper, filter card)
-  conditionPanel.classList.remove('show');
-  inputWrapper.classList.remove('show');
+  dom.conditionPanel.classList.remove('show');
+  dom.inputWrapper.classList.remove('show');
   const filterCard = window.filterCard || document.getElementById('filter-card');
   if (filterCard) {
     if (!window.filterCard) window.filterCard = filterCard;
@@ -275,9 +277,9 @@ overlay.addEventListener('click',()=>{
   }
   
   // Remove all .active from condition buttons
-  const btns = conditionPanel.querySelectorAll('.condition-btn');
+  const btns = dom.conditionPanel.querySelectorAll('.condition-btn');
   btns.forEach(b=>b.classList.remove('active'));
-  conditionInput.value='';
+  if (dom.conditionInput) dom.conditionInput.value='';
 
   // Hide select if present
   const sel = document.getElementById('condition-select');
@@ -285,14 +287,14 @@ overlay.addEventListener('click',()=>{
 
   // After closing overlay, re-enable bubble interaction
   setTimeout(() => safeRenderBubbles(), 0);
-  overlay.classList.remove('bubble-active');
+  dom.overlay.classList.remove('bubble-active');
   const headerBar = document.getElementById('header-bar');
   if (headerBar) headerBar.classList.remove('header-hide');
 });
 
 
 
-confirmBtn.addEventListener('click', window.handleFilterConfirm);
+dom.confirmBtn.addEventListener('click', window.handleFilterConfirm);
 
 function resetBubbleScrollState() {
   if (window.BubbleSystem && typeof window.BubbleSystem.resetBubbleScroll === 'function') {
@@ -308,7 +310,7 @@ function scrollBubbleRows(deltaRows) {
 }
 
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'&&overlay.classList.contains('show')){overlay.click();return;}
+  if(e.key==='Escape'&&dom.overlay.classList.contains('show')){dom.overlay.click();return;}
   // Bubble-grid scroll: allow ArrowUp/Down and W/S as aliases when hovering grid/scrollbar
   if(!hoverScrollArea) return;
   // Category navigation: ArrowLeft / ArrowRight or A / D keys when hovering the bubble area
@@ -316,7 +318,7 @@ document.addEventListener('keydown',e=>{
   const leftPressed  = e.key === 'ArrowLeft'  || e.key.toLowerCase() === 'a';
   if (rightPressed || leftPressed) {
     // Prevent navigation if overlay is shown or a bubble is enlarged
-    if (overlay.classList.contains('show') || document.querySelector('.active-bubble')) return;
+    if (dom.overlay.classList.contains('show') || document.querySelector('.active-bubble')) return;
     
     // Get visible category buttons from the DOM
     const visibleCatButtons = Array.from(document.querySelectorAll('#category-bar .category-btn'));
@@ -391,9 +393,9 @@ if (categoryBar) {
 // Special handler for marc condition buttons now in filterManager.js
 
 // Replace search input listener to filter all fieldDefs, not just visible bubbles
-queryInput.addEventListener('input', () => {
+dom.queryInput.addEventListener('input', () => {
   // Only switch to "All" category when searching if no bubble is active and no overlay is shown
-  if (!document.querySelector('.active-bubble') && !overlay.classList.contains('show')) {
+  if (!document.querySelector('.active-bubble') && !dom.overlay.classList.contains('show')) {
   currentCategory = 'All';
   // Update the segmented toggle UI to reflect the change
   document.querySelectorAll('#category-bar .category-btn').forEach(b =>
@@ -401,8 +403,8 @@ queryInput.addEventListener('input', () => {
   );
   }
   
-  const term = queryInput.value.trim().toLowerCase();
-  if(clearSearchBtn) clearSearchBtn.classList.toggle('hidden', term==='');
+  const term = dom.queryInput.value.trim().toLowerCase();
+  if(dom.clearSearchBtn) dom.clearSearchBtn.classList.toggle('hidden', term==='');
   
   // Use imported updateFilteredDefs function
   updateFilteredDefs(term);
@@ -421,11 +423,11 @@ queryInput.addEventListener('input', () => {
   window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
 });
 
-if(clearSearchBtn){
-  clearSearchBtn.addEventListener('click', ()=>{
-    queryInput.value = '';
-    queryInput.dispatchEvent(new Event('input'));
-    queryInput.focus();
+if(dom.clearSearchBtn){
+  dom.clearSearchBtn.addEventListener('click', ()=>{
+    dom.queryInput.value = '';
+    dom.queryInput.dispatchEvent(new Event('input'));
+    dom.queryInput.focus();
   });
 }
 
@@ -463,9 +465,9 @@ if(initialContainer) {
 }
 
 // GroupBy method change handler
-if (groupMethodSelect) {
-  groupMethodSelect.addEventListener('change', async () => {
-    const newGroupMethod = groupMethodSelect.value;
+if (dom.groupMethodSelect) {
+  dom.groupMethodSelect.addEventListener('change', async () => {
+    const newGroupMethod = dom.groupMethodSelect.value;
     console.log('Changing GroupBy method to:', newGroupMethod);
     
     // Get the current SimpleTable instance
