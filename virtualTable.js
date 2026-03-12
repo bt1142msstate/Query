@@ -219,9 +219,9 @@ function renderVirtualTable() {
       td.style.minWidth = `${width}px`;
       td.style.maxWidth = `${width}px`;
 
-      if (typeof displayValue === 'string' && displayValue.includes(';;')) {
-        // Special handling for multi-value cells like MARC field collisions
-        const items = displayValue.split(';;').filter(s => s.trim() !== '');
+      if (typeof displayValue === 'string' && displayValue.includes('\x1F')) {
+        // Special handling for multi-value cells (e.g. MARC fields with multiple instances)
+        const items = displayValue.split('\x1F').filter(s => s.trim() !== '');
         
         // Override default line-clamp classes
         td.className = 'px-3 py-2 text-sm text-gray-900 align-top'; 
