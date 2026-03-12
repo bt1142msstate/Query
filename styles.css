@@ -2303,9 +2303,6 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
 
 .table-query-circuit-trace {
   position: absolute;
-  left: var(--trace-x);
-  top: var(--trace-y);
-  width: var(--trace-len);
   height: 3px;
   border-radius: 2px;
   background: linear-gradient(90deg, var(--trace-color-a) 0%, var(--trace-color-b) 100%);
