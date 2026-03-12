@@ -276,15 +276,7 @@ class ModalManager {
 // Global instance
 window.modalManager = new ModalManager();
 
-// Expose legacy global functions to maintain compatibility with existing on-click attributes if any
 window.lockInput = (duration) => window.modalManager.lockInput(duration);
-window.closeAllModals = () => window.modalManager.closeAllPanels();
-
-// Helper to open specific panels (used by toolbar buttons)
-window.toggleJsonPanel = () => window.modalManager.togglePanel('json-panel');
-window.toggleQueriesPanel = () => window.modalManager.togglePanel('queries-panel');
-window.toggleHelpPanel = () => window.modalManager.togglePanel('help-panel');
-window.toggleMobileMenu = () => window.modalManager.togglePanel('mobile-menu-dropdown');
 
 // Backward Compatibility for ModalSystem
 window.ModalSystem = {
