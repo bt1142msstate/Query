@@ -8,6 +8,7 @@
 let exampleQueries = [];
 let queryDurationUpdateInterval = null;
 let lastQueryStatusPollAt = 0;
+let activeHistorySection = 'running';
 const QUERY_STATUS_POLL_MS = 2000;
 
 function isQueriesPanelOpen() {
@@ -57,50 +58,100 @@ function getQueryStatusMeta(status) {
   return { label: 'Interrupted', rowClass: 'history-row-failed', badgeClass: 'history-status-badge status-failed' };
 }
 
-function buildHistorySection(sectionKey, count, rows, tableHead, emptyMessage, openByDefault = true) {
+function buildHistorySection(sectionKey, count, rows, tableHead, emptyMessage, isOpen = false) {
   const meta = {
     running: {
       title: 'Running',
       subtitle: 'Queries currently executing on the backend.',
-      detailsClass: 'history-section running',
-      summaryClass: 'history-section-summary running'
+      coverLabel: 'Live volume',
+      detailsClass: 'history-book running',
+      summaryClass: 'history-book-summary running'
     },
     complete: {
       title: 'Completed',
-      subtitle: 'Queries with finished results ready to inspect or reload.',
-      detailsClass: 'history-section complete',
-      summaryClass: 'history-section-summary complete'
+      subtitle: 'Finished results ready to inspect or reload.',
+      coverLabel: 'Archive volume',
+      detailsClass: 'history-book complete',
+      summaryClass: 'history-book-summary complete'
     },
     failed: {
       title: 'Failed / Interrupted',
       subtitle: 'Queries that errored, were abandoned, or quit unexpectedly.',
-      detailsClass: 'history-section failed',
-      summaryClass: 'history-section-summary failed'
+      coverLabel: 'Incident volume',
+      detailsClass: 'history-book failed',
+      summaryClass: 'history-book-summary failed'
     },
     canceled: {
       title: 'Cancelled',
       subtitle: 'Queries stopped intentionally before they completed.',
-      detailsClass: 'history-section canceled',
-      summaryClass: 'history-section-summary canceled'
+      coverLabel: 'Stopped volume',
+      detailsClass: 'history-book canceled',
+      summaryClass: 'history-book-summary canceled'
     }
   }[sectionKey];
 
-  const openAttr = openByDefault ? ' open' : '';
+  const openAttr = isOpen ? ' open' : '';
   const bodyContent = rows
     ? `<div class="history-table-shell"><table class="min-w-full text-sm history-table">${tableHead}<tbody>${rows}</tbody></table></div>`
     : `<div class="history-empty-state">${emptyMessage}</div>`;
+  const statusLabel = count === 0
+    ? 'Empty'
+    : isOpen
+      ? 'Open'
+      : 'Closed';
 
   return `
-    <details class="${meta.detailsClass}"${openAttr}>
+    <details class="${meta.detailsClass}" data-history-book="${sectionKey}"${openAttr}>
       <summary class="${meta.summaryClass}">
-        <span class="history-section-heading">
-          <span class="history-section-title">${count} ${meta.title}</span>
-          <span class="history-section-subtitle">${meta.subtitle}</span>
+        <span class="history-book-summary-main">
+          <span class="history-book-kicker">${meta.coverLabel}</span>
+          <span class="history-book-title">${meta.title}</span>
+          <span class="history-book-subtitle">${meta.subtitle}</span>
+        </span>
+        <span class="history-book-summary-side">
+          <span class="history-book-count">${count}</span>
+          <span class="history-book-state">${statusLabel}</span>
         </span>
       </summary>
-      ${bodyContent}
+      <div class="history-book-body">
+        ${bodyContent}
+      </div>
     </details>
   `;
+}
+
+function getPreferredHistorySection(counts) {
+  const orderedSections = ['running', 'complete', 'failed', 'canceled'];
+
+  if (activeHistorySection === 'none') {
+    return null;
+  }
+
+  if (orderedSections.includes(activeHistorySection)) {
+    return activeHistorySection;
+  }
+
+  return orderedSections.find(sectionKey => counts[sectionKey] > 0) || 'running';
+}
+
+function bindHistoryBookShelf(container) {
+  const books = Array.from(container.querySelectorAll('[data-history-book]'));
+  if (!books.length) return;
+
+  books.forEach(book => {
+    book.addEventListener('toggle', () => {
+      if (book.open) {
+        activeHistorySection = book.dataset.historyBook || 'running';
+        books.forEach(otherBook => {
+          if (otherBook !== book) {
+            otherBook.open = false;
+          }
+        });
+      } else if (!books.some(otherBook => otherBook.open)) {
+        activeHistorySection = 'none';
+      }
+    });
+  });
 }
 
 function appendUniqueColumn(target, fieldName) {
@@ -868,14 +919,23 @@ function renderQueries(){
   const cancelledCount = cancelledList.length;
   const visibleCount = runningCount + doneCount + failedCount + cancelledCount;
   const totalCount = exampleQueries.length;
-  const completedRows = doneList.reduce((sum, q) => sum + (Number(q.resultCount) || 0), 0);
   const liveSignal = runningCount > 0
     ? `${runningCount} live ${runningCount === 1 ? 'query is' : 'queries are'} still updating.`
     : 'No active queries are running right now.';
   const searchLabel = searchTerm
     ? `Showing ${visibleCount} of ${totalCount} saved queries matching "${searchTerm}".`
     : `Showing ${visibleCount} recent ${visibleCount === 1 ? 'query' : 'queries'} across your workspace history.`;
-  const refreshedAt = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const refreshedAt = lastQueryStatusPollAt
+    ? new Date(lastQueryStatusPollAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    : 'Awaiting refresh';
+  const isPollingActive = !!(queryDurationUpdateInterval && isQueriesPanelOpen());
+  const pollingLabel = isPollingActive ? 'Polling live' : 'Polling paused';
+  const openSection = getPreferredHistorySection({
+    running: runningCount,
+    complete: doneCount,
+    failed: failedCount,
+    canceled: cancelledCount
+  });
 
   let content = '';
 
@@ -883,10 +943,10 @@ function renderQueries(){
   if (searchTerm && runningCount === 0 && doneCount === 0 && failedCount === 0 && cancelledCount === 0) {
     content = `<div class="history-empty-state history-empty-search">No queries found matching "${searchTerm}".</div>`;
   } else {
-    const runningSection = buildHistorySection('running', runningCount, runningRows, runningTableHead, 'No running queries right now.', true);
-    const doneSection = buildHistorySection('complete', doneCount, doneRows, completedTableHead, 'No completed queries yet.', true);
-    const failedSection = buildHistorySection('failed', failedCount, failedRows, failedTableHead, 'No failed or interrupted queries.', failedCount > 0);
-    const cancelledSection = buildHistorySection('canceled', cancelledCount, cancelledRows, cancelledTableHead, 'No cancelled queries yet.', false);
+    const runningSection = buildHistorySection('running', runningCount, runningRows, runningTableHead, 'No running queries right now.', openSection === 'running');
+    const doneSection = buildHistorySection('complete', doneCount, doneRows, completedTableHead, 'No completed queries yet.', openSection === 'complete');
+    const failedSection = buildHistorySection('failed', failedCount, failedRows, failedTableHead, 'No failed or interrupted queries.', openSection === 'failed');
+    const cancelledSection = buildHistorySection('canceled', cancelledCount, cancelledRows, cancelledTableHead, 'No cancelled queries yet.', openSection === 'canceled');
 
     content = `
       <section class="history-editorial-hero">
@@ -897,29 +957,28 @@ function renderQueries(){
         </div>
         <div class="history-editorial-meta">
           <div class="history-meta-card">
-            <span class="history-meta-label">Completed Rows</span>
-            <span class="history-meta-value">${completedRows.toLocaleString()}</span>
+            <span class="history-meta-label">Polling</span>
+            <span class="history-meta-value history-polling-value ${isPollingActive ? 'active' : 'idle'}">${pollingLabel}</span>
+            <span class="history-meta-detail">Last refresh ${refreshedAt}</span>
           </div>
           <div class="history-meta-card">
-            <span class="history-meta-label">Last Refresh</span>
-            <span class="history-meta-value">${refreshedAt}</span>
+            <span class="history-meta-label">Visible Queries</span>
+            <span class="history-meta-value">${visibleCount}</span>
+            <span class="history-meta-detail">${searchTerm ? 'Filtered shelf' : 'Across all four volumes'}</span>
           </div>
         </div>
       </section>
-      <div class="history-overview-grid">
-        <div class="history-overview-card running"><span class="history-overview-count">${runningCount}</span><span class="history-overview-label">Running</span></div>
-        <div class="history-overview-card complete"><span class="history-overview-count">${doneCount}</span><span class="history-overview-label">Completed</span></div>
-        <div class="history-overview-card failed"><span class="history-overview-count">${failedCount}</span><span class="history-overview-label">Failed</span></div>
-        <div class="history-overview-card canceled"><span class="history-overview-count">${cancelledCount}</span><span class="history-overview-label">Cancelled</span></div>
+      <div class="history-bookshelf">
+        ${runningSection}
+        ${doneSection}
+        ${failedSection}
+        ${cancelledSection}
       </div>
-      ${runningSection}
-      ${doneSection}
-      ${failedSection}
-      ${cancelledSection}
     `;
   }
 
   container.innerHTML = content;
+  bindHistoryBookShelf(container);
 
   // Attach click handlers to load buttons
   container.querySelectorAll('.load-query-btn').forEach(btn => {
