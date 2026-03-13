@@ -10,6 +10,7 @@ let queryDurationUpdateInterval = null;
 let lastQueryStatusPollAt = 0;
 let activeHistorySection = 'none';
 const QUERY_STATUS_POLL_MS = 2000;
+let lastHistoryRenderKey = '';
 
 function isQueriesPanelOpen() {
   const panel = document.getElementById('queries-panel');
@@ -222,6 +223,19 @@ function restoreHistoryViewState(viewState) {
   if (monitorShell) {
     monitorShell.scrollTop = viewState.monitorScrollTop;
     monitorShell.scrollLeft = viewState.monitorScrollLeft;
+  }
+}
+
+function updateHistoryPollingMeta({ isPollingActive, refreshedAt }) {
+  const pollingValue = document.querySelector('#queries-list .history-polling-value');
+  const pollingDetail = document.querySelector('#queries-list .history-polling-detail');
+  if (pollingValue) {
+    pollingValue.textContent = isPollingActive ? 'Polling live' : 'Polling paused';
+    pollingValue.classList.toggle('active', !!isPollingActive);
+    pollingValue.classList.toggle('idle', !isPollingActive);
+  }
+  if (pollingDetail) {
+    pollingDetail.textContent = `Last refresh ${refreshedAt}`;
   }
 }
 
@@ -522,8 +536,10 @@ async function fetchQueryStatus() {
 
     const viewState = captureHistoryViewState();
     exampleQueries = newHistory;
-    renderQueries();
-    restoreHistoryViewState(viewState);
+    const didRender = renderQueries();
+    if (didRender) {
+      restoreHistoryViewState(viewState);
+    }
 
     if (isQueriesPanelOpen() && newHistory.some(q => q.running)) {
       startQueryDurationUpdates();
@@ -1049,7 +1065,7 @@ function stopQueryDurationUpdates() {
  */
 function renderQueries(){
   const container = document.getElementById('queries-list');
-  if(!container) return;
+  if(!container) return false;
   
   // Get search value
   const searchInput = document.getElementById('queries-search');
@@ -1169,10 +1185,21 @@ function renderQueries(){
   });
 
   let content = '';
+  let renderKey = '';
 
   // Show "no results" message if search returns nothing
   if (searchTerm && runningCount === 0 && doneCount === 0 && failedCount === 0 && cancelledCount === 0) {
     content = `<div class="history-empty-state history-empty-search">No queries found matching "${searchTerm}".</div>`;
+    renderKey = JSON.stringify({
+      searchTerm,
+      runningCount,
+      doneCount,
+      failedCount,
+      cancelledCount,
+      activeHistorySection,
+      empty: true,
+      content
+    });
   } else {
     const sections = [
       {
@@ -1221,7 +1248,7 @@ function renderQueries(){
           <div class="history-meta-card">
             <span class="history-meta-label">Polling</span>
             <span class="history-meta-value history-polling-value ${isPollingActive ? 'active' : 'idle'}">${pollingLabel}</span>
-            <span class="history-meta-detail">Last refresh ${refreshedAt}</span>
+            <span class="history-meta-detail history-polling-detail">Last refresh ${refreshedAt}</span>
           </div>
           <div class="history-meta-card">
             <span class="history-meta-label">Visible Queries</span>
@@ -1238,7 +1265,33 @@ function renderQueries(){
         ${historyMonitor}
       </div>
     `;
+
+    renderKey = JSON.stringify({
+      searchTerm,
+      activeHistorySection,
+      runningCount,
+      doneCount,
+      failedCount,
+      cancelledCount,
+      visibleCount,
+      totalCount,
+      isPollingActive,
+      liveSignal,
+      searchLabel,
+      openSection,
+      runningRows,
+      doneRows,
+      failedRows,
+      cancelledRows
+    });
   }
+
+  if (renderKey === lastHistoryRenderKey) {
+    updateHistoryPollingMeta({ isPollingActive, refreshedAt });
+    return false;
+  }
+
+  lastHistoryRenderKey = renderKey;
 
   container.innerHTML = content;
   bindHistoryBookShelf(container);
@@ -1286,6 +1339,8 @@ function renderQueries(){
       }
     });
   });
+
+  return true;
 }
 
 /**
