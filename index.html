@@ -106,16 +106,16 @@
         </svg>
       </button>
       <button id="toggle-queries"
-              class="p-2 rounded-full transition-colors"
+              class="p-2 rounded-full bg-blue-200 text-blue-800 hover:bg-blue-300 transition-colors"
               aria-label="Queries" data-tooltip="Show Query History">
         <svg class="history-animated w-5 h-5 pointer-events-none" viewBox="0 0 24 24" fill="none">
-          <circle class="history-icon-rim" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" stroke-dasharray="0.5 3.5"/>
-          <path class="history-icon-arc" d="M22 12C22 6.47715 17.5228 2 12 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" stroke-dasharray="0.5 3.5"/>
+          <path d="M22 12C22 6.47715 17.5228 2 12 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           <g class="clock-hour">
-            <line class="history-icon-hand" x1="12" y1="12" x2="12" y2="8.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="12" y1="12" x2="12" y2="8.5" stroke="#222" stroke-width="2" stroke-linecap="round"/>
           </g>
           <g class="clock-minute">
-            <line class="history-icon-hand" x1="12" y1="12" x2="16.5" y2="10.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="12" y1="12" x2="16.5" y2="10.5" stroke="#222" stroke-width="2" stroke-linecap="round"/>
           </g>
         </svg>
       </button>
@@ -185,14 +185,14 @@
         <span>JSON</span>
       </div>
       <div class="mobile-menu-item border-b border-gray-200 hover:bg-gray-100" id="mobile-toggle-queries" data-tooltip="Show Query History">
-        <svg class="history-animated history-mobile-icon w-5 h-5" viewBox="0 0 24 24" fill="none">
-          <circle class="history-icon-rim" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" stroke-dasharray="0.5 3.5"/>
-          <path class="history-icon-arc" d="M22 12C22 6.47715 17.5228 2 12 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <svg class="history-animated w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" stroke-dasharray="0.5 3.5"/>
+          <path d="M22 12C22 6.47715 17.5228 2 12 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           <g class="clock-hour">
-            <line class="history-icon-hand" x1="12" y1="12" x2="12" y2="8.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="12" y1="12" x2="12" y2="8.5" stroke="#222" stroke-width="2" stroke-linecap="round"/>
           </g>
           <g class="clock-minute">
-            <line class="history-icon-hand" x1="12" y1="12" x2="16.5" y2="10.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="12" y1="12" x2="16.5" y2="10.5" stroke="#222" stroke-width="2" stroke-linecap="round"/>
           </g>
         </svg>
         <span>Queries</span>
@@ -340,28 +340,19 @@
 
     <!-- QUERIES PANEL -->
     <div id="queries-panel" class="w-full modal-panel hidden">
-      <h2 class="mt-8 mb-0 px-3 py-2 font-semibold text-sm uppercase tracking-wider border flex items-center justify-between">
-        <span>Query Activity</span>
-        <button class="collapse-btn p-1.5 rounded focus:outline-none transition-colors ml-2" data-target="queries-panel" aria-label="Close">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+      <h2 class="mt-8 mb-0 px-3 py-2 bg-blue-100 text-blue-800 font-semibold text-sm uppercase tracking-wider border border-blue-200 flex items-center justify-between">
+        <span>Queries</span>
+        <button class="collapse-btn p-1.5 rounded hover:bg-blue-200 focus:outline-none transition-colors ml-2" data-target="queries-panel" aria-label="Close">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
             <line x1="4" y1="4" x2="16" y2="16" />
             <line x1="16" y1="4" x2="4" y2="16" />
           </svg>
         </button>
       </h2>
       <div id="queries-container"
-           class="w-full -mt-px border border-t-0 rounded-b overflow-x-auto bg-white">
-        <div id="queries-search-wrapper" class="sticky top-0 z-10 bg-white pb-3 px-4 pt-4">
-          <div class="queries-toolbar">
-            <div class="queries-panel-copy">
-              <h3 class="queries-panel-title">Query Activity</h3>
-              <p class="queries-panel-subtitle">Expand a run when you need the full setup, results, or error context.</p>
-            </div>
-            <div id="queries-live-indicator" class="queries-live-indicator" aria-live="polite">Checking backend status…</div>
-          </div>
-          <div class="queries-search-row">
-            <input id="queries-search" type="text" placeholder="Search by name, ID, field, status, or issue..." class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none text-sm" />
-          </div>
+           class="w-full -mt-px border border-blue-200 border-t-0 rounded-b overflow-x-auto bg-white">
+        <div id="queries-search-wrapper" class="sticky top-0 z-10 bg-white pb-2 px-4 pt-4">
+          <input id="queries-search" type="text" placeholder="Search queries..." class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-200 text-sm" />
         </div>
         <div id="queries-list">
           <!-- list will be injected here -->
