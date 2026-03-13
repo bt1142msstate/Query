@@ -38,22 +38,65 @@
 }
 
 #help-panel > h2 {
-  background: linear-gradient(135deg, rgba(243, 232, 255, 0.98), rgba(224, 231, 255, 0.98));
-  border-color: rgba(196, 181, 253, 0.8);
-  color: #6b21a8;
+  background:
+    linear-gradient(90deg, rgba(255, 65, 126, 0.16), transparent 24%),
+    linear-gradient(135deg, #09111f 0%, #10192d 58%, #060c17 100%);
+  border-color: rgba(68, 225, 255, 0.42);
+  color: #e7fbff;
+  box-shadow: inset 0 1px 0 rgba(115, 245, 255, 0.18), 0 0 0 1px rgba(20, 129, 163, 0.28);
+  font-family: "Orbitron", "Space Grotesk", sans-serif;
+  letter-spacing: 0.14em;
+}
+
+#help-panel > h2 .collapse-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border: 1px solid rgba(68, 225, 255, 0.16);
+  background: linear-gradient(180deg, rgba(17, 28, 45, 0.92), rgba(8, 13, 23, 0.92));
+  color: #e8fbff;
+}
+
+#help-panel > h2 .collapse-btn:hover,
+#help-panel > h2 .collapse-btn:focus-visible {
+  background: linear-gradient(180deg, rgba(20, 34, 54, 0.98), rgba(9, 15, 27, 0.98));
+  border-color: rgba(69, 235, 255, 0.34);
+  box-shadow: 0 0 0 3px rgba(69, 235, 255, 0.12);
+  outline: none;
+}
+
+#help-panel > h2 .collapse-btn svg {
+  stroke: currentColor;
 }
 
 #help-container {
   padding: 0;
   background:
-    radial-gradient(circle at top left, rgba(216, 180, 254, 0.18), transparent 34%),
-    radial-gradient(circle at top right, rgba(147, 197, 253, 0.16), transparent 30%),
-    linear-gradient(180deg, rgba(250, 245, 255, 0.98), rgba(255, 255, 255, 0.98));
+    radial-gradient(circle at top right, rgba(70, 235, 255, 0.12), transparent 24%),
+    radial-gradient(circle at bottom left, rgba(255, 59, 126, 0.1), transparent 30%),
+    linear-gradient(180deg, #09111d 0%, #050914 54%, #02050d 100%);
+  border-color: rgba(66, 225, 255, 0.26);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(115, 245, 255, 0.08);
+  position: relative;
+}
+
+#help-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(180deg, rgba(68, 227, 255, 0.04) 0 1px, transparent 1px 12px),
+    linear-gradient(90deg, transparent 0%, rgba(70, 226, 255, 0.06) 48%, transparent 100%);
+  pointer-events: none;
+  opacity: 0.32;
 }
 
 .help-shell {
   padding: 1.5rem;
-  color: #312e81;
+  color: #d7f7ff;
+  position: relative;
+  z-index: 1;
 }
 
 .help-hero {
@@ -62,9 +105,24 @@
   gap: 1.25rem;
   padding: 1.35rem;
   border-radius: 1.5rem;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(243, 232, 255, 0.92));
-  border: 1px solid rgba(196, 181, 253, 0.5);
-  box-shadow: 0 20px 50px rgba(76, 29, 149, 0.12);
+  background:
+    linear-gradient(135deg, rgba(7, 14, 25, 0.96), rgba(14, 24, 41, 0.92)),
+    linear-gradient(90deg, rgba(255, 46, 107, 0.08), transparent 40%);
+  border: 1px solid rgba(69, 226, 255, 0.28);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.34), inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  position: relative;
+  overflow: hidden;
+}
+
+.help-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(180deg, rgba(68, 227, 255, 0.05) 0 1px, transparent 1px 12px),
+    linear-gradient(90deg, transparent 0%, rgba(70, 226, 255, 0.08) 48%, transparent 100%);
+  pointer-events: none;
+  opacity: 0.35;
 }
 
 .help-kicker {
@@ -73,28 +131,34 @@
   gap: 0.4rem;
   padding: 0.3rem 0.7rem;
   border-radius: 999px;
-  background: rgba(124, 58, 237, 0.12);
-  color: #7c3aed;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  background: rgba(59, 220, 255, 0.1);
+  border: 1px solid rgba(70, 226, 255, 0.3);
+  color: #77efff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
+  font-family: "Orbitron", sans-serif;
 }
 
 .help-hero-copy h3 {
   margin: 0.85rem 0 0.6rem;
-  color: #312e81;
-  font-size: clamp(1.75rem, 2vw, 2.35rem);
-  line-height: 1.1;
-  font-weight: 800;
+  color: #f0fdff;
+  font-size: clamp(1.45rem, 1.1rem + 1vw, 2.1rem);
+  line-height: 1.08;
+  font-weight: 700;
+  font-family: "Orbitron", "Space Grotesk", sans-serif;
+  text-transform: uppercase;
+  max-width: 18ch;
 }
 
 .help-hero-copy p {
   margin: 0;
   max-width: 60ch;
-  color: #4c1d95;
-  font-size: 0.98rem;
+  color: rgba(188, 236, 247, 0.8);
+  font-size: 0.92rem;
   line-height: 1.65;
+  font-family: "Space Grotesk", sans-serif;
 }
 
 .help-summary-grid {
@@ -105,26 +169,28 @@
 .help-summary-card {
   padding: 1rem;
   border-radius: 1.15rem;
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(196, 181, 253, 0.45);
-  box-shadow: 0 12px 26px rgba(99, 102, 241, 0.1);
+  background: linear-gradient(180deg, rgba(10, 18, 31, 0.92), rgba(7, 11, 21, 0.88));
+  border: 1px solid rgba(68, 226, 255, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02), 0 0 24px rgba(9, 186, 255, 0.08);
 }
 
 .help-summary-card strong {
   display: block;
-  color: #312e81;
+  color: #effcff;
   font-size: 0.95rem;
   line-height: 1.45;
+  font-family: "Space Grotesk", sans-serif;
 }
 
 .help-summary-label {
   display: block;
   margin-bottom: 0.35rem;
-  color: #7c3aed;
-  font-size: 0.72rem;
+  color: rgba(111, 240, 255, 0.7);
+  font-size: 0.66rem;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
+  font-family: "Orbitron", sans-serif;
 }
 
 .help-card-grid {
@@ -137,9 +203,9 @@
 .help-card {
   padding: 1.1rem 1.15rem;
   border-radius: 1.25rem;
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(224, 231, 255, 0.95);
-  box-shadow: 0 18px 40px rgba(79, 70, 229, 0.08);
+  background: linear-gradient(180deg, rgba(8, 15, 26, 0.98), rgba(4, 8, 16, 0.96));
+  border: 1px solid rgba(62, 223, 255, 0.18);
+  box-shadow: 0 24px 44px rgba(0, 0, 0, 0.34), inset 0 0 0 1px rgba(255, 255, 255, 0.02);
 }
 
 .help-card-wide {
@@ -152,18 +218,33 @@
 
 .help-card-heading h4 {
   margin: 0.35rem 0 0;
-  color: #1f1b4d;
+  color: #eefcff;
   font-size: 1.1rem;
-  font-weight: 800;
+  font-weight: 700;
+  font-family: "Orbitron", sans-serif;
+  text-transform: uppercase;
 }
 
 .help-card-tag {
   display: inline-block;
-  color: #6d28d9;
-  font-size: 0.72rem;
+  color: var(--help-accent, #77efff);
+  font-size: 0.66rem;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
+  font-family: "Orbitron", sans-serif;
+}
+
+.help-card:nth-child(2n) {
+  --help-accent: #67ff8c;
+}
+
+.help-card:nth-child(3n) {
+  --help-accent: #ff7c9d;
+}
+
+.help-card:nth-child(4n) {
+  --help-accent: #ffc768;
 }
 
 .help-step-list {
@@ -181,8 +262,8 @@
   align-items: start;
   padding: 0.9rem 0.95rem;
   border-radius: 1rem;
-  background: linear-gradient(180deg, rgba(245, 243, 255, 0.92), rgba(255, 255, 255, 0.96));
-  border: 1px solid rgba(221, 214, 254, 0.9);
+  background: linear-gradient(180deg, rgba(9, 17, 30, 0.94), rgba(5, 10, 18, 0.96));
+  border: 1px solid rgba(68, 225, 255, 0.12);
 }
 
 .help-step-number {
@@ -191,17 +272,19 @@
   justify-content: center;
   min-height: 2.3rem;
   border-radius: 0.9rem;
-  background: linear-gradient(135deg, #7c3aed, #4f46e5);
-  color: #fff;
+  background: linear-gradient(135deg, #0fc3ff, #ff517c);
+  color: #08111d;
   font-size: 0.8rem;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.12em;
+  font-family: "Orbitron", sans-serif;
 }
 
 .help-step-list strong,
 .help-tip-item strong,
 .help-mini-heading {
-  color: #1f1b4d;
+  color: #f0fdff;
+  font-family: "Orbitron", sans-serif;
 }
 
 .help-step-list p,
@@ -209,8 +292,9 @@
 .help-action-item p,
 .help-tip-item p,
 .help-status-list span:last-child {
-  color: #4338ca;
+  color: rgba(188, 236, 247, 0.78);
   line-height: 1.58;
+  font-family: "Space Grotesk", sans-serif;
 }
 
 .help-step-list p,
@@ -246,7 +330,8 @@
   width: 0.42rem;
   height: 0.42rem;
   border-radius: 999px;
-  background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+  background: linear-gradient(135deg, #0fc3ff, #ff517c);
+  box-shadow: 0 0 12px rgba(15, 195, 255, 0.25);
 }
 
 .help-actions-grid {
@@ -258,8 +343,8 @@
 .help-action-item {
   padding: 0.9rem;
   border-radius: 1rem;
-  background: rgba(248, 250, 252, 0.95);
-  border: 1px solid rgba(226, 232, 240, 0.95);
+  background: linear-gradient(180deg, rgba(9, 17, 30, 0.94), rgba(5, 10, 18, 0.96));
+  border: 1px solid rgba(68, 225, 255, 0.12);
 }
 
 .help-action-pill {
@@ -269,18 +354,20 @@
   min-width: 4.5rem;
   padding: 0.28rem 0.7rem;
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: 0.66rem;
   font-weight: 800;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
+  font-family: "Orbitron", sans-serif;
+  border: 1px solid transparent;
 }
 
-.help-action-pill.run { background: rgba(34, 197, 94, 0.14); color: #166534; }
-.help-action-pill.export { background: rgba(148, 163, 184, 0.16); color: #334155; }
-.help-action-pill.clear { background: rgba(239, 68, 68, 0.12); color: #991b1b; }
-.help-action-pill.json { background: rgba(250, 204, 21, 0.18); color: #a16207; }
-.help-action-pill.history { background: rgba(59, 130, 246, 0.14); color: #1d4ed8; }
-.help-action-pill.help { background: rgba(168, 85, 247, 0.16); color: #7e22ce; }
+.help-action-pill.run { background: rgba(103, 255, 140, 0.1); color: #7dff9d; border-color: rgba(103, 255, 140, 0.18); }
+.help-action-pill.export { background: rgba(176, 230, 241, 0.08); color: rgba(226, 249, 255, 0.84); border-color: rgba(176, 230, 241, 0.12); }
+.help-action-pill.clear { background: rgba(255, 95, 128, 0.12); color: #ff7998; border-color: rgba(255, 95, 128, 0.2); }
+.help-action-pill.json { background: rgba(255, 193, 77, 0.12); color: #ffcf73; border-color: rgba(255, 193, 77, 0.2); }
+.help-action-pill.history { background: rgba(69, 235, 255, 0.1); color: #57efff; border-color: rgba(69, 235, 255, 0.18); }
+.help-action-pill.help { background: rgba(255, 107, 151, 0.12); color: #ff8cad; border-color: rgba(255, 107, 151, 0.18); }
 
 .help-two-column,
 .help-tip-grid {
@@ -293,7 +380,7 @@
   margin: 0 0 0.55rem;
   font-size: 0.85rem;
   font-weight: 800;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
@@ -314,27 +401,31 @@
   justify-content: center;
   padding: 0.28rem 0.65rem;
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: 0.66rem;
   font-weight: 800;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
+  font-family: "Orbitron", sans-serif;
+  border: 1px solid transparent;
 }
 
-.help-status.running { background: rgba(59, 130, 246, 0.14); color: #1d4ed8; }
-.help-status.complete { background: rgba(34, 197, 94, 0.14); color: #166534; }
-.help-status.failed { background: rgba(249, 115, 22, 0.14); color: #c2410c; }
-.help-status.canceled { background: rgba(107, 114, 128, 0.16); color: #374151; }
+.help-status.running { background: rgba(69, 235, 255, 0.1); color: #57efff; border-color: rgba(69, 235, 255, 0.18); }
+.help-status.complete { background: rgba(103, 255, 140, 0.1); color: #7dff9d; border-color: rgba(103, 255, 140, 0.18); }
+.help-status.failed { background: rgba(255, 95, 128, 0.12); color: #ff7998; border-color: rgba(255, 95, 128, 0.2); }
+.help-status.canceled { background: rgba(255, 193, 77, 0.12); color: #ffcf73; border-color: rgba(255, 193, 77, 0.2); }
 
 .help-callout-card {
-  background: linear-gradient(160deg, rgba(238, 242, 255, 0.98), rgba(255, 255, 255, 0.96));
-  border-color: rgba(165, 180, 252, 0.8);
+  background:
+    linear-gradient(160deg, rgba(10, 20, 34, 0.98), rgba(6, 12, 22, 0.96)),
+    linear-gradient(90deg, rgba(255, 65, 126, 0.06), transparent 40%);
+  border-color: rgba(255, 107, 151, 0.22);
 }
 
 .help-tip-item {
   padding: 0.95rem;
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(199, 210, 254, 0.85);
+  background: linear-gradient(180deg, rgba(9, 17, 30, 0.94), rgba(5, 10, 18, 0.96));
+  border: 1px solid rgba(68, 225, 255, 0.12);
 }
 
 @media (max-width: 900px) {
