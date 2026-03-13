@@ -52,9 +52,14 @@ window.clearCurrentQuery = async function clearCurrentQuery() {
   const filterCard = document.getElementById('filter-card') || window.filterCard;
   if (filterCard) {
     filterCard.classList.remove('content-ready');
+    filterCard.classList.remove('scroll-ready');
     if (filterCard._showTimer) {
       clearTimeout(filterCard._showTimer);
       filterCard._showTimer = null;
+    }
+    if (filterCard._scrollReadyTimer) {
+      clearTimeout(filterCard._scrollReadyTimer);
+      filterCard._scrollReadyTimer = null;
     }
     if (filterCard._contentRevealTimer) {
       clearTimeout(filterCard._contentRevealTimer);
@@ -405,9 +410,14 @@ dom.overlay.addEventListener('click',()=>{
   if (filterCard) {
     if (!window.filterCard) window.filterCard = filterCard;
     filterCard.classList.remove('content-ready');
+    filterCard.classList.remove('scroll-ready');
     if (filterCard._showTimer) {
       clearTimeout(filterCard._showTimer);
       filterCard._showTimer = null;
+    }
+    if (filterCard._scrollReadyTimer) {
+      clearTimeout(filterCard._scrollReadyTimer);
+      filterCard._scrollReadyTimer = null;
     }
     if (filterCard._contentRevealTimer) {
       clearTimeout(filterCard._contentRevealTimer);
