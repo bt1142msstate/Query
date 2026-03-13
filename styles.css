@@ -1833,6 +1833,10 @@ th:hover .th-trash {
   color: #6a4426;
 }
 
+#queries-panel > h2 .collapse-btn:hover {
+  background: rgba(255, 247, 236, 0.95);
+}
+
 #queries-container {
   background:
     radial-gradient(circle at top left, rgba(223, 190, 143, 0.22), transparent 30%),

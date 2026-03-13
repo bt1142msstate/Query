@@ -340,17 +340,17 @@
 
     <!-- QUERIES PANEL -->
     <div id="queries-panel" class="w-full modal-panel hidden">
-      <h2 class="mt-8 mb-0 px-3 py-2 bg-blue-100 text-blue-800 font-semibold text-sm uppercase tracking-wider border border-blue-200 flex items-center justify-between">
+      <h2 class="mt-8 mb-0 px-3 py-2 font-semibold text-sm uppercase tracking-wider border flex items-center justify-between">
         <span>Query Activity</span>
-        <button class="collapse-btn p-1.5 rounded hover:bg-blue-200 focus:outline-none transition-colors ml-2" data-target="queries-panel" aria-label="Close">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+        <button class="collapse-btn p-1.5 rounded focus:outline-none transition-colors ml-2" data-target="queries-panel" aria-label="Close">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="#6a4426" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
             <line x1="4" y1="4" x2="16" y2="16" />
             <line x1="16" y1="4" x2="4" y2="16" />
           </svg>
         </button>
       </h2>
       <div id="queries-container"
-           class="w-full -mt-px border border-blue-200 border-t-0 rounded-b overflow-x-auto bg-white">
+           class="w-full -mt-px border border-t-0 rounded-b overflow-x-auto bg-white">
         <div id="queries-search-wrapper" class="sticky top-0 z-10 bg-white pb-3 px-4 pt-4">
           <div class="queries-toolbar">
             <div class="queries-panel-copy">
@@ -360,7 +360,7 @@
             <div id="queries-live-indicator" class="queries-live-indicator" aria-live="polite">Checking backend status…</div>
           </div>
           <div class="queries-search-row">
-            <input id="queries-search" type="text" placeholder="Search by name, ID, field, status, or issue..." class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-200 text-sm" />
+            <input id="queries-search" type="text" placeholder="Search by name, ID, field, status, or issue..." class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none text-sm" />
           </div>
         </div>
         <div id="queries-list">
