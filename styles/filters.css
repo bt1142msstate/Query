@@ -437,35 +437,6 @@
   border-radius: 2px;
 }
 
-/* Footer */
-#filter-panel-footer {
-  flex-shrink: 0;
-  padding: 8px 10px 12px;
-  border-top: 1px solid rgba(0, 0, 0, 0.07);
-  min-width: 240px;
-}
-
-.fp-add-filter-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  padding: 7px 10px;
-  border-radius: 8px;
-  background: rgba(59, 130, 246, 0.07);
-  border: 1px dashed rgba(59, 130, 246, 0.4);
-  color: #2563eb;
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
-}
-
-.fp-add-filter-btn:hover {
-  background: rgba(59, 130, 246, 0.14);
-  border-color: rgba(59, 130, 246, 0.6);
-}
-
 /* Field group card */
 .fp-field-group {
   margin-bottom: 10px;

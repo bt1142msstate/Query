@@ -1,7 +1,7 @@
 /* ==========================================
    FILTER SIDE PANEL
-   Collapsible side panel showing all active filters,
-   supporting inline edit, remove, add-condition, and add-field.
+    Collapsible side panel showing all active filters,
+    supporting inline edit, remove, and add-condition.
    ========================================== */
 window.FilterSidePanel = (function () {
     let isOpen = false;
@@ -436,23 +436,6 @@ window.FilterSidePanel = (function () {
             body.appendChild(group);
         }
     }
-
-    function init() {
-        const addBtn = $('filter-panel-add-btn');
-
-        if (addBtn) {
-            addBtn.addEventListener('click', e => {
-                e.stopPropagation();
-                const qi = getFilterQueryInputElement();
-                if (qi) {
-                    qi.focus();
-                    qi.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            });
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded', init);
 
     return { update, open, close, toggle };
 }());
