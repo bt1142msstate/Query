@@ -7,6 +7,13 @@
 /* ---------- Example Queries data & renderer ---------- */
 let exampleQueries = [];
 let queryDurationUpdateInterval = null;
+let lastQueryStatusPollAt = 0;
+const QUERY_STATUS_POLL_MS = 2000;
+
+function isQueriesPanelOpen() {
+  const panel = document.getElementById('queries-panel');
+  return !!(panel && !panel.classList.contains('hidden'));
+}
 
 /**
  * Adds a new query to the history list.
@@ -172,6 +179,7 @@ function buildUiConfigFromRequest(request) {
  */
 async function fetchQueryStatus() {
   try {
+    lastQueryStatusPollAt = Date.now();
     const response = await fetch('https://mlp.sirsi.net/uhtbin/query_api.pl', {
       method: 'POST',
       body: JSON.stringify({ action: 'status' })
@@ -237,6 +245,12 @@ async function fetchQueryStatus() {
 
     exampleQueries = newHistory;
     renderQueries();
+
+    if (isQueriesPanelOpen() && newHistory.some(q => q.running)) {
+      startQueryDurationUpdates();
+    } else {
+      stopQueryDurationUpdates();
+    }
     
   } catch (e) {
     console.warn('Failed to fetch query status', e);
@@ -451,7 +465,7 @@ async function loadQueryResults(queryId) {
     
     // Show toast indicating loading
     if (typeof showToastMessage === 'function') {
-        showToastMessage('Fetching results...', 'info');
+      showToastMessage(q.running ? 'Fetching live results...' : 'Fetching results...', 'info');
     }
 
     try {
@@ -462,6 +476,12 @@ async function loadQueryResults(queryId) {
 
         if (!response.ok) {
             throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        }
+
+        const contentType = response.headers.get('Content-Type') || '';
+        if (contentType.includes('application/json')) {
+          const payload = await response.json();
+          throw new Error(payload.error || 'Results are not available yet.');
         }
 
         const text = await response.text();
@@ -492,6 +512,11 @@ async function loadQueryResults(queryId) {
         });
 
         console.log(`Loaded ${rows.length} rows from history`);
+
+        if (q.running) {
+          q.resultCount = rows.length;
+          renderQueries();
+        }
 
         if (window.VirtualTable) {
             const columnMap = new Map();
@@ -536,7 +561,9 @@ async function loadQueryResults(queryId) {
         }
         
         if (typeof showToastMessage === 'function') {
-            showToastMessage(`Loaded ${rows.length} results.`, 'success');
+            showToastMessage(q.running
+              ? `Loaded ${rows.length} partial results from running query.`
+              : `Loaded ${rows.length} results.`, 'success');
         }
         
         // Close modal if open
@@ -597,6 +624,8 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
       <span class="${statusMeta.badgeClass}">${statusMeta.label}</span>
     </div>`;
 
+  const previewBtn = q.running ? `<button class="load-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" tabindex="-1" data-query-id="${q.id}" style="margin-left:4px;" data-tooltip="Open partial results"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></button>` : '';
+
   // Stop button for running queries (no 'Running' label)
   const stopBtn = q.running ? `
     <button class="stop-query-btn inline-flex items-center justify-center p-1 rounded-full bg-red-100 hover:bg-red-200 text-red-600" tabindex="-1" data-query-id="${q.id}" data-tooltip="Stop"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
@@ -624,6 +653,7 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
         <td class="px-4 py-3 text-xs text-left font-mono">${nameCell}</td>
         <td class="px-4 py-2 text-xs text-center">${columnsSummary}</td>
         <td class="px-4 py-2 text-xs text-center">${filtersSummary}</td>
+        <td class="px-4 py-2 text-center">${previewBtn}</td>
         <td class="px-4 py-2 text-center">${stopBtn}</td>
         <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
       </tr>
@@ -677,16 +707,24 @@ window.fetchQueryStatus = fetchQueryStatus;
  * @function startQueryDurationUpdates
  */
 function startQueryDurationUpdates() {
+  if (!isQueriesPanelOpen()) return;
   if (queryDurationUpdateInterval) return; // Already running
+
+  lastQueryStatusPollAt = 0;
+  window.fetchQueryStatus();
   
   queryDurationUpdateInterval = setInterval(() => {
+    if (!isQueriesPanelOpen()) {
+      stopQueryDurationUpdates();
+      return;
+    }
+
     const hasRunningQueries = exampleQueries.some(q => q.running);
     if (hasRunningQueries) {
         // Update UI durations
         renderQueries(); 
         
-        // Poll backend status every 5 seconds (approx) using modulo check
-        if (Date.now() % 5000 < 1000) {
+        if ((Date.now() - lastQueryStatusPollAt) >= QUERY_STATUS_POLL_MS) {
              window.fetchQueryStatus();
         }
     } else {
@@ -764,6 +802,7 @@ function renderQueries(){
         <th class="px-4 py-2 text-center" data-tooltip="Query name or identifier">Name</th>
         <th class="px-4 py-2 text-center" data-tooltip="Columns being displayed in the query results">Displaying</th>
         <th class="px-4 py-2 text-center" data-tooltip="Active filters applied to the query">Filters</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Open the results accumulated so far for this running query">Results</th>
         <th class="px-4 py-2 text-center" data-tooltip="Stop the currently running query">Stop/Cancel</th>
         <th class="px-4 py-2 text-center" data-tooltip="When this query was started">Started</th>
       </tr>
@@ -907,9 +946,11 @@ function handleQueryRowClick(e) {
 const QueryHistorySystem = {
   exampleQueries,
   loadQueryConfig,
+  loadQueryResults,
   createQueriesTableRowHtml,
   startQueryDurationUpdates,
   stopQueryDurationUpdates,
+  isQueriesPanelOpen,
   renderQueries,
   handleQueryRowClick,
   cancelQuery

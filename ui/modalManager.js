@@ -99,6 +99,15 @@ class ModalManager {
     
     if (this.overlay) this.overlay.classList.add('show'); // Assuming 'show' class handles visibility
     this.activePanel = panelId;
+
+    if (panelId === 'queries-panel' && window.QueryHistorySystem) {
+      if (typeof window.fetchQueryStatus === 'function') {
+        window.fetchQueryStatus();
+      }
+      if (typeof window.QueryHistorySystem.startQueryDurationUpdates === 'function') {
+        window.QueryHistorySystem.startQueryDurationUpdates();
+      }
+    }
     
     // Accessibility
     this.trapFocus(panel);
@@ -108,6 +117,10 @@ class ModalManager {
   closePanel(panelId) {
     const panel = document.getElementById(panelId);
     if (!panel) return;
+
+    if (panelId === 'queries-panel' && window.QueryHistorySystem && typeof window.QueryHistorySystem.stopQueryDurationUpdates === 'function') {
+      window.QueryHistorySystem.stopQueryDurationUpdates();
+    }
 
     if (panelId === 'mobile-menu-dropdown') {
       panel.classList.remove('show');
@@ -133,6 +146,9 @@ class ModalManager {
     this.panels.forEach(pid => {
       const p = document.getElementById(pid);
       if (p && !p.classList.contains('hidden')) {
+        if (pid === 'queries-panel' && window.QueryHistorySystem && typeof window.QueryHistorySystem.stopQueryDurationUpdates === 'function') {
+          window.QueryHistorySystem.stopQueryDurationUpdates();
+        }
         if (pid === 'mobile-menu-dropdown') {
           p.classList.remove('show');
         }
