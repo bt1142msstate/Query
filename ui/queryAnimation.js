@@ -1,77 +1,248 @@
 /* ---------- Table morph animation ---------- */
 function createTableQueryCircuitOverlay() {
-  const overlay = document.createElement('div');
-  overlay.id = 'table-query-circuit';
-  overlay.className = 'table-query-library';
+  const circuit = document.createElement('div');
+  circuit.id = 'table-query-circuit';
+  circuit.className = 'table-query-circuit';
 
-  const shelfLayout = [
-    { top: '24%', books: 8 },
-    { top: '50%', books: 9 },
-    { top: '76%', books: 7 }
-  ];
-  const runnerBooks = [
-    { startX: '18%', startY: '24%', delay: '0.1s', duration: '4.9s', hue: '18', width: '20px', height: '68px' },
-    { startX: '72%', startY: '24%', delay: '1.3s', duration: '5.4s', hue: '214', width: '18px', height: '64px' },
-    { startX: '22%', startY: '50%', delay: '0.8s', duration: '5.1s', hue: '148', width: '22px', height: '72px' },
-    { startX: '78%', startY: '50%', delay: '2.2s', duration: '5.6s', hue: '42', width: '19px', height: '66px' },
-    { startX: '30%', startY: '76%', delay: '1.7s', duration: '5s', hue: '326', width: '21px', height: '70px' },
-    { startX: '68%', startY: '76%', delay: '2.9s', duration: '5.3s', hue: '190', width: '17px', height: '62px' }
-  ];
+  const cols = 12;
+  const rows = 10;
+  const xMin = 8;
+  const yMin = 9;
+  const xStep = 84 / (cols - 1);
+  const yStep = 80 / (rows - 1);
 
-  shelfLayout.forEach((shelfInfo, shelfIndex) => {
-    const shelf = document.createElement('div');
-    shelf.className = 'table-query-library-shelf';
-    shelf.style.top = shelfInfo.top;
+  const colors = ['#22d3ee', '#38bdf8', '#34d399', '#facc15'];
+  const segments = [];
+  const segmentIndex = new Map();
+  const usedNodes = new Map();
+  const busRows = [randomInt(2, 3), randomInt(rows - 4, rows - 3)].sort((a, b) => a - b);
+  const busCols = [randomInt(2, 3), randomInt(cols - 4, cols - 3)].sort((a, b) => a - b);
+  const serviceRows = [1, rows - 2];
 
-    const rail = document.createElement('div');
-    rail.className = 'table-query-library-rail';
-    shelf.appendChild(rail);
+  function point(col, row) {
+    return {
+      col,
+      row,
+      x: xMin + col * xStep,
+      y: yMin + row * yStep,
+      key: `${col},${row}`
+    };
+  }
 
-    const books = document.createElement('div');
-    books.className = 'table-query-library-books';
-    books.style.setProperty('--shelf-count', String(shelfInfo.books));
+  function addNodeUsage(pt) {
+    usedNodes.set(pt.key, (usedNodes.get(pt.key) || 0) + 1);
+  }
 
-    for (let index = 0; index < shelfInfo.books; index += 1) {
-      const book = document.createElement('span');
-      const height = 48 + ((index + shelfIndex * 3) % 4) * 7;
-      const width = 14 + ((index + shelfIndex) % 3) * 4;
-      const hue = (18 + shelfIndex * 58 + index * 27) % 360;
-      book.className = 'table-query-library-book is-static';
-      book.style.setProperty('--book-height', `${height}px`);
-      book.style.setProperty('--book-width', `${width}px`);
-      book.style.setProperty('--book-hue', `${hue}`);
-      book.style.setProperty('--book-tilt', `${((index % 3) - 1) * 1.5}deg`);
-      books.appendChild(book);
+  function addSegment(a, b, options = {}) {
+    if (!a || !b) return;
+    if (a.key === b.key) return;
+    if (a.col !== b.col && a.row !== b.row) return;
+
+    const key = [a.key, b.key].sort().join('|');
+    if (segmentIndex.has(key)) {
+      const existing = segments[segmentIndex.get(key)];
+      existing.width = Math.max(existing.width, options.width || 3);
+      existing.pulseChance = Math.max(existing.pulseChance, options.pulseChance || 0);
+      return;
     }
 
-    shelf.appendChild(books);
-    overlay.appendChild(shelf);
+    segmentIndex.set(key, segments.length);
+    segments.push({
+      a,
+      b,
+      width: options.width || 3,
+      pulseChance: options.pulseChance ?? 0.35
+    });
+    addNodeUsage(a);
+    addNodeUsage(b);
+  }
+
+  function addPath(points, options = {}) {
+    for (let i = 0; i < points.length - 1; i++) {
+      addSegment(points[i], points[i + 1], options);
+    }
+  }
+
+  function randomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function nearestValue(value, candidates) {
+    return candidates.reduce((best, candidate) => {
+      return Math.abs(candidate - value) < Math.abs(best - value) ? candidate : best;
+    }, candidates[0]);
+  }
+
+  function routePadToNetwork(pad) {
+    const padPoint = pad.point;
+
+    if (pad.side === 'left' || pad.side === 'right') {
+      const targetCol = pad.side === 'left' ? busCols[0] : busCols[busCols.length - 1];
+      const targetRow = nearestValue(padPoint.row, busRows);
+      addPath([
+        padPoint,
+        point(targetCol, padPoint.row),
+        point(targetCol, targetRow)
+      ], { width: 2, pulseChance: 0.22 });
+      return;
+    }
+
+    const targetRow = pad.side === 'top' ? busRows[0] : busRows[busRows.length - 1];
+    const targetCol = nearestValue(padPoint.col, busCols);
+    addPath([
+      padPoint,
+      point(padPoint.col, targetRow),
+      point(targetCol, targetRow)
+    ], { width: 2, pulseChance: 0.2 });
+  }
+
+  function createChip(col, row, width, height) {
+    const pads = [];
+
+    const padRows = Array.from({ length: height }, (_, index) => row + index);
+    const padCols = Array.from({ length: width }, (_, index) => col + index);
+
+    if (col - 1 >= 1) {
+      addSegment(point(col - 1, row), point(col - 1, row + height - 1), { width: 2, pulseChance: 0.12 });
+      padRows.forEach(padRow => {
+        const pad = { point: point(col - 1, padRow), side: 'left' };
+        pads.push(pad);
+        addNodeUsage(pad.point);
+      });
+    }
+
+    if (col + width <= cols - 2) {
+      addSegment(point(col + width, row), point(col + width, row + height - 1), { width: 2, pulseChance: 0.12 });
+      padRows.forEach(padRow => {
+        const pad = { point: point(col + width, padRow), side: 'right' };
+        pads.push(pad);
+        addNodeUsage(pad.point);
+      });
+    }
+
+    if (Math.random() < 0.7 && row - 1 >= 1) {
+      padCols.forEach((padCol, index) => {
+        if (index !== 0 && index !== padCols.length - 1 && Math.random() < 0.45) return;
+        const pad = { point: point(padCol, row - 1), side: 'top' };
+        pads.push(pad);
+        addNodeUsage(pad.point);
+      });
+    }
+
+    if (Math.random() < 0.8 && row + height <= rows - 2) {
+      padCols.forEach((padCol, index) => {
+        if (index !== 0 && index !== padCols.length - 1 && Math.random() < 0.45) return;
+        const pad = { point: point(padCol, row + height), side: 'bottom' };
+        pads.push(pad);
+        addNodeUsage(pad.point);
+      });
+    }
+
+    pads
+      .filter((_, index) => index % 2 === 0 || Math.random() < 0.28)
+      .forEach(routePadToNetwork);
+  }
+
+  function createBottomConnectorBank() {
+    const count = randomInt(5, 7);
+    const startCol = randomInt(3, cols - count - 2);
+
+    for (let index = 0; index < count; index++) {
+      const col = startCol + index;
+
+      const feedPoint = point(col, rows - 2);
+      addNodeUsage(feedPoint);
+
+      if (index % 2 === 0 || Math.random() < 0.4) {
+        addPath([
+          feedPoint,
+          point(col, busRows[busRows.length - 1]),
+          point(nearestValue(col, busCols), busRows[busRows.length - 1])
+        ], { width: 2, pulseChance: 0.16 });
+      }
+    }
+  }
+
+  busRows.forEach(row => addSegment(point(1, row), point(cols - 2, row), { width: 4, pulseChance: 0.72 }));
+  busCols.forEach(col => addSegment(point(col, 1), point(col, rows - 2), { width: 4, pulseChance: 0.64 }));
+  serviceRows.forEach(row => addSegment(point(2, row), point(cols - 3, row), { width: 2, pulseChance: 0.14 }));
+
+  const chipCandidates = [
+    { col: randomInt(3, 4), row: randomInt(2, 3), width: randomInt(2, 3), height: randomInt(2, 3) },
+    { col: randomInt(6, 7), row: randomInt(2, 4), width: randomInt(2, 3), height: randomInt(2, 3) },
+    { col: randomInt(4, 6), row: randomInt(5, 6), width: 2, height: randomInt(2, 3), optional: true }
+  ];
+
+  chipCandidates.forEach(candidate => {
+    if (candidate.optional && Math.random() < 0.45) return;
+    createChip(candidate.col, candidate.row, candidate.width, candidate.height);
   });
 
-  const scanner = document.createElement('div');
-  scanner.className = 'table-query-library-scanner';
-  scanner.innerHTML = `
-    <div class="table-query-library-scanner-core"></div>
-    <div class="table-query-library-scan-beam"></div>
-    <div class="table-query-library-scan-glow"></div>
-  `;
-  overlay.appendChild(scanner);
+  createBottomConnectorBank();
 
-  runnerBooks.forEach((bookConfig, index) => {
-    const book = document.createElement('span');
-    book.className = 'table-query-library-book is-runner';
-    book.style.setProperty('--runner-start-x', bookConfig.startX);
-    book.style.setProperty('--runner-start-y', bookConfig.startY);
-    book.style.setProperty('--runner-delay', bookConfig.delay);
-    book.style.setProperty('--runner-duration', bookConfig.duration);
-    book.style.setProperty('--book-height', bookConfig.height);
-    book.style.setProperty('--book-width', bookConfig.width);
-    book.style.setProperty('--book-hue', bookConfig.hue);
-    book.style.setProperty('--runner-tilt', `${index % 2 === 0 ? '-6deg' : '6deg'}`);
-    overlay.appendChild(book);
+  for (let i = 0; i < randomInt(2, 4); i++) {
+    const trunkCol = busCols[randomInt(0, busCols.length - 1)];
+    const stubRow = nearestValue(randomInt(2, rows - 3), busRows);
+    const direction = Math.random() < 0.5 ? -1 : 1;
+    const endRow = Math.max(1, Math.min(rows - 2, stubRow + direction * randomInt(1, 2)));
+    addSegment(point(trunkCol, stubRow), point(trunkCol, endRow), { width: 2, pulseChance: 0.14 });
+  }
+
+  for (let i = 0; i < randomInt(2, 3); i++) {
+    const serviceRow = serviceRows[randomInt(0, serviceRows.length - 1)];
+    const startCol = randomInt(2, cols - 4);
+    const endCol = Math.min(cols - 3, startCol + randomInt(1, 2));
+    addSegment(point(startCol, serviceRow), point(endCol, serviceRow), { width: 2, pulseChance: 0.12 });
+  }
+
+  segments.forEach(({ a, b, width, pulseChance }) => {
+    const trace = document.createElement('div');
+    trace.className = 'table-query-circuit-trace';
+
+    const angle = a.row === b.row ? 0 : 90;
+    const length = Math.hypot(b.x - a.x, b.y - a.y);
+    const pulseDuration = Math.max(0.52, length / 26);
+    const centerX = (a.x + b.x) / 2;
+    const centerY = (a.y + b.y) / 2;
+    const colorA = colors[Math.floor(Math.random() * colors.length)];
+    const colorB = colors[Math.floor(Math.random() * colors.length)];
+
+    trace.style.setProperty('--trace-angle', `${angle}deg`);
+    trace.style.setProperty('--trace-len', `${length.toFixed(2)}%`);
+    trace.style.setProperty('--trace-x', `${centerX.toFixed(2)}%`);
+    trace.style.setProperty('--trace-y', `${centerY.toFixed(2)}%`);
+    trace.style.setProperty('--trace-thickness', `${width}px`);
+    trace.style.setProperty('--trace-color-a', colorA);
+    trace.style.setProperty('--trace-color-b', colorB);
+    trace.style.setProperty('--trace-flicker-delay', `${(-Math.random() * 3).toFixed(2)}s`);
+
+    if (Math.random() < pulseChance) {
+      const pulse = document.createElement('span');
+      pulse.className = 'table-query-circuit-pulse';
+      pulse.style.setProperty('--pulse-duration', `${pulseDuration.toFixed(2)}s`);
+      pulse.style.setProperty('--pulse-delay', `${(-Math.random() * 1.6).toFixed(2)}s`);
+      pulse.style.setProperty('--pulse-color', colorA);
+      pulse.style.setProperty('--pulse-size', `${Math.max(7, width + 5)}px`);
+      trace.appendChild(pulse);
+    }
+
+    circuit.appendChild(trace);
   });
 
-  return overlay;
+  usedNodes.forEach((degree, key) => {
+    const [colRaw, rowRaw] = key.split(',');
+    const col = Number(colRaw);
+    const row = Number(rowRaw);
+    const node = document.createElement('div');
+    node.className = 'table-query-circuit-node';
+    node.style.left = `${(xMin + col * xStep).toFixed(2)}%`;
+    node.style.top = `${(yMin + row * yStep).toFixed(2)}%`;
+    node.style.setProperty('--node-size', degree >= 3 ? '8px' : '6px');
+    node.style.setProperty('--node-delay', `${(-Math.random() * 2).toFixed(2)}s`);
+    circuit.appendChild(node);
+  });
+
+  return circuit;
 }
 
 window.startTableQueryAnimation = function() {
