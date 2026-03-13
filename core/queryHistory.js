@@ -113,7 +113,7 @@ function buildHistorySection(sectionKey, count, rows, tableHead, emptyMessage, i
           <span class="history-book-summary-side">
             <span class="history-book-count">${count}</span>
             <span class="history-book-state">${statusLabel}</span>
-            <span class="history-book-open-hint">Open volume</span>
+            <span class="history-book-open-hint">Pull volume</span>
           </span>
         </span>
       </summary>
