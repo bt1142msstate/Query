@@ -190,6 +190,7 @@
 .history-polling-value.active::before {
   background: #45ebff;
   box-shadow: 0 0 0 0.34rem rgba(69, 235, 255, 0.16);
+  animation: historyPollingPulse 1.35s ease-out infinite;
 }
 
 .history-polling-value.idle::before {
@@ -467,6 +468,8 @@
   box-shadow: 0 36px 72px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(69, 235, 255, 0.12), inset 0 1px 0 rgba(124, 246, 255, 0.12);
   backdrop-filter: blur(18px);
   overflow: hidden;
+  transform-origin: center top;
+  animation: historyMonitorProjectIn 260ms cubic-bezier(0.22, 0.9, 0.32, 1) both;
 }
 
 .history-monitor::before {
@@ -478,6 +481,22 @@
     linear-gradient(90deg, transparent 0%, rgba(69, 235, 255, 0.09) 50%, transparent 100%);
   opacity: 0.42;
   pointer-events: none;
+}
+
+.history-monitor::after {
+  content: '';
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: -24%;
+  height: 56%;
+  background: linear-gradient(180deg, rgba(130, 244, 255, 0.28), rgba(130, 244, 255, 0.08) 44%, rgba(130, 244, 255, 0));
+  clip-path: polygon(18% 0, 82% 0, 100% 100%, 0 100%);
+  filter: blur(10px);
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  animation: historyMonitorBeam 360ms ease-out 40ms both;
 }
 
 .history-monitor.running {
@@ -582,20 +601,30 @@
 }
 
 .history-monitor-close {
-  align-self: stretch;
-  min-height: 2.65rem;
-  padding: 0.65rem 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.65rem;
+  min-width: 2.65rem;
+  height: 2.65rem;
+  padding: 0;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
   background: linear-gradient(180deg, rgba(17, 28, 45, 0.92), rgba(8, 13, 23, 0.92));
   color: #e9fbff;
-  font-family: "Orbitron", sans-serif;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
   cursor: pointer;
   transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.history-monitor-close span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transform: translateY(-1px);
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.35rem;
+  font-weight: 700;
 }
 
 .history-monitor-close:hover,
@@ -690,6 +719,57 @@
 
 .history-monitor-empty {
   margin: auto;
+}
+
+@keyframes historyPollingPulse {
+  0% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgba(69, 235, 255, 0.28);
+    opacity: 0.92;
+  }
+  70% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 0.55rem rgba(69, 235, 255, 0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.94);
+    box-shadow: 0 0 0 0 rgba(69, 235, 255, 0);
+    opacity: 0.94;
+  }
+}
+
+@keyframes historyMonitorProjectIn {
+  0% {
+    opacity: 0;
+    transform: perspective(1200px) rotateX(-14deg) scaleY(0.72) translateY(-14px);
+    clip-path: inset(0 0 100% 0 round 28px);
+  }
+  55% {
+    opacity: 1;
+    transform: perspective(1200px) rotateX(-4deg) scaleY(1.02) translateY(0);
+    clip-path: inset(0 0 14% 0 round 28px);
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(1200px) rotateX(0deg) scaleY(1) translateY(0);
+    clip-path: inset(0 0 0 0 round 28px);
+  }
+}
+
+@keyframes historyMonitorBeam {
+  0% {
+    opacity: 0;
+    transform: translateY(-18px) scaleY(0.65);
+  }
+  35% {
+    opacity: 0.9;
+    transform: translateY(0) scaleY(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(12px) scaleY(1.18);
+  }
 }
 
 .history-book-body {

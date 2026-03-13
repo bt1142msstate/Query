@@ -169,7 +169,7 @@ function buildHistoryMonitor(openSection, sections) {
             <span class="history-monitor-status-value">${activeSection.count}</span>
           </div>
           <button type="button" class="history-monitor-close" data-history-monitor-close aria-label="Close projected monitor">
-            Dismiss
+            <span aria-hidden="true">×</span>
           </button>
         </div>
       </div>
