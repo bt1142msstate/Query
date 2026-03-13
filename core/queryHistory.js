@@ -257,19 +257,109 @@ function appendUniqueColumn(target, fieldName) {
   target.push(fieldName);
 }
 
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function deriveTemplateBindings(template, actual, bindings) {
+  if (typeof template !== 'string' || typeof actual !== 'string') {
+    return false;
+  }
+
+  const keys = [];
+  const pattern = escapeRegExp(template).replace(/\\\{([^}]+)\\\}/g, (_, key) => {
+    keys.push(key);
+    return '(.+?)';
+  });
+
+  if (!keys.length) {
+    return template === actual;
+  }
+
+  const match = new RegExp(`^${pattern}$`).exec(actual);
+  if (!match) {
+    return false;
+  }
+
+  for (let index = 0; index < keys.length; index += 1) {
+    const key = keys[index];
+    const value = match[index + 1];
+
+    if (Object.prototype.hasOwnProperty.call(bindings, key) && bindings[key] !== value) {
+      return false;
+    }
+
+    bindings[key] = value;
+  }
+
+  return true;
+}
+
+function resolveFieldNameFromSpecialPayload(payload) {
+  if (!payload || typeof payload !== 'object' || !Array.isArray(window.fieldDefsArray)) {
+    return '';
+  }
+
+  const exactMatch = window.fieldDefsArray.find(fieldDef => {
+    if (!fieldDef || !fieldDef.special_payload) return false;
+    return JSON.stringify(fieldDef.special_payload) === JSON.stringify(payload);
+  });
+  if (exactMatch?.name) {
+    return exactMatch.name;
+  }
+
+  for (const fieldDef of window.fieldDefsArray) {
+    if (!fieldDef?.is_buildable || !fieldDef.field_template || !fieldDef.special_payload_template) {
+      continue;
+    }
+
+    const bindings = {};
+    let isMatch = true;
+
+    for (const [key, templateValue] of Object.entries(fieldDef.special_payload_template)) {
+      const actualValue = payload[key];
+
+      if (typeof templateValue === 'string' && templateValue.includes('{')) {
+        if (!deriveTemplateBindings(templateValue, actualValue, bindings)) {
+          isMatch = false;
+          break;
+        }
+        continue;
+      }
+
+      if (templateValue !== actualValue) {
+        isMatch = false;
+        break;
+      }
+    }
+
+    if (!isMatch) {
+      continue;
+    }
+
+    const resolvedName = fieldDef.field_template.replace(/\{([^}]+)\}/g, (_, key) => bindings[key] || '');
+    if (resolvedName && resolvedName !== fieldDef.name) {
+      return resolvedName;
+    }
+  }
+
+  return '';
+}
+
 function resolveSpecialPayloadFieldNames(specialFields) {
   if (!Array.isArray(specialFields) || !Array.isArray(window.fieldDefsArray)) {
     return [];
   }
 
   return specialFields.reduce((resolved, payload) => {
-    const match = window.fieldDefsArray.find(fieldDef => {
-      if (!fieldDef || !fieldDef.special_payload) return false;
-      return JSON.stringify(fieldDef.special_payload) === JSON.stringify(payload);
-    });
-
-    if (match) {
-      appendUniqueColumn(resolved, match.name);
+    const resolvedFieldName = resolveFieldNameFromSpecialPayload(payload);
+    if (resolvedFieldName) {
+      if (typeof window.registerDynamicField === 'function') {
+        window.registerDynamicField(resolvedFieldName, {
+          special_payload: payload && typeof payload === 'object' ? { ...payload } : payload
+        });
+      }
+      appendUniqueColumn(resolved, resolvedFieldName);
     }
 
     return resolved;
@@ -555,6 +645,9 @@ function loadQueryConfig(q) {
   }
   
   // Load fields
+  const filters = typeof window.normalizeUiConfigFilters === 'function'
+    ? window.normalizeUiConfigFilters(q.jsonConfig)
+    : [];
   const desiredColumns = Array.isArray(q.jsonConfig.DesiredColumnOrder)
     ? [...q.jsonConfig.DesiredColumnOrder]
     : [];
@@ -562,6 +655,15 @@ function loadQueryConfig(q) {
     q.jsonConfig.SpecialFields || q.jsonConfig.specialFields || []
   );
   resolvedSpecialFields.forEach(fieldName => appendUniqueColumn(desiredColumns, fieldName));
+
+  if (typeof window.registerDynamicField === 'function') {
+    resolvedSpecialFields.forEach(fieldName => window.registerDynamicField(fieldName));
+    filters.forEach(filter => {
+      if (filter?.FieldName) {
+        window.registerDynamicField(filter.FieldName);
+      }
+    });
+  }
 
   window.displayedFields.length = 0; // Clear existing array
   window.displayedFields.push(...desiredColumns);
@@ -582,10 +684,6 @@ function loadQueryConfig(q) {
       b.removeAttribute('data-filtered');
     });
     
-    const filters = typeof window.normalizeUiConfigFilters === 'function'
-      ? window.normalizeUiConfigFilters(q.jsonConfig)
-      : [];
-
     if(filters.length){
       filters.forEach(ff => {
         if (!activeFilters[ff.FieldName]) {
