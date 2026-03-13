@@ -103,18 +103,24 @@ function buildHistorySection(sectionKey, count, rows, tableHead, emptyMessage, i
   return `
     <details class="${meta.detailsClass}" data-history-book="${sectionKey}"${openAttr}>
       <summary class="${meta.summaryClass}">
-        <span class="history-book-summary-main">
-          <span class="history-book-kicker">${meta.coverLabel}</span>
-          <span class="history-book-title">${meta.title}</span>
-          <span class="history-book-subtitle">${meta.subtitle}</span>
-        </span>
-        <span class="history-book-summary-side">
-          <span class="history-book-count">${count}</span>
-          <span class="history-book-state">${statusLabel}</span>
+        <span class="history-book-spine" aria-hidden="true"></span>
+        <span class="history-book-cover">
+          <span class="history-book-summary-main">
+            <span class="history-book-kicker">${meta.coverLabel}</span>
+            <span class="history-book-title">${meta.title}</span>
+            <span class="history-book-subtitle">${meta.subtitle}</span>
+          </span>
+          <span class="history-book-summary-side">
+            <span class="history-book-count">${count}</span>
+            <span class="history-book-state">${statusLabel}</span>
+            <span class="history-book-open-hint">Open volume</span>
+          </span>
         </span>
       </summary>
       <div class="history-book-body">
-        ${bodyContent}
+        <div class="history-book-pages">
+          ${bodyContent}
+        </div>
       </div>
     </details>
   `;
