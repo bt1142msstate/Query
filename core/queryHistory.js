@@ -132,51 +132,6 @@ function escapeHistoryValue(value) {
   return typeof window.escapeHtml === 'function' ? window.escapeHtml(text) : text;
 }
 
-function buildHistoryColumnTokens(columns) {
-  if (!columns.length) {
-    return '<p class="history-detail-empty">No displayed columns</p>';
-  }
-
-  return `<div class="history-token-grid">${columns.map(column => (
-    `<span class="history-token-chip column">${escapeHistoryValue(column)}</span>`
-  )).join('')}</div>`;
-}
-
-function buildHistoryFilterTokens(filters) {
-  if (!filters.length) {
-    return '<p class="history-detail-empty">No filters applied</p>';
-  }
-
-  return `<div class="history-filter-stack">${filters.map(filter => {
-    const operator = typeof window.formatFieldOperatorForDisplay === 'function'
-      ? window.formatFieldOperatorForDisplay(filter.FieldOperator)
-      : filter.FieldOperator;
-    const values = Array.isArray(filter.Values) ? filter.Values.join(' or ') : '';
-    return `<div class="history-filter-chip">
-      <span class="history-filter-field">${escapeHistoryValue(filter.FieldName || '')}</span>
-      <span class="history-filter-operator">${escapeHistoryValue(operator || '')}</span>
-      <span class="history-filter-value">${escapeHistoryValue(values)}</span>
-    </div>`;
-  }).join('')}</div>`;
-}
-
-function buildHistoryDetailPanel(kind, label, countLabel, previewLabel, bodyHtml) {
-  return `
-    <details class="history-detail-panel ${kind}">
-      <summary class="history-detail-summary">
-        <span class="history-detail-summary-copy">
-          <span class="history-detail-title">${label}</span>
-          <span class="history-detail-count">${countLabel}</span>
-        </span>
-        <span class="history-detail-preview-text">${escapeHistoryValue(previewLabel)}</span>
-      </summary>
-      <div class="history-detail-panel-body">
-        ${bodyHtml}
-      </div>
-    </details>
-  `;
-}
-
 function buildHistorySection(sectionKey, count, cardsHtml, emptyMessage, openByDefault = true) {
   const meta = {
     running: {
@@ -709,16 +664,36 @@ async function loadQueryResults(queryId) {
  * Handles different display formats for running, completed, and cancelled queries.
  * @function createQueriesTableRowHtml
  * @param {Object} q - The query object
+ * @param {string} viewIconSVG - SVG icon for view buttons
  * @returns {string} HTML string for the table row
  */
-function createQueriesTableRowHtml(q) {
+function createQueriesTableRowHtml(q, viewIconSVG) {
   const statusMeta = getQueryStatusMeta(q.status);
   const columns = q.jsonConfig?.DesiredColumnOrder || [];
+  const columnsTooltip = typeof formatColumnsTooltip === 'function' ? formatColumnsTooltip(columns) : '';
   const filters = typeof window.normalizeUiConfigFilters === 'function'
     ? window.normalizeUiConfigFilters(q.jsonConfig)
     : [];
   const filtersSummaryText = summarizeFilters(filters);
   const columnsSummaryText = summarizeColumns(columns);
+
+  let columnsSummary = `<span class="history-inline-summary">${columnsSummaryText}</span>`;
+  if (columnsTooltip) {
+    columnsSummary = `<span class="history-inline-summary" data-tooltip-html="${columnsTooltip.replace(/"/g, '&quot;')}">${columnsSummaryText}</span>`;
+  }
+
+  let filtersSummary = `<span class="history-inline-summary">${filtersSummaryText}</span>`;
+  if (filters.length > 0) {
+    if (typeof window.formatStandardFilterTooltipHTML === 'function') {
+      const filterHtml = window.formatStandardFilterTooltipHTML(filters, 'Query Filters');
+      filtersSummary = `<span class="history-inline-summary" data-tooltip-html="${filterHtml.replace(/"/g, '&quot;')}">${filtersSummaryText}</span>`;
+    } else {
+      const filterTooltip = typeof formatHistoryFiltersTooltip === 'function' ? formatHistoryFiltersTooltip(filters) : '';
+      if (filterTooltip) {
+        filtersSummary = `<span class="history-inline-summary" data-tooltip="${filterTooltip.replace(/"/g, '&quot;')}">${filtersSummaryText}</span>`;
+      }
+    }
+  }
   const launchMeta = getLaunchModeMeta(q.launchMode);
   const deliveryMeta = getDeliveryModeMeta(q.deliveryMode);
   const startedLabel = formatHistoryTimestamp(q.startTime);
@@ -734,20 +709,6 @@ function createQueriesTableRowHtml(q) {
   const filterCount = filters.length;
   const summaryGlance = `${fieldCount} ${fieldCount === 1 ? 'field' : 'fields'} • ${filterCount} ${filterCount === 1 ? 'filter' : 'filters'}`;
   const loadSetupBtn = `<button class="load-config-btn history-action-btn tertiary" tabindex="-1" data-query-id="${q.id}">Load setup</button>`;
-  const columnsPanel = buildHistoryDetailPanel(
-    'columns',
-    'Columns',
-    `${fieldCount} selected`,
-    columnsSummaryText,
-    buildHistoryColumnTokens(columns)
-  );
-  const filtersPanel = buildHistoryDetailPanel(
-    'filters',
-    'Filters',
-    `${filterCount} active`,
-    filtersSummaryText,
-    buildHistoryFilterTokens(filters)
-  );
 
   const previewBtn = q.running || (q.failed && Number.isFinite(Number(resultCount)) && Number(resultCount) > 0)
     ? `<button class="load-query-btn history-action-btn primary" tabindex="-1" data-query-id="${q.id}">${q.running ? 'Open partial results' : 'Open saved results'}</button>`
@@ -768,7 +729,6 @@ function createQueriesTableRowHtml(q) {
       <summary class="history-query-summary">
         <div class="history-query-summary-main">
           <div class="history-query-heading">
-            <span class="history-query-kicker">${q.running ? 'Live execution' : (q.failed ? 'Needs attention' : 'Saved query')}</span>
             <div class="history-name-cell">
               <span class="history-query-name">${escapeHistoryValue(q.name || q.id)}</span>
               <span class="${statusMeta.badgeClass}">${statusMeta.label}</span>
@@ -791,7 +751,7 @@ function createQueriesTableRowHtml(q) {
       </summary>
 
       <div class="history-query-body">
-        <div class="history-query-metrics history-query-metrics-primary">
+        <div class="history-query-metrics">
           <div class="history-metric"><span class="history-metric-label">Rows</span><span class="history-metric-value">${resultCount}</span></div>
           <div class="history-metric"><span class="history-metric-label">Started</span><span class="history-metric-value">${startedLabel}</span></div>
           <div class="history-metric"><span class="history-metric-label">Finished</span><span class="history-metric-value">${endedLabel}</span></div>
@@ -799,8 +759,14 @@ function createQueriesTableRowHtml(q) {
         </div>
 
         <div class="history-query-details">
-          ${columnsPanel}
-          ${filtersPanel}
+          <div class="history-detail-block">
+            <span class="history-detail-label">Columns</span>
+            ${columnsSummary}
+          </div>
+          <div class="history-detail-block">
+            <span class="history-detail-label">Filters</span>
+            ${filtersSummary}
+          </div>
         </div>
 
         ${issueBlock}
@@ -945,63 +911,25 @@ function renderQueries(){
   // Show "no results" message if search returns nothing
   if (searchTerm && runningCount === 0 && doneCount === 0 && failedCount === 0 && cancelledCount === 0) {
     content = `
-      <div class="history-dashboard-overview empty" aria-label="Query activity summary">
-        <div class="history-overview-hero">
-          <span class="history-overview-eyebrow">Activity dashboard</span>
-          <strong class="history-overview-primary">No matching queries</strong>
-          <p class="history-overview-copy">Adjust the search to bring runs, fields, IDs, or error text back into view.</p>
-        </div>
+      <div class="history-summary-strip" aria-label="Query activity summary">
+        <span class="history-summary-chip total">0 matching queries</span>
       </div>
       <div class="history-empty-state history-empty-search">No queries found matching "${searchTerm}".</div>`;
   } else {
     const runningSection = buildHistorySection('running', runningCount, runningRows, 'No running queries right now.', true);
-    const doneSection = buildHistorySection('complete', doneCount, doneRows, 'No completed queries yet.', false);
+    const doneSection = buildHistorySection('complete', doneCount, doneRows, 'No completed queries yet.', true);
     const failedSection = buildHistorySection('failed', failedCount, failedRows, 'No failed or interrupted queries.', failedCount > 0);
     const cancelledSection = buildHistorySection('canceled', cancelledCount, cancelledRows, 'No cancelled queries yet.', false);
-    const attentionCount = failedCount + cancelledCount;
-    const primaryMessage = runningCount > 0
-      ? `${runningCount} live ${runningCount === 1 ? 'query is' : 'queries are'} moving right now`
-      : `${totalQueries} saved ${totalQueries === 1 ? 'run' : 'runs'} in view`;
-    const secondaryMessage = attentionCount > 0
-      ? `${attentionCount} ${attentionCount === 1 ? 'run needs' : 'runs need'} review across failed or cancelled states.`
-      : disconnectedCount > 0
-        ? `${disconnectedCount} ${disconnectedCount === 1 ? 'run finished' : 'runs finished'} after the browser detached.`
-        : 'Everything is calm right now. Expand any run to inspect setup, results, and execution details.';
 
     content = `
-      <div class="history-dashboard-overview" aria-label="Query activity summary">
-        <div class="history-overview-hero">
-          <span class="history-overview-eyebrow">Activity dashboard</span>
-          <strong class="history-overview-primary">${primaryMessage}</strong>
-          <p class="history-overview-copy">${secondaryMessage}</p>
-        </div>
-        <div class="history-overview-grid">
-          <article class="history-overview-card live">
-            <span class="history-overview-card-label">Running</span>
-            <strong class="history-overview-card-value">${runningCount}</strong>
-            <span class="history-overview-card-foot">Live status while panel is open</span>
-          </article>
-          <article class="history-overview-card complete">
-            <span class="history-overview-card-label">Completed</span>
-            <strong class="history-overview-card-value">${doneCount}</strong>
-            <span class="history-overview-card-foot">Ready to reopen or rerun</span>
-          </article>
-          <article class="history-overview-card attention">
-            <span class="history-overview-card-label">Attention</span>
-            <strong class="history-overview-card-value">${attentionCount}</strong>
-            <span class="history-overview-card-foot">Failed or cancelled runs</span>
-          </article>
-          <article class="history-overview-card rows">
-            <span class="history-overview-card-label">Rows surfaced</span>
-            <strong class="history-overview-card-value">${loadedRows.toLocaleString()}</strong>
-            <span class="history-overview-card-foot">Across visible history</span>
-          </article>
-        </div>
-        <div class="history-summary-strip">
-          <span class="history-summary-chip total">${totalQueries} visible</span>
-          <span class="history-summary-chip detached">${disconnectedCount} detached</span>
-          <span class="history-summary-chip rows">${loadedRows.toLocaleString()} rows surfaced</span>
-        </div>
+      <div class="history-summary-strip" aria-label="Query activity summary">
+        <span class="history-summary-chip total">${totalQueries} visible</span>
+        <span class="history-summary-chip running">${runningCount} running</span>
+        <span class="history-summary-chip complete">${doneCount} completed</span>
+        <span class="history-summary-chip failed">${failedCount} failed</span>
+        <span class="history-summary-chip canceled">${cancelledCount} cancelled</span>
+        <span class="history-summary-chip detached">${disconnectedCount} detached</span>
+        <span class="history-summary-chip rows">${loadedRows.toLocaleString()} rows surfaced</span>
       </div>
       ${runningSection}
       ${doneSection}
