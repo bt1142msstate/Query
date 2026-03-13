@@ -57,122 +57,46 @@ function getQueryStatusMeta(status) {
   return { label: 'Interrupted', rowClass: 'history-row-failed', badgeClass: 'history-status-badge status-failed' };
 }
 
-function parseHistoryDate(value) {
-  if (!value || value === '-') return null;
-  const normalized = typeof value === 'string' && /^\d{4}-\d{2}-\d{2} /.test(value)
-    ? value.replace(/-/g, '/')
-    : value;
-  const parsed = new Date(normalized);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-function formatHistoryTimestamp(value) {
-  const parsed = parseHistoryDate(value);
-  return parsed ? parsed.toLocaleString() : '—';
-}
-
-function formatHistoryDuration(startValue, endValue, isRunning = false) {
-  const start = parseHistoryDate(startValue);
-  if (!start) return '—';
-
-  const end = isRunning ? new Date() : parseHistoryDate(endValue);
-  if (!end) return '—';
-
-  const seconds = Math.max(0, Math.floor((end - start) / 1000));
-  if (typeof formatDuration === 'function') {
-    return formatDuration(seconds);
-  }
-
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  if (minutes < 60) return `${minutes}m ${remainingSeconds}s`;
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-  return `${hours}h ${remainingMinutes}m`;
-}
-
-function getLaunchModeMeta(mode) {
-  const normalized = String(mode || '').toLowerCase();
-  if (normalized === 'headless') {
-    return { label: 'Headless', className: 'history-mode-pill history-mode-launch-headless' };
-  }
-  return { label: 'Browser', className: 'history-mode-pill history-mode-launch-client' };
-}
-
-function getDeliveryModeMeta(mode) {
-  const normalized = String(mode || '').toLowerCase();
-  if (normalized === 'disconnected') {
-    return { label: 'Detached', className: 'history-mode-pill history-mode-delivery-detached' };
-  }
-  if (normalized === 'none') {
-    return { label: 'No Client', className: 'history-mode-pill history-mode-delivery-none' };
-  }
-  return { label: 'Live Stream', className: 'history-mode-pill history-mode-delivery-streaming' };
-}
-
-function summarizeColumns(columns) {
-  if (!columns.length) return 'No displayed columns';
-  if (columns.length <= 3) return columns.join(', ');
-  return `${columns.slice(0, 3).join(', ')} +${columns.length - 3} more`;
-}
-
-function summarizeFilters(filters) {
-  if (!filters.length) return 'No filters applied';
-  if (filters.length === 1) {
-    const filter = filters[0];
-    const valueText = (filter.Values || []).join(' or ');
-    return `${filter.FieldName} ${window.formatFieldOperatorForDisplay ? window.formatFieldOperatorForDisplay(filter.FieldOperator) : filter.FieldOperator} ${valueText}`;
-  }
-  return `${filters.length} filters active`;
-}
-
-function escapeHistoryValue(value) {
-  const text = value === undefined || value === null ? '' : String(value);
-  return typeof window.escapeHtml === 'function' ? window.escapeHtml(text) : text;
-}
-
-function buildHistorySection(sectionKey, count, cardsHtml, emptyMessage, openByDefault = true) {
+function buildHistorySection(sectionKey, count, rows, tableHead, emptyMessage, openByDefault = true) {
   const meta = {
     running: {
       title: 'Running',
-      subtitle: 'Queries actively executing right now.',
+      subtitle: 'Queries currently executing on the backend.',
       detailsClass: 'history-section running',
       summaryClass: 'history-section-summary running'
     },
     complete: {
       title: 'Completed',
-      subtitle: 'Finished queries with results ready to inspect or rerun.',
+      subtitle: 'Queries with finished results ready to inspect or reload.',
       detailsClass: 'history-section complete',
       summaryClass: 'history-section-summary complete'
     },
     failed: {
       title: 'Failed / Interrupted',
-      subtitle: 'Queries that stopped unexpectedly or need another look.',
+      subtitle: 'Queries that errored, were abandoned, or quit unexpectedly.',
       detailsClass: 'history-section failed',
       summaryClass: 'history-section-summary failed'
     },
     canceled: {
       title: 'Cancelled',
-      subtitle: 'Queries intentionally stopped before they finished.',
+      subtitle: 'Queries stopped intentionally before they completed.',
       detailsClass: 'history-section canceled',
       summaryClass: 'history-section-summary canceled'
     }
   }[sectionKey];
 
   const openAttr = openByDefault ? ' open' : '';
-  const bodyContent = cardsHtml
-    ? `<div class="history-card-list">${cardsHtml}</div>`
+  const bodyContent = rows
+    ? `<div class="history-table-shell"><table class="min-w-full text-sm history-table">${tableHead}<tbody>${rows}</tbody></table></div>`
     : `<div class="history-empty-state">${emptyMessage}</div>`;
 
   return `
     <details class="${meta.detailsClass}"${openAttr}>
       <summary class="${meta.summaryClass}">
         <span class="history-section-heading">
-          <span class="history-section-title">${meta.title}</span>
+          <span class="history-section-title">${count} ${meta.title}</span>
           <span class="history-section-subtitle">${meta.subtitle}</span>
         </span>
-        <span class="history-section-count">${count}</span>
       </summary>
       ${bodyContent}
     </details>
@@ -298,12 +222,7 @@ async function fetchQueryStatus() {
             duration: '-', 
             jsonConfig: jsonConfig,
             resultCount: sq.row_count !== undefined ? sq.row_count : (sq.start_time && sq.end_time ? '?' : '-'),
-            rowCount: sq.row_count,
-            warning: sq.warning || '',
-            issue: sq.error || sq.warning || '',
-            error: sq.error || '',
-            launchMode: sq.launch_mode || '',
-            deliveryMode: sq.delivery_mode || ''
+            error: sq.error || sq.warning || ''
         };
         
         if (sq.start_time && sq.end_time) {
@@ -669,117 +588,112 @@ async function loadQueryResults(queryId) {
  */
 function createQueriesTableRowHtml(q, viewIconSVG) {
   const statusMeta = getQueryStatusMeta(q.status);
+  // Use tooltip for columns
   const columns = q.jsonConfig?.DesiredColumnOrder || [];
   const columnsTooltip = typeof formatColumnsTooltip === 'function' ? formatColumnsTooltip(columns) : '';
+  const columnsSummary = columns.length
+    ? createTooltipIconSummary(viewIconSVG, 'data-tooltip-html', columnsTooltip)
+    : '<span class="text-gray-400">None</span>';
+    
+  // Use tooltip for filters
   const filters = typeof window.normalizeUiConfigFilters === 'function'
     ? window.normalizeUiConfigFilters(q.jsonConfig)
     : [];
-  const filtersSummaryText = summarizeFilters(filters);
-  const columnsSummaryText = summarizeColumns(columns);
-
-  let columnsSummary = `<span class="history-inline-summary">${columnsSummaryText}</span>`;
-  if (columnsTooltip) {
-    columnsSummary = `<span class="history-inline-summary" data-tooltip-html="${columnsTooltip.replace(/"/g, '&quot;')}">${columnsSummaryText}</span>`;
-  }
-
-  let filtersSummary = `<span class="history-inline-summary">${filtersSummaryText}</span>`;
+  let filtersSummary = '<span class="text-gray-400">None</span>';
+  
   if (filters.length > 0) {
-    if (typeof window.formatStandardFilterTooltipHTML === 'function') {
-      const filterHtml = window.formatStandardFilterTooltipHTML(filters, 'Query Filters');
-      filtersSummary = `<span class="history-inline-summary" data-tooltip-html="${filterHtml.replace(/"/g, '&quot;')}">${filtersSummaryText}</span>`;
-    } else {
-      const filterTooltip = typeof formatHistoryFiltersTooltip === 'function' ? formatHistoryFiltersTooltip(filters) : '';
-      if (filterTooltip) {
-        filtersSummary = `<span class="history-inline-summary" data-tooltip="${filterTooltip.replace(/"/g, '&quot;')}">${filtersSummaryText}</span>`;
+      if (typeof window.formatStandardFilterTooltipHTML === 'function') {
+          const filterHtml = window.formatStandardFilterTooltipHTML(filters, "Query Filters");
+        filtersSummary = createTooltipIconSummary(viewIconSVG, 'data-tooltip-html', filterHtml);
+      } else {
+          const filterTooltip = typeof formatHistoryFiltersTooltip === 'function' ? formatHistoryFiltersTooltip(filters) : '';
+          if (filterTooltip) {
+          filtersSummary = createTooltipIconSummary(viewIconSVG, 'data-tooltip', filterTooltip);
+          }
       }
-    }
   }
-  const launchMeta = getLaunchModeMeta(q.launchMode);
-  const deliveryMeta = getDeliveryModeMeta(q.deliveryMode);
-  const startedLabel = formatHistoryTimestamp(q.startTime);
-  const endedLabel = q.running ? 'In progress' : formatHistoryTimestamp(q.endTime);
-  const durationLabel = formatHistoryDuration(q.startTime, q.endTime, q.running);
-  const resultCount = q.resultCount !== undefined && q.resultCount !== null ? q.resultCount : '—';
-  const issueText = q.issue || '';
-  const issueToneClass = q.error ? 'history-issue-card error' : (q.warning ? 'history-issue-card warning' : '');
-  const issueBlock = issueText
-    ? `<div class="${issueToneClass}"><span class="history-issue-label">${q.error ? 'Issue' : 'Note'}</span><p>${escapeHistoryValue(issueText)}</p></div>`
-    : '';
-  const fieldCount = columns.length;
-  const filterCount = filters.length;
-  const summaryGlance = `${fieldCount} ${fieldCount === 1 ? 'field' : 'fields'} • ${filterCount} ${filterCount === 1 ? 'filter' : 'filters'}`;
-  const loadSetupBtn = `<button class="load-config-btn history-action-btn tertiary" tabindex="-1" data-query-id="${q.id}">Load setup</button>`;
 
-  const previewBtn = q.running || (q.failed && Number.isFinite(Number(resultCount)) && Number(resultCount) > 0)
-    ? `<button class="load-query-btn history-action-btn primary" tabindex="-1" data-query-id="${q.id}">${q.running ? 'Open partial results' : 'Open saved results'}</button>`
-    : '';
-  const loadBtn = !q.running && !q.cancelled && !q.failed
-    ? `<button class="load-query-btn history-action-btn primary" tabindex="-1" data-query-id="${q.id}">Open results</button>`
-    : '';
-  const stopBtn = q.running
-    ? `<button class="stop-query-btn history-action-btn danger" tabindex="-1" data-query-id="${q.id}">Cancel run</button>`
-    : '';
-  const rerunBtn = !q.running
-    ? `<button class="rerun-query-btn history-action-btn secondary" tabindex="-1" data-query-id="${q.id}">Rerun query</button>`
-    : '';
-  const cardOpenAttr = q.running || q.failed ? ' open' : '';
+  const escapedReason = (q.error || '').replace(/"/g, '&quot;');
+  const reasonSummary = q.error
+    ? `<span class="history-reason-icon" data-tooltip="${escapedReason}">Issue</span>`
+    : '<span class="text-gray-400">None</span>';
 
-  return `
-    <details class="history-query-card ${statusMeta.rowClass}" data-query-id="${q.id}"${cardOpenAttr}>
-      <summary class="history-query-summary">
-        <div class="history-query-summary-main">
-          <div class="history-query-heading">
-            <div class="history-name-cell">
-              <span class="history-query-name">${escapeHistoryValue(q.name || q.id)}</span>
-              <span class="${statusMeta.badgeClass}">${statusMeta.label}</span>
-            </div>
-            <p class="history-query-id">${escapeHistoryValue(q.id)}</p>
-            <p class="history-query-glance">${summaryGlance}</p>
-          </div>
-        </div>
-        <div class="history-query-summary-side">
-          <div class="history-mode-pills">
-            <span class="${launchMeta.className}">${launchMeta.label}</span>
-            <span class="${deliveryMeta.className}">${deliveryMeta.label}</span>
-          </div>
-          <div class="history-summary-metrics">
-            <span class="history-summary-pill">${resultCount} rows</span>
-            <span class="history-summary-pill">${durationLabel}</span>
-          </div>
-          <span class="history-query-chevron" aria-hidden="true"></span>
-        </div>
-      </summary>
+  const nameCell = `
+    <div class="history-name-cell">
+      <span class="history-query-name">${q.name || q.id}</span>
+      <span class="${statusMeta.badgeClass}">${statusMeta.label}</span>
+    </div>`;
 
-      <div class="history-query-body">
-        <div class="history-query-metrics">
-          <div class="history-metric"><span class="history-metric-label">Rows</span><span class="history-metric-value">${resultCount}</span></div>
-          <div class="history-metric"><span class="history-metric-label">Started</span><span class="history-metric-value">${startedLabel}</span></div>
-          <div class="history-metric"><span class="history-metric-label">Finished</span><span class="history-metric-value">${endedLabel}</span></div>
-          <div class="history-metric"><span class="history-metric-label">Duration</span><span class="history-metric-value">${durationLabel}</span></div>
-        </div>
+  const previewBtn = q.running ? `<button class="load-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" tabindex="-1" data-query-id="${q.id}" style="margin-left:4px;" data-tooltip="Open partial results"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></button>` : '';
 
-        <div class="history-query-details">
-          <div class="history-detail-block">
-            <span class="history-detail-label">Columns</span>
-            ${columnsSummary}
-          </div>
-          <div class="history-detail-block">
-            <span class="history-detail-label">Filters</span>
-            ${filtersSummary}
-          </div>
-        </div>
-
-        ${issueBlock}
-
-        <div class="history-query-actions">
-          ${loadSetupBtn}
-          ${loadBtn || previewBtn}
-          ${rerunBtn}
-          ${stopBtn}
-        </div>
-      </div>
-    </details>
-  `;
+  // Stop button for running queries (no 'Running' label)
+  const stopBtn = q.running ? `
+    <button class="stop-query-btn inline-flex items-center justify-center p-1 rounded-full bg-red-100 hover:bg-red-200 text-red-600" tabindex="-1" data-query-id="${q.id}" data-tooltip="Stop"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
+  ` : '';
+  
+  // Load button only for completed queries (report icon)
+  const loadBtn = !q.running && !q.cancelled ? `<button class="load-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" tabindex="-1" data-query-id="${q.id}" style="margin-left:4px;" data-tooltip="Open results - ${q.resultCount !== undefined ? q.resultCount : 'Unknown'} rows"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></button>` : '';
+  
+  // Rerun button for both completed and cancelled queries (refresh/replay icon)
+  const rerunBtn = (!q.running) ? `<button class="rerun-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-green-600" tabindex="-1" data-query-id="${q.id}" style="margin-left:4px;" data-tooltip="Rerun Query"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg></button>` : '';
+  
+  // Duration calculation
+  let duration = '—';
+  if (q.startTime && (q.endTime || q.cancelledTime)) {
+    const start = new Date(q.startTime);
+    const end = new Date(q.endTime || q.cancelledTime);
+    let seconds = Math.floor((end - start) / 1000);
+    duration = typeof formatDuration === 'function' ? formatDuration(seconds) : `${seconds}s`;
+  }
+  
+  // Different row structure for running vs completed vs cancelled queries
+  if (q.running) {
+    return `
+      <tr class="history-row ${statusMeta.rowClass} cursor-pointer" data-query-id="${q.id}">
+        <td class="px-4 py-3 text-xs text-left font-mono">${nameCell}</td>
+        <td class="px-4 py-2 text-xs text-center">${columnsSummary}</td>
+        <td class="px-4 py-2 text-xs text-center">${filtersSummary}</td>
+        <td class="px-4 py-2 text-center">${previewBtn}</td>
+        <td class="px-4 py-2 text-center">${stopBtn}</td>
+        <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
+      </tr>
+    `;
+  } else if (q.cancelled) {
+    return `
+      <tr class="history-row ${statusMeta.rowClass} cursor-pointer" data-query-id="${q.id}">
+        <td class="px-4 py-3 text-xs text-left font-mono">${nameCell}</td>
+        <td class="px-4 py-2 text-xs text-center">${columnsSummary}</td>
+        <td class="px-4 py-2 text-xs text-center">${filtersSummary}</td>
+        <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
+        <td class="px-4 py-2 text-xs text-center">${duration}</td>
+        <td class="px-4 py-2 text-xs text-center">${rerunBtn}</td>
+      </tr>
+    `;
+  } else if (q.failed) {
+    return `
+      <tr class="history-row ${statusMeta.rowClass} cursor-pointer" data-query-id="${q.id}">
+        <td class="px-4 py-3 text-xs text-left font-mono">${nameCell}</td>
+        <td class="px-4 py-2 text-xs text-center">${columnsSummary}</td>
+        <td class="px-4 py-2 text-xs text-center">${filtersSummary}</td>
+        <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
+        <td class="px-4 py-2 text-xs text-center">${duration}</td>
+        <td class="px-4 py-2 text-xs text-center">${reasonSummary}</td>
+        <td class="px-4 py-2 text-xs text-center">${rerunBtn}</td>
+      </tr>
+    `;
+  } else {
+    return `
+      <tr class="history-row ${statusMeta.rowClass} cursor-pointer" data-query-id="${q.id}">
+        <td class="px-4 py-3 text-xs text-left font-mono">${nameCell}</td>
+        <td class="px-4 py-2 text-xs text-center">${columnsSummary}</td>
+        <td class="px-4 py-2 text-xs text-center">${filtersSummary}</td>
+        <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
+        <td class="px-4 py-2 text-xs text-center">${duration}</td>
+        <td class="px-4 py-2 text-xs text-center">${loadBtn}</td>
+        <td class="px-4 py-2 text-xs text-center">${rerunBtn}</td>
+      </tr>
+    `;
+  }
 }
 
 
@@ -838,11 +752,13 @@ function stopQueryDurationUpdates() {
 function renderQueries(){
   const container = document.getElementById('queries-list');
   if(!container) return;
-  const liveIndicator = document.getElementById('queries-live-indicator');
   
   // Get search value
   const searchInput = document.getElementById('queries-search');
   const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
+  
+  // Use an eye icon SVG for both columns and filters
+  const viewIconSVG = `<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1.5 12s4-7 10.5-7 10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3.5"/></svg>`;
   
   let runningList = exampleQueries.filter(q => q.running);
   let doneList = exampleQueries.filter(q => !q.running && !q.cancelled && !q.failed);
@@ -854,82 +770,104 @@ function renderQueries(){
     runningList = runningList.filter(q => 
       (q.name && q.name.toLowerCase().includes(searchTerm)) ||
       q.id.toLowerCase().includes(searchTerm) ||
-      String(q.launchMode || '').toLowerCase().includes(searchTerm) ||
-      String(q.deliveryMode || '').toLowerCase().includes(searchTerm) ||
-      String(q.issue || '').toLowerCase().includes(searchTerm) ||
       (q.jsonConfig?.DesiredColumnOrder || []).some(col => col.toLowerCase().includes(searchTerm))
     );
     doneList = doneList.filter(q => 
       (q.name && q.name.toLowerCase().includes(searchTerm)) ||
       q.id.toLowerCase().includes(searchTerm) ||
-      String(q.launchMode || '').toLowerCase().includes(searchTerm) ||
-      String(q.deliveryMode || '').toLowerCase().includes(searchTerm) ||
-      String(q.issue || '').toLowerCase().includes(searchTerm) ||
       (q.jsonConfig?.DesiredColumnOrder || []).some(col => col.toLowerCase().includes(searchTerm))
     );
     failedList = failedList.filter(q => 
       (q.name && q.name.toLowerCase().includes(searchTerm)) ||
       q.id.toLowerCase().includes(searchTerm) ||
-      String(q.issue || '').toLowerCase().includes(searchTerm) ||
-      String(q.launchMode || '').toLowerCase().includes(searchTerm) ||
-      String(q.deliveryMode || '').toLowerCase().includes(searchTerm) ||
+      (q.error && q.error.toLowerCase().includes(searchTerm)) ||
       (q.jsonConfig?.DesiredColumnOrder || []).some(col => col.toLowerCase().includes(searchTerm))
     );
     cancelledList = cancelledList.filter(q => 
       (q.name && q.name.toLowerCase().includes(searchTerm)) ||
       q.id.toLowerCase().includes(searchTerm) ||
-      String(q.launchMode || '').toLowerCase().includes(searchTerm) ||
-      String(q.deliveryMode || '').toLowerCase().includes(searchTerm) ||
-      String(q.issue || '').toLowerCase().includes(searchTerm) ||
       (q.jsonConfig?.DesiredColumnOrder || []).some(col => col.toLowerCase().includes(searchTerm))
     );
   }
   
-  const runningRows = runningList.map(q => createQueriesTableRowHtml(q)).join('');
-  const doneRows = doneList.map(q => createQueriesTableRowHtml(q)).join('');
-  const failedRows = failedList.map(q => createQueriesTableRowHtml(q)).join('');
-  const cancelledRows = cancelledList.map(q => createQueriesTableRowHtml(q)).join('');
+  const runningRows = runningList.map(q => createQueriesTableRowHtml(q, viewIconSVG)).join('');
+  const doneRows = doneList.map(q => createQueriesTableRowHtml(q, viewIconSVG)).join('');
+  const failedRows = failedList.map(q => createQueriesTableRowHtml(q, viewIconSVG)).join('');
+  const cancelledRows = cancelledList.map(q => createQueriesTableRowHtml(q, viewIconSVG)).join('');
+
+  // Different table headers for running vs completed queries
+  const runningTableHead = `
+    <thead class="history-table-head running">
+      <tr>
+        <th class="px-4 py-2 text-center" data-tooltip="Query name or identifier">Name</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Columns being displayed in the query results">Displaying</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Active filters applied to the query">Filters</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Open the results accumulated so far for this running query">Results</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Stop the currently running query">Stop/Cancel</th>
+        <th class="px-4 py-2 text-center" data-tooltip="When this query was started">Started</th>
+      </tr>
+    </thead>`;
+
+  const completedTableHead = `
+    <thead class="history-table-head complete">
+      <tr>
+        <th class="px-4 py-2 text-center" data-tooltip="Query name or identifier">Name</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Columns being displayed in the query results">Displaying</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Active filters applied to the query">Filters</th>
+        <th class="px-4 py-2 text-center" data-tooltip="When this query was last executed">Last Run</th>
+        <th class="px-4 py-2 text-center" data-tooltip="How long the query took to complete">Duration</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Load the query results or view report">Results</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Re-execute this query with the same settings">Rerun</th>
+      </tr>
+    </thead>`;
+
+  const failedTableHead = `
+    <thead class="history-table-head failed">
+      <tr>
+        <th class="px-4 py-2 text-center" data-tooltip="Query name or identifier">Name</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Columns being displayed in the query results">Displaying</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Active filters applied to the query">Filters</th>
+        <th class="px-4 py-2 text-center" data-tooltip="When this query last ran">Last Run</th>
+        <th class="px-4 py-2 text-center" data-tooltip="How long the query ran before failing">Duration</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Failure reason or backend warning">Issue</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Re-execute this query with the same settings">Rerun</th>
+      </tr>
+    </thead>`;
+
+  const cancelledTableHead = `
+    <thead class="history-table-head canceled">
+      <tr>
+        <th class="px-4 py-2 text-center" data-tooltip="Query name or identifier">Name</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Columns being displayed in the query results">Displaying</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Active filters applied to the query">Filters</th>
+        <th class="px-4 py-2 text-center" data-tooltip="When this query was last executed before cancellation">Last Run</th>
+        <th class="px-4 py-2 text-center" data-tooltip="How long the query ran before being cancelled">Duration</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Re-execute this query with the same settings">Rerun</th>
+      </tr>
+    </thead>`;
 
   const runningCount = runningList.length;
   const doneCount = doneList.length;
   const failedCount = failedList.length;
   const cancelledCount = cancelledList.length;
-  const totalQueries = runningCount + doneCount + failedCount + cancelledCount;
-  const disconnectedCount = [...runningList, ...doneList, ...failedList, ...cancelledList]
-    .filter(q => q.deliveryMode === 'disconnected').length;
-  const loadedRows = [...doneList, ...runningList, ...failedList]
-    .reduce((sum, q) => sum + (Number.isFinite(Number(q.resultCount)) ? Number(q.resultCount) : 0), 0);
 
   let content = '';
 
-  if (liveIndicator) {
-    const runningText = runningCount > 0 ? `${runningCount} live ${runningCount === 1 ? 'query' : 'queries'} updating while this panel is open` : 'No live queries right now';
-    liveIndicator.textContent = runningText;
-    liveIndicator.classList.toggle('is-live', runningCount > 0);
-  }
-
   // Show "no results" message if search returns nothing
   if (searchTerm && runningCount === 0 && doneCount === 0 && failedCount === 0 && cancelledCount === 0) {
-    content = `
-      <div class="history-summary-strip" aria-label="Query activity summary">
-        <span class="history-summary-chip total">0 matching queries</span>
-      </div>
-      <div class="history-empty-state history-empty-search">No queries found matching "${searchTerm}".</div>`;
+    content = `<div class="history-empty-state history-empty-search">No queries found matching "${searchTerm}".</div>`;
   } else {
-    const runningSection = buildHistorySection('running', runningCount, runningRows, 'No running queries right now.', true);
-    const doneSection = buildHistorySection('complete', doneCount, doneRows, 'No completed queries yet.', true);
-    const failedSection = buildHistorySection('failed', failedCount, failedRows, 'No failed or interrupted queries.', failedCount > 0);
-    const cancelledSection = buildHistorySection('canceled', cancelledCount, cancelledRows, 'No cancelled queries yet.', false);
+    const runningSection = buildHistorySection('running', runningCount, runningRows, runningTableHead, 'No running queries right now.', true);
+    const doneSection = buildHistorySection('complete', doneCount, doneRows, completedTableHead, 'No completed queries yet.', true);
+    const failedSection = buildHistorySection('failed', failedCount, failedRows, failedTableHead, 'No failed or interrupted queries.', failedCount > 0);
+    const cancelledSection = buildHistorySection('canceled', cancelledCount, cancelledRows, cancelledTableHead, 'No cancelled queries yet.', false);
 
     content = `
-      <div class="history-summary-strip" aria-label="Query activity summary">
-        <span class="history-summary-chip total">${totalQueries} visible</span>
-        <span class="history-summary-chip running">${runningCount} running</span>
-        <span class="history-summary-chip complete">${doneCount} completed</span>
-        <span class="history-summary-chip failed">${failedCount} failed</span>
-        <span class="history-summary-chip canceled">${cancelledCount} cancelled</span>
-        <span class="history-summary-chip detached">${disconnectedCount} detached</span>
-        <span class="history-summary-chip rows">${loadedRows.toLocaleString()} rows surfaced</span>
+      <div class="history-overview-grid">
+        <div class="history-overview-card running"><span class="history-overview-count">${runningCount}</span><span class="history-overview-label">Running</span></div>
+        <div class="history-overview-card complete"><span class="history-overview-count">${doneCount}</span><span class="history-overview-label">Completed</span></div>
+        <div class="history-overview-card failed"><span class="history-overview-count">${failedCount}</span><span class="history-overview-label">Failed</span></div>
+        <div class="history-overview-card canceled"><span class="history-overview-count">${cancelledCount}</span><span class="history-overview-label">Cancelled</span></div>
       </div>
       ${runningSection}
       ${doneSection}
@@ -948,15 +886,6 @@ function renderQueries(){
       loadQueryResults(id);
     });
   });
-
-  container.querySelectorAll('.load-config-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const id = btn.getAttribute('data-query-id');
-      const q = exampleQueries.find(query => query.id === id);
-      loadQueryConfig(q);
-    });
-  });
   
   // Attach click handlers to rerun buttons
   container.querySelectorAll('.rerun-query-btn').forEach(btn => {
@@ -964,19 +893,11 @@ function renderQueries(){
       e.stopPropagation();
       const id = btn.getAttribute('data-query-id');
       const q = exampleQueries.find(q => q.id === id);
-      if (!q) return;
       q.running = true; 
       q.startTime = new Date().toISOString();
       q.endTime = null;
       q.cancelled = false;
-      q.failed = false;
       q.status = 'running';
-      q.error = '';
-      q.warning = '';
-      q.issue = '';
-      q.resultCount = 0;
-      q.launchMode = 'client';
-      q.deliveryMode = 'streaming';
       
       // We would ideally call the backend 'run' here, but queryHistory.js 
       // is UI-focused. The user should probably load config then click Run.
@@ -1003,14 +924,14 @@ function renderQueries(){
 }
 
 /**
- * Handles clicks on explicit setup-load controls to load configuration.
+ * Handles clicks on query table rows to load their configuration.
  * @function handleQueryRowClick
  * @param {Event} e - The click event
  */
 function handleQueryRowClick(e) {
-  const trigger = e.target.closest('#queries-container .load-config-btn[data-query-id]');
-  if(!trigger) return;
-  const id = trigger.getAttribute('data-query-id');
+  const row = e.target.closest('#queries-container tbody tr[data-query-id]');
+  if(!row) return;
+  const id = row.getAttribute('data-query-id');
   const q = exampleQueries.find(q => q.id === id);
   if(!q || !q.jsonConfig) return;
 
@@ -1056,6 +977,9 @@ window.onDOMReady(() => {
   if (queriesSearchInput) {
     queriesSearchInput.addEventListener('input', renderQueries);
   }
+
+  // Add row click event listener
+  document.addEventListener('click', handleQueryRowClick);
 
   // Initial fetch of query history
   setTimeout(() => { if (window.fetchQueryStatus) window.fetchQueryStatus(); }, 500);
