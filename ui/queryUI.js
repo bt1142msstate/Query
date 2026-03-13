@@ -161,22 +161,36 @@ window.updateButtonStates = function() {
   }
 
   if (clearQueryBtn) {
+    let payload = null;
+    try {
+      payload = window.buildBackendQueryPayload ? window.buildBackendQueryPayload(tableName) : null;
+    } catch (_) {
+      payload = null;
+    }
+
     const hasTableName = !!(tableNameInput && tableNameInput.value.trim());
     const hasQueryText = !!(window.DOM.queryInput && window.DOM.queryInput.value.trim());
     const hasFields = Array.isArray(window.displayedFields) && window.displayedFields.length > 0;
     const hasFilters = !!(window.activeFilters && Object.values(window.activeFilters).some(data => data && Array.isArray(data.filters) && data.filters.length > 0));
+    const hasConfiguredPayload = !!(
+      payload && (
+        (Array.isArray(payload.display_fields) && payload.display_fields.length > 0) ||
+        (Array.isArray(payload.special_fields) && payload.special_fields.length > 0) ||
+        (Array.isArray(payload.filters) && payload.filters.length > 0)
+      )
+    );
     const hasData = !!(
       window.VirtualTable &&
       window.VirtualTable.virtualTableData &&
       Array.isArray(window.VirtualTable.virtualTableData.rows) &&
       window.VirtualTable.virtualTableData.rows.length > 0
     );
-    const canClear = hasTableName || hasQueryText || hasFields || hasFilters || hasData;
+    const canClear = hasTableName || hasQueryText || hasFields || hasFilters || hasConfiguredPayload || hasData;
 
     clearQueryBtn.disabled = window.queryRunning || !canClear;
     clearQueryBtn.classList.toggle('opacity-50', clearQueryBtn.disabled);
     clearQueryBtn.classList.toggle('cursor-not-allowed', clearQueryBtn.disabled);
-    clearQueryBtn.setAttribute('data-tooltip', clearQueryBtn.disabled ? 'Nothing to clear' : 'Clear current query');
+    clearQueryBtn.setAttribute('data-tooltip', window.queryRunning ? 'Stop the running query before clearing' : (clearQueryBtn.disabled ? 'Nothing to clear' : 'Clear current query'));
   }
 
   if (typeof window.updateSplitColumnsToggleState === 'function') {
