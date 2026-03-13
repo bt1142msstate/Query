@@ -63,28 +63,28 @@ function buildHistorySection(sectionKey, count, rows, tableHead, emptyMessage, i
     running: {
       title: 'Running',
       subtitle: 'Queries currently executing on the backend.',
-      coverLabel: 'Live volume',
+      coverLabel: 'Live feed',
       detailsClass: 'history-book running',
       summaryClass: 'history-book-summary running'
     },
     complete: {
       title: 'Completed',
       subtitle: 'Finished results ready to inspect or reload.',
-      coverLabel: 'Archive volume',
+      coverLabel: 'Archive cache',
       detailsClass: 'history-book complete',
       summaryClass: 'history-book-summary complete'
     },
     failed: {
       title: 'Failed / Interrupted',
       subtitle: 'Queries that errored, were abandoned, or quit unexpectedly.',
-      coverLabel: 'Incident volume',
+      coverLabel: 'Fault channel',
       detailsClass: 'history-book failed',
       summaryClass: 'history-book-summary failed'
     },
     canceled: {
       title: 'Cancelled',
       subtitle: 'Queries stopped intentionally before they completed.',
-      coverLabel: 'Stopped volume',
+      coverLabel: 'Abort queue',
       detailsClass: 'history-book canceled',
       summaryClass: 'history-book-summary canceled'
     }
@@ -113,7 +113,7 @@ function buildHistorySection(sectionKey, count, rows, tableHead, emptyMessage, i
           <span class="history-book-summary-side">
             <span class="history-book-count">${count}</span>
             <span class="history-book-state">${statusLabel}</span>
-            <span class="history-book-open-hint">Pull volume</span>
+            <span class="history-book-open-hint">Open feed</span>
           </span>
         </span>
       </summary>
@@ -957,8 +957,8 @@ function renderQueries(){
     content = `
       <section class="history-editorial-hero">
         <div class="history-editorial-copy">
-          <span class="history-kicker">Query Ledger</span>
-          <h3 class="history-editorial-title">Recent runs, live work, and recoverable results in one place.</h3>
+          <span class="history-kicker">Neo Ops</span>
+          <h3 class="history-editorial-title">Realtime query telemetry, archive recall, and failure tracking in one console.</h3>
           <p class="history-editorial-subtitle">${searchLabel} ${liveSignal}</p>
         </div>
         <div class="history-editorial-meta">
@@ -970,7 +970,7 @@ function renderQueries(){
           <div class="history-meta-card">
             <span class="history-meta-label">Visible Queries</span>
             <span class="history-meta-value">${visibleCount}</span>
-            <span class="history-meta-detail">${searchTerm ? 'Filtered shelf' : 'Across all four volumes'}</span>
+            <span class="history-meta-detail">${searchTerm ? 'Filtered channel view' : 'Across all four status channels'}</span>
           </div>
         </div>
       </section>
