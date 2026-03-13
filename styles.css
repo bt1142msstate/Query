@@ -1562,9 +1562,8 @@ th:hover .th-trash {
 
 #group-method-select:focus {
   outline: none;
-  ring: 2px;
-  ring-color: var(--color-blue-500);
   border-color: var(--color-blue-500);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
 }
 
 #group-method-select:hover {
