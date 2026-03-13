@@ -1,0 +1,180 @@
+/* ==========================================
+   CUSTOM TOOLTIP COMPONENT
+   ========================================== */
+.custom-tooltip {
+  position: absolute;
+  z-index: 2000;
+  background: #222;
+  color: #fff;
+  padding: 0.5em 0.75em;
+  border-radius: 0.5em;
+  font-size: 0.95em;
+  font-weight: 500;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-8px) scale(0.98);
+  transition: opacity 0.18s cubic-bezier(.4,0,.2,1), transform 0.18s cubic-bezier(.4,0,.2,1);
+  white-space: pre-line;
+  max-width: 260px;
+  line-height: 1.3;
+}
+.custom-tooltip.is-html {
+  white-space: normal;
+  max-width: 450px;
+}
+
+.custom-tooltip .split-toggle-tooltip {
+  min-width: 18rem;
+}
+
+.custom-tooltip .split-toggle-tooltip .tt-filter-container {
+  margin: 0;
+}
+
+.custom-tooltip.show {
+  opacity: 1;
+  transform: translateY(-14px) scale(1);
+}
+.custom-tooltip-arrow {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 7px;
+  pointer-events: none;
+}
+.custom-tooltip.arrow-up .custom-tooltip-arrow {
+  bottom: -7px;
+}
+.custom-tooltip.arrow-down .custom-tooltip-arrow {
+  top: -7px;
+  transform: translateX(-50%) rotate(180deg);
+}
+.custom-tooltip-arrow svg {
+  display: block;
+}
+
+/* Filter pill trash can hover effect */
+.filter-trash:hover svg path {
+  stroke: #e11d48 !important;
+  fill: #e11d48 !important;
+}
+
+.tt-filter-container {
+  text-align: left;
+  min-width: 200px;
+}
+
+
+.tt-filter-title {
+    font-weight: 700;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+    color: #f1f5f9;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.tt-filter-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.tt-filter-item {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 0.85rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+  .tt-columns-container {
+    min-width: 240px;
+    max-width: 340px;
+  }
+  .tt-columns-list {
+    gap: 6px;
+  }
+  .tt-column-item {
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .tt-column-index {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    border-radius: 9999px;
+    background: rgba(167, 139, 250, 0.18);
+    border: 1px solid rgba(167, 139, 250, 0.28);
+    color: #ddd6fe;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+    flex: 0 0 auto;
+  }
+  .tt-column-name {
+    color: #f8fafc;
+    font-weight: 600;
+    line-height: 1.35;
+    word-break: break-word;
+  }
+.tt-field {
+    color: #a78bfa;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.tt-field::before {
+    content: '';
+    display: block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #a78bfa;
+}
+.tt-op {
+    color: #94a3b8;
+    background: rgba(0,0,0,0.3);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.70rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.tt-val {
+    color: #f8fafc;
+    font-weight: 600;
+    background: rgba(56, 189, 248, 0.15);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    padding: 3px 8px;
+    border-radius: 4px;
+}
+.tt-logic {
+    font-size: 0.75rem;
+    color: #fcd34d;
+    font-weight: bold;
+    margin-left: 8px;
+    display: flex;
+    align-items: center;
+}
+.tt-logic::before, .tt-logic::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(252, 211, 77, 0.3);
+    margin: 0 8px;
+}
+

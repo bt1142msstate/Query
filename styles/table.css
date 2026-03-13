@@ -1,0 +1,698 @@
+/* ==========================================
+   8. TABLE STYLES
+   ========================================== */
+
+/* Table container */
+.overflow-x-auto.shadow.rounded-lg.mb-6.relative {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12), 0 4px 10px rgba(0, 0, 0, 0.08);
+  border-radius: var(--border-radius-xl); /* Round all corners */
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(4px);
+  background: #fff;
+  z-index: 10;
+  position: relative;
+  overflow-x: auto; /* Ensure horizontal scrolling */
+  /* This neatly clips custom webkit scrollbars so they fit the border radius perfectly */
+  clip-path: inset(0 0 0 0 round var(--border-radius-xl));
+}
+
+/* Fix scrollbar styling to respect rounded corners */
+.overflow-x-auto.shadow.rounded-lg.mb-6.relative::-webkit-scrollbar {
+  width: 12px;
+  height: 12px; /* Add horizontal scrollbar height */
+}
+
+.overflow-x-auto.shadow.rounded-lg.mb-6.relative::-webkit-scrollbar-track {
+  background: rgba(156, 163, 175, 0.9);
+}
+
+/* Vertical scrollbar track styling */
+.overflow-x-auto.shadow.rounded-lg.mb-6.relative::-webkit-scrollbar-track:vertical {
+  margin-top: calc(var(--table-header-height) - 4px);
+}
+
+/* Horizontal scrollbar track styling */
+.overflow-x-auto.shadow.rounded-lg.mb-6.relative::-webkit-scrollbar-track:horizontal {
+  background: transparent;
+  margin-top: 0;
+  margin-left: 0;
+}
+
+.overflow-x-auto.shadow.rounded-lg.mb-6.relative::-webkit-scrollbar-thumb {
+  background: rgba(107, 114, 128, 0.8);
+  border-radius: 6px;
+  border: 1px solid rgba(107, 114, 128, 0.2);
+  min-height: 40px;
+}
+
+
+
+.overflow-x-auto.shadow.rounded-lg.mb-6.relative::-webkit-scrollbar-thumb:hover {
+  background: rgba(75, 85, 99, 0.9);
+}
+
+/* Handle scrollbar corner where vertical and horizontal meet */
+.overflow-x-auto.shadow.rounded-lg.mb-6.relative::-webkit-scrollbar-corner {
+  background: rgba(156, 163, 175, 0.9);
+}
+
+/* Remove the hover transformation effect */
+.overflow-x-auto.shadow.rounded-lg.mb-6.relative:hover {
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15), 0 5px 12px rgba(0, 0, 0, 0.1);
+}
+
+#example-table {
+  border-radius: var(--border-radius-lg);
+  border-collapse: separate;
+  border-spacing: 0;
+  width: auto; /* Allow table to expand to natural width */
+  min-width: 100%; /* Ensure it's at least full width */
+}
+
+/* Table headers */
+#example-table thead {
+  background: linear-gradient(to right, rgba(245, 245, 245, 0.95), rgba(250, 250, 250, 0.95));
+  border-bottom: 2px solid rgba(220, 220, 220, 0.8);
+  border-top-left-radius: var(--border-radius-lg);
+  border-top-right-radius: var(--border-radius-lg);
+}
+
+#example-table th {
+  font-weight: 600;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 1rem 1.5rem !important;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: linear-gradient(to right, rgba(245, 245, 245, 0.95), rgba(250, 250, 250, 0.95));
+  transition: background-color 0.2s ease;
+  height: var(--table-header-height);
+  box-sizing: border-box;
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.12), inset 0 -1px 0 rgba(0, 0, 0, 0.12);
+}
+
+/* Remove border from the last header column */
+#example-table th:first-child {
+  border-top-left-radius: var(--border-radius-lg);
+}
+
+#example-table th:last-child {
+  padding-right: calc(1.5rem + 12px) !important;
+  border-right: none;
+  border-top-right-radius: var(--border-radius-lg);
+}
+
+/* Table rows */
+#example-table tbody tr {
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+#example-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+#example-table tbody tr:last-child td:first-child {
+  border-bottom-left-radius: var(--border-radius-lg);
+}
+
+#example-table tbody tr:last-child td:last-child {
+  border-bottom-right-radius: var(--border-radius-lg);
+}
+
+#example-table tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Alternating row colors */
+#example-table tbody tr:nth-child(even) {
+  background-color: rgba(0, 0, 0, 0.01);
+}
+
+/* Table cells */
+#example-table td {
+  padding: 1rem 1.5rem !important;
+  color: #444;
+  white-space: nowrap;
+}
+
+/* ==========================================
+   9. DRAG & DROP FUNCTIONALITY
+   ========================================== */
+
+/* Header styles for dragging */
+th[draggable="true"] {
+  cursor: grab;
+  user-select: none;
+  transition: background-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast);
+  padding-right: 48px !important; /* Increased from 32px to 48px for more space */
+  position: relative;
+  white-space: nowrap; /* Keep text on one line but don't truncate */
+}
+
+th[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+th.th-dragging {
+  opacity: 0.4;
+  background-color: var(--color-indigo-200);
+  cursor: grabbing;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+th.th-hover {
+  background-color: var(--color-indigo-100);
+  transition: background-color var(--transition-fast);
+}
+
+th.th-drag-over {
+  background-color: var(--color-blue-200);
+}
+
+.dragging-scroll-lock {
+  overflow-x: hidden !important;
+}
+
+body.dragging-cursor,
+body.dragging-cursor * {
+  cursor: grabbing !important;
+}
+
+/* Drop-anchor line shown during drag */
+.drop-anchor {
+  position: absolute;
+  height: 4px;
+  background: radial-gradient(circle, rgba(100,181,246,1) 0%, rgba(30,136,229,1) 80%);
+  box-shadow: 0 0 16px 4px rgba(33,150,243,0.3), 0 0 32px 8px rgba(33,150,243,0.2);
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 100;
+  display: none;
+}
+
+/* Vertical version (column insertion) */
+.drop-anchor.vertical {
+  width: 4px;
+  margin-bottom: -8px; /* Increase negative margin to extend further */
+}
+
+/* Top cap for vertical anchor */
+.drop-anchor.vertical::before {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 2px;
+  background: inherit;
+  box-shadow: inherit;
+  border-radius: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 0;
+}
+
+/* Bottom cap for vertical anchor with blue glow */
+.drop-anchor.vertical::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 2px;
+  background: inherit;
+  box-shadow: 0 0 20px 6px rgba(33,150,243,0.5);
+  border-radius: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+}
+
+/* Ghost element that follows cursor while dragging */
+.ghost-drag {
+  position: absolute;
+  top: -9999px;
+  left: -9999px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: var(--color-black);
+  color: var(--color-white);
+  border-radius: var(--border-radius-sm);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: var(--z-drag-ghost);
+  box-shadow: var(--shadow-lg);
+}
+
+
+/* Column header trash icon */
+.th-wrapper {
+  position: relative;
+}
+
+.th-trash {
+  position: absolute;
+  top: 50%;
+  right: 12px; /* Increased from 8px to 12px */
+  transform: translateY(-50%);
+  display: none;
+  cursor: pointer;
+  /* Keep spacing but remove background */
+  padding: 2px;
+  border-radius: 4px;
+  min-width: 22px;
+  text-align: center;
+  margin-left: 16px; /* Added explicit margin to ensure minimum spacing */
+}
+
+.th-trash svg {
+  width: 18px;
+  height: 18px;
+  fill: var(--color-gray-400);
+  transition: fill var(--transition-normal);
+}
+
+.th-trash:hover svg {
+  fill: var(--color-red-500);
+}
+
+th:hover .th-trash {
+  display: block;
+}
+
+
+/* ==========================================
+   14. TABLE NAME INPUT STYLING
+   ========================================== */
+
+#table-name-input {
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border-radius: 0 0 12px 12px;
+  padding: 8px 16px;
+  margin: 0 auto;
+  display: block;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #374151;
+  background: white;
+  border: 2px solid rgba(59, 130, 246, 0.2);
+  border-top: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  line-height: 1.2;
+  width: auto;
+  min-width: 200px;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+#table-name-input:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+#table-name-input:focus {
+  background: white !important;
+  border-color: #3b82f6 !important;
+  border-top: none !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  cursor: text;
+  transform: translateY(-2px);
+}
+
+#table-name-input::placeholder {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+/* Custom scrollbar for the input */
+#table-name-input::-webkit-scrollbar {
+  height: 4px;
+}
+
+#table-name-input::-webkit-scrollbar-track {
+  background: rgba(156, 163, 175, 0.2);
+  border-radius: 2px;
+}
+
+#table-name-input::-webkit-scrollbar-thumb {
+  background: rgba(107, 114, 128, 0.6);
+  border-radius: 2px;
+}
+
+#table-name-input::-webkit-scrollbar-thumb:hover {
+  background: rgba(75, 85, 99, 0.8);
+}
+
+/* Ensure the input doesn't interfere with the overall layout */
+#table-name-input:focus {
+  z-index: 10;
+  position: relative;
+}
+
+/* Error state styling for empty table name input */
+#table-name-input.error {
+  border-color: #ef4444 !important;
+  background-color: #fef2f2 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1), 0 4px 12px rgba(239, 68, 68, 0.15) !important;
+}
+
+#table-name-input.error:hover {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15), 0 4px 12px rgba(220, 38, 38, 0.2) !important;
+}
+
+#table-name-input.error:focus {
+  border-color: #dc2626 !important;
+  background-color: #fef2f2 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2), 0 4px 12px rgba(220, 38, 38, 0.25) !important;
+}
+
+/* --- Loading Animation for Table --- */
+@keyframes border-glow-trace {
+    0% {
+        box-shadow: 0 0 5px rgba(59, 130, 246, 0.3), inset 0 0 5px rgba(59, 130, 246, 0.3);
+        border-color: rgba(59, 130, 246, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.8), inset 0 0 20px rgba(59, 130, 246, 0.8);
+        border-color: rgba(59, 130, 246, 0.8);
+    }
+    100% {
+        box-shadow: 0 0 5px rgba(59, 130, 246, 0.3), inset 0 0 5px rgba(59, 130, 246, 0.3);
+        border-color: rgba(59, 130, 246, 0.2);
+    }
+}
+
+/* ==========================================
+   16. TABLE QUERY BUBBLE ANIMATION
+   ========================================== */
+
+.table-query-bubble {
+  position: fixed;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  /* Match exact bubble styles */
+  background: radial-gradient(
+    130% 130% at 30% 30%, 
+    rgba(255, 255, 255, 0.2) 15%, 
+    rgba(255, 255, 255, 0.1) 40%, 
+    rgba(255, 255, 255, 0.05) 60%, 
+    rgba(148, 163, 184, 0.2) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+  border-right-color: rgba(255, 255, 255, 0.1);
+
+  box-shadow:
+    inset -5px -5px 15px rgba(255, 255, 255, 0.15),
+    inset 2px 2px 10px rgba(255, 255, 255, 0.4),
+    0 4px 10px rgba(0, 0, 0, 0.25),
+    0 0 15px rgba(100, 200, 255, 0.15),
+    0 0 0 4px rgba(255, 255, 255, 0.4);
+
+  color: var(--color-white);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8), 0 0 20px rgba(255, 255, 255, 0.4);
+  font-size: 2.5rem;
+  font-weight: 600;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: width var(--morph-duration, 0.6s) ease,
+              height var(--morph-duration, 0.6s) ease,
+              top var(--morph-duration, 0.6s) ease,
+              left var(--morph-duration, 0.6s) ease,
+              border-radius var(--morph-duration, 0.6s) ease,
+              opacity 0.2s ease-out;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.table-query-bubble-text {
+  opacity: 0.78;
+  animation: querying-text-breathe 2.2s ease-in-out infinite;
+}
+
+/* Secondary reflection (bottom right) matching standard bubbles */
+.table-query-bubble::before {
+  content: "";
+  position: absolute;
+  bottom: 14%;
+  right: 14%;
+  width: 22%;
+  height: 12%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.1) 55%, rgba(255,255,255,0) 100%);
+  transform: rotate(-45deg);
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+/* Main specular highlight (top left) matching standard bubbles */
+.table-query-bubble::after {
+  content: "";
+  position: absolute;
+  top: 10%;
+  left: 14%;
+  width: 35%;
+  height: 20%;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(
+    140% 140% at 25% 25%,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.6) 35%,
+    rgba(255, 255, 255, 0.2) 60%,
+    rgba(255, 255, 255, 0.0) 80%
+  );
+  transition: opacity 0.3s ease;
+}
+
+.table-query-bubble.popping {
+  opacity: 0 !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+.table-container-hidden {
+  opacity: 0 !important;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+body.scene-fade-out > *:not(#header-bar):not(#table-query-bubble):not(.particle):not(#toast-container) {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.particle):not(#toast-container) {
+  transition: opacity 0.5s ease;
+}
+
+
+.table-query-circuit {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.22s ease-out, filter 0.22s ease-out;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+  box-shadow: inset 0 0 42px rgba(0, 0, 0, 0.45);
+  background-color: #07111d;
+  background-image: 
+    repeating-linear-gradient(0deg, rgba(148, 163, 184, 0.08) 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.08) 0 1px, transparent 1px 22px),
+    radial-gradient(115% 90% at 50% 45%, rgba(2, 132, 199, 0.22) 0%, rgba(2, 6, 23, 0.75) 70%),
+    linear-gradient(180deg, #06111e 0%, #04101f 55%, #030811 100%);
+}
+
+.table-query-circuit.active {
+  opacity: 1;
+  filter: saturate(1);
+}
+
+.table-query-circuit.fading-out {
+  opacity: 0;
+  filter: saturate(0.55) blur(7px);
+}
+
+.table-query-circuit::before,
+.table-query-circuit::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.table-query-circuit::before {
+  background:
+    radial-gradient(circle at 20% 30%, rgba(34, 211, 238, 0.22), transparent 45%),
+    radial-gradient(circle at 78% 68%, rgba(250, 204, 21, 0.2), transparent 40%),
+    radial-gradient(circle at 62% 20%, rgba(244, 114, 182, 0.18), transparent 38%);
+  filter: blur(18px);
+  animation: circuit-glow-pan 6.4s ease-in-out infinite alternate;
+}
+
+.table-query-circuit::after {
+  background:
+    radial-gradient(2px 2px at 18% 14%, rgba(255, 255, 255, 0.45), transparent 100%),
+    radial-gradient(2px 2px at 74% 25%, rgba(255, 255, 255, 0.35), transparent 100%),
+    radial-gradient(2px 2px at 53% 78%, rgba(255, 255, 255, 0.3), transparent 100%);
+  animation: circuit-node-pulse 2.4s ease-in-out infinite;
+}
+
+.table-query-circuit-trace {
+  position: absolute;
+  left: var(--trace-x);
+  top: var(--trace-y);
+  width: var(--trace-len);
+  height: var(--trace-thickness, 3px);
+  border-radius: calc(var(--trace-thickness, 3px) / 2);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0) 35%, rgba(255, 255, 255, 0) 65%, rgba(255, 255, 255, 0.1) 100%),
+    linear-gradient(90deg, color-mix(in srgb, var(--trace-color-a) 70%, #052235 30%) 0%, color-mix(in srgb, var(--trace-color-b) 78%, #9fe7ff 22%) 100%);
+  opacity: 0.42;
+  transform: translate(-50%, -50%) rotate(var(--trace-angle));
+  transform-origin: center;
+  animation: circuit-trace-flicker 2.8s linear infinite;
+  animation-delay: var(--trace-flicker-delay);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.28), 0 0 18px rgba(34, 211, 238, 0.12), inset 0 0 2px rgba(255, 255, 255, 0.22);
+}
+
+.table-query-circuit-node {
+  position: absolute;
+  width: var(--node-size, 6px);
+  height: var(--node-size, 6px);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: transparent;
+  border: 2px solid rgba(103, 232, 249, 0.88);
+  box-shadow: 0 0 0 1px rgba(8, 47, 73, 0.9) inset, 0 0 9px rgba(34, 211, 238, 0.45), 0 0 16px rgba(56, 189, 248, 0.28);
+  animation: circuit-node-spark 2s ease-in-out infinite;
+  animation-delay: var(--node-delay, 0s);
+}
+
+.table-query-circuit-node::before {
+  content: '';
+  position: absolute;
+  inset: 28%;
+  border-radius: 50%;
+  background: rgba(2, 6, 23, 0.92);
+  box-shadow: 0 0 4px rgba(8, 47, 73, 0.7) inset;
+}
+
+.table-query-circuit-node::after {
+  content: '';
+  position: absolute;
+  inset: -35%;
+  border-radius: 50%;
+  border: 1px solid rgba(34, 211, 238, 0.18);
+  opacity: 0.7;
+}
+
+.table-query-circuit-pulse {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: var(--pulse-size, 9px);
+  height: var(--pulse-size, 9px);
+  border-radius: 50%;
+  transform: translateY(-50%);
+  background: radial-gradient(circle at 38% 38%, rgba(255, 255, 255, 0.98) 0%, color-mix(in srgb, var(--pulse-color) 35%, white 65%) 28%, var(--pulse-color) 62%, color-mix(in srgb, var(--pulse-color) 72%, #67e8f9 28%) 100%);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 0 18px var(--pulse-color), 0 0 30px color-mix(in srgb, var(--pulse-color) 82%, white 18%), 0 0 44px color-mix(in srgb, var(--pulse-color) 60%, #67e8f9 40%);
+  opacity: 0;
+  animation: circuit-pulse-run var(--pulse-duration) linear infinite;
+  animation-delay: var(--pulse-delay);
+}
+
+.table-query-circuit-pulse::before,
+.table-query-circuit-pulse::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+}
+
+.table-query-circuit-pulse::before {
+  top: 50%;
+  right: calc(100% - 1px);
+  width: 12px;
+  height: 2px;
+  transform: translateY(-50%);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, color-mix(in srgb, var(--pulse-color) 58%, white 42%) 48%, color-mix(in srgb, var(--pulse-color) 82%, #67e8f9 18%) 100%);
+  filter: blur(0.35px);
+  opacity: 0.72;
+  animation: circuit-pulse-trail calc(var(--pulse-duration) * 0.38) ease-in-out infinite;
+  animation-delay: var(--pulse-delay);
+}
+
+.table-query-circuit-pulse::after {
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow:
+    -5px -3px 0 0 color-mix(in srgb, var(--pulse-color) 74%, white 26%),
+    -7px 2px 0 0 rgba(255, 255, 255, 0.7);
+  opacity: 0.45;
+  animation: circuit-pulse-sparks 0.32s steps(2, end) infinite;
+  animation-delay: var(--pulse-delay);
+}
+
+@keyframes circuit-trace-flicker {
+  0%, 100% { opacity: 0.28; }
+  35% { opacity: 0.62; }
+  60% { opacity: 0.4; }
+}
+
+@keyframes circuit-pulse-run {
+  0% { left: 0; opacity: 0; }
+  10% { opacity: 1; }
+  92% { opacity: 1; }
+  100% { left: calc(100% - var(--pulse-size, 8px)); opacity: 0; }
+}
+
+@keyframes circuit-pulse-trail {
+  0%, 100% { opacity: 0.24; transform: translateY(-50%) scaleX(0.72); }
+  50% { opacity: 0.7; transform: translateY(-50%) scaleX(1.02); }
+}
+
+@keyframes circuit-pulse-sparks {
+  0% { opacity: 0.18; transform: translate(-50%, -50%) scale(0.75) rotate(0deg); }
+  50% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.05) rotate(10deg); }
+  100% { opacity: 0.22; transform: translate(-50%, -50%) scale(0.88) rotate(-8deg); }
+}
+
+@keyframes querying-text-breathe {
+  0%, 100% { opacity: 0.72; }
+  50% { opacity: 0.96; }
+}
+
+@keyframes circuit-glow-pan {
+  0% { transform: translate(-4%, -2%) scale(1.0); }
+  100% { transform: translate(4%, 3%) scale(1.06); }
+}
+
+@keyframes circuit-node-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes circuit-node-spark {
+  0%, 100% { opacity: 0.55; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.95; transform: translate(-50%, -50%) scale(1.15); }
+}
+

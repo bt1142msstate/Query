@@ -1,0 +1,282 @@
+:root {
+  /* Color variables */
+  --color-white: #fff;
+  --color-black: #111;
+  --color-transparent-white: rgba(255, 255, 255, 0.8);
+  
+  /* Brand colors */
+  --color-blue-50: #f3f4f6;
+  --color-blue-100: #e0e7ff;
+  --color-blue-200: #bfdbfe;
+  --color-blue-500: #3b82f6;
+  --color-blue-700: #2563eb;
+  --color-blue-800: #0369a1;
+  
+  --color-indigo-100: #e0e7ff;
+  --color-indigo-200: #c7d2fe;
+  --color-indigo-500: #6366f1;
+  --color-indigo-800: #3730a3;
+  
+  --color-green-400: #34d399;
+  --color-emerald-400: #34d399;
+  --color-emerald-500: rgba(34, 197, 94, 0.9);
+  --color-emerald-600: rgba(16, 185, 129, 0.9);
+  
+  --color-yellow-100: #fef3c7;
+  --color-yellow-200: #fde68a;
+  --color-yellow-300: #fcd34d;
+  --color-yellow-800: #ca8a04;
+  
+  --color-red-50: #fef2f2;
+  --color-red-300: #fca5a5;
+  --color-red-400: #f87171;
+  --color-red-500: #ef4444;
+  --color-red-700: #b91c1c;
+  
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  
+  /* Sizing */
+  --border-radius-sm: 0.25rem;
+  --border-radius-md: 0.375rem;
+  --border-radius-lg: 0.5rem;
+  --border-radius-xl: 0.75rem;
+  --border-radius-full: 9999px;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-2xl: 0 8px 28px rgba(0, 0, 0, 0.25);
+  
+  /* Z-index layers */
+  --z-overlay: 40;
+  --z-bubble: 50;
+  --z-filter-card: 55;
+  --z-condition-panel: 60;
+  --z-condition-input: 65;
+  --z-condition-list: 70;
+  --z-filter-error: 75;
+  --z-drag-ghost: 1000;
+  --z-header: 1100;
+  
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+  --transition-slow: 0.45s ease;
+  
+  
+  --header-height: 64px;
+  --mobile-breakpoint: 900px;
+  --clock-speed: 4s;
+  --bubble-glass-bg: radial-gradient(
+    130% 130% at 30% 30%,
+    rgba(255, 255, 255, 0.2) 15%,
+    rgba(255, 255, 255, 0.1) 40%,
+    rgba(255, 255, 255, 0.05) 60%,
+    rgba(148, 163, 184, 0.2) 100%
+  );
+  
+  /* Table header height */
+  --table-header-height: calc(2rem + 1.2em + 2px);
+}
+
+/* ==========================================
+   1. LAYOUT & GENERAL STYLES 
+   ========================================== */
+
+body.night {
+  background: radial-gradient(ellipse at bottom, #1e3a8a 0%, #0f172a 60%, #000 100%);
+}
+
+/* Disable text selection across the UI for a smoother feel */
+* {
+  user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+}
+
+input, textarea, select, [contenteditable] {
+  user-select: text;
+  -webkit-user-select: text;
+  -ms-user-select: text;
+}
+
+#overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(12px);
+  z-index: var(--z-overlay);
+  display: none;
+}
+
+#overlay.show {
+  display: block;
+}
+
+#overlay.bubble-active {
+  animation: overlayDarken 2s forwards;
+  animation-fill-mode: forwards;
+}
+
+@keyframes overlayDarken {
+  from {
+    background: rgba(0, 0, 0, 0);
+  }
+  to {
+    background: rgba(30, 41, 59, 0.7);
+  }
+}
+
+/* ==========================================
+   1.1 HEADER BAR STYLES
+   ========================================== */
+
+#header-bar {
+  height: var(--header-height);
+  z-index: var(--z-header);
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transform: translateY(-100%);
+  animation: slideDown 0.4s ease-out forwards;
+  animation-delay: 0.1s;
+  transition: opacity 0.5s cubic-bezier(.4,0,.2,1), transform 0.5s cubic-bezier(.4,0,.2,1);
+}
+
+#header-bar.header-hide {
+  opacity: 0;
+  transform: translateY(-100%);
+  pointer-events: none;
+}
+
+#header-bar h1 {
+  font-size: 1.5rem;
+  font-weight: 300;
+  letter-spacing: 0.05em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  opacity: 0;
+  animation: fadeIn 0.5s ease-out forwards;
+  animation-delay: 0.4s;
+}
+
+#header-controls {
+  align-items: center;
+  opacity: 0;
+  animation: fadeIn 0.5s ease-out forwards;
+  animation-delay: 0.6s;
+}
+
+#header-controls button {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#header-controls button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+#header-controls button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Mobile Menu Styles */
+#mobile-menu-toggle {
+  align-items: center;
+  opacity: 0;
+  animation: fadeIn 0.5s ease-out forwards;
+  animation-delay: 0.6s;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: none; /* Hide by default */
+}
+
+#mobile-menu-toggle:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+#mobile-menu-toggle:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#mobile-menu-dropdown {
+  position: fixed;
+  top: var(--header-height);
+  left: 0;
+  width: 100vw;
+  height: calc(100vh - var(--header-height));
+  display: none;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(12px);
+  overflow-y: auto;
+  z-index: var(--z-condition-panel);
+}
+
+#mobile-menu-dropdown.show {
+  display: flex;
+}
+
+#mobile-menu-dropdown div {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+/* Ensure consistent sizing for mobile menu options */
+.mobile-menu-item {
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+}
+
+/* Responsive Header Controls */
+/* Note: CSS variables are not supported in media queries in all browsers, so we keep 900px but document the variable for future use in JS or preprocessors. */
+@media (max-width: 900px) {
+  #header-controls {
+    display: none !important;
+  }
+  
+  #mobile-menu-toggle {
+    display: block !important;
+  }
+}
+
+@keyframes slideDown {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+
+.template-description {
+  width: 50%;
+  max-width: 50%;
+  min-width: 220px;
+  display: block;
+  word-break: break-word;
+}
+@media (max-width: 900px) {
+  .template-description {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+}
+

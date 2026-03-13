@@ -175,9 +175,10 @@ function initializeBubbleInteractions() {
       width: rect.width,
       height: rect.height
     };
+    clone.style.left = rect.left + 'px';
     clone.style.position = 'fixed';
     clone.style.top = rect.top + 'px';
-    clone.style.left = rect.left + 'px';
+    clone.style.margin = '0';
     clone.style.pointerEvents = 'none';
     clone.style.color = getComputedStyle(bubble).color;
     document.body.appendChild(clone);
