@@ -8,7 +8,7 @@
 let exampleQueries = [];
 let queryDurationUpdateInterval = null;
 let lastQueryStatusPollAt = 0;
-let activeHistorySection = 'running';
+let activeHistorySection = 'none';
 const QUERY_STATUS_POLL_MS = 2000;
 
 function isQueriesPanelOpen() {
@@ -58,8 +58,8 @@ function getQueryStatusMeta(status) {
   return { label: 'Interrupted', rowClass: 'history-row-failed', badgeClass: 'history-status-badge status-failed' };
 }
 
-function buildHistorySection(sectionKey, count, rows, tableHead, emptyMessage, isOpen = false) {
-  const meta = {
+function getHistorySectionMeta(sectionKey) {
+  return {
     running: {
       title: 'Running',
       subtitle: 'Queries currently executing on the backend.',
@@ -89,16 +89,18 @@ function buildHistorySection(sectionKey, count, rows, tableHead, emptyMessage, i
       summaryClass: 'history-book-summary canceled'
     }
   }[sectionKey];
+}
+
+function buildHistorySection(sectionKey, count, isOpen = false) {
+  const meta = getHistorySectionMeta(sectionKey);
 
   const openAttr = isOpen ? ' open' : '';
-  const bodyContent = rows
-    ? `<div class="history-table-shell"><table class="min-w-full text-sm history-table">${tableHead}<tbody>${rows}</tbody></table></div>`
-    : `<div class="history-empty-state">${emptyMessage}</div>`;
   const statusLabel = count === 0
     ? 'Empty'
     : isOpen
-      ? 'Open'
-      : 'Closed';
+      ? 'Projected'
+      : 'Standby';
+  const openHint = isOpen ? 'Close feed' : 'Project feed';
 
   return `
     <details class="${meta.detailsClass}" data-history-book="${sectionKey}"${openAttr}>
@@ -113,16 +115,71 @@ function buildHistorySection(sectionKey, count, rows, tableHead, emptyMessage, i
           <span class="history-book-summary-side">
             <span class="history-book-count">${count}</span>
             <span class="history-book-state">${statusLabel}</span>
-            <span class="history-book-open-hint">Open feed</span>
+            <span class="history-book-open-hint">${openHint}</span>
           </span>
         </span>
       </summary>
-      <div class="history-book-body">
-        <div class="history-book-pages">
-          ${bodyContent}
+    </details>
+  `;
+}
+
+function buildHistoryMonitor(openSection, sections) {
+  if (!openSection) {
+    return '';
+  }
+
+  const activeSection = sections.find(section => section.key === openSection);
+  if (!activeSection) {
+    return '';
+  }
+
+  const meta = getHistorySectionMeta(activeSection.key);
+  const bodyContent = activeSection.rows
+    ? `<div class="history-table-shell"><table class="min-w-full text-sm history-table">${activeSection.tableHead}<tbody>${activeSection.rows}</tbody></table></div>`
+    : `<div class="history-empty-state history-monitor-empty">${activeSection.emptyMessage}</div>`;
+  const tabs = sections.map(section => {
+    const tabMeta = getHistorySectionMeta(section.key);
+    const isActive = section.key === activeSection.key;
+    const countLabel = `${section.count} ${section.count === 1 ? 'entry' : 'entries'}`;
+
+    return `
+      <button
+        type="button"
+        class="history-monitor-tab${isActive ? ' is-active' : ''} ${section.key}"
+        data-history-monitor-tab="${section.key}"
+        aria-pressed="${isActive ? 'true' : 'false'}"
+      >
+        <span class="history-monitor-tab-label">${tabMeta.coverLabel}</span>
+        <span class="history-monitor-tab-count">${countLabel}</span>
+      </button>
+    `;
+  }).join('');
+
+  return `
+    <section class="history-monitor ${activeSection.key}" data-history-monitor>
+      <div class="history-monitor-header">
+        <div class="history-monitor-copy">
+          <span class="history-monitor-kicker">Projected monitor</span>
+          <h4 class="history-monitor-title">${meta.title}</h4>
+          <p class="history-monitor-subtitle">${meta.subtitle}</p>
+        </div>
+        <div class="history-monitor-actions">
+          <div class="history-monitor-status">
+            <span class="history-monitor-status-label">Channel load</span>
+            <span class="history-monitor-status-value">${activeSection.count}</span>
+          </div>
+          <button type="button" class="history-monitor-close" data-history-monitor-close aria-label="Close projected monitor">
+            Dismiss
+          </button>
         </div>
       </div>
-    </details>
+      <div class="history-monitor-tabs" role="tablist" aria-label="Query history feeds">
+        ${tabs}
+      </div>
+      <div class="history-monitor-stage">
+        ${bodyContent}
+      </div>
+    </section>
   `;
 }
 
@@ -142,21 +199,28 @@ function getPreferredHistorySection(counts) {
 
 function bindHistoryBookShelf(container) {
   const books = Array.from(container.querySelectorAll('[data-history-book]'));
-  if (!books.length) return;
-
   books.forEach(book => {
-    book.addEventListener('toggle', () => {
-      if (book.open) {
-        activeHistorySection = book.dataset.historyBook || 'running';
-        books.forEach(otherBook => {
-          if (otherBook !== book) {
-            otherBook.open = false;
-          }
-        });
-      } else if (!books.some(otherBook => otherBook.open)) {
-        activeHistorySection = 'none';
-      }
+    const summary = book.querySelector('.history-book-summary');
+    if (!summary) return;
+
+    summary.addEventListener('click', (event) => {
+      event.preventDefault();
+      const sectionKey = book.dataset.historyBook || 'running';
+      activeHistorySection = activeHistorySection === sectionKey ? 'none' : sectionKey;
+      renderQueries();
     });
+  });
+
+  container.querySelectorAll('[data-history-monitor-tab]').forEach(tab => {
+    tab.addEventListener('click', () => {
+      activeHistorySection = tab.dataset.historyMonitorTab || 'running';
+      renderQueries();
+    });
+  });
+
+  container.querySelector('[data-history-monitor-close]')?.addEventListener('click', () => {
+    activeHistorySection = 'none';
+    renderQueries();
   });
 }
 
@@ -949,10 +1013,41 @@ function renderQueries(){
   if (searchTerm && runningCount === 0 && doneCount === 0 && failedCount === 0 && cancelledCount === 0) {
     content = `<div class="history-empty-state history-empty-search">No queries found matching "${searchTerm}".</div>`;
   } else {
-    const runningSection = buildHistorySection('running', runningCount, runningRows, runningTableHead, 'No running queries right now.', openSection === 'running');
-    const doneSection = buildHistorySection('complete', doneCount, doneRows, completedTableHead, 'No completed queries yet.', openSection === 'complete');
-    const failedSection = buildHistorySection('failed', failedCount, failedRows, failedTableHead, 'No failed or interrupted queries.', openSection === 'failed');
-    const cancelledSection = buildHistorySection('canceled', cancelledCount, cancelledRows, cancelledTableHead, 'No cancelled queries yet.', openSection === 'canceled');
+    const sections = [
+      {
+        key: 'running',
+        count: runningCount,
+        rows: runningRows,
+        tableHead: runningTableHead,
+        emptyMessage: 'No running queries right now.'
+      },
+      {
+        key: 'complete',
+        count: doneCount,
+        rows: doneRows,
+        tableHead: completedTableHead,
+        emptyMessage: 'No completed queries yet.'
+      },
+      {
+        key: 'failed',
+        count: failedCount,
+        rows: failedRows,
+        tableHead: failedTableHead,
+        emptyMessage: 'No failed or interrupted queries.'
+      },
+      {
+        key: 'canceled',
+        count: cancelledCount,
+        rows: cancelledRows,
+        tableHead: cancelledTableHead,
+        emptyMessage: 'No cancelled queries yet.'
+      }
+    ];
+    const historyMonitor = buildHistoryMonitor(openSection, sections);
+    const runningSection = buildHistorySection('running', runningCount, openSection === 'running');
+    const doneSection = buildHistorySection('complete', doneCount, openSection === 'complete');
+    const failedSection = buildHistorySection('failed', failedCount, openSection === 'failed');
+    const cancelledSection = buildHistorySection('canceled', cancelledCount, openSection === 'canceled');
 
     content = `
       <section class="history-editorial-hero">
@@ -974,11 +1069,12 @@ function renderQueries(){
           </div>
         </div>
       </section>
-      <div class="history-bookshelf">
+      <div class="history-bookshelf${openSection ? ' monitor-active' : ''}">
         ${runningSection}
         ${doneSection}
         ${failedSection}
         ${cancelledSection}
+        ${historyMonitor}
       </div>
     `;
   }
