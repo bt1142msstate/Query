@@ -1097,11 +1097,49 @@
   filter: drop-shadow(0 0 8px rgba(69, 235, 255, 0.18));
 }
 
-#toggle-queries .history-animated circle,
-#toggle-queries .history-animated path,
-#mobile-toggle-queries .history-animated circle,
-#mobile-toggle-queries .history-animated path {
+#toggle-queries .history-animated .clock-ring,
+#toggle-queries .history-animated .clock-scan-ring,
+#toggle-queries .history-animated .clock-sweep,
+#mobile-toggle-queries .history-animated .clock-ring,
+#mobile-toggle-queries .history-animated .clock-scan-ring,
+#mobile-toggle-queries .history-animated .clock-sweep {
   stroke: currentColor;
+}
+
+#toggle-queries .history-animated .clock-ring,
+#mobile-toggle-queries .history-animated .clock-ring {
+  opacity: 0.72;
+}
+
+#toggle-queries .history-animated .clock-scan-ring,
+#mobile-toggle-queries .history-animated .clock-scan-ring {
+  opacity: 0.78;
+  transform-origin: 12px 12px;
+  animation: scanRingDrift 3.2s linear infinite;
+}
+
+#toggle-queries .history-animated .clock-sweep,
+#mobile-toggle-queries .history-animated .clock-sweep {
+  opacity: 0.94;
+  filter: drop-shadow(0 0 6px rgba(69, 235, 255, 0.2));
+}
+
+#toggle-queries .history-animated .clock-core,
+#mobile-toggle-queries .history-animated .clock-core {
+  fill: #8ff8ff;
+  filter: drop-shadow(0 0 6px rgba(143, 248, 255, 0.5));
+  transform-origin: 12px 12px;
+  animation: clockCorePulse 2.4s ease-in-out infinite;
+}
+
+#toggle-queries .history-animated .clock-core-halo,
+#mobile-toggle-queries .history-animated .clock-core-halo {
+  stroke: rgba(255, 107, 151, 0.9);
+  stroke-width: 1.1;
+  opacity: 0.68;
+  filter: drop-shadow(0 0 8px rgba(255, 107, 151, 0.22));
+  transform-origin: 12px 12px;
+  animation: clockHaloPulse 2.4s ease-in-out infinite;
 }
 
 #toggle-queries .history-animated .clock-hour line,
@@ -1120,6 +1158,18 @@
 #toggle-queries:focus-visible .history-animated,
 #mobile-toggle-queries:hover .history-animated {
   color: #a6f8ff;
+}
+
+#toggle-queries:hover .history-animated .clock-scan-ring,
+#toggle-queries:focus-visible .history-animated .clock-scan-ring,
+#mobile-toggle-queries:hover .history-animated .clock-scan-ring {
+  animation-duration: 1.4s;
+}
+
+#toggle-queries:hover .history-animated .clock-core,
+#toggle-queries:focus-visible .history-animated .clock-core,
+#mobile-toggle-queries:hover .history-animated .clock-core {
+  fill: #ecfdff;
 }
 
 .history-animated .clock-hour {
@@ -1143,6 +1193,41 @@
 }
 @keyframes minuteHandAnim {
   100% { transform: rotate(360deg); }
+}
+
+@keyframes scanRingDrift {
+  0% {
+    transform: rotate(0deg);
+    stroke-dashoffset: 0;
+  }
+  100% {
+    transform: rotate(360deg);
+    stroke-dashoffset: -26;
+  }
+}
+
+@keyframes clockCorePulse {
+  0%,
+  100% {
+    opacity: 0.92;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes clockHaloPulse {
+  0%,
+  100% {
+    opacity: 0.42;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.12);
+  }
 }
 
 /* Template description width */
