@@ -363,7 +363,7 @@ function moveColumnGroup(table, groupIndices, targetIndex) {
       const th = document.createElement('th');
       th.draggable = true;
       th.dataset.colIndex = index;
-      th.className = 'px-6 py-3 text-left text-xs font-medium uppercase tracking-wider bg-gray-50';
+      th.className = 'px-6 py-3 text-center text-xs font-medium uppercase tracking-wider bg-gray-50';
       
       if (fieldExistsInData) {
         th.classList.add('text-gray-500');

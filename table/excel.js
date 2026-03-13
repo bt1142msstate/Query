@@ -314,6 +314,14 @@ const ExcelExporter = (() => {
       rows: tableRows
     });
 
+    worksheet.getRow(1).eachCell(cell => {
+      cell.alignment = {
+        ...(cell.alignment || {}),
+        horizontal: 'center',
+        vertical: 'middle'
+      };
+    });
+
     const safeFileName = tableName.replace(/[^a-zA-Z0-9\-_\s]/g, '').replace(/\s+/g, '-');
     const filename = `${safeFileName}.xlsx`;
 
