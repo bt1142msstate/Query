@@ -1,248 +1,261 @@
-/* ---------- Table morph animation ---------- */
+/* ---------- Table morph animation — 3-D Bookshelf ---------- */
 function createTableQueryCircuitOverlay() {
-  const circuit = document.createElement('div');
-  circuit.id = 'table-query-circuit';
-  circuit.className = 'table-query-circuit';
+  const container = document.createElement('div');
+  container.id   = 'table-query-circuit';
+  container.className = 'table-query-bookshelf';
 
-  const cols = 12;
-  const rows = 10;
-  const xMin = 8;
-  const yMin = 9;
-  const xStep = 84 / (cols - 1);
-  const yStep = 80 / (rows - 1);
+  /* Canvas that Three.js will render into */
+  const canvas = document.createElement('canvas');
+  canvas.width  = 350;
+  canvas.height = 350;
+  canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border-radius:inherit;display:block;';
+  container.appendChild(canvas);
 
-  const colors = ['#22d3ee', '#38bdf8', '#34d399', '#facc15'];
-  const segments = [];
-  const segmentIndex = new Map();
-  const usedNodes = new Map();
-  const busRows = [randomInt(2, 3), randomInt(rows - 4, rows - 3)].sort((a, b) => a - b);
-  const busCols = [randomInt(2, 3), randomInt(cols - 4, cols - 3)].sort((a, b) => a - b);
-  const serviceRows = [1, rows - 2];
+  /* ── start / stop hooks called by the lifecycle functions below ── */
+  container._startAnimation = function () {
+    if (container._threeRunning || typeof THREE === 'undefined') return;
+    container._threeRunning = true;
 
-  function point(col, row) {
-    return {
-      col,
-      row,
-      x: xMin + col * xStep,
-      y: yMin + row * yStep,
-      key: `${col},${row}`
-    };
-  }
+    const W = 350, H = 350;
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+    renderer.setSize(W, H);
+    renderer.setPixelRatio(1);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container._renderer = renderer;
 
-  function addNodeUsage(pt) {
-    usedNodes.set(pt.key, (usedNodes.get(pt.key) || 0) + 1);
-  }
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x110905);
+    scene.fog = new THREE.FogExp2(0x110905, 0.15);
 
-  function addSegment(a, b, options = {}) {
-    if (!a || !b) return;
-    if (a.key === b.key) return;
-    if (a.col !== b.col && a.row !== b.row) return;
+    const camera = new THREE.PerspectiveCamera(50, W / H, 0.1, 30);
+    camera.position.set(0, 0.35, 4.4);
+    camera.lookAt(0, 0.1, 0);
 
-    const key = [a.key, b.key].sort().join('|');
-    if (segmentIndex.has(key)) {
-      const existing = segments[segmentIndex.get(key)];
-      existing.width = Math.max(existing.width, options.width || 3);
-      existing.pulseChance = Math.max(existing.pulseChance, options.pulseChance || 0);
-      return;
-    }
+    /* ── Lights ── */
+    scene.add(new THREE.AmbientLight(0xfff0d8, 0.5));
 
-    segmentIndex.set(key, segments.length);
-    segments.push({
-      a,
-      b,
-      width: options.width || 3,
-      pulseChance: options.pulseChance ?? 0.35
+    const mainLight = new THREE.DirectionalLight(0xffebc8, 0.85);
+    mainLight.position.set(2, 5, 4);
+    mainLight.castShadow = true;
+    scene.add(mainLight);
+
+    const fillLight = new THREE.PointLight(0xff9940, 0.45, 14);
+    fillLight.position.set(-2, -0.5, 3);
+    scene.add(fillLight);
+
+    const scanLight = new THREE.PointLight(0x00e8ff, 0, 5);
+    scene.add(scanLight);
+
+    /* ── Shelf materials ── */
+    const shelfMat     = new THREE.MeshStandardMaterial({ color: 0x7a4f28, roughness: 0.85, metalness: 0.05 });
+    const shelfDarkMat = new THREE.MeshStandardMaterial({ color: 0x4e2f0f, roughness: 0.90, metalness: 0.00 });
+
+    /* Bookcase dimensions */
+    const SW = 3.8, SD = 0.32, ST = 0.07, SBH = 2.5, yBase = -1.05;
+
+    /* Back panel */
+    const back = new THREE.Mesh(new THREE.BoxGeometry(SW + 0.14, SBH + 0.1, 0.04), shelfDarkMat);
+    back.position.set(0, yBase + SBH / 2, -SD / 2 - 0.02);
+    back.receiveShadow = true;
+    scene.add(back);
+
+    /* Top & bottom rails */
+    [yBase, yBase + SBH].forEach(y => {
+      const b = new THREE.Mesh(new THREE.BoxGeometry(SW + 0.14, ST, SD + 0.08), shelfMat);
+      b.position.set(0, y, 0);
+      b.castShadow = true; b.receiveShadow = true;
+      scene.add(b);
     });
-    addNodeUsage(a);
-    addNodeUsage(b);
-  }
 
-  function addPath(points, options = {}) {
-    for (let i = 0; i < points.length - 1; i++) {
-      addSegment(points[i], points[i + 1], options);
-    }
-  }
+    /* Side panels */
+    [-SW / 2 - 0.05, SW / 2 + 0.05].forEach(x => {
+      const s = new THREE.Mesh(new THREE.BoxGeometry(0.08, SBH + 0.1, SD + 0.08), shelfMat);
+      s.position.set(x, yBase + SBH / 2, 0);
+      s.castShadow = true; s.receiveShadow = true;
+      scene.add(s);
+    });
 
-  function randomInt(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-  }
+    /* Two inner shelf boards */
+    const shelfYs = [yBase + 0.28, yBase + 0.28 + (SBH - 0.28) / 2];
+    shelfYs.forEach(y => {
+      const sh = new THREE.Mesh(new THREE.BoxGeometry(SW, ST, SD), shelfMat);
+      sh.position.set(0, y, 0);
+      sh.castShadow = true; sh.receiveShadow = true;
+      scene.add(sh);
+    });
 
-  function nearestValue(value, candidates) {
-    return candidates.reduce((best, candidate) => {
-      return Math.abs(candidate - value) < Math.abs(best - value) ? candidate : best;
-    }, candidates[0]);
-  }
+    /* ── Books ── */
+    const palette = [
+      0xc0392b, 0x2980b9, 0x27ae60, 0xe67e22, 0x8e44ad,
+      0x16a085, 0xdc143c, 0x2c3e50, 0xd35400, 0x1abc9c,
+      0x6c5ce7, 0xe84393, 0x0984e3, 0xf9ca24, 0x00b894,
+      0xa29bfe, 0xfd79a8, 0x55efc4, 0xe55039, 0x74b9ff,
+    ];
 
-  function routePadToNetwork(pad) {
-    const padPoint = pad.point;
+    const allBooks = [];
 
-    if (pad.side === 'left' || pad.side === 'right') {
-      const targetCol = pad.side === 'left' ? busCols[0] : busCols[busCols.length - 1];
-      const targetRow = nearestValue(padPoint.row, busRows);
-      addPath([
-        padPoint,
-        point(targetCol, padPoint.row),
-        point(targetCol, targetRow)
-      ], { width: 2, pulseChance: 0.22 });
-      return;
-    }
+    shelfYs.forEach(shelfY => {
+      const floorY = shelfY + ST / 2;
+      let x = -SW / 2 + 0.07;
+      while (x < SW / 2 - 0.1) {
+        const bW = 0.11  + Math.random() * 0.09;
+        const bH = 0.36  + Math.random() * 0.32;
+        const bD = SD * 0.78;
+        if (x + bW > SW / 2 - 0.07) break;
 
-    const targetRow = pad.side === 'top' ? busRows[0] : busRows[busRows.length - 1];
-    const targetCol = nearestValue(padPoint.col, busCols);
-    addPath([
-      padPoint,
-      point(padPoint.col, targetRow),
-      point(targetCol, targetRow)
-    ], { width: 2, pulseChance: 0.2 });
-  }
+        const color = palette[Math.floor(Math.random() * palette.length)];
+        const mat = new THREE.MeshStandardMaterial({
+          color, roughness: 0.72, metalness: 0.05,
+          emissive: new THREE.Color(color), emissiveIntensity: 0,
+        });
+        const mesh = new THREE.Mesh(new THREE.BoxGeometry(bW, bH, bD), mat);
+        const bX = x + bW / 2;
+        const bY = floorY + bH / 2;
+        mesh.position.set(bX, bY, 0);
+        mesh.castShadow = true; mesh.receiveShadow = true;
+        scene.add(mesh);
 
-  function createChip(col, row, width, height) {
-    const pads = [];
+        /* Spine highlight strips */
+        const sMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.14 });
+        [bH * 0.28, -bH * 0.05].forEach(sy => {
+          const strip = new THREE.Mesh(new THREE.BoxGeometry(bW * 0.85, 0.018, 0.001), sMat);
+          strip.position.set(0, sy, bD / 2 + 0.001);
+          mesh.add(strip);
+        });
 
-    const padRows = Array.from({ length: height }, (_, index) => row + index);
-    const padCols = Array.from({ length: width }, (_, index) => col + index);
-
-    if (col - 1 >= 1) {
-      addSegment(point(col - 1, row), point(col - 1, row + height - 1), { width: 2, pulseChance: 0.12 });
-      padRows.forEach(padRow => {
-        const pad = { point: point(col - 1, padRow), side: 'left' };
-        pads.push(pad);
-        addNodeUsage(pad.point);
-      });
-    }
-
-    if (col + width <= cols - 2) {
-      addSegment(point(col + width, row), point(col + width, row + height - 1), { width: 2, pulseChance: 0.12 });
-      padRows.forEach(padRow => {
-        const pad = { point: point(col + width, padRow), side: 'right' };
-        pads.push(pad);
-        addNodeUsage(pad.point);
-      });
-    }
-
-    if (Math.random() < 0.7 && row - 1 >= 1) {
-      padCols.forEach((padCol, index) => {
-        if (index !== 0 && index !== padCols.length - 1 && Math.random() < 0.45) return;
-        const pad = { point: point(padCol, row - 1), side: 'top' };
-        pads.push(pad);
-        addNodeUsage(pad.point);
-      });
-    }
-
-    if (Math.random() < 0.8 && row + height <= rows - 2) {
-      padCols.forEach((padCol, index) => {
-        if (index !== 0 && index !== padCols.length - 1 && Math.random() < 0.45) return;
-        const pad = { point: point(padCol, row + height), side: 'bottom' };
-        pads.push(pad);
-        addNodeUsage(pad.point);
-      });
-    }
-
-    pads
-      .filter((_, index) => index % 2 === 0 || Math.random() < 0.28)
-      .forEach(routePadToNetwork);
-  }
-
-  function createBottomConnectorBank() {
-    const count = randomInt(5, 7);
-    const startCol = randomInt(3, cols - count - 2);
-
-    for (let index = 0; index < count; index++) {
-      const col = startCol + index;
-
-      const feedPoint = point(col, rows - 2);
-      addNodeUsage(feedPoint);
-
-      if (index % 2 === 0 || Math.random() < 0.4) {
-        addPath([
-          feedPoint,
-          point(col, busRows[busRows.length - 1]),
-          point(nearestValue(col, busCols), busRows[busRows.length - 1])
-        ], { width: 2, pulseChance: 0.16 });
+        allBooks.push({ mesh, mat, color, origX: bX, origY: bY, origZ: 0, width: bW, height: bH });
+        x += bW + 0.006 + Math.random() * 0.016;
       }
-    }
-  }
+    });
 
-  busRows.forEach(row => addSegment(point(1, row), point(cols - 2, row), { width: 4, pulseChance: 0.72 }));
-  busCols.forEach(col => addSegment(point(col, 1), point(col, rows - 2), { width: 4, pulseChance: 0.64 }));
-  serviceRows.forEach(row => addSegment(point(2, row), point(cols - 3, row), { width: 2, pulseChance: 0.14 }));
+    /* ── Scan beam — thin horizontal stripe that sweeps vertically ── */
+    const beamMat = new THREE.MeshBasicMaterial({
+      color: 0x00ffea, transparent: true, opacity: 0.85,
+      side: THREE.DoubleSide, depthWrite: false,
+    });
+    const scanBeam = new THREE.Mesh(new THREE.PlaneGeometry(1, 0.032), beamMat);
+    scanBeam.visible = false;
+    scene.add(scanBeam);
 
-  const chipCandidates = [
-    { col: randomInt(3, 4), row: randomInt(2, 3), width: randomInt(2, 3), height: randomInt(2, 3) },
-    { col: randomInt(6, 7), row: randomInt(2, 4), width: randomInt(2, 3), height: randomInt(2, 3) },
-    { col: randomInt(4, 6), row: randomInt(5, 6), width: 2, height: randomInt(2, 3), optional: true }
-  ];
+    /* Soft glow halo behind the beam */
+    const haloMat = new THREE.MeshBasicMaterial({
+      color: 0x00ffea, transparent: true, opacity: 0.2,
+      side: THREE.DoubleSide, depthWrite: false,
+    });
+    const scanHalo = new THREE.Mesh(new THREE.PlaneGeometry(1, 0.22), haloMat);
+    scanHalo.visible = false;
+    scene.add(scanHalo);
 
-  chipCandidates.forEach(candidate => {
-    if (candidate.optional && Math.random() < 0.45) return;
-    createChip(candidate.col, candidate.row, candidate.width, candidate.height);
-  });
+    /* ── Animation state machine ── */
+    const T_IDLE = 0.45, T_PULL = 0.7, T_SCAN = 1.4, T_PUSH = 0.6;
+    const PULL_Z = 1.15, LIFT_Y = 0.1;
+    let state = 'idle', timer = 0, camBobT = 0, scanAngle = 0;
+    let currentBook = null, lastBook = null;
 
-  createBottomConnectorBank();
-
-  for (let i = 0; i < randomInt(2, 4); i++) {
-    const trunkCol = busCols[randomInt(0, busCols.length - 1)];
-    const stubRow = nearestValue(randomInt(2, rows - 3), busRows);
-    const direction = Math.random() < 0.5 ? -1 : 1;
-    const endRow = Math.max(1, Math.min(rows - 2, stubRow + direction * randomInt(1, 2)));
-    addSegment(point(trunkCol, stubRow), point(trunkCol, endRow), { width: 2, pulseChance: 0.14 });
-  }
-
-  for (let i = 0; i < randomInt(2, 3); i++) {
-    const serviceRow = serviceRows[randomInt(0, serviceRows.length - 1)];
-    const startCol = randomInt(2, cols - 4);
-    const endCol = Math.min(cols - 3, startCol + randomInt(1, 2));
-    addSegment(point(startCol, serviceRow), point(endCol, serviceRow), { width: 2, pulseChance: 0.12 });
-  }
-
-  segments.forEach(({ a, b, width, pulseChance }) => {
-    const trace = document.createElement('div');
-    trace.className = 'table-query-circuit-trace';
-
-    const angle = a.row === b.row ? 0 : 90;
-    const length = Math.hypot(b.x - a.x, b.y - a.y);
-    const pulseDuration = Math.max(0.52, length / 26);
-    const centerX = (a.x + b.x) / 2;
-    const centerY = (a.y + b.y) / 2;
-    const colorA = colors[Math.floor(Math.random() * colors.length)];
-    const colorB = colors[Math.floor(Math.random() * colors.length)];
-
-    trace.style.setProperty('--trace-angle', `${angle}deg`);
-    trace.style.setProperty('--trace-len', `${length.toFixed(2)}%`);
-    trace.style.setProperty('--trace-x', `${centerX.toFixed(2)}%`);
-    trace.style.setProperty('--trace-y', `${centerY.toFixed(2)}%`);
-    trace.style.setProperty('--trace-thickness', `${width}px`);
-    trace.style.setProperty('--trace-color-a', colorA);
-    trace.style.setProperty('--trace-color-b', colorB);
-    trace.style.setProperty('--trace-flicker-delay', `${(-Math.random() * 3).toFixed(2)}s`);
-
-    if (Math.random() < pulseChance) {
-      const pulse = document.createElement('span');
-      pulse.className = 'table-query-circuit-pulse';
-      pulse.style.setProperty('--pulse-duration', `${pulseDuration.toFixed(2)}s`);
-      pulse.style.setProperty('--pulse-delay', `${(-Math.random() * 1.6).toFixed(2)}s`);
-      pulse.style.setProperty('--pulse-color', colorA);
-      pulse.style.setProperty('--pulse-size', `${Math.max(7, width + 5)}px`);
-      trace.appendChild(pulse);
+    function ease(t) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; }
+    function pickBook() {
+      const pool = allBooks.filter(b => b !== lastBook);
+      return pool[Math.floor(Math.random() * pool.length)];
     }
 
-    circuit.appendChild(trace);
-  });
+    let prevT = performance.now();
 
-  usedNodes.forEach((degree, key) => {
-    const [colRaw, rowRaw] = key.split(',');
-    const col = Number(colRaw);
-    const row = Number(rowRaw);
-    const node = document.createElement('div');
-    node.className = 'table-query-circuit-node';
-    node.style.left = `${(xMin + col * xStep).toFixed(2)}%`;
-    node.style.top = `${(yMin + row * yStep).toFixed(2)}%`;
-    node.style.setProperty('--node-size', degree >= 3 ? '8px' : '6px');
-    node.style.setProperty('--node-delay', `${(-Math.random() * 2).toFixed(2)}s`);
-    circuit.appendChild(node);
-  });
+    function tick() {
+      if (!container._threeRunning) return;
+      container._raf = requestAnimationFrame(tick);
 
-  return circuit;
+      const now = performance.now();
+      const dt  = Math.min((now - prevT) / 1000, 0.05);
+      prevT = now;
+      timer    += dt;
+      camBobT  += dt;
+
+      /* Gentle camera sway */
+      camera.position.y = 0.35 + Math.sin(camBobT * 0.38) * 0.045;
+      camera.position.x = Math.sin(camBobT * 0.22) * 0.09;
+      camera.lookAt(0, 0.1, 0);
+
+      /* ── states ── */
+      if (state === 'idle') {
+        if (timer >= T_IDLE) { currentBook = pickBook(); timer = 0; state = 'pulling'; }
+
+      } else if (state === 'pulling') {
+        const e = ease(Math.min(timer / T_PULL, 1));
+        currentBook.mesh.position.z = e * PULL_Z;
+        currentBook.mesh.position.y = currentBook.origY + e * LIFT_Y;
+        scanLight.position.copy(currentBook.mesh.position);
+        scanLight.intensity = e * 1.2;
+        if (timer >= T_PULL) { state = 'scanning'; timer = 0; scanAngle = 0; }
+
+      } else if (state === 'scanning') {
+        const tFrac = Math.min(timer / T_SCAN, 1);
+
+        /* Slight tilt — like turning the book to inspect the barcode */
+        currentBook.mesh.rotation.y = Math.sin(tFrac * Math.PI * 2) * 0.18;
+
+        /* Emissive colour pulse */
+        currentBook.mat.emissiveIntensity = 0.14 + Math.abs(Math.sin(timer * 7.5)) * 0.18;
+
+        /* Sweep the scan beam top → bottom */
+        const bookTop = currentBook.origY + LIFT_Y + currentBook.height / 2;
+        const bookBot = currentBook.origY + LIFT_Y - currentBook.height / 2;
+        const beamY   = bookTop + (bookBot - bookTop) * tFrac;
+
+        scanBeam.scale.x = currentBook.width * 1.18;
+        scanBeam.position.set(currentBook.mesh.position.x, beamY, currentBook.mesh.position.z + 0.09);
+        scanBeam.visible = true;
+        beamMat.opacity  = 0.72 + Math.sin(tFrac * Math.PI) * 0.2;
+
+        scanHalo.scale.x = currentBook.width * 1.45;
+        scanHalo.position.copy(scanBeam.position);
+        scanHalo.position.z -= 0.01;
+        scanHalo.visible = true;
+
+        /* Orbiting point light for coloured spill on nearby books */
+        scanAngle += dt * 4.5;
+        scanLight.position.set(
+          currentBook.mesh.position.x + Math.cos(scanAngle) * 0.3,
+          currentBook.mesh.position.y + Math.sin(scanAngle * 0.7) * 0.18,
+          currentBook.mesh.position.z + 0.2
+        );
+        scanLight.intensity = 1.4 + Math.sin(scanAngle) * 0.35;
+
+        if (tFrac >= 1) {
+          currentBook.mesh.rotation.set(0, 0, 0);
+          currentBook.mat.emissiveIntensity = 0;
+          scanBeam.visible = false;
+          scanHalo.visible = false;
+          scanLight.intensity = 0;
+          state = 'pushing'; timer = 0;
+        }
+
+      } else if (state === 'pushing') {
+        const e = ease(Math.min(timer / T_PUSH, 1));
+        currentBook.mesh.position.z = (1 - e) * PULL_Z;
+        currentBook.mesh.position.y = currentBook.origY + (1 - e) * LIFT_Y;
+        scanLight.intensity = (1 - e) * 0.5;
+        if (timer >= T_PUSH) {
+          currentBook.mesh.position.set(currentBook.origX, currentBook.origY, currentBook.origZ);
+          scanLight.intensity = 0;
+          lastBook = currentBook; currentBook = null;
+          state = 'idle'; timer = 0;
+        }
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    tick();
+  };
+
+  container._stopAnimation = function () {
+    container._threeRunning = false;
+    if (container._raf)      { cancelAnimationFrame(container._raf); container._raf = null; }
+    if (container._renderer) { container._renderer.dispose();        container._renderer = null; }
+  };
+
+  return container;
 }
 
 window.startTableQueryAnimation = function() {
@@ -275,6 +288,7 @@ window.startTableQueryAnimation = function() {
   bubble.style.borderRadius = '1.5rem';
 
   document.body.appendChild(bubble);
+  if (circuit._startAnimation) circuit._startAnimation();
   tableContainer.classList.add('table-container-hidden');
 
   const filterPanel = document.getElementById('filter-side-panel');
@@ -316,6 +330,7 @@ window.endTableQueryAnimation = function() {
   if (circuit && circuit.classList.contains('active')) {
     circuit.classList.add('fading-out');
     circuit.classList.remove('active');
+    if (circuit._stopAnimation) circuit._stopAnimation();
     setTimeout(() => {
       startExpansionMorph();
     }, circuitFadeDuration + circuitFadeLead);
