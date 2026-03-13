@@ -22,6 +22,14 @@ const dom = window.DOM;
 /* --- Run / Stop query toggle --- */
 // queryRunning state is tracked in window.queryRunning (from queryState.js)
 let currentQueryId = null;
+window.queryPageIsUnloading = false;
+
+function markQueryPageUnload() {
+  window.queryPageIsUnloading = true;
+}
+
+window.addEventListener('beforeunload', markQueryPageUnload);
+window.addEventListener('pagehide', markQueryPageUnload);
 
 // updateButtonStates is now in queryUI.js - relying on window.updateButtonStates
 // Initial check
@@ -198,6 +206,7 @@ if(dom.runBtn){
             headers: {
                 'Content-Type': 'application/json'
             },
+          keepalive: true,
             body: JSON.stringify(payload)
         });
         
@@ -331,6 +340,11 @@ if(dom.runBtn){
         showToastMessage(`Query completed. Loaded ${rows.length} results.`, 'success');
 
       } catch (error) {
+         if (window.queryPageIsUnloading) {
+           console.info('Query request interrupted by navigation; skipping failure handling.');
+           return;
+         }
+
         // Checking if the query was manually stopped by the user
         if (!window.queryRunning) {
              console.log('Query execution interrupted by user stop/cancel.');

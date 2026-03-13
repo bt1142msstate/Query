@@ -96,6 +96,74 @@ function buildHistorySection(sectionKey, count, rows, tableHead, emptyMessage, o
   `;
 }
 
+function appendUniqueColumn(target, fieldName) {
+  if (!fieldName || target.includes(fieldName)) return;
+  target.push(fieldName);
+}
+
+function resolveSpecialPayloadFieldNames(specialFields) {
+  if (!Array.isArray(specialFields) || !Array.isArray(window.fieldDefsArray)) {
+    return [];
+  }
+
+  return specialFields.reduce((resolved, payload) => {
+    const match = window.fieldDefsArray.find(fieldDef => {
+      if (!fieldDef || !fieldDef.special_payload) return false;
+      return JSON.stringify(fieldDef.special_payload) === JSON.stringify(payload);
+    });
+
+    if (match) {
+      appendUniqueColumn(resolved, match.name);
+    }
+
+    return resolved;
+  }, []);
+}
+
+function buildUiConfigFromRequest(request) {
+  if (!request || typeof request !== 'object') {
+    return null;
+  }
+
+  const desiredColumns = [];
+  const specialFields = Array.isArray(request.special_fields)
+    ? request.special_fields.map(field => (field && typeof field === 'object' ? { ...field } : field))
+    : [];
+
+  (request.display_fields || []).forEach(fieldName => appendUniqueColumn(desiredColumns, fieldName));
+  resolveSpecialPayloadFieldNames(specialFields).forEach(fieldName => appendUniqueColumn(desiredColumns, fieldName));
+
+  const uiConfig = {
+    DesiredColumnOrder: desiredColumns,
+    Filters: [],
+    SpecialFields: specialFields
+  };
+
+  if (Array.isArray(request.filters)) {
+    request.filters.forEach(f => {
+      let opName = 'Equals';
+      if (f.operator === '>') opName = 'GreaterThan';
+      else if (f.operator === '<') opName = 'LessThan';
+      else if (f.operator === '>=') opName = 'GreaterThanOrEqual';
+      else if (f.operator === '<=') opName = 'LessThanOrEqual';
+      else if (f.operator === '!=') opName = String(f.value || '').includes('*') ? 'DoesNotContain' : 'DoesNotEqual';
+      else if (f.operator === '=') {
+        if (String(f.value || '').startsWith('*') || String(f.value || '').endsWith('*')) {
+          opName = 'Contains';
+        }
+      }
+
+      uiConfig.Filters.push({
+        FieldName: f.field,
+        FieldOperator: opName,
+        Values: [f.value]
+      });
+    });
+  }
+
+  return uiConfig;
+}
+
 /**
  * Fetches status of all queries from the backend.
  * Updates the local query history with current status.
@@ -128,32 +196,7 @@ async function fetchQueryStatus() {
         if (sq.request && sq.request.ui_config) {
             jsonConfig = sq.request.ui_config;
         } else if (sq.request) {
-            // Fallback: reconstruct minimal config from raw request
-            jsonConfig = {
-                DesiredColumnOrder: sq.request.display_fields || [],
-          Filters: []
-            };
-            if (sq.request.filters && sq.request.filters.length > 0) {
-                 sq.request.filters.forEach(f => {
-                 let opName = 'Equals';
-                 if (f.operator === '>') opName = 'GreaterThan';
-                 else if (f.operator === '<') opName = 'LessThan';
-                 else if (f.operator === '>=') opName = 'GreaterThanOrEqual';
-                 else if (f.operator === '<=') opName = 'LessThanOrEqual';
-                 else if (f.operator === '!=') opName = String(f.value || '').includes('*') ? 'DoesNotContain' : 'DoesNotEqual';
-                 else if (f.operator === '=') {
-                   if (String(f.value || '').startsWith('*') || String(f.value || '').endsWith('*')) {
-                     opName = 'Contains';
-                   }
-                 }
-                 
-                 jsonConfig.Filters.push({
-                    FieldName: f.field,
-                    FieldOperator: opName,
-                    Values: [f.value]
-                 });
-                 });
-            }
+            jsonConfig = buildUiConfigFromRequest(sq.request);
         }
         
         const qData = {
@@ -309,8 +352,16 @@ function loadQueryConfig(q) {
   }
   
   // Load fields
+  const desiredColumns = Array.isArray(q.jsonConfig.DesiredColumnOrder)
+    ? [...q.jsonConfig.DesiredColumnOrder]
+    : [];
+  const resolvedSpecialFields = resolveSpecialPayloadFieldNames(
+    q.jsonConfig.SpecialFields || q.jsonConfig.specialFields || []
+  );
+  resolvedSpecialFields.forEach(fieldName => appendUniqueColumn(desiredColumns, fieldName));
+
   window.displayedFields.length = 0; // Clear existing array
-  window.displayedFields.push(...q.jsonConfig.DesiredColumnOrder);
+  window.displayedFields.push(...desiredColumns);
 
   // Register any dynamically-built fields (e.g. Marc590) that may not exist
   // in the current session's fieldDefs registry.
