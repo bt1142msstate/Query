@@ -198,13 +198,44 @@ window.buildQueryUiConfig = function() {
   const backendFilters = typeof window.buildBackendFilters === 'function'
     ? window.buildBackendFilters()
     : [];
+  const specialFields = typeof window.collectCurrentSpecialFields === 'function'
+    ? window.collectCurrentSpecialFields()
+    : [];
 
   const query = {
     DesiredColumnOrder: window.getNormalizedDisplayedFields(),
-    Filters: backendFilters.map(filter => ({ ...filter }))
+    Filters: backendFilters.map(filter => ({ ...filter })),
+    SpecialFields: specialFields.map(field => (field && typeof field === 'object' ? { ...field } : field))
   };
 
   return query;
+};
+
+window.collectCurrentSpecialFields = function() {
+  const specialFields = [];
+
+  const appendSpecialPayload = fieldName => {
+    if (!fieldName || !window.fieldDefs) return;
+
+    const fieldDef = window.fieldDefs.get(fieldName);
+    if (!fieldDef || !fieldDef.special_payload) return;
+
+    const isDuplicate = specialFields.some(existing => JSON.stringify(existing) === JSON.stringify(fieldDef.special_payload));
+    if (!isDuplicate) {
+      specialFields.push(fieldDef.special_payload);
+    }
+  };
+
+  (window.displayedFields || []).forEach(appendSpecialPayload);
+
+  Object.entries(window.activeFilters || {}).forEach(([fieldName, filterGroup]) => {
+    if (!filterGroup || !Array.isArray(filterGroup.filters) || filterGroup.filters.length === 0) {
+      return;
+    }
+    appendSpecialPayload(fieldName);
+  });
+
+  return specialFields;
 };
 
 window.buildBackendFilters = function() {
@@ -232,15 +263,13 @@ window.buildBackendFilters = function() {
 
 window.buildBackendQueryPayload = function(queryName = '') {
   const standardDisplayFields = [];
-  const specialFields = [];
+  const specialFields = typeof window.collectCurrentSpecialFields === 'function'
+    ? window.collectCurrentSpecialFields()
+    : [];
 
   window.displayedFields.forEach(field => {
     const fieldDef = window.fieldDefs ? window.fieldDefs.get(field) : null;
     if (fieldDef && fieldDef.special_payload) {
-      const isDuplicate = specialFields.some(existing => JSON.stringify(existing) === JSON.stringify(fieldDef.special_payload));
-      if (!isDuplicate) {
-        specialFields.push(fieldDef.special_payload);
-      }
       return;
     }
 
@@ -255,7 +284,7 @@ window.buildBackendQueryPayload = function(queryName = '') {
     name: queryName || undefined,
     filters: typeof window.buildBackendFilters === 'function' ? window.buildBackendFilters() : [],
     display_fields: standardDisplayFields,
-    special_fields: specialFields
+    special_fields: specialFields.map(field => (field && typeof field === 'object' ? { ...field } : field))
   };
 
   return payload;

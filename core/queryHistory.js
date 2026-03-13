@@ -320,6 +320,42 @@ function buildUiConfigFromRequest(request) {
   return uiConfig;
 }
 
+function mergeUiConfigWithRequest(uiConfig, request) {
+  const baseUiConfig = uiConfig && typeof uiConfig === 'object'
+    ? {
+        ...uiConfig,
+        DesiredColumnOrder: Array.isArray(uiConfig.DesiredColumnOrder) ? [...uiConfig.DesiredColumnOrder] : [],
+        Filters: typeof window.normalizeUiConfigFilters === 'function'
+          ? window.normalizeUiConfigFilters(uiConfig)
+          : (Array.isArray(uiConfig.Filters) ? uiConfig.Filters.map(filter => ({ ...filter })) : []),
+        SpecialFields: Array.isArray(uiConfig.SpecialFields)
+          ? uiConfig.SpecialFields.map(field => (field && typeof field === 'object' ? { ...field } : field))
+          : []
+      }
+    : {
+        DesiredColumnOrder: [],
+        Filters: [],
+        SpecialFields: []
+      };
+
+  const requestUiConfig = buildUiConfigFromRequest(request);
+  if (!requestUiConfig) {
+    return baseUiConfig;
+  }
+
+  requestUiConfig.DesiredColumnOrder.forEach(fieldName => appendUniqueColumn(baseUiConfig.DesiredColumnOrder, fieldName));
+
+  if (!baseUiConfig.Filters.length && requestUiConfig.Filters.length) {
+    baseUiConfig.Filters = requestUiConfig.Filters.map(filter => ({ ...filter }));
+  }
+
+  if (!baseUiConfig.SpecialFields.length && requestUiConfig.SpecialFields.length) {
+    baseUiConfig.SpecialFields = requestUiConfig.SpecialFields.map(field => (field && typeof field === 'object' ? { ...field } : field));
+  }
+
+  return baseUiConfig;
+}
+
 /**
  * Fetches status of all queries from the backend.
  * Updates the local query history with current status.
@@ -351,7 +387,7 @@ async function fetchQueryStatus() {
         // Prepare UI Config from request payload if available
         let jsonConfig = null;
         if (sq.request && sq.request.ui_config) {
-            jsonConfig = sq.request.ui_config;
+          jsonConfig = mergeUiConfigWithRequest(sq.request.ui_config, sq.request);
         } else if (sq.request) {
             jsonConfig = buildUiConfigFromRequest(sq.request);
         }
