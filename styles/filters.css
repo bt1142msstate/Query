@@ -18,17 +18,17 @@
   border-radius: 1.5rem;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.6);
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: hidden;
   opacity: 0;
   pointer-events: none;
-  transform: translate(-50%, -50%);
-  transition: opacity 0.2s ease;
+  transform: translate(-50%, -50%) scale(0.96);
+  transition: opacity 0.24s ease, transform 0.28s ease;
 }
 
 #filter-card.show {
   opacity: 1;
   pointer-events: auto;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(1);
 }
 
 #filter-card > * {
@@ -40,6 +40,10 @@
 #filter-card.content-ready > * {
   opacity: 1;
   transform: translateY(0) scale(1);
+}
+
+#filter-card.content-ready {
+  overflow-y: auto;
 }
 
 #filter-card-header {
