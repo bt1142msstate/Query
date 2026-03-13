@@ -659,6 +659,13 @@ function loadQueryConfig(q) {
     console.error('Query history module requires global access to query.js variables');
     return;
   }
+
+  const tableNameInput = window.DOM?.tableNameInput || document.getElementById('table-name-input');
+  if (tableNameInput) {
+    tableNameInput.value = q.name || '';
+    tableNameInput.classList.remove('error');
+    tableNameInput.dispatchEvent(new Event('input', { bubbles: true }));
+  }
   
   // Load fields
   const filters = typeof window.normalizeUiConfigFilters === 'function'

@@ -1054,6 +1054,9 @@ window.onDOMReady(() => {
     // Resize on input
     tableNameInput.addEventListener('input', () => {
       autoResizeInput();
+      if (window.updateQueryJson) {
+        window.updateQueryJson();
+      }
       updateButtonStates(); // Update download button state when table name changes
     });
     
