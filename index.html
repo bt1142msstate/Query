@@ -312,7 +312,7 @@
     <!-- JSON PANEL -->
     <div id="json-panel" class="w-full modal-panel hidden">
       <h2 class="mt-8 mb-0 px-3 py-2 bg-yellow-100 text-yellow-800 font-semibold text-sm uppercase tracking-wider border border-yellow-200 flex items-center justify-between">
-        <span>JSON</span>
+        <span>Query JSON</span>
         <div class="flex gap-2 ml-auto items-center">
           <button id="copy-json-btn"
                   class="p-1.5 rounded hover:bg-yellow-200 focus:outline-none transition-colors"
@@ -331,11 +331,23 @@
           </button>
         </div>
       </h2>
-      <textarea id="query-json"
-                class="w-full -mt-px p-4 border border-yellow-200 border-t-0 rounded-b bg-gray-50 font-mono text-sm resize-none"
-                rows="10"
-                readonly
-      ></textarea>
+      <div id="json-editor-shell" class="w-full -mt-px">
+        <div class="json-editor-topbar" aria-hidden="true">
+          <span class="json-editor-dot red"></span>
+          <span class="json-editor-dot amber"></span>
+          <span class="json-editor-dot green"></span>
+          <span class="json-editor-label">backend-query-payload.json</span>
+        </div>
+        <div id="query-json-tree" class="json-tree" role="tree" aria-label="Query JSON viewer"></div>
+        <textarea id="query-json"
+                  class="w-full font-mono text-sm resize-none"
+                  rows="10"
+                  readonly
+                  spellcheck="false"
+                  aria-hidden="true"
+                  tabindex="-1"
+        ></textarea>
+      </div>
     </div><!-- end json-panel -->
 
     <!-- QUERIES PANEL -->
