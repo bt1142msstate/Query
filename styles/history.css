@@ -172,7 +172,43 @@
   gap: 1rem;
   align-items: start;
   justify-content: center;
+  position: relative;
+  padding: 1.15rem 1.15rem 1.75rem;
+  border-radius: 30px;
+  background:
+    linear-gradient(180deg, rgba(119, 87, 54, 0.16), rgba(88, 58, 34, 0.08)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.1));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -22px 44px rgba(79, 52, 33, 0.12);
   perspective: 2400px;
+}
+
+.history-bookshelf::before {
+  content: '';
+  position: absolute;
+  inset: 0.9rem 0.75rem 1.35rem;
+  border-radius: 24px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(132, 95, 61, 0.16) 0 12px,
+      rgba(111, 76, 46, 0.14) 12px 24px
+    ),
+    linear-gradient(180deg, rgba(141, 105, 71, 0.2), rgba(95, 64, 38, 0.14));
+  box-shadow: inset 0 0 0 1px rgba(114, 80, 51, 0.16);
+  pointer-events: none;
+}
+
+.history-bookshelf::after {
+  content: '';
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: 0.7rem;
+  height: 18px;
+  border-radius: 999px 999px 18px 18px;
+  background: linear-gradient(180deg, rgba(156, 112, 69, 0.74), rgba(104, 69, 40, 0.88));
+  box-shadow: 0 14px 26px rgba(69, 44, 26, 0.18), inset 0 2px 0 rgba(255, 255, 255, 0.18);
+  pointer-events: none;
 }
 
 .history-book {
@@ -183,9 +219,11 @@
   background: linear-gradient(180deg, rgba(230, 236, 244, 0.36), rgba(216, 224, 236, 0.2));
   box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
   overflow: visible;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.48s cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 0.36s ease, filter 0.36s ease;
   transform-style: preserve-3d;
   justify-self: center;
+  transform: translate3d(0, 0, 0);
+  z-index: 1;
 }
 
 .history-book::before {
@@ -198,8 +236,35 @@
   z-index: 0;
 }
 
+.history-book::after {
+  content: '';
+  position: absolute;
+  left: 1.55rem;
+  right: 0.85rem;
+  bottom: -0.1rem;
+  height: 0.95rem;
+  border-radius: 999px;
+  background: radial-gradient(circle at center, rgba(54, 36, 21, 0.24), rgba(54, 36, 21, 0));
+  transform: translateY(0.55rem) scaleX(0.94);
+  filter: blur(4px);
+  opacity: 0.7;
+  z-index: -1;
+  transition: transform 0.42s ease, opacity 0.42s ease;
+}
+
+.history-book:hover {
+  transform: translate3d(0, -0.25rem, 28px);
+}
+
 .history-book[open] {
+  transform: translate3d(0, -0.45rem, 88px);
   box-shadow: 0 30px 54px rgba(15, 23, 42, 0.12);
+  z-index: 4;
+}
+
+.history-book[open]::after {
+  opacity: 0.9;
+  transform: translateY(0.95rem) scaleX(1.04);
 }
 
 .history-book.running {
@@ -303,7 +368,7 @@
     0 22px 38px rgba(15, 23, 42, 0.16);
   transform-origin: left center;
   transform-style: preserve-3d;
-  transition: transform 0.62s cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 0.35s ease;
+  transition: transform 0.72s cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 0.35s ease, filter 0.35s ease;
   backface-visibility: hidden;
   overflow: hidden;
 }
@@ -347,8 +412,9 @@
 }
 
 .history-book[open] .history-book-cover {
-  transform: rotateY(-108deg);
-  box-shadow: 18px 22px 28px rgba(15, 23, 42, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  transform: perspective(2000px) translate3d(0.4rem, -0.1rem, 92px) rotateY(-114deg);
+  box-shadow: 24px 26px 34px rgba(15, 23, 42, 0.14), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  filter: saturate(1.06) brightness(1.02);
 }
 
 .history-book-summary-main {
@@ -461,7 +527,7 @@
     -10px 0 0 rgba(255, 255, 255, 0.94),
     -18px 0 0 rgba(241, 245, 249, 0.92);
   opacity: 0;
-  transform: translateX(0.8rem) scaleX(0.94);
+  transform: translate3d(1rem, 0.15rem, 12px) scaleX(0.94);
   transform-origin: left center;
   transition: opacity 0.26s ease, transform 0.34s ease;
   pointer-events: auto;
@@ -470,7 +536,7 @@
 
 .history-book[open] .history-book-pages {
   opacity: 1;
-  transform: translateX(0) scaleX(1);
+  transform: translate3d(0, 0, 56px) scaleX(1);
 }
 
 .history-book[open] .history-book-body {
@@ -717,11 +783,13 @@
 
   .history-bookshelf {
     grid-template-columns: 1fr;
+    padding: 1rem 0.9rem 1.45rem;
   }
 
   .history-book {
     width: min(100%, 24rem);
     aspect-ratio: 5 / 6.4;
+    transform: none;
   }
 
   .history-name-cell {
@@ -748,6 +816,7 @@
 
   .history-book[open] .history-book-cover {
     transform: none;
+    filter: none;
   }
 
   .history-book-body {
@@ -764,6 +833,10 @@
     transform: none;
     box-shadow: inset 0 0 0 1px rgba(226, 232, 240, 0.9), 0 14px 24px rgba(15, 23, 42, 0.07);
     border-radius: 18px;
+  }
+
+  .history-book::after {
+    transform: translateY(0.65rem) scaleX(0.96);
   }
 }
 
