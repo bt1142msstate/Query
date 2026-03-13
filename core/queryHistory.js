@@ -197,6 +197,34 @@ function getPreferredHistorySection(counts) {
   return orderedSections.find(sectionKey => counts[sectionKey] > 0) || 'running';
 }
 
+function captureHistoryViewState() {
+  const panelContainer = document.getElementById('queries-container');
+  const monitorShell = panelContainer?.querySelector('.history-monitor .history-table-shell');
+
+  return {
+    panelScrollTop: panelContainer?.scrollTop || 0,
+    panelScrollLeft: panelContainer?.scrollLeft || 0,
+    monitorScrollTop: monitorShell?.scrollTop || 0,
+    monitorScrollLeft: monitorShell?.scrollLeft || 0
+  };
+}
+
+function restoreHistoryViewState(viewState) {
+  if (!viewState) return;
+
+  const panelContainer = document.getElementById('queries-container');
+  if (panelContainer) {
+    panelContainer.scrollTop = viewState.panelScrollTop;
+    panelContainer.scrollLeft = viewState.panelScrollLeft;
+  }
+
+  const monitorShell = panelContainer?.querySelector('.history-monitor .history-table-shell');
+  if (monitorShell) {
+    monitorShell.scrollTop = viewState.monitorScrollTop;
+    monitorShell.scrollLeft = viewState.monitorScrollLeft;
+  }
+}
+
 function bindHistoryBookShelf(container) {
   const books = Array.from(container.querySelectorAll('[data-history-book]'));
   books.forEach(book => {
@@ -366,8 +394,10 @@ async function fetchQueryStatus() {
         newHistory.push(qData);
     });
 
+    const viewState = captureHistoryViewState();
     exampleQueries = newHistory;
     renderQueries();
+    restoreHistoryViewState(viewState);
 
     if (isQueriesPanelOpen() && newHistory.some(q => q.running)) {
       startQueryDurationUpdates();
@@ -858,9 +888,6 @@ function startQueryDurationUpdates() {
 
     const hasRunningQueries = exampleQueries.some(q => q.running);
     if (hasRunningQueries) {
-        // Update UI durations
-        renderQueries(); 
-        
         if ((Date.now() - lastQueryStatusPollAt) >= QUERY_STATUS_POLL_MS) {
              window.fetchQueryStatus();
         }
