@@ -212,6 +212,8 @@ async function fetchQueryStatus() {
             name: sq.name || (sq.request ? sq.request.name : 'Unknown Query'),
             status: sq.status,
             statusBucket: classifyQueryStatus(sq.status),
+            launchMode: sq.launch_mode || '',
+            deliveryMode: sq.delivery_mode || '',
             running: (sq.status === 'running'),
             cancelled: (sq.status === 'canceled'),
             failed: (classifyQueryStatus(sq.status) !== 'running'
@@ -618,9 +620,23 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
     ? `<span class="history-reason-icon" data-tooltip="${escapedReason}">Issue</span>`
     : '<span class="text-gray-400">None</span>';
 
+  const metaPills = [`<span class="history-inline-pill subtle">${q.id}</span>`];
+  if (!q.running && q.resultCount !== undefined && q.resultCount !== '-' && q.resultCount !== '?') {
+    metaPills.push(`<span class="history-inline-pill">${Number(q.resultCount).toLocaleString()} rows</span>`);
+  }
+  if (q.launchMode) {
+    metaPills.push(`<span class="history-inline-pill subtle">${q.launchMode}</span>`);
+  }
+  if (q.deliveryMode) {
+    metaPills.push(`<span class="history-inline-pill subtle">${q.deliveryMode}</span>`);
+  }
+
   const nameCell = `
     <div class="history-name-cell">
-      <span class="history-query-name">${q.name || q.id}</span>
+      <div class="history-name-block">
+        <span class="history-query-name">${q.name || q.id}</span>
+        <div class="history-meta-line">${metaPills.join('')}</div>
+      </div>
       <span class="${statusMeta.badgeClass}">${statusMeta.label}</span>
     </div>`;
 
@@ -850,6 +866,16 @@ function renderQueries(){
   const doneCount = doneList.length;
   const failedCount = failedList.length;
   const cancelledCount = cancelledList.length;
+  const visibleCount = runningCount + doneCount + failedCount + cancelledCount;
+  const totalCount = exampleQueries.length;
+  const completedRows = doneList.reduce((sum, q) => sum + (Number(q.resultCount) || 0), 0);
+  const liveSignal = runningCount > 0
+    ? `${runningCount} live ${runningCount === 1 ? 'query is' : 'queries are'} still updating.`
+    : 'No active queries are running right now.';
+  const searchLabel = searchTerm
+    ? `Showing ${visibleCount} of ${totalCount} saved queries matching "${searchTerm}".`
+    : `Showing ${visibleCount} recent ${visibleCount === 1 ? 'query' : 'queries'} across your workspace history.`;
+  const refreshedAt = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
   let content = '';
 
@@ -863,6 +889,23 @@ function renderQueries(){
     const cancelledSection = buildHistorySection('canceled', cancelledCount, cancelledRows, cancelledTableHead, 'No cancelled queries yet.', false);
 
     content = `
+      <section class="history-editorial-hero">
+        <div class="history-editorial-copy">
+          <span class="history-kicker">Query Ledger</span>
+          <h3 class="history-editorial-title">Recent runs, live work, and recoverable results in one place.</h3>
+          <p class="history-editorial-subtitle">${searchLabel} ${liveSignal}</p>
+        </div>
+        <div class="history-editorial-meta">
+          <div class="history-meta-card">
+            <span class="history-meta-label">Completed Rows</span>
+            <span class="history-meta-value">${completedRows.toLocaleString()}</span>
+          </div>
+          <div class="history-meta-card">
+            <span class="history-meta-label">Last Refresh</span>
+            <span class="history-meta-value">${refreshedAt}</span>
+          </div>
+        </div>
+      </section>
       <div class="history-overview-grid">
         <div class="history-overview-card running"><span class="history-overview-count">${runningCount}</span><span class="history-overview-label">Running</span></div>
         <div class="history-overview-card complete"><span class="history-overview-count">${doneCount}</span><span class="history-overview-label">Completed</span></div>
