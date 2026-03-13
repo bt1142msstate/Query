@@ -22,7 +22,6 @@
   opacity: 0;
   pointer-events: none;
   transform: translate(-50%, -50%);
-  transition: opacity 0.24s ease;
 }
 
 #filter-card.show {
@@ -32,17 +31,16 @@
 }
 
 #filter-card > * {
-  opacity: 0;
-  transform: translateY(10px);
-  transition: opacity 0.18s ease, transform 0.24s ease;
+  opacity: 1;
+  transform: none;
 }
 
 #filter-card.content-ready > * {
   opacity: 1;
-  transform: translateY(0);
+  transform: none;
 }
 
-#filter-card.content-ready {
+#filter-card.scroll-ready {
   overflow-y: auto;
 }
 
