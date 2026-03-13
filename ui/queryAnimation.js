@@ -334,16 +334,15 @@ window.endTableQueryAnimation = function() {
     const morphDuration = Math.max(0.4, (rect.width + rect.height) / 1800);
     bubble.style.setProperty('--morph-duration', `${morphDuration}s`);
 
+    const targetTop = (rect.top + rect.height / 2) + 'px';
+    const targetLeft = (rect.left + rect.width / 2) + 'px';
     const targetWidth = rect.width + 'px';
     const targetHeight = rect.height + 'px';
 
-    const willChange = (bubble.style.width !== targetWidth) || (bubble.style.height !== targetHeight);
-
-    bubble.style.width = targetWidth;
-    bubble.style.height = targetHeight;
-    bubble.style.top = (rect.top + rect.height / 2) + 'px';
-    bubble.style.left = (rect.left + rect.width / 2) + 'px';
-    bubble.style.borderRadius = '1.5rem';
+    const willMove = bubble.style.top !== targetTop || bubble.style.left !== targetLeft;
+    const willMorph = bubble.style.width !== targetWidth
+      || bubble.style.height !== targetHeight
+      || bubble.style.borderRadius !== '1.5rem';
 
     const finishAnim = () => {
       bubble.classList.add('popping');
@@ -363,24 +362,64 @@ window.endTableQueryAnimation = function() {
       }, 400);
     };
 
-    if (!willChange) {
-      finishAnim();
-    } else {
+    const startSizeMorph = () => {
+      if (!willMorph) {
+        finishAnim();
+        return;
+      }
+
       let finished = false;
-      bubble.addEventListener('transitionend', function handler(e) {
-        if (e.propertyName !== 'width' && e.propertyName !== 'height') return;
+      const completeMorph = () => {
         if (finished) return;
         finished = true;
-        bubble.removeEventListener('transitionend', handler);
+        bubble.removeEventListener('transitionend', onMorphTransitionEnd);
         finishAnim();
+      };
+
+      const onMorphTransitionEnd = (event) => {
+        if (event.propertyName !== 'width' && event.propertyName !== 'height' && event.propertyName !== 'border-radius') {
+          return;
+        }
+        completeMorph();
+      };
+
+      bubble.addEventListener('transitionend', onMorphTransitionEnd);
+
+      requestAnimationFrame(() => {
+        bubble.style.width = targetWidth;
+        bubble.style.height = targetHeight;
+        bubble.style.borderRadius = '1.5rem';
       });
 
-      setTimeout(() => {
-        if (!finished) {
-          finished = true;
-          finishAnim();
+      setTimeout(completeMorph, (morphDuration * 1000) + 120);
+    };
+
+    if (!willMove) {
+      startSizeMorph();
+    } else {
+      let finished = false;
+      const completeMove = () => {
+        if (finished) return;
+        finished = true;
+        bubble.removeEventListener('transitionend', onMoveTransitionEnd);
+        startSizeMorph();
+      };
+
+      const onMoveTransitionEnd = (event) => {
+        if (event.propertyName !== 'top' && event.propertyName !== 'left') {
+          return;
         }
-      }, (morphDuration * 1000) + 100);
+        completeMove();
+      };
+
+      bubble.addEventListener('transitionend', onMoveTransitionEnd);
+
+      requestAnimationFrame(() => {
+        bubble.style.top = targetTop;
+        bubble.style.left = targetLeft;
+      });
+
+      setTimeout(completeMove, (morphDuration * 1000) + 120);
     }
   }
 };
