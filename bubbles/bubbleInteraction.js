@@ -195,11 +195,16 @@ function initializeBubbleInteractions() {
       window.filterCard = filterCard;
     }
     if (filterCard) {
+      if (filterCard._showTimer) {
+        clearTimeout(filterCard._showTimer);
+        filterCard._showTimer = null;
+      }
       filterCard.classList.remove('content-ready');
       if (filterCard._contentRevealTimer) {
         clearTimeout(filterCard._contentRevealTimer);
         filterCard._contentRevealTimer = null;
       }
+      filterCard.classList.remove('show');
     }
 
     if (overlay) {
@@ -261,21 +266,23 @@ function initializeBubbleInteractions() {
 
       if (e.propertyName !== 'width' && e.propertyName !== 'height') return;
 
-      if (conditionPanel) {
-        conditionPanel.classList.add('show');
-      }
-      if (filterCard) {
-        filterCard.classList.add('show');
-      }
       clone.classList.add('popping');
       window.createBubblePopParticles(clone);
 
       if (filterCard) {
-        const revealDelay = Math.max(120, Math.min(220, Math.round(morphDuration * 260)));
-        filterCard._contentRevealTimer = setTimeout(() => {
-          filterCard.classList.add('content-ready');
-          filterCard._contentRevealTimer = null;
-        }, revealDelay);
+        const showDelay = Math.max(180, Math.min(260, Math.round(morphDuration * 420)));
+        filterCard._showTimer = setTimeout(() => {
+          if (conditionPanel) {
+            conditionPanel.classList.add('show');
+          }
+          filterCard.classList.add('show');
+          filterCard._showTimer = null;
+
+          filterCard._contentRevealTimer = setTimeout(() => {
+            filterCard.classList.add('content-ready');
+            filterCard._contentRevealTimer = null;
+          }, 120);
+        }, showDelay);
       }
 
       clone.removeEventListener('transitionend', t);
