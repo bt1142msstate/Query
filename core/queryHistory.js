@@ -127,6 +127,11 @@ function summarizeFilters(filters) {
   return `${filters.length} filters active`;
 }
 
+function escapeHistoryValue(value) {
+  const text = value === undefined || value === null ? '' : String(value);
+  return typeof window.escapeHtml === 'function' ? window.escapeHtml(text) : text;
+}
+
 function buildHistorySection(sectionKey, count, cardsHtml, emptyMessage, openByDefault = true) {
   const meta = {
     running: {
@@ -698,8 +703,12 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
   const issueText = q.issue || '';
   const issueToneClass = q.error ? 'history-issue-card error' : (q.warning ? 'history-issue-card warning' : '');
   const issueBlock = issueText
-    ? `<div class="${issueToneClass}"><span class="history-issue-label">${q.error ? 'Issue' : 'Note'}</span><p>${issueText}</p></div>`
+    ? `<div class="${issueToneClass}"><span class="history-issue-label">${q.error ? 'Issue' : 'Note'}</span><p>${escapeHistoryValue(issueText)}</p></div>`
     : '';
+  const fieldCount = columns.length;
+  const filterCount = filters.length;
+  const summaryGlance = `${fieldCount} ${fieldCount === 1 ? 'field' : 'fields'} • ${filterCount} ${filterCount === 1 ? 'filter' : 'filters'}`;
+  const loadSetupBtn = `<button class="load-config-btn history-action-btn tertiary" tabindex="-1" data-query-id="${q.id}">Load setup</button>`;
 
   const previewBtn = q.running || (q.failed && Number.isFinite(Number(resultCount)) && Number(resultCount) > 0)
     ? `<button class="load-query-btn history-action-btn primary" tabindex="-1" data-query-id="${q.id}">${q.running ? 'Open partial results' : 'Open saved results'}</button>`
@@ -713,49 +722,63 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
   const rerunBtn = !q.running
     ? `<button class="rerun-query-btn history-action-btn secondary" tabindex="-1" data-query-id="${q.id}">Rerun query</button>`
     : '';
+  const cardOpenAttr = q.running || q.failed ? ' open' : '';
 
   return `
-    <article class="history-query-card ${statusMeta.rowClass} cursor-pointer" data-query-id="${q.id}">
-      <div class="history-query-card-top">
-        <div class="history-query-heading">
-          <div class="history-name-cell">
-            <span class="history-query-name">${q.name || q.id}</span>
-            <span class="${statusMeta.badgeClass}">${statusMeta.label}</span>
+    <details class="history-query-card ${statusMeta.rowClass}" data-query-id="${q.id}"${cardOpenAttr}>
+      <summary class="history-query-summary">
+        <div class="history-query-summary-main">
+          <div class="history-query-heading">
+            <div class="history-name-cell">
+              <span class="history-query-name">${escapeHistoryValue(q.name || q.id)}</span>
+              <span class="${statusMeta.badgeClass}">${statusMeta.label}</span>
+            </div>
+            <p class="history-query-id">${escapeHistoryValue(q.id)}</p>
+            <p class="history-query-glance">${summaryGlance}</p>
           </div>
-          <p class="history-query-id">${q.id}</p>
         </div>
-        <div class="history-mode-pills">
-          <span class="${launchMeta.className}">${launchMeta.label}</span>
-          <span class="${deliveryMeta.className}">${deliveryMeta.label}</span>
+        <div class="history-query-summary-side">
+          <div class="history-mode-pills">
+            <span class="${launchMeta.className}">${launchMeta.label}</span>
+            <span class="${deliveryMeta.className}">${deliveryMeta.label}</span>
+          </div>
+          <div class="history-summary-metrics">
+            <span class="history-summary-pill">${resultCount} rows</span>
+            <span class="history-summary-pill">${durationLabel}</span>
+          </div>
+          <span class="history-query-chevron" aria-hidden="true"></span>
+        </div>
+      </summary>
+
+      <div class="history-query-body">
+        <div class="history-query-metrics">
+          <div class="history-metric"><span class="history-metric-label">Rows</span><span class="history-metric-value">${resultCount}</span></div>
+          <div class="history-metric"><span class="history-metric-label">Started</span><span class="history-metric-value">${startedLabel}</span></div>
+          <div class="history-metric"><span class="history-metric-label">Finished</span><span class="history-metric-value">${endedLabel}</span></div>
+          <div class="history-metric"><span class="history-metric-label">Duration</span><span class="history-metric-value">${durationLabel}</span></div>
+        </div>
+
+        <div class="history-query-details">
+          <div class="history-detail-block">
+            <span class="history-detail-label">Columns</span>
+            ${columnsSummary}
+          </div>
+          <div class="history-detail-block">
+            <span class="history-detail-label">Filters</span>
+            ${filtersSummary}
+          </div>
+        </div>
+
+        ${issueBlock}
+
+        <div class="history-query-actions">
+          ${loadSetupBtn}
+          ${loadBtn || previewBtn}
+          ${rerunBtn}
+          ${stopBtn}
         </div>
       </div>
-
-      <div class="history-query-metrics">
-        <div class="history-metric"><span class="history-metric-label">Rows</span><span class="history-metric-value">${resultCount}</span></div>
-        <div class="history-metric"><span class="history-metric-label">Started</span><span class="history-metric-value">${startedLabel}</span></div>
-        <div class="history-metric"><span class="history-metric-label">Finished</span><span class="history-metric-value">${endedLabel}</span></div>
-        <div class="history-metric"><span class="history-metric-label">Duration</span><span class="history-metric-value">${durationLabel}</span></div>
-      </div>
-
-      <div class="history-query-details">
-        <div class="history-detail-block">
-          <span class="history-detail-label">Columns</span>
-          ${columnsSummary}
-        </div>
-        <div class="history-detail-block">
-          <span class="history-detail-label">Filters</span>
-          ${filtersSummary}
-        </div>
-      </div>
-
-      ${issueBlock}
-
-      <div class="history-query-actions">
-        ${loadBtn || previewBtn}
-        ${rerunBtn}
-        ${stopBtn}
-      </div>
-    </article>
+    </details>
   `;
 }
 
@@ -888,8 +911,8 @@ function renderQueries(){
   // Show "no results" message if search returns nothing
   if (searchTerm && runningCount === 0 && doneCount === 0 && failedCount === 0 && cancelledCount === 0) {
     content = `
-      <div class="history-overview-grid">
-        <div class="history-overview-card total"><span class="history-overview-count">0</span><span class="history-overview-label">Matching queries</span></div>
+      <div class="history-summary-strip" aria-label="Query activity summary">
+        <span class="history-summary-chip total">0 matching queries</span>
       </div>
       <div class="history-empty-state history-empty-search">No queries found matching "${searchTerm}".</div>`;
   } else {
@@ -899,14 +922,14 @@ function renderQueries(){
     const cancelledSection = buildHistorySection('canceled', cancelledCount, cancelledRows, 'No cancelled queries yet.', false);
 
     content = `
-      <div class="history-overview-grid">
-        <div class="history-overview-card total"><span class="history-overview-count">${totalQueries}</span><span class="history-overview-label">Visible</span></div>
-        <div class="history-overview-card running"><span class="history-overview-count">${runningCount}</span><span class="history-overview-label">Running</span></div>
-        <div class="history-overview-card complete"><span class="history-overview-count">${doneCount}</span><span class="history-overview-label">Completed</span></div>
-        <div class="history-overview-card failed"><span class="history-overview-count">${failedCount}</span><span class="history-overview-label">Failed</span></div>
-        <div class="history-overview-card canceled"><span class="history-overview-count">${cancelledCount}</span><span class="history-overview-label">Cancelled</span></div>
-        <div class="history-overview-card disconnected"><span class="history-overview-count">${disconnectedCount}</span><span class="history-overview-label">Detached</span></div>
-        <div class="history-overview-card rows"><span class="history-overview-count">${loadedRows.toLocaleString()}</span><span class="history-overview-label">Rows surfaced</span></div>
+      <div class="history-summary-strip" aria-label="Query activity summary">
+        <span class="history-summary-chip total">${totalQueries} visible</span>
+        <span class="history-summary-chip running">${runningCount} running</span>
+        <span class="history-summary-chip complete">${doneCount} completed</span>
+        <span class="history-summary-chip failed">${failedCount} failed</span>
+        <span class="history-summary-chip canceled">${cancelledCount} cancelled</span>
+        <span class="history-summary-chip detached">${disconnectedCount} detached</span>
+        <span class="history-summary-chip rows">${loadedRows.toLocaleString()} rows surfaced</span>
       </div>
       ${runningSection}
       ${doneSection}
@@ -923,6 +946,15 @@ function renderQueries(){
       e.stopPropagation();
       const id = btn.getAttribute('data-query-id');
       loadQueryResults(id);
+    });
+  });
+
+  container.querySelectorAll('.load-config-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.getAttribute('data-query-id');
+      const q = exampleQueries.find(query => query.id === id);
+      loadQueryConfig(q);
     });
   });
   
@@ -971,14 +1003,14 @@ function renderQueries(){
 }
 
 /**
- * Handles clicks on query table rows to load their configuration.
+ * Handles clicks on explicit setup-load controls to load configuration.
  * @function handleQueryRowClick
  * @param {Event} e - The click event
  */
 function handleQueryRowClick(e) {
-  const row = e.target.closest('#queries-container [data-query-id].history-query-card');
-  if(!row) return;
-  const id = row.getAttribute('data-query-id');
+  const trigger = e.target.closest('#queries-container .load-config-btn[data-query-id]');
+  if(!trigger) return;
+  const id = trigger.getAttribute('data-query-id');
   const q = exampleQueries.find(q => q.id === id);
   if(!q || !q.jsonConfig) return;
 
@@ -1024,9 +1056,6 @@ window.onDOMReady(() => {
   if (queriesSearchInput) {
     queriesSearchInput.addEventListener('input', renderQueries);
   }
-
-  // Add row click event listener
-  document.addEventListener('click', handleQueryRowClick);
 
   // Initial fetch of query history
   setTimeout(() => { if (window.fetchQueryStatus) window.fetchQueryStatus(); }, 500);
