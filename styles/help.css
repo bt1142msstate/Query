@@ -555,7 +555,7 @@
   width: 100%;
   min-height: 0;
   margin: 0;
-  padding: 1.2rem 1.3rem 1.4rem;
+  padding: 0.95rem 1.15rem 1.1rem;
   border: 0;
   border-radius: 0;
   background:
@@ -563,7 +563,7 @@
   color: #e8f7ff;
   font-family: "SFMono-Regular", "Cascadia Code", "JetBrains Mono", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 0.88rem;
-  line-height: 1.68;
+  line-height: 1.42;
   tab-size: 2;
   white-space: pre;
   overflow: auto;
@@ -583,8 +583,8 @@
   position: relative;
   display: flex;
   align-items: flex-start;
-  min-height: 1.65rem;
-  padding-left: 3.2rem;
+  min-height: 1.28rem;
+  padding-left: 2.85rem;
 }
 
 .json-line::before,
@@ -598,7 +598,7 @@
   color: rgba(255, 240, 194, 0.32);
   text-align: right;
   font-size: 0.73rem;
-  line-height: 1.65rem;
+  line-height: 1.28rem;
   font-variant-numeric: tabular-nums;
 }
 
@@ -642,7 +642,7 @@
 .json-disclosure {
   position: relative;
   width: 0.9rem;
-  height: 1.65rem;
+  height: 1.28rem;
   flex: 0 0 0.9rem;
   margin-right: 0.15rem;
 }
@@ -651,7 +651,7 @@
   content: '';
   position: absolute;
   left: 0.18rem;
-  top: 0.58rem;
+  top: 0.4rem;
   width: 0.38rem;
   height: 0.38rem;
   border-right: 1.5px solid rgba(255, 240, 194, 0.5);
@@ -662,7 +662,7 @@
 
 .json-node[open] > .json-summary .json-disclosure::before {
   transform: rotate(45deg);
-  top: 0.48rem;
+  top: 0.31rem;
 }
 
 .json-disclosure-spacer {
