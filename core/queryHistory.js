@@ -1053,7 +1053,7 @@ function renderQueries(){
       <section class="history-editorial-hero">
         <div class="history-editorial-copy">
           <span class="history-kicker">Neo Ops</span>
-          <h3 class="history-editorial-title">Realtime query telemetry, archive recall, and failure tracking in one console.</h3>
+          <h3 class="history-editorial-title">Query Hub</h3>
           <p class="history-editorial-subtitle">${searchLabel} ${liveSignal}</p>
         </div>
         <div class="history-editorial-meta">
