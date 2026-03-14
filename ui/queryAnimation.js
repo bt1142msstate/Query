@@ -6,9 +6,8 @@ function createTableQueryCircuitOverlay() {
 
   /* Canvas that Three.js will render into */
   const canvas = document.createElement('canvas');
-  canvas.width  = 350;
-  canvas.height = 350;
-  canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border-radius:inherit;display:block;';
+  /* CSS only — Three.js will manage pixel dimensions */
+  canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;display:block;border-radius:inherit;';
   container.appendChild(canvas);
 
   /* ── start / stop hooks called by the lifecycle functions below ── */
@@ -16,31 +15,50 @@ function createTableQueryCircuitOverlay() {
     if (container._threeRunning || typeof THREE === 'undefined') return;
     container._threeRunning = true;
 
-    const W = 350, H = 350;
+    /* Determine initial render size from the container (falls back to 350) */
+    const getSize = () => ({
+      w: container.clientWidth  || 350,
+      h: container.clientHeight || 350,
+    });
+
+    const { w: W0, h: H0 } = getSize();
+
+    /* false = don't let Three.js override canvas CSS width/height */
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
-    renderer.setSize(W, H);
-    renderer.setPixelRatio(1);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.setSize(W0, H0, false);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.shadowMap.enabled = false; /* shadows add cost without visibility gain */
     container._renderer = renderer;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x110905);
-    scene.fog = new THREE.FogExp2(0x110905, 0.15);
+    scene.background = new THREE.Color(0x1e0c04); /* warm dark brown — clearly not black */
 
-    const camera = new THREE.PerspectiveCamera(50, W / H, 0.1, 30);
-    camera.position.set(0, 0.35, 4.4);
-    camera.lookAt(0, 0.1, 0);
+    const camera = new THREE.PerspectiveCamera(65, W0 / H0, 0.1, 30);
+    camera.position.set(0, 0.15, 3.2);
+    camera.lookAt(0, 0.0, 0);
 
-    /* ── Lights ── */
-    scene.add(new THREE.AmbientLight(0xfff0d8, 0.5));
+    /* ── Resize observer: keep renderer in sync as bubble morphs ── */
+    let resizeObs = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObs = new ResizeObserver(() => {
+        const { w, h } = getSize();
+        if (!w || !h) return;
+        renderer.setSize(w, h, false);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+      });
+      resizeObs.observe(container);
+      container._resizeObs = resizeObs;
+    }
 
-    const mainLight = new THREE.DirectionalLight(0xffebc8, 0.85);
+    /* ── Lights (brighter so books are clearly visible) ── */
+    scene.add(new THREE.AmbientLight(0xfff4e0, 1.4));
+
+    const mainLight = new THREE.DirectionalLight(0xffebc8, 1.1);
     mainLight.position.set(2, 5, 4);
-    mainLight.castShadow = true;
     scene.add(mainLight);
 
-    const fillLight = new THREE.PointLight(0xff9940, 0.45, 14);
+    const fillLight = new THREE.PointLight(0xff9940, 0.7, 12);
     fillLight.position.set(-2, -0.5, 3);
     scene.add(fillLight);
 
@@ -48,23 +66,21 @@ function createTableQueryCircuitOverlay() {
     scene.add(scanLight);
 
     /* ── Shelf materials ── */
-    const shelfMat     = new THREE.MeshStandardMaterial({ color: 0x7a4f28, roughness: 0.85, metalness: 0.05 });
-    const shelfDarkMat = new THREE.MeshStandardMaterial({ color: 0x4e2f0f, roughness: 0.90, metalness: 0.00 });
+    const shelfMat     = new THREE.MeshStandardMaterial({ color: 0x8b5e32, roughness: 0.8, metalness: 0.05 });
+    const shelfDarkMat = new THREE.MeshStandardMaterial({ color: 0x5a3515, roughness: 0.85, metalness: 0.00 });
 
-    /* Bookcase dimensions */
-    const SW = 3.8, SD = 0.32, ST = 0.07, SBH = 2.5, yBase = -1.05;
+    /* Bookcase dimensions — scaled for a 65° FOV camera at z=3.2 */
+    const SW = 3.0, SD = 0.30, ST = 0.07, SBH = 2.2, yBase = -0.9;
 
     /* Back panel */
     const back = new THREE.Mesh(new THREE.BoxGeometry(SW + 0.14, SBH + 0.1, 0.04), shelfDarkMat);
     back.position.set(0, yBase + SBH / 2, -SD / 2 - 0.02);
-    back.receiveShadow = true;
     scene.add(back);
 
     /* Top & bottom rails */
     [yBase, yBase + SBH].forEach(y => {
       const b = new THREE.Mesh(new THREE.BoxGeometry(SW + 0.14, ST, SD + 0.08), shelfMat);
       b.position.set(0, y, 0);
-      b.castShadow = true; b.receiveShadow = true;
       scene.add(b);
     });
 
@@ -72,60 +88,60 @@ function createTableQueryCircuitOverlay() {
     [-SW / 2 - 0.05, SW / 2 + 0.05].forEach(x => {
       const s = new THREE.Mesh(new THREE.BoxGeometry(0.08, SBH + 0.1, SD + 0.08), shelfMat);
       s.position.set(x, yBase + SBH / 2, 0);
-      s.castShadow = true; s.receiveShadow = true;
       scene.add(s);
     });
 
     /* Two inner shelf boards */
-    const shelfYs = [yBase + 0.28, yBase + 0.28 + (SBH - 0.28) / 2];
+    const shelfYs = [yBase + 0.25, yBase + 0.25 + (SBH - 0.25) / 2];
     shelfYs.forEach(y => {
       const sh = new THREE.Mesh(new THREE.BoxGeometry(SW, ST, SD), shelfMat);
       sh.position.set(0, y, 0);
-      sh.castShadow = true; sh.receiveShadow = true;
       scene.add(sh);
     });
 
     /* ── Books ── */
     const palette = [
       0xc0392b, 0x2980b9, 0x27ae60, 0xe67e22, 0x8e44ad,
-      0x16a085, 0xdc143c, 0x2c3e50, 0xd35400, 0x1abc9c,
-      0x6c5ce7, 0xe84393, 0x0984e3, 0xf9ca24, 0x00b894,
-      0xa29bfe, 0xfd79a8, 0x55efc4, 0xe55039, 0x74b9ff,
+      0x16a085, 0xdc143c, 0xd35400, 0x1abc9c, 0x6c5ce7,
+      0xe84393, 0x0984e3, 0xf9ca24, 0x00b894, 0xa29bfe,
+      0xfd79a8, 0xe55039, 0x74b9ff, 0xfdcb6e, 0x00cec9,
     ];
 
     const allBooks = [];
 
     shelfYs.forEach(shelfY => {
       const floorY = shelfY + ST / 2;
-      let x = -SW / 2 + 0.07;
-      while (x < SW / 2 - 0.1) {
-        const bW = 0.11  + Math.random() * 0.09;
-        const bH = 0.36  + Math.random() * 0.32;
-        const bD = SD * 0.78;
-        if (x + bW > SW / 2 - 0.07) break;
+      let x = -SW / 2 + 0.06;
+      while (x < SW / 2 - 0.08) {
+        const bW = 0.12  + Math.random() * 0.10;
+        const bH = 0.48  + Math.random() * 0.36;   /* taller books — more visible */
+        const bD = SD * 0.80;
+        if (x + bW > SW / 2 - 0.06) break;
 
         const color = palette[Math.floor(Math.random() * palette.length)];
         const mat = new THREE.MeshStandardMaterial({
-          color, roughness: 0.72, metalness: 0.05,
-          emissive: new THREE.Color(color), emissiveIntensity: 0,
+          color,
+          roughness: 0.65,
+          metalness: 0.05,
+          emissive: new THREE.Color(color),
+          emissiveIntensity: 0.08, /* tiny constant glow ensures visibility */
         });
         const mesh = new THREE.Mesh(new THREE.BoxGeometry(bW, bH, bD), mat);
         const bX = x + bW / 2;
         const bY = floorY + bH / 2;
         mesh.position.set(bX, bY, 0);
-        mesh.castShadow = true; mesh.receiveShadow = true;
         scene.add(mesh);
 
         /* Spine highlight strips */
-        const sMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.14 });
-        [bH * 0.28, -bH * 0.05].forEach(sy => {
-          const strip = new THREE.Mesh(new THREE.BoxGeometry(bW * 0.85, 0.018, 0.001), sMat);
+        const sMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.18 });
+        [bH * 0.3, -bH * 0.05].forEach(sy => {
+          const strip = new THREE.Mesh(new THREE.BoxGeometry(bW * 0.85, 0.016, 0.001), sMat);
           strip.position.set(0, sy, bD / 2 + 0.001);
           mesh.add(strip);
         });
 
         allBooks.push({ mesh, mat, color, origX: bX, origY: bY, origZ: 0, width: bW, height: bH });
-        x += bW + 0.006 + Math.random() * 0.016;
+        x += bW + 0.005 + Math.random() * 0.014;
       }
     });
 
@@ -172,9 +188,9 @@ function createTableQueryCircuitOverlay() {
       camBobT  += dt;
 
       /* Gentle camera sway */
-      camera.position.y = 0.35 + Math.sin(camBobT * 0.38) * 0.045;
-      camera.position.x = Math.sin(camBobT * 0.22) * 0.09;
-      camera.lookAt(0, 0.1, 0);
+      camera.position.y = 0.15 + Math.sin(camBobT * 0.38) * 0.04;
+      camera.position.x = Math.sin(camBobT * 0.22) * 0.07;
+      camera.lookAt(0, 0.0, 0);
 
       /* ── states ── */
       if (state === 'idle') {
@@ -251,8 +267,9 @@ function createTableQueryCircuitOverlay() {
 
   container._stopAnimation = function () {
     container._threeRunning = false;
-    if (container._raf)      { cancelAnimationFrame(container._raf); container._raf = null; }
-    if (container._renderer) { container._renderer.dispose();        container._renderer = null; }
+    if (container._resizeObs) { container._resizeObs.disconnect(); container._resizeObs = null; }
+    if (container._raf)       { cancelAnimationFrame(container._raf); container._raf = null; }
+    if (container._renderer)  { container._renderer.dispose();        container._renderer = null; }
   };
 
   return container;
@@ -288,7 +305,6 @@ window.startTableQueryAnimation = function() {
   bubble.style.borderRadius = '1.5rem';
 
   document.body.appendChild(bubble);
-  if (circuit._startAnimation) circuit._startAnimation();
   tableContainer.classList.add('table-container-hidden');
 
   const filterPanel = document.getElementById('filter-side-panel');
@@ -296,7 +312,9 @@ window.startTableQueryAnimation = function() {
     filterPanel.classList.add('fade-out');
   }
 
-  void bubble.offsetWidth;
+  void bubble.offsetWidth; /* force layout before starting render and transitions */
+
+  if (circuit._startAnimation) circuit._startAnimation();
 
   document.body.classList.add('scene-fade-transition', 'scene-fade-out');
 
