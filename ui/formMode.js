@@ -623,10 +623,7 @@
         </div>
         <div class="form-mode-field-picker-details">
           <p class="form-mode-field-picker-selected-label">Selected field</p>
-            <div class="form-mode-field-picker-field-header">
-              <h4 class="form-mode-field-picker-field-name"></h4>
-              <button type="button" class="form-mode-field-picker-field-info hidden" aria-label="Show field details">i</button>
-            </div>
+            <h4 class="form-mode-field-picker-field-name"></h4>
           <p class="form-mode-field-picker-field-meta hidden"></p>
           <label class="form-mode-field-picker-choice">
             <input type="checkbox" data-field-picker-choice="display" />
@@ -654,7 +651,6 @@
     const searchInput = modal.querySelector('.form-mode-field-picker-search');
     const listEl = modal.querySelector('.form-mode-field-picker-list');
     const fieldNameEl = modal.querySelector('.form-mode-field-picker-field-name');
-    const fieldInfoButton = modal.querySelector('.form-mode-field-picker-field-info');
     const fieldMetaEl = modal.querySelector('.form-mode-field-picker-field-meta');
     const statusEl = modal.querySelector('.form-mode-field-picker-status');
     const displayChoice = modal.querySelector('[data-field-picker-choice="display"]');
@@ -692,23 +688,10 @@
       const metaParts = [];
       if (selected.type) metaParts.push(selected.type);
       if (selected.category) metaParts.push(selected.category);
-      const fieldTooltipHtml = typeof window.formatFieldDefinitionTooltipHTML === 'function'
-        ? window.formatFieldDefinitionTooltipHTML(selected, { title: selected.name })
-        : '';
 
       fieldNameEl.textContent = selected.name;
       fieldMetaEl.textContent = metaParts.join(' • ');
       fieldMetaEl.classList.toggle('hidden', metaParts.length === 0);
-      if (fieldInfoButton) {
-        fieldInfoButton.classList.toggle('hidden', !fieldTooltipHtml);
-        if (fieldTooltipHtml) {
-          fieldInfoButton.setAttribute('data-tooltip-html', fieldTooltipHtml);
-          fieldInfoButton.removeAttribute('data-tooltip');
-        } else {
-          fieldInfoButton.removeAttribute('data-tooltip-html');
-          fieldInfoButton.removeAttribute('data-tooltip');
-        }
-      }
 
       const willAddDisplay = displayChoice.checked && !alreadyDisplayed;
       const willRemoveDisplay = !displayChoice.checked && alreadyDisplayed;
