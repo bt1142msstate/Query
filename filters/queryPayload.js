@@ -149,6 +149,7 @@ function splitKeyFilterValues(rawValue) {
 
 window.getNormalizedDisplayedFields = function(fields = window.displayedFields) {
   return [...fields]
+    .map(field => typeof window.resolveFieldName === 'function' ? window.resolveFieldName(field) : field)
     .filter(field => {
       const def = window.fieldDefs ? window.fieldDefs.get(field) : null;
       return !(def && def.is_buildable);
@@ -163,7 +164,10 @@ window.normalizeUiConfigFilters = function(input) {
   const normalizeFilter = filter => {
     if (!filter || typeof filter !== 'object') return null;
 
-    const fieldName = filter.FieldName || filter.field;
+    const rawFieldName = filter.FieldName || filter.field;
+    const fieldName = typeof window.resolveFieldName === 'function'
+      ? window.resolveFieldName(rawFieldName)
+      : rawFieldName;
     if (!fieldName) return null;
 
     let values = filter.Values;
