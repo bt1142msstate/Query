@@ -294,7 +294,10 @@ window.handleConditionBtnClick = function(e) {
     window.positionInputWrapper();
     
     // Focus appropriate input
-    if (sel && sel.style.display !== 'none') {
+    const listPasteInput = document.getElementById('condition-select-container');
+    if (listPasteInput && typeof listPasteInput.focusInput === 'function' && listPasteInput.style.display !== 'none') {
+        listPasteInput.focusInput();
+    } else if (sel && sel.style.display !== 'none') {
         sel.focus();
     } else {
         (cond === 'between' ? conditionInput2 : conditionInput).focus();
@@ -752,6 +755,10 @@ window.configureInputsForType = function(type){
   }else{
     clearNumericProps(inputs);
   }
+};
+
+window.isListPasteField = function(fieldDef) {
+    return Boolean(fieldDef && fieldDef.allowValueList && (!fieldDef.values || fieldDef.values.length === 0));
 };
 
 /* ---------- Check for contradiction & return human-readable reason ---------- */

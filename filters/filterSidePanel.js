@@ -96,6 +96,13 @@ window.FilterSidePanel = (function () {
             .map(value => value.trim())
             .filter(Boolean);
 
+        if (window.isListPasteField && window.isListPasteField(fieldDef) && typeof window.createListPasteInput === 'function' && !listValues) {
+            return window.createListPasteInput(currentValues, {
+                placeholder: 'Paste one key per line',
+                hint: 'Paste values or upload a text/CSV file.'
+            });
+        }
+
         if (!listValues) {
             const input = document.createElement('input');
             input.className = 'fp-edit-val-input';

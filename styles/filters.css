@@ -145,6 +145,90 @@
   transform: scale(1.05);
 }
 
+.list-paste-input {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: min(100%, 28rem);
+  padding: 0.9rem;
+  border-radius: var(--border-radius-xl);
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-lg);
+}
+
+.list-paste-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.list-paste-hint {
+  color: #475569;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.list-paste-actions {
+  display: flex;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.list-paste-btn {
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  background: #0f766e;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.list-paste-btn:hover {
+  background: #115e59;
+  transform: translateY(-1px);
+}
+
+.list-paste-btn-secondary {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.list-paste-btn-secondary:hover {
+  background: #cbd5e1;
+}
+
+.list-paste-textarea {
+  width: 100%;
+  min-height: 8.5rem;
+  resize: vertical;
+  padding: 0.8rem 0.95rem;
+  border-radius: var(--border-radius-lg);
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  background: rgba(255, 255, 255, 0.96);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  outline: none;
+}
+
+.list-paste-textarea:focus {
+  border-color: rgba(13, 148, 136, 0.6);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.14);
+}
+
+.list-paste-status {
+  color: #334155;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.list-paste-file-input {
+  display: none;
+}
+
 /* Filter error message */
 #filter-error {
   position: absolute;
@@ -240,6 +324,11 @@
 
 .toggle-half:hover:not(.active) {
   background: rgba(255, 255, 255, 0.9);
+}
+
+.fp-edit-form .list-paste-input {
+  width: 100%;
+  min-width: min(100%, 26rem);
 }
 
 /* ==========================================
