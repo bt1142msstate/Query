@@ -205,7 +205,8 @@ class SimpleTable {
 
             for (let col = 0; col < this.width; col++) {
                 const fieldSpec = this.rawColumnOrder[col];
-                const requiredSegments = fieldSpec.rawOutputSegments;
+                const parsedSegments = Number.parseInt(fieldSpec.rawOutputSegments, 10);
+                const requiredSegments = Number.isFinite(parsedSegments) && parsedSegments > 0 ? parsedSegments : 1;
                 
                 let rawField = '';
                 if (rawIndex < parts.length) {

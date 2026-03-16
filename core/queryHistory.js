@@ -808,21 +808,9 @@ async function loadQueryResults(queryId) {
         const headers = currentDisplayedFields;
         
         const rows = lines.map(line => {
-            const values = line.split('|');
-            const obj = {};
-            // Map raw columns to values, accounting for fields with multiple parts
-            let valueIndex = 0;
-            rawColumns.forEach((h) => {
-                const fieldDef = window.fieldDefs ? window.fieldDefs.get(h) : null;
-                const segments = fieldDef && fieldDef.parts ? fieldDef.parts : 1;
-                
-                let fieldVal = '';
-                if (valueIndex < values.length) {
-                    fieldVal = values.slice(valueIndex, valueIndex + segments).join('|');
-                    valueIndex += segments;
-                }
-                obj[h] = fieldVal;
-            });
+          const obj = typeof window.parsePipeDelimitedRow === 'function'
+            ? window.parsePipeDelimitedRow(line, rawColumns)
+            : {};
             // Ensure all requested headers exist
             headers.forEach(h => {
                 if (!(h in obj)) obj[h] = '';
