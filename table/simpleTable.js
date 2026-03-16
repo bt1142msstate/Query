@@ -209,7 +209,7 @@ class SimpleTable {
                 
                 let rawField = '';
                 if (rawIndex < parts.length) {
-                    rawField = parts.slice(rawIndex, rawIndex + requiredSegments).join('');
+                    rawField = parts.slice(rawIndex, rawIndex + requiredSegments).join('|');
                     rawIndex += requiredSegments;
                 }
 
