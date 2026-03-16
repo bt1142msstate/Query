@@ -355,6 +355,7 @@ window.formatStandardFilterTooltipHTML = function(filtersInput, title = "") {
   
   filters.forEach(f => {
     hasFilters = true;
+    const fieldDef = window.fieldDefs ? window.fieldDefs.get(f.FieldName) : null;
     const op = typeof window.formatFieldOperatorForDisplay === 'function'
       ? window.formatFieldOperatorForDisplay(f.FieldOperator)
       : f.FieldOperator;
@@ -366,6 +367,13 @@ window.formatStandardFilterTooltipHTML = function(filtersInput, title = "") {
     if (f.Values && f.Values.length > 0) {
         if (uiCond === 'between' && f.Values.length >= 2) {
             valStr = '<span class="tt-val">' + escapeHtml(f.Values[0]) + '</span> <span class="tt-op">and</span> <span class="tt-val">' + escapeHtml(f.Values[1]) + '</span>';
+      } else if (fieldDef && fieldDef.allowValueList && f.Values.length > 1) {
+        const values = typeof window.getFilterDisplayValues === 'function'
+          ? window.getFilterDisplayValues({ cond: uiCond, val: f.Values.join(',') }, fieldDef)
+          : f.Values;
+        const summary = values[0] ? escapeHtml(values[0]) + ' <span class="tt-value-more">and ' + (values.length - 1) + ' more</span>' : '';
+        const items = values.map(value => '<li class="tt-value-list-item">' + escapeHtml(value) + '</li>').join('');
+        valStr = '<div class="tt-val-stack"><div class="tt-val tt-val-summary">' + summary + '</div><ul class="tt-value-list">' + items + '</ul></div>';
         } else {
             valStr = '<span class="tt-val">' + escapeHtml(f.Values.join(', ')) + '</span>';
         }

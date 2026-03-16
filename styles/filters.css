@@ -155,6 +155,13 @@
   background: rgba(255, 255, 255, 0.82);
   border: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: var(--shadow-lg);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.list-paste-input.drag-over {
+  border-color: rgba(13, 148, 136, 0.6);
+  background: rgba(240, 253, 250, 0.95);
+  box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.12);
 }
 
 .list-paste-toolbar {
@@ -177,12 +184,14 @@
 }
 
 .list-paste-btn {
-  padding: 0.4rem 0.75rem;
+  width: 2.1rem;
+  height: 2.1rem;
   border-radius: 999px;
   background: #0f766e;
   color: #fff;
-  font-size: 0.78rem;
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: background 0.2s ease, transform 0.2s ease;
 }
 
@@ -198,6 +207,10 @@
 
 .list-paste-btn-secondary:hover {
   background: #cbd5e1;
+}
+
+.list-paste-btn svg {
+  display: block;
 }
 
 .list-paste-textarea {
