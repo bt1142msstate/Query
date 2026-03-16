@@ -113,10 +113,13 @@ window.restoreFieldWithDuplicates = function(fieldName, insertAt = -1) {
     return false;
   }
 
-  const syncFormModeDisplayedColumns = () => {
-    if (window.QueryFormMode && typeof window.QueryFormMode.syncDisplayedColumns === 'function') {
-      window.QueryFormMode.syncDisplayedColumns();
+  const mutateDisplayedFields = (mutator) => {
+    if (window.QueryStateStore && typeof window.QueryStateStore.mutateDisplayedFields === 'function') {
+      window.QueryStateStore.mutateDisplayedFields(mutator, { source: 'ColumnManager.restoreFieldWithDuplicates' });
+      return;
     }
+
+    mutator(window.displayedFields);
   };
   
   // Check if we have stored duplicate information for this field
@@ -127,19 +130,17 @@ window.restoreFieldWithDuplicates = function(fieldName, insertAt = -1) {
     window.removedColumnInfo.delete(fieldName);
     
     // Insert all duplicate columns at the specified position
-    if (insertAt >= 0 && insertAt <= window.displayedFields.length) {
-      // Insert all duplicate columns at the specific position
-      storedInfo.columnNames.forEach((columnName, index) => {
-        window.displayedFields.splice(insertAt + index, 0, columnName);
-      });
-    } else {
-      // Append all duplicate columns at the end
-      storedInfo.columnNames.forEach(columnName => {
-        window.displayedFields.push(columnName);
-      });
-    }
-
-    syncFormModeDisplayedColumns();
+    mutateDisplayedFields(displayedFields => {
+      if (insertAt >= 0 && insertAt <= displayedFields.length) {
+        storedInfo.columnNames.forEach((columnName, index) => {
+          displayedFields.splice(insertAt + index, 0, columnName);
+        });
+      } else {
+        storedInfo.columnNames.forEach(columnName => {
+          displayedFields.push(columnName);
+        });
+      }
+    });
     
     return true;
   } else {
@@ -154,29 +155,30 @@ window.restoreFieldWithDuplicates = function(fieldName, insertAt = -1) {
       
       if (relatedColumns.length > 0) {
         // Insert all related columns from original data
-        if (insertAt >= 0 && insertAt <= window.displayedFields.length) {
-          relatedColumns.forEach((columnName, index) => {
-            window.displayedFields.splice(insertAt + index, 0, columnName);
-          });
-        } else {
-          relatedColumns.forEach(columnName => {
-            window.displayedFields.push(columnName);
-          });
-        }
-
-        syncFormModeDisplayedColumns();
+        mutateDisplayedFields(displayedFields => {
+          if (insertAt >= 0 && insertAt <= displayedFields.length) {
+            relatedColumns.forEach((columnName, index) => {
+              displayedFields.splice(insertAt + index, 0, columnName);
+            });
+          } else {
+            relatedColumns.forEach(columnName => {
+              displayedFields.push(columnName);
+            });
+          }
+        });
         
         return true;
       }
     }
     
     // Fallback to single field - this will show "..." in the table
-    if (insertAt >= 0 && insertAt <= window.displayedFields.length) {
-      window.displayedFields.splice(insertAt, 0, fieldName);
-    } else {
-      window.displayedFields.push(fieldName);
-    }
-    syncFormModeDisplayedColumns();
+    mutateDisplayedFields(displayedFields => {
+      if (insertAt >= 0 && insertAt <= displayedFields.length) {
+        displayedFields.splice(insertAt, 0, fieldName);
+      } else {
+        displayedFields.push(fieldName);
+      }
+    });
     return true; // Changed to true since we did add the field
   }
 };

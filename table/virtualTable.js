@@ -670,10 +670,7 @@ function setSplitColumnsMode(active) {
   }
 
   // Sync displayedFields with the active view's headers
-  if (window.displayedFields) {
-    window.displayedFields.length = 0;
-    window.displayedFields.push(...virtualTableData.headers);
-  }
+  window.QueryStateStore.replaceDisplayedFields(virtualTableData.headers, { source: 'VirtualTable.setSplitMode' });
 
   // Recalculate column widths and re-render
   calculatedColumnWidths = calculateOptimalColumnWidths(virtualTableData.headers, virtualTableData);

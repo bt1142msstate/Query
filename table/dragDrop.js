@@ -14,12 +14,13 @@
  * Provides unified functions for adding/removing columns consistently across all interfaces
  */
 
-function syncFormModeDisplayedColumns() {
-  if (!window.QueryFormMode || typeof window.QueryFormMode.syncDisplayedColumns !== 'function') {
+function mutateDisplayedFields(mutator, source) {
+  if (window.QueryStateStore && typeof window.QueryStateStore.mutateDisplayedFields === 'function') {
+    window.QueryStateStore.mutateDisplayedFields(mutator, { source });
     return;
   }
 
-  window.QueryFormMode.syncDisplayedColumns();
+  mutator(window.displayedFields);
 }
 
 
@@ -43,7 +44,6 @@ function addColumn(fieldName, insertAt = -1) {
   if (success) {
     // Trigger the same updates as successful drag/drop
     showExampleTable(window.displayedFields);
-    syncFormModeDisplayedColumns();
     updateQueryJson();
     updateButtonStates();
     updateCategoryCounts();
@@ -316,10 +316,12 @@ function moveSingleColumn(table, fromIndex, toIndex) {
   if (fromIndex === toIndex) return;
 
   // 1️⃣ Keep displayedFields order in sync first
-  if (fromIndex < window.displayedFields.length && toIndex < window.displayedFields.length) {
-    const [movedField] = window.displayedFields.splice(fromIndex, 1);
-    window.displayedFields.splice(toIndex, 0, movedField);
-  }
+  mutateDisplayedFields(displayedFields => {
+    if (fromIndex < displayedFields.length && toIndex < displayedFields.length) {
+      const [movedField] = displayedFields.splice(fromIndex, 1);
+      displayedFields.splice(toIndex, 0, movedField);
+    }
+  }, 'DragDrop.moveSingleColumn');
 
   // 2️⃣ Update the table header
   const headerRow = table.querySelector('thead tr');
@@ -341,24 +343,23 @@ function moveSingleColumn(table, fromIndex, toIndex) {
 function moveColumnGroup(table, groupIndices, targetIndex) {
   // Extract all related fields as a group
   const groupFields = groupIndices.map(index => window.displayedFields[index]);
-  
-  // Remove all related fields from their current positions (in reverse order to maintain indices)
-  for (let i = groupIndices.length - 1; i >= 0; i--) {
-    window.displayedFields.splice(groupIndices[i], 1);
-  }
-  
-  // Adjust target index if we removed items before it
-  let adjustedTargetIndex = targetIndex;
-  for (const removedIndex of groupIndices) {
-    if (removedIndex < targetIndex) {
-      adjustedTargetIndex--;
+
+  mutateDisplayedFields(displayedFields => {
+    for (let i = groupIndices.length - 1; i >= 0; i--) {
+      displayedFields.splice(groupIndices[i], 1);
     }
-  }
-  
-  // Insert all group fields at the target position
-  groupFields.forEach((field, i) => {
-    window.displayedFields.splice(adjustedTargetIndex + i, 0, field);
-  });
+
+    let adjustedTargetIndex = targetIndex;
+    for (const removedIndex of groupIndices) {
+      if (removedIndex < targetIndex) {
+        adjustedTargetIndex--;
+      }
+    }
+
+    groupFields.forEach((field, i) => {
+      displayedFields.splice(adjustedTargetIndex + i, 0, field);
+    });
+  }, 'DragDrop.moveColumnGroup');
   
   // Rebuild the header row completely since we moved multiple columns
   const headerRow = table.querySelector('thead tr');
@@ -431,7 +432,6 @@ function finalizeMoveOperation(table) {
 
   // 5️⃣ Refresh index metadata
   refreshColIndices(table);
-  syncFormModeDisplayedColumns();
   updateQueryJson();
   
   // 6️⃣ If in Selected category, re-render bubbles to match new order
@@ -467,13 +467,15 @@ function removeColumn(table, colIndex) {
   });
 
   // Remove all related columns from displayedFields array
-  allRelatedColumns.forEach(relatedHeader => {
-    const relatedFieldName = relatedHeader.textContent.trim();
-    const idx = window.displayedFields.indexOf(relatedFieldName);
-    if (idx !== -1) {
-      window.displayedFields.splice(idx, 1);
-    }
-  });
+  mutateDisplayedFields(displayedFields => {
+    allRelatedColumns.forEach(relatedHeader => {
+      const relatedFieldName = relatedHeader.textContent.trim();
+      const idx = displayedFields.indexOf(relatedFieldName);
+      if (idx !== -1) {
+        displayedFields.splice(idx, 1);
+      }
+    });
+  }, 'DragDrop.removeColumn');
 
   // Remove all related header cells from DOM
   allRelatedColumns.forEach(relatedHeader => {
@@ -520,7 +522,6 @@ function removeColumn(table, colIndex) {
   }
 
   // Update JSON to reflect removed column
-  syncFormModeDisplayedColumns();
   updateQueryJson();
   // Update button states after removing column
   updateButtonStates();

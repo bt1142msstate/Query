@@ -105,8 +105,9 @@ window.clearCurrentQuery = async function clearCurrentQuery() {
   document.querySelectorAll('.condition-btn.active, .toggle-half.active').forEach(btn => btn.classList.remove('active'));
 
   window.selectedField = '';
-  Object.keys(window.activeFilters).forEach(key => delete window.activeFilters[key]);
-  window.displayedFields.length = 0;
+  if (window.QueryStateStore && typeof window.QueryStateStore.reset === 'function') {
+    window.QueryStateStore.reset({ source: 'Query.clearCurrentQuery' });
+  }
   window.lastExecutedQueryState = null;
 
   if (dom.tableNameInput) {
@@ -598,7 +599,7 @@ if(initialContainer) {
       console.log('Initializing application for live queries (test data disabled)');
       
       // Initialize empty fields
-      window.displayedFields = [];
+      window.QueryStateStore.replaceDisplayedFields([], { source: 'Query.initialization' });
       
       // Update UI
       if (typeof showExampleTable === 'function') {
@@ -643,8 +644,7 @@ if (dom.groupMethodSelect) {
         };
         
         // Update displayedFields to match new headers
-        displayedFields = [...headers];
-        window.displayedFields = displayedFields;
+        window.QueryStateStore.replaceDisplayedFields(headers, { source: 'Query.groupMethodChange' });
         
         console.log('Updated table with new GroupBy method:', {
           method: newGroupMethod,
@@ -653,7 +653,7 @@ if (dom.groupMethodSelect) {
         });
         
         // Refresh the table display
-        await showExampleTable(displayedFields);
+        await showExampleTable(window.displayedFields);
         updateQueryJson();
         updateButtonStates();
       }
@@ -665,8 +665,7 @@ if (dom.groupMethodSelect) {
 async function showExampleTable(fields){
   if(!Array.isArray(fields) || fields.length === 0){
     // No columns left → clear table area and reset states
-    displayedFields = [];
-    window.displayedFields = displayedFields;
+    window.QueryStateStore.replaceDisplayedFields([], { source: 'Query.showExampleTable.empty' });
     VirtualTable.clearVirtualTableData();
     const container = document.querySelector('.overflow-x-auto.shadow.rounded-lg.mb-6');
     /* Ensure placeholder table has the same height as the table container */
@@ -695,9 +694,6 @@ async function showExampleTable(fields){
           if (field) {
             window.DragDropSystem.dragDropManager.dropSuccessful = true;
             window.DragDropSystem.restoreFieldWithDuplicates(field);
-            if (window.QueryFormMode && typeof window.QueryFormMode.syncDisplayedColumns === 'function') {
-              window.QueryFormMode.syncDisplayedColumns();
-            }
             showExampleTable(displayedFields).catch(error => {
               console.error('Error updating table:', error);
             });
@@ -740,15 +736,14 @@ async function showExampleTable(fields){
   fields.forEach(f => {
     if (!uniqueFields.includes(f)) uniqueFields.push(f);
   });
-  displayedFields = uniqueFields;
-  window.displayedFields = displayedFields;
+  window.QueryStateStore.replaceDisplayedFields(uniqueFields, { source: 'Query.showExampleTable' });
 
   // Create initial table structure
   const tableHTML = `
     <table id="example-table" class="min-w-full divide-y divide-gray-200 bg-white">
       <thead class="sticky top-0 z-20 bg-gray-50">
         <tr>
-          ${displayedFields.map((f,i) => {
+          ${window.displayedFields.map((f,i) => {
             // Check if this field exists in the current data
             const virtualTableData = window.VirtualTable?.virtualTableData;
             const fieldExistsInData = virtualTableData && virtualTableData.columnMap && virtualTableData.columnMap.has(f);

@@ -300,6 +300,24 @@ class FilterPill {
 // Expose globally
 window.FilterPill = FilterPill;
 
+function mutateActiveFilters(mutator, source) {
+    if (window.QueryStateStore && typeof window.QueryStateStore.mutateActiveFilters === 'function') {
+        window.QueryStateStore.mutateActiveFilters(mutator, { source });
+        return;
+    }
+
+    mutator(window.activeFilters);
+}
+
+function mutateDisplayedFields(mutator, source) {
+    if (window.QueryStateStore && typeof window.QueryStateStore.mutateDisplayedFields === 'function') {
+        window.QueryStateStore.mutateDisplayedFields(mutator, { source });
+        return;
+    }
+
+    mutator(window.displayedFields);
+}
+
 /**
  * Renders the list of active filters for a given field.
  * @param {string} field - The field name
@@ -349,9 +367,17 @@ window.renderConditionList = function(field) {
     const fieldDef = window.fieldDefs.get(field);
     data.filters.forEach((f, idx) => {
         const pill = new FilterPill(f, fieldDef, () => {
-            data.filters.splice(idx, 1);
-            if (data.filters.length === 0) {
-                delete window.activeFilters[field];
+            mutateActiveFilters(activeFilters => {
+                const nextFieldData = activeFilters[field];
+                if (!nextFieldData || !Array.isArray(nextFieldData.filters)) return;
+
+                nextFieldData.filters.splice(idx, 1);
+                if (nextFieldData.filters.length === 0) {
+                    delete activeFilters[field];
+                }
+            }, 'FilterManager.removeFilterPill');
+
+            if (!window.activeFilters[field]) {
                 document.querySelectorAll('.bubble').forEach(b => {
                     if (b.textContent.trim() === field) {
                         b.removeAttribute('data-filtered');
@@ -568,7 +594,11 @@ window.handleFilterConfirm = function(e) {
     if (cond && cond !== 'display') {
         try {
             if (!window.activeFilters[field]) {
-                window.activeFilters[field] = { filters: [] };
+                mutateActiveFilters(activeFilters => {
+                    if (!activeFilters[field]) {
+                        activeFilters[field] = { filters: [] };
+                    }
+                }, 'FilterManager.ensureFieldFilterBucket');
             }
 
             const isContainerVisible = selContainer && selContainer.style.display !== 'none';
@@ -612,18 +642,23 @@ window.handleFilterConfirm = function(e) {
 
             if (filterValue !== '') {
                 console.log(`Applying filter for ${field}: ${cond} ${filterValue}`);
-                
-                if (shouldReplaceExistingEquals) {
-                    const existingEqualsIdx = window.activeFilters[field].filters.findIndex(f => f.cond === 'equals');
-                    if (existingEqualsIdx !== -1) {
-                        window.activeFilters[field].filters[existingEqualsIdx].val = filterValue;
-                    } else {
-                        window.activeFilters[field].filters.push({ cond, val: filterValue });
+
+                mutateActiveFilters(activeFilters => {
+                    if (!activeFilters[field]) {
+                        activeFilters[field] = { filters: [] };
                     }
-                }
-                else {
-                    window.activeFilters[field].filters.push({ cond, val: filterValue });
-                }
+
+                    if (shouldReplaceExistingEquals) {
+                        const existingEqualsIdx = activeFilters[field].filters.findIndex(f => f.cond === 'equals');
+                        if (existingEqualsIdx !== -1) {
+                            activeFilters[field].filters[existingEqualsIdx].val = filterValue;
+                        } else {
+                            activeFilters[field].filters.push({ cond, val: filterValue });
+                        }
+                    } else {
+                        activeFilters[field].filters.push({ cond, val: filterValue });
+                    }
+                }, 'FilterManager.applyFilter');
 
                 // Update UI state
                 document.querySelectorAll('.bubble').forEach(b => {
@@ -649,16 +684,14 @@ window.handleFilterConfirm = function(e) {
     if (cond === 'display' || cond === 'show' || cond === 'hide') {
         if (cond === 'show') {
             window.DragDropSystem.restoreFieldWithDuplicates(field);
-            if (window.QueryFormMode && typeof window.QueryFormMode.syncDisplayedColumns === 'function') {
-                window.QueryFormMode.syncDisplayedColumns();
-            }
             window.showExampleTable(window.displayedFields).catch(console.error);
         } else if ((cond === 'hide' || cond === 'display') && window.displayedFields.includes(field)) {
-            const idx = window.displayedFields.indexOf(field);
-            window.displayedFields.splice(idx, 1);
-            if (window.QueryFormMode && typeof window.QueryFormMode.syncDisplayedColumns === 'function') {
-                window.QueryFormMode.syncDisplayedColumns();
-            }
+            mutateDisplayedFields(displayedFields => {
+                const idx = displayedFields.indexOf(field);
+                if (idx !== -1) {
+                    displayedFields.splice(idx, 1);
+                }
+            }, 'FilterManager.hideField');
             window.showExampleTable(window.displayedFields).catch(console.error);
         }
     }
@@ -719,12 +752,14 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
 
     // Apply filter if one was selected
     if (cond && val) {
-        if (!window.activeFilters[dynamicFieldName]) {
-            window.activeFilters[dynamicFieldName] = { filters: [] };
-        }
-        const alreadyExists = window.activeFilters[dynamicFieldName].filters.some(f => f.cond === cond && f.val === val);
+        const alreadyExists = Boolean(window.activeFilters[dynamicFieldName]?.filters?.some(f => f.cond === cond && f.val === val));
         if (!alreadyExists) {
-            window.activeFilters[dynamicFieldName].filters.push({ cond, val });
+            mutateActiveFilters(activeFilters => {
+                if (!activeFilters[dynamicFieldName]) {
+                    activeFilters[dynamicFieldName] = { filters: [] };
+                }
+                activeFilters[dynamicFieldName].filters.push({ cond, val });
+            }, 'FilterManager.addDynamicFieldFilter');
         }
     }
 
@@ -750,7 +785,11 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
     }, 200);
     
     // Clean up base buildable filters just in case
-    if (window.activeFilters[fieldDef.name]) delete window.activeFilters[fieldDef.name];
+    if (window.activeFilters[fieldDef.name]) {
+        mutateActiveFilters(activeFilters => {
+            delete activeFilters[fieldDef.name];
+        }, 'FilterManager.clearBuildableBaseFilter');
+    }
 }
 
 /**
