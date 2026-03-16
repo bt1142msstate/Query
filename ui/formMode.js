@@ -438,10 +438,187 @@
       selector.getFormValues = function() {
         return typeof selector.getSelectedValues === 'function' ? selector.getSelectedValues() : [];
       };
-      return selector;
+      return createPopupListControl(
+        selector,
+        inputSpec.label || (fieldDef && fieldDef.name) || 'Select values',
+        inputSpec.placeholder || (isMultiSelect ? 'Click to select values\u2026' : 'Click to select a value\u2026')
+      );
     }
 
     return createTextControl('text', initialValues, inputSpec);
+  }
+
+  function createPopupListControl(innerControl, label, placeholder) {
+    const resolvedLabel = label || 'Select values';
+    const resolvedPlaceholder = placeholder || 'Click to select\u2026';
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'form-mode-popup-list-control';
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'form-mode-popup-list-trigger';
+    trigger.setAttribute('aria-haspopup', 'dialog');
+    trigger.setAttribute('aria-expanded', 'false');
+
+    const summarySpan = document.createElement('span');
+    summarySpan.className = 'form-mode-popup-list-summary';
+    trigger.appendChild(summarySpan);
+    trigger.insertAdjacentHTML('beforeend',
+      '<svg class="form-mode-popup-chevron" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">' +
+      '<path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '</svg>'
+    );
+
+    const popup = document.createElement('div');
+    popup.className = 'form-mode-popup-list-popup';
+    popup.setAttribute('role', 'dialog');
+    popup.setAttribute('aria-label', resolvedLabel);
+    popup.hidden = true;
+
+    const popupHeader = document.createElement('div');
+    popupHeader.className = 'form-mode-popup-list-popup-header';
+
+    const popupTitle = document.createElement('span');
+    popupTitle.className = 'form-mode-popup-list-popup-title';
+    popupTitle.textContent = resolvedLabel;
+
+    const doneBtn = document.createElement('button');
+    doneBtn.type = 'button';
+    doneBtn.className = 'form-mode-popup-list-done';
+    doneBtn.textContent = 'Done';
+
+    popupHeader.appendChild(popupTitle);
+    popupHeader.appendChild(doneBtn);
+
+    const popupBody = document.createElement('div');
+    popupBody.className = 'form-mode-popup-list-popup-body';
+    popupBody.appendChild(innerControl);
+
+    popup.appendChild(popupHeader);
+    popup.appendChild(popupBody);
+    document.body.appendChild(popup);
+
+    wrapper.appendChild(trigger);
+
+    function getDisplayValues() {
+      if (typeof innerControl.getSelectedDisplayValues === 'function') {
+        return innerControl.getSelectedDisplayValues();
+      }
+      return typeof innerControl.getFormValues === 'function' ? innerControl.getFormValues() : [];
+    }
+
+    function updateSummary() {
+      const displayValues = getDisplayValues();
+      const escFn = window.escapeHtml || function(s) {
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      };
+      if (!displayValues || displayValues.length === 0) {
+        summarySpan.textContent = resolvedPlaceholder;
+        summarySpan.classList.add('is-placeholder');
+      } else if (displayValues.length <= 2) {
+        summarySpan.textContent = displayValues.join(', ');
+        summarySpan.classList.remove('is-placeholder');
+      } else {
+        summarySpan.innerHTML = escFn(displayValues[0]) + ' <span class="form-mode-popup-more">and ' + (displayValues.length - 1) + ' more</span>';
+        summarySpan.classList.remove('is-placeholder');
+      }
+      trigger.setAttribute('aria-expanded', popup.hidden ? 'false' : 'true');
+    }
+
+    function positionPopup() {
+      const rect = trigger.getBoundingClientRect();
+      const popupWidth = Math.max(rect.width, 300);
+      const viewportHeight = window.innerHeight;
+      const viewportWidth = window.innerWidth;
+      const spaceBelow = viewportHeight - rect.bottom - 8;
+      const spaceAbove = rect.top - 8;
+      let left = rect.left;
+      if (left + popupWidth > viewportWidth - 8) {
+        left = Math.max(8, viewportWidth - popupWidth - 8);
+      }
+      popup.style.left = left + 'px';
+      popup.style.width = popupWidth + 'px';
+      if (spaceBelow >= Math.min(360, 180) || spaceBelow >= spaceAbove) {
+        popup.style.top = (rect.bottom + 4) + 'px';
+        popup.style.bottom = '';
+        popup.style.maxHeight = Math.max(spaceBelow, 180) + 'px';
+      } else {
+        popup.style.top = '';
+        popup.style.bottom = (viewportHeight - rect.top + 4) + 'px';
+        popup.style.maxHeight = Math.max(spaceAbove, 180) + 'px';
+      }
+    }
+
+    function openPopup() {
+      popup.hidden = false;
+      trigger.setAttribute('aria-expanded', 'true');
+      positionPopup();
+      if (typeof innerControl.focusInput === 'function') {
+        innerControl.focusInput();
+      } else {
+        const firstInput = innerControl.querySelector('input:not([type="file"]), textarea');
+        if (firstInput) firstInput.focus();
+      }
+    }
+
+    function closePopup() {
+      popup.hidden = true;
+      trigger.setAttribute('aria-expanded', 'false');
+      updateSummary();
+      wrapper.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    trigger.addEventListener('click', function() {
+      if (popup.hidden) openPopup();
+      else closePopup();
+    });
+
+    doneBtn.addEventListener('click', closePopup);
+
+    const onDocMouseDown = function(e) {
+      if (!wrapper.contains(e.target) && !popup.contains(e.target)) {
+        if (!popup.hidden) closePopup();
+      }
+    };
+    document.addEventListener('mousedown', onDocMouseDown);
+
+    const onDocKey = function(e) {
+      if (e.key === 'Escape' && !popup.hidden) {
+        closePopup();
+        trigger.focus();
+      }
+    };
+    document.addEventListener('keydown', onDocKey);
+
+    const onReposition = function() { if (!popup.hidden) positionPopup(); };
+    window.addEventListener('scroll', onReposition, true);
+    window.addEventListener('resize', onReposition);
+
+    wrapper._popupEl = popup;
+    wrapper._cleanupPopup = function() {
+      popup.remove();
+      document.removeEventListener('mousedown', onDocMouseDown);
+      document.removeEventListener('keydown', onDocKey);
+      window.removeEventListener('scroll', onReposition, true);
+      window.removeEventListener('resize', onReposition);
+    };
+
+    wrapper.getFormValues = function() {
+      return typeof innerControl.getFormValues === 'function' ? innerControl.getFormValues() : [];
+    };
+
+    wrapper.setFormValues = function(values) {
+      if (typeof innerControl.setSelectedValues === 'function') {
+        innerControl.setSelectedValues(values);
+      } else if (typeof innerControl.setFormValues === 'function') {
+        innerControl.setFormValues(values);
+      }
+      updateSummary();
+    };
+
+    updateSummary();
+    return wrapper;
   }
 
   function createControl(fieldDef, inputSpec, initialValues) {
@@ -463,7 +640,11 @@
       listInput.getFormValues = function() {
         return typeof listInput.getSelectedValues === 'function' ? listInput.getSelectedValues() : [];
       };
-      return listInput;
+      return createPopupListControl(
+        listInput,
+        inputSpec.label || (fieldDef && fieldDef.name) || 'Enter values',
+        inputSpec.placeholder || 'Click to enter values\u2026'
+      );
     }
 
     return createTextControl(getFieldInputType(fieldDef, inputSpec), initialValues, inputSpec);
@@ -869,6 +1050,11 @@
   }
 
   function buildFormCard() {
+    // Cleanup any previously body-appended popups from prior form card builds
+    state.controls.forEach(function(control) {
+      if (typeof control._cleanupPopup === 'function') control._cleanupPopup();
+    });
+
     const bubbleStage = document.getElementById('bubble-container') && document.getElementById('bubble-container').closest('.flex.items-start.justify-center');
     if (!bubbleStage) return;
 
