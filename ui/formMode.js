@@ -383,18 +383,30 @@
       .filter(Boolean)
       .filter((operator, index, list) => list.indexOf(operator) === index);
 
-    if (fieldDef && fieldDef.type === 'date') {
-      const preferredOrder = ['equals', 'before', 'after', 'on_or_before', 'on_or_after', 'between'];
-      return normalized.slice().sort((left, right) => {
-        const leftIndex = preferredOrder.indexOf(left);
-        const rightIndex = preferredOrder.indexOf(right);
-        const normalizedLeft = leftIndex === -1 ? preferredOrder.length : leftIndex;
-        const normalizedRight = rightIndex === -1 ? preferredOrder.length : rightIndex;
-        return normalizedLeft - normalizedRight;
-      });
-    }
+    const preferredOrder = [
+      'contains',
+      'starts',
+      'equals',
+      'doesnotcontain',
+      'greater',
+      'less',
+      'before',
+      'after',
+      'on_or_before',
+      'on_or_after',
+      'between'
+    ];
 
-    return normalized;
+    return normalized.slice().sort((left, right) => {
+      const leftIndex = preferredOrder.indexOf(left);
+      const rightIndex = preferredOrder.indexOf(right);
+      const normalizedLeft = leftIndex === -1 ? preferredOrder.length : leftIndex;
+      const normalizedRight = rightIndex === -1 ? preferredOrder.length : rightIndex;
+      if (normalizedLeft !== normalizedRight) {
+        return normalizedLeft - normalizedRight;
+      }
+      return left.localeCompare(right);
+    });
   }
 
   function getRawParamValues(searchParams, key) {
@@ -1058,7 +1070,7 @@
     meta.textContent = inputSpec.field;
 
     const availableOperators = getAvailableOperators(fieldDef, inputSpec);
-    const shouldShowOperatorSelect = Boolean(fieldDef && fieldDef.type === 'date' && availableOperators.length > 1);
+    const shouldShowOperatorSelect = availableOperators.length > 1;
 
     let operatorSelect = null;
     if (shouldShowOperatorSelect) {
