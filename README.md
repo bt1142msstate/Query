@@ -60,6 +60,11 @@ Ongoing work is focused on making that easier by:
 - tightening shared query and field-definition contracts
 - preserving compatibility for saved queries as integrations evolve
 
+## Future Features
+
+- optional sign-in with a preferred AI provider, such as Gemini or ChatGPT, so users can get help turning reporting needs into queries
+- continued work to make frontend integration more portable across backend implementations
+
 ## Form Mode Summary
 
 Form mode is driven by an encoded JSON specification passed through the URL. A form can define:
