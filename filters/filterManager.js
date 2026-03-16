@@ -593,14 +593,6 @@ window.handleFilterConfirm = function(e) {
     // Applying logic
     if (cond && cond !== 'display') {
         try {
-            if (!window.activeFilters[field]) {
-                mutateActiveFilters(activeFilters => {
-                    if (!activeFilters[field]) {
-                        activeFilters[field] = { filters: [] };
-                    }
-                }, 'FilterManager.ensureFieldFilterBucket');
-            }
-
             const isContainerVisible = selContainer && selContainer.style.display !== 'none';
             const isSelectVisible = sel && sel.style.display !== 'none';
             
@@ -620,7 +612,7 @@ window.handleFilterConfirm = function(e) {
 
             const fieldType = (bubble && bubble.dataset.type) || (fieldDef && fieldDef.type) || 'string';
             const newFilterObj = { cond, val: filterValue };
-            const existingSet = window.activeFilters[field];
+            const existingSet = window.activeFilters[field] || { filters: [] };
             const shouldReplaceExistingEquals = Boolean(
                 cond === 'equals' &&
                 filterValue !== '' &&
