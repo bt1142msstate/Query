@@ -432,16 +432,13 @@
     }
 
     if (typeof window.createGroupedSelector === 'function') {
-      const generator = (vals) => window.createGroupedSelector(values, isMultiSelect, vals, { enableGrouping: shouldGroupValues && hasDashes });
-      if (isMultiSelect && typeof window.createPopupEditor === 'function') {
-        return window.createPopupEditor(generator, initialValues, { title: `Select ${fieldDef.name || 'Values'}`, placeholder: 'Select values...' });
-      } else {
-        const selector = generator(initialValues);
-        selector.getFormValues = function() {
-          return typeof selector.getSelectedValues === 'function' ? selector.getSelectedValues() : [];
-        };
-        return selector;
-      }
+      const selector = window.createGroupedSelector(values, isMultiSelect, initialValues, {
+        enableGrouping: shouldGroupValues && hasDashes
+      });
+      selector.getFormValues = function() {
+        return typeof selector.getSelectedValues === 'function' ? selector.getSelectedValues() : [];
+      };
+      return selector;
     }
 
     return createTextControl('text', initialValues, inputSpec);
@@ -459,19 +456,14 @@
     }
 
     if ((inputSpec.multiple || (fieldDef && fieldDef.allowValueList)) && typeof window.createListPasteInput === 'function') {
-      const opts = {
+      const listInput = window.createListPasteInput(initialValues, {
         placeholder: inputSpec.placeholder || 'Paste one value per line',
         hint: inputSpec.help || 'Paste values, separate them with commas or new lines, or upload a file.'
+      });
+      listInput.getFormValues = function() {
+        return typeof listInput.getSelectedValues === 'function' ? listInput.getSelectedValues() : [];
       };
-      if (typeof window.createPopupEditor === 'function') {
-        return window.createPopupEditor((vals) => window.createListPasteInput(vals, opts), initialValues, { title: `List: ${fieldDef ? fieldDef.name : ''}`, placeholder: 'List values...' });
-      } else {
-        const listInput = window.createListPasteInput(initialValues, opts);
-        listInput.getFormValues = function() {
-          return typeof listInput.getSelectedValues === 'function' ? listInput.getSelectedValues() : [];
-        };
-        return listInput;
-      }
+      return listInput;
     }
 
     return createTextControl(getFieldInputType(fieldDef, inputSpec), initialValues, inputSpec);
