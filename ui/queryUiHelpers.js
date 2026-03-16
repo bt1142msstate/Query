@@ -805,28 +805,28 @@ window.createListPasteInput = function(currentValues = [], options = {}) {
     container.addEventListener(eventName, event => {
       event.preventDefault();
       if (!container.contains(event.relatedTarget)) {
-  actions.appendChild(editBtn);
+        container.classList.remove('drag-over');
       }
-  container.appendChild(summary);
-  container.appendChild(actions);
+    });
+  });
+
+  container.addEventListener('drop', event => {
+    event.preventDefault();
     container.classList.remove('drag-over');
     const [file] = event.dataTransfer?.files || [];
     if (file) {
-    return Array.isArray(container._listValues) ? container._listValues.slice() : [];
+      loadFile(file);
     }
   });
 
-  toolbar.appendChild(hint);
-  actions.appendChild(uploadBtn);
+  actions.appendChild(editBtn);
   actions.appendChild(clearBtn);
-  toolbar.appendChild(actions);
-    commitValues(Array.isArray(valuesToSet) ? valuesToSet.join('\n') : '', false);
-  container.appendChild(textArea);
-  container.appendChild(status);
+  container.appendChild(summary);
+  container.appendChild(actions);
   container.appendChild(fileInput);
-    openEditor();
+
   container.getSelectedValues = function() {
-    return window.parseListInputValues(textArea.value);
+    return Array.isArray(container._listValues) ? container._listValues.slice() : [];
   };
 
   container.getSelectedDisplayValues = function() {
@@ -834,12 +834,11 @@ window.createListPasteInput = function(currentValues = [], options = {}) {
   };
 
   container.setSelectedValues = function(valuesToSet) {
-    textArea.value = Array.isArray(valuesToSet) ? valuesToSet.join('\n') : '';
-    updateStatus();
+    commitValues(Array.isArray(valuesToSet) ? valuesToSet.join('\n') : '', false);
   };
 
   container.focusInput = function() {
-    textArea.focus();
+    openEditor();
   };
 
   container.setSelectedValues(currentValues);
