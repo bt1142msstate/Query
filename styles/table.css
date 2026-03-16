@@ -288,7 +288,7 @@ th:hover .th-trash {
 #table-name-input {
   transition: all 0.2s ease;
   cursor: pointer;
-  border-radius: 0 0 12px 12px;
+  border-radius: 0 0 3px 3px;
   padding: 8px 16px;
   margin: 0 auto;
   display: block;
@@ -313,11 +313,6 @@ th:hover .th-trash {
   flex-direction: column;
   align-items: stretch;
   max-width: 100%;
-}
-
-#table-name-shell.has-results #table-name-input {
-  border-bottom-left-radius: 3px;
-  border-bottom-right-radius: 3px;
 }
 
 #table-results-lip {
