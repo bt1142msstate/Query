@@ -637,7 +637,7 @@
       </div>
       <div class="form-mode-field-picker-body">
         <div class="form-mode-field-picker-list-panel">
-          <input type="search" class="form-mode-field-picker-search" placeholder="Search fields..." aria-label="Search fields" />
+          <input type="search" class="form-mode-field-picker-search" placeholder="Search fields..." aria-label="Search fields" data-search-ui="enhanced" data-search-wrapper-class="form-mode-field-picker-search-field" data-search-clear-label="Clear field search" />
           <div class="form-mode-field-picker-list" role="listbox" aria-label="Available fields"></div>
         </div>
         <div class="form-mode-field-picker-details">
@@ -675,10 +675,8 @@
     const displayChoice = modal.querySelector('[data-field-picker-choice="display"]');
     const filterChoice = modal.querySelector('[data-field-picker-choice="filter"]');
 
-    if (searchInput && typeof window.enhanceSearchInput === 'function') {
-      window.enhanceSearchInput(searchInput, {
-        wrapperClass: 'form-mode-field-picker-search-field'
-      });
+    if (searchInput && typeof window.initializeSearchInputs === 'function') {
+      window.initializeSearchInputs(modal);
     }
 
     let selectedFieldName = options[0].name;
