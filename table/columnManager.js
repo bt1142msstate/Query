@@ -112,6 +112,12 @@ window.restoreFieldWithDuplicates = function(fieldName, insertAt = -1) {
   if (window.fieldOrDuplicatesExist(fieldName)) {
     return false;
   }
+
+  const syncFormModeDisplayedColumns = () => {
+    if (window.QueryFormMode && typeof window.QueryFormMode.syncDisplayedColumns === 'function') {
+      window.QueryFormMode.syncDisplayedColumns();
+    }
+  };
   
   // Check if we have stored duplicate information for this field
   const storedInfo = window.removedColumnInfo.get(fieldName);
@@ -132,6 +138,8 @@ window.restoreFieldWithDuplicates = function(fieldName, insertAt = -1) {
         window.displayedFields.push(columnName);
       });
     }
+
+    syncFormModeDisplayedColumns();
     
     return true;
   } else {
@@ -155,6 +163,8 @@ window.restoreFieldWithDuplicates = function(fieldName, insertAt = -1) {
             window.displayedFields.push(columnName);
           });
         }
+
+        syncFormModeDisplayedColumns();
         
         return true;
       }
@@ -166,6 +176,7 @@ window.restoreFieldWithDuplicates = function(fieldName, insertAt = -1) {
     } else {
       window.displayedFields.push(fieldName);
     }
+    syncFormModeDisplayedColumns();
     return true; // Changed to true since we did add the field
   }
 };
