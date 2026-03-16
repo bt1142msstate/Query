@@ -38,6 +38,7 @@ window.updateTableResultsLip = function() {
   const resultsCount = window.DOM.tableResultsCount;
   const resultsLabel = window.DOM.tableResultsLabel;
   const tableNameShell = window.DOM.tableNameShell;
+  const tableNameInput = window.DOM.tableNameInput;
 
   if (!resultsLip || !resultsCount || !resultsLabel) {
     return;
@@ -52,6 +53,10 @@ window.updateTableResultsLip = function() {
   resultsLabel.textContent = rowCount === 1 ? 'result' : 'results';
   resultsLip.classList.toggle('hidden', !hasResults);
   resultsLip.setAttribute('aria-hidden', hasResults ? 'false' : 'true');
+
+  if (tableNameInput) {
+    resultsLip.style.width = `${Math.ceil(tableNameInput.getBoundingClientRect().width)}px`;
+  }
 
   if (tableNameShell) {
     tableNameShell.classList.toggle('has-results', hasResults);
