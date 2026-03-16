@@ -38,6 +38,7 @@ body.form-mode-active #filter-side-panel {
   flex-direction: column;
   max-height: min(70vh, 560px);
   overflow: hidden;
+  min-width: 0;
 }
 
 .form-mode-header {
@@ -113,6 +114,7 @@ body.form-mode-active #filter-side-panel {
 .form-mode-body {
   min-height: 0;
   overflow-y: auto;
+  overflow-x: auto;
   padding-right: 0.15rem;
 }
 
@@ -120,6 +122,7 @@ body.form-mode-active #filter-side-panel {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 0.85rem;
+  min-width: max-content;
 }
 
 .form-mode-field {
