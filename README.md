@@ -1,140 +1,73 @@
-Query is a browser-based report builder for SirsiDynix Symphony-style library data. It lets staff assemble output columns and filters visually, run live queries against the backend, inspect query JSON, reload previous runs, and export results.
+# Query Website
 
-## What the app does today
+Frontend application for the Sirsi Query Project.
 
-- Build queries with bubble-based field selection and filtering.
-- Run live queries against the backend and load saved results from query history.
-- Reopen prior queries from history, including displayed columns and filters.
-- Cancel running queries and monitor running, completed, failed, and cancelled states.
-- Export results to Excel.
-- Switch into URL-driven form mode for guided report entry.
-- Normalize renamed fields through alias support so older saved configs can still load.
-- Show shared tooltips and shared toast notifications across the UI.
+This is the browser UI for building reports, reviewing query state, opening prior runs, and exporting results. It is written as a static HTML/CSS/JavaScript app and is being shaped to stay compatible with multiple backend implementations over time.
 
-## Main UI areas
+## What It Does
 
-- Bubble builder: the default visual query builder for selecting output columns and filters.
-- Query history: reload past queries, inspect status, view results, rerun, and cancel running jobs.
-- Query JSON panel: inspect the payload that will be sent to the backend.
-- Form mode: a guided input experience built from a form specification encoded in the URL.
+- build queries visually with the bubble-based workflow
+- switch into guided form mode for focused report entry
+- inspect the active query payload in the JSON panel
+- browse query history, including active and past runs
+- rerun, cancel, and reopen saved queries
+- export results to Excel
 
-## Frontend structure
+## UI Areas
 
-- `core/`: query execution, history, state, and shared utilities.
-- `ui/`: UI systems such as form mode, tooltips, toasts, modal handling, and UI helpers.
-- `filters/`: backend field definitions, filter behavior, and payload generation.
-- `table/`: result rendering, column management, drag/drop, and Excel export.
-- `bubbles/`: bubble rendering and bubble interaction logic.
-- `styles/`: shared CSS split by feature area.
+### Bubble Builder
 
-Script loading is still controlled directly by `index.html`, so moving files between folders also requires updating the script tags there.
+The default interface for assembling output columns and filters.
 
-## Running the frontend
+### Query History
 
-There is no build step for the main app. The site is a static HTML, CSS, and JavaScript frontend loaded from `index.html`.
+Shows running, complete, failed, and cancelled queries with status-aware actions.
 
-Typical local workflow:
+### Query JSON
 
-1. Serve the `Query Website` folder from a local static server.
-2. Open `index.html` through that server, not directly from the filesystem.
-3. Make sure the backend endpoints it calls are reachable from your browser.
+Exposes the current query payload so it can be reviewed before or after execution.
 
-The root `package.json` is minimal and is not the main runtime entrypoint for the frontend.
+### Form Mode
 
-## Backend expectations
+Supports URL-driven forms for narrower workflows where users should fill in a guided set of inputs instead of working directly in the full builder.
 
-The frontend expects the backend to provide at least:
+## Frontend Structure
 
-- field definitions, including filter metadata and aliases
-- query execution
-- query status polling
-- query cancellation
-- result retrieval for previous runs
-
-Recent frontend behavior also assumes the backend may return field aliases so older saved names can be normalized to current canonical names.
-
-## URL form mode
-
-Form mode is driven by a `form` query parameter whose value is a base64url-encoded JSON object.
-
-Input values stay in the URL as normal query parameters such as `library=MAIN` or `lastUsedBefore=2024-01-01`.
-
-### Supported form schema keys
-
-- `title`: heading shown above the form.
-- `description`: optional supporting copy.
-- `queryName`: default output or query name.
-- `columns`: output columns to load automatically.
-- `inputs`: editable form inputs.
-- `lockedFilters`: filters always applied behind the scenes.
-
-Each `inputs` entry can include:
-
-- `key`
-- `field`
-- `label`
-- `operator`
-- `required`
-- `multiple`
-- `type`
-- `placeholder`
-- `help`
-- `default`
-- `keys` for `between`
-- `options`
-
-### Example schema
-
-```json
-{
-  "title": "Weeding List",
-  "description": "Run a focused stale-items report without the full bubble builder.",
-  "queryName": "Weeding List",
-  "columns": ["Item Key", "Title", "Item Library", "Date Last Used"],
-  "inputs": [
-    {
-      "key": "library",
-      "field": "Item Library",
-      "label": "Item Library",
-      "operator": "equals",
-      "required": true
-    },
-    {
-      "key": "lastUsedBefore",
-      "field": "Date Last Used",
-      "label": "Last Used Before",
-      "operator": "on_or_before",
-      "type": "date",
-      "required": true
-    }
-  ]
-}
+```text
+core/      Query execution flow, history, state, utilities
+ui/        Form mode, modals, tooltips, toasts, shared helpers
+filters/   Field definitions and query-payload helpers
+table/     Result rendering, column handling, export helpers
+bubbles/   Bubble rendering and interaction logic
+styles/    Feature-based stylesheets
 ```
 
-### Generating a form URL in the browser console
+## Local Development
 
-```js
-const spec = {
-  title: 'Weeding List',
-  queryName: 'Weeding List',
-  columns: ['Item Key', 'Title', 'Item Library', 'Date Last Used'],
-  inputs: [
-    { key: 'library', field: 'Item Library', label: 'Item Library', operator: 'equals', required: true },
-    { key: 'lastUsedBefore', field: 'Date Last Used', label: 'Last Used Before', operator: 'on_or_before', type: 'date', required: true }
-  ]
-};
+There is no required build step for the main app.
 
-const url = new URL(window.location.href);
-url.search = '';
-url.searchParams.set('form', window.QueryFormMode.encodeSpec(spec));
-url.searchParams.set('library', 'MAIN');
-url.searchParams.set('lastUsedBefore', '2024-01-01');
-console.log(url.toString());
-```
+1. Serve this directory from a local static server.
+2. Open `index.html` through that server.
+3. Connect it to a compatible backend environment.
 
-## Notes
+## Migration Direction
 
-- Query history is a core part of the current workflow, not a future feature.
-- Form mode can also be generated from the current query inside the app.
-- The UI includes shared bottom-right toast notifications and shared hover tooltips.
-- Multi-value fields may render as grouped selectors or list-entry popups depending on field metadata.
+This frontend is intended to work with more than one backend shape.
+
+Ongoing work is focused on making that easier by:
+
+- reducing backend-specific assumptions in the UI
+- tightening shared query and field-definition contracts
+- preserving compatibility for saved queries as integrations evolve
+
+## Form Mode Summary
+
+Form mode is driven by an encoded JSON specification passed through the URL. A form can define:
+
+- a title and description
+- a default query name
+- output columns
+- editable inputs
+- locked filters
+
+That makes the same frontend usable for both exploratory report building and narrow operational workflows.
