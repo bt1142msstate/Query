@@ -1,35 +1,293 @@
-/**
- * Toast Notification System
- * Handles displaying temporary notification messages to the user.
- * @module Toast
- */
-
-window.showToastMessage = function(message, type = 'info', duration = 3000) {
-  const toast = document.createElement('div');
-  
-  // Support different toast types
-  const config = {
-    info: { bg: 'bg-blue-100 border-blue-500 text-blue-700', icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-    error: { bg: 'bg-red-100 border-red-500 text-red-700', icon: 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-    warning: { bg: 'bg-orange-100 border-orange-500 text-orange-700', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z' },
-    success: { bg: 'bg-green-100 border-green-500 text-green-700', icon: 'M5 13l4 4L19 7' }
+(() => {
+  const TOAST_CONTAINER_ID = 'toast-container';
+  const MAX_VISIBLE_TOASTS = 4;
+  const DEFAULT_DURATION = 3000;
+  const EXIT_DURATION = 180;
+  const TYPE_CONFIG = {
+    info: {
+      label: 'Info',
+      icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+    },
+    error: {
+      label: 'Error',
+      icon: 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+    },
+    warning: {
+      label: 'Warning',
+      icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z'
+    },
+    success: {
+      label: 'Success',
+      icon: 'M5 13l4 4L19 7'
+    }
   };
-  
-  const { bg, icon } = config[type] || config.info;
-  toast.className = `fixed bottom-4 right-4 ${bg} px-4 py-3 rounded-md shadow-lg z-50 border`;
-    
-  toast.innerHTML = `
-    <div class="flex items-center gap-2">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${icon}"></path>
-      </svg>
-      <span>${message}</span>
-    </div>
-  `;
-  
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), duration);
-};
 
-// Local alias for export (if we were using modules, but we're using globals)
-// const showToastMessage = window.showToastMessage;
+  const activeToasts = new Map();
+  const pendingToasts = [];
+
+  function ensureContainer() {
+    let container = document.getElementById(TOAST_CONTAINER_ID);
+    if (container) {
+      return container;
+    }
+
+    container = document.createElement('div');
+    container.id = TOAST_CONTAINER_ID;
+    container.setAttribute('aria-live', 'polite');
+    container.setAttribute('aria-atomic', 'false');
+    document.body.appendChild(container);
+    return container;
+  }
+
+  function normalizeOptions(messageOrOptions, type, duration) {
+    if (messageOrOptions && typeof messageOrOptions === 'object') {
+      return {
+        message: String(messageOrOptions.message || ''),
+        type: messageOrOptions.type || 'info',
+        duration: Number.isFinite(messageOrOptions.duration) ? messageOrOptions.duration : DEFAULT_DURATION
+      };
+    }
+
+    return {
+      message: String(messageOrOptions || ''),
+      type: type || 'info',
+      duration: Number.isFinite(duration) ? duration : DEFAULT_DURATION
+    };
+  }
+
+  function getToastKey(message, type) {
+    return `${type}::${message}`;
+  }
+
+  function createToastElement(type, message, key) {
+    const config = TYPE_CONFIG[type] || TYPE_CONFIG.info;
+    const toast = document.createElement('section');
+    toast.className = `app-toast app-toast--${type}`;
+    toast.dataset.toastKey = key;
+    toast.setAttribute('role', type === 'error' || type === 'warning' ? 'alert' : 'status');
+
+    const iconWrap = document.createElement('div');
+    iconWrap.className = 'app-toast-icon';
+    iconWrap.setAttribute('aria-hidden', 'true');
+    iconWrap.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${config.icon}"></path>
+      </svg>
+    `;
+
+    const body = document.createElement('div');
+    body.className = 'app-toast-body';
+
+    const title = document.createElement('div');
+    title.className = 'app-toast-title';
+    title.textContent = config.label;
+
+    const text = document.createElement('div');
+    text.className = 'app-toast-message';
+    text.textContent = message;
+
+    const meta = document.createElement('div');
+    meta.className = 'app-toast-meta';
+
+    const count = document.createElement('span');
+    count.className = 'app-toast-count';
+    count.hidden = true;
+    meta.appendChild(count);
+
+    body.appendChild(title);
+    body.appendChild(text);
+    body.appendChild(meta);
+
+    const closeButton = document.createElement('button');
+    closeButton.type = 'button';
+    closeButton.className = 'app-toast-close';
+    closeButton.setAttribute('aria-label', 'Dismiss notification');
+    closeButton.textContent = '×';
+
+    toast.appendChild(iconWrap);
+    toast.appendChild(body);
+    toast.appendChild(closeButton);
+    return toast;
+  }
+
+  function updateToastCount(entry) {
+    const countElement = entry.element.querySelector('.app-toast-count');
+    if (!countElement) {
+      return;
+    }
+
+    if (entry.count > 1) {
+      countElement.hidden = false;
+      countElement.textContent = `${entry.count}x`;
+    } else {
+      countElement.hidden = true;
+      countElement.textContent = '';
+    }
+  }
+
+  function clearToastTimer(entry) {
+    if (entry.timerId) {
+      window.clearTimeout(entry.timerId);
+      entry.timerId = null;
+    }
+  }
+
+  function clearRemovalTimer(entry) {
+    if (entry.removalTimerId) {
+      window.clearTimeout(entry.removalTimerId);
+      entry.removalTimerId = null;
+    }
+  }
+
+  function getVisibleToastCount() {
+    let total = 0;
+    activeToasts.forEach((entry) => {
+      if (!entry.isClosing) {
+        total += 1;
+      }
+    });
+    return total;
+  }
+
+  function findPendingToast(key) {
+    return pendingToasts.find((entry) => entry.key === key) || null;
+  }
+
+  function updateToast(entry, options) {
+    entry.duration = options.duration;
+    entry.count += 1;
+
+    if (entry.message !== options.message) {
+      entry.message = options.message;
+      const messageElement = entry.element.querySelector('.app-toast-message');
+      if (messageElement) {
+        messageElement.textContent = options.message;
+      }
+    }
+
+    updateToastCount(entry);
+  }
+
+  function activateToast(entry, container) {
+    entry.isClosing = false;
+    clearRemovalTimer(entry);
+    activeToasts.set(entry.key, entry);
+    container.appendChild(entry.element);
+    window.requestAnimationFrame(() => {
+      entry.element.classList.add('is-visible');
+    });
+    scheduleDismiss(entry, entry.duration);
+  }
+
+  function flushPendingToasts() {
+    const container = document.getElementById(TOAST_CONTAINER_ID);
+    if (!container) {
+      return;
+    }
+
+    while (pendingToasts.length > 0 && getVisibleToastCount() < MAX_VISIBLE_TOASTS) {
+      const nextEntry = pendingToasts.shift();
+      activateToast(nextEntry, container);
+    }
+  }
+
+  function dismissToast(key) {
+    const entry = activeToasts.get(key);
+    if (!entry || entry.isClosing) {
+      return;
+    }
+
+    entry.isClosing = true;
+    clearToastTimer(entry);
+    entry.element.classList.remove('is-visible');
+
+    clearRemovalTimer(entry);
+    entry.removalTimerId = window.setTimeout(() => {
+      if (entry.element.parentNode) {
+        entry.element.parentNode.removeChild(entry.element);
+      }
+      activeToasts.delete(key);
+      entry.removalTimerId = null;
+      flushPendingToasts();
+    }, EXIT_DURATION);
+  }
+
+  function scheduleDismiss(entry, duration) {
+    clearToastTimer(entry);
+    if (duration <= 0) {
+      return;
+    }
+
+    entry.duration = duration;
+    entry.timerId = window.setTimeout(() => dismissToast(entry.key), duration);
+  }
+
+  function bindToastEvents(entry) {
+    entry.element.addEventListener('mouseenter', () => {
+      clearToastTimer(entry);
+    });
+
+    entry.element.addEventListener('mouseleave', () => {
+      scheduleDismiss(entry, entry.duration);
+    });
+
+    const closeButton = entry.element.querySelector('.app-toast-close');
+    if (closeButton) {
+      closeButton.addEventListener('click', () => dismissToast(entry.key));
+    }
+  }
+
+  function showToast(messageOrOptions, type = 'info', duration = DEFAULT_DURATION) {
+    const options = normalizeOptions(messageOrOptions, type, duration);
+    if (!options.message) {
+      return null;
+    }
+
+    const container = ensureContainer();
+    const key = getToastKey(options.message, options.type);
+    const existing = activeToasts.get(key);
+    const pending = findPendingToast(key);
+
+    if (existing) {
+      updateToast(existing, options);
+      existing.isClosing = false;
+      clearRemovalTimer(existing);
+      container.appendChild(existing.element);
+      existing.element.classList.add('is-visible');
+      scheduleDismiss(existing, options.duration);
+      return existing.element;
+    }
+
+    if (pending) {
+      updateToast(pending, options);
+      return pending.element;
+    }
+
+    const element = createToastElement(options.type, options.message, key);
+    const entry = {
+      key,
+      message: options.message,
+      element,
+      timerId: null,
+      removalTimerId: null,
+      duration: options.duration,
+      count: 1,
+      isClosing: false
+    };
+
+    bindToastEvents(entry);
+    updateToastCount(entry);
+
+    if (getVisibleToastCount() >= MAX_VISIBLE_TOASTS) {
+      pendingToasts.push(entry);
+      return element;
+    }
+
+    activateToast(entry, container);
+    return element;
+  }
+
+  window.showToastMessage = showToast;
+  window.showToast = showToast;
+  window.dismissToastMessage = dismissToast;
+})();
