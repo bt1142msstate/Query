@@ -393,12 +393,34 @@ window.FilterSidePanel = (function () {
 
             data.filters.forEach((f, idx) => {
                 const valueLabel = buildFilterValueLabel(f, fieldDef, ' – ');
+                const useListViewer = window.shouldUseFilterListViewer && window.shouldUseFilterListViewer(f, fieldDef);
                 const row = document.createElement('div');
                 row.className = 'fp-cond-row';
 
                 const textSpan = document.createElement('span');
                 textSpan.className = 'fp-cond-text';
                 textSpan.innerHTML = `<span class="fp-cond-op">${condLabel(f.cond)}</span> <b>${valueLabel}</b>`;
+                if (useListViewer) {
+                    textSpan.classList.add('fp-cond-text-clickable');
+                    textSpan.setAttribute('role', 'button');
+                    textSpan.setAttribute('tabindex', '0');
+                    textSpan.setAttribute('aria-label', `View ${field} filter values`);
+                    const openViewer = () => {
+                        if (window.openFilterListViewer) {
+                            window.openFilterListViewer(f, fieldDef, {
+                                fieldName: field,
+                                operatorLabel: condLabel(f.cond)
+                            });
+                        }
+                    };
+                    textSpan.addEventListener('click', openViewer);
+                    textSpan.addEventListener('keydown', e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            openViewer();
+                        }
+                    });
+                }
 
                 const actions = document.createElement('div');
                 actions.className = 'fp-cond-actions';

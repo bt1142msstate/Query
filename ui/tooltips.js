@@ -372,8 +372,7 @@ window.formatStandardFilterTooltipHTML = function(filtersInput, title = "") {
           ? window.getFilterDisplayValues({ cond: uiCond, val: f.Values.join(',') }, fieldDef)
           : f.Values;
         const summary = values[0] ? escapeHtml(values[0]) + ' <span class="tt-value-more">and ' + (values.length - 1) + ' more</span>' : '';
-        const items = values.map(value => '<li class="tt-value-list-item">' + escapeHtml(value) + '</li>').join('');
-        valStr = '<div class="tt-val-stack"><div class="tt-val tt-val-summary">' + summary + '</div><ul class="tt-value-list">' + items + '</ul></div>';
+        valStr = '<div class="tt-val-stack"><div class="tt-val tt-val-summary">' + summary + '</div></div>';
         } else {
             valStr = '<span class="tt-val">' + escapeHtml(f.Values.join(', ')) + '</span>';
         }
