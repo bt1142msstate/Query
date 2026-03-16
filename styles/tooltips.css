@@ -66,6 +66,26 @@
   min-width: 200px;
 }
 
+.tt-field-definition {
+  min-width: 220px;
+  max-width: 320px;
+}
+
+.tt-field-definition-category {
+  color: #93c5fd;
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.tt-field-definition-desc {
+  color: #f8fafc;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
 
 .tt-filter-title {
     font-weight: 700;

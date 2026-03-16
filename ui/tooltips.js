@@ -390,6 +390,40 @@ window.formatStandardFilterTooltipHTML = function(filtersInput, title = "") {
   return hasFilters ? html : '';
 };
 
+window.formatFieldDefinitionTooltipHTML = function(fieldDef, options = {}) {
+  if (!fieldDef || typeof fieldDef !== 'object') {
+    return '';
+  }
+
+  const categoryValue = typeof fieldDef.category === 'string'
+    ? fieldDef.category.trim()
+    : '';
+  const descValue = typeof fieldDef.desc === 'string'
+    ? fieldDef.desc.trim()
+    : '';
+  const title = typeof options.title === 'string' ? options.title.trim() : '';
+
+  if (!title && !categoryValue && !descValue) {
+    return '';
+  }
+
+  let html = '<div class="tt-filter-container tt-field-definition">';
+  if (title) {
+    html += '<div class="tt-filter-title">' + escapeHtml(title) + '</div>';
+  }
+
+  if (categoryValue) {
+    html += '<div class="tt-field-definition-category">' + escapeHtml(categoryValue) + '</div>';
+  }
+
+  if (descValue) {
+    html += '<div class="tt-field-definition-desc">' + escapeHtml(descValue) + '</div>';
+  }
+
+  html += '</div>';
+  return html;
+};
+
 // Helper function to escape HTML to prevent XSS in tooltips
 function escapeHtml(unsafe) {
     if (typeof unsafe !== 'string') return unsafe;

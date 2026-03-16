@@ -41,29 +41,13 @@ class Bubble {
       filterTooltipHtml = window.formatStandardFilterTooltipHTML(filters, 'Active Filters');
     }
 
-    let tooltipContentHtml = '';
-    if (categoryValue || descValue || filterTooltipHtml) {
-      if (categoryValue || descValue) {
-        tooltipContentHtml += `<div class="tt-filter-container" style="${filterTooltipHtml ? 'margin-bottom: 12px;' : ''}">`;
-
-        if (categoryValue) {
-          const titleStyle = !descValue ? 'border-bottom: none; margin-bottom: 0; padding-bottom: 0;' : '';
-          tooltipContentHtml += `<div class="tt-filter-title" style="color: #93c5fd; display: flex; align-items: center; gap: 6px; ${titleStyle}">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-            ${categoryValue}
-          </div>`;
-        }
-
-        if (descValue) {
-          tooltipContentHtml += `<div style="color: #f8fafc; font-size: 0.95rem; line-height: 1.4; padding-top: 2px;">${descValue}</div>`;
-        }
-
-        tooltipContentHtml += '</div>';
-      }
-
-      if (filterTooltipHtml) {
-        tooltipContentHtml += filterTooltipHtml;
-      }
+    let tooltipContentHtml = typeof window.formatFieldDefinitionTooltipHTML === 'function'
+      ? window.formatFieldDefinitionTooltipHTML(def)
+      : '';
+    if (tooltipContentHtml && filterTooltipHtml) {
+      tooltipContentHtml += filterTooltipHtml;
+    } else if (filterTooltipHtml) {
+      tooltipContentHtml = filterTooltipHtml;
     }
 
     if (tooltipContentHtml) {

@@ -716,6 +716,37 @@ body.form-mode-active #filter-side-panel {
   color: #0f172a;
 }
 
+.form-mode-field-picker-field-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.form-mode-field-picker-field-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 1px solid rgba(148, 163, 184, 0.55);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #0f766e;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.form-mode-field-picker-field-info:hover,
+.form-mode-field-picker-field-info:focus-visible {
+  border-color: rgba(15, 118, 110, 0.45);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+  outline: none;
+}
+
 .form-mode-field-picker-field-meta,
 .form-mode-field-picker-status,
 .form-mode-field-picker-empty {
