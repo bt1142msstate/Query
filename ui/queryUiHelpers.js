@@ -213,10 +213,14 @@ window.createBooleanPillSelector = function(values, currentValue = '', options =
     const literal = typeof value === 'object'
       ? (value.RawValue ?? value.Value ?? value.value ?? value.Name ?? value.Display)
       : value;
+    const description = typeof value === 'object'
+      ? (value.Description || value.description || value.Desc || value.desc || '')
+      : '';
 
     return {
       display: String(display),
-      literal: String(literal)
+      literal: String(literal),
+      description: String(description || '').trim()
     };
   });
 
@@ -239,6 +243,9 @@ window.createBooleanPillSelector = function(values, currentValue = '', options =
       button.dataset.display = option.display;
       button.textContent = option.display;
       button.setAttribute('aria-pressed', selectedValue === option.literal ? 'true' : 'false');
+      if (option.description) {
+        button.setAttribute('data-tooltip', option.description);
+      }
       if (selectedValue === option.literal) {
         button.classList.add('active');
       }
@@ -319,12 +326,19 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     const display = typeof value === 'object' ? (value.Name || value.Display || value.name || value.display || value.RawValue) : value;
     const literal = typeof value === 'object' ? (value.RawValue ?? value.Value ?? value.value ?? value.Name ?? value.Display) : value;
     const explicitGroup = typeof value === 'object' ? (value.Group || value.group || '') : '';
+    const description = typeof value === 'object'
+      ? (value.Description || value.description || value.Desc || value.desc || '')
+      : '';
     const displayText = String(display);
     const derivedGroup = enableGrouping && !explicitGroup && displayText.includes('-')
       ? displayText.split('-')[0].trim()
       : '';
     const group = enableGrouping ? (explicitGroup || derivedGroup) : '';
-    const normalized = { display: displayText, literal: String(literal) };
+    const normalized = {
+      display: displayText,
+      literal: String(literal),
+      description: String(description || '').trim()
+    };
 
     if (group) {
       if (!groupedData.has(group)) groupedData.set(group, []);
@@ -411,6 +425,9 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     if (insideGroup) optionItem.dataset.group = groupName;
     optionItem.dataset.value = val.literal;
     optionItem.dataset.display = val.display;
+    if (val.description) {
+      optionItem.setAttribute('data-tooltip', val.description);
+    }
 
     const input = document.createElement('input');
     input.type = isMultiSelect ? 'checkbox' : 'radio';
