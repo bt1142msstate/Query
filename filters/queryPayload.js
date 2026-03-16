@@ -140,6 +140,13 @@ function mapActiveFilterToBackend(condition, rawValue) {
   }));
 }
 
+function splitKeyFilterValues(rawValue) {
+  return String(rawValue || '')
+    .split(/[\n,]+/)
+    .map(value => value.trim())
+    .filter(Boolean);
+}
+
 window.getNormalizedDisplayedFields = function(fields = window.displayedFields) {
   return [...fields]
     .filter(field => {
@@ -247,6 +254,16 @@ window.buildBackendFilters = function() {
 
     (filterGroup?.filters || []).forEach(filter => {
       if (filter.val === '') return;
+
+      if (fieldDef && fieldDef.allowValueList && filter.cond === 'equals') {
+        const keyValues = splitKeyFilterValues(filter.val);
+        filters.push({
+          field: fieldName,
+          operator: '=',
+          value: keyValues.length > 1 ? keyValues : (keyValues[0] || '')
+        });
+        return;
+      }
 
       mapActiveFilterToBackend(filter.cond, filter.val).forEach(({ operator, value }) => {
         filters.push({
