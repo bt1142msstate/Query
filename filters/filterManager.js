@@ -41,17 +41,80 @@ function buildListSummaryLabel(values) {
     return `${values[0]}, and ${values.length - 1} more`;
 }
 
-function buildFilterListTooltipHtml(filter, fieldDef, title = 'Filter Values') {
+function shouldUseFilterListViewer(filter, fieldDef) {
     const values = getFilterDisplayValues(filter, fieldDef);
-    if (!values.length || values.length === 1) {
-        return '';
+    return Boolean(fieldDef && fieldDef.allowValueList && values.length > 1);
+}
+
+function ensureFilterListViewer() {
+    let backdrop = document.getElementById('filter-list-viewer-backdrop');
+    let panel = document.getElementById('filter-list-viewer');
+
+    if (backdrop && panel) {
+        return { backdrop, panel };
     }
 
+    backdrop = document.createElement('div');
+    backdrop.id = 'filter-list-viewer-backdrop';
+    backdrop.className = 'filter-list-viewer-backdrop hidden';
+
+    panel = document.createElement('div');
+    panel.id = 'filter-list-viewer';
+    panel.className = 'filter-list-viewer hidden';
+    panel.innerHTML = `
+        <div class="filter-list-viewer-header">
+            <div>
+                <div id="filter-list-viewer-title" class="filter-list-viewer-title"></div>
+                <div id="filter-list-viewer-meta" class="filter-list-viewer-meta"></div>
+            </div>
+            <button type="button" id="filter-list-viewer-close" class="filter-list-viewer-close" aria-label="Close list viewer">
+                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 6l12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+        <div id="filter-list-viewer-body" class="filter-list-viewer-body"></div>
+    `;
+
+    const closeViewer = () => {
+        backdrop.classList.add('hidden');
+        panel.classList.add('hidden');
+    };
+
+    backdrop.addEventListener('click', closeViewer);
+    panel.querySelector('#filter-list-viewer-close').addEventListener('click', closeViewer);
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && !panel.classList.contains('hidden')) {
+            closeViewer();
+        }
+    });
+
+    document.body.appendChild(backdrop);
+    document.body.appendChild(panel);
+    return { backdrop, panel };
+}
+
+function openFilterListViewer(filter, fieldDef, options = {}) {
+    const values = getFilterDisplayValues(filter, fieldDef);
+    if (values.length <= 1) {
+        return;
+    }
+
+    const { backdrop, panel } = ensureFilterListViewer();
+    const titleEl = panel.querySelector('#filter-list-viewer-title');
+    const metaEl = panel.querySelector('#filter-list-viewer-meta');
+    const bodyEl = panel.querySelector('#filter-list-viewer-body');
+    const fieldLabel = options.fieldName || fieldDef?.name || 'Selected Values';
+    const operatorLabel = options.operatorLabel || (filter.cond.charAt(0).toUpperCase() + filter.cond.slice(1));
+
     const items = values
-        .map(value => `<li class="tt-value-list-item">${window.escapeHtml ? window.escapeHtml(value) : value}</li>`)
+        .map(value => `<li class="filter-list-viewer-item">${window.escapeHtml ? window.escapeHtml(value) : value}</li>`)
         .join('');
 
-    return `<div class="tt-filter-container tt-list-tooltip"><div class="tt-filter-title">${title}</div><ul class="tt-value-list">${items}</ul></div>`;
+    titleEl.textContent = `${fieldLabel} ${operatorLabel}`;
+    metaEl.textContent = `${values.length} value${values.length === 1 ? '' : 's'}`;
+    bodyEl.innerHTML = `<ul class="filter-list-viewer-list">${items}</ul>`;
+
+    backdrop.classList.remove('hidden');
+    panel.classList.remove('hidden');
 }
 
 function buildFilterValueLabel(filter, fieldDef, betweenSeparator = ' - ') {
@@ -80,7 +143,8 @@ function buildFilterValueLabel(filter, fieldDef, betweenSeparator = ' - ') {
 }
 
 window.getFilterDisplayValues = getFilterDisplayValues;
-window.buildFilterListTooltipHtml = buildFilterListTooltipHtml;
+window.openFilterListViewer = openFilterListViewer;
+window.shouldUseFilterListViewer = shouldUseFilterListViewer;
 
 function getFilterConditionPanelElement() {
     return window.DOM?.conditionPanel || document.getElementById('condition-panel');
@@ -128,7 +192,7 @@ class FilterPill {
     render() {
         const { filter, fieldDef } = this;
         const valueLabel = buildFilterValueLabel(filter, fieldDef);
-        const listTooltipHtml = buildFilterListTooltipHtml(filter, fieldDef, 'Selected Values');
+        const useListViewer = shouldUseFilterListViewer(filter, fieldDef);
 
         // Operator label (always show full word)
         let opLabel = filter.cond.charAt(0).toUpperCase() + filter.cond.slice(1);
@@ -145,10 +209,26 @@ class FilterPill {
         this.el.style.alignItems = 'center';
         this.el.style.justifyContent = 'space-between';
         this.el.innerHTML = `<span>${opLabel} <b>${valueLabel}</b></span>${trashSVG}`;
-        if (listTooltipHtml) {
-            this.el.setAttribute('data-tooltip-html', listTooltipHtml);
+        if (useListViewer) {
+            this.el.classList.add('cond-pill-clickable');
+            this.el.setAttribute('role', 'button');
+            this.el.setAttribute('tabindex', '0');
+            this.el.setAttribute('aria-label', `View ${fieldDef?.name || 'filter'} values`);
+            this.el.removeAttribute('data-tooltip-html');
             this.el.removeAttribute('data-tooltip');
+            this.el.addEventListener('click', event => {
+                if (event.target.closest('.filter-trash')) return;
+                openFilterListViewer(filter, fieldDef, { fieldName: fieldDef?.name, operatorLabel: opLabel });
+            });
+            this.el.addEventListener('keydown', event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openFilterListViewer(filter, fieldDef, { fieldName: fieldDef?.name, operatorLabel: opLabel });
+                }
+            });
         } else {
+            this.el.classList.remove('cond-pill-clickable');
+            this.el.removeAttribute('role');
             this.el.removeAttribute('data-tooltip-html');
         }
     
