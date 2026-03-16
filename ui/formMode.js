@@ -330,6 +330,34 @@
     });
   }
 
+  function removeSpecColumns(fieldName) {
+    if (!state.spec || !Array.isArray(state.spec.columns)) return;
+    const baseFieldName = typeof window.getBaseFieldName === 'function'
+      ? window.getBaseFieldName(fieldName)
+      : fieldName;
+
+    state.spec.columns = state.spec.columns.filter(column => {
+      const baseColumnName = typeof window.getBaseFieldName === 'function'
+        ? window.getBaseFieldName(column)
+        : column;
+      return baseColumnName !== baseFieldName;
+    });
+  }
+
+  function removeSpecFilterInputs(fieldName) {
+    if (!state.spec || !Array.isArray(state.spec.inputs)) return;
+    const baseFieldName = typeof window.getBaseFieldName === 'function'
+      ? window.getBaseFieldName(fieldName)
+      : fieldName;
+
+    state.spec.inputs = state.spec.inputs.filter(inputSpec => {
+      const baseInputField = typeof window.getBaseFieldName === 'function'
+        ? window.getBaseFieldName(inputSpec.field)
+        : inputSpec.field;
+      return baseInputField !== baseFieldName;
+    });
+  }
+
   function captureCurrentControlDefaults() {
     if (!state.spec || !Array.isArray(state.spec.inputs) || state.controls.size === 0) {
       return;
@@ -583,7 +611,7 @@
       </div>
       <div class="form-mode-field-picker-footer">
         <button type="button" class="form-mode-btn form-mode-field-picker-cancel">Cancel</button>
-        <button type="button" class="form-mode-btn form-mode-btn-primary form-mode-field-picker-apply" disabled>Add Field</button>
+        <button type="button" class="form-mode-btn form-mode-btn-primary form-mode-field-picker-apply" disabled>Apply Changes</button>
       </div>
     `;
 
@@ -624,6 +652,7 @@
         fieldMetaEl.classList.add('hidden');
         statusEl.textContent = 'No field selected.';
         applyButton.disabled = true;
+        applyButton.textContent = 'Apply Changes';
         return;
       }
 
@@ -638,18 +667,37 @@
       fieldMetaEl.classList.toggle('hidden', metaParts.length === 0);
 
       const willAddDisplay = displayChoice.checked && !alreadyDisplayed;
+      const willRemoveDisplay = !displayChoice.checked && alreadyDisplayed;
       const willAddFilter = filterChoice.checked && !alreadyFilterable;
+      const willRemoveFilter = !filterChoice.checked && alreadyFilterable;
       const statusParts = [];
 
-      if (alreadyDisplayed) statusParts.push('Already displayed');
-      if (alreadyFilterable) statusParts.push('Already filterable');
       if (willAddDisplay) statusParts.push('Will add to results');
+      if (willRemoveDisplay) statusParts.push('Will remove from results');
       if (willAddFilter) statusParts.push('Will add filter control');
+      if (willRemoveFilter) statusParts.push('Will remove filter control');
+
+      if (!willAddDisplay && !willRemoveDisplay && alreadyDisplayed) {
+        statusParts.push('Displayed');
+      }
+      if (!willAddFilter && !willRemoveFilter && alreadyFilterable) {
+        statusParts.push('Filterable');
+      }
 
       statusEl.textContent = statusParts.length > 0
         ? statusParts.join(' • ')
-        : 'Choose how this field should be added.';
-      applyButton.disabled = !willAddDisplay && !willAddFilter;
+        : 'No changes for this field.';
+
+      const hasChanges = willAddDisplay || willRemoveDisplay || willAddFilter || willRemoveFilter;
+      applyButton.disabled = !hasChanges;
+
+      if (willRemoveDisplay || willRemoveFilter) {
+        applyButton.textContent = (willAddDisplay || willAddFilter) ? 'Apply Changes' : 'Remove Field';
+      } else if (willAddDisplay || willAddFilter) {
+        applyButton.textContent = 'Add Field';
+      } else {
+        applyButton.textContent = 'Apply Changes';
+      }
     }
 
     function renderList() {
@@ -720,18 +768,28 @@
       }
 
       const addedParts = [];
+      const removedParts = [];
 
-      if (displayChoice.checked && !hasSpecColumn(selectedFieldName)) {
+      const alreadyDisplayed = hasSpecColumn(selectedFieldName);
+      const alreadyFilterable = hasSpecFilterInput(selectedFieldName);
+
+      if (displayChoice.checked && !alreadyDisplayed) {
         state.spec.columns.push(selectedFieldName);
         addedParts.push('results column');
+      } else if (!displayChoice.checked && alreadyDisplayed) {
+        removeSpecColumns(selectedFieldName);
+        removedParts.push('results column');
       }
 
-      if (filterChoice.checked && !hasSpecFilterInput(selectedFieldName)) {
+      if (filterChoice.checked && !alreadyFilterable) {
         state.spec.inputs.push(createGeneratedInputSpec(selectedFieldName));
         addedParts.push('filter control');
+      } else if (!filterChoice.checked && alreadyFilterable) {
+        removeSpecFilterInputs(selectedFieldName);
+        removedParts.push('filter control');
       }
 
-      if (addedParts.length === 0) {
+      if (addedParts.length === 0 && removedParts.length === 0) {
         return;
       }
 
@@ -739,7 +797,14 @@
       cleanup();
 
       if (window.showToastMessage) {
-        window.showToastMessage(`Added ${addedParts.join(' and ')} for ${selectedFieldName}.`, 'success');
+        const messageParts = [];
+        if (addedParts.length > 0) {
+          messageParts.push(`added ${addedParts.join(' and ')}`);
+        }
+        if (removedParts.length > 0) {
+          messageParts.push(`removed ${removedParts.join(' and ')}`);
+        }
+        window.showToastMessage(`${selectedFieldName}: ${messageParts.join(', ')}.`, 'success');
       }
     });
 

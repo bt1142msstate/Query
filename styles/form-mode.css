@@ -599,8 +599,11 @@ body.form-mode-active #filter-side-panel {
   min-height: 0;
   max-height: none;
   margin-top: 0.85rem;
+  padding-top: 0.35rem;
   padding-right: 0.35rem;
   padding-bottom: 0.2rem;
+  scroll-padding-top: 0.35rem;
+  overflow-x: hidden;
   overflow-y: auto;
 }
 
@@ -622,7 +625,7 @@ body.form-mode-active #filter-side-panel {
 .form-mode-field-picker-option.is-selected {
   border-color: rgba(15, 118, 110, 0.42);
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
-  transform: translateY(-1px);
+  transform: none;
 }
 
 .form-mode-field-picker-option-name {
