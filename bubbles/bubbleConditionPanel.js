@@ -162,17 +162,15 @@ function buildBubbleConditionPanel(bubble) {
       ? listValues.some(val => val.Name.includes('-'))
       : listValues.some(val => val.includes('-'));
 
-    const generator = (vals) => createGroupedSelector(listValues, isMultiSelect, vals, {
-      enableGrouping: shouldGroupValues && hasDashes
-    });
-
     const selector = isBooleanField && listValues.length === 2
       ? createBooleanPillSelector(listValues, currentLiteralValues[0] || '', {
           onChange: () => {
             confirmBtn.click();
           }
         })
-      : (isMultiSelect && typeof window.createPopupEditor === 'function' ? window.createPopupEditor(generator, currentLiteralValues, { title: `Select ${selectedField}`, placeholder: 'Select values...' }) : generator(currentLiteralValues));
+      : createGroupedSelector(listValues, isMultiSelect, currentLiteralValues, {
+          enableGrouping: shouldGroupValues && hasDashes
+        });
     inputWrapper.insertBefore(selector, confirmBtn);
     conditionInput.style.display = 'none';
     if (isBooleanField && listValues.length === 2) {
@@ -194,13 +192,10 @@ function buildBubbleConditionPanel(bubble) {
         }
       }
 
-      const opts = {
+      const listInput = window.createListPasteInput(currentLiteralValues, {
         placeholder: 'Paste one key per line',
         hint: 'Paste keys one per line, paste comma-separated keys, or upload a text/CSV file.'
-      };
-      const listInput = typeof window.createPopupEditor === 'function' 
-        ? window.createPopupEditor((vals) => window.createListPasteInput(vals, opts), currentLiteralValues, { title: `List: ${selectedField}`, placeholder: 'List values...' }) 
-        : window.createListPasteInput(currentLiteralValues, opts);
+      });
       inputWrapper.insertBefore(listInput, confirmBtn);
       conditionInput.style.display = 'none';
     } else {

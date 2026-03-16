@@ -97,14 +97,10 @@ window.FilterSidePanel = (function () {
             .filter(Boolean);
 
         if (window.isListPasteField && window.isListPasteField(fieldDef) && typeof window.createListPasteInput === 'function' && !listValues) {
-            const opts = {
+            return window.createListPasteInput(currentValues, {
                 placeholder: 'Paste one key per line',
                 hint: 'Paste values or upload a text/CSV file.'
-            };
-            if (typeof window.createPopupEditor === 'function') {
-                return window.createPopupEditor((vals) => window.createListPasteInput(vals, opts), currentValues, { title: `List: ${fieldDef.name || 'Values'}`, placeholder: 'List values...' });
-            }
-            return window.createListPasteInput(currentValues, opts);
+            });
         }
 
         if (!listValues) {
@@ -132,15 +128,9 @@ window.FilterSidePanel = (function () {
             });
         }
 
-        const generator = (vals) => createGroupedSelector(listValues, isMultiSelect, vals, {
+        return createGroupedSelector(listValues, isMultiSelect, currentValues, {
             enableGrouping: shouldGroupValues && hasDashes
         });
-
-        if (isMultiSelect && typeof window.createPopupEditor === 'function') {
-            return window.createPopupEditor(generator, currentValues, { title: `Select ${fieldDef.name || 'Values'}`, placeholder: 'Select values...' });
-        }
-
-        return generator(currentValues);
     }
 
     function getInlineEditorValues(inputEl) {
