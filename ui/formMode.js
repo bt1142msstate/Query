@@ -358,6 +358,11 @@
     });
   }
 
+  function removeSpecInputByKey(inputKey) {
+    if (!state.spec || !Array.isArray(state.spec.inputs) || !inputKey) return;
+    state.spec.inputs = state.spec.inputs.filter(inputSpec => inputSpec.key !== inputKey);
+  }
+
   function captureCurrentControlDefaults() {
     if (!state.spec || !Array.isArray(state.spec.inputs) || state.controls.size === 0) {
       return;
@@ -1527,6 +1532,9 @@
     const row = document.createElement('div');
     row.className = 'form-mode-field';
 
+    const topRow = document.createElement('div');
+    topRow.className = 'form-mode-field-top';
+
     const label = document.createElement('label');
     label.className = 'form-mode-label';
     label.textContent = inputSpec.label;
@@ -1537,6 +1545,27 @@
       requiredBadge.textContent = 'Required';
       label.appendChild(requiredBadge);
     }
+
+    const removeButton = document.createElement('button');
+    removeButton.type = 'button';
+    removeButton.className = 'form-mode-field-remove';
+    removeButton.setAttribute('aria-label', `Remove filter ${inputSpec.label}`);
+    removeButton.setAttribute('title', `Remove filter ${inputSpec.label}`);
+    removeButton.innerHTML = `
+      <svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16">
+        <path d="M9 3h6a1 1 0 0 1 1 1v1h4v2H4V5h4V4a1 1 0 0 1 1-1Zm-3 6h12l-.8 11.2A2 2 0 0 1 15.2 22H8.8a2 2 0 0 1-1.99-1.8L6 9Z" fill="currentColor"></path>
+      </svg>
+    `;
+    removeButton.addEventListener('click', () => {
+      removeSpecInputByKey(inputSpec.key);
+      rebuildFormCardFromSpec();
+      if (window.showToastMessage) {
+        window.showToastMessage(`Removed filter ${inputSpec.label}.`, 'info');
+      }
+    });
+
+    topRow.appendChild(label);
+    topRow.appendChild(removeButton);
 
     const metaRow = document.createElement('div');
     metaRow.className = 'form-mode-meta-row';
@@ -1556,7 +1585,7 @@
     controlWrap.className = 'form-mode-control';
     controlWrap.appendChild(control);
 
-    row.appendChild(label);
+    row.appendChild(topRow);
     row.appendChild(metaRow);
     if (inputSpec.help) {
       const help = document.createElement('p');
