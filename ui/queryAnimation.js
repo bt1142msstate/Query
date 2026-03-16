@@ -1,275 +1,249 @@
-/* ---------- Table morph animation — 3-D Bookshelf ---------- */
+/* ---------- Table morph animation — Spacefield bubble ---------- */
 function createTableQueryCircuitOverlay() {
   const container = document.createElement('div');
   container.id   = 'table-query-circuit';
-  container.className = 'table-query-bookshelf';
+  container.className = 'table-query-cosmos';
 
-  /* Canvas that Three.js will render into */
   const canvas = document.createElement('canvas');
-  /* CSS only — Three.js will manage pixel dimensions */
   canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;display:block;border-radius:inherit;';
   container.appendChild(canvas);
 
-  /* ── start / stop hooks called by the lifecycle functions below ── */
   container._startAnimation = function () {
-    if (container._threeRunning || typeof THREE === 'undefined') return;
-    container._threeRunning = true;
+    if (container._spaceRunning) return;
+    container._spaceRunning = true;
 
-    /* Determine initial render size from the container (falls back to 350) */
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
     const getSize = () => ({
-      w: container.clientWidth  || 350,
-      h: container.clientHeight || 350,
+      w: container.clientWidth || 350,
+      h: container.clientHeight || 350
     });
 
-    const { w: W0, h: H0 } = getSize();
+    let width = 0;
+    let height = 0;
+    let pixelRatio = 1;
+    let stars = [];
+    let comets = [];
+    let nebulae = [];
+    let lastFrame = performance.now();
+    let cometCooldown = 0.2;
 
-    /* false = don't let Three.js override canvas CSS width/height */
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
-    renderer.setSize(W0, H0, false);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.shadowMap.enabled = false; /* shadows add cost without visibility gain */
-    container._renderer = renderer;
+    function randomBetween(min, max) {
+      return min + Math.random() * (max - min);
+    }
 
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1e0c04); /* warm dark brown — clearly not black */
+    function buildScene() {
+      const starCount = Math.max(50, Math.round((width * height) / 1800));
+      stars = Array.from({ length: starCount }, () => ({
+        x: Math.random(),
+        y: Math.random(),
+        size: randomBetween(0.6, 2.4),
+        alpha: randomBetween(0.3, 1),
+        hue: randomBetween(190, 255),
+        twinkleOffset: randomBetween(0, Math.PI * 2),
+        speed: randomBetween(0.004, 0.018)
+      }));
 
-    const camera = new THREE.PerspectiveCamera(65, W0 / H0, 0.1, 30);
-    camera.position.set(0, 0.15, 3.2);
-    camera.lookAt(0, 0.0, 0);
+      nebulae = [
+        { x: 0.24, y: 0.22, radius: 0.34, hue: 198, alpha: 0.22, drift: 0.12 },
+        { x: 0.76, y: 0.32, radius: 0.28, hue: 286, alpha: 0.18, drift: -0.1 },
+        { x: 0.56, y: 0.76, radius: 0.38, hue: 232, alpha: 0.16, drift: 0.08 }
+      ];
+    }
 
-    /* ── Resize observer: keep renderer in sync as bubble morphs ── */
+    function resizeCanvas() {
+      const nextSize = getSize();
+      width = nextSize.w;
+      height = nextSize.h;
+      pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.max(1, Math.round(width * pixelRatio));
+      canvas.height = Math.max(1, Math.round(height * pixelRatio));
+      ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+      buildScene();
+    }
+
+    function spawnComet() {
+      const fromLeft = Math.random() > 0.5;
+      comets.push({
+        x: fromLeft ? -0.1 * width : 1.1 * width,
+        y: randomBetween(0.18, 0.62) * height,
+        vx: fromLeft ? randomBetween(110, 170) : randomBetween(-170, -110),
+        vy: randomBetween(-18, 18),
+        life: randomBetween(0.8, 1.25),
+        ttl: randomBetween(0.8, 1.25),
+        length: randomBetween(34, 64),
+        hue: randomBetween(190, 220)
+      });
+    }
+
+    function drawBackground(timeSeconds) {
+      const bg = ctx.createRadialGradient(width * 0.5, height * 0.52, width * 0.08, width * 0.5, height * 0.52, width * 0.72);
+      bg.addColorStop(0, 'rgba(30, 64, 175, 0.22)');
+      bg.addColorStop(0.35, 'rgba(14, 25, 61, 0.94)');
+      bg.addColorStop(1, 'rgba(4, 8, 19, 1)');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, width, height);
+
+      nebulae.forEach((cloud, index) => {
+        const pulse = Math.sin(timeSeconds * (0.22 + index * 0.08) + index) * 0.04;
+        const driftX = Math.cos(timeSeconds * cloud.drift + index) * width * 0.03;
+        const driftY = Math.sin(timeSeconds * cloud.drift * 0.7 + index) * height * 0.025;
+        const gradient = ctx.createRadialGradient(
+          cloud.x * width + driftX,
+          cloud.y * height + driftY,
+          0,
+          cloud.x * width + driftX,
+          cloud.y * height + driftY,
+          cloud.radius * Math.min(width, height)
+        );
+        gradient.addColorStop(0, `hsla(${cloud.hue}, 95%, 72%, ${cloud.alpha + pulse})`);
+        gradient.addColorStop(0.45, `hsla(${cloud.hue}, 85%, 56%, ${cloud.alpha * 0.42})`);
+        gradient.addColorStop(1, `hsla(${cloud.hue}, 85%, 40%, 0)`);
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(cloud.x * width + driftX, cloud.y * height + driftY, cloud.radius * Math.min(width, height), 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function drawStars(timeSeconds) {
+      stars.forEach(star => {
+        star.y += star.speed * 0.0009;
+        if (star.y > 1.08) {
+          star.y = -0.08;
+          star.x = Math.random();
+        }
+
+        const twinkle = 0.62 + Math.sin(timeSeconds * 2.4 + star.twinkleOffset) * 0.38;
+        const x = star.x * width;
+        const y = star.y * height;
+        const radius = star.size * (0.75 + twinkle * 0.45);
+
+        ctx.fillStyle = `hsla(${star.hue}, 100%, 88%, ${star.alpha * twinkle})`;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = `hsla(${star.hue}, 100%, 92%, ${star.alpha * 0.2 * twinkle})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x - radius * 2.4, y);
+        ctx.lineTo(x + radius * 2.4, y);
+        ctx.moveTo(x, y - radius * 2.4);
+        ctx.lineTo(x, y + radius * 2.4);
+        ctx.stroke();
+      });
+    }
+
+    function drawPlanet(timeSeconds) {
+      const planetX = width * 0.76;
+      const planetY = height * 0.73;
+      const planetRadius = Math.min(width, height) * 0.18;
+      const glow = ctx.createRadialGradient(planetX - planetRadius * 0.4, planetY - planetRadius * 0.45, planetRadius * 0.05, planetX, planetY, planetRadius * 1.8);
+      glow.addColorStop(0, 'rgba(125, 211, 252, 0.9)');
+      glow.addColorStop(0.45, 'rgba(56, 189, 248, 0.26)');
+      glow.addColorStop(1, 'rgba(56, 189, 248, 0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(planetX, planetY, planetRadius * 1.9, 0, Math.PI * 2);
+      ctx.fill();
+
+      const planet = ctx.createLinearGradient(planetX - planetRadius, planetY - planetRadius, planetX + planetRadius, planetY + planetRadius);
+      planet.addColorStop(0, 'rgba(251, 191, 36, 0.92)');
+      planet.addColorStop(0.55, 'rgba(249, 115, 22, 0.92)');
+      planet.addColorStop(1, 'rgba(91, 33, 182, 0.96)');
+      ctx.fillStyle = planet;
+      ctx.beginPath();
+      ctx.arc(planetX, planetY, planetRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
+      ctx.lineWidth = Math.max(1.6, planetRadius * 0.08);
+      ctx.beginPath();
+      ctx.ellipse(planetX, planetY + Math.sin(timeSeconds * 0.8) * planetRadius * 0.03, planetRadius * 1.48, planetRadius * 0.4, -0.22, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    function drawSignal(timeSeconds) {
+      const centerX = width * 0.34;
+      const centerY = height * 0.38;
+      const ringBase = Math.min(width, height) * 0.12;
+      for (let index = 0; index < 3; index += 1) {
+        const wave = (timeSeconds * 0.22 + index / 3) % 1;
+        const radius = ringBase + wave * Math.min(width, height) * 0.2;
+        ctx.strokeStyle = `rgba(125, 211, 252, ${0.22 * (1 - wave)})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    function drawComets(deltaSeconds) {
+      cometCooldown -= deltaSeconds;
+      if (cometCooldown <= 0) {
+        spawnComet();
+        cometCooldown = randomBetween(0.8, 1.8);
+      }
+
+      comets = comets.filter(comet => {
+        comet.ttl -= deltaSeconds;
+        comet.x += comet.vx * deltaSeconds;
+        comet.y += comet.vy * deltaSeconds;
+        if (comet.ttl <= 0) {
+          return false;
+        }
+
+        const progress = 1 - (comet.ttl / comet.life);
+        const alpha = 0.9 * (1 - progress);
+        const tailX = comet.x - Math.sign(comet.vx) * comet.length;
+        const gradient = ctx.createLinearGradient(comet.x, comet.y, tailX, comet.y - comet.vy * 0.15);
+        gradient.addColorStop(0, `hsla(${comet.hue}, 100%, 88%, ${alpha})`);
+        gradient.addColorStop(1, `hsla(${comet.hue}, 100%, 70%, 0)`);
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.moveTo(comet.x, comet.y);
+        ctx.lineTo(tailX, comet.y - comet.vy * 0.12);
+        ctx.stroke();
+        return true;
+      });
+    }
+
+    function tick(now) {
+      if (!container._spaceRunning) return;
+      container._raf = requestAnimationFrame(tick);
+
+      const deltaSeconds = Math.min((now - lastFrame) / 1000, 0.05);
+      lastFrame = now;
+      const timeSeconds = now / 1000;
+
+      ctx.clearRect(0, 0, width, height);
+      drawBackground(timeSeconds);
+      drawStars(timeSeconds);
+      drawSignal(timeSeconds);
+      drawPlanet(timeSeconds);
+      drawComets(deltaSeconds);
+    }
+
     let resizeObs = null;
     if (typeof ResizeObserver !== 'undefined') {
       resizeObs = new ResizeObserver(() => {
-        const { w, h } = getSize();
-        if (!w || !h) return;
-        renderer.setSize(w, h, false);
-        camera.aspect = w / h;
-        camera.updateProjectionMatrix();
+        resizeCanvas();
       });
       resizeObs.observe(container);
       container._resizeObs = resizeObs;
     }
 
-    /* ── Lights (brighter so books are clearly visible) ── */
-    scene.add(new THREE.AmbientLight(0xfff4e0, 1.4));
-
-    const mainLight = new THREE.DirectionalLight(0xffebc8, 1.1);
-    mainLight.position.set(2, 5, 4);
-    scene.add(mainLight);
-
-    const fillLight = new THREE.PointLight(0xff9940, 0.7, 12);
-    fillLight.position.set(-2, -0.5, 3);
-    scene.add(fillLight);
-
-    const scanLight = new THREE.PointLight(0x00e8ff, 0, 5);
-    scene.add(scanLight);
-
-    /* ── Shelf materials ── */
-    const shelfMat     = new THREE.MeshStandardMaterial({ color: 0x8b5e32, roughness: 0.8, metalness: 0.05 });
-    const shelfDarkMat = new THREE.MeshStandardMaterial({ color: 0x5a3515, roughness: 0.85, metalness: 0.00 });
-
-    /* Bookcase dimensions — scaled for a 65° FOV camera at z=3.2 */
-    const SW = 3.0, SD = 0.30, ST = 0.07, SBH = 2.2, yBase = -0.9;
-
-    /* Back panel */
-    const back = new THREE.Mesh(new THREE.BoxGeometry(SW + 0.14, SBH + 0.1, 0.04), shelfDarkMat);
-    back.position.set(0, yBase + SBH / 2, -SD / 2 - 0.02);
-    scene.add(back);
-
-    /* Top & bottom rails */
-    [yBase, yBase + SBH].forEach(y => {
-      const b = new THREE.Mesh(new THREE.BoxGeometry(SW + 0.14, ST, SD + 0.08), shelfMat);
-      b.position.set(0, y, 0);
-      scene.add(b);
-    });
-
-    /* Side panels */
-    [-SW / 2 - 0.05, SW / 2 + 0.05].forEach(x => {
-      const s = new THREE.Mesh(new THREE.BoxGeometry(0.08, SBH + 0.1, SD + 0.08), shelfMat);
-      s.position.set(x, yBase + SBH / 2, 0);
-      scene.add(s);
-    });
-
-    /* Two inner shelf boards */
-    const shelfYs = [yBase + 0.25, yBase + 0.25 + (SBH - 0.25) / 2];
-    shelfYs.forEach(y => {
-      const sh = new THREE.Mesh(new THREE.BoxGeometry(SW, ST, SD), shelfMat);
-      sh.position.set(0, y, 0);
-      scene.add(sh);
-    });
-
-    /* ── Books ── */
-    const palette = [
-      0xc0392b, 0x2980b9, 0x27ae60, 0xe67e22, 0x8e44ad,
-      0x16a085, 0xdc143c, 0xd35400, 0x1abc9c, 0x6c5ce7,
-      0xe84393, 0x0984e3, 0xf9ca24, 0x00b894, 0xa29bfe,
-      0xfd79a8, 0xe55039, 0x74b9ff, 0xfdcb6e, 0x00cec9,
-    ];
-
-    const allBooks = [];
-
-    shelfYs.forEach(shelfY => {
-      const floorY = shelfY + ST / 2;
-      let x = -SW / 2 + 0.06;
-      while (x < SW / 2 - 0.08) {
-        const bW = 0.12  + Math.random() * 0.10;
-        const bH = 0.48  + Math.random() * 0.36;   /* taller books — more visible */
-        const bD = SD * 0.80;
-        if (x + bW > SW / 2 - 0.06) break;
-
-        const color = palette[Math.floor(Math.random() * palette.length)];
-        const mat = new THREE.MeshStandardMaterial({
-          color,
-          roughness: 0.65,
-          metalness: 0.05,
-          emissive: new THREE.Color(color),
-          emissiveIntensity: 0.08, /* tiny constant glow ensures visibility */
-        });
-        const mesh = new THREE.Mesh(new THREE.BoxGeometry(bW, bH, bD), mat);
-        const bX = x + bW / 2;
-        const bY = floorY + bH / 2;
-        mesh.position.set(bX, bY, 0);
-        scene.add(mesh);
-
-        /* Spine highlight strips */
-        const sMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.18 });
-        [bH * 0.3, -bH * 0.05].forEach(sy => {
-          const strip = new THREE.Mesh(new THREE.BoxGeometry(bW * 0.85, 0.016, 0.001), sMat);
-          strip.position.set(0, sy, bD / 2 + 0.001);
-          mesh.add(strip);
-        });
-
-        allBooks.push({ mesh, mat, color, origX: bX, origY: bY, origZ: 0, width: bW, height: bH });
-        x += bW + 0.005 + Math.random() * 0.014;
-      }
-    });
-
-    /* ── Scan beam — thin horizontal stripe that sweeps vertically ── */
-    const beamMat = new THREE.MeshBasicMaterial({
-      color: 0x00ffea, transparent: true, opacity: 0.85,
-      side: THREE.DoubleSide, depthWrite: false,
-    });
-    const scanBeam = new THREE.Mesh(new THREE.PlaneGeometry(1, 0.032), beamMat);
-    scanBeam.visible = false;
-    scene.add(scanBeam);
-
-    /* Soft glow halo behind the beam */
-    const haloMat = new THREE.MeshBasicMaterial({
-      color: 0x00ffea, transparent: true, opacity: 0.2,
-      side: THREE.DoubleSide, depthWrite: false,
-    });
-    const scanHalo = new THREE.Mesh(new THREE.PlaneGeometry(1, 0.22), haloMat);
-    scanHalo.visible = false;
-    scene.add(scanHalo);
-
-    /* ── Animation state machine ── */
-    const T_IDLE = 0.45, T_PULL = 0.7, T_SCAN = 1.4, T_PUSH = 0.6;
-    const PULL_Z = 1.15, LIFT_Y = 0.1;
-    let state = 'idle', timer = 0, camBobT = 0, scanAngle = 0;
-    let currentBook = null, lastBook = null;
-
-    function ease(t) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; }
-    function pickBook() {
-      const pool = allBooks.filter(b => b !== lastBook);
-      return pool[Math.floor(Math.random() * pool.length)];
-    }
-
-    let prevT = performance.now();
-
-    function tick() {
-      if (!container._threeRunning) return;
-      container._raf = requestAnimationFrame(tick);
-
-      const now = performance.now();
-      const dt  = Math.min((now - prevT) / 1000, 0.05);
-      prevT = now;
-      timer    += dt;
-      camBobT  += dt;
-
-      /* Gentle camera sway */
-      camera.position.y = 0.15 + Math.sin(camBobT * 0.38) * 0.04;
-      camera.position.x = Math.sin(camBobT * 0.22) * 0.07;
-      camera.lookAt(0, 0.0, 0);
-
-      /* ── states ── */
-      if (state === 'idle') {
-        if (timer >= T_IDLE) { currentBook = pickBook(); timer = 0; state = 'pulling'; }
-
-      } else if (state === 'pulling') {
-        const e = ease(Math.min(timer / T_PULL, 1));
-        currentBook.mesh.position.z = e * PULL_Z;
-        currentBook.mesh.position.y = currentBook.origY + e * LIFT_Y;
-        scanLight.position.copy(currentBook.mesh.position);
-        scanLight.intensity = e * 1.2;
-        if (timer >= T_PULL) { state = 'scanning'; timer = 0; scanAngle = 0; }
-
-      } else if (state === 'scanning') {
-        const tFrac = Math.min(timer / T_SCAN, 1);
-
-        /* Slight tilt — like turning the book to inspect the barcode */
-        currentBook.mesh.rotation.y = Math.sin(tFrac * Math.PI * 2) * 0.18;
-
-        /* Emissive colour pulse */
-        currentBook.mat.emissiveIntensity = 0.14 + Math.abs(Math.sin(timer * 7.5)) * 0.18;
-
-        /* Sweep the scan beam top → bottom */
-        const bookTop = currentBook.origY + LIFT_Y + currentBook.height / 2;
-        const bookBot = currentBook.origY + LIFT_Y - currentBook.height / 2;
-        const beamY   = bookTop + (bookBot - bookTop) * tFrac;
-
-        scanBeam.scale.x = currentBook.width * 1.18;
-        scanBeam.position.set(currentBook.mesh.position.x, beamY, currentBook.mesh.position.z + 0.09);
-        scanBeam.visible = true;
-        beamMat.opacity  = 0.72 + Math.sin(tFrac * Math.PI) * 0.2;
-
-        scanHalo.scale.x = currentBook.width * 1.45;
-        scanHalo.position.copy(scanBeam.position);
-        scanHalo.position.z -= 0.01;
-        scanHalo.visible = true;
-
-        /* Orbiting point light for coloured spill on nearby books */
-        scanAngle += dt * 4.5;
-        scanLight.position.set(
-          currentBook.mesh.position.x + Math.cos(scanAngle) * 0.3,
-          currentBook.mesh.position.y + Math.sin(scanAngle * 0.7) * 0.18,
-          currentBook.mesh.position.z + 0.2
-        );
-        scanLight.intensity = 1.4 + Math.sin(scanAngle) * 0.35;
-
-        if (tFrac >= 1) {
-          currentBook.mesh.rotation.set(0, 0, 0);
-          currentBook.mat.emissiveIntensity = 0;
-          scanBeam.visible = false;
-          scanHalo.visible = false;
-          scanLight.intensity = 0;
-          state = 'pushing'; timer = 0;
-        }
-
-      } else if (state === 'pushing') {
-        const e = ease(Math.min(timer / T_PUSH, 1));
-        currentBook.mesh.position.z = (1 - e) * PULL_Z;
-        currentBook.mesh.position.y = currentBook.origY + (1 - e) * LIFT_Y;
-        scanLight.intensity = (1 - e) * 0.5;
-        if (timer >= T_PUSH) {
-          currentBook.mesh.position.set(currentBook.origX, currentBook.origY, currentBook.origZ);
-          scanLight.intensity = 0;
-          lastBook = currentBook; currentBook = null;
-          state = 'idle'; timer = 0;
-        }
-      }
-
-      renderer.render(scene, camera);
-    }
-
-    tick();
+    resizeCanvas();
+    tick(lastFrame);
   };
 
   container._stopAnimation = function () {
-    container._threeRunning = false;
+    container._spaceRunning = false;
     if (container._resizeObs) { container._resizeObs.disconnect(); container._resizeObs = null; }
-    if (container._raf)       { cancelAnimationFrame(container._raf); container._raf = null; }
-    if (container._renderer)  { container._renderer.dispose();        container._renderer = null; }
+    if (container._raf) { cancelAnimationFrame(container._raf); container._raf = null; }
   };
 
   return container;
