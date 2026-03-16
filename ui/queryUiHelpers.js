@@ -280,6 +280,7 @@ window.createBooleanPillSelector = function(values, currentValue = '', options =
 
 window.createGroupedSelector = function(values, isMultiSelect, currentValues = [], options = {}) {
   const enableGrouping = options.enableGrouping !== false;
+  const selectorInstanceId = Math.random().toString(36).slice(2, 10);
   const container = document.createElement('div');
   container.className = 'grouped-selector';
   container.id = 'condition-select-container';
@@ -325,6 +326,31 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
   function syncOptionItemState(optionItem, input) {
     if (!optionItem || !input) return;
     optionItem.classList.toggle('is-selected', Boolean(input.checked));
+  }
+
+  function syncGroupCheckboxState(root, groupName) {
+    if (!isMultiSelect || !root || !groupName) return;
+
+    const groupOptions = root.querySelectorAll(`.option-item[data-group="${groupName}"] input[type="checkbox"]:not(.group-checkbox)`);
+    const groupCheckbox = root.querySelector(`.group-checkbox[data-group="${groupName}"]`);
+    if (!groupCheckbox) return;
+
+    const checkedCount = Array.from(groupOptions).filter(opt => opt.checked).length;
+    groupCheckbox.checked = checkedCount > 0 && checkedCount === groupOptions.length;
+    groupCheckbox.indeterminate = checkedCount > 0 && checkedCount < groupOptions.length;
+  }
+
+  function setLabelHighlight(labelTextEl, searchTerm = '') {
+    if (!labelTextEl) return;
+
+    const rawText = labelTextEl.dataset.rawText || '';
+    if (!searchTerm) {
+      labelTextEl.textContent = rawText;
+      return;
+    }
+
+    const regex = new RegExp(`(${searchTerm.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi');
+    labelTextEl.innerHTML = rawText.replace(regex, '<span class="highlight">$1</span>');
   }
 
   function createOptionItem(val, groupName = '', insideGroup = false) {
