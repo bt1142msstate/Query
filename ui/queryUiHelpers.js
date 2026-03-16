@@ -375,7 +375,11 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     });
 
     optionItem.addEventListener('click', event => {
-      if (event.target === input || event.target instanceof HTMLLabelElement) {
+      if (event.target === input) {
+        return;
+      }
+
+      if (event.target instanceof Element && label.contains(event.target)) {
         return;
       }
 
