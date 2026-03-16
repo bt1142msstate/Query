@@ -1098,8 +1098,9 @@
 
   async function setViewMode(nextMode, options = {}) {
     const requestedMode = nextMode === 'bubbles' ? 'bubbles' : 'form';
+    const isEnteringFormFromBubbles = requestedMode === 'form' && state.viewMode === 'bubbles';
 
-    if (requestedMode === 'form' && (!state.active || state.specSource === 'generated')) {
+    if (requestedMode === 'form' && (isEnteringFormFromBubbles || !state.active || state.specSource === 'generated')) {
       const activated = await activateGeneratedFormFromCurrentQuery();
       if (!activated) {
         return;
