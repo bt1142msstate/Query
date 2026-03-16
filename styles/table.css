@@ -529,8 +529,8 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
   transition: opacity 0.5s ease;
 }
 
-/* ── Bookshelf container (replaces old circuit board overlay) ── */
-.table-query-bookshelf {
+/* ── Spacefield container inside the querying bubble ── */
+.table-query-cosmos {
   position: absolute;
   top: 0;
   left: 0;
@@ -542,14 +542,14 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
   pointer-events: none;
   z-index: 1;
   overflow: hidden;
-  background: #110905;
+  background: radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.24), rgba(15, 23, 42, 0.96) 45%, rgba(2, 6, 23, 1) 100%);
 }
 
-.table-query-bookshelf.active {
+.table-query-cosmos.active {
   opacity: 1;
 }
 
-.table-query-bookshelf.fading-out {
+.table-query-cosmos.fading-out {
   opacity: 0;
   filter: blur(5px);
   transition: opacity 0.25s ease-out, filter 0.25s ease-out;
