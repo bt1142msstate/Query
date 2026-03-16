@@ -255,6 +255,7 @@ window.createBooleanPillSelector = function(values, currentValue = '', options =
         }
         selectedValue = option.literal;
         render();
+        container.dispatchEvent(new Event('change', { bubbles: true }));
         if (onChange) {
           onChange(option.literal, option.display);
         }
@@ -312,7 +313,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
   const groupedData = new Map();
   const ungroupedValues = [];
   const groupElements = [];
-  const flatOptionItems = [];
+  const allOptionItems = [];
 
   values.forEach(value => {
     const display = typeof value === 'object' ? (value.Name || value.Display || value.name || value.display || value.RawValue) : value;
@@ -363,6 +364,47 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     labelTextEl.innerHTML = rawText.replace(regex, '<span class="highlight">$1</span>');
   }
 
+  function itemMatchesSearch(optionItem, searchTerm) {
+    if (!optionItem || !searchTerm) return true;
+
+    const value = String(optionItem.dataset.value || '').toLowerCase();
+    const display = String(optionItem.dataset.display || '').toLowerCase();
+    const labelText = optionItem.querySelector('.option-item-text');
+    const rawText = String(labelText?.dataset.rawText || '').toLowerCase();
+    return value.includes(searchTerm) || display.includes(searchTerm) || rawText.includes(searchTerm);
+  }
+
+  function setGroupExpanded(groupEntry, expanded) {
+    if (!groupEntry) return;
+    groupEntry.options.classList.toggle('collapsed', !expanded);
+    groupEntry.header.querySelector('.toggle-icon').innerHTML = expanded ? '&#9662;' : '&#9656;';
+  }
+
+  function applySearch(searchTerm) {
+    allOptionItems.forEach(item => {
+      const matches = itemMatchesSearch(item, searchTerm);
+      const labelText = item.querySelector('.option-item-text');
+      item.style.display = matches ? '' : 'none';
+      setLabelHighlight(labelText, matches ? searchTerm : '');
+    });
+
+    if (!searchTerm) {
+      groupElements.forEach(groupEntry => {
+        groupEntry.section.style.display = '';
+        setGroupExpanded(groupEntry, false);
+      });
+      return;
+    }
+
+    groupElements.forEach(groupEntry => {
+      const hasMatch = groupEntry.items.some(item => item.style.display !== 'none');
+      groupEntry.section.style.display = hasMatch ? '' : 'none';
+      if (hasMatch) {
+        setGroupExpanded(groupEntry, true);
+      }
+    });
+  }
+
   function createOptionItem(val, groupName = '', insideGroup = false) {
     const optionItem = document.createElement('div');
     optionItem.className = 'option-item';
@@ -395,10 +437,10 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
 
     const labelText = document.createElement('span');
     labelText.className = 'option-item-text';
-      labelText.dataset.rawText = insideGroup
-        ? val.display.replace(new RegExp(`^${groupName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\s*-\s*`), '')
-        : val.display;
-      labelText.textContent = labelText.dataset.rawText;
+    labelText.dataset.rawText = insideGroup
+      ? val.display.replace(new RegExp(`^${groupName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\s*-\s*`), '')
+      : val.display;
+    labelText.textContent = labelText.dataset.rawText;
 
     label.appendChild(indicator);
     label.appendChild(labelText);
@@ -407,21 +449,10 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
       syncOptionItemState(optionItem, input);
     });
 
-    optionItem.addEventListener('click', event => {
-      if (event.target === input) {
-        return;
-      }
-
-      if (event.target instanceof Element && label.contains(event.target)) {
-        return;
-      }
-
-      input.click();
-    });
-
     optionItem.appendChild(input);
     optionItem.appendChild(label);
     syncOptionItemState(optionItem, input);
+    allOptionItems.push(optionItem);
     return optionItem;
   }
 
@@ -478,21 +509,21 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
 
     const groupOptions = document.createElement('div');
     groupOptions.className = 'group-options collapsed';
+    const groupItems = [];
 
     groupValues.forEach(val => {
       const optionItem = createOptionItem(val, groupName, true);
       groupOptions.appendChild(optionItem);
-      flatOptionItems.push(optionItem);
+      groupItems.push(optionItem);
     });
 
     groupSection.appendChild(groupOptions);
     optionsContainer.appendChild(groupSection);
-    groupElements.push({ section: groupSection, header: groupHeader, options: groupOptions, values: groupValues });
+    groupElements.push({ section: groupSection, header: groupHeader, options: groupOptions, items: groupItems });
 
     groupHeader.addEventListener('click', e => {
       if (e.target.type === 'checkbox') return;
-      groupOptions.classList.toggle('collapsed');
-      toggleIcon.innerHTML = groupOptions.classList.contains('collapsed') ? '&#9656;' : '&#9662;';
+      setGroupExpanded({ header: groupHeader, options: groupOptions }, groupOptions.classList.contains('collapsed'));
     });
   });
 
@@ -500,68 +531,10 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     const optionItem = createOptionItem(val);
     optionItem.classList.add('ungrouped-option');
     optionsContainer.appendChild(optionItem);
-    flatOptionItems.push(optionItem);
   });
 
   searchInput.addEventListener('input', e => {
-    const searchTerm = e.target.value.toLowerCase().trim();
-
-    if (searchTerm === '') {
-      groupElements.forEach(group => {
-        group.section.style.display = '';
-        group.options.classList.add('collapsed');
-        group.header.querySelector('.toggle-icon').innerHTML = '&#9656;';
-
-        Array.from(group.options.querySelectorAll('.option-item')).forEach(item => {
-          item.style.display = '';
-          setLabelHighlight(item.querySelector('.option-item-text'));
-        });
-      });
-
-      flatOptionItems.forEach(item => {
-        item.style.display = '';
-        setLabelHighlight(item.querySelector('.option-item-text'));
-      });
-    } else {
-      groupElements.forEach(group => {
-        let hasMatch = false;
-
-        Array.from(group.options.querySelectorAll('.option-item')).forEach(item => {
-          const value = item.dataset.value.toLowerCase();
-          const display = item.dataset.display.toLowerCase();
-          const labelText = item.querySelector('.option-item-text');
-          const displayText = String(labelText?.dataset.rawText || '').toLowerCase();
-
-          if (value.includes(searchTerm) || display.includes(searchTerm) || displayText.includes(searchTerm)) {
-            item.style.display = '';
-            hasMatch = true;
-            setLabelHighlight(labelText, searchTerm);
-          } else {
-            item.style.display = 'none';
-          }
-        });
-
-        group.section.style.display = hasMatch ? '' : 'none';
-        if (hasMatch) {
-          group.options.classList.remove('collapsed');
-          group.header.querySelector('.toggle-icon').innerHTML = '&#9662;';
-        }
-      });
-
-      flatOptionItems.forEach(item => {
-        const value = item.dataset.value.toLowerCase();
-        const display = item.dataset.display.toLowerCase();
-        const labelText = item.querySelector('.option-item-text');
-        const displayText = String(labelText?.dataset.rawText || '').toLowerCase();
-
-        if (value.includes(searchTerm) || display.includes(searchTerm) || displayText.includes(searchTerm)) {
-          item.style.display = '';
-          setLabelHighlight(labelText, searchTerm);
-        } else {
-          item.style.display = 'none';
-        }
-      });
-    }
+    applySearch(e.target.value.toLowerCase().trim());
   });
 
   container.getSelectedValues = function() {
@@ -766,6 +739,10 @@ window.createPopupListControl = function(innerControl, label, placeholder) {
     return getDisplayValues();
   };
 
+  wrapper.getFormValues = function() {
+    return wrapper.getSelectedValues();
+  };
+
   wrapper.setSelectedValues = function(valuesToSet) {
     if (typeof innerControl.setSelectedValues === 'function') {
       innerControl.setSelectedValues(valuesToSet);
@@ -773,6 +750,10 @@ window.createPopupListControl = function(innerControl, label, placeholder) {
       innerControl.setFormValues(valuesToSet);
     }
     updateSummary();
+  };
+
+  wrapper.setFormValues = function(valuesToSet) {
+    wrapper.setSelectedValues(valuesToSet);
   };
 
   wrapper.focusInput = function() {
