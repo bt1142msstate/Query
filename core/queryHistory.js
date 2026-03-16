@@ -759,6 +759,12 @@ function loadQueryConfig(q) {
   if (typeof window.updateButtonStates === 'function') {
     window.updateButtonStates();
   }
+
+  if (window.QueryFormMode && typeof window.QueryFormMode.isActive === 'function' && window.QueryFormMode.isActive()) {
+    window.QueryFormMode.syncFromCurrentQuery().catch(error => {
+      console.error('Failed to sync form URL after loading query config:', error);
+    });
+  }
 }
 
 /** * Loads query results from backend.
