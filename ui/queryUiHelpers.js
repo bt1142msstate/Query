@@ -553,6 +553,59 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     });
   }
 
+  function clearSelectionDividers() {
+    optionsContainer.querySelectorAll('.selection-divider').forEach(element => {
+      element.classList.remove('selection-divider');
+    });
+  }
+
+  function isVisibleEntry(element) {
+    return Boolean(element) && element.style.display !== 'none';
+  }
+
+  function updateSelectionDividers() {
+    clearSelectionDividers();
+    if (!isMultiSelect) return;
+
+    groupElements.forEach(groupEntry => {
+      let sawSelected = false;
+
+      groupEntry.items.forEach(item => {
+        if (!isVisibleEntry(item)) return;
+
+        if (hasSelectedInput(item)) {
+          sawSelected = true;
+          return;
+        }
+
+        if (sawSelected) {
+          item.classList.add('selection-divider');
+          sawSelected = false;
+        }
+      });
+    });
+
+    let sawSelectedTopLevel = false;
+    topLevelEntries.forEach(entry => {
+      const element = entry.type === 'group' ? entry.section : entry.item;
+      if (!isVisibleEntry(element)) return;
+
+      const hasSelectedVisibleItem = entry.type === 'group'
+        ? entry.items.some(item => isVisibleEntry(item) && hasSelectedInput(item))
+        : hasSelectedInput(entry.item);
+
+      if (hasSelectedVisibleItem) {
+        sawSelectedTopLevel = true;
+        return;
+      }
+
+      if (sawSelectedTopLevel) {
+        element.classList.add('selection-divider');
+        sawSelectedTopLevel = false;
+      }
+    });
+  }
+
   function applySearch(searchTerm) {
     reorderVisibleEntries();
 
@@ -568,6 +621,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
         groupEntry.section.style.display = '';
         setGroupExpanded(groupEntry, false);
       });
+      updateSelectionDividers();
       return;
     }
 
@@ -578,6 +632,8 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
         setGroupExpanded(groupEntry, true);
       }
     });
+
+    updateSelectionDividers();
   }
 
   function createOptionItem(val, groupName = '', insideGroup = false) {
@@ -757,7 +813,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     refreshSelectorLayout();
   };
 
-  reorderVisibleEntries();
+  applySearch(searchInput.value.toLowerCase().trim());
 
   return container;
 };

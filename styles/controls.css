@@ -228,7 +228,22 @@
 }
 
 .group-section {
+  position: relative;
   margin-bottom: 0.5rem;
+}
+
+.group-section.selection-divider {
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+}
+
+.group-section.selection-divider::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0.75rem;
+  right: 0.75rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.45);
 }
 
 .group-header {
@@ -350,6 +365,12 @@
   display: flex;
   padding: 0.15rem 0;
   align-items: center;
+}
+
+.option-item.selection-divider {
+  margin-top: 0.55rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.38);
 }
 
 .option-item input {
