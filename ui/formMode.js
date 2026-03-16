@@ -571,6 +571,19 @@
     return preferredOperators.find(operator => availableOperators.includes(operator)) || availableOperators[0] || 'equals';
   }
 
+  function supportsMultipleValues(inputSpec, fieldDef = null) {
+    if (!inputSpec || inputSpec.operator === 'between') {
+      return false;
+    }
+
+    const resolvedFieldDef = fieldDef || (window.fieldDefs && inputSpec.field ? window.fieldDefs.get(inputSpec.field) : null);
+    return Boolean(
+      inputSpec.multiple
+      || (resolvedFieldDef && resolvedFieldDef.multiSelect)
+      || (resolvedFieldDef && resolvedFieldDef.allowValueList)
+    );
+  }
+
   function createGeneratedInputSpec(fieldName) {
     const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
     const operator = getDefaultOperatorForField(fieldDef);
@@ -585,7 +598,7 @@
       placeholder: '',
       operator,
       required: false,
-      multiple: operator !== 'between' && Boolean(fieldDef && fieldDef.allowValueList),
+      multiple: operator !== 'between' && Boolean(fieldDef && (fieldDef.allowValueList || fieldDef.multiSelect)),
       hidden: false,
       type: fieldDef && fieldDef.type ? String(fieldDef.type) : '',
       defaultValue: operator === 'between' ? ['', ''] : '',
@@ -869,6 +882,8 @@
   }
 
   function resolveInputInitialValues(inputSpec, searchParams) {
+    const fieldDef = window.fieldDefs && inputSpec && inputSpec.field ? window.fieldDefs.get(inputSpec.field) : null;
+    const isMultiValue = supportsMultipleValues(inputSpec, fieldDef);
     const keys = inputSpec.keys.length ? inputSpec.keys : [inputSpec.key];
 
     if (inputSpec.operator === 'between' && keys.length >= 2) {
@@ -882,14 +897,14 @@
 
     const rawValues = keys.flatMap(key => getRawParamValues(searchParams, key));
     if (rawValues.length > 0) {
-      return inputSpec.multiple ? rawValues.flatMap(splitListValues) : [rawValues[0]];
+      return isMultiValue ? rawValues.flatMap(splitListValues) : [rawValues[0]];
     }
 
     if (inputSpec.defaultValue === undefined || inputSpec.defaultValue === null) {
       return [];
     }
 
-    return inputSpec.multiple ? splitListValues(inputSpec.defaultValue) : [String(inputSpec.defaultValue)];
+    return isMultiValue ? splitListValues(inputSpec.defaultValue) : [String(inputSpec.defaultValue)];
   }
 
   function createTextControl(inputType, initialValues, inputSpec) {
@@ -1002,7 +1017,7 @@
 
   function createSelectorControl(values, fieldDef, inputSpec, initialValues) {
     const isBooleanField = Boolean(fieldDef && fieldDef.type === 'boolean');
-    const isMultiSelect = Boolean(inputSpec.multiple || (fieldDef && fieldDef.multiSelect));
+    const isMultiSelect = supportsMultipleValues(inputSpec, fieldDef);
     const shouldGroupValues = Boolean(fieldDef && fieldDef.groupValues);
     const hasDashes = values.some(value => {
       const label = typeof value === 'object' ? (value.Name || value.RawValue) : value;
@@ -1189,7 +1204,7 @@
       return createSelectorControl(values, fieldDef, inputSpec, initialValues);
     }
 
-    if ((inputSpec.multiple || (fieldDef && fieldDef.allowValueList)) && typeof window.createListPasteInput === 'function') {
+    if (supportsMultipleValues(inputSpec, fieldDef) && typeof window.createListPasteInput === 'function') {
       const listInput = window.createListPasteInput(initialValues, {
         placeholder: inputSpec.placeholder || 'Paste one value per line',
         hint: inputSpec.help || 'Paste values, separate them with commas or new lines, or upload a file.'
@@ -1222,6 +1237,8 @@
     const bindings = {};
 
     state.spec.inputs.forEach(inputSpec => {
+      const fieldDef = window.fieldDefs && inputSpec.field ? window.fieldDefs.get(inputSpec.field) : null;
+      const isMultiValue = supportsMultipleValues(inputSpec, fieldDef);
       const values = getControlValues(inputSpec);
       if (inputSpec.operator === 'between' && inputSpec.keys.length >= 2) {
         inputSpec.keys.slice(0, 2).forEach((key, index) => {
@@ -1229,7 +1246,7 @@
         });
       }
 
-      bindings[inputSpec.key] = inputSpec.multiple ? values.filter(Boolean) : (values[0] || '');
+      bindings[inputSpec.key] = isMultiValue ? values.filter(Boolean) : (values[0] || '');
     });
 
     return bindings;
@@ -1321,6 +1338,8 @@
     });
 
     state.spec.inputs.forEach(inputSpec => {
+      const fieldDef = window.fieldDefs && inputSpec.field ? window.fieldDefs.get(inputSpec.field) : null;
+      const isMultiValue = supportsMultipleValues(inputSpec, fieldDef);
       const values = getControlValues(inputSpec);
       if (inputSpec.operator === 'between') {
         const betweenValues = values.slice(0, 2).map(value => String(value || '').trim());
@@ -1330,7 +1349,7 @@
         return;
       }
 
-      const activeValues = inputSpec.multiple ? values.filter(Boolean) : values.slice(0, 1).filter(Boolean);
+      const activeValues = isMultiValue ? values.filter(Boolean) : values.slice(0, 1).filter(Boolean);
       if (activeValues.length > 0) {
         appendFilter(nextActiveFilters, inputSpec.field, inputSpec.operator, activeValues);
       }
@@ -1412,6 +1431,8 @@
     }
 
     state.spec.inputs.forEach(inputSpec => {
+      const fieldDef = window.fieldDefs && inputSpec.field ? window.fieldDefs.get(inputSpec.field) : null;
+      const isMultiValue = supportsMultipleValues(inputSpec, fieldDef);
       const values = getControlValues(inputSpec).filter(Boolean);
       if (inputSpec.operator === 'between' && inputSpec.keys.length >= 2) {
         inputSpec.keys.slice(0, 2).forEach((key, index) => {
@@ -1423,7 +1444,7 @@
       }
 
       if (values.length === 0) return;
-      if (inputSpec.multiple) {
+      if (isMultiValue) {
         nextUrl.searchParams.set(inputSpec.key, values.join(','));
       } else {
         nextUrl.searchParams.set(inputSpec.key, values[0]);
