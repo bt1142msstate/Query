@@ -1039,9 +1039,6 @@
         enableGrouping: shouldGroupValues && hasDashes,
         containerId: null
       });
-      selector.getFormValues = function() {
-        return typeof selector.getSelectedValues === 'function' ? selector.getSelectedValues() : [];
-      };
       return createPopupListControl(
         selector,
         inputSpec.label || (fieldDef && fieldDef.name) || 'Select values',
@@ -1053,146 +1050,11 @@
   }
 
   function createPopupListControl(innerControl, label, placeholder) {
-    const resolvedLabel = label || 'Select values';
-    const resolvedPlaceholder = placeholder || 'Click to select\u2026';
-
-    const wrapper = document.createElement('div');
-    wrapper.className = 'form-mode-popup-list-control';
-
-    const trigger = document.createElement('button');
-    trigger.type = 'button';
-    trigger.className = 'form-mode-popup-list-trigger';
-    trigger.setAttribute('aria-haspopup', 'dialog');
-    trigger.setAttribute('aria-expanded', 'false');
-
-    const summarySpan = document.createElement('span');
-    summarySpan.className = 'form-mode-popup-list-summary';
-    trigger.appendChild(summarySpan);
-    trigger.insertAdjacentHTML('beforeend',
-      '<svg class="form-mode-popup-chevron" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">' +
-      '<path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' +
-      '</svg>'
-    );
-
-    const backdrop = document.createElement('div');
-    backdrop.className = 'form-mode-popup-list-backdrop';
-    backdrop.hidden = true;
-
-    const popup = document.createElement('div');
-    popup.className = 'form-mode-popup-list-popup';
-    popup.setAttribute('role', 'dialog');
-    popup.setAttribute('aria-label', resolvedLabel);
-    popup.hidden = true;
-
-    const popupHeader = document.createElement('div');
-    popupHeader.className = 'form-mode-popup-list-popup-header';
-
-    const popupTitle = document.createElement('span');
-    popupTitle.className = 'form-mode-popup-list-popup-title';
-    popupTitle.textContent = resolvedLabel;
-
-    const doneBtn = document.createElement('button');
-    doneBtn.type = 'button';
-    doneBtn.className = 'form-mode-popup-list-done';
-    doneBtn.textContent = 'Done';
-
-    popupHeader.appendChild(popupTitle);
-    popupHeader.appendChild(doneBtn);
-
-    const popupBody = document.createElement('div');
-    popupBody.className = 'form-mode-popup-list-popup-body';
-    popupBody.appendChild(innerControl);
-
-    popup.appendChild(popupHeader);
-    popup.appendChild(popupBody);
-  document.body.appendChild(backdrop);
-    document.body.appendChild(popup);
-
-    wrapper.appendChild(trigger);
-
-    function getDisplayValues() {
-      if (typeof innerControl.getSelectedDisplayValues === 'function') {
-        return innerControl.getSelectedDisplayValues();
-      }
-      return typeof innerControl.getFormValues === 'function' ? innerControl.getFormValues() : [];
+    if (typeof window.createPopupListControl === 'function') {
+      return window.createPopupListControl(innerControl, label, placeholder);
     }
 
-    function updateSummary() {
-      const displayValues = getDisplayValues();
-      const escFn = window.escapeHtml || function(s) {
-        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      };
-      if (!displayValues || displayValues.length === 0) {
-        summarySpan.textContent = resolvedPlaceholder;
-        summarySpan.classList.add('is-placeholder');
-      } else if (displayValues.length <= 2) {
-        summarySpan.textContent = displayValues.join(', ');
-        summarySpan.classList.remove('is-placeholder');
-      } else {
-        summarySpan.innerHTML = escFn(displayValues[0]) + ' <span class="form-mode-popup-more">and ' + (displayValues.length - 1) + ' more</span>';
-        summarySpan.classList.remove('is-placeholder');
-      }
-      trigger.setAttribute('aria-expanded', popup.hidden ? 'false' : 'true');
-    }
-
-    function openPopup() {
-      backdrop.hidden = false;
-      popup.hidden = false;
-      trigger.setAttribute('aria-expanded', 'true');
-      if (typeof innerControl.focusInput === 'function') {
-        innerControl.focusInput();
-      } else {
-        const firstInput = innerControl.querySelector('input:not([type="file"]), textarea');
-        if (firstInput) firstInput.focus();
-      }
-    }
-
-    function closePopup() {
-      backdrop.hidden = true;
-      popup.hidden = true;
-      trigger.setAttribute('aria-expanded', 'false');
-      updateSummary();
-      wrapper.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-
-    trigger.addEventListener('click', function() {
-      if (popup.hidden) openPopup();
-      else closePopup();
-    });
-
-    doneBtn.addEventListener('click', closePopup);
-    backdrop.addEventListener('click', closePopup);
-
-    const onDocKey = function(e) {
-      if (e.key === 'Escape' && !popup.hidden) {
-        closePopup();
-        trigger.focus();
-      }
-    };
-    document.addEventListener('keydown', onDocKey);
-
-    wrapper._popupEl = popup;
-    wrapper._cleanupPopup = function() {
-      backdrop.remove();
-      popup.remove();
-      document.removeEventListener('keydown', onDocKey);
-    };
-
-    wrapper.getFormValues = function() {
-      return typeof innerControl.getFormValues === 'function' ? innerControl.getFormValues() : [];
-    };
-
-    wrapper.setFormValues = function(values) {
-      if (typeof innerControl.setSelectedValues === 'function') {
-        innerControl.setSelectedValues(values);
-      } else if (typeof innerControl.setFormValues === 'function') {
-        innerControl.setFormValues(values);
-      }
-      updateSummary();
-    };
-
-    updateSummary();
-    return wrapper;
+    return innerControl;
   }
 
   function createControl(fieldDef, inputSpec, initialValues, operatorOverride) {
@@ -1213,9 +1075,6 @@
         placeholder: inputSpec.placeholder || 'Paste one value per line',
         hint: inputSpec.help || 'Paste values, separate them with commas or new lines, or upload a file.'
       });
-      listInput.getFormValues = function() {
-        return typeof listInput.getSelectedValues === 'function' ? listInput.getSelectedValues() : [];
-      };
       return createPopupListControl(
         listInput,
         inputSpec.label || (fieldDef && fieldDef.name) || 'Enter values',
@@ -1724,7 +1583,6 @@
       const control = createControl(fieldDef, inputSpec, resolveInputInitialValues(inputSpec, state.searchParams), inputSpec.operator);
       control.addEventListener('change', scheduleApply);
       control.addEventListener('input', scheduleApply);
-      control.addEventListener('click', () => window.requestAnimationFrame(scheduleApply));
       state.controls.set(inputSpec.key, control);
       fieldsWrap.appendChild(createFieldRow(inputSpec, fieldDef, control));
     });
