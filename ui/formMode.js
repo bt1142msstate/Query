@@ -1531,6 +1531,7 @@
   function createFieldRow(inputSpec, fieldDef, control) {
     const row = document.createElement('div');
     row.className = 'form-mode-field';
+    const shouldShowFieldMeta = String(inputSpec.field || '').trim() && String(inputSpec.label || '').trim() !== String(inputSpec.field || '').trim();
 
     const topRow = document.createElement('div');
     topRow.className = 'form-mode-field-top';
@@ -1570,15 +1571,16 @@
     const metaRow = document.createElement('div');
     metaRow.className = 'form-mode-meta-row';
 
-    const meta = document.createElement('span');
-    meta.className = 'form-mode-meta';
-    meta.textContent = inputSpec.field;
-
     const operatorValue = document.createElement('span');
     operatorValue.className = 'form-mode-operator-chip';
     operatorValue.textContent = getOperatorLabel(inputSpec.operator);
 
-    metaRow.appendChild(meta);
+    if (shouldShowFieldMeta) {
+      const meta = document.createElement('span');
+      meta.className = 'form-mode-meta';
+      meta.textContent = inputSpec.field;
+      metaRow.appendChild(meta);
+    }
     metaRow.appendChild(operatorValue);
 
     const controlWrap = document.createElement('div');
