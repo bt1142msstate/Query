@@ -484,8 +484,7 @@ window.handleFilterConfirm = function(e) {
     e.stopPropagation();
     
     // Dependencies
-    const bubble = document.querySelector('.active-bubble');
-    if (!bubble) return;
+    const bubble = document.querySelector('.active-bubble') || document.querySelector('.bubble-clone');
     
     const conditionPanel = getFilterConditionPanelElement();
     const conditionInput = getFilterConditionInputElement();
@@ -496,8 +495,10 @@ window.handleFilterConfirm = function(e) {
 
     if (!conditionPanel || !conditionInput || !conditionInput2) return;
     
-    const field = bubble.dataset.filterFor || bubble.textContent.trim();
-    const activeBtn = document.querySelector('.condition-btn.active');
+    const field = (bubble && (bubble.dataset.filterFor || bubble.textContent.trim())) || window.selectedField;
+    if (!field) return;
+
+    const activeBtn = conditionPanel.querySelector('.condition-btn.active');
     const cond = activeBtn?.dataset.cond;
     let val = conditionInput.value.trim();
     let val2 = conditionInput2.value.trim();
@@ -542,7 +543,7 @@ window.handleFilterConfirm = function(e) {
 
     // Between Validation: Value Order
     if (cond === 'between') {
-        const type = bubble.dataset.type || 'string';
+        const type = (bubble && bubble.dataset.type) || (fieldDef && fieldDef.type) || 'string';
         let a = val, b = val2;
         if (type === 'number' || type === 'money') {
             a = parseFloat(a); b = parseFloat(b);
@@ -587,7 +588,7 @@ window.handleFilterConfirm = function(e) {
                 }
             }
 
-            const fieldType = bubble.dataset.type || 'string';
+            const fieldType = (bubble && bubble.dataset.type) || (fieldDef && fieldDef.type) || 'string';
             const newFilterObj = { cond, val: filterValue };
             const existingSet = window.activeFilters[field];
             const shouldReplaceExistingEquals = Boolean(
