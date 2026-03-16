@@ -267,8 +267,11 @@ function bindHistoryBookShelf(container) {
 }
 
 function appendUniqueColumn(target, fieldName) {
-  if (!fieldName || target.includes(fieldName)) return;
-  target.push(fieldName);
+  const normalizedField = typeof window.resolveFieldName === 'function'
+    ? window.resolveFieldName(fieldName)
+    : fieldName;
+  if (!normalizedField || target.includes(normalizedField)) return;
+  target.push(normalizedField);
 }
 
 function escapeRegExp(value) {
@@ -414,7 +417,7 @@ function buildUiConfigFromRequest(request) {
       }
 
       uiConfig.Filters.push({
-        FieldName: f.field,
+        FieldName: typeof window.resolveFieldName === 'function' ? window.resolveFieldName(f.field) : f.field,
         FieldOperator: opName,
         Values: [f.value]
       });
@@ -692,16 +695,23 @@ function loadQueryConfig(q) {
 
   if (filters.length) {
     filters.forEach(ff => {
+      const fieldName = typeof window.resolveFieldName === 'function'
+        ? window.resolveFieldName(ff.FieldName)
+        : ff.FieldName;
       const uiCond = typeof window.mapFieldOperatorToUiCond === 'function'
         ? window.mapFieldOperatorToUiCond(ff.FieldOperator)
         : String(ff.FieldOperator || '').toLowerCase();
       const valueGlue = uiCond === 'between' ? '|' : ',';
 
-      if (!nextActiveFilters[ff.FieldName]) {
-        nextActiveFilters[ff.FieldName] = { filters: [] };
+      if (!fieldName) {
+        return;
       }
 
-      nextActiveFilters[ff.FieldName].filters.push({
+      if (!nextActiveFilters[fieldName]) {
+        nextActiveFilters[fieldName] = { filters: [] };
+      }
+
+      nextActiveFilters[fieldName].filters.push({
         cond: uiCond,
         val: (ff.Values || []).join(valueGlue)
       });

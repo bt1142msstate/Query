@@ -65,6 +65,7 @@ function assignDisplayedFields(nextFields) {
 
   nextFields
     .map(field => String(field || '').trim())
+    .map(field => typeof window.resolveFieldName === 'function' ? window.resolveFieldName(field) : field)
     .filter(Boolean)
     .forEach(field => displayedFieldsState.push(field));
 }
@@ -77,7 +78,9 @@ function assignActiveFilters(nextFilters) {
   }
 
   Object.entries(nextFilters).forEach(([field, data]) => {
-    const normalizedField = String(field || '').trim();
+    const normalizedField = typeof window.resolveFieldName === 'function'
+      ? window.resolveFieldName(String(field || '').trim())
+      : String(field || '').trim();
     if (!normalizedField) {
       return;
     }
@@ -92,7 +95,10 @@ function assignActiveFilters(nextFilters) {
 
 function normalizeFieldList(fieldNames) {
   const values = Array.isArray(fieldNames) ? fieldNames : [fieldNames];
-  return values.map(field => String(field || '').trim()).filter(Boolean);
+  return values
+    .map(field => String(field || '').trim())
+    .map(field => typeof window.resolveFieldName === 'function' ? window.resolveFieldName(field) : field)
+    .filter(Boolean);
 }
 
 function normalizeFilterInput(filter) {

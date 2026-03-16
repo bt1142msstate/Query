@@ -7,6 +7,7 @@
 // Field definitions dynamically loaded from backend
 let fieldDefsArray = [];
 let fieldDefs = new Map();
+let fieldAliases = new Map();
 let filteredDefs = [];
 let isFieldsLoaded = false;
 const SYSTEM_CATEGORIES = ['All', 'Selected'];
@@ -54,6 +55,23 @@ function getSelectorTooltip(categoryName) {
   }
 }
 
+window.resolveFieldName = function resolveFieldName(fieldName) {
+  const normalized = typeof fieldName === 'string' ? fieldName.trim() : '';
+  if (!normalized) {
+    return '';
+  }
+
+  if (fieldDefs.has(normalized)) {
+    return fieldDefs.get(normalized)?.name || normalized;
+  }
+
+  if (fieldAliases.has(normalized)) {
+    return fieldAliases.get(normalized);
+  }
+
+  return normalized;
+};
+
 window.loadFieldDefinitions = async function loadFieldDefinitions() {
     if (isFieldsLoaded) return fieldDefsArray;
     
@@ -87,7 +105,22 @@ window.loadFieldDefinitions = async function loadFieldDefinitions() {
 
         // Initialize helper map and filter array
         fieldDefs.clear();
-        fieldDefsArray.forEach(field => fieldDefs.set(field.name, field));
+        fieldAliases.clear();
+        fieldDefsArray.forEach(field => {
+          fieldDefs.set(field.name, field);
+        });
+        fieldDefsArray.forEach(field => {
+          const aliases = Array.isArray(field.aliases) ? field.aliases : [];
+          aliases.forEach(alias => {
+            const normalizedAlias = typeof alias === 'string' ? alias.trim() : '';
+            if (!normalizedAlias || fieldDefs.has(normalizedAlias) || fieldAliases.has(normalizedAlias)) {
+              return;
+            }
+
+            fieldAliases.set(normalizedAlias, field.name);
+            fieldDefs.set(normalizedAlias, field);
+          });
+        });
         filteredDefs = [...fieldDefsArray];
 
         window.fieldDefsArray = fieldDefsArray;
@@ -240,6 +273,7 @@ function renderCategorySelectors(categoryCounts, currentCategory, onCategoryChan
 // Export global variables and functions for use in other modules
 window.fieldDefs = fieldDefs;
 window.fieldDefsArray = fieldDefsArray;
+window.fieldAliases = fieldAliases;
 window.filteredDefs = filteredDefs;
 window.updateFilteredDefs = updateFilteredDefs;
 window.shouldFieldHavePurpleStylingBase = shouldFieldHavePurpleStylingBase;
