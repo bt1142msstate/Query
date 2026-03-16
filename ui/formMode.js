@@ -175,8 +175,11 @@
       contains: 'Contains',
       starts: 'Starts with',
       equals: 'Equals',
+      does_not_equal: 'Does not equal',
       greater: 'Greater than',
+      greater_or_equal: 'Greater than or equal',
       less: 'Less than',
+      less_or_equal: 'Less than or equal',
       between: 'Between',
       before: 'Before',
       after: 'After',
@@ -185,6 +188,25 @@
       on_or_before: 'On or before'
     };
     return labels[operator] || String(operator || 'equals').replace(/_/g, ' ').replace(/^./, char => char.toUpperCase());
+  }
+
+  function normalizeOperatorForField(fieldDef, operator) {
+    const normalized = typeof window.mapFieldOperatorToUiCond === 'function'
+      ? window.mapFieldOperatorToUiCond(operator)
+      : String(operator || '').toLowerCase();
+
+    if (!fieldDef || !fieldDef.type) {
+      return normalized;
+    }
+
+    if (fieldDef.type === 'date') {
+      if (normalized === 'greater') return 'after';
+      if (normalized === 'less') return 'before';
+      if (normalized === 'greater_or_equal') return 'on_or_after';
+      if (normalized === 'less_or_equal') return 'on_or_before';
+    }
+
+    return normalized;
   }
 
   function uniqueInputKey(baseKey, seenKeys) {
@@ -231,7 +253,7 @@
       const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
 
       filters.forEach((filter, index) => {
-        const operator = String(filter && filter.cond || 'equals').trim() || 'equals';
+        const operator = normalizeOperatorForField(fieldDef, String(filter && filter.cond || 'equals').trim() || 'equals');
         const values = readStoredFilterValues(filter);
         const hasMultipleFilters = filters.length > 1;
         const keyBase = `${fieldName}-${operator}${hasMultipleFilters ? `-${index + 1}` : ''}`;
@@ -378,9 +400,7 @@
       : (Array.isArray(fieldDef && fieldDef.filters) ? fieldDef.filters : [inputSpec.operator || 'equals']);
 
     const normalized = configured
-      .map(operator => typeof window.mapFieldOperatorToUiCond === 'function'
-        ? window.mapFieldOperatorToUiCond(operator)
-        : String(operator || '').toLowerCase())
+      .map(operator => normalizeOperatorForField(fieldDef, operator))
       .filter(Boolean)
       .filter((operator, index, list) => list.indexOf(operator) === index);
 
@@ -1257,6 +1277,7 @@
 
     state.spec.inputs.filter(inputSpec => !inputSpec.hidden).forEach(inputSpec => {
       const fieldDef = window.fieldDefs ? window.fieldDefs.get(inputSpec.field) : null;
+      inputSpec.operator = normalizeOperatorForField(fieldDef, inputSpec.operator);
       const control = createControl(fieldDef, inputSpec, resolveInputInitialValues(inputSpec, state.searchParams), inputSpec.operator);
       control.addEventListener('change', scheduleApply);
       control.addEventListener('input', scheduleApply);
