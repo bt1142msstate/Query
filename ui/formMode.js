@@ -2,8 +2,9 @@
   const state = {
     active: false,
     spec: null,
+    specSource: 'generated',
     searchParams: null,
-    viewMode: 'form',
+    viewMode: 'bubbles',
     formCard: null,
     validationEl: null,
     runBtn: null,
@@ -167,6 +168,134 @@
       inputs,
       lockedFilters
     };
+  }
+
+  function getOperatorLabel(operator) {
+    const labels = {
+      contains: 'Contains',
+      starts: 'Starts with',
+      equals: 'Equals',
+      greater: 'Greater than',
+      less: 'Less than',
+      between: 'Between',
+      before: 'Before',
+      after: 'After',
+      doesnotcontain: 'Does not contain',
+      on_or_after: 'On or after',
+      on_or_before: 'On or before'
+    };
+    return labels[operator] || String(operator || 'equals').replace(/_/g, ' ').replace(/^./, char => char.toUpperCase());
+  }
+
+  function uniqueInputKey(baseKey, seenKeys) {
+    const normalizedBase = slugify(baseKey) || 'field';
+    let candidate = normalizedBase;
+    let index = 2;
+    while (seenKeys.has(candidate)) {
+      candidate = `${normalizedBase}-${index}`;
+      index += 1;
+    }
+    seenKeys.add(candidate);
+    return candidate;
+  }
+
+  function readStoredFilterValues(filter) {
+    if (!filter) return [];
+
+    if (filter.cond === 'between') {
+      return String(filter.val || '')
+        .split('|')
+        .map(value => value.trim())
+        .filter(Boolean)
+        .slice(0, 2);
+    }
+
+    return splitListValues(filter.val || '');
+  }
+
+  function buildSpecFromCurrentQuery() {
+    const columns = Array.isArray(window.displayedFields) ? window.displayedFields.slice() : [];
+    if (columns.length === 0) {
+      return null;
+    }
+
+    const tableNameInput = window.DOM && window.DOM.tableNameInput;
+    const title = tableNameInput && tableNameInput.value.trim()
+      ? tableNameInput.value.trim()
+      : 'Query Form';
+    const seenKeys = new Set();
+    const inputs = [];
+
+    Object.entries(window.activeFilters || {}).forEach(([fieldName, fieldState]) => {
+      const filters = Array.isArray(fieldState && fieldState.filters) ? fieldState.filters : [];
+      const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
+
+      filters.forEach((filter, index) => {
+        const operator = String(filter && filter.cond || 'equals').trim() || 'equals';
+        const values = readStoredFilterValues(filter);
+        const hasMultipleFilters = filters.length > 1;
+        const keyBase = `${fieldName}-${operator}${hasMultipleFilters ? `-${index + 1}` : ''}`;
+        const shouldAllowMultiple = operator !== 'between' && (Boolean(fieldDef && fieldDef.allowValueList) || values.length > 1);
+
+        inputs.push({
+          key: uniqueInputKey(keyBase, seenKeys),
+          field: fieldName,
+          label: hasMultipleFilters ? `${fieldName} (${getOperatorLabel(operator)})` : fieldName,
+          operator,
+          multiple: shouldAllowMultiple,
+          default: operator === 'between'
+            ? values.slice(0, 2)
+            : shouldAllowMultiple
+              ? values
+              : (values[0] || ''),
+          help: ''
+        });
+      });
+    });
+
+    return normalizeSpec({
+      title,
+      queryName: title,
+      description: '',
+      columns,
+      inputs,
+      lockedFilters: []
+    });
+  }
+
+  async function activateGeneratedFormFromCurrentQuery() {
+    if (typeof window.loadFieldDefinitions === 'function') {
+      await window.loadFieldDefinitions();
+    }
+
+    const nextSpec = buildSpecFromCurrentQuery();
+    if (!nextSpec || nextSpec.columns.length === 0) {
+      if (window.showToastMessage) {
+        window.showToastMessage('Add at least one output column before switching to form mode.', 'warning');
+      }
+      return false;
+    }
+
+    state.active = true;
+    state.specSource = 'generated';
+    state.spec = nextSpec;
+    state.searchParams = new URLSearchParams();
+    state.viewMode = 'form';
+    state.controls.clear();
+
+    buildFormCard();
+    wrapUpdateButtonStates();
+    wrapClearCurrentQuery();
+    applyFormState();
+    syncPresentationMode();
+
+    if (typeof window.updateButtonStates === 'function') {
+      window.updateButtonStates();
+    }
+
+    const nextUrl = buildCurrentShareUrl();
+    window.history.replaceState({}, '', nextUrl);
+    return true;
   }
 
   function parseFieldOptions(fieldDef, inputSpec) {
@@ -662,8 +791,17 @@
     }
   }
 
-  function setViewMode(nextMode, options = {}) {
-    state.viewMode = nextMode === 'bubbles' ? 'bubbles' : 'form';
+  async function setViewMode(nextMode, options = {}) {
+    const requestedMode = nextMode === 'bubbles' ? 'bubbles' : 'form';
+
+    if (requestedMode === 'form' && (!state.active || state.specSource === 'generated')) {
+      const activated = await activateGeneratedFormFromCurrentQuery();
+      if (!activated) {
+        return;
+      }
+    }
+
+    state.viewMode = requestedMode;
     syncPresentationMode();
 
     if (options.updateUrl !== false) {
@@ -678,7 +816,12 @@
   }
 
   function toggleViewMode() {
-    setViewMode(state.viewMode === 'form' ? 'bubbles' : 'form');
+    setViewMode(state.viewMode === 'form' ? 'bubbles' : 'form').catch(error => {
+      console.error('Failed to toggle form mode:', error);
+      if (window.showToastMessage) {
+        window.showToastMessage('Failed to switch modes.', 'error');
+      }
+    });
   }
 
   function createFieldRow(inputSpec, control) {
@@ -804,8 +947,6 @@
   }
 
   function ensureModeToggleButtons() {
-    if (!state.active) return;
-
     const headerControls = document.getElementById('header-controls');
     if (headerControls && !state.modeToggleBtn) {
       const button = document.createElement('button');
@@ -907,6 +1048,12 @@
 
   async function initialize() {
     const searchParams = new URLSearchParams(window.location.search);
+    state.searchParams = searchParams;
+
+    wrapUpdateButtonStates();
+    wrapClearCurrentQuery();
+    ensureModeToggleButtons();
+
     const rawFormSpec = searchParams.get('form');
     if (!rawFormSpec) return;
 
@@ -929,6 +1076,7 @@
     }
 
     state.active = true;
+    state.specSource = 'url';
     state.spec = decodedSpec;
     state.searchParams = searchParams;
     state.viewMode = searchParams.get('mode') === 'bubbles' ? 'bubbles' : 'form';
@@ -937,10 +1085,9 @@
       await window.loadFieldDefinitions();
     }
 
+    state.controls.clear();
     buildFormCard();
     ensureModeToggleButtons();
-    wrapUpdateButtonStates();
-    wrapClearCurrentQuery();
     applyFormState();
     syncPresentationMode();
     if (typeof window.updateButtonStates === 'function') {
@@ -951,6 +1098,9 @@
   window.QueryFormMode = {
     encodeSpec,
     decodeSpec,
+    async activateFromCurrentQuery() {
+      return activateGeneratedFormFromCurrentQuery();
+    },
     isActive() {
       return state.active;
     },
