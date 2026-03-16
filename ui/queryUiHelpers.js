@@ -320,7 +320,13 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
   const groupedData = new Map();
   const ungroupedValues = [];
   const groupElements = [];
+  const topLevelEntries = [];
   const allOptionItems = [];
+  let refreshLayoutFrame = null;
+
+  function compareLabels(a = '', b = '') {
+    return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+  }
 
   values.forEach(value => {
     const display = typeof value === 'object' ? (value.Name || value.Display || value.name || value.display || value.RawValue) : value;
@@ -394,7 +400,73 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     groupEntry.header.querySelector('.toggle-icon').innerHTML = expanded ? '&#9662;' : '&#9656;';
   }
 
+  function hasSelectedInput(optionItem) {
+    if (!optionItem) return false;
+    const input = optionItem.querySelector('input[type="checkbox"], input[type="radio"]');
+    return Boolean(input && input.checked);
+  }
+
+  function reorderOptionItems(optionItems, parentEl) {
+    if (!parentEl || !Array.isArray(optionItems) || optionItems.length === 0) return;
+
+    optionItems.sort((a, b) => {
+      const aSelected = hasSelectedInput(a) ? 0 : 1;
+      const bSelected = hasSelectedInput(b) ? 0 : 1;
+      if (aSelected !== bSelected) {
+        return aSelected - bSelected;
+      }
+
+      return compareLabels(a.dataset.display || a.dataset.value, b.dataset.display || b.dataset.value);
+    });
+
+    const fragment = document.createDocumentFragment();
+    optionItems.forEach(item => fragment.appendChild(item));
+    parentEl.appendChild(fragment);
+  }
+
+  function reorderVisibleEntries() {
+    groupElements.forEach(groupEntry => {
+      reorderOptionItems(groupEntry.items, groupEntry.options);
+    });
+
+    const topLevelComparator = (a, b) => {
+      const aSelected = a.type === 'group'
+        ? (a.items.some(hasSelectedInput) ? 0 : 1)
+        : (hasSelectedInput(a.item) ? 0 : 1);
+      const bSelected = b.type === 'group'
+        ? (b.items.some(hasSelectedInput) ? 0 : 1)
+        : (hasSelectedInput(b.item) ? 0 : 1);
+
+      if (aSelected !== bSelected) {
+        return aSelected - bSelected;
+      }
+
+      return compareLabels(a.sortLabel, b.sortLabel);
+    };
+
+    topLevelEntries.sort(topLevelComparator);
+
+    const fragment = document.createDocumentFragment();
+    topLevelEntries.forEach(entry => {
+      fragment.appendChild(entry.type === 'group' ? entry.section : entry.item);
+    });
+    optionsContainer.appendChild(fragment);
+  }
+
+  function refreshSelectorLayout() {
+    if (refreshLayoutFrame !== null) {
+      window.cancelAnimationFrame(refreshLayoutFrame);
+    }
+
+    refreshLayoutFrame = window.requestAnimationFrame(() => {
+      refreshLayoutFrame = null;
+      applySearch(searchInput.value.toLowerCase().trim());
+    });
+  }
+
   function applySearch(searchTerm) {
+    reorderVisibleEntries();
+
     allOptionItems.forEach(item => {
       const matches = itemMatchesSearch(item, searchTerm);
       const labelText = item.querySelector('.option-item-text');
@@ -464,6 +536,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
 
     input.addEventListener('change', () => {
       syncOptionItemState(optionItem, input);
+      refreshSelectorLayout();
     });
 
     optionItem.appendChild(input);
@@ -536,7 +609,9 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
 
     groupSection.appendChild(groupOptions);
     optionsContainer.appendChild(groupSection);
-    groupElements.push({ section: groupSection, header: groupHeader, options: groupOptions, items: groupItems });
+    const groupEntry = { section: groupSection, header: groupHeader, options: groupOptions, items: groupItems, sortLabel: groupName };
+    groupElements.push(groupEntry);
+    topLevelEntries.push({ type: 'group', section: groupSection, items: groupItems, sortLabel: groupName });
 
     groupHeader.addEventListener('click', e => {
       if (e.target.type === 'checkbox') return;
@@ -548,6 +623,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     const optionItem = createOptionItem(val);
     optionItem.classList.add('ungrouped-option');
     optionsContainer.appendChild(optionItem);
+    topLevelEntries.push({ type: 'item', item: optionItem, sortLabel: val.display });
   });
 
   searchInput.addEventListener('input', e => {
@@ -588,7 +664,11 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
         syncGroupCheckboxState(this, groupName);
       });
     }
+
+    refreshSelectorLayout();
   };
+
+  reorderVisibleEntries();
 
   return container;
 };
