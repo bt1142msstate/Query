@@ -392,11 +392,7 @@ window.FilterSidePanel = (function () {
                         }
                     }
                 }
-                if (window.QueryStateStore && typeof window.QueryStateStore.replaceActiveFilters === 'function') {
-                    window.QueryStateStore.replaceActiveFilters(newActiveFilters, { source: 'FilterSidePanel.reorderGroups' });
-                } else {
-                    window.activeFilters = newActiveFilters;
-                }
+                window.QueryStateStore.replaceActiveFilters(newActiveFilters, { source: 'FilterSidePanel.reorderGroups' });
                 window.updateQueryJson && window.updateQueryJson();
             });
 
