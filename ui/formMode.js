@@ -1145,31 +1145,26 @@
       label.appendChild(requiredBadge);
     }
 
-    const meta = document.createElement('div');
+    const metaRow = document.createElement('div');
+    metaRow.className = 'form-mode-meta-row';
+
+    const meta = document.createElement('span');
     meta.className = 'form-mode-meta';
     meta.textContent = inputSpec.field;
 
-    const operatorWrap = document.createElement('div');
-    operatorWrap.className = 'form-mode-operator-wrap';
-
-    const operatorLabel = document.createElement('span');
-    operatorLabel.className = 'form-mode-operator-label';
-    operatorLabel.textContent = 'Condition';
-
-    const operatorValue = document.createElement('div');
-    operatorValue.className = 'form-mode-operator-display';
+    const operatorValue = document.createElement('span');
+    operatorValue.className = 'form-mode-operator-chip';
     operatorValue.textContent = getOperatorLabel(inputSpec.operator);
 
-    operatorWrap.appendChild(operatorLabel);
-    operatorWrap.appendChild(operatorValue);
+    metaRow.appendChild(meta);
+    metaRow.appendChild(operatorValue);
 
     const controlWrap = document.createElement('div');
     controlWrap.className = 'form-mode-control';
     controlWrap.appendChild(control);
 
     row.appendChild(label);
-    row.appendChild(meta);
-    row.appendChild(operatorWrap);
+    row.appendChild(metaRow);
     if (inputSpec.help) {
       const help = document.createElement('p');
       help.className = 'form-mode-help';
