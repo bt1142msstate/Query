@@ -10,8 +10,27 @@ body.form-mode-active #table-column {
   width: 100%;
 }
 
+#form-mode-host {
+  width: 100%;
+}
+
+#form-mode-host.hidden {
+  display: none !important;
+}
+
+.form-mode-stage-active {
+  display: block !important;
+  width: 100%;
+}
+
+.form-mode-stage-active #bubble-container,
+.form-mode-stage-active #bubble-nav {
+  display: none !important;
+}
+
 .form-mode-card {
-  margin: 0 auto 1.5rem;
+  width: min(100%, 960px);
+  margin: 0 auto 0.5rem;
   padding: 1.25rem;
   border-radius: 1rem;
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.92));
