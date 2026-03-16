@@ -4,108 +4,72 @@
 
 A browser-based report builder for library data.
 
-
 </div>
 
-Sirsi Query Project brings report building, guided forms, query history, and export workflows into one browser UI. It is designed to be useful now while steadily moving toward cleaner backend boundaries that make future migrations easier.
-
-> [!NOTE]
-> 💡 This project is intentionally being shaped to work with multiple backend implementations over time. Migration friendliness is an explicit product goal, not an afterthought.
+A single-page app for building queries, applying filters, reviewing results, and exporting to Excel — all without leaving the browser. Designed to work against any compatible backend.
 
 ## 📌 At a Glance
 
-| Area | What it gives you |
+| Feature | What it gives you |
 | --- | --- |
-| Bubble builder | Visual field selection and interactive filtering |
-| Form mode | Focused, URL-driven reporting flows for staff workflows |
-| Query history | Reload, rerun, cancel, and inspect past or active runs |
-| Query JSON | Visibility into the query payload being assembled |
-| Results | Large-table rendering and Excel export support |
+| **Bubble builder** | Browse and select fields by category, apply filter conditions |
+| **Form mode** | URL-driven guided forms for focused reporting workflows |
+| **Query history** | Live status tracking — reload, rerun, cancel, or inspect past runs |
+| **Query JSON** | Inspect the exact payload being sent to the backend |
+| **Results table** | Virtualized large-table rendering with Excel export |
 
-## ❓ Why It Exists
-
-Library reporting workflows often sprawl across separate tools and separate habits. This project pulls those needs into one place so teams can:
-
-- ⚡ build ad hoc reports quickly
-- 🔄 switch between exploratory and guided workflows
-- ⏪ revisit earlier runs without rebuilding them manually
-- 📥 export results for downstream analysis
-
-## 💻 Main Experience
+## 💻 Features
 
 ### 🔍 Bubble Builder
 
-The default mode is a visual builder for choosing output fields and applying filters.
+The default view. Browse fields by category or search by name, then select fields to add them to your output. Click any active field to open a filter condition panel — supports `equals`, `contains`, `between`, `before/after`, `starts with`, and more.
 
 ### 📜 Query History
 
-Past and in-flight queries can be reviewed from a dedicated history panel with status-aware actions.
+Tracks every query run in the session with live status badges: `running`, `complete`, `failed`, and `cancelled`. Completed queries can be reloaded or rerun; running queries can be cancelled mid-execution. The history panel polls for live status updates and keeps the last 50 queries in memory.
 
-### 📋 Query JSON
+### 📋 Query JSON Panel
 
-The app exposes the current payload so it can be reviewed, validated, and debugged.
+Shows the structured JSON payload for the current query. Useful for debugging filter logic or copying the spec for reuse.
 
 ### 📝 Form Mode
 
-A guided mode can be generated from a URL-encoded form specification. This is useful when users should fill in a smaller, curated set of inputs instead of working in the full builder.
+A URL-driven mode for guided workflows. Pass a JSON spec via the `?spec=` parameter (raw JSON, URL-encoded, or Base64URL) to generate a focused input form instead of the full bubble builder. A form spec can define:
 
-## 📁 Repository Layout
+- title and description
+- default query name
+- fixed output columns
+- editable inputs — text fields, dropdowns, multi-value inputs, or hidden fields
+- locked filters the user cannot change
+
+### 📊 Results & Export
+
+Results render in a virtualized table (25 visible rows at a time) for smooth performance with large datasets. Export to Excel with the download button — multi-value fields can be rendered as stacked lines in one cell or expanded into separate numbered columns using the split-columns toggle.
+
+## 📁 Structure
 
 | Path | Purpose |
 | --- | --- |
-| `Query Website/` | Main frontend application |
-| `Query Website/bubbles/` | Bubble builder rendering and interaction |
-| `Query Website/core/` | Query execution, state, history, and utilities |
-| `Query Website/filters/` | Field definitions and filter payload logic |
-| `Query Website/table/` | Result rendering, column behavior, and export helpers |
-| `Query Website/ui/` | Form mode, modals, toasts, and shared UI helpers |
-| `Query Website/styles/` | Feature-oriented CSS |
-| `Documentation/` | Internal notes, examples, and implementation docs |
+| `bubbles/` | Bubble rendering and interaction logic |
+| `core/` | Query execution, history, state management, and utilities |
+| `filters/` | Field definitions and filter/payload logic |
+| `table/` | Result rendering, virtual scrolling, and Excel export |
+| `ui/` | Form mode, modals, toasts, tooltips, and shared helpers |
+| `styles/` | Feature-based CSS |
 
-## 🛠️ Tech Approach
+## 🛠️ Tech
 
-- 🌐 static frontend built with HTML, CSS, and vanilla JavaScript
-- ⚡ no required frontend build step for the main app
-- 🧩 feature-oriented organization rather than framework-heavy abstraction
-- 🔀 shared state and UI utilities that support both bubble mode and form mode
+- Static HTML, CSS, and vanilla JavaScript — no build step required
+- Feature-oriented folder structure
+- [ExcelJS](https://github.com/exceljs/exceljs) for Excel export
 
 ## 🚀 Running Locally
 
-The main app is a static site.
+1. Serve this directory from a local static server.
+2. Open the app through that server (not directly from the filesystem).
+3. Point it at a compatible backend.
 
-1. Serve the `Query Website` directory from a local static server.
-2. Open the app through that server rather than directly from the filesystem.
-3. Connect the frontend to a compatible backend environment.
+## � Roadmap
 
-> [!TIP]
-> 🚧 If you are evaluating the project architecture, the main thing to know is that the frontend is being pushed toward a clearer contract layer so the UI can migrate more cleanly between backends.
-
-## 📄 Form Mode, Briefly
-
-Form mode is driven by a URL parameter containing an encoded JSON spec. A form spec can define:
-
-- 🏷️ title and description
-- 🎯 default query name
-- 📊 output columns
-- ✏️ editable inputs
-- 🔒 locked filters
-
-That lets the same application support both open-ended exploration and narrow operational workflows.
-
-## 🛣️ Project Direction
-
-Near-term priorities are centered on portability and maintainability:
-
-- 🔌 make backend integration points clearer and easier to swap
-- ✂️ continue reducing coupling between UI behavior and backend-specific assumptions
-- 🤝 improve shared field-definition workflows
-- 💾 preserve compatibility for saved queries as the data model evolves
-
-## 🔮 Future Features
-
-- 🤖 optional sign-in with a preferred AI provider, such as Gemini or ChatGPT, so users can get help turning reporting needs into queries
-- 🏗️ continued work to make backend migration easier and less disruptive
-
-## 👥 Intended Audience
-
-This project is aimed at teams who need a practical reporting UI for library workflows and want something that can evolve instead of locking them into one long-term backend shape.
+- Optional sign-in with an AI provider (Gemini, ChatGPT) to help turn reporting needs into query specs
+- Cleaner backend contract layer to make integrations easier to swap
