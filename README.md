@@ -4,10 +4,6 @@
 
 A browser-based report builder for library data.
 
-![Static Frontend](https://img.shields.io/badge/frontend-static_html%2Fcss%2Fjs-f6f3ff?style=for-the-badge)
-![No Build Step](https://img.shields.io/badge/main_app-no_build_step-fff3e8?style=for-the-badge)
-![Backend Flexible](https://img.shields.io/badge/integration-backend_flexible-e8fbf2?style=for-the-badge)
-![Form Mode](https://img.shields.io/badge/workflows-bubbles_%2B_forms-f2f7ff?style=for-the-badge)
 
 </div>
 
