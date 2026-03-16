@@ -9,7 +9,7 @@ body.form-mode-active #filter-side-panel {
 #form-mode-host {
   width: 100%;
   display: flex;
-  justify-content: center;
+  justify-content: stretch;
 }
 
 #form-mode-host.hidden {
@@ -27,13 +27,17 @@ body.form-mode-active #filter-side-panel {
 }
 
 .form-mode-card {
-  width: min(100%, 760px);
+  width: 100%;
   margin: 0 auto 0.5rem;
   padding: 1rem;
   border-radius: 1rem;
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.92));
   border: 1px solid rgba(148, 163, 184, 0.22);
   box-shadow: 0 20px 45px rgba(15, 23, 42, 0.12);
+  display: flex;
+  flex-direction: column;
+  max-height: min(70vh, 560px);
+  overflow: hidden;
 }
 
 .form-mode-header {
@@ -106,9 +110,15 @@ body.form-mode-active #filter-side-panel {
   color: #f8fafc;
 }
 
+.form-mode-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.15rem;
+}
+
 .form-mode-fields {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 0.85rem;
 }
 
@@ -201,10 +211,6 @@ body.form-mode-active #filter-side-panel {
 }
 
 @media (max-width: 900px) {
-  .form-mode-card {
-    width: min(100%, 680px);
-  }
-
   .form-mode-header {
     flex-direction: column;
   }
@@ -221,8 +227,8 @@ body.form-mode-active #filter-side-panel {
 
 @media (max-width: 640px) {
   .form-mode-card {
-    width: 100%;
     padding: 0.85rem;
+    max-height: min(72vh, 640px);
   }
 
   .form-mode-fields {

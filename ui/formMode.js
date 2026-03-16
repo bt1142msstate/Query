@@ -756,8 +756,10 @@
           <button type="button" id="form-mode-copy" class="form-mode-btn">Copy Link</button>
         </div>
       </div>
-      <div id="form-mode-fields" class="form-mode-fields"></div>
-      <p id="form-mode-validation" class="form-mode-validation hidden"></p>
+      <div class="form-mode-body">
+        <div id="form-mode-fields" class="form-mode-fields"></div>
+        <p id="form-mode-validation" class="form-mode-validation hidden"></p>
+      </div>
     `;
 
     host.innerHTML = '';
