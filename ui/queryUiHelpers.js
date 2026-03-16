@@ -563,12 +563,16 @@ window.createListPasteInput = function(currentValues = [], options = {}) {
   const uploadBtn = document.createElement('button');
   uploadBtn.type = 'button';
   uploadBtn.className = 'list-paste-btn';
-  uploadBtn.textContent = 'Upload File';
+  uploadBtn.setAttribute('aria-label', 'Upload list file');
+  uploadBtn.setAttribute('data-tooltip', 'Upload text or CSV file');
+  uploadBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16"><path d="M12 16V4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 9l5-5 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 20h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="sr-only">Upload file</span>';
 
   const clearBtn = document.createElement('button');
   clearBtn.type = 'button';
   clearBtn.className = 'list-paste-btn list-paste-btn-secondary';
-  clearBtn.textContent = 'Clear';
+  clearBtn.setAttribute('aria-label', 'Clear list values');
+  clearBtn.setAttribute('data-tooltip', 'Clear loaded values');
+  clearBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16"><path d="M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 6l12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="sr-only">Clear values</span>';
 
   const fileInput = document.createElement('input');
   fileInput.type = 'file';
@@ -582,6 +586,21 @@ window.createListPasteInput = function(currentValues = [], options = {}) {
 
   const status = document.createElement('div');
   status.className = 'list-paste-status';
+
+  const loadFile = file => {
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      textArea.value = String(reader.result || '');
+      updateStatus();
+      container.classList.remove('drag-over');
+      if (typeof options.onChange === 'function') {
+        options.onChange();
+      }
+    };
+    reader.readAsText(file);
+  };
 
   const updateStatus = () => {
     const values = window.parseListInputValues(textArea.value);
@@ -603,22 +622,38 @@ window.createListPasteInput = function(currentValues = [], options = {}) {
   fileInput.addEventListener('change', () => {
     const [file] = fileInput.files || [];
     if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      textArea.value = String(reader.result || '');
-      updateStatus();
-      if (typeof options.onChange === 'function') {
-        options.onChange();
-      }
-    };
-    reader.readAsText(file);
+    loadFile(file);
   });
 
   textArea.addEventListener('input', () => {
     updateStatus();
     if (typeof options.onChange === 'function') {
       options.onChange();
+    }
+  });
+
+  ['dragenter', 'dragover'].forEach(eventName => {
+    container.addEventListener(eventName, event => {
+      event.preventDefault();
+      container.classList.add('drag-over');
+    });
+  });
+
+  ['dragleave', 'dragend'].forEach(eventName => {
+    container.addEventListener(eventName, event => {
+      event.preventDefault();
+      if (!container.contains(event.relatedTarget)) {
+        container.classList.remove('drag-over');
+      }
+    });
+  });
+
+  container.addEventListener('drop', event => {
+    event.preventDefault();
+    container.classList.remove('drag-over');
+    const [file] = event.dataTransfer?.files || [];
+    if (file) {
+      loadFile(file);
     }
   });
 

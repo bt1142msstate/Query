@@ -162,6 +162,44 @@
     padding: 3px 8px;
     border-radius: 4px;
 }
+  .tt-val-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+  .tt-val-summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: fit-content;
+  }
+  .tt-value-more {
+    color: #cbd5e1;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .tt-value-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .tt-value-list-item {
+    color: #f8fafc;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 6px 8px;
+    word-break: break-word;
+  }
+  .tt-list-tooltip {
+    min-width: 220px;
+  }
 .tt-logic {
     font-size: 0.75rem;
     color: #fcd34d;

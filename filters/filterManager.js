@@ -23,35 +23,64 @@ function getFilterValueMap(fieldDef) {
         : new Map();
 }
 
+function getFilterDisplayValues(filter, fieldDef) {
+    const rawValues = filter && filter.cond && filter.cond.toLowerCase() === 'between'
+        ? String(filter.val || '').split('|')
+        : String(filter && filter.val || '').split(',');
+    const valMap = getFilterValueMap(fieldDef);
+
+    return rawValues
+        .map(value => String(value).trim())
+        .filter(Boolean)
+        .map(value => valMap.get(value) || value);
+}
+
+function buildListSummaryLabel(values) {
+    if (!values || values.length === 0) return '';
+    if (values.length === 1) return values[0];
+    return `${values[0]}, and ${values.length - 1} more`;
+}
+
+function buildFilterListTooltipHtml(filter, fieldDef, title = 'Filter Values') {
+    const values = getFilterDisplayValues(filter, fieldDef);
+    if (!values.length || values.length === 1) {
+        return '';
+    }
+
+    const items = values
+        .map(value => `<li class="tt-value-list-item">${window.escapeHtml ? window.escapeHtml(value) : value}</li>`)
+        .join('');
+
+    return `<div class="tt-filter-container tt-list-tooltip"><div class="tt-filter-title">${title}</div><ul class="tt-value-list">${items}</ul></div>`;
+}
+
 function buildFilterValueLabel(filter, fieldDef, betweenSeparator = ' - ') {
-    let valueLabel = filter.val;
     const isBetween = filter.cond.toLowerCase() === 'between';
+    const values = getFilterDisplayValues(filter, fieldDef);
 
     if (fieldDef && fieldDef.type === 'date') {
         if (isBetween) {
-            const parts = filter.val.split('|');
+            const parts = values;
             if (parts.length === 2) {
-                valueLabel = `${parts[0]}${betweenSeparator}${parts[1]}`;
+                return `${parts[0]}${betweenSeparator}${parts[1]}`;
             }
         }
-        return valueLabel;
-    }
-
-    const valMap = getFilterValueMap(fieldDef);
-    if (valMap.size > 0) {
-        if (isBetween) {
-            return filter.val.split('|').map(v => valMap.get(v) || v).join(betweenSeparator);
-        }
-
-        return filter.val.split(',').map(v => valMap.get(v) || v).join(', ');
+        return values.join(', ');
     }
 
     if (isBetween) {
-        return filter.val.split('|').join(betweenSeparator);
+        return values.join(betweenSeparator);
     }
 
-    return valueLabel;
+    if (fieldDef && fieldDef.allowValueList && values.length > 1) {
+        return buildListSummaryLabel(values);
+    }
+
+    return values.join(', ');
 }
+
+window.getFilterDisplayValues = getFilterDisplayValues;
+window.buildFilterListTooltipHtml = buildFilterListTooltipHtml;
 
 function getFilterConditionPanelElement() {
     return window.DOM?.conditionPanel || document.getElementById('condition-panel');
@@ -99,6 +128,7 @@ class FilterPill {
     render() {
         const { filter, fieldDef } = this;
         const valueLabel = buildFilterValueLabel(filter, fieldDef);
+        const listTooltipHtml = buildFilterListTooltipHtml(filter, fieldDef, 'Selected Values');
 
         // Operator label (always show full word)
         let opLabel = filter.cond.charAt(0).toUpperCase() + filter.cond.slice(1);
@@ -115,6 +145,12 @@ class FilterPill {
         this.el.style.alignItems = 'center';
         this.el.style.justifyContent = 'space-between';
         this.el.innerHTML = `<span>${opLabel} <b>${valueLabel}</b></span>${trashSVG}`;
+        if (listTooltipHtml) {
+            this.el.setAttribute('data-tooltip-html', listTooltipHtml);
+            this.el.removeAttribute('data-tooltip');
+        } else {
+            this.el.removeAttribute('data-tooltip-html');
+        }
     
         this.el.querySelector('.filter-trash').addEventListener('click', (e) => {
             e.stopPropagation();
