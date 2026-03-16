@@ -393,7 +393,12 @@ function buildUiConfigFromRequest(request) {
     ? request.special_fields.map(field => (field && typeof field === 'object' ? { ...field } : field))
     : [];
 
-  (request.display_fields || []).forEach(fieldName => appendUniqueColumn(desiredColumns, fieldName));
+  (request.display_fields || []).forEach(fieldName => appendUniqueColumn(
+    desiredColumns,
+    typeof window.resolveFieldName === 'function'
+      ? window.resolveFieldName(fieldName, { trackAlias: true })
+      : fieldName
+  ));
   resolveSpecialPayloadFieldNames(specialFields).forEach(fieldName => appendUniqueColumn(desiredColumns, fieldName));
 
   const uiConfig = {
@@ -417,7 +422,9 @@ function buildUiConfigFromRequest(request) {
       }
 
       uiConfig.Filters.push({
-        FieldName: typeof window.resolveFieldName === 'function' ? window.resolveFieldName(f.field) : f.field,
+        FieldName: typeof window.resolveFieldName === 'function'
+          ? window.resolveFieldName(f.field, { trackAlias: true })
+          : f.field,
         FieldOperator: opName,
         Values: [f.value]
       });
@@ -433,7 +440,7 @@ function mergeUiConfigWithRequest(uiConfig, request) {
         ...uiConfig,
         DesiredColumnOrder: Array.isArray(uiConfig.DesiredColumnOrder) ? [...uiConfig.DesiredColumnOrder] : [],
         Filters: typeof window.normalizeUiConfigFilters === 'function'
-          ? window.normalizeUiConfigFilters(uiConfig)
+          ? window.normalizeUiConfigFilters(uiConfig, { trackAliases: true })
           : (Array.isArray(uiConfig.Filters) ? uiConfig.Filters.map(filter => ({ ...filter })) : []),
         SpecialFields: Array.isArray(uiConfig.SpecialFields)
           ? uiConfig.SpecialFields.map(field => (field && typeof field === 'object' ? { ...field } : field))
@@ -672,10 +679,14 @@ function loadQueryConfig(q) {
   
   // Load fields
   const filters = typeof window.normalizeUiConfigFilters === 'function'
-    ? window.normalizeUiConfigFilters(q.jsonConfig)
+    ? window.normalizeUiConfigFilters(q.jsonConfig, { trackAliases: true })
     : [];
   const desiredColumns = Array.isArray(q.jsonConfig.DesiredColumnOrder)
-    ? [...q.jsonConfig.DesiredColumnOrder]
+    ? q.jsonConfig.DesiredColumnOrder.map(fieldName => (
+        typeof window.resolveFieldName === 'function'
+          ? window.resolveFieldName(fieldName, { trackAlias: true })
+          : fieldName
+      ))
     : [];
   const resolvedSpecialFields = resolveSpecialPayloadFieldNames(
     q.jsonConfig.SpecialFields || q.jsonConfig.specialFields || []

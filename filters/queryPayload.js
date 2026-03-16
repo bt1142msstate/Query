@@ -158,7 +158,7 @@ window.getNormalizedDisplayedFields = function(fields = window.displayedFields) 
     .filter((field, index, array) => array.indexOf(field) === index);
 };
 
-window.normalizeUiConfigFilters = function(input) {
+window.normalizeUiConfigFilters = function(input, options = {}) {
   if (!input) return [];
 
   const normalizeFilter = filter => {
@@ -166,7 +166,7 @@ window.normalizeUiConfigFilters = function(input) {
 
     const rawFieldName = filter.FieldName || filter.field;
     const fieldName = typeof window.resolveFieldName === 'function'
-      ? window.resolveFieldName(rawFieldName)
+      ? window.resolveFieldName(rawFieldName, { trackAlias: Boolean(options.trackAliases) })
       : rawFieldName;
     if (!fieldName) return null;
 

@@ -10,6 +10,8 @@ let fieldDefs = new Map();
 let fieldAliases = new Map();
 let filteredDefs = [];
 let isFieldsLoaded = false;
+let pendingAliasNotifications = new Map();
+let aliasToastTimer = null;
 const SYSTEM_CATEGORIES = ['All', 'Selected'];
 
 window.hasLoadedFieldDefinitions = function hasLoadedFieldDefinitions() {
@@ -55,18 +57,60 @@ function getSelectorTooltip(categoryName) {
   }
 }
 
-window.resolveFieldName = function resolveFieldName(fieldName) {
+function scheduleAliasNotificationToast() {
+  if (aliasToastTimer || pendingAliasNotifications.size === 0) {
+    return;
+  }
+
+  aliasToastTimer = window.setTimeout(() => {
+    aliasToastTimer = null;
+
+    const updates = Array.from(pendingAliasNotifications.entries());
+    pendingAliasNotifications.clear();
+
+    if (!updates.length) {
+      return;
+    }
+
+    const details = updates
+      .map(([alias, canonical]) => `${alias} -> ${canonical}`)
+      .join('; ');
+    const prefix = updates.length === 1
+      ? 'Updated field name:'
+      : 'Updated field names:';
+
+    console.info('Normalized aliased field names:', details);
+    if (window.showToastMessage) {
+      window.showToastMessage(`${prefix} ${details}`, 'warning', 5000);
+    }
+  }, 50);
+}
+
+function noteFieldAliasUsage(alias, canonical) {
+  if (!alias || !canonical || alias === canonical) {
+    return;
+  }
+
+  pendingAliasNotifications.set(alias, canonical);
+  scheduleAliasNotificationToast();
+}
+
+window.resolveFieldName = function resolveFieldName(fieldName, options = {}) {
   const normalized = typeof fieldName === 'string' ? fieldName.trim() : '';
   if (!normalized) {
     return '';
   }
 
-  if (fieldDefs.has(normalized)) {
-    return fieldDefs.get(normalized)?.name || normalized;
+  if (fieldAliases.has(normalized)) {
+    const canonical = fieldAliases.get(normalized);
+    if (options.trackAlias) {
+      noteFieldAliasUsage(normalized, canonical);
+    }
+    return canonical;
   }
 
-  if (fieldAliases.has(normalized)) {
-    return fieldAliases.get(normalized);
+  if (fieldDefs.has(normalized)) {
+    return fieldDefs.get(normalized)?.name || normalized;
   }
 
   return normalized;
