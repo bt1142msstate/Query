@@ -1,115 +1,140 @@
-Query is an open-source tool for building complex list item reports from library data. Designed for library staff, data analysts, and developers, Query makes it easy to construct and customize your library reports.
+Query is a browser-based report builder for SirsiDynix Symphony-style library data. It lets staff assemble output columns and filters visually, run live queries against the backend, inspect query JSON, reload previous runs, and export results.
 
-⸻
+## What the app does today
 
-Key Features
+- Build queries with bubble-based field selection and filtering.
+- Run live queries against the backend and load saved results from query history.
+- Reopen prior queries from history, including displayed columns and filters.
+- Cancel running queries and monitor running, completed, failed, and cancelled states.
+- Export results to Excel.
+- Switch into URL-driven form mode for guided report entry.
+- Normalize renamed fields through alias support so older saved configs can still load.
+- Show shared tooltips and shared toast notifications across the UI.
 
-🧩 Visual Query Building
+## Main UI areas
 
-Add columns and filters with intuitive “field bubbles”—just click to add or remove fields and filters. Instantly rearrange your report by dragging column headers in the dynamic table to get the exact layout you want.
+- Bubble builder: the default visual query builder for selecting output columns and filters.
+- Query history: reload past queries, inspect status, view results, rerun, and cancel running jobs.
+- Query JSON panel: inspect the payload that will be sent to the backend.
+- Form mode: a guided input experience built from a form specification encoded in the URL.
 
-📄 Excel File Output
+## Frontend structure
 
-Generate Excel (.xlsx) files directly from your custom queries—ideal for reporting, sharing, and further data analysis.
+- `core/`: query execution, history, state, and shared utilities.
+- `ui/`: UI systems such as form mode, tooltips, toasts, modal handling, and UI helpers.
+- `filters/`: backend field definitions, filter behavior, and payload generation.
+- `table/`: result rendering, column management, drag/drop, and Excel export.
+- `bubbles/`: bubble rendering and bubble interaction logic.
+- `styles/`: shared CSS split by feature area.
 
-🔌 Backend Integration
+Script loading is still controlled directly by `index.html`, so moving files between folders also requires updating the script tags there.
 
-Connect Query with your backend: send and receive JSON between the builder and your server, making it easy to generate item reports and integrate with your library system.
+## Running the frontend
 
-📁 Templates & Query History
+There is no build step for the main app. The site is a static HTML, CSS, and JavaScript frontend loaded from `index.html`.
 
-Save, reuse, and manage query templates. Access your query history for quick modifications and repeat reports.
+Typical local workflow:
 
-🛠️ MARC Field Support
+1. Serve the `Query Website` folder from a local static server.
+2. Open `index.html` through that server, not directly from the filesystem.
+3. Make sure the backend endpoints it calls are reachable from your browser.
 
-Add and filter on any MARC field (assuming your system supports the MARC standard). Group multiple MARC field values into a single column (e.g., value1, value2), or separate them into individual columns (e.g., Marc590, 2nd Marc590).
+The root `package.json` is minimal and is not the main runtime entrypoint for the frontend.
 
-🤖 AI Support (Coming Soon)
+## Backend expectations
 
-Integrate Query with external AI services—including ChatGPT and more—to enhance report building and query generation with intelligent suggestions and natural language processing.
+The frontend expects the backend to provide at least:
 
-♿ Accessible by Design
+- field definitions, including filter metadata and aliases
+- query execution
+- query status polling
+- query cancellation
+- result retrieval for previous runs
 
-Enjoy full keyboard navigation and ARIA support for enhanced accessibility.
+Recent frontend behavior also assumes the backend may return field aliases so older saved names can be normalized to current canonical names.
 
-📱 Mobile Support Coming Soon
+## URL form mode
 
-A responsive, mobile-friendly interface is on the roadmap.
+Form mode is driven by a `form` query parameter whose value is a base64url-encoded JSON object.
 
-⸻
+Input values stay in the URL as normal query parameters such as `library=MAIN` or `lastUsedBefore=2024-01-01`.
 
-Note: Query is focused solely on generating lists of items. Charting and advanced data visualizations are not currently supported.
+### Supported form schema keys
 
-Frontend Structure
+- `title`: heading shown above the form.
+- `description`: optional supporting copy.
+- `queryName`: default output or query name.
+- `columns`: output columns to load automatically.
+- `inputs`: editable form inputs.
+- `lockedFilters`: filters always applied behind the scenes.
 
-- `core/`: app orchestration and shared state (`query.js`, `queryHistory.js`, `queryState.js`, `utils.js`)
-- `ui/`: UI-only helpers and overlays (`queryUI.js`, `modalManager.js`, `toast.js`, `tooltips.js`)
-- `filters/`: field definitions, filter logic, payload building, and side panel (`fieldDefs.js`, `filterManager.js`, `filterSidePanel.js`, `queryPayload.js`)
-- `table/`: table rendering, export, columns, and drag/drop (`simpleTable.js`, `virtualTable.js`, `excel.js`, `columnManager.js`, `dragDrop.js`)
-- `bubbles/`: bubble interaction system (`bubble.js`)
+Each `inputs` entry can include:
 
-Script load order is still controlled by `index.html`, so files should be moved between folders only when their script path is updated there.
+- `key`
+- `field`
+- `label`
+- `operator`
+- `required`
+- `multiple`
+- `type`
+- `placeholder`
+- `help`
+- `default`
+- `keys` for `between`
+- `options`
 
-URL Form Mode
-
-- Form mode is activated with a `form` query parameter.
-- The `form` value is a base64url-encoded JSON object that defines the form shell.
-- Input values stay readable in the URL as normal query params such as `library=MAIN` or `lastUsedBefore=2024-01-01`.
-
-Supported form schema keys
-
-- `title`: Form heading shown above the table.
-- `description`: Optional supporting copy.
-- `queryName`: Default table/query name.
-- `columns`: Output columns to load automatically.
-- `inputs`: Editable form inputs. Each item supports `key`, `field`, `label`, `operator`, `required`, `multiple`, `type`, `placeholder`, `help`, `default`, `keys` for `between`, and `options`.
-- `lockedFilters`: Filters always applied behind the scenes.
-
-Example schema shape
+### Example schema
 
 ```json
 {
-	"title": "Weeding List",
-	"description": "Run a focused stale-items report without the full bubble builder.",
-	"queryName": "Weeding List",
-	"columns": ["Item Key", "Title", "Item Library", "Last Activity Date"],
-	"inputs": [
-		{
-			"key": "library",
-			"field": "Item Library",
-			"label": "Item Library",
-			"operator": "equals",
-			"required": true
-		},
-		{
-			"key": "lastUsedBefore",
-			"field": "Last Activity Date",
-			"label": "Last Used Before",
-			"operator": "on_or_before",
-			"type": "date",
-			"required": true
-		}
-	]
+  "title": "Weeding List",
+  "description": "Run a focused stale-items report without the full bubble builder.",
+  "queryName": "Weeding List",
+  "columns": ["Item Key", "Title", "Item Library", "Date Last Used"],
+  "inputs": [
+    {
+      "key": "library",
+      "field": "Item Library",
+      "label": "Item Library",
+      "operator": "equals",
+      "required": true
+    },
+    {
+      "key": "lastUsedBefore",
+      "field": "Date Last Used",
+      "label": "Last Used Before",
+      "operator": "on_or_before",
+      "type": "date",
+      "required": true
+    }
+  ]
 }
 ```
 
-Generating a URL in the browser console
+### Generating a form URL in the browser console
 
 ```js
 const spec = {
-	title: "Weeding List",
-	queryName: "Weeding List",
-	columns: ["Item Key", "Title", "Item Library", "Last Activity Date"],
-	inputs: [
-		{ key: "library", field: "Item Library", label: "Item Library", operator: "equals", required: true },
-		{ key: "lastUsedBefore", field: "Last Activity Date", label: "Last Used Before", operator: "on_or_before", type: "date", required: true }
-	]
+  title: 'Weeding List',
+  queryName: 'Weeding List',
+  columns: ['Item Key', 'Title', 'Item Library', 'Date Last Used'],
+  inputs: [
+    { key: 'library', field: 'Item Library', label: 'Item Library', operator: 'equals', required: true },
+    { key: 'lastUsedBefore', field: 'Date Last Used', label: 'Last Used Before', operator: 'on_or_before', type: 'date', required: true }
+  ]
 };
 
 const url = new URL(window.location.href);
-url.search = "";
-url.searchParams.set("form", window.QueryFormMode.encodeSpec(spec));
-url.searchParams.set("library", "MAIN");
-url.searchParams.set("lastUsedBefore", "2024-01-01");
+url.search = '';
+url.searchParams.set('form', window.QueryFormMode.encodeSpec(spec));
+url.searchParams.set('library', 'MAIN');
+url.searchParams.set('lastUsedBefore', '2024-01-01');
 console.log(url.toString());
 ```
+
+## Notes
+
+- Query history is a core part of the current workflow, not a future feature.
+- Form mode can also be generated from the current query inside the app.
+- The UI includes shared bottom-right toast notifications and shared hover tooltips.
+- Multi-value fields may render as grouped selectors or list-entry popups depending on field metadata.
