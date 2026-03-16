@@ -362,6 +362,12 @@
   border-bottom: 1px solid rgba(15, 23, 42, 0.08);
 }
 
+.filter-list-viewer-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
 .filter-list-viewer-title {
   color: #0f172a;
   font-size: 1rem;
@@ -375,6 +381,7 @@
   margin-top: 0.2rem;
 }
 
+.filter-list-viewer-icon-btn,
 .filter-list-viewer-close {
   width: 2rem;
   height: 2rem;
@@ -387,6 +394,7 @@
   flex-shrink: 0;
 }
 
+.filter-list-viewer-icon-btn:hover,
 .filter-list-viewer-close:hover {
   background: #cbd5e1;
 }
