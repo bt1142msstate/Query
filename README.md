@@ -1,17 +1,30 @@
+<div align="center">
+
 # Query Website
 
 Frontend application for the Sirsi Query Project.
 
-This is the browser UI for building reports, reviewing query state, opening prior runs, and exporting results. It is written as a static HTML/CSS/JavaScript app and is being shaped to stay compatible with multiple backend implementations over time.
+![Static Site](https://img.shields.io/badge/app-static_site-f6f3ff?style=for-the-badge)
+![Vanilla JS](https://img.shields.io/badge/ui-vanilla_js-fff3e8?style=for-the-badge)
+![History Ready](https://img.shields.io/badge/history-live_status_%2B_restore-e8fbf2?style=for-the-badge)
+![Form Mode](https://img.shields.io/badge/mode-url_driven_forms-f2f7ff?style=for-the-badge)
+
+</div>
+
+This is the browser UI for building reports, reviewing query state, reopening prior runs, and exporting results. It is intentionally being shaped to stay compatible with multiple backend implementations over time.
+
+> [!NOTE]
+> The frontend is being pushed toward a cleaner integration surface so it can migrate more easily between backend implementations without forcing a full UI rewrite.
 
 ## What It Does
 
-- build queries visually with the bubble-based workflow
-- switch into guided form mode for focused report entry
-- inspect the active query payload in the JSON panel
-- browse query history, including active and past runs
-- rerun, cancel, and reopen saved queries
-- export results to Excel
+| Capability | Summary |
+| --- | --- |
+| Visual query building | Bubble-based field and filter workflow |
+| Guided workflows | URL-driven form mode for focused report entry |
+| Query visibility | Inspect the active query payload in the JSON panel |
+| History | Browse active and previous runs with status-aware actions |
+| Results | Reopen, rerun, cancel, and export query output |
 
 ## UI Areas
 
@@ -33,14 +46,14 @@ Supports URL-driven forms for narrower workflows where users should fill in a gu
 
 ## Frontend Structure
 
-```text
-core/      Query execution flow, history, state, utilities
-ui/        Form mode, modals, tooltips, toasts, shared helpers
-filters/   Field definitions and query-payload helpers
-table/     Result rendering, column handling, export helpers
-bubbles/   Bubble rendering and interaction logic
-styles/    Feature-based stylesheets
-```
+| Path | Purpose |
+| --- | --- |
+| `core/` | Query execution flow, history, state, and utilities |
+| `ui/` | Form mode, modals, tooltips, toasts, and shared helpers |
+| `filters/` | Field definitions and query-payload helpers |
+| `table/` | Result rendering, columns, and export helpers |
+| `bubbles/` | Bubble rendering and interaction logic |
+| `styles/` | Feature-based stylesheets |
 
 ## Local Development
 
