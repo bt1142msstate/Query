@@ -56,16 +56,17 @@
 
 .grouped-selector {
   max-height: 50vh;
-  border: 1px solid var(--color-gray-200);
-  border-radius: var(--border-radius-lg);
-  background: white;
+  border: 1px solid rgba(203, 213, 225, 0.95);
+  border-radius: 1rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
   padding: 0;
   min-width: 250px;
   max-width: 400px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.1);
   display: flex;
   flex-direction: column;
   margin-inline: auto;
+  overflow: hidden;
 }
 
 .boolean-pill-selector {
@@ -113,17 +114,37 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  background: white;
-  padding: 0.5rem;
-  border-bottom: 1px solid var(--color-gray-100);
-  border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 250, 252, 0.96));
+  padding: 0.6rem;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 1rem 1rem 0 0;
   flex-shrink: 0;
 }
 
 .grouped-options-container {
   overflow-y: auto;
   flex-grow: 1;
-  padding: 0.5rem;
+  padding: 0.55rem 0.45rem 0.55rem 0.55rem;
+  scrollbar-gutter: stable;
+}
+
+.grouped-options-container::-webkit-scrollbar {
+  width: 10px;
+}
+
+.grouped-options-container::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 0.35rem 0.2rem 0.35rem 0;
+}
+
+.grouped-options-container::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.45);
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.92);
+}
+
+.grouped-options-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.58);
 }
 
 .search-input {
@@ -205,13 +226,14 @@
 .group-checkbox::after {
   content: '';
   position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 0.42rem;
-  height: 0.42rem;
-  border-radius: 999px;
-  background: #fff;
-  transform: scale(0);
+  left: 0.3rem;
+  top: 0.12rem;
+  width: 0.28rem;
+  height: 0.56rem;
+  border-right: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(45deg) scale(0);
+  transform-origin: center;
   transition: transform var(--transition-fast);
 }
 
@@ -222,7 +244,23 @@
 }
 
 .group-checkbox:checked::after {
-  transform: scale(1);
+  transform: rotate(45deg) scale(1);
+}
+
+.group-checkbox:indeterminate {
+  border-color: #0f766e;
+  background: linear-gradient(180deg, #14b8a6, #0f766e);
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.16);
+}
+
+.group-checkbox:indeterminate::after {
+  left: 0.22rem;
+  top: 0.45rem;
+  width: 0.48rem;
+  height: 0;
+  border-right: 0;
+  border-bottom: 2px solid #fff;
+  transform: none;
 }
 
 .group-checkbox:hover {
@@ -281,13 +319,14 @@
 .option-item-indicator::after {
   content: '';
   position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 0.38rem;
-  height: 0.38rem;
-  border-radius: 999px;
-  background: #fff;
-  transform: scale(0);
+  left: 0.31rem;
+  top: 0.13rem;
+  width: 0.28rem;
+  height: 0.56rem;
+  border-right: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(45deg) scale(0);
+  transform-origin: center;
   transition: transform var(--transition-fast);
 }
 
@@ -316,7 +355,7 @@
 }
 
 .option-item.is-selected .option-item-indicator::after {
-  transform: scale(1);
+  transform: rotate(45deg) scale(1);
 }
 
 .option-item.is-selected .option-item-text {
