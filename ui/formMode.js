@@ -296,6 +296,12 @@
       .map(fieldDef => ({
         name: String(fieldDef.name),
         type: String(fieldDef.type || 'text'),
+        desc: typeof fieldDef.desc === 'string'
+          ? fieldDef.desc
+          : '',
+        description: typeof fieldDef.description === 'string'
+          ? fieldDef.description
+          : '',
         category: Array.isArray(fieldDef.category)
           ? fieldDef.category.filter(Boolean).join(', ')
           : String(fieldDef.category || '')

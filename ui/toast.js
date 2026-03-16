@@ -212,6 +212,11 @@
     }, EXIT_DURATION);
   }
 
+  function dismissAllToasts() {
+    pendingToasts.length = 0;
+    Array.from(activeToasts.keys()).forEach((key) => dismissToast(key));
+  }
+
   function scheduleDismiss(entry, duration) {
     clearToastTimer(entry);
     if (duration <= 0) {
@@ -290,4 +295,21 @@
   window.showToastMessage = showToast;
   window.showToast = showToast;
   window.dismissToastMessage = dismissToast;
+  window.toast = {
+    show: showToast,
+    dismiss: dismissToast,
+    dismissAll: dismissAllToasts,
+    info(message, duration = DEFAULT_DURATION) {
+      return showToast(message, 'info', duration);
+    },
+    success(message, duration = DEFAULT_DURATION) {
+      return showToast(message, 'success', duration);
+    },
+    warning(message, duration = DEFAULT_DURATION) {
+      return showToast(message, 'warning', duration);
+    },
+    error(message, duration = DEFAULT_DURATION) {
+      return showToast(message, 'error', duration);
+    }
+  };
 })();

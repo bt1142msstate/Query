@@ -398,8 +398,11 @@ window.formatFieldDefinitionTooltipHTML = function(fieldDef, options = {}) {
   const categoryValue = typeof fieldDef.category === 'string'
     ? fieldDef.category.trim()
     : '';
-  const descValue = typeof fieldDef.desc === 'string'
-    ? fieldDef.desc.trim()
+  const descSource = typeof fieldDef.desc === 'string' && fieldDef.desc.trim()
+    ? fieldDef.desc
+    : (typeof fieldDef.description === 'string' ? fieldDef.description : '');
+  const descValue = typeof descSource === 'string'
+    ? descSource.trim()
     : '';
   const title = typeof options.title === 'string' ? options.title.trim() : '';
 
