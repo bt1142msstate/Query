@@ -67,9 +67,17 @@ function ensureFilterListViewer() {
                 <div id="filter-list-viewer-title" class="filter-list-viewer-title"></div>
                 <div id="filter-list-viewer-meta" class="filter-list-viewer-meta"></div>
             </div>
-            <button type="button" id="filter-list-viewer-close" class="filter-list-viewer-close" aria-label="Close list viewer">
-                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 6l12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-            </button>
+            <div class="filter-list-viewer-actions">
+                <button type="button" id="filter-list-viewer-copy" class="filter-list-viewer-icon-btn" aria-label="Copy list" data-tooltip="Copy list">
+                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                </button>
+                <button type="button" id="filter-list-viewer-download" class="filter-list-viewer-icon-btn" aria-label="Download list" data-tooltip="Download list as text file">
+                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3v12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 21h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </button>
+                <button type="button" id="filter-list-viewer-close" class="filter-list-viewer-close" aria-label="Close list viewer">
+                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 6l12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </button>
+            </div>
         </div>
         <div id="filter-list-viewer-body" class="filter-list-viewer-body"></div>
     `;
@@ -79,8 +87,48 @@ function ensureFilterListViewer() {
         panel.classList.add('hidden');
     };
 
+    panel._viewerState = {
+        values: [],
+        filenameBase: 'filter-values'
+    };
+
     backdrop.addEventListener('click', closeViewer);
     panel.querySelector('#filter-list-viewer-close').addEventListener('click', closeViewer);
+    panel.querySelector('#filter-list-viewer-copy').addEventListener('click', async () => {
+        const rawText = (panel._viewerState.values || []).join("\n");
+        if (!rawText) return;
+
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(rawText);
+            }
+            if (window.showToastMessage) {
+                window.showToastMessage('List copied to clipboard.', 'success');
+            }
+        } catch (error) {
+            if (window.showToastMessage) {
+                window.showToastMessage('Failed to copy list.', 'error');
+            }
+        }
+    });
+    panel.querySelector('#filter-list-viewer-download').addEventListener('click', () => {
+        const rawText = (panel._viewerState.values || []).join("\n");
+        if (!rawText) return;
+
+        const blob = new Blob([rawText], { type: 'text/plain;charset=utf-8' });
+        const objectUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.download = `${panel._viewerState.filenameBase || 'filter-values'}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(objectUrl);
+
+        if (window.showToastMessage) {
+            window.showToastMessage('List downloaded.', 'success');
+        }
+    });
     document.addEventListener('keydown', event => {
         if (event.key === 'Escape' && !panel.classList.contains('hidden')) {
             closeViewer();
@@ -104,6 +152,10 @@ function openFilterListViewer(filter, fieldDef, options = {}) {
     const bodyEl = panel.querySelector('#filter-list-viewer-body');
     const fieldLabel = options.fieldName || fieldDef?.name || 'Selected Values';
     const operatorLabel = options.operatorLabel || (filter.cond.charAt(0).toUpperCase() + filter.cond.slice(1));
+    const filenameBase = String(`${fieldLabel} ${operatorLabel}`)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'filter-values';
 
     const items = values
         .map(value => `<li class="filter-list-viewer-item">${window.escapeHtml ? window.escapeHtml(value) : value}</li>`)
@@ -112,6 +164,8 @@ function openFilterListViewer(filter, fieldDef, options = {}) {
     titleEl.textContent = `${fieldLabel} ${operatorLabel}`;
     metaEl.textContent = `${values.length} value${values.length === 1 ? '' : 's'}`;
     bodyEl.innerHTML = `<ul class="filter-list-viewer-list">${items}</ul>`;
+    panel._viewerState.values = values.slice();
+    panel._viewerState.filenameBase = filenameBase;
 
     backdrop.classList.remove('hidden');
     panel.classList.remove('hidden');
