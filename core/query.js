@@ -105,8 +105,8 @@ window.clearCurrentQuery = async function clearCurrentQuery() {
   document.querySelectorAll('.condition-btn.active, .toggle-half.active').forEach(btn => btn.classList.remove('active'));
 
   window.selectedField = '';
-  if (window.QueryStateStore && typeof window.QueryStateStore.reset === 'function') {
-    window.QueryStateStore.reset({ source: 'Query.clearCurrentQuery' });
+  if (window.QueryStateStore && typeof window.QueryStateStore.resetQuery === 'function') {
+    window.QueryStateStore.resetQuery({ source: 'Query.clearCurrentQuery' });
   }
   window.lastExecutedQueryState = null;
 

@@ -112,15 +112,6 @@ window.restoreFieldWithDuplicates = function(fieldName, insertAt = -1) {
   if (window.fieldOrDuplicatesExist(fieldName)) {
     return false;
   }
-
-  const mutateDisplayedFields = (mutator) => {
-    if (window.QueryStateStore && typeof window.QueryStateStore.mutateDisplayedFields === 'function') {
-      window.QueryStateStore.mutateDisplayedFields(mutator, { source: 'ColumnManager.restoreFieldWithDuplicates' });
-      return;
-    }
-
-    mutator(window.displayedFields);
-  };
   
   // Check if we have stored duplicate information for this field
   const storedInfo = window.removedColumnInfo.get(fieldName);
@@ -130,16 +121,9 @@ window.restoreFieldWithDuplicates = function(fieldName, insertAt = -1) {
     window.removedColumnInfo.delete(fieldName);
     
     // Insert all duplicate columns at the specified position
-    mutateDisplayedFields(displayedFields => {
-      if (insertAt >= 0 && insertAt <= displayedFields.length) {
-        storedInfo.columnNames.forEach((columnName, index) => {
-          displayedFields.splice(insertAt + index, 0, columnName);
-        });
-      } else {
-        storedInfo.columnNames.forEach(columnName => {
-          displayedFields.push(columnName);
-        });
-      }
+    window.QueryStateStore.addDisplayedField(storedInfo.columnNames, {
+      insertAt,
+      source: 'ColumnManager.restoreFieldWithDuplicates'
     });
     
     return true;
@@ -155,16 +139,9 @@ window.restoreFieldWithDuplicates = function(fieldName, insertAt = -1) {
       
       if (relatedColumns.length > 0) {
         // Insert all related columns from original data
-        mutateDisplayedFields(displayedFields => {
-          if (insertAt >= 0 && insertAt <= displayedFields.length) {
-            relatedColumns.forEach((columnName, index) => {
-              displayedFields.splice(insertAt + index, 0, columnName);
-            });
-          } else {
-            relatedColumns.forEach(columnName => {
-              displayedFields.push(columnName);
-            });
-          }
+        window.QueryStateStore.addDisplayedField(relatedColumns, {
+          insertAt,
+          source: 'ColumnManager.restoreFieldWithDuplicates'
         });
         
         return true;
@@ -172,12 +149,9 @@ window.restoreFieldWithDuplicates = function(fieldName, insertAt = -1) {
     }
     
     // Fallback to single field - this will show "..." in the table
-    mutateDisplayedFields(displayedFields => {
-      if (insertAt >= 0 && insertAt <= displayedFields.length) {
-        displayedFields.splice(insertAt, 0, fieldName);
-      } else {
-        displayedFields.push(fieldName);
-      }
+    window.QueryStateStore.addDisplayedField(fieldName, {
+      insertAt,
+      source: 'ColumnManager.restoreFieldWithDuplicates'
     });
     return true; // Changed to true since we did add the field
   }

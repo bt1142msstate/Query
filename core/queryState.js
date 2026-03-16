@@ -90,6 +90,19 @@ function assignActiveFilters(nextFilters) {
   });
 }
 
+function normalizeFieldList(fieldNames) {
+  const values = Array.isArray(fieldNames) ? fieldNames : [fieldNames];
+  return values.map(field => String(field || '').trim()).filter(Boolean);
+}
+
+function normalizeFilterInput(filter) {
+  const normalized = cloneFilterEntry(filter);
+  if (!normalized.cond && !normalized.val) {
+    return null;
+  }
+  return normalized;
+}
+
 function getQueryStateSnapshot() {
   return {
     displayedFields: displayedFieldsState.slice(),
@@ -131,50 +144,206 @@ window.QueryStateStore = {
       queryStateSubscribers.delete(listener);
     };
   },
-  notify(changes = {}, meta = {}) {
-    notifyQueryStateSubscribers(changes, meta);
-  },
   replaceDisplayedFields(nextFields, meta = {}) {
     assignDisplayedFields(nextFields);
     notifyQueryStateSubscribers({ displayedFields: true }, meta);
   },
-  mutateDisplayedFields(mutator, meta = {}) {
-    if (typeof mutator === 'function') {
-      mutator(displayedFieldsState);
+  addDisplayedField(fieldNames, options = {}) {
+    const normalizedFields = normalizeFieldList(fieldNames);
+    if (normalizedFields.length === 0) return false;
+
+    const insertAt = Number.isInteger(options.insertAt) ? options.insertAt : -1;
+    normalizedFields.forEach((fieldName, index) => {
+      if (insertAt >= 0 && insertAt <= displayedFieldsState.length) {
+        displayedFieldsState.splice(insertAt + index, 0, fieldName);
+      } else {
+        displayedFieldsState.push(fieldName);
+      }
+    });
+
+    notifyQueryStateSubscribers({ displayedFields: true }, { source: options.source || 'QueryStateStore.addDisplayedField' });
+    return true;
+  },
+  removeDisplayedField(fieldNames, options = {}) {
+    const normalizedFields = new Set(normalizeFieldList(fieldNames));
+    if (normalizedFields.size === 0) return false;
+
+    const removeAll = options.all !== false;
+    let removed = false;
+
+    if (removeAll) {
+      for (let index = displayedFieldsState.length - 1; index >= 0; index -= 1) {
+        if (normalizedFields.has(displayedFieldsState[index])) {
+          displayedFieldsState.splice(index, 1);
+          removed = true;
+        }
+      }
+    } else {
+      for (let index = 0; index < displayedFieldsState.length; index += 1) {
+        if (normalizedFields.has(displayedFieldsState[index])) {
+          displayedFieldsState.splice(index, 1);
+          removed = true;
+          break;
+        }
+      }
     }
 
-    notifyQueryStateSubscribers({ displayedFields: true }, meta);
+    if (removed) {
+      notifyQueryStateSubscribers({ displayedFields: true }, { source: options.source || 'QueryStateStore.removeDisplayedField' });
+    }
+
+    return removed;
+  },
+  moveDisplayedField(fromIndex, toIndex, options = {}) {
+    if (!Number.isInteger(fromIndex) || !Number.isInteger(toIndex) || fromIndex === toIndex) {
+      return false;
+    }
+
+    const count = Math.max(1, Number.isInteger(options.count) ? options.count : 1);
+    if (fromIndex < 0 || fromIndex >= displayedFieldsState.length) {
+      return false;
+    }
+
+    const safeCount = Math.min(count, displayedFieldsState.length - fromIndex);
+    const movedFields = displayedFieldsState.splice(fromIndex, safeCount);
+    if (movedFields.length === 0) {
+      return false;
+    }
+
+    let insertAt = toIndex;
+    if (options.behavior === 'group') {
+      for (let offset = 0; offset < safeCount; offset += 1) {
+        if (fromIndex + offset < toIndex) {
+          insertAt -= 1;
+        }
+      }
+    }
+
+    insertAt = Math.max(0, Math.min(insertAt, displayedFieldsState.length));
+    displayedFieldsState.splice(insertAt, 0, ...movedFields);
+
+    notifyQueryStateSubscribers({ displayedFields: true }, { source: options.source || 'QueryStateStore.moveDisplayedField' });
+    return true;
   },
   replaceActiveFilters(nextFilters, meta = {}) {
     assignActiveFilters(nextFilters);
     notifyQueryStateSubscribers({ activeFilters: true }, meta);
   },
-  mutateActiveFilters(mutator, meta = {}) {
-    if (typeof mutator === 'function') {
-      mutator(activeFiltersState);
+  upsertFilter(fieldName, filter, options = {}) {
+    const normalizedField = String(fieldName || '').trim();
+    const normalizedFilter = normalizeFilterInput(filter);
+    if (!normalizedField || !normalizedFilter) {
+      return false;
     }
 
-    notifyQueryStateSubscribers({ activeFilters: true }, meta);
+    if (!activeFiltersState[normalizedField]) {
+      activeFiltersState[normalizedField] = { filters: [] };
+    }
+
+    const filters = activeFiltersState[normalizedField].filters;
+    const existingIndex = filters.findIndex(existingFilter => existingFilter.cond === normalizedFilter.cond && existingFilter.val === normalizedFilter.val);
+    if (options.dedupe && existingIndex !== -1) {
+      return false;
+    }
+
+    if (options.replaceByCond) {
+      const replaceIndex = filters.findIndex(existingFilter => existingFilter.cond === normalizedFilter.cond);
+      if (replaceIndex !== -1) {
+        filters[replaceIndex] = normalizedFilter;
+      } else {
+        filters.push(normalizedFilter);
+      }
+    } else {
+      filters.push(normalizedFilter);
+    }
+
+    notifyQueryStateSubscribers({ activeFilters: true }, { source: options.source || 'QueryStateStore.upsertFilter' });
+    return true;
   },
-  batchUpdate(mutator, changes = {}, meta = {}) {
-    if (typeof mutator === 'function') {
-      mutator({
-        displayedFields: displayedFieldsState,
-        activeFilters: activeFiltersState
+  removeFilter(fieldName, options = {}) {
+    const normalizedField = String(fieldName || '').trim();
+    if (!normalizedField || !activeFiltersState[normalizedField]) {
+      return false;
+    }
+
+    if (options.removeAll) {
+      delete activeFiltersState[normalizedField];
+      notifyQueryStateSubscribers({ activeFilters: true }, { source: options.source || 'QueryStateStore.removeFilter' });
+      return true;
+    }
+
+    const filters = activeFiltersState[normalizedField].filters;
+    let removed = false;
+
+    if (Number.isInteger(options.index) && options.index >= 0 && options.index < filters.length) {
+      filters.splice(options.index, 1);
+      removed = true;
+    } else {
+      const targetCond = options.cond === undefined ? null : String(options.cond || '');
+      const targetVal = options.val === undefined ? null : String(options.val || '');
+      const removeIndex = filters.findIndex(filter => {
+        if (targetCond !== null && filter.cond !== targetCond) return false;
+        if (targetVal !== null && filter.val !== targetVal) return false;
+        return true;
       });
+      if (removeIndex !== -1) {
+        filters.splice(removeIndex, 1);
+        removed = true;
+      }
     }
 
-    notifyQueryStateSubscribers(changes, meta);
+    if (!removed) {
+      return false;
+    }
+
+    if (filters.length === 0) {
+      delete activeFiltersState[normalizedField];
+    }
+
+    notifyQueryStateSubscribers({ activeFilters: true }, { source: options.source || 'QueryStateStore.removeFilter' });
+    return true;
   },
-  reset(meta = {}) {
+  reorderFilterGroups(fieldOrder, options = {}) {
+    const normalizedOrder = normalizeFieldList(fieldOrder);
+    if (normalizedOrder.length === 0) {
+      return false;
+    }
+
+    const nextFilters = {};
+    normalizedOrder.forEach(fieldName => {
+      if (activeFiltersState[fieldName]) {
+        nextFilters[fieldName] = activeFiltersState[fieldName];
+      }
+    });
+
+    Object.keys(activeFiltersState).forEach(fieldName => {
+      if (!nextFilters[fieldName]) {
+        nextFilters[fieldName] = activeFiltersState[fieldName];
+      }
+    });
+
+    assignActiveFilters(nextFilters);
+    notifyQueryStateSubscribers({ activeFilters: true }, { source: options.source || 'QueryStateStore.reorderFilterGroups' });
+    return true;
+  },
+  setQueryState(nextState = {}, meta = {}) {
+    if (nextState.displayedFields !== undefined) {
+      assignDisplayedFields(nextState.displayedFields);
+    }
+    if (nextState.activeFilters !== undefined) {
+      assignActiveFilters(nextState.activeFilters);
+    }
+
+    notifyQueryStateSubscribers({
+      displayedFields: nextState.displayedFields !== undefined,
+      activeFilters: nextState.activeFilters !== undefined
+    }, meta);
+  },
+  resetQuery(meta = {}) {
     assignDisplayedFields([]);
     assignActiveFilters({});
     notifyQueryStateSubscribers({ displayedFields: true, activeFilters: true }, meta);
   }
-};
-
-window.notifyQueryStateChange = function(changes = {}, meta = {}) {
-  window.QueryStateStore.notify(changes, meta);
 };
 
 Object.defineProperty(window, 'displayedFields', {
