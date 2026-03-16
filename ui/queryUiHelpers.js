@@ -362,8 +362,8 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
 
     const input = document.createElement('input');
     input.type = isMultiSelect ? 'checkbox' : 'radio';
-    input.name = 'condition-value';
-    input.id = `condition-value-${Math.random().toString(36).slice(2, 10)}`;
+    input.name = isMultiSelect ? `condition-value-${selectorInstanceId}-multi` : `condition-value-${selectorInstanceId}`;
+    input.id = `condition-value-${selectorInstanceId}-${Math.random().toString(36).slice(2, 10)}`;
     input.dataset.value = val.literal;
     input.dataset.display = val.display;
     input.checked = currentValues.includes(val.literal);
@@ -371,11 +371,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
 
     if (isMultiSelect && groupName) {
       input.addEventListener('change', () => {
-        const groupOptions = optionItem.parentElement.querySelectorAll('input[type="checkbox"]:not(.group-checkbox)');
-        const groupCheckbox = optionItem.closest('.group-section')?.querySelector(`.group-checkbox[data-group="${groupName}"]`);
-        if (groupCheckbox) {
-          groupCheckbox.checked = Array.from(groupOptions).every(opt => opt.checked);
-        }
+        syncGroupCheckboxState(container, groupName);
       });
     }
 
@@ -389,9 +385,10 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
 
     const labelText = document.createElement('span');
     labelText.className = 'option-item-text';
-    labelText.textContent = insideGroup
-      ? val.display.replace(new RegExp(`^${groupName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*-\\s*`), '')
-      : val.display;
+      labelText.dataset.rawText = insideGroup
+        ? val.display.replace(new RegExp(`^${groupName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\s*-\s*`), '')
+        : val.display;
+      labelText.textContent = labelText.dataset.rawText;
 
     label.appendChild(indicator);
     label.appendChild(labelText);
@@ -451,6 +448,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
           opt.checked = checked;
           opt.dispatchEvent(new Event('change', { bubbles: true }));
         });
+        syncGroupCheckboxState(groupSection, groupName);
       });
 
       groupHeader.appendChild(groupCheckbox);
@@ -506,15 +504,13 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
 
         Array.from(group.options.querySelectorAll('.option-item')).forEach(item => {
           item.style.display = '';
-          const label = item.querySelector('label');
-          label.innerHTML = label.textContent;
+          setLabelHighlight(item.querySelector('.option-item-text'));
         });
       });
 
       flatOptionItems.forEach(item => {
         item.style.display = '';
-        const label = item.querySelector('label');
-        label.innerHTML = label.textContent;
+        setLabelHighlight(item.querySelector('.option-item-text'));
       });
     } else {
       groupElements.forEach(group => {
@@ -523,15 +519,13 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
         Array.from(group.options.querySelectorAll('.option-item')).forEach(item => {
           const value = item.dataset.value.toLowerCase();
           const display = item.dataset.display.toLowerCase();
-          const label = item.querySelector('label');
-          const displayText = label.textContent.toLowerCase();
+          const labelText = item.querySelector('.option-item-text');
+          const displayText = String(labelText?.dataset.rawText || '').toLowerCase();
 
           if (value.includes(searchTerm) || display.includes(searchTerm) || displayText.includes(searchTerm)) {
             item.style.display = '';
             hasMatch = true;
-            const originalText = label.textContent;
-            const regex = new RegExp(`(${searchTerm.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi');
-            label.innerHTML = originalText.replace(regex, '<span class="highlight">$1</span>');
+            setLabelHighlight(labelText, searchTerm);
           } else {
             item.style.display = 'none';
           }
@@ -547,14 +541,12 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
       flatOptionItems.forEach(item => {
         const value = item.dataset.value.toLowerCase();
         const display = item.dataset.display.toLowerCase();
-        const label = item.querySelector('label');
-        const displayText = label.textContent.toLowerCase();
+        const labelText = item.querySelector('.option-item-text');
+        const displayText = String(labelText?.dataset.rawText || '').toLowerCase();
 
         if (value.includes(searchTerm) || display.includes(searchTerm) || displayText.includes(searchTerm)) {
           item.style.display = '';
-          const originalText = label.textContent;
-          const regex = new RegExp(`(${searchTerm.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi');
-          label.innerHTML = originalText.replace(regex, '<span class="highlight">$1</span>');
+          setLabelHighlight(labelText, searchTerm);
         } else {
           item.style.display = 'none';
         }
@@ -593,12 +585,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
 
     if (isMultiSelect) {
       groupedData.forEach((_, groupName) => {
-        const groupOptions = this.querySelectorAll(`.option-item[data-group="${groupName}"] input`);
-        const allChecked = Array.from(groupOptions).every(opt => opt.checked);
-        const groupCheckbox = this.querySelector(`.group-checkbox[data-group="${groupName}"]`);
-        if (groupCheckbox) {
-          groupCheckbox.checked = allChecked && groupOptions.length > 0;
-        }
+        syncGroupCheckboxState(this, groupName);
       });
     }
   };
