@@ -15,6 +15,7 @@
     controls: new Map(),
     originalClearCurrentQuery: null,
     originalUpdateButtonStates: null,
+    unsubscribeQueryState: null,
     lastSuggestedTableName: '',
     hiddenNodes: []
   };
@@ -1241,16 +1242,12 @@
     tableNameInput.dispatchEvent(new Event('input', { bubbles: true }));
   }
 
-  function clearActiveFilters() {
-    Object.keys(window.activeFilters || {}).forEach(key => delete window.activeFilters[key]);
-  }
-
   function ensureColumnsRegistered(columns) {
     if (typeof window.registerDynamicField !== 'function') return;
     columns.forEach(column => window.registerDynamicField(column));
   }
 
-  function appendFilter(fieldName, operator, values) {
+  function appendFilter(targetFilters, fieldName, operator, values) {
     const normalizedValues = Array.isArray(values)
       ? values.map(value => String(value || '').trim()).filter(Boolean)
       : [];
@@ -1258,11 +1255,11 @@
       return;
     }
 
-    if (!window.activeFilters[fieldName]) {
-      window.activeFilters[fieldName] = { filters: [] };
+    if (!targetFilters[fieldName]) {
+      targetFilters[fieldName] = { filters: [] };
     }
 
-    window.activeFilters[fieldName].filters.push({
+    targetFilters[fieldName].filters.push({
       cond: operator,
       val: operator === 'between' ? normalizedValues.slice(0, 2).join('|') : normalizedValues.join(',')
     });
@@ -1304,13 +1301,10 @@
     const columns = state.spec.columns.slice();
     ensureColumnsRegistered(columns);
 
-    window.displayedFields.length = 0;
-    window.displayedFields.push(...columns);
-
-    clearActiveFilters();
+    const nextActiveFilters = {};
 
     state.spec.lockedFilters.forEach(filterSpec => {
-      appendFilter(filterSpec.field, filterSpec.operator, resolveLockedFilterValues(filterSpec, bindings));
+      appendFilter(nextActiveFilters, filterSpec.field, filterSpec.operator, resolveLockedFilterValues(filterSpec, bindings));
     });
 
     state.spec.inputs.forEach(inputSpec => {
@@ -1318,16 +1312,32 @@
       if (inputSpec.operator === 'between') {
         const betweenValues = values.slice(0, 2).map(value => String(value || '').trim());
         if (betweenValues.every(Boolean)) {
-          appendFilter(inputSpec.field, 'between', betweenValues);
+          appendFilter(nextActiveFilters, inputSpec.field, 'between', betweenValues);
         }
         return;
       }
 
       const activeValues = inputSpec.multiple ? values.filter(Boolean) : values.slice(0, 1).filter(Boolean);
       if (activeValues.length > 0) {
-        appendFilter(inputSpec.field, inputSpec.operator, activeValues);
+        appendFilter(nextActiveFilters, inputSpec.field, inputSpec.operator, activeValues);
       }
     });
+
+    if (window.QueryStateStore && typeof window.QueryStateStore.batchUpdate === 'function') {
+      window.QueryStateStore.batchUpdate(({ displayedFields, activeFilters }) => {
+        displayedFields.length = 0;
+        displayedFields.push(...columns);
+
+        Object.keys(activeFilters).forEach(key => delete activeFilters[key]);
+        Object.entries(nextActiveFilters).forEach(([fieldName, filterData]) => {
+          activeFilters[fieldName] = {
+            filters: Array.isArray(filterData && filterData.filters)
+              ? filterData.filters.map(filter => ({ cond: filter.cond, val: filter.val }))
+              : []
+          };
+        });
+      }, { displayedFields: true, activeFilters: true }, { source: 'QueryFormMode.applyFormState' });
+    }
 
     if (typeof window.showExampleTable === 'function') {
       window.showExampleTable(window.displayedFields).catch(console.error);
@@ -1827,6 +1837,16 @@
     const searchParams = new URLSearchParams(window.location.search);
     state.searchParams = searchParams;
 
+    if (!state.unsubscribeQueryState && window.QueryStateStore && typeof window.QueryStateStore.subscribe === 'function') {
+      state.unsubscribeQueryState = window.QueryStateStore.subscribe(event => {
+        if (!state.active || !event || !event.changes || !event.changes.displayedFields) {
+          return;
+        }
+
+        syncSpecColumnsWithDisplayedFields();
+      });
+    }
+
     wrapUpdateButtonStates();
     wrapClearCurrentQuery();
     ensureModeToggleButtons();
@@ -1880,9 +1900,6 @@
     },
     async syncFromCurrentQuery(options = {}) {
       return syncGeneratedFormFromCurrentQuery(options);
-    },
-    syncDisplayedColumns(options = {}) {
-      return syncSpecColumnsWithDisplayedFields(options);
     },
     isActive() {
       return state.active;

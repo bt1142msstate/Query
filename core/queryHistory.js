@@ -688,8 +688,41 @@ function loadQueryConfig(q) {
     });
   }
 
-  window.displayedFields.length = 0; // Clear existing array
-  window.displayedFields.push(...desiredColumns);
+  const nextActiveFilters = {};
+
+  if (filters.length) {
+    filters.forEach(ff => {
+      const uiCond = typeof window.mapFieldOperatorToUiCond === 'function'
+        ? window.mapFieldOperatorToUiCond(ff.FieldOperator)
+        : String(ff.FieldOperator || '').toLowerCase();
+      const valueGlue = uiCond === 'between' ? '|' : ',';
+
+      if (!nextActiveFilters[ff.FieldName]) {
+        nextActiveFilters[ff.FieldName] = { filters: [] };
+      }
+
+      nextActiveFilters[ff.FieldName].filters.push({
+        cond: uiCond,
+        val: (ff.Values || []).join(valueGlue)
+      });
+    });
+  }
+
+  if (window.QueryStateStore && typeof window.QueryStateStore.batchUpdate === 'function') {
+    window.QueryStateStore.batchUpdate(({ displayedFields, activeFilters }) => {
+      displayedFields.length = 0;
+      displayedFields.push(...desiredColumns);
+
+      Object.keys(activeFilters).forEach(key => delete activeFilters[key]);
+      Object.entries(nextActiveFilters).forEach(([fieldName, filterData]) => {
+        activeFilters[fieldName] = {
+          filters: Array.isArray(filterData && filterData.filters)
+            ? filterData.filters.map(filter => ({ cond: filter.cond, val: filter.val }))
+            : []
+        };
+      });
+    }, { displayedFields: true, activeFilters: true }, { source: 'QueryHistory.loadQueryConfig' });
+  }
 
   // Register any dynamically-built fields (e.g. Marc590) that may not exist
   // in the current session's fieldDefs registry.
@@ -701,7 +734,6 @@ function loadQueryConfig(q) {
   
   // Clear filters and reapply from query
   if (typeof activeFilters !== 'undefined') {
-    Object.keys(activeFilters).forEach(k => delete activeFilters[k]);
     document.querySelectorAll('.bubble-filter').forEach(b => {
       b.classList.remove('bubble-filter');
       b.removeAttribute('data-filtered');
@@ -709,20 +741,6 @@ function loadQueryConfig(q) {
     
     if(filters.length){
       filters.forEach(ff => {
-        if (!activeFilters[ff.FieldName]) {
-          activeFilters[ff.FieldName] = { filters: [] };
-        }
-
-        const uiCond = typeof window.mapFieldOperatorToUiCond === 'function'
-          ? window.mapFieldOperatorToUiCond(ff.FieldOperator)
-          : String(ff.FieldOperator || '').toLowerCase();
-        const valueGlue = uiCond === 'between' ? '|' : ',';
-
-        activeFilters[ff.FieldName].filters.push({
-          cond: uiCond,
-          val: (ff.Values || []).join(valueGlue)
-        });
-
         const bubbleEl = Array.from(document.querySelectorAll('.bubble'))
           .find(b => b.textContent.trim() === ff.FieldName);
         if(bubbleEl){

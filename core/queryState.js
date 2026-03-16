@@ -12,7 +12,6 @@ window.getBaseFieldName = function(fieldName) {
 
 // State variables
 window.queryRunning = false;
-window.displayedFields = []; // Will be populated from test data
 window.selectedField = '';
 window.totalRows = 0;          // total rows in #bubble-list
 window.scrollRow = 0;          // current top row (0-based)
@@ -24,14 +23,181 @@ window.currentCategory = 'All';
 window.lastExecutedQueryState = null; // Store the state when query was last run
 window.currentQueryState = null;       // Current state for comparison
 
-// Data structures
-window.activeFilters = {};   // { fieldName: { filters:[{cond,val},…] } }
-
 // Global set to track which bubbles are animating back
 window.animatingBackBubbles = new Set();
 window.isBubbleAnimating = false;
 window.isBubbleAnimatingBack = false;
 window.pendingRenderBubbles = false;
+
+const displayedFieldsState = [];
+const activeFiltersState = {};
+const queryStateSubscribers = new Set();
+
+function cloneFilterEntry(filter) {
+  if (!filter || typeof filter !== 'object') {
+    return { cond: '', val: '' };
+  }
+
+  return {
+    cond: String(filter.cond || ''),
+    val: String(filter.val || '')
+  };
+}
+
+function cloneActiveFiltersSnapshot() {
+  return Object.fromEntries(
+    Object.entries(activeFiltersState).map(([field, data]) => [
+      field,
+      {
+        filters: Array.isArray(data && data.filters)
+          ? data.filters.map(cloneFilterEntry)
+          : []
+      }
+    ])
+  );
+}
+
+function assignDisplayedFields(nextFields) {
+  displayedFieldsState.length = 0;
+  if (!Array.isArray(nextFields)) {
+    return;
+  }
+
+  nextFields
+    .map(field => String(field || '').trim())
+    .filter(Boolean)
+    .forEach(field => displayedFieldsState.push(field));
+}
+
+function assignActiveFilters(nextFilters) {
+  Object.keys(activeFiltersState).forEach(key => delete activeFiltersState[key]);
+
+  if (!nextFilters || typeof nextFilters !== 'object') {
+    return;
+  }
+
+  Object.entries(nextFilters).forEach(([field, data]) => {
+    const normalizedField = String(field || '').trim();
+    if (!normalizedField) {
+      return;
+    }
+
+    const filters = Array.isArray(data && data.filters)
+      ? data.filters.map(cloneFilterEntry).filter(filter => filter.cond || filter.val)
+      : [];
+
+    activeFiltersState[normalizedField] = { filters };
+  });
+}
+
+function getQueryStateSnapshot() {
+  return {
+    displayedFields: displayedFieldsState.slice(),
+    activeFilters: cloneActiveFiltersSnapshot(),
+    groupMethod: window.VirtualTable?.simpleTableInstance?.groupMethod || 'ExpandIntoColumns'
+  };
+}
+
+function notifyQueryStateSubscribers(changes = {}, meta = {}) {
+  const payload = {
+    changes: {
+      displayedFields: Boolean(changes.displayedFields),
+      activeFilters: Boolean(changes.activeFilters)
+    },
+    meta,
+    snapshot: getQueryStateSnapshot()
+  };
+
+  queryStateSubscribers.forEach(listener => {
+    try {
+      listener(payload);
+    } catch (error) {
+      console.error('Query state subscriber failed:', error);
+    }
+  });
+}
+
+window.QueryStateStore = {
+  getSnapshot() {
+    return getQueryStateSnapshot();
+  },
+  subscribe(listener) {
+    if (typeof listener !== 'function') {
+      return () => {};
+    }
+
+    queryStateSubscribers.add(listener);
+    return () => {
+      queryStateSubscribers.delete(listener);
+    };
+  },
+  notify(changes = {}, meta = {}) {
+    notifyQueryStateSubscribers(changes, meta);
+  },
+  replaceDisplayedFields(nextFields, meta = {}) {
+    assignDisplayedFields(nextFields);
+    notifyQueryStateSubscribers({ displayedFields: true }, meta);
+  },
+  mutateDisplayedFields(mutator, meta = {}) {
+    if (typeof mutator === 'function') {
+      mutator(displayedFieldsState);
+    }
+
+    notifyQueryStateSubscribers({ displayedFields: true }, meta);
+  },
+  replaceActiveFilters(nextFilters, meta = {}) {
+    assignActiveFilters(nextFilters);
+    notifyQueryStateSubscribers({ activeFilters: true }, meta);
+  },
+  mutateActiveFilters(mutator, meta = {}) {
+    if (typeof mutator === 'function') {
+      mutator(activeFiltersState);
+    }
+
+    notifyQueryStateSubscribers({ activeFilters: true }, meta);
+  },
+  batchUpdate(mutator, changes = {}, meta = {}) {
+    if (typeof mutator === 'function') {
+      mutator({
+        displayedFields: displayedFieldsState,
+        activeFilters: activeFiltersState
+      });
+    }
+
+    notifyQueryStateSubscribers(changes, meta);
+  },
+  reset(meta = {}) {
+    assignDisplayedFields([]);
+    assignActiveFilters({});
+    notifyQueryStateSubscribers({ displayedFields: true, activeFilters: true }, meta);
+  }
+};
+
+window.notifyQueryStateChange = function(changes = {}, meta = {}) {
+  window.QueryStateStore.notify(changes, meta);
+};
+
+Object.defineProperty(window, 'displayedFields', {
+  configurable: true,
+  get() {
+    return displayedFieldsState;
+  },
+  set(nextFields) {
+    assignDisplayedFields(nextFields);
+    notifyQueryStateSubscribers({ displayedFields: true }, { source: 'window.displayedFields setter' });
+  }
+});
+
+Object.defineProperty(window, 'activeFilters', {
+  configurable: true,
+  get() {
+    return activeFiltersState;
+  },
+  set(nextFilters) {
+    assignActiveFilters(nextFilters);
+    notifyQueryStateSubscribers({ activeFilters: true }, { source: 'window.activeFilters setter' });
+  }
+});
 
 /**
  * Function to capture current query state
