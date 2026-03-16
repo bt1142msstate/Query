@@ -154,8 +154,15 @@ body.form-mode-active #filter-side-panel {
   text-transform: uppercase;
 }
 
+.form-mode-meta-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.5rem;
+}
+
 .form-mode-meta {
-  margin-bottom: 0.55rem;
   font-size: 0.78rem;
   font-weight: 600;
   color: #64748b;
@@ -170,34 +177,19 @@ body.form-mode-active #filter-side-panel {
   color: #475569;
 }
 
-.form-mode-operator-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  margin-bottom: 0.55rem;
-}
-
-.form-mode-operator-label {
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: #64748b;
-}
-
-.form-mode-operator-display {
-  width: 100%;
-  min-height: 2.55rem;
-  display: flex;
+.form-mode-operator-chip {
+  display: inline-flex;
   align-items: center;
-  padding: 0.65rem 0.85rem;
-  border-radius: 0.85rem;
-  border: 1px solid rgba(148, 163, 184, 0.4);
+  min-height: 1.55rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
   background: rgba(248, 250, 252, 0.95);
-  color: #0f172a;
-  font-size: 0.93rem;
+  color: #334155;
+  font-size: 0.75rem;
   font-weight: 600;
-  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 .form-mode-control {
