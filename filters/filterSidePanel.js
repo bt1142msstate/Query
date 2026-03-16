@@ -43,6 +43,14 @@ window.FilterSidePanel = (function () {
         isOpen = false;
         const panel = $('filter-side-panel');
         if (panel) {
+            const body = $('filter-panel-body');
+            if (body) {
+                Array.from(body.querySelectorAll('.form-mode-popup-list-control')).forEach(control => {
+                    if (typeof control._cleanupPopup === 'function') {
+                        control._cleanupPopup();
+                    }
+                });
+            }
             panel.classList.remove('panel-open');
             panel.classList.add('panel-hidden');
         }
@@ -97,10 +105,14 @@ window.FilterSidePanel = (function () {
             .filter(Boolean);
 
         if (window.isListPasteField && window.isListPasteField(fieldDef) && typeof window.createListPasteInput === 'function' && !listValues) {
-            return window.createListPasteInput(currentValues, {
+            const listInput = window.createListPasteInput(currentValues, {
                 placeholder: 'Paste one key per line',
                 hint: 'Paste values or upload a text/CSV file.'
             });
+            if (typeof window.createPopupListControl === 'function') {
+                return window.createPopupListControl(listInput, fieldDef?.name || 'Edit values', 'Click to edit values...');
+            }
+            return listInput;
         }
 
         if (!listValues) {
@@ -128,9 +140,19 @@ window.FilterSidePanel = (function () {
             });
         }
 
-        return createGroupedSelector(listValues, isMultiSelect, currentValues, {
+        const selector = createGroupedSelector(listValues, isMultiSelect, currentValues, {
             enableGrouping: shouldGroupValues && hasDashes
         });
+
+        if (typeof window.createPopupListControl === 'function') {
+            return window.createPopupListControl(
+                selector,
+                fieldDef?.name || 'Edit values',
+                isMultiSelect ? 'Click to edit values...' : 'Click to choose a value...'
+            );
+        }
+
+        return selector;
     }
 
     function getInlineEditorValues(inputEl) {
@@ -272,6 +294,12 @@ window.FilterSidePanel = (function () {
     function update() {
         const body = $('filter-panel-body');
         if (!body) return;
+
+        Array.from(body.querySelectorAll('.form-mode-popup-list-control')).forEach(control => {
+            if (typeof control._cleanupPopup === 'function') {
+                control._cleanupPopup();
+            }
+        });
 
         const hasFilters = hasAnyFilters();
         if (!hasFilters) {

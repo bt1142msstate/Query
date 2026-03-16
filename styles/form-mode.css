@@ -320,6 +320,7 @@ body.form-mode-active #filter-side-panel {
   left: 50%;
   z-index: 10050;
   width: min(92vw, 760px);
+  min-height: min(26rem, 70vh);
   max-height: min(82vh, 720px);
   background: #fff;
   border: 1px solid rgba(148, 163, 184, 0.35);
@@ -375,7 +376,8 @@ body.form-mode-active #filter-side-panel {
 }
 
 .form-mode-popup-list-popup-body {
-  flex: 1 1 0;
+  flex: 1 1 auto;
+  min-height: 14rem;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 0.9rem;
@@ -388,21 +390,25 @@ body.form-mode-active #filter-side-panel {
 }
 
 .form-mode-popup-list-popup-body .grouped-selector {
+  min-height: 18rem;
   max-width: none;
 }
 
 .form-mode-popup-list-popup-body .grouped-options-container {
+  min-height: 12rem;
   max-height: min(52vh, 420px);
 }
 
 .form-mode-popup-list-popup-body .list-paste-input {
   min-width: 0;
+  min-height: 18rem;
   max-width: none;
 }
 
 @media (max-width: 640px) {
   .form-mode-popup-list-popup {
     width: min(96vw, 760px);
+    min-height: min(22rem, 78vh);
     max-height: min(86vh, 720px);
   }
 

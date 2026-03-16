@@ -545,6 +545,179 @@ window.parseListInputValues = function(rawValue) {
     .filter(Boolean);
 };
 
+window.createPopupListControl = function(innerControl, label, placeholder) {
+  const resolvedLabel = label || 'Select values';
+  const resolvedPlaceholder = placeholder || 'Click to select...';
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'form-mode-popup-list-control';
+
+  const trigger = document.createElement('button');
+  trigger.type = 'button';
+  trigger.className = 'form-mode-popup-list-trigger';
+  trigger.setAttribute('aria-haspopup', 'dialog');
+  trigger.setAttribute('aria-expanded', 'false');
+
+  const summarySpan = document.createElement('span');
+  summarySpan.className = 'form-mode-popup-list-summary';
+  trigger.appendChild(summarySpan);
+  trigger.insertAdjacentHTML('beforeend',
+    '<svg class="form-mode-popup-chevron" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">' +
+    '<path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '</svg>'
+  );
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'form-mode-popup-list-backdrop';
+  backdrop.hidden = true;
+
+  const popup = document.createElement('div');
+  popup.className = 'form-mode-popup-list-popup';
+  popup.setAttribute('role', 'dialog');
+  popup.setAttribute('aria-label', resolvedLabel);
+  popup.hidden = true;
+
+  const popupHeader = document.createElement('div');
+  popupHeader.className = 'form-mode-popup-list-popup-header';
+
+  const popupTitle = document.createElement('span');
+  popupTitle.className = 'form-mode-popup-list-popup-title';
+  popupTitle.textContent = resolvedLabel;
+
+  const doneBtn = document.createElement('button');
+  doneBtn.type = 'button';
+  doneBtn.className = 'form-mode-popup-list-done';
+  doneBtn.textContent = 'Done';
+
+  const popupBody = document.createElement('div');
+  popupBody.className = 'form-mode-popup-list-popup-body';
+  popupBody.appendChild(innerControl);
+
+  popupHeader.appendChild(popupTitle);
+  popupHeader.appendChild(doneBtn);
+  popup.appendChild(popupHeader);
+  popup.appendChild(popupBody);
+
+  document.body.appendChild(backdrop);
+  document.body.appendChild(popup);
+  wrapper.appendChild(trigger);
+
+  function getDisplayValues() {
+    if (typeof innerControl.getSelectedDisplayValues === 'function') {
+      return innerControl.getSelectedDisplayValues();
+    }
+    if (typeof innerControl.getSelectedValues === 'function') {
+      return innerControl.getSelectedValues();
+    }
+    if (typeof innerControl.getFormValues === 'function') {
+      return innerControl.getFormValues();
+    }
+    return [];
+  }
+
+  function updateSummary() {
+    const displayValues = getDisplayValues();
+    const escFn = window.escapeHtml || function(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    };
+
+    if (!displayValues || displayValues.length === 0) {
+      summarySpan.textContent = resolvedPlaceholder;
+      summarySpan.classList.add('is-placeholder');
+    } else if (displayValues.length <= 2) {
+      summarySpan.textContent = displayValues.join(', ');
+      summarySpan.classList.remove('is-placeholder');
+    } else {
+      summarySpan.innerHTML = escFn(displayValues[0]) + ' <span class="form-mode-popup-more">and ' + (displayValues.length - 1) + ' more</span>';
+      summarySpan.classList.remove('is-placeholder');
+    }
+
+    trigger.setAttribute('aria-expanded', popup.hidden ? 'false' : 'true');
+  }
+
+  function openPopup() {
+    backdrop.hidden = false;
+    popup.hidden = false;
+    trigger.setAttribute('aria-expanded', 'true');
+
+    if (typeof innerControl.focusInput === 'function') {
+      innerControl.focusInput();
+      return;
+    }
+
+    const firstInput = innerControl.querySelector('input:not([type="file"]), textarea');
+    if (firstInput) {
+      firstInput.focus();
+    }
+  }
+
+  function closePopup() {
+    backdrop.hidden = true;
+    popup.hidden = true;
+    trigger.setAttribute('aria-expanded', 'false');
+    updateSummary();
+    wrapper.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  trigger.addEventListener('click', () => {
+    if (popup.hidden) {
+      openPopup();
+    } else {
+      closePopup();
+    }
+  });
+
+  doneBtn.addEventListener('click', closePopup);
+  backdrop.addEventListener('click', closePopup);
+
+  const onDocKey = function(event) {
+    if (event.key === 'Escape' && !popup.hidden) {
+      closePopup();
+      trigger.focus();
+    }
+  };
+  document.addEventListener('keydown', onDocKey);
+
+  wrapper._cleanupPopup = function() {
+    backdrop.remove();
+    popup.remove();
+    document.removeEventListener('keydown', onDocKey);
+  };
+
+  wrapper.getSelectedValues = function() {
+    if (typeof innerControl.getSelectedValues === 'function') {
+      return innerControl.getSelectedValues();
+    }
+    if (typeof innerControl.getFormValues === 'function') {
+      return innerControl.getFormValues();
+    }
+    return [];
+  };
+
+  wrapper.getSelectedDisplayValues = function() {
+    return getDisplayValues();
+  };
+
+  wrapper.setSelectedValues = function(valuesToSet) {
+    if (typeof innerControl.setSelectedValues === 'function') {
+      innerControl.setSelectedValues(valuesToSet);
+    } else if (typeof innerControl.setFormValues === 'function') {
+      innerControl.setFormValues(valuesToSet);
+    }
+    updateSummary();
+  };
+
+  wrapper.focusInput = function() {
+    trigger.focus();
+  };
+
+  updateSummary();
+  return wrapper;
+};
+
 window.createListPasteInput = function(currentValues = [], options = {}) {
   const container = document.createElement('div');
   container.className = 'list-paste-input';
