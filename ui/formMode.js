@@ -1025,7 +1025,9 @@
     });
 
     if (isBooleanField && values.length === 2 && typeof window.createBooleanPillSelector === 'function') {
-      const selector = window.createBooleanPillSelector(values, initialValues[0] || '');
+      const selector = window.createBooleanPillSelector(values, initialValues[0] || '', {
+        containerId: null
+      });
       selector.getFormValues = function() {
         return typeof selector.getSelectedValues === 'function' ? selector.getSelectedValues() : [];
       };
@@ -1034,7 +1036,8 @@
 
     if (typeof window.createGroupedSelector === 'function') {
       const selector = window.createGroupedSelector(values, isMultiSelect, initialValues, {
-        enableGrouping: shouldGroupValues && hasDashes
+        enableGrouping: shouldGroupValues && hasDashes,
+        containerId: null
       });
       selector.getFormValues = function() {
         return typeof selector.getSelectedValues === 'function' ? selector.getSelectedValues() : [];
@@ -1206,6 +1209,7 @@
 
     if (supportsMultipleValues(inputSpec, fieldDef) && typeof window.createListPasteInput === 'function') {
       const listInput = window.createListPasteInput(initialValues, {
+        containerId: null,
         placeholder: inputSpec.placeholder || 'Paste one value per line',
         hint: inputSpec.help || 'Paste values, separate them with commas or new lines, or upload a file.'
       });

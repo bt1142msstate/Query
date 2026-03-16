@@ -203,6 +203,9 @@ window.shouldFieldHavePurpleStyling = function(fieldName) {
 
 window.createBooleanPillSelector = function(values, currentValue = '', options = {}) {
   const onChange = typeof options.onChange === 'function' ? options.onChange : null;
+  const containerId = Object.prototype.hasOwnProperty.call(options, 'containerId')
+    ? options.containerId
+    : 'condition-select-container';
   const normalizedValues = (Array.isArray(values) ? values : []).slice(0, 2).map(value => {
     const display = typeof value === 'object'
       ? (value.Name || value.Display || value.name || value.display || value.RawValue)
@@ -219,7 +222,9 @@ window.createBooleanPillSelector = function(values, currentValue = '', options =
 
   const container = document.createElement('div');
   container.className = 'boolean-pill-selector';
-  container.id = 'condition-select-container';
+  if (containerId) {
+    container.id = containerId;
+  }
 
   let selectedValue = currentValue ? String(currentValue) : '';
 
@@ -280,10 +285,15 @@ window.createBooleanPillSelector = function(values, currentValue = '', options =
 
 window.createGroupedSelector = function(values, isMultiSelect, currentValues = [], options = {}) {
   const enableGrouping = options.enableGrouping !== false;
+  const containerId = Object.prototype.hasOwnProperty.call(options, 'containerId')
+    ? options.containerId
+    : 'condition-select-container';
   const selectorInstanceId = Math.random().toString(36).slice(2, 10);
   const container = document.createElement('div');
   container.className = 'grouped-selector';
-  container.id = 'condition-select-container';
+  if (containerId) {
+    container.id = containerId;
+  }
 
   const searchWrapper = document.createElement('div');
   searchWrapper.className = 'search-wrapper';
@@ -774,9 +784,14 @@ window.createPopupListControl = function(innerControl, label, placeholder) {
 };
 
 window.createListPasteInput = function(currentValues = [], options = {}) {
+  const containerId = Object.prototype.hasOwnProperty.call(options, 'containerId')
+    ? options.containerId
+    : 'condition-select-container';
   const container = document.createElement('div');
   container.className = 'list-paste-input';
-  container.id = 'condition-select-container';
+  if (containerId) {
+    container.id = containerId;
+  }
 
   const toolbar = document.createElement('div');
   toolbar.className = 'list-paste-toolbar';
