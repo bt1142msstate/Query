@@ -624,9 +624,16 @@
     }
 
     if (state.modeToggleBtn) {
-      state.modeToggleBtn.textContent = state.viewMode === 'form' ? 'Bubble Mode' : 'Form Mode';
       state.modeToggleBtn.setAttribute('data-tooltip', state.viewMode === 'form' ? 'Switch to bubble builder' : 'Switch to form mode');
       state.modeToggleBtn.setAttribute('aria-label', state.viewMode === 'form' ? 'Switch to bubble builder' : 'Switch to form mode');
+      const formIcon = state.modeToggleBtn.querySelector('[data-form-mode-icon="form"]');
+      const bubbleIcon = state.modeToggleBtn.querySelector('[data-form-mode-icon="bubbles"]');
+      if (formIcon) {
+        formIcon.classList.toggle('hidden', state.viewMode === 'form');
+      }
+      if (bubbleIcon) {
+        bubbleIcon.classList.toggle('hidden', state.viewMode !== 'form');
+      }
     }
 
     if (state.mobileModeToggleBtn) {
@@ -636,6 +643,14 @@
       }
       state.mobileModeToggleBtn.setAttribute('data-tooltip', state.viewMode === 'form' ? 'Switch to bubble builder' : 'Switch to form mode');
       state.mobileModeToggleBtn.setAttribute('aria-label', state.viewMode === 'form' ? 'Switch to bubble builder' : 'Switch to form mode');
+      const formIcon = state.mobileModeToggleBtn.querySelector('[data-form-mode-icon="form"]');
+      const bubbleIcon = state.mobileModeToggleBtn.querySelector('[data-form-mode-icon="bubbles"]');
+      if (formIcon) {
+        formIcon.classList.toggle('hidden', state.viewMode === 'form');
+      }
+      if (bubbleIcon) {
+        bubbleIcon.classList.toggle('hidden', state.viewMode !== 'form');
+      }
     }
 
     if (window.FilterSidePanel) {
@@ -795,6 +810,19 @@
       button.id = 'form-mode-toggle-btn';
       button.type = 'button';
       button.className = 'p-2 rounded-full bg-white hover:bg-gray-100 text-black focus:outline-none transition-colors border border-gray-200';
+      button.innerHTML = `
+        <svg data-form-mode-icon="form" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 pointer-events-none">
+          <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+          <path d="M8 8h8"></path>
+          <path d="M8 12h8"></path>
+          <path d="M8 16h5"></path>
+        </svg>
+        <svg data-form-mode-icon="bubbles" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 pointer-events-none hidden">
+          <circle cx="8" cy="8" r="3"></circle>
+          <circle cx="16.5" cy="10" r="2.5"></circle>
+          <circle cx="11.5" cy="16" r="3.5"></circle>
+        </svg>
+      `;
       button.addEventListener('click', toggleViewMode);
       headerControls.insertBefore(button, document.getElementById('toggle-json'));
       state.modeToggleBtn = button;
@@ -806,10 +834,16 @@
       item.id = 'mobile-form-mode-toggle';
       item.className = 'mobile-menu-item border-b border-gray-200 hover:bg-gray-100';
       item.innerHTML = `
-        <svg class="w-5 h-5 text-teal-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 7h16"/>
-          <path d="M4 12h16"/>
-          <path d="M4 17h10"/>
+        <svg data-form-mode-icon="form" class="w-5 h-5 text-teal-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+          <path d="M8 8h8"></path>
+          <path d="M8 12h8"></path>
+          <path d="M8 16h5"></path>
+        </svg>
+        <svg data-form-mode-icon="bubbles" class="w-5 h-5 text-teal-600 hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="8" cy="8" r="3"></circle>
+          <circle cx="16.5" cy="10" r="2.5"></circle>
+          <circle cx="11.5" cy="16" r="3.5"></circle>
         </svg>
         <span></span>
       `;
