@@ -298,6 +298,42 @@
     return true;
   }
 
+  async function syncGeneratedFormFromCurrentQuery(options = {}) {
+    if (typeof window.loadFieldDefinitions === 'function') {
+      await window.loadFieldDefinitions();
+    }
+
+    const nextSpec = buildSpecFromCurrentQuery();
+    if (!nextSpec || nextSpec.columns.length === 0) {
+      return false;
+    }
+
+    state.active = true;
+    state.specSource = 'generated';
+    state.spec = nextSpec;
+    state.searchParams = new URLSearchParams();
+
+    if (options.forceFormMode) {
+      state.viewMode = 'form';
+    }
+
+    if (state.viewMode === 'form' || options.rebuildCard) {
+      state.controls.clear();
+      buildFormCard();
+      wrapUpdateButtonStates();
+      wrapClearCurrentQuery();
+      applyFormState();
+      syncPresentationMode();
+
+      if (typeof window.updateButtonStates === 'function') {
+        window.updateButtonStates();
+      }
+    }
+
+    window.history.replaceState({}, '', buildCurrentShareUrl());
+    return true;
+  }
+
   function parseFieldOptions(fieldDef, inputSpec) {
     const source = Array.isArray(inputSpec.options) && inputSpec.options.length > 0
       ? inputSpec.options
@@ -333,6 +369,32 @@
     if (fieldType === 'date') return 'date';
     if (fieldType === 'number' || fieldType === 'money') return 'number';
     return 'text';
+  }
+
+  function getAvailableOperators(fieldDef, inputSpec) {
+    const configured = Array.isArray(inputSpec.operatorOptions) && inputSpec.operatorOptions.length > 0
+      ? inputSpec.operatorOptions
+      : (Array.isArray(fieldDef && fieldDef.filters) ? fieldDef.filters : [inputSpec.operator || 'equals']);
+
+    const normalized = configured
+      .map(operator => typeof window.mapFieldOperatorToUiCond === 'function'
+        ? window.mapFieldOperatorToUiCond(operator)
+        : String(operator || '').toLowerCase())
+      .filter(Boolean)
+      .filter((operator, index, list) => list.indexOf(operator) === index);
+
+    if (fieldDef && fieldDef.type === 'date') {
+      const preferredOrder = ['equals', 'before', 'after', 'on_or_before', 'on_or_after', 'between'];
+      return normalized.slice().sort((left, right) => {
+        const leftIndex = preferredOrder.indexOf(left);
+        const rightIndex = preferredOrder.indexOf(right);
+        const normalizedLeft = leftIndex === -1 ? preferredOrder.length : leftIndex;
+        const normalizedRight = rightIndex === -1 ? preferredOrder.length : rightIndex;
+        return normalizedLeft - normalizedRight;
+      });
+    }
+
+    return normalized;
   }
 
   function getRawParamValues(searchParams, key) {
@@ -591,10 +653,11 @@
     return wrapper;
   }
 
-  function createControl(fieldDef, inputSpec, initialValues) {
+  function createControl(fieldDef, inputSpec, initialValues, operatorOverride) {
+    const activeOperator = operatorOverride || inputSpec.operator;
     const { values } = parseFieldOptions(fieldDef, inputSpec);
 
-    if (inputSpec.operator === 'between') {
+    if (activeOperator === 'between') {
       return createBetweenControl(getFieldInputType(fieldDef, inputSpec), initialValues, inputSpec);
     }
 
@@ -975,7 +1038,7 @@
     });
   }
 
-  function createFieldRow(inputSpec, control) {
+  function createFieldRow(inputSpec, fieldDef, control) {
     const row = document.createElement('div');
     row.className = 'form-mode-field';
 
@@ -994,6 +1057,33 @@
     meta.className = 'form-mode-meta';
     meta.textContent = inputSpec.field;
 
+    const availableOperators = getAvailableOperators(fieldDef, inputSpec);
+    const shouldShowOperatorSelect = Boolean(fieldDef && fieldDef.type === 'date' && availableOperators.length > 1);
+
+    let operatorSelect = null;
+    if (shouldShowOperatorSelect) {
+      const operatorWrap = document.createElement('div');
+      operatorWrap.className = 'form-mode-operator-wrap';
+
+      const operatorLabel = document.createElement('span');
+      operatorLabel.className = 'form-mode-operator-label';
+      operatorLabel.textContent = 'Condition';
+
+      operatorSelect = document.createElement('select');
+      operatorSelect.className = 'form-mode-operator-select';
+      availableOperators.forEach(operator => {
+        const option = document.createElement('option');
+        option.value = operator;
+        option.textContent = getOperatorLabel(operator);
+        option.selected = operator === inputSpec.operator;
+        operatorSelect.appendChild(option);
+      });
+
+      operatorWrap.appendChild(operatorLabel);
+      operatorWrap.appendChild(operatorSelect);
+      row.appendChild(operatorWrap);
+    }
+
     const controlWrap = document.createElement('div');
     controlWrap.className = 'form-mode-control';
     controlWrap.appendChild(control);
@@ -1007,6 +1097,30 @@
       row.appendChild(help);
     }
     row.appendChild(controlWrap);
+
+    if (operatorSelect) {
+      operatorSelect.addEventListener('change', () => {
+        const currentControl = state.controls.get(inputSpec.key);
+        const currentValues = currentControl && typeof currentControl.getFormValues === 'function'
+          ? currentControl.getFormValues()
+          : [];
+
+        if (currentControl && typeof currentControl._cleanupPopup === 'function') {
+          currentControl._cleanupPopup();
+        }
+
+        inputSpec.operator = operatorSelect.value;
+
+        const nextControl = createControl(fieldDef, inputSpec, currentValues, inputSpec.operator);
+        nextControl.addEventListener('change', scheduleApply);
+        nextControl.addEventListener('input', scheduleApply);
+        nextControl.addEventListener('click', () => window.requestAnimationFrame(scheduleApply));
+        state.controls.set(inputSpec.key, nextControl);
+        controlWrap.innerHTML = '';
+        controlWrap.appendChild(nextControl);
+        scheduleApply();
+      });
+    }
 
     return row;
   }
@@ -1072,12 +1186,12 @@
 
     state.spec.inputs.filter(inputSpec => !inputSpec.hidden).forEach(inputSpec => {
       const fieldDef = window.fieldDefs ? window.fieldDefs.get(inputSpec.field) : null;
-      const control = createControl(fieldDef, inputSpec, resolveInputInitialValues(inputSpec, state.searchParams));
+      const control = createControl(fieldDef, inputSpec, resolveInputInitialValues(inputSpec, state.searchParams), inputSpec.operator);
       control.addEventListener('change', scheduleApply);
       control.addEventListener('input', scheduleApply);
       control.addEventListener('click', () => window.requestAnimationFrame(scheduleApply));
       state.controls.set(inputSpec.key, control);
-      fieldsWrap.appendChild(createFieldRow(inputSpec, control));
+      fieldsWrap.appendChild(createFieldRow(inputSpec, fieldDef, control));
     });
 
     state.runBtn.addEventListener('click', () => {
@@ -1256,6 +1370,9 @@
     decodeSpec,
     async activateFromCurrentQuery() {
       return activateGeneratedFormFromCurrentQuery();
+    },
+    async syncFromCurrentQuery(options = {}) {
+      return syncGeneratedFormFromCurrentQuery(options);
     },
     isActive() {
       return state.active;
