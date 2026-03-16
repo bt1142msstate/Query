@@ -285,6 +285,82 @@
     });
   }
 
+  function getFieldPickerOptions() {
+    const source = Array.isArray(window.fieldDefsArray) && window.fieldDefsArray.length > 0
+      ? window.fieldDefsArray
+      : Array.from((window.fieldDefs && window.fieldDefs.values()) || []);
+
+    return source
+      .filter(fieldDef => fieldDef && fieldDef.name)
+      .map(fieldDef => ({
+        name: String(fieldDef.name),
+        type: String(fieldDef.type || 'text'),
+        category: Array.isArray(fieldDef.category)
+          ? fieldDef.category.filter(Boolean).join(', ')
+          : String(fieldDef.category || '')
+      }))
+      .sort((left, right) => left.name.localeCompare(right.name, undefined, { numeric: true, sensitivity: 'base' }));
+  }
+
+  function hasSpecColumn(fieldName) {
+    if (!state.spec || !Array.isArray(state.spec.columns)) return false;
+    const baseFieldName = typeof window.getBaseFieldName === 'function'
+      ? window.getBaseFieldName(fieldName)
+      : fieldName;
+
+    return state.spec.columns.some(column => {
+      const baseColumnName = typeof window.getBaseFieldName === 'function'
+        ? window.getBaseFieldName(column)
+        : column;
+      return baseColumnName === baseFieldName;
+    });
+  }
+
+  function hasSpecFilterInput(fieldName) {
+    if (!state.spec || !Array.isArray(state.spec.inputs)) return false;
+    const baseFieldName = typeof window.getBaseFieldName === 'function'
+      ? window.getBaseFieldName(fieldName)
+      : fieldName;
+
+    return state.spec.inputs.some(inputSpec => {
+      const baseInputField = typeof window.getBaseFieldName === 'function'
+        ? window.getBaseFieldName(inputSpec.field)
+        : inputSpec.field;
+      return baseInputField === baseFieldName;
+    });
+  }
+
+  function captureCurrentControlDefaults() {
+    if (!state.spec || !Array.isArray(state.spec.inputs) || state.controls.size === 0) {
+      return;
+    }
+
+    state.spec.inputs.forEach(inputSpec => {
+      const values = getControlValues(inputSpec);
+      if (inputSpec.operator === 'between') {
+        inputSpec.defaultValue = values.slice(0, 2);
+        return;
+      }
+
+      inputSpec.defaultValue = inputSpec.multiple ? values.filter(Boolean) : (values[0] || '');
+    });
+  }
+
+  function rebuildFormCardFromSpec() {
+    captureCurrentControlDefaults();
+    state.searchParams = new URLSearchParams();
+    state.controls.clear();
+    buildFormCard();
+    applyFormState();
+    syncPresentationMode();
+
+    if (typeof window.updateButtonStates === 'function') {
+      window.updateButtonStates();
+    }
+
+    window.history.replaceState({}, '', buildCurrentShareUrl());
+  }
+
   async function activateGeneratedFormFromCurrentQuery() {
     if (typeof window.loadFieldDefinitions === 'function') {
       await window.loadFieldDefinitions();
@@ -427,6 +503,258 @@
         return normalizedLeft - normalizedRight;
       }
       return left.localeCompare(right);
+    });
+  }
+
+  function getDefaultOperatorForField(fieldDef) {
+    const availableOperators = getAvailableOperators(fieldDef, { operator: 'equals' });
+    const preferredOperators = ['equals', 'contains', 'starts', 'greater', 'less', 'before', 'after', 'on_or_after', 'on_or_before', 'between'];
+    return preferredOperators.find(operator => availableOperators.includes(operator)) || availableOperators[0] || 'equals';
+  }
+
+  function createGeneratedInputSpec(fieldName) {
+    const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
+    const operator = getDefaultOperatorForField(fieldDef);
+    const existingKeys = new Set((state.spec && Array.isArray(state.spec.inputs) ? state.spec.inputs : []).map(inputSpec => inputSpec.key));
+
+    return {
+      key: uniqueInputKey(`${fieldName}-${operator}`, existingKeys),
+      keys: [],
+      field: fieldName,
+      label: fieldName,
+      help: '',
+      placeholder: '',
+      operator,
+      required: false,
+      multiple: operator !== 'between' && Boolean(fieldDef && fieldDef.allowValueList),
+      hidden: false,
+      type: fieldDef && fieldDef.type ? String(fieldDef.type) : '',
+      defaultValue: operator === 'between' ? ['', ''] : '',
+      options: null
+    };
+  }
+
+  async function openFieldPicker() {
+    if (typeof window.loadFieldDefinitions === 'function') {
+      await window.loadFieldDefinitions();
+    }
+
+    const options = getFieldPickerOptions();
+    if (options.length === 0) {
+      if (window.showToastMessage) {
+        window.showToastMessage('No fields are available to add right now.', 'warning');
+      }
+      return;
+    }
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'form-mode-field-picker-backdrop';
+
+    const modal = document.createElement('div');
+    modal.className = 'form-mode-field-picker-modal';
+    modal.innerHTML = `
+      <div class="form-mode-field-picker-header">
+        <div>
+          <span class="form-mode-field-picker-kicker">Add Field</span>
+          <h3 class="form-mode-field-picker-title">Choose a field for this form</h3>
+          <p class="form-mode-field-picker-description">Select a field, then decide whether it should show in results, appear as a filter control, or both.</p>
+        </div>
+        <button type="button" class="form-mode-field-picker-close" aria-label="Close field picker">×</button>
+      </div>
+      <div class="form-mode-field-picker-body">
+        <div class="form-mode-field-picker-list-panel">
+          <input type="search" class="form-mode-field-picker-search" placeholder="Search fields..." aria-label="Search fields" />
+          <div class="form-mode-field-picker-list" role="listbox" aria-label="Available fields"></div>
+        </div>
+        <div class="form-mode-field-picker-details">
+          <p class="form-mode-field-picker-selected-label">Selected field</p>
+          <h4 class="form-mode-field-picker-field-name"></h4>
+          <p class="form-mode-field-picker-field-meta hidden"></p>
+          <label class="form-mode-field-picker-choice">
+            <input type="checkbox" data-field-picker-choice="display" />
+            <span>Display in results</span>
+          </label>
+          <label class="form-mode-field-picker-choice">
+            <input type="checkbox" data-field-picker-choice="filter" />
+            <span>Add filter control</span>
+          </label>
+          <p class="form-mode-field-picker-status"></p>
+        </div>
+      </div>
+      <div class="form-mode-field-picker-footer">
+        <button type="button" class="form-mode-btn form-mode-field-picker-cancel">Cancel</button>
+        <button type="button" class="form-mode-btn form-mode-btn-primary form-mode-field-picker-apply" disabled>Add Field</button>
+      </div>
+    `;
+
+    document.body.appendChild(backdrop);
+    document.body.appendChild(modal);
+
+    const closeButton = modal.querySelector('.form-mode-field-picker-close');
+    const cancelButton = modal.querySelector('.form-mode-field-picker-cancel');
+    const applyButton = modal.querySelector('.form-mode-field-picker-apply');
+    const searchInput = modal.querySelector('.form-mode-field-picker-search');
+    const listEl = modal.querySelector('.form-mode-field-picker-list');
+    const fieldNameEl = modal.querySelector('.form-mode-field-picker-field-name');
+    const fieldMetaEl = modal.querySelector('.form-mode-field-picker-field-meta');
+    const statusEl = modal.querySelector('.form-mode-field-picker-status');
+    const displayChoice = modal.querySelector('[data-field-picker-choice="display"]');
+    const filterChoice = modal.querySelector('[data-field-picker-choice="filter"]');
+
+    let selectedFieldName = options[0].name;
+    let searchTerm = '';
+
+    function cleanup() {
+      document.removeEventListener('keydown', onKeyDown);
+      backdrop.remove();
+      modal.remove();
+    }
+
+    function onKeyDown(event) {
+      if (event.key === 'Escape') {
+        cleanup();
+      }
+    }
+
+    function syncDetails() {
+      const selected = options.find(option => option.name === selectedFieldName) || null;
+      if (!selected) {
+        fieldNameEl.textContent = '';
+        fieldMetaEl.textContent = '';
+        fieldMetaEl.classList.add('hidden');
+        statusEl.textContent = 'No field selected.';
+        applyButton.disabled = true;
+        return;
+      }
+
+      const alreadyDisplayed = hasSpecColumn(selected.name);
+      const alreadyFilterable = hasSpecFilterInput(selected.name);
+      const metaParts = [];
+      if (selected.type) metaParts.push(selected.type);
+      if (selected.category) metaParts.push(selected.category);
+
+      fieldNameEl.textContent = selected.name;
+      fieldMetaEl.textContent = metaParts.join(' • ');
+      fieldMetaEl.classList.toggle('hidden', metaParts.length === 0);
+
+      const willAddDisplay = displayChoice.checked && !alreadyDisplayed;
+      const willAddFilter = filterChoice.checked && !alreadyFilterable;
+      const statusParts = [];
+
+      if (alreadyDisplayed) statusParts.push('Already displayed');
+      if (alreadyFilterable) statusParts.push('Already filterable');
+      if (willAddDisplay) statusParts.push('Will add to results');
+      if (willAddFilter) statusParts.push('Will add filter control');
+
+      statusEl.textContent = statusParts.length > 0
+        ? statusParts.join(' • ')
+        : 'Choose how this field should be added.';
+      applyButton.disabled = !willAddDisplay && !willAddFilter;
+    }
+
+    function renderList() {
+      const filteredOptions = options.filter(option => {
+        if (!searchTerm) return true;
+        const haystack = `${option.name} ${option.type} ${option.category}`.toLowerCase();
+        return haystack.includes(searchTerm);
+      });
+
+      if (filteredOptions.length === 0) {
+        listEl.innerHTML = '<p class="form-mode-field-picker-empty">No fields match that search.</p>';
+        selectedFieldName = '';
+        syncDetails();
+        return;
+      }
+
+      if (!filteredOptions.some(option => option.name === selectedFieldName)) {
+        selectedFieldName = filteredOptions[0].name;
+        displayChoice.checked = hasSpecColumn(selectedFieldName);
+        filterChoice.checked = hasSpecFilterInput(selectedFieldName);
+      }
+
+      listEl.innerHTML = '';
+      filteredOptions.forEach(option => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'form-mode-field-picker-option';
+        if (option.name === selectedFieldName) {
+          button.classList.add('is-selected');
+        }
+
+        const badges = [];
+        if (hasSpecColumn(option.name)) {
+          badges.push('<span class="form-mode-field-picker-badge">Displayed</span>');
+        }
+        if (hasSpecFilterInput(option.name)) {
+          badges.push('<span class="form-mode-field-picker-badge">Filter</span>');
+        }
+
+        button.innerHTML = `
+          <span class="form-mode-field-picker-option-name">${option.name}</span>
+          <span class="form-mode-field-picker-option-meta">${[option.type, option.category].filter(Boolean).join(' • ')}</span>
+          <span class="form-mode-field-picker-option-badges">${badges.join('')}</span>
+        `;
+        button.addEventListener('click', () => {
+          selectedFieldName = option.name;
+          displayChoice.checked = hasSpecColumn(option.name);
+          filterChoice.checked = hasSpecFilterInput(option.name);
+          renderList();
+          syncDetails();
+        });
+        listEl.appendChild(button);
+      });
+
+      syncDetails();
+    }
+
+    displayChoice.addEventListener('change', syncDetails);
+    filterChoice.addEventListener('change', syncDetails);
+    searchInput.addEventListener('input', event => {
+      searchTerm = String(event.target.value || '').trim().toLowerCase();
+      renderList();
+    });
+
+    applyButton.addEventListener('click', () => {
+      if (!selectedFieldName || !state.spec) {
+        return;
+      }
+
+      const addedParts = [];
+
+      if (displayChoice.checked && !hasSpecColumn(selectedFieldName)) {
+        state.spec.columns.push(selectedFieldName);
+        addedParts.push('results column');
+      }
+
+      if (filterChoice.checked && !hasSpecFilterInput(selectedFieldName)) {
+        state.spec.inputs.push(createGeneratedInputSpec(selectedFieldName));
+        addedParts.push('filter control');
+      }
+
+      if (addedParts.length === 0) {
+        return;
+      }
+
+      rebuildFormCardFromSpec();
+      cleanup();
+
+      if (window.showToastMessage) {
+        window.showToastMessage(`Added ${addedParts.join(' and ')} for ${selectedFieldName}.`, 'success');
+      }
+    });
+
+    [backdrop, closeButton, cancelButton].forEach(target => {
+      if (!target) return;
+      target.addEventListener('click', cleanup);
+    });
+
+    document.addEventListener('keydown', onKeyDown);
+    displayChoice.checked = hasSpecColumn(selectedFieldName);
+    filterChoice.checked = hasSpecFilterInput(selectedFieldName);
+    renderList();
+    window.requestAnimationFrame(() => {
+      searchInput.focus();
+      searchInput.select();
     });
   }
 
@@ -1215,6 +1543,7 @@
           <p class="form-mode-description hidden" data-form-mode-description></p>
         </div>
         <div class="form-mode-actions">
+          <button type="button" id="form-mode-add-field" class="form-mode-btn form-mode-btn-secondary">+ Add Field</button>
           <button type="button" id="form-mode-run" class="form-mode-btn form-mode-btn-primary">Run Form</button>
           <button type="button" id="form-mode-reset" class="form-mode-btn">Reset</button>
           <button type="button" id="form-mode-copy" class="form-mode-btn">Copy Link</button>
@@ -1255,6 +1584,15 @@
         return;
       }
       window.DOM && window.DOM.runBtn && window.DOM.runBtn.click();
+    });
+
+    card.querySelector('#form-mode-add-field').addEventListener('click', () => {
+      openFieldPicker().catch(error => {
+        console.error('Failed to open field picker:', error);
+        if (window.showToastMessage) {
+          window.showToastMessage('Failed to open the field picker.', 'error');
+        }
+      });
     });
 
     card.querySelector('#form-mode-reset').addEventListener('click', async () => {
