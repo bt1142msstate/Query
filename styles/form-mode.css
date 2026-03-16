@@ -238,3 +238,134 @@ body.form-mode-active #filter-side-panel {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Popup list control (compact trigger + floating panel) ────────────────── */
+
+.form-mode-popup-list-control {
+  display: block;
+  position: relative;
+  width: 100%;
+}
+
+.form-mode-popup-list-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 2.7rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: #fff;
+  color: #0f172a;
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.form-mode-popup-list-trigger:hover {
+  border-color: rgba(100, 116, 139, 0.55);
+}
+
+.form-mode-popup-list-trigger[aria-expanded="true"] {
+  border-color: rgba(15, 118, 110, 0.55);
+  box-shadow: 0 0 0 3px rgba(204, 251, 241, 0.6), inset 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.form-mode-popup-list-summary {
+  flex: 1 1 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.form-mode-popup-list-summary.is-placeholder {
+  color: #94a3b8;
+}
+
+.form-mode-popup-more {
+  color: #64748b;
+  font-size: 0.85em;
+}
+
+.form-mode-popup-chevron {
+  flex-shrink: 0;
+  color: #64748b;
+  transition: transform 0.15s;
+}
+
+.form-mode-popup-list-trigger[aria-expanded="true"] .form-mode-popup-chevron {
+  transform: rotate(180deg);
+}
+
+/* The popup panel is appended to <body> and uses position: fixed */
+.form-mode-popup-list-popup {
+  position: fixed;
+  z-index: 9999;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.85rem;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16), 0 2px 6px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.form-mode-popup-list-popup[hidden] {
+  display: none;
+}
+
+.form-mode-popup-list-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(241, 245, 249, 0.7);
+  flex-shrink: 0;
+}
+
+.form-mode-popup-list-popup-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.form-mode-popup-list-done {
+  flex-shrink: 0;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  border: none;
+  background: #0f766e;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.form-mode-popup-list-done:hover {
+  background: #0d9488;
+}
+
+.form-mode-popup-list-popup-body {
+  flex: 1 1 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0.5rem;
+}
+
+/* Give the inner controls full width inside the popup */
+.form-mode-popup-list-popup-body .grouped-selector,
+.form-mode-popup-list-popup-body .list-paste-input {
+  width: 100%;
+}
