@@ -367,7 +367,8 @@
 
     const fieldType = fieldDef && fieldDef.type;
     if (fieldType === 'date') return 'date';
-    if (fieldType === 'number' || fieldType === 'money') return 'number';
+    if (fieldType === 'money') return 'money';
+    if (fieldType === 'number') return 'number';
     return 'text';
   }
 
@@ -439,12 +440,64 @@
   }
 
   function createTextControl(inputType, initialValues, inputSpec) {
+    if (inputType === 'money') {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'form-mode-money-input-wrap';
+
+      const symbol = document.createElement('span');
+      symbol.className = 'form-mode-money-symbol';
+      symbol.textContent = '$';
+
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.className = 'form-mode-text-input form-mode-money-input';
+      input.placeholder = inputSpec.placeholder || '0.00';
+      input.value = initialValues[0] || '';
+      input.autocomplete = 'off';
+      input.inputMode = 'decimal';
+      input.step = '0.01';
+
+      input.addEventListener('keypress', event => {
+        if (!/[0-9.\-]/.test(event.key) && event.key.length === 1) {
+          event.preventDefault();
+        }
+      });
+
+      wrapper.appendChild(symbol);
+      wrapper.appendChild(input);
+
+      wrapper.getFormValues = function() {
+        const value = String(input.value || '').trim();
+        return value ? [value] : [];
+      };
+
+      wrapper.setFormValues = function(values) {
+        input.value = Array.isArray(values) && values.length ? String(values[0]) : '';
+      };
+
+      wrapper.focusInput = function() {
+        input.focus();
+      };
+
+      return wrapper;
+    }
+
     const input = document.createElement('input');
     input.type = inputType;
     input.className = 'form-mode-text-input';
     input.placeholder = inputSpec.placeholder || 'Enter value';
     input.value = initialValues[0] || '';
     input.autocomplete = 'off';
+
+    if (inputType === 'number') {
+      input.inputMode = 'numeric';
+      input.step = '1';
+      input.addEventListener('keypress', event => {
+        if (!/[0-9\-]/.test(event.key) && event.key.length === 1) {
+          event.preventDefault();
+        }
+      });
+    }
 
     input.getFormValues = function() {
       const value = String(input.value || '').trim();
@@ -476,13 +529,19 @@
     wrapper.appendChild(endInput);
 
     wrapper.getFormValues = function() {
-      return [String(startInput.value || '').trim(), String(endInput.value || '').trim()];
+      const startValues = typeof startInput.getFormValues === 'function' ? startInput.getFormValues() : [];
+      const endValues = typeof endInput.getFormValues === 'function' ? endInput.getFormValues() : [];
+      return [String(startValues[0] || '').trim(), String(endValues[0] || '').trim()];
     };
 
     wrapper.setFormValues = function(values) {
       const nextValues = Array.isArray(values) ? values : [];
-      startInput.value = nextValues[0] || '';
-      endInput.value = nextValues[1] || '';
+      if (typeof startInput.setFormValues === 'function') {
+        startInput.setFormValues([nextValues[0] || '']);
+      }
+      if (typeof endInput.setFormValues === 'function') {
+        endInput.setFormValues([nextValues[1] || '']);
+      }
     };
 
     return wrapper;

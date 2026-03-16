@@ -117,6 +117,14 @@
   outline: none;
 }
 
+.condition-field-money {
+  padding-left: 2rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v18'/%3E%3Cpath d='M16.5 7.5c0-1.933-2.015-3.5-4.5-3.5S7.5 5.567 7.5 7.5 9.515 11 12 11s4.5 1.567 4.5 3.5S14.485 18 12 18s-4.5-1.567-4.5-3.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 0.7rem center;
+  background-size: 0.95rem;
+}
+
 .condition-field.error {
   border-color: var(--color-red-400) !important;
   background: var(--color-red-50) !important;

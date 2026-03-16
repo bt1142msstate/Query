@@ -909,6 +909,17 @@ function clearNumericProps(inputs){
   });
 }
 
+function setMoneyFieldAppearance(inputs, isMoney) {
+    inputs.forEach(inp => {
+        inp.classList.toggle('condition-field-money', Boolean(isMoney));
+        if (isMoney) {
+            inp.placeholder = '0.00';
+        } else if (inp.placeholder === '0.00') {
+            inp.placeholder = 'Enter value...';
+        }
+    });
+}
+
 window.configureInputsForType = function(type){
     const inp1 = getFilterConditionInputElement();
     const inp2 = getFilterConditionInput2Element();
@@ -925,6 +936,8 @@ window.configureInputsForType = function(type){
   }else{
     clearNumericProps(inputs);
   }
+
+    setMoneyFieldAppearance(inputs, isMoney);
 };
 
 window.isListPasteField = function(fieldDef) {
