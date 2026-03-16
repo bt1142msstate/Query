@@ -3,10 +3,14 @@
     active: false,
     spec: null,
     searchParams: null,
+    viewMode: 'form',
     formCard: null,
     validationEl: null,
     runBtn: null,
     copyBtn: null,
+    modeToggleBtn: null,
+    mobileModeToggleBtn: null,
+    formHost: null,
     controls: new Map(),
     originalClearCurrentQuery: null,
     originalUpdateButtonStates: null,
@@ -534,6 +538,9 @@
     const nextUrl = new URL(window.location.href);
     nextUrl.search = '';
     nextUrl.searchParams.set('form', encodeSpec(state.spec));
+    if (state.viewMode === 'bubbles') {
+      nextUrl.searchParams.set('mode', 'bubbles');
+    }
 
     state.spec.inputs.forEach(inputSpec => {
       const values = getControlValues(inputSpec).filter(Boolean);
@@ -588,20 +595,63 @@
     }
   }
 
-  function hideBuilderChrome() {
-    document.body.classList.add('form-mode-active');
+  function syncPresentationMode() {
+    const querySearchBlock = document.getElementById('query-input') && document.getElementById('query-input').closest('.mb-6');
+    const categoryBar = document.getElementById('category-bar');
+    const mobileCategorySelector = document.getElementById('mobile-category-selector');
+    const bubbleStage = document.getElementById('bubble-container') && document.getElementById('bubble-container').closest('.flex.items-start.justify-center');
 
-    const nodes = [
-      document.getElementById('filter-card'),
-      document.getElementById('filter-side-panel'),
-      document.getElementById('category-bar'),
-      document.getElementById('mobile-category-selector'),
-      document.getElementById('query-input') && document.getElementById('query-input').closest('.mb-6'),
-      document.getElementById('bubble-container') && document.getElementById('bubble-container').closest('.flex.items-start.justify-center')
-    ].filter(Boolean);
+    document.body.classList.toggle('form-mode-active', state.viewMode === 'form');
 
-    state.hiddenNodes = nodes;
-    nodes.forEach(node => node.classList.add('form-mode-hidden'));
+    [querySearchBlock, categoryBar, mobileCategorySelector].filter(Boolean).forEach(node => {
+      node.classList.toggle('form-mode-hidden', state.viewMode === 'form');
+    });
+
+    if (bubbleStage) {
+      bubbleStage.classList.toggle('form-mode-stage-active', state.viewMode === 'form');
+    }
+
+    if (state.formHost) {
+      state.formHost.classList.toggle('hidden', state.viewMode !== 'form');
+    }
+
+    if (state.formCard) {
+      state.formCard.classList.toggle('hidden', state.viewMode !== 'form');
+    }
+
+    if (state.modeToggleBtn) {
+      state.modeToggleBtn.textContent = state.viewMode === 'form' ? 'Bubble Mode' : 'Form Mode';
+      state.modeToggleBtn.setAttribute('data-tooltip', state.viewMode === 'form' ? 'Switch to bubble builder' : 'Switch to form mode');
+      state.modeToggleBtn.setAttribute('aria-label', state.viewMode === 'form' ? 'Switch to bubble builder' : 'Switch to form mode');
+    }
+
+    if (state.mobileModeToggleBtn) {
+      const label = state.mobileModeToggleBtn.querySelector('span');
+      if (label) {
+        label.textContent = state.viewMode === 'form' ? 'Bubble Mode' : 'Form Mode';
+      }
+      state.mobileModeToggleBtn.setAttribute('data-tooltip', state.viewMode === 'form' ? 'Switch to bubble builder' : 'Switch to form mode');
+      state.mobileModeToggleBtn.setAttribute('aria-label', state.viewMode === 'form' ? 'Switch to bubble builder' : 'Switch to form mode');
+    }
+  }
+
+  function setViewMode(nextMode, options = {}) {
+    state.viewMode = nextMode === 'bubbles' ? 'bubbles' : 'form';
+    syncPresentationMode();
+
+    if (options.updateUrl !== false) {
+      const nextUrl = new URL(window.location.href);
+      if (state.viewMode === 'bubbles') {
+        nextUrl.searchParams.set('mode', 'bubbles');
+      } else {
+        nextUrl.searchParams.delete('mode');
+      }
+      window.history.replaceState({}, '', nextUrl.toString());
+    }
+  }
+
+  function toggleViewMode() {
+    setViewMode(state.viewMode === 'form' ? 'bubbles' : 'form');
   }
 
   function createFieldRow(inputSpec, control) {
@@ -649,7 +699,18 @@
   }
 
   function buildFormCard() {
-    const host = document.querySelector('.max-w-5xl.mx-auto');
+    const bubbleStage = document.getElementById('bubble-container') && document.getElementById('bubble-container').closest('.flex.items-start.justify-center');
+    if (!bubbleStage) return;
+
+    let host = document.getElementById('form-mode-host');
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'form-mode-host';
+      host.className = 'form-mode-host hidden';
+      bubbleStage.insertBefore(host, bubbleStage.firstChild);
+    }
+
+    state.formHost = host;
     if (!host) return;
 
     const card = document.createElement('section');
@@ -672,7 +733,8 @@
       <p id="form-mode-validation" class="form-mode-validation hidden"></p>
     `;
 
-    host.insertBefore(card, host.firstChild);
+    host.innerHTML = '';
+    host.appendChild(card);
     state.formCard = card;
     state.validationEl = card.querySelector('#form-mode-validation');
     state.runBtn = card.querySelector('#form-mode-run');
@@ -712,6 +774,51 @@
     });
   }
 
+  function ensureModeToggleButtons() {
+    if (!state.active) return;
+
+    const headerControls = document.getElementById('header-controls');
+    if (headerControls && !state.modeToggleBtn) {
+      const button = document.createElement('button');
+      button.id = 'form-mode-toggle-btn';
+      button.type = 'button';
+      button.className = 'p-2 rounded-full bg-white hover:bg-gray-100 text-black focus:outline-none transition-colors border border-gray-200';
+      button.addEventListener('click', toggleViewMode);
+      headerControls.insertBefore(button, document.getElementById('toggle-json'));
+      state.modeToggleBtn = button;
+    }
+
+    const mobileMenu = document.getElementById('mobile-menu-dropdown');
+    if (mobileMenu && !state.mobileModeToggleBtn) {
+      const item = document.createElement('div');
+      item.id = 'mobile-form-mode-toggle';
+      item.className = 'mobile-menu-item border-b border-gray-200 hover:bg-gray-100';
+      item.innerHTML = `
+        <svg class="w-5 h-5 text-teal-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 7h16"/>
+          <path d="M4 12h16"/>
+          <path d="M4 17h10"/>
+        </svg>
+        <span></span>
+      `;
+      item.addEventListener('click', () => {
+        toggleViewMode();
+        if (window.modalManager && typeof window.modalManager.closePanel === 'function') {
+          window.modalManager.closePanel('mobile-menu-dropdown');
+        }
+      });
+      const mobileHelp = document.getElementById('mobile-toggle-help');
+      if (mobileHelp && mobileHelp.parentNode) {
+        mobileHelp.parentNode.insertBefore(item, mobileHelp);
+      } else {
+        mobileMenu.appendChild(item);
+      }
+      state.mobileModeToggleBtn = item;
+    }
+
+    syncPresentationMode();
+  }
+
   function wrapUpdateButtonStates() {
     if (state.originalUpdateButtonStates || typeof window.updateButtonStates !== 'function') return;
 
@@ -741,6 +848,7 @@
       }
       buildFormCard();
       applyFormState();
+      syncPresentationMode();
       if (typeof window.updateButtonStates === 'function') {
         window.updateButtonStates();
       }
@@ -773,16 +881,18 @@
     state.active = true;
     state.spec = decodedSpec;
     state.searchParams = searchParams;
+    state.viewMode = searchParams.get('mode') === 'bubbles' ? 'bubbles' : 'form';
 
     if (typeof window.loadFieldDefinitions === 'function') {
       await window.loadFieldDefinitions();
     }
 
-    hideBuilderChrome();
     buildFormCard();
+    ensureModeToggleButtons();
     wrapUpdateButtonStates();
     wrapClearCurrentQuery();
     applyFormState();
+    syncPresentationMode();
     if (typeof window.updateButtonStates === 'function') {
       window.updateButtonStates();
     }
