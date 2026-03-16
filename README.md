@@ -72,12 +72,12 @@ Example schema shape
 	"title": "Weeding List",
 	"description": "Run a focused stale-items report without the full bubble builder.",
 	"queryName": "Weeding List",
-	"columns": ["Item Key", "Title", "Current Library", "Last Activity Date"],
+	"columns": ["Item Key", "Title", "Item Library", "Last Activity Date"],
 	"inputs": [
 		{
 			"key": "library",
-			"field": "Current Library",
-			"label": "Current Library",
+			"field": "Item Library",
+			"label": "Item Library",
 			"operator": "equals",
 			"required": true
 		},
@@ -99,9 +99,9 @@ Generating a URL in the browser console
 const spec = {
 	title: "Weeding List",
 	queryName: "Weeding List",
-	columns: ["Item Key", "Title", "Current Library", "Last Activity Date"],
+	columns: ["Item Key", "Title", "Item Library", "Last Activity Date"],
 	inputs: [
-		{ key: "library", field: "Current Library", label: "Current Library", operator: "equals", required: true },
+		{ key: "library", field: "Item Library", label: "Item Library", operator: "equals", required: true },
 		{ key: "lastUsedBefore", field: "Last Activity Date", label: "Last Used Before", operator: "on_or_before", type: "date", required: true }
 	]
 };
