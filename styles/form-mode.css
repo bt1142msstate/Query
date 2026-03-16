@@ -239,7 +239,7 @@ body.form-mode-active #filter-side-panel {
   }
 }
 
-/* ── Popup list control (compact trigger + floating panel) ────────────────── */
+/* ── Popup list control (compact trigger + centered editor) ───────────────── */
 
 .form-mode-popup-list-control {
   display: block;
@@ -301,17 +301,34 @@ body.form-mode-active #filter-side-panel {
   transform: rotate(180deg);
 }
 
-/* The popup panel is appended to <body> and uses position: fixed */
+.form-mode-popup-list-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10040;
+  background: rgba(15, 23, 42, 0.32);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+.form-mode-popup-list-backdrop[hidden] {
+  display: none;
+}
+
 .form-mode-popup-list-popup {
   position: fixed;
-  z-index: 9999;
+  top: 50%;
+  left: 50%;
+  z-index: 10050;
+  width: min(92vw, 760px);
+  max-height: min(82vh, 720px);
   background: #fff;
   border: 1px solid rgba(148, 163, 184, 0.35);
-  border-radius: 0.85rem;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16), 0 2px 6px rgba(15, 23, 42, 0.08);
+  border-radius: 1rem;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.24), 0 4px 12px rgba(15, 23, 42, 0.08);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transform: translate(-50%, -50%);
 }
 
 .form-mode-popup-list-popup[hidden] {
@@ -361,11 +378,39 @@ body.form-mode-active #filter-side-panel {
   flex: 1 1 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0.5rem;
+  padding: 0.9rem;
 }
 
 /* Give the inner controls full width inside the popup */
 .form-mode-popup-list-popup-body .grouped-selector,
 .form-mode-popup-list-popup-body .list-paste-input {
   width: 100%;
+}
+
+.form-mode-popup-list-popup-body .grouped-selector {
+  max-width: none;
+}
+
+.form-mode-popup-list-popup-body .grouped-options-container {
+  max-height: min(52vh, 420px);
+}
+
+.form-mode-popup-list-popup-body .list-paste-input {
+  min-width: 0;
+  max-width: none;
+}
+
+@media (max-width: 640px) {
+  .form-mode-popup-list-popup {
+    width: min(96vw, 760px);
+    max-height: min(86vh, 720px);
+  }
+
+  .form-mode-popup-list-popup-header {
+    padding: 0.7rem 0.8rem;
+  }
+
+  .form-mode-popup-list-popup-body {
+    padding: 0.75rem;
+  }
 }

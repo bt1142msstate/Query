@@ -470,6 +470,10 @@
       '</svg>'
     );
 
+    const backdrop = document.createElement('div');
+    backdrop.className = 'form-mode-popup-list-backdrop';
+    backdrop.hidden = true;
+
     const popup = document.createElement('div');
     popup.className = 'form-mode-popup-list-popup';
     popup.setAttribute('role', 'dialog');
@@ -497,6 +501,7 @@
 
     popup.appendChild(popupHeader);
     popup.appendChild(popupBody);
+  document.body.appendChild(backdrop);
     document.body.appendChild(popup);
 
     wrapper.appendChild(trigger);
@@ -526,34 +531,10 @@
       trigger.setAttribute('aria-expanded', popup.hidden ? 'false' : 'true');
     }
 
-    function positionPopup() {
-      const rect = trigger.getBoundingClientRect();
-      const popupWidth = Math.max(rect.width, 300);
-      const viewportHeight = window.innerHeight;
-      const viewportWidth = window.innerWidth;
-      const spaceBelow = viewportHeight - rect.bottom - 8;
-      const spaceAbove = rect.top - 8;
-      let left = rect.left;
-      if (left + popupWidth > viewportWidth - 8) {
-        left = Math.max(8, viewportWidth - popupWidth - 8);
-      }
-      popup.style.left = left + 'px';
-      popup.style.width = popupWidth + 'px';
-      if (spaceBelow >= Math.min(360, 180) || spaceBelow >= spaceAbove) {
-        popup.style.top = (rect.bottom + 4) + 'px';
-        popup.style.bottom = '';
-        popup.style.maxHeight = Math.max(spaceBelow, 180) + 'px';
-      } else {
-        popup.style.top = '';
-        popup.style.bottom = (viewportHeight - rect.top + 4) + 'px';
-        popup.style.maxHeight = Math.max(spaceAbove, 180) + 'px';
-      }
-    }
-
     function openPopup() {
+      backdrop.hidden = false;
       popup.hidden = false;
       trigger.setAttribute('aria-expanded', 'true');
-      positionPopup();
       if (typeof innerControl.focusInput === 'function') {
         innerControl.focusInput();
       } else {
@@ -563,6 +544,7 @@
     }
 
     function closePopup() {
+      backdrop.hidden = true;
       popup.hidden = true;
       trigger.setAttribute('aria-expanded', 'false');
       updateSummary();
@@ -575,13 +557,7 @@
     });
 
     doneBtn.addEventListener('click', closePopup);
-
-    const onDocMouseDown = function(e) {
-      if (!wrapper.contains(e.target) && !popup.contains(e.target)) {
-        if (!popup.hidden) closePopup();
-      }
-    };
-    document.addEventListener('mousedown', onDocMouseDown);
+    backdrop.addEventListener('click', closePopup);
 
     const onDocKey = function(e) {
       if (e.key === 'Escape' && !popup.hidden) {
@@ -591,17 +567,11 @@
     };
     document.addEventListener('keydown', onDocKey);
 
-    const onReposition = function() { if (!popup.hidden) positionPopup(); };
-    window.addEventListener('scroll', onReposition, true);
-    window.addEventListener('resize', onReposition);
-
     wrapper._popupEl = popup;
     wrapper._cleanupPopup = function() {
+      backdrop.remove();
       popup.remove();
-      document.removeEventListener('mousedown', onDocMouseDown);
       document.removeEventListener('keydown', onDocKey);
-      window.removeEventListener('scroll', onReposition, true);
-      window.removeEventListener('resize', onReposition);
     };
 
     wrapper.getFormValues = function() {
