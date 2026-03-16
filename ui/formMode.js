@@ -483,8 +483,12 @@
     if (typeof window.updateQueryJson === 'function') {
       window.updateQueryJson();
     }
-    if (window.FilterSidePanel && typeof window.FilterSidePanel.update === 'function') {
-      window.FilterSidePanel.update();
+    if (window.FilterSidePanel) {
+      if (state.viewMode === 'form' && typeof window.FilterSidePanel.close === 'function') {
+        window.FilterSidePanel.close();
+      } else if (typeof window.FilterSidePanel.update === 'function') {
+        window.FilterSidePanel.update();
+      }
     }
     if (window.updateCategoryCounts) {
       window.updateCategoryCounts();
@@ -632,6 +636,14 @@
       }
       state.mobileModeToggleBtn.setAttribute('data-tooltip', state.viewMode === 'form' ? 'Switch to bubble builder' : 'Switch to form mode');
       state.mobileModeToggleBtn.setAttribute('aria-label', state.viewMode === 'form' ? 'Switch to bubble builder' : 'Switch to form mode');
+    }
+
+    if (window.FilterSidePanel) {
+      if (state.viewMode === 'form' && typeof window.FilterSidePanel.close === 'function') {
+        window.FilterSidePanel.close();
+      } else if (typeof window.FilterSidePanel.update === 'function') {
+        window.FilterSidePanel.update();
+      }
     }
   }
 

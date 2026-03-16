@@ -2,16 +2,14 @@
   display: none !important;
 }
 
-body.form-mode-active #table-with-filter {
-  display: block;
-}
-
-body.form-mode-active #table-column {
-  width: 100%;
+body.form-mode-active #filter-side-panel {
+  display: none !important;
 }
 
 #form-mode-host {
   width: 100%;
+  display: flex;
+  justify-content: center;
 }
 
 #form-mode-host.hidden {
@@ -29,9 +27,9 @@ body.form-mode-active #table-column {
 }
 
 .form-mode-card {
-  width: min(100%, 960px);
+  width: min(100%, 760px);
   margin: 0 auto 0.5rem;
-  padding: 1.25rem;
+  padding: 1rem;
   border-radius: 1rem;
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.92));
   border: 1px solid rgba(148, 163, 184, 0.22);
@@ -43,7 +41,7 @@ body.form-mode-active #table-column {
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.85rem;
 }
 
 .form-mode-kicker {
@@ -61,7 +59,7 @@ body.form-mode-active #table-column {
 
 .form-mode-title {
   margin: 0;
-  font-size: 1.55rem;
+  font-size: 1.4rem;
   font-weight: 700;
   color: #0f172a;
 }
@@ -110,13 +108,13 @@ body.form-mode-active #table-column {
 
 .form-mode-fields {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.85rem;
 }
 
 .form-mode-field {
   min-width: 0;
-  padding: 0.95rem;
+  padding: 0.85rem;
   border-radius: 0.95rem;
   background: rgba(248, 250, 252, 0.96);
   border: 1px solid rgba(203, 213, 225, 0.7);
@@ -153,7 +151,7 @@ body.form-mode-active #table-column {
 }
 
 .form-mode-help {
-  margin: 0 0 0.7rem;
+  margin: 0 0 0.55rem;
   font-size: 0.85rem;
   line-height: 1.45;
   color: #475569;
@@ -203,6 +201,10 @@ body.form-mode-active #table-column {
 }
 
 @media (max-width: 900px) {
+  .form-mode-card {
+    width: min(100%, 680px);
+  }
+
   .form-mode-header {
     flex-direction: column;
   }
@@ -214,5 +216,16 @@ body.form-mode-active #table-column {
 
   .form-mode-btn {
     flex: 1 1 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .form-mode-card {
+    width: 100%;
+    padding: 0.85rem;
+  }
+
+  .form-mode-fields {
+    grid-template-columns: 1fr;
   }
 }
