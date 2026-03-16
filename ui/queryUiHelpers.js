@@ -545,27 +545,190 @@ window.parseListInputValues = function(rawValue) {
     .filter(Boolean);
 };
 
+window.buildInlineListSummary = function(values) {
+  const normalizedValues = Array.isArray(values)
+    ? values.map(value => String(value || '').trim()).filter(Boolean)
+    : [];
+
+  if (normalizedValues.length === 0) return 'No values loaded';
+  if (normalizedValues.length === 1) return normalizedValues[0];
+  return `${normalizedValues[0]}, and ${normalizedValues.length - 1} more`;
+};
+
+window.ensureListPasteEditor = function() {
+  let backdrop = document.getElementById('list-paste-editor-backdrop');
+  let panel = document.getElementById('list-paste-editor');
+
+  if (backdrop && panel) {
+    return { backdrop, panel };
+  }
+
+  backdrop = document.createElement('div');
+  backdrop.id = 'list-paste-editor-backdrop';
+  backdrop.className = 'list-paste-editor-backdrop hidden';
+
+  panel = document.createElement('div');
+  panel.id = 'list-paste-editor';
+  panel.className = 'list-paste-editor hidden';
+  panel.innerHTML = `
+    <div class="list-paste-editor-header">
+      <div>
+        <div id="list-paste-editor-title" class="list-paste-editor-title">Edit list values</div>
+        <div id="list-paste-editor-meta" class="list-paste-editor-meta"></div>
+      </div>
+      <div class="list-paste-editor-actions">
+        <button type="button" id="list-paste-editor-upload" class="list-paste-editor-icon-btn" aria-label="Upload list file" data-tooltip="Upload text or CSV file">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 16V4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 9l5-5 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 20h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <button type="button" id="list-paste-editor-clear" class="list-paste-editor-icon-btn" aria-label="Clear list values" data-tooltip="Clear all values">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 6l12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <button type="button" id="list-paste-editor-close" class="list-paste-editor-close" aria-label="Close list editor">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 6l12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="list-paste-editor-body">
+      <p id="list-paste-editor-hint" class="list-paste-editor-hint"></p>
+      <textarea id="list-paste-editor-textarea" class="list-paste-textarea list-paste-editor-textarea" rows="8"></textarea>
+      <div id="list-paste-editor-status" class="list-paste-status"></div>
+    </div>
+    <div class="list-paste-editor-footer">
+      <button type="button" id="list-paste-editor-cancel" class="list-paste-editor-btn list-paste-editor-btn-secondary">Cancel</button>
+      <button type="button" id="list-paste-editor-save" class="list-paste-editor-btn">Save</button>
+    </div>
+  `;
+
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = '.txt,.csv,text/plain,text/csv';
+  fileInput.className = 'list-paste-file-input';
+  panel.appendChild(fileInput);
+
+  panel._editorState = {
+    control: null,
+    textarea: panel.querySelector('#list-paste-editor-textarea'),
+    titleEl: panel.querySelector('#list-paste-editor-title'),
+    metaEl: panel.querySelector('#list-paste-editor-meta'),
+    hintEl: panel.querySelector('#list-paste-editor-hint'),
+    statusEl: panel.querySelector('#list-paste-editor-status'),
+    fileInput,
+    close() {
+      backdrop.classList.add('hidden');
+      panel.classList.add('hidden');
+      panel._editorState.control = null;
+      fileInput.value = '';
+    },
+    updateStatus() {
+      const values = window.parseListInputValues(panel._editorState.textarea.value);
+      panel._editorState.metaEl.textContent = values.length === 0
+        ? 'No values loaded'
+        : `${values.length} value${values.length === 1 ? '' : 's'} loaded`;
+      panel._editorState.statusEl.textContent = values.length === 0
+        ? 'Paste one value per line, comma-separated values, or upload a file.'
+        : window.buildInlineListSummary(values);
+    },
+    open(control) {
+      panel._editorState.control = control;
+      const controlOptions = control && control._listPasteOptions ? control._listPasteOptions : {};
+      panel._editorState.titleEl.textContent = controlOptions.title || 'Edit list values';
+      panel._editorState.hintEl.textContent = controlOptions.hint || 'Paste one value per line, comma-separated values, or upload a .txt/.csv file.';
+      panel._editorState.textarea.placeholder = controlOptions.placeholder || 'Paste one value per line';
+      panel._editorState.textarea.rows = controlOptions.rows || 8;
+      panel._editorState.textarea.value = control && typeof control._listRawValue === 'string'
+        ? control._listRawValue
+        : ((control && Array.isArray(control._listValues)) ? control._listValues.join('\n') : '');
+      panel._editorState.updateStatus();
+      backdrop.classList.remove('hidden');
+      panel.classList.remove('hidden');
+      window.requestAnimationFrame(() => panel._editorState.textarea.focus());
+    },
+    commit(rawText) {
+      const nextRawText = String(rawText || '');
+      const nextValues = window.parseListInputValues(nextRawText);
+      const activeControl = panel._editorState.control;
+      if (!activeControl) return;
+      activeControl._listRawValue = nextRawText;
+      activeControl._listValues = nextValues;
+      if (typeof activeControl._refreshListSummary === 'function') {
+        activeControl._refreshListSummary();
+      }
+      if (activeControl._listPasteOptions && typeof activeControl._listPasteOptions.onChange === 'function') {
+        activeControl._listPasteOptions.onChange();
+      }
+    }
+  };
+
+  const loadFileIntoEditor = file => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      panel._editorState.textarea.value = String(reader.result || '');
+      panel._editorState.updateStatus();
+    };
+    reader.readAsText(file);
+  };
+
+  backdrop.addEventListener('click', () => panel._editorState.close());
+  panel.querySelector('#list-paste-editor-close').addEventListener('click', () => panel._editorState.close());
+  panel.querySelector('#list-paste-editor-cancel').addEventListener('click', () => panel._editorState.close());
+  panel.querySelector('#list-paste-editor-save').addEventListener('click', () => {
+    panel._editorState.commit(panel._editorState.textarea.value);
+    panel._editorState.close();
+  });
+  panel.querySelector('#list-paste-editor-clear').addEventListener('click', () => {
+    panel._editorState.textarea.value = '';
+    panel._editorState.updateStatus();
+  });
+  panel.querySelector('#list-paste-editor-upload').addEventListener('click', () => fileInput.click());
+  panel._editorState.textarea.addEventListener('input', () => panel._editorState.updateStatus());
+  fileInput.addEventListener('change', () => {
+    const [file] = fileInput.files || [];
+    if (!file) return;
+    loadFileIntoEditor(file);
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !panel.classList.contains('hidden')) {
+      panel._editorState.close();
+    }
+  });
+
+  document.body.appendChild(backdrop);
+  document.body.appendChild(panel);
+  return { backdrop, panel };
+};
+
 window.createListPasteInput = function(currentValues = [], options = {}) {
   const container = document.createElement('div');
   container.className = 'list-paste-input';
   container.id = 'condition-select-container';
 
-  const toolbar = document.createElement('div');
-  toolbar.className = 'list-paste-toolbar';
+  const summary = document.createElement('button');
+  summary.type = 'button';
+  summary.className = 'list-paste-summary';
 
-  const hint = document.createElement('span');
-  hint.className = 'list-paste-hint';
-  hint.textContent = options.hint || 'Paste one value per line, comma-separated values, or upload a .txt/.csv file.';
+  const summaryBody = document.createElement('div');
+  summaryBody.className = 'list-paste-summary-body';
+
+  const summaryLabel = document.createElement('div');
+  summaryLabel.className = 'list-paste-summary-label';
+  summaryLabel.textContent = options.summaryLabel || 'List values';
+
+  const summaryValue = document.createElement('div');
+  summaryValue.className = 'list-paste-summary-value';
+
+  const summaryMeta = document.createElement('div');
+  summaryMeta.className = 'list-paste-summary-meta';
 
   const actions = document.createElement('div');
   actions.className = 'list-paste-actions';
 
-  const uploadBtn = document.createElement('button');
-  uploadBtn.type = 'button';
-  uploadBtn.className = 'list-paste-btn';
-  uploadBtn.setAttribute('aria-label', 'Upload list file');
-  uploadBtn.setAttribute('data-tooltip', 'Upload text or CSV file');
-  uploadBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16"><path d="M12 16V4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 9l5-5 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 20h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="sr-only">Upload file</span>';
+  const editBtn = document.createElement('button');
+  editBtn.type = 'button';
+  editBtn.className = 'list-paste-btn';
+  editBtn.setAttribute('aria-label', 'Edit list values');
+  editBtn.setAttribute('data-tooltip', 'Edit list values');
+  editBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16"><path d="M12 20h9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span class="sr-only">Edit values</span>';
 
   const clearBtn = document.createElement('button');
   clearBtn.type = 'button';
@@ -579,57 +742,56 @@ window.createListPasteInput = function(currentValues = [], options = {}) {
   fileInput.accept = '.txt,.csv,text/plain,text/csv';
   fileInput.className = 'list-paste-file-input';
 
-  const textArea = document.createElement('textarea');
-  textArea.className = 'list-paste-textarea';
-  textArea.rows = options.rows || 6;
-  textArea.placeholder = options.placeholder || 'Paste one value per line';
+  container._listPasteOptions = options;
+  container._listRawValue = '';
+  container._listValues = [];
 
-  const status = document.createElement('div');
-  status.className = 'list-paste-status';
+  container._refreshListSummary = function() {
+    const values = Array.isArray(container._listValues) ? container._listValues : [];
+    summaryValue.textContent = window.buildInlineListSummary(values);
+    summaryValue.classList.toggle('is-empty', values.length === 0);
+    summaryMeta.textContent = values.length === 0
+      ? (options.hint || 'Click to add values')
+      : `${values.length} value${values.length === 1 ? '' : 's'} configured`;
+    clearBtn.disabled = values.length === 0;
+  };
+
+  const commitValues = (rawText, shouldNotify = true) => {
+    container._listRawValue = String(rawText || '');
+    container._listValues = window.parseListInputValues(container._listRawValue);
+    container._refreshListSummary();
+    if (shouldNotify && typeof options.onChange === 'function') {
+      options.onChange();
+    }
+  };
+
+  const openEditor = () => {
+    const editor = window.ensureListPasteEditor();
+    editor.panel._editorState.open(container);
+  };
 
   const loadFile = file => {
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = () => {
-      textArea.value = String(reader.result || '');
-      updateStatus();
+      commitValues(String(reader.result || ''));
       container.classList.remove('drag-over');
-      if (typeof options.onChange === 'function') {
-        options.onChange();
-      }
     };
     reader.readAsText(file);
   };
 
-  const updateStatus = () => {
-    const values = window.parseListInputValues(textArea.value);
-    status.textContent = values.length === 0
-      ? 'No values loaded'
-      : `${values.length} value${values.length === 1 ? '' : 's'} ready`;
-  };
+  summaryBody.appendChild(summaryLabel);
+  summaryBody.appendChild(summaryValue);
+  summaryBody.appendChild(summaryMeta);
+  summary.appendChild(summaryBody);
 
-  uploadBtn.addEventListener('click', () => fileInput.click());
-  clearBtn.addEventListener('click', () => {
-    textArea.value = '';
-    fileInput.value = '';
-    updateStatus();
-    if (typeof options.onChange === 'function') {
-      options.onChange();
-    }
-  });
-
+  summary.addEventListener('click', openEditor);
+  editBtn.addEventListener('click', openEditor);
+  clearBtn.addEventListener('click', () => commitValues(''));
   fileInput.addEventListener('change', () => {
     const [file] = fileInput.files || [];
     if (!file) return;
     loadFile(file);
-  });
-
-  textArea.addEventListener('input', () => {
-    updateStatus();
-    if (typeof options.onChange === 'function') {
-      options.onChange();
-    }
   });
 
   ['dragenter', 'dragover'].forEach(eventName => {
@@ -643,17 +805,14 @@ window.createListPasteInput = function(currentValues = [], options = {}) {
     container.addEventListener(eventName, event => {
       event.preventDefault();
       if (!container.contains(event.relatedTarget)) {
-        container.classList.remove('drag-over');
+  actions.appendChild(editBtn);
       }
-    });
-  });
-
-  container.addEventListener('drop', event => {
-    event.preventDefault();
+  container.appendChild(summary);
+  container.appendChild(actions);
     container.classList.remove('drag-over');
     const [file] = event.dataTransfer?.files || [];
     if (file) {
-      loadFile(file);
+    return Array.isArray(container._listValues) ? container._listValues.slice() : [];
     }
   });
 
@@ -661,12 +820,11 @@ window.createListPasteInput = function(currentValues = [], options = {}) {
   actions.appendChild(uploadBtn);
   actions.appendChild(clearBtn);
   toolbar.appendChild(actions);
-
-  container.appendChild(toolbar);
+    commitValues(Array.isArray(valuesToSet) ? valuesToSet.join('\n') : '', false);
   container.appendChild(textArea);
   container.appendChild(status);
   container.appendChild(fileInput);
-
+    openEditor();
   container.getSelectedValues = function() {
     return window.parseListInputValues(textArea.value);
   };
