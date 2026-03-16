@@ -33,12 +33,29 @@ window.DOM = {
   get mobileCategorySelector() { return this._mobileCategorySelector ||= document.getElementById('mobile-category-selector'); }
 };
 
+window.syncTableResultsLipWidth = function() {
+  const resultsLip = window.DOM.tableResultsLip;
+  const tableNameInput = window.DOM.tableNameInput;
+
+  if (!resultsLip || !tableNameInput) {
+    return;
+  }
+
+  const sync = () => {
+    const width = Math.ceil(tableNameInput.getBoundingClientRect().width);
+    if (width > 0) {
+      resultsLip.style.width = `${width}px`;
+    }
+  };
+
+  window.requestAnimationFrame(sync);
+};
+
 window.updateTableResultsLip = function() {
   const resultsLip = window.DOM.tableResultsLip;
   const resultsCount = window.DOM.tableResultsCount;
   const resultsLabel = window.DOM.tableResultsLabel;
   const tableNameShell = window.DOM.tableNameShell;
-  const tableNameInput = window.DOM.tableNameInput;
 
   if (!resultsLip || !resultsCount || !resultsLabel) {
     return;
@@ -54,14 +71,38 @@ window.updateTableResultsLip = function() {
   resultsLip.classList.toggle('hidden', !hasResults);
   resultsLip.setAttribute('aria-hidden', hasResults ? 'false' : 'true');
 
-  if (tableNameInput) {
-    resultsLip.style.width = `${Math.ceil(tableNameInput.getBoundingClientRect().width)}px`;
-  }
-
   if (tableNameShell) {
     tableNameShell.classList.toggle('has-results', hasResults);
   }
+
+  if (typeof window.syncTableResultsLipWidth === 'function') {
+    window.syncTableResultsLipWidth();
+  }
 };
+
+window.onDOMReady(() => {
+  const tableNameInput = window.DOM.tableNameInput;
+  if (!tableNameInput) {
+    return;
+  }
+
+  const syncLipWidth = () => {
+    if (typeof window.syncTableResultsLipWidth === 'function') {
+      window.syncTableResultsLipWidth();
+    }
+  };
+
+  syncLipWidth();
+  tableNameInput.addEventListener('input', syncLipWidth);
+  tableNameInput.addEventListener('blur', syncLipWidth);
+  tableNameInput.addEventListener('focus', syncLipWidth);
+  window.addEventListener('resize', syncLipWidth);
+
+  if (typeof ResizeObserver !== 'undefined') {
+    const resizeObserver = new ResizeObserver(syncLipWidth);
+    resizeObserver.observe(tableNameInput);
+  }
+});
 
 window.updateRunButtonIcon = function(validationError) {
   const runIcon = window.DOM.runIcon;
