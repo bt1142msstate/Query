@@ -49,3 +49,67 @@ Frontend Structure
 - `bubbles/`: bubble interaction system (`bubble.js`)
 
 Script load order is still controlled by `index.html`, so files should be moved between folders only when their script path is updated there.
+
+URL Form Mode
+
+- Form mode is activated with a `form` query parameter.
+- The `form` value is a base64url-encoded JSON object that defines the form shell.
+- Input values stay readable in the URL as normal query params such as `library=MAIN` or `lastUsedBefore=2024-01-01`.
+
+Supported form schema keys
+
+- `title`: Form heading shown above the table.
+- `description`: Optional supporting copy.
+- `queryName`: Default table/query name.
+- `columns`: Output columns to load automatically.
+- `inputs`: Editable form inputs. Each item supports `key`, `field`, `label`, `operator`, `required`, `multiple`, `type`, `placeholder`, `help`, `default`, `keys` for `between`, and `options`.
+- `lockedFilters`: Filters always applied behind the scenes.
+
+Example schema shape
+
+```json
+{
+	"title": "Weeding List",
+	"description": "Run a focused stale-items report without the full bubble builder.",
+	"queryName": "Weeding List",
+	"columns": ["Item Key", "Title", "Current Library", "Last Activity Date"],
+	"inputs": [
+		{
+			"key": "library",
+			"field": "Current Library",
+			"label": "Current Library",
+			"operator": "equals",
+			"required": true
+		},
+		{
+			"key": "lastUsedBefore",
+			"field": "Last Activity Date",
+			"label": "Last Used Before",
+			"operator": "on_or_before",
+			"type": "date",
+			"required": true
+		}
+	]
+}
+```
+
+Generating a URL in the browser console
+
+```js
+const spec = {
+	title: "Weeding List",
+	queryName: "Weeding List",
+	columns: ["Item Key", "Title", "Current Library", "Last Activity Date"],
+	inputs: [
+		{ key: "library", field: "Current Library", label: "Current Library", operator: "equals", required: true },
+		{ key: "lastUsedBefore", field: "Last Activity Date", label: "Last Used Before", operator: "on_or_before", type: "date", required: true }
+	]
+};
+
+const url = new URL(window.location.href);
+url.search = "";
+url.searchParams.set("form", window.QueryFormMode.encodeSpec(spec));
+url.searchParams.set("library", "MAIN");
+url.searchParams.set("lastUsedBefore", "2024-01-01");
+console.log(url.toString());
+```
