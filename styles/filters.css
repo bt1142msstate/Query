@@ -833,7 +833,7 @@
   max-height: 12rem;
 }
 
-.fp-edit-form .search-input {
+.fp-edit-form .grouped-selector-search-field .app-search-input {
   font-size: 0.72rem;
 }
 

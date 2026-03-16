@@ -185,11 +185,8 @@ window.onDOMReady(() => {
     });
   }
 
-  const queriesSearchInput = document.getElementById('queries-search');
-  if (queriesSearchInput && typeof window.enhanceSearchInput === 'function') {
-    window.enhanceSearchInput(queriesSearchInput, {
-      wrapperClass: 'queries-search-field'
-    });
+  if (typeof window.initializeSearchInputs === 'function') {
+    window.initializeSearchInputs(document);
   }
 });
 
@@ -270,6 +267,20 @@ window.enhanceSearchInput = function(input, options = {}) {
     input,
     clearButton
   };
+};
+
+window.initializeSearchInputs = function(root = document) {
+  const searchRoot = root && typeof root.querySelectorAll === 'function' ? root : document;
+  const inputs = Array.from(searchRoot.querySelectorAll('input[data-search-ui="enhanced"]'));
+
+  inputs.forEach(input => {
+    window.enhanceSearchInput(input, {
+      wrapperClass: input.dataset.searchWrapperClass || '',
+      clearLabel: input.dataset.searchClearLabel || 'Clear search'
+    });
+  });
+
+  return inputs;
 };
 
 window.shouldFieldHavePurpleStyling = function(fieldName) {
@@ -396,9 +407,12 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
   searchInput.type = 'search';
   searchInput.className = 'search-input';
   searchInput.placeholder = 'Search options...';
+  searchInput.dataset.searchUi = 'enhanced';
+  searchInput.dataset.searchWrapperClass = 'grouped-selector-search-field';
+  searchInput.dataset.searchClearLabel = 'Clear option search';
   searchWrapper.appendChild(searchInput);
-  if (typeof window.enhanceSearchInput === 'function') {
-    window.enhanceSearchInput(searchInput);
+  if (typeof window.initializeSearchInputs === 'function') {
+    window.initializeSearchInputs(searchWrapper);
   }
   container.appendChild(searchWrapper);
 

@@ -31,7 +31,7 @@
   backdrop-filter: blur(16px);
 }
 
-#queries-search {
+.queries-search-field .app-search-input {
   min-height: 2.8rem;
   padding: 0.7rem 2.7rem 0.7rem 2.65rem;
   border-color: rgba(72, 214, 255, 0.24);
@@ -41,26 +41,26 @@
   font-size: 0.95rem;
 }
 
-#queries-search-wrapper .app-search-icon {
+.queries-search-field .app-search-icon {
   left: 0.95rem;
   color: rgba(112, 242, 255, 0.56);
 }
 
-#queries-search-wrapper .app-search-clear {
+.queries-search-field .app-search-clear {
   right: 0.55rem;
   color: rgba(151, 241, 255, 0.72);
 }
 
-#queries-search-wrapper .app-search-clear:hover {
+.queries-search-field .app-search-clear:hover {
   background: rgba(31, 58, 86, 0.78);
   color: #ecfeff;
 }
 
-#queries-search::placeholder {
+.queries-search-field .app-search-input::placeholder {
   color: rgba(159, 215, 228, 0.44);
 }
 
-#queries-search:focus {
+.queries-search-field .app-search-input:focus {
   border-color: rgba(87, 236, 255, 0.7);
   box-shadow: 0 0 0 3px rgba(54, 222, 255, 0.16), 0 0 32px rgba(54, 222, 255, 0.14);
 }
