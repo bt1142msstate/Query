@@ -121,6 +121,72 @@
   flex-shrink: 0;
 }
 
+.app-search-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.app-search-icon {
+  position: absolute;
+  left: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(100, 116, 139, 0.78);
+  pointer-events: none;
+}
+
+.app-search-clear {
+  position: absolute;
+  right: 0.45rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(100, 116, 139, 0.82);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+
+.app-search-field.has-value .app-search-clear {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.app-search-clear:hover {
+  background: rgba(226, 232, 240, 0.72);
+  color: #334155;
+}
+
+.app-search-clear:focus-visible {
+  outline: none;
+  opacity: 1;
+  pointer-events: auto;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+}
+
+.app-search-input {
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.app-search-input::-webkit-search-cancel-button,
+.app-search-input::-webkit-search-decoration,
+.app-search-input::-webkit-search-results-button,
+.app-search-input::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
 .grouped-options-container {
   overflow-y: auto;
   flex-grow: 1;
@@ -149,7 +215,7 @@
 
 .search-input {
   width: 100%;
-  padding: 0.5rem;
+  padding: 0.5rem 2.45rem 0.5rem 2.35rem;
   border: 1px solid var(--color-gray-200);
   border-radius: var(--border-radius-md);
   font-size: 0.875rem;

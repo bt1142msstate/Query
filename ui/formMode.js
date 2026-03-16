@@ -675,6 +675,12 @@
     const displayChoice = modal.querySelector('[data-field-picker-choice="display"]');
     const filterChoice = modal.querySelector('[data-field-picker-choice="filter"]');
 
+    if (searchInput && typeof window.enhanceSearchInput === 'function') {
+      window.enhanceSearchInput(searchInput, {
+        wrapperClass: 'form-mode-field-picker-search-field'
+      });
+    }
+
     let selectedFieldName = options[0].name;
     let searchTerm = '';
 

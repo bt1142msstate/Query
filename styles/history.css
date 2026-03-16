@@ -33,11 +33,27 @@
 
 #queries-search {
   min-height: 2.8rem;
+  padding: 0.7rem 2.7rem 0.7rem 2.65rem;
   border-color: rgba(72, 214, 255, 0.24);
   background: rgba(3, 9, 18, 0.9);
   color: #dffcff;
   box-shadow: inset 0 0 0 1px rgba(7, 20, 32, 0.88), 0 0 24px rgba(12, 195, 255, 0.06);
   font-size: 0.95rem;
+}
+
+#queries-search-wrapper .app-search-icon {
+  left: 0.95rem;
+  color: rgba(112, 242, 255, 0.56);
+}
+
+#queries-search-wrapper .app-search-clear {
+  right: 0.55rem;
+  color: rgba(151, 241, 255, 0.72);
+}
+
+#queries-search-wrapper .app-search-clear:hover {
+  background: rgba(31, 58, 86, 0.78);
+  color: #ecfeff;
 }
 
 #queries-search::placeholder {
