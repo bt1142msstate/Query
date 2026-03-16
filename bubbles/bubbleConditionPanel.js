@@ -18,6 +18,10 @@ function getBubblePanelConfirmButtonElement() {
   return window.DOM?.confirmBtn || document.getElementById('confirm-btn');
 }
 
+function isListPasteField(fieldDef) {
+  return Boolean(fieldDef && fieldDef.allowValueList && (!fieldDef.values || fieldDef.values.length === 0));
+}
+
 function buildBubbleConditionPanel(bubble) {
   const conditionPanel = getBubblePanelConditionPanelElement();
   const inputWrapper = getBubblePanelInputWrapperElement();
@@ -176,9 +180,27 @@ function buildBubbleConditionPanel(bubble) {
     const existingSelect = document.getElementById('condition-select');
     const existingContainer = document.getElementById('condition-select-container');
     if (existingSelect) existingSelect.style.display = 'none';
-    if (existingContainer) existingContainer.style.display = 'none';
+    if (existingContainer) existingContainer.parentNode.removeChild(existingContainer);
     window.configureInputsForType(type);
-    conditionInput.style.display = 'block';
+
+    if (isListPasteField(fieldDefInfo) && typeof window.createListPasteInput === 'function') {
+      let currentLiteralValues = [];
+      if (activeFilters[selectedField]) {
+        const filter = activeFilters[selectedField].filters.find(f => f.cond === 'equals');
+        if (filter) {
+          currentLiteralValues = String(filter.val).split(',').map(v => v.trim()).filter(Boolean);
+        }
+      }
+
+      const listInput = window.createListPasteInput(currentLiteralValues, {
+        placeholder: 'Paste one key per line',
+        hint: 'Paste keys one per line, paste comma-separated keys, or upload a text/CSV file.'
+      });
+      inputWrapper.insertBefore(listInput, confirmBtn);
+      conditionInput.style.display = 'none';
+    } else {
+      conditionInput.style.display = 'block';
+    }
     confirmBtn.style.display = '';
   }
 
