@@ -1149,32 +1149,19 @@
     meta.className = 'form-mode-meta';
     meta.textContent = inputSpec.field;
 
-    const availableOperators = getAvailableOperators(fieldDef, inputSpec);
-    const shouldShowOperatorSelect = availableOperators.length > 1;
+    const operatorWrap = document.createElement('div');
+    operatorWrap.className = 'form-mode-operator-wrap';
 
-    let operatorSelect = null;
-    if (shouldShowOperatorSelect) {
-      const operatorWrap = document.createElement('div');
-      operatorWrap.className = 'form-mode-operator-wrap';
+    const operatorLabel = document.createElement('span');
+    operatorLabel.className = 'form-mode-operator-label';
+    operatorLabel.textContent = 'Condition';
 
-      const operatorLabel = document.createElement('span');
-      operatorLabel.className = 'form-mode-operator-label';
-      operatorLabel.textContent = 'Condition';
+    const operatorValue = document.createElement('div');
+    operatorValue.className = 'form-mode-operator-display';
+    operatorValue.textContent = getOperatorLabel(inputSpec.operator);
 
-      operatorSelect = document.createElement('select');
-      operatorSelect.className = 'form-mode-operator-select';
-      availableOperators.forEach(operator => {
-        const option = document.createElement('option');
-        option.value = operator;
-        option.textContent = getOperatorLabel(operator);
-        option.selected = operator === inputSpec.operator;
-        operatorSelect.appendChild(option);
-      });
-
-      operatorWrap.appendChild(operatorLabel);
-      operatorWrap.appendChild(operatorSelect);
-      row.appendChild(operatorWrap);
-    }
+    operatorWrap.appendChild(operatorLabel);
+    operatorWrap.appendChild(operatorValue);
 
     const controlWrap = document.createElement('div');
     controlWrap.className = 'form-mode-control';
@@ -1182,6 +1169,7 @@
 
     row.appendChild(label);
     row.appendChild(meta);
+    row.appendChild(operatorWrap);
     if (inputSpec.help) {
       const help = document.createElement('p');
       help.className = 'form-mode-help';
@@ -1189,30 +1177,6 @@
       row.appendChild(help);
     }
     row.appendChild(controlWrap);
-
-    if (operatorSelect) {
-      operatorSelect.addEventListener('change', () => {
-        const currentControl = state.controls.get(inputSpec.key);
-        const currentValues = currentControl && typeof currentControl.getFormValues === 'function'
-          ? currentControl.getFormValues()
-          : [];
-
-        if (currentControl && typeof currentControl._cleanupPopup === 'function') {
-          currentControl._cleanupPopup();
-        }
-
-        inputSpec.operator = operatorSelect.value;
-
-        const nextControl = createControl(fieldDef, inputSpec, currentValues, inputSpec.operator);
-        nextControl.addEventListener('change', scheduleApply);
-        nextControl.addEventListener('input', scheduleApply);
-        nextControl.addEventListener('click', () => window.requestAnimationFrame(scheduleApply));
-        state.controls.set(inputSpec.key, nextControl);
-        controlWrap.innerHTML = '';
-        controlWrap.appendChild(nextControl);
-        scheduleApply();
-      });
-    }
 
     return row;
   }
