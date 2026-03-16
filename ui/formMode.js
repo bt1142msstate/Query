@@ -292,11 +292,10 @@
     if (typeof window.updateButtonStates === 'function') {
       window.updateButtonStates();
     }
-    return true;
-  }
 
-  function shouldReflectFormStateInUrl() {
-    return state.specSource === 'url';
+    const nextUrl = buildCurrentShareUrl();
+    window.history.replaceState({}, '', nextUrl);
+    return true;
   }
 
   function parseFieldOptions(fieldDef, inputSpec) {
@@ -805,7 +804,7 @@
     state.viewMode = requestedMode;
     syncPresentationMode();
 
-    if (options.updateUrl !== false && shouldReflectFormStateInUrl()) {
+    if (options.updateUrl !== false) {
       const nextUrl = new URL(window.location.href);
       if (state.viewMode === 'bubbles') {
         nextUrl.searchParams.set('mode', 'bubbles');
