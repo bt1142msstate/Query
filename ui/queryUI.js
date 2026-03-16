@@ -21,12 +21,41 @@ window.DOM = {
   get queryBox() { return this._queryBox ||= document.getElementById('query-json'); },
   get queryInput() { return this._queryInput ||= document.getElementById('query-input'); },
   get tableNameInput() { return this._tableNameInput ||= document.getElementById('table-name-input'); },
+  get tableNameShell() { return this._tableNameShell ||= document.getElementById('table-name-shell'); },
+  get tableResultsLip() { return this._tableResultsLip ||= document.getElementById('table-results-lip'); },
+  get tableResultsCount() { return this._tableResultsCount ||= document.getElementById('table-results-count'); },
+  get tableResultsLabel() { return this._tableResultsLabel ||= document.getElementById('table-results-label'); },
   get clearSearchBtn() { return this._clearSearchBtn ||= document.getElementById('clear-search-btn'); },
   get groupMethodSelect() { return this._groupMethodSelect ||= document.getElementById('group-method-select'); },
   get filterError() { return this._filterError ||= document.getElementById('filter-error'); },
   get headerBar() { return this._headerBar ||= document.getElementById('header-bar'); },
   get categoryBar() { return this._categoryBar ||= document.getElementById('category-bar'); },
   get mobileCategorySelector() { return this._mobileCategorySelector ||= document.getElementById('mobile-category-selector'); }
+};
+
+window.updateTableResultsLip = function() {
+  const resultsLip = window.DOM.tableResultsLip;
+  const resultsCount = window.DOM.tableResultsCount;
+  const resultsLabel = window.DOM.tableResultsLabel;
+  const tableNameShell = window.DOM.tableNameShell;
+
+  if (!resultsLip || !resultsCount || !resultsLabel) {
+    return;
+  }
+
+  const rowCount = Array.isArray(window.VirtualTable?.virtualTableData?.rows)
+    ? window.VirtualTable.virtualTableData.rows.length
+    : 0;
+  const hasResults = rowCount > 0;
+
+  resultsCount.textContent = rowCount.toLocaleString();
+  resultsLabel.textContent = rowCount === 1 ? 'result' : 'results';
+  resultsLip.classList.toggle('hidden', !hasResults);
+  resultsLip.setAttribute('aria-hidden', hasResults ? 'false' : 'true');
+
+  if (tableNameShell) {
+    tableNameShell.classList.toggle('has-results', hasResults);
+  }
 };
 
 window.updateRunButtonIcon = function(validationError) {
@@ -195,5 +224,9 @@ window.updateButtonStates = function() {
 
   if (typeof window.updateSplitColumnsToggleState === 'function') {
     window.updateSplitColumnsToggleState();
+  }
+
+  if (typeof window.updateTableResultsLip === 'function') {
+    window.updateTableResultsLip();
   }
 };
