@@ -1323,21 +1323,10 @@
       }
     });
 
-    if (window.QueryStateStore && typeof window.QueryStateStore.batchUpdate === 'function') {
-      window.QueryStateStore.batchUpdate(({ displayedFields, activeFilters }) => {
-        displayedFields.length = 0;
-        displayedFields.push(...columns);
-
-        Object.keys(activeFilters).forEach(key => delete activeFilters[key]);
-        Object.entries(nextActiveFilters).forEach(([fieldName, filterData]) => {
-          activeFilters[fieldName] = {
-            filters: Array.isArray(filterData && filterData.filters)
-              ? filterData.filters.map(filter => ({ cond: filter.cond, val: filter.val }))
-              : []
-          };
-        });
-      }, { displayedFields: true, activeFilters: true }, { source: 'QueryFormMode.applyFormState' });
-    }
+    window.QueryStateStore.setQueryState({
+      displayedFields: columns,
+      activeFilters: nextActiveFilters
+    }, { source: 'QueryFormMode.applyFormState' });
 
     if (typeof window.showExampleTable === 'function') {
       window.showExampleTable(window.displayedFields).catch(console.error);

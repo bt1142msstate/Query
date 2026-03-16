@@ -708,21 +708,10 @@ function loadQueryConfig(q) {
     });
   }
 
-  if (window.QueryStateStore && typeof window.QueryStateStore.batchUpdate === 'function') {
-    window.QueryStateStore.batchUpdate(({ displayedFields, activeFilters }) => {
-      displayedFields.length = 0;
-      displayedFields.push(...desiredColumns);
-
-      Object.keys(activeFilters).forEach(key => delete activeFilters[key]);
-      Object.entries(nextActiveFilters).forEach(([fieldName, filterData]) => {
-        activeFilters[fieldName] = {
-          filters: Array.isArray(filterData && filterData.filters)
-            ? filterData.filters.map(filter => ({ cond: filter.cond, val: filter.val }))
-            : []
-        };
-      });
-    }, { displayedFields: true, activeFilters: true }, { source: 'QueryHistory.loadQueryConfig' });
-  }
+  window.QueryStateStore.setQueryState({
+    displayedFields: desiredColumns,
+    activeFilters: nextActiveFilters
+  }, { source: 'QueryHistory.loadQueryConfig' });
 
   // Register any dynamically-built fields (e.g. Marc590) that may not exist
   // in the current session's fieldDefs registry.

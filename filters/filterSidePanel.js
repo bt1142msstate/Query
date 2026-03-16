@@ -392,7 +392,7 @@ window.FilterSidePanel = (function () {
                         }
                     }
                 }
-                window.QueryStateStore.replaceActiveFilters(newActiveFilters, { source: 'FilterSidePanel.reorderGroups' });
+                window.QueryStateStore.reorderFilterGroups(Object.keys(newActiveFilters), { source: 'FilterSidePanel.reorderGroups' });
                 window.updateQueryJson && window.updateQueryJson();
             });
 
@@ -468,12 +468,10 @@ window.FilterSidePanel = (function () {
                 delBtn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14"><path d="M9 3h6a1 1 0 0 1 1 1v1h4v2H4V5h4V4a1 1 0 0 1 1-1Zm-3 6h12l-.8 11.2A2 2 0 0 1 15.2 22H8.8a2 2 0 0 1-1.99-1.8L6 9Z"/></svg>`;
                 delBtn.addEventListener('click', e => {
                     e.stopPropagation();
-                    window.QueryStateStore.mutateActiveFilters(activeFilters => {
-                        const nextFieldData = activeFilters[field];
-                        if (!nextFieldData || !Array.isArray(nextFieldData.filters)) return;
-                        nextFieldData.filters.splice(idx, 1);
-                        if (nextFieldData.filters.length === 0) delete activeFilters[field];
-                    }, { source: 'FilterSidePanel.removeFilter' });
+                    window.QueryStateStore.removeFilter(field, {
+                        index: idx,
+                        source: 'FilterSidePanel.removeFilter'
+                    });
                     window.updateQueryJson && window.updateQueryJson();
                     window.renderConditionList && window.renderConditionList(field);
                     update();

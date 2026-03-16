@@ -10,23 +10,6 @@
 
 
 /**
- * Centralized Column Management System
- * Provides unified functions for adding/removing columns consistently across all interfaces
- */
-
-function mutateDisplayedFields(mutator, source) {
-  if (window.QueryStateStore && typeof window.QueryStateStore.mutateDisplayedFields === 'function') {
-    window.QueryStateStore.mutateDisplayedFields(mutator, { source });
-    return;
-  }
-
-  mutator(window.displayedFields);
-}
-
-
-
-
-/**
  * Centralized function to add a column using the same logic as drag/drop operations.
  * @function addColumn
  * @param {string} fieldName - The field name to add
@@ -316,12 +299,9 @@ function moveSingleColumn(table, fromIndex, toIndex) {
   if (fromIndex === toIndex) return;
 
   // 1️⃣ Keep displayedFields order in sync first
-  mutateDisplayedFields(displayedFields => {
-    if (fromIndex < displayedFields.length && toIndex < displayedFields.length) {
-      const [movedField] = displayedFields.splice(fromIndex, 1);
-      displayedFields.splice(toIndex, 0, movedField);
-    }
-  }, 'DragDrop.moveSingleColumn');
+  window.QueryStateStore.moveDisplayedField(fromIndex, toIndex, {
+    source: 'DragDrop.moveSingleColumn'
+  });
 
   // 2️⃣ Update the table header
   const headerRow = table.querySelector('thead tr');
@@ -342,24 +322,11 @@ function moveSingleColumn(table, fromIndex, toIndex) {
 
 function moveColumnGroup(table, groupIndices, targetIndex) {
   // Extract all related fields as a group
-  const groupFields = groupIndices.map(index => window.displayedFields[index]);
-
-  mutateDisplayedFields(displayedFields => {
-    for (let i = groupIndices.length - 1; i >= 0; i--) {
-      displayedFields.splice(groupIndices[i], 1);
-    }
-
-    let adjustedTargetIndex = targetIndex;
-    for (const removedIndex of groupIndices) {
-      if (removedIndex < targetIndex) {
-        adjustedTargetIndex--;
-      }
-    }
-
-    groupFields.forEach((field, i) => {
-      displayedFields.splice(adjustedTargetIndex + i, 0, field);
-    });
-  }, 'DragDrop.moveColumnGroup');
+  window.QueryStateStore.moveDisplayedField(groupIndices[0], targetIndex, {
+    count: groupIndices.length,
+    behavior: 'group',
+    source: 'DragDrop.moveColumnGroup'
+  });
   
   // Rebuild the header row completely since we moved multiple columns
   const headerRow = table.querySelector('thead tr');
@@ -441,7 +408,7 @@ function finalizeMoveOperation(table) {
 }
 
 function removeColumn(table, colIndex) {
-  // Capture the header text *before* removing, to sync displayedFields
+  // Capture the header text before removal so related columns can be removed from state.
   const headerCell = table.querySelector(`thead th[data-col-index="${colIndex}"]`);
   const fieldName = headerCell ? headerCell.textContent.trim() : null;
 
@@ -467,15 +434,10 @@ function removeColumn(table, colIndex) {
   });
 
   // Remove all related columns from displayedFields array
-  mutateDisplayedFields(displayedFields => {
-    allRelatedColumns.forEach(relatedHeader => {
-      const relatedFieldName = relatedHeader.textContent.trim();
-      const idx = displayedFields.indexOf(relatedFieldName);
-      if (idx !== -1) {
-        displayedFields.splice(idx, 1);
-      }
-    });
-  }, 'DragDrop.removeColumn');
+  window.QueryStateStore.removeDisplayedField(
+    allRelatedColumns.map(relatedHeader => relatedHeader.textContent.trim()),
+    { source: 'DragDrop.removeColumn' }
+  );
 
   // Remove all related header cells from DOM
   allRelatedColumns.forEach(relatedHeader => {
