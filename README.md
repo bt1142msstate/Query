@@ -1,91 +1,115 @@
 <div align="center">
 
-# Query Website
+# 📊 Sirsi Query Project
 
-Frontend application for the Sirsi Query Project.
+A browser-based report builder for library data.
 
-![Static Site](https://img.shields.io/badge/app-static_site-f6f3ff?style=for-the-badge)
-![Vanilla JS](https://img.shields.io/badge/ui-vanilla_js-fff3e8?style=for-the-badge)
-![History Ready](https://img.shields.io/badge/history-live_status_%2B_restore-e8fbf2?style=for-the-badge)
-![Form Mode](https://img.shields.io/badge/mode-url_driven_forms-f2f7ff?style=for-the-badge)
+![Static Frontend](https://img.shields.io/badge/frontend-static_html%2Fcss%2Fjs-f6f3ff?style=for-the-badge)
+![No Build Step](https://img.shields.io/badge/main_app-no_build_step-fff3e8?style=for-the-badge)
+![Backend Flexible](https://img.shields.io/badge/integration-backend_flexible-e8fbf2?style=for-the-badge)
+![Form Mode](https://img.shields.io/badge/workflows-bubbles_%2B_forms-f2f7ff?style=for-the-badge)
 
 </div>
 
-This is the browser UI for building reports, reviewing query state, reopening prior runs, and exporting results. It is intentionally being shaped to stay compatible with multiple backend implementations over time.
+Sirsi Query Project brings report building, guided forms, query history, and export workflows into one browser UI. It is designed to be useful now while steadily moving toward cleaner backend boundaries that make future migrations easier.
 
 > [!NOTE]
-> The frontend is being pushed toward a cleaner integration surface so it can migrate more easily between backend implementations without forcing a full UI rewrite.
+> 💡 This project is intentionally being shaped to work with multiple backend implementations over time. Migration friendliness is an explicit product goal, not an afterthought.
 
-## What It Does
+## 📌 At a Glance
 
-| Capability | Summary |
+| Area | What it gives you |
 | --- | --- |
-| Visual query building | Bubble-based field and filter workflow |
-| Guided workflows | URL-driven form mode for focused report entry |
-| Query visibility | Inspect the active query payload in the JSON panel |
-| History | Browse active and previous runs with status-aware actions |
-| Results | Reopen, rerun, cancel, and export query output |
+| Bubble builder | Visual field selection and interactive filtering |
+| Form mode | Focused, URL-driven reporting flows for staff workflows |
+| Query history | Reload, rerun, cancel, and inspect past or active runs |
+| Query JSON | Visibility into the query payload being assembled |
+| Results | Large-table rendering and Excel export support |
 
-## UI Areas
+## ❓ Why It Exists
 
-### Bubble Builder
+Library reporting workflows often sprawl across separate tools and separate habits. This project pulls those needs into one place so teams can:
 
-The default interface for assembling output columns and filters.
+- ⚡ build ad hoc reports quickly
+- 🔄 switch between exploratory and guided workflows
+- ⏪ revisit earlier runs without rebuilding them manually
+- 📥 export results for downstream analysis
 
-### Query History
+## 💻 Main Experience
 
-Shows running, complete, failed, and cancelled queries with status-aware actions.
+### 🔍 Bubble Builder
 
-### Query JSON
+The default mode is a visual builder for choosing output fields and applying filters.
 
-Exposes the current query payload so it can be reviewed before or after execution.
+### 📜 Query History
 
-### Form Mode
+Past and in-flight queries can be reviewed from a dedicated history panel with status-aware actions.
 
-Supports URL-driven forms for narrower workflows where users should fill in a guided set of inputs instead of working directly in the full builder.
+### 📋 Query JSON
 
-## Frontend Structure
+The app exposes the current payload so it can be reviewed, validated, and debugged.
+
+### 📝 Form Mode
+
+A guided mode can be generated from a URL-encoded form specification. This is useful when users should fill in a smaller, curated set of inputs instead of working in the full builder.
+
+## 📁 Repository Layout
 
 | Path | Purpose |
 | --- | --- |
-| `core/` | Query execution flow, history, state, and utilities |
-| `ui/` | Form mode, modals, tooltips, toasts, and shared helpers |
-| `filters/` | Field definitions and query-payload helpers |
-| `table/` | Result rendering, columns, and export helpers |
-| `bubbles/` | Bubble rendering and interaction logic |
-| `styles/` | Feature-based stylesheets |
+| `Query Website/` | Main frontend application |
+| `Query Website/bubbles/` | Bubble builder rendering and interaction |
+| `Query Website/core/` | Query execution, state, history, and utilities |
+| `Query Website/filters/` | Field definitions and filter payload logic |
+| `Query Website/table/` | Result rendering, column behavior, and export helpers |
+| `Query Website/ui/` | Form mode, modals, toasts, and shared UI helpers |
+| `Query Website/styles/` | Feature-oriented CSS |
+| `Documentation/` | Internal notes, examples, and implementation docs |
 
-## Local Development
+## 🛠️ Tech Approach
 
-There is no required build step for the main app.
+- 🌐 static frontend built with HTML, CSS, and vanilla JavaScript
+- ⚡ no required frontend build step for the main app
+- 🧩 feature-oriented organization rather than framework-heavy abstraction
+- 🔀 shared state and UI utilities that support both bubble mode and form mode
 
-1. Serve this directory from a local static server.
-2. Open `index.html` through that server.
-3. Connect it to a compatible backend environment.
+## 🚀 Running Locally
 
-## Migration Direction
+The main app is a static site.
 
-This frontend is intended to work with more than one backend shape.
+1. Serve the `Query Website` directory from a local static server.
+2. Open the app through that server rather than directly from the filesystem.
+3. Connect the frontend to a compatible backend environment.
 
-Ongoing work is focused on making that easier by:
+> [!TIP]
+> 🚧 If you are evaluating the project architecture, the main thing to know is that the frontend is being pushed toward a clearer contract layer so the UI can migrate more cleanly between backends.
 
-- reducing backend-specific assumptions in the UI
-- tightening shared query and field-definition contracts
-- preserving compatibility for saved queries as integrations evolve
+## 📄 Form Mode, Briefly
 
-## Future Features
+Form mode is driven by a URL parameter containing an encoded JSON spec. A form spec can define:
 
-- optional sign-in with a preferred AI provider, such as Gemini or ChatGPT, so users can get help turning reporting needs into queries
-- continued work to make frontend integration more portable across backend implementations
+- 🏷️ title and description
+- 🎯 default query name
+- 📊 output columns
+- ✏️ editable inputs
+- 🔒 locked filters
 
-## Form Mode Summary
+That lets the same application support both open-ended exploration and narrow operational workflows.
 
-Form mode is driven by an encoded JSON specification passed through the URL. A form can define:
+## 🛣️ Project Direction
 
-- a title and description
-- a default query name
-- output columns
-- editable inputs
-- locked filters
+Near-term priorities are centered on portability and maintainability:
 
-That makes the same frontend usable for both exploratory report building and narrow operational workflows.
+- 🔌 make backend integration points clearer and easier to swap
+- ✂️ continue reducing coupling between UI behavior and backend-specific assumptions
+- 🤝 improve shared field-definition workflows
+- 💾 preserve compatibility for saved queries as the data model evolves
+
+## 🔮 Future Features
+
+- 🤖 optional sign-in with a preferred AI provider, such as Gemini or ChatGPT, so users can get help turning reporting needs into queries
+- 🏗️ continued work to make backend migration easier and less disruptive
+
+## 👥 Intended Audience
+
+This project is aimed at teams who need a practical reporting UI for library workflows and want something that can evolve instead of locking them into one long-term backend shape.
