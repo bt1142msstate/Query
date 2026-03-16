@@ -332,6 +332,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     const input = document.createElement('input');
     input.type = isMultiSelect ? 'checkbox' : 'radio';
     input.name = 'condition-value';
+    input.id = `condition-value-${Math.random().toString(36).slice(2, 10)}`;
     input.dataset.value = val.literal;
     input.dataset.display = val.display;
     input.checked = currentValues.includes(val.literal);
@@ -345,11 +346,25 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
         }
       });
     }
+          label.setAttribute('for', input.id);
 
     const label = document.createElement('label');
     label.textContent = insideGroup
       ? val.display.replace(new RegExp(`^${groupName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*-\\s*`), '')
       : val.display;
+
+
+          optionItem.addEventListener('click', event => {
+            if (event.target === input) {
+              return;
+            }
+
+            if (event.target instanceof HTMLLabelElement) {
+              return;
+            }
+
+            input.click();
+          });
 
     optionItem.appendChild(input);
     optionItem.appendChild(label);
