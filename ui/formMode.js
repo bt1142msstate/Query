@@ -302,6 +302,25 @@
       .sort((left, right) => left.name.localeCompare(right.name, undefined, { numeric: true, sensitivity: 'base' }));
   }
 
+  function syncSpecColumnsWithDisplayedFields(options = {}) {
+    if (!state.active || !state.spec || !Array.isArray(window.displayedFields)) return false;
+
+    const nextColumns = window.displayedFields.slice();
+    const currentColumns = Array.isArray(state.spec.columns) ? state.spec.columns : [];
+    const columnsChanged = currentColumns.length !== nextColumns.length
+      || currentColumns.some((column, index) => column !== nextColumns[index]);
+
+    if (!columnsChanged) return false;
+
+    state.spec.columns = nextColumns;
+
+    if (options.refreshUrl !== false) {
+      window.history.replaceState({}, '', buildCurrentShareUrl());
+    }
+
+    return true;
+  }
+
   function hasSpecColumn(fieldName) {
     if (!state.spec || !Array.isArray(state.spec.columns)) return false;
     const baseFieldName = typeof window.getBaseFieldName === 'function'
@@ -571,6 +590,8 @@
     if (typeof window.loadFieldDefinitions === 'function') {
       await window.loadFieldDefinitions();
     }
+
+    syncSpecColumnsWithDisplayedFields({ refreshUrl: false });
 
     const options = getFieldPickerOptions();
     if (options.length === 0) {
@@ -1859,6 +1880,9 @@
     },
     async syncFromCurrentQuery(options = {}) {
       return syncGeneratedFormFromCurrentQuery(options);
+    },
+    syncDisplayedColumns(options = {}) {
+      return syncSpecColumnsWithDisplayedFields(options);
     },
     isActive() {
       return state.active;

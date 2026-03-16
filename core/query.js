@@ -695,6 +695,9 @@ async function showExampleTable(fields){
           if (field) {
             window.DragDropSystem.dragDropManager.dropSuccessful = true;
             window.DragDropSystem.restoreFieldWithDuplicates(field);
+            if (window.QueryFormMode && typeof window.QueryFormMode.syncDisplayedColumns === 'function') {
+              window.QueryFormMode.syncDisplayedColumns();
+            }
             showExampleTable(displayedFields).catch(error => {
               console.error('Error updating table:', error);
             });

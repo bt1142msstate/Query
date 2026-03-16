@@ -649,10 +649,16 @@ window.handleFilterConfirm = function(e) {
     if (cond === 'display' || cond === 'show' || cond === 'hide') {
         if (cond === 'show') {
             window.DragDropSystem.restoreFieldWithDuplicates(field);
+            if (window.QueryFormMode && typeof window.QueryFormMode.syncDisplayedColumns === 'function') {
+                window.QueryFormMode.syncDisplayedColumns();
+            }
             window.showExampleTable(window.displayedFields).catch(console.error);
         } else if ((cond === 'hide' || cond === 'display') && window.displayedFields.includes(field)) {
             const idx = window.displayedFields.indexOf(field);
             window.displayedFields.splice(idx, 1);
+            if (window.QueryFormMode && typeof window.QueryFormMode.syncDisplayedColumns === 'function') {
+                window.QueryFormMode.syncDisplayedColumns();
+            }
             window.showExampleTable(window.displayedFields).catch(console.error);
         }
     }

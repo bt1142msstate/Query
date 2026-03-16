@@ -14,6 +14,14 @@
  * Provides unified functions for adding/removing columns consistently across all interfaces
  */
 
+function syncFormModeDisplayedColumns() {
+  if (!window.QueryFormMode || typeof window.QueryFormMode.syncDisplayedColumns !== 'function') {
+    return;
+  }
+
+  window.QueryFormMode.syncDisplayedColumns();
+}
+
 
 
 
@@ -35,6 +43,7 @@ function addColumn(fieldName, insertAt = -1) {
   if (success) {
     // Trigger the same updates as successful drag/drop
     showExampleTable(window.displayedFields);
+    syncFormModeDisplayedColumns();
     updateQueryJson();
     updateButtonStates();
     updateCategoryCounts();
@@ -422,6 +431,7 @@ function finalizeMoveOperation(table) {
 
   // 5️⃣ Refresh index metadata
   refreshColIndices(table);
+  syncFormModeDisplayedColumns();
   updateQueryJson();
   
   // 6️⃣ If in Selected category, re-render bubbles to match new order
@@ -510,6 +520,7 @@ function removeColumn(table, colIndex) {
   }
 
   // Update JSON to reflect removed column
+  syncFormModeDisplayedColumns();
   updateQueryJson();
   // Update button states after removing column
   updateButtonStates();
