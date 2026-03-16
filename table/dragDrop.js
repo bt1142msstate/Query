@@ -579,6 +579,8 @@ const dragDropManager = {
   isBubbleDrag: false,
   hoverTh: null,
   autoScrollInterval: null,
+  autoScrollDirection: null,
+  autoScrollPointerX: 0,
   scrollContainer: null,
   draggedBubble: null,
   draggedBubbleOriginalRect: null,
@@ -589,16 +591,35 @@ const dragDropManager = {
   
   // Auto-scroll functionality
   startAutoScroll(direction, container) {
-    if (this.autoScrollInterval) return; // Already scrolling
+    this.autoScrollPointerX = this.lastDragX || this.autoScrollPointerX;
+
+    if (this.autoScrollInterval && this.autoScrollDirection === direction) {
+      return;
+    }
+
+    this.stopAutoScroll();
+    this.autoScrollDirection = direction;
     
     this.autoScrollInterval = setInterval(() => {
-      const scrollAmount = 30; // pixels per scroll step (increased from 15)
+      const rect = container.getBoundingClientRect();
+      const threshold = 90;
+      let proximity = 0;
+
+      if (direction === 'left') {
+        proximity = Math.max(0, (rect.left + threshold) - this.autoScrollPointerX);
+      } else if (direction === 'right') {
+        proximity = Math.max(0, this.autoScrollPointerX - (rect.right - threshold));
+      }
+
+      const intensity = Math.min(1, proximity / threshold);
+      const scrollAmount = Math.max(4, Math.round(4 + (intensity * 8)));
+
       if (direction === 'left') {
         container.scrollLeft = Math.max(0, container.scrollLeft - scrollAmount);
       } else if (direction === 'right') {
         container.scrollLeft += scrollAmount;
       }
-    }, 30); // scroll every 30ms for faster, smooth scrolling (decreased from 50ms)
+    }, 16);
   },
 
   stopAutoScroll() {
@@ -606,14 +627,16 @@ const dragDropManager = {
       clearInterval(this.autoScrollInterval);
       this.autoScrollInterval = null;
     }
+    this.autoScrollDirection = null;
   },
 
   checkAutoScroll(e, container) {
     if (!container) return;
     
     const rect = container.getBoundingClientRect();
-    const scrollThreshold = 300; // Increased from 50px to 100px for earlier triggering
+    const scrollThreshold = 90;
     const mouseX = e.clientX;
+    this.autoScrollPointerX = mouseX;
     
     // Check if near left edge
     if (mouseX < rect.left + scrollThreshold && container.scrollLeft > 0) {
@@ -730,8 +753,8 @@ const dragDropManager = {
     const colIndex = parseInt(element.dataset.colIndex, 10);
     positionDropAnchor(rect, table, e.clientX, colIndex);
     
-    // Check for auto-scroll when dragging columns
-    if (!this.isBubbleDrag && this.scrollContainer) {
+    // Check for auto-scroll for both bubble drags and column drags
+    if (this.scrollContainer) {
       this.checkAutoScroll(e, this.scrollContainer);
     }
   },
@@ -747,8 +770,8 @@ const dragDropManager = {
     const colIndex = parseInt(element.dataset.colIndex, 10);
     positionDropAnchor(rect, table, e.clientX, colIndex);
     
-    // Check for auto-scroll when dragging columns
-    if (!this.isBubbleDrag && this.scrollContainer) {
+    // Check for auto-scroll for both bubble drags and column drags
+    if (this.scrollContainer) {
       this.checkAutoScroll(e, this.scrollContainer);
     }
   },
@@ -767,8 +790,8 @@ const dragDropManager = {
     const rect = targetHeader.getBoundingClientRect();
     positionDropAnchor(rect, table, e.clientX, colIndex);
     
-    // Check for auto-scroll when dragging columns
-    if (!this.isBubbleDrag && this.scrollContainer) {
+    // Check for auto-scroll for both bubble drags and column drags
+    if (this.scrollContainer) {
       this.checkAutoScroll(e, this.scrollContainer);
     }
   },
@@ -789,6 +812,10 @@ const dragDropManager = {
     const colIndex = parseInt(best.dataset.colIndex, 10);
     const rect = best.getBoundingClientRect();
     positionDropAnchor(rect, table, e.clientX, colIndex);
+
+    if (this.scrollContainer) {
+      this.checkAutoScroll(e, this.scrollContainer);
+    }
   },
 
   handleCellDragOver(e, td, table) {
@@ -800,8 +827,8 @@ const dragDropManager = {
     const rect = targetHeader.getBoundingClientRect();
     positionDropAnchor(rect, table, e.clientX, colIndex);
     
-    // Check for auto-scroll when dragging columns
-    if (!this.isBubbleDrag && this.scrollContainer) {
+    // Check for auto-scroll for both bubble drags and column drags
+    if (this.scrollContainer) {
       this.checkAutoScroll(e, this.scrollContainer);
     }
   },
@@ -1081,6 +1108,10 @@ document.addEventListener('dragover', e => {
     
     dragDropManager.lastDragX = clampedX;
     dragDropManager.lastDragY = clampedY;
+
+    if (dragDropManager.scrollContainer) {
+      dragDropManager.checkAutoScroll(e, dragDropManager.scrollContainer);
+    }
   }
 });
 
@@ -1110,6 +1141,7 @@ document.addEventListener('dragend', e => {
   if (bubble && dragDropManager.draggedBubble) { // Only handle if we have a tracked drag
     console.log('Dragend event fired for:', bubble.textContent.trim());
     dragDropManager.setBubbleDrag(false);
+    dragDropManager.stopAutoScroll();
     
     // Check if drop was actually successful by looking at if the field was added to displayedFields
     const fieldName = bubble.textContent.trim();
