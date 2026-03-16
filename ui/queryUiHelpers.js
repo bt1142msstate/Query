@@ -322,6 +322,11 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     }
   });
 
+  function syncOptionItemState(optionItem, input) {
+    if (!optionItem || !input) return;
+    optionItem.classList.toggle('is-selected', Boolean(input.checked));
+  }
+
   function createOptionItem(val, groupName = '', insideGroup = false) {
     const optionItem = document.createElement('div');
     optionItem.className = 'option-item';
@@ -336,6 +341,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     input.dataset.value = val.literal;
     input.dataset.display = val.display;
     input.checked = currentValues.includes(val.literal);
+    input.className = 'option-item-input';
 
     if (isMultiSelect && groupName) {
       input.addEventListener('change', () => {
@@ -346,28 +352,39 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
         }
       });
     }
-          label.setAttribute('for', input.id);
 
     const label = document.createElement('label');
-    label.textContent = insideGroup
+    label.className = 'option-item-label';
+    label.setAttribute('for', input.id);
+
+    const indicator = document.createElement('span');
+    indicator.className = 'option-item-indicator';
+    indicator.setAttribute('aria-hidden', 'true');
+
+    const labelText = document.createElement('span');
+    labelText.className = 'option-item-text';
+    labelText.textContent = insideGroup
       ? val.display.replace(new RegExp(`^${groupName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*-\\s*`), '')
       : val.display;
 
+    label.appendChild(indicator);
+    label.appendChild(labelText);
 
-          optionItem.addEventListener('click', event => {
-            if (event.target === input) {
-              return;
-            }
+    input.addEventListener('change', () => {
+      syncOptionItemState(optionItem, input);
+    });
 
-            if (event.target instanceof HTMLLabelElement) {
-              return;
-            }
+    optionItem.addEventListener('click', event => {
+      if (event.target === input || event.target instanceof HTMLLabelElement) {
+        return;
+      }
 
-            input.click();
-          });
+      input.click();
+    });
 
     optionItem.appendChild(input);
     optionItem.appendChild(label);
+    syncOptionItemState(optionItem, input);
     return optionItem;
   }
 
@@ -411,8 +428,13 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
 
     const groupLabel = document.createElement('span');
     groupLabel.className = 'group-label';
-    groupLabel.textContent = `${groupName} (${groupValues.length})`;
+    groupLabel.textContent = groupName;
     groupHeader.appendChild(groupLabel);
+
+    const groupCount = document.createElement('span');
+    groupCount.className = 'group-count';
+    groupCount.textContent = String(groupValues.length);
+    groupHeader.appendChild(groupCount);
 
     groupSection.appendChild(groupHeader);
 
@@ -535,6 +557,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     this.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(input => {
       if (input.dataset.value) {
         input.checked = valueSet.has(input.dataset.value);
+        syncOptionItemState(input.closest('.option-item'), input);
       }
     });
 
