@@ -262,21 +262,9 @@ if(dom.runBtn){
         const lines = text.split('\n').filter(line => line.trim().length > 0);
         const headers = state.displayedFields; // Requested order
         const rows = lines.map(line => {
-            const values = line.split('|');
-            // Create object keyed by raw output columns
-            const obj = {};
-            let valueIndex = 0;
-            rawColumns.forEach((h) => {
-                const fieldDef = window.fieldDefs ? window.fieldDefs.get(h) : null;
-                const segments = fieldDef && fieldDef.parts ? fieldDef.parts : 1;
-                
-                let fieldVal = '';
-                if (valueIndex < values.length) {
-                    fieldVal = values.slice(valueIndex, valueIndex + segments).join('|');
-                    valueIndex += segments;
-                }
-                obj[h] = fieldVal;
-            });
+          const obj = typeof window.parsePipeDelimitedRow === 'function'
+            ? window.parsePipeDelimitedRow(line, rawColumns)
+            : {};
             // Ensure all requested headers exist
             headers.forEach(h => {
                 if (!(h in obj)) obj[h] = '';
