@@ -994,11 +994,15 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
   
   // Duration calculation
   let duration = '—';
-  if (q.startTime && (q.endTime || q.cancelledTime)) {
+  if (q.startTime) {
     const start = new Date(q.startTime);
-    const end = new Date(q.endTime || q.cancelledTime);
-    let seconds = Math.floor((end - start) / 1000);
-    duration = typeof formatDuration === 'function' ? formatDuration(seconds) : `${seconds}s`;
+    const end = q.running
+      ? new Date()
+      : new Date(q.endTime || q.cancelledTime);
+    if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())) {
+      const seconds = Math.max(0, Math.floor((end - start) / 1000));
+      duration = typeof formatDuration === 'function' ? formatDuration(seconds) : `${seconds}s`;
+    }
   }
   
   // Different row structure for running vs completed vs cancelled queries
@@ -1008,9 +1012,10 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
         <td class="px-4 py-3 text-xs text-left font-mono">${nameCell}</td>
         <td class="px-4 py-2 text-xs text-center">${columnsSummary}</td>
         <td class="px-4 py-2 text-xs text-center">${filtersSummary}</td>
+        <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
+        <td class="px-4 py-2 text-xs text-center">${duration}</td>
         <td class="px-4 py-2 text-center">${previewBtn}</td>
         <td class="px-4 py-2 text-center">${stopBtn}</td>
-        <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
       </tr>
     `;
   } else if (q.cancelled) {
@@ -1076,6 +1081,7 @@ function startQueryDurationUpdates() {
 
     const hasRunningQueries = exampleQueries.some(q => q.running);
     if (hasRunningQueries) {
+        renderQueries();
         if ((Date.now() - lastQueryStatusPollAt) >= QUERY_STATUS_POLL_MS) {
              window.fetchQueryStatus();
         }
@@ -1154,9 +1160,10 @@ function renderQueries(){
         <th class="px-4 py-2 text-center" data-tooltip="Query name or identifier">Name</th>
         <th class="px-4 py-2 text-center" data-tooltip="Columns being displayed in the query results">Displaying</th>
         <th class="px-4 py-2 text-center" data-tooltip="Active filters applied to the query">Filters</th>
+        <th class="px-4 py-2 text-center" data-tooltip="When this query was started">Started</th>
+        <th class="px-4 py-2 text-center" data-tooltip="How long this running query has been active">Duration</th>
         <th class="px-4 py-2 text-center" data-tooltip="Open the results accumulated so far for this running query">Results</th>
         <th class="px-4 py-2 text-center" data-tooltip="Stop the currently running query">Stop/Cancel</th>
-        <th class="px-4 py-2 text-center" data-tooltip="When this query was started">Started</th>
       </tr>
     </thead>`;
 
