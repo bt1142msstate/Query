@@ -426,6 +426,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
   const topLevelEntries = [];
   const allOptionItems = [];
   let refreshLayoutFrame = null;
+  let lastAppliedSearchTerm = '';
 
   function compareLabels(a = '', b = '') {
     return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
@@ -624,6 +625,9 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
   }
 
   function applySearch(searchTerm) {
+    const hadActiveSearch = Boolean(lastAppliedSearchTerm);
+    lastAppliedSearchTerm = searchTerm;
+
     reorderVisibleEntries();
 
     allOptionItems.forEach(item => {
@@ -636,7 +640,9 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     if (!searchTerm) {
       groupElements.forEach(groupEntry => {
         groupEntry.section.style.display = '';
-        setGroupExpanded(groupEntry, Boolean(groupEntry.userExpanded), { temporary: true });
+        if (hadActiveSearch) {
+          setGroupExpanded(groupEntry, Boolean(groupEntry.userExpanded), { temporary: true });
+        }
       });
       updateSelectionDividers();
       return;
