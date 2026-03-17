@@ -399,67 +399,6 @@ window.endTableQueryAnimation = function() {
       });
 
       setTimeout(completeMorph, (morphDuration * 1000) + 120);
-
-  window.playTableClearAnimation = function() {
-    const tableShell = document.getElementById('table-shell');
-    if (!tableShell) {
-      return Promise.resolve();
-    }
-
-    const existingOverlay = document.getElementById('table-clear-fire');
-    if (existingOverlay) {
-      existingOverlay.remove();
-    }
-
-    const overlay = document.createElement('div');
-    overlay.id = 'table-clear-fire';
-    overlay.className = 'table-clear-fire';
-
-    const heat = document.createElement('div');
-    heat.className = 'table-clear-fire__heat';
-    overlay.appendChild(heat);
-
-    const flameFront = document.createElement('div');
-    flameFront.className = 'table-clear-fire__flame table-clear-fire__flame--front';
-    overlay.appendChild(flameFront);
-
-    const flameBack = document.createElement('div');
-    flameBack.className = 'table-clear-fire__flame table-clear-fire__flame--back';
-    overlay.appendChild(flameBack);
-
-    const emberField = document.createElement('div');
-    emberField.className = 'table-clear-fire__embers';
-    for (let index = 0; index < 16; index += 1) {
-      const ember = document.createElement('span');
-      ember.className = 'table-clear-fire__ember';
-      ember.style.left = `${4 + Math.random() * 92}%`;
-      ember.style.bottom = `${2 + Math.random() * 16}%`;
-      ember.style.animationDelay = `${Math.random() * 0.45}s`;
-      ember.style.animationDuration = `${0.75 + Math.random() * 0.8}s`;
-      ember.style.setProperty('--ember-drift', `${-20 + Math.random() * 40}px`);
-      ember.style.setProperty('--ember-scale', `${0.6 + Math.random() * 1.2}`);
-      emberField.appendChild(ember);
-    }
-    overlay.appendChild(emberField);
-
-    tableShell.appendChild(overlay);
-    tableShell.classList.add('table-shell-burning');
-
-    return new Promise(resolve => {
-      window.requestAnimationFrame(() => {
-        overlay.classList.add('is-active');
-      });
-
-      window.setTimeout(() => {
-        overlay.classList.remove('is-active');
-        tableShell.classList.remove('table-shell-burning');
-        window.setTimeout(() => {
-          overlay.remove();
-          resolve();
-        }, 220);
-      }, 920);
-    });
-  };
     };
 
     if (!willMove) {
@@ -490,4 +429,65 @@ window.endTableQueryAnimation = function() {
       setTimeout(completeMove, (morphDuration * 1000) + 120);
     }
   }
+};
+
+window.playTableClearAnimation = function() {
+  const tableShell = document.getElementById('table-shell');
+  if (!tableShell) {
+    return Promise.resolve();
+  }
+
+  const existingOverlay = document.getElementById('table-clear-fire');
+  if (existingOverlay) {
+    existingOverlay.remove();
+  }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'table-clear-fire';
+  overlay.className = 'table-clear-fire';
+
+  const heat = document.createElement('div');
+  heat.className = 'table-clear-fire__heat';
+  overlay.appendChild(heat);
+
+  const flameFront = document.createElement('div');
+  flameFront.className = 'table-clear-fire__flame table-clear-fire__flame--front';
+  overlay.appendChild(flameFront);
+
+  const flameBack = document.createElement('div');
+  flameBack.className = 'table-clear-fire__flame table-clear-fire__flame--back';
+  overlay.appendChild(flameBack);
+
+  const emberField = document.createElement('div');
+  emberField.className = 'table-clear-fire__embers';
+  for (let index = 0; index < 16; index += 1) {
+    const ember = document.createElement('span');
+    ember.className = 'table-clear-fire__ember';
+    ember.style.left = `${4 + Math.random() * 92}%`;
+    ember.style.bottom = `${2 + Math.random() * 16}%`;
+    ember.style.animationDelay = `${Math.random() * 0.45}s`;
+    ember.style.animationDuration = `${0.75 + Math.random() * 0.8}s`;
+    ember.style.setProperty('--ember-drift', `${-20 + Math.random() * 40}px`);
+    ember.style.setProperty('--ember-scale', `${0.6 + Math.random() * 1.2}`);
+    emberField.appendChild(ember);
+  }
+  overlay.appendChild(emberField);
+
+  tableShell.appendChild(overlay);
+  tableShell.classList.add('table-shell-burning');
+
+  return new Promise(resolve => {
+    window.requestAnimationFrame(() => {
+      overlay.classList.add('is-active');
+    });
+
+    window.setTimeout(() => {
+      overlay.classList.remove('is-active');
+      tableShell.classList.remove('table-shell-burning');
+      window.setTimeout(() => {
+        overlay.remove();
+        resolve();
+      }, 220);
+    }, 920);
+  });
 };
