@@ -152,7 +152,7 @@ body.table-expanded-open {
   z-index: 10;
   position: relative;
   overflow-x: auto;
-  clip-path: inset(0 0 0 0 round var(--border-radius-xl));
+  clip-path: inset(0 0 0 0 round 0 0 var(--border-radius-xl) var(--border-radius-xl));
 }
 
 /* Fix scrollbar styling to respect rounded corners */
@@ -431,10 +431,10 @@ th:hover .th-trash {
    ========================================== */
 
 #table-name-shell {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  max-width: min(100%, 38rem);
+  width: 100%;
   min-width: 0;
   justify-self: center;
 }
@@ -442,7 +442,7 @@ th:hover .th-trash {
 #table-name-input {
   transition: all 0.2s ease;
   cursor: pointer;
-  border-radius: 999px;
+  border-radius: 0;
   padding: 0.42rem 0.9rem;
   margin: 0;
   display: block;
@@ -454,9 +454,9 @@ th:hover .th-trash {
   border: 2px solid rgba(59, 130, 246, 0.2);
   box-shadow: 0 5px 12px rgba(15, 23, 42, 0.06);
   line-height: 1.1;
-  width: auto;
-  min-width: 200px;
-  max-width: 100%;
+  width: 100% !important;
+  min-width: 0;
+  max-width: none;
   overflow-x: auto;
   white-space: nowrap;
 }
