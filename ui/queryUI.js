@@ -22,11 +22,10 @@ window.DOM = {
   get queryInput() { return this._queryInput ||= document.getElementById('query-input'); },
   get tableShell() { return this._tableShell ||= document.getElementById('table-shell'); },
   get tableContainer() { return this._tableContainer ||= document.getElementById('table-container'); },
+  get tableInfoBar() { return this._tableInfoBar ||= document.getElementById('table-info-bar'); },
   get tableToolbar() { return this._tableToolbar ||= document.getElementById('table-toolbar'); },
-  get tableToolbarSpacer() { return this._tableToolbarSpacer ||= document.getElementById('table-toolbar-spacer'); },
   get tableNameInput() { return this._tableNameInput ||= document.getElementById('table-name-input'); },
   get tableNameShell() { return this._tableNameShell ||= document.getElementById('table-name-shell'); },
-  get tableNameRow() { return this._tableNameRow ||= document.getElementById('table-name-row'); },
   get tableResultsBadge() { return this._tableResultsBadge ||= document.getElementById('table-results-badge'); },
   get tableResultsCount() { return this._tableResultsCount ||= document.getElementById('table-results-count'); },
   get tableResultsLabel() { return this._tableResultsLabel ||= document.getElementById('table-results-label'); },
@@ -103,17 +102,6 @@ window.getTableZoom = function() {
   return Number.isFinite(zoomValue) ? Math.min(1.4, Math.max(0.8, zoomValue)) : 1;
 };
 
-window.syncTableToolbarBalance = function() {
-  const spacer = window.DOM.tableToolbarSpacer;
-  const toolbar = window.DOM.tableToolbar;
-
-  if (!spacer || !toolbar) {
-    return;
-  }
-
-  spacer.style.width = `${Math.ceil(toolbar.getBoundingClientRect().width)}px`;
-};
-
 window.refreshTableViewport = function() {
   const tableShell = window.DOM.tableShell;
   const tableContainer = window.DOM.tableContainer;
@@ -180,8 +168,6 @@ window.updateTableChromeState = function() {
     tableExpandBtn.setAttribute('aria-label', expanded ? 'Collapse table' : 'Expand table');
     tableExpandBtn.setAttribute('data-tooltip', expanded ? 'Collapse table' : 'Expand table');
   }
-
-  window.syncTableToolbarBalance();
 };
 
 window.setTableZoom = function(nextZoom) {
@@ -227,8 +213,6 @@ window.onDOMReady(() => {
   const tableExpandBtn = window.DOM.tableExpandBtn;
   const tableZoomInBtn = window.DOM.tableZoomInBtn;
   const tableZoomOutBtn = window.DOM.tableZoomOutBtn;
-  const tableToolbar = window.DOM.tableToolbar;
-
   if (tableShell) {
     tableShell.dataset.zoom = tableShell.dataset.zoom || '1.00';
   }
@@ -251,13 +235,6 @@ window.onDOMReady(() => {
     });
   }
 
-  if (typeof ResizeObserver !== 'undefined' && tableToolbar) {
-    const toolbarResizeObserver = new ResizeObserver(() => {
-      window.syncTableToolbarBalance();
-    });
-    toolbarResizeObserver.observe(tableToolbar);
-  }
-
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && window.DOM.tableShell?.classList.contains('table-shell-expanded')) {
       window.toggleTableExpanded(false);
@@ -265,8 +242,6 @@ window.onDOMReady(() => {
   });
 
   window.addEventListener('resize', () => {
-    window.syncTableToolbarBalance();
-
     if (window.DOM.tableShell?.classList.contains('table-shell-expanded')) {
       window.refreshTableViewport();
       return;
@@ -274,7 +249,6 @@ window.onDOMReady(() => {
   });
 
   window.updateTableChromeState();
-  window.syncTableToolbarBalance();
   window.refreshTableViewport();
 });
 
