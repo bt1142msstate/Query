@@ -121,7 +121,7 @@ window.restoreFieldWithDuplicates = function(fieldName, insertAt = -1) {
     window.removedColumnInfo.delete(fieldName);
     
     // Insert all duplicate columns at the specified position
-    window.QueryStateStore.addDisplayedField(storedInfo.columnNames, {
+    window.QueryChangeManager.addDisplayedField(storedInfo.columnNames, {
       insertAt,
       source: 'ColumnManager.restoreFieldWithDuplicates'
     });
@@ -139,7 +139,7 @@ window.restoreFieldWithDuplicates = function(fieldName, insertAt = -1) {
       
       if (relatedColumns.length > 0) {
         // Insert all related columns from original data
-        window.QueryStateStore.addDisplayedField(relatedColumns, {
+        window.QueryChangeManager.addDisplayedField(relatedColumns, {
           insertAt,
           source: 'ColumnManager.restoreFieldWithDuplicates'
         });
@@ -149,7 +149,7 @@ window.restoreFieldWithDuplicates = function(fieldName, insertAt = -1) {
     }
     
     // Fallback to single field - this will show "..." in the table
-    window.QueryStateStore.addDisplayedField(fieldName, {
+    window.QueryChangeManager.addDisplayedField(fieldName, {
       insertAt,
       source: 'ColumnManager.restoreFieldWithDuplicates'
     });

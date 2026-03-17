@@ -1222,7 +1222,7 @@
       }
     });
 
-    window.QueryStateStore.setQueryState({
+    window.QueryChangeManager.setQueryState({
       displayedFields: columns,
       activeFilters: nextActiveFilters
     }, { source: 'QueryFormMode.applyFormState' });
@@ -1752,8 +1752,8 @@
     const searchParams = new URLSearchParams(window.location.search);
     state.searchParams = searchParams;
 
-    if (!state.unsubscribeQueryState && window.QueryStateStore && typeof window.QueryStateStore.subscribe === 'function') {
-      state.unsubscribeQueryState = window.QueryStateStore.subscribe(event => {
+    if (!state.unsubscribeQueryState && window.QueryChangeManager && typeof window.QueryChangeManager.subscribe === 'function') {
+      state.unsubscribeQueryState = window.QueryChangeManager.subscribe(event => {
         if (!state.active || !event || !event.changes || !event.changes.displayedFields) {
           return;
         }

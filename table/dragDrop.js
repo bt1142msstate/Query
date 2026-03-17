@@ -299,7 +299,7 @@ function moveSingleColumn(table, fromIndex, toIndex) {
   if (fromIndex === toIndex) return;
 
   // 1️⃣ Keep displayedFields order in sync first
-  window.QueryStateStore.moveDisplayedField(fromIndex, toIndex, {
+  window.QueryChangeManager.moveDisplayedField(fromIndex, toIndex, {
     source: 'DragDrop.moveSingleColumn'
   });
 
@@ -322,7 +322,7 @@ function moveSingleColumn(table, fromIndex, toIndex) {
 
 function moveColumnGroup(table, groupIndices, targetIndex) {
   // Extract all related fields as a group
-  window.QueryStateStore.moveDisplayedField(groupIndices[0], targetIndex, {
+  window.QueryChangeManager.moveDisplayedField(groupIndices[0], targetIndex, {
     count: groupIndices.length,
     behavior: 'group',
     source: 'DragDrop.moveColumnGroup'
@@ -434,7 +434,7 @@ function removeColumn(table, colIndex) {
   });
 
   // Remove all related columns from displayedFields array
-  window.QueryStateStore.removeDisplayedField(
+  window.QueryChangeManager.removeDisplayedField(
     allRelatedColumns.map(relatedHeader => relatedHeader.textContent.trim()),
     { source: 'DragDrop.removeColumn' }
   );
