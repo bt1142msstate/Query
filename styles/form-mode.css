@@ -248,6 +248,9 @@ body.form-mode-active #filter-side-panel {
   background: #fff;
   color: #0f172a;
   box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .form-mode-money-input-wrap {
@@ -790,4 +793,13 @@ select.form-mode-operator-select:hover {
 select.form-mode-operator-select:focus {
   outline: 2px solid rgba(59, 130, 246, 0.3);
   outline-offset: 1px;
+}
+
+.form-mode-between-input {
+  font-size: 0.85rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
