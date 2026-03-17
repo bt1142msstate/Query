@@ -637,7 +637,15 @@
       </div>
       <div class="form-mode-field-picker-body">
         <div class="form-mode-field-picker-list-panel">
-          <input type="search" class="form-mode-field-picker-search" placeholder="Search fields..." aria-label="Search fields" data-search-ui="enhanced" data-search-wrapper-class="form-mode-field-picker-search-field" data-search-clear-label="Clear field search" />
+          <div class="form-mode-field-picker-controls">
+            <input type="search" class="form-mode-field-picker-search" placeholder="Search fields..." aria-label="Search fields" data-search-ui="enhanced" data-search-wrapper-class="form-mode-field-picker-search-field" data-search-clear-label="Clear field search" />
+            <label class="form-mode-field-picker-category-wrap">
+              <span class="form-mode-field-picker-category-label">Category</span>
+              <select class="form-mode-field-picker-category-select" aria-label="Filter fields by category">
+                <option value="">All categories</option>
+              </select>
+            </label>
+          </div>
           <div class="form-mode-field-picker-list" role="listbox" aria-label="Available fields"></div>
         </div>
         <div class="form-mode-field-picker-details">
@@ -656,8 +664,8 @@
         </div>
       </div>
       <div class="form-mode-field-picker-footer">
-        <button type="button" class="form-mode-btn form-mode-field-picker-cancel">Cancel</button>
-        <button type="button" class="form-mode-btn form-mode-btn-primary form-mode-field-picker-apply" disabled>Apply Changes</button>
+        <span class="form-mode-field-picker-footer-note">Changes apply automatically.</span>
+        <button type="button" class="form-mode-btn form-mode-field-picker-cancel">Done</button>
       </div>
     `;
 
@@ -666,8 +674,8 @@
 
     const closeButton = modal.querySelector('.form-mode-field-picker-close');
     const cancelButton = modal.querySelector('.form-mode-field-picker-cancel');
-    const applyButton = modal.querySelector('.form-mode-field-picker-apply');
     const searchInput = modal.querySelector('.form-mode-field-picker-search');
+    const categorySelect = modal.querySelector('.form-mode-field-picker-category-select');
     const listEl = modal.querySelector('.form-mode-field-picker-list');
     const fieldNameEl = modal.querySelector('.form-mode-field-picker-field-name');
     const fieldMetaEl = modal.querySelector('.form-mode-field-picker-field-meta');
@@ -681,6 +689,24 @@
 
     let selectedFieldName = options[0].name;
     let searchTerm = '';
+    let selectedCategory = '';
+
+    const categories = options
+      .flatMap(option => String(option.category || '')
+        .split(',')
+        .map(category => category.trim())
+        .filter(Boolean))
+      .filter((category, index, list) => list.indexOf(category) === index)
+      .sort((left, right) => left.localeCompare(right, undefined, { sensitivity: 'base' }));
+
+    if (categorySelect) {
+      categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        categorySelect.appendChild(option);
+      });
+    }
 
     function cleanup() {
       document.removeEventListener('keydown', onKeyDown);
@@ -701,8 +727,6 @@
         fieldMetaEl.textContent = '';
         fieldMetaEl.classList.add('hidden');
         statusEl.textContent = 'No field selected.';
-        applyButton.disabled = true;
-        applyButton.textContent = 'Apply Changes';
         return;
       }
 
@@ -737,21 +761,66 @@
       statusEl.textContent = statusParts.length > 0
         ? statusParts.join(' • ')
         : 'No changes for this field.';
+    }
 
-      const hasChanges = willAddDisplay || willRemoveDisplay || willAddFilter || willRemoveFilter;
-      applyButton.disabled = !hasChanges;
+    function applySelectedFieldChanges() {
+      if (!selectedFieldName || !state.spec) {
+        return;
+      }
 
-      if (willRemoveDisplay || willRemoveFilter) {
-        applyButton.textContent = (willAddDisplay || willAddFilter) ? 'Apply Changes' : 'Remove Field';
-      } else if (willAddDisplay || willAddFilter) {
-        applyButton.textContent = 'Add Field';
-      } else {
-        applyButton.textContent = 'Apply Changes';
+      const addedParts = [];
+      const removedParts = [];
+
+      const alreadyDisplayed = hasSpecColumn(selectedFieldName);
+      const alreadyFilterable = hasSpecFilterInput(selectedFieldName);
+
+      if (displayChoice.checked && !alreadyDisplayed) {
+        state.spec.columns.push(selectedFieldName);
+        addedParts.push('results column');
+      } else if (!displayChoice.checked && alreadyDisplayed) {
+        removeSpecColumns(selectedFieldName);
+        removedParts.push('results column');
+      }
+
+      if (filterChoice.checked && !alreadyFilterable) {
+        state.spec.inputs.push(createGeneratedInputSpec(selectedFieldName));
+        addedParts.push('filter control');
+      } else if (!filterChoice.checked && alreadyFilterable) {
+        removeSpecFilterInputs(selectedFieldName);
+        removedParts.push('filter control');
+      }
+
+      if (addedParts.length === 0 && removedParts.length === 0) {
+        syncDetails();
+        return;
+      }
+
+      rebuildFormCardFromSpec();
+      renderList();
+      syncDetails();
+
+      if (window.showToastMessage) {
+        const messageParts = [];
+        if (addedParts.length > 0) {
+          messageParts.push(`added ${addedParts.join(' and ')}`);
+        }
+        if (removedParts.length > 0) {
+          messageParts.push(`removed ${removedParts.join(' and ')}`);
+        }
+        window.showToastMessage(`${selectedFieldName}: ${messageParts.join(', ')}.`, 'success');
       }
     }
 
     function renderList() {
       const filteredOptions = options.filter(option => {
+        const categoryMatch = !selectedCategory
+          || String(option.category || '')
+            .split(',')
+            .map(category => category.trim())
+            .filter(Boolean)
+            .includes(selectedCategory);
+        if (!categoryMatch) return false;
+
         if (!searchTerm) return true;
         const haystack = `${option.name} ${option.type} ${option.category}`.toLowerCase();
         return haystack.includes(searchTerm);
@@ -812,58 +881,18 @@
       syncDetails();
     }
 
-    displayChoice.addEventListener('change', syncDetails);
-    filterChoice.addEventListener('change', syncDetails);
+    displayChoice.addEventListener('change', applySelectedFieldChanges);
+    filterChoice.addEventListener('change', applySelectedFieldChanges);
     searchInput.addEventListener('input', event => {
       searchTerm = String(event.target.value || '').trim().toLowerCase();
       renderList();
     });
-
-    applyButton.addEventListener('click', () => {
-      if (!selectedFieldName || !state.spec) {
-        return;
-      }
-
-      const addedParts = [];
-      const removedParts = [];
-
-      const alreadyDisplayed = hasSpecColumn(selectedFieldName);
-      const alreadyFilterable = hasSpecFilterInput(selectedFieldName);
-
-      if (displayChoice.checked && !alreadyDisplayed) {
-        state.spec.columns.push(selectedFieldName);
-        addedParts.push('results column');
-      } else if (!displayChoice.checked && alreadyDisplayed) {
-        removeSpecColumns(selectedFieldName);
-        removedParts.push('results column');
-      }
-
-      if (filterChoice.checked && !alreadyFilterable) {
-        state.spec.inputs.push(createGeneratedInputSpec(selectedFieldName));
-        addedParts.push('filter control');
-      } else if (!filterChoice.checked && alreadyFilterable) {
-        removeSpecFilterInputs(selectedFieldName);
-        removedParts.push('filter control');
-      }
-
-      if (addedParts.length === 0 && removedParts.length === 0) {
-        return;
-      }
-
-      rebuildFormCardFromSpec();
-      cleanup();
-
-      if (window.showToastMessage) {
-        const messageParts = [];
-        if (addedParts.length > 0) {
-          messageParts.push(`added ${addedParts.join(' and ')}`);
-        }
-        if (removedParts.length > 0) {
-          messageParts.push(`removed ${removedParts.join(' and ')}`);
-        }
-        window.showToastMessage(`${selectedFieldName}: ${messageParts.join(', ')}.`, 'success');
-      }
-    });
+    if (categorySelect) {
+      categorySelect.addEventListener('change', event => {
+        selectedCategory = String(event.target.value || '').trim();
+        renderList();
+      });
+    }
 
     [backdrop, closeButton, cancelButton].forEach(target => {
       if (!target) return;
