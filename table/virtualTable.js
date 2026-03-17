@@ -125,7 +125,8 @@ function calculateVisibleRows() {
   if (!tableScrollContainer) return { start: 0, end: 0 };
   
   const containerHeight = tableScrollContainer.clientHeight;
-  const headerHeight = 40; // approximate header height
+  const headerRow = tableScrollContainer.querySelector('#example-table thead');
+  const headerHeight = headerRow ? Math.ceil(headerRow.getBoundingClientRect().height) : 40;
   const availableHeight = containerHeight > 0 ? (containerHeight - headerHeight) : 400;
   
   // Add a generous overscan buffer (10 rows above and below) to prevent scroll glitches
@@ -470,7 +471,7 @@ function calculateOptimalColumnWidths(fields, data) {
  */
 async function setupVirtualTable(container, fields) {
   // Set up container for virtual scrolling
-  container.style.height = '400px'; // Fixed height for virtual scrolling
+  container.style.height = container.dataset.expanded === 'true' ? 'calc(100vh - 11rem)' : '400px';
   container.style.overflowY = 'auto';
   
   // Set up scroll container reference

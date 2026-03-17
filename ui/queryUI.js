@@ -20,11 +20,19 @@ window.DOM = {
   get clearQueryBtn() { return this._clearQueryBtn ||= document.getElementById('clear-query-btn'); },
   get queryBox() { return this._queryBox ||= document.getElementById('query-json'); },
   get queryInput() { return this._queryInput ||= document.getElementById('query-input'); },
+  get tableShell() { return this._tableShell ||= document.getElementById('table-shell'); },
+  get tableContainer() { return this._tableContainer ||= document.getElementById('table-container'); },
   get tableNameInput() { return this._tableNameInput ||= document.getElementById('table-name-input'); },
   get tableNameShell() { return this._tableNameShell ||= document.getElementById('table-name-shell'); },
   get tableResultsLip() { return this._tableResultsLip ||= document.getElementById('table-results-lip'); },
   get tableResultsCount() { return this._tableResultsCount ||= document.getElementById('table-results-count'); },
   get tableResultsLabel() { return this._tableResultsLabel ||= document.getElementById('table-results-label'); },
+  get tableZoomControls() { return this._tableZoomControls ||= document.getElementById('table-zoom-controls'); },
+  get tableZoomOutBtn() { return this._tableZoomOutBtn ||= document.getElementById('table-zoom-out-btn'); },
+  get tableZoomInBtn() { return this._tableZoomInBtn ||= document.getElementById('table-zoom-in-btn'); },
+  get tableZoomLabel() { return this._tableZoomLabel ||= document.getElementById('table-zoom-label'); },
+  get tableExpandBtn() { return this._tableExpandBtn ||= document.getElementById('table-expand-btn'); },
+  get tableExpandLabel() { return this._tableExpandLabel ||= document.getElementById('table-expand-label'); },
   get clearSearchBtn() { return this._clearSearchBtn ||= document.getElementById('clear-search-btn'); },
   get groupMethodSelect() { return this._groupMethodSelect ||= document.getElementById('group-method-select'); },
   get filterError() { return this._filterError ||= document.getElementById('filter-error'); },
@@ -80,6 +88,126 @@ window.updateTableResultsLip = function() {
   }
 };
 
+window.getTableZoom = function() {
+  const tableShell = window.DOM.tableShell;
+  if (!tableShell) {
+    return 1;
+  }
+
+  const zoomValue = Number.parseFloat(tableShell.dataset.zoom || '1');
+  return Number.isFinite(zoomValue) ? Math.min(1.4, Math.max(0.8, zoomValue)) : 1;
+};
+
+window.refreshTableViewport = function() {
+  const tableShell = window.DOM.tableShell;
+  const tableContainer = window.DOM.tableContainer;
+
+  if (!tableShell || !tableContainer) {
+    return;
+  }
+
+  const expanded = tableShell.classList.contains('table-shell-expanded');
+  tableContainer.dataset.expanded = expanded ? 'true' : 'false';
+  tableContainer.style.height = expanded ? 'calc(100vh - 11rem)' : '400px';
+
+  if (typeof window.syncTableResultsLipWidth === 'function') {
+    window.syncTableResultsLipWidth();
+  }
+
+  window.requestAnimationFrame(() => {
+    const table = document.getElementById('example-table');
+    if (!table || !window.VirtualTable) {
+      return;
+    }
+
+    if (typeof window.VirtualTable.measureRowHeight === 'function' && Array.isArray(window.displayedFields) && window.displayedFields.length > 0) {
+      window.VirtualTable.measureRowHeight(table, window.displayedFields);
+    }
+
+    if (typeof window.VirtualTable.renderVirtualTable === 'function') {
+      window.VirtualTable.renderVirtualTable();
+    }
+  });
+};
+
+window.updateTableChromeState = function() {
+  const tableShell = window.DOM.tableShell;
+  const tableZoomControls = window.DOM.tableZoomControls;
+  const tableZoomLabel = window.DOM.tableZoomLabel;
+  const tableZoomInBtn = window.DOM.tableZoomInBtn;
+  const tableZoomOutBtn = window.DOM.tableZoomOutBtn;
+  const tableExpandBtn = window.DOM.tableExpandBtn;
+  const tableExpandLabel = window.DOM.tableExpandLabel;
+
+  if (!tableShell) {
+    return;
+  }
+
+  const expanded = tableShell.classList.contains('table-shell-expanded');
+  const zoom = window.getTableZoom();
+
+  tableShell.style.setProperty('--table-zoom', zoom.toFixed(2));
+
+  if (tableZoomControls) {
+    tableZoomControls.classList.toggle('hidden', !expanded);
+  }
+
+  if (tableZoomLabel) {
+    tableZoomLabel.textContent = `${Math.round(zoom * 100)}%`;
+  }
+
+  if (tableZoomOutBtn) {
+    tableZoomOutBtn.disabled = zoom <= 0.8;
+  }
+
+  if (tableZoomInBtn) {
+    tableZoomInBtn.disabled = zoom >= 1.4;
+  }
+
+  if (tableExpandBtn) {
+    tableExpandBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    tableExpandBtn.setAttribute('aria-label', expanded ? 'Collapse table' : 'Expand table');
+    tableExpandBtn.setAttribute('data-tooltip', expanded ? 'Collapse table' : 'Expand table');
+  }
+
+  if (tableExpandLabel) {
+    tableExpandLabel.textContent = expanded ? 'Collapse' : 'Expand';
+  }
+};
+
+window.setTableZoom = function(nextZoom) {
+  const tableShell = window.DOM.tableShell;
+  if (!tableShell) {
+    return;
+  }
+
+  const clampedZoom = Math.min(1.4, Math.max(0.8, Number(nextZoom) || 1));
+  tableShell.dataset.zoom = clampedZoom.toFixed(2);
+  window.updateTableChromeState();
+  window.refreshTableViewport();
+};
+
+window.toggleTableExpanded = function(forceExpanded) {
+  const tableShell = window.DOM.tableShell;
+  if (!tableShell) {
+    return;
+  }
+
+  const expanded = typeof forceExpanded === 'boolean'
+    ? forceExpanded
+    : !tableShell.classList.contains('table-shell-expanded');
+
+  tableShell.classList.toggle('table-shell-expanded', expanded);
+  document.body.classList.toggle('table-expanded-open', expanded);
+
+  if (!expanded) {
+    tableShell.dataset.zoom = '1.00';
+  }
+
+  window.updateTableChromeState();
+  window.refreshTableViewport();
+};
+
 window.onDOMReady(() => {
   const tableNameInput = window.DOM.tableNameInput;
   if (!tableNameInput) {
@@ -102,6 +230,53 @@ window.onDOMReady(() => {
     const resizeObserver = new ResizeObserver(syncLipWidth);
     resizeObserver.observe(tableNameInput);
   }
+
+  const tableShell = window.DOM.tableShell;
+  const tableExpandBtn = window.DOM.tableExpandBtn;
+  const tableZoomInBtn = window.DOM.tableZoomInBtn;
+  const tableZoomOutBtn = window.DOM.tableZoomOutBtn;
+
+  if (tableShell) {
+    tableShell.dataset.zoom = tableShell.dataset.zoom || '1.00';
+  }
+
+  if (tableExpandBtn) {
+    tableExpandBtn.addEventListener('click', () => {
+      window.toggleTableExpanded();
+    });
+  }
+
+  if (tableZoomInBtn) {
+    tableZoomInBtn.addEventListener('click', () => {
+      window.setTableZoom(window.getTableZoom() + 0.1);
+    });
+  }
+
+  if (tableZoomOutBtn) {
+    tableZoomOutBtn.addEventListener('click', () => {
+      window.setTableZoom(window.getTableZoom() - 0.1);
+    });
+  }
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && window.DOM.tableShell?.classList.contains('table-shell-expanded')) {
+      window.toggleTableExpanded(false);
+    }
+  });
+
+  window.addEventListener('resize', () => {
+    if (window.DOM.tableShell?.classList.contains('table-shell-expanded')) {
+      window.refreshTableViewport();
+      return;
+    }
+
+    if (typeof window.syncTableResultsLipWidth === 'function') {
+      window.syncTableResultsLipWidth();
+    }
+  });
+
+  window.updateTableChromeState();
+  window.refreshTableViewport();
 });
 
 window.updateRunButtonIcon = function(validationError) {

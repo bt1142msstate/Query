@@ -2,43 +2,157 @@
    8. TABLE STYLES
    ========================================== */
 
+/* Table shell and chrome */
+#table-shell {
+  --table-zoom: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+#table-top-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.1rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-bottom: none;
+  border-radius: var(--border-radius-xl) var(--border-radius-xl) 0 0;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(239, 246, 255, 0.94)),
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.14), transparent 45%);
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08), 0 4px 10px rgba(15, 23, 42, 0.05);
+}
+
+#table-toolbar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+#table-zoom-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+#table-zoom-label {
+  min-width: 3.2rem;
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #334155;
+}
+
+.table-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 2.2rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(255, 255, 255, 0.88);
+  color: #1e293b;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+}
+
+.table-toolbar-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(59, 130, 246, 0.38);
+  box-shadow: 0 10px 20px rgba(59, 130, 246, 0.12);
+}
+
+.table-toolbar-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.table-expand-btn {
+  min-width: 7.4rem;
+}
+
+body.table-expanded-open {
+  overflow: hidden;
+}
+
+#table-shell.table-shell-expanded {
+  position: fixed;
+  inset: calc(var(--header-height) + 1rem) 1.25rem 1.25rem;
+  z-index: calc(var(--z-overlay) + 20);
+}
+
+#table-shell.table-shell-expanded #table-top-bar {
+  padding: 1rem 1.2rem;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(224, 242, 254, 0.96)),
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.18), transparent 50%);
+}
+
+#table-shell.table-shell-expanded::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.28);
+  backdrop-filter: blur(10px);
+  z-index: -1;
+}
+
 /* Table container */
-.overflow-x-auto.shadow.rounded-lg.mb-6.relative {
+#table-container {
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12), 0 4px 10px rgba(0, 0, 0, 0.08);
-  border-radius: var(--border-radius-xl); /* Round all corners */
+  border-radius: 0 0 var(--border-radius-xl) var(--border-radius-xl);
   border: 1px solid rgba(255, 255, 255, 0.3);
+  border-top: none;
   backdrop-filter: blur(4px);
   background: #fff;
   z-index: 10;
   position: relative;
-  overflow-x: auto; /* Ensure horizontal scrolling */
-  /* This neatly clips custom webkit scrollbars so they fit the border radius perfectly */
+  overflow-x: auto;
   clip-path: inset(0 0 0 0 round var(--border-radius-xl));
 }
 
 /* Fix scrollbar styling to respect rounded corners */
-.overflow-x-auto.shadow.rounded-lg.mb-6.relative::-webkit-scrollbar {
+#table-container::-webkit-scrollbar {
   width: 12px;
-  height: 12px; /* Add horizontal scrollbar height */
+  height: 12px;
 }
 
-.overflow-x-auto.shadow.rounded-lg.mb-6.relative::-webkit-scrollbar-track {
+#table-container::-webkit-scrollbar-track {
   background: rgba(156, 163, 175, 0.9);
 }
 
 /* Vertical scrollbar track styling */
-.overflow-x-auto.shadow.rounded-lg.mb-6.relative::-webkit-scrollbar-track:vertical {
+#table-container::-webkit-scrollbar-track:vertical {
   margin-top: calc(var(--table-header-height) - 4px);
 }
 
 /* Horizontal scrollbar track styling */
-.overflow-x-auto.shadow.rounded-lg.mb-6.relative::-webkit-scrollbar-track:horizontal {
+#table-container::-webkit-scrollbar-track:horizontal {
   background: transparent;
   margin-top: 0;
   margin-left: 0;
 }
 
-.overflow-x-auto.shadow.rounded-lg.mb-6.relative::-webkit-scrollbar-thumb {
+#table-container::-webkit-scrollbar-thumb {
   background: rgba(107, 114, 128, 0.8);
   border-radius: 6px;
   border: 1px solid rgba(107, 114, 128, 0.2);
@@ -47,17 +161,17 @@
 
 
 
-.overflow-x-auto.shadow.rounded-lg.mb-6.relative::-webkit-scrollbar-thumb:hover {
+#table-container::-webkit-scrollbar-thumb:hover {
   background: rgba(75, 85, 99, 0.9);
 }
 
 /* Handle scrollbar corner where vertical and horizontal meet */
-.overflow-x-auto.shadow.rounded-lg.mb-6.relative::-webkit-scrollbar-corner {
+#table-container::-webkit-scrollbar-corner {
   background: rgba(156, 163, 175, 0.9);
 }
 
 /* Remove the hover transformation effect */
-.overflow-x-auto.shadow.rounded-lg.mb-6.relative:hover {
+#table-container:hover {
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15), 0 5px 12px rgba(0, 0, 0, 0.1);
 }
 
@@ -65,8 +179,8 @@
   border-radius: var(--border-radius-lg);
   border-collapse: separate;
   border-spacing: 0;
-  width: auto; /* Allow table to expand to natural width */
-  min-width: 100%; /* Ensure it's at least full width */
+  width: auto;
+  min-width: 100%;
 }
 
 /* Table headers */
@@ -82,7 +196,7 @@
   color: #333;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  padding: 1rem 1.5rem !important;
+  padding: calc(1rem * var(--table-zoom)) calc(1.5rem * var(--table-zoom)) !important;
   position: sticky;
   top: 0;
   z-index: 2;
@@ -91,6 +205,7 @@
   height: var(--table-header-height);
   box-sizing: border-box;
   box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.12), inset 0 -1px 0 rgba(0, 0, 0, 0.12);
+  font-size: calc(0.75rem * var(--table-zoom));
 }
 
 /* Remove border from the last header column */
@@ -133,9 +248,21 @@
 
 /* Table cells */
 #example-table td {
-  padding: 1rem 1.5rem !important;
+  padding: calc(1rem * var(--table-zoom)) calc(1.5rem * var(--table-zoom)) !important;
   color: #444;
   white-space: nowrap;
+  font-size: calc(0.875rem * var(--table-zoom));
+  line-height: calc(1.25rem * var(--table-zoom));
+}
+
+#table-container,
+#example-table tbody,
+#example-table tbody *,
+#example-table td,
+#example-table td * {
+  user-select: text;
+  -webkit-user-select: text;
+  -ms-user-select: text;
 }
 
 /* ==========================================
@@ -285,21 +412,28 @@ th:hover .th-trash {
    14. TABLE NAME INPUT STYLING
    ========================================== */
 
+#table-name-shell {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: min(100%, 38rem);
+  min-width: 0;
+}
+
 #table-name-input {
   transition: all 0.2s ease;
   cursor: pointer;
-  border-radius: 0 0 3px 3px;
-  padding: 8px 16px;
-  margin: 0 auto;
+  border-radius: 999px;
+  padding: 0.7rem 1.15rem;
+  margin: 0;
   display: block;
-  text-align: center;
+  text-align: left;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 0.95rem;
   color: #374151;
-  background: white;
+  background: rgba(255, 255, 255, 0.94);
   border: 2px solid rgba(59, 130, 246, 0.2);
-  border-top: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
   line-height: 1.2;
   width: auto;
   min-width: 200px;
@@ -308,24 +442,16 @@ th:hover .th-trash {
   white-space: nowrap;
 }
 
-#table-name-shell {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: stretch;
-  max-width: 100%;
-}
-
 #table-results-lip {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.24rem;
-  margin-top: -1px;
+  margin-top: 0.5rem;
   min-height: 0.78rem;
-  padding: 0.08rem 0.65rem 0.12rem;
-  border: 2px solid rgba(34, 197, 94, 0.16);
-  border-top: none;
-  border-radius: 0 0 12px 12px;
+  padding: 0.18rem 0.7rem 0.22rem;
+  border: 1px solid rgba(34, 197, 94, 0.16);
+  border-radius: 999px;
   background: linear-gradient(180deg, rgba(240, 253, 244, 0.98), rgba(220, 252, 231, 0.98));
   color: #14532d;
   font-size: 0.54rem;
@@ -344,14 +470,13 @@ th:hover .th-trash {
 
 #table-name-input:hover {
   border-color: rgba(59, 130, 246, 0.4);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 22px rgba(59, 130, 246, 0.14);
   transform: translateY(-1px);
 }
 
 #table-name-input:focus {
   background: white !important;
   border-color: #3b82f6 !important;
-  border-top: none !important;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 4px 12px rgba(0, 0, 0, 0.15) !important;
   cursor: text;
   transform: translateY(-2px);
@@ -403,6 +528,30 @@ th:hover .th-trash {
   border-color: #dc2626 !important;
   background-color: #fef2f2 !important;
   box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2), 0 4px 12px rgba(220, 38, 38, 0.25) !important;
+}
+
+@media (max-width: 900px) {
+  #table-top-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #table-name-shell {
+    max-width: 100%;
+  }
+
+  #table-name-input {
+    width: 100% !important;
+  }
+
+  #table-toolbar {
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  #table-shell.table-shell-expanded {
+    inset: calc(var(--header-height) + 0.75rem) 0.75rem 0.75rem;
+  }
 }
 
 /* --- Loading Animation for Table --- */

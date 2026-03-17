@@ -11,7 +11,7 @@
   <meta http-equiv="Expires" content="0">
   <title>Library Item Reports</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link href="styles.css?v=15" rel="stylesheet">
+  <link href="styles.css?v=16" rel="stylesheet">
   <link rel="icon" href="data:,">
 </head>
 <body class="relative min-h-screen overflow-x-hidden overflow-y-auto pt-16 px-6 pb-6" id="page-body">
@@ -225,23 +225,6 @@
     </div>
   </div>
   <div class="max-w-5xl mx-auto">
-    <!-- Editable Table Name Header (outside flex row so panel aligns with table only) -->
-    <div class="mb-4 text-center">
-      <div id="table-name-shell">
-        <input 
-          type="text" 
-          id="table-name-input"
-          placeholder="Enter table name..."
-          class="text-xl font-semibold bg-transparent border-none text-center focus:outline-none focus:bg-white focus:px-3 focus:py-1 focus:rounded-lg focus:shadow-md transition-all duration-200 text-gray-800 min-w-0 max-w-md"
-          style="width: auto; min-width: 200px;"
-          data-tooltip="Enter a name for your table"
-        />
-        <div id="table-results-lip" class="hidden" aria-hidden="true">
-          <span id="table-results-count">0</span>
-          <span id="table-results-label">results</span>
-        </div>
-      </div>
-    </div>
     <!-- Table + Filter Panel row -->
     <div id="table-with-filter">
       <!-- Filter Panel (left of table, populated by filterManager.js) -->
@@ -256,14 +239,61 @@
       </aside>
       <!-- Table column -->
       <div id="table-column">
-        <div id="table-container" class="overflow-x-auto shadow rounded-lg mb-6 relative" style="background: #fff; height: 400px;">
-          <table id="example-table" class="min-w-full divide-y divide-gray-200 bg-white rounded-lg">
-            <thead></thead>
-            <tbody></tbody>
-          </table>
-          <div id="placeholder-message"
-               class="py-8 absolute inset-0 flex items-center justify-center text-center text-gray-500 italic pointer-events-none">
-            Drag a bubble here to add your first column
+        <div id="table-shell" class="mb-6">
+          <div id="table-top-bar">
+            <div id="table-name-shell">
+              <input 
+                type="text" 
+                id="table-name-input"
+                placeholder="Enter table name..."
+                class="text-xl font-semibold bg-transparent border-none text-center focus:outline-none focus:bg-white focus:px-3 focus:py-1 focus:rounded-lg focus:shadow-md transition-all duration-200 text-gray-800 min-w-0 max-w-md"
+                style="width: auto; min-width: 200px;"
+                data-tooltip="Enter a name for your table"
+              />
+              <div id="table-results-lip" class="hidden" aria-hidden="true">
+                <span id="table-results-count">0</span>
+                <span id="table-results-label">results</span>
+              </div>
+            </div>
+            <div id="table-toolbar">
+              <div id="table-zoom-controls" class="hidden" aria-label="Table zoom controls">
+                <button id="table-zoom-out-btn" class="table-toolbar-btn" type="button" aria-label="Zoom out table" data-tooltip="Zoom out">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 pointer-events-none">
+                    <path d="M5 12h14"/>
+                  </svg>
+                </button>
+                <span id="table-zoom-label">100%</span>
+                <button id="table-zoom-in-btn" class="table-toolbar-btn" type="button" aria-label="Zoom in table" data-tooltip="Zoom in">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 pointer-events-none">
+                    <path d="M12 5v14"/>
+                    <path d="M5 12h14"/>
+                  </svg>
+                </button>
+              </div>
+              <button id="table-expand-btn" class="table-toolbar-btn table-expand-btn" type="button" aria-expanded="false" aria-label="Expand table" data-tooltip="Expand table">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 pointer-events-none">
+                  <path d="M8 3H3v5"/>
+                  <path d="M16 3h5v5"/>
+                  <path d="M3 16v5h5"/>
+                  <path d="M21 16v5h-5"/>
+                  <path d="M3 8l6-5"/>
+                  <path d="M21 8l-6-5"/>
+                  <path d="M3 16l6 5"/>
+                  <path d="M21 16l-6 5"/>
+                </svg>
+                <span id="table-expand-label">Expand</span>
+              </button>
+            </div>
+          </div>
+          <div id="table-container" class="overflow-x-auto shadow rounded-lg relative" style="background: #fff; height: 400px;">
+            <table id="example-table" class="min-w-full divide-y divide-gray-200 bg-white rounded-lg">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+            <div id="placeholder-message"
+                 class="py-8 absolute inset-0 flex items-center justify-center text-center text-gray-500 italic pointer-events-none">
+              Drag a bubble here to add your first column
+            </div>
           </div>
         </div>
       </div><!-- end table-column -->
@@ -558,13 +588,13 @@
   <script src="filters/fieldDefs.js?v=5"></script>
   <script src="ui/toast.js"></script>
   <script src="core/queryState.js?v=6"></script>
-  <script src="ui/queryUI.js?v=2"></script>
+  <script src="ui/queryUI.js?v=3"></script>
   <script src="ui/queryUiHelpers.js?v=1773659590348"></script>
   <script src="ui/queryAnimation.js?v=7"></script>
   <script src="filters/queryPayload.js?v=7"></script>
   <script src="ui/tooltips.js?v=3"></script>
   <script src="table/simpleTable.js"></script>
-  <script src="table/virtualTable.js?v=6"></script>
+  <script src="table/virtualTable.js?v=7"></script>
   <script src="table/excel.js"></script>
   <script src="ui/modalManager.js"></script>
   <script src="filters/filterManager.js?v=12"></script>
@@ -577,6 +607,6 @@
   <script src="bubbles/bubbleRender.js?v=5"></script>
   <script src="bubbles/bubbleReset.js?v=5"></script>
   <script src="bubbles/bubbleInteraction.js?v=5"></script>
-  <script src="core/query.js?v=6"></script>
+  <script src="core/query.js?v=7"></script>
   <script src="ui/formMode.js?v=1773666000000"></script>
   </body>
