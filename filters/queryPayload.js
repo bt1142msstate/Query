@@ -147,14 +147,23 @@ function splitKeyFilterValues(rawValue) {
     .filter(Boolean);
 }
 
+function getCanonicalPayloadFieldName(fieldName) {
+  const normalizedFieldName = typeof window.resolveFieldName === 'function'
+    ? window.resolveFieldName(fieldName)
+    : fieldName;
+
+  return typeof window.getBaseFieldName === 'function'
+    ? window.getBaseFieldName(normalizedFieldName)
+    : String(normalizedFieldName || '').trim();
+}
+
 window.getNormalizedDisplayedFields = function(fields = window.displayedFields) {
   return [...fields]
-    .map(field => typeof window.resolveFieldName === 'function' ? window.resolveFieldName(field) : field)
+    .map(field => getCanonicalPayloadFieldName(field))
     .filter(field => {
       const def = window.fieldDefs ? window.fieldDefs.get(field) : null;
       return !(def && def.is_buildable);
     })
-    .map(field => window.getBaseFieldName(field))
     .filter((field, index, array) => array.indexOf(field) === index);
 };
 
@@ -226,9 +235,10 @@ window.collectCurrentSpecialFields = function() {
   const specialFields = [];
 
   const appendSpecialPayload = fieldName => {
-    if (!fieldName || !window.fieldDefs) return;
+    const canonicalFieldName = getCanonicalPayloadFieldName(fieldName);
+    if (!canonicalFieldName || !window.fieldDefs) return;
 
-    const fieldDef = window.fieldDefs.get(fieldName);
+    const fieldDef = window.fieldDefs.get(canonicalFieldName);
     if (!fieldDef || !fieldDef.special_payload) return;
 
     const isDuplicate = specialFields.some(existing => JSON.stringify(existing) === JSON.stringify(fieldDef.special_payload));
@@ -253,7 +263,8 @@ window.buildBackendFilters = function() {
   const filters = [];
 
   Object.entries(window.activeFilters).forEach(([fieldName, filterGroup]) => {
-    const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
+    const canonicalFieldName = getCanonicalPayloadFieldName(fieldName);
+    const fieldDef = window.fieldDefs ? window.fieldDefs.get(canonicalFieldName) : null;
     if (fieldDef && fieldDef.is_buildable) return;
 
     (filterGroup?.filters || []).forEach(filter => {
@@ -262,7 +273,7 @@ window.buildBackendFilters = function() {
       if (fieldDef && fieldDef.allowValueList && filter.cond === 'equals') {
         const keyValues = splitKeyFilterValues(filter.val);
         filters.push({
-          field: fieldName,
+          field: canonicalFieldName,
           operator: '=',
           value: keyValues.length > 1 ? keyValues : (keyValues[0] || '')
         });
@@ -271,7 +282,7 @@ window.buildBackendFilters = function() {
 
       mapActiveFilterToBackend(filter.cond, filter.val).forEach(({ operator, value }) => {
         filters.push({
-          field: fieldName,
+          field: canonicalFieldName,
           operator,
           value
         });
@@ -289,14 +300,14 @@ window.buildBackendQueryPayload = function(queryName = '') {
     : [];
 
   window.displayedFields.forEach(field => {
-    const fieldDef = window.fieldDefs ? window.fieldDefs.get(field) : null;
+    const canonicalFieldName = getCanonicalPayloadFieldName(field);
+    const fieldDef = window.fieldDefs ? window.fieldDefs.get(canonicalFieldName) : null;
     if (fieldDef && fieldDef.special_payload) {
       return;
     }
 
-    const baseField = window.getBaseFieldName(field);
-    if (!standardDisplayFields.includes(baseField)) {
-      standardDisplayFields.push(baseField);
+    if (canonicalFieldName && !standardDisplayFields.includes(canonicalFieldName)) {
+      standardDisplayFields.push(canonicalFieldName);
     }
   });
 
