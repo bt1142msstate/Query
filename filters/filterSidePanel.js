@@ -247,8 +247,28 @@ window.FilterSidePanel = (function () {
                 if (!newVal2) return;
                 newVal = `${newVal}|${newVal2}`;
             }
-            filterData.filters[filterIndex] = { cond: newCond, val: newVal };
-            window.updateQueryJson && window.updateQueryJson();
+
+            const nextActiveFilters = Object.fromEntries(
+                Object.entries(window.activeFilters || {}).map(([activeField, activeData]) => [
+                    activeField,
+                    {
+                        filters: Array.isArray(activeData?.filters)
+                            ? activeData.filters.map(filter => ({ ...filter }))
+                            : []
+                    }
+                ])
+            );
+
+            if (!nextActiveFilters[field] || !Array.isArray(nextActiveFilters[field].filters) || !nextActiveFilters[field].filters[filterIndex]) {
+                return;
+            }
+
+            nextActiveFilters[field].filters[filterIndex] = { cond: newCond, val: newVal };
+
+            window.QueryStateStore.replaceActiveFilters(nextActiveFilters, {
+                source: 'FilterSidePanel.editFilter'
+            });
+
             window.renderConditionList && window.renderConditionList(field);
             update();
         };
