@@ -41,6 +41,10 @@ window.clearCurrentQuery = async function clearCurrentQuery() {
     return;
   }
 
+  if (typeof window.playTableClearAnimation === 'function') {
+    await window.playTableClearAnimation();
+  }
+
   if (window.ModalSystem && typeof window.ModalSystem.closeAllPanels === 'function') {
     window.ModalSystem.closeAllPanels();
   }
