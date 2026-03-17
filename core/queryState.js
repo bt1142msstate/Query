@@ -142,6 +142,56 @@ function getQueryStateSnapshot() {
   };
 }
 
+function getComparableDisplayedFields(fieldNames) {
+  return (Array.isArray(fieldNames) ? fieldNames : [])
+    .map(field => String(field || '').trim())
+    .filter(Boolean)
+    .slice()
+    .sort();
+}
+
+function shouldSkipQueryChangeToast(meta = {}) {
+  if (!meta || meta.toast === false) {
+    return true;
+  }
+
+  const source = String(meta.source || '');
+  if (!source) {
+    return false;
+  }
+
+  return [
+    'Query.initialization',
+    'Query.showExampleTable',
+    'Query.showExampleTable.empty',
+    'Query.clearCurrentQuery',
+    'QueryHistory.loadQueryConfig',
+    'VirtualTable.setSplitMode',
+    'Query.groupMethodChange',
+    'window.displayedFields setter',
+    'window.activeFilters setter'
+  ].includes(source);
+}
+
+function getQueryChangeToastMessage(event) {
+  const displayedFieldsChanged = Boolean(event?.changes?.displayedFields);
+  const activeFiltersChanged = Boolean(event?.changes?.activeFilters);
+
+  if (displayedFieldsChanged && activeFiltersChanged) {
+    return 'Query updated.';
+  }
+
+  if (displayedFieldsChanged) {
+    return 'Columns updated.';
+  }
+
+  if (activeFiltersChanged) {
+    return 'Filters updated.';
+  }
+
+  return 'Query updated.';
+}
+
 function notifyQueryStateSubscribers(changes = {}, meta = {}) {
   const payload = {
     changes: {
@@ -151,6 +201,8 @@ function notifyQueryStateSubscribers(changes = {}, meta = {}) {
     meta,
     snapshot: getQueryStateSnapshot()
   };
+
+  window.currentQueryState = payload.snapshot;
 
   queryStateSubscribers.forEach(listener => {
     try {
@@ -430,6 +482,26 @@ window.getCurrentQueryState = function() {
   };
 };
 
+window.QueryStateStore.subscribe(event => {
+  if (!event) {
+    return;
+  }
+
+  if (typeof window.updateQueryJson === 'function') {
+    window.updateQueryJson();
+  } else if (typeof window.updateButtonStates === 'function') {
+    window.updateButtonStates();
+  }
+
+  if (shouldSkipQueryChangeToast(event.meta)) {
+    return;
+  }
+
+  if (typeof window.showToastMessage === 'function') {
+    window.showToastMessage(getQueryChangeToastMessage(event), 'info', 1400);
+  }
+});
+
 /**
  * Compares current query state with last executed state to detect changes.
  * Used to determine if the query has been modified since last execution.
@@ -442,7 +514,7 @@ window.hasQueryChanged = function() {
   const current = window.getCurrentQueryState();
   
   // Compare displayed fields
-  if (JSON.stringify(current.displayedFields.sort()) !== JSON.stringify(window.lastExecutedQueryState.displayedFields.sort())) {
+  if (JSON.stringify(getComparableDisplayedFields(current.displayedFields)) !== JSON.stringify(getComparableDisplayedFields(window.lastExecutedQueryState.displayedFields))) {
     return true;
   }
   
