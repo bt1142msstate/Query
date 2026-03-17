@@ -11,7 +11,7 @@
   <meta http-equiv="Expires" content="0">
   <title>Library Item Reports</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link href="styles.css?v=20" rel="stylesheet">
+  <link href="styles.css?v=22" rel="stylesheet">
   <link rel="icon" href="data:,">
 </head>
 <body class="relative min-h-screen overflow-x-hidden overflow-y-auto pt-16 px-6 pb-6" id="page-body">
@@ -202,22 +202,21 @@
       <div id="table-column">
         <div id="table-shell" class="mb-6">
           <div id="table-top-bar">
-            <div id="table-toolbar-spacer" aria-hidden="true"></div>
-            <div id="table-name-shell">
-              <div id="table-name-row">
-                <div id="table-results-badge" class="hidden" aria-hidden="true">
-                  <span id="table-results-count">0</span>
-                  <span id="table-results-label">results</span>
-                </div>
-                <input 
-                  type="text" 
-                  id="table-name-input"
-                  placeholder="Enter table name..."
-                  class="text-xl font-semibold bg-transparent border-none text-center focus:outline-none focus:bg-white focus:px-3 focus:py-1 focus:rounded-lg focus:shadow-md transition-all duration-200 text-gray-800 min-w-0 max-w-md"
-                  style="width: auto; min-width: 200px;"
-                  data-tooltip="Enter a name for your table"
-                />
+            <div id="table-info-bar">
+              <div id="table-results-badge" class="hidden" aria-hidden="true">
+                <span id="table-results-count">0</span>
+                <span id="table-results-label">results</span>
               </div>
+            </div>
+            <div id="table-name-shell">
+              <input 
+                type="text" 
+                id="table-name-input"
+                placeholder="Enter table name..."
+                class="text-xl font-semibold bg-transparent border-none text-center focus:outline-none focus:bg-white focus:px-3 focus:py-1 focus:rounded-lg focus:shadow-md transition-all duration-200 text-gray-800 min-w-0 max-w-md"
+                style="width: auto; min-width: 200px;"
+                data-tooltip="Enter a name for your table"
+              />
             </div>
             <div id="table-toolbar">
               <button id="download-btn"
@@ -253,8 +252,8 @@
                      stroke-linecap="round"
                      stroke-linejoin="round"
                      class="w-4 h-4 pointer-events-none">
-                  <path d="M12 3c.7 1.4.4 2.8-.5 4.1-.7.9-.8 1.9-.1 2.8.6.8 1.7 1.4 2.6 2.5 1 1.2 1.5 2.5 1.5 4 0 3-2.5 5.6-5.5 5.6S4.5 19.5 4.5 16.5c0-2 1-3.8 2.7-5.5 1.2-1.2 2.1-2.2 2.6-3.3.5-1.1.6-2.3.2-3.7Z"/>
-                  <path d="M12.1 12.1c.4.8.3 1.5-.3 2.2-.4.5-.4 1.2 0 1.8.4.5 1 .9 1.4 1.5.4.5.6 1.1.6 1.8 0 1.4-1.1 2.6-2.6 2.6-1.4 0-2.5-1.1-2.5-2.5 0-.9.4-1.7 1.1-2.5.5-.5.9-1 1.1-1.5.3-.5.3-1.1.1-1.8Z"/>
+                  <path d="M12.6 3.5c.5 2-.3 3.4-1.4 4.7-1 1.2-1.8 2.1-1.8 3.8 0 1.3.8 2.4 2 3.1-.2-.5-.3-1-.3-1.6 0-1.7 1-3 2.3-4.4 1 .9 1.9 2.2 1.9 3.9 0 .7-.1 1.3-.4 1.9 1.3-.8 2.1-2.2 2.1-3.8 0-3.3-2.4-5.4-4.4-7.6Z"/>
+                  <path d="M10 17.2c0 1.2.9 2.3 2.2 2.3 1.2 0 2.1-.9 2.1-2.1 0-1.4-.9-2.3-1.9-3.3-.8.8-2.4 1.8-2.4 3.1Z"/>
                 </svg>
               </button>
               <div id="table-zoom-controls" class="hidden" aria-label="Table zoom controls">
@@ -588,7 +587,7 @@
   <script src="filters/fieldDefs.js?v=5"></script>
   <script src="ui/toast.js"></script>
   <script src="core/queryState.js?v=6"></script>
-  <script src="ui/queryUI.js?v=6"></script>
+  <script src="ui/queryUI.js?v=7"></script>
   <script src="ui/queryUiHelpers.js?v=1773659590348"></script>
   <script src="ui/queryAnimation.js?v=7"></script>
   <script src="filters/queryPayload.js?v=7"></script>
