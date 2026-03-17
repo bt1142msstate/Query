@@ -22,6 +22,8 @@ window.DOM = {
   get queryInput() { return this._queryInput ||= document.getElementById('query-input'); },
   get tableShell() { return this._tableShell ||= document.getElementById('table-shell'); },
   get tableContainer() { return this._tableContainer ||= document.getElementById('table-container'); },
+  get tableToolbar() { return this._tableToolbar ||= document.getElementById('table-toolbar'); },
+  get tableToolbarSpacer() { return this._tableToolbarSpacer ||= document.getElementById('table-toolbar-spacer'); },
   get tableNameInput() { return this._tableNameInput ||= document.getElementById('table-name-input'); },
   get tableNameShell() { return this._tableNameShell ||= document.getElementById('table-name-shell'); },
   get tableResultsLip() { return this._tableResultsLip ||= document.getElementById('table-results-lip'); },
@@ -32,7 +34,6 @@ window.DOM = {
   get tableZoomInBtn() { return this._tableZoomInBtn ||= document.getElementById('table-zoom-in-btn'); },
   get tableZoomLabel() { return this._tableZoomLabel ||= document.getElementById('table-zoom-label'); },
   get tableExpandBtn() { return this._tableExpandBtn ||= document.getElementById('table-expand-btn'); },
-  get tableExpandLabel() { return this._tableExpandLabel ||= document.getElementById('table-expand-label'); },
   get clearSearchBtn() { return this._clearSearchBtn ||= document.getElementById('clear-search-btn'); },
   get groupMethodSelect() { return this._groupMethodSelect ||= document.getElementById('group-method-select'); },
   get filterError() { return this._filterError ||= document.getElementById('filter-error'); },
@@ -123,6 +124,17 @@ window.getTableZoom = function() {
   return Number.isFinite(zoomValue) ? Math.min(1.4, Math.max(0.8, zoomValue)) : 1;
 };
 
+window.syncTableToolbarBalance = function() {
+  const spacer = window.DOM.tableToolbarSpacer;
+  const toolbar = window.DOM.tableToolbar;
+
+  if (!spacer || !toolbar) {
+    return;
+  }
+
+  spacer.style.width = `${Math.ceil(toolbar.getBoundingClientRect().width)}px`;
+};
+
 window.refreshTableViewport = function() {
   const tableShell = window.DOM.tableShell;
   const tableContainer = window.DOM.tableContainer;
@@ -151,6 +163,7 @@ window.refreshTableViewport = function() {
 
     if (typeof window.VirtualTable.renderVirtualTable === 'function') {
       window.VirtualTable.renderVirtualTable();
+  const tableToolbar = window.DOM.tableToolbar;
     }
   });
 };
@@ -162,7 +175,6 @@ window.updateTableChromeState = function() {
   const tableZoomInBtn = window.DOM.tableZoomInBtn;
   const tableZoomOutBtn = window.DOM.tableZoomOutBtn;
   const tableExpandBtn = window.DOM.tableExpandBtn;
-  const tableExpandLabel = window.DOM.tableExpandLabel;
 
   if (!tableShell) {
     return;
@@ -195,9 +207,7 @@ window.updateTableChromeState = function() {
     tableExpandBtn.setAttribute('data-tooltip', expanded ? 'Collapse table' : 'Expand table');
   }
 
-  if (tableExpandLabel) {
-    tableExpandLabel.textContent = expanded ? 'Collapse' : 'Expand';
-  }
+  window.syncTableToolbarBalance();
 };
 
 window.setTableZoom = function(nextZoom) {
@@ -290,6 +300,8 @@ window.onDOMReady(() => {
   });
 
   window.addEventListener('resize', () => {
+    window.syncTableToolbarBalance();
+
     if (window.DOM.tableShell?.classList.contains('table-shell-expanded')) {
       window.refreshTableViewport();
       return;
@@ -301,6 +313,7 @@ window.onDOMReady(() => {
   });
 
   window.updateTableChromeState();
+  window.syncTableToolbarBalance();
   window.refreshTableViewport();
 });
 
