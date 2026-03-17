@@ -507,6 +507,11 @@ window.handleFilterConfirm = function(e) {
     let val2 = conditionInput2.value.trim();
     
     const fieldDef = window.fieldDefs.get(field);
+    const fieldType = (bubble && bubble.dataset.type) || (fieldDef && fieldDef.type) || 'string';
+    if (fieldType === 'money') {
+        val = window.sanitizeMoneyInputValue ? window.sanitizeMoneyInputValue(val) : val.replace(/[$,]/g, '');
+        val2 = window.sanitizeMoneyInputValue ? window.sanitizeMoneyInputValue(val2) : val2.replace(/[$,]/g, '');
+    }
     const isBuildable = fieldDef && fieldDef.is_buildable;
 
     // Special handling for buildable fields
@@ -546,7 +551,7 @@ window.handleFilterConfirm = function(e) {
 
     // Between Validation: Value Order
     if (cond === 'between') {
-        const type = (bubble && bubble.dataset.type) || (fieldDef && fieldDef.type) || 'string';
+        const type = fieldType;
         let a = val, b = val2;
         if (type === 'number' || type === 'money') {
             a = parseFloat(a); b = parseFloat(b);
@@ -587,7 +592,6 @@ window.handleFilterConfirm = function(e) {
                 }
             }
 
-            const fieldType = (bubble && bubble.dataset.type) || (fieldDef && fieldDef.type) || 'string';
             const newFilterObj = { cond, val: filterValue };
             const existingSet = window.activeFilters[field] || { filters: [] };
             const shouldReplaceExistingEquals = Boolean(
@@ -908,6 +912,192 @@ function clearNumericProps(inputs){
   });
 }
 
+window.sanitizeMoneyInputValue = function(rawValue) {
+    const text = String(rawValue || '');
+    const isNegative = text.trim().startsWith('-');
+    const numeric = text.replace(/[^0-9.]/g, '');
+    const firstDot = numeric.indexOf('.');
+    const whole = firstDot >= 0 ? numeric.slice(0, firstDot) : numeric;
+    const decimals = firstDot >= 0 ? numeric.slice(firstDot + 1).replace(/\./g, '').slice(0, 2) : '';
+    const normalizedWhole = whole.replace(/^0+(?=\d)/, '');
+    const hasDot = firstDot >= 0;
+
+    if (!normalizedWhole && !decimals && !hasDot) {
+        return '';
+    }
+
+    const prefix = isNegative ? '-' : '';
+    return hasDot
+        ? `${prefix}${normalizedWhole || '0'}.${decimals}`
+        : `${prefix}${normalizedWhole || '0'}`;
+};
+
+window.formatMoneyInputValue = function(rawValue) {
+    const text = String(rawValue || '');
+    const sanitized = window.sanitizeMoneyInputValue(text);
+    const hadDot = text.includes('.');
+
+    if (!sanitized) {
+        return '';
+    }
+
+    const isNegative = sanitized.startsWith('-');
+    const unsignedValue = isNegative ? sanitized.slice(1) : sanitized;
+    const parts = unsignedValue.split('.');
+    const whole = parts[0] || '0';
+    const decimals = parts[1] || '';
+    const groupedWhole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    const prefix = isNegative ? '-$' : '$';
+
+    return hadDot
+        ? `${prefix}${groupedWhole}.${decimals}`
+        : `${prefix}${groupedWhole}`;
+};
+
+function mapFormattedMoneyIndexToRawIndex(formattedValue, formattedIndex) {
+    let rawIndex = 0;
+    for (let i = 0; i < Math.min(formattedIndex, formattedValue.length); i += 1) {
+        if (/[0-9.]/.test(formattedValue[i])) {
+            rawIndex += 1;
+        }
+    }
+    return rawIndex;
+}
+
+function mapRawMoneyIndexToFormattedIndex(formattedValue, rawIndex) {
+    if (!formattedValue) {
+        return 0;
+    }
+
+    let consumed = 0;
+    for (let i = 0; i < formattedValue.length; i += 1) {
+        if (/[0-9.]/.test(formattedValue[i])) {
+            consumed += 1;
+            if (consumed >= rawIndex) {
+                return i + 1;
+            }
+        }
+    }
+
+    return formattedValue.length;
+}
+
+function getMoneyInputRawValue(input) {
+    return input.dataset.moneyRaw || window.sanitizeMoneyInputValue(input.value);
+}
+
+function setMoneyInputDisplayValue(input, rawValue, caretRawIndex) {
+    const formattedValue = window.formatMoneyInputValue(rawValue);
+    input.dataset.moneyRaw = rawValue;
+    input.value = formattedValue;
+
+    const nextCaretRawIndex = typeof caretRawIndex === 'number' ? caretRawIndex : rawValue.length;
+    const nextCaretPosition = mapRawMoneyIndexToFormattedIndex(formattedValue, nextCaretRawIndex);
+    input.setSelectionRange(nextCaretPosition, nextCaretPosition);
+}
+
+function buildNextMoneyRawValue(currentRawValue, selectionStart, selectionEnd, insertedText) {
+    const nextRawCandidate = `${currentRawValue.slice(0, selectionStart)}${insertedText}${currentRawValue.slice(selectionEnd)}`;
+    return window.sanitizeMoneyInputValue(nextRawCandidate);
+}
+
+window.configureMoneyInputBehavior = function(input, isMoney) {
+    if (!(input instanceof HTMLInputElement)) {
+        return;
+    }
+
+    if (input._moneyInputHandlers) {
+        const { beforeinput, paste, focus, input: inputHandler } = input._moneyInputHandlers;
+        input.removeEventListener('beforeinput', beforeinput);
+        input.removeEventListener('paste', paste);
+        input.removeEventListener('focus', focus);
+        input.removeEventListener('input', inputHandler);
+        delete input._moneyInputHandlers;
+    }
+
+    if (!isMoney) {
+        delete input.dataset.moneyRaw;
+        return;
+    }
+
+    const handleBeforeInput = event => {
+        const formattedValue = input.value;
+        const rawValue = getMoneyInputRawValue(input);
+        const selectionStart = mapFormattedMoneyIndexToRawIndex(formattedValue, input.selectionStart || 0);
+        const selectionEnd = mapFormattedMoneyIndexToRawIndex(formattedValue, input.selectionEnd || 0);
+
+        if (event.inputType === 'insertText') {
+            const insertedText = String(event.data || '').replace(/[^0-9.]/g, '');
+            if (!insertedText) {
+                event.preventDefault();
+                return;
+            }
+
+            event.preventDefault();
+            const nextRawValue = buildNextMoneyRawValue(rawValue, selectionStart, selectionEnd, insertedText);
+            const nextCaretRawIndex = Math.min(nextRawValue.length, selectionStart + window.sanitizeMoneyInputValue(insertedText).length);
+            setMoneyInputDisplayValue(input, nextRawValue, nextCaretRawIndex);
+            return;
+        }
+
+        if (event.inputType === 'deleteContentBackward' || event.inputType === 'deleteContentForward') {
+            event.preventDefault();
+
+            let deleteStart = selectionStart;
+            let deleteEnd = selectionEnd;
+
+            if (deleteStart === deleteEnd) {
+                if (event.inputType === 'deleteContentBackward' && deleteStart > 0) {
+                    deleteStart -= 1;
+                } else if (event.inputType === 'deleteContentForward' && deleteEnd < rawValue.length) {
+                    deleteEnd += 1;
+                }
+            }
+
+            const nextRawValue = buildNextMoneyRawValue(rawValue, deleteStart, deleteEnd, '');
+            setMoneyInputDisplayValue(input, nextRawValue, deleteStart);
+        }
+    };
+
+    const handlePaste = event => {
+        event.preventDefault();
+        const pastedText = event.clipboardData ? event.clipboardData.getData('text') : '';
+        const formattedValue = input.value;
+        const rawValue = getMoneyInputRawValue(input);
+        const selectionStart = mapFormattedMoneyIndexToRawIndex(formattedValue, input.selectionStart || 0);
+        const selectionEnd = mapFormattedMoneyIndexToRawIndex(formattedValue, input.selectionEnd || 0);
+        const insertedText = String(pastedText || '').replace(/[^0-9.]/g, '');
+        const nextRawValue = buildNextMoneyRawValue(rawValue, selectionStart, selectionEnd, insertedText);
+        const nextCaretRawIndex = Math.min(nextRawValue.length, selectionStart + window.sanitizeMoneyInputValue(insertedText).length);
+        setMoneyInputDisplayValue(input, nextRawValue, nextCaretRawIndex);
+    };
+
+    const handleFocus = () => {
+        const rawValue = getMoneyInputRawValue(input);
+        setMoneyInputDisplayValue(input, rawValue, rawValue.length);
+    };
+
+    const handleInput = () => {
+        const rawValue = window.sanitizeMoneyInputValue(input.value);
+        const nextCaretRawIndex = rawValue.length;
+        setMoneyInputDisplayValue(input, rawValue, nextCaretRawIndex);
+    };
+
+    input.addEventListener('beforeinput', handleBeforeInput);
+    input.addEventListener('paste', handlePaste);
+    input.addEventListener('focus', handleFocus);
+    input.addEventListener('input', handleInput);
+    input._moneyInputHandlers = {
+        beforeinput: handleBeforeInput,
+        paste: handlePaste,
+        focus: handleFocus,
+        input: handleInput
+    };
+
+    const initialRawValue = window.sanitizeMoneyInputValue(input.value);
+    setMoneyInputDisplayValue(input, initialRawValue, initialRawValue.length);
+};
+
 function setMoneyFieldAppearance(inputs, isMoney) {
     inputs.forEach(inp => {
         inp.classList.toggle('condition-field-money', Boolean(isMoney));
@@ -915,6 +1105,10 @@ function setMoneyFieldAppearance(inputs, isMoney) {
             inp.placeholder = '0.00';
         } else if (inp.placeholder === '0.00') {
             inp.placeholder = 'Enter value...';
+        }
+
+        if (window.configureMoneyInputBehavior) {
+            window.configureMoneyInputBehavior(inp, Boolean(isMoney));
         }
     });
 }
@@ -925,7 +1119,7 @@ window.configureInputsForType = function(type){
     const inputs=[inp1,inp2].filter(Boolean);
   const isMoney  = type==='money';
   const isNumber = type==='number';
-  const htmlType = (type==='date') ? 'date' : (isMoney||isNumber) ? 'number':'text';
+    const htmlType = (type==='date') ? 'date' : isMoney ? 'text' : isNumber ? 'number' : 'text';
   inputs.forEach(inp=> inp.type = htmlType);
 
   if(isMoney){
