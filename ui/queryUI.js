@@ -88,6 +88,31 @@ window.updateTableResultsLip = function() {
   }
 };
 
+window.getDefaultTableName = function(date = new Date()) {
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const year = String(date.getFullYear()).slice(-2);
+  return `Results ${month}/${day}/${year}`;
+};
+
+window.ensureTableName = function() {
+  const tableNameInput = window.DOM.tableNameInput;
+  if (!tableNameInput) {
+    return window.getDefaultTableName();
+  }
+
+  const currentName = tableNameInput.value.trim();
+  if (currentName) {
+    return currentName;
+  }
+
+  const generatedName = window.getDefaultTableName();
+  tableNameInput.value = generatedName;
+  tableNameInput.classList.remove('error');
+  tableNameInput.dispatchEvent(new Event('input', { bubbles: true }));
+  return generatedName;
+};
+
 window.getTableZoom = function() {
   const tableShell = window.DOM.tableShell;
   if (!tableShell) {
@@ -353,7 +378,6 @@ window.updateButtonStates = function() {
   const clearQueryBtn = window.DOM.clearQueryBtn;
   const tableNameInput = window.DOM.tableNameInput;
   const tableName = tableNameInput ? tableNameInput.value.trim() : '';
-  const hasName = tableName !== '';
 
   if (runBtn) {
     try {
@@ -366,12 +390,7 @@ window.updateButtonStates = function() {
       );
 
       let validationError = null;
-      if (!hasName) {
-        validationError = 'Please name your query to run';
-        runBtn.disabled = true;
-      } else {
-        runBtn.disabled = !hasFields || window.queryRunning;
-      }
+      runBtn.disabled = !hasFields || window.queryRunning;
 
       window.updateRunButtonIcon(validationError);
     } catch (_) {
@@ -390,21 +409,13 @@ window.updateButtonStates = function() {
       window.VirtualTable.virtualTableData.rows.length > 0;
 
     if (tableNameInput) {
-      if (!hasName && (hasData || (window.displayedFields && window.displayedFields.length > 0))) {
-        tableNameInput.classList.add('error');
-      } else {
-        tableNameInput.classList.remove('error');
-      }
+      tableNameInput.classList.remove('error');
     }
 
-    downloadBtn.disabled = !hasData || !hasName;
+    downloadBtn.disabled = !hasData;
 
-    if (!hasData && !hasName) {
-      downloadBtn.setAttribute('data-tooltip', 'Add columns and name your table to download');
-    } else if (!hasData) {
+    if (!hasData) {
       downloadBtn.setAttribute('data-tooltip', 'Add columns to download');
-    } else if (!hasName) {
-      downloadBtn.setAttribute('data-tooltip', 'Name your table to download');
     } else {
       downloadBtn.setAttribute('data-tooltip', 'Download Excel file');
     }
