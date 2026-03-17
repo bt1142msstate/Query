@@ -25,6 +25,10 @@ const ExcelExporter = (() => {
       groupPanel: document.getElementById('export-group-panel'),
       groupField: document.getElementById('export-group-field'),
       preview: document.getElementById('export-group-preview'),
+      summaryName: document.getElementById('export-summary-name'),
+      summaryRows: document.getElementById('export-summary-rows'),
+      summaryColumns: document.getElementById('export-summary-columns'),
+      summaryGroups: document.getElementById('export-summary-groups'),
       includeMasterSheet: document.getElementById('export-include-master-sheet'),
       includeOverviewSheet: document.getElementById('export-include-overview-sheet'),
       modeCards: Array.from(document.querySelectorAll('[data-export-mode-card]'))
@@ -200,6 +204,25 @@ const ExcelExporter = (() => {
     });
   }
 
+  function updateExportSummary(elements) {
+    if (!exportState) {
+      return;
+    }
+
+    if (elements.summaryName) {
+      elements.summaryName.textContent = exportState.tableName;
+    }
+    if (elements.summaryRows) {
+      elements.summaryRows.textContent = exportState.exportedRows.length.toLocaleString();
+    }
+    if (elements.summaryColumns) {
+      elements.summaryColumns.textContent = exportState.sourceData.displayedFields.length.toLocaleString();
+    }
+    if (elements.summaryGroups) {
+      elements.summaryGroups.textContent = exportState.groupingCandidates.length.toLocaleString();
+    }
+  }
+
   function updateExportPreview(elements) {
     if (!exportState || !elements.preview) {
       return;
@@ -308,6 +331,7 @@ const ExcelExporter = (() => {
     }
 
     renderGroupingOptions(elements);
+    updateExportSummary(elements);
 
     if (elements.singleMode) {
       const hasGrouping = exportState.groupingCandidates.length > 0;
