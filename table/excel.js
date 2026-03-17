@@ -171,7 +171,13 @@ const ExcelExporter = (() => {
       };
     }).filter(candidate => candidate.distinctCount > 1);
 
-    candidates.sort((left, right) => left.field.localeCompare(right.field));
+    candidates.sort((left, right) => {
+      if (left.distinctCount !== right.distinctCount) {
+        return left.distinctCount - right.distinctCount;
+      }
+
+      return left.field.localeCompare(right.field);
+    });
 
     return candidates;
   }
