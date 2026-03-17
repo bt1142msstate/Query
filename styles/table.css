@@ -53,7 +53,7 @@
 }
 
 #table-zoom-controls.hidden,
-#table-results-lip.hidden {
+#table-results-badge.hidden {
   display: none;
 }
 
@@ -440,10 +440,16 @@ th:hover .th-trash {
   display: inline-flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.22rem;
   max-width: min(100%, 38rem);
   min-width: 0;
   justify-self: center;
+}
+
+#table-name-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
 }
 
 #table-name-input {
@@ -468,12 +474,11 @@ th:hover .th-trash {
   white-space: nowrap;
 }
 
-#table-results-lip {
+#table-results-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.24rem;
-  margin-top: 0;
   min-height: 0.68rem;
   padding: 0.12rem 0.55rem 0.16rem;
   border: 1px solid rgba(34, 197, 94, 0.16);
@@ -487,6 +492,7 @@ th:hover .th-trash {
   line-height: 0.95;
   box-shadow: 0 3px 8px rgba(34, 197, 94, 0.08);
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 #table-results-count {
