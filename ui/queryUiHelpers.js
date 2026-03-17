@@ -497,8 +497,11 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     return value.includes(searchTerm) || display.includes(searchTerm) || rawText.includes(searchTerm);
   }
 
-  function setGroupExpanded(groupEntry, expanded) {
+  function setGroupExpanded(groupEntry, expanded, options = {}) {
     if (!groupEntry) return;
+    if (!options.temporary) {
+      groupEntry.userExpanded = expanded;
+    }
     groupEntry.options.classList.toggle('collapsed', !expanded);
     groupEntry.header.querySelector('.toggle-icon').innerHTML = expanded ? '&#9662;' : '&#9656;';
   }
@@ -633,7 +636,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     if (!searchTerm) {
       groupElements.forEach(groupEntry => {
         groupEntry.section.style.display = '';
-        setGroupExpanded(groupEntry, false);
+        setGroupExpanded(groupEntry, Boolean(groupEntry.userExpanded), { temporary: true });
       });
       updateSelectionDividers();
       return;
@@ -643,7 +646,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
       const hasMatch = groupEntry.items.some(item => item.style.display !== 'none');
       groupEntry.section.style.display = hasMatch ? '' : 'none';
       if (hasMatch) {
-        setGroupExpanded(groupEntry, true);
+        setGroupExpanded(groupEntry, true, { temporary: true });
       }
     });
 
@@ -768,13 +771,20 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
 
     groupSection.appendChild(groupOptions);
     optionsContainer.appendChild(groupSection);
-    const groupEntry = { section: groupSection, header: groupHeader, options: groupOptions, items: groupItems, sortLabel: groupName };
+    const groupEntry = {
+      section: groupSection,
+      header: groupHeader,
+      options: groupOptions,
+      items: groupItems,
+      sortLabel: groupName,
+      userExpanded: false
+    };
     groupElements.push(groupEntry);
     topLevelEntries.push({ type: 'group', section: groupSection, items: groupItems, sortLabel: groupName });
 
     groupHeader.addEventListener('click', e => {
       if (e.target.type === 'checkbox') return;
-      setGroupExpanded({ header: groupHeader, options: groupOptions }, groupOptions.classList.contains('collapsed'));
+      setGroupExpanded(groupEntry, groupOptions.classList.contains('collapsed'));
     });
   });
 
