@@ -136,8 +136,6 @@ window.clearCurrentQuery = async function clearCurrentQuery() {
     window.resetSplitColumnsToggleUI();
   }
 
-  await showExampleTable([]);
-
   if (window.FilterSidePanel && typeof window.FilterSidePanel.update === 'function') {
     window.FilterSidePanel.update();
   }
@@ -463,6 +461,90 @@ function resetBubbleScrollState() {
   }
 }
 
+function restoreEmptyTableDropTarget(container) {
+  if (!container || !window.DragDropSystem) {
+    return;
+  }
+
+  window.DragDropSystem.attachBubbleDropTarget(container);
+
+  const placeholderTh = container.querySelector('thead th');
+  if (!placeholderTh) {
+    return;
+  }
+
+  placeholderTh.addEventListener('dragover', event => event.preventDefault());
+  placeholderTh.addEventListener('drop', event => {
+    event.preventDefault();
+    const field = event.dataTransfer.getData('bubble-field');
+    if (field) {
+      window.DragDropSystem.dragDropManager.dropSuccessful = true;
+      window.DragDropSystem.restoreFieldWithDuplicates(field);
+      showExampleTable(window.displayedFields).catch(error => {
+        console.error('Error updating table:', error);
+      });
+    }
+  });
+  placeholderTh.addEventListener('dragenter', () => {
+    placeholderTh.classList.add('th-drag-over');
+  });
+  placeholderTh.addEventListener('dragleave', () => {
+    placeholderTh.classList.remove('th-drag-over');
+  });
+
+  container.addEventListener('dragover', () => {
+    if (window.displayedFields.length === 0) {
+      placeholderTh.classList.add('th-drag-over');
+    }
+  });
+  container.addEventListener('dragleave', () => {
+    placeholderTh.classList.remove('th-drag-over');
+  });
+}
+
+function renderEmptyQueryTableState() {
+  if (window.VirtualTable && typeof window.VirtualTable.clearVirtualTableData === 'function') {
+    window.VirtualTable.clearVirtualTableData();
+  }
+
+  const container = document.getElementById('table-container');
+  const placeholderHeight = 400;
+  if (container) {
+    container.classList.remove('table-container-hidden');
+    container.style.minHeight = `${placeholderHeight}px`;
+    container.style.height = `${placeholderHeight}px`;
+    container.innerHTML = `
+      <table id="example-table" class="min-w-full divide-y divide-gray-200 bg-white">
+        <thead>
+          <tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" colspan="1">
+            Drag a bubble here to add your first column
+          </th></tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200"></tbody>
+      </table>`;
+
+    restoreEmptyTableDropTarget(container);
+  }
+
+  document.querySelectorAll('.bubble').forEach(bubble => {
+    const fieldName = bubble.textContent.trim();
+    const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
+    bubble.setAttribute('draggable', fieldDef && fieldDef.is_buildable ? 'false' : 'true');
+  });
+
+  if (typeof window.updateQueryJson === 'function') {
+    window.updateQueryJson();
+  }
+  if (typeof window.updateCategoryCounts === 'function') {
+    window.updateCategoryCounts();
+  }
+  if (typeof window.updateButtonStates === 'function') {
+    window.updateButtonStates();
+  }
+}
+
+window.renderEmptyQueryTableState = renderEmptyQueryTableState;
+
 function scrollBubbleRows(deltaRows) {
   return !!(window.BubbleSystem && typeof window.BubbleSystem.scrollBubblesByRows === 'function' &&
     window.BubbleSystem.scrollBubblesByRows(deltaRows));
@@ -595,7 +677,7 @@ const body=document.getElementById('page-body');
 body.classList.add('night');         // use night-sky background
 
 // attach to the initial table container
-const initialContainer = document.querySelector('.overflow-x-auto.shadow.rounded-lg.mb-6');
+const initialContainer = document.getElementById('table-container');
 if(initialContainer) {
   window.DragDropSystem.attachBubbleDropTarget(initialContainer);
   // Initial render - Initialize systems without data for real queries
@@ -612,7 +694,6 @@ if(initialContainer) {
       }
       updateButtonStates();
       window.updateRunButtonIcon();
-      
       if (typeof updateCategoryCounts === 'function') {
         updateCategoryCounts();
       }
@@ -669,70 +750,11 @@ if (dom.groupMethodSelect) {
 // === Example table builder ===
 async function showExampleTable(fields){
   if(!Array.isArray(fields) || fields.length === 0){
-    // No columns left → clear table area and reset states
-    window.QueryChangeManager.replaceDisplayedFields([], { source: 'Query.showExampleTable.empty' });
-    VirtualTable.clearVirtualTableData();
-    const container = document.querySelector('.overflow-x-auto.shadow.rounded-lg.mb-6');
-    /* Ensure placeholder table has the same height as the table container */
-    const placeholderH = 400;                       // Fixed height to match container
-    if(container){
-      container.style.minHeight = placeholderH + 'px';
-      container.style.height    = placeholderH + 'px';
-      container.innerHTML = `
-        <table id="example-table" class="min-w-full divide-y divide-gray-200 bg-white">
-          <thead>
-            <tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" colspan="1">
-              Drag a bubble here to add your first column
-            </th></tr>
-          </thead>
-          <tbody class="divide-y divide-gray-200">
-          </tbody>
-        </table>`;
-      // Ensure placeholder header accepts drops
-      window.DragDropSystem.attachBubbleDropTarget(container);
-      const placeholderTh = container.querySelector('thead th');
-      if (placeholderTh) {
-        placeholderTh.addEventListener('dragover', e => e.preventDefault());
-        placeholderTh.addEventListener('drop', e => {
-          e.preventDefault();
-          const field = e.dataTransfer.getData('bubble-field');
-          if (field) {
-            window.DragDropSystem.dragDropManager.dropSuccessful = true;
-            window.DragDropSystem.restoreFieldWithDuplicates(field);
-            showExampleTable(displayedFields).catch(error => {
-              console.error('Error updating table:', error);
-            });
-          }
-        });
-        placeholderTh.addEventListener('dragenter', e => {
-          placeholderTh.classList.add('th-drag-over');
-        });
-        placeholderTh.addEventListener('dragleave', e => {
-          placeholderTh.classList.remove('th-drag-over');
-        });
-        // Also highlight placeholder when dragging anywhere over the empty table container
-        container.addEventListener('dragover', e => {
-          if (displayedFields.length === 0) {
-            placeholderTh.classList.add('th-drag-over');
-          }
-        });
-        container.addEventListener('dragleave', e => {
-          placeholderTh.classList.remove('th-drag-over');
-        });
-      }
+    if (Array.isArray(window.displayedFields) && window.displayedFields.length > 0) {
+      window.QueryChangeManager.replaceDisplayedFields([], { source: 'Query.showExampleTable.empty' });
+    } else {
+      renderEmptyQueryTableState();
     }
-    // Re-enable dragging on every bubble
-    document.querySelectorAll('.bubble').forEach(b => {
-      const fieldName = b.textContent.trim();
-      const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
-      if (fieldDef && fieldDef.is_buildable) {
-        b.setAttribute('draggable', 'false');
-      } else {
-        b.setAttribute('draggable', 'true');
-      }
-    });
-    updateQueryJson();
-    updateCategoryCounts();
     return;
   }
 
@@ -897,6 +919,19 @@ async function showExampleTable(fields){
       headerTrash.style.display = 'block';
     }
   }
+}
+
+if (window.QueryChangeManager && typeof window.QueryChangeManager.subscribe === 'function') {
+  window.QueryChangeManager.subscribe(event => {
+    if (!event?.changes?.displayedFields) {
+      return;
+    }
+
+    const displayedFields = event.snapshot?.displayedFields;
+    if (Array.isArray(displayedFields) && displayedFields.length === 0) {
+      renderEmptyQueryTableState();
+    }
+  });
 }
 
 // Arrow-key scrolling when focus is on a bubble, the scrollbar thumb, or when hovering over bubble grid/scrollbar
