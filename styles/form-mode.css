@@ -773,3 +773,19 @@ body.form-mode-active #filter-side-panel {
     min-height: 180px;
   }
 }
+select.form-mode-operator-select {
+  padding-right: 1.5rem !important;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%208L10%2013L15%208%22%20stroke%3D%22%23475569%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E");
+  background-repeat: no-origin;
+  background-repeat: no-repeat;
+  background-position: right 0.25rem center;
+  background-size: 1rem;
+}
+select.form-mode-operator-select:hover {
+  background-color: rgba(226, 232, 240, 0.95);
+  border-color: rgba(148, 163, 184, 0.6);
+}
+select.form-mode-operator-select:focus {
+  outline: 2px solid rgba(59, 130, 246, 0.3);
+  outline-offset: 1px;
+}

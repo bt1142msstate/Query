@@ -1492,9 +1492,35 @@
     const metaRow = document.createElement('div');
     metaRow.className = 'form-mode-meta-row';
 
-    const operatorValue = document.createElement('span');
-    operatorValue.className = 'form-mode-operator-chip';
-    operatorValue.textContent = getOperatorLabel(inputSpec.operator);
+    const availableOperators = getAvailableOperators(fieldDef, inputSpec);
+    let operatorEl;
+
+    if (!availableOperators || availableOperators.length <= 1) {
+      operatorEl = document.createElement('span');
+      operatorEl.className = 'form-mode-operator-chip';
+      operatorEl.textContent = getOperatorLabel(inputSpec.operator);
+    } else {
+      operatorEl = document.createElement('select');
+      operatorEl.className = 'form-mode-operator-chip form-mode-operator-select';
+      operatorEl.style.appearance = 'none';
+      operatorEl.style.cursor = 'pointer';
+      // Add a tiny bit of right padding for a custom chevron background if desired, 
+      // but native looking minimal select is usually fine
+      
+      availableOperators.forEach(op => {
+        const option = document.createElement('option');
+        option.value = op;
+        option.textContent = getOperatorLabel(op);
+        if (op === inputSpec.operator) option.selected = true;
+        operatorEl.appendChild(option);
+      });
+
+      operatorEl.addEventListener('change', (e) => {
+        captureCurrentControlDefaults();
+        inputSpec.operator = e.target.value;
+        rebuildFormCardFromSpec();
+      });
+    }
 
     if (shouldShowFieldMeta) {
       const meta = document.createElement('span');
@@ -1502,7 +1528,7 @@
       meta.textContent = inputSpec.field;
       metaRow.appendChild(meta);
     }
-    metaRow.appendChild(operatorValue);
+    metaRow.appendChild(operatorEl);
 
     const controlWrap = document.createElement('div');
     controlWrap.className = 'form-mode-control';
