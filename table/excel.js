@@ -8,7 +8,573 @@ const ExcelExporter = (() => {
   // instead of being stacked as newlines in a single cell.
   // Synced with window.splitColumnsActive which virtualTable.js also reads.
   let splitMultiValues = false;
+  let exportState = null;
   window.splitColumnsActive = false;
+
+  const SHEET_NAME_LIMIT = 31;
+
+  function getExportElements() {
+    return {
+      overlay: document.getElementById('export-overlay'),
+      backdrop: document.getElementById('export-overlay-backdrop'),
+      closeBtn: document.getElementById('export-overlay-close'),
+      cancelBtn: document.getElementById('export-cancel-btn'),
+      confirmBtn: document.getElementById('export-confirm-btn'),
+      singleMode: document.getElementById('export-mode-single'),
+      groupedMode: document.getElementById('export-mode-grouped'),
+      groupPanel: document.getElementById('export-group-panel'),
+      groupField: document.getElementById('export-group-field'),
+      preview: document.getElementById('export-group-preview'),
+      includeMasterSheet: document.getElementById('export-include-master-sheet'),
+      includeOverviewSheet: document.getElementById('export-include-overview-sheet'),
+      modeCards: Array.from(document.querySelectorAll('[data-export-mode-card]'))
+    };
+  }
+
+  function normalizeSheetName(name) {
+    const cleaned = String(name || 'Sheet')
+      .replace(/[\\/?*\[\]:]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return (cleaned || 'Sheet').slice(0, SHEET_NAME_LIMIT);
+  }
+
+  function getUniqueSheetName(baseName, usedNames) {
+    const normalizedBase = normalizeSheetName(baseName);
+    if (!usedNames.has(normalizedBase)) {
+      usedNames.add(normalizedBase);
+      return normalizedBase;
+    }
+
+    let suffix = 2;
+    while (suffix < 1000) {
+      const suffixText = ` (${suffix})`;
+      const truncatedBase = normalizedBase.slice(0, SHEET_NAME_LIMIT - suffixText.length).trim() || 'Sheet';
+      const candidate = `${truncatedBase}${suffixText}`;
+      if (!usedNames.has(candidate)) {
+        usedNames.add(candidate);
+        return candidate;
+      }
+      suffix += 1;
+    }
+
+    return normalizedBase;
+  }
+
+  function getWorkbookSourceData() {
+    if (!Array.isArray(window.displayedFields) || !window.displayedFields.length || !window.VirtualTable?.virtualTableData?.rows?.length) {
+      return null;
+    }
+
+    const virtualData = window.VirtualTable.virtualTableData;
+    const dataRows = virtualData.rows;
+    const fieldTypeMap = new Map();
+
+    window.displayedFields.forEach(field => {
+      let def = window.fieldDefs && window.fieldDefs.get(field);
+      if (!def) {
+        const baseName = field.replace(/ \d+$/, '');
+        def = window.fieldDefs && window.fieldDefs.get(baseName);
+      }
+      fieldTypeMap.set(field, def ? def.type : 'string');
+    });
+
+    return {
+      virtualData,
+      dataRows,
+      displayedFields: [...window.displayedFields],
+      fieldTypeMap
+    };
+  }
+
+  function parseSirsDate(raw) {
+    const n = typeof raw === 'string' ? parseInt(raw, 10) : raw;
+    if (!n || isNaN(n)) return null;
+    const y = Math.floor(n / 10000);
+    const m = Math.floor((n % 10000) / 100) - 1;
+    const d = n % 100;
+    const dt = new Date(y, m, d);
+    return isNaN(dt.getTime()) ? null : dt;
+  }
+
+  function getCellExportValue(raw, type) {
+    if (raw === undefined || raw === null) return '';
+
+    if (type === 'date') {
+      const dt = parseSirsDate(raw);
+      return dt !== null ? dt : 'Never';
+    }
+
+    if (type === 'number' || type === 'money') {
+      const n = typeof raw === 'number' ? raw : parseFloat(String(raw).replace(/[$,]/g, ''));
+      return isNaN(n) ? '' : n;
+    }
+
+    if (typeof raw === 'string' && raw.includes('\x1F')) {
+      return raw.split('\x1F').join('\n');
+    }
+
+    return raw;
+  }
+
+  function getGroupingDisplayValue(rawValue) {
+    if (rawValue === undefined || rawValue === null || rawValue === '') {
+      return 'Blank';
+    }
+
+    if (rawValue instanceof Date) {
+      return rawValue.toLocaleDateString();
+    }
+
+    if (typeof rawValue === 'boolean') {
+      return rawValue ? 'True' : 'False';
+    }
+
+    const text = String(rawValue).replace(/\n+/g, ' / ').trim();
+    return text || 'Blank';
+  }
+
+  function buildExportRows(sourceData) {
+    return sourceData.dataRows.map(row => {
+      const values = sourceData.displayedFields.map(field => {
+        const colIndex = sourceData.virtualData.columnMap.get(field);
+        const raw = colIndex !== undefined ? row[colIndex] : undefined;
+        const type = sourceData.fieldTypeMap.get(field);
+        return getCellExportValue(raw, type);
+      });
+
+      return {
+        values,
+        rawRow: row
+      };
+    });
+  }
+
+  function buildGroupingCandidates(sourceData, exportedRows) {
+    const candidates = sourceData.displayedFields.map((field, index) => {
+      const counts = new Map();
+
+      exportedRows.forEach(row => {
+        const displayValue = getGroupingDisplayValue(row.values[index]);
+        counts.set(displayValue, (counts.get(displayValue) || 0) + 1);
+      });
+
+      return {
+        field,
+        index,
+        distinctCount: counts.size,
+        counts
+      };
+    }).filter(candidate => candidate.distinctCount > 1);
+
+    candidates.sort((left, right) => left.field.localeCompare(right.field));
+
+    return candidates;
+  }
+
+  function buildExportState() {
+    const sourceData = getWorkbookSourceData();
+    if (!sourceData) {
+      return null;
+    }
+
+    const tableName = typeof window.ensureTableName === 'function'
+      ? window.ensureTableName()
+      : (typeof window.getDefaultTableName === 'function' ? window.getDefaultTableName() : 'Query Results');
+
+    const exportedRows = buildExportRows(sourceData);
+    const groupingCandidates = buildGroupingCandidates(sourceData, exportedRows);
+
+    return {
+      sourceData,
+      tableName,
+      exportedRows,
+      groupingCandidates,
+      selectedGroupingField: groupingCandidates[0]?.field || ''
+    };
+  }
+
+  function setModeCardState(elements, mode) {
+    elements.modeCards.forEach(card => {
+      card.classList.toggle('export-mode-card--active', card.dataset.exportModeCard === mode);
+    });
+  }
+
+  function updateExportPreview(elements) {
+    if (!exportState || !elements.preview) {
+      return;
+    }
+
+    const groupedModeActive = !!elements.groupedMode?.checked;
+    const candidate = exportState.groupingCandidates.find(item => item.field === exportState.selectedGroupingField);
+
+    if (!groupedModeActive) {
+      elements.preview.textContent = `${exportState.exportedRows.length.toLocaleString()} rows into 1 sheet.`;
+      return;
+    }
+
+    if (!candidate) {
+      elements.preview.textContent = 'No eligible displayed fields are available for sheet grouping yet.';
+      return;
+    }
+
+    let sheetCount = candidate.distinctCount;
+    const extras = [];
+
+    if (elements.includeMasterSheet?.checked) {
+      sheetCount += 1;
+      extras.push('All Results');
+    }
+
+    if (elements.includeOverviewSheet?.checked) {
+      sheetCount += 1;
+      extras.push('Overview');
+    }
+
+    const descriptor = extras.length ? `plus ${extras.join(' and ')}` : 'group sheets only';
+    elements.preview.textContent = `${candidate.distinctCount.toLocaleString()} grouped sheet${candidate.distinctCount === 1 ? '' : 's'} from ${candidate.field} (${descriptor}, ${sheetCount.toLocaleString()} total tab${sheetCount === 1 ? '' : 's'}).`;
+  }
+
+  function renderGroupingOptions(elements) {
+    if (!elements.groupField) {
+      return;
+    }
+
+    const candidates = exportState?.groupingCandidates || [];
+    elements.groupField.innerHTML = '';
+
+    if (!candidates.length) {
+      const option = document.createElement('option');
+      option.value = '';
+      option.textContent = 'No displayed field currently supports grouping';
+      elements.groupField.appendChild(option);
+      elements.groupField.disabled = true;
+      return;
+    }
+
+    candidates.forEach(candidate => {
+      const option = document.createElement('option');
+      option.value = candidate.field;
+      option.textContent = `${candidate.field} (${candidate.distinctCount.toLocaleString()} sheet${candidate.distinctCount === 1 ? '' : 's'})`;
+      elements.groupField.appendChild(option);
+    });
+
+    elements.groupField.disabled = false;
+    elements.groupField.value = exportState.selectedGroupingField || candidates[0].field;
+  }
+
+  function updateExportModeUI(elements) {
+    const groupedModeActive = !!elements.groupedMode?.checked;
+    setModeCardState(elements, groupedModeActive ? 'grouped' : 'single');
+
+    if (elements.groupPanel) {
+      elements.groupPanel.classList.toggle('is-disabled', !groupedModeActive);
+      elements.groupPanel.setAttribute('aria-disabled', groupedModeActive ? 'false' : 'true');
+    }
+
+    if (elements.groupField) {
+      const noCandidates = !exportState?.groupingCandidates?.length;
+      elements.groupField.disabled = !groupedModeActive || noCandidates;
+    }
+
+    if (elements.includeMasterSheet) {
+      elements.includeMasterSheet.disabled = !groupedModeActive;
+    }
+
+    if (elements.includeOverviewSheet) {
+      elements.includeOverviewSheet.disabled = !groupedModeActive;
+    }
+
+    if (elements.confirmBtn) {
+      elements.confirmBtn.disabled = groupedModeActive && !exportState?.selectedGroupingField;
+    }
+
+    updateExportPreview(elements);
+  }
+
+  function openExportOverlay() {
+    exportState = buildExportState();
+    if (!exportState) {
+      return;
+    }
+
+    const elements = getExportElements();
+    if (!elements.overlay) {
+      runWorkbookExport({ mode: 'single' }).catch(error => {
+        console.error('Failed to export workbook', error);
+        window.showToastMessage && window.showToastMessage('Could not generate the Excel file', 'error');
+      });
+      return;
+    }
+
+    renderGroupingOptions(elements);
+
+    if (elements.singleMode) {
+      const hasGrouping = exportState.groupingCandidates.length > 0;
+      elements.singleMode.checked = true;
+      if (elements.groupedMode) {
+        elements.groupedMode.checked = false;
+        elements.groupedMode.disabled = !hasGrouping;
+      }
+    }
+
+    if (elements.groupField) {
+      elements.groupField.value = exportState.selectedGroupingField;
+    }
+
+    elements.overlay.classList.remove('hidden');
+    elements.overlay.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('export-overlay-open');
+
+    updateExportModeUI(elements);
+
+    const focusTarget = elements.groupedMode?.checked && !elements.groupField?.disabled
+      ? elements.groupField
+      : elements.confirmBtn;
+    window.requestAnimationFrame(() => focusTarget?.focus());
+  }
+
+  function closeExportOverlay() {
+    const elements = getExportElements();
+    if (!elements.overlay || elements.overlay.classList.contains('hidden')) {
+      return;
+    }
+
+    elements.overlay.classList.add('hidden');
+    elements.overlay.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('export-overlay-open');
+  }
+
+  function triggerWorkbookDownload(buffer, filename) {
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+  }
+
+  function configureWorksheetColumns(worksheet, sourceData, rowsToExport) {
+    worksheet.columns = sourceData.displayedFields.map(field => {
+      let maxLen = field.length;
+      const colIndex = sourceData.virtualData.columnMap.get(field);
+      const type = sourceData.fieldTypeMap.get(field);
+
+      if (colIndex !== undefined) {
+        rowsToExport.forEach(row => {
+          let val = row[colIndex];
+          if (val === undefined || val === null) return;
+          if (type === 'date') val = '12/31/2000';
+          else if (type === 'number' || type === 'money') val = String(val).replace(/[$,]/g, '');
+          else val = String(val).replace(/\x1F/g, ' ');
+          maxLen = Math.max(maxLen, val.length);
+        });
+      }
+
+      return { header: field, key: field, width: Math.max(4, Math.min(60, maxLen + 2)) };
+    });
+  }
+
+  function applyWorksheetFormatting(worksheet, sourceData, rowsToExport) {
+    sourceData.displayedFields.forEach((field, idx) => {
+      const column = worksheet.getColumn(idx + 1);
+      const type = sourceData.fieldTypeMap.get(field);
+
+      if (type === 'date') {
+        column.numFmt = 'mm/dd/yyyy';
+        column.alignment = { horizontal: 'right' };
+      } else if (type === 'number' || type === 'money') {
+        const colIndex = sourceData.virtualData.columnMap.get(field);
+        const sample = colIndex !== undefined
+          ? rowsToExport.map(r => r[colIndex]).find(v => v !== null && v !== undefined && v !== '')
+          : null;
+        if (type === 'money') {
+          column.numFmt = '$#,##0.00';
+        } else {
+          const isDecimal = sample !== undefined && sample !== null && !Number.isInteger(
+            typeof sample === 'number' ? sample : parseFloat(String(sample))
+          );
+          column.numFmt = isDecimal ? '#,##0.00' : '0';
+        }
+        column.alignment = { horizontal: 'right' };
+      } else if (type === 'boolean') {
+        column.alignment = { horizontal: 'center' };
+      } else {
+        const needsWrap = !splitMultiValues && (() => {
+          const cIdx = sourceData.virtualData.columnMap.get(field);
+          if (cIdx === undefined) return false;
+          return rowsToExport.some(r => r[cIdx] != null && typeof r[cIdx] === 'string' && r[cIdx].includes('\x1F'));
+        })();
+        column.alignment = { horizontal: 'left', wrapText: needsWrap };
+      }
+    });
+  }
+
+  function addWorksheetTable(worksheet, sourceData, exportedRows, tableBaseName) {
+    worksheet.views = [{ state: 'frozen', ySplit: 1 }];
+    configureWorksheetColumns(worksheet, sourceData, exportedRows.map(row => row.rawRow));
+
+    const tableRows = exportedRows.map(row => row.values);
+    applyWorksheetFormatting(worksheet, sourceData, exportedRows.map(row => row.rawRow));
+
+    const safeTableName = tableBaseName.replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 240) || 'Query_Results';
+    worksheet.addTable({
+      name: safeTableName,
+      ref: 'A1',
+      headerRow: true,
+      style: { theme: 'TableStyleMedium4', showRowStripes: true },
+      columns: sourceData.displayedFields.map(field => ({ name: field, filterButton: true })),
+      rows: tableRows
+    });
+
+    worksheet.getRow(1).eachCell(cell => {
+      cell.alignment = {
+        ...(cell.alignment || {}),
+        horizontal: 'center',
+        vertical: 'middle'
+      };
+    });
+  }
+
+  function addOverviewWorksheet(workbook, groups, groupField, usedNames) {
+    const overviewSheet = workbook.addWorksheet(getUniqueSheetName('Overview', usedNames));
+    overviewSheet.views = [{ state: 'frozen', ySplit: 1 }];
+    overviewSheet.columns = [
+      { header: groupField, key: 'group', width: 26 },
+      { header: 'Rows', key: 'count', width: 12 }
+    ];
+    overviewSheet.addTable({
+      name: `Overview_${Date.now()}`,
+      ref: 'A1',
+      headerRow: true,
+      style: { theme: 'TableStyleMedium2', showRowStripes: true },
+      columns: [{ name: groupField, filterButton: true }, { name: 'Rows', filterButton: true }],
+      rows: groups.map(group => [group.label, group.rows.length])
+    });
+    overviewSheet.getColumn(2).alignment = { horizontal: 'right' };
+  }
+
+  async function runWorkbookExport(config) {
+    const state = exportState || buildExportState();
+    if (!state) {
+      return;
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const usedNames = new Set();
+
+    if (config.mode === 'grouped') {
+      const candidate = state.groupingCandidates.find(item => item.field === config.groupField);
+      if (!candidate) {
+        throw new Error('A grouping field is required for grouped export');
+      }
+
+      const groups = Array.from(candidate.counts.keys()).map(label => ({
+        label,
+        rows: state.exportedRows.filter(row => getGroupingDisplayValue(row.values[candidate.index]) === label)
+      })).sort((left, right) => left.label.localeCompare(right.label, undefined, { numeric: true, sensitivity: 'base' }));
+
+      if (config.includeMasterSheet) {
+        const masterSheetName = getUniqueSheetName('All Results', usedNames);
+        addWorksheetTable(workbook.addWorksheet(masterSheetName), state.sourceData, state.exportedRows, `${state.tableName}_AllResults`);
+      }
+
+      if (config.includeOverviewSheet) {
+        addOverviewWorksheet(workbook, groups, candidate.field, usedNames);
+      }
+
+      groups.forEach(group => {
+        const sheetName = getUniqueSheetName(group.label, usedNames);
+        addWorksheetTable(workbook.addWorksheet(sheetName), state.sourceData, group.rows, `${state.tableName}_${group.label}`);
+      });
+    } else {
+      const sheetName = getUniqueSheetName(state.tableName, usedNames);
+      addWorksheetTable(workbook.addWorksheet(sheetName), state.sourceData, state.exportedRows, state.tableName);
+    }
+
+    const safeFileName = state.tableName.replace(/[^a-zA-Z0-9\-_\s]/g, '').replace(/\s+/g, '-');
+    const suffix = config.mode === 'grouped' && config.groupField
+      ? `-by-${config.groupField.replace(/[^a-zA-Z0-9\-_\s]/g, '').trim().replace(/\s+/g, '-')}`
+      : '';
+    const filename = `${safeFileName || 'Query-Results'}${suffix}.xlsx`;
+    const buffer = await workbook.xlsx.writeBuffer();
+    triggerWorkbookDownload(buffer, filename);
+  }
+
+  async function confirmExportFromOverlay() {
+    const elements = getExportElements();
+    const groupedModeActive = !!elements.groupedMode?.checked;
+
+    const config = groupedModeActive
+      ? {
+          mode: 'grouped',
+          groupField: elements.groupField?.value || exportState?.selectedGroupingField || '',
+          includeMasterSheet: !!elements.includeMasterSheet?.checked,
+          includeOverviewSheet: !!elements.includeOverviewSheet?.checked
+        }
+      : { mode: 'single' };
+
+    if (config.mode === 'grouped' && !config.groupField) {
+      window.showToastMessage && window.showToastMessage('Choose a field to split sheets by', 'warning');
+      return;
+    }
+
+    const confirmBtn = elements.confirmBtn;
+    if (confirmBtn) {
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Preparing...';
+    }
+
+    try {
+      await runWorkbookExport(config);
+      closeExportOverlay();
+      window.showToastMessage && window.showToastMessage(
+        config.mode === 'grouped'
+          ? `Workbook downloaded with sheets grouped by ${config.groupField}`
+          : 'Workbook downloaded',
+        'success'
+      );
+    } catch (error) {
+      console.error('Failed to export workbook', error);
+      window.showToastMessage && window.showToastMessage('Could not generate the Excel file', 'error');
+    } finally {
+      if (confirmBtn) {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Download .xlsx';
+      }
+    }
+  }
+
+  function attachExportOverlayListeners() {
+    const elements = getExportElements();
+    if (!elements.overlay) {
+      return;
+    }
+
+    elements.backdrop?.addEventListener('click', closeExportOverlay);
+    elements.closeBtn?.addEventListener('click', closeExportOverlay);
+    elements.cancelBtn?.addEventListener('click', closeExportOverlay);
+    elements.confirmBtn?.addEventListener('click', () => {
+      confirmExportFromOverlay();
+    });
+
+    elements.singleMode?.addEventListener('change', () => updateExportModeUI(elements));
+    elements.groupedMode?.addEventListener('change', () => updateExportModeUI(elements));
+    elements.includeMasterSheet?.addEventListener('change', () => updateExportPreview(elements));
+    elements.includeOverviewSheet?.addEventListener('change', () => updateExportPreview(elements));
+    elements.groupField?.addEventListener('change', event => {
+      exportState.selectedGroupingField = event.target.value;
+      updateExportPreview(elements);
+    });
+
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        closeExportOverlay();
+      }
+    });
+  }
 
   function getSplitEligibleSummary() {
     const rawData = window.VirtualTable && window.VirtualTable.rawTableData;
@@ -106,6 +672,8 @@ const ExcelExporter = (() => {
       downloadBtn.addEventListener('click', handleDownload);
     }
 
+    attachExportOverlayListeners();
+
     const toggleBtn = document.getElementById('split-columns-toggle');
     if (toggleBtn) {
       toggleBtn.addEventListener('click', () => {
@@ -176,159 +744,7 @@ const ExcelExporter = (() => {
       return;
     }
 
-    const tableName = typeof window.ensureTableName === 'function'
-      ? window.ensureTableName()
-      : (typeof window.getDefaultTableName === 'function' ? window.getDefaultTableName() : 'Query Results');
-
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet(tableName);
-
-    worksheet.views = [{ state: 'frozen', ySplit: 1 }];
-
-    // VirtualTable.setSplitColumnsMode() already expanded virtualTableData and
-    // updated window.displayedFields when split mode is active, so we just read
-    // from them directly — no separate column-expansion logic needed here.
-    const virtualData = VirtualTable.virtualTableData;
-    const dataRows = virtualData.rows;
-
-    // Build a type lookup. For split columns like "Marc590 1", fall back to the
-    // base field name ("Marc590") to find the type definition.
-    const fieldTypeMap = new Map();
-    displayedFields.forEach(field => {
-      let def = window.fieldDefs && window.fieldDefs.get(field);
-      if (!def) {
-        // Strip trailing " N" suffix for split columns (e.g. "Marc590 1" → "Marc590")
-        const baseName = field.replace(/ \d+$/, '');
-        def = window.fieldDefs && window.fieldDefs.get(baseName);
-      }
-      fieldTypeMap.set(field, def ? def.type : 'string');
-    });
-
-    // Parse a raw YYYYMMDD integer (e.g. 20200914) into a JS Date.
-    function parseSirsDate(raw) {
-      const n = typeof raw === 'string' ? parseInt(raw, 10) : raw;
-      if (!n || isNaN(n)) return null;
-      const y = Math.floor(n / 10000);
-      const m = Math.floor((n % 10000) / 100) - 1;
-      const d = n % 100;
-      const dt = new Date(y, m, d);
-      return isNaN(dt.getTime()) ? null : dt;
-    }
-
-    // Build worksheet column widths
-    worksheet.columns = displayedFields.map(field => {
-      let maxLen = field.length;
-      const colIndex = virtualData.columnMap.get(field);
-      const type = fieldTypeMap.get(field);
-
-      if (colIndex !== undefined) {
-        dataRows.forEach(row => {
-          let val = row[colIndex];
-          if (val === undefined || val === null) return;
-          if (type === 'date') val = '12/31/2000';
-          else if (type === 'number' || type === 'money') val = String(val).replace(/[$,]/g, '');
-          else val = String(val).replace(/\x1F/g, ' '); // flatten for length estimate
-          maxLen = Math.max(maxLen, val.length);
-        });
-      }
-
-      return { header: field, key: field, width: Math.max(4, Math.min(60, maxLen + 2)) };
-    });
-
-    // Build data rows
-    const tableRows = [];
-    dataRows.forEach(row => {
-      const rowData = displayedFields.map(field => {
-        const colIndex = virtualData.columnMap.get(field);
-        const raw = (colIndex !== undefined) ? row[colIndex] : undefined;
-        if (raw === undefined || raw === null) return '';
-
-        const type = fieldTypeMap.get(field);
-
-        if (type === 'date') {
-          const dt = parseSirsDate(raw);
-          return dt !== null ? dt : 'Never';
-        }
-        if (type === 'number' || type === 'money') {
-          const n = typeof raw === 'number' ? raw : parseFloat(String(raw).replace(/[$,]/g, ''));
-          return isNaN(n) ? '' : n;
-        }
-        // In stacked mode \x1F values become newlines; in split mode virtualTableData
-        // already has individual values so \x1F won't be present.
-        if (typeof raw === 'string' && raw.includes('\x1F')) {
-          return raw.split('\x1F').join('\n');
-        }
-        return raw;
-      });
-      tableRows.push(rowData);
-    });
-
-    // Apply column formatting
-    displayedFields.forEach((field, idx) => {
-      const column = worksheet.getColumn(idx + 1);
-      const type = fieldTypeMap.get(field);
-
-      if (type === 'date') {
-        column.numFmt = 'mm/dd/yyyy';
-        column.alignment = { horizontal: 'right' };
-      } else if (type === 'number' || type === 'money') {
-        const colIndex = virtualData.columnMap.get(field);
-        const sample = colIndex !== undefined
-          ? dataRows.map(r => r[colIndex]).find(v => v !== null && v !== undefined && v !== '')
-          : null;
-        if (type === 'money') {
-          column.numFmt = '$#,##0.00';
-        } else {
-          const isDecimal = sample !== undefined && sample !== null && !Number.isInteger(
-            typeof sample === 'number' ? sample : parseFloat(String(sample))
-          );
-          column.numFmt = isDecimal ? '#,##0.00' : '0';
-        }
-        column.alignment = { horizontal: 'right' };
-      } else if (type === 'boolean') {
-        column.alignment = { horizontal: 'center' };
-      } else {
-        // Wrap text only when in stacked mode and the column has multi-values
-        const needsWrap = !splitMultiValues && (() => {
-          const cIdx = virtualData.columnMap.get(field);
-          if (cIdx === undefined) return false;
-          return dataRows.some(r => r[cIdx] != null && typeof r[cIdx] === 'string' && r[cIdx].includes('\x1F'));
-        })();
-        column.alignment = { horizontal: 'left', wrapText: needsWrap };
-      }
-    });
-
-    const safeTableName = tableName.replace(/[^a-zA-Z0-9_]/g, '_');
-    worksheet.addTable({
-      name: safeTableName,
-      ref: 'A1',
-      headerRow: true,
-      style: { theme: 'TableStyleMedium4', showRowStripes: true },
-      columns: displayedFields.map(f => ({ name: f, filterButton: true })),
-      rows: tableRows
-    });
-
-    worksheet.getRow(1).eachCell(cell => {
-      cell.alignment = {
-        ...(cell.alignment || {}),
-        horizontal: 'center',
-        vertical: 'middle'
-      };
-    });
-
-    const safeFileName = tableName.replace(/[^a-zA-Z0-9\-_\s]/g, '').replace(/\s+/g, '-');
-    const filename = `${safeFileName}.xlsx`;
-
-    workbook.xlsx.writeBuffer().then(buffer => {
-      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(link.href);
-    });
+    openExportOverlay();
   }
 
   attach();
