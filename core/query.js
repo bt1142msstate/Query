@@ -199,8 +199,9 @@ if(dom.runBtn){
         if (window.startTableQueryAnimation) window.startTableQueryAnimation();
         
         const state = window.getCurrentQueryState();
-        const tableNameInput = dom.tableNameInput;
-        const queryName = tableNameInput ? tableNameInput.value.trim() : '';
+        const queryName = typeof window.ensureTableName === 'function'
+          ? window.ensureTableName()
+          : (dom.tableNameInput ? dom.tableNameInput.value.trim() : '');
         const payload = window.buildBackendQueryPayload(queryName);
         const historyConfig = typeof window.buildQueryUiConfig === 'function'
           ? window.buildQueryUiConfig()

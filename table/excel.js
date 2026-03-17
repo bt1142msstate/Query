@@ -159,18 +159,11 @@ const ExcelExporter = (() => {
 
     // Check if button is disabled and show message
     if (downloadBtn.disabled) {
-      const tableNameInput = window.DOM?.tableNameInput || document.getElementById('table-name-input');
-      const tableName = tableNameInput ? tableNameInput.value.trim() : '';
       const hasData = Array.isArray(displayedFields) && displayedFields.length > 0 && VirtualTable.virtualTableData && VirtualTable.virtualTableData.rows && VirtualTable.virtualTableData.rows.length > 0;
-      const hasName = tableName && tableName !== '';
 
       let messageText = '';
-      if (!hasData && !hasName) {
-        messageText = 'Add columns and name your table to download';
-      } else if (!hasData) {
+      if (!hasData) {
         messageText = 'Add columns to download';
-      } else if (!hasName) {
-        messageText = 'Name your table';
       }
 
       if (messageText) {
@@ -183,8 +176,9 @@ const ExcelExporter = (() => {
       return;
     }
 
-    const tableNameInput = window.DOM?.tableNameInput || document.getElementById('table-name-input');
-    const tableName = tableNameInput ? tableNameInput.value.trim() || 'Query Results' : 'Query Results';
+    const tableName = typeof window.ensureTableName === 'function'
+      ? window.ensureTableName()
+      : (typeof window.getDefaultTableName === 'function' ? window.getDefaultTableName() : 'Query Results');
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet(tableName);
