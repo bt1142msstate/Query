@@ -578,6 +578,100 @@
       </div>
     </div><!-- end help-panel -->
   </div>
+
+  <div id="export-overlay" class="export-overlay hidden" aria-hidden="true">
+    <div id="export-overlay-backdrop" class="export-overlay-backdrop"></div>
+    <div class="export-dialog" role="dialog" aria-modal="true" aria-labelledby="export-dialog-title" aria-describedby="export-dialog-description">
+      <div class="export-dialog__header">
+        <div>
+          <p class="export-dialog__eyebrow">Excel Export</p>
+          <h2 id="export-dialog-title" class="export-dialog__title">Choose how to package the results</h2>
+          <p id="export-dialog-description" class="export-dialog__description">Export one workbook sheet like before, or split the workbook into sheets grouped by a result field such as library or branch.</p>
+        </div>
+        <button id="export-overlay-close" class="export-dialog__close" type="button" aria-label="Close export options">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 pointer-events-none">
+            <line x1="4" y1="4" x2="16" y2="16"></line>
+            <line x1="16" y1="4" x2="4" y2="16"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="export-dialog__body">
+        <section class="export-mode-grid" aria-label="Export mode">
+          <label class="export-mode-card export-mode-card--active" data-export-mode-card="single">
+            <input id="export-mode-single" type="radio" name="export-mode" value="single" checked>
+            <span class="export-mode-card__icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 pointer-events-none">
+                <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                <path d="M8 9h8"></path>
+                <path d="M8 13h8"></path>
+                <path d="M8 17h5"></path>
+              </svg>
+            </span>
+            <span class="export-mode-card__content">
+              <span class="export-mode-card__title">One sheet</span>
+              <span class="export-mode-card__text">Download the current results into a single worksheet, same as the current flow.</span>
+            </span>
+          </label>
+
+          <label class="export-mode-card" data-export-mode-card="grouped">
+            <input id="export-mode-grouped" type="radio" name="export-mode" value="grouped">
+            <span class="export-mode-card__icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 pointer-events-none">
+                <rect x="3" y="4" width="7" height="16" rx="1.5"></rect>
+                <rect x="14" y="4" width="7" height="7" rx="1.5"></rect>
+                <rect x="14" y="13" width="7" height="7" rx="1.5"></rect>
+              </svg>
+            </span>
+            <span class="export-mode-card__content">
+              <span class="export-mode-card__title">Split into sheets</span>
+              <span class="export-mode-card__text">Group the workbook by a displayed field so each distinct value gets its own worksheet.</span>
+            </span>
+          </label>
+        </section>
+
+        <section class="export-group-panel" id="export-group-panel" aria-live="polite">
+          <div class="export-group-panel__header">
+            <div>
+              <h3 class="export-group-panel__title">Split settings</h3>
+              <p class="export-group-panel__text">Pick any displayed field from the current results. Each distinct value in that field becomes its own worksheet.</p>
+            </div>
+            <div id="export-group-preview" class="export-group-preview">Choose a field to preview the sheet breakdown.</div>
+          </div>
+
+          <div class="export-field-picker">
+            <label class="export-field-picker__label" for="export-group-field">Group sheets by</label>
+            <select id="export-group-field" class="export-field-picker__select"></select>
+          </div>
+
+          <div class="export-option-grid">
+            <label class="export-option-card">
+              <input id="export-include-master-sheet" type="checkbox" checked>
+              <span>
+                <strong>Keep an All Results sheet</strong>
+                <span>Useful when you want the branch tabs but still need one full sheet for quick search and filters.</span>
+              </span>
+            </label>
+            <label class="export-option-card">
+              <input id="export-include-overview-sheet" type="checkbox" checked>
+              <span>
+                <strong>Add an overview sheet</strong>
+                <span>Starts the workbook with a compact tab showing each group value and the row count it contains.</span>
+              </span>
+            </label>
+          </div>
+        </section>
+      </div>
+
+      <div class="export-dialog__footer">
+        <div id="export-dialog-hint" class="export-dialog__hint">One sheet is fastest. Split sheets are best when the workbook will be handed off by branch or location.</div>
+        <div class="export-dialog__actions">
+          <button id="export-cancel-btn" class="export-action-btn export-action-btn--secondary" type="button">Cancel</button>
+          <button id="export-confirm-btn" class="export-action-btn export-action-btn--primary" type="button">Download .xlsx</button>
+        </div>
+      </div>
+    </div>
+  </div>
 <!-- ExcelJS for generating spreadsheets with freeze panes support -->
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="core/utils.js"></script>
@@ -591,7 +685,7 @@
   <script src="ui/tooltips.js?v=3"></script>
   <script src="table/simpleTable.js"></script>
   <script src="table/virtualTable.js?v=7"></script>
-  <script src="table/excel.js?v=2"></script>
+  <script src="table/excel.js?v=3"></script>
   <script src="ui/modalManager.js"></script>
   <script src="filters/filterManager.js?v=13"></script>
   <script src="filters/filterSidePanel.js?v=1773664200000"></script>
