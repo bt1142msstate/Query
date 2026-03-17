@@ -45,6 +45,11 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
+#table-zoom-controls.hidden,
+#table-results-lip.hidden {
+  display: none;
+}
+
 #table-zoom-label {
   min-width: 3.2rem;
   text-align: center;
