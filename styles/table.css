@@ -12,9 +12,9 @@
 }
 
 #table-top-bar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
   gap: 0.85rem;
   padding: 0.55rem 0.8rem 0.45rem;
   border: 1px solid rgba(255, 255, 255, 0.45);
@@ -26,12 +26,19 @@
   box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08), 0 4px 10px rgba(15, 23, 42, 0.05);
 }
 
+#table-toolbar-spacer {
+  min-width: 0;
+  justify-self: start;
+  height: 1px;
+}
+
 #table-toolbar {
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
   gap: 0.5rem;
   flex-shrink: 0;
+  justify-self: end;
 }
 
 #table-zoom-controls {
@@ -64,17 +71,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.38rem;
+  width: 1.95rem;
+  height: 1.95rem;
   min-height: 1.95rem;
-  padding: 0.42rem 0.72rem;
+  padding: 0;
   border-radius: 999px;
   border: 1px solid rgba(148, 163, 184, 0.25);
   background: rgba(255, 255, 255, 0.88);
   color: #1e293b;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
   box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
 }
@@ -107,7 +111,7 @@
 }
 
 .table-expand-btn {
-  min-width: 6.35rem;
+  width: 1.95rem;
 }
 
 body.table-expanded-open {
@@ -439,6 +443,7 @@ th:hover .th-trash {
   gap: 0.22rem;
   max-width: min(100%, 38rem);
   min-width: 0;
+  justify-self: center;
 }
 
 #table-name-input {
@@ -553,8 +558,13 @@ th:hover .th-trash {
 
 @media (max-width: 900px) {
   #table-top-bar {
+    display: flex;
     flex-direction: column;
     align-items: stretch;
+  }
+
+  #table-toolbar-spacer {
+    display: none;
   }
 
   #table-name-shell {
