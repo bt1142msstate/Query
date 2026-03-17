@@ -729,7 +729,7 @@ function loadQueryConfig(q) {
     });
   }
 
-  window.QueryStateStore.setQueryState({
+  window.QueryChangeManager.setQueryState({
     displayedFields: desiredColumns,
     activeFilters: nextActiveFilters
   }, { source: 'QueryHistory.loadQueryConfig' });

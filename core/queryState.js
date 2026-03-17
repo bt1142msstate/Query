@@ -57,6 +57,74 @@ window.pendingRenderBubbles = false;
 const displayedFieldsState = [];
 const activeFiltersState = {};
 const queryStateSubscribers = new Set();
+const readOnlyProxyCache = new WeakMap();
+
+function warnReadOnlyQueryStateMutation(path) {
+  console.warn(`Direct query state mutation blocked for ${path}. Use window.QueryChangeManager instead.`);
+}
+
+function createReadOnlyQueryStateProxy(target, path) {
+  if (!target || typeof target !== 'object') {
+    return target;
+  }
+
+  const cachedProxy = readOnlyProxyCache.get(target);
+  if (cachedProxy) {
+    return cachedProxy;
+  }
+
+  const proxy = new Proxy(target, {
+    get(currentTarget, prop, receiver) {
+      const value = Reflect.get(currentTarget, prop, receiver);
+
+      if (typeof prop === 'symbol') {
+        return value;
+      }
+
+      if (typeof value === 'function') {
+        if (Array.isArray(currentTarget) && [
+          'copyWithin',
+          'fill',
+          'pop',
+          'push',
+          'reverse',
+          'shift',
+          'sort',
+          'splice',
+          'unshift'
+        ].includes(prop)) {
+          return function blockedQueryStateMutation() {
+            warnReadOnlyQueryStateMutation(`${path}.${prop}()`);
+            return Array.isArray(currentTarget) ? currentTarget.length : undefined;
+          };
+        }
+
+        return value.bind(currentTarget);
+      }
+
+      if (value && typeof value === 'object') {
+        return createReadOnlyQueryStateProxy(value, `${path}.${String(prop)}`);
+      }
+
+      return value;
+    },
+    set(_currentTarget, prop) {
+      warnReadOnlyQueryStateMutation(`${path}.${String(prop)}`);
+      return true;
+    },
+    deleteProperty(_currentTarget, prop) {
+      warnReadOnlyQueryStateMutation(`${path}.${String(prop)}`);
+      return true;
+    },
+    defineProperty(_currentTarget, prop) {
+      warnReadOnlyQueryStateMutation(`${path}.${String(prop)}`);
+      return true;
+    }
+  });
+
+  readOnlyProxyCache.set(target, proxy);
+  return proxy;
+}
 
 function cloneFilterEntry(filter) {
   if (!filter || typeof filter !== 'object') {
@@ -213,7 +281,7 @@ function notifyQueryStateSubscribers(changes = {}, meta = {}) {
   });
 }
 
-window.QueryStateStore = {
+const queryStateStore = {
   getSnapshot() {
     return getQueryStateSnapshot();
   },
@@ -429,25 +497,89 @@ window.QueryStateStore = {
   }
 };
 
+function normalizeManagerMeta(meta = {}, fallbackSource) {
+  return {
+    ...meta,
+    source: meta && meta.source ? meta.source : fallbackSource
+  };
+}
+
+const queryChangeManager = {
+  getSnapshot() {
+    return queryStateStore.getSnapshot();
+  },
+  subscribe(listener) {
+    return queryStateStore.subscribe(listener);
+  },
+  replaceDisplayedFields(nextFields, meta = {}) {
+    return queryStateStore.replaceDisplayedFields(nextFields, normalizeManagerMeta(meta, 'QueryChangeManager.replaceDisplayedFields'));
+  },
+  addDisplayedField(fieldNames, options = {}) {
+    return queryStateStore.addDisplayedField(fieldNames, normalizeManagerMeta(options, 'QueryChangeManager.addDisplayedField'));
+  },
+  removeDisplayedField(fieldNames, options = {}) {
+    return queryStateStore.removeDisplayedField(fieldNames, normalizeManagerMeta(options, 'QueryChangeManager.removeDisplayedField'));
+  },
+  moveDisplayedField(fromIndex, toIndex, options = {}) {
+    return queryStateStore.moveDisplayedField(fromIndex, toIndex, normalizeManagerMeta(options, 'QueryChangeManager.moveDisplayedField'));
+  },
+  replaceActiveFilters(nextFilters, meta = {}) {
+    return queryStateStore.replaceActiveFilters(nextFilters, normalizeManagerMeta(meta, 'QueryChangeManager.replaceActiveFilters'));
+  },
+  upsertFilter(fieldName, filter, options = {}) {
+    return queryStateStore.upsertFilter(fieldName, filter, normalizeManagerMeta(options, 'QueryChangeManager.upsertFilter'));
+  },
+  removeFilter(fieldName, options = {}) {
+    return queryStateStore.removeFilter(fieldName, normalizeManagerMeta(options, 'QueryChangeManager.removeFilter'));
+  },
+  reorderFilterGroups(fieldOrder, options = {}) {
+    return queryStateStore.reorderFilterGroups(fieldOrder, normalizeManagerMeta(options, 'QueryChangeManager.reorderFilterGroups'));
+  },
+  setQueryState(nextState = {}, meta = {}) {
+    return queryStateStore.setQueryState(nextState, normalizeManagerMeta(meta, 'QueryChangeManager.setQueryState'));
+  },
+  resetQuery(meta = {}) {
+    return queryStateStore.resetQuery(normalizeManagerMeta(meta, 'QueryChangeManager.resetQuery'));
+  }
+};
+
+Object.freeze(queryChangeManager);
+Object.defineProperty(window, 'QueryChangeManager', {
+  configurable: false,
+  enumerable: false,
+  writable: false,
+  value: queryChangeManager
+});
+
+Object.defineProperty(window, 'QueryStateStore', {
+  configurable: false,
+  enumerable: false,
+  get() {
+    console.warn('window.QueryStateStore is private. Use window.QueryChangeManager instead.');
+    return undefined;
+  },
+  set() {
+    console.warn('window.QueryStateStore is private. Use window.QueryChangeManager instead.');
+  }
+});
+
 Object.defineProperty(window, 'displayedFields', {
   configurable: true,
   get() {
-    return displayedFieldsState;
+    return createReadOnlyQueryStateProxy(displayedFieldsState, 'window.displayedFields');
   },
-  set(nextFields) {
-    assignDisplayedFields(nextFields);
-    notifyQueryStateSubscribers({ displayedFields: true }, { source: 'window.displayedFields setter' });
+  set() {
+    warnReadOnlyQueryStateMutation('window.displayedFields');
   }
 });
 
 Object.defineProperty(window, 'activeFilters', {
   configurable: true,
   get() {
-    return activeFiltersState;
+    return createReadOnlyQueryStateProxy(activeFiltersState, 'window.activeFilters');
   },
-  set(nextFilters) {
-    assignActiveFilters(nextFilters);
-    notifyQueryStateSubscribers({ activeFilters: true }, { source: 'window.activeFilters setter' });
+  set() {
+    warnReadOnlyQueryStateMutation('window.activeFilters');
   }
 });
 
@@ -482,7 +614,7 @@ window.getCurrentQueryState = function() {
   };
 };
 
-window.QueryStateStore.subscribe(event => {
+window.QueryChangeManager.subscribe(event => {
   if (!event) {
     return;
   }

@@ -670,7 +670,7 @@ function setSplitColumnsMode(active) {
   }
 
   // Keep query-state columns aligned with the active split/stacked header set.
-  window.QueryStateStore.replaceDisplayedFields(virtualTableData.headers, { source: 'VirtualTable.setSplitMode' });
+  window.QueryChangeManager.replaceDisplayedFields(virtualTableData.headers, { source: 'VirtualTable.setSplitMode' });
 
   // Recalculate column widths and re-render
   calculatedColumnWidths = calculateOptimalColumnWidths(virtualTableData.headers, virtualTableData);

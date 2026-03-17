@@ -105,8 +105,8 @@ window.clearCurrentQuery = async function clearCurrentQuery() {
   document.querySelectorAll('.condition-btn.active, .toggle-half.active').forEach(btn => btn.classList.remove('active'));
 
   window.selectedField = '';
-  if (window.QueryStateStore && typeof window.QueryStateStore.resetQuery === 'function') {
-    window.QueryStateStore.resetQuery({ source: 'Query.clearCurrentQuery' });
+  if (window.QueryChangeManager && typeof window.QueryChangeManager.resetQuery === 'function') {
+    window.QueryChangeManager.resetQuery({ source: 'Query.clearCurrentQuery' });
   }
   window.lastExecutedQueryState = null;
 
@@ -599,7 +599,7 @@ if(initialContainer) {
       console.log('Initializing application for live queries (test data disabled)');
       
       // Initialize empty fields
-      window.QueryStateStore.replaceDisplayedFields([], { source: 'Query.initialization' });
+      window.QueryChangeManager.replaceDisplayedFields([], { source: 'Query.initialization' });
       
       // Update UI
       if (typeof showExampleTable === 'function') {
@@ -644,7 +644,7 @@ if (dom.groupMethodSelect) {
         };
         
         // Update displayedFields to match new headers
-        window.QueryStateStore.replaceDisplayedFields(headers, { source: 'Query.groupMethodChange' });
+        window.QueryChangeManager.replaceDisplayedFields(headers, { source: 'Query.groupMethodChange' });
         
         console.log('Updated table with new GroupBy method:', {
           method: newGroupMethod,
@@ -665,7 +665,7 @@ if (dom.groupMethodSelect) {
 async function showExampleTable(fields){
   if(!Array.isArray(fields) || fields.length === 0){
     // No columns left → clear table area and reset states
-    window.QueryStateStore.replaceDisplayedFields([], { source: 'Query.showExampleTable.empty' });
+    window.QueryChangeManager.replaceDisplayedFields([], { source: 'Query.showExampleTable.empty' });
     VirtualTable.clearVirtualTableData();
     const container = document.querySelector('.overflow-x-auto.shadow.rounded-lg.mb-6');
     /* Ensure placeholder table has the same height as the table container */
@@ -736,7 +736,7 @@ async function showExampleTable(fields){
   fields.forEach(f => {
     if (!uniqueFields.includes(f)) uniqueFields.push(f);
   });
-  window.QueryStateStore.replaceDisplayedFields(uniqueFields, { source: 'Query.showExampleTable' });
+  window.QueryChangeManager.replaceDisplayedFields(uniqueFields, { source: 'Query.showExampleTable' });
 
   // Create initial table structure
   const tableHTML = `
