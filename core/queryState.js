@@ -6,8 +6,33 @@
 
 // Utility Functions - Available globally
 window.getBaseFieldName = function(fieldName) {
+  const normalizedFieldName = String(fieldName || '').trim();
+  if (!normalizedFieldName) {
+    return '';
+  }
+
   // Remove ordinal prefixes like "2nd ", "3rd ", etc.
-  return fieldName.replace(/^\d+(st|nd|rd|th)\s+/, '');
+  const withoutOrdinalPrefix = normalizedFieldName.replace(/^\d+(st|nd|rd|th)\s+/, '');
+
+  // Split-column mode expands headers as "Field Name 1", "Field Name 2", etc.
+  // Collapse those presentation-only suffixes back to the raw field name when the
+  // underlying unsplit header is present in the current raw result set.
+  const splitMatch = withoutOrdinalPrefix.match(/^(.*)\s+(\d+)$/);
+  if (!splitMatch) {
+    return withoutOrdinalPrefix;
+  }
+
+  const baseCandidate = String(splitMatch[1] || '').trim();
+  if (!baseCandidate) {
+    return withoutOrdinalPrefix;
+  }
+
+  const rawColumnMap = window.VirtualTable?.rawTableData?.columnMap;
+  if (rawColumnMap instanceof Map && rawColumnMap.has(baseCandidate)) {
+    return baseCandidate;
+  }
+
+  return withoutOrdinalPrefix;
 };
 
 // State variables
