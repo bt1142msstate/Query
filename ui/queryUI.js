@@ -29,6 +29,8 @@ window.DOM = {
   get tableResultsBadge() { return this._tableResultsBadge ||= document.getElementById('table-results-badge'); },
   get tableResultsCount() { return this._tableResultsCount ||= document.getElementById('table-results-count'); },
   get tableResultsLabel() { return this._tableResultsLabel ||= document.getElementById('table-results-label'); },
+  get tableColumnsCount() { return this._tableColumnsCount ||= document.getElementById('table-columns-count'); },
+  get tableColumnsLabel() { return this._tableColumnsLabel ||= document.getElementById('table-columns-label'); },
   get tableZoomControls() { return this._tableZoomControls ||= document.getElementById('table-zoom-controls'); },
   get tableZoomOutBtn() { return this._tableZoomOutBtn ||= document.getElementById('table-zoom-out-btn'); },
   get tableZoomInBtn() { return this._tableZoomInBtn ||= document.getElementById('table-zoom-in-btn'); },
@@ -46,19 +48,26 @@ window.updateTableResultsLip = function() {
   const resultsBadge = window.DOM.tableResultsBadge;
   const resultsCount = window.DOM.tableResultsCount;
   const resultsLabel = window.DOM.tableResultsLabel;
+  const columnsCount = window.DOM.tableColumnsCount;
+  const columnsLabel = window.DOM.tableColumnsLabel;
   const tableNameShell = window.DOM.tableNameShell;
 
-  if (!resultsBadge || !resultsCount || !resultsLabel) {
+  if (!resultsBadge || !resultsCount || !resultsLabel || !columnsCount || !columnsLabel) {
     return;
   }
 
   const rowCount = Array.isArray(window.VirtualTable?.virtualTableData?.rows)
     ? window.VirtualTable.virtualTableData.rows.length
     : 0;
-  const hasResults = rowCount > 0;
+  const columnCount = Array.isArray(window.displayedFields)
+    ? window.displayedFields.length
+    : 0;
+  const hasResults = rowCount > 0 || columnCount > 0;
 
   resultsCount.textContent = rowCount.toLocaleString();
   resultsLabel.textContent = rowCount === 1 ? 'result' : 'results';
+  columnsCount.textContent = columnCount.toLocaleString();
+  columnsLabel.textContent = columnCount === 1 ? 'column' : 'columns';
   resultsBadge.classList.toggle('hidden', !hasResults);
   resultsBadge.setAttribute('aria-hidden', hasResults ? 'false' : 'true');
 
