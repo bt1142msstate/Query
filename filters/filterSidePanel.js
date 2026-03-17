@@ -4,10 +4,26 @@
     supporting inline edit, remove, and add-condition.
    ========================================== */
 window.FilterSidePanel = (function () {
-    let isOpen = false;
     let currentViewMode = 'both';
+    const VIEW_MODES = new Set(['both', 'filters', 'display']);
 
     const $ = id => document.getElementById(id);
+
+    function getDisplayedFields() {
+        return Array.isArray(window.displayedFields) ? window.displayedFields : [];
+    }
+
+    function cleanupPopupControls(container) {
+        if (!container) {
+            return;
+        }
+
+        Array.from(container.querySelectorAll('.form-mode-popup-list-control')).forEach(control => {
+            if (typeof control._cleanupPopup === 'function') {
+                control._cleanupPopup();
+            }
+        });
+    }
 
     function hasAnyFilters() {
         return window.activeFilters &&
@@ -19,7 +35,7 @@ window.FilterSidePanel = (function () {
     }
 
     function hasDisplayedFields() {
-        return Array.isArray(window.displayedFields) && window.displayedFields.length > 0;
+        return getDisplayedFields().length > 0;
     }
 
     function hasPanelContent() {
@@ -27,7 +43,6 @@ window.FilterSidePanel = (function () {
     }
 
     function open() {
-        isOpen = true;
         const panel = $('filter-side-panel');
         if (panel) {
             panel.classList.remove('panel-hidden');
@@ -49,24 +64,16 @@ window.FilterSidePanel = (function () {
     }
 
     function hideFully() {
-        isOpen = false;
         const panel = $('filter-side-panel');
         if (panel) {
-            const body = $('filter-panel-body');
-            if (body) {
-                Array.from(body.querySelectorAll('.form-mode-popup-list-control')).forEach(control => {
-                    if (typeof control._cleanupPopup === 'function') {
-                        control._cleanupPopup();
-                    }
-                });
-            }
+            cleanupPopupControls($('filter-panel-body'));
             panel.classList.remove('panel-open');
             panel.classList.add('panel-hidden');
         }
     }
 
     function setViewMode(nextMode) {
-        if (!['both', 'filters', 'display'].includes(nextMode)) {
+        if (!VIEW_MODES.has(nextMode)) {
             return;
         }
 
@@ -357,8 +364,10 @@ window.FilterSidePanel = (function () {
     }
 
     function syncDisplayFieldChange() {
+        const displayedFields = getDisplayedFields();
+
         if (typeof window.showExampleTable === 'function') {
-            window.showExampleTable(window.displayedFields).catch(console.error);
+            window.showExampleTable(displayedFields).catch(console.error);
         }
 
         if (typeof window.updateCategoryCounts === 'function') {
@@ -371,7 +380,7 @@ window.FilterSidePanel = (function () {
     }
 
     function moveDisplayedFieldByOffset(index, offset) {
-        const fields = Array.isArray(window.displayedFields) ? window.displayedFields : [];
+        const fields = getDisplayedFields();
         const targetIndex = index + offset;
         if (index < 0 || index >= fields.length || targetIndex < 0 || targetIndex >= fields.length) {
             return;
@@ -384,7 +393,7 @@ window.FilterSidePanel = (function () {
     }
 
     function removeDisplayedFieldAt(index) {
-        const fields = Array.isArray(window.displayedFields) ? window.displayedFields : [];
+        const fields = getDisplayedFields();
         const fieldName = fields[index];
         if (!fieldName) {
             return;
@@ -461,7 +470,7 @@ window.FilterSidePanel = (function () {
     function createDisplaySection() {
         const wrapper = document.createElement('section');
         wrapper.className = 'fp-section fp-display-section';
-        const fields = Array.isArray(window.displayedFields) ? window.displayedFields : [];
+        const fields = getDisplayedFields();
 
         wrapper.appendChild(createSectionHeader('Fields Being Displayed', fields.length, fields.length === 1 ? 'field' : 'fields'));
 
@@ -800,11 +809,7 @@ window.FilterSidePanel = (function () {
         const body = $('filter-panel-body');
         if (!body) return;
 
-        Array.from(body.querySelectorAll('.form-mode-popup-list-control')).forEach(control => {
-            if (typeof control._cleanupPopup === 'function') {
-                control._cleanupPopup();
-            }
-        });
+        cleanupPopupControls(body);
 
         if (!hasPanelContent()) {
             hideFully();
