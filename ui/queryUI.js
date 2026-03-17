@@ -26,7 +26,8 @@ window.DOM = {
   get tableToolbarSpacer() { return this._tableToolbarSpacer ||= document.getElementById('table-toolbar-spacer'); },
   get tableNameInput() { return this._tableNameInput ||= document.getElementById('table-name-input'); },
   get tableNameShell() { return this._tableNameShell ||= document.getElementById('table-name-shell'); },
-  get tableResultsLip() { return this._tableResultsLip ||= document.getElementById('table-results-lip'); },
+  get tableNameRow() { return this._tableNameRow ||= document.getElementById('table-name-row'); },
+  get tableResultsBadge() { return this._tableResultsBadge ||= document.getElementById('table-results-badge'); },
   get tableResultsCount() { return this._tableResultsCount ||= document.getElementById('table-results-count'); },
   get tableResultsLabel() { return this._tableResultsLabel ||= document.getElementById('table-results-label'); },
   get tableZoomControls() { return this._tableZoomControls ||= document.getElementById('table-zoom-controls'); },
@@ -42,31 +43,13 @@ window.DOM = {
   get mobileCategorySelector() { return this._mobileCategorySelector ||= document.getElementById('mobile-category-selector'); }
 };
 
-window.syncTableResultsLipWidth = function() {
-  const resultsLip = window.DOM.tableResultsLip;
-  const tableNameInput = window.DOM.tableNameInput;
-
-  if (!resultsLip || !tableNameInput) {
-    return;
-  }
-
-  const sync = () => {
-    const width = Math.ceil(tableNameInput.getBoundingClientRect().width);
-    if (width > 0) {
-      resultsLip.style.width = `${width}px`;
-    }
-  };
-
-  window.requestAnimationFrame(sync);
-};
-
 window.updateTableResultsLip = function() {
-  const resultsLip = window.DOM.tableResultsLip;
+  const resultsBadge = window.DOM.tableResultsBadge;
   const resultsCount = window.DOM.tableResultsCount;
   const resultsLabel = window.DOM.tableResultsLabel;
   const tableNameShell = window.DOM.tableNameShell;
 
-  if (!resultsLip || !resultsCount || !resultsLabel) {
+  if (!resultsBadge || !resultsCount || !resultsLabel) {
     return;
   }
 
@@ -77,15 +60,11 @@ window.updateTableResultsLip = function() {
 
   resultsCount.textContent = rowCount.toLocaleString();
   resultsLabel.textContent = rowCount === 1 ? 'result' : 'results';
-  resultsLip.classList.toggle('hidden', !hasResults);
-  resultsLip.setAttribute('aria-hidden', hasResults ? 'false' : 'true');
+  resultsBadge.classList.toggle('hidden', !hasResults);
+  resultsBadge.setAttribute('aria-hidden', hasResults ? 'false' : 'true');
 
   if (tableNameShell) {
     tableNameShell.classList.toggle('has-results', hasResults);
-  }
-
-  if (typeof window.syncTableResultsLipWidth === 'function') {
-    window.syncTableResultsLipWidth();
   }
 };
 
@@ -147,10 +126,6 @@ window.refreshTableViewport = function() {
   tableContainer.dataset.expanded = expanded ? 'true' : 'false';
   tableContainer.style.height = expanded ? 'calc(100vh - 11rem)' : '400px';
 
-  if (typeof window.syncTableResultsLipWidth === 'function') {
-    window.syncTableResultsLipWidth();
-  }
-
   window.requestAnimationFrame(() => {
     const table = document.getElementById('example-table');
     if (!table || !window.VirtualTable) {
@@ -163,7 +138,6 @@ window.refreshTableViewport = function() {
 
     if (typeof window.VirtualTable.renderVirtualTable === 'function') {
       window.VirtualTable.renderVirtualTable();
-  const tableToolbar = window.DOM.tableToolbar;
     }
   });
 };
@@ -249,27 +223,11 @@ window.onDOMReady(() => {
     return;
   }
 
-  const syncLipWidth = () => {
-    if (typeof window.syncTableResultsLipWidth === 'function') {
-      window.syncTableResultsLipWidth();
-    }
-  };
-
-  syncLipWidth();
-  tableNameInput.addEventListener('input', syncLipWidth);
-  tableNameInput.addEventListener('blur', syncLipWidth);
-  tableNameInput.addEventListener('focus', syncLipWidth);
-  window.addEventListener('resize', syncLipWidth);
-
-  if (typeof ResizeObserver !== 'undefined') {
-    const resizeObserver = new ResizeObserver(syncLipWidth);
-    resizeObserver.observe(tableNameInput);
-  }
-
   const tableShell = window.DOM.tableShell;
   const tableExpandBtn = window.DOM.tableExpandBtn;
   const tableZoomInBtn = window.DOM.tableZoomInBtn;
   const tableZoomOutBtn = window.DOM.tableZoomOutBtn;
+  const tableToolbar = window.DOM.tableToolbar;
 
   if (tableShell) {
     tableShell.dataset.zoom = tableShell.dataset.zoom || '1.00';
@@ -293,6 +251,13 @@ window.onDOMReady(() => {
     });
   }
 
+  if (typeof ResizeObserver !== 'undefined' && tableToolbar) {
+    const toolbarResizeObserver = new ResizeObserver(() => {
+      window.syncTableToolbarBalance();
+    });
+    toolbarResizeObserver.observe(tableToolbar);
+  }
+
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && window.DOM.tableShell?.classList.contains('table-shell-expanded')) {
       window.toggleTableExpanded(false);
@@ -305,10 +270,6 @@ window.onDOMReady(() => {
     if (window.DOM.tableShell?.classList.contains('table-shell-expanded')) {
       window.refreshTableViewport();
       return;
-    }
-
-    if (typeof window.syncTableResultsLipWidth === 'function') {
-      window.syncTableResultsLipWidth();
     }
   });
 

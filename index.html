@@ -11,7 +11,7 @@
   <meta http-equiv="Expires" content="0">
   <title>Library Item Reports</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link href="styles.css?v=19" rel="stylesheet">
+  <link href="styles.css?v=20" rel="stylesheet">
   <link rel="icon" href="data:,">
 </head>
 <body class="relative min-h-screen overflow-x-hidden overflow-y-auto pt-16 px-6 pb-6" id="page-body">
@@ -204,17 +204,19 @@
           <div id="table-top-bar">
             <div id="table-toolbar-spacer" aria-hidden="true"></div>
             <div id="table-name-shell">
-              <input 
-                type="text" 
-                id="table-name-input"
-                placeholder="Enter table name..."
-                class="text-xl font-semibold bg-transparent border-none text-center focus:outline-none focus:bg-white focus:px-3 focus:py-1 focus:rounded-lg focus:shadow-md transition-all duration-200 text-gray-800 min-w-0 max-w-md"
-                style="width: auto; min-width: 200px;"
-                data-tooltip="Enter a name for your table"
-              />
-              <div id="table-results-lip" class="hidden" aria-hidden="true">
-                <span id="table-results-count">0</span>
-                <span id="table-results-label">results</span>
+              <div id="table-name-row">
+                <div id="table-results-badge" class="hidden" aria-hidden="true">
+                  <span id="table-results-count">0</span>
+                  <span id="table-results-label">results</span>
+                </div>
+                <input 
+                  type="text" 
+                  id="table-name-input"
+                  placeholder="Enter table name..."
+                  class="text-xl font-semibold bg-transparent border-none text-center focus:outline-none focus:bg-white focus:px-3 focus:py-1 focus:rounded-lg focus:shadow-md transition-all duration-200 text-gray-800 min-w-0 max-w-md"
+                  style="width: auto; min-width: 200px;"
+                  data-tooltip="Enter a name for your table"
+                />
               </div>
             </div>
             <div id="table-toolbar">
@@ -586,7 +588,7 @@
   <script src="filters/fieldDefs.js?v=5"></script>
   <script src="ui/toast.js"></script>
   <script src="core/queryState.js?v=6"></script>
-  <script src="ui/queryUI.js?v=5"></script>
+  <script src="ui/queryUI.js?v=6"></script>
   <script src="ui/queryUiHelpers.js?v=1773659590348"></script>
   <script src="ui/queryAnimation.js?v=7"></script>
   <script src="filters/queryPayload.js?v=7"></script>
