@@ -764,7 +764,7 @@ async function showExampleTable(fields){
     </table>`;
 
   // Replace the original sample-data table in place
-  const container = document.querySelector('.overflow-x-auto.shadow.rounded-lg.mb-6');
+  const container = document.getElementById('table-container');
   if (container) {
     // Set up container for virtual scrolling
     container.innerHTML = tableHTML;
@@ -1019,9 +1019,10 @@ window.onDOMReady(() => {
     // Auto-resize input based on content
     function autoResizeInput() {
       const minWidth = 200;
-      // Get the table container width as max width
-      const tableContainer = document.querySelector('.overflow-x-auto.shadow.rounded-lg.mb-6.relative');
-      const maxWidth = tableContainer ? tableContainer.offsetWidth - 32 : 400; // 32px for margins
+      const tableChrome = document.getElementById('table-top-bar');
+      const toolbar = document.getElementById('table-toolbar');
+      const toolbarWidth = toolbar ? toolbar.offsetWidth : 0;
+      const maxWidth = tableChrome ? Math.max(240, tableChrome.offsetWidth - toolbarWidth - 64) : 400;
       
       // Create a temporary span to measure text width
       const temp = document.createElement('span');
