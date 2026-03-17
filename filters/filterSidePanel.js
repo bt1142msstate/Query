@@ -98,7 +98,7 @@ window.FilterSidePanel = (function () {
         const fieldType = (fieldDef && fieldDef.type) || 'string';
         const inputType = fieldType === 'date'
             ? 'date'
-            : (fieldType === 'number' || fieldType === 'money') ? 'number' : 'text';
+            : fieldType === 'money' ? 'text' : fieldType === 'number' ? 'number' : 'text';
         const currentValues = String(initialValue || '')
             .split(',')
             .map(value => value.trim())
@@ -119,8 +119,13 @@ window.FilterSidePanel = (function () {
             const input = document.createElement('input');
             input.className = 'fp-edit-val-input';
             input.type = inputType;
-            input.value = initialValue;
+            input.value = fieldType === 'money' && window.formatMoneyInputValue
+                ? window.formatMoneyInputValue(initialValue)
+                : initialValue;
             input.placeholder = 'Value';
+            if (fieldType === 'money' && window.configureMoneyInputBehavior) {
+                window.configureMoneyInputBehavior(input, true);
+            }
             return input;
         }
 
@@ -203,7 +208,7 @@ window.FilterSidePanel = (function () {
         });
 
         const inputType = (fieldType === 'date') ? 'date'
-            : (fieldType === 'number' || fieldType === 'money') ? 'number' : 'text';
+            : fieldType === 'money' ? 'text' : (fieldType === 'number') ? 'number' : 'text';
 
         let saveEdit = null;
 
@@ -222,8 +227,13 @@ window.FilterSidePanel = (function () {
         const val2 = document.createElement('input');
         val2.className = 'fp-edit-val-input';
         val2.type = inputType;
-        val2.value = vals[1];
+        val2.value = fieldType === 'money' && window.formatMoneyInputValue
+            ? window.formatMoneyInputValue(vals[1])
+            : vals[1];
         val2.placeholder = 'To';
+        if (fieldType === 'money' && window.configureMoneyInputBehavior) {
+            window.configureMoneyInputBehavior(val2, true);
+        }
 
         function syncBetween() {
             const bet = condSel.value === 'between';
@@ -241,7 +251,16 @@ window.FilterSidePanel = (function () {
             const newCond = condSel.value;
             let newVal = getInlineEditorValues(val1).join(',');
 
-            const newVal2 = val2.value.trim();
+            const newVal2 = fieldType === 'money' && window.sanitizeMoneyInputValue
+                ? window.sanitizeMoneyInputValue(val2.value.trim())
+                : val2.value.trim();
+            if (fieldType === 'money' && window.sanitizeMoneyInputValue) {
+                newVal = newVal
+                    .split(',')
+                    .map(value => window.sanitizeMoneyInputValue(value))
+                    .filter(Boolean)
+                    .join(',');
+            }
             if (!newVal) return;
             if (newCond === 'between') {
                 if (!newVal2) return;
