@@ -218,8 +218,8 @@ body.export-overlay-open {
 }
 
 #example-table {
-  --header-action-space: 5.5rem;
-  --header-text-balance-space: 5.5rem;
+  --header-action-space: 6.5rem;
+  --header-text-balance-space: 6.5rem;
 }
 
 #example-table th {
@@ -434,7 +434,7 @@ body.dragging-cursor * {
 .th-actions {
   position: absolute;
   top: 50%;
-  right: 12px;
+  right: 1.15rem;
   transform: translateY(-50%);
   display: flex;
   flex-direction: row;
