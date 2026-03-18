@@ -404,14 +404,14 @@ body.dragging-cursor * {
   top: 50%;
   right: 12px;
   transform: translateY(-50%);
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.25rem;
-  width: max-content;
-  min-width: calc((1.55rem * 2) + 0.25rem);
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 0.25rem !important;
+  width: max-content !important;
+  min-width: 4rem !important;
   z-index: 3;
   opacity: 0;
   visibility: hidden;
@@ -419,13 +419,15 @@ body.dragging-cursor * {
 }
 
 .th-action {
-  width: 1.55rem;
-  height: 1.55rem;
+  width: 1.55rem !important;
+  height: 1.55rem !important;
+  min-width: 1.55rem !important;
+  max-width: 1.55rem !important;
   display: inline-flex !important;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  padding: 0;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 1.55rem !important;
+  padding: 0 !important;
   border: none;
   background: rgba(255, 255, 255, 0.96);
   border-radius: 999px;
