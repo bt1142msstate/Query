@@ -866,8 +866,8 @@ async function showExampleTable(fields, options = {}){
     const sortableHeaders = table.querySelectorAll('th.sortable-header');
     sortableHeaders.forEach(th => {
       th.addEventListener('click', (e) => {
-        // Prevent sorting if clicking the trash can
-        if (e.target.closest('.th-trash')) return;
+        // Prevent sorting if clicking a header action button
+        if (e.target.closest('.th-action')) return;
         
         const field = th.getAttribute('data-sort-field');
         if (field && window.VirtualTable && window.VirtualTable.sortTableBy) {
@@ -927,31 +927,6 @@ async function showExampleTable(fields, options = {}){
     // Re-render bubbles if we're in Selected category
     if (currentCategory === 'Selected') {
       window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
-    }
-    
-    // Attach header hover handlers for trash can
-    const headers = table.querySelectorAll('th[draggable="true"]');
-    headers.forEach(h => {
-      h.addEventListener('mouseenter', () => {
-        h.classList.add('th-hover');
-        dragDropManager.hoverTh = h;
-        h.appendChild(headerTrash);
-        headerTrash.style.display = 'block';
-      });
-      h.addEventListener('mouseleave', () => {
-        h.classList.remove('th-hover');
-        dragDropManager.hoverTh = null;
-        if (headerTrash.parentNode) headerTrash.parentNode.removeChild(headerTrash);
-      });
-    });
-    
-    // If only one column, attach trashcan immediately
-    if (headers.length === 1) {
-      const h = headers[0];
-      h.classList.add('th-hover');
-      dragDropManager.hoverTh = h;
-      h.appendChild(headerTrash);
-      headerTrash.style.display = 'block';
     }
   }
 }
