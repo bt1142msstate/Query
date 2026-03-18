@@ -54,7 +54,7 @@
   letter-spacing: 0.01em;
 }
 
-/* ---- Condition Panel (operator buttons) ---- */
+/* ---- Condition Panel ---- */
 #condition-panel {
   display: flex;
   flex-wrap: wrap;
@@ -67,28 +67,6 @@
 /* .show still toggled by JS for state tracking — no visual change needed */
 #condition-panel.show {
   pointer-events: auto;
-}
-
-.condition-btn {
-  padding: 0.5rem 1rem;
-  font-weight: 600;
-  border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-lg);
-  backdrop-filter: blur(4px);
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  transition: transform 0.2s;
-}
-
-.condition-btn:hover {
-  transform: scale(1.05);
-}
-
-.condition-btn.active {
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--color-black);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 #condition-input-wrapper {
@@ -151,6 +129,46 @@
 .confirm-btn:hover {
   background: var(--color-emerald-600);
   transform: scale(1.05);
+}
+
+.condition-operator-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  width: min(100%, 20rem);
+}
+
+.condition-operator-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.condition-operator-select {
+  width: 100%;
+  padding: 0.7rem 2.6rem 0.7rem 0.95rem;
+  border-radius: var(--border-radius-lg);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: var(--shadow-lg);
+  color: #0f172a;
+  font-weight: 600;
+  line-height: 1.2;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #475569 50%), linear-gradient(135deg, #475569 50%, transparent 50%);
+  background-position: calc(100% - 1.15rem) calc(50% - 0.12rem), calc(100% - 0.82rem) calc(50% - 0.12rem);
+  background-size: 0.42rem 0.42rem, 0.42rem 0.42rem;
+  background-repeat: no-repeat;
+}
+
+.condition-operator-select:focus {
+  outline: none;
+  border-color: rgba(37, 99, 235, 0.45);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12), var(--shadow-lg);
 }
 
 .list-paste-input {
