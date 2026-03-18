@@ -765,7 +765,7 @@ const dragDropManager = {
     th.classList.add('th-hover');
     this.hoverTh = th;
     th.appendChild(headerActions);
-    headerActions.style.display = 'inline-flex';
+    // Let CSS handle visibility so flexbox doesn't wrap
   },
   
   handleHeaderLeave(th) {
