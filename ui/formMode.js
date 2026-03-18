@@ -287,6 +287,10 @@
   }
 
   function getFieldPickerOptions() {
+    if (window.SharedFieldPicker && typeof window.SharedFieldPicker.getFieldOptions === 'function') {
+      return window.SharedFieldPicker.getFieldOptions();
+    }
+
     const source = Array.isArray(window.fieldDefsArray) && window.fieldDefsArray.length > 0
       ? window.fieldDefsArray
       : Array.from((window.fieldDefs && window.fieldDefs.values()) || []);
@@ -607,303 +611,77 @@
   }
 
   async function openFieldPicker() {
-    if (typeof window.loadFieldDefinitions === 'function') {
-      await window.loadFieldDefinitions();
+    if (!window.SharedFieldPicker || typeof window.SharedFieldPicker.open !== 'function') {
+      throw new Error('SharedFieldPicker is not available.');
     }
 
-    syncSpecColumnsWithDisplayedFields({ refreshUrl: false });
-
-    const options = getFieldPickerOptions();
-    if (options.length === 0) {
-      if (window.showToastMessage) {
-        window.showToastMessage('No fields are available to add right now.', 'warning');
-      }
-      return;
-    }
-
-    const backdrop = document.createElement('div');
-    backdrop.className = 'form-mode-field-picker-backdrop';
-
-    const modal = document.createElement('div');
-    modal.className = 'form-mode-field-picker-modal';
-    modal.innerHTML = `
-      <div class="form-mode-field-picker-header">
-        <div>
-          <span class="form-mode-field-picker-kicker">Add Field</span>
-          <h3 class="form-mode-field-picker-title">Choose a field for this form</h3>
-          <p class="form-mode-field-picker-description">Select a field, then decide whether it should show in results, appear as a filter control, or both.</p>
-        </div>
-        <button type="button" class="form-mode-field-picker-close" aria-label="Close field picker">×</button>
-      </div>
-      <div class="form-mode-field-picker-body">
-        <div class="form-mode-field-picker-list-panel">
-          <div class="form-mode-field-picker-controls">
-            <input type="search" class="form-mode-field-picker-search" placeholder="Search fields..." aria-label="Search fields" data-search-ui="enhanced" data-search-wrapper-class="form-mode-field-picker-search-field" data-search-clear-label="Clear field search" />
-            <label class="form-mode-field-picker-category-wrap">
-              <span class="form-mode-field-picker-category-label">Category</span>
-              <select class="form-mode-field-picker-category-select" aria-label="Filter fields by category">
-                <option value="">All categories</option>
-              </select>
-            </label>
-          </div>
-          <div class="form-mode-field-picker-list" role="listbox" aria-label="Available fields"></div>
-        </div>
-        <div class="form-mode-field-picker-details">
-          <p class="form-mode-field-picker-selected-label">Selected field</p>
-            <h4 class="form-mode-field-picker-field-name"></h4>
-          <p class="form-mode-field-picker-field-meta hidden"></p>
-          <label class="form-mode-field-picker-choice">
-            <input type="checkbox" data-field-picker-choice="display" />
-            <span>Display in results</span>
-          </label>
-          <label class="form-mode-field-picker-choice">
-            <input type="checkbox" data-field-picker-choice="filter" />
-            <span>Add filter control</span>
-          </label>
-          <p class="form-mode-field-picker-status"></p>
-        </div>
-      </div>
-      <div class="form-mode-field-picker-footer">
-        <span class="form-mode-field-picker-footer-note">Changes apply automatically.</span>
-      </div>
-    `;
-
-    document.body.appendChild(backdrop);
-    document.body.appendChild(modal);
-
-    const closeButton = modal.querySelector('.form-mode-field-picker-close');
-    const searchInput = modal.querySelector('.form-mode-field-picker-search');
-    const categorySelect = modal.querySelector('.form-mode-field-picker-category-select');
-    const listEl = modal.querySelector('.form-mode-field-picker-list');
-    const fieldNameEl = modal.querySelector('.form-mode-field-picker-field-name');
-    const fieldMetaEl = modal.querySelector('.form-mode-field-picker-field-meta');
-    const statusEl = modal.querySelector('.form-mode-field-picker-status');
-    const displayChoice = modal.querySelector('[data-field-picker-choice="display"]');
-    const filterChoice = modal.querySelector('[data-field-picker-choice="filter"]');
-
-    if (searchInput && typeof window.initializeSearchInputs === 'function') {
-      window.initializeSearchInputs(modal);
-    }
-
-    let selectedFieldName = options[0].name;
-    let searchTerm = '';
-    let selectedCategory = '';
-
-    const categories = options
-      .flatMap(option => String(option.category || '')
-        .split(',')
-        .map(category => category.trim())
-        .filter(Boolean))
-      .filter((category, index, list) => list.indexOf(category) === index)
-      .sort((left, right) => left.localeCompare(right, undefined, { sensitivity: 'base' }));
-
-    if (categorySelect) {
-      categories.forEach(category => {
-        const option = document.createElement('option');
-        option.value = category;
-        option.textContent = category;
-        categorySelect.appendChild(option);
-      });
-    }
-
-    function cleanup() {
-      document.removeEventListener('keydown', onKeyDown);
-      backdrop.remove();
-      modal.remove();
-    }
-
-    function onKeyDown(event) {
-      if (event.key === 'Escape') {
-        cleanup();
-      }
-    }
-
-    function syncDetails() {
-      const selected = options.find(option => option.name === selectedFieldName) || null;
-      if (!selected) {
-        fieldNameEl.textContent = '';
-        fieldMetaEl.textContent = '';
-        fieldMetaEl.classList.add('hidden');
-        statusEl.textContent = 'No field selected.';
-        return;
-      }
-
-      const alreadyDisplayed = hasSpecColumn(selected.name);
-      const alreadyFilterable = hasSpecFilterInput(selected.name);
-      const metaParts = [];
-      if (selected.type) metaParts.push(selected.type);
-      if (selected.category) metaParts.push(selected.category);
-
-      fieldNameEl.textContent = selected.name;
-      fieldMetaEl.textContent = metaParts.join(' • ');
-      fieldMetaEl.classList.toggle('hidden', metaParts.length === 0);
-
-      const willAddDisplay = displayChoice.checked && !alreadyDisplayed;
-      const willRemoveDisplay = !displayChoice.checked && alreadyDisplayed;
-      const willAddFilter = filterChoice.checked && !alreadyFilterable;
-      const willRemoveFilter = !filterChoice.checked && alreadyFilterable;
-      const statusParts = [];
-
-      if (willAddDisplay) statusParts.push('Will add to results');
-      if (willRemoveDisplay) statusParts.push('Will remove from results');
-      if (willAddFilter) statusParts.push('Will add filter control');
-      if (willRemoveFilter) statusParts.push('Will remove filter control');
-
-      if (!willAddDisplay && !willRemoveDisplay && alreadyDisplayed) {
-        statusParts.push('Displayed');
-      }
-      if (!willAddFilter && !willRemoveFilter && alreadyFilterable) {
-        statusParts.push('Filterable');
-      }
-
-      statusEl.textContent = statusParts.length > 0
-        ? statusParts.join(' • ')
-        : 'No changes for this field.';
-    }
-
-    function applySelectedFieldChanges() {
-      if (!selectedFieldName || !state.spec) {
-        return;
-      }
-
-      const addedParts = [];
-      const removedParts = [];
-
-      const alreadyDisplayed = hasSpecColumn(selectedFieldName);
-      const alreadyFilterable = hasSpecFilterInput(selectedFieldName);
-
-      if (displayChoice.checked && !alreadyDisplayed) {
-        state.spec.columns.push(selectedFieldName);
-        addedParts.push('results column');
-      } else if (!displayChoice.checked && alreadyDisplayed) {
-        removeSpecColumns(selectedFieldName);
-        removedParts.push('results column');
-      }
-
-      if (filterChoice.checked && !alreadyFilterable) {
-        state.spec.inputs.push(createGeneratedInputSpec(selectedFieldName));
-        addedParts.push('filter control');
-      } else if (!filterChoice.checked && alreadyFilterable) {
-        removeSpecFilterInputs(selectedFieldName);
-        removedParts.push('filter control');
-      }
-
-      if (addedParts.length === 0 && removedParts.length === 0) {
-        syncDetails();
-        return;
-      }
-
-      rebuildFormCardFromSpec();
-      renderList();
-      syncDetails();
-
-      if (window.showToastMessage) {
-        const messageParts = [];
-        if (addedParts.length > 0) {
-          messageParts.push(`added ${addedParts.join(' and ')}`);
+    await window.SharedFieldPicker.open({
+      beforeOpen: async () => {
+        if (typeof window.loadFieldDefinitions === 'function') {
+          await window.loadFieldDefinitions();
         }
-        if (removedParts.length > 0) {
-          messageParts.push(`removed ${removedParts.join(' and ')}`);
-        }
-        window.showToastMessage(`${selectedFieldName}: ${messageParts.join(', ')}.`, 'success');
-      }
-    }
+        syncSpecColumnsWithDisplayedFields({ refreshUrl: false });
+      },
+      getOptions: getFieldPickerOptions,
+      labels: {
+        kicker: 'Add Field',
+        title: 'Choose a field for this form',
+        description: 'Select a field, then decide whether it should show in results, appear as a filter control, or both.',
+        displayChoice: 'Display in results',
+        filterChoice: 'Add filter control',
+        displayBadge: 'Displayed',
+        filterBadge: 'Filter',
+        selectedFieldLabel: 'Selected field',
+        footerNote: 'Changes apply automatically.'
+      },
+      getFieldState: fieldName => ({
+        display: hasSpecColumn(fieldName),
+        filter: hasSpecFilterInput(fieldName)
+      }),
+      onDisplayChange: async (fieldName, nextChecked) => {
+        if (!state.spec) return;
 
-    function renderList() {
-      const filteredOptions = options.filter(option => {
-        const categoryMatch = !selectedCategory
-          || String(option.category || '')
-            .split(',')
-            .map(category => category.trim())
-            .filter(Boolean)
-            .includes(selectedCategory);
-        if (!categoryMatch) return false;
-
-        if (!searchTerm) return true;
-        const haystack = `${option.name} ${option.type} ${option.category}`.toLowerCase();
-        return haystack.includes(searchTerm);
-      });
-
-      if (filteredOptions.length === 0) {
-        listEl.innerHTML = '<p class="form-mode-field-picker-empty">No fields match that search.</p>';
-        selectedFieldName = '';
-        syncDetails();
-        return;
-      }
-
-      if (!filteredOptions.some(option => option.name === selectedFieldName)) {
-        selectedFieldName = filteredOptions[0].name;
-        displayChoice.checked = hasSpecColumn(selectedFieldName);
-        filterChoice.checked = hasSpecFilterInput(selectedFieldName);
-      }
-
-      listEl.innerHTML = '';
-      filteredOptions.forEach(option => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'form-mode-field-picker-option';
-        if (option.name === selectedFieldName) {
-          button.classList.add('is-selected');
+        if (nextChecked) {
+          if (!hasSpecColumn(fieldName)) {
+            state.spec.columns.push(fieldName);
+            rebuildFormCardFromSpec();
+            if (window.showToastMessage) {
+              window.showToastMessage(`${fieldName}: added results column.`, 'success');
+            }
+          }
+          return;
         }
 
-        const tooltipHtml = typeof window.formatFieldDefinitionTooltipHTML === 'function'
-          ? window.formatFieldDefinitionTooltipHTML(option, { title: option.name })
-          : '';
-        if (tooltipHtml) {
-          button.setAttribute('data-tooltip-html', tooltipHtml);
+        if (hasSpecColumn(fieldName)) {
+          removeSpecColumns(fieldName);
+          rebuildFormCardFromSpec();
+          if (window.showToastMessage) {
+            window.showToastMessage(`${fieldName}: removed results column.`, 'success');
+          }
+        }
+      },
+      onFilterChange: async (fieldName, nextChecked) => {
+        if (!state.spec) return;
+
+        if (nextChecked) {
+          if (!hasSpecFilterInput(fieldName)) {
+            state.spec.inputs.push(createGeneratedInputSpec(fieldName));
+            rebuildFormCardFromSpec();
+            if (window.showToastMessage) {
+              window.showToastMessage(`${fieldName}: added filter control.`, 'success');
+            }
+          }
+          return;
         }
 
-        const badges = [];
-        if (hasSpecColumn(option.name)) {
-          badges.push('<span class="form-mode-field-picker-badge">Displayed</span>');
+        if (hasSpecFilterInput(fieldName)) {
+          removeSpecFilterInputs(fieldName);
+          rebuildFormCardFromSpec();
+          if (window.showToastMessage) {
+            window.showToastMessage(`${fieldName}: removed filter control.`, 'success');
+          }
         }
-        if (hasSpecFilterInput(option.name)) {
-          badges.push('<span class="form-mode-field-picker-badge">Filter</span>');
-        }
-
-        button.innerHTML = `
-          <span class="form-mode-field-picker-option-name">${option.name}</span>
-          <span class="form-mode-field-picker-option-meta">${[option.type, option.category].filter(Boolean).join(' • ')}</span>
-          <span class="form-mode-field-picker-option-badges">${badges.join('')}</span>
-        `;
-        button.addEventListener('click', () => {
-          selectedFieldName = option.name;
-          displayChoice.checked = hasSpecColumn(option.name);
-          filterChoice.checked = hasSpecFilterInput(option.name);
-          renderList();
-          syncDetails();
-        });
-        listEl.appendChild(button);
-      });
-
-      syncDetails();
-    }
-
-    displayChoice.addEventListener('change', applySelectedFieldChanges);
-    filterChoice.addEventListener('change', applySelectedFieldChanges);
-    searchInput.addEventListener('input', event => {
-      searchTerm = String(event.target.value || '').trim().toLowerCase();
-      renderList();
-    });
-    if (categorySelect) {
-      categorySelect.addEventListener('change', event => {
-        selectedCategory = String(event.target.value || '').trim();
-        renderList();
-      });
-    }
-
-    [backdrop, closeButton].forEach(target => {
-      if (!target) return;
-      target.addEventListener('click', cleanup);
-    });
-
-    document.addEventListener('keydown', onKeyDown);
-    displayChoice.checked = hasSpecColumn(selectedFieldName);
-    filterChoice.checked = hasSpecFilterInput(selectedFieldName);
-    renderList();
-    window.requestAnimationFrame(() => {
-      searchInput.focus();
-      searchInput.select();
+      }
     });
   }
 
