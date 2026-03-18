@@ -219,6 +219,7 @@ body.export-overlay-open {
 
 #example-table {
   --header-action-space: 5.5rem;
+  --header-text-balance-space: 5.5rem;
 }
 
 #example-table th {
@@ -300,7 +301,7 @@ th[draggable="true"] {
   cursor: grab;
   user-select: none;
   transition: background-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast);
-  padding-right: calc((1.5rem * var(--table-zoom)) + var(--header-action-space)) !important;
+  padding-right: calc((1.5rem * var(--table-zoom)) + 0.75rem) !important;
   position: relative;
   white-space: nowrap; /* Keep text on one line but don't truncate */
 }
@@ -399,8 +400,36 @@ body.dragging-cursor * {
 
 
 /* Column header actions */
-#example-table th.th-wrapper {
-  position: sticky;
+.th-header-content {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding-left: var(--header-text-balance-space);
+  padding-right: var(--header-action-space);
+  pointer-events: none;
+}
+
+.th-label-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.th-text {
+  display: inline-block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sort-icon {
+  flex: 0 0 auto;
 }
 
 .th-actions {
