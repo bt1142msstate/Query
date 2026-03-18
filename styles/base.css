@@ -98,7 +98,29 @@
   align-items: flex-end;
   gap: 0.75rem;
   width: min(24rem, calc(100vw - 1.5rem));
-  pointer-events: none;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding-right: 0.2rem;
+  pointer-events: auto;
+}
+
+#toast-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+#toast-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#toast-container::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.75);
+  border-radius: 999px;
+}
+
+#toast-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.9);
 }
 
 .app-toast {
@@ -282,6 +304,7 @@
     left: 0.75rem;
     width: auto;
     align-items: stretch;
+    max-height: calc(100vh - 1.5rem);
   }
 
   .app-toast {
