@@ -573,7 +573,7 @@ const ExcelExporter = (() => {
     } finally {
       if (confirmBtn) {
         confirmBtn.disabled = false;
-        confirmBtn.textContent = 'Download .xlsx';
+        confirmBtn.textContent = 'Download';
       }
     }
   }
