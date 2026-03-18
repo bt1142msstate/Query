@@ -451,7 +451,7 @@ th:hover .th-trash {
   margin: 0;
   display: block;
   align-self: stretch;
-  text-align: left;
+  text-align: center;
   font-weight: 600;
   font-size: 0.84rem;
   color: #374151;
