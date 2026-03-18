@@ -232,6 +232,7 @@ body.export-overlay-open {
   box-sizing: border-box;
   box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.12), inset 0 -1px 0 rgba(0, 0, 0, 0.12);
   font-size: calc(0.75rem * var(--table-zoom));
+  overflow: visible;
 }
 
 /* Remove border from the last header column */
@@ -394,8 +395,8 @@ body.dragging-cursor * {
 
 
 /* Column header actions */
-.th-wrapper {
-  position: relative;
+#example-table th.th-wrapper {
+  position: sticky;
 }
 
 .th-actions {
@@ -407,6 +408,7 @@ body.dragging-cursor * {
   align-items: center;
   gap: 0.25rem;
   margin-left: 16px;
+  z-index: 3;
 }
 
 .th-action {
