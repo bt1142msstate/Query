@@ -944,6 +944,7 @@ const dragDropManager = {
       e.preventDefault();
       return;
     }
+    clearInsertAffordance({ immediate: true });
     this.isBubbleDrag = false; // this is a column drag
     th.classList.add('th-dragging');
     th.classList.remove('th-hover');
@@ -1384,6 +1385,7 @@ document.addEventListener('dragstart', e => {
     e.preventDefault();
     return;
   }
+  clearInsertAffordance({ immediate: true });
   const bubble = e.target.closest('.bubble');
   if (!bubble) return;
   
@@ -1429,6 +1431,15 @@ document.addEventListener('dragstart', e => {
 
 // Comprehensive drag event handling to prevent browser snap-back animations
 document.addEventListener('dragover', e => {
+  if (document.body.classList.contains('dragging-cursor') && !dragDropManager.isBubbleDrag) {
+    dragDropManager.lastDragX = e.clientX;
+    dragDropManager.lastDragY = e.clientY;
+
+    if (dragDropManager.scrollContainer) {
+      dragDropManager.checkAutoScroll(e, dragDropManager.scrollContainer);
+    }
+  }
+
   if (dragDropManager.isBubbleDrag) {
     e.preventDefault(); // Always prevent default for bubble drags
     e.dataTransfer.dropEffect = 'move'; // Signal that this is a valid drop zone
