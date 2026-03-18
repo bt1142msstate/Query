@@ -231,6 +231,7 @@ headerInsertAffordance.appendChild(headerInsertButton);
 
 const INSERT_AFFORDANCE_THRESHOLD = 28;
 const INSERT_AFFORDANCE_DELAY = 140;
+const INSERT_AFFORDANCE_EDGE_OFFSET = 20;
 let insertAffordanceShowTimer = null;
 let insertAffordanceHideTimer = null;
 let pendingInsertCandidate = null;
@@ -300,7 +301,7 @@ function getHeaderInsertPosition(table, clientX) {
     bestDistance = leadingDistance;
     bestCandidate = {
       insertAt: 0,
-      boundaryX: firstRect.left,
+      boundaryX: firstRect.left - INSERT_AFFORDANCE_EDGE_OFFSET,
       top,
       height
     };
@@ -330,7 +331,7 @@ function getHeaderInsertPosition(table, clientX) {
     bestDistance = trailingDistance;
     bestCandidate = {
       insertAt: headers.length,
-      boundaryX: lastRect.right,
+      boundaryX: lastRect.right + INSERT_AFFORDANCE_EDGE_OFFSET,
       top,
       height
     };
