@@ -229,21 +229,82 @@ const headerInsertAffordance = document.createElement('div');
 headerInsertAffordance.className = 'th-insert-affordance';
 headerInsertAffordance.appendChild(headerInsertButton);
 
-function clearInsertAffordance() {
-  headerInsertAffordance.removeAttribute('data-insert-at');
-  if (headerInsertAffordance.parentNode) {
-    headerInsertAffordance.parentNode.removeChild(headerInsertAffordance);
+const INSERT_AFFORDANCE_THRESHOLD = 28;
+const INSERT_AFFORDANCE_DELAY = 140;
+let insertAffordanceShowTimer = null;
+let insertAffordanceHideTimer = null;
+let pendingInsertCandidate = null;
+
+function applyInsertAffordancePosition(candidate) {
+  headerInsertAffordance.dataset.insertAt = String(candidate.insertAt);
+  headerInsertAffordance.style.left = `${candidate.boundaryX + window.scrollX}px`;
+  headerInsertAffordance.style.top = `${candidate.top + (candidate.height / 2) + window.scrollY}px`;
+}
+
+function showInsertAffordance(candidate) {
+  if (!candidate) return;
+
+  clearTimeout(insertAffordanceHideTimer);
+  applyInsertAffordancePosition(candidate);
+
+  if (!headerInsertAffordance.parentNode) {
+    document.body.appendChild(headerInsertAffordance);
   }
+
+  window.requestAnimationFrame(() => {
+    headerInsertAffordance.classList.add('is-visible');
+  });
+}
+
+function clearInsertAffordance(options = {}) {
+  const immediate = options.immediate === true;
+  clearTimeout(insertAffordanceShowTimer);
+  pendingInsertCandidate = null;
+  headerInsertAffordance.removeAttribute('data-insert-at');
+
+  if (!headerInsertAffordance.parentNode) {
+    return;
+  }
+
+  headerInsertAffordance.classList.remove('is-visible');
+
+  clearTimeout(insertAffordanceHideTimer);
+  if (immediate) {
+    headerInsertAffordance.parentNode.removeChild(headerInsertAffordance);
+    return;
+  }
+
+  insertAffordanceHideTimer = window.setTimeout(() => {
+    if (headerInsertAffordance.parentNode && !headerInsertAffordance.classList.contains('is-visible')) {
+      headerInsertAffordance.parentNode.removeChild(headerInsertAffordance);
+    }
+  }, 160);
 }
 
 function getHeaderInsertPosition(table, clientX) {
   const headers = Array.from(table.querySelectorAll('thead th[data-col-index]'));
-  if (headers.length < 2) {
+  if (headers.length === 0) {
     return null;
   }
 
   let bestCandidate = null;
   let bestDistance = Infinity;
+
+  const firstRect = headers[0].getBoundingClientRect();
+  const lastRect = headers[headers.length - 1].getBoundingClientRect();
+  const top = Math.min(firstRect.top, lastRect.top);
+  const height = Math.max(firstRect.bottom, lastRect.bottom) - top;
+
+  const leadingDistance = Math.abs(clientX - firstRect.left);
+  if (leadingDistance < bestDistance) {
+    bestDistance = leadingDistance;
+    bestCandidate = {
+      insertAt: 0,
+      boundaryX: firstRect.left,
+      top,
+      height
+    };
+  }
 
   for (let index = 0; index < headers.length - 1; index += 1) {
     const leftHeader = headers[index];
@@ -264,12 +325,23 @@ function getHeaderInsertPosition(table, clientX) {
     }
   }
 
-  return bestDistance <= 28 ? bestCandidate : null;
+  const trailingDistance = Math.abs(clientX - lastRect.right);
+  if (trailingDistance < bestDistance) {
+    bestDistance = trailingDistance;
+    bestCandidate = {
+      insertAt: headers.length,
+      boundaryX: lastRect.right,
+      top,
+      height
+    };
+  }
+
+  return bestDistance <= INSERT_AFFORDANCE_THRESHOLD ? bestCandidate : null;
 }
 
 function updateHeaderInsertAffordance(table, clientX) {
   if (!table || window.queryRunning || document.body.classList.contains('dragging-cursor')) {
-    clearInsertAffordance();
+    clearInsertAffordance({ immediate: true });
     return;
   }
 
@@ -279,13 +351,23 @@ function updateHeaderInsertAffordance(table, clientX) {
     return;
   }
 
-  headerInsertAffordance.dataset.insertAt = String(candidate.insertAt);
-  headerInsertAffordance.style.left = `${candidate.boundaryX + window.scrollX}px`;
-  headerInsertAffordance.style.top = `${candidate.top + (candidate.height / 2) + window.scrollY}px`;
+  const currentInsertAt = parseInt(headerInsertAffordance.dataset.insertAt || '', 10);
+  const hasVisibleAffordance = headerInsertAffordance.parentNode && headerInsertAffordance.classList.contains('is-visible');
 
-  if (!headerInsertAffordance.parentNode) {
-    document.body.appendChild(headerInsertAffordance);
+  if (hasVisibleAffordance && currentInsertAt === candidate.insertAt) {
+    clearTimeout(insertAffordanceHideTimer);
+    applyInsertAffordancePosition(candidate);
+    return;
   }
+
+  pendingInsertCandidate = candidate;
+  clearTimeout(insertAffordanceShowTimer);
+  clearTimeout(insertAffordanceHideTimer);
+  insertAffordanceShowTimer = window.setTimeout(() => {
+    if (pendingInsertCandidate && pendingInsertCandidate.insertAt === candidate.insertAt) {
+      showInsertAffordance(candidate);
+    }
+  }, INSERT_AFFORDANCE_DELAY);
 }
 
 /**
@@ -849,7 +931,10 @@ const dragDropManager = {
     updateHeaderInsertAffordance(table, event.clientX);
   },
 
-  handleHeaderRowPointerLeave() {
+  handleHeaderRowPointerLeave(event) {
+    if (event && headerInsertAffordance.contains(event.relatedTarget)) {
+      return;
+    }
     clearInsertAffordance();
   },
   
@@ -1160,8 +1245,8 @@ const dragDropManager = {
     const headerRow = table.querySelector('thead tr');
     if (headerRow && !headerRow._insertAffordanceBound) {
       const onPointerMove = event => this.handleHeaderRowPointerMove(event, table);
-      const onPointerLeave = () => this.handleHeaderRowPointerLeave();
-      const onScroll = () => clearInsertAffordance();
+      const onPointerLeave = event => this.handleHeaderRowPointerLeave(event);
+      const onScroll = () => clearInsertAffordance({ immediate: true });
 
       headerRow.addEventListener('mousemove', onPointerMove);
       headerRow.addEventListener('mouseleave', onPointerLeave);
@@ -1284,6 +1369,13 @@ headerInsertButton.addEventListener('click', e => {
       window.showToastMessage('Failed to open the field picker.', 'error');
     }
   });
+});
+
+headerInsertAffordance.addEventListener('mouseleave', event => {
+  if (event.relatedTarget && event.relatedTarget.closest && event.relatedTarget.closest('thead tr')) {
+    return;
+  }
+  clearInsertAffordance();
 });
 
 // Document-level event listeners for bubble dragging
