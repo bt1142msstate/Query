@@ -743,10 +743,39 @@ if (dom.groupMethodSelect) {
   });
 }
 
+function areDisplayedFieldsEqual(left, right) {
+  if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) {
+    return false;
+  }
+
+  for (let index = 0; index < left.length; index += 1) {
+    if (left[index] !== right[index]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function shouldRerenderTableFromStateChange(event) {
+  if (!event?.changes?.displayedFields) {
+    return false;
+  }
+
+  const source = String(event.meta?.source || '');
+  return [
+    'FilterSidePanel.moveDisplayedField',
+    'FilterSidePanel.dragDisplayedField',
+    'FilterSidePanel.removeDisplayedField'
+  ].includes(source);
+}
+
 // === Example table builder ===
-async function showExampleTable(fields){
+async function showExampleTable(fields, options = {}){
+  const syncQueryState = options.syncQueryState !== false;
+
   if(!Array.isArray(fields) || fields.length === 0){
-    if (Array.isArray(window.displayedFields) && window.displayedFields.length > 0) {
+    if (syncQueryState && Array.isArray(window.displayedFields) && window.displayedFields.length > 0) {
       window.QueryChangeManager.replaceDisplayedFields([], { source: 'Query.showExampleTable.empty' });
     } else {
       renderEmptyQueryTableState();
@@ -759,14 +788,24 @@ async function showExampleTable(fields){
   fields.forEach(f => {
     if (!uniqueFields.includes(f)) uniqueFields.push(f);
   });
-  window.QueryChangeManager.replaceDisplayedFields(uniqueFields, { source: 'Query.showExampleTable' });
+  const renderFields = uniqueFields.slice();
+
+  if (syncQueryState) {
+    const currentDisplayedFields = window.QueryChangeManager && typeof window.QueryChangeManager.getSnapshot === 'function'
+      ? window.QueryChangeManager.getSnapshot().displayedFields
+      : Array.from(window.displayedFields || []);
+
+    if (!areDisplayedFieldsEqual(currentDisplayedFields, uniqueFields)) {
+      window.QueryChangeManager.replaceDisplayedFields(uniqueFields, { source: 'Query.showExampleTable' });
+    }
+  }
 
   // Create initial table structure
   const tableHTML = `
     <table id="example-table" class="min-w-full divide-y divide-gray-200 bg-white">
       <thead class="sticky top-0 z-20 bg-gray-50">
         <tr>
-          ${window.displayedFields.map((f,i) => {
+          ${renderFields.map((f,i) => {
             // Check if this field exists in the current data
             const virtualTableData = window.VirtualTable?.virtualTableData;
             const fieldExistsInData = virtualTableData && virtualTableData.columnMap && virtualTableData.columnMap.has(f);
@@ -793,7 +832,7 @@ async function showExampleTable(fields){
     container.innerHTML = tableHTML;
     
     try {
-      await VirtualTable.setupVirtualTable(container, displayedFields);
+      await VirtualTable.setupVirtualTable(container, renderFields);
     } catch (error) {
       console.error('Error setting up virtual table:', error);
       // Show error message to user
@@ -810,7 +849,7 @@ async function showExampleTable(fields){
     const table = container.querySelector('#example-table');
     const headerRow = table.querySelector('thead tr');
     headerRow.querySelectorAll('th').forEach((th, index) => {
-      const field = displayedFields[index];
+      const field = renderFields[index];
       const width = VirtualTable.calculatedColumnWidths[field] || 150;
       th.style.width = `${width}px`;
       th.style.minWidth = `${width}px`;
@@ -818,7 +857,7 @@ async function showExampleTable(fields){
     });
     
     // Calculate actual row height from a rendered row
-    VirtualTable.measureRowHeight(table, displayedFields);
+    VirtualTable.measureRowHeight(table, renderFields);
     
     // Initial render of virtual table
     VirtualTable.renderVirtualTable();
@@ -828,7 +867,7 @@ async function showExampleTable(fields){
     sortableHeaders.forEach(th => {
       th.addEventListener('click', (e) => {
         // Prevent sorting if clicking the trash can
-        if (e.target.closest('#header-trash')) return;
+        if (e.target.closest('.th-trash')) return;
         
         const field = th.getAttribute('data-sort-field');
         if (field && window.VirtualTable && window.VirtualTable.sortTableBy) {
@@ -870,7 +909,7 @@ async function showExampleTable(fields){
       const fieldDef = window.fieldDefs ? window.fieldDefs.get(field) : null;
       if (fieldDef && fieldDef.is_buildable) {
         bubbleEl.setAttribute('draggable', 'false');
-      } else if(displayedFields.includes(field)){
+      } else if(renderFields.includes(field)){
         bubbleEl.removeAttribute('draggable');
         window.BubbleSystem && window.BubbleSystem.applyCorrectBubbleStyling(bubbleEl);
       } else {
@@ -920,6 +959,13 @@ async function showExampleTable(fields){
 if (window.QueryChangeManager && typeof window.QueryChangeManager.subscribe === 'function') {
   window.QueryChangeManager.subscribe(event => {
     if (!event?.changes?.displayedFields) {
+      return;
+    }
+
+    if (shouldRerenderTableFromStateChange(event)) {
+      showExampleTable(event.snapshot?.displayedFields || [], { syncQueryState: false }).catch(error => {
+        console.error('Failed to re-render table from query state change:', error);
+      });
       return;
     }
 
