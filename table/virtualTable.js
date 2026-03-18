@@ -24,6 +24,7 @@ let calculatedColumnWidths = {}; // Store calculated optimal widths for each col
 let simpleTableInstance = null; // Store the SimpleTable instance
 
 const HEADER_ACTION_SPACE = 88;
+const HEADER_TEXT_BALANCE_SPACE = 88;
 
 // Keep track of sorting state
 let currentSortColumn = null;
@@ -391,7 +392,7 @@ function calculateFieldWidth(fieldName, data = null) {
   let maxWidth = 0;
   
   // 1. Always measure header width (uppercase, as it appears in the table)
-  const headerWidth = window.TextMeasurement.measureText(fieldName.toUpperCase()) + HEADER_ACTION_SPACE;
+  const headerWidth = window.TextMeasurement.measureText(fieldName.toUpperCase()) + HEADER_ACTION_SPACE + HEADER_TEXT_BALANCE_SPACE;
   maxWidth = Math.max(maxWidth, headerWidth);
   
   // 2. If we have data, measure content width

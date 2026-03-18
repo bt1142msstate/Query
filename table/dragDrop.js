@@ -395,9 +395,6 @@ function refreshColIndices(table) {
   ths.forEach((th, i) => {
     th.dataset.colIndex = i;
     if (!th.hasAttribute('draggable')) th.setAttribute('draggable', 'true');
-    if (!th.classList.contains('th-wrapper')) {
-      th.classList.add('th-wrapper');
-    }
   });
   const rows = table.querySelectorAll('tbody tr');
   rows.forEach(row => {
