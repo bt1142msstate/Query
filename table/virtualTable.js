@@ -23,8 +23,8 @@ let tableScrollContainer = null;
 let calculatedColumnWidths = {}; // Store calculated optimal widths for each column
 let simpleTableInstance = null; // Store the SimpleTable instance
 
-const HEADER_ACTION_SPACE = 88;
-const HEADER_TEXT_BALANCE_SPACE = 88;
+const HEADER_ACTION_SPACE = 104;
+const HEADER_TEXT_BALANCE_SPACE = 104;
 
 // Keep track of sorting state
 let currentSortColumn = null;
