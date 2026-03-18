@@ -25,6 +25,14 @@
   const activeToasts = new Map();
   const pendingToasts = [];
 
+  function getResolvedDuration(type, requestedDuration) {
+    if (type === 'error') {
+      return 0;
+    }
+
+    return Number.isFinite(requestedDuration) ? requestedDuration : DEFAULT_DURATION;
+  }
+
   function ensureContainer() {
     let container = document.getElementById(TOAST_CONTAINER_ID);
     if (container) {
@@ -41,17 +49,20 @@
 
   function normalizeOptions(messageOrOptions, type, duration) {
     if (messageOrOptions && typeof messageOrOptions === 'object') {
+      const resolvedType = messageOrOptions.type || 'info';
       return {
         message: String(messageOrOptions.message || ''),
-        type: messageOrOptions.type || 'info',
-        duration: Number.isFinite(messageOrOptions.duration) ? messageOrOptions.duration : DEFAULT_DURATION
+        type: resolvedType,
+        duration: getResolvedDuration(resolvedType, messageOrOptions.duration)
       };
     }
 
+    const resolvedType = type || 'info';
+
     return {
       message: String(messageOrOptions || ''),
-      type: type || 'info',
-      duration: Number.isFinite(duration) ? duration : DEFAULT_DURATION
+      type: resolvedType,
+      duration: getResolvedDuration(resolvedType, duration)
     };
   }
 
@@ -299,16 +310,16 @@
     show: showToast,
     dismiss: dismissToast,
     dismissAll: dismissAllToasts,
-    info(message, duration = DEFAULT_DURATION) {
+    info(message, duration) {
       return showToast(message, 'info', duration);
     },
-    success(message, duration = DEFAULT_DURATION) {
+    success(message, duration) {
       return showToast(message, 'success', duration);
     },
-    warning(message, duration = DEFAULT_DURATION) {
+    warning(message, duration) {
       return showToast(message, 'warning', duration);
     },
-    error(message, duration = DEFAULT_DURATION) {
+    error(message, duration) {
       return showToast(message, 'error', duration);
     }
   };
