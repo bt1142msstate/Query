@@ -417,14 +417,13 @@ body.dragging-cursor * {
   justify-content: center;
   gap: 0.25rem;
   min-width: 0;
-  max-width: 100%;
 }
 
 .th-text {
   display: inline-block;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  text-overflow: clip;
   white-space: nowrap;
 }
 
