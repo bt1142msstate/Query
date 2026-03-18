@@ -7,6 +7,7 @@ window.FilterSidePanel = (function () {
     let currentViewMode = 'both';
     const VIEW_MODES = new Set(['both', 'filters', 'display']);
     let shellResizeObserver = null;
+    let unsubscribeQueryState = null;
 
     const $ = id => document.getElementById(id);
 
@@ -60,6 +61,20 @@ window.FilterSidePanel = (function () {
             syncPanelHeight();
         });
         shellResizeObserver.observe(shell);
+    }
+
+    function ensureQueryStateSubscription() {
+        if (unsubscribeQueryState || !window.QueryChangeManager || typeof window.QueryChangeManager.subscribe !== 'function') {
+            return;
+        }
+
+        unsubscribeQueryState = window.QueryChangeManager.subscribe(event => {
+            if (!event?.changes?.displayedFields && !event?.changes?.activeFilters) {
+                return;
+            }
+
+            update();
+        });
     }
 
     function hasAnyFilters() {
@@ -410,9 +425,24 @@ window.FilterSidePanel = (function () {
             return;
         }
 
-        window.QueryChangeManager.moveDisplayedField(index, targetIndex, {
-            source: 'FilterSidePanel.moveDisplayedField'
+        moveDisplayedField(index, targetIndex, 'FilterSidePanel.moveDisplayedField');
+    }
+
+    function moveDisplayedField(fromIndex, toIndex, source) {
+        const fields = getDisplayedFields();
+        if (!Number.isInteger(fromIndex) || !Number.isInteger(toIndex) || fromIndex === toIndex) {
+            return false;
+        }
+
+        if (fromIndex < 0 || fromIndex >= fields.length) {
+            return false;
+        }
+
+        window.QueryChangeManager.moveDisplayedField(fromIndex, toIndex, {
+            source
         });
+
+        return true;
     }
 
     function removeDisplayedFieldAt(index) {
@@ -554,9 +584,7 @@ window.FilterSidePanel = (function () {
                     ? (fromIndex < index ? index - 1 : index)
                     : (fromIndex < index ? index : index + 1);
 
-                window.QueryChangeManager.moveDisplayedField(fromIndex, targetIndex, {
-                    source: 'FilterSidePanel.dragDisplayedField'
-                });
+                moveDisplayedField(fromIndex, targetIndex, 'FilterSidePanel.dragDisplayedField');
             });
 
             const rank = document.createElement('span');
@@ -829,6 +857,8 @@ window.FilterSidePanel = (function () {
     function update() {
         const body = $('filter-panel-body');
         if (!body) return;
+
+        ensureQueryStateSubscription();
 
         cleanupPopupControls(body);
 
