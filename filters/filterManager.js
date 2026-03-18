@@ -232,6 +232,41 @@ function getFilterErrorLabelElement() {
     return window.DOM?.filterError || document.getElementById('filter-error');
 }
 
+function getConditionOperatorSelect(conditionPanel = null) {
+    const panel = conditionPanel || getFilterConditionPanelElement();
+    return panel ? panel.querySelector('#condition-operator-select') : null;
+}
+
+function getConditionFromControl(control) {
+    if (!control) return '';
+    if (control.dataset && control.dataset.cond) {
+        return String(control.dataset.cond).trim().toLowerCase();
+    }
+    if (typeof control.value === 'string') {
+        return String(control.value).trim().toLowerCase();
+    }
+    return '';
+}
+
+function syncConditionSelection(conditionPanel, cond) {
+    if (!conditionPanel || !cond) return;
+
+    const operatorSelect = getConditionOperatorSelect(conditionPanel);
+    if (operatorSelect && operatorSelect.value !== cond) {
+        operatorSelect.value = cond;
+    }
+}
+
+window.getSelectedCondition = function(conditionPanel = null) {
+    const panel = conditionPanel || getFilterConditionPanelElement();
+    if (!panel) return '';
+
+    const operatorSelect = getConditionOperatorSelect(panel);
+    return operatorSelect && operatorSelect.value
+        ? String(operatorSelect.value).trim().toLowerCase()
+        : '';
+};
+
 class FilterPill {
     constructor(filter, fieldDef, onRemove) {
         this.filter = filter; // Note: using 'filter' prop consistent with queryUI version logic
@@ -410,7 +445,7 @@ window.renderConditionList = function(field) {
  */
 window.handleConditionBtnClick = function(e) {
     e.stopPropagation();
-    const btn = e.currentTarget;
+    const control = e.currentTarget;
     const conditionPanel = getFilterConditionPanelElement();
     const inputWrapper = getFilterInputWrapperElement();
     const conditionInput = getFilterConditionInputElement();
@@ -420,12 +455,10 @@ window.handleConditionBtnClick = function(e) {
 
     if (!conditionPanel || !inputWrapper || !conditionInput || !conditionInput2 || !betweenLbl) return;
 
-    // Update active class
-    const all = conditionPanel.querySelectorAll('.condition-btn');
-    all.forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    
-    const cond = btn.dataset.cond;
+    const cond = getConditionFromControl(control);
+    if (!cond) return;
+
+    syncConditionSelection(conditionPanel, cond);
 
     // Handle show/hide/display actions
     if (cond === 'show' || cond === 'hide') {
@@ -501,8 +534,7 @@ window.handleFilterConfirm = function(e) {
     const field = (bubble && (bubble.dataset.filterFor || bubble.textContent.trim())) || window.selectedField;
     if (!field) return;
 
-    const activeBtn = conditionPanel.querySelector('.condition-btn.active');
-    const cond = activeBtn?.dataset.cond;
+    const cond = window.getSelectedCondition(conditionPanel);
     let val = conditionInput.value.trim();
     let val2 = conditionInput2.value.trim();
     
@@ -823,7 +855,7 @@ window.finalizeConfirmAction = function() {
  */
 window.buildableConditionBtnHandler = function(e) {
     e.stopPropagation();
-    const btn = e.currentTarget;
+    const control = e.currentTarget;
     const conditionPanel = getFilterConditionPanelElement();
     const conditionInput = getFilterConditionInputElement();
     const inputWrapper = getFilterInputWrapperElement();
@@ -832,12 +864,10 @@ window.buildableConditionBtnHandler = function(e) {
 
     if (!conditionPanel || !conditionInput || !conditionInput2 || !betweenLbl) return;
     
-    // Update active state
-    const all = conditionPanel.querySelectorAll('.condition-btn');
-    all.forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    
-    const cond = btn.dataset.cond;
+    const cond = getConditionFromControl(control);
+    if (!cond) return;
+
+    syncConditionSelection(conditionPanel, cond);
     
     // Validate the dynamic inputs
     const inputs = document.querySelectorAll('.dynamic-builder-input');

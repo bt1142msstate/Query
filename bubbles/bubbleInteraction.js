@@ -222,13 +222,6 @@ function initializeBubbleInteractions() {
       const titleEl = window.BubbleSystem.getFilterCardTitleElement(filterCard);
       if (titleEl) titleEl.textContent = fieldName;
     }
-    const defaultBtn = conditionPanel
-      ? (conditionPanel.querySelector('.condition-btn[data-cond="equals"]') || conditionPanel.querySelector('.condition-btn'))
-      : null;
-    if (defaultBtn) {
-      defaultBtn.classList.add('active');
-      if (window.handleConditionBtnClick) window.handleConditionBtnClick({ currentTarget: defaultBtn, stopPropagation() {}, preventDefault() {} });
-    }
     if (window.renderConditionList) {
       window.renderConditionList(fieldName);
     }

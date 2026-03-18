@@ -102,7 +102,7 @@ window.clearCurrentQuery = async function clearCurrentQuery() {
   document.getElementById('condition-select')?.remove();
   document.getElementById('condition-select-container')?.remove();
   document.querySelectorAll('.dynamic-input-group').forEach(el => el.remove());
-  document.querySelectorAll('.condition-btn.active, .toggle-half.active').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.toggle-half.active').forEach(btn => btn.classList.remove('active'));
 
   window.selectedField = '';
   if (window.QueryChangeManager && typeof window.QueryChangeManager.resetQuery === 'function') {
@@ -429,9 +429,10 @@ dom.overlay.addEventListener('click',()=>{
     }, 250);
   }
   
-  // Remove all .active from condition buttons
-  const btns = dom.conditionPanel.querySelectorAll('.condition-btn');
-  btns.forEach(b=>b.classList.remove('active'));
+  const operatorSelect = dom.conditionPanel?.querySelector('#condition-operator-select');
+  if (operatorSelect) {
+    operatorSelect.selectedIndex = 0;
+  }
   if (dom.conditionInput) dom.conditionInput.value='';
 
   // Hide select if present

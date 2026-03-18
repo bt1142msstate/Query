@@ -22,6 +22,97 @@ function isListPasteField(fieldDef) {
   return Boolean(fieldDef && fieldDef.allowValueList && (!fieldDef.values || fieldDef.values.length === 0));
 }
 
+function formatConditionLabel(condition) {
+  const slug = String(condition || '').trim().toLowerCase();
+
+  switch (slug) {
+    case 'greater':
+      return 'Greater than';
+    case 'less':
+      return 'Less than';
+    case 'greater_or_equal':
+      return 'Greater than or equal';
+    case 'less_or_equal':
+      return 'Less than or equal';
+    case 'starts':
+    case 'starts_with':
+      return 'Starts with';
+    case 'does_not_equal':
+      return 'Does not equal';
+    case 'does_not_contain':
+      return 'Does not contain';
+    case 'on_or_before':
+      return 'On or before';
+    case 'on_or_after':
+      return 'On or after';
+    default:
+      return slug
+        .replace(/_/g, ' ')
+        .split(' ')
+        .filter(Boolean)
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+  }
+}
+
+function createConditionOperatorPicker(conditions, handler) {
+  const wrapper = document.createElement('label');
+  wrapper.className = 'condition-operator-picker';
+
+  const label = document.createElement('span');
+  label.className = 'condition-operator-label';
+  label.textContent = 'Condition';
+
+  const select = document.createElement('select');
+  select.id = 'condition-operator-select';
+  select.className = 'condition-operator-select';
+  select.setAttribute('aria-label', 'Select condition');
+
+  conditions.forEach(condition => {
+    const option = document.createElement('option');
+    option.value = condition;
+    option.textContent = formatConditionLabel(condition);
+    select.appendChild(option);
+  });
+
+  select.addEventListener('change', event => {
+    if (typeof handler === 'function') {
+      handler({
+        currentTarget: event.currentTarget,
+        stopPropagation() {},
+        preventDefault() {}
+      });
+    }
+  });
+
+  wrapper.appendChild(label);
+  wrapper.appendChild(select);
+  return wrapper;
+}
+
+function getPreferredCondition(conditions, fieldName) {
+  const available = Array.isArray(conditions) ? conditions.filter(Boolean) : [];
+  if (!available.length) return '';
+
+  const activeFieldFilters = window.activeFilters && fieldName
+    ? window.activeFilters[fieldName]
+    : null;
+  const filterConds = activeFieldFilters && Array.isArray(activeFieldFilters.filters)
+    ? activeFieldFilters.filters.map(filter => String(filter.cond || '').trim().toLowerCase())
+    : [];
+
+  const preferredFromActive = filterConds.find(cond => available.includes(cond));
+  if (preferredFromActive) {
+    return preferredFromActive;
+  }
+
+  if (available.includes('equals')) {
+    return 'equals';
+  }
+
+  return available[0];
+}
+
 function buildBubbleConditionPanel(bubble) {
   const conditionPanel = getBubblePanelConditionPanelElement();
   const inputWrapper = getBubblePanelInputWrapperElement();
@@ -57,6 +148,7 @@ function buildBubbleConditionPanel(bubble) {
   const perBubble = bubble.dataset.filters ? JSON.parse(bubble.dataset.filters) : null;
   const fieldDefInfo = window.fieldDefs ? window.fieldDefs.get(selectedField) : null;
   const isBuildable = fieldDefInfo && fieldDefInfo.is_buildable;
+  let operatorConditions = [];
   conditionPanel.innerHTML = '';
 
   const oldMarcInput = document.getElementById('marc-field-input');
@@ -95,29 +187,17 @@ function buildBubbleConditionPanel(bubble) {
       });
     }
 
-    const standardConds = fieldDefInfo.filters && fieldDefInfo.filters.length > 0 ? fieldDefInfo.filters : ['contains', 'starts', 'equals'];
-    standardConds.forEach(label => {
-      const btn = document.createElement('button');
-      btn.className = 'condition-btn';
-      btn.dataset.cond = label.split(' ')[0];
-      btn.textContent = label[0].toUpperCase() + label.slice(1);
-      conditionPanel.appendChild(btn);
-    });
+    operatorConditions = (fieldDefInfo.filters && fieldDefInfo.filters.length > 0 ? fieldDefInfo.filters : ['contains', 'starts', 'equals'])
+      .map(label => String(label).split(' ')[0].toLowerCase());
+    conditionPanel.appendChild(createConditionOperatorPicker(operatorConditions, window.buildableConditionBtnHandler));
   } else {
-    const conds = perBubble
+    operatorConditions = (perBubble
       ? perBubble
       : (listValues && listValues.length)
         ? ['equals']
-        : (window.typeConditions[type] || window.typeConditions.string);
-
-    conds.forEach(label => {
-      const slug = label.split(' ')[0];
-      const btnEl = document.createElement('button');
-      btnEl.className = 'condition-btn';
-      btnEl.dataset.cond = slug;
-      btnEl.textContent = label[0].toUpperCase() + label.slice(1);
-      conditionPanel.appendChild(btnEl);
-    });
+        : (window.typeConditions[type] || window.typeConditions.string))
+      .map(label => String(label).split(' ')[0].toLowerCase());
+    conditionPanel.appendChild(createConditionOperatorPicker(operatorConditions, window.handleConditionBtnClick));
   }
 
   if (!isBuildable) {
@@ -136,8 +216,8 @@ function buildBubbleConditionPanel(bubble) {
     conditionPanel.appendChild(toggleGroup);
   }
 
-  const dynamicBtns = conditionPanel.querySelectorAll('.condition-btn, .toggle-half');
-  dynamicBtns.forEach(btn => btn.addEventListener('click', isBuildable ? window.buildableConditionBtnHandler : window.handleConditionBtnClick));
+  const toggleButtons = conditionPanel.querySelectorAll('.toggle-half');
+  toggleButtons.forEach(btn => btn.addEventListener('click', window.handleConditionBtnClick));
   confirmBtn.style.display = '';
 
   if (listValues && listValues.length) {
@@ -205,6 +285,20 @@ function buildBubbleConditionPanel(bubble) {
   }
 
   renderConditionList(selectedField);
+
+  const operatorSelect = conditionPanel.querySelector('#condition-operator-select');
+  const preferredCondition = getPreferredCondition(operatorConditions, selectedField);
+  if (operatorSelect && preferredCondition) {
+    operatorSelect.value = preferredCondition;
+    const handler = window.handleConditionBtnClick;
+    if (typeof handler === 'function') {
+      handler({
+        currentTarget: operatorSelect,
+        stopPropagation() {},
+        preventDefault() {}
+      });
+    }
+  }
 
   if (isBuildable) {
     setTimeout(() => {
