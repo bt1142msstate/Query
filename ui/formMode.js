@@ -665,7 +665,6 @@
       </div>
       <div class="form-mode-field-picker-footer">
         <span class="form-mode-field-picker-footer-note">Changes apply automatically.</span>
-        <button type="button" class="form-mode-btn form-mode-field-picker-cancel">Done</button>
       </div>
     `;
 
@@ -673,7 +672,6 @@
     document.body.appendChild(modal);
 
     const closeButton = modal.querySelector('.form-mode-field-picker-close');
-    const cancelButton = modal.querySelector('.form-mode-field-picker-cancel');
     const searchInput = modal.querySelector('.form-mode-field-picker-search');
     const categorySelect = modal.querySelector('.form-mode-field-picker-category-select');
     const listEl = modal.querySelector('.form-mode-field-picker-list');
@@ -894,7 +892,7 @@
       });
     }
 
-    [backdrop, closeButton, cancelButton].forEach(target => {
+    [backdrop, closeButton].forEach(target => {
       if (!target) return;
       target.addEventListener('click', cleanup);
     });
