@@ -73,14 +73,146 @@ const dropAnchor = document.createElement('div');
 dropAnchor.className = 'drop-anchor';
 document.body.appendChild(dropAnchor);
 
+function getFieldDefinitionForClipboard(fieldName) {
+  if (!window.fieldDefs) return null;
+
+  let fieldDef = window.fieldDefs.get(fieldName);
+  if (fieldDef) return fieldDef;
+
+  const baseName = String(fieldName || '').replace(/ \d+$/, '');
+  if (baseName !== fieldName) {
+    fieldDef = window.fieldDefs.get(baseName);
+  }
+
+  return fieldDef || null;
+}
+
+function formatColumnClipboardValue(rawValue, fieldName) {
+  if (rawValue === undefined || rawValue === null) {
+    return '';
+  }
+
+  const fieldDef = getFieldDefinitionForClipboard(fieldName);
+  const fieldType = fieldDef?.type || 'string';
+
+  if (fieldType === 'date') {
+    const numericValue = typeof rawValue === 'string' ? parseInt(rawValue, 10) : rawValue;
+    if (!numericValue || Number.isNaN(numericValue)) {
+      return 'Never';
+    }
+
+    const year = Math.floor(numericValue / 10000);
+    const month = Math.floor((numericValue % 10000) / 100) - 1;
+    const day = numericValue % 100;
+    const date = new Date(year, month, day);
+    if (Number.isNaN(date.getTime())) {
+      return 'Never';
+    }
+
+    return `${(month + 1).toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}/${year}`;
+  }
+
+  if (fieldType === 'number' || fieldType === 'money') {
+    const numericValue = typeof rawValue === 'number'
+      ? rawValue
+      : parseFloat(String(rawValue).replace(/[$,]/g, ''));
+
+    if (Number.isNaN(numericValue)) {
+      return '';
+    }
+
+    if (fieldType === 'money') {
+      return `$${numericValue.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })}`;
+    }
+
+    return Number.isInteger(numericValue)
+      ? String(numericValue)
+      : numericValue.toLocaleString('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+  }
+
+  if (typeof rawValue === 'string' && rawValue.includes('\x1F')) {
+    return rawValue
+      .split('\x1F')
+      .map(value => value.trim())
+      .filter(Boolean)
+      .join(' | ');
+  }
+
+  return String(rawValue);
+}
+
+async function copyColumnValuesByFieldName(fieldName) {
+  const virtualTableData = window.VirtualTable?.virtualTableData;
+  if (!fieldName || !virtualTableData?.rows?.length || !virtualTableData.columnMap) {
+    if (window.showToastMessage) {
+      window.showToastMessage('No column data available to copy.', 'warning');
+    }
+    return false;
+  }
+
+  const columnIndex = virtualTableData.columnMap.get(fieldName);
+  if (columnIndex === undefined) {
+    if (window.showToastMessage) {
+      window.showToastMessage(`No data is available for ${fieldName}.`, 'warning');
+    }
+    return false;
+  }
+
+  const rawText = virtualTableData.rows
+    .map(row => formatColumnClipboardValue(row[columnIndex], fieldName))
+    .join('\n');
+
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(rawText);
+    }
+
+    if (window.showToastMessage) {
+      window.showToastMessage(`${fieldName} values copied to clipboard.`, 'success');
+    }
+    return true;
+  } catch (error) {
+    if (window.showToastMessage) {
+      window.showToastMessage(`Failed to copy ${fieldName} values.`, 'error');
+    }
+    return false;
+  }
+}
+
+const headerActions = document.createElement('div');
+headerActions.className = 'th-actions';
+
+const headerCopy = document.createElement('button');
+headerCopy.type = 'button';
+headerCopy.className = 'th-action th-copy';
+headerCopy.setAttribute('aria-label', 'Copy column values');
+headerCopy.setAttribute('data-tooltip', 'Copy column values');
+headerCopy.innerHTML = `
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="currentColor" d="M16 1H6a2 2 0 0 0-2 2v12h2V3h10V1zm3 4H10a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H10V7h9v14z"/>
+  </svg>
+`;
+
 // Create header remove icon for column removal
-const headerTrash = document.createElement('span');
-headerTrash.className = 'th-trash';
+const headerTrash = document.createElement('button');
+headerTrash.type = 'button';
+headerTrash.className = 'th-action th-trash';
+headerTrash.setAttribute('aria-label', 'Remove column');
+headerTrash.setAttribute('data-tooltip', 'Remove column');
 headerTrash.innerHTML = `
   <svg viewBox="0 0 16 16" aria-hidden="true">
     <path fill="currentColor" d="M9.32 15.653a.812.812 0 0 1-.086-.855c.176-.342.245-.733.2-1.118a2.106 2.106 0 0 0-.267-.779 2.027 2.027 0 0 0-.541-.606 3.96 3.96 0 0 1-1.481-2.282c-1.708 2.239-1.053 3.51-.235 4.63a.748.748 0 0 1-.014.901.87.87 0 0 1-.394.283.838.838 0 0 1-.478.023c-1.105-.27-2.145-.784-2.85-1.603a4.686 4.686 0 0 1-.906-1.555 4.811 4.811 0 0 1-.263-1.797s-.133-2.463 2.837-4.876c0 0 3.51-2.978 2.292-5.18a.621.621 0 0 1 .112-.653.558.558 0 0 1 .623-.147l.146.058a7.63 7.63 0 0 1 2.96 3.5c.58 1.413.576 3.06.184 4.527.325-.292.596-.641.801-1.033l.029-.064c.198-.477.821-.325 1.055-.013.086.137 2.292 3.343 1.107 6.048a5.516 5.516 0 0 1-1.84 2.027 6.127 6.127 0 0 1-2.138.893.834.834 0 0 1-.472-.038.867.867 0 0 1-.381-.29zM7.554 7.892a.422.422 0 0 1 .55.146c.04.059.066.126.075.198l.045.349c.02.511.014 1.045.213 1.536.206.504.526.95.932 1.298a3.06 3.06 0 0 1 1.16 1.422c.22.564.25 1.19.084 1.773a4.123 4.123 0 0 0 1.39-.757l.103-.084c.336-.277.613-.623.813-1.017.201-.393.322-.825.354-1.269.065-1.025-.284-2.054-.827-2.972-.248.36-.59.639-.985.804-.247.105-.509.17-.776.19a.792.792 0 0 1-.439-.1.832.832 0 0 1-.321-.328.825.825 0 0 1-.035-.729c.412-.972.54-2.05.365-3.097a5.874 5.874 0 0 0-1.642-3.16c-.156 2.205-2.417 4.258-2.881 4.7a3.537 3.537 0 0 1-.224.194c-2.426 1.965-2.26 3.755-2.26 3.834a3.678 3.678 0 0 0 .459 2.043c.365.645.89 1.177 1.52 1.54C4.5 12.808 4.5 10.89 7.183 8.14l.372-.25z"/>
   </svg>
 `;
+
+headerActions.appendChild(headerCopy);
+headerActions.appendChild(headerTrash);
 
 /**
  * Creates a visual column drag ghost that shows a preview of the column being dragged.
@@ -632,14 +764,14 @@ const dragDropManager = {
     if (window.queryRunning) return;
     th.classList.add('th-hover');
     this.hoverTh = th;
-    th.appendChild(headerTrash);
-    headerTrash.style.display = 'block';
+    th.appendChild(headerActions);
+    headerActions.style.display = 'inline-flex';
   },
   
   handleHeaderLeave(th) {
     th.classList.remove('th-hover');
     this.hoverTh = null;
-    if (headerTrash.parentNode) headerTrash.parentNode.removeChild(headerTrash);
+    if (headerActions.parentNode) headerActions.parentNode.removeChild(headerActions);
   },
   
   // Header drag start/end
@@ -1009,6 +1141,19 @@ const dragDropManager = {
 };
 
 // Set up trash icon click handler
+headerCopy.addEventListener('click', async e => {
+  e.stopPropagation();
+  if (window.queryRunning) return;
+  const th = dragDropManager.hoverTh;
+  if (!th) {
+    return;
+  }
+
+  const idx = parseInt(th.dataset.colIndex, 10);
+  const fieldName = window.displayedFields[idx];
+  await copyColumnValuesByFieldName(fieldName);
+});
+
 headerTrash.addEventListener('click', e => {
   e.stopPropagation();
   if (window.queryRunning) return;
