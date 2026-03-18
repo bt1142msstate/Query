@@ -11,7 +11,11 @@ window.FilterSidePanel = (function () {
     const $ = id => document.getElementById(id);
 
     function getDisplayedFields() {
-        return Array.isArray(window.displayedFields) ? window.displayedFields : [];
+        if (window.QueryChangeManager && typeof window.QueryChangeManager.getSnapshot === 'function') {
+            return window.QueryChangeManager.getSnapshot().displayedFields || [];
+        }
+
+        return Array.isArray(window.displayedFields) ? Array.from(window.displayedFields) : [];
     }
 
     function cleanupPopupControls(container) {
@@ -399,22 +403,6 @@ window.FilterSidePanel = (function () {
         }
     }
 
-    function syncDisplayFieldChange() {
-        const displayedFields = getDisplayedFields();
-
-        if (typeof window.showExampleTable === 'function') {
-            window.showExampleTable(displayedFields).catch(console.error);
-        }
-
-        if (typeof window.updateCategoryCounts === 'function') {
-            window.updateCategoryCounts();
-        }
-
-        if (window.BubbleSystem && typeof window.BubbleSystem.safeRenderBubbles === 'function') {
-            window.BubbleSystem.safeRenderBubbles();
-        }
-    }
-
     function moveDisplayedFieldByOffset(index, offset) {
         const fields = getDisplayedFields();
         const targetIndex = index + offset;
@@ -425,7 +413,6 @@ window.FilterSidePanel = (function () {
         window.QueryChangeManager.moveDisplayedField(index, targetIndex, {
             source: 'FilterSidePanel.moveDisplayedField'
         });
-        syncDisplayFieldChange();
     }
 
     function removeDisplayedFieldAt(index) {
@@ -439,7 +426,6 @@ window.FilterSidePanel = (function () {
             all: false,
             source: 'FilterSidePanel.removeDisplayedField'
         });
-        syncDisplayFieldChange();
     }
 
     function createIconButton(className, title, svgMarkup, onClick) {
@@ -571,7 +557,6 @@ window.FilterSidePanel = (function () {
                 window.QueryChangeManager.moveDisplayedField(fromIndex, targetIndex, {
                     source: 'FilterSidePanel.dragDisplayedField'
                 });
-                syncDisplayFieldChange();
             });
 
             const rank = document.createElement('span');
