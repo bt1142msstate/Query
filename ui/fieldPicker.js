@@ -443,7 +443,9 @@
     return true;
   }
 
-  async function openQueryFieldPicker() {
+  async function openQueryFieldPicker(options = {}) {
+    const insertAt = Number.isInteger(options.insertAt) ? options.insertAt : -1;
+
     await openSharedFieldPicker({
       beforeOpen: async () => {
         if (typeof window.loadFieldDefinitions === 'function') {
@@ -465,7 +467,19 @@
       onDisplayChange: async (fieldName, nextChecked) => {
         const currentFields = Array.from(window.displayedFields || []);
         const nextFields = nextChecked
-          ? (currentFields.some(column => fieldMatchesBase(column, fieldName)) ? currentFields : [...currentFields, fieldName])
+          ? (() => {
+              if (currentFields.some(column => fieldMatchesBase(column, fieldName))) {
+                return currentFields;
+              }
+
+              if (insertAt >= 0 && insertAt <= currentFields.length) {
+                const next = currentFields.slice();
+                next.splice(insertAt, 0, fieldName);
+                return next;
+              }
+
+              return [...currentFields, fieldName];
+            })()
           : currentFields.filter(column => !fieldMatchesBase(column, fieldName));
 
         await window.showExampleTable(nextFields, { syncQueryState: true });

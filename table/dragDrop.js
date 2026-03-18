@@ -188,6 +188,17 @@ async function copyColumnValuesByFieldName(fieldName) {
 const headerActions = document.createElement('div');
 headerActions.className = 'th-actions';
 
+const headerInsertButton = document.createElement('button');
+headerInsertButton.type = 'button';
+headerInsertButton.className = 'th-insert-button';
+headerInsertButton.setAttribute('aria-label', 'Insert field at this position');
+headerInsertButton.setAttribute('data-tooltip', 'Add field here');
+headerInsertButton.innerHTML = `
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="currentColor" d="M19 11H13V5h-2v6H5v2h6v6h2v-6h6z"/>
+  </svg>
+`;
+
 const headerCopy = document.createElement('button');
 headerCopy.type = 'button';
 headerCopy.className = 'th-action th-copy';
@@ -213,6 +224,69 @@ headerTrash.innerHTML = `
 
 headerActions.appendChild(headerCopy);
 headerActions.appendChild(headerTrash);
+
+const headerInsertAffordance = document.createElement('div');
+headerInsertAffordance.className = 'th-insert-affordance';
+headerInsertAffordance.appendChild(headerInsertButton);
+
+function clearInsertAffordance() {
+  headerInsertAffordance.removeAttribute('data-insert-at');
+  if (headerInsertAffordance.parentNode) {
+    headerInsertAffordance.parentNode.removeChild(headerInsertAffordance);
+  }
+}
+
+function getHeaderInsertPosition(table, clientX) {
+  const headers = Array.from(table.querySelectorAll('thead th[data-col-index]'));
+  if (headers.length < 2) {
+    return null;
+  }
+
+  let bestCandidate = null;
+  let bestDistance = Infinity;
+
+  for (let index = 0; index < headers.length - 1; index += 1) {
+    const leftHeader = headers[index];
+    const rightHeader = headers[index + 1];
+    const leftRect = leftHeader.getBoundingClientRect();
+    const rightRect = rightHeader.getBoundingClientRect();
+    const boundaryX = (leftRect.right + rightRect.left) / 2;
+    const distance = Math.abs(clientX - boundaryX);
+
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestCandidate = {
+        insertAt: index + 1,
+        boundaryX,
+        top: Math.min(leftRect.top, rightRect.top),
+        height: Math.max(leftRect.bottom, rightRect.bottom) - Math.min(leftRect.top, rightRect.top)
+      };
+    }
+  }
+
+  return bestDistance <= 28 ? bestCandidate : null;
+}
+
+function updateHeaderInsertAffordance(table, clientX) {
+  if (!table || window.queryRunning || document.body.classList.contains('dragging-cursor')) {
+    clearInsertAffordance();
+    return;
+  }
+
+  const candidate = getHeaderInsertPosition(table, clientX);
+  if (!candidate) {
+    clearInsertAffordance();
+    return;
+  }
+
+  headerInsertAffordance.dataset.insertAt = String(candidate.insertAt);
+  headerInsertAffordance.style.left = `${candidate.boundaryX + window.scrollX}px`;
+  headerInsertAffordance.style.top = `${candidate.top + (candidate.height / 2) + window.scrollY}px`;
+
+  if (!headerInsertAffordance.parentNode) {
+    document.body.appendChild(headerInsertAffordance);
+  }
+}
 
 /**
  * Creates a visual column drag ghost that shows a preview of the column being dragged.
@@ -770,6 +844,14 @@ const dragDropManager = {
     this.hoverTh = null;
     if (headerActions.parentNode) headerActions.parentNode.removeChild(headerActions);
   },
+
+  handleHeaderRowPointerMove(event, table) {
+    updateHeaderInsertAffordance(table, event.clientX);
+  },
+
+  handleHeaderRowPointerLeave() {
+    clearInsertAffordance();
+  },
   
   // Header drag start/end
   handleHeaderDragStart(e, th, scrollContainer) {
@@ -1074,6 +1156,30 @@ const dragDropManager = {
       });
       table._headersDragInitialized = true;
     }
+
+    const headerRow = table.querySelector('thead tr');
+    if (headerRow && !headerRow._insertAffordanceBound) {
+      const onPointerMove = event => this.handleHeaderRowPointerMove(event, table);
+      const onPointerLeave = () => this.handleHeaderRowPointerLeave();
+      const onScroll = () => clearInsertAffordance();
+
+      headerRow.addEventListener('mousemove', onPointerMove);
+      headerRow.addEventListener('mouseleave', onPointerLeave);
+
+      const scrollContainerEl = this.scrollContainer;
+      if (scrollContainerEl) {
+        scrollContainerEl.addEventListener('scroll', onScroll);
+      }
+
+      headerRow._insertAffordanceBound = true;
+      headerRow._insertAffordanceCleanup = () => {
+        headerRow.removeEventListener('mousemove', onPointerMove);
+        headerRow.removeEventListener('mouseleave', onPointerLeave);
+        if (scrollContainerEl) {
+          scrollContainerEl.removeEventListener('scroll', onScroll);
+        }
+      };
+    }
     
     // Use event delegation on tbody so that dynamically rendered rows (virtual
     // scroll) are always covered — no need to rebind on every scroll render.
@@ -1160,6 +1266,24 @@ headerTrash.addEventListener('click', e => {
     const table = th.closest('table');
     removeColumn(table, idx);
   }
+});
+
+headerInsertButton.addEventListener('click', e => {
+  e.stopPropagation();
+  if (window.queryRunning) return;
+
+  const insertAt = parseInt(headerInsertAffordance.dataset.insertAt || '', 10);
+  if (!Number.isInteger(insertAt) || !window.SharedFieldPicker || typeof window.SharedFieldPicker.openQueryFieldPicker !== 'function') {
+    return;
+  }
+
+  clearInsertAffordance();
+  window.SharedFieldPicker.openQueryFieldPicker({ insertAt }).catch(error => {
+    console.error('Failed to open insert field picker:', error);
+    if (window.showToastMessage) {
+      window.showToastMessage('Failed to open the field picker.', 'error');
+    }
+  });
 });
 
 // Document-level event listeners for bubble dragging
