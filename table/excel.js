@@ -12,6 +12,7 @@ const ExcelExporter = (() => {
   window.splitColumnsActive = false;
 
   const SHEET_NAME_LIMIT = 31;
+  const MAX_GROUPED_SHEETS = 100;
 
   function getExportElements() {
     return {
@@ -169,7 +170,7 @@ const ExcelExporter = (() => {
         distinctCount: counts.size,
         counts
       };
-    }).filter(candidate => candidate.distinctCount > 1);
+    }).filter(candidate => candidate.distinctCount > 1 && candidate.distinctCount <= MAX_GROUPED_SHEETS);
 
     candidates.sort((left, right) => {
       if (left.distinctCount !== right.distinctCount) {
