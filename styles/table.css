@@ -404,19 +404,27 @@ body.dragging-cursor * {
   top: 50%;
   right: 12px;
   transform: translateY(-50%);
-  display: none;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 0.25rem;
-  margin-left: 16px;
+  width: max-content;
+  min-width: calc((1.55rem * 2) + 0.25rem);
   z-index: 3;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .th-action {
   width: 1.55rem;
   height: 1.55rem;
-  display: inline-flex;
+  display: inline-flex !important;
   align-items: center;
   justify-content: center;
+  flex: 0 0 auto;
   padding: 0;
   border: none;
   background: rgba(255, 255, 255, 0.96);
@@ -424,6 +432,9 @@ body.dragging-cursor * {
   box-shadow: 0 6px 14px rgba(15, 23, 42, 0.14);
   color: var(--color-gray-400);
   cursor: pointer;
+  appearance: none;
+  line-height: 1;
+  vertical-align: middle;
   transition: color var(--transition-normal), transform var(--transition-normal), box-shadow var(--transition-normal);
 }
 
@@ -446,8 +457,11 @@ body.dragging-cursor * {
   color: var(--color-red-500);
 }
 
-th:hover .th-actions {
-  display: inline-flex;
+#example-table th:hover .th-actions,
+#example-table th.th-hover .th-actions {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 
