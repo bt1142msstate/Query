@@ -428,12 +428,14 @@ function calculateFieldWidth(fieldName, data = null) {
   
   // 4. Add padding (24px left + 24px right from px-6 class) + buffer for comfort
   const paddingAndBuffer = 48 + 32; // 48px padding + 32px buffer
+  const requiredHeaderWidth = headerWidth + paddingAndBuffer;
   
   // 5. Calculate max character width for clamping
   const maxCharacterWidth = window.TextMeasurement.measureText('A'.repeat(50)) + paddingAndBuffer;
+  const maxAllowedWidth = Math.max(maxCharacterWidth, requiredHeaderWidth);
   
   // 6. Clamp to reasonable bounds: min 150px, max 50 characters worth
-  return Math.max(150, Math.min(maxCharacterWidth, maxWidth + paddingAndBuffer));
+  return Math.max(150, Math.min(maxAllowedWidth, maxWidth + paddingAndBuffer));
 }
 
 /**
