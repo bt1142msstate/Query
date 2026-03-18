@@ -229,8 +229,8 @@ const headerInsertAffordance = document.createElement('div');
 headerInsertAffordance.className = 'th-insert-affordance';
 headerInsertAffordance.appendChild(headerInsertButton);
 
-const INSERT_AFFORDANCE_THRESHOLD = 28;
-const INSERT_AFFORDANCE_DELAY = 140;
+const INSERT_AFFORDANCE_THRESHOLD = 40;
+const INSERT_AFFORDANCE_DELAY = 90;
 let insertAffordanceShowTimer = null;
 let insertAffordanceHideTimer = null;
 let pendingInsertCandidate = null;
