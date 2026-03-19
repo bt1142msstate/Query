@@ -44,7 +44,8 @@ window.DOM = {
   get categoryBar() { return this._categoryBar ||= document.getElementById('category-bar'); },
   get mobileCategorySelector() { return this._mobileCategorySelector ||= document.getElementById('mobile-category-selector'); }
 };
-const { getDisplayedFields, getActiveFilters } = window.QueryStateReaders;
+var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
+var getActiveFilters = window.QueryStateReaders.getActiveFilters.bind(window.QueryStateReaders);
 
 window.updateTableResultsLip = function() {
   const resultsBadge = window.DOM.tableResultsBadge;

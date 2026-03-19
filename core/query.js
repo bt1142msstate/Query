@@ -3,7 +3,8 @@
 // (queryState.js, toast.js, queryUI.js, etc.)
 
 const dom = window.DOM;
-const { getDisplayedFields, getActiveFilters } = window.QueryStateReaders;
+var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
+var getActiveFilters = window.QueryStateReaders.getActiveFilters.bind(window.QueryStateReaders);
 
 // Pressing Enter in any condition field = click Confirm
 ['condition-input','condition-input-2','condition-select'].forEach(id=>{

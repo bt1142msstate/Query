@@ -324,7 +324,8 @@ class FilterPill {
 
 // Expose globally
 window.FilterPill = FilterPill;
-const { getDisplayedFields, getFilterGroupForField } = window.QueryStateReaders;
+var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
+var getFilterGroupForField = window.QueryStateReaders.getFilterGroupForField.bind(window.QueryStateReaders);
 
 /**
  * Renders the list of active filters for a given field.

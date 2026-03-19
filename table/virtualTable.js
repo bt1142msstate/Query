@@ -38,7 +38,7 @@ const HEADER_TEXT_BALANCE_SPACE = 116;
 // Keep track of sorting state
 let currentSortColumn = null;
 let currentSortDirection = 'asc'; // 'asc' or 'desc'
-const { getDisplayedFields } = window.QueryStateReaders;
+var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
 
 function getFieldDefinition(fieldName) {
   return window.ValueFormatting.getFieldDefinition(fieldName);

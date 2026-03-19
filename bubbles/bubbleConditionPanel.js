@@ -17,7 +17,8 @@ function getBubblePanelConditionInputElement() {
 function getBubblePanelConfirmButtonElement() {
   return window.DOM?.confirmBtn || document.getElementById('confirm-btn');
 }
-const { getDisplayedFields, getFilterGroupForField } = window.QueryStateReaders;
+var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
+var getFilterGroupForField = window.QueryStateReaders.getFilterGroupForField.bind(window.QueryStateReaders);
 
 function isListPasteField(fieldDef) {
   return Boolean(fieldDef && fieldDef.allowValueList && (!fieldDef.values || fieldDef.values.length === 0));
