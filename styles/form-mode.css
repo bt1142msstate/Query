@@ -3,7 +3,7 @@
 }
 
 body.form-mode-active #filter-side-panel {
-  display: none !important;
+  display: flex !important;
 }
 
 #form-mode-host {
