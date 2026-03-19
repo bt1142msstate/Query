@@ -324,7 +324,7 @@ class FilterPill {
 
 // Expose globally
 window.FilterPill = FilterPill;
-const { getDisplayedFields, getFieldFilters } = window.QueryStateReaders;
+const { getDisplayedFields, getFilterGroupForField } = window.QueryStateReaders;
 
 /**
  * Renders the list of active filters for a given field.
@@ -335,7 +335,7 @@ window.renderConditionList = function(field) {
     if (!container) return;
     
     container.innerHTML = '';
-    const data = getFieldFilters(field);
+    const data = getFilterGroupForField(field);
 
     if (!data || !data.filters.length) {
         // Reset specific styling if no filters exist
@@ -380,7 +380,7 @@ window.renderConditionList = function(field) {
                 source: 'FilterManager.removeFilterPill'
             });
 
-            if (!getFieldFilters(field)) {
+            if (!getFilterGroupForField(field)) {
                 document.querySelectorAll('.bubble').forEach(b => {
                     if (b.textContent.trim() === field) {
                         b.removeAttribute('data-filtered');
@@ -616,7 +616,7 @@ window.handleFilterConfirm = function(e) {
             }
 
             const newFilterObj = { cond, val: filterValue };
-            const existingSet = getFieldFilters(field) || { filters: [] };
+            const existingSet = getFilterGroupForField(field) || { filters: [] };
             const shouldReplaceExistingEquals = Boolean(
                 cond === 'equals' &&
                 filterValue !== '' &&
@@ -733,7 +733,7 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
 
     // Apply filter if one was selected
     if (cond && val) {
-        const alreadyExists = Boolean(getFieldFilters(dynamicFieldName)?.filters?.some(f => f.cond === cond && f.val === val));
+        const alreadyExists = Boolean(getFilterGroupForField(dynamicFieldName)?.filters?.some(f => f.cond === cond && f.val === val));
         if (!alreadyExists) {
             window.QueryChangeManager.upsertFilter(dynamicFieldName, { cond, val }, {
                 dedupe: true,
@@ -764,7 +764,7 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
     }, 200);
     
     // Clean up base buildable filters just in case
-    if (getFieldFilters(fieldDef.name)) {
+    if (getFilterGroupForField(fieldDef.name)) {
         window.QueryChangeManager.removeFilter(fieldDef.name, {
             removeAll: true,
             source: 'FilterManager.clearBuildableBaseFilter'

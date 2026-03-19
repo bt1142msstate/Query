@@ -1,5 +1,5 @@
 const BUBBLE_RENDER_VISIBLE_ROWS = 2;
-const { getDisplayedFields, getActiveFilters, hasActiveFilters } = window.QueryStateReaders;
+const { getDisplayedFields, getActiveFilters, hasFiltersForField } = window.QueryStateReaders;
 
 function bubbleRenderGetMaxStartRow() {
   if (typeof totalRows === 'undefined') return 0;
@@ -94,8 +94,8 @@ function bubbleRenderAll() {
   }
 
   list.sort((a, b) => {
-    const aFilter = hasActiveFilters(a.name);
-    const bFilter = hasActiveFilters(b.name);
+    const aFilter = hasFiltersForField(a.name);
+    const bFilter = hasFiltersForField(b.name);
     if (aFilter && !bFilter) return -1;
     if (!aFilter && bFilter) return 1;
     return 0;

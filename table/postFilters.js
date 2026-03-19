@@ -105,7 +105,7 @@
     return formatFilterValue({ cond: 'equals', val: option.value }, fieldName);
   }
 
-  function getSnapshot() {
+  function getPostFilterSnapshot() {
     return window.VirtualTable?.getPostFilterState ? window.VirtualTable.getPostFilterState() : {};
   }
 
@@ -116,7 +116,7 @@
   }
 
   function getCurrentEqualsValues(fieldName) {
-    const snapshot = getSnapshot();
+    const snapshot = getPostFilterSnapshot();
     const fieldFilters = Array.isArray(snapshot[fieldName]?.filters) ? snapshot[fieldName].filters : [];
     const equalsFilter = fieldFilters.find(filter => String(filter?.cond || '').toLowerCase() === 'equals');
 
@@ -133,12 +133,12 @@
   }
 
   function getFieldLogic(fieldName) {
-    const snapshot = getSnapshot();
+    const snapshot = getPostFilterSnapshot();
     return String(snapshot[fieldName]?.logic || 'all').toLowerCase() === 'any' ? 'any' : 'all';
   }
 
   function getFieldRuleCount(fieldName) {
-    const snapshot = getSnapshot();
+    const snapshot = getPostFilterSnapshot();
     return Array.isArray(snapshot[fieldName]?.filters) ? snapshot[fieldName].filters.length : 0;
   }
 
@@ -159,7 +159,7 @@
     }
   }
 
-  function getActiveFilterCount(snapshot = getSnapshot()) {
+  function getActiveFilterCount(snapshot = getPostFilterSnapshot()) {
     return Object.values(snapshot).reduce((total, data) => total + (Array.isArray(data?.filters) ? data.filters.length : 0), 0);
   }
 
@@ -304,7 +304,7 @@
     const elements = getElements();
     if (!elements.list || !elements.empty) return;
 
-    const snapshot = getSnapshot();
+    const snapshot = getPostFilterSnapshot();
     const entries = Object.entries(snapshot)
       .filter(([, data]) => Array.isArray(data?.filters) && data.filters.length > 0)
       .map(([field, data]) => ({
@@ -440,7 +440,7 @@
       return;
     }
 
-    const snapshot = getSnapshot();
+    const snapshot = getPostFilterSnapshot();
     if (!snapshot[field]) {
       snapshot[field] = { logic: 'all', filters: [] };
     }
@@ -484,7 +484,7 @@
   }
 
   function removeFilter(field, index) {
-    const snapshot = getSnapshot();
+    const snapshot = getPostFilterSnapshot();
     if (!snapshot[field] || !Array.isArray(snapshot[field].filters) || !snapshot[field].filters[index]) {
       return;
     }
@@ -501,7 +501,7 @@
   }
 
   function updateFieldLogic(field, logic) {
-    const snapshot = getSnapshot();
+    const snapshot = getPostFilterSnapshot();
     if (!snapshot[field] || !Array.isArray(snapshot[field].filters) || !snapshot[field].filters.length) {
       return;
     }
@@ -551,7 +551,7 @@
       if (!field) {
         return;
       }
-      const snapshot = getSnapshot();
+      const snapshot = getPostFilterSnapshot();
       if (snapshot[field] && Array.isArray(snapshot[field].filters) && snapshot[field].filters.length) {
         updateFieldLogic(field, elements.logicSelect.value);
       }
@@ -577,7 +577,7 @@
 
     window.QueryStateSubscriptions.subscribe(() => {
       if (window.VirtualTable?.replacePostFilters) {
-        window.VirtualTable.replacePostFilters(getSnapshot(), {
+        window.VirtualTable.replacePostFilters(getPostFilterSnapshot(), {
           refreshView: true,
           notify: true,
           resetScroll: false
