@@ -502,6 +502,47 @@ function clearDropAnchor() {
   dropAnchor.style.display = 'none';
 }
 
+function getDragScrollContainer(table) {
+  return table?.closest('.overflow-x-auto') || null;
+}
+
+function getVisibleHeaderTargets(table, scrollContainer = getDragScrollContainer(table)) {
+  const headers = Array.from(table.querySelectorAll('thead th[data-col-index]'));
+  if (!headers.length || !scrollContainer) {
+    return headers;
+  }
+
+  const containerRect = scrollContainer.getBoundingClientRect();
+  const visibleHeaders = headers.filter(th => {
+    const rect = th.getBoundingClientRect();
+    return rect.right > containerRect.left + 1 && rect.left < containerRect.right - 1;
+  });
+
+  return visibleHeaders.length ? visibleHeaders : headers;
+}
+
+function getClosestVisibleHeaderByX(table, clientX, scrollContainer = getDragScrollContainer(table)) {
+  const headers = getVisibleHeaderTargets(table, scrollContainer);
+  if (!headers.length) {
+    return null;
+  }
+
+  let best = headers[0];
+  let bestDist = Infinity;
+
+  headers.forEach(th => {
+    const rect = th.getBoundingClientRect();
+    const center = rect.left + rect.width / 2;
+    const dist = Math.abs(clientX - center);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = th;
+    }
+  });
+
+  return best;
+}
+
 // Column management functions
 function refreshColIndices(table) {
   const ths = table.querySelectorAll('thead th');
@@ -761,16 +802,8 @@ function attachBubbleDropTarget(container) {
     
     const table = container.querySelector('table');
     if (table) {
-      const headers = Array.from(table.querySelectorAll('thead th[data-col-index]'));
-      if (headers.length > 0) {
-        let best = headers[0];
-        let bestDist = Infinity;
-        headers.forEach(th => {
-          const rect = th.getBoundingClientRect();
-          const center = rect.left + rect.width / 2;
-          const dist = Math.abs(e.clientX - center);
-          if (dist < bestDist) { bestDist = dist; best = th; }
-        });
+      const best = getClosestVisibleHeaderByX(table, e.clientX, getDragScrollContainer(table));
+      if (best) {
         dragDropManager.handleDrop(e, best, table);
         return;
       }
@@ -804,6 +837,7 @@ const dragDropManager = {
   lastDragX: 0,
   lastDragY: 0,
   isAnimating: false,
+  activeTable: null,
   
   // Auto-scroll functionality
   startAutoScroll(direction, container) {
@@ -829,11 +863,17 @@ const dragDropManager = {
 
       const intensity = Math.min(1, proximity / threshold);
       const scrollAmount = Math.max(4, Math.round(4 + (intensity * 8)));
+      const previousScrollLeft = container.scrollLeft;
 
       if (direction === 'left') {
         container.scrollLeft = Math.max(0, container.scrollLeft - scrollAmount);
       } else if (direction === 'right') {
-        container.scrollLeft += scrollAmount;
+        const maxScrollLeft = Math.max(0, container.scrollWidth - container.clientWidth);
+        container.scrollLeft = Math.min(maxScrollLeft, container.scrollLeft + scrollAmount);
+      }
+
+      if (container.scrollLeft !== previousScrollLeft && this.activeTable) {
+        this.updateDropIndicatorFromPointer(this.activeTable, this.autoScrollPointerX);
       }
     }, 16);
   },
@@ -867,6 +907,24 @@ const dragDropManager = {
     else {
       this.stopAutoScroll();
     }
+  },
+
+  updateDropIndicatorFromPointer(table, clientX) {
+    const scrollContainer = this.scrollContainer || getDragScrollContainer(table);
+    const targetHeader = getClosestVisibleHeaderByX(table, clientX, scrollContainer);
+    if (!targetHeader) {
+      clearDropAnchor();
+      return;
+    }
+
+    table.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
+    if (!targetHeader.classList.contains('th-dragging')) {
+      targetHeader.classList.add('th-drag-over');
+    }
+
+    const colIndex = parseInt(targetHeader.dataset.colIndex, 10);
+    const rect = targetHeader.getBoundingClientRect();
+    positionDropAnchor(rect, table, clientX, colIndex);
   },
   
   // Header hover handlers
@@ -904,6 +962,7 @@ const dragDropManager = {
     }
     clearInsertAffordance({ immediate: true });
     this.isBubbleDrag = false; // this is a column drag
+    this.activeTable = th.closest('table');
     th.classList.add('th-dragging');
     th.classList.remove('th-hover');
     if (scrollContainer) scrollContainer.classList.add('dragging-scroll-lock');
@@ -960,6 +1019,7 @@ const dragDropManager = {
     document.body.classList.remove('dragging-cursor');
     clearDropAnchor();
     this.stopAutoScroll(); // Stop auto-scroll when drag ends
+    this.activeTable = null;
     
     // Clean up the ghost element
     if (th._ghost) {
@@ -973,6 +1033,7 @@ const dragDropManager = {
   // Common drag event handlers
   handleDragEnter(e, element, table) {
     e.preventDefault();
+    this.activeTable = table;
     // Clear any existing highlight
     table.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
     if (!element.classList.contains('th-dragging')) {
@@ -995,6 +1056,7 @@ const dragDropManager = {
   
   handleDragOver(e, element, table) {
     e.preventDefault();
+    this.activeTable = table;
     const rect = element.getBoundingClientRect();
     const colIndex = parseInt(element.dataset.colIndex, 10);
     positionDropAnchor(rect, table, e.clientX, colIndex);
@@ -1008,6 +1070,7 @@ const dragDropManager = {
   // Cell-specific handlers
   handleCellDragEnter(e, td, table) {
     e.preventDefault();
+    this.activeTable = table;
     table.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
     const colIndex = parseInt(td.dataset.colIndex, 10);
     if (isNaN(colIndex)) return;
@@ -1028,19 +1091,8 @@ const dragDropManager = {
   // Fallback: show drop anchor based on mouse X vs header positions (used for spacer cells / empty tables)
   handleDragOverByX(e, table) {
     e.preventDefault();
-    const headers = Array.from(table.querySelectorAll('thead th[data-col-index]'));
-    if (!headers.length) return;
-    let best = headers[0];
-    let bestDist = Infinity;
-    headers.forEach(th => {
-      const rect = th.getBoundingClientRect();
-      const center = rect.left + rect.width / 2;
-      const dist = Math.abs(e.clientX - center);
-      if (dist < bestDist) { bestDist = dist; best = th; }
-    });
-    const colIndex = parseInt(best.dataset.colIndex, 10);
-    const rect = best.getBoundingClientRect();
-    positionDropAnchor(rect, table, e.clientX, colIndex);
+    this.activeTable = table;
+    this.updateDropIndicatorFromPointer(table, e.clientX);
 
     if (this.scrollContainer) {
       this.checkAutoScroll(e, this.scrollContainer);
@@ -1049,6 +1101,7 @@ const dragDropManager = {
 
   handleCellDragOver(e, td, table) {
     e.preventDefault();
+    this.activeTable = table;
     const colIndex = parseInt(td.dataset.colIndex, 10);
     if (isNaN(colIndex)) return;
     const targetHeader = table.querySelector(`thead th[data-col-index="${colIndex}"]`);
@@ -1066,6 +1119,7 @@ const dragDropManager = {
   handleDrop(e, th, table) {
     e.preventDefault();
     e.stopPropagation();
+    this.activeTable = null;
     const toIndex = parseInt(th.dataset.colIndex, 10);
     
     // Stop auto-scroll when dropping
@@ -1109,6 +1163,7 @@ const dragDropManager = {
   handleCellDrop(e, td, table) {
     e.preventDefault();
     e.stopPropagation();
+    this.activeTable = null;
     
     const toIndex = parseInt(td.dataset.colIndex, 10);
     
@@ -1176,7 +1231,7 @@ const dragDropManager = {
     
     // Ensure every header/cell has an up-to-date col index
     refreshColIndices(table);
-    const scrollContainer = document.querySelector('.overflow-x-auto.shadow.rounded-lg.mb-6');
+    const scrollContainer = getDragScrollContainer(table);
     this.scrollContainer = scrollContainer;
     
     // Bind header listeners only once (headers are never replaced)
@@ -1265,16 +1320,8 @@ const dragDropManager = {
           // Dropped on spacer/empty area — derive column from X position
           e.preventDefault();
           e.stopPropagation();
-          const headers = Array.from(table.querySelectorAll('thead th[data-col-index]'));
-          if (!headers.length) return;
-          let best = headers[0];
-          let bestDist = Infinity;
-          headers.forEach(th => {
-            const rect = th.getBoundingClientRect();
-            const center = rect.left + rect.width / 2;
-            const dist = Math.abs(e.clientX - center);
-            if (dist < bestDist) { bestDist = dist; best = th; }
-          });
+          const best = getClosestVisibleHeaderByX(table, e.clientX, getDragScrollContainer(table));
+          if (!best) return;
           this.handleDrop(e, best, table);
         }
       }
@@ -1456,6 +1503,7 @@ document.addEventListener('dragend', e => {
     console.log('Dragend event fired for:', bubble.textContent.trim());
     dragDropManager.setBubbleDrag(false);
     dragDropManager.stopAutoScroll();
+    dragDropManager.activeTable = null;
     
     // Check if drop was actually successful by looking at if the field was added to displayedFields
     const fieldName = bubble.textContent.trim();
