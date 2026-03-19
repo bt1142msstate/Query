@@ -523,13 +523,15 @@ body.dragging-cursor * {
 }
 
 .th-label-group {
-  position: relative;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
   min-width: 0;
 }
 
 .th-text {
-  display: inline;
+  display: inline-block;
   min-width: 0;
   overflow: visible;
   text-overflow: clip;
@@ -537,14 +539,11 @@ body.dragging-cursor * {
 }
 
 .sort-icon {
-  position: absolute;
-  left: calc(100% + 0.15rem);
-  top: 50%;
-  transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 0.9rem;
+  width: 0.9rem;
+  flex: 0 0 0.9rem;
   color: #94a3b8;
   font-weight: 700;
   line-height: 1;
