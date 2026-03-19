@@ -368,9 +368,11 @@ input, textarea, select, [contenteditable] {
 #header-bar {
   height: var(--header-height);
   z-index: var(--z-header);
-  background: #312e81;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.18);
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.62), rgba(30, 41, 59, 0.44)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 8px rgba(15, 23, 42, 0.08);
   transform: none;
   animation: none;
   transition: opacity 0.16s ease;
