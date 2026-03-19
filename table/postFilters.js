@@ -178,13 +178,26 @@
     return String(snapshot[fieldName]?.logic || 'all').toLowerCase() === 'any' ? 'any' : 'all';
   }
 
+  function getFieldRuleCount(fieldName) {
+    const snapshot = getSnapshot();
+    return Array.isArray(snapshot[fieldName]?.filters) ? snapshot[fieldName].filters.length : 0;
+  }
+
   function syncLogicSelect() {
     const elements = getElements();
     if (!elements.fieldSelect || !elements.logicSelect) {
       return;
     }
 
-    elements.logicSelect.value = getFieldLogic(String(elements.fieldSelect.value || '').trim());
+    const fieldName = String(elements.fieldSelect.value || '').trim();
+    const ruleCount = getFieldRuleCount(fieldName);
+    const showLogic = ruleCount > 0;
+    const logicShell = elements.logicSelect.closest('.post-filter-field');
+
+    elements.logicSelect.value = getFieldLogic(fieldName);
+    if (logicShell) {
+      logicShell.classList.toggle('hidden', !showLogic);
+    }
   }
 
   function getActiveFilterCount(snapshot = getSnapshot()) {
@@ -332,13 +345,14 @@
       .map(([field, data]) => ({
         field,
         logic: String(data?.logic || 'all').toLowerCase() === 'any' ? 'any' : 'all',
+        showLogic: data.filters.length > 1,
         filters: data.filters.map((filter, index) => ({ filter, index }))
       }));
 
     elements.empty.classList.toggle('hidden', entries.length > 0);
     elements.list.innerHTML = entries.map(entry => {
       const safeField = window.escapeHtml ? window.escapeHtml(entry.field) : entry.field;
-      const ruleLabel = entry.logic === 'any' ? 'Match Any' : 'Match All';
+      const ruleLabel = entry.logic === 'any' ? 'Rows can match any rule below' : 'Rows must match every rule below';
       const safeRuleLabel = window.escapeHtml ? window.escapeHtml(ruleLabel) : ruleLabel;
       const filterMarkup = entry.filters.map(({ filter, index }) => {
         const label = `${formatOperatorLabel(filter.cond)} ${formatFilterValue(filter, entry.field)}`;
@@ -362,13 +376,14 @@
               <h4 class="post-filter-group__title">${safeField}</h4>
               <p class="post-filter-group__meta">${entry.filters.length} ${entry.filters.length === 1 ? 'rule' : 'rules'}</p>
             </div>
+            ${entry.showLogic ? `
             <label class="post-filter-group__logic">
               <span class="post-filter-group__logic-label">${safeRuleLabel}</span>
               <select class="post-filter-group__logic-select" data-field-logic="${entry.field}" aria-label="Change logic for ${safeField}">
-                <option value="all" ${entry.logic === 'all' ? 'selected' : ''}>Match all</option>
-                <option value="any" ${entry.logic === 'any' ? 'selected' : ''}>Match any</option>
+                <option value="all" ${entry.logic === 'all' ? 'selected' : ''}>Require all</option>
+                <option value="any" ${entry.logic === 'any' ? 'selected' : ''}>Allow any</option>
               </select>
-            </label>
+            </label>` : ''}
           </div>
           <div class="post-filter-group__rules">${filterMarkup}</div>
         </section>`;
@@ -457,7 +472,9 @@
       snapshot[field] = { logic: 'all', filters: [] };
     }
 
-    snapshot[field].logic = logic === 'any' ? 'any' : 'all';
+    if (snapshot[field].filters.length > 0) {
+      snapshot[field].logic = logic === 'any' ? 'any' : 'all';
+    }
 
     if (cond === 'equals' && selectedValues.length) {
       snapshot[field].filters = snapshot[field].filters.filter(filter => String(filter?.cond || '').toLowerCase() !== 'equals');
@@ -478,6 +495,9 @@
     }
 
     snapshot[field].filters.push({ cond, val: value });
+    if (snapshot[field].filters.length === 1) {
+      snapshot[field].logic = 'all';
+    }
     writeSnapshot(snapshot, { refreshView: true, notify: true, resetScroll: true });
 
     elements.valueInput.value = '';
