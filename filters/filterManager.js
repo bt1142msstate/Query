@@ -83,8 +83,7 @@ function ensureFilterListViewer() {
     `;
 
     const closeViewer = () => {
-        backdrop.classList.add('hidden');
-        panel.classList.add('hidden');
+        window.VisibilityUtils.hide([backdrop, panel]);
     };
 
     panel._viewerState = {
@@ -122,7 +121,7 @@ function ensureFilterListViewer() {
         }
     });
     document.addEventListener('keydown', event => {
-        if (event.key === 'Escape' && !panel.classList.contains('hidden')) {
+        if (event.key === 'Escape' && window.VisibilityUtils.isVisible(panel)) {
             closeViewer();
         }
     });
@@ -159,8 +158,7 @@ function openFilterListViewer(filter, fieldDef, options = {}) {
     panel._viewerState.values = values.slice();
     panel._viewerState.filenameBase = filenameBase;
 
-    backdrop.classList.remove('hidden');
-    panel.classList.remove('hidden');
+    window.VisibilityUtils.show([backdrop, panel]);
 }
 
 function buildFilterValueLabel(filter, fieldDef, betweenSeparator = ' - ') {

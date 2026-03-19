@@ -437,7 +437,7 @@ if (typeof window !== 'undefined') {
     getFilterCardElement: getBubbleFilterCardElement,
     getFilterCardTitleElement: getBubbleFilterCardTitleElement,
     prepareFilterCardForOpen: prepareBubbleFilterCardForOpen,
-    markFilterCardOpen,
+    markFilterCardOpen: markBubbleFilterCardOpen,
     resetEditorUi: resetBubbleEditorUi,
     createOrUpdateBubble,
     applyBubbleScrollRow,

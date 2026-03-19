@@ -355,9 +355,10 @@ const ExcelExporter = (() => {
       elements.groupField.value = exportState.selectedGroupingField;
     }
 
-    elements.overlay.classList.remove('hidden');
-    elements.overlay.setAttribute('aria-hidden', 'false');
-    document.body.classList.add('export-overlay-open');
+    window.VisibilityUtils.show([elements.overlay], {
+      ariaHidden: false,
+      bodyClass: 'export-overlay-open'
+    });
 
     updateExportModeUI(elements);
 
@@ -369,13 +370,14 @@ const ExcelExporter = (() => {
 
   function closeExportOverlay() {
     const elements = getExportElements();
-    if (!elements.overlay || elements.overlay.classList.contains('hidden')) {
+    if (!window.VisibilityUtils.isVisible(elements.overlay)) {
       return;
     }
 
-    elements.overlay.classList.add('hidden');
-    elements.overlay.setAttribute('aria-hidden', 'true');
-    document.body.classList.remove('export-overlay-open');
+    window.VisibilityUtils.hide([elements.overlay], {
+      ariaHidden: true,
+      bodyClass: 'export-overlay-open'
+    });
   }
 
   function triggerWorkbookDownload(buffer, filename) {
