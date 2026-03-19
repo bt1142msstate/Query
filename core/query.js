@@ -144,6 +144,9 @@ if(dom.runBtn){
       
       window.queryRunning = false;
       window.updateRunButtonIcon();
+      if (window.updateButtonStates) {
+        window.updateButtonStates();
+      }
       if (window.endTableQueryAnimation) window.endTableQueryAnimation();
       return;
     }
@@ -161,6 +164,9 @@ if(dom.runBtn){
       try {
         window.queryRunning = true;
         window.updateRunButtonIcon();
+        if (window.updateButtonStates) {
+          window.updateButtonStates();
+        }
         if (window.startTableQueryAnimation) window.startTableQueryAnimation();
         
         const state = window.getCurrentQueryState();
@@ -342,6 +348,9 @@ if(dom.runBtn){
       } finally {
         window.queryRunning = false;
         window.updateRunButtonIcon();
+        if (window.updateButtonStates) {
+          window.updateButtonStates();
+        }
         if (window.endTableQueryAnimation) window.endTableQueryAnimation();
       }
     })();
