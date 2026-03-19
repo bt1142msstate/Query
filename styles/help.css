@@ -570,6 +570,15 @@
   caret-color: #ffcf73;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
   counter-reset: json-line;
+  user-select: text;
+  -webkit-user-select: text;
+  -ms-user-select: text;
+}
+
+.json-tree * {
+  user-select: text;
+  -webkit-user-select: text;
+  -ms-user-select: text;
 }
 
 .json-tree:focus {
@@ -614,7 +623,6 @@
 .json-summary {
   list-style: none;
   cursor: pointer;
-  user-select: none;
   margin: 0;
   padding-top: 0;
   padding-bottom: 0;
