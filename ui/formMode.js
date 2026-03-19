@@ -1119,28 +1119,10 @@
 
   async function copyCurrentShareUrl() {
     const url = buildCurrentShareUrl();
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(url);
-      } else {
-        const scratch = document.createElement('textarea');
-        scratch.value = url;
-        scratch.setAttribute('readonly', '');
-        scratch.style.position = 'fixed';
-        scratch.style.opacity = '0';
-        document.body.appendChild(scratch);
-        scratch.select();
-        document.execCommand('copy');
-        scratch.remove();
-      }
-      if (window.showToastMessage) {
-        window.showToastMessage('Form link copied.', 'success');
-      }
-    } catch (_) {
-      if (window.showToastMessage) {
-        window.showToastMessage('Failed to copy form link.', 'error');
-      }
-    }
+    await window.ClipboardUtils.copy(url, {
+      successMessage: 'Form link copied.',
+      errorMessage: 'Failed to copy form link.'
+    });
   }
 
   function syncPresentationMode() {
