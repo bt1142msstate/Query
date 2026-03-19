@@ -807,15 +807,21 @@ async function showExampleTable(fields, options = {}){
     if (!window.updateSortHeadersUI) {
       window.updateSortHeadersUI = (sortColumn, sortDirection) => {
         document.querySelectorAll('#example-table th').forEach(th => {
-          const iconSpan = th.querySelector('.sort-icon');
-          if (iconSpan) {
-            if (th.getAttribute('data-sort-field') === sortColumn) {
-              iconSpan.innerHTML = sortDirection === 'asc' ? ' ↑' : ' ↓';
-              iconSpan.className = 'sort-icon text-green-600 font-bold ml-1';
-            } else {
-              iconSpan.innerHTML = '';
-              iconSpan.className = 'sort-icon text-gray-400 ml-1';
+          let iconSpan = th.querySelector('.sort-icon');
+          if (!iconSpan) {
+            const labelGroup = th.querySelector('.th-label-group');
+            if (labelGroup) {
+              iconSpan = document.createElement('span');
+              iconSpan.className = 'sort-icon';
+              labelGroup.appendChild(iconSpan);
             }
+          }
+
+          if (iconSpan) {
+            const isSortedColumn = th.getAttribute('data-sort-field') === sortColumn;
+            iconSpan.textContent = isSortedColumn ? (sortDirection === 'asc' ? '↑' : '↓') : '';
+            iconSpan.classList.toggle('is-active', isSortedColumn);
+            iconSpan.classList.toggle('is-desc', isSortedColumn && sortDirection === 'desc');
           }
         });
 
