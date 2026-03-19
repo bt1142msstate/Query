@@ -111,7 +111,9 @@ const ExcelExporter = (() => {
     }
 
     if (type === 'number' || type === 'money') {
-      const n = window.MoneyUtils.parseNumber(raw);
+      const n = type === 'money'
+        ? window.MoneyUtils.parseNumber(raw)
+        : (typeof raw === 'number' ? raw : parseFloat(String(raw).replace(/,/g, '')));
       return isNaN(n) ? '' : n;
     }
 
@@ -398,7 +400,13 @@ const ExcelExporter = (() => {
           let val = row[colIndex];
           if (val === undefined || val === null) return;
           if (type === 'date') val = '12/31/2000';
-          else if (type === 'number' || type === 'money') val = String(window.MoneyUtils.parseNumber(val));
+          else if (type === 'number' || type === 'money') {
+            const parsedNumericValue = type === 'money'
+              ? window.MoneyUtils.parseNumber(val)
+              : (typeof val === 'number' ? val : parseFloat(String(val).replace(/,/g, '')));
+            if (Number.isNaN(parsedNumericValue)) return;
+            val = String(parsedNumericValue);
+          }
           else val = String(val).replace(/\x1F/g, ' ');
           maxLen = Math.max(maxLen, val.length);
         });

@@ -389,10 +389,6 @@ window.MoneyUtils = (() => {
   };
 })();
 
-window.sanitizeMoneyInputValue = window.MoneyUtils.sanitizeInputValue;
-window.formatMoneyInputValue = window.MoneyUtils.formatInputValue;
-window.configureMoneyInputBehavior = window.MoneyUtils.configureInputBehavior;
-
 window.getFieldOutputSegments = function(fieldName) {
   if (!window.fieldDefs) {
     return 1;
