@@ -11,8 +11,7 @@
   max-width: none;
   max-height: none;
   overflow: auto;
-  background: rgba(255, 255, 255, 0.97);
-  backdrop-filter: blur(14px);
+  background: rgba(255, 255, 255, 0.985);
   border-radius: 0;
   box-shadow: none;
   z-index: var(--z-condition-panel);
