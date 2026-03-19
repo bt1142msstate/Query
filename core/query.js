@@ -899,6 +899,10 @@ async function showExampleTable(fields, options = {}){
             }
           }
         });
+
+        if (window.DragDropSystem && typeof window.DragDropSystem.syncHeaderSortActionState === 'function') {
+          window.DragDropSystem.syncHeaderSortActionState();
+        }
       };
     }
     // Re-apply sort UI state on table render
