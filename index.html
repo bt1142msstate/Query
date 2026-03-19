@@ -263,6 +263,24 @@
                   </g>
                 </svg>
               </button>
+              <button id="post-filter-btn"
+                      class="table-toolbar-btn table-toolbar-btn-icon"
+                      type="button"
+                      aria-label="Post filters"
+                      data-tooltip="Post Filters">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     stroke-linecap="round"
+                     stroke-linejoin="round"
+                     class="w-4 h-4 pointer-events-none">
+                  <path d="M4 6h16"/>
+                  <path d="M7 12h10"/>
+                  <path d="M10 18h4"/>
+                </svg>
+              </button>
               <button id="clear-query-btn"
                       class="table-toolbar-btn table-toolbar-btn-icon table-toolbar-btn-danger"
                       type="button"
@@ -603,6 +621,79 @@
     </div><!-- end help-panel -->
   </div>
 
+  <div id="post-filter-overlay" class="post-filter-overlay hidden" aria-hidden="true">
+    <div id="post-filter-overlay-backdrop" class="post-filter-overlay-backdrop"></div>
+    <div class="post-filter-dialog" role="dialog" aria-modal="true" aria-labelledby="post-filter-dialog-title">
+      <div class="post-filter-dialog__header">
+        <div>
+          <p class="post-filter-dialog__eyebrow">Result Filters</p>
+          <h2 id="post-filter-dialog-title" class="post-filter-dialog__title">Filter the loaded results</h2>
+          <p class="post-filter-dialog__description">Use post filters for result-only checks the backend query does not naturally support. These filters only affect the rows currently loaded in the table.</p>
+        </div>
+        <button id="post-filter-overlay-close" class="post-filter-dialog__close" type="button" aria-label="Close post filters">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 pointer-events-none">
+            <line x1="4" y1="4" x2="16" y2="16"></line>
+            <line x1="16" y1="4" x2="4" y2="16"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="post-filter-dialog__summary" aria-label="Post filter summary">
+        <div class="post-filter-summary-pill">
+          <span class="post-filter-summary-pill__label">Showing</span>
+          <strong id="post-filter-summary-rows" class="post-filter-summary-pill__value">0</strong>
+        </div>
+        <div class="post-filter-summary-pill">
+          <span class="post-filter-summary-pill__label">Loaded</span>
+          <strong id="post-filter-summary-base-rows" class="post-filter-summary-pill__value">0</strong>
+        </div>
+        <div class="post-filter-summary-pill">
+          <span class="post-filter-summary-pill__label">Active Filters</span>
+          <strong id="post-filter-summary-count" class="post-filter-summary-pill__value">0</strong>
+        </div>
+      </div>
+
+      <div class="post-filter-dialog__body">
+        <div class="post-filter-builder">
+          <div class="post-filter-field">
+            <label class="post-filter-field__label" for="post-filter-field">Field</label>
+            <select id="post-filter-field" class="post-filter-field__select"></select>
+          </div>
+          <div class="post-filter-field">
+            <label class="post-filter-field__label" for="post-filter-operator">Condition</label>
+            <select id="post-filter-operator" class="post-filter-field__select"></select>
+          </div>
+          <div class="post-filter-field post-filter-field--value">
+            <label class="post-filter-field__label" for="post-filter-value">Value</label>
+            <div class="post-filter-value-row">
+              <input id="post-filter-value" class="post-filter-field__input" type="text" placeholder="Value">
+              <span id="post-filter-between-label" class="post-filter-between-label hidden">and</span>
+              <input id="post-filter-value-2" class="post-filter-field__input hidden" type="text" placeholder="Value">
+            </div>
+          </div>
+          <button id="post-filter-add-btn" class="post-filter-add-btn" type="button">Apply Filter</button>
+        </div>
+
+        <div class="post-filter-list-panel">
+          <div class="post-filter-list-panel__header">
+            <h3 class="post-filter-list-panel__title">Active Post Filters</h3>
+            <p class="post-filter-list-panel__text">These are layered on top of the loaded result set only.</p>
+          </div>
+          <div id="post-filter-empty" class="post-filter-empty">No post filters yet.</div>
+          <div id="post-filter-list" class="post-filter-list"></div>
+        </div>
+      </div>
+
+      <div class="post-filter-dialog__footer">
+        <div class="post-filter-dialog__hint">Post filters do not change the backend query payload. Clear them if you want to return to the full loaded result set.</div>
+        <div class="post-filter-dialog__actions">
+          <button id="post-filter-clear-btn" class="export-action-btn export-action-btn--secondary" type="button">Clear All</button>
+          <button id="post-filter-done-btn" class="export-action-btn export-action-btn--primary" type="button">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="export-overlay" class="export-overlay hidden" aria-hidden="true">
     <div id="export-overlay-backdrop" class="export-overlay-backdrop"></div>
     <div class="export-dialog" role="dialog" aria-modal="true" aria-labelledby="export-dialog-title" aria-describedby="export-dialog-description">
@@ -736,14 +827,15 @@
   <script src="ui/toast.js?v=2"></script>
   <script src="core/queryState.js?v=6"></script>
   <script src="ui/fieldPicker.js?v=3"></script>
-  <script src="ui/queryUI.js?v=7"></script>
+  <script src="ui/queryUI.js?v=8"></script>
   <script src="ui/queryUiHelpers.js?v=1773659590348"></script>
   <script src="ui/queryAnimation.js?v=9"></script>
   <script src="filters/queryPayload.js?v=7"></script>
   <script src="ui/tooltips.js?v=3"></script>
   <script src="table/simpleTable.js"></script>
-  <script src="table/virtualTable.js?v=7"></script>
+  <script src="table/virtualTable.js?v=8"></script>
   <script src="table/excel.js?v=5"></script>
+  <script src="table/postFilters.js?v=1"></script>
   <script src="ui/modalManager.js"></script>
   <script src="filters/filterManager.js?v=14"></script>
   <script src="filters/filterSidePanel.js?v=1773740800000"></script>
@@ -755,6 +847,6 @@
   <script src="bubbles/bubbleRender.js?v=5"></script>
   <script src="bubbles/bubbleReset.js?v=5"></script>
   <script src="bubbles/bubbleInteraction.js?v=6"></script>
-  <script src="core/query.js?v=9"></script>
+  <script src="core/query.js?v=10"></script>
   <script src="ui/formMode.js?v=1773666000001"></script>
   </body>

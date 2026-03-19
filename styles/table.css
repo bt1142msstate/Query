@@ -92,6 +92,13 @@
   box-shadow: 0 10px 20px rgba(59, 130, 246, 0.12);
 }
 
+.table-toolbar-btn-active {
+  border-color: rgba(14, 116, 144, 0.34);
+  background: linear-gradient(135deg, rgba(224, 242, 254, 0.98), rgba(236, 254, 255, 0.92));
+  color: #0369a1;
+  box-shadow: 0 10px 22px rgba(2, 132, 199, 0.18);
+}
+
 .table-toolbar-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -694,7 +701,298 @@ body.table-expanded-open .th-insert-button {
 }
 
 /* ==========================================
-   15. EXPORT OVERLAY
+   15. POST FILTER OVERLAY
+   ========================================== */
+
+.post-filter-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-overlay) + 24);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.post-filter-overlay.hidden {
+  display: none;
+}
+
+body.post-filter-overlay-open {
+  overflow: hidden;
+}
+
+.post-filter-overlay-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top, rgba(125, 211, 252, 0.18), transparent 36%),
+    rgba(15, 23, 42, 0.42);
+  backdrop-filter: blur(12px);
+}
+
+.post-filter-dialog {
+  position: relative;
+  width: min(760px, calc(100vw - 2rem));
+  max-height: min(86vh, calc(100vh - 2rem));
+  overflow: auto;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(240, 249, 255, 0.95) 56%, rgba(248, 250, 252, 0.98)),
+    radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 32%);
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+.post-filter-dialog__header,
+.post-filter-dialog__footer {
+  padding: 1.35rem 1.5rem;
+}
+
+.post-filter-dialog__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.post-filter-dialog__eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #0f766e;
+}
+
+.post-filter-dialog__title {
+  margin: 0;
+  font-size: clamp(1.2rem, 1rem + 1vw, 1.45rem);
+  line-height: 1.1;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.post-filter-dialog__description,
+.post-filter-dialog__hint,
+.post-filter-list-panel__text {
+  margin: 0.45rem 0 0;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.post-filter-dialog__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: rgba(255, 255, 255, 0.88);
+  color: #334155;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+.post-filter-dialog__summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding: 1rem 1.5rem 0;
+}
+
+.post-filter-summary-pill {
+  padding: 0.8rem 0.9rem;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.86));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 10px 22px rgba(15, 23, 42, 0.06);
+}
+
+.post-filter-summary-pill__label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: #0f766e;
+}
+
+.post-filter-summary-pill__value {
+  display: block;
+  margin-top: 0.22rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.post-filter-dialog__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem 1rem;
+}
+
+.post-filter-builder,
+.post-filter-list-panel {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.88));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88), 0 12px 24px rgba(15, 23, 42, 0.05);
+}
+
+.post-filter-builder {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+  padding: 1rem;
+}
+
+.post-filter-field--value {
+  grid-column: 1 / -1;
+}
+
+.post-filter-field__label {
+  display: block;
+  margin-bottom: 0.38rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #334155;
+}
+
+.post-filter-field__select,
+.post-filter-field__input {
+  width: 100%;
+  padding: 0.82rem 0.95rem;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  background: rgba(255, 255, 255, 0.96);
+  color: #0f172a;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88), 0 8px 16px rgba(15, 23, 42, 0.04);
+}
+
+.post-filter-field__select:focus,
+.post-filter-field__input:focus {
+  outline: none;
+  border-color: rgba(14, 116, 144, 0.45);
+  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.12), 0 10px 22px rgba(14, 165, 233, 0.1);
+}
+
+.post-filter-value-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.post-filter-between-label {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.post-filter-between-label.hidden,
+.post-filter-field__input.hidden,
+.post-filter-empty.hidden {
+  display: none;
+}
+
+.post-filter-add-btn {
+  grid-column: 1 / -1;
+  justify-self: end;
+  min-width: 9.5rem;
+  padding: 0.78rem 1.15rem;
+  border-radius: 999px;
+  border: 1px solid rgba(14, 116, 144, 0.34);
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  color: white;
+  font-weight: 800;
+  box-shadow: 0 14px 28px rgba(2, 132, 199, 0.24);
+}
+
+.post-filter-list-panel {
+  padding: 1rem;
+}
+
+.post-filter-list-panel__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-bottom: 0.85rem;
+}
+
+.post-filter-list-panel__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.post-filter-empty {
+  padding: 0.9rem 0.95rem;
+  border-radius: 18px;
+  background: rgba(241, 245, 249, 0.85);
+  color: #64748b;
+  font-weight: 600;
+}
+
+.post-filter-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.post-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  max-width: 100%;
+  padding: 0.55rem 0.7rem 0.55rem 0.85rem;
+  border-radius: 999px;
+  background: linear-gradient(145deg, rgba(224, 242, 254, 0.95), rgba(236, 254, 255, 0.92));
+  color: #0f172a;
+  border: 1px solid rgba(125, 211, 252, 0.28);
+}
+
+.post-filter-pill__text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.post-filter-pill__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255, 255, 255, 0.92);
+  color: #475569;
+}
+
+.post-filter-dialog__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(248, 250, 252, 0.82));
+}
+
+.post-filter-dialog__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* ==========================================
+   16. EXPORT OVERLAY
    ========================================== */
 
 .export-overlay {
@@ -1320,7 +1618,7 @@ body.table-expanded-open .th-insert-button {
 }
 
 /* ==========================================
-   16. TABLE QUERY BUBBLE ANIMATION
+  17. TABLE QUERY BUBBLE ANIMATION
    ========================================== */
 
 .table-query-bubble {

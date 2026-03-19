@@ -104,6 +104,13 @@ window.clearCurrentQuery = async function clearCurrentQuery() {
   document.querySelectorAll('.dynamic-input-group').forEach(el => el.remove());
   document.querySelectorAll('.toggle-half.active').forEach(btn => btn.classList.remove('active'));
 
+  if (window.PostFilterSystem && typeof window.PostFilterSystem.close === 'function') {
+    window.PostFilterSystem.close();
+  }
+  if (window.VirtualTable && typeof window.VirtualTable.clearPostFilters === 'function') {
+    window.VirtualTable.clearPostFilters({ refreshView: false, notify: true, resetScroll: false });
+  }
+
   window.selectedField = '';
   if (window.QueryChangeManager && typeof window.QueryChangeManager.resetQuery === 'function') {
     window.QueryChangeManager.resetQuery({ source: 'Query.clearCurrentQuery' });
