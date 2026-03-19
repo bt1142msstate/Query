@@ -721,35 +721,36 @@
       const wrapper = document.createElement('div');
       wrapper.className = 'form-mode-money-input-wrap';
 
-      const symbol = document.createElement('span');
-      symbol.className = 'form-mode-money-symbol';
-      symbol.textContent = '$';
-
       const input = document.createElement('input');
-      input.type = 'number';
+      input.type = 'text';
       input.className = 'form-mode-text-input form-mode-money-input';
       input.placeholder = inputSpec.placeholder || '0.00';
-      input.value = initialValues[0] || '';
+      input.value = window.formatMoneyInputValue
+        ? window.formatMoneyInputValue(initialValues[0] || '')
+        : (initialValues[0] || '');
       input.autocomplete = 'off';
       input.inputMode = 'decimal';
-      input.step = '0.01';
+      if (window.configureMoneyInputBehavior) {
+        window.configureMoneyInputBehavior(input, true);
+      }
 
-      input.addEventListener('keypress', event => {
-        if (!/[0-9.\-]/.test(event.key) && event.key.length === 1) {
-          event.preventDefault();
-        }
-      });
-
-      wrapper.appendChild(symbol);
       wrapper.appendChild(input);
 
       wrapper.getFormValues = function() {
-        const value = String(input.value || '').trim();
+        const value = window.sanitizeMoneyInputValue
+          ? window.sanitizeMoneyInputValue(input.value)
+          : String(input.value || '').trim();
         return value ? [value] : [];
       };
 
       wrapper.setFormValues = function(values) {
-        input.value = Array.isArray(values) && values.length ? String(values[0]) : '';
+        const rawValue = Array.isArray(values) && values.length ? String(values[0]) : '';
+        input.value = window.formatMoneyInputValue
+          ? window.formatMoneyInputValue(rawValue)
+          : rawValue;
+        if (window.configureMoneyInputBehavior) {
+          window.configureMoneyInputBehavior(input, true);
+        }
       };
 
       wrapper.focusInput = function() {
