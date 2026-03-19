@@ -740,7 +740,7 @@ async function showExampleTable(fields, options = {}){
             const alignClass = 'text-center';
             
             if (fieldExistsInData) {
-              return `<th draggable="true" data-col-index="${i}" class="sortable-header px-6 py-3 ${alignClass} text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors" data-sort-field="${f}"><div class="th-header-content"><div class="th-label-group"><span class='th-text'>${f}</span><span class='sort-icon text-gray-400'></span></div></div></th>`;
+              return `<th draggable="true" data-col-index="${i}" class="sortable-header px-6 py-3 ${alignClass} text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors" data-sort-field="${f}"><div class="th-header-content"><span class="sort-icon text-gray-400" aria-hidden="true"></span><div class="th-label-group"><span class='th-text'>${f}</span></div></div></th>`;
             } else {
               return `<th draggable="true" data-col-index="${i}" class="px-6 py-3 ${alignClass} text-xs font-medium uppercase tracking-wider bg-gray-50" style="color: #ef4444 !important;" data-tooltip="This field is not in the current data. Run a new query to populate it."><div class="th-header-content"><div class="th-label-group"><span class='th-text' style="color: #ef4444 !important;">${f}</span></div></div></th>`;
             }
@@ -809,11 +809,12 @@ async function showExampleTable(fields, options = {}){
         document.querySelectorAll('#example-table th').forEach(th => {
           let iconSpan = th.querySelector('.sort-icon');
           if (!iconSpan) {
-            const labelGroup = th.querySelector('.th-label-group');
-            if (labelGroup) {
+            const headerContent = th.querySelector('.th-header-content');
+            if (headerContent) {
               iconSpan = document.createElement('span');
               iconSpan.className = 'sort-icon';
-              labelGroup.appendChild(iconSpan);
+              iconSpan.setAttribute('aria-hidden', 'true');
+              headerContent.insertBefore(iconSpan, headerContent.firstChild);
             }
           }
 

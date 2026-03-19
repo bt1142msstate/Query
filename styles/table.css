@@ -331,6 +331,7 @@ body.export-overlay-open {
 #example-table {
   --header-action-space: 9.35rem;
   --header-text-balance-space: 9.35rem;
+  --header-sort-space: 1rem;
 }
 
 #example-table th {
@@ -512,6 +513,7 @@ body.dragging-cursor * {
 
 /* Column header actions */
 .th-header-content {
+  position: relative;
   width: 100%;
   display: flex;
   align-items: center;
@@ -523,11 +525,9 @@ body.dragging-cursor * {
 }
 
 .th-label-group {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
+  display: inline-block;
   min-width: 0;
+  max-width: 100%;
 }
 
 .th-text {
@@ -539,11 +539,15 @@ body.dragging-cursor * {
 }
 
 .sort-icon {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 0.9rem;
-  flex: 0 0 0.9rem;
+  width: var(--header-sort-space);
+  flex: 0 0 var(--header-sort-space);
   color: #94a3b8;
   font-weight: 700;
   line-height: 1;
