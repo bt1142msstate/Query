@@ -112,6 +112,36 @@ window.getTableZoom = function() {
   return Number.isFinite(zoomValue) ? Math.min(1.4, Math.max(0.8, zoomValue)) : 1;
 };
 
+function getTableExpandIconMarkup(expanded) {
+  if (expanded) {
+    return `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 pointer-events-none">
+        <path d="M9 9H4V4"/>
+        <path d="M15 9h5V4"/>
+        <path d="M9 15H4v5"/>
+        <path d="M15 15h5v5"/>
+        <path d="M10 10 4 4"/>
+        <path d="M14 10 20 4"/>
+        <path d="M10 14 4 20"/>
+        <path d="M14 14 20 20"/>
+      </svg>
+    `;
+  }
+
+  return `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 pointer-events-none">
+      <path d="M8 3H3v5"/>
+      <path d="M16 3h5v5"/>
+      <path d="M3 16v5h5"/>
+      <path d="M21 16v5h-5"/>
+      <path d="M3 8l6-5"/>
+      <path d="M21 8l-6-5"/>
+      <path d="M3 16l6 5"/>
+      <path d="M21 16l-6 5"/>
+    </svg>
+  `;
+}
+
 window.refreshTableViewport = function() {
   const tableShell = window.DOM.tableShell;
   const tableContainer = window.DOM.tableContainer;
@@ -177,6 +207,12 @@ window.updateTableChromeState = function() {
     tableExpandBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
     tableExpandBtn.setAttribute('aria-label', expanded ? 'Collapse table' : 'Expand table');
     tableExpandBtn.setAttribute('data-tooltip', expanded ? 'Collapse table' : 'Expand table');
+    tableExpandBtn.dataset.state = expanded ? 'expanded' : 'collapsed';
+
+    const iconShell = tableExpandBtn.querySelector('.table-expand-btn-icon');
+    if (iconShell) {
+      iconShell.innerHTML = getTableExpandIconMarkup(expanded).trim();
+    }
   }
 };
 

@@ -124,6 +124,110 @@
   width: 1.95rem;
 }
 
+.table-expand-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.table-expand-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0.18rem;
+  border-radius: 999px;
+  background: radial-gradient(circle at 30% 30%, rgba(125, 211, 252, 0.34), rgba(59, 130, 246, 0));
+  opacity: 0;
+  transform: scale(0.72);
+  transition: opacity 0.2s ease, transform 0.24s ease;
+}
+
+.table-expand-btn-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  z-index: 1;
+}
+
+.table-expand-btn-icon svg {
+  width: 1rem;
+  height: 1rem;
+  transition: transform 0.26s ease, color 0.18s ease, filter 0.22s ease;
+  transform-origin: 50% 50%;
+}
+
+.table-expand-btn:hover:not(:disabled)::before,
+.table-expand-btn:focus-visible::before {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.table-expand-btn[data-state="collapsed"] {
+  color: #0f3f78;
+}
+
+.table-expand-btn[data-state="collapsed"]:hover:not(:disabled),
+.table-expand-btn[data-state="collapsed"]:focus-visible {
+  border-color: rgba(37, 99, 235, 0.4);
+  background: linear-gradient(135deg, rgba(239, 246, 255, 0.98), rgba(224, 242, 254, 0.92));
+}
+
+.table-expand-btn[data-state="collapsed"]:hover:not(:disabled) .table-expand-btn-icon svg,
+.table-expand-btn[data-state="collapsed"]:focus-visible .table-expand-btn-icon svg {
+  animation: table-expand-pulse-out 0.34s ease;
+  transform: scale(1.16) rotate(-7deg);
+  filter: drop-shadow(0 6px 10px rgba(37, 99, 235, 0.22));
+}
+
+.table-expand-btn[data-state="expanded"] {
+  color: #0369a1;
+  background: linear-gradient(135deg, rgba(224, 242, 254, 0.98), rgba(236, 254, 255, 0.92));
+  border-color: rgba(14, 165, 233, 0.32);
+  box-shadow: 0 10px 22px rgba(14, 165, 233, 0.14);
+}
+
+.table-expand-btn[data-state="expanded"]::before {
+  background: radial-gradient(circle at 70% 30%, rgba(103, 232, 249, 0.34), rgba(14, 165, 233, 0));
+}
+
+.table-expand-btn[data-state="expanded"]:hover:not(:disabled),
+.table-expand-btn[data-state="expanded"]:focus-visible {
+  border-color: rgba(8, 145, 178, 0.44);
+  background: linear-gradient(135deg, rgba(207, 250, 254, 0.98), rgba(224, 242, 254, 0.94));
+}
+
+.table-expand-btn[data-state="expanded"]:hover:not(:disabled) .table-expand-btn-icon svg,
+.table-expand-btn[data-state="expanded"]:focus-visible .table-expand-btn-icon svg {
+  animation: table-expand-pulse-in 0.34s ease;
+  transform: scale(1.08) rotate(7deg);
+  filter: drop-shadow(0 6px 10px rgba(8, 145, 178, 0.2));
+}
+
+@keyframes table-expand-pulse-out {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  55% {
+    transform: scale(1.22) rotate(-9deg);
+  }
+  100% {
+    transform: scale(1.16) rotate(-7deg);
+  }
+}
+
+@keyframes table-expand-pulse-in {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  55% {
+    transform: scale(1.14) rotate(9deg);
+  }
+  100% {
+    transform: scale(1.08) rotate(7deg);
+  }
+}
+
 body.table-expanded-open,
 body.export-overlay-open {
   overflow: hidden;
