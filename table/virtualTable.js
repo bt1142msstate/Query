@@ -104,10 +104,25 @@ function cloneTableData(data) {
 }
 
 function clonePostFilterEntry(filter) {
-  return {
+  const entry = {
     cond: String(filter?.cond || '').trim().toLowerCase(),
     val: String(filter?.val || '')
   };
+
+  if (Array.isArray(filter?.vals)) {
+    entry.vals = filter.vals.map(value => String(value || ''));
+  }
+
+  return entry;
+}
+
+function getPostFilterEntryValues(filter) {
+  if (Array.isArray(filter?.vals)) {
+    return filter.vals.map(value => String(value || '')).filter(value => value || isBlankPostFilterValue(value));
+  }
+
+  const scalarValue = String(filter?.val || '');
+  return scalarValue || isBlankPostFilterValue(scalarValue) ? [scalarValue] : [];
 }
 
 function clonePostFiltersSnapshot() {
@@ -135,7 +150,7 @@ function assignPostFilters(nextFilters) {
     }
 
     const filters = Array.isArray(data?.filters)
-      ? data.filters.map(clonePostFilterEntry).filter(filter => filter.cond && (filter.val || isBlankPostFilterValue(filter.val)))
+      ? data.filters.map(clonePostFilterEntry).filter(filter => filter.cond && getPostFilterEntryValues(filter).length > 0)
       : [];
 
     if (filters.length) {
@@ -162,7 +177,7 @@ function sanitizePostFiltersForCurrentView() {
     }
 
     const nextFilters = Array.isArray(postFiltersState[field]?.filters)
-      ? postFiltersState[field].filters.filter(filter => filter.cond && (filter.val || isBlankPostFilterValue(filter.val)))
+      ? postFiltersState[field].filters.filter(filter => filter.cond && getPostFilterEntryValues(filter).length > 0)
       : [];
 
     if (nextFilters.length) {
@@ -255,6 +270,25 @@ function compareScalarCondition(actual, expected, cond, type) {
   }
 }
 
+function rowMatchesEqualsSelection(rawCellValue, type, selectedValues) {
+  if (isBlankCellValue(rawCellValue) && selectedValues.some(isBlankPostFilterValue)) {
+    return true;
+  }
+
+  const rowValues = getComparableRowValues(rawCellValue, type);
+  return selectedValues.some(selectedValue => {
+    if (isBlankPostFilterValue(selectedValue)) {
+      return false;
+    }
+
+    const comparableExpected = (type === 'number' || type === 'money')
+      ? parseNumericValue(selectedValue)
+      : (type === 'date' ? parseComparableDateValue(selectedValue) : selectedValue);
+
+    return rowValues.some(value => compareScalarCondition(value, comparableExpected, 'equals', type));
+  });
+}
+
 function doesRowMatchPostFilter(row, field, filter) {
   const columnIndex = baseViewData.columnMap.get(field);
   if (columnIndex === undefined) {
@@ -263,8 +297,13 @@ function doesRowMatchPostFilter(row, field, filter) {
 
   const type = getFieldType(field);
   const cond = String(filter?.cond || '').trim().toLowerCase();
-  const filterValue = String(filter?.val || '');
+  const filterValues = getPostFilterEntryValues(filter);
+  const filterValue = filterValues[0] || '';
   const rawCellValue = row[columnIndex];
+
+  if (cond === 'equals' && filterValues.length > 1) {
+    return rowMatchesEqualsSelection(rawCellValue, type, filterValues);
+  }
 
   if (cond === 'equals' && isBlankPostFilterValue(filterValue)) {
     return isBlankCellValue(rawCellValue);

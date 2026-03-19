@@ -1,4 +1,6 @@
 (function() {
+  let equalsValueControl = null;
+
   function getElements() {
     return {
       button: document.getElementById('post-filter-btn'),
@@ -11,10 +13,7 @@
       operatorSelect: document.getElementById('post-filter-operator'),
       valueInput: document.getElementById('post-filter-value'),
       valueInput2: document.getElementById('post-filter-value-2'),
-      valuePicker: document.getElementById('post-filter-value-picker'),
-      valuePickerSearch: document.getElementById('post-filter-value-search'),
-      valuePickerSelect: document.getElementById('post-filter-value-select'),
-      valuePickerMeta: document.getElementById('post-filter-value-meta'),
+      valuePickerHost: document.getElementById('post-filter-value-picker-host'),
       betweenLabel: document.getElementById('post-filter-between-label'),
       addBtn: document.getElementById('post-filter-add-btn'),
       summaryRows: document.getElementById('post-filter-summary-rows'),
@@ -97,6 +96,18 @@
     const type = getFieldType(fieldName);
     const rawValue = String(filter?.val || '');
 
+    if (Array.isArray(filter?.vals) && filter.vals.length > 0) {
+      const labels = filter.vals.map(value => isBlankSentinel(value)
+        ? '(Blank values)'
+        : formatFilterValue({ cond: 'equals', val: value }, fieldName));
+
+      if (labels.length <= 2) {
+        return labels.join(', ');
+      }
+
+      return `${labels[0]}, ${labels[1]} and ${labels.length - 2} more`;
+    }
+
     if (isBlankSentinel(rawValue)) {
       return '(Blank values)';
     }
@@ -144,6 +155,23 @@
       : [];
   }
 
+  function getCurrentEqualsValues(fieldName) {
+    const snapshot = getSnapshot();
+    const fieldFilters = Array.isArray(snapshot[fieldName]?.filters) ? snapshot[fieldName].filters : [];
+    const equalsFilter = fieldFilters.find(filter => String(filter?.cond || '').toLowerCase() === 'equals');
+
+    if (!equalsFilter) {
+      return [];
+    }
+
+    if (Array.isArray(equalsFilter.vals)) {
+      return equalsFilter.vals.map(value => String(value || '')).filter(value => value || isBlankSentinel(value));
+    }
+
+    const scalarValue = String(equalsFilter.val || '');
+    return scalarValue || isBlankSentinel(scalarValue) ? [scalarValue] : [];
+  }
+
   function getActiveFilterCount(snapshot = getSnapshot()) {
     return Object.values(snapshot).reduce((total, data) => total + (Array.isArray(data?.filters) ? data.filters.length : 0), 0);
   }
@@ -172,39 +200,40 @@
     syncValueInputs();
   }
 
-  function renderValuePickerOptions(searchTerm = '') {
+  function buildEqualsValueControl(fieldName) {
     const elements = getElements();
-    if (!elements.valuePickerSelect || !elements.valuePickerMeta || !elements.fieldSelect) return;
+    if (!elements.valuePickerHost) return;
 
-    const field = String(elements.fieldSelect.value || '').trim();
-    const normalizedSearch = String(searchTerm || '').trim().toLowerCase();
-    const allOptions = getFieldValueOptions(field);
-    const visibleOptions = normalizedSearch
-      ? allOptions.filter(option => String(option.label || '').toLowerCase().includes(normalizedSearch))
-      : allOptions;
+    const options = getFieldValueOptions(fieldName).map(option => ({
+      Name: `${formatLoadedOptionLabel(option, fieldName)} (${Number(option.count || 0).toLocaleString()})`,
+      RawValue: option.value,
+      Description: `${Number(option.count || 0).toLocaleString()} loaded rows`
+    }));
 
-    elements.valuePickerSelect.innerHTML = visibleOptions.map(option => {
-      const text = `${formatLoadedOptionLabel(option, field)} (${Number(option.count || 0).toLocaleString()})`;
-      const safeText = window.escapeHtml ? window.escapeHtml(text) : text;
-      const safeValue = window.escapeHtml ? window.escapeHtml(option.value) : option.value;
-      return `<option value="${safeValue}">${safeText}</option>`;
-    }).join('');
+    elements.valuePickerHost.innerHTML = '';
+    equalsValueControl = null;
 
-    if (visibleOptions.length) {
-      const currentValue = String(elements.valueInput.value || '').trim();
-      const matchingOption = visibleOptions.find(option => option.value === currentValue) || visibleOptions[0];
-      elements.valuePickerSelect.value = matchingOption.value;
-      elements.valueInput.value = matchingOption.value;
-      elements.valuePickerMeta.textContent = `${visibleOptions.length.toLocaleString()} of ${allOptions.length.toLocaleString()} loaded values`;
-    } else {
-      elements.valueInput.value = '';
-      elements.valuePickerMeta.textContent = `0 of ${allOptions.length.toLocaleString()} loaded values`;
+    if (!options.length || typeof window.createGroupedSelector !== 'function') {
+      return;
     }
+
+    const selector = window.createGroupedSelector(options, true, getCurrentEqualsValues(fieldName), {
+      enableGrouping: false,
+      containerId: null
+    });
+
+    const control = typeof window.createPopupListControl === 'function'
+      ? window.createPopupListControl(selector, `${fieldName} values`, 'Choose one or more loaded values...')
+      : selector;
+
+    control.classList.add('post-filter-value-control');
+    elements.valuePickerHost.appendChild(control);
+    equalsValueControl = control;
   }
 
   function syncValuePicker() {
     const elements = getElements();
-    if (!elements.operatorSelect || !elements.valuePicker || !elements.valuePickerSearch || !elements.valuePickerSelect || !elements.fieldSelect) {
+    if (!elements.operatorSelect || !elements.valuePickerHost || !elements.fieldSelect) {
       return;
     }
 
@@ -213,20 +242,19 @@
     const options = isEquals ? getFieldValueOptions(field) : [];
     const shouldShowPicker = isEquals && options.length > 0;
 
-    elements.valuePicker.classList.toggle('hidden', !shouldShowPicker);
+    elements.valuePickerHost.classList.toggle('hidden', !shouldShowPicker);
     elements.valueInput.classList.toggle('hidden', shouldShowPicker);
 
     if (!shouldShowPicker) {
       if (isBlankSentinel(elements.valueInput.value)) {
         elements.valueInput.value = '';
       }
-      elements.valuePickerSearch.value = '';
-      elements.valuePickerSelect.innerHTML = '';
-      elements.valuePickerMeta.textContent = '';
+      elements.valuePickerHost.innerHTML = '';
+      equalsValueControl = null;
       return;
     }
 
-    renderValuePickerOptions(elements.valuePickerSearch.value);
+    buildEqualsValueControl(field);
   }
 
   function syncValueInputs() {
@@ -356,12 +384,22 @@
     const cond = String(elements.operatorSelect.value || '').trim();
     let value = String(elements.valueInput.value || '').trim();
     let value2 = String(elements.valueInput2.value || '').trim();
+    let selectedValues = [];
 
     if (!field || !cond) {
       return;
     }
 
-    if (cond === 'between') {
+    if (cond === 'equals' && equalsValueControl && typeof equalsValueControl.getSelectedValues === 'function') {
+      selectedValues = equalsValueControl.getSelectedValues()
+        .map(entry => String(entry || ''))
+        .filter(entry => entry || isBlankSentinel(entry));
+
+      if (!selectedValues.length) {
+        window.showToastMessage && window.showToastMessage('Choose one or more loaded values for the post filter.', 'warning');
+        return;
+      }
+    } else if (cond === 'between') {
       if (!value || !value2) {
         window.showToastMessage && window.showToastMessage('Enter both values for a between filter.', 'warning');
         return;
@@ -377,6 +415,18 @@
       snapshot[field] = { filters: [] };
     }
 
+    if (cond === 'equals' && selectedValues.length) {
+      snapshot[field].filters = snapshot[field].filters.filter(filter => String(filter?.cond || '').toLowerCase() !== 'equals');
+      snapshot[field].filters.push({ cond, val: selectedValues[0], vals: selectedValues });
+      writeSnapshot(snapshot, { refreshView: true, notify: true, resetScroll: true });
+      renderSummary();
+      renderFilterList();
+      syncValueInputs();
+      updateToolbarButton();
+      window.showToastMessage && window.showToastMessage('Post filter applied.', 'success');
+      return;
+    }
+
     const alreadyExists = snapshot[field].filters.some(filter => filter.cond === cond && filter.val === value);
     if (alreadyExists) {
       window.showToastMessage && window.showToastMessage('That post filter is already active.', 'info');
@@ -388,9 +438,6 @@
 
     elements.valueInput.value = '';
     elements.valueInput2.value = '';
-    if (elements.valuePickerSearch) {
-      elements.valuePickerSearch.value = '';
-    }
     renderSummary();
     renderFilterList();
     syncValueInputs();
@@ -443,15 +490,6 @@
     elements.addBtn?.addEventListener('click', addFilter);
     elements.fieldSelect?.addEventListener('change', syncOperatorOptions);
     elements.operatorSelect?.addEventListener('change', syncValueInputs);
-    elements.valuePickerSearch?.addEventListener('input', event => {
-      renderValuePickerOptions(event.target.value);
-    });
-    elements.valuePickerSelect?.addEventListener('change', event => {
-      if (elements.valueInput) {
-        elements.valueInput.value = String(event.target.value || '');
-      }
-    });
-    elements.valuePickerSelect?.addEventListener('dblclick', addFilter);
     elements.list?.addEventListener('click', handleListClick);
 
     window.addEventListener('postfilters:updated', () => {
