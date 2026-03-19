@@ -53,7 +53,8 @@
       return {
         message: String(messageOrOptions.message || ''),
         type: resolvedType,
-        duration: getResolvedDuration(resolvedType, messageOrOptions.duration)
+        duration: getResolvedDuration(resolvedType, messageOrOptions.duration),
+        action: normalizeAction(messageOrOptions.action)
       };
     }
 
@@ -62,7 +63,20 @@
     return {
       message: String(messageOrOptions || ''),
       type: resolvedType,
-      duration: getResolvedDuration(resolvedType, duration)
+      duration: getResolvedDuration(resolvedType, duration),
+      action: null
+    };
+  }
+
+  function normalizeAction(action) {
+    if (!action || typeof action !== 'object' || typeof action.onClick !== 'function') {
+      return null;
+    }
+
+    return {
+      label: String(action.label || 'Confirm'),
+      onClick: action.onClick,
+      dismissOnAction: action.dismissOnAction !== false
     };
   }
 
@@ -70,7 +84,7 @@
     return `${type}::${message}`;
   }
 
-  function createToastElement(type, message, key) {
+  function createToastElement(type, message, key, action) {
     const config = TYPE_CONFIG[type] || TYPE_CONFIG.info;
     const toast = document.createElement('section');
     toast.className = `app-toast app-toast--${type}`;
@@ -104,6 +118,14 @@
     count.className = 'app-toast-count';
     count.hidden = true;
     meta.appendChild(count);
+
+    if (action) {
+      const actionButton = document.createElement('button');
+      actionButton.type = 'button';
+      actionButton.className = 'app-toast-action';
+      actionButton.textContent = action.label;
+      meta.appendChild(actionButton);
+    }
 
     body.appendChild(title);
     body.appendChild(text);
@@ -167,6 +189,7 @@
   function updateToast(entry, options) {
     entry.duration = options.duration;
     entry.count += 1;
+    entry.action = options.action;
 
     if (entry.message !== options.message) {
       entry.message = options.message;
@@ -176,7 +199,34 @@
       }
     }
 
+    syncToastAction(entry);
+
     updateToastCount(entry);
+  }
+
+  function syncToastAction(entry) {
+    const meta = entry.element.querySelector('.app-toast-meta');
+    if (!meta) {
+      return;
+    }
+
+    let actionButton = meta.querySelector('.app-toast-action');
+
+    if (!entry.action) {
+      if (actionButton) {
+        actionButton.remove();
+      }
+      return;
+    }
+
+    if (!actionButton) {
+      actionButton = document.createElement('button');
+      actionButton.type = 'button';
+      actionButton.className = 'app-toast-action';
+      meta.appendChild(actionButton);
+    }
+
+    actionButton.textContent = entry.action.label;
   }
 
   function activateToast(entry, container) {
@@ -251,6 +301,23 @@
     if (closeButton) {
       closeButton.addEventListener('click', () => dismissToast(entry.key));
     }
+
+    const actionButton = entry.element.querySelector('.app-toast-action');
+    if (actionButton) {
+      actionButton.addEventListener('click', () => {
+        if (!entry.action || typeof entry.action.onClick !== 'function') {
+          return;
+        }
+
+        try {
+          entry.action.onClick();
+        } finally {
+          if (entry.action.dismissOnAction !== false) {
+            dismissToast(entry.key);
+          }
+        }
+      });
+    }
   }
 
   function showToast(messageOrOptions, type = 'info', duration = DEFAULT_DURATION) {
@@ -279,10 +346,11 @@
       return pending.element;
     }
 
-    const element = createToastElement(options.type, options.message, key);
+    const element = createToastElement(options.type, options.message, key, options.action);
     const entry = {
       key,
       message: options.message,
+      action: options.action,
       element,
       timerId: null,
       removalTimerId: null,

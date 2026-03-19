@@ -1383,9 +1383,20 @@ function renderQueries(){
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const id = btn.getAttribute('data-query-id');
-      if (confirm('Are you sure you want to cancel this query?')) {
-        cancelQuery(id);
+      if (typeof window.showToastMessage === 'function') {
+        window.showToastMessage({
+          message: 'Cancel this running query?',
+          type: 'warning',
+          duration: 0,
+          action: {
+            label: 'Cancel Query',
+            onClick: () => cancelQuery(id)
+          }
+        });
+        return;
       }
+
+      cancelQuery(id);
     });
   });
 
