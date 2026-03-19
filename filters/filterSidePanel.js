@@ -260,10 +260,7 @@ window.FilterSidePanel = (function () {
         button.className = 'fp-display-insert-btn';
         button.setAttribute('aria-label', label);
         button.setAttribute('title', label);
-        button.innerHTML = `
-            <span class="fp-display-insert-btn-icon" aria-hidden="true">+</span>
-            <span class="fp-display-insert-btn-text">Add field</span>
-        `;
+        button.innerHTML = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4.25a.75.75 0 0 1 .75.75v4.25H15a.75.75 0 0 1 0 1.5h-4.25V15a.75.75 0 0 1-1.5 0v-4.25H5a.75.75 0 0 1 0-1.5h4.25V5a.75.75 0 0 1 .75-.75z" fill="currentColor"/></svg>`;
         button.addEventListener('click', () => openDisplayFieldPicker(insertAt));
 
         row.appendChild(button);
