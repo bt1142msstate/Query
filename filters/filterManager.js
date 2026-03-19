@@ -1026,6 +1026,36 @@ function setMoneyInputDisplayValue(input, rawValue, caretRawIndex) {
     input.setSelectionRange(nextCaretPosition, nextCaretPosition);
 }
 
+function normalizeMoneyInputSelection(input, options = {}) {
+    if (!(input instanceof HTMLInputElement)) {
+        return;
+    }
+
+    const formattedValue = String(input.value || '');
+    let selectionStart = input.selectionStart ?? 0;
+    let selectionEnd = input.selectionEnd ?? selectionStart;
+
+    if (options.collapseStaticSelection && selectionStart !== selectionEnd) {
+        const selectedText = formattedValue.slice(selectionStart, selectionEnd);
+        if (!/[0-9.]/.test(selectedText)) {
+            selectionEnd = selectionStart;
+        }
+    }
+
+    const nextSelectionStart = mapRawMoneyIndexToFormattedIndex(
+        formattedValue,
+        mapFormattedMoneyIndexToRawIndex(formattedValue, selectionStart)
+    );
+    const nextSelectionEnd = mapRawMoneyIndexToFormattedIndex(
+        formattedValue,
+        mapFormattedMoneyIndexToRawIndex(formattedValue, selectionEnd)
+    );
+
+    if (nextSelectionStart !== (input.selectionStart ?? 0) || nextSelectionEnd !== (input.selectionEnd ?? nextSelectionStart)) {
+        input.setSelectionRange(nextSelectionStart, nextSelectionEnd);
+    }
+}
+
 function buildNextMoneyRawValue(currentRawValue, selectionStart, selectionEnd, insertedText) {
     const nextRawCandidate = `${currentRawValue.slice(0, selectionStart)}${insertedText}${currentRawValue.slice(selectionEnd)}`;
     return window.sanitizeMoneyInputValue(nextRawCandidate);
@@ -1037,11 +1067,14 @@ window.configureMoneyInputBehavior = function(input, isMoney) {
     }
 
     if (input._moneyInputHandlers) {
-        const { beforeinput, paste, focus, input: inputHandler } = input._moneyInputHandlers;
+        const { beforeinput, paste, focus, input: inputHandler, mouseup, select, keyup } = input._moneyInputHandlers;
         input.removeEventListener('beforeinput', beforeinput);
         input.removeEventListener('paste', paste);
         input.removeEventListener('focus', focus);
         input.removeEventListener('input', inputHandler);
+        input.removeEventListener('mouseup', mouseup);
+        input.removeEventListener('select', select);
+        input.removeEventListener('keyup', keyup);
         delete input._moneyInputHandlers;
     }
 
@@ -1113,15 +1146,37 @@ window.configureMoneyInputBehavior = function(input, isMoney) {
         setMoneyInputDisplayValue(input, rawValue, nextCaretRawIndex);
     };
 
+    const handleMouseUp = () => {
+        window.requestAnimationFrame(() => {
+            normalizeMoneyInputSelection(input, { collapseStaticSelection: true });
+        });
+    };
+
+    const handleSelect = () => {
+        normalizeMoneyInputSelection(input, { collapseStaticSelection: true });
+    };
+
+    const handleKeyUp = event => {
+        if (event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'Home' || event.key === 'End') {
+            normalizeMoneyInputSelection(input, { collapseStaticSelection: true });
+        }
+    };
+
     input.addEventListener('beforeinput', handleBeforeInput);
     input.addEventListener('paste', handlePaste);
     input.addEventListener('focus', handleFocus);
     input.addEventListener('input', handleInput);
+    input.addEventListener('mouseup', handleMouseUp);
+    input.addEventListener('select', handleSelect);
+    input.addEventListener('keyup', handleKeyUp);
     input._moneyInputHandlers = {
         beforeinput: handleBeforeInput,
         paste: handlePaste,
         focus: handleFocus,
-        input: handleInput
+        input: handleInput,
+        mouseup: handleMouseUp,
+        select: handleSelect,
+        keyup: handleKeyUp
     };
 
     const initialRawValue = window.sanitizeMoneyInputValue(input.value);
