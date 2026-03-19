@@ -381,19 +381,17 @@ window.updateButtonStates = function() {
   }
 
   if (postFilterBtn) {
-    const hasData =
-      window.displayedFields &&
+    const postFilterStats = window.VirtualTable?.getPostFilterStats ? window.VirtualTable.getPostFilterStats() : null;
+    const hasLoadedResults =
+      Array.isArray(window.displayedFields) &&
       window.displayedFields.length > 0 &&
-      window.VirtualTable &&
-      window.VirtualTable.virtualTableData &&
-      Array.isArray(window.VirtualTable.virtualTableData.rows) &&
-      window.VirtualTable.virtualTableData.rows.length > 0;
+      Number(postFilterStats?.totalRows || 0) > 0;
     const hasPostFilters = Boolean(window.VirtualTable?.hasPostFilters && window.VirtualTable.hasPostFilters());
 
-    postFilterBtn.disabled = !hasData;
+    postFilterBtn.disabled = !hasLoadedResults;
     postFilterBtn.classList.toggle('table-toolbar-btn-active', hasPostFilters);
 
-    if (!hasData) {
+    if (!hasLoadedResults) {
       postFilterBtn.setAttribute('data-tooltip', 'Run a query to use post filters');
     } else if (hasPostFilters) {
       postFilterBtn.setAttribute('data-tooltip', 'Edit active post filters');
