@@ -17,6 +17,7 @@
     originalUpdateButtonStates: null,
     unsubscribeQueryState: null,
     lastSuggestedTableName: '',
+    suppressAutoTableNameOnce: false,
     hiddenNodes: []
   };
   const { getDisplayedFields, getActiveFilters } = window.QueryStateReaders;
@@ -915,6 +916,15 @@
     const tableNameInput = window.DOM && window.DOM.tableNameInput;
     if (!tableNameInput) return;
 
+    if (state.suppressAutoTableNameOnce) {
+      state.suppressAutoTableNameOnce = false;
+      state.lastSuggestedTableName = '';
+      tableNameInput.value = '';
+      tableNameInput.classList.remove('error');
+      tableNameInput.dispatchEvent(new Event('input', { bubbles: true }));
+      return;
+    }
+
     const queryNameOverride = state.searchParams.get('tableName');
     const nextName = queryNameOverride || interpolateValue(state.spec.queryName || state.spec.title, bindings);
     const currentValue = tableNameInput.value.trim();
@@ -1498,6 +1508,8 @@
       await state.originalClearCurrentQuery();
       if (!state.active) return;
       state.searchParams = new URLSearchParams();
+      state.lastSuggestedTableName = '';
+      state.suppressAutoTableNameOnce = true;
       clearFormControlDefaults();
       state.controls.clear();
       if (state.formCard && state.formCard.parentNode) {
