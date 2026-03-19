@@ -113,7 +113,9 @@ function formatColumnClipboardValue(rawValue, fieldName) {
   }
 
   if (fieldType === 'number' || fieldType === 'money') {
-    const numericValue = window.MoneyUtils.parseNumber(rawValue);
+    const numericValue = fieldType === 'money'
+      ? window.MoneyUtils.parseNumber(rawValue)
+      : (typeof rawValue === 'number' ? rawValue : parseFloat(String(rawValue).replace(/,/g, '')));
 
     if (Number.isNaN(numericValue)) {
       return '';

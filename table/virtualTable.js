@@ -65,8 +65,13 @@ function getFieldType(fieldName) {
   return 'string';
 }
 
-function parseNumericValue(value) {
-  return window.MoneyUtils.parseNumber(value);
+function parseNumericValue(value, type = 'number') {
+  if (type === 'money') {
+    return window.MoneyUtils.parseNumber(value);
+  }
+
+  if (typeof value === 'number') return value;
+  return parseFloat(String(value).replace(/,/g, ''));
 }
 
 function invalidatePostFilterValueOptionsCache() {
@@ -232,7 +237,7 @@ function getComparableRowValues(rawValue, type) {
   }
 
   if (type === 'number' || type === 'money') {
-    return [parseNumericValue(rawValue)];
+    return [parseNumericValue(rawValue, type)];
   }
 
   if (type === 'date') {
@@ -300,7 +305,7 @@ function rowMatchesEqualsSelection(rawCellValue, type, selectedValues) {
     }
 
     const comparableExpected = (type === 'number' || type === 'money')
-      ? parseNumericValue(selectedValue)
+      ? parseNumericValue(selectedValue, type)
       : (type === 'date' ? parseComparableDateValue(selectedValue) : selectedValue);
 
     return rowValues.some(value => compareScalarCondition(value, comparableExpected, 'equals', type));
@@ -335,8 +340,8 @@ function doesRowMatchPostFilter(row, field, filter) {
     let right = rightRaw;
 
     if (type === 'number' || type === 'money') {
-      left = parseNumericValue(leftRaw);
-      right = parseNumericValue(rightRaw);
+      left = parseNumericValue(leftRaw, type);
+      right = parseNumericValue(rightRaw, type);
     } else if (type === 'date') {
       left = parseComparableDateValue(leftRaw);
       right = parseComparableDateValue(rightRaw);
@@ -352,7 +357,7 @@ function doesRowMatchPostFilter(row, field, filter) {
   }
 
   const comparableExpected = (type === 'number' || type === 'money')
-    ? parseNumericValue(filterValue)
+    ? parseNumericValue(filterValue, type)
     : (type === 'date' ? parseComparableDateValue(filterValue) : filterValue);
 
   return rowValues.some(value => compareScalarCondition(value, comparableExpected, cond, type));
@@ -511,7 +516,7 @@ function sortRowsByColumn(rows, colIndex, type, direction) {
 
     let result = 0;
     if (type === 'number' || type === 'money') {
-      result = (parseNumericValue(valA) || 0) - (parseNumericValue(valB) || 0);
+      result = (parseNumericValue(valA, type) || 0) - (parseNumericValue(valB, type) || 0);
     } else if (type === 'date') {
       result = (parseInt(valA, 10) || 0) - (parseInt(valB, 10) || 0);
     } else {
@@ -677,7 +682,7 @@ function renderVirtualTable() {
           td.style.textAlign = 'right';
         } 
         else if (type === 'number' || type === 'money') {
-          const n = parseNumericValue(cellValue);
+          const n = parseNumericValue(cellValue, type);
           if (!isNaN(n)) {
             if (type === 'money') {
               displayValue = window.MoneyUtils.formatDisplayValue(n);
@@ -848,7 +853,7 @@ function calculateFieldWidth(fieldName, data = null) {
         if (value != null) {
           let measuredValue = String(value);
           if (type === 'money') {
-            const numericValue = parseNumericValue(value);
+            const numericValue = parseNumericValue(value, type);
             if (!isNaN(numericValue)) {
               measuredValue = window.MoneyUtils.formatDisplayValue(numericValue);
             }
