@@ -50,61 +50,12 @@ window.clearCurrentQuery = async function clearCurrentQuery() {
   if (window.BubbleSystem && typeof window.BubbleSystem.resetActiveBubbles === 'function') {
     window.BubbleSystem.resetActiveBubbles();
   }
-
-  const filterCard = document.getElementById('filter-card') || window.filterCard;
-  if (filterCard) {
-    filterCard.classList.remove('content-ready');
-    filterCard.classList.remove('scroll-ready');
-    if (filterCard._showTimer) {
-      clearTimeout(filterCard._showTimer);
-      filterCard._showTimer = null;
-    }
-    if (filterCard._scrollReadyTimer) {
-      clearTimeout(filterCard._scrollReadyTimer);
-      filterCard._scrollReadyTimer = null;
-    }
-    if (filterCard._contentRevealTimer) {
-      clearTimeout(filterCard._contentRevealTimer);
-      filterCard._contentRevealTimer = null;
-    }
-    filterCard.classList.remove('show');
+  if (window.BubbleSystem && typeof window.BubbleSystem.resetEditorUi === 'function') {
+    window.BubbleSystem.resetEditorUi({
+      clearPanelContent: true,
+      clearConditionListSelection: !previousSelectedField
+    });
   }
-
-  if (dom.overlay) {
-    dom.overlay.classList.remove('show', 'bubble-active');
-  }
-  if (dom.headerBar) {
-    dom.headerBar.classList.remove('header-hide');
-  }
-  if (dom.conditionPanel) {
-    dom.conditionPanel.classList.remove('show');
-    dom.conditionPanel.innerHTML = '';
-  }
-  if (dom.inputWrapper) {
-    dom.inputWrapper.classList.remove('show');
-  }
-  if (dom.conditionInput) {
-    dom.conditionInput.value = '';
-    dom.conditionInput.classList.remove('error');
-    dom.conditionInput.style.display = 'block';
-  }
-  if (dom.conditionInput2) {
-    dom.conditionInput2.value = '';
-    dom.conditionInput2.classList.remove('error');
-    dom.conditionInput2.style.display = 'none';
-  }
-  if (dom.betweenLabel) {
-    dom.betweenLabel.style.display = 'none';
-  }
-  if (dom.filterError) {
-    dom.filterError.textContent = '';
-    dom.filterError.style.display = 'none';
-  }
-
-  document.getElementById('condition-select')?.remove();
-  document.getElementById('condition-select-container')?.remove();
-  document.querySelectorAll('.dynamic-input-group').forEach(el => el.remove());
-  document.querySelectorAll('.toggle-half.active').forEach(btn => btn.classList.remove('active'));
 
   if (window.PostFilterSystem && typeof window.PostFilterSystem.close === 'function') {
     window.PostFilterSystem.close();
@@ -413,51 +364,12 @@ if(dom.runBtn){
 dom.overlay.addEventListener('click',()=>{ 
   window.ModalSystem.closeAllModals(); // This will hide overlay and all panels with 'hidden' and remove 'show'
   window.BubbleSystem && window.BubbleSystem.resetActiveBubbles(); // Handles bubble animations and state
-
-  // Close non-modal UI elements (condition panel, input wrapper, filter card)
-  dom.conditionPanel.classList.remove('show');
-  dom.inputWrapper.classList.remove('show');
-  const filterCard = window.filterCard || document.getElementById('filter-card');
-  if (filterCard) {
-    if (!window.filterCard) window.filterCard = filterCard;
-    filterCard.classList.remove('content-ready');
-    filterCard.classList.remove('scroll-ready');
-    if (filterCard._showTimer) {
-      clearTimeout(filterCard._showTimer);
-      filterCard._showTimer = null;
-    }
-    if (filterCard._scrollReadyTimer) {
-      clearTimeout(filterCard._scrollReadyTimer);
-      filterCard._scrollReadyTimer = null;
-    }
-    if (filterCard._contentRevealTimer) {
-      clearTimeout(filterCard._contentRevealTimer);
-      filterCard._contentRevealTimer = null;
-    }
-    filterCard.classList.remove('show');
-    // Destroy the DOM node from the document body after transition
-    setTimeout(() => {
-      if (!filterCard.classList.contains('show') && filterCard.parentNode) {
-        filterCard.remove();
-      }
-    }, 250);
+  if (window.BubbleSystem && typeof window.BubbleSystem.resetEditorUi === 'function') {
+    window.BubbleSystem.resetEditorUi({ removeFilterCard: true });
   }
-  
-  const operatorSelect = dom.conditionPanel?.querySelector('#condition-operator-select');
-  if (operatorSelect) {
-    operatorSelect.selectedIndex = 0;
-  }
-  if (dom.conditionInput) dom.conditionInput.value='';
-
-  // Hide select if present
-  const sel = document.getElementById('condition-select');
-  if(sel) sel.style.display = 'none';
 
   // After closing overlay, re-enable bubble interaction
   setTimeout(() => safeRenderBubbles(), 0);
-  dom.overlay.classList.remove('bubble-active');
-  const headerBar = dom.headerBar;
-  if (headerBar) headerBar.classList.remove('header-hide');
 });
 
 

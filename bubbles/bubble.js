@@ -117,6 +117,119 @@ function getBubbleFilterCardTitleElement(filterCard = getBubbleFilterCardElement
   return (filterCard && filterCard.querySelector('#filter-card-title')) || document.getElementById('filter-card-title');
 }
 
+function prepareBubbleFilterCardForOpen(filterCard = getBubbleFilterCardElement()) {
+  if (!filterCard) {
+    return null;
+  }
+
+  if (filterCard._showTimer) {
+    clearTimeout(filterCard._showTimer);
+    filterCard._showTimer = null;
+  }
+  if (filterCard._scrollReadyTimer) {
+    clearTimeout(filterCard._scrollReadyTimer);
+    filterCard._scrollReadyTimer = null;
+  }
+  if (filterCard._contentRevealTimer) {
+    clearTimeout(filterCard._contentRevealTimer);
+    filterCard._contentRevealTimer = null;
+  }
+
+  filterCard.classList.remove('content-ready', 'scroll-ready', 'show');
+  return filterCard;
+}
+
+function markBubbleFilterCardOpen(filterCard = getBubbleFilterCardElement(), options = {}) {
+  if (!filterCard) {
+    return null;
+  }
+
+  const { scrollReadyDelay = 240 } = options;
+  filterCard.classList.add('show', 'content-ready');
+
+  filterCard._scrollReadyTimer = window.setTimeout(() => {
+    if (filterCard.classList.contains('show')) {
+      filterCard.classList.add('scroll-ready');
+    }
+    filterCard._scrollReadyTimer = null;
+  }, scrollReadyDelay);
+
+  return filterCard;
+}
+
+function resetBubbleEditorUi(options = {}) {
+  const {
+    clearPanelContent = false,
+    removeFilterCard = false,
+    clearConditionListSelection = false
+  } = options;
+
+  const overlay = getBubbleOverlayElement();
+  const conditionPanel = getBubbleConditionPanelElement();
+  const inputWrapper = getBubbleInputWrapperElement();
+  const conditionInput = getBubbleConditionInputElement();
+  const conditionInput2 = window.DOM?.conditionInput2 || document.getElementById('condition-input-2');
+  const betweenLabel = window.DOM?.betweenLabel || document.getElementById('between-label');
+  const filterError = window.DOM?.filterError || document.getElementById('filter-error');
+  const filterCard = prepareBubbleFilterCardForOpen(getBubbleFilterCardElement());
+  const headerBar = window.DOM?.headerBar || document.getElementById('header-bar');
+
+  if (overlay) {
+    overlay.classList.remove('show', 'bubble-active');
+  }
+  if (headerBar) {
+    headerBar.classList.remove('header-hide');
+  }
+  if (conditionPanel) {
+    conditionPanel.classList.remove('show');
+    if (clearPanelContent) {
+      conditionPanel.innerHTML = '';
+    }
+  }
+  if (inputWrapper) {
+    inputWrapper.classList.remove('show');
+  }
+  if (conditionInput) {
+    conditionInput.value = '';
+    conditionInput.classList.remove('error');
+    conditionInput.style.display = 'block';
+  }
+  if (conditionInput2) {
+    conditionInput2.value = '';
+    conditionInput2.classList.remove('error');
+    conditionInput2.style.display = 'none';
+  }
+  if (betweenLabel) {
+    betweenLabel.style.display = 'none';
+  }
+  if (filterError) {
+    filterError.textContent = '';
+    filterError.style.display = 'none';
+  }
+
+  const operatorSelect = conditionPanel?.querySelector('#condition-operator-select');
+  if (operatorSelect) {
+    operatorSelect.selectedIndex = 0;
+  }
+
+  document.getElementById('condition-select')?.remove();
+  document.getElementById('condition-select-container')?.remove();
+  document.querySelectorAll('.dynamic-input-group').forEach(el => el.remove());
+  document.querySelectorAll('.toggle-half.active').forEach(btn => btn.classList.remove('active'));
+
+  if (clearConditionListSelection) {
+    document.getElementById('bubble-cond-list')?.replaceChildren();
+  }
+
+  if (removeFilterCard && filterCard) {
+    window.setTimeout(() => {
+      if (!filterCard.classList.contains('show') && filterCard.parentNode) {
+        filterCard.remove();
+      }
+    }, 250);
+  }
+}
+
 function mapBubbleConditionToFieldOperator(condition) {
   if (typeof window.mapUiCondToFieldOperator === 'function') {
     return window.mapUiCondToFieldOperator(condition);
@@ -323,6 +436,9 @@ if (typeof window !== 'undefined') {
     getConfirmButtonElement: getBubbleConfirmButtonElement,
     getFilterCardElement: getBubbleFilterCardElement,
     getFilterCardTitleElement: getBubbleFilterCardTitleElement,
+    prepareFilterCardForOpen: prepareBubbleFilterCardForOpen,
+    markFilterCardOpen,
+    resetEditorUi: resetBubbleEditorUi,
     createOrUpdateBubble,
     applyBubbleScrollRow,
     scrollBubblesByRows,
