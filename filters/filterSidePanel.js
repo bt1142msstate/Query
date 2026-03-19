@@ -154,254 +154,20 @@ window.FilterSidePanel = (function () {
         return map[cond] || (cond.charAt(0).toUpperCase() + cond.slice(1).replace(/_/g, ' '));
     }
 
-    function parseFieldListValues(fieldDef) {
-        if (!fieldDef || !fieldDef.values) {
-            return { listValues: null, hasValuePairs: false };
-        }
-
-        try {
-            const parsed = typeof fieldDef.values === 'string' ? JSON.parse(fieldDef.values) : fieldDef.values;
-            if (!Array.isArray(parsed) || parsed.length === 0) {
-                return { listValues: null, hasValuePairs: false };
-            }
-
-            const hasValuePairs = typeof parsed[0] === 'object' && parsed[0].Name && parsed[0].RawValue;
-            const listValues = parsed.slice().sort((a, b) => {
-                const aLabel = hasValuePairs ? a.Name : a;
-                const bLabel = hasValuePairs ? b.Name : b;
-                return String(aLabel).localeCompare(String(bLabel), undefined, {
-                    numeric: true,
-                    sensitivity: 'base'
-                });
-            });
-
-            return { listValues, hasValuePairs };
-        } catch (error) {
-            return { listValues: null, hasValuePairs: false };
-        }
-    }
-
-    function createInlineValueEditor(fieldDef, initialValue, options = {}) {
-        const { listValues } = parseFieldListValues(fieldDef);
-        const fieldType = (fieldDef && fieldDef.type) || 'string';
-        const inputType = fieldType === 'date'
-            ? 'date'
-            : fieldType === 'money' ? 'text' : fieldType === 'number' ? 'number' : 'text';
-        const currentValues = String(initialValue || '')
-            .split(',')
-            .map(value => value.trim())
-            .filter(Boolean);
-
-        if (window.isListPasteField && window.isListPasteField(fieldDef) && typeof window.createListPasteInput === 'function' && !listValues) {
-            const listInput = window.createListPasteInput(currentValues, {
-                placeholder: 'Paste one key per line',
-                hint: 'Paste values or upload a text/CSV file.'
-            });
-            if (typeof window.createPopupListControl === 'function') {
-                return window.createPopupListControl(listInput, fieldDef?.name || 'Edit values', 'Click to edit values...');
-            }
-            return listInput;
-        }
-
-        if (!listValues) {
-            const input = document.createElement('input');
-            input.className = 'fp-edit-val-input';
-            input.type = inputType;
-            input.value = fieldType === 'money'
-                ? window.MoneyUtils.formatInputValue(initialValue)
-                : initialValue;
-            input.placeholder = 'Value';
-            if (fieldType === 'money') {
-                window.MoneyUtils.configureInputBehavior(input, true);
-            }
-            return input;
-        }
-
-        const isMultiSelect = Boolean(fieldDef && fieldDef.multiSelect);
-        const shouldGroupValues = Boolean(fieldDef && fieldDef.groupValues);
-        const isBooleanField = Boolean(fieldDef && fieldDef.type === 'boolean');
-        const hasDashes = listValues.some(value => {
-            const label = typeof value === 'object'
-                ? (value.Name || value.Display || value.name || value.display || value.RawValue)
-                : value;
-            return String(label).includes('-');
-        });
-
-        if (isBooleanField && listValues.length === 2) {
-            return createBooleanPillSelector(listValues, currentValues[0] || '', {
-                onChange: options.onChange
-            });
-        }
-
-        const selector = createGroupedSelector(listValues, isMultiSelect, currentValues, {
-            enableGrouping: shouldGroupValues && hasDashes
-        });
-
-        if (typeof window.createPopupListControl === 'function') {
-            return window.createPopupListControl(
-                selector,
-                fieldDef?.name || 'Edit values',
-                isMultiSelect ? 'Click to edit values...' : 'Click to choose a value...'
-            );
-        }
-
-        return selector;
-    }
-
-    function getInlineEditorValues(inputEl) {
-        if (!inputEl) return [];
-        if (typeof inputEl.getSelectedValues === 'function') {
-            return inputEl.getSelectedValues();
-        }
-        if (inputEl.tagName && inputEl.tagName.toLowerCase() === 'select') {
-            if (inputEl.multiple) {
-                return Array.from(inputEl.selectedOptions).map(option => option.value);
-            }
-            return inputEl.value ? [inputEl.value] : [];
-        }
-
-        const value = typeof inputEl.value === 'string' ? inputEl.value.trim() : '';
-        return value ? [value] : [];
-    }
-
-    function startInlineEdit(field, filterIndex, rowEl) {
-        const filterData = window.activeFilters[field];
-        if (!filterData) return;
-        const filter = filterData.filters[filterIndex];
-        if (!filter) return;
-
-        const fieldDef = window.fieldDefs ? window.fieldDefs.get(field) : null;
-        const fieldType = (fieldDef && fieldDef.type) || 'string';
-        const availableConds = (fieldDef && fieldDef.filters)
-            ? fieldDef.filters
-            : (window.typeConditions && window.typeConditions[fieldType])
-                || (window.typeConditions && window.typeConditions.string)
-                || ['contains', 'starts', 'equals'];
-
-        const isBetweenNow = filter.cond === 'between';
-        const vals = isBetweenNow ? filter.val.split('|') : [filter.val, ''];
-
-        const form = document.createElement('div');
-        form.className = 'fp-edit-form';
-
-        const condSel = document.createElement('select');
-        condSel.className = 'fp-edit-cond-select';
-        availableConds.forEach(c => {
-            const slug = c.split(' ')[0];
-            const opt = document.createElement('option');
-            opt.value = slug;
-            opt.textContent = condLabel(slug);
-            if (slug === filter.cond) opt.selected = true;
-            condSel.appendChild(opt);
-        });
-
-        const inputType = (fieldType === 'date') ? 'date'
-            : fieldType === 'money' ? 'text' : (fieldType === 'number') ? 'number' : 'text';
-
-        let saveEdit = null;
-
-        const val1 = createInlineValueEditor(fieldDef, vals[0], {
-            onChange: () => {
-                if (typeof saveEdit === 'function') {
-                    saveEdit();
-                }
-            }
-        });
-
-        const sep = document.createElement('span');
-        sep.className = 'fp-edit-separator';
-        sep.textContent = '–';
-
-        const val2 = document.createElement('input');
-        val2.className = 'fp-edit-val-input';
-        val2.type = inputType;
-        val2.value = fieldType === 'money'
-            ? window.MoneyUtils.formatInputValue(vals[1])
-            : vals[1];
-        val2.placeholder = 'To';
-        if (fieldType === 'money') {
-            window.MoneyUtils.configureInputBehavior(val2, true);
-        }
-
-        function syncBetween() {
-            const bet = condSel.value === 'between';
-            sep.style.display = bet ? '' : 'none';
-            val2.style.display = bet ? '' : 'none';
-        }
-        condSel.addEventListener('change', syncBetween);
-        syncBetween();
-
-        const saveBtn = document.createElement('button');
-        saveBtn.className = 'fp-edit-save-btn';
-        saveBtn.textContent = '✓';
-        saveBtn.title = 'Save';
-        saveEdit = () => {
-            const newCond = condSel.value;
-            let newVal = getInlineEditorValues(val1).join(',');
-
-            const newVal2 = fieldType === 'money'
-                ? window.MoneyUtils.sanitizeInputValue(val2.value.trim())
-                : val2.value.trim();
-            if (fieldType === 'money') {
-                newVal = newVal
-                    .split(',')
-                    .map(value => window.MoneyUtils.sanitizeInputValue(value))
-                    .filter(Boolean)
-                    .join(',');
-            }
-            if (!newVal) return;
-            if (newCond === 'between') {
-                if (!newVal2) return;
-                newVal = `${newVal}|${newVal2}`;
-            }
-
-            const nextActiveFilters = Object.fromEntries(
-                Object.entries(window.activeFilters || {}).map(([activeField, activeData]) => [
-                    activeField,
-                    {
-                        filters: Array.isArray(activeData?.filters)
-                            ? activeData.filters.map(filter => ({ ...filter }))
-                            : []
-                    }
-                ])
-            );
-
-            if (!nextActiveFilters[field] || !Array.isArray(nextActiveFilters[field].filters) || !nextActiveFilters[field].filters[filterIndex]) {
-                return;
-            }
-
-            nextActiveFilters[field].filters[filterIndex] = { cond: newCond, val: newVal };
-
-            window.QueryChangeManager.replaceActiveFilters(nextActiveFilters, {
-                source: 'FilterSidePanel.editFilter'
-            });
-
-            window.renderConditionList && window.renderConditionList(field);
-            update();
-        };
-        saveBtn.addEventListener('click', saveEdit);
-
-        const cancelBtn = document.createElement('button');
-        cancelBtn.className = 'fp-edit-cancel-btn';
-        cancelBtn.textContent = '✕';
-        cancelBtn.title = 'Cancel';
-        cancelBtn.addEventListener('click', () => update());
-
-        const btns = document.createElement('div');
-        btns.className = 'fp-edit-btns';
-        btns.appendChild(saveBtn);
-        btns.appendChild(cancelBtn);
-
-        form.appendChild(condSel);
-        form.appendChild(val1);
-        form.appendChild(sep);
-        form.appendChild(val2);
-        form.appendChild(btns);
-
-        rowEl.replaceWith(form);
-    }
-
     function openBubbleForField(field) {
+        if (!field) {
+            return;
+        }
+
+        const overlay = window.DOM?.overlay || document.getElementById('overlay');
+        if (window.selectedField === field && overlay?.classList.contains('show')) {
+            window.renderConditionList && window.renderConditionList(field);
+            const operatorSelect = document.getElementById('condition-operator-select');
+            const conditionInput = window.DOM?.conditionInput || document.getElementById('condition-input');
+            (operatorSelect || conditionInput)?.focus();
+            return;
+        }
+
         const bubble = Array.from(document.querySelectorAll('.bubble')).find(
             b => b.textContent.trim() === field && !b.classList.contains('bubble-disabled')
         );
@@ -409,6 +175,21 @@ window.FilterSidePanel = (function () {
             bubble.click();
             return;
         }
+
+        if (window.currentCategory !== 'All') {
+            window.currentCategory = 'All';
+            if (window.BubbleSystem && typeof window.BubbleSystem.safeRenderBubbles === 'function') {
+                window.BubbleSystem.safeRenderBubbles();
+            }
+            const rerenderedBubble = Array.from(document.querySelectorAll('.bubble')).find(
+                b => b.textContent.trim() === field && !b.classList.contains('bubble-disabled')
+            );
+            if (rerenderedBubble) {
+                rerenderedBubble.click();
+                return;
+            }
+        }
+
         const queryInput = getFilterQueryInputElement();
         if (queryInput) {
             queryInput.value = field;
@@ -788,11 +569,12 @@ window.FilterSidePanel = (function () {
 
             const editBtn = document.createElement('button');
             editBtn.className = 'fp-cond-btn fp-edit-btn';
-            editBtn.title = 'Edit this condition';
+            editBtn.title = 'Edit in shared filter editor';
+            editBtn.setAttribute('aria-label', `Edit ${field} in shared filter editor`);
             editBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
             editBtn.addEventListener('click', e => {
                 e.stopPropagation();
-                startInlineEdit(field, idx, row);
+                openBubbleForField(field);
             });
 
             const delBtn = document.createElement('button');
