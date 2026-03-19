@@ -182,81 +182,46 @@ window.MoneyUtils = (() => {
     return `${sign}${currencySymbol}${absoluteDisplay}`;
   }
 
-  function mapFormattedIndexToRawIndex(formattedValue, formattedIndex) {
-    let rawIndex = 0;
-    for (let i = 0; i < Math.min(formattedIndex, formattedValue.length); i += 1) {
-      if (/[0-9.]/.test(formattedValue[i])) {
-        rawIndex += 1;
-      }
-    }
-    return rawIndex;
-  }
+  const AUTO_NUMERIC_OPTIONS = Object.freeze({
+    currencySymbol: '',
+    digitGroupSeparator: ',',
+    digitalGroupSpacing: '3',
+    decimalCharacter: '.',
+    decimalCharacterAlternative: '.',
+    decimalPlaces: 2,
+    decimalPlacesRawValue: 2,
+    allowDecimalPadding: 'floats',
+    emptyInputBehavior: 'focus',
+    leadingZero: 'deny',
+    modifyValueOnWheel: false,
+    modifyValueOnUpDownArrow: false,
+    selectNumberOnly: true,
+    showOnlyNumbersOnFocus: false,
+    showWarnings: false,
+    formatOnPageLoad: true
+  });
 
-  function mapRawIndexToFormattedIndex(formattedValue, rawIndex) {
-    if (!formattedValue) {
-      return 0;
-    }
-
-    let consumed = 0;
-    for (let i = 0; i < formattedValue.length; i += 1) {
-      if (/[0-9.]/.test(formattedValue[i])) {
-        consumed += 1;
-        if (consumed >= rawIndex) {
-          return i + 1;
-        }
-      }
-    }
-
-    return formattedValue.length;
-  }
-
-  function getInputRawValue(input) {
-    return input.dataset.moneyRaw || sanitizeInputValue(input.value);
-  }
-
-  function setInputDisplayValue(input, rawValue, caretRawIndex) {
-    const formattedValue = formatInputValue(rawValue);
-    input.dataset.moneyRaw = rawValue;
-    input.value = formattedValue;
-
-    const nextCaretRawIndex = typeof caretRawIndex === 'number' ? caretRawIndex : rawValue.length;
-    const nextCaretPosition = mapRawIndexToFormattedIndex(formattedValue, nextCaretRawIndex);
-    input.setSelectionRange(nextCaretPosition, nextCaretPosition);
-  }
-
-  function normalizeInputSelection(input, options = {}) {
+  function destroyInputBehavior(input) {
     if (!(input instanceof HTMLInputElement)) {
       return;
     }
 
-    const formattedValue = String(input.value || '');
-    let selectionStart = input.selectionStart ?? 0;
-    let selectionEnd = input.selectionEnd ?? selectionStart;
-
-    if (options.collapseStaticSelection && selectionStart !== selectionEnd) {
-      const selectedText = formattedValue.slice(selectionStart, selectionEnd);
-      if (!/[0-9.]/.test(selectedText)) {
-        selectionEnd = selectionStart;
+    if (input._moneyAutoNumeric) {
+      const rawValue = sanitizeInputValue(input._moneyAutoNumeric.getNumericString());
+      input._moneyAutoNumeric.remove();
+      delete input._moneyAutoNumeric;
+      input.value = rawValue;
+      if (rawValue) {
+        input.dataset.moneyRaw = rawValue;
+      } else {
+        delete input.dataset.moneyRaw;
       }
     }
 
-    const nextSelectionStart = mapRawIndexToFormattedIndex(
-      formattedValue,
-      mapFormattedIndexToRawIndex(formattedValue, selectionStart)
-    );
-    const nextSelectionEnd = mapRawIndexToFormattedIndex(
-      formattedValue,
-      mapFormattedIndexToRawIndex(formattedValue, selectionEnd)
-    );
-
-    if (nextSelectionStart !== (input.selectionStart ?? 0) || nextSelectionEnd !== (input.selectionEnd ?? nextSelectionStart)) {
-      input.setSelectionRange(nextSelectionStart, nextSelectionEnd);
+    if (input._moneyAutoNumericSync) {
+      input.removeEventListener('autoNumeric:rawValueModified', input._moneyAutoNumericSync);
+      delete input._moneyAutoNumericSync;
     }
-  }
-
-  function buildNextRawValue(currentRawValue, selectionStart, selectionEnd, insertedText) {
-    const nextRawCandidate = `${currentRawValue.slice(0, selectionStart)}${insertedText}${currentRawValue.slice(selectionEnd)}`;
-    return sanitizeInputValue(nextRawCandidate);
   }
 
   function configureInputBehavior(input, isMoney) {
@@ -264,120 +229,38 @@ window.MoneyUtils = (() => {
       return;
     }
 
-    if (input._moneyInputHandlers) {
-      const { beforeinput, paste, focus, input: inputHandler, mouseup, select, keyup } = input._moneyInputHandlers;
-      input.removeEventListener('beforeinput', beforeinput);
-      input.removeEventListener('paste', paste);
-      input.removeEventListener('focus', focus);
-      input.removeEventListener('input', inputHandler);
-      input.removeEventListener('mouseup', mouseup);
-      input.removeEventListener('select', select);
-      input.removeEventListener('keyup', keyup);
-      delete input._moneyInputHandlers;
-    }
+    destroyInputBehavior(input);
 
     if (!isMoney) {
       delete input.dataset.moneyRaw;
       return;
     }
 
-    const handleBeforeInput = event => {
-      const formattedValue = input.value;
-      const rawValue = getInputRawValue(input);
-      const selectionStart = mapFormattedIndexToRawIndex(formattedValue, input.selectionStart || 0);
-      const selectionEnd = mapFormattedIndexToRawIndex(formattedValue, input.selectionEnd || 0);
-
-      if (event.inputType === 'insertText') {
-        const insertedText = String(event.data || '').replace(/[^0-9.]/g, '');
-        if (!insertedText) {
-          event.preventDefault();
-          return;
-        }
-
-        event.preventDefault();
-        const nextRawValue = buildNextRawValue(rawValue, selectionStart, selectionEnd, insertedText);
-        const nextCaretRawIndex = Math.min(nextRawValue.length, selectionStart + sanitizeInputValue(insertedText).length);
-        setInputDisplayValue(input, nextRawValue, nextCaretRawIndex);
-        return;
-      }
-
-      if (event.inputType === 'deleteContentBackward' || event.inputType === 'deleteContentForward') {
-        event.preventDefault();
-
-        let deleteStart = selectionStart;
-        let deleteEnd = selectionEnd;
-
-        if (deleteStart === deleteEnd) {
-          if (event.inputType === 'deleteContentBackward' && deleteStart > 0) {
-            deleteStart -= 1;
-          } else if (event.inputType === 'deleteContentForward' && deleteEnd < rawValue.length) {
-            deleteEnd += 1;
-          }
-        }
-
-        const nextRawValue = buildNextRawValue(rawValue, deleteStart, deleteEnd, '');
-        setInputDisplayValue(input, nextRawValue, deleteStart);
-      }
-    };
-
-    const handlePaste = event => {
-      event.preventDefault();
-      const pastedText = event.clipboardData ? event.clipboardData.getData('text') : '';
-      const formattedValue = input.value;
-      const rawValue = getInputRawValue(input);
-      const selectionStart = mapFormattedIndexToRawIndex(formattedValue, input.selectionStart || 0);
-      const selectionEnd = mapFormattedIndexToRawIndex(formattedValue, input.selectionEnd || 0);
-      const insertedText = String(pastedText || '').replace(/[^0-9.]/g, '');
-      const nextRawValue = buildNextRawValue(rawValue, selectionStart, selectionEnd, insertedText);
-      const nextCaretRawIndex = Math.min(nextRawValue.length, selectionStart + sanitizeInputValue(insertedText).length);
-      setInputDisplayValue(input, nextRawValue, nextCaretRawIndex);
-    };
-
-    const handleFocus = () => {
-      const rawValue = getInputRawValue(input);
-      setInputDisplayValue(input, rawValue, rawValue.length);
-    };
-
-    const handleInput = () => {
+    if (!window.AutoNumeric) {
       const rawValue = sanitizeInputValue(input.value);
-      setInputDisplayValue(input, rawValue, rawValue.length);
-    };
-
-    const handleMouseUp = () => {
-      window.requestAnimationFrame(() => {
-        normalizeInputSelection(input, { collapseStaticSelection: true });
-      });
-    };
-
-    const handleSelect = () => {
-      normalizeInputSelection(input, { collapseStaticSelection: true });
-    };
-
-    const handleKeyUp = event => {
-      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'Home' || event.key === 'End') {
-        normalizeInputSelection(input, { collapseStaticSelection: true });
+      input.value = formatInputValue(rawValue);
+      if (rawValue) {
+        input.dataset.moneyRaw = rawValue;
+      } else {
+        delete input.dataset.moneyRaw;
       }
-    };
-
-    input.addEventListener('beforeinput', handleBeforeInput);
-    input.addEventListener('paste', handlePaste);
-    input.addEventListener('focus', handleFocus);
-    input.addEventListener('input', handleInput);
-    input.addEventListener('mouseup', handleMouseUp);
-    input.addEventListener('select', handleSelect);
-    input.addEventListener('keyup', handleKeyUp);
-    input._moneyInputHandlers = {
-      beforeinput: handleBeforeInput,
-      paste: handlePaste,
-      focus: handleFocus,
-      input: handleInput,
-      mouseup: handleMouseUp,
-      select: handleSelect,
-      keyup: handleKeyUp
-    };
+      return;
+    }
 
     const initialRawValue = sanitizeInputValue(input.value);
-    setInputDisplayValue(input, initialRawValue, initialRawValue.length);
+    input.type = 'text';
+    input.inputMode = 'decimal';
+    input._moneyAutoNumeric = new window.AutoNumeric(input, initialRawValue || '', AUTO_NUMERIC_OPTIONS);
+    input._moneyAutoNumericSync = () => {
+      const rawValue = sanitizeInputValue(input._moneyAutoNumeric.getNumericString());
+      if (rawValue) {
+        input.dataset.moneyRaw = rawValue;
+      } else {
+        delete input.dataset.moneyRaw;
+      }
+    };
+    input.addEventListener('autoNumeric:rawValueModified', input._moneyAutoNumericSync);
+    input._moneyAutoNumericSync();
   }
 
   return {
