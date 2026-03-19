@@ -977,7 +977,7 @@ window.formatMoneyInputValue = function(rawValue) {
     const whole = parts[0] || '0';
     const decimals = parts[1] || '';
     const groupedWhole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    const prefix = isNegative ? '-$' : '$';
+    const prefix = isNegative ? '-' : '';
 
     return hadDot
         ? `${prefix}${groupedWhole}.${decimals}`
