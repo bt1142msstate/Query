@@ -409,6 +409,21 @@
     });
   }
 
+  function clearFormControlDefaults() {
+    if (!state.spec || !Array.isArray(state.spec.inputs)) {
+      return;
+    }
+
+    state.spec.inputs.forEach(inputSpec => {
+      if (inputSpec.operator === 'between') {
+        inputSpec.defaultValue = ['', ''];
+        return;
+      }
+
+      inputSpec.defaultValue = inputSpec.multiple ? [] : '';
+    });
+  }
+
   function rebuildFormCardFromSpec() {
     captureCurrentControlDefaults();
     state.searchParams = new URLSearchParams();
@@ -1527,6 +1542,8 @@
     window.clearCurrentQuery = async function() {
       await state.originalClearCurrentQuery();
       if (!state.active) return;
+      state.searchParams = new URLSearchParams();
+      clearFormControlDefaults();
       state.controls.clear();
       if (state.formCard && state.formCard.parentNode) {
         state.formCard.parentNode.removeChild(state.formCard);
