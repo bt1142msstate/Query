@@ -403,7 +403,7 @@ function restoreEmptyTableDropTarget(container) {
     if (field) {
       window.DragDropSystem.dragDropManager.dropSuccessful = true;
       window.DragDropSystem.restoreFieldWithDuplicates(field);
-      showExampleTable(window.displayedFields).catch(error => {
+      showExampleTable(window.displayedFields, { syncQueryState: false }).catch(error => {
         console.error('Error updating table:', error);
       });
     }
@@ -662,7 +662,7 @@ if (dom.groupMethodSelect) {
         });
         
         // Refresh the table display
-        await showExampleTable(window.displayedFields);
+        await showExampleTable(window.displayedFields, { syncQueryState: false });
         updateQueryJson();
         updateButtonStates();
       }

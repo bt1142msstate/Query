@@ -564,7 +564,7 @@ Object.defineProperty(window, 'QueryStateStore', {
 });
 
 Object.defineProperty(window, 'displayedFields', {
-  configurable: true,
+  configurable: false,
   get() {
     return createReadOnlyQueryStateProxy(displayedFieldsState, 'window.displayedFields');
   },
@@ -574,7 +574,7 @@ Object.defineProperty(window, 'displayedFields', {
 });
 
 Object.defineProperty(window, 'activeFilters', {
-  configurable: true,
+  configurable: false,
   get() {
     return createReadOnlyQueryStateProxy(activeFiltersState, 'window.activeFilters');
   },
