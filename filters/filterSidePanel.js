@@ -238,6 +238,38 @@ window.FilterSidePanel = (function () {
         });
     }
 
+    function openDisplayFieldPicker(insertAt = -1) {
+        if (!window.SharedFieldPicker || typeof window.SharedFieldPicker.openQueryFieldPicker !== 'function') {
+            return;
+        }
+
+        window.SharedFieldPicker.openQueryFieldPicker({ insertAt }).catch(error => {
+            console.error('Failed to open side panel field picker:', error);
+            if (window.showToastMessage) {
+                window.showToastMessage('Failed to open the field picker.', 'error');
+            }
+        });
+    }
+
+    function createDisplayInsertControl(insertAt, label) {
+        const row = document.createElement('div');
+        row.className = 'fp-display-insert';
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'fp-display-insert-btn';
+        button.setAttribute('aria-label', label);
+        button.setAttribute('title', label);
+        button.innerHTML = `
+            <span class="fp-display-insert-btn-icon" aria-hidden="true">+</span>
+            <span class="fp-display-insert-btn-text">Add field</span>
+        `;
+        button.addEventListener('click', () => openDisplayFieldPicker(insertAt));
+
+        row.appendChild(button);
+        return row;
+    }
+
     function createIconButton(className, title, svgMarkup, onClick) {
         const button = document.createElement('button');
         button.type = 'button';
@@ -311,11 +343,15 @@ window.FilterSidePanel = (function () {
             empty.className = 'fp-empty-state';
             empty.textContent = 'Add columns to start building the display list.';
             wrapper.appendChild(empty);
+
+            wrapper.appendChild(createDisplayInsertControl(0, 'Add the first displayed field'));
             return wrapper;
         }
 
         const list = document.createElement('div');
         list.className = 'fp-display-list';
+
+        list.appendChild(createDisplayInsertControl(0, 'Insert a displayed field at the top'));
 
         fields.forEach((field, index) => {
             const item = document.createElement('div');
@@ -427,6 +463,7 @@ window.FilterSidePanel = (function () {
             item.appendChild(name);
             item.appendChild(controls);
             list.appendChild(item);
+            list.appendChild(createDisplayInsertControl(index + 1, `Insert a displayed field after ${field}`));
         });
 
         wrapper.appendChild(list);

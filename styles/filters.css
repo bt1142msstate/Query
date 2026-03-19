@@ -771,6 +771,57 @@
   gap: 8px;
 }
 
+.fp-display-insert {
+  display: flex;
+  justify-content: center;
+}
+
+.fp-display-insert-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px dashed rgba(15, 118, 110, 0.32);
+  background: linear-gradient(180deg, rgba(240, 253, 250, 0.95), rgba(236, 253, 245, 0.85));
+  color: #0f766e;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
+}
+
+.fp-display-insert-btn:hover {
+  background: linear-gradient(180deg, rgba(204, 251, 241, 0.98), rgba(167, 243, 208, 0.92));
+  border-color: rgba(13, 148, 136, 0.5);
+  color: #115e59;
+  transform: translateY(-1px);
+}
+
+.fp-display-insert-btn:focus-visible {
+  outline: 2px solid rgba(15, 118, 110, 0.24);
+  outline-offset: 2px;
+}
+
+.fp-display-insert-btn-icon {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.14);
+  font-size: 0.92rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.fp-display-insert-btn-text {
+  white-space: nowrap;
+}
+
 .fp-display-item {
   display: grid;
   grid-template-columns: 28px 28px minmax(0, 1fr) auto;
