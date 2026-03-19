@@ -22,39 +22,6 @@ function isListPasteField(fieldDef) {
   return Boolean(fieldDef && fieldDef.allowValueList && (!fieldDef.values || fieldDef.values.length === 0));
 }
 
-function formatConditionLabel(condition) {
-  const slug = String(condition || '').trim().toLowerCase();
-
-  switch (slug) {
-    case 'greater':
-      return 'Greater than';
-    case 'less':
-      return 'Less than';
-    case 'greater_or_equal':
-      return 'Greater than or equal';
-    case 'less_or_equal':
-      return 'Less than or equal';
-    case 'starts':
-    case 'starts_with':
-      return 'Starts with';
-    case 'does_not_equal':
-      return 'Does not equal';
-    case 'does_not_contain':
-      return 'Does not contain';
-    case 'on_or_before':
-      return 'On or before';
-    case 'on_or_after':
-      return 'On or after';
-    default:
-      return slug
-        .replace(/_/g, ' ')
-        .split(' ')
-        .filter(Boolean)
-        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(' ');
-  }
-}
-
 function createConditionOperatorPicker(conditions, handler) {
   const wrapper = document.createElement('label');
   wrapper.className = 'condition-operator-picker';
@@ -71,7 +38,7 @@ function createConditionOperatorPicker(conditions, handler) {
   conditions.forEach(condition => {
     const option = document.createElement('option');
     option.value = condition;
-    option.textContent = formatConditionLabel(condition);
+    option.textContent = window.OperatorLabels.get(condition);
     select.appendChild(option);
   });
 
