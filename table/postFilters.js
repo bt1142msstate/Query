@@ -11,6 +11,10 @@
       operatorSelect: document.getElementById('post-filter-operator'),
       valueInput: document.getElementById('post-filter-value'),
       valueInput2: document.getElementById('post-filter-value-2'),
+      valuePicker: document.getElementById('post-filter-value-picker'),
+      valuePickerSearch: document.getElementById('post-filter-value-search'),
+      valuePickerSelect: document.getElementById('post-filter-value-select'),
+      valuePickerMeta: document.getElementById('post-filter-value-meta'),
       betweenLabel: document.getElementById('post-filter-between-label'),
       addBtn: document.getElementById('post-filter-add-btn'),
       summaryRows: document.getElementById('post-filter-summary-rows'),
@@ -19,6 +23,14 @@
       list: document.getElementById('post-filter-list'),
       empty: document.getElementById('post-filter-empty')
     };
+  }
+
+  function getBlankSentinel() {
+    return window.VirtualTable?.postFilterBlankValue || '__QUERY_POST_FILTER_BLANK__';
+  }
+
+  function isBlankSentinel(value) {
+    return String(value || '') === getBlankSentinel();
   }
 
   function getAvailableFields() {
@@ -85,6 +97,10 @@
     const type = getFieldType(fieldName);
     const rawValue = String(filter?.val || '');
 
+    if (isBlankSentinel(rawValue)) {
+      return '(Blank values)';
+    }
+
     if (String(filter?.cond || '').toLowerCase() === 'between') {
       const [left, right] = rawValue.split('|');
       return `${left || ''} - ${right || ''}`;
@@ -95,11 +111,37 @@
       return numericValue ? `$${numericValue}` : rawValue;
     }
 
+    if (type === 'date') {
+      const normalizedValue = rawValue.trim();
+      const compactMatch = normalizedValue.match(/^(\d{4})(\d{2})(\d{2})$/);
+      if (compactMatch) {
+        return `${compactMatch[2]}/${compactMatch[3]}/${compactMatch[1]}`;
+      }
+    }
+
     return rawValue;
+  }
+
+  function formatLoadedOptionLabel(option, fieldName) {
+    if (!option) {
+      return '';
+    }
+
+    if (option.isBlank) {
+      return '(Blank values)';
+    }
+
+    return formatFilterValue({ cond: 'equals', val: option.value }, fieldName);
   }
 
   function getSnapshot() {
     return window.VirtualTable?.getPostFilterState ? window.VirtualTable.getPostFilterState() : {};
+  }
+
+  function getFieldValueOptions(fieldName) {
+    return window.VirtualTable?.getPostFilterFieldOptions
+      ? window.VirtualTable.getPostFilterFieldOptions(fieldName)
+      : [];
   }
 
   function getActiveFilterCount(snapshot = getSnapshot()) {
@@ -130,6 +172,63 @@
     syncValueInputs();
   }
 
+  function renderValuePickerOptions(searchTerm = '') {
+    const elements = getElements();
+    if (!elements.valuePickerSelect || !elements.valuePickerMeta || !elements.fieldSelect) return;
+
+    const field = String(elements.fieldSelect.value || '').trim();
+    const normalizedSearch = String(searchTerm || '').trim().toLowerCase();
+    const allOptions = getFieldValueOptions(field);
+    const visibleOptions = normalizedSearch
+      ? allOptions.filter(option => String(option.label || '').toLowerCase().includes(normalizedSearch))
+      : allOptions;
+
+    elements.valuePickerSelect.innerHTML = visibleOptions.map(option => {
+      const text = `${formatLoadedOptionLabel(option, field)} (${Number(option.count || 0).toLocaleString()})`;
+      const safeText = window.escapeHtml ? window.escapeHtml(text) : text;
+      const safeValue = window.escapeHtml ? window.escapeHtml(option.value) : option.value;
+      return `<option value="${safeValue}">${safeText}</option>`;
+    }).join('');
+
+    if (visibleOptions.length) {
+      const currentValue = String(elements.valueInput.value || '').trim();
+      const matchingOption = visibleOptions.find(option => option.value === currentValue) || visibleOptions[0];
+      elements.valuePickerSelect.value = matchingOption.value;
+      elements.valueInput.value = matchingOption.value;
+      elements.valuePickerMeta.textContent = `${visibleOptions.length.toLocaleString()} of ${allOptions.length.toLocaleString()} loaded values`;
+    } else {
+      elements.valueInput.value = '';
+      elements.valuePickerMeta.textContent = `0 of ${allOptions.length.toLocaleString()} loaded values`;
+    }
+  }
+
+  function syncValuePicker() {
+    const elements = getElements();
+    if (!elements.operatorSelect || !elements.valuePicker || !elements.valuePickerSearch || !elements.valuePickerSelect || !elements.fieldSelect) {
+      return;
+    }
+
+    const isEquals = elements.operatorSelect.value === 'equals';
+    const field = String(elements.fieldSelect.value || '').trim();
+    const options = isEquals ? getFieldValueOptions(field) : [];
+    const shouldShowPicker = isEquals && options.length > 0;
+
+    elements.valuePicker.classList.toggle('hidden', !shouldShowPicker);
+    elements.valueInput.classList.toggle('hidden', shouldShowPicker);
+
+    if (!shouldShowPicker) {
+      if (isBlankSentinel(elements.valueInput.value)) {
+        elements.valueInput.value = '';
+      }
+      elements.valuePickerSearch.value = '';
+      elements.valuePickerSelect.innerHTML = '';
+      elements.valuePickerMeta.textContent = '';
+      return;
+    }
+
+    renderValuePickerOptions(elements.valuePickerSearch.value);
+  }
+
   function syncValueInputs() {
     const elements = getElements();
     if (!elements.valueInput || !elements.valueInput2 || !elements.operatorSelect || !elements.fieldSelect || !elements.betweenLabel) return;
@@ -146,6 +245,7 @@
 
     elements.valueInput2.classList.toggle('hidden', !isBetween);
     elements.betweenLabel.classList.toggle('hidden', !isBetween);
+    syncValuePicker();
   }
 
   function populateFieldOptions() {
@@ -267,7 +367,7 @@
         return;
       }
       value = `${value}|${value2}`;
-    } else if (!value) {
+    } else if (!value && !isBlankSentinel(value)) {
       window.showToastMessage && window.showToastMessage('Enter a value for the post filter.', 'warning');
       return;
     }
@@ -288,8 +388,12 @@
 
     elements.valueInput.value = '';
     elements.valueInput2.value = '';
+    if (elements.valuePickerSearch) {
+      elements.valuePickerSearch.value = '';
+    }
     renderSummary();
     renderFilterList();
+    syncValueInputs();
     updateToolbarButton();
 
     window.showToastMessage && window.showToastMessage('Post filter applied.', 'success');
@@ -339,6 +443,15 @@
     elements.addBtn?.addEventListener('click', addFilter);
     elements.fieldSelect?.addEventListener('change', syncOperatorOptions);
     elements.operatorSelect?.addEventListener('change', syncValueInputs);
+    elements.valuePickerSearch?.addEventListener('input', event => {
+      renderValuePickerOptions(event.target.value);
+    });
+    elements.valuePickerSelect?.addEventListener('change', event => {
+      if (elements.valueInput) {
+        elements.valueInput.value = String(event.target.value || '');
+      }
+    });
+    elements.valuePickerSelect?.addEventListener('dblclick', addFilter);
     elements.list?.addEventListener('click', handleListClick);
 
     window.addEventListener('postfilters:updated', () => {

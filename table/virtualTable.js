@@ -22,6 +22,8 @@ let baseViewData = {
 let rawTableData = null;
 let splitColumnsActive = false;
 const postFiltersState = {};
+const postFilterValueOptionsCache = new Map();
+const POST_FILTER_BLANK_SENTINEL = '__QUERY_POST_FILTER_BLANK__';
 
 let visibleTableRows = 25;  // number of rows to show at once
 let tableRowHeight = 42;    // estimated row height in pixels
@@ -68,6 +70,31 @@ function parseNumericValue(value) {
   return parseFloat(String(value).replace(/[$,]/g, ''));
 }
 
+function invalidatePostFilterValueOptionsCache() {
+  postFilterValueOptionsCache.clear();
+}
+
+function isBlankPostFilterValue(value) {
+  return String(value || '') === POST_FILTER_BLANK_SENTINEL;
+}
+
+function isBlankCellValue(rawValue) {
+  if (rawValue === undefined || rawValue === null) {
+    return true;
+  }
+
+  if (typeof rawValue === 'string') {
+    if (rawValue.includes('\x1F')) {
+      const parts = rawValue.split('\x1F').map(part => String(part).trim());
+      return parts.length === 0 || parts.every(part => !part);
+    }
+
+    return String(rawValue).trim() === '';
+  }
+
+  return false;
+}
+
 function cloneTableData(data) {
   return {
     headers: Array.isArray(data?.headers) ? [...data.headers] : [],
@@ -108,7 +135,7 @@ function assignPostFilters(nextFilters) {
     }
 
     const filters = Array.isArray(data?.filters)
-      ? data.filters.map(clonePostFilterEntry).filter(filter => filter.cond && filter.val)
+      ? data.filters.map(clonePostFilterEntry).filter(filter => filter.cond && (filter.val || isBlankPostFilterValue(filter.val)))
       : [];
 
     if (filters.length) {
@@ -135,7 +162,7 @@ function sanitizePostFiltersForCurrentView() {
     }
 
     const nextFilters = Array.isArray(postFiltersState[field]?.filters)
-      ? postFiltersState[field].filters.filter(filter => filter.cond && filter.val)
+      ? postFiltersState[field].filters.filter(filter => filter.cond && (filter.val || isBlankPostFilterValue(filter.val)))
       : [];
 
     if (nextFilters.length) {
@@ -167,6 +194,10 @@ function parseComparableDateValue(value) {
 }
 
 function getComparableRowValues(rawValue, type) {
+  if (isBlankCellValue(rawValue)) {
+    return [''];
+  }
+
   if (type === 'number' || type === 'money') {
     return [parseNumericValue(rawValue)];
   }
@@ -233,6 +264,12 @@ function doesRowMatchPostFilter(row, field, filter) {
   const type = getFieldType(field);
   const cond = String(filter?.cond || '').trim().toLowerCase();
   const filterValue = String(filter?.val || '');
+  const rawCellValue = row[columnIndex];
+
+  if (cond === 'equals' && isBlankPostFilterValue(filterValue)) {
+    return isBlankCellValue(rawCellValue);
+  }
+
   const rowValues = getComparableRowValues(row[columnIndex], type);
 
   if (cond === 'between') {
@@ -262,6 +299,71 @@ function doesRowMatchPostFilter(row, field, filter) {
     : (type === 'date' ? parseComparableDateValue(filterValue) : filterValue);
 
   return rowValues.some(value => compareScalarCondition(value, comparableExpected, cond, type));
+}
+
+function getPostFilterFieldOptions(fieldName) {
+  const normalizedField = String(fieldName || '').trim();
+  if (!normalizedField) {
+    return [];
+  }
+
+  if (postFilterValueOptionsCache.has(normalizedField)) {
+    return postFilterValueOptionsCache.get(normalizedField).map(option => ({ ...option }));
+  }
+
+  const columnIndex = baseViewData.columnMap.get(normalizedField);
+  if (columnIndex === undefined) {
+    return [];
+  }
+
+  const fieldType = getFieldType(normalizedField);
+  const counts = new Map();
+  let blankCount = 0;
+
+  baseViewData.rows.forEach(row => {
+    const rawValue = row[columnIndex];
+
+    if (isBlankCellValue(rawValue)) {
+      blankCount += 1;
+      return;
+    }
+
+    const values = getComparableRowValues(rawValue, fieldType)
+      .map(value => fieldType === 'number' || fieldType === 'money' || fieldType === 'date'
+        ? String(rawValue).trim()
+        : String(value ?? '').trim())
+      .filter(Boolean);
+
+    const seenInRow = new Set();
+    values.forEach(value => {
+      if (seenInRow.has(value)) {
+        return;
+      }
+      seenInRow.add(value);
+      counts.set(value, (counts.get(value) || 0) + 1);
+    });
+  });
+
+  const options = Array.from(counts.entries())
+    .map(([value, count]) => ({
+      value,
+      label: value,
+      count,
+      isBlank: false
+    }))
+    .sort((left, right) => String(left.label).localeCompare(String(right.label), undefined, { numeric: true, sensitivity: 'base' }));
+
+  if (blankCount > 0) {
+    options.unshift({
+      value: POST_FILTER_BLANK_SENTINEL,
+      label: '(Blank values)',
+      count: blankCount,
+      isBlank: true
+    });
+  }
+
+  postFilterValueOptionsCache.set(normalizedField, options);
+  return options.map(option => ({ ...option }));
 }
 
 function getFilteredRowsFromSource() {
@@ -834,6 +936,7 @@ function clearVirtualTableData() {
     columnMap: new Map()
   };
   Object.keys(postFiltersState).forEach(key => delete postFiltersState[key]);
+  invalidatePostFilterValueOptionsCache();
   calculatedColumnWidths = {};
   tableScrollTop = 0;
   tableScrollContainer = null;
@@ -890,11 +993,12 @@ function expandMultiValueColumns() {
 
   if (multiMax.size === 0) {
     // Nothing to split — just mirror raw data
-    virtualTableData = {
+    baseViewData = {
       headers: [...rawTableData.headers],
       rows: rawTableData.rows.map(r => [...r]),
       columnMap: new Map(rawTableData.columnMap)
     };
+    invalidatePostFilterValueOptionsCache();
     return;
   }
 
@@ -930,6 +1034,7 @@ function expandMultiValueColumns() {
   });
 
   baseViewData = { headers: newHeaders, rows: newRows, columnMap: newColumnMap };
+  invalidatePostFilterValueOptionsCache();
 }
 
 /**
@@ -962,6 +1067,7 @@ function setSplitColumnsMode(active) {
         rows: rawTableData.rows.map(r => [...r]),
         columnMap: new Map(rawTableData.columnMap)
       };
+      invalidatePostFilterValueOptionsCache();
     }
   }
 
@@ -989,6 +1095,7 @@ window.VirtualTable = {
     // always has a fresh snapshot to work from.
     rawTableData = cloneTableData(nextData);
     baseViewData = cloneTableData(nextData);
+    invalidatePostFilterValueOptionsCache();
     // Reset split mode — caller will re-expand if needed
     splitColumnsActive = false;
     window.splitColumnsActive = false;
@@ -1022,6 +1129,7 @@ window.VirtualTable = {
   setSplitColumnsMode,
   expandMultiValueColumns,
   getPostFilterState: clonePostFiltersSnapshot,
+  getPostFilterFieldOptions,
   replacePostFilters(nextFilters, options = {}) {
     assignPostFilters(nextFilters);
     applyPostFilters({
@@ -1049,5 +1157,6 @@ window.VirtualTable = {
   },
   get splitColumnsActive() { return splitColumnsActive; },
   get rawTableData() { return rawTableData; },
-  get baseViewData() { return baseViewData; }
+  get baseViewData() { return baseViewData; },
+  get postFilterBlankValue() { return POST_FILTER_BLANK_SENTINEL; }
 };
