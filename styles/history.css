@@ -1102,11 +1102,11 @@
 }
 #toggle-queries:hover .history-animated .clock-hour,
 #mobile-toggle-queries:hover .history-animated .clock-hour {
-  animation: hourHandAnim calc(var(--clock-speed) * 12) linear infinite;
+  animation: none;
 }
 #toggle-queries:hover .history-animated .clock-minute,
 #mobile-toggle-queries:hover .history-animated .clock-minute {
-  animation: minuteHandAnim var(--clock-speed) linear infinite;
+  animation: none;
 }
 @keyframes hourHandAnim {
   100% { transform: rotate(360deg); }

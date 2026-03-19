@@ -368,19 +368,17 @@ input, textarea, select, [contenteditable] {
 #header-bar {
   height: var(--header-height);
   z-index: var(--z-header);
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  transform: translateY(-100%);
-  animation: slideDown 0.4s ease-out forwards;
-  animation-delay: 0.1s;
-  transition: opacity 0.5s cubic-bezier(.4,0,.2,1), transform 0.5s cubic-bezier(.4,0,.2,1);
+  background: #312e81;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.18);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  transform: none;
+  animation: none;
+  transition: opacity 0.16s ease;
 }
 
 #header-bar.header-hide {
   opacity: 0;
-  transform: translateY(-100%);
+  visibility: hidden;
   pointer-events: none;
 }
 
@@ -397,43 +395,41 @@ input, textarea, select, [contenteditable] {
 
 #header-controls {
   align-items: center;
-  opacity: 0;
-  animation: fadeIn 0.5s ease-out forwards;
-  animation-delay: 0.6s;
+  opacity: 1;
+  animation: none;
 }
 
 #header-controls button {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 #header-controls button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: none;
+  box-shadow: none;
 }
 
 #header-controls button:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: none;
+  box-shadow: none;
 }
 
 /* Mobile Menu Styles */
 #mobile-menu-toggle {
   align-items: center;
-  opacity: 0;
-  animation: fadeIn 0.5s ease-out forwards;
-  animation-delay: 0.6s;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  opacity: 1;
+  animation: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   display: none; /* Hide by default */
 }
 
 #mobile-menu-toggle:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: none;
+  box-shadow: none;
 }
 
 #mobile-menu-toggle:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: none;
+  box-shadow: none;
 }
 
 #mobile-menu-dropdown {
