@@ -1269,26 +1269,18 @@
       operatorEl.className = 'form-mode-operator-chip';
       operatorEl.textContent = window.OperatorLabels.get(inputSpec.operator);
     } else {
-      operatorEl = document.createElement('select');
-      operatorEl.className = 'form-mode-operator-chip form-mode-operator-select';
+      operatorEl = window.OperatorSelectUtils.createSelect(availableOperators, {
+        selected: inputSpec.operator,
+        className: 'form-mode-operator-chip form-mode-operator-select',
+        ariaLabel: `Select operator for ${inputSpec.label}`,
+        onChange: e => {
+          captureCurrentControlDefaults();
+          inputSpec.operator = e.target.value;
+          rebuildFormCardFromSpec();
+        }
+      });
       operatorEl.style.appearance = 'none';
       operatorEl.style.cursor = 'pointer';
-      // Add a tiny bit of right padding for a custom chevron background if desired, 
-      // but native looking minimal select is usually fine
-      
-      availableOperators.forEach(op => {
-        const option = document.createElement('option');
-        option.value = op;
-        option.textContent = window.OperatorLabels.get(op);
-        if (op === inputSpec.operator) option.selected = true;
-        operatorEl.appendChild(option);
-      });
-
-      operatorEl.addEventListener('change', (e) => {
-        captureCurrentControlDefaults();
-        inputSpec.operator = e.target.value;
-        rebuildFormCardFromSpec();
-      });
     }
 
     if (shouldShowFieldMeta) {
