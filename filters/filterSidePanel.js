@@ -254,6 +254,7 @@ window.FilterSidePanel = (function () {
     function createDisplayInsertControl(insertAt, label) {
         const row = document.createElement('div');
         row.className = 'fp-display-insert';
+        row.dataset.insertAt = String(insertAt);
 
         const button = document.createElement('button');
         button.type = 'button';
@@ -336,21 +337,27 @@ window.FilterSidePanel = (function () {
         wrapper.appendChild(createSectionHeader('Fields Being Displayed', fields.length, fields.length === 1 ? 'field' : 'fields'));
 
         if (fields.length === 0) {
+            const emptyWrap = document.createElement('div');
+            emptyWrap.className = 'fp-display-empty-wrap';
+
             const empty = document.createElement('div');
             empty.className = 'fp-empty-state';
             empty.textContent = 'Add columns to start building the display list.';
-            wrapper.appendChild(empty);
-
-            wrapper.appendChild(createDisplayInsertControl(0, 'Add the first displayed field'));
+            emptyWrap.appendChild(empty);
+            const emptyInsert = createDisplayInsertControl(0, 'Add the first displayed field');
+            emptyInsert.classList.add('fp-display-insert-bottom');
+            emptyWrap.appendChild(emptyInsert);
+            wrapper.appendChild(emptyWrap);
             return wrapper;
         }
 
         const list = document.createElement('div');
         list.className = 'fp-display-list';
 
-        list.appendChild(createDisplayInsertControl(0, 'Insert a displayed field at the top'));
-
         fields.forEach((field, index) => {
+            const slot = document.createElement('div');
+            slot.className = 'fp-display-slot';
+
             const item = document.createElement('div');
             item.className = 'fp-display-item';
             item.dataset.index = String(index);
@@ -459,8 +466,20 @@ window.FilterSidePanel = (function () {
             item.appendChild(dragHandle);
             item.appendChild(name);
             item.appendChild(controls);
-            list.appendChild(item);
-            list.appendChild(createDisplayInsertControl(index + 1, `Insert a displayed field after ${field}`));
+
+            if (index === 0) {
+                const topInsert = createDisplayInsertControl(0, 'Insert a displayed field at the top');
+                topInsert.classList.add('fp-display-insert-top');
+                slot.appendChild(topInsert);
+            }
+
+            slot.appendChild(item);
+
+            const bottomInsert = createDisplayInsertControl(index + 1, `Insert a displayed field after ${field}`);
+            bottomInsert.classList.add('fp-display-insert-bottom');
+            slot.appendChild(bottomInsert);
+
+            list.appendChild(slot);
         });
 
         wrapper.appendChild(list);
