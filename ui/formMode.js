@@ -1019,7 +1019,7 @@
     }, { source: 'QueryFormMode.applyFormState' });
 
     if (typeof window.showExampleTable === 'function') {
-      window.showExampleTable(window.displayedFields).catch(console.error);
+      window.showExampleTable(window.displayedFields, { syncQueryState: false }).catch(console.error);
     }
 
     if (typeof window.updateQueryJson === 'function') {

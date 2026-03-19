@@ -666,13 +666,13 @@ window.handleFilterConfirm = function(e) {
     if (cond === 'display' || cond === 'show' || cond === 'hide') {
         if (cond === 'show') {
             window.DragDropSystem.restoreFieldWithDuplicates(field);
-            window.showExampleTable(window.displayedFields).catch(console.error);
+            window.showExampleTable(window.displayedFields, { syncQueryState: false }).catch(console.error);
         } else if ((cond === 'hide' || cond === 'display') && window.displayedFields.includes(field)) {
             window.QueryChangeManager.removeDisplayedField(field, {
                 all: false,
                 source: 'FilterManager.hideField'
             });
-            window.showExampleTable(window.displayedFields).catch(console.error);
+            window.showExampleTable(window.displayedFields, { syncQueryState: false }).catch(console.error);
         }
     }
 
@@ -742,7 +742,7 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
     }
 
     // Update table once
-    window.showExampleTable(window.displayedFields).catch(console.error);
+    window.showExampleTable(window.displayedFields, { syncQueryState: false }).catch(console.error);
 
     // Clear search
     const queryInput = getFilterQueryInputElement();

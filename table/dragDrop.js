@@ -26,7 +26,7 @@ function addColumn(fieldName, insertAt = -1) {
   
   if (success) {
     // Trigger the same updates as successful drag/drop
-    showExampleTable(window.displayedFields);
+    showExampleTable(window.displayedFields, { syncQueryState: false });
     updateQueryJson();
     updateButtonStates();
     updateCategoryCounts();
@@ -772,7 +772,7 @@ function removeColumn(table, colIndex) {
   updateButtonStates();
   // If no columns left, reset to placeholder view
   if (window.displayedFields.length === 0) {
-    showExampleTable(window.displayedFields);
+    showExampleTable(window.displayedFields, { syncQueryState: false });
   }
   // Update category counts after removing column
   updateCategoryCounts();
@@ -814,7 +814,7 @@ function attachBubbleDropTarget(container) {
     if (field) {
       if (restoreFieldWithDuplicates(field)) {
         dragDropManager.dropSuccessful = true;
-        showExampleTable(window.displayedFields);
+        showExampleTable(window.displayedFields, { syncQueryState: false });
       }
     }
     clearDropAnchor();
@@ -1152,7 +1152,7 @@ const dragDropManager = {
       const insertAt = (e.clientX - rect.left) < rect.width/2 ? toIndex : toIndex + 1;
       if (restoreFieldWithDuplicates(bubbleField, insertAt)) {
         dragDropManager.dropSuccessful = true;
-        showExampleTable(window.displayedFields);
+        showExampleTable(window.displayedFields, { syncQueryState: false });
       }
     }
     
@@ -1177,7 +1177,7 @@ const dragDropManager = {
       const insertAt = (e.clientX - rect.left) < rect.width/2 ? toIndex : toIndex + 1;
       if (restoreFieldWithDuplicates(bubbleField, insertAt)) {
         dragDropManager.dropSuccessful = true;
-        showExampleTable(window.displayedFields);
+        showExampleTable(window.displayedFields, { syncQueryState: false });
       }
       clearDropAnchor();
       return;

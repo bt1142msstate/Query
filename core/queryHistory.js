@@ -740,7 +740,7 @@ function loadQueryConfig(q) {
     window.displayedFields.forEach(f => window.registerDynamicField(f));
   }
 
-  showExampleTable(window.displayedFields);
+  showExampleTable(window.displayedFields, { syncQueryState: false });
   
   // Clear filters and reapply from query
   if (typeof activeFilters !== 'undefined') {

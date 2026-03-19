@@ -457,7 +457,13 @@
             })()
           : currentFields.filter(column => !fieldMatchesBase(column, fieldName));
 
-        await window.showExampleTable(nextFields, { syncQueryState: true });
+        if (window.QueryChangeManager) {
+          window.QueryChangeManager.replaceDisplayedFields(nextFields, {
+            source: 'SharedFieldPicker.toggleDisplayedField'
+          });
+        }
+
+        await window.showExampleTable(nextFields, { syncQueryState: false });
 
         if (window.showToastMessage) {
           window.showToastMessage(
