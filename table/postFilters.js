@@ -292,12 +292,18 @@
 
     const fieldType = getFieldType(elements.fieldSelect.value);
     const isBetween = elements.operatorSelect.value === 'between';
-    const inputType = fieldType === 'date' ? 'date' : (fieldType === 'number' || fieldType === 'money' ? 'number' : 'text');
+    const inputType = fieldType === 'date' ? 'date' : (fieldType === 'money' ? 'text' : (fieldType === 'number' ? 'number' : 'text'));
 
     [elements.valueInput, elements.valueInput2].forEach(input => {
       input.type = inputType;
       input.step = fieldType === 'money' ? '0.01' : (fieldType === 'number' ? '1' : 'any');
+      input.inputMode = fieldType === 'money' ? 'decimal' : (fieldType === 'number' ? 'numeric' : 'text');
       input.placeholder = fieldType === 'date' ? '' : 'Value';
+      if (fieldType === 'money' && window.configureMoneyInputBehavior) {
+        window.configureMoneyInputBehavior(input, true);
+      } else if (window.configureMoneyInputBehavior) {
+        window.configureMoneyInputBehavior(input, false);
+      }
     });
 
     elements.valueInput2.classList.toggle('hidden', !isBetween);
@@ -442,9 +448,15 @@
     let value = String(elements.valueInput.value || '').trim();
     let value2 = String(elements.valueInput2.value || '').trim();
     let selectedValues = [];
+    const fieldType = getFieldType(field);
 
     if (!field || !cond) {
       return;
+    }
+
+    if (fieldType === 'money' && window.sanitizeMoneyInputValue) {
+      value = window.sanitizeMoneyInputValue(value);
+      value2 = window.sanitizeMoneyInputValue(value2);
     }
 
     if (cond === 'equals' && equalsValueControl && typeof equalsValueControl.getSelectedValues === 'function') {

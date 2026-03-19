@@ -275,10 +275,11 @@ body.form-mode-active #filter-side-panel {
 }
 
 .form-mode-money-input {
+  width: 100%;
   border: 0;
   box-shadow: none;
   background: transparent;
-  padding-left: 0.45rem;
+  padding-left: 0.85rem;
 }
 
 .form-mode-money-input:focus {
