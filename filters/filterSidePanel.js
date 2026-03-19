@@ -8,16 +8,9 @@ window.FilterSidePanel = (function () {
     const VIEW_MODES = new Set(['both', 'filters', 'display']);
     let shellResizeObserver = null;
     let unsubscribeQueryState = null;
+    const { getDisplayedFields, getActiveFilters } = window.QueryStateReaders;
 
     const $ = id => document.getElementById(id);
-
-    function getDisplayedFields() {
-        if (window.QueryChangeManager && typeof window.QueryChangeManager.getSnapshot === 'function') {
-            return window.QueryChangeManager.getSnapshot().displayedFields || [];
-        }
-
-        return Array.isArray(window.displayedFields) ? Array.from(window.displayedFields) : [];
-    }
 
     function cleanupPopupControls(container) {
         if (!container) {
@@ -77,11 +70,11 @@ window.FilterSidePanel = (function () {
     }
 
     function hasAnyFilters() {
-        return window.activeFilters &&
-            Object.keys(window.activeFilters).some(
-                k => window.activeFilters[k] &&
-                     window.activeFilters[k].filters &&
-                     window.activeFilters[k].filters.length > 0
+        const activeFilters = getActiveFilters();
+        return Object.keys(activeFilters).some(
+                k => activeFilters[k] &&
+                     activeFilters[k].filters &&
+                     activeFilters[k].filters.length > 0
             );
     }
 
@@ -543,8 +536,8 @@ window.FilterSidePanel = (function () {
             for (const child of container.children) {
                 if (child.classList.contains('fp-field-group')) {
                     const childField = child.dataset.field;
-                    if (childField && window.activeFilters[childField]) {
-                        newActiveFilters[childField] = window.activeFilters[childField];
+                    if (childField && getActiveFilters()[childField]) {
+                        newActiveFilters[childField] = getActiveFilters()[childField];
                     }
                 }
             }
@@ -665,7 +658,7 @@ window.FilterSidePanel = (function () {
     function createFiltersSection() {
         const wrapper = document.createElement('section');
         wrapper.className = 'fp-section fp-filters-section';
-        const filterEntries = Object.entries(window.activeFilters || {})
+        const filterEntries = Object.entries(getActiveFilters())
             .filter(([, data]) => data && Array.isArray(data.filters) && data.filters.length > 0);
         const totalFilters = filterEntries.reduce((sum, [, data]) => sum + data.filters.length, 0);
 

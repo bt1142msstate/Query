@@ -663,9 +663,11 @@ window.formatHistoryFiltersTooltip = function(filtersInput) {
  */
 function loadQueryConfig(q) {
   if(!q || !q.jsonConfig) return;
+
+  const getDisplayedFields = () => window.QueryChangeManager?.getDisplayedFields?.() || [];
   
   // Access global variables from query.js
-  if (typeof window.displayedFields === 'undefined' || typeof showExampleTable === 'undefined') {
+  if (!window.QueryChangeManager || typeof showExampleTable === 'undefined') {
     console.error('Query history module requires global access to query.js variables');
     return;
   }
@@ -737,13 +739,13 @@ function loadQueryConfig(q) {
   // Register any dynamically-built fields (e.g. Marc590) that may not exist
   // in the current session's fieldDefs registry.
   if (typeof window.registerDynamicField === 'function') {
-    window.displayedFields.forEach(f => window.registerDynamicField(f));
+    getDisplayedFields().forEach(f => window.registerDynamicField(f));
   }
 
-  showExampleTable(window.displayedFields, { syncQueryState: false });
+  showExampleTable(getDisplayedFields(), { syncQueryState: false });
   
   // Clear filters and reapply from query
-  if (typeof activeFilters !== 'undefined') {
+  if (window.QueryChangeManager) {
     document.querySelectorAll('.bubble-filter').forEach(b => {
       b.classList.remove('bubble-filter');
       b.removeAttribute('data-filtered');
@@ -833,7 +835,9 @@ async function loadQueryResults(queryId) {
         // Use X-Raw-Columns or fallback to config used
         const rawColsHeader = response.headers.get('X-Raw-Columns');
         // Ensure displayedFields is updated after loadQueryConfig
-        const currentDisplayedFields = window.displayedFields || (q.jsonConfig ? q.jsonConfig.DesiredColumnOrder : []);
+        const currentDisplayedFields = getDisplayedFields().length
+          ? getDisplayedFields()
+          : (q.jsonConfig ? q.jsonConfig.DesiredColumnOrder : []);
         
         const rawColumns = rawColsHeader ? rawColsHeader.split('|') : currentDisplayedFields;
         

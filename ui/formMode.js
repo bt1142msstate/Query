@@ -19,6 +19,7 @@
     lastSuggestedTableName: '',
     hiddenNodes: []
   };
+  const { getDisplayedFields, getActiveFilters } = window.QueryStateReaders;
 
   function slugify(value) {
     return String(value || '')
@@ -217,7 +218,7 @@
   }
 
   function buildSpecFromCurrentQuery() {
-    const columns = Array.isArray(window.displayedFields) ? window.displayedFields.slice() : [];
+    const columns = getDisplayedFields().slice();
     if (columns.length === 0) {
       return null;
     }
@@ -229,7 +230,7 @@
     const seenKeys = new Set();
     const inputs = [];
 
-    Object.entries(window.activeFilters || {}).forEach(([fieldName, fieldState]) => {
+    Object.entries(getActiveFilters()).forEach(([fieldName, fieldState]) => {
       const filters = Array.isArray(fieldState && fieldState.filters) ? fieldState.filters : [];
       const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
 
@@ -294,9 +295,9 @@
   }
 
   function syncSpecColumnsWithDisplayedFields(options = {}) {
-    if (!state.active || !state.spec || !Array.isArray(window.displayedFields)) return false;
+    if (!state.active || !state.spec) return false;
 
-    const nextColumns = window.displayedFields.slice();
+    const nextColumns = getDisplayedFields().slice();
     const currentColumns = Array.isArray(state.spec.columns) ? state.spec.columns : [];
     const columnsChanged = currentColumns.length !== nextColumns.length
       || currentColumns.some((column, index) => column !== nextColumns[index]);
@@ -1019,7 +1020,7 @@
     }, { source: 'QueryFormMode.applyFormState' });
 
     if (typeof window.showExampleTable === 'function') {
-      window.showExampleTable(window.displayedFields, { syncQueryState: false }).catch(console.error);
+      window.showExampleTable(getDisplayedFields(), { syncQueryState: false }).catch(console.error);
     }
 
     if (typeof window.updateQueryJson === 'function') {

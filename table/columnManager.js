@@ -7,6 +7,7 @@
 
 // Store information about removed columns with their duplicates for restoration
 window.removedColumnInfo = window.removedColumnInfo || new Map();
+const { getDisplayedFields } = window.QueryStateReaders;
 
 /**
  * Checks if a field or any of its duplicates exists in displayedFields.
@@ -20,7 +21,7 @@ window.fieldOrDuplicatesExist = function(fieldName) {
   const baseFieldName = window.getBaseFieldName(fieldName);
   
   // Check if any column in displayedFields is related to this field
-  const relatedColumns = window.displayedFields.filter(displayedField => {
+  const relatedColumns = getDisplayedFields().filter(displayedField => {
     const displayedBase = window.getBaseFieldName(displayedField);
     return displayedBase === baseFieldName;
   });
@@ -34,7 +35,8 @@ window.fieldOrDuplicatesExist = function(fieldName) {
  * @returns {Array<{baseField: string, start: number, end: number}>} Array of duplicate groups
  */
 window.getDuplicateGroups = function() {
-  if (!window.displayedFields || window.displayedFields.length === 0) {
+  const displayedFields = getDisplayedFields();
+  if (displayedFields.length === 0) {
     return [];
   }
   
@@ -42,15 +44,15 @@ window.getDuplicateGroups = function() {
   const fieldCounts = new Map();
   
   // First pass: count occurrences of each base field
-  window.displayedFields.forEach(field => {
+  displayedFields.forEach(field => {
     const baseField = window.getBaseFieldName(field);
     fieldCounts.set(baseField, (fieldCounts.get(baseField) || 0) + 1);
   });
   
   // Second pass: identify groups of fields that appear more than once
   let i = 0;
-  while (i < window.displayedFields.length) {
-    const field = window.displayedFields[i];
+  while (i < displayedFields.length) {
+    const field = displayedFields[i];
     const baseField = window.getBaseFieldName(field);
     
     // If this base field appears more than once, it's a duplicate group
@@ -59,8 +61,8 @@ window.getDuplicateGroups = function() {
       let end = i;
       
       // Find the end of this group (all consecutive fields with same base name)
-      while (end < window.displayedFields.length) {
-        const currentField = window.displayedFields[end];
+      while (end < displayedFields.length) {
+        const currentField = displayedFields[end];
         const currentBase = window.getBaseFieldName(currentField);
         if (currentBase !== baseField) {
           break;
@@ -89,7 +91,7 @@ window.findRelatedColumnIndices = function(fieldName) {
   
   // Find all columns with this base field name
   const relatedIndices = [];
-  window.displayedFields.forEach((field, index) => {
+  getDisplayedFields().forEach((field, index) => {
     const fieldBase = window.getBaseFieldName(field);
     if (fieldBase === baseFieldName) {
       relatedIndices.push(index);

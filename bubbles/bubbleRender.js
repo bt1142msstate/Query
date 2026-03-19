@@ -1,4 +1,5 @@
 const BUBBLE_RENDER_VISIBLE_ROWS = 2;
+const { getDisplayedFields, getActiveFilters, hasActiveFilters } = window.QueryStateReaders;
 
 function bubbleRenderGetMaxStartRow() {
   if (typeof totalRows === 'undefined') return 0;
@@ -71,8 +72,10 @@ function bubbleRenderAll() {
   if (currentCategory === 'All') {
     list = filteredDefs;
   } else if (currentCategory === 'Selected') {
+    const displayedFields = getDisplayedFields();
+    const activeFilters = getActiveFilters();
     const displayedSet = new Set(displayedFields);
-    const filteredSelected = filteredDefs.filter(d => window.shouldFieldHavePurpleStylingBase(d.name, window.displayedFields, window.activeFilters));
+    const filteredSelected = filteredDefs.filter(d => window.shouldFieldHavePurpleStylingBase(d.name, displayedFields, activeFilters));
     const orderedList = displayedFields
       .map(name => filteredSelected.find(d => d.name === name))
       .filter(Boolean);
@@ -91,8 +94,8 @@ function bubbleRenderAll() {
   }
 
   list.sort((a, b) => {
-    const aFilter = !!(window.activeFilters && window.activeFilters[a.name] && window.activeFilters[a.name].filters && window.activeFilters[a.name].filters.length > 0);
-    const bFilter = !!(window.activeFilters && window.activeFilters[b.name] && window.activeFilters[b.name].filters && window.activeFilters[b.name].filters.length > 0);
+    const aFilter = hasActiveFilters(a.name);
+    const bFilter = hasActiveFilters(b.name);
     if (aFilter && !bFilter) return -1;
     if (!aFilter && bFilter) return 1;
     return 0;

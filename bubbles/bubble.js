@@ -3,6 +3,8 @@
  * Represents a draggable field that can be clicked to set filters.
  * @class Bubble
  */
+const { getDisplayedFields, getActiveFilters, hasActiveFilters } = window.QueryStateReaders;
+
 class Bubble {
   constructor(def, state = {}) {
     this.def = def;
@@ -29,7 +31,7 @@ class Bubble {
 
     let categoryValue = def.category || '';
     let descValue = def.desc || '';
-    const af = activeFilters[fieldName];
+    const af = getActiveFilters()[fieldName];
     let filterTooltipHtml = '';
 
     if (af && af.filters && af.filters.length > 0) {
@@ -61,7 +63,7 @@ class Bubble {
       this.el.removeAttribute('data-tooltip-html');
     }
 
-    this.el.setAttribute('draggable', def.is_buildable || displayedFields.includes(fieldName) ? 'false' : 'true');
+    this.el.setAttribute('draggable', def.is_buildable || getDisplayedFields().includes(fieldName) ? 'false' : 'true');
 
     if (animatingBackBubbles.has(fieldName)) {
       this.el.dataset.animatingBack = 'true';
@@ -306,7 +308,7 @@ function applyCorrectBubbleStyling(bubbleElement) {
   if (!bubbleElement) return;
 
   const fieldName = bubbleElement.textContent.trim();
-  if (window.shouldFieldHavePurpleStylingBase(fieldName, window.displayedFields, window.activeFilters)) {
+  if (window.shouldFieldHavePurpleStylingBase(fieldName, getDisplayedFields(), getActiveFilters())) {
     bubbleElement.classList.add('bubble-filter');
     bubbleElement.setAttribute('data-filtered', 'true');
   } else {
@@ -314,8 +316,7 @@ function applyCorrectBubbleStyling(bubbleElement) {
     bubbleElement.removeAttribute('data-filtered');
   }
 
-  const hasActiveFilters = !!(window.activeFilters?.[fieldName]?.filters?.length);
-  bubbleElement.classList.toggle('bubble-active-filter', hasActiveFilters);
+  bubbleElement.classList.toggle('bubble-active-filter', hasActiveFilters(fieldName));
 }
 
 function createOrUpdateBubble(def, existingBubble = null) {

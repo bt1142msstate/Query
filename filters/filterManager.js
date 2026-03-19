@@ -324,6 +324,7 @@ class FilterPill {
 
 // Expose globally
 window.FilterPill = FilterPill;
+const { getDisplayedFields, getFieldFilters } = window.QueryStateReaders;
 
 /**
  * Renders the list of active filters for a given field.
@@ -334,7 +335,7 @@ window.renderConditionList = function(field) {
     if (!container) return;
     
     container.innerHTML = '';
-    const data = window.activeFilters[field];
+    const data = getFieldFilters(field);
 
     if (!data || !data.filters.length) {
         // Reset specific styling if no filters exist
@@ -379,7 +380,7 @@ window.renderConditionList = function(field) {
                 source: 'FilterManager.removeFilterPill'
             });
 
-            if (!window.activeFilters[field]) {
+            if (!getFieldFilters(field)) {
                 document.querySelectorAll('.bubble').forEach(b => {
                     if (b.textContent.trim() === field) {
                         b.removeAttribute('data-filtered');
@@ -457,7 +458,7 @@ window.handleConditionBtnClick = function(e) {
             // Assuming addColumn/removeColumnByName are global from columnManager/dragDrop refactor
             if (cond === 'show') {
                 success = window.addColumn ? window.addColumn(window.selectedField) : false;
-            } else if (cond === 'hide' && window.displayedFields.includes(window.selectedField)) {
+            } else if (cond === 'hide' && getDisplayedFields().includes(window.selectedField)) {
                 success = window.removeColumnByName ? window.removeColumnByName(window.selectedField) : false;
             }
             
@@ -466,9 +467,9 @@ window.handleConditionBtnClick = function(e) {
             toggleButtons.forEach(toggleBtn => {
                 toggleBtn.classList.remove('active');
                 const toggleCond = toggleBtn.dataset.cond;
-                if (toggleCond === 'show' && window.displayedFields.includes(window.selectedField)) {
+                if (toggleCond === 'show' && getDisplayedFields().includes(window.selectedField)) {
                     toggleBtn.classList.add('active');
-                } else if (toggleCond === 'hide' && !window.displayedFields.includes(window.selectedField)) {
+                } else if (toggleCond === 'hide' && !getDisplayedFields().includes(window.selectedField)) {
                     toggleBtn.classList.add('active');
                 }
             });
@@ -615,7 +616,7 @@ window.handleFilterConfirm = function(e) {
             }
 
             const newFilterObj = { cond, val: filterValue };
-            const existingSet = window.activeFilters[field] || { filters: [] };
+            const existingSet = getFieldFilters(field) || { filters: [] };
             const shouldReplaceExistingEquals = Boolean(
                 cond === 'equals' &&
                 filterValue !== '' &&
@@ -666,13 +667,13 @@ window.handleFilterConfirm = function(e) {
     if (cond === 'display' || cond === 'show' || cond === 'hide') {
         if (cond === 'show') {
             window.DragDropSystem.restoreFieldWithDuplicates(field);
-            window.showExampleTable(window.displayedFields, { syncQueryState: false }).catch(console.error);
-        } else if ((cond === 'hide' || cond === 'display') && window.displayedFields.includes(field)) {
+            window.showExampleTable(getDisplayedFields(), { syncQueryState: false }).catch(console.error);
+        } else if ((cond === 'hide' || cond === 'display') && getDisplayedFields().includes(field)) {
             window.QueryChangeManager.removeDisplayedField(field, {
                 all: false,
                 source: 'FilterManager.hideField'
             });
-            window.showExampleTable(window.displayedFields, { syncQueryState: false }).catch(console.error);
+            window.showExampleTable(getDisplayedFields(), { syncQueryState: false }).catch(console.error);
         }
     }
 
@@ -732,7 +733,7 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
 
     // Apply filter if one was selected
     if (cond && val) {
-        const alreadyExists = Boolean(window.activeFilters[dynamicFieldName]?.filters?.some(f => f.cond === cond && f.val === val));
+        const alreadyExists = Boolean(getFieldFilters(dynamicFieldName)?.filters?.some(f => f.cond === cond && f.val === val));
         if (!alreadyExists) {
             window.QueryChangeManager.upsertFilter(dynamicFieldName, { cond, val }, {
                 dedupe: true,
@@ -742,7 +743,7 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
     }
 
     // Update table once
-    window.showExampleTable(window.displayedFields, { syncQueryState: false }).catch(console.error);
+    window.showExampleTable(getDisplayedFields(), { syncQueryState: false }).catch(console.error);
 
     // Clear search
     const queryInput = getFilterQueryInputElement();
@@ -763,7 +764,7 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
     }, 200);
     
     // Clean up base buildable filters just in case
-    if (window.activeFilters[fieldDef.name]) {
+    if (getFieldFilters(fieldDef.name)) {
         window.QueryChangeManager.removeFilter(fieldDef.name, {
             removeAll: true,
             source: 'FilterManager.clearBuildableBaseFilter'
