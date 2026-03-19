@@ -225,7 +225,10 @@
     const elements = getElements();
     if (!elements.overlay) return;
 
-    if (!window.VirtualTable?.virtualTableData?.rows?.length) {
+    const stats = window.VirtualTable?.getPostFilterStats ? window.VirtualTable.getPostFilterStats() : null;
+    const totalRows = Number(stats?.totalRows || 0);
+
+    if (totalRows <= 0) {
       if (window.showToastMessage) {
         window.showToastMessage('Run a query before adding post filters.', 'warning');
       }
