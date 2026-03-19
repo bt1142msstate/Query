@@ -194,22 +194,8 @@ function initializeBubbleInteractions() {
     if (!window.filterCard && filterCard) {
       window.filterCard = filterCard;
     }
-    if (filterCard) {
-      if (filterCard._showTimer) {
-        clearTimeout(filterCard._showTimer);
-        filterCard._showTimer = null;
-      }
-      if (filterCard._scrollReadyTimer) {
-        clearTimeout(filterCard._scrollReadyTimer);
-        filterCard._scrollReadyTimer = null;
-      }
-      filterCard.classList.remove('content-ready');
-      filterCard.classList.remove('scroll-ready');
-      if (filterCard._contentRevealTimer) {
-        clearTimeout(filterCard._contentRevealTimer);
-        filterCard._contentRevealTimer = null;
-      }
-      filterCard.classList.remove('show');
+    if (filterCard && window.BubbleSystem?.prepareFilterCardForOpen) {
+      window.BubbleSystem.prepareFilterCardForOpen(filterCard);
     }
 
     if (overlay) {
@@ -268,13 +254,10 @@ function initializeBubbleInteractions() {
         conditionPanel.classList.add('show');
       }
       if (filterCard) {
-        filterCard.classList.add('show');
-        filterCard.classList.add('content-ready');
         const scrollDelay = Math.max(220, Math.min(320, Math.round(morphDuration * 320)));
-        filterCard._scrollReadyTimer = setTimeout(() => {
-          filterCard.classList.add('scroll-ready');
-          filterCard._scrollReadyTimer = null;
-        }, scrollDelay);
+        window.BubbleSystem?.markFilterCardOpen
+          ? window.BubbleSystem.markFilterCardOpen(filterCard, { scrollReadyDelay: scrollDelay })
+          : filterCard.classList.add('show', 'content-ready');
       }
 
       clone.classList.add('popping');

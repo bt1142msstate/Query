@@ -382,20 +382,8 @@
     if (!window.filterCard && filterCard) {
       window.filterCard = filterCard;
     }
-    if (filterCard) {
-      if (filterCard._showTimer) {
-        clearTimeout(filterCard._showTimer);
-        filterCard._showTimer = null;
-      }
-      if (filterCard._scrollReadyTimer) {
-        clearTimeout(filterCard._scrollReadyTimer);
-        filterCard._scrollReadyTimer = null;
-      }
-      if (filterCard._contentRevealTimer) {
-        clearTimeout(filterCard._contentRevealTimer);
-        filterCard._contentRevealTimer = null;
-      }
-      filterCard.classList.remove('content-ready', 'scroll-ready', 'show');
+    if (filterCard && window.BubbleSystem?.prepareFilterCardForOpen) {
+      window.BubbleSystem.prepareFilterCardForOpen(filterCard);
     }
 
     if (overlay) {
@@ -417,13 +405,11 @@
       conditionPanel.classList.add('show');
     }
     if (filterCard) {
-      filterCard.classList.add('show');
-      filterCard.classList.add('content-ready');
-      window.setTimeout(() => {
-        if (filterCard.classList.contains('show')) {
-          filterCard.classList.add('scroll-ready');
-        }
-      }, 240);
+      if (window.BubbleSystem?.markFilterCardOpen) {
+        window.BubbleSystem.markFilterCardOpen(filterCard, { scrollReadyDelay: 240 });
+      } else {
+        filterCard.classList.add('show', 'content-ready');
+      }
     }
     if (inputWrapper && window.activeFilters[fieldName]) {
       inputWrapper.classList.add('show');
