@@ -1211,12 +1211,8 @@
       }
     }
 
-    if (window.FilterSidePanel) {
-      if (state.viewMode === 'form' && typeof window.FilterSidePanel.close === 'function') {
-        window.FilterSidePanel.close();
-      } else if (typeof window.FilterSidePanel.update === 'function') {
-        window.FilterSidePanel.update();
-      }
+    if (window.FilterSidePanel && typeof window.FilterSidePanel.update === 'function') {
+      window.FilterSidePanel.update();
     }
   }
 
