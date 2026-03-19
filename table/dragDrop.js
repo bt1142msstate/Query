@@ -207,6 +207,17 @@ headerCopy.innerHTML = `
   </svg>
 `;
 
+const headerSort = document.createElement('button');
+headerSort.type = 'button';
+headerSort.className = 'th-action th-sort';
+headerSort.setAttribute('aria-label', 'Sort column');
+headerSort.setAttribute('data-tooltip', 'Sort ascending');
+headerSort.innerHTML = `
+  <svg viewBox="0 0 24 24" aria-hidden="true" class="th-sort-icon">
+    <path fill="currentColor" d="M8 5l-4 4h3v10h2V9h3L8 5zm8 14l4-4h-3V5h-2v10h-3l4 4z"/>
+  </svg>
+`;
+
 // Create header remove icon for column removal
 const headerTrash = document.createElement('button');
 headerTrash.type = 'button';
@@ -219,8 +230,34 @@ headerTrash.innerHTML = `
   </svg>
 `;
 
+headerActions.appendChild(headerSort);
 headerActions.appendChild(headerCopy);
 headerActions.appendChild(headerTrash);
+
+function syncHeaderSortActionState(th = dragDropManager.hoverTh) {
+  if (!headerSort) {
+    return;
+  }
+
+  const state = window.VirtualTable?.getVirtualTableState ? window.VirtualTable.getVirtualTableState() : null;
+  const sortField = String(state?.currentSortColumn || '');
+  const sortDirection = String(state?.currentSortDirection || 'asc');
+  const fieldName = th?.getAttribute('data-sort-field') || '';
+  const isSortable = Boolean(fieldName);
+  const isActive = isSortable && fieldName === sortField;
+
+  headerSort.disabled = !isSortable || Boolean(window.queryRunning);
+  headerSort.classList.toggle('is-active', isActive);
+  headerSort.classList.toggle('is-desc', isActive && sortDirection === 'desc');
+  headerSort.setAttribute('aria-label', !isSortable ? 'Sorting unavailable for this column' : (isActive ? `Sorted ${sortDirection === 'asc' ? 'ascending' : 'descending'}. Click to reverse.` : 'Sort column'));
+  headerSort.setAttribute('data-tooltip', !isSortable ? 'Sorting unavailable' : (isActive ? `Sorted ${sortDirection === 'asc' ? 'ascending' : 'descending'} - click to reverse` : 'Sort ascending'));
+}
+
+function animateHeaderSortButton() {
+  headerSort.classList.remove('is-animating');
+  void headerSort.offsetWidth;
+  headerSort.classList.add('is-animating');
+}
 
 const headerInsertAffordance = document.createElement('div');
 headerInsertAffordance.className = 'th-insert-affordance';
@@ -915,6 +952,7 @@ const dragDropManager = {
     th.classList.add('th-hover');
     this.hoverTh = th;
     th.appendChild(headerActions);
+    syncHeaderSortActionState(th);
     // Let CSS handle visibility so flexbox doesn't wrap
   },
   
@@ -1340,6 +1378,20 @@ headerCopy.addEventListener('click', async e => {
   await copyColumnValuesByFieldName(fieldName);
 });
 
+headerSort.addEventListener('click', e => {
+  e.stopPropagation();
+  if (window.queryRunning) return;
+  const th = dragDropManager.hoverTh;
+  const fieldName = th?.getAttribute('data-sort-field');
+  if (!fieldName || !window.VirtualTable?.sortTableBy) {
+    return;
+  }
+
+  window.VirtualTable.sortTableBy(fieldName);
+  animateHeaderSortButton();
+  syncHeaderSortActionState(th);
+});
+
 headerTrash.addEventListener('click', e => {
   e.stopPropagation();
   if (window.queryRunning) return;
@@ -1585,6 +1637,7 @@ window.DragDropSystem = {
   dragDropManager,
   addDragAndDrop,
   attachBubbleDropTarget,
+  syncHeaderSortActionState,
   refreshColIndices,
   moveColumn,
   removeColumn,

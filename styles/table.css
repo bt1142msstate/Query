@@ -225,8 +225,8 @@ body.export-overlay-open {
 }
 
 #example-table {
-  --header-action-space: 7.25rem;
-  --header-text-balance-space: 7.25rem;
+  --header-action-space: 9.35rem;
+  --header-text-balance-space: 9.35rem;
 }
 
 #example-table th {
@@ -546,8 +546,63 @@ body.table-expanded-open .th-insert-button {
   color: var(--color-blue-500);
 }
 
+.th-sort:hover {
+  color: #0f766e;
+}
+
+.th-sort.is-active {
+  color: #0f766e;
+  background: linear-gradient(135deg, rgba(204, 251, 241, 0.98), rgba(240, 253, 250, 0.96));
+  border: 1px solid rgba(20, 184, 166, 0.28);
+  box-shadow: 0 10px 18px rgba(13, 148, 136, 0.18);
+}
+
+.th-sort-icon {
+  transition: transform 0.28s ease, filter 0.22s ease;
+}
+
+.th-sort.is-active .th-sort-icon {
+  filter: drop-shadow(0 2px 6px rgba(13, 148, 136, 0.28));
+}
+
+.th-sort.is-desc .th-sort-icon {
+  transform: rotate(180deg);
+}
+
+.th-sort.is-animating {
+  animation: th-sort-pop 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.th-sort.is-animating .th-sort-icon {
+  animation: th-sort-swish 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .th-trash:hover {
   color: var(--color-red-500);
+}
+
+@keyframes th-sort-pop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: translateY(-1px) scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes th-sort-swish {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(22deg) scale(1.12);
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
 }
 
 #example-table th:hover .th-actions,
