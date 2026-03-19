@@ -23,38 +23,20 @@ function isListPasteField(fieldDef) {
 }
 
 function createConditionOperatorPicker(conditions, handler) {
-  const wrapper = document.createElement('label');
-  wrapper.className = 'condition-operator-picker';
-
-  const label = document.createElement('span');
-  label.className = 'condition-operator-label';
-  label.textContent = 'Condition';
-
-  const select = document.createElement('select');
-  select.id = 'condition-operator-select';
-  select.className = 'condition-operator-select';
-  select.setAttribute('aria-label', 'Select condition');
-
-  conditions.forEach(condition => {
-    const option = document.createElement('option');
-    option.value = condition;
-    option.textContent = window.OperatorLabels.get(condition);
-    select.appendChild(option);
-  });
-
-  select.addEventListener('change', event => {
-    if (typeof handler === 'function') {
-      handler({
-        currentTarget: event.currentTarget,
-        stopPropagation() {},
-        preventDefault() {}
-      });
+  return window.OperatorSelectUtils.createLabeledPicker(conditions, {
+    id: 'condition-operator-select',
+    className: 'condition-operator-select',
+    ariaLabel: 'Select condition',
+    onChange: event => {
+      if (typeof handler === 'function') {
+        handler({
+          currentTarget: event.currentTarget,
+          stopPropagation() {},
+          preventDefault() {}
+        });
+      }
     }
   });
-
-  wrapper.appendChild(label);
-  wrapper.appendChild(select);
-  return wrapper;
 }
 
 function getPreferredCondition(conditions, fieldName) {
