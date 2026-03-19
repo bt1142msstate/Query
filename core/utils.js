@@ -229,6 +229,8 @@ window.MoneyUtils = (() => {
       return;
     }
 
+    input.classList.toggle('money-input-symbolized', Boolean(isMoney));
+
     destroyInputBehavior(input);
 
     if (!isMoney) {
