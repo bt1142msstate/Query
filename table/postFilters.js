@@ -11,6 +11,7 @@
       clearBtn: document.getElementById('post-filter-clear-btn'),
       fieldSelect: document.getElementById('post-filter-field'),
       operatorSelect: document.getElementById('post-filter-operator'),
+      logicSelect: document.getElementById('post-filter-logic'),
       valueInput: document.getElementById('post-filter-value'),
       valueInput2: document.getElementById('post-filter-value-2'),
       valuePickerHost: document.getElementById('post-filter-value-picker-host'),
@@ -172,6 +173,20 @@
     return scalarValue || isBlankSentinel(scalarValue) ? [scalarValue] : [];
   }
 
+  function getFieldLogic(fieldName) {
+    const snapshot = getSnapshot();
+    return String(snapshot[fieldName]?.logic || 'all').toLowerCase() === 'any' ? 'any' : 'all';
+  }
+
+  function syncLogicSelect() {
+    const elements = getElements();
+    if (!elements.fieldSelect || !elements.logicSelect) {
+      return;
+    }
+
+    elements.logicSelect.value = getFieldLogic(String(elements.fieldSelect.value || '').trim());
+  }
+
   function getActiveFilterCount(snapshot = getSnapshot()) {
     return Object.values(snapshot).reduce((total, data) => total + (Array.isArray(data?.filters) ? data.filters.length : 0), 0);
   }
@@ -197,6 +212,7 @@
       elements.operatorSelect.value = previousValue;
     }
 
+    syncLogicSelect();
     syncValueInputs();
   }
 
@@ -311,26 +327,51 @@
     if (!elements.list || !elements.empty) return;
 
     const snapshot = getSnapshot();
-    const entries = Object.entries(snapshot).flatMap(([field, data]) => (
-      Array.isArray(data?.filters)
-        ? data.filters.map((filter, index) => ({ field, filter, index }))
-        : []
-    ));
+    const entries = Object.entries(snapshot)
+      .filter(([, data]) => Array.isArray(data?.filters) && data.filters.length > 0)
+      .map(([field, data]) => ({
+        field,
+        logic: String(data?.logic || 'all').toLowerCase() === 'any' ? 'any' : 'all',
+        filters: data.filters.map((filter, index) => ({ filter, index }))
+      }));
 
     elements.empty.classList.toggle('hidden', entries.length > 0);
     elements.list.innerHTML = entries.map(entry => {
-      const label = `${entry.field} ${formatOperatorLabel(entry.filter.cond)} ${formatFilterValue(entry.filter, entry.field)}`;
-      const safeLabel = window.escapeHtml ? window.escapeHtml(label) : label;
+      const safeField = window.escapeHtml ? window.escapeHtml(entry.field) : entry.field;
+      const ruleLabel = entry.logic === 'any' ? 'Match Any' : 'Match All';
+      const safeRuleLabel = window.escapeHtml ? window.escapeHtml(ruleLabel) : ruleLabel;
+      const filterMarkup = entry.filters.map(({ filter, index }) => {
+        const label = `${formatOperatorLabel(filter.cond)} ${formatFilterValue(filter, entry.field)}`;
+        const safeLabel = window.escapeHtml ? window.escapeHtml(label) : label;
+        return `
+          <div class="post-filter-pill">
+            <span class="post-filter-pill__text">${safeLabel}</span>
+            <button type="button" class="post-filter-pill__remove" data-field="${entry.field}" data-index="${index}" aria-label="Remove post filter">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 pointer-events-none">
+                <line x1="5" y1="5" x2="15" y2="15"></line>
+                <line x1="15" y1="5" x2="5" y2="15"></line>
+              </svg>
+            </button>
+          </div>`;
+      }).join('');
+
       return `
-        <div class="post-filter-pill">
-          <span class="post-filter-pill__text">${safeLabel}</span>
-          <button type="button" class="post-filter-pill__remove" data-field="${entry.field}" data-index="${entry.index}" aria-label="Remove post filter">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 pointer-events-none">
-              <line x1="5" y1="5" x2="15" y2="15"></line>
-              <line x1="15" y1="5" x2="5" y2="15"></line>
-            </svg>
-          </button>
-        </div>`;
+        <section class="post-filter-group" data-field="${entry.field}">
+          <div class="post-filter-group__header">
+            <div>
+              <h4 class="post-filter-group__title">${safeField}</h4>
+              <p class="post-filter-group__meta">${entry.filters.length} ${entry.filters.length === 1 ? 'rule' : 'rules'}</p>
+            </div>
+            <label class="post-filter-group__logic">
+              <span class="post-filter-group__logic-label">${safeRuleLabel}</span>
+              <select class="post-filter-group__logic-select" data-field-logic="${entry.field}" aria-label="Change logic for ${safeField}">
+                <option value="all" ${entry.logic === 'all' ? 'selected' : ''}>Match all</option>
+                <option value="any" ${entry.logic === 'any' ? 'selected' : ''}>Match any</option>
+              </select>
+            </label>
+          </div>
+          <div class="post-filter-group__rules">${filterMarkup}</div>
+        </section>`;
     }).join('');
   }
 
@@ -382,6 +423,7 @@
 
     const field = String(elements.fieldSelect.value || '').trim();
     const cond = String(elements.operatorSelect.value || '').trim();
+    const logic = elements.logicSelect ? String(elements.logicSelect.value || 'all').trim().toLowerCase() : 'all';
     let value = String(elements.valueInput.value || '').trim();
     let value2 = String(elements.valueInput2.value || '').trim();
     let selectedValues = [];
@@ -412,8 +454,10 @@
 
     const snapshot = getSnapshot();
     if (!snapshot[field]) {
-      snapshot[field] = { filters: [] };
+      snapshot[field] = { logic: 'all', filters: [] };
     }
+
+    snapshot[field].logic = logic === 'any' ? 'any' : 'all';
 
     if (cond === 'equals' && selectedValues.length) {
       snapshot[field].filters = snapshot[field].filters.filter(filter => String(filter?.cond || '').toLowerCase() !== 'equals');
@@ -463,6 +507,20 @@
     updateToolbarButton();
   }
 
+  function updateFieldLogic(field, logic) {
+    const snapshot = getSnapshot();
+    if (!snapshot[field] || !Array.isArray(snapshot[field].filters) || !snapshot[field].filters.length) {
+      return;
+    }
+
+    snapshot[field].logic = String(logic || 'all').toLowerCase() === 'any' ? 'any' : 'all';
+    writeSnapshot(snapshot, { refreshView: true, notify: true, resetScroll: false });
+    renderSummary();
+    renderFilterList();
+    syncLogicSelect();
+    updateToolbarButton();
+  }
+
   function clearAllFilters() {
     if (window.VirtualTable?.clearPostFilters) {
       window.VirtualTable.clearPostFilters({ refreshView: true, notify: true, resetScroll: true });
@@ -471,6 +529,11 @@
   }
 
   function handleListClick(event) {
+    const logicSelect = event.target.closest('.post-filter-group__logic-select');
+    if (logicSelect) {
+      return;
+    }
+
     const button = event.target.closest('.post-filter-pill__remove');
     if (!button) return;
 
@@ -490,7 +553,30 @@
     elements.addBtn?.addEventListener('click', addFilter);
     elements.fieldSelect?.addEventListener('change', syncOperatorOptions);
     elements.operatorSelect?.addEventListener('change', syncValueInputs);
+    elements.logicSelect?.addEventListener('change', () => {
+      const field = String(elements.fieldSelect?.value || '').trim();
+      if (!field) {
+        return;
+      }
+      const snapshot = getSnapshot();
+      if (snapshot[field] && Array.isArray(snapshot[field].filters) && snapshot[field].filters.length) {
+        updateFieldLogic(field, elements.logicSelect.value);
+      }
+    });
     elements.list?.addEventListener('click', handleListClick);
+    elements.list?.addEventListener('change', event => {
+      const logicSelect = event.target.closest('.post-filter-group__logic-select');
+      if (!logicSelect) {
+        return;
+      }
+
+      const field = String(logicSelect.getAttribute('data-field-logic') || '').trim();
+      if (!field) {
+        return;
+      }
+
+      updateFieldLogic(field, logicSelect.value);
+    });
 
     window.addEventListener('postfilters:updated', () => {
       refreshOverlay();

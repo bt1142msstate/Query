@@ -971,6 +971,64 @@ body.post-filter-overlay-open {
   align-items: center;
   gap: 0.55rem;
   max-width: 100%;
+
+.post-filter-group {
+  padding: 0.9rem;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.post-filter-group__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+  margin-bottom: 0.75rem;
+}
+
+.post-filter-group__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.post-filter-group__meta {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.post-filter-group__logic {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 8.25rem;
+}
+
+.post-filter-group__logic-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #475569;
+}
+
+.post-filter-group__logic-select {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(255, 255, 255, 0.96);
+  color: #0f172a;
+}
+
+.post-filter-group__rules {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
   padding: 0.55rem 0.7rem 0.55rem 0.85rem;
   border-radius: 999px;
   background: linear-gradient(145deg, rgba(224, 242, 254, 0.95), rgba(236, 254, 255, 0.92));

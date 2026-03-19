@@ -130,6 +130,7 @@ function clonePostFiltersSnapshot() {
     Object.entries(postFiltersState).map(([field, data]) => [
       field,
       {
+        logic: String(data?.logic || 'all').toLowerCase() === 'any' ? 'any' : 'all',
         filters: Array.isArray(data?.filters) ? data.filters.map(clonePostFilterEntry) : []
       }
     ])
@@ -154,7 +155,10 @@ function assignPostFilters(nextFilters) {
       : [];
 
     if (filters.length) {
-      postFiltersState[normalizedField] = { filters };
+      postFiltersState[normalizedField] = {
+        logic: String(data?.logic || 'all').toLowerCase() === 'any' ? 'any' : 'all',
+        filters
+      };
     }
   });
 }
@@ -182,10 +186,25 @@ function sanitizePostFiltersForCurrentView() {
 
     if (nextFilters.length) {
       postFiltersState[field].filters = nextFilters;
+      postFiltersState[field].logic = String(postFiltersState[field]?.logic || 'all').toLowerCase() === 'any' ? 'any' : 'all';
     } else {
       delete postFiltersState[field];
     }
   });
+}
+
+function doesRowMatchFieldPostFilters(row, field, data) {
+  const filters = Array.isArray(data?.filters) ? data.filters : [];
+  if (!filters.length) {
+    return true;
+  }
+
+  const logic = String(data?.logic || 'all').toLowerCase() === 'any' ? 'any' : 'all';
+  if (logic === 'any') {
+    return filters.some(filter => doesRowMatchPostFilter(row, field, filter));
+  }
+
+  return filters.every(filter => doesRowMatchPostFilter(row, field, filter));
 }
 
 function parseComparableDateValue(value) {
@@ -412,7 +431,7 @@ function getFilteredRowsFromSource() {
   }
 
   return baseViewData.rows
-    .filter(row => activeEntries.every(([field, data]) => data.filters.every(filter => doesRowMatchPostFilter(row, field, filter))))
+    .filter(row => activeEntries.every(([field, data]) => doesRowMatchFieldPostFilters(row, field, data)))
     .map(row => [...row]);
 }
 
