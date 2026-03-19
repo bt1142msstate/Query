@@ -171,26 +171,6 @@
     };
   }
 
-  function getOperatorLabel(operator) {
-    const labels = {
-      contains: 'Contains',
-      starts: 'Starts with',
-      equals: 'Equals',
-      does_not_equal: 'Does not equal',
-      greater: 'Greater than',
-      greater_or_equal: 'Greater than or equal',
-      less: 'Less than',
-      less_or_equal: 'Less than or equal',
-      between: 'Between',
-      before: 'Before',
-      after: 'After',
-      doesnotcontain: 'Does not contain',
-      on_or_after: 'On or after',
-      on_or_before: 'On or before'
-    };
-    return labels[operator] || String(operator || 'equals').replace(/_/g, ' ').replace(/^./, char => char.toUpperCase());
-  }
-
   function normalizeOperatorForField(fieldDef, operator) {
     const normalized = typeof window.mapFieldOperatorToUiCond === 'function'
       ? window.mapFieldOperatorToUiCond(operator)
@@ -263,7 +243,7 @@
         inputs.push({
           key: uniqueInputKey(keyBase, seenKeys),
           field: fieldName,
-          label: hasMultipleFilters ? `${fieldName} (${getOperatorLabel(operator)})` : fieldName,
+          label: hasMultipleFilters ? `${fieldName} (${window.OperatorLabels.get(operator)})` : fieldName,
           operator,
           multiple: shouldAllowMultiple,
           default: operator === 'between'
@@ -1305,7 +1285,7 @@
     if (!availableOperators || availableOperators.length <= 1) {
       operatorEl = document.createElement('span');
       operatorEl.className = 'form-mode-operator-chip';
-      operatorEl.textContent = getOperatorLabel(inputSpec.operator);
+      operatorEl.textContent = window.OperatorLabels.get(inputSpec.operator);
     } else {
       operatorEl = document.createElement('select');
       operatorEl.className = 'form-mode-operator-chip form-mode-operator-select';
@@ -1317,7 +1297,7 @@
       availableOperators.forEach(op => {
         const option = document.createElement('option');
         option.value = op;
-        option.textContent = getOperatorLabel(op);
+        option.textContent = window.OperatorLabels.get(op);
         if (op === inputSpec.operator) option.selected = true;
         operatorEl.appendChild(option);
       });

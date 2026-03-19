@@ -68,31 +68,6 @@
     return ['contains', 'starts', 'equals'];
   }
 
-  function formatOperatorLabel(operator) {
-    switch (String(operator || '').trim().toLowerCase()) {
-      case 'greater':
-        return 'Greater than';
-      case 'less':
-        return 'Less than';
-      case 'starts':
-        return 'Starts with';
-      case 'before':
-        return 'Before';
-      case 'after':
-        return 'After';
-      case 'on_or_before':
-        return 'On or before';
-      case 'on_or_after':
-        return 'On or after';
-      case 'between':
-        return 'Between';
-      default:
-        return String(operator || '')
-          .replace(/_/g, ' ')
-          .replace(/\b\w/g, character => character.toUpperCase());
-    }
-  }
-
   function formatFilterValue(filter, fieldName) {
     const type = getFieldType(fieldName);
     const rawValue = String(filter?.val || '');
@@ -219,7 +194,7 @@
     const selectedField = elements.fieldSelect.value;
     const options = getOperatorOptions(selectedField);
     const previousValue = elements.operatorSelect.value;
-    elements.operatorSelect.innerHTML = options.map(option => `<option value="${option}">${formatOperatorLabel(option)}</option>`).join('');
+    elements.operatorSelect.innerHTML = options.map(option => `<option value="${option}">${window.OperatorLabels.get(option)}</option>`).join('');
 
     if (options.includes(previousValue)) {
       elements.operatorSelect.value = previousValue;
@@ -361,7 +336,7 @@
       const ruleLabel = entry.logic === 'any' ? 'Rows can match any rule below' : 'Rows must match every rule below';
       const safeRuleLabel = window.escapeHtml ? window.escapeHtml(ruleLabel) : ruleLabel;
       const filterMarkup = entry.filters.map(({ filter, index }) => {
-        const label = `${formatOperatorLabel(filter.cond)} ${formatFilterValue(filter, entry.field)}`;
+        const label = `${window.OperatorLabels.get(filter.cond)} ${formatFilterValue(filter, entry.field)}`;
         const safeLabel = window.escapeHtml ? window.escapeHtml(label) : label;
         return `
           <div class="post-filter-pill">
