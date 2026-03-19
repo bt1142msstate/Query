@@ -420,6 +420,20 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
   const allOptionItems = [];
   let refreshLayoutFrame = null;
   let lastAppliedSearchTerm = '';
+  let pendingScrollTarget = null;
+
+  function reconcileOptionsScroll(previousScrollTop) {
+    const maxScrollTop = Math.max(0, optionsContainer.scrollHeight - optionsContainer.clientHeight);
+
+    if (pendingScrollTarget && isVisibleEntry(pendingScrollTarget)) {
+      pendingScrollTarget.scrollIntoView({ block: 'nearest' });
+      pendingScrollTarget = null;
+      return;
+    }
+
+    pendingScrollTarget = null;
+    optionsContainer.scrollTop = Math.min(previousScrollTop, maxScrollTop);
+  }
 
   function compareLabels(a = '', b = '') {
     return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
@@ -558,9 +572,12 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
       window.cancelAnimationFrame(refreshLayoutFrame);
     }
 
+    const previousScrollTop = optionsContainer.scrollTop;
+
     refreshLayoutFrame = window.requestAnimationFrame(() => {
       refreshLayoutFrame = null;
       applySearch(searchInput.value.toLowerCase().trim());
+      reconcileOptionsScroll(previousScrollTop);
     });
   }
 
@@ -697,6 +714,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
 
     input.addEventListener('change', () => {
       syncOptionItemState(optionItem, input);
+      pendingScrollTarget = optionItem;
       refreshSelectorLayout();
     });
 
