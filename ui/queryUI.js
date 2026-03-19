@@ -17,6 +17,7 @@ window.DOM = {
   get refreshIcon() { return this._refreshIcon ||= document.getElementById('refresh-icon'); },
   get stopIcon() { return this._stopIcon ||= document.getElementById('stop-icon'); },
   get downloadBtn() { return this._downloadBtn ||= document.getElementById('download-btn'); },
+  get postFilterBtn() { return this._postFilterBtn ||= document.getElementById('post-filter-btn'); },
   get clearQueryBtn() { return this._clearQueryBtn ||= document.getElementById('clear-query-btn'); },
   get queryBox() { return this._queryBox ||= document.getElementById('query-json'); },
   get queryInput() { return this._queryInput ||= document.getElementById('query-input'); },
@@ -332,6 +333,7 @@ window.updateRunButtonIcon = function(validationError) {
 window.updateButtonStates = function() {
   const runBtn = window.DOM.runBtn;
   const downloadBtn = window.DOM.downloadBtn;
+  const postFilterBtn = window.DOM.postFilterBtn;
   const clearQueryBtn = window.DOM.clearQueryBtn;
   const tableNameInput = window.DOM.tableNameInput;
   const tableName = tableNameInput ? tableNameInput.value.trim() : '';
@@ -378,6 +380,28 @@ window.updateButtonStates = function() {
     }
   }
 
+  if (postFilterBtn) {
+    const hasData =
+      window.displayedFields &&
+      window.displayedFields.length > 0 &&
+      window.VirtualTable &&
+      window.VirtualTable.virtualTableData &&
+      Array.isArray(window.VirtualTable.virtualTableData.rows) &&
+      window.VirtualTable.virtualTableData.rows.length > 0;
+    const hasPostFilters = Boolean(window.VirtualTable?.hasPostFilters && window.VirtualTable.hasPostFilters());
+
+    postFilterBtn.disabled = !hasData;
+    postFilterBtn.classList.toggle('table-toolbar-btn-active', hasPostFilters);
+
+    if (!hasData) {
+      postFilterBtn.setAttribute('data-tooltip', 'Run a query to use post filters');
+    } else if (hasPostFilters) {
+      postFilterBtn.setAttribute('data-tooltip', 'Edit active post filters');
+    } else {
+      postFilterBtn.setAttribute('data-tooltip', 'Post Filters');
+    }
+  }
+
   if (clearQueryBtn) {
     let payload = null;
     try {
@@ -417,5 +441,9 @@ window.updateButtonStates = function() {
 
   if (typeof window.updateTableResultsLip === 'function') {
     window.updateTableResultsLip();
+  }
+
+  if (window.PostFilterSystem && typeof window.PostFilterSystem.syncToolbarButton === 'function') {
+    window.PostFilterSystem.syncToolbarButton();
   }
 };

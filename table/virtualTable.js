@@ -12,9 +12,16 @@ let virtualTableData = {
   columnMap: new Map()
 };
 
+let baseViewData = {
+  headers: [],
+  rows: [],
+  columnMap: new Map()
+};
+
 // Stores the original collapsed data so split mode can be toggled on/off non-destructively
 let rawTableData = null;
 let splitColumnsActive = false;
+const postFiltersState = {};
 
 let visibleTableRows = 25;  // number of rows to show at once
 let tableRowHeight = 42;    // estimated row height in pixels
@@ -61,6 +68,301 @@ function parseNumericValue(value) {
   return parseFloat(String(value).replace(/[$,]/g, ''));
 }
 
+function cloneTableData(data) {
+  return {
+    headers: Array.isArray(data?.headers) ? [...data.headers] : [],
+    rows: Array.isArray(data?.rows) ? data.rows.map(row => Array.isArray(row) ? [...row] : row) : [],
+    columnMap: data?.columnMap instanceof Map ? new Map(data.columnMap) : new Map()
+  };
+}
+
+function clonePostFilterEntry(filter) {
+  return {
+    cond: String(filter?.cond || '').trim().toLowerCase(),
+    val: String(filter?.val || '')
+  };
+}
+
+function clonePostFiltersSnapshot() {
+  return Object.fromEntries(
+    Object.entries(postFiltersState).map(([field, data]) => [
+      field,
+      {
+        filters: Array.isArray(data?.filters) ? data.filters.map(clonePostFilterEntry) : []
+      }
+    ])
+  );
+}
+
+function assignPostFilters(nextFilters) {
+  Object.keys(postFiltersState).forEach(key => delete postFiltersState[key]);
+
+  if (!nextFilters || typeof nextFilters !== 'object') {
+    return;
+  }
+
+  Object.entries(nextFilters).forEach(([field, data]) => {
+    const normalizedField = String(field || '').trim();
+    if (!normalizedField) {
+      return;
+    }
+
+    const filters = Array.isArray(data?.filters)
+      ? data.filters.map(clonePostFilterEntry).filter(filter => filter.cond && filter.val)
+      : [];
+
+    if (filters.length) {
+      postFiltersState[normalizedField] = { filters };
+    }
+  });
+}
+
+function getVisibleFieldSet() {
+  return new Set(
+    (Array.isArray(window.displayedFields) ? window.displayedFields : [])
+      .map(field => String(field || '').trim())
+      .filter(Boolean)
+  );
+}
+
+function sanitizePostFiltersForCurrentView() {
+  const visibleFieldSet = getVisibleFieldSet();
+
+  Object.keys(postFiltersState).forEach(field => {
+    if (!visibleFieldSet.has(field) || !baseViewData.columnMap.has(field)) {
+      delete postFiltersState[field];
+      return;
+    }
+
+    const nextFilters = Array.isArray(postFiltersState[field]?.filters)
+      ? postFiltersState[field].filters.filter(filter => filter.cond && filter.val)
+      : [];
+
+    if (nextFilters.length) {
+      postFiltersState[field].filters = nextFilters;
+    } else {
+      delete postFiltersState[field];
+    }
+  });
+}
+
+function parseComparableDateValue(value) {
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+
+  const text = String(value ?? '').trim();
+  if (!text || text.toLowerCase() === 'never') {
+    return NaN;
+  }
+
+  const compactMatch = text.match(/^(\d{4})(\d{2})(\d{2})$/);
+  if (compactMatch) {
+    const dateValue = new Date(Number(compactMatch[1]), Number(compactMatch[2]) - 1, Number(compactMatch[3]));
+    return Number.isNaN(dateValue.getTime()) ? NaN : dateValue.getTime();
+  }
+
+  const parsed = new Date(text);
+  return Number.isNaN(parsed.getTime()) ? NaN : parsed.getTime();
+}
+
+function getComparableRowValues(rawValue, type) {
+  if (type === 'number' || type === 'money') {
+    return [parseNumericValue(rawValue)];
+  }
+
+  if (type === 'date') {
+    return [parseComparableDateValue(rawValue)];
+  }
+
+  if (typeof rawValue === 'string' && rawValue.includes('\x1F')) {
+    return rawValue.split('\x1F').map(part => String(part).trim()).filter(Boolean);
+  }
+
+  return [String(rawValue ?? '').trim()];
+}
+
+function compareScalarCondition(actual, expected, cond, type) {
+  if (type === 'number' || type === 'money' || type === 'date') {
+    if (Number.isNaN(actual) || Number.isNaN(expected)) {
+      return false;
+    }
+
+    switch (cond) {
+      case 'greater':
+      case 'after':
+        return actual > expected;
+      case 'less':
+      case 'before':
+        return actual < expected;
+      case 'greater_or_equal':
+      case 'on_or_after':
+        return actual >= expected;
+      case 'less_or_equal':
+      case 'on_or_before':
+        return actual <= expected;
+      case 'equals':
+        return actual === expected;
+      default:
+        return false;
+    }
+  }
+
+  const actualText = String(actual || '').toLowerCase();
+  const expectedText = String(expected || '').toLowerCase();
+
+  switch (cond) {
+    case 'equals':
+      return actualText === expectedText;
+    case 'starts':
+    case 'starts_with':
+      return actualText.startsWith(expectedText);
+    case 'contains':
+      return actualText.includes(expectedText);
+    default:
+      return false;
+  }
+}
+
+function doesRowMatchPostFilter(row, field, filter) {
+  const columnIndex = baseViewData.columnMap.get(field);
+  if (columnIndex === undefined) {
+    return true;
+  }
+
+  const type = getFieldType(field);
+  const cond = String(filter?.cond || '').trim().toLowerCase();
+  const filterValue = String(filter?.val || '');
+  const rowValues = getComparableRowValues(row[columnIndex], type);
+
+  if (cond === 'between') {
+    const [leftRaw, rightRaw] = filterValue.split('|');
+    let left = leftRaw;
+    let right = rightRaw;
+
+    if (type === 'number' || type === 'money') {
+      left = parseNumericValue(leftRaw);
+      right = parseNumericValue(rightRaw);
+    } else if (type === 'date') {
+      left = parseComparableDateValue(leftRaw);
+      right = parseComparableDateValue(rightRaw);
+    }
+
+    if (Number.isNaN(left) || Number.isNaN(right)) {
+      return false;
+    }
+
+    const minValue = Math.min(left, right);
+    const maxValue = Math.max(left, right);
+    return rowValues.some(value => !Number.isNaN(value) && value >= minValue && value <= maxValue);
+  }
+
+  const comparableExpected = (type === 'number' || type === 'money')
+    ? parseNumericValue(filterValue)
+    : (type === 'date' ? parseComparableDateValue(filterValue) : filterValue);
+
+  return rowValues.some(value => compareScalarCondition(value, comparableExpected, cond, type));
+}
+
+function getFilteredRowsFromSource() {
+  const activeEntries = Object.entries(postFiltersState).filter(([, data]) => Array.isArray(data?.filters) && data.filters.length > 0);
+  if (!activeEntries.length) {
+    return baseViewData.rows.map(row => [...row]);
+  }
+
+  return baseViewData.rows
+    .filter(row => activeEntries.every(([field, data]) => data.filters.every(filter => doesRowMatchPostFilter(row, field, filter))))
+    .map(row => [...row]);
+}
+
+function updateHeaderWidthsFromCurrentState() {
+  const table = document.getElementById('example-table');
+  const headerRow = table?.querySelector('thead tr');
+  if (!headerRow) {
+    return;
+  }
+
+  headerRow.querySelectorAll('th').forEach((th, index) => {
+    const field = window.displayedFields?.[index];
+    const width = calculatedColumnWidths[field] || 150;
+    th.style.width = `${width}px`;
+    th.style.minWidth = `${width}px`;
+    th.style.maxWidth = `${width}px`;
+  });
+}
+
+function notifyPostFiltersUpdated() {
+  window.dispatchEvent(new CustomEvent('postfilters:updated', {
+    detail: {
+      filters: clonePostFiltersSnapshot(),
+      totalRows: baseViewData.rows.length,
+      filteredRows: virtualTableData.rows.length
+    }
+  }));
+}
+
+function applyPostFilters(options = {}) {
+  sanitizePostFiltersForCurrentView();
+
+  virtualTableData = {
+    headers: [...baseViewData.headers],
+    rows: getFilteredRowsFromSource(),
+    columnMap: new Map(baseViewData.columnMap)
+  };
+
+  if (options.resetScroll !== false && tableScrollContainer) {
+    tableScrollTop = 0;
+    tableScrollContainer.scrollTop = 0;
+  }
+
+  const fieldsForWidth = Array.isArray(window.displayedFields) && window.displayedFields.length
+    ? window.displayedFields
+    : virtualTableData.headers;
+  calculatedColumnWidths = calculateOptimalColumnWidths(fieldsForWidth, virtualTableData);
+
+  if (options.refreshView !== false) {
+    updateHeaderWidthsFromCurrentState();
+    renderVirtualTable();
+  }
+
+  if (typeof window.updateTableResultsLip === 'function') {
+    window.updateTableResultsLip();
+  }
+
+  if (typeof window.updateButtonStates === 'function') {
+    window.updateButtonStates();
+  }
+
+  if (options.notify !== false) {
+    notifyPostFiltersUpdated();
+  }
+}
+
+function sortRowsByColumn(rows, colIndex, type, direction) {
+  rows.sort((a, b) => {
+    let valA = a[colIndex];
+    let valB = b[colIndex];
+
+    const emptyA = valA === undefined || valA === null || valA === '';
+    const emptyB = valB === undefined || valB === null || valB === '';
+
+    if (emptyA && emptyB) return 0;
+    if (emptyA) return direction === 'asc' ? 1 : -1;
+    if (emptyB) return direction === 'asc' ? -1 : 1;
+
+    let result = 0;
+    if (type === 'number' || type === 'money') {
+      result = (parseNumericValue(valA) || 0) - (parseNumericValue(valB) || 0);
+    } else if (type === 'date') {
+      result = (parseInt(valA, 10) || 0) - (parseInt(valB, 10) || 0);
+    } else {
+      result = String(valA).localeCompare(String(valB));
+    }
+
+    return direction === 'asc' ? result : -result;
+  });
+}
+
 /**
  * Sorts the virtual table data by the specified column.
  * Toggles direction if already sorted by this column.
@@ -83,33 +385,12 @@ function sortTableBy(fieldName) {
   // Find the exact field definition for sorting typing
   const type = getFieldType(fieldName);
 
-  virtualTableData.rows.sort((a, b) => {
-    let valA = a[colIndex];
-    let valB = b[colIndex];
+  sortRowsByColumn(virtualTableData.rows, colIndex, type, currentSortDirection);
 
-    // Handle nulls/undefined/empty
-    const emptyA = valA === undefined || valA === null || valA === '';
-    const emptyB = valB === undefined || valB === null || valB === '';
-    
-    if (emptyA && emptyB) return 0;
-    if (emptyA) return currentSortDirection === 'asc' ? 1 : -1;
-    if (emptyB) return currentSortDirection === 'asc' ? -1 : 1;
-
-    let res = 0;
-    if (type === 'number' || type === 'money') {
-      const numA = parseNumericValue(valA);
-      const numB = parseNumericValue(valB);
-      res = (numA || 0) - (numB || 0);
-    } else if (type === 'date') {
-      const numA = parseInt(valA, 10) || 0;
-      const numB = parseInt(valB, 10) || 0;
-      res = numA - numB;
-    } else {
-      res = String(valA).localeCompare(String(valB));
-    }
-
-    return currentSortDirection === 'asc' ? res : -res;
-  });
+  const sourceColIndex = baseViewData.columnMap.get(fieldName);
+  if (sourceColIndex !== undefined && Array.isArray(baseViewData.rows)) {
+    sortRowsByColumn(baseViewData.rows, sourceColIndex, type, currentSortDirection);
+  }
 
   // Re-render and update headers UI
   renderVirtualTable();
@@ -547,6 +828,12 @@ function clearVirtualTableData() {
     rows: [],
     columnMap: new Map()
   };
+  baseViewData = {
+    headers: [],
+    rows: [],
+    columnMap: new Map()
+  };
+  Object.keys(postFiltersState).forEach(key => delete postFiltersState[key]);
   calculatedColumnWidths = {};
   tableScrollTop = 0;
   tableScrollContainer = null;
@@ -561,10 +848,13 @@ function clearVirtualTableData() {
 function getVirtualTableState() {
   return {
     virtualTableData,
+    baseViewData,
     calculatedColumnWidths,
     tableRowHeight,
     tableScrollTop,
-    tableScrollContainer
+    tableScrollContainer,
+    currentSortColumn,
+    currentSortDirection
   };
 }
 
@@ -639,7 +929,7 @@ function expandMultiValueColumns() {
     return newRow;
   });
 
-  virtualTableData = { headers: newHeaders, rows: newRows, columnMap: newColumnMap };
+  baseViewData = { headers: newHeaders, rows: newRows, columnMap: newColumnMap };
 }
 
 /**
@@ -667,7 +957,7 @@ function setSplitColumnsMode(active) {
   } else {
     // Restore raw data
     if (rawTableData && rawTableData.headers.length > 0) {
-      virtualTableData = {
+      baseViewData = {
         headers: [...rawTableData.headers],
         rows: rawTableData.rows.map(r => [...r]),
         columnMap: new Map(rawTableData.columnMap)
@@ -675,8 +965,10 @@ function setSplitColumnsMode(active) {
     }
   }
 
+  applyPostFilters({ refreshView: false, notify: true, resetScroll: false });
+
   // Keep query-state columns aligned with the active split/stacked header set.
-  window.QueryChangeManager.replaceDisplayedFields(virtualTableData.headers, { source: 'VirtualTable.setSplitMode' });
+  window.QueryChangeManager.replaceDisplayedFields(baseViewData.headers, { source: 'VirtualTable.setSplitMode' });
 
   // Recalculate column widths and re-render
   calculatedColumnWidths = calculateOptimalColumnWidths(virtualTableData.headers, virtualTableData);
@@ -684,7 +976,7 @@ function setSplitColumnsMode(active) {
 
   // Rebuild the example table fallback when it exists.
   if (typeof showExampleTable === 'function') {
-    showExampleTable(virtualTableData.headers).catch(() => {});
+    showExampleTable(baseViewData.headers).catch(() => {});
   }
 }
 
@@ -692,17 +984,15 @@ window.VirtualTable = {
   // State
   get virtualTableData() { return virtualTableData; },
   set virtualTableData(v) {
-    virtualTableData = v;
+    const nextData = cloneTableData(v);
     // When new data is loaded from outside, update rawTableData so split mode
     // always has a fresh snapshot to work from.
-    rawTableData = {
-      headers: [...v.headers],
-      rows: v.rows.map(r => [...r]),
-      columnMap: new Map(v.columnMap)
-    };
+    rawTableData = cloneTableData(nextData);
+    baseViewData = cloneTableData(nextData);
     // Reset split mode — caller will re-expand if needed
     splitColumnsActive = false;
     window.splitColumnsActive = false;
+    applyPostFilters({ refreshView: false, notify: true, resetScroll: false });
     // Reset the toggle button UI if present
     if (typeof window.resetSplitColumnsToggleUI === 'function') {
       window.resetSplitColumnsToggleUI();
@@ -731,6 +1021,33 @@ window.VirtualTable = {
   sortTableBy,
   setSplitColumnsMode,
   expandMultiValueColumns,
+  getPostFilterState: clonePostFiltersSnapshot,
+  replacePostFilters(nextFilters, options = {}) {
+    assignPostFilters(nextFilters);
+    applyPostFilters({
+      refreshView: options.refreshView !== false,
+      notify: options.notify !== false,
+      resetScroll: options.resetScroll !== false
+    });
+  },
+  clearPostFilters(options = {}) {
+    assignPostFilters({});
+    applyPostFilters({
+      refreshView: options.refreshView !== false,
+      notify: options.notify !== false,
+      resetScroll: options.resetScroll !== false
+    });
+  },
+  hasPostFilters() {
+    return Object.values(postFiltersState).some(data => Array.isArray(data?.filters) && data.filters.length > 0);
+  },
+  getPostFilterStats() {
+    return {
+      totalRows: baseViewData.rows.length,
+      filteredRows: virtualTableData.rows.length
+    };
+  },
   get splitColumnsActive() { return splitColumnsActive; },
-  get rawTableData() { return rawTableData; }
+  get rawTableData() { return rawTableData; },
+  get baseViewData() { return baseViewData; }
 };
