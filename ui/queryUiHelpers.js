@@ -125,27 +125,17 @@ window.copyQueryJsonToClipboard = async function() {
     : (queryBox?.textContent || '');
   if (!rawJson) return;
 
-  try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(rawJson);
-    } else {
-      const scratch = document.createElement('textarea');
-      scratch.value = rawJson;
-      scratch.setAttribute('readonly', '');
-      scratch.style.position = 'fixed';
-      scratch.style.opacity = '0';
-      document.body.appendChild(scratch);
-      scratch.select();
-      document.execCommand('copy');
-      scratch.remove();
+  await window.ClipboardUtils.copy(rawJson, {
+    showToast: false,
+    logger: (message, error) => {
+      console.error('Failed to copy JSON:', error);
+    },
+    onSuccess: () => {
+      const copyBtn = document.getElementById('copy-json-btn');
+      copyBtn?.classList.add('copied');
+      setTimeout(() => copyBtn?.classList.remove('copied'), 1200);
     }
-
-    const copyBtn = document.getElementById('copy-json-btn');
-    copyBtn?.classList.add('copied');
-    setTimeout(() => copyBtn?.classList.remove('copied'), 1200);
-  } catch (error) {
-    console.error('Failed to copy JSON:', error);
-  }
+  });
 };
 
 window.updateQueryJson = function(){

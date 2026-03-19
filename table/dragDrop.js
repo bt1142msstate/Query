@@ -165,21 +165,10 @@ async function copyColumnValuesByFieldName(fieldName) {
     .map(row => formatColumnClipboardValue(row[columnIndex], fieldName))
     .join('\n');
 
-  try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(rawText);
-    }
-
-    if (window.showToastMessage) {
-      window.showToastMessage(`${fieldName} values copied to clipboard.`, 'success');
-    }
-    return true;
-  } catch (error) {
-    if (window.showToastMessage) {
-      window.showToastMessage(`Failed to copy ${fieldName} values.`, 'error');
-    }
-    return false;
-  }
+  return window.ClipboardUtils.copy(rawText, {
+    successMessage: `${fieldName} values copied to clipboard.`,
+    errorMessage: `Failed to copy ${fieldName} values.`
+  });
 }
 
 const headerActions = document.createElement('div');

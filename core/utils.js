@@ -151,6 +151,67 @@ window.OperatorLabels = (() => {
   };
 })();
 
+window.ClipboardUtils = (() => {
+  async function copyWithFallback(text) {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+
+    const scratch = document.createElement('textarea');
+    scratch.value = text;
+    scratch.setAttribute('readonly', '');
+    scratch.style.position = 'fixed';
+    scratch.style.opacity = '0';
+    document.body.appendChild(scratch);
+    scratch.select();
+    document.execCommand('copy');
+    scratch.remove();
+  }
+
+  async function copy(text, options = {}) {
+    const {
+      successMessage = '',
+      errorMessage = '',
+      showToast = true,
+      onSuccess = null,
+      onError = null,
+      logger = console.error
+    } = options;
+
+    const rawText = String(text || '');
+    if (!rawText) {
+      return false;
+    }
+
+    try {
+      await copyWithFallback(rawText);
+      if (showToast && successMessage && typeof window.showToastMessage === 'function') {
+        window.showToastMessage(successMessage, 'success');
+      }
+      if (typeof onSuccess === 'function') {
+        onSuccess();
+      }
+      return true;
+    } catch (error) {
+      if (showToast && errorMessage && typeof window.showToastMessage === 'function') {
+        window.showToastMessage(errorMessage, 'error');
+      }
+      if (typeof onError === 'function') {
+        onError(error);
+      } else if (typeof logger === 'function') {
+        logger('Clipboard copy failed:', error);
+      }
+      return false;
+    }
+  }
+
+  return {
+    copy,
+    copyWithFallback
+  };
+})();
+
 window.MoneyUtils = (() => {
   function sanitizeInputValue(rawValue) {
     const text = String(rawValue || '');

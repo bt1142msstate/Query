@@ -98,18 +98,10 @@ function ensureFilterListViewer() {
         const rawText = (panel._viewerState.values || []).join("\n");
         if (!rawText) return;
 
-        try {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                await navigator.clipboard.writeText(rawText);
-            }
-            if (window.showToastMessage) {
-                window.showToastMessage('List copied to clipboard.', 'success');
-            }
-        } catch (error) {
-            if (window.showToastMessage) {
-                window.showToastMessage('Failed to copy list.', 'error');
-            }
-        }
+        await window.ClipboardUtils.copy(rawText, {
+            successMessage: 'List copied to clipboard.',
+            errorMessage: 'Failed to copy list.'
+        });
     });
     panel.querySelector('#filter-list-viewer-download').addEventListener('click', () => {
         const rawText = (panel._viewerState.values || []).join("\n");
