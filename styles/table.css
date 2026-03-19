@@ -436,6 +436,18 @@ body.dragging-cursor * {
 
 .sort-icon {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0.9rem;
+  margin-left: 0.1rem;
+  color: #94a3b8;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.sort-icon.is-active {
+  color: #16a34a;
 }
 
 .th-actions {
@@ -569,40 +581,8 @@ body.table-expanded-open .th-insert-button {
   transform: rotate(180deg);
 }
 
-.th-sort.is-animating {
-  animation: th-sort-pop 0.42s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.th-sort.is-animating .th-sort-icon {
-  animation: th-sort-swish 0.42s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
 .th-trash:hover {
   color: var(--color-red-500);
-}
-
-@keyframes th-sort-pop {
-  0% {
-    transform: scale(1);
-  }
-  45% {
-    transform: translateY(-1px) scale(1.08);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-@keyframes th-sort-swish {
-  0% {
-    transform: rotate(0deg) scale(1);
-  }
-  50% {
-    transform: rotate(22deg) scale(1.12);
-  }
-  100% {
-    transform: rotate(0deg) scale(1);
-  }
 }
 
 #example-table th:hover .th-actions,

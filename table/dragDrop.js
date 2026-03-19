@@ -182,12 +182,6 @@ function syncHeaderSortActionState(th = dragDropManager.hoverTh) {
   headerSort.setAttribute('data-tooltip', !isSortable ? 'Sorting unavailable' : (isActive ? `Sorted ${sortDirection === 'asc' ? 'ascending' : 'descending'} - click to reverse` : 'Sort ascending'));
 }
 
-function animateHeaderSortButton() {
-  headerSort.classList.remove('is-animating');
-  void headerSort.offsetWidth;
-  headerSort.classList.add('is-animating');
-}
-
 const headerInsertAffordance = document.createElement('div');
 headerInsertAffordance.className = 'th-insert-affordance';
 headerInsertAffordance.appendChild(headerInsertButton);
@@ -1317,7 +1311,6 @@ headerSort.addEventListener('click', e => {
   }
 
   window.VirtualTable.sortTableBy(fieldName);
-  animateHeaderSortButton();
   syncHeaderSortActionState(th);
 });
 
