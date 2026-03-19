@@ -17,6 +17,7 @@ function getBubblePanelConditionInputElement() {
 function getBubblePanelConfirmButtonElement() {
   return window.DOM?.confirmBtn || document.getElementById('confirm-btn');
 }
+const { getDisplayedFields, getFieldFilters } = window.QueryStateReaders;
 
 function isListPasteField(fieldDef) {
   return Boolean(fieldDef && fieldDef.allowValueList && (!fieldDef.values || fieldDef.values.length === 0));
@@ -43,9 +44,7 @@ function getPreferredCondition(conditions, fieldName) {
   const available = Array.isArray(conditions) ? conditions.filter(Boolean) : [];
   if (!available.length) return '';
 
-  const activeFieldFilters = window.activeFilters && fieldName
-    ? window.activeFilters[fieldName]
-    : null;
+  const activeFieldFilters = fieldName ? getFieldFilters(fieldName) : null;
   const filterConds = activeFieldFilters && Array.isArray(activeFieldFilters.filters)
     ? activeFieldFilters.filters.map(filter => String(filter.cond || '').trim().toLowerCase())
     : [];
@@ -157,7 +156,7 @@ function buildBubbleConditionPanel(bubble) {
       btn.className = 'toggle-half';
       btn.dataset.cond = label.toLowerCase();
       btn.textContent = label;
-      if (label === 'Show' ? displayedFields.includes(selectedField) : !displayedFields.includes(selectedField)) {
+      if (label === 'Show' ? getDisplayedFields().includes(selectedField) : !getDisplayedFields().includes(selectedField)) {
         btn.classList.add('active');
       }
       toggleGroup.appendChild(btn);
@@ -180,8 +179,9 @@ function buildBubbleConditionPanel(bubble) {
     if (existingContainer) existingContainer.parentNode.removeChild(existingContainer);
 
     let currentLiteralValues = [];
-    if (activeFilters[selectedField]) {
-      const filter = activeFilters[selectedField].filters.find(f => f.cond === 'equals');
+    const selectedFieldFilters = getFieldFilters(selectedField);
+    if (selectedFieldFilters) {
+      const filter = selectedFieldFilters.filters.find(f => f.cond === 'equals');
       if (filter) {
         currentLiteralValues = filter.val.split(',').map(v => v.trim());
       }
@@ -214,8 +214,9 @@ function buildBubbleConditionPanel(bubble) {
 
     if (isListPasteField(fieldDefInfo) && typeof window.createListPasteInput === 'function') {
       let currentLiteralValues = [];
-      if (activeFilters[selectedField]) {
-        const filter = activeFilters[selectedField].filters.find(f => f.cond === 'equals');
+      const selectedFieldFilters = getFieldFilters(selectedField);
+      if (selectedFieldFilters) {
+        const filter = selectedFieldFilters.filters.find(f => f.cond === 'equals');
         if (filter) {
           currentLiteralValues = String(filter.val).split(',').map(v => v.trim()).filter(Boolean);
         }

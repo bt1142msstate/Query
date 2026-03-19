@@ -71,6 +71,7 @@ const UI_FILTER_TO_BACKEND = {
   contains: [{ operator: '=', valueTransform: value => `*${value}*` }],
   does_not_contain: [{ operator: '!=', valueTransform: value => `*${value}*` }]
 };
+const { getDisplayedFields, getActiveFilters } = window.QueryStateReaders;
 
 window.mapFieldOperatorToUiCond = function(operator) {
   const normalized = String(operator || '').trim();
@@ -157,7 +158,7 @@ function getCanonicalPayloadFieldName(fieldName) {
     : String(normalizedFieldName || '').trim();
 }
 
-window.getNormalizedDisplayedFields = function(fields = window.displayedFields) {
+window.getNormalizedDisplayedFields = function(fields = getDisplayedFields()) {
   return [...fields]
     .map(field => getCanonicalPayloadFieldName(field))
     .filter(field => {
@@ -247,9 +248,9 @@ window.collectCurrentSpecialFields = function() {
     }
   };
 
-  (window.displayedFields || []).forEach(appendSpecialPayload);
+  getDisplayedFields().forEach(appendSpecialPayload);
 
-  Object.entries(window.activeFilters || {}).forEach(([fieldName, filterGroup]) => {
+  Object.entries(getActiveFilters()).forEach(([fieldName, filterGroup]) => {
     if (!filterGroup || !Array.isArray(filterGroup.filters) || filterGroup.filters.length === 0) {
       return;
     }
@@ -262,7 +263,7 @@ window.collectCurrentSpecialFields = function() {
 window.buildBackendFilters = function() {
   const filters = [];
 
-  Object.entries(window.activeFilters).forEach(([fieldName, filterGroup]) => {
+  Object.entries(getActiveFilters()).forEach(([fieldName, filterGroup]) => {
     const canonicalFieldName = getCanonicalPayloadFieldName(fieldName);
     const fieldDef = window.fieldDefs ? window.fieldDefs.get(canonicalFieldName) : null;
     if (fieldDef && fieldDef.is_buildable) return;
@@ -299,7 +300,7 @@ window.buildBackendQueryPayload = function(queryName = '') {
     ? window.collectCurrentSpecialFields()
     : [];
 
-  window.displayedFields.forEach(field => {
+  getDisplayedFields().forEach(field => {
     const canonicalFieldName = getCanonicalPayloadFieldName(field);
     const fieldDef = window.fieldDefs ? window.fieldDefs.get(canonicalFieldName) : null;
     if (fieldDef && fieldDef.special_payload) {

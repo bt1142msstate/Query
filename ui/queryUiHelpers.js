@@ -276,15 +276,18 @@ window.initializeSearchInputs = function(root = document) {
 window.shouldFieldHavePurpleStyling = function(fieldName) {
   if (!fieldName) return false;
 
+  const displayedFields = window.QueryChangeManager?.getDisplayedFields?.() || [];
+  const activeFilters = window.QueryChangeManager?.getActiveFilters?.() || {};
+
   if (window.shouldFieldHavePurpleStylingBase) {
-    return window.shouldFieldHavePurpleStylingBase(fieldName, window.displayedFields, window.activeFilters);
+    return window.shouldFieldHavePurpleStylingBase(fieldName, displayedFields, activeFilters);
   }
 
   return !!(
-    window.displayedFields && window.displayedFields.includes(fieldName) ||
-    window.activeFilters && window.activeFilters[fieldName] &&
-    window.activeFilters[fieldName].filters &&
-    window.activeFilters[fieldName].filters.length > 0
+    displayedFields.includes(fieldName) ||
+    activeFilters[fieldName] &&
+    activeFilters[fieldName].filters &&
+    activeFilters[fieldName].filters.length > 0
   );
 };
 

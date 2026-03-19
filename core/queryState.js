@@ -58,9 +58,24 @@ const displayedFieldsState = [];
 const activeFiltersState = {};
 const queryStateSubscribers = new Set();
 const readOnlyProxyCache = new WeakMap();
+const legacyReadWarnings = new Set();
 
 function warnReadOnlyQueryStateMutation(path) {
   console.warn(`Direct query state mutation blocked for ${path}. Use window.QueryChangeManager instead.`);
+}
+
+function warnLegacyQueryStateRead(path) {
+  if (legacyReadWarnings.has(path)) {
+    return;
+  }
+
+  legacyReadWarnings.add(path);
+  console.warn(`Direct query state read via ${path} is deprecated. Use window.QueryChangeManager read methods instead.`);
+}
+
+function throwLegacyQueryStateRead(path) {
+  warnLegacyQueryStateRead(path);
+  throw new Error(`Direct query state read via ${path} is blocked. Use window.QueryChangeManager read methods instead.`);
 }
 
 function createReadOnlyQueryStateProxy(target, path) {
@@ -150,6 +165,23 @@ function cloneActiveFiltersSnapshot() {
   );
 }
 
+function cloneDisplayedFieldsSnapshot() {
+  return displayedFieldsState.slice();
+}
+
+function cloneFieldFiltersSnapshot(fieldName) {
+  const normalizedField = String(fieldName || '').trim();
+  if (!normalizedField || !activeFiltersState[normalizedField]) {
+    return { filters: [] };
+  }
+
+  return {
+    filters: Array.isArray(activeFiltersState[normalizedField].filters)
+      ? activeFiltersState[normalizedField].filters.map(cloneFilterEntry)
+      : []
+  };
+}
+
 function assignDisplayedFields(nextFields) {
   displayedFieldsState.length = 0;
   if (!Array.isArray(nextFields)) {
@@ -204,7 +236,7 @@ function normalizeFilterInput(filter) {
 
 function getQueryStateSnapshot() {
   return {
-    displayedFields: displayedFieldsState.slice(),
+    displayedFields: cloneDisplayedFieldsSnapshot(),
     activeFilters: cloneActiveFiltersSnapshot(),
     groupMethod: window.VirtualTable?.simpleTableInstance?.groupMethod || 'ExpandIntoColumns'
   };
@@ -284,6 +316,23 @@ function notifyQueryStateSubscribers(changes = {}, meta = {}) {
 const queryStateStore = {
   getSnapshot() {
     return getQueryStateSnapshot();
+  },
+  getDisplayedFields() {
+    return cloneDisplayedFieldsSnapshot();
+  },
+  getActiveFilters() {
+    return cloneActiveFiltersSnapshot();
+  },
+  getFieldFilters(fieldName) {
+    return cloneFieldFiltersSnapshot(fieldName);
+  },
+  hasDisplayedField(fieldName) {
+    const normalizedField = String(fieldName || '').trim();
+    return Boolean(normalizedField) && displayedFieldsState.includes(normalizedField);
+  },
+  hasActiveFilters(fieldName) {
+    const normalizedField = String(fieldName || '').trim();
+    return Boolean(normalizedField && activeFiltersState[normalizedField] && Array.isArray(activeFiltersState[normalizedField].filters) && activeFiltersState[normalizedField].filters.length > 0);
   },
   subscribe(listener) {
     if (typeof listener !== 'function') {
@@ -508,6 +557,21 @@ const queryChangeManager = {
   getSnapshot() {
     return queryStateStore.getSnapshot();
   },
+  getDisplayedFields() {
+    return queryStateStore.getDisplayedFields();
+  },
+  getActiveFilters() {
+    return queryStateStore.getActiveFilters();
+  },
+  getFieldFilters(fieldName) {
+    return queryStateStore.getFieldFilters(fieldName);
+  },
+  hasDisplayedField(fieldName) {
+    return queryStateStore.hasDisplayedField(fieldName);
+  },
+  hasActiveFilters(fieldName) {
+    return queryStateStore.hasActiveFilters(fieldName);
+  },
   subscribe(listener) {
     return queryStateStore.subscribe(listener);
   },
@@ -543,12 +607,40 @@ const queryChangeManager = {
   }
 };
 
+const queryStateReaders = Object.freeze({
+  getSnapshot() {
+    return queryChangeManager.getSnapshot();
+  },
+  getDisplayedFields() {
+    return queryChangeManager.getDisplayedFields();
+  },
+  getActiveFilters() {
+    return queryChangeManager.getActiveFilters();
+  },
+  getFieldFilters(fieldName) {
+    return queryChangeManager.getFieldFilters(fieldName);
+  },
+  hasDisplayedField(fieldName) {
+    return queryChangeManager.hasDisplayedField(fieldName);
+  },
+  hasActiveFilters(fieldName) {
+    return queryChangeManager.hasActiveFilters(fieldName);
+  }
+});
+
 Object.freeze(queryChangeManager);
 Object.defineProperty(window, 'QueryChangeManager', {
   configurable: false,
   enumerable: false,
   writable: false,
   value: queryChangeManager
+});
+
+Object.defineProperty(window, 'QueryStateReaders', {
+  configurable: false,
+  enumerable: false,
+  writable: false,
+  value: queryStateReaders
 });
 
 Object.defineProperty(window, 'QueryStateStore', {
@@ -566,7 +658,7 @@ Object.defineProperty(window, 'QueryStateStore', {
 Object.defineProperty(window, 'displayedFields', {
   configurable: false,
   get() {
-    return createReadOnlyQueryStateProxy(displayedFieldsState, 'window.displayedFields');
+    throwLegacyQueryStateRead('window.displayedFields');
   },
   set() {
     warnReadOnlyQueryStateMutation('window.displayedFields');
@@ -576,7 +668,7 @@ Object.defineProperty(window, 'displayedFields', {
 Object.defineProperty(window, 'activeFilters', {
   configurable: false,
   get() {
-    return createReadOnlyQueryStateProxy(activeFiltersState, 'window.activeFilters');
+    throwLegacyQueryStateRead('window.activeFilters');
   },
   set() {
     warnReadOnlyQueryStateMutation('window.activeFilters');
@@ -588,8 +680,11 @@ Object.defineProperty(window, 'activeFilters', {
  * @returns {Object} snapshot of current query configuration
  */
 window.getCurrentQueryState = function() {
+  const displayedFields = queryChangeManager.getDisplayedFields();
+  const activeFilters = queryChangeManager.getActiveFilters();
+
   // Use base field names only (no duplicates like "2nd Marc590")
-  const baseFields = [...window.displayedFields]
+  const baseFields = [...displayedFields]
     .filter(field => {
       const def = window.fieldDefs ? window.fieldDefs.get(field) : null;
       return !(def && def.is_buildable);
@@ -605,7 +700,7 @@ window.getCurrentQueryState = function() {
   return {
     displayedFields: baseFields,
     activeFilters: Object.fromEntries(
-      Object.entries(window.activeFilters || {}).map(([field, data]) => [
+      Object.entries(activeFilters || {}).map(([field, data]) => [
         field,
         { filters: JSON.parse(JSON.stringify((data && data.filters) || [])) }
       ])

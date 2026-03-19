@@ -38,6 +38,7 @@ const HEADER_TEXT_BALANCE_SPACE = 116;
 // Keep track of sorting state
 let currentSortColumn = null;
 let currentSortDirection = 'asc'; // 'asc' or 'desc'
+const { getDisplayedFields } = window.QueryStateReaders;
 
 function getFieldDefinition(fieldName) {
   return window.ValueFormatting.getFieldDefinition(fieldName);
@@ -151,7 +152,7 @@ function assignPostFilters(nextFilters) {
 
 function getVisibleFieldSet() {
   return new Set(
-    (Array.isArray(window.displayedFields) ? window.displayedFields : [])
+    getDisplayedFields()
       .map(field => String(field || '').trim())
       .filter(Boolean)
   );
@@ -429,7 +430,7 @@ function updateHeaderWidthsFromCurrentState() {
   }
 
   headerRow.querySelectorAll('th').forEach((th, index) => {
-    const field = window.displayedFields?.[index];
+    const field = getDisplayedFields()[index];
     const width = calculatedColumnWidths[field] || 150;
     th.style.width = `${width}px`;
     th.style.minWidth = `${width}px`;
@@ -461,8 +462,9 @@ function applyPostFilters(options = {}) {
     tableScrollContainer.scrollTop = 0;
   }
 
-  const fieldsForWidth = Array.isArray(window.displayedFields) && window.displayedFields.length
-    ? window.displayedFields
+  const displayedFields = getDisplayedFields();
+  const fieldsForWidth = displayedFields.length
+    ? displayedFields
     : virtualTableData.headers;
   calculatedColumnWidths = calculateOptimalColumnWidths(fieldsForWidth, virtualTableData);
 
@@ -581,7 +583,8 @@ function calculateVisibleRows() {
  * @function renderVirtualTable
  */
 function renderVirtualTable() {
-  if (!tableScrollContainer || !virtualTableData.rows || !virtualTableData.rows.length || !window.displayedFields || !window.displayedFields.length) return;
+  const displayedFields = getDisplayedFields();
+  if (!tableScrollContainer || !virtualTableData.rows || !virtualTableData.rows.length || !displayedFields.length) return;
   
   const table = tableScrollContainer.querySelector('#example-table');
   if (!table) return;
@@ -606,7 +609,7 @@ function renderVirtualTable() {
   if (start > 0) {
     const topSpacer = document.createElement('tr');
     const spacerCell = document.createElement('td');
-    spacerCell.setAttribute('colspan', window.displayedFields.length.toString());
+    spacerCell.setAttribute('colspan', displayedFields.length.toString());
     spacerCell.style.height = `${start * tableRowHeight}px`;
     spacerCell.style.padding = '0';
     spacerCell.style.border = 'none';
@@ -620,7 +623,7 @@ function renderVirtualTable() {
     const tr = window.TableBuilder.createRow();
     tr.style.height = `${tableRowHeight}px`;
     
-    window.displayedFields.forEach((field, colIndex) => {
+    displayedFields.forEach((field, colIndex) => {
       const td = window.TableBuilder.createCell('', 'px-6 py-3 whitespace-nowrap text-sm text-gray-900');
       td.dataset.colIndex = colIndex;
       
@@ -741,7 +744,7 @@ function renderVirtualTable() {
   if (remainingRows > 0) {
     const bottomSpacer = document.createElement('tr');
     const spacerCell = document.createElement('td');
-    spacerCell.setAttribute('colspan', window.displayedFields.length.toString());
+    spacerCell.setAttribute('colspan', displayedFields.length.toString());
     spacerCell.style.height = `${remainingRows * tableRowHeight}px`;
     spacerCell.style.padding = '0';
     spacerCell.style.border = 'none';

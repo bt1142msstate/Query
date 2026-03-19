@@ -1,5 +1,6 @@
 (function() {
   let equalsValueControl = null;
+  const { getDisplayedFields } = window.QueryStateReaders;
 
   function getElements() {
     return {
@@ -34,7 +35,7 @@
   }
 
   function getAvailableFields() {
-    const displayedFields = Array.isArray(window.displayedFields) ? window.displayedFields : [];
+    const displayedFields = getDisplayedFields();
     const columnMap = window.VirtualTable?.baseViewData?.columnMap;
 
     return displayedFields.filter(field => columnMap instanceof Map && columnMap.has(field));

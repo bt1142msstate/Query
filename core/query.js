@@ -3,6 +3,7 @@
 // (queryState.js, toast.js, queryUI.js, etc.)
 
 const dom = window.DOM;
+const { getDisplayedFields, getActiveFilters } = window.QueryStateReaders;
 
 // Pressing Enter in any condition field = click Confirm
 ['condition-input','condition-input-2','condition-select'].forEach(id=>{
@@ -403,7 +404,7 @@ function restoreEmptyTableDropTarget(container) {
     if (field) {
       window.DragDropSystem.dragDropManager.dropSuccessful = true;
       window.DragDropSystem.restoreFieldWithDuplicates(field);
-      showExampleTable(window.displayedFields, { syncQueryState: false }).catch(error => {
+      showExampleTable(getDisplayedFields(), { syncQueryState: false }).catch(error => {
         console.error('Error updating table:', error);
       });
     }
@@ -416,7 +417,7 @@ function restoreEmptyTableDropTarget(container) {
   });
 
   container.addEventListener('dragover', () => {
-    if (window.displayedFields.length === 0) {
+    if (getDisplayedFields().length === 0) {
       placeholderTh.classList.add('th-drag-over');
     }
   });
@@ -662,7 +663,7 @@ if (dom.groupMethodSelect) {
         });
         
         // Refresh the table display
-        await showExampleTable(window.displayedFields, { syncQueryState: false });
+        await showExampleTable(getDisplayedFields(), { syncQueryState: false });
         updateQueryJson();
         updateButtonStates();
       }
@@ -702,7 +703,7 @@ async function showExampleTable(fields, options = {}){
   const syncQueryState = options.syncQueryState !== false;
 
   if(!Array.isArray(fields) || fields.length === 0){
-    if (syncQueryState && Array.isArray(window.displayedFields) && window.displayedFields.length > 0) {
+    if (syncQueryState && getDisplayedFields().length > 0) {
       window.QueryChangeManager.replaceDisplayedFields([], { source: 'Query.showExampleTable.empty' });
     } else {
       renderEmptyQueryTableState();
@@ -720,7 +721,7 @@ async function showExampleTable(fields, options = {}){
   if (syncQueryState) {
     const currentDisplayedFields = window.QueryChangeManager && typeof window.QueryChangeManager.getSnapshot === 'function'
       ? window.QueryChangeManager.getSnapshot().displayedFields
-      : Array.from(window.displayedFields || []);
+      : getDisplayedFields();
 
     if (!areDisplayedFieldsEqual(currentDisplayedFields, uniqueFields)) {
       window.QueryChangeManager.replaceDisplayedFields(uniqueFields, { source: 'Query.showExampleTable' });
@@ -927,7 +928,7 @@ function updateCategoryCounts() {
     return;
   }
 
-  const categoryCounts = calculateCategoryCounts(displayedFields, activeFilters);
+  const categoryCounts = calculateCategoryCounts(getDisplayedFields(), getActiveFilters());
   renderCategorySelectorsLocal(categoryCounts);
 
   // If we're in the Selected category and the count is 0, switch to All

@@ -7,6 +7,7 @@
 // Use shared utility function from query.js
 
 // Store information about removed columns - Managed in columnManager.js
+const { getDisplayedFields } = window.QueryStateReaders;
 
 
 /**
@@ -26,7 +27,7 @@ function addColumn(fieldName, insertAt = -1) {
   
   if (success) {
     // Trigger the same updates as successful drag/drop
-    showExampleTable(window.displayedFields, { syncQueryState: false });
+    showExampleTable(getDisplayedFields(), { syncQueryState: false });
     updateQueryJson();
     updateButtonStates();
     updateCategoryCounts();
@@ -373,7 +374,7 @@ function createColumnDragGhost(th, relatedIndices) {
   
   // Get sample data from the column
   const colIndex = parseInt(th.dataset.colIndex, 10);
-  const fieldName = window.displayedFields[colIndex];
+  const fieldName = getDisplayedFields()[colIndex];
   const sampleData = getSampleColumnData(fieldName, 3); // Get 3 sample values
   
   sampleData.forEach((value, index) => {
@@ -465,11 +466,12 @@ function positionDropAnchor(rect, table, clientX, colIndex) {
   const insertAt = insertLeft ? colIndex : colIndex + 1;
   
   // Check if this position would be within a duplicate group
-  if (window.displayedFields && window.displayedFields.length > 1 && 
-      insertAt > 0 && insertAt < window.displayedFields.length) {
+  const displayedFields = getDisplayedFields();
+  if (displayedFields.length > 1 && 
+      insertAt > 0 && insertAt < displayedFields.length) {
     
-    const beforeField = window.displayedFields[insertAt - 1];
-    const afterField = window.displayedFields[insertAt];
+    const beforeField = displayedFields[insertAt - 1];
+    const afterField = displayedFields[insertAt];
     
     if (beforeField && afterField) {
       const beforeBase = window.getBaseFieldName(beforeField);
@@ -563,7 +565,7 @@ function refreshColIndices(table) {
 function moveColumn(table, fromIndex, toIndex) {
   if (fromIndex === toIndex) return;
 
-  const fromFieldName = window.displayedFields[fromIndex];
+  const fromFieldName = getDisplayedFields()[fromIndex];
   if (!fromFieldName) return;
   
   // Find all related columns (including duplicates)
@@ -615,7 +617,7 @@ function moveColumnGroup(table, groupIndices, targetIndex) {
   const headerRow = table.querySelector('thead tr');
   if (headerRow) {
     headerRow.innerHTML = '';
-    window.displayedFields.forEach((field, index) => {
+    getDisplayedFields().forEach((field, index) => {
       // Check if this field exists in the current data
       const virtualTableData = window.VirtualTable?.virtualTableData;
       const fieldExistsInData = virtualTableData && virtualTableData.columnMap && virtualTableData.columnMap.has(field);
@@ -651,13 +653,14 @@ function moveColumnGroup(table, groupIndices, targetIndex) {
 function finalizeMoveOperation(table) {
   // 3️⃣ Recalculate column widths for new order
   if (VirtualTable.virtualTableData.rows && VirtualTable.virtualTableData.rows.length > 0) {
-    VirtualTable.calculatedColumnWidths = VirtualTable.calculateOptimalColumnWidths(window.displayedFields, VirtualTable.virtualTableData);
+    const displayedFields = getDisplayedFields();
+    VirtualTable.calculatedColumnWidths = VirtualTable.calculateOptimalColumnWidths(displayedFields, VirtualTable.virtualTableData);
     
     // Update header widths
     const headerRow = table.querySelector('thead tr');
     if (headerRow) {
       headerRow.querySelectorAll('th').forEach((th, index) => {
-        const field = window.displayedFields[index];
+        const field = getDisplayedFields()[index];
         const width = VirtualTable.calculatedColumnWidths[field] || 150;
         th.style.width = `${width}px`;
         th.style.minWidth = `${width}px`;
@@ -728,16 +731,17 @@ function removeColumn(table, colIndex) {
   });
 
   // Re-render virtual table with new column structure
-  if (window.displayedFields.length > 0) {
+  const displayedFields = getDisplayedFields();
+  if (displayedFields.length > 0) {
     // Recalculate column widths for remaining fields
     if (VirtualTable.virtualTableData.rows && VirtualTable.virtualTableData.rows.length > 0) {
-      VirtualTable.calculatedColumnWidths = VirtualTable.calculateOptimalColumnWidths(window.displayedFields, VirtualTable.virtualTableData);
+      VirtualTable.calculatedColumnWidths = VirtualTable.calculateOptimalColumnWidths(displayedFields, VirtualTable.virtualTableData);
       
       // Update remaining header widths
       const headerRow = table.querySelector('thead tr');
       if (headerRow) {
         headerRow.querySelectorAll('th').forEach((th, index) => {
-          const field = window.displayedFields[index];
+          const field = displayedFields[index];
           const width = VirtualTable.calculatedColumnWidths[field] || 150;
           th.style.width = `${width}px`;
           th.style.minWidth = `${width}px`;
@@ -771,8 +775,8 @@ function removeColumn(table, colIndex) {
   // Update button states after removing column
   updateButtonStates();
   // If no columns left, reset to placeholder view
-  if (window.displayedFields.length === 0) {
-    showExampleTable(window.displayedFields, { syncQueryState: false });
+  if (displayedFields.length === 0) {
+    showExampleTable(displayedFields, { syncQueryState: false });
   }
   // Update category counts after removing column
   updateCategoryCounts();
@@ -814,7 +818,7 @@ function attachBubbleDropTarget(container) {
     if (field) {
       if (restoreFieldWithDuplicates(field)) {
         dragDropManager.dropSuccessful = true;
-        showExampleTable(window.displayedFields, { syncQueryState: false });
+        showExampleTable(getDisplayedFields(), { syncQueryState: false });
       }
     }
     clearDropAnchor();
@@ -972,7 +976,7 @@ const dragDropManager = {
     
     // Check if this is part of a group with duplicates
     const colIndex = parseInt(th.dataset.colIndex, 10);
-    const fieldName = window.displayedFields[colIndex];
+    const fieldName = getDisplayedFields()[colIndex];
     const relatedIndices = findRelatedColumnIndices(fieldName);
     
     // Highlight all related columns being moved
@@ -1152,7 +1156,7 @@ const dragDropManager = {
       const insertAt = (e.clientX - rect.left) < rect.width/2 ? toIndex : toIndex + 1;
       if (restoreFieldWithDuplicates(bubbleField, insertAt)) {
         dragDropManager.dropSuccessful = true;
-        showExampleTable(window.displayedFields, { syncQueryState: false });
+        showExampleTable(getDisplayedFields(), { syncQueryState: false });
       }
     }
     
@@ -1177,7 +1181,7 @@ const dragDropManager = {
       const insertAt = (e.clientX - rect.left) < rect.width/2 ? toIndex : toIndex + 1;
       if (restoreFieldWithDuplicates(bubbleField, insertAt)) {
         dragDropManager.dropSuccessful = true;
-        showExampleTable(window.displayedFields, { syncQueryState: false });
+        showExampleTable(getDisplayedFields(), { syncQueryState: false });
       }
       clearDropAnchor();
       return;
@@ -1344,7 +1348,7 @@ headerCopy.addEventListener('click', async e => {
   }
 
   const idx = parseInt(th.dataset.colIndex, 10);
-  const fieldName = window.displayedFields[idx];
+  const fieldName = getDisplayedFields()[idx];
   await copyColumnValuesByFieldName(fieldName);
 });
 
@@ -1409,7 +1413,7 @@ document.addEventListener('dragstart', e => {
   
   // Check if this bubble is already displayed in the table
   const fieldName = bubble.textContent.trim();
-  if (window.displayedFields.includes(fieldName)) {
+  if (getDisplayedFields().includes(fieldName)) {
     // Prevent dragging of already displayed bubbles
     e.preventDefault();
     return;
@@ -1507,7 +1511,7 @@ document.addEventListener('dragend', e => {
     
     // Check if drop was actually successful by looking at if the field was added to displayedFields
     const fieldName = bubble.textContent.trim();
-    const wasActuallyDropped = window.displayedFields && window.displayedFields.includes(fieldName);
+    const wasActuallyDropped = getDisplayedFields().includes(fieldName);
     
     // If the bubble was NOT successfully dropped, animate it back
     if (!wasActuallyDropped && dragDropManager.draggedBubble && dragDropManager.draggedBubbleOriginalRect && !dragDropManager.isAnimating) {

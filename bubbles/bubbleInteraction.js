@@ -1,5 +1,7 @@
+const { getFieldFilters } = window.QueryStateReaders;
+
 function initializeBubbleInteractions() {
-  if (typeof activeFilters === 'undefined' || typeof displayedFields === 'undefined') {
+  if (!window.QueryChangeManager) {
     console.log('Bubble system: Required globals not yet available, skipping initialization');
     return false;
   }
@@ -211,7 +213,7 @@ function initializeBubbleInteractions() {
     if (window.renderConditionList) {
       window.renderConditionList(fieldName);
     }
-    if (inputWrapper && activeFilters[fieldName]) {
+    if (inputWrapper && getFieldFilters(fieldName)) {
       inputWrapper.classList.add('show');
     }
 

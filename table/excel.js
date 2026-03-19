@@ -13,6 +13,7 @@ const ExcelExporter = (() => {
 
   const SHEET_NAME_LIMIT = 31;
   const MAX_GROUPED_SHEETS = 100;
+  const { getDisplayedFields } = window.QueryStateReaders;
 
   function getExportElements() {
     return {
@@ -67,7 +68,8 @@ const ExcelExporter = (() => {
   }
 
   function getWorkbookSourceData() {
-    if (!Array.isArray(window.displayedFields) || !window.displayedFields.length || !window.VirtualTable?.virtualTableData?.rows?.length) {
+    const displayedFields = getDisplayedFields();
+    if (!displayedFields.length || !window.VirtualTable?.virtualTableData?.rows?.length) {
       return null;
     }
 
@@ -75,7 +77,7 @@ const ExcelExporter = (() => {
     const dataRows = virtualData.rows;
     const fieldTypeMap = new Map();
 
-    window.displayedFields.forEach(field => {
+    displayedFields.forEach(field => {
       let def = window.fieldDefs && window.fieldDefs.get(field);
       if (!def) {
         const baseName = field.replace(/ \d+$/, '');
@@ -87,7 +89,7 @@ const ExcelExporter = (() => {
     return {
       virtualData,
       dataRows,
-      displayedFields: [...window.displayedFields],
+      displayedFields: [...displayedFields],
       fieldTypeMap
     };
   }
@@ -768,7 +770,8 @@ const ExcelExporter = (() => {
 
     // Check if button is disabled and show message
     if (downloadBtn.disabled) {
-      const hasData = Array.isArray(displayedFields) && displayedFields.length > 0 && VirtualTable.virtualTableData && VirtualTable.virtualTableData.rows && VirtualTable.virtualTableData.rows.length > 0;
+      const displayedFields = getDisplayedFields();
+      const hasData = displayedFields.length > 0 && VirtualTable.virtualTableData && VirtualTable.virtualTableData.rows && VirtualTable.virtualTableData.rows.length > 0;
 
       let messageText = '';
       if (!hasData) {
@@ -781,7 +784,8 @@ const ExcelExporter = (() => {
       return;
     }
 
-    if (!Array.isArray(displayedFields) || !displayedFields.length || !VirtualTable.virtualTableData || !VirtualTable.virtualTableData.rows || !VirtualTable.virtualTableData.rows.length) {
+    const displayedFields = getDisplayedFields();
+    if (!displayedFields.length || !VirtualTable.virtualTableData || !VirtualTable.virtualTableData.rows || !VirtualTable.virtualTableData.rows.length) {
       return;
     }
 

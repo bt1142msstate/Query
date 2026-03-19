@@ -44,6 +44,7 @@ window.DOM = {
   get categoryBar() { return this._categoryBar ||= document.getElementById('category-bar'); },
   get mobileCategorySelector() { return this._mobileCategorySelector ||= document.getElementById('mobile-category-selector'); }
 };
+const { getDisplayedFields, getActiveFilters } = window.QueryStateReaders;
 
 window.updateTableResultsLip = function() {
   const resultsBadge = window.DOM.tableResultsBadge;
@@ -60,9 +61,7 @@ window.updateTableResultsLip = function() {
   const rowCount = Array.isArray(window.VirtualTable?.virtualTableData?.rows)
     ? window.VirtualTable.virtualTableData.rows.length
     : 0;
-  const columnCount = Array.isArray(window.displayedFields)
-    ? window.displayedFields.length
-    : 0;
+  const columnCount = getDisplayedFields().length;
   const hasResults = rowCount > 0 || columnCount > 0;
 
   resultsCount.textContent = rowCount.toLocaleString();
@@ -160,8 +159,9 @@ window.refreshTableViewport = function() {
       return;
     }
 
-    if (typeof window.VirtualTable.measureRowHeight === 'function' && Array.isArray(window.displayedFields) && window.displayedFields.length > 0) {
-      window.VirtualTable.measureRowHeight(table, window.displayedFields);
+    const displayedFields = getDisplayedFields();
+    if (typeof window.VirtualTable.measureRowHeight === 'function' && displayedFields.length > 0) {
+      window.VirtualTable.measureRowHeight(table, displayedFields);
     }
 
     if (typeof window.VirtualTable.renderVirtualTable === 'function') {
@@ -343,7 +343,7 @@ window.updateRunButtonIcon = function(validationError) {
     return;
   }
 
-  if (!window.displayedFields || window.displayedFields.length === 0) {
+  if (getDisplayedFields().length === 0) {
     runIcon.classList.remove('hidden');
     refreshIcon.classList.add('hidden');
     runBtn.disabled = true;
@@ -396,8 +396,7 @@ window.updateButtonStates = function() {
 
   if (downloadBtn) {
     const hasData =
-      window.displayedFields &&
-      window.displayedFields.length > 0 &&
+      getDisplayedFields().length > 0 &&
       window.VirtualTable &&
       window.VirtualTable.virtualTableData &&
       Array.isArray(window.VirtualTable.virtualTableData.rows) &&
@@ -419,8 +418,7 @@ window.updateButtonStates = function() {
   if (postFilterBtn) {
     const postFilterStats = window.VirtualTable?.getPostFilterStats ? window.VirtualTable.getPostFilterStats() : null;
     const hasLoadedResults =
-      Array.isArray(window.displayedFields) &&
-      window.displayedFields.length > 0 &&
+      getDisplayedFields().length > 0 &&
       Number(postFilterStats?.totalRows || 0) > 0;
     const hasPostFilters = Boolean(window.VirtualTable?.hasPostFilters && window.VirtualTable.hasPostFilters());
 
@@ -446,8 +444,8 @@ window.updateButtonStates = function() {
 
     const hasTableName = !!(tableNameInput && tableNameInput.value.trim());
     const hasQueryText = !!(window.DOM.queryInput && window.DOM.queryInput.value.trim());
-    const hasFields = Array.isArray(window.displayedFields) && window.displayedFields.length > 0;
-    const hasFilters = !!(window.activeFilters && Object.values(window.activeFilters).some(data => data && Array.isArray(data.filters) && data.filters.length > 0));
+    const hasFields = getDisplayedFields().length > 0;
+    const hasFilters = Object.values(getActiveFilters()).some(data => data && Array.isArray(data.filters) && data.filters.length > 0);
     const hasConfiguredPayload = !!(
       payload && (
         (Array.isArray(payload.display_fields) && payload.display_fields.length > 0) ||
