@@ -1,4 +1,4 @@
-const { getFieldFilters } = window.QueryStateReaders;
+const { getFilterGroupForField } = window.QueryStateReaders;
 
 function initializeBubbleInteractions() {
   if (!window.QueryChangeManager) {
@@ -213,7 +213,7 @@ function initializeBubbleInteractions() {
     if (window.renderConditionList) {
       window.renderConditionList(fieldName);
     }
-    if (inputWrapper && getFieldFilters(fieldName)) {
+    if (inputWrapper && getFilterGroupForField(fieldName)) {
       inputWrapper.classList.add('show');
     }
 

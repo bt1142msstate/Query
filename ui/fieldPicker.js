@@ -1,5 +1,5 @@
 (function() {
-  const { getDisplayedFields, getFieldFilters } = window.QueryStateReaders;
+  const { getDisplayedFields, getFilterGroupForField } = window.QueryStateReaders;
 
   function getFieldPickerOptionsFromDefinitions() {
     const source = Array.isArray(window.fieldDefsArray) && window.fieldDefsArray.length > 0
@@ -413,7 +413,7 @@
         filterCard.classList.add('show', 'content-ready');
       }
     }
-    if (inputWrapper && getFieldFilters(fieldName)) {
+    if (inputWrapper && getFilterGroupForField(fieldName)) {
       inputWrapper.classList.add('show');
     }
 
@@ -439,7 +439,7 @@
       getOptions: getFieldPickerOptionsFromDefinitions,
       getFieldState: fieldName => ({
         display: getDisplayedFields().some(column => fieldMatchesBase(column, fieldName)),
-        filter: Boolean(getFieldFilters(fieldName)?.filters?.length)
+        filter: Boolean(getFilterGroupForField(fieldName)?.filters?.length)
       }),
       onDisplayChange: async (fieldName, nextChecked) => {
         const currentFields = getDisplayedFields();

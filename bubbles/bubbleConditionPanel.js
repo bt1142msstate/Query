@@ -17,7 +17,7 @@ function getBubblePanelConditionInputElement() {
 function getBubblePanelConfirmButtonElement() {
   return window.DOM?.confirmBtn || document.getElementById('confirm-btn');
 }
-const { getDisplayedFields, getFieldFilters } = window.QueryStateReaders;
+const { getDisplayedFields, getFilterGroupForField } = window.QueryStateReaders;
 
 function isListPasteField(fieldDef) {
   return Boolean(fieldDef && fieldDef.allowValueList && (!fieldDef.values || fieldDef.values.length === 0));
@@ -44,7 +44,7 @@ function getPreferredCondition(conditions, fieldName) {
   const available = Array.isArray(conditions) ? conditions.filter(Boolean) : [];
   if (!available.length) return '';
 
-  const activeFieldFilters = fieldName ? getFieldFilters(fieldName) : null;
+  const activeFieldFilters = fieldName ? getFilterGroupForField(fieldName) : null;
   const filterConds = activeFieldFilters && Array.isArray(activeFieldFilters.filters)
     ? activeFieldFilters.filters.map(filter => String(filter.cond || '').trim().toLowerCase())
     : [];
@@ -179,7 +179,7 @@ function buildBubbleConditionPanel(bubble) {
     if (existingContainer) existingContainer.parentNode.removeChild(existingContainer);
 
     let currentLiteralValues = [];
-    const selectedFieldFilters = getFieldFilters(selectedField);
+    const selectedFieldFilters = getFilterGroupForField(selectedField);
     if (selectedFieldFilters) {
       const filter = selectedFieldFilters.filters.find(f => f.cond === 'equals');
       if (filter) {
@@ -214,7 +214,7 @@ function buildBubbleConditionPanel(bubble) {
 
     if (isListPasteField(fieldDefInfo) && typeof window.createListPasteInput === 'function') {
       let currentLiteralValues = [];
-      const selectedFieldFilters = getFieldFilters(selectedField);
+      const selectedFieldFilters = getFilterGroupForField(selectedField);
       if (selectedFieldFilters) {
         const filter = selectedFieldFilters.filters.find(f => f.cond === 'equals');
         if (filter) {

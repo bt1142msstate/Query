@@ -323,14 +323,14 @@ const queryStateStore = {
   getActiveFilters() {
     return cloneActiveFiltersSnapshot();
   },
-  getFieldFilters(fieldName) {
+  getFilterGroupForField(fieldName) {
     return cloneFieldFiltersSnapshot(fieldName);
   },
   hasDisplayedField(fieldName) {
     const normalizedField = String(fieldName || '').trim();
     return Boolean(normalizedField) && displayedFieldsState.includes(normalizedField);
   },
-  hasActiveFilters(fieldName) {
+  hasFiltersForField(fieldName) {
     const normalizedField = String(fieldName || '').trim();
     return Boolean(normalizedField && activeFiltersState[normalizedField] && Array.isArray(activeFiltersState[normalizedField].filters) && activeFiltersState[normalizedField].filters.length > 0);
   },
@@ -563,14 +563,14 @@ const queryChangeManager = {
   getActiveFilters() {
     return queryStateStore.getActiveFilters();
   },
-  getFieldFilters(fieldName) {
-    return queryStateStore.getFieldFilters(fieldName);
+  getFilterGroupForField(fieldName) {
+    return queryStateStore.getFilterGroupForField(fieldName);
   },
   hasDisplayedField(fieldName) {
     return queryStateStore.hasDisplayedField(fieldName);
   },
-  hasActiveFilters(fieldName) {
-    return queryStateStore.hasActiveFilters(fieldName);
+  hasFiltersForField(fieldName) {
+    return queryStateStore.hasFiltersForField(fieldName);
   },
   subscribe(listener) {
     return queryStateStore.subscribe(listener);
@@ -617,14 +617,14 @@ const queryStateReaders = Object.freeze({
   getActiveFilters() {
     return queryChangeManager.getActiveFilters();
   },
-  getFieldFilters(fieldName) {
-    return queryChangeManager.getFieldFilters(fieldName);
+  getFilterGroupForField(fieldName) {
+    return queryChangeManager.getFilterGroupForField(fieldName);
   },
   hasDisplayedField(fieldName) {
     return queryChangeManager.hasDisplayedField(fieldName);
   },
-  hasActiveFilters(fieldName) {
-    return queryChangeManager.hasActiveFilters(fieldName);
+  hasFiltersForField(fieldName) {
+    return queryChangeManager.hasFiltersForField(fieldName);
   }
 });
 

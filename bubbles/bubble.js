@@ -3,7 +3,7 @@
  * Represents a draggable field that can be clicked to set filters.
  * @class Bubble
  */
-const { getDisplayedFields, getActiveFilters, hasActiveFilters } = window.QueryStateReaders;
+const { getDisplayedFields, getActiveFilters, hasFiltersForField } = window.QueryStateReaders;
 
 class Bubble {
   constructor(def, state = {}) {
@@ -316,7 +316,7 @@ function applyCorrectBubbleStyling(bubbleElement) {
     bubbleElement.removeAttribute('data-filtered');
   }
 
-  bubbleElement.classList.toggle('bubble-active-filter', hasActiveFilters(fieldName));
+  bubbleElement.classList.toggle('bubble-active-filter', hasFiltersForField(fieldName));
 }
 
 function createOrUpdateBubble(def, existingBubble = null) {

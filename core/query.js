@@ -719,9 +719,7 @@ async function showExampleTable(fields, options = {}){
   const renderFields = uniqueFields.slice();
 
   if (syncQueryState) {
-    const currentDisplayedFields = window.QueryChangeManager && typeof window.QueryChangeManager.getSnapshot === 'function'
-      ? window.QueryChangeManager.getSnapshot().displayedFields
-      : getDisplayedFields();
+      const currentDisplayedFields = getDisplayedFields();
 
     if (!areDisplayedFieldsEqual(currentDisplayedFields, uniqueFields)) {
       window.QueryChangeManager.replaceDisplayedFields(uniqueFields, { source: 'Query.showExampleTable' });
