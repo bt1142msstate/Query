@@ -364,9 +364,10 @@
   function closeOverlay() {
     const elements = getElements();
     if (!elements.overlay) return;
-    elements.overlay.classList.add('hidden');
-    elements.overlay.setAttribute('aria-hidden', 'true');
-    document.body.classList.remove('post-filter-overlay-open');
+    window.VisibilityUtils.hide([elements.overlay], {
+      ariaHidden: true,
+      bodyClass: 'post-filter-overlay-open'
+    });
   }
 
   function openOverlay() {
@@ -384,9 +385,10 @@
     }
 
     refreshOverlay();
-    elements.overlay.classList.remove('hidden');
-    elements.overlay.setAttribute('aria-hidden', 'false');
-    document.body.classList.add('post-filter-overlay-open');
+    window.VisibilityUtils.show([elements.overlay], {
+      ariaHidden: false,
+      bodyClass: 'post-filter-overlay-open'
+    });
     window.requestAnimationFrame(() => elements.fieldSelect?.focus());
   }
 

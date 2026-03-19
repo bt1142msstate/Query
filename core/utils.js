@@ -322,6 +322,62 @@ window.QueryStateSubscriptions = (() => {
   };
 })();
 
+window.VisibilityUtils = (() => {
+  function normalizeTargets(targets) {
+    if (!Array.isArray(targets)) {
+      return [];
+    }
+
+    return targets.filter(Boolean);
+  }
+
+  function show(targets, options = {}) {
+    const {
+      bodyClass = '',
+      ariaHidden = null
+    } = options;
+
+    normalizeTargets(targets).forEach(target => {
+      target.classList.remove('hidden');
+      if (ariaHidden !== null) {
+        target.setAttribute('aria-hidden', String(ariaHidden));
+      }
+    });
+
+    if (bodyClass) {
+      document.body.classList.add(bodyClass);
+    }
+  }
+
+  function hide(targets, options = {}) {
+    const {
+      bodyClass = '',
+      ariaHidden = null
+    } = options;
+
+    normalizeTargets(targets).forEach(target => {
+      target.classList.add('hidden');
+      if (ariaHidden !== null) {
+        target.setAttribute('aria-hidden', String(ariaHidden));
+      }
+    });
+
+    if (bodyClass) {
+      document.body.classList.remove(bodyClass);
+    }
+  }
+
+  function isVisible(target) {
+    return !!(target && !target.classList.contains('hidden'));
+  }
+
+  return {
+    show,
+    hide,
+    isVisible
+  };
+})();
+
 window.ValueFormatting = (() => {
   function getFieldDefinition(fieldName) {
     if (!window.fieldDefs) {
