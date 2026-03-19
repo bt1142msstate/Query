@@ -95,8 +95,7 @@
   outline: none;
 }
 
-.condition-field-money,
-.fp-edit-val-input.money-input-symbolized {
+.condition-field-money {
   padding-left: 2rem;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ctext x='12' y='17' text-anchor='middle' font-size='16' font-family='Arial, sans-serif' font-weight='700' fill='%2364748b'%3E%24%3C/text%3E%3C/svg%3E");
   background-repeat: no-repeat;
@@ -480,11 +479,6 @@
 
 .toggle-half:hover:not(.active) {
   background: rgba(255, 255, 255, 0.9);
-}
-
-.fp-edit-form .list-paste-input {
-  width: 100%;
-  min-width: min(100%, 26rem);
 }
 
 /* ==========================================
@@ -1015,118 +1009,6 @@
     width: 100%;
     min-width: 0;
   }
-}
-
-/* ---- Inline edit form ---- */
-.fp-edit-form {
-  padding: 7px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  background: rgba(243, 244, 246, 0.95);
-  border-radius: 6px;
-  border: 1px solid rgba(0, 0, 0, 0.09);
-  margin-bottom: 4px;
-}
-
-.fp-edit-cond-select,
-.fp-edit-val-input {
-  font-size: 0.72rem;
-  padding: 4px 7px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 5px;
-  background: white;
-  color: #374151;
-  outline: none;
-  width: 100%;
-}
-
-.fp-edit-cond-select:focus,
-.fp-edit-val-input:focus {
-  border-color: rgba(59, 130, 246, 0.5);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-}
-
-.fp-edit-val-input.money-input-symbolized {
-  padding-left: 2rem;
-  background-color: #fff;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ctext x='12' y='17' text-anchor='middle' font-size='16' font-family='Arial, sans-serif' font-weight='700' fill='%2364748b'%3E%24%3C/text%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: 0.7rem center;
-  background-size: 0.95rem;
-}
-
-.fp-edit-form .grouped-selector,
-.fp-edit-form .boolean-pill-selector {
-  width: 100%;
-  max-width: none;
-  min-width: 0;
-}
-
-.fp-edit-form .grouped-selector {
-  max-height: 16rem;
-}
-
-.fp-edit-form .grouped-options-container {
-  max-height: 12rem;
-}
-
-.fp-edit-form .grouped-selector-search-field .app-search-input {
-  font-size: 0.72rem;
-}
-
-.fp-edit-form .boolean-pill-selector {
-  justify-content: stretch;
-  margin-inline: 0;
-}
-
-.fp-edit-form .boolean-pill-option {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-.fp-edit-separator {
-  text-align: center;
-  color: #9ca3af;
-  font-size: 0.7rem;
-}
-
-.fp-edit-btns {
-  display: flex;
-  gap: 5px;
-  justify-content: flex-end;
-}
-
-.fp-edit-save-btn {
-  padding: 3px 12px;
-  border-radius: 5px;
-  background: var(--color-emerald-400);
-  color: white;
-  font-size: 0.72rem;
-  font-weight: 700;
-  border: none;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.fp-edit-save-btn:hover {
-  background: var(--color-emerald-600);
-}
-
-.fp-edit-cancel-btn {
-  padding: 3px 10px;
-  border-radius: 5px;
-  background: #e5e7eb;
-  color: #374151;
-  font-size: 0.72rem;
-  font-weight: 700;
-  border: none;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.fp-edit-cancel-btn:hover {
-  background: #d1d5db;
 }
 
 /* Drag and Drop for Filter Panel */
