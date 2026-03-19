@@ -821,10 +821,6 @@
   transition: opacity 0.16s ease, visibility 0.16s ease, transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
 }
 
-.fp-display-slot:hover .fp-display-insert-btn,
-.fp-display-slot:focus-within .fp-display-insert-btn,
-.fp-display-empty-wrap:hover .fp-display-insert-btn,
-.fp-display-empty-wrap:focus-within .fp-display-insert-btn,
 .fp-display-insert:hover .fp-display-insert-btn,
 .fp-display-insert:focus-within .fp-display-insert-btn {
   opacity: 1;
