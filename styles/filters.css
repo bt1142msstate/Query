@@ -1047,6 +1047,15 @@
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
+.fp-edit-val-input.money-input-symbolized {
+  padding-left: 2rem;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ctext x='12' y='17' text-anchor='middle' font-size='16' font-family='Arial, sans-serif' font-weight='700' fill='%2364748b'%3E%24%3C/text%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 0.7rem center;
+  background-size: 0.95rem;
+}
+
 .fp-edit-form .grouped-selector,
 .fp-edit-form .boolean-pill-selector {
   width: 100%;

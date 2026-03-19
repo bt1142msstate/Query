@@ -41,6 +41,8 @@ window.clearCurrentQuery = async function clearCurrentQuery() {
     return;
   }
 
+  const previousSelectedField = window.selectedField || '';
+
   if (window.ModalSystem && typeof window.ModalSystem.closeAllPanels === 'function') {
     window.ModalSystem.closeAllPanels();
   }
@@ -111,10 +113,15 @@ window.clearCurrentQuery = async function clearCurrentQuery() {
     window.VirtualTable.clearPostFilters({ refreshView: false, notify: true, resetScroll: false });
   }
 
-  window.selectedField = '';
   if (window.QueryChangeManager && typeof window.QueryChangeManager.resetQuery === 'function') {
     window.QueryChangeManager.resetQuery({ source: 'Query.clearCurrentQuery' });
   }
+  if (previousSelectedField && typeof window.renderConditionList === 'function') {
+    window.renderConditionList(previousSelectedField);
+  } else {
+    document.getElementById('bubble-cond-list')?.replaceChildren();
+  }
+  window.selectedField = '';
   window.lastExecutedQueryState = null;
 
   if (dom.tableNameInput) {
