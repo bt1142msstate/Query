@@ -1,5 +1,7 @@
 const BUBBLE_RENDER_VISIBLE_ROWS = 2;
-const { getDisplayedFields, getActiveFilters, hasFiltersForField } = window.QueryStateReaders;
+var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
+var getActiveFilters = window.QueryStateReaders.getActiveFilters.bind(window.QueryStateReaders);
+var hasFiltersForField = window.QueryStateReaders.hasFiltersForField.bind(window.QueryStateReaders);
 
 function bubbleRenderGetMaxStartRow() {
   if (typeof totalRows === 'undefined') return 0;

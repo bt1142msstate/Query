@@ -7,7 +7,7 @@
 // Use shared utility function from query.js
 
 // Store information about removed columns - Managed in columnManager.js
-const { getDisplayedFields } = window.QueryStateReaders;
+var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
 
 
 /**

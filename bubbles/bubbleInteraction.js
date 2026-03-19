@@ -1,4 +1,4 @@
-const { getFilterGroupForField } = window.QueryStateReaders;
+var getFilterGroupForField = window.QueryStateReaders.getFilterGroupForField.bind(window.QueryStateReaders);
 
 function initializeBubbleInteractions() {
   if (!window.QueryChangeManager) {

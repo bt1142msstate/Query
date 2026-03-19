@@ -71,7 +71,8 @@ const UI_FILTER_TO_BACKEND = {
   contains: [{ operator: '=', valueTransform: value => `*${value}*` }],
   does_not_contain: [{ operator: '!=', valueTransform: value => `*${value}*` }]
 };
-const { getDisplayedFields, getActiveFilters } = window.QueryStateReaders;
+var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
+var getActiveFilters = window.QueryStateReaders.getActiveFilters.bind(window.QueryStateReaders);
 
 window.mapFieldOperatorToUiCond = function(operator) {
   const normalized = String(operator || '').trim();
