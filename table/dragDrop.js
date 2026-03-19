@@ -113,19 +113,14 @@ function formatColumnClipboardValue(rawValue, fieldName) {
   }
 
   if (fieldType === 'number' || fieldType === 'money') {
-    const numericValue = typeof rawValue === 'number'
-      ? rawValue
-      : parseFloat(String(rawValue).replace(/[$,]/g, ''));
+    const numericValue = window.MoneyUtils.parseNumber(rawValue);
 
     if (Number.isNaN(numericValue)) {
       return '';
     }
 
     if (fieldType === 'money') {
-      return `$${numericValue.toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      })}`;
+      return window.MoneyUtils.formatDisplayValue(numericValue);
     }
 
     return Number.isInteger(numericValue)

@@ -725,32 +725,22 @@
       input.type = 'text';
       input.className = 'form-mode-text-input form-mode-money-input';
       input.placeholder = inputSpec.placeholder || '0.00';
-      input.value = window.formatMoneyInputValue
-        ? window.formatMoneyInputValue(initialValues[0] || '')
-        : (initialValues[0] || '');
+      input.value = window.MoneyUtils.formatInputValue(initialValues[0] || '');
       input.autocomplete = 'off';
       input.inputMode = 'decimal';
-      if (window.configureMoneyInputBehavior) {
-        window.configureMoneyInputBehavior(input, true);
-      }
+      window.MoneyUtils.configureInputBehavior(input, true);
 
       wrapper.appendChild(input);
 
       wrapper.getFormValues = function() {
-        const value = window.sanitizeMoneyInputValue
-          ? window.sanitizeMoneyInputValue(input.value)
-          : String(input.value || '').trim();
+        const value = window.MoneyUtils.sanitizeInputValue(input.value);
         return value ? [value] : [];
       };
 
       wrapper.setFormValues = function(values) {
         const rawValue = Array.isArray(values) && values.length ? String(values[0]) : '';
-        input.value = window.formatMoneyInputValue
-          ? window.formatMoneyInputValue(rawValue)
-          : rawValue;
-        if (window.configureMoneyInputBehavior) {
-          window.configureMoneyInputBehavior(input, true);
-        }
+        input.value = window.MoneyUtils.formatInputValue(rawValue);
+        window.MoneyUtils.configureInputBehavior(input, true);
       };
 
       wrapper.focusInput = function() {

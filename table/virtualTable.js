@@ -66,8 +66,7 @@ function getFieldType(fieldName) {
 }
 
 function parseNumericValue(value) {
-  if (typeof value === 'number') return value;
-  return parseFloat(String(value).replace(/[$,]/g, ''));
+  return window.MoneyUtils.parseNumber(value);
 }
 
 function invalidatePostFilterValueOptionsCache() {
@@ -681,7 +680,7 @@ function renderVirtualTable() {
           const n = parseNumericValue(cellValue);
           if (!isNaN(n)) {
             if (type === 'money') {
-              displayValue = '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              displayValue = window.MoneyUtils.formatDisplayValue(n);
             } else {
               // Excel checks integer to determine fractional formatting
               if (Number.isInteger(n)) {
@@ -851,7 +850,7 @@ function calculateFieldWidth(fieldName, data = null) {
           if (type === 'money') {
             const numericValue = parseNumericValue(value);
             if (!isNaN(numericValue)) {
-              measuredValue = '$' + numericValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              measuredValue = window.MoneyUtils.formatDisplayValue(numericValue);
             }
           }
           const textWidth = window.TextMeasurement.measureText(measuredValue);

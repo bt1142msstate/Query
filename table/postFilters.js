@@ -119,8 +119,8 @@
     }
 
     if (type === 'money') {
-      const numericValue = window.sanitizeMoneyInputValue ? window.sanitizeMoneyInputValue(rawValue) : rawValue.replace(/[$,]/g, '');
-      return numericValue ? `$${numericValue}` : rawValue;
+      const displayValue = window.MoneyUtils.formatDisplayValue(rawValue);
+      return displayValue || rawValue;
     }
 
     if (type === 'date') {
@@ -299,10 +299,10 @@
       input.step = fieldType === 'money' ? '0.01' : (fieldType === 'number' ? '1' : 'any');
       input.inputMode = fieldType === 'money' ? 'decimal' : (fieldType === 'number' ? 'numeric' : 'text');
       input.placeholder = fieldType === 'date' ? '' : 'Value';
-      if (fieldType === 'money' && window.configureMoneyInputBehavior) {
-        window.configureMoneyInputBehavior(input, true);
-      } else if (window.configureMoneyInputBehavior) {
-        window.configureMoneyInputBehavior(input, false);
+      if (fieldType === 'money') {
+        window.MoneyUtils.configureInputBehavior(input, true);
+      } else {
+        window.MoneyUtils.configureInputBehavior(input, false);
       }
     });
 
@@ -454,9 +454,9 @@
       return;
     }
 
-    if (fieldType === 'money' && window.sanitizeMoneyInputValue) {
-      value = window.sanitizeMoneyInputValue(value);
-      value2 = window.sanitizeMoneyInputValue(value2);
+    if (fieldType === 'money') {
+      value = window.MoneyUtils.sanitizeInputValue(value);
+      value2 = window.MoneyUtils.sanitizeInputValue(value2);
     }
 
     if (cond === 'equals' && equalsValueControl && typeof equalsValueControl.getSelectedValues === 'function') {

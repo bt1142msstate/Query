@@ -207,12 +207,12 @@ window.FilterSidePanel = (function () {
             const input = document.createElement('input');
             input.className = 'fp-edit-val-input';
             input.type = inputType;
-            input.value = fieldType === 'money' && window.formatMoneyInputValue
-                ? window.formatMoneyInputValue(initialValue)
+            input.value = fieldType === 'money'
+                ? window.MoneyUtils.formatInputValue(initialValue)
                 : initialValue;
             input.placeholder = 'Value';
-            if (fieldType === 'money' && window.configureMoneyInputBehavior) {
-                window.configureMoneyInputBehavior(input, true);
+            if (fieldType === 'money') {
+                window.MoneyUtils.configureInputBehavior(input, true);
             }
             return input;
         }
@@ -315,12 +315,12 @@ window.FilterSidePanel = (function () {
         const val2 = document.createElement('input');
         val2.className = 'fp-edit-val-input';
         val2.type = inputType;
-        val2.value = fieldType === 'money' && window.formatMoneyInputValue
-            ? window.formatMoneyInputValue(vals[1])
+        val2.value = fieldType === 'money'
+            ? window.MoneyUtils.formatInputValue(vals[1])
             : vals[1];
         val2.placeholder = 'To';
-        if (fieldType === 'money' && window.configureMoneyInputBehavior) {
-            window.configureMoneyInputBehavior(val2, true);
+        if (fieldType === 'money') {
+            window.MoneyUtils.configureInputBehavior(val2, true);
         }
 
         function syncBetween() {
@@ -339,13 +339,13 @@ window.FilterSidePanel = (function () {
             const newCond = condSel.value;
             let newVal = getInlineEditorValues(val1).join(',');
 
-            const newVal2 = fieldType === 'money' && window.sanitizeMoneyInputValue
-                ? window.sanitizeMoneyInputValue(val2.value.trim())
+            const newVal2 = fieldType === 'money'
+                ? window.MoneyUtils.sanitizeInputValue(val2.value.trim())
                 : val2.value.trim();
-            if (fieldType === 'money' && window.sanitizeMoneyInputValue) {
+            if (fieldType === 'money') {
                 newVal = newVal
                     .split(',')
-                    .map(value => window.sanitizeMoneyInputValue(value))
+                    .map(value => window.MoneyUtils.sanitizeInputValue(value))
                     .filter(Boolean)
                     .join(',');
             }
