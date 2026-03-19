@@ -664,11 +664,12 @@
             <select id="post-filter-operator" class="post-filter-field__select"></select>
           </div>
           <div class="post-filter-field">
-            <label class="post-filter-field__label" for="post-filter-logic">Rule Logic</label>
+            <label class="post-filter-field__label" for="post-filter-logic">Combine With Existing Rules</label>
             <select id="post-filter-logic" class="post-filter-field__select">
-              <option value="all">Match all rules for this field</option>
-              <option value="any">Match any rule for this field</option>
+              <option value="all">Require all</option>
+              <option value="any">Allow any</option>
             </select>
+            <p class="post-filter-field__hint">This only appears after the field already has a rule.</p>
           </div>
           <div class="post-filter-field post-filter-field--value">
             <label class="post-filter-field__label" for="post-filter-value">Value</label>
@@ -687,7 +688,7 @@
             <h3 class="post-filter-list-panel__title">Active Post Filters</h3>
             <p class="post-filter-list-panel__text">These are layered on top of the loaded result set only.</p>
           </div>
-          <div id="post-filter-empty" class="post-filter-empty">No post filters yet.</div>
+          <div id="post-filter-empty" class="post-filter-empty">No post filters yet. Add one rule at a time, then decide whether additional rules for the same field should all match or if any one can match.</div>
           <div id="post-filter-list" class="post-filter-list"></div>
         </div>
       </div>
