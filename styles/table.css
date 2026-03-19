@@ -419,31 +419,28 @@ body.dragging-cursor * {
 }
 
 .th-label-group {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
+  position: relative;
+  display: inline-block;
   min-width: 0;
-  max-width: 100%;
 }
 
 .th-text {
-  display: inline-block;
-  flex: 0 1 auto;
+  display: inline;
   min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  text-overflow: clip;
   white-space: nowrap;
 }
 
 .sort-icon {
-  flex: 0 0 auto;
+  position: absolute;
+  left: calc(100% + 0.15rem);
+  top: 50%;
+  transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 0.9rem;
-  margin-left: 0.1rem;
   color: #94a3b8;
   font-weight: 700;
   line-height: 1;
