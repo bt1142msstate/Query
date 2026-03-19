@@ -41,13 +41,7 @@
   }
 
   function getFieldType(fieldName) {
-    if (!window.fieldDefs) return 'string';
-
-    const normalizedField = String(fieldName || '').trim();
-    const baseField = typeof window.getBaseFieldName === 'function'
-      ? window.getBaseFieldName(normalizedField)
-      : normalizedField.replace(/ \d+$/, '');
-    return window.fieldDefs.get(normalizedField)?.type || window.fieldDefs.get(baseField)?.type || 'string';
+    return window.ValueFormatting.getFieldType(fieldName);
   }
 
   function getOperatorOptions(fieldName) {
@@ -93,20 +87,9 @@
       return `${left || ''} - ${right || ''}`;
     }
 
-    if (type === 'money') {
-      const displayValue = window.MoneyUtils.formatDisplayValue(rawValue);
-      return displayValue || rawValue;
-    }
-
-    if (type === 'date') {
-      const normalizedValue = rawValue.trim();
-      const compactMatch = normalizedValue.match(/^(\d{4})(\d{2})(\d{2})$/);
-      if (compactMatch) {
-        return `${compactMatch[2]}/${compactMatch[3]}/${compactMatch[1]}`;
-      }
-    }
-
-    return rawValue;
+    return window.ValueFormatting.formatValueByType(rawValue, type, {
+      dateFallbackToRaw: true
+    });
   }
 
   function formatLoadedOptionLabel(option, fieldName) {
@@ -589,21 +572,17 @@
       refreshOverlay();
     });
 
-    if (window.QueryChangeManager?.subscribe) {
-      window.QueryChangeManager.subscribe(event => {
-        if (!event?.changes?.displayedFields) {
-          return;
-        }
-
-        if (window.VirtualTable?.replacePostFilters) {
-          window.VirtualTable.replacePostFilters(getSnapshot(), {
-            refreshView: true,
-            notify: true,
-            resetScroll: false
-          });
-        }
-      });
-    }
+    window.QueryStateSubscriptions.subscribe(() => {
+      if (window.VirtualTable?.replacePostFilters) {
+        window.VirtualTable.replacePostFilters(getSnapshot(), {
+          refreshView: true,
+          notify: true,
+          resetScroll: false
+        });
+      }
+    }, {
+      displayedFields: true
+    });
 
     document.addEventListener('keydown', event => {
       if (event.key === 'Escape') {

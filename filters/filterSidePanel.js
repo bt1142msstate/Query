@@ -64,16 +64,15 @@ window.FilterSidePanel = (function () {
     }
 
     function ensureQueryStateSubscription() {
-        if (unsubscribeQueryState || !window.QueryChangeManager || typeof window.QueryChangeManager.subscribe !== 'function') {
+        if (unsubscribeQueryState) {
             return;
         }
 
-        unsubscribeQueryState = window.QueryChangeManager.subscribe(event => {
-            if (!event?.changes?.displayedFields && !event?.changes?.activeFilters) {
-                return;
-            }
-
+        unsubscribeQueryState = window.QueryStateSubscriptions.subscribe(() => {
             update();
+        }, {
+            displayedFields: true,
+            activeFilters: true
         });
     }
 

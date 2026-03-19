@@ -282,6 +282,190 @@ window.ClipboardUtils = (() => {
   };
 })();
 
+window.QueryStateSubscriptions = (() => {
+  function subscribe(handler, options = {}) {
+    if (!window.QueryChangeManager || typeof window.QueryChangeManager.subscribe !== 'function' || typeof handler !== 'function') {
+      return () => {};
+    }
+
+    const {
+      displayedFields = false,
+      activeFilters = false,
+      predicate = null
+    } = options;
+
+    const requireSpecificChanges = displayedFields || activeFilters;
+
+    return window.QueryChangeManager.subscribe(event => {
+      if (!event) {
+        return;
+      }
+
+      if (requireSpecificChanges) {
+        const matchesDisplayedFields = displayedFields && Boolean(event.changes?.displayedFields);
+        const matchesActiveFilters = activeFilters && Boolean(event.changes?.activeFilters);
+        if (!matchesDisplayedFields && !matchesActiveFilters) {
+          return;
+        }
+      }
+
+      if (typeof predicate === 'function' && !predicate(event)) {
+        return;
+      }
+
+      handler(event);
+    });
+  }
+
+  return {
+    subscribe
+  };
+})();
+
+window.ValueFormatting = (() => {
+  function getFieldDefinition(fieldName) {
+    if (!window.fieldDefs) {
+      return null;
+    }
+
+    const normalizedField = String(fieldName || '').trim();
+    if (!normalizedField) {
+      return null;
+    }
+
+    let fieldDef = window.fieldDefs.get(normalizedField);
+    if (fieldDef) {
+      return fieldDef;
+    }
+
+    const baseField = typeof window.getBaseFieldName === 'function'
+      ? window.getBaseFieldName(normalizedField)
+      : normalizedField.replace(/ \d+$/, '');
+
+    fieldDef = window.fieldDefs.get(baseField);
+    return fieldDef || null;
+  }
+
+  function getFieldType(fieldName, options = {}) {
+    const { inferMoneyFromName = false } = options;
+    const fieldDef = getFieldDefinition(fieldName);
+    if (fieldDef?.type) {
+      return fieldDef.type;
+    }
+
+    if (inferMoneyFromName) {
+      const lower = String(fieldName || '').toLowerCase();
+      if (lower.includes('price') || lower.includes('cost') || lower.includes('amount')) {
+        return 'money';
+      }
+    }
+
+    return 'string';
+  }
+
+  function formatDateDisplay(rawValue, options = {}) {
+    const {
+      invalidValue = 'Never',
+      fallbackToRaw = false
+    } = options;
+
+    const textValue = String(rawValue || '').trim();
+    const numericValue = typeof rawValue === 'string' ? Number.parseInt(rawValue, 10) : rawValue;
+    const compactMatch = textValue.match(/^(\d{4})(\d{2})(\d{2})$/);
+
+    if (!numericValue || Number.isNaN(numericValue)) {
+      if (compactMatch) {
+        return `${compactMatch[2]}/${compactMatch[3]}/${compactMatch[1]}`;
+      }
+      return fallbackToRaw ? textValue : invalidValue;
+    }
+
+    const year = Math.floor(numericValue / 10000);
+    const month = Math.floor((numericValue % 10000) / 100) - 1;
+    const day = numericValue % 100;
+    const date = new Date(year, month, day);
+    if (Number.isNaN(date.getTime())) {
+      return fallbackToRaw ? textValue : invalidValue;
+    }
+
+    return `${(month + 1).toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}/${year}`;
+  }
+
+  function parseStandardNumber(rawValue) {
+    if (typeof rawValue === 'number') {
+      return rawValue;
+    }
+
+    return Number.parseFloat(String(rawValue || '').replace(/,/g, ''));
+  }
+
+  function formatNumberDisplay(rawValue) {
+    const numericValue = parseStandardNumber(rawValue);
+    if (Number.isNaN(numericValue)) {
+      return '';
+    }
+
+    return Number.isInteger(numericValue)
+      ? String(numericValue)
+      : numericValue.toLocaleString('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+  }
+
+  function formatDelimitedValue(rawValue, joiner = ' | ') {
+    if (typeof rawValue !== 'string' || !rawValue.includes('\x1F')) {
+      return String(rawValue ?? '');
+    }
+
+    return rawValue
+      .split('\x1F')
+      .map(value => value.trim())
+      .filter(Boolean)
+      .join(joiner);
+  }
+
+  function formatValueByType(rawValue, type, options = {}) {
+    const normalizedType = String(type || 'string').toLowerCase();
+    const {
+      invalidDateValue = 'Never',
+      dateFallbackToRaw = false,
+      delimitedJoiner = ' | '
+    } = options;
+
+    if (rawValue === undefined || rawValue === null) {
+      return '';
+    }
+
+    if (normalizedType === 'date') {
+      return formatDateDisplay(rawValue, {
+        invalidValue: invalidDateValue,
+        fallbackToRaw: dateFallbackToRaw
+      });
+    }
+
+    if (normalizedType === 'money') {
+      const displayValue = window.MoneyUtils.formatDisplayValue(rawValue);
+      return displayValue || String(rawValue);
+    }
+
+    if (normalizedType === 'number') {
+      return formatNumberDisplay(rawValue);
+    }
+
+    return formatDelimitedValue(rawValue, delimitedJoiner);
+  }
+
+  return {
+    getFieldDefinition,
+    getFieldType,
+    formatDateDisplay,
+    formatNumberDisplay,
+    formatDelimitedValue,
+    formatValueByType
+  };
+})();
+
 window.MoneyUtils = (() => {
   function sanitizeInputValue(rawValue) {
     const text = String(rawValue || '');

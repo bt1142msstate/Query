@@ -73,75 +73,15 @@ const dropAnchor = document.createElement('div');
 dropAnchor.className = 'drop-anchor';
 document.body.appendChild(dropAnchor);
 
-function getFieldDefinitionForClipboard(fieldName) {
-  if (!window.fieldDefs) return null;
-
-  let fieldDef = window.fieldDefs.get(fieldName);
-  if (fieldDef) return fieldDef;
-
-  const baseName = String(fieldName || '').replace(/ \d+$/, '');
-  if (baseName !== fieldName) {
-    fieldDef = window.fieldDefs.get(baseName);
-  }
-
-  return fieldDef || null;
-}
-
 function formatColumnClipboardValue(rawValue, fieldName) {
   if (rawValue === undefined || rawValue === null) {
     return '';
   }
 
-  const fieldDef = getFieldDefinitionForClipboard(fieldName);
-  const fieldType = fieldDef?.type || 'string';
-
-  if (fieldType === 'date') {
-    const numericValue = typeof rawValue === 'string' ? parseInt(rawValue, 10) : rawValue;
-    if (!numericValue || Number.isNaN(numericValue)) {
-      return 'Never';
-    }
-
-    const year = Math.floor(numericValue / 10000);
-    const month = Math.floor((numericValue % 10000) / 100) - 1;
-    const day = numericValue % 100;
-    const date = new Date(year, month, day);
-    if (Number.isNaN(date.getTime())) {
-      return 'Never';
-    }
-
-    return `${(month + 1).toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}/${year}`;
-  }
-
-  if (fieldType === 'number' || fieldType === 'money') {
-    const numericValue = fieldType === 'money'
-      ? window.MoneyUtils.parseNumber(rawValue)
-      : (typeof rawValue === 'number' ? rawValue : parseFloat(String(rawValue).replace(/,/g, '')));
-
-    if (Number.isNaN(numericValue)) {
-      return '';
-    }
-
-    if (fieldType === 'money') {
-      return window.MoneyUtils.formatDisplayValue(numericValue);
-    }
-
-    return Number.isInteger(numericValue)
-      ? String(numericValue)
-      : numericValue.toLocaleString('en-US', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        });
-  }
-
-  if (typeof rawValue === 'string' && rawValue.includes('\x1F')) {
-    return rawValue
-      .split('\x1F')
-      .map(value => value.trim())
-      .filter(Boolean)
-      .join(' | ');
-  }
-
-  return String(rawValue);
+  const fieldType = window.ValueFormatting.getFieldType(fieldName);
+  return window.ValueFormatting.formatValueByType(rawValue, fieldType, {
+    invalidDateValue: 'Never'
+  });
 }
 
 async function copyColumnValuesByFieldName(fieldName) {

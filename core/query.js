@@ -950,25 +950,21 @@ async function showExampleTable(fields, options = {}){
   }
 }
 
-if (window.QueryChangeManager && typeof window.QueryChangeManager.subscribe === 'function') {
-  window.QueryChangeManager.subscribe(event => {
-    if (!event?.changes?.displayedFields) {
-      return;
-    }
+window.QueryStateSubscriptions.subscribe(event => {
+  if (shouldRerenderTableFromStateChange(event)) {
+    showExampleTable(event.snapshot?.displayedFields || [], { syncQueryState: false }).catch(error => {
+      console.error('Failed to re-render table from query state change:', error);
+    });
+    return;
+  }
 
-    if (shouldRerenderTableFromStateChange(event)) {
-      showExampleTable(event.snapshot?.displayedFields || [], { syncQueryState: false }).catch(error => {
-        console.error('Failed to re-render table from query state change:', error);
-      });
-      return;
-    }
-
-    const displayedFields = event.snapshot?.displayedFields;
-    if (Array.isArray(displayedFields) && displayedFields.length === 0) {
-      renderEmptyQueryTableState();
-    }
-  });
-}
+  const displayedFields = event.snapshot?.displayedFields;
+  if (Array.isArray(displayedFields) && displayedFields.length === 0) {
+    renderEmptyQueryTableState();
+  }
+}, {
+  displayedFields: true
+});
 
 // Arrow-key scrolling when focus is on a bubble, the scrollbar thumb, or when hovering over bubble grid/scrollbar
 document.addEventListener('keydown', e=>{

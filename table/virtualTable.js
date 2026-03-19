@@ -40,29 +40,11 @@ let currentSortColumn = null;
 let currentSortDirection = 'asc'; // 'asc' or 'desc'
 
 function getFieldDefinition(fieldName) {
-  if (!window.fieldDefs) return null;
-
-  let fieldDef = window.fieldDefs.get(fieldName);
-  if (fieldDef) return fieldDef;
-
-  const baseName = String(fieldName).replace(/ \d+$/, '');
-  if (baseName !== fieldName) {
-    fieldDef = window.fieldDefs.get(baseName);
-  }
-
-  return fieldDef || null;
+  return window.ValueFormatting.getFieldDefinition(fieldName);
 }
 
 function getFieldType(fieldName) {
-  const fieldDef = getFieldDefinition(fieldName);
-  if (fieldDef && fieldDef.type) return fieldDef.type;
-
-  const lower = String(fieldName).toLowerCase();
-  if (lower.includes('price') || lower.includes('cost') || lower.includes('amount')) {
-    return 'money';
-  }
-
-  return 'string';
+  return window.ValueFormatting.getFieldType(fieldName, { inferMoneyFromName: true });
 }
 
 function parseNumericValue(value, type = 'number') {
@@ -663,37 +645,15 @@ function renderVirtualTable() {
       
       if (cellValue !== '' && cellValue !== '—' && cellValue !== undefined && cellValue !== null) {
         if (type === 'date') {
-          const raw = cellValue;
-          const n = typeof raw === 'string' ? parseInt(raw, 10) : raw;
-          if (!n || isNaN(n)) {
-            displayValue = 'Never';
-          } else {
-            const y = Math.floor(n / 10000);
-            const m = Math.floor((n % 10000) / 100) - 1;
-            const d = n % 100;
-            const dt = new Date(y, m, d);
-            if (isNaN(dt.getTime())) {
-              displayValue = 'Never';
-            } else {
-              // Same as Excel "mm/dd/yyyy"
-              displayValue = `${(m + 1).toString().padStart(2, '0')}/${d.toString().padStart(2, '0')}/${y}`;
-            }
-          }
+          displayValue = window.ValueFormatting.formatValueByType(cellValue, type, {
+            invalidDateValue: 'Never'
+          });
           td.style.textAlign = 'right';
         } 
         else if (type === 'number' || type === 'money') {
           const n = parseNumericValue(cellValue, type);
           if (!isNaN(n)) {
-            if (type === 'money') {
-              displayValue = window.MoneyUtils.formatDisplayValue(n);
-            } else {
-              // Excel checks integer to determine fractional formatting
-              if (Number.isInteger(n)) {
-                displayValue = n.toString();
-              } else {
-                displayValue = n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-              }
-            }
+            displayValue = window.ValueFormatting.formatValueByType(n, type);
             td.style.textAlign = 'right';
           }
         } 
@@ -855,7 +815,7 @@ function calculateFieldWidth(fieldName, data = null) {
           if (type === 'money') {
             const numericValue = parseNumericValue(value, type);
             if (!isNaN(numericValue)) {
-              measuredValue = window.MoneyUtils.formatDisplayValue(numericValue);
+              measuredValue = window.ValueFormatting.formatValueByType(numericValue, type);
             }
           }
           const textWidth = window.TextMeasurement.measureText(measuredValue);
