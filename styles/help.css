@@ -80,6 +80,13 @@
   position: relative;
 }
 
+#help-container,
+#help-container * {
+  user-select: text;
+  -webkit-user-select: text;
+  -ms-user-select: text;
+}
+
 #help-container::before {
   content: '';
   position: absolute;
