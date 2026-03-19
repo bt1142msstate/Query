@@ -18,6 +18,7 @@
     unsubscribeQueryState: null,
     lastSuggestedTableName: '',
     suppressAutoTableNameOnce: false,
+    isClearingQuery: false,
     hiddenNodes: []
   };
   const { getDisplayedFields, getActiveFilters } = window.QueryStateReaders;
@@ -299,6 +300,8 @@
     if (!state.active || !state.spec) return false;
 
     const nextColumns = getDisplayedFields().slice();
+    if (state.isClearingQuery && nextColumns.length === 0) return false;
+
     const currentColumns = Array.isArray(state.spec.columns) ? state.spec.columns : [];
     const columnsChanged = currentColumns.length !== nextColumns.length
       || currentColumns.some((column, index) => column !== nextColumns[index]);
@@ -406,10 +409,45 @@
     });
   }
 
+  function cleanupFormControls() {
+    state.controls.forEach(control => {
+      if (control && typeof control._cleanupPopup === 'function') {
+        control._cleanupPopup();
+      }
+    });
+    state.controls.clear();
+  }
+
+  function resetActiveFormAfterClear() {
+    if (!state.active || !state.spec) {
+      return;
+    }
+
+    state.searchParams = new URLSearchParams();
+    state.lastSuggestedTableName = '';
+    state.suppressAutoTableNameOnce = true;
+    clearFormControlDefaults();
+    cleanupFormControls();
+
+    if (state.formCard && state.formCard.parentNode) {
+      state.formCard.parentNode.removeChild(state.formCard);
+    }
+
+    buildFormCard();
+    applyFormState();
+    syncPresentationMode();
+
+    if (typeof window.updateButtonStates === 'function') {
+      window.updateButtonStates();
+    }
+
+    window.history.replaceState({}, '', buildCurrentShareUrl());
+  }
+
   function rebuildFormCardFromSpec() {
     captureCurrentControlDefaults();
     state.searchParams = new URLSearchParams();
-    state.controls.clear();
+    cleanupFormControls();
     buildFormCard();
     applyFormState();
     syncPresentationMode();
@@ -1505,21 +1543,13 @@
 
     state.originalClearCurrentQuery = window.clearCurrentQuery;
     window.clearCurrentQuery = async function() {
-      await state.originalClearCurrentQuery();
-      if (!state.active) return;
-      state.searchParams = new URLSearchParams();
-      state.lastSuggestedTableName = '';
-      state.suppressAutoTableNameOnce = true;
-      clearFormControlDefaults();
-      state.controls.clear();
-      if (state.formCard && state.formCard.parentNode) {
-        state.formCard.parentNode.removeChild(state.formCard);
-      }
-      buildFormCard();
-      applyFormState();
-      syncPresentationMode();
-      if (typeof window.updateButtonStates === 'function') {
-        window.updateButtonStates();
+      state.isClearingQuery = true;
+      try {
+        await state.originalClearCurrentQuery();
+        if (!state.active) return;
+        resetActiveFormAfterClear();
+      } finally {
+        state.isClearingQuery = false;
       }
     };
   }
