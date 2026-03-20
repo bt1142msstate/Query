@@ -31,7 +31,6 @@ class Bubble {
     if (def.values) this.el.dataset.values = JSON.stringify(def.values);
     if (def.filters) this.el.dataset.filters = JSON.stringify(def.filters);
 
-    let categoryValue = def.category || '';
     let descValue = def.desc || '';
     const af = getActiveFilters()[fieldName];
     let filterTooltipHtml = '';
@@ -253,15 +252,6 @@ function getBubbleMaxStartRow() {
   return Math.max(0, totalRows - BUBBLE_VISIBLE_ROWS);
 }
 
-function clampBubbleScrollRow(nextRow) {
-  if (window.BubbleRender && typeof window.BubbleRender.clampBubbleScrollRow === 'function') {
-    return window.BubbleRender.clampBubbleScrollRow(nextRow);
-  }
-  const numericRow = Number.isFinite(nextRow) ? nextRow : 0;
-  const roundedRow = Math.round(numericRow);
-  return Math.max(0, Math.min(getBubbleMaxStartRow(), roundedRow));
-}
-
 function applyBubbleScrollRow(nextRow, options = {}) {
   if (window.BubbleRender && typeof window.BubbleRender.applyBubbleScrollRow === 'function') {
     return window.BubbleRender.applyBubbleScrollRow(nextRow, options);
@@ -412,12 +402,6 @@ function initializeBubbles() {
     return window.BubbleInteraction.initializeBubbles();
   }
   return false;
-}
-
-function reconcileBubbleInteractionState(skipFields = new Set()) {
-  if (window.BubbleReset && typeof window.BubbleReset.reconcileBubbleInteractionState === 'function') {
-    return window.BubbleReset.reconcileBubbleInteractionState(skipFields);
-  }
 }
 
 function resetActiveBubbles() {

@@ -3,7 +3,7 @@
  * Handles exporting table data to Excel files with proper formatting and type detection.
  * @module ExcelExporter
  */
-const ExcelExporter = (() => {
+(() => {
   // When true, multi-value cells (delimited by \x1F) are split into separate columns
   // instead of being stacked as newlines in a single cell.
   // Synced with window.splitColumnsActive which virtualTable.js also reads.

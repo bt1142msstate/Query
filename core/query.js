@@ -978,17 +978,6 @@ if (window.BubbleSystem) {
   window.BubbleSystem.initializeBubbles();
 }
 
-// Helper to create a RawValue-to-Name map for a field definition
-function getLiteralToDisplayMap(fieldDef) {
-  const map = new Map();
-  if (fieldDef && fieldDef.values && fieldDef.values.length > 0 && typeof fieldDef.values[0] === 'object' && fieldDef.values[0].Name) {
-    fieldDef.values.forEach(val => {
-      map.set(val.RawValue, val.Name);
-    });
-  }
-  return map;
-}
-
 // Dynamically set --header-height CSS variable based on actual header height
 function updateHeaderHeightVar() {
   const header = dom.headerBar;

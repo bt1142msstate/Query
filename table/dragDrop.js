@@ -1193,7 +1193,7 @@ const dragDropManager = {
       const tbody = table.querySelector('tbody');
       if (tbody && tbody._dragDropListeners) {
         Object.entries(tbody._dragDropListeners).forEach(([event, handler]) => {
-          try { tbody.removeEventListener(event, handler); } catch (err) {}
+          try { tbody.removeEventListener(event, handler); } catch {}
         });
         delete tbody._dragDropListeners;
       }

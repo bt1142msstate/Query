@@ -25,7 +25,6 @@ const postFiltersState = {};
 const postFilterValueOptionsCache = new Map();
 const POST_FILTER_BLANK_SENTINEL = '__QUERY_POST_FILTER_BLANK__';
 
-let visibleTableRows = 25;  // number of rows to show at once
 let tableRowHeight = 42;    // estimated row height in pixels
 let tableScrollTop = 0;
 let tableScrollContainer = null;
@@ -39,10 +38,6 @@ const HEADER_TEXT_BALANCE_SPACE = 116;
 let currentSortColumn = null;
 let currentSortDirection = 'asc'; // 'asc' or 'desc'
 var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
-
-function getFieldDefinition(fieldName) {
-  return window.ValueFormatting.getFieldDefinition(fieldName);
-}
 
 function getFieldType(fieldName) {
   return window.ValueFormatting.getFieldType(fieldName, { inferMoneyFromName: true });
@@ -704,9 +699,7 @@ function renderVirtualTable() {
         }).join('');
         const tooltipHtml = '<div class="text-left font-sans text-sm pb-1"><div class="font-bold border-b border-gray-500 pb-1 mb-2">Multiple Values (' + items.length + ')</div><ul class="list-disc pl-4 space-y-1">' + tooltipItems + '</ul></div>';
         
-        if (window.TooltipManager) {
-           td.setAttribute('data-tooltip-html', tooltipHtml);
-        }
+          td.setAttribute('data-tooltip-html', tooltipHtml);
         
         td.textContent = '';
         td.appendChild(scrollContainer);

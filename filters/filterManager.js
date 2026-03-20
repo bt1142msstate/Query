@@ -208,10 +208,6 @@ function getFilterBetweenLabelElement() {
     return window.DOM?.betweenLabel || document.getElementById('between-label');
 }
 
-function getFilterOverlayElement() {
-    return window.DOM?.overlay || document.getElementById('overlay');
-}
-
 function getFilterQueryInputElement() {
     return window.DOM?.queryInput || document.getElementById('query-input');
 }
@@ -453,12 +449,11 @@ window.handleConditionBtnClick = function(e) {
     // Handle show/hide/display actions
     if (cond === 'show' || cond === 'hide') {
         if (window.selectedField) {
-            let success = false;
             // Assuming addColumn/removeColumnByName are global from columnManager/dragDrop refactor
             if (cond === 'show') {
-                success = window.addColumn ? window.addColumn(window.selectedField) : false;
+                window.addColumn && window.addColumn(window.selectedField);
             } else if (cond === 'hide' && getDisplayedFields().includes(window.selectedField)) {
-                success = window.removeColumnByName ? window.removeColumnByName(window.selectedField) : false;
+                window.removeColumnByName && window.removeColumnByName(window.selectedField);
             }
             
             // Update toggle buttons state
@@ -517,8 +512,6 @@ window.handleFilterConfirm = function(e) {
     const conditionInput2 = getFilterConditionInput2Element();
     const sel = document.getElementById('condition-select');
     const selContainer = document.getElementById('condition-select-container');
-    const overlay = getFilterOverlayElement();
-
     if (!conditionPanel || !conditionInput || !conditionInput2) return;
     
     const field = (bubble && (bubble.dataset.filterFor || bubble.textContent.trim())) || window.selectedField;
@@ -542,8 +535,6 @@ window.handleFilterConfirm = function(e) {
         window.finalizeConfirmAction();
         return;
     }
-
-    const isMultiSelect = fieldDef && fieldDef.multiSelect;
 
     // Validation
     if (cond && cond !== 'display') {
