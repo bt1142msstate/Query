@@ -19,6 +19,7 @@
     lastSuggestedTableName: '',
     suppressAutoTableNameOnce: false,
     isClearingQuery: false,
+    isApplyingFormState: false,
     hiddenNodes: []
   };
   const { getDisplayedFields, getActiveFilters } = window.QueryStateReaders;
@@ -219,6 +220,228 @@
     return splitListValues(filter.val || '');
   }
 
+  function getInputSpecDefaultValues(inputSpec) {
+    if (!inputSpec) {
+      return [];
+    }
+
+    if (inputSpec.operator === 'between') {
+      return Array.isArray(inputSpec.defaultValue)
+        ? inputSpec.defaultValue.slice(0, 2).map(value => String(value || ''))
+        : ['', ''];
+    }
+
+    if (Array.isArray(inputSpec.defaultValue)) {
+      return inputSpec.defaultValue.map(value => String(value || '')).filter(Boolean);
+    }
+
+    if (inputSpec.defaultValue === undefined || inputSpec.defaultValue === null) {
+      return [];
+    }
+
+    return splitListValues(inputSpec.defaultValue);
+  }
+
+  function assignInputSpecDefaultValues(inputSpec, values, fieldDef = null) {
+    if (!inputSpec) {
+      return;
+    }
+
+    const normalizedValues = Array.isArray(values)
+      ? values.map(value => String(value || '').trim())
+      : [];
+
+    if (inputSpec.operator === 'between') {
+      inputSpec.defaultValue = [normalizedValues[0] || '', normalizedValues[1] || ''];
+      inputSpec.multiple = false;
+      return;
+    }
+
+    const shouldAllowMultiple = Boolean(
+      inputSpec.multiple
+      || (fieldDef && fieldDef.allowValueList)
+      || (fieldDef && fieldDef.multiSelect)
+      || normalizedValues.filter(Boolean).length > 1
+    );
+
+    inputSpec.multiple = shouldAllowMultiple;
+    inputSpec.defaultValue = shouldAllowMultiple
+      ? normalizedValues.filter(Boolean)
+      : (normalizedValues[0] || '');
+  }
+
+  function clearInputSpecDefaultValue(inputSpec) {
+    if (!inputSpec) {
+      return;
+    }
+
+    if (inputSpec.operator === 'between') {
+      inputSpec.defaultValue = ['', ''];
+      return;
+    }
+
+    inputSpec.defaultValue = inputSpec.multiple ? [] : '';
+  }
+
+  function buildGeneratedInputSpecFromFilter(fieldName, filter, index, filters, seenKeys) {
+    const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
+    const operator = normalizeOperatorForField(fieldDef, String(filter && filter.cond || 'equals').trim() || 'equals');
+    const values = readStoredFilterValues(filter);
+    const hasMultipleFilters = filters.length > 1;
+    const keyBase = `${fieldName}-${operator}${hasMultipleFilters ? `-${index + 1}` : ''}`;
+    const shouldAllowMultiple = operator !== 'between' && Boolean(
+      (fieldDef && fieldDef.allowValueList)
+      || (fieldDef && fieldDef.multiSelect)
+      || values.length > 1
+    );
+
+    return {
+      key: uniqueInputKey(keyBase, seenKeys),
+      field: fieldName,
+      label: hasMultipleFilters ? `${fieldName} (${window.OperatorLabels.get(operator)})` : fieldName,
+      operator,
+      multiple: shouldAllowMultiple,
+      default: operator === 'between'
+        ? values.slice(0, 2)
+        : shouldAllowMultiple
+          ? values
+          : (values[0] || ''),
+      defaultValue: operator === 'between'
+        ? values.slice(0, 2)
+        : shouldAllowMultiple
+          ? values
+          : (values[0] || ''),
+      help: '',
+      placeholder: '',
+      required: false,
+      hidden: false,
+      type: fieldDef && fieldDef.type ? String(fieldDef.type) : '',
+      options: null,
+      keys: []
+    };
+  }
+
+  function buildGeneratedInputSpecsFromActiveFilters(existingInputs = []) {
+    const seenKeys = new Set(
+      existingInputs
+        .map(inputSpec => String(inputSpec && inputSpec.key || '').trim())
+        .filter(Boolean)
+    );
+    const generatedInputs = [];
+
+    Object.entries(getActiveFilters()).forEach(([fieldName, fieldState]) => {
+      const filters = Array.isArray(fieldState && fieldState.filters) ? fieldState.filters : [];
+      filters.forEach((filter, index) => {
+        generatedInputs.push(buildGeneratedInputSpecFromFilter(fieldName, filter, index, filters, seenKeys));
+      });
+    });
+
+    return generatedInputs;
+  }
+
+  function getInputSignature(inputSpec) {
+    if (!inputSpec) {
+      return '';
+    }
+
+    return `${String(inputSpec.field || '').trim()}::${String(inputSpec.operator || '').trim()}`;
+  }
+
+  function syncGeneratedSpecWithCurrentQuery(options = {}) {
+    if (!state.active || !state.spec || state.specSource !== 'generated') {
+      return false;
+    }
+
+    const {
+      rebuildCard = false,
+      refreshUrl = true
+    } = options;
+
+    let changed = syncSpecColumnsWithDisplayedFields({ refreshUrl: false });
+
+    const existingInputs = Array.isArray(state.spec.inputs) ? state.spec.inputs.slice() : [];
+    const generatedInputs = buildGeneratedInputSpecsFromActiveFilters(existingInputs);
+    const existingBySignature = new Map();
+
+    existingInputs.forEach(inputSpec => {
+      const signature = getInputSignature(inputSpec);
+      if (!existingBySignature.has(signature)) {
+        existingBySignature.set(signature, []);
+      }
+      existingBySignature.get(signature).push(inputSpec);
+    });
+
+    const usedInputs = new Set();
+    const nextInputs = [];
+
+    generatedInputs.forEach(generatedInput => {
+      const signature = getInputSignature(generatedInput);
+      const candidates = existingBySignature.get(signature) || [];
+      const match = candidates.find(candidate => !usedInputs.has(candidate));
+
+      if (!match) {
+        nextInputs.push(generatedInput);
+        changed = true;
+        return;
+      }
+
+      const fieldDef = window.fieldDefs ? window.fieldDefs.get(match.field) : null;
+      const previousDefaults = JSON.stringify(getInputSpecDefaultValues(match));
+      const nextDefaults = getInputSpecDefaultValues(generatedInput);
+      const nextMultiple = Boolean(generatedInput.multiple);
+
+      match.operator = generatedInput.operator;
+      match.type = generatedInput.type || match.type;
+      assignInputSpecDefaultValues(match, nextDefaults, fieldDef);
+      if (match.multiple !== nextMultiple) {
+        match.multiple = nextMultiple;
+      }
+
+      if (previousDefaults !== JSON.stringify(getInputSpecDefaultValues(match))) {
+        changed = true;
+      }
+
+      usedInputs.add(match);
+      nextInputs.push(match);
+    });
+
+    existingInputs.forEach(inputSpec => {
+      if (usedInputs.has(inputSpec)) {
+        return;
+      }
+
+      const previousDefaults = JSON.stringify(getInputSpecDefaultValues(inputSpec));
+      clearInputSpecDefaultValue(inputSpec);
+      if (previousDefaults !== JSON.stringify(getInputSpecDefaultValues(inputSpec))) {
+        changed = true;
+      }
+      nextInputs.push(inputSpec);
+    });
+
+    if (
+      state.spec.inputs.length !== nextInputs.length
+      || state.spec.inputs.some((inputSpec, index) => inputSpec !== nextInputs[index])
+    ) {
+      state.spec.inputs = nextInputs;
+      changed = true;
+    }
+
+    if (rebuildCard && state.viewMode === 'form') {
+      rebuildFormCardFromSpec({
+        preserveCurrentDefaults: false,
+        applyState: false,
+        refreshUrl: false,
+        clearSearchParams: true
+      });
+    }
+
+    if (changed && refreshUrl) {
+      refreshBrowserUrl();
+    }
+
+    return changed;
+  }
+
   function buildSpecFromCurrentQuery() {
     const columns = getDisplayedFields().slice();
     if (columns.length === 0) {
@@ -229,35 +452,7 @@
     const title = tableNameInput && tableNameInput.value.trim()
       ? tableNameInput.value.trim()
       : 'Query Form';
-    const seenKeys = new Set();
-    const inputs = [];
-
-    Object.entries(getActiveFilters()).forEach(([fieldName, fieldState]) => {
-      const filters = Array.isArray(fieldState && fieldState.filters) ? fieldState.filters : [];
-      const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
-
-      filters.forEach((filter, index) => {
-        const operator = normalizeOperatorForField(fieldDef, String(filter && filter.cond || 'equals').trim() || 'equals');
-        const values = readStoredFilterValues(filter);
-        const hasMultipleFilters = filters.length > 1;
-        const keyBase = `${fieldName}-${operator}${hasMultipleFilters ? `-${index + 1}` : ''}`;
-        const shouldAllowMultiple = operator !== 'between' && (Boolean(fieldDef && fieldDef.allowValueList) || values.length > 1);
-
-        inputs.push({
-          key: uniqueInputKey(keyBase, seenKeys),
-          field: fieldName,
-          label: hasMultipleFilters ? `${fieldName} (${window.OperatorLabels.get(operator)})` : fieldName,
-          operator,
-          multiple: shouldAllowMultiple,
-          default: operator === 'between'
-            ? values.slice(0, 2)
-            : shouldAllowMultiple
-              ? values
-              : (values[0] || ''),
-          help: ''
-        });
-      });
-    });
+    const inputs = buildGeneratedInputSpecsFromActiveFilters();
 
     return normalizeSpec({
       title,
@@ -452,30 +647,48 @@
       state.formCard.parentNode.removeChild(state.formCard);
     }
 
-    buildFormCard();
-    applyFormState();
-    syncPresentationMode();
-
-    if (typeof window.updateButtonStates === 'function') {
-      window.updateButtonStates();
-    }
-
-    refreshBrowserUrl();
+    rebuildFormCardFromSpec({
+      preserveCurrentDefaults: false,
+      applyState: false,
+      refreshUrl: false,
+      clearSearchParams: true
+    });
+    refreshBrowserUrl({ forceClearUrl: true });
   }
 
-  function rebuildFormCardFromSpec() {
-    captureCurrentControlDefaults();
-    state.searchParams = new URLSearchParams();
+  function rebuildFormCardFromSpec(options = {}) {
+    const {
+      preserveCurrentDefaults = true,
+      applyState = true,
+      refreshUrl = true,
+      clearSearchParams = true
+    } = options;
+
+    if (preserveCurrentDefaults) {
+      captureCurrentControlDefaults();
+    }
+    if (clearSearchParams) {
+      state.searchParams = new URLSearchParams();
+    }
     cleanupFormControls();
     buildFormCard();
-    applyFormState();
+    if (applyState) {
+      applyFormState();
+    } else {
+      const bindings = collectBindings();
+      updateHeaderCopy(bindings);
+      setTableName(bindings);
+      syncValidationUi();
+    }
     syncPresentationMode();
 
     if (typeof window.updateButtonStates === 'function') {
       window.updateButtonStates();
     }
 
-    refreshBrowserUrl();
+    if (refreshUrl) {
+      refreshBrowserUrl();
+    }
   }
 
   async function activateGeneratedFormFromCurrentQuery() {
@@ -1092,12 +1305,8 @@
     if (typeof window.updateQueryJson === 'function') {
       window.updateQueryJson();
     }
-    if (window.FilterSidePanel) {
-      if (state.viewMode === 'form' && typeof window.FilterSidePanel.close === 'function') {
-        window.FilterSidePanel.close();
-      } else if (typeof window.FilterSidePanel.update === 'function') {
-        window.FilterSidePanel.update();
-      }
+    if (window.FilterSidePanel && typeof window.FilterSidePanel.update === 'function') {
+      window.FilterSidePanel.update();
     }
     if (window.updateCategoryCounts) {
       window.updateCategoryCounts();
@@ -1105,6 +1314,8 @@
     if (window.BubbleSystem && typeof window.BubbleSystem.safeRenderBubbles === 'function') {
       window.BubbleSystem.safeRenderBubbles();
     }
+
+    refreshBrowserUrl();
   }
 
   function getValidationError() {
@@ -1245,9 +1456,8 @@
 
   async function setViewMode(nextMode, options = {}) {
     const requestedMode = nextMode === 'bubbles' ? 'bubbles' : 'form';
-    const isEnteringFormFromBubbles = requestedMode === 'form' && state.viewMode === 'bubbles';
 
-    if (requestedMode === 'form' && (isEnteringFormFromBubbles || !state.active || state.specSource === 'generated')) {
+    if (requestedMode === 'form' && !state.active) {
       const activated = await activateGeneratedFormFromCurrentQuery();
       if (!activated) {
         return;
@@ -1566,9 +1776,29 @@
 
     if (!state.unsubscribeQueryState) {
       state.unsubscribeQueryState = window.QueryStateSubscriptions.subscribe(event => {
-        syncSpecColumnsWithDisplayedFields();
+        const source = String(event && event.meta && event.meta.source || '');
+        if (!state.active || state.isClearingQuery || source.startsWith('QueryFormMode.')) {
+          return;
+        }
+
+        if (state.specSource === 'generated') {
+          syncGeneratedSpecWithCurrentQuery({
+            rebuildCard: Boolean(event.changes && event.changes.activeFilters),
+            refreshUrl: true
+          });
+          return;
+        }
+
+        if (event.changes && event.changes.displayedFields) {
+          syncSpecColumnsWithDisplayedFields();
+        }
+
+        if (state.viewMode === 'form') {
+          syncValidationUi();
+        }
       }, {
         displayedFields: true,
+        activeFilters: true,
         predicate: () => state.active
       });
     }
