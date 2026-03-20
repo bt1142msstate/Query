@@ -245,31 +245,41 @@ function mapBubbleConditionToFieldOperator(condition) {
 const BUBBLE_VISIBLE_ROWS = 2;
 
 function getBubbleMaxStartRow() {
-  if (window.BubbleRender && typeof window.BubbleRender.getBubbleMaxStartRow === 'function') {
-    return window.BubbleRender.getBubbleMaxStartRow();
-  }
   if (typeof totalRows === 'undefined') return 0;
   return Math.max(0, totalRows - BUBBLE_VISIBLE_ROWS);
 }
 
+function clampBubbleScrollRow(nextRow) {
+  const numericRow = Number.isFinite(nextRow) ? nextRow : 0;
+  const roundedRow = Math.round(numericRow);
+  return Math.max(0, Math.min(getBubbleMaxStartRow(), roundedRow));
+}
+
 function applyBubbleScrollRow(nextRow, options = {}) {
-  if (window.BubbleRender && typeof window.BubbleRender.applyBubbleScrollRow === 'function') {
-    return window.BubbleRender.applyBubbleScrollRow(nextRow, options);
+  const { force = false } = options;
+  if (typeof scrollRow === 'undefined') return false;
+
+  const clampedRow = clampBubbleScrollRow(nextRow);
+  const changed = clampedRow !== scrollRow;
+  if (!changed && !force) return false;
+
+  scrollRow = clampedRow;
+
+  const listDiv = document.getElementById('bubble-list');
+  if (listDiv) {
+    listDiv.style.transform = `translateY(-${scrollRow * rowHeight}px)`;
   }
-  return false;
+
+  updateScrollBar();
+  return changed;
 }
 
 function scrollBubblesByRows(deltaRows) {
-  if (window.BubbleRender && typeof window.BubbleRender.scrollBubblesByRows === 'function') {
-    return window.BubbleRender.scrollBubblesByRows(deltaRows);
-  }
-  return false;
+  return applyBubbleScrollRow((typeof scrollRow === 'number' ? scrollRow : 0) + deltaRows);
 }
 
 function resetBubbleScroll() {
-  if (window.BubbleRender && typeof window.BubbleRender.resetBubbleScroll === 'function') {
-    window.BubbleRender.resetBubbleScroll();
-  }
+  applyBubbleScrollRow(0, { force: true });
 }
 
 function bubbleDebugLog(eventName, payload = {}) {
@@ -312,10 +322,6 @@ function applyCorrectBubbleStyling(bubbleElement) {
 }
 
 function createOrUpdateBubble(def, existingBubble = null) {
-  if (window.BubbleRender && typeof window.BubbleRender.createOrUpdateBubble === 'function') {
-    return window.BubbleRender.createOrUpdateBubble(def, existingBubble);
-  }
-
   let bubbleInstance;
   if (existingBubble && existingBubble._bubbleInstance) {
     bubbleInstance = existingBubble._bubbleInstance;
@@ -330,21 +336,148 @@ function createOrUpdateBubble(def, existingBubble = null) {
 }
 
 function renderBubbles() {
-  if (window.BubbleRender && typeof window.BubbleRender.renderBubbles === 'function') {
-    return window.BubbleRender.renderBubbles();
+  if (typeof filteredDefs === 'undefined' || typeof currentCategory === 'undefined') {
+    console.log('renderBubbles: Required globals not available yet');
+    return;
   }
+
+  const container = document.getElementById('bubble-container');
+  const listDiv = document.getElementById('bubble-list');
+  if (!container || !listDiv) return;
+
+  let list;
+  if (currentCategory === 'All') {
+    list = filteredDefs;
+  } else if (currentCategory === 'Selected') {
+    const displayedFields = getDisplayedFields();
+    const activeFilters = getActiveFilters();
+    const displayedSet = new Set(displayedFields);
+    const filteredSelected = filteredDefs.filter(d => window.shouldFieldHavePurpleStylingBase(d.name, displayedFields, activeFilters));
+    const orderedList = displayedFields
+      .map(name => filteredSelected.find(d => d.name === name))
+      .filter(Boolean);
+
+    filteredSelected.forEach(d => {
+      if (!displayedSet.has(d.name) && !orderedList.includes(d)) {
+        orderedList.push(d);
+      }
+    });
+    list = orderedList;
+  } else {
+    list = filteredDefs.filter(d => {
+      const cat = d.category;
+      return Array.isArray(cat) ? cat.includes(currentCategory) : cat === currentCategory;
+    });
+  }
+
+  list.sort((a, b) => {
+    const aFilter = hasFiltersForField(a.name);
+    const bFilter = hasFiltersForField(b.name);
+    if (aFilter && !bFilter) return -1;
+    if (!aFilter && bFilter) return 1;
+    return 0;
+  });
+
+  if (currentCategory === 'Selected') {
+    const existingBubbles = Array.from(listDiv.children);
+    const existingBubbleMap = new Map(existingBubbles.map(b => [b.textContent.trim(), b]));
+    listDiv.innerHTML = '';
+    list.forEach(def => {
+      const existingBubble = existingBubbleMap.get(def.name);
+      const bubbleEl = createOrUpdateBubble(def, existingBubble);
+      listDiv.appendChild(bubbleEl);
+    });
+  } else {
+    listDiv.innerHTML = '';
+    list.forEach(def => {
+      const bubbleEl = createOrUpdateBubble(def);
+      listDiv.appendChild(bubbleEl);
+    });
+  }
+
+  const firstBubble = listDiv.querySelector('.bubble');
+  if (firstBubble) {
+    const gapVal = getComputedStyle(listDiv).getPropertyValue('gap') || '0px';
+    const gap = parseFloat(gapVal) || 0;
+    rowHeight = firstBubble.getBoundingClientRect().height + gap;
+    const bubbleW = firstBubble.offsetWidth;
+    const twoRowsH = rowHeight * BUBBLE_VISIBLE_ROWS - gap;
+    const sixColsW = bubbleW * 6 + gap * 5;
+    const fudge = 8;
+    const paddedH = twoRowsH + 12 - fudge;
+    const paddedW = sixColsW + 8;
+    container.style.height = paddedH + 'px';
+    container.style.width = paddedW + 'px';
+    const scrollCont = document.querySelector('.bubble-scrollbar-container');
+    if (scrollCont) scrollCont.style.height = paddedH + 'px';
+    totalRows = Math.ceil(list.length / 6);
+    applyBubbleScrollRow(scrollRow, { force: true });
+  } else {
+    totalRows = 0;
+    scrollRow = 0;
+    rowHeight = 0;
+    updateScrollBar();
+  }
+
+  Array.from(listDiv.children).forEach(bubble => {
+    const fieldName = bubble.textContent.trim();
+    if (animatingBackBubbles.has(fieldName)) {
+      bubble.style.visibility = 'hidden';
+      bubble.style.opacity = '0';
+    } else {
+      bubble.style.visibility = '';
+      bubble.style.opacity = '';
+    }
+  });
 }
 
 function safeRenderBubbles() {
-  if (window.BubbleRender && typeof window.BubbleRender.safeRenderBubbles === 'function') {
-    return window.BubbleRender.safeRenderBubbles();
+  if (typeof isBubbleAnimatingBack === 'undefined') {
+    console.log('safeRenderBubbles: Required globals not available yet');
+    return;
   }
+
+  if (isBubbleAnimatingBack) {
+    pendingRenderBubbles = true;
+    return;
+  }
+
+  renderBubbles();
+  pendingRenderBubbles = false;
 }
 
 function updateScrollBar() {
-  if (window.BubbleRender && typeof window.BubbleRender.updateScrollBar === 'function') {
-    return window.BubbleRender.updateScrollBar();
+  if (typeof totalRows === 'undefined' || typeof scrollRow === 'undefined') {
+    return;
   }
+
+  const listDiv = document.getElementById('bubble-list');
+  const renderedBubbleCount = listDiv ? listDiv.querySelectorAll('.bubble').length : 0;
+  const scrollbarContainer = document.querySelector('.bubble-scrollbar-container');
+  if (scrollbarContainer) {
+    const needScroll = renderedBubbleCount > 0 && totalRows > BUBBLE_VISIBLE_ROWS;
+    scrollbarContainer.style.display = needScroll ? 'block' : 'none';
+    if (!needScroll) return;
+  }
+
+  const track = document.getElementById('bubble-scrollbar-track');
+  const thumb = document.getElementById('bubble-scrollbar-thumb');
+  if (!track || !thumb) return;
+
+  const maxStartRow = getBubbleMaxStartRow();
+  const trackH = track.clientHeight;
+  track.style.background = 'rgba(255, 255, 255, 0.15)';
+
+  const visibleRatio = totalRows > 0 ? (BUBBLE_VISIBLE_ROWS / totalRows) : 1;
+  let thumbH = Math.max(24, trackH * visibleRatio);
+  thumbH = Math.min(thumbH, trackH);
+
+  const scrollRatio = maxStartRow > 0 ? (scrollRow / maxStartRow) : 0;
+  const maxTopPos = trackH - thumbH;
+  const topPos = scrollRatio * maxTopPos;
+
+  thumb.style.height = `${thumbH}px`;
+  thumb.style.top = `${topPos}px`;
 }
 
 window.createBubblePopParticles = function(bubbleClone) {
