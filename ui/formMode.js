@@ -1166,14 +1166,6 @@
     return nextUrl.toString();
   }
 
-  async function copyCurrentShareUrl() {
-    await window.ClipboardUtils.copyFromSource(() => buildCurrentShareUrl(), {
-      successMessage: 'Form link copied.',
-      errorMessage: 'Failed to copy form link.',
-      emptyMessage: 'No form link is available to copy.'
-    });
-  }
-
   function syncPresentationMode() {
     const querySearchBlock = document.getElementById('query-input') && document.getElementById('query-input').closest('.mb-6');
     const categoryBar = document.getElementById('category-bar');

@@ -118,24 +118,6 @@ window.renderJsonTree = function(payload) {
   tree.innerHTML = window.renderJsonNode(null, payload, 0, true, '$');
 };
 
-window.copyQueryJsonToClipboard = async function() {
-  await window.ClipboardUtils.copyFromSource(() => {
-    const queryBox = window.DOM.queryBox;
-    return queryBox instanceof HTMLTextAreaElement
-      ? queryBox.value
-      : (queryBox?.textContent || '');
-  }, {
-    successMessage: 'JSON copied to clipboard.',
-    errorMessage: 'Failed to copy JSON.',
-    emptyMessage: 'No JSON is available to copy.',
-    onSuccess: () => {
-      const copyBtn = document.getElementById('copy-json-btn');
-      copyBtn?.classList.add('copied');
-      setTimeout(() => copyBtn?.classList.remove('copied'), 1200);
-    }
-  });
-};
-
 window.updateQueryJson = function(){
   const tableNameInput = window.DOM.tableNameInput;
   const queryName = tableNameInput ? tableNameInput.value.trim() : '';

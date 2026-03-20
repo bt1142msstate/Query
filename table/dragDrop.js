@@ -85,28 +85,6 @@ function formatColumnClipboardValue(rawValue, fieldName) {
   });
 }
 
-async function copyColumnValuesByFieldName(fieldName) {
-  return window.ClipboardUtils.copyFromSource(() => {
-    const virtualTableData = window.VirtualTable?.virtualTableData;
-    if (!fieldName || !virtualTableData?.rows?.length || !virtualTableData.columnMap) {
-      return '';
-    }
-
-    const columnIndex = virtualTableData.columnMap.get(fieldName);
-    if (columnIndex === undefined) {
-      return '';
-    }
-
-    return virtualTableData.rows
-      .map(row => formatColumnClipboardValue(row[columnIndex], fieldName))
-      .join('\n');
-  }, {
-    successMessage: `${fieldName} values copied to clipboard.`,
-    errorMessage: `Failed to copy ${fieldName} values.`,
-    emptyMessage: fieldName ? `No data is available for ${fieldName}.` : 'No column data available to copy.'
-  });
-}
-
 const headerActions = document.createElement('div');
 headerActions.className = 'th-actions';
 
