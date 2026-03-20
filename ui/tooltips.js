@@ -7,7 +7,7 @@
  * Tooltip manager handling tooltip creation, positioning, and lifecycle.
  * @namespace TooltipManager
  */
-const TooltipManager = (() => {
+(() => {
   const TOOLTIP_SELECTOR = '[data-tooltip], [data-tooltip-html]';
   let tooltipEl = null;
   let arrowEl = null;

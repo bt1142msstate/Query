@@ -57,7 +57,6 @@ window.pendingRenderBubbles = false;
 const displayedFieldsState = [];
 const activeFiltersState = {};
 const queryStateSubscribers = new Set();
-const readOnlyProxyCache = new WeakMap();
 const legacyReadWarnings = new Set();
 
 function warnReadOnlyQueryStateMutation(path) {
@@ -76,69 +75,6 @@ function warnLegacyQueryStateRead(path) {
 function throwLegacyQueryStateRead(path) {
   warnLegacyQueryStateRead(path);
   throw new Error(`Direct query state read via ${path} is blocked. Use window.QueryChangeManager read methods instead.`);
-}
-
-function createReadOnlyQueryStateProxy(target, path) {
-  if (!target || typeof target !== 'object') {
-    return target;
-  }
-
-  const cachedProxy = readOnlyProxyCache.get(target);
-  if (cachedProxy) {
-    return cachedProxy;
-  }
-
-  const proxy = new Proxy(target, {
-    get(currentTarget, prop, receiver) {
-      const value = Reflect.get(currentTarget, prop, receiver);
-
-      if (typeof prop === 'symbol') {
-        return value;
-      }
-
-      if (typeof value === 'function') {
-        if (Array.isArray(currentTarget) && [
-          'copyWithin',
-          'fill',
-          'pop',
-          'push',
-          'reverse',
-          'shift',
-          'sort',
-          'splice',
-          'unshift'
-        ].includes(prop)) {
-          return function blockedQueryStateMutation() {
-            warnReadOnlyQueryStateMutation(`${path}.${prop}()`);
-            return Array.isArray(currentTarget) ? currentTarget.length : undefined;
-          };
-        }
-
-        return value.bind(currentTarget);
-      }
-
-      if (value && typeof value === 'object') {
-        return createReadOnlyQueryStateProxy(value, `${path}.${String(prop)}`);
-      }
-
-      return value;
-    },
-    set(_currentTarget, prop) {
-      warnReadOnlyQueryStateMutation(`${path}.${String(prop)}`);
-      return true;
-    },
-    deleteProperty(_currentTarget, prop) {
-      warnReadOnlyQueryStateMutation(`${path}.${String(prop)}`);
-      return true;
-    },
-    defineProperty(_currentTarget, prop) {
-      warnReadOnlyQueryStateMutation(`${path}.${String(prop)}`);
-      return true;
-    }
-  });
-
-  readOnlyProxyCache.set(target, proxy);
-  return proxy;
 }
 
 function cloneFilterEntry(filter) {

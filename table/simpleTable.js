@@ -116,7 +116,7 @@ class SimpleTable {
         if (typeof config === 'string') {
             try {
                 config = JSON.parse(config);
-            } catch (e) {
+            } catch {
                 throw new Error('Invalid JSON provided to SimpleTable.');
             }
         }
