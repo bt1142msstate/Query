@@ -38,89 +38,16 @@ window.addEventListener('pagehide', markQueryPageUnload);
 window.updateButtonStates();
 
 window.clearCurrentQuery = async function clearCurrentQuery() {
-  if (window.queryRunning) {
-    showToastMessage('Stop the running query before clearing it.', 'warning');
-    return;
+  if (window.QueryChangeManager && typeof window.QueryChangeManager.clearQuery === 'function') {
+    return window.QueryChangeManager.clearQuery();
   }
 
-  const previousSelectedField = window.selectedField || '';
-
-  if (window.ModalSystem && typeof window.ModalSystem.closeAllPanels === 'function') {
-    window.ModalSystem.closeAllPanels();
-  }
-
-  if (window.BubbleSystem && typeof window.BubbleSystem.resetActiveBubbles === 'function') {
-    window.BubbleSystem.resetActiveBubbles();
-  }
-  if (window.BubbleSystem && typeof window.BubbleSystem.resetEditorUi === 'function') {
-    window.BubbleSystem.resetEditorUi({
-      clearPanelContent: true,
-      clearConditionListSelection: !previousSelectedField
-    });
-  }
-
-  if (window.PostFilterSystem && typeof window.PostFilterSystem.close === 'function') {
-    window.PostFilterSystem.close();
-  }
-  if (window.VirtualTable && typeof window.VirtualTable.clearPostFilters === 'function') {
-    window.VirtualTable.clearPostFilters({ refreshView: false, notify: true, resetScroll: false });
-  }
-
-  if (window.QueryChangeManager && typeof window.QueryChangeManager.resetQuery === 'function') {
-    window.QueryChangeManager.resetQuery({ source: 'Query.clearCurrentQuery' });
-  }
-  if (previousSelectedField && typeof window.renderConditionList === 'function') {
-    window.renderConditionList(previousSelectedField);
-  } else {
-    document.getElementById('bubble-cond-list')?.replaceChildren();
-  }
-  window.selectedField = '';
-  window.lastExecutedQueryState = null;
-
-  if (dom.tableNameInput) {
-    dom.tableNameInput.value = '';
-    dom.tableNameInput.classList.remove('error');
-  }
-
-  if (dom.queryInput) {
-    dom.queryInput.value = '';
-  }
-  if (dom.clearSearchBtn) {
-    dom.clearSearchBtn.classList.add('hidden');
-  }
-
-  window.currentCategory = 'All';
-  resetBubbleScrollState();
-
-  if (window.VirtualTable && typeof window.VirtualTable.setSplitColumnsMode === 'function' && window.VirtualTable.splitColumnsActive) {
-    window.VirtualTable.setSplitColumnsMode(false);
-  }
-  if (window.resetSplitColumnsToggleUI) {
-    window.resetSplitColumnsToggleUI();
-  }
-
-  if (window.FilterSidePanel && typeof window.FilterSidePanel.update === 'function') {
-    window.FilterSidePanel.update();
-  }
-  if (window.updateCategoryCounts) {
-    window.updateCategoryCounts();
-  }
-  if (window.updateQueryJson) {
-    window.updateQueryJson();
-  }
-  if (window.updateButtonStates) {
-    window.updateButtonStates();
-  }
-  if (window.BubbleSystem && typeof window.BubbleSystem.safeRenderBubbles === 'function') {
-    window.BubbleSystem.safeRenderBubbles();
-  }
-
-  showToastMessage('Query cleared.', 'info');
+  throw new Error('QueryChangeManager.clearQuery is unavailable.');
 };
 
 if (dom.clearQueryBtn) {
   dom.clearQueryBtn.addEventListener('click', () => {
-    window.clearCurrentQuery().catch(error => {
+    window.QueryChangeManager.clearQuery().catch(error => {
       console.error('Failed to clear query:', error);
       showToastMessage('Failed to clear query.', 'error');
     });

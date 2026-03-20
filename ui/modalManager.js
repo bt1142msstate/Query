@@ -235,8 +235,8 @@ class ModalManager {
     if (mobileClearQuery) {
       mobileClearQuery.addEventListener('click', () => {
         this.closePanel('mobile-menu-dropdown');
-        if (typeof window.clearCurrentQuery === 'function') {
-          window.clearCurrentQuery().catch(err => {
+        if (window.QueryChangeManager && typeof window.QueryChangeManager.clearQuery === 'function') {
+          window.QueryChangeManager.clearQuery().catch(err => {
             console.error('Failed to clear query from mobile menu', err);
           });
         }

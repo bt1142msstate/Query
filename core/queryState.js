@@ -200,6 +200,7 @@ function shouldSkipQueryChangeToast(meta = {}) {
     'Query.initialization',
     'Query.showExampleTable',
     'Query.showExampleTable.empty',
+    'QueryChangeManager.clearQuery',
     'Query.clearCurrentQuery',
     'QueryHistory.loadQueryConfig',
     'VirtualTable.setSplitMode',
@@ -489,6 +490,99 @@ function normalizeManagerMeta(meta = {}, fallbackSource) {
   };
 }
 
+async function clearQueryManagerState(meta = {}) {
+  const normalizedMeta = normalizeManagerMeta(meta, 'QueryChangeManager.clearQuery');
+
+  if (window.queryRunning) {
+    if (typeof window.showToastMessage === 'function') {
+      window.showToastMessage('Stop the running query before clearing it.', 'warning');
+    }
+    return false;
+  }
+
+  const previousSelectedField = window.selectedField || '';
+
+  if (window.ModalSystem && typeof window.ModalSystem.closeAllPanels === 'function') {
+    window.ModalSystem.closeAllPanels();
+  }
+
+  if (window.BubbleSystem && typeof window.BubbleSystem.resetActiveBubbles === 'function') {
+    window.BubbleSystem.resetActiveBubbles();
+  }
+  if (window.BubbleSystem && typeof window.BubbleSystem.resetEditorUi === 'function') {
+    window.BubbleSystem.resetEditorUi({
+      clearPanelContent: true,
+      clearConditionListSelection: !previousSelectedField
+    });
+  }
+
+  if (window.PostFilterSystem && typeof window.PostFilterSystem.close === 'function') {
+    window.PostFilterSystem.close();
+  }
+  if (window.VirtualTable && typeof window.VirtualTable.clearPostFilters === 'function') {
+    window.VirtualTable.clearPostFilters({ refreshView: false, notify: true, resetScroll: false });
+  }
+
+  queryStateStore.resetQuery(normalizedMeta);
+
+  if (previousSelectedField && typeof window.renderConditionList === 'function') {
+    window.renderConditionList(previousSelectedField);
+  } else {
+    document.getElementById('bubble-cond-list')?.replaceChildren();
+  }
+
+  window.selectedField = '';
+  window.lastExecutedQueryState = null;
+
+  const dom = window.DOM;
+  if (dom?.tableNameInput) {
+    dom.tableNameInput.value = '';
+    dom.tableNameInput.classList.remove('error');
+  }
+
+  if (dom?.queryInput) {
+    dom.queryInput.value = '';
+  }
+  if (dom?.clearSearchBtn) {
+    dom.clearSearchBtn.classList.add('hidden');
+  }
+
+  window.currentCategory = 'All';
+
+  if (window.BubbleSystem && typeof window.BubbleSystem.resetBubbleScroll === 'function') {
+    window.BubbleSystem.resetBubbleScroll();
+  }
+
+  if (window.VirtualTable && typeof window.VirtualTable.setSplitColumnsMode === 'function' && window.VirtualTable.splitColumnsActive) {
+    window.VirtualTable.setSplitColumnsMode(false);
+  }
+  if (typeof window.resetSplitColumnsToggleUI === 'function') {
+    window.resetSplitColumnsToggleUI();
+  }
+
+  if (window.FilterSidePanel && typeof window.FilterSidePanel.update === 'function') {
+    window.FilterSidePanel.update();
+  }
+  if (typeof window.updateCategoryCounts === 'function') {
+    window.updateCategoryCounts();
+  }
+  if (typeof window.updateQueryJson === 'function') {
+    window.updateQueryJson();
+  }
+  if (typeof window.updateButtonStates === 'function') {
+    window.updateButtonStates();
+  }
+  if (window.BubbleSystem && typeof window.BubbleSystem.safeRenderBubbles === 'function') {
+    window.BubbleSystem.safeRenderBubbles();
+  }
+
+  if (typeof window.showToastMessage === 'function') {
+    window.showToastMessage('Query cleared.', 'info');
+  }
+
+  return true;
+}
+
 const queryChangeManager = {
   getSnapshot() {
     return queryStateStore.getSnapshot();
@@ -540,6 +634,9 @@ const queryChangeManager = {
   },
   resetQuery(meta = {}) {
     return queryStateStore.resetQuery(normalizeManagerMeta(meta, 'QueryChangeManager.resetQuery'));
+  },
+  clearQuery(meta = {}) {
+    return clearQueryManagerState(meta);
   }
 };
 
