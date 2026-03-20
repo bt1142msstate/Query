@@ -736,6 +736,19 @@ async function showExampleTable(fields, options = {}){
     }
   }
 
+  const escapeHeaderText = value => {
+    if (typeof window.escapeHtml === 'function') {
+      return window.escapeHtml(String(value ?? ''));
+    }
+
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  };
+
   // Create initial table structure
   const tableHTML = `
     <table id="example-table" class="min-w-full divide-y divide-gray-200 bg-white">
@@ -745,13 +758,14 @@ async function showExampleTable(fields, options = {}){
             // Check if this field exists in the current data
             const virtualTableData = window.VirtualTable?.virtualTableData;
             const fieldExistsInData = virtualTableData && virtualTableData.columnMap && virtualTableData.columnMap.has(f);
+            const safeField = escapeHeaderText(f);
             
             const alignClass = 'text-center';
             
             if (fieldExistsInData) {
-              return `<th draggable="true" data-col-index="${i}" class="sortable-header px-6 py-3 ${alignClass} text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors" data-sort-field="${f}"><div class="th-header-content"><span class="sort-icon text-gray-400" aria-hidden="true"></span><div class="th-label-group"><span class='th-text'>${f}</span></div></div></th>`;
+              return `<th draggable="true" data-col-index="${i}" class="sortable-header px-6 py-3 ${alignClass} text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors" data-sort-field="${safeField}"><div class="th-header-content"><span class="sort-icon text-gray-400" aria-hidden="true"></span><div class="th-label-group"><span class='th-text'>${safeField}</span></div></div></th>`;
             } else {
-              return `<th draggable="true" data-col-index="${i}" class="px-6 py-3 ${alignClass} text-xs font-medium uppercase tracking-wider bg-gray-50" style="color: #ef4444 !important;" data-tooltip="This field is not in the current data. Run a new query to populate it."><div class="th-header-content"><div class="th-label-group"><span class='th-text' style="color: #ef4444 !important;">${f}</span></div></div></th>`;
+              return `<th draggable="true" data-col-index="${i}" class="px-6 py-3 ${alignClass} text-xs font-medium uppercase tracking-wider bg-gray-50" style="color: #ef4444 !important;" data-tooltip="This field is not in the current data. Run a new query to populate it."><div class="th-header-content"><div class="th-label-group"><span class='th-text' style="color: #ef4444 !important;">${safeField}</span></div></div></th>`;
             }
           }).join('')}
         </tr>
@@ -764,6 +778,11 @@ async function showExampleTable(fields, options = {}){
   // Replace the original sample-data table in place
   const container = document.getElementById('table-container');
   if (container) {
+    if (window.DragDropSystem && typeof window.DragDropSystem.resetHeaderUi === 'function') {
+      window.DragDropSystem.resetHeaderUi();
+    }
+
+    container.classList.remove('table-container-hidden');
     // Set up container for virtual scrolling
     container.innerHTML = tableHTML;
     
