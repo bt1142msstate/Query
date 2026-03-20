@@ -1,7 +1,3 @@
-function getBubblePanelOverlayElement() {
-  return window.DOM?.overlay || document.getElementById('overlay');
-}
-
 function getBubblePanelConditionPanelElement() {
   return window.DOM?.conditionPanel || document.getElementById('condition-panel');
 }
@@ -260,10 +256,5 @@ function buildBubbleConditionPanel(bubble) {
 }
 
 window.BubbleConditionPanel = {
-  buildConditionPanel: buildBubbleConditionPanel,
-  getOverlayElement: getBubblePanelOverlayElement,
-  getConditionPanelElement: getBubblePanelConditionPanelElement,
-  getInputWrapperElement: getBubblePanelInputWrapperElement,
-  getConditionInputElement: getBubblePanelConditionInputElement,
-  getConfirmButtonElement: getBubblePanelConfirmButtonElement
+  buildConditionPanel: buildBubbleConditionPanel
 };
