@@ -4,7 +4,7 @@
  * @module QueryHistory
  */
 
-/* ---------- Example Queries data & renderer ---------- */
+/* ---------- Query history state and renderer ---------- */
 let exampleQueries = [];
 let queryDurationUpdateInterval = null;
 let lastQueryStatusPollAt = 0;
@@ -797,7 +797,8 @@ function loadQueryConfig(q) {
   }
 }
 
-/** * Loads query results from backend.
+/**
+ * Loads query results from backend.
  * @async
  * @function loadQueryResults
  * @param {string} queryId - The ID of the query to load results for
@@ -825,6 +826,8 @@ async function loadQueryResults(queryId) {
         }
 
         const contentType = response.headers.get('Content-Type') || '';
+        // Successful result downloads come back as plain text; JSON payloads mean the
+        // backend is returning an error or "not ready yet" response instead of rows.
         if (contentType.includes('application/json')) {
           const payload = await response.json();
           throw new Error(payload.error || 'Results are not available yet.');
@@ -924,7 +927,8 @@ async function loadQueryResults(queryId) {
     }
 }
 
-/** * Creates HTML for a single query row in the queries table.
+/**
+ * Creates HTML for a single query row in the queries table.
  * Handles different display formats for running, completed, and cancelled queries.
  * @function createQueriesTableRowHtml
  * @param {Object} q - The query object
@@ -1074,7 +1078,6 @@ function startQueryDurationUpdates() {
   if (!isQueriesPanelOpen()) return;
   if (queryDurationUpdateInterval) return; // Already running
 
-  lastQueryStatusPollAt = 0;
   window.fetchQueryStatus();
   
   queryDurationUpdateInterval = setInterval(() => {
@@ -1157,7 +1160,7 @@ function renderQueries(){
   const failedRows = failedList.map(q => createQueriesTableRowHtml(q, viewIconSVG)).join('');
   const cancelledRows = cancelledList.map(q => createQueriesTableRowHtml(q, viewIconSVG)).join('');
 
-  // Different table headers for running vs completed queries
+  // Build table headers for each history state.
   const runningTableHead = `
     <thead class="history-table-head running">
       <tr>
@@ -1360,20 +1363,17 @@ function renderQueries(){
       e.stopPropagation();
       const id = btn.getAttribute('data-query-id');
       const q = exampleQueries.find(q => q.id === id);
+      if (!q) return;
+
       q.running = true; 
       q.startTime = new Date().toISOString();
       q.endTime = null;
       q.cancelled = false;
       q.status = 'running';
-      
-      // We would ideally call the backend 'run' here, but queryHistory.js 
-      // is UI-focused. The user should probably load config then click Run.
-      // But for "Rerun", let's just populate the UI and simulate a click on the main Run button?
-      // For now, load config and let user run it.
+
+      // Reuse the saved query configuration, then hand off execution to the main run action.
       loadQueryConfig(q);
-      
-      // If we *really* wanted to run immediately, we'd need to emit an event or call a global run function.
-      // Let's stick to loading config + focus on main Run button.
+
       document.getElementById('run-btn')?.click(); // Try to click run button if config loaded
     });
   });
@@ -1437,7 +1437,7 @@ window.cancelQuery = cancelQuery;
 
 // Initialize query history functionality
 window.onDOMReady(() => {
-  // Initial render of example Queries list
+  // Initial render of the query history list
   renderQueries();
 
   // Start duration updates if there are running queries
