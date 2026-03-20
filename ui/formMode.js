@@ -355,8 +355,8 @@
     return `${String(inputSpec.field || '').trim()}::${String(inputSpec.operator || '').trim()}`;
   }
 
-  function syncGeneratedSpecWithCurrentQuery(options = {}) {
-    if (!state.active || !state.spec || state.specSource !== 'generated') {
+  function syncActiveSpecWithCurrentQuery(options = {}) {
+    if (!state.active || !state.spec) {
       return false;
     }
 
@@ -527,7 +527,7 @@
   }
 
   function shouldPersistFormUrlInBrowser() {
-    return state.active && state.specSource === 'generated';
+    return state.active && Boolean(state.spec);
   }
 
   function refreshBrowserUrl(options = {}) {
@@ -1837,17 +1837,14 @@
           return;
         }
 
-        if (state.specSource === 'generated') {
-          syncGeneratedSpecWithCurrentQuery({
-            rebuildCard: Boolean(event.changes && event.changes.activeFilters),
-            refreshUrl: true
-          });
-          return;
-        }
-
-        if (event.changes && event.changes.displayedFields) {
-          syncSpecColumnsWithDisplayedFields();
-        }
+        syncActiveSpecWithCurrentQuery({
+          rebuildCard: Boolean(
+            state.viewMode === 'form'
+            && event.changes
+            && event.changes.activeFilters
+          ),
+          refreshUrl: true
+        });
 
         if (state.viewMode === 'form') {
           syncValidationUi();
@@ -1901,7 +1898,7 @@
     applyFormState();
     syncPresentationMode();
     state.searchParams = new URLSearchParams();
-    refreshBrowserUrl({ forceClearUrl: true });
+    refreshBrowserUrl({ forceShareUrl: true });
     if (typeof window.updateButtonStates === 'function') {
       window.updateButtonStates();
     }
