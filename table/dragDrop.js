@@ -633,10 +633,14 @@ function moveColumnGroup(table, groupIndices, targetIndex) {
     getDisplayedFields().forEach((field, index) => {
       // Check if this field exists in the current data
       const virtualTableData = window.VirtualTable?.virtualTableData;
+      const hasLoadedData = Boolean(virtualTableData && virtualTableData.columnMap instanceof Map && virtualTableData.columnMap.size > 0);
       const fieldExistsInData = virtualTableData && virtualTableData.columnMap && virtualTableData.columnMap.has(field);
 
       const th = typeof window.createQueryTableHeaderCell === 'function'
-        ? window.createQueryTableHeaderCell(field, index, { existsInData: fieldExistsInData })
+        ? window.createQueryTableHeaderCell(field, index, {
+            existsInData: fieldExistsInData,
+            hasLoadedData
+          })
         : document.createElement('th');
 
       if (typeof window.createQueryTableHeaderCell !== 'function') {

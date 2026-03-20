@@ -482,6 +482,8 @@ window.renderEmptyQueryTableState = renderEmptyQueryTableState;
 function createQueryTableHeaderCell(fieldName, index, options = {}) {
   const fieldText = String(fieldName ?? '');
   const fieldExistsInData = options.existsInData !== false;
+  const hasLoadedData = options.hasLoadedData !== false;
+  const showMissingDataState = hasLoadedData && !fieldExistsInData;
 
   const th = document.createElement('th');
   th.draggable = true;
@@ -491,15 +493,17 @@ function createQueryTableHeaderCell(fieldName, index, options = {}) {
   if (fieldExistsInData) {
     th.classList.add('sortable-header', 'text-gray-500', 'cursor-pointer', 'hover:bg-gray-100', 'transition-colors');
     th.setAttribute('data-sort-field', fieldText);
-  } else {
+  } else if (showMissingDataState) {
     th.style.setProperty('color', '#ef4444', 'important');
     th.setAttribute('data-tooltip', 'This field is not in the current data. Run a new query to populate it.');
+  } else {
+    th.classList.add('text-gray-500');
   }
 
   const headerContent = document.createElement('div');
   headerContent.className = 'th-header-content';
 
-  if (fieldExistsInData) {
+  if (fieldExistsInData || !hasLoadedData) {
     const sortIcon = document.createElement('span');
     sortIcon.className = 'sort-icon text-gray-400';
     sortIcon.setAttribute('aria-hidden', 'true');
@@ -513,7 +517,7 @@ function createQueryTableHeaderCell(fieldName, index, options = {}) {
   labelText.className = 'th-text';
   labelText.textContent = fieldText;
 
-  if (!fieldExistsInData) {
+  if (showMissingDataState) {
     labelText.style.setProperty('color', '#ef4444', 'important');
   }
 
@@ -801,8 +805,12 @@ async function showExampleTable(fields, options = {}){
     const tableHeaderRow = document.createElement('tr');
     renderFields.forEach((field, index) => {
       const virtualTableData = window.VirtualTable?.virtualTableData;
+      const hasLoadedData = Boolean(virtualTableData && virtualTableData.columnMap instanceof Map && virtualTableData.columnMap.size > 0);
       const fieldExistsInData = Boolean(virtualTableData && virtualTableData.columnMap && virtualTableData.columnMap.has(field));
-      tableHeaderRow.appendChild(createQueryTableHeaderCell(field, index, { existsInData: fieldExistsInData }));
+      tableHeaderRow.appendChild(createQueryTableHeaderCell(field, index, {
+        existsInData: fieldExistsInData,
+        hasLoadedData
+      }));
     });
     thead.appendChild(tableHeaderRow);
 
