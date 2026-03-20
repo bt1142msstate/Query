@@ -13,7 +13,6 @@
     mobileModeToggleBtn: null,
     formHost: null,
     controls: new Map(),
-    originalClearCurrentQuery: null,
     originalUpdateButtonStates: null,
     unsubscribeQueryState: null,
     lastSuggestedTableName: '',
@@ -767,7 +766,6 @@
 
     buildFormCard();
     wrapUpdateButtonStates();
-    wrapClearCurrentQuery();
     applyFormState({ source: 'QueryFormMode.activateGeneratedForm' });
     syncPresentationMode();
 
@@ -802,7 +800,6 @@
       state.controls.clear();
       buildFormCard();
       wrapUpdateButtonStates();
-      wrapClearCurrentQuery();
       applyFormState({ source: 'QueryFormMode.syncGeneratedForm' });
       syncPresentationMode();
 
@@ -1766,8 +1763,8 @@
     });
 
     card.querySelector('#form-mode-reset').addEventListener('click', async () => {
-      if (typeof window.clearCurrentQuery === 'function') {
-        await window.clearCurrentQuery();
+      if (window.QueryChangeManager && typeof window.QueryChangeManager.clearQuery === 'function') {
+        await window.QueryChangeManager.clearQuery();
       }
     });
 
@@ -1858,22 +1855,6 @@
     };
   }
 
-  function wrapClearCurrentQuery() {
-    if (state.originalClearCurrentQuery || typeof window.clearCurrentQuery !== 'function') return;
-
-    state.originalClearCurrentQuery = window.clearCurrentQuery;
-    window.clearCurrentQuery = async function() {
-      state.isClearingQuery = true;
-      try {
-        await state.originalClearCurrentQuery();
-        if (!state.active) return;
-        resetActiveFormAfterClear();
-      } finally {
-        state.isClearingQuery = false;
-      }
-    };
-  }
-
   function bindTableNameUrlSync() {
     if (state.tableNameListenersBound) {
       return;
@@ -1905,7 +1886,21 @@
     if (!state.unsubscribeQueryState) {
       state.unsubscribeQueryState = window.QueryStateSubscriptions.subscribe(event => {
         const source = String(event && event.meta && event.meta.source || '');
-        if (!state.active || state.isClearingQuery || source.startsWith('QueryFormMode.')) {
+        if (!state.active) {
+          return;
+        }
+
+        if (source === 'QueryChangeManager.clearQuery') {
+          state.isClearingQuery = true;
+          try {
+            resetActiveFormAfterClear();
+          } finally {
+            state.isClearingQuery = false;
+          }
+          return;
+        }
+
+        if (state.isClearingQuery || source.startsWith('QueryFormMode.')) {
           return;
         }
 
@@ -1929,7 +1924,6 @@
     }
 
     wrapUpdateButtonStates();
-    wrapClearCurrentQuery();
     bindTableNameUrlSync();
     ensureModeToggleButtons();
 
