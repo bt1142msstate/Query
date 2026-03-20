@@ -17,9 +17,11 @@
     originalUpdateButtonStates: null,
     unsubscribeQueryState: null,
     lastSuggestedTableName: '',
+    lastBrowserUrl: '',
     suppressAutoTableNameOnce: false,
     isClearingQuery: false,
     isApplyingFormState: false,
+    tableNameListenersBound: false,
     hiddenNodes: []
   };
   const { getDisplayedFields, getActiveFilters } = window.QueryStateReaders;
@@ -100,6 +102,12 @@
       .split(/[\n,]+/)
       .map(value => value.trim())
       .filter(Boolean);
+  }
+
+  function getCurrentTableNameValue() {
+    return window.DOM && window.DOM.tableNameInput
+      ? window.DOM.tableNameInput.value.trim()
+      : '';
   }
 
   function normalizeInputSpec(input, index) {
@@ -528,7 +536,15 @@
     const nextUrl = (forceShareUrl || (!forceClearUrl && shouldPersistFormUrlInBrowser()))
       ? buildCurrentShareUrl()
       : buildClearedBrowserUrl();
+
+    if (state.lastBrowserUrl === nextUrl || window.location.href === nextUrl) {
+      state.lastBrowserUrl = nextUrl;
+      return nextUrl;
+    }
+
     window.history.replaceState({}, '', nextUrl);
+    state.lastBrowserUrl = nextUrl;
+    return nextUrl;
   }
 
   function hasSpecColumn(fieldName) {
@@ -1162,13 +1178,29 @@
     return values.map(value => String(value || '').trim());
   }
 
+  function getCurrentInputValues(inputSpec) {
+    const controlValues = getControlValues(inputSpec);
+    if (inputSpec && inputSpec.operator === 'between') {
+      if (controlValues.length > 0) {
+        return [controlValues[0] || '', controlValues[1] || ''];
+      }
+      return getInputSpecDefaultValues(inputSpec).slice(0, 2);
+    }
+
+    if (controlValues.filter(Boolean).length > 0) {
+      return controlValues.filter(Boolean);
+    }
+
+    return getInputSpecDefaultValues(inputSpec).filter(Boolean);
+  }
+
   function collectBindings() {
     const bindings = {};
 
     state.spec.inputs.forEach(inputSpec => {
       const fieldDef = window.fieldDefs && inputSpec.field ? window.fieldDefs.get(inputSpec.field) : null;
       const isMultiValue = supportsMultipleValues(inputSpec, fieldDef);
-      const values = getControlValues(inputSpec);
+      const values = getCurrentInputValues(inputSpec);
       if (inputSpec.operator === 'between' && inputSpec.keys.length >= 2) {
         inputSpec.keys.slice(0, 2).forEach((key, index) => {
           bindings[key] = values[index] || '';
@@ -1278,7 +1310,7 @@
     state.spec.inputs.forEach(inputSpec => {
       const fieldDef = window.fieldDefs && inputSpec.field ? window.fieldDefs.get(inputSpec.field) : null;
       const isMultiValue = supportsMultipleValues(inputSpec, fieldDef);
-      const values = getControlValues(inputSpec);
+      const values = getCurrentInputValues(inputSpec);
       if (inputSpec.operator === 'between') {
         const betweenValues = values.slice(0, 2).map(value => String(value || '').trim());
         if (betweenValues.every(Boolean)) {
@@ -1369,7 +1401,7 @@
     state.spec.inputs.forEach(inputSpec => {
       const fieldDef = window.fieldDefs && inputSpec.field ? window.fieldDefs.get(inputSpec.field) : null;
       const isMultiValue = supportsMultipleValues(inputSpec, fieldDef);
-      const values = getControlValues(inputSpec).filter(Boolean);
+      const values = getCurrentInputValues(inputSpec).filter(Boolean);
       if (inputSpec.operator === 'between' && inputSpec.keys.length >= 2) {
         inputSpec.keys.slice(0, 2).forEach((key, index) => {
           if (values[index]) {
@@ -1387,7 +1419,7 @@
       }
     });
 
-    const tableName = window.DOM && window.DOM.tableNameInput ? window.DOM.tableNameInput.value.trim() : '';
+    const tableName = getCurrentTableNameValue();
     if (tableName) {
       nextUrl.searchParams.set('tableName', tableName);
     }
@@ -1770,9 +1802,33 @@
     };
   }
 
+  function bindTableNameUrlSync() {
+    if (state.tableNameListenersBound) {
+      return;
+    }
+
+    const tableNameInput = window.DOM && window.DOM.tableNameInput;
+    if (!tableNameInput) {
+      return;
+    }
+
+    const syncBrowserUrl = () => {
+      if (!state.active || !state.spec || state.isClearingQuery) {
+        return;
+      }
+
+      refreshBrowserUrl();
+    };
+
+    tableNameInput.addEventListener('input', syncBrowserUrl);
+    tableNameInput.addEventListener('change', syncBrowserUrl);
+    state.tableNameListenersBound = true;
+  }
+
   async function initialize() {
     const searchParams = new URLSearchParams(window.location.search);
     state.searchParams = searchParams;
+    state.lastBrowserUrl = window.location.href;
 
     if (!state.unsubscribeQueryState) {
       state.unsubscribeQueryState = window.QueryStateSubscriptions.subscribe(event => {
@@ -1805,6 +1861,7 @@
 
     wrapUpdateButtonStates();
     wrapClearCurrentQuery();
+    bindTableNameUrlSync();
     ensureModeToggleButtons();
 
     const rawFormSpec = searchParams.get('form');
