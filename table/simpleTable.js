@@ -685,17 +685,6 @@ class SimpleTable {
     }
 }
 
-// Export for use in browser
-if (typeof window !== 'undefined') {
-    window.SimpleTable = SimpleTable;
-    window.GroupMethod = GroupMethod;
-    window.FilterOperator = FilterOperator;
-    window.LogicalOperator = LogicalOperator;
-    window.Filter = Filter;
-    window.FilterGroup = FilterGroup;
-    window.FieldSpec = FieldSpec;
-}
-
 // Export for Node.js
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {

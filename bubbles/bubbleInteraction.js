@@ -1,4 +1,5 @@
 var getFilterGroupForField = window.QueryStateReaders.getFilterGroupForField.bind(window.QueryStateReaders);
+let bubbleEventsInitialized = false;
 
 function initializeBubbleInteractions() {
   if (!window.QueryChangeManager) {
@@ -13,8 +14,8 @@ function initializeBubbleInteractions() {
     return false;
   }
 
-  if (window._bubbleEventsInitialized) return true;
-  window._bubbleEventsInitialized = true;
+  if (bubbleEventsInitialized) return true;
+  bubbleEventsInitialized = true;
 
   const bubbleContainer = document.getElementById('bubble-container');
   const scrollContainer = document.querySelector('.bubble-scrollbar-container');

@@ -600,11 +600,8 @@
   }
 
   window.PostFilterSystem = {
-    open: openOverlay,
     close: closeOverlay,
-    refresh: refreshOverlay,
-    syncToolbarButton: updateToolbarButton,
-    clearAll: clearAllFilters
+    syncToolbarButton: updateToolbarButton
   };
 
   window.onDOMReady(attachListeners);
