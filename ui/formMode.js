@@ -1167,10 +1167,10 @@
   }
 
   async function copyCurrentShareUrl() {
-    const url = buildCurrentShareUrl();
-    await window.ClipboardUtils.copy(url, {
+    await window.ClipboardUtils.copyFromSource(() => buildCurrentShareUrl(), {
       successMessage: 'Form link copied.',
-      errorMessage: 'Failed to copy form link.'
+      errorMessage: 'Failed to copy form link.',
+      emptyMessage: 'No form link is available to copy.'
     });
   }
 
