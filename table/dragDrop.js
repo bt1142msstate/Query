@@ -1597,11 +1597,33 @@ function addDragAndDrop(table) {
   dragDropManager.initTableDragDrop(table);
 }
 
+function resetHeaderUi() {
+  clearInsertAffordance({ immediate: true });
+  clearDropAnchor();
+
+  if (dragDropManager.hoverTh) {
+    dragDropManager.hoverTh.classList.remove('th-hover');
+  }
+
+  if (headerActions.parentNode) {
+    headerActions.parentNode.removeChild(headerActions);
+  }
+
+  document.querySelectorAll('#example-table .th-drag-over, #example-table .th-dragging').forEach(el => {
+    el.classList.remove('th-drag-over', 'th-dragging');
+  });
+
+  dragDropManager.hoverTh = null;
+  dragDropManager.activeTable = null;
+  dragDropManager.stopAutoScroll();
+}
+
 // Export the drag and drop system
 window.DragDropSystem = {
   dragDropManager,
   addDragAndDrop,
   attachBubbleDropTarget,
+  resetHeaderUi,
   syncHeaderSortActionState,
   refreshColIndices,
   moveColumn,
