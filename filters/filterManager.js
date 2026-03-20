@@ -93,14 +93,12 @@ function ensureFilterListViewer() {
 
     backdrop.addEventListener('click', closeViewer);
     panel.querySelector('#filter-list-viewer-close').addEventListener('click', closeViewer);
-    panel.querySelector('#filter-list-viewer-copy').addEventListener('click', async () => {
-        const rawText = (panel._viewerState.values || []).join("\n");
-        if (!rawText) return;
-
-        await window.ClipboardUtils.copy(rawText, {
-            successMessage: 'List copied to clipboard.',
-            errorMessage: 'Failed to copy list.'
-        });
+    window.ClipboardUtils.bindCopyButton(panel.querySelector('#filter-list-viewer-copy'), () => {
+        return (panel._viewerState.values || []).join("\n");
+    }, {
+        successMessage: 'List copied to clipboard.',
+        errorMessage: 'Failed to copy list.',
+        emptyMessage: 'No list values are available to copy.'
     });
     panel.querySelector('#filter-list-viewer-download').addEventListener('click', () => {
         const rawText = (panel._viewerState.values || []).join("\n");

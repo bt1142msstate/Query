@@ -1453,8 +1453,10 @@
       }
     });
 
-    state.copyBtn.addEventListener('click', () => {
-      copyCurrentShareUrl();
+    window.ClipboardUtils.bindCopyButton(state.copyBtn, () => buildCurrentShareUrl(), {
+      successMessage: 'Form link copied.',
+      errorMessage: 'Failed to copy form link.',
+      emptyMessage: 'No form link is available to copy.'
     });
   }
 
