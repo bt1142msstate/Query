@@ -220,6 +220,15 @@ function shouldFieldHavePurpleStylingBase(fieldName, displayedFields, activeFilt
   return hasFilters || isDisplayed;
 }
 
+function shouldFieldHavePurpleStyling(fieldName) {
+  if (!fieldName) return false;
+
+  const displayedFields = window.QueryChangeManager?.getDisplayedFields?.() || [];
+  const activeFilters = window.QueryChangeManager?.getActiveFilters?.() || {};
+
+  return shouldFieldHavePurpleStylingBase(fieldName, displayedFields, activeFilters);
+}
+
 /**
  * Calculates the count of fields in each selector group.
  * @function calculateCategoryCounts
@@ -321,5 +330,6 @@ window.fieldAliases = fieldAliases;
 window.filteredDefs = filteredDefs;
 window.updateFilteredDefs = updateFilteredDefs;
 window.shouldFieldHavePurpleStylingBase = shouldFieldHavePurpleStylingBase;
+window.shouldFieldHavePurpleStyling = shouldFieldHavePurpleStyling;
 window.calculateCategoryCounts = calculateCategoryCounts;
 window.renderCategorySelectors = renderCategorySelectors;

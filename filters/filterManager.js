@@ -249,6 +249,28 @@ function createConditionOperatorPicker(conditions, handler) {
     });
 }
 
+function showFilterError(message, inputElements = [], duration = 3000) {
+    const errorLabel = window.DOM.filterError;
+
+    inputElements.forEach(inp => {
+        if (inp) inp.classList.add('error');
+    });
+
+    if (errorLabel) {
+        errorLabel.textContent = message;
+        errorLabel.style.display = 'block';
+    }
+
+    setTimeout(() => {
+        if (errorLabel) errorLabel.style.display = 'none';
+        inputElements.forEach(inp => {
+            if (inp) inp.classList.remove('error');
+        });
+    }, duration);
+
+    return false;
+}
+
 function getPreferredCondition(conditions, fieldName) {
     const available = Array.isArray(conditions) ? conditions.filter(Boolean) : [];
     if (!available.length) return '';
@@ -373,93 +395,71 @@ function buildBubbleConditionPanel(bubble) {
                 ? ['equals']
                 : (window.typeConditions[type] || window.typeConditions.string))
             .map(label => String(label).split(' ')[0].toLowerCase());
-        conditionPanel.appendChild(createConditionOperatorPicker(operatorConditions, window.handleConditionBtnClick));
-    }
+        if (listValues && listValues.length) {
+            const fieldDef = window.fieldDefs.get(selectedField);
+            const isMultiSelect = fieldDef && fieldDef.multiSelect;
+            const shouldGroupValues = Boolean(fieldDef && fieldDef.groupValues);
+            const isBooleanField = Boolean(fieldDef && fieldDef.type === 'boolean');
+            const existingSelect = document.getElementById('condition-select');
+            const existingContainer = document.getElementById('condition-select-container');
+            if (existingSelect) existingSelect.parentNode.removeChild(existingSelect);
+            if (existingContainer) existingContainer.parentNode.removeChild(existingContainer);
 
-    if (!isBuildable) {
-        const toggleGroup = document.createElement('div');
-        toggleGroup.className = 'inline-flex';
-        ['Show', 'Hide'].forEach(label => {
-            const btn = document.createElement('button');
-            btn.className = 'toggle-half';
-            btn.dataset.cond = label.toLowerCase();
-            btn.textContent = label;
-            if (label === 'Show' ? getDisplayedFields().includes(selectedField) : !getDisplayedFields().includes(selectedField)) {
-                btn.classList.add('active');
-            }
-            toggleGroup.appendChild(btn);
-        });
-        conditionPanel.appendChild(toggleGroup);
-    }
-
-    const toggleButtons = conditionPanel.querySelectorAll('.toggle-half');
-    toggleButtons.forEach(btn => btn.addEventListener('click', window.handleConditionBtnClick));
-    confirmBtn.style.display = '';
-
-    if (listValues && listValues.length) {
-        const fieldDef = window.fieldDefs.get(selectedField);
-        const isMultiSelect = fieldDef && fieldDef.multiSelect;
-        const shouldGroupValues = Boolean(fieldDef && fieldDef.groupValues);
-        const isBooleanField = Boolean(fieldDef && fieldDef.type === 'boolean');
-        const existingSelect = document.getElementById('condition-select');
-        const existingContainer = document.getElementById('condition-select-container');
-        if (existingSelect) existingSelect.parentNode.removeChild(existingSelect);
-        if (existingContainer) existingContainer.parentNode.removeChild(existingContainer);
-
-        let currentLiteralValues = [];
-        const selectedFieldFilters = getFilterGroupForField(selectedField);
-        if (selectedFieldFilters) {
-            const filter = selectedFieldFilters.filters.find(f => f.cond === 'equals');
-            if (filter) {
-                currentLiteralValues = filter.val.split(',').map(v => v.trim());
-            }
-        }
-
-        const hasDashes = hasValuePairs
-            ? listValues.some(val => val.Name.includes('-'))
-            : listValues.some(val => val.includes('-'));
-
-        const selector = isBooleanField && listValues.length === 2
-            ? createBooleanPillSelector(listValues, currentLiteralValues[0] || '', {
-                onChange: () => {
-                    confirmBtn.click();
-                }
-            })
-            : createGroupedSelector(listValues, isMultiSelect, currentLiteralValues, {
-                enableGrouping: shouldGroupValues && hasDashes
-            });
-        inputWrapper.insertBefore(selector, confirmBtn);
-        conditionInput.style.display = 'none';
-        if (isBooleanField && listValues.length === 2) {
-            confirmBtn.style.display = 'none';
-        }
-    } else {
-        const existingSelect = document.getElementById('condition-select');
-        const existingContainer = document.getElementById('condition-select-container');
-        if (existingSelect) existingSelect.style.display = 'none';
-        if (existingContainer) existingContainer.parentNode.removeChild(existingContainer);
-        window.configureInputsForType(type);
-
-        if (window.isListPasteField(fieldDefInfo) && typeof window.createListPasteInput === 'function') {
             let currentLiteralValues = [];
             const selectedFieldFilters = getFilterGroupForField(selectedField);
             if (selectedFieldFilters) {
                 const filter = selectedFieldFilters.filters.find(f => f.cond === 'equals');
                 if (filter) {
-                    currentLiteralValues = String(filter.val).split(',').map(v => v.trim()).filter(Boolean);
+                    currentLiteralValues = filter.val.split(',').map(v => v.trim());
                 }
             }
 
-            const listInput = window.createListPasteInput(currentLiteralValues, {
-                placeholder: 'Paste one key per line',
-                hint: 'Paste keys one per line, paste comma-separated keys, or upload a text/CSV file.'
-            });
-            inputWrapper.insertBefore(listInput, confirmBtn);
+            const hasDashes = hasValuePairs
+                ? listValues.some(val => val.Name.includes('-'))
+                : listValues.some(val => val.includes('-'));
+
+            const selector = isBooleanField && listValues.length === 2
+                ? createBooleanPillSelector(listValues, currentLiteralValues[0] || '', {
+                    onChange: () => {
+                        confirmBtn.click();
+                    }
+                })
+                : createGroupedSelector(listValues, isMultiSelect, currentLiteralValues, {
+                    enableGrouping: shouldGroupValues && hasDashes
+                });
+            inputWrapper.insertBefore(selector, confirmBtn);
             conditionInput.style.display = 'none';
+            if (isBooleanField && listValues.length === 2) {
+                confirmBtn.style.display = 'none';
+            }
         } else {
-            conditionInput.style.display = 'block';
+            const existingSelect = document.getElementById('condition-select');
+            const existingContainer = document.getElementById('condition-select-container');
+            if (existingSelect) existingSelect.style.display = 'none';
+            if (existingContainer) existingContainer.parentNode.removeChild(existingContainer);
+            window.configureInputsForType(type);
+
+            if (window.isListPasteField(fieldDefInfo) && typeof window.createListPasteInput === 'function') {
+                let currentLiteralValues = [];
+                const selectedFieldFilters = getFilterGroupForField(selectedField);
+                if (selectedFieldFilters) {
+                    const filter = selectedFieldFilters.filters.find(f => f.cond === 'equals');
+                    if (filter) {
+                        currentLiteralValues = String(filter.val).split(',').map(v => v.trim()).filter(Boolean);
+                    }
+                }
+
+                const listInput = window.createListPasteInput(currentLiteralValues, {
+                    placeholder: 'Paste one key per line',
+                    hint: 'Paste keys one per line, paste comma-separated keys, or upload a text/CSV file.'
+                });
+                inputWrapper.insertBefore(listInput, confirmBtn);
+                conditionInput.style.display = 'none';
+            } else {
+                conditionInput.style.display = 'block';
+            }
+            confirmBtn.style.display = '';
         }
-        confirmBtn.style.display = '';
     }
 
     window.renderConditionList(selectedField);
@@ -780,7 +780,7 @@ window.handleFilterConfirm = function(e) {
         const tintInputs = [conditionInput, conditionInput2];
         
         if (cond === 'between' && (val === '' || val2 === '')) {
-            window.showError('Please enter both values', tintInputs);
+            showFilterError('Please enter both values', tintInputs);
             return;
         }
         
@@ -795,7 +795,7 @@ window.handleFilterConfirm = function(e) {
             if ((isTextInputVisible && isTextInputEmpty) ||
                 (isSelectVisible && isSelectEmpty) ||
                 (isContainerVisible && isContainerEmpty)) {
-                window.showError('Please enter a value', tintInputs);
+                showFilterError('Please enter a value', tintInputs);
                 return;
             }
         }
@@ -812,7 +812,7 @@ window.handleFilterConfirm = function(e) {
         }
         
         if (a === b) {
-            window.showError('Between values must be different', [conditionInput, conditionInput2]);
+            showFilterError('Between values must be different', [conditionInput, conditionInput2]);
             return;
         }
         if (a > b) {
@@ -861,7 +861,7 @@ window.handleFilterConfirm = function(e) {
             // Check for contradictions
             const conflictMsg = window.getContradictionMessage(contradictionSet, newFilterObj, fieldType, field);
             if (conflictMsg) {
-                window.showError(conflictMsg, [conditionInput, conditionInput2]);
+                showFilterError(conflictMsg, [conditionInput, conditionInput2]);
                 return;
             }
 
@@ -887,7 +887,7 @@ window.handleFilterConfirm = function(e) {
             }
         } catch (error) {
             console.error('Error applying filter:', error);
-            window.showError('Error applying filter: ' + error.message, []);
+            showFilterError('Error applying filter: ' + error.message, []);
             return;
         }
     }
@@ -926,7 +926,7 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
         
         if (!value || (patternStr && !new RegExp(patternStr).test(value))) {
            missingInput = true;
-           window.showError(errorMsg, [inp]);
+              showFilterError(errorMsg, [inp]);
            break;
         }
         

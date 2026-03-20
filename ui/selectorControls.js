@@ -1,21 +1,3 @@
-window.shouldFieldHavePurpleStyling = function(fieldName) {
-  if (!fieldName) return false;
-
-  const displayedFields = window.QueryChangeManager?.getDisplayedFields?.() || [];
-  const activeFilters = window.QueryChangeManager?.getActiveFilters?.() || {};
-
-  if (window.shouldFieldHavePurpleStylingBase) {
-    return window.shouldFieldHavePurpleStylingBase(fieldName, displayedFields, activeFilters);
-  }
-
-  return !!(
-    displayedFields.includes(fieldName) ||
-    activeFilters[fieldName] &&
-    activeFilters[fieldName].filters &&
-    activeFilters[fieldName].filters.length > 0
-  );
-};
-
 window.createBooleanPillSelector = function(values, currentValue = '', options = {}) {
   const onChange = typeof options.onChange === 'function' ? options.onChange : null;
   const containerId = Object.prototype.hasOwnProperty.call(options, 'containerId')
@@ -430,7 +412,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     const labelText = document.createElement('span');
     labelText.className = 'option-item-text';
     labelText.dataset.rawText = insideGroup
-      ? val.display.replace(new RegExp(`^${groupName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\s*-\s*`), '')
+      ? val.display.replace(new RegExp(`^${groupName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*-\\s*`), '')
       : val.display;
     labelText.textContent = labelText.dataset.rawText;
 
@@ -918,45 +900,4 @@ window.createListPasteInput = function(currentValues = [], options = {}) {
 
   container.setSelectedValues(currentValues);
   return container;
-};
-
-window.showError = function(message, inputElements = [], duration = 3000) {
-  const errorLabel = window.DOM.filterError;
-
-  inputElements.forEach(inp => {
-    if (inp) inp.classList.add('error');
-  });
-
-  if (errorLabel) {
-    errorLabel.textContent = message;
-    errorLabel.style.display = 'block';
-  }
-
-  setTimeout(() => {
-    if (errorLabel) errorLabel.style.display = 'none';
-    inputElements.forEach(inp => {
-      if (inp) inp.classList.remove('error');
-    });
-  }, duration);
-
-  return false;
-};
-
-window.formatDuration = function(seconds) {
-  if (seconds < 60) {
-    return `${seconds}s`;
-  }
-
-  const days = Math.floor(seconds / (24 * 60 * 60));
-  const hours = Math.floor((seconds % (24 * 60 * 60)) / (60 * 60));
-  const minutes = Math.floor((seconds % (60 * 60)) / 60);
-  const remainingSeconds = seconds % 60;
-
-  const parts = [];
-  if (days > 0) parts.push(`${days} day${days !== 1 ? 's' : ''}`);
-  if (hours > 0) parts.push(`${hours} hr${hours !== 1 ? 's' : ''}`);
-  if (minutes > 0) parts.push(`${minutes} min`);
-  if (remainingSeconds > 0 || parts.length === 0) parts.push(`${remainingSeconds} sec`);
-
-  return parts.join(' ');
 };
