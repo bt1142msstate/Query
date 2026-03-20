@@ -26,6 +26,29 @@
   };
   const { getDisplayedFields, getActiveFilters } = window.QueryStateReaders;
 
+  function getQuerySnapshot() {
+    if (window.QueryStateReaders && typeof window.QueryStateReaders.getSnapshot === 'function') {
+      return window.QueryStateReaders.getSnapshot();
+    }
+
+    return {
+      displayedFields: getDisplayedFields(),
+      activeFilters: getActiveFilters()
+    };
+  }
+
+  function getManagerDisplayedFields() {
+    const snapshot = getQuerySnapshot();
+    return Array.isArray(snapshot.displayedFields) ? snapshot.displayedFields.slice() : [];
+  }
+
+  function getManagerActiveFilters() {
+    const snapshot = getQuerySnapshot();
+    return snapshot && snapshot.activeFilters && typeof snapshot.activeFilters === 'object'
+      ? snapshot.activeFilters
+      : {};
+  }
+
   function slugify(value) {
     return String(value || '')
       .toLowerCase()
@@ -354,7 +377,7 @@
     };
   }
 
-  function buildGeneratedInputSpecsFromActiveFilters(existingInputs = []) {
+  function buildGeneratedInputSpecsFromActiveFilters(existingInputs = [], activeFiltersSnapshot = getManagerActiveFilters()) {
     const seenKeys = new Set(
       existingInputs
         .map(inputSpec => String(inputSpec && inputSpec.key || '').trim())
@@ -362,7 +385,7 @@
     );
     const generatedInputs = [];
 
-    Object.entries(getActiveFilters()).forEach(([fieldName, fieldState]) => {
+    Object.entries(activeFiltersSnapshot).forEach(([fieldName, fieldState]) => {
       const filters = Array.isArray(fieldState && fieldState.filters) ? fieldState.filters : [];
       filters.forEach((filter, index) => {
         generatedInputs.push(buildGeneratedInputSpecFromFilter(fieldName, filter, index, filters, seenKeys));
@@ -390,10 +413,11 @@
       refreshUrl = true
     } = options;
 
-    let changed = syncSpecColumnsWithDisplayedFields({ refreshUrl: false });
+    const querySnapshot = getQuerySnapshot();
+    let changed = syncSpecColumnsWithDisplayedFields({ refreshUrl: false, snapshot: querySnapshot });
 
     const existingInputs = Array.isArray(state.spec.inputs) ? state.spec.inputs.slice() : [];
-    const generatedInputs = buildGeneratedInputSpecsFromActiveFilters(existingInputs);
+    const generatedInputs = buildGeneratedInputSpecsFromActiveFilters(existingInputs, querySnapshot.activeFilters);
     const existingBySignature = new Map();
 
     existingInputs.forEach(inputSpec => {
@@ -476,7 +500,8 @@
   }
 
   function buildSpecFromCurrentQuery() {
-    const columns = getDisplayedFields().slice();
+    const querySnapshot = getQuerySnapshot();
+    const columns = Array.isArray(querySnapshot.displayedFields) ? querySnapshot.displayedFields.slice() : [];
     if (columns.length === 0) {
       return null;
     }
@@ -485,7 +510,7 @@
     const title = tableNameInput && tableNameInput.value.trim()
       ? tableNameInput.value.trim()
       : 'Query Form';
-    const inputs = buildGeneratedInputSpecsFromActiveFilters();
+    const inputs = buildGeneratedInputSpecsFromActiveFilters([], querySnapshot.activeFilters);
 
     return normalizeSpec({
       title,
@@ -527,7 +552,8 @@
   function syncSpecColumnsWithDisplayedFields(options = {}) {
     if (!state.active || !state.spec) return false;
 
-    const nextColumns = getDisplayedFields().slice();
+    const snapshot = options.snapshot || getQuerySnapshot();
+    const nextColumns = Array.isArray(snapshot.displayedFields) ? snapshot.displayedFields.slice() : [];
     if (state.isClearingQuery && nextColumns.length === 0) return false;
 
     const currentColumns = Array.isArray(state.spec.columns) ? state.spec.columns : [];
@@ -597,20 +623,6 @@
         ? window.getBaseFieldName(inputSpec.field)
         : inputSpec.field;
       return baseInputField === baseFieldName;
-    });
-  }
-
-  function removeSpecColumns(fieldName) {
-    if (!state.spec || !Array.isArray(state.spec.columns)) return;
-    const baseFieldName = typeof window.getBaseFieldName === 'function'
-      ? window.getBaseFieldName(fieldName)
-      : fieldName;
-
-    state.spec.columns = state.spec.columns.filter(column => {
-      const baseColumnName = typeof window.getBaseFieldName === 'function'
-        ? window.getBaseFieldName(column)
-        : column;
-      return baseColumnName !== baseFieldName;
     });
   }
 
@@ -702,7 +714,8 @@
       preserveCurrentDefaults = true,
       applyState = true,
       refreshUrl = true,
-      clearSearchParams = true
+      clearSearchParams = true,
+      querySource = 'QueryFormMode.rebuildFormCard'
     } = options;
 
     if (preserveCurrentDefaults) {
@@ -714,7 +727,7 @@
     cleanupFormControls();
     buildFormCard();
     if (applyState) {
-      applyFormState();
+      applyFormState({ source: querySource });
     } else {
       const bindings = collectBindings();
       updateHeaderCopy(bindings);
@@ -755,7 +768,7 @@
     buildFormCard();
     wrapUpdateButtonStates();
     wrapClearCurrentQuery();
-    applyFormState();
+    applyFormState({ source: 'QueryFormMode.activateGeneratedForm' });
     syncPresentationMode();
 
     if (typeof window.updateButtonStates === 'function') {
@@ -790,7 +803,7 @@
       buildFormCard();
       wrapUpdateButtonStates();
       wrapClearCurrentQuery();
-      applyFormState();
+      applyFormState({ source: 'QueryFormMode.syncGeneratedForm' });
       syncPresentationMode();
 
       if (typeof window.updateButtonStates === 'function') {
@@ -949,9 +962,15 @@
         if (!state.spec) return;
 
         if (nextChecked) {
-          if (!hasSpecColumn(fieldName)) {
-            state.spec.columns.push(fieldName);
-            rebuildFormCardFromSpec();
+          if (!window.QueryChangeManager.hasDisplayedField(fieldName)) {
+            window.QueryChangeManager.addDisplayedField(fieldName, {
+              source: 'QueryFormMode.fieldPicker.addDisplayedField'
+            });
+            syncSpecColumnsWithDisplayedFields({ refreshUrl: false });
+            if (typeof window.showExampleTable === 'function') {
+              window.showExampleTable(getManagerDisplayedFields(), { syncQueryState: false }).catch(console.error);
+            }
+            refreshBrowserUrl();
             if (window.showToastMessage) {
               window.showToastMessage(`${fieldName}: added results column.`, 'success');
             }
@@ -959,9 +978,15 @@
           return;
         }
 
-        if (hasSpecColumn(fieldName)) {
-          removeSpecColumns(fieldName);
-          rebuildFormCardFromSpec();
+        if (window.QueryChangeManager.hasDisplayedField(fieldName)) {
+          window.QueryChangeManager.removeDisplayedField(fieldName, {
+            source: 'QueryFormMode.fieldPicker.removeDisplayedField'
+          });
+          syncSpecColumnsWithDisplayedFields({ refreshUrl: false });
+          if (typeof window.showExampleTable === 'function') {
+            window.showExampleTable(getManagerDisplayedFields(), { syncQueryState: false }).catch(console.error);
+          }
+          refreshBrowserUrl();
           if (window.showToastMessage) {
             window.showToastMessage(`${fieldName}: removed results column.`, 'success');
           }
@@ -973,7 +998,7 @@
         if (nextChecked) {
           if (!hasSpecFilterInput(fieldName)) {
             state.spec.inputs.push(createGeneratedInputSpec(fieldName));
-            rebuildFormCardFromSpec();
+            rebuildFormCardFromSpec({ querySource: 'QueryFormMode.fieldPicker.addFilterInput' });
             if (window.showToastMessage) {
               window.showToastMessage(`${fieldName}: added filter control.`, 'success');
             }
@@ -983,7 +1008,7 @@
 
         if (hasSpecFilterInput(fieldName)) {
           removeSpecFilterInputs(fieldName);
-          rebuildFormCardFromSpec();
+          rebuildFormCardFromSpec({ querySource: 'QueryFormMode.fieldPicker.removeFilterInput' });
           if (window.showToastMessage) {
             window.showToastMessage(`${fieldName}: removed filter control.`, 'success');
           }
@@ -1317,8 +1342,10 @@
     }
   }
 
-  function applyFormState() {
+  function applyFormState(options = {}) {
     if (!state.active || !state.spec) return;
+
+    const source = options.source || 'QueryFormMode.applyFormState';
 
     const bindings = collectBindings();
     updateHeaderCopy(bindings);
@@ -1354,10 +1381,10 @@
     window.QueryChangeManager.setQueryState({
       displayedFields: columns,
       activeFilters: nextActiveFilters
-    }, { source: 'QueryFormMode.applyFormState' });
+    }, { source });
 
     if (typeof window.showExampleTable === 'function') {
-      window.showExampleTable(getDisplayedFields(), { syncQueryState: false }).catch(console.error);
+      window.showExampleTable(columns, { syncQueryState: false }).catch(console.error);
     }
 
     if (typeof window.updateQueryJson === 'function') {
@@ -1573,7 +1600,7 @@
     `;
     removeButton.addEventListener('click', () => {
       removeSpecInputByKey(inputSpec.key);
-      rebuildFormCardFromSpec();
+      rebuildFormCardFromSpec({ querySource: 'QueryFormMode.removeFilterInput' });
       if (window.showToastMessage) {
         window.showToastMessage(`Removed filter ${inputSpec.label}.`, 'info');
       }
@@ -1600,7 +1627,7 @@
         onChange: e => {
           captureCurrentControlDefaults();
           inputSpec.operator = e.target.value;
-          rebuildFormCardFromSpec();
+          rebuildFormCardFromSpec({ querySource: 'QueryFormMode.changeOperator' });
         }
       });
       operatorEl.style.appearance = 'none';
@@ -1633,7 +1660,7 @@
   }
 
   function scheduleApply() {
-    applyFormState();
+    applyFormState({ source: 'QueryFormMode.scheduleApply' });
     if (typeof window.updateButtonStates === 'function') {
       window.updateButtonStates();
     }
@@ -1924,7 +1951,7 @@
     state.controls.clear();
     buildFormCard();
     ensureModeToggleButtons();
-    applyFormState();
+    applyFormState({ source: 'QueryFormMode.initializeFromUrl' });
     syncPresentationMode();
     state.searchParams = new URLSearchParams();
     refreshBrowserUrl({ forceShareUrl: true });
