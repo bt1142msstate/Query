@@ -589,33 +589,23 @@ function moveColumnGroup(table, groupIndices, targetIndex) {
   // Rebuild the header row completely since we moved multiple columns
   const headerRow = table.querySelector('thead tr');
   if (headerRow) {
-    headerRow.innerHTML = '';
+    headerRow.replaceChildren();
     getDisplayedFields().forEach((field, index) => {
       // Check if this field exists in the current data
       const virtualTableData = window.VirtualTable?.virtualTableData;
       const fieldExistsInData = virtualTableData && virtualTableData.columnMap && virtualTableData.columnMap.has(field);
-      
-      const th = document.createElement('th');
-      th.draggable = true;
-      th.dataset.colIndex = index;
-      th.className = 'px-6 py-3 text-center text-xs font-medium uppercase tracking-wider bg-gray-50';
-      
-      if (fieldExistsInData) {
-        th.classList.add('text-gray-500');
-      } else {
-        th.classList.add('text-red-500');
-        th.style.color = '#ef4444 !important';
-        th.setAttribute('data-tooltip', 'This field is not in the current data. Run a new query to populate it.');
+
+      const th = typeof window.createQueryTableHeaderCell === 'function'
+        ? window.createQueryTableHeaderCell(field, index, { existsInData: fieldExistsInData })
+        : document.createElement('th');
+
+      if (typeof window.createQueryTableHeaderCell !== 'function') {
+        th.draggable = true;
+        th.dataset.colIndex = index;
+        th.className = 'px-6 py-3 text-center text-xs font-medium uppercase tracking-wider bg-gray-50';
+        th.textContent = field;
       }
-      
-      const span = document.createElement('span');
-      span.className = 'th-text';
-      span.textContent = field;
-      if (!fieldExistsInData) {
-        span.style.color = '#ef4444 !important';
-      }
-      
-      th.appendChild(span);
+
       headerRow.appendChild(th);
     });
   }
