@@ -476,7 +476,8 @@ const queryStateStore = {
       activeFilters: nextState.activeFilters !== undefined
     }, meta);
   },
-  resetQuery(meta = {}) {
+  // Low-level state-only reset. This should not perform any UI cleanup.
+  resetState(meta = {}) {
     assignDisplayedFields([]);
     assignActiveFilters({});
     notifyQueryStateSubscribers({ displayedFields: true, activeFilters: true }, meta);
@@ -490,6 +491,7 @@ function normalizeManagerMeta(meta = {}, fallbackSource) {
   };
 }
 
+// App-level clear that resets query state plus all dependent UI surfaces.
 async function clearQueryManagerState(meta = {}) {
   const normalizedMeta = normalizeManagerMeta(meta, 'QueryChangeManager.clearQuery');
 
@@ -530,7 +532,7 @@ async function clearQueryManagerState(meta = {}) {
     window.resetSplitColumnsToggleUI();
   }
 
-  queryStateStore.resetQuery(normalizedMeta);
+  queryStateStore.resetState(normalizedMeta);
 
   if (previousSelectedField && typeof window.renderConditionList === 'function') {
     window.renderConditionList(previousSelectedField);
@@ -632,9 +634,11 @@ const queryChangeManager = {
   setQueryState(nextState = {}, meta = {}) {
     return queryStateStore.setQueryState(nextState, normalizeManagerMeta(meta, 'QueryChangeManager.setQueryState'));
   },
+  // State-only reset for internal/advanced flows. Most UI should call clearQuery.
   resetQuery(meta = {}) {
-    return queryStateStore.resetQuery(normalizeManagerMeta(meta, 'QueryChangeManager.resetQuery'));
+    return queryStateStore.resetState(normalizeManagerMeta(meta, 'QueryChangeManager.resetQuery'));
   },
+  // Canonical full reset used by clear buttons and other user-facing clear actions.
   clearQuery(meta = {}) {
     return clearQueryManagerState(meta);
   }
