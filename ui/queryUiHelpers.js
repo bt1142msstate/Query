@@ -1,26 +1,3 @@
-/* Re-position the input capsule so it keeps a constant gap above the condition buttons */
-window.positionInputWrapper = function(){
-  const inputWrapper = window.DOM.inputWrapper;
-  const conditionPanel = window.DOM.conditionPanel;
-
-  if(!inputWrapper.classList.contains('show')) return;
-  const panelRect   = conditionPanel.getBoundingClientRect();
-  const wrapperRect = inputWrapper.getBoundingClientRect();
-  const GAP = 12;
-
-  let top = panelRect.top - wrapperRect.height - GAP;
-
-  const headerHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-height')) || 64;
-  const minTop = headerHeight + 24;
-  if (top < minTop) {
-    top = minTop;
-  }
-
-  inputWrapper.style.top = `${top}px`;
-  inputWrapper.style.setProperty('--wrapper-top', `${top}px`);
-  inputWrapper.style.setProperty('--panel-top', `${panelRect.top}px`);
-};
-
 /** Rebuild the query JSON and show it */
 window.jsonTreeCollapsedPaths = window.jsonTreeCollapsedPaths || new Set();
 

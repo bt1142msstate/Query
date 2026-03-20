@@ -361,7 +361,7 @@ if(dom.runBtn){
 // typeConditions now in filterManager.js (window.typeConditions)
 
 /* Re-position the input capsule so it keeps a constant gap above the condition buttons */
-// positionInputWrapper is now in queryUI.js - relying on window.positionInputWrapper
+// positionInputWrapper lives in ui/conditionEditorLayout.js - relying on window.positionInputWrapper
 
 /* ---------- Input helpers to avoid duplicated numeric-config blocks ---------- */
 // Input helpers (setNumericProps, clearNumericProps, configureInputsForType) now in filterManager.js
