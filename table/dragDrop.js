@@ -8,6 +8,17 @@
 
 // Store information about removed columns - Managed in columnManager.js
 var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
+const TABLE_COLUMN_DRAG_MIME = 'application/x-query-table-column-index';
+const BUBBLE_FIELD_DRAG_MIME = 'bubble-field';
+
+function hasDragType(event, dragType) {
+  const types = event?.dataTransfer?.types;
+  return Boolean(types && Array.from(types).includes(dragType));
+}
+
+function isSupportedTableDrag(event) {
+  return hasDragType(event, TABLE_COLUMN_DRAG_MIME) || hasDragType(event, BUBBLE_FIELD_DRAG_MIME);
+}
 
 
 /**
@@ -435,6 +446,17 @@ function getSampleColumnData(fieldName, maxSamples = 3) {
  * @param {number} colIndex - Column index for validation
  */
 function positionDropAnchor(rect, table, clientX, colIndex) {
+  const viewportRect = getDropIndicatorViewportRect(table);
+  if (!viewportRect) {
+    clearDropAnchor();
+    return;
+  }
+
+  if (rect.right < viewportRect.left || rect.left > viewportRect.right) {
+    clearDropAnchor();
+    return;
+  }
+
   const insertLeft = (clientX - rect.left) < rect.width/2;
   const insertAt = insertLeft ? colIndex : colIndex + 1;
   
@@ -460,15 +482,15 @@ function positionDropAnchor(rect, table, clientX, colIndex) {
   
   // Position is valid, show the anchor
   dropAnchor.classList.add('vertical');
-  
-  // For virtual scrolling tables, use the container height instead of table height
-  const tableContainer = table.closest('.overflow-x-auto');
-  const anchorHeight = tableContainer ? tableContainer.offsetHeight : table.offsetHeight;
+
+  const rawAnchorX = insertLeft ? rect.left : rect.right;
+  const clampedAnchorX = Math.max(viewportRect.left, Math.min(rawAnchorX, viewportRect.right));
+  const anchorHeight = Math.max(0, viewportRect.height);
   
   dropAnchor.style.width = '4px';
   dropAnchor.style.height = anchorHeight + 'px';
-  dropAnchor.style.left = (insertLeft ? rect.left : rect.right) + window.scrollX - 2 + 'px';
-  dropAnchor.style.top = (tableContainer ? tableContainer.getBoundingClientRect().top : table.getBoundingClientRect().top) + window.scrollY + 'px';
+  dropAnchor.style.left = clampedAnchorX + window.scrollX - 2 + 'px';
+  dropAnchor.style.top = viewportRect.top + window.scrollY + 'px';
   dropAnchor.style.display = 'block';
 }
 
@@ -479,6 +501,24 @@ function clearDropAnchor() {
 
 function getDragScrollContainer(table) {
   return table?.closest('.overflow-x-auto') || null;
+}
+
+function getDropIndicatorViewportRect(table) {
+  const scrollContainer = getDragScrollContainer(table);
+  const target = scrollContainer || table;
+  return target ? target.getBoundingClientRect() : null;
+}
+
+function isPointerWithinDropViewport(table, clientX, clientY) {
+  const rect = getDropIndicatorViewportRect(table);
+  if (!rect) {
+    return false;
+  }
+
+  return clientX >= rect.left
+    && clientX <= rect.right
+    && clientY >= rect.top
+    && clientY <= rect.bottom;
 }
 
 function getVisibleHeaderTargets(table, scrollContainer = getDragScrollContainer(table)) {
@@ -753,6 +793,10 @@ function removeColumn(table, colIndex) {
 function attachBubbleDropTarget(container) {
   if (container._bubbleDropSetup) return; // guard against double-bind
   container.addEventListener('dragover', e => {
+    if (!isSupportedTableDrag(e)) {
+      clearDropAnchor();
+      return;
+    }
     e.preventDefault();
     if (e.target.closest('th') || e.target.closest('tbody')) return; // handled by header/body listeners
     const table = container.querySelector('table');
@@ -764,6 +808,10 @@ function attachBubbleDropTarget(container) {
     }
   });
   container.addEventListener('drop', e => {
+    if (!isSupportedTableDrag(e)) {
+      clearDropAnchor();
+      return;
+    }
     e.preventDefault();
     if (e.target.closest('th') || e.target.closest('tbody')) return; // handled by header/body listeners
     
@@ -777,7 +825,7 @@ function attachBubbleDropTarget(container) {
     }
 
     // Fallback if no table headers
-    const field = e.dataTransfer.getData('bubble-field');
+    const field = e.dataTransfer.getData(BUBBLE_FIELD_DRAG_MIME);
     if (field) {
       if (restoreFieldWithDuplicates(field)) {
         dragDropManager.dropSuccessful = true;
@@ -818,6 +866,12 @@ const dragDropManager = {
     this.autoScrollDirection = direction;
     
     this.autoScrollInterval = setInterval(() => {
+      if (this.activeTable && !isPointerWithinDropViewport(this.activeTable, this.autoScrollPointerX, this.lastDragY)) {
+        clearDropAnchor();
+        this.stopAutoScroll();
+        return;
+      }
+
       const rect = container.getBoundingClientRect();
       const threshold = 90;
       let proximity = 0;
@@ -840,7 +894,7 @@ const dragDropManager = {
       }
 
       if (container.scrollLeft !== previousScrollLeft && this.activeTable) {
-        this.updateDropIndicatorFromPointer(this.activeTable, this.autoScrollPointerX);
+        this.updateDropIndicatorFromPointer(this.activeTable, this.autoScrollPointerX, this.lastDragY);
       }
     }, 16);
   },
@@ -859,7 +913,14 @@ const dragDropManager = {
     const rect = container.getBoundingClientRect();
     const scrollThreshold = 90;
     const mouseX = e.clientX;
+    const mouseY = e.clientY;
     this.autoScrollPointerX = mouseX;
+
+    if (mouseX < rect.left || mouseX > rect.right || mouseY < rect.top || mouseY > rect.bottom) {
+      this.stopAutoScroll();
+      clearDropAnchor();
+      return;
+    }
     
     // Check if near left edge
     if (mouseX < rect.left + scrollThreshold && container.scrollLeft > 0) {
@@ -876,7 +937,13 @@ const dragDropManager = {
     }
   },
 
-  updateDropIndicatorFromPointer(table, clientX) {
+  updateDropIndicatorFromPointer(table, clientX, clientY = this.lastDragY) {
+    if (!isPointerWithinDropViewport(table, clientX, clientY)) {
+      table.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
+      clearDropAnchor();
+      return;
+    }
+
     const scrollContainer = this.scrollContainer || getDragScrollContainer(table);
     const targetHeader = getClosestVisibleHeaderByX(table, clientX, scrollContainer);
     if (!targetHeader) {
@@ -935,7 +1002,7 @@ const dragDropManager = {
     if (scrollContainer) scrollContainer.classList.add('dragging-scroll-lock');
     document.body.classList.add('dragging-cursor');
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', th.dataset.colIndex);
+    e.dataTransfer.setData(TABLE_COLUMN_DRAG_MIME, th.dataset.colIndex);
     
     // Check if this is part of a group with duplicates
     const colIndex = parseInt(th.dataset.colIndex, 10);
@@ -999,6 +1066,10 @@ const dragDropManager = {
   
   // Common drag event handlers
   handleDragEnter(e, element, table) {
+    if (!isSupportedTableDrag(e)) {
+      clearDropAnchor();
+      return;
+    }
     e.preventDefault();
     this.activeTable = table;
     // Clear any existing highlight
@@ -1022,6 +1093,10 @@ const dragDropManager = {
   },
   
   handleDragOver(e, element, table) {
+    if (!isSupportedTableDrag(e)) {
+      clearDropAnchor();
+      return;
+    }
     e.preventDefault();
     this.activeTable = table;
     const rect = element.getBoundingClientRect();
@@ -1036,6 +1111,10 @@ const dragDropManager = {
   
   // Cell-specific handlers
   handleCellDragEnter(e, td, table) {
+    if (!isSupportedTableDrag(e)) {
+      clearDropAnchor();
+      return;
+    }
     e.preventDefault();
     this.activeTable = table;
     table.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
@@ -1057,9 +1136,13 @@ const dragDropManager = {
   
   // Fallback: show drop anchor based on mouse X vs header positions (used for spacer cells / empty tables)
   handleDragOverByX(e, table) {
+    if (!isSupportedTableDrag(e)) {
+      clearDropAnchor();
+      return;
+    }
     e.preventDefault();
     this.activeTable = table;
-    this.updateDropIndicatorFromPointer(table, e.clientX);
+    this.updateDropIndicatorFromPointer(table, e.clientX, e.clientY);
 
     if (this.scrollContainer) {
       this.checkAutoScroll(e, this.scrollContainer);
@@ -1067,6 +1150,10 @@ const dragDropManager = {
   },
 
   handleCellDragOver(e, td, table) {
+    if (!isSupportedTableDrag(e)) {
+      clearDropAnchor();
+      return;
+    }
     e.preventDefault();
     this.activeTable = table;
     const colIndex = parseInt(td.dataset.colIndex, 10);
@@ -1084,6 +1171,10 @@ const dragDropManager = {
   
   // Drop handlers
   handleDrop(e, th, table) {
+    if (!isSupportedTableDrag(e)) {
+      clearDropAnchor();
+      return;
+    }
     e.preventDefault();
     e.stopPropagation();
     this.activeTable = null;
@@ -1093,7 +1184,7 @@ const dragDropManager = {
     this.stopAutoScroll();
   
     // Column reorder drop
-    const fromIndexStr = e.dataTransfer.getData('text/plain').trim();
+    const fromIndexStr = e.dataTransfer.getData(TABLE_COLUMN_DRAG_MIME).trim();
     if (/^\d+$/.test(fromIndexStr)) {
       const fromIndex = parseInt(fromIndexStr, 10);
       if (fromIndex !== toIndex) {
@@ -1113,7 +1204,7 @@ const dragDropManager = {
     }
     
     // Bubble drop - insert new field
-    const bubbleField = e.dataTransfer.getData('bubble-field');
+    const bubbleField = e.dataTransfer.getData(BUBBLE_FIELD_DRAG_MIME);
     if (bubbleField) {
       const rect = th.getBoundingClientRect();
       const insertAt = (e.clientX - rect.left) < rect.width/2 ? toIndex : toIndex + 1;
@@ -1128,6 +1219,10 @@ const dragDropManager = {
   },
   
   handleCellDrop(e, td, table) {
+    if (!isSupportedTableDrag(e)) {
+      clearDropAnchor();
+      return;
+    }
     e.preventDefault();
     e.stopPropagation();
     this.activeTable = null;
@@ -1138,7 +1233,7 @@ const dragDropManager = {
     this.stopAutoScroll();
   
     // Bubble drop
-    const bubbleField = e.dataTransfer.getData('bubble-field');
+    const bubbleField = e.dataTransfer.getData(BUBBLE_FIELD_DRAG_MIME);
     if (bubbleField) {
       const rect = td.getBoundingClientRect();
       const insertAt = (e.clientX - rect.left) < rect.width/2 ? toIndex : toIndex + 1;
@@ -1151,7 +1246,7 @@ const dragDropManager = {
     }
     
     // Header reorder drop
-    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
+    const fromIndex = parseInt(e.dataTransfer.getData(TABLE_COLUMN_DRAG_MIME), 10);
     if (!isNaN(fromIndex) && fromIndex !== toIndex) {
       // Calculate insertion position based on mouse position relative to drop target
       const targetHeader = table.querySelector(`thead th[data-col-index="${toIndex}"]`);
@@ -1405,7 +1500,7 @@ document.addEventListener('dragstart', e => {
   dragDropManager.draggedBubbleOriginalRect = bubble.getBoundingClientRect();
   dragDropManager.dropSuccessful = false;
   
-  e.dataTransfer.setData('bubble-field', fieldName);
+  e.dataTransfer.setData(BUBBLE_FIELD_DRAG_MIME, fieldName);
   e.dataTransfer.effectAllowed = 'copyMove'; // Allow both copy and move
   e.dataTransfer.dropEffect = 'move'; // Set the drop effect
   dragDropManager.setBubbleDrag(true);
@@ -1437,6 +1532,10 @@ document.addEventListener('dragover', e => {
   if (document.body.classList.contains('dragging-cursor') && !dragDropManager.isBubbleDrag) {
     dragDropManager.lastDragX = e.clientX;
     dragDropManager.lastDragY = e.clientY;
+
+    if (dragDropManager.activeTable && !isPointerWithinDropViewport(dragDropManager.activeTable, e.clientX, e.clientY)) {
+      clearDropAnchor();
+    }
 
     if (dragDropManager.scrollContainer) {
       dragDropManager.checkAutoScroll(e, dragDropManager.scrollContainer);

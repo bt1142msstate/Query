@@ -6,11 +6,18 @@
 window.FilterSidePanel = (function () {
     let currentViewMode = 'both';
     const VIEW_MODES = new Set(['both', 'filters', 'display']);
+    const DISPLAY_REORDER_MIME = 'application/x-query-display-index';
+    const FILTER_REORDER_MIME = 'application/x-query-filter-field';
     let shellResizeObserver = null;
     let unsubscribeQueryState = null;
     const { getDisplayedFields, getActiveFilters } = window.QueryStateReaders;
 
     const $ = id => document.getElementById(id);
+
+    function hasDragType(event, dragType) {
+        const types = event?.dataTransfer?.types;
+        return Boolean(types && Array.from(types).includes(dragType));
+    }
 
     function cleanupPopupControls(container) {
         if (!container) {
@@ -358,7 +365,7 @@ window.FilterSidePanel = (function () {
 
             item.addEventListener('dragstart', event => {
                 item.classList.add('fp-dragging');
-                event.dataTransfer.setData('text/plain', String(index));
+                event.dataTransfer.setData(DISPLAY_REORDER_MIME, String(index));
                 event.dataTransfer.effectAllowed = 'move';
             });
 
@@ -371,6 +378,9 @@ window.FilterSidePanel = (function () {
             });
 
             item.addEventListener('dragover', event => {
+                if (!hasDragType(event, DISPLAY_REORDER_MIME)) {
+                    return;
+                }
                 event.preventDefault();
                 const rect = item.getBoundingClientRect();
                 const isTopHalf = event.clientY < rect.top + rect.height / 2;
@@ -383,10 +393,13 @@ window.FilterSidePanel = (function () {
             });
 
             item.addEventListener('drop', event => {
+                if (!hasDragType(event, DISPLAY_REORDER_MIME)) {
+                    return;
+                }
                 event.preventDefault();
                 item.classList.remove('fp-drag-over-top', 'fp-drag-over-bottom');
 
-                const fromIndex = Number.parseInt(event.dataTransfer.getData('text/plain'), 10);
+                const fromIndex = Number.parseInt(event.dataTransfer.getData(DISPLAY_REORDER_MIME), 10);
                 if (!Number.isInteger(fromIndex) || fromIndex === index) {
                     return;
                 }
@@ -481,7 +494,7 @@ window.FilterSidePanel = (function () {
 
     function attachFilterGroupDragHandlers(group, field, container) {
         group.addEventListener('dragstart', (e) => {
-            e.dataTransfer.setData('text/plain', field);
+            e.dataTransfer.setData(FILTER_REORDER_MIME, field);
             e.dataTransfer.effectAllowed = 'move';
             setTimeout(() => group.classList.add('fp-dragging'), 0);
         });
@@ -495,6 +508,9 @@ window.FilterSidePanel = (function () {
         });
 
         group.addEventListener('dragover', (e) => {
+            if (!hasDragType(e, FILTER_REORDER_MIME)) {
+                return;
+            }
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
 
@@ -514,10 +530,13 @@ window.FilterSidePanel = (function () {
         });
 
         group.addEventListener('drop', (e) => {
+            if (!hasDragType(e, FILTER_REORDER_MIME)) {
+                return;
+            }
             e.preventDefault();
             group.classList.remove('fp-drag-over-top', 'fp-drag-over-bottom');
 
-            const draggedField = e.dataTransfer.getData('text/plain');
+            const draggedField = e.dataTransfer.getData(FILTER_REORDER_MIME);
             if (!draggedField || draggedField === field) return;
 
             const draggedGroup = container.querySelector(`.fp-field-group[data-field="${CSS.escape(draggedField)}"]`);
