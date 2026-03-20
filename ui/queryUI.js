@@ -1,50 +1,9 @@
 /**
- * Query UI Management
- * Handles shared DOM lookups plus run/download button state.
+ * Table and run-state UI management.
+ * Shared DOM caching lives in ui/domCache.js.
  * @module QueryUI
  */
 
-window.DOM = {
-  get overlay() { return this._overlay ||= document.getElementById('overlay'); },
-  get conditionPanel() { return this._conditionPanel ||= document.getElementById('condition-panel'); },
-  get inputWrapper() { return this._inputWrapper ||= document.getElementById('condition-input-wrapper'); },
-  get conditionInput() { return this._conditionInput ||= document.getElementById('condition-input'); },
-  get conditionInput2() { return this._conditionInput2 ||= document.getElementById('condition-input-2'); },
-  get betweenLabel() { return this._betweenLabel ||= document.getElementById('between-label'); },
-  get confirmBtn() { return this._confirmBtn ||= document.getElementById('confirm-btn'); },
-  get runBtn() { return this._runBtn ||= document.getElementById('run-query-btn'); },
-  get runIcon() { return this._runIcon ||= document.getElementById('run-icon'); },
-  get refreshIcon() { return this._refreshIcon ||= document.getElementById('refresh-icon'); },
-  get stopIcon() { return this._stopIcon ||= document.getElementById('stop-icon'); },
-  get downloadBtn() { return this._downloadBtn ||= document.getElementById('download-btn'); },
-  get postFilterBtn() { return this._postFilterBtn ||= document.getElementById('post-filter-btn'); },
-  get clearQueryBtn() { return this._clearQueryBtn ||= document.getElementById('clear-query-btn'); },
-  get queryBox() { return this._queryBox ||= document.getElementById('query-json'); },
-  get queryInput() { return this._queryInput ||= document.getElementById('query-input'); },
-  get tableShell() { return this._tableShell ||= document.getElementById('table-shell'); },
-  get tableContainer() { return this._tableContainer ||= document.getElementById('table-container'); },
-  get tableInfoBar() { return this._tableInfoBar ||= document.getElementById('table-info-bar'); },
-  get tableToolbar() { return this._tableToolbar ||= document.getElementById('table-toolbar'); },
-  get tableNameInput() { return this._tableNameInput ||= document.getElementById('table-name-input'); },
-  get tableNameShell() { return this._tableNameShell ||= document.getElementById('table-name-shell'); },
-  get tableResultsBadge() { return this._tableResultsBadge ||= document.getElementById('table-results-badge'); },
-  get tableResultsCount() { return this._tableResultsCount ||= document.getElementById('table-results-count'); },
-  get tableResultsLabel() { return this._tableResultsLabel ||= document.getElementById('table-results-label'); },
-  get tableColumnsCount() { return this._tableColumnsCount ||= document.getElementById('table-columns-count'); },
-  get tableColumnsLabel() { return this._tableColumnsLabel ||= document.getElementById('table-columns-label'); },
-  get tableZoomControls() { return this._tableZoomControls ||= document.getElementById('table-zoom-controls'); },
-  get tableZoomOutBtn() { return this._tableZoomOutBtn ||= document.getElementById('table-zoom-out-btn'); },
-  get tableZoomInBtn() { return this._tableZoomInBtn ||= document.getElementById('table-zoom-in-btn'); },
-  get tableZoomLabel() { return this._tableZoomLabel ||= document.getElementById('table-zoom-label'); },
-  get tableExpandBtn() { return this._tableExpandBtn ||= document.getElementById('table-expand-btn'); },
-  get clearSearchBtn() { return this._clearSearchBtn ||= document.getElementById('clear-search-btn'); },
-  get groupMethodSelect() { return this._groupMethodSelect ||= document.getElementById('group-method-select'); },
-  get filterError() { return this._filterError ||= document.getElementById('filter-error'); },
-  get headerBar() { return this._headerBar ||= document.getElementById('header-bar'); },
-  get headerOverlayTitle() { return this._headerOverlayTitle ||= document.getElementById('header-overlay-title'); },
-  get categoryBar() { return this._categoryBar ||= document.getElementById('category-bar'); },
-  get mobileCategorySelector() { return this._mobileCategorySelector ||= document.getElementById('mobile-category-selector'); }
-};
 var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
 var getActiveFilters = window.QueryStateReaders.getActiveFilters.bind(window.QueryStateReaders);
 
