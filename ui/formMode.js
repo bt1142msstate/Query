@@ -1542,6 +1542,18 @@
     }
   }
 
+  function refreshBubbleStageAfterModeSwitch() {
+    if (!window.BubbleSystem || typeof window.BubbleSystem.safeRenderBubbles !== 'function') {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        window.BubbleSystem.safeRenderBubbles();
+      });
+    });
+  }
+
   async function setViewMode(nextMode, options = {}) {
     const requestedMode = nextMode === 'bubbles' ? 'bubbles' : 'form';
 
@@ -1554,6 +1566,10 @@
 
     state.viewMode = requestedMode;
     syncPresentationMode();
+
+    if (requestedMode === 'bubbles') {
+      refreshBubbleStageAfterModeSwitch();
+    }
 
     if (options.updateUrl !== false) {
       refreshBrowserUrl();
