@@ -479,6 +479,53 @@ function renderEmptyQueryTableState() {
 
 window.renderEmptyQueryTableState = renderEmptyQueryTableState;
 
+function createQueryTableHeaderCell(fieldName, index, options = {}) {
+  const fieldText = String(fieldName ?? '');
+  const fieldExistsInData = options.existsInData !== false;
+
+  const th = document.createElement('th');
+  th.draggable = true;
+  th.dataset.colIndex = String(index);
+  th.className = 'px-6 py-3 text-center text-xs font-medium uppercase tracking-wider bg-gray-50';
+
+  if (fieldExistsInData) {
+    th.classList.add('sortable-header', 'text-gray-500', 'cursor-pointer', 'hover:bg-gray-100', 'transition-colors');
+    th.setAttribute('data-sort-field', fieldText);
+  } else {
+    th.style.setProperty('color', '#ef4444', 'important');
+    th.setAttribute('data-tooltip', 'This field is not in the current data. Run a new query to populate it.');
+  }
+
+  const headerContent = document.createElement('div');
+  headerContent.className = 'th-header-content';
+
+  if (fieldExistsInData) {
+    const sortIcon = document.createElement('span');
+    sortIcon.className = 'sort-icon text-gray-400';
+    sortIcon.setAttribute('aria-hidden', 'true');
+    headerContent.appendChild(sortIcon);
+  }
+
+  const labelGroup = document.createElement('div');
+  labelGroup.className = 'th-label-group';
+
+  const labelText = document.createElement('span');
+  labelText.className = 'th-text';
+  labelText.textContent = fieldText;
+
+  if (!fieldExistsInData) {
+    labelText.style.setProperty('color', '#ef4444', 'important');
+  }
+
+  labelGroup.appendChild(labelText);
+  headerContent.appendChild(labelGroup);
+  th.appendChild(headerContent);
+
+  return th;
+}
+
+window.createQueryTableHeaderCell = createQueryTableHeaderCell;
+
 function scrollBubbleRows(deltaRows) {
   return !!(window.BubbleSystem && typeof window.BubbleSystem.scrollBubblesByRows === 'function' &&
     window.BubbleSystem.scrollBubblesByRows(deltaRows));
@@ -736,45 +783,6 @@ async function showExampleTable(fields, options = {}){
     }
   }
 
-  const escapeHeaderText = value => {
-    if (typeof window.escapeHtml === 'function') {
-      return window.escapeHtml(String(value ?? ''));
-    }
-
-    return String(value ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  };
-
-  // Create initial table structure
-  const tableHTML = `
-    <table id="example-table" class="min-w-full divide-y divide-gray-200 bg-white">
-      <thead class="sticky top-0 z-20 bg-gray-50">
-        <tr>
-          ${renderFields.map((f,i) => {
-            // Check if this field exists in the current data
-            const virtualTableData = window.VirtualTable?.virtualTableData;
-            const fieldExistsInData = virtualTableData && virtualTableData.columnMap && virtualTableData.columnMap.has(f);
-            const safeField = escapeHeaderText(f);
-            
-            const alignClass = 'text-center';
-            
-            if (fieldExistsInData) {
-              return `<th draggable="true" data-col-index="${i}" class="sortable-header px-6 py-3 ${alignClass} text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors" data-sort-field="${safeField}"><div class="th-header-content"><span class="sort-icon text-gray-400" aria-hidden="true"></span><div class="th-label-group"><span class='th-text'>${safeField}</span></div></div></th>`;
-            } else {
-              return `<th draggable="true" data-col-index="${i}" class="px-6 py-3 ${alignClass} text-xs font-medium uppercase tracking-wider bg-gray-50" style="color: #ef4444 !important;" data-tooltip="This field is not in the current data. Run a new query to populate it."><div class="th-header-content"><div class="th-label-group"><span class='th-text' style="color: #ef4444 !important;">${safeField}</span></div></div></th>`;
-            }
-          }).join('')}
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-200">
-        <!-- Virtual rows will be inserted here -->
-      </tbody>
-    </table>`;
-
   // Replace the original sample-data table in place
   const container = document.getElementById('table-container');
   if (container) {
@@ -783,8 +791,29 @@ async function showExampleTable(fields, options = {}){
     }
 
     container.classList.remove('table-container-hidden');
+    const table = document.createElement('table');
+    table.id = 'example-table';
+    table.className = 'min-w-full divide-y divide-gray-200 bg-white';
+
+    const thead = document.createElement('thead');
+    thead.className = 'sticky top-0 z-20 bg-gray-50';
+
+    const tableHeaderRow = document.createElement('tr');
+    renderFields.forEach((field, index) => {
+      const virtualTableData = window.VirtualTable?.virtualTableData;
+      const fieldExistsInData = Boolean(virtualTableData && virtualTableData.columnMap && virtualTableData.columnMap.has(field));
+      tableHeaderRow.appendChild(createQueryTableHeaderCell(field, index, { existsInData: fieldExistsInData }));
+    });
+    thead.appendChild(tableHeaderRow);
+
+    const tbody = document.createElement('tbody');
+    tbody.className = 'divide-y divide-gray-200';
+
+    table.appendChild(thead);
+    table.appendChild(tbody);
+
     // Set up container for virtual scrolling
-    container.innerHTML = tableHTML;
+    container.replaceChildren(table);
     
     try {
       await VirtualTable.setupVirtualTable(container, renderFields);
@@ -801,7 +830,6 @@ async function showExampleTable(fields, options = {}){
     }
 
     // Now that setupVirtualTable has calculated widths, update header widths
-    const table = container.querySelector('#example-table');
     const headerRow = table.querySelector('thead tr');
     headerRow.querySelectorAll('th').forEach((th, index) => {
       const field = renderFields[index];
