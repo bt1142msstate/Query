@@ -86,29 +86,24 @@ function formatColumnClipboardValue(rawValue, fieldName) {
 }
 
 async function copyColumnValuesByFieldName(fieldName) {
-  const virtualTableData = window.VirtualTable?.virtualTableData;
-  if (!fieldName || !virtualTableData?.rows?.length || !virtualTableData.columnMap) {
-    if (window.showToastMessage) {
-      window.showToastMessage('No column data available to copy.', 'warning');
+  return window.ClipboardUtils.copyFromSource(() => {
+    const virtualTableData = window.VirtualTable?.virtualTableData;
+    if (!fieldName || !virtualTableData?.rows?.length || !virtualTableData.columnMap) {
+      return '';
     }
-    return false;
-  }
 
-  const columnIndex = virtualTableData.columnMap.get(fieldName);
-  if (columnIndex === undefined) {
-    if (window.showToastMessage) {
-      window.showToastMessage(`No data is available for ${fieldName}.`, 'warning');
+    const columnIndex = virtualTableData.columnMap.get(fieldName);
+    if (columnIndex === undefined) {
+      return '';
     }
-    return false;
-  }
 
-  const rawText = virtualTableData.rows
-    .map(row => formatColumnClipboardValue(row[columnIndex], fieldName))
-    .join('\n');
-
-  return window.ClipboardUtils.copy(rawText, {
+    return virtualTableData.rows
+      .map(row => formatColumnClipboardValue(row[columnIndex], fieldName))
+      .join('\n');
+  }, {
     successMessage: `${fieldName} values copied to clipboard.`,
-    errorMessage: `Failed to copy ${fieldName} values.`
+    errorMessage: `Failed to copy ${fieldName} values.`,
+    emptyMessage: fieldName ? `No data is available for ${fieldName}.` : 'No column data available to copy.'
   });
 }
 
