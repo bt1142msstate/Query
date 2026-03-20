@@ -1425,15 +1425,9 @@ function handleQueryRowClick(e) {
  */
 const QueryHistorySystem = {
   exampleQueries,
-  loadQueryConfig,
-  loadQueryResults,
-  createQueriesTableRowHtml,
   startQueryDurationUpdates,
   stopQueryDurationUpdates,
-  isQueriesPanelOpen,
-  renderQueries,
-  handleQueryRowClick,
-  cancelQuery
+  renderQueries
 };
 
 // Make QueryHistorySystem globally accessible
