@@ -110,6 +110,31 @@
       : '';
   }
 
+  function getInputParamKeys(inputSpec) {
+    if (!inputSpec) {
+      return [];
+    }
+
+    const explicitKeys = Array.isArray(inputSpec.keys)
+      ? inputSpec.keys.map(key => String(key || '').trim()).filter(Boolean)
+      : [];
+
+    if (explicitKeys.length > 0) {
+      return explicitKeys;
+    }
+
+    const baseKey = String(inputSpec.key || '').trim();
+    if (!baseKey) {
+      return [];
+    }
+
+    if (inputSpec.operator === 'between') {
+      return [baseKey, `${baseKey}-end`];
+    }
+
+    return [baseKey];
+  }
+
   function normalizeInputSpec(input, index) {
     if (!input || typeof input !== 'object') return null;
 
@@ -975,7 +1000,7 @@
   function resolveInputInitialValues(inputSpec, searchParams) {
     const fieldDef = window.fieldDefs && inputSpec && inputSpec.field ? window.fieldDefs.get(inputSpec.field) : null;
     const isMultiValue = supportsMultipleValues(inputSpec, fieldDef);
-    const keys = inputSpec.keys.length ? inputSpec.keys : [inputSpec.key];
+    const keys = getInputParamKeys(inputSpec);
 
     if (inputSpec.operator === 'between' && keys.length >= 2) {
       const defaults = Array.isArray(inputSpec.defaultValue) ? inputSpec.defaultValue : [];
@@ -1201,8 +1226,9 @@
       const fieldDef = window.fieldDefs && inputSpec.field ? window.fieldDefs.get(inputSpec.field) : null;
       const isMultiValue = supportsMultipleValues(inputSpec, fieldDef);
       const values = getCurrentInputValues(inputSpec);
-      if (inputSpec.operator === 'between' && inputSpec.keys.length >= 2) {
-        inputSpec.keys.slice(0, 2).forEach((key, index) => {
+      const keys = getInputParamKeys(inputSpec);
+      if (inputSpec.operator === 'between' && keys.length >= 2) {
+        keys.slice(0, 2).forEach((key, index) => {
           bindings[key] = values[index] || '';
         });
       }
@@ -1401,15 +1427,18 @@
     state.spec.inputs.forEach(inputSpec => {
       const fieldDef = window.fieldDefs && inputSpec.field ? window.fieldDefs.get(inputSpec.field) : null;
       const isMultiValue = supportsMultipleValues(inputSpec, fieldDef);
-      const values = getCurrentInputValues(inputSpec).filter(Boolean);
-      if (inputSpec.operator === 'between' && inputSpec.keys.length >= 2) {
-        inputSpec.keys.slice(0, 2).forEach((key, index) => {
-          if (values[index]) {
-            nextUrl.searchParams.set(key, values[index]);
+      const rawValues = getCurrentInputValues(inputSpec);
+      const keys = getInputParamKeys(inputSpec);
+      if (inputSpec.operator === 'between' && keys.length >= 2) {
+        rawValues.slice(0, 2).forEach((value, index) => {
+          if (value) {
+            nextUrl.searchParams.set(keys[index], value);
           }
         });
         return;
       }
+
+      const values = rawValues.filter(Boolean);
 
       if (values.length === 0) return;
       if (isMultiValue) {
