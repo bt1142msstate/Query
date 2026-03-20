@@ -311,10 +311,29 @@
     state.spec.columns = nextColumns;
 
     if (options.refreshUrl !== false) {
-      window.history.replaceState({}, '', buildCurrentShareUrl());
+      refreshBrowserUrl();
     }
 
     return true;
+  }
+
+  function buildClearedBrowserUrl() {
+    const nextUrl = new URL(window.location.href);
+    nextUrl.search = '';
+    return nextUrl.toString();
+  }
+
+  function shouldPersistFormUrlInBrowser() {
+    return state.active && state.specSource === 'generated';
+  }
+
+  function refreshBrowserUrl(options = {}) {
+    const forceShareUrl = options.forceShareUrl === true;
+    const forceClearUrl = options.forceClearUrl === true;
+    const nextUrl = (forceShareUrl || (!forceClearUrl && shouldPersistFormUrlInBrowser()))
+      ? buildCurrentShareUrl()
+      : buildClearedBrowserUrl();
+    window.history.replaceState({}, '', nextUrl);
   }
 
   function hasSpecColumn(fieldName) {
@@ -441,7 +460,7 @@
       window.updateButtonStates();
     }
 
-    window.history.replaceState({}, '', buildCurrentShareUrl());
+    refreshBrowserUrl();
   }
 
   function rebuildFormCardFromSpec() {
@@ -456,7 +475,7 @@
       window.updateButtonStates();
     }
 
-    window.history.replaceState({}, '', buildCurrentShareUrl());
+    refreshBrowserUrl();
   }
 
   async function activateGeneratedFormFromCurrentQuery() {
@@ -489,8 +508,7 @@
       window.updateButtonStates();
     }
 
-    const nextUrl = buildCurrentShareUrl();
-    window.history.replaceState({}, '', nextUrl);
+    refreshBrowserUrl({ forceShareUrl: true });
     return true;
   }
 
@@ -526,7 +544,7 @@
       }
     }
 
-    window.history.replaceState({}, '', buildCurrentShareUrl());
+    refreshBrowserUrl();
     return true;
   }
 
@@ -1240,13 +1258,7 @@
     syncPresentationMode();
 
     if (options.updateUrl !== false) {
-      const nextUrl = new URL(window.location.href);
-      if (state.viewMode === 'bubbles') {
-        nextUrl.searchParams.set('mode', 'bubbles');
-      } else {
-        nextUrl.searchParams.delete('mode');
-      }
-      window.history.replaceState({}, '', nextUrl.toString());
+      refreshBrowserUrl();
     }
   }
 
@@ -1601,6 +1613,8 @@
     ensureModeToggleButtons();
     applyFormState();
     syncPresentationMode();
+    state.searchParams = new URLSearchParams();
+    refreshBrowserUrl({ forceClearUrl: true });
     if (typeof window.updateButtonStates === 'function') {
       window.updateButtonStates();
     }
