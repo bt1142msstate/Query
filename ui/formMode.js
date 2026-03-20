@@ -1948,6 +1948,10 @@
       await window.loadFieldDefinitions();
     }
 
+    if (window.VirtualTable && typeof window.VirtualTable.clearVirtualTableData === 'function') {
+      window.VirtualTable.clearVirtualTableData();
+    }
+
     state.controls.clear();
     buildFormCard();
     ensureModeToggleButtons();
