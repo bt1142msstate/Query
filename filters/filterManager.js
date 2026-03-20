@@ -395,6 +395,8 @@ function buildBubbleConditionPanel(bubble) {
                 ? ['equals']
                 : (window.typeConditions[type] || window.typeConditions.string))
             .map(label => String(label).split(' ')[0].toLowerCase());
+        conditionPanel.appendChild(createConditionOperatorPicker(operatorConditions, window.handleConditionBtnClick));
+
         if (listValues && listValues.length) {
             const fieldDef = window.fieldDefs.get(selectedField);
             const isMultiSelect = fieldDef && fieldDef.multiSelect;
