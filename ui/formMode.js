@@ -1878,6 +1878,28 @@
     state.tableNameListenersBound = true;
   }
 
+  function deferCompletedClearReset() {
+    const runReset = () => {
+      if (!state.active) {
+        state.isClearingQuery = false;
+        return;
+      }
+
+      try {
+        resetActiveFormAfterClear();
+      } finally {
+        state.isClearingQuery = false;
+      }
+    };
+
+    if (typeof window.queueMicrotask === 'function') {
+      window.queueMicrotask(runReset);
+      return;
+    }
+
+    Promise.resolve().then(runReset);
+  }
+
   async function initialize() {
     const searchParams = new URLSearchParams(window.location.search);
     state.searchParams = searchParams;
@@ -1892,11 +1914,7 @@
 
         if (source === 'QueryChangeManager.clearQuery') {
           state.isClearingQuery = true;
-          try {
-            resetActiveFormAfterClear();
-          } finally {
-            state.isClearingQuery = false;
-          }
+          deferCompletedClearReset();
           return;
         }
 

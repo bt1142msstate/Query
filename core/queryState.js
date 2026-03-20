@@ -523,6 +523,13 @@ async function clearQueryManagerState(meta = {}) {
     window.VirtualTable.clearPostFilters({ refreshView: false, notify: true, resetScroll: false });
   }
 
+  if (window.VirtualTable && typeof window.VirtualTable.setSplitColumnsMode === 'function' && window.VirtualTable.splitColumnsActive) {
+    window.VirtualTable.setSplitColumnsMode(false);
+  }
+  if (typeof window.resetSplitColumnsToggleUI === 'function') {
+    window.resetSplitColumnsToggleUI();
+  }
+
   queryStateStore.resetQuery(normalizedMeta);
 
   if (previousSelectedField && typeof window.renderConditionList === 'function') {
@@ -551,13 +558,6 @@ async function clearQueryManagerState(meta = {}) {
 
   if (window.BubbleSystem && typeof window.BubbleSystem.resetBubbleScroll === 'function') {
     window.BubbleSystem.resetBubbleScroll();
-  }
-
-  if (window.VirtualTable && typeof window.VirtualTable.setSplitColumnsMode === 'function' && window.VirtualTable.splitColumnsActive) {
-    window.VirtualTable.setSplitColumnsMode(false);
-  }
-  if (typeof window.resetSplitColumnsToggleUI === 'function') {
-    window.resetSplitColumnsToggleUI();
   }
 
   if (window.FilterSidePanel && typeof window.FilterSidePanel.update === 'function') {
