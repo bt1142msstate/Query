@@ -41,6 +41,7 @@ window.DOM = {
   get groupMethodSelect() { return this._groupMethodSelect ||= document.getElementById('group-method-select'); },
   get filterError() { return this._filterError ||= document.getElementById('filter-error'); },
   get headerBar() { return this._headerBar ||= document.getElementById('header-bar'); },
+  get headerOverlayTitle() { return this._headerOverlayTitle ||= document.getElementById('header-overlay-title'); },
   get categoryBar() { return this._categoryBar ||= document.getElementById('category-bar'); },
   get mobileCategorySelector() { return this._mobileCategorySelector ||= document.getElementById('mobile-category-selector'); }
 };

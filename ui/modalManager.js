@@ -8,6 +8,11 @@ class ModalManager {
   constructor() {
     this.overlay = window.DOM?.overlay || document.getElementById('overlay');
     this.panels = ['json-panel', 'queries-panel', 'help-panel', 'mobile-menu-dropdown'];
+    this.panelTitles = {
+      'json-panel': 'Query JSON',
+      'queries-panel': 'Queries',
+      'help-panel': 'Help'
+    };
     this.activePanel = null;
     
     // Input locking overlay
@@ -99,6 +104,7 @@ class ModalManager {
     
     if (this.overlay) this.overlay.classList.add('show'); // Assuming 'show' class handles visibility
     this.activePanel = panelId;
+    this.syncHeaderOverlayTitle(panelId);
 
     if (panelId === 'queries-panel' && window.QueryHistorySystem) {
       if (typeof window.fetchQueryStatus === 'function') {
@@ -131,6 +137,8 @@ class ModalManager {
       this.activePanel = null;
     }
 
+    this.syncHeaderOverlayTitle(this.activePanel);
+
     // If no other panels are open, hide overlay
     if (!this.activePanel) {
       if (this.overlay) this.overlay.classList.remove('show');
@@ -158,7 +166,26 @@ class ModalManager {
     
     if (this.overlay) this.overlay.classList.remove('show');
     this.activePanel = null;
+    this.syncHeaderOverlayTitle(null);
     this.setMainContentAriaHidden(false);
+  }
+
+  syncHeaderOverlayTitle(panelId) {
+    const titleEl = window.DOM?.headerOverlayTitle || document.getElementById('header-overlay-title');
+    if (!titleEl) {
+      return;
+    }
+
+    const nextTitle = panelId ? this.panelTitles[panelId] : '';
+    if (nextTitle) {
+      titleEl.textContent = nextTitle;
+      titleEl.classList.remove('hidden');
+      titleEl.setAttribute('data-panel-id', panelId);
+    } else {
+      titleEl.textContent = '';
+      titleEl.classList.add('hidden');
+      titleEl.removeAttribute('data-panel-id');
+    }
   }
 
   /**
