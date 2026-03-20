@@ -119,17 +119,15 @@ window.renderJsonTree = function(payload) {
 };
 
 window.copyQueryJsonToClipboard = async function() {
-  const queryBox = window.DOM.queryBox;
-  const rawJson = queryBox instanceof HTMLTextAreaElement
-    ? queryBox.value
-    : (queryBox?.textContent || '');
-  if (!rawJson) return;
-
-  await window.ClipboardUtils.copy(rawJson, {
-    showToast: false,
-    logger: (message, error) => {
-      console.error('Failed to copy JSON:', error);
-    },
+  await window.ClipboardUtils.copyFromSource(() => {
+    const queryBox = window.DOM.queryBox;
+    return queryBox instanceof HTMLTextAreaElement
+      ? queryBox.value
+      : (queryBox?.textContent || '');
+  }, {
+    successMessage: 'JSON copied to clipboard.',
+    errorMessage: 'Failed to copy JSON.',
+    emptyMessage: 'No JSON is available to copy.',
     onSuccess: () => {
       const copyBtn = document.getElementById('copy-json-btn');
       copyBtn?.classList.add('copied');
@@ -170,8 +168,19 @@ window.onDOMReady(() => {
 
   const copyBtn = document.getElementById('copy-json-btn');
   if (copyBtn) {
-    copyBtn.addEventListener('click', () => {
-      window.copyQueryJsonToClipboard();
+    window.ClipboardUtils.bindCopyButton(copyBtn, () => {
+      const queryBox = window.DOM.queryBox;
+      return queryBox instanceof HTMLTextAreaElement
+        ? queryBox.value
+        : (queryBox?.textContent || '');
+    }, {
+      successMessage: 'JSON copied to clipboard.',
+      errorMessage: 'Failed to copy JSON.',
+      emptyMessage: 'No JSON is available to copy.',
+      onSuccess: () => {
+        copyBtn.classList.add('copied');
+        setTimeout(() => copyBtn.classList.remove('copied'), 1200);
+      }
     });
   }
 

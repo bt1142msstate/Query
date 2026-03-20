@@ -239,6 +239,14 @@ window.ClipboardUtils = (() => {
     scratch.remove();
   }
 
+  async function resolveCopyText(source) {
+    if (typeof source === 'function') {
+      return source();
+    }
+
+    return source;
+  }
+
   async function copy(text, options = {}) {
     const {
       successMessage = '',
@@ -276,9 +284,46 @@ window.ClipboardUtils = (() => {
     }
   }
 
+  async function copyFromSource(source, options = {}) {
+    const {
+      emptyMessage = '',
+      emptyMessageType = 'warning'
+    } = options;
+
+    const resolvedText = await resolveCopyText(source);
+    const rawText = String(resolvedText || '');
+
+    if (!rawText) {
+      if (emptyMessage && typeof window.showToastMessage === 'function') {
+        window.showToastMessage(emptyMessage, emptyMessageType);
+      }
+      return false;
+    }
+
+    return copy(rawText, options);
+  }
+
+  function bindCopyButton(button, source, options = {}) {
+    if (!(button instanceof HTMLElement)) {
+      return () => {};
+    }
+
+    const handler = async event => {
+      if (event) {
+        event.preventDefault();
+      }
+      await copyFromSource(source, options);
+    };
+
+    button.addEventListener('click', handler);
+    return () => button.removeEventListener('click', handler);
+  }
+
   return {
     copy,
-    copyWithFallback
+    copyWithFallback,
+    copyFromSource,
+    bindCopyButton
   };
 })();
 

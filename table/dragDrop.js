@@ -1338,18 +1338,36 @@ const dragDropManager = {
   }
 };
 
-// Set up trash icon click handler
-headerCopy.addEventListener('click', async e => {
-  e.stopPropagation();
-  if (window.queryRunning) return;
+// Set up copy icon click handler
+window.ClipboardUtils.bindCopyButton(headerCopy, async () => {
+  if (window.queryRunning) {
+    return '';
+  }
+
   const th = dragDropManager.hoverTh;
   if (!th) {
-    return;
+    return '';
   }
 
   const idx = parseInt(th.dataset.colIndex, 10);
   const fieldName = getDisplayedFields()[idx];
-  await copyColumnValuesByFieldName(fieldName);
+  const virtualTableData = window.VirtualTable?.virtualTableData;
+  if (!fieldName || !virtualTableData?.rows?.length || !virtualTableData.columnMap) {
+    return '';
+  }
+
+  const columnIndex = virtualTableData.columnMap.get(fieldName);
+  if (columnIndex === undefined) {
+    return '';
+  }
+
+  return virtualTableData.rows
+    .map(row => formatColumnClipboardValue(row[columnIndex], fieldName))
+    .join('\n');
+}, {
+  successMessage: 'Column values copied to clipboard.',
+  errorMessage: 'Failed to copy column values.',
+  emptyMessage: 'No column data available to copy.'
 });
 
 headerSort.addEventListener('click', e => {
