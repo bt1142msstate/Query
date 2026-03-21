@@ -249,8 +249,8 @@ function shouldFieldHavePurpleStylingBase(fieldName, displayedFields, activeFilt
 function shouldFieldHavePurpleStyling(fieldName) {
   if (!fieldName) return false;
 
-  const displayedFields = window.QueryChangeManager?.getDisplayedFields?.() || [];
-  const activeFilters = window.QueryChangeManager?.getActiveFilters?.() || {};
+  const displayedFields = window.QueryStateReaders?.getDisplayedFields?.() || [];
+  const activeFilters = window.QueryStateReaders?.getActiveFilters?.() || {};
 
   return shouldFieldHavePurpleStylingBase(fieldName, displayedFields, activeFilters);
 }

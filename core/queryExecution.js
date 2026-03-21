@@ -192,7 +192,7 @@ if (execDom.runBtn) {
         const queryStartedAt = Date.now();
         updateLiveQueryProgress(0, { startTime: queryStartedAt });
 
-        const state = window.getCurrentQueryState();
+        const state = window.QueryStateReaders.getSerializableState();
         const queryName = typeof window.ensureTableName === 'function'
           ? window.ensureTableName()
           : (execDom.tableNameInput ? execDom.tableNameInput.value.trim() : '');
@@ -333,7 +333,7 @@ if (execDom.runBtn) {
         }
 
         // Update last-executed state
-        appState.lastExecutedQueryState = window.getCurrentQueryState();
+        appState.lastExecutedQueryState = window.QueryStateReaders.getSerializableState();
         if (streamedPayload.partial) {
           appState.hasPartialResults = true;
           if (window.updateTableResultsLip) window.updateTableResultsLip();
