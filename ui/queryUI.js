@@ -8,6 +8,7 @@ var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window
 var getActiveFilters = window.QueryStateReaders.getActiveFilters.bind(window.QueryStateReaders);
 var getLifecycleState = window.QueryStateReaders.getLifecycleState.bind(window.QueryStateReaders);
 var getQueryStatus = window.QueryStateReaders.getQueryStatus.bind(window.QueryStateReaders);
+var hasQueryChanged = window.QueryStateReaders.hasQueryChanged.bind(window.QueryStateReaders);
 var services = window.AppServices;
 let queryUiInitialized = false;
 let updateButtonStatesImpl = null;
@@ -336,7 +337,7 @@ function updateRunButtonIcon(validationError) {
   runBtn.disabled = false;
   runBtn.classList.remove('opacity-50', 'cursor-not-allowed');
 
-  if (window.hasQueryChanged && window.hasQueryChanged()) {
+  if (hasQueryChanged()) {
     runIcon.classList.remove('hidden');
     refreshIcon.classList.add('hidden');
     setRunTooltip('Run Query', 'Run query');

@@ -724,6 +724,23 @@ const queryStateStore = {
   getSerializableState() {
     return getSerializableQueryState();
   },
+  hasQueryChanged() {
+    if (!queryLifecycleState.lastExecutedQueryState) {
+      return true;
+    }
+
+    const current = getSerializableQueryState();
+
+    if (JSON.stringify(getComparableDisplayedFields(current.displayedFields)) !== JSON.stringify(getComparableDisplayedFields(queryLifecycleState.lastExecutedQueryState.displayedFields))) {
+      return true;
+    }
+
+    if (JSON.stringify(current.activeFilters) !== JSON.stringify(queryLifecycleState.lastExecutedQueryState.activeFilters)) {
+      return true;
+    }
+
+    return current.groupMethod !== queryLifecycleState.lastExecutedQueryState.groupMethod;
+  },
   getDisplayedFields() {
     return cloneDisplayedFieldsSnapshot();
   },
@@ -973,6 +990,7 @@ const queryStateReaderMethodNames = Object.freeze([
   'getLifecycleState',
   'getQueryStatus',
   'getSerializableState',
+  'hasQueryChanged',
   'getDisplayedFields',
   'getActiveFilters',
   'getFilterGroupForField',
@@ -1076,9 +1094,6 @@ const queryChangeManager = Object.freeze({
   },
   showField: showManagedField,
   hideField: hideManagedField,
-  resetQuery(meta = {}) {
-    return clearQueryManagerState(meta);
-  },
   clearQuery(meta = {}) {
     return clearQueryManagerState(meta);
   }
@@ -1159,32 +1174,3 @@ queryStateStore.subscribe(event => {
     window.showToastMessage(getQueryChangeToastMessage(event), 'info', 1400);
   }
 });
-
-/**
- * Compares current query state with last executed state to detect changes.
- * Used to determine if the query has been modified since last execution.
- * @function hasQueryChanged
- * @returns {boolean} True if query has changed since last execution
- */
-window.hasQueryChanged = function() {
-  if (!queryLifecycleState.lastExecutedQueryState) return true; // Initial load should show play icon (brand new query)
-  
-  const current = queryStateReaders.getSerializableState();
-  
-  // Compare displayed fields
-  if (JSON.stringify(getComparableDisplayedFields(current.displayedFields)) !== JSON.stringify(getComparableDisplayedFields(queryLifecycleState.lastExecutedQueryState.displayedFields))) {
-    return true;
-  }
-  
-  // Compare filters
-  if (JSON.stringify(current.activeFilters) !== JSON.stringify(queryLifecycleState.lastExecutedQueryState.activeFilters)) {
-    return true;
-  }
-  
-  // Compare group method
-  if (current.groupMethod !== queryLifecycleState.lastExecutedQueryState.groupMethod) {
-    return true;
-  }
-  
-  return false;
-};

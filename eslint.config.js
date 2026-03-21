@@ -93,7 +93,6 @@ const allowedWindowAssignments = new Set([
   'handleConditionBtnClick',
   'handleFilterConfirm',
   'hasLoadedFieldDefinitions',
-  'hasQueryChanged',
   'hoverScrollArea',
   'initializeSearchInputs',
   'Icons',
@@ -158,6 +157,7 @@ const allowedWindowAssignments = new Set([
 const restrictedQueryStateReadMethods = new Set([
   'getSnapshot',
   'getSerializableState',
+  'hasQueryChanged',
   'getDisplayedFields',
   'getActiveFilters',
   'getFilterGroupForField',
@@ -339,6 +339,10 @@ module.exports = [
           message: 'Use window.QueryStateReaders.getSerializableState() instead.'
         },
         {
+          name: 'hasQueryChanged',
+          message: 'Use window.QueryStateReaders.hasQueryChanged() instead.'
+        },
+        {
           name: 'currentQueryState',
           message: 'Use window.AppState.currentQueryState instead.'
         },
@@ -374,6 +378,11 @@ module.exports = [
           object: 'window',
           property: 'getCurrentQueryState',
           message: 'Use window.QueryStateReaders.getSerializableState() instead.'
+        },
+        {
+          object: 'window',
+          property: 'hasQueryChanged',
+          message: 'Use window.QueryStateReaders.hasQueryChanged() instead.'
         },
         {
           object: 'window',
