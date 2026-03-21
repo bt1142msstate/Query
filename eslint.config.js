@@ -16,6 +16,7 @@ const allowedWindowAssignments = new Set([
   'FilterValueUi',
   'FormModeControls',
   'FormModeStateHelpers',
+  'JsonViewerUI',
   'ModalSystem',
   'MoneyUtils',
   'OperatorLabels',

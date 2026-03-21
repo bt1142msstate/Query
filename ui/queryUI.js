@@ -10,8 +10,9 @@ var getLifecycleState = window.QueryStateReaders.getLifecycleState.bind(window.Q
 var getQueryStatus = window.QueryStateReaders.getQueryStatus.bind(window.QueryStateReaders);
 var services = window.AppServices;
 let queryUiInitialized = false;
+let updateButtonStatesImpl = null;
 
-window.updateTableResultsLip = function() {
+function updateTableResultsLip() {
   const resultsBadge = window.DOM.tableResultsBadge;
   const resultsCount = window.DOM.tableResultsCount;
   const resultsLabel = window.DOM.tableResultsLabel;
@@ -51,19 +52,19 @@ window.updateTableResultsLip = function() {
   if (tableNameShell) {
     tableNameShell.classList.toggle('has-results', hasResults);
   }
-};
+}
 
-window.getDefaultTableName = function(date = new Date()) {
+function getDefaultTableName(date = new Date()) {
   const month = date.getMonth() + 1;
   const day = date.getDate();
   const year = String(date.getFullYear()).slice(-2);
   return `Results ${month}/${day}/${year}`;
-};
+}
 
-window.ensureTableName = function() {
+function ensureTableName() {
   const tableNameInput = window.DOM.tableNameInput;
   if (!tableNameInput) {
-    return window.getDefaultTableName();
+    return getDefaultTableName();
   }
 
   const currentName = tableNameInput.value.trim();
@@ -71,14 +72,14 @@ window.ensureTableName = function() {
     return currentName;
   }
 
-  const generatedName = window.getDefaultTableName();
+  const generatedName = getDefaultTableName();
   tableNameInput.value = generatedName;
   tableNameInput.classList.remove('error');
   tableNameInput.dispatchEvent(new Event('input', { bubbles: true }));
   return generatedName;
-};
+}
 
-window.getTableZoom = function() {
+function getTableZoom() {
   const tableShell = window.DOM.tableShell;
   if (!tableShell) {
     return 1;
@@ -86,7 +87,7 @@ window.getTableZoom = function() {
 
   const zoomValue = Number.parseFloat(tableShell.dataset.zoom || '1');
   return Number.isFinite(zoomValue) ? Math.min(1.4, Math.max(0.8, zoomValue)) : 1;
-};
+}
 
 function getTableExpandIconMarkup(expanded) {
   if (expanded) {
@@ -118,7 +119,7 @@ function getTableExpandIconMarkup(expanded) {
   `;
 }
 
-window.refreshTableViewport = function() {
+function refreshTableViewport() {
   const tableShell = window.DOM.tableShell;
   const tableContainer = window.DOM.tableContainer;
 
@@ -143,9 +144,9 @@ window.refreshTableViewport = function() {
 
     services.renderVirtualTable();
   });
-};
+}
 
-window.updateTableChromeState = function() {
+function updateTableChromeState() {
   const tableShell = window.DOM.tableShell;
   const tableZoomControls = window.DOM.tableZoomControls;
   const tableZoomLabel = window.DOM.tableZoomLabel;
@@ -158,7 +159,7 @@ window.updateTableChromeState = function() {
   }
 
   const expanded = tableShell.classList.contains('table-shell-expanded');
-  const zoom = window.getTableZoom();
+  const zoom = getTableZoom();
 
   tableShell.style.setProperty('--table-zoom', zoom.toFixed(2));
 
@@ -189,9 +190,9 @@ window.updateTableChromeState = function() {
       iconShell.innerHTML = getTableExpandIconMarkup(expanded).trim();
     }
   }
-};
+}
 
-window.setTableZoom = function(nextZoom) {
+function setTableZoom(nextZoom) {
   const tableShell = window.DOM.tableShell;
   if (!tableShell) {
     return;
@@ -199,11 +200,11 @@ window.setTableZoom = function(nextZoom) {
 
   const clampedZoom = Math.min(1.4, Math.max(0.8, Number(nextZoom) || 1));
   tableShell.dataset.zoom = clampedZoom.toFixed(2);
-  window.updateTableChromeState();
-  window.refreshTableViewport();
-};
+  updateTableChromeState();
+  refreshTableViewport();
+}
 
-window.toggleTableExpanded = function(forceExpanded) {
+function toggleTableExpanded(forceExpanded) {
   const tableShell = window.DOM.tableShell;
   if (!tableShell) {
     return;
@@ -220,9 +221,9 @@ window.toggleTableExpanded = function(forceExpanded) {
     tableShell.dataset.zoom = '1.00';
   }
 
-  window.updateTableChromeState();
-  window.refreshTableViewport();
-};
+  updateTableChromeState();
+  refreshTableViewport();
+}
 
 function initializeQueryUi() {
   if (queryUiInitialized) {
@@ -245,40 +246,40 @@ function initializeQueryUi() {
 
   if (tableExpandBtn) {
     tableExpandBtn.addEventListener('click', () => {
-      window.toggleTableExpanded();
+      toggleTableExpanded();
     });
   }
 
   if (tableZoomInBtn) {
     tableZoomInBtn.addEventListener('click', () => {
-      window.setTableZoom(window.getTableZoom() + 0.1);
+      setTableZoom(getTableZoom() + 0.1);
     });
   }
 
   if (tableZoomOutBtn) {
     tableZoomOutBtn.addEventListener('click', () => {
-      window.setTableZoom(window.getTableZoom() - 0.1);
+      setTableZoom(getTableZoom() - 0.1);
     });
   }
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && window.DOM.tableShell?.classList.contains('table-shell-expanded')) {
-      window.toggleTableExpanded(false);
+      toggleTableExpanded(false);
     }
   });
 
   window.addEventListener('resize', () => {
     if (window.DOM.tableShell?.classList.contains('table-shell-expanded')) {
-      window.refreshTableViewport();
+      refreshTableViewport();
       return;
     }
   });
 
-  window.updateTableChromeState();
-  window.refreshTableViewport();
+  updateTableChromeState();
+  refreshTableViewport();
 }
 
-window.updateRunButtonIcon = function(validationError) {
+function updateRunButtonIcon(validationError) {
   const runIcon = window.DOM.runIcon;
   const refreshIcon = window.DOM.refreshIcon;
   const stopIcon = window.DOM.stopIcon;
@@ -344,9 +345,13 @@ window.updateRunButtonIcon = function(validationError) {
     refreshIcon.classList.remove('hidden');
     setRunTooltip('Refresh Data', 'Refresh data');
   }
-};
+}
 
-window.updateButtonStates = function() {
+function updateButtonStates() {
+  return updateButtonStatesImpl();
+}
+
+function baseUpdateButtonStates() {
   const runBtn = window.DOM.runBtn;
   const downloadBtn = window.DOM.downloadBtn;
   const postFilterBtn = window.DOM.postFilterBtn;
@@ -367,10 +372,10 @@ window.updateButtonStates = function() {
       let validationError = null;
       runBtn.disabled = !hasFields || getLifecycleState().queryRunning;
 
-      window.updateRunButtonIcon(validationError);
+      updateRunButtonIcon(validationError);
     } catch (_) {
       runBtn.disabled = true;
-      window.updateRunButtonIcon();
+      updateRunButtonIcon();
     }
   }
 
@@ -448,21 +453,49 @@ window.updateButtonStates = function() {
     window.updateSplitColumnsToggleState();
   }
 
-  if (typeof window.updateTableResultsLip === 'function') {
-    window.updateTableResultsLip();
-  }
+  updateTableResultsLip();
 
   if (window.PostFilterSystem && typeof window.PostFilterSystem.syncToolbarButton === 'function') {
     window.PostFilterSystem.syncToolbarButton();
   }
-};
+}
+
+function setUpdateButtonStatesImpl(nextImpl) {
+  updateButtonStatesImpl = typeof nextImpl === 'function' ? nextImpl : baseUpdateButtonStates;
+}
 
 // Keep button states in sync with all query-state changes, including lifecycle-only
 // transitions like running/partial/results that do not change fields or filters.
 window.QueryStateSubscriptions.subscribe(() => {
-  window.updateButtonStates();
+  updateButtonStates();
 });
 
-window.QueryUI = Object.freeze({
-  initialize: initializeQueryUi
-});
+setUpdateButtonStatesImpl(baseUpdateButtonStates);
+
+const queryUi = {
+  initialize: initializeQueryUi,
+  updateTableResultsLip,
+  getDefaultTableName,
+  ensureTableName,
+  getTableZoom,
+  refreshTableViewport,
+  updateTableChromeState,
+  setTableZoom,
+  toggleTableExpanded,
+  updateRunButtonIcon,
+  updateButtonStates,
+  setUpdateButtonStatesImpl
+};
+
+window.updateTableResultsLip = updateTableResultsLip;
+window.getDefaultTableName = getDefaultTableName;
+window.ensureTableName = ensureTableName;
+window.getTableZoom = getTableZoom;
+window.refreshTableViewport = refreshTableViewport;
+window.updateTableChromeState = updateTableChromeState;
+window.setTableZoom = setTableZoom;
+window.toggleTableExpanded = toggleTableExpanded;
+window.updateRunButtonIcon = updateRunButtonIcon;
+window.updateButtonStates = updateButtonStates;
+
+window.QueryUI = Object.freeze(queryUi);

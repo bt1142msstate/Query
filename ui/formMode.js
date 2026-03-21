@@ -752,9 +752,7 @@
     }
     syncPresentationMode();
 
-    if (typeof window.updateButtonStates === 'function') {
-      uiActions.updateButtonStates();
-    }
+    uiActions.updateButtonStates();
 
     if (refreshUrl) {
       refreshBrowserUrl();
@@ -787,9 +785,7 @@
     applyFormState({ source: 'QueryFormMode.activateGeneratedForm' });
     syncPresentationMode();
 
-    if (typeof window.updateButtonStates === 'function') {
-      uiActions.updateButtonStates();
-    }
+    uiActions.updateButtonStates();
 
     refreshBrowserUrl({ forceShareUrl: true });
     return true;
@@ -821,9 +817,7 @@
       applyFormState({ source: 'QueryFormMode.syncGeneratedForm' });
       syncPresentationMode();
 
-      if (typeof window.updateButtonStates === 'function') {
-        uiActions.updateButtonStates();
-      }
+      uiActions.updateButtonStates();
     }
 
     refreshBrowserUrl();
@@ -1349,10 +1343,10 @@
   }
 
   function wrapUpdateButtonStates() {
-    if (state.originalUpdateButtonStates || typeof window.updateButtonStates !== 'function') return;
+    if (state.originalUpdateButtonStates || typeof window.QueryUI?.updateButtonStates !== 'function') return;
 
-    state.originalUpdateButtonStates = window.updateButtonStates;
-    window.updateButtonStates = function() {
+    state.originalUpdateButtonStates = window.QueryUI.updateButtonStates;
+    window.QueryUI.setUpdateButtonStatesImpl(function wrappedFormModeUpdateButtonStates() {
       state.originalUpdateButtonStates();
       if (!state.active) return;
 
@@ -1361,7 +1355,7 @@
         window.DOM.runBtn.disabled = true;
         uiActions.updateRunButtonIcon(error);
       }
-    };
+    });
   }
 
   function bindTableNameUrlSync() {
