@@ -14,6 +14,7 @@
   const SHEET_NAME_LIMIT = 31;
   const MAX_GROUPED_SHEETS = 100;
   const { getDisplayedFields } = window.QueryStateReaders;
+  const services = window.AppServices;
 
   function getExportElements() {
     return {
@@ -69,11 +70,11 @@
 
   function getWorkbookSourceData() {
     const displayedFields = getDisplayedFields();
-    if (!displayedFields.length || !window.VirtualTable?.virtualTableData?.rows?.length) {
+    const virtualData = services.getVirtualTableData();
+    if (!displayedFields.length || !virtualData?.rows?.length) {
       return null;
     }
 
-    const virtualData = window.VirtualTable.virtualTableData;
     const dataRows = virtualData.rows;
     const fieldTypeMap = new Map();
 
@@ -620,7 +621,7 @@
   }
 
   function getSplitEligibleSummary() {
-    const rawData = window.VirtualTable && window.VirtualTable.rawTableData;
+    const rawData = services.getRawTableData();
     if (!rawData || !Array.isArray(rawData.headers) || !Array.isArray(rawData.rows) || rawData.headers.length === 0 || rawData.rows.length === 0) {
       return { eligible: false, columnCount: 0, valueCount: 0 };
     }
@@ -737,9 +738,7 @@
         updateSplitColumnsToggleState();
 
         // Drive the virtual table to match
-        if (window.VirtualTable && window.VirtualTable.setSplitColumnsMode) {
-          window.VirtualTable.setSplitColumnsMode(splitMultiValues);
-        }
+        services.setSplitColumnsMode(splitMultiValues);
       });
 
       // Called by VirtualTable when new data is loaded so the button resets visually
@@ -771,7 +770,7 @@
     // Check if button is disabled and show message
     if (downloadBtn.disabled) {
       const displayedFields = getDisplayedFields();
-      const hasData = displayedFields.length > 0 && VirtualTable.virtualTableData && VirtualTable.virtualTableData.rows && VirtualTable.virtualTableData.rows.length > 0;
+      const hasData = displayedFields.length > 0 && services.getVirtualTableRows().length > 0;
 
       let messageText = '';
       if (!hasData) {
@@ -785,7 +784,7 @@
     }
 
     const displayedFields = getDisplayedFields();
-    if (!displayedFields.length || !VirtualTable.virtualTableData || !VirtualTable.virtualTableData.rows || !VirtualTable.virtualTableData.rows.length) {
+    if (!displayedFields.length || services.getVirtualTableRows().length === 0) {
       return;
     }
 

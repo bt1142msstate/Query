@@ -9,6 +9,7 @@ let exampleQueries = [];
 let queryDurationUpdateInterval = null;
 let lastQueryStatusPollAt = 0;
 let activeHistorySection = 'none';
+const services = window.AppServices;
 const QUERY_STATUS_POLL_MS = 2000;
 const IDLE_POLL_MS = 8000;
 let lastHistoryRenderKey = '';
@@ -32,6 +33,35 @@ function addQueryToHistory(query) {
     exampleQueries.pop();
   }
   renderQueries();
+  return query;
+}
+
+function getHistoryQueries() {
+  return exampleQueries.slice();
+}
+
+function getHistoryQueryById(queryId) {
+  const normalizedId = String(queryId || '').trim();
+  if (!normalizedId) {
+    return null;
+  }
+
+  return exampleQueries.find(query => query.id === normalizedId) || null;
+}
+
+function updateHistoryQuery(queryId, updates = {}, options = {}) {
+  const query = getHistoryQueryById(queryId);
+  if (!query || !updates || typeof updates !== 'object') {
+    return null;
+  }
+
+  Object.assign(query, updates);
+
+  if (options.render !== false) {
+    renderQueries();
+  }
+
+  return query;
 }
 
 function classifyQueryStatus(status) {
@@ -767,13 +797,11 @@ function loadQueryConfig(q) {
   }
 
   // Ensure bubbles re-render to reflect their new filter state and positions
-  if (window.BubbleSystem && typeof window.BubbleSystem.safeRenderBubbles === 'function') {
-    window.BubbleSystem.safeRenderBubbles();
-  }
+  services.rerenderBubbles();
 
   // Update button state to "Refresh" instead of "Run Query" since it's an existing query
   if (typeof window.getCurrentQueryState === 'function') {
-    window.lastExecutedQueryState = window.getCurrentQueryState();
+    window.AppState.lastExecutedQueryState = window.getCurrentQueryState();
   }
   if (typeof window.updateButtonStates === 'function') {
     window.updateButtonStates();
@@ -855,7 +883,7 @@ async function loadQueryResults(queryId) {
           renderQueries();
         }
 
-        if (window.VirtualTable) {
+        if (services.table) {
             const columnMap = new Map();
             headers.forEach((h, i) => columnMap.set(h, i));
             
@@ -868,29 +896,25 @@ async function loadQueryResults(queryId) {
                 columnMap: columnMap
             };
             
-            window.VirtualTable.virtualTableData = newTableData;
+            services.setVirtualTableData(newTableData);
             
             // Re-render the full table to reset red column headers and redraw the rows with new widths
             if (typeof showExampleTable === 'function') {
                 await showExampleTable(headers);
             } else {
-                window.VirtualTable.renderVirtualTable();
-                window.VirtualTable.calculateOptimalColumnWidths(); 
+                services.renderVirtualTable();
+                services.calculateOptimalColumnWidths(); 
             }
             
             // Re-render the bubbles to update grouping for new active filters
-            if (window.BubbleSystem && typeof window.BubbleSystem.safeRenderBubbles === 'function') {
-                window.BubbleSystem.safeRenderBubbles();
-            }
+            services.rerenderBubbles();
             
             // Reset bubble scroll position since we may have new filters/selected fields
-            if (window.BubbleSystem && typeof window.BubbleSystem.resetBubbleScroll === 'function') {
-              window.BubbleSystem.resetBubbleScroll();
+            if (services.bubble?.resetBubbleScroll) {
+              services.resetBubbleScroll();
             } else {
-              window.scrollRow = 0;
-              if (window.BubbleSystem && typeof window.BubbleSystem.updateScrollBar === 'function') {
-                window.BubbleSystem.updateScrollBar();
-              }
+              window.AppState.scrollRow = 0;
+              services.updateBubbleScrollBar();
             }
             if (typeof window.updateButtonStates === 'function') {
                 window.updateButtonStates();
@@ -904,9 +928,7 @@ async function loadQueryResults(queryId) {
         }
         
         // Close modal if open
-        if (window.ModalSystem && window.ModalSystem.closeAllModals) {
-             window.ModalSystem.closeAllModals();
-        }
+        services.closeAllModals();
 
     } catch (error) {
         console.error('Failed to load results:', error);
@@ -1055,7 +1077,6 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
 
 
 // Ensure global access
-window.addQueryToHistory = addQueryToHistory;
 window.fetchQueryStatus = fetchQueryStatus;
 
 /**
@@ -1602,16 +1623,27 @@ function handleQueryRowClick(e) {
  * @global
  */
 const QueryHistorySystem = {
-  exampleQueries,
+  addQuery: addQueryToHistory,
+  getQueries: getHistoryQueries,
+  getQueryById: getHistoryQueryById,
+  updateQuery: updateHistoryQuery,
   startQueryDurationUpdates,
   stopQueryDurationUpdates,
   renderQueries
 };
 
+Object.defineProperty(QueryHistorySystem, 'exampleQueries', {
+  enumerable: false,
+  get() {
+    return exampleQueries;
+  }
+});
+
 // Make QueryHistorySystem globally accessible
 window.QueryHistorySystem = QueryHistorySystem;
 
 window.cancelQuery = cancelQuery;
+window.addQueryToHistory = addQueryToHistory;
 
 // Initialize query history functionality
 window.onDOMReady(() => {

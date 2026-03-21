@@ -8,6 +8,8 @@
 
 // Store information about removed columns - Managed in columnManager.js
 var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
+const appState = window.AppState;
+const services = window.AppServices;
 const TABLE_COLUMN_DRAG_MIME = 'application/x-query-table-column-index';
 const BUBBLE_FIELD_DRAG_MIME = 'bubble-field';
 
@@ -39,8 +41,8 @@ function addColumn(fieldName, insertAt = -1) {
     updateCategoryCounts();
     
     // Re-render bubbles if we're in Selected category
-    if (window.currentCategory === 'Selected') {
-      window.BubbleSystem.safeRenderBubbles();
+    if (appState.currentCategory === 'Selected') {
+      services.rerenderBubbles();
     }
   }
   
@@ -137,14 +139,14 @@ function syncHeaderSortActionState(th = dragDropManager.hoverTh) {
     return;
   }
 
-  const state = window.VirtualTable?.getVirtualTableState ? window.VirtualTable.getVirtualTableState() : null;
+  const state = services.getVirtualTableState();
   const sortField = String(state?.currentSortColumn || '');
   const sortDirection = String(state?.currentSortDirection || 'asc');
   const fieldName = th?.getAttribute('data-sort-field') || '';
   const isSortable = Boolean(fieldName);
   const isActive = isSortable && fieldName === sortField;
 
-  headerSort.disabled = !isSortable || Boolean(window.queryRunning);
+  headerSort.disabled = !isSortable || Boolean(appState.queryRunning);
   headerSort.classList.toggle('is-active', isActive);
   headerSort.classList.toggle('is-desc', isActive && sortDirection === 'desc');
   headerSort.setAttribute('aria-label', !isSortable ? 'Sorting unavailable for this column' : (isActive ? `Sorted ${sortDirection === 'asc' ? 'ascending' : 'descending'}. Click to reverse.` : 'Sort column'));
@@ -265,7 +267,7 @@ function getHeaderInsertPosition(table, clientX) {
 }
 
 function updateHeaderInsertAffordance(table, clientX) {
-  if (!table || window.queryRunning || document.body.classList.contains('dragging-cursor')) {
+  if (!table || appState.queryRunning || document.body.classList.contains('dragging-cursor')) {
     clearInsertAffordance({ immediate: true });
     return;
   }
@@ -386,7 +388,7 @@ function createColumnDragGhost(th, relatedIndices) {
  * @returns {string[]} Array of sample values
  */
 function getSampleColumnData(fieldName, maxSamples = 3) {
-  const virtualTableData = window.VirtualTable?.virtualTableData;
+  const virtualTableData = services.getVirtualTableData();
   if (!virtualTableData || !virtualTableData.rows || virtualTableData.rows.length === 0) {
     return ['No data', 'available', '...'];
   }
@@ -613,7 +615,7 @@ function moveColumnGroup(table, groupIndices, targetIndex) {
     headerRow.replaceChildren();
     getDisplayedFields().forEach((field, index) => {
       // Check if this field exists in the current data
-      const virtualTableData = window.VirtualTable?.virtualTableData;
+      const virtualTableData = services.getVirtualTableData();
       const hasLoadedData = Boolean(virtualTableData && virtualTableData.columnMap instanceof Map && virtualTableData.columnMap.size > 0);
       const fieldExistsInData = virtualTableData && virtualTableData.columnMap && virtualTableData.columnMap.has(field);
 
@@ -639,17 +641,20 @@ function moveColumnGroup(table, groupIndices, targetIndex) {
 }
 
 function finalizeMoveOperation(table) {
+  const tableService = services.table;
+  const virtualTableData = services.getVirtualTableData();
+
   // 3️⃣ Recalculate column widths for new order
-  if (VirtualTable.virtualTableData.rows && VirtualTable.virtualTableData.rows.length > 0) {
+  if (tableService && virtualTableData?.rows?.length) {
     const displayedFields = getDisplayedFields();
-    VirtualTable.calculatedColumnWidths = VirtualTable.calculateOptimalColumnWidths(displayedFields, VirtualTable.virtualTableData);
+    tableService.calculatedColumnWidths = tableService.calculateOptimalColumnWidths(displayedFields, virtualTableData);
     
     // Update header widths
     const headerRow = table.querySelector('thead tr');
     if (headerRow) {
       headerRow.querySelectorAll('th').forEach((th, index) => {
         const field = getDisplayedFields()[index];
-        const width = VirtualTable.calculatedColumnWidths[field] || 150;
+        const width = services.getCalculatedColumnWidth(field) || 150;
         th.style.width = `${width}px`;
         th.style.minWidth = `${width}px`;
         th.style.maxWidth = `${width}px`;
@@ -664,7 +669,7 @@ function finalizeMoveOperation(table) {
   }
   
   // Force immediate re-render since displayedFields has changed
-  VirtualTable.renderVirtualTable();
+  services.renderVirtualTable();
   
   // Restore drag state if it was active (will be cleared properly in dragend)
   if (wasDragging) {
@@ -676,8 +681,8 @@ function finalizeMoveOperation(table) {
   updateQueryJson();
   
   // 6️⃣ If in Selected category, re-render bubbles to match new order
-  if (window.currentCategory === 'Selected') {
-    window.BubbleSystem.safeRenderBubbles();
+  if (appState.currentCategory === 'Selected') {
+    services.rerenderBubbles();
   }
 }
 
@@ -721,16 +726,19 @@ function removeColumn(table, colIndex) {
   // Re-render virtual table with new column structure
   const displayedFields = getDisplayedFields();
   if (displayedFields.length > 0) {
+    const tableService = services.table;
+    const virtualTableData = services.getVirtualTableData();
+
     // Recalculate column widths for remaining fields
-    if (VirtualTable.virtualTableData.rows && VirtualTable.virtualTableData.rows.length > 0) {
-      VirtualTable.calculatedColumnWidths = VirtualTable.calculateOptimalColumnWidths(displayedFields, VirtualTable.virtualTableData);
+    if (tableService && virtualTableData?.rows?.length) {
+      tableService.calculatedColumnWidths = tableService.calculateOptimalColumnWidths(displayedFields, virtualTableData);
       
       // Update remaining header widths
       const headerRow = table.querySelector('thead tr');
       if (headerRow) {
         headerRow.querySelectorAll('th').forEach((th, index) => {
           const field = displayedFields[index];
-          const width = VirtualTable.calculatedColumnWidths[field] || 150;
+          const width = services.getCalculatedColumnWidth(field) || 150;
           th.style.width = `${width}px`;
           th.style.minWidth = `${width}px`;
           th.style.maxWidth = `${width}px`;
@@ -738,7 +746,7 @@ function removeColumn(table, colIndex) {
       }
     }
     
-    VirtualTable.renderVirtualTable();
+    services.renderVirtualTable();
   }
 
   refreshColIndices(table);
@@ -769,8 +777,8 @@ function removeColumn(table, colIndex) {
   // Update category counts after removing column
   updateCategoryCounts();
   // Re-render bubbles if we're in Selected category
-  if (window.currentCategory === 'Selected') {
-    window.BubbleSystem.safeRenderBubbles();
+  if (appState.currentCategory === 'Selected') {
+    services.rerenderBubbles();
   }
 }
 
@@ -948,7 +956,7 @@ const dragDropManager = {
   
   // Header hover handlers
   handleHeaderEnter(th) {
-    if (window.queryRunning) return;
+    if (appState.queryRunning) return;
     th.classList.add('th-hover');
     this.hoverTh = th;
     th.appendChild(headerActions);
@@ -975,7 +983,7 @@ const dragDropManager = {
   
   // Header drag start/end
   handleHeaderDragStart(e, th, scrollContainer) {
-    if (window.queryRunning) {
+    if (appState.queryRunning) {
       e.preventDefault();
       return;
     }
@@ -1383,7 +1391,7 @@ const dragDropManager = {
 
 // Set up copy icon click handler
 window.ClipboardUtils.bindCopyButton(headerCopy, async () => {
-  if (window.queryRunning) {
+  if (appState.queryRunning) {
     return '';
   }
 
@@ -1394,7 +1402,7 @@ window.ClipboardUtils.bindCopyButton(headerCopy, async () => {
 
   const idx = parseInt(th.dataset.colIndex, 10);
   const fieldName = getDisplayedFields()[idx];
-  const virtualTableData = window.VirtualTable?.virtualTableData;
+  const virtualTableData = services.getVirtualTableData();
   if (!fieldName || !virtualTableData?.rows?.length || !virtualTableData.columnMap) {
     return '';
   }
@@ -1415,20 +1423,20 @@ window.ClipboardUtils.bindCopyButton(headerCopy, async () => {
 
 headerSort.addEventListener('click', e => {
   e.stopPropagation();
-  if (window.queryRunning) return;
+  if (appState.queryRunning) return;
   const th = dragDropManager.hoverTh;
   const fieldName = th?.getAttribute('data-sort-field');
-  if (!fieldName || !window.VirtualTable?.sortTableBy) {
+  if (!fieldName) {
     return;
   }
 
-  window.VirtualTable.sortTableBy(fieldName);
+  services.sortTableBy(fieldName);
   syncHeaderSortActionState(th);
 });
 
 headerTrash.addEventListener('click', e => {
   e.stopPropagation();
-  if (window.queryRunning) return;
+  if (appState.queryRunning) return;
   const th = dragDropManager.hoverTh;
   if (th) {
     const idx = parseInt(th.dataset.colIndex, 10);
@@ -1439,7 +1447,7 @@ headerTrash.addEventListener('click', e => {
 
 headerInsertButton.addEventListener('click', e => {
   e.stopPropagation();
-  if (window.queryRunning) return;
+  if (appState.queryRunning) return;
 
   const insertAt = parseInt(headerInsertAffordance.dataset.insertAt || '', 10);
   if (!Number.isInteger(insertAt) || !window.SharedFieldPicker || typeof window.SharedFieldPicker.openQueryFieldPicker !== 'function') {
@@ -1464,7 +1472,7 @@ headerInsertAffordance.addEventListener('mouseleave', event => {
 
 // Document-level event listeners for bubble dragging
 document.addEventListener('dragstart', e => {
-  if (window.queryRunning) {
+  if (appState.queryRunning) {
     e.preventDefault();
     return;
   }

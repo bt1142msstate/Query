@@ -5,8 +5,44 @@
 // which are exported by query.js.
 
 const execDom = window.DOM;
-let currentQueryId = null;
-window.queryPageIsUnloading = false;
+const appState = window.AppState;
+const services = window.AppServices;
+appState.queryPageIsUnloading = false;
+
+function addQueryHistoryEntry(query) {
+  if (window.QueryHistorySystem?.addQuery) {
+    return window.QueryHistorySystem.addQuery(query);
+  }
+
+  if (typeof window.addQueryToHistory === 'function') {
+    return window.addQueryToHistory(query);
+  }
+
+  return null;
+}
+
+function updateQueryHistoryEntry(queryId, updates, options = {}) {
+  if (!queryId || !updates || typeof updates !== 'object') {
+    return null;
+  }
+
+  if (window.QueryHistorySystem?.updateQuery) {
+    return window.QueryHistorySystem.updateQuery(queryId, updates, options);
+  }
+
+  const query = window.QueryHistorySystem?.getQueryById
+    ? window.QueryHistorySystem.getQueryById(queryId)
+    : null;
+  if (!query) {
+    return null;
+  }
+
+  Object.assign(query, updates);
+  if (options.render !== false && window.QueryHistorySystem && typeof window.QueryHistorySystem.renderQueries === 'function') {
+    window.QueryHistorySystem.renderQueries();
+  }
+  return query;
+}
 
 /* ---------- Live-progress helper ---------- */
 
@@ -18,12 +54,7 @@ function updateLiveQueryProgress(resultCount, options = {}) {
     });
   }
 
-  if (currentQueryId && window.QueryHistorySystem) {
-    const q = window.QueryHistorySystem.exampleQueries.find(query => query.id === currentQueryId);
-    if (q) {
-      q.resultCount = resultCount;
-    }
-  }
+  updateQueryHistoryEntry(appState.currentQueryId, { resultCount }, { render: false });
 }
 
 /* ---------- Streaming response reader ---------- */
@@ -46,7 +77,7 @@ async function readStreamedQueryText(response, options = {}) {
   let partial = false;
 
   while (true) {
-    if (!window.queryRunning) { partial = true; break; }
+    if (!appState.queryRunning) { partial = true; break; }
     const { value, done } = await reader.read();
     if (done) break;
 
@@ -88,7 +119,7 @@ async function readStreamedQueryText(response, options = {}) {
 /* ---------- Page-unload guard ---------- */
 
 function markQueryPageUnload() {
-  window.queryPageIsUnloading = true;
+  appState.queryPageIsUnloading = true;
 }
 
 window.addEventListener('beforeunload', markQueryPageUnload);
@@ -126,15 +157,15 @@ if (execDom.runBtn) {
     if (execDom.runBtn.disabled) return;   // ignore when disabled
 
     // If query is running, stop it
-    if (window.queryRunning) {
+    if (appState.queryRunning) {
       window.showToastMessage('Stopping query…', 'info');
-      if (currentQueryId && typeof window.cancelQuery === 'function') {
-        window.cancelQuery(currentQueryId).catch(err => {
+      if (appState.currentQueryId && typeof window.cancelQuery === 'function') {
+        window.cancelQuery(appState.currentQueryId).catch(err => {
           console.error('Cancellation failed', err);
         });
       }
 
-      window.queryRunning = false;
+      appState.queryRunning = false;
       window.updateRunButtonIcon();
       if (window.updateButtonStates) {
         window.updateButtonStates();
@@ -146,16 +177,16 @@ if (execDom.runBtn) {
     // Start query execution
     (async () => {
       // Remember if split mode was active, then disable it to avoid mapping dynamic Field N names.
-      const wasSplitActive = (window.VirtualTable && window.VirtualTable.splitColumnsActive) || window.splitColumnsActive || false;
-      if (wasSplitActive && window.VirtualTable && typeof window.VirtualTable.setSplitColumnsMode === 'function') {
-        window.VirtualTable.setSplitColumnsMode(false);
+      const wasSplitActive = services.isSplitColumnsActive() || window.splitColumnsActive || false;
+      if (wasSplitActive) {
+        services.setSplitColumnsMode(false);
         if (window.resetSplitColumnsToggleUI) window.resetSplitColumnsToggleUI();
       }
 
-      currentQueryId = null;
+      appState.currentQueryId = null;
       try {
-        window.queryRunning = true;
-        window.hasPartialResults = false;
+        appState.queryRunning = true;
+        appState.hasPartialResults = false;
         window.updateRunButtonIcon();
         if (window.updateButtonStates) {
           window.updateButtonStates();
@@ -188,11 +219,11 @@ if (execDom.runBtn) {
         });
 
         // Capture Query ID and register in history
-        currentQueryId = response.headers.get('X-Query-Id');
-        if (currentQueryId && window.addQueryToHistory) {
+        appState.currentQueryId = response.headers.get('X-Query-Id');
+        if (appState.currentQueryId) {
           const newQuery = {
-            id: currentQueryId,
-            name: queryName || `Query ${currentQueryId.substring(0, 8)}`,
+            id: appState.currentQueryId,
+            name: queryName || `Query ${appState.currentQueryId.substring(0, 8)}`,
             query: payload,
             jsonConfig: historyConfig,
             startTime: new Date().toISOString(),
@@ -201,7 +232,7 @@ if (execDom.runBtn) {
             resultCount: 0
           };
 
-          window.addQueryToHistory(newQuery);
+          addQueryHistoryEntry(newQuery);
 
           // Start external polling for status
           if (window.QueryHistorySystem && window.QueryHistorySystem.startQueryDurationUpdates) {
@@ -216,7 +247,7 @@ if (execDom.runBtn) {
         window.showToastMessage('Connected — streaming results…', 'info');
         const streamedPayload = await readStreamedQueryText(response, {
           onProgress: rowCount => {
-            if (!window.queryRunning) return;
+            if (!appState.queryRunning) return;
             updateLiveQueryProgress(rowCount, { startTime: queryStartedAt });
           }
         });
@@ -226,16 +257,12 @@ if (execDom.runBtn) {
         if (streamedPayload.partial) {
           if (streamedPayload.lines.length === 0) {
             console.log('Query stopped by user before any data arrived; discarding.');
-            if (currentQueryId && window.QueryHistorySystem) {
-              const q = window.QueryHistorySystem.exampleQueries.find(q => q.id === currentQueryId);
-              if (q) {
-                q.running = false;
-                q.status = 'stopped';
-                q.resultCount = 0;
-                q.endTime = new Date().toISOString();
-                window.QueryHistorySystem.renderQueries();
-              }
-            }
+            updateQueryHistoryEntry(appState.currentQueryId, {
+              running: false,
+              status: 'stopped',
+              resultCount: 0,
+              endTime: new Date().toISOString()
+            });
             window.showToastMessage('Query stopped — no results received.', 'info');
             return;
           }
@@ -267,19 +294,15 @@ if (execDom.runBtn) {
         updateLiveQueryProgress(rows.length, { startTime: queryStartedAt });
 
         // Mark as complete (or stopped) in history
-        if (currentQueryId && window.QueryHistorySystem) {
-          const q = window.QueryHistorySystem.exampleQueries.find(q => q.id === currentQueryId);
-          if (q) {
-            q.running = false;
-            q.status = streamedPayload.partial ? 'stopped' : 'complete';
-            q.resultCount = rows.length;
-            q.endTime = new Date().toISOString();
-            window.QueryHistorySystem.renderQueries();
-          }
-        }
+        updateQueryHistoryEntry(appState.currentQueryId, {
+          running: false,
+          status: streamedPayload.partial ? 'stopped' : 'complete',
+          resultCount: rows.length,
+          endTime: new Date().toISOString()
+        });
 
         // Update VirtualTable
-        if (window.VirtualTable) {
+        if (services.table) {
           const columnMap = new Map();
           headers.forEach((h, i) => columnMap.set(h, i));
 
@@ -289,48 +312,48 @@ if (execDom.runBtn) {
             columnMap: columnMap
           };
 
-          window.VirtualTable.virtualTableData = newTableData;
+          services.setVirtualTableData(newTableData);
 
           // Re-render the full table to reset red column headers and redraw rows with new widths
           if (typeof window.showExampleTable === 'function') {
             await window.showExampleTable(state.displayedFields);
           } else {
-            window.VirtualTable.renderVirtualTable();
-            window.VirtualTable.calculateOptimalColumnWidths();
+            services.renderVirtualTable();
+            services.calculateOptimalColumnWidths();
           }
 
           // Re-render bubbles to reflect the new state and correct totalRows
-          if (window.BubbleSystem) window.BubbleSystem.safeRenderBubbles();
+          services.rerenderBubbles();
 
           // Reset bubble scroll back to the top
           window.resetBubbleScrollState?.();
 
           // Restore split-columns mode if it was active before the query ran
-          if (wasSplitActive && window.VirtualTable && typeof window.VirtualTable.setSplitColumnsMode === 'function') {
+          if (wasSplitActive) {
             if (window.setSplitColumnsToggleUIActive) window.setSplitColumnsToggleUIActive();
-            window.VirtualTable.setSplitColumnsMode(true);
+            services.setSplitColumnsMode(true);
           }
         }
 
         // Update last-executed state
-        window.lastExecutedQueryState = window.getCurrentQueryState();
+        appState.lastExecutedQueryState = window.getCurrentQueryState();
         if (streamedPayload.partial) {
-          window.hasPartialResults = true;
+          appState.hasPartialResults = true;
           if (window.updateTableResultsLip) window.updateTableResultsLip();
           window.showToastMessage(`Query stopped early. Showing ${rows.length} partial result${rows.length !== 1 ? 's' : ''}.`, 'info');
         } else {
-          window.hasPartialResults = false;
+          appState.hasPartialResults = false;
           window.showToastMessage(`Query completed. Loaded ${rows.length} results.`, 'success');
         }
 
       } catch (error) {
-        if (window.queryPageIsUnloading) {
+        if (appState.queryPageIsUnloading) {
           console.info('Query request interrupted by navigation; skipping failure handling.');
           return;
         }
 
         // Checking if the query was manually stopped by the user
-        if (!window.queryRunning) {
+        if (!appState.queryRunning) {
           console.log('Query execution interrupted by user stop/cancel.');
           return;
         }
@@ -338,20 +361,16 @@ if (execDom.runBtn) {
         console.error('Query execution failed:', error);
 
         // Mark as failed in history
-        if (currentQueryId && window.QueryHistorySystem) {
-          const q = window.QueryHistorySystem.exampleQueries.find(q => q.id === currentQueryId);
-          if (q) {
-            q.running = false;
-            q.status = 'failed';
-            q.error = error.message;
-            q.endTime = new Date().toISOString();
-            window.QueryHistorySystem.renderQueries();
-          }
-        }
+        updateQueryHistoryEntry(appState.currentQueryId, {
+          running: false,
+          status: 'failed',
+          error: error.message,
+          endTime: new Date().toISOString()
+        });
 
         window.showToastMessage('Query execution failed: ' + error.message, 'error');
       } finally {
-        window.queryRunning = false;
+        appState.queryRunning = false;
         if (window.updateTableResultsLip) window.updateTableResultsLip();
         window.updateRunButtonIcon();
         if (window.updateButtonStates) {

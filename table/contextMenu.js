@@ -6,11 +6,12 @@
 window.TableContextMenu = (() => {
   let menuEl = null;
   let dismissHandlers = [];
+  const services = window.AppServices;
 
   // ── Data helpers ────────────────────────────────────────────────────────────
 
   function getVT() {
-    return window.VirtualTable?.virtualTableData;
+    return services.getVirtualTableData();
   }
 
   function getFields() {

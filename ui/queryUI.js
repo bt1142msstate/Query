@@ -6,6 +6,8 @@
 
 var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
 var getActiveFilters = window.QueryStateReaders.getActiveFilters.bind(window.QueryStateReaders);
+const appState = window.AppState;
+const services = window.AppServices;
 
 window.updateTableResultsLip = function() {
   const resultsBadge = window.DOM.tableResultsBadge;
@@ -19,18 +21,19 @@ window.updateTableResultsLip = function() {
     return;
   }
 
-  const rowCount = Array.isArray(window.VirtualTable?.virtualTableData?.rows)
-    ? window.VirtualTable.virtualTableData.rows.length
+  const tableData = services.getVirtualTableData();
+  const rowCount = Array.isArray(tableData?.rows)
+    ? tableData.rows.length
     : 0;
   const columnCount = getDisplayedFields().length;
   const hasResults = rowCount > 0 || columnCount > 0;
 
   // Planning mode: query is configured (columns or filters) but no results loaded yet, and no query is running.
   const hasFilters = Object.values(getActiveFilters()).some(data => data && Array.isArray(data.filters) && data.filters.length > 0);
-  const isPlanningMode = (columnCount > 0 || hasFilters) && rowCount === 0 && !window.queryRunning;
+  const isPlanningMode = (columnCount > 0 || hasFilters) && rowCount === 0 && !appState.queryRunning;
   document.body.classList.toggle('is-planning', isPlanningMode);
   // Partial results: query was stopped early — table shows an incomplete result set.
-  const isPartialResults = !!(window.hasPartialResults) && rowCount > 0 && !window.queryRunning;
+  const isPartialResults = !!appState.hasPartialResults && rowCount > 0 && !appState.queryRunning;
   document.body.classList.toggle('is-partial-results', isPartialResults);
   // has-loaded-data is set only when actual row data is present — used by CSS
   // to scope interaction effects (e.g. cell hover glow) to real results.
@@ -129,18 +132,16 @@ window.refreshTableViewport = function() {
 
   window.requestAnimationFrame(() => {
     const table = document.getElementById('example-table');
-    if (!table || !window.VirtualTable) {
+    if (!table || !services.table) {
       return;
     }
 
     const displayedFields = getDisplayedFields();
-    if (typeof window.VirtualTable.measureRowHeight === 'function' && displayedFields.length > 0) {
-      window.VirtualTable.measureRowHeight(table, displayedFields);
+    if (displayedFields.length > 0) {
+      services.measureTableRowHeight(table, displayedFields);
     }
 
-    if (typeof window.VirtualTable.renderVirtualTable === 'function') {
-      window.VirtualTable.renderVirtualTable();
-    }
+    services.renderVirtualTable();
   });
 };
 
@@ -277,7 +278,7 @@ window.updateRunButtonIcon = function(validationError) {
   const refreshIcon = window.DOM.refreshIcon;
   const stopIcon = window.DOM.stopIcon;
   const runBtn = window.DOM.runBtn;
-  const mobileRunQuery = document.getElementById('mobile-run-query');
+  const mobileRunQuery = window.DOM.mobileRunQuery;
 
   const setRunTooltip = (tooltipText, ariaLabel) => {
     if (runBtn) {
@@ -292,7 +293,7 @@ window.updateRunButtonIcon = function(validationError) {
 
   if (!runIcon || !refreshIcon || !stopIcon || !runBtn) return;
 
-  if (window.queryRunning) {
+  if (appState.queryRunning) {
     runIcon.classList.add('hidden');
     refreshIcon.classList.add('hidden');
     stopIcon.classList.remove('hidden');
@@ -359,7 +360,7 @@ window.updateButtonStates = function() {
       );
 
       let validationError = null;
-      runBtn.disabled = !hasFields || window.queryRunning;
+      runBtn.disabled = !hasFields || appState.queryRunning;
 
       window.updateRunButtonIcon(validationError);
     } catch (_) {
@@ -371,10 +372,8 @@ window.updateButtonStates = function() {
   if (downloadBtn) {
     const hasData =
       getDisplayedFields().length > 0 &&
-      window.VirtualTable &&
-      window.VirtualTable.virtualTableData &&
-      Array.isArray(window.VirtualTable.virtualTableData.rows) &&
-      window.VirtualTable.virtualTableData.rows.length > 0;
+      Array.isArray(services.getVirtualTableData()?.rows) &&
+      services.getVirtualTableData().rows.length > 0;
 
     if (tableNameInput) {
       tableNameInput.classList.remove('error');
@@ -390,11 +389,11 @@ window.updateButtonStates = function() {
   }
 
   if (postFilterBtn) {
-    const postFilterStats = window.VirtualTable?.getPostFilterStats ? window.VirtualTable.getPostFilterStats() : null;
+    const postFilterStats = services.getPostFilterStats();
     const hasLoadedResults =
       getDisplayedFields().length > 0 &&
       Number(postFilterStats?.totalRows || 0) > 0;
-    const hasPostFilters = Boolean(window.VirtualTable?.hasPostFilters && window.VirtualTable.hasPostFilters());
+    const hasPostFilters = services.hasPostFilters();
 
     postFilterBtn.disabled = !hasLoadedResults;
     postFilterBtn.classList.toggle('table-toolbar-btn-active', hasPostFilters);
@@ -428,17 +427,15 @@ window.updateButtonStates = function() {
       )
     );
     const hasData = !!(
-      window.VirtualTable &&
-      window.VirtualTable.virtualTableData &&
-      Array.isArray(window.VirtualTable.virtualTableData.rows) &&
-      window.VirtualTable.virtualTableData.rows.length > 0
+      Array.isArray(services.getVirtualTableData()?.rows) &&
+      services.getVirtualTableData().rows.length > 0
     );
     const canClear = hasTableName || hasQueryText || hasFields || hasFilters || hasConfiguredPayload || hasData;
 
-    clearQueryBtn.disabled = window.queryRunning || !canClear;
+    clearQueryBtn.disabled = appState.queryRunning || !canClear;
     clearQueryBtn.classList.toggle('opacity-50', clearQueryBtn.disabled);
     clearQueryBtn.classList.toggle('cursor-not-allowed', clearQueryBtn.disabled);
-    clearQueryBtn.setAttribute('data-tooltip', window.queryRunning ? 'Stop the running query before clearing' : (clearQueryBtn.disabled ? 'Nothing to clear' : 'Clear current query'));
+    clearQueryBtn.setAttribute('data-tooltip', appState.queryRunning ? 'Stop the running query before clearing' : (clearQueryBtn.disabled ? 'Nothing to clear' : 'Clear current query'));
   }
 
   if (typeof window.updateSplitColumnsToggleState === 'function') {

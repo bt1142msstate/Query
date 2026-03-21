@@ -1,6 +1,7 @@
 (function() {
   let equalsValueControl = null;
   const { getDisplayedFields } = window.QueryStateReaders;
+  const services = window.AppServices;
 
   function getElements() {
     return {
@@ -27,7 +28,7 @@
   }
 
   function getBlankSentinel() {
-    return window.VirtualTable?.postFilterBlankValue || '__QUERY_POST_FILTER_BLANK__';
+    return services.table?.postFilterBlankValue || '__QUERY_POST_FILTER_BLANK__';
   }
 
   function isBlankSentinel(value) {
@@ -36,7 +37,7 @@
 
   function getAvailableFields() {
     const displayedFields = getDisplayedFields();
-    const columnMap = window.VirtualTable?.baseViewData?.columnMap;
+    const columnMap = services.getBaseViewColumnMap();
 
     return displayedFields.filter(field => columnMap instanceof Map && columnMap.has(field));
   }
@@ -106,13 +107,11 @@
   }
 
   function getPostFilterSnapshot() {
-    return window.VirtualTable?.getPostFilterState ? window.VirtualTable.getPostFilterState() : {};
+    return services.getPostFilterState();
   }
 
   function getFieldValueOptions(fieldName) {
-    return window.VirtualTable?.getPostFilterFieldOptions
-      ? window.VirtualTable.getPostFilterFieldOptions(fieldName)
-      : [];
+    return services.getPostFilterFieldOptions(fieldName);
   }
 
   function getCurrentEqualsValues(fieldName) {
@@ -167,7 +166,7 @@
     const { button } = getElements();
     if (!button) return;
 
-    const hasFilters = window.VirtualTable?.hasPostFilters && window.VirtualTable.hasPostFilters();
+    const hasFilters = services.hasPostFilters();
     button.classList.toggle('table-toolbar-btn-active', Boolean(hasFilters));
   }
 
@@ -292,7 +291,7 @@
     const elements = getElements();
     if (!elements.summaryRows || !elements.summaryBaseRows || !elements.summaryCount) return;
 
-    const stats = window.VirtualTable?.getPostFilterStats ? window.VirtualTable.getPostFilterStats() : { filteredRows: 0, totalRows: 0 };
+    const stats = services.getPostFilterStats() || { filteredRows: 0, totalRows: 0 };
     const activeCount = getActiveFilterCount();
 
     elements.summaryRows.textContent = Number(stats.filteredRows || 0).toLocaleString();
@@ -375,7 +374,7 @@
     const elements = getElements();
     if (!elements.overlay) return;
 
-    const stats = window.VirtualTable?.getPostFilterStats ? window.VirtualTable.getPostFilterStats() : null;
+    const stats = services.getPostFilterStats();
     const totalRows = Number(stats?.totalRows || 0);
 
     if (totalRows <= 0) {
@@ -394,9 +393,7 @@
   }
 
   function writeSnapshot(snapshot, options = {}) {
-    if (window.VirtualTable?.replacePostFilters) {
-      window.VirtualTable.replacePostFilters(snapshot, options);
-    }
+    services.replacePostFilters(snapshot, options);
   }
 
   function addFilter() {
@@ -515,9 +512,7 @@
   }
 
   function clearAllFilters() {
-    if (window.VirtualTable?.clearPostFilters) {
-      window.VirtualTable.clearPostFilters({ refreshView: true, notify: true, resetScroll: true });
-    }
+    services.clearPostFilters({ refreshView: true, notify: true, resetScroll: true });
     refreshOverlay();
   }
 
@@ -576,13 +571,11 @@
     });
 
     window.QueryStateSubscriptions.subscribe(() => {
-      if (window.VirtualTable?.replacePostFilters) {
-        window.VirtualTable.replacePostFilters(getPostFilterSnapshot(), {
-          refreshView: true,
-          notify: true,
-          resetScroll: false
-        });
-      }
+      services.replacePostFilters(getPostFilterSnapshot(), {
+        refreshView: true,
+        notify: true,
+        resetScroll: false
+      });
     }, {
       displayedFields: true
     });

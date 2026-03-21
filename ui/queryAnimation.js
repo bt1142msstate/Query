@@ -349,7 +349,7 @@ window.startTableQueryAnimation = function() {
   const triggerStop = () => {
     // Delegate to the header run button click (which handles the cancel path)
     const runBtn = document.getElementById('run-query-btn');
-    if (runBtn && window.queryRunning) runBtn.click();
+    if (runBtn && window.AppState.queryRunning) runBtn.click();
   };
 
   stopOverlay.addEventListener('click', e => { e.stopPropagation(); triggerStop(); });

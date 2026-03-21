@@ -33,6 +33,7 @@ let simpleTableInstance = null; // Store the SimpleTable instance
 
 const HEADER_ACTION_SPACE = 116;
 const HEADER_TEXT_BALANCE_SPACE = 116;
+const services = window.AppServices;
 
 // Keep track of sorting state
 let currentSortColumn = null;
@@ -593,9 +594,7 @@ function renderVirtualTable() {
   const { start, end } = calculateVisibleRows();
   
   // Clean up existing event listeners on body cells before clearing them
-  if (window.DragDropSystem && window.DragDropSystem.dragDropManager && window.DragDropSystem.dragDropManager.cleanupTableListeners) {
-    window.DragDropSystem.dragDropManager.cleanupTableListeners(table);
-  }
+  services.cleanupDragDropTableListeners(table);
   
   // Clear existing body rows
   tbody.innerHTML = '';
@@ -747,8 +746,8 @@ function renderVirtualTable() {
   }
   
   // Re-apply drag and drop to the new rows
-  if (window.DragDropSystem && window.DragDropSystem.addDragAndDrop) {
-    window.DragDropSystem.addDragAndDrop(table);
+  if (services.dragDrop?.addDragAndDrop) {
+    services.addDragAndDrop(table);
   } else if (typeof addDragAndDrop !== 'undefined') {
     addDragAndDrop(table);
   }
