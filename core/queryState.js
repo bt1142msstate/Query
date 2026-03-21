@@ -115,6 +115,22 @@ function cloneFieldFiltersSnapshot(fieldName) {
   };
 }
 
+function normalizeFieldFilters(filters) {
+  if (!Array.isArray(filters)) {
+    return [];
+  }
+
+  const normalizedFilters = filters
+    .map(cloneFilterEntry)
+    .filter(filter => filter.cond || filter.val);
+
+  if (normalizedFilters.length === 0) {
+    return [];
+  }
+
+  return [normalizedFilters[normalizedFilters.length - 1]];
+}
+
 function assignDisplayedFields(nextFields) {
   displayedFieldsState.length = 0;
   if (!Array.isArray(nextFields)) {
@@ -143,9 +159,7 @@ function assignActiveFilters(nextFilters) {
       return;
     }
 
-    const filters = Array.isArray(data && data.filters)
-      ? data.filters.map(cloneFilterEntry).filter(filter => filter.cond || filter.val)
-      : [];
+    const filters = normalizeFieldFilters(data && data.filters);
 
     activeFiltersState[normalizedField] = { filters };
   });
@@ -375,21 +389,18 @@ const queryStateStore = {
     }
 
     const filters = activeFiltersState[normalizedField].filters;
-    const existingIndex = filters.findIndex(existingFilter => existingFilter.cond === normalizedFilter.cond && existingFilter.val === normalizedFilter.val);
-    if (options.dedupe && existingIndex !== -1) {
+    const existingFilter = filters[filters.length - 1] || null;
+    const matchesExisting = Boolean(
+      existingFilter &&
+      existingFilter.cond === normalizedFilter.cond &&
+      existingFilter.val === normalizedFilter.val
+    );
+
+    if (options.dedupe && matchesExisting) {
       return false;
     }
 
-    if (options.replaceByCond) {
-      const replaceIndex = filters.findIndex(existingFilter => existingFilter.cond === normalizedFilter.cond);
-      if (replaceIndex !== -1) {
-        filters[replaceIndex] = normalizedFilter;
-      } else {
-        filters.push(normalizedFilter);
-      }
-    } else {
-      filters.push(normalizedFilter);
-    }
+    activeFiltersState[normalizedField].filters = [normalizedFilter];
 
     notifyQueryStateSubscribers({ activeFilters: true }, { source: options.source || 'QueryStateStore.upsertFilter' });
     return true;
