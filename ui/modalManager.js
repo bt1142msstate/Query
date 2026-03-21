@@ -6,6 +6,7 @@
  */
 class ModalManager {
   constructor() {
+    this.initialized = false;
     this.overlay = window.DOM?.overlay || document.getElementById('overlay');
     this.panels = ['json-panel', 'queries-panel', 'help-panel', 'mobile-menu-dropdown'];
     this.panelTitles = {
@@ -192,6 +193,12 @@ class ModalManager {
    * Initialize all modal-related event handlers
    */
   initialize() {
+    if (this.initialized) {
+      return;
+    }
+
+    this.initialized = true;
+
     // Desktop: Bind click events to the toggle buttons
     const panelToggles = {
       'toggle-json': 'json-panel',

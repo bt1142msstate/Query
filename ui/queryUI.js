@@ -457,10 +457,11 @@ window.updateButtonStates = function() {
   }
 };
 
-// Keep button states in sync with query state changes reactively.
+// Keep button states in sync with all query-state changes, including lifecycle-only
+// transitions like running/partial/results that do not change fields or filters.
 window.QueryStateSubscriptions.subscribe(() => {
   window.updateButtonStates();
-}, { displayedFields: true, activeFilters: true });
+});
 
 window.QueryUI = Object.freeze({
   initialize: initializeQueryUi
