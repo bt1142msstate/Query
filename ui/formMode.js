@@ -184,7 +184,7 @@
       multiple: Boolean(input.multiple),
       hidden: Boolean(input.hidden),
       type: String(input.type || '').trim(),
-      defaultValue: input.default,
+      defaultValue: input.default !== undefined ? input.default : input.defaultValue,
       options: Array.isArray(input.options) ? input.options.slice() : null
     };
   }
@@ -1561,6 +1561,10 @@
       if (!activated) {
         return;
       }
+    } else if (requestedMode === 'form' && state.active && state.specSource === 'generated') {
+      // Re-entering form mode after changes in bubble mode: sync spec and rebuild controls
+      // so the form reflects the current query state rather than stale control values.
+      await syncGeneratedFormFromCurrentQuery({ forceFormMode: true, rebuildCard: true });
     }
 
     state.viewMode = requestedMode;
