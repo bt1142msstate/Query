@@ -348,7 +348,7 @@ window.ClipboardUtils = (() => {
 
 window.QueryStateSubscriptions = (() => {
   function subscribe(handler, options = {}) {
-    if (!window.QueryChangeManager || typeof window.QueryChangeManager.subscribe !== 'function' || typeof handler !== 'function') {
+    if (!window.QueryStateReaders || typeof window.QueryStateReaders.subscribe !== 'function' || typeof handler !== 'function') {
       return () => {};
     }
 
@@ -360,7 +360,7 @@ window.QueryStateSubscriptions = (() => {
 
     const requireSpecificChanges = displayedFields || activeFilters;
 
-    return window.QueryChangeManager.subscribe(event => {
+    return window.QueryStateReaders.subscribe(event => {
       if (!event) {
         return;
       }
