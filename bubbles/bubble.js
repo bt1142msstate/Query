@@ -6,7 +6,7 @@
 var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
 var getActiveFilters = window.QueryStateReaders.getActiveFilters.bind(window.QueryStateReaders);
 var hasFiltersForField = window.QueryStateReaders.hasFiltersForField.bind(window.QueryStateReaders);
-const appState = window.AppState;
+var appState = window.AppState;
 
 class Bubble {
   constructor(def, state = {}) {

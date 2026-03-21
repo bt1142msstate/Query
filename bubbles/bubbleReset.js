@@ -1,4 +1,4 @@
-const services = window.AppServices;
+var services = window.AppServices;
 
 function reconcileBubbleResetInteractionState(skipFields = new Set()) {
   const bubbles = Array.from(document.querySelectorAll('.bubble'));
@@ -13,7 +13,7 @@ function reconcileBubbleResetInteractionState(skipFields = new Set()) {
   });
 }
 
-const appState = window.AppState;
+var appState = window.AppState;
 
 function finalizeBubbleReset(reason, payload = {}) {
   const bubbleService = services.bubble;

@@ -8,8 +8,8 @@
 
 // Store information about removed columns - Managed in columnManager.js
 var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
-const appState = window.AppState;
-const services = window.AppServices;
+var appState = window.AppState;
+var services = window.AppServices;
 const TABLE_COLUMN_DRAG_MIME = 'application/x-query-table-column-index';
 const BUBBLE_FIELD_DRAG_MIME = 'bubble-field';
 

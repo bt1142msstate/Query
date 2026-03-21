@@ -33,7 +33,7 @@ let simpleTableInstance = null; // Store the SimpleTable instance
 
 const HEADER_ACTION_SPACE = 116;
 const HEADER_TEXT_BALANCE_SPACE = 116;
-const services = window.AppServices;
+var services = window.AppServices;
 
 // Keep track of sorting state
 let currentSortColumn = null;

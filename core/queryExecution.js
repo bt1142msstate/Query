@@ -5,8 +5,8 @@
 // which are exported by query.js.
 
 const execDom = window.DOM;
-const appState = window.AppState;
-const services = window.AppServices;
+var appState = window.AppState;
+var services = window.AppServices;
 appState.queryPageIsUnloading = false;
 
 function addQueryHistoryEntry(query) {

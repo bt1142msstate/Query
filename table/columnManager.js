@@ -8,7 +8,7 @@
 // Store information about removed columns with their duplicates for restoration
 window.removedColumnInfo = window.removedColumnInfo || new Map();
 var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
-const services = window.AppServices;
+var services = window.AppServices;
 
 /**
  * Checks if a field or any of its duplicates exists in displayedFields.

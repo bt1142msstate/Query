@@ -1,6 +1,6 @@
 var getFilterGroupForField = window.QueryStateReaders.getFilterGroupForField.bind(window.QueryStateReaders);
-const appState = window.AppState;
-const services = window.AppServices;
+var appState = window.AppState;
+var services = window.AppServices;
 let bubbleEventsInitialized = false;
 
 function initializeBubbleInteractions() {
