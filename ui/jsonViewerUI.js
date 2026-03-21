@@ -143,3 +143,8 @@ window.onDOMReady(() => {
     });
   }
 });
+
+// Keep JSON preview in sync with query state changes reactively.
+window.QueryStateSubscriptions.subscribe(() => {
+  window.updateQueryJson();
+}, { displayedFields: true, activeFilters: true }););

@@ -453,3 +453,8 @@ window.updateButtonStates = function() {
     window.PostFilterSystem.syncToolbarButton();
   }
 };
+
+// Keep button states in sync with query state changes reactively.
+window.QueryStateSubscriptions.subscribe(() => {
+  window.updateButtonStates();
+}, { displayedFields: true, activeFilters: true });
