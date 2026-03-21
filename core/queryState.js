@@ -202,7 +202,9 @@ function cloneDisplayedFieldsSnapshot() {
 }
 
 function cloneFieldFiltersSnapshot(fieldName) {
-  const normalizedField = String(fieldName || '').trim();
+  const normalizedField = typeof window.resolveFieldName === 'function'
+    ? window.resolveFieldName(String(fieldName || '').trim())
+    : String(fieldName || '').trim();
   if (!normalizedField || !activeFiltersState[normalizedField]) {
     return { filters: [] };
   }
@@ -223,11 +225,7 @@ function normalizeFieldFilters(filters) {
     .map(cloneFilterEntry)
     .filter(filter => filter.cond || filter.val);
 
-  if (normalizedFilters.length === 0) {
-    return [];
-  }
-
-  return [normalizedFilters[normalizedFilters.length - 1]];
+  return normalizedFilters;
 }
 
 function assignDisplayedFields(nextFields) {
@@ -461,11 +459,15 @@ const queryStateStore = {
     return cloneFieldFiltersSnapshot(fieldName);
   },
   hasDisplayedField(fieldName) {
-    const normalizedField = String(fieldName || '').trim();
+    const normalizedField = typeof window.resolveFieldName === 'function'
+      ? window.resolveFieldName(String(fieldName || '').trim())
+      : String(fieldName || '').trim();
     return Boolean(normalizedField) && displayedFieldsState.includes(normalizedField);
   },
   hasFiltersForField(fieldName) {
-    const normalizedField = String(fieldName || '').trim();
+    const normalizedField = typeof window.resolveFieldName === 'function'
+      ? window.resolveFieldName(String(fieldName || '').trim())
+      : String(fieldName || '').trim();
     return Boolean(normalizedField && activeFiltersState[normalizedField] && Array.isArray(activeFiltersState[normalizedField].filters) && activeFiltersState[normalizedField].filters.length > 0);
   },
   subscribe(listener) {
@@ -564,7 +566,9 @@ const queryStateStore = {
     notifyQueryStateSubscribers({ activeFilters: true }, meta);
   },
   upsertFilter(fieldName, filter, options = {}) {
-    const normalizedField = String(fieldName || '').trim();
+    const normalizedField = typeof window.resolveFieldName === 'function'
+      ? window.resolveFieldName(String(fieldName || '').trim())
+      : String(fieldName || '').trim();
     const normalizedFilter = normalizeFilterInput(filter);
     if (!normalizedField || !normalizedFilter) {
       return false;
@@ -574,25 +578,34 @@ const queryStateStore = {
       activeFiltersState[normalizedField] = { filters: [] };
     }
 
-    const filters = activeFiltersState[normalizedField].filters;
-    const existingFilter = filters[filters.length - 1] || null;
-    const matchesExisting = Boolean(
+    let nextFilters = Array.isArray(activeFiltersState[normalizedField].filters)
+      ? activeFiltersState[normalizedField].filters.slice()
+      : [];
+
+    if (options.replaceByCond) {
+      nextFilters = nextFilters.filter(existingFilter => existingFilter.cond !== normalizedFilter.cond);
+    }
+
+    const matchesExisting = nextFilters.some(existingFilter => (
       existingFilter &&
       existingFilter.cond === normalizedFilter.cond &&
       existingFilter.val === normalizedFilter.val
-    );
+    ));
 
     if (options.dedupe && matchesExisting) {
       return false;
     }
 
-    activeFiltersState[normalizedField].filters = [normalizedFilter];
+    nextFilters.push(normalizedFilter);
+    activeFiltersState[normalizedField].filters = normalizeFieldFilters(nextFilters);
 
     notifyQueryStateSubscribers({ activeFilters: true }, { source: options.source || 'QueryStateStore.upsertFilter' });
     return true;
   },
   removeFilter(fieldName, options = {}) {
-    const normalizedField = String(fieldName || '').trim();
+    const normalizedField = typeof window.resolveFieldName === 'function'
+      ? window.resolveFieldName(String(fieldName || '').trim())
+      : String(fieldName || '').trim();
     if (!normalizedField || !activeFiltersState[normalizedField]) {
       return false;
     }
@@ -743,6 +756,7 @@ function hideManagedField(fieldName, options = {}) {
 // App-level clear that resets query state plus all dependent UI surfaces.
 async function clearQueryManagerState(meta = {}) {
   const normalizedMeta = normalizeManagerMeta(meta, 'QueryChangeManager.clearQuery');
+  const services = getServices();
 
   if (queryLifecycleState.queryRunning) {
     if (typeof window.showToastMessage === 'function') {
@@ -753,10 +767,10 @@ async function clearQueryManagerState(meta = {}) {
 
   const previousSelectedField = appStateStore.selectedField || '';
 
-  services.modal?.closeAllPanels?.();
-  services.clearInsertAffordance({ immediate: true });
-  services.resetActiveBubbles();
-  services.resetBubbleEditorUi({
+  services?.modal?.closeAllPanels?.();
+  services?.clearInsertAffordance?.({ immediate: true });
+  services?.resetActiveBubbles?.();
+  services?.resetBubbleEditorUi?.({
     clearPanelContent: true,
     clearConditionListSelection: !previousSelectedField
   });
@@ -764,11 +778,11 @@ async function clearQueryManagerState(meta = {}) {
   if (window.PostFilterSystem && typeof window.PostFilterSystem.close === 'function') {
     window.PostFilterSystem.close();
   }
-  if (services.table?.clearPostFilters) {
+  if (services?.table?.clearPostFilters) {
     services.clearPostFilters({ refreshView: false, notify: true, resetScroll: false });
   }
 
-  if (services.isSplitColumnsActive()) {
+  if (services?.isSplitColumnsActive?.()) {
     services.setSplitColumnsMode(false);
   }
   if (typeof window.resetSplitColumnsToggleUI === 'function') {
@@ -809,7 +823,7 @@ async function clearQueryManagerState(meta = {}) {
 
   appStateStore.currentCategory = 'All';
 
-  services.resetBubbleScroll();
+  services?.resetBubbleScroll?.();
 
   window.AppUiActions?.updateButtonStates?.();
 
@@ -844,7 +858,7 @@ const queryChangeManager = Object.freeze({
   showField: showManagedField,
   hideField: hideManagedField,
   resetQuery(meta = {}) {
-    return queryStateStore.resetState(normalizeManagerMeta(meta, 'QueryChangeManager.resetQuery'));
+    return clearQueryManagerState(meta);
   },
   clearQuery(meta = {}) {
     return clearQueryManagerState(meta);
