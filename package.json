@@ -1,0 +1,12 @@
+{
+  "scripts": {
+    "lint": "eslint \"**/*.js\""
+  },
+  "dependencies": {
+    "three": "^0.183.2"
+  },
+  "devDependencies": {
+    "eslint": "^10.0.3",
+    "globals": "^17.4.0"
+  }
+}
