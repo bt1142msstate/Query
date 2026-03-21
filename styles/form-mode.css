@@ -228,6 +228,17 @@
   min-width: 0;
 }
 
+.form-mode-control .custom-date-input--form {
+  width: 100%;
+  min-width: 0;
+}
+
+.form-mode-control .custom-date-input--form > input {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+}
+
 .form-mode-control-invalid {
   border-color: rgba(239, 68, 68, 0.7) !important;
   box-shadow: 0 0 0 3px rgba(254, 202, 202, 0.7);
@@ -856,4 +867,9 @@ select.form-mode-operator-select:focus {
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
+}
+
+.form-mode-between-input.custom-date-input--form {
+  width: 100%;
+  min-width: 0;
 }
