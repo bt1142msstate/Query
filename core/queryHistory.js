@@ -10,6 +10,8 @@ let queryDurationUpdateInterval = null;
 let lastQueryStatusPollAt = 0;
 let activeHistorySection = 'none';
 var services = window.AppServices;
+var historyViewHelpers = window.QueryHistoryViewHelpers;
+var uiActions = window.AppUiActions;
 const QUERY_STATUS_POLL_MS = 2000;
 const IDLE_POLL_MS = 8000;
 let lastHistoryRenderKey = '';
@@ -64,166 +66,13 @@ function updateHistoryQuery(queryId, updates = {}, options = {}) {
   return query;
 }
 
-function classifyQueryStatus(status) {
-  const normalized = String(status || '').toLowerCase();
-  if (normalized === 'running') return 'running';
-  if (normalized === 'complete') return 'complete';
-  if (normalized === 'canceled') return 'canceled';
-  if (normalized === 'failed') return 'failed';
-  return normalized || 'unknown';
-}
-
-function getQueryStatusMeta(status) {
-  const bucket = classifyQueryStatus(status);
-
-  if (bucket === 'running') {
-    return { label: 'Running', rowClass: 'history-row-running', badgeClass: 'history-status-badge status-running' };
-  }
-  if (bucket === 'complete') {
-    return { label: 'Completed', rowClass: 'history-row-complete', badgeClass: 'history-status-badge status-complete' };
-  }
-  if (bucket === 'canceled') {
-    return { label: 'Cancelled', rowClass: 'history-row-canceled', badgeClass: 'history-status-badge status-canceled' };
-  }
-  if (bucket === 'failed') {
-    return { label: 'Failed', rowClass: 'history-row-failed', badgeClass: 'history-status-badge status-failed' };
-  }
-
-  return { label: 'Interrupted', rowClass: 'history-row-failed', badgeClass: 'history-status-badge status-failed' };
-}
-
-function getHistorySectionMeta(sectionKey) {
-  return {
-    running: {
-      title: 'Running',
-      subtitle: 'Queries currently executing on the backend.',
-      detailsClass: 'history-book running',
-      summaryClass: 'history-book-summary running'
-    },
-    complete: {
-      title: 'Completed',
-      subtitle: 'Finished results ready to inspect or reload.',
-      detailsClass: 'history-book complete',
-      summaryClass: 'history-book-summary complete'
-    },
-    failed: {
-      title: 'Failed / Interrupted',
-      subtitle: 'Queries that errored, were abandoned, or quit unexpectedly.',
-      detailsClass: 'history-book failed',
-      summaryClass: 'history-book-summary failed'
-    },
-    canceled: {
-      title: 'Cancelled',
-      subtitle: 'Queries stopped intentionally before they completed.',
-      detailsClass: 'history-book canceled',
-      summaryClass: 'history-book-summary canceled'
-    }
-  }[sectionKey];
-}
-
-function buildHistorySection(sectionKey, count, isOpen = false) {
-  const meta = getHistorySectionMeta(sectionKey);
-
-  const openAttr = isOpen ? ' open' : '';
-  const statusLabel = count === 0
-    ? 'Empty'
-    : isOpen
-      ? 'Projected'
-      : 'Standby';
-  const openHint = isOpen ? 'Close feed' : 'Project feed';
-
-  return `
-    <details class="${meta.detailsClass}" data-history-book="${sectionKey}"${openAttr}>
-      <summary class="${meta.summaryClass}">
-        <span class="history-book-spine" aria-hidden="true"></span>
-        <span class="history-book-cover">
-          <span class="history-book-summary-main">
-            <span class="history-book-title">${meta.title}</span>
-            <span class="history-book-subtitle">${meta.subtitle}</span>
-          </span>
-          <span class="history-book-summary-side">
-            <span class="history-book-count">${count}</span>
-            <span class="history-book-state">${statusLabel}</span>
-            <span class="history-book-open-hint">${openHint}</span>
-          </span>
-        </span>
-      </summary>
-    </details>
-  `;
-}
-
-function buildHistoryMonitor(openSection, sections) {
-  if (!openSection) {
-    return '';
-  }
-
-  const activeSection = sections.find(section => section.key === openSection);
-  if (!activeSection) {
-    return '';
-  }
-
-  const meta = getHistorySectionMeta(activeSection.key);
-  const bodyContent = activeSection.rows
-    ? `<div class="history-table-shell"><table class="min-w-full text-sm history-table">${activeSection.tableHead}<tbody>${activeSection.rows}</tbody></table></div>`
-    : `<div class="history-empty-state history-monitor-empty">${activeSection.emptyMessage}</div>`;
-  const tabs = sections.map(section => {
-    const tabMeta = getHistorySectionMeta(section.key);
-    const isActive = section.key === activeSection.key;
-    const countLabel = `${section.count} ${section.count === 1 ? 'entry' : 'entries'}`;
-
-    return `
-      <button
-        type="button"
-        class="history-monitor-tab${isActive ? ' is-active' : ''} ${section.key}"
-        data-history-monitor-tab="${section.key}"
-        aria-pressed="${isActive ? 'true' : 'false'}"
-      >
-        <span class="history-monitor-tab-label">${tabMeta.title}</span>
-        <span class="history-monitor-tab-count">${countLabel}</span>
-      </button>
-    `;
-  }).join('');
-
-  return `
-    <section class="history-monitor ${activeSection.key}" data-history-monitor>
-      <div class="history-monitor-header">
-        <div class="history-monitor-copy">
-          <span class="history-monitor-kicker">Projected monitor</span>
-          <h4 class="history-monitor-title">${meta.title}</h4>
-          <p class="history-monitor-subtitle">${meta.subtitle}</p>
-        </div>
-        <div class="history-monitor-actions">
-          <div class="history-monitor-status">
-            <span class="history-monitor-status-label">Channel load</span>
-            <span class="history-monitor-status-value">${activeSection.count}</span>
-          </div>
-          <button type="button" class="history-monitor-close" data-history-monitor-close aria-label="Close projected monitor">
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
-      </div>
-      <div class="history-monitor-tabs" role="tablist" aria-label="Query history feeds">
-        ${tabs}
-      </div>
-      <div class="history-monitor-stage">
-        ${bodyContent}
-      </div>
-    </section>
-  `;
-}
+const classifyQueryStatus = historyViewHelpers.classifyQueryStatus;
+const getQueryStatusMeta = historyViewHelpers.getQueryStatusMeta;
+const buildHistorySection = historyViewHelpers.buildHistorySection;
+const buildHistoryMonitor = historyViewHelpers.buildHistoryMonitor;
 
 function getPreferredHistorySection(counts) {
-  const orderedSections = ['running', 'complete', 'failed', 'canceled'];
-
-  if (activeHistorySection === 'none') {
-    return null;
-  }
-
-  if (orderedSections.includes(activeHistorySection)) {
-    return activeHistorySection;
-  }
-
-  return orderedSections.find(sectionKey => counts[sectionKey] > 0) || 'running';
+  return historyViewHelpers.getPreferredHistorySection(counts, activeHistorySection);
 }
 
 function captureHistoryViewState() {
@@ -686,12 +535,19 @@ function loadQueryConfig(q) {
   const getDisplayedFields = () => window.QueryChangeManager?.getDisplayedFields?.() || [];
   
   // Access global variables from query.js
-  if (!window.QueryChangeManager || typeof showExampleTable === 'undefined') {
-    console.error('Query history module requires global access to query.js variables');
+  if (!window.QueryChangeManager) {
+    console.error('Query history module requires QueryChangeManager access');
     return;
   }
 
   const tableNameInput = window.DOM?.tableNameInput || document.getElementById('table-name-input');
+
+  // Loading a query definition is not itself a partial-results state.
+  // That flag belongs to the currently displayed result set and must be
+  // recomputed when/if results are loaded afterward.
+  window.AppState.hasPartialResults = false;
+  window.updateTableResultsLip?.();
+
   if (tableNameInput) {
     tableNameInput.value = q.name || '';
     tableNameInput.classList.remove('error');
@@ -761,7 +617,7 @@ function loadQueryConfig(q) {
     getDisplayedFields().forEach(f => window.registerDynamicField(f));
   }
 
-  showExampleTable(getDisplayedFields(), { syncQueryState: false });
+  uiActions.showExampleTable(getDisplayedFields(), { syncQueryState: false });
   
   // Clear filters and reapply from query
   if (window.QueryChangeManager) {
@@ -792,9 +648,7 @@ function loadQueryConfig(q) {
   }
   
   // Update JSON display
-  if (typeof updateQueryJson === 'function') {
-    updateQueryJson();
-  }
+  uiActions.updateQueryJson();
 
   // Ensure bubbles re-render to reflect their new filter state and positions
   services.rerenderBubbles();
@@ -803,9 +657,7 @@ function loadQueryConfig(q) {
   if (typeof window.getCurrentQueryState === 'function') {
     window.AppState.lastExecutedQueryState = window.getCurrentQueryState();
   }
-  if (typeof window.updateButtonStates === 'function') {
-    window.updateButtonStates();
-  }
+  uiActions.updateButtonStates();
 
   if (window.QueryFormMode && typeof window.QueryFormMode.isActive === 'function' && window.QueryFormMode.isActive()) {
     window.QueryFormMode.syncFromCurrentQuery().catch(error => {
@@ -899,8 +751,8 @@ async function loadQueryResults(queryId) {
             services.setVirtualTableData(newTableData);
             
             // Re-render the full table to reset red column headers and redraw the rows with new widths
-            if (typeof showExampleTable === 'function') {
-                await showExampleTable(headers);
+            if (typeof window.showExampleTable === 'function') {
+                await uiActions.showExampleTable(headers);
             } else {
                 services.renderVirtualTable();
                 services.calculateOptimalColumnWidths(); 
@@ -916,10 +768,13 @@ async function loadQueryResults(queryId) {
               window.AppState.scrollRow = 0;
               services.updateBubbleScrollBar();
             }
-            if (typeof window.updateButtonStates === 'function') {
-                window.updateButtonStates();
-            }
+            uiActions.updateButtonStates();
         }
+
+        // Partial-results mode should reflect the specific result set that was loaded,
+        // not whatever previous live query happened to leave behind.
+        window.AppState.hasPartialResults = Boolean(q.running);
+        window.updateTableResultsLip?.();
         
         if (typeof showToastMessage === 'function') {
             showToastMessage(q.running

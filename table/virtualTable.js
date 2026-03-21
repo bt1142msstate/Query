@@ -34,6 +34,7 @@ let simpleTableInstance = null; // Store the SimpleTable instance
 const HEADER_ACTION_SPACE = 116;
 const HEADER_TEXT_BALANCE_SPACE = 116;
 var services = window.AppServices;
+var uiActions = window.AppUiActions;
 
 // Keep track of sorting state
 let currentSortColumn = null;
@@ -473,9 +474,7 @@ function applyPostFilters(options = {}) {
     window.updateTableResultsLip();
   }
 
-  if (typeof window.updateButtonStates === 'function') {
-    window.updateButtonStates();
-  }
+  uiActions.updateButtonStates();
 
   if (options.notify !== false) {
     notifyPostFiltersUpdated();
@@ -1099,9 +1098,7 @@ function setSplitColumnsMode(active) {
   renderVirtualTable();
 
   // Rebuild the example table fallback when it exists.
-  if (typeof showExampleTable === 'function') {
-    showExampleTable(baseViewData.headers).catch(() => {});
-  }
+  uiActions.showExampleTable(baseViewData.headers).catch(() => {});
 }
 
 window.VirtualTable = {

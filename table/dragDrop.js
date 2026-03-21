@@ -10,6 +10,7 @@
 var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
 var appState = window.AppState;
 var services = window.AppServices;
+var uiActions = window.AppUiActions;
 const TABLE_COLUMN_DRAG_MIME = 'application/x-query-table-column-index';
 const BUBBLE_FIELD_DRAG_MIME = 'bubble-field';
 
@@ -35,10 +36,10 @@ function addColumn(fieldName, insertAt = -1) {
   
   if (success) {
     // Trigger the same updates as successful drag/drop
-    showExampleTable(getDisplayedFields(), { syncQueryState: false });
-    updateQueryJson();
-    updateButtonStates();
-    updateCategoryCounts();
+    uiActions.showExampleTable(getDisplayedFields(), { syncQueryState: false });
+    uiActions.updateQueryJson();
+    uiActions.updateButtonStates();
+    uiActions.updateCategoryCounts();
     
     // Re-render bubbles if we're in Selected category
     if (appState.currentCategory === 'Selected') {
@@ -678,7 +679,7 @@ function finalizeMoveOperation(table) {
 
   // 5️⃣ Refresh index metadata
   refreshColIndices(table);
-  updateQueryJson();
+  uiActions.updateQueryJson();
   
   // 6️⃣ If in Selected category, re-render bubbles to match new order
   if (appState.currentCategory === 'Selected') {
@@ -767,15 +768,15 @@ function removeColumn(table, colIndex) {
   }
 
   // Update JSON to reflect removed column
-  updateQueryJson();
+  uiActions.updateQueryJson();
   // Update button states after removing column
-  updateButtonStates();
+  uiActions.updateButtonStates();
   // If no columns left, reset to placeholder view
   if (displayedFields.length === 0) {
-    showExampleTable(displayedFields, { syncQueryState: false });
+    uiActions.showExampleTable(displayedFields, { syncQueryState: false });
   }
   // Update category counts after removing column
-  updateCategoryCounts();
+  uiActions.updateCategoryCounts();
   // Re-render bubbles if we're in Selected category
   if (appState.currentCategory === 'Selected') {
     services.rerenderBubbles();
@@ -822,7 +823,7 @@ function attachBubbleDropTarget(container) {
     if (field) {
       if (restoreFieldWithDuplicates(field)) {
         dragDropManager.dropSuccessful = true;
-        showExampleTable(getDisplayedFields(), { syncQueryState: false });
+        uiActions.showExampleTable(getDisplayedFields(), { syncQueryState: false });
       }
     }
     clearDropAnchor();
@@ -1203,7 +1204,7 @@ const dragDropManager = {
       const insertAt = (e.clientX - rect.left) < rect.width/2 ? toIndex : toIndex + 1;
       if (restoreFieldWithDuplicates(bubbleField, insertAt)) {
         dragDropManager.dropSuccessful = true;
-        showExampleTable(getDisplayedFields(), { syncQueryState: false });
+        uiActions.showExampleTable(getDisplayedFields(), { syncQueryState: false });
       }
     }
     
@@ -1232,7 +1233,7 @@ const dragDropManager = {
       const insertAt = (e.clientX - rect.left) < rect.width/2 ? toIndex : toIndex + 1;
       if (restoreFieldWithDuplicates(bubbleField, insertAt)) {
         dragDropManager.dropSuccessful = true;
-        showExampleTable(getDisplayedFields(), { syncQueryState: false });
+        uiActions.showExampleTable(getDisplayedFields(), { syncQueryState: false });
       }
       clearDropAnchor();
       return;

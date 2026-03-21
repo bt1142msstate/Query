@@ -8,6 +8,7 @@ var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window
 var getActiveFilters = window.QueryStateReaders.getActiveFilters.bind(window.QueryStateReaders);
 var appState = window.AppState;
 var services = window.AppServices;
+let queryUiInitialized = false;
 
 window.updateTableResultsLip = function() {
   const resultsBadge = window.DOM.tableResultsBadge;
@@ -224,7 +225,12 @@ window.toggleTableExpanded = function(forceExpanded) {
   window.refreshTableViewport();
 };
 
-window.onDOMReady(() => {
+function initializeQueryUi() {
+  if (queryUiInitialized) {
+    return;
+  }
+
+  queryUiInitialized = true;
   const tableNameInput = window.DOM.tableNameInput;
   if (!tableNameInput) {
     return;
@@ -271,7 +277,7 @@ window.onDOMReady(() => {
 
   window.updateTableChromeState();
   window.refreshTableViewport();
-});
+}
 
 window.updateRunButtonIcon = function(validationError) {
   const runIcon = window.DOM.runIcon;
@@ -455,3 +461,7 @@ window.updateButtonStates = function() {
 window.QueryStateSubscriptions.subscribe(() => {
   window.updateButtonStates();
 }, { displayedFields: true, activeFilters: true });
+
+window.QueryUI = Object.freeze({
+  initialize: initializeQueryUi
+});

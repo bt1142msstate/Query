@@ -1,5 +1,6 @@
 (function() {
   const services = window.AppServices;
+  const uiActions = window.AppUiActions;
   const { getDisplayedFields, getFilterGroupForField } = window.QueryStateReaders;
 
   function getFieldPickerOptionsFromDefinitions() {
@@ -480,7 +481,7 @@
           });
         }
 
-        await window.showExampleTable(nextFields, { syncQueryState: false });
+        await uiActions.showExampleTable(nextFields, { syncQueryState: false });
 
         if (window.showToastMessage) {
           window.showToastMessage(
@@ -498,7 +499,7 @@
             });
           }
 
-          window.updateCategoryCounts?.();
+          uiActions.updateCategoryCounts();
 
           if (window.showToastMessage) {
             window.showToastMessage(`${fieldName} filters removed.`, 'success');

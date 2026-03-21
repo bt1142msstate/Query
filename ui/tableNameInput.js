@@ -1,8 +1,10 @@
 /**
  * Table-name input sizing and header layout helpers.
  */
-(function initializeTableNameInput() {
+(function registerTableNameInput() {
   const dom = window.DOM;
+  const uiActions = window.AppUiActions;
+  let initialized = false;
 
   function updateHeaderHeightVar() {
     const header = dom.headerBar;
@@ -47,11 +49,11 @@
 
     tableNameInput.addEventListener('input', () => {
       autoResizeInput();
-      window.updateQueryJson?.();
+      uiActions.updateQueryJson();
     });
 
     tableNameInput.addEventListener('blur', () => {
-      window.updateButtonStates?.();
+      uiActions.updateButtonStates();
     });
 
     tableNameInput.addEventListener('focus', () => {
@@ -64,9 +66,18 @@
     window.addEventListener('resize', autoResizeInput);
   }
 
-  window.onDOMReady(() => {
+  function initialize() {
+    if (initialized) {
+      return;
+    }
+
+    initialized = true;
     updateHeaderHeightVar();
     bindTableNameInput();
+    window.addEventListener('resize', updateHeaderHeightVar);
+  }
+
+  window.TableNameInput = Object.freeze({
+    initialize
   });
-  window.addEventListener('resize', updateHeaderHeightVar);
 })();
