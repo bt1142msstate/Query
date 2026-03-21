@@ -230,7 +230,7 @@ if(dom.runBtn){
         
         // If user stopped mid-stream, show whatever was received as partial results
         if (streamedPayload.partial) {
-          if (lines.length === 0) {
+          if (streamedPayload.lines.length === 0) {
             console.log('Query stopped by user before any data arrived; discarding.');
             if (currentQueryId && window.QueryHistorySystem) {
               const q = window.QueryHistorySystem.exampleQueries.find(q => q.id === currentQueryId);
@@ -245,7 +245,7 @@ if(dom.runBtn){
             showToastMessage('Query stopped — no results received.', 'info');
             return;
           }
-          console.log(`Query stopped mid-stream. Processing ${lines.length} partial lines.`);
+          console.log(`Query stopped mid-stream. Processing ${streamedPayload.lines.length} partial lines.`);
         }
         
         // Parse pipe-delimited response
