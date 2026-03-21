@@ -626,7 +626,7 @@ function showManagedField(fieldName, options = {}) {
     return false;
   }
 
-  const columnOps = window.DragDropColumnOps || window.DragDropSystem;
+  const columnOps = window.DragDropColumnOps;
   if (columnOps && typeof columnOps.addColumn === 'function') {
     return columnOps.addColumn(normalizedField, options.insertAt);
   }
@@ -640,7 +640,7 @@ function hideManagedField(fieldName, options = {}) {
     return false;
   }
 
-  const columnOps = window.DragDropColumnOps || window.DragDropSystem;
+  const columnOps = window.DragDropColumnOps;
   if (columnOps && typeof columnOps.removeColumnByName === 'function') {
     return columnOps.removeColumnByName(normalizedField);
   }
@@ -795,9 +795,14 @@ Object.defineProperty(window, 'activeFilters', {
   }
 });
 
-window.getCurrentQueryState = function legacyGetCurrentQueryState() {
-  throwLegacyQueryStateRead('window.getCurrentQueryState');
-};
+Object.defineProperty(window, 'getCurrentQueryState', {
+  configurable: false,
+  enumerable: false,
+  writable: false,
+  value: function legacyGetCurrentQueryState() {
+    throwLegacyQueryStateRead('window.getCurrentQueryState');
+  }
+});
 
 window.QueryChangeManager.subscribe(event => {
   if (!event) {
