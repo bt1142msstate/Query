@@ -157,6 +157,9 @@ function initializeBubbleInteractions() {
 
     if (!isBuildable && !isFilterable) {
       services.bubbleDebugLog('click.ignored.displayOnlyField', { fieldName });
+      if (window.showToastMessage) {
+        window.showToastMessage(`${fieldName} is display-only and does not support filters.`, 'warning');
+      }
       return;
     }
 
