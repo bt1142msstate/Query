@@ -240,10 +240,16 @@
       rawSpec.columns || rawSpec.displayFields || rawSpec.display_fields || rawSpec.fields
     );
 
+    const hasTitle = Object.prototype.hasOwnProperty.call(rawSpec, 'title') || Object.prototype.hasOwnProperty.call(rawSpec, 'name');
+    const hasQueryName = Object.prototype.hasOwnProperty.call(rawSpec, 'queryName')
+      || Object.prototype.hasOwnProperty.call(rawSpec, 'tableName')
+      || Object.prototype.hasOwnProperty.call(rawSpec, 'title')
+      || Object.prototype.hasOwnProperty.call(rawSpec, 'name');
+
     return {
-      title: String(rawSpec.title || rawSpec.name || 'Query Form').trim(),
+      title: hasTitle ? String(rawSpec.title ?? rawSpec.name ?? '').trim() : '',
       description: String(rawSpec.description || rawSpec.helpText || '').trim(),
-      queryName: String(rawSpec.queryName || rawSpec.tableName || rawSpec.title || rawSpec.name || 'Query Form').trim(),
+      queryName: hasQueryName ? String(rawSpec.queryName ?? rawSpec.tableName ?? rawSpec.title ?? rawSpec.name ?? '').trim() : '',
       columns,
       inputs,
       lockedFilters
@@ -540,9 +546,7 @@
     const querySnapshot = getQuerySnapshot();
     const columns = Array.isArray(querySnapshot.displayedFields) ? querySnapshot.displayedFields.slice() : [];
     const tableNameInput = window.DOM && window.DOM.tableNameInput;
-    const title = tableNameInput && tableNameInput.value.trim()
-      ? tableNameInput.value.trim()
-      : 'Query Form';
+    const title = tableNameInput ? tableNameInput.value.trim() : '';
     const inputs = buildGeneratedInputSpecsFromActiveFilters([], querySnapshot.activeFilters);
 
     return normalizeSpec({
@@ -1447,16 +1451,16 @@
       return;
     }
 
+    tableNameInput.placeholder = 'No name';
+
     const syncBrowserUrl = () => {
       if (!state.active || !state.spec || state.isClearingQuery) {
         return;
       }
 
       const currentTableName = tableNameInput.value.trim();
-      if (currentTableName) {
-        state.spec.title = currentTableName;
-        state.spec.queryName = currentTableName;
-      }
+      state.spec.title = currentTableName;
+      state.spec.queryName = currentTableName;
 
       const bindings = collectFormBindings(state.spec, getCurrentInputValues, supportsMultipleValues, getInputParamKeys);
       syncFormHeaderCopy(state.formCard, state.spec, bindings, interpolateValue);
