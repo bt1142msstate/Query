@@ -109,6 +109,7 @@
       key: uniqueInputKey(`${fieldName}-${operator}`, existingKeys),
       keys: [],
       field: fieldName,
+      source: 'manual',
       label: fieldName,
       help: '',
       placeholder: '',
