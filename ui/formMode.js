@@ -1,6 +1,16 @@
 (function() {
   const services = window.AppServices;
   const uiActions = window.AppUiActions;
+  const formModeStateHelpers = window.FormModeStateHelpers;
+  const {
+    collectBindings: collectFormBindings,
+    setTableName: syncFormTableName,
+    ensureColumnsRegistered,
+    buildActiveFilters,
+    updateHeaderCopy: syncFormHeaderCopy,
+    getValidationError: getFormValidationError
+  } = formModeStateHelpers;
+  let initialized = false;
   const state = {
     active: false,
     spec: null,
@@ -1301,139 +1311,24 @@
     return getInputSpecDefaultValues(inputSpec).filter(Boolean);
   }
 
-  function collectBindings() {
-    const bindings = {};
-
-    state.spec.inputs.forEach(inputSpec => {
-      const fieldDef = window.fieldDefs && inputSpec.field ? window.fieldDefs.get(inputSpec.field) : null;
-      const isMultiValue = supportsMultipleValues(inputSpec, fieldDef);
-      const values = getCurrentInputValues(inputSpec);
-      const keys = getInputParamKeys(inputSpec);
-      if (inputSpec.operator === 'between' && keys.length >= 2) {
-        keys.slice(0, 2).forEach((key, index) => {
-          bindings[key] = values[index] || '';
-        });
-      }
-
-      bindings[inputSpec.key] = isMultiValue ? values.filter(Boolean) : (values[0] || '');
-    });
-
-    return bindings;
-  }
-
-  function setTableName(bindings) {
-    const tableNameInput = window.DOM && window.DOM.tableNameInput;
-    if (!tableNameInput) return;
-
-    if (state.suppressAutoTableNameOnce) {
-      state.suppressAutoTableNameOnce = false;
-      state.lastSuggestedTableName = '';
-      tableNameInput.value = '';
-      tableNameInput.classList.remove('error');
-      tableNameInput.dispatchEvent(new Event('input', { bubbles: true }));
-      return;
-    }
-
-    const queryNameOverride = state.searchParams.get('tableName');
-    const nextName = queryNameOverride || interpolateValue(state.spec.queryName || state.spec.title, bindings);
-    const currentValue = tableNameInput.value.trim();
-    const shouldUpdate = !currentValue || currentValue === state.lastSuggestedTableName;
-
-    state.lastSuggestedTableName = nextName;
-
-    if (!shouldUpdate) {
-      return;
-    }
-
-    tableNameInput.value = nextName;
-    tableNameInput.classList.remove('error');
-    tableNameInput.dispatchEvent(new Event('input', { bubbles: true }));
-  }
-
-  function ensureColumnsRegistered(columns) {
-    if (typeof window.registerDynamicField !== 'function') return;
-    columns.forEach(column => window.registerDynamicField(column));
-  }
-
-  function appendFilter(targetFilters, fieldName, operator, values) {
-    const normalizedValues = Array.isArray(values)
-      ? values.map(value => String(value || '').trim()).filter(Boolean)
-      : [];
-    if (!fieldName || normalizedValues.length === 0) {
-      return;
-    }
-
-    if (!targetFilters[fieldName]) {
-      targetFilters[fieldName] = { filters: [] };
-    }
-
-    targetFilters[fieldName].filters.push({
-      cond: operator,
-      val: operator === 'between' ? normalizedValues.slice(0, 2).join('|') : normalizedValues.join(',')
-    });
-  }
-
-  function resolveLockedFilterValues(filterSpec, bindings) {
-    const rawValues = Array.isArray(filterSpec.values)
-      ? filterSpec.values
-      : (filterSpec.value === undefined || filterSpec.value === null ? [] : [filterSpec.value]);
-
-    const resolved = rawValues.map(value => interpolateValue(value, bindings)).filter(Boolean);
-    if (filterSpec.operator === 'between') {
-      return resolved.slice(0, 2);
-    }
-    return resolved;
-  }
-
-  function updateHeaderCopy(bindings) {
-    if (!state.formCard) return;
-    const titleEl = state.formCard.querySelector('[data-form-mode-title]');
-    const descriptionEl = state.formCard.querySelector('[data-form-mode-description]');
-    if (titleEl) {
-      titleEl.textContent = interpolateValue(state.spec.title, bindings) || 'Query Form';
-    }
-    if (descriptionEl) {
-      const resolved = interpolateValue(state.spec.description, bindings);
-      descriptionEl.textContent = resolved;
-      descriptionEl.classList.toggle('hidden', !resolved);
-    }
-  }
-
   function applyFormState(options = {}) {
     if (!state.active || !state.spec) return;
 
     const source = options.source || 'QueryFormMode.applyFormState';
 
-    const bindings = collectBindings();
-    updateHeaderCopy(bindings);
-    setTableName(bindings);
+    const bindings = collectFormBindings(state.spec, getCurrentInputValues, supportsMultipleValues, getInputParamKeys);
+    syncFormHeaderCopy(state.formCard, state.spec, bindings, interpolateValue);
+    syncFormTableName(state, bindings, interpolateValue);
 
     const columns = state.spec.columns.slice();
     ensureColumnsRegistered(columns);
-
-    const nextActiveFilters = {};
-
-    state.spec.lockedFilters.forEach(filterSpec => {
-      appendFilter(nextActiveFilters, filterSpec.field, filterSpec.operator, resolveLockedFilterValues(filterSpec, bindings));
-    });
-
-    state.spec.inputs.forEach(inputSpec => {
-      const fieldDef = window.fieldDefs && inputSpec.field ? window.fieldDefs.get(inputSpec.field) : null;
-      const isMultiValue = supportsMultipleValues(inputSpec, fieldDef);
-      const values = getCurrentInputValues(inputSpec);
-      if (inputSpec.operator === 'between') {
-        const betweenValues = values.slice(0, 2).map(value => String(value || '').trim());
-        if (betweenValues.every(Boolean)) {
-          appendFilter(nextActiveFilters, inputSpec.field, 'between', betweenValues);
-        }
-        return;
-      }
-
-      const activeValues = isMultiValue ? values.filter(Boolean) : values.slice(0, 1).filter(Boolean);
-      if (activeValues.length > 0) {
-        appendFilter(nextActiveFilters, inputSpec.field, inputSpec.operator, activeValues);
-      }
-    });
+    const nextActiveFilters = buildActiveFilters(
+      state.spec,
+      bindings,
+      getCurrentInputValues,
+      supportsMultipleValues,
+      interpolateValue
+    );
 
     window.QueryChangeManager.setQueryState({
       displayedFields: columns,
@@ -1453,46 +1348,7 @@
   }
 
   function getValidationError() {
-    if (!state.active || !state.spec) return '';
-
-    const missingLabels = [];
-    const invalidDateLabels = [];
-    state.spec.inputs.forEach(inputSpec => {
-      const values = getControlValues(inputSpec);
-      const fieldDef = window.fieldDefs && inputSpec.field ? window.fieldDefs.get(inputSpec.field) : null;
-      const isDateField = getFieldInputType(fieldDef, inputSpec) === 'date';
-      const isMissing = inputSpec.operator === 'between'
-        ? values.slice(0, 2).some(value => !String(value || '').trim())
-        : values.filter(Boolean).length === 0;
-      const hasInvalidDate = isDateField && values.some(value => {
-        const normalized = String(value || '').trim();
-        return normalized && (!window.CustomDatePicker || !window.CustomDatePicker.isValidDateValue(normalized));
-      });
-
-      const control = state.controls.get(inputSpec.key);
-      if (control) {
-        control.classList.toggle('form-mode-control-invalid', (inputSpec.required && isMissing) || hasInvalidDate);
-      }
-
-      if (inputSpec.required && isMissing) {
-        missingLabels.push(inputSpec.label);
-        return;
-      }
-
-      if (hasInvalidDate) {
-        invalidDateLabels.push(inputSpec.label);
-      }
-    });
-
-    if (missingLabels.length > 0) {
-      return `Fill required form fields: ${missingLabels.join(', ')}`;
-    }
-
-    if (invalidDateLabels.length > 0) {
-      return `Use M/D/YYYY for: ${invalidDateLabels.join(', ')}`;
-    }
-
-    return '';
+    return getFormValidationError(state, state.controls, getControlValues, getFieldInputType);
   }
 
   function syncValidationUi() {
@@ -1990,6 +1846,11 @@
   }
 
   async function initialize() {
+    if (initialized) {
+      return;
+    }
+
+    initialized = true;
     const searchParams = new URLSearchParams(window.location.search);
     state.initialSearchParams = new URLSearchParams(window.location.search);
     state.searchParams = searchParams;
@@ -2079,6 +1940,7 @@
   }
 
   window.QueryFormMode = {
+    initialize,
     encodeSpec,
     decodeSpec,
     async activateFromCurrentQuery() {
@@ -2093,13 +1955,4 @@
     getValidationError,
     buildCurrentShareUrl
   };
-
-  window.onDOMReady(() => {
-    initialize().catch(error => {
-      console.error('Failed to initialize form mode:', error);
-      if (window.showToastMessage) {
-        window.showToastMessage('Failed to initialize form mode.', 'error');
-      }
-    });
-  });
 })();

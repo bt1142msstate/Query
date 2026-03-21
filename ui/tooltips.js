@@ -15,6 +15,10 @@
   let hideTimeout = null;
   let isDragging = false; // Track drag state
 
+  function resetDragState() {
+    isDragging = false;
+  }
+
   function tooltipDebugLog(eventName, payload = {}) {
     if (!window) return;
     const debugEnabled = window.BUBBLE_DEBUG === true || (window.localStorage && window.localStorage.getItem('BUBBLE_DEBUG') === '1');
@@ -305,9 +309,11 @@
       isDragging = true;
       forceHide();
     });
-    document.addEventListener('dragend', () => {
-      isDragging = false;
-    });
+    document.addEventListener('dragend', resetDragState);
+    document.addEventListener('drop', resetDragState, true);
+    document.addEventListener('mouseup', resetDragState, true);
+    window.addEventListener('drop', resetDragState, true);
+    window.addEventListener('blur', resetDragState);
 
     // On click, update tooltip if data-tooltip changed
     document.addEventListener('click', e => {
