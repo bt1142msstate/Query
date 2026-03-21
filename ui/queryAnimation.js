@@ -274,8 +274,9 @@ function updateTableQueryBubbleMetrics(bubble, metrics = {}) {
     bubble._resultCount = metrics.resultCount;
   }
 
-  const elapsedValue = bubble.querySelector('[data-query-elapsed-value]');
-  const resultsValue = bubble.querySelector('[data-query-results-value]');
+  const metricsRoot = bubble._hud || bubble;
+  const elapsedValue = metricsRoot.querySelector('[data-query-elapsed-value]');
+  const resultsValue = metricsRoot.querySelector('[data-query-results-value]');
   if (elapsedValue) {
     const startTime = Number.isFinite(bubble._queryStartTime) ? bubble._queryStartTime : Date.now();
     elapsedValue.textContent = formatQueryBubbleElapsed((Date.now() - startTime) / 1000);
@@ -324,8 +325,11 @@ window.startTableQueryAnimation = function() {
 
   const contentNode = document.createElement('div');
   contentNode.className = 'table-query-bubble-content';
-  contentNode.appendChild(metricsNode);
   contentNode.appendChild(textNode);
+
+  const hudNode = document.createElement('div');
+  hudNode.className = 'table-query-bubble-hud';
+  hudNode.appendChild(metricsNode);
 
   // Stop button — revealed on hover while the query is running
   const stopOverlay = document.createElement('div');
@@ -361,6 +365,7 @@ window.startTableQueryAnimation = function() {
   bubble.appendChild(stopOverlay);
   bubble._queryStartTime = Date.now();
   bubble._resultCount = 0;
+  bubble._hud = hudNode;
 
   const rect = tableContainer.getBoundingClientRect();
   bubble.style.width = rect.width + 'px';
@@ -370,6 +375,7 @@ window.startTableQueryAnimation = function() {
   bubble.style.borderRadius = '1.5rem';
 
   document.body.appendChild(bubble);
+  document.body.appendChild(hudNode);
   tableContainer.classList.add('table-container-hidden');
 
   const filterPanel = document.getElementById('filter-side-panel');
@@ -439,6 +445,7 @@ window.endTableQueryAnimation = function() {
   bubble.classList.remove('is-interactive');
   bubble.classList.add('is-completing');
   bubble.style.pointerEvents = 'none';
+  if (bubble._hud) bubble._hud.classList.add('is-completing');
 
   const stopOverlay = bubble.querySelector('.table-query-bubble-stop');
   if (stopOverlay) {
@@ -496,6 +503,7 @@ window.endTableQueryAnimation = function() {
 
       setTimeout(() => {
         if (bubble.parentNode) bubble.remove();
+        if (bubble._hud && bubble._hud.parentNode) bubble._hud.remove();
       }, 400);
     };
 

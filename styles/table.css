@@ -2184,11 +2184,28 @@ body.post-filter-overlay-open {
   animation: querying-text-breathe 2.2s ease-in-out infinite;
 }
 
+.table-query-bubble-hud {
+  position: fixed;
+  z-index: 100;
+  left: 50%;
+  /* sit flush above the bubble (bubble centre = 50%, half-height = 175px) */
+  top: calc(50% - 175px - 18px);
+  transform: translate(-50%, -100%);
+  width: 350px;
+  max-width: 90vw;
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.2s ease;
+}
+
+.table-query-bubble-hud.is-completing {
+  opacity: 0;
+  transform: translate(-50%, calc(-100% - 10px));
+}
+
 .table-query-bubble-metrics {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.65rem;
-  width: 100%;
 }
 
 .table-query-bubble-metric {
