@@ -26,6 +26,77 @@ var getActiveFilters = window.QueryStateReaders.getActiveFilters.bind(window.Que
 let currentQueryId = null;
 window.queryPageIsUnloading = false;
 
+function updateLiveQueryProgress(resultCount, options = {}) {
+  if (typeof window.updateTableQueryAnimationProgress === 'function') {
+    window.updateTableQueryAnimationProgress({
+      resultCount,
+      startTime: options.startTime
+    });
+  }
+
+  if (currentQueryId && window.QueryHistorySystem) {
+    const q = window.QueryHistorySystem.exampleQueries.find(query => query.id === currentQueryId);
+    if (q) {
+      q.resultCount = resultCount;
+    }
+  }
+}
+
+async function readStreamedQueryText(response, options = {}) {
+  if (!response.body || typeof response.body.getReader !== 'function') {
+    const fallbackText = await response.text();
+    const fallbackLines = fallbackText.split('\n').filter(line => line.trim().length > 0);
+    if (typeof options.onProgress === 'function') {
+      options.onProgress(fallbackLines.length);
+    }
+    return { text: fallbackText, lines: fallbackLines };
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  const lines = [];
+  let bufferedText = '';
+  let fullText = '';
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+
+    const chunk = decoder.decode(value, { stream: true });
+    fullText += chunk;
+    bufferedText += chunk;
+
+    const chunkParts = bufferedText.split(/\r?\n/);
+    bufferedText = chunkParts.pop() || '';
+    let didCountAdvance = false;
+
+    chunkParts.forEach(line => {
+      if (line.trim().length === 0) return;
+      lines.push(line);
+      didCountAdvance = true;
+    });
+
+    if (didCountAdvance && typeof options.onProgress === 'function') {
+      options.onProgress(lines.length);
+    }
+  }
+
+  const tail = decoder.decode();
+  if (tail) {
+    fullText += tail;
+    bufferedText += tail;
+  }
+
+  if (bufferedText.trim().length > 0) {
+    lines.push(bufferedText);
+    if (typeof options.onProgress === 'function') {
+      options.onProgress(lines.length);
+    }
+  }
+
+  return { text: fullText, lines };
+}
+
 function markQueryPageUnload() {
   window.queryPageIsUnloading = true;
 }
@@ -95,6 +166,8 @@ if(dom.runBtn){
           window.updateButtonStates();
         }
         if (window.startTableQueryAnimation) window.startTableQueryAnimation();
+        const queryStartedAt = Date.now();
+        updateLiveQueryProgress(0, { startTime: queryStartedAt });
         
         const state = window.getCurrentQueryState();
         const queryName = typeof window.ensureTableName === 'function'
@@ -145,7 +218,13 @@ if(dom.runBtn){
             throw new Error(`Server error: ${response.status} ${response.statusText}`);
         }
 
-        const text = await response.text();
+        const streamedPayload = await readStreamedQueryText(response, {
+          onProgress: rowCount => {
+            if (!window.queryRunning) return;
+            updateLiveQueryProgress(rowCount, { startTime: queryStartedAt });
+          }
+        });
+        const text = streamedPayload.text;
         
         // If user stopped the query while waiting for response, abort processing
         if (!window.queryRunning) {
@@ -159,7 +238,9 @@ if(dom.runBtn){
         const rawColsHeader = response.headers.get('X-Raw-Columns');
         const rawColumns = rawColsHeader ? rawColsHeader.split('|') : state.displayedFields;
         
-        const lines = text.split('\n').filter(line => line.trim().length > 0);
+        const lines = Array.isArray(streamedPayload.lines)
+          ? streamedPayload.lines.slice()
+          : text.split('\n').filter(line => line.trim().length > 0);
         const headers = state.displayedFields; // Requested order
         const rows = lines.map(line => {
           const obj = typeof window.parsePipeDelimitedRow === 'function'
@@ -173,6 +254,7 @@ if(dom.runBtn){
         });
 
         console.log(`Received ${rows.length} rows`);
+        updateLiveQueryProgress(rows.length, { startTime: queryStartedAt });
         
         // Mark as complete in history
         if (currentQueryId && window.QueryHistorySystem) {

@@ -249,6 +249,42 @@ function createTableQueryCircuitOverlay() {
   return container;
 }
 
+function formatQueryBubbleElapsed(seconds) {
+  const safeSeconds = Math.max(0, Math.floor(Number(seconds) || 0));
+  const minutes = Math.floor(safeSeconds / 60);
+  const remainingSeconds = safeSeconds % 60;
+  return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`;
+}
+
+function clearTableQueryBubbleTimers(bubble) {
+  if (!bubble) return;
+  if (bubble._elapsedTimer) {
+    clearInterval(bubble._elapsedTimer);
+    bubble._elapsedTimer = null;
+  }
+}
+
+function updateTableQueryBubbleMetrics(bubble, metrics = {}) {
+  if (!bubble) return;
+
+  if (typeof metrics.startTime === 'number' && Number.isFinite(metrics.startTime)) {
+    bubble._queryStartTime = metrics.startTime;
+  }
+  if (typeof metrics.resultCount === 'number' && Number.isFinite(metrics.resultCount)) {
+    bubble._resultCount = metrics.resultCount;
+  }
+
+  const elapsedValue = bubble.querySelector('[data-query-elapsed-value]');
+  const resultsValue = bubble.querySelector('[data-query-results-value]');
+  if (elapsedValue) {
+    const startTime = Number.isFinite(bubble._queryStartTime) ? bubble._queryStartTime : Date.now();
+    elapsedValue.textContent = formatQueryBubbleElapsed((Date.now() - startTime) / 1000);
+  }
+  if (resultsValue) {
+    resultsValue.textContent = Number(bubble._resultCount || 0).toLocaleString();
+  }
+}
+
 window.startTableQueryAnimation = function() {
   const tableContainer = document.getElementById('table-container');
   if (!tableContainer) return;
@@ -272,8 +308,24 @@ window.startTableQueryAnimation = function() {
   const textNode = document.createElement('span');
   textNode.className = 'table-query-bubble-text';
   textNode.textContent = 'Querying...';
-  textNode.style.position = 'relative';
-  textNode.style.zIndex = '2';
+
+  const metricsNode = document.createElement('div');
+  metricsNode.className = 'table-query-bubble-metrics';
+  metricsNode.innerHTML = `
+    <div class="table-query-bubble-metric">
+      <span class="table-query-bubble-metric-label">Elapsed</span>
+      <span class="table-query-bubble-metric-value" data-query-elapsed-value>0:00</span>
+    </div>
+    <div class="table-query-bubble-metric">
+      <span class="table-query-bubble-metric-label">Results</span>
+      <span class="table-query-bubble-metric-value" data-query-results-value>0</span>
+    </div>
+  `;
+
+  const contentNode = document.createElement('div');
+  contentNode.className = 'table-query-bubble-content';
+  contentNode.appendChild(textNode);
+  contentNode.appendChild(metricsNode);
 
   // Stop button — revealed on hover while the query is running
   const stopOverlay = document.createElement('div');
@@ -305,8 +357,10 @@ window.startTableQueryAnimation = function() {
 
   bubble.appendChild(rippleLayer);
   bubble.appendChild(circuit);
-  bubble.appendChild(textNode);
+  bubble.appendChild(contentNode);
   bubble.appendChild(stopOverlay);
+  bubble._queryStartTime = Date.now();
+  bubble._resultCount = 0;
 
   const rect = tableContainer.getBoundingClientRect();
   bubble.style.width = rect.width + 'px';
@@ -326,6 +380,17 @@ window.startTableQueryAnimation = function() {
   void bubble.offsetWidth; /* force layout before starting render and transitions */
 
   if (circuit._startAnimation) circuit._startAnimation();
+  updateTableQueryBubbleMetrics(bubble, {
+    startTime: bubble._queryStartTime,
+    resultCount: 0
+  });
+  bubble._elapsedTimer = setInterval(() => {
+    if (!document.body.contains(bubble)) {
+      clearTableQueryBubbleTimers(bubble);
+      return;
+    }
+    updateTableQueryBubbleMetrics(bubble);
+  }, 1000);
 
   document.body.classList.add('scene-fade-transition', 'scene-fade-out');
 
@@ -353,6 +418,12 @@ window.startTableQueryAnimation = function() {
   }, 120);
 };
 
+window.updateTableQueryAnimationProgress = function(metrics = {}) {
+  const bubble = document.getElementById('table-query-bubble');
+  if (!bubble) return;
+  updateTableQueryBubbleMetrics(bubble, metrics);
+};
+
 window.endTableQueryAnimation = function() {
   const tableContainer = document.getElementById('table-container');
   const bubble = document.getElementById('table-query-bubble');
@@ -363,6 +434,8 @@ window.endTableQueryAnimation = function() {
     document.body.classList.remove('scene-fade-out', 'scene-fade-transition');
     return;
   }
+
+  clearTableQueryBubbleTimers(bubble);
 
   const circuitFadeDuration = 220;
   const circuitFadeLead = 240;
