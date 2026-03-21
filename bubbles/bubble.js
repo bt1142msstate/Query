@@ -134,6 +134,10 @@ function prepareBubbleFilterCardForOpen(filterCard = getBubbleFilterCardElement(
     return null;
   }
 
+  filterCard.hidden = false;
+  filterCard.removeAttribute('aria-hidden');
+  filterCard.inert = false;
+
   if (filterCard._showTimer) {
     clearTimeout(filterCard._showTimer);
     filterCard._showTimer = null;
@@ -157,6 +161,9 @@ function markBubbleFilterCardOpen(filterCard = getBubbleFilterCardElement(), opt
   }
 
   const { scrollReadyDelay = 240 } = options;
+  filterCard.hidden = false;
+  filterCard.removeAttribute('aria-hidden');
+  filterCard.inert = false;
   filterCard.classList.add('show', 'content-ready');
 
   filterCard._scrollReadyTimer = window.setTimeout(() => {
@@ -217,6 +224,12 @@ function resetBubbleEditorUi(options = {}) {
   if (filterError) {
     filterError.textContent = '';
     filterError.style.display = 'none';
+  }
+  if (filterCard) {
+    filterCard.classList.remove('show', 'content-ready', 'scroll-ready');
+    filterCard.setAttribute('aria-hidden', 'true');
+    filterCard.inert = true;
+    filterCard.hidden = true;
   }
 
   const operatorSelect = conditionPanel?.querySelector('#condition-operator-select');
