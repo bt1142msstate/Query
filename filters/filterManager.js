@@ -389,15 +389,6 @@ function buildBubbleConditionPanel(bubble) {
             .map(label => String(label).split(' ')[0].toLowerCase());
         conditionPanel.appendChild(createConditionOperatorPicker(operatorConditions, window.buildableConditionBtnHandler));
     } else {
-        // If the backend explicitly sent an empty filters list, this field is not filterable.
-        // Do not show the operator picker or value input — just the existing conditions list.
-        if (fieldDefInfo && Array.isArray(fieldDefInfo.filters) && fieldDefInfo.filters.length === 0) {
-            if (inputWrapper) inputWrapper.style.display = 'none';
-            if (confirmBtn) confirmBtn.style.display = 'none';
-            window.renderConditionList(selectedField);
-            return;
-        }
-
         // `[] is truthy` guard: only use perBubble override when it actually has entries.
         operatorConditions = ((perBubble && perBubble.length > 0)
             ? perBubble

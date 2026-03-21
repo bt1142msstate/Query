@@ -814,12 +814,6 @@
   height: 1rem;
 }
 
-.form-mode-field-picker-choice.fp-choice-disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
 @media (max-width: 760px) {
   .form-mode-field-picker-modal {
     width: min(100vw - 1rem, 640px);

@@ -18,8 +18,7 @@
           : String(fieldDef.category || ''),
         tooltipHtml: typeof window.formatFieldDefinitionTooltipHTML === 'function'
           ? window.formatFieldDefinitionTooltipHTML(fieldDef, { title: fieldDef.name })
-          : '',
-        filterable: !Array.isArray(fieldDef.filters) || fieldDef.filters.length > 0
+          : ''
       }))
       .sort((left, right) => left.name.localeCompare(right.name, undefined, { numeric: true, sensitivity: 'base' }));
   }
@@ -167,16 +166,9 @@
 
     function syncChoiceInputs() {
       const state = getSelectedState();
-      const selected = options.find(option => option.name === selectedFieldName) || null;
-      const isFilterable = !selected || selected.filterable !== false;
       syncingControls = true;
       if (displayChoice) displayChoice.checked = state.display;
-      if (filterChoice) {
-        filterChoice.checked = isFilterable ? state.filter : false;
-        filterChoice.disabled = !isFilterable;
-        const filterLabel = filterChoice.closest('label');
-        if (filterLabel) filterLabel.classList.toggle('fp-choice-disabled', !isFilterable);
-      }
+      if (filterChoice) filterChoice.checked = state.filter;
       syncingControls = false;
     }
 
@@ -211,9 +203,7 @@
       }
 
       if (allowFilter && filterChoice) {
-        if (selected && selected.filterable === false) {
-          statusParts.push('Not filterable');
-        } else if (filterChoice.checked && !state.filter) {
+        if (filterChoice.checked && !state.filter) {
           statusParts.push(`Will ${labels.filterChoice.toLowerCase()}`);
         } else if (!filterChoice.checked && state.filter) {
           statusParts.push(`Will remove ${labels.filterChoice.toLowerCase()}`);
@@ -378,13 +368,6 @@
   function openQueryFilterEditor(fieldName) {
     const fieldDef = window.fieldDefs && window.fieldDefs.get(fieldName);
     if (!fieldDef || !window.BubbleSystem || typeof window.BubbleSystem.Bubble !== 'function') {
-      return false;
-    }
-    // Field has no filterable conditions — don't open the editor at all.
-    if (Array.isArray(fieldDef.filters) && fieldDef.filters.length === 0) {
-      if (window.showToastMessage) {
-        window.showToastMessage(`${fieldName} cannot be filtered.`, 'warning');
-      }
       return false;
     }
 
