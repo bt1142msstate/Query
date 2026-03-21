@@ -24,6 +24,7 @@
     active: false,
     spec: null,
     specSource: 'generated',
+    initialSpec: null,
     searchParams: null,
     initialSearchParams: null,
     viewMode: 'bubbles',
@@ -245,6 +246,18 @@
       inputs,
       lockedFilters
     };
+  }
+
+  function cloneSpec(spec) {
+    if (!spec || typeof spec !== 'object') {
+      return null;
+    }
+
+    try {
+      return normalizeSpec(JSON.parse(JSON.stringify(spec)));
+    } catch (_) {
+      return normalizeSpec(spec);
+    }
   }
 
   function normalizeOperatorForField(fieldDef, operator) {
@@ -782,7 +795,9 @@
     state.active = true;
     state.specSource = 'generated';
     state.spec = nextSpec;
+    state.initialSpec = cloneSpec(nextSpec);
     state.searchParams = new URLSearchParams();
+    state.initialSearchParams = new URLSearchParams();
     state.initialSearchParams = new URLSearchParams();
     state.viewMode = 'form';
     state.controls.clear();
@@ -811,6 +826,7 @@
     state.active = true;
     state.specSource = 'generated';
     state.spec = nextSpec;
+    state.initialSpec = cloneSpec(nextSpec);
     state.searchParams = new URLSearchParams();
 
     if (options.forceFormMode) {
@@ -1260,6 +1276,7 @@
     card.querySelector('#form-mode-reset').addEventListener('click', async () => {
       // Revert the URL parameters fully back to whatever they were originally
       state.searchParams = state.initialSearchParams ? new URLSearchParams(state.initialSearchParams.toString()) : new URLSearchParams();
+      state.spec = cloneSpec(state.initialSpec || state.spec);
       state.lastSuggestedTableName = '';
       state.suppressAutoTableNameOnce = false;
 
@@ -1496,6 +1513,7 @@
     state.active = true;
     state.specSource = 'url';
     state.spec = decodedSpec;
+    state.initialSpec = cloneSpec(decodedSpec);
     state.searchParams = searchParams;
     state.viewMode = searchParams.get('mode') === 'bubbles' ? 'bubbles' : 'form';
 
