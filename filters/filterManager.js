@@ -389,6 +389,15 @@ function buildBubbleConditionPanel(bubble) {
             .map(label => String(label).split(' ')[0].toLowerCase());
         conditionPanel.appendChild(createConditionOperatorPicker(operatorConditions, window.buildableConditionBtnHandler));
     } else {
+        // If the backend explicitly sent an empty filters list, this field is not filterable.
+        // Do not show the operator picker or value input — just the existing conditions list.
+        if (fieldDefInfo && Array.isArray(fieldDefInfo.filters) && fieldDefInfo.filters.length === 0) {
+            if (inputWrapper) inputWrapper.style.display = 'none';
+            if (confirmBtn) confirmBtn.style.display = 'none';
+            window.renderConditionList(selectedField);
+            return;
+        }
+
         // `[] is truthy` guard: only use perBubble override when it actually has entries.
         operatorConditions = ((perBubble && perBubble.length > 0)
             ? perBubble
@@ -516,11 +525,22 @@ class FilterPill {
 
     render() {
         const { filter, fieldDef } = this;
-        const valueLabel = buildFilterValueLabel(filter, fieldDef);
         const useListViewer = shouldUseFilterListViewer(filter, fieldDef);
 
         // Operator label (always show full word)
         let opLabel = filter.cond.charAt(0).toUpperCase() + filter.cond.slice(1);
+
+        // Between: show each bound separately so it reads naturally: "Between X and Y"
+        let condContent;
+        if (filter.cond.toLowerCase() === 'between') {
+            const parts = getFilterDisplayValues(filter, fieldDef);
+            const lo = parts[0] || '';
+            const hi = parts[1] || '';
+            condContent = `Between <b>${lo}</b> and <b>${hi}</b>`;
+        } else {
+            const valueLabel = buildFilterValueLabel(filter, fieldDef);
+            condContent = `${opLabel} <b>${valueLabel}</b>`;
+        }
         
                 // Remove icon SVG
         const trashSVG = `<button type="button" class="filter-trash" aria-label="Remove filter" tabindex="0" style="background:none;border:none;padding:0;margin-left:0.7em;display:flex;align-items:center;cursor:pointer;color:#888;">
@@ -533,7 +553,7 @@ class FilterPill {
         this.el.style.display = 'flex';
         this.el.style.alignItems = 'center';
         this.el.style.justifyContent = 'space-between';
-        this.el.innerHTML = `<span>${opLabel} <b>${valueLabel}</b></span>${trashSVG}`;
+        this.el.innerHTML = `<span>${condContent}</span>${trashSVG}`;
         if (useListViewer) {
             this.el.classList.add('cond-pill-clickable');
             this.el.setAttribute('role', 'button');
