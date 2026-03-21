@@ -380,6 +380,19 @@ body.export-overlay-open {
   background-color: rgba(0, 0, 0, 0.02);
 }
 
+/* Cell hover glow — only active when real row data is loaded */
+body.has-loaded-data #example-table tbody td {
+  transition: box-shadow 0.12s ease;
+}
+
+body.has-loaded-data #example-table tbody td:hover {
+  box-shadow:
+    inset 0 0 0 1.5px rgba(59, 130, 246, 0.38),
+    0 0 10px rgba(59, 130, 246, 0.1);
+  position: relative;
+  z-index: 1;
+}
+
 /* Alternating row colors */
 #example-table tbody tr:nth-child(even) {
   background-color: rgba(0, 0, 0, 0.01);
