@@ -333,3 +333,8 @@ function initializeBubbleInteractions() {
 window.BubbleInteraction = {
   initializeBubbles: initializeBubbleInteractions
 };
+
+// Keep bubbles in sync with query state changes reactively.
+window.QueryStateSubscriptions.subscribe(() => {
+  window.BubbleSystem?.safeRenderBubbles();
+}, { displayedFields: true, activeFilters: true });

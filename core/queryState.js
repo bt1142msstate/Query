@@ -536,6 +536,8 @@ async function clearQueryManagerState(meta = {}) {
     window.resetSplitColumnsToggleUI();
   }
 
+  // State reset fires all QueryStateSubscriptions, which reactively
+  // update FilterSidePanel, category counts, JSON preview, button states, and bubbles.
   queryStateStore.resetState(normalizedMeta);
 
   if (previousSelectedField && typeof window.renderConditionList === 'function') {
@@ -564,22 +566,6 @@ async function clearQueryManagerState(meta = {}) {
 
   if (window.BubbleSystem && typeof window.BubbleSystem.resetBubbleScroll === 'function') {
     window.BubbleSystem.resetBubbleScroll();
-  }
-
-  if (window.FilterSidePanel && typeof window.FilterSidePanel.update === 'function') {
-    window.FilterSidePanel.update();
-  }
-  if (typeof window.updateCategoryCounts === 'function') {
-    window.updateCategoryCounts();
-  }
-  if (typeof window.updateQueryJson === 'function') {
-    window.updateQueryJson();
-  }
-  if (typeof window.updateButtonStates === 'function') {
-    window.updateButtonStates();
-  }
-  if (window.BubbleSystem && typeof window.BubbleSystem.safeRenderBubbles === 'function') {
-    window.BubbleSystem.safeRenderBubbles();
   }
 
   if (typeof window.showToastMessage === 'function') {
@@ -755,11 +741,8 @@ window.QueryChangeManager.subscribe(event => {
     return;
   }
 
-  if (typeof window.updateQueryJson === 'function') {
-    window.updateQueryJson();
-  } else if (typeof window.updateButtonStates === 'function') {
-    window.updateButtonStates();
-  }
+  // updateQueryJson and updateButtonStates are now handled via QueryStateSubscriptions
+  // in their own modules (jsonViewerUI.js, queryUI.js) — no need to call them here.
 
   if (shouldSkipQueryChangeToast(event.meta)) {
     return;
