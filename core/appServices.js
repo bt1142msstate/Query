@@ -21,6 +21,10 @@
     return window.ModalSystem || null;
   }
 
+  function getQueryHistoryService() {
+    return window.QueryHistorySystem || null;
+  }
+
   function rerenderBubbles() {
     const bubble = getBubbleService();
     bubble?.safeRenderBubbles?.();
@@ -121,6 +125,34 @@
 
   function lockModalInput(duration = 600) {
     getModalService()?.lockInput?.(duration);
+  }
+
+  function addHistoryQuery(query) {
+    return getQueryHistoryService()?.addQuery?.(query) || null;
+  }
+
+  function updateHistoryQuery(queryId, updates, options = {}) {
+    return getQueryHistoryService()?.updateQuery?.(queryId, updates, options) || null;
+  }
+
+  function getHistoryQueryById(queryId) {
+    return getQueryHistoryService()?.getQueryById?.(queryId) || null;
+  }
+
+  function renderHistoryQueries() {
+    return getQueryHistoryService()?.renderQueries?.();
+  }
+
+  function startHistoryDurationUpdates() {
+    return getQueryHistoryService()?.startQueryDurationUpdates?.();
+  }
+
+  function stopHistoryDurationUpdates() {
+    return getQueryHistoryService()?.stopQueryDurationUpdates?.();
+  }
+
+  function fetchHistoryQueryStatus() {
+    return getQueryHistoryService()?.fetchQueryStatus?.();
   }
 
   function attachBubbleDropTarget(target) {
@@ -287,6 +319,13 @@
     applyBubbleScrollRow,
     closeAllModals,
     lockModalInput,
+    addHistoryQuery,
+    updateHistoryQuery,
+    getHistoryQueryById,
+    renderHistoryQueries,
+    startHistoryDurationUpdates,
+    stopHistoryDurationUpdates,
+    fetchHistoryQueryStatus,
     attachBubbleDropTarget,
     restoreFieldWithDuplicates,
     addDragAndDrop,

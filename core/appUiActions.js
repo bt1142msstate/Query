@@ -13,7 +13,7 @@
   }
 
   function updateCategoryCounts() {
-    window.updateCategoryCounts?.();
+    (window.QueryBuilderShell?.updateCategoryCounts || window.updateCategoryCounts)?.();
   }
 
   function updateButtonStates() {
@@ -26,6 +26,14 @@
 
   function updateQueryJson() {
     window.JsonViewerUI?.updateQueryJson?.();
+  }
+
+  function updateTableResultsLip() {
+    window.QueryUI?.updateTableResultsLip?.();
+  }
+
+  function updateFilterSidePanel() {
+    window.FilterSidePanel?.update?.();
   }
 
   function refreshTableViewport() {
@@ -42,6 +50,8 @@
     updateButtonStates,
     updateRunButtonIcon,
     updateQueryJson,
+    updateTableResultsLip,
+    updateFilterSidePanel,
     refreshTableViewport,
     updateTableChromeState
   });

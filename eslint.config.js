@@ -124,7 +124,6 @@ const allowedWindowAssignments = new Set([
   'renderJsonNode',
   'renderJsonPrimitive',
   'renderJsonTree',
-  'resetBubbleScrollState',
   'resetSplitColumnsToggleUI',
   'resolveFieldName',
   'restoreFieldWithDuplicates',
@@ -138,7 +137,6 @@ const allowedWindowAssignments = new Set([
   'shouldFieldHavePurpleStylingBase',
   'shouldUseFilterListViewer',
   'showError',
-  'showExampleTable',
   'showToast',
   'showToastMessage',
   'splitColumnsActive',
@@ -149,16 +147,12 @@ const allowedWindowAssignments = new Set([
   'CustomDatePicker',
   'TableContextMenu',
   'typeConditions',
-  'updateButtonStates',
   'updateCategoryCounts',
   'updateFilteredDefs',
-  'updateQueryJson',
   'updateTableQueryAnimationProgress',
-  'updateRunButtonIcon',
   'updateSortHeadersUI',
   'updateSplitColumnsToggleState',
-  'updateTableChromeState',
-  'updateTableResultsLip'
+  'updateTableChromeState'
 ]);
 
 const restrictedQueryStateReadMethods = new Set([

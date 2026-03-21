@@ -753,10 +753,8 @@ window.FilterSidePanel = (function () {
 }());
 
 window.addEventListener('resize', () => {
-    if (window.FilterSidePanel && typeof window.FilterSidePanel.update === 'function') {
-        const panel = window.DOM.filterSidePanel;
-        if (panel && !panel.classList.contains('panel-hidden')) {
-            window.FilterSidePanel.update();
-        }
+    const panel = window.DOM.filterSidePanel;
+    if (panel && !panel.classList.contains('panel-hidden')) {
+        window.AppUiActions?.updateFilterSidePanel?.();
     }
 });

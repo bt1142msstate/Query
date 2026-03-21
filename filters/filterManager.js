@@ -561,7 +561,7 @@ window.renderConditionList = function(field) {
 
     container.appendChild(list);
     uiActions.updateCategoryCounts();
-    window.FilterSidePanel && window.FilterSidePanel.update();
+    uiActions.updateFilterSidePanel();
 };
 
 /**
@@ -975,7 +975,7 @@ window.registerDynamicField = function(fieldName, opts = {}) {
 window.finalizeConfirmAction = function() {
     uiActions.updateQueryJson();
 
-    window.FilterSidePanel && window.FilterSidePanel.update();
+    uiActions.updateFilterSidePanel();
     uiActions.updateCategoryCounts();
 };
 

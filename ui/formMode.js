@@ -1088,9 +1088,7 @@
       }
     }
 
-    if (window.FilterSidePanel && typeof window.FilterSidePanel.update === 'function') {
-      window.FilterSidePanel.update();
-    }
+    uiActions.updateFilterSidePanel();
   }
 
   function refreshBubbleStageAfterModeSwitch() {
@@ -1345,7 +1343,9 @@
   function wrapUpdateButtonStates() {
     if (state.originalUpdateButtonStates || typeof window.QueryUI?.updateButtonStates !== 'function') return;
 
-    state.originalUpdateButtonStates = window.QueryUI.updateButtonStates;
+    state.originalUpdateButtonStates = typeof window.QueryUI.getBaseUpdateButtonStates === 'function'
+      ? window.QueryUI.getBaseUpdateButtonStates()
+      : window.QueryUI.updateButtonStates;
     window.QueryUI.setUpdateButtonStatesImpl(function wrappedFormModeUpdateButtonStates() {
       state.originalUpdateButtonStates();
       if (!state.active) return;

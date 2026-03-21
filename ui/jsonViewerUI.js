@@ -148,7 +148,6 @@ window.QueryStateSubscriptions.subscribe(() => {
   updateQueryJson();
 }, { displayedFields: true, activeFilters: true });
 
-window.updateQueryJson = updateQueryJson;
 window.JsonViewerUI = Object.freeze({
   updateQueryJson
 });

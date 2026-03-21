@@ -295,11 +295,9 @@
     services.initializeBubbles();
   }
 
-  window.resetBubbleScrollState = resetBubbleScrollState;
   window.updateCategoryCounts = updateCategoryCounts;
   window.QueryBuilderShell = Object.freeze({
     initialize,
-    resetBubbleScrollState,
     updateCategoryCounts
   });
 })();

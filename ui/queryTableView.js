@@ -316,7 +316,6 @@
   window.QueryTableView = queryTableView;
   window.renderEmptyQueryTableState = renderEmptyQueryTableState;
   window.createQueryTableHeaderCell = createQueryTableHeaderCell;
-  window.showExampleTable = showExampleTable;
 
   window.QueryStateSubscriptions.subscribe(event => {
     if (event?.changes?.displayedFields) {

@@ -470,9 +470,7 @@ function applyPostFilters(options = {}) {
     renderVirtualTable();
   }
 
-  if (typeof window.updateTableResultsLip === 'function') {
-    window.updateTableResultsLip();
-  }
+  uiActions.updateTableResultsLip();
 
   uiActions.updateButtonStates();
 

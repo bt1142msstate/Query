@@ -464,6 +464,10 @@ function setUpdateButtonStatesImpl(nextImpl) {
   updateButtonStatesImpl = typeof nextImpl === 'function' ? nextImpl : baseUpdateButtonStates;
 }
 
+function getBaseUpdateButtonStates() {
+  return baseUpdateButtonStates;
+}
+
 // Keep button states in sync with all query-state changes, including lifecycle-only
 // transitions like running/partial/results that do not change fields or filters.
 window.QueryStateSubscriptions.subscribe(() => {
@@ -484,10 +488,10 @@ const queryUi = {
   toggleTableExpanded,
   updateRunButtonIcon,
   updateButtonStates,
-  setUpdateButtonStatesImpl
+  setUpdateButtonStatesImpl,
+  getBaseUpdateButtonStates
 };
 
-window.updateTableResultsLip = updateTableResultsLip;
 window.getDefaultTableName = getDefaultTableName;
 window.ensureTableName = ensureTableName;
 window.getTableZoom = getTableZoom;
@@ -495,7 +499,5 @@ window.refreshTableViewport = refreshTableViewport;
 window.updateTableChromeState = updateTableChromeState;
 window.setTableZoom = setTableZoom;
 window.toggleTableExpanded = toggleTableExpanded;
-window.updateRunButtonIcon = updateRunButtonIcon;
-window.updateButtonStates = updateButtonStates;
 
 window.QueryUI = Object.freeze(queryUi);
