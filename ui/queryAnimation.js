@@ -260,6 +260,15 @@ window.startTableQueryAnimation = function() {
   bubble.id = 'table-query-bubble';
   bubble.className = 'table-query-bubble';
 
+  const rippleLayer = document.createElement('div');
+  rippleLayer.className = 'table-query-bubble-ripples';
+  for (let index = 0; index < 3; index += 1) {
+    const ripple = document.createElement('span');
+    ripple.className = 'table-query-bubble-ripple';
+    ripple.style.setProperty('--ripple-delay', `${index * 1.05}s`);
+    rippleLayer.appendChild(ripple);
+  }
+
   const textNode = document.createElement('span');
   textNode.className = 'table-query-bubble-text';
   textNode.textContent = 'Querying...';
@@ -294,6 +303,7 @@ window.startTableQueryAnimation = function() {
 
   const circuit = createTableQueryCircuitOverlay();
 
+  bubble.appendChild(rippleLayer);
   bubble.appendChild(circuit);
   bubble.appendChild(textNode);
   bubble.appendChild(stopOverlay);
