@@ -499,6 +499,8 @@
             });
           }
 
+          window.updateCategoryCounts?.();
+
           if (window.showToastMessage) {
             window.showToastMessage(`${fieldName} filters removed.`, 'success');
           }
