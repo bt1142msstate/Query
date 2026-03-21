@@ -880,6 +880,15 @@ window.handleFilterConfirm = function(e) {
                 return;
             }
         }
+
+        if (fieldType === 'date') {
+            const hasInvalidPrimaryDate = val && (!window.CustomDatePicker || !window.CustomDatePicker.isValidDateValue(val));
+            const hasInvalidSecondaryDate = cond === 'between' && val2 && (!window.CustomDatePicker || !window.CustomDatePicker.isValidDateValue(val2));
+            if (hasInvalidPrimaryDate || hasInvalidSecondaryDate) {
+                showFilterError('Use YYYY-MM-DD', tintInputs);
+                return;
+            }
+        }
     }
 
     // Between Validation: Value Order
@@ -1262,7 +1271,8 @@ window.configureInputsForType = function(type){
     const inputs=[inp1,inp2].filter(Boolean);
   const isMoney  = type==='money';
   const isNumber = type==='number';
-    const htmlType = (type==='date') ? 'date' : isMoney ? 'text' : isNumber ? 'number' : 'text';
+        const isDate = type === 'date';
+        const htmlType = isDate ? 'text' : isMoney ? 'text' : isNumber ? 'number' : 'text';
   inputs.forEach(inp=> inp.type = htmlType);
 
   if(isMoney){
@@ -1274,6 +1284,26 @@ window.configureInputsForType = function(type){
   }
 
     setMoneyFieldAppearance(inputs, isMoney);
+
+    if (window.CustomDatePicker && typeof window.CustomDatePicker.enhanceInput === 'function') {
+        inputs.forEach(inp => {
+            window.CustomDatePicker.enhanceInput(inp, {
+                variant: 'filter',
+                enabled: isDate,
+                placeholder: isDate ? 'YYYY-MM-DD' : inp.placeholder
+            });
+
+            if (isDate) {
+                inp.dataset.errorMsg = 'Use YYYY-MM-DD';
+                inp.setAttribute('pattern', '^\\d{4}-\\d{2}-\\d{2}$');
+            } else {
+                inp.removeAttribute('pattern');
+                if (inp.dataset.errorMsg === 'Use YYYY-MM-DD') {
+                    delete inp.dataset.errorMsg;
+                }
+            }
+        });
+    }
 };
 
 window.isListPasteField = function(fieldDef) {
