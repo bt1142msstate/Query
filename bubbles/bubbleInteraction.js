@@ -145,6 +145,18 @@ function initializeBubbleInteractions() {
     }
     if (!bubble) return;
 
+    const fieldName = bubble.textContent.trim();
+    const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
+    const isBuildable = Boolean(fieldDef && fieldDef.is_buildable);
+    const isFilterable = typeof window.isFieldBackendFilterable === 'function'
+      ? window.isFieldBackendFilterable(fieldDef || fieldName)
+      : Boolean(fieldDef && Array.isArray(fieldDef.filters) && fieldDef.filters.length > 0);
+
+    if (!isBuildable && !isFilterable) {
+      window.BubbleSystem.bubbleDebugLog('click.ignored.displayOnlyField', { fieldName });
+      return;
+    }
+
     if (window.queryRunning) {
       window.BubbleSystem.bubbleDebugLog('click.blocked.queryRunning', { bubble: bubble.textContent.trim() });
       if (window.showToastMessage) window.showToastMessage('Cannot edit conditions while a query is running', 'warning');
@@ -166,7 +178,6 @@ function initializeBubbleInteractions() {
 
     const savedCategory = currentCategory;
     const rect = bubble.getBoundingClientRect();
-    const fieldName = bubble.textContent.trim();
     window.BubbleSystem.bubbleDebugLog('click.open.start', { fieldName });
     const clone = bubble.cloneNode(true);
     clone.dataset.filterFor = fieldName;

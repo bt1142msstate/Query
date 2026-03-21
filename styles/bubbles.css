@@ -57,6 +57,14 @@
   background: var(--bubble-glass-bg);
 }
 
+.bubble.bubble-display-only {
+  cursor: grab;
+}
+
+.bubble.bubble-display-only[draggable="false"] {
+  cursor: default;
+}
+
 /* Secondary reflection (bottom right) */
 .bubble::before {
   content: "";

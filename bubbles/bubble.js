@@ -21,6 +21,9 @@ class Bubble {
     Object.assign(this.state, state);
     const { def } = this;
     const fieldName = def.name;
+    const isFilterable = typeof window.isFieldBackendFilterable === 'function'
+      ? window.isFieldBackendFilterable(def)
+      : Array.isArray(def.filters) && def.filters.length > 0;
     this.el.textContent = fieldName;
 
     if (def.type) {
@@ -28,6 +31,7 @@ class Bubble {
     } else {
       delete this.el.dataset.type;
     }
+    this.el.dataset.filterable = isFilterable ? 'true' : 'false';
     if (def.values) this.el.dataset.values = JSON.stringify(def.values);
     if (def.filters) this.el.dataset.filters = JSON.stringify(def.filters);
 
@@ -48,9 +52,11 @@ class Bubble {
       ? window.formatFieldDefinitionTooltipHTML(def)
       : '';
     if (tooltipContentHtml && filterTooltipHtml) {
-      tooltipContentHtml += filterTooltipHtml;
+      tooltipContentHtml = `<div class="tt-tooltip-stack">${tooltipContentHtml}${filterTooltipHtml}</div>`;
+    } else if (tooltipContentHtml) {
+      tooltipContentHtml = `<div class="tt-tooltip-stack">${tooltipContentHtml}</div>`;
     } else if (filterTooltipHtml) {
-      tooltipContentHtml = filterTooltipHtml;
+      tooltipContentHtml = `<div class="tt-tooltip-stack">${filterTooltipHtml}</div>`;
     }
 
     if (tooltipContentHtml) {
@@ -83,6 +89,8 @@ class Bubble {
       this.el.style.filter = '';
       this.el.removeAttribute('data-filter-for');
     }
+
+    this.el.classList.toggle('bubble-display-only', !isFilterable && !def.is_buildable);
 
     applyCorrectBubbleStyling(this.el);
   }
