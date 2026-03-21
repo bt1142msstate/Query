@@ -871,7 +871,7 @@
         if (!state.spec) return;
 
         if (nextChecked) {
-          if (!window.QueryChangeManager.hasDisplayedField(fieldName)) {
+          if (!window.QueryStateReaders.hasDisplayedField(fieldName)) {
             window.QueryChangeManager.addDisplayedField(fieldName, {
               source: 'QueryFormMode.fieldPicker.addDisplayedField'
             });
@@ -884,7 +884,7 @@
           return;
         }
 
-        if (window.QueryChangeManager.hasDisplayedField(fieldName)) {
+        if (window.QueryStateReaders.hasDisplayedField(fieldName)) {
           window.QueryChangeManager.removeDisplayedField(fieldName, {
             source: 'QueryFormMode.fieldPicker.removeDisplayedField'
           });

@@ -22,11 +22,6 @@
     positionDropAnchor: interactions.positionDropAnchor,
     clearDropAnchor: interactions.clearDropAnchor,
     restoreFieldWithDuplicates,
-    addColumn: interactions.addColumn,
-    removeColumnByName: interactions.removeColumnByName,
     getDuplicateGroups
   });
-
-  window.addColumn = interactions.addColumn;
-  window.removeColumnByName = interactions.removeColumnByName;
 })();

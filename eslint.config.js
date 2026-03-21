@@ -35,7 +35,6 @@ const allowedWindowAssignments = new Set([
   'ValueFormatting',
   'VirtualTable',
   'VisibilityUtils',
-  'addColumn',
   'addQueryToHistory',
   'animatingBackBubbles',
   'buildBackendFilters',
@@ -121,7 +120,6 @@ const allowedWindowAssignments = new Set([
   'queryRunning',
   'refreshTableViewport',
   'registerDynamicField',
-  'removeColumnByName',
   'removedColumnInfo',
   'renderCategorySelectors',
   'renderConditionList',
@@ -164,6 +162,16 @@ const allowedWindowAssignments = new Set([
   'updateSplitColumnsToggleState',
   'updateTableChromeState',
   'updateTableResultsLip'
+]);
+
+const restrictedQueryStateReadMethods = new Set([
+  'getSnapshot',
+  'getSerializableState',
+  'getDisplayedFields',
+  'getActiveFilters',
+  'getFilterGroupForField',
+  'hasDisplayedField',
+  'hasFiltersForField'
 ]);
 
 const localRules = {
@@ -210,6 +218,67 @@ const localRules = {
         }
       };
     }
+  },
+  'no-restricted-query-state-access': {
+    meta: {
+      type: 'problem',
+      docs: {
+        description: 'Prevent bypassing the approved query-state read/write surfaces.'
+      },
+      schema: [],
+      messages: {
+        privateStore: 'window.QueryStateStore is private. Use window.QueryChangeManager or window.QueryStateReaders.',
+        readerViaManager: 'Read query state via window.QueryStateReaders. Reserve window.QueryChangeManager for writes.',
+        blockedAppStateAlias: 'Use window.AppState.{{name}} instead of the blocked global alias window.{{name}}.'
+      }
+    },
+    create(context) {
+      return {
+        MemberExpression(node) {
+          if (node.computed || node.property.type !== 'Identifier') {
+            return;
+          }
+
+          const propertyName = node.property.name;
+          const objectNode = node.object;
+
+          if (objectNode.type === 'Identifier' && objectNode.name === 'window') {
+            if (propertyName === 'QueryStateStore') {
+              context.report({ node, messageId: 'privateStore' });
+              return;
+            }
+
+            if (propertyName === 'currentQueryState' || propertyName === 'lastExecutedQueryState') {
+              context.report({
+                node,
+                messageId: 'blockedAppStateAlias',
+                data: { name: propertyName }
+              });
+              return;
+            }
+          }
+
+          if (
+            objectNode.type === 'MemberExpression'
+            && !objectNode.computed
+            && objectNode.property.type === 'Identifier'
+            && objectNode.property.name === 'QueryChangeManager'
+            && restrictedQueryStateReadMethods.has(propertyName)
+          ) {
+            context.report({ node, messageId: 'readerViaManager' });
+            return;
+          }
+
+          if (
+            objectNode.type === 'Identifier'
+            && objectNode.name === 'QueryChangeManager'
+            && restrictedQueryStateReadMethods.has(propertyName)
+          ) {
+            context.report({ node, messageId: 'readerViaManager' });
+          }
+        }
+      };
+    }
   }
 };
 
@@ -244,7 +313,47 @@ module.exports = [
         ignoreRestSiblings: true,
         varsIgnorePattern: '^_$'
       }],
-      'local/no-unapproved-window-exports': 'error'
+      'no-restricted-globals': ['error',
+        {
+          name: 'displayedFields',
+          message: 'Use window.QueryStateReaders.getDisplayedFields() instead.'
+        },
+        {
+          name: 'activeFilters',
+          message: 'Use window.QueryStateReaders.getActiveFilters() instead.'
+        },
+        {
+          name: 'getCurrentQueryState',
+          message: 'Use window.QueryStateReaders.getSerializableState() instead.'
+        },
+        {
+          name: 'currentQueryState',
+          message: 'Use window.AppState.currentQueryState instead.'
+        },
+        {
+          name: 'lastExecutedQueryState',
+          message: 'Use window.AppState.lastExecutedQueryState instead.'
+        }
+      ],
+      'no-restricted-properties': ['error',
+        {
+          object: 'window',
+          property: 'displayedFields',
+          message: 'Use window.QueryStateReaders.getDisplayedFields() instead.'
+        },
+        {
+          object: 'window',
+          property: 'activeFilters',
+          message: 'Use window.QueryStateReaders.getActiveFilters() instead.'
+        },
+        {
+          object: 'window',
+          property: 'getCurrentQueryState',
+          message: 'Use window.QueryStateReaders.getSerializableState() instead.'
+        }
+      ],
+      'local/no-unapproved-window-exports': 'error',
+      'local/no-restricted-query-state-access': 'error'
     }
   }
 ];
