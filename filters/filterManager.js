@@ -790,11 +790,13 @@ window.handleConditionBtnClick = function(e) {
     if (cond === 'between') {
         (conditionInput2._customDatePickerApi?.shell || conditionInput2).style.display = 'block';
         conditionInput2.style.display = '';
-        betweenLbl.style.display = 'inline';
+        betweenLbl.style.display = 'block';
         conditionInput2.type = conditionInput.type;
+        inputWrapper.classList.add('is-between');
     } else {
         (conditionInput2._customDatePickerApi?.shell || conditionInput2).style.display = 'none';
         betweenLbl.style.display = 'none';
+        inputWrapper.classList.remove('is-between');
     }
 
     inputWrapper.classList.add('show');
@@ -1208,11 +1210,13 @@ window.buildableConditionBtnHandler = function(e) {
     if (cond === 'between') {
         (conditionInput2._customDatePickerApi?.shell || conditionInput2).style.display = 'block';
         conditionInput2.style.display = '';
-        betweenLbl.style.display = 'inline';
+        betweenLbl.style.display = 'block';
         conditionInput2.type = conditionInput.type;     // match type (date, number, text)
+        if (inputWrapper) inputWrapper.classList.add('is-between');
     } else {
         (conditionInput2._customDatePickerApi?.shell || conditionInput2).style.display = 'none';
         betweenLbl.style.display = 'none';
+        if (inputWrapper) inputWrapper.classList.remove('is-between');
     }
     
     if (inputWrapper) {
