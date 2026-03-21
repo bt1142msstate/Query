@@ -2,10 +2,6 @@
   display: none !important;
 }
 
-body.form-mode-active #filter-side-panel {
-  display: flex !important;
-}
-
 #form-mode-host {
   width: 100%;
   display: flex;

@@ -4,6 +4,7 @@
     spec: null,
     specSource: 'generated',
     searchParams: null,
+    initialSearchParams: null,
     viewMode: 'bubbles',
     formCard: null,
     validationEl: null,
@@ -761,6 +762,7 @@
     state.specSource = 'generated';
     state.spec = nextSpec;
     state.searchParams = new URLSearchParams();
+    state.initialSearchParams = new URLSearchParams();
     state.viewMode = 'form';
     state.controls.clear();
 
@@ -1763,9 +1765,34 @@
     });
 
     card.querySelector('#form-mode-reset').addEventListener('click', async () => {
-      if (window.QueryChangeManager && typeof window.QueryChangeManager.clearQuery === 'function') {
-        await window.QueryChangeManager.clearQuery();
+      // Revert the URL parameters fully back to whatever they were originally
+      state.searchParams = state.initialSearchParams ? new URLSearchParams(state.initialSearchParams.toString()) : new URLSearchParams();
+      state.lastSuggestedTableName = '';
+      state.suppressAutoTableNameOnce = false;
+
+      // Ensure any running query stops
+      if (window.queryRunning && typeof window.cancelQuery === 'function' && window.currentQueryId) {
+        window.cancelQuery(window.currentQueryId).catch(console.error);
+        window.queryRunning = false;
+        if (typeof window.updateRunButtonIcon === 'function') window.updateRunButtonIcon();
       }
+
+      // We drop the table output so it sets back to a pre-searched form state
+      if (window.VirtualTable && typeof window.VirtualTable.clearVirtualTableData === 'function') {
+        window.VirtualTable.clearVirtualTableData();
+      }
+
+      if (typeof window.renderEmptyQueryTableState === 'function') {
+        window.renderEmptyQueryTableState();
+      }
+
+      rebuildFormCardFromSpec({
+        preserveCurrentDefaults: false,
+        applyState: true,
+        refreshUrl: true,
+        clearSearchParams: false,
+        querySource: 'QueryFormMode.resetForm'
+      });
     });
 
     window.ClipboardUtils.bindCopyButton(state.copyBtn, () => buildCurrentShareUrl(), {
@@ -1902,6 +1929,7 @@
 
   async function initialize() {
     const searchParams = new URLSearchParams(window.location.search);
+    state.initialSearchParams = new URLSearchParams(window.location.search);
     state.searchParams = searchParams;
     state.lastBrowserUrl = window.location.href;
 
