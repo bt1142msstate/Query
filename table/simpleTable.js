@@ -567,36 +567,10 @@ class SimpleTable {
     }
 
     /**
-     * Get the table data as an array of objects
-     */
-    toObjectArray() {
-        if (this.rawTable.length === 0) return [];
-
-        const headers = this.rawTable[0];
-        return this.rawTable.slice(1).map(row => {
-            const obj = {};
-            headers.forEach((header, index) => {
-                obj[header] = row[index];
-            });
-            return obj;
-        });
-    }
-
-    /**
      * Get the raw table data
      */
     getRawTable() {
         return this.rawTable;
-    }
-
-    /**
-     * Get table dimensions
-     */
-    getDimensions() {
-        return {
-            width: this.width,
-            height: this.height
-        };
     }
 
     /**

@@ -645,13 +645,6 @@ window.createPopupListControl = function(innerControl, label, placeholder) {
 
   function updateSummary() {
     const displayValues = getDisplayValues();
-    const escFn = window.escapeHtml || function(value) {
-      return String(value || '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-    };
-
     if (!displayValues || displayValues.length === 0) {
       summarySpan.textContent = resolvedPlaceholder;
       summarySpan.classList.add('is-placeholder');

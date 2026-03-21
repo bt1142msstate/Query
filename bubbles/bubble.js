@@ -242,12 +242,7 @@ function resetBubbleEditorUi(options = {}) {
 }
 
 function mapBubbleConditionToFieldOperator(condition) {
-  if (typeof window.mapUiCondToFieldOperator === 'function') {
-    return window.mapUiCondToFieldOperator(condition);
-  }
-
-  const normalized = String(condition || '').trim();
-  return normalized ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : 'Equals';
+  return window.mapUiCondToFieldOperator(condition);
 }
 
 const BUBBLE_VISIBLE_ROWS = 2;

@@ -276,7 +276,7 @@
 
     const fields = getAvailableFields();
     const currentValue = elements.fieldSelect.value;
-    elements.fieldSelect.innerHTML = fields.map(field => `<option value="${field}">${window.escapeHtml ? window.escapeHtml(field) : field}</option>`).join('');
+    elements.fieldSelect.innerHTML = fields.map(field => `<option value="${field}">${window.escapeHtml(field)}</option>`).join('');
 
     if (!fields.length) {
       elements.fieldSelect.innerHTML = '<option value="">No result fields available</option>';
@@ -316,12 +316,12 @@
 
     elements.empty.classList.toggle('hidden', entries.length > 0);
     elements.list.innerHTML = entries.map(entry => {
-      const safeField = window.escapeHtml ? window.escapeHtml(entry.field) : entry.field;
+      const safeField = window.escapeHtml(entry.field);
       const ruleLabel = entry.logic === 'any' ? 'Rows can match any rule below' : 'Rows must match every rule below';
-      const safeRuleLabel = window.escapeHtml ? window.escapeHtml(ruleLabel) : ruleLabel;
+      const safeRuleLabel = window.escapeHtml(ruleLabel);
       const filterMarkup = entry.filters.map(({ filter, index }) => {
         const label = `${window.OperatorLabels.get(filter.cond)} ${formatFilterValue(filter, entry.field)}`;
-        const safeLabel = window.escapeHtml ? window.escapeHtml(label) : label;
+        const safeLabel = window.escapeHtml(label);
         return `
           <div class="post-filter-pill">
             <span class="post-filter-pill__text">${safeLabel}</span>
