@@ -108,7 +108,6 @@ window.updateQueryJson = function() {
     }
   }
   window.renderJsonTree(payload);
-  if (window.updateButtonStates) window.updateButtonStates();
 };
 
 window.onDOMReady(() => {
