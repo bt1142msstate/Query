@@ -40,7 +40,8 @@
     const queryNameOverride = state.searchParams.get('tableName');
     const nextName = queryNameOverride || interpolateValue(state.spec.queryName || state.spec.title, bindings);
     const currentValue = tableNameInput.value.trim();
-    const shouldUpdate = !currentValue || currentValue === state.lastSuggestedTableName;
+    const shouldForceSync = state.forceTableNameSyncOnce === true;
+    const shouldUpdate = shouldForceSync || !currentValue || currentValue === state.lastSuggestedTableName;
 
     if (state.spec && nextName) {
       state.spec.title = nextName;
@@ -48,6 +49,7 @@
     }
 
     state.lastSuggestedTableName = nextName;
+    state.forceTableNameSyncOnce = false;
 
     if (!shouldUpdate) {
       return;
