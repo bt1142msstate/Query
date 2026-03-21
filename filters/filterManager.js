@@ -443,7 +443,7 @@ function buildBubbleConditionPanel(bubble) {
             const betweenLabel = getFilterBetweenLabelElement();
             const existingSelect = document.getElementById('condition-select');
             const existingContainer = document.getElementById('condition-select-container');
-            if (conditionInput2) conditionInput2.style.display = 'none';
+            if (conditionInput2) (conditionInput2._customDatePickerApi?.shell || conditionInput2).style.display = 'none';
             if (betweenLabel) betweenLabel.style.display = 'none';
             if (existingSelect) existingSelect.style.display = 'none';
             if (existingContainer && existingContainer.parentNode) existingContainer.parentNode.removeChild(existingContainer);
@@ -788,11 +788,12 @@ window.handleConditionBtnClick = function(e) {
 
     // "Between" logic
     if (cond === 'between') {
-        conditionInput2.style.display = 'block';
+        (conditionInput2._customDatePickerApi?.shell || conditionInput2).style.display = 'block';
+        conditionInput2.style.display = '';
         betweenLbl.style.display = 'inline';
         conditionInput2.type = conditionInput.type;
     } else {
-        conditionInput2.style.display = 'none';
+        (conditionInput2._customDatePickerApi?.shell || conditionInput2).style.display = 'none';
         betweenLbl.style.display = 'none';
     }
 
@@ -885,7 +886,7 @@ window.handleFilterConfirm = function(e) {
             const hasInvalidPrimaryDate = val && (!window.CustomDatePicker || !window.CustomDatePicker.isValidDateValue(val));
             const hasInvalidSecondaryDate = cond === 'between' && val2 && (!window.CustomDatePicker || !window.CustomDatePicker.isValidDateValue(val2));
             if (hasInvalidPrimaryDate || hasInvalidSecondaryDate) {
-                showFilterError('Use YYYY-MM-DD', tintInputs);
+                showFilterError('Use M/D/YYYY', tintInputs);
                 return;
             }
         }
@@ -1205,11 +1206,12 @@ window.buildableConditionBtnHandler = function(e) {
     // Normal condition button behavior (show input field)
     // Show second input and "and" label only for "between"
     if (cond === 'between') {
-        conditionInput2.style.display = 'block';
+        (conditionInput2._customDatePickerApi?.shell || conditionInput2).style.display = 'block';
+        conditionInput2.style.display = '';
         betweenLbl.style.display = 'inline';
         conditionInput2.type = conditionInput.type;     // match type (date, number, text)
     } else {
-        conditionInput2.style.display = 'none';
+        (conditionInput2._customDatePickerApi?.shell || conditionInput2).style.display = 'none';
         betweenLbl.style.display = 'none';
     }
     
@@ -1290,15 +1292,15 @@ window.configureInputsForType = function(type){
             window.CustomDatePicker.enhanceInput(inp, {
                 variant: 'filter',
                 enabled: isDate,
-                placeholder: isDate ? 'YYYY-MM-DD' : inp.placeholder
+                placeholder: isDate ? 'M/D/YYYY' : inp.placeholder
             });
 
             if (isDate) {
-                inp.dataset.errorMsg = 'Use YYYY-MM-DD';
+                inp.dataset.errorMsg = 'Use M/D/YYYY';
                 inp.setAttribute('pattern', '^\\d{4}-\\d{2}-\\d{2}$');
             } else {
                 inp.removeAttribute('pattern');
-                if (inp.dataset.errorMsg === 'Use YYYY-MM-DD') {
+                if (inp.dataset.errorMsg === 'Use M/D/YYYY') {
                     delete inp.dataset.errorMsg;
                 }
             }

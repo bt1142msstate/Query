@@ -284,10 +284,15 @@ window.buildBackendFilters = function() {
       }
 
       mapActiveFilterToBackend(filter.cond, filter.val).forEach(({ operator, value }) => {
+        // Convert M/D/YYYY display values to YYYYMMDD for date fields
+        let backendValue = value;
+        if (fieldDef && fieldDef.type === 'date' && window.CustomDatePicker && typeof window.CustomDatePicker.toBackendDateValue === 'function') {
+          backendValue = window.CustomDatePicker.toBackendDateValue(value);
+        }
         filters.push({
           field: canonicalFieldName,
           operator,
-          value
+          value: backendValue
         });
       });
     });

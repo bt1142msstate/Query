@@ -1101,7 +1101,7 @@
       const input = document.createElement('input');
       input.type = 'text';
       input.className = 'form-mode-text-input';
-      input.placeholder = inputSpec.placeholder || 'YYYY-MM-DD';
+      input.placeholder = inputSpec.placeholder || 'M/D/YYYY';
       input.value = (window.CustomDatePicker && typeof window.CustomDatePicker.normalizeDateValue === 'function')
         ? window.CustomDatePicker.normalizeDateValue(initialValues[0] || '')
         : (initialValues[0] || '');
@@ -1499,7 +1499,7 @@
     }
 
     if (invalidDateLabels.length > 0) {
-      return `Use YYYY-MM-DD for: ${invalidDateLabels.join(', ')}`;
+      return `Use M/D/YYYY for: ${invalidDateLabels.join(', ')}`;
     }
 
     return '';

@@ -4,7 +4,8 @@
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
   const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+  // Matches M/D/YYYY, MM/DD/YYYY, or legacy YYYY-MM-DD / YYYY/MM/DD formats
+  const ISO_DATE_PATTERN = /^(?:\d{1,2}\/\d{1,2}\/\d{4}|\d{4}[\/-]\d{2}[\/-]\d{2})$/;
 
   let popup = null;
   let titleEl = null;
@@ -18,27 +19,46 @@
     return String(value).padStart(2, '0');
   }
 
+  // Display format: M/D/YYYY (no leading zeros)
+  function toDisplayDate(date) {
+    return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+  }
+
+  // Backend format: YYYYMMDD
+  function toBackendDateValue(displayValue) {
+    const parsed = parseDisplayDate(String(displayValue || '').trim());
+    if (!parsed) return displayValue;
+    return `${parsed.getFullYear()}${pad(parsed.getMonth() + 1)}${pad(parsed.getDate())}`;
+  }
+
   function toIsoDate(date) {
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+    return toDisplayDate(date);
+  }
+
+  function parseDisplayDate(normalized) {
+    // M/D/YYYY or MM/DD/YYYY
+    const slashFwd = normalized.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (slashFwd) {
+      const [, m, d, y] = slashFwd.map(Number);
+      const date = new Date(y, m - 1, d);
+      if (date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d) return date;
+      return null;
+    }
+    // Legacy YYYY-MM-DD or YYYY/MM/DD
+    const iso = normalized.match(/^(\d{4})[\/-](\d{2})[\/-](\d{2})$/);
+    if (iso) {
+      const [, y, m, d] = iso.map(Number);
+      const date = new Date(y, m - 1, d);
+      if (date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d) return date;
+      return null;
+    }
+    return null;
   }
 
   function parseIsoDate(value) {
     const normalized = String(value || '').trim();
-    if (!ISO_DATE_PATTERN.test(normalized)) {
-      return null;
-    }
-
-    const [yearValue, monthValue, dayValue] = normalized.split('-').map(Number);
-    const date = new Date(yearValue, monthValue - 1, dayValue);
-    if (
-      date.getFullYear() !== yearValue
-      || date.getMonth() !== monthValue - 1
-      || date.getDate() !== dayValue
-    ) {
-      return null;
-    }
-
-    return date;
+    if (!ISO_DATE_PATTERN.test(normalized)) return null;
+    return parseDisplayDate(normalized);
   }
 
   function isValidDateValue(value) {
@@ -486,10 +506,10 @@
     input.inputMode = 'numeric';
     input.autocomplete = 'off';
     input.spellcheck = false;
-    input.placeholder = options.placeholder || input.placeholder || 'YYYY-MM-DD';
-    input.setAttribute('pattern', '^\\d{4}-\\d{2}-\\d{2}$');
+    input.placeholder = options.placeholder || input.placeholder || 'M/D/YYYY';
+    input.setAttribute('pattern', '^\\d{1,2}\\/\\d{1,2}\\/\\d{4}$');
     if (!input.dataset.errorMsg) {
-      input.dataset.errorMsg = 'Use YYYY-MM-DD';
+      input.dataset.errorMsg = 'Use M/D/YYYY';
     }
 
     setInputEnabled(api, options.enabled !== false);
@@ -500,6 +520,7 @@
     enhanceInput,
     isValidDateValue,
     normalizeDateValue,
+    toBackendDateValue,
     close: closePopup
   };
 })();
