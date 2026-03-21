@@ -750,9 +750,9 @@
     }
 
     const nextSpec = buildSpecFromCurrentQuery();
-    if (!nextSpec || nextSpec.columns.length === 0) {
+    if (!nextSpec) {
       if (window.showToastMessage) {
-        window.showToastMessage('Add at least one output column before switching to form mode.', 'warning');
+        window.showToastMessage('Could not build form definition.', 'warning');
       }
       return false;
     }
