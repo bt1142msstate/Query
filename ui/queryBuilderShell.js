@@ -10,6 +10,7 @@
   const getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
   const getActiveFilters = window.QueryStateReaders.getActiveFilters.bind(window.QueryStateReaders);
   let initialized = false;
+  let queryStateSyncBound = false;
 
   function resetBubbleScrollState() {
     services.resetBubbleScroll();
@@ -125,7 +126,7 @@
     }
   }
 
-  async function handleGroupMethodChange() {
+  function handleGroupMethodChange() {
     const simpleTable = services.getSimpleTable();
     if (!simpleTable) {
       return;
@@ -149,7 +150,6 @@
     });
 
     window.QueryChangeManager.replaceDisplayedFields(headers, { source: 'QueryBuilderShell.groupMethodChange' });
-    await uiActions.showExampleTable(getDisplayedFields(), { syncQueryState: false });
   }
 
   function handleOverlayClick() {
@@ -256,6 +256,16 @@
     }
 
     initialized = true;
+    if (!queryStateSyncBound) {
+      queryStateSyncBound = true;
+      window.QueryStateSubscriptions.subscribe(() => {
+        updateCategoryCounts();
+      }, {
+        displayedFields: true,
+        activeFilters: true
+      });
+    }
+
     dom.pageBody?.classList.add('night');
     bindConfirmEnterShortcut();
     dom.overlay?.addEventListener('click', handleOverlayClick);
@@ -272,9 +282,11 @@
     });
 
     dom.groupMethodSelect?.addEventListener('change', () => {
-      handleGroupMethodChange().catch(error => {
+      try {
+        handleGroupMethodChange();
+      } catch (error) {
         console.error('Failed to change GroupBy method:', error);
-      });
+      }
     });
 
     updateCategoryCounts();
