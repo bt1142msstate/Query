@@ -539,10 +539,6 @@
   function buildSpecFromCurrentQuery() {
     const querySnapshot = getQuerySnapshot();
     const columns = Array.isArray(querySnapshot.displayedFields) ? querySnapshot.displayedFields.slice() : [];
-    if (columns.length === 0) {
-      return null;
-    }
-
     const tableNameInput = window.DOM && window.DOM.tableNameInput;
     const title = tableNameInput && tableNameInput.value.trim()
       ? tableNameInput.value.trim()
@@ -557,6 +553,17 @@
       inputs,
       lockedFilters: []
     });
+  }
+
+  function isShareableFormSpec(spec = state.spec) {
+    if (!spec || typeof spec !== 'object') {
+      return false;
+    }
+
+    const hasColumns = Array.isArray(spec.columns) && spec.columns.length > 0;
+    const hasInputs = Array.isArray(spec.inputs) && spec.inputs.length > 0;
+    const hasLockedFilters = Array.isArray(spec.lockedFilters) && spec.lockedFilters.length > 0;
+    return hasColumns || hasInputs || hasLockedFilters;
   }
 
   function getFieldPickerOptions() {
@@ -615,7 +622,28 @@
   }
 
   function shouldPersistFormUrlInBrowser() {
-    return state.active && Boolean(state.spec);
+    return state.active && isShareableFormSpec();
+  }
+
+  function syncShareUi() {
+    if (!state.copyBtn) {
+      return;
+    }
+
+    const isShareable = isShareableFormSpec();
+    state.copyBtn.disabled = !isShareable;
+    state.copyBtn.setAttribute(
+      'data-tooltip',
+      isShareable
+        ? 'Copy a shareable form link.'
+        : 'Add a displayed field or filter control before copying a form link.'
+    );
+    state.copyBtn.setAttribute(
+      'aria-label',
+      isShareable
+        ? 'Copy form link'
+        : 'Form link unavailable until fields are added'
+    );
   }
 
   function refreshBrowserUrl(options = {}) {
@@ -627,11 +655,13 @@
 
     if (state.lastBrowserUrl === nextUrl || window.location.href === nextUrl) {
       state.lastBrowserUrl = nextUrl;
+      syncShareUi();
       return nextUrl;
     }
 
     window.history.replaceState({}, '', nextUrl);
     state.lastBrowserUrl = nextUrl;
+    syncShareUi();
     return nextUrl;
   }
 
@@ -817,7 +847,7 @@
 
     uiActions.updateButtonStates();
 
-    refreshBrowserUrl({ forceShareUrl: true });
+    refreshBrowserUrl();
     return true;
   }
 
@@ -827,7 +857,7 @@
     }
 
     const nextSpec = buildSpecFromCurrentQuery();
-    if (!nextSpec || nextSpec.columns.length === 0) {
+    if (!nextSpec) {
       return false;
     }
 
@@ -1026,6 +1056,10 @@
   }
 
   function buildCurrentShareUrl() {
+    if (!isShareableFormSpec()) {
+      return '';
+    }
+
     const nextUrl = new URL(window.location.href);
     nextUrl.search = '';
     nextUrl.searchParams.set('form', encodeSpec(state.spec));
@@ -1318,6 +1352,7 @@
       errorMessage: 'Failed to copy form link.',
       emptyMessage: 'No form link is available to copy.'
     });
+    syncShareUi();
   }
 
   function ensureModeToggleButtons() {

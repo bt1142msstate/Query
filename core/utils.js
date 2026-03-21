@@ -490,13 +490,24 @@ window.ValueFormatting = (() => {
     } = options;
 
     const textValue = String(rawValue || '').trim();
-    const numericValue = typeof rawValue === 'string' ? Number.parseInt(rawValue, 10) : rawValue;
     const compactMatch = textValue.match(/^(\d{4})(\d{2})(\d{2})$/);
+    const displayValue = window.CustomDatePicker && typeof window.CustomDatePicker.normalizeDateValue === 'function'
+      ? window.CustomDatePicker.normalizeDateValue(textValue)
+      : '';
 
-    if (!numericValue || Number.isNaN(numericValue)) {
-      if (compactMatch) {
-        return `${compactMatch[2]}/${compactMatch[3]}/${compactMatch[1]}`;
-      }
+    if (displayValue) {
+      return displayValue;
+    }
+
+    if (compactMatch) {
+      return `${Number(compactMatch[2])}/${Number(compactMatch[3])}/${compactMatch[1]}`;
+    }
+
+    const numericValue = typeof rawValue === 'number'
+      ? rawValue
+      : (compactMatch ? Number.parseInt(textValue, 10) : NaN);
+
+    if (!Number.isFinite(numericValue) || numericValue <= 0) {
       return fallbackToRaw ? textValue : invalidValue;
     }
 
@@ -504,11 +515,16 @@ window.ValueFormatting = (() => {
     const month = Math.floor((numericValue % 10000) / 100) - 1;
     const day = numericValue % 100;
     const date = new Date(year, month, day);
-    if (Number.isNaN(date.getTime())) {
+    if (
+      Number.isNaN(date.getTime())
+      || date.getFullYear() !== year
+      || date.getMonth() !== month
+      || date.getDate() !== day
+    ) {
       return fallbackToRaw ? textValue : invalidValue;
     }
 
-    return `${(month + 1).toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}/${year}`;
+    return `${month + 1}/${day}/${year}`;
   }
 
   function parseStandardNumber(rawValue) {
