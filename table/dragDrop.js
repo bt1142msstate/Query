@@ -40,7 +40,7 @@ function addColumn(fieldName, insertAt = -1) {
     
     // Re-render bubbles if we're in Selected category
     if (window.currentCategory === 'Selected') {
-      safeRenderBubbles();
+      window.BubbleSystem.safeRenderBubbles();
     }
   }
   
@@ -677,7 +677,7 @@ function finalizeMoveOperation(table) {
   
   // 6️⃣ If in Selected category, re-render bubbles to match new order
   if (window.currentCategory === 'Selected') {
-    safeRenderBubbles();
+    window.BubbleSystem.safeRenderBubbles();
   }
 }
 
@@ -770,7 +770,7 @@ function removeColumn(table, colIndex) {
   updateCategoryCounts();
   // Re-render bubbles if we're in Selected category
   if (window.currentCategory === 'Selected') {
-    safeRenderBubbles();
+    window.BubbleSystem.safeRenderBubbles();
   }
 }
 

@@ -12,8 +12,6 @@ window.FilterSidePanel = (function () {
     let unsubscribeQueryState = null;
     const { getDisplayedFields, getActiveFilters } = window.QueryStateReaders;
 
-    const $ = id => document.getElementById(id);
-
     function cleanupPopupControls(container) {
         if (!container) {
             return;
@@ -27,8 +25,8 @@ window.FilterSidePanel = (function () {
     }
 
     function syncPanelHeight() {
-        const panel = $('filter-side-panel');
-        const shell = $('table-shell');
+        const panel = window.DOM.filterSidePanel;
+        const shell = window.DOM.tableShell;
 
         if (!panel) {
             return;
@@ -47,7 +45,7 @@ window.FilterSidePanel = (function () {
             return;
         }
 
-        const shell = $('table-shell');
+        const shell = window.DOM.tableShell;
         if (!shell) {
             return;
         }
@@ -89,7 +87,7 @@ window.FilterSidePanel = (function () {
     }
 
     function open() {
-        const panel = $('filter-side-panel');
+        const panel = window.DOM.filterSidePanel;
         if (panel) {
             panel.classList.remove('panel-hidden');
             panel.classList.add('panel-open');
@@ -103,7 +101,7 @@ window.FilterSidePanel = (function () {
     }
 
     function toggle() {
-        const panel = $('filter-side-panel');
+        const panel = window.DOM.filterSidePanel;
         if (panel && panel.classList.contains('panel-hidden')) {
             open();
         } else {
@@ -112,14 +110,14 @@ window.FilterSidePanel = (function () {
     }
 
     function hideFully() {
-        const panel = $('filter-side-panel');
+        const panel = window.DOM.filterSidePanel;
         if (panel) {
-            cleanupPopupControls($('filter-panel-body'));
+            cleanupPopupControls(window.DOM.filterPanelBody);
             panel.classList.remove('panel-open');
             panel.classList.add('panel-hidden');
             panel.style.height = '';
 
-            const body = $('filter-panel-body');
+            const body = window.DOM.filterPanelBody;
             if (body) {
                 // Clear the body so that if form-mode CSS forces it visible,
                 // it respects the empty state rather than showing zombie DOM.
@@ -150,11 +148,11 @@ window.FilterSidePanel = (function () {
             return;
         }
 
-        const overlay = window.DOM?.overlay || document.getElementById('overlay');
+        const overlay = window.DOM.overlay;
         if (window.selectedField === field && overlay?.classList.contains('show')) {
             window.renderConditionList && window.renderConditionList(field);
             const operatorSelect = document.getElementById('condition-operator-select');
-            const conditionInput = window.DOM?.conditionInput || document.getElementById('condition-input');
+            const conditionInput = window.DOM.conditionInput;
             (operatorSelect || conditionInput)?.focus();
             return;
         }
@@ -704,7 +702,7 @@ window.FilterSidePanel = (function () {
     }
 
     function update() {
-        const body = $('filter-panel-body');
+        const body = window.DOM.filterPanelBody;
         if (!body) return;
 
         ensureQueryStateSubscription();
@@ -716,7 +714,7 @@ window.FilterSidePanel = (function () {
             return;
         }
 
-        const panel = $('filter-side-panel');
+        const panel = window.DOM.filterSidePanel;
         if (panel && panel.classList.contains('panel-hidden')) {
             open();
         }
@@ -724,7 +722,7 @@ window.FilterSidePanel = (function () {
         ensureShellResizeObserver();
         syncPanelHeight();
 
-        const titleEl = $('filter-panel-title');
+        const titleEl = window.DOM.filterPanelTitle;
         if (titleEl) {
             titleEl.textContent = 'Display & Filters';
         }
@@ -756,7 +754,7 @@ window.FilterSidePanel = (function () {
 
 window.addEventListener('resize', () => {
     if (window.FilterSidePanel && typeof window.FilterSidePanel.update === 'function') {
-        const panel = document.getElementById('filter-side-panel');
+        const panel = window.DOM.filterSidePanel;
         if (panel && !panel.classList.contains('panel-hidden')) {
             window.FilterSidePanel.update();
         }

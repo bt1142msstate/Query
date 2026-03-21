@@ -16,7 +16,7 @@ let lastHistoryRenderKey = '';
 const VIEW_ICON_SVG = `<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1.5 12s4-7 10.5-7 10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3.5"/></svg>`;
 
 function isQueriesPanelOpen() {
-  const panel = document.getElementById('queries-panel');
+  const panel = window.DOM.queriesPanel;
   return !!(panel && !panel.classList.contains('hidden'));
 }
 
@@ -197,7 +197,7 @@ function getPreferredHistorySection(counts) {
 }
 
 function captureHistoryViewState() {
-  const panelContainer = document.getElementById('queries-container');
+  const panelContainer = window.DOM.queriesContainer;
   const monitorShell = panelContainer?.querySelector('.history-monitor .history-table-shell');
 
   return {
@@ -211,7 +211,7 @@ function captureHistoryViewState() {
 function restoreHistoryViewState(viewState) {
   if (!viewState) return;
 
-  const panelContainer = document.getElementById('queries-container');
+  const panelContainer = window.DOM.queriesContainer;
   if (panelContainer) {
     panelContainer.scrollTop = viewState.panelScrollTop;
     panelContainer.scrollLeft = viewState.panelScrollLeft;
@@ -225,8 +225,8 @@ function restoreHistoryViewState(viewState) {
 }
 
 function updateHistoryPollingMeta({ isPollingActive, refreshedAt }) {
-  const pollingValue = document.querySelector('#queries-list .history-polling-value');
-  const pollingDetail = document.querySelector('#queries-list .history-polling-detail');
+  const pollingValue = window.DOM.queriesList?.querySelector('.history-polling-value');
+  const pollingDetail = window.DOM.queriesList?.querySelector('.history-polling-detail');
   if (pollingValue) {
     pollingValue.textContent = isPollingActive ? 'Polling live' : 'Polling paused';
     pollingValue.classList.toggle('active', !!isPollingActive);
@@ -1084,7 +1084,7 @@ function bindHistoryTableButtons(scope) {
       q.cancelled = false;
       q.status = 'running';
       loadQueryConfig(q);
-      document.getElementById('run-btn')?.click();
+      window.DOM.runBtn?.click();
     });
   });
 
@@ -1133,13 +1133,13 @@ function patchQueriesPanelData(newHistory) {
   const oldById = new Map(exampleQueries.map(q => [q.id, q]));
   exampleQueries = newHistory;
 
-  const container = document.getElementById('queries-list');
+  const container = window.DOM.queriesList;
   if (!container || !container.querySelector('.history-editorial-hero')) {
     renderQueries();
     return;
   }
 
-  const searchInput = document.getElementById('queries-search');
+  const searchInput = window.DOM.queriesSearch;
   const searchTerm  = searchInput ? searchInput.value.trim().toLowerCase() : '';
   const matchesSearch = q =>
     !searchTerm ||
@@ -1288,7 +1288,7 @@ function patchQueriesPanelData(newHistory) {
  * @function updateRunningDurationsInPlace
  */
 function updateRunningDurationsInPlace() {
-  const list = document.getElementById('queries-list');
+  const list = window.DOM.queriesList;
   if (!list) return;
   exampleQueries.filter(q => q.running && q.startTime).forEach(q => {
     const cell = list.querySelector(`.history-duration-cell[data-query-id="${q.id}"]`);
@@ -1349,11 +1349,11 @@ function stopQueryDurationUpdates() {
  * @function renderQueries
  */
 function renderQueries(){
-  const container = document.getElementById('queries-list');
+  const container = window.DOM.queriesList;
   if(!container) return false;
   
   // Get search value
-  const searchInput = document.getElementById('queries-search');
+  const searchInput = window.DOM.queriesSearch;
   const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
   
   let runningList = exampleQueries.filter(q => q.running);
@@ -1625,7 +1625,7 @@ window.onDOMReady(() => {
   }
 
   // Attach queries search event listener
-  const queriesSearchInput = document.getElementById('queries-search');
+  const queriesSearchInput = window.DOM.queriesSearch;
   if (queriesSearchInput) {
     queriesSearchInput.addEventListener('input', renderQueries);
   }

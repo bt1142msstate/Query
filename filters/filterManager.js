@@ -637,7 +637,7 @@ var getFilterGroupForField = window.QueryStateReaders.getFilterGroupForField.bin
  * @param {string} field - The field name
  */
 window.renderConditionList = function(field) {
-    const container = document.getElementById('bubble-cond-list');
+    const container = window.DOM.bubbleCondList;
     if (!container) return;
     
     container.innerHTML = '';
