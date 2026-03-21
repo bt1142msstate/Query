@@ -805,7 +805,12 @@ function calculateFieldWidth(fieldName, data = null) {
         const value = data.rows[i][columnIndex];
         if (value != null) {
           let measuredValue = String(value);
-          if (type === 'money') {
+          if (type === 'date') {
+            measuredValue = window.ValueFormatting.formatValueByType(value, type, {
+              invalidDateValue: 'Never',
+              dateFallbackToRaw: true
+            });
+          } else if (type === 'number' || type === 'money') {
             const numericValue = parseNumericValue(value, type);
             if (!isNaN(numericValue)) {
               measuredValue = window.ValueFormatting.formatValueByType(numericValue, type);
