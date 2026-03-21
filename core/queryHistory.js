@@ -1494,8 +1494,16 @@ window.QueryHistorySystem = QueryHistorySystem;
 window.cancelQuery = cancelQuery;
 window.addQueryToHistory = addQueryToHistory;
 
+let queryHistoryInitialized = false;
+
 // Initialize query history functionality
 window.onDOMReady(() => {
+  if (queryHistoryInitialized) {
+    return;
+  }
+
+  queryHistoryInitialized = true;
+
   // Initial render of the query history list
   renderQueries();
 
