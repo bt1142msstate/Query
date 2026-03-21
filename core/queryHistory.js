@@ -545,17 +545,11 @@ async function fetchQueryStatus() {
         newHistory.push(qData);
     });
 
-    const viewState = captureHistoryViewState();
-    exampleQueries = newHistory;
-    const didRender = renderQueries();
-    if (didRender) {
-      restoreHistoryViewState(viewState);
-    }
+    patchQueriesPanelData(newHistory);
 
     if (isQueriesPanelOpen()) {
-      // Keep the interval running so new queries from other users appear
-      // without requiring a manual refresh. startQueryDurationUpdates is a no-op
-      // when the interval is already active.
+      // Keep the interval alive so queries from other users surface automatically.
+      // startQueryDurationUpdates is a no-op when the interval is already active.
       startQueryDurationUpdates();
     }
     
@@ -1072,6 +1066,232 @@ window.addQueryToHistory = addQueryToHistory;
 window.fetchQueryStatus = fetchQueryStatus;
 
 /**
+ * Binds load/rerun/stop button event handlers on all matching buttons within
+ * a given root element. Called after both full re-renders and surgical row
+ * insertions so listeners are always wired to the live DOM nodes.
+ * @param {Element} scope
+ */
+function bindHistoryTableButtons(scope) {
+  scope.querySelectorAll('.load-query-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      loadQueryResults(btn.getAttribute('data-query-id'));
+    });
+  });
+
+  scope.querySelectorAll('.rerun-query-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = btn.getAttribute('data-query-id');
+      const q = exampleQueries.find(q => q.id === id);
+      if (!q) return;
+      q.running = true;
+      q.startTime = new Date().toISOString();
+      q.endTime = null;
+      q.cancelled = false;
+      q.status = 'running';
+      loadQueryConfig(q);
+      document.getElementById('run-btn')?.click();
+    });
+  });
+
+  scope.querySelectorAll('.stop-query-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = btn.getAttribute('data-query-id');
+      if (typeof window.showToastMessage === 'function') {
+        window.showToastMessage({
+          message: 'Cancel this running query?',
+          type: 'warning',
+          duration: 0,
+          action: { label: 'Cancel Query', onClick: () => cancelQuery(id) }
+        });
+        return;
+      }
+      cancelQuery(id);
+    });
+  });
+}
+
+/**
+ * Returns true when fields that affect a row's rendered HTML have changed
+ * between two versions of the same query object.
+ * @param {Object} oldQ
+ * @param {Object} newQ
+ * @returns {boolean}
+ */
+function hasQueryRowChanged(oldQ, newQ) {
+  return oldQ.status      !== newQ.status
+      || oldQ.resultCount !== newQ.resultCount
+      || oldQ.error       !== newQ.error
+      || oldQ.endTime     !== newQ.endTime
+      || oldQ.name        !== newQ.name;
+}
+
+/**
+ * Surgically patches the queries panel to reflect newHistory.
+ * Only the exact DOM nodes that changed are touched — no full innerHTML swaps
+ * during normal polling.  Falls back to renderQueries() only for structural
+ * transitions (container not yet rendered, or empty↔populated table state).
+ * @param {Array} newHistory
+ */
+function patchQueriesPanelData(newHistory) {
+  // Snapshot old state BEFORE overwriting exampleQueries
+  const oldById = new Map(exampleQueries.map(q => [q.id, q]));
+  exampleQueries = newHistory;
+
+  const container = document.getElementById('queries-list');
+  if (!container || !container.querySelector('.history-editorial-hero')) {
+    renderQueries();
+    return;
+  }
+
+  const searchInput = document.getElementById('queries-search');
+  const searchTerm  = searchInput ? searchInput.value.trim().toLowerCase() : '';
+  const matchesSearch = q =>
+    !searchTerm ||
+    (q.name && q.name.toLowerCase().includes(searchTerm)) ||
+    q.id.toLowerCase().includes(searchTerm) ||
+    (q.jsonConfig?.DesiredColumnOrder || []).some(col => col.toLowerCase().includes(searchTerm));
+
+  const runningList   = newHistory.filter(q => q.running && matchesSearch(q));
+  const doneList      = newHistory.filter(q => !q.running && !q.cancelled && !q.failed && matchesSearch(q));
+  const failedList    = newHistory.filter(q => q.failed    && matchesSearch(q));
+  const cancelledList = newHistory.filter(q => q.cancelled && matchesSearch(q));
+
+  const counts = {
+    running:  runningList.length,
+    complete: doneList.length,
+    failed:   failedList.length,
+    canceled: cancelledList.length
+  };
+  const visibleCount = Object.values(counts).reduce((a, b) => a + b, 0);
+  const totalCount   = newHistory.length;
+
+  // — Editorial hero subtitle
+  const heroSubtitle = container.querySelector('.history-editorial-subtitle');
+  if (heroSubtitle) {
+    const liveSignal  = counts.running > 0
+      ? `${counts.running} live ${counts.running === 1 ? 'query is' : 'queries are'} still updating.`
+      : 'No active queries are running right now.';
+    const searchLabel = searchTerm
+      ? `Showing ${visibleCount} of ${totalCount} saved queries matching "${searchTerm}".`
+      : `Showing ${visibleCount} recent ${visibleCount === 1 ? 'query' : 'queries'} across your workspace history.`;
+    const next = `${searchLabel} ${liveSignal}`;
+    if (heroSubtitle.textContent !== next) heroSubtitle.textContent = next;
+  }
+
+  // — Visible-count meta card (second .history-meta-card)
+  const metaCards = container.querySelectorAll('.history-meta-card');
+  if (metaCards[1]) {
+    const el = metaCards[1].querySelector('.history-meta-value');
+    if (el && el.textContent !== String(visibleCount)) el.textContent = String(visibleCount);
+  }
+
+  // — Polling meta (text + CSS class only)
+  const refreshedAt = lastQueryStatusPollAt
+    ? new Date(lastQueryStatusPollAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    : 'Awaiting refresh';
+  updateHistoryPollingMeta({
+    isPollingActive: !!(queryDurationUpdateInterval && isQueriesPanelOpen()),
+    refreshedAt
+  });
+
+  // — Bookshelf book counts and state labels
+  Object.entries(counts).forEach(([key, count]) => {
+    const book = container.querySelector(`[data-history-book="${key}"]`);
+    if (!book) return;
+    const countEl = book.querySelector('.history-book-count');
+    if (countEl && countEl.textContent !== String(count)) countEl.textContent = String(count);
+    const stateEl = book.querySelector('.history-book-state');
+    if (stateEl) {
+      const next = count === 0 ? 'Empty' : key === activeHistorySection ? 'Projected' : 'Standby';
+      if (stateEl.textContent !== next) stateEl.textContent = next;
+    }
+  });
+
+  // — Monitor panel
+  const monitor = container.querySelector('[data-history-monitor]');
+  if (!monitor) return;
+
+  // Tab counts
+  monitor.querySelectorAll('.history-monitor-tab').forEach(tab => {
+    const key = tab.dataset.historyMonitorTab;
+    if (!key) return;
+    const el    = tab.querySelector('.history-monitor-tab-count');
+    const count = counts[key] ?? 0;
+    const next  = `${count} ${count === 1 ? 'entry' : 'entries'}`;
+    if (el && el.textContent !== next) el.textContent = next;
+  });
+
+  const activeSectionKey = monitor.querySelector('.history-monitor-tab.is-active')?.dataset.historyMonitorTab;
+  if (!activeSectionKey) return;
+
+  const sectionLists = { running: runningList, complete: doneList, failed: failedList, canceled: cancelledList };
+  const sectionList  = sectionLists[activeSectionKey] || [];
+  const stage        = monitor.querySelector('.history-monitor-stage');
+  if (!stage) return;
+
+  const tbody = stage.querySelector('tbody');
+  const emptyMessages = {
+    running:  'No running queries right now.',
+    complete: 'No completed queries yet.',
+    failed:   'No failed or interrupted queries.',
+    canceled: 'No cancelled queries yet.'
+  };
+
+  // Section emptied — swap table for empty-state message
+  if (sectionList.length === 0) {
+    if (tbody) {
+      stage.innerHTML = `<div class="history-empty-state history-monitor-empty">${emptyMessages[activeSectionKey] || ''}</div>`;
+    }
+    return;
+  }
+
+  // Section first populated — table scaffolding not in DOM yet; one-time full render
+  if (!tbody) {
+    const viewState  = captureHistoryViewState();
+    const didRender  = renderQueries();
+    if (didRender) restoreHistoryViewState(viewState);
+    return;
+  }
+
+  const viewIconSVG = `<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1.5 12s4-7 10.5-7 10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3.5"/></svg>`;
+
+  // Build a map of rows currently in the tbody
+  const existingRowMap = new Map();
+  tbody.querySelectorAll('tr[data-query-id]').forEach(tr => existingRowMap.set(tr.dataset.queryId, tr));
+
+  const newIds = new Set(sectionList.map(q => q.id));
+
+  // Remove rows whose query is no longer in this section
+  existingRowMap.forEach((tr, id) => { if (!newIds.has(id)) tr.remove(); });
+
+  // Insert new rows / replace changed rows — skip rows that haven't changed
+  sectionList.forEach((q, index) => {
+    const existing = existingRowMap.get(q.id);
+    const old      = oldById.get(q.id);
+
+    if (existing && old && !hasQueryRowChanged(old, q)) return; // Nothing to do
+
+    const temp = document.createElement('tbody');
+    temp.innerHTML = createQueriesTableRowHtml(q, viewIconSVG);
+    const newTr = temp.firstElementChild;
+    if (!newTr) return;
+    bindHistoryTableButtons(newTr);
+
+    if (existing) {
+      tbody.replaceChild(newTr, existing);
+    } else {
+      // Insert at the correct ordinal position among already-updated rows
+      const sibling = tbody.querySelectorAll('tr[data-query-id]')[index];
+      if (sibling) tbody.insertBefore(newTr, sibling);
+      else tbody.appendChild(newTr);
+    }
+  });
+}
+
+/**
  * Updates only the duration cells of currently-running query rows in-place,
  * avoiding a full layout re-render on every tick.
  * @function updateRunningDurationsInPlace
@@ -1350,14 +1570,11 @@ function renderQueries(){
       cancelledCount,
       visibleCount,
       totalCount,
-      isPollingActive,
-      liveSignal,
-      searchLabel,
       openSection,
-      // Use stable identity data rather than formatted row HTML so that
-      // ticking durations for running queries do not trigger a full re-render.
-      runningIds: runningList.map(q => `${q.id}:${q.resultCount ?? ''}`),
-      doneIds: doneList.map(q => q.id),
+      // Identity-based keys only — no computed display strings — so the key only
+      // changes when the data actually changes, not every elapsed-second tick.
+      runningIds: runningList.map(q => q.id),
+      doneIds: doneList.map(q => `${q.id}:${q.resultCount ?? ''}`),
       failedIds: failedList.map(q => `${q.id}:${q.error ?? ''}`),
       cancelledIds: cancelledList.map(q => q.id)
     });
@@ -1372,58 +1589,7 @@ function renderQueries(){
 
   container.innerHTML = content;
   bindHistoryBookShelf(container);
-
-  // Attach click handlers to load buttons
-  container.querySelectorAll('.load-query-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const id = btn.getAttribute('data-query-id');
-      loadQueryResults(id);
-    });
-  });
-  
-  // Attach click handlers to rerun buttons
-  container.querySelectorAll('.rerun-query-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const id = btn.getAttribute('data-query-id');
-      const q = exampleQueries.find(q => q.id === id);
-      if (!q) return;
-
-      q.running = true; 
-      q.startTime = new Date().toISOString();
-      q.endTime = null;
-      q.cancelled = false;
-      q.status = 'running';
-
-      // Reuse the saved query configuration, then hand off execution to the main run action.
-      loadQueryConfig(q);
-
-      document.getElementById('run-btn')?.click(); // Try to click run button if config loaded
-    });
-  });
-
-  // Attach click handlers to stop/cancel buttons
-  container.querySelectorAll('.stop-query-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const id = btn.getAttribute('data-query-id');
-      if (typeof window.showToastMessage === 'function') {
-        window.showToastMessage({
-          message: 'Cancel this running query?',
-          type: 'warning',
-          duration: 0,
-          action: {
-            label: 'Cancel Query',
-            onClick: () => cancelQuery(id)
-          }
-        });
-        return;
-      }
-
-      cancelQuery(id);
-    });
-  });
+  bindHistoryTableButtons(container);
 
   return true;
 }
