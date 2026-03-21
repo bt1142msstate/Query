@@ -884,13 +884,13 @@ async function setupVirtualTable(container, fields) {
   tableScrollContainer = container;
   tableScrollTop = 0;
 
-  // Calculate widths if we have data and fields
-  if (virtualTableData && virtualTableData.rows && virtualTableData.rows.length > 0 && fields && fields.length > 0) {
+  // Calculate widths if we have fields
+  if (fields && fields.length > 0) {
     console.log('Calculating optimal column widths...');
     calculatedColumnWidths = calculateOptimalColumnWidths(fields, virtualTableData);
     console.log('Column widths calculated:', calculatedColumnWidths);
   } else {
-    // Just initialize empty if no data yet
+    // Just initialize empty if no fields yet
     calculatedColumnWidths = {};
   }
 
