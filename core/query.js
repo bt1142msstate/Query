@@ -141,14 +141,8 @@ function renderEmptyQueryTableState() {
     bubble.setAttribute('draggable', fieldDef && fieldDef.is_buildable ? 'false' : 'true');
   });
 
-  if (typeof window.updateQueryJson === 'function') {
-    window.updateQueryJson();
-  }
   if (typeof window.updateCategoryCounts === 'function') {
     window.updateCategoryCounts();
-  }
-  if (typeof window.updateButtonStates === 'function') {
-    window.updateButtonStates();
   }
 }
 
@@ -400,8 +394,6 @@ if (dom.groupMethodSelect) {
         
         // Refresh the table display
         await showExampleTable(getDisplayedFields(), { syncQueryState: false });
-        updateQueryJson();
-        updateButtonStates();
       }
     }
   });
@@ -603,11 +595,7 @@ async function showExampleTable(fields, options = {}){
       }
     });
     
-    updateQueryJson();
     updateCategoryCounts();
-    
-    // Update button states after table setup
-    updateButtonStates();
     
     // Re-render bubbles if we're in Selected category
     if (currentCategory === 'Selected') {
