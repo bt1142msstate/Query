@@ -48,11 +48,8 @@ window.currentCategory = 'All';
 window.lastExecutedQueryState = null; // Store the state when query was last run
 window.currentQueryState = null;       // Current state for comparison
 
-// Global set to track which bubbles are animating back
-window.animatingBackBubbles = new Set();
-window.isBubbleAnimating = false;
-window.isBubbleAnimatingBack = false;
-window.pendingRenderBubbles = false;
+// Bubble animation state is owned by BubbleSystem (bubble.js).
+// Access via window.BubbleSystem.isBubbleAnimating etc.
 
 const displayedFieldsState = [];
 const activeFiltersState = {};

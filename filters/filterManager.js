@@ -353,7 +353,7 @@ function buildBubbleConditionPanel(bubble) {
         return;
     }
 
-    selectedField = bubble.textContent.trim();
+    window.selectedField = bubble.textContent.trim();
     const type = bubble.dataset.type || 'string';
     let listValues = null;
     let hasValuePairs = false;
@@ -721,13 +721,10 @@ window.renderConditionList = function(field) {
                 }
             }
             
-            window.updateQueryJson();
+            // updateQueryJson and safeRenderBubbles are handled reactively by
+            // jsonViewerUI.js and bubbleInteraction.js QueryStateSubscriptions — no need to call again here.
             window.renderConditionList(field);
             window.updateCategoryCounts();
-            
-            if (window.currentCategory === 'Selected') {
-                window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
-            }
         });
         list.appendChild(pill.getElement());
     });

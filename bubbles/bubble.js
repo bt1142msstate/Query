@@ -72,7 +72,7 @@ class Bubble {
 
     this.el.setAttribute('draggable', def.is_buildable || getDisplayedFields().includes(fieldName) ? 'false' : 'true');
 
-    if (animatingBackBubbles.has(fieldName)) {
+    if (_animatingBackBubbles.has(fieldName)) {
       this.el.dataset.animatingBack = 'true';
       this.el.style.visibility = 'hidden';
       this.el.style.opacity = '0';
@@ -246,6 +246,12 @@ function mapBubbleConditionToFieldOperator(condition) {
 }
 
 const BUBBLE_VISIBLE_ROWS = 2;
+
+// Animation state — private to this module, exposed read/write via BubbleSystem
+let _isBubbleAnimating = false;
+let _isBubbleAnimatingBack = false;
+let _pendingRenderBubbles = false;
+const _animatingBackBubbles = new Set();
 
 function getBubbleMaxStartRow() {
   if (typeof totalRows === 'undefined') return 0;
@@ -424,7 +430,7 @@ function renderBubbles() {
 
   Array.from(listDiv.children).forEach(bubble => {
     const fieldName = bubble.textContent.trim();
-    if (animatingBackBubbles.has(fieldName)) {
+    if (_animatingBackBubbles.has(fieldName)) {
       bubble.style.visibility = 'hidden';
       bubble.style.opacity = '0';
     } else {
@@ -435,18 +441,13 @@ function renderBubbles() {
 }
 
 function safeRenderBubbles() {
-  if (typeof isBubbleAnimatingBack === 'undefined') {
-    console.log('safeRenderBubbles: Required globals not available yet');
-    return;
-  }
-
-  if (isBubbleAnimatingBack) {
-    pendingRenderBubbles = true;
+  if (_isBubbleAnimatingBack) {
+    _pendingRenderBubbles = true;
     return;
   }
 
   renderBubbles();
-  pendingRenderBubbles = false;
+  _pendingRenderBubbles = false;
 }
 
 function updateScrollBar() {
@@ -571,6 +572,14 @@ if (typeof window !== 'undefined') {
     updateScrollBar,
     buildConditionPanel,
     initializeBubbles,
-    resetActiveBubbles
+    resetActiveBubbles,
+    // Animation state — writable through these accessors only
+    get isBubbleAnimating() { return _isBubbleAnimating; },
+    set isBubbleAnimating(v) { _isBubbleAnimating = !!v; },
+    get isBubbleAnimatingBack() { return _isBubbleAnimatingBack; },
+    set isBubbleAnimatingBack(v) { _isBubbleAnimatingBack = !!v; },
+    get pendingRenderBubbles() { return _pendingRenderBubbles; },
+    set pendingRenderBubbles(v) { _pendingRenderBubbles = !!v; },
+    get animatingBackBubbles() { return _animatingBackBubbles; }
   };
 }
