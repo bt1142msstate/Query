@@ -12,11 +12,11 @@ function reconcileBubbleResetInteractionState(skipFields = new Set()) {
 }
 
 function finalizeBubbleReset(reason, payload = {}) {
-  if (window.animatingBackBubbles && window.animatingBackBubbles.size === 0) {
-    window.isBubbleAnimatingBack = false;
-    if (window.pendingRenderBubbles) {
+  if (window.BubbleSystem.animatingBackBubbles.size === 0) {
+    window.BubbleSystem.isBubbleAnimatingBack = false;
+    if (window.BubbleSystem.pendingRenderBubbles) {
       window.BubbleSystem.renderBubbles();
-      window.pendingRenderBubbles = false;
+      window.BubbleSystem.pendingRenderBubbles = false;
     }
     reconcileBubbleResetInteractionState();
     if (window.BubbleSystem && typeof window.BubbleSystem.bubbleDebugLog === 'function') {
@@ -26,7 +26,7 @@ function finalizeBubbleReset(reason, payload = {}) {
 }
 
 function resetActiveBubblesImpl() {
-  window.isBubbleAnimating = false;
+  window.BubbleSystem.isBubbleAnimating = false;
 
   if (window.ModalSystem) {
     window.ModalSystem.lockInput(0);
@@ -38,7 +38,7 @@ function resetActiveBubblesImpl() {
   }
 
   if (clones.length > 0) {
-    window.isBubbleAnimatingBack = true;
+    window.BubbleSystem.isBubbleAnimatingBack = true;
   }
 
   clones.forEach(clone => {
@@ -47,7 +47,7 @@ function resetActiveBubblesImpl() {
     const fieldName = origin ? origin.textContent.trim() : (clone.textContent ? clone.textContent.trim() : '');
 
     if (originInDOM) {
-      if (window.animatingBackBubbles) window.animatingBackBubbles.add(fieldName);
+      window.BubbleSystem.animatingBackBubbles.add(fieldName);
 
       const originalRect = clone._originalRect;
       clone.style.opacity = '1';
@@ -82,7 +82,7 @@ function resetActiveBubblesImpl() {
           window.BubbleSystem.bubbleDebugLog('reset.clone.transitionend', { fieldName });
         }
         clone.remove();
-        if (window.animatingBackBubbles) window.animatingBackBubbles.delete(fieldName);
+        window.BubbleSystem.animatingBackBubbles.delete(fieldName);
 
         requestAnimationFrame(() => {
           const bubbles = Array.from(document.querySelectorAll('.bubble'));
@@ -109,7 +109,7 @@ function resetActiveBubblesImpl() {
         window.BubbleSystem.bubbleDebugLog('reset.clone.removedWithoutOrigin', { fieldName });
       }
       if (origin) {
-        if (window.animatingBackBubbles) window.animatingBackBubbles.delete(fieldName);
+        window.BubbleSystem.animatingBackBubbles.delete(fieldName);
         const matchingBubble = Array.from(document.querySelectorAll('.bubble'))
           .find(bubble => bubble.textContent.trim() === fieldName);
         if (matchingBubble) {
@@ -132,7 +132,7 @@ function resetActiveBubblesImpl() {
 
   setTimeout(() => {
     if (clones.length === 0) {
-      window.isBubbleAnimatingBack = false;
+      window.BubbleSystem.isBubbleAnimatingBack = false;
       window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
       reconcileBubbleResetInteractionState();
       if (window.BubbleSystem && typeof window.BubbleSystem.bubbleDebugLog === 'function') {
@@ -142,9 +142,9 @@ function resetActiveBubblesImpl() {
   }, 0);
 
   setTimeout(() => {
-    if (!window.isBubbleAnimatingBack) return;
-    window.isBubbleAnimatingBack = false;
-    window.pendingRenderBubbles = false;
+    if (!window.BubbleSystem.isBubbleAnimatingBack) return;
+    window.BubbleSystem.isBubbleAnimatingBack = false;
+    window.BubbleSystem.pendingRenderBubbles = false;
     const staleCloneCount = document.querySelectorAll('.bubble-clone').length;
     document.querySelectorAll('.bubble-clone').forEach(clone => clone.remove());
     reconcileBubbleResetInteractionState();

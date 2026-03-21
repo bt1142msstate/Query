@@ -133,7 +133,7 @@ function initializeBubbleInteractions() {
       targetClass: targetEl && targetEl.className,
       resolvedBubble: bubble ? bubble.textContent.trim() : null,
       hasActiveBubble: !!document.querySelector('.active-bubble, .bubble-clone'),
-      isBubbleAnimating: !!window.isBubbleAnimating,
+      isBubbleAnimating: !!window.BubbleSystem.isBubbleAnimating,
       isOverlayOpen: !!(overlay && overlay.classList.contains('show'))
     });
 
@@ -169,11 +169,11 @@ function initializeBubbleInteractions() {
       window.BubbleSystem.bubbleDebugLog('click.blocked.activeBubbleAlreadyOpen', { bubble: bubble.textContent.trim() });
       return;
     }
-    if (window.isBubbleAnimating) {
+    if (window.BubbleSystem.isBubbleAnimating) {
       window.BubbleSystem.bubbleDebugLog('click.blocked.isBubbleAnimating', { bubble: bubble.textContent.trim() });
       return;
     }
-    window.isBubbleAnimating = true;
+    window.BubbleSystem.isBubbleAnimating = true;
     window.lockInput && window.lockInput(600);
 
     const savedCategory = currentCategory;
@@ -278,7 +278,7 @@ function initializeBubbleInteractions() {
       window.createBubblePopParticles(clone);
 
       clone.removeEventListener('transitionend', t);
-      window.isBubbleAnimating = false;
+      window.BubbleSystem.isBubbleAnimating = false;
       window.BubbleSystem.bubbleDebugLog('click.open.complete', { fieldName });
     });
     requestAnimationFrame(() => clone.classList.add('active-bubble'));

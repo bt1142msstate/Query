@@ -798,6 +798,6 @@ window.onDOMReady(() => {
 
 });
 
-// Globals for bubble animation are defined in queryState.js (window.isBubbleAnimatingBack, etc.)
+// Bubble animation state is owned by BubbleSystem (bubble.js) — access via window.BubbleSystem.isBubbleAnimating etc.
 
 
