@@ -83,17 +83,17 @@ function defineAppStateProperty(target, key) {
   });
 }
 
-const appState = {};
+const appStateStore = {};
 Object.keys(appRuntimeState).forEach(key => {
-  defineAppStateProperty(appState, key);
+  defineAppStateProperty(appStateStore, key);
   defineAppStateProperty(window, key);
 });
-Object.freeze(appState);
+Object.freeze(appStateStore);
 Object.defineProperty(window, 'AppState', {
   configurable: false,
   enumerable: false,
   writable: false,
-  value: appState
+  value: appStateStore
 });
 
 // Bubble animation state is owned by BubbleSystem (bubble.js).
@@ -298,7 +298,7 @@ function notifyQueryStateSubscribers(changes = {}, meta = {}) {
     snapshot: getQueryStateSnapshot()
   };
 
-  appState.currentQueryState = payload.snapshot;
+  appStateStore.currentQueryState = payload.snapshot;
 
   queryStateSubscribers.forEach(listener => {
     try {
@@ -551,14 +551,14 @@ function normalizeManagerMeta(meta = {}, fallbackSource) {
 async function clearQueryManagerState(meta = {}) {
   const normalizedMeta = normalizeManagerMeta(meta, 'QueryChangeManager.clearQuery');
 
-  if (appState.queryRunning) {
+  if (appStateStore.queryRunning) {
     if (typeof window.showToastMessage === 'function') {
       window.showToastMessage('Stop the running query before clearing it.', 'warning');
     }
     return false;
   }
 
-  const previousSelectedField = appState.selectedField || '';
+  const previousSelectedField = appStateStore.selectedField || '';
 
   services.modal?.closeAllPanels?.();
   services.clearInsertAffordance({ immediate: true });
@@ -592,8 +592,8 @@ async function clearQueryManagerState(meta = {}) {
     document.getElementById('bubble-cond-list')?.replaceChildren();
   }
 
-  appState.selectedField = '';
-  appState.lastExecutedQueryState = null;
+  appStateStore.selectedField = '';
+  appStateStore.lastExecutedQueryState = null;
 
   const dom = window.DOM;
   if (dom?.tableNameInput) {
@@ -608,7 +608,7 @@ async function clearQueryManagerState(meta = {}) {
     dom.clearSearchBtn.classList.add('hidden');
   }
 
-  appState.currentCategory = 'All';
+  appStateStore.currentCategory = 'All';
 
   services.resetBubbleScroll();
 
@@ -804,22 +804,22 @@ window.QueryChangeManager.subscribe(event => {
  * @returns {boolean} True if query has changed since last execution
  */
 window.hasQueryChanged = function() {
-  if (!appState.lastExecutedQueryState) return true; // Initial load should show play icon (brand new query)
+  if (!appStateStore.lastExecutedQueryState) return true; // Initial load should show play icon (brand new query)
   
   const current = window.getCurrentQueryState();
   
   // Compare displayed fields
-  if (JSON.stringify(getComparableDisplayedFields(current.displayedFields)) !== JSON.stringify(getComparableDisplayedFields(appState.lastExecutedQueryState.displayedFields))) {
+  if (JSON.stringify(getComparableDisplayedFields(current.displayedFields)) !== JSON.stringify(getComparableDisplayedFields(appStateStore.lastExecutedQueryState.displayedFields))) {
     return true;
   }
   
   // Compare filters
-  if (JSON.stringify(current.activeFilters) !== JSON.stringify(appState.lastExecutedQueryState.activeFilters)) {
+  if (JSON.stringify(current.activeFilters) !== JSON.stringify(appStateStore.lastExecutedQueryState.activeFilters)) {
     return true;
   }
   
   // Compare group method
-  if (current.groupMethod !== appState.lastExecutedQueryState.groupMethod) {
+  if (current.groupMethod !== appStateStore.lastExecutedQueryState.groupMethod) {
     return true;
   }
   
