@@ -811,9 +811,7 @@ async function clearQueryManagerState(meta = {}) {
 
   services.resetBubbleScroll();
 
-  if (typeof window.updateButtonStates === 'function') {
-    window.updateButtonStates();
-  }
+  window.AppUiActions?.updateButtonStates?.();
 
   if (typeof window.showToastMessage === 'function') {
     window.showToastMessage('Query cleared.', 'info');

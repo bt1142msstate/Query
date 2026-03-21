@@ -4,11 +4,12 @@
  */
 (function initializeAppUiActions() {
   function showExampleTable(fields, options = {}) {
-    if (typeof window.showExampleTable !== 'function') {
+    const showTable = window.QueryTableView?.showExampleTable;
+    if (typeof showTable !== 'function') {
       return Promise.resolve();
     }
 
-    return window.showExampleTable(fields, options);
+    return showTable(fields, options);
   }
 
   function updateCategoryCounts() {
@@ -16,23 +17,23 @@
   }
 
   function updateButtonStates() {
-    window.updateButtonStates?.();
+    window.QueryUI?.updateButtonStates?.();
   }
 
   function updateRunButtonIcon(validationError) {
-    window.updateRunButtonIcon?.(validationError);
+    window.QueryUI?.updateRunButtonIcon?.(validationError);
   }
 
   function updateQueryJson() {
-    window.updateQueryJson?.();
+    window.JsonViewerUI?.updateQueryJson?.();
   }
 
   function refreshTableViewport() {
-    window.refreshTableViewport?.();
+    window.QueryUI?.refreshTableViewport?.();
   }
 
   function updateTableChromeState() {
-    window.updateTableChromeState?.();
+    window.QueryUI?.updateTableChromeState?.();
   }
 
   const appUiActions = Object.freeze({

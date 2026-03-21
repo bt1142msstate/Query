@@ -316,7 +316,7 @@ if (execDom.runBtn) {
           services.setVirtualTableData(newTableData);
 
           // Re-render the full table to reset red column headers and redraw rows with new widths
-          if (typeof window.showExampleTable === 'function') {
+          if (window.QueryTableView?.showExampleTable) {
             await uiActions.showExampleTable(state.displayedFields);
           } else {
             services.renderVirtualTable();

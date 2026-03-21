@@ -88,6 +88,16 @@ window.createBooleanPillSelector = function(values, currentValue = '', options =
   return container;
 };
 
+function escapeSelectorControlHtml(value) {
+  if (typeof window.escapeHtml === 'function') {
+    return window.escapeHtml(value);
+  }
+
+  const temp = document.createElement('div');
+  temp.textContent = String(value ?? '');
+  return temp.innerHTML;
+}
+
 window.createGroupedSelector = function(values, isMultiSelect, currentValues = [], options = {}) {
   const enableGrouping = options.enableGrouping !== false;
   const containerId = Object.prototype.hasOwnProperty.call(options, 'containerId')
@@ -652,7 +662,7 @@ window.createPopupListControl = function(innerControl, label, placeholder) {
       summarySpan.textContent = displayValues.join(', ');
       summarySpan.classList.remove('is-placeholder');
     } else {
-      summarySpan.innerHTML = escFn(displayValues[0]) + ' <span class="form-mode-popup-more">and ' + (displayValues.length - 1) + ' more</span>';
+      summarySpan.innerHTML = escapeSelectorControlHtml(displayValues[0]) + ' <span class="form-mode-popup-more">and ' + (displayValues.length - 1) + ' more</span>';
       summarySpan.classList.remove('is-placeholder');
     }
 

@@ -95,7 +95,7 @@ window.renderJsonTree = function(payload) {
   tree.innerHTML = window.renderJsonNode(null, payload, 0, true, '$');
 };
 
-window.updateQueryJson = function() {
+function updateQueryJson() {
   const tableNameInput = window.DOM.tableNameInput;
   const queryName = tableNameInput ? tableNameInput.value.trim() : '';
   const payload = window.buildBackendQueryPayload(queryName);
@@ -108,7 +108,7 @@ window.updateQueryJson = function() {
     }
   }
   window.renderJsonTree(payload);
-};
+}
 
 window.onDOMReady(() => {
   const jsonTree = document.getElementById('query-json-tree');
@@ -145,5 +145,10 @@ window.onDOMReady(() => {
 
 // Keep JSON preview in sync with query state changes reactively.
 window.QueryStateSubscriptions.subscribe(() => {
-  window.updateQueryJson();
+  updateQueryJson();
 }, { displayedFields: true, activeFilters: true });
+
+window.updateQueryJson = updateQueryJson;
+window.JsonViewerUI = Object.freeze({
+  updateQueryJson
+});

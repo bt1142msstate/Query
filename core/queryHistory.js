@@ -745,7 +745,7 @@ async function loadQueryResults(queryId) {
             services.setVirtualTableData(newTableData);
             
             // Re-render the full table to reset red column headers and redraw the rows with new widths
-            if (typeof window.showExampleTable === 'function') {
+            if (window.QueryTableView?.showExampleTable) {
                 await uiActions.showExampleTable(headers);
             } else {
                 services.renderVirtualTable();
