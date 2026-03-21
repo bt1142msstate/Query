@@ -182,8 +182,10 @@ class SimpleTable {
                 return isNaN(int) ? 0 : int;
             case 'datetime':
             case 'date':
-                const date = new Date(value);
-                return isNaN(date.getTime()) ? new Date() : date;
+                const parsedDate = window.CustomDatePicker && typeof window.CustomDatePicker.parseDateValue === 'function'
+                    ? window.CustomDatePicker.parseDateValue(value)
+                    : null;
+                return parsedDate || new Date();
             case 'boolean':
             case 'bool':
                 return value === 'true' || value === '1' || value === 'yes';

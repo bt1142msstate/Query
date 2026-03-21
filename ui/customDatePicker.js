@@ -26,7 +26,7 @@
 
   // Backend format: YYYYMMDD
   function toBackendDateValue(displayValue) {
-    const parsed = parseDisplayDate(String(displayValue || '').trim());
+    const parsed = parseDateValue(displayValue);
     if (!parsed) return displayValue;
     return `${parsed.getFullYear()}${pad(parsed.getMonth() + 1)}${pad(parsed.getDate())}`;
   }
@@ -70,21 +70,40 @@
   }
 
   function parseDateValue(value) {
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? null : new Date(value.getTime());
+    }
+
     return parseIsoDate(value);
   }
 
   function isValidDateValue(value) {
-    return Boolean(parseIsoDate(value));
+    return Boolean(parseDateValue(value));
   }
 
   function normalizeDateValue(value) {
-    const parsed = parseIsoDate(value);
+    const parsed = parseDateValue(value);
     return parsed ? toIsoDate(parsed) : '';
   }
 
   function getComparableValue(value) {
-    const parsed = parseIsoDate(value);
+    const parsed = parseDateValue(value);
     return parsed ? parsed.getTime() : NaN;
+  }
+
+  function formatDisplayValue(value, options = {}) {
+    const {
+      invalidValue = 'Never',
+      fallbackToRaw = false
+    } = options;
+
+    const parsed = parseDateValue(value);
+    if (parsed) {
+      return toDisplayDate(parsed);
+    }
+
+    const rawText = String(value || '').trim();
+    return fallbackToRaw ? rawText : invalidValue;
   }
 
   function getMonthStart(date) {
@@ -564,6 +583,7 @@
   window.CustomDatePicker = {
     enhanceInput,
     parseDateValue,
+    formatDisplayValue,
     getComparableValue,
     isValidDateValue,
     normalizeDateValue,
