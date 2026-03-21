@@ -995,7 +995,8 @@ const queryStateReaderMethodNames = Object.freeze([
   'getActiveFilters',
   'getFilterGroupForField',
   'hasDisplayedField',
-  'hasFiltersForField'
+  'hasFiltersForField',
+  'subscribe'
 ]);
 
 function createManagerStoreMethod(storeMethodName, requiredArgCount, fallbackSource) {
@@ -1053,14 +1054,17 @@ async function clearQueryManagerState(meta = {}) {
 
   uiActions?.prepareForQueryClear?.({ previousSelectedField });
 
-  // State reset fires all QueryStateSubscriptions, which reactively
-  // update FilterSidePanel, category counts, JSON preview, button states, and bubbles.
-  queryStateStore.resetState(normalizedMeta);
+  // Clear lifecycle first so subscribers observing the reset event see the fully
+  // cleared query state instead of stale partial-results/history metadata.
   queryStateStore.setLifecycleState({
     hasPartialResults: false,
     currentQueryId: null,
     lastExecutedQueryState: null
   });
+
+  // State reset fires all QueryStateSubscriptions, which reactively
+  // update FilterSidePanel, category counts, JSON preview, button states, and bubbles.
+  queryStateStore.resetState(normalizedMeta);
 
   uiActions?.finalizeQueryClear?.({ previousSelectedField });
   appStateStore.selectedField = '';
@@ -1074,7 +1078,6 @@ async function clearQueryManagerState(meta = {}) {
 }
 
 const queryChangeManager = Object.freeze({
-  subscribe: queryStateStore.subscribe,
   replaceDisplayedFields: createManagerStoreMethod('replaceDisplayedFields', 1, 'QueryChangeManager.replaceDisplayedFields'),
   addDisplayedField: createManagerStoreMethod('addDisplayedField', 1, 'QueryChangeManager.addDisplayedField'),
   removeDisplayedField: createManagerStoreMethod('removeDisplayedField', 1, 'QueryChangeManager.removeDisplayedField'),

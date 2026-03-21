@@ -10,7 +10,6 @@
   const getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
   const getActiveFilters = window.QueryStateReaders.getActiveFilters.bind(window.QueryStateReaders);
   let initialized = false;
-  let queryStateSyncBound = false;
 
   function resetBubbleScrollState() {
     services.resetBubbleScroll();
@@ -256,15 +255,6 @@
     }
 
     initialized = true;
-    if (!queryStateSyncBound) {
-      queryStateSyncBound = true;
-      window.QueryStateSubscriptions.subscribe(() => {
-        updateCategoryCounts();
-      }, {
-        displayedFields: true,
-        activeFilters: true
-      });
-    }
 
     dom.pageBody?.classList.add('night');
     bindConfirmEnterShortcut();
