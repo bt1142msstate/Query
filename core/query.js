@@ -986,12 +986,18 @@ window.QueryStateSubscriptions.subscribe(event => {
     return;
   }
 
+  if (event.changes?.activeFilters) {
+    updateCategoryCounts();
+    return;
+  }
+
   const displayedFields = event.snapshot?.displayedFields;
   if (Array.isArray(displayedFields) && displayedFields.length === 0) {
     renderEmptyQueryTableState();
   }
 }, {
-  displayedFields: true
+  displayedFields: true,
+  activeFilters: true
 });
 
 // Arrow-key scrolling when focus is on a bubble, the scrollbar thumb, or when hovering over bubble grid/scrollbar
