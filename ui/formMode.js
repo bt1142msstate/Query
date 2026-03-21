@@ -725,12 +725,12 @@
     clearFormControlDefaults();
     cleanupFormControls();
 
-    // Generated form mode should fully reflect the cleared query state.
-    // After a full query clear, there are no active filters left to render.
-    if (state.specSource === 'generated') {
-      state.spec.inputs = [];
-      state.spec.columns = [];
-    }
+    // A full query clear should leave form mode with no active query structure,
+    // regardless of whether the form came from the URL or was generated locally.
+    // Reset can still restore the original spec from state.initialSpec.
+    state.spec.inputs = [];
+    state.spec.columns = [];
+    state.spec.lockedFilters = [];
 
     if (state.formCard && state.formCard.parentNode) {
       state.formCard.parentNode.removeChild(state.formCard);
