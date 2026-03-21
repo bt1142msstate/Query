@@ -42,6 +42,11 @@
     const currentValue = tableNameInput.value.trim();
     const shouldUpdate = !currentValue || currentValue === state.lastSuggestedTableName;
 
+    if (state.spec && nextName) {
+      state.spec.title = nextName;
+      state.spec.queryName = nextName;
+    }
+
     state.lastSuggestedTableName = nextName;
 
     if (!shouldUpdate) {

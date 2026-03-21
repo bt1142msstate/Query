@@ -766,8 +766,8 @@
       applyFormState({ source: querySource });
     } else {
       const bindings = collectFormBindings(state.spec, getCurrentInputValues, supportsMultipleValues, getInputParamKeys);
-      syncFormHeaderCopy(state.formCard, state.spec, bindings, interpolateValue);
       syncFormTableName(state, bindings, interpolateValue);
+      syncFormHeaderCopy(state.formCard, state.spec, bindings, interpolateValue);
       syncValidationUi();
     }
     syncPresentationMode();
@@ -978,8 +978,8 @@
     const source = options.source || 'QueryFormMode.applyFormState';
 
     const bindings = collectFormBindings(state.spec, getCurrentInputValues, supportsMultipleValues, getInputParamKeys);
-    syncFormHeaderCopy(state.formCard, state.spec, bindings, interpolateValue);
     syncFormTableName(state, bindings, interpolateValue);
+    syncFormHeaderCopy(state.formCard, state.spec, bindings, interpolateValue);
 
     const columns = state.spec.columns.slice();
     ensureColumnsRegistered(columns);
@@ -1408,6 +1408,14 @@
         return;
       }
 
+      const currentTableName = tableNameInput.value.trim();
+      if (currentTableName) {
+        state.spec.title = currentTableName;
+        state.spec.queryName = currentTableName;
+      }
+
+      const bindings = collectFormBindings(state.spec, getCurrentInputValues, supportsMultipleValues, getInputParamKeys);
+      syncFormHeaderCopy(state.formCard, state.spec, bindings, interpolateValue);
       refreshBrowserUrl();
     };
 
