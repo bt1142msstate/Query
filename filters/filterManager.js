@@ -72,8 +72,7 @@ function getComparableDateValue(value) {
         return window.CustomDatePicker.getComparableValue(value);
     }
 
-    const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime()) ? NaN : parsed.getTime();
+    return NaN;
 }
 
 function getConditionOperatorSelect(conditionPanel = null) {

@@ -95,21 +95,13 @@
     };
   }
 
-  function parseSirsDate(raw) {
-    const n = typeof raw === 'string' ? parseInt(raw, 10) : raw;
-    if (!n || isNaN(n)) return null;
-    const y = Math.floor(n / 10000);
-    const m = Math.floor((n % 10000) / 100) - 1;
-    const d = n % 100;
-    const dt = new Date(y, m, d);
-    return isNaN(dt.getTime()) ? null : dt;
-  }
-
   function getCellExportValue(raw, type) {
     if (raw === undefined || raw === null) return '';
 
     if (type === 'date') {
-      const dt = parseSirsDate(raw);
+      const dt = window.CustomDatePicker && typeof window.CustomDatePicker.parseDateValue === 'function'
+        ? window.CustomDatePicker.parseDateValue(raw)
+        : null;
       return dt !== null ? dt : 'Never';
     }
 
@@ -133,7 +125,9 @@
     }
 
     if (rawValue instanceof Date) {
-      return rawValue.toLocaleDateString();
+      return window.CustomDatePicker && typeof window.CustomDatePicker.formatDisplayValue === 'function'
+        ? window.CustomDatePicker.formatDisplayValue(rawValue, { fallbackToRaw: true, invalidValue: 'Blank' })
+        : rawValue.toLocaleDateString();
     }
 
     if (typeof rawValue === 'boolean') {

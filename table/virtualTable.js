@@ -200,19 +200,7 @@ function parseComparableDateValue(value) {
     return value.getTime();
   }
 
-  const text = String(value ?? '').trim();
-  if (!text || text.toLowerCase() === 'never') {
-    return NaN;
-  }
-
-  const compactMatch = text.match(/^(\d{4})(\d{2})(\d{2})$/);
-  if (compactMatch) {
-    const dateValue = new Date(Number(compactMatch[1]), Number(compactMatch[2]) - 1, Number(compactMatch[3]));
-    return Number.isNaN(dateValue.getTime()) ? NaN : dateValue.getTime();
-  }
-
-  const parsed = new Date(text);
-  return Number.isNaN(parsed.getTime()) ? NaN : parsed.getTime();
+  return NaN;
 }
 
 function getComparableRowValues(rawValue, type) {

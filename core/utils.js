@@ -489,42 +489,15 @@ window.ValueFormatting = (() => {
       fallbackToRaw = false
     } = options;
 
+    if (window.CustomDatePicker && typeof window.CustomDatePicker.formatDisplayValue === 'function') {
+      return window.CustomDatePicker.formatDisplayValue(rawValue, {
+        invalidValue,
+        fallbackToRaw
+      });
+    }
+
     const textValue = String(rawValue || '').trim();
-    const compactMatch = textValue.match(/^(\d{4})(\d{2})(\d{2})$/);
-    const displayValue = window.CustomDatePicker && typeof window.CustomDatePicker.normalizeDateValue === 'function'
-      ? window.CustomDatePicker.normalizeDateValue(textValue)
-      : '';
-
-    if (displayValue) {
-      return displayValue;
-    }
-
-    if (compactMatch) {
-      return `${Number(compactMatch[2])}/${Number(compactMatch[3])}/${compactMatch[1]}`;
-    }
-
-    const numericValue = typeof rawValue === 'number'
-      ? rawValue
-      : (compactMatch ? Number.parseInt(textValue, 10) : NaN);
-
-    if (!Number.isFinite(numericValue) || numericValue <= 0) {
-      return fallbackToRaw ? textValue : invalidValue;
-    }
-
-    const year = Math.floor(numericValue / 10000);
-    const month = Math.floor((numericValue % 10000) / 100) - 1;
-    const day = numericValue % 100;
-    const date = new Date(year, month, day);
-    if (
-      Number.isNaN(date.getTime())
-      || date.getFullYear() !== year
-      || date.getMonth() !== month
-      || date.getDate() !== day
-    ) {
-      return fallbackToRaw ? textValue : invalidValue;
-    }
-
-    return `${month + 1}/${day}/${year}`;
+    return fallbackToRaw ? textValue : invalidValue;
   }
 
   function parseStandardNumber(rawValue) {
