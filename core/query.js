@@ -721,7 +721,15 @@ async function showExampleTable(fields, options = {}){
       window.DragDropSystem.resetHeaderUi();
     }
 
-    container.classList.remove('table-container-hidden');
+    // Only reveal the container immediately when the morph animation is not in
+    // progress.  When the spacefield bubble is alive, endTableQueryAnimation's
+    // finishAnim() removes table-container-hidden at exactly the right moment
+    // (after the bubble has fully morphed back into the table rect).  Removing
+    // it here while the bubble is still present causes results to flash through
+    // before the animation completes.
+    if (!document.getElementById('table-query-bubble')) {
+      container.classList.remove('table-container-hidden');
+    }
     const table = document.createElement('table');
     table.id = 'example-table';
     table.className = 'min-w-full divide-y divide-gray-200 bg-white';
