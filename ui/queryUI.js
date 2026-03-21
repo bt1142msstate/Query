@@ -28,6 +28,9 @@ window.updateTableResultsLip = function() {
   // Planning mode: columns are configured but no results are loaded yet, and no query is running.
   const isPlanningMode = columnCount > 0 && rowCount === 0 && !window.queryRunning;
   document.body.classList.toggle('is-planning', isPlanningMode);
+  // Partial results: query was stopped early — table shows an incomplete result set.
+  const isPartialResults = !!(window.hasPartialResults) && rowCount > 0 && !window.queryRunning;
+  document.body.classList.toggle('is-partial-results', isPartialResults);
   // has-loaded-data is set only when actual row data is present — used by CSS
   // to scope interaction effects (e.g. cell hover glow) to real results.
   document.body.classList.toggle('has-loaded-data', rowCount > 0);
