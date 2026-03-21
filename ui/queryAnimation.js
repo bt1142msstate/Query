@@ -324,8 +324,8 @@ window.startTableQueryAnimation = function() {
 
   const contentNode = document.createElement('div');
   contentNode.className = 'table-query-bubble-content';
-  contentNode.appendChild(textNode);
   contentNode.appendChild(metricsNode);
+  contentNode.appendChild(textNode);
 
   // Stop button — revealed on hover while the query is running
   const stopOverlay = document.createElement('div');
