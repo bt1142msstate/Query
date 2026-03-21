@@ -304,7 +304,6 @@ if (execDom.runBtn) {
 
           // Reset bubble scroll back to the top
           window.resetBubbleScrollState?.();
-          if (window.updateButtonStates) window.updateButtonStates();
 
           // Restore split-columns mode if it was active before the query ran
           if (wasSplitActive && window.VirtualTable && typeof window.VirtualTable.setSplitColumnsMode === 'function') {
