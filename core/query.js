@@ -364,6 +364,10 @@ function restoreEmptyTableDropTarget(container) {
 }
 
 function renderEmptyQueryTableState() {
+  if (window.DragDropSystem && typeof window.DragDropSystem.clearInsertAffordance === 'function') {
+    window.DragDropSystem.clearInsertAffordance({ immediate: true });
+  }
+
   if (window.VirtualTable && typeof window.VirtualTable.clearVirtualTableData === 'function') {
     window.VirtualTable.clearVirtualTableData();
   }
