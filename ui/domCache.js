@@ -28,6 +28,7 @@ window.DOM = {
   get tableNameShell() { return this._tableNameShell ||= document.getElementById('table-name-shell'); },
   get tableResultsBadge() { return this._tableResultsBadge ||= document.getElementById('table-results-badge'); },
   get planningBadge() { return this._planningBadge ||= document.getElementById('planning-badge'); },
+  get partialResultsBadge() { return this._partialResultsBadge ||= document.getElementById('partial-results-badge'); },
   get tableResultsCount() { return this._tableResultsCount ||= document.getElementById('table-results-count'); },
   get tableResultsLabel() { return this._tableResultsLabel ||= document.getElementById('table-results-label'); },
   get tableColumnsCount() { return this._tableColumnsCount ||= document.getElementById('table-columns-count'); },

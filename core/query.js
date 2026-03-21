@@ -57,8 +57,10 @@ async function readStreamedQueryText(response, options = {}) {
   const lines = [];
   let bufferedText = '';
   let fullText = '';
+  let partial = false;
 
   while (true) {
+    if (!window.queryRunning) { partial = true; break; }
     const { value, done } = await reader.read();
     if (done) break;
 
@@ -94,7 +96,7 @@ async function readStreamedQueryText(response, options = {}) {
     }
   }
 
-  return { text: fullText, lines };
+  return { text: fullText, lines, partial };
 }
 
 function markQueryPageUnload() {
@@ -161,6 +163,7 @@ if(dom.runBtn){
       currentQueryId = null;
       try {
         window.queryRunning = true;
+        window.hasPartialResults = false;
         window.updateRunButtonIcon();
         if (window.updateButtonStates) {
           window.updateButtonStates();
@@ -226,10 +229,13 @@ if(dom.runBtn){
         });
         const text = streamedPayload.text;
         
-        // If user stopped the query while waiting for response, abort processing
-        if (!window.queryRunning) {
-             console.log('Query stopped by user, discarding response.');
-             return;
+        // If user stopped mid-stream, show whatever was received as partial results
+        if (streamedPayload.partial) {
+          if (lines.length === 0) {
+            console.log('Query stopped by user before any data arrived; discarding.');
+            return;
+          }
+          console.log(`Query stopped mid-stream. Processing ${lines.length} partial lines.`);
         }
         
         // Parse pipe-delimited response
@@ -325,7 +331,14 @@ if(dom.runBtn){
         
         // Update last executed state
         window.lastExecutedQueryState = window.getCurrentQueryState();
-        showToastMessage(`Query completed. Loaded ${rows.length} results.`, 'success');
+        if (streamedPayload.partial) {
+          window.hasPartialResults = true;
+          if (window.updateTableResultsLip) window.updateTableResultsLip();
+          showToastMessage(`Query stopped early. Showing ${rows.length} partial result${rows.length !== 1 ? 's' : ''}.`, 'info');
+        } else {
+          window.hasPartialResults = false;
+          showToastMessage(`Query completed. Loaded ${rows.length} results.`, 'success');
+        }
 
       } catch (error) {
          if (window.queryPageIsUnloading) {
