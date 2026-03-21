@@ -10,6 +10,7 @@ let queryDurationUpdateInterval = null;
 let lastQueryStatusPollAt = 0;
 let activeHistorySection = 'none';
 const QUERY_STATUS_POLL_MS = 2000;
+const IDLE_POLL_MS = 8000;
 let lastHistoryRenderKey = '';
 
 function isQueriesPanelOpen() {
@@ -551,10 +552,11 @@ async function fetchQueryStatus() {
       restoreHistoryViewState(viewState);
     }
 
-    if (isQueriesPanelOpen() && newHistory.some(q => q.running)) {
+    if (isQueriesPanelOpen()) {
+      // Keep the interval running so new queries from other users appear
+      // without requiring a manual refresh. startQueryDurationUpdates is a no-op
+      // when the interval is already active.
       startQueryDurationUpdates();
-    } else {
-      stopQueryDurationUpdates();
     }
     
   } catch (e) {
@@ -1021,7 +1023,7 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
         <td class="px-4 py-2 text-xs text-center">${columnsSummary}</td>
         <td class="px-4 py-2 text-xs text-center">${filtersSummary}</td>
         <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
-        <td class="px-4 py-2 text-xs text-center">${duration}</td>
+        <td class="px-4 py-2 text-xs text-center history-duration-cell" data-query-id="${q.id}">${duration}</td>
         <td class="px-4 py-2 text-center">${previewBtn}</td>
         <td class="px-4 py-2 text-center">${stopBtn}</td>
       </tr>
@@ -1070,8 +1072,27 @@ window.addQueryToHistory = addQueryToHistory;
 window.fetchQueryStatus = fetchQueryStatus;
 
 /**
+ * Updates only the duration cells of currently-running query rows in-place,
+ * avoiding a full layout re-render on every tick.
+ * @function updateRunningDurationsInPlace
+ */
+function updateRunningDurationsInPlace() {
+  const list = document.getElementById('queries-list');
+  if (!list) return;
+  exampleQueries.filter(q => q.running && q.startTime).forEach(q => {
+    const cell = list.querySelector(`.history-duration-cell[data-query-id="${q.id}"]`);
+    if (!cell) return;
+    const start = new Date(q.startTime);
+    if (isNaN(start.getTime())) return;
+    const seconds = Math.max(0, Math.floor((Date.now() - start) / 1000));
+    cell.textContent = typeof formatDuration === 'function' ? formatDuration(seconds) : `${seconds}s`;
+  });
+}
+
+/**
  * Starts real-time updates for running query durations.
- * Updates every second while there are running queries.
+ * Keeps polling even when no queries are running so that queries started by
+ * other users appear without a manual page refresh.
  * @function startQueryDurationUpdates
  */
 function startQueryDurationUpdates() {
@@ -1079,7 +1100,7 @@ function startQueryDurationUpdates() {
   if (queryDurationUpdateInterval) return; // Already running
 
   window.fetchQueryStatus();
-  
+
   queryDurationUpdateInterval = setInterval(() => {
     if (!isQueriesPanelOpen()) {
       stopQueryDurationUpdates();
@@ -1087,15 +1108,17 @@ function startQueryDurationUpdates() {
     }
 
     const hasRunningQueries = exampleQueries.some(q => q.running);
+    // Tick running durations in-place — no full re-render needed.
     if (hasRunningQueries) {
-        renderQueries();
-        if ((Date.now() - lastQueryStatusPollAt) >= QUERY_STATUS_POLL_MS) {
-             window.fetchQueryStatus();
-        }
-    } else {
-      stopQueryDurationUpdates();
+      updateRunningDurationsInPlace();
     }
-  }, 1000); 
+
+    // Poll the backend: faster when queries are running, slower when idle.
+    const pollInterval = hasRunningQueries ? QUERY_STATUS_POLL_MS : IDLE_POLL_MS;
+    if ((Date.now() - lastQueryStatusPollAt) >= pollInterval) {
+      window.fetchQueryStatus();
+    }
+  }, 1000);
 }
 
 /**
@@ -1331,10 +1354,12 @@ function renderQueries(){
       liveSignal,
       searchLabel,
       openSection,
-      runningRows,
-      doneRows,
-      failedRows,
-      cancelledRows
+      // Use stable identity data rather than formatted row HTML so that
+      // ticking durations for running queries do not trigger a full re-render.
+      runningIds: runningList.map(q => `${q.id}:${q.resultCount ?? ''}`),
+      doneIds: doneList.map(q => q.id),
+      failedIds: failedList.map(q => `${q.id}:${q.error ?? ''}`),
+      cancelledIds: cancelledList.map(q => q.id)
     });
   }
 
