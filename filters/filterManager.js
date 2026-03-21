@@ -9,8 +9,8 @@
  * Represents a single active filter condition pill in the UI.
  * (Moved from queryUI.js)
  */
-const appState = window.AppState;
-const services = window.AppServices;
+var appState = window.AppState;
+var services = window.AppServices;
 
 function getFilterValueMap(fieldDef) {
     if (!fieldDef || !fieldDef.values || fieldDef.values.length === 0) {

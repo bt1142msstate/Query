@@ -140,11 +140,11 @@
 
     const headers = rawTable[0];
     const dataRows = rawTable.slice(1);
-    services.table.virtualTableData = {
+    services.setVirtualTableData({
       headers,
       rows: dataRows,
       columnMap: new Map(headers.map((header, index) => [header, index]))
-    };
+    });
 
     window.QueryChangeManager.replaceDisplayedFields(headers, { source: 'QueryBuilderShell.groupMethodChange' });
     await window.showExampleTable(getDisplayedFields(), { syncQueryState: false });
@@ -152,8 +152,8 @@
 
   function handleOverlayClick() {
     services.closeAllModals();
-    services.bubble?.resetActiveBubbles?.();
-    services.bubble?.resetEditorUi?.({ removeFilterCard: true });
+    services.resetActiveBubbles();
+    services.resetBubbleEditorUi({ removeFilterCard: true });
     window.setTimeout(() => services.rerenderBubbles(), 0);
   }
 
@@ -273,7 +273,7 @@
     updateCategoryCounts();
     initializeBuilderState();
     loadDynamicFields();
-    services.bubble?.initializeBubbles?.();
+    services.initializeBubbles();
   }
 
   window.resetBubbleScrollState = resetBubbleScrollState;

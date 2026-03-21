@@ -4,7 +4,9 @@
  * @module QueryState
  */
 
-const services = window.AppServices;
+function getServices() {
+  return window.AppServices || null;
+}
 
 // Utility Functions - Available globally
 window.getBaseFieldName = function(fieldName) {
@@ -29,7 +31,7 @@ window.getBaseFieldName = function(fieldName) {
     return withoutOrdinalPrefix;
   }
 
-  const rawColumnMap = services.table?.rawTableData?.columnMap;
+  const rawColumnMap = getServices()?.table?.rawTableData?.columnMap;
   if (rawColumnMap instanceof Map && rawColumnMap.has(baseCandidate)) {
     return baseCandidate;
   }
@@ -231,7 +233,7 @@ function getQueryStateSnapshot() {
   return {
     displayedFields: cloneDisplayedFieldsSnapshot(),
     activeFilters: cloneActiveFiltersSnapshot(),
-    groupMethod: services.getSimpleTable()?.groupMethod || 'ExpandIntoColumns'
+    groupMethod: getServices()?.getSimpleTable?.()?.groupMethod || 'ExpandIntoColumns'
   };
 }
 

@@ -174,10 +174,6 @@
     return getTableService()?.virtualTableData?.rows || [];
   }
 
-  function getVirtualTableColumnMap() {
-    return getTableService()?.virtualTableData?.columnMap || null;
-  }
-
   function getBaseViewColumnMap() {
     return getTableService()?.baseViewData?.columnMap || null;
   }
@@ -299,12 +295,10 @@
     markDropSuccessful,
     clearInsertAffordance,
     cleanupDragDropTableListeners,
-    getSimpleTable
-    ,
+    getSimpleTable,
     getVirtualTableData,
     getRawTableData,
     getVirtualTableRows,
-    getVirtualTableColumnMap,
     getBaseViewColumnMap,
     setVirtualTableData,
     setupVirtualTable,

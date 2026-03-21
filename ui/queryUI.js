@@ -6,8 +6,8 @@
 
 var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
 var getActiveFilters = window.QueryStateReaders.getActiveFilters.bind(window.QueryStateReaders);
-const appState = window.AppState;
-const services = window.AppServices;
+var appState = window.AppState;
+var services = window.AppServices;
 
 window.updateTableResultsLip = function() {
   const resultsBadge = window.DOM.tableResultsBadge;
