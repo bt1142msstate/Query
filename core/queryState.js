@@ -165,12 +165,12 @@ function warnLegacyQueryStateRead(path) {
   }
 
   legacyReadWarnings.add(path);
-  console.warn(`Direct query state read via ${path} is deprecated. Use window.QueryChangeManager read methods instead.`);
+  console.warn(`Direct query state read via ${path} is deprecated. Use window.QueryStateReaders instead.`);
 }
 
 function throwLegacyQueryStateRead(path) {
   warnLegacyQueryStateRead(path);
-  throw new Error(`Direct query state read via ${path} is blocked. Use window.QueryChangeManager read methods instead.`);
+  throw new Error(`Direct query state read via ${path} is blocked. Use window.QueryStateReaders instead.`);
 }
 
 function cloneFilterEntry(filter) {
@@ -701,7 +701,7 @@ function normalizeManagerMeta(meta = {}, fallbackSource) {
   };
 }
 
-const queryStateReadMethodNames = Object.freeze([
+const queryStateReaderMethodNames = Object.freeze([
   'getSnapshot',
   'getLifecycleState',
   'getQueryStatus',
@@ -710,8 +710,7 @@ const queryStateReadMethodNames = Object.freeze([
   'getActiveFilters',
   'getFilterGroupForField',
   'hasDisplayedField',
-  'hasFiltersForField',
-  'subscribe'
+  'hasFiltersForField'
 ]);
 
 function createManagerStoreMethod(storeMethodName, requiredArgCount, fallbackSource) {
@@ -756,7 +755,7 @@ function hideManagedField(fieldName, options = {}) {
 // App-level clear that resets query state plus all dependent UI surfaces.
 async function clearQueryManagerState(meta = {}) {
   const normalizedMeta = normalizeManagerMeta(meta, 'QueryChangeManager.clearQuery');
-  const services = getServices();
+  const uiActions = window.AppUiActions || null;
 
   if (queryLifecycleState.queryRunning) {
     if (typeof window.showToastMessage === 'function') {
@@ -767,27 +766,7 @@ async function clearQueryManagerState(meta = {}) {
 
   const previousSelectedField = appStateStore.selectedField || '';
 
-  services?.modal?.closeAllPanels?.();
-  services?.clearInsertAffordance?.({ immediate: true });
-  services?.resetActiveBubbles?.();
-  services?.resetBubbleEditorUi?.({
-    clearPanelContent: true,
-    clearConditionListSelection: !previousSelectedField
-  });
-
-  if (window.PostFilterSystem && typeof window.PostFilterSystem.close === 'function') {
-    window.PostFilterSystem.close();
-  }
-  if (services?.table?.clearPostFilters) {
-    services.clearPostFilters({ refreshView: false, notify: true, resetScroll: false });
-  }
-
-  if (services?.isSplitColumnsActive?.()) {
-    services.setSplitColumnsMode(false);
-  }
-  if (typeof window.resetSplitColumnsToggleUI === 'function') {
-    window.resetSplitColumnsToggleUI();
-  }
+  uiActions?.prepareForQueryClear?.({ previousSelectedField });
 
   // State reset fires all QueryStateSubscriptions, which reactively
   // update FilterSidePanel, category counts, JSON preview, button states, and bubbles.
@@ -798,34 +777,9 @@ async function clearQueryManagerState(meta = {}) {
     lastExecutedQueryState: null
   });
 
-  if (previousSelectedField && typeof window.renderConditionList === 'function') {
-    window.renderConditionList(previousSelectedField);
-  } else {
-    document.getElementById('bubble-cond-list')?.replaceChildren();
-  }
-
+  uiActions?.finalizeQueryClear?.({ previousSelectedField });
   appStateStore.selectedField = '';
-
-  const dom = window.DOM;
-  if (dom?.tableNameInput) {
-    dom.tableNameInput.value = '';
-    dom.tableNameInput.classList.remove('error');
-    dom.tableNameInput.dispatchEvent(new Event('input', { bubbles: true }));
-  }
-
-  if (dom?.queryInput) {
-    dom.queryInput.value = '';
-    dom.queryInput.dispatchEvent(new Event('input', { bubbles: true }));
-  }
-  if (dom?.clearSearchBtn) {
-    dom.clearSearchBtn.classList.add('hidden');
-  }
-
   appStateStore.currentCategory = 'All';
-
-  services?.resetBubbleScroll?.();
-
-  window.AppUiActions?.updateButtonStates?.();
 
   if (typeof window.showToastMessage === 'function') {
     window.showToastMessage('Query cleared.', 'info');
@@ -835,9 +789,7 @@ async function clearQueryManagerState(meta = {}) {
 }
 
 const queryChangeManager = Object.freeze({
-  ...Object.fromEntries(
-    queryStateReadMethodNames.map(methodName => [methodName, queryStateStore[methodName]])
-  ),
+  subscribe: queryStateStore.subscribe,
   replaceDisplayedFields: createManagerStoreMethod('replaceDisplayedFields', 1, 'QueryChangeManager.replaceDisplayedFields'),
   addDisplayedField: createManagerStoreMethod('addDisplayedField', 1, 'QueryChangeManager.addDisplayedField'),
   removeDisplayedField: createManagerStoreMethod('removeDisplayedField', 1, 'QueryChangeManager.removeDisplayedField'),
@@ -867,9 +819,7 @@ const queryChangeManager = Object.freeze({
 
 const queryStateReaders = Object.freeze({
   ...Object.fromEntries(
-    queryStateReadMethodNames
-      .filter(methodName => methodName !== 'subscribe')
-      .map(methodName => [methodName, queryChangeManager[methodName]])
+    queryStateReaderMethodNames.map(methodName => [methodName, queryStateStore[methodName]])
   )
 });
 Object.defineProperty(window, 'QueryChangeManager', {

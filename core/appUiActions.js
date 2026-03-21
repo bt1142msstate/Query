@@ -3,6 +3,10 @@
  * Keeps callers from reaching directly into exported window functions.
  */
 (function initializeAppUiActions() {
+  function getServices() {
+    return window.AppServices || null;
+  }
+
   function showExampleTable(fields, options = {}) {
     const showTable = window.QueryTableView?.showExampleTable;
     if (typeof showTable !== 'function') {
@@ -44,6 +48,63 @@
     window.QueryUI?.updateTableChromeState?.();
   }
 
+  function prepareForQueryClear(options = {}) {
+    const previousSelectedField = String(options.previousSelectedField || '').trim();
+    const services = getServices();
+
+    services?.closeAllModals?.();
+    services?.clearInsertAffordance?.({ immediate: true });
+    services?.resetActiveBubbles?.();
+    services?.resetBubbleEditorUi?.({
+      clearPanelContent: true,
+      clearConditionListSelection: !previousSelectedField
+    });
+
+    if (window.PostFilterSystem?.close) {
+      window.PostFilterSystem.close();
+    }
+
+    services?.clearPostFilters?.({ refreshView: false, notify: true, resetScroll: false });
+
+    if (services?.isSplitColumnsActive?.()) {
+      services.setSplitColumnsMode(false);
+    }
+
+    if (typeof window.resetSplitColumnsToggleUI === 'function') {
+      window.resetSplitColumnsToggleUI();
+    }
+  }
+
+  function finalizeQueryClear(options = {}) {
+    const previousSelectedField = String(options.previousSelectedField || '').trim();
+    const services = getServices();
+    const dom = window.DOM;
+
+    if (previousSelectedField && typeof window.renderConditionList === 'function') {
+      window.renderConditionList(previousSelectedField);
+    } else {
+      document.getElementById('bubble-cond-list')?.replaceChildren();
+    }
+
+    if (dom?.tableNameInput) {
+      dom.tableNameInput.value = '';
+      dom.tableNameInput.classList.remove('error');
+      dom.tableNameInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    if (dom?.queryInput) {
+      dom.queryInput.value = '';
+      dom.queryInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    if (dom?.clearSearchBtn) {
+      dom.clearSearchBtn.classList.add('hidden');
+    }
+
+    services?.resetBubbleScroll?.();
+    updateButtonStates();
+  }
+
   const appUiActions = Object.freeze({
     showExampleTable,
     updateCategoryCounts,
@@ -53,7 +114,9 @@
     updateTableResultsLip,
     updateFilterSidePanel,
     refreshTableViewport,
-    updateTableChromeState
+    updateTableChromeState,
+    prepareForQueryClear,
+    finalizeQueryClear
   });
 
   Object.defineProperty(window, 'AppUiActions', {
