@@ -194,6 +194,7 @@
       key: String(input.key || input.param || keys[0] || defaultKey).trim(),
       keys,
       field: fieldName,
+      source: String(input.source || '').trim(),
       label: String(input.label || fieldName).trim(),
       help: String(input.help || input.description || '').trim(),
       placeholder: String(input.placeholder || '').trim(),
@@ -384,6 +385,7 @@
     return {
       key: uniqueInputKey(keyBase, seenKeys),
       field: fieldName,
+      source: 'query-filter',
       label: hasMultipleFilters ? `${fieldName} (${window.OperatorLabels.get(operator)})` : fieldName,
       operator,
       multiple: shouldAllowMultiple,
@@ -494,6 +496,11 @@
 
     existingInputs.forEach(inputSpec => {
       if (usedInputs.has(inputSpec)) {
+        return;
+      }
+
+      if (inputSpec.source === 'query-filter') {
+        changed = true;
         return;
       }
 
