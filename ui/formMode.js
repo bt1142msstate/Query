@@ -1097,6 +1097,50 @@
       return wrapper;
     }
 
+    if (inputType === 'date') {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'form-mode-text-input';
+      input.placeholder = inputSpec.placeholder || 'YYYY-MM-DD';
+      input.value = (window.CustomDatePicker && typeof window.CustomDatePicker.normalizeDateValue === 'function')
+        ? window.CustomDatePicker.normalizeDateValue(initialValues[0] || '')
+        : (initialValues[0] || '');
+      input.autocomplete = 'off';
+
+      const api = window.CustomDatePicker && typeof window.CustomDatePicker.enhanceInput === 'function'
+        ? window.CustomDatePicker.enhanceInput(input, {
+            variant: 'form',
+            enabled: true,
+            placeholder: input.placeholder
+          })
+        : null;
+      const control = api ? api.shell : input;
+
+      control.getFormValues = function() {
+        const value = String(input.value || '').trim();
+        return value ? [value] : [];
+      };
+
+      control.setFormValues = function(values) {
+        const nextValue = Array.isArray(values) && values.length ? String(values[0]) : '';
+        input.value = (window.CustomDatePicker && typeof window.CustomDatePicker.normalizeDateValue === 'function')
+          ? window.CustomDatePicker.normalizeDateValue(nextValue)
+          : nextValue;
+      };
+
+      control.focusInput = function() {
+        input.focus();
+      };
+
+      control._cleanupPopup = function() {
+        if (api && typeof api.closeIfActive === 'function') {
+          api.closeIfActive();
+        }
+      };
+
+      return control;
+    }
+
     const input = document.createElement('input');
     input.type = inputType;
     input.className = 'form-mode-text-input';
@@ -1422,26 +1466,43 @@
     if (!state.active || !state.spec) return '';
 
     const missingLabels = [];
+    const invalidDateLabels = [];
     state.spec.inputs.forEach(inputSpec => {
-      if (!inputSpec.required) return;
-
       const values = getControlValues(inputSpec);
+      const fieldDef = window.fieldDefs && inputSpec.field ? window.fieldDefs.get(inputSpec.field) : null;
+      const isDateField = getFieldInputType(fieldDef, inputSpec) === 'date';
       const isMissing = inputSpec.operator === 'between'
         ? values.slice(0, 2).some(value => !String(value || '').trim())
         : values.filter(Boolean).length === 0;
+      const hasInvalidDate = isDateField && values.some(value => {
+        const normalized = String(value || '').trim();
+        return normalized && (!window.CustomDatePicker || !window.CustomDatePicker.isValidDateValue(normalized));
+      });
 
       const control = state.controls.get(inputSpec.key);
       if (control) {
-        control.classList.toggle('form-mode-control-invalid', isMissing);
+        control.classList.toggle('form-mode-control-invalid', (inputSpec.required && isMissing) || hasInvalidDate);
       }
 
-      if (isMissing) {
+      if (inputSpec.required && isMissing) {
         missingLabels.push(inputSpec.label);
+        return;
+      }
+
+      if (hasInvalidDate) {
+        invalidDateLabels.push(inputSpec.label);
       }
     });
 
-    if (missingLabels.length === 0) return '';
-    return `Fill required form fields: ${missingLabels.join(', ')}`;
+    if (missingLabels.length > 0) {
+      return `Fill required form fields: ${missingLabels.join(', ')}`;
+    }
+
+    if (invalidDateLabels.length > 0) {
+      return `Use YYYY-MM-DD for: ${invalidDateLabels.join(', ')}`;
+    }
+
+    return '';
   }
 
   function syncValidationUi() {
