@@ -1,4 +1,5 @@
 (function() {
+  const services = window.AppServices;
   const { getDisplayedFields, getFilterGroupForField } = window.QueryStateReaders;
 
   function getFieldPickerOptionsFromDefinitions() {
@@ -383,35 +384,35 @@
 
   function openQueryFilterEditor(fieldName) {
     const fieldDef = window.fieldDefs && window.fieldDefs.get(fieldName);
-    if (!fieldDef || !window.BubbleSystem || typeof window.BubbleSystem.Bubble !== 'function') {
+    if (!fieldDef || !services.bubble || typeof services.bubble.Bubble !== 'function') {
       return false;
     }
 
-    const bubble = new window.BubbleSystem.Bubble(fieldDef).getElement();
+    const bubble = new services.bubble.Bubble(fieldDef).getElement();
     const overlay = window.DOM?.overlay || document.getElementById('overlay');
-    const conditionPanel = window.BubbleSystem.getConditionPanelElement ? window.BubbleSystem.getConditionPanelElement() : null;
-    const inputWrapper = window.BubbleSystem.getInputWrapperElement ? window.BubbleSystem.getInputWrapperElement() : null;
-    let filterCard = window.BubbleSystem.getFilterCardElement ? window.BubbleSystem.getFilterCardElement() : null;
+    const conditionPanel = services.bubble?.getConditionPanelElement ? services.bubble.getConditionPanelElement() : null;
+    const inputWrapper = services.getBubbleInputWrapperElement();
+    let filterCard = services.getBubbleFilterCardElement();
 
-    if (filterCard && !document.getElementById('filter-card')) {
+    if (filterCard && !window.DOM?.filterCard) {
       document.body.appendChild(filterCard);
       filterCard.offsetHeight;
     }
     if (!window.filterCard && filterCard) {
       window.filterCard = filterCard;
     }
-    if (filterCard && window.BubbleSystem?.prepareFilterCardForOpen) {
-      window.BubbleSystem.prepareFilterCardForOpen(filterCard);
+    if (filterCard) {
+      services.prepareBubbleFilterCardForOpen(filterCard);
     }
 
     if (overlay) {
       overlay.classList.add('show');
     }
 
-    window.BubbleSystem.buildConditionPanel(bubble);
+    services.buildBubbleConditionPanel(bubble);
 
-    if (filterCard && window.BubbleSystem.getFilterCardTitleElement) {
-      const titleEl = window.BubbleSystem.getFilterCardTitleElement(filterCard);
+    if (filterCard) {
+      const titleEl = services.getBubbleFilterCardTitleElement(filterCard);
       if (titleEl) titleEl.textContent = fieldName;
     }
 
@@ -423,9 +424,7 @@
       conditionPanel.classList.add('show');
     }
     if (filterCard) {
-      if (window.BubbleSystem?.markFilterCardOpen) {
-        window.BubbleSystem.markFilterCardOpen(filterCard, { scrollReadyDelay: 240 });
-      } else {
+      if (!services.markBubbleFilterCardOpen(filterCard, { scrollReadyDelay: 240 })) {
         filterCard.classList.add('show', 'content-ready');
       }
     }

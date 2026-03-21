@@ -6,6 +6,7 @@
 var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
 var getActiveFilters = window.QueryStateReaders.getActiveFilters.bind(window.QueryStateReaders);
 var hasFiltersForField = window.QueryStateReaders.hasFiltersForField.bind(window.QueryStateReaders);
+const appState = window.AppState;
 
 class Bubble {
   constructor(def, state = {}) {
@@ -121,11 +122,11 @@ function getBubbleConfirmButtonElement() {
 }
 
 function getBubbleFilterCardElement() {
-  return document.getElementById('filter-card') || window.filterCard || null;
+  return window.DOM?.filterCard || window.filterCard || null;
 }
 
 function getBubbleFilterCardTitleElement(filterCard = getBubbleFilterCardElement()) {
-  return (filterCard && filterCard.querySelector('#filter-card-title')) || document.getElementById('filter-card-title');
+  return (filterCard && filterCard.querySelector('#filter-card-title')) || window.DOM?.filterCardTitle || null;
 }
 
 function prepareBubbleFilterCardForOpen(filterCard = getBubbleFilterCardElement()) {
@@ -254,8 +255,7 @@ let _pendingRenderBubbles = false;
 const _animatingBackBubbles = new Set();
 
 function getBubbleMaxStartRow() {
-  if (typeof totalRows === 'undefined') return 0;
-  return Math.max(0, totalRows - BUBBLE_VISIBLE_ROWS);
+  return Math.max(0, appState.totalRows - BUBBLE_VISIBLE_ROWS);
 }
 
 function clampBubbleScrollRow(nextRow) {
@@ -266,17 +266,15 @@ function clampBubbleScrollRow(nextRow) {
 
 function applyBubbleScrollRow(nextRow, options = {}) {
   const { force = false } = options;
-  if (typeof scrollRow === 'undefined') return false;
-
   const clampedRow = clampBubbleScrollRow(nextRow);
-  const changed = clampedRow !== scrollRow;
+  const changed = clampedRow !== appState.scrollRow;
   if (!changed && !force) return false;
 
-  scrollRow = clampedRow;
+  appState.scrollRow = clampedRow;
 
-  const listDiv = document.getElementById('bubble-list');
+  const listDiv = window.DOM?.bubbleList || document.getElementById('bubble-list');
   if (listDiv) {
-    listDiv.style.transform = `translateY(-${scrollRow * rowHeight}px)`;
+    listDiv.style.transform = `translateY(-${appState.scrollRow * appState.rowHeight}px)`;
   }
 
   updateScrollBar();
@@ -284,7 +282,7 @@ function applyBubbleScrollRow(nextRow, options = {}) {
 }
 
 function scrollBubblesByRows(deltaRows) {
-  return applyBubbleScrollRow((typeof scrollRow === 'number' ? scrollRow : 0) + deltaRows);
+  return applyBubbleScrollRow(appState.scrollRow + deltaRows);
 }
 
 function resetBubbleScroll() {
@@ -345,19 +343,19 @@ function createOrUpdateBubble(def, existingBubble = null) {
 }
 
 function renderBubbles() {
-  if (typeof filteredDefs === 'undefined' || typeof currentCategory === 'undefined') {
+  if (typeof filteredDefs === 'undefined') {
     console.log('renderBubbles: Required globals not available yet');
     return;
   }
 
-  const container = document.getElementById('bubble-container');
-  const listDiv = document.getElementById('bubble-list');
+  const container = window.DOM?.bubbleContainer || document.getElementById('bubble-container');
+  const listDiv = window.DOM?.bubbleList || document.getElementById('bubble-list');
   if (!container || !listDiv) return;
 
   let list;
-  if (currentCategory === 'All') {
+  if (appState.currentCategory === 'All') {
     list = filteredDefs;
-  } else if (currentCategory === 'Selected') {
+  } else if (appState.currentCategory === 'Selected') {
     const displayedFields = getDisplayedFields();
     const activeFilters = getActiveFilters();
     const displayedSet = new Set(displayedFields);
@@ -375,7 +373,7 @@ function renderBubbles() {
   } else {
     list = filteredDefs.filter(d => {
       const cat = d.category;
-      return Array.isArray(cat) ? cat.includes(currentCategory) : cat === currentCategory;
+      return Array.isArray(cat) ? cat.includes(appState.currentCategory) : cat === appState.currentCategory;
     });
   }
 
@@ -387,7 +385,7 @@ function renderBubbles() {
     return 0;
   });
 
-  if (currentCategory === 'Selected') {
+  if (appState.currentCategory === 'Selected') {
     const existingBubbles = Array.from(listDiv.children);
     const existingBubbleMap = new Map(existingBubbles.map(b => [b.textContent.trim(), b]));
     listDiv.innerHTML = '';
@@ -408,9 +406,9 @@ function renderBubbles() {
   if (firstBubble) {
     const gapVal = getComputedStyle(listDiv).getPropertyValue('gap') || '0px';
     const gap = parseFloat(gapVal) || 0;
-    rowHeight = firstBubble.getBoundingClientRect().height + gap;
+    appState.rowHeight = firstBubble.getBoundingClientRect().height + gap;
     const bubbleW = firstBubble.offsetWidth;
-    const twoRowsH = rowHeight * BUBBLE_VISIBLE_ROWS - gap;
+    const twoRowsH = appState.rowHeight * BUBBLE_VISIBLE_ROWS - gap;
     const sixColsW = bubbleW * 6 + gap * 5;
     const fudge = 8;
     const paddedH = twoRowsH + 12 - fudge;
@@ -419,12 +417,12 @@ function renderBubbles() {
     container.style.width = paddedW + 'px';
     const scrollCont = document.querySelector('.bubble-scrollbar-container');
     if (scrollCont) scrollCont.style.height = paddedH + 'px';
-    totalRows = Math.ceil(list.length / 6);
-    applyBubbleScrollRow(scrollRow, { force: true });
+    appState.totalRows = Math.ceil(list.length / 6);
+    applyBubbleScrollRow(appState.scrollRow, { force: true });
   } else {
-    totalRows = 0;
-    scrollRow = 0;
-    rowHeight = 0;
+    appState.totalRows = 0;
+    appState.scrollRow = 0;
+    appState.rowHeight = 0;
     updateScrollBar();
   }
 
@@ -451,32 +449,28 @@ function safeRenderBubbles() {
 }
 
 function updateScrollBar() {
-  if (typeof totalRows === 'undefined' || typeof scrollRow === 'undefined') {
-    return;
-  }
-
-  const listDiv = document.getElementById('bubble-list');
+  const listDiv = window.DOM?.bubbleList || document.getElementById('bubble-list');
   const renderedBubbleCount = listDiv ? listDiv.querySelectorAll('.bubble').length : 0;
   const scrollbarContainer = document.querySelector('.bubble-scrollbar-container');
   if (scrollbarContainer) {
-    const needScroll = renderedBubbleCount > 0 && totalRows > BUBBLE_VISIBLE_ROWS;
+    const needScroll = renderedBubbleCount > 0 && appState.totalRows > BUBBLE_VISIBLE_ROWS;
     scrollbarContainer.style.display = needScroll ? 'block' : 'none';
     if (!needScroll) return;
   }
 
-  const track = document.getElementById('bubble-scrollbar-track');
-  const thumb = document.getElementById('bubble-scrollbar-thumb');
+  const track = window.DOM?.bubbleScrollbarTrack || document.getElementById('bubble-scrollbar-track');
+  const thumb = window.DOM?.bubbleScrollbarThumb || document.getElementById('bubble-scrollbar-thumb');
   if (!track || !thumb) return;
 
   const maxStartRow = getBubbleMaxStartRow();
   const trackH = track.clientHeight;
   track.style.background = 'rgba(255, 255, 255, 0.15)';
 
-  const visibleRatio = totalRows > 0 ? (BUBBLE_VISIBLE_ROWS / totalRows) : 1;
+  const visibleRatio = appState.totalRows > 0 ? (BUBBLE_VISIBLE_ROWS / appState.totalRows) : 1;
   let thumbH = Math.max(24, trackH * visibleRatio);
   thumbH = Math.min(thumbH, trackH);
 
-  const scrollRatio = maxStartRow > 0 ? (scrollRow / maxStartRow) : 0;
+  const scrollRatio = maxStartRow > 0 ? (appState.scrollRow / maxStartRow) : 0;
   const maxTopPos = trackH - thumbH;
   const topPos = scrollRatio * maxTopPos;
 

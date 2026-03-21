@@ -1,4 +1,6 @@
 var getFilterGroupForField = window.QueryStateReaders.getFilterGroupForField.bind(window.QueryStateReaders);
+const appState = window.AppState;
+const services = window.AppServices;
 let bubbleEventsInitialized = false;
 
 function initializeBubbleInteractions() {
@@ -8,7 +10,7 @@ function initializeBubbleInteractions() {
   }
 
   try {
-    window.BubbleSystem.renderBubbles();
+    services.renderBubbles();
   } catch (error) {
     console.error('Error during bubble initialization:', error);
     return false;
@@ -21,14 +23,14 @@ function initializeBubbleInteractions() {
   const scrollContainer = window.DOM.bubbleScrollbar;
   [bubbleContainer, scrollContainer].forEach(el => {
     if (!el) return;
-    el.addEventListener('mouseenter', () => window.hoverScrollArea = true);
-    el.addEventListener('mouseleave', () => window.hoverScrollArea = false);
+    el.addEventListener('mouseenter', () => appState.hoverScrollArea = true);
+    el.addEventListener('mouseleave', () => appState.hoverScrollArea = false);
   });
 
   function handleWheelScroll(e) {
     e.preventDefault();
     const delta = e.deltaY > 0 ? 1 : -1;
-    window.BubbleSystem.scrollBubblesByRows(delta);
+    services.scrollBubblesByRows(delta);
   }
 
   [bubbleContainer, scrollContainer].forEach(el => {
@@ -47,7 +49,7 @@ function initializeBubbleInteractions() {
     thumb.addEventListener('mousedown', e => {
       isDragging = true;
       startY = e.clientY;
-      startScrollRow = window.scrollRow;
+      startScrollRow = appState.scrollRow;
       document.body.style.cursor = 'grabbing';
       e.preventDefault();
     });
@@ -59,7 +61,7 @@ function initializeBubbleInteractions() {
       const trackHeight = track.clientHeight;
       const thumbHeight = thumb.clientHeight;
       const maxScrollPixels = trackHeight - thumbHeight;
-      const maxStartRow = window.BubbleSystem.getBubbleMaxStartRow();
+      const maxStartRow = services.getBubbleMaxStartRow();
 
       if (maxScrollPixels <= 0) return;
 
@@ -71,7 +73,7 @@ function initializeBubbleInteractions() {
       const exactRow = newRatio * maxStartRow;
       const newRow = Math.round(exactRow);
 
-      window.BubbleSystem.applyBubbleScrollRow(newRow);
+      services.applyBubbleScrollRow(newRow);
     });
 
     document.addEventListener('mouseup', () => {
@@ -89,7 +91,7 @@ function initializeBubbleInteractions() {
       const trackHeight = track.clientHeight;
       const thumbHeight = thumb.clientHeight;
       const maxScrollPixels = trackHeight - thumbHeight;
-      const maxStartRow = window.BubbleSystem.getBubbleMaxStartRow();
+      const maxStartRow = services.getBubbleMaxStartRow();
 
       if (maxScrollPixels <= 0) return;
 
@@ -99,7 +101,7 @@ function initializeBubbleInteractions() {
       const ratio = targetY / maxScrollPixels;
       const newRow = Math.max(0, Math.min(maxStartRow, Math.round(ratio * maxStartRow)));
 
-      window.BubbleSystem.applyBubbleScrollRow(newRow);
+      services.applyBubbleScrollRow(newRow);
     });
   }
 
@@ -119,26 +121,26 @@ function initializeBubbleInteractions() {
     container.style.height = paddedH + 'px';
     container.style.width = sixColsW + 'px';
     scrollCont.style.height = paddedH + 'px';
-    window.BubbleSystem.applyBubbleScrollRow(window.scrollRow, { force: true });
+    services.applyBubbleScrollRow(appState.scrollRow, { force: true });
   });
 
   document.addEventListener('click', e => {
-    const overlay = window.BubbleSystem.getOverlayElement();
-    const conditionPanel = window.BubbleSystem.getConditionPanelElement();
+    const overlay = services.getBubbleOverlayElement();
+    const conditionPanel = services.getBubbleConditionPanelElement();
     const targetEl = e.target instanceof Element ? e.target : e.target && e.target.parentElement;
     const bubble = targetEl ? targetEl.closest('.bubble') : null;
-    window.BubbleSystem.bubbleDebugLog('document.click', {
+    services.bubbleDebugLog('document.click', {
       rawTargetNodeType: e.target && e.target.nodeType,
       targetTag: targetEl && targetEl.tagName,
       targetClass: targetEl && targetEl.className,
       resolvedBubble: bubble ? bubble.textContent.trim() : null,
       hasActiveBubble: !!document.querySelector('.active-bubble, .bubble-clone'),
-      isBubbleAnimating: !!window.BubbleSystem.isBubbleAnimating,
+      isBubbleAnimating: !!services.bubble?.isBubbleAnimating,
       isOverlayOpen: !!(overlay && overlay.classList.contains('show'))
     });
 
     if (window.modalManager && window.modalManager.isInputLocked) {
-      window.BubbleSystem.bubbleDebugLog('click.blocked.inputLocked');
+      services.bubbleDebugLog('click.blocked.inputLocked');
       e.stopPropagation();
       e.preventDefault();
       return;
@@ -153,12 +155,12 @@ function initializeBubbleInteractions() {
       : Boolean(fieldDef && Array.isArray(fieldDef.filters) && fieldDef.filters.length > 0);
 
     if (!isBuildable && !isFilterable) {
-      window.BubbleSystem.bubbleDebugLog('click.ignored.displayOnlyField', { fieldName });
+      services.bubbleDebugLog('click.ignored.displayOnlyField', { fieldName });
       return;
     }
 
-    if (window.queryRunning) {
-      window.BubbleSystem.bubbleDebugLog('click.blocked.queryRunning', { bubble: bubble.textContent.trim() });
+    if (appState.queryRunning) {
+      services.bubbleDebugLog('click.blocked.queryRunning', { bubble: bubble.textContent.trim() });
       if (window.showToastMessage) window.showToastMessage('Cannot edit conditions while a query is running', 'warning');
       e.stopPropagation();
       e.preventDefault();
@@ -166,19 +168,19 @@ function initializeBubbleInteractions() {
     }
 
     if (document.querySelector('.active-bubble, .bubble-clone')) {
-      window.BubbleSystem.bubbleDebugLog('click.blocked.activeBubbleAlreadyOpen', { bubble: bubble.textContent.trim() });
+      services.bubbleDebugLog('click.blocked.activeBubbleAlreadyOpen', { bubble: bubble.textContent.trim() });
       return;
     }
-    if (window.BubbleSystem.isBubbleAnimating) {
-      window.BubbleSystem.bubbleDebugLog('click.blocked.isBubbleAnimating', { bubble: bubble.textContent.trim() });
+    if (services.bubble?.isBubbleAnimating) {
+      services.bubbleDebugLog('click.blocked.isBubbleAnimating', { bubble: bubble.textContent.trim() });
       return;
     }
-    window.BubbleSystem.isBubbleAnimating = true;
-    window.lockInput && window.lockInput(600);
+    services.bubble.isBubbleAnimating = true;
+    services.lockModalInput(600);
 
-    const savedCategory = currentCategory;
+    const savedCategory = appState.currentCategory;
     const rect = bubble.getBoundingClientRect();
-    window.BubbleSystem.bubbleDebugLog('click.open.start', { fieldName });
+    services.bubbleDebugLog('click.open.start', { fieldName });
     const clone = bubble.cloneNode(true);
     clone.dataset.filterFor = fieldName;
     clone.classList.add('bubble-clone');
@@ -200,26 +202,26 @@ function initializeBubbleInteractions() {
     bubble.style.opacity = '0';
     bubble.dataset.filterFor = bubble.textContent.trim();
 
-    let filterCard = window.BubbleSystem.getFilterCardElement();
-    if (filterCard && !document.getElementById('filter-card')) {
+    let filterCard = services.getBubbleFilterCardElement();
+    if (filterCard && !window.DOM?.filterCard) {
       document.body.appendChild(filterCard);
       filterCard.offsetHeight;
     }
     if (!window.filterCard && filterCard) {
       window.filterCard = filterCard;
     }
-    if (filterCard && window.BubbleSystem?.prepareFilterCardForOpen) {
-      window.BubbleSystem.prepareFilterCardForOpen(filterCard);
+    if (filterCard) {
+      services.prepareBubbleFilterCardForOpen(filterCard);
     }
 
     if (overlay) {
       overlay.classList.add('show');
     }
-    window.BubbleSystem.buildConditionPanel(bubble);
+    services.buildBubbleConditionPanel(bubble);
 
-    const inputWrapper = window.BubbleSystem.getInputWrapperElement() || (filterCard ? filterCard.querySelector('#condition-input-wrapper') : null);
+    const inputWrapper = services.getBubbleInputWrapperElement() || (filterCard ? filterCard.querySelector('#condition-input-wrapper') : null);
     if (filterCard) {
-      const titleEl = window.BubbleSystem.getFilterCardTitleElement(filterCard);
+      const titleEl = services.getBubbleFilterCardTitleElement(filterCard);
       if (titleEl) titleEl.textContent = fieldName;
     }
     if (window.renderConditionList) {
@@ -240,13 +242,13 @@ function initializeBubbleInteractions() {
     const morphDuration = Math.max(0.35, (targetWidth + targetHeight) / 1800);
     clone.style.setProperty('--morph-duration', `${morphDuration}s`);
 
-    window.currentCategory = savedCategory;
+    appState.currentCategory = savedCategory;
     window.DOM.categoryBar?.querySelectorAll('.category-btn').forEach(btn =>
-      btn.classList.toggle('active', btn.dataset.category === window.currentCategory)
+      btn.classList.toggle('active', btn.dataset.category === appState.currentCategory)
     );
 
     clone.addEventListener('transitionend', function t(e) {
-      window.BubbleSystem.bubbleDebugLog('clone.transitionend', {
+      services.bubbleDebugLog('clone.transitionend', {
         fieldName,
         propertyName: e.propertyName,
         enlarged: clone.classList.contains('enlarge-bubble')
@@ -269,17 +271,16 @@ function initializeBubbleInteractions() {
       }
       if (filterCard) {
         const scrollDelay = Math.max(220, Math.min(320, Math.round(morphDuration * 320)));
-        window.BubbleSystem?.markFilterCardOpen
-          ? window.BubbleSystem.markFilterCardOpen(filterCard, { scrollReadyDelay: scrollDelay })
-          : filterCard.classList.add('show', 'content-ready');
+        services.markBubbleFilterCardOpen(filterCard, { scrollReadyDelay: scrollDelay })
+          || filterCard.classList.add('show', 'content-ready');
       }
 
       clone.classList.add('popping');
       window.createBubblePopParticles(clone);
 
       clone.removeEventListener('transitionend', t);
-      window.BubbleSystem.isBubbleAnimating = false;
-      window.BubbleSystem.bubbleDebugLog('click.open.complete', { fieldName });
+      services.bubble.isBubbleAnimating = false;
+      services.bubbleDebugLog('click.open.complete', { fieldName });
     });
     requestAnimationFrame(() => clone.classList.add('active-bubble'));
 
@@ -304,7 +305,7 @@ function initializeBubbleInteractions() {
     const targetEl = e.target instanceof Element ? e.target : e.target && e.target.parentElement;
     const bubble = targetEl ? targetEl.closest('.bubble') : null;
     if (!bubble) return;
-    window.BubbleSystem.bubbleDebugLog('bubble.mouseover', {
+    services.bubbleDebugLog('bubble.mouseover', {
       bubble: bubble.textContent ? bubble.textContent.trim() : null,
       targetTag: targetEl && targetEl.tagName,
       targetClass: targetEl && targetEl.className
@@ -319,7 +320,7 @@ function initializeBubbleInteractions() {
       ? e.relatedTarget
       : e.relatedTarget && e.relatedTarget.parentElement;
     const stayedWithinBubble = !!(relatedEl && bubble.contains(relatedEl));
-    window.BubbleSystem.bubbleDebugLog('bubble.mouseout', {
+    services.bubbleDebugLog('bubble.mouseout', {
       bubble: bubble.textContent ? bubble.textContent.trim() : null,
       relatedTag: relatedEl && relatedEl.tagName,
       relatedClass: relatedEl && relatedEl.className,
@@ -336,5 +337,5 @@ window.BubbleInteraction = {
 
 // Keep bubbles in sync with query state changes reactively.
 window.QueryStateSubscriptions.subscribe(() => {
-  window.BubbleSystem?.safeRenderBubbles();
+  services.rerenderBubbles();
 }, { displayedFields: true, activeFilters: true });

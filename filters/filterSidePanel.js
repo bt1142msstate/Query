@@ -4,6 +4,7 @@
     supporting inline edit, remove, and add-condition.
    ========================================== */
 window.FilterSidePanel = (function () {
+    const services = window.AppServices;
     let currentViewMode = 'both';
     const VIEW_MODES = new Set(['both', 'filters', 'display']);
     const DISPLAY_REORDER_MIME = 'application/x-query-display-index';
@@ -149,7 +150,7 @@ window.FilterSidePanel = (function () {
         }
 
         const overlay = window.DOM.overlay;
-        if (window.selectedField === field && overlay?.classList.contains('show')) {
+        if (window.AppState.selectedField === field && overlay?.classList.contains('show')) {
             window.renderConditionList && window.renderConditionList(field);
             const operatorSelect = document.getElementById('condition-operator-select');
             const conditionInput = window.DOM.conditionInput;
@@ -165,11 +166,9 @@ window.FilterSidePanel = (function () {
             return;
         }
 
-        if (window.currentCategory !== 'All') {
-            window.currentCategory = 'All';
-            if (window.BubbleSystem && typeof window.BubbleSystem.safeRenderBubbles === 'function') {
-                window.BubbleSystem.safeRenderBubbles();
-            }
+        if (window.AppState.currentCategory !== 'All') {
+            window.AppState.currentCategory = 'All';
+            services.rerenderBubbles();
             const rerenderedBubble = Array.from(document.querySelectorAll('.bubble')).find(
                 b => b.textContent.trim() === field && !b.classList.contains('bubble-disabled')
             );

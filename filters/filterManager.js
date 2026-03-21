@@ -9,6 +9,9 @@
  * Represents a single active filter condition pill in the UI.
  * (Moved from queryUI.js)
  */
+const appState = window.AppState;
+const services = window.AppServices;
+
 function getFilterValueMap(fieldDef) {
     if (!fieldDef || !fieldDef.values || fieldDef.values.length === 0) {
         return new Map();
@@ -353,7 +356,7 @@ function buildBubbleConditionPanel(bubble) {
         return;
     }
 
-    window.selectedField = bubble.textContent.trim();
+    appState.selectedField = bubble.textContent.trim();
     const type = bubble.dataset.type || 'string';
     let listValues = null;
     let hasValuePairs = false;
@@ -375,7 +378,7 @@ function buildBubbleConditionPanel(bubble) {
     }
 
     const perBubble = bubble.dataset.filters ? JSON.parse(bubble.dataset.filters) : null;
-    const fieldDefInfo = window.fieldDefs ? window.fieldDefs.get(selectedField) : null;
+    const fieldDefInfo = window.fieldDefs ? window.fieldDefs.get(appState.selectedField) : null;
     const isBuildable = fieldDefInfo && fieldDefInfo.is_buildable;
     const backendOperators = typeof window.getFieldFilterOperators === 'function'
         ? window.getFieldFilterOperators(fieldDefInfo)
@@ -454,14 +457,14 @@ function buildBubbleConditionPanel(bubble) {
                 body: 'The backend does not expose any valid filter operators for this field, so no filter input is available here.',
                 hint: 'You can still add it as a results column and use it in the table output.'
             });
-            window.renderConditionList(selectedField);
+            window.renderConditionList(appState.selectedField);
             return;
         }
 
         conditionPanel.appendChild(createConditionOperatorPicker(operatorConditions, window.handleConditionBtnClick));
 
         if (listValues && listValues.length) {
-            const fieldDef = window.fieldDefs.get(selectedField);
+            const fieldDef = window.fieldDefs.get(appState.selectedField);
             const isMultiSelect = fieldDef && fieldDef.multiSelect;
             const shouldGroupValues = Boolean(fieldDef && fieldDef.groupValues);
             const isBooleanField = Boolean(fieldDef && fieldDef.type === 'boolean');
@@ -471,7 +474,7 @@ function buildBubbleConditionPanel(bubble) {
             if (existingContainer) existingContainer.parentNode.removeChild(existingContainer);
 
             let currentLiteralValues = [];
-            const selectedFieldFilters = getFilterGroupForField(selectedField);
+            const selectedFieldFilters = getFilterGroupForField(appState.selectedField);
             if (selectedFieldFilters) {
                 const filter = selectedFieldFilters.filters.find(f => f.cond === 'equals');
                 if (filter) {
@@ -506,7 +509,7 @@ function buildBubbleConditionPanel(bubble) {
 
             if (window.isListPasteField(fieldDefInfo) && typeof window.createListPasteInput === 'function') {
                 let currentLiteralValues = [];
-                const selectedFieldFilters = getFilterGroupForField(selectedField);
+                const selectedFieldFilters = getFilterGroupForField(appState.selectedField);
                 if (selectedFieldFilters) {
                     const filter = selectedFieldFilters.filters.find(f => f.cond === 'equals');
                     if (filter) {
@@ -527,10 +530,10 @@ function buildBubbleConditionPanel(bubble) {
         }
     }
 
-    window.renderConditionList(selectedField);
+    window.renderConditionList(appState.selectedField);
 
     const operatorSelect = conditionPanel.querySelector('#condition-operator-select');
-    const preferredCondition = getPreferredCondition(operatorConditions, selectedField);
+    const preferredCondition = getPreferredCondition(operatorConditions, appState.selectedField);
     if (operatorSelect && preferredCondition) {
         operatorSelect.value = preferredCondition;
         const handler = window.handleConditionBtnClick;
@@ -647,13 +650,13 @@ window.renderConditionList = function(field) {
         // Reset specific styling if no filters exist
         document.querySelectorAll('.bubble').forEach(b => {
             if (b.textContent.trim() === field) {
-                window.BubbleSystem && window.BubbleSystem.applyCorrectBubbleStyling(b);
+                services.applyBubbleStyling(b);
             }
         });
         
         // Reset selection container inputs
         const selContainer = document.getElementById('condition-select-container');
-        if (selContainer && window.selectedField === field) {
+        if (selContainer && appState.selectedField === field) {
                  if (typeof selContainer.setSelectedValues === 'function') {
                      selContainer.setSelectedValues([]);
                  }
@@ -665,10 +668,10 @@ window.renderConditionList = function(field) {
         window.updateCategoryCounts && window.updateCategoryCounts();
         
         // Only re-render bubbles if the field was in Selected and is now gone
-        if (window.currentCategory === 'Selected') {
+        if (appState.currentCategory === 'Selected') {
             const stillSelected = window.shouldFieldHavePurpleStyling(field);
             if (!stillSelected) {
-                window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
+                services.rerenderBubbles();
             }
         }
         return;
@@ -697,7 +700,7 @@ window.renderConditionList = function(field) {
             
             // Sync up select container if visible
             const selContainer = document.getElementById('condition-select-container');
-            if (selContainer && window.selectedField === field) {
+            if (selContainer && appState.selectedField === field) {
                 if (f.cond === 'equals') {
                     const remainingEquals = data.filters.find(filterItem => filterItem.cond === 'equals');
                     const nextValues = remainingEquals ? remainingEquals.val.split(',').map(v => v.trim()).filter(Boolean) : [];
@@ -756,12 +759,12 @@ window.handleConditionBtnClick = function(e) {
 
     // Handle show/hide/display actions
     if (cond === 'show' || cond === 'hide') {
-        if (window.selectedField) {
+        if (appState.selectedField) {
             // Assuming addColumn/removeColumnByName are global from columnManager/dragDrop refactor
             if (cond === 'show') {
-                window.addColumn && window.addColumn(window.selectedField);
-            } else if (cond === 'hide' && getDisplayedFields().includes(window.selectedField)) {
-                window.removeColumnByName && window.removeColumnByName(window.selectedField);
+                window.addColumn && window.addColumn(appState.selectedField);
+            } else if (cond === 'hide' && getDisplayedFields().includes(appState.selectedField)) {
+                window.removeColumnByName && window.removeColumnByName(appState.selectedField);
             }
             
             // Update toggle buttons state
@@ -769,9 +772,9 @@ window.handleConditionBtnClick = function(e) {
             toggleButtons.forEach(toggleBtn => {
                 toggleBtn.classList.remove('active');
                 const toggleCond = toggleBtn.dataset.cond;
-                if (toggleCond === 'show' && getDisplayedFields().includes(window.selectedField)) {
+                if (toggleCond === 'show' && getDisplayedFields().includes(appState.selectedField)) {
                     toggleBtn.classList.add('active');
-                } else if (toggleCond === 'hide' && !getDisplayedFields().includes(window.selectedField)) {
+                } else if (toggleCond === 'hide' && !getDisplayedFields().includes(appState.selectedField)) {
                     toggleBtn.classList.add('active');
                 }
             });
@@ -825,7 +828,7 @@ window.handleFilterConfirm = function(e) {
     const selContainer = document.getElementById('condition-select-container');
     if (!conditionPanel || !conditionInput || !conditionInput2) return;
     
-    const field = (bubble && (bubble.dataset.filterFor || bubble.textContent.trim())) || window.selectedField;
+    const field = (bubble && (bubble.dataset.filterFor || bubble.textContent.trim())) || appState.selectedField;
     if (!field) return;
 
     const cond = window.getSelectedCondition(conditionPanel);
@@ -961,14 +964,14 @@ window.handleFilterConfirm = function(e) {
                 // Update UI state
                 document.querySelectorAll('.bubble').forEach(b => {
                     if (b.textContent.trim() === field) {
-                        window.BubbleSystem && window.BubbleSystem.applyCorrectBubbleStyling(b);
+                        services.applyBubbleStyling(b);
                     }
                 });
                 
                 window.renderConditionList(field);
                 
-                if (window.currentCategory === 'Selected') {
-                    window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
+                if (appState.currentCategory === 'Selected') {
+                    services.rerenderBubbles();
                 }
             }
         } catch (error) {
@@ -981,7 +984,7 @@ window.handleFilterConfirm = function(e) {
     // Logic for "display", "show", "hide" buttons
     if (cond === 'display' || cond === 'show' || cond === 'hide') {
         if (cond === 'show') {
-            window.DragDropSystem.restoreFieldWithDuplicates(field);
+            services.restoreFieldWithDuplicates(field);
             window.showExampleTable(getDisplayedFields(), { syncQueryState: false }).catch(console.error);
         } else if ((cond === 'hide' || cond === 'display') && getDisplayedFields().includes(field)) {
             window.QueryChangeManager.removeDisplayedField(field, {
@@ -1044,7 +1047,7 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
         special_payload: specialPayload
     });
     
-    window.DragDropSystem.restoreFieldWithDuplicates(dynamicFieldName);
+    services.restoreFieldWithDuplicates(dynamicFieldName);
 
     // Apply filter if one was selected
     if (cond && val) {
@@ -1069,13 +1072,13 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
 
     setTimeout(() => {
         // Switch to Selected category
-        window.currentCategory = 'Selected';
+        appState.currentCategory = 'Selected';
         document.querySelectorAll('#category-bar .category-btn').forEach(btn =>
             btn.classList.toggle('active', btn.dataset.category === 'Selected')
         );
         
         window.updateCategoryCounts();
-        window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
+        services.rerenderBubbles();
     }, 200);
     
     // Clean up base buildable filters just in case

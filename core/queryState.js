@@ -4,6 +4,8 @@
  * @module QueryState
  */
 
+const services = window.AppServices;
+
 // Utility Functions - Available globally
 window.getBaseFieldName = function(fieldName) {
   const normalizedFieldName = String(fieldName || '').trim();
@@ -27,7 +29,7 @@ window.getBaseFieldName = function(fieldName) {
     return withoutOrdinalPrefix;
   }
 
-  const rawColumnMap = window.VirtualTable?.rawTableData?.columnMap;
+  const rawColumnMap = services.table?.rawTableData?.columnMap;
   if (rawColumnMap instanceof Map && rawColumnMap.has(baseCandidate)) {
     return baseCandidate;
   }
@@ -35,18 +37,62 @@ window.getBaseFieldName = function(fieldName) {
   return withoutOrdinalPrefix;
 };
 
-// State variables
-window.queryRunning = false;
-window.selectedField = '';
-window.totalRows = 0;          // total rows in #bubble-list
-window.scrollRow = 0;          // current top row (0-based)
-window.rowHeight = 0;          // computed once per render
-window.hoverScrollArea = false;  // true when cursor over bubbles or scrollbar
-window.currentCategory = 'All';
+const appRuntimeState = {
+  queryRunning: false,
+  selectedField: '',
+  totalRows: 0,
+  scrollRow: 0,
+  rowHeight: 0,
+  hoverScrollArea: false,
+  currentCategory: 'All',
+  lastExecutedQueryState: null,
+  currentQueryState: null,
+  hasPartialResults: false,
+  queryPageIsUnloading: false,
+  currentQueryId: null
+};
 
-// Query state tracking for run button icon
-window.lastExecutedQueryState = null; // Store the state when query was last run
-window.currentQueryState = null;       // Current state for comparison
+const appStateNormalizers = {
+  queryRunning: value => Boolean(value),
+  selectedField: value => String(value || ''),
+  totalRows: value => Number.isFinite(Number(value)) ? Number(value) : 0,
+  scrollRow: value => Number.isFinite(Number(value)) ? Number(value) : 0,
+  rowHeight: value => Number.isFinite(Number(value)) ? Number(value) : 0,
+  hoverScrollArea: value => Boolean(value),
+  currentCategory: value => String(value || 'All') || 'All',
+  lastExecutedQueryState: value => value ?? null,
+  currentQueryState: value => value ?? null,
+  hasPartialResults: value => Boolean(value),
+  queryPageIsUnloading: value => Boolean(value),
+  currentQueryId: value => value ? String(value) : null
+};
+
+function defineAppStateProperty(target, key) {
+  Object.defineProperty(target, key, {
+    configurable: false,
+    enumerable: true,
+    get() {
+      return appRuntimeState[key];
+    },
+    set(value) {
+      const normalize = appStateNormalizers[key];
+      appRuntimeState[key] = typeof normalize === 'function' ? normalize(value) : value;
+    }
+  });
+}
+
+const appState = {};
+Object.keys(appRuntimeState).forEach(key => {
+  defineAppStateProperty(appState, key);
+  defineAppStateProperty(window, key);
+});
+Object.freeze(appState);
+Object.defineProperty(window, 'AppState', {
+  configurable: false,
+  enumerable: false,
+  writable: false,
+  value: appState
+});
 
 // Bubble animation state is owned by BubbleSystem (bubble.js).
 // Access via window.BubbleSystem.isBubbleAnimating etc.
@@ -185,7 +231,7 @@ function getQueryStateSnapshot() {
   return {
     displayedFields: cloneDisplayedFieldsSnapshot(),
     activeFilters: cloneActiveFiltersSnapshot(),
-    groupMethod: window.VirtualTable?.simpleTableInstance?.groupMethod || 'ExpandIntoColumns'
+    groupMethod: services.getSimpleTable()?.groupMethod || 'ExpandIntoColumns'
   };
 }
 
@@ -250,7 +296,7 @@ function notifyQueryStateSubscribers(changes = {}, meta = {}) {
     snapshot: getQueryStateSnapshot()
   };
 
-  window.currentQueryState = payload.snapshot;
+  appState.currentQueryState = payload.snapshot;
 
   queryStateSubscribers.forEach(listener => {
     try {
@@ -503,42 +549,32 @@ function normalizeManagerMeta(meta = {}, fallbackSource) {
 async function clearQueryManagerState(meta = {}) {
   const normalizedMeta = normalizeManagerMeta(meta, 'QueryChangeManager.clearQuery');
 
-  if (window.queryRunning) {
+  if (appState.queryRunning) {
     if (typeof window.showToastMessage === 'function') {
       window.showToastMessage('Stop the running query before clearing it.', 'warning');
     }
     return false;
   }
 
-  const previousSelectedField = window.selectedField || '';
+  const previousSelectedField = appState.selectedField || '';
 
-  if (window.ModalSystem && typeof window.ModalSystem.closeAllPanels === 'function') {
-    window.ModalSystem.closeAllPanels();
-  }
-
-  if (window.DragDropSystem && typeof window.DragDropSystem.clearInsertAffordance === 'function') {
-    window.DragDropSystem.clearInsertAffordance({ immediate: true });
-  }
-
-  if (window.BubbleSystem && typeof window.BubbleSystem.resetActiveBubbles === 'function') {
-    window.BubbleSystem.resetActiveBubbles();
-  }
-  if (window.BubbleSystem && typeof window.BubbleSystem.resetEditorUi === 'function') {
-    window.BubbleSystem.resetEditorUi({
-      clearPanelContent: true,
-      clearConditionListSelection: !previousSelectedField
-    });
-  }
+  services.modal?.closeAllPanels?.();
+  services.clearInsertAffordance({ immediate: true });
+  services.resetActiveBubbles();
+  services.resetBubbleEditorUi({
+    clearPanelContent: true,
+    clearConditionListSelection: !previousSelectedField
+  });
 
   if (window.PostFilterSystem && typeof window.PostFilterSystem.close === 'function') {
     window.PostFilterSystem.close();
   }
-  if (window.VirtualTable && typeof window.VirtualTable.clearPostFilters === 'function') {
-    window.VirtualTable.clearPostFilters({ refreshView: false, notify: true, resetScroll: false });
+  if (services.table?.clearPostFilters) {
+    services.clearPostFilters({ refreshView: false, notify: true, resetScroll: false });
   }
 
-  if (window.VirtualTable && typeof window.VirtualTable.setSplitColumnsMode === 'function' && window.VirtualTable.splitColumnsActive) {
-    window.VirtualTable.setSplitColumnsMode(false);
+  if (services.isSplitColumnsActive()) {
+    services.setSplitColumnsMode(false);
   }
   if (typeof window.resetSplitColumnsToggleUI === 'function') {
     window.resetSplitColumnsToggleUI();
@@ -554,8 +590,8 @@ async function clearQueryManagerState(meta = {}) {
     document.getElementById('bubble-cond-list')?.replaceChildren();
   }
 
-  window.selectedField = '';
-  window.lastExecutedQueryState = null;
+  appState.selectedField = '';
+  appState.lastExecutedQueryState = null;
 
   const dom = window.DOM;
   if (dom?.tableNameInput) {
@@ -570,11 +606,9 @@ async function clearQueryManagerState(meta = {}) {
     dom.clearSearchBtn.classList.add('hidden');
   }
 
-  window.currentCategory = 'All';
+  appState.currentCategory = 'All';
 
-  if (window.BubbleSystem && typeof window.BubbleSystem.resetBubbleScroll === 'function') {
-    window.BubbleSystem.resetBubbleScroll();
-  }
+  services.resetBubbleScroll();
 
   if (typeof window.showToastMessage === 'function') {
     window.showToastMessage('Query cleared.', 'info');
@@ -740,7 +774,7 @@ window.getCurrentQueryState = function() {
         { filters: JSON.parse(JSON.stringify((data && data.filters) || [])) }
       ])
     ),
-    groupMethod: window.VirtualTable?.simpleTableInstance?.groupMethod || "ExpandIntoColumns"
+    groupMethod: services.getSimpleTable()?.groupMethod || "ExpandIntoColumns"
   };
 };
 
@@ -768,22 +802,22 @@ window.QueryChangeManager.subscribe(event => {
  * @returns {boolean} True if query has changed since last execution
  */
 window.hasQueryChanged = function() {
-  if (!window.lastExecutedQueryState) return true; // Initial load should show play icon (brand new query)
+  if (!appState.lastExecutedQueryState) return true; // Initial load should show play icon (brand new query)
   
   const current = window.getCurrentQueryState();
   
   // Compare displayed fields
-  if (JSON.stringify(getComparableDisplayedFields(current.displayedFields)) !== JSON.stringify(getComparableDisplayedFields(window.lastExecutedQueryState.displayedFields))) {
+  if (JSON.stringify(getComparableDisplayedFields(current.displayedFields)) !== JSON.stringify(getComparableDisplayedFields(appState.lastExecutedQueryState.displayedFields))) {
     return true;
   }
   
   // Compare filters
-  if (JSON.stringify(current.activeFilters) !== JSON.stringify(window.lastExecutedQueryState.activeFilters)) {
+  if (JSON.stringify(current.activeFilters) !== JSON.stringify(appState.lastExecutedQueryState.activeFilters)) {
     return true;
   }
   
   // Compare group method
-  if (current.groupMethod !== window.lastExecutedQueryState.groupMethod) {
+  if (current.groupMethod !== appState.lastExecutedQueryState.groupMethod) {
     return true;
   }
   

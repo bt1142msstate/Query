@@ -1,4 +1,5 @@
 (function() {
+  const services = window.AppServices;
   const state = {
     active: false,
     spec: null,
@@ -1455,9 +1456,7 @@
     if (window.updateCategoryCounts) {
       window.updateCategoryCounts();
     }
-    if (window.BubbleSystem && typeof window.BubbleSystem.safeRenderBubbles === 'function') {
-      window.BubbleSystem.safeRenderBubbles();
-    }
+    services.rerenderBubbles();
 
     refreshBrowserUrl();
   }
@@ -1619,13 +1618,13 @@
   }
 
   function refreshBubbleStageAfterModeSwitch() {
-    if (!window.BubbleSystem || typeof window.BubbleSystem.safeRenderBubbles !== 'function') {
+    if (!services.bubble?.safeRenderBubbles) {
       return;
     }
 
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
-        window.BubbleSystem.safeRenderBubbles();
+        services.rerenderBubbles();
       });
     });
   }
@@ -1847,16 +1846,14 @@
       state.suppressAutoTableNameOnce = false;
 
       // Ensure any running query stops
-      if (window.queryRunning && typeof window.cancelQuery === 'function' && window.currentQueryId) {
-        window.cancelQuery(window.currentQueryId).catch(console.error);
-        window.queryRunning = false;
+      if (window.AppState.queryRunning && typeof window.cancelQuery === 'function' && window.AppState.currentQueryId) {
+        window.cancelQuery(window.AppState.currentQueryId).catch(console.error);
+        window.AppState.queryRunning = false;
         if (typeof window.updateRunButtonIcon === 'function') window.updateRunButtonIcon();
       }
 
       // We drop the table output so it sets back to a pre-searched form state
-      if (window.VirtualTable && typeof window.VirtualTable.clearVirtualTableData === 'function') {
-        window.VirtualTable.clearVirtualTableData();
-      }
+      services.clearVirtualTableData();
 
       if (typeof window.renderEmptyQueryTableState === 'function') {
         window.renderEmptyQueryTableState();
@@ -2080,9 +2077,7 @@
       await window.loadFieldDefinitions();
     }
 
-    if (window.VirtualTable && typeof window.VirtualTable.clearVirtualTableData === 'function') {
-      window.VirtualTable.clearVirtualTableData();
-    }
+    services.clearVirtualTableData();
 
     state.controls.clear();
     buildFormCard();

@@ -207,13 +207,13 @@ class ModalManager {
     });
 
     // Mobile: Hamburger Menu
-    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+    const mobileMenuToggle = window.DOM?.mobileMenuToggle || document.getElementById('mobile-menu-toggle');
     if (mobileMenuToggle) {
         mobileMenuToggle.addEventListener('click', () => this.togglePanel('mobile-menu-dropdown'));
     }
 
     // Mobile: Menu Items
-    const mobileRunQuery = document.getElementById('mobile-run-query');
+    const mobileRunQuery = window.DOM?.mobileRunQuery || document.getElementById('mobile-run-query');
     if (mobileRunQuery) {
         mobileRunQuery.addEventListener('click', () => {
             this.closePanel('mobile-menu-dropdown');
@@ -222,7 +222,7 @@ class ModalManager {
         });
     }
 
-    const mobileDownload = document.getElementById('mobile-download');
+    const mobileDownload = window.DOM?.mobileDownload || document.getElementById('mobile-download');
     if (mobileDownload) {
         mobileDownload.addEventListener('click', () => {
             this.closePanel('mobile-menu-dropdown');
@@ -231,7 +231,7 @@ class ModalManager {
         });
     }
 
-    const mobileClearQuery = document.getElementById('mobile-clear-query');
+    const mobileClearQuery = window.DOM?.mobileClearQuery || document.getElementById('mobile-clear-query');
     if (mobileClearQuery) {
       mobileClearQuery.addEventListener('click', () => {
         this.closePanel('mobile-menu-dropdown');
@@ -321,7 +321,7 @@ class ModalManager {
   }
 
   setMainContentAriaHidden(hidden, openPanelId = null) {
-    const pageBody = document.getElementById('page-body');
+    const pageBody = window.DOM?.pageBody || document.getElementById('page-body');
     if (!pageBody) return;
     
     // We want to hide everything except the modal

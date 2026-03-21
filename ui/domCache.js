@@ -5,6 +5,7 @@
 
 window.DOM = {
   get overlay() { return this._overlay ||= document.getElementById('overlay'); },
+  get pageBody() { return this._pageBody ||= document.getElementById('page-body'); },
   get conditionPanel() { return this._conditionPanel ||= document.getElementById('condition-panel'); },
   get inputWrapper() { return this._inputWrapper ||= document.getElementById('condition-input-wrapper'); },
   get conditionInput() { return this._conditionInput ||= document.getElementById('condition-input'); },
@@ -20,8 +21,11 @@ window.DOM = {
   get clearQueryBtn() { return this._clearQueryBtn ||= document.getElementById('clear-query-btn'); },
   get queryBox() { return this._queryBox ||= document.getElementById('query-json'); },
   get queryInput() { return this._queryInput ||= document.getElementById('query-input'); },
+  get filterCard() { return this._filterCard ||= document.getElementById('filter-card'); },
+  get filterCardTitle() { return this._filterCardTitle ||= document.getElementById('filter-card-title'); },
   get tableShell() { return this._tableShell ||= document.getElementById('table-shell'); },
   get tableContainer() { return this._tableContainer ||= document.getElementById('table-container'); },
+  get tableTopBar() { return this._tableTopBar ||= document.getElementById('table-top-bar'); },
   get tableInfoBar() { return this._tableInfoBar ||= document.getElementById('table-info-bar'); },
   get tableToolbar() { return this._tableToolbar ||= document.getElementById('table-toolbar'); },
   get tableNameInput() { return this._tableNameInput ||= document.getElementById('table-name-input'); },
@@ -45,6 +49,10 @@ window.DOM = {
   get headerOverlayTitle() { return this._headerOverlayTitle ||= document.getElementById('header-overlay-title'); },
   get categoryBar() { return this._categoryBar ||= document.getElementById('category-bar'); },
   get mobileCategorySelector() { return this._mobileCategorySelector ||= document.getElementById('mobile-category-selector'); },
+  get mobileMenuToggle() { return this._mobileMenuToggle ||= document.getElementById('mobile-menu-toggle'); },
+  get mobileRunQuery() { return this._mobileRunQuery ||= document.getElementById('mobile-run-query'); },
+  get mobileDownload() { return this._mobileDownload ||= document.getElementById('mobile-download'); },
+  get mobileClearQuery() { return this._mobileClearQuery ||= document.getElementById('mobile-clear-query'); },
 
   // Bubble area
   get bubbleContainer() { return this._bubbleContainer ||= document.getElementById('bubble-container'); },

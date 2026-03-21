@@ -8,6 +8,7 @@
 // Store information about removed columns with their duplicates for restoration
 window.removedColumnInfo = window.removedColumnInfo || new Map();
 var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
+const services = window.AppServices;
 
 /**
  * Checks if a field or any of its duplicates exists in displayedFields.
@@ -131,7 +132,7 @@ window.restoreFieldWithDuplicates = function(fieldName, insertAt = -1) {
     return true;
   } else {
     // No stored info, check if this field exists in the original data
-    const virtualTableData = window.VirtualTable?.virtualTableData;
+    const virtualTableData = services.getVirtualTableData();
     if (virtualTableData && virtualTableData.headers) {
       const relatedColumns = virtualTableData.headers.filter(header => {
         const baseFieldName = window.getBaseFieldName(fieldName);

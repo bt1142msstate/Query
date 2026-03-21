@@ -1,3 +1,5 @@
+const services = window.AppServices;
+
 function reconcileBubbleResetInteractionState(skipFields = new Set()) {
   const bubbles = Array.from(document.querySelectorAll('.bubble'));
   bubbles.forEach(bubble => {
@@ -7,38 +9,44 @@ function reconcileBubbleResetInteractionState(skipFields = new Set()) {
     bubble.style.visibility = '';
     bubble.style.opacity = '';
     bubble.removeAttribute('data-filter-for');
-    window.BubbleSystem && window.BubbleSystem.applyCorrectBubbleStyling(bubble);
+    services.applyBubbleStyling(bubble);
   });
 }
 
+const appState = window.AppState;
+
 function finalizeBubbleReset(reason, payload = {}) {
-  if (window.BubbleSystem.animatingBackBubbles.size === 0) {
-    window.BubbleSystem.isBubbleAnimatingBack = false;
-    if (window.BubbleSystem.pendingRenderBubbles) {
-      window.BubbleSystem.renderBubbles();
-      window.BubbleSystem.pendingRenderBubbles = false;
+  const bubbleService = services.bubble;
+  if (!bubbleService) {
+    return;
+  }
+
+  if (bubbleService.animatingBackBubbles.size === 0) {
+    bubbleService.isBubbleAnimatingBack = false;
+    if (bubbleService.pendingRenderBubbles) {
+      services.renderBubbles();
+      bubbleService.pendingRenderBubbles = false;
     }
     reconcileBubbleResetInteractionState();
-    if (window.BubbleSystem && typeof window.BubbleSystem.bubbleDebugLog === 'function') {
-      window.BubbleSystem.bubbleDebugLog('reset.complete', { reason, ...payload });
-    }
+    services.bubbleDebugLog('reset.complete', { reason, ...payload });
   }
 }
 
 function resetActiveBubblesImpl() {
-  window.BubbleSystem.isBubbleAnimating = false;
-
-  if (window.ModalSystem) {
-    window.ModalSystem.lockInput(0);
+  const bubbleService = services.bubble;
+  if (!bubbleService) {
+    return;
   }
+
+  bubbleService.isBubbleAnimating = false;
+
+  services.lockModalInput(0);
 
   const clones = document.querySelectorAll('.active-bubble, .bubble-clone');
-  if (window.BubbleSystem && typeof window.BubbleSystem.bubbleDebugLog === 'function') {
-    window.BubbleSystem.bubbleDebugLog('reset.start', { cloneCount: clones.length });
-  }
+  services.bubbleDebugLog('reset.start', { cloneCount: clones.length });
 
   if (clones.length > 0) {
-    window.BubbleSystem.isBubbleAnimatingBack = true;
+    bubbleService.isBubbleAnimatingBack = true;
   }
 
   clones.forEach(clone => {
@@ -47,7 +55,7 @@ function resetActiveBubblesImpl() {
     const fieldName = origin ? origin.textContent.trim() : (clone.textContent ? clone.textContent.trim() : '');
 
     if (originInDOM) {
-      window.BubbleSystem.animatingBackBubbles.add(fieldName);
+      bubbleService.animatingBackBubbles.add(fieldName);
 
       const originalRect = clone._originalRect;
       clone.style.opacity = '1';
@@ -78,25 +86,23 @@ function resetActiveBubblesImpl() {
       clone.classList.remove('bubble-clone');
 
       clone.addEventListener('transitionend', () => {
-        if (window.BubbleSystem && typeof window.BubbleSystem.bubbleDebugLog === 'function') {
-          window.BubbleSystem.bubbleDebugLog('reset.clone.transitionend', { fieldName });
-        }
+        services.bubbleDebugLog('reset.clone.transitionend', { fieldName });
         clone.remove();
-        window.BubbleSystem.animatingBackBubbles.delete(fieldName);
+        bubbleService.animatingBackBubbles.delete(fieldName);
 
         requestAnimationFrame(() => {
           const bubbles = Array.from(document.querySelectorAll('.bubble'));
           bubbles.forEach(bubble => {
             if (bubble.textContent.trim() !== fieldName) return;
             const stillExists = window.fieldDefs.has(fieldName) && window.shouldFieldHavePurpleStyling(fieldName);
-            if (!stillExists && window.currentCategory === 'Selected') {
+            if (!stillExists && appState.currentCategory === 'Selected') {
               bubble.remove();
             } else {
               bubble.style.visibility = '';
               bubble.style.opacity = '1';
               bubble.classList.remove('bubble-disabled');
               bubble.removeAttribute('data-filter-for');
-              window.BubbleSystem && window.BubbleSystem.applyCorrectBubbleStyling(bubble);
+              services.applyBubbleStyling(bubble);
             }
           });
         });
@@ -105,23 +111,21 @@ function resetActiveBubblesImpl() {
       }, { once: true });
     } else {
       clone.remove();
-      if (window.BubbleSystem && typeof window.BubbleSystem.bubbleDebugLog === 'function') {
-        window.BubbleSystem.bubbleDebugLog('reset.clone.removedWithoutOrigin', { fieldName });
-      }
+      services.bubbleDebugLog('reset.clone.removedWithoutOrigin', { fieldName });
       if (origin) {
-        window.BubbleSystem.animatingBackBubbles.delete(fieldName);
+        bubbleService.animatingBackBubbles.delete(fieldName);
         const matchingBubble = Array.from(document.querySelectorAll('.bubble'))
           .find(bubble => bubble.textContent.trim() === fieldName);
         if (matchingBubble) {
           const stillExists = window.fieldDefs.has(fieldName) && window.shouldFieldHavePurpleStyling(fieldName);
-          if (!stillExists && window.currentCategory === 'Selected') {
+          if (!stillExists && appState.currentCategory === 'Selected') {
             matchingBubble.remove();
           } else {
             matchingBubble.style.opacity = '';
             matchingBubble.style.visibility = '';
             matchingBubble.classList.remove('bubble-disabled');
             matchingBubble.removeAttribute('data-filter-for');
-            window.BubbleSystem && window.BubbleSystem.applyCorrectBubbleStyling(matchingBubble);
+            services.applyBubbleStyling(matchingBubble);
           }
         }
       }
@@ -132,26 +136,22 @@ function resetActiveBubblesImpl() {
 
   setTimeout(() => {
     if (clones.length === 0) {
-      window.BubbleSystem.isBubbleAnimatingBack = false;
-      window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
+      bubbleService.isBubbleAnimatingBack = false;
+      services.rerenderBubbles();
       reconcileBubbleResetInteractionState();
-      if (window.BubbleSystem && typeof window.BubbleSystem.bubbleDebugLog === 'function') {
-        window.BubbleSystem.bubbleDebugLog('reset.complete', { reason: 'no-clones' });
-      }
+      services.bubbleDebugLog('reset.complete', { reason: 'no-clones' });
     }
   }, 0);
 
   setTimeout(() => {
-    if (!window.BubbleSystem.isBubbleAnimatingBack) return;
-    window.BubbleSystem.isBubbleAnimatingBack = false;
-    window.BubbleSystem.pendingRenderBubbles = false;
+    if (!bubbleService.isBubbleAnimatingBack) return;
+    bubbleService.isBubbleAnimatingBack = false;
+    bubbleService.pendingRenderBubbles = false;
     const staleCloneCount = document.querySelectorAll('.bubble-clone').length;
     document.querySelectorAll('.bubble-clone').forEach(clone => clone.remove());
     reconcileBubbleResetInteractionState();
-    window.BubbleSystem && window.BubbleSystem.safeRenderBubbles();
-    if (window.BubbleSystem && typeof window.BubbleSystem.bubbleDebugLog === 'function') {
-      window.BubbleSystem.bubbleDebugLog('reset.complete', { reason: 'fallback-timeout', removedStaleClones: staleCloneCount });
-    }
+    services.rerenderBubbles();
+    services.bubbleDebugLog('reset.complete', { reason: 'fallback-timeout', removedStaleClones: staleCloneCount });
   }, 650);
 }
 
