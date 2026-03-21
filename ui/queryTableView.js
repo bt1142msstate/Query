@@ -6,6 +6,7 @@
   const dom = window.DOM;
   const appState = window.AppState;
   const services = window.AppServices;
+  const uiActions = window.AppUiActions;
   const getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
 
   function areDisplayedFieldsEqual(left, right) {
@@ -110,9 +111,7 @@
       bubble.setAttribute('draggable', fieldDef && fieldDef.is_buildable ? 'false' : 'true');
     });
 
-    if (typeof window.updateCategoryCounts === 'function') {
-      window.updateCategoryCounts();
-    }
+    uiActions.updateCategoryCounts();
   }
 
   function createQueryTableHeaderCell(fieldName, index, options = {}) {
@@ -301,7 +300,7 @@
     services.attachBubbleDropTarget(container);
 
     syncBubbleDragState(renderFields);
-    window.updateCategoryCounts?.();
+    uiActions.updateCategoryCounts();
 
     if (appState.currentCategory === 'Selected') {
       services.rerenderBubbles();
@@ -342,7 +341,7 @@
     }
 
     if (event.changes?.activeFilters) {
-      window.updateCategoryCounts?.();
+      uiActions.updateCategoryCounts();
     }
 
     const displayedFields = event.snapshot?.displayedFields;

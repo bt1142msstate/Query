@@ -1,5 +1,6 @@
 (function() {
   const services = window.AppServices;
+  const uiActions = window.AppUiActions;
   const state = {
     active: false,
     spec: null,
@@ -738,7 +739,7 @@
     syncPresentationMode();
 
     if (typeof window.updateButtonStates === 'function') {
-      window.updateButtonStates();
+      uiActions.updateButtonStates();
     }
 
     if (refreshUrl) {
@@ -773,7 +774,7 @@
     syncPresentationMode();
 
     if (typeof window.updateButtonStates === 'function') {
-      window.updateButtonStates();
+      uiActions.updateButtonStates();
     }
 
     refreshBrowserUrl({ forceShareUrl: true });
@@ -807,7 +808,7 @@
       syncPresentationMode();
 
       if (typeof window.updateButtonStates === 'function') {
-        window.updateButtonStates();
+        uiActions.updateButtonStates();
       }
     }
 
@@ -975,9 +976,7 @@
               source: 'QueryFormMode.fieldPicker.addDisplayedField'
             });
             syncSpecColumnsWithDisplayedFields({ refreshUrl: false });
-            if (typeof window.showExampleTable === 'function') {
-              window.showExampleTable(getManagerDisplayedFields(), { syncQueryState: false }).catch(console.error);
-            }
+            uiActions.showExampleTable(getManagerDisplayedFields(), { syncQueryState: false }).catch(console.error);
             refreshBrowserUrl();
             if (window.showToastMessage) {
               window.showToastMessage(`${fieldName}: added results column.`, 'success');
@@ -991,9 +990,7 @@
             source: 'QueryFormMode.fieldPicker.removeDisplayedField'
           });
           syncSpecColumnsWithDisplayedFields({ refreshUrl: false });
-          if (typeof window.showExampleTable === 'function') {
-            window.showExampleTable(getManagerDisplayedFields(), { syncQueryState: false }).catch(console.error);
-          }
+          uiActions.showExampleTable(getManagerDisplayedFields(), { syncQueryState: false }).catch(console.error);
           refreshBrowserUrl();
           if (window.showToastMessage) {
             window.showToastMessage(`${fieldName}: removed results column.`, 'success');
@@ -1443,19 +1440,13 @@
       activeFilters: nextActiveFilters
     }, { source });
 
-    if (typeof window.showExampleTable === 'function') {
-      window.showExampleTable(columns, { syncQueryState: false }).catch(console.error);
-    }
+    uiActions.showExampleTable(columns, { syncQueryState: false }).catch(console.error);
 
-    if (typeof window.updateQueryJson === 'function') {
-      window.updateQueryJson();
-    }
+    uiActions.updateQueryJson();
     if (window.FilterSidePanel && typeof window.FilterSidePanel.update === 'function') {
       window.FilterSidePanel.update();
     }
-    if (window.updateCategoryCounts) {
-      window.updateCategoryCounts();
-    }
+    uiActions.updateCategoryCounts();
     services.rerenderBubbles();
 
     refreshBrowserUrl();
@@ -1752,9 +1743,7 @@
 
   function scheduleApply() {
     applyFormState({ source: 'QueryFormMode.scheduleApply' });
-    if (typeof window.updateButtonStates === 'function') {
-      window.updateButtonStates();
-    }
+    uiActions.updateButtonStates();
     syncValidationUi();
   }
 
@@ -1849,7 +1838,7 @@
       if (window.AppState.queryRunning && typeof window.cancelQuery === 'function' && window.AppState.currentQueryId) {
         window.cancelQuery(window.AppState.currentQueryId).catch(console.error);
         window.AppState.queryRunning = false;
-        if (typeof window.updateRunButtonIcon === 'function') window.updateRunButtonIcon();
+        uiActions.updateRunButtonIcon();
       }
 
       // We drop the table output so it sets back to a pre-searched form state
@@ -1950,7 +1939,7 @@
       const error = syncValidationUi();
       if (error && window.DOM && window.DOM.runBtn) {
         window.DOM.runBtn.disabled = true;
-        window.updateRunButtonIcon && window.updateRunButtonIcon(error);
+        uiActions.updateRunButtonIcon(error);
       }
     };
   }
@@ -2086,9 +2075,7 @@
     syncPresentationMode();
     state.searchParams = new URLSearchParams();
     refreshBrowserUrl({ forceShareUrl: true });
-    if (typeof window.updateButtonStates === 'function') {
-      window.updateButtonStates();
-    }
+    uiActions.updateButtonStates();
   }
 
   window.QueryFormMode = {

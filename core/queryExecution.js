@@ -7,6 +7,7 @@
 const execDom = window.DOM;
 var appState = window.AppState;
 var services = window.AppServices;
+var uiActions = window.AppUiActions;
 appState.queryPageIsUnloading = false;
 
 function addQueryHistoryEntry(query) {
@@ -127,7 +128,7 @@ window.addEventListener('pagehide', markQueryPageUnload);
 
 /* ---------- Initial button sync ---------- */
 
-window.updateButtonStates?.();
+uiActions.updateButtonStates();
 
 /* ---------- Public clear-query API ---------- */
 
@@ -166,10 +167,8 @@ if (execDom.runBtn) {
       }
 
       appState.queryRunning = false;
-      window.updateRunButtonIcon();
-      if (window.updateButtonStates) {
-        window.updateButtonStates();
-      }
+      uiActions.updateRunButtonIcon();
+      uiActions.updateButtonStates();
       if (window.endTableQueryAnimation) window.endTableQueryAnimation();
       return;
     }
@@ -187,10 +186,8 @@ if (execDom.runBtn) {
       try {
         appState.queryRunning = true;
         appState.hasPartialResults = false;
-        window.updateRunButtonIcon();
-        if (window.updateButtonStates) {
-          window.updateButtonStates();
-        }
+        uiActions.updateRunButtonIcon();
+        uiActions.updateButtonStates();
         if (window.startTableQueryAnimation) window.startTableQueryAnimation();
         const queryStartedAt = Date.now();
         updateLiveQueryProgress(0, { startTime: queryStartedAt });
@@ -316,7 +313,7 @@ if (execDom.runBtn) {
 
           // Re-render the full table to reset red column headers and redraw rows with new widths
           if (typeof window.showExampleTable === 'function') {
-            await window.showExampleTable(state.displayedFields);
+            await uiActions.showExampleTable(state.displayedFields);
           } else {
             services.renderVirtualTable();
             services.calculateOptimalColumnWidths();
@@ -372,10 +369,8 @@ if (execDom.runBtn) {
       } finally {
         appState.queryRunning = false;
         if (window.updateTableResultsLip) window.updateTableResultsLip();
-        window.updateRunButtonIcon();
-        if (window.updateButtonStates) {
-          window.updateButtonStates();
-        }
+        uiActions.updateRunButtonIcon();
+        uiActions.updateButtonStates();
         if (window.endTableQueryAnimation) window.endTableQueryAnimation();
       }
     })();

@@ -5,6 +5,7 @@
    ========================================== */
 window.FilterSidePanel = (function () {
     const services = window.AppServices;
+    const uiActions = window.AppUiActions;
     let currentViewMode = 'both';
     const VIEW_MODES = new Set(['both', 'filters', 'display']);
     const DISPLAY_REORDER_MIME = 'application/x-query-display-index';
@@ -553,7 +554,7 @@ window.FilterSidePanel = (function () {
             window.QueryChangeManager.reorderFilterGroups(Object.keys(newActiveFilters), {
                 source: 'FilterSidePanel.reorderGroups'
             });
-            window.updateQueryJson && window.updateQueryJson();
+            uiActions.updateQueryJson();
         });
     }
 
@@ -651,7 +652,7 @@ window.FilterSidePanel = (function () {
                     index: idx,
                     source: 'FilterSidePanel.removeFilter'
                 });
-                window.updateQueryJson && window.updateQueryJson();
+                uiActions.updateQueryJson();
                 window.renderConditionList && window.renderConditionList(field);
                 update();
             });

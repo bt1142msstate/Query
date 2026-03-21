@@ -2,12 +2,14 @@
  * Query builder shell orchestration.
  * Handles category navigation, search, overlay coordination, and initial builder bootstrapping.
  */
-(function initializeQueryBuilderShell() {
+(function registerQueryBuilderShell() {
   const dom = window.DOM;
   const appState = window.AppState;
   const services = window.AppServices;
+  const uiActions = window.AppUiActions;
   const getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
   const getActiveFilters = window.QueryStateReaders.getActiveFilters.bind(window.QueryStateReaders);
+  let initialized = false;
 
   function resetBubbleScrollState() {
     services.resetBubbleScroll();
@@ -147,7 +149,7 @@
     });
 
     window.QueryChangeManager.replaceDisplayedFields(headers, { source: 'QueryBuilderShell.groupMethodChange' });
-    await window.showExampleTable(getDisplayedFields(), { syncQueryState: false });
+    await uiActions.showExampleTable(getDisplayedFields(), { syncQueryState: false });
   }
 
   function handleOverlayClick() {
@@ -210,8 +212,8 @@
     try {
       console.log('Initializing application for live queries (test data disabled)');
       window.QueryChangeManager.replaceDisplayedFields([], { source: 'Query.initialization' });
-      await window.showExampleTable([]);
-      window.updateRunButtonIcon();
+      await uiActions.showExampleTable([]);
+      uiActions.updateRunButtonIcon();
       updateCategoryCounts();
     } catch (error) {
       console.error('Error initializing application:', error);
@@ -249,6 +251,11 @@
   }
 
   function initialize() {
+    if (initialized) {
+      return;
+    }
+
+    initialized = true;
     dom.pageBody?.classList.add('night');
     bindConfirmEnterShortcut();
     dom.overlay?.addEventListener('click', handleOverlayClick);
@@ -278,6 +285,9 @@
 
   window.resetBubbleScrollState = resetBubbleScrollState;
   window.updateCategoryCounts = updateCategoryCounts;
-
-  initialize();
+  window.QueryBuilderShell = Object.freeze({
+    initialize,
+    resetBubbleScrollState,
+    updateCategoryCounts
+  });
 })();
