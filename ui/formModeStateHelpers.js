@@ -37,13 +37,15 @@
       return;
     }
 
-    const queryNameOverride = state.searchParams.get('tableName');
-    const nextName = queryNameOverride || interpolateValue(state.spec.queryName || state.spec.title, bindings);
+    const hasQueryNameOverride = state.searchParams.has('tableName');
+    const queryNameOverride = hasQueryNameOverride ? state.searchParams.get('tableName') : null;
+    const resolvedName = interpolateValue(state.spec.queryName || state.spec.title || '', bindings).trim();
+    const nextName = hasQueryNameOverride ? String(queryNameOverride || '').trim() : resolvedName;
     const currentValue = tableNameInput.value.trim();
     const shouldForceSync = state.forceTableNameSyncOnce === true;
     const shouldUpdate = shouldForceSync || !currentValue || currentValue === state.lastSuggestedTableName;
 
-    if (state.spec && nextName) {
+    if (state.spec) {
       state.spec.title = nextName;
       state.spec.queryName = nextName;
     }
@@ -104,7 +106,7 @@
     const descriptionEl = formCard.querySelector('[data-form-mode-description]');
 
     if (titleEl) {
-      titleEl.textContent = interpolateValue(spec.title, bindings) || 'Query Form';
+      titleEl.textContent = interpolateValue(spec.title || '', bindings).trim() || 'No name';
     }
 
     if (descriptionEl) {
