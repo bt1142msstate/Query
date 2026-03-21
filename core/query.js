@@ -369,6 +369,7 @@ if(dom.runBtn){
         showToastMessage('Query execution failed: ' + error.message, 'error');
       } finally {
         window.queryRunning = false;
+        if (window.updateTableResultsLip) window.updateTableResultsLip();
         window.updateRunButtonIcon();
         if (window.updateButtonStates) {
           window.updateButtonStates();
