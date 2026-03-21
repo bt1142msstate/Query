@@ -1,4 +1,5 @@
 var getFilterGroupForField = window.QueryStateReaders.getFilterGroupForField.bind(window.QueryStateReaders);
+var getLifecycleState = window.QueryStateReaders.getLifecycleState.bind(window.QueryStateReaders);
 var appState = window.AppState;
 var services = window.AppServices;
 let bubbleEventsInitialized = false;
@@ -159,7 +160,7 @@ function initializeBubbleInteractions() {
       return;
     }
 
-    if (appState.queryRunning) {
+    if (getLifecycleState().queryRunning) {
       services.bubbleDebugLog('click.blocked.queryRunning', { bubble: bubble.textContent.trim() });
       if (window.showToastMessage) window.showToastMessage('Cannot edit conditions while a query is running', 'warning');
       e.stopPropagation();

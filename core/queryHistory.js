@@ -545,7 +545,7 @@ function loadQueryConfig(q) {
   // Loading a query definition is not itself a partial-results state.
   // That flag belongs to the currently displayed result set and must be
   // recomputed when/if results are loaded afterward.
-  window.AppState.hasPartialResults = false;
+  window.QueryChangeManager.setLifecycleState({ hasPartialResults: false }, { source: 'QueryHistory.loadQueryConfig', silent: true });
   window.updateTableResultsLip?.();
 
   if (tableNameInput) {
@@ -647,7 +647,9 @@ function loadQueryConfig(q) {
   
   // Update button state to "Refresh" instead of "Run Query" since it's an existing query
   if (window.QueryStateReaders && typeof window.QueryStateReaders.getSerializableState === 'function') {
-    window.AppState.lastExecutedQueryState = window.QueryStateReaders.getSerializableState();
+    window.QueryChangeManager.setLifecycleState({
+      lastExecutedQueryState: window.QueryStateReaders.getSerializableState()
+    }, { source: 'QueryHistory.setLastExecutedState', silent: true });
   }
   uiActions.updateButtonStates();
 
@@ -765,7 +767,7 @@ async function loadQueryResults(queryId) {
 
         // Partial-results mode should reflect the specific result set that was loaded,
         // not whatever previous live query happened to leave behind.
-        window.AppState.hasPartialResults = Boolean(q.running);
+        window.QueryChangeManager.setLifecycleState({ hasPartialResults: Boolean(q.running) }, { source: 'QueryHistory.loadQueryResults', silent: true });
         window.updateTableResultsLip?.();
         
         if (typeof showToastMessage === 'function') {

@@ -1254,9 +1254,10 @@
       state.suppressAutoTableNameOnce = false;
 
       // Ensure any running query stops
-      if (window.AppState.queryRunning && typeof window.cancelQuery === 'function' && window.AppState.currentQueryId) {
-        window.cancelQuery(window.AppState.currentQueryId).catch(console.error);
-        window.AppState.queryRunning = false;
+      const lifecycleState = window.QueryStateReaders.getLifecycleState();
+      if (lifecycleState.queryRunning && typeof window.cancelQuery === 'function' && lifecycleState.currentQueryId) {
+        window.cancelQuery(lifecycleState.currentQueryId).catch(console.error);
+        window.QueryChangeManager.setLifecycleState({ queryRunning: false }, { source: 'QueryFormMode.reset.stopQuery', silent: true });
         uiActions.updateRunButtonIcon();
       }
 

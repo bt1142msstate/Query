@@ -4,7 +4,7 @@
  */
 (function initializeDragDropInteractions() {
   var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
-  var appState = window.AppState;
+  var getLifecycleState = window.QueryStateReaders.getLifecycleState.bind(window.QueryStateReaders);
   var services = window.AppServices;
   var dragDropColumnOps = window.DragDropColumnOps;
   const TABLE_COLUMN_DRAG_MIME = 'application/x-query-table-column-index';
@@ -86,7 +86,7 @@
     const isSortable = Boolean(fieldName);
     const isActive = isSortable && fieldName === sortField;
 
-    headerSort.disabled = !isSortable || Boolean(appState.queryRunning);
+    headerSort.disabled = !isSortable || Boolean(getLifecycleState().queryRunning);
     headerSort.classList.toggle('is-active', isActive);
     headerSort.classList.toggle('is-desc', isActive && sortDirection === 'desc');
     headerSort.setAttribute('aria-label', !isSortable ? 'Sorting unavailable for this column' : (isActive ? `Sorted ${sortDirection === 'asc' ? 'ascending' : 'descending'}. Click to reverse.` : 'Sort column'));
@@ -207,7 +207,7 @@
   }
 
   function updateHeaderInsertAffordance(table, clientX) {
-    if (!table || appState.queryRunning || document.body.classList.contains('dragging-cursor')) {
+    if (!table || getLifecycleState().queryRunning || document.body.classList.contains('dragging-cursor')) {
       clearInsertAffordance({ immediate: true });
       return;
     }
@@ -508,7 +508,7 @@
     },
 
     handleHeaderEnter(th) {
-      if (appState.queryRunning) return;
+      if (getLifecycleState().queryRunning) return;
       th.classList.add('th-hover');
       this.hoverTh = th;
       th.appendChild(headerActions);
@@ -533,7 +533,7 @@
     },
 
     handleHeaderDragStart(e, th, scrollContainer) {
-      if (appState.queryRunning) {
+      if (getLifecycleState().queryRunning) {
         e.preventDefault();
         return;
       }
@@ -895,7 +895,7 @@
   };
 
   window.ClipboardUtils.bindCopyButton(headerCopy, async () => {
-    if (appState.queryRunning) {
+    if (getLifecycleState().queryRunning) {
       return '';
     }
 
@@ -927,7 +927,7 @@
 
   headerSort.addEventListener('click', e => {
     e.stopPropagation();
-    if (appState.queryRunning) return;
+    if (getLifecycleState().queryRunning) return;
     const th = dragDropManager.hoverTh;
     const fieldName = th?.getAttribute('data-sort-field');
     if (!fieldName) {
@@ -940,7 +940,7 @@
 
   headerTrash.addEventListener('click', e => {
     e.stopPropagation();
-    if (appState.queryRunning) return;
+    if (getLifecycleState().queryRunning) return;
     const th = dragDropManager.hoverTh;
     if (th) {
       const idx = parseInt(th.dataset.colIndex, 10);
@@ -951,7 +951,7 @@
 
   headerInsertButton.addEventListener('click', e => {
     e.stopPropagation();
-    if (appState.queryRunning) return;
+    if (getLifecycleState().queryRunning) return;
 
     const insertAt = parseInt(headerInsertAffordance.dataset.insertAt || '', 10);
     if (!Number.isInteger(insertAt) || !window.SharedFieldPicker || typeof window.SharedFieldPicker.openQueryFieldPicker !== 'function') {
@@ -975,7 +975,7 @@
   });
 
   document.addEventListener('dragstart', e => {
-    if (appState.queryRunning) {
+    if (getLifecycleState().queryRunning) {
       e.preventDefault();
       return;
     }
