@@ -587,11 +587,14 @@ window.handleConditionBtnClick = function(e) {
     // Handle show/hide/display actions
     if (cond === 'show' || cond === 'hide') {
         if (appState.selectedField) {
-            // Assuming addColumn/removeColumnByName are global from columnManager/dragDrop refactor
             if (cond === 'show') {
-                window.addColumn && window.addColumn(appState.selectedField);
+                window.QueryChangeManager.showField(appState.selectedField, {
+                    source: 'FilterManager.handleConditionBtnClick.show'
+                });
             } else if (cond === 'hide' && getDisplayedFields().includes(appState.selectedField)) {
-                window.removeColumnByName && window.removeColumnByName(appState.selectedField);
+                window.QueryChangeManager.hideField(appState.selectedField, {
+                    source: 'FilterManager.handleConditionBtnClick.hide'
+                });
             }
             
             // Update toggle buttons state
