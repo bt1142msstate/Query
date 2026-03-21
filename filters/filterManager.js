@@ -311,6 +311,29 @@ window.getSelectedCondition = function(conditionPanel = null) {
         : '';
 };
 
+function removeConditionPanelNote() {
+    const existingNote = document.getElementById('condition-panel-note');
+    if (existingNote && existingNote.parentNode) {
+        existingNote.parentNode.removeChild(existingNote);
+    }
+}
+
+function showConditionPanelNote(message) {
+    const inputWrapper = getFilterInputWrapperElement();
+    if (!inputWrapper) return;
+
+    removeConditionPanelNote();
+
+    const note = document.createElement('div');
+    note.id = 'condition-panel-note';
+    note.className = 'condition-panel-note';
+    note.textContent = message;
+
+    inputWrapper.appendChild(note);
+    inputWrapper.style.display = 'flex';
+    inputWrapper.classList.add('show');
+}
+
 function buildBubbleConditionPanel(bubble) {
     const conditionPanel = getFilterConditionPanelElement();
     const inputWrapper = getFilterInputWrapperElement();
@@ -353,6 +376,7 @@ function buildBubbleConditionPanel(bubble) {
             : []);
     let operatorConditions = [];
     conditionPanel.innerHTML = '';
+    removeConditionPanelNote();
 
     const oldMarcInput = document.getElementById('marc-field-input');
     if (oldMarcInput && oldMarcInput.parentNode) oldMarcInput.parentNode.remove();
@@ -406,8 +430,17 @@ function buildBubbleConditionPanel(bubble) {
         // No applicable conditions for this field — hide the input area entirely
         // so an empty select and stray value input are never shown to the user.
         if (operatorConditions.length === 0) {
-            if (inputWrapper) inputWrapper.style.display = 'none';
+            if (conditionInput) conditionInput.style.display = 'none';
+            const conditionInput2 = getFilterConditionInput2Element();
+            const betweenLabel = getFilterBetweenLabelElement();
+            const existingSelect = document.getElementById('condition-select');
+            const existingContainer = document.getElementById('condition-select-container');
+            if (conditionInput2) conditionInput2.style.display = 'none';
+            if (betweenLabel) betweenLabel.style.display = 'none';
+            if (existingSelect) existingSelect.style.display = 'none';
+            if (existingContainer && existingContainer.parentNode) existingContainer.parentNode.removeChild(existingContainer);
             if (confirmBtn) confirmBtn.style.display = 'none';
+            showConditionPanelNote('This field is available for display, but the backend does not support filtering it.');
             window.renderConditionList(selectedField);
             return;
         }
