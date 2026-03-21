@@ -1093,8 +1093,18 @@ window.configureInputsForType = function(type){
     const inputs=[inp1,inp2].filter(Boolean);
   const isMoney  = type==='money';
   const isNumber = type==='number';
-        const isDate = type === 'date';
-        const htmlType = isDate ? 'text' : isMoney ? 'text' : isNumber ? 'number' : 'text';
+    const isDate = type === 'date';
+    const htmlType = isDate ? 'text' : isMoney ? 'text' : isNumber ? 'number' : 'text';
+
+    if (!isDate) {
+        inputs.forEach(inp => {
+            const datePickerApi = inp._customDatePickerApi;
+            if (datePickerApi && typeof datePickerApi.destroy === 'function') {
+                datePickerApi.destroy();
+            }
+        });
+    }
+
   inputs.forEach(inp=> inp.type = htmlType);
 
   if(isMoney){
@@ -1109,15 +1119,14 @@ window.configureInputsForType = function(type){
 
     if (window.CustomDatePicker && typeof window.CustomDatePicker.enhanceInput === 'function') {
         inputs.forEach(inp => {
-            window.CustomDatePicker.enhanceInput(inp, {
-                variant: 'filter',
-                enabled: isDate,
-                placeholder: isDate ? 'M/D/YYYY' : inp.placeholder
-            });
-
             if (isDate) {
+                window.CustomDatePicker.enhanceInput(inp, {
+                    variant: 'filter',
+                    enabled: true,
+                    placeholder: 'M/D/YYYY'
+                });
                 inp.dataset.errorMsg = 'Use M/D/YYYY';
-                inp.setAttribute('pattern', '^\\d{4}-\\d{2}-\\d{2}$');
+                inp.setAttribute('pattern', '^\\d{1,2}\\/\\d{1,2}\\/\\d{4}$');
             } else {
                 inp.removeAttribute('pattern');
                 if (inp.dataset.errorMsg === 'Use M/D/YYYY') {
