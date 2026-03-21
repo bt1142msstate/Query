@@ -797,9 +797,6 @@ window.handleFilterConfirm = function(e) {
                 
                 window.renderConditionList(field);
                 
-                if (appState.currentCategory === 'Selected') {
-                    services.rerenderBubbles();
-                }
             }
         } catch (error) {
             console.error('Error applying filter:', error);
@@ -812,13 +809,11 @@ window.handleFilterConfirm = function(e) {
     if (cond === 'display' || cond === 'show' || cond === 'hide') {
         if (cond === 'show') {
             services.restoreFieldWithDuplicates(field);
-            uiActions.showExampleTable(getDisplayedFields(), { syncQueryState: false }).catch(console.error);
         } else if ((cond === 'hide' || cond === 'display') && getDisplayedFields().includes(field)) {
             window.QueryChangeManager.removeDisplayedField(field, {
                 all: false,
                 source: 'FilterManager.hideField'
             });
-            uiActions.showExampleTable(getDisplayedFields(), { syncQueryState: false }).catch(console.error);
         }
     }
 
@@ -887,9 +882,6 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
         }
     }
 
-    // Update table once
-    uiActions.showExampleTable(getDisplayedFields(), { syncQueryState: false }).catch(console.error);
-
     // Clear search
     const queryInput = getFilterQueryInputElement();
     if (queryInput && queryInput.value.trim()) {
@@ -903,8 +895,6 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
         document.querySelectorAll('#category-bar .category-btn').forEach(btn =>
             btn.classList.toggle('active', btn.dataset.category === 'Selected')
         );
-        
-        uiActions.updateCategoryCounts();
         services.rerenderBubbles();
     }, 200);
     

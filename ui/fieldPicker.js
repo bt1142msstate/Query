@@ -1,6 +1,5 @@
 (function() {
   const services = window.AppServices;
-  const uiActions = window.AppUiActions;
   const { getDisplayedFields, getFilterGroupForField } = window.QueryStateReaders;
 
   function getFieldPickerOptionsFromDefinitions() {
@@ -481,8 +480,6 @@
           });
         }
 
-        await uiActions.showExampleTable(nextFields, { syncQueryState: false });
-
         if (window.showToastMessage) {
           window.showToastMessage(
             nextChecked ? `${fieldName} added to results.` : `${fieldName} removed from results.`,
@@ -498,8 +495,6 @@
               source: 'SharedFieldPicker.removeQueryFilter'
             });
           }
-
-          uiActions.updateCategoryCounts();
 
           if (window.showToastMessage) {
             window.showToastMessage(`${fieldName} filters removed.`, 'success');

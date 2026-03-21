@@ -616,8 +616,6 @@ function loadQueryConfig(q) {
   if (typeof window.registerDynamicField === 'function') {
     getDisplayedFields().forEach(f => window.registerDynamicField(f));
   }
-
-  uiActions.showExampleTable(getDisplayedFields(), { syncQueryState: false });
   
   // Clear filters and reapply from query
   if (window.QueryChangeManager) {
@@ -647,12 +645,6 @@ function loadQueryConfig(q) {
     }
   }
   
-  // Update JSON display
-  uiActions.updateQueryJson();
-
-  // Ensure bubbles re-render to reflect their new filter state and positions
-  services.rerenderBubbles();
-
   // Update button state to "Refresh" instead of "Run Query" since it's an existing query
   if (typeof window.getCurrentQueryState === 'function') {
     window.AppState.lastExecutedQueryState = window.getCurrentQueryState();

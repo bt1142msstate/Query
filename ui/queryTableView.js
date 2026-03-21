@@ -61,9 +61,6 @@
 
       services.markDropSuccessful();
       services.restoreFieldWithDuplicates(field);
-      queryTableView.showExampleTable(getDisplayedFields(), { syncQueryState: false }).catch(error => {
-        console.error('Error updating table:', error);
-      });
     });
     placeholderTh.addEventListener('dragenter', () => {
       placeholderTh.classList.add('th-drag-over');
@@ -169,9 +166,10 @@
     if (!Array.isArray(fields) || fields.length === 0) {
       if (syncQueryState && getDisplayedFields().length > 0) {
         window.QueryChangeManager.replaceDisplayedFields([], { source: 'QueryTableView.showExampleTable.empty' });
-      } else {
-        renderEmptyQueryTableState();
+        return;
       }
+
+      renderEmptyQueryTableState();
       return;
     }
 
@@ -187,6 +185,7 @@
       const currentDisplayedFields = getDisplayedFields();
       if (!areDisplayedFieldsEqual(currentDisplayedFields, uniqueFields)) {
         window.QueryChangeManager.replaceDisplayedFields(uniqueFields, { source: 'QueryTableView.showExampleTable' });
+        return;
       }
     }
 
@@ -307,19 +306,6 @@
     }
   }
 
-  function shouldRerenderTableFromStateChange(event) {
-    if (!event?.changes?.displayedFields) {
-      return false;
-    }
-
-    const source = String(event.meta?.source || '');
-    return [
-      'FilterSidePanel.moveDisplayedField',
-      'FilterSidePanel.dragDisplayedField',
-      'FilterSidePanel.removeDisplayedField'
-    ].includes(source);
-  }
-
   const queryTableView = {
     restoreEmptyTableDropTarget,
     renderEmptyQueryTableState,
@@ -333,20 +319,14 @@
   window.showExampleTable = showExampleTable;
 
   window.QueryStateSubscriptions.subscribe(event => {
-    if (shouldRerenderTableFromStateChange(event)) {
+    if (event?.changes?.displayedFields) {
       showExampleTable(event.snapshot?.displayedFields || [], { syncQueryState: false }).catch(error => {
         console.error('Failed to re-render table from query state change:', error);
       });
-      return;
     }
 
     if (event.changes?.activeFilters) {
       uiActions.updateCategoryCounts();
-    }
-
-    const displayedFields = event.snapshot?.displayedFields;
-    if (Array.isArray(displayedFields) && displayedFields.length === 0) {
-      renderEmptyQueryTableState();
     }
   }, {
     displayedFields: true,

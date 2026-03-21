@@ -331,7 +331,6 @@
     const success = restoreFieldWithDuplicates(fieldName, insertAt);
 
     if (success) {
-      uiActions.showExampleTable(getDisplayedFields(), { syncQueryState: false });
       uiActions.updateQueryJson();
       uiActions.updateButtonStates();
       uiActions.updateCategoryCounts();
