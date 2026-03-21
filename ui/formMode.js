@@ -1712,14 +1712,13 @@
     card.innerHTML = `
       <div class="form-mode-header">
         <div>
-          <span class="form-mode-kicker">URL Form Mode</span>
           <h2 class="form-mode-title" data-form-mode-title></h2>
           <p class="form-mode-description hidden" data-form-mode-description></p>
         </div>
         <div class="form-mode-actions">
           <button type="button" id="form-mode-add-field" class="form-mode-btn form-mode-btn-secondary">+ Add Field</button>
           <button type="button" id="form-mode-run" class="form-mode-btn form-mode-btn-primary">Run Form</button>
-          <button type="button" id="form-mode-reset" class="form-mode-btn">Reset</button>
+          <button type="button" id="form-mode-reset" class="form-mode-btn" data-tooltip="Restore the form to the original URL values.">Reset</button>
           <button type="button" id="form-mode-copy" class="form-mode-btn">Copy Link</button>
         </div>
       </div>
