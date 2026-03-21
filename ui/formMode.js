@@ -41,6 +41,7 @@
     lastSuggestedTableName: '',
     lastBrowserUrl: '',
     suppressAutoTableNameOnce: false,
+    forceTableNameSyncOnce: false,
     isClearingQuery: false,
     isApplyingFormState: false,
     tableNameListenersBound: false,
@@ -1279,6 +1280,7 @@
       state.spec = cloneSpec(state.initialSpec || state.spec);
       state.lastSuggestedTableName = '';
       state.suppressAutoTableNameOnce = false;
+      state.forceTableNameSyncOnce = true;
 
       // Ensure any running query stops
       const lifecycleState = window.QueryStateReaders.getLifecycleState();
