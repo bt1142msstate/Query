@@ -86,7 +86,10 @@
 
     if (String(filter?.cond || '').toLowerCase() === 'between') {
       const [left, right] = rawValue.split('|');
-      return `${left || ''} - ${right || ''}`;
+      const formatBound = value => window.ValueFormatting.formatValueByType(String(value || ''), type, {
+        dateFallbackToRaw: true
+      });
+      return `${formatBound(left)} - ${formatBound(right)}`;
     }
 
     return window.ValueFormatting.formatValueByType(rawValue, type, {
