@@ -32,10 +32,12 @@
 
       if (value === null || value === undefined || value === '') {
         displayValue = '—';
-      } else if (typeof value === 'string' && value.length > 15) {
-        displayValue = value.substring(0, 15) + '…';
       } else {
-        displayValue = String(value);
+        displayValue = formatColumnClipboardValue(value, fieldName);
+      }
+
+      if (typeof displayValue === 'string' && displayValue.length > 15) {
+        displayValue = `${displayValue.substring(0, 15)}…`;
       }
 
       samples.push(displayValue);

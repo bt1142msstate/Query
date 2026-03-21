@@ -22,11 +22,30 @@
       ? String(filter.val || '').split('|')
       : String(filter && filter.val || '').split(',');
     const valueMap = getFilterValueMap(fieldDef);
+    const fieldName = fieldDef?.name || '';
+    const fieldType = window.ValueFormatting?.getFieldType?.(fieldName, { inferMoneyFromName: true }) || '';
 
     return rawValues
       .map(value => String(value).trim())
       .filter(Boolean)
-      .map(value => valueMap.get(value) || value);
+      .map(value => {
+        const mappedValue = valueMap.get(value) || value;
+        if (!fieldType || !window.ValueFormatting) {
+          return mappedValue;
+        }
+
+        if (fieldType === 'money') {
+          const numericValue = window.MoneyUtils?.parseNumber?.(mappedValue);
+          return Number.isNaN(numericValue)
+            ? mappedValue
+            : window.ValueFormatting.formatValueByType(numericValue, fieldType);
+        }
+
+        return window.ValueFormatting.formatValueByType(mappedValue, fieldType, {
+          invalidDateValue: 'Never',
+          dateFallbackToRaw: true
+        });
+      });
   }
 
   function buildListSummaryLabel(values) {
@@ -156,13 +175,6 @@
   function buildFilterValueLabel(filter, fieldDef, betweenSeparator = ' - ') {
     const isBetween = filter.cond.toLowerCase() === 'between';
     const values = getFilterDisplayValues(filter, fieldDef);
-
-    if (fieldDef && fieldDef.type === 'date') {
-      if (isBetween && values.length === 2) {
-        return `${values[0]}${betweenSeparator}${values[1]}`;
-      }
-      return values.join(', ');
-    }
 
     if (isBetween) {
       return values.join(betweenSeparator);
