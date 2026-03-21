@@ -605,14 +605,25 @@ window.FilterSidePanel = (function () {
         condsList.className = 'fp-conds-list';
 
         data.filters.forEach((filterItem, idx) => {
-            const valueLabel = buildFilterValueLabel(filterItem, fieldDef, ' – ');
             const useListViewer = window.shouldUseFilterListViewer && window.shouldUseFilterListViewer(filterItem, fieldDef);
             const row = document.createElement('div');
             row.className = 'fp-cond-row';
 
             const textSpan = document.createElement('span');
             textSpan.className = 'fp-cond-text';
-            textSpan.innerHTML = `<span class="fp-cond-op">${condLabel(filterItem.cond)}</span> <b>${valueLabel}</b>`;
+
+            // Between: render each bound separately so it reads "Between X and Y"
+            if (filterItem.cond.toLowerCase() === 'between') {
+                const parts = window.getFilterDisplayValues
+                    ? window.getFilterDisplayValues(filterItem, fieldDef)
+                    : buildFilterValueLabel(filterItem, fieldDef, '|').split('|');
+                const lo = parts[0] || '';
+                const hi = parts[1] || '';
+                textSpan.innerHTML = `<span class="fp-cond-op">${condLabel(filterItem.cond)}</span> <b>${lo}</b> <span class="fp-cond-sep">and</span> <b>${hi}</b>`;
+            } else {
+                const valueLabel = buildFilterValueLabel(filterItem, fieldDef, ' – ');
+                textSpan.innerHTML = `<span class="fp-cond-op">${condLabel(filterItem.cond)}</span> <b>${valueLabel}</b>`;
+            }
             if (useListViewer) {
                 textSpan.classList.add('fp-cond-text-clickable');
                 textSpan.setAttribute('role', 'button');
