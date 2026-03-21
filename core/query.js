@@ -133,11 +133,9 @@ if(dom.runBtn){
     
     // If query is running, stop it
     if (window.queryRunning) {
+      showToastMessage('Stopping query…', 'info');
       if (currentQueryId && typeof window.cancelQuery === 'function') {
-          showToastMessage('Cancelling query...', 'info');
-          window.cancelQuery(currentQueryId).then(() => {
-              showToastMessage('Query cancelled.', 'info');
-          }).catch(err => {
+          window.cancelQuery(currentQueryId).catch(err => {
               console.error('Cancellation failed', err);
           });
       }
@@ -221,6 +219,7 @@ if(dom.runBtn){
             throw new Error(`Server error: ${response.status} ${response.statusText}`);
         }
 
+        showToastMessage('Connected — streaming results…', 'info');
         const streamedPayload = await readStreamedQueryText(response, {
           onProgress: rowCount => {
             if (!window.queryRunning) return;
@@ -233,6 +232,17 @@ if(dom.runBtn){
         if (streamedPayload.partial) {
           if (lines.length === 0) {
             console.log('Query stopped by user before any data arrived; discarding.');
+            if (currentQueryId && window.QueryHistorySystem) {
+              const q = window.QueryHistorySystem.exampleQueries.find(q => q.id === currentQueryId);
+              if (q) {
+                q.running = false;
+                q.status = 'stopped';
+                q.resultCount = 0;
+                q.endTime = new Date().toISOString();
+                window.QueryHistorySystem.renderQueries();
+              }
+            }
+            showToastMessage('Query stopped — no results received.', 'info');
             return;
           }
           console.log(`Query stopped mid-stream. Processing ${lines.length} partial lines.`);
@@ -262,12 +272,12 @@ if(dom.runBtn){
         console.log(`Received ${rows.length} rows`);
         updateLiveQueryProgress(rows.length, { startTime: queryStartedAt });
         
-        // Mark as complete in history
+        // Mark as complete (or stopped) in history
         if (currentQueryId && window.QueryHistorySystem) {
              const q = window.QueryHistorySystem.exampleQueries.find(q => q.id === currentQueryId);
              if (q) {
                  q.running = false;
-                 q.status = 'complete';
+                 q.status = streamedPayload.partial ? 'stopped' : 'complete';
                  q.resultCount = rows.length;
                  q.endTime = new Date().toISOString();
                  window.QueryHistorySystem.renderQueries();
