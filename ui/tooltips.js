@@ -455,15 +455,5 @@ window.formatFieldDefinitionTooltipHTML = function(fieldDef, options = {}) {
   return html;
 };
 
-// Helper function to escape HTML to prevent XSS in tooltips
-function escapeHtml(unsafe) {
-    if (typeof unsafe !== 'string') return unsafe;
-    return unsafe
-         .replace(/&/g, "&amp;")
-         .replace(/</g, "&lt;")
-         .replace(/>/g, "&gt;")
-         .replace(/"/g, "&quot;")
-         .replace(/'/g, "&#039;");
-}
-
-window.escapeHtml = escapeHtml;
+// escapeHtml is defined in utils.js (loaded before this file)
+const escapeHtml = window.escapeHtml;

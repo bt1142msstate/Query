@@ -696,7 +696,7 @@ function renderVirtualTable() {
         
         // Build an elegant HTML tooltip with a list
         const tooltipItems = items.map(function(itm) {
-          return '<li>' + (typeof window.escapeHtml === 'function' ? window.escapeHtml(itm) : itm) + '</li>';
+          return '<li>' + window.escapeHtml(itm) + '</li>';
         }).join('');
         const tooltipHtml = '<div class="text-left font-sans text-sm pb-1"><div class="font-bold border-b border-gray-500 pb-1 mb-2">Multiple Values (' + items.length + ')</div><ul class="list-disc pl-4 space-y-1">' + tooltipItems + '</ul></div>';
         

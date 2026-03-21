@@ -13,6 +13,8 @@ const QUERY_STATUS_POLL_MS = 2000;
 const IDLE_POLL_MS = 8000;
 let lastHistoryRenderKey = '';
 
+const VIEW_ICON_SVG = `<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1.5 12s4-7 10.5-7 10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3.5"/></svg>`;
+
 function isQueriesPanelOpen() {
   const panel = document.getElementById('queries-panel');
   return !!(panel && !panel.classList.contains('hidden'));
@@ -270,17 +272,13 @@ function appendUniqueColumn(target, fieldName) {
   target.push(normalizedField);
 }
 
-function escapeRegExp(value) {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
 function deriveTemplateBindings(template, actual, bindings) {
   if (typeof template !== 'string' || typeof actual !== 'string') {
     return false;
   }
 
   const keys = [];
-  const pattern = escapeRegExp(template).replace(/\\\{([^}]+)\\\}/g, (_, key) => {
+  const pattern = window.escapeRegExp(template).replace(/\\\{([^}]+)\\\}/g, (_, key) => {
     keys.push(key);
     return '(.+?)';
   });
@@ -599,7 +597,7 @@ window.formatColumnsTooltip = function(columns) {
   const columnItems = columns.map((column, index) => (
     '<li class="tt-filter-item tt-column-item">' +
     `  <span class="tt-column-index">${index + 1}</span>` +
-    `  <span class="tt-column-name">${escapeHtml(column || '')}</span>` +
+    `  <span class="tt-column-name">${window.escapeHtml(column || '')}</span>` +
     '</li>'
   )).join('');
 
@@ -1251,8 +1249,6 @@ function patchQueriesPanelData(newHistory) {
     return;
   }
 
-  const viewIconSVG = `<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1.5 12s4-7 10.5-7 10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3.5"/></svg>`;
-
   // Build a map of rows currently in the tbody
   const existingRowMap = new Map();
   tbody.querySelectorAll('tr[data-query-id]').forEach(tr => existingRowMap.set(tr.dataset.queryId, tr));
@@ -1270,7 +1266,7 @@ function patchQueriesPanelData(newHistory) {
     if (existing && old && !hasQueryRowChanged(old, q)) return; // Nothing to do
 
     const temp = document.createElement('tbody');
-    temp.innerHTML = createQueriesTableRowHtml(q, viewIconSVG);
+    temp.innerHTML = createQueriesTableRowHtml(q, VIEW_ICON_SVG);
     const newTr = temp.firstElementChild;
     if (!newTr) return;
     bindHistoryTableButtons(newTr);
@@ -1360,9 +1356,6 @@ function renderQueries(){
   const searchInput = document.getElementById('queries-search');
   const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
   
-  // Use an eye icon SVG for both columns and filters
-  const viewIconSVG = `<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1.5 12s4-7 10.5-7 10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3.5"/></svg>`;
-  
   let runningList = exampleQueries.filter(q => q.running);
   let doneList = exampleQueries.filter(q => !q.running && !q.cancelled && !q.failed);
   let failedList = exampleQueries.filter(q => q.failed);
@@ -1393,10 +1386,10 @@ function renderQueries(){
     );
   }
   
-  const runningRows = runningList.map(q => createQueriesTableRowHtml(q, viewIconSVG)).join('');
-  const doneRows = doneList.map(q => createQueriesTableRowHtml(q, viewIconSVG)).join('');
-  const failedRows = failedList.map(q => createQueriesTableRowHtml(q, viewIconSVG)).join('');
-  const cancelledRows = cancelledList.map(q => createQueriesTableRowHtml(q, viewIconSVG)).join('');
+  const runningRows = runningList.map(q => createQueriesTableRowHtml(q, VIEW_ICON_SVG)).join('');
+  const doneRows = doneList.map(q => createQueriesTableRowHtml(q, VIEW_ICON_SVG)).join('');
+  const failedRows = failedList.map(q => createQueriesTableRowHtml(q, VIEW_ICON_SVG)).join('');
+  const cancelledRows = cancelledList.map(q => createQueriesTableRowHtml(q, VIEW_ICON_SVG)).join('');
 
   // Build table headers for each history state.
   const runningTableHead = `

@@ -18,21 +18,8 @@ window.TableContextMenu = (() => {
   }
 
   function formatCellValue(raw, field) {
-    if (raw == null) return '';
-    if (typeof raw === 'string' && raw.includes('\x1F')) {
-      return raw.split('\x1F').filter(s => s.trim()).join(', ');
-    }
-    const s = String(raw);
-    if (s === '' || s === '—') return s;
-
-    const vf = window.ValueFormatting;
-    if (!vf) return s;
-    const type = vf.getFieldType?.(field, { inferMoneyFromName: true });
-    if (!type) return s;
-
-    if (type === 'date') {
-      return vf.formatValueByType(s, type, { invalidDateValue: 'Never' });
-    }
+    return window.FormatUtils.formatCellDisplay(raw, field);
+  }
     if (type === 'money') {
       const n = window.MoneyUtils?.parseNumber?.(s);
       if (!isNaN(n)) return vf.formatValueByType(n, type);
