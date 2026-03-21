@@ -1225,6 +1225,19 @@ body.post-filter-overlay-open {
   width: 100%;
 }
 
+.post-filter-builder .custom-date-input--filter,
+.post-filter-value-row .custom-date-input--filter {
+  width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.post-filter-builder .custom-date-input--filter > input,
+.post-filter-value-row .custom-date-input--filter > input {
+  width: 100%;
+  min-width: 0;
+}
+
 .post-filter-value-control .form-mode-popup-list-trigger {
   min-height: 3rem;
   border-radius: 16px;
@@ -2427,4 +2440,3 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.ta
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
