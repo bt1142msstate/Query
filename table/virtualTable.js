@@ -617,6 +617,7 @@ function renderVirtualTable() {
     const rowData = virtualTableData.rows[i]; // Access the 2D array row
     const tr = window.TableBuilder.createRow();
     tr.style.height = `${tableRowHeight}px`;
+    tr.dataset.rowIndex = i;
     
     displayedFields.forEach((field, colIndex) => {
       const td = window.TableBuilder.createCell('', 'px-6 py-3 whitespace-nowrap text-sm text-gray-900');
