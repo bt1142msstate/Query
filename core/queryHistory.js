@@ -546,7 +546,7 @@ function loadQueryConfig(q) {
   // That flag belongs to the currently displayed result set and must be
   // recomputed when/if results are loaded afterward.
   window.QueryChangeManager.setLifecycleState({ hasPartialResults: false }, { source: 'QueryHistory.loadQueryConfig', silent: true });
-  window.updateTableResultsLip?.();
+  uiActions.updateTableResultsLip();
 
   if (tableNameInput) {
     tableNameInput.value = q.name || '';
@@ -634,14 +634,10 @@ function loadQueryConfig(q) {
         }
       });
       // Ensure the filter panel shows up right away if there are filters
-      if (window.FilterSidePanel && window.FilterSidePanel.update) {
-        window.FilterSidePanel.update();
-      }
+      uiActions.updateFilterSidePanel();
     } else {
       // If no filters were loaded but panel was open, it should re-evaluate to close
-      if (window.FilterSidePanel && window.FilterSidePanel.update) {
-        window.FilterSidePanel.update();
-      }
+      uiActions.updateFilterSidePanel();
     }
   }
   
@@ -768,7 +764,7 @@ async function loadQueryResults(queryId) {
         // Partial-results mode should reflect the specific result set that was loaded,
         // not whatever previous live query happened to leave behind.
         window.QueryChangeManager.setLifecycleState({ hasPartialResults: Boolean(q.running) }, { source: 'QueryHistory.loadQueryResults', silent: true });
-        window.updateTableResultsLip?.();
+        uiActions.updateTableResultsLip();
         
         if (typeof showToastMessage === 'function') {
             showToastMessage(q.running
@@ -1476,6 +1472,7 @@ const QueryHistorySystem = {
   getQueries: getHistoryQueries,
   getQueryById: getHistoryQueryById,
   updateQuery: updateHistoryQuery,
+  fetchQueryStatus,
   startQueryDurationUpdates,
   stopQueryDurationUpdates,
   renderQueries

@@ -1,8 +1,6 @@
 // core/queryExecution.js
 // HTTP query execution: build payload, run, stop, stream, parse, clear.
-// UI coordination after a query completes (table render, bubble refresh) is
-// delegated to window.showExampleTable and window.resetBubbleScrollState,
-// which are exported by query.js.
+// UI coordination after a query completes goes through AppUiActions/AppServices.
 
 const execDom = window.DOM;
 var appState = window.AppState;
@@ -11,15 +9,7 @@ var uiActions = window.AppUiActions;
 appState.queryPageIsUnloading = false;
 
 function addQueryHistoryEntry(query) {
-  if (window.QueryHistorySystem?.addQuery) {
-    return window.QueryHistorySystem.addQuery(query);
-  }
-
-  if (typeof window.addQueryToHistory === 'function') {
-    return window.addQueryToHistory(query);
-  }
-
-  return null;
+  return services.addHistoryQuery(query);
 }
 
 function updateQueryHistoryEntry(queryId, updates, options = {}) {
@@ -27,20 +17,19 @@ function updateQueryHistoryEntry(queryId, updates, options = {}) {
     return null;
   }
 
-  if (window.QueryHistorySystem?.updateQuery) {
-    return window.QueryHistorySystem.updateQuery(queryId, updates, options);
+  const updatedQuery = services.updateHistoryQuery(queryId, updates, options);
+  if (updatedQuery) {
+    return updatedQuery;
   }
 
-  const query = window.QueryHistorySystem?.getQueryById
-    ? window.QueryHistorySystem.getQueryById(queryId)
-    : null;
+  const query = services.getHistoryQueryById(queryId);
   if (!query) {
     return null;
   }
 
   Object.assign(query, updates);
-  if (options.render !== false && window.QueryHistorySystem && typeof window.QueryHistorySystem.renderQueries === 'function') {
-    window.QueryHistorySystem.renderQueries();
+  if (options.render !== false) {
+    services.renderHistoryQueries();
   }
   return query;
 }
@@ -236,9 +225,7 @@ if (execDom.runBtn) {
           addQueryHistoryEntry(newQuery);
 
           // Start external polling for status
-          if (window.QueryHistorySystem && window.QueryHistorySystem.startQueryDurationUpdates) {
-            window.QueryHistorySystem.startQueryDurationUpdates();
-          }
+          services.startHistoryDurationUpdates();
         }
 
         if (!response.ok) {
@@ -327,7 +314,7 @@ if (execDom.runBtn) {
           services.rerenderBubbles();
 
           // Reset bubble scroll back to the top
-          window.resetBubbleScrollState?.();
+          services.resetBubbleScroll();
 
           // Restore split-columns mode if it was active before the query ran
           if (wasSplitActive) {
@@ -342,7 +329,7 @@ if (execDom.runBtn) {
           hasPartialResults: streamedPayload.partial
         }, { source: 'QueryExecution.completeQuery', silent: true });
         if (streamedPayload.partial) {
-          if (window.updateTableResultsLip) window.updateTableResultsLip();
+          uiActions.updateTableResultsLip();
           window.showToastMessage(`Query stopped early. Showing ${rows.length} partial result${rows.length !== 1 ? 's' : ''}.`, 'info');
         } else {
           window.showToastMessage(`Query completed. Loaded ${rows.length} results.`, 'success');
@@ -373,7 +360,7 @@ if (execDom.runBtn) {
         window.showToastMessage('Query execution failed: ' + error.message, 'error');
       } finally {
         window.QueryChangeManager.setLifecycleState({ queryRunning: false }, { source: 'QueryExecution.finishQuery', silent: true });
-        if (window.updateTableResultsLip) window.updateTableResultsLip();
+        uiActions.updateTableResultsLip();
         uiActions.updateRunButtonIcon();
         uiActions.updateButtonStates();
         if (window.endTableQueryAnimation) window.endTableQueryAnimation();
