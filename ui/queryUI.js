@@ -25,12 +25,18 @@ window.updateTableResultsLip = function() {
   const columnCount = getDisplayedFields().length;
   const hasResults = rowCount > 0 || columnCount > 0;
 
+  // Planning mode: columns are configured but no results are loaded yet, and no query is running.
+  const isPlanningMode = columnCount > 0 && rowCount === 0 && !window.queryRunning;
+  document.body.classList.toggle('is-planning', isPlanningMode);
+
   resultsCount.textContent = rowCount.toLocaleString();
   resultsLabel.textContent = rowCount === 1 ? 'result' : 'results';
   columnsCount.textContent = columnCount.toLocaleString();
   columnsLabel.textContent = columnCount === 1 ? 'column' : 'columns';
-  resultsBadge.classList.toggle('hidden', !hasResults);
-  resultsBadge.setAttribute('aria-hidden', hasResults ? 'false' : 'true');
+  // Hide the results badge while in planning mode to avoid showing "0 results"
+  // alongside the Planning badge — the two are mutually exclusive.
+  resultsBadge.classList.toggle('hidden', !hasResults || isPlanningMode);
+  resultsBadge.setAttribute('aria-hidden', (hasResults && !isPlanningMode) ? 'false' : 'true');
 
   if (tableNameShell) {
     tableNameShell.classList.toggle('has-results', hasResults);
