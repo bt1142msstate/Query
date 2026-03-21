@@ -11,6 +11,9 @@
       .map(fieldDef => ({
         name: String(fieldDef.name),
         type: String(fieldDef.type || 'text'),
+        filterable: typeof window.isFieldBackendFilterable === 'function'
+          ? window.isFieldBackendFilterable(fieldDef)
+          : Array.isArray(fieldDef.filters) && fieldDef.filters.length > 0,
         desc: typeof fieldDef.desc === 'string' ? fieldDef.desc : '',
         description: typeof fieldDef.description === 'string' ? fieldDef.description : '',
         category: Array.isArray(fieldDef.category)
@@ -166,9 +169,13 @@
 
     function syncChoiceInputs() {
       const state = getSelectedState();
+      const selected = options.find(option => option.name === selectedFieldName) || null;
       syncingControls = true;
       if (displayChoice) displayChoice.checked = state.display;
-      if (filterChoice) filterChoice.checked = state.filter;
+      if (filterChoice) {
+        filterChoice.checked = state.filter;
+        filterChoice.disabled = Boolean(selected && selected.filterable === false);
+      }
       syncingControls = false;
     }
 
@@ -203,7 +210,9 @@
       }
 
       if (allowFilter && filterChoice) {
-        if (filterChoice.checked && !state.filter) {
+        if (selected.filterable === false) {
+          statusParts.push('Backend filtering unavailable');
+        } else if (filterChoice.checked && !state.filter) {
           statusParts.push(`Will ${labels.filterChoice.toLowerCase()}`);
         } else if (!filterChoice.checked && state.filter) {
           statusParts.push(`Will remove ${labels.filterChoice.toLowerCase()}`);
@@ -235,6 +244,13 @@
 
       const updatedState = getSelectedState();
       if (changeType === 'filter' && allowFilter && filterChoice && filterChoice.checked !== updatedState.filter && typeof config.onFilterChange === 'function') {
+        const selected = options.find(option => option.name === selectedFieldName) || null;
+        if (selected && selected.filterable === false) {
+          syncChoiceInputs();
+          syncDetails();
+          return;
+        }
+
         const result = await config.onFilterChange(selectedFieldName, filterChoice.checked, { cleanup, modal });
         if (result && result.close) {
           cleanup();

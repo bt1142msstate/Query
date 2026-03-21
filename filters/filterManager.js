@@ -346,6 +346,11 @@ function buildBubbleConditionPanel(bubble) {
     const perBubble = bubble.dataset.filters ? JSON.parse(bubble.dataset.filters) : null;
     const fieldDefInfo = window.fieldDefs ? window.fieldDefs.get(selectedField) : null;
     const isBuildable = fieldDefInfo && fieldDefInfo.is_buildable;
+    const backendOperators = typeof window.getFieldFilterOperators === 'function'
+        ? window.getFieldFilterOperators(fieldDefInfo)
+        : ((perBubble && perBubble.length > 0)
+            ? perBubble.map(label => String(label).split(' ')[0].toLowerCase())
+            : []);
     let operatorConditions = [];
     conditionPanel.innerHTML = '';
 
@@ -385,17 +390,18 @@ function buildBubbleConditionPanel(bubble) {
             });
         }
 
-        operatorConditions = (fieldDefInfo.filters && fieldDefInfo.filters.length > 0 ? fieldDefInfo.filters : ['contains', 'starts', 'equals'])
-            .map(label => String(label).split(' ')[0].toLowerCase());
+        operatorConditions = backendOperators.length > 0
+            ? backendOperators
+            : ['contains', 'starts', 'equals'];
         conditionPanel.appendChild(createConditionOperatorPicker(operatorConditions, window.buildableConditionBtnHandler));
     } else {
-        // `[] is truthy` guard: only use perBubble override when it actually has entries.
-        operatorConditions = ((perBubble && perBubble.length > 0)
-            ? perBubble
-            : (listValues && listValues.length)
-                ? ['equals']
-                : (window.typeConditions[type] || window.typeConditions.string))
-            .map(label => String(label).split(' ')[0].toLowerCase());
+        if (backendOperators.length === 0) {
+            operatorConditions = [];
+        } else if (listValues && listValues.length && backendOperators.includes('equals')) {
+            operatorConditions = ['equals'];
+        } else {
+            operatorConditions = backendOperators;
+        }
 
         // No applicable conditions for this field — hide the input area entirely
         // so an empty select and stray value input are never shown to the user.
@@ -801,6 +807,11 @@ window.handleFilterConfirm = function(e) {
 
     // Validation
     if (cond && cond !== 'display') {
+        if (!isBuildable && typeof window.isFieldBackendFilterable === 'function' && !window.isFieldBackendFilterable(fieldDef)) {
+            showFilterError('This field is not filterable in the backend.', []);
+            return;
+        }
+
         const tintInputs = [conditionInput, conditionInput2];
         
         if (cond === 'between' && (val === '' || val2 === '')) {

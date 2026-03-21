@@ -268,6 +268,7 @@ window.buildBackendFilters = function() {
     const canonicalFieldName = getCanonicalPayloadFieldName(fieldName);
     const fieldDef = window.fieldDefs ? window.fieldDefs.get(canonicalFieldName) : null;
     if (fieldDef && fieldDef.is_buildable) return;
+    if (fieldDef && typeof window.isFieldBackendFilterable === 'function' && !window.isFieldBackendFilterable(fieldDef)) return;
 
     (filterGroup?.filters || []).forEach(filter => {
       if (filter.val === '') return;
