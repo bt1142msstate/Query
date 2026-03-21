@@ -44,5 +44,24 @@ window.DOM = {
   get headerBar() { return this._headerBar ||= document.getElementById('header-bar'); },
   get headerOverlayTitle() { return this._headerOverlayTitle ||= document.getElementById('header-overlay-title'); },
   get categoryBar() { return this._categoryBar ||= document.getElementById('category-bar'); },
-  get mobileCategorySelector() { return this._mobileCategorySelector ||= document.getElementById('mobile-category-selector'); }
+  get mobileCategorySelector() { return this._mobileCategorySelector ||= document.getElementById('mobile-category-selector'); },
+
+  // Bubble area
+  get bubbleContainer() { return this._bubbleContainer ||= document.getElementById('bubble-container'); },
+  get bubbleList() { return this._bubbleList ||= document.getElementById('bubble-list'); },
+  get bubbleScrollbar() { return this._bubbleScrollbar ||= document.getElementById('bubble-scrollbar'); },
+  get bubbleScrollbarTrack() { return this._bubbleScrollbarTrack ||= document.getElementById('bubble-scrollbar-track'); },
+  get bubbleScrollbarThumb() { return this._bubbleScrollbarThumb ||= document.getElementById('bubble-scrollbar-thumb'); },
+  get bubbleCondList() { return this._bubbleCondList ||= document.getElementById('bubble-cond-list'); },
+
+  // Filter side panel
+  get filterSidePanel() { return this._filterSidePanel ||= document.getElementById('filter-side-panel'); },
+  get filterPanelBody() { return this._filterPanelBody ||= document.getElementById('filter-panel-body'); },
+  get filterPanelTitle() { return this._filterPanelTitle ||= document.getElementById('filter-panel-title'); },
+
+  // Query history panel
+  get queriesPanel() { return this._queriesPanel ||= document.getElementById('queries-panel'); },
+  get queriesContainer() { return this._queriesContainer ||= document.getElementById('queries-container'); },
+  get queriesList() { return this._queriesList ||= document.getElementById('queries-list'); },
+  get queriesSearch() { return this._queriesSearch ||= document.getElementById('queries-search'); }
 };

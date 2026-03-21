@@ -17,12 +17,12 @@ function initializeBubbleInteractions() {
   if (bubbleEventsInitialized) return true;
   bubbleEventsInitialized = true;
 
-  const bubbleContainer = document.getElementById('bubble-container');
-  const scrollContainer = document.querySelector('.bubble-scrollbar-container');
+  const bubbleContainer = window.DOM.bubbleContainer;
+  const scrollContainer = window.DOM.bubbleScrollbar;
   [bubbleContainer, scrollContainer].forEach(el => {
     if (!el) return;
-    el.addEventListener('mouseenter', () => hoverScrollArea = true);
-    el.addEventListener('mouseleave', () => hoverScrollArea = false);
+    el.addEventListener('mouseenter', () => window.hoverScrollArea = true);
+    el.addEventListener('mouseleave', () => window.hoverScrollArea = false);
   });
 
   function handleWheelScroll(e) {
@@ -36,8 +36,8 @@ function initializeBubbleInteractions() {
     el.addEventListener('wheel', handleWheelScroll, { passive: false });
   });
 
-  const thumb = document.getElementById('bubble-scrollbar-thumb');
-  const track = document.getElementById('bubble-scrollbar-track');
+  const thumb = window.DOM.bubbleScrollbarThumb;
+  const track = window.DOM.bubbleScrollbarTrack;
 
   if (thumb && track) {
     let isDragging = false;
@@ -47,7 +47,7 @@ function initializeBubbleInteractions() {
     thumb.addEventListener('mousedown', e => {
       isDragging = true;
       startY = e.clientY;
-      startScrollRow = scrollRow;
+      startScrollRow = window.scrollRow;
       document.body.style.cursor = 'grabbing';
       e.preventDefault();
     });
@@ -104,9 +104,9 @@ function initializeBubbleInteractions() {
   }
 
   window.addEventListener('resize', () => {
-    const container = document.getElementById('bubble-container');
-    const listDiv = document.getElementById('bubble-list');
-    const scrollCont = document.querySelector('.bubble-scrollbar-container');
+    const container = window.DOM.bubbleContainer;
+    const listDiv = window.DOM.bubbleList;
+    const scrollCont = window.DOM.bubbleScrollbar;
     if (!container || !listDiv || !scrollCont) return;
     const firstBubble = listDiv.querySelector('.bubble');
     if (!firstBubble) return;
@@ -119,7 +119,7 @@ function initializeBubbleInteractions() {
     container.style.height = paddedH + 'px';
     container.style.width = sixColsW + 'px';
     scrollCont.style.height = paddedH + 'px';
-    window.BubbleSystem.applyBubbleScrollRow(scrollRow, { force: true });
+    window.BubbleSystem.applyBubbleScrollRow(window.scrollRow, { force: true });
   });
 
   document.addEventListener('click', e => {
@@ -240,9 +240,9 @@ function initializeBubbleInteractions() {
     const morphDuration = Math.max(0.35, (targetWidth + targetHeight) / 1800);
     clone.style.setProperty('--morph-duration', `${morphDuration}s`);
 
-    currentCategory = savedCategory;
-    document.querySelectorAll('#category-bar .category-btn').forEach(btn =>
-      btn.classList.toggle('active', btn.dataset.category === currentCategory)
+    window.currentCategory = savedCategory;
+    window.DOM.categoryBar?.querySelectorAll('.category-btn').forEach(btn =>
+      btn.classList.toggle('active', btn.dataset.category === window.currentCategory)
     );
 
     clone.addEventListener('transitionend', function t(e) {
@@ -296,7 +296,7 @@ function initializeBubbleInteractions() {
       }
     }, 60);
     if (clone && overlay) overlay.classList.add('bubble-active');
-    const headerBar = window.DOM?.headerBar || document.getElementById('header-bar');
+    const headerBar = window.DOM.headerBar;
     if (clone && headerBar) headerBar.classList.add('header-hide');
   });
 
