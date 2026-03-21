@@ -200,6 +200,32 @@ function updateFilteredDefs(searchTerm) {
   return filteredDefs;
 }
 
+function getFieldFilterOperators(fieldOrName) {
+  const fieldDef = typeof fieldOrName === 'string'
+    ? fieldDefs.get(fieldOrName)
+    : fieldOrName;
+
+  if (!fieldDef || typeof fieldDef !== 'object') {
+    return [];
+  }
+
+  const configured = Array.isArray(fieldDef.filters)
+    ? fieldDef.filters
+    : (Array.isArray(fieldDef.operators) ? fieldDef.operators : []);
+
+  return configured
+    .map(operator => String(operator || '').trim().toLowerCase())
+    .filter(Boolean)
+    .filter((operator, index, list) => list.indexOf(operator) === index);
+}
+
+function isFieldBackendFilterable(fieldOrName) {
+  return getFieldFilterOperators(fieldOrName).length > 0;
+}
+
+window.getFieldFilterOperators = getFieldFilterOperators;
+window.isFieldBackendFilterable = isFieldBackendFilterable;
+
 /**
  * Checks if a field should have purple styling (filtered or displayed).
  * @function shouldFieldHavePurpleStylingBase

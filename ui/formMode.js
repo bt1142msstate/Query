@@ -853,6 +853,10 @@
   }
 
   function getAvailableOperators(fieldDef, inputSpec) {
+    if (fieldDef && typeof window.isFieldBackendFilterable === 'function' && !window.isFieldBackendFilterable(fieldDef)) {
+      return [];
+    }
+
     const configured = Array.isArray(inputSpec.operatorOptions) && inputSpec.operatorOptions.length > 0
       ? inputSpec.operatorOptions
       : (Array.isArray(fieldDef && fieldDef.filters) ? fieldDef.filters : [inputSpec.operator || 'equals']);
@@ -909,6 +913,10 @@
 
   function createGeneratedInputSpec(fieldName) {
     const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
+    if (fieldDef && typeof window.isFieldBackendFilterable === 'function' && !window.isFieldBackendFilterable(fieldDef)) {
+      return null;
+    }
+
     const operator = getDefaultOperatorForField(fieldDef);
     const existingKeys = new Set((state.spec && Array.isArray(state.spec.inputs) ? state.spec.inputs : []).map(inputSpec => inputSpec.key));
 
@@ -996,7 +1004,15 @@
 
         if (nextChecked) {
           if (!hasSpecFilterInput(fieldName)) {
-            state.spec.inputs.push(createGeneratedInputSpec(fieldName));
+            const inputSpec = createGeneratedInputSpec(fieldName);
+            if (!inputSpec) {
+              if (window.showToastMessage) {
+                window.showToastMessage(`${fieldName}: backend filtering is not available for this field.`, 'warning');
+              }
+              return;
+            }
+
+            state.spec.inputs.push(inputSpec);
             rebuildFormCardFromSpec({ querySource: 'QueryFormMode.fieldPicker.addFilterInput' });
             if (window.showToastMessage) {
               window.showToastMessage(`${fieldName}: added filter control.`, 'success');
