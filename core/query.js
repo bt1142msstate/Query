@@ -346,7 +346,6 @@ if(initialContainer) {
       if (typeof showExampleTable === 'function') {
         await showExampleTable([]);
       }
-      updateButtonStates();
       window.updateRunButtonIcon();
       if (typeof updateCategoryCounts === 'function') {
         updateCategoryCounts();
@@ -775,7 +774,6 @@ window.onDOMReady(() => {
       if (window.updateQueryJson) {
         window.updateQueryJson();
       }
-      updateButtonStates(); // Update download button state when table name changes
     });
     
     // Add immediate visual feedback for empty table name
