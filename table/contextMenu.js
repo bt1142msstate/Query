@@ -20,16 +20,6 @@ window.TableContextMenu = (() => {
   function formatCellValue(raw, field) {
     return window.FormatUtils.formatCellDisplay(raw, field);
   }
-    if (type === 'money') {
-      const n = window.MoneyUtils?.parseNumber?.(s);
-      if (!isNaN(n)) return vf.formatValueByType(n, type);
-    }
-    if (type === 'number') {
-      const n = parseFloat(s.replace(/,/g, ''));
-      if (!isNaN(n)) return vf.formatValueByType(n, type);
-    }
-    return s;
-  }
 
   function getCellValue(rowIndex, colIndex) {
     const vt = getVT();

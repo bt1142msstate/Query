@@ -4,7 +4,7 @@
 // delegated to window.showExampleTable and window.resetBubbleScrollState,
 // which are exported by query.js.
 
-const dom = window.DOM;
+const execDom = window.DOM;
 let currentQueryId = null;
 window.queryPageIsUnloading = false;
 
@@ -110,8 +110,8 @@ window.clearCurrentQuery = async function clearCurrentQuery() {
 
 /* ---------- Clear-query button ---------- */
 
-if (dom.clearQueryBtn) {
-  dom.clearQueryBtn.addEventListener('click', () => {
+  if (execDom.clearQueryBtn) {
+  execDom.clearQueryBtn.addEventListener('click', () => {
     window.QueryChangeManager.clearQuery().catch(error => {
       console.error('Failed to clear query:', error);
       window.showToastMessage('Failed to clear query.', 'error');
@@ -121,9 +121,9 @@ if (dom.clearQueryBtn) {
 
 /* ---------- Run / Stop button ---------- */
 
-if (dom.runBtn) {
-  dom.runBtn.addEventListener('click', () => {
-    if (dom.runBtn.disabled) return;   // ignore when disabled
+if (execDom.runBtn) {
+  execDom.runBtn.addEventListener('click', () => {
+    if (execDom.runBtn.disabled) return;   // ignore when disabled
 
     // If query is running, stop it
     if (window.queryRunning) {
@@ -167,7 +167,7 @@ if (dom.runBtn) {
         const state = window.getCurrentQueryState();
         const queryName = typeof window.ensureTableName === 'function'
           ? window.ensureTableName()
-          : (dom.tableNameInput ? dom.tableNameInput.value.trim() : '');
+          : (execDom.tableNameInput ? execDom.tableNameInput.value.trim() : '');
         const payload = window.buildBackendQueryPayload(queryName);
         const historyConfig = typeof window.buildQueryUiConfig === 'function'
           ? window.buildQueryUiConfig()
