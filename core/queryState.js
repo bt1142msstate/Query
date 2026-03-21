@@ -547,6 +547,55 @@ function normalizeManagerMeta(meta = {}, fallbackSource) {
   };
 }
 
+const queryStateReadMethodNames = Object.freeze([
+  'getSnapshot',
+  'getDisplayedFields',
+  'getActiveFilters',
+  'getFilterGroupForField',
+  'hasDisplayedField',
+  'hasFiltersForField',
+  'subscribe'
+]);
+
+function createManagerStoreMethod(storeMethodName, requiredArgCount, fallbackSource) {
+  return function queryManagerStoreMethod(...args) {
+    if (args.length <= requiredArgCount) {
+      args.push(normalizeManagerMeta({}, fallbackSource));
+    } else {
+      args[requiredArgCount] = normalizeManagerMeta(args[requiredArgCount], fallbackSource);
+    }
+    return queryStateStore[storeMethodName](...args);
+  };
+}
+
+function showManagedField(fieldName, options = {}) {
+  const normalizedField = String(fieldName || '').trim();
+  if (!normalizedField) {
+    return false;
+  }
+
+  const columnOps = window.DragDropColumnOps || window.DragDropSystem;
+  if (columnOps && typeof columnOps.addColumn === 'function') {
+    return columnOps.addColumn(normalizedField, options.insertAt);
+  }
+
+  return queryStateStore.addDisplayedField(normalizedField, normalizeManagerMeta(options, 'QueryChangeManager.showField'));
+}
+
+function hideManagedField(fieldName, options = {}) {
+  const normalizedField = String(fieldName || '').trim();
+  if (!normalizedField) {
+    return false;
+  }
+
+  const columnOps = window.DragDropColumnOps || window.DragDropSystem;
+  if (columnOps && typeof columnOps.removeColumnByName === 'function') {
+    return columnOps.removeColumnByName(normalizedField);
+  }
+
+  return queryStateStore.removeDisplayedField(normalizedField, normalizeManagerMeta(options, 'QueryChangeManager.hideField'));
+}
+
 // App-level clear that resets query state plus all dependent UI surfaces.
 async function clearQueryManagerState(meta = {}) {
   const normalizedMeta = normalizeManagerMeta(meta, 'QueryChangeManager.clearQuery');
@@ -619,87 +668,36 @@ async function clearQueryManagerState(meta = {}) {
   return true;
 }
 
-const queryChangeManager = {
-  getSnapshot() {
-    return queryStateStore.getSnapshot();
-  },
-  getDisplayedFields() {
-    return queryStateStore.getDisplayedFields();
-  },
-  getActiveFilters() {
-    return queryStateStore.getActiveFilters();
-  },
-  getFilterGroupForField(fieldName) {
-    return queryStateStore.getFilterGroupForField(fieldName);
-  },
-  hasDisplayedField(fieldName) {
-    return queryStateStore.hasDisplayedField(fieldName);
-  },
-  hasFiltersForField(fieldName) {
-    return queryStateStore.hasFiltersForField(fieldName);
-  },
-  subscribe(listener) {
-    return queryStateStore.subscribe(listener);
-  },
-  replaceDisplayedFields(nextFields, meta = {}) {
-    return queryStateStore.replaceDisplayedFields(nextFields, normalizeManagerMeta(meta, 'QueryChangeManager.replaceDisplayedFields'));
-  },
-  addDisplayedField(fieldNames, options = {}) {
-    return queryStateStore.addDisplayedField(fieldNames, normalizeManagerMeta(options, 'QueryChangeManager.addDisplayedField'));
-  },
-  removeDisplayedField(fieldNames, options = {}) {
-    return queryStateStore.removeDisplayedField(fieldNames, normalizeManagerMeta(options, 'QueryChangeManager.removeDisplayedField'));
-  },
-  moveDisplayedField(fromIndex, toIndex, options = {}) {
-    return queryStateStore.moveDisplayedField(fromIndex, toIndex, normalizeManagerMeta(options, 'QueryChangeManager.moveDisplayedField'));
-  },
-  replaceActiveFilters(nextFilters, meta = {}) {
-    return queryStateStore.replaceActiveFilters(nextFilters, normalizeManagerMeta(meta, 'QueryChangeManager.replaceActiveFilters'));
-  },
-  upsertFilter(fieldName, filter, options = {}) {
-    return queryStateStore.upsertFilter(fieldName, filter, normalizeManagerMeta(options, 'QueryChangeManager.upsertFilter'));
-  },
-  removeFilter(fieldName, options = {}) {
-    return queryStateStore.removeFilter(fieldName, normalizeManagerMeta(options, 'QueryChangeManager.removeFilter'));
-  },
-  reorderFilterGroups(fieldOrder, options = {}) {
-    return queryStateStore.reorderFilterGroups(fieldOrder, normalizeManagerMeta(options, 'QueryChangeManager.reorderFilterGroups'));
-  },
-  setQueryState(nextState = {}, meta = {}) {
-    return queryStateStore.setQueryState(nextState, normalizeManagerMeta(meta, 'QueryChangeManager.setQueryState'));
-  },
-  // State-only reset for internal/advanced flows. Most UI should call clearQuery.
+const queryChangeManager = Object.freeze({
+  ...Object.fromEntries(
+    queryStateReadMethodNames.map(methodName => [methodName, queryStateStore[methodName]])
+  ),
+  replaceDisplayedFields: createManagerStoreMethod('replaceDisplayedFields', 1, 'QueryChangeManager.replaceDisplayedFields'),
+  addDisplayedField: createManagerStoreMethod('addDisplayedField', 1, 'QueryChangeManager.addDisplayedField'),
+  removeDisplayedField: createManagerStoreMethod('removeDisplayedField', 1, 'QueryChangeManager.removeDisplayedField'),
+  moveDisplayedField: createManagerStoreMethod('moveDisplayedField', 2, 'QueryChangeManager.moveDisplayedField'),
+  replaceActiveFilters: createManagerStoreMethod('replaceActiveFilters', 1, 'QueryChangeManager.replaceActiveFilters'),
+  upsertFilter: createManagerStoreMethod('upsertFilter', 2, 'QueryChangeManager.upsertFilter'),
+  removeFilter: createManagerStoreMethod('removeFilter', 1, 'QueryChangeManager.removeFilter'),
+  reorderFilterGroups: createManagerStoreMethod('reorderFilterGroups', 1, 'QueryChangeManager.reorderFilterGroups'),
+  setQueryState: createManagerStoreMethod('setQueryState', 1, 'QueryChangeManager.setQueryState'),
+  showField: showManagedField,
+  hideField: hideManagedField,
   resetQuery(meta = {}) {
     return queryStateStore.resetState(normalizeManagerMeta(meta, 'QueryChangeManager.resetQuery'));
   },
-  // Canonical full reset used by clear buttons and other user-facing clear actions.
   clearQuery(meta = {}) {
     return clearQueryManagerState(meta);
   }
-};
-
-const queryStateReaders = Object.freeze({
-  getSnapshot() {
-    return queryChangeManager.getSnapshot();
-  },
-  getDisplayedFields() {
-    return queryChangeManager.getDisplayedFields();
-  },
-  getActiveFilters() {
-    return queryChangeManager.getActiveFilters();
-  },
-  getFilterGroupForField(fieldName) {
-    return queryChangeManager.getFilterGroupForField(fieldName);
-  },
-  hasDisplayedField(fieldName) {
-    return queryChangeManager.hasDisplayedField(fieldName);
-  },
-  hasFiltersForField(fieldName) {
-    return queryChangeManager.hasFiltersForField(fieldName);
-  }
 });
 
-Object.freeze(queryChangeManager);
+const queryStateReaders = Object.freeze({
+  ...Object.fromEntries(
+    queryStateReadMethodNames
+      .filter(methodName => methodName !== 'subscribe')
+      .map(methodName => [methodName, queryChangeManager[methodName]])
+  )
+});
 Object.defineProperty(window, 'QueryChangeManager', {
   configurable: false,
   enumerable: false,
@@ -751,8 +749,9 @@ Object.defineProperty(window, 'activeFilters', {
  * @returns {Object} snapshot of current query configuration
  */
 window.getCurrentQueryState = function() {
-  const displayedFields = queryChangeManager.getDisplayedFields();
-  const activeFilters = queryChangeManager.getActiveFilters();
+  const snapshot = queryChangeManager.getSnapshot();
+  const displayedFields = snapshot.displayedFields;
+  const activeFilters = snapshot.activeFilters;
 
   // Use base field names only (no duplicates like "2nd Marc590")
   const baseFields = [...displayedFields]
@@ -776,7 +775,7 @@ window.getCurrentQueryState = function() {
         { filters: JSON.parse(JSON.stringify((data && data.filters) || [])) }
       ])
     ),
-    groupMethod: services.getSimpleTable()?.groupMethod || "ExpandIntoColumns"
+    groupMethod: snapshot.groupMethod || 'ExpandIntoColumns'
   };
 };
 
