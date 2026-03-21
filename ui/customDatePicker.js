@@ -418,8 +418,8 @@
       const parent = input.parentNode;
       if (parent) {
         parent.insertBefore(shell, input);
-        shell.appendChild(input);
       }
+      shell.appendChild(input);
 
       input.classList.add('custom-date-input__field');
 

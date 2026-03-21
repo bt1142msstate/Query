@@ -127,6 +127,29 @@
   min-width: max-content;
 }
 
+.form-mode-empty-state {
+  display: grid;
+  gap: 0.45rem;
+  min-width: min(100%, 28rem);
+  padding: 1rem 1.05rem;
+  border-radius: 0.95rem;
+  border: 1px dashed rgba(148, 163, 184, 0.55);
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(241, 245, 249, 0.92));
+  color: #334155;
+}
+
+.form-mode-empty-state strong {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.form-mode-empty-state p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
 .form-mode-field {
   min-width: 0;
   padding: 0.85rem;

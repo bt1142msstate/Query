@@ -1194,8 +1194,19 @@
     state.copyBtn = card.querySelector('#form-mode-copy');
 
     const fieldsWrap = card.querySelector('#form-mode-fields');
+    const visibleInputs = state.spec.inputs.filter(inputSpec => !inputSpec.hidden);
 
-    state.spec.inputs.filter(inputSpec => !inputSpec.hidden).forEach(inputSpec => {
+    if (visibleInputs.length === 0) {
+      const emptyState = document.createElement('div');
+      emptyState.className = 'form-mode-empty-state';
+      emptyState.innerHTML = `
+        <strong>No filters yet.</strong>
+        <p>This form does not have any filter controls yet. Use "Add Filter" to add one.</p>
+      `;
+      fieldsWrap.appendChild(emptyState);
+    }
+
+    visibleInputs.forEach(inputSpec => {
       const fieldDef = window.fieldDefs ? window.fieldDefs.get(inputSpec.field) : null;
       inputSpec.operator = normalizeOperatorForField(fieldDef, inputSpec.operator);
       const control = createFormControl(
