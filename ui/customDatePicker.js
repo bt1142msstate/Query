@@ -12,6 +12,7 @@
   let activeInput = null;
   let activeShell = null;
   let visibleMonth = null;
+  let viewMode = 'days';
 
   function pad(value) {
     return String(value).padStart(2, '0');
@@ -55,6 +56,18 @@
 
   function shiftMonth(date, delta) {
     return new Date(date.getFullYear(), date.getMonth() + delta, 1);
+  }
+
+  function shiftYear(date, delta) {
+    return new Date(date.getFullYear() + delta, date.getMonth(), 1);
+  }
+
+  function shiftYearPage(date, delta) {
+    return new Date(date.getFullYear() + (delta * 12), date.getMonth(), 1);
+  }
+
+  function getYearPageStart(yearValue) {
+    return Math.floor(yearValue / 12) * 12;
   }
 
   function clampHorizontal(left, width) {
@@ -101,9 +114,24 @@
     });
 
     popup.addEventListener('click', event => {
+      const viewTarget = event.target.closest('[data-date-view-target]');
+      if (viewTarget) {
+        viewMode = viewTarget.dataset.dateViewTarget === 'year' ? 'years' : 'months';
+        renderCalendar();
+        positionPopup();
+        return;
+      }
+
       const nav = event.target.closest('[data-date-nav]');
       if (nav) {
-        visibleMonth = shiftMonth(visibleMonth || getMonthStart(new Date()), nav.dataset.dateNav === 'next' ? 1 : -1);
+        const direction = nav.dataset.dateNav === 'next' ? 1 : -1;
+        if (viewMode === 'years') {
+          visibleMonth = shiftYearPage(visibleMonth || getMonthStart(new Date()), direction);
+        } else if (viewMode === 'months') {
+          visibleMonth = shiftYear(visibleMonth || getMonthStart(new Date()), direction);
+        } else {
+          visibleMonth = shiftMonth(visibleMonth || getMonthStart(new Date()), direction);
+        }
         renderCalendar();
         positionPopup();
         return;
@@ -115,6 +143,30 @@
           commitDateValue(toIsoDate(new Date()));
         } else if (action.dataset.dateAction === 'clear') {
           commitDateValue('');
+        }
+        return;
+      }
+
+      const monthButton = event.target.closest('[data-date-month-index]');
+      if (monthButton) {
+        const monthIndex = Number(monthButton.dataset.dateMonthIndex);
+        if (Number.isFinite(monthIndex)) {
+          visibleMonth = new Date(visibleMonth.getFullYear(), monthIndex, 1);
+          viewMode = 'days';
+          renderCalendar();
+          positionPopup();
+        }
+        return;
+      }
+
+      const yearButton = event.target.closest('[data-date-year-value]');
+      if (yearButton) {
+        const yearValue = Number(yearButton.dataset.dateYearValue);
+        if (Number.isFinite(yearValue)) {
+          visibleMonth = new Date(yearValue, visibleMonth.getMonth(), 1);
+          viewMode = 'days';
+          renderCalendar();
+          positionPopup();
         }
         return;
       }
@@ -147,15 +199,28 @@
     return popup;
   }
 
-  function renderCalendar() {
-    if (!popup || !titleEl || !gridEl || !visibleMonth) {
+  function renderTitle() {
+    if (!titleEl || !visibleMonth) {
       return;
     }
 
-    const selectedIso = activeInput ? normalizeDateValue(activeInput.value) : '';
-    const todayIso = toIsoDate(new Date());
-    titleEl.textContent = `${MONTH_NAMES[visibleMonth.getMonth()]} ${visibleMonth.getFullYear()}`;
+    const monthName = MONTH_NAMES[visibleMonth.getMonth()];
+    const yearValue = visibleMonth.getFullYear();
+    const titleText = viewMode === 'years'
+      ? `${getYearPageStart(yearValue)}-${getYearPageStart(yearValue) + 11}`
+      : yearValue;
 
+    titleEl.innerHTML = `
+      <button type="button" class="custom-date-picker__title-part custom-date-picker__title-part--month" data-date-view-target="month" aria-label="Choose month">
+        <span>${monthName}</span>
+      </button>
+      <button type="button" class="custom-date-picker__title-part custom-date-picker__title-part--year" data-date-view-target="year" aria-label="Choose year">
+        <span>${titleText}</span>
+      </button>
+    `;
+  }
+
+  function renderDaysView(selectedIso, todayIso) {
     gridEl.innerHTML = '';
 
     const firstOfMonth = getMonthStart(visibleMonth);
@@ -184,6 +249,65 @@
 
       gridEl.appendChild(dayButton);
     }
+  }
+
+  function renderMonthsView() {
+    gridEl.innerHTML = '';
+    gridEl.classList.add('is-picker-grid');
+
+    MONTH_NAMES.forEach((monthName, index) => {
+      const monthButton = document.createElement('button');
+      monthButton.type = 'button';
+      monthButton.className = 'custom-date-picker__jump';
+      monthButton.dataset.dateMonthIndex = String(index);
+      monthButton.textContent = monthName.slice(0, 3);
+      if (index === visibleMonth.getMonth()) {
+        monthButton.classList.add('is-selected');
+      }
+      gridEl.appendChild(monthButton);
+    });
+  }
+
+  function renderYearsView() {
+    gridEl.innerHTML = '';
+    gridEl.classList.add('is-picker-grid');
+
+    const startYear = getYearPageStart(visibleMonth.getFullYear());
+    for (let index = 0; index < 12; index += 1) {
+      const yearValue = startYear + index;
+      const yearButton = document.createElement('button');
+      yearButton.type = 'button';
+      yearButton.className = 'custom-date-picker__jump';
+      yearButton.dataset.dateYearValue = String(yearValue);
+      yearButton.textContent = String(yearValue);
+      if (yearValue === visibleMonth.getFullYear()) {
+        yearButton.classList.add('is-selected');
+      }
+      gridEl.appendChild(yearButton);
+    }
+  }
+
+  function renderCalendar() {
+    if (!popup || !titleEl || !gridEl || !visibleMonth) {
+      return;
+    }
+
+    const selectedIso = activeInput ? normalizeDateValue(activeInput.value) : '';
+    const todayIso = toIsoDate(new Date());
+    renderTitle();
+    gridEl.classList.remove('is-picker-grid');
+
+    if (viewMode === 'months') {
+      renderMonthsView();
+      return;
+    }
+
+    if (viewMode === 'years') {
+      renderYearsView();
+      return;
+    }
+
+    renderDaysView(selectedIso, todayIso);
   }
 
   function positionPopup() {
@@ -246,6 +370,7 @@
 
     const selectedDate = parseIsoDate(input.value);
     visibleMonth = getMonthStart(selectedDate || new Date());
+    viewMode = 'days';
     popup.hidden = false;
     renderCalendar();
     positionPopup();
