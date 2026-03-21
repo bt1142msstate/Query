@@ -13,7 +13,7 @@
 
 #table-top-bar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(min-content, 45%) minmax(0, 1fr);
   align-items: stretch;
   gap: 0.85rem;
   padding: 0.55rem 0.8rem 0.45rem;
@@ -32,6 +32,9 @@
   align-self: center;
   justify-self: start;
   min-width: 0;
+  flex-wrap: wrap;
+  align-content: center;
+  row-gap: 0.22rem;
 }
 
 #table-toolbar {
