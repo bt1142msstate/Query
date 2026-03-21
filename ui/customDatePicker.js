@@ -69,6 +69,10 @@
     return parseDisplayDate(normalized);
   }
 
+  function parseDateValue(value) {
+    return parseIsoDate(value);
+  }
+
   function isValidDateValue(value) {
     return Boolean(parseIsoDate(value));
   }
@@ -76,6 +80,11 @@
   function normalizeDateValue(value) {
     const parsed = parseIsoDate(value);
     return parsed ? toIsoDate(parsed) : '';
+  }
+
+  function getComparableValue(value) {
+    const parsed = parseIsoDate(value);
+    return parsed ? parsed.getTime() : NaN;
   }
 
   function getMonthStart(date) {
@@ -524,11 +533,44 @@
     return api;
   }
 
+  function getInputHost(input) {
+    return input?._customDatePickerApi?.shell || input || null;
+  }
+
+  function setInputVisibility(input, visible) {
+    const host = getInputHost(input);
+    if (!host) {
+      return;
+    }
+
+    if (host === input) {
+      input.style.display = visible ? '' : 'none';
+      return;
+    }
+
+    host.style.display = visible ? '' : 'none';
+    input.style.display = '';
+  }
+
+  function isInputVisible(input) {
+    const host = getInputHost(input);
+    if (!host) {
+      return false;
+    }
+
+    return !host.hidden && host.style.display !== 'none';
+  }
+
   window.CustomDatePicker = {
     enhanceInput,
+    parseDateValue,
+    getComparableValue,
     isValidDateValue,
     normalizeDateValue,
     toBackendDateValue,
+    getInputHost,
+    setInputVisibility,
+    isInputVisible,
     close: closePopup
   };
 })();

@@ -192,6 +192,10 @@ function doesRowMatchFieldPostFilters(row, field, data) {
 }
 
 function parseComparableDateValue(value) {
+  if (window.CustomDatePicker && typeof window.CustomDatePicker.getComparableValue === 'function') {
+    return window.CustomDatePicker.getComparableValue(value);
+  }
+
   if (value instanceof Date) {
     return value.getTime();
   }

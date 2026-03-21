@@ -27,6 +27,30 @@
     };
   }
 
+  function getValueInputHost(input) {
+    if (window.CustomDatePicker && typeof window.CustomDatePicker.getInputHost === 'function') {
+      return window.CustomDatePicker.getInputHost(input);
+    }
+
+    return input || null;
+  }
+
+  function setValueInputVisible(input, visible) {
+    if (window.CustomDatePicker && typeof window.CustomDatePicker.setInputVisibility === 'function') {
+      window.CustomDatePicker.setInputVisibility(input, visible);
+    } else {
+      const host = getValueInputHost(input);
+      if (!host) {
+        return;
+      }
+      host.style.display = visible ? '' : 'none';
+    }
+
+    if (input instanceof HTMLElement) {
+      input.classList.toggle('hidden', !visible);
+    }
+  }
+
   function getBlankSentinel() {
     return services.table?.postFilterBlankValue || '__QUERY_POST_FILTER_BLANK__';
   }
@@ -233,7 +257,7 @@
     const shouldShowPicker = isEquals && options.length > 0;
 
     elements.valuePickerHost.classList.toggle('hidden', !shouldShowPicker);
-    elements.valueInput.classList.toggle('hidden', shouldShowPicker);
+    setValueInputVisible(elements.valueInput, !shouldShowPicker);
 
     if (!shouldShowPicker) {
       if (isBlankSentinel(elements.valueInput.value)) {
@@ -253,21 +277,42 @@
 
     const fieldType = getFieldType(elements.fieldSelect.value);
     const isBetween = elements.operatorSelect.value === 'between';
-    const inputType = fieldType === 'date' ? 'date' : (fieldType === 'money' ? 'text' : (fieldType === 'number' ? 'number' : 'text'));
+    const isDate = fieldType === 'date';
+    const inputType = isDate ? 'text' : (fieldType === 'money' ? 'text' : (fieldType === 'number' ? 'number' : 'text'));
 
     [elements.valueInput, elements.valueInput2].forEach(input => {
+      if (!isDate) {
+        const datePickerApi = input._customDatePickerApi;
+        if (datePickerApi && typeof datePickerApi.destroy === 'function') {
+          datePickerApi.destroy();
+        }
+      }
+
       input.type = inputType;
       input.step = fieldType === 'money' ? '0.01' : (fieldType === 'number' ? '1' : 'any');
-      input.inputMode = fieldType === 'money' ? 'decimal' : (fieldType === 'number' ? 'numeric' : 'text');
-      input.placeholder = fieldType === 'date' ? '' : 'Value';
+      input.inputMode = isDate ? 'numeric' : (fieldType === 'money' ? 'decimal' : (fieldType === 'number' ? 'numeric' : 'text'));
+      input.placeholder = isDate ? 'M/D/YYYY' : 'Value';
       if (fieldType === 'money') {
         window.MoneyUtils.configureInputBehavior(input, true);
       } else {
         window.MoneyUtils.configureInputBehavior(input, false);
       }
+
+      if (isDate && window.CustomDatePicker?.enhanceInput) {
+        window.CustomDatePicker.enhanceInput(input, {
+          variant: 'filter',
+          enabled: true,
+          placeholder: 'M/D/YYYY'
+        });
+      } else if (!isDate) {
+        input.removeAttribute('pattern');
+        if (input.dataset.errorMsg === 'Use M/D/YYYY') {
+          delete input.dataset.errorMsg;
+        }
+      }
     });
 
-    elements.valueInput2.classList.toggle('hidden', !isBetween);
+    setValueInputVisible(elements.valueInput2, isBetween);
     elements.betweenLabel.classList.toggle('hidden', !isBetween);
     syncValuePicker();
   }
@@ -418,6 +463,15 @@
     if (fieldType === 'money') {
       value = window.MoneyUtils.sanitizeInputValue(value);
       value2 = window.MoneyUtils.sanitizeInputValue(value2);
+    }
+
+    if (fieldType === 'date') {
+      const invalidPrimaryDate = value && (!window.CustomDatePicker || !window.CustomDatePicker.isValidDateValue(value));
+      const invalidSecondaryDate = cond === 'between' && value2 && (!window.CustomDatePicker || !window.CustomDatePicker.isValidDateValue(value2));
+      if (invalidPrimaryDate || invalidSecondaryDate) {
+        window.showToastMessage && window.showToastMessage('Use M/D/YYYY for post filter dates.', 'warning');
+        return;
+      }
     }
 
     if (cond === 'equals' && equalsValueControl && typeof equalsValueControl.getSelectedValues === 'function') {

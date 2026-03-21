@@ -46,6 +46,36 @@ function getFilterErrorLabelElement() {
     return window.DOM?.filterError || document.getElementById('filter-error');
 }
 
+function setConditionInputVisible(input, visible) {
+    if (!input) return;
+
+    if (window.CustomDatePicker && typeof window.CustomDatePicker.setInputVisibility === 'function') {
+        window.CustomDatePicker.setInputVisibility(input, visible);
+        return;
+    }
+
+    input.style.display = visible ? '' : 'none';
+}
+
+function isConditionInputVisible(input) {
+    if (!input) return false;
+
+    if (window.CustomDatePicker && typeof window.CustomDatePicker.isInputVisible === 'function') {
+        return window.CustomDatePicker.isInputVisible(input);
+    }
+
+    return input.style.display !== 'none';
+}
+
+function getComparableDateValue(value) {
+    if (window.CustomDatePicker && typeof window.CustomDatePicker.getComparableValue === 'function') {
+        return window.CustomDatePicker.getComparableValue(value);
+    }
+
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? NaN : parsed.getTime();
+}
+
 function getConditionOperatorSelect(conditionPanel = null) {
     const panel = conditionPanel || getFilterConditionPanelElement();
     return panel ? panel.querySelector('#condition-operator-select') : null;
@@ -268,12 +298,12 @@ function buildBubbleConditionPanel(bubble) {
         // No applicable conditions for this field — hide the input area entirely
         // so an empty select and stray value input are never shown to the user.
         if (operatorConditions.length === 0) {
-            if (conditionInput) conditionInput.style.display = 'none';
+            if (conditionInput) setConditionInputVisible(conditionInput, false);
             const conditionInput2 = getFilterConditionInput2Element();
             const betweenLabel = getFilterBetweenLabelElement();
             const existingSelect = document.getElementById('condition-select');
             const existingContainer = document.getElementById('condition-select-container');
-            if (conditionInput2) (conditionInput2._customDatePickerApi?.shell || conditionInput2).style.display = 'none';
+            if (conditionInput2) setConditionInputVisible(conditionInput2, false);
             if (betweenLabel) betweenLabel.style.display = 'none';
             if (existingSelect) existingSelect.style.display = 'none';
             if (existingContainer && existingContainer.parentNode) existingContainer.parentNode.removeChild(existingContainer);
@@ -323,7 +353,7 @@ function buildBubbleConditionPanel(bubble) {
                     enableGrouping: shouldGroupValues && hasDashes
                 });
             inputWrapper.insertBefore(selector, confirmBtn);
-            conditionInput.style.display = 'none';
+            setConditionInputVisible(conditionInput, false);
             if (isBooleanField && listValues.length === 2) {
                 confirmBtn.style.display = 'none';
             }
@@ -349,9 +379,9 @@ function buildBubbleConditionPanel(bubble) {
                     hint: 'Paste keys one per line, paste comma-separated keys, or upload a text/CSV file.'
                 });
                 inputWrapper.insertBefore(listInput, confirmBtn);
-                conditionInput.style.display = 'none';
+                setConditionInputVisible(conditionInput, false);
             } else {
-                conditionInput.style.display = 'block';
+                setConditionInputVisible(conditionInput, true);
             }
             confirmBtn.style.display = '';
         }
@@ -614,13 +644,12 @@ window.handleConditionBtnClick = function(e) {
 
     // "Between" logic
     if (cond === 'between') {
-        (conditionInput2._customDatePickerApi?.shell || conditionInput2).style.display = 'block';
-        conditionInput2.style.display = '';
+        setConditionInputVisible(conditionInput2, true);
         betweenLbl.style.display = 'block';
         conditionInput2.type = conditionInput.type;
         inputWrapper.classList.add('is-between');
     } else {
-        (conditionInput2._customDatePickerApi?.shell || conditionInput2).style.display = 'none';
+        setConditionInputVisible(conditionInput2, false);
         betweenLbl.style.display = 'none';
         inputWrapper.classList.remove('is-between');
     }
@@ -695,7 +724,7 @@ window.handleFilterConfirm = function(e) {
         }
         
         if (cond !== 'between') {
-            const isTextInputVisible = conditionInput.style.display !== 'none';
+            const isTextInputVisible = isConditionInputVisible(conditionInput);
             const isTextInputEmpty = val === '';
             const isSelectVisible = sel && sel.style.display !== 'none';
             const isSelectEmpty = isSelectVisible && sel.value === '';
@@ -727,7 +756,7 @@ window.handleFilterConfirm = function(e) {
         if (type === 'number' || type === 'money') {
             a = parseFloat(a); b = parseFloat(b);
         } else if (type === 'date') {
-            a = new Date(a).getTime(); b = new Date(b).getTime();
+            a = getComparableDateValue(a); b = getComparableDateValue(b);
         }
         
         if (a === b) {
@@ -1024,13 +1053,12 @@ window.buildableConditionBtnHandler = function(e) {
     // Normal condition button behavior (show input field)
     // Show second input and "and" label only for "between"
     if (cond === 'between') {
-        (conditionInput2._customDatePickerApi?.shell || conditionInput2).style.display = 'block';
-        conditionInput2.style.display = '';
+        setConditionInputVisible(conditionInput2, true);
         betweenLbl.style.display = 'block';
         conditionInput2.type = conditionInput.type;     // match type (date, number, text)
         if (inputWrapper) inputWrapper.classList.add('is-between');
     } else {
-        (conditionInput2._customDatePickerApi?.shell || conditionInput2).style.display = 'none';
+        setConditionInputVisible(conditionInput2, false);
         betweenLbl.style.display = 'none';
         if (inputWrapper) inputWrapper.classList.remove('is-between');
     }
@@ -1147,7 +1175,7 @@ window.getContradictionMessage = function(existing, newF, fieldType, fieldLabel)
 
   const toNum = v=>{
     if(fieldType === 'date'){
-      return new Date(v).getTime();
+      return getComparableDateValue(v);
     }
     return parseFloat(v);
   };
