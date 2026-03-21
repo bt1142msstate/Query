@@ -668,7 +668,7 @@ window.FilterSidePanel = (function () {
 
         const addCondBtn = document.createElement('button');
         addCondBtn.className = 'fp-add-cond-btn';
-        addCondBtn.textContent = '+ Add condition';
+        addCondBtn.textContent = 'Edit filter';
         addCondBtn.addEventListener('click', () => openBubbleForField(field));
         group.appendChild(addCondBtn);
 
@@ -687,7 +687,7 @@ window.FilterSidePanel = (function () {
         if (filterEntries.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'fp-empty-state';
-            empty.textContent = 'No filters yet. Click a field to add conditions.';
+            empty.textContent = 'No filters yet. Click a field to add one.';
             wrapper.appendChild(empty);
             return wrapper;
         }
