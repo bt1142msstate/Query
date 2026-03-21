@@ -351,11 +351,66 @@
 }
 
 .custom-date-picker__title {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.12rem;
   flex: 1 1 auto;
   text-align: center;
   font-size: 0.95rem;
   font-weight: 700;
   color: #0f172a;
+}
+
+.custom-date-picker__title-part {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.12rem 0.28rem;
+  border: 0;
+  border-radius: 0.55rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.custom-date-picker__title-part span {
+  position: relative;
+}
+
+.custom-date-picker__title-part::after {
+  content: '';
+  position: absolute;
+  left: 0.4rem;
+  right: 0.4rem;
+  bottom: 0.14rem;
+  height: 1px;
+  background: rgba(14, 116, 144, 0.42);
+  opacity: 0;
+  transform: scaleX(0.45);
+  transform-origin: 50% 50%;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.custom-date-picker__title-part:hover,
+.custom-date-picker__title-part:focus-visible {
+  background: rgba(239, 246, 255, 0.86);
+  color: #0369a1;
+}
+
+.custom-date-picker__title-part:hover::after,
+.custom-date-picker__title-part:focus-visible::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+.custom-date-picker__title-part:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.28);
 }
 
 .custom-date-picker__nav,
@@ -406,6 +461,11 @@
   gap: 0.2rem;
 }
 
+.custom-date-picker__grid.is-picker-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
 .custom-date-picker__day {
   min-height: 2.25rem;
   border-radius: 0.78rem;
@@ -434,6 +494,28 @@
   background: linear-gradient(135deg, #0f766e, #0ea5a4);
   color: #f8fafc;
   box-shadow: 0 12px 20px rgba(15, 118, 110, 0.22);
+}
+
+.custom-date-picker__jump {
+  min-height: 2.45rem;
+  padding: 0.45rem 0.35rem;
+  border: 0;
+  border-radius: 0.82rem;
+  background: rgba(241, 245, 249, 0.9);
+  color: #0f172a;
+  font-weight: 700;
+  transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.custom-date-picker__jump:hover {
+  background: rgba(226, 232, 240, 0.96);
+  transform: translateY(-1px);
+}
+
+.custom-date-picker__jump.is-selected {
+  background: linear-gradient(135deg, #0f766e, #0ea5a4);
+  color: #f8fafc;
+  box-shadow: 0 12px 20px rgba(15, 118, 110, 0.2);
 }
 
 .custom-date-picker__footer {
