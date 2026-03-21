@@ -508,6 +508,10 @@ async function clearQueryManagerState(meta = {}) {
     window.ModalSystem.closeAllPanels();
   }
 
+  if (window.DragDropSystem && typeof window.DragDropSystem.clearInsertAffordance === 'function') {
+    window.DragDropSystem.clearInsertAffordance({ immediate: true });
+  }
+
   if (window.BubbleSystem && typeof window.BubbleSystem.resetActiveBubbles === 'function') {
     window.BubbleSystem.resetActiveBubbles();
   }

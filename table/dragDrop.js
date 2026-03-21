@@ -1717,6 +1717,7 @@ window.DragDropSystem = {
   addDragAndDrop,
   attachBubbleDropTarget,
   resetHeaderUi,
+  clearInsertAffordance,
   syncHeaderSortActionState,
   refreshColIndices,
   moveColumn,
