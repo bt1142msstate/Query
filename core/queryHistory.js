@@ -532,7 +532,7 @@ window.formatHistoryFiltersTooltip = function(filtersInput) {
 function loadQueryConfig(q) {
   if(!q || !q.jsonConfig) return;
 
-  const getDisplayedFields = () => window.QueryChangeManager?.getDisplayedFields?.() || [];
+  const getDisplayedFields = () => window.QueryStateReaders?.getDisplayedFields?.() || [];
   
   // Access global variables from query.js
   if (!window.QueryChangeManager) {
@@ -646,8 +646,8 @@ function loadQueryConfig(q) {
   }
   
   // Update button state to "Refresh" instead of "Run Query" since it's an existing query
-  if (typeof window.getCurrentQueryState === 'function') {
-    window.AppState.lastExecutedQueryState = window.getCurrentQueryState();
+  if (window.QueryStateReaders && typeof window.QueryStateReaders.getSerializableState === 'function') {
+    window.AppState.lastExecutedQueryState = window.QueryStateReaders.getSerializableState();
   }
   uiActions.updateButtonStates();
 

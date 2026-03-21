@@ -1058,7 +1058,7 @@ function expandMultiValueColumns() {
  * Toggles split-column mode on/off.
  * When enabled, multi-value columns are expanded into N numbered columns and the
  * table re-renders. When disabled, the raw collapsed data is restored.
- * Also updates window.displayedFields to match the active view.
+ * Also updates QueryChangeManager state to match the active view.
  * @function setSplitColumnsMode
  * @param {boolean} active
  */

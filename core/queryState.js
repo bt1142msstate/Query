@@ -69,6 +69,11 @@ const appStateNormalizers = {
   currentQueryId: value => value ? String(value) : null
 };
 
+const blockedGlobalAppStateKeys = new Set([
+  'currentQueryState',
+  'lastExecutedQueryState'
+]);
+
 function defineAppStateProperty(target, key) {
   Object.defineProperty(target, key, {
     configurable: false,
@@ -83,10 +88,27 @@ function defineAppStateProperty(target, key) {
   });
 }
 
+function defineBlockedGlobalAppStateProperty(key) {
+  Object.defineProperty(window, key, {
+    configurable: false,
+    enumerable: false,
+    get() {
+      throw new Error(`Direct access to window.${key} is blocked. Use window.AppState.${key} instead.`);
+    },
+    set() {
+      throw new Error(`Direct mutation of window.${key} is blocked. Use window.AppState.${key} instead.`);
+    }
+  });
+}
+
 const appStateStore = {};
 Object.keys(appRuntimeState).forEach(key => {
   defineAppStateProperty(appStateStore, key);
-  defineAppStateProperty(window, key);
+  if (blockedGlobalAppStateKeys.has(key)) {
+    defineBlockedGlobalAppStateProperty(key);
+  } else {
+    defineAppStateProperty(window, key);
+  }
 });
 Object.freeze(appStateStore);
 Object.defineProperty(window, 'AppState', {
@@ -237,6 +259,32 @@ function getQueryStateSnapshot() {
   };
 }
 
+function getSerializableQueryState(snapshot = getQueryStateSnapshot()) {
+  const displayedFields = Array.isArray(snapshot?.displayedFields) ? snapshot.displayedFields : [];
+  const activeFilters = snapshot?.activeFilters && typeof snapshot.activeFilters === 'object'
+    ? snapshot.activeFilters
+    : {};
+
+  const baseFields = [...displayedFields]
+    .filter(field => {
+      const def = window.fieldDefs ? window.fieldDefs.get(field) : null;
+      return !(def && def.is_buildable);
+    })
+    .map(field => window.getBaseFieldName(field))
+    .filter((field, index, array) => array.indexOf(field) === index);
+
+  return {
+    displayedFields: baseFields,
+    activeFilters: Object.fromEntries(
+      Object.entries(activeFilters).map(([field, data]) => [
+        field,
+        { filters: JSON.parse(JSON.stringify((data && data.filters) || [])) }
+      ])
+    ),
+    groupMethod: snapshot?.groupMethod || 'ExpandIntoColumns'
+  };
+}
+
 function getComparableDisplayedFields(fieldNames) {
   return (Array.isArray(fieldNames) ? fieldNames : [])
     .map(field => String(field || '').trim())
@@ -312,6 +360,9 @@ function notifyQueryStateSubscribers(changes = {}, meta = {}) {
 const queryStateStore = {
   getSnapshot() {
     return getQueryStateSnapshot();
+  },
+  getSerializableState() {
+    return getSerializableQueryState();
   },
   getDisplayedFields() {
     return cloneDisplayedFieldsSnapshot();
@@ -549,6 +600,7 @@ function normalizeManagerMeta(meta = {}, fallbackSource) {
 
 const queryStateReadMethodNames = Object.freeze([
   'getSnapshot',
+  'getSerializableState',
   'getDisplayedFields',
   'getActiveFilters',
   'getFilterGroupForField',
@@ -716,11 +768,10 @@ Object.defineProperty(window, 'QueryStateStore', {
   configurable: false,
   enumerable: false,
   get() {
-    console.warn('window.QueryStateStore is private. Use window.QueryChangeManager instead.');
-    return undefined;
+    throw new Error('window.QueryStateStore is private. Use window.QueryChangeManager or window.QueryStateReaders instead.');
   },
   set() {
-    console.warn('window.QueryStateStore is private. Use window.QueryChangeManager instead.');
+    throw new Error('window.QueryStateStore is private. Use window.QueryChangeManager or window.QueryStateReaders instead.');
   }
 });
 
@@ -744,39 +795,8 @@ Object.defineProperty(window, 'activeFilters', {
   }
 });
 
-/**
- * Function to capture current query state
- * @returns {Object} snapshot of current query configuration
- */
-window.getCurrentQueryState = function() {
-  const snapshot = queryChangeManager.getSnapshot();
-  const displayedFields = snapshot.displayedFields;
-  const activeFilters = snapshot.activeFilters;
-
-  // Use base field names only (no duplicates like "2nd Marc590")
-  const baseFields = [...displayedFields]
-    .filter(field => {
-      const def = window.fieldDefs ? window.fieldDefs.get(field) : null;
-      return !(def && def.is_buildable);
-    })
-    .map(field => {
-      return window.getBaseFieldName(field);
-    })
-    .filter((field, index, array) => {
-      // Remove duplicates (keep only first occurrence of each base field name)
-      return array.indexOf(field) === index;
-    });
-  
-  return {
-    displayedFields: baseFields,
-    activeFilters: Object.fromEntries(
-      Object.entries(activeFilters || {}).map(([field, data]) => [
-        field,
-        { filters: JSON.parse(JSON.stringify((data && data.filters) || [])) }
-      ])
-    ),
-    groupMethod: snapshot.groupMethod || 'ExpandIntoColumns'
-  };
+window.getCurrentQueryState = function legacyGetCurrentQueryState() {
+  throwLegacyQueryStateRead('window.getCurrentQueryState');
 };
 
 window.QueryChangeManager.subscribe(event => {
@@ -805,7 +825,7 @@ window.QueryChangeManager.subscribe(event => {
 window.hasQueryChanged = function() {
   if (!appStateStore.lastExecutedQueryState) return true; // Initial load should show play icon (brand new query)
   
-  const current = window.getCurrentQueryState();
+  const current = queryStateReaders.getSerializableState();
   
   // Compare displayed fields
   if (JSON.stringify(getComparableDisplayedFields(current.displayedFields)) !== JSON.stringify(getComparableDisplayedFields(appStateStore.lastExecutedQueryState.displayedFields))) {
