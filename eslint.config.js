@@ -53,7 +53,6 @@ const allowedWindowAssignments = new Set([
   'createListPasteInput',
   'createPopupListControl',
   'currentCategory',
-  'currentQueryState',
   'dismissToastMessage',
   'DragUtils',
   'DragDropColumnOps',
@@ -93,7 +92,6 @@ const allowedWindowAssignments = new Set([
   'handleConditionBtnClick',
   'handleFilterConfirm',
   'hasLoadedFieldDefinitions',
-  'hasPartialResults',
   'hasQueryChanged',
   'hoverScrollArea',
   'initializeSearchInputs',
@@ -103,7 +101,6 @@ const allowedWindowAssignments = new Set([
   'isFieldBackendFilterable',
   'isListPasteField',
   'jsonTreeCollapsedPaths',
-  'lastExecutedQueryState',
   'loadFieldDefinitions',
   'lockInput',
   'mapFieldOperatorToUiCond',
@@ -117,7 +114,6 @@ const allowedWindowAssignments = new Set([
   'pendingRenderBubbles',
   'positionInputWrapper',
   'queryPageIsUnloading',
-  'queryRunning',
   'refreshTableViewport',
   'registerDynamicField',
   'removedColumnInfo',
@@ -229,7 +225,8 @@ const localRules = {
       messages: {
         privateStore: 'window.QueryStateStore is private. Use window.QueryChangeManager or window.QueryStateReaders.',
         readerViaManager: 'Read query state via window.QueryStateReaders. Reserve window.QueryChangeManager for writes.',
-        blockedAppStateAlias: 'Use window.AppState.{{name}} instead of the blocked global alias window.{{name}}.'
+        blockedAppStateAlias: 'Use window.AppState.{{name}} instead of the blocked global alias window.{{name}}.',
+        lifecycleViaAppState: 'Read query lifecycle via window.QueryStateReaders.getLifecycleState() or window.QueryStateReaders.getQueryStatus().'
       }
     },
     create(context) {
@@ -256,6 +253,26 @@ const localRules = {
               });
               return;
             }
+          }
+
+          if (
+            objectNode.type === 'MemberExpression'
+            && !objectNode.computed
+            && objectNode.property.type === 'Identifier'
+            && objectNode.property.name === 'AppState'
+            && ['queryRunning', 'hasPartialResults', 'currentQueryId', 'lastExecutedQueryState', 'currentQueryState'].includes(propertyName)
+          ) {
+            context.report({ node, messageId: 'lifecycleViaAppState' });
+            return;
+          }
+
+          if (
+            objectNode.type === 'Identifier'
+            && objectNode.name === 'AppState'
+            && ['queryRunning', 'hasPartialResults', 'currentQueryId', 'lastExecutedQueryState', 'currentQueryState'].includes(propertyName)
+          ) {
+            context.report({ node, messageId: 'lifecycleViaAppState' });
+            return;
           }
 
           if (
@@ -333,6 +350,18 @@ module.exports = [
         {
           name: 'lastExecutedQueryState',
           message: 'Use window.AppState.lastExecutedQueryState instead.'
+        },
+        {
+          name: 'queryRunning',
+          message: 'Read query lifecycle via window.QueryStateReaders.getLifecycleState() or getQueryStatus().'
+        },
+        {
+          name: 'hasPartialResults',
+          message: 'Read query lifecycle via window.QueryStateReaders.getLifecycleState() or getQueryStatus().'
+        },
+        {
+          name: 'currentQueryId',
+          message: 'Read query lifecycle via window.QueryStateReaders.getLifecycleState().'
         }
       ],
       'no-restricted-properties': ['error',
@@ -350,6 +379,56 @@ module.exports = [
           object: 'window',
           property: 'getCurrentQueryState',
           message: 'Use window.QueryStateReaders.getSerializableState() instead.'
+        },
+        {
+          object: 'window',
+          property: 'queryRunning',
+          message: 'Read query lifecycle via window.QueryStateReaders.getLifecycleState() or getQueryStatus().'
+        },
+        {
+          object: 'window',
+          property: 'hasPartialResults',
+          message: 'Read query lifecycle via window.QueryStateReaders.getLifecycleState() or getQueryStatus().'
+        },
+        {
+          object: 'window',
+          property: 'currentQueryId',
+          message: 'Read query lifecycle via window.QueryStateReaders.getLifecycleState().'
+        },
+        {
+          object: 'window',
+          property: 'lastExecutedQueryState',
+          message: 'Read query lifecycle via window.QueryStateReaders.getLifecycleState().'
+        },
+        {
+          object: 'window',
+          property: 'currentQueryState',
+          message: 'Read query lifecycle via window.QueryStateReaders.getLifecycleState().'
+        },
+        {
+          object: 'AppState',
+          property: 'queryRunning',
+          message: 'Read query lifecycle via window.QueryStateReaders.getLifecycleState() or getQueryStatus().'
+        },
+        {
+          object: 'AppState',
+          property: 'hasPartialResults',
+          message: 'Read query lifecycle via window.QueryStateReaders.getLifecycleState() or getQueryStatus().'
+        },
+        {
+          object: 'AppState',
+          property: 'currentQueryId',
+          message: 'Read query lifecycle via window.QueryStateReaders.getLifecycleState().'
+        },
+        {
+          object: 'AppState',
+          property: 'lastExecutedQueryState',
+          message: 'Read query lifecycle via window.QueryStateReaders.getLifecycleState().'
+        },
+        {
+          object: 'AppState',
+          property: 'currentQueryState',
+          message: 'Read query lifecycle via window.QueryStateReaders.getLifecycleState().'
         }
       ],
       'local/no-unapproved-window-exports': 'error',

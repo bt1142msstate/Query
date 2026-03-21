@@ -56,6 +56,7 @@ Results render in a virtualized table (25 visible rows at a time) for smooth per
 | `table/` | Result rendering, virtual scrolling, and Excel export |
 | `ui/` | Form mode, modals, toasts, tooltips, and shared helpers |
 | `styles/` | Feature-based CSS |
+| `styles/app.css` | Stylesheet entrypoint that imports the feature CSS files |
 
 ## 🛠️ Tech
 
