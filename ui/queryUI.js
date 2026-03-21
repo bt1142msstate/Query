@@ -25,8 +25,9 @@ window.updateTableResultsLip = function() {
   const columnCount = getDisplayedFields().length;
   const hasResults = rowCount > 0 || columnCount > 0;
 
-  // Planning mode: columns are configured but no results are loaded yet, and no query is running.
-  const isPlanningMode = columnCount > 0 && rowCount === 0 && !window.queryRunning;
+  // Planning mode: query is configured (columns or filters) but no results loaded yet, and no query is running.
+  const hasFilters = Object.values(getActiveFilters()).some(data => data && Array.isArray(data.filters) && data.filters.length > 0);
+  const isPlanningMode = (columnCount > 0 || hasFilters) && rowCount === 0 && !window.queryRunning;
   document.body.classList.toggle('is-planning', isPlanningMode);
   // Partial results: query was stopped early — table shows an incomplete result set.
   const isPartialResults = !!(window.hasPartialResults) && rowCount > 0 && !window.queryRunning;
