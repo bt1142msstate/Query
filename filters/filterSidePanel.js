@@ -123,6 +123,13 @@ window.FilterSidePanel = (function () {
             panel.classList.remove('panel-open');
             panel.classList.add('panel-hidden');
             panel.style.height = '';
+
+            const body = $('filter-panel-body');
+            if (body) {
+                // Clear the body so that if form-mode CSS forces it visible,
+                // it respects the empty state rather than showing zombie DOM.
+                body.innerHTML = '';
+            }
         }
     }
 
