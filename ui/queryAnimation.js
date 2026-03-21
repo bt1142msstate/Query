@@ -436,6 +436,15 @@ window.endTableQueryAnimation = function() {
   }
 
   clearTableQueryBubbleTimers(bubble);
+  bubble.classList.remove('is-interactive');
+  bubble.classList.add('is-completing');
+  bubble.style.pointerEvents = 'none';
+
+  const stopOverlay = bubble.querySelector('.table-query-bubble-stop');
+  if (stopOverlay) {
+    stopOverlay.setAttribute('aria-hidden', 'true');
+    stopOverlay.setAttribute('tabindex', '-1');
+  }
 
   const circuitFadeDuration = 220;
   const circuitFadeLead = 240;
