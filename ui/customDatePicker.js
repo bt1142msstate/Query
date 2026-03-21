@@ -4,8 +4,8 @@
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
   const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  // Matches M/D/YYYY, MM/DD/YYYY, or legacy YYYY-MM-DD / YYYY/MM/DD formats
-  const ISO_DATE_PATTERN = /^(?:\d{1,2}\/\d{1,2}\/\d{4}|\d{4}[\/-]\d{2}[\/-]\d{2})$/;
+  // Matches M/D/YYYY, MM/DD/YYYY, backend YYYYMMDD, or legacy YYYY-MM-DD / YYYY/MM/DD formats
+  const ISO_DATE_PATTERN = /^(?:\d{1,2}\/\d{1,2}\/\d{4}|\d{8}|\d{4}[\/-]\d{2}[\/-]\d{2})$/;
 
   let popup = null;
   let titleEl = null;
@@ -40,6 +40,14 @@
     const slashFwd = normalized.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
     if (slashFwd) {
       const [, m, d, y] = slashFwd.map(Number);
+      const date = new Date(y, m - 1, d);
+      if (date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d) return date;
+      return null;
+    }
+    // Backend YYYYMMDD
+    const compact = normalized.match(/^(\d{4})(\d{2})(\d{2})$/);
+    if (compact) {
+      const [, y, m, d] = compact.map(Number);
       const date = new Date(y, m - 1, d);
       if (date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d) return date;
       return null;
