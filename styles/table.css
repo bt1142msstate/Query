@@ -2020,12 +2020,19 @@ body.post-filter-overlay-open {
 
 .table-query-bubble-ripple {
   position: absolute;
-  inset: -4px;
-  border-radius: inherit;
-  border: 0;
-  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.4);
+  top: 50%;
+  left: 50%;
+  width: 180vmax;
+  height: 180vmax;
+  margin-top: -90vmax;
+  margin-left: -90vmax;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, 0.4);
+  box-shadow: none;
   opacity: 0;
-  transform: scale(1);
+  transform-origin: 50% 50%;
+  transform: scale(0.08);
   animation: query-bubble-ripple 3.15s cubic-bezier(0.12, 0.48, 0.18, 1) infinite;
   animation-delay: var(--ripple-delay, 0s);
 }
@@ -2058,6 +2065,11 @@ body.post-filter-overlay-open {
 .table-query-bubble.is-interactive:hover .table-query-bubble-stop,
 .table-query-bubble.is-interactive:focus-within .table-query-bubble-stop {
   opacity: 1;
+}
+
+.table-query-bubble.is-completing .table-query-bubble-stop {
+  opacity: 0 !important;
+  pointer-events: none;
 }
 
 .table-query-bubble-stop-icon {
@@ -2223,7 +2235,7 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
 @keyframes query-bubble-ripple {
   0% {
     opacity: 0;
-    transform: scale(1);
+    transform: scale(0.08);
   }
   12% {
     opacity: 0.58;
@@ -2233,7 +2245,7 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.pa
   }
   100% {
     opacity: 0;
-    transform: scale(1.36);
+    transform: scale(1);
   }
 }
 
