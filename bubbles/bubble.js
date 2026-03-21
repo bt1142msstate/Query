@@ -117,6 +117,19 @@ function getBubbleConditionInputElement() {
   return window.DOM?.conditionInput || document.getElementById('condition-input');
 }
 
+function setBubbleConditionInputVisible(input, visible) {
+  if (!input) {
+    return;
+  }
+
+  if (window.CustomDatePicker && typeof window.CustomDatePicker.setInputVisibility === 'function') {
+    window.CustomDatePicker.setInputVisibility(input, visible);
+    return;
+  }
+
+  input.style.display = visible ? '' : 'none';
+}
+
 function getBubbleConfirmButtonElement() {
   return window.DOM?.confirmBtn || document.getElementById('confirm-btn');
 }
@@ -211,12 +224,12 @@ function resetBubbleEditorUi(options = {}) {
   if (conditionInput) {
     conditionInput.value = '';
     conditionInput.classList.remove('error');
-    conditionInput.style.display = 'block';
+    setBubbleConditionInputVisible(conditionInput, true);
   }
   if (conditionInput2) {
     conditionInput2.value = '';
     conditionInput2.classList.remove('error');
-    conditionInput2.style.display = 'none';
+    setBubbleConditionInputVisible(conditionInput2, false);
   }
   if (betweenLabel) {
     betweenLabel.style.display = 'none';
