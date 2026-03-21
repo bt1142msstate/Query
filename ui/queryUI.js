@@ -6,7 +6,8 @@
 
 var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
 var getActiveFilters = window.QueryStateReaders.getActiveFilters.bind(window.QueryStateReaders);
-var appState = window.AppState;
+var getLifecycleState = window.QueryStateReaders.getLifecycleState.bind(window.QueryStateReaders);
+var getQueryStatus = window.QueryStateReaders.getQueryStatus.bind(window.QueryStateReaders);
 var services = window.AppServices;
 let queryUiInitialized = false;
 
@@ -29,12 +30,10 @@ window.updateTableResultsLip = function() {
   const columnCount = getDisplayedFields().length;
   const hasResults = rowCount > 0 || columnCount > 0;
 
-  // Planning mode: query is configured (columns or filters) but no results loaded yet, and no query is running.
-  const hasFilters = Object.values(getActiveFilters()).some(data => data && Array.isArray(data.filters) && data.filters.length > 0);
-  const isPlanningMode = (columnCount > 0 || hasFilters) && rowCount === 0 && !appState.queryRunning;
+  const queryStatus = getQueryStatus();
+  const isPlanningMode = queryStatus === 'planning';
   document.body.classList.toggle('is-planning', isPlanningMode);
-  // Partial results: query was stopped early — table shows an incomplete result set.
-  const isPartialResults = !!appState.hasPartialResults && rowCount > 0 && !appState.queryRunning;
+  const isPartialResults = queryStatus === 'partial';
   document.body.classList.toggle('is-partial-results', isPartialResults);
   // has-loaded-data is set only when actual row data is present — used by CSS
   // to scope interaction effects (e.g. cell hover glow) to real results.
@@ -299,7 +298,7 @@ window.updateRunButtonIcon = function(validationError) {
 
   if (!runIcon || !refreshIcon || !stopIcon || !runBtn) return;
 
-  if (appState.queryRunning) {
+  if (getLifecycleState().queryRunning) {
     runIcon.classList.add('hidden');
     refreshIcon.classList.add('hidden');
     stopIcon.classList.remove('hidden');
@@ -366,7 +365,7 @@ window.updateButtonStates = function() {
       );
 
       let validationError = null;
-      runBtn.disabled = !hasFields || appState.queryRunning;
+      runBtn.disabled = !hasFields || getLifecycleState().queryRunning;
 
       window.updateRunButtonIcon(validationError);
     } catch (_) {
@@ -438,10 +437,11 @@ window.updateButtonStates = function() {
     );
     const canClear = hasTableName || hasQueryText || hasFields || hasFilters || hasConfiguredPayload || hasData;
 
-    clearQueryBtn.disabled = appState.queryRunning || !canClear;
+    const isQueryRunning = getLifecycleState().queryRunning;
+    clearQueryBtn.disabled = isQueryRunning || !canClear;
     clearQueryBtn.classList.toggle('opacity-50', clearQueryBtn.disabled);
     clearQueryBtn.classList.toggle('cursor-not-allowed', clearQueryBtn.disabled);
-    clearQueryBtn.setAttribute('data-tooltip', appState.queryRunning ? 'Stop the running query before clearing' : (clearQueryBtn.disabled ? 'Nothing to clear' : 'Clear current query'));
+    clearQueryBtn.setAttribute('data-tooltip', isQueryRunning ? 'Stop the running query before clearing' : (clearQueryBtn.disabled ? 'Nothing to clear' : 'Clear current query'));
   }
 
   if (typeof window.updateSplitColumnsToggleState === 'function') {

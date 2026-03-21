@@ -40,32 +40,38 @@ window.getBaseFieldName = function(fieldName) {
 };
 
 const appRuntimeState = {
-  queryRunning: false,
   selectedField: '',
   totalRows: 0,
   scrollRow: 0,
   rowHeight: 0,
   hoverScrollArea: false,
   currentCategory: 'All',
-  lastExecutedQueryState: null,
-  currentQueryState: null,
-  hasPartialResults: false,
-  queryPageIsUnloading: false,
-  currentQueryId: null
+  queryPageIsUnloading: false
 };
 
 const appStateNormalizers = {
-  queryRunning: value => Boolean(value),
   selectedField: value => String(value || ''),
   totalRows: value => Number.isFinite(Number(value)) ? Number(value) : 0,
   scrollRow: value => Number.isFinite(Number(value)) ? Number(value) : 0,
   rowHeight: value => Number.isFinite(Number(value)) ? Number(value) : 0,
   hoverScrollArea: value => Boolean(value),
   currentCategory: value => String(value || 'All') || 'All',
+  queryPageIsUnloading: value => Boolean(value)
+};
+
+const queryLifecycleState = {
+  queryRunning: false,
+  lastExecutedQueryState: null,
+  currentQueryState: null,
+  hasPartialResults: false,
+  currentQueryId: null
+};
+
+const queryLifecycleNormalizers = {
+  queryRunning: value => Boolean(value),
   lastExecutedQueryState: value => value ?? null,
   currentQueryState: value => value ?? null,
   hasPartialResults: value => Boolean(value),
-  queryPageIsUnloading: value => Boolean(value),
   currentQueryId: value => value ? String(value) : null
 };
 
@@ -101,13 +107,36 @@ function defineBlockedGlobalAppStateProperty(key) {
   });
 }
 
+function defineQueryLifecycleProperty(target, key) {
+  Object.defineProperty(target, key, {
+    configurable: false,
+    enumerable: true,
+    get() {
+      return queryLifecycleState[key];
+    },
+    set(value) {
+      const normalize = queryLifecycleNormalizers[key];
+      queryLifecycleState[key] = typeof normalize === 'function' ? normalize(value) : value;
+    }
+  });
+}
+
 const appStateStore = {};
-Object.keys(appRuntimeState).forEach(key => {
-  defineAppStateProperty(appStateStore, key);
+Object.keys({ ...appRuntimeState, ...queryLifecycleState }).forEach(key => {
+  if (Object.prototype.hasOwnProperty.call(appRuntimeState, key)) {
+    defineAppStateProperty(appStateStore, key);
+  } else {
+    defineQueryLifecycleProperty(appStateStore, key);
+  }
+
   if (blockedGlobalAppStateKeys.has(key)) {
     defineBlockedGlobalAppStateProperty(key);
   } else {
-    defineAppStateProperty(window, key);
+    if (Object.prototype.hasOwnProperty.call(appRuntimeState, key)) {
+      defineAppStateProperty(window, key);
+    } else {
+      defineQueryLifecycleProperty(window, key);
+    }
   }
 });
 Object.freeze(appStateStore);
@@ -259,6 +288,58 @@ function getQueryStateSnapshot() {
   };
 }
 
+function getQueryLifecycleSnapshot() {
+  return {
+    queryRunning: queryLifecycleState.queryRunning,
+    hasPartialResults: queryLifecycleState.hasPartialResults,
+    currentQueryId: queryLifecycleState.currentQueryId,
+    currentQueryState: queryLifecycleState.currentQueryState,
+    lastExecutedQueryState: queryLifecycleState.lastExecutedQueryState
+  };
+}
+
+function setQueryLifecycleState(nextState = {}) {
+  if (!nextState || typeof nextState !== 'object') {
+    return getQueryLifecycleSnapshot();
+  }
+
+  Object.entries(nextState).forEach(([key, value]) => {
+    if (!Object.prototype.hasOwnProperty.call(queryLifecycleState, key)) {
+      return;
+    }
+
+    const normalize = queryLifecycleNormalizers[key];
+    queryLifecycleState[key] = typeof normalize === 'function' ? normalize(value) : value;
+  });
+
+  return getQueryLifecycleSnapshot();
+}
+
+function getQueryStatus(snapshot = getQueryStateSnapshot()) {
+  if (queryLifecycleState.queryRunning) {
+    return 'running';
+  }
+
+  const tableRows = getServices()?.getVirtualTableData?.()?.rows;
+  const rowCount = Array.isArray(tableRows) ? tableRows.length : 0;
+  const hasFilters = Object.values(snapshot?.activeFilters || {}).some(data => Array.isArray(data?.filters) && data.filters.length > 0);
+  const hasConfiguredQuery = (snapshot?.displayedFields?.length || 0) > 0 || hasFilters;
+
+  if (queryLifecycleState.hasPartialResults && rowCount > 0) {
+    return 'partial';
+  }
+
+  if (rowCount > 0) {
+    return 'results';
+  }
+
+  if (hasConfiguredQuery) {
+    return 'planning';
+  }
+
+  return 'idle';
+}
+
 function getSerializableQueryState(snapshot = getQueryStateSnapshot()) {
   const displayedFields = Array.isArray(snapshot?.displayedFields) ? snapshot.displayedFields : [];
   const activeFilters = snapshot?.activeFilters && typeof snapshot.activeFilters === 'object'
@@ -346,7 +427,7 @@ function notifyQueryStateSubscribers(changes = {}, meta = {}) {
     snapshot: getQueryStateSnapshot()
   };
 
-  appStateStore.currentQueryState = payload.snapshot;
+  setQueryLifecycleState({ currentQueryState: payload.snapshot });
 
   queryStateSubscribers.forEach(listener => {
     try {
@@ -360,6 +441,12 @@ function notifyQueryStateSubscribers(changes = {}, meta = {}) {
 const queryStateStore = {
   getSnapshot() {
     return getQueryStateSnapshot();
+  },
+  getLifecycleState() {
+    return getQueryLifecycleSnapshot();
+  },
+  getQueryStatus() {
+    return getQueryStatus();
   },
   getSerializableState() {
     return getSerializableQueryState();
@@ -588,6 +675,9 @@ const queryStateStore = {
     assignDisplayedFields([]);
     assignActiveFilters({});
     notifyQueryStateSubscribers({ displayedFields: true, activeFilters: true }, meta);
+  },
+  setLifecycleState(nextState = {}) {
+    return setQueryLifecycleState(nextState);
   }
 };
 
@@ -600,6 +690,8 @@ function normalizeManagerMeta(meta = {}, fallbackSource) {
 
 const queryStateReadMethodNames = Object.freeze([
   'getSnapshot',
+  'getLifecycleState',
+  'getQueryStatus',
   'getSerializableState',
   'getDisplayedFields',
   'getActiveFilters',
@@ -652,7 +744,7 @@ function hideManagedField(fieldName, options = {}) {
 async function clearQueryManagerState(meta = {}) {
   const normalizedMeta = normalizeManagerMeta(meta, 'QueryChangeManager.clearQuery');
 
-  if (appStateStore.queryRunning) {
+  if (queryLifecycleState.queryRunning) {
     if (typeof window.showToastMessage === 'function') {
       window.showToastMessage('Stop the running query before clearing it.', 'warning');
     }
@@ -686,6 +778,11 @@ async function clearQueryManagerState(meta = {}) {
   // State reset fires all QueryStateSubscriptions, which reactively
   // update FilterSidePanel, category counts, JSON preview, button states, and bubbles.
   queryStateStore.resetState(normalizedMeta);
+  queryStateStore.setLifecycleState({
+    hasPartialResults: false,
+    currentQueryId: null,
+    lastExecutedQueryState: null
+  });
 
   if (previousSelectedField && typeof window.renderConditionList === 'function') {
     window.renderConditionList(previousSelectedField);
@@ -694,16 +791,17 @@ async function clearQueryManagerState(meta = {}) {
   }
 
   appStateStore.selectedField = '';
-  appStateStore.lastExecutedQueryState = null;
 
   const dom = window.DOM;
   if (dom?.tableNameInput) {
     dom.tableNameInput.value = '';
     dom.tableNameInput.classList.remove('error');
+    dom.tableNameInput.dispatchEvent(new Event('input', { bubbles: true }));
   }
 
   if (dom?.queryInput) {
     dom.queryInput.value = '';
+    dom.queryInput.dispatchEvent(new Event('input', { bubbles: true }));
   }
   if (dom?.clearSearchBtn) {
     dom.clearSearchBtn.classList.add('hidden');
@@ -712,6 +810,10 @@ async function clearQueryManagerState(meta = {}) {
   appStateStore.currentCategory = 'All';
 
   services.resetBubbleScroll();
+
+  if (typeof window.updateButtonStates === 'function') {
+    window.updateButtonStates();
+  }
 
   if (typeof window.showToastMessage === 'function') {
     window.showToastMessage('Query cleared.', 'info');
@@ -733,6 +835,14 @@ const queryChangeManager = Object.freeze({
   removeFilter: createManagerStoreMethod('removeFilter', 1, 'QueryChangeManager.removeFilter'),
   reorderFilterGroups: createManagerStoreMethod('reorderFilterGroups', 1, 'QueryChangeManager.reorderFilterGroups'),
   setQueryState: createManagerStoreMethod('setQueryState', 1, 'QueryChangeManager.setQueryState'),
+  setLifecycleState(nextState = {}, meta = {}) {
+    const normalizedMeta = normalizeManagerMeta(meta, 'QueryChangeManager.setLifecycleState');
+    const lifecycleState = queryStateStore.setLifecycleState(nextState);
+    if (!normalizedMeta.silent) {
+      notifyQueryStateSubscribers({}, normalizedMeta);
+    }
+    return lifecycleState;
+  },
   showField: showManagedField,
   hideField: hideManagedField,
   resetQuery(meta = {}) {
@@ -828,22 +938,22 @@ window.QueryChangeManager.subscribe(event => {
  * @returns {boolean} True if query has changed since last execution
  */
 window.hasQueryChanged = function() {
-  if (!appStateStore.lastExecutedQueryState) return true; // Initial load should show play icon (brand new query)
+  if (!queryLifecycleState.lastExecutedQueryState) return true; // Initial load should show play icon (brand new query)
   
   const current = queryStateReaders.getSerializableState();
   
   // Compare displayed fields
-  if (JSON.stringify(getComparableDisplayedFields(current.displayedFields)) !== JSON.stringify(getComparableDisplayedFields(appStateStore.lastExecutedQueryState.displayedFields))) {
+  if (JSON.stringify(getComparableDisplayedFields(current.displayedFields)) !== JSON.stringify(getComparableDisplayedFields(queryLifecycleState.lastExecutedQueryState.displayedFields))) {
     return true;
   }
   
   // Compare filters
-  if (JSON.stringify(current.activeFilters) !== JSON.stringify(appStateStore.lastExecutedQueryState.activeFilters)) {
+  if (JSON.stringify(current.activeFilters) !== JSON.stringify(queryLifecycleState.lastExecutedQueryState.activeFilters)) {
     return true;
   }
   
   // Compare group method
-  if (current.groupMethod !== appStateStore.lastExecutedQueryState.groupMethod) {
+  if (current.groupMethod !== queryLifecycleState.lastExecutedQueryState.groupMethod) {
     return true;
   }
   
