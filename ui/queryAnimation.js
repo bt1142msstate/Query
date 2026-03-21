@@ -266,10 +266,37 @@ window.startTableQueryAnimation = function() {
   textNode.style.position = 'relative';
   textNode.style.zIndex = '2';
 
+  // Stop button — revealed on hover while the query is running
+  const stopOverlay = document.createElement('div');
+  stopOverlay.className = 'table-query-bubble-stop';
+  stopOverlay.setAttribute('role', 'button');
+  stopOverlay.setAttribute('aria-label', 'Stop query');
+  stopOverlay.setAttribute('tabindex', '0');
+  stopOverlay.innerHTML = `
+    <span class="table-query-bubble-stop-icon" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="32" height="32">
+        <rect x="5" y="5" width="14" height="14" rx="2.5"/>
+      </svg>
+    </span>
+    <span class="table-query-bubble-stop-label">Stop Query</span>
+  `;
+
+  const triggerStop = () => {
+    // Delegate to the header run button click (which handles the cancel path)
+    const runBtn = document.getElementById('run-query-btn');
+    if (runBtn && window.queryRunning) runBtn.click();
+  };
+
+  stopOverlay.addEventListener('click', e => { e.stopPropagation(); triggerStop(); });
+  stopOverlay.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); triggerStop(); }
+  });
+
   const circuit = createTableQueryCircuitOverlay();
 
   bubble.appendChild(circuit);
   bubble.appendChild(textNode);
+  bubble.appendChild(stopOverlay);
 
   const rect = tableContainer.getBoundingClientRect();
   bubble.style.width = rect.width + 'px';
@@ -297,6 +324,17 @@ window.startTableQueryAnimation = function() {
   bubble.style.top = '50%';
   bubble.style.left = '50%';
   bubble.style.borderRadius = '50%';
+
+  // Enable pointer events once the bubble has finished morphing to circle size
+  // (350 px). We wait for the CSS transition to complete before making the
+  // bubble interactive so stray clicks during the entrance animation are ignored.
+  const enableInteraction = () => {
+    if (document.getElementById('table-query-bubble') === bubble) {
+      bubble.classList.add('is-interactive');
+    }
+  };
+  const MORPH_IN_MS = 700; // generous cover for the 0.6s CSS width/height transition
+  setTimeout(enableInteraction, MORPH_IN_MS);
 
   setTimeout(() => {
     if (document.getElementById('table-query-circuit')) {
