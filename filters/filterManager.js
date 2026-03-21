@@ -318,16 +318,24 @@ function removeConditionPanelNote() {
     }
 }
 
-function showConditionPanelNote(message) {
+function showConditionPanelNote(options) {
     const inputWrapper = getFilterInputWrapperElement();
     if (!inputWrapper) return;
+
+    const config = typeof options === 'string'
+        ? { body: options }
+        : (options && typeof options === 'object' ? options : {});
 
     removeConditionPanelNote();
 
     const note = document.createElement('div');
     note.id = 'condition-panel-note';
     note.className = 'condition-panel-note';
-    note.textContent = message;
+    const kicker = config.kicker ? `<span class="condition-panel-note-kicker">${window.escapeHtml ? window.escapeHtml(config.kicker) : config.kicker}</span>` : '';
+    const title = config.title ? `<strong class="condition-panel-note-title">${window.escapeHtml ? window.escapeHtml(config.title) : config.title}</strong>` : '';
+    const body = config.body ? `<p class="condition-panel-note-body">${window.escapeHtml ? window.escapeHtml(config.body) : config.body}</p>` : '';
+    const hint = config.hint ? `<p class="condition-panel-note-hint">${window.escapeHtml ? window.escapeHtml(config.hint) : config.hint}</p>` : '';
+    note.innerHTML = `${kicker}${title}${body}${hint}`;
 
     inputWrapper.appendChild(note);
     inputWrapper.style.display = 'flex';
@@ -440,7 +448,12 @@ function buildBubbleConditionPanel(bubble) {
             if (existingSelect) existingSelect.style.display = 'none';
             if (existingContainer && existingContainer.parentNode) existingContainer.parentNode.removeChild(existingContainer);
             if (confirmBtn) confirmBtn.style.display = 'none';
-            showConditionPanelNote('This field is available for display, but the backend does not support filtering it.');
+            showConditionPanelNote({
+                kicker: 'Display Only',
+                title: 'This field cannot be filtered',
+                body: 'The backend does not expose any valid filter operators for this field, so no filter input is available here.',
+                hint: 'You can still add it as a results column and use it in the table output.'
+            });
             window.renderConditionList(selectedField);
             return;
         }

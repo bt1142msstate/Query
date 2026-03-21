@@ -65,28 +65,24 @@ function getHistorySectionMeta(sectionKey) {
     running: {
       title: 'Running',
       subtitle: 'Queries currently executing on the backend.',
-      coverLabel: 'Live feed',
       detailsClass: 'history-book running',
       summaryClass: 'history-book-summary running'
     },
     complete: {
       title: 'Completed',
       subtitle: 'Finished results ready to inspect or reload.',
-      coverLabel: 'Archive cache',
       detailsClass: 'history-book complete',
       summaryClass: 'history-book-summary complete'
     },
     failed: {
       title: 'Failed / Interrupted',
       subtitle: 'Queries that errored, were abandoned, or quit unexpectedly.',
-      coverLabel: 'Fault channel',
       detailsClass: 'history-book failed',
       summaryClass: 'history-book-summary failed'
     },
     canceled: {
       title: 'Cancelled',
       subtitle: 'Queries stopped intentionally before they completed.',
-      coverLabel: 'Abort queue',
       detailsClass: 'history-book canceled',
       summaryClass: 'history-book-summary canceled'
     }
@@ -110,7 +106,6 @@ function buildHistorySection(sectionKey, count, isOpen = false) {
         <span class="history-book-spine" aria-hidden="true"></span>
         <span class="history-book-cover">
           <span class="history-book-summary-main">
-            <span class="history-book-kicker">${meta.coverLabel}</span>
             <span class="history-book-title">${meta.title}</span>
             <span class="history-book-subtitle">${meta.subtitle}</span>
           </span>
@@ -151,7 +146,7 @@ function buildHistoryMonitor(openSection, sections) {
         data-history-monitor-tab="${section.key}"
         aria-pressed="${isActive ? 'true' : 'false'}"
       >
-        <span class="history-monitor-tab-label">${tabMeta.coverLabel}</span>
+        <span class="history-monitor-tab-label">${tabMeta.title}</span>
         <span class="history-monitor-tab-count">${countLabel}</span>
       </button>
     `;
@@ -1535,7 +1530,6 @@ function renderQueries(){
     content = `
       <section class="history-editorial-hero">
         <div class="history-editorial-copy">
-          <span class="history-kicker">Neo Ops</span>
           <h3 class="history-editorial-title">Query Hub</h3>
           <p class="history-editorial-subtitle">${searchLabel} ${liveSignal}</p>
         </div>
@@ -1548,7 +1542,7 @@ function renderQueries(){
           <div class="history-meta-card">
             <span class="history-meta-label">Visible Queries</span>
             <span class="history-meta-value">${visibleCount}</span>
-            <span class="history-meta-detail">${searchTerm ? 'Filtered channel view' : 'Across all four status channels'}</span>
+            <span class="history-meta-detail">${searchTerm ? 'Filtered view' : 'Across all query statuses'}</span>
           </div>
         </div>
       </section>

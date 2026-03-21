@@ -405,8 +405,14 @@ window.formatFieldDefinitionTooltipHTML = function(fieldDef, options = {}) {
     ? descSource.trim()
     : '';
   const title = typeof options.title === 'string' ? options.title.trim() : '';
+  const isFilterable = typeof window.isFieldBackendFilterable === 'function'
+    ? window.isFieldBackendFilterable(fieldDef)
+    : Array.isArray(fieldDef.filters) && fieldDef.filters.length > 0;
+  const filterOperators = typeof window.getFieldFilterOperators === 'function'
+    ? window.getFieldFilterOperators(fieldDef)
+    : (Array.isArray(fieldDef.filters) ? fieldDef.filters : []);
 
-  if (!title && !categoryValue && !descValue) {
+  if (!title && !categoryValue && !descValue && filterOperators.length === 0) {
     return '';
   }
 
@@ -419,8 +425,30 @@ window.formatFieldDefinitionTooltipHTML = function(fieldDef, options = {}) {
     html += '<div class="tt-field-definition-category">' + escapeHtml(categoryValue) + '</div>';
   }
 
+  html += '<div class="tt-field-definition-meta">';
+  html += '<span class="tt-field-definition-badge ' + (isFilterable ? 'filterable' : 'display-only') + '">';
+  html += isFilterable ? 'Filterable' : 'Display only';
+  html += '</span>';
+  if (filterOperators.length > 0) {
+    html += '<span class="tt-field-definition-meta-text">';
+    html += filterOperators.length === 1 ? '1 backend operator' : filterOperators.length + ' backend operators';
+    html += '</span>';
+  }
+  html += '</div>';
+
   if (descValue) {
     html += '<div class="tt-field-definition-desc">' + escapeHtml(descValue) + '</div>';
+  }
+
+  if (filterOperators.length > 0) {
+    html += '<div class="tt-field-definition-operators">';
+    html += filterOperators.map(operator => {
+      const label = window.OperatorLabels && window.OperatorLabels.get(operator)
+        ? window.OperatorLabels.get(operator)
+        : operator;
+      return '<span class="tt-field-definition-operator">' + escapeHtml(label) + '</span>';
+    }).join('');
+    html += '</div>';
   }
 
   html += '</div>';
