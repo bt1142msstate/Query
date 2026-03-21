@@ -153,7 +153,7 @@
   function handleOverlayClick() {
     services.closeAllModals();
     services.resetActiveBubbles();
-    services.resetBubbleEditorUi({ removeFilterCard: true });
+    services.resetBubbleEditorUi();
     window.setTimeout(() => services.rerenderBubbles(), 0);
   }
 
