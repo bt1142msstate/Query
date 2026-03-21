@@ -770,6 +770,8 @@
     // A full query clear should leave form mode with no active query structure,
     // regardless of whether the form came from the URL or was generated locally.
     // Reset can still restore the original spec from state.initialSpec.
+    state.spec.title = '';
+    state.spec.queryName = '';
     state.spec.inputs = [];
     state.spec.columns = [];
     state.spec.lockedFilters = [];

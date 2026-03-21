@@ -62,14 +62,16 @@ function getDefaultTableName(date = new Date()) {
   return `Results ${month}/${day}/${year}`;
 }
 
-function ensureTableName() {
+function ensureTableName(options = {}) {
   const tableNameInput = window.DOM.tableNameInput;
+  const shouldGenerate = options.generateIfEmpty === true;
+
   if (!tableNameInput) {
-    return getDefaultTableName();
+    return shouldGenerate ? getDefaultTableName() : '';
   }
 
   const currentName = tableNameInput.value.trim();
-  if (currentName) {
+  if (currentName || !shouldGenerate) {
     return currentName;
   }
 

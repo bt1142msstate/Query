@@ -37,6 +37,8 @@
       return;
     }
 
+    tableNameInput.placeholder = 'No name';
+
     function autoResizeInput() {
       const toolbarWidth = dom.tableToolbar ? dom.tableToolbar.offsetWidth : 0;
       const maxWidth = dom.tableTopBar
@@ -57,9 +59,6 @@
     });
 
     tableNameInput.addEventListener('focus', () => {
-      if (tableNameInput.value === 'Query Results') {
-        tableNameInput.select();
-      }
       tableNameInput.classList.remove('error');
     });
 

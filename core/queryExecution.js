@@ -186,7 +186,7 @@ if (execDom.runBtn) {
 
         const state = window.QueryStateReaders.getSerializableState();
         const queryName = typeof window.ensureTableName === 'function'
-          ? window.ensureTableName()
+          ? window.ensureTableName({ generateIfEmpty: true })
           : (execDom.tableNameInput ? execDom.tableNameInput.value.trim() : '');
         const payload = window.buildBackendQueryPayload(queryName);
         const historyConfig = typeof window.buildQueryUiConfig === 'function'
