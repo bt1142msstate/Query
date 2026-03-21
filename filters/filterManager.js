@@ -389,12 +389,23 @@ function buildBubbleConditionPanel(bubble) {
             .map(label => String(label).split(' ')[0].toLowerCase());
         conditionPanel.appendChild(createConditionOperatorPicker(operatorConditions, window.buildableConditionBtnHandler));
     } else {
-        operatorConditions = (perBubble
+        // `[] is truthy` guard: only use perBubble override when it actually has entries.
+        operatorConditions = ((perBubble && perBubble.length > 0)
             ? perBubble
             : (listValues && listValues.length)
                 ? ['equals']
                 : (window.typeConditions[type] || window.typeConditions.string))
             .map(label => String(label).split(' ')[0].toLowerCase());
+
+        // No applicable conditions for this field — hide the input area entirely
+        // so an empty select and stray value input are never shown to the user.
+        if (operatorConditions.length === 0) {
+            if (inputWrapper) inputWrapper.style.display = 'none';
+            if (confirmBtn) confirmBtn.style.display = 'none';
+            window.renderConditionList(selectedField);
+            return;
+        }
+
         conditionPanel.appendChild(createConditionOperatorPicker(operatorConditions, window.handleConditionBtnClick));
 
         if (listValues && listValues.length) {
