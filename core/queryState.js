@@ -315,7 +315,7 @@ function setQueryLifecycleState(nextState = {}) {
   return getQueryLifecycleSnapshot();
 }
 
-function getQueryStatus(snapshot = getQueryStateSnapshot()) {
+function computeQueryStatus(snapshot = getQueryStateSnapshot()) {
   if (queryLifecycleState.queryRunning) {
     return 'running';
   }
@@ -446,7 +446,7 @@ const queryStateStore = {
     return getQueryLifecycleSnapshot();
   },
   getQueryStatus() {
-    return getQueryStatus();
+    return computeQueryStatus();
   },
   getSerializableState() {
     return getSerializableQueryState();
