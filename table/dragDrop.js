@@ -172,7 +172,6 @@ headerInsertAffordance.className = 'th-insert-affordance';
 headerInsertAffordance.appendChild(headerInsertButton);
 
 const INSERT_AFFORDANCE_THRESHOLD = 40;
-const INSERT_AFFORDANCE_DELAY = 90;
 let insertAffordanceShowTimer = null;
 let insertAffordanceHideTimer = null;
 let pendingInsertCandidate = null;
@@ -305,11 +304,9 @@ function updateHeaderInsertAffordance(table, clientX) {
   pendingInsertCandidate = candidate;
   clearTimeout(insertAffordanceShowTimer);
   clearTimeout(insertAffordanceHideTimer);
-  insertAffordanceShowTimer = window.setTimeout(() => {
-    if (pendingInsertCandidate && pendingInsertCandidate.insertAt === candidate.insertAt) {
-      showInsertAffordance(candidate);
-    }
-  }, INSERT_AFFORDANCE_DELAY);
+  if (pendingInsertCandidate && pendingInsertCandidate.insertAt === candidate.insertAt) {
+    showInsertAffordance(candidate);
+  }
 }
 
 /**
