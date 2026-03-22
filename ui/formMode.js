@@ -474,6 +474,7 @@
     const existingInputs = Array.isArray(state.spec.inputs) ? state.spec.inputs.slice() : [];
     const generatedInputs = buildGeneratedInputSpecsFromActiveFilters(existingInputs, querySnapshot.activeFilters);
     const existingBySignature = new Map();
+    const controlsToSync = [];
 
     existingInputs.forEach(inputSpec => {
       const signature = getInputSignature(inputSpec);
@@ -498,6 +499,8 @@
       }
 
       const fieldDef = window.fieldDefs ? window.fieldDefs.get(match.field) : null;
+      const previousOperator = match.operator;
+      const previousType = match.type;
       const previousDefaults = JSON.stringify(getInputSpecDefaultValues(match));
       const nextDefaults = getInputSpecDefaultValues(generatedInput);
       const nextMultiple = Boolean(generatedInput.multiple);
@@ -509,8 +512,16 @@
         match.multiple = nextMultiple;
       }
 
-      if (previousDefaults !== JSON.stringify(getInputSpecDefaultValues(match))) {
+      const defaultsChanged = previousDefaults !== JSON.stringify(getInputSpecDefaultValues(match));
+      const operatorChanged = previousOperator !== match.operator;
+      const typeChanged = previousType !== match.type;
+
+      if (defaultsChanged || operatorChanged || typeChanged) {
         changed = true;
+        controlsToSync.push({
+          inputSpec: match,
+          previousOperator
+        });
       }
 
       usedInputs.add(match);
@@ -549,6 +560,13 @@
         applyState: false,
         refreshUrl: false,
         clearSearchParams: true
+      });
+    } else if (state.viewMode === 'form' && controlsToSync.length > 0) {
+      controlsToSync.forEach(({ inputSpec, previousOperator }) => {
+        syncMountedControlFromInputSpec(inputSpec, {
+          previousOperator,
+          querySource: 'QueryFormMode.syncActiveSpecWithCurrentQuery'
+        });
       });
     }
 
