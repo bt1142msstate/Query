@@ -2,6 +2,45 @@
   const services = window.AppServices;
   const { getDisplayedFields, getFilterGroupForField } = window.QueryStateReaders;
 
+  function escapeFieldPickerHtml(value) {
+    if (typeof window.escapeHtml === 'function') {
+      return window.escapeHtml(value);
+    }
+
+    const temp = document.createElement('div');
+    temp.textContent = String(value ?? '');
+    return temp.innerHTML;
+  }
+
+  function getFieldPickerCategories(option) {
+    return String(option?.category || '')
+      .split(',')
+      .map(category => category.trim())
+      .filter(Boolean);
+  }
+
+  function buildFieldPickerMetaPills(option) {
+    if (!option) {
+      return '';
+    }
+
+    const pills = [];
+    const typeLabel = String(option.type || '').trim();
+    if (typeLabel) {
+      pills.push(
+        `<span class="form-mode-field-picker-meta-pill form-mode-field-picker-meta-pill--type">${escapeFieldPickerHtml(typeLabel)}</span>`
+      );
+    }
+
+    getFieldPickerCategories(option).forEach(category => {
+      pills.push(
+        `<span class="form-mode-field-picker-meta-pill form-mode-field-picker-meta-pill--category">${escapeFieldPickerHtml(category)}</span>`
+      );
+    });
+
+    return pills.join('');
+  }
+
   function getFieldPickerOptionsFromDefinitions() {
     const source = Array.isArray(window.fieldDefsArray) && window.fieldDefsArray.length > 0
       ? window.fieldDefsArray
@@ -110,7 +149,7 @@
         ${compactLayout ? '' : `<div class="form-mode-field-picker-details">
           <p class="form-mode-field-picker-selected-label">${labels.selectedFieldLabel}</p>
           <h4 class="form-mode-field-picker-field-name"></h4>
-          <p class="form-mode-field-picker-field-meta hidden"></p>
+          <div class="form-mode-field-picker-field-meta hidden"></div>
           ${allowDisplay ? `<label class="form-mode-field-picker-choice"><input type="checkbox" data-field-picker-choice="display" /><span>${labels.displayChoice}</span></label>` : ''}
           ${allowFilter && !autoAddFilterFromPreview ? `<label class="form-mode-field-picker-choice"><input type="checkbox" data-field-picker-choice="filter" /><span>${labels.filterChoice}</span></label>` : ''}
           ${allowFilter && typeof config.renderFilterPreview === 'function' ? `<div class="form-mode-field-picker-filter-preview hidden" data-field-picker-filter-preview>
@@ -407,13 +446,9 @@
         return;
       }
 
-      const metaParts = [];
-      if (selected.type) metaParts.push(selected.type);
-      if (selected.category) metaParts.push(selected.category);
-
       fieldNameEl.textContent = selected.name;
-      fieldMetaEl.textContent = metaParts.join(' • ');
-      fieldMetaEl.classList.toggle('hidden', metaParts.length === 0);
+      fieldMetaEl.innerHTML = buildFieldPickerMetaPills(selected);
+      fieldMetaEl.classList.toggle('hidden', !fieldMetaEl.innerHTML.trim());
 
       syncStatusTextOnly(selected);
       syncFilterPreview();
@@ -585,7 +620,7 @@
 
         button.innerHTML = `
           <span class="form-mode-field-picker-option-name">${option.name}</span>
-          <span class="form-mode-field-picker-option-meta">${[option.type, option.category].filter(Boolean).join(' • ')}</span>
+          <span class="form-mode-field-picker-option-meta">${buildFieldPickerMetaPills(option)}</span>
           <span class="form-mode-field-picker-option-badges">${badges.join('')}</span>
         `;
 
