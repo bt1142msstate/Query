@@ -109,7 +109,10 @@
         </div>
         ${compactLayout ? '' : `<div class="form-mode-field-picker-details">
           <p class="form-mode-field-picker-selected-label">${labels.selectedFieldLabel}</p>
-          <h4 class="form-mode-field-picker-field-name"></h4>
+          <div class="form-mode-field-picker-field-header">
+            <h4 class="form-mode-field-picker-field-name"></h4>
+            <button type="button" class="form-mode-field-picker-field-info hidden" aria-label="Show field details">i</button>
+          </div>
           <p class="form-mode-field-picker-field-meta hidden"></p>
           ${allowDisplay ? `<label class="form-mode-field-picker-choice"><input type="checkbox" data-field-picker-choice="display" /><span>${labels.displayChoice}</span></label>` : ''}
           ${allowFilter && !autoAddFilterFromPreview ? `<label class="form-mode-field-picker-choice"><input type="checkbox" data-field-picker-choice="filter" /><span>${labels.filterChoice}</span></label>` : ''}
@@ -133,6 +136,7 @@
     const categorySelect = modal.querySelector('.form-mode-field-picker-category-select');
     const listEl = modal.querySelector('.form-mode-field-picker-list');
     const fieldNameEl = modal.querySelector('.form-mode-field-picker-field-name');
+    const fieldInfoEl = modal.querySelector('.form-mode-field-picker-field-info');
     const fieldMetaEl = modal.querySelector('.form-mode-field-picker-field-meta');
     const statusEl = modal.querySelector('.form-mode-field-picker-status');
     const displayChoice = modal.querySelector('[data-field-picker-choice="display"]');
@@ -400,6 +404,10 @@
       const selected = options.find(option => option.name === selectedFieldName) || null;
       if (!selected) {
         fieldNameEl.textContent = '';
+        if (fieldInfoEl) {
+          fieldInfoEl.classList.add('hidden');
+          fieldInfoEl.removeAttribute('data-tooltip-html');
+        }
         fieldMetaEl.textContent = '';
         fieldMetaEl.classList.add('hidden');
         statusEl.textContent = 'No field selected.';
@@ -408,6 +416,17 @@
       }
 
       fieldNameEl.textContent = selected.name;
+      if (fieldInfoEl) {
+        if (selected.tooltipHtml) {
+          fieldInfoEl.classList.remove('hidden');
+          fieldInfoEl.setAttribute('data-tooltip-html', selected.tooltipHtml);
+          fieldInfoEl.setAttribute('aria-label', `Show details for ${selected.name}`);
+        } else {
+          fieldInfoEl.classList.add('hidden');
+          fieldInfoEl.removeAttribute('data-tooltip-html');
+          fieldInfoEl.setAttribute('aria-label', 'Show field details');
+        }
+      }
       fieldMetaEl.textContent = '';
       fieldMetaEl.classList.add('hidden');
 

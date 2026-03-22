@@ -832,6 +832,38 @@
   color: #0f172a;
 }
 
+.form-mode-field-picker-field-header {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.form-mode-field-picker-field-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 1px solid rgba(148, 163, 184, 0.42);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #475569;
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: help;
+  transition: border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-mode-field-picker-field-info:hover,
+.form-mode-field-picker-field-info:focus-visible {
+  border-color: rgba(15, 118, 110, 0.42);
+  color: #0f766e;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.12);
+  outline: none;
+}
+
 .form-mode-field-picker-field-meta,
 .form-mode-field-picker-status,
 .form-mode-field-picker-empty {
