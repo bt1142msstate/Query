@@ -7,7 +7,7 @@
  * Tooltip manager handling tooltip creation, positioning, and lifecycle.
  * @namespace TooltipManager
  */
-(() => {
+window.TooltipManager = (() => {
   const TOOLTIP_SELECTOR = '[data-tooltip], [data-tooltip-html]';
   let tooltipEl = null;
   let arrowEl = null;
@@ -15,6 +15,7 @@
   let currentTooltipIsHtml = false;
   let hideTimeout = null;
   let isDragging = false; // Track drag state
+  let targetMonitorFrame = null;
 
   function resetDragState() {
     isDragging = false;
@@ -34,6 +35,50 @@
   function closestFromTarget(target, selector) {
     const el = target instanceof Element ? target : target && target.parentElement;
     return el ? el.closest(selector) : null;
+  }
+
+  function cancelTargetMonitor() {
+    if (targetMonitorFrame !== null) {
+      window.cancelAnimationFrame(targetMonitorFrame);
+      targetMonitorFrame = null;
+    }
+  }
+
+  function isTooltipTargetAlive(target) {
+    if (!(target instanceof Element) || !target.isConnected) {
+      return false;
+    }
+
+    if (target.hidden || target.closest('[hidden], [inert], [aria-hidden="true"]')) {
+      return false;
+    }
+
+    const style = window.getComputedStyle(target);
+    if (style.display === 'none' || style.visibility === 'hidden') {
+      return false;
+    }
+
+    return target.getClientRects().length > 0;
+  }
+
+  function monitorCurrentTarget() {
+    cancelTargetMonitor();
+
+    const tick = () => {
+      if (!currentTarget || !isTooltipVisible()) {
+        targetMonitorFrame = null;
+        return;
+      }
+
+      if (!isTooltipTargetAlive(currentTarget)) {
+        forceHide();
+        return;
+      }
+
+      targetMonitorFrame = window.requestAnimationFrame(tick);
+    };
+
+    targetMonitorFrame = window.requestAnimationFrame(tick);
   }
 
   function isPointerOverCurrentTooltipTarget(clientX, clientY) {
@@ -75,6 +120,7 @@
 
   function hideTooltipElement() {
     if (!tooltipEl) return;
+    cancelTargetMonitor();
     tooltipEl.classList.remove('show');
     tooltipEl.style.opacity = '0';
     tooltipEl.style.display = 'none';
@@ -150,6 +196,7 @@
       }
     }, 10);
     currentTarget = target;
+    monitorCurrentTarget();
   }
 
   /**
