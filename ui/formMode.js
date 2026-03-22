@@ -1281,11 +1281,12 @@
       return getInputSpecDefaultValues(inputSpec).slice(0, 2);
     }
 
-    if (controlValues.filter(Boolean).length > 0) {
-      return controlValues.filter(Boolean);
+    const nonEmptyControlValues = controlValues.filter(value => value !== '');
+    if (nonEmptyControlValues.length > 0) {
+      return nonEmptyControlValues;
     }
 
-    return getInputSpecDefaultValues(inputSpec).filter(Boolean);
+    return getInputSpecDefaultValues(inputSpec).filter(value => value !== '');
   }
 
   function syncMountedControlFromInputSpec(inputSpec, options = {}) {
@@ -1396,7 +1397,7 @@
         return;
       }
 
-      const values = rawValues.filter(Boolean);
+      const values = rawValues.filter(value => value !== '');
 
       if (values.length === 0) return;
       if (isMultiValue) {

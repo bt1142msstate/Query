@@ -18,7 +18,7 @@
         });
       }
 
-      bindings[inputSpec.key] = isMultiValue ? values.filter(Boolean) : (values[0] || '');
+      bindings[inputSpec.key] = isMultiValue ? values.filter(value => value !== '') : (values[0] ?? '');
     });
 
     return bindings;
@@ -69,7 +69,7 @@
 
   function appendFilter(targetFilters, fieldName, operator, values) {
     const normalizedValues = Array.isArray(values)
-      ? values.map(value => String(value ?? '').trim()).filter(Boolean)
+      ? values.map(value => String(value ?? '').trim()).filter(value => value !== '')
       : [];
 
     if (!fieldName || normalizedValues.length === 0) {
@@ -91,7 +91,7 @@
       ? filterSpec.values
       : (filterSpec.value === undefined || filterSpec.value === null ? [] : [filterSpec.value]);
 
-    const resolved = rawValues.map(value => interpolateValue(value, bindings)).filter(Boolean);
+    const resolved = rawValues.map(value => interpolateValue(value, bindings)).filter(value => value !== '');
     if (filterSpec.operator === 'between') {
       return resolved.slice(0, 2);
     }
@@ -141,7 +141,9 @@
         return;
       }
 
-      const activeValues = isMultiValue ? values.filter(Boolean) : values.slice(0, 1).filter(Boolean);
+      const activeValues = isMultiValue
+        ? values.filter(value => value !== '')
+        : values.slice(0, 1).filter(value => value !== '');
       if (activeValues.length > 0) {
         appendFilter(nextActiveFilters, inputSpec.field, inputSpec.operator, activeValues);
       }
@@ -162,7 +164,7 @@
       const isDateField = getFieldInputType(fieldDef, inputSpec) === 'date';
       const isMissing = inputSpec.operator === 'between'
         ? values.slice(0, 2).some(value => !String(value ?? '').trim())
-        : values.filter(Boolean).length === 0;
+        : values.filter(value => value !== '').length === 0;
       const hasInvalidDate = isDateField && values.some(value => {
         const normalized = String(value ?? '').trim();
         return normalized && (!window.CustomDatePicker || !window.CustomDatePicker.isValidDateValue(normalized));
