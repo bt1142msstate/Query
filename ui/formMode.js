@@ -25,13 +25,17 @@
     spec: null,
     specSource: 'generated',
     initialSpec: null,
+    sharedBaselineSpec: null,
     searchParams: null,
     initialSearchParams: null,
+    sharedBaselineSearchParams: null,
     viewMode: 'bubbles',
     formCard: null,
     validationEl: null,
     runBtn: null,
     copyBtn: null,
+    resetOriginalBtn: null,
+    resetSharedBtn: null,
     modeToggleBtn: null,
     mobileModeToggleBtn: null,
     formHost: null,
@@ -648,9 +652,20 @@
         ? 'Share form link'
         : 'Share unavailable until fields are added'
     );
+
+    if (state.resetSharedBtn) {
+      const hasSharedBaseline = Boolean(state.sharedBaselineSpec);
+      state.resetSharedBtn.disabled = !hasSharedBaseline;
+      state.resetSharedBtn.setAttribute(
+        'data-tooltip',
+        hasSharedBaseline
+          ? 'Restore the last version you shared.'
+          : 'Share this form first to create a shared baseline.'
+      );
+    }
   }
 
-  function saveCurrentFormAsBaseline() {
+  function saveCurrentFormAsSharedBaseline() {
     if (!state.active || !state.spec) {
       return false;
     }
@@ -661,12 +676,56 @@
       return false;
     }
 
-    state.initialSpec = nextSpec;
+    state.sharedBaselineSpec = nextSpec;
     const shareUrl = buildCurrentShareUrl();
-    state.initialSearchParams = shareUrl
+    state.sharedBaselineSearchParams = shareUrl
       ? new URL(shareUrl).searchParams
       : new URLSearchParams();
     return true;
+  }
+
+  function stopRunningQueryForReset() {
+    const lifecycleState = window.QueryStateReaders.getLifecycleState();
+    if (lifecycleState.queryRunning && typeof window.cancelQuery === 'function' && lifecycleState.currentQueryId) {
+      window.cancelQuery(lifecycleState.currentQueryId).catch(console.error);
+      window.QueryChangeManager.setLifecycleState({ queryRunning: false }, { source: 'QueryFormMode.reset.stopQuery', silent: true });
+      uiActions.updateRunButtonIcon();
+    }
+  }
+
+  function clearRenderedQueryResults() {
+    services.clearVirtualTableData();
+
+    if (typeof window.renderEmptyQueryTableState === 'function') {
+      window.renderEmptyQueryTableState();
+    }
+  }
+
+  function resetFormToBaseline(kind) {
+    const isShared = kind === 'shared';
+    const nextSpec = cloneSpec(isShared ? state.sharedBaselineSpec : state.initialSpec) || cloneSpec(state.spec);
+    const nextSearchParamsSource = isShared ? state.sharedBaselineSearchParams : state.initialSearchParams;
+
+    if (!nextSpec) {
+      return;
+    }
+
+    state.searchParams = nextSearchParamsSource ? new URLSearchParams(nextSearchParamsSource.toString()) : new URLSearchParams();
+    state.spec = nextSpec;
+    state.lastSuggestedTableName = '';
+    state.suppressAutoTableNameOnce = false;
+    state.forceTableNameSyncOnce = true;
+
+    stopRunningQueryForReset();
+    clearRenderedQueryResults();
+
+    rebuildFormCardFromSpec({
+      preserveCurrentDefaults: false,
+      applyState: true,
+      refreshUrl: true,
+      clearSearchParams: false,
+      querySource: isShared ? 'QueryFormMode.resetToShared' : 'QueryFormMode.resetToOriginal'
+    });
   }
 
   function refreshBrowserUrl(options = {}) {
@@ -859,9 +918,10 @@
     state.specSource = 'generated';
     state.spec = nextSpec;
     state.initialSpec = cloneSpec(nextSpec);
+    state.sharedBaselineSpec = null;
     state.searchParams = new URLSearchParams();
     state.initialSearchParams = new URLSearchParams();
-    state.initialSearchParams = new URLSearchParams();
+    state.sharedBaselineSearchParams = null;
     state.viewMode = 'form';
     state.controls.clear();
 
@@ -890,6 +950,7 @@
     state.specSource = 'generated';
     state.spec = nextSpec;
     state.initialSpec = cloneSpec(nextSpec);
+    state.sharedBaselineSpec = state.sharedBaselineSpec ? cloneSpec(state.sharedBaselineSpec) : null;
     state.searchParams = new URLSearchParams();
 
     if (options.forceFormMode) {
@@ -1266,7 +1327,8 @@
         <div class="form-mode-actions">
           <button type="button" id="form-mode-add-field" class="form-mode-btn form-mode-btn-secondary">+ Add Field</button>
           <button type="button" id="form-mode-run" class="form-mode-btn form-mode-btn-primary">Run Form</button>
-          <button type="button" id="form-mode-reset" class="form-mode-btn" data-tooltip="Restore the form to the original URL values.">Reset</button>
+          <button type="button" id="form-mode-reset-original" class="form-mode-btn" data-tooltip="Restore the original form version.">Reset to Original</button>
+          <button type="button" id="form-mode-reset-shared" class="form-mode-btn" data-tooltip="Share this form first to create a shared baseline.">Reset to Last Shared</button>
           <button type="button" id="form-mode-copy" class="form-mode-btn">Share</button>
         </div>
       </div>
@@ -1282,6 +1344,8 @@
     state.validationEl = card.querySelector('#form-mode-validation');
     state.runBtn = card.querySelector('#form-mode-run');
     state.copyBtn = card.querySelector('#form-mode-copy');
+    state.resetOriginalBtn = card.querySelector('#form-mode-reset-original');
+    state.resetSharedBtn = card.querySelector('#form-mode-reset-shared');
 
     const fieldsWrap = card.querySelector('#form-mode-fields');
     const visibleInputs = state.spec.inputs.filter(inputSpec => !inputSpec.hidden);
@@ -1340,40 +1404,22 @@
       });
     });
 
-    card.querySelector('#form-mode-reset').addEventListener('click', async () => {
-      // Revert the URL parameters fully back to whatever they were originally
-      state.searchParams = state.initialSearchParams ? new URLSearchParams(state.initialSearchParams.toString()) : new URLSearchParams();
-      state.spec = cloneSpec(state.initialSpec || state.spec);
-      state.lastSuggestedTableName = '';
-      state.suppressAutoTableNameOnce = false;
-      state.forceTableNameSyncOnce = true;
+    state.resetOriginalBtn.addEventListener('click', () => {
+      resetFormToBaseline('original');
+    });
 
-      // Ensure any running query stops
-      const lifecycleState = window.QueryStateReaders.getLifecycleState();
-      if (lifecycleState.queryRunning && typeof window.cancelQuery === 'function' && lifecycleState.currentQueryId) {
-        window.cancelQuery(lifecycleState.currentQueryId).catch(console.error);
-        window.QueryChangeManager.setLifecycleState({ queryRunning: false }, { source: 'QueryFormMode.reset.stopQuery', silent: true });
-        uiActions.updateRunButtonIcon();
+    state.resetSharedBtn.addEventListener('click', () => {
+      if (!state.sharedBaselineSpec) {
+        if (window.showToastMessage) {
+          window.showToastMessage('Share this form first to create a shared baseline.', 'warning');
+        }
+        return;
       }
-
-      // We drop the table output so it sets back to a pre-searched form state
-      services.clearVirtualTableData();
-
-      if (typeof window.renderEmptyQueryTableState === 'function') {
-        window.renderEmptyQueryTableState();
-      }
-
-      rebuildFormCardFromSpec({
-        preserveCurrentDefaults: false,
-        applyState: true,
-        refreshUrl: true,
-        clearSearchParams: false,
-        querySource: 'QueryFormMode.resetForm'
-      });
+      resetFormToBaseline('shared');
     });
 
     state.copyBtn.addEventListener('click', async () => {
-      const saved = saveCurrentFormAsBaseline();
+      const saved = saveCurrentFormAsSharedBaseline();
       if (!saved) {
         if (window.showToastMessage) {
           window.showToastMessage('No form link is available to share.', 'warning');
@@ -1382,7 +1428,7 @@
       }
 
       await window.ClipboardUtils.copyFromSource(() => buildCurrentShareUrl(), {
-        successMessage: 'Shared link copied. Reset will now return to this version.',
+        successMessage: 'Shared link copied. Reset to Last Shared now returns to this version.',
         errorMessage: 'Failed to copy form link.',
         emptyMessage: 'No form link is available to share.'
       });
@@ -1601,7 +1647,9 @@
     state.specSource = 'url';
     state.spec = decodedSpec;
     state.initialSpec = cloneSpec(decodedSpec);
+    state.sharedBaselineSpec = null;
     state.searchParams = searchParams;
+    state.sharedBaselineSearchParams = null;
     state.viewMode = searchParams.get('mode') === 'bubbles' ? 'bubbles' : 'form';
 
     if (typeof window.loadFieldDefinitions === 'function') {
@@ -1616,7 +1664,7 @@
     applyFormState({ source: 'QueryFormMode.initializeFromUrl' });
     syncPresentationMode();
     state.searchParams = new URLSearchParams();
-    refreshBrowserUrl({ forceShareUrl: true });
+    refreshBrowserUrl();
     uiActions.updateButtonStates();
   }
 
