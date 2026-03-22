@@ -46,6 +46,30 @@ function getFilterErrorLabelElement() {
     return window.DOM?.filterError || document.getElementById('filter-error');
 }
 
+function getActiveFilterFieldName() {
+    const activeBubble = document.querySelector('.active-bubble') || document.querySelector('.bubble-clone');
+    if (activeBubble) {
+        const bubbleFieldName = String(activeBubble.dataset.filterFor || activeBubble.textContent || '').trim();
+        if (bubbleFieldName) {
+            return bubbleFieldName;
+        }
+    }
+
+    const filterCard = services.getBubbleFilterCardElement ? services.getBubbleFilterCardElement() : null;
+    const cardFieldName = String(filterCard?.dataset?.fieldName || '').trim();
+    if (cardFieldName) {
+        return cardFieldName;
+    }
+
+    const selectedFieldName = String(appState.selectedField || '').trim();
+    if (selectedFieldName) {
+        return selectedFieldName;
+    }
+
+    const titleEl = services.getBubbleFilterCardTitleElement ? services.getBubbleFilterCardTitleElement(filterCard) : null;
+    return String(titleEl?.textContent || '').trim();
+}
+
 function setConditionInputVisible(input, visible) {
     if (!input) return;
 
@@ -206,6 +230,7 @@ function buildBubbleConditionPanel(bubble) {
     const inputWrapper = getFilterInputWrapperElement();
     const conditionInput = getFilterConditionInputElement();
     const confirmBtn = window.DOM?.confirmBtn || document.getElementById('confirm-btn');
+    const filterCard = services.getBubbleFilterCardElement ? services.getBubbleFilterCardElement() : null;
 
     if (!conditionPanel || !inputWrapper || !conditionInput || !confirmBtn) {
         console.warn('buildConditionPanel skipped: missing condition panel DOM nodes');
@@ -213,6 +238,9 @@ function buildBubbleConditionPanel(bubble) {
     }
 
     appState.selectedField = bubble.textContent.trim();
+    if (filterCard) {
+        filterCard.dataset.fieldName = appState.selectedField;
+    }
     const type = bubble.dataset.type || 'string';
     let listValues = null;
     let hasValuePairs = false;
@@ -1134,9 +1162,7 @@ window.configureInputsForType = function(type){
     const inputs=[inp1,inp2].filter(Boolean);
   const isMoney  = type==='money';
   const isNumber = type==='number';
-    const filterCard = services.getBubbleFilterCardElement ? services.getBubbleFilterCardElement() : null;
-    const titleEl = services.getBubbleFilterCardTitleElement ? services.getBubbleFilterCardTitleElement(filterCard) : null;
-    const currentFieldName = titleEl ? String(titleEl.textContent || '').trim() : '';
+    const currentFieldName = getActiveFilterFieldName();
     const numberFormat = window.ValueFormatting?.getNumberFormat?.(currentFieldName) || '';
     const isDate = type === 'date';
     const htmlType = 'text';
