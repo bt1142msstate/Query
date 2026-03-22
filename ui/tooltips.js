@@ -461,6 +461,8 @@ window.formatFieldDefinitionTooltipHTML = function(fieldDef, options = {}) {
     return '';
   }
 
+  const normalizedType = String(fieldDef.type || '').trim().toLowerCase();
+  const normalizedNumberFormat = String(fieldDef.numberFormat || fieldDef.numericFormat || '').trim().toLowerCase();
   const categoryValue = typeof fieldDef.category === 'string'
     ? fieldDef.category.trim()
     : '';
@@ -477,8 +479,20 @@ window.formatFieldDefinitionTooltipHTML = function(fieldDef, options = {}) {
   const filterOperators = typeof window.getFieldFilterOperators === 'function'
     ? window.getFieldFilterOperators(fieldDef)
     : (Array.isArray(fieldDef.filters) ? fieldDef.filters : []);
+  const typeLabel = (() => {
+    if (normalizedType === 'money' || normalizedNumberFormat === 'currency') return 'Money';
+    if (normalizedType === 'date') return 'Date';
+    if (normalizedType === 'boolean') return 'Boolean';
+    if (normalizedType === 'number') {
+      if (normalizedNumberFormat === 'year') return 'Year';
+      if (normalizedNumberFormat === 'decimal') return 'Decimal';
+      return 'Integer';
+    }
+    if (normalizedType === 'string') return 'Text';
+    return normalizedType ? normalizedType.charAt(0).toUpperCase() + normalizedType.slice(1) : '';
+  })();
 
-  if (!title && !categoryValue && !descValue && filterOperators.length === 0) {
+  if (!title && !categoryValue && !descValue && !typeLabel && filterOperators.length === 0) {
     return '';
   }
 
@@ -492,6 +506,9 @@ window.formatFieldDefinitionTooltipHTML = function(fieldDef, options = {}) {
   }
 
   html += '<div class="tt-field-definition-meta">';
+  if (typeLabel) {
+    html += '<span class="tt-field-definition-badge data-type">' + escapeHtml(typeLabel) + '</span>';
+  }
   html += '<span class="tt-field-definition-badge ' + (isFilterable ? 'filterable' : 'display-only') + '">';
   html += isFilterable ? 'Filterable' : 'Display only';
   html += '</span>';
