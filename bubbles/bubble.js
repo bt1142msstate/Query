@@ -243,6 +243,7 @@ function resetBubbleEditorUi(options = {}) {
     filterCard.setAttribute('aria-hidden', 'true');
     filterCard.inert = true;
     filterCard.hidden = true;
+    delete filterCard.dataset.fieldName;
   }
 
   const operatorSelect = conditionPanel?.querySelector('#condition-operator-select');
