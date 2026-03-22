@@ -490,11 +490,6 @@ window.ValueFormatting = (() => {
       return explicitFormat;
     }
 
-    const normalizedField = String(fieldName || '').trim();
-    if (normalizedField && /\byear\b/i.test(normalizedField)) {
-      return 'year';
-    }
-
     if (fieldDef?.type === 'money') {
       return 'currency';
     }
