@@ -186,6 +186,10 @@
     }
 
     function syncDetails() {
+      if (!fieldNameEl || !fieldMetaEl || !statusEl) {
+        return;
+      }
+
       const selected = options.find(option => option.name === selectedFieldName) || null;
       if (!selected) {
         fieldNameEl.textContent = '';
@@ -232,48 +236,89 @@
         : 'No changes for this field.';
     }
 
-    async function applySelectedFieldChanges(changeType) {
-      if (!selectedFieldName) return;
-
-      const currentState = getSelectedState();
-
-      if (changeType === 'display' && allowDisplay && displayChoice && displayChoice.checked !== currentState.display && typeof config.onDisplayChange === 'function') {
-        const result = await config.onDisplayChange(selectedFieldName, displayChoice.checked, { cleanup, modal });
-        if (result && result.close) {
-          cleanup();
-          if (typeof result.afterClose === 'function') {
-            window.setTimeout(() => result.afterClose(), 0);
-          }
-          return;
+    async function handlePickerActionResult(result) {
+      if (result && result.close) {
+        cleanup();
+        if (typeof result.afterClose === 'function') {
+          window.setTimeout(() => result.afterClose(), 0);
         }
+        return;
       }
-
-      const updatedState = getSelectedState();
-      if (changeType === 'filter' && allowFilter && filterChoice && filterChoice.checked !== updatedState.filter && typeof config.onFilterChange === 'function') {
-        const selected = options.find(option => option.name === selectedFieldName) || null;
-        if (selected && selected.filterable === false) {
-          syncChoiceInputs();
-          syncDetails();
-          return;
-        }
-
-        const result = await config.onFilterChange(selectedFieldName, filterChoice.checked, { cleanup, modal });
-        if (result && result.close) {
-          cleanup();
-          if (typeof result.afterClose === 'function') {
-            window.setTimeout(() => result.afterClose(), 0);
-          }
-          return;
-        }
-      }
-
       renderList();
       syncChoiceInputs();
       syncDetails();
     }
 
-    async function applyDisplaySelectionFromOption(fieldName) {
+    async function applyDisplayChange(fieldName, nextChecked, options = {}) {
       if (!fieldName || typeof config.onDisplayChange !== 'function') {
+        return;
+      }
+
+      const currentState = normalizePickerState(getFieldState(fieldName));
+      if (currentState.display === nextChecked) {
+        if (options.closeIfUnchanged) {
+          cleanup();
+        } else {
+          renderList();
+          syncChoiceInputs();
+          syncDetails();
+        }
+        return;
+      }
+
+      selectedFieldName = fieldName;
+      const result = await config.onDisplayChange(fieldName, nextChecked, { cleanup, modal, trigger: options.trigger });
+      await handlePickerActionResult(result);
+
+      if (options.closeAfterApply) {
+        cleanup();
+      }
+    }
+
+    async function applyFilterChange(fieldName, nextChecked, options = {}) {
+      if (!fieldName || typeof config.onFilterChange !== 'function') {
+        return;
+      }
+
+      const selected = optionsListFind(fieldName);
+      if (selected && selected.filterable === false) {
+        syncChoiceInputs();
+        syncDetails();
+        return;
+      }
+
+      const currentState = normalizePickerState(getFieldState(fieldName));
+      if (currentState.filter === nextChecked) {
+        renderList();
+        syncChoiceInputs();
+        syncDetails();
+        return;
+      }
+
+      selectedFieldName = fieldName;
+      const result = await config.onFilterChange(fieldName, nextChecked, { cleanup, modal, trigger: options.trigger });
+      await handlePickerActionResult(result);
+    }
+
+    function optionsListFind(fieldName) {
+      return options.find(option => option.name === fieldName) || null;
+    }
+
+    async function applySelectedFieldChanges(changeType) {
+      if (!selectedFieldName) return;
+
+      if (changeType === 'display' && allowDisplay && displayChoice) {
+        await applyDisplayChange(selectedFieldName, displayChoice.checked, { trigger: 'details-toggle' });
+        return;
+      }
+
+      if (changeType === 'filter' && allowFilter && filterChoice) {
+        await applyFilterChange(selectedFieldName, filterChoice.checked, { trigger: 'details-toggle' });
+      }
+    }
+
+    async function applyDisplaySelectionFromOption(fieldName) {
+      if (!fieldName) {
         return false;
       }
 
@@ -286,18 +331,11 @@
         return true;
       }
 
-      selectedFieldName = fieldName;
-      const result = await config.onDisplayChange(fieldName, true, { cleanup, modal, trigger: 'option-click' });
-
-      if (result && result.close) {
-        cleanup();
-        if (typeof result.afterClose === 'function') {
-          window.setTimeout(() => result.afterClose(), 0);
-        }
-        return true;
-      }
-
-      cleanup();
+      await applyDisplayChange(fieldName, true, {
+        trigger: 'option-click',
+        closeAfterApply: true,
+        closeIfUnchanged: true
+      });
       return true;
     }
 
