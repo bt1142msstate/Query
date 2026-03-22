@@ -257,7 +257,7 @@
         return false;
       }
 
-      const values = previewState.values.map(value => String(value || '').trim());
+      const values = previewState.values.map(value => String(value ?? '').trim());
       if (String(previewState.operator || '').trim().toLowerCase() === 'between') {
         return Boolean(values[0] && values[1]);
       }
@@ -649,7 +649,7 @@
   function fieldMatchesBase(fieldName, targetField) {
     const getBaseFieldName = typeof window.getBaseFieldName === 'function'
       ? window.getBaseFieldName
-      : value => String(value || '').trim();
+      : value => String(value ?? '').trim();
 
     return getBaseFieldName(fieldName) === getBaseFieldName(targetField);
   }

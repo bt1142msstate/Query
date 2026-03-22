@@ -74,7 +74,7 @@
   }
 
   function slugify(value) {
-    return String(value || '')
+    return String(value ?? '')
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
@@ -82,7 +82,7 @@
 
   function normalizeStringArray(value) {
     if (Array.isArray(value)) {
-      return value.map(item => String(item || '').trim()).filter(Boolean);
+      return value.map(item => String(item ?? '').trim()).filter(Boolean);
     }
 
     if (typeof value === 'string') {
@@ -142,7 +142,7 @@
 
   function splitListValues(rawValue) {
     if (Array.isArray(rawValue)) {
-      return rawValue.map(value => String(value || '').trim()).filter(Boolean);
+      return rawValue.map(value => String(value ?? '').trim()).filter(Boolean);
     }
 
     return String(rawValue || '')
@@ -326,12 +326,12 @@
 
     if (inputSpec.operator === 'between') {
       return Array.isArray(inputSpec.defaultValue)
-        ? inputSpec.defaultValue.slice(0, 2).map(value => String(value || ''))
+        ? inputSpec.defaultValue.slice(0, 2).map(value => String(value ?? ''))
         : ['', ''];
     }
 
     if (Array.isArray(inputSpec.defaultValue)) {
-      return inputSpec.defaultValue.map(value => String(value || '')).filter(Boolean);
+      return inputSpec.defaultValue.map(value => String(value ?? '')).filter(Boolean);
     }
 
     if (inputSpec.defaultValue === undefined || inputSpec.defaultValue === null) {
@@ -347,7 +347,7 @@
     }
 
     const normalizedValues = Array.isArray(values)
-      ? values.map(value => String(value || '').trim())
+      ? values.map(value => String(value ?? '').trim())
       : [];
 
     if (inputSpec.operator === 'between') {
@@ -458,6 +458,18 @@
     return `${String(inputSpec.field || '').trim()}::${String(inputSpec.operator || '').trim()}`;
   }
 
+  function shouldRemoveUnmatchedInputFromQuerySync(inputSpec) {
+    if (!inputSpec) {
+      return false;
+    }
+
+    if (inputSpec.source === 'query-filter') {
+      return true;
+    }
+
+    return state.specSource === 'generated';
+  }
+
   function syncActiveSpecWithCurrentQuery(options = {}) {
     if (!state.active || !state.spec) {
       return false;
@@ -533,7 +545,7 @@
         return;
       }
 
-      if (inputSpec.source === 'query-filter') {
+      if (shouldRemoveUnmatchedInputFromQuerySync(inputSpec)) {
         changed = true;
         return;
       }
@@ -1123,7 +1135,7 @@
           return {
             fieldName,
             operator: previewInputSpec.operator,
-            values: Array.isArray(values) ? values.map(value => String(value || '').trim()) : []
+            values: Array.isArray(values) ? values.map(value => String(value ?? '').trim()) : []
           };
         }
 
@@ -1257,7 +1269,7 @@
 
     const values = control.getFormValues();
     if (!Array.isArray(values)) return [];
-    return values.map(value => String(value || '').trim());
+    return values.map(value => String(value ?? '').trim());
   }
 
   function getCurrentInputValues(inputSpec) {

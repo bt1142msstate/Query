@@ -69,7 +69,7 @@
 
   function appendFilter(targetFilters, fieldName, operator, values) {
     const normalizedValues = Array.isArray(values)
-      ? values.map(value => String(value || '').trim()).filter(Boolean)
+      ? values.map(value => String(value ?? '').trim()).filter(Boolean)
       : [];
 
     if (!fieldName || normalizedValues.length === 0) {
@@ -134,7 +134,7 @@
       const values = getCurrentInputValues(inputSpec);
 
       if (inputSpec.operator === 'between') {
-        const betweenValues = values.slice(0, 2).map(value => String(value || '').trim());
+        const betweenValues = values.slice(0, 2).map(value => String(value ?? '').trim());
         if (betweenValues.every(Boolean)) {
           appendFilter(nextActiveFilters, inputSpec.field, 'between', betweenValues);
         }
@@ -161,10 +161,10 @@
       const fieldDef = getFieldDef(inputSpec.field);
       const isDateField = getFieldInputType(fieldDef, inputSpec) === 'date';
       const isMissing = inputSpec.operator === 'between'
-        ? values.slice(0, 2).some(value => !String(value || '').trim())
+        ? values.slice(0, 2).some(value => !String(value ?? '').trim())
         : values.filter(Boolean).length === 0;
       const hasInvalidDate = isDateField && values.some(value => {
-        const normalized = String(value || '').trim();
+        const normalized = String(value ?? '').trim();
         return normalized && (!window.CustomDatePicker || !window.CustomDatePicker.isValidDateValue(normalized));
       });
 
