@@ -177,6 +177,15 @@
 
       wrapper.setFormValues = function(values) {
         const rawValue = Array.isArray(values) && values.length ? String(values[0]) : '';
+        if (input._moneyAutoNumeric && typeof input._moneyAutoNumeric.set === 'function') {
+          input._moneyAutoNumeric.set(rawValue || '');
+          if (rawValue) {
+            input.dataset.moneyRaw = rawValue;
+          } else {
+            delete input.dataset.moneyRaw;
+          }
+          return;
+        }
         input.value = window.MoneyUtils.formatInputValue(rawValue);
         window.MoneyUtils.configureInputBehavior(input, true);
       };
@@ -214,6 +223,15 @@
 
       input.setFormValues = function(values) {
         const rawValue = Array.isArray(values) && values.length ? String(values[0]) : '';
+        if (input._moneyAutoNumeric && typeof input._moneyAutoNumeric.set === 'function') {
+          input._moneyAutoNumeric.set(rawValue || '');
+          if (rawValue) {
+            input.dataset.moneyRaw = rawValue;
+          } else {
+            delete input.dataset.moneyRaw;
+          }
+          return;
+        }
         input.value = useGroupedIntegerFormatting || allowDecimal
           ? window.MoneyUtils.formatInputValue(rawValue, { allowDecimal })
           : window.MoneyUtils.sanitizeInputValue(rawValue, { allowDecimal: false });
@@ -350,6 +368,11 @@
       });
       selector.getFormValues = function() {
         return typeof selector.getSelectedValues === 'function' ? selector.getSelectedValues() : [];
+      };
+      selector.setFormValues = function(valuesToSet) {
+        if (typeof selector.setSelectedValues === 'function') {
+          selector.setSelectedValues(valuesToSet);
+        }
       };
       return selector;
     }

@@ -1297,8 +1297,14 @@
       return;
     }
 
+    const nextValues = getInputSpecDefaultValues(inputSpec);
     if (typeof mountedControl.setFormValues === 'function') {
-      mountedControl.setFormValues(getInputSpecDefaultValues(inputSpec));
+      mountedControl.setFormValues(nextValues);
+      return;
+    }
+
+    if (typeof mountedControl.setSelectedValues === 'function') {
+      mountedControl.setSelectedValues(nextValues);
     }
   }
 
