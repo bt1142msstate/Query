@@ -413,7 +413,9 @@
       normalizeOperatorForField,
       removeSpecInputByKey,
       rebuildFormCardFromSpec,
-      captureCurrentControlDefaults
+      captureCurrentControlDefaults,
+      showRemoveButton = true,
+      onOperatorChange = null
     } = options;
 
     const row = document.createElement('div');
@@ -440,13 +442,19 @@
     removeButton.setAttribute('aria-label', `Remove filter ${inputSpec.label}`);
     removeButton.setAttribute('title', `Remove filter ${inputSpec.label}`);
     removeButton.innerHTML = window.Icons.trashSVG(16, 16);
-    removeButton.addEventListener('click', () => {
-      removeSpecInputByKey(inputSpec.key);
-      rebuildFormCardFromSpec({ querySource: 'QueryFormMode.removeFilterInput' });
-      if (window.showToastMessage) {
-        window.showToastMessage(`Removed filter ${inputSpec.label}.`, 'info');
-      }
-    });
+    if (showRemoveButton) {
+      removeButton.addEventListener('click', () => {
+        removeSpecInputByKey(inputSpec.key);
+        rebuildFormCardFromSpec({ querySource: 'QueryFormMode.removeFilterInput' });
+        if (window.showToastMessage) {
+          window.showToastMessage(`Removed filter ${inputSpec.label}.`, 'info');
+        }
+      });
+    } else {
+      removeButton.hidden = true;
+      removeButton.setAttribute('aria-hidden', 'true');
+      removeButton.tabIndex = -1;
+    }
 
     topRow.appendChild(label);
     topRow.appendChild(removeButton);
@@ -467,6 +475,10 @@
         className: 'form-mode-operator-chip form-mode-operator-select',
         ariaLabel: `Select operator for ${inputSpec.label}`,
         onChange: e => {
+          if (typeof onOperatorChange === 'function') {
+            onOperatorChange(e.target.value);
+            return;
+          }
           captureCurrentControlDefaults();
           inputSpec.operator = e.target.value;
           rebuildFormCardFromSpec({ querySource: 'QueryFormMode.changeOperator' });
