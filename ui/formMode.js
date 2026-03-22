@@ -1844,7 +1844,10 @@
         };
 
         if (state.isApplyingFormState) {
-          queueQueryStateReconcile(syncOptions);
+          queueQueryStateReconcile({
+            rebuildCard: false,
+            refreshUrl: syncOptions.refreshUrl
+          });
           return;
         }
 
