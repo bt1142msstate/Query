@@ -837,12 +837,15 @@
     state.spec.inputs = state.spec.inputs.filter(inputSpec => inputSpec.key !== inputKey);
   }
 
-  function captureCurrentControlDefaults() {
+  function captureCurrentControlDefaults(excludedInputKey = '') {
     if (!state.spec || !Array.isArray(state.spec.inputs) || state.controls.size === 0) {
       return;
     }
 
     state.spec.inputs.forEach(inputSpec => {
+      if (excludedInputKey && inputSpec.key === excludedInputKey) {
+        return;
+      }
       const fieldDef = window.fieldDefs ? window.fieldDefs.get(inputSpec.field) : null;
       syncInputSpecFromState(inputSpec, {
         operator: inputSpec.operator,
@@ -1310,7 +1313,11 @@
     let mountedControl = state.controls.get(inputSpec.key);
 
     if (previousOperator !== inputSpec.operator) {
-      rebuildFormCardFromSpec({ querySource });
+      captureCurrentControlDefaults(inputSpec.key);
+      rebuildFormCardFromSpec({
+        preserveCurrentDefaults: false,
+        querySource
+      });
       mountedControl = state.controls.get(inputSpec.key);
     }
 
