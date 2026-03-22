@@ -1185,6 +1185,7 @@
 
         if (nextChecked) {
           if (!hasSpecFilterInput(fieldName)) {
+            captureCurrentControlDefaults();
             const inputSpec = createGeneratedInputSpec(fieldName);
             if (!inputSpec) {
               if (window.showToastMessage) {
@@ -1202,7 +1203,10 @@
             }
 
             state.spec.inputs.push(inputSpec);
-            rebuildFormCardFromSpec({ querySource: 'QueryFormMode.fieldPicker.addFilterInput' });
+            rebuildFormCardFromSpec({
+              preserveCurrentDefaults: false,
+              querySource: 'QueryFormMode.fieldPicker.addFilterInput'
+            });
             if (window.showToastMessage) {
               window.showToastMessage(`${fieldName}: added filter control.`, 'success');
             }
@@ -1227,6 +1231,7 @@
         const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
 
         if (!targetInputSpec) {
+          captureCurrentControlDefaults();
           targetInputSpec = createGeneratedInputSpec(fieldName);
           if (!targetInputSpec) {
             return;
@@ -1237,6 +1242,7 @@
 
           if (options.isNewFilter) {
             rebuildFormCardFromSpec({
+              preserveCurrentDefaults: false,
               querySource: 'QueryFormMode.fieldPicker.addFilterInput'
             });
             syncMountedControlFromInputSpec(targetInputSpec, {
