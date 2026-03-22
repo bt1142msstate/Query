@@ -217,6 +217,29 @@
       syncingControls = false;
     }
 
+    function syncOptionBadges() {
+      listEl.querySelectorAll('.form-mode-field-picker-option').forEach(button => {
+        const fieldName = String(button.dataset.fieldName || '').trim();
+        if (!fieldName) return;
+
+        button.classList.toggle('is-selected', fieldName === selectedFieldName);
+
+        const state = normalizePickerState(getFieldState(fieldName));
+        const badges = [];
+        if (allowDisplay && state.display) {
+          badges.push(`<span class="form-mode-field-picker-badge">${labels.displayBadge}</span>`);
+        }
+        if (allowFilter && state.filter) {
+          badges.push(`<span class="form-mode-field-picker-badge">${labels.filterBadge}</span>`);
+        }
+
+        const badgesEl = button.querySelector('.form-mode-field-picker-option-badges');
+        if (badgesEl) {
+          badgesEl.innerHTML = badges.join('');
+        }
+      });
+    }
+
     function getCurrentFilterPreviewState() {
       if (currentFilterPreviewApi && typeof currentFilterPreviewApi.getState === 'function') {
         return currentFilterPreviewApi.getState();
@@ -261,9 +284,9 @@
       if (currentState.filter) {
         if (typeof config.onFilterPreviewChange === 'function') {
           await config.onFilterPreviewChange(selectedFieldName, previewState, { modal, cleanup });
-          renderList();
+          syncOptionBadges();
           syncChoiceInputs();
-          syncDetails();
+          syncStatusTextOnly(selected);
         }
         return;
       }
@@ -322,30 +345,17 @@
       }
     }
 
-    function syncDetails() {
-      if (!fieldNameEl || !fieldMetaEl || !statusEl) {
+    function syncStatusTextOnly(selected = options.find(option => option.name === selectedFieldName) || null) {
+      if (!statusEl) {
         return;
       }
 
-      const selected = options.find(option => option.name === selectedFieldName) || null;
       if (!selected) {
-        fieldNameEl.textContent = '';
-        fieldMetaEl.textContent = '';
-        fieldMetaEl.classList.add('hidden');
         statusEl.textContent = 'No field selected.';
-        clearFilterPreview();
         return;
       }
 
       const state = getSelectedState();
-      const metaParts = [];
-      if (selected.type) metaParts.push(selected.type);
-      if (selected.category) metaParts.push(selected.category);
-
-      fieldNameEl.textContent = selected.name;
-      fieldMetaEl.textContent = metaParts.join(' • ');
-      fieldMetaEl.classList.toggle('hidden', metaParts.length === 0);
-
       const statusParts = [];
       if (allowDisplay && displayChoice) {
         if (displayChoice.checked && !state.display) {
@@ -380,6 +390,32 @@
       statusEl.textContent = statusParts.length > 0
         ? statusParts.join(' • ')
         : 'No changes for this field.';
+    }
+
+    function syncDetails() {
+      if (!fieldNameEl || !fieldMetaEl || !statusEl) {
+        return;
+      }
+
+      const selected = options.find(option => option.name === selectedFieldName) || null;
+      if (!selected) {
+        fieldNameEl.textContent = '';
+        fieldMetaEl.textContent = '';
+        fieldMetaEl.classList.add('hidden');
+        statusEl.textContent = 'No field selected.';
+        clearFilterPreview();
+        return;
+      }
+
+      const metaParts = [];
+      if (selected.type) metaParts.push(selected.type);
+      if (selected.category) metaParts.push(selected.category);
+
+      fieldNameEl.textContent = selected.name;
+      fieldMetaEl.textContent = metaParts.join(' • ');
+      fieldMetaEl.classList.toggle('hidden', metaParts.length === 0);
+
+      syncStatusTextOnly(selected);
       syncFilterPreview();
     }
 
@@ -447,12 +483,14 @@
         cleanup,
         modal,
         trigger: options.trigger,
-        getFilterPreviewState: () => (
-          currentFilterPreviewApi && typeof currentFilterPreviewApi.getState === 'function'
-            ? currentFilterPreviewApi.getState()
-            : null
-        )
+        getFilterPreviewState: () => getCurrentFilterPreviewState()
       });
+      if (options.trigger === 'preview-auto-add' && !(result && result.close)) {
+        syncOptionBadges();
+        syncChoiceInputs();
+        syncStatusTextOnly(optionsListFind(fieldName));
+        return;
+      }
       await handlePickerActionResult(result);
     }
 
@@ -527,6 +565,7 @@
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'form-mode-field-picker-option';
+        button.dataset.fieldName = option.name;
         if (option.name === selectedFieldName) {
           button.classList.add('is-selected');
         }
