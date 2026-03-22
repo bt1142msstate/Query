@@ -31,6 +31,7 @@
     if (inputSpec.type) return inputSpec.type;
 
     const fieldType = fieldDef && fieldDef.type;
+    if (fieldType === 'boolean') return 'boolean';
     if (fieldType === 'date') return 'date';
     if (fieldType === 'money') return 'money';
     if (fieldType === 'number') return 'number';
@@ -354,7 +355,7 @@
   }
 
   function createSelectorControl(values, fieldDef, inputSpec, initialValues) {
-    const isBooleanField = Boolean(fieldDef && fieldDef.type === 'boolean');
+    const isBooleanField = getFieldInputType(fieldDef, inputSpec) === 'boolean';
     const isMultiSelect = supportsMultipleValues(inputSpec, fieldDef);
     const shouldGroupValues = Boolean(fieldDef && fieldDef.groupValues);
     const hasDashes = values.some(value => {
