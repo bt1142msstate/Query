@@ -48,6 +48,8 @@
     forceTableNameSyncOnce: false,
     isClearingQuery: false,
     isApplyingFormState: false,
+    pendingQuerySync: null,
+    querySyncQueued: false,
     tableNameListenersBound: false,
     hiddenNodes: []
   };
@@ -1197,11 +1199,16 @@
           if (!targetInputSpec) {
             return;
           }
+          const previousOperator = targetInputSpec.operator;
           syncInputSpecFromState(targetInputSpec, previewState, fieldDef);
           state.spec.inputs.push(targetInputSpec);
 
           if (options.isNewFilter) {
             rebuildFormCardFromSpec({
+              querySource: 'QueryFormMode.fieldPicker.addFilterInput'
+            });
+            syncMountedControlFromInputSpec(targetInputSpec, {
+              previousOperator,
               querySource: 'QueryFormMode.fieldPicker.addFilterInput'
             });
             applyFormState({ source: 'QueryFormMode.fieldPicker.previewUpdate' });
@@ -1211,7 +1218,12 @@
           }
         }
 
+        const previousOperator = targetInputSpec.operator;
         syncInputSpecFromState(targetInputSpec, previewState, fieldDef);
+        syncMountedControlFromInputSpec(targetInputSpec, {
+          previousOperator,
+          querySource: 'QueryFormMode.fieldPicker.previewUpdate'
+        });
         applyFormState({ source: 'QueryFormMode.fieldPicker.previewUpdate' });
         syncValidationUi();
         uiActions.updateButtonStates();
@@ -1246,6 +1258,32 @@
     return getInputSpecDefaultValues(inputSpec).filter(Boolean);
   }
 
+  function syncMountedControlFromInputSpec(inputSpec, options = {}) {
+    if (!inputSpec) {
+      return;
+    }
+
+    const {
+      previousOperator = inputSpec.operator,
+      querySource = 'QueryFormMode.syncMountedControl'
+    } = options;
+
+    let mountedControl = state.controls.get(inputSpec.key);
+
+    if (previousOperator !== inputSpec.operator) {
+      rebuildFormCardFromSpec({ querySource });
+      mountedControl = state.controls.get(inputSpec.key);
+    }
+
+    if (!mountedControl) {
+      return;
+    }
+
+    if (typeof mountedControl.setFormValues === 'function') {
+      mountedControl.setFormValues(getInputSpecDefaultValues(inputSpec));
+    }
+  }
+
   function applyFormState(options = {}) {
     if (!state.active || !state.spec) return;
 
@@ -1265,10 +1303,15 @@
       interpolateValue
     );
 
-    window.QueryChangeManager.setQueryState({
-      displayedFields: columns,
-      activeFilters: nextActiveFilters
-    }, { source });
+    state.isApplyingFormState = true;
+    try {
+      window.QueryChangeManager.setQueryState({
+        displayedFields: columns,
+        activeFilters: nextActiveFilters
+      }, { source });
+    } finally {
+      state.isApplyingFormState = false;
+    }
 
     refreshBrowserUrl();
   }
@@ -1721,6 +1764,48 @@
     Promise.resolve().then(runReset);
   }
 
+  function queueQueryStateReconcile(options = {}) {
+    const nextOptions = {
+      rebuildCard: Boolean(options.rebuildCard),
+      refreshUrl: options.refreshUrl !== false
+    };
+
+    if (state.pendingQuerySync) {
+      state.pendingQuerySync.rebuildCard = state.pendingQuerySync.rebuildCard || nextOptions.rebuildCard;
+      state.pendingQuerySync.refreshUrl = state.pendingQuerySync.refreshUrl || nextOptions.refreshUrl;
+    } else {
+      state.pendingQuerySync = nextOptions;
+    }
+
+    if (state.querySyncQueued) {
+      return;
+    }
+
+    state.querySyncQueued = true;
+    const runSync = () => {
+      state.querySyncQueued = false;
+      const queuedOptions = state.pendingQuerySync;
+      state.pendingQuerySync = null;
+
+      if (!queuedOptions || !state.active || state.isClearingQuery || state.isApplyingFormState) {
+        return;
+      }
+
+      syncActiveSpecWithCurrentQuery(queuedOptions);
+
+      if (state.viewMode === 'form') {
+        syncValidationUi();
+      }
+    };
+
+    if (typeof window.queueMicrotask === 'function') {
+      window.queueMicrotask(runSync);
+      return;
+    }
+
+    Promise.resolve().then(runSync);
+  }
+
   async function initialize() {
     if (initialized) {
       return;
@@ -1745,18 +1830,25 @@
           return;
         }
 
-        if (state.isClearingQuery || source.startsWith('QueryFormMode.')) {
+        if (state.isClearingQuery) {
           return;
         }
 
-        syncActiveSpecWithCurrentQuery({
+        const syncOptions = {
           rebuildCard: Boolean(
             state.viewMode === 'form'
             && event.changes
             && event.changes.activeFilters
           ),
           refreshUrl: true
-        });
+        };
+
+        if (state.isApplyingFormState) {
+          queueQueryStateReconcile(syncOptions);
+          return;
+        }
+
+        syncActiveSpecWithCurrentQuery(syncOptions);
 
         if (state.viewMode === 'form') {
           syncValidationUi();
