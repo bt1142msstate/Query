@@ -424,17 +424,20 @@
         column.numFmt = 'mm/dd/yyyy';
         column.alignment = { horizontal: 'right' };
       } else if (type === 'number' || type === 'money') {
+        const numberFormat = window.ValueFormatting?.getNumberFormat?.(field) || '';
         const colIndex = sourceData.virtualData.columnMap.get(field);
         const sample = colIndex !== undefined
           ? rowsToExport.map(r => r[colIndex]).find(v => v !== null && v !== undefined && v !== '')
           : null;
         if (type === 'money') {
           column.numFmt = '$#,##0.00';
+        } else if (numberFormat === 'year') {
+          column.numFmt = '0';
         } else {
           const isDecimal = sample !== undefined && sample !== null && !Number.isInteger(
             typeof sample === 'number' ? sample : parseFloat(String(sample))
           );
-          column.numFmt = isDecimal ? '#,##0.00' : '0';
+          column.numFmt = isDecimal ? '#,##0.00' : '#,##0';
         }
         column.alignment = { horizontal: 'right' };
       } else if (type === 'boolean') {

@@ -634,6 +634,7 @@ function renderVirtualTable() {
       if (cellValue !== '' && cellValue !== '—' && cellValue !== undefined && cellValue !== null) {
         if (type === 'date') {
           displayValue = window.ValueFormatting.formatValueByType(cellValue, type, {
+            fieldName: field,
             invalidDateValue: 'Never'
           });
           td.style.textAlign = 'right';
@@ -641,7 +642,7 @@ function renderVirtualTable() {
         else if (type === 'number' || type === 'money') {
           const n = parseNumericValue(cellValue, type);
           if (!isNaN(n)) {
-            displayValue = window.ValueFormatting.formatValueByType(n, type);
+            displayValue = window.ValueFormatting.formatValueByType(n, type, { fieldName: field });
             td.style.textAlign = 'right';
           }
         } 
@@ -805,13 +806,14 @@ function calculateFieldWidth(fieldName, data = null) {
           let measuredValue = String(value);
           if (type === 'date') {
             measuredValue = window.ValueFormatting.formatValueByType(value, type, {
+              fieldName,
               invalidDateValue: 'Never',
               dateFallbackToRaw: true
             });
           } else if (type === 'number' || type === 'money') {
             const numericValue = parseNumericValue(value, type);
             if (!isNaN(numericValue)) {
-              measuredValue = window.ValueFormatting.formatValueByType(numericValue, type);
+              measuredValue = window.ValueFormatting.formatValueByType(numericValue, type, { fieldName });
             }
           }
           const textWidth = window.TextMeasurement.measureText(measuredValue);

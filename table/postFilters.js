@@ -70,6 +70,10 @@
     return window.ValueFormatting.getFieldType(fieldName);
   }
 
+  function getNumberFormat(fieldName) {
+    return window.ValueFormatting?.getNumberFormat?.(fieldName) || '';
+  }
+
   function getOperatorOptions(fieldName) {
     const type = getFieldType(fieldName);
 
@@ -111,12 +115,14 @@
     if (String(filter?.cond || '').toLowerCase() === 'between') {
       const [left, right] = rawValue.split('|');
       const formatBound = value => window.ValueFormatting.formatValueByType(String(value || ''), type, {
+        fieldName,
         dateFallbackToRaw: true
       });
       return `${formatBound(left)} - ${formatBound(right)}`;
     }
 
     return window.ValueFormatting.formatValueByType(rawValue, type, {
+      fieldName,
       dateFallbackToRaw: true
     });
   }
@@ -276,6 +282,7 @@
     if (!elements.valueInput || !elements.valueInput2 || !elements.operatorSelect || !elements.fieldSelect || !elements.betweenLabel) return;
 
     const fieldType = getFieldType(elements.fieldSelect.value);
+    const numberFormat = getNumberFormat(elements.fieldSelect.value);
     const isBetween = elements.operatorSelect.value === 'between';
     const isDate = fieldType === 'date';
     const inputType = 'text';
@@ -295,7 +302,7 @@
       if (fieldType === 'money') {
         window.MoneyUtils.configureInputBehavior(input, true);
       } else if (fieldType === 'number') {
-        window.MoneyUtils.configureInputBehavior(input, { kind: 'integer' });
+        window.MoneyUtils.configureInputBehavior(input, numberFormat === 'year' ? false : { kind: 'integer' });
       } else {
         window.MoneyUtils.configureInputBehavior(input, false);
       }
