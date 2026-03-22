@@ -190,29 +190,37 @@
 
     if (inputType === 'number') {
       const numberFormat = window.ValueFormatting?.getNumberFormat?.(inputSpec.field || '') || '';
-      const useGroupedIntegerFormatting = numberFormat !== 'year';
+      const isDecimalNumber = numberFormat === 'decimal';
+      const useGroupedIntegerFormatting = !isDecimalNumber && numberFormat !== 'year';
+      const allowDecimal = isDecimalNumber;
       const input = document.createElement('input');
       input.type = 'text';
       input.className = 'form-mode-text-input';
-      input.placeholder = inputSpec.placeholder || '0';
-      input.value = useGroupedIntegerFormatting
-        ? window.MoneyUtils.formatInputValue(initialValues[0] || '', { allowDecimal: false })
+      input.placeholder = inputSpec.placeholder || (allowDecimal ? '0.00' : '0');
+      input.value = useGroupedIntegerFormatting || allowDecimal
+        ? window.MoneyUtils.formatInputValue(initialValues[0] || '', { allowDecimal })
         : window.MoneyUtils.sanitizeInputValue(initialValues[0] || '', { allowDecimal: false });
       input.autocomplete = 'off';
-      input.inputMode = 'numeric';
-      window.MoneyUtils.configureInputBehavior(input, useGroupedIntegerFormatting ? { kind: 'integer' } : false);
+      input.inputMode = allowDecimal ? 'decimal' : 'numeric';
+      window.MoneyUtils.configureInputBehavior(
+        input,
+        allowDecimal ? { kind: 'decimal' } : (useGroupedIntegerFormatting ? { kind: 'integer' } : false)
+      );
 
       input.getFormValues = function() {
-        const value = window.MoneyUtils.sanitizeInputValue(input.value, { allowDecimal: false });
+        const value = window.MoneyUtils.sanitizeInputValue(input.value, { allowDecimal });
         return value ? [value] : [];
       };
 
       input.setFormValues = function(values) {
         const rawValue = Array.isArray(values) && values.length ? String(values[0]) : '';
-        input.value = useGroupedIntegerFormatting
-          ? window.MoneyUtils.formatInputValue(rawValue, { allowDecimal: false })
+        input.value = useGroupedIntegerFormatting || allowDecimal
+          ? window.MoneyUtils.formatInputValue(rawValue, { allowDecimal })
           : window.MoneyUtils.sanitizeInputValue(rawValue, { allowDecimal: false });
-        window.MoneyUtils.configureInputBehavior(input, useGroupedIntegerFormatting ? { kind: 'integer' } : false);
+        window.MoneyUtils.configureInputBehavior(
+          input,
+          allowDecimal ? { kind: 'decimal' } : (useGroupedIntegerFormatting ? { kind: 'integer' } : false)
+        );
       };
 
       input.focusInput = function() {
@@ -289,8 +297,14 @@
     const wrapper = document.createElement('div');
     wrapper.className = 'form-mode-between';
 
-    const startInput = createTextControl(inputType, [initialValues[0] || ''], { placeholder: inputSpec.placeholder || 'From' });
-    const endInput = createTextControl(inputType, [initialValues[1] || ''], { placeholder: 'To' });
+    const startInput = createTextControl(inputType, [initialValues[0] || ''], {
+      ...inputSpec,
+      placeholder: inputSpec.placeholder || 'From'
+    });
+    const endInput = createTextControl(inputType, [initialValues[1] || ''], {
+      ...inputSpec,
+      placeholder: 'To'
+    });
     startInput.classList.add('form-mode-between-input');
     endInput.classList.add('form-mode-between-input');
 

@@ -622,7 +622,7 @@ window.MoneyUtils = (() => {
       const kind = String(modeOrIsMoney.kind || 'plain').toLowerCase();
       return {
         kind,
-        allowDecimal: kind === 'money',
+        allowDecimal: kind === 'money' || kind === 'decimal',
         symbolized: kind === 'money'
       };
     }
