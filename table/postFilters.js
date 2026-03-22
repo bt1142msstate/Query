@@ -464,13 +464,14 @@
     let value2 = String(elements.valueInput2.value || '').trim();
     let selectedValues = [];
     const fieldType = getFieldType(field);
+    const numberFormat = getNumberFormat(field);
 
     if (!field || !cond) {
       return;
     }
 
     if (fieldType === 'money' || fieldType === 'number') {
-      const allowDecimal = fieldType === 'money';
+      const allowDecimal = fieldType === 'money' || (fieldType === 'number' && numberFormat === 'decimal');
       value = window.MoneyUtils.sanitizeInputValue(value, { allowDecimal });
       value2 = window.MoneyUtils.sanitizeInputValue(value2, { allowDecimal });
     }

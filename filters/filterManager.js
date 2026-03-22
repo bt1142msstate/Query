@@ -695,8 +695,9 @@ window.handleFilterConfirm = function(e) {
     
     const fieldDef = window.fieldDefs.get(field);
     const fieldType = (bubble && bubble.dataset.type) || (fieldDef && fieldDef.type) || 'string';
+    const numberFormat = window.ValueFormatting?.getNumberFormat?.(field) || '';
     if (fieldType === 'money' || fieldType === 'number') {
-        const allowDecimal = fieldType === 'money';
+        const allowDecimal = fieldType === 'money' || (fieldType === 'number' && numberFormat === 'decimal');
         val = window.MoneyUtils.sanitizeInputValue(val, { allowDecimal });
         val2 = window.MoneyUtils.sanitizeInputValue(val2, { allowDecimal });
     }
@@ -1106,8 +1107,11 @@ function setNumericFieldAppearance(inputs, numericKind) {
     inputs.forEach(inp => {
         const isMoney = numericKind === 'money';
         const isInteger = numericKind === 'integer';
+        const isDecimal = numericKind === 'decimal';
         inp.classList.toggle('condition-field-money', isMoney);
         if (isMoney) {
+            inp.placeholder = '0.00';
+        } else if (isDecimal) {
             inp.placeholder = '0.00';
         } else if (isInteger) {
             inp.placeholder = '0';
@@ -1117,7 +1121,9 @@ function setNumericFieldAppearance(inputs, numericKind) {
             inp.placeholder = 'Enter value...';
         }
 
-        const mode = isMoney ? true : (isInteger ? { kind: 'integer' } : false);
+        const mode = isMoney
+          ? true
+          : (isDecimal ? { kind: 'decimal' } : (isInteger ? { kind: 'integer' } : false));
         window.MoneyUtils.configureInputBehavior(inp, mode);
     });
 }
@@ -1146,7 +1152,7 @@ window.configureInputsForType = function(type){
 
   inputs.forEach(inp=> inp.type = htmlType);
 
-  if(isMoney){
+  if(isMoney || (isNumber && numberFormat === 'decimal')){
     setNumericProps(inputs,true);
   }else if(isNumber){
     setNumericProps(inputs,false);
@@ -1154,7 +1160,14 @@ window.configureInputsForType = function(type){
     clearNumericProps(inputs);
   }
 
-    setNumericFieldAppearance(inputs, isMoney ? 'money' : (isNumber && numberFormat !== 'year' ? 'integer' : 'plain'));
+    setNumericFieldAppearance(
+      inputs,
+      isMoney ? 'money' : (
+        isNumber
+          ? (numberFormat === 'decimal' ? 'decimal' : (numberFormat !== 'year' ? 'integer' : 'plain'))
+          : 'plain'
+      )
+    );
 
     if (window.CustomDatePicker && typeof window.CustomDatePicker.enhanceInput === 'function') {
         inputs.forEach(inp => {
