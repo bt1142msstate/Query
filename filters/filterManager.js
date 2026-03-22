@@ -1128,6 +1128,10 @@ window.configureInputsForType = function(type){
     const inputs=[inp1,inp2].filter(Boolean);
   const isMoney  = type==='money';
   const isNumber = type==='number';
+    const filterCard = services.getBubbleFilterCardElement ? services.getBubbleFilterCardElement() : null;
+    const titleEl = services.getBubbleFilterCardTitleElement ? services.getBubbleFilterCardTitleElement(filterCard) : null;
+    const currentFieldName = titleEl ? String(titleEl.textContent || '').trim() : '';
+    const numberFormat = window.ValueFormatting?.getNumberFormat?.(currentFieldName) || '';
     const isDate = type === 'date';
     const htmlType = 'text';
 
@@ -1150,7 +1154,7 @@ window.configureInputsForType = function(type){
     clearNumericProps(inputs);
   }
 
-    setNumericFieldAppearance(inputs, isMoney ? 'money' : (isNumber ? 'integer' : 'plain'));
+    setNumericFieldAppearance(inputs, isMoney ? 'money' : (isNumber && numberFormat !== 'year' ? 'integer' : 'plain'));
 
     if (window.CustomDatePicker && typeof window.CustomDatePicker.enhanceInput === 'function') {
         inputs.forEach(inp => {

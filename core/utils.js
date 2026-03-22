@@ -483,6 +483,29 @@ window.ValueFormatting = (() => {
     return 'string';
   }
 
+  function getNumberFormat(fieldName) {
+    const fieldDef = getFieldDefinition(fieldName);
+    const explicitFormat = String(fieldDef?.numberFormat || fieldDef?.numericFormat || '').trim().toLowerCase();
+    if (explicitFormat) {
+      return explicitFormat;
+    }
+
+    const normalizedField = String(fieldName || '').trim();
+    if (normalizedField && /\byear\b/i.test(normalizedField)) {
+      return 'year';
+    }
+
+    if (fieldDef?.type === 'money') {
+      return 'currency';
+    }
+
+    if (fieldDef?.type === 'number') {
+      return 'integer';
+    }
+
+    return '';
+  }
+
   function formatDateDisplay(rawValue, options = {}) {
     const {
       invalidValue = 'Never',
@@ -508,18 +531,31 @@ window.ValueFormatting = (() => {
     return Number.parseFloat(String(rawValue || '').replace(/,/g, ''));
   }
 
-  function formatNumberDisplay(rawValue) {
+  function formatNumberDisplay(rawValue, options = {}) {
     const numericValue = parseStandardNumber(rawValue);
     if (Number.isNaN(numericValue)) {
       return '';
     }
 
-    return Number.isInteger(numericValue)
-      ? String(numericValue)
-      : numericValue.toLocaleString('en-US', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        });
+    const numberFormat = String(options.numberFormat || '').trim().toLowerCase();
+
+    if (numberFormat === 'year') {
+      return numericValue.toLocaleString('en-US', {
+        useGrouping: false,
+        maximumFractionDigits: 0
+      });
+    }
+
+    if (numberFormat === 'integer' || (numberFormat !== 'decimal' && Number.isInteger(numericValue))) {
+      return numericValue.toLocaleString('en-US', {
+        maximumFractionDigits: 0
+      });
+    }
+
+    return numericValue.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
   }
 
   function formatDelimitedValue(rawValue, joiner = ' | ') {
@@ -537,6 +573,8 @@ window.ValueFormatting = (() => {
   function formatValueByType(rawValue, type, options = {}) {
     const normalizedType = String(type || 'string').toLowerCase();
     const {
+      fieldName = '',
+      numberFormat = '',
       invalidDateValue = 'Never',
       dateFallbackToRaw = false,
       delimitedJoiner = ' | '
@@ -559,7 +597,9 @@ window.ValueFormatting = (() => {
     }
 
     if (normalizedType === 'number') {
-      return formatNumberDisplay(rawValue);
+      return formatNumberDisplay(rawValue, {
+        numberFormat: numberFormat || getNumberFormat(fieldName)
+      });
     }
 
     return formatDelimitedValue(rawValue, delimitedJoiner);
@@ -568,6 +608,7 @@ window.ValueFormatting = (() => {
   return {
     getFieldDefinition,
     getFieldType,
+    getNumberFormat,
     formatDateDisplay,
     formatNumberDisplay,
     formatDelimitedValue,
@@ -931,11 +972,11 @@ window.FormatUtils = {
     if (type === 'date') return vf.formatValueByType(s, type, { invalidDateValue: 'Never' });
     if (type === 'money') {
       const n = window.MoneyUtils?.parseNumber?.(s);
-      if (!isNaN(n)) return vf.formatValueByType(n, type);
+      if (!isNaN(n)) return vf.formatValueByType(n, type, { fieldName: field });
     }
     if (type === 'number') {
       const n = parseFloat(s.replace(/,/g, ''));
-      if (!isNaN(n)) return vf.formatValueByType(n, type);
+      if (!isNaN(n)) return vf.formatValueByType(n, type, { fieldName: field });
     }
     return s;
   }

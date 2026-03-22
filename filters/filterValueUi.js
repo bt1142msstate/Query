@@ -38,10 +38,11 @@
           const numericValue = window.MoneyUtils?.parseNumber?.(mappedValue);
           return Number.isNaN(numericValue)
             ? mappedValue
-            : window.ValueFormatting.formatValueByType(numericValue, fieldType);
+            : window.ValueFormatting.formatValueByType(numericValue, fieldType, { fieldName });
         }
 
         return window.ValueFormatting.formatValueByType(mappedValue, fieldType, {
+          fieldName,
           invalidDateValue: 'Never',
           dateFallbackToRaw: true
         });

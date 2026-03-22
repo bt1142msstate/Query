@@ -189,14 +189,18 @@
     }
 
     if (inputType === 'number') {
+      const numberFormat = window.ValueFormatting?.getNumberFormat?.(inputSpec.field || '') || '';
+      const useGroupedIntegerFormatting = numberFormat !== 'year';
       const input = document.createElement('input');
       input.type = 'text';
       input.className = 'form-mode-text-input';
       input.placeholder = inputSpec.placeholder || '0';
-      input.value = window.MoneyUtils.formatInputValue(initialValues[0] || '', { allowDecimal: false });
+      input.value = useGroupedIntegerFormatting
+        ? window.MoneyUtils.formatInputValue(initialValues[0] || '', { allowDecimal: false })
+        : window.MoneyUtils.sanitizeInputValue(initialValues[0] || '', { allowDecimal: false });
       input.autocomplete = 'off';
       input.inputMode = 'numeric';
-      window.MoneyUtils.configureInputBehavior(input, { kind: 'integer' });
+      window.MoneyUtils.configureInputBehavior(input, useGroupedIntegerFormatting ? { kind: 'integer' } : false);
 
       input.getFormValues = function() {
         const value = window.MoneyUtils.sanitizeInputValue(input.value, { allowDecimal: false });
@@ -205,8 +209,10 @@
 
       input.setFormValues = function(values) {
         const rawValue = Array.isArray(values) && values.length ? String(values[0]) : '';
-        input.value = window.MoneyUtils.formatInputValue(rawValue, { allowDecimal: false });
-        window.MoneyUtils.configureInputBehavior(input, { kind: 'integer' });
+        input.value = useGroupedIntegerFormatting
+          ? window.MoneyUtils.formatInputValue(rawValue, { allowDecimal: false })
+          : window.MoneyUtils.sanitizeInputValue(rawValue, { allowDecimal: false });
+        window.MoneyUtils.configureInputBehavior(input, useGroupedIntegerFormatting ? { kind: 'integer' } : false);
       };
 
       input.focusInput = function() {
