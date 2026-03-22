@@ -760,6 +760,9 @@
   function handleDownload() {
     const downloadBtn = window.DOM?.downloadBtn || document.getElementById('download-btn');
     if (!downloadBtn) return;
+    const missingLoadedColumns = window.QueryUI && typeof window.QueryUI.getDisplayedFieldsMissingFromLoadedData === 'function'
+      ? window.QueryUI.getDisplayedFieldsMissingFromLoadedData()
+      : [];
 
     // Check if button is disabled and show message
     if (downloadBtn.disabled) {
@@ -769,6 +772,10 @@
       let messageText = '';
       if (!hasData) {
         messageText = 'Add columns to download';
+      } else if (missingLoadedColumns.length > 0) {
+        messageText = missingLoadedColumns.length === 1
+          ? `${missingLoadedColumns[0]} is not in the current data. Run a new query before downloading.`
+          : 'Some displayed columns are not in the current data. Run a new query before downloading.';
       }
 
       if (messageText) {
@@ -778,7 +785,7 @@
     }
 
     const displayedFields = getDisplayedFields();
-    if (!displayedFields.length || services.getVirtualTableRows().length === 0) {
+    if (!displayedFields.length || services.getVirtualTableRows().length === 0 || missingLoadedColumns.length > 0) {
       return;
     }
 

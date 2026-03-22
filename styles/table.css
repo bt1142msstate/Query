@@ -555,6 +555,21 @@ body.dragging-cursor * {
   white-space: nowrap;
 }
 
+#example-table th.query-table-column-missing-data,
+#example-table td.query-table-column-missing-data {
+  background: rgba(254, 226, 226, 0.88) !important;
+  color: #b91c1c !important;
+}
+
+#example-table th.query-table-column-missing-data:hover,
+#example-table td.query-table-column-missing-data:hover {
+  background: rgba(254, 202, 202, 0.96) !important;
+}
+
+#example-table td.query-table-column-missing-data {
+  border-color: rgba(248, 113, 113, 0.22);
+}
+
 .sort-icon {
   position: absolute;
   left: 0;

@@ -613,6 +613,7 @@ function renderVirtualTable() {
       
       // Get the column index for this field and access the data by index
       const columnIndex = virtualTableData.columnMap.get(field);
+      const fieldExistsInData = columnIndex !== undefined;
       let cellValue;
       
       if (columnIndex !== undefined && rowData[columnIndex] !== undefined) {
@@ -654,6 +655,11 @@ function renderVirtualTable() {
       td.style.width = `${width}px`;
       td.style.minWidth = `${width}px`;
       td.style.maxWidth = `${width}px`;
+
+      if (!fieldExistsInData) {
+        td.classList.add('query-table-column-missing-data');
+        td.setAttribute('data-tooltip', 'This field is not in the current data. Run a new query to populate it.');
+      }
 
       if (typeof displayValue === 'string' && displayValue.includes('\x1F')) {
         // Special handling for multi-value cells (e.g. MARC fields with multiple instances)
