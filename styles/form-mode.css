@@ -581,6 +581,10 @@
   overflow: hidden;
 }
 
+.form-mode-field-picker-modal--compact {
+  width: min(620px, calc(100vw - 2rem));
+}
+
 .form-mode-field-picker-header,
 .form-mode-field-picker-footer {
   display: flex;
@@ -647,6 +651,18 @@
   min-height: 0;
   padding: 1rem 1.15rem;
   overflow: hidden;
+}
+
+.form-mode-field-picker-modal--compact .form-mode-field-picker-body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.form-mode-field-picker-modal--compact .form-mode-field-picker-controls {
+  grid-template-columns: minmax(0, 1fr) minmax(170px, 200px);
+}
+
+.form-mode-field-picker-modal--compact .form-mode-field-picker-list {
+  margin-top: 0.65rem;
 }
 
 .form-mode-field-picker-list-panel,

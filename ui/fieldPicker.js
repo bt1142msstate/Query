@@ -67,6 +67,7 @@
     const allowDisplay = config.allowDisplay !== false;
     const allowFilter = config.allowFilter !== false;
     const autoApplyDisplayOnOptionClick = Boolean(config.autoApplyDisplayOnOptionClick && allowDisplay);
+    const compactLayout = Boolean(config.compactLayout);
     const getFieldState = typeof config.getFieldState === 'function'
       ? config.getFieldState
       : (() => ({ display: false, filter: false }));
@@ -76,6 +77,9 @@
 
     const modal = document.createElement('div');
     modal.className = 'form-mode-field-picker-modal';
+    if (compactLayout) {
+      modal.classList.add('form-mode-field-picker-modal--compact');
+    }
     modal.innerHTML = `
       <div class="form-mode-field-picker-header">
         <div>
@@ -98,14 +102,14 @@
           </div>
           <div class="form-mode-field-picker-list" role="listbox" aria-label="Available fields"></div>
         </div>
-        <div class="form-mode-field-picker-details">
+        ${compactLayout ? '' : `<div class="form-mode-field-picker-details">
           <p class="form-mode-field-picker-selected-label">${labels.selectedFieldLabel}</p>
           <h4 class="form-mode-field-picker-field-name"></h4>
           <p class="form-mode-field-picker-field-meta hidden"></p>
           ${allowDisplay ? `<label class="form-mode-field-picker-choice"><input type="checkbox" data-field-picker-choice="display" /><span>${labels.displayChoice}</span></label>` : ''}
           ${allowFilter ? `<label class="form-mode-field-picker-choice"><input type="checkbox" data-field-picker-choice="filter" /><span>${labels.filterChoice}</span></label>` : ''}
           <p class="form-mode-field-picker-status"></p>
-        </div>
+        </div>`}
       </div>
       <div class="form-mode-field-picker-footer">
         <span class="form-mode-field-picker-footer-note">${labels.footerNote}</span>
@@ -483,12 +487,13 @@
         kicker: insertAt >= 0 ? '' : 'Add Field',
         title: 'Choose a field for this query',
         description: insertAt >= 0
-          ? 'Click a field to insert it into results at this position, or use the filter option to configure it instead.'
+          ? 'Click a field to insert it into results at this position.'
           : 'Add a field to the table results or jump straight into configuring a filter for it.',
         filterChoice: 'Open filter editor',
-        footerNote: 'Changes apply automatically.'
+        footerNote: insertAt >= 0 ? 'Fields insert into results immediately.' : 'Changes apply automatically.'
       },
       autoApplyDisplayOnOptionClick: insertAt >= 0,
+      compactLayout: insertAt >= 0,
       getOptions: getFieldPickerOptionsFromDefinitions,
       getFieldState: fieldName => ({
         display: getDisplayedFields().some(column => fieldMatchesBase(column, fieldName)),
