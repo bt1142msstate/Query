@@ -367,6 +367,17 @@
       : (normalizedValues[0] || '');
   }
 
+  function syncInputSpecFromState(inputSpec, nextState, fieldDef = null) {
+    if (!inputSpec) {
+      return;
+    }
+
+    const normalizedState = nextState && typeof nextState === 'object' ? nextState : {};
+    const nextOperator = normalizedState.operator || inputSpec.operator;
+    inputSpec.operator = normalizeOperatorForField(fieldDef, nextOperator);
+    assignInputSpecDefaultValues(inputSpec, normalizedState.values || [], fieldDef);
+  }
+
   function clearInputSpecDefaultValue(inputSpec) {
     if (!inputSpec) {
       return;
@@ -800,13 +811,11 @@
     }
 
     state.spec.inputs.forEach(inputSpec => {
-      const values = getControlValues(inputSpec);
-      if (inputSpec.operator === 'between') {
-        inputSpec.defaultValue = values.slice(0, 2);
-        return;
-      }
-
-      inputSpec.defaultValue = inputSpec.multiple ? values.filter(Boolean) : (values[0] || '');
+      const fieldDef = window.fieldDefs ? window.fieldDefs.get(inputSpec.field) : null;
+      syncInputSpecFromState(inputSpec, {
+        operator: inputSpec.operator,
+        values: getControlValues(inputSpec)
+      }, fieldDef);
     });
   }
 
@@ -1155,8 +1164,7 @@
               : null;
             const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
             if (previewState && previewState.fieldName === fieldName) {
-              inputSpec.operator = normalizeOperatorForField(fieldDef, previewState.operator || inputSpec.operator);
-              assignInputSpecDefaultValues(inputSpec, previewState.values || [], fieldDef);
+              syncInputSpecFromState(inputSpec, previewState, fieldDef);
             }
 
             state.spec.inputs.push(inputSpec);
@@ -1189,8 +1197,7 @@
           if (!targetInputSpec) {
             return;
           }
-          targetInputSpec.operator = normalizeOperatorForField(fieldDef, previewState.operator || targetInputSpec.operator);
-          assignInputSpecDefaultValues(targetInputSpec, previewState.values || [], fieldDef);
+          syncInputSpecFromState(targetInputSpec, previewState, fieldDef);
           state.spec.inputs.push(targetInputSpec);
 
           if (options.isNewFilter) {
@@ -1204,8 +1211,7 @@
           }
         }
 
-        targetInputSpec.operator = normalizeOperatorForField(fieldDef, previewState.operator || targetInputSpec.operator);
-        assignInputSpecDefaultValues(targetInputSpec, previewState.values || [], fieldDef);
+        syncInputSpecFromState(targetInputSpec, previewState, fieldDef);
         applyFormState({ source: 'QueryFormMode.fieldPicker.previewUpdate' });
         syncValidationUi();
         uiActions.updateButtonStates();
