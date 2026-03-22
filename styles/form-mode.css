@@ -864,6 +864,51 @@
   height: 1rem;
 }
 
+.form-mode-field-picker-filter-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.85rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(203, 213, 225, 0.75);
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.form-mode-field-picker-filter-preview.hidden {
+  display: none;
+}
+
+.form-mode-field-picker-filter-preview-label {
+  margin: 0;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.form-mode-field-picker-filter-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.form-mode-field-picker-filter-operator-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.form-mode-field-picker-filter-operator,
+.form-mode-field-picker-filter-operator-readonly {
+  align-self: flex-start;
+}
+
+.form-mode-field-picker-filter-control {
+  display: flex;
+  flex-direction: column;
+}
+
 @media (max-width: 760px) {
   .form-mode-field-picker-modal {
     width: min(100vw - 1rem, 640px);

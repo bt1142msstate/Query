@@ -108,6 +108,10 @@
           <p class="form-mode-field-picker-field-meta hidden"></p>
           ${allowDisplay ? `<label class="form-mode-field-picker-choice"><input type="checkbox" data-field-picker-choice="display" /><span>${labels.displayChoice}</span></label>` : ''}
           ${allowFilter ? `<label class="form-mode-field-picker-choice"><input type="checkbox" data-field-picker-choice="filter" /><span>${labels.filterChoice}</span></label>` : ''}
+          ${allowFilter && typeof config.renderFilterPreview === 'function' ? `<div class="form-mode-field-picker-filter-preview hidden" data-field-picker-filter-preview>
+            <p class="form-mode-field-picker-filter-preview-label">Filter preview</p>
+            <div class="form-mode-field-picker-filter-preview-host"></div>
+          </div>` : ''}
           <p class="form-mode-field-picker-status"></p>
         </div>`}
       </div>
@@ -128,6 +132,9 @@
     const statusEl = modal.querySelector('.form-mode-field-picker-status');
     const displayChoice = modal.querySelector('[data-field-picker-choice="display"]');
     const filterChoice = modal.querySelector('[data-field-picker-choice="filter"]');
+    const filterPreviewWrap = modal.querySelector('[data-field-picker-filter-preview]');
+    const filterPreviewHost = modal.querySelector('.form-mode-field-picker-filter-preview-host');
+    let currentFilterPreviewApi = null;
 
     if (searchInput && typeof window.initializeSearchInputs === 'function') {
       window.initializeSearchInputs(modal);
@@ -157,8 +164,22 @@
       });
     }
 
+    function clearFilterPreview() {
+      if (currentFilterPreviewApi && typeof currentFilterPreviewApi.cleanup === 'function') {
+        currentFilterPreviewApi.cleanup();
+      }
+      currentFilterPreviewApi = null;
+      if (filterPreviewHost) {
+        filterPreviewHost.replaceChildren();
+      }
+      if (filterPreviewWrap) {
+        filterPreviewWrap.classList.add('hidden');
+      }
+    }
+
     function cleanup() {
       document.removeEventListener('keydown', onKeyDown);
+      clearFilterPreview();
       backdrop.remove();
       modal.remove();
     }
@@ -185,6 +206,30 @@
       syncingControls = false;
     }
 
+    function syncFilterPreview() {
+      if (!filterPreviewWrap || !filterPreviewHost || typeof config.renderFilterPreview !== 'function') {
+        return;
+      }
+
+      clearFilterPreview();
+      const selected = options.find(option => option.name === selectedFieldName) || null;
+      if (!selected || selected.filterable === false) {
+        return;
+      }
+
+      const previewApi = config.renderFilterPreview(filterPreviewHost, selectedFieldName, {
+        selected,
+        state: getSelectedState()
+      });
+
+      if (previewApi && typeof previewApi === 'object') {
+        currentFilterPreviewApi = previewApi;
+      }
+      if (filterPreviewHost.childNodes.length > 0) {
+        filterPreviewWrap.classList.remove('hidden');
+      }
+    }
+
     function syncDetails() {
       if (!fieldNameEl || !fieldMetaEl || !statusEl) {
         return;
@@ -196,6 +241,7 @@
         fieldMetaEl.textContent = '';
         fieldMetaEl.classList.add('hidden');
         statusEl.textContent = 'No field selected.';
+        clearFilterPreview();
         return;
       }
 
@@ -234,6 +280,7 @@
       statusEl.textContent = statusParts.length > 0
         ? statusParts.join(' • ')
         : 'No changes for this field.';
+      syncFilterPreview();
     }
 
     async function handlePickerActionResult(result) {
@@ -296,7 +343,16 @@
       }
 
       selectedFieldName = fieldName;
-      const result = await config.onFilterChange(fieldName, nextChecked, { cleanup, modal, trigger: options.trigger });
+      const result = await config.onFilterChange(fieldName, nextChecked, {
+        cleanup,
+        modal,
+        trigger: options.trigger,
+        getFilterPreviewState: () => (
+          currentFilterPreviewApi && typeof currentFilterPreviewApi.getState === 'function'
+            ? currentFilterPreviewApi.getState()
+            : null
+        )
+      });
       await handlePickerActionResult(result);
     }
 

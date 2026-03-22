@@ -503,6 +503,7 @@
 
   window.FormModeControls = Object.freeze({
     getFieldInputType,
+    getAvailableOperators,
     supportsMultipleValues,
     createGeneratedInputSpec,
     resolveInputInitialValues,
