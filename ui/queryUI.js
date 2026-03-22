@@ -354,6 +354,26 @@ function updateButtonStates() {
   return updateButtonStatesImpl();
 }
 
+function getDisplayedFieldsMissingFromLoadedData() {
+  const displayedFields = getDisplayedFields();
+  const virtualTableData = services.getVirtualTableData();
+  const hasLoadedData = Boolean(
+    virtualTableData
+    && virtualTableData.columnMap instanceof Map
+    && virtualTableData.columnMap.size > 0
+  );
+
+  if (!hasLoadedData) {
+    return [];
+  }
+
+  return displayedFields.filter(field => !virtualTableData.columnMap.has(field));
+}
+
+function hasDisplayedFieldsMissingFromLoadedData() {
+  return getDisplayedFieldsMissingFromLoadedData().length > 0;
+}
+
 function baseUpdateButtonStates() {
   const runBtn = window.DOM.runBtn;
   const downloadBtn = window.DOM.downloadBtn;
@@ -387,15 +407,24 @@ function baseUpdateButtonStates() {
       getDisplayedFields().length > 0 &&
       Array.isArray(services.getVirtualTableData()?.rows) &&
       services.getVirtualTableData().rows.length > 0;
+    const missingLoadedColumns = getDisplayedFieldsMissingFromLoadedData();
+    const hasMissingLoadedColumns = missingLoadedColumns.length > 0;
 
     if (tableNameInput) {
       tableNameInput.classList.remove('error');
     }
 
-    downloadBtn.disabled = !hasData;
+    downloadBtn.disabled = !hasData || hasMissingLoadedColumns;
 
     if (!hasData) {
       downloadBtn.setAttribute('data-tooltip', 'Add columns to download');
+    } else if (hasMissingLoadedColumns) {
+      downloadBtn.setAttribute(
+        'data-tooltip',
+        missingLoadedColumns.length === 1
+          ? `${missingLoadedColumns[0]} is not in the current data. Run a new query before downloading.`
+          : 'Some displayed columns are not in the current data. Run a new query before downloading.'
+      );
     } else {
       downloadBtn.setAttribute('data-tooltip', 'Download Excel file');
     }
@@ -489,6 +518,8 @@ const queryUi = {
   updateTableChromeState,
   setTableZoom,
   toggleTableExpanded,
+  getDisplayedFieldsMissingFromLoadedData,
+  hasDisplayedFieldsMissingFromLoadedData,
   updateRunButtonIcon,
   updateButtonStates,
   setUpdateButtonStatesImpl,

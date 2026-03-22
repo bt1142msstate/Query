@@ -126,6 +126,7 @@
       th.classList.add('sortable-header', 'text-gray-500', 'cursor-pointer', 'hover:bg-gray-100', 'transition-colors');
       th.setAttribute('data-sort-field', fieldText);
     } else if (showMissingDataState) {
+      th.classList.add('query-table-column-missing-data');
       th.style.setProperty('color', '#ef4444', 'important');
       th.setAttribute('data-tooltip', 'This field is not in the current data. Run a new query to populate it.');
     } else {
