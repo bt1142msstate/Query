@@ -695,9 +695,10 @@ window.handleFilterConfirm = function(e) {
     
     const fieldDef = window.fieldDefs.get(field);
     const fieldType = (bubble && bubble.dataset.type) || (fieldDef && fieldDef.type) || 'string';
-    if (fieldType === 'money') {
-        val = window.MoneyUtils.sanitizeInputValue(val);
-        val2 = window.MoneyUtils.sanitizeInputValue(val2);
+    if (fieldType === 'money' || fieldType === 'number') {
+        const allowDecimal = fieldType === 'money';
+        val = window.MoneyUtils.sanitizeInputValue(val, { allowDecimal });
+        val2 = window.MoneyUtils.sanitizeInputValue(val2, { allowDecimal });
     }
     const isBuildable = fieldDef && fieldDef.is_buildable;
 
@@ -1101,16 +1102,23 @@ function clearNumericProps(inputs){
   });
 }
 
-function setMoneyFieldAppearance(inputs, isMoney) {
+function setNumericFieldAppearance(inputs, numericKind) {
     inputs.forEach(inp => {
-        inp.classList.toggle('condition-field-money', Boolean(isMoney));
+        const isMoney = numericKind === 'money';
+        const isInteger = numericKind === 'integer';
+        inp.classList.toggle('condition-field-money', isMoney);
         if (isMoney) {
             inp.placeholder = '0.00';
+        } else if (isInteger) {
+            inp.placeholder = '0';
         } else if (inp.placeholder === '0.00') {
+            inp.placeholder = 'Enter value...';
+        } else if (inp.placeholder === '0') {
             inp.placeholder = 'Enter value...';
         }
 
-        window.MoneyUtils.configureInputBehavior(inp, Boolean(isMoney));
+        const mode = isMoney ? true : (isInteger ? { kind: 'integer' } : false);
+        window.MoneyUtils.configureInputBehavior(inp, mode);
     });
 }
 
@@ -1121,7 +1129,7 @@ window.configureInputsForType = function(type){
   const isMoney  = type==='money';
   const isNumber = type==='number';
     const isDate = type === 'date';
-    const htmlType = isDate ? 'text' : isMoney ? 'text' : isNumber ? 'number' : 'text';
+    const htmlType = 'text';
 
     if (!isDate) {
         inputs.forEach(inp => {
@@ -1142,7 +1150,7 @@ window.configureInputsForType = function(type){
     clearNumericProps(inputs);
   }
 
-    setMoneyFieldAppearance(inputs, isMoney);
+    setNumericFieldAppearance(inputs, isMoney ? 'money' : (isNumber ? 'integer' : 'plain'));
 
     if (window.CustomDatePicker && typeof window.CustomDatePicker.enhanceInput === 'function') {
         inputs.forEach(inp => {

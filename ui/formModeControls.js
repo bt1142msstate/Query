@@ -188,6 +188,34 @@
       return wrapper;
     }
 
+    if (inputType === 'number') {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'form-mode-text-input';
+      input.placeholder = inputSpec.placeholder || '0';
+      input.value = window.MoneyUtils.formatInputValue(initialValues[0] || '', { allowDecimal: false });
+      input.autocomplete = 'off';
+      input.inputMode = 'numeric';
+      window.MoneyUtils.configureInputBehavior(input, { kind: 'integer' });
+
+      input.getFormValues = function() {
+        const value = window.MoneyUtils.sanitizeInputValue(input.value, { allowDecimal: false });
+        return value ? [value] : [];
+      };
+
+      input.setFormValues = function(values) {
+        const rawValue = Array.isArray(values) && values.length ? String(values[0]) : '';
+        input.value = window.MoneyUtils.formatInputValue(rawValue, { allowDecimal: false });
+        window.MoneyUtils.configureInputBehavior(input, { kind: 'integer' });
+      };
+
+      input.focusInput = function() {
+        input.focus();
+      };
+
+      return input;
+    }
+
     if (inputType === 'date') {
       const input = document.createElement('input');
       input.type = 'text';
@@ -238,16 +266,6 @@
     input.placeholder = inputSpec.placeholder || 'Enter value';
     input.value = initialValues[0] || '';
     input.autocomplete = 'off';
-
-    if (inputType === 'number') {
-      input.inputMode = 'numeric';
-      input.step = '1';
-      input.addEventListener('keypress', event => {
-        if (!/[0-9\-]/.test(event.key) && event.key.length === 1) {
-          event.preventDefault();
-        }
-      });
-    }
 
     input.getFormValues = function() {
       const value = String(input.value || '').trim();

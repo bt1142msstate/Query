@@ -278,7 +278,7 @@
     const fieldType = getFieldType(elements.fieldSelect.value);
     const isBetween = elements.operatorSelect.value === 'between';
     const isDate = fieldType === 'date';
-    const inputType = isDate ? 'text' : (fieldType === 'money' ? 'text' : (fieldType === 'number' ? 'number' : 'text'));
+    const inputType = 'text';
 
     [elements.valueInput, elements.valueInput2].forEach(input => {
       if (!isDate) {
@@ -294,6 +294,8 @@
       input.placeholder = isDate ? 'M/D/YYYY' : 'Value';
       if (fieldType === 'money') {
         window.MoneyUtils.configureInputBehavior(input, true);
+      } else if (fieldType === 'number') {
+        window.MoneyUtils.configureInputBehavior(input, { kind: 'integer' });
       } else {
         window.MoneyUtils.configureInputBehavior(input, false);
       }
@@ -460,9 +462,10 @@
       return;
     }
 
-    if (fieldType === 'money') {
-      value = window.MoneyUtils.sanitizeInputValue(value);
-      value2 = window.MoneyUtils.sanitizeInputValue(value2);
+    if (fieldType === 'money' || fieldType === 'number') {
+      const allowDecimal = fieldType === 'money';
+      value = window.MoneyUtils.sanitizeInputValue(value, { allowDecimal });
+      value2 = window.MoneyUtils.sanitizeInputValue(value2, { allowDecimal });
     }
 
     if (fieldType === 'date') {
