@@ -576,15 +576,35 @@ window.ValueFormatting = (() => {
 })();
 
 window.MoneyUtils = (() => {
-  function sanitizeInputValue(rawValue) {
+  function resolveInputBehaviorOptions(modeOrIsMoney) {
+    if (modeOrIsMoney && typeof modeOrIsMoney === 'object') {
+      const kind = String(modeOrIsMoney.kind || 'plain').toLowerCase();
+      return {
+        kind,
+        allowDecimal: kind === 'money',
+        symbolized: kind === 'money'
+      };
+    }
+
+    return {
+      kind: modeOrIsMoney ? 'money' : 'plain',
+      allowDecimal: Boolean(modeOrIsMoney),
+      symbolized: Boolean(modeOrIsMoney)
+    };
+  }
+
+  function sanitizeInputValue(rawValue, options = {}) {
+    const { allowDecimal = true } = options;
     const text = String(rawValue || '');
     const isNegative = text.trim().startsWith('-');
-    const numeric = text.replace(/[^0-9.]/g, '');
+    const numeric = text.replace(allowDecimal ? /[^0-9.]/g : /[^0-9]/g, '');
     const firstDot = numeric.indexOf('.');
     const whole = firstDot >= 0 ? numeric.slice(0, firstDot) : numeric;
-    const decimals = firstDot >= 0 ? numeric.slice(firstDot + 1).replace(/\./g, '').slice(0, 2) : '';
+    const decimals = allowDecimal && firstDot >= 0
+      ? numeric.slice(firstDot + 1).replace(/\./g, '').slice(0, 2)
+      : '';
     const normalizedWhole = whole.replace(/^0+(?=\d)/, '');
-    const hasDot = firstDot >= 0;
+    const hasDot = allowDecimal && firstDot >= 0;
 
     if (!normalizedWhole && !decimals && !hasDot) {
       return '';
@@ -596,10 +616,11 @@ window.MoneyUtils = (() => {
       : `${prefix}${normalizedWhole || '0'}`;
   }
 
-  function formatInputValue(rawValue) {
+  function formatInputValue(rawValue, options = {}) {
+    const { allowDecimal = true } = options;
     const text = String(rawValue || '');
-    const sanitized = sanitizeInputValue(text);
-    const hadDot = text.includes('.');
+    const sanitized = sanitizeInputValue(text, { allowDecimal });
+    const hadDot = allowDecimal && text.includes('.');
 
     if (!sanitized) {
       return '';
@@ -618,12 +639,13 @@ window.MoneyUtils = (() => {
       : `${prefix}${groupedWhole}`;
   }
 
-  function parseNumber(rawValue) {
+  function parseNumber(rawValue, options = {}) {
     if (typeof rawValue === 'number') {
       return rawValue;
     }
 
-    const sanitized = sanitizeInputValue(rawValue);
+    const { allowDecimal = true } = options;
+    const sanitized = sanitizeInputValue(rawValue, { allowDecimal });
     if (!sanitized) {
       return Number.NaN;
     }
@@ -670,13 +692,34 @@ window.MoneyUtils = (() => {
     formatOnPageLoad: true
   });
 
+  const AUTO_NUMERIC_INTEGER_OPTIONS = Object.freeze({
+    currencySymbol: '',
+    digitGroupSeparator: ',',
+    digitalGroupSpacing: '3',
+    decimalCharacter: '.',
+    decimalCharacterAlternative: '.',
+    decimalPlaces: 0,
+    decimalPlacesRawValue: 0,
+    allowDecimalPadding: false,
+    emptyInputBehavior: 'focus',
+    leadingZero: 'deny',
+    modifyValueOnWheel: false,
+    modifyValueOnUpDownArrow: false,
+    selectNumberOnly: true,
+    showOnlyNumbersOnFocus: false,
+    showWarnings: false,
+    formatOnPageLoad: true
+  });
+
   function destroyInputBehavior(input) {
     if (!(input instanceof HTMLInputElement)) {
       return;
     }
 
     if (input._moneyAutoNumeric) {
-      const rawValue = sanitizeInputValue(input._moneyAutoNumeric.getNumericString());
+      const rawValue = sanitizeInputValue(input._moneyAutoNumeric.getNumericString(), {
+        allowDecimal: input.dataset.numericAllowDecimal !== 'false'
+      });
       input._moneyAutoNumeric.remove();
       delete input._moneyAutoNumeric;
       input.value = rawValue;
@@ -698,18 +741,23 @@ window.MoneyUtils = (() => {
       return;
     }
 
-    input.classList.toggle('money-input-symbolized', Boolean(isMoney));
+    const behavior = resolveInputBehaviorOptions(isMoney);
+    const shouldFormat = behavior.kind === 'money' || behavior.kind === 'integer';
+    input.classList.toggle('money-input-symbolized', behavior.symbolized);
 
     destroyInputBehavior(input);
 
-    if (!isMoney) {
+    if (!shouldFormat) {
       delete input.dataset.moneyRaw;
+      delete input.dataset.numericAllowDecimal;
       return;
     }
 
+    input.dataset.numericAllowDecimal = behavior.allowDecimal ? 'true' : 'false';
+
     if (!window.AutoNumeric) {
-      const rawValue = sanitizeInputValue(input.value);
-      input.value = formatInputValue(rawValue);
+      const rawValue = sanitizeInputValue(input.value, { allowDecimal: behavior.allowDecimal });
+      input.value = formatInputValue(rawValue, { allowDecimal: behavior.allowDecimal });
       if (rawValue) {
         input.dataset.moneyRaw = rawValue;
       } else {
@@ -718,12 +766,18 @@ window.MoneyUtils = (() => {
       return;
     }
 
-    const initialRawValue = sanitizeInputValue(input.value);
+    const initialRawValue = sanitizeInputValue(input.value, { allowDecimal: behavior.allowDecimal });
     input.type = 'text';
-    input.inputMode = 'decimal';
-    input._moneyAutoNumeric = new window.AutoNumeric(input, initialRawValue || '', AUTO_NUMERIC_OPTIONS);
+    input.inputMode = behavior.allowDecimal ? 'decimal' : 'numeric';
+    input._moneyAutoNumeric = new window.AutoNumeric(
+      input,
+      initialRawValue || '',
+      behavior.allowDecimal ? AUTO_NUMERIC_OPTIONS : AUTO_NUMERIC_INTEGER_OPTIONS
+    );
     input._moneyAutoNumericSync = () => {
-      const rawValue = sanitizeInputValue(input._moneyAutoNumeric.getNumericString());
+      const rawValue = sanitizeInputValue(input._moneyAutoNumeric.getNumericString(), {
+        allowDecimal: behavior.allowDecimal
+      });
       if (rawValue) {
         input.dataset.moneyRaw = rawValue;
       } else {
