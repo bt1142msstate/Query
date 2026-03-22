@@ -12,6 +12,7 @@
   let tooltipEl = null;
   let arrowEl = null;
   let currentTarget = null;
+  let currentTooltipIsHtml = false;
   let hideTimeout = null;
   let isDragging = false; // Track drag state
 
@@ -33,6 +34,23 @@
   function closestFromTarget(target, selector) {
     const el = target instanceof Element ? target : target && target.parentElement;
     return el ? el.closest(selector) : null;
+  }
+
+  function isPointerOverCurrentTooltipTarget(clientX, clientY) {
+    if (!currentTarget || typeof document.elementFromPoint !== 'function') {
+      return false;
+    }
+
+    const hoveredEl = document.elementFromPoint(clientX, clientY);
+    if (!hoveredEl) {
+      return false;
+    }
+
+    const tooltipTarget = closestFromTarget(hoveredEl, TOOLTIP_SELECTOR);
+    return Boolean(
+      tooltipTarget
+      && (tooltipTarget === currentTarget || currentTarget.contains(tooltipTarget) || tooltipTarget.contains(currentTarget))
+    );
   }
 
   /**
@@ -112,6 +130,7 @@
     } else {
       tooltipEl.classList.remove('is-html');
     }
+    currentTooltipIsHtml = Boolean(isHtml);
 
     tooltipEl.style.opacity = '0';
     // Set text
@@ -167,6 +186,7 @@
     }
     hideTooltipElement();
     currentTarget = null;
+    currentTooltipIsHtml = false;
     tooltipDebugLog('forceHide');
   }
 
@@ -188,7 +208,7 @@
     let arrowDirection = 'arrow-up';
     let anchorX = rect.left + rect.width / 2 + scrollX;
     // If mouse event, follow mouse
-    if (event && event.type && event.type.startsWith('mouse')) {
+    if (!currentTooltipIsHtml && event && event.type && event.type.startsWith('mouse')) {
       anchorX = event.clientX + scrollX;
       left = anchorX - tooltipEl.offsetWidth / 2;
       top = rect.top + scrollY - tooltipEl.offsetHeight - 14;
@@ -238,7 +258,7 @@
 
     document.addEventListener('mousemove', e => {
       if (isDragging) return;
-      if (currentTarget && isTooltipVisible()) {
+      if (currentTarget && isTooltipVisible() && !currentTooltipIsHtml) {
         positionTooltip(currentTarget, e);
       }
     });
@@ -290,14 +310,7 @@
       
       mouseDistanceCheck = setTimeout(() => {
         if (currentTarget && isTooltipVisible()) {
-          // Check if mouse is still reasonably close to the target element
-          const rect = currentTarget.getBoundingClientRect();
-          const mouseX = e.clientX;
-          const mouseY = e.clientY;
-          
-          // If mouse is far from the target (with generous buffer), hide tooltip
-          if (mouseX < rect.left - 50 || mouseX > rect.right + 50 || 
-              mouseY < rect.top - 50 || mouseY > rect.bottom + 50) {
+          if (!isPointerOverCurrentTooltipTarget(e.clientX, e.clientY)) {
             forceHide();
           }
         }
