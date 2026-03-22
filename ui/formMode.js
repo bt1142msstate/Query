@@ -32,6 +32,7 @@
     validationEl: null,
     runBtn: null,
     copyBtn: null,
+    copyMenu: null,
     modeToggleBtn: null,
     mobileModeToggleBtn: null,
     formHost: null,
@@ -635,19 +636,144 @@
     }
 
     const isShareable = isShareableFormSpec();
-    state.copyBtn.disabled = !isShareable;
     state.copyBtn.setAttribute(
       'data-tooltip',
       isShareable
-        ? 'Copy a shareable form link.'
-        : 'Add a displayed field or filter control before copying a form link.'
+        ? 'Copy link options.'
+        : 'Link copying is unavailable until fields are added, but you can still save the current baseline.'
     );
     state.copyBtn.setAttribute(
       'aria-label',
       isShareable
-        ? 'Copy form link'
-        : 'Form link unavailable until fields are added'
+        ? 'Open form link menu'
+        : 'Open form actions menu'
     );
+
+    if (state.copyMenu) {
+      state.copyMenu.querySelectorAll('[data-copy-action]').forEach(button => {
+        const action = button.dataset.copyAction;
+        const requiresShareable = action === 'copy-link' || action === 'save-and-copy';
+        button.disabled = requiresShareable && !isShareable;
+      });
+    }
+  }
+
+  function closeCopyMenu() {
+    if (!state.copyMenu || !state.copyBtn) {
+      return;
+    }
+
+    state.copyMenu.hidden = true;
+    state.copyBtn.setAttribute('aria-expanded', 'false');
+  }
+
+  function openCopyMenu() {
+    if (!state.copyMenu || !state.copyBtn) {
+      return;
+    }
+
+    state.copyMenu.hidden = false;
+    state.copyBtn.setAttribute('aria-expanded', 'true');
+  }
+
+  function toggleCopyMenu() {
+    if (!state.copyMenu || !state.copyBtn) {
+      return;
+    }
+
+    if (state.copyMenu.hidden) {
+      openCopyMenu();
+    } else {
+      closeCopyMenu();
+    }
+  }
+
+  function saveCurrentFormAsBaseline() {
+    if (!state.active || !state.spec) {
+      return false;
+    }
+
+    captureCurrentControlDefaults();
+    const nextSpec = cloneSpec(state.spec);
+    if (!nextSpec) {
+      return false;
+    }
+
+    state.initialSpec = nextSpec;
+    const shareUrl = buildCurrentShareUrl();
+    state.initialSearchParams = shareUrl
+      ? new URL(shareUrl).searchParams
+      : new URLSearchParams();
+    return true;
+  }
+
+  function bindCopyMenu(button, menu) {
+    if (!button || !menu) {
+      return;
+    }
+
+    button.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleCopyMenu();
+    });
+
+    menu.addEventListener('click', async event => {
+      const actionButton = event.target.closest('[data-copy-action]');
+      if (!actionButton || actionButton.disabled) {
+        return;
+      }
+
+      const action = actionButton.dataset.copyAction;
+      closeCopyMenu();
+
+      if (action === 'copy-link') {
+        await window.ClipboardUtils.copyFromSource(() => buildCurrentShareUrl(), {
+          successMessage: 'Form link copied.',
+          errorMessage: 'Failed to copy form link.',
+          emptyMessage: 'No form link is available to copy.'
+        });
+        return;
+      }
+
+      if (action === 'save-baseline') {
+        const saved = saveCurrentFormAsBaseline();
+        if (saved && window.showToastMessage) {
+          window.showToastMessage('Current form saved as the new baseline.', 'success');
+        }
+        return;
+      }
+
+      if (action === 'save-and-copy') {
+        const saved = saveCurrentFormAsBaseline();
+        if (!saved) {
+          return;
+        }
+        await window.ClipboardUtils.copyFromSource(() => buildCurrentShareUrl(), {
+          successMessage: 'Baseline saved and form link copied.',
+          errorMessage: 'Failed to copy form link.',
+          emptyMessage: 'No form link is available to copy.'
+        });
+      }
+    });
+
+    document.addEventListener('mousedown', event => {
+      if (menu.hidden) {
+        return;
+      }
+
+      if (menu.contains(event.target) || button.contains(event.target)) {
+        return;
+      }
+
+      closeCopyMenu();
+    });
+
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        closeCopyMenu();
+      }
+    });
   }
 
   function refreshBrowserUrl(options = {}) {
@@ -1248,7 +1374,14 @@
           <button type="button" id="form-mode-add-field" class="form-mode-btn form-mode-btn-secondary">+ Add Field</button>
           <button type="button" id="form-mode-run" class="form-mode-btn form-mode-btn-primary">Run Form</button>
           <button type="button" id="form-mode-reset" class="form-mode-btn" data-tooltip="Restore the form to the original URL values.">Reset</button>
-          <button type="button" id="form-mode-copy" class="form-mode-btn">Copy Link</button>
+          <div class="form-mode-copy-menu-wrap">
+            <button type="button" id="form-mode-copy" class="form-mode-btn" aria-haspopup="menu" aria-expanded="false">Share</button>
+            <div id="form-mode-copy-menu" class="form-mode-copy-menu" role="menu" hidden>
+              <button type="button" class="form-mode-copy-menu__item" data-copy-action="copy-link" role="menuitem">Copy Current Link</button>
+              <button type="button" class="form-mode-copy-menu__item" data-copy-action="save-baseline" role="menuitem">Save Current as Baseline</button>
+              <button type="button" class="form-mode-copy-menu__item" data-copy-action="save-and-copy" role="menuitem">Save Current as Baseline and Copy Link</button>
+            </div>
+          </div>
         </div>
       </div>
       <div class="form-mode-body">
@@ -1263,6 +1396,7 @@
     state.validationEl = card.querySelector('#form-mode-validation');
     state.runBtn = card.querySelector('#form-mode-run');
     state.copyBtn = card.querySelector('#form-mode-copy');
+    state.copyMenu = card.querySelector('#form-mode-copy-menu');
 
     const fieldsWrap = card.querySelector('#form-mode-fields');
     const visibleInputs = state.spec.inputs.filter(inputSpec => !inputSpec.hidden);
@@ -1353,11 +1487,7 @@
       });
     });
 
-    window.ClipboardUtils.bindCopyButton(state.copyBtn, () => buildCurrentShareUrl(), {
-      successMessage: 'Form link copied.',
-      errorMessage: 'Failed to copy form link.',
-      emptyMessage: 'No form link is available to copy.'
-    });
+    bindCopyMenu(state.copyBtn, state.copyMenu);
     syncShareUi();
   }
 
