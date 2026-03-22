@@ -141,6 +141,7 @@
     const filterPreviewHost = modal.querySelector('.form-mode-field-picker-filter-preview-host');
     let currentFilterPreviewApi = null;
     let previewSyncTimer = null;
+    const filterPreviewDrafts = new Map();
 
     if (searchInput && typeof window.initializeSearchInputs === 'function') {
       window.initializeSearchInputs(modal);
@@ -217,9 +218,11 @@
     }
 
     function getCurrentFilterPreviewState() {
-      return currentFilterPreviewApi && typeof currentFilterPreviewApi.getState === 'function'
-        ? currentFilterPreviewApi.getState()
-        : null;
+      if (currentFilterPreviewApi && typeof currentFilterPreviewApi.getState === 'function') {
+        return currentFilterPreviewApi.getState();
+      }
+
+      return filterPreviewDrafts.get(selectedFieldName) || null;
     }
 
     function isFilterPreviewReady(previewState) {
@@ -268,9 +271,17 @@
       await applyFilterChange(selectedFieldName, true, { trigger: 'preview-auto-add' });
     }
 
-    function scheduleAutoFilterSync() {
+    function scheduleAutoFilterSync(previewState = null) {
       if (!autoAddFilterFromPreview) {
         return;
+      }
+
+      if (previewState && previewState.fieldName) {
+        filterPreviewDrafts.set(previewState.fieldName, {
+          fieldName: previewState.fieldName,
+          operator: previewState.operator,
+          values: Array.isArray(previewState.values) ? previewState.values.slice() : []
+        });
       }
 
       if (previewSyncTimer) {
@@ -299,6 +310,7 @@
       const previewApi = config.renderFilterPreview(filterPreviewHost, selectedFieldName, {
         selected,
         state: getSelectedState(),
+        previewState: filterPreviewDrafts.get(selectedFieldName) || null,
         onPreviewChange: scheduleAutoFilterSync
       });
 
