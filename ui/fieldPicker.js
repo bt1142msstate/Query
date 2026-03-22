@@ -66,6 +66,7 @@
 
     const allowDisplay = config.allowDisplay !== false;
     const allowFilter = config.allowFilter !== false;
+    const autoApplyDisplayOnOptionClick = Boolean(config.autoApplyDisplayOnOptionClick && allowDisplay);
     const getFieldState = typeof config.getFieldState === 'function'
       ? config.getFieldState
       : (() => ({ display: false, filter: false }));
@@ -267,6 +268,35 @@
       syncDetails();
     }
 
+    async function applyDisplaySelectionFromOption(fieldName) {
+      if (!fieldName || typeof config.onDisplayChange !== 'function') {
+        return false;
+      }
+
+      const currentState = normalizePickerState(getFieldState(fieldName));
+      if (currentState.display) {
+        cleanup();
+        if (window.showToastMessage) {
+          window.showToastMessage(`${fieldName} is already in results.`, 'info');
+        }
+        return true;
+      }
+
+      selectedFieldName = fieldName;
+      const result = await config.onDisplayChange(fieldName, true, { cleanup, modal, trigger: 'option-click' });
+
+      if (result && result.close) {
+        cleanup();
+        if (typeof result.afterClose === 'function') {
+          window.setTimeout(() => result.afterClose(), 0);
+        }
+        return true;
+      }
+
+      cleanup();
+      return true;
+    }
+
     function renderList() {
       const filteredOptions = options.filter(option => {
         const categoryMatch = !selectedCategory
@@ -322,7 +352,12 @@
           <span class="form-mode-field-picker-option-badges">${badges.join('')}</span>
         `;
 
-        button.addEventListener('click', () => {
+        button.addEventListener('click', async () => {
+          if (autoApplyDisplayOnOptionClick) {
+            await applyDisplaySelectionFromOption(option.name);
+            return;
+          }
+
           selectedFieldName = option.name;
           renderList();
           syncChoiceInputs();
@@ -447,10 +482,13 @@
       labels: {
         kicker: 'Add Field',
         title: 'Choose a field for this query',
-        description: 'Add a field to the table results or jump straight into configuring a filter for it.',
+        description: insertAt >= 0
+          ? 'Click a field to insert it into results at this position, or use the filter option to configure it instead.'
+          : 'Add a field to the table results or jump straight into configuring a filter for it.',
         filterChoice: 'Open filter editor',
         footerNote: 'Changes apply automatically.'
       },
+      autoApplyDisplayOnOptionClick: insertAt >= 0,
       getOptions: getFieldPickerOptionsFromDefinitions,
       getFieldState: fieldName => ({
         display: getDisplayedFields().some(column => fieldMatchesBase(column, fieldName)),
