@@ -281,20 +281,17 @@
       }
 
       const currentState = normalizePickerState(getFieldState(selectedFieldName));
-      if (currentState.filter) {
-        if (typeof config.onFilterPreviewChange === 'function') {
-          await config.onFilterPreviewChange(selectedFieldName, previewState, { modal, cleanup });
-          syncOptionBadges();
-          syncChoiceInputs();
-          syncStatusTextOnly(selected);
-        }
+      if (typeof config.onFilterPreviewChange === 'function') {
+        await config.onFilterPreviewChange(selectedFieldName, previewState, {
+          modal,
+          cleanup,
+          isNewFilter: !currentState.filter
+        });
+        syncOptionBadges();
+        syncChoiceInputs();
+        syncStatusTextOnly(selected);
         return;
       }
-
-      await applyFilterChange(selectedFieldName, true, {
-        trigger: 'preview-auto-add',
-        previewState
-      });
     }
 
     function scheduleAutoFilterSync(previewState = null) {

@@ -1176,19 +1176,39 @@
           }
         }
       },
-      onFilterPreviewChange: async (fieldName, previewState) => {
-        if (!state.spec || !previewState || !hasSpecFilterInput(fieldName)) {
+      onFilterPreviewChange: async (fieldName, previewState, options = {}) => {
+        if (!state.spec || !previewState) {
           return;
         }
 
-        const targetInputSpec = state.spec.inputs.find(inputSpec => inputSpec && inputSpec.field === fieldName);
-        if (!targetInputSpec) {
-          return;
-        }
-
+        let targetInputSpec = state.spec.inputs.find(inputSpec => inputSpec && inputSpec.field === fieldName);
         const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
+
+        if (!targetInputSpec) {
+          targetInputSpec = createGeneratedInputSpec(fieldName);
+          if (!targetInputSpec) {
+            return;
+          }
+          targetInputSpec.operator = normalizeOperatorForField(fieldDef, previewState.operator || targetInputSpec.operator);
+          assignInputSpecDefaultValues(targetInputSpec, previewState.values || [], fieldDef);
+          state.spec.inputs.push(targetInputSpec);
+
+          if (options.isNewFilter) {
+            rebuildFormCardFromSpec({
+              querySource: 'QueryFormMode.fieldPicker.addFilterInput'
+            });
+            applyFormState({ source: 'QueryFormMode.fieldPicker.previewUpdate' });
+            syncValidationUi();
+            uiActions.updateButtonStates();
+            return;
+          }
+        }
+
         targetInputSpec.operator = normalizeOperatorForField(fieldDef, previewState.operator || targetInputSpec.operator);
         assignInputSpecDefaultValues(targetInputSpec, previewState.values || [], fieldDef);
+        applyFormState({ source: 'QueryFormMode.fieldPicker.previewUpdate' });
+        syncValidationUi();
+        uiActions.updateButtonStates();
       }
     });
   }
