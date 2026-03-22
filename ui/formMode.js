@@ -1021,6 +1021,9 @@
         const existingInputSpec = Array.isArray(state.spec.inputs)
           ? state.spec.inputs.find(inputSpec => inputSpec && inputSpec.field === fieldName)
           : null;
+        const draftPreviewState = context.previewState && context.previewState.fieldName === fieldName
+          ? context.previewState
+          : null;
         const previewInputSpec = existingInputSpec
           ? JSON.parse(JSON.stringify(existingInputSpec))
           : createGeneratedInputSpec(fieldName);
@@ -1029,10 +1032,15 @@
           return null;
         }
 
-        previewInputSpec.operator = normalizeOperatorForField(fieldDef, previewInputSpec.operator || 'equals');
+        previewInputSpec.operator = normalizeOperatorForField(
+          fieldDef,
+          (draftPreviewState && draftPreviewState.operator) || previewInputSpec.operator || 'equals'
+        );
         assignInputSpecDefaultValues(
           previewInputSpec,
-          existingInputSpec ? getCurrentInputValues(existingInputSpec) : getInputSpecDefaultValues(previewInputSpec),
+          draftPreviewState
+            ? draftPreviewState.values
+            : (existingInputSpec ? getCurrentInputValues(existingInputSpec) : getInputSpecDefaultValues(previewInputSpec)),
           fieldDef
         );
 
@@ -1072,7 +1080,7 @@
             previewRow.querySelectorAll('input, select, textarea, button').forEach(element => {
               ['input', 'change', 'click'].forEach(eventName => {
                 element.addEventListener(eventName, () => {
-                  window.setTimeout(() => notifyPreviewChange(), 0);
+                  window.setTimeout(() => notifyPreviewChange(getPreviewState()), 0);
                 });
               });
             });

@@ -457,7 +457,9 @@
     }
 
     topRow.appendChild(label);
-    topRow.appendChild(removeButton);
+    if (showRemoveButton) {
+      topRow.appendChild(removeButton);
+    }
 
     const metaRow = document.createElement('div');
     metaRow.className = 'form-mode-meta-row';
