@@ -1806,6 +1806,38 @@
     Promise.resolve().then(runSync);
   }
 
+  function getQueryStateSyncOptions(event) {
+    const source = String(event && event.meta && event.meta.source || '');
+    if (source === 'QueryChangeManager.clearQuery') {
+      return { action: 'clear' };
+    }
+
+    if (state.isClearingQuery) {
+      return { action: 'skip' };
+    }
+
+    const hasActiveFilterChanges = Boolean(event && event.changes && event.changes.activeFilters);
+    const baseOptions = {
+      rebuildCard: Boolean(state.viewMode === 'form' && hasActiveFilterChanges),
+      refreshUrl: true
+    };
+
+    if (state.isApplyingFormState) {
+      return {
+        action: 'queue',
+        options: {
+          rebuildCard: false,
+          refreshUrl: baseOptions.refreshUrl
+        }
+      };
+    }
+
+    return {
+      action: 'sync',
+      options: baseOptions
+    };
+  }
+
   async function initialize() {
     if (initialized) {
       return;
@@ -1819,39 +1851,27 @@
 
     if (!state.unsubscribeQueryState) {
       state.unsubscribeQueryState = window.QueryStateSubscriptions.subscribe(event => {
-        const source = String(event && event.meta && event.meta.source || '');
         if (!state.active) {
           return;
         }
 
-        if (source === 'QueryChangeManager.clearQuery') {
+        const syncPlan = getQueryStateSyncOptions(event);
+        if (syncPlan.action === 'clear') {
           state.isClearingQuery = true;
           deferCompletedClearReset();
           return;
         }
 
-        if (state.isClearingQuery) {
+        if (syncPlan.action === 'skip') {
           return;
         }
 
-        const syncOptions = {
-          rebuildCard: Boolean(
-            state.viewMode === 'form'
-            && event.changes
-            && event.changes.activeFilters
-          ),
-          refreshUrl: true
-        };
-
-        if (state.isApplyingFormState) {
-          queueQueryStateReconcile({
-            rebuildCard: false,
-            refreshUrl: syncOptions.refreshUrl
-          });
+        if (syncPlan.action === 'queue') {
+          queueQueryStateReconcile(syncPlan.options);
           return;
         }
 
-        syncActiveSpecWithCurrentQuery(syncOptions);
+        syncActiveSpecWithCurrentQuery(syncPlan.options);
 
         if (state.viewMode === 'form') {
           syncValidationUi();
