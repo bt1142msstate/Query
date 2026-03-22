@@ -32,6 +32,7 @@ const allowedWindowAssignments = new Set([
   'SharedFieldPicker',
   'TableNameInput',
   'TableBuilder',
+  'TooltipManager',
   'TextMeasurement',
   'ValueFormatting',
   'VirtualTable',
