@@ -1118,12 +1118,14 @@
             ? context.onPreviewChange
             : null;
           if (notifyPreviewChange) {
-            previewRow.querySelectorAll('input, select, textarea, button').forEach(element => {
-              ['input', 'change', 'click'].forEach(eventName => {
-                element.addEventListener(eventName, () => {
-                  window.setTimeout(() => notifyPreviewChange(getPreviewState()), 0);
-                });
-              });
+            const emitPreviewChange = () => {
+              window.setTimeout(() => notifyPreviewChange(getPreviewState()), 0);
+            };
+
+            // Listen at the row level so wrapped controls that emit change/input
+            // from custom container elements still propagate into form state.
+            ['input', 'change', 'click'].forEach(eventName => {
+              previewRow.addEventListener(eventName, emitPreviewChange);
             });
           }
         }
