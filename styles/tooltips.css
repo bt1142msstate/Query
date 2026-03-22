@@ -122,6 +122,12 @@
   text-transform: uppercase;
 }
 
+.tt-field-definition-badge.data-type {
+  color: #fde68a;
+  background: rgba(245, 158, 11, 0.16);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
 .tt-field-definition-badge.filterable {
   color: #d1fae5;
   background: rgba(16, 185, 129, 0.18);
@@ -326,4 +332,3 @@
     background: rgba(252, 211, 77, 0.3);
     margin: 0 8px;
 }
-
