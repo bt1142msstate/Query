@@ -259,10 +259,10 @@
 
       const values = previewState.values.map(value => String(value ?? '').trim());
       if (String(previewState.operator || '').trim().toLowerCase() === 'between') {
-        return Boolean(values[0] && values[1]);
+        return values[0] !== '' && values[1] !== '';
       }
 
-      return values.some(Boolean);
+      return values.some(value => value !== '');
     }
 
     async function syncAutoFilterFromPreview() {
