@@ -68,6 +68,11 @@
     const allowFilter = config.allowFilter !== false;
     const autoApplyDisplayOnOptionClick = Boolean(config.autoApplyDisplayOnOptionClick && allowDisplay);
     const compactLayout = Boolean(config.compactLayout);
+    const autoAddFilterFromPreview = Boolean(
+      config.autoAddFilterFromPreview
+      && allowFilter
+      && typeof config.renderFilterPreview === 'function'
+    );
     const getFieldState = typeof config.getFieldState === 'function'
       ? config.getFieldState
       : (() => ({ display: false, filter: false }));
@@ -107,7 +112,7 @@
           <h4 class="form-mode-field-picker-field-name"></h4>
           <p class="form-mode-field-picker-field-meta hidden"></p>
           ${allowDisplay ? `<label class="form-mode-field-picker-choice"><input type="checkbox" data-field-picker-choice="display" /><span>${labels.displayChoice}</span></label>` : ''}
-          ${allowFilter ? `<label class="form-mode-field-picker-choice"><input type="checkbox" data-field-picker-choice="filter" /><span>${labels.filterChoice}</span></label>` : ''}
+          ${allowFilter && !autoAddFilterFromPreview ? `<label class="form-mode-field-picker-choice"><input type="checkbox" data-field-picker-choice="filter" /><span>${labels.filterChoice}</span></label>` : ''}
           ${allowFilter && typeof config.renderFilterPreview === 'function' ? `<div class="form-mode-field-picker-filter-preview hidden" data-field-picker-filter-preview>
             <p class="form-mode-field-picker-filter-preview-label">Filter preview</p>
             <div class="form-mode-field-picker-filter-preview-host"></div>
@@ -135,6 +140,7 @@
     const filterPreviewWrap = modal.querySelector('[data-field-picker-filter-preview]');
     const filterPreviewHost = modal.querySelector('.form-mode-field-picker-filter-preview-host');
     let currentFilterPreviewApi = null;
+    let previewSyncTimer = null;
 
     if (searchInput && typeof window.initializeSearchInputs === 'function') {
       window.initializeSearchInputs(modal);
@@ -165,6 +171,10 @@
     }
 
     function clearFilterPreview() {
+      if (previewSyncTimer) {
+        window.clearTimeout(previewSyncTimer);
+        previewSyncTimer = null;
+      }
       if (currentFilterPreviewApi && typeof currentFilterPreviewApi.cleanup === 'function') {
         currentFilterPreviewApi.cleanup();
       }
@@ -206,6 +216,75 @@
       syncingControls = false;
     }
 
+    function getCurrentFilterPreviewState() {
+      return currentFilterPreviewApi && typeof currentFilterPreviewApi.getState === 'function'
+        ? currentFilterPreviewApi.getState()
+        : null;
+    }
+
+    function isFilterPreviewReady(previewState) {
+      if (typeof config.isFilterPreviewReady === 'function') {
+        return Boolean(config.isFilterPreviewReady(previewState));
+      }
+
+      if (!previewState || !Array.isArray(previewState.values)) {
+        return false;
+      }
+
+      const values = previewState.values.map(value => String(value || '').trim());
+      if (String(previewState.operator || '').trim().toLowerCase() === 'between') {
+        return Boolean(values[0] && values[1]);
+      }
+
+      return values.some(Boolean);
+    }
+
+    async function syncAutoFilterFromPreview() {
+      if (!autoAddFilterFromPreview) {
+        return;
+      }
+
+      const selected = options.find(option => option.name === selectedFieldName) || null;
+      if (!selected || selected.filterable === false) {
+        return;
+      }
+
+      const previewState = getCurrentFilterPreviewState();
+      if (!isFilterPreviewReady(previewState)) {
+        return;
+      }
+
+      const currentState = normalizePickerState(getFieldState(selectedFieldName));
+      if (currentState.filter) {
+        if (typeof config.onFilterPreviewChange === 'function') {
+          await config.onFilterPreviewChange(selectedFieldName, previewState, { modal, cleanup });
+          renderList();
+          syncChoiceInputs();
+          syncDetails();
+        }
+        return;
+      }
+
+      await applyFilterChange(selectedFieldName, true, { trigger: 'preview-auto-add' });
+    }
+
+    function scheduleAutoFilterSync() {
+      if (!autoAddFilterFromPreview) {
+        return;
+      }
+
+      if (previewSyncTimer) {
+        window.clearTimeout(previewSyncTimer);
+      }
+
+      previewSyncTimer = window.setTimeout(() => {
+        previewSyncTimer = null;
+        syncAutoFilterFromPreview().catch(error => {
+          console.error('Failed to auto-add filter from preview:', error);
+        });
+      }, 0);
+    }
+
     function syncFilterPreview() {
       if (!filterPreviewWrap || !filterPreviewHost || typeof config.renderFilterPreview !== 'function') {
         return;
@@ -219,7 +298,8 @@
 
       const previewApi = config.renderFilterPreview(filterPreviewHost, selectedFieldName, {
         selected,
-        state: getSelectedState()
+        state: getSelectedState(),
+        onPreviewChange: scheduleAutoFilterSync
       });
 
       if (previewApi && typeof previewApi === 'object') {
@@ -274,6 +354,14 @@
           statusParts.push(`Will remove ${labels.filterChoice.toLowerCase()}`);
         } else if (state.filter) {
           statusParts.push(labels.filterBadge);
+        }
+      } else if (allowFilter && autoAddFilterFromPreview) {
+        if (selected.filterable === false) {
+          statusParts.push('Backend filtering unavailable');
+        } else if (state.filter) {
+          statusParts.push(labels.filterBadge);
+        } else {
+          statusParts.push('Enter a filter value to add it');
         }
       }
 

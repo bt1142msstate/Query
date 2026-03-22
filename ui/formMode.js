@@ -13,7 +13,6 @@
   } = formModeStateHelpers;
   const {
     getFieldInputType,
-    getAvailableOperators,
     supportsMultipleValues,
     createGeneratedInputSpec: buildFormModeInputSpec,
     resolveInputInitialValues: resolveFormInputInitialValues,
@@ -997,19 +996,19 @@
       labels: {
         kicker: 'Add Field',
         title: 'Choose a field for this form',
-        description: 'Select a field, then decide whether it should show in results, appear as a filter control, or both.',
+        description: 'Select a field, then decide whether it should show in results and optionally set a filter right away.',
         displayChoice: 'Display in results',
-        filterChoice: 'Add filter control',
         displayBadge: 'Displayed',
         filterBadge: 'Filter',
         selectedFieldLabel: 'Selected field',
-        footerNote: 'Changes apply automatically.'
+        footerNote: 'Filters are added automatically once the preview has a value.'
       },
+      autoAddFilterFromPreview: true,
       getFieldState: fieldName => ({
         display: hasSpecColumn(fieldName),
         filter: hasSpecFilterInput(fieldName)
       }),
-      renderFilterPreview: (container, fieldName) => {
+      renderFilterPreview: (container, fieldName, context = {}) => {
         if (!container || !state.spec || !window.fieldDefs) {
           return null;
         }
@@ -1037,36 +1036,9 @@
           fieldDef
         );
 
-        const shell = document.createElement('div');
-        shell.className = 'form-mode-field-picker-filter-editor';
-
-        const operators = getAvailableOperators(fieldDef, previewInputSpec, normalizeOperatorForField);
-        const operatorLabel = document.createElement('label');
-        operatorLabel.className = 'form-mode-field-picker-filter-operator-label';
-        operatorLabel.textContent = 'Operator';
-        shell.appendChild(operatorLabel);
-
-        let operatorControl;
-        if (operators.length > 1) {
-          operatorControl = window.OperatorSelectUtils.createSelect(operators, {
-            selected: previewInputSpec.operator,
-            className: 'form-mode-operator-chip form-mode-operator-select form-mode-field-picker-filter-operator',
-            ariaLabel: `Select operator for ${fieldName}`
-          });
-        } else {
-          operatorControl = document.createElement('span');
-          operatorControl.className = 'form-mode-operator-chip form-mode-field-picker-filter-operator-readonly';
-          operatorControl.textContent = window.OperatorLabels.get(previewInputSpec.operator);
-        }
-        shell.appendChild(operatorControl);
-
-        const controlHost = document.createElement('div');
-        controlHost.className = 'form-mode-field-picker-filter-control';
-        shell.appendChild(controlHost);
-
         let control = null;
+        let previewRow = null;
         function renderPreviewControl() {
-          controlHost.replaceChildren();
           control = createFormControl(
             fieldDef,
             previewInputSpec,
@@ -1074,7 +1046,37 @@
             previewInputSpec.operator,
             normalizeOperatorForField
           );
-          controlHost.appendChild(control);
+          previewRow = createFormFieldRow({
+            inputSpec: previewInputSpec,
+            fieldDef,
+            control,
+            normalizeOperatorForField,
+            removeSpecInputByKey: () => {},
+            rebuildFormCardFromSpec: () => {},
+            captureCurrentControlDefaults: () => {},
+            showRemoveButton: false,
+            onOperatorChange: nextOperator => {
+              const previousValues = getPreviewState().values;
+              previewInputSpec.operator = normalizeOperatorForField(fieldDef, nextOperator);
+              assignInputSpecDefaultValues(previewInputSpec, previousValues, fieldDef);
+              renderPreviewControl();
+            }
+          });
+          previewRow.classList.add('form-mode-field-picker-preview-row');
+          container.replaceChildren(previewRow);
+
+          const notifyPreviewChange = typeof context.onPreviewChange === 'function'
+            ? context.onPreviewChange
+            : null;
+          if (notifyPreviewChange) {
+            previewRow.querySelectorAll('input, select, textarea, button').forEach(element => {
+              ['input', 'change', 'click'].forEach(eventName => {
+                element.addEventListener(eventName, () => {
+                  window.setTimeout(() => notifyPreviewChange(), 0);
+                });
+              });
+            });
+          }
         }
 
         function getPreviewState() {
@@ -1088,17 +1090,7 @@
           };
         }
 
-        if (operatorControl && operatorControl.tagName === 'SELECT') {
-          operatorControl.addEventListener('change', event => {
-            const previousValues = getPreviewState().values;
-            previewInputSpec.operator = normalizeOperatorForField(fieldDef, event.target.value);
-            assignInputSpecDefaultValues(previewInputSpec, previousValues, fieldDef);
-            renderPreviewControl();
-          });
-        }
-
         renderPreviewControl();
-        container.replaceChildren(shell);
 
         return {
           getState: getPreviewState,
@@ -1175,6 +1167,20 @@
             window.showToastMessage(`${fieldName}: removed filter control.`, 'success');
           }
         }
+      },
+      onFilterPreviewChange: async (fieldName, previewState) => {
+        if (!state.spec || !previewState || !hasSpecFilterInput(fieldName)) {
+          return;
+        }
+
+        const targetInputSpec = state.spec.inputs.find(inputSpec => inputSpec && inputSpec.field === fieldName);
+        if (!targetInputSpec) {
+          return;
+        }
+
+        const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
+        targetInputSpec.operator = normalizeOperatorForField(fieldDef, previewState.operator || targetInputSpec.operator);
+        assignInputSpecDefaultValues(targetInputSpec, previewState.values || [], fieldDef);
       }
     });
   }
