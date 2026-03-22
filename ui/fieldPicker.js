@@ -291,7 +291,10 @@
         return;
       }
 
-      await applyFilterChange(selectedFieldName, true, { trigger: 'preview-auto-add' });
+      await applyFilterChange(selectedFieldName, true, {
+        trigger: 'preview-auto-add',
+        previewState
+      });
     }
 
     function scheduleAutoFilterSync(previewState = null) {
@@ -483,7 +486,7 @@
         cleanup,
         modal,
         trigger: options.trigger,
-        getFilterPreviewState: () => getCurrentFilterPreviewState()
+        getFilterPreviewState: () => options.previewState || getCurrentFilterPreviewState()
       });
       if (options.trigger === 'preview-auto-add' && !(result && result.close)) {
         syncOptionBadges();
