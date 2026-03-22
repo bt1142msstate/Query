@@ -79,7 +79,7 @@
     modal.innerHTML = `
       <div class="form-mode-field-picker-header">
         <div>
-          <span class="form-mode-field-picker-kicker">${labels.kicker}</span>
+          ${labels.kicker ? `<span class="form-mode-field-picker-kicker">${labels.kicker}</span>` : ''}
           <h3 class="form-mode-field-picker-title">${labels.title}</h3>
           <p class="form-mode-field-picker-description">${labels.description}</p>
         </div>
@@ -480,7 +480,7 @@
         }
       },
       labels: {
-        kicker: 'Add Field',
+        kicker: insertAt >= 0 ? '' : 'Add Field',
         title: 'Choose a field for this query',
         description: insertAt >= 0
           ? 'Click a field to insert it into results at this position, or use the filter option to configure it instead.'
