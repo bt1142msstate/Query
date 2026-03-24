@@ -999,6 +999,13 @@ const queryStateReaderMethodNames = Object.freeze([
   'subscribe'
 ]);
 
+const prevalidatedManagerMethods = new Set([
+  'replaceActiveFilters',
+  'upsertFilter',
+  'removeFilter',
+  'setQueryState'
+]);
+
 function createManagerStoreMethod(storeMethodName, requiredArgCount, fallbackSource) {
   return function queryManagerStoreMethod(...args) {
     if (args.length <= requiredArgCount) {
@@ -1006,6 +1013,29 @@ function createManagerStoreMethod(storeMethodName, requiredArgCount, fallbackSou
     } else {
       args[requiredArgCount] = normalizeManagerMeta(args[requiredArgCount], fallbackSource);
     }
+
+    const meta = args[requiredArgCount];
+    const prevalidation = window.QueryPrevalidation;
+    if (
+      prevalidatedManagerMethods.has(storeMethodName)
+      && prevalidation
+      && typeof prevalidation.buildNextState === 'function'
+      && typeof prevalidation.validateQueryChange === 'function'
+    ) {
+      const nextState = prevalidation.buildNextState(getQueryStateSnapshot(), storeMethodName, args);
+      const validationResult = prevalidation.validateQueryChange({
+        operation: storeMethodName,
+        args,
+        currentState: getQueryStateSnapshot(),
+        nextState,
+        meta
+      });
+
+      if (validationResult && validationResult.accepted === false) {
+        return false;
+      }
+    }
+
     return queryStateStore[storeMethodName](...args);
   };
 }
