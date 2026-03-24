@@ -203,7 +203,7 @@
     button.classList.toggle('table-toolbar-btn-active', Boolean(hasFilters));
   }
 
-  function syncOperatorOptions() {
+  function syncOperatorOptions(config = {}) {
     const elements = getElements();
     if (!elements.fieldSelect || !elements.operatorSelect) return;
 
@@ -217,7 +217,7 @@
     }
 
     syncLogicSelect();
-    syncValueInputs();
+    syncValueInputs(config);
   }
 
   function buildEqualsValueControl(fieldName) {
@@ -251,7 +251,7 @@
     equalsValueControl = control;
   }
 
-  function syncValuePicker() {
+  function syncValuePicker(config = {}) {
     const elements = getElements();
     if (!elements.operatorSelect || !elements.valuePickerHost || !elements.fieldSelect) {
       return;
@@ -259,8 +259,10 @@
 
     const isEquals = elements.operatorSelect.value === 'equals';
     const field = String(elements.fieldSelect.value || '').trim();
-    const options = isEquals ? getFieldValueOptions(field) : [];
-    const shouldShowPicker = isEquals && options.length > 0;
+    const deferEqualsPicker = Boolean(config.deferEqualsPicker);
+    const shouldDeferPicker = deferEqualsPicker && isEquals;
+    const fieldOptions = isEquals ? getFieldValueOptions(field) : [];
+    const shouldShowPicker = !shouldDeferPicker && isEquals && fieldOptions.length > 0;
 
     elements.valuePickerHost.classList.toggle('hidden', !shouldShowPicker);
     setValueInputVisible(elements.valueInput, !shouldShowPicker);
@@ -277,7 +279,7 @@
     buildEqualsValueControl(field);
   }
 
-  function syncValueInputs() {
+  function syncValueInputs(config = {}) {
     const elements = getElements();
     if (!elements.valueInput || !elements.valueInput2 || !elements.operatorSelect || !elements.fieldSelect || !elements.betweenLabel) return;
 
@@ -323,7 +325,7 @@
 
     setValueInputVisible(elements.valueInput2, isBetween);
     elements.betweenLabel.classList.toggle('hidden', !isBetween);
-    syncValuePicker();
+    syncValuePicker(config);
   }
 
   function populateFieldOptions() {
@@ -476,10 +478,10 @@
     }
 
     elements.fieldSelect.value = field;
-    syncOperatorOptions();
+    syncOperatorOptions({ deferEqualsPicker: true });
 
     elements.operatorSelect.value = 'equals';
-    syncValueInputs();
+    syncValueInputs({ deferEqualsPicker: true });
 
     if (equalsValueControl && typeof equalsValueControl.setSelectedValues === 'function') {
       equalsValueControl.setSelectedValues([]);
