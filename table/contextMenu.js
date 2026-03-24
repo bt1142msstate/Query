@@ -33,17 +33,6 @@ window.TableContextMenu = (() => {
     return formatCellValue(vt.rows[rowIndex]?.[dataColIdx], field);
   }
 
-  function getRawCellValue(rowIndex, colIndex) {
-    const vt = getVT();
-    const fields = getFields();
-    if (!vt || !fields.length) return '';
-    const field = fields[colIndex];
-    if (!field) return '';
-    const dataColIdx = vt.columnMap.get(field);
-    if (dataColIdx === undefined) return '';
-    return vt.rows[rowIndex]?.[dataColIdx];
-  }
-
   function getRowValues(rowIndex) {
     const vt = getVT();
     const fields = getFields();
@@ -116,7 +105,12 @@ window.TableContextMenu = (() => {
         `<span class="tcm-icon">${action.icon}</span>` +
         `<span class="tcm-label">${action.label}</span>` +
         (action.hint ? `<span class="tcm-hint">${action.hint}</span>` : '');
-      btn.addEventListener('click', () => { action.run(); dismiss(); });
+      btn.addEventListener('click', () => {
+        dismiss();
+        window.requestAnimationFrame(() => {
+          action.run();
+        });
+      });
       menu.appendChild(btn);
     });
 
@@ -219,14 +213,14 @@ window.TableContextMenu = (() => {
       },
       {
         icon:  FILTER_ICON,
-        label: 'Post Filter This Value',
+        label: 'Add Post Filter',
         hint:  colLabel,
         run() {
-          if (!field || !hasRow || !window.PostFilterSystem || typeof window.PostFilterSystem.openOverlayForCell !== 'function') {
+          if (!field || !window.PostFilterSystem || typeof window.PostFilterSystem.openOverlayForField !== 'function') {
             return;
           }
 
-          window.PostFilterSystem.openOverlayForCell(field, getRawCellValue(rowIndex, colIndex));
+          window.PostFilterSystem.openOverlayForField(field);
         }
       },
       {

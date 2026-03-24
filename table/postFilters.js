@@ -59,23 +59,6 @@
     return String(value || '') === getBlankSentinel();
   }
 
-  function isBlankRawCellValue(rawValue) {
-    if (rawValue === undefined || rawValue === null) {
-      return true;
-    }
-
-    if (typeof rawValue === 'string') {
-      if (rawValue.includes('\x1F')) {
-        const parts = rawValue.split('\x1F').map(part => String(part).trim());
-        return parts.length === 0 || parts.every(part => !part);
-      }
-
-      return String(rawValue).trim() === '';
-    }
-
-    return false;
-  }
-
   function getAvailableFields() {
     const displayedFields = getDisplayedFields();
     const columnMap = services.getBaseViewColumnMap();
@@ -466,7 +449,7 @@
     window.requestAnimationFrame(() => elements.fieldSelect?.focus());
   }
 
-  function openOverlayForCell(fieldName, rawValue) {
+  function openOverlayForField(fieldName) {
     const field = String(fieldName || '').trim();
     if (!field) {
       return false;
@@ -498,12 +481,10 @@
     elements.operatorSelect.value = 'equals';
     syncValueInputs();
 
-    const values = normalizeCellValueForEqualsFilter(field, rawValue).map(value => String(value || ''));
     if (equalsValueControl && typeof equalsValueControl.setSelectedValues === 'function') {
-      equalsValueControl.setSelectedValues(values);
-    } else {
-      elements.valueInput.value = values[0] || '';
+      equalsValueControl.setSelectedValues([]);
     }
+    elements.valueInput.value = '';
     elements.valueInput2.value = '';
 
     window.VisibilityUtils.show([elements.overlay], {
@@ -531,112 +512,6 @@
 
   function writeSnapshot(snapshot, options = {}) {
     services.replacePostFilters(snapshot, options);
-  }
-
-  function normalizeCellValueForEqualsFilter(fieldName, rawValue) {
-    if (isBlankRawCellValue(rawValue)) {
-      return [getBlankSentinel()];
-    }
-
-    const fieldType = getFieldType(fieldName);
-
-    if (typeof rawValue === 'string' && rawValue.includes('\x1F')) {
-      const values = rawValue
-        .split('\x1F')
-        .map(part => String(part).trim())
-        .filter(Boolean);
-
-      if (!values.length) {
-        return [getBlankSentinel()];
-      }
-
-      if (fieldType === 'date') {
-        return values.map(value => window.ValueFormatting.formatValueByType(value, fieldType, {
-          fieldName,
-          dateFallbackToRaw: true
-        }));
-      }
-
-      return values;
-    }
-
-    if (fieldType === 'date') {
-      return [window.ValueFormatting.formatValueByType(rawValue, fieldType, {
-        fieldName,
-        dateFallbackToRaw: true
-      })].filter(Boolean);
-    }
-
-    return [String(rawValue ?? '').trim()].filter(Boolean);
-  }
-
-  function areFilterValueListsEqual(left, right) {
-    if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) {
-      return false;
-    }
-
-    return left.every((value, index) => String(value || '') === String(right[index] || ''));
-  }
-
-  function getFilterEntryValues(filter) {
-    if (Array.isArray(filter?.vals)) {
-      return filter.vals.map(value => String(value || '')).filter(value => value || isBlankSentinel(value));
-    }
-
-    const scalarValue = String(filter?.val || '');
-    return scalarValue || isBlankSentinel(scalarValue) ? [scalarValue] : [];
-  }
-
-  function addEqualsFilterFromCell(fieldName, rawValue) {
-    const field = String(fieldName || '').trim();
-    if (!field) {
-      return false;
-    }
-
-    const stats = services.getPostFilterStats();
-    const totalRows = Number(stats?.totalRows || 0);
-    if (totalRows <= 0) {
-      window.showToastMessage && window.showToastMessage('Run a query before adding post filters.', 'warning');
-      return false;
-    }
-
-    const values = normalizeCellValueForEqualsFilter(field, rawValue);
-    if (!values.length) {
-      window.showToastMessage && window.showToastMessage('No value is available for that cell.', 'warning');
-      return false;
-    }
-
-    const snapshot = getPostFilterSnapshot();
-    if (!snapshot[field]) {
-      snapshot[field] = { logic: 'all', filters: [] };
-    }
-
-    const normalizedValues = values.map(value => String(value || ''));
-    const existingEquals = snapshot[field].filters.find(filter => String(filter?.cond || '').toLowerCase() === 'equals');
-    const existingValues = existingEquals ? getFilterEntryValues(existingEquals) : [];
-    if (areFilterValueListsEqual(existingValues, normalizedValues)) {
-      window.showToastMessage && window.showToastMessage('That post filter is already active.', 'info');
-      return false;
-    }
-
-    snapshot[field].filters = snapshot[field].filters.filter(filter => String(filter?.cond || '').toLowerCase() !== 'equals');
-    snapshot[field].filters.push(
-      normalizedValues.length > 1
-        ? { cond: 'equals', val: normalizedValues[0], vals: normalizedValues }
-        : { cond: 'equals', val: normalizedValues[0] }
-    );
-
-    if (snapshot[field].filters.length === 1) {
-      snapshot[field].logic = 'all';
-    }
-
-    writeSnapshot(snapshot, { refreshView: true, notify: true, resetScroll: true });
-    renderSummary();
-    renderFilterList();
-    syncValueInputs();
-    updateToolbarButton();
-    window.showToastMessage && window.showToastMessage('Post filter applied.', 'success');
-    return true;
   }
 
   function addFilter() {
@@ -849,8 +724,7 @@
   window.PostFilterSystem = {
     close: closeOverlay,
     syncToolbarButton: updateToolbarButton,
-    addEqualsFilterFromCell,
-    openOverlayForCell
+    openOverlayForField
   };
 
   window.onDOMReady(attachListeners);
