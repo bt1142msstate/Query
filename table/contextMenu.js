@@ -222,11 +222,11 @@ window.TableContextMenu = (() => {
         label: 'Post Filter This Value',
         hint:  colLabel,
         run() {
-          if (!field || !hasRow || !window.PostFilterSystem || typeof window.PostFilterSystem.addEqualsFilterFromCell !== 'function') {
+          if (!field || !hasRow || !window.PostFilterSystem || typeof window.PostFilterSystem.openOverlayForCell !== 'function') {
             return;
           }
 
-          window.PostFilterSystem.addEqualsFilterFromCell(field, getRawCellValue(rowIndex, colIndex));
+          window.PostFilterSystem.openOverlayForCell(field, getRawCellValue(rowIndex, colIndex));
         }
       },
       {
