@@ -668,6 +668,248 @@
     return getBaseFieldName(fieldName) === getBaseFieldName(targetField);
   }
 
+  function normalizeQueryPreviewOperator(fieldDef, operator) {
+    const normalized = typeof window.mapFieldOperatorToUiCond === 'function'
+      ? window.mapFieldOperatorToUiCond(operator)
+      : String(operator || '').toLowerCase();
+
+    if (!fieldDef || !fieldDef.type) {
+      return normalized;
+    }
+
+    if (fieldDef.type === 'date') {
+      if (normalized === 'greater') return 'after';
+      if (normalized === 'less') return 'before';
+      if (normalized === 'greater_or_equal') return 'on_or_after';
+      if (normalized === 'less_or_equal') return 'on_or_before';
+    }
+
+    return normalized;
+  }
+
+  function splitQueryPreviewValues(rawValue) {
+    if (Array.isArray(rawValue)) {
+      return rawValue.map(value => String(value ?? '').trim()).filter(Boolean);
+    }
+
+    return String(rawValue || '')
+      .split(/[\n,]+/)
+      .map(value => value.trim())
+      .filter(Boolean);
+  }
+
+  function readQueryPreviewFilterValues(filter) {
+    if (!filter) {
+      return [];
+    }
+
+    if (String(filter.cond || '').toLowerCase() === 'between') {
+      return String(filter.val || '')
+        .split('|')
+        .map(value => value.trim())
+        .filter(Boolean)
+        .slice(0, 2);
+    }
+
+    return splitQueryPreviewValues(filter.val || '');
+  }
+
+  function getQueryPreviewDefaultValues(inputSpec) {
+    if (!inputSpec) {
+      return [];
+    }
+
+    if (inputSpec.operator === 'between') {
+      return Array.isArray(inputSpec.defaultValue)
+        ? inputSpec.defaultValue.slice(0, 2).map(value => String(value ?? ''))
+        : ['', ''];
+    }
+
+    if (Array.isArray(inputSpec.defaultValue)) {
+      return inputSpec.defaultValue.map(value => String(value ?? '')).filter(Boolean);
+    }
+
+    if (inputSpec.defaultValue === undefined || inputSpec.defaultValue === null || inputSpec.defaultValue === '') {
+      return [];
+    }
+
+    return splitQueryPreviewValues(inputSpec.defaultValue);
+  }
+
+  function assignQueryPreviewDefaultValues(inputSpec, values, fieldDef) {
+    if (!inputSpec) {
+      return;
+    }
+
+    const normalizedValues = Array.isArray(values)
+      ? values.map(value => String(value ?? '').trim())
+      : [];
+
+    if (inputSpec.operator === 'between') {
+      inputSpec.defaultValue = [normalizedValues[0] || '', normalizedValues[1] || ''];
+      inputSpec.multiple = false;
+      return;
+    }
+
+    const supportsMultiple = Boolean(
+      inputSpec.multiple
+      || (fieldDef && fieldDef.allowValueList)
+      || (fieldDef && fieldDef.multiSelect)
+      || normalizedValues.filter(Boolean).length > 1
+    );
+
+    inputSpec.multiple = supportsMultiple;
+    inputSpec.defaultValue = supportsMultiple
+      ? normalizedValues.filter(Boolean)
+      : (normalizedValues[0] || '');
+  }
+
+  function createQueryFilterPreview(container, fieldName, context = {}) {
+    const controls = window.FormModeControls;
+    if (
+      !container
+      || !window.fieldDefs
+      || !controls
+      || typeof controls.createGeneratedInputSpec !== 'function'
+      || typeof controls.createControl !== 'function'
+      || typeof controls.createFieldRow !== 'function'
+    ) {
+      return null;
+    }
+
+    const fieldDef = window.fieldDefs.get(fieldName);
+    if (!fieldDef || (typeof window.isFieldBackendFilterable === 'function' && !window.isFieldBackendFilterable(fieldDef))) {
+      return null;
+    }
+
+    const activeFilterGroup = getFilterGroupForField(fieldName);
+    const existingFilter = Array.isArray(activeFilterGroup?.filters) && activeFilterGroup.filters.length > 0
+      ? activeFilterGroup.filters[0]
+      : null;
+    const draftPreviewState = context.previewState && context.previewState.fieldName === fieldName
+      ? context.previewState
+      : null;
+    const previewInputSpec = controls.createGeneratedInputSpec(
+      fieldName,
+      [],
+      baseKey => String(baseKey || 'field'),
+      normalizeQueryPreviewOperator
+    );
+
+    if (!previewInputSpec) {
+      return null;
+    }
+
+    previewInputSpec.operator = normalizeQueryPreviewOperator(
+      fieldDef,
+      (draftPreviewState && draftPreviewState.operator)
+        || (existingFilter && existingFilter.cond)
+        || previewInputSpec.operator
+        || 'equals'
+    );
+    assignQueryPreviewDefaultValues(
+      previewInputSpec,
+      draftPreviewState
+        ? draftPreviewState.values
+        : readQueryPreviewFilterValues(existingFilter),
+      fieldDef
+    );
+
+    let control = null;
+    let previewRow = null;
+
+    function getPreviewState() {
+      const values = control && typeof control.getFormValues === 'function'
+        ? control.getFormValues()
+        : getQueryPreviewDefaultValues(previewInputSpec);
+      return {
+        fieldName,
+        operator: previewInputSpec.operator,
+        values: Array.isArray(values) ? values.map(value => String(value ?? '').trim()) : []
+      };
+    }
+
+    function renderPreviewControl() {
+      control = controls.createControl(
+        fieldDef,
+        previewInputSpec,
+        getQueryPreviewDefaultValues(previewInputSpec),
+        previewInputSpec.operator,
+        normalizeQueryPreviewOperator
+      );
+      previewRow = controls.createFieldRow({
+        inputSpec: previewInputSpec,
+        fieldDef,
+        control,
+        normalizeOperatorForField: normalizeQueryPreviewOperator,
+        removeSpecInputByKey: () => {},
+        rebuildFormCardFromSpec: () => {},
+        captureCurrentControlDefaults: () => {},
+        showRemoveButton: false,
+        onOperatorChange: nextOperator => {
+          const previousValues = getPreviewState().values;
+          previewInputSpec.operator = normalizeQueryPreviewOperator(fieldDef, nextOperator);
+          assignQueryPreviewDefaultValues(previewInputSpec, previousValues, fieldDef);
+          renderPreviewControl();
+        }
+      });
+      previewRow.classList.add('form-mode-field-picker-preview-row');
+      container.replaceChildren(previewRow);
+
+      const notifyPreviewChange = typeof context.onPreviewChange === 'function'
+        ? context.onPreviewChange
+        : null;
+      if (notifyPreviewChange) {
+        const emitPreviewChange = () => {
+          window.setTimeout(() => notifyPreviewChange(getPreviewState()), 0);
+        };
+        ['input', 'change', 'click'].forEach(eventName => {
+          previewRow.addEventListener(eventName, emitPreviewChange);
+        });
+      }
+    }
+
+    renderPreviewControl();
+
+    return {
+      getState: getPreviewState,
+      cleanup() {
+        if (control && typeof control._cleanupPopup === 'function') {
+          control._cleanupPopup();
+        }
+      }
+    };
+  }
+
+  function applyQueryPreviewFilterState(fieldName, previewState) {
+    if (!fieldName || !previewState || !window.QueryChangeManager || typeof window.QueryChangeManager.setQueryState !== 'function') {
+      return;
+    }
+
+    const values = Array.isArray(previewState.values)
+      ? previewState.values.map(value => String(value ?? '').trim()).filter(value => value !== '')
+      : [];
+    if (values.length === 0) {
+      return;
+    }
+
+    const nextActiveFilters = JSON.parse(JSON.stringify(window.QueryStateReaders?.getActiveFilters?.() || {}));
+    nextActiveFilters[fieldName] = {
+      filters: [{
+        cond: previewState.operator,
+        val: previewState.operator === 'between'
+          ? `${values[0] || ''}|${values[1] || ''}`
+          : values.join(',')
+      }]
+    };
+
+    window.QueryChangeManager.setQueryState({
+      activeFilters: nextActiveFilters
+    }, {
+      source: 'SharedFieldPicker.previewUpdate'
+    });
+  }
+
   function openQueryFilterEditor(fieldName) {
     const fieldDef = window.fieldDefs && window.fieldDefs.get(fieldName);
     if (!fieldDef || !services.bubble || typeof services.bubble.Bubble !== 'function') {
@@ -738,17 +980,19 @@
         title: 'Choose a field for this query',
         description: insertAt >= 0
           ? 'Click a field to insert it into results at this position.'
-          : 'Add a field to the table results or jump straight into configuring a filter for it.',
+          : 'Select a field, then decide whether it should show in results and optionally set a filter right away.',
         filterChoice: 'Open filter editor',
-        footerNote: insertAt >= 0 ? 'Fields insert into results immediately.' : 'Changes apply automatically.'
+        footerNote: insertAt >= 0 ? 'Fields insert into results immediately.' : 'Filters are added automatically once the preview has a value.'
       },
       autoApplyDisplayOnOptionClick: insertAt >= 0,
       compactLayout: insertAt >= 0,
+      autoAddFilterFromPreview: insertAt < 0,
       getOptions: getFieldPickerOptionsFromDefinitions,
       getFieldState: fieldName => ({
         display: getDisplayedFields().some(column => fieldMatchesBase(column, fieldName)),
         filter: Boolean(getFilterGroupForField(fieldName)?.filters?.length)
       }),
+      renderFilterPreview: insertAt < 0 ? createQueryFilterPreview : undefined,
       onDisplayChange: async (fieldName, nextChecked) => {
         const currentFields = getDisplayedFields();
         const nextFields = nextChecked
@@ -780,6 +1024,9 @@
           );
         }
       },
+      onFilterPreviewChange: insertAt < 0 ? async (fieldName, previewState) => {
+        applyQueryPreviewFilterState(fieldName, previewState);
+      } : undefined,
       onFilterChange: async (fieldName, nextChecked) => {
         if (!nextChecked) {
           if (window.QueryChangeManager) {
