@@ -229,11 +229,22 @@ window.FilterSidePanel = (function () {
     }
 
     function openDisplayFieldPicker(insertAt = -1) {
+        const lifecycleState = window.QueryStateReaders?.getLifecycleState?.();
+        if (lifecycleState?.queryRunning) {
+            return;
+        }
+
+        const normalizedInsertAt = Number.isInteger(insertAt)
+            ? insertAt
+            : Number.parseInt(String(insertAt ?? ''), 10);
+
         if (!window.SharedFieldPicker || typeof window.SharedFieldPicker.openQueryFieldPicker !== 'function') {
             return;
         }
 
-        window.SharedFieldPicker.openQueryFieldPicker({ insertAt }).catch(error => {
+        window.SharedFieldPicker.openQueryFieldPicker({
+            insertAt: Number.isInteger(normalizedInsertAt) ? normalizedInsertAt : -1
+        }).catch(error => {
             console.error('Failed to open side panel field picker:', error);
             if (window.showToastMessage) {
                 window.showToastMessage('Failed to open the field picker.', 'error');
@@ -704,6 +715,7 @@ window.FilterSidePanel = (function () {
     function update() {
         const body = window.DOM.filterPanelBody;
         if (!body) return;
+        const previousScrollTop = body.scrollTop;
 
         ensureQueryStateSubscription();
 
@@ -747,6 +759,11 @@ window.FilterSidePanel = (function () {
         if (showFilters) {
             body.appendChild(createFiltersSection());
         }
+
+        window.requestAnimationFrame(() => {
+            const maxScrollTop = Math.max(0, body.scrollHeight - body.clientHeight);
+            body.scrollTop = Math.min(previousScrollTop, maxScrollTop);
+        });
     }
 
     return { update, open, close, toggle, setViewMode };

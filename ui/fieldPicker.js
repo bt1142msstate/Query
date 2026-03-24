@@ -722,7 +722,10 @@
   }
 
   async function openQueryFieldPicker(options = {}) {
-    const insertAt = Number.isInteger(options.insertAt) ? options.insertAt : -1;
+    const parsedInsertAt = Number.isInteger(options.insertAt)
+      ? options.insertAt
+      : Number.parseInt(String(options.insertAt ?? ''), 10);
+    const insertAt = Number.isInteger(parsedInsertAt) ? parsedInsertAt : -1;
 
     await openSharedFieldPicker({
       beforeOpen: async () => {
