@@ -33,6 +33,17 @@ window.TableContextMenu = (() => {
     return formatCellValue(vt.rows[rowIndex]?.[dataColIdx], field);
   }
 
+  function getRawCellValue(rowIndex, colIndex) {
+    const vt = getVT();
+    const fields = getFields();
+    if (!vt || !fields.length) return '';
+    const field = fields[colIndex];
+    if (!field) return '';
+    const dataColIdx = vt.columnMap.get(field);
+    if (dataColIdx === undefined) return '';
+    return vt.rows[rowIndex]?.[dataColIdx];
+  }
+
   function getRowValues(rowIndex) {
     const vt = getVT();
     const fields = getFields();
@@ -77,6 +88,17 @@ window.TableContextMenu = (() => {
     <rect x="5" y="1" width="6" height="14" rx="1.5"/>
     <line x1="5" y1="6" x2="11" y2="6"/>
     <line x1="5" y1="10" x2="11" y2="10"/>
+  </svg>`;
+
+  const SORT_ICON = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 2v11"/>
+    <path d="M3 4l2-2 2 2"/>
+    <path d="M11 14V3"/>
+    <path d="M9 12l2 2 2-2"/>
+  </svg>`;
+
+  const FILTER_ICON = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M2 3h12l-5 5v4l-2 1V8L2 3z"/>
   </svg>`;
 
   // ── Menu DOM ─────────────────────────────────────────────────────────────────
@@ -177,8 +199,36 @@ window.TableContextMenu = (() => {
       : `Column ${colIndex + 1}`;
 
     const hasRow = !isNaN(rowIndex);
+    const sortState = services.getVirtualTableState?.() || {};
+    const isActiveSort = Boolean(field) && String(sortState.currentSortColumn || '') === field;
+    const nextSortLabel = !field
+      ? 'Sort Column'
+      : (isActiveSort && String(sortState.currentSortDirection || 'asc') === 'asc'
+        ? 'Sort Descending'
+        : 'Sort Ascending');
 
     const actions = [
+      {
+        icon:  SORT_ICON,
+        label: nextSortLabel,
+        hint:  colLabel,
+        run() {
+          if (!field) return;
+          services.sortTableBy(field);
+        }
+      },
+      {
+        icon:  FILTER_ICON,
+        label: 'Post Filter This Value',
+        hint:  colLabel,
+        run() {
+          if (!field || !hasRow || !window.PostFilterSystem || typeof window.PostFilterSystem.addEqualsFilterFromCell !== 'function') {
+            return;
+          }
+
+          window.PostFilterSystem.addEqualsFilterFromCell(field, getRawCellValue(rowIndex, colIndex));
+        }
+      },
       {
         icon:  CELL_ICON,
         label: 'Copy Cell',
