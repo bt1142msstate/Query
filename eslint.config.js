@@ -22,6 +22,7 @@ const allowedWindowAssignments = new Set([
   'OperatorLabels',
   'OperatorSelectUtils',
   'PostFilterSystem',
+  'QueryPrevalidation',
   'QueryBuilderShell',
   'QueryFormMode',
   'QueryHistorySystem',

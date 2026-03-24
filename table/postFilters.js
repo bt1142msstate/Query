@@ -466,6 +466,69 @@
     window.requestAnimationFrame(() => elements.fieldSelect?.focus());
   }
 
+  function openOverlayForCell(fieldName, rawValue) {
+    const field = String(fieldName || '').trim();
+    if (!field) {
+      return false;
+    }
+
+    const elements = getElements();
+    if (!elements.overlay || !elements.fieldSelect || !elements.operatorSelect || !elements.valueInput || !elements.valueInput2) {
+      return false;
+    }
+
+    const stats = services.getPostFilterStats();
+    const totalRows = Number(stats?.totalRows || 0);
+    if (totalRows <= 0) {
+      window.showToastMessage && window.showToastMessage('Run a query before adding post filters.', 'warning');
+      return false;
+    }
+
+    refreshOverlay();
+
+    const availableFields = getAvailableFields();
+    if (!availableFields.includes(field)) {
+      window.showToastMessage && window.showToastMessage('This field is not available for post filtering.', 'warning');
+      return false;
+    }
+
+    elements.fieldSelect.value = field;
+    syncOperatorOptions();
+
+    elements.operatorSelect.value = 'equals';
+    syncValueInputs();
+
+    const values = normalizeCellValueForEqualsFilter(field, rawValue).map(value => String(value || ''));
+    if (equalsValueControl && typeof equalsValueControl.setSelectedValues === 'function') {
+      equalsValueControl.setSelectedValues(values);
+    } else {
+      elements.valueInput.value = values[0] || '';
+    }
+    elements.valueInput2.value = '';
+
+    window.VisibilityUtils.show([elements.overlay], {
+      ariaHidden: false,
+      bodyClass: 'post-filter-overlay-open'
+    });
+
+    window.requestAnimationFrame(() => {
+      if (equalsValueControl && typeof equalsValueControl.focusInput === 'function') {
+        equalsValueControl.focusInput();
+        return;
+      }
+
+      const pickerTrigger = elements.valuePickerHost?.querySelector('.form-mode-popup-list-trigger');
+      if (pickerTrigger instanceof HTMLElement) {
+        pickerTrigger.focus();
+        return;
+      }
+
+      elements.valueInput.focus();
+    });
+
+    return true;
+  }
+
   function writeSnapshot(snapshot, options = {}) {
     services.replacePostFilters(snapshot, options);
   }
@@ -786,7 +849,8 @@
   window.PostFilterSystem = {
     close: closeOverlay,
     syncToolbarButton: updateToolbarButton,
-    addEqualsFilterFromCell
+    addEqualsFilterFromCell,
+    openOverlayForCell
   };
 
   window.onDOMReady(attachListeners);
