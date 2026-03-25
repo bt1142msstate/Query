@@ -316,6 +316,14 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     emptyState.classList.toggle('hidden', visibleRows.length > 0);
     if (optionsContainer.virtualList) {
       optionsContainer.virtualList.setItems(visibleRows, resetScroll);
+    } else {
+      optionsContainer.innerHTML = '';
+      const currentSearch = searchInput.value.toLowerCase().trim();
+      visibleRows.forEach(row => {
+        optionsContainer.appendChild(row.type === 'group' 
+          ? createGroupRow(row, currentSearch) 
+          : createOptionRow(row, currentSearch));
+      });
     }
   }
 
@@ -444,7 +452,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
   if (window.VirtualList) {
     optionsContainer.virtualList = new window.VirtualList({
       container: optionsContainer,
-      itemHeight: item => item.height,
+      itemHeight: item => item.height || 46,
       renderItem: row => {
         const searchTerm = searchInput.value.toLowerCase().trim();
         return row.type === 'group'
