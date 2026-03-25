@@ -1,6 +1,6 @@
 <div align="center">
 
-# 📊 Item Query Project
+# Item Query Project
 
 A browser-based report builder for library data.
 
