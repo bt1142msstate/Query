@@ -309,32 +309,21 @@
 }
 
 /* ==========================================
-   5. FIRE / REMOVE BUTTON HOVER ANIMATION
+   5. FIRE / REMOVE BUTTON
    ========================================== */
 
-@keyframes fire-flicker {
-  0%, 100% {
-    transform: scale(1) skewX(0deg) rotate(0deg);
-    color: #f97316; /* orange-500 */
-  }
-  25% {
-    transform: scale(1.15) skewX(4deg) rotate(-3deg);
-    color: #ef4444; /* red-500 */
-  }
-  50% {
-    transform: scale(0.9) skewX(-3deg) rotate(3deg);
-    color: #eab308; /* yellow-500 */
-  }
-  75% {
-    transform: scale(1.1) skewX(2deg) rotate(-1deg);
-    color: #f97316; /* orange-500 */
-  }
+.fire-icon .fire-anim {
+  opacity: 0;
+  transition: opacity 0.15s ease;
 }
 
-.form-mode-field-remove:hover svg,
-.filter-trash:hover svg,
-.post-filter-pill__remove:hover svg {
-  animation: fire-flicker 0.4s infinite alternate ease-in-out;
-  transform-origin: bottom center;
+.fire-hover-btn:hover .fire-icon .fire-base,
+.form-mode-field-remove:hover .fire-icon .fire-base {
+  opacity: 0;
+}
+
+.fire-hover-btn:hover .fire-icon .fire-anim,
+.form-mode-field-remove:hover .fire-icon .fire-anim {
+  opacity: 1;
   filter: drop-shadow(0 0 3px rgba(239, 68, 68, 0.6));
 }
