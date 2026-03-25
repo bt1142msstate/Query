@@ -216,6 +216,7 @@
     spacer.className = 'post-filter-stream-spacer';
     viewport.className = 'post-filter-stream-viewport';
     emptyState.className = 'post-filter-stream-empty hidden';
+    emptyState.style.display = 'none';
 
     optionsContainer.appendChild(spacer);
     optionsContainer.appendChild(viewport);
@@ -387,6 +388,7 @@
 
       spacer.style.height = `${Math.max(totalCount * STREAMED_EQUALS_ROW_HEIGHT, viewportHeight)}px`;
       emptyState.classList.toggle('hidden', totalCount > 0);
+      emptyState.style.display = totalCount > 0 ? 'none' : 'block';
       emptyState.textContent = scanComplete ? 'No loaded values match this search.' : 'Loading matching values...';
 
       for (let index = start; index < end; index += 1) {

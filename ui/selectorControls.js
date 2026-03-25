@@ -142,6 +142,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
   const emptyState = document.createElement('div');
   emptyState.className = 'post-filter-stream-empty hidden';
   emptyState.textContent = 'No options match this search.';
+  emptyState.style.display = 'none';
   container.appendChild(emptyState);
 
   function compareLabels(a = '', b = '') {
@@ -314,6 +315,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
       });
 
     emptyState.classList.toggle('hidden', visibleRows.length > 0);
+    emptyState.style.display = visibleRows.length > 0 ? 'none' : 'block';
     if (optionsContainer.virtualList) {
       optionsContainer.virtualList.setItems(visibleRows, resetScroll);
     } else {
