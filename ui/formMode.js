@@ -1040,13 +1040,15 @@
       labels: {
         kicker: 'Add Field',
         title: 'Choose a field for this form',
-        description: 'Select a field, then decide whether it should show in results and optionally set a filter right away.',
+        description: 'Select a field to add it to results, then optionally set a filter right away.',
         displayChoice: 'Display in results',
         displayBadge: 'Displayed',
         filterBadge: 'Filter',
         selectedFieldLabel: 'Selected field',
         footerNote: 'Filters are added automatically once the preview has a value.'
       },
+      autoDisplayOnSelect: true,
+      showDisplayChoice: false,
       autoAddFilterFromPreview: true,
       getFieldState: fieldName => ({
         display: hasSpecColumn(fieldName),
