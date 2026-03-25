@@ -5,7 +5,9 @@
   ];
   const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   // Matches M/D/YYYY, MM/DD/YYYY, backend YYYYMMDD, or legacy YYYY-MM-DD / YYYY/MM/DD formats
-  const ISO_DATE_PATTERN = /^(?:\d{1,2}\/\d{1,2}\/\d{4}|\d{8}|\d{4}[\/-]\d{2}[\/-]\d{2})$/;
+  // Matches M/D/YYYY, MM/DD/YYYY, backend YYYYMMDD, compact timestamps YYYYMMDDHHMM[SS],
+  // or legacy YYYY-MM-DD / YYYY/MM/DD formats
+  const ISO_DATE_PATTERN = /^(?:\d{1,2}\/\d{1,2}\/\d{4}|\d{8}|\d{12}|\d{14}|\d{4}[\/ -]\d{2}[\/ -]\d{2})$/;
 
   let popup = null;
   let titleEl = null;
@@ -45,9 +47,12 @@
       return null;
     }
     // Backend YYYYMMDD
-    const compact = normalized.match(/^(\d{4})(\d{2})(\d{2})$/);
+      // Backend YYYYMMDD or compact timestamps YYYYMMDDHHMM[SS]
+      const compact = normalized.match(/^(\d{4})(\d{2})(\d{2})(?:\d{2})?(?:\d{2})?$/);
     if (compact) {
-      const [, y, m, d] = compact.map(Number);
+        const y = Number(compact[1]);
+        const m = Number(compact[2]);
+        const d = Number(compact[3]);
       const date = new Date(y, m - 1, d);
       if (date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d) return date;
       return null;
