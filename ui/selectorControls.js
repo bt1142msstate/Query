@@ -370,10 +370,13 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     const groupLabel = document.createElement('span');
     groupLabel.className = 'group-label';
     groupLabel.innerHTML = highlightText(row.groupName, searchTerm);
+    groupLabel.style.display = 'block';
     groupLabel.style.overflow = 'hidden';
     groupLabel.style.textOverflow = 'ellipsis';
     groupLabel.style.whiteSpace = 'nowrap';
-    groupLabel.addEventListener('mouseenter', function() {
+    groupLabel.style.flex = '1 1 auto';
+    groupLabel.style.minWidth = '0';
+    groupLabel.addEventListener('mouseover', function() {
       if (this.offsetWidth < this.scrollWidth) {
         this.setAttribute('data-tooltip', row.groupName);
       } else {
@@ -434,10 +437,13 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     labelText.className = 'option-item-text';
     labelText.dataset.rawText = row.rawText || option.display;
     labelText.innerHTML = highlightText(labelText.dataset.rawText, searchTerm);
+    labelText.style.display = 'block';
     labelText.style.overflow = 'hidden';
     labelText.style.textOverflow = 'ellipsis';
     labelText.style.whiteSpace = 'nowrap';
-    labelText.addEventListener('mouseenter', function() {
+    labelText.style.flex = '1 1 auto';
+    labelText.style.minWidth = '0';
+    labelText.addEventListener('mouseover', function() {
       if (this.offsetWidth < this.scrollWidth) {
         this.setAttribute('data-tooltip', this.dataset.rawText);
       } else {
