@@ -106,7 +106,6 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
   const selectorInstanceId = Math.random().toString(36).slice(2, 10);
   const GROUP_HEADER_HEIGHT = 44;
   const OPTION_ROW_HEIGHT = 46;
-  const OVERSCAN_ROWS = 6;
   const selectedValues = new Set((Array.isArray(currentValues) ? currentValues : []).map(value => String(value)));
   const groupedData = new Map();
   const ungroupedValues = [];
@@ -275,7 +274,6 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
             option: entry.option,
             groupName: '',
             rawText: entry.option.display,
-            top: 0,
             height: OPTION_ROW_HEIGHT
           });
           optionIndex.set(entry.option.literal, entry.option);
@@ -295,7 +293,6 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
           type: 'group',
           groupName: entry.name,
           groupEntry: entry,
-          top: 0,
           height: GROUP_HEADER_HEIGHT
         });
 
@@ -311,7 +308,6 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
             option,
             groupName: entry.name,
             rawText: option.display.replace(new RegExp(`^${escapeRegExp(entry.name)}\\s*-\\s*`), ''),
-            top: 0,
             height: OPTION_ROW_HEIGHT
           });
         });
