@@ -519,6 +519,53 @@ window.FilterPill = FilterPill;
 var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
 var getFilterGroupForField = window.QueryStateReaders.getFilterGroupForField.bind(window.QueryStateReaders);
 
+function getPostFilterSummary() {
+    const snapshot = services.getPostFilterState ? services.getPostFilterState() : {};
+    const fieldEntries = Object.entries(snapshot).filter(([, data]) => Array.isArray(data?.filters) && data.filters.length > 0);
+    const fieldCount = fieldEntries.length;
+    const ruleCount = fieldEntries.reduce((total, [, data]) => total + data.filters.length, 0);
+
+    return {
+        fieldCount,
+        ruleCount,
+        hasPostFilters: ruleCount > 0
+    };
+}
+
+function createPostFilterPill() {
+    const summary = getPostFilterSummary();
+    if (!summary.hasPostFilters) {
+        return null;
+    }
+
+    const pill = document.createElement('button');
+    pill.type = 'button';
+    pill.className = 'cond-pill cond-pill-post-filter cond-pill-clickable';
+    pill.setAttribute('aria-label', 'Open post filters');
+    pill.setAttribute('data-tooltip', 'Edit active post filters');
+
+    const fieldLabel = summary.fieldCount === 1 ? 'field' : 'fields';
+    const ruleLabel = summary.ruleCount === 1 ? 'rule' : 'rules';
+    pill.innerHTML = `Post Filters <b>${summary.ruleCount} ${ruleLabel}</b> across <b>${summary.fieldCount} ${fieldLabel}</b>`;
+
+    pill.addEventListener('click', () => {
+        if (window.PostFilterSystem?.open) {
+            window.PostFilterSystem.open();
+        }
+    });
+
+    pill.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            if (window.PostFilterSystem?.open) {
+                window.PostFilterSystem.open();
+            }
+        }
+    });
+
+    return pill;
+}
+
 /**
  * Renders the list of active filters for a given field.
  * @param {string} field - The field name
@@ -528,19 +575,22 @@ window.renderConditionList = function(field) {
     if (!container) return;
     
     container.innerHTML = '';
-    const data = getFilterGroupForField(field);
+    const normalizedField = String(field || '').trim();
+    const data = normalizedField ? getFilterGroupForField(normalizedField) : { filters: [] };
+    const postFilterPill = createPostFilterPill();
+    const hasFieldFilters = Boolean(data && Array.isArray(data.filters) && data.filters.length);
 
-    if (!data || !data.filters.length) {
+    if (!hasFieldFilters && !postFilterPill) {
         // Reset specific styling if no filters exist
         document.querySelectorAll('.bubble').forEach(b => {
-            if (b.textContent.trim() === field) {
+            if (b.textContent.trim() === normalizedField) {
                 services.applyBubbleStyling(b);
             }
         });
         
         // Reset selection container inputs
         const selContainer = document.getElementById('condition-select-container');
-        if (selContainer && appState.selectedField === field) {
+        if (selContainer && appState.selectedField === normalizedField) {
                  if (typeof selContainer.setSelectedValues === 'function') {
                      selContainer.setSelectedValues([]);
                  }
@@ -553,7 +603,7 @@ window.renderConditionList = function(field) {
         
         // Only re-render bubbles if the field was in Selected and is now gone
         if (appState.currentCategory === 'Selected') {
-            const stillSelected = window.shouldFieldHavePurpleStyling(field);
+            const stillSelected = window.shouldFieldHavePurpleStyling(normalizedField);
             if (!stillSelected) {
                 services.rerenderBubbles();
             }
@@ -565,17 +615,18 @@ window.renderConditionList = function(field) {
     list.className = 'cond-list';
 
     // Create pills for each filter
-    const fieldDef = window.fieldDefs.get(field);
-    data.filters.forEach((f, idx) => {
-        const pill = new FilterPill(f, fieldDef, () => {
-            window.QueryChangeManager.removeFilter(field, {
+    const fieldDef = normalizedField ? window.fieldDefs.get(normalizedField) : null;
+    if (hasFieldFilters) {
+        data.filters.forEach((f, idx) => {
+            const pill = new FilterPill(f, fieldDef, () => {
+                window.QueryChangeManager.removeFilter(normalizedField, {
                 index: idx,
                 source: 'FilterManager.removeFilterPill'
             });
 
-            if (!getFilterGroupForField(field)) {
+            if (!getFilterGroupForField(normalizedField)) {
                 document.querySelectorAll('.bubble').forEach(b => {
-                    if (b.textContent.trim() === field) {
+                    if (b.textContent.trim() === normalizedField) {
                         b.removeAttribute('data-filtered');
                         b.classList.remove('bubble-filter');
                     }
@@ -584,7 +635,7 @@ window.renderConditionList = function(field) {
             
             // Sync up select container if visible
             const selContainer = document.getElementById('condition-select-container');
-            if (selContainer && appState.selectedField === field) {
+            if (selContainer && appState.selectedField === normalizedField) {
                 if (f.cond === 'equals') {
                     const remainingEquals = data.filters.find(filterItem => filterItem.cond === 'equals');
                     const nextValues = remainingEquals ? remainingEquals.val.split(',').map(v => v.trim()).filter(Boolean) : [];
@@ -610,16 +661,26 @@ window.renderConditionList = function(field) {
             
             // updateQueryJson and safeRenderBubbles are handled reactively by
             // jsonViewerUI.js and bubbleInteraction.js QueryStateSubscriptions — no need to call again here.
-            window.renderConditionList(field);
+            window.renderConditionList(normalizedField);
             uiActions.updateCategoryCounts();
         });
-        list.appendChild(pill.getElement());
-    });
+            list.appendChild(pill.getElement());
+        });
+    }
+
+    if (postFilterPill) {
+        list.appendChild(postFilterPill);
+    }
 
     container.appendChild(list);
     uiActions.updateCategoryCounts();
     uiActions.updateFilterSidePanel();
 };
+
+window.addEventListener('postfilters:updated', () => {
+    const activeField = getActiveFilterFieldName() || appState.selectedField || '';
+    window.renderConditionList(activeField);
+});
 
 /**
  * Handles condition button clicks (Equal, Contains, etc.)

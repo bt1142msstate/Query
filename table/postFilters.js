@@ -1,5 +1,9 @@
 (function() {
   let equalsValueControl = null;
+  let equalsValueControlField = '';
+  const STREAMED_EQUALS_BATCH_SIZE = 800;
+  const STREAMED_EQUALS_ROW_HEIGHT = 46;
+  const STREAMED_EQUALS_OVERSCAN = 6;
   const { getDisplayedFields } = window.QueryStateReaders;
   const services = window.AppServices;
 
@@ -127,24 +131,357 @@
     });
   }
 
-  function formatLoadedOptionLabel(option, fieldName) {
-    if (!option) {
-      return '';
+  function destroyEqualsValueControl() {
+    if (equalsValueControl && typeof equalsValueControl.destroy === 'function') {
+      equalsValueControl.destroy();
+    } else if (equalsValueControl && typeof equalsValueControl._cleanupPopup === 'function') {
+      equalsValueControl._cleanupPopup();
     }
 
-    if (option.isBlank) {
-      return '(Blank values)';
+    equalsValueControl = null;
+    equalsValueControlField = '';
+  }
+
+  function getNormalizedEqualsOptionValues(fieldName, rawValue) {
+    const fieldType = getFieldType(fieldName);
+
+    if (rawValue === undefined || rawValue === null) {
+      return [getBlankSentinel()];
     }
 
-    return formatFilterValue({ cond: 'equals', val: option.value }, fieldName);
+    if (typeof rawValue === 'string') {
+      if (rawValue.includes('\x1F')) {
+        const values = rawValue
+          .split('\x1F')
+          .map(part => String(part).trim())
+          .filter(Boolean);
+
+        return values.length ? values : [getBlankSentinel()];
+      }
+
+      if (!rawValue.trim()) {
+        return [getBlankSentinel()];
+      }
+    }
+
+    if (fieldType === 'number' || fieldType === 'money' || fieldType === 'date') {
+      return [String(rawValue).trim()].filter(Boolean);
+    }
+
+    return [String(rawValue ?? '').trim()].filter(Boolean);
+  }
+
+  function createStreamedEqualsSelector(fieldName) {
+    const baseViewData = services.table?.baseViewData;
+    const rows = Array.isArray(baseViewData?.rows) ? baseViewData.rows : [];
+    const columnIndex = baseViewData?.columnMap instanceof Map ? baseViewData.columnMap.get(fieldName) : undefined;
+    const selectedValues = new Set(getCurrentEqualsValues(fieldName).map(value => String(value || '')));
+    const optionMap = new Map();
+    const optionOrder = [];
+    const container = document.createElement('div');
+    const searchWrapper = document.createElement('div');
+    const searchInput = document.createElement('input');
+    const status = document.createElement('div');
+    const optionsContainer = document.createElement('div');
+    const spacer = document.createElement('div');
+    const viewport = document.createElement('div');
+    const emptyState = document.createElement('div');
+
+    let filteredValues = [];
+    let searchTerm = '';
+    let scanIndex = 0;
+    let scanComplete = false;
+    let scanFrame = null;
+    let renderFrame = null;
+    let disposed = false;
+
+    container.className = 'grouped-selector grouped-selector--streamed';
+
+    searchWrapper.className = 'search-wrapper';
+    searchInput.type = 'search';
+    searchInput.className = 'search-input';
+    searchInput.placeholder = 'Search loaded values...';
+    searchInput.dataset.searchUi = 'enhanced';
+    searchInput.dataset.searchWrapperClass = 'grouped-selector-search-field';
+    searchInput.dataset.searchClearLabel = 'Clear loaded value search';
+    searchWrapper.appendChild(searchInput);
+    if (typeof window.initializeSearchInputs === 'function') {
+      window.initializeSearchInputs(searchWrapper);
+    }
+
+    status.className = 'post-filter-stream-status';
+    searchWrapper.appendChild(status);
+
+    optionsContainer.className = 'grouped-options-container grouped-options-container--virtualized';
+    spacer.className = 'post-filter-stream-spacer';
+    viewport.className = 'post-filter-stream-viewport';
+    emptyState.className = 'post-filter-stream-empty hidden';
+
+    optionsContainer.appendChild(spacer);
+    optionsContainer.appendChild(viewport);
+    optionsContainer.appendChild(emptyState);
+    container.appendChild(searchWrapper);
+    container.appendChild(optionsContainer);
+
+    function getOptionDisplay(optionValue) {
+      if (isBlankSentinel(optionValue)) {
+        return '(Blank values)';
+      }
+
+      return formatFilterValue({ cond: 'equals', val: optionValue }, fieldName);
+    }
+
+    function compareOptions(leftValue, rightValue) {
+      const left = optionMap.get(leftValue);
+      const right = optionMap.get(rightValue);
+      const leftSelected = selectedValues.has(leftValue) ? 0 : 1;
+      const rightSelected = selectedValues.has(rightValue) ? 0 : 1;
+
+      if (leftSelected !== rightSelected) {
+        return leftSelected - rightSelected;
+      }
+
+      return String(left?.display || leftValue).localeCompare(String(right?.display || rightValue), undefined, {
+        numeric: true,
+        sensitivity: 'base'
+      });
+    }
+
+    function applyFilter() {
+      const normalizedTerm = searchTerm.toLowerCase().trim();
+      filteredValues = !normalizedTerm
+        ? optionOrder.slice()
+        : optionOrder.filter(optionValue => {
+          const option = optionMap.get(optionValue);
+          return Boolean(option && option.searchText.includes(normalizedTerm));
+        });
+    }
+
+    function scheduleRender(resetScroll = false) {
+      if (disposed) {
+        return;
+      }
+
+      if (resetScroll) {
+        optionsContainer.scrollTop = 0;
+      }
+
+      if (renderFrame !== null) {
+        return;
+      }
+
+      renderFrame = window.requestAnimationFrame(() => {
+        renderFrame = null;
+        renderOptions();
+      });
+    }
+
+    function updateStatus() {
+      if (!rows.length || columnIndex === undefined) {
+        status.textContent = 'No loaded values are available for this field.';
+        return;
+      }
+
+      const rowCountLabel = Number(rows.length || 0).toLocaleString();
+      const loadedCountLabel = Number(optionOrder.length || 0).toLocaleString();
+      status.textContent = scanComplete
+        ? `${loadedCountLabel} distinct loaded values`
+        : `Loading values from ${rowCountLabel} rows • ${loadedCountLabel} distinct so far`;
+    }
+
+    function upsertOption(optionValue) {
+      const normalizedValue = String(optionValue || '');
+      const existingOption = optionMap.get(normalizedValue);
+
+      if (existingOption) {
+        existingOption.count += 1;
+        return;
+      }
+
+      optionMap.set(normalizedValue, {
+        value: normalizedValue,
+        display: getOptionDisplay(normalizedValue),
+        count: 1,
+        searchText: `${getOptionDisplay(normalizedValue)} ${normalizedValue}`.toLowerCase()
+      });
+      optionOrder.push(normalizedValue);
+    }
+
+    function createOptionItem(optionValue, absoluteIndex) {
+      const option = optionMap.get(optionValue);
+      const item = document.createElement('div');
+      const input = document.createElement('input');
+      const label = document.createElement('label');
+      const indicator = document.createElement('span');
+      const labelText = document.createElement('span');
+
+      item.className = 'option-item post-filter-stream-option';
+      item.style.top = `${absoluteIndex * STREAMED_EQUALS_ROW_HEIGHT}px`;
+      item.style.height = `${STREAMED_EQUALS_ROW_HEIGHT}px`;
+
+      input.type = 'checkbox';
+      input.className = 'option-item-input';
+      input.checked = selectedValues.has(optionValue);
+      input.id = `post-filter-streamed-${Math.random().toString(36).slice(2, 10)}`;
+
+      if (input.checked) {
+        item.classList.add('is-selected');
+      }
+
+      label.className = 'option-item-label';
+      label.setAttribute('for', input.id);
+      label.title = `${option.display} (${Number(option.count || 0).toLocaleString()} loaded rows)`;
+
+      indicator.className = 'option-item-indicator';
+      indicator.setAttribute('aria-hidden', 'true');
+
+      labelText.className = 'option-item-text';
+      labelText.textContent = `${option.display} (${Number(option.count || 0).toLocaleString()})`;
+
+      label.appendChild(indicator);
+      label.appendChild(labelText);
+      item.appendChild(input);
+      item.appendChild(label);
+
+      input.addEventListener('change', () => {
+        if (input.checked) {
+          selectedValues.add(optionValue);
+        } else {
+          selectedValues.delete(optionValue);
+        }
+
+        optionOrder.sort(compareOptions);
+        applyFilter();
+        scheduleRender();
+        container.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+
+      return item;
+    }
+
+    function renderOptions() {
+      if (disposed) {
+        return;
+      }
+
+      updateStatus();
+      viewport.innerHTML = '';
+
+      const viewportHeight = optionsContainer.clientHeight || 320;
+      const totalCount = filteredValues.length;
+      const start = Math.max(0, Math.floor(optionsContainer.scrollTop / STREAMED_EQUALS_ROW_HEIGHT) - STREAMED_EQUALS_OVERSCAN);
+      const visibleCount = Math.ceil(viewportHeight / STREAMED_EQUALS_ROW_HEIGHT) + (STREAMED_EQUALS_OVERSCAN * 2);
+      const end = Math.min(totalCount, start + visibleCount);
+
+      spacer.style.height = `${Math.max(totalCount * STREAMED_EQUALS_ROW_HEIGHT, viewportHeight)}px`;
+      emptyState.classList.toggle('hidden', totalCount > 0);
+      emptyState.textContent = scanComplete ? 'No loaded values match this search.' : 'Loading matching values...';
+
+      for (let index = start; index < end; index += 1) {
+        viewport.appendChild(createOptionItem(filteredValues[index], index));
+      }
+    }
+
+    function processScanChunk() {
+      scanFrame = null;
+
+      if (disposed || columnIndex === undefined) {
+        scanComplete = true;
+        applyFilter();
+        scheduleRender();
+        return;
+      }
+
+      const end = Math.min(scanIndex + STREAMED_EQUALS_BATCH_SIZE, rows.length);
+      for (let index = scanIndex; index < end; index += 1) {
+        const row = rows[index];
+        const rawValue = Array.isArray(row) ? row[columnIndex] : undefined;
+        const seenInRow = new Set();
+
+        getNormalizedEqualsOptionValues(fieldName, rawValue).forEach(optionValue => {
+          const normalizedValue = String(optionValue || '');
+          if (!normalizedValue || seenInRow.has(normalizedValue)) {
+            return;
+          }
+
+          seenInRow.add(normalizedValue);
+          upsertOption(normalizedValue);
+        });
+      }
+
+      scanIndex = end;
+      if (scanIndex >= rows.length) {
+        scanComplete = true;
+        optionOrder.sort(compareOptions);
+      }
+
+      applyFilter();
+      scheduleRender();
+
+      if (!scanComplete && !disposed) {
+        scanFrame = window.requestAnimationFrame(processScanChunk);
+      }
+    }
+
+    searchInput.addEventListener('input', event => {
+      searchTerm = String(event.target?.value || '');
+      applyFilter();
+      scheduleRender(true);
+    });
+
+    optionsContainer.addEventListener('scroll', () => {
+      scheduleRender();
+    }, { passive: true });
+
+    container.getSelectedValues = function() {
+      return Array.from(selectedValues);
+    };
+
+    container.getSelectedDisplayValues = function() {
+      return Array.from(selectedValues).map(value => {
+        const option = optionMap.get(value);
+        return option ? option.display : getOptionDisplay(value);
+      });
+    };
+
+    container.setSelectedValues = function(valuesToSet) {
+      selectedValues.clear();
+      (Array.isArray(valuesToSet) ? valuesToSet : []).forEach(value => {
+        const normalizedValue = String(value || '');
+        if (normalizedValue) {
+          selectedValues.add(normalizedValue);
+        }
+      });
+
+      optionOrder.sort(compareOptions);
+      applyFilter();
+      scheduleRender();
+    };
+
+    container.focusInput = function() {
+      searchInput.focus();
+    };
+
+    container.destroy = function() {
+      disposed = true;
+      if (scanFrame !== null) {
+        window.cancelAnimationFrame(scanFrame);
+      }
+      if (renderFrame !== null) {
+        window.cancelAnimationFrame(renderFrame);
+      }
+    };
+
+    applyFilter();
+    updateStatus();
+    scheduleRender();
+    scanFrame = window.requestAnimationFrame(processScanChunk);
+
+    return container;
   }
 
   function getPostFilterSnapshot() {
     return services.getPostFilterState();
-  }
-
-  function getFieldValueOptions(fieldName) {
-    return services.getPostFilterFieldOptions(fieldName);
   }
 
   function getCurrentEqualsValues(fieldName) {
@@ -156,7 +493,7 @@
       return [];
     }
 
-    if (Array.isArray(equalsFilter.vals)) {
+    if (Array.isArray(equalsFilter.vals) && equalsFilter.vals.length) {
       return equalsFilter.vals.map(value => String(value || '')).filter(value => value || isBlankSentinel(value));
     }
 
@@ -203,7 +540,7 @@
     button.classList.toggle('table-toolbar-btn-active', Boolean(hasFilters));
   }
 
-  function syncOperatorOptions(config = {}) {
+  function syncOperatorOptions() {
     const elements = getElements();
     if (!elements.fieldSelect || !elements.operatorSelect) return;
 
@@ -217,69 +554,70 @@
     }
 
     syncLogicSelect();
-    syncValueInputs(config);
+    syncValueInputs();
   }
 
   function buildEqualsValueControl(fieldName) {
     const elements = getElements();
-    if (!elements.valuePickerHost) return;
-
-    const options = getFieldValueOptions(fieldName).map(option => ({
-      Name: `${formatLoadedOptionLabel(option, fieldName)} (${Number(option.count || 0).toLocaleString()})`,
-      RawValue: option.value,
-      Description: `${Number(option.count || 0).toLocaleString()} loaded rows`
-    }));
-
-    elements.valuePickerHost.innerHTML = '';
-    equalsValueControl = null;
-
-    if (!options.length || typeof window.createGroupedSelector !== 'function') {
+    if (!elements.valuePickerHost) {
       return;
     }
 
-    const selector = window.createGroupedSelector(options, true, getCurrentEqualsValues(fieldName), {
-      enableGrouping: false,
-      containerId: null
-    });
+    destroyEqualsValueControl();
+    elements.valuePickerHost.innerHTML = '';
 
+    const selector = createStreamedEqualsSelector(fieldName);
     const control = typeof window.createPopupListControl === 'function'
       ? window.createPopupListControl(selector, `${fieldName} values`, 'Choose one or more loaded values...')
       : selector;
 
     control.classList.add('post-filter-value-control');
+    control.destroy = function() {
+      if (typeof selector.destroy === 'function') {
+        selector.destroy();
+      }
+      if (typeof control._cleanupPopup === 'function') {
+        control._cleanupPopup();
+      }
+    };
+
     elements.valuePickerHost.appendChild(control);
     equalsValueControl = control;
+    equalsValueControlField = fieldName;
   }
 
-  function syncValuePicker(config = {}) {
+  function syncValuePicker() {
     const elements = getElements();
-    if (!elements.operatorSelect || !elements.valuePickerHost || !elements.fieldSelect) {
+    if (!elements.operatorSelect || !elements.fieldSelect || !elements.valuePickerHost || !elements.valueInput) {
       return;
     }
 
     const isEquals = elements.operatorSelect.value === 'equals';
-    const field = String(elements.fieldSelect.value || '').trim();
-    const deferEqualsPicker = Boolean(config.deferEqualsPicker);
-    const shouldDeferPicker = deferEqualsPicker && isEquals;
-    const fieldOptions = isEquals ? getFieldValueOptions(field) : [];
-    const shouldShowPicker = !shouldDeferPicker && isEquals && fieldOptions.length > 0;
+    const fieldName = String(elements.fieldSelect.value || '').trim();
 
-    elements.valuePickerHost.classList.toggle('hidden', !shouldShowPicker);
-    setValueInputVisible(elements.valueInput, !shouldShowPicker);
+    elements.valuePickerHost.classList.toggle('hidden', !isEquals);
+    setValueInputVisible(elements.valueInput, !isEquals);
 
-    if (!shouldShowPicker) {
+    if (!isEquals || !fieldName) {
       if (isBlankSentinel(elements.valueInput.value)) {
         elements.valueInput.value = '';
       }
       elements.valuePickerHost.innerHTML = '';
-      equalsValueControl = null;
+      destroyEqualsValueControl();
       return;
     }
 
-    buildEqualsValueControl(field);
+    if (!equalsValueControl || equalsValueControlField !== fieldName) {
+      buildEqualsValueControl(fieldName);
+      return;
+    }
+
+    if (typeof equalsValueControl.setSelectedValues === 'function') {
+      equalsValueControl.setSelectedValues(getCurrentEqualsValues(fieldName));
+    }
   }
 
-  function syncValueInputs(config = {}) {
+  function syncValueInputs() {
     const elements = getElements();
     if (!elements.valueInput || !elements.valueInput2 || !elements.operatorSelect || !elements.fieldSelect || !elements.betweenLabel) return;
 
@@ -325,7 +663,7 @@
 
     setValueInputVisible(elements.valueInput2, isBetween);
     elements.betweenLabel.classList.toggle('hidden', !isBetween);
-    syncValuePicker(config);
+    syncValuePicker();
   }
 
   function populateFieldOptions() {
@@ -414,6 +752,7 @@
   }
 
   function refreshOverlay() {
+    destroyEqualsValueControl();
     populateFieldOptions();
     renderSummary();
     renderFilterList();
@@ -478,14 +817,10 @@
     }
 
     elements.fieldSelect.value = field;
-    syncOperatorOptions({ deferEqualsPicker: true });
+    syncOperatorOptions();
 
     elements.operatorSelect.value = 'equals';
-    syncValueInputs({ deferEqualsPicker: true });
-
-    if (equalsValueControl && typeof equalsValueControl.setSelectedValues === 'function') {
-      equalsValueControl.setSelectedValues([]);
-    }
+    syncValueInputs();
     elements.valueInput.value = '';
     elements.valueInput2.value = '';
 
@@ -497,12 +832,6 @@
     window.requestAnimationFrame(() => {
       if (equalsValueControl && typeof equalsValueControl.focusInput === 'function') {
         equalsValueControl.focusInput();
-        return;
-      }
-
-      const pickerTrigger = elements.valuePickerHost?.querySelector('.form-mode-popup-list-trigger');
-      if (pickerTrigger instanceof HTMLElement) {
-        pickerTrigger.focus();
         return;
       }
 
@@ -578,8 +907,30 @@
     }
 
     if (cond === 'equals' && selectedValues.length) {
+      const nextValuesKey = selectedValues.join('\u001F');
+      const existingEquals = snapshot[field].filters.find(filter => String(filter?.cond || '').toLowerCase() === 'equals');
+      const existingEqualsKey = existingEquals
+        ? (Array.isArray(existingEquals.vals) && existingEquals.vals.length
+          ? existingEquals.vals.map(entry => String(entry || '')).join('\u001F')
+          : String(existingEquals.val || ''))
+        : '';
+
+      if (existingEqualsKey === nextValuesKey) {
+        window.showToastMessage && window.showToastMessage('That post filter is already active.', 'info');
+        return;
+      }
+
       snapshot[field].filters = snapshot[field].filters.filter(filter => String(filter?.cond || '').toLowerCase() !== 'equals');
-      snapshot[field].filters.push({ cond, val: selectedValues[0], vals: selectedValues });
+      snapshot[field].filters.push({
+        cond,
+        val: selectedValues[0],
+        vals: selectedValues
+      });
+
+      if (snapshot[field].filters.length === 1) {
+        snapshot[field].logic = 'all';
+      }
+
       writeSnapshot(snapshot, { refreshView: true, notify: true, resetScroll: true });
       renderSummary();
       renderFilterList();
@@ -724,6 +1075,7 @@
   }
 
   window.PostFilterSystem = {
+    open: openOverlay,
     close: closeOverlay,
     syncToolbarButton: updateToolbarButton,
     openOverlayForField
