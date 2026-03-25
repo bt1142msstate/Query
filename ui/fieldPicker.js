@@ -183,6 +183,9 @@
       if (currentFilterPreviewApi && typeof currentFilterPreviewApi.cleanup === 'function') {
         currentFilterPreviewApi.cleanup();
       }
+      if (listEl.virtualList) {
+        listEl.virtualList.destroy();
+      }
       currentFilterPreviewApi = null;
       if (filterPreviewHost) {
         filterPreviewHost.replaceChildren();
@@ -552,6 +555,59 @@
       return true;
     }
 
+    if (window.VirtualList && !listEl.virtualList) {
+      listEl.virtualList = new window.VirtualList({
+        container: listEl,
+        itemHeight: 44, // Approximate height of the option button
+        renderItem: (option) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'form-mode-field-picker-option';
+          button.dataset.fieldName = option.name;
+          if (option.name === selectedFieldName) {
+            button.classList.add('is-selected');
+          }
+
+          if (option.tooltipHtml) {
+            button.setAttribute('data-tooltip-html', option.tooltipHtml);
+          }
+
+          const state = normalizePickerState(getFieldState(option.name));
+          const badges = [];
+          if (allowDisplay && state.display) {
+            badges.push(`<span class="form-mode-field-picker-badge">${labels.displayBadge}</span>`);
+          }
+          if (allowFilter && state.filter) {
+            badges.push(`<span class="form-mode-field-picker-badge">${labels.filterBadge}</span>`);
+          }
+
+          button.innerHTML = `
+            <span class="form-mode-field-picker-option-name">${option.name}</span>
+            <span class="form-mode-field-picker-option-badges">${badges.join('')}</span>
+          `;
+
+          button.addEventListener('click', async () => {
+            if (autoApplyDisplayOnOptionClick) {
+              await applyDisplaySelectionFromOption(option.name);
+              return;
+            }
+
+            selectedFieldName = option.name;
+
+            if (config.autoDisplayOnSelect) {
+              await applyDisplayChange(option.name, true, { trigger: 'option-click' });
+            } else {
+              renderList();
+              syncChoiceInputs();
+              syncDetails();
+            }
+          });
+          
+          return button;
+        }
+      });
+    }
+
     function renderList() {
       const filteredOptions = options.filter(option => {
         const categoryMatch = !selectedCategory
@@ -568,63 +624,41 @@
         return haystack.includes(searchTerm);
       });
 
+      let emptyState = listEl.parentNode.querySelector('.form-mode-field-picker-empty');
+      if (!emptyState) {
+        emptyState = document.createElement('div');
+        emptyState.className = 'form-mode-field-picker-empty';
+        emptyState.style.padding = '1rem';
+        emptyState.style.textAlign = 'center';
+        emptyState.textContent = 'No fields match that search.';
+        listEl.parentNode.appendChild(emptyState);
+      }
+
       if (filteredOptions.length === 0) {
         listEl.innerHTML = '<p class="form-mode-field-picker-empty">No fields match that search.</p>';
+        if (listEl.virtualList) listEl.virtualList.setItems([]);
+        emptyState.style.display = 'block';
+        listEl.style.display = 'none';
         selectedFieldName = '';
         syncDetails();
         return;
       }
+
+      emptyState.style.display = 'none';
+      listEl.style.display = 'block';
 
       if (!filteredOptions.some(option => option.name === selectedFieldName)) {
         selectedFieldName = filteredOptions[0].name;
       }
 
       listEl.innerHTML = '';
-      filteredOptions.forEach(option => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'form-mode-field-picker-option';
-        button.dataset.fieldName = option.name;
-        if (option.name === selectedFieldName) {
-          button.classList.add('is-selected');
-        }
-
-        if (option.tooltipHtml) {
-          button.setAttribute('data-tooltip-html', option.tooltipHtml);
-        }
-
-        const state = normalizePickerState(getFieldState(option.name));
-        const badges = [];
-        if (allowDisplay && state.display) {
-          badges.push(`<span class="form-mode-field-picker-badge">${labels.displayBadge}</span>`);
-        }
-        if (allowFilter && state.filter) {
-          badges.push(`<span class="form-mode-field-picker-badge">${labels.filterBadge}</span>`);
-        }
-
-        button.innerHTML = `
-          <span class="form-mode-field-picker-option-name">${option.name}</span>
-          <span class="form-mode-field-picker-option-badges">${badges.join('')}</span>
-        `;
-
-        button.addEventListener('click', async () => {
-          if (autoApplyDisplayOnOptionClick) {
-            await applyDisplaySelectionFromOption(option.name);
-            return;
-          }
-
-          selectedFieldName = option.name;
-
-          if (config.autoDisplayOnSelect) {
-            await applyDisplayChange(option.name, true, { trigger: 'option-click' });
-          } else {
-            renderList();
-            syncChoiceInputs();
-            syncDetails();
-          }
+      if (listEl.virtualList) {
+        listEl.virtualList.setItems(filteredOptions);
+        
+        listEl.querySelectorAll('.form-mode-field-picker-option').forEach(btn => {
+          btn.classList.toggle('is-selected', btn.dataset.fieldName === selectedFieldName);
         });
-        listEl.appendChild(button);
-      });
+      }
 
       syncChoiceInputs();
       syncDetails();
