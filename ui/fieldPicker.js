@@ -994,20 +994,32 @@
       return;
     }
 
-    const values = Array.isArray(previewState.values)
-      ? previewState.values.map(value => String(value ?? '').trim()).filter(value => value !== '')
+    const rawValues = Array.isArray(previewState.values)
+      ? previewState.values.map(value => String(value ?? '').trim())
       : [];
-    if (values.length === 0) {
+    const isBetween = String(previewState.operator || '').trim().toLowerCase() === 'between';
+    const hasActiveValue = isBetween
+      ? Boolean(rawValues[0] || rawValues[1])
+      : rawValues.some(Boolean);
+
+    if (!hasActiveValue) {
+      if (typeof window.QueryChangeManager.removeFilter === 'function') {
+        window.QueryChangeManager.removeFilter(fieldName, {
+          removeAll: true,
+          source: 'SharedFieldPicker.previewUpdateEmpty'
+        });
+      }
       return;
     }
 
+    const validValues = isBetween ? rawValues.slice(0, 2) : rawValues.filter(Boolean);
     const nextActiveFilters = JSON.parse(JSON.stringify(window.QueryStateReaders?.getActiveFilters?.() || {}));
     nextActiveFilters[fieldName] = {
       filters: [{
         cond: previewState.operator,
-        val: previewState.operator === 'between'
-          ? `${values[0] || ''}|${values[1] || ''}`
-          : values.join(',')
+        val: isBetween
+          ? `${validValues[0] || ''}|${validValues[1] || ''}`
+          : validValues.join(',')
       }]
     };
 
