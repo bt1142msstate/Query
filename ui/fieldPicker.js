@@ -283,11 +283,13 @@
       }
 
       const previewState = getCurrentFilterPreviewState();
-      if (!isFilterPreviewReady(previewState)) {
+      const currentState = normalizePickerState(getFieldState(selectedFieldName));
+      const isReady = isFilterPreviewReady(previewState);
+
+      if (!isReady && !currentState.filter) {
         return;
       }
 
-      const currentState = normalizePickerState(getFieldState(selectedFieldName));
       if (typeof config.onFilterPreviewChange === 'function') {
         await config.onFilterPreviewChange(selectedFieldName, previewState, {
           modal,
@@ -297,6 +299,14 @@
         syncOptionBadges();
         syncChoiceInputs();
         syncStatusTextOnly(selected);
+        
+        if (filterPreviewHost) {
+          const removeBtn = filterPreviewHost.querySelector('.form-mode-field-remove');
+          if (removeBtn) {
+            const hasFilterNow = normalizePickerState(getFieldState(selectedFieldName)).filter;
+            removeBtn.classList.toggle('hidden', !hasFilterNow);
+          }
+        }
         return;
       }
     }
@@ -341,7 +351,13 @@
         selected,
         state: getSelectedState(),
         previewState: filterPreviewDrafts.get(selectedFieldName) || null,
-        onPreviewChange: scheduleAutoFilterSync
+        onPreviewChange: scheduleAutoFilterSync,
+        onRemoveFilter: () => {
+          filterPreviewDrafts.delete(selectedFieldName);
+          syncOptionBadges();
+          syncChoiceInputs();
+          syncDetails();
+        }
       });
 
       if (previewApi && typeof previewApi === 'object') {
@@ -544,6 +560,11 @@
         if (window.showToastMessage) {
           window.showToastMessage(`${fieldName} is already in results.`, 'info');
         }
+        await applyDisplayChange(fieldName, false, {
+          trigger: 'option-click',
+          closeAfterApply: true,
+          closeIfUnchanged: true
+        });
         return true;
       }
 
@@ -595,7 +616,8 @@
             selectedFieldName = option.name;
 
             if (config.autoDisplayOnSelect) {
-              await applyDisplayChange(option.name, true, { trigger: 'option-click' });
+              const state = normalizePickerState(getFieldState(option.name));
+              await applyDisplayChange(option.name, !state.display, { trigger: 'option-click' });
             } else {
               renderList();
               syncChoiceInputs();
@@ -873,6 +895,9 @@
     }
 
     function renderPreviewControl() {
+      const activeFilterGroup = getFilterGroupForField(fieldName);
+      const isCurrentlyFiltered = Array.isArray(activeFilterGroup?.filters) && activeFilterGroup.filters.length > 0;
+
       control = controls.createControl(
         fieldDef,
         previewInputSpec,
@@ -885,10 +910,20 @@
         fieldDef,
         control,
         normalizeOperatorForField: normalizeQueryPreviewOperator,
-        removeSpecInputByKey: () => {},
+        removeSpecInputByKey: () => {
+          if (window.QueryChangeManager) {
+            window.QueryChangeManager.removeFilter(fieldName, {
+              removeAll: true,
+              source: 'SharedFieldPicker.previewRemove'
+            });
+            if (typeof context.onRemoveFilter === 'function') {
+              context.onRemoveFilter();
+            }
+          }
+        },
         rebuildFormCardFromSpec: () => {},
         captureCurrentControlDefaults: () => {},
-        showRemoveButton: false,
+        showRemoveButton: true,
         onOperatorChange: nextOperator => {
           const previousValues = getPreviewState().values;
           previewInputSpec.operator = normalizeQueryPreviewOperator(fieldDef, nextOperator);
@@ -896,6 +931,12 @@
           renderPreviewControl();
         }
       });
+
+      const removeBtn = previewRow.querySelector('.form-mode-field-remove');
+      if (removeBtn) {
+        removeBtn.classList.toggle('hidden', !isCurrentlyFiltered);
+      }
+
       previewRow.classList.add('form-mode-field-picker-preview-row');
       container.replaceChildren(previewRow);
 
