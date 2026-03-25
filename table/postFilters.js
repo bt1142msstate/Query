@@ -2,7 +2,7 @@
   let equalsValueControl = null;
   let equalsValueControlField = '';
   const STREAMED_EQUALS_BATCH_SIZE = 800;
-  const STREAMED_EQUALS_ROW_HEIGHT = 46;
+  const STREAMED_EQUALS_ROW_HEIGHT = 50;
   const STREAMED_EQUALS_OVERSCAN = 6;
   const { getDisplayedFields } = window.QueryStateReaders;
   const services = window.AppServices;
@@ -317,7 +317,7 @@
 
       item.className = 'option-item post-filter-stream-option';
       item.style.top = `${absoluteIndex * STREAMED_EQUALS_ROW_HEIGHT}px`;
-      item.style.height = `${STREAMED_EQUALS_ROW_HEIGHT}px`;
+      item.style.height = `${STREAMED_EQUALS_ROW_HEIGHT - 4}px`;
 
       input.type = 'checkbox';
       input.className = 'option-item-input';
