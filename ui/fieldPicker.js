@@ -576,57 +576,59 @@
       return true;
     }
 
+    function createOptionButton(option) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'form-mode-field-picker-option';
+      button.dataset.fieldName = option.name;
+      if (option.name === selectedFieldName) {
+        button.classList.add('is-selected');
+      }
+
+      if (option.tooltipHtml) {
+        button.setAttribute('data-tooltip-html', option.tooltipHtml);
+      }
+
+      const state = normalizePickerState(getFieldState(option.name));
+      const badges = [];
+      if (allowDisplay && state.display) {
+        badges.push(`<span class="form-mode-field-picker-badge">${labels.displayBadge}</span>`);
+      }
+      if (allowFilter && state.filter) {
+        badges.push(`<span class="form-mode-field-picker-badge">${labels.filterBadge}</span>`);
+      }
+
+      button.innerHTML = `
+        <span class="form-mode-field-picker-option-name">${option.name}</span>
+        <span class="form-mode-field-picker-option-badges">${badges.join('')}</span>
+      `;
+
+      button.addEventListener('click', async () => {
+        if (autoApplyDisplayOnOptionClick) {
+          await applyDisplaySelectionFromOption(option.name);
+          return;
+        }
+
+        selectedFieldName = option.name;
+
+        if (config.autoDisplayOnSelect) {
+          const state = normalizePickerState(getFieldState(option.name));
+          await applyDisplayChange(option.name, !state.display, { trigger: 'option-click' });
+        } else {
+          renderList();
+          syncChoiceInputs();
+          syncDetails();
+        }
+      });
+      
+      return button;
+    }
+
     if (window.VirtualList && !listEl.virtualList) {
       listEl.virtualList = new window.VirtualList({
         container: listEl,
         itemHeight: 44, // Approximate height of the option button
-        renderItem: (option) => {
-          const button = document.createElement('button');
-          button.type = 'button';
-          button.className = 'form-mode-field-picker-option';
-          button.dataset.fieldName = option.name;
-          if (option.name === selectedFieldName) {
-            button.classList.add('is-selected');
-          }
-
-          if (option.tooltipHtml) {
-            button.setAttribute('data-tooltip-html', option.tooltipHtml);
-          }
-
-          const state = normalizePickerState(getFieldState(option.name));
-          const badges = [];
-          if (allowDisplay && state.display) {
-            badges.push(`<span class="form-mode-field-picker-badge">${labels.displayBadge}</span>`);
-          }
-          if (allowFilter && state.filter) {
-            badges.push(`<span class="form-mode-field-picker-badge">${labels.filterBadge}</span>`);
-          }
-
-          button.innerHTML = `
-            <span class="form-mode-field-picker-option-name">${option.name}</span>
-            <span class="form-mode-field-picker-option-badges">${badges.join('')}</span>
-          `;
-
-          button.addEventListener('click', async () => {
-            if (autoApplyDisplayOnOptionClick) {
-              await applyDisplaySelectionFromOption(option.name);
-              return;
-            }
-
-            selectedFieldName = option.name;
-
-            if (config.autoDisplayOnSelect) {
-              const state = normalizePickerState(getFieldState(option.name));
-              await applyDisplayChange(option.name, !state.display, { trigger: 'option-click' });
-            } else {
-              renderList();
-              syncChoiceInputs();
-              syncDetails();
-            }
-          });
-          
-          return button;
-        }
+        renderItem: createOptionButton
       });
     }
 
@@ -679,6 +681,10 @@
         
         listEl.querySelectorAll('.form-mode-field-picker-option').forEach(btn => {
           btn.classList.toggle('is-selected', btn.dataset.fieldName === selectedFieldName);
+        });
+      } else {
+        filteredOptions.forEach(option => {
+          listEl.appendChild(createOptionButton(option));
         });
       }
 
