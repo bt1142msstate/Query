@@ -460,22 +460,12 @@
       label.appendChild(requiredBadge);
     }
 
-    const fireSVG = `
-      <svg width="16" height="16" class="fire-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path class="fire-base" d="M12 22C12 22 17 18 17 13C17 10 14 7.5 12 2C10 7.5 7 10 7 13C7 18 12 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-        <path class="fire-anim" d="M12 22C12 22 17 18 17 13C17 10 14 7.5 12 2C10 7.5 7 10 7 13C7 18 12 22 12 22Z" fill="#f97316">
-          <animate attributeName="d" values="M12 22C12 22 17 18 17 13C17 10 14 7.5 12 2C10 7.5 7 10 7 13C7 18 12 22 12 22Z; M12 22C12 22 16 17 16 12C16 9 13 8.5 11 3C9 8.5 8 10 8 13C8 18 12 22 12 22Z; M12 22C12 22 18 17 18 12.5C18 9.5 15 7 13 2.5C11 7 6 9.5 6 13.5C6 18 12 22 12 22Z; M12 22C12 22 17 18 17 13C17 10 14 7.5 12 2C10 7.5 7 10 7 13C7 18 12 22 12 22Z" dur="0.5s" repeatCount="indefinite" />
-          <animate attributeName="fill" values="#f97316;#ef4444;#eab308;#f97316" dur="0.5s" repeatCount="indefinite" />
-        </path>
-      </svg>
-    `;
-
     const removeButton = document.createElement('button');
     removeButton.type = 'button';
     removeButton.className = 'form-mode-field-remove';
     removeButton.setAttribute('aria-label', `Remove filter ${inputSpec.label}`);
     removeButton.setAttribute('title', `Remove filter ${inputSpec.label}`);
-    removeButton.innerHTML = fireSVG;
+    removeButton.innerHTML = window.Icons.trashSVG(16, 16);
     if (showRemoveButton) {
       removeButton.addEventListener('click', () => {
         removeSpecInputByKey(inputSpec.key);

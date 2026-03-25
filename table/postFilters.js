@@ -735,13 +735,10 @@
         return `
           <div class="post-filter-pill">
             <span class="post-filter-pill__text">${safeLabel}</span>
-            <button type="button" class="post-filter-pill__remove fire-hover-btn" data-field="${entry.field}" data-index="${index}" aria-label="Remove post filter">
-              <svg class="w-4 h-4 pointer-events-none fire-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path class="fire-base" d="M12 22C12 22 17 18 17 13C17 10 14 7.5 12 2C10 7.5 7 10 7 13C7 18 12 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                <path class="fire-anim" d="M12 22C12 22 17 18 17 13C17 10 14 7.5 12 2C10 7.5 7 10 7 13C7 18 12 22 12 22Z" fill="#f97316">
-                  <animate attributeName="d" values="M12 22C12 22 17 18 17 13C17 10 14 7.5 12 2C10 7.5 7 10 7 13C7 18 12 22 12 22Z; M12 22C12 22 16 17 16 12C16 9 13 8.5 11 3C9 8.5 8 10 8 13C8 18 12 22 12 22Z; M12 22C12 22 18 17 18 12.5C18 9.5 15 7 13 2.5C11 7 6 9.5 6 13.5C6 18 12 22 12 22Z; M12 22C12 22 17 18 17 13C17 10 14 7.5 12 2C10 7.5 7 10 7 13C7 18 12 22 12 22Z" dur="0.5s" repeatCount="indefinite" />
-                  <animate attributeName="fill" values="#f97316;#ef4444;#eab308;#f97316" dur="0.5s" repeatCount="indefinite" />
-                </path>
+            <button type="button" class="post-filter-pill__remove" data-field="${entry.field}" data-index="${index}" aria-label="Remove post filter">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 pointer-events-none">
+                <line x1="5" y1="5" x2="15" y2="15"></line>
+                <line x1="15" y1="5" x2="5" y2="15"></line>
               </svg>
             </button>
           </div>`;
