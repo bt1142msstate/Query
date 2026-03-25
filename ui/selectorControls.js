@@ -112,10 +112,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
   const ungroupedValues = [];
   const topLevelEntries = [];
   const optionIndex = new Map();
-  const renderedRows = [];
   let visibleRows = [];
-  let renderFrame = null;
-  let pendingScrollValue = null;
 
   const container = document.createElement('div');
   container.className = 'grouped-selector';
@@ -143,18 +140,10 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
   optionsContainer.className = 'grouped-options-container grouped-options-container--virtualized';
   container.appendChild(optionsContainer);
 
-  const spacer = document.createElement('div');
-  spacer.className = 'grouped-options-spacer';
-  optionsContainer.appendChild(spacer);
-
-  const viewport = document.createElement('div');
-  viewport.className = 'grouped-options-viewport';
-  optionsContainer.appendChild(viewport);
-
   const emptyState = document.createElement('div');
   emptyState.className = 'post-filter-stream-empty hidden';
   emptyState.textContent = 'No options match this search.';
-  optionsContainer.appendChild(emptyState);
+  container.appendChild(emptyState);
 
   function compareLabels(a = '', b = '') {
     return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
@@ -328,51 +317,15 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
         });
       });
 
-    let currentTop = 0;
-    visibleRows.forEach(row => {
-      row.top = currentTop;
-      currentTop += row.height;
-    });
-
-    spacer.style.height = `${Math.max(currentTop, optionsContainer.clientHeight || 320)}px`;
     emptyState.classList.toggle('hidden', visibleRows.length > 0);
-
-    if (resetScroll) {
-      pendingScrollValue = 0;
+    if (optionsContainer.virtualList) {
+      optionsContainer.virtualList.setItems(visibleRows, resetScroll);
     }
-
-    scheduleRender();
-  }
-
-  function getVisibleRowRange() {
-    const scrollTop = optionsContainer.scrollTop;
-    const viewportHeight = optionsContainer.clientHeight || 320;
-    let startIndex = 0;
-
-    while (startIndex < visibleRows.length && visibleRows[startIndex].top + visibleRows[startIndex].height < scrollTop) {
-      startIndex += 1;
-    }
-
-    startIndex = Math.max(0, startIndex - OVERSCAN_ROWS);
-
-    let endIndex = startIndex;
-    const bottom = scrollTop + viewportHeight;
-    while (endIndex < visibleRows.length && visibleRows[endIndex].top <= bottom) {
-      endIndex += 1;
-    }
-
-    endIndex = Math.min(visibleRows.length, endIndex + OVERSCAN_ROWS);
-    return { startIndex, endIndex };
   }
 
   function createGroupRow(row, searchTerm) {
     const element = document.createElement('div');
     element.className = 'group-section';
-    element.style.position = 'absolute';
-    element.style.left = '0';
-    element.style.right = '0';
-    element.style.top = `${row.top}px`;
-    element.style.height = `${row.height}px`;
 
     const header = document.createElement('div');
     header.className = 'group-header';
@@ -437,11 +390,6 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     const option = row.option;
     const optionItem = document.createElement('div');
     optionItem.className = 'option-item';
-    optionItem.style.position = 'absolute';
-    optionItem.style.left = '0';
-    optionItem.style.right = '0';
-    optionItem.style.top = `${row.top}px`;
-    optionItem.style.height = `${row.height}px`;
     optionItem.dataset.value = option.literal;
     optionItem.dataset.display = option.display;
     if (row.groupName) {
@@ -497,45 +445,22 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     return optionItem;
   }
 
-  function renderVisibleRows() {
-    const searchTerm = searchInput.value.toLowerCase().trim();
-    viewport.innerHTML = '';
-    renderedRows.length = 0;
-
-    const { startIndex, endIndex } = getVisibleRowRange();
-    for (let index = startIndex; index < endIndex; index += 1) {
-      const row = visibleRows[index];
-      const element = row.type === 'group'
-        ? createGroupRow(row, searchTerm)
-        : createOptionRow(row, searchTerm);
-      renderedRows.push(element);
-      viewport.appendChild(element);
-    }
-
-    if (pendingScrollValue !== null) {
-      optionsContainer.scrollTop = pendingScrollValue;
-      pendingScrollValue = null;
-    }
-  }
-
-  function scheduleRender() {
-    if (renderFrame !== null) {
-      return;
-    }
-
-    renderFrame = window.requestAnimationFrame(() => {
-      renderFrame = null;
-      renderVisibleRows();
+  if (window.VirtualList) {
+    optionsContainer.virtualList = new window.VirtualList({
+      container: optionsContainer,
+      itemHeight: item => item.height,
+      renderItem: row => {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        return row.type === 'group'
+          ? createGroupRow(row, searchTerm)
+          : createOptionRow(row, searchTerm);
+      }
     });
   }
 
   searchInput.addEventListener('input', () => {
     rebuildVisibleRows(true);
   });
-
-  optionsContainer.addEventListener('scroll', () => {
-    scheduleRender();
-  }, { passive: true });
 
   container.getSelectedValues = function() {
     return Array.from(selectedValues);
