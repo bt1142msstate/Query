@@ -556,15 +556,9 @@
 
       const currentState = normalizePickerState(getFieldState(fieldName));
       if (currentState.display) {
-        cleanup();
         if (window.showToastMessage) {
-          window.showToastMessage(`${fieldName} is already in results.`, 'info');
+          window.showToastMessage(`${fieldName} is already in results. Double-click to remove.`, 'info');
         }
-        await applyDisplayChange(fieldName, false, {
-          trigger: 'option-click',
-          closeAfterApply: true,
-          closeIfUnchanged: true
-        });
         return true;
       }
 
@@ -629,15 +623,48 @@
           return;
         }
 
+        const wasAlreadySelected = selectedFieldName === option.name;
         selectedFieldName = option.name;
 
         if (config.autoDisplayOnSelect) {
           const state = normalizePickerState(getFieldState(option.name));
-          await applyDisplayChange(option.name, !state.display, { trigger: 'option-click' });
+          if (!state.display) {
+            await applyDisplayChange(option.name, true, { trigger: 'option-click' });
+          } else {
+            renderList();
+            syncChoiceInputs();
+            syncDetails();
+            if (wasAlreadySelected && window.showToastMessage) {
+              window.showToastMessage(`Double-click to remove ${option.name} from results.`, 'info');
+            }
+          }
         } else {
           renderList();
           syncChoiceInputs();
           syncDetails();
+        }
+      });
+
+      button.addEventListener('dblclick', async () => {
+        if (autoApplyDisplayOnOptionClick) {
+          const state = normalizePickerState(getFieldState(option.name));
+          if (state.display) {
+            await applyDisplayChange(option.name, false, {
+              trigger: 'option-dblclick',
+              closeAfterApply: true,
+              closeIfUnchanged: true
+            });
+          }
+          return;
+        }
+
+        selectedFieldName = option.name;
+
+        if (config.autoDisplayOnSelect) {
+          const state = normalizePickerState(getFieldState(option.name));
+          if (state.display) {
+            await applyDisplayChange(option.name, false, { trigger: 'option-dblclick' });
+          }
         }
       });
       
