@@ -213,6 +213,17 @@ window.TableContextMenu = (() => {
       },
       {
         icon:  FILTER_ICON,
+        label: 'Add Filter',
+        hint:  colLabel,
+        run() {
+          if (!field || !window.SharedFieldPicker || typeof window.SharedFieldPicker.openQueryFilterEditor !== 'function') {
+            return;
+          }
+          window.SharedFieldPicker.openQueryFilterEditor(field);
+        }
+      },
+      {
+        icon:  FILTER_ICON,
         label: 'Add Post Filter',
         hint:  colLabel,
         run() {
