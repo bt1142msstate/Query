@@ -449,6 +449,16 @@
   outline-offset: 2px;
 }
 
+.cond-pill-post-filter {
+  border: 1px solid rgba(14, 116, 144, 0.18);
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.92), rgba(8, 145, 178, 0.92));
+  box-shadow: 0 10px 18px rgba(8, 145, 178, 0.16);
+}
+
+.cond-pill-post-filter:hover {
+  box-shadow: 0 12px 20px rgba(8, 145, 178, 0.22);
+}
+
 .filter-list-viewer-backdrop {
   position: fixed;
   inset: 0;
@@ -1207,4 +1217,3 @@
 .fp-field-group.fp-drag-over-bottom {
   border-bottom: 2px solid #6366f1;
 }
-

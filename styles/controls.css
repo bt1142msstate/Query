@@ -198,6 +198,51 @@
   scrollbar-gutter: stable;
 }
 
+.grouped-options-container--virtualized {
+  position: relative;
+  min-height: 18rem;
+}
+
+.grouped-options-spacer {
+  width: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.grouped-options-viewport {
+  position: absolute;
+  inset: 0 0 auto;
+}
+
+.post-filter-stream-status {
+  padding: 0 0.2rem 0.2rem;
+  color: #64748b;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.post-filter-stream-viewport {
+  position: absolute;
+  inset: 0 0 auto;
+}
+
+.post-filter-stream-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 8rem;
+  padding: 1rem;
+  color: #64748b;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.post-filter-stream-option {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+
 .grouped-options-container::-webkit-scrollbar {
   width: 10px;
 }
@@ -844,4 +889,3 @@
   animation: rotate 1s linear infinite;
   transform-origin: center;
 }
-

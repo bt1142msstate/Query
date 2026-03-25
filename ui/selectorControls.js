@@ -104,6 +104,19 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     ? options.containerId
     : 'condition-select-container';
   const selectorInstanceId = Math.random().toString(36).slice(2, 10);
+  const GROUP_HEADER_HEIGHT = 44;
+  const OPTION_ROW_HEIGHT = 46;
+  const OVERSCAN_ROWS = 6;
+  const selectedValues = new Set((Array.isArray(currentValues) ? currentValues : []).map(value => String(value)));
+  const groupedData = new Map();
+  const ungroupedValues = [];
+  const topLevelEntries = [];
+  const optionIndex = new Map();
+  const renderedRows = [];
+  let visibleRows = [];
+  let renderFrame = null;
+  let pendingScrollValue = null;
+
   const container = document.createElement('div');
   container.className = 'grouped-selector';
   if (containerId) {
@@ -127,38 +140,48 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
   container.appendChild(searchWrapper);
 
   const optionsContainer = document.createElement('div');
-  optionsContainer.className = 'grouped-options-container';
+  optionsContainer.className = 'grouped-options-container grouped-options-container--virtualized';
   container.appendChild(optionsContainer);
 
-  const groupedData = new Map();
-  const ungroupedValues = [];
-  const groupElements = [];
-  const topLevelEntries = [];
-  const allOptionItems = [];
-  let refreshLayoutFrame = null;
-  let lastAppliedSearchTerm = '';
-  let pendingScrollTarget = null;
+  const spacer = document.createElement('div');
+  spacer.className = 'grouped-options-spacer';
+  optionsContainer.appendChild(spacer);
 
-  function reconcileOptionsScroll(previousScrollTop) {
-    const maxScrollTop = Math.max(0, optionsContainer.scrollHeight - optionsContainer.clientHeight);
+  const viewport = document.createElement('div');
+  viewport.className = 'grouped-options-viewport';
+  optionsContainer.appendChild(viewport);
 
-    if (pendingScrollTarget && isVisibleEntry(pendingScrollTarget)) {
-      pendingScrollTarget.scrollIntoView({ block: 'nearest' });
-      pendingScrollTarget = null;
-      return;
-    }
-
-    pendingScrollTarget = null;
-    optionsContainer.scrollTop = Math.min(previousScrollTop, maxScrollTop);
-  }
+  const emptyState = document.createElement('div');
+  emptyState.className = 'post-filter-stream-empty hidden';
+  emptyState.textContent = 'No options match this search.';
+  optionsContainer.appendChild(emptyState);
 
   function compareLabels(a = '', b = '') {
     return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
   }
 
-  values.forEach(value => {
-    const display = typeof value === 'object' ? (value.Name || value.Display || value.name || value.display || value.RawValue) : value;
-    const literal = typeof value === 'object' ? (value.RawValue ?? value.Value ?? value.value ?? value.Name ?? value.Display) : value;
+  function escapeRegExp(value) {
+    return String(value || '').replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+  }
+
+  function highlightText(rawText, searchTerm) {
+    if (!searchTerm) {
+      return escapeSelectorControlHtml(rawText);
+    }
+
+    return escapeSelectorControlHtml(rawText).replace(
+      new RegExp(`(${escapeRegExp(searchTerm)})`, 'gi'),
+      '<span class="highlight">$1</span>'
+    );
+  }
+
+  function normalizeValue(value) {
+    const display = typeof value === 'object'
+      ? (value.Name || value.Display || value.name || value.display || value.RawValue)
+      : value;
+    const literal = typeof value === 'object'
+      ? (value.RawValue ?? value.Value ?? value.value ?? value.Name ?? value.Display)
+      : value;
     const explicitGroup = typeof value === 'object' ? (value.Group || value.group || '') : '';
     const description = typeof value === 'object'
       ? (value.Description || value.description || value.Desc || value.desc || '')
@@ -168,248 +191,274 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
       ? displayText.split('-')[0].trim()
       : '';
     const group = enableGrouping ? (explicitGroup || derivedGroup) : '';
-    const normalized = {
+
+    return {
       display: displayText,
       literal: String(literal),
-      description: String(description || '').trim()
+      description: String(description || '').trim(),
+      group,
+      searchText: `${String(displayText)} ${String(literal)}`.toLowerCase()
     };
+  }
 
-    if (group) {
-      if (!groupedData.has(group)) groupedData.set(group, []);
-      groupedData.get(group).push(normalized);
+  values.forEach(rawValue => {
+    const normalized = normalizeValue(rawValue);
+    if (normalized.group) {
+      if (!groupedData.has(normalized.group)) {
+        groupedData.set(normalized.group, []);
+      }
+      groupedData.get(normalized.group).push(normalized);
     } else {
       ungroupedValues.push(normalized);
     }
   });
 
-  function syncOptionItemState(optionItem, input) {
-    if (!optionItem || !input) return;
-    optionItem.classList.toggle('is-selected', Boolean(input.checked));
-  }
-
-  function syncGroupCheckboxState(root, groupName) {
-    if (!isMultiSelect || !root || !groupName) return;
-
-    const groupOptions = root.querySelectorAll(`.option-item[data-group="${groupName}"] input[type="checkbox"]:not(.group-checkbox)`);
-    const groupCheckbox = root.querySelector(`.group-checkbox[data-group="${groupName}"]`);
-    if (!groupCheckbox) return;
-
-    const checkedCount = Array.from(groupOptions).filter(opt => opt.checked).length;
-    groupCheckbox.checked = checkedCount > 0 && checkedCount === groupOptions.length;
-    groupCheckbox.indeterminate = checkedCount > 0 && checkedCount < groupOptions.length;
-  }
-
-  function setLabelHighlight(labelTextEl, searchTerm = '') {
-    if (!labelTextEl) return;
-
-    const rawText = labelTextEl.dataset.rawText || '';
-    if (!searchTerm) {
-      labelTextEl.textContent = rawText;
+  groupedData.forEach((groupValues, groupName) => {
+    if (groupValues.length < 2) {
+      ungroupedValues.push(...groupValues.map(value => ({ ...value, group: '' })));
       return;
     }
 
-    const regex = new RegExp(`(${searchTerm.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi');
-    labelTextEl.innerHTML = rawText.replace(regex, '<span class="highlight">$1</span>');
+    topLevelEntries.push({
+      type: 'group',
+      name: groupName,
+      sortLabel: groupName,
+      userExpanded: false,
+      options: groupValues.slice()
+    });
+  });
+
+  ungroupedValues.forEach(value => {
+    topLevelEntries.push({
+      type: 'item',
+      option: value,
+      sortLabel: value.display
+    });
+  });
+
+  function isOptionSelected(option) {
+    return selectedValues.has(option.literal);
   }
 
-  function itemMatchesSearch(optionItem, searchTerm) {
-    if (!optionItem || !searchTerm) return true;
-
-    const value = String(optionItem.dataset.value || '').toLowerCase();
-    const display = String(optionItem.dataset.display || '').toLowerCase();
-    const labelText = optionItem.querySelector('.option-item-text');
-    const rawText = String(labelText?.dataset.rawText || '').toLowerCase();
-    return value.includes(searchTerm) || display.includes(searchTerm) || rawText.includes(searchTerm);
-  }
-
-  function setGroupExpanded(groupEntry, expanded, options = {}) {
-    if (!groupEntry) return;
-    if (!options.temporary) {
-      groupEntry.userExpanded = expanded;
-    }
-    groupEntry.options.classList.toggle('collapsed', !expanded);
-    groupEntry.header.querySelector('.toggle-icon').innerHTML = expanded ? '&#9662;' : '&#9656;';
-  }
-
-  function hasSelectedInput(optionItem) {
-    if (!optionItem) return false;
-    const input = optionItem.querySelector('input[type="checkbox"], input[type="radio"]');
-    return Boolean(input && input.checked);
-  }
-
-  function reorderOptionItems(optionItems, parentEl) {
-    if (!parentEl || !Array.isArray(optionItems) || optionItems.length === 0) return;
-
-    optionItems.sort((a, b) => {
-      const aSelected = hasSelectedInput(a) ? 0 : 1;
-      const bSelected = hasSelectedInput(b) ? 0 : 1;
-      if (aSelected !== bSelected) {
-        return aSelected - bSelected;
+  function sortOptions(optionList) {
+    return optionList.slice().sort((left, right) => {
+      const leftSelected = isOptionSelected(left) ? 0 : 1;
+      const rightSelected = isOptionSelected(right) ? 0 : 1;
+      if (leftSelected !== rightSelected) {
+        return leftSelected - rightSelected;
       }
 
-      return compareLabels(a.dataset.display || a.dataset.value, b.dataset.display || b.dataset.value);
+      return compareLabels(left.display || left.literal, right.display || right.literal);
     });
-
-    const fragment = document.createDocumentFragment();
-    optionItems.forEach(item => fragment.appendChild(item));
-    parentEl.appendChild(fragment);
   }
 
-  function reorderVisibleEntries() {
-    groupElements.forEach(groupEntry => {
-      reorderOptionItems(groupEntry.items, groupEntry.options);
-    });
+  function topLevelComparator(left, right) {
+    const leftSelected = left.type === 'group'
+      ? (left.options.some(isOptionSelected) ? 0 : 1)
+      : (isOptionSelected(left.option) ? 0 : 1);
+    const rightSelected = right.type === 'group'
+      ? (right.options.some(isOptionSelected) ? 0 : 1)
+      : (isOptionSelected(right.option) ? 0 : 1);
 
-    const topLevelComparator = (a, b) => {
-      const aSelected = a.type === 'group'
-        ? (a.items.some(hasSelectedInput) ? 0 : 1)
-        : (hasSelectedInput(a.item) ? 0 : 1);
-      const bSelected = b.type === 'group'
-        ? (b.items.some(hasSelectedInput) ? 0 : 1)
-        : (hasSelectedInput(b.item) ? 0 : 1);
-
-      if (aSelected !== bSelected) {
-        return aSelected - bSelected;
-      }
-
-      return compareLabels(a.sortLabel, b.sortLabel);
-    };
-
-    topLevelEntries.sort(topLevelComparator);
-
-    const fragment = document.createDocumentFragment();
-    topLevelEntries.forEach(entry => {
-      fragment.appendChild(entry.type === 'group' ? entry.section : entry.item);
-    });
-    optionsContainer.appendChild(fragment);
-  }
-
-  function refreshSelectorLayout() {
-    if (refreshLayoutFrame !== null) {
-      window.cancelAnimationFrame(refreshLayoutFrame);
+    if (leftSelected !== rightSelected) {
+      return leftSelected - rightSelected;
     }
 
-    const previousScrollTop = optionsContainer.scrollTop;
-
-    refreshLayoutFrame = window.requestAnimationFrame(() => {
-      refreshLayoutFrame = null;
-      applySearch(searchInput.value.toLowerCase().trim());
-      reconcileOptionsScroll(previousScrollTop);
-    });
+    return compareLabels(left.sortLabel, right.sortLabel);
   }
 
-  function clearSelectionDividers() {
-    optionsContainer.querySelectorAll('.selection-divider').forEach(element => {
-      element.classList.remove('selection-divider');
-    });
-  }
+  function rebuildVisibleRows(resetScroll = false) {
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    visibleRows = [];
+    optionIndex.clear();
 
-  function isVisibleEntry(element) {
-    return Boolean(element) && element.style.display !== 'none';
-  }
+    topLevelEntries
+      .slice()
+      .sort(topLevelComparator)
+      .forEach(entry => {
+        if (entry.type === 'item') {
+          if (searchTerm && !entry.option.searchText.includes(searchTerm)) {
+            return;
+          }
 
-  function updateSelectionDividers() {
-    clearSelectionDividers();
-    if (!isMultiSelect) return;
-
-    groupElements.forEach(groupEntry => {
-      let sawSelected = false;
-
-      groupEntry.items.forEach(item => {
-        if (!isVisibleEntry(item)) return;
-
-        if (hasSelectedInput(item)) {
-          sawSelected = true;
+          visibleRows.push({
+            type: 'option',
+            option: entry.option,
+            groupName: '',
+            rawText: entry.option.display,
+            top: 0,
+            height: OPTION_ROW_HEIGHT
+          });
+          optionIndex.set(entry.option.literal, entry.option);
           return;
         }
 
-        if (sawSelected) {
-          item.classList.add('selection-divider');
-          sawSelected = false;
+        const matchedOptions = sortOptions(entry.options).filter(option => {
+          return !searchTerm || option.searchText.includes(searchTerm);
+        });
+
+        if (!matchedOptions.length) {
+          return;
         }
-      });
-    });
 
-    let sawSelectedTopLevel = false;
-    topLevelEntries.forEach(entry => {
-      const element = entry.type === 'group' ? entry.section : entry.item;
-      if (!isVisibleEntry(element)) return;
+        const expanded = searchTerm ? true : Boolean(entry.userExpanded);
+        visibleRows.push({
+          type: 'group',
+          groupName: entry.name,
+          groupEntry: entry,
+          top: 0,
+          height: GROUP_HEADER_HEIGHT
+        });
 
-      const hasSelectedVisibleItem = entry.type === 'group'
-        ? entry.items.some(item => isVisibleEntry(item) && hasSelectedInput(item))
-        : hasSelectedInput(entry.item);
-
-      if (hasSelectedVisibleItem) {
-        sawSelectedTopLevel = true;
-        return;
-      }
-
-      if (sawSelectedTopLevel) {
-        element.classList.add('selection-divider');
-        sawSelectedTopLevel = false;
-      }
-    });
-  }
-
-  function applySearch(searchTerm) {
-    const hadActiveSearch = Boolean(lastAppliedSearchTerm);
-    lastAppliedSearchTerm = searchTerm;
-
-    reorderVisibleEntries();
-
-    allOptionItems.forEach(item => {
-      const matches = itemMatchesSearch(item, searchTerm);
-      const labelText = item.querySelector('.option-item-text');
-      item.style.display = matches ? '' : 'none';
-      setLabelHighlight(labelText, matches ? searchTerm : '');
-    });
-
-    if (!searchTerm) {
-      groupElements.forEach(groupEntry => {
-        groupEntry.section.style.display = '';
-        if (hadActiveSearch) {
-          setGroupExpanded(groupEntry, Boolean(groupEntry.userExpanded), { temporary: true });
+        if (!expanded) {
+          matchedOptions.forEach(option => optionIndex.set(option.literal, option));
+          return;
         }
+
+        matchedOptions.forEach(option => {
+          optionIndex.set(option.literal, option);
+          visibleRows.push({
+            type: 'option',
+            option,
+            groupName: entry.name,
+            rawText: option.display.replace(new RegExp(`^${escapeRegExp(entry.name)}\\s*-\\s*`), ''),
+            top: 0,
+            height: OPTION_ROW_HEIGHT
+          });
+        });
       });
-      updateSelectionDividers();
-      return;
+
+    let currentTop = 0;
+    visibleRows.forEach(row => {
+      row.top = currentTop;
+      currentTop += row.height;
+    });
+
+    spacer.style.height = `${Math.max(currentTop, optionsContainer.clientHeight || 320)}px`;
+    emptyState.classList.toggle('hidden', visibleRows.length > 0);
+
+    if (resetScroll) {
+      pendingScrollValue = 0;
     }
 
-    groupElements.forEach(groupEntry => {
-      const hasMatch = groupEntry.items.some(item => item.style.display !== 'none');
-      groupEntry.section.style.display = hasMatch ? '' : 'none';
-      if (hasMatch) {
-        setGroupExpanded(groupEntry, true, { temporary: true });
-      }
-    });
-
-    updateSelectionDividers();
+    scheduleRender();
   }
 
-  function createOptionItem(val, groupName = '', insideGroup = false) {
+  function getVisibleRowRange() {
+    const scrollTop = optionsContainer.scrollTop;
+    const viewportHeight = optionsContainer.clientHeight || 320;
+    let startIndex = 0;
+
+    while (startIndex < visibleRows.length && visibleRows[startIndex].top + visibleRows[startIndex].height < scrollTop) {
+      startIndex += 1;
+    }
+
+    startIndex = Math.max(0, startIndex - OVERSCAN_ROWS);
+
+    let endIndex = startIndex;
+    const bottom = scrollTop + viewportHeight;
+    while (endIndex < visibleRows.length && visibleRows[endIndex].top <= bottom) {
+      endIndex += 1;
+    }
+
+    endIndex = Math.min(visibleRows.length, endIndex + OVERSCAN_ROWS);
+    return { startIndex, endIndex };
+  }
+
+  function createGroupRow(row, searchTerm) {
+    const element = document.createElement('div');
+    element.className = 'group-section';
+    element.style.position = 'absolute';
+    element.style.left = '0';
+    element.style.right = '0';
+    element.style.top = `${row.top}px`;
+    element.style.height = `${row.height}px`;
+
+    const header = document.createElement('div');
+    header.className = 'group-header';
+
+    const toggleIcon = document.createElement('span');
+    toggleIcon.className = 'toggle-icon';
+    const expanded = searchTerm ? true : Boolean(row.groupEntry.userExpanded);
+    toggleIcon.innerHTML = expanded ? '&#9662;' : '&#9656;';
+    header.appendChild(toggleIcon);
+
+    if (isMultiSelect) {
+      const groupCheckbox = document.createElement('input');
+      groupCheckbox.type = 'checkbox';
+      groupCheckbox.className = 'group-checkbox';
+      groupCheckbox.dataset.group = row.groupName;
+
+      const groupOptions = row.groupEntry.options;
+      const checkedCount = groupOptions.filter(option => selectedValues.has(option.literal)).length;
+      groupCheckbox.checked = checkedCount > 0 && checkedCount === groupOptions.length;
+      groupCheckbox.indeterminate = checkedCount > 0 && checkedCount < groupOptions.length;
+
+      groupCheckbox.addEventListener('change', event => {
+        const shouldSelect = Boolean(event.currentTarget.checked);
+        row.groupEntry.options.forEach(option => {
+          if (shouldSelect) {
+            selectedValues.add(option.literal);
+          } else {
+            selectedValues.delete(option.literal);
+          }
+        });
+        container.dispatchEvent(new Event('change', { bubbles: true }));
+        rebuildVisibleRows();
+      });
+
+      header.appendChild(groupCheckbox);
+    }
+
+    const groupLabel = document.createElement('span');
+    groupLabel.className = 'group-label';
+    groupLabel.innerHTML = highlightText(row.groupName, searchTerm);
+    header.appendChild(groupLabel);
+
+    const visibleCount = row.groupEntry.options.filter(option => !searchTerm || option.searchText.includes(searchTerm)).length;
+    const groupCount = document.createElement('span');
+    groupCount.className = 'group-count';
+    groupCount.textContent = String(visibleCount);
+    header.appendChild(groupCount);
+
+    header.addEventListener('click', event => {
+      if (event.target instanceof HTMLInputElement) {
+        return;
+      }
+      row.groupEntry.userExpanded = !row.groupEntry.userExpanded;
+      rebuildVisibleRows();
+    });
+
+    element.appendChild(header);
+    return element;
+  }
+
+  function createOptionRow(row, searchTerm) {
+    const option = row.option;
     const optionItem = document.createElement('div');
     optionItem.className = 'option-item';
-    if (insideGroup) optionItem.dataset.group = groupName;
-    optionItem.dataset.value = val.literal;
-    optionItem.dataset.display = val.display;
-    if (val.description) {
-      optionItem.setAttribute('data-tooltip', val.description);
+    optionItem.style.position = 'absolute';
+    optionItem.style.left = '0';
+    optionItem.style.right = '0';
+    optionItem.style.top = `${row.top}px`;
+    optionItem.style.height = `${row.height}px`;
+    optionItem.dataset.value = option.literal;
+    optionItem.dataset.display = option.display;
+    if (row.groupName) {
+      optionItem.dataset.group = row.groupName;
+    }
+    if (option.description) {
+      optionItem.setAttribute('data-tooltip', option.description);
     }
 
     const input = document.createElement('input');
     input.type = isMultiSelect ? 'checkbox' : 'radio';
     input.name = isMultiSelect ? `condition-value-${selectorInstanceId}-multi` : `condition-value-${selectorInstanceId}`;
     input.id = `condition-value-${selectorInstanceId}-${Math.random().toString(36).slice(2, 10)}`;
-    input.dataset.value = val.literal;
-    input.dataset.display = val.display;
-    input.checked = currentValues.includes(val.literal);
+    input.dataset.value = option.literal;
+    input.dataset.display = option.display;
+    input.checked = selectedValues.has(option.literal);
     input.className = 'option-item-input';
-
-    if (isMultiSelect && groupName) {
-      input.addEventListener('change', () => {
-        syncGroupCheckboxState(container, groupName);
-      });
-    }
 
     const label = document.createElement('label');
     label.className = 'option-item-label';
@@ -421,158 +470,97 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
 
     const labelText = document.createElement('span');
     labelText.className = 'option-item-text';
-    labelText.dataset.rawText = insideGroup
-      ? val.display.replace(new RegExp(`^${groupName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*-\\s*`), '')
-      : val.display;
-    labelText.textContent = labelText.dataset.rawText;
+    labelText.dataset.rawText = row.rawText || option.display;
+    labelText.innerHTML = highlightText(labelText.dataset.rawText, searchTerm);
 
     label.appendChild(indicator);
     label.appendChild(labelText);
-
-    input.addEventListener('change', () => {
-      syncOptionItemState(optionItem, input);
-      pendingScrollTarget = optionItem;
-      refreshSelectorLayout();
-    });
-
     optionItem.appendChild(input);
     optionItem.appendChild(label);
-    syncOptionItemState(optionItem, input);
-    allOptionItems.push(optionItem);
+    optionItem.classList.toggle('is-selected', input.checked);
+
+    input.addEventListener('change', () => {
+      if (!isMultiSelect) {
+        selectedValues.clear();
+      }
+
+      if (input.checked) {
+        selectedValues.add(option.literal);
+      } else {
+        selectedValues.delete(option.literal);
+      }
+
+      container.dispatchEvent(new Event('change', { bubbles: true }));
+      rebuildVisibleRows();
+    });
+
     return optionItem;
   }
 
-  groupedData.forEach((groupValues, groupName) => {
-    if (groupValues.length < 2) {
-      ungroupedValues.push(...groupValues);
+  function renderVisibleRows() {
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    viewport.innerHTML = '';
+    renderedRows.length = 0;
+
+    const { startIndex, endIndex } = getVisibleRowRange();
+    for (let index = startIndex; index < endIndex; index += 1) {
+      const row = visibleRows[index];
+      const element = row.type === 'group'
+        ? createGroupRow(row, searchTerm)
+        : createOptionRow(row, searchTerm);
+      renderedRows.push(element);
+      viewport.appendChild(element);
+    }
+
+    if (pendingScrollValue !== null) {
+      optionsContainer.scrollTop = pendingScrollValue;
+      pendingScrollValue = null;
+    }
+  }
+
+  function scheduleRender() {
+    if (renderFrame !== null) {
       return;
     }
 
-    const groupSection = document.createElement('div');
-    groupSection.className = 'group-section';
-
-    const groupHeader = document.createElement('div');
-    groupHeader.className = 'group-header';
-
-    const toggleIcon = document.createElement('span');
-    toggleIcon.className = 'toggle-icon';
-    toggleIcon.innerHTML = '&#9656;';
-    groupHeader.appendChild(toggleIcon);
-
-    if (isMultiSelect) {
-      const groupCheckbox = document.createElement('input');
-      groupCheckbox.type = 'checkbox';
-      groupCheckbox.className = 'group-checkbox';
-      groupCheckbox.dataset.group = groupName;
-
-      const allSelected = groupValues.every(val => currentValues.includes(val.literal));
-      groupCheckbox.checked = allSelected && groupValues.length > 0;
-
-      groupCheckbox.addEventListener('change', e => {
-        const checked = e.target.checked;
-        const options = groupSection.querySelectorAll(`.option-item[data-group="${groupName}"] input`);
-        options.forEach(opt => {
-          opt.checked = checked;
-          opt.dispatchEvent(new Event('change', { bubbles: true }));
-        });
-        syncGroupCheckboxState(groupSection, groupName);
-      });
-
-      groupHeader.appendChild(groupCheckbox);
-    }
-
-    const groupLabel = document.createElement('span');
-    groupLabel.className = 'group-label';
-    groupLabel.textContent = groupName;
-    groupHeader.appendChild(groupLabel);
-
-    const groupCount = document.createElement('span');
-    groupCount.className = 'group-count';
-    groupCount.textContent = String(groupValues.length);
-    groupHeader.appendChild(groupCount);
-
-    groupSection.appendChild(groupHeader);
-
-    const groupOptions = document.createElement('div');
-    groupOptions.className = 'group-options collapsed';
-    const groupItems = [];
-
-    groupValues.forEach(val => {
-      const optionItem = createOptionItem(val, groupName, true);
-      groupOptions.appendChild(optionItem);
-      groupItems.push(optionItem);
+    renderFrame = window.requestAnimationFrame(() => {
+      renderFrame = null;
+      renderVisibleRows();
     });
+  }
 
-    groupSection.appendChild(groupOptions);
-    optionsContainer.appendChild(groupSection);
-    const groupEntry = {
-      section: groupSection,
-      header: groupHeader,
-      options: groupOptions,
-      items: groupItems,
-      sortLabel: groupName,
-      userExpanded: false
-    };
-    groupElements.push(groupEntry);
-    topLevelEntries.push({ type: 'group', section: groupSection, items: groupItems, sortLabel: groupName });
-
-    groupHeader.addEventListener('click', e => {
-      if (e.target.type === 'checkbox') return;
-      setGroupExpanded(groupEntry, groupOptions.classList.contains('collapsed'));
-    });
+  searchInput.addEventListener('input', () => {
+    rebuildVisibleRows(true);
   });
 
-  ungroupedValues.forEach(val => {
-    const optionItem = createOptionItem(val);
-    optionItem.classList.add('ungrouped-option');
-    optionsContainer.appendChild(optionItem);
-    topLevelEntries.push({ type: 'item', item: optionItem, sortLabel: val.display });
-  });
-
-  searchInput.addEventListener('input', e => {
-    applySearch(e.target.value.toLowerCase().trim());
-  });
+  optionsContainer.addEventListener('scroll', () => {
+    scheduleRender();
+  }, { passive: true });
 
   container.getSelectedValues = function() {
-    const selected = [];
-    this.querySelectorAll('input[type="checkbox"]:checked, input[type="radio"]:checked').forEach(input => {
-      if (input.dataset.value && !input.classList.contains('group-checkbox')) {
-        selected.push(input.dataset.value);
-      }
-    });
-    return selected;
+    return Array.from(selectedValues);
   };
 
   container.getSelectedDisplayValues = function() {
-    const selected = [];
-    this.querySelectorAll('input[type="checkbox"]:checked, input[type="radio"]:checked').forEach(input => {
-      if (input.dataset.display && !input.classList.contains('group-checkbox')) {
-        selected.push(input.dataset.display);
-      }
+    return Array.from(selectedValues).map(value => {
+      const option = optionIndex.get(value);
+      return option ? option.display : value;
     });
-    return selected;
   };
 
   container.setSelectedValues = function(valuesToSet) {
-    const valueSet = new Set(valuesToSet);
-    this.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(input => {
-      if (input.dataset.value) {
-        input.checked = valueSet.has(input.dataset.value);
-        syncOptionItemState(input.closest('.option-item'), input);
-      }
+    selectedValues.clear();
+    (Array.isArray(valuesToSet) ? valuesToSet : []).forEach(value => {
+      selectedValues.add(String(value));
     });
-
-    if (isMultiSelect) {
-      groupedData.forEach((_, groupName) => {
-        syncGroupCheckboxState(this, groupName);
-      });
-    }
-
-    refreshSelectorLayout();
+    rebuildVisibleRows();
   };
 
-  applySearch(searchInput.value.toLowerCase().trim());
+  container.focusInput = function() {
+    searchInput.focus();
+  };
 
+  rebuildVisibleRows();
   return container;
 };
 
