@@ -370,6 +370,16 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     const groupLabel = document.createElement('span');
     groupLabel.className = 'group-label';
     groupLabel.innerHTML = highlightText(row.groupName, searchTerm);
+    groupLabel.style.overflow = 'hidden';
+    groupLabel.style.textOverflow = 'ellipsis';
+    groupLabel.style.whiteSpace = 'nowrap';
+    groupLabel.addEventListener('mouseenter', function() {
+      if (this.offsetWidth < this.scrollWidth) {
+        this.setAttribute('data-tooltip', row.groupName);
+      } else {
+        this.removeAttribute('data-tooltip');
+      }
+    });
     header.appendChild(groupLabel);
 
     const visibleCount = row.groupEntry.options.filter(option => !searchTerm || option.searchText.includes(searchTerm)).length;
@@ -424,6 +434,16 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     labelText.className = 'option-item-text';
     labelText.dataset.rawText = row.rawText || option.display;
     labelText.innerHTML = highlightText(labelText.dataset.rawText, searchTerm);
+    labelText.style.overflow = 'hidden';
+    labelText.style.textOverflow = 'ellipsis';
+    labelText.style.whiteSpace = 'nowrap';
+    labelText.addEventListener('mouseenter', function() {
+      if (this.offsetWidth < this.scrollWidth) {
+        this.setAttribute('data-tooltip', this.dataset.rawText);
+      } else {
+        this.removeAttribute('data-tooltip');
+      }
+    });
 
     label.appendChild(indicator);
     label.appendChild(labelText);
@@ -460,6 +480,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
           : createOptionRow(row, searchTerm);
       }
     });
+    optionsContainer.style.overflowY = 'auto';
   }
 
   searchInput.addEventListener('input', () => {
