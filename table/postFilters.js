@@ -330,13 +330,25 @@
 
       label.className = 'option-item-label';
       label.setAttribute('for', input.id);
-      label.title = `${option.display} (${Number(option.count || 0).toLocaleString()} loaded rows)`;
 
       indicator.className = 'option-item-indicator';
       indicator.setAttribute('aria-hidden', 'true');
 
       labelText.className = 'option-item-text';
       labelText.textContent = `${option.display} (${Number(option.count || 0).toLocaleString()})`;
+      labelText.style.display = 'block';
+      labelText.style.overflow = 'hidden';
+      labelText.style.textOverflow = 'ellipsis';
+      labelText.style.whiteSpace = 'nowrap';
+      labelText.style.flex = '1 1 auto';
+      labelText.style.minWidth = '0';
+      labelText.addEventListener('mouseover', function() {
+        if (this.offsetWidth < this.scrollWidth) {
+          this.setAttribute('data-tooltip', `${option.display} (${Number(option.count || 0).toLocaleString()} loaded rows)`);
+        } else {
+          this.removeAttribute('data-tooltip');
+        }
+      });
 
       label.appendChild(indicator);
       label.appendChild(labelText);
