@@ -601,10 +601,13 @@
       const nameSpan = document.createElement('span');
       nameSpan.className = 'form-mode-field-picker-option-name';
       nameSpan.textContent = option.name;
+      nameSpan.style.display = 'block';
       nameSpan.style.overflow = 'hidden';
       nameSpan.style.textOverflow = 'ellipsis';
       nameSpan.style.whiteSpace = 'nowrap';
-      nameSpan.addEventListener('mouseenter', function() {
+      nameSpan.style.flex = '1 1 auto';
+      nameSpan.style.minWidth = '0';
+      nameSpan.addEventListener('mouseover', function() {
         if (this.offsetWidth < this.scrollWidth) {
           this.setAttribute('data-tooltip', option.name);
         } else {
