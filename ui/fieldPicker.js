@@ -598,10 +598,27 @@
         badges.push(`<span class="form-mode-field-picker-badge">${labels.filterBadge}</span>`);
       }
 
-      button.innerHTML = `
-        <span class="form-mode-field-picker-option-name">${option.name}</span>
-        <span class="form-mode-field-picker-option-badges">${badges.join('')}</span>
-      `;
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'form-mode-field-picker-option-name';
+      nameSpan.textContent = option.name;
+      nameSpan.style.overflow = 'hidden';
+      nameSpan.style.textOverflow = 'ellipsis';
+      nameSpan.style.whiteSpace = 'nowrap';
+      nameSpan.addEventListener('mouseenter', function() {
+        if (this.offsetWidth < this.scrollWidth) {
+          this.setAttribute('data-tooltip', option.name);
+        } else {
+          this.removeAttribute('data-tooltip');
+        }
+      });
+
+      const badgesSpan = document.createElement('span');
+      badgesSpan.className = 'form-mode-field-picker-option-badges';
+      badgesSpan.innerHTML = badges.join('');
+
+      button.innerHTML = '';
+      button.appendChild(nameSpan);
+      button.appendChild(badgesSpan);
 
       button.addEventListener('click', async () => {
         if (autoApplyDisplayOnOptionClick) {
@@ -630,6 +647,7 @@
         itemHeight: 44, // Approximate height of the option button
         renderItem: createOptionButton
       });
+      listEl.style.overflowY = 'auto';
     }
 
     function renderList() {
