@@ -304,7 +304,17 @@
           const removeBtn = filterPreviewHost.querySelector('.form-mode-field-remove');
           if (removeBtn) {
             const hasFilterNow = normalizePickerState(getFieldState(selectedFieldName)).filter;
-            removeBtn.classList.toggle('hidden', !hasFilterNow);
+            if (!hasFilterNow) {
+              removeBtn.hidden = true;
+              removeBtn.setAttribute('aria-hidden', 'true');
+              removeBtn.tabIndex = -1;
+              removeBtn.style.display = 'none';
+            } else {
+              removeBtn.hidden = false;
+              removeBtn.removeAttribute('aria-hidden');
+              removeBtn.removeAttribute('tabindex');
+              removeBtn.style.display = '';
+            }
           }
         }
         return;
@@ -988,7 +998,17 @@
 
       const removeBtn = previewRow.querySelector('.form-mode-field-remove');
       if (removeBtn) {
-        removeBtn.classList.toggle('hidden', !isCurrentlyFiltered);
+        if (!isCurrentlyFiltered) {
+          removeBtn.hidden = true;
+          removeBtn.setAttribute('aria-hidden', 'true');
+          removeBtn.tabIndex = -1;
+          removeBtn.style.display = 'none';
+        } else {
+          removeBtn.hidden = false;
+          removeBtn.removeAttribute('aria-hidden');
+          removeBtn.removeAttribute('tabindex');
+          removeBtn.style.display = '';
+        }
       }
 
       previewRow.classList.add('form-mode-field-picker-preview-row');
