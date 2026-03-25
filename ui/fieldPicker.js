@@ -584,6 +584,7 @@
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'form-mode-field-picker-option';
+      button.style.marginBottom = '8px';
       button.dataset.fieldName = option.name;
       if (option.name === selectedFieldName) {
         button.classList.add('is-selected');
@@ -684,7 +685,7 @@
     if (window.VirtualList && !listEl.virtualList) {
       listEl.virtualList = new window.VirtualList({
         container: listEl,
-        itemHeight: 44, // Approximate height of the option button
+        itemHeight: 52, // Approximate height of the option button (44px) + 8px margin
         renderItem: createOptionButton
       });
       listEl.style.overflowY = 'auto';

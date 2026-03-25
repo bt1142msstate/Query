@@ -104,8 +104,8 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     ? options.containerId
     : 'condition-select-container';
   const selectorInstanceId = Math.random().toString(36).slice(2, 10);
-  const GROUP_HEADER_HEIGHT = 44;
-  const OPTION_ROW_HEIGHT = 46;
+  const GROUP_HEADER_HEIGHT = 48;
+  const OPTION_ROW_HEIGHT = 50;
   const selectedValues = new Set((Array.isArray(currentValues) ? currentValues : []).map(value => String(value)));
   const groupedData = new Map();
   const ungroupedValues = [];
@@ -330,6 +330,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
   function createGroupRow(row, searchTerm) {
     const element = document.createElement('div');
     element.className = 'group-section';
+    element.style.marginBottom = '4px';
 
     const header = document.createElement('div');
     header.className = 'group-header';
@@ -407,6 +408,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
     const option = row.option;
     const optionItem = document.createElement('div');
     optionItem.className = 'option-item';
+    optionItem.style.marginBottom = '4px';
     optionItem.dataset.value = option.literal;
     optionItem.dataset.display = option.display;
     if (row.groupName) {
@@ -478,7 +480,7 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
   if (window.VirtualList) {
     optionsContainer.virtualList = new window.VirtualList({
       container: optionsContainer,
-      itemHeight: item => item.height || 46,
+      itemHeight: item => item.height || 50,
       renderItem: row => {
         const searchTerm = searchInput.value.toLowerCase().trim();
         return row.type === 'group'
