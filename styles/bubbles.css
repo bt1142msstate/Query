@@ -308,22 +308,3 @@
   background: rgba(196, 181, 253, 1); /* Brighter hover state */
 }
 
-/* ==========================================
-   5. FIRE / REMOVE BUTTON
-   ========================================== */
-
-.fire-icon .fire-anim {
-  opacity: 0;
-  transition: opacity 0.15s ease;
-}
-
-.fire-hover-btn:hover .fire-icon .fire-base,
-.form-mode-field-remove:hover .fire-icon .fire-base {
-  opacity: 0;
-}
-
-.fire-hover-btn:hover .fire-icon .fire-anim,
-.form-mode-field-remove:hover .fire-icon .fire-anim {
-  opacity: 1;
-  filter: drop-shadow(0 0 3px rgba(239, 68, 68, 0.6));
-}

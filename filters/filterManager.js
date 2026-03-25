@@ -472,22 +472,14 @@ class FilterPill {
             condContent = `${opLabel} <b>${valueLabel}</b>`;
         }
         
-        // Native Morphing Flame SVG (SMIL) - Acts like a Lottie without dependencies
-        const fireSVG = `
-          <svg width="20" height="20" class="fire-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path class="fire-base" d="M12 22C12 22 17 18 17 13C17 10 14 7.5 12 2C10 7.5 7 10 7 13C7 18 12 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            <path class="fire-anim" d="M12 22C12 22 17 18 17 13C17 10 14 7.5 12 2C10 7.5 7 10 7 13C7 18 12 22 12 22Z" fill="#f97316">
-              <animate attributeName="d" values="M12 22C12 22 17 18 17 13C17 10 14 7.5 12 2C10 7.5 7 10 7 13C7 18 12 22 12 22Z; M12 22C12 22 16 17 16 12C16 9 13 8.5 11 3C9 8.5 8 10 8 13C8 18 12 22 12 22Z; M12 22C12 22 18 17 18 12.5C18 9.5 15 7 13 2.5C11 7 6 9.5 6 13.5C6 18 12 22 12 22Z; M12 22C12 22 17 18 17 13C17 10 14 7.5 12 2C10 7.5 7 10 7 13C7 18 12 22 12 22Z" dur="0.5s" repeatCount="indefinite" />
-              <animate attributeName="fill" values="#f97316;#ef4444;#eab308;#f97316" dur="0.5s" repeatCount="indefinite" />
-            </path>
-          </svg>
-        `;
+                // Remove icon SVG
+        const trashSVG = `<button type="button" class="filter-trash" aria-label="Remove filter" tabindex="0" style="background:none;border:none;padding:0;margin-left:0.7em;display:flex;align-items:center;cursor:pointer;color:#888;">${window.Icons.trashSVG(20, 20)}</button>`;
         
         // Render pill content with trash can at the end using flex
         this.el.style.display = 'flex';
         this.el.style.alignItems = 'center';
         this.el.style.justifyContent = 'space-between';
-        this.el.innerHTML = `<span>${condContent}</span><button type="button" class="filter-trash fire-hover-btn" aria-label="Remove filter" tabindex="0" style="background:none;border:none;padding:0;margin-left:0.7em;display:flex;align-items:center;cursor:pointer;color:#888;">${fireSVG}</button>`;
+        this.el.innerHTML = `<span>${condContent}</span>${trashSVG}`;
         if (useListViewer) {
             this.el.classList.add('cond-pill-clickable');
             this.el.setAttribute('role', 'button');
