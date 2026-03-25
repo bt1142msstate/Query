@@ -114,7 +114,7 @@
             <button type="button" class="form-mode-field-picker-field-info hidden" aria-label="Show field details">i</button>
           </div>
           <p class="form-mode-field-picker-field-meta hidden"></p>
-          ${allowDisplay ? `<label class="form-mode-field-picker-choice"><input type="checkbox" data-field-picker-choice="display" /><span>${labels.displayChoice}</span></label>` : ''}
+          ${allowDisplay && config.showDisplayChoice !== false ? `<label class="form-mode-field-picker-choice"><input type="checkbox" data-field-picker-choice="display" /><span>${labels.displayChoice}</span></label>` : ''}
           ${allowFilter && !autoAddFilterFromPreview ? `<label class="form-mode-field-picker-choice"><input type="checkbox" data-field-picker-choice="filter" /><span>${labels.filterChoice}</span></label>` : ''}
           ${allowFilter && typeof config.renderFilterPreview === 'function' ? `<div class="form-mode-field-picker-filter-preview hidden" data-field-picker-filter-preview>
             <p class="form-mode-field-picker-filter-preview-label">Filter preview</p>
@@ -361,11 +361,15 @@
 
       const state = getSelectedState();
       const statusParts = [];
-      if (allowDisplay && displayChoice) {
-        if (displayChoice.checked && !state.display) {
-          statusParts.push(`Will ${labels.displayChoice.toLowerCase()}`);
-        } else if (!displayChoice.checked && state.display) {
-          statusParts.push(`Will remove ${labels.displayChoice.toLowerCase()}`);
+      if (allowDisplay) {
+        if (displayChoice) {
+          if (displayChoice.checked && !state.display) {
+            statusParts.push(`Will ${labels.displayChoice.toLowerCase()}`);
+          } else if (!displayChoice.checked && state.display) {
+            statusParts.push(`Will remove ${labels.displayChoice.toLowerCase()}`);
+          } else if (state.display) {
+            statusParts.push(labels.displayBadge);
+          }
         } else if (state.display) {
           statusParts.push(labels.displayBadge);
         }
@@ -610,9 +614,14 @@
           }
 
           selectedFieldName = option.name;
-          renderList();
-          syncChoiceInputs();
-          syncDetails();
+
+          if (config.autoDisplayOnSelect) {
+            await applyDisplayChange(option.name, true, { trigger: 'option-click' });
+          } else {
+            renderList();
+            syncChoiceInputs();
+            syncDetails();
+          }
         });
         listEl.appendChild(button);
       });
@@ -980,11 +989,13 @@
         title: 'Choose a field for this query',
         description: insertAt >= 0
           ? 'Click a field to insert it into results at this position.'
-          : 'Select a field, then decide whether it should show in results and optionally set a filter right away.',
+          : 'Select a field to add it to results, then optionally set a filter right away.',
         filterChoice: 'Open filter editor',
         footerNote: insertAt >= 0 ? 'Fields insert into results immediately.' : 'Filters are added automatically once the preview has a value.'
       },
       autoApplyDisplayOnOptionClick: insertAt >= 0,
+      autoDisplayOnSelect: insertAt < 0,
+      showDisplayChoice: false,
       compactLayout: insertAt >= 0,
       autoAddFilterFromPreview: insertAt < 0,
       getOptions: getFieldPickerOptionsFromDefinitions,
