@@ -992,14 +992,18 @@ function calculateOptimalColumnWidths(fields, data) {
  * @param {string[]} fields - Array of field names to display as columns
  * @returns {Promise<{virtualTableData: Object, calculatedColumnWidths: Object}>} Table data and column widths
  */
-async function setupVirtualTable(container, fields) {
+async function setupVirtualTable(container, fields, options = {}) {
+  const preservedScrollTop = Math.max(0, Number(options.preserveScrollTop) || 0);
+  const preservedScrollLeft = Math.max(0, Number(options.preserveScrollLeft) || 0);
+  const shouldPreserveScroll = options.preserveScroll === true;
+
   // Set up container for virtual scrolling
   container.style.height = container.dataset.expanded === 'true' ? 'calc(100vh - 11rem)' : '400px';
   container.style.overflowY = 'auto';
   
   // Set up scroll container reference
   tableScrollContainer = container;
-  tableScrollTop = 0;
+  tableScrollTop = shouldPreserveScroll ? preservedScrollTop : 0;
 
   // Calculate widths if we have fields
   if (fields && fields.length > 0) {
@@ -1014,6 +1018,11 @@ async function setupVirtualTable(container, fields) {
   
   // Add scroll event listener
   container.addEventListener('scroll', handleTableScroll);
+
+  if (shouldPreserveScroll) {
+    container.scrollTop = preservedScrollTop;
+    container.scrollLeft = preservedScrollLeft;
+  }
   
   return { virtualTableData, calculatedColumnWidths };
 }

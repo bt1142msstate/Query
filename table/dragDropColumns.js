@@ -42,11 +42,10 @@
     uiActions.updateButtonStates();
     uiActions.updateCategoryCounts();
 
-    if (displayedFields.length === 0) {
-      uiActions.showExampleTable(displayedFields, { syncQueryState: false });
-    } else {
-      uiActions.showExampleTable(displayedFields, { syncQueryState: false });
-    }
+    uiActions.showExampleTable(displayedFields, {
+      syncQueryState: false,
+      preserveScroll: true
+    });
 
     if (appState.currentCategory === 'Selected') {
       services.rerenderBubbles();

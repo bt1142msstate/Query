@@ -220,8 +220,8 @@
     return true;
   }
 
-  function setupVirtualTable(container, fields) {
-    return getTableService()?.setupVirtualTable?.(container, fields);
+  function setupVirtualTable(container, fields, options = {}) {
+    return getTableService()?.setupVirtualTable?.(container, fields, options);
   }
 
   function measureTableRowHeight(tableElement, fields) {
