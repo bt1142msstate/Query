@@ -1486,7 +1486,7 @@
     const categoryBar = document.getElementById('category-bar');
     const mobileCategorySelector = document.getElementById('mobile-category-selector');
     const bubbleStage = document.getElementById('bubble-container') && document.getElementById('bubble-container').closest('.flex.items-start.justify-center');
-    const hiddenControlIds = ['toggle-json', 'toggle-queries', 'mobile-toggle-json', 'mobile-toggle-queries'];
+    const hiddenControlIds = ['toggle-json', 'toggle-queries'];
 
     document.body.classList.toggle('form-mode-active', state.viewMode === 'form');
 
@@ -1527,22 +1527,8 @@
       }
     }
 
-    if (state.mobileModeToggleBtn) {
-      state.mobileModeToggleBtn.classList.toggle('hidden', isLimitedView);
-      const label = state.mobileModeToggleBtn.querySelector('span');
-      if (label) {
-        label.textContent = state.viewMode === 'form' ? 'Bubble Mode' : 'Form Mode';
-      }
-      state.mobileModeToggleBtn.setAttribute('data-tooltip', state.viewMode === 'form' ? 'Switch to bubble builder' : 'Switch to form mode');
-      state.mobileModeToggleBtn.setAttribute('aria-label', state.viewMode === 'form' ? 'Switch to bubble builder' : 'Switch to form mode');
-      const formIcon = state.mobileModeToggleBtn.querySelector('[data-form-mode-icon="form"]');
-      const bubbleIcon = state.mobileModeToggleBtn.querySelector('[data-form-mode-icon="bubbles"]');
-      if (formIcon) {
-        formIcon.classList.toggle('hidden', state.viewMode === 'form');
-      }
-      if (bubbleIcon) {
-        bubbleIcon.classList.toggle('hidden', state.viewMode !== 'form');
-      }
+    if (state.modeToggleBtn) {
+      state.modeToggleBtn.dataset.mobileMenuLabel = state.viewMode === 'form' ? 'Bubble Mode' : 'Form Mode';
     }
 
     uiActions.updateFilterSidePanel();
@@ -1768,41 +1754,6 @@
       button.addEventListener('click', toggleViewMode);
       headerControls.insertBefore(button, document.getElementById('toggle-json'));
       state.modeToggleBtn = button;
-    }
-
-    const mobileMenu = document.getElementById('mobile-menu-dropdown');
-    if (mobileMenu && !state.mobileModeToggleBtn) {
-      const item = document.createElement('div');
-      item.id = 'mobile-form-mode-toggle';
-      item.className = 'mobile-menu-item border-b border-gray-200 hover:bg-gray-100';
-      item.innerHTML = `
-        <svg data-form-mode-icon="form" class="w-5 h-5 text-teal-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="4" y="4" width="16" height="16" rx="2"></rect>
-          <path d="M8 8h8"></path>
-          <path d="M8 12h8"></path>
-          <path d="M8 16h5"></path>
-        </svg>
-        <svg data-form-mode-icon="bubbles" class="w-5 h-5 text-teal-600 hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="7"></circle>
-          <path d="M9 17.4c.95.72 2.13 1.1 3.4 1.1 3.09 0 5.68-2.26 6.2-5.2"></path>
-          <path d="M8 9.2c.62-2.02 2.49-3.5 4.7-3.5 1.17 0 2.25.42 3.08 1.12"></path>
-          <circle cx="9.3" cy="8.7" r="1.15" fill="currentColor" stroke="none" opacity="0.32"></circle>
-        </svg>
-        <span></span>
-      `;
-      item.addEventListener('click', () => {
-        toggleViewMode();
-        if (window.modalManager && typeof window.modalManager.closePanel === 'function') {
-          window.modalManager.closePanel('mobile-menu-dropdown');
-        }
-      });
-      const mobileHelp = document.getElementById('mobile-toggle-help');
-      if (mobileHelp && mobileHelp.parentNode) {
-        mobileHelp.parentNode.insertBefore(item, mobileHelp);
-      } else {
-        mobileMenu.appendChild(item);
-      }
-      state.mobileModeToggleBtn = item;
     }
 
     syncPresentationMode();

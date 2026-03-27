@@ -516,9 +516,15 @@ input, textarea, select, [contenteditable] {
   display: flex;
 }
 
-#mobile-menu-dropdown div {
+#mobile-menu-dropdown .mobile-menu-item {
   cursor: pointer;
   transition: background-color 0.15s ease;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border-left: none;
+  border-right: none;
+  border-top: none;
 }
 
 /* Ensure consistent sizing for mobile menu options */
@@ -528,6 +534,11 @@ input, textarea, select, [contenteditable] {
   align-items: center;
   gap: 0.5rem;
   font-size: 1rem;
+}
+
+.mobile-menu-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Responsive Header Controls */
@@ -577,4 +588,3 @@ input, textarea, select, [contenteditable] {
     min-width: 0;
   }
 }
-

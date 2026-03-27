@@ -976,14 +976,76 @@
   transform: rotate(180deg);
 }
 
-.history-details-row.hidden {
-  display: none;
+.history-details-modal-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 10040;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
 }
 
-.history-details-cell {
-  padding: 0 1rem 1rem;
-  background: rgba(3, 8, 18, 0.6);
-  border-top: 0;
+.history-details-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 6, 12, 0.72);
+  backdrop-filter: blur(8px);
+}
+
+.history-details-modal {
+  position: relative;
+  z-index: 1;
+  width: min(980px, calc(100vw - 2rem));
+  max-height: calc(100vh - 3rem);
+  overflow: auto;
+  padding: 1.2rem;
+  border-radius: 1.35rem;
+  background:
+    radial-gradient(circle at top right, rgba(70, 235, 255, 0.12), transparent 24%),
+    radial-gradient(circle at bottom left, rgba(255, 59, 126, 0.08), transparent 30%),
+    linear-gradient(180deg, #09111d 0%, #050914 54%, #02050d 100%);
+  border: 1px solid rgba(66, 225, 255, 0.24);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(115, 245, 255, 0.08);
+}
+
+.history-details-modal-close {
+  position: sticky;
+  top: 0;
+  margin-left: auto;
+  width: 2.3rem;
+  height: 2.3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(68, 225, 255, 0.14);
+  background: rgba(7, 13, 24, 0.92);
+  color: rgba(173, 224, 236, 0.86);
+  font-size: 1.2rem;
+}
+
+.history-details-modal-header {
+  display: grid;
+  gap: 0.55rem;
+  margin-bottom: 1rem;
+}
+
+.history-details-modal-kicker {
+  margin: 0;
+  color: rgba(111, 240, 255, 0.7);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-family: "Orbitron", sans-serif;
+}
+
+.history-details-modal-title {
+  margin: 0;
+  color: #f0fdff;
+  font-family: "Orbitron", "Space Grotesk", sans-serif;
+  font-size: clamp(1.1rem, 0.95rem + 0.7vw, 1.55rem);
+  line-height: 1.2;
 }
 
 .history-details-grid {
@@ -1225,6 +1287,16 @@
 
   .history-expand-btn {
     min-width: 0;
+  }
+
+  .history-details-modal-shell {
+    padding: 0.85rem;
+  }
+
+  .history-details-modal {
+    width: 100%;
+    max-height: calc(100vh - 1.7rem);
+    padding: 1rem;
   }
 }
 

@@ -15,6 +15,13 @@ class ModalManager {
       'help-panel': 'Help'
     };
     this.activePanel = null;
+    this.mobileMenuLabelMap = {
+      'run-query-btn': 'Run Query',
+      'split-columns-toggle': 'Multi-value Export',
+      'toggle-json': 'JSON',
+      'toggle-queries': 'Queries',
+      'toggle-help': 'Help'
+    };
     
     // Input locking overlay
     this.createInputBlockOverlay();
@@ -98,6 +105,7 @@ class ModalManager {
 
     panel.classList.remove('hidden');
     if (panelId === 'mobile-menu-dropdown') {
+      this.rebuildMobileMenu();
       panel.classList.add('show');
     }
     // Force reflow for animation if needed (though existing CSS seems to use hidden class)
@@ -123,6 +131,7 @@ class ModalManager {
 
     if (panelId === 'queries-panel') {
       window.AppServices?.stopHistoryDurationUpdates?.();
+      window.QueryHistorySystem?.closeDetailsOverlay?.();
     }
 
     if (panelId === 'mobile-menu-dropdown') {
@@ -153,6 +162,7 @@ class ModalManager {
       if (p && !p.classList.contains('hidden')) {
         if (pid === 'queries-panel') {
           window.AppServices?.stopHistoryDurationUpdates?.();
+          window.QueryHistorySystem?.closeDetailsOverlay?.();
         }
         if (pid === 'mobile-menu-dropdown') {
           p.classList.remove('show');
@@ -215,52 +225,86 @@ class ModalManager {
         mobileMenuToggle.addEventListener('click', () => this.togglePanel('mobile-menu-dropdown'));
     }
 
-    // Mobile: Menu Items
-    const mobileRunQuery = window.DOM?.mobileRunQuery || document.getElementById('mobile-run-query');
-    if (mobileRunQuery) {
-        mobileRunQuery.addEventListener('click', () => {
-            this.closePanel('mobile-menu-dropdown');
-        const runBtn = window.DOM?.runBtn || document.getElementById('run-query-btn');
-            if(runBtn) runBtn.click();
-        });
-    }
+    const mobileMenuItems = document.getElementById('mobile-menu-items');
+    if (mobileMenuItems && !mobileMenuItems.dataset.bound) {
+      mobileMenuItems.addEventListener('click', event => {
+        const item = event.target.closest('[data-source-control-id]');
+        if (!item) {
+          return;
+        }
 
-    const mobileDownload = window.DOM?.mobileDownload || document.getElementById('mobile-download');
-    if (mobileDownload) {
-        mobileDownload.addEventListener('click', () => {
-            this.closePanel('mobile-menu-dropdown');
-        const downloadBtn = window.DOM?.downloadBtn || document.getElementById('download-btn');
-            if(downloadBtn) downloadBtn.click();
-        });
-    }
+        const sourceId = item.getAttribute('data-source-control-id');
+        const sourceButton = sourceId ? document.getElementById(sourceId) : null;
+        if (!sourceButton || sourceButton.disabled) {
+          return;
+        }
 
-    const mobileClearQuery = window.DOM?.mobileClearQuery || document.getElementById('mobile-clear-query');
-    if (mobileClearQuery) {
-      mobileClearQuery.addEventListener('click', () => {
         this.closePanel('mobile-menu-dropdown');
-        if (window.QueryChangeManager && typeof window.QueryChangeManager.clearQuery === 'function') {
-          window.QueryChangeManager.clearQuery().catch(err => {
-            console.error('Failed to clear query from mobile menu', err);
-          });
-        }
+        sourceButton.click();
       });
+      mobileMenuItems.dataset.bound = 'true';
+    }
+  }
+
+  isDesktopControlVisible(button) {
+    if (!button || button.classList.contains('hidden') || button.hidden) {
+      return false;
     }
 
-    // Mobile: Panel Toggles
-    const mobilePanelToggles = {
-        'mobile-toggle-json': 'json-panel',
-        'mobile-toggle-queries': 'queries-panel',
-        'mobile-toggle-help': 'help-panel'
-    };
+    const styles = window.getComputedStyle(button);
+    return styles.display !== 'none' && styles.visibility !== 'hidden';
+  }
 
-    Object.entries(mobilePanelToggles).forEach(([btnId, panelId]) => {
-        const btn = document.getElementById(btnId);
-        if (btn) {
-            btn.addEventListener('click', () => {
-                this.closePanel('mobile-menu-dropdown');
-                this.openPanel(panelId);
-            });
-        }
+  getMobileMenuLabel(button) {
+    if (!button) {
+      return '';
+    }
+
+    return String(
+      button.dataset.mobileMenuLabel
+      || this.mobileMenuLabelMap[button.id]
+      || button.getAttribute('aria-label')
+      || button.getAttribute('data-tooltip')
+      || button.id
+    ).trim();
+  }
+
+  createMobileMenuItem(button, isLastItem) {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = `mobile-menu-item hover:bg-gray-100${isLastItem ? '' : ' border-b border-gray-200'}`;
+    item.setAttribute('data-source-control-id', button.id);
+    item.setAttribute('data-tooltip', button.getAttribute('data-tooltip') || '');
+    item.setAttribute('aria-label', this.getMobileMenuLabel(button));
+    item.disabled = Boolean(button.disabled);
+
+    const iconShell = document.createElement('span');
+    iconShell.className = 'mobile-menu-icon';
+    iconShell.innerHTML = button.innerHTML;
+    iconShell.querySelectorAll('[id]').forEach(node => node.removeAttribute('id'));
+    item.appendChild(iconShell);
+
+    const label = document.createElement('span');
+    label.textContent = this.getMobileMenuLabel(button);
+    item.appendChild(label);
+
+    return item;
+  }
+
+  rebuildMobileMenu() {
+    const mobileMenuItems = document.getElementById('mobile-menu-items');
+    const headerControls = document.getElementById('header-controls');
+    if (!mobileMenuItems || !headerControls) {
+      return;
+    }
+
+    const sourceButtons = Array.from(headerControls.querySelectorAll('button[id]'))
+      .filter(button => this.isDesktopControlVisible(button));
+
+    mobileMenuItems.replaceChildren();
+
+    sourceButtons.forEach((button, index) => {
+      mobileMenuItems.appendChild(this.createMobileMenuItem(button, index === sourceButtons.length - 1));
     });
   }
 
