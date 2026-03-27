@@ -155,11 +155,10 @@ function syncResizeModeUi() {
     const isTarget = resizeModeState.active && fieldName === resizeModeState.fieldName;
     th.classList.toggle('query-table-column-resize-target', isTarget);
     th.classList.toggle('query-table-column-resize-dimmed', resizeModeState.active && !isTarget);
-    const handle = th.querySelector('.th-resize-handle');
-    if (handle) {
+    th.querySelectorAll('.th-resize-handle').forEach(handle => {
       handle.classList.toggle('hidden', !isTarget);
       handle.setAttribute('aria-hidden', isTarget ? 'false' : 'true');
-    }
+    });
   });
 
   const targetIndex = resizeModeState.active ? getDisplayedFieldIndex(resizeModeState.fieldName) : -1;
