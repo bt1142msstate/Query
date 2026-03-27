@@ -522,44 +522,30 @@ function escapeHistoryText(value) {
         .replace(/'/g, '&#39;');
 }
 
-function buildHistoryDetailList(items, emptyLabel, ordered = false) {
-  if (!Array.isArray(items) || items.length === 0) {
-    return `<p class="history-details-empty">${escapeHistoryText(emptyLabel)}</p>`;
-  }
-
-  const tagName = ordered ? 'ol' : 'ul';
-  const rows = items.map(item => `<li>${item}</li>`).join('');
-  return `<${tagName} class="history-details-list">${rows}</${tagName}>`;
-}
-
 function buildHistoryColumnsMarkup(columns) {
   const safeColumns = Array.isArray(columns) ? columns : [];
-  const items = safeColumns.map(column => `<span class="history-details-chip">${escapeHistoryText(column)}</span>`);
-  return buildHistoryDetailList(items, 'No displayed columns saved for this query.');
+  if (!safeColumns.length) {
+    return '<p class="history-details-empty">No displayed columns saved for this query.</p>';
+  }
+
+  const items = safeColumns.map((column, index) => (
+    '<li class="tt-filter-item tt-column-item">' +
+    `  <span class="tt-column-index">${index + 1}</span>` +
+    `  <span class="tt-column-name">${escapeHistoryText(column)}</span>` +
+    '</li>'
+  )).join('');
+
+  return '<div class="tt-filter-container tt-columns-container">' +
+    `<ol class="tt-filter-list tt-columns-list">${items}</ol>` +
+    '</div>';
 }
 
 function buildHistoryFiltersMarkup(filters) {
-  const safeFilters = Array.isArray(filters) ? filters : [];
-  const items = safeFilters.map(filter => {
-    const operator = typeof window.formatFieldOperatorForDisplay === 'function'
-      ? window.formatFieldOperatorForDisplay(filter.FieldOperator)
-      : (filter.FieldOperator || '');
-    const valuesMarkup = Array.isArray(filter.Values) && filter.Values.length > 0
-      ? `<div class="history-filter-values">${filter.Values.map(value => `<span class="history-filter-value-chip">${escapeHistoryText(value)}</span>`).join('')}</div>`
-      : '<span class="history-details-muted">No value</span>';
+  if (typeof window.formatStandardFilterTooltipHTML === 'function') {
+    return window.formatStandardFilterTooltipHTML(filters, '') || '<p class="history-details-empty">No filters saved for this query.</p>';
+  }
 
-    return `
-      <div class="history-filter-card">
-        <div class="history-filter-card-top">
-          <strong>${escapeHistoryText(filter.FieldName || '')}</strong>
-          <span class="history-filter-operator">${escapeHistoryText(operator)}</span>
-        </div>
-        ${valuesMarkup}
-      </div>
-    `;
-  });
-
-  return buildHistoryDetailList(items, 'No filters saved for this query.');
+  return '<p class="history-details-empty">No filters saved for this query.</p>';
 }
 
 function buildHistoryIssueMarkup(reason) {
