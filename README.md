@@ -41,6 +41,7 @@ A URL-driven mode for guided workflows. Pass a JSON spec via the `?spec=` parame
 - fixed output columns
 - editable inputs — text fields, dropdowns, multi-value inputs, or hidden fields
 - locked filters the user cannot change
+- optional limited view, which forces form mode and hides the JSON and history buttons
 
 ### 📊 Results & Export
 
