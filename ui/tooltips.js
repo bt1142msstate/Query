@@ -9,11 +9,14 @@
  */
 window.TooltipManager = (() => {
   const TOOLTIP_SELECTOR = '[data-tooltip], [data-tooltip-html]';
+  const HOVER_SHOW_DELAY_MS = 3000;
   let tooltipEl = null;
   let arrowEl = null;
   let currentTarget = null;
   let currentTooltipIsHtml = false;
   let hideTimeout = null;
+  let showTimeout = null;
+  let pendingTarget = null;
   let isDragging = false; // Track drag state
   let targetMonitorFrame = null;
 
@@ -42,6 +45,14 @@ window.TooltipManager = (() => {
       window.cancelAnimationFrame(targetMonitorFrame);
       targetMonitorFrame = null;
     }
+  }
+
+  function clearShowTimeout() {
+    if (showTimeout) {
+      clearTimeout(showTimeout);
+      showTimeout = null;
+    }
+    pendingTarget = null;
   }
 
   function isTooltipTargetAlive(target) {
@@ -151,6 +162,7 @@ window.TooltipManager = (() => {
   function showTooltip(target, text, event, isHtml = false) {
     if (isDragging) return; // Do not show tooltip while dragging
     if (!tooltipEl) createTooltip();
+    clearShowTimeout();
 
     tooltipDebugLog('showTooltip', {
       targetText: target && target.textContent ? target.textContent.trim() : null,
@@ -206,6 +218,7 @@ window.TooltipManager = (() => {
    */
   function hideTooltip() {
     if (!tooltipEl) return;
+    clearShowTimeout();
 
     tooltipDebugLog('hideTooltip', {
       currentTargetText: currentTarget && currentTarget.textContent ? currentTarget.textContent.trim() : null
@@ -227,6 +240,7 @@ window.TooltipManager = (() => {
    * @memberof TooltipManager
    */
   function forceHide() {
+    clearShowTimeout();
     if (hideTimeout) {
       clearTimeout(hideTimeout);
       hideTimeout = null;
@@ -300,7 +314,17 @@ window.TooltipManager = (() => {
         rawTargetNodeType: e.target && e.target.nodeType
       });
       const { isHtml, text } = readTooltipContent(el);
-      if (text) showTooltip(el, text, e, isHtml);
+      if (!text) return;
+      clearShowTimeout();
+      pendingTarget = el;
+      showTimeout = setTimeout(() => {
+        if (pendingTarget !== el) {
+          return;
+        }
+        showTimeout = null;
+        pendingTarget = null;
+        showTooltip(el, text, e, isHtml);
+      }, HOVER_SHOW_DELAY_MS);
     });
 
     document.addEventListener('mousemove', e => {
@@ -323,6 +347,9 @@ window.TooltipManager = (() => {
         stayedWithinSource: !!(relatedEl && el.contains(relatedEl))
       });
       if (relatedEl && el.contains(relatedEl)) return;
+      if (pendingTarget === el) {
+        clearShowTimeout();
+      }
       hideTooltip();
     });
 
