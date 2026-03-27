@@ -12,6 +12,93 @@
     return window.FormatUtils.formatCellDisplay(rawValue, fieldName);
   }
 
+  function getHeaderFieldName(th) {
+    if (!th) {
+      return '';
+    }
+
+    return String(
+      th.getAttribute('data-sort-field')
+      || th.querySelector('.th-text')?.textContent
+      || th.textContent
+      || ''
+    ).trim();
+  }
+
+  function getRelatedDisplayedFieldNames(fieldName, displayedFields = getDisplayedFields()) {
+    const normalizedField = String(fieldName || '').trim();
+    if (!normalizedField) {
+      return [];
+    }
+
+    const baseFieldName = window.getBaseFieldName(normalizedField);
+    const relatedFieldPattern = new RegExp(`^\\d+(st|nd|rd|th)\\s+${baseFieldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`);
+
+    return displayedFields.filter(field => field === baseFieldName || relatedFieldPattern.test(field));
+  }
+
+  function syncTableAfterColumnRemoval(displayedFields) {
+    uiActions.updateQueryJson();
+    uiActions.updateButtonStates();
+    uiActions.updateCategoryCounts();
+
+    if (displayedFields.length === 0) {
+      uiActions.showExampleTable(displayedFields, { syncQueryState: false });
+    } else {
+      uiActions.showExampleTable(displayedFields, { syncQueryState: false });
+    }
+
+    if (appState.currentCategory === 'Selected') {
+      services.rerenderBubbles();
+    }
+  }
+
+  function removeColumnsByFieldName(fieldName) {
+    const normalizedField = String(fieldName || '').trim();
+    if (!normalizedField) {
+      return false;
+    }
+
+    const displayedFieldsBeforeRemoval = getDisplayedFields();
+    const relatedFieldNames = getRelatedDisplayedFieldNames(normalizedField, displayedFieldsBeforeRemoval);
+    if (!relatedFieldNames.length) {
+      return false;
+    }
+
+    const baseFieldName = window.getBaseFieldName(normalizedField);
+    const removedColumnIndices = relatedFieldNames
+      .map(field => displayedFieldsBeforeRemoval.indexOf(field))
+      .filter(index => index >= 0)
+      .sort((left, right) => left - right);
+
+    window.removedColumnInfo.set(baseFieldName, {
+      columnNames: relatedFieldNames.slice(),
+      originalIndices: removedColumnIndices,
+      removedAt: Date.now()
+    });
+
+    window.QueryChangeManager.removeDisplayedField(relatedFieldNames, {
+      source: 'DragDrop.removeColumn'
+    });
+
+    if (baseFieldName) {
+      document.querySelectorAll('.bubble').forEach(bubbleEl => {
+        if (bubbleEl.textContent.trim() === baseFieldName) {
+          const fieldDef = window.fieldDefs ? window.fieldDefs.get(baseFieldName) : null;
+          if (fieldDef && fieldDef.is_buildable) {
+            bubbleEl.setAttribute('draggable', 'false');
+          } else {
+            bubbleEl.setAttribute('draggable', 'true');
+          }
+          applyCorrectBubbleStyling(bubbleEl);
+        }
+      });
+    }
+
+    syncTableAfterColumnRemoval(getDisplayedFields());
+    return true;
+  }
+
   function getSampleColumnData(fieldName, maxSamples = 3) {
     const virtualTableData = services.getVirtualTableData();
     if (!virtualTableData || !virtualTableData.rows || virtualTableData.rows.length === 0) {
@@ -69,11 +156,12 @@
     header.style.textAlign = 'center';
     header.style.borderTopLeftRadius = '6px';
     header.style.borderTopRightRadius = '6px';
+    const headerFieldName = getHeaderFieldName(th);
 
     if (relatedIndices.length > 1) {
-      header.textContent = `${th.textContent.trim()} (+${relatedIndices.length - 1})`;
+      header.textContent = `${headerFieldName} (+${relatedIndices.length - 1})`;
     } else {
-      header.textContent = th.textContent.trim();
+      header.textContent = headerFieldName;
     }
 
     ghost.appendChild(header);
@@ -247,82 +335,9 @@
 
   function removeColumn(table, colIndex) {
     const headerCell = table.querySelector(`thead th[data-col-index="${colIndex}"]`);
-    const fieldName = headerCell ? headerCell.textContent.trim() : null;
-
+    const fieldName = headerCell ? getHeaderFieldName(headerCell) : null;
     if (!fieldName) return;
-
-    const baseFieldName = window.getBaseFieldName(fieldName);
-    const allRelatedColumns = Array.from(table.querySelectorAll('thead th')).filter(th => {
-      const text = th.textContent.trim();
-      return text === baseFieldName || text.match(new RegExp(`^\\d+(st|nd|rd|th)\\s+${baseFieldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`));
-    });
-
-    const removedColumnNames = allRelatedColumns.map(th => th.textContent.trim());
-    const removedColumnIndices = allRelatedColumns.map(th => parseInt(th.dataset.colIndex, 10)).sort((left, right) => left - right);
-
-    window.removedColumnInfo.set(baseFieldName, {
-      columnNames: removedColumnNames,
-      originalIndices: removedColumnIndices,
-      removedAt: Date.now()
-    });
-
-    window.QueryChangeManager.removeDisplayedField(
-      allRelatedColumns.map(relatedHeader => relatedHeader.textContent.trim()),
-      { source: 'DragDrop.removeColumn' }
-    );
-
-    allRelatedColumns.forEach(relatedHeader => {
-      relatedHeader.remove();
-    });
-
-    const displayedFields = getDisplayedFields();
-    if (displayedFields.length > 0) {
-      const tableService = services.table;
-      const virtualTableData = services.getVirtualTableData();
-
-      if (tableService && virtualTableData?.rows?.length) {
-        tableService.calculatedColumnWidths = tableService.calculateOptimalColumnWidths(displayedFields, virtualTableData);
-
-        const headerRow = table.querySelector('thead tr');
-        if (headerRow) {
-          headerRow.querySelectorAll('th').forEach((th, index) => {
-            const field = displayedFields[index];
-            const width = services.getCalculatedColumnWidth(field) || 150;
-            th.style.width = `${width}px`;
-            th.style.minWidth = `${width}px`;
-            th.style.maxWidth = `${width}px`;
-          });
-        }
-      }
-
-      services.renderVirtualTable();
-    }
-
-    refreshColIndices(table);
-
-    if (baseFieldName) {
-      document.querySelectorAll('.bubble').forEach(bubbleEl => {
-        if (bubbleEl.textContent.trim() === baseFieldName) {
-          const fieldDef = window.fieldDefs ? window.fieldDefs.get(baseFieldName) : null;
-          if (fieldDef && fieldDef.is_buildable) {
-            bubbleEl.setAttribute('draggable', 'false');
-          } else {
-            bubbleEl.setAttribute('draggable', 'true');
-          }
-          applyCorrectBubbleStyling(bubbleEl);
-        }
-      });
-    }
-
-    uiActions.updateQueryJson();
-    uiActions.updateButtonStates();
-    if (displayedFields.length === 0) {
-      uiActions.showExampleTable(displayedFields, { syncQueryState: false });
-    }
-    uiActions.updateCategoryCounts();
-    if (appState.currentCategory === 'Selected') {
-      services.rerenderBubbles();
-    }
+    removeColumnsByFieldName(fieldName);
   }
 
   function addColumn(fieldName, insertAt = -1) {
@@ -346,20 +361,7 @@
   }
 
   function removeColumnByName(fieldName) {
-    const table = document.getElementById('example-table');
-    if (!table) return false;
-
-    const headerCell = Array.from(table.querySelectorAll('thead th')).find(th =>
-      th.textContent.trim() === fieldName
-    );
-
-    if (!headerCell) return false;
-
-    const colIndex = parseInt(headerCell.dataset.colIndex, 10);
-    if (isNaN(colIndex)) return false;
-
-    removeColumn(table, colIndex);
-    return true;
+    return removeColumnsByFieldName(fieldName);
   }
 
   window.DragDropColumnOps = Object.freeze({
