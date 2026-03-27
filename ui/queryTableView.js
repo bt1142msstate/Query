@@ -8,6 +8,7 @@
   const services = window.AppServices;
   const uiActions = window.AppUiActions;
   const getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
+  let nextStateRenderOptions = null;
 
   function areDisplayedFieldsEqual(left, right) {
     if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) {
@@ -351,7 +352,10 @@
     restoreEmptyTableDropTarget,
     renderEmptyQueryTableState,
     createQueryTableHeaderCell,
-    showExampleTable
+    showExampleTable,
+    queueNextStateRenderOptions(options = {}) {
+      nextStateRenderOptions = { ...options };
+    }
   };
 
   window.QueryTableView = queryTableView;
@@ -360,7 +364,12 @@
 
   window.QueryStateSubscriptions.subscribe(event => {
     if (event?.changes?.displayedFields) {
-      showExampleTable(event.snapshot?.displayedFields || [], { syncQueryState: false }).catch(error => {
+      const queuedOptions = nextStateRenderOptions ? { ...nextStateRenderOptions } : {};
+      nextStateRenderOptions = null;
+      showExampleTable(event.snapshot?.displayedFields || [], {
+        syncQueryState: false,
+        ...queuedOptions
+      }).catch(error => {
         console.error('Failed to re-render table from query state change:', error);
       });
     }

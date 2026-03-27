@@ -37,20 +37,21 @@
     return displayedFields.filter(field => field === baseFieldName || relatedFieldPattern.test(field));
   }
 
-  function syncTableAfterColumnRemoval(displayedFields, options = {}) {
+  function syncTableAfterColumnMutation(options = {}) {
     uiActions.updateQueryJson();
     uiActions.updateButtonStates();
     uiActions.updateCategoryCounts();
 
-    uiActions.showExampleTable(displayedFields, {
-      syncQueryState: false,
-      preserveScroll: true,
-      scrollAnchorField: options.scrollAnchorField || ''
-    });
-
     if (appState.currentCategory === 'Selected') {
       services.rerenderBubbles();
     }
+  }
+
+  function queueColumnMutationRender(options = {}) {
+    window.QueryTableView?.queueNextStateRenderOptions?.({
+      preserveScroll: options.preserveScroll !== false,
+      scrollAnchorField: options.scrollAnchorField || ''
+    });
   }
 
   function removeColumnsByFieldName(fieldName) {
@@ -66,15 +67,25 @@
     }
 
     const baseFieldName = window.getBaseFieldName(normalizedField);
+    const remainingFields = displayedFieldsBeforeRemoval.filter(field => !relatedFieldNames.includes(field));
     const removedColumnIndices = relatedFieldNames
       .map(field => displayedFieldsBeforeRemoval.indexOf(field))
       .filter(index => index >= 0)
       .sort((left, right) => left - right);
+    const anchorIndex = removedColumnIndices.length ? removedColumnIndices[0] : 0;
+    const scrollAnchorField = remainingFields.length
+      ? (remainingFields[Math.min(anchorIndex, remainingFields.length - 1)] || remainingFields[Math.max(0, anchorIndex - 1)] || '')
+      : '';
 
     window.removedColumnInfo.set(baseFieldName, {
       columnNames: relatedFieldNames.slice(),
       originalIndices: removedColumnIndices,
       removedAt: Date.now()
+    });
+
+    queueColumnMutationRender({
+      preserveScroll: true,
+      scrollAnchorField
     });
 
     window.QueryChangeManager.removeDisplayedField(relatedFieldNames, {
@@ -95,13 +106,7 @@
       });
     }
 
-    const displayedFieldsAfterRemoval = getDisplayedFields();
-    const anchorIndex = removedColumnIndices.length ? removedColumnIndices[0] : 0;
-    const scrollAnchorField = displayedFieldsAfterRemoval.length
-      ? (displayedFieldsAfterRemoval[Math.min(anchorIndex, displayedFieldsAfterRemoval.length - 1)] || displayedFieldsAfterRemoval[Math.max(0, anchorIndex - 1)] || '')
-      : '';
-
-    syncTableAfterColumnRemoval(displayedFieldsAfterRemoval, { scrollAnchorField });
+    syncTableAfterColumnMutation({ scrollAnchorField });
     return true;
   }
 
@@ -227,102 +232,47 @@
     });
   }
 
-  function finalizeMoveOperation(table) {
-    const tableService = services.table;
-    const virtualTableData = services.getVirtualTableData();
-
-    if (tableService && virtualTableData?.rows?.length) {
-      const displayedFields = getDisplayedFields();
-      tableService.calculatedColumnWidths = tableService.calculateOptimalColumnWidths(displayedFields, virtualTableData);
-
-      const headerRow = table.querySelector('thead tr');
-      if (headerRow) {
-        headerRow.querySelectorAll('th').forEach((th, index) => {
-          const field = getDisplayedFields()[index];
-          const width = services.getCalculatedColumnWidth(field) || 150;
-          th.style.width = `${width}px`;
-          th.style.minWidth = `${width}px`;
-          th.style.maxWidth = `${width}px`;
-        });
-      }
-    }
-
-    const wasDragging = document.body.classList.contains('dragging-cursor');
-    if (wasDragging) {
+  function finalizeMoveOperation(options = {}) {
+    if (document.body.classList.contains('dragging-cursor')) {
       document.body.classList.remove('dragging-cursor');
     }
 
-    services.renderVirtualTable();
-
-    if (wasDragging) {
-      document.body.classList.add('dragging-cursor');
-    }
-
-    refreshColIndices(table);
-    uiActions.updateQueryJson();
-
-    if (appState.currentCategory === 'Selected') {
-      services.rerenderBubbles();
-    }
+    syncTableAfterColumnMutation(getDisplayedFields(), {
+      preserveScroll: true,
+      scrollAnchorField: options.scrollAnchorField || ''
+    });
   }
 
   function moveSingleColumn(table, fromIndex, toIndex) {
     if (fromIndex === toIndex) return;
+    const movedFieldName = getDisplayedFields()[fromIndex];
+
+    queueColumnMutationRender({
+      preserveScroll: true,
+      scrollAnchorField: movedFieldName
+    });
 
     window.QueryChangeManager.moveDisplayedField(fromIndex, toIndex, {
       source: 'DragDrop.moveSingleColumn'
     });
 
-    const headerRow = table.querySelector('thead tr');
-    if (headerRow) {
-      const headers = Array.from(headerRow.children);
-      if (fromIndex < headers.length && toIndex < headers.length) {
-        const moving = headers[fromIndex];
-        if (fromIndex < toIndex) {
-          headerRow.insertBefore(moving, headers[toIndex].nextSibling);
-        } else {
-          headerRow.insertBefore(moving, headers[toIndex]);
-        }
-      }
-    }
-
-    finalizeMoveOperation(table);
+    finalizeMoveOperation({ scrollAnchorField: movedFieldName });
   }
 
   function moveColumnGroup(table, groupIndices, targetIndex) {
+    const movedFieldName = getDisplayedFields()[groupIndices[0]];
+    queueColumnMutationRender({
+      preserveScroll: true,
+      scrollAnchorField: movedFieldName
+    });
+
     window.QueryChangeManager.moveDisplayedField(groupIndices[0], targetIndex, {
       count: groupIndices.length,
       behavior: 'group',
       source: 'DragDrop.moveColumnGroup'
     });
 
-    const headerRow = table.querySelector('thead tr');
-    if (headerRow) {
-      headerRow.replaceChildren();
-      getDisplayedFields().forEach((field, index) => {
-        const virtualTableData = services.getVirtualTableData();
-        const hasLoadedData = Boolean(virtualTableData && virtualTableData.columnMap instanceof Map && virtualTableData.columnMap.size > 0);
-        const fieldExistsInData = virtualTableData && virtualTableData.columnMap && virtualTableData.columnMap.has(field);
-
-        const th = typeof window.createQueryTableHeaderCell === 'function'
-          ? window.createQueryTableHeaderCell(field, index, {
-              existsInData: fieldExistsInData,
-              hasLoadedData
-            })
-          : document.createElement('th');
-
-        if (typeof window.createQueryTableHeaderCell !== 'function') {
-          th.draggable = true;
-          th.dataset.colIndex = index;
-          th.className = 'px-6 py-3 text-center text-xs font-medium uppercase tracking-wider bg-gray-50';
-          th.textContent = field;
-        }
-
-        headerRow.appendChild(th);
-      });
-    }
-
-    finalizeMoveOperation(table);
+    finalizeMoveOperation({ scrollAnchorField: movedFieldName });
   }
 
   function moveColumn(table, fromIndex, toIndex) {
@@ -351,16 +301,20 @@
       return false;
     }
 
+    queueColumnMutationRender({
+      preserveScroll: true,
+      scrollAnchorField: fieldName
+    });
+
     const success = restoreFieldWithDuplicates(fieldName, insertAt);
 
     if (success) {
-      uiActions.updateQueryJson();
-      uiActions.updateButtonStates();
-      uiActions.updateCategoryCounts();
-
-      if (appState.currentCategory === 'Selected') {
-        services.rerenderBubbles();
-      }
+      syncTableAfterColumnMutation({
+        preserveScroll: true,
+        scrollAnchorField: fieldName
+      });
+    } else {
+      window.QueryTableView?.queueNextStateRenderOptions?.({});
     }
 
     return success;
