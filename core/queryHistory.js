@@ -487,16 +487,6 @@ window.formatColumnsTooltip = function(columns) {
     '</div>';
 };
 
-function createTooltipIconSummary(viewIconSVG, attributeName, tooltipContent) {
-  if (!tooltipContent) {
-    return '<span class="text-gray-400">None</span>';
-  }
-
-  return `<span class="inline-flex items-center gap-1" ${attributeName}="${tooltipContent.replace(/"/g, '&quot;')}">`
-    + viewIconSVG
-    + '</span>';
-}
-
 /**
  * Formats filters into a tooltip string for history display.
  * @function formatHistoryFiltersTooltip
@@ -554,11 +544,19 @@ function buildHistoryFiltersMarkup(filters) {
     const operator = typeof window.formatFieldOperatorForDisplay === 'function'
       ? window.formatFieldOperatorForDisplay(filter.FieldOperator)
       : (filter.FieldOperator || '');
-    const values = Array.isArray(filter.Values) && filter.Values.length > 0
-      ? filter.Values.map(value => escapeHistoryText(value)).join(', ')
+    const valuesMarkup = Array.isArray(filter.Values) && filter.Values.length > 0
+      ? `<div class="history-filter-values">${filter.Values.map(value => `<span class="history-filter-value-chip">${escapeHistoryText(value)}</span>`).join('')}</div>`
       : '<span class="history-details-muted">No value</span>';
 
-    return `<strong>${escapeHistoryText(filter.FieldName || '')}</strong><span>${escapeHistoryText(operator)}</span><span>${values}</span>`;
+    return `
+      <div class="history-filter-card">
+        <div class="history-filter-card-top">
+          <strong>${escapeHistoryText(filter.FieldName || '')}</strong>
+          <span class="history-filter-operator">${escapeHistoryText(operator)}</span>
+        </div>
+        ${valuesMarkup}
+      </div>
+    `;
   });
 
   return buildHistoryDetailList(items, 'No filters saved for this query.');
@@ -578,7 +576,7 @@ function getHistoryDetailsColspan(query) {
   return 6;
 }
 
-function buildHistoryExpandButton(queryId, isExpanded) {
+function buildHistoryExpandButton(queryId, isExpanded, columnCount, filterCount) {
   return `
     <button
       type="button"
@@ -587,7 +585,8 @@ function buildHistoryExpandButton(queryId, isExpanded) {
       aria-expanded="${isExpanded ? 'true' : 'false'}"
       aria-controls="history-details-${queryId}"
     >
-      <span>${isExpanded ? 'Hide details' : 'Expand details'}</span>
+      <span>${isExpanded ? 'Hide details' : 'Details'}</span>
+      <span class="history-expand-meta">${columnCount} ${columnCount === 1 ? 'field' : 'fields'} • ${filterCount} ${filterCount === 1 ? 'filter' : 'filters'}</span>
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true">
         <path d="M6 9l6 6 6-6"></path>
       </svg>
@@ -901,12 +900,6 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
     ? window.normalizeUiConfigFilters(q.jsonConfig)
     : [];
   const isExpanded = expandedHistoryQueryIds.has(q.id);
-  const columnsSummary = columns.length
-    ? `<span class="history-summary-count">${columns.length} ${columns.length === 1 ? 'field' : 'fields'}</span>`
-    : '<span class="text-gray-400">None</span>';
-  const filtersSummary = filters.length
-    ? `<span class="history-summary-count">${filters.length} ${filters.length === 1 ? 'filter' : 'filters'}</span>`
-    : '<span class="text-gray-400">None</span>';
 
   const reasonSummary = q.error
     ? '<span class="history-reason-icon">Issue</span>'
@@ -929,11 +922,9 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
         <span class="history-query-name">${q.name || q.id}</span>
         <div class="history-meta-line">${metaPills.join('')}</div>
       </div>
-      <div class="history-name-actions">
-        ${buildHistoryExpandButton(q.id, isExpanded)}
-        <span class="${statusMeta.badgeClass}">${statusMeta.label}</span>
-      </div>
     </div>`;
+  const statusCell = `<span class="${statusMeta.badgeClass}">${statusMeta.label}</span>`;
+  const detailsCell = buildHistoryExpandButton(q.id, isExpanded, columns.length, filters.length);
 
   const previewBtn = q.running ? `<button class="load-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" tabindex="-1" data-query-id="${q.id}" style="margin-left:4px;" data-tooltip="Open partial results"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></button>` : '';
 
@@ -966,8 +957,8 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
     return `
       <tr class="history-row ${statusMeta.rowClass} cursor-pointer" data-query-id="${q.id}">
         <td class="px-4 py-3 text-xs text-left font-mono">${nameCell}</td>
-        <td class="px-4 py-2 text-xs text-center">${columnsSummary}</td>
-        <td class="px-4 py-2 text-xs text-center">${filtersSummary}</td>
+        <td class="px-4 py-2 text-xs text-center">${statusCell}</td>
+        <td class="px-4 py-2 text-xs text-center">${detailsCell}</td>
         <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
         <td class="px-4 py-2 text-xs text-center history-duration-cell" data-query-id="${q.id}">${duration}</td>
         <td class="px-4 py-2 text-center">${previewBtn}</td>
@@ -979,8 +970,8 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
     return `
       <tr class="history-row ${statusMeta.rowClass} cursor-pointer" data-query-id="${q.id}">
         <td class="px-4 py-3 text-xs text-left font-mono">${nameCell}</td>
-        <td class="px-4 py-2 text-xs text-center">${columnsSummary}</td>
-        <td class="px-4 py-2 text-xs text-center">${filtersSummary}</td>
+        <td class="px-4 py-2 text-xs text-center">${statusCell}</td>
+        <td class="px-4 py-2 text-xs text-center">${detailsCell}</td>
         <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
         <td class="px-4 py-2 text-xs text-center">${duration}</td>
         <td class="px-4 py-2 text-xs text-center">${rerunBtn}</td>
@@ -991,8 +982,8 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
     return `
       <tr class="history-row ${statusMeta.rowClass} cursor-pointer" data-query-id="${q.id}">
         <td class="px-4 py-3 text-xs text-left font-mono">${nameCell}</td>
-        <td class="px-4 py-2 text-xs text-center">${columnsSummary}</td>
-        <td class="px-4 py-2 text-xs text-center">${filtersSummary}</td>
+        <td class="px-4 py-2 text-xs text-center">${statusCell}</td>
+        <td class="px-4 py-2 text-xs text-center">${detailsCell}</td>
         <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
         <td class="px-4 py-2 text-xs text-center">${duration}</td>
         <td class="px-4 py-2 text-xs text-center">${reasonSummary}</td>
@@ -1004,8 +995,8 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
     return `
       <tr class="history-row ${statusMeta.rowClass} cursor-pointer" data-query-id="${q.id}">
         <td class="px-4 py-3 text-xs text-left font-mono">${nameCell}</td>
-        <td class="px-4 py-2 text-xs text-center">${columnsSummary}</td>
-        <td class="px-4 py-2 text-xs text-center">${filtersSummary}</td>
+        <td class="px-4 py-2 text-xs text-center">${statusCell}</td>
+        <td class="px-4 py-2 text-xs text-center">${detailsCell}</td>
         <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
         <td class="px-4 py-2 text-xs text-center">${duration}</td>
         <td class="px-4 py-2 text-xs text-center">${loadBtn}</td>
@@ -1404,8 +1395,8 @@ function renderQueries(){
     <thead class="history-table-head running">
       <tr>
         <th class="px-4 py-2 text-center" data-tooltip="Query name or identifier">Name</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Columns being displayed in the query results">Displaying</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Active filters applied to the query">Filters</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Current query status">Status</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Open fields and filters for this query">Details</th>
         <th class="px-4 py-2 text-center" data-tooltip="When this query was started">Started</th>
         <th class="px-4 py-2 text-center" data-tooltip="How long this running query has been active">Duration</th>
         <th class="px-4 py-2 text-center" data-tooltip="Open the results accumulated so far for this running query">Results</th>
@@ -1417,8 +1408,8 @@ function renderQueries(){
     <thead class="history-table-head complete">
       <tr>
         <th class="px-4 py-2 text-center" data-tooltip="Query name or identifier">Name</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Columns being displayed in the query results">Displaying</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Active filters applied to the query">Filters</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Current query status">Status</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Open fields and filters for this query">Details</th>
         <th class="px-4 py-2 text-center" data-tooltip="When this query was last executed">Last Run</th>
         <th class="px-4 py-2 text-center" data-tooltip="How long the query took to complete">Duration</th>
         <th class="px-4 py-2 text-center" data-tooltip="Load the query results or view report">Results</th>
@@ -1430,8 +1421,8 @@ function renderQueries(){
     <thead class="history-table-head failed">
       <tr>
         <th class="px-4 py-2 text-center" data-tooltip="Query name or identifier">Name</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Columns being displayed in the query results">Displaying</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Active filters applied to the query">Filters</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Current query status">Status</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Open fields and filters for this query">Details</th>
         <th class="px-4 py-2 text-center" data-tooltip="When this query last ran">Last Run</th>
         <th class="px-4 py-2 text-center" data-tooltip="How long the query ran before failing">Duration</th>
         <th class="px-4 py-2 text-center" data-tooltip="Failure reason or backend warning">Issue</th>
@@ -1443,8 +1434,8 @@ function renderQueries(){
     <thead class="history-table-head canceled">
       <tr>
         <th class="px-4 py-2 text-center" data-tooltip="Query name or identifier">Name</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Columns being displayed in the query results">Displaying</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Active filters applied to the query">Filters</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Current query status">Status</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Open fields and filters for this query">Details</th>
         <th class="px-4 py-2 text-center" data-tooltip="When this query was last executed before cancellation">Last Run</th>
         <th class="px-4 py-2 text-center" data-tooltip="How long the query ran before being cancelled">Duration</th>
         <th class="px-4 py-2 text-center" data-tooltip="Re-execute this query with the same settings">Rerun</th>
