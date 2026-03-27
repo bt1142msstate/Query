@@ -580,15 +580,18 @@ body.dragging-cursor * {
   justify-content: center;
   justify-self: center;
   min-width: 0;
+  width: 100%;
   max-width: 100%;
 }
 
 .th-text {
-  display: inline-block;
+  display: block;
   min-width: 0;
-  overflow: visible;
-  text-overflow: clip;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: center;
 }
 
 #example-table th.query-table-column-missing-data,
@@ -798,8 +801,8 @@ body.table-expanded-open .th-insert-button {
 }
 
 #example-table th.query-table-column-resize-target .th-header-content {
-  padding-left: var(--th-balance-space, 1.6rem);
-  padding-right: var(--th-balance-space, 1.6rem);
+  padding-left: 0;
+  padding-right: 0;
 }
 
 body.table-resize-mode #example-table th.query-table-column-resize-dimmed,
