@@ -215,6 +215,9 @@
       return;
     }
 
+    const preservedScrollTop = options.preserveScroll === true ? container.scrollTop : 0;
+    const preservedScrollLeft = options.preserveScroll === true ? container.scrollLeft : 0;
+
     services.resetDragDropHeaderUi();
 
     if (!document.getElementById('table-query-bubble')) {
@@ -248,7 +251,11 @@
     container.replaceChildren(table);
 
     try {
-      await services.setupVirtualTable(container, renderFields);
+      await services.setupVirtualTable(container, renderFields, {
+        preserveScroll: options.preserveScroll === true,
+        preserveScrollTop: preservedScrollTop,
+        preserveScrollLeft: preservedScrollLeft
+      });
     } catch (error) {
       console.error('Error setting up virtual table:', error);
       container.innerHTML = `
