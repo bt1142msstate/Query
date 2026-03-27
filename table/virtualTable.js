@@ -29,6 +29,11 @@ let tableRowHeight = 42;    // estimated row height in pixels
 let tableScrollTop = 0;
 let tableScrollContainer = null;
 let calculatedColumnWidths = {}; // Store calculated optimal widths for each column
+let manualColumnWidths = {};
+let resizeModeState = {
+  active: false,
+  fieldName: ''
+};
 let simpleTableInstance = null; // Store the SimpleTable instance
 
 const HEADER_ACTION_SPACE = 116;
@@ -85,6 +90,107 @@ function cloneTableData(data) {
     rows: Array.isArray(data?.rows) ? data.rows.map(row => Array.isArray(row) ? [...row] : row) : [],
     columnMap: data?.columnMap instanceof Map ? new Map(data.columnMap) : new Map()
   };
+}
+
+function applyManualWidthsToMap(widths, fields = null) {
+  const targetFields = Array.isArray(fields) && fields.length ? fields : Object.keys(widths || {});
+  targetFields.forEach(field => {
+    if (Object.prototype.hasOwnProperty.call(manualColumnWidths, field)) {
+      widths[field] = manualColumnWidths[field];
+    }
+  });
+  return widths;
+}
+
+function syncResizeModeBodyClass() {
+  document.body.classList.toggle('table-resize-mode', resizeModeState.active);
+}
+
+function getDisplayedFieldIndex(fieldName) {
+  return getDisplayedFields().findIndex(field => field === fieldName);
+}
+
+function updateRenderedColumnWidth(fieldName, width) {
+  const normalizedWidth = Math.max(90, Number(width) || 150);
+  const fieldIndex = getDisplayedFieldIndex(fieldName);
+  if (fieldIndex === -1) {
+    return;
+  }
+
+  const table = document.getElementById('example-table');
+  if (!table) {
+    return;
+  }
+
+  const header = table.querySelector(`thead th[data-col-index="${fieldIndex}"]`);
+  if (header) {
+    header.style.width = `${normalizedWidth}px`;
+    header.style.minWidth = `${normalizedWidth}px`;
+    header.style.maxWidth = `${normalizedWidth}px`;
+  }
+
+  table.querySelectorAll(`tbody td[data-col-index="${fieldIndex}"]`).forEach(cell => {
+    cell.style.width = `${normalizedWidth}px`;
+    cell.style.minWidth = `${normalizedWidth}px`;
+    cell.style.maxWidth = `${normalizedWidth}px`;
+  });
+}
+
+function syncResizeModeUi() {
+  if (resizeModeState.active && getDisplayedFieldIndex(resizeModeState.fieldName) === -1) {
+    resizeModeState.active = false;
+    resizeModeState.fieldName = '';
+  }
+
+  syncResizeModeBodyClass();
+
+  const addFieldBtn = document.getElementById('table-add-field-btn');
+  if (addFieldBtn) {
+    addFieldBtn.disabled = resizeModeState.active;
+    addFieldBtn.classList.toggle('is-disabled-for-resize', resizeModeState.active);
+  }
+
+  document.querySelectorAll('#example-table thead th').forEach(th => {
+    const fieldName = th.getAttribute('data-sort-field') || th.textContent.trim();
+    const isTarget = resizeModeState.active && fieldName === resizeModeState.fieldName;
+    th.classList.toggle('query-table-column-resize-target', isTarget);
+    const handle = th.querySelector('.th-resize-handle');
+    if (handle) {
+      handle.classList.toggle('hidden', !isTarget);
+      handle.setAttribute('aria-hidden', isTarget ? 'false' : 'true');
+    }
+  });
+}
+
+function setManualColumnWidth(fieldName, width) {
+  const normalizedField = String(fieldName || '').trim();
+  const normalizedWidth = Math.max(90, Number(width) || 150);
+  if (!normalizedField) {
+    return normalizedWidth;
+  }
+
+  manualColumnWidths[normalizedField] = normalizedWidth;
+  calculatedColumnWidths[normalizedField] = normalizedWidth;
+  updateRenderedColumnWidth(normalizedField, normalizedWidth);
+  return normalizedWidth;
+}
+
+function activateColumnResizeMode(fieldName) {
+  const normalizedField = String(fieldName || '').trim();
+  if (!normalizedField) {
+    return false;
+  }
+
+  resizeModeState.active = true;
+  resizeModeState.fieldName = normalizedField;
+  syncResizeModeUi();
+  return true;
+}
+
+function clearColumnResizeMode() {
+  resizeModeState.active = false;
+  resizeModeState.fieldName = '';
+  syncResizeModeUi();
 }
 
 function clonePostFilterEntry(filter) {
@@ -859,6 +965,7 @@ function calculateOptimalColumnWidths(fields, data) {
   targetFields.forEach(field => {
     widths[field] = calculateFieldWidth(field, targetData);
   });
+  applyManualWidthsToMap(widths, targetFields);
   
   // If we operated on the global data without explicit arguments, update the cache
   if (!fields && !data) {
@@ -958,8 +1065,10 @@ function clearVirtualTableData() {
   Object.keys(postFiltersState).forEach(key => delete postFiltersState[key]);
   invalidatePostFilterValueOptionsCache();
   calculatedColumnWidths = {};
+  manualColumnWidths = {};
   tableScrollTop = 0;
   tableScrollContainer = null;
+  clearColumnResizeMode();
   simpleTableInstance = null;
 }
 
@@ -973,9 +1082,14 @@ function getVirtualTableState() {
     virtualTableData,
     baseViewData,
     calculatedColumnWidths,
+    manualColumnWidths: { ...manualColumnWidths },
     tableRowHeight,
     tableScrollTop,
     tableScrollContainer,
+    resizeMode: {
+      active: resizeModeState.active,
+      fieldName: resizeModeState.fieldName
+    },
     currentSortColumn,
     currentSortDirection
   };
@@ -1099,6 +1213,7 @@ function setSplitColumnsMode(active) {
   // Recalculate column widths and re-render
   calculatedColumnWidths = calculateOptimalColumnWidths(virtualTableData.headers, virtualTableData);
   renderVirtualTable();
+  syncResizeModeUi();
 
   // Rebuild the example table fallback when it exists.
   uiActions.showExampleTable(baseViewData.headers).catch(() => {});
@@ -1167,6 +1282,17 @@ window.VirtualTable = {
   hasPostFilters() {
     return Object.values(postFiltersState).some(data => Array.isArray(data?.filters) && data.filters.length > 0);
   },
+  setManualColumnWidth,
+  updateRenderedColumnWidth,
+  activateColumnResizeMode,
+  clearColumnResizeMode,
+  getColumnResizeState() {
+    return {
+      active: resizeModeState.active,
+      fieldName: resizeModeState.fieldName
+    };
+  },
+  syncResizeModeUi,
   getPostFilterStats() {
     return {
       totalRows: baseViewData.rows.length,

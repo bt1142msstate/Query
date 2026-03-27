@@ -6,6 +6,7 @@
 window.TableContextMenu = (() => {
   let menuEl = null;
   let dismissHandlers = [];
+  let clearPreview = null;
   const services = window.AppServices;
 
   // ── Data helpers ────────────────────────────────────────────────────────────
@@ -90,6 +91,48 @@ window.TableContextMenu = (() => {
     <path d="M2 3h12l-5 5v4l-2 1V8L2 3z"/>
   </svg>`;
 
+  const RESIZE_ICON = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 3v10"/>
+    <path d="M11 3v10"/>
+    <path d="M2 8h3"/>
+    <path d="M11 8h3"/>
+    <path d="M3.5 6.5 2 8l1.5 1.5"/>
+    <path d="M12.5 6.5 14 8l-1.5 1.5"/>
+  </svg>`;
+
+  function clearTablePreviewClasses() {
+    document.querySelectorAll('.tcm-preview-cell, .tcm-preview-row, .tcm-preview-column, .tcm-preview-column-header').forEach(node => {
+      node.classList.remove('tcm-preview-cell', 'tcm-preview-row', 'tcm-preview-column', 'tcm-preview-column-header');
+    });
+  }
+
+  function previewCell(td) {
+    clearTablePreviewClasses();
+    td?.classList.add('tcm-preview-cell');
+    return clearTablePreviewClasses;
+  }
+
+  function previewRow(tr) {
+    clearTablePreviewClasses();
+    tr?.classList.add('tcm-preview-row');
+    tr?.querySelectorAll('td').forEach(td => td.classList.add('tcm-preview-row'));
+    return clearTablePreviewClasses;
+  }
+
+  function previewColumn(colIndex) {
+    clearTablePreviewClasses();
+    if (Number.isNaN(colIndex)) {
+      return clearTablePreviewClasses;
+    }
+
+    document.querySelector(`#example-table thead th[data-col-index="${colIndex}"]`)?.classList.add('tcm-preview-column-header');
+    document.querySelectorAll(`#example-table tbody td[data-col-index="${colIndex}"]`).forEach(td => {
+      td.classList.add('tcm-preview-column');
+    });
+
+    return clearTablePreviewClasses;
+  }
+
   // ── Menu DOM ─────────────────────────────────────────────────────────────────
 
   function buildMenu(actions) {
@@ -105,6 +148,24 @@ window.TableContextMenu = (() => {
         `<span class="tcm-icon">${action.icon}</span>` +
         `<span class="tcm-label">${action.label}</span>` +
         (action.hint ? `<span class="tcm-hint">${action.hint}</span>` : '');
+      const runPreview = () => {
+        if (typeof clearPreview === 'function') {
+          clearPreview();
+          clearPreview = null;
+        }
+
+        if (typeof action.preview === 'function') {
+          clearPreview = action.preview() || null;
+        }
+      };
+      btn.addEventListener('mouseenter', runPreview);
+      btn.addEventListener('focus', runPreview);
+      btn.addEventListener('mouseleave', () => {
+        if (typeof clearPreview === 'function') {
+          clearPreview();
+          clearPreview = null;
+        }
+      });
       btn.addEventListener('click', () => {
         dismiss();
         window.requestAnimationFrame(() => {
@@ -142,6 +203,10 @@ window.TableContextMenu = (() => {
   // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
   function dismiss() {
+    if (typeof clearPreview === 'function') {
+      clearPreview();
+      clearPreview = null;
+    }
     if (menuEl) {
       menuEl.classList.add('tcm--hiding');
       const el = menuEl;
@@ -206,6 +271,9 @@ window.TableContextMenu = (() => {
         icon:  SORT_ICON,
         label: nextSortLabel,
         hint:  colLabel,
+        preview() {
+          return previewColumn(colIndex);
+        },
         run() {
           if (!field) return;
           services.sortTableBy(field);
@@ -215,6 +283,9 @@ window.TableContextMenu = (() => {
         icon:  FILTER_ICON,
         label: 'Add Filter',
         hint:  colLabel,
+        preview() {
+          return previewColumn(colIndex);
+        },
         run() {
           if (!field || !window.SharedFieldPicker || typeof window.SharedFieldPicker.openQueryFilterEditor !== 'function') {
             return;
@@ -226,6 +297,9 @@ window.TableContextMenu = (() => {
         icon:  FILTER_ICON,
         label: 'Add Post Filter',
         hint:  colLabel,
+        preview() {
+          return previewColumn(colIndex);
+        },
         run() {
           if (!field || !window.PostFilterSystem || typeof window.PostFilterSystem.openOverlayForField !== 'function') {
             return;
@@ -238,6 +312,9 @@ window.TableContextMenu = (() => {
         icon:  CELL_ICON,
         label: 'Copy Cell',
         hint:  '',
+        preview() {
+          return previewCell(td);
+        },
         run() {
           const val = hasRow
             ? getCellValue(rowIndex, colIndex)
@@ -249,6 +326,9 @@ window.TableContextMenu = (() => {
         icon:  ROW_ICON,
         label: 'Copy Row',
         hint:  'tab-separated',
+        preview() {
+          return hasRow ? previewRow(tr) : null;
+        },
         run() {
           if (!hasRow) return;
           const vals = getRowValues(rowIndex);
@@ -261,12 +341,30 @@ window.TableContextMenu = (() => {
         icon:  COL_ICON,
         label: 'Copy Column',
         hint:  colLabel,
+        preview() {
+          return previewColumn(colIndex);
+        },
         run() {
           const vals = getColumnValues(colIndex);
           if (!vals.length) return;
           window.ClipboardUtils.copy(vals.join('\n'), {
             successMessage: `Column copied \u2014 ${vals.length} row${vals.length !== 1 ? 's' : ''}`
           });
+        }
+      },
+      {
+        icon: RESIZE_ICON,
+        label: 'Resize Column',
+        hint: colLabel,
+        preview() {
+          return previewColumn(colIndex);
+        },
+        run() {
+          if (!field) return;
+          const activated = services.activateColumnResizeMode?.(field);
+          if (activated && typeof window.showToastMessage === 'function') {
+            window.showToastMessage(`Resize mode active for ${field}. Drag the highlighted header edge. Press Escape to finish.`, 'info');
+          }
         }
       }
     ];
