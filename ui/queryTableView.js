@@ -158,6 +158,15 @@
     headerContent.appendChild(labelGroup);
     th.appendChild(headerContent);
 
+    const resizeHandle = document.createElement('button');
+    resizeHandle.type = 'button';
+    resizeHandle.className = 'th-resize-handle hidden';
+    resizeHandle.setAttribute('aria-label', `Resize ${fieldText} column`);
+    resizeHandle.setAttribute('data-field-name', fieldText);
+    resizeHandle.setAttribute('aria-hidden', 'true');
+    resizeHandle.innerHTML = '<span></span>';
+    th.appendChild(resizeHandle);
+
     return th;
   }
 
@@ -251,10 +260,11 @@
 
     services.measureTableRowHeight(table, renderFields);
     services.renderVirtualTable();
+    services.syncColumnResizeModeUi?.();
 
     table.querySelectorAll('th.sortable-header').forEach(th => {
       th.addEventListener('click', event => {
-        if (event.target.closest('.th-action')) {
+        if (event.target.closest('.th-action') || event.target.closest('.th-resize-handle')) {
           return;
         }
 

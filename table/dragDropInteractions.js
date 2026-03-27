@@ -101,6 +101,15 @@
   let insertAffordanceShowTimer = null;
   let insertAffordanceHideTimer = null;
   let pendingInsertCandidate = null;
+  let activeResizeSession = null;
+
+  function getColumnResizeState() {
+    return services.getColumnResizeState?.() || { active: false, fieldName: '' };
+  }
+
+  function isResizeModeActive() {
+    return Boolean(getColumnResizeState().active);
+  }
 
   function applyInsertAffordancePosition(candidate) {
     headerInsertAffordance.dataset.insertAt = String(candidate.insertAt);
@@ -207,7 +216,7 @@
   }
 
   function updateHeaderInsertAffordance(table, clientX) {
-    if (!table || getLifecycleState().queryRunning || document.body.classList.contains('dragging-cursor')) {
+    if (!table || getLifecycleState().queryRunning || document.body.classList.contains('dragging-cursor') || isResizeModeActive()) {
       clearInsertAffordance({ immediate: true });
       return;
     }
@@ -509,6 +518,10 @@
 
     handleHeaderEnter(th) {
       if (getLifecycleState().queryRunning) return;
+      if (isResizeModeActive()) {
+        this.hoverTh = th;
+        return;
+      }
       th.classList.add('th-hover');
       this.hoverTh = th;
       th.appendChild(headerActions);
@@ -533,7 +546,7 @@
     },
 
     handleHeaderDragStart(e, th, scrollContainer) {
-      if (getLifecycleState().queryRunning) {
+      if (getLifecycleState().queryRunning || isResizeModeActive() || e.target.closest('.th-resize-handle')) {
         e.preventDefault();
         return;
       }
@@ -803,6 +816,7 @@
       if (!table._headersDragInitialized) {
         const headers = table.querySelectorAll('th[draggable="true"]');
         headers.forEach(th => {
+          const resizeHandle = th.querySelector('.th-resize-handle');
           const listeners = {
             mouseenter: () => this.handleHeaderEnter(th),
             mouseleave: () => this.handleHeaderLeave(th),
@@ -817,6 +831,10 @@
           Object.entries(listeners).forEach(([event, handler]) => {
             th.addEventListener(event, handler);
           });
+          if (resizeHandle && !resizeHandle._resizeBound) {
+            resizeHandle.addEventListener('pointerdown', event => beginColumnResize(event, resizeHandle, th));
+            resizeHandle._resizeBound = true;
+          }
         });
         table._headersDragInitialized = true;
       }
@@ -893,6 +911,56 @@
       });
     }
   };
+
+  function stopResizeSession(options = {}) {
+    const hadActiveSession = Boolean(activeResizeSession);
+    if (activeResizeSession) {
+      window.removeEventListener('pointermove', activeResizeSession.onMove);
+      window.removeEventListener('pointerup', activeResizeSession.onUp);
+      document.body.classList.remove('table-column-resizing');
+      activeResizeSession = null;
+    }
+
+    if (options.keepMode !== true) {
+      services.clearColumnResizeMode?.();
+    } else {
+      services.syncColumnResizeModeUi?.();
+    }
+
+    if (hadActiveSession) {
+      services.renderVirtualTable?.();
+    }
+  }
+
+  function beginColumnResize(event, handle, th) {
+    const resizeState = getColumnResizeState();
+    const fieldName = handle.getAttribute('data-field-name') || th.getAttribute('data-sort-field') || '';
+    if (!resizeState.active || resizeState.fieldName !== fieldName) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    stopResizeSession({ keepMode: true });
+
+    const initialWidth = th.getBoundingClientRect().width;
+    const startX = event.clientX;
+    document.body.classList.add('table-column-resizing');
+
+    const onMove = moveEvent => {
+      const deltaX = moveEvent.clientX - startX;
+      services.setManualColumnWidth?.(fieldName, initialWidth + deltaX);
+    };
+
+    const onUp = () => {
+      stopResizeSession({ keepMode: true });
+    };
+
+    activeResizeSession = { onMove, onUp };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp, { once: true });
+  }
 
   window.ClipboardUtils.bindCopyButton(headerCopy, async () => {
     if (getLifecycleState().queryRunning) {
@@ -975,7 +1043,7 @@
   });
 
   document.addEventListener('dragstart', e => {
-    if (getLifecycleState().queryRunning) {
+    if (getLifecycleState().queryRunning || isResizeModeActive()) {
       e.preventDefault();
       return;
     }
@@ -1150,11 +1218,13 @@
 
   function addDragAndDrop(table) {
     dragDropManager.initTableDragDrop(table);
+    services.syncColumnResizeModeUi?.();
   }
 
   function resetHeaderUi() {
     clearInsertAffordance({ immediate: true });
     clearDropAnchor();
+    stopResizeSession({ keepMode: true });
 
     if (dragDropManager.hoverTh) {
       dragDropManager.hoverTh.classList.remove('th-hover');
@@ -1172,6 +1242,16 @@
     dragDropManager.activeTable = null;
     dragDropManager.stopAutoScroll();
   }
+
+  document.addEventListener('keydown', event => {
+    if (event.key !== 'Escape') {
+      return;
+    }
+
+    if (activeResizeSession || isResizeModeActive()) {
+      stopResizeSession();
+    }
+  });
 
   window.DragDropInteractions = Object.freeze({
     dragDropManager,

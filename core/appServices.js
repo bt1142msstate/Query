@@ -252,6 +252,26 @@
     getTableService()?.clearVirtualTableData?.();
   }
 
+  function setManualColumnWidth(fieldName, width) {
+    return getTableService()?.setManualColumnWidth?.(fieldName, width);
+  }
+
+  function activateColumnResizeMode(fieldName) {
+    return Boolean(getTableService()?.activateColumnResizeMode?.(fieldName));
+  }
+
+  function clearColumnResizeMode() {
+    getTableService()?.clearColumnResizeMode?.();
+  }
+
+  function getColumnResizeState() {
+    return getTableService()?.getColumnResizeState?.() || { active: false, fieldName: '' };
+  }
+
+  function syncColumnResizeModeUi() {
+    getTableService()?.syncResizeModeUi?.();
+  }
+
   function clearPostFilters(options = {}) {
     getTableService()?.clearPostFilters?.(options);
   }
@@ -348,6 +368,11 @@
     sortTableBy,
     getVirtualTableState,
     clearVirtualTableData,
+    setManualColumnWidth,
+    activateColumnResizeMode,
+    clearColumnResizeMode,
+    getColumnResizeState,
+    syncColumnResizeModeUi,
     clearPostFilters,
     getPostFilterStats,
     getPostFilterState,
