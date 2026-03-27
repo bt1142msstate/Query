@@ -280,6 +280,17 @@
     services.renderVirtualTable();
     services.syncColumnResizeModeUi?.();
 
+    if (options.scrollAnchorField) {
+      window.requestAnimationFrame(() => {
+        const anchorHeader = Array.from(table.querySelectorAll('thead th[data-sort-field]')).find(th =>
+          th.getAttribute('data-sort-field') === options.scrollAnchorField
+        );
+        if (anchorHeader) {
+          container.scrollLeft = Math.max(0, anchorHeader.offsetLeft - 12);
+        }
+      });
+    }
+
     table.querySelectorAll('th.sortable-header').forEach(th => {
       th.addEventListener('click', event => {
         if (event.target.closest('.th-action') || event.target.closest('.th-resize-handle')) {

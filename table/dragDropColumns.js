@@ -37,14 +37,15 @@
     return displayedFields.filter(field => field === baseFieldName || relatedFieldPattern.test(field));
   }
 
-  function syncTableAfterColumnRemoval(displayedFields) {
+  function syncTableAfterColumnRemoval(displayedFields, options = {}) {
     uiActions.updateQueryJson();
     uiActions.updateButtonStates();
     uiActions.updateCategoryCounts();
 
     uiActions.showExampleTable(displayedFields, {
       syncQueryState: false,
-      preserveScroll: true
+      preserveScroll: true,
+      scrollAnchorField: options.scrollAnchorField || ''
     });
 
     if (appState.currentCategory === 'Selected') {
@@ -94,7 +95,13 @@
       });
     }
 
-    syncTableAfterColumnRemoval(getDisplayedFields());
+    const displayedFieldsAfterRemoval = getDisplayedFields();
+    const anchorIndex = removedColumnIndices.length ? removedColumnIndices[0] : 0;
+    const scrollAnchorField = displayedFieldsAfterRemoval.length
+      ? (displayedFieldsAfterRemoval[Math.min(anchorIndex, displayedFieldsAfterRemoval.length - 1)] || displayedFieldsAfterRemoval[Math.max(0, anchorIndex - 1)] || '')
+      : '';
+
+    syncTableAfterColumnRemoval(displayedFieldsAfterRemoval, { scrollAnchorField });
     return true;
   }
 
