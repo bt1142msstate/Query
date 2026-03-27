@@ -48,6 +48,7 @@
     forceTableNameSyncOnce: false,
     isClearingQuery: false,
     isApplyingFormState: false,
+    limitedView: false,
     pendingQuerySync: null,
     querySyncQueued: false,
     tableNameListenersBound: false,
@@ -90,6 +91,54 @@
     }
 
     return [];
+  }
+
+  function parseBooleanFlag(value) {
+    if (typeof value === 'boolean') {
+      return value;
+    }
+
+    const normalized = String(value ?? '').trim().toLowerCase();
+    return normalized === '1'
+      || normalized === 'true'
+      || normalized === 'yes'
+      || normalized === 'on'
+      || normalized === 'limited';
+  }
+
+  function resolveLimitedView(rawSpec, searchParams) {
+    if (searchParams instanceof URLSearchParams) {
+      const viewValue = searchParams.get('view');
+      if (String(viewValue || '').trim().toLowerCase() === 'limited') {
+        return true;
+      }
+
+      if (searchParams.has('limited')) {
+        return parseBooleanFlag(searchParams.get('limited'));
+      }
+
+      if (searchParams.has('limitedView')) {
+        return parseBooleanFlag(searchParams.get('limitedView'));
+      }
+    }
+
+    if (!rawSpec || typeof rawSpec !== 'object') {
+      return false;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(rawSpec, 'limitedView')) {
+      return parseBooleanFlag(rawSpec.limitedView);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(rawSpec, 'limited')) {
+      return parseBooleanFlag(rawSpec.limited);
+    }
+
+    if (String(rawSpec.viewMode || '').trim().toLowerCase() === 'limited') {
+      return true;
+    }
+
+    return false;
   }
 
   function decodeBase64Url(rawValue) {
@@ -258,7 +307,8 @@
       queryName: hasQueryName ? String(rawSpec.queryName ?? rawSpec.tableName ?? rawSpec.title ?? rawSpec.name ?? '').trim() : '',
       columns,
       inputs,
-      lockedFilters
+      lockedFilters,
+      limitedView: resolveLimitedView(rawSpec)
     };
   }
 
@@ -1396,9 +1446,7 @@
     const nextUrl = new URL(window.location.href);
     nextUrl.search = '';
     nextUrl.searchParams.set('form', encodeSpec(state.spec));
-    if (state.viewMode === 'bubbles') {
-      nextUrl.searchParams.set('mode', 'bubbles');
-    }
+    nextUrl.searchParams.set('limited', '1');
 
     state.spec.inputs.forEach(inputSpec => {
       const fieldDef = window.fieldDefs && inputSpec.field ? window.fieldDefs.get(inputSpec.field) : null;
@@ -1433,10 +1481,12 @@
   }
 
   function syncPresentationMode() {
+    const isLimitedView = state.active && state.limitedView;
     const querySearchBlock = document.getElementById('query-input') && document.getElementById('query-input').closest('.mb-6');
     const categoryBar = document.getElementById('category-bar');
     const mobileCategorySelector = document.getElementById('mobile-category-selector');
     const bubbleStage = document.getElementById('bubble-container') && document.getElementById('bubble-container').closest('.flex.items-start.justify-center');
+    const hiddenControlIds = ['toggle-json', 'toggle-queries', 'mobile-toggle-json', 'mobile-toggle-queries'];
 
     document.body.classList.toggle('form-mode-active', state.viewMode === 'form');
 
@@ -1456,7 +1506,15 @@
       state.formCard.classList.toggle('hidden', state.viewMode !== 'form');
     }
 
+    hiddenControlIds.forEach(id => {
+      const control = document.getElementById(id);
+      if (control) {
+        control.classList.toggle('hidden', isLimitedView);
+      }
+    });
+
     if (state.modeToggleBtn) {
+      state.modeToggleBtn.classList.toggle('hidden', isLimitedView);
       state.modeToggleBtn.setAttribute('data-tooltip', state.viewMode === 'form' ? 'Switch to bubble builder' : 'Switch to form mode');
       state.modeToggleBtn.setAttribute('aria-label', state.viewMode === 'form' ? 'Switch to bubble builder' : 'Switch to form mode');
       const formIcon = state.modeToggleBtn.querySelector('[data-form-mode-icon="form"]');
@@ -1470,6 +1528,7 @@
     }
 
     if (state.mobileModeToggleBtn) {
+      state.mobileModeToggleBtn.classList.toggle('hidden', isLimitedView);
       const label = state.mobileModeToggleBtn.querySelector('span');
       if (label) {
         label.textContent = state.viewMode === 'form' ? 'Bubble Mode' : 'Form Mode';
@@ -1502,7 +1561,9 @@
   }
 
   async function setViewMode(nextMode, options = {}) {
-    const requestedMode = nextMode === 'bubbles' ? 'bubbles' : 'form';
+    const requestedMode = state.limitedView
+      ? 'form'
+      : (nextMode === 'bubbles' ? 'bubbles' : 'form');
 
     if (requestedMode === 'form' && !state.active) {
       const activated = await activateGeneratedFormFromCurrentQuery();
@@ -1965,11 +2026,15 @@
     state.active = true;
     state.specSource = 'url';
     state.spec = decodedSpec;
+    state.limitedView = resolveLimitedView(decodedSpec, searchParams);
+    state.spec.limitedView = state.limitedView;
     state.initialSpec = cloneSpec(decodedSpec);
     state.sharedBaselineSpec = null;
     state.searchParams = searchParams;
     state.sharedBaselineSearchParams = null;
-    state.viewMode = searchParams.get('mode') === 'bubbles' ? 'bubbles' : 'form';
+    state.viewMode = state.limitedView
+      ? 'form'
+      : (searchParams.get('mode') === 'bubbles' ? 'bubbles' : 'form');
 
     if (typeof window.loadFieldDefinitions === 'function') {
       await window.loadFieldDefinitions();

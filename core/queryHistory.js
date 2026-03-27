@@ -70,6 +70,7 @@ const classifyQueryStatus = historyViewHelpers.classifyQueryStatus;
 const getQueryStatusMeta = historyViewHelpers.getQueryStatusMeta;
 const buildHistorySection = historyViewHelpers.buildHistorySection;
 const buildHistoryMonitor = historyViewHelpers.buildHistoryMonitor;
+const expandedHistoryQueryIds = new Set();
 
 function getPreferredHistorySection(counts) {
   return historyViewHelpers.getPreferredHistorySection(counts, activeHistorySection);
@@ -520,6 +521,108 @@ window.formatHistoryFiltersTooltip = function(filtersInput) {
   return lines.join(', ');
 };
 
+function escapeHistoryText(value) {
+  return typeof window.escapeHtml === 'function'
+    ? window.escapeHtml(String(value ?? ''))
+    : String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function buildHistoryDetailList(items, emptyLabel, ordered = false) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return `<p class="history-details-empty">${escapeHistoryText(emptyLabel)}</p>`;
+  }
+
+  const tagName = ordered ? 'ol' : 'ul';
+  const rows = items.map(item => `<li>${item}</li>`).join('');
+  return `<${tagName} class="history-details-list">${rows}</${tagName}>`;
+}
+
+function buildHistoryColumnsMarkup(columns) {
+  const safeColumns = Array.isArray(columns) ? columns : [];
+  const items = safeColumns.map(column => `<span class="history-details-chip">${escapeHistoryText(column)}</span>`);
+  return buildHistoryDetailList(items, 'No displayed columns saved for this query.');
+}
+
+function buildHistoryFiltersMarkup(filters) {
+  const safeFilters = Array.isArray(filters) ? filters : [];
+  const items = safeFilters.map(filter => {
+    const operator = typeof window.formatFieldOperatorForDisplay === 'function'
+      ? window.formatFieldOperatorForDisplay(filter.FieldOperator)
+      : (filter.FieldOperator || '');
+    const values = Array.isArray(filter.Values) && filter.Values.length > 0
+      ? filter.Values.map(value => escapeHistoryText(value)).join(', ')
+      : '<span class="history-details-muted">No value</span>';
+
+    return `<strong>${escapeHistoryText(filter.FieldName || '')}</strong><span>${escapeHistoryText(operator)}</span><span>${values}</span>`;
+  });
+
+  return buildHistoryDetailList(items, 'No filters saved for this query.');
+}
+
+function buildHistoryIssueMarkup(reason) {
+  if (!reason) {
+    return '<p class="history-details-empty">No issue recorded.</p>';
+  }
+
+  return `<p class="history-details-issue">${escapeHistoryText(reason)}</p>`;
+}
+
+function getHistoryDetailsColspan(query) {
+  if (query?.running) return 7;
+  if (query?.failed) return 7;
+  return 6;
+}
+
+function buildHistoryExpandButton(queryId, isExpanded) {
+  return `
+    <button
+      type="button"
+      class="history-expand-btn"
+      data-history-expand="${queryId}"
+      aria-expanded="${isExpanded ? 'true' : 'false'}"
+      aria-controls="history-details-${queryId}"
+    >
+      <span>${isExpanded ? 'Hide details' : 'Expand details'}</span>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true">
+        <path d="M6 9l6 6 6-6"></path>
+      </svg>
+    </button>
+  `;
+}
+
+function buildHistoryDetailsRowHtml(q, filters, columns, reasonSummary) {
+  const isExpanded = expandedHistoryQueryIds.has(q.id);
+  const expandedClass = isExpanded ? '' : ' hidden';
+
+  return `
+    <tr class="history-details-row${expandedClass}" data-history-detail-for="${q.id}" id="history-details-${q.id}">
+      <td colspan="${getHistoryDetailsColspan(q)}" class="history-details-cell">
+        <div class="history-details-grid">
+          <section class="history-details-panel">
+            <h5>Displayed Fields</h5>
+            ${buildHistoryColumnsMarkup(columns)}
+          </section>
+          <section class="history-details-panel">
+            <h5>Filters</h5>
+            ${buildHistoryFiltersMarkup(filters)}
+          </section>
+          ${q.failed ? `
+            <section class="history-details-panel history-details-panel-full">
+              <h5>Issue</h5>
+              ${buildHistoryIssueMarkup(reasonSummary)}
+            </section>
+          ` : ''}
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
 /**
  * Loads a query configuration into the main UI.
  * Updates displayed fields, filters, and JSON display to match the selected query.
@@ -793,34 +896,20 @@ async function loadQueryResults(queryId) {
  */
 function createQueriesTableRowHtml(q, viewIconSVG) {
   const statusMeta = getQueryStatusMeta(q.status);
-  // Use tooltip for columns
   const columns = q.jsonConfig?.DesiredColumnOrder || [];
-  const columnsTooltip = typeof formatColumnsTooltip === 'function' ? formatColumnsTooltip(columns) : '';
-  const columnsSummary = columns.length
-    ? createTooltipIconSummary(viewIconSVG, 'data-tooltip-html', columnsTooltip)
-    : '<span class="text-gray-400">None</span>';
-    
-  // Use tooltip for filters
   const filters = typeof window.normalizeUiConfigFilters === 'function'
     ? window.normalizeUiConfigFilters(q.jsonConfig)
     : [];
-  let filtersSummary = '<span class="text-gray-400">None</span>';
-  
-  if (filters.length > 0) {
-      if (typeof window.formatStandardFilterTooltipHTML === 'function') {
-          const filterHtml = window.formatStandardFilterTooltipHTML(filters, "Query Filters");
-        filtersSummary = createTooltipIconSummary(viewIconSVG, 'data-tooltip-html', filterHtml);
-      } else {
-          const filterTooltip = typeof formatHistoryFiltersTooltip === 'function' ? formatHistoryFiltersTooltip(filters) : '';
-          if (filterTooltip) {
-          filtersSummary = createTooltipIconSummary(viewIconSVG, 'data-tooltip', filterTooltip);
-          }
-      }
-  }
+  const isExpanded = expandedHistoryQueryIds.has(q.id);
+  const columnsSummary = columns.length
+    ? `<span class="history-summary-count">${columns.length} ${columns.length === 1 ? 'field' : 'fields'}</span>`
+    : '<span class="text-gray-400">None</span>';
+  const filtersSummary = filters.length
+    ? `<span class="history-summary-count">${filters.length} ${filters.length === 1 ? 'filter' : 'filters'}</span>`
+    : '<span class="text-gray-400">None</span>';
 
-  const escapedReason = (q.error || '').replace(/"/g, '&quot;');
   const reasonSummary = q.error
-    ? `<span class="history-reason-icon" data-tooltip="${escapedReason}">Issue</span>`
+    ? '<span class="history-reason-icon">Issue</span>'
     : '<span class="text-gray-400">None</span>';
 
   const metaPills = [`<span class="history-inline-pill subtle">${q.id}</span>`];
@@ -840,7 +929,10 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
         <span class="history-query-name">${q.name || q.id}</span>
         <div class="history-meta-line">${metaPills.join('')}</div>
       </div>
-      <span class="${statusMeta.badgeClass}">${statusMeta.label}</span>
+      <div class="history-name-actions">
+        ${buildHistoryExpandButton(q.id, isExpanded)}
+        <span class="${statusMeta.badgeClass}">${statusMeta.label}</span>
+      </div>
     </div>`;
 
   const previewBtn = q.running ? `<button class="load-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" tabindex="-1" data-query-id="${q.id}" style="margin-left:4px;" data-tooltip="Open partial results"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></button>` : '';
@@ -881,6 +973,7 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
         <td class="px-4 py-2 text-center">${previewBtn}</td>
         <td class="px-4 py-2 text-center">${stopBtn}</td>
       </tr>
+      ${buildHistoryDetailsRowHtml(q, filters, columns, q.error || '')}
     `;
   } else if (q.cancelled) {
     return `
@@ -892,6 +985,7 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
         <td class="px-4 py-2 text-xs text-center">${duration}</td>
         <td class="px-4 py-2 text-xs text-center">${rerunBtn}</td>
       </tr>
+      ${buildHistoryDetailsRowHtml(q, filters, columns, q.error || '')}
     `;
   } else if (q.failed) {
     return `
@@ -904,6 +998,7 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
         <td class="px-4 py-2 text-xs text-center">${reasonSummary}</td>
         <td class="px-4 py-2 text-xs text-center">${rerunBtn}</td>
       </tr>
+      ${buildHistoryDetailsRowHtml(q, filters, columns, q.error || '')}
     `;
   } else {
     return `
@@ -916,6 +1011,7 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
         <td class="px-4 py-2 text-xs text-center">${loadBtn}</td>
         <td class="px-4 py-2 text-xs text-center">${rerunBtn}</td>
       </tr>
+      ${buildHistoryDetailsRowHtml(q, filters, columns, q.error || '')}
     `;
   }
 }
@@ -931,6 +1027,32 @@ window.fetchQueryStatus = fetchQueryStatus;
  * @param {Element} scope
  */
 function bindHistoryTableButtons(scope) {
+  scope.querySelectorAll('.history-expand-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const queryId = btn.getAttribute('data-history-expand');
+      if (!queryId) return;
+
+      const nextExpanded = !expandedHistoryQueryIds.has(queryId);
+      if (nextExpanded) {
+        expandedHistoryQueryIds.add(queryId);
+      } else {
+        expandedHistoryQueryIds.delete(queryId);
+      }
+
+      btn.setAttribute('aria-expanded', nextExpanded ? 'true' : 'false');
+      const label = btn.querySelector('span');
+      if (label) {
+        label.textContent = nextExpanded ? 'Hide details' : 'Expand details';
+      }
+
+      const detailsRow = document.querySelector(`[data-history-detail-for="${queryId}"]`);
+      if (detailsRow) {
+        detailsRow.classList.toggle('hidden', !nextExpanded);
+      }
+    });
+  });
+
   scope.querySelectorAll('.load-query-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
@@ -951,6 +1073,7 @@ function bindHistoryTableButtons(scope) {
       q.status = 'running';
       loadQueryConfig(q);
       window.DOM.runBtn?.click();
+      window.modalManager?.closePanel?.('queries-panel');
     });
   });
 
@@ -1123,6 +1246,11 @@ function patchQueriesPanelData(newHistory) {
 
   // Remove rows whose query is no longer in this section
   existingRowMap.forEach((tr, id) => { if (!newIds.has(id)) tr.remove(); });
+  tbody.querySelectorAll('tr[data-history-detail-for]').forEach(tr => {
+    if (!newIds.has(tr.dataset.historyDetailFor)) {
+      tr.remove();
+    }
+  });
 
   // Insert new rows / replace changed rows — skip rows that haven't changed
   sectionList.forEach((q, index) => {
@@ -1133,17 +1261,31 @@ function patchQueriesPanelData(newHistory) {
 
     const temp = document.createElement('tbody');
     temp.innerHTML = createQueriesTableRowHtml(q, VIEW_ICON_SVG);
-    const newTr = temp.firstElementChild;
-    if (!newTr) return;
-    bindHistoryTableButtons(newTr);
+    const newMainTr = temp.querySelector('tr[data-query-id]');
+    const newDetailTr = temp.querySelector(`tr[data-history-detail-for="${q.id}"]`);
+    if (!newMainTr) return;
+    bindHistoryTableButtons(temp);
 
     if (existing) {
-      tbody.replaceChild(newTr, existing);
+      const existingDetail = tbody.querySelector(`tr[data-history-detail-for="${q.id}"]`);
+      tbody.replaceChild(newMainTr, existing);
+      if (existingDetail) {
+        existingDetail.remove();
+      }
+      if (newDetailTr) {
+        newMainTr.insertAdjacentElement('afterend', newDetailTr);
+      }
     } else {
       // Insert at the correct ordinal position among already-updated rows
       const sibling = tbody.querySelectorAll('tr[data-query-id]')[index];
-      if (sibling) tbody.insertBefore(newTr, sibling);
-      else tbody.appendChild(newTr);
+      if (sibling) {
+        tbody.insertBefore(newMainTr, sibling);
+      } else {
+        tbody.appendChild(newMainTr);
+      }
+      if (newDetailTr) {
+        newMainTr.insertAdjacentElement('afterend', newDetailTr);
+      }
     }
   });
 }
