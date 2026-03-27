@@ -663,11 +663,11 @@ body.dragging-cursor * {
 }
 
 .th-resize-handle-left {
-  left: -7px;
+  left: 0;
 }
 
 .th-resize-handle-right {
-  right: -7px;
+  right: 0;
 }
 
 .th-resize-handle.hidden {
@@ -758,9 +758,25 @@ body.table-expanded-open .th-insert-button {
   box-shadow: inset 0 0 0 2px rgba(37, 99, 235, 0.32), 0 0 24px rgba(59, 130, 246, 0.16);
 }
 
+#example-table td.query-table-column-resize-target {
+  background: linear-gradient(180deg, rgba(239, 246, 255, 0.96), rgba(219, 234, 254, 0.82)) !important;
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.22), 0 0 18px rgba(59, 130, 246, 0.1);
+}
+
 #example-table th.query-table-column-resize-target .th-header-content {
   padding-left: var(--header-text-balance-space);
   padding-right: var(--header-text-balance-space);
+}
+
+body.table-resize-mode #example-table th.query-table-column-resize-dimmed,
+body.table-resize-mode #example-table td.query-table-column-resize-dimmed {
+  opacity: 0.33;
+  filter: saturate(0.55);
+  transition: opacity 0.16s ease, filter 0.16s ease, background-color 0.16s ease;
+}
+
+body.table-resize-mode #example-table td.query-table-column-resize-dimmed:hover {
+  box-shadow: none;
 }
 
 body.table-column-resizing,
