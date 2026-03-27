@@ -1,6 +1,6 @@
 /**
  * Table Context Menu
- * Right-click menu on table body cells.
+ * Right-click menu on table cells and headers.
  * Options: Copy Cell, Copy Row (tab-separated), Copy Column (newline-separated).
  */
 window.TableContextMenu = (() => {
@@ -239,14 +239,16 @@ window.TableContextMenu = (() => {
   // ── Entry point ───────────────────────────────────────────────────────────────
 
   function onContextMenu(e) {
-    const td = e.target.closest('#example-table tbody td');
-    if (!td) return;
+    const headerCell = e.target.closest('#example-table thead th[data-col-index]');
+    const bodyCell = e.target.closest('#example-table tbody td[data-col-index]');
+    const targetCell = bodyCell || headerCell;
+    if (!targetCell) return;
     e.preventDefault();
 
     dismiss();
 
-    const tr       = td.closest('tr');
-    const colIndex = parseInt(td.dataset.colIndex, 10);
+    const tr       = bodyCell?.closest('tr') || null;
+    const colIndex = parseInt(targetCell.dataset.colIndex, 10);
     const rowIndex = parseInt(tr?.dataset?.rowIndex ?? 'NaN', 10);
 
     if (isNaN(colIndex)) return;
@@ -258,6 +260,7 @@ window.TableContextMenu = (() => {
       : `Column ${colIndex + 1}`;
 
     const hasRow = !isNaN(rowIndex);
+    const isHeaderTarget = Boolean(headerCell && !bodyCell);
     const sortState = services.getVirtualTableState?.() || {};
     const isActiveSort = Boolean(field) && String(sortState.currentSortColumn || '') === field;
     const nextSortLabel = !field
@@ -308,35 +311,37 @@ window.TableContextMenu = (() => {
           window.PostFilterSystem.openOverlayForField(field);
         }
       },
-      {
-        icon:  CELL_ICON,
-        label: 'Copy Cell',
-        hint:  '',
-        preview() {
-          return previewCell(td);
+      ...(!isHeaderTarget ? [
+        {
+          icon:  CELL_ICON,
+          label: 'Copy Cell',
+          hint:  '',
+          preview() {
+            return previewCell(bodyCell);
+          },
+          run() {
+            const val = hasRow
+              ? getCellValue(rowIndex, colIndex)
+              : getCellFallbackText(bodyCell);
+            window.ClipboardUtils.copy(val, { successMessage: 'Cell copied' });
+          }
         },
-        run() {
-          const val = hasRow
-            ? getCellValue(rowIndex, colIndex)
-            : getCellFallbackText(td);
-          window.ClipboardUtils.copy(val, { successMessage: 'Cell copied' });
+        {
+          icon:  ROW_ICON,
+          label: 'Copy Row',
+          hint:  'tab-separated',
+          preview() {
+            return hasRow ? previewRow(tr) : null;
+          },
+          run() {
+            if (!hasRow) return;
+            const vals = getRowValues(rowIndex);
+            window.ClipboardUtils.copy(vals.join('\t'), {
+              successMessage: `Row copied \u2014 ${vals.length} value${vals.length !== 1 ? 's' : ''}`
+            });
+          }
         }
-      },
-      {
-        icon:  ROW_ICON,
-        label: 'Copy Row',
-        hint:  'tab-separated',
-        preview() {
-          return hasRow ? previewRow(tr) : null;
-        },
-        run() {
-          if (!hasRow) return;
-          const vals = getRowValues(rowIndex);
-          window.ClipboardUtils.copy(vals.join('\t'), {
-            successMessage: `Row copied \u2014 ${vals.length} value${vals.length !== 1 ? 's' : ''}`
-          });
-        }
-      },
+      ] : []),
       {
         icon:  COL_ICON,
         label: 'Copy Column',
