@@ -154,11 +154,20 @@ function syncResizeModeUi() {
     const fieldName = th.getAttribute('data-sort-field') || th.textContent.trim();
     const isTarget = resizeModeState.active && fieldName === resizeModeState.fieldName;
     th.classList.toggle('query-table-column-resize-target', isTarget);
+    th.classList.toggle('query-table-column-resize-dimmed', resizeModeState.active && !isTarget);
     const handle = th.querySelector('.th-resize-handle');
     if (handle) {
       handle.classList.toggle('hidden', !isTarget);
       handle.setAttribute('aria-hidden', isTarget ? 'false' : 'true');
     }
+  });
+
+  const targetIndex = resizeModeState.active ? getDisplayedFieldIndex(resizeModeState.fieldName) : -1;
+  document.querySelectorAll('#example-table tbody td[data-col-index]').forEach(cell => {
+    const cellIndex = Number.parseInt(cell.dataset.colIndex || '', 10);
+    const isTarget = resizeModeState.active && cellIndex === targetIndex;
+    cell.classList.toggle('query-table-column-resize-target', isTarget);
+    cell.classList.toggle('query-table-column-resize-dimmed', resizeModeState.active && !isTarget);
   });
 }
 
