@@ -336,6 +336,7 @@ body.export-overlay-open {
   --header-action-space: 9.35rem;
   --header-text-balance-space: 9.35rem;
   --header-sort-space: 1rem;
+  --th-balance-space: 1.6rem;
 }
 
 #example-table th {
@@ -358,7 +359,6 @@ body.export-overlay-open {
 
 /* Remove border from the last header column */
 #example-table th:last-child {
-  padding-right: calc((1.5rem * var(--table-zoom)) + var(--header-action-space)) !important;
   border-right: none;
 }
 
@@ -549,17 +549,36 @@ body.dragging-cursor * {
 .th-header-content {
   position: relative;
   width: 100%;
-  display: flex;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(var(--th-balance-space, 1.6rem), auto) minmax(0, 1fr) minmax(var(--th-balance-space, 1.6rem), auto);
+  align-items: center;
+  min-width: 0;
+  column-gap: 0.45rem;
+  pointer-events: none;
+  text-align: center;
+}
+
+.th-side-slot {
+  min-width: var(--th-balance-space, 1.6rem);
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 0;
-  padding-left: var(--header-text-balance-space);
-  padding-right: var(--header-action-space);
-  pointer-events: none;
+}
+
+.th-side-slot-left {
+  justify-self: start;
+}
+
+.th-side-slot-right {
+  justify-self: end;
 }
 
 .th-label-group {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: center;
   min-width: 0;
   max-width: 100%;
 }
@@ -588,15 +607,11 @@ body.dragging-cursor * {
 }
 
 .sort-icon {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: var(--header-sort-space);
-  flex: 0 0 var(--header-sort-space);
+  min-width: var(--header-sort-space);
   color: #94a3b8;
   font-weight: 700;
   line-height: 1;
@@ -620,6 +635,25 @@ body.dragging-cursor * {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
+}
+
+#example-table th.th-actions-below {
+  height: calc(var(--table-header-height) + 2.15rem);
+}
+
+#example-table th.th-actions-below .th-header-content {
+  min-height: calc(var(--table-header-height) + 1.15rem);
+  align-items: start;
+  padding-top: 0.15rem;
+  padding-bottom: 1.95rem;
+}
+
+#example-table th.th-actions-below .th-actions {
+  top: auto;
+  bottom: 0.4rem;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
 }
 
 .th-action {
@@ -764,8 +798,8 @@ body.table-expanded-open .th-insert-button {
 }
 
 #example-table th.query-table-column-resize-target .th-header-content {
-  padding-left: var(--header-text-balance-space);
-  padding-right: var(--header-text-balance-space);
+  padding-left: var(--th-balance-space, 1.6rem);
+  padding-right: var(--th-balance-space, 1.6rem);
 }
 
 body.table-resize-mode #example-table th.query-table-column-resize-dimmed,

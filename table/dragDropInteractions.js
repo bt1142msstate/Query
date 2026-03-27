@@ -111,6 +111,59 @@
     return Boolean(getColumnResizeState().active);
   }
 
+  function clearHeaderLayoutState(th) {
+    if (!th) {
+      return;
+    }
+
+    th.classList.remove('th-actions-below');
+    th.style.removeProperty('--th-balance-space');
+  }
+
+  function updateHeaderActionLayout(th) {
+    if (!th) {
+      return;
+    }
+
+    const headerContent = th.querySelector('.th-header-content');
+    const labelText = th.querySelector('.th-text');
+    const sortIcon = th.querySelector('.sort-icon');
+    if (!headerContent || !labelText) {
+      clearHeaderLayoutState(th);
+      return;
+    }
+
+    const actionsVisible = headerActions.parentNode === th;
+    const sortWidth = sortIcon ? Math.ceil(sortIcon.getBoundingClientRect().width) : 0;
+    const actionsWidth = actionsVisible ? Math.ceil(headerActions.getBoundingClientRect().width) : 0;
+    const sideBalance = Math.max(sortWidth + 10, actionsWidth + 18, 26);
+    const labelWidth = Math.ceil(labelText.scrollWidth);
+    const availableInlineWidth = th.clientWidth - (sideBalance * 2);
+    const stackActions = actionsVisible && availableInlineWidth < (labelWidth + 18);
+
+    th.classList.toggle('th-actions-below', stackActions);
+    th.style.setProperty('--th-balance-space', `${stackActions ? Math.max(sortWidth + 10, 26) : sideBalance}px`);
+  }
+
+  function isEventInsideActiveResizeColumn(target) {
+    if (!target || !isResizeModeActive()) {
+      return false;
+    }
+
+    const resizeState = getColumnResizeState();
+    const targetIndex = getDisplayedFields().findIndex(field => field === resizeState.fieldName);
+    if (targetIndex === -1) {
+      return false;
+    }
+
+    const cell = target.closest?.('#example-table th[data-col-index], #example-table td[data-col-index]');
+    if (!cell) {
+      return false;
+    }
+
+    return Number.parseInt(cell.dataset.colIndex || '', 10) === targetIndex;
+  }
+
   function applyInsertAffordancePosition(candidate) {
     headerInsertAffordance.dataset.insertAt = String(candidate.insertAt);
     headerInsertAffordance.style.left = `${candidate.boundaryX + window.scrollX}px`;
@@ -526,11 +579,13 @@
       this.hoverTh = th;
       th.appendChild(headerActions);
       syncHeaderSortActionState(th);
+      window.requestAnimationFrame(() => updateHeaderActionLayout(th));
     },
 
     handleHeaderLeave(th) {
       th.classList.remove('th-hover');
       this.hoverTh = null;
+      clearHeaderLayoutState(th);
       if (headerActions.parentNode) headerActions.parentNode.removeChild(headerActions);
     },
 
@@ -816,7 +871,6 @@
       if (!table._headersDragInitialized) {
         const headers = table.querySelectorAll('th[draggable="true"]');
         headers.forEach(th => {
-          const resizeHandle = th.querySelector('.th-resize-handle');
           const listeners = {
             mouseenter: () => this.handleHeaderEnter(th),
             mouseleave: () => this.handleHeaderLeave(th),
@@ -831,20 +885,26 @@
           Object.entries(listeners).forEach(([event, handler]) => {
             th.addEventListener(event, handler);
           });
-          if (resizeHandle && !resizeHandle._resizeBound) {
-            resizeHandle.addEventListener('pointerdown', event => beginColumnResize(event, resizeHandle, th));
-            resizeHandle._resizeBound = true;
-          }
         });
         table._headersDragInitialized = true;
       }
 
       const headerRow = table.querySelector('thead tr');
       if (headerRow && !headerRow._insertAffordanceBound) {
+        const onPointerDown = event => {
+          const resizeHandle = event.target.closest('.th-resize-handle');
+          const th = resizeHandle?.closest('th');
+          if (!resizeHandle || !th) {
+            return;
+          }
+
+          beginColumnResize(event, resizeHandle, th);
+        };
         const onPointerMove = event => this.handleHeaderRowPointerMove(event, table);
         const onPointerLeave = event => this.handleHeaderRowPointerLeave(event);
         const onScroll = () => clearInsertAffordance({ immediate: true });
 
+        headerRow.addEventListener('pointerdown', onPointerDown);
         headerRow.addEventListener('mousemove', onPointerMove);
         headerRow.addEventListener('mouseleave', onPointerLeave);
 
@@ -855,6 +915,7 @@
 
         headerRow._insertAffordanceBound = true;
         headerRow._insertAffordanceCleanup = () => {
+          headerRow.removeEventListener('pointerdown', onPointerDown);
           headerRow.removeEventListener('mousemove', onPointerMove);
           headerRow.removeEventListener('mouseleave', onPointerLeave);
           if (scrollContainerEl) {
@@ -1236,6 +1297,8 @@
       headerActions.parentNode.removeChild(headerActions);
     }
 
+    document.querySelectorAll('#example-table th').forEach(th => clearHeaderLayoutState(th));
+
     document.querySelectorAll('#example-table .th-drag-over, #example-table .th-dragging').forEach(el => {
       el.classList.remove('th-drag-over', 'th-dragging');
     });
@@ -1254,6 +1317,16 @@
       stopResizeSession();
     }
   });
+
+  document.addEventListener('pointerdown', event => {
+    if (!isResizeModeActive() || activeResizeSession) {
+      return;
+    }
+
+    if (!isEventInsideActiveResizeColumn(event.target)) {
+      stopResizeSession();
+    }
+  }, true);
 
   window.DragDropInteractions = Object.freeze({
     dragDropManager,

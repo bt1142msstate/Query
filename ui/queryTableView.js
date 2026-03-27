@@ -136,11 +136,14 @@
     const headerContent = document.createElement('div');
     headerContent.className = 'th-header-content';
 
+    const leftSlot = document.createElement('div');
+    leftSlot.className = 'th-side-slot th-side-slot-left';
+
     if (fieldExistsInData || !hasLoadedData) {
       const sortIcon = document.createElement('span');
       sortIcon.className = 'sort-icon text-gray-400';
       sortIcon.setAttribute('aria-hidden', 'true');
-      headerContent.appendChild(sortIcon);
+      leftSlot.appendChild(sortIcon);
     }
 
     const labelGroup = document.createElement('div');
@@ -155,7 +158,12 @@
     }
 
     labelGroup.appendChild(labelText);
+    headerContent.appendChild(leftSlot);
     headerContent.appendChild(labelGroup);
+
+    const rightSlot = document.createElement('div');
+    rightSlot.className = 'th-side-slot th-side-slot-right';
+    headerContent.appendChild(rightSlot);
     th.appendChild(headerContent);
 
     ['left', 'right'].forEach(edge => {
@@ -284,11 +292,12 @@
           let iconSpan = th.querySelector('.sort-icon');
           if (!iconSpan) {
             const headerContent = th.querySelector('.th-header-content');
+            const leftSlot = headerContent?.querySelector('.th-side-slot-left');
             if (headerContent) {
               iconSpan = document.createElement('span');
               iconSpan.className = 'sort-icon';
               iconSpan.setAttribute('aria-hidden', 'true');
-              headerContent.insertBefore(iconSpan, headerContent.firstChild);
+              (leftSlot || headerContent).appendChild(iconSpan);
             }
           }
 
