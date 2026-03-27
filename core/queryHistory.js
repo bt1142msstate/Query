@@ -70,7 +70,7 @@ const classifyQueryStatus = historyViewHelpers.classifyQueryStatus;
 const getQueryStatusMeta = historyViewHelpers.getQueryStatusMeta;
 const buildHistorySection = historyViewHelpers.buildHistorySection;
 const buildHistoryMonitor = historyViewHelpers.buildHistoryMonitor;
-const expandedHistoryQueryIds = new Set();
+let activeHistoryDetailQueryId = null;
 
 function getPreferredHistorySection(counts) {
   return historyViewHelpers.getPreferredHistorySection(counts, activeHistorySection);
@@ -556,12 +556,6 @@ function buildHistoryIssueMarkup(reason) {
   return `<p class="history-details-issue">${escapeHistoryText(reason)}</p>`;
 }
 
-function getHistoryDetailsColspan(query) {
-  if (query?.running) return 7;
-  if (query?.failed) return 7;
-  return 6;
-}
-
 function buildHistoryExpandButton(queryId, isExpanded, columnCount, filterCount) {
   return `
     <button
@@ -580,32 +574,82 @@ function buildHistoryExpandButton(queryId, isExpanded, columnCount, filterCount)
   `;
 }
 
-function buildHistoryDetailsRowHtml(q, filters, columns, reasonSummary) {
-  const isExpanded = expandedHistoryQueryIds.has(q.id);
-  const expandedClass = isExpanded ? '' : ' hidden';
+function buildHistoryDetailsOverlayHtml(q) {
+  if (!q) {
+    return '';
+  }
+
+  const columns = q.jsonConfig?.DesiredColumnOrder || [];
+  const filters = typeof window.normalizeUiConfigFilters === 'function'
+    ? window.normalizeUiConfigFilters(q.jsonConfig)
+    : [];
 
   return `
-    <tr class="history-details-row${expandedClass}" data-history-detail-for="${q.id}" id="history-details-${q.id}">
-      <td colspan="${getHistoryDetailsColspan(q)}" class="history-details-cell">
-        <div class="history-details-grid">
-          <section class="history-details-panel">
-            <h5>Displayed Fields</h5>
-            ${buildHistoryColumnsMarkup(columns)}
-          </section>
-          <section class="history-details-panel">
-            <h5>Filters</h5>
-            ${buildHistoryFiltersMarkup(filters)}
-          </section>
-          ${q.failed ? `
-            <section class="history-details-panel history-details-panel-full">
-              <h5>Issue</h5>
-              ${buildHistoryIssueMarkup(reasonSummary)}
-            </section>
-          ` : ''}
+    <div class="history-details-modal-backdrop" data-history-details-close></div>
+    <section class="history-details-modal" role="dialog" aria-modal="true" aria-labelledby="history-details-title">
+      <button type="button" class="history-details-modal-close" aria-label="Close details" data-history-details-close>
+        <span aria-hidden="true">×</span>
+      </button>
+      <div class="history-details-modal-header">
+        <p class="history-details-modal-kicker">Query details</p>
+        <h4 id="history-details-title" class="history-details-modal-title">${escapeHistoryText(q.name || q.id)}</h4>
+        <div class="history-meta-line">
+          <span class="history-inline-pill subtle">${escapeHistoryText(q.id)}</span>
+          <span class="history-inline-pill">${columns.length} ${columns.length === 1 ? 'field' : 'fields'}</span>
+          <span class="history-inline-pill">${filters.length} ${filters.length === 1 ? 'filter' : 'filters'}</span>
         </div>
-      </td>
-    </tr>
+      </div>
+      <div class="history-details-grid">
+        <section class="history-details-panel">
+          <h5>Displayed Fields</h5>
+          ${buildHistoryColumnsMarkup(columns)}
+        </section>
+        <section class="history-details-panel">
+          <h5>Filters</h5>
+          ${buildHistoryFiltersMarkup(filters)}
+        </section>
+        ${q.failed ? `
+          <section class="history-details-panel history-details-panel-full">
+            <h5>Issue</h5>
+            ${buildHistoryIssueMarkup(q.error || '')}
+          </section>
+        ` : ''}
+      </div>
+    </section>
   `;
+}
+
+function closeHistoryDetailsOverlay() {
+  activeHistoryDetailQueryId = null;
+  document.querySelector('.history-details-modal-shell')?.remove();
+  document.body.classList.remove('history-details-open');
+}
+
+function renderHistoryDetailsOverlay(queryId = activeHistoryDetailQueryId) {
+  closeHistoryDetailsOverlay();
+
+  if (!queryId) {
+    return;
+  }
+
+  const q = exampleQueries.find(query => query.id === queryId);
+  if (!q) {
+    return;
+  }
+
+  activeHistoryDetailQueryId = queryId;
+  const shell = document.createElement('div');
+  shell.className = 'history-details-modal-shell';
+  shell.innerHTML = buildHistoryDetailsOverlayHtml(q);
+  document.body.appendChild(shell);
+  document.body.classList.add('history-details-open');
+
+  shell.querySelectorAll('[data-history-details-close]').forEach(node => {
+    node.addEventListener('click', event => {
+      event.preventDefault();
+      closeHistoryDetailsOverlay();
+    });
+  });
 }
 
 /**
@@ -885,7 +929,7 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
   const filters = typeof window.normalizeUiConfigFilters === 'function'
     ? window.normalizeUiConfigFilters(q.jsonConfig)
     : [];
-  const isExpanded = expandedHistoryQueryIds.has(q.id);
+  const isExpanded = activeHistoryDetailQueryId === q.id;
 
   const reasonSummary = q.error
     ? '<span class="history-reason-icon">Issue</span>'
@@ -950,7 +994,6 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
         <td class="px-4 py-2 text-center">${previewBtn}</td>
         <td class="px-4 py-2 text-center">${stopBtn}</td>
       </tr>
-      ${buildHistoryDetailsRowHtml(q, filters, columns, q.error || '')}
     `;
   } else if (q.cancelled) {
     return `
@@ -962,7 +1005,6 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
         <td class="px-4 py-2 text-xs text-center">${duration}</td>
         <td class="px-4 py-2 text-xs text-center">${rerunBtn}</td>
       </tr>
-      ${buildHistoryDetailsRowHtml(q, filters, columns, q.error || '')}
     `;
   } else if (q.failed) {
     return `
@@ -975,7 +1017,6 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
         <td class="px-4 py-2 text-xs text-center">${reasonSummary}</td>
         <td class="px-4 py-2 text-xs text-center">${rerunBtn}</td>
       </tr>
-      ${buildHistoryDetailsRowHtml(q, filters, columns, q.error || '')}
     `;
   } else {
     return `
@@ -988,7 +1029,6 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
         <td class="px-4 py-2 text-xs text-center">${loadBtn}</td>
         <td class="px-4 py-2 text-xs text-center">${rerunBtn}</td>
       </tr>
-      ${buildHistoryDetailsRowHtml(q, filters, columns, q.error || '')}
     `;
   }
 }
@@ -1009,30 +1049,14 @@ function bindHistoryTableButtons(scope) {
       e.stopPropagation();
       const queryId = btn.getAttribute('data-history-expand');
       if (!queryId) return;
-
-      const nextExpanded = !expandedHistoryQueryIds.has(queryId);
-      if (nextExpanded) {
-        expandedHistoryQueryIds.add(queryId);
-      } else {
-        expandedHistoryQueryIds.delete(queryId);
-      }
-
-      btn.setAttribute('aria-expanded', nextExpanded ? 'true' : 'false');
-      const label = btn.querySelector('span');
-      if (label) {
-        label.textContent = nextExpanded ? 'Hide details' : 'Expand details';
-      }
-
-      const detailsRow = document.querySelector(`[data-history-detail-for="${queryId}"]`);
-      if (detailsRow) {
-        detailsRow.classList.toggle('hidden', !nextExpanded);
-      }
+      renderHistoryDetailsOverlay(queryId);
     });
   });
 
   scope.querySelectorAll('.load-query-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
+      closeHistoryDetailsOverlay();
       loadQueryResults(btn.getAttribute('data-query-id'));
     });
   });
@@ -1049,6 +1073,7 @@ function bindHistoryTableButtons(scope) {
       q.cancelled = false;
       q.status = 'running';
       loadQueryConfig(q);
+      closeHistoryDetailsOverlay();
       window.DOM.runBtn?.click();
       window.modalManager?.closePanel?.('queries-panel');
     });
@@ -1223,11 +1248,6 @@ function patchQueriesPanelData(newHistory) {
 
   // Remove rows whose query is no longer in this section
   existingRowMap.forEach((tr, id) => { if (!newIds.has(id)) tr.remove(); });
-  tbody.querySelectorAll('tr[data-history-detail-for]').forEach(tr => {
-    if (!newIds.has(tr.dataset.historyDetailFor)) {
-      tr.remove();
-    }
-  });
 
   // Insert new rows / replace changed rows — skip rows that haven't changed
   sectionList.forEach((q, index) => {
@@ -1239,19 +1259,11 @@ function patchQueriesPanelData(newHistory) {
     const temp = document.createElement('tbody');
     temp.innerHTML = createQueriesTableRowHtml(q, VIEW_ICON_SVG);
     const newMainTr = temp.querySelector('tr[data-query-id]');
-    const newDetailTr = temp.querySelector(`tr[data-history-detail-for="${q.id}"]`);
     if (!newMainTr) return;
     bindHistoryTableButtons(temp);
 
     if (existing) {
-      const existingDetail = tbody.querySelector(`tr[data-history-detail-for="${q.id}"]`);
       tbody.replaceChild(newMainTr, existing);
-      if (existingDetail) {
-        existingDetail.remove();
-      }
-      if (newDetailTr) {
-        newMainTr.insertAdjacentElement('afterend', newDetailTr);
-      }
     } else {
       // Insert at the correct ordinal position among already-updated rows
       const sibling = tbody.querySelectorAll('tr[data-query-id]')[index];
@@ -1260,11 +1272,12 @@ function patchQueriesPanelData(newHistory) {
       } else {
         tbody.appendChild(newMainTr);
       }
-      if (newDetailTr) {
-        newMainTr.insertAdjacentElement('afterend', newDetailTr);
-      }
     }
   });
+
+  if (activeHistoryDetailQueryId) {
+    renderHistoryDetailsOverlay(activeHistoryDetailQueryId);
+  }
 }
 
 /**
@@ -1562,6 +1575,9 @@ function renderQueries(){
   container.innerHTML = content;
   bindHistoryBookShelf(container);
   bindHistoryTableButtons(container);
+  if (activeHistoryDetailQueryId) {
+    renderHistoryDetailsOverlay(activeHistoryDetailQueryId);
+  }
 
   return true;
 }
@@ -1592,6 +1608,7 @@ const QueryHistorySystem = {
   getQueryById: getHistoryQueryById,
   updateQuery: updateHistoryQuery,
   fetchQueryStatus,
+  closeDetailsOverlay: closeHistoryDetailsOverlay,
   startQueryDurationUpdates,
   stopQueryDurationUpdates,
   renderQueries

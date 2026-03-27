@@ -158,14 +158,17 @@
     headerContent.appendChild(labelGroup);
     th.appendChild(headerContent);
 
-    const resizeHandle = document.createElement('button');
-    resizeHandle.type = 'button';
-    resizeHandle.className = 'th-resize-handle hidden';
-    resizeHandle.setAttribute('aria-label', `Resize ${fieldText} column`);
-    resizeHandle.setAttribute('data-field-name', fieldText);
-    resizeHandle.setAttribute('aria-hidden', 'true');
-    resizeHandle.innerHTML = '<span></span>';
-    th.appendChild(resizeHandle);
+    ['left', 'right'].forEach(edge => {
+      const resizeHandle = document.createElement('button');
+      resizeHandle.type = 'button';
+      resizeHandle.className = `th-resize-handle th-resize-handle-${edge} hidden`;
+      resizeHandle.setAttribute('aria-label', `Resize ${fieldText} column from the ${edge} edge`);
+      resizeHandle.setAttribute('data-field-name', fieldText);
+      resizeHandle.setAttribute('data-edge', edge);
+      resizeHandle.setAttribute('aria-hidden', 'true');
+      resizeHandle.innerHTML = '<span></span>';
+      th.appendChild(resizeHandle);
+    });
 
     return th;
   }

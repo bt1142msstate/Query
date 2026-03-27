@@ -935,6 +935,7 @@
   function beginColumnResize(event, handle, th) {
     const resizeState = getColumnResizeState();
     const fieldName = handle.getAttribute('data-field-name') || th.getAttribute('data-sort-field') || '';
+    const edge = handle.getAttribute('data-edge') || 'right';
     if (!resizeState.active || resizeState.fieldName !== fieldName) {
       return;
     }
@@ -950,7 +951,8 @@
 
     const onMove = moveEvent => {
       const deltaX = moveEvent.clientX - startX;
-      services.setManualColumnWidth?.(fieldName, initialWidth + deltaX);
+      const signedDelta = edge === 'left' ? -deltaX : deltaX;
+      services.setManualColumnWidth?.(fieldName, initialWidth + signedDelta);
     };
 
     const onUp = () => {
