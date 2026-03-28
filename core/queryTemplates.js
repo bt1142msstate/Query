@@ -10,6 +10,7 @@
     saving: false,
     selectedId: '',
     selectedCategoryFilter: '',
+    searchQuery: '',
     draft: null,
     editingCategoryId: ''
   };
@@ -38,6 +39,8 @@
       saveBtn: el('template-save-btn'),
       deleteBtn: el('template-delete-btn'),
       categoryFilter: el('templates-category-filter'),
+      searchInput: el('templates-search-input'),
+      resultsSummary: el('templates-results-summary'),
       categoryList: el('templates-category-list'),
       categoryNameLabel: el('template-category-name-label'),
       categoryNameInput: el('template-category-name-input'),
@@ -219,14 +222,33 @@
   }
 
   function getVisibleTemplates() {
-    if (!state.selectedCategoryFilter) {
-      return state.templates;
-    }
+    const searchNeedle = state.searchQuery.trim().toLowerCase();
 
-    return state.templates.filter(template =>
-      Array.isArray(template.categories)
-      && template.categories.some(category => category.id === state.selectedCategoryFilter)
-    );
+    return state.templates.filter(template => {
+      const matchesCategory = !state.selectedCategoryFilter || (
+        Array.isArray(template.categories)
+        && template.categories.some(category => category.id === state.selectedCategoryFilter)
+      );
+
+      if (!matchesCategory) {
+        return false;
+      }
+
+      if (!searchNeedle) {
+        return true;
+      }
+
+      const haystack = [
+        template.name,
+        template.description,
+        ...template.categories.map(category => category.name)
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return haystack.includes(searchNeedle);
+    });
   }
 
   async function sendTemplateRequest(payload) {
@@ -699,7 +721,7 @@
 
   function renderCategoryFilter() {
     const elements = getElements();
-    if (!elements.categoryFilter) {
+    if (!elements.categoryFilter || !elements.searchInput || !elements.resultsSummary) {
       return;
     }
 
@@ -710,6 +732,21 @@
     elements.categoryFilter.innerHTML = options.join('');
     elements.categoryFilter.value = state.selectedCategoryFilter;
     elements.categoryFilter.disabled = state.loading || state.saving;
+    elements.searchInput.value = state.searchQuery;
+    elements.searchInput.disabled = state.loading || state.saving;
+
+    const visibleCount = getVisibleTemplates().length;
+    const totalCount = state.templates.length;
+    const summaryBits = [];
+    if (state.searchQuery.trim()) {
+      summaryBits.push(`Search: "${state.searchQuery.trim()}"`);
+    }
+    if (state.selectedCategoryFilter) {
+      const selectedCategory = state.categories.find(category => category.id === state.selectedCategoryFilter);
+      summaryBits.push(`Category: ${selectedCategory ? selectedCategory.name : 'Filtered'}`);
+    }
+    summaryBits.push(`${visibleCount} of ${totalCount} templates`);
+    elements.resultsSummary.textContent = summaryBits.join(' • ');
   }
 
   function renderCategoryList() {
@@ -989,6 +1026,12 @@
 
     elements.categoryFilter?.addEventListener('change', event => {
       state.selectedCategoryFilter = event.target.value;
+      reconcileTemplateSelection();
+      render();
+    });
+
+    elements.searchInput?.addEventListener('input', event => {
+      state.searchQuery = event.target.value;
       reconcileTemplateSelection();
       render();
     });
