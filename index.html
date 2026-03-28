@@ -81,6 +81,16 @@
           </g>
         </svg>
       </button>
+      <button id="toggle-templates"
+              class="p-2 rounded-full bg-white hover:bg-gray-100 text-black focus:outline-none transition-colors border border-gray-200"
+              aria-label="Templates" data-tooltip="Show Query Templates">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 pointer-events-none">
+          <path d="M6 4h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"></path>
+          <path d="M14 4v5h5"></path>
+          <path d="M8 13h8"></path>
+          <path d="M8 17h5"></path>
+        </svg>
+      </button>
 
       <button id="toggle-help"
               class="p-2 rounded-full bg-white hover:bg-gray-100 text-black focus:outline-none transition-colors border border-gray-200"
@@ -394,6 +404,99 @@
         </div>
       </div>
     </div><!-- end queries-panel -->
+
+    <!-- TEMPLATES PANEL -->
+    <div id="templates-panel" class="w-full modal-panel hidden">
+      <h2 class="mt-8 mb-0 px-3 py-2 bg-emerald-100 text-emerald-800 font-semibold text-sm uppercase tracking-wider border border-emerald-200 flex items-center justify-between">
+        <span class="sr-only">Templates</span>
+        <div class="flex gap-2 ml-auto items-center">
+          <button class="collapse-btn p-1.5 rounded hover:bg-emerald-200 focus:outline-none transition-colors ml-2" data-target="templates-panel" aria-label="Close">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="#047857" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+              <line x1="4" y1="4" x2="16" y2="16" />
+              <line x1="16" y1="4" x2="4" y2="16" />
+            </svg>
+          </button>
+        </div>
+      </h2>
+      <div id="templates-container" class="templates-panel-shell w-full -mt-px border border-emerald-200 border-t-0 rounded-b overflow-hidden bg-white">
+        <aside class="templates-sidebar">
+          <div class="templates-sidebar-header">
+            <div>
+              <div class="templates-sidebar-kicker">Server Templates</div>
+              <h3 class="templates-sidebar-title">Saved Queries</h3>
+              <p id="templates-mode-note" class="templates-sidebar-note">Create, edit, delete, and apply reusable query templates.</p>
+            </div>
+            <div class="templates-sidebar-actions">
+              <button id="templates-refresh-btn" type="button" class="templates-secondary-btn">Refresh</button>
+              <button id="templates-new-btn" type="button" class="templates-primary-btn">New From Current Query</button>
+            </div>
+          </div>
+          <div class="templates-category-filter-shell">
+            <label class="templates-field">
+              <span>Filter By Category</span>
+              <select id="templates-category-filter"></select>
+            </label>
+          </div>
+          <div class="templates-category-manager">
+            <div class="templates-category-manager__header">
+              <div>
+                <div class="templates-sidebar-kicker">Categories</div>
+                <p class="templates-sidebar-note">Use categories to group templates and find them faster. Templates are stored separately from query history and are not auto-pruned.</p>
+              </div>
+            </div>
+            <div id="templates-category-list" class="templates-category-list"></div>
+            <div id="templates-category-form" class="templates-category-form">
+              <label class="templates-field">
+                <span id="template-category-name-label">New Category</span>
+                <input id="template-category-name-input" type="text" maxlength="80" placeholder="Circulation">
+              </label>
+              <div class="templates-sidebar-actions">
+                <button id="template-category-save-btn" type="button" class="templates-secondary-btn">Add Category</button>
+                <button id="template-category-cancel-btn" type="button" class="templates-secondary-btn hidden">Cancel</button>
+              </div>
+            </div>
+          </div>
+          <div id="templates-list-status" class="templates-status">Loading templates…</div>
+          <div id="templates-list" class="templates-list" aria-live="polite"></div>
+        </aside>
+        <section class="templates-editor">
+          <div id="templates-empty-state" class="templates-empty-state">
+            <div class="templates-empty-kicker">Templates</div>
+            <h3>Select a template or start a new one from the current query.</h3>
+            <p>Templates reuse the same columns and filters as query history, but they are saved on the server for later use.</p>
+          </div>
+          <div id="templates-detail" class="templates-detail hidden">
+            <div class="templates-detail-header">
+              <div>
+                <div id="templates-detail-mode" class="templates-detail-mode">Template</div>
+                <h3 id="templates-detail-title" class="templates-detail-title">Template Details</h3>
+              </div>
+              <div class="templates-detail-actions">
+                <button id="template-use-btn" type="button" class="templates-primary-btn">Use Template</button>
+                <button id="template-save-btn" type="button" class="templates-primary-btn">Save Changes</button>
+                <button id="template-delete-btn" type="button" class="templates-danger-btn">Delete</button>
+              </div>
+            </div>
+            <div class="templates-form-grid">
+              <label class="templates-field">
+                <span>Name</span>
+                <input id="template-name-input" type="text" maxlength="120" placeholder="Monthly overdues by branch">
+              </label>
+              <label class="templates-field templates-field--wide">
+                <span>Description</span>
+                <textarea id="template-description-input" rows="5" maxlength="1000" placeholder="Explain what this template is for and when to use it."></textarea>
+              </label>
+              <div class="templates-field templates-field--wide">
+                <span>Categories</span>
+                <div id="template-category-assignment" class="template-category-assignment"></div>
+              </div>
+            </div>
+            <div id="templates-validation" class="templates-validation" aria-live="polite"></div>
+            <div id="templates-meta" class="templates-meta"></div>
+          </div>
+        </section>
+      </div>
+    </div><!-- end templates-panel -->
 
     <!-- HELP PANEL -->
     <div id="help-panel" class="w-full modal-panel hidden">
@@ -821,6 +924,7 @@
   <script src="filters/filterSidePanel.js?v=1773930000003"></script>
   <script src="core/queryHistoryViewHelpers.js?v=1"></script>
   <script src="core/queryHistory.js?v=13"></script>
+  <script src="core/queryTemplates.js?v=1"></script>
   <script src="table/columnManager.js?v=3"></script>
   <script src="table/dragDropColumns.js?v=3"></script>
   <script src="table/dragDropInteractions.js?v=3"></script>

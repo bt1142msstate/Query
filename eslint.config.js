@@ -27,6 +27,7 @@ const allowedWindowAssignments = new Set([
   'QueryFormMode',
   'QueryHistorySystem',
   'QueryHistoryViewHelpers',
+  'QueryTemplatesSystem',
   'QueryUI',
   'QueryTableView',
   'QueryStateSubscriptions',

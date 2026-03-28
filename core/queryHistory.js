@@ -1607,6 +1607,7 @@ const QueryHistorySystem = {
   getQueries: getHistoryQueries,
   getQueryById: getHistoryQueryById,
   updateQuery: updateHistoryQuery,
+  applyQueryConfig: loadQueryConfig,
   fetchQueryStatus,
   closeDetailsOverlay: closeHistoryDetailsOverlay,
   startQueryDurationUpdates,
