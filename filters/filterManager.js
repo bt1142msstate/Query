@@ -932,8 +932,7 @@ window.handleFilterConfirm = function(e) {
         if (cond === 'show') {
             services.restoreFieldWithDuplicates(field);
         } else if ((cond === 'hide' || cond === 'display') && getDisplayedFields().includes(field)) {
-            window.QueryChangeManager.removeDisplayedField(field, {
-                all: false,
+            window.QueryChangeManager.hideField(field, {
                 source: 'FilterManager.hideField'
             });
         }
