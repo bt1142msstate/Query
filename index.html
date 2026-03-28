@@ -436,8 +436,8 @@
         </div>
       </h2>
       <div id="templates-container" class="templates-panel-shell w-full -mt-px border border-emerald-200 border-t-0 rounded-b overflow-hidden bg-white">
-        <aside class="templates-rail">
-          <div class="templates-rail-section templates-rail-hero">
+        <aside class="templates-sidebar">
+          <div class="templates-sidebar-top">
             <div class="templates-sidebar-header">
               <div>
                 <div class="templates-sidebar-kicker">Server Templates</div>
@@ -449,31 +449,6 @@
                 <button id="templates-new-btn" type="button" class="templates-primary-btn">New From Current Query</button>
               </div>
             </div>
-          </div>
-          <div class="templates-rail-section templates-category-manager">
-            <div class="templates-category-manager__header">
-              <div class="templates-browser-toolbar">
-                <div>
-                  <div class="templates-sidebar-kicker">Categories</div>
-                  <p class="templates-sidebar-note">Create broad buckets, rename them, and remove them without affecting template retention.</p>
-                </div>
-              </div>
-            </div>
-            <div id="templates-category-list" class="templates-category-list"></div>
-            <div id="templates-category-form" class="templates-category-form">
-              <label class="templates-field">
-                <span id="template-category-name-label">New Category</span>
-                <input id="template-category-name-input" type="text" maxlength="80" placeholder="Circulation">
-              </label>
-              <div class="templates-sidebar-actions">
-                <button id="template-category-save-btn" type="button" class="templates-secondary-btn">Add Category</button>
-                <button id="template-category-cancel-btn" type="button" class="templates-secondary-btn hidden">Cancel</button>
-              </div>
-            </div>
-          </div>
-        </aside>
-        <section class="templates-browser">
-          <div class="templates-browser-top">
             <div class="templates-category-filter-shell">
               <div class="templates-browser-toolbar templates-browser-toolbar--library">
                 <label class="templates-field templates-field--wide">
@@ -488,11 +463,36 @@
               <div id="templates-results-summary" class="templates-results-summary"></div>
             </div>
           </div>
-          <div class="templates-browser-list">
+          <div class="templates-sidebar-library">
             <div id="templates-list-status" class="templates-status">Loading templates…</div>
             <div id="templates-list" class="templates-list" aria-live="polite"></div>
           </div>
-        </section>
+          <details class="templates-category-manager">
+            <summary class="templates-category-manager__summary">
+              <span>Manage Categories</span>
+              <span class="templates-category-manager__hint">Secondary</span>
+            </summary>
+            <div class="templates-category-manager__body">
+              <div class="templates-category-manager__header">
+                <div>
+                  <div class="templates-sidebar-kicker">Categories</div>
+                  <p class="templates-sidebar-note">Use categories to group templates and make search and filtering faster.</p>
+                </div>
+              </div>
+              <div id="templates-category-list" class="templates-category-list"></div>
+              <div id="templates-category-form" class="templates-category-form">
+                <label class="templates-field">
+                  <span id="template-category-name-label">New Category</span>
+                  <input id="template-category-name-input" type="text" maxlength="80" placeholder="Circulation">
+                </label>
+                <div class="templates-sidebar-actions">
+                  <button id="template-category-save-btn" type="button" class="templates-secondary-btn">Add Category</button>
+                  <button id="template-category-cancel-btn" type="button" class="templates-secondary-btn hidden">Cancel</button>
+                </div>
+              </div>
+            </div>
+          </details>
+        </aside>
         <section class="templates-editor">
           <div id="templates-empty-state" class="templates-empty-state">
             <div class="templates-empty-kicker">Templates</div>
