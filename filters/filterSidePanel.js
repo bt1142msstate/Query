@@ -222,8 +222,7 @@ window.FilterSidePanel = (function () {
             return;
         }
 
-        window.QueryChangeManager.removeDisplayedField(fieldName, {
-            all: false,
+        window.QueryChangeManager.hideField(fieldName, {
             source: 'FilterSidePanel.removeDisplayedField'
         });
     }

@@ -1225,7 +1225,7 @@
         }
 
         if (window.QueryStateReaders.hasDisplayedField(fieldName)) {
-          window.QueryChangeManager.removeDisplayedField(fieldName, {
+          window.QueryChangeManager.hideField(fieldName, {
             source: 'QueryFormMode.fieldPicker.removeDisplayedField'
           });
           syncSpecColumnsWithDisplayedFields({ refreshUrl: false });

@@ -54,14 +54,17 @@
     });
   }
 
-  function removeColumnsByFieldName(fieldName) {
+  function removeColumnsByFieldName(fieldName, options = {}) {
     const normalizedField = String(fieldName || '').trim();
     if (!normalizedField) {
       return false;
     }
 
     const displayedFieldsBeforeRemoval = getDisplayedFields();
-    const relatedFieldNames = getRelatedDisplayedFieldNames(normalizedField, displayedFieldsBeforeRemoval);
+    const removeRelated = options.allRelated === true;
+    const relatedFieldNames = removeRelated
+      ? getRelatedDisplayedFieldNames(normalizedField, displayedFieldsBeforeRemoval)
+      : displayedFieldsBeforeRemoval.filter(field => field === normalizedField);
     if (!relatedFieldNames.length) {
       return false;
     }
@@ -293,7 +296,7 @@
     const headerCell = table.querySelector(`thead th[data-col-index="${colIndex}"]`);
     const fieldName = headerCell ? getHeaderFieldName(headerCell) : null;
     if (!fieldName) return;
-    removeColumnsByFieldName(fieldName);
+    removeColumnsByFieldName(fieldName, { allRelated: true });
   }
 
   function addColumn(fieldName, insertAt = -1) {
@@ -321,7 +324,7 @@
   }
 
   function removeColumnByName(fieldName) {
-    return removeColumnsByFieldName(fieldName);
+    return removeColumnsByFieldName(fieldName, { allRelated: false });
   }
 
   window.DragDropColumnOps = Object.freeze({
