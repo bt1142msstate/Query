@@ -432,10 +432,17 @@
             </div>
           </div>
           <div class="templates-category-filter-shell">
-            <label class="templates-field">
-              <span>Filter By Category</span>
-              <select id="templates-category-filter"></select>
-            </label>
+            <div class="templates-browser-toolbar">
+              <label class="templates-field templates-field--wide">
+                <span>Search Templates</span>
+                <input id="templates-search-input" type="search" maxlength="120" placeholder="Search names, descriptions, or categories">
+              </label>
+              <label class="templates-field">
+                <span>Filter By Category</span>
+                <select id="templates-category-filter"></select>
+              </label>
+            </div>
+            <div id="templates-results-summary" class="templates-results-summary"></div>
           </div>
           <div class="templates-category-manager">
             <div class="templates-category-manager__header">
@@ -463,7 +470,7 @@
           <div id="templates-empty-state" class="templates-empty-state">
             <div class="templates-empty-kicker">Templates</div>
             <h3>Select a template or start a new one from the current query.</h3>
-            <p>Templates reuse the same columns and filters as query history, but they are saved on the server for later use.</p>
+            <p>Templates reuse the same columns and filters as query history, but this view is tuned for browsing, grouping, and reusing them quickly.</p>
           </div>
           <div id="templates-detail" class="templates-detail hidden">
             <div class="templates-detail-header">
