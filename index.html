@@ -436,36 +436,27 @@
         </div>
       </h2>
       <div id="templates-container" class="templates-panel-shell w-full -mt-px border border-emerald-200 border-t-0 rounded-b overflow-hidden bg-white">
-        <aside class="templates-sidebar">
-          <div class="templates-sidebar-header">
-            <div>
-              <div class="templates-sidebar-kicker">Server Templates</div>
-              <h3 class="templates-sidebar-title">Saved Queries</h3>
-              <p id="templates-mode-note" class="templates-sidebar-note">Create, edit, delete, and apply reusable query templates.</p>
-            </div>
-            <div class="templates-sidebar-actions">
-              <button id="templates-refresh-btn" type="button" class="templates-secondary-btn">Refresh</button>
-              <button id="templates-new-btn" type="button" class="templates-primary-btn">New From Current Query</button>
-            </div>
-          </div>
-          <div class="templates-category-filter-shell">
-            <div class="templates-browser-toolbar">
-              <label class="templates-field templates-field--wide">
-                <span>Search Templates</span>
-                <input id="templates-search-input" type="search" maxlength="120" placeholder="Search names, descriptions, or categories">
-              </label>
-              <label class="templates-field">
-                <span>Filter By Category</span>
-                <select id="templates-category-filter"></select>
-              </label>
-            </div>
-            <div id="templates-results-summary" class="templates-results-summary"></div>
-          </div>
-          <div class="templates-category-manager">
-            <div class="templates-category-manager__header">
+        <aside class="templates-rail">
+          <div class="templates-rail-section templates-rail-hero">
+            <div class="templates-sidebar-header">
               <div>
-                <div class="templates-sidebar-kicker">Categories</div>
-                <p class="templates-sidebar-note">Use categories to group templates and find them faster. Templates are stored separately from query history and are not auto-pruned.</p>
+                <div class="templates-sidebar-kicker">Server Templates</div>
+                <h3 class="templates-sidebar-title">Saved Queries</h3>
+                <p id="templates-mode-note" class="templates-sidebar-note">Create, edit, delete, and apply reusable query templates.</p>
+              </div>
+              <div class="templates-sidebar-actions">
+                <button id="templates-refresh-btn" type="button" class="templates-secondary-btn">Refresh</button>
+                <button id="templates-new-btn" type="button" class="templates-primary-btn">New From Current Query</button>
+              </div>
+            </div>
+          </div>
+          <div class="templates-rail-section templates-category-manager">
+            <div class="templates-category-manager__header">
+              <div class="templates-browser-toolbar">
+                <div>
+                  <div class="templates-sidebar-kicker">Categories</div>
+                  <p class="templates-sidebar-note">Create broad buckets, rename them, and remove them without affecting template retention.</p>
+                </div>
               </div>
             </div>
             <div id="templates-category-list" class="templates-category-list"></div>
@@ -480,9 +471,28 @@
               </div>
             </div>
           </div>
-          <div id="templates-list-status" class="templates-status">Loading templates…</div>
-          <div id="templates-list" class="templates-list" aria-live="polite"></div>
         </aside>
+        <section class="templates-browser">
+          <div class="templates-browser-top">
+            <div class="templates-category-filter-shell">
+              <div class="templates-browser-toolbar templates-browser-toolbar--library">
+                <label class="templates-field templates-field--wide">
+                  <span>Search Templates</span>
+                  <input id="templates-search-input" type="search" maxlength="120" placeholder="Search names, descriptions, or categories">
+                </label>
+                <label class="templates-field">
+                  <span>Filter By Category</span>
+                  <select id="templates-category-filter"></select>
+                </label>
+              </div>
+              <div id="templates-results-summary" class="templates-results-summary"></div>
+            </div>
+          </div>
+          <div class="templates-browser-list">
+            <div id="templates-list-status" class="templates-status">Loading templates…</div>
+            <div id="templates-list" class="templates-list" aria-live="polite"></div>
+          </div>
+        </section>
         <section class="templates-editor">
           <div id="templates-empty-state" class="templates-empty-state">
             <div class="templates-empty-kicker">Templates</div>
@@ -501,22 +511,24 @@
                 <button id="template-delete-btn" type="button" class="templates-danger-btn">Delete</button>
               </div>
             </div>
-            <div class="templates-form-grid">
-              <label class="templates-field">
-                <span>Name</span>
-                <input id="template-name-input" type="text" maxlength="120" placeholder="Monthly overdues by branch">
-              </label>
-              <label class="templates-field templates-field--wide">
-                <span>Description</span>
-                <textarea id="template-description-input" rows="5" maxlength="1000" placeholder="Explain what this template is for and when to use it."></textarea>
-              </label>
-              <div class="templates-field templates-field--wide">
-                <span>Categories</span>
-                <div id="template-category-assignment" class="template-category-assignment"></div>
+            <div class="templates-detail-body">
+              <div class="templates-form-grid">
+                <label class="templates-field">
+                  <span>Name</span>
+                  <input id="template-name-input" type="text" maxlength="120" placeholder="Monthly overdues by branch">
+                </label>
+                <label class="templates-field templates-field--wide">
+                  <span>Description</span>
+                  <textarea id="template-description-input" rows="5" maxlength="1000" placeholder="Explain what this template is for and when to use it."></textarea>
+                </label>
+                <div class="templates-field templates-field--wide">
+                  <span>Categories</span>
+                  <div id="template-category-assignment" class="template-category-assignment"></div>
+                </div>
               </div>
+              <div id="templates-validation" class="templates-validation" aria-live="polite"></div>
+              <div id="templates-meta" class="templates-meta"></div>
             </div>
-            <div id="templates-validation" class="templates-validation" aria-live="polite"></div>
-            <div id="templates-meta" class="templates-meta"></div>
           </div>
         </section>
       </div>
