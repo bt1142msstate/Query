@@ -9,7 +9,7 @@
  */
 window.TooltipManager = (() => {
   const TOOLTIP_SELECTOR = '[data-tooltip], [data-tooltip-html]';
-  const HOVER_SHOW_DELAY_MS = 3000;
+  const HOVER_SHOW_DELAY_MS = 2500;
   let tooltipEl = null;
   let arrowEl = null;
   let currentTarget = null;
