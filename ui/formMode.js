@@ -2016,6 +2016,9 @@
     isActive() {
       return state.active;
     },
+    isLimitedView() {
+      return state.active && state.limitedView;
+    },
     getValidationError,
     buildCurrentShareUrl
   };

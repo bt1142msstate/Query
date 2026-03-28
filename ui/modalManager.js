@@ -8,10 +8,11 @@ class ModalManager {
   constructor() {
     this.initialized = false;
     this.overlay = window.DOM?.overlay || document.getElementById('overlay');
-    this.panels = ['json-panel', 'queries-panel', 'help-panel', 'mobile-menu-dropdown'];
+    this.panels = ['json-panel', 'queries-panel', 'templates-panel', 'help-panel', 'mobile-menu-dropdown'];
     this.panelTitles = {
       'json-panel': 'Query JSON',
       'queries-panel': 'Queries',
+      'templates-panel': 'Templates',
       'help-panel': 'Help'
     };
     this.activePanel = null;
@@ -20,6 +21,7 @@ class ModalManager {
       'split-columns-toggle': 'Multi-value Export',
       'toggle-json': 'JSON',
       'toggle-queries': 'Queries',
+      'toggle-templates': 'Templates',
       'toggle-help': 'Help'
     };
     
@@ -118,6 +120,8 @@ class ModalManager {
     if (panelId === 'queries-panel') {
       window.AppServices?.fetchHistoryQueryStatus?.();
       window.AppServices?.startHistoryDurationUpdates?.();
+    } else if (panelId === 'templates-panel') {
+      window.QueryTemplatesSystem?.openPanel?.();
     }
     
     // Accessibility
@@ -209,6 +213,7 @@ class ModalManager {
     const panelToggles = {
       'toggle-json': 'json-panel',
       'toggle-queries': 'queries-panel',
+      'toggle-templates': 'templates-panel',
       'toggle-help': 'help-panel'
     };
     
