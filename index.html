@@ -319,6 +319,16 @@
         </div>
       </div><!-- end table-column -->
     </div><!-- end table-with-filter -->
+    <section id="pinned-templates-strip" class="pinned-templates-strip hidden" aria-label="Pinned templates">
+      <div class="pinned-templates-strip__header">
+        <div>
+          <div class="pinned-templates-strip__kicker">Favorites</div>
+          <h3 class="pinned-templates-strip__title">Pinned Templates</h3>
+        </div>
+        <button id="pinned-templates-more-btn" type="button" class="pinned-templates-strip__more-btn">More</button>
+      </div>
+      <div id="pinned-templates-list" class="pinned-templates-strip__list" aria-live="polite"></div>
+    </section>
     <div class="mb-6 text-center">
       <div class="relative w-full max-w-3xl mx-auto">
         <input
@@ -484,6 +494,7 @@
               </div>
               <div class="templates-detail-actions">
                 <button id="template-use-btn" type="button" class="templates-primary-btn">Use Template</button>
+                <button id="template-pin-btn" type="button" class="templates-secondary-btn">Pin Template</button>
                 <button id="template-save-btn" type="button" class="templates-primary-btn">Save Changes</button>
                 <button id="template-delete-btn" type="button" class="templates-danger-btn">Delete</button>
                 <button id="templates-detail-close-btn" type="button" class="templates-categories-close" aria-label="Close template details">×</button>
@@ -499,6 +510,14 @@
                   <span>Description</span>
                   <textarea id="template-description-input" rows="5" maxlength="1000" placeholder="Explain what this template is for and when to use it."></textarea>
                 </label>
+                <label class="templates-field templates-field--wide">
+                  <span>Bubble SVG</span>
+                  <textarea id="template-svg-input" rows="6" maxlength="12000" placeholder="Paste an SVG for the pinned template bubble. If left empty, the blueprint icon will be used."></textarea>
+                </label>
+                <div class="templates-field templates-field--wide">
+                  <span>Bubble Preview</span>
+                  <div id="template-svg-preview" class="template-svg-preview"></div>
+                </div>
                 <div class="templates-field templates-field--wide">
                   <span>Categories</span>
                   <div id="template-category-assignment" class="template-category-assignment"></div>
@@ -526,6 +545,10 @@
                 <label class="templates-field">
                   <span id="template-category-name-label">New Category</span>
                   <input id="template-category-name-input" type="text" maxlength="80" placeholder="Circulation">
+                </label>
+                <label class="templates-field templates-field--wide">
+                  <span>Category Description</span>
+                  <textarea id="template-category-description-input" rows="4" maxlength="400" placeholder="Explain what belongs in this category."></textarea>
                 </label>
                 <div class="templates-sidebar-actions">
                   <button id="template-category-save-btn" type="button" class="templates-secondary-btn">Add Category</button>
