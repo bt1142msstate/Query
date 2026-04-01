@@ -376,7 +376,7 @@
       validationErrors.push('Template names must be unique.');
     }
 
-    if (!hasUsableCurrentQuery()) {
+    if (!options.currentTemplateId && !hasUsableCurrentQuery()) {
       validationErrors.push('Build a query with at least one column or filter before saving a template.');
     }
 
@@ -640,7 +640,7 @@
         description: state.draft.description,
         svg: sanitizeSvgMarkup(state.draft.svg),
         categories: getAssignedCategoriesForPayload(state.draft),
-        ui_config: getCurrentQueryConfigSnapshot(),
+        ui_config: hasUsableCurrentQuery() ? getCurrentQueryConfigSnapshot() : state.draft.uiConfig,
         pinned: Boolean(state.draft.pinned),
         pin_order: Number.isFinite(state.draft.pinOrder) ? state.draft.pinOrder : undefined
       });
