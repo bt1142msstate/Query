@@ -388,6 +388,10 @@ input, textarea, select, [contenteditable] {
   display: none;
 }
 
+body.modal-panel-open #overlay.show {
+  z-index: 10029;
+}
+
 #overlay.show {
   display: block;
 }

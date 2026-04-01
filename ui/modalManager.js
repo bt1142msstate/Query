@@ -114,6 +114,7 @@ class ModalManager {
     // Existing styles might rely on removing hidden to show.
     
     if (this.overlay) this.overlay.classList.add('show'); // Assuming 'show' class handles visibility
+    document.body.classList.add('modal-panel-open');
     this.activePanel = panelId;
     this.syncHeaderOverlayTitle(panelId);
 
@@ -152,6 +153,7 @@ class ModalManager {
     // If no other panels are open, hide overlay
     if (!this.activePanel) {
       if (this.overlay) this.overlay.classList.remove('show');
+      document.body.classList.remove('modal-panel-open');
       this.setMainContentAriaHidden(false);
     }
   }
@@ -176,6 +178,7 @@ class ModalManager {
     });
     
     if (this.overlay) this.overlay.classList.remove('show');
+    document.body.classList.remove('modal-panel-open');
     this.activePanel = null;
     this.syncHeaderOverlayTitle(null);
     this.setMainContentAriaHidden(false);
