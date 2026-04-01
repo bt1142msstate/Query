@@ -548,10 +548,18 @@
     }
   }
 
-  function applyTemplate() {
+  async function applyTemplate() {
     const selected = getSelectedTemplate();
     if (!selected?.uiConfig) {
       return;
+    }
+
+    if (typeof window.clearCurrentQuery === 'function') {
+      try {
+        await window.clearCurrentQuery({ suppressToast: true });
+      } catch (error) {
+        console.error('Failed to clear query before applying template:', error);
+      }
     }
 
     window.QueryHistorySystem?.applyQueryConfig?.({

@@ -14,7 +14,7 @@
   background: rgba(255, 255, 255, 0.985);
   border-radius: 0;
   box-shadow: none;
-  z-index: var(--z-condition-panel);
+  z-index: 10030;
   display: flex;
   flex-direction: column;
 }
@@ -740,4 +740,3 @@
 .json-tree::selection {
   background: rgba(255, 193, 77, 0.18);
 }
-

@@ -1072,6 +1072,7 @@ function hideManagedField(fieldName, options = {}) {
 async function clearQueryManagerState(meta = {}) {
   const normalizedMeta = normalizeManagerMeta(meta, 'QueryChangeManager.clearQuery');
   const uiActions = window.AppUiActions || null;
+  const suppressToast = meta && meta.suppressToast === true;
 
   if (queryLifecycleState.queryRunning) {
     if (typeof window.showToastMessage === 'function') {
@@ -1100,7 +1101,7 @@ async function clearQueryManagerState(meta = {}) {
   appStateStore.selectedField = '';
   appStateStore.currentCategory = 'All';
 
-  if (typeof window.showToastMessage === 'function') {
+  if (!suppressToast && typeof window.showToastMessage === 'function') {
     window.showToastMessage('Query cleared.', 'info');
   }
 
