@@ -436,8 +436,8 @@
         </div>
       </h2>
       <div id="templates-container" class="templates-panel-shell w-full -mt-px border border-emerald-200 border-t-0 rounded-b overflow-hidden bg-white">
-        <aside class="templates-sidebar">
-          <div class="templates-sidebar-top">
+        <section class="templates-browser">
+          <div class="templates-browser-top">
             <div class="templates-sidebar-header">
               <div>
                 <div class="templates-sidebar-kicker">Server Templates</div>
@@ -464,18 +464,19 @@
               <div id="templates-results-summary" class="templates-results-summary"></div>
             </div>
           </div>
-          <div class="templates-sidebar-library">
+          <div class="templates-browser-list-shell">
             <div id="templates-list-status" class="templates-status">Loading templates…</div>
             <div id="templates-list" class="templates-list" aria-live="polite"></div>
           </div>
-        </aside>
-        <section class="templates-editor">
           <div id="templates-empty-state" class="templates-empty-state">
             <div class="templates-empty-kicker">Templates</div>
-            <h3>Select a template or start a new one from the current query.</h3>
-            <p>Templates reuse the same columns and filters as query history, but this view is tuned for browsing, grouping, and reusing them quickly.</p>
+            <h3>No templates match the current view.</h3>
+            <p>Adjust the search or category filter, refresh from the server, or create a new template from the current query.</p>
           </div>
-          <div id="templates-detail" class="templates-detail hidden">
+        </section>
+        <div id="templates-detail-overlay" class="templates-detail-overlay hidden" aria-hidden="true">
+          <div id="templates-detail-backdrop" class="templates-detail-backdrop" data-templates-detail-close></div>
+          <section id="templates-detail" class="templates-detail hidden" role="dialog" aria-modal="true" aria-labelledby="templates-detail-title">
             <div class="templates-detail-header">
               <div>
                 <div id="templates-detail-mode" class="templates-detail-mode">Template</div>
@@ -485,6 +486,7 @@
                 <button id="template-use-btn" type="button" class="templates-primary-btn">Use Template</button>
                 <button id="template-save-btn" type="button" class="templates-primary-btn">Save Changes</button>
                 <button id="template-delete-btn" type="button" class="templates-danger-btn">Delete</button>
+                <button id="templates-detail-close-btn" type="button" class="templates-categories-close" aria-label="Close template details">×</button>
               </div>
             </div>
             <div class="templates-detail-body">
@@ -505,8 +507,8 @@
               <div id="templates-validation" class="templates-validation" aria-live="polite"></div>
               <div id="templates-meta" class="templates-meta"></div>
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
         <div id="templates-categories-overlay" class="templates-categories-overlay hidden" aria-hidden="true">
           <div id="templates-categories-backdrop" class="templates-categories-backdrop" data-templates-categories-close></div>
           <section class="templates-categories-dialog" role="dialog" aria-modal="true" aria-labelledby="templates-categories-title">
