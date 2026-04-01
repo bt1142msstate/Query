@@ -79,9 +79,13 @@
 
     const backdrop = document.createElement('div');
     backdrop.className = 'form-mode-field-picker-backdrop';
+    backdrop.hidden = true;
+    backdrop.classList.add('hidden');
 
     const modal = document.createElement('div');
     modal.className = 'form-mode-field-picker-modal';
+    modal.hidden = true;
+    modal.classList.add('hidden');
     if (compactLayout) {
       modal.classList.add('form-mode-field-picker-modal--compact');
     }
@@ -198,6 +202,10 @@
     function cleanup() {
       document.removeEventListener('keydown', onKeyDown);
       clearFilterPreview();
+      window.VisibilityUtils?.hide?.([backdrop, modal], {
+        ariaHidden: true,
+        raisedUiKey: 'field-picker-modal'
+      });
       backdrop.remove();
       modal.remove();
     }
@@ -784,6 +792,10 @@
 
     document.addEventListener('keydown', onKeyDown);
     renderList();
+    window.VisibilityUtils?.show?.([backdrop, modal], {
+      ariaHidden: false,
+      raisedUiKey: 'field-picker-modal'
+    });
     window.requestAnimationFrame(() => {
       searchInput.focus();
       searchInput.select();
@@ -1107,6 +1119,7 @@
     if (overlay) {
       overlay.classList.add('show');
     }
+    window.VisibilityUtils?.acquireRaisedUi?.('bubble-editor');
 
     services.buildBubbleConditionPanel(bubble);
 

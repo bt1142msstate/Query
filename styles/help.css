@@ -14,7 +14,7 @@
   background: rgba(255, 255, 255, 0.985);
   border-radius: 0;
   box-shadow: none;
-  z-index: 10030;
+  z-index: var(--z-modal-panel);
   display: flex;
   flex-direction: column;
 }

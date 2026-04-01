@@ -2508,7 +2508,7 @@ body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.ta
 
 .tcm {
   position: fixed;
-  z-index: 9999;
+  z-index: var(--z-context-menu);
   min-width: 196px;
   padding: 4px;
   background: #fff;

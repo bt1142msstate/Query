@@ -395,7 +395,10 @@
       return;
     }
 
-    popup.hidden = true;
+    window.VisibilityUtils?.hide?.([popup], {
+      ariaHidden: true,
+      raisedUiKey: 'custom-date-picker'
+    });
     if (activeShell) {
       activeShell.classList.remove('is-open');
     }
@@ -432,7 +435,10 @@
     const selectedDate = parseIsoDate(input.value);
     visibleMonth = getMonthStart(selectedDate || new Date());
     viewMode = 'days';
-    popup.hidden = false;
+    window.VisibilityUtils?.show?.([popup], {
+      ariaHidden: false,
+      raisedUiKey: 'custom-date-picker'
+    });
     renderCalendar();
     positionPopup();
   }

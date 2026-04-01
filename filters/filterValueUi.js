@@ -97,7 +97,9 @@
     `;
 
     const closeViewer = () => {
-      window.VisibilityUtils.hide([backdrop, panel]);
+      window.VisibilityUtils.hide([backdrop, panel], {
+        raisedUiKey: 'filter-list-viewer'
+      });
     };
 
     panel._viewerState = {
@@ -170,7 +172,9 @@
     panel._viewerState.values = values.slice();
     panel._viewerState.filenameBase = filenameBase;
 
-    window.VisibilityUtils.show([backdrop, panel]);
+    window.VisibilityUtils.show([backdrop, panel], {
+      raisedUiKey: 'filter-list-viewer'
+    });
   }
 
   function buildFilterValueLabel(filter, fieldDef, betweenSeparator = ' - ') {

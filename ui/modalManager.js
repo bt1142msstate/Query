@@ -39,15 +39,8 @@ class ModalManager {
     if (!this.inputBlockOverlay) {
       this.inputBlockOverlay = document.createElement('div');
       this.inputBlockOverlay.id = 'input-block-overlay';
-      this.inputBlockOverlay.style.position = 'fixed';
-      this.inputBlockOverlay.style.top = '0';
-      this.inputBlockOverlay.style.left = '0';
-      this.inputBlockOverlay.style.width = '100vw';
-      this.inputBlockOverlay.style.height = '100vh';
-      this.inputBlockOverlay.style.zIndex = '99999';
-      this.inputBlockOverlay.style.pointerEvents = 'none';
-      this.inputBlockOverlay.style.background = 'rgba(0,0,0,0)';
-      this.inputBlockOverlay.style.display = 'none';
+      this.inputBlockOverlay.className = 'input-block-overlay hidden';
+      this.inputBlockOverlay.setAttribute('aria-hidden', 'true');
       document.body.appendChild(this.inputBlockOverlay);
     }
     this.isInputLocked = false;
@@ -114,6 +107,7 @@ class ModalManager {
     // Existing styles might rely on removing hidden to show.
     
     if (this.overlay) this.overlay.classList.add('show'); // Assuming 'show' class handles visibility
+    window.VisibilityUtils?.acquireRaisedUi?.(`panel:${panelId}`);
     document.body.classList.add('modal-panel-open');
     this.activePanel = panelId;
     this.syncHeaderOverlayTitle(panelId);
@@ -137,6 +131,8 @@ class ModalManager {
     if (panelId === 'queries-panel') {
       window.AppServices?.stopHistoryDurationUpdates?.();
       window.QueryHistorySystem?.closeDetailsOverlay?.();
+    } else if (panelId === 'templates-panel') {
+      window.QueryTemplatesSystem?.closePanel?.();
     }
 
     if (panelId === 'mobile-menu-dropdown') {
@@ -147,6 +143,8 @@ class ModalManager {
     if (this.activePanel === panelId) {
       this.activePanel = null;
     }
+
+    window.VisibilityUtils?.releaseRaisedUi?.(`panel:${panelId}`);
 
     this.syncHeaderOverlayTitle(this.activePanel);
 
@@ -169,11 +167,14 @@ class ModalManager {
         if (pid === 'queries-panel') {
           window.AppServices?.stopHistoryDurationUpdates?.();
           window.QueryHistorySystem?.closeDetailsOverlay?.();
+        } else if (pid === 'templates-panel') {
+          window.QueryTemplatesSystem?.closePanel?.();
         }
         if (pid === 'mobile-menu-dropdown') {
           p.classList.remove('show');
         }
         p.classList.add('hidden');
+        window.VisibilityUtils?.releaseRaisedUi?.(`panel:${pid}`);
       }
     });
     
@@ -322,15 +323,19 @@ class ModalManager {
    */
   lockInput(duration = 600) {
     this.isInputLocked = true;
+    window.VisibilityUtils?.show?.([this.inputBlockOverlay], {
+      ariaHidden: false
+    });
     this.inputBlockOverlay.style.pointerEvents = 'all';
-    this.inputBlockOverlay.style.display = 'block';
     
     if (this.inputLockTimeout) clearTimeout(this.inputLockTimeout);
     
     this.inputLockTimeout = setTimeout(() => {
       this.isInputLocked = false;
       this.inputBlockOverlay.style.pointerEvents = 'none';
-      this.inputBlockOverlay.style.display = 'none';
+      window.VisibilityUtils?.hide?.([this.inputBlockOverlay], {
+        ariaHidden: true
+      });
     }, duration);
   }
 

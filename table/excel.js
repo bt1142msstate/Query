@@ -354,7 +354,8 @@
 
     window.VisibilityUtils.show([elements.overlay], {
       ariaHidden: false,
-      bodyClass: 'export-overlay-open'
+      bodyClass: 'export-overlay-open',
+      raisedUiKey: 'export-overlay'
     });
 
     updateExportModeUI(elements);
@@ -373,7 +374,8 @@
 
     window.VisibilityUtils.hide([elements.overlay], {
       ariaHidden: true,
-      bodyClass: 'export-overlay-open'
+      bodyClass: 'export-overlay-open',
+      raisedUiKey: 'export-overlay'
     });
   }
 

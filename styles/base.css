@@ -56,13 +56,24 @@
   --shadow-2xl: 0 8px 28px rgba(0, 0, 0, 0.25);
   
   /* Z-index layers */
-  --z-overlay: 40;
-  --z-bubble: 50;
-  --z-filter-card: 55;
-  --z-condition-panel: 60;
-  --z-condition-input: 65;
-  --z-condition-list: 70;
-  --z-filter-error: 75;
+  --z-overlay: 10000;
+  --z-modal-overlay: 10029;
+  --z-modal-panel: 10030;
+  --z-history-details: 10040;
+  --z-bubble: 10050;
+  --z-dialog-backdrop: 10060;
+  --z-dialog-surface: 10061;
+  --z-filter-card: 10055;
+  --z-condition-panel: 10060;
+  --z-condition-input: 10065;
+  --z-condition-list: 10070;
+  --z-filter-error: 10075;
+  --z-floating-picker: 10070;
+  --z-popup-backdrop: 10080;
+  --z-popup-surface: 10081;
+  --z-context-menu: 10090;
+  --z-tooltip: 10100;
+  --z-input-blocker: 10110;
   --z-drag-ghost: 1000;
   --z-header: 1100;
   --z-toast: 10120;
@@ -389,11 +400,23 @@ input, textarea, select, [contenteditable] {
 }
 
 body.modal-panel-open #overlay.show {
-  z-index: 10029;
+  z-index: var(--z-modal-overlay);
+}
+
+body.raised-ui-open #table-shell.table-shell-expanded {
+  z-index: calc(var(--z-overlay) - 10);
 }
 
 #overlay.show {
   display: block;
+}
+
+.input-block-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-input-blocker);
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0);
 }
 
 #overlay.bubble-active {

@@ -12,7 +12,8 @@
     selectedCategoryFilter: '',
     searchQuery: '',
     draft: null,
-    editingCategoryId: ''
+    editingCategoryId: '',
+    categoriesOverlayOpen: false
   };
 
   function el(id) {
@@ -27,6 +28,7 @@
       list: el('templates-list'),
       newBtn: el('templates-new-btn'),
       refreshBtn: el('templates-refresh-btn'),
+      manageCategoriesBtn: el('templates-manage-categories-btn'),
       emptyState: el('templates-empty-state'),
       detail: el('templates-detail'),
       detailMode: el('templates-detail-mode'),
@@ -42,6 +44,9 @@
       searchInput: el('templates-search-input'),
       resultsSummary: el('templates-results-summary'),
       categoryList: el('templates-category-list'),
+      categoriesOverlay: el('templates-categories-overlay'),
+      categoriesBackdrop: el('templates-categories-backdrop'),
+      categoriesCloseBtn: el('templates-categories-close-btn'),
       categoryNameLabel: el('template-category-name-label'),
       categoryNameInput: el('template-category-name-input'),
       categorySaveBtn: el('template-category-save-btn'),
@@ -390,6 +395,40 @@
 
     state.selectedId = selected.id;
     setDraftFromTemplate(selected);
+    render();
+  }
+
+  function openCategoriesOverlay() {
+    const elements = getElements();
+    if (!elements.categoriesOverlay) {
+      return;
+    }
+
+    state.categoriesOverlayOpen = true;
+    window.VisibilityUtils?.show?.([elements.categoriesOverlay], {
+      ariaHidden: false,
+      raisedUiKey: 'templates-categories-overlay'
+    });
+    render();
+    window.requestAnimationFrame(() => {
+      const target = isRestrictedMode()
+        ? elements.categoriesCloseBtn
+        : (elements.categoryNameInput || elements.categoriesCloseBtn);
+      target?.focus?.();
+    });
+  }
+
+  function closeCategoriesOverlay() {
+    const elements = getElements();
+    if (!elements.categoriesOverlay) {
+      return;
+    }
+
+    state.categoriesOverlayOpen = false;
+    window.VisibilityUtils?.hide?.([elements.categoriesOverlay], {
+      ariaHidden: true,
+      raisedUiKey: 'templates-categories-overlay'
+    });
     render();
   }
 
@@ -897,17 +936,10 @@
       button.className = 'templates-list-item';
       button.classList.toggle('is-selected', template.id === state.selectedId);
       button.dataset.templateId = template.id;
-
-      const categorySummary = template.categories.length
-        ? template.categories.map(category => category.name).join(', ')
-        : 'Uncategorized';
-
-      button.innerHTML = `
-        <div class="templates-list-item__title">${window.escapeHtml(template.name)}</div>
-        <div class="templates-list-item__description">${window.escapeHtml(template.description || 'No description yet.')}</div>
-        <div class="templates-list-item__meta">${window.escapeHtml(categorySummary)}</div>
-        <div class="templates-list-item__meta">${window.escapeHtml(formatTimestamp(template.updatedAt || template.createdAt) || 'Saved on server')}</div>
-      `;
+      const descriptionTooltip = String(template.description || '').trim() || 'No description provided.';
+      button.setAttribute('data-tooltip', descriptionTooltip);
+      button.setAttribute('aria-label', `${template.name}. ${descriptionTooltip}`);
+      button.innerHTML = `<div class="templates-list-item__title">${window.escapeHtml(template.name)}</div>`;
       button.addEventListener('click', () => selectTemplate(template.id));
       return button;
     }));
@@ -932,6 +964,10 @@
 
     if (elements.refreshBtn) {
       elements.refreshBtn.disabled = state.loading || state.saving;
+    }
+
+    if (elements.manageCategoriesBtn) {
+      elements.manageCategoriesBtn.disabled = state.loading || state.saving;
     }
 
     if (!selected) {
@@ -1006,6 +1042,10 @@
     renderCategoryList();
     renderList();
     renderDetail();
+    const elements = getElements();
+    if (elements.categoriesOverlay) {
+      elements.categoriesOverlay.classList.toggle('hidden', !state.categoriesOverlayOpen);
+    }
   }
 
   function bindEvents() {
@@ -1020,6 +1060,10 @@
 
     elements.newBtn?.addEventListener('click', () => {
       startCreateFromCurrentQuery();
+    });
+
+    elements.manageCategoriesBtn?.addEventListener('click', () => {
+      openCategoriesOverlay();
     });
 
     elements.nameInput?.addEventListener('input', () => {
@@ -1054,6 +1098,18 @@
       render();
     });
 
+    [elements.categoriesBackdrop, elements.categoriesCloseBtn].forEach(node => {
+      node?.addEventListener('click', () => {
+        closeCategoriesOverlay();
+      });
+    });
+
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && state.categoriesOverlayOpen) {
+        closeCategoriesOverlay();
+      }
+    });
+
     elements.useBtn?.addEventListener('click', () => {
       applyTemplate();
     });
@@ -1078,8 +1134,15 @@
     refreshTemplates({ force: !state.loaded });
   }
 
+  function closePanel() {
+    if (state.categoriesOverlayOpen) {
+      closeCategoriesOverlay();
+    }
+  }
+
   window.QueryTemplatesSystem = {
     openPanel,
+    closePanel,
     refreshTemplates
   };
 

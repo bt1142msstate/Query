@@ -221,6 +221,7 @@ function initializeBubbleInteractions() {
     if (overlay) {
       overlay.classList.add('show');
     }
+    window.VisibilityUtils?.acquireRaisedUi?.('bubble-editor');
     services.buildBubbleConditionPanel(bubble);
 
     const inputWrapper = services.getBubbleInputWrapperElement() || (filterCard ? filterCard.querySelector('#condition-input-wrapper') : null);

@@ -1218,8 +1218,9 @@
         const originalBubble = dragDropManager.draggedBubble;
 
         const returnClone = bubble.cloneNode(true);
+        const rootStyles = getComputedStyle(document.documentElement);
         returnClone.style.position = 'fixed';
-        returnClone.style.zIndex = '1001';
+        returnClone.style.zIndex = rootStyles.getPropertyValue('--z-drag-ghost').trim() || '1000';
         returnClone.style.pointerEvents = 'none';
         returnClone.style.opacity = '1';
         returnClone.style.transition = 'transform 0.45s ease';

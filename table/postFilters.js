@@ -778,7 +778,8 @@
     if (!elements.overlay) return;
     window.VisibilityUtils.hide([elements.overlay], {
       ariaHidden: true,
-      bodyClass: 'post-filter-overlay-open'
+      bodyClass: 'post-filter-overlay-open',
+      raisedUiKey: 'post-filter-overlay'
     });
   }
 
@@ -799,7 +800,8 @@
     refreshOverlay();
     window.VisibilityUtils.show([elements.overlay], {
       ariaHidden: false,
-      bodyClass: 'post-filter-overlay-open'
+      bodyClass: 'post-filter-overlay-open',
+      raisedUiKey: 'post-filter-overlay'
     });
     window.requestAnimationFrame(() => elements.fieldSelect?.focus());
   }
@@ -840,7 +842,8 @@
 
     window.VisibilityUtils.show([elements.overlay], {
       ariaHidden: false,
-      bodyClass: 'post-filter-overlay-open'
+      bodyClass: 'post-filter-overlay-open',
+      raisedUiKey: 'post-filter-overlay'
     });
 
     window.requestAnimationFrame(() => {

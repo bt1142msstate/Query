@@ -620,8 +620,15 @@ function buildHistoryDetailsOverlayHtml(q) {
 }
 
 function closeHistoryDetailsOverlay() {
+  const shell = document.querySelector('.history-details-modal-shell');
+  if (shell) {
+    window.VisibilityUtils?.hide?.([shell], {
+      ariaHidden: true,
+      raisedUiKey: 'history-details-overlay'
+    });
+  }
   activeHistoryDetailQueryId = null;
-  document.querySelector('.history-details-modal-shell')?.remove();
+  shell?.remove();
   document.body.classList.remove('history-details-open');
 }
 
@@ -640,8 +647,14 @@ function renderHistoryDetailsOverlay(queryId = activeHistoryDetailQueryId) {
   activeHistoryDetailQueryId = queryId;
   const shell = document.createElement('div');
   shell.className = 'history-details-modal-shell';
+  shell.hidden = true;
+  shell.classList.add('hidden');
   shell.innerHTML = buildHistoryDetailsOverlayHtml(q);
   document.body.appendChild(shell);
+  window.VisibilityUtils?.show?.([shell], {
+    ariaHidden: false,
+    raisedUiKey: 'history-details-overlay'
+  });
   document.body.classList.add('history-details-open');
 
   shell.querySelectorAll('[data-history-details-close]').forEach(node => {

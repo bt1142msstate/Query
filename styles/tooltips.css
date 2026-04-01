@@ -3,7 +3,7 @@
    ========================================== */
 .custom-tooltip {
   position: absolute;
-  z-index: 10100;
+  z-index: var(--z-tooltip);
   background: #222;
   color: #fff;
   padding: 0.5em 0.75em;
