@@ -9,6 +9,7 @@
  */
 window.TooltipManager = (() => {
   const TOOLTIP_SELECTOR = '[data-tooltip], [data-tooltip-html]';
+  const TOOLTIP_DELAY_ATTR = 'data-tooltip-delay';
   const HOVER_SHOW_DELAY_MS = 2500;
   let tooltipEl = null;
   let arrowEl = null;
@@ -144,6 +145,24 @@ window.TooltipManager = (() => {
       isHtml,
       text: isHtml ? el.getAttribute('data-tooltip-html') : el.getAttribute('data-tooltip')
     };
+  }
+
+  function getTooltipDelay(target) {
+    if (!(target instanceof Element)) {
+      return HOVER_SHOW_DELAY_MS;
+    }
+
+    const rawDelay = target.getAttribute(TOOLTIP_DELAY_ATTR);
+    if (rawDelay === null || rawDelay === '') {
+      return HOVER_SHOW_DELAY_MS;
+    }
+
+    const parsedDelay = Number(rawDelay);
+    if (!Number.isFinite(parsedDelay)) {
+      return HOVER_SHOW_DELAY_MS;
+    }
+
+    return Math.max(0, parsedDelay);
   }
 
   function isTooltipVisible() {
@@ -317,6 +336,7 @@ window.TooltipManager = (() => {
       if (!text) return;
       clearShowTimeout();
       pendingTarget = el;
+      const delay = getTooltipDelay(el);
       showTimeout = setTimeout(() => {
         if (pendingTarget !== el) {
           return;
@@ -324,7 +344,7 @@ window.TooltipManager = (() => {
         showTimeout = null;
         pendingTarget = null;
         showTooltip(el, text, e, isHtml);
-      }, HOVER_SHOW_DELAY_MS);
+      }, delay);
     });
 
     document.addEventListener('mousemove', e => {
