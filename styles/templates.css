@@ -19,13 +19,7 @@
 
 .pinned-templates-strip {
   margin: 0 0 1.35rem;
-  padding: 1rem 1.1rem 1.1rem;
-  border-radius: 1.45rem;
-  border: 1px solid rgba(68, 226, 255, 0.22);
-  background:
-    linear-gradient(135deg, rgba(7, 14, 25, 0.94), rgba(14, 24, 41, 0.9)),
-    radial-gradient(circle at top right, rgba(69, 235, 255, 0.12), transparent 30%);
-  box-shadow: 0 22px 42px rgba(0, 0, 0, 0.18);
+  padding: 0.5rem 0.25rem 0;
 }
 
 .pinned-templates-strip.hidden {
@@ -78,15 +72,14 @@
   gap: 0.9rem;
   overflow-x: auto;
   overflow-y: hidden;
-  padding-bottom: 1.5rem;
-  padding-top: 0.2rem;
+  padding: 0.5rem 0.35rem 0.75rem;
 }
 
 .pinned-template-bubble {
   position: relative;
-  flex: 0 0 5.5rem;
-  width: 5.5rem;
-  height: 5.5rem;
+  flex: 0 0 4rem;
+  width: 4rem;
+  height: 4rem;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.28);
   background:
@@ -115,11 +108,11 @@
 
 .pinned-template-bubble__name {
   position: absolute;
-  top: 0.6rem;
-  left: 0.5rem;
-  right: 0.5rem;
+  top: 0.35rem;
+  left: 0.25rem;
+  right: 0.25rem;
   z-index: 2;
-  font-size: 0.58rem;
+  font-size: 0.48rem;
   font-weight: 800;
   line-height: 1.15;
   text-align: center;
@@ -135,7 +128,7 @@
 
 .pinned-template-bubble__svg {
   position: absolute;
-  inset: 1.6rem 1rem 0.8rem;
+  inset: 1.2rem 0.6rem 0.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1014,9 +1007,9 @@
   }
 
   .pinned-template-bubble {
-    flex-basis: 5rem;
-    width: 5rem;
-    height: 5rem;
+    flex-basis: 3.5rem;
+    width: 3.5rem;
+    height: 3.5rem;
   }
 
   .templates-detail-header {
