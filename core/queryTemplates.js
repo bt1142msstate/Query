@@ -738,6 +738,7 @@
     if (isRestrictedMode() || !selected || state.selectedId === NEW_TEMPLATE_ID) {
       return;
     }
+    const wasOverlayOpen = state.detailOverlayOpen;
 
     state.saving = true;
     render();
@@ -773,7 +774,7 @@
       sortTemplatesInState();
       state.selectedId = normalized.id;
       setDraftFromTemplate(normalized);
-      state.detailOverlayOpen = true;
+      state.detailOverlayOpen = wasOverlayOpen;
 
       if (typeof window.showToastMessage === 'function') {
         window.showToastMessage(nextPinned ? `Pinned "${normalized.name}".` : `Unpinned "${normalized.name}".`, 'success');
