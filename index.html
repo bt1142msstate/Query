@@ -153,7 +153,7 @@
       <input id="condition-input" class="condition-field" type="text" placeholder="Enter value…" />
       <span id="between-label" class="mx-2 font-semibold" style="display:none;">to</span>
       <input id="condition-input-2" class="condition-field" type="text" placeholder="Enter value…" style="display:none;" />
-      <button id="confirm-btn" class="confirm-btn" data-tooltip="Confirm">&#10003;</button>
+      <button id="confirm-btn" class="confirm-btn" data-tooltip="Confirm" data-tooltip-delay="0">&#10003;</button>
       <span id="filter-error"
             class="ml-3 text-red-600 text-sm font-semibold"></span>
     </div>
@@ -211,7 +211,7 @@
                       class="table-toolbar-btn table-toolbar-btn-icon"
                       type="button"
                       aria-label="Add field"
-                      data-tooltip="Add Field">
+                      data-tooltip="Add Field" data-tooltip-delay="0">
                 <svg xmlns="http://www.w3.org/2000/svg"
                      viewBox="0 0 24 24"
                      fill="none"
@@ -228,7 +228,7 @@
                       class="table-toolbar-btn table-toolbar-btn-icon"
                       type="button"
                       aria-label="Download results"
-                      data-tooltip="Download Results">
+                      data-tooltip="Download Results" data-tooltip-delay="0">
                 <svg xmlns="http://www.w3.org/2000/svg"
                      viewBox="0 0 24 24"
                      fill="none"
@@ -248,7 +248,7 @@
                       class="table-toolbar-btn table-toolbar-btn-icon"
                       type="button"
                       aria-label="Post filters"
-                      data-tooltip="Post Filters">
+                      data-tooltip="Post Filters" data-tooltip-delay="0">
                 <svg xmlns="http://www.w3.org/2000/svg"
                      viewBox="0 0 24 24"
                      fill="none"
@@ -266,7 +266,7 @@
                       class="table-toolbar-btn table-toolbar-btn-icon table-toolbar-btn-danger"
                       type="button"
                       aria-label="Clear current query"
-                      data-tooltip="Clear Query">
+                      data-tooltip="Clear Query" data-tooltip-delay="0">
                 <svg xmlns="http://www.w3.org/2000/svg"
                      viewBox="0 0 16 16"
                      fill="none"
@@ -277,20 +277,20 @@
                 </svg>
               </button>
               <div id="table-zoom-controls" class="hidden" aria-label="Table zoom controls">
-                <button id="table-zoom-out-btn" class="table-toolbar-btn" type="button" aria-label="Zoom out table" data-tooltip="Zoom out">
+                <button id="table-zoom-out-btn" class="table-toolbar-btn" type="button" aria-label="Zoom out table" data-tooltip="Zoom out" data-tooltip-delay="0">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 pointer-events-none">
                     <path d="M5 12h14"/>
                   </svg>
                 </button>
                 <span id="table-zoom-label">100%</span>
-                <button id="table-zoom-in-btn" class="table-toolbar-btn" type="button" aria-label="Zoom in table" data-tooltip="Zoom in">
+                <button id="table-zoom-in-btn" class="table-toolbar-btn" type="button" aria-label="Zoom in table" data-tooltip="Zoom in" data-tooltip-delay="0">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 pointer-events-none">
                     <path d="M12 5v14"/>
                     <path d="M5 12h14"/>
                   </svg>
                 </button>
               </div>
-              <button id="table-expand-btn" class="table-toolbar-btn table-expand-btn" type="button" aria-expanded="false" aria-label="Expand table" data-tooltip="Expand table">
+              <button id="table-expand-btn" class="table-toolbar-btn table-expand-btn" type="button" aria-expanded="false" aria-label="Expand table" data-tooltip="Expand table" data-tooltip-delay="0">
                 <span class="table-expand-btn-icon" aria-hidden="true">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 pointer-events-none">
                     <path d="M8 3H3v5"/>
