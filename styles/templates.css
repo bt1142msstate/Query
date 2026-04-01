@@ -19,7 +19,12 @@
 
 .pinned-templates-strip {
   margin: 0 0 1.35rem;
-  padding: 0.5rem 0.25rem 0;
+  padding: 0.75rem 1rem;
+  border-radius: 1.25rem;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .pinned-templates-strip.hidden {
@@ -69,17 +74,19 @@
 
 .pinned-templates-strip__list {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 0.9rem;
-  overflow-x: auto;
+  overflow-x: hidden;
   overflow-y: hidden;
-  padding: 0.5rem 0.35rem 0.75rem;
+  padding: 0.5rem 0.25rem 0.25rem;
 }
 
 .pinned-template-bubble {
   position: relative;
-  flex: 0 0 4rem;
-  width: 4rem;
-  height: 4rem;
+  flex: 0 0 100px;
+  width: 100px;
+  height: 100px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.28);
   background:
@@ -108,11 +115,11 @@
 
 .pinned-template-bubble__name {
   position: absolute;
-  top: 0.35rem;
-  left: 0.25rem;
-  right: 0.25rem;
+  top: 0.65rem;
+  left: 0.5rem;
+  right: 0.5rem;
   z-index: 2;
-  font-size: 0.48rem;
+  font-size: 0.65rem;
   font-weight: 800;
   line-height: 1.15;
   text-align: center;
@@ -128,7 +135,7 @@
 
 .pinned-template-bubble__svg {
   position: absolute;
-  inset: 1.2rem 0.6rem 0.5rem;
+  inset: 1.8rem 1.1rem 0.9rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1007,9 +1014,9 @@
   }
 
   .pinned-template-bubble {
-    flex-basis: 3.5rem;
-    width: 3.5rem;
-    height: 3.5rem;
+    flex-basis: 80px;
+    width: 80px;
+    height: 80px;
   }
 
   .templates-detail-header {
