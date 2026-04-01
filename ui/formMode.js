@@ -1516,6 +1516,7 @@
     if (state.modeToggleBtn) {
       state.modeToggleBtn.classList.toggle('hidden', isLimitedView);
       state.modeToggleBtn.setAttribute('data-tooltip', state.viewMode === 'form' ? 'Switch to bubble builder' : 'Switch to form mode');
+      state.modeToggleBtn.setAttribute('data-tooltip-delay', '0');
       state.modeToggleBtn.setAttribute('aria-label', state.viewMode === 'form' ? 'Switch to bubble builder' : 'Switch to form mode');
       const formIcon = state.modeToggleBtn.querySelector('[data-form-mode-icon="form"]');
       const bubbleIcon = state.modeToggleBtn.querySelector('[data-form-mode-icon="bubbles"]');
