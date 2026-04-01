@@ -29,7 +29,7 @@
     searchParams: null,
     initialSearchParams: null,
     sharedBaselineSearchParams: null,
-    viewMode: 'bubbles',
+    viewMode: 'form',
     formCard: null,
     validationEl: null,
     runBtn: null,
@@ -1954,7 +1954,10 @@
     ensureModeToggleButtons();
 
     const rawFormSpec = searchParams.get('form');
-    if (!rawFormSpec) return;
+    if (!rawFormSpec) {
+      await setViewMode('form', { updateUrl: false });
+      return;
+    }
 
     let decodedSpec;
     try {
