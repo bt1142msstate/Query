@@ -208,6 +208,10 @@ window.TableContextMenu = (() => {
       clearPreview = null;
     }
     if (menuEl) {
+      window.VisibilityUtils?.hide?.([menuEl], {
+        ariaHidden: true,
+        raisedUiKey: 'table-context-menu'
+      });
       menuEl.classList.add('tcm--hiding');
       const el = menuEl;
       menuEl = null;
@@ -375,8 +379,14 @@ window.TableContextMenu = (() => {
     ];
 
     const menu = buildMenu(actions);
+    menu.hidden = true;
+    menu.classList.add('hidden');
     positionMenu(menu, e.clientX, e.clientY);
     menuEl = menu;
+    window.VisibilityUtils?.show?.([menu], {
+      ariaHidden: false,
+      raisedUiKey: 'table-context-menu'
+    });
     requestAnimationFrame(() => menu.classList.add('tcm--visible'));
     attachDismissListeners(menu);
   }

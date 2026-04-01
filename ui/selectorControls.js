@@ -537,6 +537,7 @@ window.createPopupListControl = function(innerControl, label, placeholder) {
 
   const wrapper = document.createElement('div');
   wrapper.className = 'form-mode-popup-list-control';
+  const raisedUiKey = `popup-list-control:${Math.random().toString(36).slice(2, 10)}`;
 
   const trigger = document.createElement('button');
   trigger.type = 'button';
@@ -556,12 +557,14 @@ window.createPopupListControl = function(innerControl, label, placeholder) {
   const backdrop = document.createElement('div');
   backdrop.className = 'form-mode-popup-list-backdrop';
   backdrop.hidden = true;
+  backdrop.classList.add('hidden');
 
   const popup = document.createElement('div');
   popup.className = 'form-mode-popup-list-popup';
   popup.setAttribute('role', 'dialog');
   popup.setAttribute('aria-label', resolvedLabel);
   popup.hidden = true;
+  popup.classList.add('hidden');
 
   const popupHeader = document.createElement('div');
   popupHeader.className = 'form-mode-popup-list-popup-header';
@@ -618,8 +621,10 @@ window.createPopupListControl = function(innerControl, label, placeholder) {
   }
 
   function openPopup() {
-    backdrop.hidden = false;
-    popup.hidden = false;
+    window.VisibilityUtils?.show?.([backdrop, popup], {
+      ariaHidden: false,
+      raisedUiKey
+    });
     trigger.setAttribute('aria-expanded', 'true');
 
     if (typeof innerControl.focusInput === 'function') {
@@ -634,8 +639,10 @@ window.createPopupListControl = function(innerControl, label, placeholder) {
   }
 
   function closePopup() {
-    backdrop.hidden = true;
-    popup.hidden = true;
+    window.VisibilityUtils?.hide?.([backdrop, popup], {
+      ariaHidden: true,
+      raisedUiKey
+    });
     trigger.setAttribute('aria-expanded', 'false');
     updateSummary();
     wrapper.dispatchEvent(new Event('change', { bubbles: true }));
@@ -661,6 +668,12 @@ window.createPopupListControl = function(innerControl, label, placeholder) {
   document.addEventListener('keydown', onDocKey);
 
   wrapper._cleanupPopup = function() {
+    if (!popup.hidden) {
+      window.VisibilityUtils?.hide?.([backdrop, popup], {
+        ariaHidden: true,
+        raisedUiKey
+      });
+    }
     backdrop.remove();
     popup.remove();
     document.removeEventListener('keydown', onDocKey);

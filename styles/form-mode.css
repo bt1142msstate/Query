@@ -437,7 +437,7 @@
 .form-mode-popup-list-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 10080;
+  z-index: var(--z-popup-backdrop);
   background: rgba(15, 23, 42, 0.32);
   backdrop-filter: blur(3px);
   -webkit-backdrop-filter: blur(3px);
@@ -451,7 +451,7 @@
   position: fixed;
   top: 50%;
   left: 50%;
-  z-index: 10081;
+  z-index: var(--z-popup-surface);
   width: min(92vw, 760px);
   min-height: min(26rem, 70vh);
   max-height: min(82vh, 720px);
@@ -559,7 +559,7 @@
 .form-mode-field-picker-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 10060;
+  z-index: var(--z-dialog-backdrop);
   background: rgba(15, 23, 42, 0.45);
   backdrop-filter: blur(3px);
 }
@@ -568,7 +568,7 @@
   position: fixed;
   top: 50%;
   left: 50%;
-  z-index: 10061;
+  z-index: var(--z-dialog-surface);
   width: min(860px, calc(100vw - 2rem));
   max-height: min(78vh, 720px);
   transform: translate(-50%, -50%);

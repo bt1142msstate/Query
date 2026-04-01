@@ -209,6 +209,7 @@ function resetBubbleEditorUi(options = {}) {
   if (overlay) {
     overlay.classList.remove('show', 'bubble-active');
   }
+  window.VisibilityUtils?.releaseRaisedUi?.('bubble-editor');
   if (headerBar) {
     headerBar.classList.remove('header-hide');
   }

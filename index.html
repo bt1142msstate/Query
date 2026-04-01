@@ -444,21 +444,22 @@
                 <h3 class="templates-sidebar-title">Saved Queries</h3>
                 <p id="templates-mode-note" class="templates-sidebar-note">Create, edit, delete, and apply reusable query templates.</p>
               </div>
-              <div class="templates-sidebar-actions">
-                <button id="templates-refresh-btn" type="button" class="templates-secondary-btn">Refresh</button>
-                <button id="templates-new-btn" type="button" class="templates-primary-btn">New From Current Query</button>
-              </div>
             </div>
             <div class="templates-category-filter-shell">
               <div class="templates-browser-toolbar templates-browser-toolbar--library">
                 <label class="templates-field templates-field--wide">
                   <span>Search Templates</span>
-                  <input id="templates-search-input" type="search" maxlength="120" placeholder="Search names, descriptions, or categories">
+                  <input id="templates-search-input" type="search" maxlength="120" placeholder="Search templates">
                 </label>
                 <label class="templates-field">
                   <span>Filter By Category</span>
                   <select id="templates-category-filter"></select>
                 </label>
+              </div>
+              <div class="templates-sidebar-actions templates-sidebar-actions--library">
+                <button id="templates-refresh-btn" type="button" class="templates-secondary-btn">Refresh</button>
+                <button id="templates-manage-categories-btn" type="button" class="templates-secondary-btn">Manage Categories</button>
+                <button id="templates-new-btn" type="button" class="templates-primary-btn">New From Current Query</button>
               </div>
               <div id="templates-results-summary" class="templates-results-summary"></div>
             </div>
@@ -467,31 +468,6 @@
             <div id="templates-list-status" class="templates-status">Loading templates…</div>
             <div id="templates-list" class="templates-list" aria-live="polite"></div>
           </div>
-          <details class="templates-category-manager">
-            <summary class="templates-category-manager__summary">
-              <span>Manage Categories</span>
-              <span class="templates-category-manager__hint">Secondary</span>
-            </summary>
-            <div class="templates-category-manager__body">
-              <div class="templates-category-manager__header">
-                <div>
-                  <div class="templates-sidebar-kicker">Categories</div>
-                  <p class="templates-sidebar-note">Use categories to group templates and make search and filtering faster.</p>
-                </div>
-              </div>
-              <div id="templates-category-list" class="templates-category-list"></div>
-              <div id="templates-category-form" class="templates-category-form">
-                <label class="templates-field">
-                  <span id="template-category-name-label">New Category</span>
-                  <input id="template-category-name-input" type="text" maxlength="80" placeholder="Circulation">
-                </label>
-                <div class="templates-sidebar-actions">
-                  <button id="template-category-save-btn" type="button" class="templates-secondary-btn">Add Category</button>
-                  <button id="template-category-cancel-btn" type="button" class="templates-secondary-btn hidden">Cancel</button>
-                </div>
-              </div>
-            </div>
-          </details>
         </aside>
         <section class="templates-editor">
           <div id="templates-empty-state" class="templates-empty-state">
@@ -531,6 +507,32 @@
             </div>
           </div>
         </section>
+        <div id="templates-categories-overlay" class="templates-categories-overlay hidden" aria-hidden="true">
+          <div id="templates-categories-backdrop" class="templates-categories-backdrop" data-templates-categories-close></div>
+          <section class="templates-categories-dialog" role="dialog" aria-modal="true" aria-labelledby="templates-categories-title">
+            <div class="templates-categories-header">
+              <div>
+                <div class="templates-sidebar-kicker">Categories</div>
+                <h3 id="templates-categories-title" class="templates-categories-title">Manage Template Categories</h3>
+                <p class="templates-sidebar-note">Use categories to group templates and make the library easier to scan.</p>
+              </div>
+              <button id="templates-categories-close-btn" type="button" class="templates-categories-close" aria-label="Close category manager">×</button>
+            </div>
+            <div class="templates-categories-body">
+              <div id="templates-category-list" class="templates-category-list"></div>
+              <div id="templates-category-form" class="templates-category-form">
+                <label class="templates-field">
+                  <span id="template-category-name-label">New Category</span>
+                  <input id="template-category-name-input" type="text" maxlength="80" placeholder="Circulation">
+                </label>
+                <div class="templates-sidebar-actions">
+                  <button id="template-category-save-btn" type="button" class="templates-secondary-btn">Add Category</button>
+                  <button id="template-category-cancel-btn" type="button" class="templates-secondary-btn hidden">Cancel</button>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
     </div><!-- end templates-panel -->
 

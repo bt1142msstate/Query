@@ -979,7 +979,7 @@
 .history-details-modal-shell {
   position: fixed;
   inset: 0;
-  z-index: 10040;
+  z-index: var(--z-history-details);
   display: grid;
   place-items: center;
   padding: 1.5rem;
