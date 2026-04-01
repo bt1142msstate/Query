@@ -1,6 +1,15 @@
 (function initializeQueryTemplates() {
   const API_URL = 'https://mlp.sirsi.net/uhtbin/query_api.pl';
   const NEW_TEMPLATE_ID = '__new_template__';
+  const DEFAULT_TEMPLATE_SVG = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" aria-hidden="true">
+      <polygon fill="#7AB9E8" points="512,48.762 512,414.476 341.333,463.238 170.667,414.476 0,463.238 0,97.524 170.667,48.762 341.333,97.524"/>
+      <polygon fill="#61AAE4" points="170.667,48.762 170.667,414.476 341.333,463.238 341.333,97.524"/>
+      <g>
+        <path fill="#F8F8F9" d="M456.554,132.02c-2.291-1.729-5.26-2.286-8.018-1.492l-107.203,30.63l-168.154-48.044c-1.642-0.469-3.382-0.469-5.024,0L58.441,144.461c-3.925,1.123-6.63,4.709-6.63,8.792v158.259v0.005v61.164c0,2.87,1.346,5.571,3.636,7.298c2.291,1.727,5.258,2.283,8.018,1.492l107.202-30.63l168.154,48.044c0.82,0.234,1.666,0.352,2.512,0.352c0.845,0,1.691-0.118,2.511-0.352l109.714-31.347c3.925-1.123,6.632-4.709,6.632-8.792V139.319C460.19,136.45,458.843,133.748,456.554,132.02z M341.333,380.587l-168.154-48.044c-0.82-0.234-1.666-0.352-2.512-0.352c-0.845,0-1.691,0.118-2.512,0.352L70.095,360.56v-41.935l10.951-3.128c4.855-1.386,7.667-6.448,6.279-11.302c-1.387-4.855-6.451-7.669-11.303-6.278l-5.927,1.693v-71.955c20.841-4.246,36.571-22.718,36.571-44.794c0-5.051-4.094-9.143-9.143-9.143s-9.143,4.092-9.143,9.143c0,11.919-7.645,22.081-18.286,25.856v-48.564l100.571-28.739l76.19,21.769v11.393c0,5.051,4.094,9.143,9.143,9.143c5.049,0,9.143-4.092,9.143-9.143v-6.168l73.678,21.052c1.642,0.469,3.382,0.469,5.024,0l98.06-28.016v49.301c-3.319,2.119-5.007,6.233-3.869,10.214c0.636,2.227,2.06,4.001,3.869,5.16v68.233c-20.841,4.246-36.571,22.718-36.571,44.794c0,5.051,4.094,9.143,9.143,9.143c5.049,0,9.143-4.092,9.143-9.143c0-11.919,7.643-22.081,18.286-25.856v48.564L341.333,380.587z"/>
+      </g>
+    </svg>
+  `;
 
   const state = {
     templates: [],
@@ -12,6 +21,7 @@
     selectedCategoryFilter: '',
     searchQuery: '',
     draft: null,
+    draggedPinnedId: '',
     editingCategoryId: '',
     categoriesOverlayOpen: false,
     detailOverlayOpen: false
@@ -39,9 +49,12 @@
       detailTitle: el('templates-detail-title'),
       nameInput: el('template-name-input'),
       descriptionInput: el('template-description-input'),
+      svgInput: el('template-svg-input'),
+      svgPreview: el('template-svg-preview'),
       validation: el('templates-validation'),
       meta: el('templates-meta'),
       useBtn: el('template-use-btn'),
+      pinBtn: el('template-pin-btn'),
       saveBtn: el('template-save-btn'),
       deleteBtn: el('template-delete-btn'),
       categoryFilter: el('templates-category-filter'),
@@ -53,9 +66,13 @@
       categoriesCloseBtn: el('templates-categories-close-btn'),
       categoryNameLabel: el('template-category-name-label'),
       categoryNameInput: el('template-category-name-input'),
+      categoryDescriptionInput: el('template-category-description-input'),
       categorySaveBtn: el('template-category-save-btn'),
       categoryCancelBtn: el('template-category-cancel-btn'),
-      categoryAssignment: el('template-category-assignment')
+      categoryAssignment: el('template-category-assignment'),
+      pinnedStrip: el('pinned-templates-strip'),
+      pinnedList: el('pinned-templates-list'),
+      pinnedMoreBtn: el('pinned-templates-more-btn')
     };
   }
 
@@ -83,10 +100,12 @@
       || `category-${index}`
     ).trim();
     const name = String(rawCategory?.name || rawCategory?.category_name || '').trim();
+    const description = String(rawCategory?.description || rawCategory?.category_description || '').trim();
 
     return {
       id,
-      name
+      name,
+      description
     };
   }
 
@@ -108,6 +127,7 @@
     const uiConfig = rawTemplate?.ui_config || rawTemplate?.jsonConfig || rawTemplate?.config || null;
     const name = String(rawTemplate?.name || rawTemplate?.template_name || '').trim();
     const description = String(rawTemplate?.description || '').trim();
+    const svg = String(rawTemplate?.svg || rawTemplate?.bubble_svg || '').trim();
     const id = getTemplateId(rawTemplate) || `template-${index}`;
     const categories = Array.isArray(rawTemplate?.categories)
       ? normalizeCategoryList(rawTemplate.categories)
@@ -117,8 +137,11 @@
       id,
       name,
       description,
+      svg,
       categories,
       uiConfig,
+      pinned: Boolean(rawTemplate?.pinned),
+      pinOrder: Number.isFinite(Number(rawTemplate?.pin_order)) ? Number(rawTemplate?.pin_order) : null,
       createdAt: rawTemplate?.created_at || rawTemplate?.createdAt || '',
       updatedAt: rawTemplate?.updated_at || rawTemplate?.updatedAt || rawTemplate?.modified_at || ''
     };
@@ -133,11 +156,37 @@
       id: template.id,
       name: template.name,
       description: template.description,
+      svg: template.svg,
       categories: template.categories ? JSON.parse(JSON.stringify(template.categories)) : [],
       uiConfig: template.uiConfig ? JSON.parse(JSON.stringify(template.uiConfig)) : null,
+      pinned: Boolean(template.pinned),
+      pinOrder: Number.isFinite(Number(template.pinOrder)) ? Number(template.pinOrder) : null,
       createdAt: template.createdAt,
       updatedAt: template.updatedAt
     };
+  }
+
+  function sortTemplatesInState() {
+    state.templates.sort((left, right) => {
+      const leftPinned = left.pinned ? 1 : 0;
+      const rightPinned = right.pinned ? 1 : 0;
+      if (leftPinned !== rightPinned) {
+        return rightPinned - leftPinned;
+      }
+
+      if (leftPinned && rightPinned) {
+        const leftOrder = Number.isFinite(left.pinOrder) ? left.pinOrder : Number.MAX_SAFE_INTEGER;
+        const rightOrder = Number.isFinite(right.pinOrder) ? right.pinOrder : Number.MAX_SAFE_INTEGER;
+        if (leftOrder !== rightOrder) {
+          return leftOrder - rightOrder;
+        }
+      }
+
+      return left.name.localeCompare(right.name, undefined, {
+        sensitivity: 'base',
+        numeric: true
+      });
+    });
   }
 
   function getSelectedTemplate() {
@@ -227,7 +276,33 @@
     const elements = getElements();
     state.draft.name = String(elements.nameInput?.value || '').trim();
     state.draft.description = String(elements.descriptionInput?.value || '').trim();
+    state.draft.svg = String(elements.svgInput?.value || '').trim();
     syncDraftCategoriesFromInputs();
+  }
+
+  function sanitizeSvgMarkup(rawSvg) {
+    const normalized = String(rawSvg || '').trim();
+    if (!normalized) {
+      return '';
+    }
+
+    const withoutHeader = normalized
+      .replace(/<\?xml[\s\S]*?\?>/gi, '')
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .trim();
+
+    if (!/^<svg[\s\S]*<\/svg>$/i.test(withoutHeader)) {
+      return '';
+    }
+
+    return withoutHeader
+      .replace(/\son\w+=(["']).*?\1/gi, '')
+      .replace(/\son\w+=([^\s>]+)/gi, '')
+      .replace(/<script[\s\S]*?<\/script>/gi, '');
+  }
+
+  function getTemplateSvgMarkup(template) {
+    return sanitizeSvgMarkup(template?.svg) || DEFAULT_TEMPLATE_SVG;
   }
 
   function getVisibleTemplates() {
@@ -250,7 +325,8 @@
       const haystack = [
         template.name,
         template.description,
-        ...template.categories.map(category => category.name)
+        ...template.categories.map(category => category.name),
+        ...template.categories.map(category => category.description || '')
       ]
         .filter(Boolean)
         .join(' ')
@@ -399,12 +475,8 @@
 
     try {
       const payload = await sendTemplateRequest({ action: 'list_templates' });
-      state.templates = (Array.isArray(payload.templates) ? payload.templates : [])
-        .map(normalizeTemplate)
-        .sort((left, right) => left.name.localeCompare(right.name, undefined, {
-          sensitivity: 'base',
-          numeric: true
-        }));
+      state.templates = (Array.isArray(payload.templates) ? payload.templates : []).map(normalizeTemplate);
+      sortTemplatesInState();
       state.categories = normalizeCategoryList(payload.categories);
       if (state.selectedCategoryFilter && !state.categories.some(category => category.id === state.selectedCategoryFilter)) {
         state.selectedCategoryFilter = '';
@@ -488,8 +560,11 @@
       id: '',
       name: '',
       description: '',
+      svg: '',
       categories: [],
       uiConfig: getCurrentQueryConfigSnapshot(),
+      pinned: false,
+      pinOrder: null,
       createdAt: '',
       updatedAt: ''
     };
@@ -516,16 +591,16 @@
         action: 'create_template',
         name: state.draft.name,
         description: state.draft.description,
+        svg: sanitizeSvgMarkup(state.draft.svg),
         categories: getAssignedCategoriesForPayload(state.draft),
-        ui_config: getCurrentQueryConfigSnapshot()
+        ui_config: getCurrentQueryConfigSnapshot(),
+        pinned: Boolean(state.draft.pinned),
+        pin_order: Number.isFinite(state.draft.pinOrder) ? state.draft.pinOrder : undefined
       });
 
       const normalized = normalizeTemplate(payload.template || payload, state.templates.length);
       state.templates.push(normalized);
-      state.templates.sort((left, right) => left.name.localeCompare(right.name, undefined, {
-        sensitivity: 'base',
-        numeric: true
-      }));
+      sortTemplatesInState();
       state.selectedId = normalized.id;
       setDraftFromTemplate(normalized);
       state.detailOverlayOpen = true;
@@ -563,8 +638,11 @@
         template_id: state.selectedId,
         name: state.draft.name,
         description: state.draft.description,
+        svg: sanitizeSvgMarkup(state.draft.svg),
         categories: getAssignedCategoriesForPayload(state.draft),
-        ui_config: getCurrentQueryConfigSnapshot()
+        ui_config: getCurrentQueryConfigSnapshot(),
+        pinned: Boolean(state.draft.pinned),
+        pin_order: Number.isFinite(state.draft.pinOrder) ? state.draft.pinOrder : undefined
       });
 
       const normalized = normalizeTemplate(payload.template || payload, 0);
@@ -572,10 +650,7 @@
       if (index !== -1) {
         state.templates.splice(index, 1, normalized);
       }
-      state.templates.sort((left, right) => left.name.localeCompare(right.name, undefined, {
-        sensitivity: 'base',
-        numeric: true
-      }));
+      sortTemplatesInState();
       state.selectedId = normalized.id;
       setDraftFromTemplate(normalized);
       state.detailOverlayOpen = true;
@@ -658,6 +733,110 @@
     window.modalManager?.closePanel?.('templates-panel');
   }
 
+  async function togglePinSelectedTemplate() {
+    const selected = getSelectedTemplate();
+    if (isRestrictedMode() || !selected || state.selectedId === NEW_TEMPLATE_ID) {
+      return;
+    }
+
+    state.saving = true;
+    render();
+
+    try {
+      const pinnedTemplates = state.templates.filter(template => template.pinned && template.id !== selected.id);
+      const nextPinned = !selected.pinned;
+      const payload = await sendTemplateRequest({
+        action: 'update_template',
+        template_id: selected.id,
+        name: selected.name,
+        description: selected.description,
+        svg: sanitizeSvgMarkup(selected.svg),
+        categories: selected.categories,
+        ui_config: selected.uiConfig,
+        pinned: nextPinned,
+        pin_order: nextPinned ? pinnedTemplates.length : undefined
+      });
+
+      const normalized = normalizeTemplate(payload.template || payload, 0);
+      const index = state.templates.findIndex(template => template.id === selected.id);
+      if (index !== -1) {
+        state.templates.splice(index, 1, normalized);
+      }
+      if (!nextPinned) {
+        const stillPinned = state.templates
+          .filter(template => template.pinned)
+          .sort((left, right) => (left.pinOrder ?? Number.MAX_SAFE_INTEGER) - (right.pinOrder ?? Number.MAX_SAFE_INTEGER));
+        stillPinned.forEach((template, orderIndex) => {
+          template.pinOrder = orderIndex;
+        });
+      }
+      sortTemplatesInState();
+      state.selectedId = normalized.id;
+      setDraftFromTemplate(normalized);
+      state.detailOverlayOpen = true;
+
+      if (typeof window.showToastMessage === 'function') {
+        window.showToastMessage(nextPinned ? `Pinned "${normalized.name}".` : `Unpinned "${normalized.name}".`, 'success');
+      }
+    } catch (error) {
+      renderValidation([error.message]);
+    } finally {
+      state.saving = false;
+      render();
+    }
+  }
+
+  async function reorderPinnedTemplates(orderedIds) {
+    if (isRestrictedMode()) {
+      return;
+    }
+
+    const normalizedIds = Array.isArray(orderedIds)
+      ? orderedIds.map(id => String(id || '').trim()).filter(Boolean)
+      : [];
+    if (normalizedIds.length < 2) {
+      return;
+    }
+
+    state.saving = true;
+    render();
+
+    try {
+      const payload = await sendTemplateRequest({
+        action: 'reorder_pinned_templates',
+        template_ids: normalizedIds
+      });
+
+      if (Array.isArray(payload.templates)) {
+        state.templates = payload.templates.map(normalizeTemplate);
+        sortTemplatesInState();
+      } else {
+        state.templates
+          .filter(template => template.pinned)
+          .sort((left, right) => normalizedIds.indexOf(left.id) - normalizedIds.indexOf(right.id))
+          .forEach((template, index) => {
+            template.pinOrder = index;
+          });
+        sortTemplatesInState();
+      }
+
+      if (state.selectedId) {
+        const selected = state.templates.find(template => template.id === state.selectedId);
+        if (selected) {
+          setDraftFromTemplate(selected);
+        }
+      }
+    } catch (error) {
+      if (typeof window.showToastMessage === 'function') {
+        window.showToastMessage(`Failed to reorder pinned templates: ${error.message}`, 'error');
+      }
+    } finally {
+      state.saving = false;
+      state.draggedPinnedId = '';
+      render();
+    }
+  }
+
   function startCategoryEdit(categoryId) {
     if (isRestrictedMode()) {
       return;
@@ -677,6 +856,9 @@
       elements.categoryNameInput.value = category.name;
       elements.categoryNameInput.focus();
     }
+    if (elements.categoryDescriptionInput) {
+      elements.categoryDescriptionInput.value = category.description || '';
+    }
     render();
   }
 
@@ -688,6 +870,9 @@
     }
     if (elements.categoryNameInput) {
       elements.categoryNameInput.value = '';
+    }
+    if (elements.categoryDescriptionInput) {
+      elements.categoryDescriptionInput.value = '';
     }
   }
 
@@ -713,7 +898,8 @@
       const payload = await sendTemplateRequest({
         action: state.editingCategoryId ? 'update_template_category' : 'create_template_category',
         category_id: state.editingCategoryId || undefined,
-        name: rawName
+        name: rawName,
+        description: String(elements.categoryDescriptionInput?.value || '').trim()
       });
 
       state.categories = normalizeCategoryList(payload.categories);
@@ -839,7 +1025,7 @@
   function renderCategoryList() {
     const elements = getElements();
     const restricted = isRestrictedMode();
-    if (!elements.categoryList || !elements.categoryNameInput || !elements.categorySaveBtn || !elements.categoryCancelBtn || !elements.categoryNameLabel) {
+    if (!elements.categoryList || !elements.categoryNameInput || !elements.categoryDescriptionInput || !elements.categorySaveBtn || !elements.categoryCancelBtn || !elements.categoryNameLabel) {
       return;
     }
 
@@ -875,7 +1061,7 @@
 
         const meta = document.createElement('div');
         meta.className = 'templates-category-card__meta';
-        meta.textContent = `${usageCount} template${usageCount === 1 ? '' : 's'}`;
+        meta.textContent = `${usageCount} template${usageCount === 1 ? '' : 's'}${category.description ? ` • ${category.description}` : ''}`;
 
         infoButton.append(name, meta);
         card.appendChild(infoButton);
@@ -914,6 +1100,7 @@
     }
 
     elements.categoryNameInput.disabled = restricted || state.saving;
+    elements.categoryDescriptionInput.disabled = restricted || state.saving;
     elements.categorySaveBtn.disabled = restricted || state.saving;
     elements.categoryCancelBtn.disabled = restricted || state.saving;
     elements.categorySaveBtn.classList.toggle('hidden', restricted);
@@ -975,6 +1162,8 @@
     }
 
     const visibleTemplates = getVisibleTemplates();
+    const pinnedTemplates = visibleTemplates.filter(template => template.pinned);
+    const otherTemplates = visibleTemplates.filter(template => !template.pinned);
     if (state.loading) {
       elements.listStatus.textContent = 'Loading templates…';
       elements.listStatus.classList.remove('hidden');
@@ -992,7 +1181,13 @@
 
     elements.emptyState?.classList.add('hidden');
     elements.listStatus.classList.add('hidden');
-    elements.list.replaceChildren(...visibleTemplates.map(template => {
+    function createTemplateRow(template, options = {}) {
+      const row = document.createElement('div');
+      row.className = 'templates-list-row';
+      row.classList.toggle('is-pinned', Boolean(template.pinned));
+      row.classList.toggle('is-draggable', Boolean(options.draggable));
+      row.dataset.templateId = template.id;
+
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'templates-list-item';
@@ -1001,10 +1196,91 @@
       const descriptionTooltip = String(template.description || '').trim() || 'No description provided.';
       button.setAttribute('data-tooltip', descriptionTooltip);
       button.setAttribute('aria-label', `${template.name}. ${descriptionTooltip}`);
-      button.innerHTML = `<div class="templates-list-item__title">${window.escapeHtml(template.name)}</div>`;
+      button.innerHTML = `
+        <div class="templates-list-item__title-row">
+          ${template.pinned ? '<span class="templates-list-item__pin-badge">Pinned</span>' : ''}
+          <div class="templates-list-item__title">${window.escapeHtml(template.name)}</div>
+        </div>`;
       button.addEventListener('click', () => selectTemplate(template.id));
-      return button;
-    }));
+      row.appendChild(button);
+
+      if (!isRestrictedMode()) {
+        const pinBtn = document.createElement('button');
+        pinBtn.type = 'button';
+        pinBtn.className = 'templates-list-pin-btn';
+        pinBtn.textContent = template.pinned ? 'Unpin' : 'Pin';
+        pinBtn.setAttribute('aria-label', `${template.pinned ? 'Unpin' : 'Pin'} ${template.name}`);
+        pinBtn.addEventListener('click', async event => {
+          event.stopPropagation();
+          state.selectedId = template.id;
+          setDraftFromTemplate(template);
+          await togglePinSelectedTemplate();
+        });
+        row.appendChild(pinBtn);
+      }
+
+      if (options.draggable && !isRestrictedMode()) {
+        row.draggable = true;
+        row.addEventListener('dragstart', event => {
+          state.draggedPinnedId = template.id;
+          row.classList.add('is-dragging');
+          event.dataTransfer.effectAllowed = 'move';
+          event.dataTransfer.setData('text/plain', template.id);
+        });
+        row.addEventListener('dragend', () => {
+          state.draggedPinnedId = '';
+          row.classList.remove('is-dragging');
+          elements.list.querySelectorAll('.templates-list-row').forEach(item => item.classList.remove('is-drop-target'));
+        });
+        row.addEventListener('dragover', event => {
+          event.preventDefault();
+          if (state.draggedPinnedId && state.draggedPinnedId !== template.id) {
+            row.classList.add('is-drop-target');
+          }
+        });
+        row.addEventListener('dragleave', () => {
+          row.classList.remove('is-drop-target');
+        });
+        row.addEventListener('drop', event => {
+          event.preventDefault();
+          row.classList.remove('is-drop-target');
+          const draggedId = state.draggedPinnedId || event.dataTransfer.getData('text/plain');
+          if (!draggedId || draggedId === template.id) {
+            return;
+          }
+          const nextPinnedIds = pinnedTemplates.map(item => item.id);
+          const fromIndex = nextPinnedIds.indexOf(draggedId);
+          const toIndex = nextPinnedIds.indexOf(template.id);
+          if (fromIndex === -1 || toIndex === -1) {
+            return;
+          }
+          nextPinnedIds.splice(toIndex, 0, nextPinnedIds.splice(fromIndex, 1)[0]);
+          reorderPinnedTemplates(nextPinnedIds);
+        });
+      }
+
+      return row;
+    }
+
+    const fragment = document.createDocumentFragment();
+    const buildSection = (title, items, options = {}) => {
+      if (!items.length) return;
+      const section = document.createElement('section');
+      section.className = 'templates-list-section';
+      const header = document.createElement('div');
+      header.className = 'templates-list-section__header';
+      header.innerHTML = `<h4 class="templates-list-section__title">${window.escapeHtml(title)}</h4><span class="templates-list-section__count">${items.length}</span>`;
+      section.appendChild(header);
+      const body = document.createElement('div');
+      body.className = 'templates-list-section__body';
+      items.forEach(template => body.appendChild(createTemplateRow(template, options)));
+      section.appendChild(body);
+      fragment.appendChild(section);
+    };
+
+    buildSection('Pinned Templates', pinnedTemplates, { draggable: pinnedTemplates.length > 1 });
+    buildSection(pinnedTemplates.length ? 'All Other Templates' : 'Templates', otherTemplates);
+    elements.list.replaceChildren(fragment);
   }
 
   function renderDetail() {
@@ -1061,6 +1337,16 @@
       elements.descriptionInput.readOnly = restricted;
     }
 
+    if (elements.svgInput) {
+      elements.svgInput.value = selected.svg || '';
+      elements.svgInput.disabled = restricted || state.saving;
+      elements.svgInput.readOnly = restricted;
+    }
+
+    if (elements.svgPreview) {
+      elements.svgPreview.innerHTML = getTemplateSvgMarkup(selected);
+    }
+
     renderCategoryAssignment();
 
     if (elements.meta) {
@@ -1081,6 +1367,12 @@
     if (elements.useBtn) {
       elements.useBtn.disabled = state.saving;
       elements.useBtn.classList.toggle('hidden', isNew);
+    }
+
+    if (elements.pinBtn) {
+      elements.pinBtn.disabled = restricted || state.saving || isNew;
+      elements.pinBtn.textContent = selected.pinned ? 'Unpin Template' : 'Pin Template';
+      elements.pinBtn.classList.toggle('hidden', restricted || isNew);
     }
 
     if (elements.saveBtn) {
@@ -1109,6 +1401,42 @@
     if (elements.categoriesOverlay) {
       elements.categoriesOverlay.classList.toggle('hidden', !state.categoriesOverlayOpen);
     }
+    renderPinnedStrip();
+  }
+
+  function renderPinnedStrip() {
+    const elements = getElements();
+    if (!elements.pinnedStrip || !elements.pinnedList) {
+      return;
+    }
+
+    const pinnedTemplates = state.templates
+      .filter(template => template.pinned)
+      .sort((left, right) => {
+        const leftOrder = Number.isFinite(left.pinOrder) ? left.pinOrder : Number.MAX_SAFE_INTEGER;
+        const rightOrder = Number.isFinite(right.pinOrder) ? right.pinOrder : Number.MAX_SAFE_INTEGER;
+        return leftOrder - rightOrder;
+      });
+
+    elements.pinnedStrip.classList.toggle('hidden', pinnedTemplates.length === 0 && !state.loading);
+    elements.pinnedList.replaceChildren(...pinnedTemplates.map(template => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'pinned-template-bubble';
+      button.setAttribute('aria-label', `Use pinned template ${template.name}`);
+      const description = String(template.description || '').trim() || 'Use pinned template';
+      button.setAttribute('data-tooltip', description);
+      button.innerHTML = `
+        <span class="pinned-template-bubble__name">${window.escapeHtml(template.name)}</span>
+        <span class="pinned-template-bubble__svg">${getTemplateSvgMarkup(template)}</span>
+      `;
+      button.addEventListener('click', async () => {
+        state.selectedId = template.id;
+        setDraftFromTemplate(template);
+        await applyTemplate();
+      });
+      return button;
+    }));
   }
 
   function bindEvents() {
@@ -1137,6 +1465,17 @@
     elements.descriptionInput?.addEventListener('input', () => {
       syncDraftFromInputs();
       renderValidation([]);
+      if (elements.svgPreview && state.draft) {
+        elements.svgPreview.innerHTML = getTemplateSvgMarkup(state.draft);
+      }
+    });
+
+    elements.svgInput?.addEventListener('input', () => {
+      syncDraftFromInputs();
+      renderValidation([]);
+      if (elements.svgPreview && state.draft) {
+        elements.svgPreview.innerHTML = getTemplateSvgMarkup(state.draft);
+      }
     });
 
     elements.categoryFilter?.addEventListener('change', event => {
@@ -1149,6 +1488,10 @@
       state.searchQuery = event.target.value;
       reconcileTemplateSelection();
       render();
+    });
+
+    elements.pinnedMoreBtn?.addEventListener('click', () => {
+      window.modalManager?.openPanel?.('templates-panel');
     });
 
     elements.categorySaveBtn?.addEventListener('click', () => {
@@ -1185,6 +1528,10 @@
 
     elements.useBtn?.addEventListener('click', () => {
       applyTemplate();
+    });
+
+    elements.pinBtn?.addEventListener('click', () => {
+      togglePinSelectedTemplate();
     });
 
     elements.saveBtn?.addEventListener('click', () => {
@@ -1230,5 +1577,6 @@
   window.onDOMReady(() => {
     bindEvents();
     render();
+    refreshTemplates({ force: !state.loaded });
   });
 })();
