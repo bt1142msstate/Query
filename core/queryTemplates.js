@@ -1326,25 +1326,25 @@
     }
 
     if (elements.nameInput) {
-      elements.nameInput.value = selected.name || '';
+      elements.nameInput.value = state.draft?.name ?? selected.name ?? '';
       elements.nameInput.disabled = restricted || state.saving;
       elements.nameInput.readOnly = restricted;
     }
 
     if (elements.descriptionInput) {
-      elements.descriptionInput.value = selected.description || '';
+      elements.descriptionInput.value = state.draft?.description ?? selected.description ?? '';
       elements.descriptionInput.disabled = restricted || state.saving;
       elements.descriptionInput.readOnly = restricted;
     }
 
     if (elements.svgInput) {
-      elements.svgInput.value = selected.svg || '';
+      elements.svgInput.value = state.draft?.svg ?? selected.svg ?? '';
       elements.svgInput.disabled = restricted || state.saving;
       elements.svgInput.readOnly = restricted;
     }
 
     if (elements.svgPreview) {
-      elements.svgPreview.innerHTML = getTemplateSvgMarkup(selected);
+      elements.svgPreview.innerHTML = getTemplateSvgMarkup(state.draft ?? selected);
     }
 
     renderCategoryAssignment();
@@ -1359,7 +1359,10 @@
         metaParts.push(`Categories: ${selected.categories.map(category => category.name).join(', ')}`);
       }
       if (!restricted) {
-        metaParts.push('Saving will capture the current query columns and filters.');
+        metaParts.push(isNew
+          ? 'Saving will capture the current query columns and filters.'
+          : 'Saving will update the query to your current columns and filters, or preserve the existing query if none is built.'
+        );
       }
       elements.meta.textContent = metaParts.join(' • ');
     }
