@@ -5,7 +5,7 @@
   --templates-muted: rgba(188, 236, 247, 0.8);
   --templates-subtle: rgba(160, 221, 235, 0.68);
   display: grid;
-  grid-template-columns: minmax(22rem, 27rem) minmax(0, 1fr);
+  grid-template-columns: 1fr;
   height: calc(100vh - var(--header-height) - 3.5rem);
   max-height: calc(100vh - var(--header-height) - 3.5rem);
   min-height: min(54rem, calc(100vh - var(--header-height) - 3.5rem));
@@ -43,19 +43,17 @@
   background: radial-gradient(circle, rgba(255, 65, 126, 0.16), transparent 70%);
 }
 
-.templates-sidebar,
-.templates-editor {
+.templates-browser {
   min-height: 0;
   position: relative;
   z-index: 1;
 }
 
-.templates-sidebar {
+.templates-browser {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: 1rem;
   padding: 1.25rem;
-  border-right: 1px solid rgba(66, 225, 255, 0.16);
   background:
     linear-gradient(180deg, rgba(10, 18, 31, 0.94), rgba(5, 10, 20, 0.88)),
     linear-gradient(135deg, rgba(255, 65, 126, 0.04), rgba(70, 235, 255, 0.04));
@@ -63,8 +61,8 @@
   -webkit-backdrop-filter: blur(18px);
 }
 
-.templates-sidebar-top,
-.templates-sidebar-library,
+.templates-browser-top,
+.templates-browser-list-shell,
 .templates-empty-state,
 .templates-detail,
 .templates-categories-dialog {
@@ -76,7 +74,7 @@
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02), 0 24px 48px rgba(0, 0, 0, 0.28);
 }
 
-.templates-sidebar-top {
+.templates-browser-top {
   display: grid;
   gap: 0.9rem;
   padding: 1rem 1.05rem;
@@ -146,7 +144,7 @@
   line-height: 1.5;
 }
 
-.templates-sidebar-library {
+.templates-browser-list-shell {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: 0.9rem;
@@ -174,6 +172,14 @@
   align-content: start;
   min-height: 0;
   padding-right: 0.15rem;
+}
+
+.templates-empty-state {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  min-height: 14rem;
+  margin-top: 0.75rem;
 }
 
 .templates-list-item {
@@ -246,6 +252,19 @@
   position: absolute;
   inset: 0;
   z-index: var(--z-dialog-surface);
+}
+
+.templates-detail-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-dialog-surface);
+}
+
+.templates-detail-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 6, 12, 0.74);
+  backdrop-filter: blur(10px);
 }
 
 .templates-categories-backdrop {
@@ -379,24 +398,7 @@
   background: rgba(8, 14, 26, 0.72);
 }
 
-.templates-editor {
-  padding: 1.25rem;
-  background:
-    linear-gradient(180deg, rgba(9, 17, 29, 0.98), rgba(5, 9, 20, 0.98)),
-    radial-gradient(circle at top right, rgba(70, 235, 255, 0.1), transparent 30%),
-    radial-gradient(circle at bottom left, rgba(255, 59, 126, 0.08), transparent 34%);
-  display: flex;
-  min-height: 0;
-}
-
-.templates-empty-state,
-.templates-detail {
-  width: min(100%, 62rem);
-  margin: 0 auto;
-}
-
 .templates-empty-state {
-  align-self: center;
   padding: 2rem;
 }
 
@@ -442,10 +444,15 @@
 }
 
 .templates-detail {
+  position: absolute;
+  inset: 1.1rem;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
   padding: 1.5rem;
+  margin: 0;
+  width: auto;
+  z-index: 1;
 }
 
 .templates-detail-header {
@@ -455,6 +462,10 @@
   align-items: start;
   padding-bottom: 1rem;
   border-bottom: 1px solid rgba(66, 225, 255, 0.16);
+}
+
+.templates-detail-actions {
+  align-items: center;
 }
 
 .templates-detail-body {
@@ -648,24 +659,15 @@
 
 @media (max-width: 980px) {
   .templates-panel-shell {
-    grid-template-columns: 1fr;
     height: auto;
     max-height: none;
     min-height: calc(100vh - var(--header-height) - 3.5rem);
   }
 
-  .templates-sidebar,
-  .templates-editor {
+  .templates-browser {
     padding: 1rem;
   }
 
-  .templates-sidebar {
-    grid-template-rows: auto auto auto;
-    border-right: none;
-    border-bottom: 1px solid rgba(66, 225, 255, 0.16);
-  }
-
-  .templates-sidebar-library,
   .templates-list,
   .templates-category-list,
   .templates-detail,
@@ -684,14 +686,18 @@
     flex-direction: column;
   }
 
-  .templates-empty-state,
-  .templates-detail {
+  .templates-empty-state {
     width: 100%;
     padding: 1.25rem;
   }
 
   .templates-categories-dialog {
     inset: 0.75rem;
+  }
+
+  .templates-detail {
+    inset: 0.75rem;
+    padding: 1.25rem;
   }
 
   .templates-categories-body {

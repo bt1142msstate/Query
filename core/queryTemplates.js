@@ -13,7 +13,8 @@
     searchQuery: '',
     draft: null,
     editingCategoryId: '',
-    categoriesOverlayOpen: false
+    categoriesOverlayOpen: false,
+    detailOverlayOpen: false
   };
 
   function el(id) {
@@ -30,7 +31,10 @@
       refreshBtn: el('templates-refresh-btn'),
       manageCategoriesBtn: el('templates-manage-categories-btn'),
       emptyState: el('templates-empty-state'),
+      detailOverlay: el('templates-detail-overlay'),
+      detailBackdrop: el('templates-detail-backdrop'),
       detail: el('templates-detail'),
+      detailCloseBtn: el('templates-detail-close-btn'),
       detailMode: el('templates-detail-mode'),
       detailTitle: el('templates-detail-title'),
       nameInput: el('template-name-input'),
@@ -335,13 +339,48 @@
       } else {
         state.selectedId = '';
         state.draft = null;
+        state.detailOverlayOpen = false;
       }
     }
+  }
 
-    if (!state.selectedId && visibleTemplates.length) {
-      state.selectedId = visibleTemplates[0].id;
-      setDraftFromTemplate(visibleTemplates[0]);
+  function openDetailOverlay() {
+    const elements = getElements();
+    if (!elements.detailOverlay) {
+      return;
     }
+
+    state.detailOverlayOpen = true;
+    window.VisibilityUtils?.show?.([elements.detailOverlay, elements.detail], {
+      ariaHidden: false,
+      raisedUiKey: 'templates-detail-overlay'
+    });
+    render();
+    window.requestAnimationFrame(() => {
+      const target = getSelectedTemplate() && !isRestrictedMode()
+        ? elements.nameInput
+        : (elements.useBtn || elements.detailCloseBtn);
+      target?.focus?.();
+    });
+  }
+
+  function closeDetailOverlay() {
+    const elements = getElements();
+    if (!elements.detailOverlay || !elements.detail) {
+      return;
+    }
+
+    state.detailOverlayOpen = false;
+    if (state.selectedId !== NEW_TEMPLATE_ID) {
+      state.selectedId = '';
+      state.draft = null;
+    }
+    window.VisibilityUtils?.hide?.([elements.detailOverlay, elements.detail], {
+      ariaHidden: true,
+      raisedUiKey: 'templates-detail-overlay'
+    });
+    renderValidation([]);
+    render();
   }
 
   async function refreshTemplates(options = {}) {
@@ -395,7 +434,7 @@
 
     state.selectedId = selected.id;
     setDraftFromTemplate(selected);
-    render();
+    openDetailOverlay();
   }
 
   function openCategoriesOverlay() {
@@ -454,8 +493,7 @@
       createdAt: '',
       updatedAt: ''
     };
-    render();
-    getElements().nameInput?.focus();
+    openDetailOverlay();
   }
 
   async function createTemplate() {
@@ -490,6 +528,7 @@
       }));
       state.selectedId = normalized.id;
       setDraftFromTemplate(normalized);
+      state.detailOverlayOpen = true;
       state.loaded = true;
 
       if (typeof window.showToastMessage === 'function') {
@@ -539,6 +578,7 @@
       }));
       state.selectedId = normalized.id;
       setDraftFromTemplate(normalized);
+      state.detailOverlayOpen = true;
 
       if (typeof window.showToastMessage === 'function') {
         window.showToastMessage(`Template "${normalized.name}" updated.`, 'success');
@@ -574,7 +614,7 @@
       state.templates = state.templates.filter(template => template.id !== selected.id);
       state.selectedId = '';
       state.draft = null;
-      reconcileTemplateSelection();
+      state.detailOverlayOpen = false;
 
       if (typeof window.showToastMessage === 'function') {
         window.showToastMessage(`Template "${selected.name}" deleted.`, 'success');
@@ -917,18 +957,18 @@
       elements.listStatus.textContent = 'Loading templates…';
       elements.listStatus.classList.remove('hidden');
       elements.list.replaceChildren();
+      elements.emptyState?.classList.add('hidden');
       return;
     }
 
     if (!visibleTemplates.length) {
-      elements.listStatus.textContent = state.selectedCategoryFilter
-        ? 'No templates match the selected category.'
-        : 'No templates saved yet.';
-      elements.listStatus.classList.remove('hidden');
+      elements.listStatus.classList.add('hidden');
       elements.list.replaceChildren();
+      elements.emptyState?.classList.remove('hidden');
       return;
     }
 
+    elements.emptyState?.classList.add('hidden');
     elements.listStatus.classList.add('hidden');
     elements.list.replaceChildren(...visibleTemplates.map(template => {
       const button = document.createElement('button');
@@ -970,15 +1010,13 @@
       elements.manageCategoriesBtn.disabled = state.loading || state.saving;
     }
 
-    if (!selected) {
-      elements.emptyState?.classList.remove('hidden');
+    if (!selected || !state.detailOverlayOpen) {
       elements.detail?.classList.add('hidden');
       renderValidation([]);
       renderCategoryAssignment();
       return;
     }
 
-    elements.emptyState?.classList.add('hidden');
     elements.detail?.classList.remove('hidden');
 
     if (elements.detailMode) {
@@ -1043,6 +1081,9 @@
     renderList();
     renderDetail();
     const elements = getElements();
+    if (elements.detailOverlay) {
+      elements.detailOverlay.classList.toggle('hidden', !state.detailOverlayOpen);
+    }
     if (elements.categoriesOverlay) {
       elements.categoriesOverlay.classList.toggle('hidden', !state.categoriesOverlayOpen);
     }
@@ -1104,7 +1145,17 @@
       });
     });
 
+    [elements.detailBackdrop, elements.detailCloseBtn].forEach(node => {
+      node?.addEventListener('click', () => {
+        closeDetailOverlay();
+      });
+    });
+
     document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && state.detailOverlayOpen) {
+        closeDetailOverlay();
+        return;
+      }
       if (event.key === 'Escape' && state.categoriesOverlayOpen) {
         closeCategoriesOverlay();
       }
@@ -1130,6 +1181,11 @@
   }
 
   function openPanel() {
+    state.detailOverlayOpen = false;
+    if (state.selectedId !== NEW_TEMPLATE_ID) {
+      state.selectedId = '';
+      state.draft = null;
+    }
     bindEvents();
     refreshTemplates({ force: !state.loaded });
   }
@@ -1137,6 +1193,9 @@
   function closePanel() {
     if (state.categoriesOverlayOpen) {
       closeCategoriesOverlay();
+    }
+    if (state.detailOverlayOpen) {
+      closeDetailOverlay();
     }
   }
 
