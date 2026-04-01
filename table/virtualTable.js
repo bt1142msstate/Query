@@ -358,6 +358,8 @@ function compareScalarCondition(actual, expected, cond, type) {
         return actual <= expected;
       case 'equals':
         return actual === expected;
+      case 'does_not_equal':
+        return actual !== expected;
       default:
         return false;
     }
@@ -369,6 +371,8 @@ function compareScalarCondition(actual, expected, cond, type) {
   switch (cond) {
     case 'equals':
       return actualText === expectedText;
+    case 'does_not_equal':
+      return actualText !== expectedText;
     case 'starts':
     case 'starts_with':
       return actualText.startsWith(expectedText);
@@ -398,6 +402,25 @@ function rowMatchesEqualsSelection(rawCellValue, type, selectedValues) {
   });
 }
 
+function rowMatchesDoesNotEqualSelection(rawCellValue, type, selectedValues) {
+  if (isBlankCellValue(rawCellValue) && selectedValues.some(isBlankPostFilterValue)) {
+    return false;
+  }
+
+  const rowValues = getComparableRowValues(rawCellValue, type);
+  return selectedValues.every(selectedValue => {
+    if (isBlankPostFilterValue(selectedValue)) {
+      return true;
+    }
+
+    const comparableExpected = (type === 'number' || type === 'money')
+      ? parseNumericValue(selectedValue, type)
+      : (type === 'date' ? parseComparableDateValue(selectedValue) : selectedValue);
+
+    return rowValues.every(value => !compareScalarCondition(value, comparableExpected, 'equals', type));
+  });
+}
+
 function doesRowMatchPostFilter(row, field, filter) {
   const columnIndex = baseViewData.columnMap.get(field);
   if (columnIndex === undefined) {
@@ -414,8 +437,16 @@ function doesRowMatchPostFilter(row, field, filter) {
     return rowMatchesEqualsSelection(rawCellValue, type, filterValues);
   }
 
+  if (cond === 'does_not_equal' && filterValues.length > 1) {
+    return rowMatchesDoesNotEqualSelection(rawCellValue, type, filterValues);
+  }
+
   if (cond === 'equals' && isBlankPostFilterValue(filterValue)) {
     return isBlankCellValue(rawCellValue);
+  }
+
+  if (cond === 'does_not_equal' && isBlankPostFilterValue(filterValue)) {
+    return !isBlankCellValue(rawCellValue);
   }
 
   const rowValues = getComparableRowValues(row[columnIndex], type);

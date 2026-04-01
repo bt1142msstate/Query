@@ -82,18 +82,23 @@
     const type = getFieldType(fieldName);
 
     if (type === 'number' || type === 'money') {
-      return ['greater', 'less', 'equals', 'between'];
+      return ['greater', 'less', 'equals', 'does_not_equal', 'between'];
     }
 
     if (type === 'date') {
-      return ['equals', 'before', 'after', 'on_or_before', 'on_or_after', 'between'];
+      return ['equals', 'does_not_equal', 'before', 'after', 'on_or_before', 'on_or_after', 'between'];
     }
 
     if (type === 'boolean') {
-      return ['equals'];
+      return ['equals', 'does_not_equal'];
     }
 
-    return ['contains', 'starts', 'equals'];
+    return ['contains', 'starts', 'equals', 'does_not_equal'];
+  }
+
+  function usesValuePickerOperator(cond) {
+    const normalized = String(cond || '').trim().toLowerCase();
+    return normalized === 'equals' || normalized === 'does_not_equal';
   }
 
   function formatFilterValue(filter, fieldName) {
@@ -175,7 +180,8 @@
     const baseViewData = services.table?.baseViewData;
     const rows = Array.isArray(baseViewData?.rows) ? baseViewData.rows : [];
     const columnIndex = baseViewData?.columnMap instanceof Map ? baseViewData.columnMap.get(fieldName) : undefined;
-    const selectedValues = new Set(getCurrentEqualsValues(fieldName).map(value => String(value || '')));
+    const activeOperator = String(getElements().operatorSelect?.value || 'equals').trim().toLowerCase();
+    const selectedValues = new Set(getCurrentOperatorValues(fieldName, activeOperator).map(value => String(value || '')));
     const optionMap = new Map();
     const optionOrder = [];
     const container = document.createElement('div');
@@ -498,20 +504,20 @@
     return services.getPostFilterState();
   }
 
-  function getCurrentEqualsValues(fieldName) {
+  function getCurrentOperatorValues(fieldName, cond = 'equals') {
     const snapshot = getPostFilterSnapshot();
     const fieldFilters = Array.isArray(snapshot[fieldName]?.filters) ? snapshot[fieldName].filters : [];
-    const equalsFilter = fieldFilters.find(filter => String(filter?.cond || '').toLowerCase() === 'equals');
+    const targetFilter = fieldFilters.find(filter => String(filter?.cond || '').toLowerCase() === String(cond || '').toLowerCase());
 
-    if (!equalsFilter) {
+    if (!targetFilter) {
       return [];
     }
 
-    if (Array.isArray(equalsFilter.vals) && equalsFilter.vals.length) {
-      return equalsFilter.vals.map(value => String(value || '')).filter(value => value || isBlankSentinel(value));
+    if (Array.isArray(targetFilter.vals) && targetFilter.vals.length) {
+      return targetFilter.vals.map(value => String(value || '')).filter(value => value || isBlankSentinel(value));
     }
 
-    const scalarValue = String(equalsFilter.val || '');
+    const scalarValue = String(targetFilter.val || '');
     return scalarValue || isBlankSentinel(scalarValue) ? [scalarValue] : [];
   }
 
@@ -606,13 +612,14 @@
       return;
     }
 
-    const isEquals = elements.operatorSelect.value === 'equals';
+    const activeOperator = String(elements.operatorSelect.value || '').trim().toLowerCase();
+    const isValuePickerOperator = usesValuePickerOperator(activeOperator);
     const fieldName = String(elements.fieldSelect.value || '').trim();
 
-    elements.valuePickerHost.classList.toggle('hidden', !isEquals);
-    setValueInputVisible(elements.valueInput, !isEquals);
+    elements.valuePickerHost.classList.toggle('hidden', !isValuePickerOperator);
+    setValueInputVisible(elements.valueInput, !isValuePickerOperator);
 
-    if (!isEquals || !fieldName) {
+    if (!isValuePickerOperator || !fieldName) {
       if (isBlankSentinel(elements.valueInput.value)) {
         elements.valueInput.value = '';
       }
@@ -627,7 +634,7 @@
     }
 
     if (typeof equalsValueControl.setSelectedValues === 'function') {
-      equalsValueControl.setSelectedValues(getCurrentEqualsValues(fieldName));
+      equalsValueControl.setSelectedValues(getCurrentOperatorValues(fieldName, activeOperator));
     }
   }
 
@@ -894,7 +901,7 @@
       }
     }
 
-    if (cond === 'equals' && equalsValueControl && typeof equalsValueControl.getSelectedValues === 'function') {
+    if (usesValuePickerOperator(cond) && equalsValueControl && typeof equalsValueControl.getSelectedValues === 'function') {
       selectedValues = equalsValueControl.getSelectedValues()
         .map(entry => String(entry || ''))
         .filter(entry => entry || isBlankSentinel(entry));
@@ -923,21 +930,21 @@
       snapshot[field].logic = logic === 'any' ? 'any' : 'all';
     }
 
-    if (cond === 'equals' && selectedValues.length) {
+    if (usesValuePickerOperator(cond) && selectedValues.length) {
       const nextValuesKey = selectedValues.join('\u001F');
-      const existingEquals = snapshot[field].filters.find(filter => String(filter?.cond || '').toLowerCase() === 'equals');
-      const existingEqualsKey = existingEquals
-        ? (Array.isArray(existingEquals.vals) && existingEquals.vals.length
-          ? existingEquals.vals.map(entry => String(entry || '')).join('\u001F')
-          : String(existingEquals.val || ''))
+      const existingSameCond = snapshot[field].filters.find(filter => String(filter?.cond || '').toLowerCase() === cond);
+      const existingSameCondKey = existingSameCond
+        ? (Array.isArray(existingSameCond.vals) && existingSameCond.vals.length
+          ? existingSameCond.vals.map(entry => String(entry || '')).join('\u001F')
+          : String(existingSameCond.val || ''))
         : '';
 
-      if (existingEqualsKey === nextValuesKey) {
+      if (existingSameCondKey === nextValuesKey) {
         window.showToastMessage && window.showToastMessage('That post filter is already active.', 'info');
         return;
       }
 
-      snapshot[field].filters = snapshot[field].filters.filter(filter => String(filter?.cond || '').toLowerCase() !== 'equals');
+      snapshot[field].filters = snapshot[field].filters.filter(filter => String(filter?.cond || '').toLowerCase() !== cond);
       snapshot[field].filters.push({
         cond,
         val: selectedValues[0],
