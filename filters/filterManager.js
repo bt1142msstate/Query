@@ -175,6 +175,11 @@ function getPreferredCondition(conditions, fieldName) {
     return available[0];
 }
 
+function supportsListSelectorCondition(cond) {
+    const normalized = String(cond || '').trim().toLowerCase();
+    return normalized === 'equals' || normalized === 'does_not_equal';
+}
+
 function syncConditionSelection(conditionPanel, cond) {
     if (!conditionPanel || !cond) return;
 
@@ -311,13 +316,13 @@ function buildBubbleConditionPanel(bubble) {
 
         operatorConditions = backendOperators.length > 0
             ? backendOperators
-            : ['contains', 'starts', 'equals'];
+            : ['contains', 'starts', 'equals', 'does_not_equal'];
         conditionPanel.appendChild(createConditionOperatorPicker(operatorConditions, window.buildableConditionBtnHandler));
     } else {
         if (backendOperators.length === 0) {
             operatorConditions = [];
-        } else if (listValues && listValues.length && backendOperators.includes('equals')) {
-            operatorConditions = ['equals'];
+        } else if (listValues && listValues.length && backendOperators.length > 0) {
+            operatorConditions = backendOperators;
         } else {
             operatorConditions = backendOperators;
         }
@@ -359,8 +364,9 @@ function buildBubbleConditionPanel(bubble) {
 
             let currentLiteralValues = [];
             const selectedFieldFilters = getFilterGroupForField(appState.selectedField);
-            if (selectedFieldFilters) {
-                const filter = selectedFieldFilters.filters.find(f => f.cond === 'equals');
+            const listCondition = getPreferredCondition(operatorConditions, appState.selectedField);
+            if (selectedFieldFilters && supportsListSelectorCondition(listCondition)) {
+                const filter = selectedFieldFilters.filters.find(f => String(f.cond || '').trim().toLowerCase() === listCondition);
                 if (filter) {
                     currentLiteralValues = filter.val.split(',').map(v => v.trim());
                 }
@@ -394,8 +400,9 @@ function buildBubbleConditionPanel(bubble) {
             if (window.isListPasteField(fieldDefInfo) && typeof window.createListPasteInput === 'function') {
                 let currentLiteralValues = [];
                 const selectedFieldFilters = getFilterGroupForField(appState.selectedField);
-                if (selectedFieldFilters) {
-                    const filter = selectedFieldFilters.filters.find(f => f.cond === 'equals');
+                const listCondition = getPreferredCondition(operatorConditions, appState.selectedField);
+                if (selectedFieldFilters && supportsListSelectorCondition(listCondition)) {
+                    const filter = selectedFieldFilters.filters.find(f => String(f.cond || '').trim().toLowerCase() === listCondition);
                     if (filter) {
                         currentLiteralValues = String(filter.val).split(',').map(v => v.trim()).filter(Boolean);
                     }
@@ -636,9 +643,10 @@ window.renderConditionList = function(field) {
             // Sync up select container if visible
             const selContainer = document.getElementById('condition-select-container');
             if (selContainer && appState.selectedField === normalizedField) {
-                if (f.cond === 'equals') {
-                    const remainingEquals = data.filters.find(filterItem => filterItem.cond === 'equals');
-                    const nextValues = remainingEquals ? remainingEquals.val.split(',').map(v => v.trim()).filter(Boolean) : [];
+                if (supportsListSelectorCondition(f.cond)) {
+                    const activeCond = window.getSelectedCondition(getFilterConditionPanelElement()) || String(f.cond || '').trim().toLowerCase();
+                    const remainingFilter = data.filters.find(filterItem => String(filterItem.cond || '').trim().toLowerCase() === activeCond);
+                    const nextValues = remainingFilter ? remainingFilter.val.split(',').map(v => v.trim()).filter(Boolean) : [];
 
                     if (typeof selContainer.setSelectedValues === 'function') {
                         selContainer.setSelectedValues(nextValues);
@@ -884,15 +892,15 @@ window.handleFilterConfirm = function(e) {
 
             const newFilterObj = { cond, val: filterValue };
             const existingSet = getFilterGroupForField(field) || { filters: [] };
-            const shouldReplaceExistingEquals = Boolean(
-                cond === 'equals' &&
+            const shouldReplaceExistingListCondition = Boolean(
+                supportsListSelectorCondition(cond) &&
                 filterValue !== '' &&
                 ((isContainerVisible && selContainer) || (isSelectVisible && sel))
             );
-            const contradictionSet = shouldReplaceExistingEquals
+            const contradictionSet = shouldReplaceExistingListCondition
                 ? {
                     ...existingSet,
-                    filters: existingSet.filters.filter(existingFilter => existingFilter.cond !== 'equals')
+                    filters: existingSet.filters.filter(existingFilter => existingFilter.cond !== cond)
                 }
                 : existingSet;
             
@@ -906,7 +914,7 @@ window.handleFilterConfirm = function(e) {
             if (filterValue !== '') {
                 console.log(`Applying filter for ${field}: ${cond} ${filterValue}`);
                 window.QueryChangeManager.upsertFilter(field, { cond, val: filterValue }, {
-                    replaceByCond: shouldReplaceExistingEquals,
+                    replaceByCond: shouldReplaceExistingListCondition,
                     source: 'FilterManager.applyFilter'
                 });
 
@@ -1165,10 +1173,10 @@ window.buildableConditionBtnHandler = function(e) {
 
 // --- Condition templates by type ---
 window.typeConditions = {
-  string: ['contains','starts','equals'],     // no "between" for plain strings
-  number: ['greater','less','equals','between'],
-  money : ['greater','less','equals','between'],
-  date  : ['equals','before','after','on_or_before','on_or_after','between']
+  string: ['contains','starts','equals','does_not_equal'],     // no "between" for plain strings
+  number: ['greater','less','equals','does_not_equal','between'],
+  money : ['greater','less','equals','does_not_equal','between'],
+  date  : ['equals','does_not_equal','before','after','on_or_before','on_or_after','between']
 };
 
 /* ---------- Input helpers to avoid duplicated numeric-config blocks ---------- */
@@ -1300,6 +1308,7 @@ window.getContradictionMessage = function(existing, newF, fieldType, fieldLabel)
     const vals = parseVals(f);
     switch(f.cond){
       case 'equals':  return `equal ${vals[0]}`;
+      case 'does_not_equal': return `not equal ${vals[0]}`;
       case 'contains':return `contain ${vals[0]}`;
       case 'starts':  return `start with ${vals[0]}`;
       case 'doesnotcontain': return `not contain ${vals[0]}`;
@@ -1330,12 +1339,14 @@ window.getContradictionMessage = function(existing, newF, fieldType, fieldLabel)
 
     // Equals conflicts
     if(newF.cond === 'equals'){
+      if(f.cond === 'does_not_equal' && nVals[0] === fVals[0]) return msg;
       if(f.cond === 'equals'     && nVals[0] !== fVals[0]) return msg;
       if(f.cond === 'greater'    && nVals[0] <= fVals[0])  return msg;
       if(f.cond === 'less'       && nVals[0] >= fVals[0])  return msg;
       if(f.cond === 'between'    && (nVals[0] < low || nVals[0] > high)) return msg;
     }
     if(f.cond === 'equals'){
+      if(newF.cond === 'does_not_equal' && fVals[0] === nVals[0]) return msg;
       if(newF.cond === 'greater' && fVals[0] <= nVals[0])  return msg;
       if(newF.cond === 'less'    && fVals[0] >= nVals[0])  return msg;
       if(newF.cond === 'between' && (fVals[0] < nLow || fVals[0] > nHigh)) return msg;

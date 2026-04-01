@@ -56,6 +56,7 @@
       'contains',
       'starts',
       'equals',
+      'does_not_equal',
       'doesnotcontain',
       'greater',
       'less',
@@ -80,7 +81,7 @@
 
   function getDefaultOperatorForField(fieldDef, normalizeOperatorForField) {
     const availableOperators = getAvailableOperators(fieldDef, { operator: 'equals' }, normalizeOperatorForField);
-    const preferredOperators = ['equals', 'contains', 'starts', 'greater', 'less', 'before', 'after', 'on_or_after', 'on_or_before', 'between'];
+    const preferredOperators = ['equals', 'does_not_equal', 'contains', 'starts', 'greater', 'less', 'before', 'after', 'on_or_after', 'on_or_before', 'between'];
     return preferredOperators.find(operator => availableOperators.includes(operator)) || availableOperators[0] || 'equals';
   }
 
