@@ -843,53 +843,75 @@
       return;
     }
 
-    elements.categoryList.replaceChildren(...state.categories.map(category => {
-      const chip = document.createElement('div');
-      chip.className = 'templates-category-chip';
-      chip.classList.toggle('is-filter-active', category.id === state.selectedCategoryFilter);
+    if (!state.categories.length) {
+      const empty = document.createElement('div');
+      empty.className = 'templates-category-empty-state';
+      empty.innerHTML = restricted
+        ? '<h4>No categories yet</h4><p>Categories have not been created yet. You can still browse and use templates.</p>'
+        : '<h4>No categories yet</h4><p>Create a category to group related templates and speed up browsing.</p>';
+      elements.categoryList.replaceChildren(empty);
+    } else {
+      elements.categoryList.replaceChildren(...state.categories.map(category => {
+        const card = document.createElement('article');
+        card.className = 'templates-category-card';
+        card.classList.toggle('is-filter-active', category.id === state.selectedCategoryFilter);
 
-      const nameButton = document.createElement('button');
-      nameButton.type = 'button';
-      nameButton.className = 'templates-category-chip__name';
-      nameButton.textContent = category.name;
-      nameButton.addEventListener('click', () => {
-        state.selectedCategoryFilter = state.selectedCategoryFilter === category.id ? '' : category.id;
-        reconcileTemplateSelection();
-        render();
-      });
-      chip.appendChild(nameButton);
+        const usageCount = state.templates.filter(template =>
+          Array.isArray(template.categories) && template.categories.some(item => item.id === category.id)
+        ).length;
 
-      if (!restricted) {
-        const actions = document.createElement('div');
-        actions.className = 'templates-category-chip__actions';
-
-        const editBtn = document.createElement('button');
-        editBtn.type = 'button';
-        editBtn.className = 'templates-category-chip__btn';
-        editBtn.textContent = 'E';
-        editBtn.title = `Edit ${category.name}`;
-        editBtn.addEventListener('click', event => {
-          event.stopPropagation();
-          startCategoryEdit(category.id);
+        const infoButton = document.createElement('button');
+        infoButton.type = 'button';
+        infoButton.className = 'templates-category-card__main';
+        infoButton.addEventListener('click', () => {
+          state.selectedCategoryFilter = state.selectedCategoryFilter === category.id ? '' : category.id;
+          reconcileTemplateSelection();
+          render();
         });
-        actions.appendChild(editBtn);
 
-        const deleteBtn = document.createElement('button');
-        deleteBtn.type = 'button';
-        deleteBtn.className = 'templates-category-chip__btn';
-        deleteBtn.textContent = 'X';
-        deleteBtn.title = `Delete ${category.name}`;
-        deleteBtn.addEventListener('click', event => {
-          event.stopPropagation();
-          deleteCategory(category.id);
-        });
-        actions.appendChild(deleteBtn);
+        const name = document.createElement('div');
+        name.className = 'templates-category-card__name';
+        name.textContent = category.name;
 
-        chip.appendChild(actions);
-      }
+        const meta = document.createElement('div');
+        meta.className = 'templates-category-card__meta';
+        meta.textContent = `${usageCount} template${usageCount === 1 ? '' : 's'}`;
 
-      return chip;
-    }));
+        infoButton.append(name, meta);
+        card.appendChild(infoButton);
+
+        if (!restricted) {
+          const actions = document.createElement('div');
+          actions.className = 'templates-category-card__actions';
+
+          const editBtn = document.createElement('button');
+          editBtn.type = 'button';
+          editBtn.className = 'templates-category-card__btn';
+          editBtn.textContent = 'Edit';
+          editBtn.title = `Edit ${category.name}`;
+          editBtn.addEventListener('click', event => {
+            event.stopPropagation();
+            startCategoryEdit(category.id);
+          });
+          actions.appendChild(editBtn);
+
+          const deleteBtn = document.createElement('button');
+          deleteBtn.type = 'button';
+          deleteBtn.className = 'templates-category-card__btn templates-category-card__btn--danger';
+          deleteBtn.textContent = 'Delete';
+          deleteBtn.title = `Delete ${category.name}`;
+          deleteBtn.addEventListener('click', event => {
+            event.stopPropagation();
+            deleteCategory(category.id);
+          });
+          actions.appendChild(deleteBtn);
+
+          card.appendChild(actions);
+        }
+
+        return card;
+      }));
+    }
 
     elements.categoryNameInput.disabled = restricted || state.saving;
     elements.categorySaveBtn.disabled = restricted || state.saving;
