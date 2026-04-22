@@ -125,6 +125,7 @@ window.loadFieldDefinitions = async function loadFieldDefinitions() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'get_fields' })
         });
+        await window.BackendApi.assertNotRateLimited(response);
         
         if (!response.ok) {
             throw new Error('HTTP error: ' + response.status);
@@ -174,6 +175,9 @@ window.loadFieldDefinitions = async function loadFieldDefinitions() {
         isFieldsLoaded = true;
         return fieldDefsArray;
     } catch (e) {
+        if (e?.isRateLimited) {
+            return [];
+        }
         console.error("Failed to load backend field mappings.", e);
         if (window.showToastMessage) {
             window.showToastMessage("Could not load field settings from backend", "error");

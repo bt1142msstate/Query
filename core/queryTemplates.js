@@ -344,6 +344,7 @@
       },
       body: JSON.stringify(payload)
     });
+    await window.BackendApi.assertNotRateLimited(response);
 
     const text = await response.text();
     let data = {};
@@ -484,6 +485,9 @@
       reconcileTemplateSelection();
       state.loaded = true;
     } catch (error) {
+      if (error?.isRateLimited) {
+        return;
+      }
       state.loaded = false;
       state.templates = [];
       state.categories = [];
@@ -610,6 +614,9 @@
         window.showToastMessage(`Template "${normalized.name}" saved.`, 'success');
       }
     } catch (error) {
+      if (error?.isRateLimited) {
+        return;
+      }
       renderValidation([error.message]);
     } finally {
       state.saving = false;
@@ -659,6 +666,9 @@
         window.showToastMessage(`Template "${normalized.name}" updated.`, 'success');
       }
     } catch (error) {
+      if (error?.isRateLimited) {
+        return;
+      }
       renderValidation([error.message]);
     } finally {
       state.saving = false;
@@ -695,6 +705,9 @@
         window.showToastMessage(`Template "${selected.name}" deleted.`, 'success');
       }
     } catch (error) {
+      if (error?.isRateLimited) {
+        return;
+      }
       renderValidation([error.message]);
     } finally {
       state.saving = false;
@@ -780,6 +793,9 @@
         window.showToastMessage(nextPinned ? `Pinned "${normalized.name}".` : `Unpinned "${normalized.name}".`, 'success');
       }
     } catch (error) {
+      if (error?.isRateLimited) {
+        return;
+      }
       renderValidation([error.message]);
     } finally {
       state.saving = false;
@@ -828,6 +844,9 @@
         }
       }
     } catch (error) {
+      if (error?.isRateLimited) {
+        return;
+      }
       if (typeof window.showToastMessage === 'function') {
         window.showToastMessage(`Failed to reorder pinned templates: ${error.message}`, 'error');
       }
@@ -926,6 +945,9 @@
         window.showToastMessage(`Category "${rawName}" saved.`, 'success');
       }
     } catch (error) {
+      if (error?.isRateLimited) {
+        return;
+      }
       renderValidation([error.message]);
     } finally {
       state.saving = false;
@@ -976,6 +998,9 @@
         window.showToastMessage(`Category "${category.name}" deleted.`, 'success');
       }
     } catch (error) {
+      if (error?.isRateLimited) {
+        return;
+      }
       renderValidation([error.message]);
     } finally {
       state.saving = false;

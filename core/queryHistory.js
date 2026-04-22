@@ -357,6 +357,7 @@ async function fetchQueryStatus() {
       method: 'POST',
       body: JSON.stringify({ action: 'status' })
     });
+    await window.BackendApi.assertNotRateLimited(response);
     
     if (!response.ok) return;
     
@@ -427,6 +428,9 @@ async function fetchQueryStatus() {
     }
     
   } catch (e) {
+    if (e?.isRateLimited) {
+      return;
+    }
     console.warn('Failed to fetch query status', e);
   }
 }
@@ -443,6 +447,7 @@ async function cancelQuery(queryId) {
       method: 'POST',
       body: JSON.stringify({ action: 'cancel', query_id: queryId })
     });
+    await window.BackendApi.assertNotRateLimited(response);
     
     if (response.ok) {
         const q = exampleQueries.find(q => q.id === queryId);
@@ -457,6 +462,9 @@ async function cancelQuery(queryId) {
         showToastMessage('Failed to cancel query', 'error');
     }
   } catch (e) {
+    if (e?.isRateLimited) {
+      return;
+    }
     console.error('Error cancelling query:', e);
     showToastMessage('Error cancelling query', 'error');
   }
@@ -824,6 +832,7 @@ async function loadQueryResults(queryId) {
             method: 'POST',
             body: JSON.stringify({ action: 'get_results', query_id: queryId })
         });
+        await window.BackendApi.assertNotRateLimited(response);
 
         if (!response.ok) {
             throw new Error(`Server error: ${response.status} ${response.statusText}`);
@@ -921,6 +930,9 @@ async function loadQueryResults(queryId) {
         services.closeAllModals();
 
     } catch (error) {
+        if (error?.isRateLimited) {
+            return;
+        }
         console.error('Failed to load results:', error);
         if (typeof showToastMessage === 'function') {
             showToastMessage('Failed to load results: ' + error.message, 'error');

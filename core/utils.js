@@ -125,6 +125,78 @@ window.formatDuration = function(seconds) {
   return parts.join(' ');
 };
 
+window.BackendApi = (() => {
+  const API_URL = 'https://mlp.sirsi.net/uhtbin/query_api.pl';
+  let lastRateLimitNoticeUntil = 0;
+
+  function getRetryAfterSeconds(payload) {
+    const rawValue = payload?.retry_after_seconds ?? payload?.retry_after ?? 0;
+    const numericValue = Number(rawValue);
+    return Number.isFinite(numericValue) && numericValue > 0 ? Math.ceil(numericValue) : 0;
+  }
+
+  function formatRetryDelay(seconds) {
+    const safeSeconds = Number.isFinite(Number(seconds)) ? Math.max(0, Math.ceil(Number(seconds))) : 0;
+    if (typeof window.formatDuration === 'function') {
+      return window.formatDuration(safeSeconds);
+    }
+    return `${safeSeconds}s`;
+  }
+
+  function buildRateLimitMessage(payload = {}) {
+    const retryAfterSeconds = getRetryAfterSeconds(payload);
+    const waitMessage = retryAfterSeconds > 0
+      ? `Try again in ${formatRetryDelay(retryAfterSeconds)}.`
+      : 'Try again shortly.';
+    return `${payload.error || 'Too many requests from this IP.'} ${waitMessage}`;
+  }
+
+  async function parseJsonResponse(response) {
+    const text = await response.text();
+    if (!text) {
+      return {};
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch (_) {
+      return { error: text };
+    }
+  }
+
+  async function assertNotRateLimited(response, options = {}) {
+    if (!response || response.status !== 429) {
+      return response;
+    }
+
+    const payload = await parseJsonResponse(response);
+    const retryAfterSeconds = getRetryAfterSeconds(payload);
+    const noticeUntil = Date.now() + (retryAfterSeconds * 1000);
+    const message = buildRateLimitMessage(payload);
+
+    if (options.notify !== false && typeof window.showToastMessage === 'function') {
+      if (!lastRateLimitNoticeUntil || Date.now() >= (lastRateLimitNoticeUntil - 1000)) {
+        window.showToastMessage(message, 'warning', Math.max(4000, Math.min(retryAfterSeconds * 1000, 15000) || 8000));
+        lastRateLimitNoticeUntil = noticeUntil || (Date.now() + 8000);
+      }
+    }
+
+    const error = new Error(message);
+    error.name = 'RateLimitError';
+    error.isRateLimited = true;
+    error.retryAfterSeconds = retryAfterSeconds;
+    error.payload = payload;
+    throw error;
+  }
+
+  return {
+    API_URL,
+    assertNotRateLimited,
+    buildRateLimitMessage,
+    formatRetryDelay
+  };
+})();
+
 window.OperatorLabels = (() => {
   const LABELS = Object.freeze({
     contains: 'Contains',
