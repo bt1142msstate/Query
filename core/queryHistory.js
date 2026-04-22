@@ -816,21 +816,10 @@ async function loadQueryResults(queryId) {
     }
 
     try {
-        const response = await window.BackendApi.request({ action: 'get_results', query_id: queryId });
-
-        if (!response.ok) {
-            throw new Error(`Server error: ${response.status} ${response.statusText}`);
-        }
-
-        const contentType = response.headers.get('Content-Type') || '';
-        // Successful result downloads come back as plain text; JSON payloads mean the
-        // backend is returning an error or "not ready yet" response instead of rows.
-        if (contentType.includes('application/json')) {
-          const payload = await response.json();
-          throw new Error(payload.error || 'Results are not available yet.');
-        }
-
-        const text = await response.text();
+        const { response, text } = await window.BackendApi.postText(
+            { action: 'get_results', query_id: queryId },
+            { jsonErrorMessage: 'Results are not available yet.' }
+        );
         
         // Use X-Raw-Columns or fallback to config used
         const rawColsHeader = response.headers.get('X-Raw-Columns');
