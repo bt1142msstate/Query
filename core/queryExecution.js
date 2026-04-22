@@ -206,6 +206,7 @@ if (execDom.runBtn) {
           keepalive: true,
           body: JSON.stringify(payload)
         });
+        await window.BackendApi.assertNotRateLimited(response);
 
         // Capture Query ID and register in history
         const responseQueryId = response.headers.get('X-Query-Id');
@@ -344,6 +345,10 @@ if (execDom.runBtn) {
         // Checking if the query was manually stopped by the user
         if (!window.QueryStateReaders.getLifecycleState().queryRunning) {
           console.log('Query execution interrupted by user stop/cancel.');
+          return;
+        }
+
+        if (error?.isRateLimited) {
           return;
         }
 
