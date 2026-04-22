@@ -189,11 +189,60 @@ window.BackendApi = (() => {
     throw error;
   }
 
+  async function request(payload, options = {}) {
+    const {
+      method = 'POST',
+      headers = {},
+      keepalive = false,
+      notifyOnRateLimit = true
+    } = options;
+
+    const response = await fetch(API_URL, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers
+      },
+      keepalive,
+      body: JSON.stringify(payload)
+    });
+
+    await assertNotRateLimited(response, { notify: notifyOnRateLimit });
+    return response;
+  }
+
+  function buildHttpError(response, payload = {}) {
+    const message = payload?.error || `Server error: ${response.status} ${response.statusText}`;
+    const error = new Error(message);
+    error.name = 'BackendApiError';
+    error.status = response.status;
+    error.payload = payload;
+    return error;
+  }
+
+  async function postJson(payload, options = {}) {
+    const response = await request(payload, options);
+    const data = await parseJsonResponse(response);
+
+    if (!response.ok) {
+      throw buildHttpError(response, data);
+    }
+
+    return {
+      response,
+      data
+    };
+  }
+
   return {
     API_URL,
     assertNotRateLimited,
     buildRateLimitMessage,
-    formatRetryDelay
+    formatRetryDelay,
+    parseJsonResponse,
+    request,
+    postJson,
+    buildHttpError
   };
 })();
 

@@ -198,15 +198,7 @@ if (execDom.runBtn) {
 
         console.log('Sending query payload:', payload);
 
-        const response = await fetch('https://mlp.sirsi.net/uhtbin/query_api.pl', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          keepalive: true,
-          body: JSON.stringify(payload)
-        });
-        await window.BackendApi.assertNotRateLimited(response);
+        const response = await window.BackendApi.request(payload, { keepalive: true });
 
         // Capture Query ID and register in history
         const responseQueryId = response.headers.get('X-Query-Id');

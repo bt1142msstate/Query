@@ -353,15 +353,7 @@ function mergeUiConfigWithRequest(uiConfig, request) {
 async function fetchQueryStatus() {
   try {
     lastQueryStatusPollAt = Date.now();
-    const response = await fetch('https://mlp.sirsi.net/uhtbin/query_api.pl', {
-      method: 'POST',
-      body: JSON.stringify({ action: 'status' })
-    });
-    await window.BackendApi.assertNotRateLimited(response);
-    
-    if (!response.ok) return;
-    
-    const data = await response.json();
+    const { data } = await window.BackendApi.postJson({ action: 'status' }, { notifyOnRateLimit: isQueriesPanelOpen() });
     if (!data.queries) return;
     
     const newHistory = [];
@@ -443,11 +435,7 @@ async function fetchQueryStatus() {
  */
 async function cancelQuery(queryId) {
   try {
-    const response = await fetch('https://mlp.sirsi.net/uhtbin/query_api.pl', {
-      method: 'POST',
-      body: JSON.stringify({ action: 'cancel', query_id: queryId })
-    });
-    await window.BackendApi.assertNotRateLimited(response);
+    const { response } = await window.BackendApi.postJson({ action: 'cancel', query_id: queryId });
     
     if (response.ok) {
         const q = exampleQueries.find(q => q.id === queryId);
@@ -828,11 +816,7 @@ async function loadQueryResults(queryId) {
     }
 
     try {
-        const response = await fetch('https://mlp.sirsi.net/uhtbin/query_api.pl', {
-            method: 'POST',
-            body: JSON.stringify({ action: 'get_results', query_id: queryId })
-        });
-        await window.BackendApi.assertNotRateLimited(response);
+        const response = await window.BackendApi.request({ action: 'get_results', query_id: queryId });
 
         if (!response.ok) {
             throw new Error(`Server error: ${response.status} ${response.statusText}`);
