@@ -234,6 +234,34 @@ window.BackendApi = (() => {
     };
   }
 
+  async function postText(payload, options = {}) {
+    const {
+      jsonErrorMessage = 'Results are not available yet.'
+    } = options;
+
+    const response = await request(payload, options);
+    const contentType = response.headers.get('Content-Type') || '';
+
+    if (contentType.includes('application/json')) {
+      const data = await parseJsonResponse(response);
+      throw buildHttpError(response, {
+        ...data,
+        error: data?.error || jsonErrorMessage
+      });
+    }
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw buildHttpError(response, { error: text });
+    }
+
+    const text = await response.text();
+    return {
+      response,
+      text
+    };
+  }
+
   return {
     API_URL,
     assertNotRateLimited,
@@ -242,6 +270,7 @@ window.BackendApi = (() => {
     parseJsonResponse,
     request,
     postJson,
+    postText,
     buildHttpError
   };
 })();
