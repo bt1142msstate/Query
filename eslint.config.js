@@ -41,6 +41,7 @@ const allowedWindowAssignments = new Set([
   'VisibilityUtils',
   'addQueryToHistory',
   'animatingBackBubbles',
+  'BackendApi',
   'buildBackendFilters',
   'buildBackendQueryPayload',
   'buildQueryUiConfig',
