@@ -120,18 +120,7 @@ window.loadFieldDefinitions = async function loadFieldDefinitions() {
     if (isFieldsLoaded) return fieldDefsArray;
     
     try {
-        const response = await fetch('https://mlp.sirsi.net/uhtbin/query_api.pl', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'get_fields' })
-        });
-        await window.BackendApi.assertNotRateLimited(response);
-        
-        if (!response.ok) {
-            throw new Error('HTTP error: ' + response.status);
-        }
-        
-        const data = await response.json();
+        const { data } = await window.BackendApi.postJson({ action: 'get_fields' });
         
         let errorMsg = null;
         if (data.error) {

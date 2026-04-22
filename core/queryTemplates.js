@@ -1,5 +1,4 @@
 (function initializeQueryTemplates() {
-  const API_URL = 'https://mlp.sirsi.net/uhtbin/query_api.pl';
   const NEW_TEMPLATE_ID = '__new_template__';
   const DEFAULT_TEMPLATE_SVG = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" aria-hidden="true">
@@ -337,27 +336,10 @@
   }
 
   async function sendTemplateRequest(payload) {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
-    await window.BackendApi.assertNotRateLimited(response);
-
-    const text = await response.text();
-    let data = {};
-    try {
-      data = text ? JSON.parse(text) : {};
-    } catch (_) {
-      throw new Error(text || `Server error: ${response.status}`);
+    const { data } = await window.BackendApi.postJson(payload);
+    if (data.error) {
+      throw new Error(data.error);
     }
-
-    if (!response.ok || data.error) {
-      throw new Error(data.error || `Server error: ${response.status}`);
-    }
-
     return data;
   }
 
