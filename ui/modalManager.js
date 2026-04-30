@@ -24,11 +24,22 @@ class ModalManager {
       'toggle-templates': 'Templates',
       'toggle-help': 'Help'
     };
+
+    this.ensurePanelsAtBodyRoot();
     
     // Input locking overlay
     this.createInputBlockOverlay();
     
     this.setupListeners();
+  }
+
+  ensurePanelsAtBodyRoot() {
+    this.panels.forEach(panelId => {
+      const panel = document.getElementById(panelId);
+      if (panel && panel.parentElement !== document.body) {
+        document.body.appendChild(panel);
+      }
+    });
   }
 
   /**
@@ -212,6 +223,7 @@ class ModalManager {
     }
 
     this.initialized = true;
+    this.ensurePanelsAtBodyRoot();
 
     // Desktop: Bind click events to the toggle buttons
     const panelToggles = {
@@ -381,18 +393,13 @@ class ModalManager {
   }
 
   setMainContentAriaHidden(hidden, openPanelId = null) {
-    const pageBody = window.DOM?.pageBody || document.getElementById('page-body');
-    if (!pageBody) return;
-    
-    // We want to hide everything except the modal
-    // This depends on DOM structure. 
-    // Assuming modals are direct children of body or outside page-body?
-    // Based on index.html, panels are children of body (direct or indirect).
+    const appShell = document.getElementById('query-app-shell');
+    if (!appShell) return;
     
     if (hidden) {
-      pageBody.setAttribute('aria-hidden', 'true');
+      appShell.setAttribute('aria-hidden', 'true');
     } else {
-      pageBody.removeAttribute('aria-hidden');
+      appShell.removeAttribute('aria-hidden');
     }
   }
 }

@@ -438,12 +438,24 @@ async function cancelQuery(queryId) {
     const { response } = await window.BackendApi.postJson({ action: 'cancel', query_id: queryId });
     
     if (response.ok) {
+        const lifecycleState = window.QueryStateReaders?.getLifecycleState?.();
+        const isActiveLocalQuery = lifecycleState?.queryRunning
+            && String(lifecycleState.currentQueryId || '') === String(queryId || '');
         const q = exampleQueries.find(q => q.id === queryId);
         if(q) {
             q.running = false;
             q.cancelled = true;
             q.status = 'canceled';
             renderQueries();
+        }
+        if (isActiveLocalQuery) {
+            window.QueryChangeManager?.setLifecycleState?.(
+                { queryRunning: false },
+                { source: 'QueryHistory.cancelQuery', silent: true }
+            );
+            uiActions.updateRunButtonIcon();
+            uiActions.updateButtonStates();
+            if (window.endTableQueryAnimation) window.endTableQueryAnimation();
         }
         showToastMessage(`Query ${queryId} cancelled`, 'info');
     } else {

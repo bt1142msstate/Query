@@ -2445,12 +2445,13 @@ body.post-filter-overlay-open {
   pointer-events: none;
 }
 
-body.scene-fade-out > *:not(#header-bar):not(#table-query-bubble):not(.table-query-bubble-hud):not(.particle):not(#toast-container) {
+/* Fade the main workspace only; overlays opened during a running query stay visible. */
+body.scene-fade-out #query-app-shell {
   opacity: 0 !important;
   pointer-events: none !important;
 }
 
-body.scene-fade-transition > *:not(#header-bar):not(#table-query-bubble):not(.table-query-bubble-hud):not(.particle):not(#toast-container) {
+body.scene-fade-transition #query-app-shell {
   transition: opacity 0.5s ease;
 }
 
