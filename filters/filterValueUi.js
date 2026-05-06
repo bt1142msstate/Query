@@ -205,3 +205,17 @@
   window.openFilterListViewer = openFilterListViewer;
   window.shouldUseFilterListViewer = shouldUseFilterListViewer;
 })();
+
+const FilterValueUi = window.FilterValueUi;
+const buildFilterValueLabel = FilterValueUi.buildFilterValueLabel;
+const getFilterDisplayValues = FilterValueUi.getFilterDisplayValues;
+const openFilterListViewer = FilterValueUi.openFilterListViewer;
+const shouldUseFilterListViewer = FilterValueUi.shouldUseFilterListViewer;
+
+export {
+  FilterValueUi,
+  buildFilterValueLabel,
+  getFilterDisplayValues,
+  openFilterListViewer,
+  shouldUseFilterListViewer
+};

@@ -914,11 +914,7 @@ function renderVirtualTable() {
   }
   
   // Re-apply drag and drop to the new rows
-  if (services.dragDrop?.addDragAndDrop) {
-    services.addDragAndDrop(table);
-  } else if (typeof addDragAndDrop !== 'undefined') {
-    addDragAndDrop(table);
-  }
+  services.addDragAndDrop(table);
 }
 
 /**

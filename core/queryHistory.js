@@ -840,8 +840,9 @@ async function loadQueryResults(queryId) {
         // Use X-Raw-Columns or fallback to config used
         const rawColsHeader = response.headers.get('X-Raw-Columns');
         // Ensure displayedFields is updated after loadQueryConfig
-        const currentDisplayedFields = getDisplayedFields().length
-          ? getDisplayedFields()
+        const displayedFields = window.QueryStateReaders?.getDisplayedFields?.() || [];
+        const currentDisplayedFields = displayedFields.length
+          ? displayedFields
           : (q.jsonConfig ? q.jsonConfig.DesiredColumnOrder : []);
         
         const rawColumns = rawColsHeader ? rawColsHeader.split('|') : currentDisplayedFields;

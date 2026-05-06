@@ -377,12 +377,12 @@ function buildBubbleConditionPanel(bubble) {
                 : listValues.some(val => val.includes('-'));
 
             const selector = isBooleanField && listValues.length === 2
-                ? createBooleanPillSelector(listValues, currentLiteralValues[0] || '', {
+                ? window.createBooleanPillSelector(listValues, currentLiteralValues[0] || '', {
                     onChange: () => {
                         confirmBtn.click();
                     }
                 })
-                : createGroupedSelector(listValues, isMultiSelect, currentLiteralValues, {
+                : window.createGroupedSelector(listValues, isMultiSelect, currentLiteralValues, {
                     enableGrouping: shouldGroupValues && hasDashes
                 });
             inputWrapper.insertBefore(selector, confirmBtn);

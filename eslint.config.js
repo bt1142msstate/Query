@@ -413,6 +413,7 @@ module.exports = [
       }
     },
     rules: {
+      'no-undef': 'error',
       'no-unused-vars': ['error', {
         args: 'none',
         argsIgnorePattern: '^_',
@@ -574,6 +575,7 @@ module.exports = [
       }
     },
     rules: {
+      'no-undef': 'error',
       'no-unused-vars': ['error', {
         args: 'none',
         argsIgnorePattern: '^_',

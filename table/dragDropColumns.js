@@ -104,7 +104,7 @@
           } else {
             bubbleEl.setAttribute('draggable', 'true');
           }
-          applyCorrectBubbleStyling(bubbleEl);
+          window.BubbleSystem?.applyCorrectBubbleStyling?.(bubbleEl);
         }
       });
     }

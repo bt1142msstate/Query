@@ -187,6 +187,16 @@ async function runSmokeTest() {
       throw new Error(`Browser smoke test failed:\n${failures.map(failure => `- ${failure}`).join('\n')}`);
     }
 
+    await page.evaluate(() => {
+      window.QueryChangeManager.upsertFilter(
+        'Smoke Filter Field',
+        { cond: 'equals', val: 'Smoke Value' },
+        { source: 'BrowserSmoke.activeFilter' }
+      );
+      window.FilterSidePanel.update();
+    });
+    await page.locator('.fp-cond-text').waitFor({ state: 'attached', timeout: 5000 });
+
     await page.getByRole('button', { name: 'Queries' }).click();
     await page.locator('input[placeholder="Search queries..."]').waitFor({ state: 'visible', timeout: 5000 });
 
