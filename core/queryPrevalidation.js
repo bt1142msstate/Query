@@ -1,4 +1,5 @@
 import { showToastMessage } from './toast.js';
+import { MoneyUtils } from './utils.js';
 
 (function initializeQueryPrevalidation() {
   let lastRejectedToast = {
@@ -240,9 +241,7 @@ import { showToastMessage } from './toast.js';
     const fieldType = getFieldType(fieldName);
 
     if (fieldType === 'number' || fieldType === 'money') {
-      const parsed = window.MoneyUtils?.parseNumber
-        ? window.MoneyUtils.parseNumber(normalized)
-        : parseFloat(normalized.replace(/,/g, ''));
+      const parsed = MoneyUtils.parseNumber(normalized);
       return { kind: fieldType, value: parsed };
     }
 

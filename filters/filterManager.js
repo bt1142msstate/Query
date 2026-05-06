@@ -1,6 +1,6 @@
 import { appServices } from '../core/appServices.js';
 import { appUiActions } from '../core/appUiActions.js';
-import { Icons } from '../core/icons.js';
+import { Icons, MoneyUtils } from '../core/utils.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import {
     buildFilterValueLabel,
@@ -795,8 +795,8 @@ window.handleFilterConfirm = function(e) {
     const numberFormat = window.ValueFormatting?.getNumberFormat?.(field) || '';
     if (fieldType === 'money' || fieldType === 'number') {
         const allowDecimal = fieldType === 'money' || (fieldType === 'number' && numberFormat === 'decimal');
-        val = window.MoneyUtils.sanitizeInputValue(val, { allowDecimal });
-        val2 = window.MoneyUtils.sanitizeInputValue(val2, { allowDecimal });
+        val = MoneyUtils.sanitizeInputValue(val, { allowDecimal });
+        val2 = MoneyUtils.sanitizeInputValue(val2, { allowDecimal });
     }
     const isBuildable = fieldDef && fieldDef.is_buildable;
 
@@ -1220,7 +1220,7 @@ function setNumericFieldAppearance(inputs, numericKind) {
         const mode = isMoney
           ? true
           : (isDecimal ? { kind: 'decimal' } : (isInteger ? { kind: 'integer' } : false));
-        window.MoneyUtils.configureInputBehavior(inp, mode);
+        MoneyUtils.configureInputBehavior(inp, mode);
     });
 }
 

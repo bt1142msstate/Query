@@ -1,6 +1,7 @@
 import { showToastMessage } from '../core/toast.js';
 import { Icons } from '../core/icons.js';
 import { OperatorLabels } from '../core/operatorLabels.js';
+import { MoneyUtils } from '../core/utils.js';
 import { SelectorControls } from './selectorControls.js';
 
   function parseFieldOptions(fieldDef, inputSpec, normalizeOperatorForField) {
@@ -169,15 +170,15 @@ import { SelectorControls } from './selectorControls.js';
       input.type = 'text';
       input.className = 'form-mode-text-input form-mode-money-input';
       input.placeholder = inputSpec.placeholder || '0.00';
-      input.value = window.MoneyUtils.formatInputValue(initialValues[0] || '');
+      input.value = MoneyUtils.formatInputValue(initialValues[0] || '');
       input.autocomplete = 'off';
       input.inputMode = 'decimal';
-      window.MoneyUtils.configureInputBehavior(input, true);
+      MoneyUtils.configureInputBehavior(input, true);
 
       wrapper.appendChild(input);
 
       wrapper.getFormValues = function() {
-        const value = window.MoneyUtils.sanitizeInputValue(input.value);
+        const value = MoneyUtils.sanitizeInputValue(input.value);
         return value ? [value] : [];
       };
 
@@ -192,8 +193,8 @@ import { SelectorControls } from './selectorControls.js';
           }
           return;
         }
-        input.value = window.MoneyUtils.formatInputValue(rawValue);
-        window.MoneyUtils.configureInputBehavior(input, true);
+        input.value = MoneyUtils.formatInputValue(rawValue);
+        MoneyUtils.configureInputBehavior(input, true);
       };
 
       wrapper.focusInput = function() {
@@ -213,17 +214,17 @@ import { SelectorControls } from './selectorControls.js';
       input.className = 'form-mode-text-input';
       input.placeholder = inputSpec.placeholder || (allowDecimal ? '0.00' : '0');
       input.value = useGroupedIntegerFormatting || allowDecimal
-        ? window.MoneyUtils.formatInputValue(initialValues[0] || '', { allowDecimal })
-        : window.MoneyUtils.sanitizeInputValue(initialValues[0] || '', { allowDecimal: false });
+        ? MoneyUtils.formatInputValue(initialValues[0] || '', { allowDecimal })
+        : MoneyUtils.sanitizeInputValue(initialValues[0] || '', { allowDecimal: false });
       input.autocomplete = 'off';
       input.inputMode = allowDecimal ? 'decimal' : 'numeric';
-      window.MoneyUtils.configureInputBehavior(
+      MoneyUtils.configureInputBehavior(
         input,
         allowDecimal ? { kind: 'decimal' } : (useGroupedIntegerFormatting ? { kind: 'integer' } : false)
       );
 
       input.getFormValues = function() {
-        const value = window.MoneyUtils.sanitizeInputValue(input.value, { allowDecimal });
+        const value = MoneyUtils.sanitizeInputValue(input.value, { allowDecimal });
         return value ? [value] : [];
       };
 
@@ -239,9 +240,9 @@ import { SelectorControls } from './selectorControls.js';
           return;
         }
         input.value = useGroupedIntegerFormatting || allowDecimal
-          ? window.MoneyUtils.formatInputValue(rawValue, { allowDecimal })
-          : window.MoneyUtils.sanitizeInputValue(rawValue, { allowDecimal: false });
-        window.MoneyUtils.configureInputBehavior(
+          ? MoneyUtils.formatInputValue(rawValue, { allowDecimal })
+          : MoneyUtils.sanitizeInputValue(rawValue, { allowDecimal: false });
+        MoneyUtils.configureInputBehavior(
           input,
           allowDecimal ? { kind: 'decimal' } : (useGroupedIntegerFormatting ? { kind: 'integer' } : false)
         );

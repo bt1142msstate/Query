@@ -4,6 +4,7 @@ import { OperatorLabels } from '../core/operatorLabels.js';
 import { QueryStateReaders } from '../core/queryState.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 import { showToastMessage } from '../core/toast.js';
+import { MoneyUtils } from '../core/utils.js';
 import { VisibilityUtils } from '../core/visibility.js';
 import { initializeSearchInputs } from '../ui/searchUI.js';
 import { SelectorControls } from '../ui/selectorControls.js';
@@ -662,11 +663,11 @@ import { SelectorControls } from '../ui/selectorControls.js';
       input.inputMode = isDate ? 'numeric' : (fieldType === 'money' ? 'decimal' : (fieldType === 'number' ? 'numeric' : 'text'));
       input.placeholder = isDate ? 'M/D/YYYY' : 'Value';
       if (fieldType === 'money') {
-        window.MoneyUtils.configureInputBehavior(input, true);
+        MoneyUtils.configureInputBehavior(input, true);
       } else if (fieldType === 'number') {
-        window.MoneyUtils.configureInputBehavior(input, numberFormat === 'year' ? false : { kind: 'integer' });
+        MoneyUtils.configureInputBehavior(input, numberFormat === 'year' ? false : { kind: 'integer' });
       } else {
-        window.MoneyUtils.configureInputBehavior(input, false);
+        MoneyUtils.configureInputBehavior(input, false);
       }
 
       if (isDate && window.CustomDatePicker?.enhanceInput) {
@@ -887,8 +888,8 @@ import { SelectorControls } from '../ui/selectorControls.js';
 
     if (fieldType === 'money' || fieldType === 'number') {
       const allowDecimal = fieldType === 'money' || (fieldType === 'number' && numberFormat === 'decimal');
-      value = window.MoneyUtils.sanitizeInputValue(value, { allowDecimal });
-      value2 = window.MoneyUtils.sanitizeInputValue(value2, { allowDecimal });
+      value = MoneyUtils.sanitizeInputValue(value, { allowDecimal });
+      value2 = MoneyUtils.sanitizeInputValue(value2, { allowDecimal });
     }
 
     if (fieldType === 'date') {

@@ -18,7 +18,6 @@ const publicWindowAssignments = [
   'FilterSidePanel',
   'JsonViewerUI',
   'ModalSystem',
-  'MoneyUtils',
   'OperatorLabels',
   'OperatorSelectUtils',
   'PostFilterSystem',
