@@ -1,4 +1,5 @@
 import './core/domReady.js';
+import './core/dragUtils.js';
 import './core/icons.js';
 import './core/operatorLabels.js';
 import './core/utils.js';

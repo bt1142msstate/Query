@@ -3,6 +3,7 @@
  * Owns hover, drop indicator, header actions, and drag lifecycle behavior.
  */
 import { ClipboardUtils } from '../core/clipboard.js';
+import { DragUtils } from '../core/dragUtils.js';
 import { Icons } from '../core/icons.js';
 import { showToastMessage } from '../core/toast.js';
 (function initializeDragDropInteractions() {
@@ -23,9 +24,8 @@ import { showToastMessage } from '../core/toast.js';
   } = dragDropColumnOps;
 
   function isSupportedTableDrag(event) {
-    return window.DragUtils.hasDragType(event, TABLE_COLUMN_DRAG_MIME) || window.DragUtils.hasDragType(event, BUBBLE_FIELD_DRAG_MIME);
+    return DragUtils.hasDragType(event, TABLE_COLUMN_DRAG_MIME) || DragUtils.hasDragType(event, BUBBLE_FIELD_DRAG_MIME);
   }
-
   const dropAnchor = document.createElement('div');
   dropAnchor.className = 'drop-anchor';
   document.body.appendChild(dropAnchor);
