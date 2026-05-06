@@ -5,10 +5,11 @@
 import { ClipboardUtils } from '../core/clipboard.js';
 import { DragUtils } from '../core/dragUtils.js';
 import { Icons } from '../core/icons.js';
+import { QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
 (function initializeDragDropInteractions() {
-  var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
-  var getLifecycleState = window.QueryStateReaders.getLifecycleState.bind(window.QueryStateReaders);
+  var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
+  var getLifecycleState = QueryStateReaders.getLifecycleState.bind(QueryStateReaders);
   var services = window.AppServices;
   var dragDropColumnOps = window.DragDropColumnOps;
   const TABLE_COLUMN_DRAG_MIME = 'application/x-query-table-column-index';
@@ -22,7 +23,6 @@ import { showToastMessage } from '../core/toast.js';
     moveColumn,
     removeColumn
   } = dragDropColumnOps;
-
   function isSupportedTableDrag(event) {
     return DragUtils.hasDragType(event, TABLE_COLUMN_DRAG_MIME) || DragUtils.hasDragType(event, BUBBLE_FIELD_DRAG_MIME);
   }

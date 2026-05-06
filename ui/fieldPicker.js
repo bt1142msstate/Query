@@ -1,10 +1,11 @@
 import { mapFieldOperatorToUiCond } from '../filters/queryPayload.js';
+import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
 import { VisibilityUtils } from '../core/visibility.js';
 
 (function() {
   const services = window.AppServices;
-  const { getDisplayedFields, getFilterGroupForField } = window.QueryStateReaders;
+  const { getDisplayedFields, getFilterGroupForField } = QueryStateReaders;
 
   function getFieldPickerOptionsFromDefinitions() {
     const source = Array.isArray(window.fieldDefsArray) && window.fieldDefsArray.length > 0
@@ -984,8 +985,8 @@ import { VisibilityUtils } from '../core/visibility.js';
         control,
         normalizeOperatorForField: normalizeQueryPreviewOperator,
         removeSpecInputByKey: () => {
-          if (window.QueryChangeManager) {
-            window.QueryChangeManager.removeFilter(fieldName, {
+          if (QueryChangeManager) {
+            QueryChangeManager.removeFilter(fieldName, {
               removeAll: true,
               source: 'SharedFieldPicker.previewRemove'
             });
@@ -1049,7 +1050,7 @@ import { VisibilityUtils } from '../core/visibility.js';
   }
 
   function applyQueryPreviewFilterState(fieldName, previewState) {
-    if (!fieldName || !previewState || !window.QueryChangeManager || typeof window.QueryChangeManager.setQueryState !== 'function') {
+    if (!fieldName || !previewState || !QueryChangeManager || typeof QueryChangeManager.setQueryState !== 'function') {
       return;
     }
 
@@ -1062,8 +1063,8 @@ import { VisibilityUtils } from '../core/visibility.js';
       : rawValues.some(Boolean);
 
     if (!hasActiveValue) {
-      if (typeof window.QueryChangeManager.removeFilter === 'function') {
-        window.QueryChangeManager.removeFilter(fieldName, {
+      if (typeof QueryChangeManager.removeFilter === 'function') {
+        QueryChangeManager.removeFilter(fieldName, {
           removeAll: true,
           source: 'SharedFieldPicker.previewUpdateEmpty'
         });
@@ -1072,7 +1073,7 @@ import { VisibilityUtils } from '../core/visibility.js';
     }
 
     const validValues = isBetween ? rawValues.slice(0, 2) : rawValues.filter(Boolean);
-    const nextActiveFilters = JSON.parse(JSON.stringify(window.QueryStateReaders?.getActiveFilters?.() || {}));
+    const nextActiveFilters = JSON.parse(JSON.stringify(QueryStateReaders?.getActiveFilters?.() || {}));
     nextActiveFilters[fieldName] = {
       filters: [{
         cond: previewState.operator,
@@ -1082,7 +1083,7 @@ import { VisibilityUtils } from '../core/visibility.js';
       }]
     };
 
-    window.QueryChangeManager.setQueryState({
+    QueryChangeManager.setQueryState({
       activeFilters: nextActiveFilters
     }, {
       source: 'SharedFieldPicker.previewUpdate'
@@ -1193,8 +1194,8 @@ import { VisibilityUtils } from '../core/visibility.js';
             })()
           : currentFields.filter(column => !fieldMatchesBase(column, fieldName));
 
-        if (window.QueryChangeManager) {
-          window.QueryChangeManager.replaceDisplayedFields(nextFields, {
+        if (QueryChangeManager) {
+          QueryChangeManager.replaceDisplayedFields(nextFields, {
             source: 'SharedFieldPicker.toggleDisplayedField'
           });
         }
@@ -1209,8 +1210,8 @@ import { VisibilityUtils } from '../core/visibility.js';
       } : undefined,
       onFilterChange: async (fieldName, nextChecked) => {
         if (!nextChecked) {
-          if (window.QueryChangeManager) {
-            window.QueryChangeManager.removeFilter(fieldName, {
+          if (QueryChangeManager) {
+            QueryChangeManager.removeFilter(fieldName, {
               removeAll: true,
               source: 'SharedFieldPicker.removeQueryFilter'
             });

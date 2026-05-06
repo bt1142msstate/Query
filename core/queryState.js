@@ -117,7 +117,7 @@ const queryStateSubscribers = new Set();
 const legacyReadWarnings = new Set();
 
 function warnReadOnlyQueryStateMutation(path) {
-  console.warn(`Direct query state mutation blocked for ${path}. Use window.QueryChangeManager instead.`);
+  console.warn(`Direct query state mutation blocked for ${path}. Use QueryChangeManager instead.`);
 }
 
 function warnLegacyQueryStateRead(path) {
@@ -126,12 +126,12 @@ function warnLegacyQueryStateRead(path) {
   }
 
   legacyReadWarnings.add(path);
-  console.warn(`Direct query state read via ${path} is deprecated. Use window.QueryStateReaders instead.`);
+  console.warn(`Direct query state read via ${path} is deprecated. Use QueryStateReaders instead.`);
 }
 
 function throwLegacyQueryStateRead(path) {
   warnLegacyQueryStateRead(path);
-  throw new Error(`Direct query state read via ${path} is blocked. Use window.QueryStateReaders instead.`);
+  throw new Error(`Direct query state read via ${path} is blocked. Use QueryStateReaders instead.`);
 }
 
 function cloneFilterEntry(filter) {
@@ -1130,10 +1130,10 @@ Object.defineProperty(window, 'QueryStateStore', {
   configurable: false,
   enumerable: false,
   get() {
-    throw new Error('window.QueryStateStore is private. Use window.QueryChangeManager or window.QueryStateReaders instead.');
+    throw new Error('window.QueryStateStore is private. Use QueryChangeManager or QueryStateReaders instead.');
   },
   set() {
-    throw new Error('window.QueryStateStore is private. Use window.QueryChangeManager or window.QueryStateReaders instead.');
+    throw new Error('window.QueryStateStore is private. Use QueryChangeManager or QueryStateReaders instead.');
   }
 });
 

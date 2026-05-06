@@ -4,6 +4,8 @@
  * Provides efficient rendering of thousands of rows by only displaying visible rows.
  * @module VirtualTable
  */
+import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
+
 (function initializeVirtualTable() {
 
 // Virtual scrolling state
@@ -45,7 +47,7 @@ var uiActions = window.AppUiActions;
 // Keep track of sorting state
 let currentSortColumn = null;
 let currentSortDirection = 'asc'; // 'asc' or 'desc'
-var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
+var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
 
 function getFieldType(fieldName) {
   return window.ValueFormatting.getFieldType(fieldName, { inferMoneyFromName: true });
@@ -562,7 +564,7 @@ function hasActivePostFilters() {
 }
 
 function isCurrentQueryResultSetLoaded() {
-  return Boolean(window.QueryStateReaders?.getLifecycleState?.().hasLoadedResultSet);
+  return Boolean(QueryStateReaders?.getLifecycleState?.().hasLoadedResultSet);
 }
 
 function updateHeaderWidthsFromCurrentState() {
@@ -1140,7 +1142,7 @@ function clearVirtualTableData() {
   clearColumnResizeMode();
   simpleTableInstance = null;
 
-  window.QueryChangeManager?.setLifecycleState?.(
+  QueryChangeManager?.setLifecycleState?.(
     { hasLoadedResultSet: false },
     { source: 'VirtualTable.clearVirtualTableData', silent: true }
   );
@@ -1282,7 +1284,7 @@ function setSplitColumnsMode(active) {
   applyPostFilters({ refreshView: false, notify: true, resetScroll: false });
 
   // Keep query-state columns aligned with the active split/stacked header set.
-  window.QueryChangeManager.replaceDisplayedFields(baseViewData.headers, { source: 'VirtualTable.setSplitMode' });
+  QueryChangeManager.replaceDisplayedFields(baseViewData.headers, { source: 'VirtualTable.setSplitMode' });
 
   // Recalculate column widths and re-render
   calculatedColumnWidths = calculateOptimalColumnWidths(virtualTableData.headers, virtualTableData);

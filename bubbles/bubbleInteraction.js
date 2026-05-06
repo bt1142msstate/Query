@@ -1,15 +1,16 @@
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
+import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
 import { VisibilityUtils } from '../core/visibility.js';
 
-var getFilterGroupForField = window.QueryStateReaders.getFilterGroupForField.bind(window.QueryStateReaders);
-var getLifecycleState = window.QueryStateReaders.getLifecycleState.bind(window.QueryStateReaders);
+var getFilterGroupForField = QueryStateReaders.getFilterGroupForField.bind(QueryStateReaders);
+var getLifecycleState = QueryStateReaders.getLifecycleState.bind(QueryStateReaders);
 var appState = window.AppState;
 var services = window.AppServices;
 let bubbleEventsInitialized = false;
 
 function initializeBubbleInteractions() {
-  if (!window.QueryChangeManager) {
+  if (!QueryChangeManager) {
     console.log('Bubble system: Required globals not yet available, skipping initialization');
     return false;
   }

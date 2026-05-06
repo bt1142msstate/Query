@@ -1,5 +1,6 @@
 import { onDOMReady } from '../core/domReady.js';
 import { OperatorLabels } from '../core/operatorLabels.js';
+import { QueryStateReaders } from '../core/queryState.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 import { showToastMessage } from '../core/toast.js';
 import { VisibilityUtils } from '../core/visibility.js';
@@ -9,9 +10,8 @@ import { VisibilityUtils } from '../core/visibility.js';
   const STREAMED_EQUALS_BATCH_SIZE = 800;
   const STREAMED_EQUALS_ROW_HEIGHT = 50;
   const STREAMED_EQUALS_OVERSCAN = 6;
-  const { getDisplayedFields } = window.QueryStateReaders;
+  const { getDisplayedFields } = QueryStateReaders;
   const services = window.AppServices;
-
   function getElements() {
     return {
       button: document.getElementById('post-filter-btn'),
