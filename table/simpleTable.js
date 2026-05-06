@@ -198,7 +198,15 @@ class SimpleTable {
      * Parse raw data lines into a typed table
      */
     createRawTable() {
+        this.width = this.rawColumnOrder.length;
         const filteredRows = [];
+        const headerRow = this.rawColumnOrder.map(spec => spec.fieldName);
+
+        this.tableColumnTypes = this.rawColumnOrder.map(spec => spec.dataType);
+        this.fieldIndexMap.clear();
+        headerRow.forEach((fieldName, index) => {
+            this.fieldIndexMap.set(fieldName, index);
+        });
 
         this.dataLines.forEach(line => {
             const parts = line.split('|');
@@ -231,9 +239,7 @@ class SimpleTable {
         this.rawTable = [];
 
         // Build header row
-        const headerRow = this.rawColumnOrder.map(spec => spec.fieldName);
         this.rawTable.push(headerRow);
-        this.tableColumnTypes = this.rawColumnOrder.map(spec => spec.dataType);
 
         // Add data rows
         filteredRows.forEach(row => {
