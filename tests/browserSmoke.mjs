@@ -759,8 +759,9 @@ async function runSmokeTest() {
     await expectNoHorizontalOverflow(mobilePage, 'Mobile export dialog');
     await mobilePage.locator('#export-cancel-btn').click();
 
-    await mobilePage.evaluate(() => {
-      window.SharedFieldPicker.open({
+    await mobilePage.evaluate(async () => {
+      const { SharedFieldPicker } = await import('./ui/fieldPicker.js');
+      SharedFieldPicker.open({
         getOptions: () => [
           { name: 'Mobile Field A', type: 'text', filterable: true, category: 'Smoke' },
           { name: 'Mobile Field B', type: 'date', filterable: true, category: 'Smoke' },

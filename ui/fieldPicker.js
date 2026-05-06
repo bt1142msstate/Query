@@ -7,6 +7,8 @@ import { VisibilityUtils } from '../core/visibility.js';
 import { FormModeControls as formModeControls } from './formModeControls.js';
 import { initializeSearchInputs } from './searchUI.js';
 
+let SharedFieldPicker;
+
 (function() {
   const services = appServices;
   const { getDisplayedFields, getFilterGroupForField } = QueryStateReaders;
@@ -1250,12 +1252,14 @@ import { initializeSearchInputs } from './searchUI.js';
     });
   }
 
-  window.SharedFieldPicker = {
+  SharedFieldPicker = Object.freeze({
     getFieldOptions: getFieldPickerOptionsFromDefinitions,
     open: openSharedFieldPicker,
     openQueryFieldPicker,
     openQueryFilterEditor
-  };
+  });
 
   initQueryFieldPickerButton();
 })();
+
+export { SharedFieldPicker };

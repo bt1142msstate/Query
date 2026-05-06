@@ -8,6 +8,7 @@ import { mapFieldOperatorToUiCond } from '../filters/queryPayload.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 import { FormModeControls as formModeControls } from './formModeControls.js';
 import { FormModeStateHelpers as formModeStateHelpers } from './formModeStateHelpers.js';
+import { SharedFieldPicker } from './fieldPicker.js';
 
 let QueryFormMode;
 
@@ -673,30 +674,7 @@ let QueryFormMode;
   }
 
   function getFieldPickerOptions() {
-    if (window.SharedFieldPicker && typeof window.SharedFieldPicker.getFieldOptions === 'function') {
-      return window.SharedFieldPicker.getFieldOptions();
-    }
-
-    const source = Array.isArray(window.fieldDefsArray) && window.fieldDefsArray.length > 0
-      ? window.fieldDefsArray
-      : Array.from((window.fieldDefs && window.fieldDefs.values()) || []);
-
-    return source
-      .filter(fieldDef => fieldDef && fieldDef.name)
-      .map(fieldDef => ({
-        name: String(fieldDef.name),
-        type: String(fieldDef.type || 'text'),
-        desc: typeof fieldDef.desc === 'string'
-          ? fieldDef.desc
-          : '',
-        description: typeof fieldDef.description === 'string'
-          ? fieldDef.description
-          : '',
-        category: Array.isArray(fieldDef.category)
-          ? fieldDef.category.filter(Boolean).join(', ')
-          : String(fieldDef.category || '')
-      }))
-      .sort((left, right) => left.name.localeCompare(right.name, undefined, { numeric: true, sensitivity: 'base' }));
+    return SharedFieldPicker.getFieldOptions();
   }
 
   function syncSpecColumnsWithDisplayedFields(options = {}) {
@@ -1076,11 +1054,7 @@ let QueryFormMode;
   }
 
   async function openFieldPicker() {
-    if (!window.SharedFieldPicker || typeof window.SharedFieldPicker.open !== 'function') {
-      throw new Error('SharedFieldPicker is not available.');
-    }
-
-    await window.SharedFieldPicker.open({
+    await SharedFieldPicker.open({
       beforeOpen: async () => {
         if (typeof window.loadFieldDefinitions === 'function') {
           await window.loadFieldDefinitions();
