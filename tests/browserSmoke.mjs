@@ -271,6 +271,56 @@ async function seedLoadedResults(page) {
   await page.locator('#example-table').waitFor({ state: 'attached', timeout: 5000 });
 }
 
+async function expectResultsCount(page, expectedText, label) {
+  await page.locator('#table-results-badge').waitFor({ state: 'visible', timeout: 5000 });
+  await page.waitForFunction(expected => {
+    return document.querySelector('#table-results-count')?.textContent?.trim() === expected;
+  }, expectedText, { timeout: 5000 });
+
+  const actualText = (await page.locator('#table-results-count').textContent())?.trim();
+  if (actualText !== expectedText) {
+    throw new Error(`${label} expected ${expectedText} results text, received ${actualText}`);
+  }
+}
+
+async function expectPostFilterStats(page, expected, label) {
+  try {
+    await page.waitForFunction(({ filteredRows, hasPostFilters, totalRows }) => {
+      const stats = window.AppServices.getPostFilterStats?.();
+      return stats?.filteredRows === filteredRows
+        && stats?.totalRows === totalRows
+        && window.AppServices.hasPostFilters?.() === hasPostFilters;
+    }, expected, { timeout: 5000 });
+  } catch (error) {
+    const observed = await page.evaluate(() => {
+      const stats = window.AppServices.getPostFilterStats?.();
+      return {
+        filteredRows: stats?.filteredRows,
+        hasPostFilters: window.AppServices.hasPostFilters?.(),
+        totalRows: stats?.totalRows
+      };
+    });
+    throw new Error(`${label} expected ${JSON.stringify(expected)}, received ${JSON.stringify(observed)}: ${error.message}`);
+  }
+
+  const observed = await page.evaluate(() => {
+    const stats = window.AppServices.getPostFilterStats?.();
+    return {
+      filteredRows: stats?.filteredRows,
+      hasPostFilters: window.AppServices.hasPostFilters?.(),
+      totalRows: stats?.totalRows
+    };
+  });
+
+  if (
+    observed.filteredRows !== expected.filteredRows
+    || observed.totalRows !== expected.totalRows
+    || observed.hasPostFilters !== expected.hasPostFilters
+  ) {
+    throw new Error(`${label} expected ${JSON.stringify(expected)}, received ${JSON.stringify(observed)}`);
+  }
+}
+
 async function exerciseBubbleFilterInteraction(page) {
   await page.evaluate(() => {
     const fieldDef = {
@@ -319,6 +369,114 @@ async function exerciseBubbleFilterInteraction(page) {
   await page.locator('.fp-cond-text', { hasText: 'Smoke Value' }).waitFor({ state: 'attached', timeout: 5000 });
 }
 
+async function exerciseDesktopResultsWorkflow(page) {
+  await seedLoadedResults(page);
+  await expectResultsCount(page, '3', 'Desktop seeded results');
+  await expectPostFilterStats(page, {
+    filteredRows: 3,
+    hasPostFilters: false,
+    totalRows: 3
+  }, 'Desktop seeded post filter state');
+
+  const titleHeader = page.locator('#example-table th[data-sort-field="Smoke Title"]').first();
+  await titleHeader.waitFor({ state: 'visible', timeout: 5000 });
+  await titleHeader.click();
+  await page.waitForFunction(() => {
+    const state = window.AppServices.getVirtualTableState?.();
+    return state?.currentSortColumn === 'Smoke Title' && state?.currentSortDirection === 'asc';
+  }, null, { timeout: 5000 });
+  const ascIconText = (await titleHeader.locator('.sort-icon').textContent())?.trim();
+  if (ascIconText !== '↑') {
+    throw new Error(`Desktop sort header did not show ascending state: ${ascIconText}`);
+  }
+
+  await titleHeader.click();
+  await page.waitForFunction(() => {
+    const state = window.AppServices.getVirtualTableState?.();
+    return state?.currentSortColumn === 'Smoke Title' && state?.currentSortDirection === 'desc';
+  }, null, { timeout: 5000 });
+  const firstTitleCell = page.locator('#example-table tbody tr[data-row-index="0"] td[data-col-index="0"]').first();
+  await firstTitleCell.waitFor({ state: 'visible', timeout: 5000 });
+  const firstTitleText = (await firstTitleCell.textContent())?.trim();
+  if (firstTitleText !== 'Gamma record') {
+    throw new Error(`Desktop descending sort did not move Gamma record first: ${firstTitleText}`);
+  }
+
+  await page.evaluate(() => window.PostFilterSystem.openOverlayForField?.('Smoke Branch'));
+  await page.locator('#post-filter-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+  await expectElementWithinViewport(page, '#post-filter-overlay .post-filter-dialog', 'Desktop post filter dialog');
+  await page.locator('#post-filter-field').selectOption('Smoke Branch');
+  await page.locator('#post-filter-operator').selectOption('equals');
+  await page.locator('#post-filter-value-picker-host .form-mode-popup-list-trigger').waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('#post-filter-value-picker-host .form-mode-popup-list-trigger').click();
+
+  const popup = page.locator('.form-mode-popup-list-popup:not([hidden])');
+  await popup.waitFor({ state: 'visible', timeout: 5000 });
+  await expectDarkInput(page, '.form-mode-popup-list-popup:not([hidden]) input[type="search"]', 'Desktop post filter popup search input');
+  await page.waitForFunction(() => {
+    return /distinct loaded values/iu.test(
+      document.querySelector('.form-mode-popup-list-popup:not([hidden]) .post-filter-stream-status')?.textContent || ''
+    );
+  }, null, { timeout: 5000 });
+  await popup.locator('input[type="search"]').fill('Main');
+  await page.waitForFunction(() => {
+    return Array.from(document.querySelectorAll('.form-mode-popup-list-popup:not([hidden]) .post-filter-stream-option'))
+      .some(option => /Main/iu.test(option.textContent || ''));
+  }, null, { timeout: 5000 });
+  await page.evaluate(() => {
+    const option = Array.from(document.querySelectorAll('.form-mode-popup-list-popup:not([hidden]) .post-filter-stream-option'))
+      .find(item => /Main/iu.test(item.textContent || ''));
+    const checkbox = option?.querySelector('input[type="checkbox"]');
+    if (!checkbox) {
+      throw new Error('Main post-filter option checkbox was not found');
+    }
+    checkbox.click();
+  });
+  await page.waitForFunction(() => {
+    const control = document.querySelector('#post-filter-value-picker-host .post-filter-value-control');
+    return control?.getSelectedValues?.().includes('Main');
+  }, null, { timeout: 5000 });
+  await page.evaluate(() => {
+    document.querySelector('.form-mode-popup-list-popup:not([hidden]) .form-mode-popup-list-done')?.click();
+  });
+  await page.waitForFunction(() => {
+    return !document.querySelector('.form-mode-popup-list-popup:not([hidden])');
+  }, null, { timeout: 5000 });
+  await page.locator('#post-filter-add-btn').click();
+  await expectPostFilterStats(page, {
+    filteredRows: 2,
+    hasPostFilters: true,
+    totalRows: 3
+  }, 'Desktop applied post filter state');
+  await expectResultsCount(page, '2 of 3', 'Desktop filtered results');
+  await page.locator('#post-filter-list .post-filter-pill', { hasText: 'Main' }).waitFor({ state: 'visible', timeout: 5000 });
+
+  await page.locator('#post-filter-clear-btn').click();
+  await expectPostFilterStats(page, {
+    filteredRows: 3,
+    hasPostFilters: false,
+    totalRows: 3
+  }, 'Desktop cleared post filter state');
+  await expectResultsCount(page, '3', 'Desktop restored results');
+  await page.locator('#post-filter-done-btn').click();
+  await page.locator('#post-filter-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
+
+  await page.locator('#download-btn').scrollIntoViewIfNeeded();
+  const downloadDisabled = await page.locator('#download-btn').evaluate(button => button.disabled);
+  if (downloadDisabled) {
+    throw new Error('Download button is disabled after desktop result interactions');
+  }
+  await page.locator('#download-btn').click();
+  await page.locator('#export-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+  await expectElementWithinViewport(page, '#export-overlay .export-dialog', 'Desktop export dialog');
+  await page.locator('[data-export-mode-card="grouped"]').click();
+  await page.waitForFunction(() => {
+    return /grouped sheet/iu.test(document.querySelector('#export-group-preview')?.textContent || '');
+  }, null, { timeout: 5000 });
+  await page.locator('#export-cancel-btn').click();
+  await page.locator('#export-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
+}
+
 async function runSmokeTest() {
   const server = createServer(serveStaticFile);
   const port = await listen(server);
@@ -360,6 +518,7 @@ async function runSmokeTest() {
     });
 
     await exerciseBubbleFilterInteraction(page);
+    await exerciseDesktopResultsWorkflow(page);
 
     await page.getByRole('button', { name: 'Queries' }).click();
     await page.locator('input[placeholder="Search queries..."]').waitFor({ state: 'visible', timeout: 5000 });
