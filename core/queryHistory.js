@@ -18,6 +18,8 @@ import {
   classifyQueryStatus,
   getPreferredHistorySection as getPreferredHistorySectionForCounts
 } from './queryHistoryViewHelpers.js';
+import { appServices } from './appServices.js';
+import { appUiActions } from './appUiActions.js';
 import { BackendApi } from './backendApi.js';
 import { formatDuration, parsePipeDelimitedRow } from './dataFormatters.js';
 import { onDOMReady } from './domReady.js';
@@ -30,8 +32,8 @@ let exampleQueries = [];
 let queryDurationUpdateInterval = null;
 let lastQueryStatusPollAt = 0;
 let activeHistorySection = 'none';
-var services = window.AppServices;
-var uiActions = window.AppUiActions;
+var services = appServices;
+var uiActions = appUiActions;
 const QUERY_STATUS_POLL_MS = 2000;
 const IDLE_POLL_MS = 8000;
 let lastHistoryRenderKey = '';

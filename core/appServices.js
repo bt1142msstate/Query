@@ -2,7 +2,7 @@
  * Thin service facade over major subsystem globals.
  * Keeps consumers from coupling directly to implementation-specific globals.
  */
-import { AppState } from './queryState.js';
+import { AppState, registerQueryStateRuntimeAccessors } from './queryState.js';
 
 let appServices;
 
@@ -393,6 +393,7 @@ let appServices;
     writable: false,
     value: appServices
   });
+  registerQueryStateRuntimeAccessors({ getServices: () => appServices });
 })();
 
 export { appServices };

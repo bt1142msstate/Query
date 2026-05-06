@@ -4,12 +4,13 @@
  * Does not handle Drag & Drop UI events.
  * @module ColumnManager
  */
+import { appServices } from '../core/appServices.js';
 import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 
 // Store information about removed columns with their duplicates for restoration
 window.removedColumnInfo = window.removedColumnInfo || new Map();
 var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
-var services = window.AppServices;
+var services = appServices;
 
 /**
  * Checks if a field or any of its duplicates exists in displayedFields.

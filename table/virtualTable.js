@@ -4,10 +4,10 @@
  * Provides efficient rendering of thousands of rows by only displaying visible rows.
  * @module VirtualTable
  */
+import { appServices } from '../core/appServices.js';
+import { appUiActions } from '../core/appUiActions.js';
 import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
-
 (function initializeVirtualTable() {
-
 // Virtual scrolling state
 let virtualTableData = {
   headers: [],
@@ -41,8 +41,8 @@ let simpleTableInstance = null; // Store the SimpleTable instance
 
 const HEADER_ACTION_SPACE = 116;
 const HEADER_TEXT_BALANCE_SPACE = 116;
-var services = window.AppServices;
-var uiActions = window.AppUiActions;
+var services = appServices;
+var uiActions = appUiActions;
 
 // Keep track of sorting state
 let currentSortColumn = null;

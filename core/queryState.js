@@ -6,11 +6,12 @@
 import { showToastMessage } from './toast.js';
 import { OperatorLabels } from './operatorLabels.js';
 
-function getServices() {
-  return window.AppServices || null;
-}
+let getServices = () => null, getUiActions = () => null;
 
-// Utility Functions - Available globally
+function registerQueryStateRuntimeAccessors(accessors = {}) {
+  if (typeof accessors.getServices === 'function') getServices = accessors.getServices;
+  if (typeof accessors.getUiActions === 'function') getUiActions = accessors.getUiActions;
+}
 function getBaseFieldName(fieldName) {
   const normalizedFieldName = String(fieldName || '').trim();
   if (!normalizedFieldName) {
@@ -1046,7 +1047,7 @@ function hideManagedField(fieldName, options = {}) {
 // App-level clear that resets query state plus all dependent UI surfaces.
 async function clearQueryManagerState(meta = {}) {
   const normalizedMeta = normalizeManagerMeta(meta, 'QueryChangeManager.clearQuery');
-  const uiActions = window.AppUiActions || null;
+  const uiActions = getUiActions();
   const suppressToast = meta && meta.suppressToast === true;
 
   if (queryLifecycleState.queryRunning) {
@@ -1185,5 +1186,6 @@ export {
   appStateStore as AppState,
   getBaseFieldName,
   queryChangeManager as QueryChangeManager,
-  queryStateReaders as QueryStateReaders
+  queryStateReaders as QueryStateReaders,
+  registerQueryStateRuntimeAccessors
 };

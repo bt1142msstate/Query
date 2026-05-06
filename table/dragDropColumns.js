@@ -2,13 +2,15 @@
  * Shared column-operation helpers for drag/drop interactions.
  * Keeps structural column changes separate from pointer and drag orchestration.
  */
+import { appServices } from '../core/appServices.js';
+import { appUiActions } from '../core/appUiActions.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 
 (function initializeDragDropColumns() {
   const getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
   const appState = AppState;
-  const services = window.AppServices;
-  const uiActions = window.AppUiActions;
+  const services = appServices;
+  const uiActions = appUiActions;
 
   function formatColumnClipboardValue(rawValue, fieldName) {
     return window.FormatUtils.formatCellDisplay(rawValue, fieldName);
