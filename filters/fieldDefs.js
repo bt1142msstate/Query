@@ -3,6 +3,7 @@
  * Contains backend-provided field definitions and selector helpers.
  * @module FieldDefs
  */
+import { BackendApi } from '../core/backendApi.js';
 
 // Field definitions dynamically loaded from backend
 let fieldDefsArray = [];
@@ -124,7 +125,7 @@ async function loadFieldDefinitions() {
     if (isFieldsLoaded) return fieldDefsArray;
     
     try {
-        const { data } = await window.BackendApi.postJson({ action: 'get_fields' });
+        const { data } = await BackendApi.postJson({ action: 'get_fields' });
         
         let errorMsg = null;
         if (data.error) {

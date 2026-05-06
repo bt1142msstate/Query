@@ -2,6 +2,7 @@ const sourceEntries = ['appModules.js', 'bubbles', 'core', 'filters', 'table', '
 const maxModuleLines = 900;
 
 const forbiddenWindowMemberReads = new Map([
+  ['BackendApi', 'Import from core/backendApi.js instead of reading the backend client from window'],
   ['buildBackendFilters', 'Import from filters/queryPayload.js instead of reading this helper from window'],
   ['buildBackendQueryPayload', 'Import from filters/queryPayload.js instead of reading this helper from window'],
   ['buildQueryUiConfig', 'Import from filters/queryPayload.js instead of reading this helper from window'],
@@ -14,10 +15,10 @@ const forbiddenWindowMemberReads = new Map([
 ]);
 
 const legacyLargeModuleBudgets = new Map([
-  ['core/queryHistory.js', 1213],
+  ['core/queryHistory.js', 1209],
   ['core/queryState.js', 1191],
-  ['core/queryTemplates.js', 1593],
-  ['core/utils.js', 1219],
+  ['core/queryTemplates.js', 1592],
+  ['core/utils.js', 1067],
   ['filters/filterManager.js', 1371],
   ['table/dragDropInteractions.js', 1348],
   ['table/postFilters.js', 1109],

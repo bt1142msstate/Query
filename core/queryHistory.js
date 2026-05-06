@@ -18,6 +18,7 @@ import {
   classifyQueryStatus,
   getPreferredHistorySection as getPreferredHistorySectionForCounts
 } from './queryHistoryViewHelpers.js';
+import { BackendApi } from './backendApi.js';
 import { formatFieldOperatorForDisplay, mapFieldOperatorToUiCond, normalizeUiConfigFilters } from '../filters/queryPayload.js';
 
 /* ---------- Query history state and renderer ---------- */
@@ -170,7 +171,7 @@ function bindHistoryBookShelf(container) {
 async function fetchQueryStatus() {
   try {
     lastQueryStatusPollAt = Date.now();
-    const { data } = await window.BackendApi.postJson({ action: 'status' }, { notifyOnRateLimit: isQueriesPanelOpen() });
+    const { data } = await BackendApi.postJson({ action: 'status' }, { notifyOnRateLimit: isQueriesPanelOpen() });
     if (!data.queries) return;
     
     const newHistory = [];
@@ -253,7 +254,7 @@ async function fetchQueryStatus() {
  */
 async function cancelQuery(queryId) {
   try {
-    const { response } = await window.BackendApi.postJson({ action: 'cancel', query_id: queryId });
+    const { response } = await BackendApi.postJson({ action: 'cancel', query_id: queryId });
     
     if (response.ok) {
       const lifecycleState = window.QueryStateReaders?.getLifecycleState?.();
@@ -534,7 +535,7 @@ async function loadQueryResults(queryId) {
     }
 
     try {
-        const { response, text } = await window.BackendApi.postText(
+        const { response, text } = await BackendApi.postText(
             { action: 'get_results', query_id: queryId },
             { jsonErrorMessage: 'Results are not available yet.' }
         );

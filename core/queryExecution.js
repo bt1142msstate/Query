@@ -2,7 +2,8 @@
 // HTTP query execution: build payload, run, stop, stream, parse, clear.
 // UI coordination after a query completes goes through AppUiActions/AppServices.
 
-import { BackendApi, parsePipeDelimitedRow } from './utils.js';
+import { BackendApi } from './backendApi.js';
+import { parsePipeDelimitedRow } from './utils.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from './queryState.js';
 import { appServices } from './appServices.js';
 import { appUiActions } from './appUiActions.js';
