@@ -1,6 +1,8 @@
+import { formatStandardFilterTooltipHTML } from './tooltipFormatters.js';
+
 function getDefaultHistoryDetailsDependencies() {
   return {
-    formatStandardFilterTooltipHTML: window.TooltipManager?.formatStandardFilterTooltipHTML,
+    formatStandardFilterTooltipHTML,
     normalizeUiConfigFilters: null
   };
 }

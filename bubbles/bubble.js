@@ -4,6 +4,7 @@
  * @class Bubble
  */
 import { mapUiCondToFieldOperator } from '../filters/queryPayload.js';
+import { formatFieldDefinitionTooltipHTML, formatStandardFilterTooltipHTML } from '../core/tooltipFormatters.js';
 import { AppState, QueryStateReaders } from '../core/queryState.js';
 import { VisibilityUtils } from '../core/visibility.js';
 
@@ -50,10 +51,10 @@ class Bubble {
         FieldOperator: mapBubbleConditionToFieldOperator(f.cond),
         Values: f.cond === 'between' ? f.val.split('|') : f.val.split(',')
       }));
-      filterTooltipHtml = window.TooltipManager?.formatStandardFilterTooltipHTML?.(filters, 'Active Filters') || '';
+      filterTooltipHtml = formatStandardFilterTooltipHTML(filters, 'Active Filters') || '';
     }
 
-    let tooltipContentHtml = window.TooltipManager?.formatFieldDefinitionTooltipHTML?.(def) || '';
+    let tooltipContentHtml = formatFieldDefinitionTooltipHTML(def) || '';
     if (tooltipContentHtml && filterTooltipHtml) {
       tooltipContentHtml = `<div class="tt-tooltip-stack">${tooltipContentHtml}${filterTooltipHtml}</div>`;
     } else if (tooltipContentHtml) {

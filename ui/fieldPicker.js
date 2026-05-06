@@ -2,6 +2,7 @@ import { appServices } from '../core/appServices.js';
 import { mapFieldOperatorToUiCond } from '../filters/queryPayload.js';
 import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
+import { formatFieldDefinitionTooltipHTML } from '../core/tooltipFormatters.js';
 import { VisibilityUtils } from '../core/visibility.js';
 import { FormModeControls as formModeControls } from './formModeControls.js';
 import { initializeSearchInputs } from './searchUI.js';
@@ -28,7 +29,7 @@ import { initializeSearchInputs } from './searchUI.js';
         category: Array.isArray(fieldDef.category)
           ? fieldDef.category.filter(Boolean).join(', ')
           : String(fieldDef.category || ''),
-        tooltipHtml: window.TooltipManager?.formatFieldDefinitionTooltipHTML?.(fieldDef, { title: fieldDef.name }) || ''
+        tooltipHtml: formatFieldDefinitionTooltipHTML(fieldDef, { title: fieldDef.name }) || ''
       }))
       .sort((left, right) => left.name.localeCompare(right.name, undefined, { numeric: true, sensitivity: 'base' }));
   }
