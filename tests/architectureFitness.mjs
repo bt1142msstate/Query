@@ -1,22 +1,21 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
-import { dirname, extname, resolve } from 'node:path';
+import { createRequire } from 'node:module';
+import { dirname, extname, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const sourceEntries = ['appModules.js', 'bubbles', 'core', 'filters', 'table', 'ui'];
-const maxModuleLines = 900;
-const legacyLargeModuleBudgets = new Map([
-  ['core/queryHistory.js', 1681],
-  ['core/queryState.js', 1191],
-  ['core/queryTemplates.js', 1593],
-  ['core/utils.js', 1219],
-  ['filters/filterManager.js', 1371],
-  ['table/dragDropInteractions.js', 1348],
-  ['table/postFilters.js', 1109],
-  ['table/virtualTable.js', 1383],
-  ['ui/fieldPicker.js', 1266],
-  ['ui/formMode.js', 2034]
-]);
+const require = createRequire(import.meta.url);
+const { publicWindowAssignments } = require('../config/publicGlobals.cjs');
+const {
+  legacyLargeModuleBudgets,
+  maxModuleLines,
+  moduleBoundaryRules,
+  sourceEntries
+} = require('../config/architectureRules.cjs');
+
+const staticImportPattern = /\bimport\s+(?:[^'"]*?\bfrom\s*)?["']([^"']+)["']/gu;
+const dynamicImportPattern = /\bimport\s*\(\s*["']([^"']+)["']\s*\)/gu;
+const reExportPattern = /\bexport\s+[^'"]*?\bfrom\s*["']([^"']+)["']/gu;
 
 async function collectJavaScriptFiles(entry) {
   const fullPath = resolve(rootDir, entry);
@@ -32,16 +31,6 @@ async function collectJavaScriptFiles(entry) {
     files.push(...await collectJavaScriptFiles(`${entry}/${child}`));
   }
   return files;
-}
-
-async function readAllowedWindowExports() {
-  const eslintConfig = await readFile(resolve(rootDir, 'eslint.config.js'), 'utf8');
-  const match = eslintConfig.match(/const allowedWindowAssignments = new Set\(\[([\s\S]*?)\]\);/u);
-  if (!match) {
-    throw new Error('Could not find allowedWindowAssignments in eslint.config.js');
-  }
-
-  return new Set([...match[1].matchAll(/'([^']+)'/gu)].map(result => result[1]));
 }
 
 function lineCount(source) {
@@ -63,15 +52,113 @@ function findPublicWindowExports(source) {
   return exports;
 }
 
+function toRepoPath(filePath) {
+  return relative(rootDir, filePath).split(sep).join('/');
+}
+
+function findImportSpecifiers(source) {
+  return [
+    ...[...source.matchAll(staticImportPattern)].map(match => match[1]),
+    ...[...source.matchAll(dynamicImportPattern)].map(match => match[1]),
+    ...[...source.matchAll(reExportPattern)].map(match => match[1])
+  ];
+}
+
+function resolveLocalImport(importerPath, specifier) {
+  if (!specifier.startsWith('.')) {
+    return null;
+  }
+
+  const resolvedPath = resolve(rootDir, dirname(importerPath), specifier);
+  return toRepoPath(resolvedPath);
+}
+
+function classifyLayer(relativePath) {
+  if (relativePath === 'appModules.js') {
+    return 'entry';
+  }
+
+  return relativePath.split('/')[0] || 'unknown';
+}
+
+function findBoundaryRule(relativePath) {
+  return moduleBoundaryRules.find(rule => {
+    if (rule.path) {
+      return rule.path === relativePath;
+    }
+
+    return Boolean(rule.prefix && relativePath.startsWith(rule.prefix));
+  });
+}
+
+function describeBoundary(rule) {
+  return rule?.path || `${rule?.prefix || '<unknown>'}*`;
+}
+
+function assertAcyclicImportGraph(graph) {
+  const state = new Map();
+  const stack = [];
+  const cycles = [];
+
+  function visit(node) {
+    state.set(node, 'visiting');
+    stack.push(node);
+
+    for (const child of graph.get(node) || []) {
+      if (state.get(child) === 'visiting') {
+        const cycleStart = stack.indexOf(child);
+        cycles.push([...stack.slice(cycleStart), child].join(' -> '));
+        continue;
+      }
+
+      if (!state.has(child)) {
+        visit(child);
+      }
+    }
+
+    stack.pop();
+    state.set(node, 'visited');
+  }
+
+  for (const node of graph.keys()) {
+    if (!state.has(node)) {
+      visit(node);
+    }
+  }
+
+  return cycles;
+}
+
+function collectReachableModules(graph, entryPath) {
+  const reachable = new Set();
+
+  function visit(node) {
+    if (reachable.has(node)) {
+      return;
+    }
+
+    reachable.add(node);
+    for (const child of graph.get(node) || []) {
+      visit(child);
+    }
+  }
+
+  visit(entryPath);
+  return reachable;
+}
+
 const sourceFiles = (await Promise.all(sourceEntries.map(collectJavaScriptFiles))).flat();
-const allowedWindowExports = await readAllowedWindowExports();
+const sourceFilePaths = new Set(sourceFiles.map(toRepoPath));
+const allowedWindowExports = new Set(publicWindowAssignments);
+const importGraph = new Map();
 const failures = [];
 
 for (const filePath of sourceFiles) {
   const source = await readFile(filePath, 'utf8');
-  const relativePath = filePath.slice(rootDir.length + 1);
+  const relativePath = toRepoPath(filePath);
   const lines = lineCount(source);
   const legacyBudget = legacyLargeModuleBudgets.get(relativePath);
+  const localImports = [];
 
   if (legacyBudget) {
     if (lines > legacyBudget) {
@@ -93,6 +180,44 @@ for (const filePath of sourceFiles) {
     if (!allowedWindowExports.has(exportName)) {
       failures.push(`${relativePath}: window.${exportName} is not in the approved public global allowlist`);
     }
+  }
+
+  for (const specifier of findImportSpecifiers(source)) {
+    const importedPath = resolveLocalImport(relativePath, specifier);
+    if (!importedPath) {
+      continue;
+    }
+
+    if (extname(importedPath) !== '.js') {
+      failures.push(`${relativePath}: local import "${specifier}" must resolve to an explicit .js module`);
+      continue;
+    }
+
+    if (!sourceFilePaths.has(importedPath)) {
+      failures.push(`${relativePath}: local import "${specifier}" resolves to missing or non-application module ${importedPath}`);
+      continue;
+    }
+
+    const boundaryRule = findBoundaryRule(relativePath);
+    const importedLayer = classifyLayer(importedPath);
+    if (!boundaryRule || !boundaryRule.allowedLayers.includes(importedLayer)) {
+      failures.push(`${relativePath}: ${describeBoundary(boundaryRule)} modules cannot import ${importedPath} (${importedLayer} layer)`);
+    }
+
+    localImports.push(importedPath);
+  }
+
+  importGraph.set(relativePath, localImports);
+}
+
+for (const cycle of assertAcyclicImportGraph(importGraph)) {
+  failures.push(`Import cycle detected: ${cycle}`);
+}
+
+const reachableModules = collectReachableModules(importGraph, 'appModules.js');
+for (const sourcePath of sourceFilePaths) {
+  if (!reachableModules.has(sourcePath)) {
+    failures.push(`${sourcePath}: application module is not reachable from appModules.js`);
   }
 }
 

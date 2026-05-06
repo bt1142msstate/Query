@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "lint": "eslint \"**/*.{js,mjs}\"",
+    "lint": "eslint \"**/*.{js,mjs,cjs}\"",
     "test": "npm run lint && npm run test:architecture && npm run test:modules && npm run test:browser",
     "test:architecture": "node tests/architectureFitness.mjs",
     "test:modules": "node tests/moduleSpecifiers.mjs",

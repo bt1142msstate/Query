@@ -4,14 +4,14 @@ This project is a static browser app organized as feature-oriented ES modules. T
 
 ## Current Grade
 
-For a frontend job portfolio, the project is now an A-level architecture sample for a vanilla JavaScript application:
+For a frontend job portfolio, the project is now an A+ architecture sample for a vanilla JavaScript application:
 
 - It solves a real workflow with complex state, async execution, virtualized data display, export, overlays, and editable forms.
 - It uses browser ES modules instead of legacy script tags.
-- It has executable guardrails for module specifiers, public globals, query-state access, and browser smoke behavior.
+- It has executable guardrails for module specifiers, public globals, query-state access, module reachability, import cycles, layer boundaries, and browser smoke behavior.
 - It documents the intended module boundaries and known legacy areas.
 
-The remaining tradeoff is that some older modules still publish `window.*` APIs for compatibility. Those globals are now treated as an explicit compatibility layer rather than accidental coupling.
+The remaining tradeoff is that some older modules still publish `window.*` APIs for compatibility. Those globals are now treated as an explicit compatibility layer rather than accidental coupling, and the allowlist lives in one shared config file used by both lint and architecture tests.
 
 ## Runtime Flow
 
@@ -33,11 +33,12 @@ The remaining tradeoff is that some older modules still publish `window.*` APIs 
 | Data contract | `filters/queryPayload.js`, `filters/fieldDefs.js` | Backend payload generation, field metadata, filter normalization |
 | Feature UI | `ui/`, `filters/`, `bubbles/`, `table/`, `core/queryHistory.js`, `core/queryTemplates.js` | User workflows and rendering |
 | Styles | `styles/app.css` plus feature CSS files | Feature-scoped styling with a single stylesheet entry |
+| Architecture config | `config/` | Public globals, module budgets, and import-boundary rules |
 | Tests | `tests/` | Architecture checks and browser smoke coverage |
 
 ## Public Global Compatibility Layer
 
-The project still exposes some `window.*` APIs because several feature modules were originally script-order globals. This is acceptable only when the global is intentional and listed in `eslint.config.js`.
+The project still exposes some `window.*` APIs because several feature modules were originally script-order globals. This is acceptable only when the global is intentional and listed in `config/publicGlobals.cjs`.
 
 Rules now enforced:
 
@@ -48,6 +49,18 @@ Rules now enforced:
 - Module imports cannot include cache-busting query strings.
 
 This makes the remaining globals reviewable and prevents accidental architecture drift.
+
+## Module Graph Contract
+
+`tests/architectureFitness.mjs` builds a static graph from ES imports and enforces these constraints:
+
+- Every application module must be reachable from `appModules.js`.
+- Local imports must resolve to explicit `.js` modules inside the application source set.
+- Imports must follow the layer rules in `config/architectureRules.cjs`.
+- Circular imports fail the architecture gate.
+- Legacy large modules cannot grow beyond their current budget.
+
+This is the strongest portfolio signal in the project: the architecture rules are executable, versioned, and run in CI.
 
 ## Fitness Checks
 
@@ -60,7 +73,7 @@ npm test
 That runs:
 
 - `npm run lint`: syntax, globals, module rules, query-state boundaries.
-- `npm run test:architecture`: architecture fitness checks, legacy module budgets, approved public globals.
+- `npm run test:architecture`: architecture fitness checks, legacy module budgets, approved public globals, import graph reachability, import cycles, and layer boundaries.
 - `npm run test:modules`: canonical ES module specifiers.
 - `npm run test:browser`: Playwright smoke test for runtime behavior and key UI styling.
 
