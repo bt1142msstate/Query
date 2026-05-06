@@ -1,5 +1,5 @@
 import { Icons } from '../core/icons.js';
-import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
+import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 /**
  * Filter Management
  * Handles filter UI, inputs, and confirmation logic.
@@ -11,7 +11,7 @@ import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
  * Represents a single active filter condition pill in the UI.
  * (Moved from queryUI.js)
  */
-var appState = window.AppState;
+var appState = AppState;
 var services = window.AppServices;
 var filterValueUi = window.FilterValueUi;
 var uiActions = window.AppUiActions;

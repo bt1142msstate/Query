@@ -1,3 +1,5 @@
+import { AppState } from '../core/queryState.js';
+
 var services = window.AppServices;
 
 function reconcileBubbleResetInteractionState(skipFields = new Set()) {
@@ -13,7 +15,7 @@ function reconcileBubbleResetInteractionState(skipFields = new Set()) {
   });
 }
 
-var appState = window.AppState;
+var appState = AppState;
 
 function finalizeBubbleReset(reason, payload = {}) {
   const bubbleService = services.bubble;

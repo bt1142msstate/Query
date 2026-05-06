@@ -2,6 +2,7 @@ const sourceEntries = ['appModules.js', 'bubbles', 'core', 'filters', 'table', '
 const maxModuleLines = 900;
 
 const forbiddenWindowMemberReads = new Map([
+  ['AppState', 'Import from core/queryState.js instead of reading app runtime state from window'],
   ['BackendApi', 'Import from core/backendApi.js instead of reading the backend client from window'],
   ['ClipboardUtils', 'Import from core/clipboard.js instead of reading clipboard helpers from window'],
   ['DragUtils', 'Import from core/dragUtils.js instead of reading drag helpers from window'],

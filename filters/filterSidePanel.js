@@ -10,7 +10,7 @@ import {
     shouldUseFilterListViewer
 } from './filterValueUi.js';
 import { DragUtils } from '../core/dragUtils.js';
-import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
+import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 import { showToastMessage } from '../core/toast.js';
 import { OperatorLabels } from '../core/operatorLabels.js';
@@ -164,7 +164,7 @@ window.FilterSidePanel = (function () {
         }
 
         const overlay = window.DOM.overlay;
-        if (window.AppState.selectedField === field && overlay?.classList.contains('show')) {
+        if (AppState.selectedField === field && overlay?.classList.contains('show')) {
             window.renderConditionList && window.renderConditionList(field);
             const operatorSelect = document.getElementById('condition-operator-select');
             const conditionInput = window.DOM.conditionInput;
@@ -180,8 +180,8 @@ window.FilterSidePanel = (function () {
             return;
         }
 
-        if (window.AppState.currentCategory !== 'All') {
-            window.AppState.currentCategory = 'All';
+        if (AppState.currentCategory !== 'All') {
+            AppState.currentCategory = 'All';
             services.rerenderBubbles();
             const rerenderedBubble = Array.from(document.querySelectorAll('.bubble')).find(
                 b => b.textContent.trim() === field && !b.classList.contains('bubble-disabled')
