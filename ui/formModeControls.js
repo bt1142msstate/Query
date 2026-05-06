@@ -1,6 +1,7 @@
 import { showToastMessage } from '../core/toast.js';
 import { Icons } from '../core/icons.js';
 import { OperatorLabels } from '../core/operatorLabels.js';
+import { SelectorControls } from './selectorControls.js';
 
   function parseFieldOptions(fieldDef, inputSpec, normalizeOperatorForField) {
     const source = Array.isArray(inputSpec.options) && inputSpec.options.length > 0
@@ -367,8 +368,8 @@ import { OperatorLabels } from '../core/operatorLabels.js';
       return String(label).includes('-');
     });
 
-    if (isBooleanField && values.length === 2 && window.SelectorControls?.createBooleanPillSelector) {
-      const selector = window.SelectorControls.createBooleanPillSelector(values, initialValues[0] || '', {
+    if (isBooleanField && values.length === 2) {
+      const selector = SelectorControls.createBooleanPillSelector(values, initialValues[0] || '', {
         containerId: null
       });
       selector.getFormValues = function() {
@@ -382,8 +383,8 @@ import { OperatorLabels } from '../core/operatorLabels.js';
       return selector;
     }
 
-    if (window.SelectorControls?.createGroupedSelector) {
-      const selector = window.SelectorControls.createGroupedSelector(values, isMultiSelect, initialValues, {
+    if (SelectorControls.createGroupedSelector) {
+      const selector = SelectorControls.createGroupedSelector(values, isMultiSelect, initialValues, {
         enableGrouping: shouldGroupValues && hasDashes,
         containerId: null
       });
@@ -398,11 +399,7 @@ import { OperatorLabels } from '../core/operatorLabels.js';
   }
 
   function createPopupListControl(innerControl, label, placeholder) {
-    if (window.SelectorControls?.createPopupListControl) {
-      return window.SelectorControls.createPopupListControl(innerControl, label, placeholder);
-    }
-
-    return innerControl;
+    return SelectorControls.createPopupListControl(innerControl, label, placeholder);
   }
 
   function createControl(fieldDef, inputSpec, initialValues, operatorOverride, normalizeOperatorForField) {
@@ -417,8 +414,8 @@ import { OperatorLabels } from '../core/operatorLabels.js';
       return createSelectorControl(values, fieldDef, inputSpec, initialValues);
     }
 
-    if (supportsMultipleValues(inputSpec, fieldDef) && window.SelectorControls?.createListPasteInput) {
-      const listInput = window.SelectorControls.createListPasteInput(initialValues, {
+    if (supportsMultipleValues(inputSpec, fieldDef)) {
+      const listInput = SelectorControls.createListPasteInput(initialValues, {
         containerId: null,
         placeholder: inputSpec.placeholder || 'Paste one value per line',
         hint: inputSpec.help || 'Paste values, separate them with commas or new lines, or upload a file.'

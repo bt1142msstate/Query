@@ -8,6 +8,7 @@ import {
     openFilterListViewer,
     shouldUseFilterListViewer
 } from './filterValueUi.js';
+import { SelectorControls } from '../ui/selectorControls.js';
 /**
  * Filter Management
  * Handles filter UI, inputs, and confirmation logic.
@@ -18,8 +19,7 @@ import {
  * Represents a single active filter condition pill in the UI.
  * (Moved from queryUI.js)
  */
-var appState = AppState;
-var services = appServices, uiActions = appUiActions;
+var appState = AppState, services = appServices, uiActions = appUiActions;
 function getFilterConditionPanelElement() {
     return window.DOM?.conditionPanel || document.getElementById('condition-panel');
 }
@@ -379,12 +379,12 @@ function buildBubbleConditionPanel(bubble) {
                 : listValues.some(val => val.includes('-'));
 
             const selector = isBooleanField && listValues.length === 2
-                ? window.SelectorControls.createBooleanPillSelector(listValues, currentLiteralValues[0] || '', {
+                ? SelectorControls.createBooleanPillSelector(listValues, currentLiteralValues[0] || '', {
                     onChange: () => {
                         confirmBtn.click();
                     }
                 })
-                : window.SelectorControls.createGroupedSelector(listValues, isMultiSelect, currentLiteralValues, {
+                : SelectorControls.createGroupedSelector(listValues, isMultiSelect, currentLiteralValues, {
                     enableGrouping: shouldGroupValues && hasDashes
                 });
             inputWrapper.insertBefore(selector, confirmBtn);
@@ -399,7 +399,7 @@ function buildBubbleConditionPanel(bubble) {
             if (existingContainer) existingContainer.parentNode.removeChild(existingContainer);
             window.configureInputsForType(type);
 
-            if (window.isListPasteField(fieldDefInfo) && window.SelectorControls?.createListPasteInput) {
+            if (window.isListPasteField(fieldDefInfo)) {
                 let currentLiteralValues = [];
                 const selectedFieldFilters = getFilterGroupForField(appState.selectedField);
                 const listCondition = getPreferredCondition(operatorConditions, appState.selectedField);
@@ -410,7 +410,7 @@ function buildBubbleConditionPanel(bubble) {
                     }
                 }
 
-                const listInput = window.SelectorControls.createListPasteInput(currentLiteralValues, {
+                const listInput = SelectorControls.createListPasteInput(currentLiteralValues, {
                     placeholder: 'Paste one key per line',
                     hint: 'Paste keys one per line, paste comma-separated keys, or upload a text/CSV file.'
                 });
