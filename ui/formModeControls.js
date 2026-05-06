@@ -364,8 +364,8 @@
       return String(label).includes('-');
     });
 
-    if (isBooleanField && values.length === 2 && typeof window.createBooleanPillSelector === 'function') {
-      const selector = window.createBooleanPillSelector(values, initialValues[0] || '', {
+    if (isBooleanField && values.length === 2 && window.SelectorControls?.createBooleanPillSelector) {
+      const selector = window.SelectorControls.createBooleanPillSelector(values, initialValues[0] || '', {
         containerId: null
       });
       selector.getFormValues = function() {
@@ -379,8 +379,8 @@
       return selector;
     }
 
-    if (typeof window.createGroupedSelector === 'function') {
-      const selector = window.createGroupedSelector(values, isMultiSelect, initialValues, {
+    if (window.SelectorControls?.createGroupedSelector) {
+      const selector = window.SelectorControls.createGroupedSelector(values, isMultiSelect, initialValues, {
         enableGrouping: shouldGroupValues && hasDashes,
         containerId: null
       });
@@ -395,8 +395,8 @@
   }
 
   function createPopupListControl(innerControl, label, placeholder) {
-    if (typeof window.createPopupListControl === 'function') {
-      return window.createPopupListControl(innerControl, label, placeholder);
+    if (window.SelectorControls?.createPopupListControl) {
+      return window.SelectorControls.createPopupListControl(innerControl, label, placeholder);
     }
 
     return innerControl;
@@ -414,8 +414,8 @@
       return createSelectorControl(values, fieldDef, inputSpec, initialValues);
     }
 
-    if (supportsMultipleValues(inputSpec, fieldDef) && typeof window.createListPasteInput === 'function') {
-      const listInput = window.createListPasteInput(initialValues, {
+    if (supportsMultipleValues(inputSpec, fieldDef) && window.SelectorControls?.createListPasteInput) {
+      const listInput = window.SelectorControls.createListPasteInput(initialValues, {
         containerId: null,
         placeholder: inputSpec.placeholder || 'Paste one value per line',
         hint: inputSpec.help || 'Paste values, separate them with commas or new lines, or upload a file.'
