@@ -134,7 +134,7 @@
 .history-editorial-title {
   margin: 0;
   font-family: "Orbitron", "Space Grotesk", sans-serif;
-  font-size: clamp(1.2rem, 1rem + 0.9vw, 1.8rem);
+  font-size: 1.6rem;
   line-height: 1.14;
   font-weight: 700;
   color: #f0fdff;
@@ -407,7 +407,7 @@
 
 .history-book-title {
   font-family: "Orbitron", sans-serif;
-  font-size: clamp(1.02rem, 0.94rem + 0.45vw, 1.28rem);
+  font-size: 1.15rem;
   font-weight: 700;
   line-height: 1.12;
   color: #eefcff;
@@ -436,7 +436,7 @@
 
 .history-book-count {
   font-family: "Orbitron", sans-serif;
-  font-size: clamp(1.85rem, 1.55rem + 0.8vw, 2.35rem);
+  font-size: 2.1rem;
   line-height: 1;
   color: #ffffff;
   font-weight: 700;
@@ -545,7 +545,7 @@
 .history-monitor-title {
   margin: 0;
   font-family: "Orbitron", sans-serif;
-  font-size: clamp(1.2rem, 1.02rem + 0.7vw, 1.65rem);
+  font-size: 1.42rem;
   line-height: 1.08;
   text-transform: uppercase;
   color: #f4fdff;
@@ -1054,7 +1054,7 @@
   margin: 0;
   color: #f0fdff;
   font-family: "Orbitron", "Space Grotesk", sans-serif;
-  font-size: clamp(1.1rem, 0.95rem + 0.7vw, 1.55rem);
+  font-size: 1.35rem;
   line-height: 1.2;
 }
 
@@ -1311,6 +1311,39 @@
 }
 
 @media (max-width: 640px) {
+  #queries-panel > h2 {
+    font-size: 0.95rem;
+    letter-spacing: 0.07em;
+  }
+
+  #queries-search-wrapper {
+    padding: 0.75rem !important;
+  }
+
+  #queries-search,
+  .queries-search-field .app-search-input {
+    min-height: 2.7rem;
+  }
+
+  #queries-list {
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .history-editorial-hero {
+    padding: 0.9rem;
+    border-radius: 18px;
+  }
+
+  .history-editorial-title {
+    font-size: 1.35rem;
+    line-height: 1.12;
+  }
+
+  .history-editorial-subtitle {
+    font-size: 0.88rem;
+  }
+
   .history-editorial-meta {
     grid-template-columns: 1fr;
   }
@@ -1324,6 +1357,14 @@
     grid-template-columns: 1fr;
     gap: 1rem;
     padding-right: 2.9rem;
+  }
+
+  .history-book-title,
+  .history-book-subtitle,
+  .history-query-name,
+  .history-meta-line {
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 
   .history-book-summary-side {
@@ -1351,6 +1392,33 @@
   .history-monitor-tab {
     width: 100%;
     min-width: 0;
+  }
+
+  .history-table-shell {
+    padding: 0.55rem 0.35rem 0.35rem;
+  }
+
+  #queries-container th,
+  #queries-container td {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .history-details-modal-shell {
+    padding: 0.5rem;
+  }
+
+  .history-details-modal {
+    width: calc(100vw - 1rem);
+    max-height: calc(100vh - 1rem);
+    padding: 0.85rem;
+    border-radius: 1rem;
+  }
+
+  .history-details-modal-header,
+  .history-filter-card-top {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

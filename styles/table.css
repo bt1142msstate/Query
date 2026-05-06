@@ -1214,7 +1214,7 @@ body.post-filter-overlay-open {
 
 .post-filter-dialog__title {
   margin: 0;
-  font-size: clamp(1.2rem, 1rem + 1vw, 1.45rem);
+  font-size: 1.35rem;
   line-height: 1.1;
   font-weight: 800;
   color: #0f172a;
@@ -1619,7 +1619,7 @@ body.post-filter-overlay-open {
 
 .export-dialog__title {
   margin: 0;
-  font-size: clamp(1.25rem, 1rem + 1.1vw, 1.55rem);
+  font-size: 1.42rem;
   line-height: 1.1;
   font-weight: 800;
   color: #0f172a;
@@ -1669,7 +1669,7 @@ body.post-filter-overlay-open {
 .export-summary-pill__value {
   display: block;
   margin-top: 0.2rem;
-  font-size: clamp(0.92rem, 0.84rem + 0.28vw, 1rem);
+  font-size: 0.96rem;
   font-weight: 800;
   color: #0f172a;
   line-height: 1.25;
@@ -2155,6 +2155,85 @@ body.post-filter-overlay-open {
 
   #table-shell.table-shell-expanded {
     inset: calc(var(--header-height) + 0.75rem) 0.75rem 0.75rem;
+  }
+}
+
+@media (max-width: 640px) {
+  #table-shell {
+    width: 100%;
+  }
+
+  #table-top-bar {
+    gap: 0.6rem;
+    padding: 0.65rem;
+  }
+
+  #table-info-bar {
+    align-items: stretch;
+    width: 100%;
+  }
+
+  #table-results-badge {
+    justify-content: center;
+  }
+
+  #table-name-input {
+    min-width: 0 !important;
+    min-height: 2.5rem;
+    font-size: 0.82rem;
+  }
+
+  #table-toolbar {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.45rem;
+    width: 100%;
+  }
+
+  .table-toolbar-btn,
+  .table-expand-btn {
+    width: 100%;
+    min-width: 0;
+    height: 2.45rem;
+    min-height: 2.45rem;
+  }
+
+  #table-zoom-controls {
+    grid-column: 1 / -1;
+    justify-content: center;
+    width: 100%;
+    padding: 0.4rem;
+  }
+
+  #table-container {
+    width: 100%;
+    height: min(56vh, 420px) !important;
+    max-width: 100%;
+    overscroll-behavior: contain;
+  }
+
+  #placeholder-message {
+    padding: 1rem;
+    font-size: 0.9rem;
+    line-height: 1.35;
+  }
+
+  #table-shell.table-shell-expanded {
+    inset: calc(var(--header-height) + 0.5rem) 0.5rem 0.5rem;
+  }
+
+  #table-shell.table-shell-expanded #table-container {
+    height: calc(100vh - var(--header-height) - 11rem) !important;
+  }
+
+  .table-query-bubble {
+    max-width: calc(100vw - 1.5rem);
+    max-height: calc(100vh - var(--header-height) - 1.5rem);
+  }
+
+  .table-query-bubble-content {
+    width: min(86%, 15rem);
+    gap: 0.7rem;
   }
 }
 

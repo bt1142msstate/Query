@@ -150,7 +150,7 @@
 .help-hero-copy h3 {
   margin: 0.85rem 0 0.6rem;
   color: #f0fdff;
-  font-size: clamp(1.45rem, 1.1rem + 1vw, 2.1rem);
+  font-size: 1.85rem;
   line-height: 1.08;
   font-weight: 700;
   font-family: "Orbitron", "Space Grotesk", sans-serif;
@@ -454,6 +454,42 @@
 
   .help-step-number {
     max-width: 4.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  #help-panel > h2 {
+    font-size: 0.95rem;
+    letter-spacing: 0.07em;
+  }
+
+  .help-shell {
+    padding: 0.75rem;
+  }
+
+  .help-hero,
+  .help-card,
+  .help-tip-item {
+    border-radius: 1rem;
+  }
+
+  .help-hero {
+    padding: 0.9rem;
+  }
+
+  .help-kicker,
+  .help-summary-label,
+  .help-section-kicker {
+    letter-spacing: 0.08em;
+  }
+
+  .help-hero-copy h3 {
+    font-size: 1.35rem;
+    max-width: none;
+  }
+
+  .help-card {
+    padding: 0.9rem;
   }
 }
 

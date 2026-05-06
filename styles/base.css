@@ -375,6 +375,11 @@ body.night {
   background: radial-gradient(ellipse at bottom, #1e3a8a 0%, #0f172a 60%, #000 100%);
 }
 
+html,
+body {
+  max-width: 100%;
+}
+
 /* Disable text selection across the UI for a smoother feel */
 * {
   user-select: none;
@@ -571,6 +576,11 @@ body.raised-ui-open #table-shell.table-shell-expanded {
 /* Responsive Header Controls */
 /* Note: CSS variables are not supported in media queries in all browsers, so we keep 900px but document the variable for future use in JS or preprocessors. */
 @media (max-width: 900px) {
+  #header-bar {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
   #header-overlay-title {
     left: 1rem;
     max-width: calc(100vw - 5.5rem);
@@ -587,6 +597,94 @@ body.raised-ui-open #table-shell.table-shell-expanded {
   
   #mobile-menu-toggle {
     display: block !important;
+  }
+
+  #mobile-menu-dropdown {
+    background:
+      linear-gradient(180deg, rgba(7, 16, 29, 0.98), rgba(4, 10, 20, 0.98)),
+      radial-gradient(circle at top right, rgba(69, 235, 255, 0.12), transparent 42%);
+    color: #dffcff;
+    padding: 1rem;
+  }
+
+  #mobile-menu-dropdown .collapse-btn {
+    color: #dffcff;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(125, 211, 252, 0.18);
+  }
+
+  #mobile-menu-dropdown .collapse-btn:hover,
+  #mobile-menu-dropdown .collapse-btn:focus-visible {
+    background: rgba(69, 235, 255, 0.14);
+    outline: none;
+  }
+
+  #mobile-menu-dropdown .collapse-btn svg {
+    stroke: currentColor;
+  }
+
+  #mobile-menu-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+
+  #mobile-menu-dropdown .mobile-menu-item {
+    min-height: 3rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid rgba(125, 211, 252, 0.14);
+    border-radius: 0.85rem;
+    background: rgba(8, 18, 32, 0.86);
+    color: #dffcff;
+    font-weight: 700;
+  }
+
+  #mobile-menu-dropdown .mobile-menu-item:hover,
+  #mobile-menu-dropdown .mobile-menu-item:focus-visible {
+    background: rgba(69, 235, 255, 0.12);
+    outline: none;
+  }
+
+  #mobile-menu-dropdown .mobile-menu-icon {
+    display: inline-flex;
+    width: 2rem;
+    min-width: 2rem;
+    height: 2rem;
+    align-items: center;
+    justify-content: center;
+    color: inherit;
+  }
+
+  #mobile-menu-dropdown .mobile-menu-icon svg {
+    max-width: 1.25rem;
+    max-height: 1.25rem;
+  }
+}
+
+@media (max-width: 640px) {
+  body#page-body {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    padding-bottom: 1rem;
+  }
+
+  #query-app-shell {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  #header-bar {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  #header-overlay-title {
+    max-width: calc(100vw - 4.75rem);
+  }
+
+  #mobile-menu-dropdown {
+    width: 100%;
+    padding: 0.75rem;
   }
 }
 

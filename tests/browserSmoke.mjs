@@ -143,6 +143,36 @@ async function stubExternalAssets(page) {
   });
 }
 
+function attachFailureListeners(page, failures, port) {
+  page.on('console', message => {
+    if (['error', 'warning', 'warn'].includes(message.type())) {
+      failures.push(`console ${message.type()}: ${message.text()}`);
+    }
+  });
+
+  page.on('pageerror', error => {
+    failures.push(`page error: ${error.stack || error.message}`);
+  });
+
+  page.on('requestfailed', request => {
+    if (request.url().startsWith(`http://127.0.0.1:${port}/`)) {
+      failures.push(`request failed: ${request.method()} ${request.url()} ${request.failure()?.errorText || ''}`);
+    }
+  });
+}
+
+async function waitForAppModules(page, failures) {
+  try {
+    await page.waitForFunction(
+      () => window.__QUERY_APP_MODULES_READY === true,
+      null,
+      { timeout: 15000 }
+    );
+  } catch (error) {
+    failures.push(`module loader did not finish: ${error.message}`);
+  }
+}
+
 async function expectDarkInput(page, selector, label) {
   const theme = await page.locator(selector).evaluate(input => {
     const readChannels = value => (value.match(/\d+/gu) || []).slice(0, 3).map(Number);
@@ -161,6 +191,31 @@ async function expectDarkInput(page, selector, label) {
   }
 }
 
+async function expectNoHorizontalOverflow(page, label) {
+  const metrics = await page.evaluate(() => {
+    const root = document.documentElement;
+    const body = document.body;
+
+    return {
+      bodyScrollWidth: body.scrollWidth,
+      clientWidth: root.clientWidth,
+      rootScrollWidth: root.scrollWidth
+    };
+  });
+
+  const widestContent = Math.max(metrics.rootScrollWidth, metrics.bodyScrollWidth);
+  if (widestContent - metrics.clientWidth > 2) {
+    throw new Error(`${label} overflows horizontally: ${widestContent}px content in ${metrics.clientWidth}px viewport`);
+  }
+}
+
+async function openMobilePanel(page, sourceControlId, visibleSelector) {
+  await page.locator('#mobile-menu-toggle').click();
+  await page.locator('#mobile-menu-dropdown.show').waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator(`[data-source-control-id="${sourceControlId}"]`).click();
+  await page.locator(visibleSelector).waitFor({ state: 'visible', timeout: 5000 });
+}
+
 async function runSmokeTest() {
   const server = createServer(serveStaticFile);
   const port = await listen(server);
@@ -172,39 +227,17 @@ async function runSmokeTest() {
   try {
     browser = await chromium.launch({ headless: true });
     page = await browser.newPage();
-
-    page.on('console', message => {
-      if (['error', 'warning', 'warn'].includes(message.type())) {
-        failures.push(`console ${message.type()}: ${message.text()}`);
-      }
-    });
-
-    page.on('pageerror', error => {
-      failures.push(`page error: ${error.stack || error.message}`);
-    });
-
-    page.on('requestfailed', request => {
-      if (request.url().startsWith(`http://127.0.0.1:${port}/`)) {
-        failures.push(`request failed: ${request.method()} ${request.url()} ${request.failure()?.errorText || ''}`);
-      }
-    });
+    attachFailureListeners(page, failures, port);
 
     await stubExternalAssets(page);
     await page.goto(baseUrl, { waitUntil: 'load', timeout: 15000 });
-    try {
-      await page.waitForFunction(
-        () => window.__QUERY_APP_MODULES_READY === true,
-        null,
-        { timeout: 15000 }
-      );
-    } catch (error) {
-      failures.push(`module loader did not finish: ${error.message}`);
-    }
+    await waitForAppModules(page, failures);
 
     if (failures.length > 0) {
       throw new Error(`Browser smoke test failed:\n${failures.map(failure => `- ${failure}`).join('\n')}`);
     }
 
+    await expectNoHorizontalOverflow(page, 'Desktop initial layout');
     await expectDarkInput(page, '#query-input', 'Main field search input');
 
     await page.evaluate(() => {
@@ -226,6 +259,43 @@ async function runSmokeTest() {
     await expectDarkInput(page, '#templates-search-input', 'Templates search input');
 
     await page.getByRole('button', { name: 'Help' }).click();
+
+    const mobilePage = await browser.newPage({
+      isMobile: true,
+      viewport: { width: 390, height: 844 }
+    });
+    attachFailureListeners(mobilePage, failures, port);
+    await stubExternalAssets(mobilePage);
+    await mobilePage.goto(baseUrl, { waitUntil: 'load', timeout: 15000 });
+    await waitForAppModules(mobilePage, failures);
+
+    if (failures.length > 0) {
+      throw new Error(`Browser smoke test failed:\n${failures.map(failure => `- ${failure}`).join('\n')}`);
+    }
+
+    await mobilePage.locator('#mobile-menu-toggle').waitFor({ state: 'visible', timeout: 5000 });
+    const desktopControlsDisplay = await mobilePage.locator('#header-controls').evaluate(element => {
+      return window.getComputedStyle(element).display;
+    });
+    if (desktopControlsDisplay !== 'none') {
+      throw new Error(`Desktop header controls are visible on mobile: display=${desktopControlsDisplay}`);
+    }
+
+    await expectNoHorizontalOverflow(mobilePage, 'Mobile initial layout');
+    await mobilePage.locator('#mobile-menu-toggle').click();
+    await mobilePage.locator('#mobile-menu-dropdown.show').waitFor({ state: 'visible', timeout: 5000 });
+    await expectNoHorizontalOverflow(mobilePage, 'Mobile menu');
+    await mobilePage.locator('[data-source-control-id="toggle-queries"]').click();
+    await mobilePage.locator('#queries-search').waitFor({ state: 'visible', timeout: 5000 });
+    await expectDarkInput(mobilePage, '#queries-search', 'Mobile query history search input');
+    await expectNoHorizontalOverflow(mobilePage, 'Mobile query history panel');
+
+    await openMobilePanel(mobilePage, 'toggle-templates', '#templates-search-input');
+    await expectDarkInput(mobilePage, '#templates-search-input', 'Mobile templates search input');
+    await expectNoHorizontalOverflow(mobilePage, 'Mobile templates panel');
+
+    await openMobilePanel(mobilePage, 'toggle-help', '#help-container');
+    await expectNoHorizontalOverflow(mobilePage, 'Mobile help panel');
 
     if (failures.length > 0) {
       throw new Error(`Browser smoke test failed:\n${failures.map(failure => `- ${failure}`).join('\n')}`);

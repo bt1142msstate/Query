@@ -308,3 +308,41 @@
   background: rgba(196, 181, 253, 1); /* Brighter hover state */
 }
 
+@media (max-width: 640px) {
+  .bubble {
+    width: 84px;
+    height: 84px;
+    padding: 0.42rem;
+    font-size: 0.74rem;
+    line-height: 1.18;
+  }
+
+  #bubble-container {
+    width: 100%;
+    max-width: 100% !important;
+    min-height: 158px;
+    margin: 0;
+    padding: 6px 4px;
+    box-sizing: border-box;
+  }
+
+  .bubble-scrollbar-container {
+    width: 12px;
+    min-width: 12px;
+    margin-left: 0.45rem;
+  }
+
+  .bubble-scrollbar-track {
+    width: 6px;
+  }
+
+  .bubble-scrollbar-thumb {
+    width: 10px;
+  }
+
+  .enlarge-bubble {
+    max-width: calc(100vw - 1.5rem) !important;
+    max-height: calc(100vh - var(--header-height) - 2rem) !important;
+    font-size: 1rem !important;
+  }
+}
