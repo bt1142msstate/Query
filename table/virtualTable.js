@@ -560,7 +560,7 @@ function hasActivePostFilters() {
   return Object.values(postFiltersState).some(data => Array.isArray(data?.filters) && data.filters.length > 0);
 }
 
-function hasLoadedResultSet() {
+function isCurrentQueryResultSetLoaded() {
   return Boolean(window.QueryStateReaders?.getLifecycleState?.().hasLoadedResultSet);
 }
 
@@ -747,7 +747,7 @@ function renderVirtualTable() {
     const hasLoadedRows = Array.isArray(baseViewData.rows) && baseViewData.rows.length > 0;
     const message = hasLoadedRows && hasActivePostFilters()
       ? 'No rows match the active post filters.'
-      : (hasLoadedResultSet() ? 'No results matched this query.' : 'Run a query to load results.');
+      : (isCurrentQueryResultSetLoaded() ? 'No results matched this query.' : 'Run a query to load results.');
 
     emptyCell.setAttribute('colspan', displayedFields.length.toString());
     emptyCell.className = 'px-6 py-10 text-center text-sm text-gray-500 italic';
