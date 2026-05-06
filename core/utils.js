@@ -625,7 +625,7 @@ window.escapeHtml = function(unsafe) {
     .replace(/'/g, '&#039;');
 };
 
-window.FormatUtils = {
+const FormatUtils = {
   formatCellDisplay(raw, field) {
     if (raw == null) return '';
     if (typeof raw === 'string' && raw.includes('\x1F')) {
@@ -651,7 +651,6 @@ window.FormatUtils = {
 };
 
 const EventUtils = window.EventUtils;
-const FormatUtils = window.FormatUtils;
 const MoneyUtils = window.MoneyUtils;
 const OperatorSelectUtils = window.OperatorSelectUtils;
 const TableBuilder = window.TableBuilder;

@@ -11,6 +11,7 @@ const forbiddenWindowMemberReads = new Map([
   ['escapeRegExp', 'Import from core/dataFormatters.js instead of reading this formatter from window'],
   ['formatDuration', 'Import from core/dataFormatters.js instead of reading this formatter from window'],
   ['FilterValueUi', 'Import from filters/filterValueUi.js instead of reading filter value helpers from window'],
+  ['FormatUtils', 'Import from core/utils.js instead of reading format helpers from window'],
   ['FormModeControls', 'Import from ui/formModeControls.js instead of reading form controls from window'],
   ['FormModeStateHelpers', 'Import from ui/formModeStateHelpers.js instead of reading form state helpers from window'],
   ['getFieldOutputSegments', 'Import from core/dataFormatters.js instead of reading this formatter from window'],

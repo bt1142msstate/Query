@@ -66,7 +66,6 @@ const publicWindowAssignments = [
   'finalizeConfirmAction',
   'findRelatedColumnIndices',
   'formatDuration',
-  'FormatUtils',
   'getBaseFieldName',
   'getContradictionMessage',
   'getCurrentQueryState',

@@ -5,6 +5,7 @@
 import { appServices } from '../core/appServices.js';
 import { appUiActions } from '../core/appUiActions.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
+import { FormatUtils } from '../core/utils.js';
 
 (function initializeDragDropColumns() {
   const getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
@@ -13,7 +14,7 @@ import { AppState, QueryChangeManager, QueryStateReaders } from '../core/querySt
   const uiActions = appUiActions;
 
   function formatColumnClipboardValue(rawValue, fieldName) {
-    return window.FormatUtils.formatCellDisplay(rawValue, fieldName);
+    return FormatUtils.formatCellDisplay(rawValue, fieldName);
   }
 
   function getHeaderFieldName(th) {
