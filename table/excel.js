@@ -188,9 +188,9 @@
       return null;
     }
 
-    const tableName = typeof window.ensureTableName === 'function'
-      ? window.ensureTableName()
-      : (typeof window.getDefaultTableName === 'function' ? window.getDefaultTableName() : 'Query Results');
+    const tableName = window.QueryUI?.ensureTableName?.()
+      || window.QueryUI?.getDefaultTableName?.()
+      || 'Query Results';
 
     const exportedRows = buildExportRows(sourceData);
     const groupingCandidates = buildGroupingCandidates(sourceData, exportedRows);
