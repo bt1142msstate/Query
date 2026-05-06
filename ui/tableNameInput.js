@@ -1,9 +1,14 @@
 /**
  * Table-name input sizing and header layout helpers.
  */
+import { appUiActions } from '../core/appUiActions.js?v=5';
+import { DOM } from './domCache.js?v=3';
+
+let TableNameInput;
+
 (function registerTableNameInput() {
-  const dom = window.DOM;
-  const uiActions = window.AppUiActions;
+  const dom = DOM;
+  const uiActions = appUiActions;
   let initialized = false;
 
   function updateHeaderHeightVar() {
@@ -76,7 +81,10 @@
     window.addEventListener('resize', updateHeaderHeightVar);
   }
 
-  window.TableNameInput = Object.freeze({
+  TableNameInput = Object.freeze({
     initialize
   });
+  window.TableNameInput = TableNameInput;
 })();
+
+export { TableNameInput };

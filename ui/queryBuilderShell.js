@@ -2,13 +2,29 @@
  * Query builder shell orchestration.
  * Handles category navigation, search, overlay coordination, and initial builder bootstrapping.
  */
+import {
+  calculateCategoryCounts,
+  fieldDefs,
+  filteredDefs,
+  hasLoadedFieldDefinitions,
+  loadFieldDefinitions,
+  renderCategorySelectors,
+  updateFilteredDefs
+} from '../filters/fieldDefs.js?v=8';
+import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js?v=26';
+import { appServices } from '../core/appServices.js?v=3';
+import { appUiActions } from '../core/appUiActions.js?v=5';
+import { DOM } from './domCache.js?v=3';
+
+let QueryBuilderShell;
+
 (function registerQueryBuilderShell() {
-  const dom = window.DOM;
-  const appState = window.AppState;
-  const services = window.AppServices;
-  const uiActions = window.AppUiActions;
-  const getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
-  const getActiveFilters = window.QueryStateReaders.getActiveFilters.bind(window.QueryStateReaders);
+  const dom = DOM;
+  const appState = AppState;
+  const services = appServices;
+  const uiActions = appUiActions;
+  const getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
+  const getActiveFilters = QueryStateReaders.getActiveFilters.bind(QueryStateReaders);
   let initialized = false;
 
   function resetBubbleScrollState() {
@@ -82,11 +98,11 @@
     }
 
     if (!term) {
-      allButton.textContent = `All (${window.fieldDefs.size})`;
+      allButton.textContent = `All (${fieldDefs.size})`;
       return;
     }
 
-    allButton.textContent = `Search (${window.filteredDefs.length})`;
+    allButton.textContent = `Search (${filteredDefs.length})`;
   }
 
   function handleQuerySearchInput() {
@@ -97,14 +113,14 @@
 
     const term = dom.queryInput.value.trim().toLowerCase();
     dom.clearSearchBtn?.classList.toggle('hidden', term === '');
-    window.updateFilteredDefs(term);
+    updateFilteredDefs(term);
     updateSearchLabel(term);
     resetBubbleScrollState();
     services.rerenderBubbles();
   }
 
   function updateCategoryCounts() {
-    if (!window.hasLoadedFieldDefinitions || !window.hasLoadedFieldDefinitions()) {
+    if (!hasLoadedFieldDefinitions()) {
       if (dom.categoryBar) {
         dom.categoryBar.innerHTML = '';
       }
@@ -115,8 +131,8 @@
       return;
     }
 
-    const categoryCounts = window.calculateCategoryCounts(getDisplayedFields(), getActiveFilters());
-    window.renderCategorySelectors(categoryCounts, appState.currentCategory, nextCategory => {
+    const categoryCounts = calculateCategoryCounts(getDisplayedFields(), getActiveFilters());
+    renderCategorySelectors(categoryCounts, appState.currentCategory, nextCategory => {
       applyCategoryChange(nextCategory);
     });
 
@@ -148,7 +164,7 @@
       columnMap: new Map(headers.map((header, index) => [header, index]))
     });
 
-    window.QueryChangeManager.replaceDisplayedFields(headers, { source: 'QueryBuilderShell.groupMethodChange' });
+    QueryChangeManager.replaceDisplayedFields(headers, { source: 'QueryBuilderShell.groupMethodChange' });
   }
 
   function handleOverlayClick() {
@@ -210,7 +226,7 @@
 
     try {
       console.log('Initializing application for live queries (test data disabled)');
-      window.QueryChangeManager.replaceDisplayedFields([], { source: 'Query.initialization' });
+      QueryChangeManager.replaceDisplayedFields([], { source: 'Query.initialization' });
       await uiActions.showExampleTable([]);
       uiActions.updateRunButtonIcon();
       updateCategoryCounts();
@@ -221,9 +237,7 @@
 
   async function loadDynamicFields() {
     try {
-      if (window.loadFieldDefinitions) {
-        await window.loadFieldDefinitions();
-      }
+      await loadFieldDefinitions();
       updateCategoryCounts();
       services.rerenderBubbles();
     } catch (error) {
@@ -286,8 +300,11 @@
   }
 
   window.updateCategoryCounts = updateCategoryCounts;
-  window.QueryBuilderShell = Object.freeze({
+  QueryBuilderShell = Object.freeze({
     initialize,
     updateCategoryCounts
   });
+  window.QueryBuilderShell = QueryBuilderShell;
 })();
+
+export { QueryBuilderShell };

@@ -2,8 +2,12 @@
  * Thin service facade over major subsystem globals.
  * Keeps consumers from coupling directly to implementation-specific globals.
  */
+import { AppState } from './queryState.js?v=26';
+
+let appServices;
+
 (function initializeAppServices() {
-  const appState = window.AppState;
+  const appState = AppState;
 
   function getBubbleService() {
     return window.BubbleSystem || null;
@@ -304,7 +308,7 @@
     getTableService()?.setSplitColumnsMode?.(nextValue);
   }
 
-  const appServices = Object.freeze({
+  appServices = Object.freeze({
     get bubble() {
       return getBubbleService();
     },
@@ -390,3 +394,5 @@
     value: appServices
   });
 })();
+
+export { appServices };

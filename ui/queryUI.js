@@ -4,21 +4,27 @@
  * @module QueryUI
  */
 
-var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
-var getActiveFilters = window.QueryStateReaders.getActiveFilters.bind(window.QueryStateReaders);
-var getLifecycleState = window.QueryStateReaders.getLifecycleState.bind(window.QueryStateReaders);
-var getQueryStatus = window.QueryStateReaders.getQueryStatus.bind(window.QueryStateReaders);
-var services = window.AppServices;
+import { QueryStateSubscriptions } from '../core/utils.js?v=19';
+import { QueryStateReaders } from '../core/queryState.js?v=26';
+import { appServices } from '../core/appServices.js?v=3';
+import { buildBackendQueryPayload } from '../filters/queryPayload.js?v=8';
+import { DOM } from './domCache.js?v=3';
+
+const getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
+const getActiveFilters = QueryStateReaders.getActiveFilters.bind(QueryStateReaders);
+const getLifecycleState = QueryStateReaders.getLifecycleState.bind(QueryStateReaders);
+const getQueryStatus = QueryStateReaders.getQueryStatus.bind(QueryStateReaders);
+const services = appServices;
 let queryUiInitialized = false;
 let updateButtonStatesImpl = null;
 
 function updateTableResultsLip() {
-  const resultsBadge = window.DOM.tableResultsBadge;
-  const resultsCount = window.DOM.tableResultsCount;
-  const resultsLabel = window.DOM.tableResultsLabel;
-  const columnsCount = window.DOM.tableColumnsCount;
-  const columnsLabel = window.DOM.tableColumnsLabel;
-  const tableNameShell = window.DOM.tableNameShell;
+  const resultsBadge = DOM.tableResultsBadge;
+  const resultsCount = DOM.tableResultsCount;
+  const resultsLabel = DOM.tableResultsLabel;
+  const columnsCount = DOM.tableColumnsCount;
+  const columnsLabel = DOM.tableColumnsLabel;
+  const tableNameShell = DOM.tableNameShell;
 
   if (!resultsBadge || !resultsCount || !resultsLabel || !columnsCount || !columnsLabel) {
     return;
@@ -73,7 +79,7 @@ function getDefaultTableName(date = new Date()) {
 }
 
 function ensureTableName(options = {}) {
-  const tableNameInput = window.DOM.tableNameInput;
+  const tableNameInput = DOM.tableNameInput;
   const shouldGenerate = options.generateIfEmpty === true;
 
   if (!tableNameInput) {
@@ -93,7 +99,7 @@ function ensureTableName(options = {}) {
 }
 
 function getTableZoom() {
-  const tableShell = window.DOM.tableShell;
+  const tableShell = DOM.tableShell;
   if (!tableShell) {
     return 1;
   }
@@ -133,8 +139,8 @@ function getTableExpandIconMarkup(expanded) {
 }
 
 function refreshTableViewport() {
-  const tableShell = window.DOM.tableShell;
-  const tableContainer = window.DOM.tableContainer;
+  const tableShell = DOM.tableShell;
+  const tableContainer = DOM.tableContainer;
 
   if (!tableShell || !tableContainer) {
     return;
@@ -160,12 +166,12 @@ function refreshTableViewport() {
 }
 
 function updateTableChromeState() {
-  const tableShell = window.DOM.tableShell;
-  const tableZoomControls = window.DOM.tableZoomControls;
-  const tableZoomLabel = window.DOM.tableZoomLabel;
-  const tableZoomInBtn = window.DOM.tableZoomInBtn;
-  const tableZoomOutBtn = window.DOM.tableZoomOutBtn;
-  const tableExpandBtn = window.DOM.tableExpandBtn;
+  const tableShell = DOM.tableShell;
+  const tableZoomControls = DOM.tableZoomControls;
+  const tableZoomLabel = DOM.tableZoomLabel;
+  const tableZoomInBtn = DOM.tableZoomInBtn;
+  const tableZoomOutBtn = DOM.tableZoomOutBtn;
+  const tableExpandBtn = DOM.tableExpandBtn;
 
   if (!tableShell) {
     return;
@@ -206,7 +212,7 @@ function updateTableChromeState() {
 }
 
 function setTableZoom(nextZoom) {
-  const tableShell = window.DOM.tableShell;
+  const tableShell = DOM.tableShell;
   if (!tableShell) {
     return;
   }
@@ -218,7 +224,7 @@ function setTableZoom(nextZoom) {
 }
 
 function toggleTableExpanded(forceExpanded) {
-  const tableShell = window.DOM.tableShell;
+  const tableShell = DOM.tableShell;
   if (!tableShell) {
     return;
   }
@@ -244,15 +250,15 @@ function initializeQueryUi() {
   }
 
   queryUiInitialized = true;
-  const tableNameInput = window.DOM.tableNameInput;
+  const tableNameInput = DOM.tableNameInput;
   if (!tableNameInput) {
     return;
   }
 
-  const tableShell = window.DOM.tableShell;
-  const tableExpandBtn = window.DOM.tableExpandBtn;
-  const tableZoomInBtn = window.DOM.tableZoomInBtn;
-  const tableZoomOutBtn = window.DOM.tableZoomOutBtn;
+  const tableShell = DOM.tableShell;
+  const tableExpandBtn = DOM.tableExpandBtn;
+  const tableZoomInBtn = DOM.tableZoomInBtn;
+  const tableZoomOutBtn = DOM.tableZoomOutBtn;
   if (tableShell) {
     tableShell.dataset.zoom = tableShell.dataset.zoom || '1.00';
   }
@@ -276,13 +282,13 @@ function initializeQueryUi() {
   }
 
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && window.DOM.tableShell?.classList.contains('table-shell-expanded')) {
+    if (event.key === 'Escape' && DOM.tableShell?.classList.contains('table-shell-expanded')) {
       toggleTableExpanded(false);
     }
   });
 
   window.addEventListener('resize', () => {
-    if (window.DOM.tableShell?.classList.contains('table-shell-expanded')) {
+    if (DOM.tableShell?.classList.contains('table-shell-expanded')) {
       refreshTableViewport();
       return;
     }
@@ -293,11 +299,11 @@ function initializeQueryUi() {
 }
 
 function updateRunButtonIcon(validationError) {
-  const runIcon = window.DOM.runIcon;
-  const refreshIcon = window.DOM.refreshIcon;
-  const stopIcon = window.DOM.stopIcon;
-  const runBtn = window.DOM.runBtn;
-  const mobileRunQuery = window.DOM.mobileRunQuery;
+  const runIcon = DOM.runIcon;
+  const refreshIcon = DOM.refreshIcon;
+  const stopIcon = DOM.stopIcon;
+  const runBtn = DOM.runBtn;
+  const mobileRunQuery = DOM.mobileRunQuery;
 
   const setRunTooltip = (tooltipText, ariaLabel) => {
     if (runBtn) {
@@ -349,7 +355,7 @@ function updateRunButtonIcon(validationError) {
   runBtn.disabled = false;
   runBtn.classList.remove('opacity-50', 'cursor-not-allowed');
 
-  if (window.QueryStateReaders.hasQueryChanged()) {
+  if (QueryStateReaders.hasQueryChanged()) {
     runIcon.classList.remove('hidden');
     refreshIcon.classList.add('hidden');
     setRunTooltip('Run Query', 'Run query');
@@ -385,16 +391,16 @@ function hasDisplayedFieldsMissingFromLoadedData() {
 }
 
 function baseUpdateButtonStates() {
-  const runBtn = window.DOM.runBtn;
-  const downloadBtn = window.DOM.downloadBtn;
-  const postFilterBtn = window.DOM.postFilterBtn;
-  const clearQueryBtn = window.DOM.clearQueryBtn;
-  const tableNameInput = window.DOM.tableNameInput;
+  const runBtn = DOM.runBtn;
+  const downloadBtn = DOM.downloadBtn;
+  const postFilterBtn = DOM.postFilterBtn;
+  const clearQueryBtn = DOM.clearQueryBtn;
+  const tableNameInput = DOM.tableNameInput;
   const tableName = tableNameInput ? tableNameInput.value.trim() : '';
 
   if (runBtn) {
     try {
-      const payload = window.buildBackendQueryPayload ? window.buildBackendQueryPayload(tableName) : null;
+      const payload = buildBackendQueryPayload(tableName);
       const hasFields = !!(
         payload && (
           (Array.isArray(payload.display_fields) && payload.display_fields.length > 0) ||
@@ -462,13 +468,13 @@ function baseUpdateButtonStates() {
   if (clearQueryBtn) {
     let payload = null;
     try {
-      payload = window.buildBackendQueryPayload ? window.buildBackendQueryPayload(tableName) : null;
+      payload = buildBackendQueryPayload(tableName);
     } catch (_) {
       payload = null;
     }
 
     const hasTableName = !!(tableNameInput && tableNameInput.value.trim());
-    const hasQueryText = !!(window.DOM.queryInput && window.DOM.queryInput.value.trim());
+    const hasQueryText = !!(DOM.queryInput && DOM.queryInput.value.trim());
     const hasFields = getDisplayedFields().length > 0;
     const hasFilters = Object.values(getActiveFilters()).some(data => data && Array.isArray(data.filters) && data.filters.length > 0);
     const hasConfiguredPayload = !!(
@@ -512,7 +518,7 @@ function getBaseUpdateButtonStates() {
 
 // Keep button states in sync with all query-state changes, including lifecycle-only
 // transitions like running/partial/results that do not change fields or filters.
-window.QueryStateSubscriptions.subscribe(() => {
+QueryStateSubscriptions.subscribe(() => {
   updateButtonStates();
 });
 
@@ -544,4 +550,16 @@ window.updateTableChromeState = updateTableChromeState;
 window.setTableZoom = setTableZoom;
 window.toggleTableExpanded = toggleTableExpanded;
 
-window.QueryUI = Object.freeze(queryUi);
+const QueryUI = Object.freeze(queryUi);
+window.QueryUI = QueryUI;
+
+export {
+  QueryUI,
+  ensureTableName,
+  getDefaultTableName,
+  getTableZoom,
+  refreshTableViewport,
+  setTableZoom,
+  toggleTableExpanded,
+  updateTableChromeState
+};

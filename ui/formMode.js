@@ -1,3 +1,5 @@
+let QueryFormMode;
+
 (function() {
   const services = window.AppServices;
   const uiActions = window.AppUiActions;
@@ -2007,7 +2009,7 @@
     uiActions.updateButtonStates();
   }
 
-  window.QueryFormMode = {
+  QueryFormMode = {
     initialize,
     encodeSpec,
     decodeSpec,
@@ -2026,4 +2028,7 @@
     getValidationError,
     buildCurrentShareUrl
   };
+  window.QueryFormMode = QueryFormMode;
 })();
+
+export { QueryFormMode };

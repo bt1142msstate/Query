@@ -2,9 +2,14 @@
  * Thin facade for cross-module UI actions.
  * Keeps callers from reaching directly into exported window functions.
  */
+import { appServices } from './appServices.js?v=3';
+import { DOM } from '../ui/domCache.js?v=3';
+
+let appUiActions;
+
 (function initializeAppUiActions() {
   function getServices() {
-    return window.AppServices || null;
+    return appServices || window.AppServices || null;
   }
 
   function showExampleTable(fields, options = {}) {
@@ -78,7 +83,7 @@
   function finalizeQueryClear(options = {}) {
     const previousSelectedField = String(options.previousSelectedField || '').trim();
     const services = getServices();
-    const dom = window.DOM;
+    const dom = DOM;
 
     if (previousSelectedField && typeof window.renderConditionList === 'function') {
       window.renderConditionList(previousSelectedField);
@@ -105,7 +110,7 @@
     updateButtonStates();
   }
 
-  const appUiActions = Object.freeze({
+  appUiActions = Object.freeze({
     showExampleTable,
     updateCategoryCounts,
     updateButtonStates,
@@ -126,3 +131,5 @@
     value: appUiActions
   });
 })();
+
+export { appUiActions };

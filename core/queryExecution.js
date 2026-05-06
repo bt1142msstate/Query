@@ -2,10 +2,19 @@
 // HTTP query execution: build payload, run, stop, stream, parse, clear.
 // UI coordination after a query completes goes through AppUiActions/AppServices.
 
-const execDom = window.DOM;
-var appState = window.AppState;
-var services = window.AppServices;
-var uiActions = window.AppUiActions;
+import { BackendApi, parsePipeDelimitedRow } from './utils.js?v=19';
+import { AppState, QueryChangeManager, QueryStateReaders } from './queryState.js?v=26';
+import { appServices } from './appServices.js?v=3';
+import { appUiActions } from './appUiActions.js?v=5';
+import { buildBackendQueryPayload, buildQueryUiConfig } from '../filters/queryPayload.js?v=8';
+import { DOM } from '../ui/domCache.js?v=3';
+import { ensureTableName } from '../ui/queryUI.js?v=25';
+import { showToastMessage } from '../ui/toast.js?v=2';
+
+const execDom = DOM;
+const appState = AppState;
+const services = appServices;
+const uiActions = appUiActions;
 appState.queryPageIsUnloading = false;
 
 function addQueryHistoryEntry(query) {
@@ -44,7 +53,7 @@ function updateLiveQueryProgress(resultCount, options = {}) {
     });
   }
 
-  updateQueryHistoryEntry(window.QueryStateReaders.getLifecycleState().currentQueryId, { resultCount }, { render: false });
+  updateQueryHistoryEntry(QueryStateReaders.getLifecycleState().currentQueryId, { resultCount }, { render: false });
 }
 
 /* ---------- Streaming response reader ---------- */
@@ -67,7 +76,7 @@ async function readStreamedQueryText(response, options = {}) {
   let partial = false;
 
   while (true) {
-    if (!window.QueryStateReaders.getLifecycleState().queryRunning) { partial = true; break; }
+    if (!QueryStateReaders.getLifecycleState().queryRunning) { partial = true; break; }
     const { value, done } = await reader.read();
     if (done) break;
 
@@ -121,21 +130,23 @@ uiActions.updateButtonStates();
 
 /* ---------- Public clear-query API ---------- */
 
-window.clearCurrentQuery = async function clearCurrentQuery() {
-  if (window.QueryChangeManager && typeof window.QueryChangeManager.clearQuery === 'function') {
-    return window.QueryChangeManager.clearQuery();
+async function clearCurrentQuery() {
+  if (QueryChangeManager && typeof QueryChangeManager.clearQuery === 'function') {
+    return QueryChangeManager.clearQuery();
   }
 
   throw new Error('QueryChangeManager.clearQuery is unavailable.');
-};
+}
+
+window.clearCurrentQuery = clearCurrentQuery;
 
 /* ---------- Clear-query button ---------- */
 
-  if (execDom.clearQueryBtn) {
+if (execDom.clearQueryBtn) {
   execDom.clearQueryBtn.addEventListener('click', () => {
-    window.QueryChangeManager.clearQuery().catch(error => {
+    QueryChangeManager.clearQuery().catch(error => {
       console.error('Failed to clear query:', error);
-      window.showToastMessage('Failed to clear query.', 'error');
+      showToastMessage('Failed to clear query.', 'error');
     });
   });
 }
@@ -147,16 +158,16 @@ if (execDom.runBtn) {
     if (execDom.runBtn.disabled) return;   // ignore when disabled
 
     // If query is running, stop it
-    if (window.QueryStateReaders.getLifecycleState().queryRunning) {
-      window.showToastMessage('Stopping query…', 'info');
-      const lifecycleState = window.QueryStateReaders.getLifecycleState();
+    if (QueryStateReaders.getLifecycleState().queryRunning) {
+      showToastMessage('Stopping query…', 'info');
+      const lifecycleState = QueryStateReaders.getLifecycleState();
       if (lifecycleState.currentQueryId && typeof window.cancelQuery === 'function') {
         window.cancelQuery(lifecycleState.currentQueryId).catch(err => {
           console.error('Cancellation failed', err);
         });
       }
 
-      window.QueryChangeManager.setLifecycleState({ queryRunning: false }, { source: 'QueryExecution.stopQuery', silent: true });
+      QueryChangeManager.setLifecycleState({ queryRunning: false }, { source: 'QueryExecution.stopQuery', silent: true });
       uiActions.updateRunButtonIcon();
       uiActions.updateButtonStates();
       if (window.endTableQueryAnimation) window.endTableQueryAnimation();
@@ -176,7 +187,7 @@ if (execDom.runBtn) {
         services.clearPostFilters({ refreshView: false, notify: true, resetScroll: false });
       }
 
-      window.QueryChangeManager.setLifecycleState({
+      QueryChangeManager.setLifecycleState({
         currentQueryId: null,
         queryRunning: true,
         hasPartialResults: false
@@ -188,25 +199,18 @@ if (execDom.runBtn) {
         const queryStartedAt = Date.now();
         updateLiveQueryProgress(0, { startTime: queryStartedAt });
 
-        const state = window.QueryStateReaders.getSerializableState();
-        const queryName = typeof window.ensureTableName === 'function'
-          ? window.ensureTableName({ generateIfEmpty: true })
-          : (execDom.tableNameInput ? execDom.tableNameInput.value.trim() : '');
-        const payload = window.buildBackendQueryPayload(queryName);
-        const historyConfig = typeof window.buildQueryUiConfig === 'function'
-          ? window.buildQueryUiConfig()
-          : {
-              DesiredColumnOrder: state.displayedFields,
-              Filters: []
-            };
+        const state = QueryStateReaders.getSerializableState();
+        const queryName = ensureTableName({ generateIfEmpty: true });
+        const payload = buildBackendQueryPayload(queryName);
+        const historyConfig = buildQueryUiConfig();
 
         console.log('Sending query payload:', payload);
 
-        const response = await window.BackendApi.request(payload, { keepalive: true });
+        const response = await BackendApi.request(payload, { keepalive: true });
 
         // Capture Query ID and register in history
         const responseQueryId = response.headers.get('X-Query-Id');
-        window.QueryChangeManager.setLifecycleState({ currentQueryId: responseQueryId }, { source: 'QueryExecution.setQueryId', silent: true });
+        QueryChangeManager.setLifecycleState({ currentQueryId: responseQueryId }, { source: 'QueryExecution.setQueryId', silent: true });
         if (responseQueryId) {
           const newQuery = {
             id: responseQueryId,
@@ -229,10 +233,10 @@ if (execDom.runBtn) {
           throw new Error(`Server error: ${response.status} ${response.statusText}`);
         }
 
-        window.showToastMessage('Connected — streaming results…', 'info');
+        showToastMessage('Connected — streaming results…', 'info');
         const streamedPayload = await readStreamedQueryText(response, {
           onProgress: rowCount => {
-            if (!window.QueryStateReaders.getLifecycleState().queryRunning) return;
+            if (!QueryStateReaders.getLifecycleState().queryRunning) return;
             updateLiveQueryProgress(rowCount, { startTime: queryStartedAt });
           }
         });
@@ -242,13 +246,13 @@ if (execDom.runBtn) {
         if (streamedPayload.partial) {
           if (streamedPayload.lines.length === 0) {
             console.log('Query stopped by user before any data arrived; discarding.');
-            updateQueryHistoryEntry(window.QueryStateReaders.getLifecycleState().currentQueryId, {
+            updateQueryHistoryEntry(QueryStateReaders.getLifecycleState().currentQueryId, {
               running: false,
               status: 'stopped',
               resultCount: 0,
               endTime: new Date().toISOString()
             });
-            window.showToastMessage('Query stopped — no results received.', 'info');
+            showToastMessage('Query stopped — no results received.', 'info');
             return;
           }
           console.log(`Query stopped mid-stream. Processing ${streamedPayload.lines.length} partial lines.`);
@@ -265,9 +269,7 @@ if (execDom.runBtn) {
           : text.split('\n').filter(line => line.trim().length > 0);
         const headers = state.displayedFields; // Requested order
         const rows = lines.map(line => {
-          const obj = typeof window.parsePipeDelimitedRow === 'function'
-            ? window.parsePipeDelimitedRow(line, rawColumns)
-            : {};
+          const obj = parsePipeDelimitedRow(line, rawColumns);
           // Ensure all requested headers exist
           headers.forEach(h => {
             if (!(h in obj)) obj[h] = '';
@@ -279,7 +281,7 @@ if (execDom.runBtn) {
         updateLiveQueryProgress(rows.length, { startTime: queryStartedAt });
 
         // Mark as complete (or stopped) in history
-        updateQueryHistoryEntry(window.QueryStateReaders.getLifecycleState().currentQueryId, {
+        updateQueryHistoryEntry(QueryStateReaders.getLifecycleState().currentQueryId, {
           running: false,
           status: streamedPayload.partial ? 'stopped' : 'complete',
           resultCount: rows.length,
@@ -288,8 +290,8 @@ if (execDom.runBtn) {
 
         // Mark this query state as executed before rendering the table so zero-row
         // result sets render as "no results" instead of the planning placeholder.
-        window.QueryChangeManager.setLifecycleState({
-          lastExecutedQueryState: window.QueryStateReaders.getSerializableState(),
+        QueryChangeManager.setLifecycleState({
+          lastExecutedQueryState: QueryStateReaders.getSerializableState(),
           hasPartialResults: streamedPayload.partial,
           hasLoadedResultSet: true
         }, { source: 'QueryExecution.completeQuery', silent: true });
@@ -330,9 +332,9 @@ if (execDom.runBtn) {
 
         if (streamedPayload.partial) {
           uiActions.updateTableResultsLip();
-          window.showToastMessage(`Query stopped early. Showing ${rows.length} partial result${rows.length !== 1 ? 's' : ''}.`, 'info');
+          showToastMessage(`Query stopped early. Showing ${rows.length} partial result${rows.length !== 1 ? 's' : ''}.`, 'info');
         } else {
-          window.showToastMessage(`Query completed. Loaded ${rows.length} results.`, 'success');
+          showToastMessage(`Query completed. Loaded ${rows.length} results.`, 'success');
         }
 
       } catch (error) {
@@ -342,7 +344,7 @@ if (execDom.runBtn) {
         }
 
         // Checking if the query was manually stopped by the user
-        if (!window.QueryStateReaders.getLifecycleState().queryRunning) {
+        if (!QueryStateReaders.getLifecycleState().queryRunning) {
           console.log('Query execution interrupted by user stop/cancel.');
           return;
         }
@@ -354,16 +356,16 @@ if (execDom.runBtn) {
         console.error('Query execution failed:', error);
 
         // Mark as failed in history
-        updateQueryHistoryEntry(window.QueryStateReaders.getLifecycleState().currentQueryId, {
+        updateQueryHistoryEntry(QueryStateReaders.getLifecycleState().currentQueryId, {
           running: false,
           status: 'failed',
           error: error.message,
           endTime: new Date().toISOString()
         });
 
-        window.showToastMessage('Query execution failed: ' + error.message, 'error');
+        showToastMessage('Query execution failed: ' + error.message, 'error');
       } finally {
-        window.QueryChangeManager.setLifecycleState({ queryRunning: false }, { source: 'QueryExecution.finishQuery', silent: true });
+        QueryChangeManager.setLifecycleState({ queryRunning: false }, { source: 'QueryExecution.finishQuery', silent: true });
         uiActions.updateTableResultsLip();
         uiActions.updateRunButtonIcon();
         uiActions.updateButtonStates();
@@ -372,3 +374,5 @@ if (execDom.runBtn) {
     })();
   });
 }
+
+export { clearCurrentQuery };

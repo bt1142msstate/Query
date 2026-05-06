@@ -14,16 +14,18 @@ let pendingAliasNotifications = new Map();
 let aliasToastTimer = null;
 const SYSTEM_CATEGORIES = ['All', 'Selected'];
 
-window.hasLoadedFieldDefinitions = function hasLoadedFieldDefinitions() {
+function hasLoadedFieldDefinitions() {
   return isFieldsLoaded && fieldDefsArray.length > 0;
-};
+}
+
+window.hasLoadedFieldDefinitions = hasLoadedFieldDefinitions;
 
 function normalizeCategoryName(category) {
   return (typeof category === 'string') ? category.trim() : '';
 }
 
 function getAvailableCategories() {
-  if (!window.hasLoadedFieldDefinitions()) {
+  if (!hasLoadedFieldDefinitions()) {
     return [];
   }
 
@@ -95,7 +97,7 @@ function noteFieldAliasUsage(alias, canonical) {
   scheduleAliasNotificationToast();
 }
 
-window.resolveFieldName = function resolveFieldName(fieldName, options = {}) {
+function resolveFieldName(fieldName, options = {}) {
   const normalized = typeof fieldName === 'string' ? fieldName.trim() : '';
   if (!normalized) {
     return '';
@@ -114,9 +116,11 @@ window.resolveFieldName = function resolveFieldName(fieldName, options = {}) {
   }
 
   return normalized;
-};
+}
 
-window.loadFieldDefinitions = async function loadFieldDefinitions() {
+window.resolveFieldName = resolveFieldName;
+
+async function loadFieldDefinitions() {
     if (isFieldsLoaded) return fieldDefsArray;
     
     try {
@@ -174,6 +178,8 @@ window.loadFieldDefinitions = async function loadFieldDefinitions() {
         return [];
     }
 }
+
+window.loadFieldDefinitions = loadFieldDefinitions;
 
 /**
  * Updates the filtered definitions array based on search term.
@@ -287,7 +293,7 @@ function renderCategorySelectors(categoryCounts, currentCategory, onCategoryChan
   const categoryBar = window.DOM?.categoryBar || document.getElementById('category-bar');
   const mobileSelector = window.DOM?.mobileCategorySelector || document.getElementById('mobile-category-selector');
 
-  if (!window.hasLoadedFieldDefinitions()) {
+  if (!hasLoadedFieldDefinitions()) {
     if (categoryBar) {
       categoryBar.innerHTML = '';
     }
@@ -352,3 +358,21 @@ window.shouldFieldHavePurpleStylingBase = shouldFieldHavePurpleStylingBase;
 window.shouldFieldHavePurpleStyling = shouldFieldHavePurpleStyling;
 window.calculateCategoryCounts = calculateCategoryCounts;
 window.renderCategorySelectors = renderCategorySelectors;
+
+export {
+  calculateCategoryCounts,
+  fieldAliases,
+  fieldDefs,
+  fieldDefsArray,
+  filteredDefs,
+  getAvailableCategories,
+  getFieldFilterOperators,
+  hasLoadedFieldDefinitions,
+  isFieldBackendFilterable,
+  loadFieldDefinitions,
+  renderCategorySelectors,
+  resolveFieldName,
+  shouldFieldHavePurpleStyling,
+  shouldFieldHavePurpleStylingBase,
+  updateFilteredDefs
+};

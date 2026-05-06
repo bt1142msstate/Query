@@ -14,7 +14,7 @@ function getCachedElement(cache, cacheKey, elementId) {
   return cache[cacheKey];
 }
 
-window.DOM = {
+const DOM = {
   get overlay() { return getCachedElement(this, '_overlay', 'overlay'); },
   get pageBody() { return getCachedElement(this, '_pageBody', 'page-body'); },
   get conditionPanel() { return getCachedElement(this, '_conditionPanel', 'condition-panel'); },
@@ -84,3 +84,7 @@ window.DOM = {
   get queriesList() { return getCachedElement(this, '_queriesList', 'queries-list'); },
   get queriesSearch() { return getCachedElement(this, '_queriesSearch', 'queries-search'); }
 };
+
+window.DOM = DOM;
+
+export { DOM };

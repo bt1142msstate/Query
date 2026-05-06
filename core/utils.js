@@ -1173,3 +1173,47 @@ window.FormatUtils = {
     return s;
   }
 };
+
+const BackendApi = window.BackendApi;
+const ClipboardUtils = window.ClipboardUtils;
+const DragUtils = window.DragUtils;
+const EventUtils = window.EventUtils;
+const FormatUtils = window.FormatUtils;
+const Icons = window.Icons;
+const MoneyUtils = window.MoneyUtils;
+const OperatorLabels = window.OperatorLabels;
+const OperatorSelectUtils = window.OperatorSelectUtils;
+const QueryStateSubscriptions = window.QueryStateSubscriptions;
+const TableBuilder = window.TableBuilder;
+const TextMeasurement = window.TextMeasurement;
+const ValueFormatting = window.ValueFormatting;
+const VisibilityUtils = window.VisibilityUtils;
+const escapeHtml = window.escapeHtml;
+const escapeRegExp = window.escapeRegExp;
+const formatDuration = window.formatDuration;
+const getFieldOutputSegments = window.getFieldOutputSegments;
+const onDOMReady = window.onDOMReady;
+const parsePipeDelimitedRow = window.parsePipeDelimitedRow;
+
+export {
+  BackendApi,
+  ClipboardUtils,
+  DragUtils,
+  EventUtils,
+  FormatUtils,
+  Icons,
+  MoneyUtils,
+  OperatorLabels,
+  OperatorSelectUtils,
+  QueryStateSubscriptions,
+  TableBuilder,
+  TextMeasurement,
+  ValueFormatting,
+  VisibilityUtils,
+  escapeHtml,
+  escapeRegExp,
+  formatDuration,
+  getFieldOutputSegments,
+  onDOMReady,
+  parsePipeDelimitedRow
+};
