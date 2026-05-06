@@ -106,25 +106,6 @@ window.EventUtils = {
   }
 };
 
-window.formatDuration = function(seconds) {
-  if (seconds < 60) {
-    return `${seconds}s`;
-  }
-
-  const days = Math.floor(seconds / (24 * 60 * 60));
-  const hours = Math.floor((seconds % (24 * 60 * 60)) / (60 * 60));
-  const minutes = Math.floor((seconds % (60 * 60)) / 60);
-  const remainingSeconds = seconds % 60;
-
-  const parts = [];
-  if (days > 0) parts.push(`${days} day${days !== 1 ? 's' : ''}`);
-  if (hours > 0) parts.push(`${hours} hr${hours !== 1 ? 's' : ''}`);
-  if (minutes > 0) parts.push(`${minutes} min`);
-  if (remainingSeconds > 0 || parts.length === 0) parts.push(`${remainingSeconds} sec`);
-
-  return parts.join(' ');
-};
-
 window.OperatorLabels = (() => {
   const LABELS = Object.freeze({
     contains: 'Contains',
@@ -880,39 +861,6 @@ window.MoneyUtils = (() => {
   };
 })();
 
-window.getFieldOutputSegments = function(fieldName) {
-  if (!window.fieldDefs) {
-    return 1;
-  }
-
-  let fieldDef = window.fieldDefs.get(fieldName);
-  if (!fieldDef && typeof fieldName === 'string') {
-    const baseName = fieldName.replace(/ \d+$/, '');
-    if (baseName !== fieldName) {
-      fieldDef = window.fieldDefs.get(baseName);
-    }
-  }
-
-  const parsed = Number.parseInt(fieldDef && fieldDef.parts, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
-};
-
-window.parsePipeDelimitedRow = function(line, columns) {
-  const values = String(line || '').split('|');
-  const row = {};
-  let valueIndex = 0;
-
-  columns.forEach(column => {
-    const segmentCount = window.getFieldOutputSegments(column);
-    row[column] = valueIndex < values.length
-      ? values.slice(valueIndex, valueIndex + segmentCount).join('|')
-      : '';
-    valueIndex += segmentCount;
-  });
-
-  return row;
-};
-
 /**
  * Table Builder Utilities - Common table creation patterns
  * @namespace TableBuilder
@@ -981,10 +929,6 @@ window.escapeHtml = function(unsafe) {
     .replace(/'/g, '&#039;');
 };
 
-window.escapeRegExp = function(value) {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-};
-
 window.DragUtils = {
   hasDragType(event, dragType) {
     const types = event?.dataTransfer?.types;
@@ -1038,11 +982,7 @@ const TextMeasurement = window.TextMeasurement;
 const ValueFormatting = window.ValueFormatting;
 const VisibilityUtils = window.VisibilityUtils;
 const escapeHtml = window.escapeHtml;
-const escapeRegExp = window.escapeRegExp;
-const formatDuration = window.formatDuration;
-const getFieldOutputSegments = window.getFieldOutputSegments;
 const onDOMReady = window.onDOMReady;
-const parsePipeDelimitedRow = window.parsePipeDelimitedRow;
 
 export {
   ClipboardUtils,
@@ -1059,9 +999,5 @@ export {
   ValueFormatting,
   VisibilityUtils,
   escapeHtml,
-  escapeRegExp,
-  formatDuration,
-  getFieldOutputSegments,
-  onDOMReady,
-  parsePipeDelimitedRow
+  onDOMReady
 };
