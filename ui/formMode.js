@@ -1,4 +1,5 @@
 import { mapFieldOperatorToUiCond } from '../filters/queryPayload.js';
+import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 
 let QueryFormMode;
 
@@ -1913,7 +1914,7 @@ let QueryFormMode;
     state.lastBrowserUrl = window.location.href;
 
     if (!state.unsubscribeQueryState) {
-      state.unsubscribeQueryState = window.QueryStateSubscriptions.subscribe(event => {
+      state.unsubscribeQueryState = QueryStateSubscriptions.subscribe(event => {
         if (!state.active) {
           return;
         }

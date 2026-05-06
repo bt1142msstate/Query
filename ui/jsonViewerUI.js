@@ -1,6 +1,7 @@
 /** Rebuild and render the query JSON preview. */
 import { buildBackendQueryPayload } from '../filters/queryPayload.js';
 import { onDOMReady } from '../core/domReady.js';
+import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 
 const jsonTreeCollapsedPaths = new Set();
 
@@ -147,7 +148,7 @@ onDOMReady(() => {
 });
 
 // Keep JSON preview in sync with query state changes reactively.
-window.QueryStateSubscriptions.subscribe(() => {
+QueryStateSubscriptions.subscribe(() => {
   updateQueryJson();
 }, { displayedFields: true, activeFilters: true });
 

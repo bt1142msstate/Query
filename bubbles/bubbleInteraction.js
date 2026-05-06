@@ -1,3 +1,5 @@
+import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
+
 var getFilterGroupForField = window.QueryStateReaders.getFilterGroupForField.bind(window.QueryStateReaders);
 var getLifecycleState = window.QueryStateReaders.getLifecycleState.bind(window.QueryStateReaders);
 var appState = window.AppState;
@@ -341,6 +343,6 @@ window.BubbleInteraction = {
 };
 
 // Keep bubbles in sync with query state changes reactively.
-window.QueryStateSubscriptions.subscribe(() => {
+QueryStateSubscriptions.subscribe(() => {
   services.rerenderBubbles();
 }, { displayedFields: true, activeFilters: true });

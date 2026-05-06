@@ -2,6 +2,8 @@
  * Query table rendering and empty-state management.
  * Owns table construction so orchestration code does not mutate table DOM directly.
  */
+import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
+
 (function initializeQueryTableView() {
   const dom = window.DOM;
   const appState = window.AppState;
@@ -383,7 +385,7 @@
 
   window.QueryTableView = queryTableView;
 
-  window.QueryStateSubscriptions.subscribe(event => {
+  QueryStateSubscriptions.subscribe(event => {
     if (event?.changes?.displayedFields) {
       const queuedOptions = nextStateRenderOptions ? { ...nextStateRenderOptions } : {};
       nextStateRenderOptions = null;

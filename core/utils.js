@@ -313,46 +313,6 @@ window.ClipboardUtils = (() => {
   };
 })();
 
-window.QueryStateSubscriptions = (() => {
-  function subscribe(handler, options = {}) {
-    if (!window.QueryStateReaders || typeof window.QueryStateReaders.subscribe !== 'function' || typeof handler !== 'function') {
-      return () => {};
-    }
-
-    const {
-      displayedFields = false,
-      activeFilters = false,
-      predicate = null
-    } = options;
-
-    const requireSpecificChanges = displayedFields || activeFilters;
-
-    return window.QueryStateReaders.subscribe(event => {
-      if (!event) {
-        return;
-      }
-
-      if (requireSpecificChanges) {
-        const matchesDisplayedFields = displayedFields && Boolean(event.changes?.displayedFields);
-        const matchesActiveFilters = activeFilters && Boolean(event.changes?.activeFilters);
-        if (!matchesDisplayedFields && !matchesActiveFilters) {
-          return;
-        }
-      }
-
-      if (typeof predicate === 'function' && !predicate(event)) {
-        return;
-      }
-
-      handler(event);
-    });
-  }
-
-  return {
-    subscribe
-  };
-})();
-
 window.VisibilityUtils = (() => {
   const raisedUiKeys = new Set();
 
@@ -962,7 +922,6 @@ const Icons = window.Icons;
 const MoneyUtils = window.MoneyUtils;
 const OperatorLabels = window.OperatorLabels;
 const OperatorSelectUtils = window.OperatorSelectUtils;
-const QueryStateSubscriptions = window.QueryStateSubscriptions;
 const TableBuilder = window.TableBuilder;
 const TextMeasurement = window.TextMeasurement;
 const ValueFormatting = window.ValueFormatting;
@@ -978,7 +937,6 @@ export {
   MoneyUtils,
   OperatorLabels,
   OperatorSelectUtils,
-  QueryStateSubscriptions,
   TableBuilder,
   TextMeasurement,
   ValueFormatting,
