@@ -49,7 +49,6 @@ const publicWindowAssignments = [
   'displayedFields',
   'dismissToastMessage',
   'DragUtils',
-  'DragDropColumnOps',
   'escapeHtml',
   'escapeRegExp',
   'fieldAliases',

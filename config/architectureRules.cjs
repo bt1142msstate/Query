@@ -7,6 +7,7 @@ const forbiddenWindowMemberReads = new Map([
   ['AppUiActions', 'Import from core/appUiActions.js instead of reading UI action facade from window'],
   ['BackendApi', 'Import from core/backendApi.js instead of reading the backend client from window'],
   ['ClipboardUtils', 'Import from core/clipboard.js instead of reading clipboard helpers from window'],
+  ['DragDropColumnOps', 'Import from table/dragDropColumns.js or register with query state accessors instead of reading column ops from window'],
   ['DragUtils', 'Import from core/dragUtils.js instead of reading drag helpers from window'],
   ['escapeRegExp', 'Import from core/dataFormatters.js instead of reading this formatter from window'],
   ['formatDuration', 'Import from core/dataFormatters.js instead of reading this formatter from window'],
