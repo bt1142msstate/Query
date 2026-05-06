@@ -1,4 +1,5 @@
 import { onDOMReady } from '../core/domReady.js';
+import { OperatorLabels } from '../core/operatorLabels.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 import { showToastMessage } from '../core/toast.js';
 import { VisibilityUtils } from '../core/visibility.js';
@@ -569,7 +570,7 @@ import { VisibilityUtils } from '../core/visibility.js';
     const selectedField = elements.fieldSelect.value;
     const options = getOperatorOptions(selectedField);
     const previousValue = elements.operatorSelect.value;
-    elements.operatorSelect.innerHTML = options.map(option => `<option value="${option}">${window.OperatorLabels.get(option)}</option>`).join('');
+    elements.operatorSelect.innerHTML = options.map(option => `<option value="${option}">${OperatorLabels.get(option)}</option>`).join('');
 
     if (options.includes(previousValue)) {
       elements.operatorSelect.value = previousValue;
@@ -739,7 +740,7 @@ import { VisibilityUtils } from '../core/visibility.js';
       const ruleLabel = entry.logic === 'any' ? 'Rows can match any rule below' : 'Rows must match every rule below';
       const safeRuleLabel = window.escapeHtml(ruleLabel);
       const filterMarkup = entry.filters.map(({ filter, index }) => {
-        const label = `${window.OperatorLabels.get(filter.cond)} ${formatFilterValue(filter, entry.field)}`;
+        const label = `${OperatorLabels.get(filter.cond)} ${formatFilterValue(filter, entry.field)}`;
         const safeLabel = window.escapeHtml(label);
         return `
           <div class="post-filter-pill">

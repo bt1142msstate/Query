@@ -1,3 +1,4 @@
+import { OperatorLabels } from '../core/operatorLabels.js';
 import { formatFieldOperatorForDisplay, mapFieldOperatorToUiCond, normalizeUiConfigFilters } from '../filters/queryPayload.js';
 import { getFilterDisplayValues } from '../filters/filterValueUi.js';
 
@@ -577,9 +578,7 @@ function formatFieldDefinitionTooltipHTML(fieldDef, options = {}) {
   if (filterOperators.length > 0) {
     html += '<div class="tt-field-definition-operators">';
     html += filterOperators.map(operator => {
-      const label = window.OperatorLabels && window.OperatorLabels.get(operator)
-        ? window.OperatorLabels.get(operator)
-        : operator;
+      const label = OperatorLabels.get(operator, operator);
       return '<span class="tt-field-definition-operator">' + escapeHtml(label) + '</span>';
     }).join('');
     html += '</div>';

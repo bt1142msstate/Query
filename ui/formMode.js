@@ -1,4 +1,5 @@
 import { ClipboardUtils } from '../core/clipboard.js';
+import { OperatorLabels } from '../core/operatorLabels.js';
 import { showToastMessage } from '../core/toast.js';
 import { mapFieldOperatorToUiCond } from '../filters/queryPayload.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
@@ -460,7 +461,7 @@ let QueryFormMode;
       key: uniqueInputKey(keyBase, seenKeys),
       field: fieldName,
       source: 'query-filter',
-      label: hasMultipleFilters ? `${fieldName} (${window.OperatorLabels.get(operator)})` : fieldName,
+      label: hasMultipleFilters ? `${fieldName} (${OperatorLabels.get(operator)})` : fieldName,
       operator,
       multiple: shouldAllowMultiple,
       default: operator === 'between'
