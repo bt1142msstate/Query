@@ -1,3 +1,4 @@
+import { DragUtils } from './dragUtils.js';
 import { Icons } from './icons.js';
 import { OperatorLabels } from './operatorLabels.js';
 
@@ -624,13 +625,6 @@ window.escapeHtml = function(unsafe) {
     .replace(/'/g, '&#039;');
 };
 
-window.DragUtils = {
-  hasDragType(event, dragType) {
-    const types = event?.dataTransfer?.types;
-    return Boolean(types && Array.from(types).includes(dragType));
-  }
-};
-
 window.FormatUtils = {
   formatCellDisplay(raw, field) {
     if (raw == null) return '';
@@ -656,7 +650,6 @@ window.FormatUtils = {
   }
 };
 
-const DragUtils = window.DragUtils;
 const EventUtils = window.EventUtils;
 const FormatUtils = window.FormatUtils;
 const MoneyUtils = window.MoneyUtils;

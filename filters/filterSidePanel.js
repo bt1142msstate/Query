@@ -9,6 +9,7 @@ import {
     openFilterListViewer,
     shouldUseFilterListViewer
 } from './filterValueUi.js';
+import { DragUtils } from '../core/dragUtils.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 import { showToastMessage } from '../core/toast.js';
 import { OperatorLabels } from '../core/operatorLabels.js';
@@ -387,7 +388,7 @@ window.FilterSidePanel = (function () {
             });
 
             item.addEventListener('dragover', event => {
-                if (!window.DragUtils.hasDragType(event, DISPLAY_REORDER_MIME)) {
+                if (!DragUtils.hasDragType(event, DISPLAY_REORDER_MIME)) {
                     return;
                 }
                 event.preventDefault();
@@ -402,7 +403,7 @@ window.FilterSidePanel = (function () {
             });
 
             item.addEventListener('drop', event => {
-                if (!window.DragUtils.hasDragType(event, DISPLAY_REORDER_MIME)) {
+                if (!DragUtils.hasDragType(event, DISPLAY_REORDER_MIME)) {
                     return;
                 }
                 event.preventDefault();
@@ -517,7 +518,7 @@ window.FilterSidePanel = (function () {
         });
 
         group.addEventListener('dragover', (e) => {
-            if (!window.DragUtils.hasDragType(e, FILTER_REORDER_MIME)) {
+            if (!DragUtils.hasDragType(e, FILTER_REORDER_MIME)) {
                 return;
             }
             e.preventDefault();
@@ -539,7 +540,7 @@ window.FilterSidePanel = (function () {
         });
 
         group.addEventListener('drop', (e) => {
-            if (!window.DragUtils.hasDragType(e, FILTER_REORDER_MIME)) {
+            if (!DragUtils.hasDragType(e, FILTER_REORDER_MIME)) {
                 return;
             }
             e.preventDefault();
