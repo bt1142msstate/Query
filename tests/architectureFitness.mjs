@@ -7,6 +7,7 @@ const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
 const { publicWindowAssignments } = require('../config/publicGlobals.cjs');
 const {
+  forbiddenWindowMemberReads,
   legacyLargeModuleBudgets,
   maxModuleLines,
   moduleBoundaryRules,
@@ -50,6 +51,17 @@ function findPublicWindowExports(source) {
   }
 
   return exports;
+}
+
+function findForbiddenWindowMemberReads(source) {
+  const reads = [];
+  for (const name of forbiddenWindowMemberReads.keys()) {
+    const pattern = new RegExp(`\\bwindow\\.${name}\\b`, 'u');
+    if (pattern.test(source)) {
+      reads.push(name);
+    }
+  }
+  return reads;
 }
 
 function toRepoPath(filePath) {
@@ -180,6 +192,10 @@ for (const filePath of sourceFiles) {
     if (!allowedWindowExports.has(exportName)) {
       failures.push(`${relativePath}: window.${exportName} is not in the approved public global allowlist`);
     }
+  }
+
+  for (const readName of findForbiddenWindowMemberReads(source)) {
+    failures.push(`${relativePath}: window.${readName} is forbidden; ${forbiddenWindowMemberReads.get(readName)}`);
   }
 
   for (const specifier of findImportSpecifiers(source)) {
