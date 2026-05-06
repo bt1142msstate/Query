@@ -77,11 +77,6 @@ const queryLifecycleNormalizers = {
   currentQueryId: value => value ? String(value) : null
 };
 
-const blockedGlobalAppStateKeys = new Set([
-  'currentQueryState',
-  'lastExecutedQueryState'
-]);
-
 function defineAppStateProperty(target, key) {
   Object.defineProperty(target, key, {
     configurable: false,
@@ -96,50 +91,10 @@ function defineAppStateProperty(target, key) {
   });
 }
 
-function defineBlockedGlobalAppStateProperty(key) {
-  Object.defineProperty(window, key, {
-    configurable: false,
-    enumerable: false,
-    get() {
-      throw new Error(`Direct access to window.${key} is blocked. Use window.AppState.${key} instead.`);
-    },
-    set() {
-      throw new Error(`Direct mutation of window.${key} is blocked. Use window.AppState.${key} instead.`);
-    }
-  });
-}
-
-function defineQueryLifecycleProperty(target, key) {
-  Object.defineProperty(target, key, {
-    configurable: false,
-    enumerable: true,
-    get() {
-      return queryLifecycleState[key];
-    },
-    set(value) {
-      const normalize = queryLifecycleNormalizers[key];
-      queryLifecycleState[key] = typeof normalize === 'function' ? normalize(value) : value;
-    }
-  });
-}
-
 const appStateStore = {};
-Object.keys({ ...appRuntimeState, ...queryLifecycleState }).forEach(key => {
-  if (Object.prototype.hasOwnProperty.call(appRuntimeState, key)) {
-    defineAppStateProperty(appStateStore, key);
-  } else {
-    defineQueryLifecycleProperty(appStateStore, key);
-  }
-
-  if (blockedGlobalAppStateKeys.has(key)) {
-    defineBlockedGlobalAppStateProperty(key);
-  } else {
-    if (Object.prototype.hasOwnProperty.call(appRuntimeState, key)) {
-      defineAppStateProperty(window, key);
-    } else {
-      defineQueryLifecycleProperty(window, key);
-    }
-  }
+Object.keys(appRuntimeState).forEach(key => {
+  defineAppStateProperty(appStateStore, key);
+  defineAppStateProperty(window, key);
 });
 Object.freeze(appStateStore);
 Object.defineProperty(window, 'AppState', {

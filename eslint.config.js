@@ -271,7 +271,7 @@ const localRules = {
       },
       schema: [],
       messages: {
-        protectedGlobal: 'Top-level declaration "{{name}}" collides with a protected browser global. Use a locally scoped helper name instead.'
+        protectedGlobal: 'Top-level declaration "{{name}}" uses a protected query lifecycle/global state name. Use a locally scoped helper name instead.'
       }
     },
     create(context) {
@@ -315,7 +315,7 @@ const localRules = {
       messages: {
         privateStore: 'window.QueryStateStore is private. Use window.QueryChangeManager or window.QueryStateReaders.',
         readerViaManager: 'Read query state via window.QueryStateReaders. Reserve window.QueryChangeManager for writes.',
-        blockedAppStateAlias: 'Use window.AppState.{{name}} instead of the blocked global alias window.{{name}}.',
+        blockedAppStateAlias: 'Read query lifecycle via window.QueryStateReaders.getLifecycleState() instead of window.{{name}}.',
         lifecycleViaAppState: 'Read query lifecycle via window.QueryStateReaders.getLifecycleState() or window.QueryStateReaders.getQueryStatus().'
       }
     },
@@ -439,11 +439,11 @@ module.exports = [
         },
         {
           name: 'currentQueryState',
-          message: 'Use window.AppState.currentQueryState instead.'
+          message: 'Read query state via window.QueryStateReaders instead.'
         },
         {
           name: 'lastExecutedQueryState',
-          message: 'Use window.AppState.lastExecutedQueryState instead.'
+          message: 'Read query lifecycle via window.QueryStateReaders.getLifecycleState().'
         },
         {
           name: 'queryRunning',
