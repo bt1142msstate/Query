@@ -54,7 +54,6 @@ const publicWindowAssignments = [
   'calculateCategoryCounts',
   'clearCurrentQuery',
   'configureInputsForType',
-  'createQueryTableHeaderCell',
   'createBubblePopParticles',
   'currentCategory',
   'displayedFields',
@@ -101,7 +100,6 @@ const publicWindowAssignments = [
   'removedColumnInfo',
   'renderCategorySelectors',
   'renderConditionList',
-  'renderEmptyQueryTableState',
   'resetSplitColumnsToggleUI',
   'resolveFieldName',
   'restoreFieldWithDuplicates',
@@ -123,7 +121,6 @@ const publicWindowAssignments = [
   'typeConditions',
   'updateCategoryCounts',
   'updateFilteredDefs',
-  'updateSortHeadersUI',
   'updateSplitColumnsToggleState'
 ];
 
