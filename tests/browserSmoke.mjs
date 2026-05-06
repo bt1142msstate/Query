@@ -173,18 +173,18 @@ async function runSmokeTest() {
 
     await stubExternalAssets(page);
     await page.goto(baseUrl, { waitUntil: 'load', timeout: 15000 });
-    await page.waitForFunction(
-      () => window.__QUERY_APP_MODULES_READY === true || window.__QUERY_APP_MODULES_ERROR,
-      null,
-      { timeout: 15000 }
-    );
+    try {
+      await page.waitForFunction(
+        () => window.__QUERY_APP_MODULES_READY === true,
+        null,
+        { timeout: 15000 }
+      );
+    } catch (error) {
+      failures.push(`module loader did not finish: ${error.message}`);
+    }
 
-    const moduleError = await page.evaluate(() => {
-      const error = window.__QUERY_APP_MODULES_ERROR;
-      return error ? error.stack || error.message || String(error) : null;
-    });
-    if (moduleError) {
-      failures.push(`module loader failed: ${moduleError}`);
+    if (failures.length > 0) {
+      throw new Error(`Browser smoke test failed:\n${failures.map(failure => `- ${failure}`).join('\n')}`);
     }
 
     await page.getByRole('button', { name: 'Queries' }).click();

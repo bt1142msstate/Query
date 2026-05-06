@@ -1,7 +1,6 @@
 const globals = require('globals');
 
 const allowedWindowAssignments = new Set([
-  '__QUERY_APP_MODULES_ERROR',
   '__QUERY_APP_MODULES_READY',
   'BUBBLE_DEBUG',
   'BubbleConditionPanel',
@@ -549,6 +548,12 @@ module.exports = [
       'local/no-unapproved-window-exports': 'error',
       'local/no-protected-global-declarations': 'error',
       'local/no-restricted-query-state-access': 'error'
+    }
+  },
+  {
+    files: ['appModules.js'],
+    languageOptions: {
+      sourceType: 'module'
     }
   },
   {
