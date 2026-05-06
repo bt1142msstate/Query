@@ -3,6 +3,7 @@
  * Owns hover, drop indicator, header actions, and drag lifecycle behavior.
  */
 import { ClipboardUtils } from '../core/clipboard.js';
+import { Icons } from '../core/icons.js';
 import { showToastMessage } from '../core/toast.js';
 (function initializeDragDropInteractions() {
   var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
@@ -70,7 +71,7 @@ import { showToastMessage } from '../core/toast.js';
   headerTrash.className = 'th-action th-trash';
   headerTrash.setAttribute('aria-label', 'Remove column');
   headerTrash.setAttribute('data-tooltip', 'Remove column');
-  headerTrash.innerHTML = window.Icons.trashSVG();
+  headerTrash.innerHTML = Icons.trashSVG();
 
   headerActions.appendChild(headerSort);
   headerActions.appendChild(headerCopy);

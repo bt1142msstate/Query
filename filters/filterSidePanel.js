@@ -12,6 +12,7 @@ import {
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 import { showToastMessage } from '../core/toast.js';
 import { OperatorLabels } from '../core/operatorLabels.js';
+import { Icons } from '../core/icons.js';
 
 window.FilterSidePanel = (function () {
     const services = window.AppServices;
@@ -465,7 +466,7 @@ window.FilterSidePanel = (function () {
             controls.appendChild(createIconButton(
                 'fp-display-btn fp-display-btn-remove',
                 `Remove ${field} from display`,
-                window.Icons.trashSVG(14, 14),
+                Icons.trashSVG(14, 14),
                 () => removeDisplayedFieldAt(index)
             ));
 
@@ -659,7 +660,7 @@ window.FilterSidePanel = (function () {
             const delBtn = document.createElement('button');
             delBtn.className = 'fp-cond-btn fp-del-btn';
             delBtn.title = 'Remove this filter';
-            delBtn.innerHTML = window.Icons.trashSVG(14, 14);
+            delBtn.innerHTML = Icons.trashSVG(14, 14);
             delBtn.addEventListener('click', e => {
                 e.stopPropagation();
                 window.QueryChangeManager.removeFilter(field, {

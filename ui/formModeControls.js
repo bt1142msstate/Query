@@ -1,4 +1,5 @@
 import { showToastMessage } from '../core/toast.js';
+import { Icons } from '../core/icons.js';
 import { OperatorLabels } from '../core/operatorLabels.js';
 
 (function initializeFormModeControls() {
@@ -469,7 +470,7 @@ import { OperatorLabels } from '../core/operatorLabels.js';
     removeButton.className = 'form-mode-field-remove';
     removeButton.setAttribute('aria-label', `Remove filter ${inputSpec.label}`);
     removeButton.setAttribute('title', `Remove filter ${inputSpec.label}`);
-    removeButton.innerHTML = window.Icons.trashSVG(16, 16);
+    removeButton.innerHTML = Icons.trashSVG(16, 16);
     if (showRemoveButton) {
       removeButton.addEventListener('click', () => {
         removeSpecInputByKey(inputSpec.key);

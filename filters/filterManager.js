@@ -1,3 +1,5 @@
+import { Icons } from '../core/icons.js';
+
 /**
  * Filter Management
  * Handles filter UI, inputs, and confirmation logic.
@@ -479,9 +481,7 @@ class FilterPill {
             condContent = `${opLabel} <b>${valueLabel}</b>`;
         }
         
-                // Remove icon SVG
-        const trashSVG = `<button type="button" class="filter-trash" aria-label="Remove filter" tabindex="0" style="background:none;border:none;padding:0;margin-left:0.7em;display:flex;align-items:center;cursor:pointer;color:#888;">${window.Icons.trashSVG(20, 20)}</button>`;
-        
+        const trashSVG = `<button type="button" class="filter-trash" aria-label="Remove filter" tabindex="0" style="background:none;border:none;padding:0;margin-left:0.7em;display:flex;align-items:center;cursor:pointer;color:#888;">${Icons.trashSVG(20, 20)}</button>`;
         // Render pill content with trash can at the end using flex
         this.el.style.display = 'flex';
         this.el.style.alignItems = 'center';
