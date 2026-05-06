@@ -143,6 +143,24 @@ async function stubExternalAssets(page) {
   });
 }
 
+async function expectDarkInput(page, selector, label) {
+  const theme = await page.locator(selector).evaluate(input => {
+    const readChannels = value => (value.match(/\d+/gu) || []).slice(0, 3).map(Number);
+    const style = window.getComputedStyle(input);
+    const [backgroundRed = 255, backgroundGreen = 255, backgroundBlue = 255] = readChannels(style.backgroundColor);
+    const [textRed = 0, textGreen = 0, textBlue = 0] = readChannels(style.color);
+
+    return {
+      backgroundLuma: (backgroundRed + backgroundGreen + backgroundBlue) / 3,
+      textLuma: (textRed + textGreen + textBlue) / 3
+    };
+  });
+
+  if (theme.backgroundLuma > 80 || theme.textLuma < 160) {
+    throw new Error(`${label} is not using the dark search theme`);
+  }
+}
+
 async function runSmokeTest() {
   const server = createServer(serveStaticFile);
   const port = await listen(server);
@@ -187,6 +205,8 @@ async function runSmokeTest() {
       throw new Error(`Browser smoke test failed:\n${failures.map(failure => `- ${failure}`).join('\n')}`);
     }
 
+    await expectDarkInput(page, '#query-input', 'Main field search input');
+
     await page.evaluate(() => {
       window.QueryChangeManager.upsertFilter(
         'Smoke Filter Field',
@@ -199,28 +219,11 @@ async function runSmokeTest() {
 
     await page.getByRole('button', { name: 'Queries' }).click();
     await page.locator('input[placeholder="Search queries..."]').waitFor({ state: 'visible', timeout: 5000 });
-    const historySearchTheme = await page.locator('#queries-search').evaluate(input => {
-      const style = window.getComputedStyle(input);
-      const [backgroundRed, backgroundGreen, backgroundBlue] = style.backgroundColor
-        .match(/\d+/gu)
-        .slice(0, 3)
-        .map(Number);
-      const [textRed, textGreen, textBlue] = style.color
-        .match(/\d+/gu)
-        .slice(0, 3)
-        .map(Number);
-
-      return {
-        backgroundLuma: (backgroundRed + backgroundGreen + backgroundBlue) / 3,
-        textLuma: (textRed + textGreen + textBlue) / 3
-      };
-    });
-    if (historySearchTheme.backgroundLuma > 80 || historySearchTheme.textLuma < 160) {
-      throw new Error('Query history search input is not using the dark theme');
-    }
+    await expectDarkInput(page, '#queries-search', 'Query history search input');
 
     await page.getByRole('button', { name: 'Templates' }).click();
     await page.locator('input[placeholder="Search templates"]').waitFor({ state: 'visible', timeout: 5000 });
+    await expectDarkInput(page, '#templates-search-input', 'Templates search input');
 
     await page.getByRole('button', { name: 'Help' }).click();
 
