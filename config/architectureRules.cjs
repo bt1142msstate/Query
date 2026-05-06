@@ -10,6 +10,7 @@ const forbiddenWindowMemberReads = new Map([
   ['DragUtils', 'Import from core/dragUtils.js instead of reading drag helpers from window'],
   ['escapeRegExp', 'Import from core/dataFormatters.js instead of reading this formatter from window'],
   ['formatDuration', 'Import from core/dataFormatters.js instead of reading this formatter from window'],
+  ['FilterValueUi', 'Import from filters/filterValueUi.js instead of reading filter value helpers from window'],
   ['getFieldOutputSegments', 'Import from core/dataFormatters.js instead of reading this formatter from window'],
   ['Icons', 'Import from core/icons.js instead of reading icon helpers from window'],
   ['onDOMReady', 'Import from core/domReady.js instead of reading DOM lifecycle helpers from window'],

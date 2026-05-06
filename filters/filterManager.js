@@ -2,6 +2,12 @@ import { appServices } from '../core/appServices.js';
 import { appUiActions } from '../core/appUiActions.js';
 import { Icons } from '../core/icons.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
+import {
+    buildFilterValueLabel,
+    getFilterDisplayValues,
+    openFilterListViewer,
+    shouldUseFilterListViewer
+} from './filterValueUi.js';
 /**
  * Filter Management
  * Handles filter UI, inputs, and confirmation logic.
@@ -13,13 +19,7 @@ import { AppState, QueryChangeManager, QueryStateReaders } from '../core/querySt
  * (Moved from queryUI.js)
  */
 var appState = AppState;
-var services = appServices;
-var filterValueUi = window.FilterValueUi;
-var uiActions = appUiActions;
-const getFilterDisplayValues = filterValueUi.getFilterDisplayValues;
-const shouldUseFilterListViewer = filterValueUi.shouldUseFilterListViewer;
-const openFilterListViewer = filterValueUi.openFilterListViewer;
-const buildFilterValueLabel = filterValueUi.buildFilterValueLabel;
+var services = appServices, uiActions = appUiActions;
 function getFilterConditionPanelElement() {
     return window.DOM?.conditionPanel || document.getElementById('condition-panel');
 }
