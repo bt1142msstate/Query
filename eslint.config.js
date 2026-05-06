@@ -169,6 +169,55 @@ const restrictedQueryStateReadMethods = new Set([
   'hasFiltersForField'
 ]);
 
+const protectedGlobalDeclarationNames = new Set([
+  'displayedFields',
+  'activeFilters',
+  'getCurrentQueryState',
+  'hasQueryChanged',
+  'currentQueryState',
+  'lastExecutedQueryState',
+  'queryRunning',
+  'hasPartialResults',
+  'hasLoadedResultSet',
+  'currentQueryId'
+]);
+
+function collectPatternIdentifiers(pattern, identifiers = []) {
+  if (!pattern) {
+    return identifiers;
+  }
+
+  if (pattern.type === 'Identifier') {
+    identifiers.push(pattern);
+    return identifiers;
+  }
+
+  if (pattern.type === 'RestElement') {
+    return collectPatternIdentifiers(pattern.argument, identifiers);
+  }
+
+  if (pattern.type === 'AssignmentPattern') {
+    return collectPatternIdentifiers(pattern.left, identifiers);
+  }
+
+  if (pattern.type === 'ArrayPattern') {
+    pattern.elements.forEach(element => collectPatternIdentifiers(element, identifiers));
+    return identifiers;
+  }
+
+  if (pattern.type === 'ObjectPattern') {
+    pattern.properties.forEach(property => {
+      if (property.type === 'Property') {
+        collectPatternIdentifiers(property.value, identifiers);
+      } else if (property.type === 'RestElement') {
+        collectPatternIdentifiers(property.argument, identifiers);
+      }
+    });
+  }
+
+  return identifiers;
+}
+
 const localRules = {
   'no-unapproved-window-exports': {
     meta: {
@@ -209,6 +258,48 @@ const localRules = {
             node,
             messageId: 'unapproved',
             data: { name: exportName }
+          });
+        }
+      };
+    }
+  },
+  'no-protected-global-declarations': {
+    meta: {
+      type: 'problem',
+      docs: {
+        description: 'Prevent top-level declarations from colliding with protected browser globals.'
+      },
+      schema: [],
+      messages: {
+        protectedGlobal: 'Top-level declaration "{{name}}" collides with a protected browser global. Use a locally scoped helper name instead.'
+      }
+    },
+    create(context) {
+      function reportIfProtected(identifierNode) {
+        if (!identifierNode || !protectedGlobalDeclarationNames.has(identifierNode.name)) {
+          return;
+        }
+
+        context.report({
+          node: identifierNode,
+          messageId: 'protectedGlobal',
+          data: { name: identifierNode.name }
+        });
+      }
+
+      return {
+        Program(node) {
+          node.body.forEach(statement => {
+            if (statement.type === 'FunctionDeclaration' || statement.type === 'ClassDeclaration') {
+              reportIfProtected(statement.id);
+              return;
+            }
+
+            if (statement.type === 'VariableDeclaration') {
+              statement.declarations.forEach(declaration => {
+                collectPatternIdentifiers(declaration.id).forEach(reportIfProtected);
+              });
+            }
           });
         }
       };
@@ -454,6 +545,7 @@ module.exports = [
         }
       ],
       'local/no-unapproved-window-exports': 'error',
+      'local/no-protected-global-declarations': 'error',
       'local/no-restricted-query-state-access': 'error'
     }
   }
