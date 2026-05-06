@@ -1,4 +1,5 @@
 import { onDOMReady } from '../core/domReady.js';
+import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 
 (function() {
   let equalsValueControl = null;
@@ -1076,7 +1077,7 @@ import { onDOMReady } from '../core/domReady.js';
       refreshOverlay();
     });
 
-    window.QueryStateSubscriptions.subscribe(() => {
+    QueryStateSubscriptions.subscribe(() => {
       services.replacePostFilters(getPostFilterSnapshot(), {
         refreshView: true,
         notify: true,
@@ -1104,6 +1105,5 @@ import { onDOMReady } from '../core/domReady.js';
     syncToolbarButton: updateToolbarButton,
     openOverlayForField
   };
-
   onDOMReady(attachListeners);
 })();

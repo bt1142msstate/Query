@@ -4,7 +4,7 @@
  * @module QueryUI
  */
 
-import { QueryStateSubscriptions } from '../core/utils.js';
+import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 import { QueryStateReaders } from '../core/queryState.js';
 import { appServices } from '../core/appServices.js';
 import { buildBackendQueryPayload } from '../filters/queryPayload.js';

@@ -9,6 +9,7 @@ import {
     openFilterListViewer,
     shouldUseFilterListViewer
 } from './filterValueUi.js';
+import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 
 window.FilterSidePanel = (function () {
     const services = window.AppServices;
@@ -70,7 +71,7 @@ window.FilterSidePanel = (function () {
             return;
         }
 
-        unsubscribeQueryState = window.QueryStateSubscriptions.subscribe(() => {
+        unsubscribeQueryState = QueryStateSubscriptions.subscribe(() => {
             update();
         }, {
             displayedFields: true,
