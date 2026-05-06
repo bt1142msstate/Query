@@ -2,7 +2,7 @@ const sourceEntries = ['appModules.js', 'bubbles', 'core', 'filters', 'table', '
 const maxModuleLines = 900;
 
 const legacyLargeModuleBudgets = new Map([
-  ['core/queryHistory.js', 1681],
+  ['core/queryHistory.js', 1213],
   ['core/queryState.js', 1191],
   ['core/queryTemplates.js', 1593],
   ['core/utils.js', 1219],

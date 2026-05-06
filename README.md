@@ -65,7 +65,7 @@ Results render in a virtualized table (25 visible rows at a time) for smooth per
 ## 🛠️ Tech
 
 - Static HTML, CSS, and vanilla JavaScript — no build step required
-- Browser ES modules with a single app entrypoint
+- Native browser ES modules with `"type": "module"` in Node tooling
 - Feature-oriented folder structure with guarded public globals and enforced module boundaries
 - ESLint, architecture fitness checks, and Playwright browser smoke tests
 - [ExcelJS](https://github.com/exceljs/exceljs) for Excel export
@@ -86,7 +86,7 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for module boundaries, runtim
 npm test
 ```
 
-Runs lint, architecture fitness checks, module-specifier checks, and desktop/mobile browser smoke tests.
+Runs lint, architecture fitness checks, module-specifier checks, focused unit tests, and desktop/mobile browser smoke tests.
 
 ## Roadmap
 

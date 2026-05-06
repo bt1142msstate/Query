@@ -3,6 +3,20 @@
  * Handles display and management of query history, including running, completed, and cancelled queries.
  * @module QueryHistory
  */
+import { buildHistoryDetailsOverlayHtml } from './queryHistoryDetails.js';
+import {
+  appendUniqueColumn,
+  buildUiConfigFromRequest,
+  mergeUiConfigWithRequest,
+  resolveSpecialPayloadFieldNames
+} from './queryHistoryRequestMapper.js';
+import { HISTORY_TABLE_HEADS, createQueriesTableRowHtml } from './queryHistoryRows.js';
+import {
+  buildHistoryMonitor,
+  buildHistorySection,
+  classifyQueryStatus,
+  getPreferredHistorySection as getPreferredHistorySectionForCounts
+} from './queryHistoryViewHelpers.js';
 
 /* ---------- Query history state and renderer ---------- */
 let exampleQueries = [];
@@ -10,13 +24,10 @@ let queryDurationUpdateInterval = null;
 let lastQueryStatusPollAt = 0;
 let activeHistorySection = 'none';
 var services = window.AppServices;
-var historyViewHelpers = window.QueryHistoryViewHelpers;
 var uiActions = window.AppUiActions;
 const QUERY_STATUS_POLL_MS = 2000;
 const IDLE_POLL_MS = 8000;
 let lastHistoryRenderKey = '';
-
-const VIEW_ICON_SVG = `<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1.5 12s4-7 10.5-7 10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3.5"/></svg>`;
 
 function isQueriesPanelOpen() {
   const panel = window.DOM.queriesPanel;
@@ -66,14 +77,14 @@ function updateHistoryQuery(queryId, updates = {}, options = {}) {
   return query;
 }
 
-const classifyQueryStatus = historyViewHelpers.classifyQueryStatus;
-const getQueryStatusMeta = historyViewHelpers.getQueryStatusMeta;
-const buildHistorySection = historyViewHelpers.buildHistorySection;
-const buildHistoryMonitor = historyViewHelpers.buildHistoryMonitor;
 let activeHistoryDetailQueryId = null;
 
 function getPreferredHistorySection(counts) {
-  return historyViewHelpers.getPreferredHistorySection(counts, activeHistorySection);
+  return getPreferredHistorySectionForCounts(counts, activeHistorySection);
+}
+
+function createHistoryRowHtml(query) {
+  return createQueriesTableRowHtml(query, { activeHistoryDetailQueryId });
 }
 
 function captureHistoryViewState() {
@@ -142,206 +153,6 @@ function bindHistoryBookShelf(container) {
     activeHistorySection = 'none';
     renderQueries();
   });
-}
-
-function appendUniqueColumn(target, fieldName) {
-  const normalizedField = typeof window.resolveFieldName === 'function'
-    ? window.resolveFieldName(fieldName)
-    : fieldName;
-  if (!normalizedField || target.includes(normalizedField)) return;
-  target.push(normalizedField);
-}
-
-function deriveTemplateBindings(template, actual, bindings) {
-  if (typeof template !== 'string' || typeof actual !== 'string') {
-    return false;
-  }
-
-  const keys = [];
-  const pattern = window.escapeRegExp(template).replace(/\\\{([^}]+)\\\}/g, (_, key) => {
-    keys.push(key);
-    return '(.+?)';
-  });
-
-  if (!keys.length) {
-    return template === actual;
-  }
-
-  const match = new RegExp(`^${pattern}$`).exec(actual);
-  if (!match) {
-    return false;
-  }
-
-  for (let index = 0; index < keys.length; index += 1) {
-    const key = keys[index];
-    const value = match[index + 1];
-
-    if (Object.prototype.hasOwnProperty.call(bindings, key) && bindings[key] !== value) {
-      return false;
-    }
-
-    bindings[key] = value;
-  }
-
-  return true;
-}
-
-function resolveFieldNameFromSpecialPayload(payload) {
-  if (!payload || typeof payload !== 'object' || !Array.isArray(window.fieldDefsArray)) {
-    return '';
-  }
-
-  const exactMatch = window.fieldDefsArray.find(fieldDef => {
-    if (!fieldDef || !fieldDef.special_payload) return false;
-    return JSON.stringify(fieldDef.special_payload) === JSON.stringify(payload);
-  });
-  if (exactMatch?.name) {
-    return exactMatch.name;
-  }
-
-  for (const fieldDef of window.fieldDefsArray) {
-    if (!fieldDef?.is_buildable || !fieldDef.field_template || !fieldDef.special_payload_template) {
-      continue;
-    }
-
-    const bindings = {};
-    let isMatch = true;
-
-    for (const [key, templateValue] of Object.entries(fieldDef.special_payload_template)) {
-      const actualValue = payload[key];
-
-      if (typeof templateValue === 'string' && templateValue.includes('{')) {
-        if (!deriveTemplateBindings(templateValue, actualValue, bindings)) {
-          isMatch = false;
-          break;
-        }
-        continue;
-      }
-
-      if (templateValue !== actualValue) {
-        isMatch = false;
-        break;
-      }
-    }
-
-    if (!isMatch) {
-      continue;
-    }
-
-    const resolvedName = fieldDef.field_template.replace(/\{([^}]+)\}/g, (_, key) => bindings[key] || '');
-    if (resolvedName && resolvedName !== fieldDef.name) {
-      return resolvedName;
-    }
-  }
-
-  return '';
-}
-
-function resolveSpecialPayloadFieldNames(specialFields) {
-  if (!Array.isArray(specialFields) || !Array.isArray(window.fieldDefsArray)) {
-    return [];
-  }
-
-  return specialFields.reduce((resolved, payload) => {
-    const resolvedFieldName = resolveFieldNameFromSpecialPayload(payload);
-    if (resolvedFieldName) {
-      if (typeof window.registerDynamicField === 'function') {
-        window.registerDynamicField(resolvedFieldName, {
-          special_payload: payload && typeof payload === 'object' ? { ...payload } : payload
-        });
-      }
-      appendUniqueColumn(resolved, resolvedFieldName);
-    }
-
-    return resolved;
-  }, []);
-}
-
-function buildUiConfigFromRequest(request) {
-  if (!request || typeof request !== 'object') {
-    return null;
-  }
-
-  const desiredColumns = [];
-  const specialFields = Array.isArray(request.special_fields)
-    ? request.special_fields.map(field => (field && typeof field === 'object' ? { ...field } : field))
-    : [];
-
-  (request.display_fields || []).forEach(fieldName => appendUniqueColumn(
-    desiredColumns,
-    typeof window.resolveFieldName === 'function'
-      ? window.resolveFieldName(fieldName, { trackAlias: true })
-      : fieldName
-  ));
-  resolveSpecialPayloadFieldNames(specialFields).forEach(fieldName => appendUniqueColumn(desiredColumns, fieldName));
-
-  const uiConfig = {
-    DesiredColumnOrder: desiredColumns,
-    Filters: [],
-    SpecialFields: specialFields
-  };
-
-  if (Array.isArray(request.filters)) {
-    request.filters.forEach(f => {
-      let opName = 'Equals';
-      if (f.operator === '>') opName = 'GreaterThan';
-      else if (f.operator === '<') opName = 'LessThan';
-      else if (f.operator === '>=') opName = 'GreaterThanOrEqual';
-      else if (f.operator === '<=') opName = 'LessThanOrEqual';
-      else if (f.operator === '!=') opName = String(f.value || '').includes('*') ? 'DoesNotContain' : 'DoesNotEqual';
-      else if (f.operator === '=') {
-        if (String(f.value || '').startsWith('*') || String(f.value || '').endsWith('*')) {
-          opName = 'Contains';
-        }
-      }
-
-      uiConfig.Filters.push({
-        FieldName: typeof window.resolveFieldName === 'function'
-          ? window.resolveFieldName(f.field, { trackAlias: true })
-          : f.field,
-        FieldOperator: opName,
-        Values: [f.value]
-      });
-    });
-  }
-
-  return uiConfig;
-}
-
-function mergeUiConfigWithRequest(uiConfig, request) {
-  const baseUiConfig = uiConfig && typeof uiConfig === 'object'
-    ? {
-        ...uiConfig,
-        DesiredColumnOrder: Array.isArray(uiConfig.DesiredColumnOrder) ? [...uiConfig.DesiredColumnOrder] : [],
-        Filters: typeof window.normalizeUiConfigFilters === 'function'
-          ? window.normalizeUiConfigFilters(uiConfig, { trackAliases: true })
-          : (Array.isArray(uiConfig.Filters) ? uiConfig.Filters.map(filter => ({ ...filter })) : []),
-        SpecialFields: Array.isArray(uiConfig.SpecialFields)
-          ? uiConfig.SpecialFields.map(field => (field && typeof field === 'object' ? { ...field } : field))
-          : []
-      }
-    : {
-        DesiredColumnOrder: [],
-        Filters: [],
-        SpecialFields: []
-      };
-
-  const requestUiConfig = buildUiConfigFromRequest(request);
-  if (!requestUiConfig) {
-    return baseUiConfig;
-  }
-
-  requestUiConfig.DesiredColumnOrder.forEach(fieldName => appendUniqueColumn(baseUiConfig.DesiredColumnOrder, fieldName));
-
-  if (!baseUiConfig.Filters.length && requestUiConfig.Filters.length) {
-    baseUiConfig.Filters = requestUiConfig.Filters.map(filter => ({ ...filter }));
-  }
-
-  if (!baseUiConfig.SpecialFields.length && requestUiConfig.SpecialFields.length) {
-    baseUiConfig.SpecialFields = requestUiConfig.SpecialFields.map(field => (field && typeof field === 'object' ? { ...field } : field));
-  }
-
-  return baseUiConfig;
 }
 
 /**
@@ -518,114 +329,6 @@ window.formatHistoryFiltersTooltip = function(filtersInput) {
   
   return lines.join(', ');
 };
-
-function escapeHistoryText(value) {
-  return typeof window.escapeHtml === 'function'
-    ? window.escapeHtml(String(value ?? ''))
-    : String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
-
-function buildHistoryColumnsMarkup(columns) {
-  const safeColumns = Array.isArray(columns) ? columns : [];
-  if (!safeColumns.length) {
-    return '<p class="history-details-empty">No displayed columns saved for this query.</p>';
-  }
-
-  const items = safeColumns.map((column, index) => (
-    '<li class="tt-filter-item tt-column-item">' +
-    `  <span class="tt-column-index">${index + 1}</span>` +
-    `  <span class="tt-column-name">${escapeHistoryText(column)}</span>` +
-    '</li>'
-  )).join('');
-
-  return '<div class="tt-filter-container tt-columns-container">' +
-    `<ol class="tt-filter-list tt-columns-list">${items}</ol>` +
-    '</div>';
-}
-
-function buildHistoryFiltersMarkup(filters) {
-  if (typeof window.formatStandardFilterTooltipHTML === 'function') {
-    return window.formatStandardFilterTooltipHTML(filters, '') || '<p class="history-details-empty">No filters saved for this query.</p>';
-  }
-
-  return '<p class="history-details-empty">No filters saved for this query.</p>';
-}
-
-function buildHistoryIssueMarkup(reason) {
-  if (!reason) {
-    return '<p class="history-details-empty">No issue recorded.</p>';
-  }
-
-  return `<p class="history-details-issue">${escapeHistoryText(reason)}</p>`;
-}
-
-function buildHistoryExpandButton(queryId, isExpanded, columnCount, filterCount) {
-  return `
-    <button
-      type="button"
-      class="history-expand-btn"
-      data-history-expand="${queryId}"
-      aria-expanded="${isExpanded ? 'true' : 'false'}"
-      aria-controls="history-details-${queryId}"
-    >
-      <span>${isExpanded ? 'Hide details' : 'Details'}</span>
-      <span class="history-expand-meta">${columnCount} ${columnCount === 1 ? 'field' : 'fields'} • ${filterCount} ${filterCount === 1 ? 'filter' : 'filters'}</span>
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true">
-        <path d="M6 9l6 6 6-6"></path>
-      </svg>
-    </button>
-  `;
-}
-
-function buildHistoryDetailsOverlayHtml(q) {
-  if (!q) {
-    return '';
-  }
-
-  const columns = q.jsonConfig?.DesiredColumnOrder || [];
-  const filters = typeof window.normalizeUiConfigFilters === 'function'
-    ? window.normalizeUiConfigFilters(q.jsonConfig)
-    : [];
-
-  return `
-    <div class="history-details-modal-backdrop" data-history-details-close></div>
-    <section class="history-details-modal" role="dialog" aria-modal="true" aria-labelledby="history-details-title">
-      <button type="button" class="history-details-modal-close" aria-label="Close details" data-history-details-close>
-        <span aria-hidden="true">×</span>
-      </button>
-      <div class="history-details-modal-header">
-        <p class="history-details-modal-kicker">Query details</p>
-        <h4 id="history-details-title" class="history-details-modal-title">${escapeHistoryText(q.name || q.id)}</h4>
-        <div class="history-meta-line">
-          <span class="history-inline-pill subtle">${escapeHistoryText(q.id)}</span>
-          <span class="history-inline-pill">${columns.length} ${columns.length === 1 ? 'field' : 'fields'}</span>
-          <span class="history-inline-pill">${filters.length} ${filters.length === 1 ? 'filter' : 'filters'}</span>
-        </div>
-      </div>
-      <div class="history-details-grid">
-        <section class="history-details-panel">
-          <h5>Displayed Fields</h5>
-          ${buildHistoryColumnsMarkup(columns)}
-        </section>
-        <section class="history-details-panel">
-          <h5>Filters</h5>
-          ${buildHistoryFiltersMarkup(filters)}
-        </section>
-        ${q.failed ? `
-          <section class="history-details-panel history-details-panel-full">
-            <h5>Issue</h5>
-            ${buildHistoryIssueMarkup(q.error || '')}
-          </section>
-        ` : ''}
-      </div>
-    </section>
-  `;
-}
 
 function closeHistoryDetailsOverlay() {
   const shell = document.querySelector('.history-details-modal-shell');
@@ -935,125 +638,6 @@ async function loadQueryResults(queryId) {
     }
 }
 
-/**
- * Creates HTML for a single query row in the queries table.
- * Handles different display formats for running, completed, and cancelled queries.
- * @function createQueriesTableRowHtml
- * @param {Object} q - The query object
- * @param {string} viewIconSVG - SVG icon for view buttons
- * @returns {string} HTML string for the table row
- */
-function createQueriesTableRowHtml(q, viewIconSVG) {
-  const statusMeta = getQueryStatusMeta(q.status);
-  const columns = q.jsonConfig?.DesiredColumnOrder || [];
-  const filters = typeof window.normalizeUiConfigFilters === 'function'
-    ? window.normalizeUiConfigFilters(q.jsonConfig)
-    : [];
-  const isExpanded = activeHistoryDetailQueryId === q.id;
-
-  const reasonSummary = q.error
-    ? '<span class="history-reason-icon">Issue</span>'
-    : '<span class="text-gray-400">None</span>';
-
-  const metaPills = [`<span class="history-inline-pill subtle">${q.id}</span>`];
-  if (!q.running && q.resultCount !== undefined && q.resultCount !== '-' && q.resultCount !== '?') {
-    metaPills.push(`<span class="history-inline-pill">${Number(q.resultCount).toLocaleString()} rows</span>`);
-  }
-  if (q.launchMode) {
-    metaPills.push(`<span class="history-inline-pill subtle">${q.launchMode}</span>`);
-  }
-  if (q.deliveryMode) {
-    metaPills.push(`<span class="history-inline-pill subtle">${q.deliveryMode}</span>`);
-  }
-
-  const nameCell = `
-    <div class="history-name-cell">
-      <div class="history-name-block">
-        <span class="history-query-name">${q.name || q.id}</span>
-        <div class="history-meta-line">${metaPills.join('')}</div>
-      </div>
-    </div>`;
-  const statusCell = `<span class="${statusMeta.badgeClass}">${statusMeta.label}</span>`;
-  const detailsCell = buildHistoryExpandButton(q.id, isExpanded, columns.length, filters.length);
-
-  const previewBtn = q.running ? `<button class="load-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" tabindex="-1" data-query-id="${q.id}" style="margin-left:4px;" data-tooltip="Open partial results"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></button>` : '';
-
-  // Stop button for running queries (no 'Running' label)
-  const stopBtn = q.running ? `
-    <button class="stop-query-btn inline-flex items-center justify-center p-1 rounded-full bg-red-100 hover:bg-red-200 text-red-600" tabindex="-1" data-query-id="${q.id}" data-tooltip="Stop"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
-  ` : '';
-  
-  // Load button only for completed queries (report icon)
-  const loadBtn = !q.running && !q.cancelled ? `<button class="load-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" tabindex="-1" data-query-id="${q.id}" style="margin-left:4px;" data-tooltip="Open results - ${q.resultCount !== undefined ? q.resultCount : 'Unknown'} rows"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></button>` : '';
-  
-  // Rerun button for both completed and cancelled queries (refresh/replay icon)
-  const rerunBtn = (!q.running) ? `<button class="rerun-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-green-600" tabindex="-1" data-query-id="${q.id}" style="margin-left:4px;" data-tooltip="Rerun Query"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg></button>` : '';
-  
-  // Duration calculation
-  let duration = '—';
-  if (q.startTime) {
-    const start = new Date(q.startTime);
-    const end = q.running
-      ? new Date()
-      : new Date(q.endTime || q.cancelledTime);
-    if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())) {
-      const seconds = Math.max(0, Math.floor((end - start) / 1000));
-      duration = typeof window.formatDuration === 'function' ? window.formatDuration(seconds) : `${seconds}s`;
-    }
-  }
-  
-  // Different row structure for running vs completed vs cancelled queries
-  if (q.running) {
-    return `
-      <tr class="history-row ${statusMeta.rowClass} cursor-pointer" data-query-id="${q.id}">
-        <td class="px-4 py-3 text-xs text-left font-mono">${nameCell}</td>
-        <td class="px-4 py-2 text-xs text-center">${statusCell}</td>
-        <td class="px-4 py-2 text-xs text-center">${detailsCell}</td>
-        <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
-        <td class="px-4 py-2 text-xs text-center history-duration-cell" data-query-id="${q.id}">${duration}</td>
-        <td class="px-4 py-2 text-center">${previewBtn}</td>
-        <td class="px-4 py-2 text-center">${stopBtn}</td>
-      </tr>
-    `;
-  } else if (q.cancelled) {
-    return `
-      <tr class="history-row ${statusMeta.rowClass} cursor-pointer" data-query-id="${q.id}">
-        <td class="px-4 py-3 text-xs text-left font-mono">${nameCell}</td>
-        <td class="px-4 py-2 text-xs text-center">${statusCell}</td>
-        <td class="px-4 py-2 text-xs text-center">${detailsCell}</td>
-        <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
-        <td class="px-4 py-2 text-xs text-center">${duration}</td>
-        <td class="px-4 py-2 text-xs text-center">${rerunBtn}</td>
-      </tr>
-    `;
-  } else if (q.failed) {
-    return `
-      <tr class="history-row ${statusMeta.rowClass} cursor-pointer" data-query-id="${q.id}">
-        <td class="px-4 py-3 text-xs text-left font-mono">${nameCell}</td>
-        <td class="px-4 py-2 text-xs text-center">${statusCell}</td>
-        <td class="px-4 py-2 text-xs text-center">${detailsCell}</td>
-        <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
-        <td class="px-4 py-2 text-xs text-center">${duration}</td>
-        <td class="px-4 py-2 text-xs text-center">${reasonSummary}</td>
-        <td class="px-4 py-2 text-xs text-center">${rerunBtn}</td>
-      </tr>
-    `;
-  } else {
-    return `
-      <tr class="history-row ${statusMeta.rowClass} cursor-pointer" data-query-id="${q.id}">
-        <td class="px-4 py-3 text-xs text-left font-mono">${nameCell}</td>
-        <td class="px-4 py-2 text-xs text-center">${statusCell}</td>
-        <td class="px-4 py-2 text-xs text-center">${detailsCell}</td>
-        <td class="px-4 py-2 text-xs text-center">${new Date(q.startTime).toLocaleString()}</td>
-        <td class="px-4 py-2 text-xs text-center">${duration}</td>
-        <td class="px-4 py-2 text-xs text-center">${loadBtn}</td>
-        <td class="px-4 py-2 text-xs text-center">${rerunBtn}</td>
-      </tr>
-    `;
-  }
-}
-
-
 // Ensure global access
 window.fetchQueryStatus = fetchQueryStatus;
 
@@ -1277,7 +861,7 @@ function patchQueriesPanelData(newHistory) {
     if (existing && old && !hasQueryRowChanged(old, q)) return; // Nothing to do
 
     const temp = document.createElement('tbody');
-    temp.innerHTML = createQueriesTableRowHtml(q, VIEW_ICON_SVG);
+    temp.innerHTML = createHistoryRowHtml(q);
     const newMainTr = temp.querySelector('tr[data-query-id]');
     if (!newMainTr) return;
     bindHistoryTableButtons(temp);
@@ -1404,62 +988,10 @@ function renderQueries(){
     );
   }
   
-  const runningRows = runningList.map(q => createQueriesTableRowHtml(q, VIEW_ICON_SVG)).join('');
-  const doneRows = doneList.map(q => createQueriesTableRowHtml(q, VIEW_ICON_SVG)).join('');
-  const failedRows = failedList.map(q => createQueriesTableRowHtml(q, VIEW_ICON_SVG)).join('');
-  const cancelledRows = cancelledList.map(q => createQueriesTableRowHtml(q, VIEW_ICON_SVG)).join('');
-
-  // Build table headers for each history state.
-  const runningTableHead = `
-    <thead class="history-table-head running">
-      <tr>
-        <th class="px-4 py-2 text-center" data-tooltip="Query name or identifier">Name</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Current query status">Status</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Open fields and filters for this query">Details</th>
-        <th class="px-4 py-2 text-center" data-tooltip="When this query was started">Started</th>
-        <th class="px-4 py-2 text-center" data-tooltip="How long this running query has been active">Duration</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Open the results accumulated so far for this running query">Results</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Stop the currently running query">Stop/Cancel</th>
-      </tr>
-    </thead>`;
-
-  const completedTableHead = `
-    <thead class="history-table-head complete">
-      <tr>
-        <th class="px-4 py-2 text-center" data-tooltip="Query name or identifier">Name</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Current query status">Status</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Open fields and filters for this query">Details</th>
-        <th class="px-4 py-2 text-center" data-tooltip="When this query was last executed">Last Run</th>
-        <th class="px-4 py-2 text-center" data-tooltip="How long the query took to complete">Duration</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Load the query results or view report">Results</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Re-execute this query with the same settings">Rerun</th>
-      </tr>
-    </thead>`;
-
-  const failedTableHead = `
-    <thead class="history-table-head failed">
-      <tr>
-        <th class="px-4 py-2 text-center" data-tooltip="Query name or identifier">Name</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Current query status">Status</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Open fields and filters for this query">Details</th>
-        <th class="px-4 py-2 text-center" data-tooltip="When this query last ran">Last Run</th>
-        <th class="px-4 py-2 text-center" data-tooltip="How long the query ran before failing">Duration</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Failure reason or backend warning">Issue</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Re-execute this query with the same settings">Rerun</th>
-      </tr>
-    </thead>`;
-
-  const cancelledTableHead = `
-    <thead class="history-table-head canceled">
-      <tr>
-        <th class="px-4 py-2 text-center" data-tooltip="Query name or identifier">Name</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Current query status">Status</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Open fields and filters for this query">Details</th>
-        <th class="px-4 py-2 text-center" data-tooltip="When this query was last executed before cancellation">Last Run</th>
-        <th class="px-4 py-2 text-center" data-tooltip="How long the query ran before being cancelled">Duration</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Re-execute this query with the same settings">Rerun</th>
-      </tr>
-    </thead>`;
+  const runningRows = runningList.map(createHistoryRowHtml).join('');
+  const doneRows = doneList.map(createHistoryRowHtml).join('');
+  const failedRows = failedList.map(createHistoryRowHtml).join('');
+  const cancelledRows = cancelledList.map(createHistoryRowHtml).join('');
 
   const runningCount = runningList.length;
   const doneCount = doneList.length;
@@ -1507,28 +1039,28 @@ function renderQueries(){
         key: 'running',
         count: runningCount,
         rows: runningRows,
-        tableHead: runningTableHead,
+        tableHead: HISTORY_TABLE_HEADS.running,
         emptyMessage: 'No running queries right now.'
       },
       {
         key: 'complete',
         count: doneCount,
         rows: doneRows,
-        tableHead: completedTableHead,
+        tableHead: HISTORY_TABLE_HEADS.complete,
         emptyMessage: 'No completed queries yet.'
       },
       {
         key: 'failed',
         count: failedCount,
         rows: failedRows,
-        tableHead: failedTableHead,
+        tableHead: HISTORY_TABLE_HEADS.failed,
         emptyMessage: 'No failed or interrupted queries.'
       },
       {
         key: 'canceled',
         count: cancelledCount,
         rows: cancelledRows,
-        tableHead: cancelledTableHead,
+        tableHead: HISTORY_TABLE_HEADS.canceled,
         emptyMessage: 'No cancelled queries yet.'
       }
     ];
