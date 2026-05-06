@@ -209,11 +209,66 @@ async function expectNoHorizontalOverflow(page, label) {
   }
 }
 
+async function expectElementWithinViewport(page, selector, label) {
+  const metrics = await page.locator(selector).evaluate(element => {
+    const rect = element.getBoundingClientRect();
+    const style = window.getComputedStyle(element);
+
+    return {
+      bottom: rect.bottom,
+      display: style.display,
+      height: rect.height,
+      left: rect.left,
+      right: rect.right,
+      top: rect.top,
+      visibility: style.visibility,
+      viewportHeight: window.innerHeight,
+      viewportWidth: window.innerWidth,
+      width: rect.width
+    };
+  });
+
+  if (metrics.display === 'none' || metrics.visibility === 'hidden' || metrics.width <= 0 || metrics.height <= 0) {
+    throw new Error(`${label} is not visible`);
+  }
+
+  if (metrics.left < -2 || metrics.right - metrics.viewportWidth > 2) {
+    throw new Error(`${label} is outside the horizontal viewport bounds`);
+  }
+
+  if (metrics.top < -2 || metrics.bottom - metrics.viewportHeight > 2) {
+    throw new Error(`${label} is outside the vertical viewport bounds`);
+  }
+}
+
 async function openMobilePanel(page, sourceControlId, visibleSelector) {
   await page.locator('#mobile-menu-toggle').click();
   await page.locator('#mobile-menu-dropdown.show').waitFor({ state: 'visible', timeout: 5000 });
   await page.locator(`[data-source-control-id="${sourceControlId}"]`).click();
   await page.locator(visibleSelector).waitFor({ state: 'visible', timeout: 5000 });
+}
+
+async function seedLoadedResults(page) {
+  await page.evaluate(async () => {
+    const headers = ['Smoke Title', 'Smoke Branch', 'Smoke Status'];
+    const rows = [
+      ['Alpha record', 'Main', 'Open'],
+      ['Beta record', 'East', 'Closed'],
+      ['Gamma record', 'Main', 'Open']
+    ];
+    const columnMap = new Map(headers.map((field, index) => [field, index]));
+
+    window.QueryChangeManager.replaceDisplayedFields(headers, { source: 'BrowserSmoke.seedLoadedResults' });
+    window.QueryChangeManager.setLifecycleState(
+      { hasLoadedResultSet: true, queryRunning: false },
+      { source: 'BrowserSmoke.seedLoadedResults', silent: true }
+    );
+    window.AppServices.setVirtualTableData({ headers, rows, columnMap });
+    await window.QueryTableView.showExampleTable(headers, { syncQueryState: false });
+    window.AppServices.renderVirtualTable();
+    window.QueryUI?.updateButtonStates?.();
+  });
+  await page.locator('#example-table').waitFor({ state: 'attached', timeout: 5000 });
 }
 
 async function runSmokeTest() {
@@ -287,15 +342,72 @@ async function runSmokeTest() {
     await expectNoHorizontalOverflow(mobilePage, 'Mobile menu');
     await mobilePage.locator('[data-source-control-id="toggle-queries"]').click();
     await mobilePage.locator('#queries-search').waitFor({ state: 'visible', timeout: 5000 });
+    await expectElementWithinViewport(mobilePage, '#queries-panel', 'Mobile query history panel');
     await expectDarkInput(mobilePage, '#queries-search', 'Mobile query history search input');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile query history panel');
 
+    await openMobilePanel(mobilePage, 'toggle-json', '#query-json-tree');
+    await expectElementWithinViewport(mobilePage, '#json-panel', 'Mobile JSON panel');
+    await expectNoHorizontalOverflow(mobilePage, 'Mobile JSON panel');
+
     await openMobilePanel(mobilePage, 'toggle-templates', '#templates-search-input');
+    await expectElementWithinViewport(mobilePage, '#templates-panel', 'Mobile templates panel');
     await expectDarkInput(mobilePage, '#templates-search-input', 'Mobile templates search input');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile templates panel');
 
     await openMobilePanel(mobilePage, 'toggle-help', '#help-container');
+    await expectElementWithinViewport(mobilePage, '#help-panel', 'Mobile help panel');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile help panel');
+
+    await mobilePage.evaluate(() => window.modalManager?.closeAllPanels?.());
+    await mobilePage.locator('#help-panel.hidden').waitFor({ state: 'attached', timeout: 5000 });
+
+    await seedLoadedResults(mobilePage);
+    await mobilePage.evaluate(() => window.PostFilterSystem.open());
+    await mobilePage.locator('#post-filter-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+    await expectElementWithinViewport(mobilePage, '#post-filter-overlay .post-filter-dialog', 'Mobile post filter dialog');
+    await expectNoHorizontalOverflow(mobilePage, 'Mobile post filter dialog');
+
+    await mobilePage.locator('#post-filter-operator').selectOption('equals');
+    await mobilePage.locator('#post-filter-value-picker-host .form-mode-popup-list-trigger').waitFor({ state: 'visible', timeout: 5000 });
+    await mobilePage.locator('#post-filter-value-picker-host .form-mode-popup-list-trigger').click();
+    await mobilePage.locator('.form-mode-popup-list-popup:not([hidden])').waitFor({ state: 'visible', timeout: 5000 });
+    await expectElementWithinViewport(mobilePage, '.form-mode-popup-list-popup:not([hidden])', 'Mobile popup list picker');
+    await expectDarkInput(mobilePage, '.form-mode-popup-list-popup input[type="search"]', 'Mobile popup list search input');
+    await expectNoHorizontalOverflow(mobilePage, 'Mobile popup list picker');
+    await mobilePage.locator('.form-mode-popup-list-done').click();
+    await mobilePage.locator('#post-filter-done-btn').click();
+
+    await mobilePage.locator('#download-btn').scrollIntoViewIfNeeded();
+    const downloadDisabled = await mobilePage.locator('#download-btn').evaluate(button => button.disabled);
+    if (downloadDisabled) {
+      throw new Error('Download button is disabled after seeding loaded mobile results');
+    }
+    await mobilePage.locator('#download-btn').click();
+    await mobilePage.locator('#export-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+    await expectElementWithinViewport(mobilePage, '#export-overlay .export-dialog', 'Mobile export dialog');
+    await expectNoHorizontalOverflow(mobilePage, 'Mobile export dialog');
+    await mobilePage.locator('#export-cancel-btn').click();
+
+    await mobilePage.evaluate(() => {
+      window.SharedFieldPicker.open({
+        getOptions: () => [
+          { name: 'Mobile Field A', type: 'text', filterable: true, category: 'Smoke' },
+          { name: 'Mobile Field B', type: 'date', filterable: true, category: 'Smoke' },
+          { name: 'Mobile Field C', type: 'money', filterable: false, category: 'Smoke' }
+        ],
+        getFieldState: () => ({ display: false, filter: false }),
+        labels: {
+          description: 'Choose a field for mobile smoke coverage.',
+          footerNote: 'Smoke test field picker.'
+        }
+      });
+    });
+    await mobilePage.locator('.form-mode-field-picker-modal:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+    await expectElementWithinViewport(mobilePage, '.form-mode-field-picker-modal:not(.hidden)', 'Mobile field picker dialog');
+    await expectDarkInput(mobilePage, '.form-mode-field-picker-search-field input[type="search"]', 'Mobile field picker search input');
+    await expectNoHorizontalOverflow(mobilePage, 'Mobile field picker dialog');
+    await mobilePage.locator('.form-mode-field-picker-close').click();
 
     if (failures.length > 0) {
       throw new Error(`Browser smoke test failed:\n${failures.map(failure => `- ${failure}`).join('\n')}`);

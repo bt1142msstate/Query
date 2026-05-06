@@ -1548,6 +1548,151 @@ body.post-filter-overlay-open {
   gap: 0.75rem;
 }
 
+@media (max-width: 900px) {
+  .post-filter-dialog {
+    width: min(100%, calc(100vw - 1.5rem));
+  }
+
+  .post-filter-dialog__summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .post-filter-builder {
+    grid-template-columns: 1fr;
+  }
+
+  .post-filter-dialog__footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .post-filter-dialog__actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .post-filter-dialog__actions .export-action-btn {
+    flex: 1 1 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .post-filter-overlay {
+    align-items: flex-end;
+    padding: 0.75rem;
+  }
+
+  .post-filter-dialog {
+    width: 100%;
+    max-height: min(92vh, calc(100vh - 1rem));
+    max-height: min(92dvh, calc(100dvh - 1rem));
+    border-radius: 24px;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  .post-filter-dialog__header,
+  .post-filter-dialog__footer {
+    padding: 0.95rem 1rem;
+  }
+
+  .post-filter-dialog__header {
+    gap: 0.75rem;
+  }
+
+  .post-filter-dialog__title {
+    font-size: 1.18rem;
+  }
+
+  .post-filter-dialog__description,
+  .post-filter-dialog__hint,
+  .post-filter-list-panel__text {
+    font-size: 0.88rem;
+  }
+
+  .post-filter-dialog__close {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .post-filter-dialog__summary {
+    grid-template-columns: 1fr;
+    padding: 0.85rem 1rem 0;
+  }
+
+  .post-filter-summary-pill,
+  .post-filter-builder,
+  .post-filter-list-panel,
+  .post-filter-group,
+  .post-filter-empty {
+    border-radius: 16px;
+  }
+
+  .post-filter-dialog__body {
+    gap: 0.85rem;
+    padding: 0.95rem 1rem;
+  }
+
+  .post-filter-builder,
+  .post-filter-list-panel {
+    padding: 0.85rem;
+  }
+
+  .post-filter-field__select,
+  .post-filter-field__input,
+  .post-filter-value-control .form-mode-popup-list-trigger {
+    min-height: 2.75rem;
+    border-radius: 14px;
+  }
+
+  .post-filter-value-row {
+    grid-template-columns: 1fr;
+    gap: 0.45rem;
+  }
+
+  .post-filter-between-label {
+    padding-left: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .post-filter-add-btn,
+  .post-filter-dialog__actions,
+  .post-filter-dialog__actions .export-action-btn {
+    width: 100%;
+  }
+
+  .post-filter-add-btn {
+    justify-self: stretch;
+    min-height: 2.75rem;
+  }
+
+  .post-filter-group__header {
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .post-filter-group__logic {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .post-filter-pill {
+    width: 100%;
+    align-items: flex-start;
+    border-radius: 16px;
+  }
+
+  .post-filter-pill__remove {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .post-filter-dialog__actions {
+    flex-direction: column-reverse;
+  }
+}
+
 /* ==========================================
    16. EXPORT OVERLAY
    ========================================== */
@@ -2093,6 +2238,7 @@ body.post-filter-overlay-open {
   .export-dialog {
     width: 100%;
     max-height: min(92vh, calc(100vh - 1rem));
+    max-height: min(92dvh, calc(100dvh - 1rem));
     border-radius: 24px;
   }
 
@@ -2125,6 +2271,15 @@ body.post-filter-overlay-open {
   .export-dialog__footer {
     padding-left: 1rem;
     padding-right: 1rem;
+  }
+
+  .export-dialog__title {
+    font-size: 1.18rem;
+  }
+
+  .export-dialog__close {
+    width: 2.5rem;
+    height: 2.5rem;
   }
 }
 
@@ -2668,4 +2823,28 @@ body.scene-fade-transition #query-app-shell {
   max-width: 100px;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+@media (max-width: 640px) {
+  .tcm {
+    min-width: min(18rem, calc(100vw - 1rem));
+    max-width: calc(100vw - 1rem);
+    padding: 0.35rem;
+    border-radius: 14px;
+  }
+
+  .tcm-item {
+    min-height: 2.6rem;
+    padding: 0.65rem 0.75rem;
+    white-space: normal;
+  }
+
+  .tcm-label {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .tcm-hint {
+    display: none;
+  }
 }
