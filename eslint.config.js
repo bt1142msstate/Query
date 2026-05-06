@@ -550,5 +550,26 @@ module.exports = [
       'local/no-protected-global-declarations': 'error',
       'local/no-restricted-query-state-access': 'error'
     }
+  },
+  {
+    files: ['tests/**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: {
+        ...globals.browser,
+        ...globals.node
+      }
+    },
+    rules: {
+      'no-unused-vars': ['error', {
+        args: 'none',
+        argsIgnorePattern: '^_',
+        caughtErrors: 'all',
+        caughtErrorsIgnorePattern: '^_',
+        ignoreRestSiblings: true,
+        varsIgnorePattern: '^_$'
+      }]
+    }
   }
 ];
