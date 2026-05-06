@@ -3,6 +3,7 @@
  * Handles exporting table data to Excel files with proper formatting and type detection.
  * @module ExcelExporter
  */
+import { appServices } from '../core/appServices.js';
 import { showToastMessage } from '../core/toast.js';
 import { QueryStateReaders } from '../core/queryState.js';
 import { VisibilityUtils } from '../core/visibility.js';
@@ -18,7 +19,7 @@ import { VisibilityUtils } from '../core/visibility.js';
   const SHEET_NAME_LIMIT = 31;
   const MAX_GROUPED_SHEETS = 100;
   const { getDisplayedFields } = QueryStateReaders;
-  const services = window.AppServices;
+  const services = appServices;
 
   function getExportElements() {
     return {

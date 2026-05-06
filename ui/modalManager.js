@@ -4,6 +4,7 @@
  * and overlay/backdrop management.
  * @class ModalManager
  */
+import { appServices } from '../core/appServices.js';
 import { VisibilityUtils } from '../core/visibility.js';
 
 class ModalManager {
@@ -126,8 +127,8 @@ class ModalManager {
     this.syncHeaderOverlayTitle(panelId);
 
     if (panelId === 'queries-panel') {
-      window.AppServices?.fetchHistoryQueryStatus?.();
-      window.AppServices?.startHistoryDurationUpdates?.();
+      appServices.fetchHistoryQueryStatus();
+      appServices.startHistoryDurationUpdates();
     } else if (panelId === 'templates-panel') {
       window.QueryTemplatesSystem?.openPanel?.();
     }
@@ -142,7 +143,7 @@ class ModalManager {
     if (!panel) return;
 
     if (panelId === 'queries-panel') {
-      window.AppServices?.stopHistoryDurationUpdates?.();
+      appServices.stopHistoryDurationUpdates();
       window.QueryHistorySystem?.closeDetailsOverlay?.();
     } else if (panelId === 'templates-panel') {
       window.QueryTemplatesSystem?.closePanel?.();
@@ -178,7 +179,7 @@ class ModalManager {
       const p = document.getElementById(pid);
       if (p && !p.classList.contains('hidden')) {
         if (pid === 'queries-panel') {
-          window.AppServices?.stopHistoryDurationUpdates?.();
+          appServices.stopHistoryDurationUpdates();
           window.QueryHistorySystem?.closeDetailsOverlay?.();
         } else if (pid === 'templates-panel') {
           window.QueryTemplatesSystem?.closePanel?.();

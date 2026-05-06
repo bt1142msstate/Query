@@ -4,6 +4,7 @@
  * Options: Copy Cell, Copy Row (tab-separated), Copy Column (newline-separated).
  */
 import { ClipboardUtils } from '../core/clipboard.js';
+import { appServices } from '../core/appServices.js';
 import { QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
 import { VisibilityUtils } from '../core/visibility.js';
@@ -12,7 +13,7 @@ window.TableContextMenu = (() => {
   let menuEl = null;
   let dismissHandlers = [];
   let clearPreview = null;
-  const services = window.AppServices;
+  const services = appServices;
 
   // ── Data helpers ────────────────────────────────────────────────────────────
 

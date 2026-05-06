@@ -1,3 +1,5 @@
+import { appServices } from '../core/appServices.js';
+import { appUiActions } from '../core/appUiActions.js';
 import { Icons } from '../core/icons.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 /**
@@ -5,21 +7,19 @@ import { AppState, QueryChangeManager, QueryStateReaders } from '../core/querySt
  * Handles filter UI, inputs, and confirmation logic.
  * @module FilterManager
  */
-
 /**
  * FilterPill UI component class
  * Represents a single active filter condition pill in the UI.
  * (Moved from queryUI.js)
  */
 var appState = AppState;
-var services = window.AppServices;
+var services = appServices;
 var filterValueUi = window.FilterValueUi;
-var uiActions = window.AppUiActions;
+var uiActions = appUiActions;
 const getFilterDisplayValues = filterValueUi.getFilterDisplayValues;
 const shouldUseFilterListViewer = filterValueUi.shouldUseFilterListViewer;
 const openFilterListViewer = filterValueUi.openFilterListViewer;
 const buildFilterValueLabel = filterValueUi.buildFilterValueLabel;
-
 function getFilterConditionPanelElement() {
     return window.DOM?.conditionPanel || document.getElementById('condition-panel');
 }

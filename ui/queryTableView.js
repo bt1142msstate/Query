@@ -2,14 +2,16 @@
  * Query table rendering and empty-state management.
  * Owns table construction so orchestration code does not mutate table DOM directly.
  */
+import { appServices } from '../core/appServices.js';
+import { appUiActions } from '../core/appUiActions.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 
 (function initializeQueryTableView() {
   const dom = window.DOM;
   const appState = AppState;
-  const services = window.AppServices;
-  const uiActions = window.AppUiActions;
+  const services = appServices;
+  const uiActions = appUiActions;
   const getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
   let nextStateRenderOptions = null;
 

@@ -1,3 +1,5 @@
+import { appServices } from '../core/appServices.js';
+import { appUiActions } from '../core/appUiActions.js';
 import { ClipboardUtils } from '../core/clipboard.js';
 import { OperatorLabels } from '../core/operatorLabels.js';
 import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
@@ -8,8 +10,8 @@ import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 let QueryFormMode;
 
 (function() {
-  const services = window.AppServices;
-  const uiActions = window.AppUiActions;
+  const services = appServices;
+  const uiActions = appUiActions;
   const formModeStateHelpers = window.FormModeStateHelpers;
   const formModeControls = window.FormModeControls;
   const {

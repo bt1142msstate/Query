@@ -9,6 +9,8 @@ import {
     openFilterListViewer,
     shouldUseFilterListViewer
 } from './filterValueUi.js';
+import { appServices } from '../core/appServices.js';
+import { appUiActions } from '../core/appUiActions.js';
 import { DragUtils } from '../core/dragUtils.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
@@ -17,8 +19,8 @@ import { OperatorLabels } from '../core/operatorLabels.js';
 import { Icons } from '../core/icons.js';
 
 window.FilterSidePanel = (function () {
-    const services = window.AppServices;
-    const uiActions = window.AppUiActions;
+    const services = appServices;
+    const uiActions = appUiActions;
     let currentViewMode = 'both';
     const VIEW_MODES = new Set(['both', 'filters', 'display']);
     const DISPLAY_REORDER_MIME = 'application/x-query-display-index';
@@ -778,6 +780,6 @@ window.FilterSidePanel = (function () {
 window.addEventListener('resize', () => {
     const panel = window.DOM.filterSidePanel;
     if (panel && !panel.classList.contains('panel-hidden')) {
-        window.AppUiActions?.updateFilterSidePanel?.();
+        appUiActions.updateFilterSidePanel();
     }
 });

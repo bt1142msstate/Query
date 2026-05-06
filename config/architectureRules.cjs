@@ -3,6 +3,8 @@ const maxModuleLines = 900;
 
 const forbiddenWindowMemberReads = new Map([
   ['AppState', 'Import from core/queryState.js instead of reading app runtime state from window'],
+  ['AppServices', 'Import from core/appServices.js instead of reading app service facade from window'],
+  ['AppUiActions', 'Import from core/appUiActions.js instead of reading UI action facade from window'],
   ['BackendApi', 'Import from core/backendApi.js instead of reading the backend client from window'],
   ['ClipboardUtils', 'Import from core/clipboard.js instead of reading clipboard helpers from window'],
   ['DragUtils', 'Import from core/dragUtils.js instead of reading drag helpers from window'],

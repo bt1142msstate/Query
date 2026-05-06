@@ -1,10 +1,11 @@
+import { appServices } from '../core/appServices.js';
 import { mapFieldOperatorToUiCond } from '../filters/queryPayload.js';
 import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
 import { VisibilityUtils } from '../core/visibility.js';
 
 (function() {
-  const services = window.AppServices;
+  const services = appServices;
   const { getDisplayedFields, getFilterGroupForField } = QueryStateReaders;
 
   function getFieldPickerOptionsFromDefinitions() {

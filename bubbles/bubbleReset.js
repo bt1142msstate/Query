@@ -1,6 +1,7 @@
+import { appServices } from '../core/appServices.js';
 import { AppState } from '../core/queryState.js';
 
-var services = window.AppServices;
+var services = appServices;
 
 function reconcileBubbleResetInteractionState(skipFields = new Set()) {
   const bubbles = Array.from(document.querySelectorAll('.bubble'));

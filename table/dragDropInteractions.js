@@ -3,14 +3,14 @@
  * Owns hover, drop indicator, header actions, and drag lifecycle behavior.
  */
 import { ClipboardUtils } from '../core/clipboard.js';
+import { appServices } from '../core/appServices.js';
 import { DragUtils } from '../core/dragUtils.js';
 import { Icons } from '../core/icons.js';
 import { QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
 (function initializeDragDropInteractions() {
   var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
-  var getLifecycleState = QueryStateReaders.getLifecycleState.bind(QueryStateReaders);
-  var services = window.AppServices;
+  var getLifecycleState = QueryStateReaders.getLifecycleState.bind(QueryStateReaders), services = appServices;
   var dragDropColumnOps = window.DragDropColumnOps;
   const TABLE_COLUMN_DRAG_MIME = 'application/x-query-table-column-index';
   const BUBBLE_FIELD_DRAG_MIME = 'bubble-field';

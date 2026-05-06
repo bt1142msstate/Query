@@ -3,13 +3,14 @@
  * Keeps callers from reaching directly into exported window functions.
  */
 import { appServices } from './appServices.js';
+import { registerQueryStateRuntimeAccessors } from './queryState.js';
 import { DOM } from '../ui/domCache.js';
 
 let appUiActions;
 
 (function initializeAppUiActions() {
   function getServices() {
-    return appServices || window.AppServices || null;
+    return appServices;
   }
 
   function showExampleTable(fields, options = {}) {
@@ -130,6 +131,7 @@ let appUiActions;
     writable: false,
     value: appUiActions
   });
+  registerQueryStateRuntimeAccessors({ getUiActions: () => appUiActions });
 })();
 
 export { appUiActions };
