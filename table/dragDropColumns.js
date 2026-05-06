@@ -4,8 +4,10 @@
  */
 import { appServices } from '../core/appServices.js';
 import { appUiActions } from '../core/appUiActions.js';
-import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
+import { AppState, QueryChangeManager, QueryStateReaders, registerQueryStateRuntimeAccessors } from '../core/queryState.js';
 import { FormatUtils } from '../core/utils.js';
+
+let dragDropColumnOps;
 
 (function initializeDragDropColumns() {
   const getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
@@ -332,7 +334,7 @@ import { FormatUtils } from '../core/utils.js';
     return removeColumnsByFieldName(fieldName, { allRelated: false });
   }
 
-  window.DragDropColumnOps = Object.freeze({
+  dragDropColumnOps = Object.freeze({
     formatColumnClipboardValue,
     getSampleColumnData,
     createColumnDragGhost,
@@ -345,4 +347,7 @@ import { FormatUtils } from '../core/utils.js';
     addColumn,
     removeColumnByName
   });
+  registerQueryStateRuntimeAccessors({ getColumnOps: () => dragDropColumnOps });
 })();
+
+export { dragDropColumnOps };

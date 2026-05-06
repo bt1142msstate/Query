@@ -6,11 +6,12 @@
 import { showToastMessage } from './toast.js';
 import { OperatorLabels } from './operatorLabels.js';
 
-let getServices = () => null, getUiActions = () => null;
+let getServices = () => null, getUiActions = () => null, getColumnOps = () => null;
 
 function registerQueryStateRuntimeAccessors(accessors = {}) {
   if (typeof accessors.getServices === 'function') getServices = accessors.getServices;
   if (typeof accessors.getUiActions === 'function') getUiActions = accessors.getUiActions;
+  if (typeof accessors.getColumnOps === 'function') getColumnOps = accessors.getColumnOps;
 }
 function getBaseFieldName(fieldName) {
   const normalizedFieldName = String(fieldName || '').trim();
@@ -1022,10 +1023,8 @@ function showManagedField(fieldName, options = {}) {
     return false;
   }
 
-  const columnOps = window.DragDropColumnOps;
-  if (columnOps && typeof columnOps.addColumn === 'function') {
-    return columnOps.addColumn(normalizedField, options.insertAt);
-  }
+  const columnOps = getColumnOps();
+  if (typeof columnOps?.addColumn === 'function') return columnOps.addColumn(normalizedField, options.insertAt);
 
   return queryStateStore.addDisplayedField(normalizedField, normalizeManagerMeta(options, 'QueryChangeManager.showField'));
 }
@@ -1036,10 +1035,8 @@ function hideManagedField(fieldName, options = {}) {
     return false;
   }
 
-  const columnOps = window.DragDropColumnOps;
-  if (columnOps && typeof columnOps.removeColumnByName === 'function') {
-    return columnOps.removeColumnByName(normalizedField);
-  }
+  const columnOps = getColumnOps();
+  if (typeof columnOps?.removeColumnByName === 'function') return columnOps.removeColumnByName(normalizedField);
 
   return queryStateStore.removeDisplayedField(normalizedField, normalizeManagerMeta(options, 'QueryChangeManager.hideField'));
 }
