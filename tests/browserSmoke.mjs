@@ -294,6 +294,22 @@ async function runSmokeTest() {
 
     await expectNoHorizontalOverflow(page, 'Desktop initial layout');
     await expectDarkInput(page, '#query-input', 'Main field search input');
+    await page.evaluate(() => {
+      window.QueryTableView.renderEmptyQueryTableState();
+      document.body.classList.add('form-mode-active');
+      window.QueryTableView.syncEmptyTableMessage();
+    });
+    const formModeEmptyTableMessage = await page.locator('[data-empty-table-message]').first().textContent();
+    if (/drag a bubble/iu.test(formModeEmptyTableMessage || '')) {
+      throw new Error('Form mode empty table message still references dragging a bubble');
+    }
+    if (!/add a field/iu.test(formModeEmptyTableMessage || '')) {
+      throw new Error(`Unexpected form mode empty table message: ${formModeEmptyTableMessage}`);
+    }
+    await page.evaluate(() => {
+      document.body.classList.remove('form-mode-active');
+      window.QueryTableView.syncEmptyTableMessage();
+    });
 
     await page.evaluate(() => {
       window.QueryChangeManager.upsertFilter(

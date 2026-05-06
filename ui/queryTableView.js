@@ -40,6 +40,23 @@
     });
   }
 
+  function isFormModePresentationActive() {
+    return document.body.classList.contains('form-mode-active');
+  }
+
+  function getEmptyTableMessage() {
+    return isFormModePresentationActive()
+      ? 'Add a field to show your first column'
+      : 'Drag a bubble here to add your first column';
+  }
+
+  function syncEmptyTableMessage() {
+    const message = getEmptyTableMessage();
+    document.querySelectorAll('[data-empty-table-message], #placeholder-message').forEach(node => {
+      node.textContent = message;
+    });
+  }
+
   function restoreEmptyTableDropTarget(container) {
     if (!container || !services.dragDrop) {
       return;
@@ -55,6 +72,9 @@
     placeholderTh.addEventListener('dragover', event => event.preventDefault());
     placeholderTh.addEventListener('drop', event => {
       event.preventDefault();
+      if (isFormModePresentationActive()) {
+        return;
+      }
       const field = event.dataTransfer.getData('bubble-field');
       if (!field) {
         return;
@@ -64,6 +84,9 @@
       services.restoreFieldWithDuplicates(field);
     });
     placeholderTh.addEventListener('dragenter', () => {
+      if (isFormModePresentationActive()) {
+        return;
+      }
       placeholderTh.classList.add('th-drag-over');
     });
     placeholderTh.addEventListener('dragleave', () => {
@@ -71,7 +94,7 @@
     });
 
     container.addEventListener('dragover', () => {
-      if (getDisplayedFields().length === 0) {
+      if (!isFormModePresentationActive() && getDisplayedFields().length === 0) {
         placeholderTh.classList.add('th-drag-over');
       }
     });
@@ -93,8 +116,8 @@
       container.innerHTML = `
         <table id="example-table" class="min-w-full divide-y divide-gray-200 bg-white">
           <thead>
-            <tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" colspan="1">
-              Drag a bubble here to add your first column
+            <tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" colspan="1" data-empty-table-message>
+              ${getEmptyTableMessage()}
             </th></tr>
           </thead>
           <tbody class="divide-y divide-gray-200"></tbody>
@@ -351,6 +374,7 @@
   const queryTableView = {
     restoreEmptyTableDropTarget,
     renderEmptyQueryTableState,
+    syncEmptyTableMessage,
     createQueryTableHeaderCell,
     showExampleTable,
     queueNextStateRenderOptions(options = {}) {
