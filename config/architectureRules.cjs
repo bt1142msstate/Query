@@ -27,6 +27,7 @@ const forbiddenWindowMemberReads = new Map([
   ['QueryStateReaders', 'Import from core/queryState.js instead of reading query state selectors from window'],
   ['SearchUI', 'Import from ui/searchUI.js instead of reading search helpers from window'],
   ['SelectorControls', 'Import from ui/selectorControls.js instead of reading selector controls from window'],
+  ['SharedFieldPicker', 'Import from ui/fieldPicker.js instead of reading shared field picker from window'],
   ['TableBuilder', 'Import from core/utils.js instead of reading table builder helpers from window'],
   ['TextMeasurement', 'Import from core/utils.js instead of reading text measurement helpers from window'],
   ['TooltipManager', 'Import from core/tooltipFormatters.js for formatting or ui/tooltips.js for tooltip behavior instead of reading tooltip helpers from window'],

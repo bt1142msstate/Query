@@ -9,9 +9,9 @@ import { Icons } from '../core/icons.js';
 import { QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
 import { dragDropColumnOps } from './dragDropColumns.js';
+import { SharedFieldPicker } from '../ui/fieldPicker.js';
 (function initializeDragDropInteractions() {
-  var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
-  var getLifecycleState = QueryStateReaders.getLifecycleState.bind(QueryStateReaders), services = appServices;
+  var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders), getLifecycleState = QueryStateReaders.getLifecycleState.bind(QueryStateReaders), services = appServices;
   const TABLE_COLUMN_DRAG_MIME = 'application/x-query-table-column-index';
   const BUBBLE_FIELD_DRAG_MIME = 'bubble-field';
   const {
@@ -1087,12 +1087,12 @@ import { dragDropColumnOps } from './dragDropColumns.js';
     if (getLifecycleState().queryRunning) return;
 
     const insertAt = parseInt(headerInsertAffordance.dataset.insertAt || '', 10);
-    if (!Number.isInteger(insertAt) || !window.SharedFieldPicker || typeof window.SharedFieldPicker.openQueryFieldPicker !== 'function') {
+    if (!Number.isInteger(insertAt)) {
       return;
     }
 
     clearInsertAffordance();
-    window.SharedFieldPicker.openQueryFieldPicker({ insertAt }).catch(error => {
+    SharedFieldPicker.openQueryFieldPicker({ insertAt }).catch(error => {
       console.error('Failed to open insert field picker:', error);
       showToastMessage('Failed to open the field picker.', 'error');
     });

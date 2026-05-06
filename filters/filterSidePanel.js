@@ -17,6 +17,7 @@ import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 import { showToastMessage } from '../core/toast.js';
 import { OperatorLabels } from '../core/operatorLabels.js';
 import { Icons } from '../core/icons.js';
+import { SharedFieldPicker } from '../ui/fieldPicker.js';
 
 window.FilterSidePanel = (function () {
     const services = appServices;
@@ -252,11 +253,7 @@ window.FilterSidePanel = (function () {
             ? insertAt
             : Number.parseInt(String(insertAt ?? ''), 10);
 
-        if (!window.SharedFieldPicker || typeof window.SharedFieldPicker.openQueryFieldPicker !== 'function') {
-            return;
-        }
-
-        window.SharedFieldPicker.openQueryFieldPicker({
+        SharedFieldPicker.openQueryFieldPicker({
             insertAt: Number.isInteger(normalizedInsertAt) ? normalizedInsertAt : -1
         }).catch(error => {
             console.error('Failed to open side panel field picker:', error);

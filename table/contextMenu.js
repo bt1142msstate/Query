@@ -9,6 +9,7 @@ import { QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
 import { FormatUtils } from '../core/utils.js';
 import { VisibilityUtils } from '../core/visibility.js';
+import { SharedFieldPicker } from '../ui/fieldPicker.js';
 
 window.TableContextMenu = (() => {
   let menuEl = null;
@@ -301,10 +302,10 @@ window.TableContextMenu = (() => {
           return previewColumn(colIndex);
         },
         run() {
-          if (!field || !window.SharedFieldPicker || typeof window.SharedFieldPicker.openQueryFilterEditor !== 'function') {
+          if (!field) {
             return;
           }
-          window.SharedFieldPicker.openQueryFilterEditor(field);
+          SharedFieldPicker.openQueryFilterEditor(field);
         }
       },
       {

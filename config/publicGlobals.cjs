@@ -33,7 +33,6 @@ const publicWindowAssignments = [
   'QueryStateSubscriptions',
   'QueryStateStore',
   'QueryTableAnimation',
-  'SharedFieldPicker',
   'TableNameInput',
   'VirtualTable',
   'VisibilityUtils',
