@@ -4,6 +4,7 @@
  * Provides efficient rendering of thousands of rows by only displaying visible rows.
  * @module VirtualTable
  */
+(function initializeVirtualTable() {
 
 // Virtual scrolling state
 let virtualTableData = {
@@ -1383,3 +1384,4 @@ window.VirtualTable = {
   get baseViewData() { return baseViewData; },
   get postFilterBlankValue() { return POST_FILTER_BLANK_SENTINEL; }
 };
+})();
