@@ -2,7 +2,6 @@ import { showToastMessage } from '../core/toast.js';
 import { Icons } from '../core/icons.js';
 import { OperatorLabels } from '../core/operatorLabels.js';
 
-(function initializeFormModeControls() {
   function parseFieldOptions(fieldDef, inputSpec, normalizeOperatorForField) {
     const source = Array.isArray(inputSpec.options) && inputSpec.options.length > 0
       ? inputSpec.options
@@ -542,13 +541,23 @@ import { OperatorLabels } from '../core/operatorLabels.js';
     return row;
   }
 
-  window.FormModeControls = Object.freeze({
-    getFieldInputType,
-    getAvailableOperators,
-    supportsMultipleValues,
-    createGeneratedInputSpec,
-    resolveInputInitialValues,
-    createControl,
-    createFieldRow
-  });
-})();
+const FormModeControls = Object.freeze({
+  getFieldInputType,
+  getAvailableOperators,
+  supportsMultipleValues,
+  createGeneratedInputSpec,
+  resolveInputInitialValues,
+  createControl,
+  createFieldRow
+});
+
+export {
+  FormModeControls,
+  createControl,
+  createFieldRow,
+  createGeneratedInputSpec,
+  getAvailableOperators,
+  getFieldInputType,
+  resolveInputInitialValues,
+  supportsMultipleValues
+};

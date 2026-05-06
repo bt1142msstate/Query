@@ -3,6 +3,7 @@ import { mapFieldOperatorToUiCond } from '../filters/queryPayload.js';
 import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
 import { VisibilityUtils } from '../core/visibility.js';
+import { FormModeControls as formModeControls } from './formModeControls.js';
 
 (function() {
   const services = appServices;
@@ -905,7 +906,7 @@ import { VisibilityUtils } from '../core/visibility.js';
   }
 
   function createQueryFilterPreview(container, fieldName, context = {}) {
-    const controls = window.FormModeControls;
+    const controls = formModeControls;
     if (
       !container
       || !window.fieldDefs

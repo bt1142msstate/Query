@@ -16,8 +16,6 @@ const publicWindowAssignments = [
   'EventUtils',
   'FilterPill',
   'FilterSidePanel',
-  'FormModeControls',
-  'FormModeStateHelpers',
   'JsonViewerUI',
   'ModalSystem',
   'MoneyUtils',
