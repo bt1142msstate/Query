@@ -39,7 +39,6 @@ const publicWindowAssignments = [
   'TableBuilder',
   'TooltipManager',
   'TextMeasurement',
-  'ValueFormatting',
   'VirtualTable',
   'VisibilityUtils',
   'animatingBackBubbles',

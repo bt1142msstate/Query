@@ -30,6 +30,7 @@ const forbiddenWindowMemberReads = new Map([
   ['showToast', 'Import from core/toast.js instead of reading toast helpers from window'],
   ['showToastMessage', 'Import from core/toast.js instead of reading toast helpers from window'],
   ['toast', 'Import from core/toast.js instead of reading toast helpers from window'],
+  ['ValueFormatting', 'Import from core/utils.js instead of reading value-formatting helpers from window'],
   ['buildBackendFilters', 'Import from filters/queryPayload.js instead of reading this helper from window'],
   ['buildBackendQueryPayload', 'Import from filters/queryPayload.js instead of reading this helper from window'],
   ['buildQueryUiConfig', 'Import from filters/queryPayload.js instead of reading this helper from window'],

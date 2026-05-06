@@ -7,7 +7,7 @@
 import { appServices } from '../core/appServices.js';
 import { appUiActions } from '../core/appUiActions.js';
 import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
-import { MoneyUtils } from '../core/utils.js';
+import { MoneyUtils, ValueFormatting } from '../core/utils.js';
 (function initializeVirtualTable() {
 // Virtual scrolling state
 let virtualTableData = {
@@ -50,7 +50,7 @@ let currentSortDirection = 'asc'; // 'asc' or 'desc'
 var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
 
 function getFieldType(fieldName) {
-  return window.ValueFormatting.getFieldType(fieldName, { inferMoneyFromName: true });
+  return ValueFormatting.getFieldType(fieldName, { inferMoneyFromName: true });
 }
 
 function parseNumericValue(value, type = 'number') {
@@ -805,7 +805,7 @@ function renderVirtualTable() {
       
       if (cellValue !== '' && cellValue !== '—' && cellValue !== undefined && cellValue !== null) {
         if (type === 'date') {
-          displayValue = window.ValueFormatting.formatValueByType(cellValue, type, {
+          displayValue = ValueFormatting.formatValueByType(cellValue, type, {
             fieldName: field,
             invalidDateValue: 'Never'
           });
@@ -814,7 +814,7 @@ function renderVirtualTable() {
         else if (type === 'number' || type === 'money') {
           const n = parseNumericValue(cellValue, type);
           if (!isNaN(n)) {
-            displayValue = window.ValueFormatting.formatValueByType(n, type, { fieldName: field });
+            displayValue = ValueFormatting.formatValueByType(n, type, { fieldName: field });
             td.style.textAlign = 'right';
           }
         } 
@@ -973,7 +973,7 @@ function calculateFieldWidth(fieldName, data = null) {
         if (value != null) {
           let measuredValue = String(value);
           if (type === 'date') {
-            measuredValue = window.ValueFormatting.formatValueByType(value, type, {
+            measuredValue = ValueFormatting.formatValueByType(value, type, {
               fieldName,
               invalidDateValue: 'Never',
               dateFallbackToRaw: true
@@ -981,7 +981,7 @@ function calculateFieldWidth(fieldName, data = null) {
           } else if (type === 'number' || type === 'money') {
             const numericValue = parseNumericValue(value, type);
             if (!isNaN(numericValue)) {
-              measuredValue = window.ValueFormatting.formatValueByType(numericValue, type, { fieldName });
+              measuredValue = ValueFormatting.formatValueByType(numericValue, type, { fieldName });
             }
           }
           const textWidth = window.TextMeasurement.measureText(measuredValue);
