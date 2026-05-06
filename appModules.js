@@ -2,6 +2,7 @@ import './core/domReady.js';
 import './core/utils.js';
 import './core/dataFormatters.js';
 import './ui/toast.js';
+import './core/clipboard.js';
 import './core/backendApi.js';
 import './filters/fieldDefs.js';
 import './core/queryPrevalidation.js';

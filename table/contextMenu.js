@@ -3,6 +3,8 @@
  * Right-click menu on table cells and headers.
  * Options: Copy Cell, Copy Row (tab-separated), Copy Column (newline-separated).
  */
+import { ClipboardUtils } from '../core/clipboard.js';
+
 window.TableContextMenu = (() => {
   let menuEl = null;
   let dismissHandlers = [];
@@ -327,7 +329,7 @@ window.TableContextMenu = (() => {
             const val = hasRow
               ? getCellValue(rowIndex, colIndex)
               : getCellFallbackText(bodyCell);
-            window.ClipboardUtils.copy(val, { successMessage: 'Cell copied' });
+            ClipboardUtils.copy(val, { successMessage: 'Cell copied' });
           }
         },
         {
@@ -340,7 +342,7 @@ window.TableContextMenu = (() => {
           run() {
             if (!hasRow) return;
             const vals = getRowValues(rowIndex);
-            window.ClipboardUtils.copy(vals.join('\t'), {
+            ClipboardUtils.copy(vals.join('\t'), {
               successMessage: `Row copied \u2014 ${vals.length} value${vals.length !== 1 ? 's' : ''}`
             });
           }
@@ -356,7 +358,7 @@ window.TableContextMenu = (() => {
         run() {
           const vals = getColumnValues(colIndex);
           if (!vals.length) return;
-          window.ClipboardUtils.copy(vals.join('\n'), {
+          ClipboardUtils.copy(vals.join('\n'), {
             successMessage: `Column copied \u2014 ${vals.length} row${vals.length !== 1 ? 's' : ''}`
           });
         }

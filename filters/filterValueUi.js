@@ -2,6 +2,8 @@
  * Shared filter value formatting and list-viewer helpers.
  * Extracted from filterManager.js so value-display behavior is separate from condition editing.
  */
+import { ClipboardUtils } from '../core/clipboard.js';
+
 (function initializeFilterValueUi() {
   function getFilterValueMap(fieldDef) {
     if (!fieldDef || !fieldDef.values || fieldDef.values.length === 0) {
@@ -109,7 +111,7 @@
 
     backdrop.addEventListener('click', closeViewer);
     panel.querySelector('#filter-list-viewer-close').addEventListener('click', closeViewer);
-    window.ClipboardUtils.bindCopyButton(panel.querySelector('#filter-list-viewer-copy'), () => {
+    ClipboardUtils.bindCopyButton(panel.querySelector('#filter-list-viewer-copy'), () => {
       return (panel._viewerState.values || []).join('\n');
     }, {
       successMessage: 'List copied to clipboard.',
