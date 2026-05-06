@@ -297,7 +297,7 @@ async function cancelQuery(queryId) {
  * @param {string[]} columns - Array of column names
  * @returns {string} Formatted tooltip HTML
  */
-window.formatColumnsTooltip = function(columns) {
+function formatColumnsTooltip(columns) {
   if (!columns || !columns.length) return '';
 
   const columnItems = columns.map((column, index) => (
@@ -311,7 +311,7 @@ window.formatColumnsTooltip = function(columns) {
     '<div class="tt-filter-title">Displayed Columns</div>' +
     `<ol class="tt-filter-list tt-columns-list">${columnItems}</ol>` +
     '</div>';
-};
+}
 
 /**
  * Formats filters into a tooltip string for history display.
@@ -319,7 +319,7 @@ window.formatColumnsTooltip = function(columns) {
  * @param {Object[]|Object} filtersInput - Filters array or ui_config object
  * @returns {string} Formatted tooltip text
  */
-window.formatHistoryFiltersTooltip = function(filtersInput) {
+function formatHistoryFiltersTooltip(filtersInput) {
   const filters = normalizeUiConfigFilters(filtersInput);
   if (!filters.length) return 'None';
   
@@ -330,7 +330,7 @@ window.formatHistoryFiltersTooltip = function(filtersInput) {
   });
   
   return lines.join(', ');
-};
+}
 
 function closeHistoryDetailsOverlay() {
   const shell = document.querySelector('.history-details-modal-shell');
@@ -1159,6 +1159,7 @@ const QueryHistorySystem = {
   getQueryById: getHistoryQueryById,
   updateQuery: updateHistoryQuery,
   applyQueryConfig: loadQueryConfig,
+  formatColumnsTooltip, formatHistoryFiltersTooltip,
   fetchQueryStatus,
   closeDetailsOverlay: closeHistoryDetailsOverlay,
   startQueryDurationUpdates,

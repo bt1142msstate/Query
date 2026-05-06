@@ -46,12 +46,10 @@ class Bubble {
         FieldOperator: mapBubbleConditionToFieldOperator(f.cond),
         Values: f.cond === 'between' ? f.val.split('|') : f.val.split(',')
       }));
-      filterTooltipHtml = window.formatStandardFilterTooltipHTML(filters, 'Active Filters');
+      filterTooltipHtml = window.TooltipManager?.formatStandardFilterTooltipHTML?.(filters, 'Active Filters') || '';
     }
 
-    let tooltipContentHtml = typeof window.formatFieldDefinitionTooltipHTML === 'function'
-      ? window.formatFieldDefinitionTooltipHTML(def)
-      : '';
+    let tooltipContentHtml = window.TooltipManager?.formatFieldDefinitionTooltipHTML?.(def) || '';
     if (tooltipContentHtml && filterTooltipHtml) {
       tooltipContentHtml = `<div class="tt-tooltip-stack">${tooltipContentHtml}${filterTooltipHtml}</div>`;
     } else if (tooltipContentHtml) {
