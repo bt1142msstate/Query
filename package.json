@@ -4,7 +4,10 @@
     "lint": "eslint \"**/*.{js,mjs,cjs}\"",
     "test": "npm run lint && npm run test:architecture && npm run test:modules && npm run test:unit && npm run test:browser",
     "test:architecture": "node tests/architectureFitness.mjs",
-    "test:unit": "node tests/queryHistoryLogic.mjs",
+    "test:unit": "npm run test:unit:history && npm run test:unit:payload && npm run test:unit:table",
+    "test:unit:history": "node tests/queryHistoryLogic.mjs",
+    "test:unit:payload": "node tests/queryPayloadLogic.mjs",
+    "test:unit:table": "node tests/simpleTableLogic.mjs",
     "test:modules": "node tests/moduleSpecifiers.mjs",
     "test:browser": "node tests/browserSmoke.mjs"
   },

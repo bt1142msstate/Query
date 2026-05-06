@@ -314,7 +314,7 @@ function buildBackendQueryPayload(queryName = '') {
   const standardDisplayFields = [];
   const specialFields = collectCurrentSpecialFields();
 
-  getDisplayedFields().forEach(field => {
+  getNormalizedDisplayedFields().forEach(field => {
     const canonicalFieldName = getCanonicalPayloadFieldName(field);
     const fieldDef = fieldDefs.get(canonicalFieldName);
     if (fieldDef && fieldDef.special_payload) {

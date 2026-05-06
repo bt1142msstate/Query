@@ -8,7 +8,7 @@ For a frontend job portfolio, the project is now an A+ architecture sample for a
 
 - It solves a real workflow with complex state, async execution, virtualized data display, export, overlays, and editable forms.
 - It uses native browser ES modules and declares `"type": "module"` for Node-side tooling.
-- It has executable guardrails for module specifiers, public globals, query-state access, module reachability, import cycles, layer boundaries, and browser smoke behavior.
+- It has executable guardrails for module specifiers, public globals, query-state access, module reachability, import cycles, layer boundaries, unit-tested business logic, and browser smoke behavior.
 - Query history is split into request mapping, row rendering, detail rendering, view metadata, and coordinator modules.
 - It documents the intended module boundaries and known legacy areas.
 
@@ -76,7 +76,7 @@ That runs:
 - `npm run lint`: syntax, globals, module rules, query-state boundaries.
 - `npm run test:architecture`: architecture fitness checks, legacy module budgets, approved public globals, import graph reachability, import cycles, and layer boundaries.
 - `npm run test:modules`: canonical ES module specifiers.
-- `npm run test:unit`: focused pure-logic tests for query-history status, mapping, and row output.
+- `npm run test:unit`: focused pure-logic tests for query-history status, request mapping, row output, backend payload contracts, and table transforms.
 - `npm run test:browser`: Playwright smoke test for runtime behavior and key UI styling.
 
 ## Legacy Budgets
@@ -101,5 +101,5 @@ The architecture fitness test prevents those files from growing. New large modul
 1. Split `ui/formMode.js` into schema parsing, lifecycle coordination, rendering, and event binding modules.
 2. Split `core/queryTemplates.js` into storage, rendering, category management, and editor modules.
 3. Replace compatibility globals feature by feature with explicit ES imports.
-4. Add focused unit tests for `filters/queryPayload.js`, `core/queryState.js`, and `table/simpleTable.js`.
+4. Add focused unit tests for `core/queryState.js` lifecycle edge cases and form-mode schema parsing.
 5. Consider TypeScript or JSDoc type checking if the project needs a stronger enterprise-style portfolio signal.
