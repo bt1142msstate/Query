@@ -21,6 +21,7 @@ const forbiddenWindowMemberReads = new Map([
   ['QueryChangeManager', 'Import from core/queryState.js instead of reading query state mutations from window'],
   ['QueryStateSubscriptions', 'Import from core/queryStateSubscriptions.js instead of reading query state subscriptions from window'],
   ['QueryStateReaders', 'Import from core/queryState.js instead of reading query state selectors from window'],
+  ['SearchUI', 'Import from ui/searchUI.js instead of reading search helpers from window'],
   ['VisibilityUtils', 'Import from core/visibility.js instead of reading visibility helpers from window'],
   ['dismissToastMessage', 'Import from core/toast.js instead of reading toast helpers from window'],
   ['showToast', 'Import from core/toast.js instead of reading toast helpers from window'],

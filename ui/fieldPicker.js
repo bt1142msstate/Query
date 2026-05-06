@@ -4,6 +4,7 @@ import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
 import { VisibilityUtils } from '../core/visibility.js';
 import { FormModeControls as formModeControls } from './formModeControls.js';
+import { initializeSearchInputs } from './searchUI.js';
 
 (function() {
   const services = appServices;
@@ -155,7 +156,7 @@ import { FormModeControls as formModeControls } from './formModeControls.js';
     const filterPreviewDrafts = new Map();
 
     if (searchInput) {
-      window.SearchUI?.initializeSearchInputs?.(modal);
+      initializeSearchInputs(modal);
     }
 
     let selectedFieldName = options.some(option => option.name === config.initialFieldName)

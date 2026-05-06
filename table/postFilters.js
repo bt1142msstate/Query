@@ -5,12 +5,11 @@ import { QueryStateReaders } from '../core/queryState.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 import { showToastMessage } from '../core/toast.js';
 import { VisibilityUtils } from '../core/visibility.js';
+import { initializeSearchInputs } from '../ui/searchUI.js';
 (function() {
   let equalsValueControl = null;
   let equalsValueControlField = '';
-  const STREAMED_EQUALS_BATCH_SIZE = 800;
-  const STREAMED_EQUALS_ROW_HEIGHT = 50;
-  const STREAMED_EQUALS_OVERSCAN = 6;
+  const STREAMED_EQUALS_BATCH_SIZE = 800, STREAMED_EQUALS_ROW_HEIGHT = 50, STREAMED_EQUALS_OVERSCAN = 6;
   const { getDisplayedFields } = QueryStateReaders, services = appServices;
   function getElements() {
     return {
@@ -216,7 +215,7 @@ import { VisibilityUtils } from '../core/visibility.js';
     searchInput.dataset.searchWrapperClass = 'grouped-selector-search-field';
     searchInput.dataset.searchClearLabel = 'Clear loaded value search';
     searchWrapper.appendChild(searchInput);
-    window.SearchUI?.initializeSearchInputs?.(searchWrapper);
+    initializeSearchInputs(searchWrapper);
 
     status.className = 'post-filter-stream-status';
     searchWrapper.appendChild(status);
