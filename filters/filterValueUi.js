@@ -6,7 +6,6 @@ import { ClipboardUtils } from '../core/clipboard.js';
 import { showToastMessage } from '../core/toast.js';
 import { VisibilityUtils } from '../core/visibility.js';
 
-(function initializeFilterValueUi() {
   function getFilterValueMap(fieldDef) {
     if (!fieldDef || !fieldDef.values || fieldDef.values.length === 0) {
       return new Map();
@@ -194,22 +193,13 @@ import { VisibilityUtils } from '../core/visibility.js';
     return values.join(', ');
   }
 
-  const filterValueUi = Object.freeze({
-    getFilterValueMap,
-    getFilterDisplayValues,
-    shouldUseFilterListViewer,
-    openFilterListViewer,
-    buildFilterValueLabel
-  });
-
-  window.FilterValueUi = filterValueUi;
-})();
-
-const FilterValueUi = window.FilterValueUi;
-const buildFilterValueLabel = FilterValueUi.buildFilterValueLabel;
-const getFilterDisplayValues = FilterValueUi.getFilterDisplayValues;
-const openFilterListViewer = FilterValueUi.openFilterListViewer;
-const shouldUseFilterListViewer = FilterValueUi.shouldUseFilterListViewer;
+const FilterValueUi = Object.freeze({
+  getFilterValueMap,
+  getFilterDisplayValues,
+  shouldUseFilterListViewer,
+  openFilterListViewer,
+  buildFilterValueLabel
+});
 
 export {
   FilterValueUi,
