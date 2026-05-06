@@ -3,6 +3,13 @@
     Collapsible side panel showing all active filters,
     supporting inline edit, remove, and add-condition.
    ========================================== */
+import {
+    buildFilterValueLabel,
+    getFilterDisplayValues,
+    openFilterListViewer,
+    shouldUseFilterListViewer
+} from './filterValueUi.js?v=2';
+
 window.FilterSidePanel = (function () {
     const services = window.AppServices;
     const uiActions = window.AppUiActions;
@@ -179,7 +186,7 @@ window.FilterSidePanel = (function () {
             }
         }
 
-        const queryInput = getFilterQueryInputElement();
+        const queryInput = window.DOM?.queryInput || document.getElementById('query-input');
         if (queryInput) {
             queryInput.value = field;
             queryInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -598,7 +605,7 @@ window.FilterSidePanel = (function () {
         condsList.className = 'fp-conds-list';
 
         data.filters.forEach((filterItem, idx) => {
-            const useListViewer = window.shouldUseFilterListViewer && window.shouldUseFilterListViewer(filterItem, fieldDef);
+            const useListViewer = shouldUseFilterListViewer(filterItem, fieldDef);
             const row = document.createElement('div');
             row.className = 'fp-cond-row';
 
@@ -607,9 +614,7 @@ window.FilterSidePanel = (function () {
 
             // Between: render each bound separately so it reads "Between X and Y"
             if (filterItem.cond.toLowerCase() === 'between') {
-                const parts = window.getFilterDisplayValues
-                    ? window.getFilterDisplayValues(filterItem, fieldDef)
-                    : buildFilterValueLabel(filterItem, fieldDef, '|').split('|');
+                const parts = getFilterDisplayValues(filterItem, fieldDef);
                 const lo = parts[0] || '';
                 const hi = parts[1] || '';
                 textSpan.innerHTML = `<span class="fp-cond-op">${window.OperatorLabels.get(filterItem.cond)}</span> <b>${lo}</b> <span class="fp-cond-sep">and</span> <b>${hi}</b>`;
@@ -623,12 +628,10 @@ window.FilterSidePanel = (function () {
                 textSpan.setAttribute('tabindex', '0');
                 textSpan.setAttribute('aria-label', `View ${field} filter values`);
                 const openViewer = () => {
-                    if (window.openFilterListViewer) {
-                        window.openFilterListViewer(filterItem, fieldDef, {
-                            fieldName: field,
-                            operatorLabel: window.OperatorLabels.get(filterItem.cond)
-                        });
-                    }
+                    openFilterListViewer(filterItem, fieldDef, {
+                        fieldName: field,
+                        operatorLabel: window.OperatorLabels.get(filterItem.cond)
+                    });
                 };
                 textSpan.addEventListener('click', openViewer);
                 textSpan.addEventListener('keydown', e => {
