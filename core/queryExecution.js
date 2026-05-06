@@ -46,8 +46,8 @@ function updateQueryHistoryEntry(queryId, updates, options = {}) {
 /* ---------- Live-progress helper ---------- */
 
 function updateLiveQueryProgress(resultCount, options = {}) {
-  if (typeof window.updateTableQueryAnimationProgress === 'function') {
-    window.updateTableQueryAnimationProgress({
+  if (window.QueryTableAnimation?.updateTableQueryAnimationProgress) {
+    window.QueryTableAnimation.updateTableQueryAnimationProgress({
       resultCount,
       startTime: options.startTime
     });
@@ -170,7 +170,7 @@ if (execDom.runBtn) {
       QueryChangeManager.setLifecycleState({ queryRunning: false }, { source: 'QueryExecution.stopQuery', silent: true });
       uiActions.updateRunButtonIcon();
       uiActions.updateButtonStates();
-      if (window.endTableQueryAnimation) window.endTableQueryAnimation();
+      window.QueryTableAnimation?.endTableQueryAnimation?.();
       return;
     }
 
@@ -195,7 +195,7 @@ if (execDom.runBtn) {
       try {
         uiActions.updateRunButtonIcon();
         uiActions.updateButtonStates();
-        if (window.startTableQueryAnimation) window.startTableQueryAnimation();
+        window.QueryTableAnimation?.startTableQueryAnimation?.();
         const queryStartedAt = Date.now();
         updateLiveQueryProgress(0, { startTime: queryStartedAt });
 
@@ -369,7 +369,7 @@ if (execDom.runBtn) {
         uiActions.updateTableResultsLip();
         uiActions.updateRunButtonIcon();
         uiActions.updateButtonStates();
-        if (window.endTableQueryAnimation) window.endTableQueryAnimation();
+        window.QueryTableAnimation?.endTableQueryAnimation?.();
       }
     })();
   });

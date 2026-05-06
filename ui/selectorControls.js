@@ -130,9 +130,7 @@ function createGroupedSelector(values, isMultiSelect, currentValues = [], option
   searchInput.dataset.searchWrapperClass = 'grouped-selector-search-field';
   searchInput.dataset.searchClearLabel = 'Clear option search';
   searchWrapper.appendChild(searchInput);
-  if (typeof window.initializeSearchInputs === 'function') {
-    window.initializeSearchInputs(searchWrapper);
-  }
+  window.SearchUI?.initializeSearchInputs?.(searchWrapper);
   container.appendChild(searchWrapper);
 
   const optionsContainer = document.createElement('div');

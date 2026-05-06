@@ -211,9 +211,7 @@
     searchInput.dataset.searchWrapperClass = 'grouped-selector-search-field';
     searchInput.dataset.searchClearLabel = 'Clear loaded value search';
     searchWrapper.appendChild(searchInput);
-    if (typeof window.initializeSearchInputs === 'function') {
-      window.initializeSearchInputs(searchWrapper);
-    }
+    window.SearchUI?.initializeSearchInputs?.(searchWrapper);
 
     status.className = 'post-filter-stream-status';
     searchWrapper.appendChild(status);

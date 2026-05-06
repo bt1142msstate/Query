@@ -273,7 +273,7 @@ async function cancelQuery(queryId) {
         );
         uiActions.updateRunButtonIcon();
         uiActions.updateButtonStates();
-        if (window.endTableQueryAnimation) window.endTableQueryAnimation();
+        window.QueryTableAnimation?.endTableQueryAnimation?.();
       }
       window.showToastMessage(`Query ${queryId} cancelled`, 'info');
     } else {
