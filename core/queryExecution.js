@@ -165,8 +165,6 @@ if (execDom.runBtn) {
 
     // Start query execution
     (async () => {
-      const queryChangedBeforeRun = window.QueryStateReaders.hasQueryChanged();
-
       // Remember if split mode was active, then disable it to avoid mapping dynamic Field N names.
       const wasSplitActive = services.isSplitColumnsActive() || window.splitColumnsActive || false;
       if (wasSplitActive) {
@@ -174,7 +172,7 @@ if (execDom.runBtn) {
         if (window.resetSplitColumnsToggleUI) window.resetSplitColumnsToggleUI();
       }
 
-      if (queryChangedBeforeRun && services.hasPostFilters?.()) {
+      if (services.hasPostFilters?.()) {
         services.clearPostFilters({ refreshView: false, notify: true, resetScroll: false });
       }
 
