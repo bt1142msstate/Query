@@ -1,7 +1,7 @@
 import { showToastMessage } from '../core/toast.js';
 import { Icons } from '../core/icons.js';
 import { OperatorLabels } from '../core/operatorLabels.js';
-import { MoneyUtils, ValueFormatting } from '../core/utils.js';
+import { MoneyUtils, OperatorSelectUtils, ValueFormatting } from '../core/utils.js';
 import { SelectorControls } from './selectorControls.js';
 
   function parseFieldOptions(fieldDef, inputSpec, normalizeOperatorForField) {
@@ -496,7 +496,7 @@ import { SelectorControls } from './selectorControls.js';
       operatorEl.className = 'form-mode-operator-chip';
       operatorEl.textContent = OperatorLabels.get(inputSpec.operator);
     } else {
-      operatorEl = window.OperatorSelectUtils.createSelect(availableOperators, {
+      operatorEl = OperatorSelectUtils.createSelect(availableOperators, {
         selected: inputSpec.operator,
         className: 'form-mode-operator-chip form-mode-operator-select',
         ariaLabel: `Select operator for ${inputSpec.label}`,
