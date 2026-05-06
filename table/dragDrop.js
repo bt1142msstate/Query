@@ -21,7 +21,7 @@
     removeColumn: interactions.removeColumn,
     positionDropAnchor: interactions.positionDropAnchor,
     clearDropAnchor: interactions.clearDropAnchor,
-    restoreFieldWithDuplicates,
-    getDuplicateGroups
+    restoreFieldWithDuplicates: window.restoreFieldWithDuplicates,
+    getDuplicateGroups: window.getDuplicateGroups
   });
 })();

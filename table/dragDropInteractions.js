@@ -444,7 +444,7 @@
 
       const field = e.dataTransfer.getData(BUBBLE_FIELD_DRAG_MIME);
       if (field) {
-        if (restoreFieldWithDuplicates(field)) {
+        if (window.restoreFieldWithDuplicates(field)) {
           dragDropManager.dropSuccessful = true;
         }
       }
@@ -617,7 +617,7 @@
 
       const colIndex = parseInt(th.dataset.colIndex, 10);
       const fieldName = getDisplayedFields()[colIndex];
-      const relatedIndices = findRelatedColumnIndices(fieldName);
+      const relatedIndices = window.findRelatedColumnIndices(fieldName);
 
       relatedIndices.forEach(index => {
         const relatedHeader = document.querySelector(`thead th[data-col-index="${index}"]`);
@@ -795,9 +795,9 @@
       if (bubbleField) {
         const rect = th.getBoundingClientRect();
         const insertAt = (e.clientX - rect.left) < rect.width / 2 ? toIndex : toIndex + 1;
-      if (restoreFieldWithDuplicates(bubbleField, insertAt)) {
-        dragDropManager.dropSuccessful = true;
-      }
+        if (window.restoreFieldWithDuplicates(bubbleField, insertAt)) {
+          dragDropManager.dropSuccessful = true;
+        }
       }
 
       th.classList.remove('th-drag-over');
@@ -820,9 +820,9 @@
       if (bubbleField) {
         const rect = td.getBoundingClientRect();
         const insertAt = (e.clientX - rect.left) < rect.width / 2 ? toIndex : toIndex + 1;
-      if (restoreFieldWithDuplicates(bubbleField, insertAt)) {
-        dragDropManager.dropSuccessful = true;
-      }
+        if (window.restoreFieldWithDuplicates(bubbleField, insertAt)) {
+          dragDropManager.dropSuccessful = true;
+        }
         clearDropAnchor();
         return;
       }
@@ -1343,6 +1343,6 @@
     clearDropAnchor,
     addColumn,
     removeColumnByName,
-    getDuplicateGroups
+    getDuplicateGroups: window.getDuplicateGroups
   });
 })();
