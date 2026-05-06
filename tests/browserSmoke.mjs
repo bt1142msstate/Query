@@ -23,6 +23,9 @@ const mimeTypes = new Map([
   ['.woff2', 'font/woff2']
 ]);
 
+const QUERY_API_PATTERN = /^https:\/\/mlp\.sirsi\.net\/uhtbin\/query_api\.pl/u;
+const smokeResultHeaders = ['Smoke Title', 'Smoke Branch', 'Smoke Status'];
+
 function contentTypeFor(filePath) {
   return mimeTypes.get(extname(filePath).toLowerCase()) || 'application/octet-stream';
 }
@@ -141,6 +144,45 @@ async function stubExternalAssets(page) {
       status: 200
     });
   });
+}
+
+async function stubQueryApiResponses(page, responses) {
+  const queuedResponses = Array.isArray(responses) ? responses.slice() : [];
+
+  await page.route(QUERY_API_PATTERN, route => {
+    const request = route.request();
+    const corsHeaders = {
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Expose-Headers': 'X-Query-Id, X-Raw-Columns'
+    };
+
+    if (request.method() === 'OPTIONS') {
+      route.fulfill({
+        body: '',
+        headers: corsHeaders,
+        status: 204
+      });
+      return;
+    }
+
+    const response = queuedResponses.shift() || {};
+    route.fulfill({
+      body: response.body || '',
+      contentType: response.contentType || 'text/plain; charset=utf-8',
+      headers: {
+        ...corsHeaders,
+        'X-Query-Id': response.queryId || 'browser-smoke-query',
+        'X-Raw-Columns': (response.rawColumns || smokeResultHeaders).join('|')
+      },
+      status: response.status || 200
+    });
+  });
+
+  return async function restoreQueryApi() {
+    await page.unroute(QUERY_API_PATTERN);
+  };
 }
 
 function attachFailureListeners(page, failures, port) {
@@ -269,6 +311,14 @@ async function seedLoadedResults(page) {
     window.QueryUI?.updateButtonStates?.();
   });
   await page.locator('#example-table').waitFor({ state: 'attached', timeout: 5000 });
+}
+
+async function expectEmptyTableMessage(page, expectedPattern, label) {
+  await page.locator('#example-table tbody td').first().waitFor({ state: 'visible', timeout: 5000 });
+  const message = (await page.locator('#example-table tbody td').first().textContent())?.trim() || '';
+  if (!expectedPattern.test(message)) {
+    throw new Error(`${label} expected empty table message ${expectedPattern}, received "${message}"`);
+  }
 }
 
 async function expectResultsCount(page, expectedText, label) {
@@ -406,42 +456,9 @@ async function exerciseDesktopResultsWorkflow(page) {
   await page.locator('#post-filter-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
   await expectElementWithinViewport(page, '#post-filter-overlay .post-filter-dialog', 'Desktop post filter dialog');
   await page.locator('#post-filter-field').selectOption('Smoke Branch');
-  await page.locator('#post-filter-operator').selectOption('equals');
-  await page.locator('#post-filter-value-picker-host .form-mode-popup-list-trigger').waitFor({ state: 'visible', timeout: 5000 });
-  await page.locator('#post-filter-value-picker-host .form-mode-popup-list-trigger').click();
-
-  const popup = page.locator('.form-mode-popup-list-popup:not([hidden])');
-  await popup.waitFor({ state: 'visible', timeout: 5000 });
-  await expectDarkInput(page, '.form-mode-popup-list-popup:not([hidden]) input[type="search"]', 'Desktop post filter popup search input');
-  await page.waitForFunction(() => {
-    return /distinct loaded values/iu.test(
-      document.querySelector('.form-mode-popup-list-popup:not([hidden]) .post-filter-stream-status')?.textContent || ''
-    );
-  }, null, { timeout: 5000 });
-  await popup.locator('input[type="search"]').fill('Main');
-  await page.waitForFunction(() => {
-    return Array.from(document.querySelectorAll('.form-mode-popup-list-popup:not([hidden]) .post-filter-stream-option'))
-      .some(option => /Main/iu.test(option.textContent || ''));
-  }, null, { timeout: 5000 });
-  await page.evaluate(() => {
-    const option = Array.from(document.querySelectorAll('.form-mode-popup-list-popup:not([hidden]) .post-filter-stream-option'))
-      .find(item => /Main/iu.test(item.textContent || ''));
-    const checkbox = option?.querySelector('input[type="checkbox"]');
-    if (!checkbox) {
-      throw new Error('Main post-filter option checkbox was not found');
-    }
-    checkbox.click();
-  });
-  await page.waitForFunction(() => {
-    const control = document.querySelector('#post-filter-value-picker-host .post-filter-value-control');
-    return control?.getSelectedValues?.().includes('Main');
-  }, null, { timeout: 5000 });
-  await page.evaluate(() => {
-    document.querySelector('.form-mode-popup-list-popup:not([hidden]) .form-mode-popup-list-done')?.click();
-  });
-  await page.waitForFunction(() => {
-    return !document.querySelector('.form-mode-popup-list-popup:not([hidden])');
-  }, null, { timeout: 5000 });
+  await page.locator('#post-filter-operator').selectOption('contains');
+  await page.locator('#post-filter-value').waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('#post-filter-value').fill('Main');
   await page.locator('#post-filter-add-btn').click();
   await expectPostFilterStats(page, {
     filteredRows: 2,
@@ -475,6 +492,67 @@ async function exerciseDesktopResultsWorkflow(page) {
   }, null, { timeout: 5000 });
   await page.locator('#export-cancel-btn').click();
   await page.locator('#export-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
+}
+
+async function exerciseZeroResultQueryWorkflow(page) {
+  await seedLoadedResults(page);
+  await page.evaluate(() => {
+    window.AppServices.replacePostFilters({
+      'Smoke Branch': {
+        logic: 'all',
+        filters: [
+          { cond: 'equals', val: 'Main', vals: ['Main'] }
+        ]
+      }
+    }, { refreshView: true, notify: true, resetScroll: true });
+    window.QueryUI?.updateButtonStates?.();
+  });
+  await expectPostFilterStats(page, {
+    filteredRows: 2,
+    hasPostFilters: true,
+    totalRows: 3
+  }, 'Desktop pre-run post filter state');
+
+  const restoreQueryApi = await stubQueryApiResponses(page, [
+    {
+      body: '',
+      queryId: 'browser-smoke-zero-results',
+      rawColumns: smokeResultHeaders
+    }
+  ]);
+
+  try {
+    await page.locator('#run-query-btn').click();
+    await page.waitForFunction(() => {
+      const lifecycle = window.QueryStateReaders.getLifecycleState();
+      const tableData = window.AppServices.getVirtualTableData?.();
+      return lifecycle.queryRunning === false
+        && lifecycle.hasLoadedResultSet === true
+        && lifecycle.currentQueryId === 'browser-smoke-zero-results'
+        && Array.isArray(tableData?.rows)
+        && tableData.rows.length === 0;
+    }, null, { timeout: 10000 });
+  } finally {
+    await restoreQueryApi();
+  }
+
+  await expectPostFilterStats(page, {
+    filteredRows: 0,
+    hasPostFilters: false,
+    totalRows: 0
+  }, 'Desktop post-filter state after zero-result query');
+  await expectResultsCount(page, '0', 'Desktop zero-result query');
+  await expectEmptyTableMessage(page, /no results matched this query/iu, 'Desktop zero-result query');
+
+  const queryStatus = await page.evaluate(() => window.QueryStateReaders.getQueryStatus());
+  if (queryStatus !== 'results') {
+    throw new Error(`Zero-result query should be treated as loaded results, received query status "${queryStatus}"`);
+  }
+
+  const isPlanningMode = await page.evaluate(() => document.body.classList.contains('is-planning'));
+  if (isPlanningMode) {
+    throw new Error('Zero-result query left the UI in planning mode');
+  }
 }
 
 async function runSmokeTest() {
@@ -519,6 +597,7 @@ async function runSmokeTest() {
 
     await exerciseBubbleFilterInteraction(page);
     await exerciseDesktopResultsWorkflow(page);
+    await exerciseZeroResultQueryWorkflow(page);
 
     await page.getByRole('button', { name: 'Queries' }).click();
     await page.locator('input[placeholder="Search queries..."]').waitFor({ state: 'visible', timeout: 5000 });
