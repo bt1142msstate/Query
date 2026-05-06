@@ -1,6 +1,7 @@
 import './core/utils.js';
-import './filters/fieldDefs.js';
 import './ui/toast.js';
+import './core/backendApi.js';
+import './filters/fieldDefs.js';
 import './core/queryPrevalidation.js';
 import './core/queryState.js';
 import './ui/domCache.js';

@@ -1,3 +1,4 @@
+import { BackendApi } from './backendApi.js';
 import { buildQueryUiConfig } from '../filters/queryPayload.js';
 
 (function initializeQueryTemplates() {
@@ -334,7 +335,7 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
   }
 
   async function sendTemplateRequest(payload) {
-    const { data } = await window.BackendApi.postJson(payload);
+    const { data } = await BackendApi.postJson(payload);
     if (data.error) {
       throw new Error(data.error);
     }
