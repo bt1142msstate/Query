@@ -1,4 +1,5 @@
 import { formatFieldOperatorForDisplay, mapFieldOperatorToUiCond, normalizeUiConfigFilters } from '../filters/queryPayload.js';
+import { getFilterDisplayValues } from '../filters/filterValueUi.js';
 
 // escapeHtml is defined in utils.js (loaded before this file)
 const escapeHtml = window.escapeHtml;
@@ -486,9 +487,7 @@ function formatStandardFilterTooltipHTML(filtersInput, title = "") {
         if (uiCond === 'between' && f.Values.length >= 2) {
             valStr = '<span class="tt-val">' + escapeHtml(f.Values[0]) + '</span> <span class="tt-op">and</span> <span class="tt-val">' + escapeHtml(f.Values[1]) + '</span>';
       } else if (fieldDef && fieldDef.allowValueList && f.Values.length > 1) {
-        const values = typeof window.getFilterDisplayValues === 'function'
-          ? window.getFilterDisplayValues({ cond: uiCond, val: f.Values.join(',') }, fieldDef)
-          : f.Values;
+        const values = getFilterDisplayValues({ cond: uiCond, val: f.Values.join(',') }, fieldDef);
         const summary = values[0] ? escapeHtml(values[0]) + ' <span class="tt-value-more">and ' + (values.length - 1) + ' more</span>' : '';
         valStr = '<div class="tt-val-stack"><div class="tt-val tt-val-summary">' + summary + '</div></div>';
         } else {
