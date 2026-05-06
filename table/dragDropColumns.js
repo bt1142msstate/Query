@@ -2,8 +2,10 @@
  * Shared column-operation helpers for drag/drop interactions.
  * Keeps structural column changes separate from pointer and drag orchestration.
  */
+import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
+
 (function initializeDragDropColumns() {
-  const getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
+  const getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
   const appState = window.AppState;
   const services = window.AppServices;
   const uiActions = window.AppUiActions;
@@ -91,7 +93,7 @@
       scrollAnchorField
     });
 
-    window.QueryChangeManager.removeDisplayedField(relatedFieldNames, {
+    QueryChangeManager.removeDisplayedField(relatedFieldNames, {
       source: 'DragDrop.removeColumn'
     });
 
@@ -255,7 +257,7 @@
       scrollAnchorField: movedFieldName
     });
 
-    window.QueryChangeManager.moveDisplayedField(fromIndex, toIndex, {
+    QueryChangeManager.moveDisplayedField(fromIndex, toIndex, {
       source: 'DragDrop.moveSingleColumn'
     });
 
@@ -269,7 +271,7 @@
       scrollAnchorField: movedFieldName
     });
 
-    window.QueryChangeManager.moveDisplayedField(groupIndices[0], targetIndex, {
+    QueryChangeManager.moveDisplayedField(groupIndices[0], targetIndex, {
       count: groupIndices.length,
       behavior: 'group',
       source: 'DragDrop.moveColumnGroup'

@@ -4,6 +4,7 @@
  * Options: Copy Cell, Copy Row (tab-separated), Copy Column (newline-separated).
  */
 import { ClipboardUtils } from '../core/clipboard.js';
+import { QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
 import { VisibilityUtils } from '../core/visibility.js';
 
@@ -20,7 +21,7 @@ window.TableContextMenu = (() => {
   }
 
   function getFields() {
-    return window.QueryStateReaders?.getDisplayedFields?.() || [];
+    return QueryStateReaders?.getDisplayedFields?.() || [];
   }
 
   function formatCellValue(raw, field) {

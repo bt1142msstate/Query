@@ -1,5 +1,5 @@
 import { Icons } from '../core/icons.js';
-
+import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 /**
  * Filter Management
  * Handles filter UI, inputs, and confirmation logic.
@@ -523,8 +523,8 @@ class FilterPill {
 
 // Expose globally
 window.FilterPill = FilterPill;
-var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
-var getFilterGroupForField = window.QueryStateReaders.getFilterGroupForField.bind(window.QueryStateReaders);
+var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
+var getFilterGroupForField = QueryStateReaders.getFilterGroupForField.bind(QueryStateReaders);
 
 function getPostFilterSummary() {
     const snapshot = services.getPostFilterState ? services.getPostFilterState() : {};
@@ -626,7 +626,7 @@ window.renderConditionList = function(field) {
     if (hasFieldFilters) {
         data.filters.forEach((f, idx) => {
             const pill = new FilterPill(f, fieldDef, () => {
-                window.QueryChangeManager.removeFilter(normalizedField, {
+                QueryChangeManager.removeFilter(normalizedField, {
                 index: idx,
                 source: 'FilterManager.removeFilterPill'
             });
@@ -714,11 +714,11 @@ window.handleConditionBtnClick = function(e) {
     if (cond === 'show' || cond === 'hide') {
         if (appState.selectedField) {
             if (cond === 'show') {
-                window.QueryChangeManager.showField(appState.selectedField, {
+                QueryChangeManager.showField(appState.selectedField, {
                     source: 'FilterManager.handleConditionBtnClick.show'
                 });
             } else if (cond === 'hide' && getDisplayedFields().includes(appState.selectedField)) {
-                window.QueryChangeManager.hideField(appState.selectedField, {
+                QueryChangeManager.hideField(appState.selectedField, {
                     source: 'FilterManager.handleConditionBtnClick.hide'
                 });
             }
@@ -913,7 +913,7 @@ window.handleFilterConfirm = function(e) {
 
             if (filterValue !== '') {
                 console.log(`Applying filter for ${field}: ${cond} ${filterValue}`);
-                window.QueryChangeManager.upsertFilter(field, { cond, val: filterValue }, {
+                QueryChangeManager.upsertFilter(field, { cond, val: filterValue }, {
                     replaceByCond: shouldReplaceExistingListCondition,
                     source: 'FilterManager.applyFilter'
                 });
@@ -940,7 +940,7 @@ window.handleFilterConfirm = function(e) {
         if (cond === 'show') {
             services.restoreFieldWithDuplicates(field);
         } else if ((cond === 'hide' || cond === 'display') && getDisplayedFields().includes(field)) {
-            window.QueryChangeManager.hideField(field, {
+            QueryChangeManager.hideField(field, {
                 source: 'FilterManager.hideField'
             });
         }
@@ -1004,7 +1004,7 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
     if (cond && val) {
         const alreadyExists = Boolean(getFilterGroupForField(dynamicFieldName)?.filters?.some(f => f.cond === cond && f.val === val));
         if (!alreadyExists) {
-            window.QueryChangeManager.upsertFilter(dynamicFieldName, { cond, val }, {
+            QueryChangeManager.upsertFilter(dynamicFieldName, { cond, val }, {
                 dedupe: true,
                 source: 'FilterManager.addDynamicFieldFilter'
             });
@@ -1029,7 +1029,7 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
     
     // Clean up base buildable filters just in case
     if (getFilterGroupForField(fieldDef.name)) {
-        window.QueryChangeManager.removeFilter(fieldDef.name, {
+        QueryChangeManager.removeFilter(fieldDef.name, {
             removeAll: true,
             source: 'FilterManager.clearBuildableBaseFilter'
         });

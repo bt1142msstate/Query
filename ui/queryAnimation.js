@@ -1,3 +1,5 @@
+import { QueryStateReaders } from '../core/queryState.js';
+
 /* ---------- Table morph animation — Spacefield bubble ---------- */
 function createTableQueryCircuitOverlay() {
   const container = document.createElement('div');
@@ -349,7 +351,7 @@ function startTableQueryAnimation() {
   const triggerStop = () => {
     // Delegate to the header run button click (which handles the cancel path)
     const runBtn = document.getElementById('run-query-btn');
-    if (runBtn && window.QueryStateReaders.getLifecycleState().queryRunning) runBtn.click();
+    if (runBtn && QueryStateReaders.getLifecycleState().queryRunning) runBtn.click();
   };
 
   stopOverlay.addEventListener('click', e => { e.stopPropagation(); triggerStop(); });

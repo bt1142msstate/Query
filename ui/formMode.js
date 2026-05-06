@@ -1,5 +1,6 @@
 import { ClipboardUtils } from '../core/clipboard.js';
 import { OperatorLabels } from '../core/operatorLabels.js';
+import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
 import { mapFieldOperatorToUiCond } from '../filters/queryPayload.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
@@ -62,11 +63,11 @@ let QueryFormMode;
     tableNameListenersBound: false,
     hiddenNodes: []
   };
-  const { getDisplayedFields, getActiveFilters } = window.QueryStateReaders;
+  const { getDisplayedFields, getActiveFilters } = QueryStateReaders;
 
   function getQuerySnapshot() {
-    if (window.QueryStateReaders && typeof window.QueryStateReaders.getSnapshot === 'function') {
-      return window.QueryStateReaders.getSnapshot();
+    if (QueryStateReaders && typeof QueryStateReaders.getSnapshot === 'function') {
+      return QueryStateReaders.getSnapshot();
     }
 
     return {
@@ -780,10 +781,10 @@ let QueryFormMode;
   }
 
   function stopRunningQueryForReset() {
-    const lifecycleState = window.QueryStateReaders.getLifecycleState();
+    const lifecycleState = QueryStateReaders.getLifecycleState();
     if (lifecycleState.queryRunning && window.QueryHistorySystem?.cancelQuery && lifecycleState.currentQueryId) {
       window.QueryHistorySystem.cancelQuery(lifecycleState.currentQueryId).catch(console.error);
-      window.QueryChangeManager.setLifecycleState({ queryRunning: false }, { source: 'QueryFormMode.reset.stopQuery', silent: true });
+      QueryChangeManager.setLifecycleState({ queryRunning: false }, { source: 'QueryFormMode.reset.stopQuery', silent: true });
       uiActions.updateRunButtonIcon();
     }
   }
@@ -1209,8 +1210,8 @@ let QueryFormMode;
         if (!state.spec) return;
 
         if (nextChecked) {
-          if (!window.QueryStateReaders.hasDisplayedField(fieldName)) {
-            window.QueryChangeManager.addDisplayedField(fieldName, {
+          if (!QueryStateReaders.hasDisplayedField(fieldName)) {
+            QueryChangeManager.addDisplayedField(fieldName, {
               source: 'QueryFormMode.fieldPicker.addDisplayedField'
             });
             syncSpecColumnsWithDisplayedFields({ refreshUrl: false });
@@ -1220,8 +1221,8 @@ let QueryFormMode;
           return;
         }
 
-        if (window.QueryStateReaders.hasDisplayedField(fieldName)) {
-          window.QueryChangeManager.hideField(fieldName, {
+        if (QueryStateReaders.hasDisplayedField(fieldName)) {
+          QueryChangeManager.hideField(fieldName, {
             source: 'QueryFormMode.fieldPicker.removeDisplayedField'
           });
           syncSpecColumnsWithDisplayedFields({ refreshUrl: false });
@@ -1397,7 +1398,7 @@ let QueryFormMode;
 
     state.isApplyingFormState = true;
     try {
-      window.QueryChangeManager.setQueryState({
+      QueryChangeManager.setQueryState({
         displayedFields: columns,
         activeFilters: nextActiveFilters
       }, { source });

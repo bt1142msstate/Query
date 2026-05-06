@@ -4,10 +4,11 @@
  * Does not handle Drag & Drop UI events.
  * @module ColumnManager
  */
+import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 
 // Store information about removed columns with their duplicates for restoration
 window.removedColumnInfo = window.removedColumnInfo || new Map();
-var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
+var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
 var services = window.AppServices;
 
 /**
@@ -124,7 +125,7 @@ window.restoreFieldWithDuplicates = function(fieldName, insertAt = -1) {
     window.removedColumnInfo.delete(fieldName);
     
     // Insert all duplicate columns at the specified position
-    window.QueryChangeManager.addDisplayedField(storedInfo.columnNames, {
+    QueryChangeManager.addDisplayedField(storedInfo.columnNames, {
       insertAt,
       source: 'ColumnManager.restoreFieldWithDuplicates'
     });
@@ -142,7 +143,7 @@ window.restoreFieldWithDuplicates = function(fieldName, insertAt = -1) {
       
       if (relatedColumns.length > 0) {
         // Insert all related columns from original data
-        window.QueryChangeManager.addDisplayedField(relatedColumns, {
+        QueryChangeManager.addDisplayedField(relatedColumns, {
           insertAt,
           source: 'ColumnManager.restoreFieldWithDuplicates'
         });
@@ -152,7 +153,7 @@ window.restoreFieldWithDuplicates = function(fieldName, insertAt = -1) {
     }
     
     // Fallback to single field - this will show "..." in the table
-    window.QueryChangeManager.addDisplayedField(fieldName, {
+    QueryChangeManager.addDisplayedField(fieldName, {
       insertAt,
       source: 'ColumnManager.restoreFieldWithDuplicates'
     });

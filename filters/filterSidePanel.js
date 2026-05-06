@@ -10,6 +10,7 @@ import {
     shouldUseFilterListViewer
 } from './filterValueUi.js';
 import { DragUtils } from '../core/dragUtils.js';
+import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 import { showToastMessage } from '../core/toast.js';
 import { OperatorLabels } from '../core/operatorLabels.js';
@@ -24,7 +25,7 @@ window.FilterSidePanel = (function () {
     const FILTER_REORDER_MIME = 'application/x-query-filter-field';
     let shellResizeObserver = null;
     let unsubscribeQueryState = null;
-    const { getDisplayedFields, getActiveFilters } = window.QueryStateReaders;
+    const { getDisplayedFields, getActiveFilters } = QueryStateReaders;
 
     function cleanupPopupControls(container) {
         if (!container) {
@@ -220,7 +221,7 @@ window.FilterSidePanel = (function () {
             return false;
         }
 
-        window.QueryChangeManager.moveDisplayedField(fromIndex, toIndex, {
+        QueryChangeManager.moveDisplayedField(fromIndex, toIndex, {
             source
         });
 
@@ -234,13 +235,13 @@ window.FilterSidePanel = (function () {
             return;
         }
 
-        window.QueryChangeManager.hideField(fieldName, {
+        QueryChangeManager.hideField(fieldName, {
             source: 'FilterSidePanel.removeDisplayedField'
         });
     }
 
     function openDisplayFieldPicker(insertAt = -1) {
-        const lifecycleState = window.QueryStateReaders?.getLifecycleState?.();
+        const lifecycleState = QueryStateReaders?.getLifecycleState?.();
         if (lifecycleState?.queryRunning) {
             return;
         }
@@ -571,7 +572,7 @@ window.FilterSidePanel = (function () {
                 }
             }
 
-            window.QueryChangeManager.reorderFilterGroups(Object.keys(newActiveFilters), {
+            QueryChangeManager.reorderFilterGroups(Object.keys(newActiveFilters), {
                 source: 'FilterSidePanel.reorderGroups'
             });
             uiActions.updateQueryJson();
@@ -664,7 +665,7 @@ window.FilterSidePanel = (function () {
             delBtn.innerHTML = Icons.trashSVG(14, 14);
             delBtn.addEventListener('click', e => {
                 e.stopPropagation();
-                window.QueryChangeManager.removeFilter(field, {
+                QueryChangeManager.removeFilter(field, {
                     index: idx,
                     source: 'FilterSidePanel.removeFilter'
                 });

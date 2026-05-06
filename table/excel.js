@@ -4,6 +4,7 @@
  * @module ExcelExporter
  */
 import { showToastMessage } from '../core/toast.js';
+import { QueryStateReaders } from '../core/queryState.js';
 import { VisibilityUtils } from '../core/visibility.js';
 
 (() => {
@@ -16,7 +17,7 @@ import { VisibilityUtils } from '../core/visibility.js';
 
   const SHEET_NAME_LIMIT = 31;
   const MAX_GROUPED_SHEETS = 100;
-  const { getDisplayedFields } = window.QueryStateReaders;
+  const { getDisplayedFields } = QueryStateReaders;
   const services = window.AppServices;
 
   function getExportElements() {

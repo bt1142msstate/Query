@@ -4,6 +4,7 @@
  * @module FieldDefs
  */
 import { BackendApi } from '../core/backendApi.js';
+import { QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
 
 // Field definitions dynamically loaded from backend
@@ -244,8 +245,8 @@ function shouldFieldHavePurpleStylingBase(fieldName, displayedFields, activeFilt
 function shouldFieldHavePurpleStyling(fieldName) {
   if (!fieldName) return false;
 
-  const displayedFields = window.QueryStateReaders?.getDisplayedFields?.() || [];
-  const activeFilters = window.QueryStateReaders?.getActiveFilters?.() || {};
+  const displayedFields = QueryStateReaders?.getDisplayedFields?.() || [];
+  const activeFilters = QueryStateReaders?.getActiveFilters?.() || {};
 
   return shouldFieldHavePurpleStylingBase(fieldName, displayedFields, activeFilters);
 }

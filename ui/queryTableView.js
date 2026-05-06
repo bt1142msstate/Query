@@ -2,6 +2,7 @@
  * Query table rendering and empty-state management.
  * Owns table construction so orchestration code does not mutate table DOM directly.
  */
+import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 
 (function initializeQueryTableView() {
@@ -9,7 +10,7 @@ import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
   const appState = window.AppState;
   const services = window.AppServices;
   const uiActions = window.AppUiActions;
-  const getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
+  const getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
   let nextStateRenderOptions = null;
 
   function areDisplayedFieldsEqual(left, right) {
@@ -237,7 +238,7 @@ import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 
     if (!Array.isArray(fields) || fields.length === 0) {
       if (syncQueryState && getDisplayedFields().length > 0) {
-        window.QueryChangeManager.replaceDisplayedFields([], { source: 'QueryTableView.showExampleTable.empty' });
+        QueryChangeManager.replaceDisplayedFields([], { source: 'QueryTableView.showExampleTable.empty' });
         return;
       }
 
@@ -256,7 +257,7 @@ import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
     if (syncQueryState) {
       const currentDisplayedFields = getDisplayedFields();
       if (!areDisplayedFieldsEqual(currentDisplayedFields, uniqueFields)) {
-        window.QueryChangeManager.replaceDisplayedFields(uniqueFields, { source: 'QueryTableView.showExampleTable' });
+        QueryChangeManager.replaceDisplayedFields(uniqueFields, { source: 'QueryTableView.showExampleTable' });
         return;
       }
     }

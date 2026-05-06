@@ -21,6 +21,7 @@ import {
 import { BackendApi } from './backendApi.js';
 import { formatDuration, parsePipeDelimitedRow } from './dataFormatters.js';
 import { onDOMReady } from './domReady.js';
+import { QueryChangeManager, QueryStateReaders } from './queryState.js';
 import { showToastMessage } from './toast.js';
 import { VisibilityUtils } from './visibility.js';
 import { formatFieldOperatorForDisplay, mapFieldOperatorToUiCond, normalizeUiConfigFilters } from '../filters/queryPayload.js';
@@ -260,7 +261,7 @@ async function cancelQuery(queryId) {
     const { response } = await BackendApi.postJson({ action: 'cancel', query_id: queryId });
     
     if (response.ok) {
-      const lifecycleState = window.QueryStateReaders?.getLifecycleState?.();
+      const lifecycleState = QueryStateReaders?.getLifecycleState?.();
       const isActiveLocalQuery = lifecycleState?.queryRunning
         && String(lifecycleState.currentQueryId || '') === String(queryId || '');
       const q = exampleQueries.find(q => q.id === queryId);
@@ -271,7 +272,7 @@ async function cancelQuery(queryId) {
         renderQueries();
       }
       if (isActiveLocalQuery) {
-        window.QueryChangeManager?.setLifecycleState?.(
+        QueryChangeManager?.setLifecycleState?.(
           { queryRunning: false },
           { source: 'QueryHistory.cancelQuery', silent: true }
         );
@@ -393,10 +394,10 @@ function renderHistoryDetailsOverlay(queryId = activeHistoryDetailQueryId) {
 function loadQueryConfig(q) {
   if(!q || !q.jsonConfig) return;
 
-  const getDisplayedFields = () => window.QueryStateReaders?.getDisplayedFields?.() || [];
+  const getDisplayedFields = () => QueryStateReaders?.getDisplayedFields?.() || [];
   
   // Access global variables from query.js
-  if (!window.QueryChangeManager) {
+  if (!QueryChangeManager) {
     console.error('Query history module requires QueryChangeManager access');
     return;
   }
@@ -406,7 +407,7 @@ function loadQueryConfig(q) {
   // Loading a query definition is not itself a partial-results state.
   // That flag belongs to the currently displayed result set and must be
   // recomputed when/if results are loaded afterward.
-  window.QueryChangeManager.setLifecycleState({
+  QueryChangeManager.setLifecycleState({
     hasPartialResults: false,
     hasLoadedResultSet: false
   }, { source: 'QueryHistory.loadQueryConfig', silent: true });
@@ -468,7 +469,7 @@ function loadQueryConfig(q) {
     });
   }
 
-  window.QueryChangeManager.setQueryState({
+  QueryChangeManager.setQueryState({
     displayedFields: desiredColumns,
     activeFilters: nextActiveFilters
   }, { source: 'QueryHistory.loadQueryConfig' });
@@ -480,7 +481,7 @@ function loadQueryConfig(q) {
   }
   
   // Clear filters and reapply from query
-  if (window.QueryChangeManager) {
+  if (QueryChangeManager) {
     document.querySelectorAll('.bubble-filter').forEach(b => {
       b.classList.remove('bubble-filter');
       b.removeAttribute('data-filtered');
@@ -504,9 +505,9 @@ function loadQueryConfig(q) {
   }
   
   // Update button state to "Refresh" instead of "Run Query" since it's an existing query
-  if (window.QueryStateReaders && typeof window.QueryStateReaders.getSerializableState === 'function') {
-    window.QueryChangeManager.setLifecycleState({
-      lastExecutedQueryState: window.QueryStateReaders.getSerializableState()
+  if (QueryStateReaders && typeof QueryStateReaders.getSerializableState === 'function') {
+    QueryChangeManager.setLifecycleState({
+      lastExecutedQueryState: QueryStateReaders.getSerializableState()
     }, { source: 'QueryHistory.setLastExecutedState', silent: true });
   }
   uiActions.updateButtonStates();
@@ -542,7 +543,7 @@ async function loadQueryResults(queryId) {
         // Use X-Raw-Columns or fallback to config used
         const rawColsHeader = response.headers.get('X-Raw-Columns');
         // Ensure displayedFields is updated after loadQueryConfig
-        const displayedFields = window.QueryStateReaders?.getDisplayedFields?.() || [];
+        const displayedFields = QueryStateReaders?.getDisplayedFields?.() || [];
         const currentDisplayedFields = displayedFields.length
           ? displayedFields
           : (q.jsonConfig ? q.jsonConfig.DesiredColumnOrder : []);
@@ -571,7 +572,7 @@ async function loadQueryResults(queryId) {
 
         // Result-set state must be established before rendering so a zero-row
         // history result does not reuse the pre-run planning placeholder.
-        window.QueryChangeManager.setLifecycleState({
+        QueryChangeManager.setLifecycleState({
           hasPartialResults: Boolean(q.running),
           hasLoadedResultSet: true
         }, { source: 'QueryHistory.loadQueryResults', silent: true });
