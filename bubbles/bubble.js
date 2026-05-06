@@ -3,6 +3,8 @@
  * Represents a draggable field that can be clicked to set filters.
  * @class Bubble
  */
+import { mapUiCondToFieldOperator } from '../filters/queryPayload.js';
+
 var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
 var getActiveFilters = window.QueryStateReaders.getActiveFilters.bind(window.QueryStateReaders);
 var hasFiltersForField = window.QueryStateReaders.hasFiltersForField.bind(window.QueryStateReaders);
@@ -269,7 +271,7 @@ function resetBubbleEditorUi(options = {}) {
 }
 
 function mapBubbleConditionToFieldOperator(condition) {
-  return window.mapUiCondToFieldOperator(condition);
+  return mapUiCondToFieldOperator(condition);
 }
 
 const BUBBLE_VISIBLE_ROWS = 2;
