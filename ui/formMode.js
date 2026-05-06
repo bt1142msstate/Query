@@ -787,9 +787,7 @@ let QueryFormMode;
   function clearRenderedQueryResults() {
     services.clearVirtualTableData();
 
-    if (typeof window.renderEmptyQueryTableState === 'function') {
-      window.renderEmptyQueryTableState();
-    }
+    window.QueryTableView?.renderEmptyQueryTableState?.();
   }
 
   function resetFormToBaseline(kind) {

@@ -681,9 +681,7 @@ function sortTableBy(fieldName) {
 
   // Re-render and update headers UI
   renderVirtualTable();
-  if (window.updateSortHeadersUI) {
-    window.updateSortHeadersUI(currentSortColumn, currentSortDirection);
-  }
+  window.QueryTableView?.updateSortHeadersUI?.(currentSortColumn, currentSortDirection);
 }
 
 /**

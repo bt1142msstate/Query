@@ -205,6 +205,31 @@
     return th;
   }
 
+  function updateSortHeadersUI(sortColumn, sortDirection) {
+    document.querySelectorAll('#example-table th').forEach(th => {
+      let iconSpan = th.querySelector('.sort-icon');
+      if (!iconSpan) {
+        const headerContent = th.querySelector('.th-header-content');
+        const leftSlot = headerContent?.querySelector('.th-side-slot-left');
+        if (headerContent) {
+          iconSpan = document.createElement('span');
+          iconSpan.className = 'sort-icon';
+          iconSpan.setAttribute('aria-hidden', 'true');
+          (leftSlot || headerContent).appendChild(iconSpan);
+        }
+      }
+
+      if (iconSpan) {
+        const isSortedColumn = th.getAttribute('data-sort-field') === sortColumn;
+        iconSpan.textContent = isSortedColumn ? (sortDirection === 'asc' ? '↑' : '↓') : '';
+        iconSpan.classList.toggle('is-active', isSortedColumn);
+        iconSpan.classList.toggle('is-desc', isSortedColumn && sortDirection === 'desc');
+      }
+    });
+
+    services.syncHeaderSortActionState();
+  }
+
   async function showExampleTable(fields, options = {}) {
     const syncQueryState = options.syncQueryState !== false;
 
@@ -328,36 +353,9 @@
       });
     });
 
-    if (!window.updateSortHeadersUI) {
-      window.updateSortHeadersUI = (sortColumn, sortDirection) => {
-        document.querySelectorAll('#example-table th').forEach(th => {
-          let iconSpan = th.querySelector('.sort-icon');
-          if (!iconSpan) {
-            const headerContent = th.querySelector('.th-header-content');
-            const leftSlot = headerContent?.querySelector('.th-side-slot-left');
-            if (headerContent) {
-              iconSpan = document.createElement('span');
-              iconSpan.className = 'sort-icon';
-              iconSpan.setAttribute('aria-hidden', 'true');
-              (leftSlot || headerContent).appendChild(iconSpan);
-            }
-          }
-
-          if (iconSpan) {
-            const isSortedColumn = th.getAttribute('data-sort-field') === sortColumn;
-            iconSpan.textContent = isSortedColumn ? (sortDirection === 'asc' ? '↑' : '↓') : '';
-            iconSpan.classList.toggle('is-active', isSortedColumn);
-            iconSpan.classList.toggle('is-desc', isSortedColumn && sortDirection === 'desc');
-          }
-        });
-
-        services.syncHeaderSortActionState();
-      };
-    }
-
     const state = services.getVirtualTableState();
-    if (state && state.currentSortColumn && window.updateSortHeadersUI) {
-      window.updateSortHeadersUI(state.currentSortColumn, state.currentSortDirection);
+    if (state && state.currentSortColumn) {
+      updateSortHeadersUI(state.currentSortColumn, state.currentSortDirection);
     }
 
     services.addDragAndDrop(table);
@@ -376,6 +374,7 @@
     renderEmptyQueryTableState,
     syncEmptyTableMessage,
     createQueryTableHeaderCell,
+    updateSortHeadersUI,
     showExampleTable,
     queueNextStateRenderOptions(options = {}) {
       nextStateRenderOptions = { ...options };
@@ -383,8 +382,6 @@
   };
 
   window.QueryTableView = queryTableView;
-  window.renderEmptyQueryTableState = renderEmptyQueryTableState;
-  window.createQueryTableHeaderCell = createQueryTableHeaderCell;
 
   window.QueryStateSubscriptions.subscribe(event => {
     if (event?.changes?.displayedFields) {
