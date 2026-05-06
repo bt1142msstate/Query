@@ -52,7 +52,7 @@
   margin: 0.2rem 0 0;
   font-size: 1rem;
   font-weight: 800;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
   color: #f0fdff;
   font-family: "Orbitron", "Space Grotesk", sans-serif;
   text-transform: uppercase;
@@ -236,7 +236,7 @@
   margin: 0.15rem 0 0;
   font-size: 1.35rem;
   font-weight: 800;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
   color: #f0fdff;
   font-family: "Orbitron", "Space Grotesk", sans-serif;
   text-transform: uppercase;
@@ -444,7 +444,7 @@
   min-width: 0;
   font-size: 0.96rem;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   color: #effcff;
   font-family: "Orbitron", "Space Grotesk", sans-serif;
   text-transform: uppercase;
@@ -547,7 +547,7 @@
   margin: 0.25rem 0 0;
   font-size: 1.2rem;
   line-height: 1.1;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
   color: #f0fdff;
   font-family: "Orbitron", "Space Grotesk", sans-serif;
   text-transform: uppercase;
@@ -603,7 +603,7 @@
   font-size: 0.96rem;
   font-weight: 800;
   color: #effcff;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .templates-category-card__meta {
@@ -726,7 +726,7 @@
   margin: 0.85rem 0 0;
   font-size: 1.55rem;
   line-height: 1.1;
-  letter-spacing: -0.04em;
+  letter-spacing: 0;
   color: #f0fdff;
   font-family: "Orbitron", "Space Grotesk", sans-serif;
   text-transform: uppercase;
@@ -1049,5 +1049,123 @@
 
   .templates-category-list {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  #templates-panel > h2 {
+    font-size: 0.95rem;
+    letter-spacing: 0.07em;
+  }
+
+  .templates-panel-shell {
+    min-height: calc(100vh - var(--header-height) - 2.75rem);
+    border-radius: 0 0 1rem 1rem;
+  }
+
+  .templates-browser {
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .templates-browser-top,
+  .templates-browser-list-shell,
+  .templates-empty-state,
+  .templates-detail,
+  .templates-categories-dialog {
+    border-radius: 1rem;
+  }
+
+  .templates-browser-top,
+  .templates-list-item,
+  .templates-category-card {
+    padding: 0.85rem;
+  }
+
+  .templates-sidebar-kicker,
+  .templates-empty-kicker,
+  .templates-detail-mode {
+    letter-spacing: 0.08em;
+  }
+
+  .templates-sidebar-title {
+    font-size: 1.08rem;
+    line-height: 1.15;
+  }
+
+  .templates-sidebar-note {
+    font-size: 0.84rem;
+  }
+
+  .templates-sidebar-actions,
+  .templates-detail-actions,
+  .templates-sidebar-actions--library {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .templates-primary-btn,
+  .templates-secondary-btn,
+  .templates-danger-btn {
+    width: 100%;
+    min-height: 2.6rem;
+  }
+
+  .templates-list-item__title-row {
+    align-items: flex-start;
+  }
+
+  .templates-list-item__title,
+  .templates-category-card__name,
+  .templates-detail-title {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .templates-list-item__title {
+    font-size: 0.88rem;
+  }
+
+  .templates-detail {
+    inset: 0.5rem;
+    padding: 0.85rem;
+  }
+
+  .templates-detail-title,
+  .templates-empty-state h3 {
+    font-size: 1.2rem;
+  }
+
+  .templates-detail-body {
+    padding-right: 0;
+  }
+
+  .templates-field input,
+  .templates-field textarea,
+  .templates-category-filter-shell select,
+  .templates-category-form input {
+    border-radius: 0.85rem;
+    padding: 0.78rem 0.85rem;
+  }
+
+  .templates-categories-dialog {
+    inset: 0.5rem;
+  }
+
+  .templates-categories-header {
+    padding: 0.85rem;
+  }
+
+  .templates-categories-body {
+    padding: 0.85rem;
+  }
+
+  .templates-category-card {
+    grid-template-columns: 1fr;
+  }
+
+  .templates-category-card__actions {
+    width: 100%;
+    justify-content: flex-end;
   }
 }

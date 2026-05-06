@@ -1,11 +1,11 @@
 /* Modular stylesheet hub */
-@import url("./base.css?v=1");
-@import url("./help.css?v=1");
-@import url("./bubbles.css?v=1");
-@import url("./filters.css?v=17");
+@import url("./base.css?v=2");
+@import url("./help.css?v=2");
+@import url("./bubbles.css?v=2");
+@import url("./filters.css?v=18");
 @import url("./form-mode.css?v=25");
-@import url("./table.css?v=33");
+@import url("./table.css?v=34");
 @import url("./controls.css?v=3");
-@import url("./history.css?v=2");
-@import url("./templates.css?v=1");
+@import url("./history.css?v=3");
+@import url("./templates.css?v=2");
 @import url("./tooltips.css?v=4");
