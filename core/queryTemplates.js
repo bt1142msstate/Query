@@ -1,6 +1,6 @@
 import { BackendApi } from './backendApi.js';
+import { onDOMReady } from './domReady.js';
 import { buildQueryUiConfig } from '../filters/queryPayload.js';
-
 (function initializeQueryTemplates() {
   const NEW_TEMPLATE_ID = '__new_template__';
   const DEFAULT_TEMPLATE_SVG = `
@@ -1584,7 +1584,7 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
     refreshTemplates
   };
 
-  window.onDOMReady(() => {
+  onDOMReady(() => {
     bindEvents();
     render();
     refreshTemplates({ force: !state.loaded });

@@ -20,8 +20,8 @@ import {
 } from './queryHistoryViewHelpers.js';
 import { BackendApi } from './backendApi.js';
 import { formatDuration, parsePipeDelimitedRow } from './dataFormatters.js';
+import { onDOMReady } from './domReady.js';
 import { formatFieldOperatorForDisplay, mapFieldOperatorToUiCond, normalizeUiConfigFilters } from '../filters/queryPayload.js';
-
 /* ---------- Query history state and renderer ---------- */
 let exampleQueries = [];
 let queryDurationUpdateInterval = null;
@@ -1178,7 +1178,7 @@ window.QueryHistorySystem = QueryHistorySystem;
 let queryHistoryInitialized = false;
 
 // Initialize query history functionality
-window.onDOMReady(() => {
+onDOMReady(() => {
   if (queryHistoryInitialized) {
     return;
   }

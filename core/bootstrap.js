@@ -2,7 +2,7 @@
  * Explicit application bootstrap.
  * Centralizes startup order for UI modules that bind DOM listeners.
  */
-import { onDOMReady } from './utils.js';
+import { onDOMReady } from './domReady.js';
 import { showToastMessage } from '../ui/toast.js';
 import { QueryBuilderShell } from '../ui/queryBuilderShell.js';
 import { QueryFormMode } from '../ui/formMode.js';

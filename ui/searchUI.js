@@ -1,4 +1,6 @@
-window.onDOMReady(() => {
+import { onDOMReady } from '../core/domReady.js';
+
+onDOMReady(() => {
   initializeSearchInputs(document);
 });
 

@@ -1,3 +1,4 @@
+import './core/domReady.js';
 import './core/utils.js';
 import './core/dataFormatters.js';
 import './ui/toast.js';

@@ -1,3 +1,5 @@
+import { onDOMReady } from '../core/domReady.js';
+
 (function() {
   let equalsValueControl = null;
   let equalsValueControlField = '';
@@ -1103,5 +1105,5 @@
     openOverlayForField
   };
 
-  window.onDOMReady(attachListeners);
+  onDOMReady(attachListeners);
 })();
