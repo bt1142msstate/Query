@@ -1,5 +1,6 @@
 /** Rebuild and render the query JSON preview. */
 import { buildBackendQueryPayload } from '../filters/queryPayload.js';
+import { onDOMReady } from '../core/domReady.js';
 
 const jsonTreeCollapsedPaths = new Set();
 
@@ -112,7 +113,7 @@ function updateQueryJson() {
   renderJsonTree(payload);
 }
 
-window.onDOMReady(() => {
+onDOMReady(() => {
   const jsonTree = document.getElementById('query-json-tree');
   if (jsonTree) {
     jsonTree.addEventListener('toggle', event => {

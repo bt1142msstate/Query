@@ -5,20 +5,6 @@
  */
 
 /**
- * DOM Ready Utility - Executes callback when DOM is ready
- * Eliminates duplicate DOM ready checking patterns across files.
- * @function onDOMReady
- * @param {Function} callback - Function to execute when DOM is ready
- */
-window.onDOMReady = function(callback) {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', callback);
-  } else {
-    callback();
-  }
-};
-
-/**
  * Text Measurement Utility - Measures text width using canvas
  * Shared canvas instance to avoid creating multiple canvas elements.
  * @namespace TextMeasurement
@@ -982,7 +968,6 @@ const TextMeasurement = window.TextMeasurement;
 const ValueFormatting = window.ValueFormatting;
 const VisibilityUtils = window.VisibilityUtils;
 const escapeHtml = window.escapeHtml;
-const onDOMReady = window.onDOMReady;
 
 export {
   ClipboardUtils,
@@ -998,6 +983,5 @@ export {
   TextMeasurement,
   ValueFormatting,
   VisibilityUtils,
-  escapeHtml,
-  onDOMReady
+  escapeHtml
 };
