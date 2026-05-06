@@ -1,3 +1,4 @@
+import { ClipboardUtils } from '../core/clipboard.js';
 import { mapFieldOperatorToUiCond } from '../filters/queryPayload.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 
@@ -1719,7 +1720,7 @@ let QueryFormMode;
         return;
       }
 
-      await window.ClipboardUtils.copyFromSource(() => buildCurrentShareUrl(), {
+      await ClipboardUtils.copyFromSource(() => buildCurrentShareUrl(), {
         successMessage: 'Shared link copied. Reset to Last Shared now returns to this version.',
         errorMessage: 'Failed to copy form link.',
         emptyMessage: 'No form link is available to share.'

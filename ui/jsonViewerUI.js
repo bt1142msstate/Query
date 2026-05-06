@@ -1,5 +1,6 @@
 /** Rebuild and render the query JSON preview. */
 import { buildBackendQueryPayload } from '../filters/queryPayload.js';
+import { ClipboardUtils } from '../core/clipboard.js';
 import { onDOMReady } from '../core/domReady.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 
@@ -130,7 +131,7 @@ onDOMReady(() => {
 
   const copyBtn = document.getElementById('copy-json-btn');
   if (copyBtn) {
-    window.ClipboardUtils.bindCopyButton(copyBtn, () => {
+    ClipboardUtils.bindCopyButton(copyBtn, () => {
       const queryBox = window.DOM.queryBox;
       return queryBox instanceof HTMLTextAreaElement
         ? queryBox.value

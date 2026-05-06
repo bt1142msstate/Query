@@ -2,6 +2,7 @@
  * Drag and drop interaction module.
  * Owns hover, drop indicator, header actions, and drag lifecycle behavior.
  */
+import { ClipboardUtils } from '../core/clipboard.js';
 (function initializeDragDropInteractions() {
   var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
   var getLifecycleState = window.QueryStateReaders.getLifecycleState.bind(window.QueryStateReaders);
@@ -1024,8 +1025,7 @@
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp, { once: true });
   }
-
-  window.ClipboardUtils.bindCopyButton(headerCopy, async () => {
+  ClipboardUtils.bindCopyButton(headerCopy, async () => {
     if (getLifecycleState().queryRunning) {
       return '';
     }

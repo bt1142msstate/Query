@@ -3,6 +3,7 @@ const maxModuleLines = 900;
 
 const forbiddenWindowMemberReads = new Map([
   ['BackendApi', 'Import from core/backendApi.js instead of reading the backend client from window'],
+  ['ClipboardUtils', 'Import from core/clipboard.js instead of reading clipboard helpers from window'],
   ['escapeRegExp', 'Import from core/dataFormatters.js instead of reading this formatter from window'],
   ['formatDuration', 'Import from core/dataFormatters.js instead of reading this formatter from window'],
   ['getFieldOutputSegments', 'Import from core/dataFormatters.js instead of reading this formatter from window'],
@@ -24,7 +25,7 @@ const legacyLargeModuleBudgets = new Map([
   ['core/queryHistory.js', 1208],
   ['core/queryState.js', 1191],
   ['core/queryTemplates.js', 1592],
-  ['core/utils.js', 945],
+  ['core/utils.js', 837],
   ['filters/filterManager.js', 1371],
   ['table/dragDropInteractions.js', 1348],
   ['table/postFilters.js', 1109],
