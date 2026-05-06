@@ -1,3 +1,7 @@
+let showToastMessage;
+let dismissToastMessage;
+let toast;
+
 (() => {
   const TOAST_CONTAINER_ID = 'toast-container';
   const MAX_VISIBLE_TOASTS = 4;
@@ -371,10 +375,7 @@
     return element;
   }
 
-  window.showToastMessage = showToast;
-  window.showToast = showToast;
-  window.dismissToastMessage = dismissToast;
-  window.toast = {
+  const toastApi = {
     show: showToast,
     dismiss: dismissToast,
     dismissAll: dismissAllToasts,
@@ -391,4 +392,15 @@
       return showToast(message, 'error', duration);
     }
   };
+
+  showToastMessage = showToast;
+  dismissToastMessage = dismissToast;
+  toast = toastApi;
+
+  window.showToastMessage = showToast;
+  window.showToast = showToast;
+  window.dismissToastMessage = dismissToast;
+  window.toast = toastApi;
 })();
+
+export { dismissToastMessage, showToastMessage, toast };

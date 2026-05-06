@@ -1,3 +1,6 @@
+import { getBaseFieldName, QueryStateReaders } from '../core/queryState.js?v=26';
+import { fieldDefs, isFieldBackendFilterable, resolveFieldName } from './fieldDefs.js?v=8';
+
 const FIELD_OPERATOR_TO_UI_COND = {
   Equals: 'equals',
   equals: 'equals',
@@ -71,16 +74,18 @@ const UI_FILTER_TO_BACKEND = {
   contains: [{ operator: '=', valueTransform: value => `*${value}*` }],
   does_not_contain: [{ operator: '!=', valueTransform: value => `*${value}*` }]
 };
-var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
-var getActiveFilters = window.QueryStateReaders.getActiveFilters.bind(window.QueryStateReaders);
+const getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
+const getActiveFilters = QueryStateReaders.getActiveFilters.bind(QueryStateReaders);
 
-window.mapFieldOperatorToUiCond = function(operator) {
+function mapFieldOperatorToUiCond(operator) {
   const normalized = String(operator || '').trim();
   return FIELD_OPERATOR_TO_UI_COND[normalized] || normalized.toLowerCase();
-};
+}
 
-window.formatFieldOperatorForDisplay = function(operator) {
-  const uiCond = window.mapFieldOperatorToUiCond(operator);
+window.mapFieldOperatorToUiCond = mapFieldOperatorToUiCond;
+
+function formatFieldOperatorForDisplay(operator) {
+  const uiCond = mapFieldOperatorToUiCond(operator);
   switch (uiCond) {
     case 'equals':
       return '=';
@@ -111,12 +116,16 @@ window.formatFieldOperatorForDisplay = function(operator) {
     default:
       return String(operator || '');
   }
-};
+}
 
-window.mapUiCondToFieldOperator = function(cond) {
+window.formatFieldOperatorForDisplay = formatFieldOperatorForDisplay;
+
+function mapUiCondToFieldOperator(cond) {
   const normalized = String(cond || '').trim();
   return UI_COND_TO_FIELD_OPERATOR[normalized] || (normalized.charAt(0).toUpperCase() + normalized.slice(1));
-};
+}
+
+window.mapUiCondToFieldOperator = mapUiCondToFieldOperator;
 
 function mapActiveFilterToBackend(condition, rawValue) {
   if (condition === 'between') {
@@ -150,35 +159,31 @@ function splitKeyFilterValues(rawValue) {
 }
 
 function getCanonicalPayloadFieldName(fieldName) {
-  const normalizedFieldName = typeof window.resolveFieldName === 'function'
-    ? window.resolveFieldName(fieldName)
-    : fieldName;
+  const normalizedFieldName = resolveFieldName(fieldName);
 
-  return typeof window.getBaseFieldName === 'function'
-    ? window.getBaseFieldName(normalizedFieldName)
-    : String(normalizedFieldName || '').trim();
+  return getBaseFieldName(normalizedFieldName);
 }
 
-window.getNormalizedDisplayedFields = function(fields = getDisplayedFields()) {
+function getNormalizedDisplayedFields(fields = getDisplayedFields()) {
   return [...fields]
     .map(field => getCanonicalPayloadFieldName(field))
     .filter(field => {
-      const def = window.fieldDefs ? window.fieldDefs.get(field) : null;
+      const def = fieldDefs.get(field);
       return !(def && def.is_buildable);
     })
     .filter((field, index, array) => array.indexOf(field) === index);
-};
+}
 
-window.normalizeUiConfigFilters = function(input, options = {}) {
+window.getNormalizedDisplayedFields = getNormalizedDisplayedFields;
+
+function normalizeUiConfigFilters(input, options = {}) {
   if (!input) return [];
 
   const normalizeFilter = filter => {
     if (!filter || typeof filter !== 'object') return null;
 
     const rawFieldName = filter.FieldName || filter.field;
-    const fieldName = typeof window.resolveFieldName === 'function'
-      ? window.resolveFieldName(rawFieldName, { trackAlias: Boolean(options.trackAliases) })
-      : rawFieldName;
+    const fieldName = resolveFieldName(rawFieldName, { trackAlias: Boolean(options.trackAliases) });
     if (!fieldName) return null;
 
     let values = filter.Values;
@@ -214,33 +219,33 @@ window.normalizeUiConfigFilters = function(input, options = {}) {
   }
 
   return [];
-};
+}
 
-window.buildQueryUiConfig = function() {
-  const backendFilters = typeof window.buildBackendFilters === 'function'
-    ? window.buildBackendFilters()
-    : [];
-  const specialFields = typeof window.collectCurrentSpecialFields === 'function'
-    ? window.collectCurrentSpecialFields()
-    : [];
+window.normalizeUiConfigFilters = normalizeUiConfigFilters;
+
+function buildQueryUiConfig() {
+  const backendFilters = buildBackendFilters();
+  const specialFields = collectCurrentSpecialFields();
 
   const query = {
-    DesiredColumnOrder: window.getNormalizedDisplayedFields(),
+    DesiredColumnOrder: getNormalizedDisplayedFields(),
     Filters: backendFilters.map(filter => ({ ...filter })),
     SpecialFields: specialFields.map(field => (field && typeof field === 'object' ? { ...field } : field))
   };
 
   return query;
-};
+}
 
-window.collectCurrentSpecialFields = function() {
+window.buildQueryUiConfig = buildQueryUiConfig;
+
+function collectCurrentSpecialFields() {
   const specialFields = [];
 
   const appendSpecialPayload = fieldName => {
     const canonicalFieldName = getCanonicalPayloadFieldName(fieldName);
-    if (!canonicalFieldName || !window.fieldDefs) return;
+    if (!canonicalFieldName) return;
 
-    const fieldDef = window.fieldDefs.get(canonicalFieldName);
+    const fieldDef = fieldDefs.get(canonicalFieldName);
     if (!fieldDef || !fieldDef.special_payload) return;
 
     const isDuplicate = specialFields.some(existing => JSON.stringify(existing) === JSON.stringify(fieldDef.special_payload));
@@ -259,16 +264,18 @@ window.collectCurrentSpecialFields = function() {
   });
 
   return specialFields;
-};
+}
 
-window.buildBackendFilters = function() {
+window.collectCurrentSpecialFields = collectCurrentSpecialFields;
+
+function buildBackendFilters() {
   const filters = [];
 
   Object.entries(getActiveFilters()).forEach(([fieldName, filterGroup]) => {
     const canonicalFieldName = getCanonicalPayloadFieldName(fieldName);
-    const fieldDef = window.fieldDefs ? window.fieldDefs.get(canonicalFieldName) : null;
+    const fieldDef = fieldDefs.get(canonicalFieldName);
     if (fieldDef && fieldDef.is_buildable) return;
-    if (fieldDef && typeof window.isFieldBackendFilterable === 'function' && !window.isFieldBackendFilterable(fieldDef)) return;
+    if (fieldDef && !isFieldBackendFilterable(fieldDef)) return;
 
     (filterGroup?.filters || []).forEach(filter => {
       if (filter.val === '') return;
@@ -299,17 +306,17 @@ window.buildBackendFilters = function() {
   });
 
   return filters;
-};
+}
 
-window.buildBackendQueryPayload = function(queryName = '') {
+window.buildBackendFilters = buildBackendFilters;
+
+function buildBackendQueryPayload(queryName = '') {
   const standardDisplayFields = [];
-  const specialFields = typeof window.collectCurrentSpecialFields === 'function'
-    ? window.collectCurrentSpecialFields()
-    : [];
+  const specialFields = collectCurrentSpecialFields();
 
   getDisplayedFields().forEach(field => {
     const canonicalFieldName = getCanonicalPayloadFieldName(field);
-    const fieldDef = window.fieldDefs ? window.fieldDefs.get(canonicalFieldName) : null;
+    const fieldDef = fieldDefs.get(canonicalFieldName);
     if (fieldDef && fieldDef.special_payload) {
       return;
     }
@@ -322,10 +329,24 @@ window.buildBackendQueryPayload = function(queryName = '') {
   const payload = {
     action: 'run',
     name: queryName || undefined,
-    filters: typeof window.buildBackendFilters === 'function' ? window.buildBackendFilters() : [],
+    filters: buildBackendFilters(),
     display_fields: standardDisplayFields,
     special_fields: specialFields.map(field => (field && typeof field === 'object' ? { ...field } : field))
   };
 
   return payload;
+}
+
+window.buildBackendQueryPayload = buildBackendQueryPayload;
+
+export {
+  buildBackendFilters,
+  buildBackendQueryPayload,
+  buildQueryUiConfig,
+  collectCurrentSpecialFields,
+  formatFieldOperatorForDisplay,
+  getNormalizedDisplayedFields,
+  mapFieldOperatorToUiCond,
+  mapUiCondToFieldOperator,
+  normalizeUiConfigFilters
 };

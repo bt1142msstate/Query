@@ -9,7 +9,7 @@ function getServices() {
 }
 
 // Utility Functions - Available globally
-window.getBaseFieldName = function(fieldName) {
+function getBaseFieldName(fieldName) {
   const normalizedFieldName = String(fieldName || '').trim();
   if (!normalizedFieldName) {
     return '';
@@ -37,7 +37,9 @@ window.getBaseFieldName = function(fieldName) {
   }
 
   return withoutOrdinalPrefix;
-};
+}
+
+window.getBaseFieldName = getBaseFieldName;
 
 const appRuntimeState = {
   selectedField: '',
@@ -1180,3 +1182,10 @@ queryStateStore.subscribe(event => {
     window.showToastMessage(getQueryChangeToastMessage(event), 'info', 1400);
   }
 });
+
+export {
+  appStateStore as AppState,
+  getBaseFieldName,
+  queryChangeManager as QueryChangeManager,
+  queryStateReaders as QueryStateReaders
+};
