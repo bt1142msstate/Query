@@ -7,6 +7,7 @@ import { ClipboardUtils } from '../core/clipboard.js';
 import { appServices } from '../core/appServices.js';
 import { QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
+import { FormatUtils } from '../core/utils.js';
 import { VisibilityUtils } from '../core/visibility.js';
 
 window.TableContextMenu = (() => {
@@ -26,7 +27,7 @@ window.TableContextMenu = (() => {
   }
 
   function formatCellValue(raw, field) {
-    return window.FormatUtils.formatCellDisplay(raw, field);
+    return FormatUtils.formatCellDisplay(raw, field);
   }
 
   function getCellValue(rowIndex, colIndex) {
