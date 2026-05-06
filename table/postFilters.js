@@ -587,8 +587,8 @@
     elements.valuePickerHost.innerHTML = '';
 
     const selector = createStreamedEqualsSelector(fieldName);
-    const control = typeof window.createPopupListControl === 'function'
-      ? window.createPopupListControl(selector, `${fieldName} values`, 'Choose one or more loaded values...')
+    const control = window.SelectorControls?.createPopupListControl
+      ? window.SelectorControls.createPopupListControl(selector, `${fieldName} values`, 'Choose one or more loaded values...')
       : selector;
 
     control.classList.add('post-filter-value-control');

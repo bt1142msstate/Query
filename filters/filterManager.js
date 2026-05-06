@@ -377,12 +377,12 @@ function buildBubbleConditionPanel(bubble) {
                 : listValues.some(val => val.includes('-'));
 
             const selector = isBooleanField && listValues.length === 2
-                ? window.createBooleanPillSelector(listValues, currentLiteralValues[0] || '', {
+                ? window.SelectorControls.createBooleanPillSelector(listValues, currentLiteralValues[0] || '', {
                     onChange: () => {
                         confirmBtn.click();
                     }
                 })
-                : window.createGroupedSelector(listValues, isMultiSelect, currentLiteralValues, {
+                : window.SelectorControls.createGroupedSelector(listValues, isMultiSelect, currentLiteralValues, {
                     enableGrouping: shouldGroupValues && hasDashes
                 });
             inputWrapper.insertBefore(selector, confirmBtn);
@@ -397,7 +397,7 @@ function buildBubbleConditionPanel(bubble) {
             if (existingContainer) existingContainer.parentNode.removeChild(existingContainer);
             window.configureInputsForType(type);
 
-            if (window.isListPasteField(fieldDefInfo) && typeof window.createListPasteInput === 'function') {
+            if (window.isListPasteField(fieldDefInfo) && window.SelectorControls?.createListPasteInput) {
                 let currentLiteralValues = [];
                 const selectedFieldFilters = getFilterGroupForField(appState.selectedField);
                 const listCondition = getPreferredCondition(operatorConditions, appState.selectedField);
@@ -408,7 +408,7 @@ function buildBubbleConditionPanel(bubble) {
                     }
                 }
 
-                const listInput = window.createListPasteInput(currentLiteralValues, {
+                const listInput = window.SelectorControls.createListPasteInput(currentLiteralValues, {
                     placeholder: 'Paste one key per line',
                     hint: 'Paste keys one per line, paste comma-separated keys, or upload a text/CSV file.'
                 });

@@ -1,4 +1,4 @@
-window.createBooleanPillSelector = function(values, currentValue = '', options = {}) {
+function createBooleanPillSelector(values, currentValue = '', options = {}) {
   const onChange = typeof options.onChange === 'function' ? options.onChange : null;
   const containerId = Object.prototype.hasOwnProperty.call(options, 'containerId')
     ? options.containerId
@@ -86,7 +86,7 @@ window.createBooleanPillSelector = function(values, currentValue = '', options =
 
   render();
   return container;
-};
+}
 
 function escapeSelectorControlHtml(value) {
   if (typeof window.escapeHtml === 'function') {
@@ -98,7 +98,7 @@ function escapeSelectorControlHtml(value) {
   return temp.innerHTML;
 }
 
-window.createGroupedSelector = function(values, isMultiSelect, currentValues = [], options = {}) {
+function createGroupedSelector(values, isMultiSelect, currentValues = [], options = {}) {
   const enableGrouping = options.enableGrouping !== false;
   const containerId = Object.prototype.hasOwnProperty.call(options, 'containerId')
     ? options.containerId
@@ -522,16 +522,16 @@ window.createGroupedSelector = function(values, isMultiSelect, currentValues = [
 
   rebuildVisibleRows();
   return container;
-};
+}
 
-window.parseListInputValues = function(rawValue) {
+function parseListInputValues(rawValue) {
   return String(rawValue || '')
     .split(/[\r\n,]+/)
     .map(value => value.trim())
     .filter(Boolean);
-};
+}
 
-window.createPopupListControl = function(innerControl, label, placeholder) {
+function createPopupListControl(innerControl, label, placeholder) {
   const resolvedLabel = label || 'Select values';
   const resolvedPlaceholder = placeholder || 'Click to select...';
 
@@ -716,9 +716,9 @@ window.createPopupListControl = function(innerControl, label, placeholder) {
 
   updateSummary();
   return wrapper;
-};
+}
 
-window.createListPasteInput = function(currentValues = [], options = {}) {
+function createListPasteInput(currentValues = [], options = {}) {
   const containerId = Object.prototype.hasOwnProperty.call(options, 'containerId')
     ? options.containerId
     : 'condition-select-container';
@@ -781,7 +781,7 @@ window.createListPasteInput = function(currentValues = [], options = {}) {
   };
 
   const updateStatus = () => {
-    const values = window.parseListInputValues(textArea.value);
+    const values = parseListInputValues(textArea.value);
     status.textContent = values.length === 0
       ? 'No values loaded'
       : `${values.length} value${values.length === 1 ? '' : 's'} ready`;
@@ -846,7 +846,7 @@ window.createListPasteInput = function(currentValues = [], options = {}) {
   container.appendChild(fileInput);
 
   container.getSelectedValues = function() {
-    return window.parseListInputValues(textArea.value);
+    return parseListInputValues(textArea.value);
   };
 
   container.getSelectedDisplayValues = function() {
@@ -864,4 +864,12 @@ window.createListPasteInput = function(currentValues = [], options = {}) {
 
   container.setSelectedValues(currentValues);
   return container;
-};
+}
+
+window.SelectorControls = Object.freeze({
+  createBooleanPillSelector,
+  createGroupedSelector,
+  createListPasteInput,
+  createPopupListControl,
+  parseListInputValues
+});
