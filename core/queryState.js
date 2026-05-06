@@ -4,6 +4,7 @@
  * @module QueryState
  */
 import { showToastMessage } from './toast.js';
+import { OperatorLabels } from './operatorLabels.js';
 
 function getServices() {
   return window.AppServices || null;
@@ -525,7 +526,7 @@ function getActiveFilterDiff(previousSnapshot = {}, nextSnapshot = {}) {
 }
 
 function getOperatorToastLabel(cond) {
-  const label = window.OperatorLabels?.get?.(cond);
+  const label = OperatorLabels.get(cond, '');
   if (label) {
     return String(label).toLowerCase();
   }

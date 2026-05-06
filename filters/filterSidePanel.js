@@ -11,6 +11,7 @@ import {
 } from './filterValueUi.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 import { showToastMessage } from '../core/toast.js';
+import { OperatorLabels } from '../core/operatorLabels.js';
 
 window.FilterSidePanel = (function () {
     const services = window.AppServices;
@@ -617,10 +618,10 @@ window.FilterSidePanel = (function () {
                 const parts = getFilterDisplayValues(filterItem, fieldDef);
                 const lo = parts[0] || '';
                 const hi = parts[1] || '';
-                textSpan.innerHTML = `<span class="fp-cond-op">${window.OperatorLabels.get(filterItem.cond)}</span> <b>${lo}</b> <span class="fp-cond-sep">and</span> <b>${hi}</b>`;
+                textSpan.innerHTML = `<span class="fp-cond-op">${OperatorLabels.get(filterItem.cond)}</span> <b>${lo}</b> <span class="fp-cond-sep">and</span> <b>${hi}</b>`;
             } else {
                 const valueLabel = buildFilterValueLabel(filterItem, fieldDef, ' – ');
-                textSpan.innerHTML = `<span class="fp-cond-op">${window.OperatorLabels.get(filterItem.cond)}</span> <b>${valueLabel}</b>`;
+                textSpan.innerHTML = `<span class="fp-cond-op">${OperatorLabels.get(filterItem.cond)}</span> <b>${valueLabel}</b>`;
             }
             if (useListViewer) {
                 textSpan.classList.add('fp-cond-text-clickable');
@@ -630,7 +631,7 @@ window.FilterSidePanel = (function () {
                 const openViewer = () => {
                     openFilterListViewer(filterItem, fieldDef, {
                         fieldName: field,
-                        operatorLabel: window.OperatorLabels.get(filterItem.cond)
+                        operatorLabel: OperatorLabels.get(filterItem.cond)
                     });
                 };
                 textSpan.addEventListener('click', openViewer);

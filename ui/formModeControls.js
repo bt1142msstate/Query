@@ -1,4 +1,5 @@
 import { showToastMessage } from '../core/toast.js';
+import { OperatorLabels } from '../core/operatorLabels.js';
 
 (function initializeFormModeControls() {
   function parseFieldOptions(fieldDef, inputSpec, normalizeOperatorForField) {
@@ -495,7 +496,7 @@ import { showToastMessage } from '../core/toast.js';
     if (!availableOperators || availableOperators.length <= 1) {
       operatorEl = document.createElement('span');
       operatorEl.className = 'form-mode-operator-chip';
-      operatorEl.textContent = window.OperatorLabels.get(inputSpec.operator);
+      operatorEl.textContent = OperatorLabels.get(inputSpec.operator);
     } else {
       operatorEl = window.OperatorSelectUtils.createSelect(availableOperators, {
         selected: inputSpec.operator,
