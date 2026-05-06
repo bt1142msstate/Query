@@ -2,6 +2,10 @@ const globals = require('globals');
 
 const allowedWindowAssignments = new Set([
   '__QUERY_APP_MODULES_READY',
+  'activeFilters',
+  'AppServices',
+  'AppState',
+  'AppUiActions',
   'BUBBLE_DEBUG',
   'BubbleConditionPanel',
   'BubbleInteraction',
@@ -25,13 +29,16 @@ const allowedWindowAssignments = new Set([
   'PostFilterSystem',
   'QueryPrevalidation',
   'QueryBuilderShell',
+  'QueryChangeManager',
   'QueryFormMode',
   'QueryHistorySystem',
   'QueryHistoryViewHelpers',
   'QueryTemplatesSystem',
   'QueryUI',
   'QueryTableView',
+  'QueryStateReaders',
   'QueryStateSubscriptions',
+  'QueryStateStore',
   'SharedFieldPicker',
   'TableNameInput',
   'TableBuilder',
@@ -59,6 +66,7 @@ const allowedWindowAssignments = new Set([
   'createListPasteInput',
   'createPopupListControl',
   'currentCategory',
+  'displayedFields',
   'dismissToastMessage',
   'DragUtils',
   'DragDropColumnOps',
@@ -276,6 +284,18 @@ const localRules = {
       }
     },
     create(context) {
+      function reportIfUnapproved(node, exportName) {
+        if (allowedWindowAssignments.has(exportName)) {
+          return;
+        }
+
+        context.report({
+          node,
+          messageId: 'unapproved',
+          data: { name: exportName }
+        });
+      }
+
       return {
         AssignmentExpression(node) {
           if (node.operator !== '=') {
@@ -294,16 +314,31 @@ const localRules = {
             return;
           }
 
-          const exportName = node.left.property.name;
-          if (allowedWindowAssignments.has(exportName)) {
+          reportIfUnapproved(node, node.left.property.name);
+        },
+        CallExpression(node) {
+          if (
+            node.callee.type !== 'MemberExpression'
+            || node.callee.computed
+            || node.callee.object.type !== 'Identifier'
+            || node.callee.object.name !== 'Object'
+            || node.callee.property.type !== 'Identifier'
+            || node.callee.property.name !== 'defineProperty'
+          ) {
             return;
           }
 
-          context.report({
-            node,
-            messageId: 'unapproved',
-            data: { name: exportName }
-          });
+          const [target, property] = node.arguments;
+          if (
+            target?.type !== 'Identifier'
+            || target.name !== 'window'
+            || property?.type !== 'Literal'
+            || typeof property.value !== 'string'
+          ) {
+            return;
+          }
+
+          reportIfUnapproved(node, property.value);
         }
       };
     }
