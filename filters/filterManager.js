@@ -1,6 +1,6 @@
 import { appServices } from '../core/appServices.js';
 import { appUiActions } from '../core/appUiActions.js';
-import { Icons, MoneyUtils, ValueFormatting } from '../core/utils.js';
+import { Icons, MoneyUtils, OperatorSelectUtils, ValueFormatting } from '../core/utils.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import {
     buildFilterValueLabel,
@@ -118,7 +118,7 @@ function getConditionFromControl(control) {
 }
 
 function createConditionOperatorPicker(conditions, handler) {
-    return window.OperatorSelectUtils.createLabeledPicker(conditions, {
+    return OperatorSelectUtils.createLabeledPicker(conditions, {
         id: 'condition-operator-select',
         className: 'condition-operator-select',
         ariaLabel: 'Select condition',

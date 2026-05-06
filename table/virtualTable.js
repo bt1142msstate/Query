@@ -7,7 +7,7 @@
 import { appServices } from '../core/appServices.js';
 import { appUiActions } from '../core/appUiActions.js';
 import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
-import { MoneyUtils, ValueFormatting } from '../core/utils.js';
+import { MoneyUtils, TableBuilder, TextMeasurement, ValueFormatting } from '../core/utils.js';
 (function initializeVirtualTable() {
 // Virtual scrolling state
 let virtualTableData = {
@@ -775,12 +775,12 @@ function renderVirtualTable() {
   // Render visible rows
   for (let i = start; i < end; i++) {
     const rowData = virtualTableData.rows[i]; // Access the 2D array row
-    const tr = window.TableBuilder.createRow();
+    const tr = TableBuilder.createRow();
     tr.style.height = `${tableRowHeight}px`;
     tr.dataset.rowIndex = i;
     
     displayedFields.forEach((field, colIndex) => {
-      const td = window.TableBuilder.createCell('', 'px-6 py-3 whitespace-nowrap text-sm text-gray-900');
+      const td = TableBuilder.createCell('', 'px-6 py-3 whitespace-nowrap text-sm text-gray-900');
       td.dataset.colIndex = colIndex;
       
       // Get the column index for this field and access the data by index
@@ -878,11 +878,11 @@ function renderVirtualTable() {
       // Check if content would be visually truncated and handle it manually
       if (typeof displayValue === 'string' && displayValue.length > 0 && displayValue !== '—') {
         const availableWidth = width - 48; // Subtract padding (24px left + 24px right)
-        const fullTextWidth = window.TextMeasurement.measureText(displayValue);
+        const fullTextWidth = TextMeasurement.measureText(displayValue);
         
         // If text is too wide, truncate it manually and add tooltip
         if (fullTextWidth > availableWidth) {
-          const maxFitChars = window.TextMeasurement.findMaxFittingChars(displayValue, availableWidth);
+          const maxFitChars = TextMeasurement.findMaxFittingChars(displayValue, availableWidth);
           const truncatedText = displayValue.substring(0, maxFitChars) + '...';
           td.textContent = truncatedText;
           td.setAttribute('data-tooltip', displayValue);
@@ -957,7 +957,7 @@ function calculateFieldWidth(fieldName, data = null) {
   let maxWidth = 0;
   
   // 1. Always measure header width (uppercase, as it appears in the table)
-  const headerWidth = window.TextMeasurement.measureText(fieldName.toUpperCase()) + HEADER_ACTION_SPACE + HEADER_TEXT_BALANCE_SPACE;
+  const headerWidth = TextMeasurement.measureText(fieldName.toUpperCase()) + HEADER_ACTION_SPACE + HEADER_TEXT_BALANCE_SPACE;
   maxWidth = Math.max(maxWidth, headerWidth);
   
   // 2. If we have data, measure content width
@@ -984,7 +984,7 @@ function calculateFieldWidth(fieldName, data = null) {
               measuredValue = ValueFormatting.formatValueByType(numericValue, type, { fieldName });
             }
           }
-          const textWidth = window.TextMeasurement.measureText(measuredValue);
+          const textWidth = TextMeasurement.measureText(measuredValue);
           maxWidth = Math.max(maxWidth, textWidth);
         }
       }
@@ -993,7 +993,7 @@ function calculateFieldWidth(fieldName, data = null) {
   
   // 3. For fields not in data (showing "..."), ensure reasonable width for the placeholder
   if (!data || !data.columnMap || !data.columnMap.has(fieldName)) {
-    const placeholderWidth = window.TextMeasurement.measureText('...');
+    const placeholderWidth = TextMeasurement.measureText('...');
     maxWidth = Math.max(maxWidth, placeholderWidth);
   }
   
@@ -1002,7 +1002,7 @@ function calculateFieldWidth(fieldName, data = null) {
   const requiredHeaderWidth = headerWidth + paddingAndBuffer;
   
   // 5. Calculate max character width for clamping
-  const maxCharacterWidth = window.TextMeasurement.measureText('A'.repeat(50)) + paddingAndBuffer;
+  const maxCharacterWidth = TextMeasurement.measureText('A'.repeat(50)) + paddingAndBuffer;
   const maxAllowedWidth = Math.max(maxCharacterWidth, requiredHeaderWidth);
   
   // 6. Clamp to reasonable bounds: min 150px, max 50 characters worth

@@ -13,7 +13,7 @@ import { OperatorLabels } from './operatorLabels.js';
  * Shared canvas instance to avoid creating multiple canvas elements.
  * @namespace TextMeasurement
  */
-window.TextMeasurement = {
+const TextMeasurement = {
   canvas: document.createElement('canvas'),
   
   get ctx() {
@@ -96,7 +96,7 @@ window.EventUtils = {
   }
 };
 
-window.OperatorSelectUtils = (() => {
+const OperatorSelectUtils = (() => {
   function createSelect(operators, options = {}) {
     const {
       selected = '',
@@ -561,7 +561,7 @@ const MoneyUtils = (() => {
  * Table Builder Utilities - Common table creation patterns
  * @namespace TableBuilder
  */
-window.TableBuilder = {
+const TableBuilder = {
   /**
    * Creates a table element with standard styling.
    * @param {string} [className] - CSS class for the table
@@ -651,9 +651,6 @@ const FormatUtils = {
 };
 
 const EventUtils = window.EventUtils;
-const OperatorSelectUtils = window.OperatorSelectUtils;
-const TableBuilder = window.TableBuilder;
-const TextMeasurement = window.TextMeasurement;
 const escapeHtml = window.escapeHtml;
 
 export {
