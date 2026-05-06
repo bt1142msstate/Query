@@ -1,10 +1,3 @@
-import { OperatorLabels } from '../core/operatorLabels.js';
-import { formatFieldOperatorForDisplay, mapFieldOperatorToUiCond, normalizeUiConfigFilters } from '../filters/queryPayload.js';
-import { getFilterDisplayValues } from '../filters/filterValueUi.js';
-
-// escapeHtml is defined in utils.js (loaded before this file)
-const escapeHtml = window.escapeHtml;
-
 /**
  * Custom Tooltip Component
  * Provides intelligent tooltip positioning and behavior for elements with data-tooltip attributes.
@@ -14,7 +7,7 @@ const escapeHtml = window.escapeHtml;
  * Tooltip manager handling tooltip creation, positioning, and lifecycle.
  * @namespace TooltipManager
  */
-window.TooltipManager = (() => {
+const TooltipManager = (() => {
   const TOOLTIP_SELECTOR = '[data-tooltip], [data-tooltip-html]';
   const TOOLTIP_DELAY_ATTR = 'data-tooltip-delay';
   const HOVER_SHOW_DELAY_MS = 2500;
@@ -451,139 +444,9 @@ window.TooltipManager = (() => {
   attach();
   return {
     forceHide,
-    formatFieldDefinitionTooltipHTML,
-    formatStandardFilterTooltipHTML,
     hide: hideTooltip,
     show: showTooltip
   };
 })();
 
-/**
- * Standardized formatter for filter tooltips across the application.
- * Accepts flat filters or legacy grouped filters and generates structured HTML.
- * @param {Array|Object} filtersInput - Filters array or ui_config object
- * @param {string} [title=""] - Optional title for the tooltip
- * @returns {string} HTML string for data-tooltip-html
- */
-function formatStandardFilterTooltipHTML(filtersInput, title = "") {
-  const filters = normalizeUiConfigFilters(filtersInput);
-  if (!filters || filters.length === 0) return '';
-  
-  let hasFilters = false;
-  
-  let html = '<div class="tt-filter-container">';
-  if (title) {
-      html += '<div class="tt-filter-title">' + title + '</div>';
-  }
-  html += '<ul class="tt-filter-list">';
-  
-  filters.forEach(f => {
-    hasFilters = true;
-    const fieldDef = window.fieldDefs ? window.fieldDefs.get(f.FieldName) : null;
-    const op = formatFieldOperatorForDisplay(f.FieldOperator);
-    const uiCond = mapFieldOperatorToUiCond(f.FieldOperator);
-    
-    let valStr = '';
-    if (f.Values && f.Values.length > 0) {
-        if (uiCond === 'between' && f.Values.length >= 2) {
-            valStr = '<span class="tt-val">' + escapeHtml(f.Values[0]) + '</span> <span class="tt-op">and</span> <span class="tt-val">' + escapeHtml(f.Values[1]) + '</span>';
-      } else if (fieldDef && fieldDef.allowValueList && f.Values.length > 1) {
-        const values = getFilterDisplayValues({ cond: uiCond, val: f.Values.join(',') }, fieldDef);
-        const summary = values[0] ? escapeHtml(values[0]) + ' <span class="tt-value-more">and ' + (values.length - 1) + ' more</span>' : '';
-        valStr = '<div class="tt-val-stack"><div class="tt-val tt-val-summary">' + summary + '</div></div>';
-        } else {
-            valStr = '<span class="tt-val">' + escapeHtml(f.Values.join(', ')) + '</span>';
-        }
-    }
-    
-    html += '<li class="tt-filter-item">';
-    html += '  <span class="tt-field">' + escapeHtml(f.FieldName || '') + '</span>';
-    html += '  <span class="tt-op">' + escapeHtml(op) + '</span>';
-    html += '  ' + valStr;
-    html += '</li>';
-  });
-  
-  html += '</ul></div>';
-  
-  return hasFilters ? html : '';
-}
-
-function formatFieldDefinitionTooltipHTML(fieldDef, options = {}) {
-  if (!fieldDef || typeof fieldDef !== 'object') {
-    return '';
-  }
-
-  const normalizedType = String(fieldDef.type || '').trim().toLowerCase();
-  const normalizedNumberFormat = String(fieldDef.numberFormat || fieldDef.numericFormat || '').trim().toLowerCase();
-  const categoryValue = typeof fieldDef.category === 'string'
-    ? fieldDef.category.trim()
-    : '';
-  const descSource = typeof fieldDef.desc === 'string' && fieldDef.desc.trim()
-    ? fieldDef.desc
-    : (typeof fieldDef.description === 'string' ? fieldDef.description : '');
-  const descValue = typeof descSource === 'string'
-    ? descSource.trim()
-    : '';
-  const title = typeof options.title === 'string' ? options.title.trim() : '';
-  const isFilterable = typeof window.isFieldBackendFilterable === 'function'
-    ? window.isFieldBackendFilterable(fieldDef)
-    : Array.isArray(fieldDef.filters) && fieldDef.filters.length > 0;
-  const filterOperators = typeof window.getFieldFilterOperators === 'function'
-    ? window.getFieldFilterOperators(fieldDef)
-    : (Array.isArray(fieldDef.filters) ? fieldDef.filters : []);
-  const typeLabel = (() => {
-    if (normalizedType === 'money' || normalizedNumberFormat === 'currency') return 'Money';
-    if (normalizedType === 'date') return 'Date';
-    if (normalizedType === 'boolean') return 'Boolean';
-    if (normalizedType === 'number') {
-      if (normalizedNumberFormat === 'year') return 'Year';
-      if (normalizedNumberFormat === 'decimal') return 'Decimal';
-      return 'Integer';
-    }
-    if (normalizedType === 'string') return 'Text';
-    return normalizedType ? normalizedType.charAt(0).toUpperCase() + normalizedType.slice(1) : '';
-  })();
-
-  if (!title && !categoryValue && !descValue && !typeLabel && filterOperators.length === 0) {
-    return '';
-  }
-
-  let html = '<div class="tt-filter-container tt-field-definition">';
-  if (title) {
-    html += '<div class="tt-filter-title">' + escapeHtml(title) + '</div>';
-  }
-
-  if (categoryValue) {
-    html += '<div class="tt-field-definition-category">' + escapeHtml(categoryValue) + '</div>';
-  }
-
-  html += '<div class="tt-field-definition-meta">';
-  if (typeLabel) {
-    html += '<span class="tt-field-definition-badge data-type">' + escapeHtml(typeLabel) + '</span>';
-  }
-  html += '<span class="tt-field-definition-badge ' + (isFilterable ? 'filterable' : 'display-only') + '">';
-  html += isFilterable ? 'Filterable' : 'Display only';
-  html += '</span>';
-  if (filterOperators.length > 0) {
-    html += '<span class="tt-field-definition-meta-text">';
-    html += filterOperators.length === 1 ? '1 backend operator' : filterOperators.length + ' backend operators';
-    html += '</span>';
-  }
-  html += '</div>';
-
-  if (descValue) {
-    html += '<div class="tt-field-definition-desc">' + escapeHtml(descValue) + '</div>';
-  }
-
-  if (filterOperators.length > 0) {
-    html += '<div class="tt-field-definition-operators">';
-    html += filterOperators.map(operator => {
-      const label = OperatorLabels.get(operator, operator);
-      return '<span class="tt-field-definition-operator">' + escapeHtml(label) + '</span>';
-    }).join('');
-    html += '</div>';
-  }
-
-  html += '</div>';
-  return html;
-}
+export { TooltipManager };

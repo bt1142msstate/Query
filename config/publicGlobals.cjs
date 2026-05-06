@@ -35,7 +35,6 @@ const publicWindowAssignments = [
   'QueryTableAnimation',
   'SharedFieldPicker',
   'TableNameInput',
-  'TooltipManager',
   'VirtualTable',
   'VisibilityUtils',
   'animatingBackBubbles',

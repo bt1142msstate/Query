@@ -29,6 +29,7 @@ const forbiddenWindowMemberReads = new Map([
   ['SelectorControls', 'Import from ui/selectorControls.js instead of reading selector controls from window'],
   ['TableBuilder', 'Import from core/utils.js instead of reading table builder helpers from window'],
   ['TextMeasurement', 'Import from core/utils.js instead of reading text measurement helpers from window'],
+  ['TooltipManager', 'Import from core/tooltipFormatters.js for formatting or ui/tooltips.js for tooltip behavior instead of reading tooltip helpers from window'],
   ['VisibilityUtils', 'Import from core/visibility.js instead of reading visibility helpers from window'],
   ['dismissToastMessage', 'Import from core/toast.js instead of reading toast helpers from window'],
   ['showToast', 'Import from core/toast.js instead of reading toast helpers from window'],
