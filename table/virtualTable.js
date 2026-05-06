@@ -556,6 +556,10 @@ function getFilteredRowsFromSource() {
     .map(row => [...row]);
 }
 
+function hasActivePostFilters() {
+  return Object.values(postFiltersState).some(data => Array.isArray(data?.filters) && data.filters.length > 0);
+}
+
 function updateHeaderWidthsFromCurrentState() {
   const table = document.getElementById('example-table');
   const headerRow = table?.querySelector('thead tr');
@@ -714,7 +718,7 @@ function calculateVisibleRows() {
  */
 function renderVirtualTable() {
   const displayedFields = getDisplayedFields();
-  if (!tableScrollContainer || !virtualTableData.rows || !virtualTableData.rows.length || !displayedFields.length) return;
+  if (!tableScrollContainer || !displayedFields.length) return;
   
   const table = tableScrollContainer.querySelector('#example-table');
   if (!table) return;
@@ -725,13 +729,31 @@ function renderVirtualTable() {
   }
   
   const tbody = table.querySelector('tbody');
-  const { start, end } = calculateVisibleRows();
+  if (!tbody) return;
   
   // Clean up existing event listeners on body cells before clearing them
   services.cleanupDragDropTableListeners(table);
   
   // Clear existing body rows
   tbody.innerHTML = '';
+
+  if (!Array.isArray(virtualTableData.rows) || virtualTableData.rows.length === 0) {
+    const emptyRow = document.createElement('tr');
+    const emptyCell = document.createElement('td');
+    const hasLoadedRows = Array.isArray(baseViewData.rows) && baseViewData.rows.length > 0;
+    const message = hasLoadedRows && hasActivePostFilters()
+      ? 'No rows match the active post filters.'
+      : 'Run a query to load results.';
+
+    emptyCell.setAttribute('colspan', displayedFields.length.toString());
+    emptyCell.className = 'px-6 py-10 text-center text-sm text-gray-500 italic';
+    emptyCell.textContent = message;
+    emptyRow.appendChild(emptyCell);
+    tbody.appendChild(emptyRow);
+    return;
+  }
+
+  const { start, end } = calculateVisibleRows();
   
   // Create spacer for rows above visible area
   if (start > 0) {
@@ -1328,7 +1350,7 @@ window.VirtualTable = {
     });
   },
   hasPostFilters() {
-    return Object.values(postFiltersState).some(data => Array.isArray(data?.filters) && data.filters.length > 0);
+    return hasActivePostFilters();
   },
   setManualColumnWidth,
   updateRenderedColumnWidth,
