@@ -4,6 +4,7 @@
  * Options: Copy Cell, Copy Row (tab-separated), Copy Column (newline-separated).
  */
 import { ClipboardUtils } from '../core/clipboard.js';
+import { VisibilityUtils } from '../core/visibility.js';
 
 window.TableContextMenu = (() => {
   let menuEl = null;
@@ -210,7 +211,7 @@ window.TableContextMenu = (() => {
       clearPreview = null;
     }
     if (menuEl) {
-      window.VisibilityUtils?.hide?.([menuEl], {
+      VisibilityUtils.hide([menuEl], {
         ariaHidden: true,
         raisedUiKey: 'table-context-menu'
       });
@@ -385,7 +386,7 @@ window.TableContextMenu = (() => {
     menu.classList.add('hidden');
     positionMenu(menu, e.clientX, e.clientY);
     menuEl = menu;
-    window.VisibilityUtils?.show?.([menu], {
+    VisibilityUtils.show([menu], {
       ariaHidden: false,
       raisedUiKey: 'table-context-menu'
     });

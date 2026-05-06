@@ -4,6 +4,8 @@
  * and overlay/backdrop management.
  * @class ModalManager
  */
+import { VisibilityUtils } from '../core/visibility.js';
+
 class ModalManager {
   constructor() {
     this.initialized = false;
@@ -118,7 +120,7 @@ class ModalManager {
     // Existing styles might rely on removing hidden to show.
     
     if (this.overlay) this.overlay.classList.add('show'); // Assuming 'show' class handles visibility
-    window.VisibilityUtils?.acquireRaisedUi?.(`panel:${panelId}`);
+    VisibilityUtils.acquireRaisedUi(`panel:${panelId}`);
     document.body.classList.add('modal-panel-open');
     this.activePanel = panelId;
     this.syncHeaderOverlayTitle(panelId);
@@ -155,7 +157,7 @@ class ModalManager {
       this.activePanel = null;
     }
 
-    window.VisibilityUtils?.releaseRaisedUi?.(`panel:${panelId}`);
+    VisibilityUtils.releaseRaisedUi(`panel:${panelId}`);
 
     this.syncHeaderOverlayTitle(this.activePanel);
 
@@ -185,7 +187,7 @@ class ModalManager {
           p.classList.remove('show');
         }
         p.classList.add('hidden');
-        window.VisibilityUtils?.releaseRaisedUi?.(`panel:${pid}`);
+        VisibilityUtils.releaseRaisedUi(`panel:${pid}`);
       }
     });
     
@@ -335,7 +337,7 @@ class ModalManager {
    */
   lockInput(duration = 600) {
     this.isInputLocked = true;
-    window.VisibilityUtils?.show?.([this.inputBlockOverlay], {
+    VisibilityUtils.show([this.inputBlockOverlay], {
       ariaHidden: false
     });
     this.inputBlockOverlay.style.pointerEvents = 'all';
@@ -345,7 +347,7 @@ class ModalManager {
     this.inputLockTimeout = setTimeout(() => {
       this.isInputLocked = false;
       this.inputBlockOverlay.style.pointerEvents = 'none';
-      window.VisibilityUtils?.hide?.([this.inputBlockOverlay], {
+      VisibilityUtils.hide([this.inputBlockOverlay], {
         ariaHidden: true
       });
     }, duration);

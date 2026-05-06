@@ -3,6 +3,7 @@
  * Extracted from filterManager.js so value-display behavior is separate from condition editing.
  */
 import { ClipboardUtils } from '../core/clipboard.js';
+import { VisibilityUtils } from '../core/visibility.js';
 
 (function initializeFilterValueUi() {
   function getFilterValueMap(fieldDef) {
@@ -99,7 +100,7 @@ import { ClipboardUtils } from '../core/clipboard.js';
     `;
 
     const closeViewer = () => {
-      window.VisibilityUtils.hide([backdrop, panel], {
+      VisibilityUtils.hide([backdrop, panel], {
         raisedUiKey: 'filter-list-viewer'
       });
     };
@@ -137,7 +138,7 @@ import { ClipboardUtils } from '../core/clipboard.js';
       }
     });
     document.addEventListener('keydown', event => {
-      if (event.key === 'Escape' && window.VisibilityUtils.isVisible(panel)) {
+      if (event.key === 'Escape' && VisibilityUtils.isVisible(panel)) {
         closeViewer();
       }
     });
@@ -174,7 +175,7 @@ import { ClipboardUtils } from '../core/clipboard.js';
     panel._viewerState.values = values.slice();
     panel._viewerState.filenameBase = filenameBase;
 
-    window.VisibilityUtils.show([backdrop, panel], {
+    VisibilityUtils.show([backdrop, panel], {
       raisedUiKey: 'filter-list-viewer'
     });
   }

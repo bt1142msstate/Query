@@ -1,3 +1,5 @@
+import { VisibilityUtils } from '../core/visibility.js';
+
 function createBooleanPillSelector(values, currentValue = '', options = {}) {
   const onChange = typeof options.onChange === 'function' ? options.onChange : null;
   const containerId = Object.prototype.hasOwnProperty.call(options, 'containerId')
@@ -619,7 +621,7 @@ function createPopupListControl(innerControl, label, placeholder) {
   }
 
   function openPopup() {
-    window.VisibilityUtils?.show?.([backdrop, popup], {
+    VisibilityUtils.show([backdrop, popup], {
       ariaHidden: false,
       raisedUiKey
     });
@@ -637,7 +639,7 @@ function createPopupListControl(innerControl, label, placeholder) {
   }
 
   function closePopup() {
-    window.VisibilityUtils?.hide?.([backdrop, popup], {
+    VisibilityUtils.hide([backdrop, popup], {
       ariaHidden: true,
       raisedUiKey
     });
@@ -667,7 +669,7 @@ function createPopupListControl(innerControl, label, placeholder) {
 
   wrapper._cleanupPopup = function() {
     if (!popup.hidden) {
-      window.VisibilityUtils?.hide?.([backdrop, popup], {
+      VisibilityUtils.hide([backdrop, popup], {
         ariaHidden: true,
         raisedUiKey
       });
