@@ -777,8 +777,8 @@ let QueryFormMode;
 
   function stopRunningQueryForReset() {
     const lifecycleState = window.QueryStateReaders.getLifecycleState();
-    if (lifecycleState.queryRunning && typeof window.cancelQuery === 'function' && lifecycleState.currentQueryId) {
-      window.cancelQuery(lifecycleState.currentQueryId).catch(console.error);
+    if (lifecycleState.queryRunning && window.QueryHistorySystem?.cancelQuery && lifecycleState.currentQueryId) {
+      window.QueryHistorySystem.cancelQuery(lifecycleState.currentQueryId).catch(console.error);
       window.QueryChangeManager.setLifecycleState({ queryRunning: false }, { source: 'QueryFormMode.reset.stopQuery', silent: true });
       uiActions.updateRunButtonIcon();
     }

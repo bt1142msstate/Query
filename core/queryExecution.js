@@ -161,8 +161,8 @@ if (execDom.runBtn) {
     if (QueryStateReaders.getLifecycleState().queryRunning) {
       showToastMessage('Stopping query…', 'info');
       const lifecycleState = QueryStateReaders.getLifecycleState();
-      if (lifecycleState.currentQueryId && typeof window.cancelQuery === 'function') {
-        window.cancelQuery(lifecycleState.currentQueryId).catch(err => {
+      if (lifecycleState.currentQueryId && window.QueryHistorySystem?.cancelQuery) {
+        window.QueryHistorySystem.cancelQuery(lifecycleState.currentQueryId).catch(err => {
           console.error('Cancellation failed', err);
         });
       }

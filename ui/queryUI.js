@@ -542,14 +542,6 @@ const queryUi = {
   getBaseUpdateButtonStates
 };
 
-window.getDefaultTableName = getDefaultTableName;
-window.ensureTableName = ensureTableName;
-window.getTableZoom = getTableZoom;
-window.refreshTableViewport = refreshTableViewport;
-window.updateTableChromeState = updateTableChromeState;
-window.setTableZoom = setTableZoom;
-window.toggleTableExpanded = toggleTableExpanded;
-
 const QueryUI = Object.freeze(queryUi);
 window.QueryUI = QueryUI;
 

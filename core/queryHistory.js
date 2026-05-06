@@ -637,9 +637,6 @@ async function loadQueryResults(queryId) {
     }
 }
 
-// Ensure global access
-window.fetchQueryStatus = fetchQueryStatus;
-
 /**
  * Binds load/rerun/stop button event handlers on all matching buttons within
  * a given root element. Called after both full re-renders and surgical row
@@ -911,7 +908,7 @@ function startQueryDurationUpdates() {
   if (!isQueriesPanelOpen()) return;
   if (queryDurationUpdateInterval) return; // Already running
 
-  window.fetchQueryStatus();
+  fetchQueryStatus();
 
   queryDurationUpdateInterval = setInterval(() => {
     if (!isQueriesPanelOpen()) {
@@ -928,7 +925,7 @@ function startQueryDurationUpdates() {
     // Poll the backend: faster when queries are running, slower when idle.
     const pollInterval = hasRunningQueries ? QUERY_STATUS_POLL_MS : IDLE_POLL_MS;
     if ((Date.now() - lastQueryStatusPollAt) >= pollInterval) {
-      window.fetchQueryStatus();
+      fetchQueryStatus();
     }
   }, 1000);
 }
@@ -1159,6 +1156,7 @@ const QueryHistorySystem = {
   getQueryById: getHistoryQueryById,
   updateQuery: updateHistoryQuery,
   applyQueryConfig: loadQueryConfig,
+  cancelQuery,
   formatColumnsTooltip, formatHistoryFiltersTooltip,
   fetchQueryStatus,
   closeDetailsOverlay: closeHistoryDetailsOverlay,
@@ -1176,9 +1174,6 @@ Object.defineProperty(QueryHistorySystem, 'exampleQueries', {
 
 // Make QueryHistorySystem globally accessible
 window.QueryHistorySystem = QueryHistorySystem;
-
-window.cancelQuery = cancelQuery;
-window.addQueryToHistory = addQueryToHistory;
 
 let queryHistoryInitialized = false;
 
@@ -1209,5 +1204,5 @@ window.onDOMReady(() => {
   document.addEventListener('click', handleQueryRowClick);
 
   // Initial fetch of query history
-  setTimeout(() => { if (window.fetchQueryStatus) window.fetchQueryStatus(); }, 500);
+  setTimeout(fetchQueryStatus, 500);
 });
