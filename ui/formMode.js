@@ -1489,7 +1489,6 @@ let QueryFormMode;
     const mobileCategorySelector = document.getElementById('mobile-category-selector');
     const bubbleStage = document.getElementById('bubble-container') && document.getElementById('bubble-container').closest('.flex.items-start.justify-center');
     const hiddenControlIds = ['toggle-json', 'toggle-queries'];
-
     document.body.classList.toggle('form-mode-active', state.viewMode === 'form');
 
     [querySearchBlock, categoryBar, mobileCategorySelector].filter(Boolean).forEach(node => {
@@ -1535,6 +1534,7 @@ let QueryFormMode;
     }
 
     uiActions.updateFilterSidePanel();
+    window.QueryTableView?.syncEmptyTableMessage?.();
   }
 
   function refreshBubbleStageAfterModeSwitch() {
