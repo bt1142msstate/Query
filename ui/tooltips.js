@@ -1,5 +1,8 @@
 import { formatFieldOperatorForDisplay, mapFieldOperatorToUiCond, normalizeUiConfigFilters } from '../filters/queryPayload.js';
 
+// escapeHtml is defined in utils.js (loaded before this file)
+const escapeHtml = window.escapeHtml;
+
 /**
  * Custom Tooltip Component
  * Provides intelligent tooltip positioning and behavior for elements with data-tooltip attributes.
@@ -444,7 +447,13 @@ window.TooltipManager = (() => {
     });
   }
   attach();
-  return { show: showTooltip, hide: hideTooltip, forceHide: forceHide };
+  return {
+    forceHide,
+    formatFieldDefinitionTooltipHTML,
+    formatStandardFilterTooltipHTML,
+    hide: hideTooltip,
+    show: showTooltip
+  };
 })();
 
 /**
@@ -454,7 +463,7 @@ window.TooltipManager = (() => {
  * @param {string} [title=""] - Optional title for the tooltip
  * @returns {string} HTML string for data-tooltip-html
  */
-window.formatStandardFilterTooltipHTML = function(filtersInput, title = "") {
+function formatStandardFilterTooltipHTML(filtersInput, title = "") {
   const filters = normalizeUiConfigFilters(filtersInput);
   if (!filters || filters.length === 0) return '';
   
@@ -497,9 +506,9 @@ window.formatStandardFilterTooltipHTML = function(filtersInput, title = "") {
   html += '</ul></div>';
   
   return hasFilters ? html : '';
-};
+}
 
-window.formatFieldDefinitionTooltipHTML = function(fieldDef, options = {}) {
+function formatFieldDefinitionTooltipHTML(fieldDef, options = {}) {
   if (!fieldDef || typeof fieldDef !== 'object') {
     return '';
   }
@@ -579,7 +588,4 @@ window.formatFieldDefinitionTooltipHTML = function(fieldDef, options = {}) {
 
   html += '</div>';
   return html;
-};
-
-// escapeHtml is defined in utils.js (loaded before this file)
-const escapeHtml = window.escapeHtml;
+}

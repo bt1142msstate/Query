@@ -1,23 +1,23 @@
 /** Rebuild and render the query JSON preview. */
 import { buildBackendQueryPayload } from '../filters/queryPayload.js';
 
-window.jsonTreeCollapsedPaths = window.jsonTreeCollapsedPaths || new Set();
+const jsonTreeCollapsedPaths = new Set();
 
-window.escapeJsonHtml = function(value) {
+function escapeJsonHtml(value) {
   return String(value)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
-};
+}
 
-window.renderJsonPrimitive = function(value) {
+function renderJsonPrimitive(value) {
   if (value === null) {
     return '<span class="json-null">null</span>';
   }
 
   if (typeof value === 'string') {
-    return `<span class="json-string">"${window.escapeJsonHtml(value)}"</span>`;
+    return `<span class="json-string">"${escapeJsonHtml(value)}"</span>`;
   }
 
   if (typeof value === 'number') {
@@ -28,22 +28,22 @@ window.renderJsonPrimitive = function(value) {
     return `<span class="json-boolean">${String(value)}</span>`;
   }
 
-  return `<span class="json-string">"${window.escapeJsonHtml(String(value))}"</span>`;
-};
+  return `<span class="json-string">"${escapeJsonHtml(String(value))}"</span>`;
+}
 
-window.renderJsonNode = function(key, value, depth, isLast, path) {
+function renderJsonNode(key, value, depth, isLast, path) {
   const comma = isLast ? '' : '<span class="json-comma">,</span>';
   const indent = `<span class="json-indent" style="--json-depth:${depth}"></span>`;
   const keyHtml = key === null
     ? ''
-    : `<span class="json-key">"${window.escapeJsonHtml(key)}"</span><span class="json-colon">: </span>`;
+    : `<span class="json-key">"${escapeJsonHtml(key)}"</span><span class="json-colon">: </span>`;
 
   if (value === null || typeof value !== 'object') {
     return `
       <div class="json-line">
         ${indent}
         <span class="json-disclosure-spacer" aria-hidden="true"></span>
-        ${keyHtml}${window.renderJsonPrimitive(value)}${comma}
+        ${keyHtml}${renderJsonPrimitive(value)}${comma}
       </div>
     `;
   }
@@ -66,11 +66,11 @@ window.renderJsonNode = function(key, value, depth, isLast, path) {
   }
 
   const childHtml = entries.map(([childKey, childValue], index) => {
-    const childPath = `${path}.${window.escapeJsonHtml(childKey)}`;
-    return window.renderJsonNode(isArray ? null : childKey, childValue, depth + 1, index === entries.length - 1, childPath);
+    const childPath = `${path}.${escapeJsonHtml(childKey)}`;
+    return renderJsonNode(isArray ? null : childKey, childValue, depth + 1, index === entries.length - 1, childPath);
   }).join('');
   const summaryLabel = `${entries.length} ${isArray ? (entries.length === 1 ? 'item' : 'items') : (entries.length === 1 ? 'key' : 'keys')}`;
-  const isOpen = !window.jsonTreeCollapsedPaths.has(path);
+  const isOpen = !jsonTreeCollapsedPaths.has(path);
 
   return `
     <details class="json-node" data-json-path="${path}"${isOpen ? ' open' : ''}>
@@ -89,13 +89,13 @@ window.renderJsonNode = function(key, value, depth, isLast, path) {
       </div>
     </details>
   `;
-};
+}
 
-window.renderJsonTree = function(payload) {
+function renderJsonTree(payload) {
   const tree = document.getElementById('query-json-tree');
   if (!tree) return;
-  tree.innerHTML = window.renderJsonNode(null, payload, 0, true, '$');
-};
+  tree.innerHTML = renderJsonNode(null, payload, 0, true, '$');
+}
 
 function updateQueryJson() {
   const tableNameInput = window.DOM.tableNameInput;
@@ -109,7 +109,7 @@ function updateQueryJson() {
       window.DOM.queryBox.textContent = formattedJson;
     }
   }
-  window.renderJsonTree(payload);
+  renderJsonTree(payload);
 }
 
 window.onDOMReady(() => {
@@ -119,9 +119,9 @@ window.onDOMReady(() => {
       const details = event.target;
       if (!(details instanceof HTMLDetailsElement) || !details.dataset.jsonPath) return;
       if (details.open) {
-        window.jsonTreeCollapsedPaths.delete(details.dataset.jsonPath);
+        jsonTreeCollapsedPaths.delete(details.dataset.jsonPath);
       } else {
-        window.jsonTreeCollapsedPaths.add(details.dataset.jsonPath);
+        jsonTreeCollapsedPaths.add(details.dataset.jsonPath);
       }
     });
   }
@@ -151,5 +151,6 @@ window.QueryStateSubscriptions.subscribe(() => {
 }, { displayedFields: true, activeFilters: true });
 
 window.JsonViewerUI = Object.freeze({
+  renderJsonTree,
   updateQueryJson
 });

@@ -3,7 +3,7 @@ function createQueryHistoryDependencies(normalizeUiConfigFilters) {
     display() {
       return {
         formatDuration: window.formatDuration,
-        formatStandardFilterTooltipHTML: window.formatStandardFilterTooltipHTML,
+        formatStandardFilterTooltipHTML: window.TooltipManager?.formatStandardFilterTooltipHTML,
         normalizeUiConfigFilters
       };
     },

@@ -22,9 +22,7 @@ import { mapFieldOperatorToUiCond } from '../filters/queryPayload.js';
         category: Array.isArray(fieldDef.category)
           ? fieldDef.category.filter(Boolean).join(', ')
           : String(fieldDef.category || ''),
-        tooltipHtml: typeof window.formatFieldDefinitionTooltipHTML === 'function'
-          ? window.formatFieldDefinitionTooltipHTML(fieldDef, { title: fieldDef.name })
-          : ''
+        tooltipHtml: window.TooltipManager?.formatFieldDefinitionTooltipHTML?.(fieldDef, { title: fieldDef.name }) || ''
       }))
       .sort((left, right) => left.name.localeCompare(right.name, undefined, { numeric: true, sensitivity: 'base' }));
   }
