@@ -1,4 +1,6 @@
 /** Rebuild and render the query JSON preview. */
+import { buildBackendQueryPayload } from '../filters/queryPayload.js';
+
 window.jsonTreeCollapsedPaths = window.jsonTreeCollapsedPaths || new Set();
 
 window.escapeJsonHtml = function(value) {
@@ -98,7 +100,7 @@ window.renderJsonTree = function(payload) {
 function updateQueryJson() {
   const tableNameInput = window.DOM.tableNameInput;
   const queryName = tableNameInput ? tableNameInput.value.trim() : '';
-  const payload = window.buildBackendQueryPayload(queryName);
+  const payload = buildBackendQueryPayload(queryName);
   if (window.DOM.queryBox) {
     const formattedJson = JSON.stringify(payload, null, 2);
     if (window.DOM.queryBox instanceof HTMLTextAreaElement) {

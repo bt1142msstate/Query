@@ -82,8 +82,6 @@ function mapFieldOperatorToUiCond(operator) {
   return FIELD_OPERATOR_TO_UI_COND[normalized] || normalized.toLowerCase();
 }
 
-window.mapFieldOperatorToUiCond = mapFieldOperatorToUiCond;
-
 function formatFieldOperatorForDisplay(operator) {
   const uiCond = mapFieldOperatorToUiCond(operator);
   switch (uiCond) {
@@ -118,14 +116,10 @@ function formatFieldOperatorForDisplay(operator) {
   }
 }
 
-window.formatFieldOperatorForDisplay = formatFieldOperatorForDisplay;
-
 function mapUiCondToFieldOperator(cond) {
   const normalized = String(cond || '').trim();
   return UI_COND_TO_FIELD_OPERATOR[normalized] || (normalized.charAt(0).toUpperCase() + normalized.slice(1));
 }
-
-window.mapUiCondToFieldOperator = mapUiCondToFieldOperator;
 
 function mapActiveFilterToBackend(condition, rawValue) {
   if (condition === 'between') {
@@ -174,8 +168,6 @@ function getNormalizedDisplayedFields(fields = getDisplayedFields()) {
     .filter((field, index, array) => array.indexOf(field) === index);
 }
 
-window.getNormalizedDisplayedFields = getNormalizedDisplayedFields;
-
 function normalizeUiConfigFilters(input, options = {}) {
   if (!input) return [];
 
@@ -221,8 +213,6 @@ function normalizeUiConfigFilters(input, options = {}) {
   return [];
 }
 
-window.normalizeUiConfigFilters = normalizeUiConfigFilters;
-
 function buildQueryUiConfig() {
   const backendFilters = buildBackendFilters();
   const specialFields = collectCurrentSpecialFields();
@@ -235,8 +225,6 @@ function buildQueryUiConfig() {
 
   return query;
 }
-
-window.buildQueryUiConfig = buildQueryUiConfig;
 
 function collectCurrentSpecialFields() {
   const specialFields = [];
@@ -265,8 +253,6 @@ function collectCurrentSpecialFields() {
 
   return specialFields;
 }
-
-window.collectCurrentSpecialFields = collectCurrentSpecialFields;
 
 function buildBackendFilters() {
   const filters = [];
@@ -308,8 +294,6 @@ function buildBackendFilters() {
   return filters;
 }
 
-window.buildBackendFilters = buildBackendFilters;
-
 function buildBackendQueryPayload(queryName = '') {
   const standardDisplayFields = [];
   const specialFields = collectCurrentSpecialFields();
@@ -336,8 +320,6 @@ function buildBackendQueryPayload(queryName = '') {
 
   return payload;
 }
-
-window.buildBackendQueryPayload = buildBackendQueryPayload;
 
 export {
   buildBackendFilters,

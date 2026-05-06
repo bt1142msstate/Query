@@ -54,7 +54,7 @@ const HISTORY_TABLE_HEADS = Object.freeze({
 function getDefaultRowDependencies() {
   return {
     formatDuration: window.formatDuration,
-    normalizeUiConfigFilters: window.normalizeUiConfigFilters
+    normalizeUiConfigFilters: null
   };
 }
 

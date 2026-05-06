@@ -1,3 +1,5 @@
+import { mapFieldOperatorToUiCond } from '../filters/queryPayload.js';
+
 (function() {
   const services = window.AppServices;
   const { getDisplayedFields, getFilterGroupForField } = window.QueryStateReaders;
@@ -811,9 +813,7 @@
   }
 
   function normalizeQueryPreviewOperator(fieldDef, operator) {
-    const normalized = typeof window.mapFieldOperatorToUiCond === 'function'
-      ? window.mapFieldOperatorToUiCond(operator)
-      : String(operator || '').toLowerCase();
+    const normalized = mapFieldOperatorToUiCond(operator);
 
     if (!fieldDef || !fieldDef.type) {
       return normalized;
