@@ -1,10 +1,12 @@
+import { escapeRegExp } from './dataFormatters.js';
+
 function escapeRegExpFallback(value) {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+  return escapeRegExp(value);
 }
 
 function getDefaultRequestMapperDependencies() {
   return {
-    escapeRegExp: window.escapeRegExp || escapeRegExpFallback,
+    escapeRegExp,
     fieldDefsArray: window.fieldDefsArray,
     normalizeUiConfigFilters: null,
     registerDynamicField: window.registerDynamicField,

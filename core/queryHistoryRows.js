@@ -1,4 +1,5 @@
 import { buildHistoryExpandButton, escapeHistoryText } from './queryHistoryDetails.js';
+import { formatDuration } from './dataFormatters.js';
 import { getQueryStatusMeta } from './queryHistoryViewHelpers.js';
 
 const HISTORY_TABLE_HEADS = Object.freeze({
@@ -53,7 +54,7 @@ const HISTORY_TABLE_HEADS = Object.freeze({
 
 function getDefaultRowDependencies() {
   return {
-    formatDuration: window.formatDuration,
+    formatDuration,
     normalizeUiConfigFilters: null
   };
 }

@@ -1,3 +1,5 @@
+import { formatDuration } from './dataFormatters.js';
+
 const API_URL = 'https://mlp.sirsi.net/uhtbin/query_api.pl';
 let lastRateLimitNoticeUntil = 0;
 
@@ -9,23 +11,7 @@ function getRetryAfterSeconds(payload) {
 
 function formatRetryDelay(seconds) {
   const safeSeconds = Number.isFinite(Number(seconds)) ? Math.max(0, Math.ceil(Number(seconds))) : 0;
-
-  if (safeSeconds < 60) {
-    return `${safeSeconds}s`;
-  }
-
-  const days = Math.floor(safeSeconds / (24 * 60 * 60));
-  const hours = Math.floor((safeSeconds % (24 * 60 * 60)) / (60 * 60));
-  const minutes = Math.floor((safeSeconds % (60 * 60)) / 60);
-  const remainingSeconds = safeSeconds % 60;
-  const parts = [];
-
-  if (days > 0) parts.push(`${days} day${days !== 1 ? 's' : ''}`);
-  if (hours > 0) parts.push(`${hours} hr${hours !== 1 ? 's' : ''}`);
-  if (minutes > 0) parts.push(`${minutes} min`);
-  if (remainingSeconds > 0 || parts.length === 0) parts.push(`${remainingSeconds} sec`);
-
-  return parts.join(' ');
+  return formatDuration(safeSeconds);
 }
 
 function buildRateLimitMessage(payload = {}) {

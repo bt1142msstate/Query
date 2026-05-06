@@ -1,15 +1,17 @@
+import { escapeRegExp, formatDuration } from './dataFormatters.js';
+
 function createQueryHistoryDependencies(normalizeUiConfigFilters) {
   return {
     display() {
       return {
-        formatDuration: window.formatDuration,
+        formatDuration,
         formatStandardFilterTooltipHTML: window.TooltipManager?.formatStandardFilterTooltipHTML,
         normalizeUiConfigFilters
       };
     },
     mapper() {
       return {
-        escapeRegExp: window.escapeRegExp,
+        escapeRegExp,
         fieldDefsArray: window.fieldDefsArray,
         normalizeUiConfigFilters,
         registerDynamicField: window.registerDynamicField,

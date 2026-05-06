@@ -19,6 +19,7 @@ import {
   getPreferredHistorySection as getPreferredHistorySectionForCounts
 } from './queryHistoryViewHelpers.js';
 import { BackendApi } from './backendApi.js';
+import { formatDuration, parsePipeDelimitedRow } from './dataFormatters.js';
 import { formatFieldOperatorForDisplay, mapFieldOperatorToUiCond, normalizeUiConfigFilters } from '../filters/queryPayload.js';
 
 /* ---------- Query history state and renderer ---------- */
@@ -555,9 +556,7 @@ async function loadQueryResults(queryId) {
         const headers = currentDisplayedFields;
         
         const rows = lines.map(line => {
-          const obj = typeof window.parsePipeDelimitedRow === 'function'
-            ? window.parsePipeDelimitedRow(line, rawColumns)
-            : {};
+          const obj = parsePipeDelimitedRow(line, rawColumns);
             // Ensure all requested headers exist
             headers.forEach(h => {
                 if (!(h in obj)) obj[h] = '';
@@ -895,7 +894,7 @@ function updateRunningDurationsInPlace() {
     const start = new Date(q.startTime);
     if (isNaN(start.getTime())) return;
     const seconds = Math.max(0, Math.floor((Date.now() - start) / 1000));
-    cell.textContent = typeof window.formatDuration === 'function' ? window.formatDuration(seconds) : `${seconds}s`;
+    cell.textContent = formatDuration(seconds);
   });
 }
 

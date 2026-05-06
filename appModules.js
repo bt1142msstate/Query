@@ -1,4 +1,5 @@
 import './core/utils.js';
+import './core/dataFormatters.js';
 import './ui/toast.js';
 import './core/backendApi.js';
 import './filters/fieldDefs.js';
