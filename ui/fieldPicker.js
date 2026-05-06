@@ -1,4 +1,5 @@
 import { mapFieldOperatorToUiCond } from '../filters/queryPayload.js';
+import { VisibilityUtils } from '../core/visibility.js';
 
 (function() {
   const services = window.AppServices;
@@ -202,7 +203,7 @@ import { mapFieldOperatorToUiCond } from '../filters/queryPayload.js';
     function cleanup() {
       document.removeEventListener('keydown', onKeyDown);
       clearFilterPreview();
-      window.VisibilityUtils?.hide?.([backdrop, modal], {
+      VisibilityUtils.hide([backdrop, modal], {
         ariaHidden: true,
         raisedUiKey: 'field-picker-modal'
       });
@@ -792,7 +793,7 @@ import { mapFieldOperatorToUiCond } from '../filters/queryPayload.js';
 
     document.addEventListener('keydown', onKeyDown);
     renderList();
-    window.VisibilityUtils?.show?.([backdrop, modal], {
+    VisibilityUtils.show([backdrop, modal], {
       ariaHidden: false,
       raisedUiKey: 'field-picker-modal'
     });
@@ -1117,7 +1118,7 @@ import { mapFieldOperatorToUiCond } from '../filters/queryPayload.js';
     if (overlay) {
       overlay.classList.add('show');
     }
-    window.VisibilityUtils?.acquireRaisedUi?.('bubble-editor');
+    VisibilityUtils.acquireRaisedUi('bubble-editor');
 
     services.buildBubbleConditionPanel(bubble);
 

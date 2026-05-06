@@ -4,6 +4,7 @@
  * @class Bubble
  */
 import { mapUiCondToFieldOperator } from '../filters/queryPayload.js';
+import { VisibilityUtils } from '../core/visibility.js';
 
 var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
 var getActiveFilters = window.QueryStateReaders.getActiveFilters.bind(window.QueryStateReaders);
@@ -209,7 +210,7 @@ function resetBubbleEditorUi(options = {}) {
   if (overlay) {
     overlay.classList.remove('show', 'bubble-active');
   }
-  window.VisibilityUtils?.releaseRaisedUi?.('bubble-editor');
+  VisibilityUtils.releaseRaisedUi('bubble-editor');
   if (headerBar) {
     headerBar.classList.remove('header-hide');
   }

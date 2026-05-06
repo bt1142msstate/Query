@@ -3,6 +3,8 @@
  * Handles exporting table data to Excel files with proper formatting and type detection.
  * @module ExcelExporter
  */
+import { VisibilityUtils } from '../core/visibility.js';
+
 (() => {
   // When true, multi-value cells (delimited by \x1F) are split into separate columns
   // instead of being stacked as newlines in a single cell.
@@ -352,7 +354,7 @@
       elements.groupField.value = exportState.selectedGroupingField;
     }
 
-    window.VisibilityUtils.show([elements.overlay], {
+    VisibilityUtils.show([elements.overlay], {
       ariaHidden: false,
       bodyClass: 'export-overlay-open',
       raisedUiKey: 'export-overlay'
@@ -368,11 +370,11 @@
 
   function closeExportOverlay() {
     const elements = getExportElements();
-    if (!window.VisibilityUtils.isVisible(elements.overlay)) {
+    if (!VisibilityUtils.isVisible(elements.overlay)) {
       return;
     }
 
-    window.VisibilityUtils.hide([elements.overlay], {
+    VisibilityUtils.hide([elements.overlay], {
       ariaHidden: true,
       bodyClass: 'export-overlay-open',
       raisedUiKey: 'export-overlay'

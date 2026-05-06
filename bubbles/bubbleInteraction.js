@@ -1,4 +1,5 @@
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
+import { VisibilityUtils } from '../core/visibility.js';
 
 var getFilterGroupForField = window.QueryStateReaders.getFilterGroupForField.bind(window.QueryStateReaders);
 var getLifecycleState = window.QueryStateReaders.getLifecycleState.bind(window.QueryStateReaders);
@@ -223,7 +224,7 @@ function initializeBubbleInteractions() {
     if (overlay) {
       overlay.classList.add('show');
     }
-    window.VisibilityUtils?.acquireRaisedUi?.('bubble-editor');
+    VisibilityUtils.acquireRaisedUi('bubble-editor');
     services.buildBubbleConditionPanel(bubble);
 
     const inputWrapper = services.getBubbleInputWrapperElement() || (filterCard ? filterCard.querySelector('#condition-input-wrapper') : null);

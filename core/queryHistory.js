@@ -21,6 +21,7 @@ import {
 import { BackendApi } from './backendApi.js';
 import { formatDuration, parsePipeDelimitedRow } from './dataFormatters.js';
 import { onDOMReady } from './domReady.js';
+import { VisibilityUtils } from './visibility.js';
 import { formatFieldOperatorForDisplay, mapFieldOperatorToUiCond, normalizeUiConfigFilters } from '../filters/queryPayload.js';
 /* ---------- Query history state and renderer ---------- */
 let exampleQueries = [];
@@ -290,7 +291,6 @@ async function cancelQuery(queryId) {
   }
 }
 
-
 /* ---------- Tooltip Formatters ---------- */
 
 /**
@@ -337,7 +337,7 @@ function formatHistoryFiltersTooltip(filtersInput) {
 function closeHistoryDetailsOverlay() {
   const shell = document.querySelector('.history-details-modal-shell');
   if (shell) {
-    window.VisibilityUtils?.hide?.([shell], {
+    VisibilityUtils.hide([shell], {
       ariaHidden: true,
       raisedUiKey: 'history-details-overlay'
     });
@@ -366,7 +366,7 @@ function renderHistoryDetailsOverlay(queryId = activeHistoryDetailQueryId) {
   shell.classList.add('hidden');
   shell.innerHTML = buildHistoryDetailsOverlayHtml(q, historyDependencies.display());
   document.body.appendChild(shell);
-  window.VisibilityUtils?.show?.([shell], {
+  VisibilityUtils.show([shell], {
     ariaHidden: false,
     raisedUiKey: 'history-details-overlay'
   });

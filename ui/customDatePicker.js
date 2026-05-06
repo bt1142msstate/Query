@@ -1,3 +1,5 @@
+import { VisibilityUtils } from '../core/visibility.js';
+
 (function() {
   const MONTH_NAMES = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -395,7 +397,7 @@
       return;
     }
 
-    window.VisibilityUtils?.hide?.([popup], {
+    VisibilityUtils.hide([popup], {
       ariaHidden: true,
       raisedUiKey: 'custom-date-picker'
     });
@@ -435,7 +437,7 @@
     const selectedDate = parseIsoDate(input.value);
     visibleMonth = getMonthStart(selectedDate || new Date());
     viewMode = 'days';
-    window.VisibilityUtils?.show?.([popup], {
+    VisibilityUtils.show([popup], {
       ariaHidden: false,
       raisedUiKey: 'custom-date-picker'
     });

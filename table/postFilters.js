@@ -1,6 +1,6 @@
 import { onDOMReady } from '../core/domReady.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
-
+import { VisibilityUtils } from '../core/visibility.js';
 (function() {
   let equalsValueControl = null;
   let equalsValueControlField = '';
@@ -784,7 +784,7 @@ import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
   function closeOverlay() {
     const elements = getElements();
     if (!elements.overlay) return;
-    window.VisibilityUtils.hide([elements.overlay], {
+    VisibilityUtils.hide([elements.overlay], {
       ariaHidden: true,
       bodyClass: 'post-filter-overlay-open',
       raisedUiKey: 'post-filter-overlay'
@@ -806,7 +806,7 @@ import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
     }
 
     refreshOverlay();
-    window.VisibilityUtils.show([elements.overlay], {
+    VisibilityUtils.show([elements.overlay], {
       ariaHidden: false,
       bodyClass: 'post-filter-overlay-open',
       raisedUiKey: 'post-filter-overlay'
@@ -848,7 +848,7 @@ import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
     elements.valueInput.value = '';
     elements.valueInput2.value = '';
 
-    window.VisibilityUtils.show([elements.overlay], {
+    VisibilityUtils.show([elements.overlay], {
       ariaHidden: false,
       bodyClass: 'post-filter-overlay-open',
       raisedUiKey: 'post-filter-overlay'

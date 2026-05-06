@@ -1,5 +1,6 @@
 import { BackendApi } from './backendApi.js';
 import { onDOMReady } from './domReady.js';
+import { VisibilityUtils } from './visibility.js';
 import { buildQueryUiConfig } from '../filters/queryPayload.js';
 (function initializeQueryTemplates() {
   const NEW_TEMPLATE_ID = '__new_template__';
@@ -12,7 +13,6 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
       </g>
     </svg>
   `;
-
   const state = {
     templates: [],
     categories: [],
@@ -409,7 +409,7 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
     }
 
     state.detailOverlayOpen = true;
-    window.VisibilityUtils?.show?.([elements.detailOverlay, elements.detail], {
+    VisibilityUtils.show([elements.detailOverlay, elements.detail], {
       ariaHidden: false,
       raisedUiKey: 'templates-detail-overlay'
     });
@@ -433,7 +433,7 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
       state.selectedId = '';
       state.draft = null;
     }
-    window.VisibilityUtils?.hide?.([elements.detailOverlay, elements.detail], {
+    VisibilityUtils.hide([elements.detailOverlay, elements.detail], {
       ariaHidden: true,
       raisedUiKey: 'templates-detail-overlay'
     });
@@ -501,7 +501,7 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
     }
 
     state.categoriesOverlayOpen = true;
-    window.VisibilityUtils?.show?.([elements.categoriesOverlay], {
+    VisibilityUtils.show([elements.categoriesOverlay], {
       ariaHidden: false,
       raisedUiKey: 'templates-categories-overlay'
     });
@@ -521,7 +521,7 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
     }
 
     state.categoriesOverlayOpen = false;
-    window.VisibilityUtils?.hide?.([elements.categoriesOverlay], {
+    VisibilityUtils.hide([elements.categoriesOverlay], {
       ariaHidden: true,
       raisedUiKey: 'templates-categories-overlay'
     });
