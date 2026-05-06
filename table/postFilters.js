@@ -6,6 +6,7 @@ import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 import { showToastMessage } from '../core/toast.js';
 import { VisibilityUtils } from '../core/visibility.js';
 import { initializeSearchInputs } from '../ui/searchUI.js';
+import { SelectorControls } from '../ui/selectorControls.js';
 (function() {
   let equalsValueControl = null;
   let equalsValueControlField = '';
@@ -589,9 +590,7 @@ import { initializeSearchInputs } from '../ui/searchUI.js';
     elements.valuePickerHost.innerHTML = '';
 
     const selector = createStreamedEqualsSelector(fieldName);
-    const control = window.SelectorControls?.createPopupListControl
-      ? window.SelectorControls.createPopupListControl(selector, `${fieldName} values`, 'Choose one or more loaded values...')
-      : selector;
+    const control = SelectorControls.createPopupListControl(selector, `${fieldName} values`, 'Choose one or more loaded values...');
 
     control.classList.add('post-filter-value-control');
     control.destroy = function() {

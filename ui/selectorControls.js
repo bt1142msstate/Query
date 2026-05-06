@@ -867,10 +867,19 @@ function createListPasteInput(currentValues = [], options = {}) {
   return container;
 }
 
-window.SelectorControls = Object.freeze({
+const SelectorControls = Object.freeze({
   createBooleanPillSelector,
   createGroupedSelector,
   createListPasteInput,
   createPopupListControl,
   parseListInputValues
 });
+
+export {
+  SelectorControls,
+  createBooleanPillSelector,
+  createGroupedSelector,
+  createListPasteInput,
+  createPopupListControl,
+  parseListInputValues
+};
