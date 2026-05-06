@@ -4,7 +4,7 @@ import { OperatorLabels } from '../core/operatorLabels.js';
 import { QueryStateReaders } from '../core/queryState.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 import { showToastMessage } from '../core/toast.js';
-import { MoneyUtils } from '../core/utils.js';
+import { MoneyUtils, ValueFormatting } from '../core/utils.js';
 import { VisibilityUtils } from '../core/visibility.js';
 import { initializeSearchInputs } from '../ui/searchUI.js';
 import { SelectorControls } from '../ui/selectorControls.js';
@@ -77,11 +77,11 @@ import { SelectorControls } from '../ui/selectorControls.js';
   }
 
   function getFieldType(fieldName) {
-    return window.ValueFormatting.getFieldType(fieldName);
+    return ValueFormatting.getFieldType(fieldName);
   }
 
   function getNumberFormat(fieldName) {
-    return window.ValueFormatting?.getNumberFormat?.(fieldName) || '';
+    return ValueFormatting.getNumberFormat(fieldName) || '';
   }
 
   function getOperatorOptions(fieldName) {
@@ -129,14 +129,14 @@ import { SelectorControls } from '../ui/selectorControls.js';
 
     if (String(filter?.cond || '').toLowerCase() === 'between') {
       const [left, right] = rawValue.split('|');
-      const formatBound = value => window.ValueFormatting.formatValueByType(String(value || ''), type, {
+      const formatBound = value => ValueFormatting.formatValueByType(String(value || ''), type, {
         fieldName,
         dateFallbackToRaw: true
       });
       return `${formatBound(left)} - ${formatBound(right)}`;
     }
 
-    return window.ValueFormatting.formatValueByType(rawValue, type, {
+    return ValueFormatting.formatValueByType(rawValue, type, {
       fieldName,
       dateFallbackToRaw: true
     });

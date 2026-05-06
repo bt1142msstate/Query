@@ -1,6 +1,6 @@
 import { appServices } from '../core/appServices.js';
 import { appUiActions } from '../core/appUiActions.js';
-import { Icons, MoneyUtils } from '../core/utils.js';
+import { Icons, MoneyUtils, ValueFormatting } from '../core/utils.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import {
     buildFilterValueLabel,
@@ -792,7 +792,7 @@ window.handleFilterConfirm = function(e) {
     
     const fieldDef = window.fieldDefs.get(field);
     const fieldType = (bubble && bubble.dataset.type) || (fieldDef && fieldDef.type) || 'string';
-    const numberFormat = window.ValueFormatting?.getNumberFormat?.(field) || '';
+    const numberFormat = ValueFormatting.getNumberFormat(field) || '';
     if (fieldType === 'money' || fieldType === 'number') {
         const allowDecimal = fieldType === 'money' || (fieldType === 'number' && numberFormat === 'decimal');
         val = MoneyUtils.sanitizeInputValue(val, { allowDecimal });
@@ -1231,7 +1231,7 @@ window.configureInputsForType = function(type){
   const isMoney  = type==='money';
   const isNumber = type==='number';
     const currentFieldName = getActiveFilterFieldName();
-    const numberFormat = window.ValueFormatting?.getNumberFormat?.(currentFieldName) || '';
+    const numberFormat = ValueFormatting.getNumberFormat(currentFieldName) || '';
     const isDate = type === 'date';
     const htmlType = 'text';
 

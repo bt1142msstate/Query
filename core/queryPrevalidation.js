@@ -1,5 +1,5 @@
 import { showToastMessage } from './toast.js';
-import { MoneyUtils } from './utils.js';
+import { MoneyUtils, ValueFormatting } from './utils.js';
 
 (function initializeQueryPrevalidation() {
   let lastRejectedToast = {
@@ -233,7 +233,7 @@ import { MoneyUtils } from './utils.js';
   }
 
   function getFieldType(fieldName) {
-    return window.ValueFormatting?.getFieldType?.(fieldName, { inferMoneyFromName: true }) || '';
+    return ValueFormatting.getFieldType(fieldName, { inferMoneyFromName: true }) || '';
   }
 
   function parseComparableValue(fieldName, rawValue) {

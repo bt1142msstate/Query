@@ -4,7 +4,7 @@
  */
 import { ClipboardUtils } from '../core/clipboard.js';
 import { showToastMessage } from '../core/toast.js';
-import { MoneyUtils } from '../core/utils.js';
+import { MoneyUtils, ValueFormatting } from '../core/utils.js';
 import { VisibilityUtils } from '../core/visibility.js';
 
   function getFilterValueMap(fieldDef) {
@@ -27,14 +27,14 @@ import { VisibilityUtils } from '../core/visibility.js';
       : String(filter && filter.val || '').split(',');
     const valueMap = getFilterValueMap(fieldDef);
     const fieldName = fieldDef?.name || '';
-    const fieldType = window.ValueFormatting?.getFieldType?.(fieldName, { inferMoneyFromName: true }) || '';
+    const fieldType = ValueFormatting.getFieldType(fieldName, { inferMoneyFromName: true }) || '';
 
     return rawValues
       .map(value => String(value).trim())
       .filter(Boolean)
       .map(value => {
         const mappedValue = valueMap.get(value) || value;
-        if (!fieldType || !window.ValueFormatting) {
+        if (!fieldType) {
           return mappedValue;
         }
 
@@ -42,10 +42,10 @@ import { VisibilityUtils } from '../core/visibility.js';
           const numericValue = MoneyUtils.parseNumber(mappedValue);
           return Number.isNaN(numericValue)
             ? mappedValue
-            : window.ValueFormatting.formatValueByType(numericValue, fieldType, { fieldName });
+            : ValueFormatting.formatValueByType(numericValue, fieldType, { fieldName });
         }
 
-        return window.ValueFormatting.formatValueByType(mappedValue, fieldType, {
+        return ValueFormatting.formatValueByType(mappedValue, fieldType, {
           fieldName,
           invalidDateValue: 'Never',
           dateFallbackToRaw: true

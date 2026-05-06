@@ -6,7 +6,7 @@
 import { appServices } from '../core/appServices.js';
 import { showToastMessage } from '../core/toast.js';
 import { QueryStateReaders } from '../core/queryState.js';
-import { MoneyUtils } from '../core/utils.js';
+import { MoneyUtils, ValueFormatting } from '../core/utils.js';
 import { VisibilityUtils } from '../core/visibility.js';
 
 (() => {
@@ -432,7 +432,7 @@ import { VisibilityUtils } from '../core/visibility.js';
         column.numFmt = 'mm/dd/yyyy';
         column.alignment = { horizontal: 'right' };
       } else if (type === 'number' || type === 'money') {
-        const numberFormat = window.ValueFormatting?.getNumberFormat?.(field) || '';
+        const numberFormat = ValueFormatting.getNumberFormat(field) || '';
         const colIndex = sourceData.virtualData.columnMap.get(field);
         const sample = colIndex !== undefined
           ? rowsToExport.map(r => r[colIndex]).find(v => v !== null && v !== undefined && v !== '')

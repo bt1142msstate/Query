@@ -166,7 +166,7 @@ window.OperatorSelectUtils = (() => {
   };
 })();
 
-window.ValueFormatting = (() => {
+const ValueFormatting = (() => {
   function getFieldDefinition(fieldName) {
     if (!window.fieldDefs) {
       return null;
@@ -633,7 +633,7 @@ const FormatUtils = {
     }
     const s = String(raw);
     if (s === '' || s === '\u2014') return s;
-    const vf = window.ValueFormatting;
+    const vf = ValueFormatting;
     if (!vf) return s;
     const type = vf.getFieldType?.(field, { inferMoneyFromName: true });
     if (!type) return s;
@@ -654,7 +654,6 @@ const EventUtils = window.EventUtils;
 const OperatorSelectUtils = window.OperatorSelectUtils;
 const TableBuilder = window.TableBuilder;
 const TextMeasurement = window.TextMeasurement;
-const ValueFormatting = window.ValueFormatting;
 const escapeHtml = window.escapeHtml;
 
 export {
