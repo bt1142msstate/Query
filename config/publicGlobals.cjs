@@ -37,7 +37,6 @@ const publicWindowAssignments = [
   'QueryTableAnimation',
   'SharedFieldPicker',
   'SelectorControls',
-  'SearchUI',
   'TableNameInput',
   'TableBuilder',
   'TooltipManager',

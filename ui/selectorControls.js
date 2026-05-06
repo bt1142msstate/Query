@@ -1,4 +1,5 @@
 import { VisibilityUtils } from '../core/visibility.js';
+import { initializeSearchInputs } from './searchUI.js';
 
 function createBooleanPillSelector(values, currentValue = '', options = {}) {
   const onChange = typeof options.onChange === 'function' ? options.onChange : null;
@@ -132,7 +133,7 @@ function createGroupedSelector(values, isMultiSelect, currentValues = [], option
   searchInput.dataset.searchWrapperClass = 'grouped-selector-search-field';
   searchInput.dataset.searchClearLabel = 'Clear option search';
   searchWrapper.appendChild(searchInput);
-  window.SearchUI?.initializeSearchInputs?.(searchWrapper);
+  initializeSearchInputs(searchWrapper);
   container.appendChild(searchWrapper);
 
   const optionsContainer = document.createElement('div');

@@ -97,7 +97,13 @@ function initializeSearchInputs(root = document) {
   return inputs;
 }
 
-window.SearchUI = Object.freeze({
+const SearchUI = Object.freeze({
   enhanceSearchInput,
   initializeSearchInputs
 });
+
+export {
+  SearchUI,
+  enhanceSearchInput,
+  initializeSearchInputs
+};
