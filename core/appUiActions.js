@@ -2,8 +2,8 @@
  * Thin facade for cross-module UI actions.
  * Keeps callers from reaching directly into exported window functions.
  */
-import { appServices } from './appServices.js?v=3';
-import { DOM } from '../ui/domCache.js?v=3';
+import { appServices } from './appServices.js';
+import { DOM } from '../ui/domCache.js';
 
 let appUiActions;
 

@@ -661,15 +661,12 @@ class SimpleTable {
     }
 }
 
-// Export for Node.js
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        SimpleTable,
-        GroupMethod,
-        FilterOperator,
-        LogicalOperator,
-        Filter,
-        FilterGroup,
-        FieldSpec
-    };
-}
+export {
+    FieldSpec,
+    Filter,
+    FilterGroup,
+    FilterOperator,
+    GroupMethod,
+    LogicalOperator,
+    SimpleTable
+};

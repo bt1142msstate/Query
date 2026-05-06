@@ -2,7 +2,7 @@
  * Thin service facade over major subsystem globals.
  * Keeps consumers from coupling directly to implementation-specific globals.
  */
-import { AppState } from './queryState.js?v=26';
+import { AppState } from './queryState.js';
 
 let appServices;
 

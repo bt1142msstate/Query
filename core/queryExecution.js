@@ -2,14 +2,14 @@
 // HTTP query execution: build payload, run, stop, stream, parse, clear.
 // UI coordination after a query completes goes through AppUiActions/AppServices.
 
-import { BackendApi, parsePipeDelimitedRow } from './utils.js?v=19';
-import { AppState, QueryChangeManager, QueryStateReaders } from './queryState.js?v=26';
-import { appServices } from './appServices.js?v=3';
-import { appUiActions } from './appUiActions.js?v=5';
-import { buildBackendQueryPayload, buildQueryUiConfig } from '../filters/queryPayload.js?v=8';
-import { DOM } from '../ui/domCache.js?v=3';
-import { ensureTableName } from '../ui/queryUI.js?v=25';
-import { showToastMessage } from '../ui/toast.js?v=2';
+import { BackendApi, parsePipeDelimitedRow } from './utils.js';
+import { AppState, QueryChangeManager, QueryStateReaders } from './queryState.js';
+import { appServices } from './appServices.js';
+import { appUiActions } from './appUiActions.js';
+import { buildBackendQueryPayload, buildQueryUiConfig } from '../filters/queryPayload.js';
+import { DOM } from '../ui/domCache.js';
+import { ensureTableName } from '../ui/queryUI.js';
+import { showToastMessage } from '../ui/toast.js';
 
 const execDom = DOM;
 const appState = AppState;
