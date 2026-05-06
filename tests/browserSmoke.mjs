@@ -271,6 +271,54 @@ async function seedLoadedResults(page) {
   await page.locator('#example-table').waitFor({ state: 'attached', timeout: 5000 });
 }
 
+async function exerciseBubbleFilterInteraction(page) {
+  await page.evaluate(() => {
+    const fieldDef = {
+      name: 'Smoke Filter Field',
+      category: 'Smoke',
+      desc: 'Browser interaction coverage field',
+      filters: ['equals', 'contains'],
+      type: 'string'
+    };
+
+    window.fieldDefs.set(fieldDef.name, fieldDef);
+    window.fieldDefsArray = [
+      fieldDef,
+      ...(Array.isArray(window.fieldDefsArray)
+        ? window.fieldDefsArray.filter(field => field?.name !== fieldDef.name)
+        : [])
+    ];
+    window.filteredDefs = [fieldDef];
+    window.AppState.currentCategory = 'All';
+
+    window.QueryChangeManager.setQueryState({
+      displayedFields: [],
+      activeFilters: {
+        [fieldDef.name]: {
+          filters: [
+            { cond: 'equals', val: 'Smoke Value' }
+          ]
+        }
+      }
+    }, { source: 'BrowserSmoke.bubbleFilterInteraction' });
+
+    window.BubbleSystem.safeRenderBubbles();
+    window.FilterSidePanel.update();
+  });
+
+  const activeBubble = page.locator('#bubble-list .bubble[data-filtered="true"]', {
+    hasText: 'Smoke Filter Field'
+  }).first();
+  await activeBubble.waitFor({ state: 'attached', timeout: 5000 });
+
+  const tooltipHtml = await activeBubble.getAttribute('data-tooltip-html');
+  if (!tooltipHtml || !tooltipHtml.includes('Smoke Value')) {
+    throw new Error('Filtered bubble tooltip did not include the active filter value');
+  }
+
+  await page.locator('.fp-cond-text', { hasText: 'Smoke Value' }).waitFor({ state: 'attached', timeout: 5000 });
+}
+
 async function runSmokeTest() {
   const server = createServer(serveStaticFile);
   const port = await listen(server);
@@ -311,15 +359,7 @@ async function runSmokeTest() {
       window.QueryTableView.syncEmptyTableMessage();
     });
 
-    await page.evaluate(() => {
-      window.QueryChangeManager.upsertFilter(
-        'Smoke Filter Field',
-        { cond: 'equals', val: 'Smoke Value' },
-        { source: 'BrowserSmoke.activeFilter' }
-      );
-      window.FilterSidePanel.update();
-    });
-    await page.locator('.fp-cond-text').waitFor({ state: 'attached', timeout: 5000 });
+    await exerciseBubbleFilterInteraction(page);
 
     await page.getByRole('button', { name: 'Queries' }).click();
     await page.locator('input[placeholder="Search queries..."]').waitFor({ state: 'visible', timeout: 5000 });
