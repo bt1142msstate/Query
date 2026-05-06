@@ -4,13 +4,13 @@
  * @class Bubble
  */
 import { mapUiCondToFieldOperator } from '../filters/queryPayload.js';
-import { QueryStateReaders } from '../core/queryState.js';
+import { AppState, QueryStateReaders } from '../core/queryState.js';
 import { VisibilityUtils } from '../core/visibility.js';
 
 var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
 var getActiveFilters = QueryStateReaders.getActiveFilters.bind(QueryStateReaders);
 var hasFiltersForField = QueryStateReaders.hasFiltersForField.bind(QueryStateReaders);
-var appState = window.AppState;
+var appState = AppState;
 
 class Bubble {
   constructor(def, state = {}) {

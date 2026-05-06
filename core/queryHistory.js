@@ -21,7 +21,7 @@ import {
 import { BackendApi } from './backendApi.js';
 import { formatDuration, parsePipeDelimitedRow } from './dataFormatters.js';
 import { onDOMReady } from './domReady.js';
-import { QueryChangeManager, QueryStateReaders } from './queryState.js';
+import { AppState, QueryChangeManager, QueryStateReaders } from './queryState.js';
 import { showToastMessage } from './toast.js';
 import { VisibilityUtils } from './visibility.js';
 import { formatFieldOperatorForDisplay, mapFieldOperatorToUiCond, normalizeUiConfigFilters } from '../filters/queryPayload.js';
@@ -607,7 +607,7 @@ async function loadQueryResults(queryId) {
             if (services.bubble?.resetBubbleScroll) {
               services.resetBubbleScroll();
             } else {
-              window.AppState.scrollRow = 0;
+              AppState.scrollRow = 0;
               services.updateBubbleScrollBar();
             }
             uiActions.updateButtonStates();

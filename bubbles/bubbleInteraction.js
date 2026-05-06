@@ -1,11 +1,11 @@
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
-import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
+import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
 import { VisibilityUtils } from '../core/visibility.js';
 
 var getFilterGroupForField = QueryStateReaders.getFilterGroupForField.bind(QueryStateReaders);
 var getLifecycleState = QueryStateReaders.getLifecycleState.bind(QueryStateReaders);
-var appState = window.AppState;
+var appState = AppState;
 var services = window.AppServices;
 let bubbleEventsInitialized = false;
 

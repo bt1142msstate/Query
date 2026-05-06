@@ -2,11 +2,11 @@
  * Shared column-operation helpers for drag/drop interactions.
  * Keeps structural column changes separate from pointer and drag orchestration.
  */
-import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
+import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 
 (function initializeDragDropColumns() {
   const getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
-  const appState = window.AppState;
+  const appState = AppState;
   const services = window.AppServices;
   const uiActions = window.AppUiActions;
 
