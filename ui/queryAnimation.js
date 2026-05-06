@@ -286,7 +286,7 @@ function updateTableQueryBubbleMetrics(bubble, metrics = {}) {
   }
 }
 
-window.startTableQueryAnimation = function() {
+function startTableQueryAnimation() {
   const tableContainer = document.getElementById('table-container');
   if (!tableContainer) return;
 
@@ -422,15 +422,15 @@ window.startTableQueryAnimation = function() {
       document.getElementById('table-query-circuit').classList.add('active');
     }
   }, 120);
-};
+}
 
-window.updateTableQueryAnimationProgress = function(metrics = {}) {
+function updateTableQueryAnimationProgress(metrics = {}) {
   const bubble = document.getElementById('table-query-bubble');
   if (!bubble) return;
   updateTableQueryBubbleMetrics(bubble, metrics);
-};
+}
 
-window.endTableQueryAnimation = function() {
+function endTableQueryAnimation() {
   const tableContainer = document.getElementById('table-container');
   const bubble = document.getElementById('table-query-bubble');
   const circuit = document.getElementById('table-query-circuit');
@@ -567,4 +567,10 @@ window.endTableQueryAnimation = function() {
       setTimeout(completeMove, (morphDuration * 1000) + 120);
     }
   }
-};
+}
+
+window.QueryTableAnimation = Object.freeze({
+  endTableQueryAnimation,
+  startTableQueryAnimation,
+  updateTableQueryAnimationProgress
+});

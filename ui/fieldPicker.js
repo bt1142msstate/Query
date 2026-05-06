@@ -151,8 +151,8 @@ import { mapFieldOperatorToUiCond } from '../filters/queryPayload.js';
     let previewSyncTimer = null;
     const filterPreviewDrafts = new Map();
 
-    if (searchInput && typeof window.initializeSearchInputs === 'function') {
-      window.initializeSearchInputs(modal);
+    if (searchInput) {
+      window.SearchUI?.initializeSearchInputs?.(modal);
     }
 
     let selectedFieldName = options.some(option => option.name === config.initialFieldName)

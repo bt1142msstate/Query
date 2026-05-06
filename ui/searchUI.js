@@ -1,10 +1,8 @@
 window.onDOMReady(() => {
-  if (typeof window.initializeSearchInputs === 'function') {
-    window.initializeSearchInputs(document);
-  }
+  initializeSearchInputs(document);
 });
 
-window.enhanceSearchInput = function(input, options = {}) {
+function enhanceSearchInput(input, options = {}) {
   if (!(input instanceof HTMLInputElement)) {
     return null;
   }
@@ -81,18 +79,23 @@ window.enhanceSearchInput = function(input, options = {}) {
     input,
     clearButton
   };
-};
+}
 
-window.initializeSearchInputs = function(root = document) {
+function initializeSearchInputs(root = document) {
   const searchRoot = root && typeof root.querySelectorAll === 'function' ? root : document;
   const inputs = Array.from(searchRoot.querySelectorAll('input[data-search-ui="enhanced"]'));
 
   inputs.forEach(input => {
-    window.enhanceSearchInput(input, {
+    enhanceSearchInput(input, {
       wrapperClass: input.dataset.searchWrapperClass || '',
       clearLabel: input.dataset.searchClearLabel || 'Clear search'
     });
   });
 
   return inputs;
-};
+}
+
+window.SearchUI = Object.freeze({
+  enhanceSearchInput,
+  initializeSearchInputs
+});
