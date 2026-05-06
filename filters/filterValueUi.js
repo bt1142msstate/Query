@@ -201,9 +201,6 @@
   });
 
   window.FilterValueUi = filterValueUi;
-  window.getFilterDisplayValues = getFilterDisplayValues;
-  window.openFilterListViewer = openFilterListViewer;
-  window.shouldUseFilterListViewer = shouldUseFilterListViewer;
 })();
 
 const FilterValueUi = window.FilterValueUi;
