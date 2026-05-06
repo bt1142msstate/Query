@@ -7,8 +7,9 @@ This project is a static browser app organized as feature-oriented ES modules. T
 For a frontend job portfolio, the project is now an A+ architecture sample for a vanilla JavaScript application:
 
 - It solves a real workflow with complex state, async execution, virtualized data display, export, overlays, and editable forms.
-- It uses browser ES modules instead of legacy script tags.
+- It uses native browser ES modules and declares `"type": "module"` for Node-side tooling.
 - It has executable guardrails for module specifiers, public globals, query-state access, module reachability, import cycles, layer boundaries, and browser smoke behavior.
+- Query history is split into request mapping, row rendering, detail rendering, view metadata, and coordinator modules.
 - It documents the intended module boundaries and known legacy areas.
 
 The remaining tradeoff is that some older modules still publish `window.*` APIs for compatibility. Those globals are now treated as an explicit compatibility layer rather than accidental coupling, and the allowlist lives in one shared config file used by both lint and architecture tests.
@@ -31,7 +32,7 @@ The remaining tradeoff is that some older modules still publish `window.*` APIs 
 | State | `core/queryState.js` | Query state, lifecycle flags, read/write facades |
 | Services/actions | `core/appServices.js`, `core/appUiActions.js` | Cross-feature coordination without direct feature coupling |
 | Data contract | `filters/queryPayload.js`, `filters/fieldDefs.js` | Backend payload generation, field metadata, filter normalization |
-| Feature UI | `ui/`, `filters/`, `bubbles/`, `table/`, `core/queryHistory.js`, `core/queryTemplates.js` | User workflows and rendering |
+| Feature UI | `ui/`, `filters/`, `bubbles/`, `table/`, `core/queryHistory*.js`, `core/queryTemplates.js` | User workflows and rendering |
 | Styles | `styles/app.css` plus feature CSS files | Feature-scoped styling with a single stylesheet entry |
 | Architecture config | `config/` | Public globals, module budgets, and import-boundary rules |
 | Tests | `tests/` | Architecture checks and browser smoke coverage |
@@ -75,13 +76,14 @@ That runs:
 - `npm run lint`: syntax, globals, module rules, query-state boundaries.
 - `npm run test:architecture`: architecture fitness checks, legacy module budgets, approved public globals, import graph reachability, import cycles, and layer boundaries.
 - `npm run test:modules`: canonical ES module specifiers.
+- `npm run test:unit`: focused pure-logic tests for query-history status, mapping, and row output.
 - `npm run test:browser`: Playwright smoke test for runtime behavior and key UI styling.
 
 ## Legacy Budgets
 
 Some modules are intentionally allowed above the normal line-count budget while they are being split:
 
-- Query history
+- Query history coordinator
 - Query state
 - Query templates
 - Shared utilities
@@ -97,7 +99,7 @@ The architecture fitness test prevents those files from growing. New large modul
 ## Recommended Next Refactors
 
 1. Split `ui/formMode.js` into schema parsing, lifecycle coordination, rendering, and event binding modules.
-2. Split `core/queryHistory.js` into polling, rendering, details modal, and row actions.
+2. Split `core/queryTemplates.js` into storage, rendering, category management, and editor modules.
 3. Replace compatibility globals feature by feature with explicit ES imports.
 4. Add focused unit tests for `filters/queryPayload.js`, `core/queryState.js`, and `table/simpleTable.js`.
 5. Consider TypeScript or JSDoc type checking if the project needs a stronger enterprise-style portfolio signal.
