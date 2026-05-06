@@ -58,11 +58,15 @@ Results render in a virtualized table (25 visible rows at a time) for smooth per
 | `ui/` | Form mode, modals, toasts, tooltips, and shared helpers |
 | `styles/` | Feature-based CSS |
 | `styles/app.css` | Stylesheet entrypoint that imports the feature CSS files |
+| `docs/ARCHITECTURE.md` | Frontend architecture notes, quality gates, and refactor plan |
+| `tests/` | Browser smoke tests and architecture fitness checks |
 
 ## 🛠️ Tech
 
 - Static HTML, CSS, and vanilla JavaScript — no build step required
-- Feature-oriented folder structure
+- Browser ES modules with a single app entrypoint
+- Feature-oriented folder structure with guarded public globals
+- ESLint, architecture fitness checks, and Playwright browser smoke tests
 - [ExcelJS](https://github.com/exceljs/exceljs) for Excel export
 
 ## 🚀 Running Locally
@@ -71,7 +75,19 @@ Results render in a virtualized table (25 visible rows at a time) for smooth per
 2. Open the app through that server (not directly from the filesystem).
 3. Point it at a compatible backend.
 
-## � Roadmap
+## Architecture
+
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for module boundaries, runtime flow, quality gates, and the remaining compatibility layer.
+
+## Quality Checks
+
+```bash
+npm test
+```
+
+Runs lint, architecture fitness checks, module-specifier checks, and a browser smoke test.
+
+## Roadmap
 
 - Optional sign-in with an AI provider (Gemini, ChatGPT) to help turn reporting needs into query specs
 - Cleaner backend contract layer to make integrations easier to swap
