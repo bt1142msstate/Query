@@ -702,6 +702,7 @@ function loadQueryConfig(q) {
     hasPartialResults: false,
     hasLoadedResultSet: false
   }, { source: 'QueryHistory.loadQueryConfig', silent: true });
+  services.clearPostFilters?.({ refreshView: false, notify: true, resetScroll: false });
   uiActions.updateTableResultsLip();
 
   if (tableNameInput) {

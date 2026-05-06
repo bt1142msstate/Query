@@ -29,6 +29,10 @@ function updateTableResultsLip() {
   const rowCount = Array.isArray(tableData?.rows)
     ? tableData.rows.length
     : 0;
+  const postFilterStats = services.getPostFilterStats?.() || null;
+  const hasPostFilters = services.hasPostFilters?.() === true;
+  const totalRowCount = Number(postFilterStats?.totalRows || 0);
+  const isFilteredResultView = hasPostFilters && totalRowCount > 0 && totalRowCount !== rowCount;
   const columnCount = getDisplayedFields().length;
   const hasResults = rowCount > 0 || columnCount > 0;
 
@@ -41,7 +45,9 @@ function updateTableResultsLip() {
   // to scope interaction effects (e.g. cell hover glow) to real results.
   document.body.classList.toggle('has-loaded-data', rowCount > 0);
 
-  resultsCount.textContent = rowCount.toLocaleString();
+  resultsCount.textContent = isFilteredResultView
+    ? `${rowCount.toLocaleString()} of ${totalRowCount.toLocaleString()}`
+    : rowCount.toLocaleString();
   resultsLabel.textContent = rowCount === 1 ? 'result' : 'results';
   columnsCount.textContent = columnCount.toLocaleString();
   columnsLabel.textContent = columnCount === 1 ? 'column' : 'columns';
@@ -49,6 +55,11 @@ function updateTableResultsLip() {
   // alongside the Planning badge — the two are mutually exclusive.
   resultsBadge.classList.toggle('hidden', !hasResults || isPlanningMode);
   resultsBadge.setAttribute('aria-hidden', (hasResults && !isPlanningMode) ? 'false' : 'true');
+  if (isFilteredResultView) {
+    resultsBadge.setAttribute('data-tooltip', `Showing ${rowCount.toLocaleString()} of ${totalRowCount.toLocaleString()} rows after post filters`);
+  } else {
+    resultsBadge.removeAttribute('data-tooltip');
+  }
 
   if (tableNameShell) {
     tableNameShell.classList.toggle('has-results', hasResults);
