@@ -49,8 +49,6 @@ import './bubbles/bubbleInteraction.js';
 import './ui/queryBuilderShell.js';
 import './ui/tableNameInput.js';
 import './core/queryExecution.js';
-import './ui/formModeStateHelpers.js';
-import './ui/formModeControls.js';
 import './ui/formMode.js';
 import './core/bootstrap.js';
 

@@ -1,4 +1,3 @@
-(function initializeFormModeStateHelpers() {
   function getFieldDef(fieldName) {
     return window.fieldDefs && fieldName ? window.fieldDefs.get(fieldName) : null;
   }
@@ -196,12 +195,21 @@
     return '';
   }
 
-  window.FormModeStateHelpers = Object.freeze({
-    collectBindings,
-    setTableName,
-    ensureColumnsRegistered,
-    buildActiveFilters,
-    updateHeaderCopy,
-    getValidationError
-  });
-})();
+const FormModeStateHelpers = Object.freeze({
+  collectBindings,
+  setTableName,
+  ensureColumnsRegistered,
+  buildActiveFilters,
+  updateHeaderCopy,
+  getValidationError
+});
+
+export {
+  FormModeStateHelpers,
+  buildActiveFilters,
+  collectBindings,
+  ensureColumnsRegistered,
+  getValidationError,
+  setTableName,
+  updateHeaderCopy
+};

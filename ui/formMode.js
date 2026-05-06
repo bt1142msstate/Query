@@ -6,14 +6,14 @@ import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
 import { mapFieldOperatorToUiCond } from '../filters/queryPayload.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
+import { FormModeControls as formModeControls } from './formModeControls.js';
+import { FormModeStateHelpers as formModeStateHelpers } from './formModeStateHelpers.js';
 
 let QueryFormMode;
 
 (function() {
   const services = appServices;
   const uiActions = appUiActions;
-  const formModeStateHelpers = window.FormModeStateHelpers;
-  const formModeControls = window.FormModeControls;
   const {
     collectBindings: collectFormBindings,
     setTableName: syncFormTableName,
