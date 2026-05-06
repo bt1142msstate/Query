@@ -540,17 +540,40 @@
 
 @media (max-width: 640px) {
   .form-mode-popup-list-popup {
-    width: min(96vw, 760px);
-    min-height: min(22rem, 78vh);
-    max-height: min(86vh, 720px);
+    top: auto;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    left: 0.5rem;
+    width: auto;
+    min-height: 0;
+    max-height: min(88vh, calc(100vh - 1rem));
+    max-height: min(88dvh, calc(100dvh - 1rem));
+    border-radius: 1.1rem;
+    transform: none;
   }
 
   .form-mode-popup-list-popup-header {
     padding: 0.7rem 0.8rem;
   }
 
+  .form-mode-popup-list-done {
+    min-height: 2.35rem;
+    padding-inline: 1rem;
+  }
+
   .form-mode-popup-list-popup-body {
+    min-height: 0;
     padding: 0.75rem;
+  }
+
+  .form-mode-popup-list-popup-body .grouped-selector,
+  .form-mode-popup-list-popup-body .list-paste-input {
+    min-height: min(18rem, calc(100vh - 9rem));
+    min-height: min(18rem, calc(100dvh - 9rem));
+  }
+
+  .form-mode-popup-list-popup-body .grouped-options-container {
+    max-height: min(46vh, 360px);
   }
 }
 
@@ -964,6 +987,68 @@
 
   .form-mode-field-picker-list {
     min-height: 180px;
+  }
+}
+
+@media (max-width: 640px) {
+  .form-mode-field-picker-modal {
+    top: auto;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    left: 0.5rem;
+    width: auto;
+    max-height: min(90vh, calc(100vh - 1rem));
+    max-height: min(90dvh, calc(100dvh - 1rem));
+    border-radius: 1.1rem;
+    transform: none;
+  }
+
+  .form-mode-field-picker-header,
+  .form-mode-field-picker-footer {
+    padding: 0.85rem;
+  }
+
+  .form-mode-field-picker-header {
+    align-items: flex-start;
+    gap: 0.7rem;
+  }
+
+  .form-mode-field-picker-title {
+    font-size: 1.05rem;
+    line-height: 1.2;
+  }
+
+  .form-mode-field-picker-description {
+    font-size: 0.84rem;
+  }
+
+  .form-mode-field-picker-close {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .form-mode-field-picker-body {
+    gap: 0.85rem;
+    padding: 0.85rem;
+    overflow: auto;
+  }
+
+  .form-mode-field-picker-list {
+    min-height: 12rem;
+    max-height: 38vh;
+  }
+
+  .form-mode-field-picker-details {
+    overflow: visible;
+    max-height: none;
+  }
+
+  .form-mode-field-picker-choice {
+    min-height: 2.8rem;
+  }
+
+  .form-mode-field-picker-footer {
+    align-items: stretch;
   }
 }
 select.form-mode-operator-select {

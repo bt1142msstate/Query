@@ -650,13 +650,72 @@ input[type="search"]:-webkit-autofill,
 }
 
 @media (max-width: 640px) {
+  .grouped-selector {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    max-height: min(62vh, 460px);
+    border-radius: 0.95rem;
+  }
+
+  .grouped-options-container {
+    max-height: min(46vh, 360px);
+    padding: 0.5rem;
+  }
+
+  .grouped-options-container--virtualized {
+    min-height: 14rem;
+  }
+
+  .boolean-pill-selector {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+    border-radius: 0.9rem;
+  }
+
+  .boolean-pill-option {
+    width: 100%;
+    min-width: 0;
+    min-height: 2.5rem;
+  }
+
+  .boolean-pill-option + .boolean-pill-option {
+    border-left: 0;
+    border-top: 1px solid var(--color-gray-200);
+  }
+
   .custom-date-picker {
-    width: min(96vw, 320px);
+    position: fixed !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: 0.75rem !important;
+    left: 50% !important;
+    width: min(calc(100vw - 1rem), 320px);
+    max-height: calc(100vh - var(--header-height) - 1rem);
+    max-height: calc(100dvh - var(--header-height) - 1rem);
+    overflow: auto;
+    transform: translateX(-50%);
+    overscroll-behavior: contain;
   }
 
   .custom-date-input--filter {
     width: 100%;
     flex-basis: 100%;
+  }
+
+  .custom-date-picker__day {
+    min-height: 2.05rem;
+    border-radius: 0.68rem;
+  }
+
+  .custom-date-picker__footer {
+    align-items: stretch;
+  }
+
+  .custom-date-picker__action {
+    flex: 1 1 0;
+    min-height: 2.3rem;
   }
 }
 
