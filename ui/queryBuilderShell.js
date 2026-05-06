@@ -10,11 +10,11 @@ import {
   loadFieldDefinitions,
   renderCategorySelectors,
   updateFilteredDefs
-} from '../filters/fieldDefs.js?v=8';
-import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js?v=26';
-import { appServices } from '../core/appServices.js?v=3';
-import { appUiActions } from '../core/appUiActions.js?v=5';
-import { DOM } from './domCache.js?v=3';
+} from '../filters/fieldDefs.js';
+import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
+import { appServices } from '../core/appServices.js';
+import { appUiActions } from '../core/appUiActions.js';
+import { DOM } from './domCache.js';
 
 let QueryBuilderShell;
 

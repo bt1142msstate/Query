@@ -11,7 +11,7 @@
   <meta http-equiv="Expires" content="0">
   <title>Library Item Reports</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link href="styles/app.css?v=59" rel="stylesheet">
+  <link href="styles/app.css?v=60" rel="stylesheet">
   <link rel="icon" href="data:,">
 </head>
 <body class="relative min-h-screen overflow-x-hidden overflow-y-auto pt-16 px-6 pb-6" id="page-body">
@@ -417,9 +417,9 @@
         </div>
       </h2>
       <div id="queries-container"
-           class="w-full -mt-px border border-blue-200 border-t-0 rounded-b overflow-x-auto bg-white">
-        <div id="queries-search-wrapper" class="sticky top-0 z-10 bg-white pb-2 px-4 pt-4">
-          <input id="queries-search" type="search" placeholder="Search queries..." class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-200 text-sm" data-search-ui="enhanced" data-search-wrapper-class="queries-search-field" data-search-clear-label="Clear query search" />
+           class="w-full -mt-px border border-blue-200 border-t-0 rounded-b overflow-x-auto">
+        <div id="queries-search-wrapper" class="sticky top-0 z-10 pb-2 px-4 pt-4">
+          <input id="queries-search" type="search" placeholder="Search queries..." class="w-full px-3 py-2 rounded-lg focus:outline-none text-sm" data-search-ui="enhanced" data-search-wrapper-class="queries-search-field" data-search-clear-label="Clear query search" />
         </div>
         <div id="queries-list">
           <!-- list will be injected here -->
@@ -953,5 +953,5 @@
 <!-- ExcelJS for generating spreadsheets with freeze panes support -->
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.10.9/dist/autoNumeric.min.js"></script>
-  <script type="module" src="appModules.js?v=1"></script>
+  <script type="module" src="appModules.js"></script>
   </body>

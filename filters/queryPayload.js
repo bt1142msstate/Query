@@ -1,5 +1,5 @@
-import { getBaseFieldName, QueryStateReaders } from '../core/queryState.js?v=26';
-import { fieldDefs, isFieldBackendFilterable, resolveFieldName } from './fieldDefs.js?v=8';
+import { getBaseFieldName, QueryStateReaders } from '../core/queryState.js';
+import { fieldDefs, isFieldBackendFilterable, resolveFieldName } from './fieldDefs.js';
 
 const FIELD_OPERATOR_TO_UI_COND = {
   Equals: 'equals',

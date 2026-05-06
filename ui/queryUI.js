@@ -4,11 +4,11 @@
  * @module QueryUI
  */
 
-import { QueryStateSubscriptions } from '../core/utils.js?v=19';
-import { QueryStateReaders } from '../core/queryState.js?v=26';
-import { appServices } from '../core/appServices.js?v=3';
-import { buildBackendQueryPayload } from '../filters/queryPayload.js?v=8';
-import { DOM } from './domCache.js?v=3';
+import { QueryStateSubscriptions } from '../core/utils.js';
+import { QueryStateReaders } from '../core/queryState.js';
+import { appServices } from '../core/appServices.js';
+import { buildBackendQueryPayload } from '../filters/queryPayload.js';
+import { DOM } from './domCache.js';
 
 const getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
 const getActiveFilters = QueryStateReaders.getActiveFilters.bind(QueryStateReaders);

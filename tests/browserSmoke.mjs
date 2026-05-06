@@ -199,6 +199,25 @@ async function runSmokeTest() {
 
     await page.getByRole('button', { name: 'Queries' }).click();
     await page.locator('input[placeholder="Search queries..."]').waitFor({ state: 'visible', timeout: 5000 });
+    const historySearchTheme = await page.locator('#queries-search').evaluate(input => {
+      const style = window.getComputedStyle(input);
+      const [backgroundRed, backgroundGreen, backgroundBlue] = style.backgroundColor
+        .match(/\d+/gu)
+        .slice(0, 3)
+        .map(Number);
+      const [textRed, textGreen, textBlue] = style.color
+        .match(/\d+/gu)
+        .slice(0, 3)
+        .map(Number);
+
+      return {
+        backgroundLuma: (backgroundRed + backgroundGreen + backgroundBlue) / 3,
+        textLuma: (textRed + textGreen + textBlue) / 3
+      };
+    });
+    if (historySearchTheme.backgroundLuma > 80 || historySearchTheme.textLuma < 160) {
+      throw new Error('Query history search input is not using the dark theme');
+    }
 
     await page.getByRole('button', { name: 'Templates' }).click();
     await page.locator('input[placeholder="Search templates"]').waitFor({ state: 'visible', timeout: 5000 });

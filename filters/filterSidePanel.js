@@ -8,7 +8,7 @@ import {
     getFilterDisplayValues,
     openFilterListViewer,
     shouldUseFilterListViewer
-} from './filterValueUi.js?v=2';
+} from './filterValueUi.js';
 
 window.FilterSidePanel = (function () {
     const services = window.AppServices;

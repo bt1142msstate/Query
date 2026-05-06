@@ -1,7 +1,8 @@
 {
   "scripts": {
     "lint": "eslint \"**/*.{js,mjs}\"",
-    "test": "npm run lint && npm run test:browser",
+    "test": "npm run lint && npm run test:modules && npm run test:browser",
+    "test:modules": "node tests/moduleSpecifiers.mjs",
     "test:browser": "node tests/browserSmoke.mjs"
   },
   "dependencies": {

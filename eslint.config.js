@@ -220,6 +220,50 @@ function collectPatternIdentifiers(pattern, identifiers = []) {
 }
 
 const localRules = {
+  'no-versioned-module-specifiers': {
+    meta: {
+      type: 'problem',
+      docs: {
+        description: 'Disallow cache-busting query strings in ES module specifiers.'
+      },
+      schema: [],
+      messages: {
+        versionedModuleSpecifier: 'Use a plain module specifier instead of "{{specifier}}". Cache busting belongs at the server/build layer, not in source imports.'
+      }
+    },
+    create(context) {
+      function checkSource(sourceNode) {
+        if (!sourceNode || sourceNode.type !== 'Literal' || typeof sourceNode.value !== 'string') {
+          return;
+        }
+
+        if (!/[?#]/u.test(sourceNode.value)) {
+          return;
+        }
+
+        context.report({
+          node: sourceNode,
+          messageId: 'versionedModuleSpecifier',
+          data: { specifier: sourceNode.value }
+        });
+      }
+
+      return {
+        ImportDeclaration(node) {
+          checkSource(node.source);
+        },
+        ExportNamedDeclaration(node) {
+          checkSource(node.source);
+        },
+        ExportAllDeclaration(node) {
+          checkSource(node.source);
+        },
+        ImportExpression(node) {
+          checkSource(node.source);
+        }
+      };
+    }
+  },
   'no-unapproved-window-exports': {
     meta: {
       type: 'problem',
@@ -548,7 +592,8 @@ module.exports = [
       ],
       'local/no-unapproved-window-exports': 'error',
       'local/no-protected-global-declarations': 'error',
-      'local/no-restricted-query-state-access': 'error'
+      'local/no-restricted-query-state-access': 'error',
+      'local/no-versioned-module-specifiers': 'error'
     }
   },
   {
@@ -562,6 +607,18 @@ module.exports = [
     ],
     languageOptions: {
       sourceType: 'module'
+    },
+    rules: {
+      'no-restricted-syntax': ['error',
+        {
+          selector: 'CallExpression[callee.name="require"]',
+          message: 'Application modules should use ES module imports.'
+        },
+        {
+          selector: 'MemberExpression[object.name="module"][property.name="exports"]',
+          message: 'Application modules should use ES module exports.'
+        }
+      ]
     }
   },
   {
