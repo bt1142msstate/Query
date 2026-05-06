@@ -58,6 +58,7 @@ Results render in a virtualized table (25 visible rows at a time) for smooth per
 | `ui/` | Form mode, modals, toasts, tooltips, and shared helpers |
 | `styles/` | Feature-based CSS |
 | `styles/app.css` | Stylesheet entrypoint that imports the feature CSS files |
+| `config/` | Shared architecture contracts for public globals and module boundaries |
 | `docs/ARCHITECTURE.md` | Frontend architecture notes, quality gates, and refactor plan |
 | `tests/` | Browser smoke tests and architecture fitness checks |
 
@@ -65,7 +66,7 @@ Results render in a virtualized table (25 visible rows at a time) for smooth per
 
 - Static HTML, CSS, and vanilla JavaScript — no build step required
 - Browser ES modules with a single app entrypoint
-- Feature-oriented folder structure with guarded public globals
+- Feature-oriented folder structure with guarded public globals and enforced module boundaries
 - ESLint, architecture fitness checks, and Playwright browser smoke tests
 - [ExcelJS](https://github.com/exceljs/exceljs) for Excel export
 
@@ -85,7 +86,7 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for module boundaries, runtim
 npm test
 ```
 
-Runs lint, architecture fitness checks, module-specifier checks, and a browser smoke test.
+Runs lint, architecture fitness checks, module-specifier checks, and desktop/mobile browser smoke tests.
 
 ## Roadmap
 
