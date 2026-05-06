@@ -284,7 +284,7 @@
     const fromFieldName = getDisplayedFields()[fromIndex];
     if (!fromFieldName) return;
 
-    const relatedIndices = findRelatedColumnIndices(fromFieldName);
+    const relatedIndices = window.findRelatedColumnIndices(fromFieldName);
     if (relatedIndices.length === 1) {
       moveSingleColumn(table, fromIndex, toIndex);
     } else {
@@ -300,7 +300,7 @@
   }
 
   function addColumn(fieldName, insertAt = -1) {
-    if (fieldOrDuplicatesExist(fieldName)) {
+    if (window.fieldOrDuplicatesExist(fieldName)) {
       return false;
     }
 
@@ -309,7 +309,7 @@
       scrollAnchorField: fieldName
     });
 
-    const success = restoreFieldWithDuplicates(fieldName, insertAt);
+    const success = window.restoreFieldWithDuplicates(fieldName, insertAt);
 
     if (success) {
       syncTableAfterColumnMutation({

@@ -371,7 +371,8 @@ function createOrUpdateBubble(def, existingBubble = null) {
 }
 
 function renderBubbles() {
-  if (typeof filteredDefs === 'undefined') {
+  const currentFilteredDefs = Array.isArray(window.filteredDefs) ? window.filteredDefs : null;
+  if (!currentFilteredDefs) {
     console.log('renderBubbles: Required globals not available yet');
     return;
   }
@@ -382,12 +383,12 @@ function renderBubbles() {
 
   let list;
   if (appState.currentCategory === 'All') {
-    list = filteredDefs;
+    list = currentFilteredDefs;
   } else if (appState.currentCategory === 'Selected') {
     const displayedFields = getDisplayedFields();
     const activeFilters = getActiveFilters();
     const displayedSet = new Set(displayedFields);
-    const filteredSelected = filteredDefs.filter(d => window.shouldFieldHavePurpleStylingBase(d.name, displayedFields, activeFilters));
+    const filteredSelected = currentFilteredDefs.filter(d => window.shouldFieldHavePurpleStylingBase(d.name, displayedFields, activeFilters));
     const orderedList = displayedFields
       .map(name => filteredSelected.find(d => d.name === name))
       .filter(Boolean);
@@ -399,7 +400,7 @@ function renderBubbles() {
     });
     list = orderedList;
   } else {
-    list = filteredDefs.filter(d => {
+    list = currentFilteredDefs.filter(d => {
       const cat = d.category;
       return Array.isArray(cat) ? cat.includes(appState.currentCategory) : cat === appState.currentCategory;
     });

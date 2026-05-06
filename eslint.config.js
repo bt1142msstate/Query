@@ -1,6 +1,8 @@
 const globals = require('globals');
 
 const allowedWindowAssignments = new Set([
+  '__QUERY_APP_MODULES_ERROR',
+  '__QUERY_APP_MODULES_READY',
   'BUBBLE_DEBUG',
   'BubbleConditionPanel',
   'BubbleInteraction',

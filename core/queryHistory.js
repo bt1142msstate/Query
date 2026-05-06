@@ -438,35 +438,35 @@ async function cancelQuery(queryId) {
     const { response } = await window.BackendApi.postJson({ action: 'cancel', query_id: queryId });
     
     if (response.ok) {
-        const lifecycleState = window.QueryStateReaders?.getLifecycleState?.();
-        const isActiveLocalQuery = lifecycleState?.queryRunning
-            && String(lifecycleState.currentQueryId || '') === String(queryId || '');
-        const q = exampleQueries.find(q => q.id === queryId);
-        if(q) {
-            q.running = false;
-            q.cancelled = true;
-            q.status = 'canceled';
-            renderQueries();
-        }
-        if (isActiveLocalQuery) {
-            window.QueryChangeManager?.setLifecycleState?.(
-                { queryRunning: false },
-                { source: 'QueryHistory.cancelQuery', silent: true }
-            );
-            uiActions.updateRunButtonIcon();
-            uiActions.updateButtonStates();
-            if (window.endTableQueryAnimation) window.endTableQueryAnimation();
-        }
-        showToastMessage(`Query ${queryId} cancelled`, 'info');
+      const lifecycleState = window.QueryStateReaders?.getLifecycleState?.();
+      const isActiveLocalQuery = lifecycleState?.queryRunning
+        && String(lifecycleState.currentQueryId || '') === String(queryId || '');
+      const q = exampleQueries.find(q => q.id === queryId);
+      if (q) {
+        q.running = false;
+        q.cancelled = true;
+        q.status = 'canceled';
+        renderQueries();
+      }
+      if (isActiveLocalQuery) {
+        window.QueryChangeManager?.setLifecycleState?.(
+          { queryRunning: false },
+          { source: 'QueryHistory.cancelQuery', silent: true }
+        );
+        uiActions.updateRunButtonIcon();
+        uiActions.updateButtonStates();
+        if (window.endTableQueryAnimation) window.endTableQueryAnimation();
+      }
+      window.showToastMessage(`Query ${queryId} cancelled`, 'info');
     } else {
-        showToastMessage('Failed to cancel query', 'error');
+      window.showToastMessage('Failed to cancel query', 'error');
     }
   } catch (e) {
     if (e?.isRateLimited) {
       return;
     }
     console.error('Error cancelling query:', e);
-    showToastMessage('Error cancelling query', 'error');
+    window.showToastMessage('Error cancelling query', 'error');
   }
 }
 
@@ -827,8 +827,8 @@ async function loadQueryResults(queryId) {
     loadQueryConfig(q);
     
     // Show toast indicating loading
-    if (typeof showToastMessage === 'function') {
-      showToastMessage(q.running ? 'Fetching live results...' : 'Fetching results...', 'info');
+    if (typeof window.showToastMessage === 'function') {
+      window.showToastMessage(q.running ? 'Fetching live results...' : 'Fetching results...', 'info');
     }
 
     try {
@@ -914,8 +914,8 @@ async function loadQueryResults(queryId) {
         // Refresh badges after the loaded result-set state and table render settle.
         uiActions.updateTableResultsLip();
         
-        if (typeof showToastMessage === 'function') {
-            showToastMessage(q.running
+        if (typeof window.showToastMessage === 'function') {
+            window.showToastMessage(q.running
               ? `Loaded ${rows.length} partial results from running query.`
               : `Loaded ${rows.length} results.`, 'success');
         }
@@ -928,8 +928,8 @@ async function loadQueryResults(queryId) {
             return;
         }
         console.error('Failed to load results:', error);
-        if (typeof showToastMessage === 'function') {
-            showToastMessage('Failed to load results: ' + error.message, 'error');
+        if (typeof window.showToastMessage === 'function') {
+            window.showToastMessage('Failed to load results: ' + error.message, 'error');
         }
     }
 }
@@ -997,7 +997,7 @@ function createQueriesTableRowHtml(q, viewIconSVG) {
       : new Date(q.endTime || q.cancelledTime);
     if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())) {
       const seconds = Math.max(0, Math.floor((end - start) / 1000));
-      duration = typeof formatDuration === 'function' ? formatDuration(seconds) : `${seconds}s`;
+      duration = typeof window.formatDuration === 'function' ? window.formatDuration(seconds) : `${seconds}s`;
     }
   }
   
@@ -1313,7 +1313,7 @@ function updateRunningDurationsInPlace() {
     const start = new Date(q.startTime);
     if (isNaN(start.getTime())) return;
     const seconds = Math.max(0, Math.floor((Date.now() - start) / 1000));
-    cell.textContent = typeof formatDuration === 'function' ? formatDuration(seconds) : `${seconds}s`;
+    cell.textContent = typeof window.formatDuration === 'function' ? window.formatDuration(seconds) : `${seconds}s`;
   });
 }
 
