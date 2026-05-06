@@ -64,6 +64,7 @@ const queryLifecycleState = {
   lastExecutedQueryState: null,
   currentQueryState: null,
   hasPartialResults: false,
+  hasLoadedResultSet: false,
   currentQueryId: null
 };
 
@@ -72,6 +73,7 @@ const queryLifecycleNormalizers = {
   lastExecutedQueryState: value => value ?? null,
   currentQueryState: value => value ?? null,
   hasPartialResults: value => Boolean(value),
+  hasLoadedResultSet: value => Boolean(value),
   currentQueryId: value => value ? String(value) : null
 };
 
@@ -295,6 +297,7 @@ function getQueryLifecycleSnapshot() {
   return {
     queryRunning: queryLifecycleState.queryRunning,
     hasPartialResults: queryLifecycleState.hasPartialResults,
+    hasLoadedResultSet: queryLifecycleState.hasLoadedResultSet,
     currentQueryId: queryLifecycleState.currentQueryId,
     currentQueryState: queryLifecycleState.currentQueryState,
     lastExecutedQueryState: queryLifecycleState.lastExecutedQueryState
@@ -318,6 +321,29 @@ function setQueryLifecycleState(nextState = {}) {
   return getQueryLifecycleSnapshot();
 }
 
+function areSerializableQueryStatesEqual(currentState, executedState) {
+  if (!executedState) {
+    return false;
+  }
+
+  const current = currentState || getSerializableQueryState();
+
+  if (JSON.stringify(getComparableDisplayedFields(current.displayedFields)) !== JSON.stringify(getComparableDisplayedFields(executedState.displayedFields))) {
+    return false;
+  }
+
+  if (JSON.stringify(current.activeFilters) !== JSON.stringify(executedState.activeFilters)) {
+    return false;
+  }
+
+  return current.groupMethod === executedState.groupMethod;
+}
+
+function hasLoadedCurrentQueryResultSet() {
+  return queryLifecycleState.hasLoadedResultSet
+    && areSerializableQueryStatesEqual(getSerializableQueryState(), queryLifecycleState.lastExecutedQueryState);
+}
+
 function computeQueryStatus(snapshot = getQueryStateSnapshot()) {
   if (queryLifecycleState.queryRunning) {
     return 'running';
@@ -333,6 +359,10 @@ function computeQueryStatus(snapshot = getQueryStateSnapshot()) {
   }
 
   if (rowCount > 0) {
+    return 'results';
+  }
+
+  if (hasLoadedCurrentQueryResultSet()) {
     return 'results';
   }
 
@@ -725,21 +755,7 @@ const queryStateStore = {
     return getSerializableQueryState();
   },
   hasQueryChanged() {
-    if (!queryLifecycleState.lastExecutedQueryState) {
-      return true;
-    }
-
-    const current = getSerializableQueryState();
-
-    if (JSON.stringify(getComparableDisplayedFields(current.displayedFields)) !== JSON.stringify(getComparableDisplayedFields(queryLifecycleState.lastExecutedQueryState.displayedFields))) {
-      return true;
-    }
-
-    if (JSON.stringify(current.activeFilters) !== JSON.stringify(queryLifecycleState.lastExecutedQueryState.activeFilters)) {
-      return true;
-    }
-
-    return current.groupMethod !== queryLifecycleState.lastExecutedQueryState.groupMethod;
+    return !areSerializableQueryStatesEqual(getSerializableQueryState(), queryLifecycleState.lastExecutedQueryState);
   },
   getDisplayedFields() {
     return cloneDisplayedFieldsSnapshot();
@@ -1089,6 +1105,7 @@ async function clearQueryManagerState(meta = {}) {
   // cleared query state instead of stale partial-results/history metadata.
   queryStateStore.setLifecycleState({
     hasPartialResults: false,
+    hasLoadedResultSet: false,
     currentQueryId: null,
     lastExecutedQueryState: null
   });

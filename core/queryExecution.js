@@ -282,6 +282,14 @@ if (execDom.runBtn) {
           endTime: new Date().toISOString()
         });
 
+        // Mark this query state as executed before rendering the table so zero-row
+        // result sets render as "no results" instead of the planning placeholder.
+        window.QueryChangeManager.setLifecycleState({
+          lastExecutedQueryState: window.QueryStateReaders.getSerializableState(),
+          hasPartialResults: streamedPayload.partial,
+          hasLoadedResultSet: true
+        }, { source: 'QueryExecution.completeQuery', silent: true });
+
         // Update VirtualTable
         if (services.table) {
           const columnMap = new Map();
@@ -316,11 +324,6 @@ if (execDom.runBtn) {
           }
         }
 
-        // Update last-executed state
-        window.QueryChangeManager.setLifecycleState({
-          lastExecutedQueryState: window.QueryStateReaders.getSerializableState(),
-          hasPartialResults: streamedPayload.partial
-        }, { source: 'QueryExecution.completeQuery', silent: true });
         if (streamedPayload.partial) {
           uiActions.updateTableResultsLip();
           window.showToastMessage(`Query stopped early. Showing ${rows.length} partial result${rows.length !== 1 ? 's' : ''}.`, 'info');

@@ -259,7 +259,7 @@ const localRules = {
             && !objectNode.computed
             && objectNode.property.type === 'Identifier'
             && objectNode.property.name === 'AppState'
-            && ['queryRunning', 'hasPartialResults', 'currentQueryId', 'lastExecutedQueryState', 'currentQueryState'].includes(propertyName)
+            && ['queryRunning', 'hasPartialResults', 'hasLoadedResultSet', 'currentQueryId', 'lastExecutedQueryState', 'currentQueryState'].includes(propertyName)
           ) {
             context.report({ node, messageId: 'lifecycleViaAppState' });
             return;
@@ -268,7 +268,7 @@ const localRules = {
           if (
             objectNode.type === 'Identifier'
             && objectNode.name === 'AppState'
-            && ['queryRunning', 'hasPartialResults', 'currentQueryId', 'lastExecutedQueryState', 'currentQueryState'].includes(propertyName)
+            && ['queryRunning', 'hasPartialResults', 'hasLoadedResultSet', 'currentQueryId', 'lastExecutedQueryState', 'currentQueryState'].includes(propertyName)
           ) {
             context.report({ node, messageId: 'lifecycleViaAppState' });
             return;
@@ -363,6 +363,10 @@ module.exports = [
           message: 'Read query lifecycle via window.QueryStateReaders.getLifecycleState() or getQueryStatus().'
         },
         {
+          name: 'hasLoadedResultSet',
+          message: 'Read query lifecycle via window.QueryStateReaders.getLifecycleState() or getQueryStatus().'
+        },
+        {
           name: 'currentQueryId',
           message: 'Read query lifecycle via window.QueryStateReaders.getLifecycleState().'
         }
@@ -400,6 +404,11 @@ module.exports = [
         },
         {
           object: 'window',
+          property: 'hasLoadedResultSet',
+          message: 'Read query lifecycle via window.QueryStateReaders.getLifecycleState() or getQueryStatus().'
+        },
+        {
+          object: 'window',
           property: 'currentQueryId',
           message: 'Read query lifecycle via window.QueryStateReaders.getLifecycleState().'
         },
@@ -421,6 +430,11 @@ module.exports = [
         {
           object: 'AppState',
           property: 'hasPartialResults',
+          message: 'Read query lifecycle via window.QueryStateReaders.getLifecycleState() or getQueryStatus().'
+        },
+        {
+          object: 'AppState',
+          property: 'hasLoadedResultSet',
           message: 'Read query lifecycle via window.QueryStateReaders.getLifecycleState() or getQueryStatus().'
         },
         {

@@ -698,7 +698,10 @@ function loadQueryConfig(q) {
   // Loading a query definition is not itself a partial-results state.
   // That flag belongs to the currently displayed result set and must be
   // recomputed when/if results are loaded afterward.
-  window.QueryChangeManager.setLifecycleState({ hasPartialResults: false }, { source: 'QueryHistory.loadQueryConfig', silent: true });
+  window.QueryChangeManager.setLifecycleState({
+    hasPartialResults: false,
+    hasLoadedResultSet: false
+  }, { source: 'QueryHistory.loadQueryConfig', silent: true });
   uiActions.updateTableResultsLip();
 
   if (tableNameInput) {
@@ -864,6 +867,13 @@ async function loadQueryResults(queryId) {
           renderQueries();
         }
 
+        // Result-set state must be established before rendering so a zero-row
+        // history result does not reuse the pre-run planning placeholder.
+        window.QueryChangeManager.setLifecycleState({
+          hasPartialResults: Boolean(q.running),
+          hasLoadedResultSet: true
+        }, { source: 'QueryHistory.loadQueryResults', silent: true });
+
         if (services.table) {
             const columnMap = new Map();
             headers.forEach((h, i) => columnMap.set(h, i));
@@ -900,9 +910,7 @@ async function loadQueryResults(queryId) {
             uiActions.updateButtonStates();
         }
 
-        // Partial-results mode should reflect the specific result set that was loaded,
-        // not whatever previous live query happened to leave behind.
-        window.QueryChangeManager.setLifecycleState({ hasPartialResults: Boolean(q.running) }, { source: 'QueryHistory.loadQueryResults', silent: true });
+        // Refresh badges after the loaded result-set state and table render settle.
         uiActions.updateTableResultsLip();
         
         if (typeof showToastMessage === 'function') {
