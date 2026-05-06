@@ -311,7 +311,7 @@ window.ValueFormatting = (() => {
     }
 
     if (normalizedType === 'money') {
-      const displayValue = window.MoneyUtils.formatDisplayValue(rawValue);
+      const displayValue = MoneyUtils.formatDisplayValue(rawValue);
       return displayValue || String(rawValue);
     }
 
@@ -335,7 +335,7 @@ window.ValueFormatting = (() => {
   };
 })();
 
-window.MoneyUtils = (() => {
+const MoneyUtils = (() => {
   function resolveInputBehaviorOptions(modeOrIsMoney) {
     if (modeOrIsMoney && typeof modeOrIsMoney === 'object') {
       const kind = String(modeOrIsMoney.kind || 'plain').toLowerCase();
@@ -639,7 +639,7 @@ const FormatUtils = {
     if (!type) return s;
     if (type === 'date') return vf.formatValueByType(s, type, { invalidDateValue: 'Never' });
     if (type === 'money') {
-      const n = window.MoneyUtils?.parseNumber?.(s);
+      const n = MoneyUtils.parseNumber(s);
       if (!isNaN(n)) return vf.formatValueByType(n, type, { fieldName: field });
     }
     if (type === 'number') {
@@ -651,7 +651,6 @@ const FormatUtils = {
 };
 
 const EventUtils = window.EventUtils;
-const MoneyUtils = window.MoneyUtils;
 const OperatorSelectUtils = window.OperatorSelectUtils;
 const TableBuilder = window.TableBuilder;
 const TextMeasurement = window.TextMeasurement;

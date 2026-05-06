@@ -4,6 +4,7 @@
  */
 import { ClipboardUtils } from '../core/clipboard.js';
 import { showToastMessage } from '../core/toast.js';
+import { MoneyUtils } from '../core/utils.js';
 import { VisibilityUtils } from '../core/visibility.js';
 
   function getFilterValueMap(fieldDef) {
@@ -38,7 +39,7 @@ import { VisibilityUtils } from '../core/visibility.js';
         }
 
         if (fieldType === 'money') {
-          const numericValue = window.MoneyUtils?.parseNumber?.(mappedValue);
+          const numericValue = MoneyUtils.parseNumber(mappedValue);
           return Number.isNaN(numericValue)
             ? mappedValue
             : window.ValueFormatting.formatValueByType(numericValue, fieldType, { fieldName });

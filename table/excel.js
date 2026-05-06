@@ -6,6 +6,7 @@
 import { appServices } from '../core/appServices.js';
 import { showToastMessage } from '../core/toast.js';
 import { QueryStateReaders } from '../core/queryState.js';
+import { MoneyUtils } from '../core/utils.js';
 import { VisibilityUtils } from '../core/visibility.js';
 
 (() => {
@@ -112,7 +113,7 @@ import { VisibilityUtils } from '../core/visibility.js';
 
     if (type === 'number' || type === 'money') {
       const n = type === 'money'
-        ? window.MoneyUtils.parseNumber(raw)
+        ? MoneyUtils.parseNumber(raw)
         : (typeof raw === 'number' ? raw : parseFloat(String(raw).replace(/,/g, '')));
       return isNaN(n) ? '' : n;
     }
@@ -408,7 +409,7 @@ import { VisibilityUtils } from '../core/visibility.js';
           if (type === 'date') val = '12/31/2000';
           else if (type === 'number' || type === 'money') {
             const parsedNumericValue = type === 'money'
-              ? window.MoneyUtils.parseNumber(val)
+              ? MoneyUtils.parseNumber(val)
               : (typeof val === 'number' ? val : parseFloat(String(val).replace(/,/g, '')));
             if (Number.isNaN(parsedNumericValue)) return;
             val = String(parsedNumericValue);

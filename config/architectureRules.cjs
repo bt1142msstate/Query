@@ -16,6 +16,7 @@ const forbiddenWindowMemberReads = new Map([
   ['FormModeStateHelpers', 'Import from ui/formModeStateHelpers.js instead of reading form state helpers from window'],
   ['getFieldOutputSegments', 'Import from core/dataFormatters.js instead of reading this formatter from window'],
   ['Icons', 'Import from core/icons.js instead of reading icon helpers from window'],
+  ['MoneyUtils', 'Import from core/utils.js instead of reading money helpers from window'],
   ['onDOMReady', 'Import from core/domReady.js instead of reading DOM lifecycle helpers from window'],
   ['OperatorLabels', 'Import from core/operatorLabels.js instead of reading operator labels from window'],
   ['parsePipeDelimitedRow', 'Import from core/dataFormatters.js instead of reading this formatter from window'],

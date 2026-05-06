@@ -7,6 +7,7 @@
 import { appServices } from '../core/appServices.js';
 import { appUiActions } from '../core/appUiActions.js';
 import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
+import { MoneyUtils } from '../core/utils.js';
 (function initializeVirtualTable() {
 // Virtual scrolling state
 let virtualTableData = {
@@ -41,8 +42,7 @@ let simpleTableInstance = null; // Store the SimpleTable instance
 
 const HEADER_ACTION_SPACE = 116;
 const HEADER_TEXT_BALANCE_SPACE = 116;
-var services = appServices;
-var uiActions = appUiActions;
+var services = appServices, uiActions = appUiActions;
 
 // Keep track of sorting state
 let currentSortColumn = null;
@@ -55,7 +55,7 @@ function getFieldType(fieldName) {
 
 function parseNumericValue(value, type = 'number') {
   if (type === 'money') {
-    return window.MoneyUtils.parseNumber(value);
+    return MoneyUtils.parseNumber(value);
   }
 
   if (typeof value === 'number') return value;
