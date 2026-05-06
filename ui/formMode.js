@@ -1,4 +1,5 @@
 import { ClipboardUtils } from '../core/clipboard.js';
+import { showToastMessage } from '../core/toast.js';
 import { mapFieldOperatorToUiCond } from '../filters/queryPayload.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 
@@ -1000,9 +1001,7 @@ let QueryFormMode;
 
     const nextSpec = buildSpecFromCurrentQuery();
     if (!nextSpec) {
-      if (window.showToastMessage) {
-        window.showToastMessage('Could not build form definition.', 'warning');
-      }
+      showToastMessage('Could not build form definition.', 'warning');
       return false;
     }
 
@@ -1215,9 +1214,7 @@ let QueryFormMode;
             });
             syncSpecColumnsWithDisplayedFields({ refreshUrl: false });
             refreshBrowserUrl();
-            if (window.showToastMessage) {
-              window.showToastMessage(`${fieldName}: added results column.`, 'success');
-            }
+            showToastMessage(`${fieldName}: added results column.`, 'success');
           }
           return;
         }
@@ -1228,9 +1225,7 @@ let QueryFormMode;
           });
           syncSpecColumnsWithDisplayedFields({ refreshUrl: false });
           refreshBrowserUrl();
-          if (window.showToastMessage) {
-            window.showToastMessage(`${fieldName}: removed results column.`, 'success');
-          }
+          showToastMessage(`${fieldName}: removed results column.`, 'success');
         }
       },
       onFilterChange: async (fieldName, nextChecked, options = {}) => {
@@ -1241,9 +1236,7 @@ let QueryFormMode;
             captureCurrentControlDefaults();
             const inputSpec = createGeneratedInputSpec(fieldName);
             if (!inputSpec) {
-              if (window.showToastMessage) {
-                window.showToastMessage(`${fieldName}: backend filtering is not available for this field.`, 'warning');
-              }
+              showToastMessage(`${fieldName}: backend filtering is not available for this field.`, 'warning');
               return;
             }
 
@@ -1260,9 +1253,7 @@ let QueryFormMode;
               preserveCurrentDefaults: false,
               querySource: 'QueryFormMode.fieldPicker.addFilterInput'
             });
-            if (window.showToastMessage) {
-              window.showToastMessage(`${fieldName}: added filter control.`, 'success');
-            }
+            showToastMessage(`${fieldName}: added filter control.`, 'success');
           }
           return;
         }
@@ -1270,9 +1261,7 @@ let QueryFormMode;
         if (hasSpecFilterInput(fieldName)) {
           removeSpecFilterInputs(fieldName);
           rebuildFormCardFromSpec({ querySource: 'QueryFormMode.fieldPicker.removeFilterInput' });
-          if (window.showToastMessage) {
-            window.showToastMessage(`${fieldName}: removed filter control.`, 'success');
-          }
+          showToastMessage(`${fieldName}: removed filter control.`, 'success');
         }
       },
       onFilterPreviewChange: async (fieldName, previewState, options = {}) => {
@@ -1576,9 +1565,7 @@ let QueryFormMode;
   function toggleViewMode() {
     setViewMode(state.viewMode === 'form' ? 'bubbles' : 'form').catch(error => {
       console.error('Failed to toggle form mode:', error);
-      if (window.showToastMessage) {
-        window.showToastMessage('Failed to switch modes.', 'error');
-      }
+      showToastMessage('Failed to switch modes.', 'error');
     });
   }
 
@@ -1680,9 +1667,7 @@ let QueryFormMode;
     state.runBtn.addEventListener('click', () => {
       const error = syncValidationUi();
       if (error) {
-        if (window.showToastMessage) {
-          window.showToastMessage(error, 'warning');
-        }
+        showToastMessage(error, 'warning');
         return;
       }
       window.DOM && window.DOM.runBtn && window.DOM.runBtn.click();
@@ -1691,9 +1676,7 @@ let QueryFormMode;
     card.querySelector('#form-mode-add-field').addEventListener('click', () => {
       openFieldPicker().catch(error => {
         console.error('Failed to open field picker:', error);
-        if (window.showToastMessage) {
-          window.showToastMessage('Failed to open the field picker.', 'error');
-        }
+        showToastMessage('Failed to open the field picker.', 'error');
       });
     });
 
@@ -1703,9 +1686,7 @@ let QueryFormMode;
 
     state.resetSharedBtn.addEventListener('click', () => {
       if (!state.sharedBaselineSpec) {
-        if (window.showToastMessage) {
-          window.showToastMessage('Share this form first to create a shared baseline.', 'warning');
-        }
+        showToastMessage('Share this form first to create a shared baseline.', 'warning');
         return;
       }
       resetFormToBaseline('shared');
@@ -1714,9 +1695,7 @@ let QueryFormMode;
     state.copyBtn.addEventListener('click', async () => {
       const saved = saveCurrentFormAsSharedBaseline();
       if (!saved) {
-        if (window.showToastMessage) {
-          window.showToastMessage('No form link is available to share.', 'warning');
-        }
+        showToastMessage('No form link is available to share.', 'warning');
         return;
       }
 
@@ -1963,16 +1942,12 @@ let QueryFormMode;
       decodedSpec = normalizeSpec(decodeSpec(rawFormSpec));
     } catch (error) {
       console.error('Failed to parse form mode spec:', error);
-      if (window.showToastMessage) {
-        window.showToastMessage('Invalid form URL. Opening standard builder.', 'error');
-      }
+      showToastMessage('Invalid form URL. Opening standard builder.', 'error');
       return;
     }
 
     if (!decodedSpec || decodedSpec.columns.length === 0) {
-      if (window.showToastMessage) {
-        window.showToastMessage('Form mode requires at least one output column.', 'warning');
-      }
+      showToastMessage('Form mode requires at least one output column.', 'warning');
       return;
     }
 

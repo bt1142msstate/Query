@@ -1,5 +1,6 @@
 import { onDOMReady } from '../core/domReady.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
+import { showToastMessage } from '../core/toast.js';
 import { VisibilityUtils } from '../core/visibility.js';
 (function() {
   let equalsValueControl = null;
@@ -799,9 +800,7 @@ import { VisibilityUtils } from '../core/visibility.js';
     const totalRows = Number(stats?.totalRows || 0);
 
     if (totalRows <= 0) {
-      if (window.showToastMessage) {
-        window.showToastMessage('Run a query before adding post filters.', 'warning');
-      }
+      showToastMessage('Run a query before adding post filters.', 'warning');
       return;
     }
 
@@ -828,7 +827,7 @@ import { VisibilityUtils } from '../core/visibility.js';
     const stats = services.getPostFilterStats();
     const totalRows = Number(stats?.totalRows || 0);
     if (totalRows <= 0) {
-      window.showToastMessage && window.showToastMessage('Run a query before adding post filters.', 'warning');
+      showToastMessage('Run a query before adding post filters.', 'warning');
       return false;
     }
 
@@ -836,7 +835,7 @@ import { VisibilityUtils } from '../core/visibility.js';
 
     const availableFields = getAvailableFields();
     if (!availableFields.includes(field)) {
-      window.showToastMessage && window.showToastMessage('This field is not available for post filtering.', 'warning');
+      showToastMessage('This field is not available for post filtering.', 'warning');
       return false;
     }
 
@@ -897,7 +896,7 @@ import { VisibilityUtils } from '../core/visibility.js';
       const invalidPrimaryDate = value && (!window.CustomDatePicker || !window.CustomDatePicker.isValidDateValue(value));
       const invalidSecondaryDate = cond === 'between' && value2 && (!window.CustomDatePicker || !window.CustomDatePicker.isValidDateValue(value2));
       if (invalidPrimaryDate || invalidSecondaryDate) {
-        window.showToastMessage && window.showToastMessage('Use M/D/YYYY for post filter dates.', 'warning');
+        showToastMessage('Use M/D/YYYY for post filter dates.', 'warning');
         return;
       }
     }
@@ -908,17 +907,17 @@ import { VisibilityUtils } from '../core/visibility.js';
         .filter(entry => entry || isBlankSentinel(entry));
 
       if (!selectedValues.length) {
-        window.showToastMessage && window.showToastMessage('Choose one or more loaded values for the post filter.', 'warning');
+        showToastMessage('Choose one or more loaded values for the post filter.', 'warning');
         return;
       }
     } else if (cond === 'between') {
       if (!value || !value2) {
-        window.showToastMessage && window.showToastMessage('Enter both values for a between filter.', 'warning');
+        showToastMessage('Enter both values for a between filter.', 'warning');
         return;
       }
       value = `${value}|${value2}`;
     } else if (!value && !isBlankSentinel(value)) {
-      window.showToastMessage && window.showToastMessage('Enter a value for the post filter.', 'warning');
+      showToastMessage('Enter a value for the post filter.', 'warning');
       return;
     }
 
@@ -941,7 +940,7 @@ import { VisibilityUtils } from '../core/visibility.js';
         : '';
 
       if (existingSameCondKey === nextValuesKey) {
-        window.showToastMessage && window.showToastMessage('That post filter is already active.', 'info');
+        showToastMessage('That post filter is already active.', 'info');
         return;
       }
 
@@ -961,13 +960,13 @@ import { VisibilityUtils } from '../core/visibility.js';
       renderFilterList();
       syncValueInputs();
       updateToolbarButton();
-      window.showToastMessage && window.showToastMessage('Post filter applied.', 'success');
+      showToastMessage('Post filter applied.', 'success');
       return;
     }
 
     const alreadyExists = snapshot[field].filters.some(filter => filter.cond === cond && filter.val === value);
     if (alreadyExists) {
-      window.showToastMessage && window.showToastMessage('That post filter is already active.', 'info');
+      showToastMessage('That post filter is already active.', 'info');
       return;
     }
 
@@ -984,7 +983,7 @@ import { VisibilityUtils } from '../core/visibility.js';
     syncValueInputs();
     updateToolbarButton();
 
-    window.showToastMessage && window.showToastMessage('Post filter applied.', 'success');
+    showToastMessage('Post filter applied.', 'success');
   }
 
   function removeFilter(field, index) {

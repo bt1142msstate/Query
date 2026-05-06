@@ -3,6 +3,7 @@
  * Extracted from filterManager.js so value-display behavior is separate from condition editing.
  */
 import { ClipboardUtils } from '../core/clipboard.js';
+import { showToastMessage } from '../core/toast.js';
 import { VisibilityUtils } from '../core/visibility.js';
 
 (function initializeFilterValueUi() {
@@ -133,9 +134,7 @@ import { VisibilityUtils } from '../core/visibility.js';
       document.body.removeChild(link);
       URL.revokeObjectURL(objectUrl);
 
-      if (window.showToastMessage) {
-        window.showToastMessage('List downloaded.', 'success');
-      }
+      showToastMessage('List downloaded.', 'success');
     });
     document.addEventListener('keydown', event => {
       if (event.key === 'Escape' && VisibilityUtils.isVisible(panel)) {

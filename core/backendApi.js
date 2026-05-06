@@ -1,4 +1,5 @@
 import { formatDuration } from './dataFormatters.js';
+import { showToastMessage } from './toast.js';
 
 const API_URL = 'https://mlp.sirsi.net/uhtbin/query_api.pl';
 let lastRateLimitNoticeUntil = 0;
@@ -45,9 +46,9 @@ async function assertNotRateLimited(response, options = {}) {
   const noticeUntil = Date.now() + (retryAfterSeconds * 1000);
   const message = buildRateLimitMessage(payload);
 
-  if (options.notify !== false && typeof window !== 'undefined' && typeof window.showToastMessage === 'function') {
+  if (options.notify !== false) {
     if (!lastRateLimitNoticeUntil || Date.now() >= (lastRateLimitNoticeUntil - 1000)) {
-      window.showToastMessage(message, 'warning', Math.max(4000, Math.min(retryAfterSeconds * 1000, 15000) || 8000));
+      showToastMessage(message, 'warning', Math.max(4000, Math.min(retryAfterSeconds * 1000, 15000) || 8000));
       lastRateLimitNoticeUntil = noticeUntil || (Date.now() + 8000);
     }
   }

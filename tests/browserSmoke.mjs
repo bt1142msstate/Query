@@ -25,6 +25,37 @@ const mimeTypes = new Map([
 
 const QUERY_API_PATTERN = /^https:\/\/mlp\.sirsi\.net\/uhtbin\/query_api\.pl/u;
 const smokeResultHeaders = ['Smoke Title', 'Smoke Branch', 'Smoke Status'];
+const smokeFieldDefinitions = [
+  {
+    name: 'Smoke Title',
+    category: 'Smoke',
+    desc: 'Smoke-test title field',
+    filters: ['contains', 'equals'],
+    type: 'string'
+  },
+  {
+    name: 'Smoke Branch',
+    category: 'Smoke',
+    desc: 'Smoke-test branch field',
+    filters: ['contains', 'equals'],
+    type: 'string',
+    values: [
+      { Name: 'Main', RawValue: 'Main' },
+      { Name: 'East', RawValue: 'East' }
+    ]
+  },
+  {
+    name: 'Smoke Status',
+    category: 'Smoke',
+    desc: 'Smoke-test status field',
+    filters: ['contains', 'equals'],
+    type: 'string',
+    values: [
+      { Name: 'Open', RawValue: 'Open' },
+      { Name: 'Closed', RawValue: 'Closed' }
+    ]
+  }
+];
 
 function contentTypeFor(filePath) {
   return mimeTypes.get(extname(filePath).toLowerCase()) || 'application/octet-stream';
@@ -146,10 +177,45 @@ async function stubExternalAssets(page) {
   });
 }
 
-async function stubQueryApiResponses(page, responses) {
-  const queuedResponses = Array.isArray(responses) ? responses.slice() : [];
+function parseQueryApiPayload(request) {
+  try {
+    return JSON.parse(request.postData() || '{}');
+  } catch (_) {
+    return {};
+  }
+}
 
-  await page.route(QUERY_API_PATTERN, route => {
+function buildDefaultQueryApiResponse(payload) {
+  switch (payload.action) {
+    case 'get_fields':
+      return {
+        body: JSON.stringify({ fields: smokeFieldDefinitions }),
+        contentType: 'application/json; charset=utf-8'
+      };
+    case 'list_templates':
+      return {
+        body: JSON.stringify({ categories: [], templates: [] }),
+        contentType: 'application/json; charset=utf-8'
+      };
+    case 'status':
+      return {
+        body: JSON.stringify({ queries: {} }),
+        contentType: 'application/json; charset=utf-8'
+      };
+    case 'cancel':
+      return {
+        body: JSON.stringify({ ok: true }),
+        contentType: 'application/json; charset=utf-8'
+      };
+    default:
+      return {};
+  }
+}
+
+async function installQueryApiStub(page) {
+  const queuedResponses = [];
+
+  const handler = route => {
     const request = route.request();
     const corsHeaders = {
       'Access-Control-Allow-Headers': 'Content-Type',
@@ -167,7 +233,11 @@ async function stubQueryApiResponses(page, responses) {
       return;
     }
 
-    const response = queuedResponses.shift() || {};
+    const payload = parseQueryApiPayload(request);
+    const queuedResponseIndex = queuedResponses.findIndex(response => !response.action || response.action === payload.action);
+    const response = queuedResponseIndex === -1
+      ? buildDefaultQueryApiResponse(payload)
+      : queuedResponses.splice(queuedResponseIndex, 1)[0];
     route.fulfill({
       body: response.body || '',
       contentType: response.contentType || 'text/plain; charset=utf-8',
@@ -178,10 +248,17 @@ async function stubQueryApiResponses(page, responses) {
       },
       status: response.status || 200
     });
-  });
+  };
 
-  return async function restoreQueryApi() {
-    await page.unroute(QUERY_API_PATTERN);
+  await page.route(QUERY_API_PATTERN, handler);
+
+  return {
+    async dispose() {
+      await page.unroute(QUERY_API_PATTERN, handler);
+    },
+    enqueue(responses) {
+      queuedResponses.push(...(Array.isArray(responses) ? responses : [responses]));
+    }
   };
 }
 
@@ -494,7 +571,7 @@ async function exerciseDesktopResultsWorkflow(page) {
   await page.locator('#export-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
 }
 
-async function exerciseZeroResultQueryWorkflow(page) {
+async function exerciseZeroResultQueryWorkflow(page, queryApiStub) {
   await seedLoadedResults(page);
   await page.evaluate(() => {
     window.AppServices.replacePostFilters({
@@ -513,28 +590,25 @@ async function exerciseZeroResultQueryWorkflow(page) {
     totalRows: 3
   }, 'Desktop pre-run post filter state');
 
-  const restoreQueryApi = await stubQueryApiResponses(page, [
+  queryApiStub.enqueue([
     {
+      action: 'run',
       body: '',
       queryId: 'browser-smoke-zero-results',
       rawColumns: smokeResultHeaders
     }
   ]);
 
-  try {
-    await page.locator('#run-query-btn').click();
-    await page.waitForFunction(() => {
-      const lifecycle = window.QueryStateReaders.getLifecycleState();
-      const tableData = window.AppServices.getVirtualTableData?.();
-      return lifecycle.queryRunning === false
-        && lifecycle.hasLoadedResultSet === true
-        && lifecycle.currentQueryId === 'browser-smoke-zero-results'
-        && Array.isArray(tableData?.rows)
-        && tableData.rows.length === 0;
-    }, null, { timeout: 10000 });
-  } finally {
-    await restoreQueryApi();
-  }
+  await page.locator('#run-query-btn').click();
+  await page.waitForFunction(() => {
+    const lifecycle = window.QueryStateReaders.getLifecycleState();
+    const tableData = window.AppServices.getVirtualTableData?.();
+    return lifecycle.queryRunning === false
+      && lifecycle.hasLoadedResultSet === true
+      && lifecycle.currentQueryId === 'browser-smoke-zero-results'
+      && Array.isArray(tableData?.rows)
+      && tableData.rows.length === 0;
+  }, null, { timeout: 10000 });
 
   await expectPostFilterStats(page, {
     filteredRows: 0,
@@ -569,6 +643,7 @@ async function runSmokeTest() {
     attachFailureListeners(page, failures, port);
 
     await stubExternalAssets(page);
+    const queryApiStub = await installQueryApiStub(page);
     await page.goto(baseUrl, { waitUntil: 'load', timeout: 15000 });
     await waitForAppModules(page, failures);
 
@@ -597,7 +672,7 @@ async function runSmokeTest() {
 
     await exerciseBubbleFilterInteraction(page);
     await exerciseDesktopResultsWorkflow(page);
-    await exerciseZeroResultQueryWorkflow(page);
+    await exerciseZeroResultQueryWorkflow(page, queryApiStub);
 
     await page.getByRole('button', { name: 'Queries' }).click();
     await page.locator('input[placeholder="Search queries..."]').waitFor({ state: 'visible', timeout: 5000 });
@@ -615,6 +690,7 @@ async function runSmokeTest() {
     });
     attachFailureListeners(mobilePage, failures, port);
     await stubExternalAssets(mobilePage);
+    await installQueryApiStub(mobilePage);
     await mobilePage.goto(baseUrl, { waitUntil: 'load', timeout: 15000 });
     await waitForAppModules(mobilePage, failures);
 

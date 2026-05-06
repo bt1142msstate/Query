@@ -1,3 +1,5 @@
+import { showToastMessage } from './toast.js';
+
 (function initializeQueryPrevalidation() {
   let lastRejectedToast = {
     message: '',
@@ -530,7 +532,7 @@
       return;
     }
 
-    if (typeof window.showToastMessage === 'function' && result?.message) {
+    if (result?.message) {
       const now = Date.now();
       if (lastRejectedToast.message === result.message && now - lastRejectedToast.time < 1500) {
         return;
@@ -539,7 +541,7 @@
         message: result.message,
         time: now
       };
-      window.showToastMessage(result.message, 'warning');
+      showToastMessage(result.message, 'warning');
     }
   }
 

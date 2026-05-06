@@ -3,6 +3,7 @@
  * Handles exporting table data to Excel files with proper formatting and type detection.
  * @module ExcelExporter
  */
+import { showToastMessage } from '../core/toast.js';
 import { VisibilityUtils } from '../core/visibility.js';
 
 (() => {
@@ -333,7 +334,7 @@ import { VisibilityUtils } from '../core/visibility.js';
     if (!elements.overlay) {
       runWorkbookExport({ mode: 'single' }).catch(error => {
         console.error('Failed to export workbook', error);
-        window.showToastMessage && window.showToastMessage('Could not generate the Excel file', 'error');
+        showToastMessage('Could not generate the Excel file', 'error');
       });
       return;
     }
@@ -562,7 +563,7 @@ import { VisibilityUtils } from '../core/visibility.js';
       : { mode: 'single' };
 
     if (config.mode === 'grouped' && !config.groupField) {
-      window.showToastMessage && window.showToastMessage('Choose a field to split sheets by', 'warning');
+      showToastMessage('Choose a field to split sheets by', 'warning');
       return;
     }
 
@@ -575,7 +576,7 @@ import { VisibilityUtils } from '../core/visibility.js';
     try {
       await runWorkbookExport(config);
       closeExportOverlay();
-      window.showToastMessage && window.showToastMessage(
+      showToastMessage(
         config.mode === 'grouped'
           ? `Workbook downloaded with sheets grouped by ${config.groupField}`
           : 'Workbook downloaded',
@@ -583,7 +584,7 @@ import { VisibilityUtils } from '../core/visibility.js';
       );
     } catch (error) {
       console.error('Failed to export workbook', error);
-      window.showToastMessage && window.showToastMessage('Could not generate the Excel file', 'error');
+      showToastMessage('Could not generate the Excel file', 'error');
     } finally {
       if (confirmBtn) {
         confirmBtn.disabled = false;
@@ -731,9 +732,9 @@ import { VisibilityUtils } from '../core/visibility.js';
         splitMultiValues = !splitMultiValues;
 
         if (splitMultiValues) {
-          window.showToastMessage && window.showToastMessage('Multi-values split into separate columns', 'info');
+          showToastMessage('Multi-values split into separate columns', 'info');
         } else {
-          window.showToastMessage && window.showToastMessage('Multi-values stacked in one cell', 'info');
+          showToastMessage('Multi-values stacked in one cell', 'info');
         }
 
         updateSplitColumnsToggleState();
@@ -786,7 +787,7 @@ import { VisibilityUtils } from '../core/visibility.js';
       }
 
       if (messageText) {
-        window.showToastMessage(messageText, 'warning');
+        showToastMessage(messageText, 'warning');
       }
       return;
     }

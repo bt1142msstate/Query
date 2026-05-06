@@ -4,6 +4,7 @@
  * Options: Copy Cell, Copy Row (tab-separated), Copy Column (newline-separated).
  */
 import { ClipboardUtils } from '../core/clipboard.js';
+import { showToastMessage } from '../core/toast.js';
 import { VisibilityUtils } from '../core/visibility.js';
 
 window.TableContextMenu = (() => {
@@ -374,8 +375,8 @@ window.TableContextMenu = (() => {
         run() {
           if (!field) return;
           const activated = services.activateColumnResizeMode?.(field);
-          if (activated && typeof window.showToastMessage === 'function') {
-            window.showToastMessage(`Resize mode active for ${field}. Drag the highlighted header edge. Press Escape to finish.`, 'info');
+          if (activated) {
+            showToastMessage(`Resize mode active for ${field}. Drag the highlighted header edge. Press Escape to finish.`, 'info');
           }
         }
       }

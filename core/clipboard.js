@@ -1,3 +1,5 @@
+import { showToastMessage } from './toast.js';
+
 async function copyWithFallback(text) {
   if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
     await navigator.clipboard.writeText(text);
@@ -40,16 +42,16 @@ async function copy(text, options = {}) {
 
   try {
     await copyWithFallback(rawText);
-    if (showToast && successMessage && typeof window !== 'undefined' && typeof window.showToastMessage === 'function') {
-      window.showToastMessage(successMessage, 'success');
+    if (showToast && successMessage) {
+      showToastMessage(successMessage, 'success');
     }
     if (typeof onSuccess === 'function') {
       onSuccess();
     }
     return true;
   } catch (error) {
-    if (showToast && errorMessage && typeof window !== 'undefined' && typeof window.showToastMessage === 'function') {
-      window.showToastMessage(errorMessage, 'error');
+    if (showToast && errorMessage) {
+      showToastMessage(errorMessage, 'error');
     }
     if (typeof onError === 'function') {
       onError(error);
@@ -70,8 +72,8 @@ async function copyFromSource(source, options = {}) {
   const rawText = String(resolvedText || '');
 
   if (!rawText) {
-    if (emptyMessage && typeof window !== 'undefined' && typeof window.showToastMessage === 'function') {
-      window.showToastMessage(emptyMessage, emptyMessageType);
+    if (emptyMessage) {
+      showToastMessage(emptyMessage, emptyMessageType);
     }
     return false;
   }

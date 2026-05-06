@@ -1,5 +1,6 @@
 import { BackendApi } from './backendApi.js';
 import { onDOMReady } from './domReady.js';
+import { showToastMessage } from './toast.js';
 import { VisibilityUtils } from './visibility.js';
 import { buildQueryUiConfig } from '../filters/queryPayload.js';
 (function initializeQueryTemplates() {
@@ -474,9 +475,7 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
       state.categories = [];
       state.selectedId = '';
       state.draft = null;
-      if (typeof window.showToastMessage === 'function') {
-        window.showToastMessage(`Failed to load templates: ${error.message}`, 'error');
-      }
+      showToastMessage(`Failed to load templates: ${error.message}`, 'error');
     } finally {
       state.loading = false;
       render();
@@ -534,9 +533,7 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
     }
 
     if (!hasUsableCurrentQuery()) {
-      if (typeof window.showToastMessage === 'function') {
-        window.showToastMessage('Build a query before creating a template.', 'warning');
-      }
+      showToastMessage('Build a query before creating a template.', 'warning');
       return;
     }
 
@@ -591,9 +588,7 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
       state.detailOverlayOpen = true;
       state.loaded = true;
 
-      if (typeof window.showToastMessage === 'function') {
-        window.showToastMessage(`Template "${normalized.name}" saved.`, 'success');
-      }
+      showToastMessage(`Template "${normalized.name}" saved.`, 'success');
     } catch (error) {
       if (error?.isRateLimited) {
         return;
@@ -643,9 +638,7 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
       setDraftFromTemplate(normalized);
       state.detailOverlayOpen = true;
 
-      if (typeof window.showToastMessage === 'function') {
-        window.showToastMessage(`Template "${normalized.name}" updated.`, 'success');
-      }
+      showToastMessage(`Template "${normalized.name}" updated.`, 'success');
     } catch (error) {
       if (error?.isRateLimited) {
         return;
@@ -682,9 +675,7 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
       state.draft = null;
       state.detailOverlayOpen = false;
 
-      if (typeof window.showToastMessage === 'function') {
-        window.showToastMessage(`Template "${selected.name}" deleted.`, 'success');
-      }
+      showToastMessage(`Template "${selected.name}" deleted.`, 'success');
     } catch (error) {
       if (error?.isRateLimited) {
         return;
@@ -720,9 +711,7 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
       });
     }
 
-    if (typeof window.showToastMessage === 'function') {
-      window.showToastMessage(`Applied template "${selected.name}".`, 'success');
-    }
+    showToastMessage(`Applied template "${selected.name}".`, 'success');
 
     window.modalManager?.closePanel?.('templates-panel');
   }
@@ -770,9 +759,7 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
       setDraftFromTemplate(normalized);
       state.detailOverlayOpen = wasOverlayOpen;
 
-      if (typeof window.showToastMessage === 'function') {
-        window.showToastMessage(nextPinned ? `Pinned "${normalized.name}".` : `Unpinned "${normalized.name}".`, 'success');
-      }
+      showToastMessage(nextPinned ? `Pinned "${normalized.name}".` : `Unpinned "${normalized.name}".`, 'success');
     } catch (error) {
       if (error?.isRateLimited) {
         return;
@@ -828,9 +815,7 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
       if (error?.isRateLimited) {
         return;
       }
-      if (typeof window.showToastMessage === 'function') {
-        window.showToastMessage(`Failed to reorder pinned templates: ${error.message}`, 'error');
-      }
+      showToastMessage(`Failed to reorder pinned templates: ${error.message}`, 'error');
     } finally {
       state.saving = false;
       state.draggedPinnedId = '';
@@ -922,9 +907,7 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
       resetCategoryEditor();
       renderValidation([]);
 
-      if (typeof window.showToastMessage === 'function') {
-        window.showToastMessage(`Category "${rawName}" saved.`, 'success');
-      }
+      showToastMessage(`Category "${rawName}" saved.`, 'success');
     } catch (error) {
       if (error?.isRateLimited) {
         return;
@@ -975,9 +958,7 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
       }
       renderValidation([]);
 
-      if (typeof window.showToastMessage === 'function') {
-        window.showToastMessage(`Category "${category.name}" deleted.`, 'success');
-      }
+      showToastMessage(`Category "${category.name}" deleted.`, 'success');
     } catch (error) {
       if (error?.isRateLimited) {
         return;

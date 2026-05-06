@@ -21,6 +21,7 @@ import {
 import { BackendApi } from './backendApi.js';
 import { formatDuration, parsePipeDelimitedRow } from './dataFormatters.js';
 import { onDOMReady } from './domReady.js';
+import { showToastMessage } from './toast.js';
 import { VisibilityUtils } from './visibility.js';
 import { formatFieldOperatorForDisplay, mapFieldOperatorToUiCond, normalizeUiConfigFilters } from '../filters/queryPayload.js';
 /* ---------- Query history state and renderer ---------- */
@@ -278,16 +279,16 @@ async function cancelQuery(queryId) {
         uiActions.updateButtonStates();
         window.QueryTableAnimation?.endTableQueryAnimation?.();
       }
-      window.showToastMessage(`Query ${queryId} cancelled`, 'info');
+      showToastMessage(`Query ${queryId} cancelled`, 'info');
     } else {
-      window.showToastMessage('Failed to cancel query', 'error');
+      showToastMessage('Failed to cancel query', 'error');
     }
   } catch (e) {
     if (e?.isRateLimited) {
       return;
     }
     console.error('Error cancelling query:', e);
-    window.showToastMessage('Error cancelling query', 'error');
+    showToastMessage('Error cancelling query', 'error');
   }
 }
 
@@ -530,10 +531,7 @@ async function loadQueryResults(queryId) {
     // Load configuration first
     loadQueryConfig(q);
     
-    // Show toast indicating loading
-    if (typeof window.showToastMessage === 'function') {
-      window.showToastMessage(q.running ? 'Fetching live results...' : 'Fetching results...', 'info');
-    }
+    showToastMessage(q.running ? 'Fetching live results...' : 'Fetching results...', 'info');
 
     try {
         const { response, text } = await BackendApi.postText(
@@ -617,11 +615,9 @@ async function loadQueryResults(queryId) {
         // Refresh badges after the loaded result-set state and table render settle.
         uiActions.updateTableResultsLip();
         
-        if (typeof window.showToastMessage === 'function') {
-            window.showToastMessage(q.running
-              ? `Loaded ${rows.length} partial results from running query.`
-              : `Loaded ${rows.length} results.`, 'success');
-        }
+        showToastMessage(q.running
+          ? `Loaded ${rows.length} partial results from running query.`
+          : `Loaded ${rows.length} results.`, 'success');
         
         // Close modal if open
         services.closeAllModals();
@@ -631,9 +627,7 @@ async function loadQueryResults(queryId) {
             return;
         }
         console.error('Failed to load results:', error);
-        if (typeof window.showToastMessage === 'function') {
-            window.showToastMessage('Failed to load results: ' + error.message, 'error');
-        }
+        showToastMessage('Failed to load results: ' + error.message, 'error');
     }
 }
 
@@ -683,16 +677,15 @@ function bindHistoryTableButtons(scope) {
     btn.addEventListener('click', e => {
       e.stopPropagation();
       const id = btn.getAttribute('data-query-id');
-      if (typeof window.showToastMessage === 'function') {
-        window.showToastMessage({
-          message: 'Cancel this running query?',
-          type: 'warning',
-          duration: 0,
-          action: { label: 'Cancel Query', onClick: () => cancelQuery(id) }
-        });
-        return;
+      const toastElement = showToastMessage({
+        message: 'Cancel this running query?',
+        type: 'warning',
+        duration: 0,
+        action: { label: 'Cancel Query', onClick: () => cancelQuery(id) }
+      });
+      if (!toastElement) {
+        cancelQuery(id);
       }
-      cancelQuery(id);
     });
   });
 }

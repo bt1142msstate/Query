@@ -3,7 +3,7 @@
  * Centralizes startup order for UI modules that bind DOM listeners.
  */
 import { onDOMReady } from './domReady.js';
-import { showToastMessage } from '../ui/toast.js';
+import { showToastMessage } from './toast.js';
 import { QueryBuilderShell } from '../ui/queryBuilderShell.js';
 import { QueryFormMode } from '../ui/formMode.js';
 import { QueryUI } from '../ui/queryUI.js';
