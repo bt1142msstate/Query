@@ -1,6 +1,9 @@
-let showToastMessage;
-let dismissToastMessage;
-let toast;
+import {
+  dismissToastMessage,
+  registerToastImplementation,
+  showToastMessage,
+  toast
+} from '../core/toast.js';
 
 (() => {
   const TOAST_CONTAINER_ID = 'toast-container';
@@ -375,32 +378,11 @@ let toast;
     return element;
   }
 
-  const toastApi = {
-    show: showToast,
-    dismiss: dismissToast,
-    dismissAll: dismissAllToasts,
-    info(message, duration) {
-      return showToast(message, 'info', duration);
-    },
-    success(message, duration) {
-      return showToast(message, 'success', duration);
-    },
-    warning(message, duration) {
-      return showToast(message, 'warning', duration);
-    },
-    error(message, duration) {
-      return showToast(message, 'error', duration);
-    }
-  };
-
-  showToastMessage = showToast;
-  dismissToastMessage = dismissToast;
-  toast = toastApi;
-
-  window.showToastMessage = showToast;
-  window.showToast = showToast;
-  window.dismissToastMessage = dismissToast;
-  window.toast = toastApi;
+  registerToastImplementation({
+    dismissToastMessage: dismissToast,
+    dismissAllToasts,
+    showToastMessage: showToast
+  });
 })();
 
 export { dismissToastMessage, showToastMessage, toast };

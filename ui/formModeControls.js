@@ -1,3 +1,5 @@
+import { showToastMessage } from '../core/toast.js';
+
 (function initializeFormModeControls() {
   function parseFieldOptions(fieldDef, inputSpec, normalizeOperatorForField) {
     const source = Array.isArray(inputSpec.options) && inputSpec.options.length > 0
@@ -471,9 +473,7 @@
       removeButton.addEventListener('click', () => {
         removeSpecInputByKey(inputSpec.key);
         rebuildFormCardFromSpec({ querySource: 'QueryFormMode.removeFilterInput' });
-        if (window.showToastMessage) {
-          window.showToastMessage(`Removed filter ${inputSpec.label}.`, 'info');
-        }
+        showToastMessage(`Removed filter ${inputSpec.label}.`, 'info');
       });
     } else {
       removeButton.hidden = true;

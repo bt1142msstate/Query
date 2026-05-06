@@ -10,6 +10,7 @@ import {
     shouldUseFilterListViewer
 } from './filterValueUi.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
+import { showToastMessage } from '../core/toast.js';
 
 window.FilterSidePanel = (function () {
     const services = window.AppServices;
@@ -253,9 +254,7 @@ window.FilterSidePanel = (function () {
             insertAt: Number.isInteger(normalizedInsertAt) ? normalizedInsertAt : -1
         }).catch(error => {
             console.error('Failed to open side panel field picker:', error);
-            if (window.showToastMessage) {
-                window.showToastMessage('Failed to open the field picker.', 'error');
-            }
+            showToastMessage('Failed to open the field picker.', 'error');
         });
     }
 

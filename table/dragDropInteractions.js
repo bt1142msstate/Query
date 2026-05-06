@@ -3,6 +3,7 @@
  * Owns hover, drop indicator, header actions, and drag lifecycle behavior.
  */
 import { ClipboardUtils } from '../core/clipboard.js';
+import { showToastMessage } from '../core/toast.js';
 (function initializeDragDropInteractions() {
   var getDisplayedFields = window.QueryStateReaders.getDisplayedFields.bind(window.QueryStateReaders);
   var getLifecycleState = window.QueryStateReaders.getLifecycleState.bind(window.QueryStateReaders);
@@ -1092,9 +1093,7 @@ import { ClipboardUtils } from '../core/clipboard.js';
     clearInsertAffordance();
     window.SharedFieldPicker.openQueryFieldPicker({ insertAt }).catch(error => {
       console.error('Failed to open insert field picker:', error);
-      if (window.showToastMessage) {
-        window.showToastMessage('Failed to open the field picker.', 'error');
-      }
+      showToastMessage('Failed to open the field picker.', 'error');
     });
   });
 

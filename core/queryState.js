@@ -3,6 +3,7 @@
  * Handles application state variables and query state logic.
  * @module QueryState
  */
+import { showToastMessage } from './toast.js';
 
 function getServices() {
   return window.AppServices || null;
@@ -1048,9 +1049,7 @@ async function clearQueryManagerState(meta = {}) {
   const suppressToast = meta && meta.suppressToast === true;
 
   if (queryLifecycleState.queryRunning) {
-    if (typeof window.showToastMessage === 'function') {
-      window.showToastMessage('Stop the running query before clearing it.', 'warning');
-    }
+    showToastMessage('Stop the running query before clearing it.', 'warning');
     return false;
   }
 
@@ -1075,8 +1074,8 @@ async function clearQueryManagerState(meta = {}) {
   appStateStore.selectedField = '';
   appStateStore.currentCategory = 'All';
 
-  if (!suppressToast && typeof window.showToastMessage === 'function') {
-    window.showToastMessage('Query cleared.', 'info');
+  if (!suppressToast) {
+    showToastMessage('Query cleared.', 'info');
   }
 
   return true;
@@ -1178,9 +1177,7 @@ queryStateStore.subscribe(event => {
     return;
   }
 
-  if (typeof window.showToastMessage === 'function') {
-    window.showToastMessage(getQueryChangeToastMessage(event), 'info', 1400);
-  }
+  showToastMessage(getQueryChangeToastMessage(event), 'info', 1400);
 });
 
 export {

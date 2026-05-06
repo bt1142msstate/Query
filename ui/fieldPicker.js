@@ -1,4 +1,5 @@
 import { mapFieldOperatorToUiCond } from '../filters/queryPayload.js';
+import { showToastMessage } from '../core/toast.js';
 import { VisibilityUtils } from '../core/visibility.js';
 
 (function() {
@@ -46,9 +47,7 @@ import { VisibilityUtils } from '../core/visibility.js';
     const options = Array.isArray(resolvedOptions) ? resolvedOptions : [];
 
     if (options.length === 0) {
-      if (window.showToastMessage) {
-        window.showToastMessage(config.emptyToastMessage || 'No fields are available right now.', 'warning');
-      }
+      showToastMessage(config.emptyToastMessage || 'No fields are available right now.', 'warning');
       return;
     }
 
@@ -575,9 +574,7 @@ import { VisibilityUtils } from '../core/visibility.js';
 
       const currentState = normalizePickerState(getFieldState(fieldName));
       if (currentState.display) {
-        if (window.showToastMessage) {
-          window.showToastMessage(`${fieldName} is already in results. Double-click to remove.`, 'info');
-        }
+        showToastMessage(`${fieldName} is already in results. Double-click to remove.`, 'info');
         return true;
       }
 
@@ -654,8 +651,8 @@ import { VisibilityUtils } from '../core/visibility.js';
             renderList();
             syncChoiceInputs();
             syncDetails();
-            if (wasAlreadySelected && window.showToastMessage) {
-              window.showToastMessage(`Double-click to remove ${option.name} from results.`, 'info');
+            if (wasAlreadySelected) {
+              showToastMessage(`Double-click to remove ${option.name} from results.`, 'info');
             }
           }
         } else {
@@ -1202,12 +1199,10 @@ import { VisibilityUtils } from '../core/visibility.js';
           });
         }
 
-        if (window.showToastMessage) {
-          window.showToastMessage(
-            nextChecked ? `${fieldName} added to results.` : `${fieldName} removed from results.`,
-            'success'
-          );
-        }
+        showToastMessage(
+          nextChecked ? `${fieldName} added to results.` : `${fieldName} removed from results.`,
+          'success'
+        );
       },
       onFilterPreviewChange: insertAt < 0 ? async (fieldName, previewState) => {
         applyQueryPreviewFilterState(fieldName, previewState);
@@ -1221,9 +1216,7 @@ import { VisibilityUtils } from '../core/visibility.js';
             });
           }
 
-          if (window.showToastMessage) {
-            window.showToastMessage(`${fieldName} filters removed.`, 'success');
-          }
+          showToastMessage(`${fieldName} filters removed.`, 'success');
           return;
         }
 
@@ -1247,9 +1240,7 @@ import { VisibilityUtils } from '../core/visibility.js';
     addFieldBtn.addEventListener('click', () => {
       openQueryFieldPicker().catch(error => {
         console.error('Failed to open query field picker:', error);
-        if (window.showToastMessage) {
-          window.showToastMessage('Failed to open the field picker.', 'error');
-        }
+        showToastMessage('Failed to open the field picker.', 'error');
       });
     });
   }

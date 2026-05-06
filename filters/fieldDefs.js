@@ -4,6 +4,7 @@
  * @module FieldDefs
  */
 import { BackendApi } from '../core/backendApi.js';
+import { showToastMessage } from '../core/toast.js';
 
 // Field definitions dynamically loaded from backend
 let fieldDefsArray = [];
@@ -83,9 +84,7 @@ function scheduleAliasNotificationToast() {
       : 'Updated field names:';
 
     console.info('Normalized aliased field names:', details);
-    if (window.showToastMessage) {
-      window.showToastMessage(`${prefix} ${details}`, 'warning', 5000);
-    }
+    showToastMessage(`${prefix} ${details}`, 'warning', 5000);
   }, 50);
 }
 
@@ -131,9 +130,7 @@ async function loadFieldDefinitions() {
         if (data.error) {
             errorMsg = data.error;
             console.error("Backend reported an issue when loading fields:", errorMsg);
-            if (window.showToastMessage) {
-                window.showToastMessage("Warning: " + errorMsg, "warning");
-            }
+            showToastMessage("Warning: " + errorMsg, "warning");
         }
         
         fieldDefsArray = Array.isArray(data) ? [...data] : (data.fields ? [...data.fields] : []);
@@ -173,9 +170,7 @@ async function loadFieldDefinitions() {
             return [];
         }
         console.error("Failed to load backend field mappings.", e);
-        if (window.showToastMessage) {
-            window.showToastMessage("Could not load field settings from backend", "error");
-        }
+        showToastMessage("Could not load field settings from backend", "error");
         return [];
     }
 }

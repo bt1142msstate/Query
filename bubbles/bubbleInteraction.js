@@ -1,4 +1,5 @@
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
+import { showToastMessage } from '../core/toast.js';
 import { VisibilityUtils } from '../core/visibility.js';
 
 var getFilterGroupForField = window.QueryStateReaders.getFilterGroupForField.bind(window.QueryStateReaders);
@@ -160,15 +161,13 @@ function initializeBubbleInteractions() {
 
     if (!isBuildable && !isFilterable) {
       services.bubbleDebugLog('click.ignored.displayOnlyField', { fieldName });
-      if (window.showToastMessage) {
-        window.showToastMessage(`${fieldName} is display-only and does not support filters.`, 'warning');
-      }
+      showToastMessage(`${fieldName} is display-only and does not support filters.`, 'warning');
       return;
     }
 
     if (getLifecycleState().queryRunning) {
       services.bubbleDebugLog('click.blocked.queryRunning', { bubble: bubble.textContent.trim() });
-      if (window.showToastMessage) window.showToastMessage('Cannot edit conditions while a query is running', 'warning');
+      showToastMessage('Cannot edit conditions while a query is running', 'warning');
       e.stopPropagation();
       e.preventDefault();
       return;
