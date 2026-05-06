@@ -1,7 +1,7 @@
 function getDefaultHistoryDetailsDependencies() {
   return {
     formatStandardFilterTooltipHTML: window.formatStandardFilterTooltipHTML,
-    normalizeUiConfigFilters: window.normalizeUiConfigFilters
+    normalizeUiConfigFilters: null
   };
 }
 

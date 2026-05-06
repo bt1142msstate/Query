@@ -4,6 +4,7 @@
  * @module QueryHistory
  */
 import { buildHistoryDetailsOverlayHtml } from './queryHistoryDetails.js';
+import { createQueryHistoryDependencies } from './queryHistoryDependencies.js';
 import {
   appendUniqueColumn,
   buildUiConfigFromRequest,
@@ -17,6 +18,7 @@ import {
   classifyQueryStatus,
   getPreferredHistorySection as getPreferredHistorySectionForCounts
 } from './queryHistoryViewHelpers.js';
+import { formatFieldOperatorForDisplay, mapFieldOperatorToUiCond, normalizeUiConfigFilters } from '../filters/queryPayload.js';
 
 /* ---------- Query history state and renderer ---------- */
 let exampleQueries = [];
@@ -28,6 +30,7 @@ var uiActions = window.AppUiActions;
 const QUERY_STATUS_POLL_MS = 2000;
 const IDLE_POLL_MS = 8000;
 let lastHistoryRenderKey = '';
+const historyDependencies = createQueryHistoryDependencies(normalizeUiConfigFilters);
 
 function isQueriesPanelOpen() {
   const panel = window.DOM.queriesPanel;
@@ -84,7 +87,10 @@ function getPreferredHistorySection(counts) {
 }
 
 function createHistoryRowHtml(query) {
-  return createQueriesTableRowHtml(query, { activeHistoryDetailQueryId });
+  return createQueriesTableRowHtml(query, {
+    activeHistoryDetailQueryId,
+    dependencies: historyDependencies.display()
+  });
 }
 
 function captureHistoryViewState() {
@@ -178,10 +184,11 @@ async function fetchQueryStatus() {
     serverQueries.forEach(sq => {
         // Prepare UI Config from request payload if available
         let jsonConfig = null;
+        const mapperDependencies = historyDependencies.mapper();
         if (sq.request && sq.request.ui_config) {
-          jsonConfig = mergeUiConfigWithRequest(sq.request.ui_config, sq.request);
+          jsonConfig = mergeUiConfigWithRequest(sq.request.ui_config, sq.request, mapperDependencies);
         } else if (sq.request) {
-            jsonConfig = buildUiConfigFromRequest(sq.request);
+            jsonConfig = buildUiConfigFromRequest(sq.request, mapperDependencies);
         }
         
         const qData = {
@@ -313,17 +320,12 @@ window.formatColumnsTooltip = function(columns) {
  * @returns {string} Formatted tooltip text
  */
 window.formatHistoryFiltersTooltip = function(filtersInput) {
-  const filters = typeof window.normalizeUiConfigFilters === 'function'
-    ? window.normalizeUiConfigFilters(filtersInput)
-    : [];
+  const filters = normalizeUiConfigFilters(filtersInput);
   if (!filters.length) return 'None';
   
   const lines = [];
   filters.forEach(f => {
-    const op = typeof window.formatFieldOperatorForDisplay === 'function'
-      ? window.formatFieldOperatorForDisplay(f.FieldOperator)
-      : f.FieldOperator;
-
+    const op = formatFieldOperatorForDisplay(f.FieldOperator);
     lines.push(`${f.FieldName || ''} ${op} ${f.Values ? f.Values.join('|') : ''}`);
   });
   
@@ -360,7 +362,7 @@ function renderHistoryDetailsOverlay(queryId = activeHistoryDetailQueryId) {
   shell.className = 'history-details-modal-shell';
   shell.hidden = true;
   shell.classList.add('hidden');
-  shell.innerHTML = buildHistoryDetailsOverlayHtml(q);
+  shell.innerHTML = buildHistoryDetailsOverlayHtml(q, historyDependencies.display());
   document.body.appendChild(shell);
   window.VisibilityUtils?.show?.([shell], {
     ariaHidden: false,
@@ -415,9 +417,7 @@ function loadQueryConfig(q) {
   }
   
   // Load fields
-  const filters = typeof window.normalizeUiConfigFilters === 'function'
-    ? window.normalizeUiConfigFilters(q.jsonConfig, { trackAliases: true })
-    : [];
+  const filters = normalizeUiConfigFilters(q.jsonConfig, { trackAliases: true });
   const desiredColumns = Array.isArray(q.jsonConfig.DesiredColumnOrder)
     ? q.jsonConfig.DesiredColumnOrder.map(fieldName => (
         typeof window.resolveFieldName === 'function'
@@ -426,7 +426,8 @@ function loadQueryConfig(q) {
       ))
     : [];
   const resolvedSpecialFields = resolveSpecialPayloadFieldNames(
-    q.jsonConfig.SpecialFields || q.jsonConfig.specialFields || []
+    q.jsonConfig.SpecialFields || q.jsonConfig.specialFields || [],
+    historyDependencies.mapper()
   );
   resolvedSpecialFields.forEach(fieldName => appendUniqueColumn(desiredColumns, fieldName));
 
@@ -446,9 +447,7 @@ function loadQueryConfig(q) {
       const fieldName = typeof window.resolveFieldName === 'function'
         ? window.resolveFieldName(ff.FieldName)
         : ff.FieldName;
-      const uiCond = typeof window.mapFieldOperatorToUiCond === 'function'
-        ? window.mapFieldOperatorToUiCond(ff.FieldOperator)
-        : String(ff.FieldOperator || '').toLowerCase();
+      const uiCond = mapFieldOperatorToUiCond(ff.FieldOperator);
       const valueGlue = uiCond === 'between' ? '|' : ',';
 
       if (!fieldName) {

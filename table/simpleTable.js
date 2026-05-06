@@ -2,6 +2,7 @@
  * JavaScript implementation of SimpleTable functionality
  * Provides client-side data manipulation including grouping, filtering, and post-processing
  */
+import { normalizeUiConfigFilters } from '../filters/queryPayload.js';
 
 // Enum for GroupMethod
 const GroupMethod = {
@@ -130,9 +131,7 @@ class SimpleTable {
             new FieldSpec(field.FieldName, field.RawOutputSegments, field.DataType)
         );
         this.desiredColumnOrder = config.DesiredColumnOrder || [];
-        const normalizedFilters = typeof window.normalizeUiConfigFilters === 'function'
-            ? window.normalizeUiConfigFilters(config)
-            : [];
+        const normalizedFilters = normalizeUiConfigFilters(config);
         this.filterGroups = normalizedFilters.length > 0
             ? [new FilterGroup(LogicalOperator.AND, normalizedFilters.map(f => 
                 new Filter(f.FieldName, f.FieldOperator, f.Values)

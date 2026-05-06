@@ -6,7 +6,7 @@ function getDefaultRequestMapperDependencies() {
   return {
     escapeRegExp: window.escapeRegExp || escapeRegExpFallback,
     fieldDefsArray: window.fieldDefsArray,
-    normalizeUiConfigFilters: window.normalizeUiConfigFilters,
+    normalizeUiConfigFilters: null,
     registerDynamicField: window.registerDynamicField,
     resolveFieldName: window.resolveFieldName
   };

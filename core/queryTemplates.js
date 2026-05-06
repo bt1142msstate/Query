@@ -1,3 +1,5 @@
+import { buildQueryUiConfig } from '../filters/queryPayload.js';
+
 (function initializeQueryTemplates() {
   const NEW_TEMPLATE_ID = '__new_template__';
   const DEFAULT_TEMPLATE_SVG = `
@@ -201,11 +203,7 @@
   }
 
   function getCurrentQueryConfigSnapshot() {
-    if (typeof window.buildQueryUiConfig !== 'function') {
-      return null;
-    }
-
-    return window.buildQueryUiConfig();
+    return buildQueryUiConfig();
   }
 
   function hasUsableCurrentQuery() {

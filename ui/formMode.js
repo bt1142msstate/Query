@@ -1,3 +1,5 @@
+import { mapFieldOperatorToUiCond } from '../filters/queryPayload.js';
+
 let QueryFormMode;
 
 (function() {
@@ -239,9 +241,7 @@ let QueryFormMode;
     const fieldName = String(input.field || input.fieldName || '').trim();
     if (!fieldName) return null;
 
-    const operator = typeof window.mapFieldOperatorToUiCond === 'function'
-      ? window.mapFieldOperatorToUiCond(input.operator || input.cond || 'equals')
-      : String(input.operator || input.cond || 'equals').toLowerCase();
+    const operator = mapFieldOperatorToUiCond(input.operator || input.cond || 'equals');
     const keys = Array.isArray(input.keys)
       ? input.keys.map(key => String(key || '').trim()).filter(Boolean)
       : [];
@@ -270,9 +270,7 @@ let QueryFormMode;
     const fieldName = String(filter.field || filter.fieldName || '').trim();
     if (!fieldName) return null;
 
-    const operator = typeof window.mapFieldOperatorToUiCond === 'function'
-      ? window.mapFieldOperatorToUiCond(filter.operator || filter.cond || 'equals')
-      : String(filter.operator || filter.cond || 'equals').toLowerCase();
+    const operator = mapFieldOperatorToUiCond(filter.operator || filter.cond || 'equals');
 
     return {
       field: fieldName,
@@ -327,9 +325,7 @@ let QueryFormMode;
   }
 
   function normalizeOperatorForField(fieldDef, operator) {
-    const normalized = typeof window.mapFieldOperatorToUiCond === 'function'
-      ? window.mapFieldOperatorToUiCond(operator)
-      : String(operator || '').toLowerCase();
+    const normalized = mapFieldOperatorToUiCond(operator);
 
     if (!fieldDef || !fieldDef.type) {
       return normalized;

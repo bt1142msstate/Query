@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 
 globalThis.window = globalThis;
-window.normalizeUiConfigFilters = input => Array.isArray(input?.Filters) ? input.Filters : [];
 window.CustomDatePicker = {
   parseDateValue(value) {
     const parsed = new Date(String(value || ''));

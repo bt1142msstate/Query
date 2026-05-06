@@ -1,3 +1,5 @@
+import { formatFieldOperatorForDisplay, mapFieldOperatorToUiCond, normalizeUiConfigFilters } from '../filters/queryPayload.js';
+
 /**
  * Custom Tooltip Component
  * Provides intelligent tooltip positioning and behavior for elements with data-tooltip attributes.
@@ -453,9 +455,7 @@ window.TooltipManager = (() => {
  * @returns {string} HTML string for data-tooltip-html
  */
 window.formatStandardFilterTooltipHTML = function(filtersInput, title = "") {
-  const filters = typeof window.normalizeUiConfigFilters === 'function'
-    ? window.normalizeUiConfigFilters(filtersInput)
-    : (Array.isArray(filtersInput) ? filtersInput : []);
+  const filters = normalizeUiConfigFilters(filtersInput);
   if (!filters || filters.length === 0) return '';
   
   let hasFilters = false;
@@ -469,12 +469,8 @@ window.formatStandardFilterTooltipHTML = function(filtersInput, title = "") {
   filters.forEach(f => {
     hasFilters = true;
     const fieldDef = window.fieldDefs ? window.fieldDefs.get(f.FieldName) : null;
-    const op = typeof window.formatFieldOperatorForDisplay === 'function'
-      ? window.formatFieldOperatorForDisplay(f.FieldOperator)
-      : f.FieldOperator;
-    const uiCond = typeof window.mapFieldOperatorToUiCond === 'function'
-      ? window.mapFieldOperatorToUiCond(f.FieldOperator)
-      : String(f.FieldOperator || '').toLowerCase();
+    const op = formatFieldOperatorForDisplay(f.FieldOperator);
+    const uiCond = mapFieldOperatorToUiCond(f.FieldOperator);
     
     let valStr = '';
     if (f.Values && f.Values.length > 0) {
