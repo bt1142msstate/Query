@@ -1,4 +1,3 @@
-import { appRuntime } from './appRuntime.js';
 const LABELS = Object.freeze({
   contains: 'Contains',
   starts: 'Starts with',
@@ -39,14 +38,5 @@ function get(operator, fallback = 'Equals') {
 }
 
 const OperatorLabels = Object.freeze({ get });
-
-if (typeof window !== 'undefined') {
-  Object.defineProperty(appRuntime, 'OperatorLabels', {
-    configurable: false,
-    enumerable: true,
-    value: OperatorLabels,
-    writable: false
-  });
-}
 
 export { OperatorLabels, get };
