@@ -1,3 +1,4 @@
+import { appRuntime } from './appRuntime.js';
 const raisedUiKeys = new Set();
 
 function normalizeTargets(targets) {
@@ -102,7 +103,7 @@ const VisibilityUtils = Object.freeze({
 });
 
 if (typeof window !== 'undefined') {
-  Object.defineProperty(window, 'VisibilityUtils', {
+  Object.defineProperty(appRuntime, 'VisibilityUtils', {
     configurable: false,
     enumerable: true,
     value: VisibilityUtils,

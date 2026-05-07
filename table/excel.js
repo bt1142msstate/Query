@@ -8,14 +8,15 @@ import { showToastMessage } from '../core/toast.js';
 import { QueryStateReaders } from '../core/queryState.js';
 import { MoneyUtils, ValueFormatting } from '../core/utils.js';
 import { VisibilityUtils } from '../core/visibility.js';
+import { appRuntime } from '../core/appRuntime.js';
 
 (() => {
   // When true, multi-value cells (delimited by \x1F) are split into separate columns
   // instead of being stacked as newlines in a single cell.
-  // Synced with window.splitColumnsActive which virtualTable.js also reads.
+  // Synced with appRuntime.splitColumnsActive which virtualTable.js also reads.
   let splitMultiValues = false;
   let exportState = null;
-  window.splitColumnsActive = false;
+  appRuntime.splitColumnsActive = false;
 
   const SHEET_NAME_LIMIT = 31;
   const MAX_GROUPED_SHEETS = 100;
@@ -85,10 +86,10 @@ import { VisibilityUtils } from '../core/visibility.js';
     const fieldTypeMap = new Map();
 
     displayedFields.forEach(field => {
-      let def = window.fieldDefs && window.fieldDefs.get(field);
+      let def = appRuntime.fieldDefs && appRuntime.fieldDefs.get(field);
       if (!def) {
         const baseName = field.replace(/ \d+$/, '');
-        def = window.fieldDefs && window.fieldDefs.get(baseName);
+        def = appRuntime.fieldDefs && appRuntime.fieldDefs.get(baseName);
       }
       fieldTypeMap.set(field, def ? def.type : 'string');
     });
@@ -105,8 +106,8 @@ import { VisibilityUtils } from '../core/visibility.js';
     if (raw === undefined || raw === null) return '';
 
     if (type === 'date') {
-      const dt = window.CustomDatePicker && typeof window.CustomDatePicker.parseDateValue === 'function'
-        ? window.CustomDatePicker.parseDateValue(raw)
+      const dt = appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.parseDateValue === 'function'
+        ? appRuntime.CustomDatePicker.parseDateValue(raw)
         : null;
       return dt !== null ? dt : 'Never';
     }
@@ -131,8 +132,8 @@ import { VisibilityUtils } from '../core/visibility.js';
     }
 
     if (rawValue instanceof Date) {
-      return window.CustomDatePicker && typeof window.CustomDatePicker.formatDisplayValue === 'function'
-        ? window.CustomDatePicker.formatDisplayValue(rawValue, { fallbackToRaw: true, invalidValue: 'Blank' })
+      return appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.formatDisplayValue === 'function'
+        ? appRuntime.CustomDatePicker.formatDisplayValue(rawValue, { fallbackToRaw: true, invalidValue: 'Blank' })
         : rawValue.toLocaleDateString();
     }
 
@@ -194,8 +195,8 @@ import { VisibilityUtils } from '../core/visibility.js';
       return null;
     }
 
-    const tableName = window.QueryUI?.ensureTableName?.()
-      || window.QueryUI?.getDefaultTableName?.()
+    const tableName = appRuntime.QueryUI?.ensureTableName?.()
+      || appRuntime.QueryUI?.getDefaultTableName?.()
       || 'Query Results';
 
     const exportedRows = buildExportRows(sourceData);
@@ -701,14 +702,14 @@ import { VisibilityUtils } from '../core/visibility.js';
     const summary = getSplitEligibleSummary();
     if (!summary.eligible) {
       splitMultiValues = false;
-      window.splitColumnsActive = false;
+      appRuntime.splitColumnsActive = false;
     }
 
     applySplitToggleVisualState(toggleBtn, splitMultiValues, summary.eligible);
     toggleBtn.removeAttribute('data-tooltip');
     toggleBtn.setAttribute('data-tooltip-html', buildSplitToggleTooltipHtml(splitMultiValues, summary));
   }
-  window.updateSplitColumnsToggleState = updateSplitColumnsToggleState;
+  appRuntime.updateSplitColumnsToggleState = updateSplitColumnsToggleState;
 
   /**
    * Attaches the download and toggle event listeners.
@@ -716,7 +717,7 @@ import { VisibilityUtils } from '../core/visibility.js';
    * @memberof ExcelExporter
    */
   function attach() {
-    const downloadBtn = window.DOM?.downloadBtn || document.getElementById('download-btn');
+    const downloadBtn = appRuntime.DOM?.downloadBtn || document.getElementById('download-btn');
     if (downloadBtn) {
       downloadBtn.addEventListener('click', handleDownload);
     }
@@ -747,13 +748,13 @@ import { VisibilityUtils } from '../core/visibility.js';
       });
 
       // Called by VirtualTable when new data is loaded so the button resets visually
-      window.resetSplitColumnsToggleUI = function() {
+      appRuntime.resetSplitColumnsToggleUI = function() {
         splitMultiValues = false;
         updateSplitColumnsToggleState();
       };
       
       // Make it possible to force it active externally
-      window.setSplitColumnsToggleUIActive = function() {
+      appRuntime.setSplitColumnsToggleUIActive = function() {
         splitMultiValues = true;
         updateSplitColumnsToggleState();
       };
@@ -769,10 +770,10 @@ import { VisibilityUtils } from '../core/visibility.js';
    * @memberof ExcelExporter
    */
   function handleDownload() {
-    const downloadBtn = window.DOM?.downloadBtn || document.getElementById('download-btn');
+    const downloadBtn = appRuntime.DOM?.downloadBtn || document.getElementById('download-btn');
     if (!downloadBtn) return;
-    const missingLoadedColumns = window.QueryUI && typeof window.QueryUI.getDisplayedFieldsMissingFromLoadedData === 'function'
-      ? window.QueryUI.getDisplayedFieldsMissingFromLoadedData()
+    const missingLoadedColumns = appRuntime.QueryUI && typeof appRuntime.QueryUI.getDisplayedFieldsMissingFromLoadedData === 'function'
+      ? appRuntime.QueryUI.getDisplayedFieldsMissingFromLoadedData()
       : [];
 
     // Check if button is disabled and show message

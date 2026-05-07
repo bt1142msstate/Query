@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
+import { appRuntime } from '../core/appRuntime.js';
 
 globalThis.window = globalThis;
-window.CustomDatePicker = {
+appRuntime.CustomDatePicker = {
   parseDateValue(value) {
     const parsed = new Date(String(value || ''));
     return Number.isNaN(parsed.getTime()) ? null : parsed;

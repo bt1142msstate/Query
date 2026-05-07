@@ -1,5 +1,6 @@
 import { formatDuration } from './dataFormatters.js';
 import { showToastMessage } from './toast.js';
+import { appRuntime } from './appRuntime.js';
 
 const API_URL = 'https://mlp.sirsi.net/uhtbin/query_api.pl';
 let lastRateLimitNoticeUntil = 0;
@@ -147,7 +148,7 @@ const backendApi = Object.freeze({
 });
 
 if (typeof window !== 'undefined') {
-  Object.defineProperty(window, 'BackendApi', {
+  Object.defineProperty(appRuntime, 'BackendApi', {
     configurable: false,
     enumerable: true,
     value: backendApi,

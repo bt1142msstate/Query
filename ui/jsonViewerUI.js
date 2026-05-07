@@ -3,6 +3,7 @@ import { buildBackendQueryPayload } from '../filters/queryPayload.js';
 import { ClipboardUtils } from '../core/clipboard.js';
 import { onDOMReady } from '../core/domReady.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
+import { appRuntime } from '../core/appRuntime.js';
 
 const jsonTreeCollapsedPaths = new Set();
 
@@ -101,15 +102,15 @@ function renderJsonTree(payload) {
 }
 
 function updateQueryJson() {
-  const tableNameInput = window.DOM.tableNameInput;
+  const tableNameInput = appRuntime.DOM.tableNameInput;
   const queryName = tableNameInput ? tableNameInput.value.trim() : '';
   const payload = buildBackendQueryPayload(queryName);
-  if (window.DOM.queryBox) {
+  if (appRuntime.DOM.queryBox) {
     const formattedJson = JSON.stringify(payload, null, 2);
-    if (window.DOM.queryBox instanceof HTMLTextAreaElement) {
-      window.DOM.queryBox.value = formattedJson;
+    if (appRuntime.DOM.queryBox instanceof HTMLTextAreaElement) {
+      appRuntime.DOM.queryBox.value = formattedJson;
     } else {
-      window.DOM.queryBox.textContent = formattedJson;
+      appRuntime.DOM.queryBox.textContent = formattedJson;
     }
   }
   renderJsonTree(payload);
@@ -132,7 +133,7 @@ onDOMReady(() => {
   const copyBtn = document.getElementById('copy-json-btn');
   if (copyBtn) {
     ClipboardUtils.bindCopyButton(copyBtn, () => {
-      const queryBox = window.DOM.queryBox;
+      const queryBox = appRuntime.DOM.queryBox;
       return queryBox instanceof HTMLTextAreaElement
         ? queryBox.value
         : (queryBox?.textContent || '');
@@ -153,7 +154,7 @@ QueryStateSubscriptions.subscribe(() => {
   updateQueryJson();
 }, { displayedFields: true, activeFilters: true });
 
-window.JsonViewerUI = Object.freeze({
+appRuntime.JsonViewerUI = Object.freeze({
   renderJsonTree,
   updateQueryJson
 });

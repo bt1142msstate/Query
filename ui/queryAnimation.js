@@ -1,4 +1,5 @@
 import { QueryStateReaders } from '../core/queryState.js';
+import { appRuntime } from '../core/appRuntime.js';
 
 /* ---------- Table morph animation — Spacefield bubble ---------- */
 function createTableQueryCircuitOverlay() {
@@ -492,8 +493,8 @@ function endTableQueryAnimation() {
 
     const finishAnim = () => {
       bubble.classList.add('popping');
-      if (window.createBubblePopParticles) {
-        window.createBubblePopParticles(bubble);
+      if (appRuntime.createBubblePopParticles) {
+        appRuntime.createBubblePopParticles(bubble);
       }
 
       tableContainer.classList.remove('table-container-hidden');
@@ -571,7 +572,7 @@ function endTableQueryAnimation() {
   }
 }
 
-window.QueryTableAnimation = Object.freeze({
+appRuntime.QueryTableAnimation = Object.freeze({
   endTableQueryAnimation,
   startTableQueryAnimation,
   updateTableQueryAnimationProgress

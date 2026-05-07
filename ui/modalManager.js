@@ -6,11 +6,12 @@
  */
 import { appServices } from '../core/appServices.js';
 import { VisibilityUtils } from '../core/visibility.js';
+import { appRuntime } from '../core/appRuntime.js';
 
 class ModalManager {
   constructor() {
     this.initialized = false;
-    this.overlay = window.DOM?.overlay || document.getElementById('overlay');
+    this.overlay = appRuntime.DOM?.overlay || document.getElementById('overlay');
     this.panels = ['json-panel', 'queries-panel', 'templates-panel', 'help-panel', 'mobile-menu-dropdown'];
     this.panelTitles = {
       'json-panel': 'Query JSON',
@@ -130,7 +131,7 @@ class ModalManager {
       appServices.fetchHistoryQueryStatus();
       appServices.startHistoryDurationUpdates();
     } else if (panelId === 'templates-panel') {
-      window.QueryTemplatesSystem?.openPanel?.();
+      appRuntime.QueryTemplatesSystem?.openPanel?.();
     }
     
     // Accessibility
@@ -144,9 +145,9 @@ class ModalManager {
 
     if (panelId === 'queries-panel') {
       appServices.stopHistoryDurationUpdates();
-      window.QueryHistorySystem?.closeDetailsOverlay?.();
+      appRuntime.QueryHistorySystem?.closeDetailsOverlay?.();
     } else if (panelId === 'templates-panel') {
-      window.QueryTemplatesSystem?.closePanel?.();
+      appRuntime.QueryTemplatesSystem?.closePanel?.();
     }
 
     if (panelId === 'mobile-menu-dropdown') {
@@ -180,9 +181,9 @@ class ModalManager {
       if (p && !p.classList.contains('hidden')) {
         if (pid === 'queries-panel') {
           appServices.stopHistoryDurationUpdates();
-          window.QueryHistorySystem?.closeDetailsOverlay?.();
+          appRuntime.QueryHistorySystem?.closeDetailsOverlay?.();
         } else if (pid === 'templates-panel') {
-          window.QueryTemplatesSystem?.closePanel?.();
+          appRuntime.QueryTemplatesSystem?.closePanel?.();
         }
         if (pid === 'mobile-menu-dropdown') {
           p.classList.remove('show');
@@ -200,7 +201,7 @@ class ModalManager {
   }
 
   syncHeaderOverlayTitle(panelId) {
-    const titleEl = window.DOM?.headerOverlayTitle || document.getElementById('header-overlay-title');
+    const titleEl = appRuntime.DOM?.headerOverlayTitle || document.getElementById('header-overlay-title');
     if (!titleEl) {
       return;
     }
@@ -244,7 +245,7 @@ class ModalManager {
     });
 
     // Mobile: Hamburger Menu
-    const mobileMenuToggle = window.DOM?.mobileMenuToggle || document.getElementById('mobile-menu-toggle');
+    const mobileMenuToggle = appRuntime.DOM?.mobileMenuToggle || document.getElementById('mobile-menu-toggle');
     if (mobileMenuToggle) {
         mobileMenuToggle.addEventListener('click', () => this.togglePanel('mobile-menu-dropdown'));
     }
@@ -408,21 +409,21 @@ class ModalManager {
 }
 
 // Global instance
-window.modalManager = new ModalManager();
+appRuntime.modalManager = new ModalManager();
 
-window.lockInput = (duration) => window.modalManager.lockInput(duration);
+appRuntime.lockInput = (duration) => appRuntime.modalManager.lockInput(duration);
 
 // Backward Compatibility for ModalSystem
-window.ModalSystem = {
-  closeAllModals: () => window.modalManager.closeAllPanels(),
-  lockInput: (d) => window.modalManager.lockInput(d),
-  openModal: (id) => window.modalManager.openPanel(id),
-  closeModal: (id) => window.modalManager.closePanel(id)
+appRuntime.ModalSystem = {
+  closeAllModals: () => appRuntime.modalManager.closeAllPanels(),
+  lockInput: (d) => appRuntime.modalManager.lockInput(d),
+  openModal: (id) => appRuntime.modalManager.openPanel(id),
+  closeModal: (id) => appRuntime.modalManager.closePanel(id)
 };
 
 // Auto-initialize when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => window.modalManager.initialize());
+  document.addEventListener('DOMContentLoaded', () => appRuntime.modalManager.initialize());
 } else {
-  window.modalManager.initialize();
+  appRuntime.modalManager.initialize();
 }

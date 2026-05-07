@@ -6,6 +6,7 @@ import { formatFieldDefinitionTooltipHTML } from '../core/tooltipFormatters.js';
 import { VisibilityUtils } from '../core/visibility.js';
 import { FormModeControls as formModeControls } from './formModeControls.js';
 import { initializeSearchInputs } from './searchUI.js';
+import { appRuntime } from '../core/appRuntime.js';
 
 let SharedFieldPicker;
 
@@ -14,17 +15,17 @@ let SharedFieldPicker;
   const { getDisplayedFields, getFilterGroupForField } = QueryStateReaders;
 
   function getFieldPickerOptionsFromDefinitions() {
-    const source = Array.isArray(window.fieldDefsArray) && window.fieldDefsArray.length > 0
-      ? window.fieldDefsArray
-      : Array.from((window.fieldDefs && window.fieldDefs.values()) || []);
+    const source = Array.isArray(appRuntime.fieldDefsArray) && appRuntime.fieldDefsArray.length > 0
+      ? appRuntime.fieldDefsArray
+      : Array.from((appRuntime.fieldDefs && appRuntime.fieldDefs.values()) || []);
 
     return source
       .filter(fieldDef => fieldDef && fieldDef.name)
       .map(fieldDef => ({
         name: String(fieldDef.name),
         type: String(fieldDef.type || 'text'),
-        filterable: typeof window.isFieldBackendFilterable === 'function'
-          ? window.isFieldBackendFilterable(fieldDef)
+        filterable: typeof appRuntime.isFieldBackendFilterable === 'function'
+          ? appRuntime.isFieldBackendFilterable(fieldDef)
           : Array.isArray(fieldDef.filters) && fieldDef.filters.length > 0,
         desc: typeof fieldDef.desc === 'string' ? fieldDef.desc : '',
         description: typeof fieldDef.description === 'string' ? fieldDef.description : '',
@@ -695,8 +696,8 @@ let SharedFieldPicker;
       return button;
     }
 
-    if (window.VirtualList && !listEl.virtualList) {
-      listEl.virtualList = new window.VirtualList({
+    if (appRuntime.VirtualList && !listEl.virtualList) {
+      listEl.virtualList = new appRuntime.VirtualList({
         container: listEl,
         itemHeight: 52, // Approximate height of the option button (44px) + 8px margin
         renderItem: createOptionButton
@@ -808,8 +809,8 @@ let SharedFieldPicker;
   }
 
   function fieldMatchesBase(fieldName, targetField) {
-    const getBaseFieldName = typeof window.getBaseFieldName === 'function'
-      ? window.getBaseFieldName
+    const getBaseFieldName = typeof appRuntime.getBaseFieldName === 'function'
+      ? appRuntime.getBaseFieldName
       : value => String(value ?? '').trim();
 
     return getBaseFieldName(fieldName) === getBaseFieldName(targetField);
@@ -913,7 +914,7 @@ let SharedFieldPicker;
     const controls = formModeControls;
     if (
       !container
-      || !window.fieldDefs
+      || !appRuntime.fieldDefs
       || !controls
       || typeof controls.createGeneratedInputSpec !== 'function'
       || typeof controls.createControl !== 'function'
@@ -922,8 +923,8 @@ let SharedFieldPicker;
       return null;
     }
 
-    const fieldDef = window.fieldDefs.get(fieldName);
-    if (!fieldDef || (typeof window.isFieldBackendFilterable === 'function' && !window.isFieldBackendFilterable(fieldDef))) {
+    const fieldDef = appRuntime.fieldDefs.get(fieldName);
+    if (!fieldDef || (typeof appRuntime.isFieldBackendFilterable === 'function' && !appRuntime.isFieldBackendFilterable(fieldDef))) {
       return null;
     }
 
@@ -1097,23 +1098,23 @@ let SharedFieldPicker;
   }
 
   function openQueryFilterEditor(fieldName) {
-    const fieldDef = window.fieldDefs && window.fieldDefs.get(fieldName);
+    const fieldDef = appRuntime.fieldDefs && appRuntime.fieldDefs.get(fieldName);
     if (!fieldDef || !services.bubble || typeof services.bubble.Bubble !== 'function') {
       return false;
     }
 
     const bubble = new services.bubble.Bubble(fieldDef).getElement();
-    const overlay = window.DOM?.overlay || document.getElementById('overlay');
+    const overlay = appRuntime.DOM?.overlay || document.getElementById('overlay');
     const conditionPanel = services.bubble?.getConditionPanelElement ? services.bubble.getConditionPanelElement() : null;
     const inputWrapper = services.getBubbleInputWrapperElement();
     let filterCard = services.getBubbleFilterCardElement();
 
-    if (filterCard && !window.DOM?.filterCard) {
+    if (filterCard && !appRuntime.DOM?.filterCard) {
       document.body.appendChild(filterCard);
       filterCard.offsetHeight;
     }
-    if (!window.filterCard && filterCard) {
-      window.filterCard = filterCard;
+    if (!appRuntime.filterCard && filterCard) {
+      appRuntime.filterCard = filterCard;
     }
     if (filterCard) {
       services.prepareBubbleFilterCardForOpen(filterCard);
@@ -1131,8 +1132,8 @@ let SharedFieldPicker;
       if (titleEl) titleEl.textContent = fieldName;
     }
 
-    if (window.renderConditionList) {
-      window.renderConditionList(fieldName);
+    if (appRuntime.renderConditionList) {
+      appRuntime.renderConditionList(fieldName);
     }
 
     if (conditionPanel) {
@@ -1158,8 +1159,8 @@ let SharedFieldPicker;
 
     await openSharedFieldPicker({
       beforeOpen: async () => {
-        if (typeof window.loadFieldDefinitions === 'function') {
-          await window.loadFieldDefinitions();
+        if (typeof appRuntime.loadFieldDefinitions === 'function') {
+          await appRuntime.loadFieldDefinitions();
         }
       },
       labels: {

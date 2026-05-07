@@ -1,3 +1,4 @@
+import { appRuntime } from '../core/appRuntime.js';
 /**
  * Shared DOM lookup cache.
  * Keeps repeated element queries in one place for the browser-script UI.
@@ -85,6 +86,6 @@ const DOM = {
   get queriesSearch() { return getCachedElement(this, '_queriesSearch', 'queries-search'); }
 };
 
-window.DOM = DOM;
+appRuntime.DOM = DOM;
 
 export { DOM };

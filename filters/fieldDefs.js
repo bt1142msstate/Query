@@ -6,6 +6,7 @@
 import { BackendApi } from '../core/backendApi.js';
 import { QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
+import { appRuntime } from '../core/appRuntime.js';
 
 // Field definitions dynamically loaded from backend
 let fieldDefsArray = [];
@@ -21,7 +22,7 @@ function hasLoadedFieldDefinitions() {
   return isFieldsLoaded && fieldDefsArray.length > 0;
 }
 
-window.hasLoadedFieldDefinitions = hasLoadedFieldDefinitions;
+appRuntime.hasLoadedFieldDefinitions = hasLoadedFieldDefinitions;
 
 function normalizeCategoryName(category) {
   return (typeof category === 'string') ? category.trim() : '';
@@ -119,7 +120,7 @@ function resolveFieldName(fieldName, options = {}) {
   return normalized;
 }
 
-window.resolveFieldName = resolveFieldName;
+appRuntime.resolveFieldName = resolveFieldName;
 
 async function loadFieldDefinitions() {
     if (isFieldsLoaded) return fieldDefsArray;
@@ -160,9 +161,9 @@ async function loadFieldDefinitions() {
         });
         filteredDefs = [...fieldDefsArray];
 
-        window.fieldDefsArray = fieldDefsArray;
-        window.fieldDefs = fieldDefs;
-        window.filteredDefs = filteredDefs;
+        appRuntime.fieldDefsArray = fieldDefsArray;
+        appRuntime.fieldDefs = fieldDefs;
+        appRuntime.filteredDefs = filteredDefs;
         
         isFieldsLoaded = true;
         return fieldDefsArray;
@@ -176,7 +177,7 @@ async function loadFieldDefinitions() {
     }
 }
 
-window.loadFieldDefinitions = loadFieldDefinitions;
+appRuntime.loadFieldDefinitions = loadFieldDefinitions;
 
 /**
  * Updates the filtered definitions array based on search term.
@@ -191,8 +192,8 @@ function updateFilteredDefs(searchTerm) {
   } else {
     filteredDefs = fieldDefsArray.filter(d => d.name.toLowerCase().includes(searchTerm.toLowerCase()));
   }
-  // Keep window.filteredDefs in sync so other scripts (e.g. bubble.js) see the updated array
-  window.filteredDefs = filteredDefs;
+  // Keep appRuntime.filteredDefs in sync so other scripts (e.g. bubble.js) see the updated array
+  appRuntime.filteredDefs = filteredDefs;
   return filteredDefs;
 }
 
@@ -219,8 +220,8 @@ function isFieldBackendFilterable(fieldOrName) {
   return getFieldFilterOperators(fieldOrName).length > 0;
 }
 
-window.getFieldFilterOperators = getFieldFilterOperators;
-window.isFieldBackendFilterable = isFieldBackendFilterable;
+appRuntime.getFieldFilterOperators = getFieldFilterOperators;
+appRuntime.isFieldBackendFilterable = isFieldBackendFilterable;
 
 /**
  * Checks if a field should have purple styling (filtered or displayed).
@@ -287,8 +288,8 @@ function calculateCategoryCounts(displayedFields, activeFilters) {
  * @param {Function} onCategoryChange - Callback function when selector changes
  */
 function renderCategorySelectors(categoryCounts, currentCategory, onCategoryChange) {
-  const categoryBar = window.DOM?.categoryBar || document.getElementById('category-bar');
-  const mobileSelector = window.DOM?.mobileCategorySelector || document.getElementById('mobile-category-selector');
+  const categoryBar = appRuntime.DOM?.categoryBar || document.getElementById('category-bar');
+  const mobileSelector = appRuntime.DOM?.mobileCategorySelector || document.getElementById('mobile-category-selector');
 
   if (!hasLoadedFieldDefinitions()) {
     if (categoryBar) {
@@ -346,15 +347,15 @@ function renderCategorySelectors(categoryCounts, currentCategory, onCategoryChan
 }
 
 // Export global variables and functions for use in other modules
-window.fieldDefs = fieldDefs;
-window.fieldDefsArray = fieldDefsArray;
-window.fieldAliases = fieldAliases;
-window.filteredDefs = filteredDefs;
-window.updateFilteredDefs = updateFilteredDefs;
-window.shouldFieldHavePurpleStylingBase = shouldFieldHavePurpleStylingBase;
-window.shouldFieldHavePurpleStyling = shouldFieldHavePurpleStyling;
-window.calculateCategoryCounts = calculateCategoryCounts;
-window.renderCategorySelectors = renderCategorySelectors;
+appRuntime.fieldDefs = fieldDefs;
+appRuntime.fieldDefsArray = fieldDefsArray;
+appRuntime.fieldAliases = fieldAliases;
+appRuntime.filteredDefs = filteredDefs;
+appRuntime.updateFilteredDefs = updateFilteredDefs;
+appRuntime.shouldFieldHavePurpleStylingBase = shouldFieldHavePurpleStylingBase;
+appRuntime.shouldFieldHavePurpleStyling = shouldFieldHavePurpleStyling;
+appRuntime.calculateCategoryCounts = calculateCategoryCounts;
+appRuntime.renderCategorySelectors = renderCategorySelectors;
 
 export {
   calculateCategoryCounts,

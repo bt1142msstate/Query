@@ -58,7 +58,7 @@ Results render in a virtualized table (25 visible rows at a time) for smooth per
 | `ui/` | Form mode, modals, toasts, tooltips, and shared helpers |
 | `styles/` | Feature-based CSS |
 | `styles/app.css` | Stylesheet entrypoint that imports the feature CSS files |
-| `config/` | Shared architecture contracts for public globals and module boundaries |
+| `config/` | Shared architecture contracts for forbidden browser globals and module boundaries |
 | `docs/ARCHITECTURE.md` | Frontend architecture notes, quality gates, and refactor plan |
 | `tests/` | Browser smoke tests and architecture fitness checks |
 
@@ -66,7 +66,7 @@ Results render in a virtualized table (25 visible rows at a time) for smooth per
 
 - Static HTML, CSS, and vanilla JavaScript — no build step required
 - Native browser ES modules with `"type": "module"` in Node tooling
-- Feature-oriented folder structure with guarded public globals and enforced module boundaries
+- Feature-oriented folder structure with ES modules, a private runtime registry for remaining legacy cycles, and enforced module boundaries
 - ESLint, architecture fitness checks, and Playwright browser smoke tests
 - [ExcelJS](https://github.com/exceljs/exceljs) for Excel export
 

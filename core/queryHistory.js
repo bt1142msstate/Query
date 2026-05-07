@@ -27,6 +27,7 @@ import { AppState, QueryChangeManager, QueryStateReaders } from './queryState.js
 import { showToastMessage } from './toast.js';
 import { VisibilityUtils } from './visibility.js';
 import { formatFieldOperatorForDisplay, mapFieldOperatorToUiCond, normalizeUiConfigFilters } from '../filters/queryPayload.js';
+import { appRuntime } from './appRuntime.js';
 /* ---------- Query history state and renderer ---------- */
 let exampleQueries = [];
 let queryDurationUpdateInterval = null;
@@ -40,7 +41,7 @@ let lastHistoryRenderKey = '';
 const historyDependencies = createQueryHistoryDependencies(normalizeUiConfigFilters);
 
 function isQueriesPanelOpen() {
-  const panel = window.DOM.queriesPanel;
+  const panel = appRuntime.DOM.queriesPanel;
   return !!(panel && !panel.classList.contains('hidden'));
 }
 
@@ -101,7 +102,7 @@ function createHistoryRowHtml(query) {
 }
 
 function captureHistoryViewState() {
-  const panelContainer = window.DOM.queriesContainer;
+  const panelContainer = appRuntime.DOM.queriesContainer;
   const monitorShell = panelContainer?.querySelector('.history-monitor .history-table-shell');
 
   return {
@@ -115,7 +116,7 @@ function captureHistoryViewState() {
 function restoreHistoryViewState(viewState) {
   if (!viewState) return;
 
-  const panelContainer = window.DOM.queriesContainer;
+  const panelContainer = appRuntime.DOM.queriesContainer;
   if (panelContainer) {
     panelContainer.scrollTop = viewState.panelScrollTop;
     panelContainer.scrollLeft = viewState.panelScrollLeft;
@@ -129,8 +130,8 @@ function restoreHistoryViewState(viewState) {
 }
 
 function updateHistoryPollingMeta({ isPollingActive, refreshedAt }) {
-  const pollingValue = window.DOM.queriesList?.querySelector('.history-polling-value');
-  const pollingDetail = window.DOM.queriesList?.querySelector('.history-polling-detail');
+  const pollingValue = appRuntime.DOM.queriesList?.querySelector('.history-polling-value');
+  const pollingDetail = appRuntime.DOM.queriesList?.querySelector('.history-polling-detail');
   if (pollingValue) {
     pollingValue.textContent = isPollingActive ? 'Polling live' : 'Polling paused';
     pollingValue.classList.toggle('active', !!isPollingActive);
@@ -280,7 +281,7 @@ async function cancelQuery(queryId) {
         );
         uiActions.updateRunButtonIcon();
         uiActions.updateButtonStates();
-        window.QueryTableAnimation?.endTableQueryAnimation?.();
+        appRuntime.QueryTableAnimation?.endTableQueryAnimation?.();
       }
       showToastMessage(`Query ${queryId} cancelled`, 'info');
     } else {
@@ -309,7 +310,7 @@ function formatColumnsTooltip(columns) {
   const columnItems = columns.map((column, index) => (
     '<li class="tt-filter-item tt-column-item">' +
     `  <span class="tt-column-index">${index + 1}</span>` +
-    `  <span class="tt-column-name">${window.escapeHtml(column || '')}</span>` +
+    `  <span class="tt-column-name">${appRuntime.escapeHtml(column || '')}</span>` +
     '</li>'
   )).join('');
 
@@ -404,7 +405,7 @@ function loadQueryConfig(q) {
     return;
   }
 
-  const tableNameInput = window.DOM?.tableNameInput || document.getElementById('table-name-input');
+  const tableNameInput = appRuntime.DOM?.tableNameInput || document.getElementById('table-name-input');
 
   // Loading a query definition is not itself a partial-results state.
   // That flag belongs to the currently displayed result set and must be
@@ -426,8 +427,8 @@ function loadQueryConfig(q) {
   const filters = normalizeUiConfigFilters(q.jsonConfig, { trackAliases: true });
   const desiredColumns = Array.isArray(q.jsonConfig.DesiredColumnOrder)
     ? q.jsonConfig.DesiredColumnOrder.map(fieldName => (
-        typeof window.resolveFieldName === 'function'
-          ? window.resolveFieldName(fieldName, { trackAlias: true })
+        typeof appRuntime.resolveFieldName === 'function'
+          ? appRuntime.resolveFieldName(fieldName, { trackAlias: true })
           : fieldName
       ))
     : [];
@@ -437,11 +438,11 @@ function loadQueryConfig(q) {
   );
   resolvedSpecialFields.forEach(fieldName => appendUniqueColumn(desiredColumns, fieldName));
 
-  if (typeof window.registerDynamicField === 'function') {
-    resolvedSpecialFields.forEach(fieldName => window.registerDynamicField(fieldName));
+  if (typeof appRuntime.registerDynamicField === 'function') {
+    resolvedSpecialFields.forEach(fieldName => appRuntime.registerDynamicField(fieldName));
     filters.forEach(filter => {
       if (filter?.FieldName) {
-        window.registerDynamicField(filter.FieldName);
+        appRuntime.registerDynamicField(filter.FieldName);
       }
     });
   }
@@ -450,8 +451,8 @@ function loadQueryConfig(q) {
 
   if (filters.length) {
     filters.forEach(ff => {
-      const fieldName = typeof window.resolveFieldName === 'function'
-        ? window.resolveFieldName(ff.FieldName)
+      const fieldName = typeof appRuntime.resolveFieldName === 'function'
+        ? appRuntime.resolveFieldName(ff.FieldName)
         : ff.FieldName;
       const uiCond = mapFieldOperatorToUiCond(ff.FieldOperator);
       const valueGlue = uiCond === 'between' ? '|' : ',';
@@ -478,8 +479,8 @@ function loadQueryConfig(q) {
 
   // Register any dynamically-built fields (e.g. Marc590) that may not exist
   // in the current session's fieldDefs registry.
-  if (typeof window.registerDynamicField === 'function') {
-    getDisplayedFields().forEach(f => window.registerDynamicField(f));
+  if (typeof appRuntime.registerDynamicField === 'function') {
+    getDisplayedFields().forEach(f => appRuntime.registerDynamicField(f));
   }
   
   // Clear filters and reapply from query
@@ -514,8 +515,8 @@ function loadQueryConfig(q) {
   }
   uiActions.updateButtonStates();
 
-  if (window.QueryFormMode && typeof window.QueryFormMode.isActive === 'function' && window.QueryFormMode.isActive()) {
-    window.QueryFormMode.syncFromCurrentQuery().catch(error => {
+  if (appRuntime.QueryFormMode && typeof appRuntime.QueryFormMode.isActive === 'function' && appRuntime.QueryFormMode.isActive()) {
+    appRuntime.QueryFormMode.syncFromCurrentQuery().catch(error => {
       console.error('Failed to sync form URL after loading query config:', error);
     });
   }
@@ -595,7 +596,7 @@ async function loadQueryResults(queryId) {
             services.setVirtualTableData(newTableData);
             
             // Re-render the full table to reset red column headers and redraw the rows with new widths
-            if (window.QueryTableView?.showExampleTable) {
+            if (appRuntime.QueryTableView?.showExampleTable) {
                 await uiActions.showExampleTable(headers);
             } else {
                 services.renderVirtualTable();
@@ -671,8 +672,8 @@ function bindHistoryTableButtons(scope) {
       q.status = 'running';
       loadQueryConfig(q);
       closeHistoryDetailsOverlay();
-      window.DOM.runBtn?.click();
-      window.modalManager?.closePanel?.('queries-panel');
+      appRuntime.DOM.runBtn?.click();
+      appRuntime.modalManager?.closePanel?.('queries-panel');
     });
   });
 
@@ -720,13 +721,13 @@ function patchQueriesPanelData(newHistory) {
   const oldById = new Map(exampleQueries.map(q => [q.id, q]));
   exampleQueries = newHistory;
 
-  const container = window.DOM.queriesList;
+  const container = appRuntime.DOM.queriesList;
   if (!container || !container.querySelector('.history-editorial-hero')) {
     renderQueries();
     return;
   }
 
-  const searchInput = window.DOM.queriesSearch;
+  const searchInput = appRuntime.DOM.queriesSearch;
   const searchTerm  = searchInput ? searchInput.value.trim().toLowerCase() : '';
   const matchesSearch = q =>
     !searchTerm ||
@@ -882,7 +883,7 @@ function patchQueriesPanelData(newHistory) {
  * @function updateRunningDurationsInPlace
  */
 function updateRunningDurationsInPlace() {
-  const list = window.DOM.queriesList;
+  const list = appRuntime.DOM.queriesList;
   if (!list) return;
   exampleQueries.filter(q => q.running && q.startTime).forEach(q => {
     const cell = list.querySelector(`.history-duration-cell[data-query-id="${q.id}"]`);
@@ -943,11 +944,11 @@ function stopQueryDurationUpdates() {
  * @function renderQueries
  */
 function renderQueries(){
-  const container = window.DOM.queriesList;
+  const container = appRuntime.DOM.queriesList;
   if(!container) return false;
   
   // Get search value
-  const searchInput = window.DOM.queriesSearch;
+  const searchInput = appRuntime.DOM.queriesSearch;
   const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
   
   let runningList = exampleQueries.filter(q => q.running);
@@ -1169,7 +1170,7 @@ Object.defineProperty(QueryHistorySystem, 'exampleQueries', {
 });
 
 // Make QueryHistorySystem globally accessible
-window.QueryHistorySystem = QueryHistorySystem;
+appRuntime.QueryHistorySystem = QueryHistorySystem;
 
 let queryHistoryInitialized = false;
 
@@ -1191,7 +1192,7 @@ onDOMReady(() => {
   }
 
   // Attach queries search event listener
-  const queriesSearchInput = window.DOM.queriesSearch;
+  const queriesSearchInput = appRuntime.DOM.queriesSearch;
   if (queriesSearchInput) {
     queriesSearchInput.addEventListener('input', renderQueries);
   }

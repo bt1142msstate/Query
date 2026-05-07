@@ -1,4 +1,5 @@
 import { OperatorLabels } from './operatorLabels.js';
+import { appRuntime } from './appRuntime.js';
 
 const FIELD_OPERATOR_TO_UI_COND = {
   Equals: 'equals',
@@ -63,8 +64,8 @@ function formatFieldOperatorForDisplay(operator) {
 }
 
 function resolveTooltipFieldName(fieldName) {
-  if (typeof window !== 'undefined' && typeof window.resolveFieldName === 'function') {
-    return window.resolveFieldName(fieldName);
+  if (typeof window !== 'undefined' && typeof appRuntime.resolveFieldName === 'function') {
+    return appRuntime.resolveFieldName(fieldName);
   }
   return String(fieldName || '').trim();
 }
@@ -150,7 +151,7 @@ function formatStandardFilterTooltipHTML(filtersInput, title = '') {
 
   filters.forEach(f => {
     hasFilters = true;
-    const fieldDef = window.fieldDefs ? window.fieldDefs.get(f.FieldName) : null;
+    const fieldDef = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(f.FieldName) : null;
     const op = formatFieldOperatorForDisplay(f.FieldOperator);
     const uiCond = mapFieldOperatorToUiCond(f.FieldOperator);
     let valStr = '';
@@ -191,11 +192,11 @@ function formatFieldDefinitionTooltipHTML(fieldDef, options = {}) {
     : (typeof fieldDef.description === 'string' ? fieldDef.description : '');
   const descValue = typeof descSource === 'string' ? descSource.trim() : '';
   const title = typeof options.title === 'string' ? options.title.trim() : '';
-  const isFilterable = typeof window.isFieldBackendFilterable === 'function'
-    ? window.isFieldBackendFilterable(fieldDef)
+  const isFilterable = typeof appRuntime.isFieldBackendFilterable === 'function'
+    ? appRuntime.isFieldBackendFilterable(fieldDef)
     : Array.isArray(fieldDef.filters) && fieldDef.filters.length > 0;
-  const filterOperators = typeof window.getFieldFilterOperators === 'function'
-    ? window.getFieldFilterOperators(fieldDef)
+  const filterOperators = typeof appRuntime.getFieldFilterOperators === 'function'
+    ? appRuntime.getFieldFilterOperators(fieldDef)
     : (Array.isArray(fieldDef.filters) ? fieldDef.filters : []);
   const typeLabel = (() => {
     if (normalizedType === 'money' || normalizedNumberFormat === 'currency') return 'Money';

@@ -1,4 +1,5 @@
 import { escapeRegExp } from './dataFormatters.js';
+import { appRuntime } from './appRuntime.js';
 
 function escapeRegExpFallback(value) {
   return escapeRegExp(value);
@@ -7,10 +8,10 @@ function escapeRegExpFallback(value) {
 function getDefaultRequestMapperDependencies() {
   return {
     escapeRegExp,
-    fieldDefsArray: window.fieldDefsArray,
+    fieldDefsArray: appRuntime.fieldDefsArray,
     normalizeUiConfigFilters: null,
-    registerDynamicField: window.registerDynamicField,
-    resolveFieldName: window.resolveFieldName
+    registerDynamicField: appRuntime.registerDynamicField,
+    resolveFieldName: appRuntime.resolveFieldName
   };
 }
 

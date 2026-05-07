@@ -1,6 +1,7 @@
 import { DragUtils } from './dragUtils.js';
 import { Icons } from './icons.js';
 import { OperatorLabels } from './operatorLabels.js';
+import { appRuntime } from './appRuntime.js';
 
 /**
  * Shared Utility Functions
@@ -67,7 +68,7 @@ const TextMeasurement = {
  * Event Handler Utilities - Bulk event listener attachment
  * @namespace EventUtils
  */
-window.EventUtils = {
+appRuntime.EventUtils = {
   /**
    * Attaches click event listeners to multiple elements by ID.
    * @param {Object} elementIdToHandlerMap - Map of element IDs to click handlers
@@ -168,7 +169,7 @@ const OperatorSelectUtils = (() => {
 
 const ValueFormatting = (() => {
   function getFieldDefinition(fieldName) {
-    if (!window.fieldDefs) {
+    if (!appRuntime.fieldDefs) {
       return null;
     }
 
@@ -177,16 +178,16 @@ const ValueFormatting = (() => {
       return null;
     }
 
-    let fieldDef = window.fieldDefs.get(normalizedField);
+    let fieldDef = appRuntime.fieldDefs.get(normalizedField);
     if (fieldDef) {
       return fieldDef;
     }
 
-    const baseField = typeof window.getBaseFieldName === 'function'
-      ? window.getBaseFieldName(normalizedField)
+    const baseField = typeof appRuntime.getBaseFieldName === 'function'
+      ? appRuntime.getBaseFieldName(normalizedField)
       : normalizedField.replace(/ \d+$/, '');
 
-    fieldDef = window.fieldDefs.get(baseField);
+    fieldDef = appRuntime.fieldDefs.get(baseField);
     return fieldDef || null;
   }
 
@@ -231,8 +232,8 @@ const ValueFormatting = (() => {
       fallbackToRaw = false
     } = options;
 
-    if (window.CustomDatePicker && typeof window.CustomDatePicker.formatDisplayValue === 'function') {
-      return window.CustomDatePicker.formatDisplayValue(rawValue, {
+    if (appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.formatDisplayValue === 'function') {
+      return appRuntime.CustomDatePicker.formatDisplayValue(rawValue, {
         invalidValue,
         fallbackToRaw
       });
@@ -615,7 +616,7 @@ const TableBuilder = {
   }
 };
 
-window.escapeHtml = function(unsafe) {
+appRuntime.escapeHtml = function(unsafe) {
   if (typeof unsafe !== 'string') return unsafe;
   return unsafe
     .replace(/&/g, '&amp;')
@@ -650,8 +651,8 @@ const FormatUtils = {
   }
 };
 
-const EventUtils = window.EventUtils;
-const escapeHtml = window.escapeHtml;
+const EventUtils = appRuntime.EventUtils;
+const escapeHtml = appRuntime.escapeHtml;
 
 export {
   DragUtils,

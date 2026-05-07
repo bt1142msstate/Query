@@ -3,6 +3,7 @@
  * Keeps consumers from coupling directly to implementation-specific globals.
  */
 import { AppState, registerQueryStateRuntimeAccessors } from './queryState.js';
+import { appRuntime } from './appRuntime.js';
 
 let appServices;
 
@@ -10,23 +11,23 @@ let appServices;
   const appState = AppState;
 
   function getBubbleService() {
-    return window.BubbleSystem || null;
+    return appRuntime.BubbleSystem || null;
   }
 
   function getTableService() {
-    return window.VirtualTable || null;
+    return appRuntime.VirtualTable || null;
   }
 
   function getDragDropService() {
-    return window.DragDropSystem || null;
+    return appRuntime.DragDropSystem || null;
   }
 
   function getModalService() {
-    return window.ModalSystem || null;
+    return appRuntime.ModalSystem || null;
   }
 
   function getQueryHistoryService() {
-    return window.QueryHistorySystem || null;
+    return appRuntime.QueryHistorySystem || null;
   }
 
   function rerenderBubbles() {
@@ -387,7 +388,7 @@ let appServices;
     setSplitColumnsMode
   });
 
-  Object.defineProperty(window, 'AppServices', {
+  Object.defineProperty(appRuntime, 'AppServices', {
     configurable: false,
     enumerable: false,
     writable: false,

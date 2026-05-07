@@ -1,4 +1,5 @@
 import { showToastMessage } from './toast.js';
+import { appRuntime } from './appRuntime.js';
 
 async function copyWithFallback(text) {
   if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
@@ -109,7 +110,7 @@ const ClipboardUtils = Object.freeze({
 });
 
 if (typeof window !== 'undefined') {
-  Object.defineProperty(window, 'ClipboardUtils', {
+  Object.defineProperty(appRuntime, 'ClipboardUtils', {
     configurable: false,
     enumerable: true,
     value: ClipboardUtils,

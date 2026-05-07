@@ -3,6 +3,7 @@ import { onDOMReady } from './domReady.js';
 import { showToastMessage } from './toast.js';
 import { VisibilityUtils } from './visibility.js';
 import { buildQueryUiConfig } from '../filters/queryPayload.js';
+import { appRuntime } from './appRuntime.js';
 (function initializeQueryTemplates() {
   const NEW_TEMPLATE_ID = '__new_template__';
   const DEFAULT_TEMPLATE_SVG = `
@@ -80,7 +81,7 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
   }
 
   function isRestrictedMode() {
-    return Boolean(window.QueryFormMode?.isLimitedView?.());
+    return Boolean(appRuntime.QueryFormMode?.isLimitedView?.());
   }
 
   function getTemplateId(template) {
@@ -693,27 +694,27 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
       return;
     }
 
-    if (typeof window.clearCurrentQuery === 'function') {
+    if (typeof appRuntime.clearCurrentQuery === 'function') {
       try {
-        await window.clearCurrentQuery({ suppressToast: true });
+        await appRuntime.clearCurrentQuery({ suppressToast: true });
       } catch (error) {
         console.error('Failed to clear query before applying template:', error);
       }
     }
 
-    window.QueryHistorySystem?.applyQueryConfig?.({
+    appRuntime.QueryHistorySystem?.applyQueryConfig?.({
       jsonConfig: selected.uiConfig
     });
 
-    if (window.QueryFormMode?.isActive?.()) {
-      window.QueryFormMode.syncFromCurrentQuery().catch(error => {
+    if (appRuntime.QueryFormMode?.isActive?.()) {
+      appRuntime.QueryFormMode.syncFromCurrentQuery().catch(error => {
         console.error('Failed to sync form mode after applying template:', error);
       });
     }
 
     showToastMessage(`Applied template "${selected.name}".`, 'success');
 
-    window.modalManager?.closePanel?.('templates-panel');
+    appRuntime.modalManager?.closePanel?.('templates-panel');
   }
 
   async function togglePinSelectedTemplate() {
@@ -988,7 +989,7 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
 
     const options = [
       '<option value="">All categories</option>',
-      ...state.categories.map(category => `<option value="${window.escapeHtml(category.id)}">${window.escapeHtml(category.name)}</option>`)
+      ...state.categories.map(category => `<option value="${appRuntime.escapeHtml(category.id)}">${appRuntime.escapeHtml(category.name)}</option>`)
     ];
     elements.categoryFilter.innerHTML = options.join('');
     elements.categoryFilter.value = state.selectedCategoryFilter;
@@ -1187,7 +1188,7 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
       button.innerHTML = `
         <div class="templates-list-item__title-row">
           ${template.pinned ? '<span class="templates-list-item__pin-badge">Pinned</span>' : ''}
-          <div class="templates-list-item__title">${window.escapeHtml(template.name)}</div>
+          <div class="templates-list-item__title">${appRuntime.escapeHtml(template.name)}</div>
         </div>`;
       button.addEventListener('click', () => selectTemplate(template.id));
       row.appendChild(button);
@@ -1257,7 +1258,7 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
       section.className = 'templates-list-section';
       const header = document.createElement('div');
       header.className = 'templates-list-section__header';
-      header.innerHTML = `<h4 class="templates-list-section__title">${window.escapeHtml(title)}</h4><span class="templates-list-section__count">${items.length}</span>`;
+      header.innerHTML = `<h4 class="templates-list-section__title">${appRuntime.escapeHtml(title)}</h4><span class="templates-list-section__count">${items.length}</span>`;
       section.appendChild(header);
       const body = document.createElement('div');
       body.className = 'templates-list-section__body';
@@ -1418,7 +1419,7 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
       const description = String(template.description || '').trim() || 'Use pinned template';
       button.setAttribute('data-tooltip', description);
       button.innerHTML = `
-        <span class="pinned-template-bubble__name">${window.escapeHtml(template.name)}</span>
+        <span class="pinned-template-bubble__name">${appRuntime.escapeHtml(template.name)}</span>
         <span class="pinned-template-bubble__svg">${getTemplateSvgMarkup(template)}</span>
       `;
       button.addEventListener('click', async () => {
@@ -1482,7 +1483,7 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
     });
 
     elements.pinnedMoreBtn?.addEventListener('click', () => {
-      window.modalManager?.openPanel?.('templates-panel');
+      appRuntime.modalManager?.openPanel?.('templates-panel');
     });
 
     elements.categorySaveBtn?.addEventListener('click', () => {
@@ -1559,7 +1560,7 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
     }
   }
 
-  window.QueryTemplatesSystem = {
+  appRuntime.QueryTemplatesSystem = {
     openPanel,
     closePanel,
     refreshTemplates

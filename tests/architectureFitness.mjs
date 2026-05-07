@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
-const { publicWindowAssignments } = require('../config/publicGlobals.cjs');
+const { forbiddenAppWindowBridgeNames } = require('../config/windowBridgeGlobals.cjs');
 const {
   forbiddenWindowMemberReads,
   legacyLargeModuleBudgets,
@@ -55,7 +55,12 @@ function findPublicWindowExports(source) {
 
 function findForbiddenWindowMemberReads(source) {
   const reads = [];
-  for (const name of forbiddenWindowMemberReads.keys()) {
+  const names = new Set([
+    ...forbiddenWindowMemberReads.keys(),
+    ...forbiddenAppWindowBridgeNames
+  ]);
+
+  for (const name of names) {
     const pattern = new RegExp(`\\bwindow\\.${name}\\b`, 'u');
     if (pattern.test(source)) {
       reads.push(name);
@@ -161,7 +166,6 @@ function collectReachableModules(graph, entryPath) {
 
 const sourceFiles = (await Promise.all(sourceEntries.map(collectJavaScriptFiles))).flat();
 const sourceFilePaths = new Set(sourceFiles.map(toRepoPath));
-const allowedWindowExports = new Set(publicWindowAssignments);
 const importGraph = new Map();
 const failures = [];
 
@@ -189,13 +193,13 @@ for (const filePath of sourceFiles) {
   }
 
   for (const exportName of findPublicWindowExports(source)) {
-    if (!allowedWindowExports.has(exportName)) {
-      failures.push(`${relativePath}: window.${exportName} is not in the approved public global allowlist`);
-    }
+    failures.push(`${relativePath}: window.${exportName} export is forbidden; use ES modules or the private appRuntime registry`);
   }
 
   for (const readName of findForbiddenWindowMemberReads(source)) {
-    failures.push(`${relativePath}: window.${readName} is forbidden; ${forbiddenWindowMemberReads.get(readName)}`);
+    const message = forbiddenWindowMemberReads.get(readName)
+      || 'Do not read former application bridge APIs from window; import directly or use appRuntime while legacy cycles remain';
+    failures.push(`${relativePath}: window.${readName} is forbidden; ${message}`);
   }
 
   for (const specifier of findImportSpecifiers(source)) {
