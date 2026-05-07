@@ -242,8 +242,8 @@ function registerFilterService(service) {
     getTableService()?.renderVirtualTable?.();
   }
 
-  function calculateOptimalColumnWidths() {
-    getTableService()?.calculateOptimalColumnWidths?.();
+  function calculateOptimalColumnWidths(fields, data) {
+    return getTableService()?.calculateOptimalColumnWidths?.(fields, data);
   }
 
   function getCalculatedColumnWidth(fieldName) {

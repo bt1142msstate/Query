@@ -9,6 +9,7 @@ import { appUiActions } from '../core/appUiActions.js';
 import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { MoneyUtils, TableBuilder, TextMeasurement, ValueFormatting } from '../core/utils.js';
 import { getComparableValue } from '../core/dateValues.js';
+import { createTableColumnLayoutController } from './tableColumnLayout.js';
 import { createTableScrollbarController } from './tableScrollbar.js';
 import { sortRowsByColumn } from './tableSort.js';
 import { appRuntime } from '../core/appRuntime.js';
@@ -57,6 +58,13 @@ const tableScrollbar = createTableScrollbarController({
 let currentSortColumn = null;
 let currentSortDirection = 'asc'; // 'asc' or 'desc'
 var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
+const tableColumnLayout = createTableColumnLayoutController({
+  getContainer: () => tableScrollContainer,
+  getDisplayedFields: () => getDisplayedFields(),
+  getColumnWidth: field => calculatedColumnWidths[field],
+  calculateColumnWidths: (fields, data) => calculateOptimalColumnWidths(fields, data),
+  getTableData: () => virtualTableData
+});
 
 function getFieldType(fieldName) {
   return ValueFormatting.getFieldType(fieldName, { inferMoneyFromName: true });
@@ -123,7 +131,7 @@ function getDisplayedFieldIndex(fieldName) {
 }
 
 function updateRenderedColumnWidth(fieldName, width) {
-  const normalizedWidth = Math.max(90, Number(width) || 150);
+  const normalizedWidth = tableColumnLayout.normalizeColumnWidth(width);
   const fieldIndex = getDisplayedFieldIndex(fieldName);
   if (fieldIndex === -1) {
     return;
@@ -134,18 +142,8 @@ function updateRenderedColumnWidth(fieldName, width) {
     return;
   }
 
-  const header = table.querySelector(`thead th[data-col-index="${fieldIndex}"]`);
-  if (header) {
-    header.style.width = `${normalizedWidth}px`;
-    header.style.minWidth = `${normalizedWidth}px`;
-    header.style.maxWidth = `${normalizedWidth}px`;
-  }
-
-  table.querySelectorAll(`tbody td[data-col-index="${fieldIndex}"]`).forEach(cell => {
-    cell.style.width = `${normalizedWidth}px`;
-    cell.style.minWidth = `${normalizedWidth}px`;
-    cell.style.maxWidth = `${normalizedWidth}px`;
-  });
+  calculatedColumnWidths[fieldName] = normalizedWidth;
+  tableColumnLayout.syncRenderedColumnLayout(table);
 }
 
 function syncResizeModeUi() {
@@ -569,19 +567,7 @@ function isCurrentQueryResultSetLoaded() {
 }
 
 function updateHeaderWidthsFromCurrentState() {
-  const table = document.getElementById('example-table');
-  const headerRow = table?.querySelector('thead tr');
-  if (!headerRow) {
-    return;
-  }
-
-  headerRow.querySelectorAll('th').forEach((th, index) => {
-    const field = getDisplayedFields()[index];
-    const width = calculatedColumnWidths[field] || 150;
-    th.style.width = `${width}px`;
-    th.style.minWidth = `${width}px`;
-    th.style.maxWidth = `${width}px`;
-  });
+  tableColumnLayout.syncRenderedColumnLayout();
 }
 
 function notifyPostFiltersUpdated() {
@@ -712,6 +698,7 @@ function renderVirtualTable() {
   
   const tbody = table.querySelector('tbody');
   if (!tbody) return;
+  const columnLayout = tableColumnLayout.syncRenderedColumnLayout(table, displayedFields);
   const nextBody = document.createDocumentFragment();
   
   // Clean up existing event listeners on body cells before clearing them
@@ -764,7 +751,7 @@ function renderVirtualTable() {
       tr.style.right = '0';
       tr.style.display = 'table';
       tr.style.tableLayout = 'fixed';
-      tr.style.width = '100%';
+      tr.style.width = `${columnLayout.totalWidth}px`;
     }
 
     tr.dataset.rowIndex = i;
@@ -814,10 +801,8 @@ function renderVirtualTable() {
       }
       
       // Apply the same fixed width as the header
-      const width = calculatedColumnWidths[field] || 150;
-      td.style.width = `${width}px`;
-      td.style.minWidth = `${width}px`;
-      td.style.maxWidth = `${width}px`;
+      const width = columnLayout.widths[colIndex] || calculatedColumnWidths[field] || 150;
+      tableColumnLayout.applyElementColumnWidth(td, width);
 
       if (!fieldExistsInData) {
         td.classList.add('query-table-column-missing-data');
@@ -1009,8 +994,14 @@ function calculateOptimalColumnWidths(fields, data) {
   // Use global data if arguments not provided
   const targetFields = fields || virtualTableData.headers;
   const targetData = data || virtualTableData;
+  const shouldUpdateCache = !data || targetData === virtualTableData;
 
-  if (!targetFields || !targetFields.length) return {};
+  if (!targetFields || !targetFields.length) {
+    if (shouldUpdateCache) {
+      calculatedColumnWidths = {};
+    }
+    return {};
+  }
   
   const widths = {};
   targetFields.forEach(field => {
@@ -1018,9 +1009,12 @@ function calculateOptimalColumnWidths(fields, data) {
   });
   applyManualWidthsToMap(widths, targetFields);
   
-  // If we operated on the global data without explicit arguments, update the cache
-  if (!fields && !data) {
-    calculatedColumnWidths = widths;
+  // Keep the shared width cache current whenever we measure against the active table data.
+  if (shouldUpdateCache) {
+    calculatedColumnWidths = {
+      ...calculatedColumnWidths,
+      ...widths
+    };
   }
   
   return widths;

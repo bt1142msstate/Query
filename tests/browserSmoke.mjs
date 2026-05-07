@@ -541,6 +541,76 @@ async function exerciseVirtualTableScrollInteraction(page) {
   }
 }
 
+async function exerciseExpandedVirtualTableColumnAlignment(page) {
+  await seedLoadedResults(page, { rowCount: 2400 });
+
+  await page.locator('#table-expand-btn').click();
+  await page.locator('#table-shell.table-shell-expanded').waitFor({ state: 'attached', timeout: 5000 });
+
+  const readAlignmentMetrics = () => page.evaluate(() => {
+    const container = document.querySelector('#table-container');
+    const table = document.querySelector('#example-table');
+    const firstRow = table?.querySelector('tbody tr[data-row-index]');
+    const headers = Array.from(table?.querySelectorAll('thead th[data-col-index]') || []);
+    const cells = Array.from(firstRow?.querySelectorAll('td[data-col-index]') || []);
+
+    if (!container || !table || headers.length === 0 || cells.length < headers.length) {
+      return null;
+    }
+
+    const headerWidths = headers.map(header => Math.round(header.getBoundingClientRect().width));
+    const cellWidths = cells.slice(0, headers.length).map(cell => Math.round(cell.getBoundingClientRect().width));
+    const maxDelta = headerWidths.reduce((delta, width, index) => {
+      return Math.max(delta, Math.abs(width - cellWidths[index]));
+    }, 0);
+    const tableWidth = Math.round(table.getBoundingClientRect().width);
+    const containerWidth = Math.floor(container.clientWidth);
+
+    return {
+      cellWidths,
+      containerWidth,
+      headerWidths,
+      maxDelta,
+      tableWidth
+    };
+  });
+
+  try {
+    await page.waitForFunction(() => {
+      const container = document.querySelector('#table-container');
+      const table = document.querySelector('#example-table');
+      const firstRow = table?.querySelector('tbody tr[data-row-index]');
+      const headers = Array.from(table?.querySelectorAll('thead th[data-col-index]') || []);
+      const cells = Array.from(firstRow?.querySelectorAll('td[data-col-index]') || []);
+
+      if (!container || !table || headers.length === 0 || cells.length < headers.length) {
+        return false;
+      }
+
+      const headerWidths = headers.map(header => Math.round(header.getBoundingClientRect().width));
+      const cellWidths = cells.slice(0, headers.length).map(cell => Math.round(cell.getBoundingClientRect().width));
+      const maxDelta = headerWidths.reduce((delta, width, index) => {
+        return Math.max(delta, Math.abs(width - cellWidths[index]));
+      }, 0);
+      const tableWidth = Math.round(table.getBoundingClientRect().width);
+      const containerWidth = Math.floor(container.clientWidth);
+
+      return maxDelta <= 1 && tableWidth >= containerWidth - 2;
+    }, null, { timeout: 5000 });
+  } catch (error) {
+    const observedMetrics = await readAlignmentMetrics();
+    throw new Error(`Expanded virtual table columns did not align: ${JSON.stringify(observedMetrics)}: ${error.message}`);
+  }
+
+  const alignmentMetrics = await readAlignmentMetrics();
+  if (alignmentMetrics.maxDelta > 1 || alignmentMetrics.tableWidth < alignmentMetrics.containerWidth - 2) {
+    throw new Error(`Expanded virtual table columns are misaligned: ${JSON.stringify(alignmentMetrics)}`);
+  }
+
+  await page.locator('#table-expand-btn').click();
+  await page.waitForFunction(() => !document.querySelector('#table-shell')?.classList.contains('table-shell-expanded'), null, { timeout: 5000 });
+}
+
 async function expectEmptyTableMessage(page, expectedPattern, label) {
   await page.locator('#example-table tbody td').first().waitFor({ state: 'visible', timeout: 5000 });
   const message = (await page.locator('#example-table tbody td').first().textContent())?.trim() || '';
@@ -841,6 +911,7 @@ async function runSmokeTest() {
     await exerciseDesktopResultsWorkflow(page);
     await exerciseZeroResultQueryWorkflow(page, queryApiStub);
     await exerciseVirtualTableScrollInteraction(page);
+    await exerciseExpandedVirtualTableColumnAlignment(page);
 
     await page.getByRole('button', { name: 'Queries' }).click();
     await page.locator('input[placeholder="Search queries..."]').waitFor({ state: 'visible', timeout: 5000 });
