@@ -391,6 +391,8 @@ async function seedLoadedResults(page, options = {}) {
 
   await page.evaluate(async ({ longTitle: useLongTitle, rowCount: requestedRowCount }) => {
     const { appRuntime } = await import('./core/appRuntime.js');
+    const { appServices } = await import('./core/appServices.js');
+    const { QueryChangeManager } = await import('./core/queryState.js');
     const headers = ['Smoke Title', 'Smoke Branch', 'Smoke Status'];
     const makeTitle = title => useLongTitle
       ? `${title} with a deliberately long title for live column resize coverage`
@@ -409,14 +411,14 @@ async function seedLoadedResults(page, options = {}) {
       ]);
     const columnMap = new Map(headers.map((field, index) => [field, index]));
 
-    appRuntime.QueryChangeManager.replaceDisplayedFields(headers, { source: 'BrowserSmoke.seedLoadedResults' });
-    appRuntime.QueryChangeManager.setLifecycleState(
+    QueryChangeManager.replaceDisplayedFields(headers, { source: 'BrowserSmoke.seedLoadedResults' });
+    QueryChangeManager.setLifecycleState(
       { hasLoadedResultSet: true, queryRunning: false },
       { source: 'BrowserSmoke.seedLoadedResults', silent: true }
     );
-    appRuntime.AppServices.setVirtualTableData({ headers, rows, columnMap });
+    appServices.setVirtualTableData({ headers, rows, columnMap });
     await appRuntime.QueryTableView.showExampleTable(headers, { syncQueryState: false });
-    appRuntime.AppServices.renderVirtualTable();
+    appServices.renderVirtualTable();
     appRuntime.QueryUI?.updateButtonStates?.();
   }, { longTitle, rowCount });
   await page.locator('#example-table').waitFor({ state: 'attached', timeout: 5000 });
@@ -619,10 +621,10 @@ async function exerciseColumnResizeInteraction(page) {
   await seedLoadedResults(page, { longTitle: true, rowCount: 2400 });
 
   await page.evaluate(async () => {
-    const { appRuntime } = await import('./core/appRuntime.js');
-    appRuntime.AppServices.setManualColumnWidth?.('Smoke Title', 90);
-    appRuntime.AppServices.renderVirtualTable?.();
-    appRuntime.AppServices.activateColumnResizeMode?.('Smoke Title');
+    const { appServices } = await import('./core/appServices.js');
+    appServices.setManualColumnWidth?.('Smoke Title', 90);
+    appServices.renderVirtualTable?.();
+    appServices.activateColumnResizeMode?.('Smoke Title');
   });
 
   const titleHeader = page.locator('#example-table th[data-sort-field="Smoke Title"]').first();
@@ -744,8 +746,8 @@ async function exerciseColumnResizeInteraction(page) {
   }
 
   await page.evaluate(async () => {
-    const { appRuntime } = await import('./core/appRuntime.js');
-    appRuntime.AppServices.clearColumnResizeMode?.();
+    const { appServices } = await import('./core/appServices.js');
+    appServices.clearColumnResizeMode?.();
   });
 }
 
@@ -772,19 +774,19 @@ async function expectResultsCount(page, expectedText, label) {
 async function expectPostFilterStats(page, expected, label) {
   try {
     await page.waitForFunction(async ({ filteredRows, hasPostFilters, totalRows }) => {
-      const { appRuntime } = await import('./core/appRuntime.js');
-      const stats = appRuntime.AppServices.getPostFilterStats?.();
+      const { appServices } = await import('./core/appServices.js');
+      const stats = appServices.getPostFilterStats?.();
       return stats?.filteredRows === filteredRows
         && stats?.totalRows === totalRows
-        && appRuntime.AppServices.hasPostFilters?.() === hasPostFilters;
+        && appServices.hasPostFilters?.() === hasPostFilters;
     }, expected, { timeout: 5000 });
   } catch (error) {
     const observed = await page.evaluate(async () => {
-      const { appRuntime } = await import('./core/appRuntime.js');
-      const stats = appRuntime.AppServices.getPostFilterStats?.();
+      const { appServices } = await import('./core/appServices.js');
+      const stats = appServices.getPostFilterStats?.();
       return {
         filteredRows: stats?.filteredRows,
-        hasPostFilters: appRuntime.AppServices.hasPostFilters?.(),
+        hasPostFilters: appServices.hasPostFilters?.(),
         totalRows: stats?.totalRows
       };
     });
@@ -792,11 +794,11 @@ async function expectPostFilterStats(page, expected, label) {
   }
 
   const observed = await page.evaluate(async () => {
-    const { appRuntime } = await import('./core/appRuntime.js');
-    const stats = appRuntime.AppServices.getPostFilterStats?.();
+    const { appServices } = await import('./core/appServices.js');
+    const stats = appServices.getPostFilterStats?.();
     return {
       filteredRows: stats?.filteredRows,
-      hasPostFilters: appRuntime.AppServices.hasPostFilters?.(),
+      hasPostFilters: appServices.hasPostFilters?.(),
       totalRows: stats?.totalRows
     };
   });
@@ -813,6 +815,7 @@ async function expectPostFilterStats(page, expected, label) {
 async function exerciseBubbleFilterInteraction(page) {
   await page.evaluate(async () => {
     const { appRuntime } = await import('./core/appRuntime.js');
+    const { AppState, QueryChangeManager } = await import('./core/queryState.js');
     const { fieldDefs, fieldDefsArray, filteredDefs } = await import('./filters/fieldDefs.js');
     const fieldDef = {
       name: 'Smoke Filter Field',
@@ -829,9 +832,9 @@ async function exerciseBubbleFilterInteraction(page) {
     }
     fieldDefsArray.unshift(fieldDef);
     filteredDefs.splice(0, filteredDefs.length, fieldDef);
-    appRuntime.AppState.currentCategory = 'All';
+    AppState.currentCategory = 'All';
 
-    appRuntime.QueryChangeManager.setQueryState({
+    QueryChangeManager.setQueryState({
       displayedFields: [],
       activeFilters: {
         [fieldDef.name]: {
@@ -872,8 +875,8 @@ async function exerciseDesktopResultsWorkflow(page) {
   await titleHeader.waitFor({ state: 'visible', timeout: 5000 });
   await titleHeader.click();
   await page.waitForFunction(async () => {
-    const { appRuntime } = await import('./core/appRuntime.js');
-    const state = appRuntime.AppServices.getVirtualTableState?.();
+    const { appServices } = await import('./core/appServices.js');
+    const state = appServices.getVirtualTableState?.();
     return state?.currentSortColumn === 'Smoke Title' && state?.currentSortDirection === 'asc';
   }, null, { timeout: 5000 });
   const ascIconText = (await titleHeader.locator('.sort-icon').textContent())?.trim();
@@ -883,8 +886,8 @@ async function exerciseDesktopResultsWorkflow(page) {
 
   await titleHeader.click();
   await page.waitForFunction(async () => {
-    const { appRuntime } = await import('./core/appRuntime.js');
-    const state = appRuntime.AppServices.getVirtualTableState?.();
+    const { appServices } = await import('./core/appServices.js');
+    const state = appServices.getVirtualTableState?.();
     return state?.currentSortColumn === 'Smoke Title' && state?.currentSortDirection === 'desc';
   }, null, { timeout: 5000 });
   const firstTitleCell = page.locator('#example-table tbody tr[data-row-index="0"] td[data-col-index="0"]').first();
@@ -943,7 +946,8 @@ async function exerciseZeroResultQueryWorkflow(page, queryApiStub) {
   await seedLoadedResults(page);
   await page.evaluate(async () => {
     const { appRuntime } = await import('./core/appRuntime.js');
-    appRuntime.AppServices.replacePostFilters({
+    const { appServices } = await import('./core/appServices.js');
+    appServices.replacePostFilters({
       'Smoke Branch': {
         logic: 'all',
         filters: [
@@ -970,9 +974,10 @@ async function exerciseZeroResultQueryWorkflow(page, queryApiStub) {
 
   await page.locator('#run-query-btn').click();
   await page.waitForFunction(async () => {
-    const { appRuntime } = await import('./core/appRuntime.js');
-    const lifecycle = appRuntime.QueryStateReaders.getLifecycleState();
-    const tableData = appRuntime.AppServices.getVirtualTableData?.();
+    const { appServices } = await import('./core/appServices.js');
+    const { QueryStateReaders } = await import('./core/queryState.js');
+    const lifecycle = QueryStateReaders.getLifecycleState();
+    const tableData = appServices.getVirtualTableData?.();
     return lifecycle.queryRunning === false
       && lifecycle.hasLoadedResultSet === true
       && lifecycle.currentQueryId === 'browser-smoke-zero-results'
@@ -989,8 +994,8 @@ async function exerciseZeroResultQueryWorkflow(page, queryApiStub) {
   await expectEmptyTableMessage(page, /no results matched this query/iu, 'Desktop zero-result query');
 
   const queryStatus = await page.evaluate(async () => {
-    const { appRuntime } = await import('./core/appRuntime.js');
-    return appRuntime.QueryStateReaders.getQueryStatus();
+    const { QueryStateReaders } = await import('./core/queryState.js');
+    return QueryStateReaders.getQueryStatus();
   });
   if (queryStatus !== 'results') {
     throw new Error(`Zero-result query should be treated as loaded results, received query status "${queryStatus}"`);
