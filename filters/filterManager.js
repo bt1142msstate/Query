@@ -755,7 +755,7 @@ appRuntime.handleConditionBtnClick = function(e) {
     }
 
     inputWrapper.classList.add('show');
-    appRuntime.positionInputWrapper();
+    uiActions.positionInputWrapper();
     
     // Focus appropriate input
     const listPasteInput = document.getElementById('condition-select-container');
@@ -768,7 +768,7 @@ appRuntime.handleConditionBtnClick = function(e) {
     }
     
     // Reposition again after layout change
-    appRuntime.positionInputWrapper();
+    uiActions.positionInputWrapper();
 };
 
 /**
@@ -1105,13 +1105,13 @@ appRuntime.buildableConditionBtnHandler = function(e) {
     
     if (inputWrapper) {
         inputWrapper.classList.add('show');
-        if (appRuntime.positionInputWrapper) appRuntime.positionInputWrapper();
+        uiActions.positionInputWrapper();
     }
     
     if (conditionInput) conditionInput.focus();
     
     // Re-position after toggling second input visibility
-    if (appRuntime.positionInputWrapper) appRuntime.positionInputWrapper();
+    uiActions.positionInputWrapper();
 };
 
 // --- Condition templates by type ---

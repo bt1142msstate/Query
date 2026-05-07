@@ -1244,7 +1244,6 @@ function expandMultiValueColumns() {
  */
 function setSplitColumnsMode(active) {
   splitColumnsActive = active;
-  appRuntime.splitColumnsActive = active;
 
   if (active) {
     // Snapshot raw data if not already saved (first time switching to split)
@@ -1294,7 +1293,6 @@ appRuntime.VirtualTable = {
     invalidatePostFilterValueOptionsCache();
     // Reset split mode — caller will re-expand if needed
     splitColumnsActive = false;
-    appRuntime.splitColumnsActive = false;
     applyPostFilters({ refreshView: false, notify: true, resetScroll: false });
     appUiActions.resetSplitColumnsToggleUI();
   },

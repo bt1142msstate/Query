@@ -1,4 +1,5 @@
 import { QueryStateReaders } from '../core/queryState.js';
+import { registerAppUiActionDependencies } from '../core/appUiActions.js';
 import { appRuntime } from '../core/appRuntime.js';
 
 /* ---------- Table morph animation — Spacefield bubble ---------- */
@@ -572,8 +573,10 @@ function endTableQueryAnimation() {
   }
 }
 
-appRuntime.QueryTableAnimation = Object.freeze({
+const queryTableAnimation = Object.freeze({
   endTableQueryAnimation,
   startTableQueryAnimation,
   updateTableQueryAnimationProgress
 });
+
+registerAppUiActionDependencies({ queryTableAnimation });

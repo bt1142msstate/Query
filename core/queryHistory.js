@@ -18,7 +18,7 @@ import {
   classifyQueryStatus,
   getPreferredHistorySection as getPreferredHistorySectionForCounts
 } from './queryHistoryViewHelpers.js';
-import { appServices } from './appServices.js';
+import { appServices, registerQueryHistoryService } from './appServices.js';
 import { appUiActions } from './appUiActions.js';
 import { BackendApi } from './backendApi.js';
 import { formatDuration, parsePipeDelimitedRow } from './dataFormatters.js';
@@ -27,7 +27,6 @@ import { AppState, QueryChangeManager, QueryStateReaders } from './queryState.js
 import { showToastMessage } from './toast.js';
 import { VisibilityUtils } from './visibility.js';
 import { formatFieldOperatorForDisplay, mapFieldOperatorToUiCond, normalizeUiConfigFilters } from '../filters/queryPayload.js';
-import { appRuntime } from './appRuntime.js';
 import { registerDynamicField, resolveFieldName } from '../filters/fieldDefs.js';
 import { DOM } from './domCache.js';
 import { escapeHtml } from './html.js';
@@ -284,7 +283,7 @@ async function cancelQuery(queryId) {
         );
         uiActions.updateRunButtonIcon();
         uiActions.updateButtonStates();
-        appRuntime.QueryTableAnimation?.endTableQueryAnimation?.();
+        uiActions.endTableQueryAnimation();
       }
       showToastMessage(`Query ${queryId} cancelled`, 'info');
     } else {
@@ -518,8 +517,8 @@ function loadQueryConfig(q) {
   }
   uiActions.updateButtonStates();
 
-  if (appRuntime.QueryFormMode && typeof appRuntime.QueryFormMode.isActive === 'function' && appRuntime.QueryFormMode.isActive()) {
-    appRuntime.QueryFormMode.syncFromCurrentQuery().catch(error => {
+  if (appServices.isFormModeActive()) {
+    Promise.resolve(appServices.syncFormModeFromCurrentQuery()).catch(error => {
       console.error('Failed to sync form URL after loading query config:', error);
     });
   }
@@ -671,7 +670,7 @@ function bindHistoryTableButtons(scope) {
       loadQueryConfig(q);
       closeHistoryDetailsOverlay();
       DOM.runBtn?.click();
-      appRuntime.modalManager?.closePanel?.('queries-panel');
+      appServices.closeModalPanel('queries-panel');
     });
   });
 
@@ -1167,8 +1166,7 @@ Object.defineProperty(QueryHistorySystem, 'exampleQueries', {
   }
 });
 
-// Make QueryHistorySystem globally accessible
-appRuntime.QueryHistorySystem = QueryHistorySystem;
+registerQueryHistoryService(QueryHistorySystem);
 
 let queryHistoryInitialized = false;
 

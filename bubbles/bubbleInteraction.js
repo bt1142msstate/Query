@@ -149,7 +149,7 @@ function initializeBubbleInteractions() {
       isOverlayOpen: !!(overlay && overlay.classList.contains('show'))
     });
 
-    if (appRuntime.modalManager && appRuntime.modalManager.isInputLocked) {
+    if (services.isModalInputLocked()) {
       services.bubbleDebugLog('click.blocked.inputLocked');
       e.stopPropagation();
       e.preventDefault();

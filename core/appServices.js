@@ -7,9 +7,34 @@ import { appRuntime } from './appRuntime.js';
 
 let appServices;
 let filterService = null;
+let formModeService = null;
+let modalService = null;
+let queryExecutionService = null;
+let queryHistoryService = null;
+let queryTemplatesService = null;
 
 function registerFilterService(service) {
   filterService = service && typeof service === 'object' ? service : null;
+}
+
+function registerFormModeService(service) {
+  formModeService = service && typeof service === 'object' ? service : null;
+}
+
+function registerModalService(service) {
+  modalService = service && typeof service === 'object' ? service : null;
+}
+
+function registerQueryExecutionService(service) {
+  queryExecutionService = service && typeof service === 'object' ? service : null;
+}
+
+function registerQueryHistoryService(service) {
+  queryHistoryService = service && typeof service === 'object' ? service : null;
+}
+
+function registerQueryTemplatesService(service) {
+  queryTemplatesService = service && typeof service === 'object' ? service : null;
 }
 
 (function initializeAppServices() {
@@ -28,11 +53,11 @@ function registerFilterService(service) {
   }
 
   function getModalService() {
-    return appRuntime.ModalSystem || null;
+    return modalService;
   }
 
   function getQueryHistoryService() {
-    return appRuntime.QueryHistorySystem || null;
+    return queryHistoryService;
   }
 
   function rerenderBubbles() {
@@ -129,12 +154,27 @@ function registerFilterService(service) {
 
   function closeAllModals() {
     const modal = getModalService();
-    modal?.closeAllModals?.();
+    if (typeof modal?.closeAllModals === 'function') {
+      modal.closeAllModals();
+      return;
+    }
     modal?.closeAllPanels?.();
   }
 
   function lockModalInput(duration = 600) {
     getModalService()?.lockInput?.(duration);
+  }
+
+  function isModalInputLocked() {
+    return Boolean(getModalService()?.isInputLocked?.());
+  }
+
+  function openModalPanel(panelId) {
+    getModalService()?.openPanel?.(panelId);
+  }
+
+  function closeModalPanel(panelId) {
+    getModalService()?.closePanel?.(panelId);
   }
 
   function addHistoryQuery(query) {
@@ -163,6 +203,18 @@ function registerFilterService(service) {
 
   function fetchHistoryQueryStatus() {
     return getQueryHistoryService()?.fetchQueryStatus?.();
+  }
+
+  function closeHistoryDetailsOverlay() {
+    getQueryHistoryService()?.closeDetailsOverlay?.();
+  }
+
+  function cancelHistoryQuery(queryId) {
+    return getQueryHistoryService()?.cancelQuery?.(queryId);
+  }
+
+  function applyHistoryQueryConfig(config) {
+    return getQueryHistoryService()?.applyQueryConfig?.(config);
   }
 
   function attachBubbleDropTarget(target) {
@@ -318,6 +370,34 @@ function registerFilterService(service) {
     filterService?.renderConditionList?.(fieldName);
   }
 
+  function clearCurrentQuery(options = {}) {
+    return queryExecutionService?.clearCurrentQuery?.(options);
+  }
+
+  function isFormModeActive() {
+    return Boolean(formModeService?.isActive?.());
+  }
+
+  function isFormModeLimitedView() {
+    return Boolean(formModeService?.isLimitedView?.());
+  }
+
+  function syncFormModeFromCurrentQuery() {
+    return formModeService?.syncFromCurrentQuery?.();
+  }
+
+  function openQueryTemplatesPanel() {
+    queryTemplatesService?.openPanel?.();
+  }
+
+  function closeQueryTemplatesPanel() {
+    queryTemplatesService?.closePanel?.();
+  }
+
+  function refreshQueryTemplates(options = {}) {
+    queryTemplatesService?.refreshTemplates?.(options);
+  }
+
   appServices = Object.freeze({
     get bubble() {
       return getBubbleService();
@@ -353,6 +433,9 @@ function registerFilterService(service) {
     applyBubbleScrollRow,
     closeAllModals,
     lockModalInput,
+    isModalInputLocked,
+    openModalPanel,
+    closeModalPanel,
     addHistoryQuery,
     updateHistoryQuery,
     getHistoryQueryById,
@@ -360,6 +443,9 @@ function registerFilterService(service) {
     startHistoryDurationUpdates,
     stopHistoryDurationUpdates,
     fetchHistoryQueryStatus,
+    closeHistoryDetailsOverlay,
+    cancelHistoryQuery,
+    applyHistoryQueryConfig,
     attachBubbleDropTarget,
     restoreFieldWithDuplicates,
     addDragAndDrop,
@@ -395,10 +481,25 @@ function registerFilterService(service) {
     hasPostFilters,
     isSplitColumnsActive,
     setSplitColumnsMode,
-    renderConditionList
+    renderConditionList,
+    clearCurrentQuery,
+    isFormModeActive,
+    isFormModeLimitedView,
+    syncFormModeFromCurrentQuery,
+    openQueryTemplatesPanel,
+    closeQueryTemplatesPanel,
+    refreshQueryTemplates
   });
 
   registerQueryStateRuntimeAccessors({ getServices: () => appServices });
 })();
 
-export { appServices, registerFilterService };
+export {
+  appServices,
+  registerFilterService,
+  registerFormModeService,
+  registerModalService,
+  registerQueryExecutionService,
+  registerQueryHistoryService,
+  registerQueryTemplatesService
+};

@@ -6,13 +6,12 @@ import { BackendApi } from './backendApi.js';
 import { parsePipeDelimitedRow } from './dataFormatters.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from './queryState.js';
 import { createStreamedQueryTextReader } from './queryStream.js';
-import { appServices } from './appServices.js';
+import { appServices, registerQueryExecutionService } from './appServices.js';
 import { appUiActions } from './appUiActions.js';
 import { showToastMessage } from './toast.js';
 import { buildBackendQueryPayload, buildQueryUiConfig } from '../filters/queryPayload.js';
 import { DOM } from './domCache.js';
 import { ensureTableName } from '../ui/queryUI.js';
-import { appRuntime } from './appRuntime.js';
 
 const execDom = DOM;
 const appState = AppState;
@@ -52,12 +51,10 @@ function updateQueryHistoryEntry(queryId, updates, options = {}) {
 /* ---------- Live-progress helper ---------- */
 
 function updateLiveQueryProgress(resultCount, options = {}) {
-  if (appRuntime.QueryTableAnimation?.updateTableQueryAnimationProgress) {
-    appRuntime.QueryTableAnimation.updateTableQueryAnimationProgress({
-      resultCount,
-      startTime: options.startTime
-    });
-  }
+  uiActions.updateTableQueryAnimationProgress({
+    resultCount,
+    startTime: options.startTime
+  });
 
   updateQueryHistoryEntry(QueryStateReaders.getLifecycleState().currentQueryId, { resultCount }, { render: false });
 }
@@ -85,7 +82,7 @@ async function clearCurrentQuery() {
   throw new Error('QueryChangeManager.clearQuery is unavailable.');
 }
 
-appRuntime.clearCurrentQuery = clearCurrentQuery;
+registerQueryExecutionService(Object.freeze({ clearCurrentQuery }));
 
 /* ---------- Clear-query button ---------- */
 
@@ -108,8 +105,8 @@ if (execDom.runBtn) {
     if (QueryStateReaders.getLifecycleState().queryRunning) {
       showToastMessage('Stopping query…', 'info');
       const lifecycleState = QueryStateReaders.getLifecycleState();
-      if (lifecycleState.currentQueryId && appRuntime.QueryHistorySystem?.cancelQuery) {
-        appRuntime.QueryHistorySystem.cancelQuery(lifecycleState.currentQueryId).catch(err => {
+      if (lifecycleState.currentQueryId) {
+        Promise.resolve(services.cancelHistoryQuery(lifecycleState.currentQueryId)).catch(err => {
           console.error('Cancellation failed', err);
         });
       }
@@ -117,14 +114,14 @@ if (execDom.runBtn) {
       QueryChangeManager.setLifecycleState({ queryRunning: false }, { source: 'QueryExecution.stopQuery', silent: true });
       uiActions.updateRunButtonIcon();
       uiActions.updateButtonStates();
-      appRuntime.QueryTableAnimation?.endTableQueryAnimation?.();
+      uiActions.endTableQueryAnimation();
       return;
     }
 
     // Start query execution
     (async () => {
       // Remember if split mode was active, then disable it to avoid mapping dynamic Field N names.
-      const wasSplitActive = services.isSplitColumnsActive() || appRuntime.splitColumnsActive || false;
+      const wasSplitActive = services.isSplitColumnsActive();
       if (wasSplitActive) {
         services.setSplitColumnsMode(false);
         uiActions.resetSplitColumnsToggleUI();
@@ -142,7 +139,7 @@ if (execDom.runBtn) {
       try {
         uiActions.updateRunButtonIcon();
         uiActions.updateButtonStates();
-        appRuntime.QueryTableAnimation?.startTableQueryAnimation?.();
+        uiActions.startTableQueryAnimation();
         const queryStartedAt = Date.now();
         updateLiveQueryProgress(0, { startTime: queryStartedAt });
 
@@ -324,7 +321,7 @@ if (execDom.runBtn) {
         uiActions.updateTableResultsLip();
         uiActions.updateRunButtonIcon();
         uiActions.updateButtonStates();
-        appRuntime.QueryTableAnimation?.endTableQueryAnimation?.();
+        uiActions.endTableQueryAnimation();
       }
     })();
   });

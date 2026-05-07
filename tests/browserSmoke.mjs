@@ -1115,8 +1115,8 @@ async function runSmokeTest() {
     await expectNoHorizontalOverflow(mobilePage, 'Mobile help panel');
 
     await mobilePage.evaluate(async () => {
-      const { appRuntime } = await import('./core/appRuntime.js');
-      appRuntime.modalManager?.closeAllPanels?.();
+      const { appServices } = await import('./core/appServices.js');
+      appServices.closeAllModals();
     });
     await mobilePage.locator('#help-panel.hidden').waitFor({ state: 'attached', timeout: 5000 });
 

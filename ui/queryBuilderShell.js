@@ -277,7 +277,7 @@ let QueryBuilderShell;
     dom.confirmBtn?.addEventListener('click', appRuntime.handleFilterConfirm);
     document.addEventListener('keydown', handleBubbleKeyboardNavigation);
     document.addEventListener('keydown', handleFocusedBubbleScroll);
-    window.addEventListener('resize', appRuntime.positionInputWrapper);
+    window.addEventListener('resize', uiActions.positionInputWrapper);
 
     dom.queryInput?.addEventListener('input', handleQuerySearchInput);
     dom.clearSearchBtn?.addEventListener('click', () => {
