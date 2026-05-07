@@ -20,6 +20,7 @@ import { Icons } from '../core/icons.js';
 import { SharedFieldPicker } from '../ui/fieldPicker.js';
 import { appRuntime } from '../core/appRuntime.js';
 import { fieldDefs } from './fieldDefs.js';
+import { DOM } from '../core/domCache.js';
 
 appRuntime.FilterSidePanel = (function () {
     const services = appServices;
@@ -45,8 +46,8 @@ appRuntime.FilterSidePanel = (function () {
     }
 
     function syncPanelHeight() {
-        const panel = appRuntime.DOM.filterSidePanel;
-        const shell = appRuntime.DOM.tableShell;
+        const panel = DOM.filterSidePanel;
+        const shell = DOM.tableShell;
 
         if (!panel) {
             return;
@@ -65,7 +66,7 @@ appRuntime.FilterSidePanel = (function () {
             return;
         }
 
-        const shell = appRuntime.DOM.tableShell;
+        const shell = DOM.tableShell;
         if (!shell) {
             return;
         }
@@ -107,7 +108,7 @@ appRuntime.FilterSidePanel = (function () {
     }
 
     function open() {
-        const panel = appRuntime.DOM.filterSidePanel;
+        const panel = DOM.filterSidePanel;
         if (panel) {
             panel.classList.remove('panel-hidden');
             panel.classList.add('panel-open');
@@ -121,7 +122,7 @@ appRuntime.FilterSidePanel = (function () {
     }
 
     function toggle() {
-        const panel = appRuntime.DOM.filterSidePanel;
+        const panel = DOM.filterSidePanel;
         if (panel && panel.classList.contains('panel-hidden')) {
             open();
         } else {
@@ -130,14 +131,14 @@ appRuntime.FilterSidePanel = (function () {
     }
 
     function hideFully() {
-        const panel = appRuntime.DOM.filterSidePanel;
+        const panel = DOM.filterSidePanel;
         if (panel) {
-            cleanupPopupControls(appRuntime.DOM.filterPanelBody);
+            cleanupPopupControls(DOM.filterPanelBody);
             panel.classList.remove('panel-open');
             panel.classList.add('panel-hidden');
             panel.style.height = '';
 
-            const body = appRuntime.DOM.filterPanelBody;
+            const body = DOM.filterPanelBody;
             if (body) {
                 // Clear the body so that if form-mode CSS forces it visible,
                 // it respects the empty state rather than showing zombie DOM.
@@ -168,11 +169,11 @@ appRuntime.FilterSidePanel = (function () {
             return;
         }
 
-        const overlay = appRuntime.DOM.overlay;
+        const overlay = DOM.overlay;
         if (AppState.selectedField === field && overlay?.classList.contains('show')) {
             appRuntime.renderConditionList && appRuntime.renderConditionList(field);
             const operatorSelect = document.getElementById('condition-operator-select');
-            const conditionInput = appRuntime.DOM.conditionInput;
+            const conditionInput = DOM.conditionInput;
             (operatorSelect || conditionInput)?.focus();
             return;
         }
@@ -197,7 +198,7 @@ appRuntime.FilterSidePanel = (function () {
             }
         }
 
-        const queryInput = appRuntime.DOM?.queryInput || document.getElementById('query-input');
+        const queryInput = DOM?.queryInput || document.getElementById('query-input');
         if (queryInput) {
             queryInput.value = field;
             queryInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -720,7 +721,7 @@ appRuntime.FilterSidePanel = (function () {
     }
 
     function update() {
-        const body = appRuntime.DOM.filterPanelBody;
+        const body = DOM.filterPanelBody;
         if (!body) return;
         const previousScrollTop = body.scrollTop;
 
@@ -733,7 +734,7 @@ appRuntime.FilterSidePanel = (function () {
             return;
         }
 
-        const panel = appRuntime.DOM.filterSidePanel;
+        const panel = DOM.filterSidePanel;
         if (panel && panel.classList.contains('panel-hidden')) {
             open();
         }
@@ -741,7 +742,7 @@ appRuntime.FilterSidePanel = (function () {
         ensureShellResizeObserver();
         syncPanelHeight();
 
-        const titleEl = appRuntime.DOM.filterPanelTitle;
+        const titleEl = DOM.filterPanelTitle;
         if (titleEl) {
             titleEl.textContent = 'Display & Filters';
         }
@@ -777,7 +778,7 @@ appRuntime.FilterSidePanel = (function () {
 }());
 
 window.addEventListener('resize', () => {
-    const panel = appRuntime.DOM.filterSidePanel;
+    const panel = DOM.filterSidePanel;
     if (panel && !panel.classList.contains('panel-hidden')) {
         appUiActions.updateFilterSidePanel();
     }

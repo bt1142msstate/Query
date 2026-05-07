@@ -5,6 +5,7 @@ import { showToastMessage } from '../core/toast.js';
 import { VisibilityUtils } from '../core/visibility.js';
 import { appRuntime } from '../core/appRuntime.js';
 import { fieldDefs, isFieldBackendFilterable } from '../filters/fieldDefs.js';
+import { DOM } from '../core/domCache.js';
 
 var getFilterGroupForField = QueryStateReaders.getFilterGroupForField.bind(QueryStateReaders);
 var getLifecycleState = QueryStateReaders.getLifecycleState.bind(QueryStateReaders);
@@ -28,8 +29,8 @@ function initializeBubbleInteractions() {
   if (bubbleEventsInitialized) return true;
   bubbleEventsInitialized = true;
 
-  const bubbleContainer = appRuntime.DOM.bubbleContainer;
-  const scrollContainer = appRuntime.DOM.bubbleScrollbar;
+  const bubbleContainer = DOM.bubbleContainer;
+  const scrollContainer = DOM.bubbleScrollbar;
   [bubbleContainer, scrollContainer].forEach(el => {
     if (!el) return;
     el.addEventListener('mouseenter', () => appState.hoverScrollArea = true);
@@ -47,8 +48,8 @@ function initializeBubbleInteractions() {
     el.addEventListener('wheel', handleWheelScroll, { passive: false });
   });
 
-  const thumb = appRuntime.DOM.bubbleScrollbarThumb;
-  const track = appRuntime.DOM.bubbleScrollbarTrack;
+  const thumb = DOM.bubbleScrollbarThumb;
+  const track = DOM.bubbleScrollbarTrack;
 
   if (thumb && track) {
     let isDragging = false;
@@ -115,9 +116,9 @@ function initializeBubbleInteractions() {
   }
 
   window.addEventListener('resize', () => {
-    const container = appRuntime.DOM.bubbleContainer;
-    const listDiv = appRuntime.DOM.bubbleList;
-    const scrollCont = appRuntime.DOM.bubbleScrollbar;
+    const container = DOM.bubbleContainer;
+    const listDiv = DOM.bubbleList;
+    const scrollCont = DOM.bubbleScrollbar;
     if (!container || !listDiv || !scrollCont) return;
     const firstBubble = listDiv.querySelector('.bubble');
     if (!firstBubble) return;
@@ -213,7 +214,7 @@ function initializeBubbleInteractions() {
     bubble.dataset.filterFor = bubble.textContent.trim();
 
     let filterCard = services.getBubbleFilterCardElement();
-    if (filterCard && !appRuntime.DOM?.filterCard) {
+    if (filterCard && !DOM?.filterCard) {
       document.body.appendChild(filterCard);
       filterCard.offsetHeight;
     }
@@ -254,7 +255,7 @@ function initializeBubbleInteractions() {
     clone.style.setProperty('--morph-duration', `${morphDuration}s`);
 
     appState.currentCategory = savedCategory;
-    appRuntime.DOM.categoryBar?.querySelectorAll('.category-btn').forEach(btn =>
+    DOM.categoryBar?.querySelectorAll('.category-btn').forEach(btn =>
       btn.classList.toggle('active', btn.dataset.category === appState.currentCategory)
     );
 
@@ -308,7 +309,7 @@ function initializeBubbleInteractions() {
       }
     }, 60);
     if (clone && overlay) overlay.classList.add('bubble-active');
-    const headerBar = appRuntime.DOM.headerBar;
+    const headerBar = DOM.headerBar;
     if (clone && headerBar) headerBar.classList.add('header-hide');
   });
 

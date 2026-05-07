@@ -276,7 +276,7 @@ for (const filePath of sourceFiles) {
     appRuntimeMemberReferenceCount += 1;
 
     if (appRuntimeUsageBudget.forbiddenMembers.has(memberName)) {
-      failures.push(`${relativePath}: appRuntime.${memberName} is forbidden; import field metadata helpers from filters/fieldDefs.js`);
+      failures.push(`${relativePath}: appRuntime.${memberName} is forbidden; import the owning module directly or inject the dependency`);
     }
   }
 

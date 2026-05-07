@@ -9,7 +9,7 @@ import { appServices } from './appServices.js';
 import { appUiActions } from './appUiActions.js';
 import { showToastMessage } from './toast.js';
 import { buildBackendQueryPayload, buildQueryUiConfig } from '../filters/queryPayload.js';
-import { DOM } from '../ui/domCache.js';
+import { DOM } from './domCache.js';
 import { ensureTableName } from '../ui/queryUI.js';
 import { appRuntime } from './appRuntime.js';
 

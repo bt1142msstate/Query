@@ -11,6 +11,7 @@ import { FormModeStateHelpers as formModeStateHelpers } from './formModeStateHel
 import { SharedFieldPicker } from './fieldPicker.js';
 import { appRuntime } from '../core/appRuntime.js';
 import { fieldDefs, isFieldBackendFilterable, loadFieldDefinitions } from '../filters/fieldDefs.js';
+import { DOM } from '../core/domCache.js';
 
 let QueryFormMode;
 
@@ -215,8 +216,8 @@ let QueryFormMode;
   }
 
   function getCurrentTableNameValue() {
-    return appRuntime.DOM && appRuntime.DOM.tableNameInput
-      ? appRuntime.DOM.tableNameInput.value.trim()
+    return DOM && DOM.tableNameInput
+      ? DOM.tableNameInput.value.trim()
       : '';
   }
 
@@ -650,7 +651,7 @@ let QueryFormMode;
   function buildSpecFromCurrentQuery() {
     const querySnapshot = getQuerySnapshot();
     const columns = Array.isArray(querySnapshot.displayedFields) ? querySnapshot.displayedFields.slice() : [];
-    const tableNameInput = appRuntime.DOM && appRuntime.DOM.tableNameInput;
+    const tableNameInput = DOM && DOM.tableNameInput;
     const title = tableNameInput ? tableNameInput.value.trim() : '';
     const inputs = buildGeneratedInputSpecsFromActiveFilters([], querySnapshot.activeFilters);
 
@@ -1399,7 +1400,7 @@ let QueryFormMode;
     }
 
     if (state.runBtn) {
-      state.runBtn.disabled = Boolean(error) || Boolean(appRuntime.DOM && appRuntime.DOM.runBtn && appRuntime.DOM.runBtn.disabled);
+      state.runBtn.disabled = Boolean(error) || Boolean(DOM && DOM.runBtn && DOM.runBtn.disabled);
     }
 
     return error;
@@ -1650,7 +1651,7 @@ let QueryFormMode;
         showToastMessage(error, 'warning');
         return;
       }
-      appRuntime.DOM && appRuntime.DOM.runBtn && appRuntime.DOM.runBtn.click();
+      DOM && DOM.runBtn && DOM.runBtn.click();
     });
 
     card.querySelector('#form-mode-add-field').addEventListener('click', () => {
@@ -1728,8 +1729,8 @@ let QueryFormMode;
       if (!state.active) return;
 
       const error = syncValidationUi();
-      if (error && appRuntime.DOM && appRuntime.DOM.runBtn) {
-        appRuntime.DOM.runBtn.disabled = true;
+      if (error && DOM && DOM.runBtn) {
+        DOM.runBtn.disabled = true;
         uiActions.updateRunButtonIcon(error);
       }
     });
@@ -1740,7 +1741,7 @@ let QueryFormMode;
       return;
     }
 
-    const tableNameInput = appRuntime.DOM && appRuntime.DOM.tableNameInput;
+    const tableNameInput = DOM && DOM.tableNameInput;
     if (!tableNameInput) {
       return;
     }

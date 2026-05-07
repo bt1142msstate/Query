@@ -18,6 +18,7 @@ import {
   shouldFieldHavePurpleStyling,
   updateFilteredDefs
 } from './fieldDefs.js';
+import { DOM } from '../core/domCache.js';
 
 /**
  * FilterPill UI component class
@@ -26,31 +27,31 @@ import {
  */
 var appState = AppState, services = appServices, uiActions = appUiActions;
 function getFilterConditionPanelElement() {
-    return appRuntime.DOM?.conditionPanel || document.getElementById('condition-panel');
+    return DOM?.conditionPanel || document.getElementById('condition-panel');
 }
 
 function getFilterInputWrapperElement() {
-    return appRuntime.DOM?.inputWrapper || document.getElementById('condition-input-wrapper');
+    return DOM?.inputWrapper || document.getElementById('condition-input-wrapper');
 }
 
 function getFilterConditionInputElement() {
-    return appRuntime.DOM?.conditionInput || document.getElementById('condition-input');
+    return DOM?.conditionInput || document.getElementById('condition-input');
 }
 
 function getFilterConditionInput2Element() {
-    return appRuntime.DOM?.conditionInput2 || document.getElementById('condition-input-2');
+    return DOM?.conditionInput2 || document.getElementById('condition-input-2');
 }
 
 function getFilterBetweenLabelElement() {
-    return appRuntime.DOM?.betweenLabel || document.getElementById('between-label');
+    return DOM?.betweenLabel || document.getElementById('between-label');
 }
 
 function getFilterQueryInputElement() {
-    return appRuntime.DOM?.queryInput || document.getElementById('query-input');
+    return DOM?.queryInput || document.getElementById('query-input');
 }
 
 function getFilterErrorLabelElement() {
-    return appRuntime.DOM?.filterError || document.getElementById('filter-error');
+    return DOM?.filterError || document.getElementById('filter-error');
 }
 
 function getActiveFilterFieldName() {
@@ -140,7 +141,7 @@ function createConditionOperatorPicker(conditions, handler) {
 }
 
 function showFilterError(message, inputElements = [], duration = 3000) {
-    const errorLabel = appRuntime.DOM.filterError;
+    const errorLabel = DOM.filterError;
 
     inputElements.forEach(inp => {
         if (inp) inp.classList.add('error');
@@ -241,7 +242,7 @@ function buildBubbleConditionPanel(bubble) {
     const conditionPanel = getFilterConditionPanelElement();
     const inputWrapper = getFilterInputWrapperElement();
     const conditionInput = getFilterConditionInputElement();
-    const confirmBtn = appRuntime.DOM?.confirmBtn || document.getElementById('confirm-btn');
+    const confirmBtn = DOM?.confirmBtn || document.getElementById('confirm-btn');
     const filterCard = services.getBubbleFilterCardElement ? services.getBubbleFilterCardElement() : null;
 
     if (!conditionPanel || !inputWrapper || !conditionInput || !confirmBtn) {
@@ -583,7 +584,7 @@ function createPostFilterPill() {
  * @param {string} field - The field name
  */
 appRuntime.renderConditionList = function(field) {
-    const container = appRuntime.DOM.bubbleCondList;
+    const container = DOM.bubbleCondList;
     if (!container) return;
     
     container.innerHTML = '';

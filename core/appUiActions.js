@@ -4,7 +4,7 @@
  */
 import { appServices } from './appServices.js';
 import { registerQueryStateRuntimeAccessors } from './queryState.js';
-import { DOM } from '../ui/domCache.js';
+import { DOM } from './domCache.js';
 import { appRuntime } from './appRuntime.js';
 
 let appUiActions;

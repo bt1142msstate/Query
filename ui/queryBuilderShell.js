@@ -14,7 +14,7 @@ import {
 import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { appServices } from '../core/appServices.js';
 import { appUiActions } from '../core/appUiActions.js';
-import { DOM } from './domCache.js';
+import { DOM } from '../core/domCache.js';
 import { appRuntime } from '../core/appRuntime.js';
 
 let QueryBuilderShell;

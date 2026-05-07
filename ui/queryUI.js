@@ -1,6 +1,6 @@
 /**
  * Table and run-state UI management.
- * Shared DOM caching lives in ui/domCache.js.
+ * Shared DOM caching lives in core/domCache.js.
  * @module QueryUI
  */
 
@@ -8,7 +8,7 @@ import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 import { QueryStateReaders } from '../core/queryState.js';
 import { appServices } from '../core/appServices.js';
 import { buildBackendQueryPayload } from '../filters/queryPayload.js';
-import { DOM } from './domCache.js';
+import { DOM } from '../core/domCache.js';
 import { appRuntime } from '../core/appRuntime.js';
 
 const getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
