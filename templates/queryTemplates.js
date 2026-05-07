@@ -17,10 +17,17 @@ import {
   getAssignedCategoryIds,
   removeCategoryFromTemplates,
   replaceCategoryInTemplates,
-  sortTemplatesInDisplayOrder,
   validateCategoryName,
   validateTemplateDraft
 } from './queryTemplateState.js';
+import {
+  appendTemplateToCollection,
+  applyPinnedTemplateOrder,
+  getPinnedTemplateCountExcluding,
+  removeTemplateFromCollection,
+  replaceTemplateInCollection,
+  sortTemplateCollection
+} from './queryTemplateCollection.js';
 import {
   buildCreateTemplatePayload,
   buildPinTemplatePayload,
@@ -261,8 +268,7 @@ import { escapeHtml } from '../core/html.js';
 
     try {
       const payload = await templateRepository.listTemplates();
-      state.templates = (Array.isArray(payload.templates) ? payload.templates : []).map(normalizeTemplate);
-      sortTemplatesInDisplayOrder(state.templates);
+      state.templates = sortTemplateCollection((Array.isArray(payload.templates) ? payload.templates : []).map(normalizeTemplate));
       state.categories = normalizeCategoryList(payload.categories);
       if (state.selectedCategoryFilter && !state.categories.some(category => category.id === state.selectedCategoryFilter)) {
         state.selectedCategoryFilter = '';
@@ -371,8 +377,7 @@ import { escapeHtml } from '../core/html.js';
       }));
 
       const normalized = normalizeTemplate(payload.template || payload, state.templates.length);
-      state.templates.push(normalized);
-      sortTemplatesInDisplayOrder(state.templates);
+      state.templates = appendTemplateToCollection(state.templates, normalized);
       state.selectedId = normalized.id;
       setDraftFromTemplate(normalized);
       state.detailOverlayOpen = true;
@@ -418,11 +423,7 @@ import { escapeHtml } from '../core/html.js';
       }));
 
       const normalized = normalizeTemplate(payload.template || payload, 0);
-      const index = state.templates.findIndex(template => template.id === state.selectedId);
-      if (index !== -1) {
-        state.templates.splice(index, 1, normalized);
-      }
-      sortTemplatesInDisplayOrder(state.templates);
+      state.templates = replaceTemplateInCollection(state.templates, state.selectedId, normalized);
       state.selectedId = normalized.id;
       setDraftFromTemplate(normalized);
       state.detailOverlayOpen = true;
@@ -458,7 +459,7 @@ import { escapeHtml } from '../core/html.js';
         name: selected.name
       });
 
-      state.templates = state.templates.filter(template => template.id !== selected.id);
+      state.templates = removeTemplateFromCollection(state.templates, selected.id);
       state.selectedId = '';
       state.draft = null;
       state.detailOverlayOpen = false;
@@ -513,28 +514,17 @@ import { escapeHtml } from '../core/html.js';
     render();
 
     try {
-      const pinnedTemplates = state.templates.filter(template => template.pinned && template.id !== selected.id);
       const nextPinned = !selected.pinned;
       const payload = await templateRepository.updateTemplate(selected.id, buildPinTemplatePayload({
         template: selected,
         nextPinned,
-        nextPinOrder: pinnedTemplates.length
+        nextPinOrder: getPinnedTemplateCountExcluding(state.templates, selected.id)
       }));
 
       const normalized = normalizeTemplate(payload.template || payload, 0);
-      const index = state.templates.findIndex(template => template.id === selected.id);
-      if (index !== -1) {
-        state.templates.splice(index, 1, normalized);
-      }
-      if (!nextPinned) {
-        const stillPinned = state.templates
-          .filter(template => template.pinned)
-          .sort((left, right) => (left.pinOrder ?? Number.MAX_SAFE_INTEGER) - (right.pinOrder ?? Number.MAX_SAFE_INTEGER));
-        stillPinned.forEach((template, orderIndex) => {
-          template.pinOrder = orderIndex;
-        });
-      }
-      sortTemplatesInDisplayOrder(state.templates);
+      state.templates = replaceTemplateInCollection(state.templates, selected.id, normalized, {
+        renumberPinned: !nextPinned
+      });
       state.selectedId = normalized.id;
       setDraftFromTemplate(normalized);
       state.detailOverlayOpen = wasOverlayOpen;
@@ -570,16 +560,9 @@ import { escapeHtml } from '../core/html.js';
       const payload = await templateRepository.reorderPinnedTemplates(normalizedIds);
 
       if (Array.isArray(payload.templates)) {
-        state.templates = payload.templates.map(normalizeTemplate);
-        sortTemplatesInDisplayOrder(state.templates);
+        state.templates = sortTemplateCollection(payload.templates.map(normalizeTemplate));
       } else {
-        state.templates
-          .filter(template => template.pinned)
-          .sort((left, right) => normalizedIds.indexOf(left.id) - normalizedIds.indexOf(right.id))
-          .forEach((template, index) => {
-            template.pinOrder = index;
-          });
-        sortTemplatesInDisplayOrder(state.templates);
+        state.templates = applyPinnedTemplateOrder(state.templates, normalizedIds);
       }
 
       if (state.selectedId) {
