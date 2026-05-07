@@ -4,6 +4,7 @@ const appRuntimeUsageBudget = {
   maxDistinctMembers: 54,
   maxMemberReferences: 200,
   forbiddenMembers: new Set([
+    'BackendApi',
     'calculateCategoryCounts',
     'ClipboardUtils',
     'CustomDatePicker',
