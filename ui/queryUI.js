@@ -159,6 +159,7 @@ function refreshTableViewport() {
 
     const displayedFields = getDisplayedFields();
     if (displayedFields.length > 0) {
+      services.calculateOptimalColumnWidths(displayedFields);
       services.measureTableRowHeight(table, displayedFields);
     }
 

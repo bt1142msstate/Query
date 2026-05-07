@@ -480,6 +480,7 @@ body.has-loaded-data #example-table tbody td:hover {
   white-space: nowrap;
   font-size: calc(0.875rem * var(--table-zoom));
   line-height: calc(1.25rem * var(--table-zoom));
+  box-sizing: border-box;
 }
 
 #table-container,
