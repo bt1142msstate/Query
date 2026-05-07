@@ -12,7 +12,7 @@ For a frontend job portfolio, the project is now an A+ architecture sample for a
 - Query history is split into request mapping, row rendering, detail rendering, view metadata, and coordinator modules.
 - It documents the intended module boundaries and known legacy areas.
 
-The former private runtime coordination layer has been reduced to a single app-ready marker in the entry module. Feature coordination now goes through ES imports plus explicit service/action registration.
+The former private runtime coordination layer has been removed. Feature coordination now goes through ES imports plus explicit service/action registration.
 
 ## Runtime Flow
 
@@ -37,9 +37,9 @@ The former private runtime coordination layer has been reduced to a single app-r
 | Architecture config | `config/` | Forbidden browser globals, module budgets, and import-boundary rules |
 | Tests | `tests/` | Architecture checks and browser smoke coverage |
 
-## Runtime Marker
+## Public Runtime Surface
 
-The project no longer exposes application APIs through `window.*`. `core/appRuntime.js` now exists only for the `appModules.js` ready marker used during startup.
+The project no longer exposes application APIs through `window.*`. Startup readiness is represented by the `data-query-app-modules-ready` attribute on the document root and the `query-app:modules-ready` DOM event from `appModules.js`.
 
 Rules now enforced:
 

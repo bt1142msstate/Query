@@ -117,7 +117,7 @@ const localRules = {
       },
       schema: [],
       messages: {
-        windowExport: 'Do not export application API "{{name}}" through window. Use ES module exports, dependency injection, or appRuntime for remaining legacy cycles.'
+        windowExport: 'Do not export application API "{{name}}" through window. Use ES module exports, dependency injection, or service registration.'
       }
     },
     create(context) {
@@ -184,7 +184,7 @@ const localRules = {
       },
       schema: [],
       messages: {
-        windowBridgeRead: 'Do not read application API "{{name}}" from window. Import it directly or read it from the private appRuntime registry while legacy cycles remain.'
+        windowBridgeRead: 'Do not read application API "{{name}}" from window. Import it directly or use an explicit service/action facade.'
       }
     },
     create(context) {

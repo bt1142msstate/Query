@@ -12,6 +12,17 @@ import {
   normalizeTemplate,
   sanitizeSvgMarkup
 } from './queryTemplateModels.js';
+import {
+  createTemplateDraftFromConfig,
+  filterVisibleTemplates,
+  getAssignedCategoriesForPayload,
+  getAssignedCategoryIds,
+  removeCategoryFromTemplates,
+  replaceCategoryInTemplates,
+  sortTemplatesInDisplayOrder,
+  validateCategoryName,
+  validateTemplateDraft
+} from './queryTemplateState.js';
 import { escapeHtml } from './html.js';
 (function initializeQueryTemplates() {
   const NEW_TEMPLATE_ID = '__new_template__';
@@ -93,29 +104,6 @@ import { escapeHtml } from './html.js';
     return appServices.isFormModeLimitedView();
   }
 
-  function sortTemplatesInState() {
-    state.templates.sort((left, right) => {
-      const leftPinned = left.pinned ? 1 : 0;
-      const rightPinned = right.pinned ? 1 : 0;
-      if (leftPinned !== rightPinned) {
-        return rightPinned - leftPinned;
-      }
-
-      if (leftPinned && rightPinned) {
-        const leftOrder = Number.isFinite(left.pinOrder) ? left.pinOrder : Number.MAX_SAFE_INTEGER;
-        const rightOrder = Number.isFinite(right.pinOrder) ? right.pinOrder : Number.MAX_SAFE_INTEGER;
-        if (leftOrder !== rightOrder) {
-          return leftOrder - rightOrder;
-        }
-      }
-
-      return left.name.localeCompare(right.name, undefined, {
-        sensitivity: 'base',
-        numeric: true
-      });
-    });
-  }
-
   function getSelectedTemplate() {
     if (state.selectedId === NEW_TEMPLATE_ID) {
       return state.draft;
@@ -143,23 +131,6 @@ import { escapeHtml } from './html.js';
       || (Array.isArray(config.Filters) && config.Filters.length)
       || (Array.isArray(config.SpecialFields) && config.SpecialFields.length)
     );
-  }
-
-  function getAssignedCategoryIds(draft = state.draft) {
-    if (!draft || !Array.isArray(draft.categories)) {
-      return [];
-    }
-
-    return draft.categories.map(category => category.id);
-  }
-
-  function getAssignedCategoriesForPayload(draft = state.draft) {
-    if (!draft) {
-      return [];
-    }
-
-    const assignedIds = new Set(getAssignedCategoryIds(draft));
-    return state.categories.filter(category => assignedIds.has(category.id));
   }
 
   function syncDraftCategoriesFromInputs() {
@@ -195,33 +166,9 @@ import { escapeHtml } from './html.js';
   }
 
   function getVisibleTemplates() {
-    const searchNeedle = state.searchQuery.trim().toLowerCase();
-
-    return state.templates.filter(template => {
-      const matchesCategory = !state.selectedCategoryFilter || (
-        Array.isArray(template.categories)
-        && template.categories.some(category => category.id === state.selectedCategoryFilter)
-      );
-
-      if (!matchesCategory) {
-        return false;
-      }
-
-      if (!searchNeedle) {
-        return true;
-      }
-
-      const haystack = [
-        template.name,
-        template.description,
-        ...template.categories.map(category => category.name),
-        ...template.categories.map(category => category.description || '')
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-
-      return haystack.includes(searchNeedle);
+    return filterVisibleTemplates(state.templates, {
+      searchQuery: state.searchQuery,
+      selectedCategoryFilter: state.selectedCategoryFilter
     });
   }
 
@@ -231,47 +178,6 @@ import { escapeHtml } from './html.js';
       throw new Error(data.error);
     }
     return data;
-  }
-
-  function validateDraft(draft, options = {}) {
-    const validationErrors = [];
-    const trimmedName = String(draft?.name || '').trim();
-
-    if (!trimmedName) {
-      validationErrors.push('Template name is required.');
-    }
-
-    const duplicate = state.templates.find(template =>
-      template.name.toLowerCase() === trimmedName.toLowerCase()
-      && template.id !== options.currentTemplateId
-    );
-    if (duplicate) {
-      validationErrors.push('Template names must be unique.');
-    }
-
-    if (!options.currentTemplateId && !hasUsableCurrentQuery()) {
-      validationErrors.push('Build a query with at least one column or filter before saving a template.');
-    }
-
-    return validationErrors;
-  }
-
-  function validateCategoryName(name, options = {}) {
-    const trimmedName = String(name || '').trim();
-    if (!trimmedName) {
-      return 'Category name is required.';
-    }
-
-    const duplicate = state.categories.find(category =>
-      category.name.toLowerCase() === trimmedName.toLowerCase()
-      && category.id !== options.currentCategoryId
-    );
-
-    if (duplicate) {
-      return 'Category names must be unique.';
-    }
-
-    return '';
   }
 
   function reconcileTemplateSelection() {
@@ -349,7 +255,7 @@ import { escapeHtml } from './html.js';
     try {
       const payload = await sendTemplateRequest({ action: 'list_templates' });
       state.templates = (Array.isArray(payload.templates) ? payload.templates : []).map(normalizeTemplate);
-      sortTemplatesInState();
+      sortTemplatesInDisplayOrder(state.templates);
       state.categories = normalizeCategoryList(payload.categories);
       if (state.selectedCategoryFilter && !state.categories.some(category => category.id === state.selectedCategoryFilter)) {
         state.selectedCategoryFilter = '';
@@ -428,18 +334,7 @@ import { escapeHtml } from './html.js';
     }
 
     state.selectedId = NEW_TEMPLATE_ID;
-    state.draft = {
-      id: '',
-      name: '',
-      description: '',
-      svg: '',
-      categories: [],
-      uiConfig: getCurrentQueryConfigSnapshot(),
-      pinned: false,
-      pinOrder: null,
-      createdAt: '',
-      updatedAt: ''
-    };
+    state.draft = createTemplateDraftFromConfig(getCurrentQueryConfigSnapshot());
     openDetailOverlay();
   }
 
@@ -449,7 +344,10 @@ import { escapeHtml } from './html.js';
     }
 
     syncDraftFromInputs();
-    const validationErrors = validateDraft(state.draft);
+    const validationErrors = validateTemplateDraft(state.draft, {
+      hasUsableCurrentQuery: hasUsableCurrentQuery(),
+      templates: state.templates
+    });
     if (validationErrors.length) {
       renderValidation(validationErrors);
       return;
@@ -464,7 +362,7 @@ import { escapeHtml } from './html.js';
         name: state.draft.name,
         description: state.draft.description,
         svg: sanitizeSvgMarkup(state.draft.svg),
-        categories: getAssignedCategoriesForPayload(state.draft),
+        categories: getAssignedCategoriesForPayload(state.draft, state.categories),
         ui_config: getCurrentQueryConfigSnapshot(),
         pinned: Boolean(state.draft.pinned),
         pin_order: Number.isFinite(state.draft.pinOrder) ? state.draft.pinOrder : undefined
@@ -472,7 +370,7 @@ import { escapeHtml } from './html.js';
 
       const normalized = normalizeTemplate(payload.template || payload, state.templates.length);
       state.templates.push(normalized);
-      sortTemplatesInState();
+      sortTemplatesInDisplayOrder(state.templates);
       state.selectedId = normalized.id;
       setDraftFromTemplate(normalized);
       state.detailOverlayOpen = true;
@@ -496,7 +394,11 @@ import { escapeHtml } from './html.js';
     }
 
     syncDraftFromInputs();
-    const validationErrors = validateDraft(state.draft, { currentTemplateId: state.selectedId });
+    const validationErrors = validateTemplateDraft(state.draft, {
+      currentTemplateId: state.selectedId,
+      hasUsableCurrentQuery: hasUsableCurrentQuery(),
+      templates: state.templates
+    });
     if (validationErrors.length) {
       renderValidation(validationErrors);
       return;
@@ -512,7 +414,7 @@ import { escapeHtml } from './html.js';
         name: state.draft.name,
         description: state.draft.description,
         svg: sanitizeSvgMarkup(state.draft.svg),
-        categories: getAssignedCategoriesForPayload(state.draft),
+        categories: getAssignedCategoriesForPayload(state.draft, state.categories),
         ui_config: hasUsableCurrentQuery() ? getCurrentQueryConfigSnapshot() : state.draft.uiConfig,
         pinned: Boolean(state.draft.pinned),
         pin_order: Number.isFinite(state.draft.pinOrder) ? state.draft.pinOrder : undefined
@@ -523,7 +425,7 @@ import { escapeHtml } from './html.js';
       if (index !== -1) {
         state.templates.splice(index, 1, normalized);
       }
-      sortTemplatesInState();
+      sortTemplatesInDisplayOrder(state.templates);
       state.selectedId = normalized.id;
       setDraftFromTemplate(normalized);
       state.detailOverlayOpen = true;
@@ -642,7 +544,7 @@ import { escapeHtml } from './html.js';
           template.pinOrder = orderIndex;
         });
       }
-      sortTemplatesInState();
+      sortTemplatesInDisplayOrder(state.templates);
       state.selectedId = normalized.id;
       setDraftFromTemplate(normalized);
       state.detailOverlayOpen = wasOverlayOpen;
@@ -682,7 +584,7 @@ import { escapeHtml } from './html.js';
 
       if (Array.isArray(payload.templates)) {
         state.templates = payload.templates.map(normalizeTemplate);
-        sortTemplatesInState();
+        sortTemplatesInDisplayOrder(state.templates);
       } else {
         state.templates
           .filter(template => template.pinned)
@@ -690,7 +592,7 @@ import { escapeHtml } from './html.js';
           .forEach((template, index) => {
             template.pinOrder = index;
           });
-        sortTemplatesInState();
+        sortTemplatesInDisplayOrder(state.templates);
       }
 
       if (state.selectedId) {
@@ -758,6 +660,7 @@ import { escapeHtml } from './html.js';
     const elements = getElements();
     const rawName = String(elements.categoryNameInput?.value || '').trim();
     const validationError = validateCategoryName(rawName, {
+      categories: state.categories,
       currentCategoryId: state.editingCategoryId
     });
     if (validationError) {
@@ -779,17 +682,10 @@ import { escapeHtml } from './html.js';
       state.categories = normalizeCategoryList(payload.categories);
       const renamedCategory = payload.category ? normalizeCategory(payload.category, 0) : null;
       if (renamedCategory) {
-        state.templates = state.templates.map(template => ({
-          ...template,
-          categories: template.categories.map(category =>
-            category.id === renamedCategory.id ? renamedCategory : category
-          )
-        }));
+        state.templates = replaceCategoryInTemplates(state.templates, renamedCategory);
 
         if (state.draft?.categories) {
-          state.draft.categories = state.draft.categories.map(category =>
-            category.id === renamedCategory.id ? renamedCategory : category
-          );
+          state.draft.categories = replaceCategoryInTemplates([state.draft], renamedCategory)[0].categories;
         }
       }
       resetCategoryEditor();
@@ -831,12 +727,9 @@ import { escapeHtml } from './html.js';
       });
 
       state.categories = normalizeCategoryList(payload.categories);
-      state.templates = state.templates.map(template => ({
-        ...template,
-        categories: template.categories.filter(item => item.id !== categoryId)
-      }));
+      state.templates = removeCategoryFromTemplates(state.templates, categoryId);
       if (state.draft?.categories) {
-        state.draft.categories = state.draft.categories.filter(item => item.id !== categoryId);
+        state.draft.categories = removeCategoryFromTemplates([state.draft], categoryId)[0].categories;
       }
       if (state.selectedCategoryFilter === categoryId) {
         state.selectedCategoryFilter = '';

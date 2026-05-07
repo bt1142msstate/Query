@@ -20,6 +20,11 @@ import {
 import { DOM } from '../core/domCache.js';
 import { CustomDatePicker } from '../ui/customDatePicker.js';
 import { escapeHtml } from '../core/html.js';
+import {
+    getContradictionMessage,
+    isListPasteField,
+    supportsListSelectorCondition
+} from './filterConditionLogic.js';
 
 /**
  * FilterPill UI component class
@@ -182,11 +187,6 @@ function getPreferredCondition(conditions, fieldName) {
     }
 
     return available[0];
-}
-
-function supportsListSelectorCondition(cond) {
-    const normalized = String(cond || '').trim().toLowerCase();
-    return normalized === 'equals' || normalized === 'does_not_equal';
 }
 
 function syncConditionSelection(conditionPanel, cond) {
@@ -905,7 +905,9 @@ function handleFilterConfirm(e) {
                 : existingSet;
             
             // Check for contradictions
-            const conflictMsg = getContradictionMessage(contradictionSet, newFilterObj, fieldType, field);
+            const conflictMsg = getContradictionMessage(contradictionSet, newFilterObj, fieldType, field, {
+                getComparableDateValue
+            });
             if (conflictMsg) {
                 showFilterError(conflictMsg, [conditionInput, conditionInput2]);
                 return;
@@ -1212,91 +1214,4 @@ function configureInputsForType(type){
             }
         });
     }
-}
-
-function isListPasteField(fieldDef) {
-    return Boolean(fieldDef && fieldDef.allowValueList && (!fieldDef.values || fieldDef.values.length === 0));
-}
-
-/* ---------- Check for contradiction & return human-readable reason ---------- */
-function getContradictionMessage(existing, newF, fieldType, fieldLabel){
-    if(!existing || !Array.isArray(existing.filters)) return null;
-
-  const toNum = v=>{
-    if(fieldType === 'date'){
-      return getComparableDateValue(v);
-    }
-    return parseFloat(v);
-  };
-  const parseVals = f => (f.cond === 'between')
-    ? f.val.split('|').map(v=>v.trim())
-    : [f.val.trim()];
-
-  const numericVals = f => parseVals(f).map(toNum);
-
-  /* build a human-readable phrase like "equal 5", "be greater than 10", etc. */
-  const phrase = f=>{
-    const vals = parseVals(f);
-    switch(f.cond){
-      case 'equals':  return `equal ${vals[0]}`;
-      case 'does_not_equal': return `not equal ${vals[0]}`;
-      case 'contains':return `contain ${vals[0]}`;
-      case 'starts':  return `start with ${vals[0]}`;
-      case 'doesnotcontain': return `not contain ${vals[0]}`;
-      case 'greater': return `be greater than ${vals[0]}`;
-      case 'less':    return `be less than ${vals[0]}`;
-      case 'between': return `be between ${vals[0]} and ${vals[1]}`;
-      case 'before':  return `be before ${vals[0]}`;
-      case 'on_or_before': return `be on or before ${vals[0]}`;
-      case 'after':   return `be after ${vals[0]}`;
-      case 'on_or_after':  return `be on or after ${vals[0]}`;
-      default:        return `${f.cond} ${vals.join(' and ')}`;
-    }
-  };
-
-  const nLabel = phrase(newF);
-  const nVals  = numericVals(newF);
-  const nLow   = Math.min(...nVals);
-  const nHigh  = Math.max(...nVals);
-
-  for(const f of existing.filters){
-    const fLabel = phrase(f);
-    const fVals  = numericVals(f);
-    const low    = Math.min(...fVals);
-    const high   = Math.max(...fVals);
-
-    /* Helper to produce final message */
-    const msg = `${fieldLabel} cannot ${nLabel} and ${fLabel}`;
-
-    // Equals conflicts
-    if(newF.cond === 'equals'){
-      if(f.cond === 'does_not_equal' && nVals[0] === fVals[0]) return msg;
-      if(f.cond === 'equals'     && nVals[0] !== fVals[0]) return msg;
-      if(f.cond === 'greater'    && nVals[0] <= fVals[0])  return msg;
-      if(f.cond === 'less'       && nVals[0] >= fVals[0])  return msg;
-      if(f.cond === 'between'    && (nVals[0] < low || nVals[0] > high)) return msg;
-    }
-    if(f.cond === 'equals'){
-      if(newF.cond === 'does_not_equal' && fVals[0] === nVals[0]) return msg;
-      if(newF.cond === 'greater' && fVals[0] <= nVals[0])  return msg;
-      if(newF.cond === 'less'    && fVals[0] >= nVals[0])  return msg;
-      if(newF.cond === 'between' && (fVals[0] < nLow || fVals[0] > nHigh)) return msg;
-    }
-
-    // Greater / Less conflicts
-    if(newF.cond === 'greater'){
-      if(f.cond === 'less'   && nVals[0] >= fVals[0]) return msg;
-      if(f.cond === 'between'&& nVals[0] >= high)     return msg;
-    }
-    if(newF.cond === 'less'){
-      if(f.cond === 'greater'&& nVals[0] <= fVals[0]) return msg;
-      if(f.cond === 'between'&& nVals[0] <= low)      return msg;
-    }
-    if(newF.cond === 'between'){
-      if(f.cond === 'greater'&& nHigh <= fVals[0]) return msg;
-      if(f.cond === 'less'   && nLow  >= fVals[0]) return msg;
-      if(f.cond === 'between'&& (high < nLow || low > nHigh)) return msg;
-    }
-  }
-  return null;
 }

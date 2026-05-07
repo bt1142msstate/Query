@@ -7,11 +7,11 @@ const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
 const { forbiddenAppWindowBridgeNames } = require('../config/windowBridgeGlobals.cjs');
 const {
-  appRuntimeUsageBudget,
   forbiddenWindowMemberReads,
   legacyLargeModuleBudgets,
   maxModuleLines,
   moduleBoundaryRules,
+  runtimeBridgeUsageBudget,
   sourceEntries
 } = require('../config/architectureRules.cjs');
 
@@ -240,8 +240,8 @@ const sourceFiles = (await Promise.all(sourceEntries.map(collectJavaScriptFiles)
 const sourceFilePaths = new Set(sourceFiles.map(toRepoPath));
 const importGraph = new Map();
 const failures = [];
-const appRuntimeMembers = new Set();
-let appRuntimeMemberReferenceCount = 0;
+const runtimeBridgeMembers = new Set();
+let runtimeBridgeMemberReferenceCount = 0;
 
 for (const filePath of sourceFiles) {
   const source = await readFile(filePath, 'utf8');
@@ -267,20 +267,20 @@ for (const filePath of sourceFiles) {
   }
 
   for (const exportName of findPublicWindowExports(source)) {
-    failures.push(`${relativePath}: window.${exportName} export is forbidden; use ES modules or the private appRuntime registry`);
+    failures.push(`${relativePath}: window.${exportName} export is forbidden; use ES modules or explicit service/action facades`);
   }
 
   for (const readName of findForbiddenWindowMemberReads(source)) {
     const message = forbiddenWindowMemberReads.get(readName)
-      || 'Do not read former application bridge APIs from window; import directly or use appRuntime while legacy cycles remain';
+      || 'Do not read former application bridge APIs from window; import directly or use an explicit service/action facade';
     failures.push(`${relativePath}: window.${readName} is forbidden; ${message}`);
   }
 
   for (const memberName of findAppRuntimeMemberReferences(source)) {
-    appRuntimeMembers.add(memberName);
-    appRuntimeMemberReferenceCount += 1;
+    runtimeBridgeMembers.add(memberName);
+    runtimeBridgeMemberReferenceCount += 1;
 
-    if (appRuntimeUsageBudget.forbiddenMembers.has(memberName)) {
+    if (runtimeBridgeUsageBudget.forbiddenMembers.has(memberName)) {
       failures.push(`${relativePath}: appRuntime.${memberName} is forbidden; import the owning module directly or inject the dependency`);
     }
   }
@@ -324,12 +324,12 @@ for (const sourcePath of sourceFilePaths) {
   }
 }
 
-if (appRuntimeMemberReferenceCount > appRuntimeUsageBudget.maxMemberReferences) {
-  failures.push(`appRuntime member references: ${appRuntimeMemberReferenceCount} exceeds budget of ${appRuntimeUsageBudget.maxMemberReferences}; use ES imports or explicit dependency injection`);
+if (runtimeBridgeMemberReferenceCount > runtimeBridgeUsageBudget.maxMemberReferences) {
+  failures.push(`appRuntime member references: ${runtimeBridgeMemberReferenceCount} exceeds budget of ${runtimeBridgeUsageBudget.maxMemberReferences}; use ES imports or explicit dependency injection`);
 }
 
-if (appRuntimeMembers.size > appRuntimeUsageBudget.maxDistinctMembers) {
-  failures.push(`appRuntime distinct members: ${appRuntimeMembers.size} exceeds budget of ${appRuntimeUsageBudget.maxDistinctMembers}; use ES imports or explicit dependency injection`);
+if (runtimeBridgeMembers.size > runtimeBridgeUsageBudget.maxDistinctMembers) {
+  failures.push(`appRuntime distinct members: ${runtimeBridgeMembers.size} exceeds budget of ${runtimeBridgeUsageBudget.maxDistinctMembers}; use ES imports or explicit dependency injection`);
 }
 
 if (failures.length > 0) {

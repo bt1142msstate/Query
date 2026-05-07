@@ -51,8 +51,6 @@ import './ui/tableNameInput.js';
 import './core/queryExecution.js';
 import './ui/formMode.js';
 import './core/bootstrap.js';
-import { appRuntime } from './core/appRuntime.js';
 
-appRuntime.__QUERY_APP_MODULES_READY = true;
 document.documentElement.dataset.queryAppModulesReady = 'true';
 window.dispatchEvent(new CustomEvent('query-app:modules-ready'));
