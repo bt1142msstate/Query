@@ -16,6 +16,11 @@ import {
   splitListValues
 } from './formModeSpec.js';
 import {
+  buildClearedBrowserUrl,
+  buildFormShareUrl,
+  isShareableFormSpec
+} from './formModeShareUrl.js';
+import {
   assignInputSpecDefaultValues,
   buildGeneratedInputSpecsFromActiveFilters,
   clearInputSpecDefaultValue,
@@ -259,17 +264,6 @@ let QueryFormMode;
     });
   }
 
-  function isShareableFormSpec(spec = state.spec) {
-    if (!spec || typeof spec !== 'object') {
-      return false;
-    }
-
-    const hasColumns = Array.isArray(spec.columns) && spec.columns.length > 0;
-    const hasInputs = Array.isArray(spec.inputs) && spec.inputs.length > 0;
-    const hasLockedFilters = Array.isArray(spec.lockedFilters) && spec.lockedFilters.length > 0;
-    return hasColumns || hasInputs || hasLockedFilters;
-  }
-
   function getFieldPickerOptions() {
     return SharedFieldPicker.getFieldOptions();
   }
@@ -296,14 +290,8 @@ let QueryFormMode;
     return true;
   }
 
-  function buildClearedBrowserUrl() {
-    const nextUrl = new URL(window.location.href);
-    nextUrl.search = '';
-    return nextUrl.toString();
-  }
-
   function shouldPersistFormUrlInBrowser() {
-    return state.active && isShareableFormSpec();
+    return state.active && isShareableFormSpec(state.spec);
   }
 
   function syncShareUi() {
@@ -311,7 +299,7 @@ let QueryFormMode;
       return;
     }
 
-    const isShareable = isShareableFormSpec();
+    const isShareable = isShareableFormSpec(state.spec);
     state.copyBtn.disabled = !isShareable;
     state.copyBtn.setAttribute(
       'data-tooltip',
@@ -404,7 +392,7 @@ let QueryFormMode;
     const forceClearUrl = options.forceClearUrl === true;
     const nextUrl = (forceShareUrl || (!forceClearUrl && shouldPersistFormUrlInBrowser()))
       ? buildCurrentShareUrl()
-      : buildClearedBrowserUrl();
+      : buildClearedBrowserUrl(window.location.href);
 
     if (state.lastBrowserUrl === nextUrl || window.location.href === nextUrl) {
       state.lastBrowserUrl = nextUrl;
@@ -989,45 +977,12 @@ let QueryFormMode;
   }
 
   function buildCurrentShareUrl() {
-    if (!isShareableFormSpec()) {
-      return '';
-    }
-
-    const nextUrl = new URL(window.location.href);
-    nextUrl.search = '';
-    nextUrl.searchParams.set('form', encodeSpec(state.spec));
-    nextUrl.searchParams.set('limited', '1');
-
-    state.spec.inputs.forEach(inputSpec => {
-      const fieldDef = fieldDefs && inputSpec.field ? fieldDefs.get(inputSpec.field) : null;
-      const isMultiValue = supportsMultipleValues(inputSpec, fieldDef);
-      const rawValues = getCurrentInputValues(inputSpec);
-      const keys = getInputParamKeys(inputSpec);
-      if (inputSpec.operator === 'between' && keys.length >= 2) {
-        rawValues.slice(0, 2).forEach((value, index) => {
-          if (value) {
-            nextUrl.searchParams.set(keys[index], value);
-          }
-        });
-        return;
-      }
-
-      const values = rawValues.filter(value => value !== '');
-
-      if (values.length === 0) return;
-      if (isMultiValue) {
-        nextUrl.searchParams.set(inputSpec.key, values.join(','));
-      } else {
-        nextUrl.searchParams.set(inputSpec.key, values[0]);
-      }
+    return buildFormShareUrl(window.location.href, state.spec, {
+      fieldDefs,
+      getInputValues: getCurrentInputValues,
+      supportsMultipleValues,
+      tableName: getCurrentTableNameValue()
     });
-
-    const tableName = getCurrentTableNameValue();
-    if (tableName) {
-      nextUrl.searchParams.set('tableName', tableName);
-    }
-
-    return nextUrl.toString();
   }
 
   function syncPresentationMode() {
