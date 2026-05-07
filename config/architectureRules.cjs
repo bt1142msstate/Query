@@ -1,8 +1,8 @@
 const sourceEntries = ['appModules.js', 'bubbles', 'core', 'filters', 'table', 'ui'];
 const maxModuleLines = 900;
-const appRuntimeUsageBudget = {
-  maxDistinctMembers: 1,
-  maxMemberReferences: 1,
+const runtimeBridgeUsageBudget = {
+  maxDistinctMembers: 0,
+  maxMemberReferences: 0,
   forbiddenMembers: new Set([
     'AppUiActions',
     'AppState',
@@ -105,7 +105,7 @@ const appRuntimeUsageBudget = {
 };
 
 const forbiddenWindowMemberReads = new Map([
-  ['AppState', 'Import from core/queryState.js instead of reading app runtime state from window'],
+  ['AppState', 'Import from core/queryState.js instead of reading AppState from window'],
   ['AppServices', 'Import from core/appServices.js instead of reading app service facade from window'],
   ['AppUiActions', 'Import from core/appUiActions.js instead of reading UI action facade from window'],
   ['BackendApi', 'Import from core/backendApi.js instead of reading the backend client from window'],
@@ -204,10 +204,10 @@ const moduleBoundaryRules = [
 ];
 
 module.exports = {
-  appRuntimeUsageBudget,
   forbiddenWindowMemberReads,
   legacyLargeModuleBudgets,
   maxModuleLines,
   moduleBoundaryRules,
+  runtimeBridgeUsageBudget,
   sourceEntries
 };

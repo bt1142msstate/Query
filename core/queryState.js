@@ -47,7 +47,7 @@ function getBaseFieldName(fieldName) {
   return withoutOrdinalPrefix;
 }
 
-const appRuntimeState = {
+const appStateValues = {
   selectedField: '',
   totalRows: 0,
   scrollRow: 0,
@@ -90,17 +90,17 @@ function defineAppStateProperty(target, key) {
     configurable: false,
     enumerable: true,
     get() {
-      return appRuntimeState[key];
+      return appStateValues[key];
     },
     set(value) {
       const normalize = appStateNormalizers[key];
-      appRuntimeState[key] = typeof normalize === 'function' ? normalize(value) : value;
+      appStateValues[key] = typeof normalize === 'function' ? normalize(value) : value;
     }
   });
 }
 
 const appStateStore = {};
-Object.keys(appRuntimeState).forEach(key => {
+Object.keys(appStateValues).forEach(key => {
   defineAppStateProperty(appStateStore, key);
 });
 Object.freeze(appStateStore);
