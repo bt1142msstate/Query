@@ -6,7 +6,6 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
 import { appServices, registerQueryTemplatesService } from '../core/appServices.js';
 import {
   cloneTemplate,
-  formatTimestamp,
   normalizeCategory,
   normalizeCategoryList,
   normalizeTemplate,
@@ -24,6 +23,14 @@ import {
   validateTemplateDraft
 } from './queryTemplateState.js';
 import { createQueryTemplateRepository } from './queryTemplateRepository.js';
+import {
+  buildCategoryCardMeta,
+  buildCategoryFilterOptions,
+  buildTemplateDetailMeta,
+  buildTemplateFilterSummary,
+  getPinnedTemplatesForStrip,
+  getTemplateListSections
+} from './queryTemplateViewState.js';
 import { escapeHtml } from '../core/html.js';
 (function initializeQueryTemplates() {
   const NEW_TEMPLATE_ID = '__new_template__';
@@ -750,10 +757,8 @@ import { escapeHtml } from '../core/html.js';
       return;
     }
 
-    const options = [
-      '<option value="">All categories</option>',
-      ...state.categories.map(category => `<option value="${escapeHtml(category.id)}">${escapeHtml(category.name)}</option>`)
-    ];
+    const options = buildCategoryFilterOptions(state.categories)
+      .map(option => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`);
     elements.categoryFilter.innerHTML = options.join('');
     elements.categoryFilter.value = state.selectedCategoryFilter;
     elements.categoryFilter.disabled = state.loading || state.saving;
@@ -762,16 +767,13 @@ import { escapeHtml } from '../core/html.js';
 
     const visibleCount = getVisibleTemplates().length;
     const totalCount = state.templates.length;
-    const summaryBits = [];
-    if (state.searchQuery.trim()) {
-      summaryBits.push(`Search: "${state.searchQuery.trim()}"`);
-    }
-    if (state.selectedCategoryFilter) {
-      const selectedCategory = state.categories.find(category => category.id === state.selectedCategoryFilter);
-      summaryBits.push(`Category: ${selectedCategory ? selectedCategory.name : 'Filtered'}`);
-    }
-    summaryBits.push(`${visibleCount} of ${totalCount} templates`);
-    elements.resultsSummary.textContent = summaryBits.join(' • ');
+    elements.resultsSummary.textContent = buildTemplateFilterSummary({
+      searchQuery: state.searchQuery,
+      selectedCategoryFilter: state.selectedCategoryFilter,
+      categories: state.categories,
+      visibleCount,
+      totalCount
+    });
   }
 
   function renderCategoryList() {
@@ -794,10 +796,6 @@ import { escapeHtml } from '../core/html.js';
         card.className = 'templates-category-card';
         card.classList.toggle('is-filter-active', category.id === state.selectedCategoryFilter);
 
-        const usageCount = state.templates.filter(template =>
-          Array.isArray(template.categories) && template.categories.some(item => item.id === category.id)
-        ).length;
-
         const infoButton = document.createElement('button');
         infoButton.type = 'button';
         infoButton.className = 'templates-category-card__main';
@@ -813,7 +811,7 @@ import { escapeHtml } from '../core/html.js';
 
         const meta = document.createElement('div');
         meta.className = 'templates-category-card__meta';
-        meta.textContent = `${usageCount} template${usageCount === 1 ? '' : 's'}${category.description ? ` • ${category.description}` : ''}`;
+        meta.textContent = buildCategoryCardMeta(category, state.templates);
 
         infoButton.append(name, meta);
         card.appendChild(infoButton);
@@ -914,8 +912,8 @@ import { escapeHtml } from '../core/html.js';
     }
 
     const visibleTemplates = getVisibleTemplates();
-    const pinnedTemplates = visibleTemplates.filter(template => template.pinned);
-    const otherTemplates = visibleTemplates.filter(template => !template.pinned);
+    const sections = getTemplateListSections(visibleTemplates);
+    const pinnedTemplates = sections.find(section => section.key === 'pinned')?.items || [];
     if (state.loading) {
       elements.listStatus.textContent = 'Loading templates…';
       elements.listStatus.classList.remove('hidden');
@@ -1030,8 +1028,9 @@ import { escapeHtml } from '../core/html.js';
       fragment.appendChild(section);
     };
 
-    buildSection('Pinned Templates', pinnedTemplates, { draggable: pinnedTemplates.length > 1 });
-    buildSection(pinnedTemplates.length ? 'All Other Templates' : 'Templates', otherTemplates);
+    sections.forEach(section => {
+      buildSection(section.title, section.items, { draggable: section.draggable });
+    });
     elements.list.replaceChildren(fragment);
   }
 
@@ -1102,21 +1101,7 @@ import { escapeHtml } from '../core/html.js';
     renderCategoryAssignment();
 
     if (elements.meta) {
-      const metaParts = [];
-      const timestamp = formatTimestamp(selected.updatedAt || selected.createdAt);
-      if (timestamp) {
-        metaParts.push(`Last saved ${timestamp}`);
-      }
-      if (selected.categories.length) {
-        metaParts.push(`Categories: ${selected.categories.map(category => category.name).join(', ')}`);
-      }
-      if (!restricted) {
-        metaParts.push(isNew
-          ? 'Saving will capture the current query columns and filters.'
-          : 'Saving will update the query to your current columns and filters, or preserve the existing query if none is built.'
-        );
-      }
-      elements.meta.textContent = metaParts.join(' • ');
+      elements.meta.textContent = buildTemplateDetailMeta({ selected, isNew, restricted });
     }
 
     if (elements.useBtn) {
@@ -1165,13 +1150,7 @@ import { escapeHtml } from '../core/html.js';
       return;
     }
 
-    const pinnedTemplates = state.templates
-      .filter(template => template.pinned)
-      .sort((left, right) => {
-        const leftOrder = Number.isFinite(left.pinOrder) ? left.pinOrder : Number.MAX_SAFE_INTEGER;
-        const rightOrder = Number.isFinite(right.pinOrder) ? right.pinOrder : Number.MAX_SAFE_INTEGER;
-        return leftOrder - rightOrder;
-      });
+    const pinnedTemplates = getPinnedTemplatesForStrip(state.templates);
 
     elements.pinnedStrip.classList.toggle('hidden', pinnedTemplates.length === 0 && !state.loading);
     elements.pinnedList.replaceChildren(...pinnedTemplates.map(template => {
