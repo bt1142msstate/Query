@@ -14,7 +14,6 @@ import {
 import {
   createTemplateDraftFromConfig,
   filterVisibleTemplates,
-  getAssignedCategoriesForPayload,
   getAssignedCategoryIds,
   removeCategoryFromTemplates,
   replaceCategoryInTemplates,
@@ -22,6 +21,11 @@ import {
   validateCategoryName,
   validateTemplateDraft
 } from './queryTemplateState.js';
+import {
+  buildCreateTemplatePayload,
+  buildPinTemplatePayload,
+  buildUpdateTemplatePayload
+} from './queryTemplatePayloads.js';
 import { createQueryTemplateRepository } from './queryTemplateRepository.js';
 import {
   buildCategoryCardMeta,
@@ -360,15 +364,11 @@ import { escapeHtml } from '../core/html.js';
     render();
 
     try {
-      const payload = await templateRepository.createTemplate({
-        name: state.draft.name,
-        description: state.draft.description,
-        svg: sanitizeSvgMarkup(state.draft.svg),
-        categories: getAssignedCategoriesForPayload(state.draft, state.categories),
-        ui_config: getCurrentQueryConfigSnapshot(),
-        pinned: Boolean(state.draft.pinned),
-        pin_order: Number.isFinite(state.draft.pinOrder) ? state.draft.pinOrder : undefined
-      });
+      const payload = await templateRepository.createTemplate(buildCreateTemplatePayload({
+        draft: state.draft,
+        categories: state.categories,
+        uiConfig: getCurrentQueryConfigSnapshot()
+      }));
 
       const normalized = normalizeTemplate(payload.template || payload, state.templates.length);
       state.templates.push(normalized);
@@ -410,15 +410,12 @@ import { escapeHtml } from '../core/html.js';
     render();
 
     try {
-      const payload = await templateRepository.updateTemplate(state.selectedId, {
-        name: state.draft.name,
-        description: state.draft.description,
-        svg: sanitizeSvgMarkup(state.draft.svg),
-        categories: getAssignedCategoriesForPayload(state.draft, state.categories),
-        ui_config: hasUsableCurrentQuery() ? getCurrentQueryConfigSnapshot() : state.draft.uiConfig,
-        pinned: Boolean(state.draft.pinned),
-        pin_order: Number.isFinite(state.draft.pinOrder) ? state.draft.pinOrder : undefined
-      });
+      const payload = await templateRepository.updateTemplate(state.selectedId, buildUpdateTemplatePayload({
+        draft: state.draft,
+        categories: state.categories,
+        currentQueryConfig: hasUsableCurrentQuery() ? getCurrentQueryConfigSnapshot() : null,
+        fallbackUiConfig: state.draft.uiConfig
+      }));
 
       const normalized = normalizeTemplate(payload.template || payload, 0);
       const index = state.templates.findIndex(template => template.id === state.selectedId);
@@ -518,15 +515,11 @@ import { escapeHtml } from '../core/html.js';
     try {
       const pinnedTemplates = state.templates.filter(template => template.pinned && template.id !== selected.id);
       const nextPinned = !selected.pinned;
-      const payload = await templateRepository.updateTemplate(selected.id, {
-        name: selected.name,
-        description: selected.description,
-        svg: sanitizeSvgMarkup(selected.svg),
-        categories: selected.categories,
-        ui_config: selected.uiConfig,
-        pinned: nextPinned,
-        pin_order: nextPinned ? pinnedTemplates.length : undefined
-      });
+      const payload = await templateRepository.updateTemplate(selected.id, buildPinTemplatePayload({
+        template: selected,
+        nextPinned,
+        nextPinOrder: pinnedTemplates.length
+      }));
 
       const normalized = normalizeTemplate(payload.template || payload, 0);
       const index = state.templates.findIndex(template => template.id === selected.id);
