@@ -9,7 +9,7 @@ import {
   sortTemplatesInDisplayOrder,
   validateCategoryName,
   validateTemplateDraft
-} from '../core/queryTemplateState.js';
+} from '../templates/queryTemplateState.js';
 
 const categories = [
   { id: 'reports', name: 'Reports', description: 'Saved reports' },

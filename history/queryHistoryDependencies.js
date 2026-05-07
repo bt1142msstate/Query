@@ -1,5 +1,5 @@
-import { escapeRegExp, formatDuration } from './dataFormatters.js';
-import { formatStandardFilterTooltipHTML } from './tooltipFormatters.js';
+import { escapeRegExp, formatDuration } from '../core/dataFormatters.js';
+import { formatStandardFilterTooltipHTML } from '../core/tooltipFormatters.js';
 import { fieldDefsArray, registerDynamicField, resolveFieldName } from '../filters/fieldDefs.js';
 
 function createQueryHistoryDependencies(normalizeUiConfigFilters) {

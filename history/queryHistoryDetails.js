@@ -1,4 +1,4 @@
-import { formatStandardFilterTooltipHTML } from './tooltipFormatters.js';
+import { formatStandardFilterTooltipHTML } from '../core/tooltipFormatters.js';
 
 function getDefaultHistoryDetailsDependencies() {
   return {

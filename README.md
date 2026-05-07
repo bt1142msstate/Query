@@ -61,9 +61,11 @@ The table also supports sorting, expand/collapse layout, manual column resizing 
 | Path | Purpose |
 | --- | --- |
 | `bubbles/` | Bubble rendering and interaction logic |
-| `core/` | Query execution, history, state management, and utilities |
+| `core/` | Query execution, state management, service facades, and shared utilities |
 | `filters/` | Field definitions and filter/payload logic |
+| `history/` | Query history rendering, request mapping, status grouping, and detail overlays |
 | `table/` | Result rendering, virtual scrolling, and Excel export |
+| `templates/` | Query template rendering, categories, draft state, and template models |
 | `ui/` | Form mode, modals, toasts, tooltips, and shared helpers |
 | `styles/` | Feature-based CSS |
 | `styles/app.css` | Stylesheet entrypoint that imports the feature CSS files |

@@ -1,4 +1,4 @@
-import { escapeRegExp } from './dataFormatters.js';
+import { escapeRegExp } from '../core/dataFormatters.js';
 import { fieldDefsArray, registerDynamicField, resolveFieldName } from '../filters/fieldDefs.js';
 
 function escapeRegExpFallback(value) {
