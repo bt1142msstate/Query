@@ -9,9 +9,9 @@ import { VisibilityUtils } from '../core/visibility.js';
 import { initializeSearchInputs } from '../ui/searchUI.js';
 import { SelectorControls } from '../ui/selectorControls.js';
 import { appRuntime } from '../core/appRuntime.js';
+import { CustomDatePicker } from '../ui/customDatePicker.js';
 (function() {
-  let equalsValueControl = null;
-  let equalsValueControlField = '';
+  let equalsValueControl = null, equalsValueControlField = '';
   const STREAMED_EQUALS_BATCH_SIZE = 800, STREAMED_EQUALS_ROW_HEIGHT = 50, STREAMED_EQUALS_OVERSCAN = 6;
   const { getDisplayedFields } = QueryStateReaders, services = appServices;
   function getElements() {
@@ -39,16 +39,16 @@ import { appRuntime } from '../core/appRuntime.js';
   }
 
   function getValueInputHost(input) {
-    if (appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.getInputHost === 'function') {
-      return appRuntime.CustomDatePicker.getInputHost(input);
+    if (CustomDatePicker && typeof CustomDatePicker.getInputHost === 'function') {
+      return CustomDatePicker.getInputHost(input);
     }
 
     return input || null;
   }
 
   function setValueInputVisible(input, visible) {
-    if (appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.setInputVisibility === 'function') {
-      appRuntime.CustomDatePicker.setInputVisibility(input, visible);
+    if (CustomDatePicker && typeof CustomDatePicker.setInputVisibility === 'function') {
+      CustomDatePicker.setInputVisibility(input, visible);
     } else {
       const host = getValueInputHost(input);
       if (!host) {
@@ -671,8 +671,8 @@ import { appRuntime } from '../core/appRuntime.js';
         MoneyUtils.configureInputBehavior(input, false);
       }
 
-      if (isDate && appRuntime.CustomDatePicker?.enhanceInput) {
-        appRuntime.CustomDatePicker.enhanceInput(input, {
+      if (isDate && CustomDatePicker?.enhanceInput) {
+        CustomDatePicker.enhanceInput(input, {
           variant: 'filter',
           enabled: true,
           placeholder: 'M/D/YYYY'
@@ -894,8 +894,8 @@ import { appRuntime } from '../core/appRuntime.js';
     }
 
     if (fieldType === 'date') {
-      const invalidPrimaryDate = value && (!appRuntime.CustomDatePicker || !appRuntime.CustomDatePicker.isValidDateValue(value));
-      const invalidSecondaryDate = cond === 'between' && value2 && (!appRuntime.CustomDatePicker || !appRuntime.CustomDatePicker.isValidDateValue(value2));
+      const invalidPrimaryDate = value && (!CustomDatePicker || !CustomDatePicker.isValidDateValue(value));
+      const invalidSecondaryDate = cond === 'between' && value2 && (!CustomDatePicker || !CustomDatePicker.isValidDateValue(value2));
       if (invalidPrimaryDate || invalidSecondaryDate) {
         showToastMessage('Use M/D/YYYY for post filter dates.', 'warning');
         return;

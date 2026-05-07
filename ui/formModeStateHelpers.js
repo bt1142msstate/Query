@@ -1,4 +1,4 @@
-import { appRuntime } from '../core/appRuntime.js';
+import { isValidDateValue } from '../core/dateValues.js';
 import { fieldDefs, registerDynamicField } from '../filters/fieldDefs.js';
 import { DOM } from '../core/domCache.js';
   function getFieldDef(fieldName) {
@@ -169,7 +169,7 @@ import { DOM } from '../core/domCache.js';
         : values.filter(value => value !== '').length === 0;
       const hasInvalidDate = isDateField && values.some(value => {
         const normalized = String(value ?? '').trim();
-        return normalized && (!appRuntime.CustomDatePicker || !appRuntime.CustomDatePicker.isValidDateValue(normalized));
+        return normalized && !isValidDateValue(normalized);
       });
 
       const control = controls.get(inputSpec.key);

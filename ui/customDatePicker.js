@@ -1,16 +1,21 @@
 import { VisibilityUtils } from '../core/visibility.js';
-import { appRuntime } from '../core/appRuntime.js';
+import {
+  formatDisplayValue,
+  getComparableValue,
+  isValidDateValue,
+  normalizeDateValue,
+  parseDateValue,
+  parseIsoDate,
+  toBackendDateValue,
+  toIsoDate
+} from '../core/dateValues.js';
 
-(function() {
+const CustomDatePicker = (() => {
   const MONTH_NAMES = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
   const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  // Matches M/D/YYYY, MM/DD/YYYY, backend YYYYMMDD, or legacy YYYY-MM-DD / YYYY/MM/DD formats
-  // Matches M/D/YYYY, MM/DD/YYYY, backend YYYYMMDD, compact timestamps YYYYMMDDHHMM[SS],
-  // or legacy YYYY-MM-DD / YYYY/MM/DD formats
-  const ISO_DATE_PATTERN = /^(?:\d{1,2}\/\d{1,2}\/\d{4}|\d{8}|\d{12}|\d{14}|\d{4}[\/ -]\d{2}[\/ -]\d{2})$/;
 
   let popup = null;
   let titleEl = null;
@@ -19,100 +24,6 @@ import { appRuntime } from '../core/appRuntime.js';
   let activeShell = null;
   let visibleMonth = null;
   let viewMode = 'days';
-
-  function pad(value) {
-    return String(value).padStart(2, '0');
-  }
-
-  // Display format: M/D/YYYY (no leading zeros)
-  function toDisplayDate(date) {
-    return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
-  }
-
-  // Backend format: YYYYMMDD
-  function toBackendDateValue(displayValue) {
-    const parsed = parseDateValue(displayValue);
-    if (!parsed) return displayValue;
-    return `${parsed.getFullYear()}${pad(parsed.getMonth() + 1)}${pad(parsed.getDate())}`;
-  }
-
-  function toIsoDate(date) {
-    return toDisplayDate(date);
-  }
-
-  function parseDisplayDate(normalized) {
-    // M/D/YYYY or MM/DD/YYYY
-    const slashFwd = normalized.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (slashFwd) {
-      const [, m, d, y] = slashFwd.map(Number);
-      const date = new Date(y, m - 1, d);
-      if (date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d) return date;
-      return null;
-    }
-    // Backend YYYYMMDD
-      // Backend YYYYMMDD or compact timestamps YYYYMMDDHHMM[SS]
-      const compact = normalized.match(/^(\d{4})(\d{2})(\d{2})(?:\d{2})?(?:\d{2})?$/);
-    if (compact) {
-        const y = Number(compact[1]);
-        const m = Number(compact[2]);
-        const d = Number(compact[3]);
-      const date = new Date(y, m - 1, d);
-      if (date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d) return date;
-      return null;
-    }
-    // Legacy YYYY-MM-DD or YYYY/MM/DD
-    const iso = normalized.match(/^(\d{4})[\/-](\d{2})[\/-](\d{2})$/);
-    if (iso) {
-      const [, y, m, d] = iso.map(Number);
-      const date = new Date(y, m - 1, d);
-      if (date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d) return date;
-      return null;
-    }
-    return null;
-  }
-
-  function parseIsoDate(value) {
-    const normalized = String(value || '').trim();
-    if (!ISO_DATE_PATTERN.test(normalized)) return null;
-    return parseDisplayDate(normalized);
-  }
-
-  function parseDateValue(value) {
-    if (value instanceof Date) {
-      return Number.isNaN(value.getTime()) ? null : new Date(value.getTime());
-    }
-
-    return parseIsoDate(value);
-  }
-
-  function isValidDateValue(value) {
-    return Boolean(parseDateValue(value));
-  }
-
-  function normalizeDateValue(value) {
-    const parsed = parseDateValue(value);
-    return parsed ? toIsoDate(parsed) : '';
-  }
-
-  function getComparableValue(value) {
-    const parsed = parseDateValue(value);
-    return parsed ? parsed.getTime() : NaN;
-  }
-
-  function formatDisplayValue(value, options = {}) {
-    const {
-      invalidValue = 'Never',
-      fallbackToRaw = false
-    } = options;
-
-    const parsed = parseDateValue(value);
-    if (parsed) {
-      return toDisplayDate(parsed);
-    }
-
-    const rawText = String(value || '').trim();
-    return fallbackToRaw ? rawText : invalidValue;
-  }
 
   function getMonthStart(date) {
     return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -594,7 +505,7 @@ import { appRuntime } from '../core/appRuntime.js';
     return !host.hidden && host.style.display !== 'none';
   }
 
-  appRuntime.CustomDatePicker = {
+  return Object.freeze({
     enhanceInput,
     parseDateValue,
     formatDisplayValue,
@@ -606,5 +517,7 @@ import { appRuntime } from '../core/appRuntime.js';
     setInputVisibility,
     isInputVisible,
     close: closePopup
-  };
+  });
 })();
+
+export { CustomDatePicker };

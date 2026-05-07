@@ -1,6 +1,6 @@
 import { getBaseFieldName, QueryStateReaders } from '../core/queryState.js';
+import { toBackendDateValue } from '../core/dateValues.js';
 import { fieldDefs, isFieldBackendFilterable, resolveFieldName } from './fieldDefs.js';
-import { appRuntime } from '../core/appRuntime.js';
 
 const FIELD_OPERATOR_TO_UI_COND = {
   Equals: 'equals',
@@ -280,8 +280,8 @@ function buildBackendFilters() {
       mapActiveFilterToBackend(filter.cond, filter.val).forEach(({ operator, value }) => {
         // Convert M/D/YYYY display values to YYYYMMDD for date fields
         let backendValue = value;
-        if (fieldDef && fieldDef.type === 'date' && appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.toBackendDateValue === 'function') {
-          backendValue = appRuntime.CustomDatePicker.toBackendDateValue(value);
+        if (fieldDef && fieldDef.type === 'date') {
+          backendValue = toBackendDateValue(value);
         }
         filters.push({
           field: canonicalFieldName,
