@@ -453,6 +453,31 @@ async function exerciseVirtualTableScrollInteraction(page) {
   if (afterMetrics.scrollTop <= beforeMetrics.scrollTop || afterMetrics.visibleRowIndexBelowHeader <= beforeMetrics.visibleRowIndexBelowHeader) {
     throw new Error(`Virtual table did not advance after wheel scroll: before=${JSON.stringify(beforeMetrics)}, after=${JSON.stringify(afterMetrics)}`);
   }
+
+  await page.evaluate(() => {
+    document.body.dataset.browserSmokePreviousMinHeight = document.body.style.minHeight || '';
+    document.body.style.minHeight = '1800px';
+    window.scrollTo(0, 0);
+    const container = document.querySelector('#table-container');
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
+  });
+  await tableContainer.hover();
+  await page.mouse.wheel(0, 2400);
+  await page.waitForFunction(() => window.scrollY === 0, null, { timeout: 5000 });
+  const boundaryMetrics = await page.evaluate(() => ({
+    bodyScrollY: window.scrollY,
+    tableScrollTop: document.querySelector('#table-container')?.scrollTop || 0
+  }));
+  await page.evaluate(() => {
+    document.body.style.minHeight = document.body.dataset.browserSmokePreviousMinHeight || '';
+    delete document.body.dataset.browserSmokePreviousMinHeight;
+  });
+
+  if (boundaryMetrics.bodyScrollY !== 0) {
+    throw new Error(`Virtual table leaked wheel scrolling to the page at the result boundary: ${JSON.stringify(boundaryMetrics)}`);
+  }
 }
 
 async function expectEmptyTableMessage(page, expectedPattern, label) {
