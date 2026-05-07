@@ -1,4 +1,5 @@
 import { VisibilityUtils } from '../core/visibility.js';
+import { appRuntime } from '../core/appRuntime.js';
 
 (function() {
   const MONTH_NAMES = [
@@ -593,7 +594,7 @@ import { VisibilityUtils } from '../core/visibility.js';
     return !host.hidden && host.style.display !== 'none';
   }
 
-  window.CustomDatePicker = {
+  appRuntime.CustomDatePicker = {
     enhanceInput,
     parseDateValue,
     formatDisplayValue,

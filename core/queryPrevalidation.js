@@ -1,5 +1,6 @@
 import { showToastMessage } from './toast.js';
 import { MoneyUtils, ValueFormatting } from './utils.js';
+import { appRuntime } from './appRuntime.js';
 
 (function initializeQueryPrevalidation() {
   let lastRejectedToast = {
@@ -24,8 +25,8 @@ import { MoneyUtils, ValueFormatting } from './utils.js';
       return '';
     }
 
-    return typeof window.resolveFieldName === 'function'
-      ? window.resolveFieldName(normalizedField)
+    return typeof appRuntime.resolveFieldName === 'function'
+      ? appRuntime.resolveFieldName(normalizedField)
       : normalizedField;
   }
 
@@ -246,8 +247,8 @@ import { MoneyUtils, ValueFormatting } from './utils.js';
     }
 
     if (fieldType === 'date') {
-      const parsed = window.CustomDatePicker?.getComparableValue
-        ? window.CustomDatePicker.getComparableValue(normalized)
+      const parsed = appRuntime.CustomDatePicker?.getComparableValue
+        ? appRuntime.CustomDatePicker.getComparableValue(normalized)
         : NaN;
       return { kind: 'date', value: parsed };
     }
@@ -556,7 +557,7 @@ import { MoneyUtils, ValueFormatting } from './utils.js';
     return result;
   }
 
-  window.QueryPrevalidation = Object.freeze({
+  appRuntime.QueryPrevalidation = Object.freeze({
     buildNextState,
     validateQueryChange
   });

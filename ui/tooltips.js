@@ -1,3 +1,4 @@
+import { appRuntime } from '../core/appRuntime.js';
 /**
  * Custom Tooltip Component
  * Provides intelligent tooltip positioning and behavior for elements with data-tooltip attributes.
@@ -27,7 +28,7 @@ const TooltipManager = (() => {
 
   function tooltipDebugLog(eventName, payload = {}) {
     if (!window) return;
-    const debugEnabled = window.BUBBLE_DEBUG === true || (window.localStorage && window.localStorage.getItem('BUBBLE_DEBUG') === '1');
+    const debugEnabled = appRuntime.BUBBLE_DEBUG === true || (window.localStorage && window.localStorage.getItem('BUBBLE_DEBUG') === '1');
     if (!debugEnabled) return;
     try {
       console.log(`[TooltipDebug] ${eventName}`, payload);

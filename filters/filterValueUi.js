@@ -6,14 +6,15 @@ import { ClipboardUtils } from '../core/clipboard.js';
 import { showToastMessage } from '../core/toast.js';
 import { MoneyUtils, ValueFormatting } from '../core/utils.js';
 import { VisibilityUtils } from '../core/visibility.js';
+import { appRuntime } from '../core/appRuntime.js';
 
   function getFilterValueMap(fieldDef) {
     if (!fieldDef || !fieldDef.values || fieldDef.values.length === 0) {
       return new Map();
     }
 
-    if (window.getLiteralToDisplayMap) {
-      return window.getLiteralToDisplayMap(fieldDef);
+    if (appRuntime.getLiteralToDisplayMap) {
+      return appRuntime.getLiteralToDisplayMap(fieldDef);
     }
 
     return typeof fieldDef.values[0] === 'object'
@@ -165,7 +166,7 @@ import { VisibilityUtils } from '../core/visibility.js';
       .replace(/^-+|-+$/g, '') || 'filter-values';
 
     const items = values
-      .map(value => `<li class="filter-list-viewer-item">${window.escapeHtml(value)}</li>`)
+      .map(value => `<li class="filter-list-viewer-item">${appRuntime.escapeHtml(value)}</li>`)
       .join('');
 
     titleEl.textContent = `${fieldLabel} ${operatorLabel}`;

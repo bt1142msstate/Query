@@ -6,9 +6,10 @@
  */
 import { appServices } from '../core/appServices.js';
 import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
+import { appRuntime } from '../core/appRuntime.js';
 
 // Store information about removed columns with their duplicates for restoration
-window.removedColumnInfo = window.removedColumnInfo || new Map();
+appRuntime.removedColumnInfo = appRuntime.removedColumnInfo || new Map();
 var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
 var services = appServices;
 
@@ -19,13 +20,13 @@ var services = appServices;
  * @param {string} fieldName - The field name to check for
  * @returns {boolean} True if field or its duplicates exist in displayedFields
  */
-window.fieldOrDuplicatesExist = function(fieldName) {
+appRuntime.fieldOrDuplicatesExist = function(fieldName) {
   // Extract base field name (remove ordinal prefixes like "2nd ", "3rd ")
-  const baseFieldName = window.getBaseFieldName(fieldName);
+  const baseFieldName = appRuntime.getBaseFieldName(fieldName);
   
   // Check if any column in displayedFields is related to this field
   const relatedColumns = getDisplayedFields().filter(displayedField => {
-    const displayedBase = window.getBaseFieldName(displayedField);
+    const displayedBase = appRuntime.getBaseFieldName(displayedField);
     return displayedBase === baseFieldName;
   });
   
@@ -37,7 +38,7 @@ window.fieldOrDuplicatesExist = function(fieldName) {
  * @function getDuplicateGroups
  * @returns {Array<{baseField: string, start: number, end: number}>} Array of duplicate groups
  */
-window.getDuplicateGroups = function() {
+appRuntime.getDuplicateGroups = function() {
   const displayedFields = getDisplayedFields();
   if (displayedFields.length === 0) {
     return [];
@@ -48,7 +49,7 @@ window.getDuplicateGroups = function() {
   
   // First pass: count occurrences of each base field
   displayedFields.forEach(field => {
-    const baseField = window.getBaseFieldName(field);
+    const baseField = appRuntime.getBaseFieldName(field);
     fieldCounts.set(baseField, (fieldCounts.get(baseField) || 0) + 1);
   });
   
@@ -56,7 +57,7 @@ window.getDuplicateGroups = function() {
   let i = 0;
   while (i < displayedFields.length) {
     const field = displayedFields[i];
-    const baseField = window.getBaseFieldName(field);
+    const baseField = appRuntime.getBaseFieldName(field);
     
     // If this base field appears more than once, it's a duplicate group
     if (fieldCounts.get(baseField) > 1) {
@@ -66,7 +67,7 @@ window.getDuplicateGroups = function() {
       // Find the end of this group (all consecutive fields with same base name)
       while (end < displayedFields.length) {
         const currentField = displayedFields[end];
-        const currentBase = window.getBaseFieldName(currentField);
+        const currentBase = appRuntime.getBaseFieldName(currentField);
         if (currentBase !== baseField) {
           break;
         }
@@ -88,14 +89,14 @@ window.getDuplicateGroups = function() {
  * @param {string} fieldName - The field name to look for
  * @returns {number[]} Array of indices in displayedFields
  */
-window.findRelatedColumnIndices = function(fieldName) {
+appRuntime.findRelatedColumnIndices = function(fieldName) {
   // Extract base field name (remove ordinal prefixes like "2nd ", "3rd ")
-  const baseFieldName = window.getBaseFieldName(fieldName);
+  const baseFieldName = appRuntime.getBaseFieldName(fieldName);
   
   // Find all columns with this base field name
   const relatedIndices = [];
   getDisplayedFields().forEach((field, index) => {
-    const fieldBase = window.getBaseFieldName(field);
+    const fieldBase = appRuntime.getBaseFieldName(field);
     if (fieldBase === baseFieldName) {
       relatedIndices.push(index);
     }
@@ -112,18 +113,18 @@ window.findRelatedColumnIndices = function(fieldName) {
  * @param {number} [insertAt=-1] - Position to insert at (-1 for end)
  * @returns {boolean} True if field was successfully restored
  */
-window.restoreFieldWithDuplicates = function(fieldName, insertAt = -1) {
+appRuntime.restoreFieldWithDuplicates = function(fieldName, insertAt = -1) {
   // Check if any duplicate of this field already exists
-  if (window.fieldOrDuplicatesExist(fieldName)) {
+  if (appRuntime.fieldOrDuplicatesExist(fieldName)) {
     return false;
   }
   
   // Check if we have stored duplicate information for this field
-  const storedInfo = window.removedColumnInfo.get(fieldName);
+  const storedInfo = appRuntime.removedColumnInfo.get(fieldName);
   
   if (storedInfo && storedInfo.columnNames) {
     // Remove the stored info since we're restoring
-    window.removedColumnInfo.delete(fieldName);
+    appRuntime.removedColumnInfo.delete(fieldName);
     
     // Insert all duplicate columns at the specified position
     QueryChangeManager.addDisplayedField(storedInfo.columnNames, {
@@ -137,8 +138,8 @@ window.restoreFieldWithDuplicates = function(fieldName, insertAt = -1) {
     const virtualTableData = services.getVirtualTableData();
     if (virtualTableData && virtualTableData.headers) {
       const relatedColumns = virtualTableData.headers.filter(header => {
-        const baseFieldName = window.getBaseFieldName(fieldName);
-        const headerBase = window.getBaseFieldName(header);
+        const baseFieldName = appRuntime.getBaseFieldName(fieldName);
+        const headerBase = appRuntime.getBaseFieldName(header);
         return header === fieldName || headerBase === baseFieldName;
       });
       

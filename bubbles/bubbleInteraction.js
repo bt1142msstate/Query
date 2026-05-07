@@ -3,6 +3,7 @@ import { appServices } from '../core/appServices.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
 import { VisibilityUtils } from '../core/visibility.js';
+import { appRuntime } from '../core/appRuntime.js';
 
 var getFilterGroupForField = QueryStateReaders.getFilterGroupForField.bind(QueryStateReaders);
 var getLifecycleState = QueryStateReaders.getLifecycleState.bind(QueryStateReaders);
@@ -26,8 +27,8 @@ function initializeBubbleInteractions() {
   if (bubbleEventsInitialized) return true;
   bubbleEventsInitialized = true;
 
-  const bubbleContainer = window.DOM.bubbleContainer;
-  const scrollContainer = window.DOM.bubbleScrollbar;
+  const bubbleContainer = appRuntime.DOM.bubbleContainer;
+  const scrollContainer = appRuntime.DOM.bubbleScrollbar;
   [bubbleContainer, scrollContainer].forEach(el => {
     if (!el) return;
     el.addEventListener('mouseenter', () => appState.hoverScrollArea = true);
@@ -45,8 +46,8 @@ function initializeBubbleInteractions() {
     el.addEventListener('wheel', handleWheelScroll, { passive: false });
   });
 
-  const thumb = window.DOM.bubbleScrollbarThumb;
-  const track = window.DOM.bubbleScrollbarTrack;
+  const thumb = appRuntime.DOM.bubbleScrollbarThumb;
+  const track = appRuntime.DOM.bubbleScrollbarTrack;
 
   if (thumb && track) {
     let isDragging = false;
@@ -113,9 +114,9 @@ function initializeBubbleInteractions() {
   }
 
   window.addEventListener('resize', () => {
-    const container = window.DOM.bubbleContainer;
-    const listDiv = window.DOM.bubbleList;
-    const scrollCont = window.DOM.bubbleScrollbar;
+    const container = appRuntime.DOM.bubbleContainer;
+    const listDiv = appRuntime.DOM.bubbleList;
+    const scrollCont = appRuntime.DOM.bubbleScrollbar;
     if (!container || !listDiv || !scrollCont) return;
     const firstBubble = listDiv.querySelector('.bubble');
     if (!firstBubble) return;
@@ -146,7 +147,7 @@ function initializeBubbleInteractions() {
       isOverlayOpen: !!(overlay && overlay.classList.contains('show'))
     });
 
-    if (window.modalManager && window.modalManager.isInputLocked) {
+    if (appRuntime.modalManager && appRuntime.modalManager.isInputLocked) {
       services.bubbleDebugLog('click.blocked.inputLocked');
       e.stopPropagation();
       e.preventDefault();
@@ -155,10 +156,10 @@ function initializeBubbleInteractions() {
     if (!bubble) return;
 
     const fieldName = bubble.textContent.trim();
-    const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
+    const fieldDef = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(fieldName) : null;
     const isBuildable = Boolean(fieldDef && fieldDef.is_buildable);
-    const isFilterable = typeof window.isFieldBackendFilterable === 'function'
-      ? window.isFieldBackendFilterable(fieldDef || fieldName)
+    const isFilterable = typeof appRuntime.isFieldBackendFilterable === 'function'
+      ? appRuntime.isFieldBackendFilterable(fieldDef || fieldName)
       : Boolean(fieldDef && Array.isArray(fieldDef.filters) && fieldDef.filters.length > 0);
 
     if (!isBuildable && !isFilterable) {
@@ -211,12 +212,12 @@ function initializeBubbleInteractions() {
     bubble.dataset.filterFor = bubble.textContent.trim();
 
     let filterCard = services.getBubbleFilterCardElement();
-    if (filterCard && !window.DOM?.filterCard) {
+    if (filterCard && !appRuntime.DOM?.filterCard) {
       document.body.appendChild(filterCard);
       filterCard.offsetHeight;
     }
-    if (!window.filterCard && filterCard) {
-      window.filterCard = filterCard;
+    if (!appRuntime.filterCard && filterCard) {
+      appRuntime.filterCard = filterCard;
     }
     if (filterCard) {
       services.prepareBubbleFilterCardForOpen(filterCard);
@@ -233,8 +234,8 @@ function initializeBubbleInteractions() {
       const titleEl = services.getBubbleFilterCardTitleElement(filterCard);
       if (titleEl) titleEl.textContent = fieldName;
     }
-    if (window.renderConditionList) {
-      window.renderConditionList(fieldName);
+    if (appRuntime.renderConditionList) {
+      appRuntime.renderConditionList(fieldName);
     }
     if (inputWrapper && getFilterGroupForField(fieldName)) {
       inputWrapper.classList.add('show');
@@ -252,7 +253,7 @@ function initializeBubbleInteractions() {
     clone.style.setProperty('--morph-duration', `${morphDuration}s`);
 
     appState.currentCategory = savedCategory;
-    window.DOM.categoryBar?.querySelectorAll('.category-btn').forEach(btn =>
+    appRuntime.DOM.categoryBar?.querySelectorAll('.category-btn').forEach(btn =>
       btn.classList.toggle('active', btn.dataset.category === appState.currentCategory)
     );
 
@@ -285,7 +286,7 @@ function initializeBubbleInteractions() {
       }
 
       clone.classList.add('popping');
-      window.createBubblePopParticles(clone);
+      appRuntime.createBubblePopParticles(clone);
 
       clone.removeEventListener('transitionend', t);
       services.bubble.isBubbleAnimating = false;
@@ -296,7 +297,7 @@ function initializeBubbleInteractions() {
     setTimeout(() => {
       if (!document.body.contains(clone._origin)) {
         let baseFieldName = fieldName;
-        const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
+        const fieldDef = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(fieldName) : null;
         if (fieldDef && fieldDef.special_payload) {
           baseFieldName = fieldDef.category;
         }
@@ -306,7 +307,7 @@ function initializeBubbleInteractions() {
       }
     }, 60);
     if (clone && overlay) overlay.classList.add('bubble-active');
-    const headerBar = window.DOM.headerBar;
+    const headerBar = appRuntime.DOM.headerBar;
     if (clone && headerBar) headerBar.classList.add('header-hide');
   });
 
@@ -340,7 +341,7 @@ function initializeBubbleInteractions() {
   return true;
 }
 
-window.BubbleInteraction = {
+appRuntime.BubbleInteraction = {
   initializeBubbles: initializeBubbleInteractions
 };
 

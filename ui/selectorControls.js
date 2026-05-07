@@ -1,5 +1,6 @@
 import { VisibilityUtils } from '../core/visibility.js';
 import { initializeSearchInputs } from './searchUI.js';
+import { appRuntime } from '../core/appRuntime.js';
 
 function createBooleanPillSelector(values, currentValue = '', options = {}) {
   const onChange = typeof options.onChange === 'function' ? options.onChange : null;
@@ -92,8 +93,8 @@ function createBooleanPillSelector(values, currentValue = '', options = {}) {
 }
 
 function escapeSelectorControlHtml(value) {
-  if (typeof window.escapeHtml === 'function') {
-    return window.escapeHtml(value);
+  if (typeof appRuntime.escapeHtml === 'function') {
+    return appRuntime.escapeHtml(value);
   }
 
   const temp = document.createElement('div');
@@ -480,8 +481,8 @@ function createGroupedSelector(values, isMultiSelect, currentValues = [], option
     return optionItem;
   }
 
-  if (window.VirtualList) {
-    optionsContainer.virtualList = new window.VirtualList({
+  if (appRuntime.VirtualList) {
+    optionsContainer.virtualList = new appRuntime.VirtualList({
       container: optionsContainer,
       itemHeight: item => item.height || 50,
       renderItem: row => {

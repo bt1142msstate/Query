@@ -8,6 +8,7 @@ import { MoneyUtils, ValueFormatting } from '../core/utils.js';
 import { VisibilityUtils } from '../core/visibility.js';
 import { initializeSearchInputs } from '../ui/searchUI.js';
 import { SelectorControls } from '../ui/selectorControls.js';
+import { appRuntime } from '../core/appRuntime.js';
 (function() {
   let equalsValueControl = null;
   let equalsValueControlField = '';
@@ -38,16 +39,16 @@ import { SelectorControls } from '../ui/selectorControls.js';
   }
 
   function getValueInputHost(input) {
-    if (window.CustomDatePicker && typeof window.CustomDatePicker.getInputHost === 'function') {
-      return window.CustomDatePicker.getInputHost(input);
+    if (appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.getInputHost === 'function') {
+      return appRuntime.CustomDatePicker.getInputHost(input);
     }
 
     return input || null;
   }
 
   function setValueInputVisible(input, visible) {
-    if (window.CustomDatePicker && typeof window.CustomDatePicker.setInputVisibility === 'function') {
-      window.CustomDatePicker.setInputVisibility(input, visible);
+    if (appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.setInputVisibility === 'function') {
+      appRuntime.CustomDatePicker.setInputVisibility(input, visible);
     } else {
       const host = getValueInputHost(input);
       if (!host) {
@@ -670,8 +671,8 @@ import { SelectorControls } from '../ui/selectorControls.js';
         MoneyUtils.configureInputBehavior(input, false);
       }
 
-      if (isDate && window.CustomDatePicker?.enhanceInput) {
-        window.CustomDatePicker.enhanceInput(input, {
+      if (isDate && appRuntime.CustomDatePicker?.enhanceInput) {
+        appRuntime.CustomDatePicker.enhanceInput(input, {
           variant: 'filter',
           enabled: true,
           placeholder: 'M/D/YYYY'
@@ -695,7 +696,7 @@ import { SelectorControls } from '../ui/selectorControls.js';
 
     const fields = getAvailableFields();
     const currentValue = elements.fieldSelect.value;
-    elements.fieldSelect.innerHTML = fields.map(field => `<option value="${field}">${window.escapeHtml(field)}</option>`).join('');
+    elements.fieldSelect.innerHTML = fields.map(field => `<option value="${field}">${appRuntime.escapeHtml(field)}</option>`).join('');
 
     if (!fields.length) {
       elements.fieldSelect.innerHTML = '<option value="">No result fields available</option>';
@@ -735,12 +736,12 @@ import { SelectorControls } from '../ui/selectorControls.js';
 
     elements.empty.classList.toggle('hidden', entries.length > 0);
     elements.list.innerHTML = entries.map(entry => {
-      const safeField = window.escapeHtml(entry.field);
+      const safeField = appRuntime.escapeHtml(entry.field);
       const ruleLabel = entry.logic === 'any' ? 'Rows can match any rule below' : 'Rows must match every rule below';
-      const safeRuleLabel = window.escapeHtml(ruleLabel);
+      const safeRuleLabel = appRuntime.escapeHtml(ruleLabel);
       const filterMarkup = entry.filters.map(({ filter, index }) => {
         const label = `${OperatorLabels.get(filter.cond)} ${formatFilterValue(filter, entry.field)}`;
-        const safeLabel = window.escapeHtml(label);
+        const safeLabel = appRuntime.escapeHtml(label);
         return `
           <div class="post-filter-pill">
             <span class="post-filter-pill__text">${safeLabel}</span>
@@ -893,8 +894,8 @@ import { SelectorControls } from '../ui/selectorControls.js';
     }
 
     if (fieldType === 'date') {
-      const invalidPrimaryDate = value && (!window.CustomDatePicker || !window.CustomDatePicker.isValidDateValue(value));
-      const invalidSecondaryDate = cond === 'between' && value2 && (!window.CustomDatePicker || !window.CustomDatePicker.isValidDateValue(value2));
+      const invalidPrimaryDate = value && (!appRuntime.CustomDatePicker || !appRuntime.CustomDatePicker.isValidDateValue(value));
+      const invalidSecondaryDate = cond === 'between' && value2 && (!appRuntime.CustomDatePicker || !appRuntime.CustomDatePicker.isValidDateValue(value2));
       if (invalidPrimaryDate || invalidSecondaryDate) {
         showToastMessage('Use M/D/YYYY for post filter dates.', 'warning');
         return;
@@ -1098,7 +1099,7 @@ import { SelectorControls } from '../ui/selectorControls.js';
     refreshOverlay();
   }
 
-  window.PostFilterSystem = {
+  appRuntime.PostFilterSystem = {
     open: openOverlay,
     close: closeOverlay,
     syncToolbarButton: updateToolbarButton,

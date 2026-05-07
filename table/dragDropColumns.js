@@ -6,6 +6,7 @@ import { appServices } from '../core/appServices.js';
 import { appUiActions } from '../core/appUiActions.js';
 import { AppState, QueryChangeManager, QueryStateReaders, registerQueryStateRuntimeAccessors } from '../core/queryState.js';
 import { FormatUtils } from '../core/utils.js';
+import { appRuntime } from '../core/appRuntime.js';
 
 let dragDropColumnOps;
 
@@ -38,7 +39,7 @@ let dragDropColumnOps;
       return [];
     }
 
-    const baseFieldName = window.getBaseFieldName(normalizedField);
+    const baseFieldName = appRuntime.getBaseFieldName(normalizedField);
     const relatedFieldPattern = new RegExp(`^\\d+(st|nd|rd|th)\\s+${baseFieldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`);
 
     return displayedFields.filter(field => field === baseFieldName || relatedFieldPattern.test(field));
@@ -55,7 +56,7 @@ let dragDropColumnOps;
   }
 
   function queueColumnMutationRender(options = {}) {
-    window.QueryTableView?.queueNextStateRenderOptions?.({
+    appRuntime.QueryTableView?.queueNextStateRenderOptions?.({
       preserveScroll: options.preserveScroll !== false,
       scrollAnchorField: options.scrollAnchorField || ''
     });
@@ -76,7 +77,7 @@ let dragDropColumnOps;
       return false;
     }
 
-    const baseFieldName = window.getBaseFieldName(normalizedField);
+    const baseFieldName = appRuntime.getBaseFieldName(normalizedField);
     const remainingFields = displayedFieldsBeforeRemoval.filter(field => !relatedFieldNames.includes(field));
     const removedColumnIndices = relatedFieldNames
       .map(field => displayedFieldsBeforeRemoval.indexOf(field))
@@ -87,7 +88,7 @@ let dragDropColumnOps;
       ? (remainingFields[Math.min(anchorIndex, remainingFields.length - 1)] || remainingFields[Math.max(0, anchorIndex - 1)] || '')
       : '';
 
-    window.removedColumnInfo.set(baseFieldName, {
+    appRuntime.removedColumnInfo.set(baseFieldName, {
       columnNames: relatedFieldNames.slice(),
       originalIndices: removedColumnIndices,
       removedAt: Date.now()
@@ -105,13 +106,13 @@ let dragDropColumnOps;
     if (baseFieldName) {
       document.querySelectorAll('.bubble').forEach(bubbleEl => {
         if (bubbleEl.textContent.trim() === baseFieldName) {
-          const fieldDef = window.fieldDefs ? window.fieldDefs.get(baseFieldName) : null;
+          const fieldDef = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(baseFieldName) : null;
           if (fieldDef && fieldDef.is_buildable) {
             bubbleEl.setAttribute('draggable', 'false');
           } else {
             bubbleEl.setAttribute('draggable', 'true');
           }
-          window.BubbleSystem?.applyCorrectBubbleStyling?.(bubbleEl);
+          appRuntime.BubbleSystem?.applyCorrectBubbleStyling?.(bubbleEl);
         }
       });
     }
@@ -291,7 +292,7 @@ let dragDropColumnOps;
     const fromFieldName = getDisplayedFields()[fromIndex];
     if (!fromFieldName) return;
 
-    const relatedIndices = window.findRelatedColumnIndices(fromFieldName);
+    const relatedIndices = appRuntime.findRelatedColumnIndices(fromFieldName);
     if (relatedIndices.length === 1) {
       moveSingleColumn(table, fromIndex, toIndex);
     } else {
@@ -307,7 +308,7 @@ let dragDropColumnOps;
   }
 
   function addColumn(fieldName, insertAt = -1) {
-    if (window.fieldOrDuplicatesExist(fieldName)) {
+    if (appRuntime.fieldOrDuplicatesExist(fieldName)) {
       return false;
     }
 
@@ -316,7 +317,7 @@ let dragDropColumnOps;
       scrollAnchorField: fieldName
     });
 
-    const success = window.restoreFieldWithDuplicates(fieldName, insertAt);
+    const success = appRuntime.restoreFieldWithDuplicates(fieldName, insertAt);
 
     if (success) {
       syncTableAfterColumnMutation({
@@ -324,7 +325,7 @@ let dragDropColumnOps;
         scrollAnchorField: fieldName
       });
     } else {
-      window.QueryTableView?.queueNextStateRenderOptions?.({});
+      appRuntime.QueryTableView?.queueNextStateRenderOptions?.({});
     }
 
     return success;

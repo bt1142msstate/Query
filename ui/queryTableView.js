@@ -6,9 +6,10 @@ import { appServices } from '../core/appServices.js';
 import { appUiActions } from '../core/appUiActions.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
+import { appRuntime } from '../core/appRuntime.js';
 
 (function initializeQueryTableView() {
-  const dom = window.DOM;
+  const dom = appRuntime.DOM;
   const appState = AppState;
   const services = appServices;
   const uiActions = appUiActions;
@@ -32,7 +33,7 @@ import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
   function syncBubbleDragState(renderFields) {
     document.querySelectorAll('.bubble').forEach(bubbleEl => {
       const field = bubbleEl.textContent.trim();
-      const fieldDef = window.fieldDefs ? window.fieldDefs.get(field) : null;
+      const fieldDef = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(field) : null;
       if (fieldDef && fieldDef.is_buildable) {
         bubbleEl.setAttribute('draggable', 'false');
       } else if (renderFields.includes(field)) {
@@ -133,7 +134,7 @@ import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 
     document.querySelectorAll('.bubble').forEach(bubble => {
       const fieldName = bubble.textContent.trim();
-      const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
+      const fieldDef = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(fieldName) : null;
       bubble.setAttribute('draggable', fieldDef && fieldDef.is_buildable ? 'false' : 'true');
     });
 
@@ -386,7 +387,7 @@ import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
     }
   };
 
-  window.QueryTableView = queryTableView;
+  appRuntime.QueryTableView = queryTableView;
 
   QueryStateSubscriptions.subscribe(event => {
     if (event?.changes?.displayedFields) {

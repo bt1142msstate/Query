@@ -1,7 +1,8 @@
+import { appRuntime } from '../core/appRuntime.js';
 /* Keep the condition input capsule aligned above the active editor controls. */
-window.positionInputWrapper = function() {
-  const inputWrapper = window.DOM.inputWrapper;
-  const conditionPanel = window.DOM.conditionPanel;
+appRuntime.positionInputWrapper = function() {
+  const inputWrapper = appRuntime.DOM.inputWrapper;
+  const conditionPanel = appRuntime.DOM.conditionPanel;
 
   if (!inputWrapper || !conditionPanel || !inputWrapper.classList.contains('show')) return;
 

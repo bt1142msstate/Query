@@ -1,4 +1,5 @@
 import { QueryStateReaders } from './queryState.js';
+import { appRuntime } from './appRuntime.js';
 
 function subscribe(handler, options = {}) {
   if (typeof QueryStateReaders.subscribe !== 'function' || typeof handler !== 'function') {
@@ -38,7 +39,7 @@ const QueryStateSubscriptions = Object.freeze({
   subscribe
 });
 
-Object.defineProperty(window, 'QueryStateSubscriptions', {
+Object.defineProperty(appRuntime, 'QueryStateSubscriptions', {
   configurable: false,
   enumerable: true,
   value: QueryStateSubscriptions,

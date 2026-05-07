@@ -1,5 +1,6 @@
+import { appRuntime } from '../core/appRuntime.js';
   function getFieldDef(fieldName) {
-    return window.fieldDefs && fieldName ? window.fieldDefs.get(fieldName) : null;
+    return appRuntime.fieldDefs && fieldName ? appRuntime.fieldDefs.get(fieldName) : null;
   }
 
   function collectBindings(spec, getCurrentInputValues, supportsMultipleValues, getInputParamKeys) {
@@ -24,7 +25,7 @@
   }
 
   function setTableName(state, bindings, interpolateValue) {
-    const tableNameInput = window.DOM && window.DOM.tableNameInput;
+    const tableNameInput = appRuntime.DOM && appRuntime.DOM.tableNameInput;
     if (!tableNameInput) return;
 
     if (state.suppressAutoTableNameOnce) {
@@ -62,8 +63,8 @@
   }
 
   function ensureColumnsRegistered(columns) {
-    if (typeof window.registerDynamicField !== 'function') return;
-    columns.forEach(column => window.registerDynamicField(column));
+    if (typeof appRuntime.registerDynamicField !== 'function') return;
+    columns.forEach(column => appRuntime.registerDynamicField(column));
   }
 
   function appendFilter(targetFilters, fieldName, operator, values) {
@@ -166,7 +167,7 @@
         : values.filter(value => value !== '').length === 0;
       const hasInvalidDate = isDateField && values.some(value => {
         const normalized = String(value ?? '').trim();
-        return normalized && (!window.CustomDatePicker || !window.CustomDatePicker.isValidDateValue(normalized));
+        return normalized && (!appRuntime.CustomDatePicker || !appRuntime.CustomDatePicker.isValidDateValue(normalized));
       });
 
       const control = controls.get(inputSpec.key);

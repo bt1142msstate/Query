@@ -9,6 +9,7 @@ import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 import { FormModeControls as formModeControls } from './formModeControls.js';
 import { FormModeStateHelpers as formModeStateHelpers } from './formModeStateHelpers.js';
 import { SharedFieldPicker } from './fieldPicker.js';
+import { appRuntime } from '../core/appRuntime.js';
 
 let QueryFormMode;
 
@@ -213,8 +214,8 @@ let QueryFormMode;
   }
 
   function getCurrentTableNameValue() {
-    return window.DOM && window.DOM.tableNameInput
-      ? window.DOM.tableNameInput.value.trim()
+    return appRuntime.DOM && appRuntime.DOM.tableNameInput
+      ? appRuntime.DOM.tableNameInput.value.trim()
       : '';
   }
 
@@ -450,7 +451,7 @@ let QueryFormMode;
   }
 
   function buildGeneratedInputSpecFromFilter(fieldName, filter, index, filters, seenKeys) {
-    const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
+    const fieldDef = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(fieldName) : null;
     const operator = normalizeOperatorForField(fieldDef, String(filter && filter.cond || 'equals').trim() || 'equals');
     const values = readStoredFilterValues(filter);
     const hasMultipleFilters = filters.length > 1;
@@ -566,7 +567,7 @@ let QueryFormMode;
         return;
       }
 
-      const fieldDef = window.fieldDefs ? window.fieldDefs.get(match.field) : null;
+      const fieldDef = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(match.field) : null;
       const previousOperator = match.operator;
       const previousType = match.type;
       const previousDefaults = JSON.stringify(getInputSpecDefaultValues(match));
@@ -648,7 +649,7 @@ let QueryFormMode;
   function buildSpecFromCurrentQuery() {
     const querySnapshot = getQuerySnapshot();
     const columns = Array.isArray(querySnapshot.displayedFields) ? querySnapshot.displayedFields.slice() : [];
-    const tableNameInput = window.DOM && window.DOM.tableNameInput;
+    const tableNameInput = appRuntime.DOM && appRuntime.DOM.tableNameInput;
     const title = tableNameInput ? tableNameInput.value.trim() : '';
     const inputs = buildGeneratedInputSpecsFromActiveFilters([], querySnapshot.activeFilters);
 
@@ -762,8 +763,8 @@ let QueryFormMode;
 
   function stopRunningQueryForReset() {
     const lifecycleState = QueryStateReaders.getLifecycleState();
-    if (lifecycleState.queryRunning && window.QueryHistorySystem?.cancelQuery && lifecycleState.currentQueryId) {
-      window.QueryHistorySystem.cancelQuery(lifecycleState.currentQueryId).catch(console.error);
+    if (lifecycleState.queryRunning && appRuntime.QueryHistorySystem?.cancelQuery && lifecycleState.currentQueryId) {
+      appRuntime.QueryHistorySystem.cancelQuery(lifecycleState.currentQueryId).catch(console.error);
       QueryChangeManager.setLifecycleState({ queryRunning: false }, { source: 'QueryFormMode.reset.stopQuery', silent: true });
       uiActions.updateRunButtonIcon();
     }
@@ -772,7 +773,7 @@ let QueryFormMode;
   function clearRenderedQueryResults() {
     services.clearVirtualTableData();
 
-    window.QueryTableView?.renderEmptyQueryTableState?.();
+    appRuntime.QueryTableView?.renderEmptyQueryTableState?.();
   }
 
   function resetFormToBaseline(kind) {
@@ -823,13 +824,13 @@ let QueryFormMode;
 
   function hasSpecColumn(fieldName) {
     if (!state.spec || !Array.isArray(state.spec.columns)) return false;
-    const baseFieldName = typeof window.getBaseFieldName === 'function'
-      ? window.getBaseFieldName(fieldName)
+    const baseFieldName = typeof appRuntime.getBaseFieldName === 'function'
+      ? appRuntime.getBaseFieldName(fieldName)
       : fieldName;
 
     return state.spec.columns.some(column => {
-      const baseColumnName = typeof window.getBaseFieldName === 'function'
-        ? window.getBaseFieldName(column)
+      const baseColumnName = typeof appRuntime.getBaseFieldName === 'function'
+        ? appRuntime.getBaseFieldName(column)
         : column;
       return baseColumnName === baseFieldName;
     });
@@ -837,13 +838,13 @@ let QueryFormMode;
 
   function hasSpecFilterInput(fieldName) {
     if (!state.spec || !Array.isArray(state.spec.inputs)) return false;
-    const baseFieldName = typeof window.getBaseFieldName === 'function'
-      ? window.getBaseFieldName(fieldName)
+    const baseFieldName = typeof appRuntime.getBaseFieldName === 'function'
+      ? appRuntime.getBaseFieldName(fieldName)
       : fieldName;
 
     return state.spec.inputs.some(inputSpec => {
-      const baseInputField = typeof window.getBaseFieldName === 'function'
-        ? window.getBaseFieldName(inputSpec.field)
+      const baseInputField = typeof appRuntime.getBaseFieldName === 'function'
+        ? appRuntime.getBaseFieldName(inputSpec.field)
         : inputSpec.field;
       return baseInputField === baseFieldName;
     });
@@ -851,13 +852,13 @@ let QueryFormMode;
 
   function removeSpecFilterInputs(fieldName) {
     if (!state.spec || !Array.isArray(state.spec.inputs)) return;
-    const baseFieldName = typeof window.getBaseFieldName === 'function'
-      ? window.getBaseFieldName(fieldName)
+    const baseFieldName = typeof appRuntime.getBaseFieldName === 'function'
+      ? appRuntime.getBaseFieldName(fieldName)
       : fieldName;
 
     state.spec.inputs = state.spec.inputs.filter(inputSpec => {
-      const baseInputField = typeof window.getBaseFieldName === 'function'
-        ? window.getBaseFieldName(inputSpec.field)
+      const baseInputField = typeof appRuntime.getBaseFieldName === 'function'
+        ? appRuntime.getBaseFieldName(inputSpec.field)
         : inputSpec.field;
       return baseInputField !== baseFieldName;
     });
@@ -877,7 +878,7 @@ let QueryFormMode;
       if (excludedInputKey && inputSpec.key === excludedInputKey) {
         return;
       }
-      const fieldDef = window.fieldDefs ? window.fieldDefs.get(inputSpec.field) : null;
+      const fieldDef = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(inputSpec.field) : null;
       syncInputSpecFromState(inputSpec, {
         operator: inputSpec.operator,
         values: getControlValues(inputSpec)
@@ -977,8 +978,8 @@ let QueryFormMode;
   }
 
   async function activateGeneratedFormFromCurrentQuery() {
-    if (typeof window.loadFieldDefinitions === 'function') {
-      await window.loadFieldDefinitions();
+    if (typeof appRuntime.loadFieldDefinitions === 'function') {
+      await appRuntime.loadFieldDefinitions();
     }
 
     const nextSpec = buildSpecFromCurrentQuery();
@@ -1010,8 +1011,8 @@ let QueryFormMode;
   }
 
   async function syncGeneratedFormFromCurrentQuery(options = {}) {
-    if (typeof window.loadFieldDefinitions === 'function') {
-      await window.loadFieldDefinitions();
+    if (typeof appRuntime.loadFieldDefinitions === 'function') {
+      await appRuntime.loadFieldDefinitions();
     }
 
     const nextSpec = buildSpecFromCurrentQuery();
@@ -1056,8 +1057,8 @@ let QueryFormMode;
   async function openFieldPicker() {
     await SharedFieldPicker.open({
       beforeOpen: async () => {
-        if (typeof window.loadFieldDefinitions === 'function') {
-          await window.loadFieldDefinitions();
+        if (typeof appRuntime.loadFieldDefinitions === 'function') {
+          await appRuntime.loadFieldDefinitions();
         }
         syncSpecColumnsWithDisplayedFields({ refreshUrl: false });
       },
@@ -1080,12 +1081,12 @@ let QueryFormMode;
         filter: hasSpecFilterInput(fieldName)
       }),
       renderFilterPreview: (container, fieldName, context = {}) => {
-        if (!container || !state.spec || !window.fieldDefs) {
+        if (!container || !state.spec || !appRuntime.fieldDefs) {
           return null;
         }
 
-        const fieldDef = window.fieldDefs.get(fieldName);
-        if (!fieldDef || (typeof window.isFieldBackendFilterable === 'function' && !window.isFieldBackendFilterable(fieldDef))) {
+        const fieldDef = appRuntime.fieldDefs.get(fieldName);
+        if (!fieldDef || (typeof appRuntime.isFieldBackendFilterable === 'function' && !appRuntime.isFieldBackendFilterable(fieldDef))) {
           return null;
         }
 
@@ -1221,7 +1222,7 @@ let QueryFormMode;
             const previewState = typeof options.getFilterPreviewState === 'function'
               ? options.getFilterPreviewState()
               : null;
-            const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
+            const fieldDef = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(fieldName) : null;
             if (previewState && previewState.fieldName === fieldName) {
               syncInputSpecFromState(inputSpec, previewState, fieldDef);
             }
@@ -1248,7 +1249,7 @@ let QueryFormMode;
         }
 
         let targetInputSpec = state.spec.inputs.find(inputSpec => inputSpec && inputSpec.field === fieldName);
-        const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
+        const fieldDef = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(fieldName) : null;
 
         if (!targetInputSpec) {
           captureCurrentControlDefaults();
@@ -1397,7 +1398,7 @@ let QueryFormMode;
     }
 
     if (state.runBtn) {
-      state.runBtn.disabled = Boolean(error) || Boolean(window.DOM && window.DOM.runBtn && window.DOM.runBtn.disabled);
+      state.runBtn.disabled = Boolean(error) || Boolean(appRuntime.DOM && appRuntime.DOM.runBtn && appRuntime.DOM.runBtn.disabled);
     }
 
     return error;
@@ -1414,7 +1415,7 @@ let QueryFormMode;
     nextUrl.searchParams.set('limited', '1');
 
     state.spec.inputs.forEach(inputSpec => {
-      const fieldDef = window.fieldDefs && inputSpec.field ? window.fieldDefs.get(inputSpec.field) : null;
+      const fieldDef = appRuntime.fieldDefs && inputSpec.field ? appRuntime.fieldDefs.get(inputSpec.field) : null;
       const isMultiValue = supportsMultipleValues(inputSpec, fieldDef);
       const rawValues = getCurrentInputValues(inputSpec);
       const keys = getInputParamKeys(inputSpec);
@@ -1497,7 +1498,7 @@ let QueryFormMode;
     }
 
     uiActions.updateFilterSidePanel();
-    window.QueryTableView?.syncEmptyTableMessage?.();
+    appRuntime.QueryTableView?.syncEmptyTableMessage?.();
   }
 
   function refreshBubbleStageAfterModeSwitch() {
@@ -1619,7 +1620,7 @@ let QueryFormMode;
     }
 
     visibleInputs.forEach(inputSpec => {
-      const fieldDef = window.fieldDefs ? window.fieldDefs.get(inputSpec.field) : null;
+      const fieldDef = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(inputSpec.field) : null;
       inputSpec.operator = normalizeOperatorForField(fieldDef, inputSpec.operator);
       const control = createFormControl(
         fieldDef,
@@ -1648,7 +1649,7 @@ let QueryFormMode;
         showToastMessage(error, 'warning');
         return;
       }
-      window.DOM && window.DOM.runBtn && window.DOM.runBtn.click();
+      appRuntime.DOM && appRuntime.DOM.runBtn && appRuntime.DOM.runBtn.click();
     });
 
     card.querySelector('#form-mode-add-field').addEventListener('click', () => {
@@ -1716,18 +1717,18 @@ let QueryFormMode;
   }
 
   function wrapUpdateButtonStates() {
-    if (state.originalUpdateButtonStates || typeof window.QueryUI?.updateButtonStates !== 'function') return;
+    if (state.originalUpdateButtonStates || typeof appRuntime.QueryUI?.updateButtonStates !== 'function') return;
 
-    state.originalUpdateButtonStates = typeof window.QueryUI.getBaseUpdateButtonStates === 'function'
-      ? window.QueryUI.getBaseUpdateButtonStates()
-      : window.QueryUI.updateButtonStates;
-    window.QueryUI.setUpdateButtonStatesImpl(function wrappedFormModeUpdateButtonStates() {
+    state.originalUpdateButtonStates = typeof appRuntime.QueryUI.getBaseUpdateButtonStates === 'function'
+      ? appRuntime.QueryUI.getBaseUpdateButtonStates()
+      : appRuntime.QueryUI.updateButtonStates;
+    appRuntime.QueryUI.setUpdateButtonStatesImpl(function wrappedFormModeUpdateButtonStates() {
       state.originalUpdateButtonStates();
       if (!state.active) return;
 
       const error = syncValidationUi();
-      if (error && window.DOM && window.DOM.runBtn) {
-        window.DOM.runBtn.disabled = true;
+      if (error && appRuntime.DOM && appRuntime.DOM.runBtn) {
+        appRuntime.DOM.runBtn.disabled = true;
         uiActions.updateRunButtonIcon(error);
       }
     });
@@ -1738,7 +1739,7 @@ let QueryFormMode;
       return;
     }
 
-    const tableNameInput = window.DOM && window.DOM.tableNameInput;
+    const tableNameInput = appRuntime.DOM && appRuntime.DOM.tableNameInput;
     if (!tableNameInput) {
       return;
     }
@@ -1942,8 +1943,8 @@ let QueryFormMode;
       ? 'form'
       : (searchParams.get('mode') === 'bubbles' ? 'bubbles' : 'form');
 
-    if (typeof window.loadFieldDefinitions === 'function') {
-      await window.loadFieldDefinitions();
+    if (typeof appRuntime.loadFieldDefinitions === 'function') {
+      await appRuntime.loadFieldDefinitions();
     }
 
     services.clearVirtualTableData();
@@ -1977,7 +1978,7 @@ let QueryFormMode;
     getValidationError,
     buildCurrentShareUrl
   };
-  window.QueryFormMode = QueryFormMode;
+  appRuntime.QueryFormMode = QueryFormMode;
 })();
 
 export { QueryFormMode };

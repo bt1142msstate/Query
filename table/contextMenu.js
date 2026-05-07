@@ -10,8 +10,9 @@ import { showToastMessage } from '../core/toast.js';
 import { FormatUtils } from '../core/utils.js';
 import { VisibilityUtils } from '../core/visibility.js';
 import { SharedFieldPicker } from '../ui/fieldPicker.js';
+import { appRuntime } from '../core/appRuntime.js';
 
-window.TableContextMenu = (() => {
+appRuntime.TableContextMenu = (() => {
   let menuEl = null;
   let dismissHandlers = [];
   let clearPreview = null;
@@ -316,11 +317,11 @@ window.TableContextMenu = (() => {
           return previewColumn(colIndex);
         },
         run() {
-          if (!field || !window.PostFilterSystem || typeof window.PostFilterSystem.openOverlayForField !== 'function') {
+          if (!field || !appRuntime.PostFilterSystem || typeof appRuntime.PostFilterSystem.openOverlayForField !== 'function') {
             return;
           }
 
-          window.PostFilterSystem.openOverlayForField(field);
+          appRuntime.PostFilterSystem.openOverlayForField(field);
         }
       },
       ...(!isHeaderTarget ? [

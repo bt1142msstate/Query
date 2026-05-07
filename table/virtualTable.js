@@ -10,6 +10,7 @@ import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { MoneyUtils, TableBuilder, TextMeasurement, ValueFormatting } from '../core/utils.js';
 import { createTableScrollbarController } from './tableScrollbar.js';
 import { sortRowsByColumn } from './tableSort.js';
+import { appRuntime } from '../core/appRuntime.js';
 (function initializeVirtualTable() {
 // Virtual scrolling state
 let virtualTableData = {
@@ -315,8 +316,8 @@ function doesRowMatchFieldPostFilters(row, field, data) {
 }
 
 function parseComparableDateValue(value) {
-  if (window.CustomDatePicker && typeof window.CustomDatePicker.getComparableValue === 'function') {
-    return window.CustomDatePicker.getComparableValue(value);
+  if (appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.getComparableValue === 'function') {
+    return appRuntime.CustomDatePicker.getComparableValue(value);
   }
 
   if (value instanceof Date) {
@@ -664,7 +665,7 @@ function sortTableBy(fieldName) {
 
   // Re-render and update headers UI
   renderVirtualTable();
-  window.QueryTableView?.updateSortHeadersUI?.(currentSortColumn, currentSortDirection);
+  appRuntime.QueryTableView?.updateSortHeadersUI?.(currentSortColumn, currentSortDirection);
 }
 
 /**
@@ -858,7 +859,7 @@ function renderVirtualTable() {
         
         // Build an elegant HTML tooltip with a list
         const tooltipItems = items.map(function(itm) {
-          return '<li>' + window.escapeHtml(itm) + '</li>';
+          return '<li>' + appRuntime.escapeHtml(itm) + '</li>';
         }).join('');
         const tooltipHtml = '<div class="text-left font-sans text-sm pb-1"><div class="font-bold border-b border-gray-500 pb-1 mb-2">Multiple Values (' + items.length + ')</div><ul class="list-disc pl-4 space-y-1">' + tooltipItems + '</ul></div>';
         
@@ -1255,7 +1256,7 @@ function expandMultiValueColumns() {
  */
 function setSplitColumnsMode(active) {
   splitColumnsActive = active;
-  window.splitColumnsActive = active;
+  appRuntime.splitColumnsActive = active;
 
   if (active) {
     // Snapshot raw data if not already saved (first time switching to split)
@@ -1293,7 +1294,7 @@ function setSplitColumnsMode(active) {
   uiActions.showExampleTable(baseViewData.headers).catch(() => {});
 }
 
-window.VirtualTable = {
+appRuntime.VirtualTable = {
   // State
   get virtualTableData() { return virtualTableData; },
   set virtualTableData(v) {
@@ -1305,11 +1306,11 @@ window.VirtualTable = {
     invalidatePostFilterValueOptionsCache();
     // Reset split mode — caller will re-expand if needed
     splitColumnsActive = false;
-    window.splitColumnsActive = false;
+    appRuntime.splitColumnsActive = false;
     applyPostFilters({ refreshView: false, notify: true, resetScroll: false });
     // Reset the toggle button UI if present
-    if (typeof window.resetSplitColumnsToggleUI === 'function') {
-      window.resetSplitColumnsToggleUI();
+    if (typeof appRuntime.resetSplitColumnsToggleUI === 'function') {
+      appRuntime.resetSplitColumnsToggleUI();
     }
   },
   get calculatedColumnWidths() { return calculatedColumnWidths; },

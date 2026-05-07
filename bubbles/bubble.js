@@ -7,6 +7,7 @@ import { mapUiCondToFieldOperator } from '../filters/queryPayload.js';
 import { formatFieldDefinitionTooltipHTML, formatStandardFilterTooltipHTML } from '../core/tooltipFormatters.js';
 import { AppState, QueryStateReaders } from '../core/queryState.js';
 import { VisibilityUtils } from '../core/visibility.js';
+import { appRuntime } from '../core/appRuntime.js';
 
 var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
 var getActiveFilters = QueryStateReaders.getActiveFilters.bind(QueryStateReaders);
@@ -27,8 +28,8 @@ class Bubble {
     Object.assign(this.state, state);
     const { def } = this;
     const fieldName = def.name;
-    const isFilterable = typeof window.isFieldBackendFilterable === 'function'
-      ? window.isFieldBackendFilterable(def)
+    const isFilterable = typeof appRuntime.isFieldBackendFilterable === 'function'
+      ? appRuntime.isFieldBackendFilterable(def)
       : Array.isArray(def.filters) && def.filters.length > 0;
     this.el.textContent = fieldName;
 
@@ -105,19 +106,19 @@ class Bubble {
 }
 
 function getBubbleOverlayElement() {
-  return window.DOM?.overlay || document.getElementById('overlay');
+  return appRuntime.DOM?.overlay || document.getElementById('overlay');
 }
 
 function getBubbleConditionPanelElement() {
-  return window.DOM?.conditionPanel || document.getElementById('condition-panel');
+  return appRuntime.DOM?.conditionPanel || document.getElementById('condition-panel');
 }
 
 function getBubbleInputWrapperElement() {
-  return window.DOM?.inputWrapper || document.getElementById('condition-input-wrapper');
+  return appRuntime.DOM?.inputWrapper || document.getElementById('condition-input-wrapper');
 }
 
 function getBubbleConditionInputElement() {
-  return window.DOM?.conditionInput || document.getElementById('condition-input');
+  return appRuntime.DOM?.conditionInput || document.getElementById('condition-input');
 }
 
 function setBubbleConditionInputVisible(input, visible) {
@@ -125,8 +126,8 @@ function setBubbleConditionInputVisible(input, visible) {
     return;
   }
 
-  if (window.CustomDatePicker && typeof window.CustomDatePicker.setInputVisibility === 'function') {
-    window.CustomDatePicker.setInputVisibility(input, visible);
+  if (appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.setInputVisibility === 'function') {
+    appRuntime.CustomDatePicker.setInputVisibility(input, visible);
     return;
   }
 
@@ -134,15 +135,15 @@ function setBubbleConditionInputVisible(input, visible) {
 }
 
 function getBubbleConfirmButtonElement() {
-  return window.DOM?.confirmBtn || document.getElementById('confirm-btn');
+  return appRuntime.DOM?.confirmBtn || document.getElementById('confirm-btn');
 }
 
 function getBubbleFilterCardElement() {
-  return window.DOM?.filterCard || window.filterCard || null;
+  return appRuntime.DOM?.filterCard || appRuntime.filterCard || null;
 }
 
 function getBubbleFilterCardTitleElement(filterCard = getBubbleFilterCardElement()) {
-  return (filterCard && filterCard.querySelector('#filter-card-title')) || window.DOM?.filterCardTitle || null;
+  return (filterCard && filterCard.querySelector('#filter-card-title')) || appRuntime.DOM?.filterCardTitle || null;
 }
 
 function prepareBubbleFilterCardForOpen(filterCard = getBubbleFilterCardElement()) {
@@ -203,11 +204,11 @@ function resetBubbleEditorUi(options = {}) {
   const conditionPanel = getBubbleConditionPanelElement();
   const inputWrapper = getBubbleInputWrapperElement();
   const conditionInput = getBubbleConditionInputElement();
-  const conditionInput2 = window.DOM?.conditionInput2 || document.getElementById('condition-input-2');
-  const betweenLabel = window.DOM?.betweenLabel || document.getElementById('between-label');
-  const filterError = window.DOM?.filterError || document.getElementById('filter-error');
+  const conditionInput2 = appRuntime.DOM?.conditionInput2 || document.getElementById('condition-input-2');
+  const betweenLabel = appRuntime.DOM?.betweenLabel || document.getElementById('between-label');
+  const filterError = appRuntime.DOM?.filterError || document.getElementById('filter-error');
   const filterCard = prepareBubbleFilterCardForOpen(getBubbleFilterCardElement());
-  const headerBar = window.DOM?.headerBar || document.getElementById('header-bar');
+  const headerBar = appRuntime.DOM?.headerBar || document.getElementById('header-bar');
 
   if (overlay) {
     overlay.classList.remove('show', 'bubble-active');
@@ -303,7 +304,7 @@ function applyBubbleScrollRow(nextRow, options = {}) {
 
   appState.scrollRow = clampedRow;
 
-  const listDiv = window.DOM?.bubbleList || document.getElementById('bubble-list');
+  const listDiv = appRuntime.DOM?.bubbleList || document.getElementById('bubble-list');
   if (listDiv) {
     listDiv.style.transform = `translateY(-${appState.scrollRow * appState.rowHeight}px)`;
   }
@@ -322,7 +323,7 @@ function resetBubbleScroll() {
 
 function bubbleDebugLog(eventName, payload = {}) {
   if (!window) return;
-  const debugEnabled = window.BUBBLE_DEBUG === true || (window.localStorage && window.localStorage.getItem('BUBBLE_DEBUG') === '1');
+  const debugEnabled = appRuntime.BUBBLE_DEBUG === true || (window.localStorage && window.localStorage.getItem('BUBBLE_DEBUG') === '1');
   if (!debugEnabled) return;
   try {
     console.log(`[BubbleDebug] ${eventName}`, payload);
@@ -331,10 +332,10 @@ function bubbleDebugLog(eventName, payload = {}) {
   }
 }
 
-if (typeof window !== 'undefined' && typeof window.setBubbleDebug !== 'function') {
-  window.setBubbleDebug = function setBubbleDebug(enabled = true) {
+if (typeof window !== 'undefined' && typeof appRuntime.setBubbleDebug !== 'function') {
+  appRuntime.setBubbleDebug = function setBubbleDebug(enabled = true) {
     const nextValue = !!enabled;
-    window.BUBBLE_DEBUG = nextValue;
+    appRuntime.BUBBLE_DEBUG = nextValue;
     try {
       window.localStorage && window.localStorage.setItem('BUBBLE_DEBUG', nextValue ? '1' : '0');
     } catch (_) {
@@ -348,7 +349,7 @@ function applyCorrectBubbleStyling(bubbleElement) {
   if (!bubbleElement) return;
 
   const fieldName = bubbleElement.textContent.trim();
-  if (window.shouldFieldHavePurpleStylingBase(fieldName, getDisplayedFields(), getActiveFilters())) {
+  if (appRuntime.shouldFieldHavePurpleStylingBase(fieldName, getDisplayedFields(), getActiveFilters())) {
     bubbleElement.classList.add('bubble-filter');
     bubbleElement.setAttribute('data-filtered', 'true');
   } else {
@@ -374,14 +375,14 @@ function createOrUpdateBubble(def, existingBubble = null) {
 }
 
 function renderBubbles() {
-  const currentFilteredDefs = Array.isArray(window.filteredDefs) ? window.filteredDefs : null;
+  const currentFilteredDefs = Array.isArray(appRuntime.filteredDefs) ? appRuntime.filteredDefs : null;
   if (!currentFilteredDefs) {
     console.log('renderBubbles: Required globals not available yet');
     return;
   }
 
-  const container = window.DOM?.bubbleContainer || document.getElementById('bubble-container');
-  const listDiv = window.DOM?.bubbleList || document.getElementById('bubble-list');
+  const container = appRuntime.DOM?.bubbleContainer || document.getElementById('bubble-container');
+  const listDiv = appRuntime.DOM?.bubbleList || document.getElementById('bubble-list');
   if (!container || !listDiv) return;
 
   let list;
@@ -391,7 +392,7 @@ function renderBubbles() {
     const displayedFields = getDisplayedFields();
     const activeFilters = getActiveFilters();
     const displayedSet = new Set(displayedFields);
-    const filteredSelected = currentFilteredDefs.filter(d => window.shouldFieldHavePurpleStylingBase(d.name, displayedFields, activeFilters));
+    const filteredSelected = currentFilteredDefs.filter(d => appRuntime.shouldFieldHavePurpleStylingBase(d.name, displayedFields, activeFilters));
     const orderedList = displayedFields
       .map(name => filteredSelected.find(d => d.name === name))
       .filter(Boolean);
@@ -481,7 +482,7 @@ function safeRenderBubbles() {
 }
 
 function updateScrollBar() {
-  const listDiv = window.DOM?.bubbleList || document.getElementById('bubble-list');
+  const listDiv = appRuntime.DOM?.bubbleList || document.getElementById('bubble-list');
   const renderedBubbleCount = listDiv ? listDiv.querySelectorAll('.bubble').length : 0;
   const scrollbarContainer = document.querySelector('.bubble-scrollbar-container');
   if (scrollbarContainer) {
@@ -490,8 +491,8 @@ function updateScrollBar() {
     if (!needScroll) return;
   }
 
-  const track = window.DOM?.bubbleScrollbarTrack || document.getElementById('bubble-scrollbar-track');
-  const thumb = window.DOM?.bubbleScrollbarThumb || document.getElementById('bubble-scrollbar-thumb');
+  const track = appRuntime.DOM?.bubbleScrollbarTrack || document.getElementById('bubble-scrollbar-track');
+  const thumb = appRuntime.DOM?.bubbleScrollbarThumb || document.getElementById('bubble-scrollbar-thumb');
   if (!track || !thumb) return;
 
   const maxStartRow = getBubbleMaxStartRow();
@@ -510,7 +511,7 @@ function updateScrollBar() {
   thumb.style.top = `${topPos}px`;
 }
 
-window.createBubblePopParticles = function(bubbleClone) {
+appRuntime.createBubblePopParticles = function(bubbleClone) {
   if (!bubbleClone) return;
 
   const rect = bubbleClone.getBoundingClientRect();
@@ -555,26 +556,26 @@ window.createBubblePopParticles = function(bubbleClone) {
 };
 
 function buildConditionPanel(bubble) {
-  if (window.BubbleConditionPanel && typeof window.BubbleConditionPanel.buildConditionPanel === 'function') {
-    return window.BubbleConditionPanel.buildConditionPanel(bubble);
+  if (appRuntime.BubbleConditionPanel && typeof appRuntime.BubbleConditionPanel.buildConditionPanel === 'function') {
+    return appRuntime.BubbleConditionPanel.buildConditionPanel(bubble);
   }
 }
 
 function initializeBubbles() {
-  if (window.BubbleInteraction && typeof window.BubbleInteraction.initializeBubbles === 'function') {
-    return window.BubbleInteraction.initializeBubbles();
+  if (appRuntime.BubbleInteraction && typeof appRuntime.BubbleInteraction.initializeBubbles === 'function') {
+    return appRuntime.BubbleInteraction.initializeBubbles();
   }
   return false;
 }
 
 function resetActiveBubbles() {
-  if (window.BubbleReset && typeof window.BubbleReset.resetActiveBubbles === 'function') {
-    return window.BubbleReset.resetActiveBubbles();
+  if (appRuntime.BubbleReset && typeof appRuntime.BubbleReset.resetActiveBubbles === 'function') {
+    return appRuntime.BubbleReset.resetActiveBubbles();
   }
 }
 
 if (typeof window !== 'undefined') {
-  window.BubbleSystem = {
+  appRuntime.BubbleSystem = {
     Bubble,
     applyCorrectBubbleStyling,
     bubbleDebugLog,

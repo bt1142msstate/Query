@@ -3,6 +3,7 @@
  * Provides client-side data manipulation including grouping, filtering, and post-processing
  */
 import { normalizeUiConfigFilters } from '../filters/queryPayload.js';
+import { appRuntime } from '../core/appRuntime.js';
 
 // Enum for GroupMethod
 const GroupMethod = {
@@ -181,8 +182,8 @@ class SimpleTable {
                 return isNaN(int) ? 0 : int;
             case 'datetime':
             case 'date':
-                const parsedDate = window.CustomDatePicker && typeof window.CustomDatePicker.parseDateValue === 'function'
-                    ? window.CustomDatePicker.parseDateValue(value)
+                const parsedDate = appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.parseDateValue === 'function'
+                    ? appRuntime.CustomDatePicker.parseDateValue(value)
                     : null;
                 return parsedDate || new Date();
             case 'boolean':

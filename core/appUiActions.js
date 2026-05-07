@@ -5,6 +5,7 @@
 import { appServices } from './appServices.js';
 import { registerQueryStateRuntimeAccessors } from './queryState.js';
 import { DOM } from '../ui/domCache.js';
+import { appRuntime } from './appRuntime.js';
 
 let appUiActions;
 
@@ -14,7 +15,7 @@ let appUiActions;
   }
 
   function showExampleTable(fields, options = {}) {
-    const showTable = window.QueryTableView?.showExampleTable;
+    const showTable = appRuntime.QueryTableView?.showExampleTable;
     if (typeof showTable !== 'function') {
       return Promise.resolve();
     }
@@ -23,35 +24,35 @@ let appUiActions;
   }
 
   function updateCategoryCounts() {
-    (window.QueryBuilderShell?.updateCategoryCounts || window.updateCategoryCounts)?.();
+    (appRuntime.QueryBuilderShell?.updateCategoryCounts || appRuntime.updateCategoryCounts)?.();
   }
 
   function updateButtonStates() {
-    window.QueryUI?.updateButtonStates?.();
+    appRuntime.QueryUI?.updateButtonStates?.();
   }
 
   function updateRunButtonIcon(validationError) {
-    window.QueryUI?.updateRunButtonIcon?.(validationError);
+    appRuntime.QueryUI?.updateRunButtonIcon?.(validationError);
   }
 
   function updateQueryJson() {
-    window.JsonViewerUI?.updateQueryJson?.();
+    appRuntime.JsonViewerUI?.updateQueryJson?.();
   }
 
   function updateTableResultsLip() {
-    window.QueryUI?.updateTableResultsLip?.();
+    appRuntime.QueryUI?.updateTableResultsLip?.();
   }
 
   function updateFilterSidePanel() {
-    window.FilterSidePanel?.update?.();
+    appRuntime.FilterSidePanel?.update?.();
   }
 
   function refreshTableViewport() {
-    window.QueryUI?.refreshTableViewport?.();
+    appRuntime.QueryUI?.refreshTableViewport?.();
   }
 
   function updateTableChromeState() {
-    window.QueryUI?.updateTableChromeState?.();
+    appRuntime.QueryUI?.updateTableChromeState?.();
   }
 
   function prepareForQueryClear(options = {}) {
@@ -66,8 +67,8 @@ let appUiActions;
       clearConditionListSelection: !previousSelectedField
     });
 
-    if (window.PostFilterSystem?.close) {
-      window.PostFilterSystem.close();
+    if (appRuntime.PostFilterSystem?.close) {
+      appRuntime.PostFilterSystem.close();
     }
 
     services?.clearPostFilters?.({ refreshView: false, notify: true, resetScroll: false });
@@ -76,8 +77,8 @@ let appUiActions;
       services.setSplitColumnsMode(false);
     }
 
-    if (typeof window.resetSplitColumnsToggleUI === 'function') {
-      window.resetSplitColumnsToggleUI();
+    if (typeof appRuntime.resetSplitColumnsToggleUI === 'function') {
+      appRuntime.resetSplitColumnsToggleUI();
     }
   }
 
@@ -86,8 +87,8 @@ let appUiActions;
     const services = getServices();
     const dom = DOM;
 
-    if (previousSelectedField && typeof window.renderConditionList === 'function') {
-      window.renderConditionList(previousSelectedField);
+    if (previousSelectedField && typeof appRuntime.renderConditionList === 'function') {
+      appRuntime.renderConditionList(previousSelectedField);
     } else {
       document.getElementById('bubble-cond-list')?.replaceChildren();
     }
@@ -125,7 +126,7 @@ let appUiActions;
     finalizeQueryClear
   });
 
-  Object.defineProperty(window, 'AppUiActions', {
+  Object.defineProperty(appRuntime, 'AppUiActions', {
     configurable: false,
     enumerable: false,
     writable: false,

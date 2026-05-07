@@ -18,8 +18,9 @@ import { showToastMessage } from '../core/toast.js';
 import { OperatorLabels } from '../core/operatorLabels.js';
 import { Icons } from '../core/icons.js';
 import { SharedFieldPicker } from '../ui/fieldPicker.js';
+import { appRuntime } from '../core/appRuntime.js';
 
-window.FilterSidePanel = (function () {
+appRuntime.FilterSidePanel = (function () {
     const services = appServices;
     const uiActions = appUiActions;
     let currentViewMode = 'both';
@@ -43,8 +44,8 @@ window.FilterSidePanel = (function () {
     }
 
     function syncPanelHeight() {
-        const panel = window.DOM.filterSidePanel;
-        const shell = window.DOM.tableShell;
+        const panel = appRuntime.DOM.filterSidePanel;
+        const shell = appRuntime.DOM.tableShell;
 
         if (!panel) {
             return;
@@ -63,7 +64,7 @@ window.FilterSidePanel = (function () {
             return;
         }
 
-        const shell = window.DOM.tableShell;
+        const shell = appRuntime.DOM.tableShell;
         if (!shell) {
             return;
         }
@@ -105,7 +106,7 @@ window.FilterSidePanel = (function () {
     }
 
     function open() {
-        const panel = window.DOM.filterSidePanel;
+        const panel = appRuntime.DOM.filterSidePanel;
         if (panel) {
             panel.classList.remove('panel-hidden');
             panel.classList.add('panel-open');
@@ -119,7 +120,7 @@ window.FilterSidePanel = (function () {
     }
 
     function toggle() {
-        const panel = window.DOM.filterSidePanel;
+        const panel = appRuntime.DOM.filterSidePanel;
         if (panel && panel.classList.contains('panel-hidden')) {
             open();
         } else {
@@ -128,14 +129,14 @@ window.FilterSidePanel = (function () {
     }
 
     function hideFully() {
-        const panel = window.DOM.filterSidePanel;
+        const panel = appRuntime.DOM.filterSidePanel;
         if (panel) {
-            cleanupPopupControls(window.DOM.filterPanelBody);
+            cleanupPopupControls(appRuntime.DOM.filterPanelBody);
             panel.classList.remove('panel-open');
             panel.classList.add('panel-hidden');
             panel.style.height = '';
 
-            const body = window.DOM.filterPanelBody;
+            const body = appRuntime.DOM.filterPanelBody;
             if (body) {
                 // Clear the body so that if form-mode CSS forces it visible,
                 // it respects the empty state rather than showing zombie DOM.
@@ -166,11 +167,11 @@ window.FilterSidePanel = (function () {
             return;
         }
 
-        const overlay = window.DOM.overlay;
+        const overlay = appRuntime.DOM.overlay;
         if (AppState.selectedField === field && overlay?.classList.contains('show')) {
-            window.renderConditionList && window.renderConditionList(field);
+            appRuntime.renderConditionList && appRuntime.renderConditionList(field);
             const operatorSelect = document.getElementById('condition-operator-select');
-            const conditionInput = window.DOM.conditionInput;
+            const conditionInput = appRuntime.DOM.conditionInput;
             (operatorSelect || conditionInput)?.focus();
             return;
         }
@@ -195,7 +196,7 @@ window.FilterSidePanel = (function () {
             }
         }
 
-        const queryInput = window.DOM?.queryInput || document.getElementById('query-input');
+        const queryInput = appRuntime.DOM?.queryInput || document.getElementById('query-input');
         if (queryInput) {
             queryInput.value = field;
             queryInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -579,7 +580,7 @@ window.FilterSidePanel = (function () {
     }
 
     function createFilterGroup(field, data, container) {
-        const fieldDef = window.fieldDefs ? window.fieldDefs.get(field) : null;
+        const fieldDef = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(field) : null;
         const group = document.createElement('div');
         group.className = 'fp-field-group';
         group.dataset.field = field;
@@ -669,7 +670,7 @@ window.FilterSidePanel = (function () {
                     source: 'FilterSidePanel.removeFilter'
                 });
                 uiActions.updateQueryJson();
-                window.renderConditionList && window.renderConditionList(field);
+                appRuntime.renderConditionList && appRuntime.renderConditionList(field);
                 update();
             });
 
@@ -718,7 +719,7 @@ window.FilterSidePanel = (function () {
     }
 
     function update() {
-        const body = window.DOM.filterPanelBody;
+        const body = appRuntime.DOM.filterPanelBody;
         if (!body) return;
         const previousScrollTop = body.scrollTop;
 
@@ -731,7 +732,7 @@ window.FilterSidePanel = (function () {
             return;
         }
 
-        const panel = window.DOM.filterSidePanel;
+        const panel = appRuntime.DOM.filterSidePanel;
         if (panel && panel.classList.contains('panel-hidden')) {
             open();
         }
@@ -739,7 +740,7 @@ window.FilterSidePanel = (function () {
         ensureShellResizeObserver();
         syncPanelHeight();
 
-        const titleEl = window.DOM.filterPanelTitle;
+        const titleEl = appRuntime.DOM.filterPanelTitle;
         if (titleEl) {
             titleEl.textContent = 'Display & Filters';
         }
@@ -775,7 +776,7 @@ window.FilterSidePanel = (function () {
 }());
 
 window.addEventListener('resize', () => {
-    const panel = window.DOM.filterSidePanel;
+    const panel = appRuntime.DOM.filterSidePanel;
     if (panel && !panel.classList.contains('panel-hidden')) {
         appUiActions.updateFilterSidePanel();
     }

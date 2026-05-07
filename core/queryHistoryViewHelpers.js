@@ -1,3 +1,4 @@
+import { appRuntime } from './appRuntime.js';
 /**
  * Shared query-history presentation helpers.
  * Status/view metadata is isolated from polling and DOM wiring.
@@ -174,7 +175,7 @@ const queryHistoryViewHelpers = Object.freeze({
 });
 
 if (typeof window !== 'undefined') {
-  window.QueryHistoryViewHelpers = queryHistoryViewHelpers;
+  appRuntime.QueryHistoryViewHelpers = queryHistoryViewHelpers;
 }
 
 export {

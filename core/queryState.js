@@ -5,6 +5,7 @@
  */
 import { showToastMessage } from './toast.js';
 import { OperatorLabels } from './operatorLabels.js';
+import { appRuntime } from './appRuntime.js';
 
 let getServices = () => null, getUiActions = () => null, getColumnOps = () => null;
 
@@ -43,7 +44,7 @@ function getBaseFieldName(fieldName) {
   return withoutOrdinalPrefix;
 }
 
-window.getBaseFieldName = getBaseFieldName;
+appRuntime.getBaseFieldName = getBaseFieldName;
 
 const appRuntimeState = {
   selectedField: '',
@@ -103,7 +104,7 @@ Object.keys(appRuntimeState).forEach(key => {
   defineAppStateProperty(window, key);
 });
 Object.freeze(appStateStore);
-Object.defineProperty(window, 'AppState', {
+Object.defineProperty(appRuntime, 'AppState', {
   configurable: false,
   enumerable: false,
   writable: false,
@@ -111,7 +112,7 @@ Object.defineProperty(window, 'AppState', {
 });
 
 // Bubble animation state is owned by BubbleSystem (bubble.js).
-// Access via window.BubbleSystem.isBubbleAnimating etc.
+// Access via appRuntime.BubbleSystem.isBubbleAnimating etc.
 
 const displayedFieldsState = [];
 const activeFiltersState = {};
@@ -170,8 +171,8 @@ function normalizeResolvedFieldName(fieldName) {
     return '';
   }
 
-  return typeof window.resolveFieldName === 'function'
-    ? window.resolveFieldName(normalizedField)
+  return typeof appRuntime.resolveFieldName === 'function'
+    ? appRuntime.resolveFieldName(normalizedField)
     : normalizedField;
 }
 
@@ -342,10 +343,10 @@ function getSerializableQueryState(snapshot = getQueryStateSnapshot()) {
 
   const baseFields = [...displayedFields]
     .filter(field => {
-      const def = window.fieldDefs ? window.fieldDefs.get(field) : null;
+      const def = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(field) : null;
       return !(def && def.is_buildable);
     })
-    .map(field => window.getBaseFieldName(field))
+    .map(field => appRuntime.getBaseFieldName(field))
     .filter((field, index, array) => array.indexOf(field) === index);
 
   return {
@@ -393,8 +394,8 @@ function shouldSkipQueryChangeToast(meta = {}) {
     'QueryHistory.loadQueryConfig',
     'VirtualTable.setSplitMode',
     'Query.groupMethodChange',
-    'window.displayedFields setter',
-    'window.activeFilters setter'
+    'appRuntime.displayedFields setter',
+    'appRuntime.activeFilters setter'
   ].includes(source);
 }
 
@@ -992,7 +993,7 @@ function createManagerStoreMethod(storeMethodName, requiredArgCount, fallbackSou
     }
 
     const meta = args[requiredArgCount];
-    const prevalidation = window.QueryPrevalidation;
+    const prevalidation = appRuntime.QueryPrevalidation;
     if (
       prevalidatedManagerMethods.has(storeMethodName)
       && prevalidation
@@ -1110,57 +1111,57 @@ const queryStateReaders = Object.freeze({
     queryStateReaderMethodNames.map(methodName => [methodName, queryStateStore[methodName]])
   )
 });
-Object.defineProperty(window, 'QueryChangeManager', {
+Object.defineProperty(appRuntime, 'QueryChangeManager', {
   configurable: false,
   enumerable: false,
   writable: false,
   value: queryChangeManager
 });
 
-Object.defineProperty(window, 'QueryStateReaders', {
+Object.defineProperty(appRuntime, 'QueryStateReaders', {
   configurable: false,
   enumerable: false,
   writable: false,
   value: queryStateReaders
 });
 
-Object.defineProperty(window, 'QueryStateStore', {
+Object.defineProperty(appRuntime, 'QueryStateStore', {
   configurable: false,
   enumerable: false,
   get() {
-    throw new Error('window.QueryStateStore is private. Use QueryChangeManager or QueryStateReaders instead.');
+    throw new Error('appRuntime.QueryStateStore is private. Use QueryChangeManager or QueryStateReaders instead.');
   },
   set() {
-    throw new Error('window.QueryStateStore is private. Use QueryChangeManager or QueryStateReaders instead.');
+    throw new Error('appRuntime.QueryStateStore is private. Use QueryChangeManager or QueryStateReaders instead.');
   }
 });
 
-Object.defineProperty(window, 'displayedFields', {
+Object.defineProperty(appRuntime, 'displayedFields', {
   configurable: false,
   get() {
-    throwLegacyQueryStateRead('window.displayedFields');
+    throwLegacyQueryStateRead('appRuntime.displayedFields');
   },
   set() {
-    warnReadOnlyQueryStateMutation('window.displayedFields');
+    warnReadOnlyQueryStateMutation('appRuntime.displayedFields');
   }
 });
 
-Object.defineProperty(window, 'activeFilters', {
+Object.defineProperty(appRuntime, 'activeFilters', {
   configurable: false,
   get() {
-    throwLegacyQueryStateRead('window.activeFilters');
+    throwLegacyQueryStateRead('appRuntime.activeFilters');
   },
   set() {
-    warnReadOnlyQueryStateMutation('window.activeFilters');
+    warnReadOnlyQueryStateMutation('appRuntime.activeFilters');
   }
 });
 
-Object.defineProperty(window, 'getCurrentQueryState', {
+Object.defineProperty(appRuntime, 'getCurrentQueryState', {
   configurable: false,
   enumerable: false,
   writable: false,
   value: function legacyGetCurrentQueryState() {
-    throwLegacyQueryStateRead('window.getCurrentQueryState');
+    throwLegacyQueryStateRead('appRuntime.getCurrentQueryState');
   }
 });
 

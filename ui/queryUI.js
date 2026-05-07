@@ -9,6 +9,7 @@ import { QueryStateReaders } from '../core/queryState.js';
 import { appServices } from '../core/appServices.js';
 import { buildBackendQueryPayload } from '../filters/queryPayload.js';
 import { DOM } from './domCache.js';
+import { appRuntime } from '../core/appRuntime.js';
 
 const getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
 const getActiveFilters = QueryStateReaders.getActiveFilters.bind(QueryStateReaders);
@@ -497,14 +498,14 @@ function baseUpdateButtonStates() {
     clearQueryBtn.setAttribute('data-tooltip', isQueryRunning ? 'Stop the running query before clearing' : (clearQueryBtn.disabled ? 'Nothing to clear' : 'Clear current query'));
   }
 
-  if (typeof window.updateSplitColumnsToggleState === 'function') {
-    window.updateSplitColumnsToggleState();
+  if (typeof appRuntime.updateSplitColumnsToggleState === 'function') {
+    appRuntime.updateSplitColumnsToggleState();
   }
 
   updateTableResultsLip();
 
-  if (window.PostFilterSystem && typeof window.PostFilterSystem.syncToolbarButton === 'function') {
-    window.PostFilterSystem.syncToolbarButton();
+  if (appRuntime.PostFilterSystem && typeof appRuntime.PostFilterSystem.syncToolbarButton === 'function') {
+    appRuntime.PostFilterSystem.syncToolbarButton();
   }
 }
 
@@ -543,7 +544,7 @@ const queryUi = {
 };
 
 const QueryUI = Object.freeze(queryUi);
-window.QueryUI = QueryUI;
+appRuntime.QueryUI = QueryUI;
 
 export {
   QueryUI,

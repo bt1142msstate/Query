@@ -1,3 +1,4 @@
+import { appRuntime } from './appRuntime.js';
 function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -22,7 +23,7 @@ function formatDuration(seconds) {
 }
 
 function getFieldOutputSegments(fieldName, fieldDefinitions = null) {
-  const definitions = fieldDefinitions || (typeof window !== 'undefined' ? window.fieldDefs : null);
+  const definitions = fieldDefinitions || (typeof window !== 'undefined' ? appRuntime.fieldDefs : null);
   if (!definitions || typeof definitions.get !== 'function') {
     return 1;
   }
@@ -56,25 +57,25 @@ function parsePipeDelimitedRow(line, columns, options = {}) {
 }
 
 if (typeof window !== 'undefined') {
-  Object.defineProperty(window, 'escapeRegExp', {
+  Object.defineProperty(appRuntime, 'escapeRegExp', {
     configurable: false,
     enumerable: true,
     value: escapeRegExp,
     writable: false
   });
-  Object.defineProperty(window, 'formatDuration', {
+  Object.defineProperty(appRuntime, 'formatDuration', {
     configurable: false,
     enumerable: true,
     value: formatDuration,
     writable: false
   });
-  Object.defineProperty(window, 'getFieldOutputSegments', {
+  Object.defineProperty(appRuntime, 'getFieldOutputSegments', {
     configurable: false,
     enumerable: true,
     value: getFieldOutputSegments,
     writable: false
   });
-  Object.defineProperty(window, 'parsePipeDelimitedRow', {
+  Object.defineProperty(appRuntime, 'parsePipeDelimitedRow', {
     configurable: false,
     enumerable: true,
     value: parsePipeDelimitedRow,

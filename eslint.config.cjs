@@ -1,8 +1,8 @@
 const globals = require('globals');
 
-const { publicWindowAssignments } = require('./config/publicGlobals.cjs');
+const { forbiddenAppWindowBridgeNames } = require('./config/windowBridgeGlobals.cjs');
 
-const allowedWindowAssignments = new Set(publicWindowAssignments);
+const appWindowBridgeNames = new Set(forbiddenAppWindowBridgeNames);
 
 const restrictedQueryStateReadMethods = new Set([
   'getSnapshot',
@@ -109,26 +109,22 @@ const localRules = {
       };
     }
   },
-  'no-unapproved-window-exports': {
+  'no-app-window-bridge-exports': {
     meta: {
       type: 'problem',
       docs: {
-        description: 'Require new window exports to be added to the central allowlist.'
+        description: 'Disallow exporting application APIs through window.'
       },
       schema: [],
       messages: {
-        unapproved: 'Unapproved window export "{{name}}". Add it to config/publicGlobals.cjs only if this global API is intentional.'
+        windowExport: 'Do not export application API "{{name}}" through window. Use ES module exports, dependency injection, or appRuntime for remaining legacy cycles.'
       }
     },
     create(context) {
-      function reportIfUnapproved(node, exportName) {
-        if (allowedWindowAssignments.has(exportName)) {
-          return;
-        }
-
+      function reportWindowExport(node, exportName) {
         context.report({
           node,
-          messageId: 'unapproved',
+          messageId: 'windowExport',
           data: { name: exportName }
         });
       }
@@ -151,7 +147,7 @@ const localRules = {
             return;
           }
 
-          reportIfUnapproved(node, node.left.property.name);
+          reportWindowExport(node, node.left.property.name);
         },
         CallExpression(node) {
           if (
@@ -175,7 +171,42 @@ const localRules = {
             return;
           }
 
-          reportIfUnapproved(node, property.value);
+          reportWindowExport(node, property.value);
+        }
+      };
+    }
+  },
+  'no-app-window-bridge-reads': {
+    meta: {
+      type: 'problem',
+      docs: {
+        description: 'Disallow reading former application globals from window.'
+      },
+      schema: [],
+      messages: {
+        windowBridgeRead: 'Do not read application API "{{name}}" from window. Import it directly or read it from the private appRuntime registry while legacy cycles remain.'
+      }
+    },
+    create(context) {
+      return {
+        MemberExpression(node) {
+          if (node.computed || node.property.type !== 'Identifier') {
+            return;
+          }
+
+          if (node.object.type !== 'Identifier' || node.object.name !== 'window') {
+            return;
+          }
+
+          if (!appWindowBridgeNames.has(node.property.name)) {
+            return;
+          }
+
+          context.report({
+            node,
+            messageId: 'windowBridgeRead',
+            data: { name: node.property.name }
+          });
         }
       };
     }
@@ -462,7 +493,8 @@ module.exports = [
           message: 'Read query lifecycle via window.QueryStateReaders.getLifecycleState().'
         }
       ],
-      'local/no-unapproved-window-exports': 'error',
+      'local/no-app-window-bridge-exports': 'error',
+      'local/no-app-window-bridge-reads': 'error',
       'local/no-protected-global-declarations': 'error',
       'local/no-restricted-query-state-access': 'error',
       'local/no-versioned-module-specifiers': 'error'

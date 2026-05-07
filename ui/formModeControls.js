@@ -3,6 +3,7 @@ import { Icons } from '../core/icons.js';
 import { OperatorLabels } from '../core/operatorLabels.js';
 import { MoneyUtils, OperatorSelectUtils, ValueFormatting } from '../core/utils.js';
 import { SelectorControls } from './selectorControls.js';
+import { appRuntime } from '../core/appRuntime.js';
 
   function parseFieldOptions(fieldDef, inputSpec, normalizeOperatorForField) {
     const source = Array.isArray(inputSpec.options) && inputSpec.options.length > 0
@@ -44,7 +45,7 @@ import { SelectorControls } from './selectorControls.js';
   }
 
   function getAvailableOperators(fieldDef, inputSpec, normalizeOperatorForField) {
-    if (fieldDef && typeof window.isFieldBackendFilterable === 'function' && !window.isFieldBackendFilterable(fieldDef)) {
+    if (fieldDef && typeof appRuntime.isFieldBackendFilterable === 'function' && !appRuntime.isFieldBackendFilterable(fieldDef)) {
       return [];
     }
 
@@ -95,7 +96,7 @@ import { SelectorControls } from './selectorControls.js';
       return false;
     }
 
-    const resolvedFieldDef = fieldDef || (window.fieldDefs && inputSpec.field ? window.fieldDefs.get(inputSpec.field) : null);
+    const resolvedFieldDef = fieldDef || (appRuntime.fieldDefs && inputSpec.field ? appRuntime.fieldDefs.get(inputSpec.field) : null);
     return Boolean(
       inputSpec.multiple
       || (resolvedFieldDef && resolvedFieldDef.multiSelect)
@@ -104,8 +105,8 @@ import { SelectorControls } from './selectorControls.js';
   }
 
   function createGeneratedInputSpec(fieldName, specInputs, uniqueInputKey, normalizeOperatorForField) {
-    const fieldDef = window.fieldDefs ? window.fieldDefs.get(fieldName) : null;
-    if (fieldDef && typeof window.isFieldBackendFilterable === 'function' && !window.isFieldBackendFilterable(fieldDef)) {
+    const fieldDef = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(fieldName) : null;
+    if (fieldDef && typeof appRuntime.isFieldBackendFilterable === 'function' && !appRuntime.isFieldBackendFilterable(fieldDef)) {
       return null;
     }
 
@@ -136,7 +137,7 @@ import { SelectorControls } from './selectorControls.js';
   }
 
   function resolveInputInitialValues(inputSpec, searchParams, getInputParamKeys, splitListValues) {
-    const fieldDef = window.fieldDefs && inputSpec && inputSpec.field ? window.fieldDefs.get(inputSpec.field) : null;
+    const fieldDef = appRuntime.fieldDefs && inputSpec && inputSpec.field ? appRuntime.fieldDefs.get(inputSpec.field) : null;
     const isMultiValue = supportsMultipleValues(inputSpec, fieldDef);
     const keys = getInputParamKeys(inputSpec);
 
@@ -260,13 +261,13 @@ import { SelectorControls } from './selectorControls.js';
       input.type = 'text';
       input.className = 'form-mode-text-input';
       input.placeholder = inputSpec.placeholder || 'M/D/YYYY';
-      input.value = (window.CustomDatePicker && typeof window.CustomDatePicker.normalizeDateValue === 'function')
-        ? window.CustomDatePicker.normalizeDateValue(initialValues[0] || '')
+      input.value = (appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.normalizeDateValue === 'function')
+        ? appRuntime.CustomDatePicker.normalizeDateValue(initialValues[0] || '')
         : (initialValues[0] || '');
       input.autocomplete = 'off';
 
-      const api = window.CustomDatePicker && typeof window.CustomDatePicker.enhanceInput === 'function'
-        ? window.CustomDatePicker.enhanceInput(input, {
+      const api = appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.enhanceInput === 'function'
+        ? appRuntime.CustomDatePicker.enhanceInput(input, {
             variant: 'form',
             enabled: true,
             placeholder: input.placeholder
@@ -281,8 +282,8 @@ import { SelectorControls } from './selectorControls.js';
 
       control.setFormValues = function(values) {
         const nextValue = Array.isArray(values) && values.length ? String(values[0]) : '';
-        input.value = (window.CustomDatePicker && typeof window.CustomDatePicker.normalizeDateValue === 'function')
-          ? window.CustomDatePicker.normalizeDateValue(nextValue)
+        input.value = (appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.normalizeDateValue === 'function')
+          ? appRuntime.CustomDatePicker.normalizeDateValue(nextValue)
           : nextValue;
       };
 

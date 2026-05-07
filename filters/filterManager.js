@@ -9,11 +9,8 @@ import {
     shouldUseFilterListViewer
 } from './filterValueUi.js';
 import { SelectorControls } from '../ui/selectorControls.js';
-/**
- * Filter Management
- * Handles filter UI, inputs, and confirmation logic.
- * @module FilterManager
- */
+import { appRuntime } from '../core/appRuntime.js';
+
 /**
  * FilterPill UI component class
  * Represents a single active filter condition pill in the UI.
@@ -21,31 +18,31 @@ import { SelectorControls } from '../ui/selectorControls.js';
  */
 var appState = AppState, services = appServices, uiActions = appUiActions;
 function getFilterConditionPanelElement() {
-    return window.DOM?.conditionPanel || document.getElementById('condition-panel');
+    return appRuntime.DOM?.conditionPanel || document.getElementById('condition-panel');
 }
 
 function getFilterInputWrapperElement() {
-    return window.DOM?.inputWrapper || document.getElementById('condition-input-wrapper');
+    return appRuntime.DOM?.inputWrapper || document.getElementById('condition-input-wrapper');
 }
 
 function getFilterConditionInputElement() {
-    return window.DOM?.conditionInput || document.getElementById('condition-input');
+    return appRuntime.DOM?.conditionInput || document.getElementById('condition-input');
 }
 
 function getFilterConditionInput2Element() {
-    return window.DOM?.conditionInput2 || document.getElementById('condition-input-2');
+    return appRuntime.DOM?.conditionInput2 || document.getElementById('condition-input-2');
 }
 
 function getFilterBetweenLabelElement() {
-    return window.DOM?.betweenLabel || document.getElementById('between-label');
+    return appRuntime.DOM?.betweenLabel || document.getElementById('between-label');
 }
 
 function getFilterQueryInputElement() {
-    return window.DOM?.queryInput || document.getElementById('query-input');
+    return appRuntime.DOM?.queryInput || document.getElementById('query-input');
 }
 
 function getFilterErrorLabelElement() {
-    return window.DOM?.filterError || document.getElementById('filter-error');
+    return appRuntime.DOM?.filterError || document.getElementById('filter-error');
 }
 
 function getActiveFilterFieldName() {
@@ -75,8 +72,8 @@ function getActiveFilterFieldName() {
 function setConditionInputVisible(input, visible) {
     if (!input) return;
 
-    if (window.CustomDatePicker && typeof window.CustomDatePicker.setInputVisibility === 'function') {
-        window.CustomDatePicker.setInputVisibility(input, visible);
+    if (appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.setInputVisibility === 'function') {
+        appRuntime.CustomDatePicker.setInputVisibility(input, visible);
         return;
     }
 
@@ -86,16 +83,16 @@ function setConditionInputVisible(input, visible) {
 function isConditionInputVisible(input) {
     if (!input) return false;
 
-    if (window.CustomDatePicker && typeof window.CustomDatePicker.isInputVisible === 'function') {
-        return window.CustomDatePicker.isInputVisible(input);
+    if (appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.isInputVisible === 'function') {
+        return appRuntime.CustomDatePicker.isInputVisible(input);
     }
 
     return input.style.display !== 'none';
 }
 
 function getComparableDateValue(value) {
-    if (window.CustomDatePicker && typeof window.CustomDatePicker.getComparableValue === 'function') {
-        return window.CustomDatePicker.getComparableValue(value);
+    if (appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.getComparableValue === 'function') {
+        return appRuntime.CustomDatePicker.getComparableValue(value);
     }
 
     return NaN;
@@ -135,7 +132,7 @@ function createConditionOperatorPicker(conditions, handler) {
 }
 
 function showFilterError(message, inputElements = [], duration = 3000) {
-    const errorLabel = window.DOM.filterError;
+    const errorLabel = appRuntime.DOM.filterError;
 
     inputElements.forEach(inp => {
         if (inp) inp.classList.add('error');
@@ -191,7 +188,7 @@ function syncConditionSelection(conditionPanel, cond) {
     }
 }
 
-window.getSelectedCondition = function(conditionPanel = null) {
+appRuntime.getSelectedCondition = function(conditionPanel = null) {
     const panel = conditionPanel || getFilterConditionPanelElement();
     if (!panel) return '';
 
@@ -221,10 +218,10 @@ function showConditionPanelNote(options) {
     const note = document.createElement('div');
     note.id = 'condition-panel-note';
     note.className = 'condition-panel-note';
-    const kicker = config.kicker ? `<span class="condition-panel-note-kicker">${window.escapeHtml(config.kicker)}</span>` : '';
-    const title = config.title ? `<strong class="condition-panel-note-title">${window.escapeHtml(config.title)}</strong>` : '';
-    const body = config.body ? `<p class="condition-panel-note-body">${window.escapeHtml(config.body)}</p>` : '';
-    const hint = config.hint ? `<p class="condition-panel-note-hint">${window.escapeHtml(config.hint)}</p>` : '';
+    const kicker = config.kicker ? `<span class="condition-panel-note-kicker">${appRuntime.escapeHtml(config.kicker)}</span>` : '';
+    const title = config.title ? `<strong class="condition-panel-note-title">${appRuntime.escapeHtml(config.title)}</strong>` : '';
+    const body = config.body ? `<p class="condition-panel-note-body">${appRuntime.escapeHtml(config.body)}</p>` : '';
+    const hint = config.hint ? `<p class="condition-panel-note-hint">${appRuntime.escapeHtml(config.hint)}</p>` : '';
     note.innerHTML = `${kicker}${title}${body}${hint}`;
 
     inputWrapper.appendChild(note);
@@ -236,7 +233,7 @@ function buildBubbleConditionPanel(bubble) {
     const conditionPanel = getFilterConditionPanelElement();
     const inputWrapper = getFilterInputWrapperElement();
     const conditionInput = getFilterConditionInputElement();
-    const confirmBtn = window.DOM?.confirmBtn || document.getElementById('confirm-btn');
+    const confirmBtn = appRuntime.DOM?.confirmBtn || document.getElementById('confirm-btn');
     const filterCard = services.getBubbleFilterCardElement ? services.getBubbleFilterCardElement() : null;
 
     if (!conditionPanel || !inputWrapper || !conditionInput || !confirmBtn) {
@@ -269,10 +266,10 @@ function buildBubbleConditionPanel(bubble) {
     }
 
     const perBubble = bubble.dataset.filters ? JSON.parse(bubble.dataset.filters) : null;
-    const fieldDefInfo = window.fieldDefs ? window.fieldDefs.get(appState.selectedField) : null;
+    const fieldDefInfo = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(appState.selectedField) : null;
     const isBuildable = fieldDefInfo && fieldDefInfo.is_buildable;
-    const backendOperators = typeof window.getFieldFilterOperators === 'function'
-        ? window.getFieldFilterOperators(fieldDefInfo)
+    const backendOperators = typeof appRuntime.getFieldFilterOperators === 'function'
+        ? appRuntime.getFieldFilterOperators(fieldDefInfo)
         : ((perBubble && perBubble.length > 0)
             ? perBubble.map(label => String(label).split(' ')[0].toLowerCase())
             : []);
@@ -319,7 +316,7 @@ function buildBubbleConditionPanel(bubble) {
         operatorConditions = backendOperators.length > 0
             ? backendOperators
             : ['contains', 'starts', 'equals', 'does_not_equal'];
-        conditionPanel.appendChild(createConditionOperatorPicker(operatorConditions, window.buildableConditionBtnHandler));
+        conditionPanel.appendChild(createConditionOperatorPicker(operatorConditions, appRuntime.buildableConditionBtnHandler));
     } else {
         if (backendOperators.length === 0) {
             operatorConditions = [];
@@ -348,14 +345,14 @@ function buildBubbleConditionPanel(bubble) {
                 body: 'The backend does not expose any valid filter operators for this field, so no filter input is available here.',
                 hint: 'You can still add it as a results column and use it in the table output.'
             });
-            window.renderConditionList(appState.selectedField);
+            appRuntime.renderConditionList(appState.selectedField);
             return;
         }
 
-        conditionPanel.appendChild(createConditionOperatorPicker(operatorConditions, window.handleConditionBtnClick));
+        conditionPanel.appendChild(createConditionOperatorPicker(operatorConditions, appRuntime.handleConditionBtnClick));
 
         if (listValues && listValues.length) {
-            const fieldDef = window.fieldDefs.get(appState.selectedField);
+            const fieldDef = appRuntime.fieldDefs.get(appState.selectedField);
             const isMultiSelect = fieldDef && fieldDef.multiSelect;
             const shouldGroupValues = Boolean(fieldDef && fieldDef.groupValues);
             const isBooleanField = Boolean(fieldDef && fieldDef.type === 'boolean');
@@ -397,9 +394,9 @@ function buildBubbleConditionPanel(bubble) {
             const existingContainer = document.getElementById('condition-select-container');
             if (existingSelect) existingSelect.style.display = 'none';
             if (existingContainer) existingContainer.parentNode.removeChild(existingContainer);
-            window.configureInputsForType(type);
+            appRuntime.configureInputsForType(type);
 
-            if (window.isListPasteField(fieldDefInfo)) {
+            if (appRuntime.isListPasteField(fieldDefInfo)) {
                 let currentLiteralValues = [];
                 const selectedFieldFilters = getFilterGroupForField(appState.selectedField);
                 const listCondition = getPreferredCondition(operatorConditions, appState.selectedField);
@@ -423,13 +420,13 @@ function buildBubbleConditionPanel(bubble) {
         }
     }
 
-    window.renderConditionList(appState.selectedField);
+    appRuntime.renderConditionList(appState.selectedField);
 
     const operatorSelect = conditionPanel.querySelector('#condition-operator-select');
     const preferredCondition = getPreferredCondition(operatorConditions, appState.selectedField);
     if (operatorSelect && preferredCondition) {
         operatorSelect.value = preferredCondition;
-        const handler = window.handleConditionBtnClick;
+        const handler = appRuntime.handleConditionBtnClick;
         if (typeof handler === 'function') {
             handler({
                 currentTarget: operatorSelect,
@@ -447,7 +444,7 @@ function buildBubbleConditionPanel(bubble) {
     }
 }
 
-window.BubbleConditionPanel = {
+appRuntime.BubbleConditionPanel = {
     buildConditionPanel: buildBubbleConditionPanel
 };
 
@@ -522,7 +519,7 @@ class FilterPill {
 }
 
 // Expose globally
-window.FilterPill = FilterPill;
+appRuntime.FilterPill = FilterPill;
 var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
 var getFilterGroupForField = QueryStateReaders.getFilterGroupForField.bind(QueryStateReaders);
 
@@ -556,16 +553,16 @@ function createPostFilterPill() {
     pill.innerHTML = `Post Filters <b>${summary.ruleCount} ${ruleLabel}</b> across <b>${summary.fieldCount} ${fieldLabel}</b>`;
 
     pill.addEventListener('click', () => {
-        if (window.PostFilterSystem?.open) {
-            window.PostFilterSystem.open();
+        if (appRuntime.PostFilterSystem?.open) {
+            appRuntime.PostFilterSystem.open();
         }
     });
 
     pill.addEventListener('keydown', event => {
         if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
-            if (window.PostFilterSystem?.open) {
-                window.PostFilterSystem.open();
+            if (appRuntime.PostFilterSystem?.open) {
+                appRuntime.PostFilterSystem.open();
             }
         }
     });
@@ -577,8 +574,8 @@ function createPostFilterPill() {
  * Renders the list of active filters for a given field.
  * @param {string} field - The field name
  */
-window.renderConditionList = function(field) {
-    const container = window.DOM.bubbleCondList;
+appRuntime.renderConditionList = function(field) {
+    const container = appRuntime.DOM.bubbleCondList;
     if (!container) return;
     
     container.innerHTML = '';
@@ -610,7 +607,7 @@ window.renderConditionList = function(field) {
         
         // Only re-render bubbles if the field was in Selected and is now gone
         if (appState.currentCategory === 'Selected') {
-            const stillSelected = window.shouldFieldHavePurpleStyling(normalizedField);
+            const stillSelected = appRuntime.shouldFieldHavePurpleStyling(normalizedField);
             if (!stillSelected) {
                 services.rerenderBubbles();
             }
@@ -622,7 +619,7 @@ window.renderConditionList = function(field) {
     list.className = 'cond-list';
 
     // Create pills for each filter
-    const fieldDef = normalizedField ? window.fieldDefs.get(normalizedField) : null;
+    const fieldDef = normalizedField ? appRuntime.fieldDefs.get(normalizedField) : null;
     if (hasFieldFilters) {
         data.filters.forEach((f, idx) => {
             const pill = new FilterPill(f, fieldDef, () => {
@@ -644,7 +641,7 @@ window.renderConditionList = function(field) {
             const selContainer = document.getElementById('condition-select-container');
             if (selContainer && appState.selectedField === normalizedField) {
                 if (supportsListSelectorCondition(f.cond)) {
-                    const activeCond = window.getSelectedCondition(getFilterConditionPanelElement()) || String(f.cond || '').trim().toLowerCase();
+                    const activeCond = appRuntime.getSelectedCondition(getFilterConditionPanelElement()) || String(f.cond || '').trim().toLowerCase();
                     const remainingFilter = data.filters.find(filterItem => String(filterItem.cond || '').trim().toLowerCase() === activeCond);
                     const nextValues = remainingFilter ? remainingFilter.val.split(',').map(v => v.trim()).filter(Boolean) : [];
 
@@ -669,7 +666,7 @@ window.renderConditionList = function(field) {
             
             // updateQueryJson and safeRenderBubbles are handled reactively by
             // jsonViewerUI.js and bubbleInteraction.js QueryStateSubscriptions — no need to call again here.
-            window.renderConditionList(normalizedField);
+            appRuntime.renderConditionList(normalizedField);
             uiActions.updateCategoryCounts();
         });
             list.appendChild(pill.getElement());
@@ -687,13 +684,13 @@ window.renderConditionList = function(field) {
 
 window.addEventListener('postfilters:updated', () => {
     const activeField = getActiveFilterFieldName() || appState.selectedField || '';
-    window.renderConditionList(activeField);
+    appRuntime.renderConditionList(activeField);
 });
 
 /**
  * Handles condition button clicks (Equal, Contains, etc.)
  */
-window.handleConditionBtnClick = function(e) {
+appRuntime.handleConditionBtnClick = function(e) {
     e.stopPropagation();
     const control = e.currentTarget;
     const conditionPanel = getFilterConditionPanelElement();
@@ -751,7 +748,7 @@ window.handleConditionBtnClick = function(e) {
     }
 
     inputWrapper.classList.add('show');
-    window.positionInputWrapper();
+    appRuntime.positionInputWrapper();
     
     // Focus appropriate input
     const listPasteInput = document.getElementById('condition-select-container');
@@ -764,13 +761,13 @@ window.handleConditionBtnClick = function(e) {
     }
     
     // Reposition again after layout change
-    window.positionInputWrapper();
+    appRuntime.positionInputWrapper();
 };
 
 /**
  * Handles filter confirmation action
  */
-window.handleFilterConfirm = function(e) {
+appRuntime.handleFilterConfirm = function(e) {
     e.stopPropagation();
     
     // Dependencies
@@ -786,11 +783,11 @@ window.handleFilterConfirm = function(e) {
     const field = (bubble && (bubble.dataset.filterFor || bubble.textContent.trim())) || appState.selectedField;
     if (!field) return;
 
-    const cond = window.getSelectedCondition(conditionPanel);
+    const cond = appRuntime.getSelectedCondition(conditionPanel);
     let val = conditionInput.value.trim();
     let val2 = conditionInput2.value.trim();
     
-    const fieldDef = window.fieldDefs.get(field);
+    const fieldDef = appRuntime.fieldDefs.get(field);
     const fieldType = (bubble && bubble.dataset.type) || (fieldDef && fieldDef.type) || 'string';
     const numberFormat = ValueFormatting.getNumberFormat(field) || '';
     if (fieldType === 'money' || fieldType === 'number') {
@@ -803,13 +800,13 @@ window.handleFilterConfirm = function(e) {
     // Special handling for buildable fields
     if (isBuildable) {
         handleBuildableFieldConfirm(fieldDef, cond, val);
-        window.finalizeConfirmAction();
+        appRuntime.finalizeConfirmAction();
         return;
     }
 
     // Validation
     if (cond && cond !== 'display') {
-        if (!isBuildable && typeof window.isFieldBackendFilterable === 'function' && !window.isFieldBackendFilterable(fieldDef)) {
+        if (!isBuildable && typeof appRuntime.isFieldBackendFilterable === 'function' && !appRuntime.isFieldBackendFilterable(fieldDef)) {
             showFilterError('This field is not filterable in the backend.', []);
             return;
         }
@@ -838,8 +835,8 @@ window.handleFilterConfirm = function(e) {
         }
 
         if (fieldType === 'date') {
-            const hasInvalidPrimaryDate = val && (!window.CustomDatePicker || !window.CustomDatePicker.isValidDateValue(val));
-            const hasInvalidSecondaryDate = cond === 'between' && val2 && (!window.CustomDatePicker || !window.CustomDatePicker.isValidDateValue(val2));
+            const hasInvalidPrimaryDate = val && (!appRuntime.CustomDatePicker || !appRuntime.CustomDatePicker.isValidDateValue(val));
+            const hasInvalidSecondaryDate = cond === 'between' && val2 && (!appRuntime.CustomDatePicker || !appRuntime.CustomDatePicker.isValidDateValue(val2));
             if (hasInvalidPrimaryDate || hasInvalidSecondaryDate) {
                 showFilterError('Use M/D/YYYY', tintInputs);
                 return;
@@ -905,7 +902,7 @@ window.handleFilterConfirm = function(e) {
                 : existingSet;
             
             // Check for contradictions
-            const conflictMsg = window.getContradictionMessage(contradictionSet, newFilterObj, fieldType, field);
+            const conflictMsg = appRuntime.getContradictionMessage(contradictionSet, newFilterObj, fieldType, field);
             if (conflictMsg) {
                 showFilterError(conflictMsg, [conditionInput, conditionInput2]);
                 return;
@@ -925,7 +922,7 @@ window.handleFilterConfirm = function(e) {
                     }
                 });
                 
-                window.renderConditionList(field);
+                appRuntime.renderConditionList(field);
                 
             }
         } catch (error) {
@@ -946,7 +943,7 @@ window.handleFilterConfirm = function(e) {
         }
     }
 
-    window.finalizeConfirmAction();
+    appRuntime.finalizeConfirmAction();
 };
 
 /**
@@ -994,7 +991,7 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
     if (dynamicFieldName === fieldDef.name) return;
     
     // Dynamically add field definition if missing
-    window.registerDynamicField(dynamicFieldName, {
+    appRuntime.registerDynamicField(dynamicFieldName, {
         special_payload: specialPayload
     });
     
@@ -1015,7 +1012,7 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
     const queryInput = getFilterQueryInputElement();
     if (queryInput && queryInput.value.trim()) {
         queryInput.value = '';
-        window.updateFilteredDefs(''); 
+        appRuntime.updateFilteredDefs('');
     }
 
     setTimeout(() => {
@@ -1044,13 +1041,13 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
  * @param {string} fieldName - The resolved field name
  * @param {Object} [opts] - Optional overrides: type, category, desc, special_payload
  */
-window.registerDynamicField = function(fieldName, opts = {}) {
-    if (!fieldName || window.fieldDefs.has(fieldName)) return;
+appRuntime.registerDynamicField = function(fieldName, opts = {}) {
+    if (!fieldName || appRuntime.fieldDefs.has(fieldName)) return;
 
     // Copy metadata from a matching buildable parent template when available.
     let parentDef = null;
-    if (window.fieldDefsArray) {
-        parentDef = window.fieldDefsArray.find(d => {
+    if (appRuntime.fieldDefsArray) {
+        parentDef = appRuntime.fieldDefsArray.find(d => {
             if (!d.is_buildable || !d.field_template) return false;
             // Build a regex from the template, replacing {key} placeholders with dynamic segments.
             const pattern = d.field_template.replace(/\{[^}]+\}/g, '[^|]+');
@@ -1087,18 +1084,18 @@ window.registerDynamicField = function(fieldName, opts = {}) {
         special_payload: resolvedPayload
     };
 
-    window.fieldDefs.set(fieldName, newDef);
+    appRuntime.fieldDefs.set(fieldName, newDef);
 
-    if (window.fieldDefsArray && !window.fieldDefsArray.find(d => d.name === fieldName)) {
-        window.fieldDefsArray.push({ ...newDef });
+    if (appRuntime.fieldDefsArray && !appRuntime.fieldDefsArray.find(d => d.name === fieldName)) {
+        appRuntime.fieldDefsArray.push({ ...newDef });
     }
-    if (window.filteredDefs && !window.filteredDefs.find(d => d.name === fieldName)) {
-        window.filteredDefs.push({ ...newDef });
+    if (appRuntime.filteredDefs && !appRuntime.filteredDefs.find(d => d.name === fieldName)) {
+        appRuntime.filteredDefs.push({ ...newDef });
     }
 };
 
 // Global confirm action finalizer
-window.finalizeConfirmAction = function() {
+appRuntime.finalizeConfirmAction = function() {
     uiActions.updateQueryJson();
 
     uiActions.updateFilterSidePanel();
@@ -1108,7 +1105,7 @@ window.finalizeConfirmAction = function() {
 /**
  * Special handler for condition buttons when in a buildable field (e.g., Marc)
  */
-window.buildableConditionBtnHandler = function(e) {
+appRuntime.buildableConditionBtnHandler = function(e) {
     e.stopPropagation();
     const control = e.currentTarget;
     const conditionPanel = getFilterConditionPanelElement();
@@ -1162,17 +1159,17 @@ window.buildableConditionBtnHandler = function(e) {
     
     if (inputWrapper) {
         inputWrapper.classList.add('show');
-        if (window.positionInputWrapper) window.positionInputWrapper();
+        if (appRuntime.positionInputWrapper) appRuntime.positionInputWrapper();
     }
     
     if (conditionInput) conditionInput.focus();
     
     // Re-position after toggling second input visibility
-    if (window.positionInputWrapper) window.positionInputWrapper();
+    if (appRuntime.positionInputWrapper) appRuntime.positionInputWrapper();
 };
 
 // --- Condition templates by type ---
-window.typeConditions = {
+appRuntime.typeConditions = {
   string: ['contains','starts','equals','does_not_equal'],     // no "between" for plain strings
   number: ['greater','less','equals','does_not_equal','between'],
   money : ['greater','less','equals','does_not_equal','between'],
@@ -1224,7 +1221,7 @@ function setNumericFieldAppearance(inputs, numericKind) {
     });
 }
 
-window.configureInputsForType = function(type){
+appRuntime.configureInputsForType = function(type){
     const inp1 = getFilterConditionInputElement();
     const inp2 = getFilterConditionInput2Element();
     const inputs=[inp1,inp2].filter(Boolean);
@@ -1263,10 +1260,10 @@ window.configureInputsForType = function(type){
       )
     );
 
-    if (window.CustomDatePicker && typeof window.CustomDatePicker.enhanceInput === 'function') {
+    if (appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.enhanceInput === 'function') {
         inputs.forEach(inp => {
             if (isDate) {
-                window.CustomDatePicker.enhanceInput(inp, {
+                appRuntime.CustomDatePicker.enhanceInput(inp, {
                     variant: 'filter',
                     enabled: true,
                     placeholder: 'M/D/YYYY'
@@ -1283,12 +1280,12 @@ window.configureInputsForType = function(type){
     }
 };
 
-window.isListPasteField = function(fieldDef) {
+appRuntime.isListPasteField = function(fieldDef) {
     return Boolean(fieldDef && fieldDef.allowValueList && (!fieldDef.values || fieldDef.values.length === 0));
 };
 
 /* ---------- Check for contradiction & return human-readable reason ---------- */
-window.getContradictionMessage = function(existing, newF, fieldType, fieldLabel){
+appRuntime.getContradictionMessage = function(existing, newF, fieldType, fieldLabel){
     if(!existing || !Array.isArray(existing.filters)) return null;
 
   const toNum = v=>{

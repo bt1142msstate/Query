@@ -15,6 +15,7 @@ import { AppState, QueryChangeManager, QueryStateReaders } from '../core/querySt
 import { appServices } from '../core/appServices.js';
 import { appUiActions } from '../core/appUiActions.js';
 import { DOM } from './domCache.js';
+import { appRuntime } from '../core/appRuntime.js';
 
 let QueryBuilderShell;
 
@@ -273,10 +274,10 @@ let QueryBuilderShell;
     dom.pageBody?.classList.add('night');
     bindConfirmEnterShortcut();
     dom.overlay?.addEventListener('click', handleOverlayClick);
-    dom.confirmBtn?.addEventListener('click', window.handleFilterConfirm);
+    dom.confirmBtn?.addEventListener('click', appRuntime.handleFilterConfirm);
     document.addEventListener('keydown', handleBubbleKeyboardNavigation);
     document.addEventListener('keydown', handleFocusedBubbleScroll);
-    window.addEventListener('resize', window.positionInputWrapper);
+    window.addEventListener('resize', appRuntime.positionInputWrapper);
 
     dom.queryInput?.addEventListener('input', handleQuerySearchInput);
     dom.clearSearchBtn?.addEventListener('click', () => {
@@ -299,12 +300,12 @@ let QueryBuilderShell;
     services.initializeBubbles();
   }
 
-  window.updateCategoryCounts = updateCategoryCounts;
+  appRuntime.updateCategoryCounts = updateCategoryCounts;
   QueryBuilderShell = Object.freeze({
     initialize,
     updateCategoryCounts
   });
-  window.QueryBuilderShell = QueryBuilderShell;
+  appRuntime.QueryBuilderShell = QueryBuilderShell;
 })();
 
 export { QueryBuilderShell };

@@ -1,4 +1,4 @@
-const publicWindowAssignments = [
+const forbiddenAppWindowBridgeNames = [
   '__QUERY_APP_MODULES_READY',
   'activeFilters',
   'AppServices',
@@ -111,5 +111,5 @@ const publicWindowAssignments = [
 ];
 
 module.exports = {
-  publicWindowAssignments
+  forbiddenAppWindowBridgeNames
 };

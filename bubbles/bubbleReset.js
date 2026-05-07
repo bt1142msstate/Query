@@ -1,5 +1,6 @@
 import { appServices } from '../core/appServices.js';
 import { AppState } from '../core/queryState.js';
+import { appRuntime } from '../core/appRuntime.js';
 
 var services = appServices;
 
@@ -97,7 +98,7 @@ function resetActiveBubblesImpl() {
           const bubbles = Array.from(document.querySelectorAll('.bubble'));
           bubbles.forEach(bubble => {
             if (bubble.textContent.trim() !== fieldName) return;
-            const stillExists = window.fieldDefs.has(fieldName) && window.shouldFieldHavePurpleStyling(fieldName);
+            const stillExists = appRuntime.fieldDefs.has(fieldName) && appRuntime.shouldFieldHavePurpleStyling(fieldName);
             if (!stillExists && appState.currentCategory === 'Selected') {
               bubble.remove();
             } else {
@@ -120,7 +121,7 @@ function resetActiveBubblesImpl() {
         const matchingBubble = Array.from(document.querySelectorAll('.bubble'))
           .find(bubble => bubble.textContent.trim() === fieldName);
         if (matchingBubble) {
-          const stillExists = window.fieldDefs.has(fieldName) && window.shouldFieldHavePurpleStyling(fieldName);
+          const stillExists = appRuntime.fieldDefs.has(fieldName) && appRuntime.shouldFieldHavePurpleStyling(fieldName);
           if (!stillExists && appState.currentCategory === 'Selected') {
             matchingBubble.remove();
           } else {
@@ -158,7 +159,7 @@ function resetActiveBubblesImpl() {
   }, 650);
 }
 
-window.BubbleReset = {
+appRuntime.BubbleReset = {
   reconcileBubbleInteractionState: reconcileBubbleResetInteractionState,
   resetActiveBubbles: resetActiveBubblesImpl
 };

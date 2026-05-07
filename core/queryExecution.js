@@ -11,6 +11,7 @@ import { showToastMessage } from './toast.js';
 import { buildBackendQueryPayload, buildQueryUiConfig } from '../filters/queryPayload.js';
 import { DOM } from '../ui/domCache.js';
 import { ensureTableName } from '../ui/queryUI.js';
+import { appRuntime } from './appRuntime.js';
 
 const execDom = DOM;
 const appState = AppState;
@@ -47,8 +48,8 @@ function updateQueryHistoryEntry(queryId, updates, options = {}) {
 /* ---------- Live-progress helper ---------- */
 
 function updateLiveQueryProgress(resultCount, options = {}) {
-  if (window.QueryTableAnimation?.updateTableQueryAnimationProgress) {
-    window.QueryTableAnimation.updateTableQueryAnimationProgress({
+  if (appRuntime.QueryTableAnimation?.updateTableQueryAnimationProgress) {
+    appRuntime.QueryTableAnimation.updateTableQueryAnimationProgress({
       resultCount,
       startTime: options.startTime
     });
@@ -139,7 +140,7 @@ async function clearCurrentQuery() {
   throw new Error('QueryChangeManager.clearQuery is unavailable.');
 }
 
-window.clearCurrentQuery = clearCurrentQuery;
+appRuntime.clearCurrentQuery = clearCurrentQuery;
 
 /* ---------- Clear-query button ---------- */
 
@@ -162,8 +163,8 @@ if (execDom.runBtn) {
     if (QueryStateReaders.getLifecycleState().queryRunning) {
       showToastMessage('Stopping query…', 'info');
       const lifecycleState = QueryStateReaders.getLifecycleState();
-      if (lifecycleState.currentQueryId && window.QueryHistorySystem?.cancelQuery) {
-        window.QueryHistorySystem.cancelQuery(lifecycleState.currentQueryId).catch(err => {
+      if (lifecycleState.currentQueryId && appRuntime.QueryHistorySystem?.cancelQuery) {
+        appRuntime.QueryHistorySystem.cancelQuery(lifecycleState.currentQueryId).catch(err => {
           console.error('Cancellation failed', err);
         });
       }
@@ -171,17 +172,17 @@ if (execDom.runBtn) {
       QueryChangeManager.setLifecycleState({ queryRunning: false }, { source: 'QueryExecution.stopQuery', silent: true });
       uiActions.updateRunButtonIcon();
       uiActions.updateButtonStates();
-      window.QueryTableAnimation?.endTableQueryAnimation?.();
+      appRuntime.QueryTableAnimation?.endTableQueryAnimation?.();
       return;
     }
 
     // Start query execution
     (async () => {
       // Remember if split mode was active, then disable it to avoid mapping dynamic Field N names.
-      const wasSplitActive = services.isSplitColumnsActive() || window.splitColumnsActive || false;
+      const wasSplitActive = services.isSplitColumnsActive() || appRuntime.splitColumnsActive || false;
       if (wasSplitActive) {
         services.setSplitColumnsMode(false);
-        if (window.resetSplitColumnsToggleUI) window.resetSplitColumnsToggleUI();
+        if (appRuntime.resetSplitColumnsToggleUI) appRuntime.resetSplitColumnsToggleUI();
       }
 
       if (services.hasPostFilters?.()) {
@@ -196,7 +197,7 @@ if (execDom.runBtn) {
       try {
         uiActions.updateRunButtonIcon();
         uiActions.updateButtonStates();
-        window.QueryTableAnimation?.startTableQueryAnimation?.();
+        appRuntime.QueryTableAnimation?.startTableQueryAnimation?.();
         const queryStartedAt = Date.now();
         updateLiveQueryProgress(0, { startTime: queryStartedAt });
 
@@ -311,7 +312,7 @@ if (execDom.runBtn) {
           services.setVirtualTableData(newTableData);
 
           // Re-render the full table to reset red column headers and redraw rows with new widths
-          if (window.QueryTableView?.showExampleTable) {
+          if (appRuntime.QueryTableView?.showExampleTable) {
             await uiActions.showExampleTable(state.displayedFields);
           } else {
             services.renderVirtualTable();
@@ -326,7 +327,7 @@ if (execDom.runBtn) {
 
           // Restore split-columns mode if it was active before the query ran
           if (wasSplitActive) {
-            if (window.setSplitColumnsToggleUIActive) window.setSplitColumnsToggleUIActive();
+            if (appRuntime.setSplitColumnsToggleUIActive) appRuntime.setSplitColumnsToggleUIActive();
             services.setSplitColumnsMode(true);
           }
         }
@@ -370,7 +371,7 @@ if (execDom.runBtn) {
         uiActions.updateTableResultsLip();
         uiActions.updateRunButtonIcon();
         uiActions.updateButtonStates();
-        window.QueryTableAnimation?.endTableQueryAnimation?.();
+        appRuntime.QueryTableAnimation?.endTableQueryAnimation?.();
       }
     })();
   });

@@ -1,7 +1,3 @@
-/**
- * Drag and drop interaction module.
- * Owns hover, drop indicator, header actions, and drag lifecycle behavior.
- */
 import { ClipboardUtils } from '../core/clipboard.js';
 import { appServices } from '../core/appServices.js';
 import { DragUtils } from '../core/dragUtils.js';
@@ -10,6 +6,7 @@ import { QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
 import { dragDropColumnOps } from './dragDropColumns.js';
 import { SharedFieldPicker } from '../ui/fieldPicker.js';
+import { appRuntime } from '../core/appRuntime.js';
 (function initializeDragDropInteractions() {
   var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders), getLifecycleState = QueryStateReaders.getLifecycleState.bind(QueryStateReaders), services = appServices;
   const TABLE_COLUMN_DRAG_MIME = 'application/x-query-table-column-index';
@@ -321,8 +318,8 @@ import { SharedFieldPicker } from '../ui/fieldPicker.js';
       const afterField = displayedFields[insertAt];
 
       if (beforeField && afterField) {
-        const beforeBase = window.getBaseFieldName(beforeField);
-        const afterBase = window.getBaseFieldName(afterField);
+        const beforeBase = appRuntime.getBaseFieldName(beforeField);
+        const afterBase = appRuntime.getBaseFieldName(afterField);
 
         if (beforeBase === afterBase) {
           dropAnchor.style.display = 'none';
@@ -447,7 +444,7 @@ import { SharedFieldPicker } from '../ui/fieldPicker.js';
 
       const field = e.dataTransfer.getData(BUBBLE_FIELD_DRAG_MIME);
       if (field) {
-        if (window.restoreFieldWithDuplicates(field)) {
+        if (appRuntime.restoreFieldWithDuplicates(field)) {
           dragDropManager.dropSuccessful = true;
         }
       }
@@ -620,7 +617,7 @@ import { SharedFieldPicker } from '../ui/fieldPicker.js';
 
       const colIndex = parseInt(th.dataset.colIndex, 10);
       const fieldName = getDisplayedFields()[colIndex];
-      const relatedIndices = window.findRelatedColumnIndices(fieldName);
+      const relatedIndices = appRuntime.findRelatedColumnIndices(fieldName);
 
       relatedIndices.forEach(index => {
         const relatedHeader = document.querySelector(`thead th[data-col-index="${index}"]`);
@@ -798,7 +795,7 @@ import { SharedFieldPicker } from '../ui/fieldPicker.js';
       if (bubbleField) {
         const rect = th.getBoundingClientRect();
         const insertAt = (e.clientX - rect.left) < rect.width / 2 ? toIndex : toIndex + 1;
-        if (window.restoreFieldWithDuplicates(bubbleField, insertAt)) {
+        if (appRuntime.restoreFieldWithDuplicates(bubbleField, insertAt)) {
           dragDropManager.dropSuccessful = true;
         }
       }
@@ -823,7 +820,7 @@ import { SharedFieldPicker } from '../ui/fieldPicker.js';
       if (bubbleField) {
         const rect = td.getBoundingClientRect();
         const insertAt = (e.clientX - rect.left) < rect.width / 2 ? toIndex : toIndex + 1;
-        if (window.restoreFieldWithDuplicates(bubbleField, insertAt)) {
+        if (appRuntime.restoreFieldWithDuplicates(bubbleField, insertAt)) {
           dragDropManager.dropSuccessful = true;
         }
         clearDropAnchor();
@@ -1329,7 +1326,7 @@ import { SharedFieldPicker } from '../ui/fieldPicker.js';
     }
   }, true);
 
-  window.DragDropInteractions = Object.freeze({
+  appRuntime.DragDropInteractions = Object.freeze({
     dragDropManager,
     addDragAndDrop,
     attachBubbleDropTarget,
@@ -1343,6 +1340,6 @@ import { SharedFieldPicker } from '../ui/fieldPicker.js';
     clearDropAnchor,
     addColumn,
     removeColumnByName,
-    getDuplicateGroups: window.getDuplicateGroups
+    getDuplicateGroups: appRuntime.getDuplicateGroups
   });
 })();
