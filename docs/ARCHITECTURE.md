@@ -99,7 +99,7 @@ The architecture fitness test prevents those files from growing. New large modul
 
 ## Recommended Next Refactors
 
-1. Split `ui/formMode.js` into schema parsing, lifecycle coordination, rendering, and event binding modules.
+1. Continue splitting `ui/formMode.js` by moving rendering, field-picker coordination, and event binding into dedicated modules.
 2. Split `templates/queryTemplates.js` into storage, rendering, category management, and editor modules.
 3. Add more workflow-level unit tests for history/template state transitions and form-mode schema parsing.
 4. Consider TypeScript or JSDoc type checking if the project needs a stronger enterprise-style portfolio signal.
