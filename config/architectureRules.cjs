@@ -30,6 +30,7 @@ const appRuntimeUsageBudget = {
     'onDOMReady',
     'OperatorLabels',
     'parsePipeDelimitedRow',
+    'QueryStateSubscriptions',
     'registerDynamicField',
     'renderConditionList',
     'renderCategorySelectors',
