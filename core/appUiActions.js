@@ -5,10 +5,29 @@
 import { appServices } from './appServices.js';
 import { registerQueryStateRuntimeAccessors } from './queryState.js';
 import { DOM } from './domCache.js';
-import { appRuntime } from './appRuntime.js';
 import { updateQueryJson as updateJsonPreview } from '../ui/jsonViewerUI.js';
 
 let appUiActions;
+const actionDependencies = {
+  filterSidePanel: null,
+  postFilterSystem: null,
+  queryBuilderShell: null,
+  queryTableView: null,
+  queryUi: null,
+  splitColumnsUi: null
+};
+
+function registerAppUiActionDependencies(dependencies = {}) {
+  if (!dependencies || typeof dependencies !== 'object') {
+    return;
+  }
+
+  Object.entries(dependencies).forEach(([key, value]) => {
+    if (Object.prototype.hasOwnProperty.call(actionDependencies, key) && value && typeof value === 'object') {
+      actionDependencies[key] = value;
+    }
+  });
+}
 
 (function initializeAppUiActions() {
   function getServices() {
@@ -16,7 +35,7 @@ let appUiActions;
   }
 
   function showExampleTable(fields, options = {}) {
-    const showTable = appRuntime.QueryTableView?.showExampleTable;
+    const showTable = actionDependencies.queryTableView?.showExampleTable;
     if (typeof showTable !== 'function') {
       return Promise.resolve();
     }
@@ -25,15 +44,15 @@ let appUiActions;
   }
 
   function updateCategoryCounts() {
-    (appRuntime.QueryBuilderShell?.updateCategoryCounts || appRuntime.updateCategoryCounts)?.();
+    actionDependencies.queryBuilderShell?.updateCategoryCounts?.();
   }
 
   function updateButtonStates() {
-    appRuntime.QueryUI?.updateButtonStates?.();
+    actionDependencies.queryUi?.updateButtonStates?.();
   }
 
   function updateRunButtonIcon(validationError) {
-    appRuntime.QueryUI?.updateRunButtonIcon?.(validationError);
+    actionDependencies.queryUi?.updateRunButtonIcon?.(validationError);
   }
 
   function updateQueryJson() {
@@ -41,19 +60,47 @@ let appUiActions;
   }
 
   function updateTableResultsLip() {
-    appRuntime.QueryUI?.updateTableResultsLip?.();
+    actionDependencies.queryUi?.updateTableResultsLip?.();
   }
 
   function updateFilterSidePanel() {
-    appRuntime.FilterSidePanel?.update?.();
+    actionDependencies.filterSidePanel?.update?.();
   }
 
   function refreshTableViewport() {
-    appRuntime.QueryUI?.refreshTableViewport?.();
+    actionDependencies.queryUi?.refreshTableViewport?.();
   }
 
   function updateTableChromeState() {
-    appRuntime.QueryUI?.updateTableChromeState?.();
+    actionDependencies.queryUi?.updateTableChromeState?.();
+  }
+
+  function syncPostFilterToolbarButton() {
+    actionDependencies.postFilterSystem?.syncToolbarButton?.();
+  }
+
+  function openPostFilters() {
+    actionDependencies.postFilterSystem?.open?.();
+  }
+
+  function closePostFilters() {
+    actionDependencies.postFilterSystem?.close?.();
+  }
+
+  function openPostFilterOverlayForField(fieldName) {
+    actionDependencies.postFilterSystem?.openOverlayForField?.(fieldName);
+  }
+
+  function updateSplitColumnsToggleState() {
+    actionDependencies.splitColumnsUi?.updateSplitColumnsToggleState?.();
+  }
+
+  function resetSplitColumnsToggleUI() {
+    actionDependencies.splitColumnsUi?.resetSplitColumnsToggleUI?.();
+  }
+
+  function setSplitColumnsToggleUIActive() {
+    actionDependencies.splitColumnsUi?.setSplitColumnsToggleUIActive?.();
   }
 
   function prepareForQueryClear(options = {}) {
@@ -68,9 +115,7 @@ let appUiActions;
       clearConditionListSelection: !previousSelectedField
     });
 
-    if (appRuntime.PostFilterSystem?.close) {
-      appRuntime.PostFilterSystem.close();
-    }
+    closePostFilters();
 
     services?.clearPostFilters?.({ refreshView: false, notify: true, resetScroll: false });
 
@@ -78,9 +123,7 @@ let appUiActions;
       services.setSplitColumnsMode(false);
     }
 
-    if (typeof appRuntime.resetSplitColumnsToggleUI === 'function') {
-      appRuntime.resetSplitColumnsToggleUI();
-    }
+    resetSplitColumnsToggleUI();
   }
 
   function finalizeQueryClear(options = {}) {
@@ -123,6 +166,13 @@ let appUiActions;
     updateFilterSidePanel,
     refreshTableViewport,
     updateTableChromeState,
+    syncPostFilterToolbarButton,
+    openPostFilters,
+    closePostFilters,
+    openPostFilterOverlayForField,
+    updateSplitColumnsToggleState,
+    resetSplitColumnsToggleUI,
+    setSplitColumnsToggleUIActive,
     prepareForQueryClear,
     finalizeQueryClear
   });
@@ -130,4 +180,4 @@ let appUiActions;
   registerQueryStateRuntimeAccessors({ getUiActions: () => appUiActions });
 })();
 
-export { appUiActions };
+export { appUiActions, registerAppUiActionDependencies };

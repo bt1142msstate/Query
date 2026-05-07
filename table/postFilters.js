@@ -1,5 +1,6 @@
 import { onDOMReady } from '../core/domReady.js';
 import { appServices } from '../core/appServices.js';
+import { registerAppUiActionDependencies } from '../core/appUiActions.js';
 import { OperatorLabels } from '../core/operatorLabels.js';
 import { QueryStateReaders } from '../core/queryState.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
@@ -8,9 +9,9 @@ import { MoneyUtils, ValueFormatting } from '../core/utils.js';
 import { VisibilityUtils } from '../core/visibility.js';
 import { initializeSearchInputs } from '../ui/searchUI.js';
 import { SelectorControls } from '../ui/selectorControls.js';
-import { appRuntime } from '../core/appRuntime.js';
 import { CustomDatePicker } from '../ui/customDatePicker.js';
 import { escapeHtml } from '../core/html.js';
+let PostFilterSystem;
 (function() {
   let equalsValueControl = null, equalsValueControlField = '';
   const STREAMED_EQUALS_BATCH_SIZE = 800, STREAMED_EQUALS_ROW_HEIGHT = 50, STREAMED_EQUALS_OVERSCAN = 6;
@@ -1099,11 +1100,9 @@ import { escapeHtml } from '../core/html.js';
     refreshOverlay();
   }
 
-  appRuntime.PostFilterSystem = {
-    open: openOverlay,
-    close: closeOverlay,
-    syncToolbarButton: updateToolbarButton,
-    openOverlayForField
-  };
+  PostFilterSystem = Object.freeze({ open: openOverlay, close: closeOverlay, syncToolbarButton: updateToolbarButton, openOverlayForField });
+  registerAppUiActionDependencies({ postFilterSystem: PostFilterSystem });
   onDOMReady(attachListeners);
 })();
+
+export { PostFilterSystem };

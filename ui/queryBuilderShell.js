@@ -13,7 +13,7 @@ import {
 } from '../filters/fieldDefs.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { appServices } from '../core/appServices.js';
-import { appUiActions } from '../core/appUiActions.js';
+import { appUiActions, registerAppUiActionDependencies } from '../core/appUiActions.js';
 import { DOM } from '../core/domCache.js';
 import { appRuntime } from '../core/appRuntime.js';
 
@@ -300,12 +300,11 @@ let QueryBuilderShell;
     services.initializeBubbles();
   }
 
-  appRuntime.updateCategoryCounts = updateCategoryCounts;
   QueryBuilderShell = Object.freeze({
     initialize,
     updateCategoryCounts
   });
-  appRuntime.QueryBuilderShell = QueryBuilderShell;
+  registerAppUiActionDependencies({ queryBuilderShell: QueryBuilderShell });
 })();
 
 export { QueryBuilderShell };

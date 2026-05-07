@@ -599,12 +599,7 @@ async function loadQueryResults(queryId) {
             services.setVirtualTableData(newTableData);
             
             // Re-render the full table to reset red column headers and redraw the rows with new widths
-            if (appRuntime.QueryTableView?.showExampleTable) {
-                await uiActions.showExampleTable(headers);
-            } else {
-                services.renderVirtualTable();
-                services.calculateOptimalColumnWidths(); 
-            }
+            await uiActions.showExampleTable(headers);
             
             // Re-render the bubbles to update grouping for new active filters
             services.rerenderBubbles();

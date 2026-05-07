@@ -3,12 +3,13 @@
  * Owns table construction so orchestration code does not mutate table DOM directly.
  */
 import { appServices } from '../core/appServices.js';
-import { appUiActions } from '../core/appUiActions.js';
+import { appUiActions, registerAppUiActionDependencies } from '../core/appUiActions.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
-import { appRuntime } from '../core/appRuntime.js';
 import { fieldDefs } from '../filters/fieldDefs.js';
 import { DOM } from '../core/domCache.js';
+
+let QueryTableView;
 
 (function initializeQueryTableView() {
   const dom = DOM;
@@ -377,7 +378,7 @@ import { DOM } from '../core/domCache.js';
     }
   }
 
-  const queryTableView = {
+  QueryTableView = Object.freeze({
     restoreEmptyTableDropTarget,
     renderEmptyQueryTableState,
     syncEmptyTableMessage,
@@ -387,9 +388,8 @@ import { DOM } from '../core/domCache.js';
     queueNextStateRenderOptions(options = {}) {
       nextStateRenderOptions = { ...options };
     }
-  };
-
-  appRuntime.QueryTableView = queryTableView;
+  });
+  registerAppUiActionDependencies({ queryTableView: QueryTableView });
 
   QueryStateSubscriptions.subscribe(event => {
     if (event?.changes?.displayedFields) {
@@ -411,3 +411,5 @@ import { DOM } from '../core/domCache.js';
     activeFilters: true
   });
 })();
+
+export { QueryTableView };

@@ -390,9 +390,10 @@ async function seedLoadedResults(page, options = {}) {
   const longTitle = options.longTitle === true;
 
   await page.evaluate(async ({ longTitle: useLongTitle, rowCount: requestedRowCount }) => {
-    const { appRuntime } = await import('./core/appRuntime.js');
     const { appServices } = await import('./core/appServices.js');
     const { QueryChangeManager } = await import('./core/queryState.js');
+    const { QueryTableView } = await import('./ui/queryTableView.js');
+    const { QueryUI } = await import('./ui/queryUI.js');
     const headers = ['Smoke Title', 'Smoke Branch', 'Smoke Status'];
     const makeTitle = title => useLongTitle
       ? `${title} with a deliberately long title for live column resize coverage`
@@ -417,9 +418,9 @@ async function seedLoadedResults(page, options = {}) {
       { source: 'BrowserSmoke.seedLoadedResults', silent: true }
     );
     appServices.setVirtualTableData({ headers, rows, columnMap });
-    await appRuntime.QueryTableView.showExampleTable(headers, { syncQueryState: false });
+    await QueryTableView.showExampleTable(headers, { syncQueryState: false });
     appServices.renderVirtualTable();
-    appRuntime.QueryUI?.updateButtonStates?.();
+    QueryUI.updateButtonStates();
   }, { longTitle, rowCount });
   await page.locator('#example-table').waitFor({ state: 'attached', timeout: 5000 });
 }
@@ -816,6 +817,7 @@ async function exerciseBubbleFilterInteraction(page) {
   await page.evaluate(async () => {
     const { appRuntime } = await import('./core/appRuntime.js');
     const { AppState, QueryChangeManager } = await import('./core/queryState.js');
+    const { FilterSidePanel } = await import('./filters/filterSidePanel.js');
     const { fieldDefs, fieldDefsArray, filteredDefs } = await import('./filters/fieldDefs.js');
     const fieldDef = {
       name: 'Smoke Filter Field',
@@ -846,7 +848,7 @@ async function exerciseBubbleFilterInteraction(page) {
     }, { source: 'BrowserSmoke.bubbleFilterInteraction' });
 
     appRuntime.BubbleSystem.safeRenderBubbles();
-    appRuntime.FilterSidePanel.update();
+    FilterSidePanel.update();
   });
 
   const activeBubble = page.locator('#bubble-list .bubble[data-filtered="true"]', {
@@ -898,8 +900,8 @@ async function exerciseDesktopResultsWorkflow(page) {
   }
 
   await page.evaluate(async () => {
-    const { appRuntime } = await import('./core/appRuntime.js');
-    appRuntime.PostFilterSystem.openOverlayForField?.('Smoke Branch');
+    const { PostFilterSystem } = await import('./table/postFilters.js');
+    PostFilterSystem.openOverlayForField?.('Smoke Branch');
   });
   await page.locator('#post-filter-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
   await expectElementWithinViewport(page, '#post-filter-overlay .post-filter-dialog', 'Desktop post filter dialog');
@@ -945,8 +947,8 @@ async function exerciseDesktopResultsWorkflow(page) {
 async function exerciseZeroResultQueryWorkflow(page, queryApiStub) {
   await seedLoadedResults(page);
   await page.evaluate(async () => {
-    const { appRuntime } = await import('./core/appRuntime.js');
     const { appServices } = await import('./core/appServices.js');
+    const { QueryUI } = await import('./ui/queryUI.js');
     appServices.replacePostFilters({
       'Smoke Branch': {
         logic: 'all',
@@ -955,7 +957,7 @@ async function exerciseZeroResultQueryWorkflow(page, queryApiStub) {
         ]
       }
     }, { refreshView: true, notify: true, resetScroll: true });
-    appRuntime.QueryUI?.updateButtonStates?.();
+    QueryUI.updateButtonStates();
   });
   await expectPostFilterStats(page, {
     filteredRows: 2,
@@ -1032,10 +1034,10 @@ async function runSmokeTest() {
     await expectNoHorizontalOverflow(page, 'Desktop initial layout');
     await expectDarkInput(page, '#query-input', 'Main field search input');
     await page.evaluate(async () => {
-      const { appRuntime } = await import('./core/appRuntime.js');
-      appRuntime.QueryTableView.renderEmptyQueryTableState();
+      const { QueryTableView } = await import('./ui/queryTableView.js');
+      QueryTableView.renderEmptyQueryTableState();
       document.body.classList.add('form-mode-active');
-      appRuntime.QueryTableView.syncEmptyTableMessage();
+      QueryTableView.syncEmptyTableMessage();
     });
     const formModeEmptyTableMessage = await page.locator('[data-empty-table-message]').first().textContent();
     if (/drag a bubble/iu.test(formModeEmptyTableMessage || '')) {
@@ -1045,9 +1047,9 @@ async function runSmokeTest() {
       throw new Error(`Unexpected form mode empty table message: ${formModeEmptyTableMessage}`);
     }
     await page.evaluate(async () => {
-      const { appRuntime } = await import('./core/appRuntime.js');
+      const { QueryTableView } = await import('./ui/queryTableView.js');
       document.body.classList.remove('form-mode-active');
-      appRuntime.QueryTableView.syncEmptyTableMessage();
+      QueryTableView.syncEmptyTableMessage();
     });
 
     await exerciseBubbleFilterInteraction(page);
@@ -1120,8 +1122,8 @@ async function runSmokeTest() {
 
     await seedLoadedResults(mobilePage);
     await mobilePage.evaluate(async () => {
-      const { appRuntime } = await import('./core/appRuntime.js');
-      appRuntime.PostFilterSystem.open();
+      const { PostFilterSystem } = await import('./table/postFilters.js');
+      PostFilterSystem.open();
     });
     await mobilePage.locator('#post-filter-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
     await expectElementWithinViewport(mobilePage, '#post-filter-overlay .post-filter-dialog', 'Mobile post filter dialog');

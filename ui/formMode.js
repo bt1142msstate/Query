@@ -9,6 +9,8 @@ import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 import { FormModeControls as formModeControls } from './formModeControls.js';
 import { FormModeStateHelpers as formModeStateHelpers } from './formModeStateHelpers.js';
 import { SharedFieldPicker } from './fieldPicker.js';
+import { QueryTableView } from './queryTableView.js';
+import { QueryUI } from './queryUI.js';
 import { appRuntime } from '../core/appRuntime.js';
 import { fieldDefs, isFieldBackendFilterable, loadFieldDefinitions } from '../filters/fieldDefs.js';
 import { DOM } from '../core/domCache.js';
@@ -775,7 +777,7 @@ let QueryFormMode;
   function clearRenderedQueryResults() {
     services.clearVirtualTableData();
 
-    appRuntime.QueryTableView?.renderEmptyQueryTableState?.();
+    QueryTableView.renderEmptyQueryTableState();
   }
 
   function resetFormToBaseline(kind) {
@@ -1488,7 +1490,7 @@ let QueryFormMode;
     }
 
     uiActions.updateFilterSidePanel();
-    appRuntime.QueryTableView?.syncEmptyTableMessage?.();
+    QueryTableView.syncEmptyTableMessage();
   }
 
   function refreshBubbleStageAfterModeSwitch() {
@@ -1707,12 +1709,12 @@ let QueryFormMode;
   }
 
   function wrapUpdateButtonStates() {
-    if (state.originalUpdateButtonStates || typeof appRuntime.QueryUI?.updateButtonStates !== 'function') return;
+    if (state.originalUpdateButtonStates || typeof QueryUI.updateButtonStates !== 'function') return;
 
-    state.originalUpdateButtonStates = typeof appRuntime.QueryUI.getBaseUpdateButtonStates === 'function'
-      ? appRuntime.QueryUI.getBaseUpdateButtonStates()
-      : appRuntime.QueryUI.updateButtonStates;
-    appRuntime.QueryUI.setUpdateButtonStatesImpl(function wrappedFormModeUpdateButtonStates() {
+    state.originalUpdateButtonStates = typeof QueryUI.getBaseUpdateButtonStates === 'function'
+      ? QueryUI.getBaseUpdateButtonStates()
+      : QueryUI.updateButtonStates;
+    QueryUI.setUpdateButtonStatesImpl(function wrappedFormModeUpdateButtonStates() {
       state.originalUpdateButtonStates();
       if (!state.active) return;
 
