@@ -367,14 +367,23 @@ async function openMobilePanel(page, sourceControlId, visibleSelector) {
   await page.locator(visibleSelector).waitFor({ state: 'visible', timeout: 5000 });
 }
 
-async function seedLoadedResults(page) {
-  await page.evaluate(async () => {
+async function seedLoadedResults(page, options = {}) {
+  const rowCount = Math.max(0, Number(options.rowCount) || 3);
+
+  await page.evaluate(async ({ rowCount: requestedRowCount }) => {
     const headers = ['Smoke Title', 'Smoke Branch', 'Smoke Status'];
-    const rows = [
+    const baseRows = [
       ['Alpha record', 'Main', 'Open'],
       ['Beta record', 'East', 'Closed'],
       ['Gamma record', 'Main', 'Open']
     ];
+    const rows = requestedRowCount <= baseRows.length
+      ? baseRows.slice(0, requestedRowCount)
+      : Array.from({ length: requestedRowCount }, (_, index) => [
+        `Smoke record ${String(index + 1).padStart(3, '0')}`,
+        index % 2 === 0 ? 'Main' : 'East',
+        index % 3 === 0 ? 'Closed' : 'Open'
+      ]);
     const columnMap = new Map(headers.map((field, index) => [field, index]));
 
     window.QueryChangeManager.replaceDisplayedFields(headers, { source: 'BrowserSmoke.seedLoadedResults' });
@@ -386,8 +395,41 @@ async function seedLoadedResults(page) {
     await window.QueryTableView.showExampleTable(headers, { syncQueryState: false });
     window.AppServices.renderVirtualTable();
     window.QueryUI?.updateButtonStates?.();
-  });
+  }, { rowCount });
   await page.locator('#example-table').waitFor({ state: 'attached', timeout: 5000 });
+}
+
+async function exerciseVirtualTableScrollInteraction(page) {
+  await seedLoadedResults(page, { rowCount: 320 });
+
+  const tableContainer = page.locator('#table-container');
+  const beforeMetrics = await tableContainer.evaluate(element => ({
+    clientHeight: element.clientHeight,
+    firstRenderedRowIndex: Number(document.querySelector('#example-table tbody tr[data-row-index]')?.dataset.rowIndex || 0),
+    scrollHeight: element.scrollHeight,
+    scrollTop: element.scrollTop
+  }));
+
+  if (beforeMetrics.scrollHeight <= beforeMetrics.clientHeight) {
+    throw new Error(`Virtual table is not scrollable: ${JSON.stringify(beforeMetrics)}`);
+  }
+
+  await tableContainer.hover();
+  await page.mouse.wheel(0, 9000);
+  await page.waitForFunction(() => {
+    const container = document.querySelector('#table-container');
+    const firstRenderedRowIndex = Number(document.querySelector('#example-table tbody tr[data-row-index]')?.dataset.rowIndex || 0);
+    return Boolean(container && container.scrollTop > 500 && firstRenderedRowIndex > 10);
+  }, null, { timeout: 5000 });
+
+  const afterMetrics = await tableContainer.evaluate(element => ({
+    firstRenderedRowIndex: Number(document.querySelector('#example-table tbody tr[data-row-index]')?.dataset.rowIndex || 0),
+    scrollTop: element.scrollTop
+  }));
+
+  if (afterMetrics.scrollTop <= beforeMetrics.scrollTop || afterMetrics.firstRenderedRowIndex <= beforeMetrics.firstRenderedRowIndex) {
+    throw new Error(`Virtual table did not advance after wheel scroll: before=${JSON.stringify(beforeMetrics)}, after=${JSON.stringify(afterMetrics)}`);
+  }
 }
 
 async function expectEmptyTableMessage(page, expectedPattern, label) {
@@ -673,6 +715,7 @@ async function runSmokeTest() {
     await exerciseBubbleFilterInteraction(page);
     await exerciseDesktopResultsWorkflow(page);
     await exerciseZeroResultQueryWorkflow(page, queryApiStub);
+    await exerciseVirtualTableScrollInteraction(page);
 
     await page.getByRole('button', { name: 'Queries' }).click();
     await page.locator('input[placeholder="Search queries..."]').waitFor({ state: 'visible', timeout: 5000 });
