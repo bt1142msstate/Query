@@ -261,6 +261,7 @@ body.export-overlay-open {
 
 /* Table container */
 #table-container {
+  --table-scrollbar-size: 12px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12), 0 4px 10px rgba(0, 0, 0, 0.08);
   border-radius: 0 0 var(--border-radius-xl) var(--border-radius-xl);
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -281,13 +282,18 @@ body.export-overlay-open {
   height: 12px;
 }
 
+#table-container.table-scrollbar-enhanced::-webkit-scrollbar:vertical {
+  width: 0;
+}
+
 #table-container::-webkit-scrollbar-track {
   background: rgba(156, 163, 175, 0.9);
 }
 
 /* Vertical scrollbar track styling */
 #table-container::-webkit-scrollbar-track:vertical {
-  margin-top: calc(var(--table-header-height) - 4px);
+  background: transparent;
+  margin-top: 0;
 }
 
 /* Horizontal scrollbar track styling */
@@ -313,6 +319,47 @@ body.export-overlay-open {
 /* Handle scrollbar corner where vertical and horizontal meet */
 #table-container::-webkit-scrollbar-corner {
   background: rgba(156, 163, 175, 0.9);
+}
+
+.table-scrollbar {
+  position: absolute;
+  top: var(--table-header-height);
+  right: 0;
+  bottom: var(--table-scrollbar-size, 12px);
+  width: var(--table-scrollbar-size, 12px);
+  z-index: 20;
+  display: none;
+  padding: 1px;
+  border-radius: 999px;
+  background: rgba(156, 163, 175, 0.72);
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.table-scrollbar.is-visible {
+  display: block;
+}
+
+.table-scrollbar-thumb {
+  position: absolute;
+  top: 0;
+  left: 1px;
+  right: 1px;
+  min-height: 40px;
+  border-radius: 999px;
+  background: rgba(107, 114, 128, 0.88);
+  box-shadow: inset 0 0 0 1px rgba(75, 85, 99, 0.24);
+  cursor: grab;
+}
+
+.table-scrollbar:hover .table-scrollbar-thumb,
+.table-scrollbar-thumb:hover {
+  background: rgba(75, 85, 99, 0.95);
+}
+
+.table-scrollbar.is-dragging .table-scrollbar-thumb {
+  cursor: grabbing;
+  background: rgba(55, 65, 81, 0.98);
 }
 
 /* Remove the hover transformation effect */

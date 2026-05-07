@@ -473,6 +473,48 @@ async function exerciseVirtualTableScrollInteraction(page) {
   }
 
   await page.evaluate(() => {
+    const container = document.querySelector('#table-container');
+    if (container) {
+      container.scrollTop = 0;
+    }
+  });
+  await page.locator('.table-scrollbar-thumb').waitFor({ state: 'visible', timeout: 5000 });
+  const thumbBox = await page.locator('.table-scrollbar-thumb').boundingBox();
+  if (!thumbBox) {
+    throw new Error('Virtual table custom scrollbar thumb was not measurable');
+  }
+
+  const dragStart = {
+    x: Math.floor(thumbBox.x + (thumbBox.width / 2)),
+    y: Math.floor(thumbBox.y + Math.min(10, thumbBox.height / 2))
+  };
+  await page.mouse.move(dragStart.x, dragStart.y);
+  await page.mouse.down();
+  await page.mouse.move(dragStart.x, dragStart.y + 120, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForFunction(() => {
+    return (document.querySelector('#table-container')?.scrollTop || 0) > 1000;
+  }, null, { timeout: 5000 });
+
+  const thumbDragMetrics = await tableContainer.evaluate(element => ({
+    customScrollbarVisible: document.querySelector('.table-scrollbar')?.classList.contains('is-visible') || false,
+    scrollTop: element.scrollTop,
+    visibleRowIndexBelowHeader: Number(
+      document
+        .elementFromPoint(
+          element.getBoundingClientRect().left + 80,
+          document.querySelector('#example-table thead th').getBoundingClientRect().bottom + 8
+        )
+        ?.closest('tr[data-row-index]')
+        ?.dataset.rowIndex || 0
+    )
+  }));
+
+  if (!thumbDragMetrics.customScrollbarVisible || thumbDragMetrics.scrollTop <= 1000 || thumbDragMetrics.visibleRowIndexBelowHeader <= 10) {
+    throw new Error(`Virtual table did not advance after scrollbar thumb drag: ${JSON.stringify(thumbDragMetrics)}`);
+  }
+
+  await page.evaluate(() => {
     document.body.dataset.browserSmokePreviousMinHeight = document.body.style.minHeight || '';
     document.body.style.minHeight = '1800px';
     window.scrollTo(0, 0);
