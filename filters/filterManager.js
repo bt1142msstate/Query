@@ -1,4 +1,4 @@
-import { appServices } from '../core/appServices.js';
+import { appServices, registerFilterService } from '../core/appServices.js';
 import { appUiActions } from '../core/appUiActions.js';
 import { Icons, MoneyUtils, OperatorSelectUtils, ValueFormatting } from '../core/utils.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
@@ -355,7 +355,7 @@ function buildBubbleConditionPanel(bubble) {
                 body: 'The backend does not expose any valid filter operators for this field, so no filter input is available here.',
                 hint: 'You can still add it as a results column and use it in the table output.'
             });
-            appRuntime.renderConditionList(appState.selectedField);
+            renderConditionList(appState.selectedField);
             return;
         }
 
@@ -430,7 +430,7 @@ function buildBubbleConditionPanel(bubble) {
         }
     }
 
-    appRuntime.renderConditionList(appState.selectedField);
+    renderConditionList(appState.selectedField);
 
     const operatorSelect = conditionPanel.querySelector('#condition-operator-select');
     const preferredCondition = getPreferredCondition(operatorConditions, appState.selectedField);
@@ -584,7 +584,7 @@ function createPostFilterPill() {
  * Renders the list of active filters for a given field.
  * @param {string} field - The field name
  */
-appRuntime.renderConditionList = function(field) {
+function renderConditionList(field) {
     const container = DOM.bubbleCondList;
     if (!container) return;
     
@@ -676,7 +676,7 @@ appRuntime.renderConditionList = function(field) {
             
             // updateQueryJson and safeRenderBubbles are handled reactively by
             // jsonViewerUI.js and bubbleInteraction.js QueryStateSubscriptions — no need to call again here.
-            appRuntime.renderConditionList(normalizedField);
+            renderConditionList(normalizedField);
             uiActions.updateCategoryCounts();
         });
             list.appendChild(pill.getElement());
@@ -690,12 +690,14 @@ appRuntime.renderConditionList = function(field) {
     container.appendChild(list);
     uiActions.updateCategoryCounts();
     uiActions.updateFilterSidePanel();
-};
+}
 
 window.addEventListener('postfilters:updated', () => {
     const activeField = getActiveFilterFieldName() || appState.selectedField || '';
-    appRuntime.renderConditionList(activeField);
+    renderConditionList(activeField);
 });
+
+registerFilterService({ renderConditionList });
 
 /**
  * Handles condition button clicks (Equal, Contains, etc.)
@@ -932,7 +934,7 @@ appRuntime.handleFilterConfirm = function(e) {
                     }
                 });
                 
-                appRuntime.renderConditionList(field);
+                renderConditionList(field);
                 
             }
         } catch (error) {

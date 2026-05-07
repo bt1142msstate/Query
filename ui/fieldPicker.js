@@ -1128,9 +1128,7 @@ let SharedFieldPicker;
       if (titleEl) titleEl.textContent = fieldName;
     }
 
-    if (appRuntime.renderConditionList) {
-      appRuntime.renderConditionList(fieldName);
-    }
+    services.renderConditionList(fieldName);
 
     if (conditionPanel) {
       conditionPanel.classList.add('show');

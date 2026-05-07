@@ -171,7 +171,7 @@ appRuntime.FilterSidePanel = (function () {
 
         const overlay = DOM.overlay;
         if (AppState.selectedField === field && overlay?.classList.contains('show')) {
-            appRuntime.renderConditionList && appRuntime.renderConditionList(field);
+            services.renderConditionList(field);
             const operatorSelect = document.getElementById('condition-operator-select');
             const conditionInput = DOM.conditionInput;
             (operatorSelect || conditionInput)?.focus();
@@ -672,7 +672,7 @@ appRuntime.FilterSidePanel = (function () {
                     source: 'FilterSidePanel.removeFilter'
                 });
                 uiActions.updateQueryJson();
-                appRuntime.renderConditionList && appRuntime.renderConditionList(field);
+                services.renderConditionList(field);
                 update();
             });
 

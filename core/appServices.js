@@ -6,6 +6,11 @@ import { AppState, registerQueryStateRuntimeAccessors } from './queryState.js';
 import { appRuntime } from './appRuntime.js';
 
 let appServices;
+let filterService = null;
+
+function registerFilterService(service) {
+  filterService = service && typeof service === 'object' ? service : null;
+}
 
 (function initializeAppServices() {
   const appState = AppState;
@@ -309,6 +314,10 @@ let appServices;
     getTableService()?.setSplitColumnsMode?.(nextValue);
   }
 
+  function renderConditionList(fieldName) {
+    filterService?.renderConditionList?.(fieldName);
+  }
+
   appServices = Object.freeze({
     get bubble() {
       return getBubbleService();
@@ -385,7 +394,8 @@ let appServices;
     replacePostFilters,
     hasPostFilters,
     isSplitColumnsActive,
-    setSplitColumnsMode
+    setSplitColumnsMode,
+    renderConditionList
   });
 
   Object.defineProperty(appRuntime, 'AppServices', {
@@ -397,4 +407,4 @@ let appServices;
   registerQueryStateRuntimeAccessors({ getServices: () => appServices });
 })();
 
-export { appServices };
+export { appServices, registerFilterService };
