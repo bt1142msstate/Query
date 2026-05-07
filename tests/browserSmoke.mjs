@@ -310,6 +310,24 @@ async function expectDarkInput(page, selector, label) {
   }
 }
 
+async function expectLightInput(page, selector, label) {
+  const theme = await page.locator(selector).evaluate(input => {
+    const readChannels = value => (value.match(/\d+/gu) || []).slice(0, 3).map(Number);
+    const style = window.getComputedStyle(input);
+    const [backgroundRed = 0, backgroundGreen = 0, backgroundBlue = 0] = readChannels(style.backgroundColor);
+    const [textRed = 255, textGreen = 255, textBlue = 255] = readChannels(style.color);
+
+    return {
+      backgroundLuma: (backgroundRed + backgroundGreen + backgroundBlue) / 3,
+      textLuma: (textRed + textGreen + textBlue) / 3
+    };
+  });
+
+  if (theme.backgroundLuma < 180 || theme.textLuma > 120) {
+    throw new Error(`${label} is not using the light search theme`);
+  }
+}
+
 async function expectNoHorizontalOverflow(page, label) {
   const metrics = await page.evaluate(() => {
     const root = document.documentElement;
@@ -834,7 +852,7 @@ async function runSmokeTest() {
     await mobilePage.locator('#post-filter-value-picker-host .form-mode-popup-list-trigger').click();
     await mobilePage.locator('.form-mode-popup-list-popup:not([hidden])').waitFor({ state: 'visible', timeout: 5000 });
     await expectElementWithinViewport(mobilePage, '.form-mode-popup-list-popup:not([hidden])', 'Mobile popup list picker');
-    await expectDarkInput(mobilePage, '.form-mode-popup-list-popup input[type="search"]', 'Mobile popup list search input');
+    await expectLightInput(mobilePage, '.form-mode-popup-list-popup input[type="search"]', 'Mobile popup list search input');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile popup list picker');
     await mobilePage.locator('.form-mode-popup-list-done').click();
     await mobilePage.locator('#post-filter-done-btn').click();
@@ -867,7 +885,7 @@ async function runSmokeTest() {
     });
     await mobilePage.locator('.form-mode-field-picker-modal:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
     await expectElementWithinViewport(mobilePage, '.form-mode-field-picker-modal:not(.hidden)', 'Mobile field picker dialog');
-    await expectDarkInput(mobilePage, '.form-mode-field-picker-search-field input[type="search"]', 'Mobile field picker search input');
+    await expectLightInput(mobilePage, '.form-mode-field-picker-search-field input[type="search"]', 'Mobile field picker search input');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile field picker dialog');
     await mobilePage.locator('.form-mode-field-picker-close').click();
 

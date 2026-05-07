@@ -744,15 +744,15 @@
   min-height: 2.75rem;
   padding: 0.75rem 2.7rem 0.75rem 2.55rem;
   border-radius: 0.9rem;
-  border-color: rgba(72, 214, 255, 0.24);
-  background: rgba(3, 9, 18, 0.9);
-  color: #dffcff;
-  color-scheme: dark;
+  border-color: rgba(148, 163, 184, 0.42);
+  background: #fff;
+  color: #0f172a;
+  color-scheme: light;
 }
 
 .form-mode-field-picker-search-field .app-search-icon {
   left: 0.95rem;
-  color: rgba(112, 242, 255, 0.56);
+  color: rgba(71, 85, 105, 0.72);
 }
 
 .form-mode-field-picker-search-field .app-search-clear {
