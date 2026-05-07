@@ -2,7 +2,7 @@ import { appServices } from '../core/appServices.js';
 import { appUiActions } from '../core/appUiActions.js';
 import { ClipboardUtils } from '../core/clipboard.js';
 import { OperatorLabels } from '../core/operatorLabels.js';
-import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
+import { QueryChangeManager, getBaseFieldName, QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
 import { mapFieldOperatorToUiCond } from '../filters/queryPayload.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
@@ -826,42 +826,30 @@ let QueryFormMode;
 
   function hasSpecColumn(fieldName) {
     if (!state.spec || !Array.isArray(state.spec.columns)) return false;
-    const baseFieldName = typeof appRuntime.getBaseFieldName === 'function'
-      ? appRuntime.getBaseFieldName(fieldName)
-      : fieldName;
+    const baseFieldName = getBaseFieldName(fieldName);
 
     return state.spec.columns.some(column => {
-      const baseColumnName = typeof appRuntime.getBaseFieldName === 'function'
-        ? appRuntime.getBaseFieldName(column)
-        : column;
+      const baseColumnName = getBaseFieldName(column);
       return baseColumnName === baseFieldName;
     });
   }
 
   function hasSpecFilterInput(fieldName) {
     if (!state.spec || !Array.isArray(state.spec.inputs)) return false;
-    const baseFieldName = typeof appRuntime.getBaseFieldName === 'function'
-      ? appRuntime.getBaseFieldName(fieldName)
-      : fieldName;
+    const baseFieldName = getBaseFieldName(fieldName);
 
     return state.spec.inputs.some(inputSpec => {
-      const baseInputField = typeof appRuntime.getBaseFieldName === 'function'
-        ? appRuntime.getBaseFieldName(inputSpec.field)
-        : inputSpec.field;
+      const baseInputField = getBaseFieldName(inputSpec.field);
       return baseInputField === baseFieldName;
     });
   }
 
   function removeSpecFilterInputs(fieldName) {
     if (!state.spec || !Array.isArray(state.spec.inputs)) return;
-    const baseFieldName = typeof appRuntime.getBaseFieldName === 'function'
-      ? appRuntime.getBaseFieldName(fieldName)
-      : fieldName;
+    const baseFieldName = getBaseFieldName(fieldName);
 
     state.spec.inputs = state.spec.inputs.filter(inputSpec => {
-      const baseInputField = typeof appRuntime.getBaseFieldName === 'function'
-        ? appRuntime.getBaseFieldName(inputSpec.field)
-        : inputSpec.field;
+      const baseInputField = getBaseFieldName(inputSpec.field);
       return baseInputField !== baseFieldName;
     });
   }

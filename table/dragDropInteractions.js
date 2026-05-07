@@ -2,7 +2,7 @@ import { ClipboardUtils } from '../core/clipboard.js';
 import { appServices } from '../core/appServices.js';
 import { DragUtils } from '../core/dragUtils.js';
 import { Icons } from '../core/icons.js';
-import { QueryStateReaders } from '../core/queryState.js';
+import { QueryStateReaders, getBaseFieldName } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
 import { dragDropColumnOps } from './dragDropColumns.js';
 import { SharedFieldPicker } from '../ui/fieldPicker.js';
@@ -318,8 +318,8 @@ import { appRuntime } from '../core/appRuntime.js';
       const afterField = displayedFields[insertAt];
 
       if (beforeField && afterField) {
-        const beforeBase = appRuntime.getBaseFieldName(beforeField);
-        const afterBase = appRuntime.getBaseFieldName(afterField);
+        const beforeBase = getBaseFieldName(beforeField);
+        const afterBase = getBaseFieldName(afterField);
 
         if (beforeBase === afterBase) {
           dropAnchor.style.display = 'none';

@@ -1,6 +1,6 @@
 import { appServices } from '../core/appServices.js';
 import { mapFieldOperatorToUiCond } from '../filters/queryPayload.js';
-import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
+import { QueryChangeManager, getBaseFieldName, QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
 import { formatFieldDefinitionTooltipHTML } from '../core/tooltipFormatters.js';
 import { VisibilityUtils } from '../core/visibility.js';
@@ -810,10 +810,6 @@ let SharedFieldPicker;
   }
 
   function fieldMatchesBase(fieldName, targetField) {
-    const getBaseFieldName = typeof appRuntime.getBaseFieldName === 'function'
-      ? appRuntime.getBaseFieldName
-      : value => String(value ?? '').trim();
-
     return getBaseFieldName(fieldName) === getBaseFieldName(targetField);
   }
 
