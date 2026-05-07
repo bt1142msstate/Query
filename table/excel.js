@@ -4,12 +4,14 @@
  * @module ExcelExporter
  */
 import { appServices } from '../core/appServices.js';
+import { registerAppUiActionDependencies } from '../core/appUiActions.js';
 import { showToastMessage } from '../core/toast.js';
 import { formatDisplayValue, parseDateValue } from '../core/dateValues.js';
 import { QueryStateReaders } from '../core/queryState.js';
 import { MoneyUtils, ValueFormatting } from '../core/utils.js';
 import { VisibilityUtils } from '../core/visibility.js';
 import { appRuntime } from '../core/appRuntime.js';
+import { QueryUI } from '../ui/queryUI.js';
 import { fieldDefs } from '../filters/fieldDefs.js';
 import { DOM } from '../core/domCache.js';
 
@@ -194,8 +196,8 @@ import { DOM } from '../core/domCache.js';
       return null;
     }
 
-    const tableName = appRuntime.QueryUI?.ensureTableName?.()
-      || appRuntime.QueryUI?.getDefaultTableName?.()
+    const tableName = QueryUI.ensureTableName?.()
+      || QueryUI.getDefaultTableName?.()
       || 'Query Results';
 
     const exportedRows = buildExportRows(sourceData);
@@ -708,7 +710,19 @@ import { DOM } from '../core/domCache.js';
     toggleBtn.removeAttribute('data-tooltip');
     toggleBtn.setAttribute('data-tooltip-html', buildSplitToggleTooltipHtml(splitMultiValues, summary));
   }
-  appRuntime.updateSplitColumnsToggleState = updateSplitColumnsToggleState;
+
+  const splitColumnsUi = Object.freeze({
+    resetSplitColumnsToggleUI() {
+      splitMultiValues = false;
+      updateSplitColumnsToggleState();
+    },
+    setSplitColumnsToggleUIActive() {
+      splitMultiValues = true;
+      updateSplitColumnsToggleState();
+    },
+    updateSplitColumnsToggleState
+  });
+  registerAppUiActionDependencies({ splitColumnsUi });
 
   /**
    * Attaches the download and toggle event listeners.
@@ -746,18 +760,6 @@ import { DOM } from '../core/domCache.js';
         services.setSplitColumnsMode(splitMultiValues);
       });
 
-      // Called by VirtualTable when new data is loaded so the button resets visually
-      appRuntime.resetSplitColumnsToggleUI = function() {
-        splitMultiValues = false;
-        updateSplitColumnsToggleState();
-      };
-      
-      // Make it possible to force it active externally
-      appRuntime.setSplitColumnsToggleUIActive = function() {
-        splitMultiValues = true;
-        updateSplitColumnsToggleState();
-      };
-
       updateSplitColumnsToggleState();
     }
   }
@@ -771,9 +773,7 @@ import { DOM } from '../core/domCache.js';
   function handleDownload() {
     const downloadBtn = DOM?.downloadBtn || document.getElementById('download-btn');
     if (!downloadBtn) return;
-    const missingLoadedColumns = appRuntime.QueryUI && typeof appRuntime.QueryUI.getDisplayedFieldsMissingFromLoadedData === 'function'
-      ? appRuntime.QueryUI.getDisplayedFieldsMissingFromLoadedData()
-      : [];
+    const missingLoadedColumns = QueryUI.getDisplayedFieldsMissingFromLoadedData();
 
     // Check if button is disabled and show message
     if (downloadBtn.disabled) {

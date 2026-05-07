@@ -529,8 +529,6 @@ class FilterPill {
     }
 }
 
-// Expose globally
-appRuntime.FilterPill = FilterPill;
 var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
 var getFilterGroupForField = QueryStateReaders.getFilterGroupForField.bind(QueryStateReaders);
 
@@ -564,17 +562,13 @@ function createPostFilterPill() {
     pill.innerHTML = `Post Filters <b>${summary.ruleCount} ${ruleLabel}</b> across <b>${summary.fieldCount} ${fieldLabel}</b>`;
 
     pill.addEventListener('click', () => {
-        if (appRuntime.PostFilterSystem?.open) {
-            appRuntime.PostFilterSystem.open();
-        }
+        uiActions.openPostFilters();
     });
 
     pill.addEventListener('keydown', event => {
         if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
-            if (appRuntime.PostFilterSystem?.open) {
-                appRuntime.PostFilterSystem.open();
-            }
+            uiActions.openPostFilters();
         }
     });
 

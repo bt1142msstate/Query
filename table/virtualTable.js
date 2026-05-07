@@ -14,6 +14,7 @@ import { createTableScrollbarController } from './tableScrollbar.js';
 import { sortRowsByColumn } from './tableSort.js';
 import { appRuntime } from '../core/appRuntime.js';
 import { escapeHtml } from '../core/html.js';
+import { QueryTableView } from '../ui/queryTableView.js';
 (function initializeVirtualTable() {
 // Virtual scrolling state
 let virtualTableData = {
@@ -646,7 +647,7 @@ function sortTableBy(fieldName) {
 
   // Re-render and update headers UI
   renderVirtualTable();
-  appRuntime.QueryTableView?.updateSortHeadersUI?.(currentSortColumn, currentSortDirection);
+  QueryTableView.updateSortHeadersUI(currentSortColumn, currentSortDirection);
 }
 
 /**
@@ -1295,10 +1296,7 @@ appRuntime.VirtualTable = {
     splitColumnsActive = false;
     appRuntime.splitColumnsActive = false;
     applyPostFilters({ refreshView: false, notify: true, resetScroll: false });
-    // Reset the toggle button UI if present
-    if (typeof appRuntime.resetSplitColumnsToggleUI === 'function') {
-      appRuntime.resetSplitColumnsToggleUI();
-    }
+    appUiActions.resetSplitColumnsToggleUI();
   },
   get calculatedColumnWidths() { return calculatedColumnWidths; },
   set calculatedColumnWidths(value) { calculatedColumnWidths = value; },

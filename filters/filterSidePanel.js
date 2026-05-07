@@ -10,7 +10,7 @@ import {
     shouldUseFilterListViewer
 } from './filterValueUi.js';
 import { appServices } from '../core/appServices.js';
-import { appUiActions } from '../core/appUiActions.js';
+import { appUiActions, registerAppUiActionDependencies } from '../core/appUiActions.js';
 import { DragUtils } from '../core/dragUtils.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
@@ -18,11 +18,10 @@ import { showToastMessage } from '../core/toast.js';
 import { OperatorLabels } from '../core/operatorLabels.js';
 import { Icons } from '../core/icons.js';
 import { SharedFieldPicker } from '../ui/fieldPicker.js';
-import { appRuntime } from '../core/appRuntime.js';
 import { fieldDefs } from './fieldDefs.js';
 import { DOM } from '../core/domCache.js';
 
-appRuntime.FilterSidePanel = (function () {
+const FilterSidePanel = (function () {
     const services = appServices;
     const uiActions = appUiActions;
     let currentViewMode = 'both';
@@ -777,9 +776,13 @@ appRuntime.FilterSidePanel = (function () {
     return { update, open, close, toggle, setViewMode };
 }());
 
+registerAppUiActionDependencies({ filterSidePanel: FilterSidePanel });
+
 window.addEventListener('resize', () => {
     const panel = DOM.filterSidePanel;
     if (panel && !panel.classList.contains('panel-hidden')) {
         appUiActions.updateFilterSidePanel();
     }
 });
+
+export { FilterSidePanel };

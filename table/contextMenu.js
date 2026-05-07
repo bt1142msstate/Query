@@ -5,14 +5,14 @@
  */
 import { ClipboardUtils } from '../core/clipboard.js';
 import { appServices } from '../core/appServices.js';
+import { appUiActions } from '../core/appUiActions.js';
 import { QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
 import { FormatUtils } from '../core/utils.js';
 import { VisibilityUtils } from '../core/visibility.js';
 import { SharedFieldPicker } from '../ui/fieldPicker.js';
-import { appRuntime } from '../core/appRuntime.js';
 
-appRuntime.TableContextMenu = (() => {
+(() => {
   let menuEl = null;
   let dismissHandlers = [];
   let clearPreview = null;
@@ -317,11 +317,11 @@ appRuntime.TableContextMenu = (() => {
           return previewColumn(colIndex);
         },
         run() {
-          if (!field || !appRuntime.PostFilterSystem || typeof appRuntime.PostFilterSystem.openOverlayForField !== 'function') {
+          if (!field) {
             return;
           }
 
-          appRuntime.PostFilterSystem.openOverlayForField(field);
+          appUiActions.openPostFilterOverlayForField(field);
         }
       },
       ...(!isHeaderTarget ? [

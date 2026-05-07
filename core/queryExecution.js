@@ -127,7 +127,7 @@ if (execDom.runBtn) {
       const wasSplitActive = services.isSplitColumnsActive() || appRuntime.splitColumnsActive || false;
       if (wasSplitActive) {
         services.setSplitColumnsMode(false);
-        if (appRuntime.resetSplitColumnsToggleUI) appRuntime.resetSplitColumnsToggleUI();
+        uiActions.resetSplitColumnsToggleUI();
       }
 
       if (services.hasPostFilters?.()) {
@@ -265,12 +265,7 @@ if (execDom.runBtn) {
           services.setVirtualTableData(newTableData);
 
           // Re-render the full table to reset red column headers and redraw rows with new widths
-          if (appRuntime.QueryTableView?.showExampleTable) {
-            await uiActions.showExampleTable(state.displayedFields);
-          } else {
-            services.renderVirtualTable();
-            services.calculateOptimalColumnWidths();
-          }
+          await uiActions.showExampleTable(state.displayedFields);
 
           // Re-render bubbles to reflect the new state and correct totalRows
           services.rerenderBubbles();
@@ -280,7 +275,7 @@ if (execDom.runBtn) {
 
           // Restore split-columns mode if it was active before the query ran
           if (wasSplitActive) {
-            if (appRuntime.setSplitColumnsToggleUIActive) appRuntime.setSplitColumnsToggleUIActive();
+            uiActions.setSplitColumnsToggleUIActive();
             services.setSplitColumnsMode(true);
           }
         }

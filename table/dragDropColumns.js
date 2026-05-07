@@ -12,6 +12,7 @@ import {
   registerQueryStateRuntimeAccessors
 } from '../core/queryState.js';
 import { FormatUtils } from '../core/utils.js';
+import { QueryTableView } from '../ui/queryTableView.js';
 import { appRuntime } from '../core/appRuntime.js';
 import { fieldDefs } from '../filters/fieldDefs.js';
 
@@ -63,7 +64,7 @@ let dragDropColumnOps;
   }
 
   function queueColumnMutationRender(options = {}) {
-    appRuntime.QueryTableView?.queueNextStateRenderOptions?.({
+    QueryTableView.queueNextStateRenderOptions({
       preserveScroll: options.preserveScroll !== false,
       scrollAnchorField: options.scrollAnchorField || ''
     });
@@ -332,7 +333,7 @@ let dragDropColumnOps;
         scrollAnchorField: fieldName
       });
     } else {
-      appRuntime.QueryTableView?.queueNextStateRenderOptions?.({});
+      QueryTableView.queueNextStateRenderOptions({});
     }
 
     return success;
