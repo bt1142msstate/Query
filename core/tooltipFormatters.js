@@ -1,3 +1,4 @@
+import { getFieldValueDisplayMap } from './fieldValueMaps.js';
 import { OperatorLabels } from './operatorLabels.js';
 import { fieldDefs, getFieldFilterOperators, isFieldBackendFilterable, resolveFieldName } from '../filters/fieldDefs.js';
 
@@ -115,15 +116,7 @@ function escapeHtml(value) {
 }
 
 function getFilterValueMap(fieldDef) {
-  if (!fieldDef || !fieldDef.values || fieldDef.values.length === 0) {
-    return new Map();
-  }
-
-  if (typeof fieldDef.values[0] === 'object') {
-    return new Map(fieldDef.values.map(value => [value.RawValue, value.Name]));
-  }
-
-  return new Map();
+  return getFieldValueDisplayMap(fieldDef);
 }
 
 function getTooltipFilterDisplayValues(filter, fieldDef) {
