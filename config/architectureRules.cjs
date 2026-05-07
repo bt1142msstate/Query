@@ -4,6 +4,8 @@ const appRuntimeUsageBudget = {
   maxDistinctMembers: 54,
   maxMemberReferences: 200,
   forbiddenMembers: new Set([
+    'AppUiActions',
+    'activeFilters',
     'BackendApi',
     'calculateCategoryCounts',
     'ClipboardUtils',
@@ -22,6 +24,7 @@ const appRuntimeUsageBudget = {
     'getFieldFilterOperators',
     'getFieldOutputSegments',
     'getBaseFieldName',
+    'getCurrentQueryState',
     'getLiteralToDisplayMap',
     'hasLoadedFieldDefinitions',
     'Icons',
@@ -30,6 +33,10 @@ const appRuntimeUsageBudget = {
     'onDOMReady',
     'OperatorLabels',
     'parsePipeDelimitedRow',
+    'JsonViewerUI',
+    'QueryHistoryViewHelpers',
+    'QueryPrevalidation',
+    'QueryStateStore',
     'QueryStateSubscriptions',
     'registerDynamicField',
     'renderConditionList',
@@ -40,6 +47,8 @@ const appRuntimeUsageBudget = {
     'showToast',
     'showToastMessage',
     'toast',
+    'TableNameInput',
+    'displayedFields',
     'updateFilteredDefs',
     'VisibilityUtils'
   ])

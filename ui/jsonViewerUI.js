@@ -3,7 +3,6 @@ import { buildBackendQueryPayload } from '../filters/queryPayload.js';
 import { ClipboardUtils } from '../core/clipboard.js';
 import { onDOMReady } from '../core/domReady.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
-import { appRuntime } from '../core/appRuntime.js';
 import { DOM } from '../core/domCache.js';
 
 const jsonTreeCollapsedPaths = new Set();
@@ -155,7 +154,9 @@ QueryStateSubscriptions.subscribe(() => {
   updateQueryJson();
 }, { displayedFields: true, activeFilters: true });
 
-appRuntime.JsonViewerUI = Object.freeze({
+const JsonViewerUI = Object.freeze({
   renderJsonTree,
   updateQueryJson
 });
+
+export { JsonViewerUI, renderJsonTree, updateQueryJson };
