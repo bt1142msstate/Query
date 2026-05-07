@@ -612,7 +612,7 @@ async function exerciseExpandedVirtualTableColumnAlignment(page) {
 }
 
 async function exerciseColumnResizeInteraction(page) {
-  await seedLoadedResults(page, { rowCount: 320 });
+  await seedLoadedResults(page, { rowCount: 2400 });
 
   await page.evaluate(async () => {
     const { appRuntime } = await import('./core/appRuntime.js');
@@ -626,15 +626,24 @@ async function exerciseColumnResizeInteraction(page) {
 
   const beforeMetrics = await page.evaluate(() => {
     const titleHeaderEl = document.querySelector('#example-table th[data-sort-field="Smoke Title"]');
-    const titleCellEl = document.querySelector('#example-table tbody tr[data-row-index="0"] td[data-col-index="0"]');
+    const titleRowEl = document.querySelector('#example-table tbody tr[data-row-index="0"]');
+    const titleCellEl = titleRowEl?.querySelector('td[data-col-index="0"]');
+    const tableEl = document.querySelector('#example-table');
     return {
       cellWidth: Math.round(titleCellEl?.getBoundingClientRect().width || 0),
       headerWidth: Math.round(titleHeaderEl?.getBoundingClientRect().width || 0),
+      rowWidth: Math.round(titleRowEl?.getBoundingClientRect().width || 0),
+      tableWidth: Math.round(tableEl?.getBoundingClientRect().width || 0),
       resizeModeActive: document.body.classList.contains('table-resize-mode')
     };
   });
 
-  if (!beforeMetrics.resizeModeActive || beforeMetrics.headerWidth <= 0 || Math.abs(beforeMetrics.headerWidth - beforeMetrics.cellWidth) > 1) {
+  if (
+    !beforeMetrics.resizeModeActive
+    || beforeMetrics.headerWidth <= 0
+    || Math.abs(beforeMetrics.headerWidth - beforeMetrics.cellWidth) > 1
+    || Math.abs(beforeMetrics.tableWidth - beforeMetrics.rowWidth) > 1
+  ) {
     throw new Error(`Column resize did not start from an aligned active state: ${JSON.stringify(beforeMetrics)}`);
   }
 
@@ -649,29 +658,76 @@ async function exerciseColumnResizeInteraction(page) {
   await page.mouse.move(dragStartX, dragStartY);
   await page.mouse.down();
   await page.mouse.move(dragStartX + resizeDelta, dragStartY, { steps: 8 });
-  await page.mouse.up();
 
   await page.waitForFunction(({ expectedWidth }) => {
     const titleHeaderEl = document.querySelector('#example-table th[data-sort-field="Smoke Title"]');
-    const titleCellEl = document.querySelector('#example-table tbody tr[data-row-index="0"] td[data-col-index="0"]');
+    const titleRowEl = document.querySelector('#example-table tbody tr[data-row-index="0"]');
+    const titleCellEl = titleRowEl?.querySelector('td[data-col-index="0"]');
+    const tableEl = document.querySelector('#example-table');
     const headerWidth = Math.round(titleHeaderEl?.getBoundingClientRect().width || 0);
     const cellWidth = Math.round(titleCellEl?.getBoundingClientRect().width || 0);
-    return Math.abs(headerWidth - expectedWidth) <= 2 && Math.abs(headerWidth - cellWidth) <= 1;
+    const rowWidth = Math.round(titleRowEl?.getBoundingClientRect().width || 0);
+    const tableWidth = Math.round(tableEl?.getBoundingClientRect().width || 0);
+    return Math.abs(headerWidth - expectedWidth) <= 2
+      && Math.abs(headerWidth - cellWidth) <= 1
+      && Math.abs(tableWidth - rowWidth) <= 1;
   }, { expectedWidth: beforeMetrics.headerWidth + resizeDelta }, { timeout: 5000 });
 
-  const afterMetrics = await page.evaluate(() => {
+  const duringMetrics = await page.evaluate(() => {
     const titleHeaderEl = document.querySelector('#example-table th[data-sort-field="Smoke Title"]');
-    const titleCellEl = document.querySelector('#example-table tbody tr[data-row-index="0"] td[data-col-index="0"]');
+    const titleRowEl = document.querySelector('#example-table tbody tr[data-row-index="0"]');
+    const titleCellEl = titleRowEl?.querySelector('td[data-col-index="0"]');
+    const tableEl = document.querySelector('#example-table');
     return {
       cellWidth: Math.round(titleCellEl?.getBoundingClientRect().width || 0),
       headerWidth: Math.round(titleHeaderEl?.getBoundingClientRect().width || 0),
+      rowWidth: Math.round(titleRowEl?.getBoundingClientRect().width || 0),
+      tableWidth: Math.round(tableEl?.getBoundingClientRect().width || 0),
       resizeModeActive: document.body.classList.contains('table-resize-mode')
     };
   });
 
+  await page.mouse.up();
+
+  await page.waitForFunction(({ expectedWidth }) => {
+    const titleHeaderEl = document.querySelector('#example-table th[data-sort-field="Smoke Title"]');
+    const titleRowEl = document.querySelector('#example-table tbody tr[data-row-index="0"]');
+    const titleCellEl = titleRowEl?.querySelector('td[data-col-index="0"]');
+    const tableEl = document.querySelector('#example-table');
+    const headerWidth = Math.round(titleHeaderEl?.getBoundingClientRect().width || 0);
+    const cellWidth = Math.round(titleCellEl?.getBoundingClientRect().width || 0);
+    const rowWidth = Math.round(titleRowEl?.getBoundingClientRect().width || 0);
+    const tableWidth = Math.round(tableEl?.getBoundingClientRect().width || 0);
+    return Math.abs(headerWidth - expectedWidth) <= 2
+      && Math.abs(headerWidth - cellWidth) <= 1
+      && Math.abs(tableWidth - rowWidth) <= 1;
+  }, { expectedWidth: beforeMetrics.headerWidth + resizeDelta }, { timeout: 5000 });
+
+  const afterMetrics = await page.evaluate(() => {
+    const titleHeaderEl = document.querySelector('#example-table th[data-sort-field="Smoke Title"]');
+    const titleRowEl = document.querySelector('#example-table tbody tr[data-row-index="0"]');
+    const titleCellEl = titleRowEl?.querySelector('td[data-col-index="0"]');
+    const tableEl = document.querySelector('#example-table');
+    return {
+      cellWidth: Math.round(titleCellEl?.getBoundingClientRect().width || 0),
+      headerWidth: Math.round(titleHeaderEl?.getBoundingClientRect().width || 0),
+      rowWidth: Math.round(titleRowEl?.getBoundingClientRect().width || 0),
+      tableWidth: Math.round(tableEl?.getBoundingClientRect().width || 0),
+      resizeModeActive: document.body.classList.contains('table-resize-mode')
+    };
+  });
+
+  const liveDelta = duringMetrics.headerWidth - beforeMetrics.headerWidth;
   const actualDelta = afterMetrics.headerWidth - beforeMetrics.headerWidth;
-  if (Math.abs(actualDelta - resizeDelta) > 2 || Math.abs(afterMetrics.headerWidth - afterMetrics.cellWidth) > 1) {
-    throw new Error(`Column resize drag was nonlinear or misaligned: before=${JSON.stringify(beforeMetrics)}, after=${JSON.stringify(afterMetrics)}`);
+  if (
+    Math.abs(liveDelta - resizeDelta) > 2
+    || Math.abs(actualDelta - resizeDelta) > 2
+    || Math.abs(duringMetrics.headerWidth - duringMetrics.cellWidth) > 1
+    || Math.abs(duringMetrics.tableWidth - duringMetrics.rowWidth) > 1
+    || Math.abs(afterMetrics.headerWidth - afterMetrics.cellWidth) > 1
+    || Math.abs(afterMetrics.tableWidth - afterMetrics.rowWidth) > 1
+  ) {
+    throw new Error(`Column resize drag was nonlinear or misaligned: before=${JSON.stringify(beforeMetrics)}, during=${JSON.stringify(duringMetrics)}, after=${JSON.stringify(afterMetrics)}`);
   }
 
   await page.evaluate(async () => {
