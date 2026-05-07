@@ -23,6 +23,7 @@ import {
   validateCategoryName,
   validateTemplateDraft
 } from './queryTemplateState.js';
+import { createQueryTemplateRepository } from './queryTemplateRepository.js';
 import { escapeHtml } from '../core/html.js';
 (function initializeQueryTemplates() {
   const NEW_TEMPLATE_ID = '__new_template__';
@@ -50,6 +51,9 @@ import { escapeHtml } from '../core/html.js';
     categoriesOverlayOpen: false,
     detailOverlayOpen: false
   };
+  const templateRepository = createQueryTemplateRepository({
+    postJson: payload => BackendApi.postJson(payload)
+  });
 
   function el(id) {
     return document.getElementById(id);
@@ -172,14 +176,6 @@ import { escapeHtml } from '../core/html.js';
     });
   }
 
-  async function sendTemplateRequest(payload) {
-    const { data } = await BackendApi.postJson(payload);
-    if (data.error) {
-      throw new Error(data.error);
-    }
-    return data;
-  }
-
   function reconcileTemplateSelection() {
     const visibleTemplates = getVisibleTemplates();
     if (state.selectedId === NEW_TEMPLATE_ID) {
@@ -253,7 +249,7 @@ import { escapeHtml } from '../core/html.js';
     render();
 
     try {
-      const payload = await sendTemplateRequest({ action: 'list_templates' });
+      const payload = await templateRepository.listTemplates();
       state.templates = (Array.isArray(payload.templates) ? payload.templates : []).map(normalizeTemplate);
       sortTemplatesInDisplayOrder(state.templates);
       state.categories = normalizeCategoryList(payload.categories);
@@ -357,8 +353,7 @@ import { escapeHtml } from '../core/html.js';
     render();
 
     try {
-      const payload = await sendTemplateRequest({
-        action: 'create_template',
+      const payload = await templateRepository.createTemplate({
         name: state.draft.name,
         description: state.draft.description,
         svg: sanitizeSvgMarkup(state.draft.svg),
@@ -408,9 +403,7 @@ import { escapeHtml } from '../core/html.js';
     render();
 
     try {
-      const payload = await sendTemplateRequest({
-        action: 'update_template',
-        template_id: state.selectedId,
+      const payload = await templateRepository.updateTemplate(state.selectedId, {
         name: state.draft.name,
         description: state.draft.description,
         svg: sanitizeSvgMarkup(state.draft.svg),
@@ -456,9 +449,8 @@ import { escapeHtml } from '../core/html.js';
     render();
 
     try {
-      await sendTemplateRequest({
-        action: 'delete_template',
-        template_id: selected.id,
+      await templateRepository.deleteTemplate({
+        templateId: selected.id,
         name: selected.name
       });
 
@@ -519,9 +511,7 @@ import { escapeHtml } from '../core/html.js';
     try {
       const pinnedTemplates = state.templates.filter(template => template.pinned && template.id !== selected.id);
       const nextPinned = !selected.pinned;
-      const payload = await sendTemplateRequest({
-        action: 'update_template',
-        template_id: selected.id,
+      const payload = await templateRepository.updateTemplate(selected.id, {
         name: selected.name,
         description: selected.description,
         svg: sanitizeSvgMarkup(selected.svg),
@@ -577,10 +567,7 @@ import { escapeHtml } from '../core/html.js';
     render();
 
     try {
-      const payload = await sendTemplateRequest({
-        action: 'reorder_pinned_templates',
-        template_ids: normalizedIds
-      });
+      const payload = await templateRepository.reorderPinnedTemplates(normalizedIds);
 
       if (Array.isArray(payload.templates)) {
         state.templates = payload.templates.map(normalizeTemplate);
@@ -672,9 +659,8 @@ import { escapeHtml } from '../core/html.js';
     render();
 
     try {
-      const payload = await sendTemplateRequest({
-        action: state.editingCategoryId ? 'update_template_category' : 'create_template_category',
-        category_id: state.editingCategoryId || undefined,
+      const payload = await templateRepository.saveCategory({
+        categoryId: state.editingCategoryId,
         name: rawName,
         description: String(elements.categoryDescriptionInput?.value || '').trim()
       });
@@ -721,10 +707,7 @@ import { escapeHtml } from '../core/html.js';
     render();
 
     try {
-      const payload = await sendTemplateRequest({
-        action: 'delete_template_category',
-        category_id: categoryId
-      });
+      const payload = await templateRepository.deleteCategory(categoryId);
 
       state.categories = normalizeCategoryList(payload.categories);
       state.templates = removeCategoryFromTemplates(state.templates, categoryId);
