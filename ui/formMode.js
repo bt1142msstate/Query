@@ -40,6 +40,12 @@ import {
   syncInputSpecFromState,
   uniqueInputKey
 } from './formModeQuerySpec.js';
+import {
+  getQueryStateSyncPlan,
+  mergeQuerySyncOptions,
+  normalizeQuerySyncOptions,
+  shouldRunQueuedQuerySync
+} from './formModeQueryReconcile.js';
 import { syncSpecInputsWithActiveFilters } from './formModeQuerySync.js';
 import { FormModeStateHelpers as formModeStateHelpers } from './formModeStateHelpers.js';
 import { SharedFieldPicker } from './fieldPicker.js';
@@ -1137,17 +1143,7 @@ let QueryFormMode;
   }
 
   function queueQueryStateReconcile(options = {}) {
-    const nextOptions = {
-      rebuildCard: Boolean(options.rebuildCard),
-      refreshUrl: options.refreshUrl !== false
-    };
-
-    if (state.pendingQuerySync) {
-      state.pendingQuerySync.rebuildCard = state.pendingQuerySync.rebuildCard || nextOptions.rebuildCard;
-      state.pendingQuerySync.refreshUrl = state.pendingQuerySync.refreshUrl || nextOptions.refreshUrl;
-    } else {
-      state.pendingQuerySync = nextOptions;
-    }
+    state.pendingQuerySync = mergeQuerySyncOptions(state.pendingQuerySync, options);
 
     if (state.querySyncQueued) {
       return;
@@ -1159,7 +1155,7 @@ let QueryFormMode;
       const queuedOptions = state.pendingQuerySync;
       state.pendingQuerySync = null;
 
-      if (!queuedOptions || !state.active || state.isClearingQuery || state.isApplyingFormState) {
+      if (!shouldRunQueuedQuerySync(state, queuedOptions)) {
         return;
       }
 
@@ -1179,35 +1175,11 @@ let QueryFormMode;
   }
 
   function getQueryStateSyncOptions(event) {
-    const source = String(event && event.meta && event.meta.source || '');
-    if (source === 'QueryChangeManager.clearQuery') {
-      return { action: 'clear' };
-    }
-
-    if (state.isClearingQuery) {
-      return { action: 'skip' };
-    }
-
-    const hasActiveFilterChanges = Boolean(event && event.changes && event.changes.activeFilters);
-    const baseOptions = {
-      rebuildCard: Boolean(state.viewMode === 'form' && hasActiveFilterChanges),
-      refreshUrl: true
-    };
-
-    if (state.isApplyingFormState) {
-      return {
-        action: 'queue',
-        options: {
-          rebuildCard: false,
-          refreshUrl: baseOptions.refreshUrl
-        }
-      };
-    }
-
-    return {
-      action: 'sync',
-      options: baseOptions
-    };
+    return getQueryStateSyncPlan(event, {
+      isApplyingFormState: state.isApplyingFormState,
+      isClearingQuery: state.isClearingQuery,
+      viewMode: state.viewMode
+    });
   }
 
   async function initialize() {
@@ -1239,7 +1211,7 @@ let QueryFormMode;
         }
 
         if (syncPlan.action === 'queue') {
-          queueQueryStateReconcile(syncPlan.options);
+          queueQueryStateReconcile(normalizeQuerySyncOptions(syncPlan.options));
           return;
         }
 
