@@ -218,9 +218,6 @@ function initializeBubbleInteractions() {
       document.body.appendChild(filterCard);
       filterCard.offsetHeight;
     }
-    if (!appRuntime.filterCard && filterCard) {
-      appRuntime.filterCard = filterCard;
-    }
     if (filterCard) {
       services.prepareBubbleFilterCardForOpen(filterCard);
     }
@@ -286,7 +283,7 @@ function initializeBubbleInteractions() {
       }
 
       clone.classList.add('popping');
-      appRuntime.createBubblePopParticles(clone);
+      services.createBubblePopParticles(clone);
 
       clone.removeEventListener('transitionend', t);
       services.bubble.isBubbleAnimating = false;

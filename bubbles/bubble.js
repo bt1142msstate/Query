@@ -142,7 +142,7 @@ function getBubbleConfirmButtonElement() {
 }
 
 function getBubbleFilterCardElement() {
-  return DOM?.filterCard || appRuntime.filterCard || null;
+  return DOM?.filterCard || null;
 }
 
 function getBubbleFilterCardTitleElement(filterCard = getBubbleFilterCardElement()) {
@@ -514,7 +514,7 @@ function updateScrollBar() {
   thumb.style.top = `${topPos}px`;
 }
 
-appRuntime.createBubblePopParticles = function(bubbleClone) {
+function createBubblePopParticles(bubbleClone) {
   if (!bubbleClone) return;
 
   const rect = bubbleClone.getBoundingClientRect();
@@ -556,12 +556,6 @@ appRuntime.createBubblePopParticles = function(bubbleClone) {
       if (particle.parentNode) particle.remove();
     }, duration * 1000);
   }
-};
-
-function buildConditionPanel(bubble) {
-  if (appRuntime.BubbleConditionPanel && typeof appRuntime.BubbleConditionPanel.buildConditionPanel === 'function') {
-    return appRuntime.BubbleConditionPanel.buildConditionPanel(bubble);
-  }
 }
 
 function initializeBubbles() {
@@ -582,6 +576,7 @@ if (typeof window !== 'undefined') {
     Bubble,
     applyCorrectBubbleStyling,
     bubbleDebugLog,
+    createBubblePopParticles,
     getBubbleMaxStartRow,
     getOverlayElement: getBubbleOverlayElement,
     getConditionPanelElement: getBubbleConditionPanelElement,
@@ -600,7 +595,6 @@ if (typeof window !== 'undefined') {
     renderBubbles,
     safeRenderBubbles,
     updateScrollBar,
-    buildConditionPanel,
     initializeBubbles,
     resetActiveBubbles,
     // Animation state — writable through these accessors only

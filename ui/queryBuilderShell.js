@@ -15,7 +15,6 @@ import { AppState, QueryChangeManager, QueryStateReaders } from '../core/querySt
 import { appServices } from '../core/appServices.js';
 import { appUiActions, registerAppUiActionDependencies } from '../core/appUiActions.js';
 import { DOM } from '../core/domCache.js';
-import { appRuntime } from '../core/appRuntime.js';
 
 let QueryBuilderShell;
 
@@ -274,7 +273,7 @@ let QueryBuilderShell;
     dom.pageBody?.classList.add('night');
     bindConfirmEnterShortcut();
     dom.overlay?.addEventListener('click', handleOverlayClick);
-    dom.confirmBtn?.addEventListener('click', appRuntime.handleFilterConfirm);
+    dom.confirmBtn?.addEventListener('click', services.handleFilterConfirm);
     document.addEventListener('keydown', handleBubbleKeyboardNavigation);
     document.addEventListener('keydown', handleFocusedBubbleScroll);
     window.addEventListener('resize', uiActions.positionInputWrapper);

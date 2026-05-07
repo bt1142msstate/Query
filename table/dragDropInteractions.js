@@ -4,10 +4,15 @@ import { DragUtils } from '../core/dragUtils.js';
 import { Icons } from '../core/icons.js';
 import { QueryStateReaders, getBaseFieldName } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
+import {
+  findRelatedColumnIndices,
+  getDuplicateGroups,
+  restoreFieldWithDuplicates
+} from './columnManager.js';
 import { createColumnResizeController } from './columnResizeController.js';
 import { dragDropColumnOps } from './dragDropColumns.js';
 import { SharedFieldPicker } from '../ui/fieldPicker.js';
-import { appRuntime } from '../core/appRuntime.js';
+let DragDropInteractions;
 (function initializeDragDropInteractions() {
   var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders), getLifecycleState = QueryStateReaders.getLifecycleState.bind(QueryStateReaders), services = appServices;
   const TABLE_COLUMN_DRAG_MIME = 'application/x-query-table-column-index';
@@ -449,7 +454,7 @@ import { appRuntime } from '../core/appRuntime.js';
 
       const field = e.dataTransfer.getData(BUBBLE_FIELD_DRAG_MIME);
       if (field) {
-        if (appRuntime.restoreFieldWithDuplicates(field)) {
+        if (restoreFieldWithDuplicates(field)) {
           dragDropManager.dropSuccessful = true;
         }
       }
@@ -622,7 +627,7 @@ import { appRuntime } from '../core/appRuntime.js';
 
       const colIndex = parseInt(th.dataset.colIndex, 10);
       const fieldName = getDisplayedFields()[colIndex];
-      const relatedIndices = appRuntime.findRelatedColumnIndices(fieldName);
+      const relatedIndices = findRelatedColumnIndices(fieldName);
 
       relatedIndices.forEach(index => {
         const relatedHeader = document.querySelector(`thead th[data-col-index="${index}"]`);
@@ -800,7 +805,7 @@ import { appRuntime } from '../core/appRuntime.js';
       if (bubbleField) {
         const rect = th.getBoundingClientRect();
         const insertAt = (e.clientX - rect.left) < rect.width / 2 ? toIndex : toIndex + 1;
-        if (appRuntime.restoreFieldWithDuplicates(bubbleField, insertAt)) {
+        if (restoreFieldWithDuplicates(bubbleField, insertAt)) {
           dragDropManager.dropSuccessful = true;
         }
       }
@@ -825,7 +830,7 @@ import { appRuntime } from '../core/appRuntime.js';
       if (bubbleField) {
         const rect = td.getBoundingClientRect();
         const insertAt = (e.clientX - rect.left) < rect.width / 2 ? toIndex : toIndex + 1;
-        if (appRuntime.restoreFieldWithDuplicates(bubbleField, insertAt)) {
+        if (restoreFieldWithDuplicates(bubbleField, insertAt)) {
           dragDropManager.dropSuccessful = true;
         }
         clearDropAnchor();
@@ -1280,7 +1285,7 @@ import { appRuntime } from '../core/appRuntime.js';
     }
   }, true);
 
-  appRuntime.DragDropInteractions = Object.freeze({
+  DragDropInteractions = Object.freeze({
     dragDropManager,
     addDragAndDrop,
     attachBubbleDropTarget,
@@ -1294,6 +1299,8 @@ import { appRuntime } from '../core/appRuntime.js';
     clearDropAnchor,
     addColumn,
     removeColumnByName,
-    getDuplicateGroups: appRuntime.getDuplicateGroups
+    getDuplicateGroups
   });
 })();
+
+export { DragDropInteractions };

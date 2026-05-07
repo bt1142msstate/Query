@@ -6,10 +6,9 @@
  */
 import { appServices } from '../core/appServices.js';
 import { QueryChangeManager, getBaseFieldName, QueryStateReaders } from '../core/queryState.js';
-import { appRuntime } from '../core/appRuntime.js';
 
 // Store information about removed columns with their duplicates for restoration
-appRuntime.removedColumnInfo = appRuntime.removedColumnInfo || new Map();
+const removedColumnInfo = new Map();
 var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
 var services = appServices;
 
@@ -20,7 +19,7 @@ var services = appServices;
  * @param {string} fieldName - The field name to check for
  * @returns {boolean} True if field or its duplicates exist in displayedFields
  */
-appRuntime.fieldOrDuplicatesExist = function(fieldName) {
+function fieldOrDuplicatesExist(fieldName) {
   // Extract base field name (remove ordinal prefixes like "2nd ", "3rd ")
   const baseFieldName = getBaseFieldName(fieldName);
   
@@ -31,14 +30,14 @@ appRuntime.fieldOrDuplicatesExist = function(fieldName) {
   });
   
   return relatedColumns.length > 0;
-};
+}
 
 /**
  * Gets all duplicate groups in the current displayedFields.
  * @function getDuplicateGroups
  * @returns {Array<{baseField: string, start: number, end: number}>} Array of duplicate groups
  */
-appRuntime.getDuplicateGroups = function() {
+function getDuplicateGroups() {
   const displayedFields = getDisplayedFields();
   if (displayedFields.length === 0) {
     return [];
@@ -82,14 +81,14 @@ appRuntime.getDuplicateGroups = function() {
   }
   
   return groups;
-};
+}
 
 /**
  * Helper function to find all related columns (including duplicates) for a field
  * @param {string} fieldName - The field name to look for
  * @returns {number[]} Array of indices in displayedFields
  */
-appRuntime.findRelatedColumnIndices = function(fieldName) {
+function findRelatedColumnIndices(fieldName) {
   // Extract base field name (remove ordinal prefixes like "2nd ", "3rd ")
   const baseFieldName = getBaseFieldName(fieldName);
   
@@ -103,7 +102,7 @@ appRuntime.findRelatedColumnIndices = function(fieldName) {
   });
   
   return relatedIndices.sort((a, b) => a - b);
-};
+}
 
 /**
  * Restores a field and its duplicates from stored information or original data.
@@ -113,18 +112,18 @@ appRuntime.findRelatedColumnIndices = function(fieldName) {
  * @param {number} [insertAt=-1] - Position to insert at (-1 for end)
  * @returns {boolean} True if field was successfully restored
  */
-appRuntime.restoreFieldWithDuplicates = function(fieldName, insertAt = -1) {
+function restoreFieldWithDuplicates(fieldName, insertAt = -1) {
   // Check if any duplicate of this field already exists
-  if (appRuntime.fieldOrDuplicatesExist(fieldName)) {
+  if (fieldOrDuplicatesExist(fieldName)) {
     return false;
   }
   
   // Check if we have stored duplicate information for this field
-  const storedInfo = appRuntime.removedColumnInfo.get(fieldName);
+  const storedInfo = removedColumnInfo.get(fieldName);
   
   if (storedInfo && storedInfo.columnNames) {
     // Remove the stored info since we're restoring
-    appRuntime.removedColumnInfo.delete(fieldName);
+    removedColumnInfo.delete(fieldName);
     
     // Insert all duplicate columns at the specified position
     QueryChangeManager.addDisplayedField(storedInfo.columnNames, {
@@ -161,4 +160,12 @@ appRuntime.restoreFieldWithDuplicates = function(fieldName, insertAt = -1) {
     });
     return true; // Changed to true since we did add the field
   }
+}
+
+export {
+  fieldOrDuplicatesExist,
+  findRelatedColumnIndices,
+  getDuplicateGroups,
+  removedColumnInfo,
+  restoreFieldWithDuplicates
 };

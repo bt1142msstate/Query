@@ -6,12 +6,17 @@ import { AppState, registerQueryStateRuntimeAccessors } from './queryState.js';
 import { appRuntime } from './appRuntime.js';
 
 let appServices;
+let dragDropService = null;
 let filterService = null;
 let formModeService = null;
 let modalService = null;
 let queryExecutionService = null;
 let queryHistoryService = null;
 let queryTemplatesService = null;
+
+function registerDragDropService(service) {
+  dragDropService = service && typeof service === 'object' ? service : null;
+}
 
 function registerFilterService(service) {
   filterService = service && typeof service === 'object' ? service : null;
@@ -49,7 +54,7 @@ function registerQueryTemplatesService(service) {
   }
 
   function getDragDropService() {
-    return appRuntime.DragDropSystem || null;
+    return dragDropService;
   }
 
   function getModalService() {
@@ -118,11 +123,15 @@ function registerQueryTemplatesService(service) {
   }
 
   function buildBubbleConditionPanel(bubble) {
-    return getBubbleService()?.buildConditionPanel?.(bubble);
+    return filterService?.buildBubbleConditionPanel?.(bubble);
   }
 
   function bubbleDebugLog(eventName, payload = {}) {
     getBubbleService()?.bubbleDebugLog?.(eventName, payload);
+  }
+
+  function createBubblePopParticles(bubbleClone) {
+    getBubbleService()?.createBubblePopParticles?.(bubbleClone);
   }
 
   function getBubbleMaxStartRow() {
@@ -370,6 +379,10 @@ function registerQueryTemplatesService(service) {
     filterService?.renderConditionList?.(fieldName);
   }
 
+  function handleFilterConfirm(event) {
+    filterService?.handleFilterConfirm?.(event);
+  }
+
   function clearCurrentQuery(options = {}) {
     return queryExecutionService?.clearCurrentQuery?.(options);
   }
@@ -429,6 +442,7 @@ function registerQueryTemplatesService(service) {
     markBubbleFilterCardOpen,
     buildBubbleConditionPanel,
     bubbleDebugLog,
+    createBubblePopParticles,
     getBubbleMaxStartRow,
     applyBubbleScrollRow,
     closeAllModals,
@@ -482,6 +496,7 @@ function registerQueryTemplatesService(service) {
     isSplitColumnsActive,
     setSplitColumnsMode,
     renderConditionList,
+    handleFilterConfirm,
     clearCurrentQuery,
     isFormModeActive,
     isFormModeLimitedView,
@@ -496,6 +511,7 @@ function registerQueryTemplatesService(service) {
 
 export {
   appServices,
+  registerDragDropService,
   registerFilterService,
   registerFormModeService,
   registerModalService,

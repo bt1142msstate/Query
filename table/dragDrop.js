@@ -1,16 +1,18 @@
-import { appRuntime } from '../core/appRuntime.js';
+import { registerDragDropService } from '../core/appServices.js';
+import { getDuplicateGroups, restoreFieldWithDuplicates } from './columnManager.js';
+import { DragDropInteractions } from './dragDropInteractions.js';
 /**
  * Drag & Drop compatibility shim.
  * Runtime behavior now lives in dragDropInteractions.js and dragDropColumns.js.
  */
 (function initializeDragDropSystem() {
-  const interactions = appRuntime.DragDropInteractions;
+  const interactions = DragDropInteractions;
 
   if (!interactions) {
     throw new Error('DragDropInteractions must load before dragDrop.js');
   }
 
-  appRuntime.DragDropSystem = Object.freeze({
+  registerDragDropService(Object.freeze({
     dragDropManager: interactions.dragDropManager,
     addDragAndDrop: interactions.addDragAndDrop,
     attachBubbleDropTarget: interactions.attachBubbleDropTarget,
@@ -22,7 +24,7 @@ import { appRuntime } from '../core/appRuntime.js';
     removeColumn: interactions.removeColumn,
     positionDropAnchor: interactions.positionDropAnchor,
     clearDropAnchor: interactions.clearDropAnchor,
-    restoreFieldWithDuplicates: appRuntime.restoreFieldWithDuplicates,
-    getDuplicateGroups: appRuntime.getDuplicateGroups
-  });
+    restoreFieldWithDuplicates,
+    getDuplicateGroups
+  }));
 })();
