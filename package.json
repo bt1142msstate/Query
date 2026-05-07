@@ -9,7 +9,7 @@
     "test:unit:payload": "node tests/queryPayloadLogic.mjs",
     "test:unit:table": "node tests/simpleTableLogic.mjs",
     "test:unit:stream": "node tests/queryStreamLogic.mjs",
-    "test:unit:helpers": "node tests/filterConditionLogic.mjs && node tests/queryLifecycleLogic.mjs && node tests/queryTemplateStateLogic.mjs && node tests/queryTemplateRepositoryLogic.mjs && node tests/formModeQuerySpecLogic.mjs && node tests/formModeQuerySyncLogic.mjs && node tests/formModeShareUrlLogic.mjs",
+    "test:unit:helpers": "node tests/filterConditionLogic.mjs && node tests/queryLifecycleLogic.mjs && node tests/queryTemplateStateLogic.mjs && node tests/queryTemplateRepositoryLogic.mjs && node tests/formModeQuerySpecLogic.mjs && node tests/formModeQuerySyncLogic.mjs && node tests/formModePresentationLogic.mjs && node tests/formModeShareUrlLogic.mjs",
     "test:modules": "node tests/moduleSpecifiers.mjs",
     "test:browser": "node tests/browserSmoke.mjs"
   },

@@ -21,6 +21,13 @@ import {
   isShareableFormSpec
 } from './formModeShareUrl.js';
 import {
+  ensureFormModeToggleButton,
+  getNextFormViewMode,
+  refreshBubbleStageAfterModeSwitch as refreshFormModeBubbleStageAfterModeSwitch,
+  resolveRequestedFormViewMode,
+  syncFormModePresentation
+} from './formModePresentation.js';
+import {
   assignInputSpecDefaultValues,
   buildGeneratedInputSpecsFromActiveFilters,
   getInputSpecDefaultValues,
@@ -75,7 +82,6 @@ let QueryFormMode;
     resetOriginalBtn: null,
     resetSharedBtn: null,
     modeToggleBtn: null,
-    mobileModeToggleBtn: null,
     formHost: null,
     controls: new Map(),
     originalUpdateButtonStates: null,
@@ -896,76 +902,26 @@ let QueryFormMode;
   }
 
   function syncPresentationMode() {
-    const isLimitedView = state.active && state.limitedView;
-    const querySearchBlock = document.getElementById('query-input') && document.getElementById('query-input').closest('.mb-6');
-    const categoryBar = document.getElementById('category-bar');
-    const mobileCategorySelector = document.getElementById('mobile-category-selector');
-    const bubbleStage = document.getElementById('bubble-container') && document.getElementById('bubble-container').closest('.flex.items-start.justify-center');
-    const hiddenControlIds = ['toggle-json', 'toggle-queries'];
-    document.body.classList.toggle('form-mode-active', state.viewMode === 'form');
-
-    [querySearchBlock, categoryBar, mobileCategorySelector].filter(Boolean).forEach(node => {
-      node.classList.toggle('form-mode-hidden', state.viewMode === 'form');
+    syncFormModePresentation({
+      state,
+      document,
+      uiActions,
+      queryTableView: QueryTableView
     });
-
-    if (bubbleStage) {
-      bubbleStage.classList.toggle('form-mode-stage-active', state.viewMode === 'form');
-    }
-
-    if (state.formHost) {
-      state.formHost.classList.toggle('hidden', state.viewMode !== 'form');
-    }
-
-    if (state.formCard) {
-      state.formCard.classList.toggle('hidden', state.viewMode !== 'form');
-    }
-
-    hiddenControlIds.forEach(id => {
-      const control = document.getElementById(id);
-      if (control) {
-        control.classList.toggle('hidden', isLimitedView);
-      }
-    });
-
-    if (state.modeToggleBtn) {
-      state.modeToggleBtn.classList.toggle('hidden', isLimitedView);
-      state.modeToggleBtn.setAttribute('data-tooltip', state.viewMode === 'form' ? 'Switch to bubble builder' : 'Switch to form mode');
-      state.modeToggleBtn.setAttribute('data-tooltip-delay', '0');
-      state.modeToggleBtn.setAttribute('aria-label', state.viewMode === 'form' ? 'Switch to bubble builder' : 'Switch to form mode');
-      const formIcon = state.modeToggleBtn.querySelector('[data-form-mode-icon="form"]');
-      const bubbleIcon = state.modeToggleBtn.querySelector('[data-form-mode-icon="bubbles"]');
-      if (formIcon) {
-        formIcon.classList.toggle('hidden', state.viewMode === 'form');
-      }
-      if (bubbleIcon) {
-        bubbleIcon.classList.toggle('hidden', state.viewMode !== 'form');
-      }
-    }
-
-    if (state.modeToggleBtn) {
-      state.modeToggleBtn.dataset.mobileMenuLabel = state.viewMode === 'form' ? 'Bubble Mode' : 'Form Mode';
-    }
-
-    uiActions.updateFilterSidePanel();
-    QueryTableView.syncEmptyTableMessage();
   }
 
   function refreshBubbleStageAfterModeSwitch() {
-    if (!services.bubble?.safeRenderBubbles) {
-      return;
-    }
-
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        services.rerenderBubbles();
-      });
+    refreshFormModeBubbleStageAfterModeSwitch({
+      services,
+      window
     });
   }
 
   async function setViewMode(nextMode, options = {}) {
-    const requestedMode = state.limitedView
-      ? 'form'
-      : (nextMode === 'bubbles' ? 'bubbles' : 'form');
+    const requestedMode = resolveRequestedFormViewMode({
+      limitedView: state.limitedView,
+      nextMode
+    });
 
     if (requestedMode === 'form' && !state.active) {
       const activated = await activateGeneratedFormFromCurrentQuery();
@@ -991,7 +947,7 @@ let QueryFormMode;
   }
 
   function toggleViewMode() {
-    setViewMode(state.viewMode === 'form' ? 'bubbles' : 'form').catch(error => {
+    setViewMode(getNextFormViewMode(state.viewMode)).catch(error => {
       console.error('Failed to toggle form mode:', error);
       showToastMessage('Failed to switch modes.', 'error');
     });
@@ -1137,31 +1093,11 @@ let QueryFormMode;
   }
 
   function ensureModeToggleButtons() {
-    const headerControls = document.getElementById('header-controls');
-    if (headerControls && !state.modeToggleBtn) {
-      const button = document.createElement('button');
-      button.id = 'form-mode-toggle-btn';
-      button.type = 'button';
-      button.className = 'p-2 rounded-full bg-white hover:bg-gray-100 text-black focus:outline-none transition-colors border border-gray-200';
-      button.innerHTML = `
-        <svg data-form-mode-icon="form" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 pointer-events-none">
-          <rect x="4" y="4" width="16" height="16" rx="2"></rect>
-          <path d="M8 8h8"></path>
-          <path d="M8 12h8"></path>
-          <path d="M8 16h5"></path>
-        </svg>
-        <svg data-form-mode-icon="bubbles" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 pointer-events-none hidden">
-          <circle cx="12" cy="12" r="7"></circle>
-          <path d="M9 17.4c.95.72 2.13 1.1 3.4 1.1 3.09 0 5.68-2.26 6.2-5.2"></path>
-          <path d="M8 9.2c.62-2.02 2.49-3.5 4.7-3.5 1.17 0 2.25.42 3.08 1.12"></path>
-          <circle cx="9.3" cy="8.7" r="1.15" fill="currentColor" stroke="none" opacity="0.32"></circle>
-        </svg>
-      `;
-      button.addEventListener('click', toggleViewMode);
-      headerControls.insertBefore(button, document.getElementById('toggle-json'));
-      state.modeToggleBtn = button;
-    }
-
+    ensureFormModeToggleButton({
+      state,
+      document,
+      onToggle: toggleViewMode
+    });
     syncPresentationMode();
   }
 
