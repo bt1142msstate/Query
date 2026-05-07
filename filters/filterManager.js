@@ -9,7 +9,6 @@ import {
     shouldUseFilterListViewer
 } from './filterValueUi.js';
 import { SelectorControls } from '../ui/selectorControls.js';
-import { appRuntime } from '../core/appRuntime.js';
 import {
   fieldDefs,
   getFieldFilterOperators,
@@ -199,7 +198,7 @@ function syncConditionSelection(conditionPanel, cond) {
     }
 }
 
-appRuntime.getSelectedCondition = function(conditionPanel = null) {
+function getSelectedCondition(conditionPanel = null) {
     const panel = conditionPanel || getFilterConditionPanelElement();
     if (!panel) return '';
 
@@ -207,7 +206,7 @@ appRuntime.getSelectedCondition = function(conditionPanel = null) {
     return operatorSelect && operatorSelect.value
         ? String(operatorSelect.value).trim().toLowerCase()
         : '';
-};
+}
 
 function removeConditionPanelNote() {
     const existingNote = document.getElementById('condition-panel-note');
@@ -327,7 +326,7 @@ function buildBubbleConditionPanel(bubble) {
         operatorConditions = backendOperators.length > 0
             ? backendOperators
             : ['contains', 'starts', 'equals', 'does_not_equal'];
-        conditionPanel.appendChild(createConditionOperatorPicker(operatorConditions, appRuntime.buildableConditionBtnHandler));
+        conditionPanel.appendChild(createConditionOperatorPicker(operatorConditions, buildableConditionBtnHandler));
     } else {
         if (backendOperators.length === 0) {
             operatorConditions = [];
@@ -360,7 +359,7 @@ function buildBubbleConditionPanel(bubble) {
             return;
         }
 
-        conditionPanel.appendChild(createConditionOperatorPicker(operatorConditions, appRuntime.handleConditionBtnClick));
+        conditionPanel.appendChild(createConditionOperatorPicker(operatorConditions, handleConditionBtnClick));
 
         if (listValues && listValues.length) {
             const fieldDef = fieldDefs.get(appState.selectedField);
@@ -405,9 +404,9 @@ function buildBubbleConditionPanel(bubble) {
             const existingContainer = document.getElementById('condition-select-container');
             if (existingSelect) existingSelect.style.display = 'none';
             if (existingContainer) existingContainer.parentNode.removeChild(existingContainer);
-            appRuntime.configureInputsForType(type);
+            configureInputsForType(type);
 
-            if (appRuntime.isListPasteField(fieldDefInfo)) {
+            if (isListPasteField(fieldDefInfo)) {
                 let currentLiteralValues = [];
                 const selectedFieldFilters = getFilterGroupForField(appState.selectedField);
                 const listCondition = getPreferredCondition(operatorConditions, appState.selectedField);
@@ -437,14 +436,11 @@ function buildBubbleConditionPanel(bubble) {
     const preferredCondition = getPreferredCondition(operatorConditions, appState.selectedField);
     if (operatorSelect && preferredCondition) {
         operatorSelect.value = preferredCondition;
-        const handler = appRuntime.handleConditionBtnClick;
-        if (typeof handler === 'function') {
-            handler({
-                currentTarget: operatorSelect,
-                stopPropagation() {},
-                preventDefault() {}
-            });
-        }
+        handleConditionBtnClick({
+            currentTarget: operatorSelect,
+            stopPropagation() {},
+            preventDefault() {}
+        });
     }
 
     if (isBuildable) {
@@ -454,10 +450,6 @@ function buildBubbleConditionPanel(bubble) {
         }, 300);
     }
 }
-
-appRuntime.BubbleConditionPanel = {
-    buildConditionPanel: buildBubbleConditionPanel
-};
 
 class FilterPill {
     constructor(filter, fieldDef, onRemove) {
@@ -646,7 +638,7 @@ function renderConditionList(field) {
             const selContainer = document.getElementById('condition-select-container');
             if (selContainer && appState.selectedField === normalizedField) {
                 if (supportsListSelectorCondition(f.cond)) {
-                    const activeCond = appRuntime.getSelectedCondition(getFilterConditionPanelElement()) || String(f.cond || '').trim().toLowerCase();
+                    const activeCond = getSelectedCondition(getFilterConditionPanelElement()) || String(f.cond || '').trim().toLowerCase();
                     const remainingFilter = data.filters.find(filterItem => String(filterItem.cond || '').trim().toLowerCase() === activeCond);
                     const nextValues = remainingFilter ? remainingFilter.val.split(',').map(v => v.trim()).filter(Boolean) : [];
 
@@ -692,12 +684,16 @@ window.addEventListener('postfilters:updated', () => {
     renderConditionList(activeField);
 });
 
-registerFilterService({ renderConditionList });
+registerFilterService({
+    buildBubbleConditionPanel,
+    handleFilterConfirm,
+    renderConditionList
+});
 
 /**
  * Handles condition button clicks (Equal, Contains, etc.)
  */
-appRuntime.handleConditionBtnClick = function(e) {
+function handleConditionBtnClick(e) {
     e.stopPropagation();
     const control = e.currentTarget;
     const conditionPanel = getFilterConditionPanelElement();
@@ -769,12 +765,12 @@ appRuntime.handleConditionBtnClick = function(e) {
     
     // Reposition again after layout change
     uiActions.positionInputWrapper();
-};
+}
 
 /**
  * Handles filter confirmation action
  */
-appRuntime.handleFilterConfirm = function(e) {
+function handleFilterConfirm(e) {
     e.stopPropagation();
     
     // Dependencies
@@ -790,7 +786,7 @@ appRuntime.handleFilterConfirm = function(e) {
     const field = (bubble && (bubble.dataset.filterFor || bubble.textContent.trim())) || appState.selectedField;
     if (!field) return;
 
-    const cond = appRuntime.getSelectedCondition(conditionPanel);
+    const cond = getSelectedCondition(conditionPanel);
     let val = conditionInput.value.trim();
     let val2 = conditionInput2.value.trim();
     
@@ -807,7 +803,7 @@ appRuntime.handleFilterConfirm = function(e) {
     // Special handling for buildable fields
     if (isBuildable) {
         handleBuildableFieldConfirm(fieldDef, cond, val);
-        appRuntime.finalizeConfirmAction();
+        finalizeConfirmAction();
         return;
     }
 
@@ -909,7 +905,7 @@ appRuntime.handleFilterConfirm = function(e) {
                 : existingSet;
             
             // Check for contradictions
-            const conflictMsg = appRuntime.getContradictionMessage(contradictionSet, newFilterObj, fieldType, field);
+            const conflictMsg = getContradictionMessage(contradictionSet, newFilterObj, fieldType, field);
             if (conflictMsg) {
                 showFilterError(conflictMsg, [conditionInput, conditionInput2]);
                 return;
@@ -950,8 +946,8 @@ appRuntime.handleFilterConfirm = function(e) {
         }
     }
 
-    appRuntime.finalizeConfirmAction();
-};
+    finalizeConfirmAction();
+}
 
 /**
  * Specific logic for MARC fields creation
@@ -1041,17 +1037,17 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
 }
 
 // Global confirm action finalizer
-appRuntime.finalizeConfirmAction = function() {
+function finalizeConfirmAction() {
     uiActions.updateQueryJson();
 
     uiActions.updateFilterSidePanel();
     uiActions.updateCategoryCounts();
-};
+}
 
 /**
  * Special handler for condition buttons when in a buildable field (e.g., Marc)
  */
-appRuntime.buildableConditionBtnHandler = function(e) {
+function buildableConditionBtnHandler(e) {
     e.stopPropagation();
     const control = e.currentTarget;
     const conditionPanel = getFilterConditionPanelElement();
@@ -1112,15 +1108,7 @@ appRuntime.buildableConditionBtnHandler = function(e) {
     
     // Re-position after toggling second input visibility
     uiActions.positionInputWrapper();
-};
-
-// --- Condition templates by type ---
-appRuntime.typeConditions = {
-  string: ['contains','starts','equals','does_not_equal'],     // no "between" for plain strings
-  number: ['greater','less','equals','does_not_equal','between'],
-  money : ['greater','less','equals','does_not_equal','between'],
-  date  : ['equals','does_not_equal','before','after','on_or_before','on_or_after','between']
-};
+}
 
 /* ---------- Input helpers to avoid duplicated numeric-config blocks ---------- */
 function setNumericProps(inputs, allowDecimal){
@@ -1167,7 +1155,7 @@ function setNumericFieldAppearance(inputs, numericKind) {
     });
 }
 
-appRuntime.configureInputsForType = function(type){
+function configureInputsForType(type){
     const inp1 = getFilterConditionInputElement();
     const inp2 = getFilterConditionInput2Element();
     const inputs=[inp1,inp2].filter(Boolean);
@@ -1224,14 +1212,14 @@ appRuntime.configureInputsForType = function(type){
             }
         });
     }
-};
+}
 
-appRuntime.isListPasteField = function(fieldDef) {
+function isListPasteField(fieldDef) {
     return Boolean(fieldDef && fieldDef.allowValueList && (!fieldDef.values || fieldDef.values.length === 0));
-};
+}
 
 /* ---------- Check for contradiction & return human-readable reason ---------- */
-appRuntime.getContradictionMessage = function(existing, newF, fieldType, fieldLabel){
+function getContradictionMessage(existing, newF, fieldType, fieldLabel){
     if(!existing || !Array.isArray(existing.filters)) return null;
 
   const toNum = v=>{
@@ -1311,4 +1299,4 @@ appRuntime.getContradictionMessage = function(existing, newF, fieldType, fieldLa
     }
   }
   return null;
-};
+}

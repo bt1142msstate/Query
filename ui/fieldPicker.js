@@ -1109,9 +1109,6 @@ let SharedFieldPicker;
       document.body.appendChild(filterCard);
       filterCard.offsetHeight;
     }
-    if (!appRuntime.filterCard && filterCard) {
-      appRuntime.filterCard = filterCard;
-    }
     if (filterCard) {
       services.prepareBubbleFilterCardForOpen(filterCard);
     }

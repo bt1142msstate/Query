@@ -13,7 +13,12 @@ import {
 } from '../core/queryState.js';
 import { FormatUtils } from '../core/utils.js';
 import { QueryTableView } from '../ui/queryTableView.js';
-import { appRuntime } from '../core/appRuntime.js';
+import {
+  fieldOrDuplicatesExist,
+  findRelatedColumnIndices,
+  removedColumnInfo,
+  restoreFieldWithDuplicates
+} from './columnManager.js';
 import { fieldDefs } from '../filters/fieldDefs.js';
 
 let dragDropColumnOps;
@@ -96,7 +101,7 @@ let dragDropColumnOps;
       ? (remainingFields[Math.min(anchorIndex, remainingFields.length - 1)] || remainingFields[Math.max(0, anchorIndex - 1)] || '')
       : '';
 
-    appRuntime.removedColumnInfo.set(baseFieldName, {
+    removedColumnInfo.set(baseFieldName, {
       columnNames: relatedFieldNames.slice(),
       originalIndices: removedColumnIndices,
       removedAt: Date.now()
@@ -120,7 +125,7 @@ let dragDropColumnOps;
           } else {
             bubbleEl.setAttribute('draggable', 'true');
           }
-          appRuntime.BubbleSystem?.applyCorrectBubbleStyling?.(bubbleEl);
+          services.applyBubbleStyling(bubbleEl);
         }
       });
     }
@@ -300,7 +305,7 @@ let dragDropColumnOps;
     const fromFieldName = getDisplayedFields()[fromIndex];
     if (!fromFieldName) return;
 
-    const relatedIndices = appRuntime.findRelatedColumnIndices(fromFieldName);
+    const relatedIndices = findRelatedColumnIndices(fromFieldName);
     if (relatedIndices.length === 1) {
       moveSingleColumn(table, fromIndex, toIndex);
     } else {
@@ -316,7 +321,7 @@ let dragDropColumnOps;
   }
 
   function addColumn(fieldName, insertAt = -1) {
-    if (appRuntime.fieldOrDuplicatesExist(fieldName)) {
+    if (fieldOrDuplicatesExist(fieldName)) {
       return false;
     }
 
@@ -325,7 +330,7 @@ let dragDropColumnOps;
       scrollAnchorField: fieldName
     });
 
-    const success = appRuntime.restoreFieldWithDuplicates(fieldName, insertAt);
+    const success = restoreFieldWithDuplicates(fieldName, insertAt);
 
     if (success) {
       syncTableAfterColumnMutation({
