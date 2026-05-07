@@ -20,6 +20,7 @@ import {
 } from './fieldDefs.js';
 import { DOM } from '../core/domCache.js';
 import { CustomDatePicker } from '../ui/customDatePicker.js';
+import { escapeHtml } from '../core/html.js';
 
 /**
  * FilterPill UI component class
@@ -228,10 +229,10 @@ function showConditionPanelNote(options) {
     const note = document.createElement('div');
     note.id = 'condition-panel-note';
     note.className = 'condition-panel-note';
-    const kicker = config.kicker ? `<span class="condition-panel-note-kicker">${appRuntime.escapeHtml(config.kicker)}</span>` : '';
-    const title = config.title ? `<strong class="condition-panel-note-title">${appRuntime.escapeHtml(config.title)}</strong>` : '';
-    const body = config.body ? `<p class="condition-panel-note-body">${appRuntime.escapeHtml(config.body)}</p>` : '';
-    const hint = config.hint ? `<p class="condition-panel-note-hint">${appRuntime.escapeHtml(config.hint)}</p>` : '';
+    const kicker = config.kicker ? `<span class="condition-panel-note-kicker">${escapeHtml(config.kicker)}</span>` : '';
+    const title = config.title ? `<strong class="condition-panel-note-title">${escapeHtml(config.title)}</strong>` : '';
+    const body = config.body ? `<p class="condition-panel-note-body">${escapeHtml(config.body)}</p>` : '';
+    const hint = config.hint ? `<p class="condition-panel-note-hint">${escapeHtml(config.hint)}</p>` : '';
     note.innerHTML = `${kicker}${title}${body}${hint}`;
 
     inputWrapper.appendChild(note);

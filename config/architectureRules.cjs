@@ -1,12 +1,13 @@
 const sourceEntries = ['appModules.js', 'bubbles', 'core', 'filters', 'table', 'ui'];
 const maxModuleLines = 900;
 const appRuntimeUsageBudget = {
-  maxDistinctMembers: 55,
-  maxMemberReferences: 207,
+  maxDistinctMembers: 54,
+  maxMemberReferences: 200,
   forbiddenMembers: new Set([
     'calculateCategoryCounts',
     'CustomDatePicker',
     'DOM',
+    'escapeHtml',
     'fieldAliases',
     'fieldDefs',
     'fieldDefsArray',

@@ -1,5 +1,6 @@
 import { DragUtils } from './dragUtils.js';
 import { formatDisplayValue } from './dateValues.js';
+import { escapeHtml } from './html.js';
 import { Icons } from './icons.js';
 import { OperatorLabels } from './operatorLabels.js';
 import { appRuntime } from './appRuntime.js';
@@ -611,16 +612,6 @@ const TableBuilder = {
   }
 };
 
-appRuntime.escapeHtml = function(unsafe) {
-  if (typeof unsafe !== 'string') return unsafe;
-  return unsafe
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-};
-
 const FormatUtils = {
   formatCellDisplay(raw, field) {
     if (raw == null) return '';
@@ -647,7 +638,6 @@ const FormatUtils = {
 };
 
 const EventUtils = appRuntime.EventUtils;
-const escapeHtml = appRuntime.escapeHtml;
 
 export {
   DragUtils,
