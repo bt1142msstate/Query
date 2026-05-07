@@ -8,6 +8,7 @@ import { appServices } from '../core/appServices.js';
 import { appUiActions } from '../core/appUiActions.js';
 import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { MoneyUtils, TableBuilder, TextMeasurement, ValueFormatting } from '../core/utils.js';
+import { createTableScrollbarController } from './tableScrollbar.js';
 import { sortRowsByColumn } from './tableSort.js';
 (function initializeVirtualTable() {
 // Virtual scrolling state
@@ -45,6 +46,9 @@ const HEADER_ACTION_SPACE = 116;
 const HEADER_TEXT_BALANCE_SPACE = 116;
 const FULL_TABLE_RENDER_ROW_LIMIT = 2000;
 var services = appServices, uiActions = appUiActions;
+const tableScrollbar = createTableScrollbarController({
+  getRowHeight: () => tableRowHeight
+});
 
 // Keep track of sorting state
 let currentSortColumn = null;
@@ -701,6 +705,7 @@ function calculateVisibleRows() {
 function renderVirtualTable() {
   const displayedFields = getDisplayedFields();
   if (!tableScrollContainer || !displayedFields.length) return;
+  tableScrollbar.attach(tableScrollContainer);
   
   const table = tableScrollContainer.querySelector('#example-table');
   if (!table) return;
@@ -737,6 +742,7 @@ function renderVirtualTable() {
     tbody.replaceChildren(nextBody);
     tableScrollTop = 0;
     tableScrollContainer.scrollTop = 0;
+    tableScrollbar.scheduleSync();
     return;
   }
 
@@ -893,6 +899,7 @@ function renderVirtualTable() {
   
   // Re-apply drag and drop to the new rows
   services.addDragAndDrop(table);
+  tableScrollbar.scheduleSync();
 }
 
 /**
@@ -921,6 +928,7 @@ function handleTableScroll(e) {
   }
   
   tableScrollTop = e.target.scrollTop;
+  tableScrollbar.scheduleSync();
 
   if (virtualTableData.rows.length <= FULL_TABLE_RENDER_ROW_LIMIT) {
     return;
@@ -1044,6 +1052,7 @@ async function setupVirtualTable(container, fields, options = {}) {
   // Set up scroll container reference
   tableScrollContainer = container;
   tableScrollTop = shouldPreserveScroll ? preservedScrollTop : 0;
+  tableScrollbar.attach(container);
 
   // Calculate widths if we have fields
   if (fields && fields.length > 0) {
@@ -1064,6 +1073,7 @@ async function setupVirtualTable(container, fields, options = {}) {
     container.scrollTop = preservedScrollTop;
     container.scrollLeft = preservedScrollLeft;
   }
+  tableScrollbar.scheduleSync();
   
   return { virtualTableData, calculatedColumnWidths };
 }
@@ -1125,6 +1135,7 @@ function clearVirtualTableData() {
   calculatedColumnWidths = {};
   manualColumnWidths = {};
   tableScrollTop = 0;
+  tableScrollbar.remove();
   tableScrollContainer = null;
   clearColumnResizeMode();
   simpleTableInstance = null;
