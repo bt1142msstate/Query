@@ -1,4 +1,4 @@
-import { appServices } from '../core/appServices.js';
+import { appServices, registerFormModeService } from '../core/appServices.js';
 import { appUiActions } from '../core/appUiActions.js';
 import { ClipboardUtils } from '../core/clipboard.js';
 import { OperatorLabels } from '../core/operatorLabels.js';
@@ -11,7 +11,6 @@ import { FormModeStateHelpers as formModeStateHelpers } from './formModeStateHel
 import { SharedFieldPicker } from './fieldPicker.js';
 import { QueryTableView } from './queryTableView.js';
 import { QueryUI } from './queryUI.js';
-import { appRuntime } from '../core/appRuntime.js';
 import { fieldDefs, isFieldBackendFilterable, loadFieldDefinitions } from '../filters/fieldDefs.js';
 import { DOM } from '../core/domCache.js';
 
@@ -767,8 +766,8 @@ let QueryFormMode;
 
   function stopRunningQueryForReset() {
     const lifecycleState = QueryStateReaders.getLifecycleState();
-    if (lifecycleState.queryRunning && appRuntime.QueryHistorySystem?.cancelQuery && lifecycleState.currentQueryId) {
-      appRuntime.QueryHistorySystem.cancelQuery(lifecycleState.currentQueryId).catch(console.error);
+    if (lifecycleState.queryRunning && lifecycleState.currentQueryId) {
+      Promise.resolve(services.cancelHistoryQuery(lifecycleState.currentQueryId)).catch(console.error);
       QueryChangeManager.setLifecycleState({ queryRunning: false }, { source: 'QueryFormMode.reset.stopQuery', silent: true });
       uiActions.updateRunButtonIcon();
     }
@@ -1970,7 +1969,7 @@ let QueryFormMode;
     getValidationError,
     buildCurrentShareUrl
   };
-  appRuntime.QueryFormMode = QueryFormMode;
+  registerFormModeService(QueryFormMode);
 })();
 
 export { QueryFormMode };

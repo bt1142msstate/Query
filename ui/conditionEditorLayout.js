@@ -1,7 +1,7 @@
-import { appRuntime } from '../core/appRuntime.js';
+import { registerAppUiActionDependencies } from '../core/appUiActions.js';
 import { DOM } from '../core/domCache.js';
 /* Keep the condition input capsule aligned above the active editor controls. */
-appRuntime.positionInputWrapper = function() {
+function positionInputWrapper() {
   const inputWrapper = DOM.inputWrapper;
   const conditionPanel = DOM.conditionPanel;
 
@@ -22,4 +22,8 @@ appRuntime.positionInputWrapper = function() {
   inputWrapper.style.top = `${top}px`;
   inputWrapper.style.setProperty('--wrapper-top', `${top}px`);
   inputWrapper.style.setProperty('--panel-top', `${panelRect.top}px`);
-};
+}
+
+registerAppUiActionDependencies({
+  conditionEditorLayout: Object.freeze({ positionInputWrapper })
+});

@@ -4,9 +4,8 @@
  * and overlay/backdrop management.
  * @class ModalManager
  */
-import { appServices } from '../core/appServices.js';
+import { appServices, registerModalService } from '../core/appServices.js';
 import { VisibilityUtils } from '../core/visibility.js';
-import { appRuntime } from '../core/appRuntime.js';
 import { DOM } from '../core/domCache.js';
 
 class ModalManager {
@@ -132,7 +131,7 @@ class ModalManager {
       appServices.fetchHistoryQueryStatus();
       appServices.startHistoryDurationUpdates();
     } else if (panelId === 'templates-panel') {
-      appRuntime.QueryTemplatesSystem?.openPanel?.();
+      appServices.openQueryTemplatesPanel();
     }
     
     // Accessibility
@@ -146,9 +145,9 @@ class ModalManager {
 
     if (panelId === 'queries-panel') {
       appServices.stopHistoryDurationUpdates();
-      appRuntime.QueryHistorySystem?.closeDetailsOverlay?.();
+      appServices.closeHistoryDetailsOverlay();
     } else if (panelId === 'templates-panel') {
-      appRuntime.QueryTemplatesSystem?.closePanel?.();
+      appServices.closeQueryTemplatesPanel();
     }
 
     if (panelId === 'mobile-menu-dropdown') {
@@ -182,9 +181,9 @@ class ModalManager {
       if (p && !p.classList.contains('hidden')) {
         if (pid === 'queries-panel') {
           appServices.stopHistoryDurationUpdates();
-          appRuntime.QueryHistorySystem?.closeDetailsOverlay?.();
+          appServices.closeHistoryDetailsOverlay();
         } else if (pid === 'templates-panel') {
-          appRuntime.QueryTemplatesSystem?.closePanel?.();
+          appServices.closeQueryTemplatesPanel();
         }
         if (pid === 'mobile-menu-dropdown') {
           p.classList.remove('show');
@@ -409,22 +408,22 @@ class ModalManager {
   }
 }
 
-// Global instance
-appRuntime.modalManager = new ModalManager();
+const modalManager = new ModalManager();
 
-appRuntime.lockInput = (duration) => appRuntime.modalManager.lockInput(duration);
-
-// Backward Compatibility for ModalSystem
-appRuntime.ModalSystem = {
-  closeAllModals: () => appRuntime.modalManager.closeAllPanels(),
-  lockInput: (d) => appRuntime.modalManager.lockInput(d),
-  openModal: (id) => appRuntime.modalManager.openPanel(id),
-  closeModal: (id) => appRuntime.modalManager.closePanel(id)
-};
+registerModalService(Object.freeze({
+  closeAllModals: () => modalManager.closeAllPanels(),
+  closeAllPanels: () => modalManager.closeAllPanels(),
+  lockInput: duration => modalManager.lockInput(duration),
+  openModal: id => modalManager.openPanel(id),
+  closeModal: id => modalManager.closePanel(id),
+  openPanel: id => modalManager.openPanel(id),
+  closePanel: id => modalManager.closePanel(id),
+  isInputLocked: () => modalManager.isInputLocked
+}));
 
 // Auto-initialize when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => appRuntime.modalManager.initialize());
+  document.addEventListener('DOMContentLoaded', () => modalManager.initialize());
 } else {
-  appRuntime.modalManager.initialize();
+  modalManager.initialize();
 }

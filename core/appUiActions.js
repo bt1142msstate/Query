@@ -9,9 +9,11 @@ import { updateQueryJson as updateJsonPreview } from '../ui/jsonViewerUI.js';
 
 let appUiActions;
 const actionDependencies = {
+  conditionEditorLayout: null,
   filterSidePanel: null,
   postFilterSystem: null,
   queryBuilderShell: null,
+  queryTableAnimation: null,
   queryTableView: null,
   queryUi: null,
   splitColumnsUi: null
@@ -61,6 +63,22 @@ function registerAppUiActionDependencies(dependencies = {}) {
 
   function updateTableResultsLip() {
     actionDependencies.queryUi?.updateTableResultsLip?.();
+  }
+
+  function positionInputWrapper() {
+    actionDependencies.conditionEditorLayout?.positionInputWrapper?.();
+  }
+
+  function startTableQueryAnimation() {
+    actionDependencies.queryTableAnimation?.startTableQueryAnimation?.();
+  }
+
+  function updateTableQueryAnimationProgress(metrics = {}) {
+    actionDependencies.queryTableAnimation?.updateTableQueryAnimationProgress?.(metrics);
+  }
+
+  function endTableQueryAnimation() {
+    actionDependencies.queryTableAnimation?.endTableQueryAnimation?.();
   }
 
   function updateFilterSidePanel() {
@@ -163,6 +181,10 @@ function registerAppUiActionDependencies(dependencies = {}) {
     updateRunButtonIcon,
     updateQueryJson,
     updateTableResultsLip,
+    positionInputWrapper,
+    startTableQueryAnimation,
+    updateTableQueryAnimationProgress,
+    endTableQueryAnimation,
     updateFilterSidePanel,
     refreshTableViewport,
     updateTableChromeState,

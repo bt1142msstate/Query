@@ -10,7 +10,6 @@ import { formatDisplayValue, parseDateValue } from '../core/dateValues.js';
 import { QueryStateReaders } from '../core/queryState.js';
 import { MoneyUtils, ValueFormatting } from '../core/utils.js';
 import { VisibilityUtils } from '../core/visibility.js';
-import { appRuntime } from '../core/appRuntime.js';
 import { QueryUI } from '../ui/queryUI.js';
 import { fieldDefs } from '../filters/fieldDefs.js';
 import { DOM } from '../core/domCache.js';
@@ -18,10 +17,8 @@ import { DOM } from '../core/domCache.js';
 (() => {
   // When true, multi-value cells (delimited by \x1F) are split into separate columns
   // instead of being stacked as newlines in a single cell.
-  // Synced with appRuntime.splitColumnsActive which virtualTable.js also reads.
   let splitMultiValues = false;
   let exportState = null;
-  appRuntime.splitColumnsActive = false;
 
   const SHEET_NAME_LIMIT = 31;
   const MAX_GROUPED_SHEETS = 100;
@@ -703,7 +700,6 @@ import { DOM } from '../core/domCache.js';
     const summary = getSplitEligibleSummary();
     if (!summary.eligible) {
       splitMultiValues = false;
-      appRuntime.splitColumnsActive = false;
     }
 
     applySplitToggleVisualState(toggleBtn, splitMultiValues, summary.eligible);

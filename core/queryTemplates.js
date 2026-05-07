@@ -3,7 +3,7 @@ import { onDOMReady } from './domReady.js';
 import { showToastMessage } from './toast.js';
 import { VisibilityUtils } from './visibility.js';
 import { buildQueryUiConfig } from '../filters/queryPayload.js';
-import { appRuntime } from './appRuntime.js';
+import { appServices, registerQueryTemplatesService } from './appServices.js';
 import { escapeHtml } from './html.js';
 (function initializeQueryTemplates() {
   const NEW_TEMPLATE_ID = '__new_template__';
@@ -82,7 +82,7 @@ import { escapeHtml } from './html.js';
   }
 
   function isRestrictedMode() {
-    return Boolean(appRuntime.QueryFormMode?.isLimitedView?.());
+    return appServices.isFormModeLimitedView();
   }
 
   function getTemplateId(template) {
@@ -695,27 +695,25 @@ import { escapeHtml } from './html.js';
       return;
     }
 
-    if (typeof appRuntime.clearCurrentQuery === 'function') {
-      try {
-        await appRuntime.clearCurrentQuery({ suppressToast: true });
-      } catch (error) {
-        console.error('Failed to clear query before applying template:', error);
-      }
+    try {
+      await appServices.clearCurrentQuery({ suppressToast: true });
+    } catch (error) {
+      console.error('Failed to clear query before applying template:', error);
     }
 
-    appRuntime.QueryHistorySystem?.applyQueryConfig?.({
+    appServices.applyHistoryQueryConfig({
       jsonConfig: selected.uiConfig
     });
 
-    if (appRuntime.QueryFormMode?.isActive?.()) {
-      appRuntime.QueryFormMode.syncFromCurrentQuery().catch(error => {
+    if (appServices.isFormModeActive()) {
+      Promise.resolve(appServices.syncFormModeFromCurrentQuery()).catch(error => {
         console.error('Failed to sync form mode after applying template:', error);
       });
     }
 
     showToastMessage(`Applied template "${selected.name}".`, 'success');
 
-    appRuntime.modalManager?.closePanel?.('templates-panel');
+    appServices.closeModalPanel('templates-panel');
   }
 
   async function togglePinSelectedTemplate() {
@@ -1484,7 +1482,7 @@ import { escapeHtml } from './html.js';
     });
 
     elements.pinnedMoreBtn?.addEventListener('click', () => {
-      appRuntime.modalManager?.openPanel?.('templates-panel');
+      appServices.openModalPanel('templates-panel');
     });
 
     elements.categorySaveBtn?.addEventListener('click', () => {
@@ -1561,11 +1559,11 @@ import { escapeHtml } from './html.js';
     }
   }
 
-  appRuntime.QueryTemplatesSystem = {
+  registerQueryTemplatesService(Object.freeze({
     openPanel,
     closePanel,
     refreshTemplates
-  };
+  }));
 
   onDOMReady(() => {
     bindEvents();
