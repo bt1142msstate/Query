@@ -4,6 +4,11 @@ import { ClipboardUtils } from '../core/clipboard.js';
 import { QueryChangeManager, getBaseFieldName, QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
+import {
+  createFormModeEmptyState,
+  getVisibleFormInputs,
+  mountFormModeCard
+} from './formModeCard.js';
 import { FormModeControls as formModeControls } from './formModeControls.js';
 import {
   cloneSpec,
@@ -965,63 +970,22 @@ let QueryFormMode;
       if (typeof control._cleanupPopup === 'function') control._cleanupPopup();
     });
 
-    const bubbleStage = document.getElementById('bubble-container') && document.getElementById('bubble-container').closest('.flex.items-start.justify-center');
-    if (!bubbleStage) return;
+    const mountedCard = mountFormModeCard(document);
+    if (!mountedCard) return;
 
-    let host = document.getElementById('form-mode-host');
-    if (!host) {
-      host = document.createElement('div');
-      host.id = 'form-mode-host';
-      host.className = 'form-mode-host hidden';
-      bubbleStage.insertBefore(host, bubbleStage.firstChild);
-    }
+    state.formHost = mountedCard.host;
+    state.formCard = mountedCard.card;
+    state.validationEl = mountedCard.validationEl;
+    state.runBtn = mountedCard.runBtn;
+    state.copyBtn = mountedCard.copyBtn;
+    state.resetOriginalBtn = mountedCard.resetOriginalBtn;
+    state.resetSharedBtn = mountedCard.resetSharedBtn;
 
-    state.formHost = host;
-    if (!host) return;
-
-    const card = document.createElement('section');
-    card.id = 'form-mode-card';
-    card.className = 'form-mode-card';
-    card.innerHTML = `
-      <div class="form-mode-header">
-        <div>
-          <h2 class="form-mode-title" data-form-mode-title></h2>
-          <p class="form-mode-description hidden" data-form-mode-description></p>
-        </div>
-        <div class="form-mode-actions">
-          <button type="button" id="form-mode-add-field" class="form-mode-btn form-mode-btn-secondary">+ Add Field</button>
-          <button type="button" id="form-mode-run" class="form-mode-btn form-mode-btn-primary">Run Form</button>
-          <button type="button" id="form-mode-reset-original" class="form-mode-btn" data-tooltip="Restore the original form version.">Reset to Original</button>
-          <button type="button" id="form-mode-reset-shared" class="form-mode-btn" data-tooltip="Share this form first to create a shared baseline.">Reset to Last Shared</button>
-          <button type="button" id="form-mode-copy" class="form-mode-btn">Share</button>
-        </div>
-      </div>
-      <div class="form-mode-body">
-        <div id="form-mode-fields" class="form-mode-fields"></div>
-        <p id="form-mode-validation" class="form-mode-validation hidden"></p>
-      </div>
-    `;
-
-    host.innerHTML = '';
-    host.appendChild(card);
-    state.formCard = card;
-    state.validationEl = card.querySelector('#form-mode-validation');
-    state.runBtn = card.querySelector('#form-mode-run');
-    state.copyBtn = card.querySelector('#form-mode-copy');
-    state.resetOriginalBtn = card.querySelector('#form-mode-reset-original');
-    state.resetSharedBtn = card.querySelector('#form-mode-reset-shared');
-
-    const fieldsWrap = card.querySelector('#form-mode-fields');
-    const visibleInputs = state.spec.inputs.filter(inputSpec => !inputSpec.hidden);
+    const fieldsWrap = mountedCard.fieldsWrap;
+    const visibleInputs = getVisibleFormInputs(state.spec.inputs);
 
     if (visibleInputs.length === 0) {
-      const emptyState = document.createElement('div');
-      emptyState.className = 'form-mode-empty-state';
-      emptyState.innerHTML = `
-        <strong>No filters yet.</strong>
-        <p>This form does not have any filter controls yet. Use "Add Filter" to add one.</p>
-      `;
-      fieldsWrap.appendChild(emptyState);
+      fieldsWrap.appendChild(createFormModeEmptyState(document));
     }
 
     visibleInputs.forEach(inputSpec => {
@@ -1057,7 +1021,7 @@ let QueryFormMode;
       DOM && DOM.runBtn && DOM.runBtn.click();
     });
 
-    card.querySelector('#form-mode-add-field').addEventListener('click', () => {
+    mountedCard.addFieldBtn.addEventListener('click', () => {
       openFieldPicker().catch(error => {
         console.error('Failed to open field picker:', error);
         showToastMessage('Failed to open the field picker.', 'error');
