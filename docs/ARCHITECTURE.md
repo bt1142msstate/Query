@@ -32,7 +32,7 @@ The former private runtime coordination layer has been removed. Feature coordina
 | State | `core/queryState.js` | Query state, lifecycle flags, read/write facades |
 | Services/actions | `core/appServices.js`, `core/appUiActions.js` | Cross-feature coordination without direct feature coupling |
 | Data contract | `filters/queryPayload.js`, `filters/fieldDefs.js` | Backend payload generation, field metadata, filter normalization |
-| Feature UI | `ui/`, `filters/`, `bubbles/`, `table/`, `core/queryHistory*.js`, `core/queryTemplates.js` | User workflows and rendering |
+| Feature UI | `ui/`, `filters/`, `bubbles/`, `table/`, `history/`, `templates/` | User workflows and rendering |
 | Styles | `styles/app.css` plus feature CSS files | Feature-scoped styling with a single stylesheet entry |
 | Architecture config | `config/` | Forbidden browser globals, module budgets, and import-boundary rules |
 | Tests | `tests/` | Architecture checks and browser smoke coverage |
@@ -100,6 +100,6 @@ The architecture fitness test prevents those files from growing. New large modul
 ## Recommended Next Refactors
 
 1. Split `ui/formMode.js` into schema parsing, lifecycle coordination, rendering, and event binding modules.
-2. Split `core/queryTemplates.js` into storage, rendering, category management, and editor modules.
-3. Add focused unit tests for `core/queryState.js` lifecycle edge cases and form-mode schema parsing.
+2. Split `templates/queryTemplates.js` into storage, rendering, category management, and editor modules.
+3. Add more workflow-level unit tests for history/template state transitions and form-mode schema parsing.
 4. Consider TypeScript or JSDoc type checking if the project needs a stronger enterprise-style portfolio signal.

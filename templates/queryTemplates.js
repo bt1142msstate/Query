@@ -1,9 +1,9 @@
-import { BackendApi } from './backendApi.js';
-import { onDOMReady } from './domReady.js';
-import { showToastMessage } from './toast.js';
-import { VisibilityUtils } from './visibility.js';
+import { BackendApi } from '../core/backendApi.js';
+import { onDOMReady } from '../core/domReady.js';
+import { showToastMessage } from '../core/toast.js';
+import { VisibilityUtils } from '../core/visibility.js';
 import { buildQueryUiConfig } from '../filters/queryPayload.js';
-import { appServices, registerQueryTemplatesService } from './appServices.js';
+import { appServices, registerQueryTemplatesService } from '../core/appServices.js';
 import {
   cloneTemplate,
   formatTimestamp,
@@ -23,7 +23,7 @@ import {
   validateCategoryName,
   validateTemplateDraft
 } from './queryTemplateState.js';
-import { escapeHtml } from './html.js';
+import { escapeHtml } from '../core/html.js';
 (function initializeQueryTemplates() {
   const NEW_TEMPLATE_ID = '__new_template__';
   const DEFAULT_TEMPLATE_SVG = `

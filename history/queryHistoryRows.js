@@ -1,5 +1,5 @@
 import { buildHistoryExpandButton, escapeHistoryText } from './queryHistoryDetails.js';
-import { formatDuration } from './dataFormatters.js';
+import { formatDuration } from '../core/dataFormatters.js';
 import { getQueryStatusMeta } from './queryHistoryViewHelpers.js';
 
 const HISTORY_TABLE_HEADS = Object.freeze({

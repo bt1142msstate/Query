@@ -5,13 +5,13 @@ import {
   mapRequestOperatorToUiOperator,
   mergeUiConfigWithRequest,
   resolveFieldNameFromSpecialPayload
-} from '../core/queryHistoryRequestMapper.js';
+} from '../history/queryHistoryRequestMapper.js';
 import {
   classifyQueryStatus,
   getPreferredHistorySection,
   getQueryStatusMeta
-} from '../core/queryHistoryViewHelpers.js';
-import { createQueriesTableRowHtml } from '../core/queryHistoryRows.js';
+} from '../history/queryHistoryViewHelpers.js';
+import { createQueriesTableRowHtml } from '../history/queryHistoryRows.js';
 
 const fieldDefsArray = [
   {

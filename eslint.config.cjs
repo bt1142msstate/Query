@@ -527,7 +527,9 @@ module.exports = [
       'bubbles/**/*.js',
       'core/**/*.js',
       'filters/**/*.js',
+      'history/**/*.js',
       'table/**/*.js',
+      'templates/**/*.js',
       'ui/**/*.js'
     ],
     languageOptions: {

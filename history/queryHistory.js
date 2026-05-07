@@ -18,18 +18,18 @@ import {
   classifyQueryStatus,
   getPreferredHistorySection as getPreferredHistorySectionForCounts
 } from './queryHistoryViewHelpers.js';
-import { appServices, registerQueryHistoryService } from './appServices.js';
-import { appUiActions } from './appUiActions.js';
-import { BackendApi } from './backendApi.js';
-import { formatDuration, parsePipeDelimitedRow } from './dataFormatters.js';
-import { onDOMReady } from './domReady.js';
-import { AppState, QueryChangeManager, QueryStateReaders } from './queryState.js';
-import { showToastMessage } from './toast.js';
-import { VisibilityUtils } from './visibility.js';
+import { appServices, registerQueryHistoryService } from '../core/appServices.js';
+import { appUiActions } from '../core/appUiActions.js';
+import { BackendApi } from '../core/backendApi.js';
+import { formatDuration, parsePipeDelimitedRow } from '../core/dataFormatters.js';
+import { onDOMReady } from '../core/domReady.js';
+import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
+import { showToastMessage } from '../core/toast.js';
+import { VisibilityUtils } from '../core/visibility.js';
 import { formatFieldOperatorForDisplay, mapFieldOperatorToUiCond, normalizeUiConfigFilters } from '../filters/queryPayload.js';
 import { registerDynamicField, resolveFieldName } from '../filters/fieldDefs.js';
-import { DOM } from './domCache.js';
-import { escapeHtml } from './html.js';
+import { DOM } from '../core/domCache.js';
+import { escapeHtml } from '../core/html.js';
 /* ---------- Query history state and renderer ---------- */
 let exampleQueries = [];
 let queryDurationUpdateInterval = null;

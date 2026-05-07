@@ -1,4 +1,4 @@
-const sourceEntries = ['appModules.js', 'bubbles', 'core', 'filters', 'table', 'ui'];
+const sourceEntries = ['appModules.js', 'bubbles', 'core', 'filters', 'history', 'table', 'templates', 'ui'];
 const maxModuleLines = 900;
 const runtimeBridgeUsageBudget = {
   maxDistinctMembers: 0,
@@ -152,9 +152,9 @@ const forbiddenWindowMemberReads = new Map([
 ]);
 
 const legacyLargeModuleBudgets = new Map([
-  ['core/queryHistory.js', 1208],
+  ['history/queryHistory.js', 1208],
   ['core/queryState.js', 1040],
-  ['core/queryTemplates.js', 1592],
+  ['templates/queryTemplates.js', 1592],
   ['core/utils.js', 674],
   ['filters/filterManager.js', 1371],
   ['table/dragDropInteractions.js', 1348],
@@ -167,7 +167,7 @@ const legacyLargeModuleBudgets = new Map([
 const moduleBoundaryRules = [
   {
     path: 'appModules.js',
-    allowedLayers: ['core', 'filters', 'ui', 'table', 'bubbles']
+    allowedLayers: ['core', 'filters', 'history', 'templates', 'ui', 'table', 'bubbles']
   },
   {
     path: 'core/appUiActions.js',
@@ -190,12 +190,20 @@ const moduleBoundaryRules = [
     allowedLayers: ['core', 'filters', 'ui']
   },
   {
+    prefix: 'history/',
+    allowedLayers: ['core', 'filters', 'history']
+  },
+  {
     prefix: 'ui/',
     allowedLayers: ['core', 'filters', 'ui']
   },
   {
     prefix: 'table/',
     allowedLayers: ['core', 'filters', 'table', 'ui']
+  },
+  {
+    prefix: 'templates/',
+    allowedLayers: ['core', 'filters', 'templates']
   },
   {
     prefix: 'bubbles/',
