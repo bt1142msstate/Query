@@ -1,6 +1,7 @@
 import { showToastMessage } from './toast.js';
 import { MoneyUtils, ValueFormatting } from './utils.js';
 import { appRuntime } from './appRuntime.js';
+import { resolveFieldName } from '../filters/fieldDefs.js';
 
 (function initializeQueryPrevalidation() {
   let lastRejectedToast = {
@@ -25,8 +26,8 @@ import { appRuntime } from './appRuntime.js';
       return '';
     }
 
-    return typeof appRuntime.resolveFieldName === 'function'
-      ? appRuntime.resolveFieldName(normalizedField)
+    return typeof resolveFieldName === 'function'
+      ? resolveFieldName(normalizedField)
       : normalizedField;
   }
 

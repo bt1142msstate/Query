@@ -1,5 +1,26 @@
 const sourceEntries = ['appModules.js', 'bubbles', 'core', 'filters', 'table', 'ui'];
 const maxModuleLines = 900;
+const appRuntimeUsageBudget = {
+  maxDistinctMembers: 59,
+  maxMemberReferences: 413,
+  forbiddenMembers: new Set([
+    'calculateCategoryCounts',
+    'fieldAliases',
+    'fieldDefs',
+    'fieldDefsArray',
+    'filteredDefs',
+    'getFieldFilterOperators',
+    'hasLoadedFieldDefinitions',
+    'isFieldBackendFilterable',
+    'loadFieldDefinitions',
+    'registerDynamicField',
+    'renderCategorySelectors',
+    'resolveFieldName',
+    'shouldFieldHavePurpleStyling',
+    'shouldFieldHavePurpleStylingBase',
+    'updateFilteredDefs'
+  ])
+};
 
 const forbiddenWindowMemberReads = new Map([
   ['AppState', 'Import from core/queryState.js instead of reading app runtime state from window'],
@@ -101,6 +122,7 @@ const moduleBoundaryRules = [
 ];
 
 module.exports = {
+  appRuntimeUsageBudget,
   forbiddenWindowMemberReads,
   legacyLargeModuleBudgets,
   maxModuleLines,

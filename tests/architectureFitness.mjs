@@ -7,6 +7,7 @@ const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
 const { forbiddenAppWindowBridgeNames } = require('../config/windowBridgeGlobals.cjs');
 const {
+  appRuntimeUsageBudget,
   forbiddenWindowMemberReads,
   legacyLargeModuleBudgets,
   maxModuleLines,
@@ -51,6 +52,72 @@ function findPublicWindowExports(source) {
   }
 
   return exports;
+}
+
+function stripCommentsAndStrings(source) {
+  let stripped = '';
+
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    const nextChar = source[index + 1];
+
+    if (char === '/' && nextChar === '/') {
+      stripped += '  ';
+      index += 2;
+      while (index < source.length && source[index] !== '\n') {
+        stripped += ' ';
+        index += 1;
+      }
+      if (index < source.length) stripped += source[index];
+      continue;
+    }
+
+    if (char === '/' && nextChar === '*') {
+      stripped += '  ';
+      index += 2;
+      while (index < source.length && !(source[index] === '*' && source[index + 1] === '/')) {
+        stripped += source[index] === '\n' ? '\n' : ' ';
+        index += 1;
+      }
+      if (index < source.length) {
+        stripped += '  ';
+        index += 1;
+      }
+      continue;
+    }
+
+    if (char === '"' || char === '\'' || char === '`') {
+      const quote = char;
+      stripped += ' ';
+      index += 1;
+      while (index < source.length) {
+        const innerChar = source[index];
+        if (innerChar === '\\') {
+          stripped += ' ';
+          index += 1;
+          if (index < source.length) stripped += source[index] === '\n' ? '\n' : ' ';
+          index += 1;
+          continue;
+        }
+        if (innerChar === quote) {
+          stripped += ' ';
+          break;
+        }
+        stripped += innerChar === '\n' ? '\n' : ' ';
+        index += 1;
+      }
+      continue;
+    }
+
+    stripped += char;
+  }
+
+  return stripped;
+}
+
+function findAppRuntimeMemberReferences(source) {
+  return [...stripCommentsAndStrings(source).matchAll(/\bappRuntime\s*\.\s*([A-Za-z_$][\w$]*)\b/gu)]
+    .map(match => match[1]);
 }
 
 function findForbiddenWindowMemberReads(source) {
@@ -168,6 +235,8 @@ const sourceFiles = (await Promise.all(sourceEntries.map(collectJavaScriptFiles)
 const sourceFilePaths = new Set(sourceFiles.map(toRepoPath));
 const importGraph = new Map();
 const failures = [];
+const appRuntimeMembers = new Set();
+let appRuntimeMemberReferenceCount = 0;
 
 for (const filePath of sourceFiles) {
   const source = await readFile(filePath, 'utf8');
@@ -200,6 +269,15 @@ for (const filePath of sourceFiles) {
     const message = forbiddenWindowMemberReads.get(readName)
       || 'Do not read former application bridge APIs from window; import directly or use appRuntime while legacy cycles remain';
     failures.push(`${relativePath}: window.${readName} is forbidden; ${message}`);
+  }
+
+  for (const memberName of findAppRuntimeMemberReferences(source)) {
+    appRuntimeMembers.add(memberName);
+    appRuntimeMemberReferenceCount += 1;
+
+    if (appRuntimeUsageBudget.forbiddenMembers.has(memberName)) {
+      failures.push(`${relativePath}: appRuntime.${memberName} is forbidden; import field metadata helpers from filters/fieldDefs.js`);
+    }
   }
 
   for (const specifier of findImportSpecifiers(source)) {
@@ -239,6 +317,14 @@ for (const sourcePath of sourceFilePaths) {
   if (!reachableModules.has(sourcePath)) {
     failures.push(`${sourcePath}: application module is not reachable from appModules.js`);
   }
+}
+
+if (appRuntimeMemberReferenceCount > appRuntimeUsageBudget.maxMemberReferences) {
+  failures.push(`appRuntime member references: ${appRuntimeMemberReferenceCount} exceeds budget of ${appRuntimeUsageBudget.maxMemberReferences}; use ES imports or explicit dependency injection`);
+}
+
+if (appRuntimeMembers.size > appRuntimeUsageBudget.maxDistinctMembers) {
+  failures.push(`appRuntime distinct members: ${appRuntimeMembers.size} exceeds budget of ${appRuntimeUsageBudget.maxDistinctMembers}; use ES imports or explicit dependency injection`);
 }
 
 if (failures.length > 0) {

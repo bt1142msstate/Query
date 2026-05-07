@@ -605,6 +605,7 @@ async function expectPostFilterStats(page, expected, label) {
 async function exerciseBubbleFilterInteraction(page) {
   await page.evaluate(async () => {
     const { appRuntime } = await import('./core/appRuntime.js');
+    const { fieldDefs, fieldDefsArray, filteredDefs } = await import('./filters/fieldDefs.js');
     const fieldDef = {
       name: 'Smoke Filter Field',
       category: 'Smoke',
@@ -613,14 +614,13 @@ async function exerciseBubbleFilterInteraction(page) {
       type: 'string'
     };
 
-    appRuntime.fieldDefs.set(fieldDef.name, fieldDef);
-    appRuntime.fieldDefsArray = [
-      fieldDef,
-      ...(Array.isArray(appRuntime.fieldDefsArray)
-        ? appRuntime.fieldDefsArray.filter(field => field?.name !== fieldDef.name)
-        : [])
-    ];
-    appRuntime.filteredDefs = [fieldDef];
+    fieldDefs.set(fieldDef.name, fieldDef);
+    const existingIndex = fieldDefsArray.findIndex(field => field?.name === fieldDef.name);
+    if (existingIndex >= 0) {
+      fieldDefsArray.splice(existingIndex, 1);
+    }
+    fieldDefsArray.unshift(fieldDef);
+    filteredDefs.splice(0, filteredDefs.length, fieldDef);
     appRuntime.AppState.currentCategory = 'All';
 
     appRuntime.QueryChangeManager.setQueryState({

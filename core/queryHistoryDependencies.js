@@ -1,6 +1,6 @@
 import { escapeRegExp, formatDuration } from './dataFormatters.js';
 import { formatStandardFilterTooltipHTML } from './tooltipFormatters.js';
-import { appRuntime } from './appRuntime.js';
+import { fieldDefsArray, registerDynamicField, resolveFieldName } from '../filters/fieldDefs.js';
 
 function createQueryHistoryDependencies(normalizeUiConfigFilters) {
   return {
@@ -14,10 +14,10 @@ function createQueryHistoryDependencies(normalizeUiConfigFilters) {
     mapper() {
       return {
         escapeRegExp,
-        fieldDefsArray: appRuntime.fieldDefsArray,
+        fieldDefsArray: fieldDefsArray,
         normalizeUiConfigFilters,
-        registerDynamicField: appRuntime.registerDynamicField,
-        resolveFieldName: appRuntime.resolveFieldName
+        registerDynamicField: registerDynamicField,
+        resolveFieldName: resolveFieldName
       };
     }
   };

@@ -10,6 +10,7 @@ import { FormModeControls as formModeControls } from './formModeControls.js';
 import { FormModeStateHelpers as formModeStateHelpers } from './formModeStateHelpers.js';
 import { SharedFieldPicker } from './fieldPicker.js';
 import { appRuntime } from '../core/appRuntime.js';
+import { fieldDefs, isFieldBackendFilterable, loadFieldDefinitions } from '../filters/fieldDefs.js';
 
 let QueryFormMode;
 
@@ -451,7 +452,7 @@ let QueryFormMode;
   }
 
   function buildGeneratedInputSpecFromFilter(fieldName, filter, index, filters, seenKeys) {
-    const fieldDef = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(fieldName) : null;
+    const fieldDef = fieldDefs ? fieldDefs.get(fieldName) : null;
     const operator = normalizeOperatorForField(fieldDef, String(filter && filter.cond || 'equals').trim() || 'equals');
     const values = readStoredFilterValues(filter);
     const hasMultipleFilters = filters.length > 1;
@@ -567,7 +568,7 @@ let QueryFormMode;
         return;
       }
 
-      const fieldDef = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(match.field) : null;
+      const fieldDef = fieldDefs ? fieldDefs.get(match.field) : null;
       const previousOperator = match.operator;
       const previousType = match.type;
       const previousDefaults = JSON.stringify(getInputSpecDefaultValues(match));
@@ -878,7 +879,7 @@ let QueryFormMode;
       if (excludedInputKey && inputSpec.key === excludedInputKey) {
         return;
       }
-      const fieldDef = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(inputSpec.field) : null;
+      const fieldDef = fieldDefs ? fieldDefs.get(inputSpec.field) : null;
       syncInputSpecFromState(inputSpec, {
         operator: inputSpec.operator,
         values: getControlValues(inputSpec)
@@ -978,8 +979,8 @@ let QueryFormMode;
   }
 
   async function activateGeneratedFormFromCurrentQuery() {
-    if (typeof appRuntime.loadFieldDefinitions === 'function') {
-      await appRuntime.loadFieldDefinitions();
+    if (typeof loadFieldDefinitions === 'function') {
+      await loadFieldDefinitions();
     }
 
     const nextSpec = buildSpecFromCurrentQuery();
@@ -1011,8 +1012,8 @@ let QueryFormMode;
   }
 
   async function syncGeneratedFormFromCurrentQuery(options = {}) {
-    if (typeof appRuntime.loadFieldDefinitions === 'function') {
-      await appRuntime.loadFieldDefinitions();
+    if (typeof loadFieldDefinitions === 'function') {
+      await loadFieldDefinitions();
     }
 
     const nextSpec = buildSpecFromCurrentQuery();
@@ -1057,8 +1058,8 @@ let QueryFormMode;
   async function openFieldPicker() {
     await SharedFieldPicker.open({
       beforeOpen: async () => {
-        if (typeof appRuntime.loadFieldDefinitions === 'function') {
-          await appRuntime.loadFieldDefinitions();
+        if (typeof loadFieldDefinitions === 'function') {
+          await loadFieldDefinitions();
         }
         syncSpecColumnsWithDisplayedFields({ refreshUrl: false });
       },
@@ -1081,12 +1082,12 @@ let QueryFormMode;
         filter: hasSpecFilterInput(fieldName)
       }),
       renderFilterPreview: (container, fieldName, context = {}) => {
-        if (!container || !state.spec || !appRuntime.fieldDefs) {
+        if (!container || !state.spec || !fieldDefs) {
           return null;
         }
 
-        const fieldDef = appRuntime.fieldDefs.get(fieldName);
-        if (!fieldDef || (typeof appRuntime.isFieldBackendFilterable === 'function' && !appRuntime.isFieldBackendFilterable(fieldDef))) {
+        const fieldDef = fieldDefs.get(fieldName);
+        if (!fieldDef || (typeof isFieldBackendFilterable === 'function' && !isFieldBackendFilterable(fieldDef))) {
           return null;
         }
 
@@ -1222,7 +1223,7 @@ let QueryFormMode;
             const previewState = typeof options.getFilterPreviewState === 'function'
               ? options.getFilterPreviewState()
               : null;
-            const fieldDef = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(fieldName) : null;
+            const fieldDef = fieldDefs ? fieldDefs.get(fieldName) : null;
             if (previewState && previewState.fieldName === fieldName) {
               syncInputSpecFromState(inputSpec, previewState, fieldDef);
             }
@@ -1249,7 +1250,7 @@ let QueryFormMode;
         }
 
         let targetInputSpec = state.spec.inputs.find(inputSpec => inputSpec && inputSpec.field === fieldName);
-        const fieldDef = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(fieldName) : null;
+        const fieldDef = fieldDefs ? fieldDefs.get(fieldName) : null;
 
         if (!targetInputSpec) {
           captureCurrentControlDefaults();
@@ -1415,7 +1416,7 @@ let QueryFormMode;
     nextUrl.searchParams.set('limited', '1');
 
     state.spec.inputs.forEach(inputSpec => {
-      const fieldDef = appRuntime.fieldDefs && inputSpec.field ? appRuntime.fieldDefs.get(inputSpec.field) : null;
+      const fieldDef = fieldDefs && inputSpec.field ? fieldDefs.get(inputSpec.field) : null;
       const isMultiValue = supportsMultipleValues(inputSpec, fieldDef);
       const rawValues = getCurrentInputValues(inputSpec);
       const keys = getInputParamKeys(inputSpec);
@@ -1620,7 +1621,7 @@ let QueryFormMode;
     }
 
     visibleInputs.forEach(inputSpec => {
-      const fieldDef = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(inputSpec.field) : null;
+      const fieldDef = fieldDefs ? fieldDefs.get(inputSpec.field) : null;
       inputSpec.operator = normalizeOperatorForField(fieldDef, inputSpec.operator);
       const control = createFormControl(
         fieldDef,
@@ -1943,8 +1944,8 @@ let QueryFormMode;
       ? 'form'
       : (searchParams.get('mode') === 'bubbles' ? 'bubbles' : 'form');
 
-    if (typeof appRuntime.loadFieldDefinitions === 'function') {
-      await appRuntime.loadFieldDefinitions();
+    if (typeof loadFieldDefinitions === 'function') {
+      await loadFieldDefinitions();
     }
 
     services.clearVirtualTableData();

@@ -7,6 +7,7 @@ import { appUiActions } from '../core/appUiActions.js';
 import { AppState, QueryChangeManager, QueryStateReaders, registerQueryStateRuntimeAccessors } from '../core/queryState.js';
 import { FormatUtils } from '../core/utils.js';
 import { appRuntime } from '../core/appRuntime.js';
+import { fieldDefs } from '../filters/fieldDefs.js';
 
 let dragDropColumnOps;
 
@@ -106,7 +107,7 @@ let dragDropColumnOps;
     if (baseFieldName) {
       document.querySelectorAll('.bubble').forEach(bubbleEl => {
         if (bubbleEl.textContent.trim() === baseFieldName) {
-          const fieldDef = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(baseFieldName) : null;
+          const fieldDef = fieldDefs ? fieldDefs.get(baseFieldName) : null;
           if (fieldDef && fieldDef.is_buildable) {
             bubbleEl.setAttribute('draggable', 'false');
           } else {

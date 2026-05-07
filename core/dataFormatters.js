@@ -1,4 +1,11 @@
 import { appRuntime } from './appRuntime.js';
+
+let getDefaultFieldDefinitions = () => null;
+
+function registerDataFormatterFieldDefinitions(getter) {
+  getDefaultFieldDefinitions = typeof getter === 'function' ? getter : () => null;
+}
+
 function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -23,7 +30,7 @@ function formatDuration(seconds) {
 }
 
 function getFieldOutputSegments(fieldName, fieldDefinitions = null) {
-  const definitions = fieldDefinitions || (typeof window !== 'undefined' ? appRuntime.fieldDefs : null);
+  const definitions = fieldDefinitions || getDefaultFieldDefinitions();
   if (!definitions || typeof definitions.get !== 'function') {
     return 1;
   }
@@ -87,5 +94,6 @@ export {
   escapeRegExp,
   formatDuration,
   getFieldOutputSegments,
-  parsePipeDelimitedRow
+  parsePipeDelimitedRow,
+  registerDataFormatterFieldDefinitions
 };

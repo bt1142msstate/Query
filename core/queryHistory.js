@@ -28,6 +28,7 @@ import { showToastMessage } from './toast.js';
 import { VisibilityUtils } from './visibility.js';
 import { formatFieldOperatorForDisplay, mapFieldOperatorToUiCond, normalizeUiConfigFilters } from '../filters/queryPayload.js';
 import { appRuntime } from './appRuntime.js';
+import { registerDynamicField, resolveFieldName } from '../filters/fieldDefs.js';
 /* ---------- Query history state and renderer ---------- */
 let exampleQueries = [];
 let queryDurationUpdateInterval = null;
@@ -427,8 +428,8 @@ function loadQueryConfig(q) {
   const filters = normalizeUiConfigFilters(q.jsonConfig, { trackAliases: true });
   const desiredColumns = Array.isArray(q.jsonConfig.DesiredColumnOrder)
     ? q.jsonConfig.DesiredColumnOrder.map(fieldName => (
-        typeof appRuntime.resolveFieldName === 'function'
-          ? appRuntime.resolveFieldName(fieldName, { trackAlias: true })
+        typeof resolveFieldName === 'function'
+          ? resolveFieldName(fieldName, { trackAlias: true })
           : fieldName
       ))
     : [];
@@ -438,11 +439,11 @@ function loadQueryConfig(q) {
   );
   resolvedSpecialFields.forEach(fieldName => appendUniqueColumn(desiredColumns, fieldName));
 
-  if (typeof appRuntime.registerDynamicField === 'function') {
-    resolvedSpecialFields.forEach(fieldName => appRuntime.registerDynamicField(fieldName));
+  if (typeof registerDynamicField === 'function') {
+    resolvedSpecialFields.forEach(fieldName => registerDynamicField(fieldName));
     filters.forEach(filter => {
       if (filter?.FieldName) {
-        appRuntime.registerDynamicField(filter.FieldName);
+        registerDynamicField(filter.FieldName);
       }
     });
   }
@@ -451,8 +452,8 @@ function loadQueryConfig(q) {
 
   if (filters.length) {
     filters.forEach(ff => {
-      const fieldName = typeof appRuntime.resolveFieldName === 'function'
-        ? appRuntime.resolveFieldName(ff.FieldName)
+      const fieldName = typeof resolveFieldName === 'function'
+        ? resolveFieldName(ff.FieldName)
         : ff.FieldName;
       const uiCond = mapFieldOperatorToUiCond(ff.FieldOperator);
       const valueGlue = uiCond === 'between' ? '|' : ',';
@@ -479,8 +480,8 @@ function loadQueryConfig(q) {
 
   // Register any dynamically-built fields (e.g. Marc590) that may not exist
   // in the current session's fieldDefs registry.
-  if (typeof appRuntime.registerDynamicField === 'function') {
-    getDisplayedFields().forEach(f => appRuntime.registerDynamicField(f));
+  if (typeof registerDynamicField === 'function') {
+    getDisplayedFields().forEach(f => registerDynamicField(f));
   }
   
   // Clear filters and reapply from query

@@ -8,6 +8,7 @@ import { formatFieldDefinitionTooltipHTML, formatStandardFilterTooltipHTML } fro
 import { AppState, QueryStateReaders } from '../core/queryState.js';
 import { VisibilityUtils } from '../core/visibility.js';
 import { appRuntime } from '../core/appRuntime.js';
+import { filteredDefs, isFieldBackendFilterable, shouldFieldHavePurpleStylingBase } from '../filters/fieldDefs.js';
 
 var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
 var getActiveFilters = QueryStateReaders.getActiveFilters.bind(QueryStateReaders);
@@ -28,8 +29,8 @@ class Bubble {
     Object.assign(this.state, state);
     const { def } = this;
     const fieldName = def.name;
-    const isFilterable = typeof appRuntime.isFieldBackendFilterable === 'function'
-      ? appRuntime.isFieldBackendFilterable(def)
+    const isFilterable = typeof isFieldBackendFilterable === 'function'
+      ? isFieldBackendFilterable(def)
       : Array.isArray(def.filters) && def.filters.length > 0;
     this.el.textContent = fieldName;
 
@@ -349,7 +350,7 @@ function applyCorrectBubbleStyling(bubbleElement) {
   if (!bubbleElement) return;
 
   const fieldName = bubbleElement.textContent.trim();
-  if (appRuntime.shouldFieldHavePurpleStylingBase(fieldName, getDisplayedFields(), getActiveFilters())) {
+  if (shouldFieldHavePurpleStylingBase(fieldName, getDisplayedFields(), getActiveFilters())) {
     bubbleElement.classList.add('bubble-filter');
     bubbleElement.setAttribute('data-filtered', 'true');
   } else {
@@ -375,7 +376,7 @@ function createOrUpdateBubble(def, existingBubble = null) {
 }
 
 function renderBubbles() {
-  const currentFilteredDefs = Array.isArray(appRuntime.filteredDefs) ? appRuntime.filteredDefs : null;
+  const currentFilteredDefs = Array.isArray(filteredDefs) ? filteredDefs : null;
   if (!currentFilteredDefs) {
     console.log('renderBubbles: Required globals not available yet');
     return;
@@ -392,7 +393,7 @@ function renderBubbles() {
     const displayedFields = getDisplayedFields();
     const activeFilters = getActiveFilters();
     const displayedSet = new Set(displayedFields);
-    const filteredSelected = currentFilteredDefs.filter(d => appRuntime.shouldFieldHavePurpleStylingBase(d.name, displayedFields, activeFilters));
+    const filteredSelected = currentFilteredDefs.filter(d => shouldFieldHavePurpleStylingBase(d.name, displayedFields, activeFilters));
     const orderedList = displayedFields
       .map(name => filteredSelected.find(d => d.name === name))
       .filter(Boolean);

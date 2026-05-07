@@ -1,6 +1,7 @@
 import { appServices } from '../core/appServices.js';
 import { AppState } from '../core/queryState.js';
 import { appRuntime } from '../core/appRuntime.js';
+import { fieldDefs, shouldFieldHavePurpleStyling } from '../filters/fieldDefs.js';
 
 var services = appServices;
 
@@ -98,7 +99,7 @@ function resetActiveBubblesImpl() {
           const bubbles = Array.from(document.querySelectorAll('.bubble'));
           bubbles.forEach(bubble => {
             if (bubble.textContent.trim() !== fieldName) return;
-            const stillExists = appRuntime.fieldDefs.has(fieldName) && appRuntime.shouldFieldHavePurpleStyling(fieldName);
+            const stillExists = fieldDefs.has(fieldName) && shouldFieldHavePurpleStyling(fieldName);
             if (!stillExists && appState.currentCategory === 'Selected') {
               bubble.remove();
             } else {
@@ -121,7 +122,7 @@ function resetActiveBubblesImpl() {
         const matchingBubble = Array.from(document.querySelectorAll('.bubble'))
           .find(bubble => bubble.textContent.trim() === fieldName);
         if (matchingBubble) {
-          const stillExists = appRuntime.fieldDefs.has(fieldName) && appRuntime.shouldFieldHavePurpleStyling(fieldName);
+          const stillExists = fieldDefs.has(fieldName) && shouldFieldHavePurpleStyling(fieldName);
           if (!stillExists && appState.currentCategory === 'Selected') {
             matchingBubble.remove();
           } else {

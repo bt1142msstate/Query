@@ -8,11 +8,14 @@ import { OperatorLabels } from './operatorLabels.js';
 import { appRuntime } from './appRuntime.js';
 
 let getServices = () => null, getUiActions = () => null, getColumnOps = () => null;
+let resolveRuntimeFieldName = fieldName => fieldName, getRuntimeFieldDefinition = () => null;
 
 function registerQueryStateRuntimeAccessors(accessors = {}) {
   if (typeof accessors.getServices === 'function') getServices = accessors.getServices;
   if (typeof accessors.getUiActions === 'function') getUiActions = accessors.getUiActions;
   if (typeof accessors.getColumnOps === 'function') getColumnOps = accessors.getColumnOps;
+  if (typeof accessors.resolveFieldName === 'function') resolveRuntimeFieldName = accessors.resolveFieldName;
+  if (typeof accessors.getFieldDefinition === 'function') getRuntimeFieldDefinition = accessors.getFieldDefinition;
 }
 function getBaseFieldName(fieldName) {
   const normalizedFieldName = String(fieldName || '').trim();
@@ -101,7 +104,7 @@ function defineAppStateProperty(target, key) {
 const appStateStore = {};
 Object.keys(appRuntimeState).forEach(key => {
   defineAppStateProperty(appStateStore, key);
-  defineAppStateProperty(window, key);
+  if (typeof window !== 'undefined') defineAppStateProperty(window, key);
 });
 Object.freeze(appStateStore);
 Object.defineProperty(appRuntime, 'AppState', {
@@ -171,9 +174,7 @@ function normalizeResolvedFieldName(fieldName) {
     return '';
   }
 
-  return typeof appRuntime.resolveFieldName === 'function'
-    ? appRuntime.resolveFieldName(normalizedField)
-    : normalizedField;
+  return resolveRuntimeFieldName(normalizedField) || normalizedField;
 }
 
 function cloneFieldFiltersSnapshot(fieldName) {
@@ -343,7 +344,7 @@ function getSerializableQueryState(snapshot = getQueryStateSnapshot()) {
 
   const baseFields = [...displayedFields]
     .filter(field => {
-      const def = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(field) : null;
+      const def = getRuntimeFieldDefinition(field);
       return !(def && def.is_buildable);
     })
     .map(field => appRuntime.getBaseFieldName(field))
