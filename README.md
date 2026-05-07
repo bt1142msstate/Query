@@ -75,7 +75,7 @@ The table also supports sorting, expand/collapse layout, manual column resizing 
 
 - Static HTML, CSS, and vanilla JavaScript — no build step required
 - Native browser ES modules with `"type": "module"` in Node tooling
-- Feature-oriented folder structure with ES modules, explicit dependency registration for cross-feature UI actions, a private runtime registry only for remaining legacy cycles, and enforced module boundaries
+- Feature-oriented folder structure with ES modules, explicit dependency registration for cross-feature services/actions, and enforced module boundaries
 - ESLint, architecture fitness checks, and Playwright browser smoke tests
 - Tailwind CSS and AutoNumeric are loaded from CDNs in `index.html`
 - [ExcelJS](https://github.com/exceljs/exceljs) for Excel export
@@ -129,5 +129,5 @@ The browser smoke test starts a local static server, stubs the backend API, and 
 ## Roadmap
 
 - Cleaner backend contract layer to make integrations easier to swap
-- Continue shrinking the remaining private `appRuntime` coordination as large legacy modules are split
+- Continue splitting the remaining large legacy modules into smaller feature modules
 - Add focused unit tests for form-mode schema parsing and query-state lifecycle edge cases

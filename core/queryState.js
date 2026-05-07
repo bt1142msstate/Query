@@ -106,7 +106,7 @@ Object.keys(appRuntimeState).forEach(key => {
 Object.freeze(appStateStore);
 
 // Bubble animation state is owned by BubbleSystem (bubble.js).
-// Access via appRuntime.BubbleSystem.isBubbleAnimating etc.
+// Access through appServices bubble helpers.
 
 const displayedFieldsState = [];
 const activeFiltersState = {};

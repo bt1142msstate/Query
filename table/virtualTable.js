@@ -4,7 +4,7 @@
  * Provides efficient rendering of thousands of rows by only displaying visible rows.
  * @module VirtualTable
  */
-import { appServices } from '../core/appServices.js';
+import { appServices, registerTableService } from '../core/appServices.js';
 import { appUiActions } from '../core/appUiActions.js';
 import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { MoneyUtils, TableBuilder, TextMeasurement, ValueFormatting } from '../core/utils.js';
@@ -12,9 +12,9 @@ import { getComparableValue } from '../core/dateValues.js';
 import { createTableColumnLayoutController } from './tableColumnLayout.js';
 import { createTableScrollbarController } from './tableScrollbar.js';
 import { sortRowsByColumn } from './tableSort.js';
-import { appRuntime } from '../core/appRuntime.js';
 import { escapeHtml } from '../core/html.js';
 import { QueryTableView } from '../ui/queryTableView.js';
+let VirtualTable;
 (function initializeVirtualTable() {
 // Virtual scrolling state
 let virtualTableData = {
@@ -1281,7 +1281,7 @@ function setSplitColumnsMode(active) {
   uiActions.showExampleTable(baseViewData.headers).catch(() => {});
 }
 
-appRuntime.VirtualTable = {
+VirtualTable = {
   // State
   get virtualTableData() { return virtualTableData; },
   set virtualTableData(v) {
@@ -1362,4 +1362,8 @@ appRuntime.VirtualTable = {
   get baseViewData() { return baseViewData; },
   get postFilterBlankValue() { return POST_FILTER_BLANK_SENTINEL; }
 };
+
+registerTableService(VirtualTable);
 })();
+
+export { VirtualTable };

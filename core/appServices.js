@@ -3,9 +3,9 @@
  * Keeps consumers from coupling directly to implementation-specific globals.
  */
 import { AppState, registerQueryStateRuntimeAccessors } from './queryState.js';
-import { appRuntime } from './appRuntime.js';
 
 let appServices;
+let bubbleService = null;
 let dragDropService = null;
 let filterService = null;
 let formModeService = null;
@@ -13,6 +13,11 @@ let modalService = null;
 let queryExecutionService = null;
 let queryHistoryService = null;
 let queryTemplatesService = null;
+let tableService = null;
+
+function registerBubbleService(service) {
+  bubbleService = service && typeof service === 'object' ? service : null;
+}
 
 function registerDragDropService(service) {
   dragDropService = service && typeof service === 'object' ? service : null;
@@ -42,15 +47,19 @@ function registerQueryTemplatesService(service) {
   queryTemplatesService = service && typeof service === 'object' ? service : null;
 }
 
+function registerTableService(service) {
+  tableService = service && typeof service === 'object' ? service : null;
+}
+
 (function initializeAppServices() {
   const appState = AppState;
 
   function getBubbleService() {
-    return appRuntime.BubbleSystem || null;
+    return bubbleService;
   }
 
   function getTableService() {
-    return appRuntime.VirtualTable || null;
+    return tableService;
   }
 
   function getDragDropService() {
@@ -511,11 +520,13 @@ function registerQueryTemplatesService(service) {
 
 export {
   appServices,
+  registerBubbleService,
   registerDragDropService,
   registerFilterService,
   registerFormModeService,
   registerModalService,
   registerQueryExecutionService,
   registerQueryHistoryService,
-  registerQueryTemplatesService
+  registerQueryTemplatesService,
+  registerTableService
 };

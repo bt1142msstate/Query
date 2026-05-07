@@ -12,7 +12,7 @@ For a frontend job portfolio, the project is now an A+ architecture sample for a
 - Query history is split into request mapping, row rendering, detail rendering, view metadata, and coordinator modules.
 - It documents the intended module boundaries and known legacy areas.
 
-The remaining tradeoff is that a few older cyclic modules still coordinate through a private ES-module runtime registry. That registry is not published on `window`; new code should prefer direct imports or explicit dependency injection.
+The former private runtime coordination layer has been reduced to a single app-ready marker in the entry module. Feature coordination now goes through ES imports plus explicit service/action registration.
 
 ## Runtime Flow
 
@@ -37,9 +37,9 @@ The remaining tradeoff is that a few older cyclic modules still coordinate throu
 | Architecture config | `config/` | Forbidden browser globals, module budgets, and import-boundary rules |
 | Tests | `tests/` | Architecture checks and browser smoke coverage |
 
-## Runtime Registry
+## Runtime Marker
 
-The project no longer exposes application APIs through `window.*`. Remaining legacy cycles coordinate through `core/appRuntime.js`, which is a private ES module imported by the modules that need it.
+The project no longer exposes application APIs through `window.*`. `core/appRuntime.js` now exists only for the `appModules.js` ready marker used during startup.
 
 Rules now enforced:
 
@@ -50,7 +50,7 @@ Rules now enforced:
 - App modules cannot use CommonJS.
 - Module imports cannot include cache-busting query strings.
 
-This removes the public browser-global API surface while keeping the remaining legacy coordination reviewable.
+This removes the public browser-global API surface and keeps cross-feature coordination explicit.
 
 ## Module Graph Contract
 
@@ -101,6 +101,5 @@ The architecture fitness test prevents those files from growing. New large modul
 
 1. Split `ui/formMode.js` into schema parsing, lifecycle coordination, rendering, and event binding modules.
 2. Split `core/queryTemplates.js` into storage, rendering, category management, and editor modules.
-3. Replace private `appRuntime` coordination feature by feature with explicit ES imports or injected dependencies.
-4. Add focused unit tests for `core/queryState.js` lifecycle edge cases and form-mode schema parsing.
-5. Consider TypeScript or JSDoc type checking if the project needs a stronger enterprise-style portfolio signal.
+3. Add focused unit tests for `core/queryState.js` lifecycle edge cases and form-mode schema parsing.
+4. Consider TypeScript or JSDoc type checking if the project needs a stronger enterprise-style portfolio signal.
