@@ -1,4 +1,5 @@
 import { showToastMessage } from './toast.js';
+import { getComparableValue } from './dateValues.js';
 import { MoneyUtils, ValueFormatting } from './utils.js';
 import { appRuntime } from './appRuntime.js';
 import { resolveFieldName } from '../filters/fieldDefs.js';
@@ -248,9 +249,7 @@ import { resolveFieldName } from '../filters/fieldDefs.js';
     }
 
     if (fieldType === 'date') {
-      const parsed = appRuntime.CustomDatePicker?.getComparableValue
-        ? appRuntime.CustomDatePicker.getComparableValue(normalized)
-        : NaN;
+      const parsed = getComparableValue(normalized);
       return { kind: 'date', value: parsed };
     }
 

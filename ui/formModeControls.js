@@ -3,8 +3,8 @@ import { Icons } from '../core/icons.js';
 import { OperatorLabels } from '../core/operatorLabels.js';
 import { MoneyUtils, OperatorSelectUtils, ValueFormatting } from '../core/utils.js';
 import { SelectorControls } from './selectorControls.js';
-import { appRuntime } from '../core/appRuntime.js';
 import { fieldDefs, isFieldBackendFilterable } from '../filters/fieldDefs.js';
+import { CustomDatePicker } from './customDatePicker.js';
 
   function parseFieldOptions(fieldDef, inputSpec, normalizeOperatorForField) {
     const source = Array.isArray(inputSpec.options) && inputSpec.options.length > 0
@@ -262,13 +262,13 @@ import { fieldDefs, isFieldBackendFilterable } from '../filters/fieldDefs.js';
       input.type = 'text';
       input.className = 'form-mode-text-input';
       input.placeholder = inputSpec.placeholder || 'M/D/YYYY';
-      input.value = (appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.normalizeDateValue === 'function')
-        ? appRuntime.CustomDatePicker.normalizeDateValue(initialValues[0] || '')
+      input.value = (CustomDatePicker && typeof CustomDatePicker.normalizeDateValue === 'function')
+        ? CustomDatePicker.normalizeDateValue(initialValues[0] || '')
         : (initialValues[0] || '');
       input.autocomplete = 'off';
 
-      const api = appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.enhanceInput === 'function'
-        ? appRuntime.CustomDatePicker.enhanceInput(input, {
+      const api = CustomDatePicker && typeof CustomDatePicker.enhanceInput === 'function'
+        ? CustomDatePicker.enhanceInput(input, {
             variant: 'form',
             enabled: true,
             placeholder: input.placeholder
@@ -283,8 +283,8 @@ import { fieldDefs, isFieldBackendFilterable } from '../filters/fieldDefs.js';
 
       control.setFormValues = function(values) {
         const nextValue = Array.isArray(values) && values.length ? String(values[0]) : '';
-        input.value = (appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.normalizeDateValue === 'function')
-          ? appRuntime.CustomDatePicker.normalizeDateValue(nextValue)
+        input.value = (CustomDatePicker && typeof CustomDatePicker.normalizeDateValue === 'function')
+          ? CustomDatePicker.normalizeDateValue(nextValue)
           : nextValue;
       };
 

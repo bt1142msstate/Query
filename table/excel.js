@@ -5,6 +5,7 @@
  */
 import { appServices } from '../core/appServices.js';
 import { showToastMessage } from '../core/toast.js';
+import { formatDisplayValue, parseDateValue } from '../core/dateValues.js';
 import { QueryStateReaders } from '../core/queryState.js';
 import { MoneyUtils, ValueFormatting } from '../core/utils.js';
 import { VisibilityUtils } from '../core/visibility.js';
@@ -108,9 +109,7 @@ import { DOM } from '../core/domCache.js';
     if (raw === undefined || raw === null) return '';
 
     if (type === 'date') {
-      const dt = appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.parseDateValue === 'function'
-        ? appRuntime.CustomDatePicker.parseDateValue(raw)
-        : null;
+      const dt = parseDateValue(raw);
       return dt !== null ? dt : 'Never';
     }
 
@@ -134,9 +133,7 @@ import { DOM } from '../core/domCache.js';
     }
 
     if (rawValue instanceof Date) {
-      return appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.formatDisplayValue === 'function'
-        ? appRuntime.CustomDatePicker.formatDisplayValue(rawValue, { fallbackToRaw: true, invalidValue: 'Blank' })
-        : rawValue.toLocaleDateString();
+      return formatDisplayValue(rawValue, { fallbackToRaw: true, invalidValue: 'Blank' });
     }
 
     if (typeof rawValue === 'boolean') {

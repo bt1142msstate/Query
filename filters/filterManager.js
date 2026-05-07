@@ -19,6 +19,7 @@ import {
   updateFilteredDefs
 } from './fieldDefs.js';
 import { DOM } from '../core/domCache.js';
+import { CustomDatePicker } from '../ui/customDatePicker.js';
 
 /**
  * FilterPill UI component class
@@ -81,8 +82,8 @@ function getActiveFilterFieldName() {
 function setConditionInputVisible(input, visible) {
     if (!input) return;
 
-    if (appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.setInputVisibility === 'function') {
-        appRuntime.CustomDatePicker.setInputVisibility(input, visible);
+    if (CustomDatePicker && typeof CustomDatePicker.setInputVisibility === 'function') {
+        CustomDatePicker.setInputVisibility(input, visible);
         return;
     }
 
@@ -92,16 +93,16 @@ function setConditionInputVisible(input, visible) {
 function isConditionInputVisible(input) {
     if (!input) return false;
 
-    if (appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.isInputVisible === 'function') {
-        return appRuntime.CustomDatePicker.isInputVisible(input);
+    if (CustomDatePicker && typeof CustomDatePicker.isInputVisible === 'function') {
+        return CustomDatePicker.isInputVisible(input);
     }
 
     return input.style.display !== 'none';
 }
 
 function getComparableDateValue(value) {
-    if (appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.getComparableValue === 'function') {
-        return appRuntime.CustomDatePicker.getComparableValue(value);
+    if (CustomDatePicker && typeof CustomDatePicker.getComparableValue === 'function') {
+        return CustomDatePicker.getComparableValue(value);
     }
 
     return NaN;
@@ -844,8 +845,8 @@ appRuntime.handleFilterConfirm = function(e) {
         }
 
         if (fieldType === 'date') {
-            const hasInvalidPrimaryDate = val && (!appRuntime.CustomDatePicker || !appRuntime.CustomDatePicker.isValidDateValue(val));
-            const hasInvalidSecondaryDate = cond === 'between' && val2 && (!appRuntime.CustomDatePicker || !appRuntime.CustomDatePicker.isValidDateValue(val2));
+            const hasInvalidPrimaryDate = val && (!CustomDatePicker || !CustomDatePicker.isValidDateValue(val));
+            const hasInvalidSecondaryDate = cond === 'between' && val2 && (!CustomDatePicker || !CustomDatePicker.isValidDateValue(val2));
             if (hasInvalidPrimaryDate || hasInvalidSecondaryDate) {
                 showFilterError('Use M/D/YYYY', tintInputs);
                 return;
@@ -1208,10 +1209,10 @@ appRuntime.configureInputsForType = function(type){
       )
     );
 
-    if (appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.enhanceInput === 'function') {
+    if (CustomDatePicker && typeof CustomDatePicker.enhanceInput === 'function') {
         inputs.forEach(inp => {
             if (isDate) {
-                appRuntime.CustomDatePicker.enhanceInput(inp, {
+                CustomDatePicker.enhanceInput(inp, {
                     variant: 'filter',
                     enabled: true,
                     placeholder: 'M/D/YYYY'

@@ -1,16 +1,8 @@
 import assert from 'node:assert/strict';
-import { appRuntime } from '../core/appRuntime.js';
 
 globalThis.window = globalThis;
 window.setTimeout = setTimeout;
 window.clearTimeout = clearTimeout;
-appRuntime.showToastMessage = () => {};
-appRuntime.CustomDatePicker = {
-  toBackendDateValue(value) {
-    const [month, day, year] = String(value || '').split('/');
-    return `${year}${month.padStart(2, '0')}${day.padStart(2, '0')}`;
-  }
-};
 
 const { QueryChangeManager } = await import('../core/queryState.js');
 const { fieldAliases, fieldDefs } = await import('../filters/fieldDefs.js');

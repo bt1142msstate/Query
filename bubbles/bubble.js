@@ -10,6 +10,7 @@ import { VisibilityUtils } from '../core/visibility.js';
 import { appRuntime } from '../core/appRuntime.js';
 import { filteredDefs, isFieldBackendFilterable, shouldFieldHavePurpleStylingBase } from '../filters/fieldDefs.js';
 import { DOM } from '../core/domCache.js';
+import { CustomDatePicker } from '../ui/customDatePicker.js';
 
 var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
 var getActiveFilters = QueryStateReaders.getActiveFilters.bind(QueryStateReaders);
@@ -128,8 +129,8 @@ function setBubbleConditionInputVisible(input, visible) {
     return;
   }
 
-  if (appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.setInputVisibility === 'function') {
-    appRuntime.CustomDatePicker.setInputVisibility(input, visible);
+  if (CustomDatePicker && typeof CustomDatePicker.setInputVisibility === 'function') {
+    CustomDatePicker.setInputVisibility(input, visible);
     return;
   }
 

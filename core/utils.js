@@ -1,4 +1,5 @@
 import { DragUtils } from './dragUtils.js';
+import { formatDisplayValue } from './dateValues.js';
 import { Icons } from './icons.js';
 import { OperatorLabels } from './operatorLabels.js';
 import { appRuntime } from './appRuntime.js';
@@ -233,15 +234,10 @@ const ValueFormatting = (() => {
       fallbackToRaw = false
     } = options;
 
-    if (appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.formatDisplayValue === 'function') {
-      return appRuntime.CustomDatePicker.formatDisplayValue(rawValue, {
-        invalidValue,
-        fallbackToRaw
-      });
-    }
-
-    const textValue = String(rawValue || '').trim();
-    return fallbackToRaw ? textValue : invalidValue;
+    return formatDisplayValue(rawValue, {
+      invalidValue,
+      fallbackToRaw
+    });
   }
 
   function parseStandardNumber(rawValue) {

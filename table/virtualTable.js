@@ -8,6 +8,7 @@ import { appServices } from '../core/appServices.js';
 import { appUiActions } from '../core/appUiActions.js';
 import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { MoneyUtils, TableBuilder, TextMeasurement, ValueFormatting } from '../core/utils.js';
+import { getComparableValue } from '../core/dateValues.js';
 import { createTableScrollbarController } from './tableScrollbar.js';
 import { sortRowsByColumn } from './tableSort.js';
 import { appRuntime } from '../core/appRuntime.js';
@@ -316,15 +317,7 @@ function doesRowMatchFieldPostFilters(row, field, data) {
 }
 
 function parseComparableDateValue(value) {
-  if (appRuntime.CustomDatePicker && typeof appRuntime.CustomDatePicker.getComparableValue === 'function') {
-    return appRuntime.CustomDatePicker.getComparableValue(value);
-  }
-
-  if (value instanceof Date) {
-    return value.getTime();
-  }
-
-  return NaN;
+  return getComparableValue(value);
 }
 
 function getComparableRowValues(rawValue, type) {
