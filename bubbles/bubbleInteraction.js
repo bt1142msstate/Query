@@ -236,9 +236,7 @@ function initializeBubbleInteractions() {
       const titleEl = services.getBubbleFilterCardTitleElement(filterCard);
       if (titleEl) titleEl.textContent = fieldName;
     }
-    if (appRuntime.renderConditionList) {
-      appRuntime.renderConditionList(fieldName);
-    }
+    services.renderConditionList(fieldName);
     if (inputWrapper && getFilterGroupForField(fieldName)) {
       inputWrapper.classList.add('show');
     }

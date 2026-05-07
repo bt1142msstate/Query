@@ -1,8 +1,8 @@
 const sourceEntries = ['appModules.js', 'bubbles', 'core', 'filters', 'table', 'ui'];
 const maxModuleLines = 900;
 const appRuntimeUsageBudget = {
-  maxDistinctMembers: 56,
-  maxMemberReferences: 223,
+  maxDistinctMembers: 55,
+  maxMemberReferences: 207,
   forbiddenMembers: new Set([
     'calculateCategoryCounts',
     'CustomDatePicker',
@@ -17,6 +17,7 @@ const appRuntimeUsageBudget = {
     'isFieldBackendFilterable',
     'loadFieldDefinitions',
     'registerDynamicField',
+    'renderConditionList',
     'renderCategorySelectors',
     'resolveFieldName',
     'shouldFieldHavePurpleStyling',

@@ -87,8 +87,8 @@ let appUiActions;
     const services = getServices();
     const dom = DOM;
 
-    if (previousSelectedField && typeof appRuntime.renderConditionList === 'function') {
-      appRuntime.renderConditionList(previousSelectedField);
+    if (previousSelectedField) {
+      services.renderConditionList(previousSelectedField);
     } else {
       document.getElementById('bubble-cond-list')?.replaceChildren();
     }
