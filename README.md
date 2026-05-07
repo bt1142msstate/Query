@@ -15,8 +15,11 @@ A single-page app for building queries, applying filters, reviewing results, and
 | **Bubble builder** | Browse and select fields by category, apply filter conditions |
 | **Form mode** | URL-driven guided forms for focused reporting workflows |
 | **Query history** | Live status tracking — reload, rerun, cancel, or inspect past runs |
+| **Query templates** | Save, categorize, pin, search, and reapply reusable query setups |
 | **Query JSON** | Inspect the exact payload being sent to the backend |
-| **Results table** | Virtualized large-table rendering with Excel export |
+| **Post filters** | Apply result-only filters without sending them to the backend |
+| **Results table** | Virtualized large-table rendering with resize, sort, post-filter, and Excel export support |
+| **Mobile workflow** | Responsive panels, mobile menu controls, and smoke-tested overlays |
 
 ## 💻 Features
 
@@ -27,6 +30,10 @@ The default view. Browse fields by category or search by name, then select field
 ### 📜 Query History
 
 Tracks every query run in the session with live status badges: `running`, `complete`, `failed`, and `cancelled`. Completed queries can be reloaded or rerun; running queries can be cancelled mid-execution. The history panel polls for live status updates and keeps the last 50 queries in memory.
+
+### 📚 Query Templates
+
+Templates let users save reusable query configurations, organize them into categories, pin high-value reports, and reload them later. Template editing is integrated with the same query-state and validation flow used by the live builder.
 
 ### 📋 Query JSON Panel
 
@@ -45,7 +52,9 @@ A URL-driven mode for guided workflows. Pass a JSON spec via the `?spec=` parame
 
 ### 📊 Results & Export
 
-Results render in a virtualized table (25 visible rows at a time) for smooth performance with large datasets. Export to Excel with the download button — multi-value fields can be rendered as stacked lines in one cell or expanded into separate numbered columns using the split-columns toggle.
+Results render in a virtualized table that only draws the visible viewport plus an overscan buffer for smooth performance with large datasets. Export to Excel with the download button — multi-value fields can be rendered as stacked lines in one cell or expanded into separate numbered columns using the split-columns toggle.
+
+The table also supports sorting, expand/collapse layout, manual column resizing with live row/header alignment, a draggable scrollbar thumb, and post filters that only affect the loaded result set. Post filters are intentionally client-side and are cleared between query runs.
 
 ## 📁 Structure
 
@@ -60,21 +69,38 @@ Results render in a virtualized table (25 visible rows at a time) for smooth per
 | `styles/app.css` | Stylesheet entrypoint that imports the feature CSS files |
 | `config/` | Shared architecture contracts for forbidden browser globals and module boundaries |
 | `docs/ARCHITECTURE.md` | Frontend architecture notes, quality gates, and refactor plan |
-| `tests/` | Browser smoke tests and architecture fitness checks |
+| `tests/` | Architecture checks, module-specifier checks, unit tests, and Playwright browser smoke coverage |
 
 ## 🛠️ Tech
 
 - Static HTML, CSS, and vanilla JavaScript — no build step required
 - Native browser ES modules with `"type": "module"` in Node tooling
-- Feature-oriented folder structure with ES modules, a private runtime registry for remaining legacy cycles, and enforced module boundaries
+- Feature-oriented folder structure with ES modules, explicit dependency registration for cross-feature UI actions, a private runtime registry only for remaining legacy cycles, and enforced module boundaries
 - ESLint, architecture fitness checks, and Playwright browser smoke tests
+- Tailwind CSS and AutoNumeric are loaded from CDNs in `index.html`
 - [ExcelJS](https://github.com/exceljs/exceljs) for Excel export
 
 ## 🚀 Running Locally
 
-1. Serve this directory from a local static server.
-2. Open the app through that server (not directly from the filesystem).
-3. Point it at a compatible backend.
+Install dependencies once:
+
+```bash
+npm install
+```
+
+Serve the project directory with any static server, then open the app through that server rather than directly from the filesystem:
+
+```bash
+python3 -m http.server 4173
+```
+
+Then open:
+
+```text
+http://127.0.0.1:4173/index.html
+```
+
+The app currently posts to the backend URL configured in `core/backendApi.js`. Use a compatible query API for live data, or rely on the Playwright smoke test stub for local validation.
 
 ## Architecture
 
@@ -88,7 +114,20 @@ npm test
 
 Runs lint, architecture fitness checks, module-specifier checks, focused unit tests, and desktop/mobile browser smoke tests.
 
+Individual checks:
+
+```bash
+npm run lint
+npm run test:architecture
+npm run test:modules
+npm run test:unit
+npm run test:browser
+```
+
+The browser smoke test starts a local static server, stubs the backend API, and covers desktop plus mobile flows: panel layout, dark/light search inputs, virtual-table scrolling and resize behavior, post filters, zero-result queries, export overlays, and mobile dialogs.
+
 ## Roadmap
 
-- Optional sign-in with an AI provider (Gemini, ChatGPT) to help turn reporting needs into query specs
 - Cleaner backend contract layer to make integrations easier to swap
+- Continue shrinking the remaining private `appRuntime` coordination as large legacy modules are split
+- Add focused unit tests for form-mode schema parsing and query-state lifecycle edge cases
