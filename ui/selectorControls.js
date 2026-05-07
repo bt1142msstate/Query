@@ -1,6 +1,7 @@
 import { VisibilityUtils } from '../core/visibility.js';
 import { initializeSearchInputs } from './searchUI.js';
 import { appRuntime } from '../core/appRuntime.js';
+import { escapeHtml } from '../core/html.js';
 
 function createBooleanPillSelector(values, currentValue = '', options = {}) {
   const onChange = typeof options.onChange === 'function' ? options.onChange : null;
@@ -93,8 +94,8 @@ function createBooleanPillSelector(values, currentValue = '', options = {}) {
 }
 
 function escapeSelectorControlHtml(value) {
-  if (typeof appRuntime.escapeHtml === 'function') {
-    return appRuntime.escapeHtml(value);
+  if (typeof escapeHtml === 'function') {
+    return escapeHtml(value);
   }
 
   const temp = document.createElement('div');

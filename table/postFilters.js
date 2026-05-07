@@ -10,6 +10,7 @@ import { initializeSearchInputs } from '../ui/searchUI.js';
 import { SelectorControls } from '../ui/selectorControls.js';
 import { appRuntime } from '../core/appRuntime.js';
 import { CustomDatePicker } from '../ui/customDatePicker.js';
+import { escapeHtml } from '../core/html.js';
 (function() {
   let equalsValueControl = null, equalsValueControlField = '';
   const STREAMED_EQUALS_BATCH_SIZE = 800, STREAMED_EQUALS_ROW_HEIGHT = 50, STREAMED_EQUALS_OVERSCAN = 6;
@@ -37,7 +38,6 @@ import { CustomDatePicker } from '../ui/customDatePicker.js';
       empty: document.getElementById('post-filter-empty')
     };
   }
-
   function getValueInputHost(input) {
     if (CustomDatePicker && typeof CustomDatePicker.getInputHost === 'function') {
       return CustomDatePicker.getInputHost(input);
@@ -696,7 +696,7 @@ import { CustomDatePicker } from '../ui/customDatePicker.js';
 
     const fields = getAvailableFields();
     const currentValue = elements.fieldSelect.value;
-    elements.fieldSelect.innerHTML = fields.map(field => `<option value="${field}">${appRuntime.escapeHtml(field)}</option>`).join('');
+    elements.fieldSelect.innerHTML = fields.map(field => `<option value="${field}">${escapeHtml(field)}</option>`).join('');
 
     if (!fields.length) {
       elements.fieldSelect.innerHTML = '<option value="">No result fields available</option>';
@@ -736,12 +736,12 @@ import { CustomDatePicker } from '../ui/customDatePicker.js';
 
     elements.empty.classList.toggle('hidden', entries.length > 0);
     elements.list.innerHTML = entries.map(entry => {
-      const safeField = appRuntime.escapeHtml(entry.field);
+      const safeField = escapeHtml(entry.field);
       const ruleLabel = entry.logic === 'any' ? 'Rows can match any rule below' : 'Rows must match every rule below';
-      const safeRuleLabel = appRuntime.escapeHtml(ruleLabel);
+      const safeRuleLabel = escapeHtml(ruleLabel);
       const filterMarkup = entry.filters.map(({ filter, index }) => {
         const label = `${OperatorLabels.get(filter.cond)} ${formatFilterValue(filter, entry.field)}`;
-        const safeLabel = appRuntime.escapeHtml(label);
+        const safeLabel = escapeHtml(label);
         return `
           <div class="post-filter-pill">
             <span class="post-filter-pill__text">${safeLabel}</span>

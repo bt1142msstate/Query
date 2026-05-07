@@ -30,6 +30,7 @@ import { formatFieldOperatorForDisplay, mapFieldOperatorToUiCond, normalizeUiCon
 import { appRuntime } from './appRuntime.js';
 import { registerDynamicField, resolveFieldName } from '../filters/fieldDefs.js';
 import { DOM } from './domCache.js';
+import { escapeHtml } from './html.js';
 /* ---------- Query history state and renderer ---------- */
 let exampleQueries = [];
 let queryDurationUpdateInterval = null;
@@ -312,7 +313,7 @@ function formatColumnsTooltip(columns) {
   const columnItems = columns.map((column, index) => (
     '<li class="tt-filter-item tt-column-item">' +
     `  <span class="tt-column-index">${index + 1}</span>` +
-    `  <span class="tt-column-name">${appRuntime.escapeHtml(column || '')}</span>` +
+    `  <span class="tt-column-name">${escapeHtml(column || '')}</span>` +
     '</li>'
   )).join('');
 

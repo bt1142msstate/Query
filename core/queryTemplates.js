@@ -4,6 +4,7 @@ import { showToastMessage } from './toast.js';
 import { VisibilityUtils } from './visibility.js';
 import { buildQueryUiConfig } from '../filters/queryPayload.js';
 import { appRuntime } from './appRuntime.js';
+import { escapeHtml } from './html.js';
 (function initializeQueryTemplates() {
   const NEW_TEMPLATE_ID = '__new_template__';
   const DEFAULT_TEMPLATE_SVG = `
@@ -989,7 +990,7 @@ import { appRuntime } from './appRuntime.js';
 
     const options = [
       '<option value="">All categories</option>',
-      ...state.categories.map(category => `<option value="${appRuntime.escapeHtml(category.id)}">${appRuntime.escapeHtml(category.name)}</option>`)
+      ...state.categories.map(category => `<option value="${escapeHtml(category.id)}">${escapeHtml(category.name)}</option>`)
     ];
     elements.categoryFilter.innerHTML = options.join('');
     elements.categoryFilter.value = state.selectedCategoryFilter;
@@ -1188,7 +1189,7 @@ import { appRuntime } from './appRuntime.js';
       button.innerHTML = `
         <div class="templates-list-item__title-row">
           ${template.pinned ? '<span class="templates-list-item__pin-badge">Pinned</span>' : ''}
-          <div class="templates-list-item__title">${appRuntime.escapeHtml(template.name)}</div>
+          <div class="templates-list-item__title">${escapeHtml(template.name)}</div>
         </div>`;
       button.addEventListener('click', () => selectTemplate(template.id));
       row.appendChild(button);
@@ -1258,7 +1259,7 @@ import { appRuntime } from './appRuntime.js';
       section.className = 'templates-list-section';
       const header = document.createElement('div');
       header.className = 'templates-list-section__header';
-      header.innerHTML = `<h4 class="templates-list-section__title">${appRuntime.escapeHtml(title)}</h4><span class="templates-list-section__count">${items.length}</span>`;
+      header.innerHTML = `<h4 class="templates-list-section__title">${escapeHtml(title)}</h4><span class="templates-list-section__count">${items.length}</span>`;
       section.appendChild(header);
       const body = document.createElement('div');
       body.className = 'templates-list-section__body';
@@ -1419,7 +1420,7 @@ import { appRuntime } from './appRuntime.js';
       const description = String(template.description || '').trim() || 'Use pinned template';
       button.setAttribute('data-tooltip', description);
       button.innerHTML = `
-        <span class="pinned-template-bubble__name">${appRuntime.escapeHtml(template.name)}</span>
+        <span class="pinned-template-bubble__name">${escapeHtml(template.name)}</span>
         <span class="pinned-template-bubble__svg">${getTemplateSvgMarkup(template)}</span>
       `;
       button.addEventListener('click', async () => {

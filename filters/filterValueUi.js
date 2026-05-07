@@ -7,6 +7,7 @@ import { showToastMessage } from '../core/toast.js';
 import { MoneyUtils, ValueFormatting } from '../core/utils.js';
 import { VisibilityUtils } from '../core/visibility.js';
 import { appRuntime } from '../core/appRuntime.js';
+import { escapeHtml } from '../core/html.js';
 
   function getFilterValueMap(fieldDef) {
     if (!fieldDef || !fieldDef.values || fieldDef.values.length === 0) {
@@ -166,7 +167,7 @@ import { appRuntime } from '../core/appRuntime.js';
       .replace(/^-+|-+$/g, '') || 'filter-values';
 
     const items = values
-      .map(value => `<li class="filter-list-viewer-item">${appRuntime.escapeHtml(value)}</li>`)
+      .map(value => `<li class="filter-list-viewer-item">${escapeHtml(value)}</li>`)
       .join('');
 
     titleEl.textContent = `${fieldLabel} ${operatorLabel}`;
