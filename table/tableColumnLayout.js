@@ -144,6 +144,12 @@ export function createTableColumnLayoutController(options = {}) {
       }
     });
 
+    table.querySelectorAll('tbody tr[data-row-index]').forEach(row => {
+      if (row.style.display === 'table' || row.style.position === 'absolute') {
+        row.style.width = totalWidth;
+      }
+    });
+
     return layout;
   }
 
