@@ -387,19 +387,23 @@ async function openMobilePanel(page, sourceControlId, visibleSelector) {
 
 async function seedLoadedResults(page, options = {}) {
   const rowCount = Math.max(0, Number(options.rowCount) || 3);
+  const longTitle = options.longTitle === true;
 
-  await page.evaluate(async ({ rowCount: requestedRowCount }) => {
+  await page.evaluate(async ({ longTitle: useLongTitle, rowCount: requestedRowCount }) => {
     const { appRuntime } = await import('./core/appRuntime.js');
     const headers = ['Smoke Title', 'Smoke Branch', 'Smoke Status'];
+    const makeTitle = title => useLongTitle
+      ? `${title} with a deliberately long title for live column resize coverage`
+      : title;
     const baseRows = [
-      ['Alpha record', 'Main', 'Open'],
-      ['Beta record', 'East', 'Closed'],
-      ['Gamma record', 'Main', 'Open']
+      [makeTitle('Alpha record'), 'Main', 'Open'],
+      [makeTitle('Beta record'), 'East', 'Closed'],
+      [makeTitle('Gamma record'), 'Main', 'Open']
     ];
     const rows = requestedRowCount <= baseRows.length
       ? baseRows.slice(0, requestedRowCount)
       : Array.from({ length: requestedRowCount }, (_, index) => [
-        `Smoke record ${String(index + 1).padStart(3, '0')}`,
+        makeTitle(`Smoke record ${String(index + 1).padStart(3, '0')}`),
         index % 2 === 0 ? 'Main' : 'East',
         index % 3 === 0 ? 'Closed' : 'Open'
       ]);
@@ -414,7 +418,7 @@ async function seedLoadedResults(page, options = {}) {
     await appRuntime.QueryTableView.showExampleTable(headers, { syncQueryState: false });
     appRuntime.AppServices.renderVirtualTable();
     appRuntime.QueryUI?.updateButtonStates?.();
-  }, { rowCount });
+  }, { longTitle, rowCount });
   await page.locator('#example-table').waitFor({ state: 'attached', timeout: 5000 });
 }
 
@@ -612,10 +616,12 @@ async function exerciseExpandedVirtualTableColumnAlignment(page) {
 }
 
 async function exerciseColumnResizeInteraction(page) {
-  await seedLoadedResults(page, { rowCount: 2400 });
+  await seedLoadedResults(page, { longTitle: true, rowCount: 2400 });
 
   await page.evaluate(async () => {
     const { appRuntime } = await import('./core/appRuntime.js');
+    appRuntime.AppServices.setManualColumnWidth?.('Smoke Title', 90);
+    appRuntime.AppServices.renderVirtualTable?.();
     appRuntime.AppServices.activateColumnResizeMode?.('Smoke Title');
   });
 
@@ -634,6 +640,7 @@ async function exerciseColumnResizeInteraction(page) {
       headerWidth: Math.round(titleHeaderEl?.getBoundingClientRect().width || 0),
       rowWidth: Math.round(titleRowEl?.getBoundingClientRect().width || 0),
       tableWidth: Math.round(tableEl?.getBoundingClientRect().width || 0),
+      text: titleCellEl?.textContent?.trim() || '',
       resizeModeActive: document.body.classList.contains('table-resize-mode')
     };
   });
@@ -643,6 +650,7 @@ async function exerciseColumnResizeInteraction(page) {
     || beforeMetrics.headerWidth <= 0
     || Math.abs(beforeMetrics.headerWidth - beforeMetrics.cellWidth) > 1
     || Math.abs(beforeMetrics.tableWidth - beforeMetrics.rowWidth) > 1
+    || !beforeMetrics.text.includes('...')
   ) {
     throw new Error(`Column resize did not start from an aligned active state: ${JSON.stringify(beforeMetrics)}`);
   }
@@ -654,7 +662,7 @@ async function exerciseColumnResizeInteraction(page) {
 
   const dragStartX = Math.floor(handleBox.x + (handleBox.width / 2));
   const dragStartY = Math.floor(handleBox.y + (handleBox.height / 2));
-  const resizeDelta = 80;
+  const resizeDelta = 620;
   await page.mouse.move(dragStartX, dragStartY);
   await page.mouse.down();
   await page.mouse.move(dragStartX + resizeDelta, dragStartY, { steps: 8 });
@@ -670,7 +678,8 @@ async function exerciseColumnResizeInteraction(page) {
     const tableWidth = Math.round(tableEl?.getBoundingClientRect().width || 0);
     return Math.abs(headerWidth - expectedWidth) <= 2
       && Math.abs(headerWidth - cellWidth) <= 1
-      && Math.abs(tableWidth - rowWidth) <= 1;
+      && Math.abs(tableWidth - rowWidth) <= 1
+      && !(titleCellEl?.textContent || '').includes('...');
   }, { expectedWidth: beforeMetrics.headerWidth + resizeDelta }, { timeout: 5000 });
 
   const duringMetrics = await page.evaluate(() => {
@@ -683,6 +692,7 @@ async function exerciseColumnResizeInteraction(page) {
       headerWidth: Math.round(titleHeaderEl?.getBoundingClientRect().width || 0),
       rowWidth: Math.round(titleRowEl?.getBoundingClientRect().width || 0),
       tableWidth: Math.round(tableEl?.getBoundingClientRect().width || 0),
+      text: titleCellEl?.textContent?.trim() || '',
       resizeModeActive: document.body.classList.contains('table-resize-mode')
     };
   });
@@ -713,6 +723,7 @@ async function exerciseColumnResizeInteraction(page) {
       headerWidth: Math.round(titleHeaderEl?.getBoundingClientRect().width || 0),
       rowWidth: Math.round(titleRowEl?.getBoundingClientRect().width || 0),
       tableWidth: Math.round(tableEl?.getBoundingClientRect().width || 0),
+      text: titleCellEl?.textContent?.trim() || '',
       resizeModeActive: document.body.classList.contains('table-resize-mode')
     };
   });
@@ -724,8 +735,10 @@ async function exerciseColumnResizeInteraction(page) {
     || Math.abs(actualDelta - resizeDelta) > 2
     || Math.abs(duringMetrics.headerWidth - duringMetrics.cellWidth) > 1
     || Math.abs(duringMetrics.tableWidth - duringMetrics.rowWidth) > 1
+    || duringMetrics.text.includes('...')
     || Math.abs(afterMetrics.headerWidth - afterMetrics.cellWidth) > 1
     || Math.abs(afterMetrics.tableWidth - afterMetrics.rowWidth) > 1
+    || afterMetrics.text.includes('...')
   ) {
     throw new Error(`Column resize drag was nonlinear or misaligned: before=${JSON.stringify(beforeMetrics)}, during=${JSON.stringify(duringMetrics)}, after=${JSON.stringify(afterMetrics)}`);
   }

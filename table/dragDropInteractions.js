@@ -4,6 +4,7 @@ import { DragUtils } from '../core/dragUtils.js';
 import { Icons } from '../core/icons.js';
 import { QueryStateReaders, getBaseFieldName } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
+import { createColumnResizeController } from './columnResizeController.js';
 import { dragDropColumnOps } from './dragDropColumns.js';
 import { SharedFieldPicker } from '../ui/fieldPicker.js';
 import { appRuntime } from '../core/appRuntime.js';
@@ -101,7 +102,6 @@ import { appRuntime } from '../core/appRuntime.js';
   let insertAffordanceShowTimer = null;
   let insertAffordanceHideTimer = null;
   let pendingInsertCandidate = null;
-  let activeResizeSession = null;
 
   function getColumnResizeState() {
     return services.getColumnResizeState?.() || { active: false, fieldName: '' };
@@ -110,6 +110,11 @@ import { appRuntime } from '../core/appRuntime.js';
   function isResizeModeActive() {
     return Boolean(getColumnResizeState().active);
   }
+
+  const columnResizeController = createColumnResizeController({
+    services,
+    getColumnResizeState
+  });
 
   function clearHeaderLayoutState(th) {
     if (!th) {
@@ -898,7 +903,7 @@ import { appRuntime } from '../core/appRuntime.js';
             return;
           }
 
-          beginColumnResize(event, resizeHandle, th);
+          columnResizeController.begin(event, resizeHandle, th);
         };
         const onPointerMove = event => this.handleHeaderRowPointerMove(event, table);
         const onPointerLeave = event => this.handleHeaderRowPointerLeave(event);
@@ -973,57 +978,6 @@ import { appRuntime } from '../core/appRuntime.js';
     }
   };
 
-  function stopResizeSession(options = {}) {
-    const hadActiveSession = Boolean(activeResizeSession);
-    if (activeResizeSession) {
-      window.removeEventListener('pointermove', activeResizeSession.onMove);
-      window.removeEventListener('pointerup', activeResizeSession.onUp);
-      document.body.classList.remove('table-column-resizing');
-      activeResizeSession = null;
-    }
-
-    if (options.keepMode !== true) {
-      services.clearColumnResizeMode?.();
-    } else {
-      services.syncColumnResizeModeUi?.();
-    }
-
-    if (hadActiveSession) {
-      services.renderVirtualTable?.();
-    }
-  }
-
-  function beginColumnResize(event, handle, th) {
-    const resizeState = getColumnResizeState();
-    const fieldName = handle.getAttribute('data-field-name') || th.getAttribute('data-sort-field') || '';
-    const edge = handle.getAttribute('data-edge') || 'right';
-    if (!resizeState.active || resizeState.fieldName !== fieldName) {
-      return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-
-    stopResizeSession({ keepMode: true });
-
-    const initialWidth = th.getBoundingClientRect().width;
-    const startX = event.clientX;
-    document.body.classList.add('table-column-resizing');
-
-    const onMove = moveEvent => {
-      const deltaX = moveEvent.clientX - startX;
-      const signedDelta = edge === 'left' ? -deltaX : deltaX;
-      services.setManualColumnWidth?.(fieldName, initialWidth + signedDelta);
-    };
-
-    const onUp = () => {
-      stopResizeSession({ keepMode: true });
-    };
-
-    activeResizeSession = { onMove, onUp };
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp, { once: true });
-  }
   ClipboardUtils.bindCopyButton(headerCopy, async () => {
     if (getLifecycleState().queryRunning) {
       return '';
@@ -1285,7 +1239,7 @@ import { appRuntime } from '../core/appRuntime.js';
   function resetHeaderUi() {
     clearInsertAffordance({ immediate: true });
     clearDropAnchor();
-    stopResizeSession({ keepMode: true });
+    columnResizeController.stop({ keepMode: true });
 
     if (dragDropManager.hoverTh) {
       dragDropManager.hoverTh.classList.remove('th-hover');
@@ -1311,18 +1265,18 @@ import { appRuntime } from '../core/appRuntime.js';
       return;
     }
 
-    if (activeResizeSession || isResizeModeActive()) {
-      stopResizeSession();
+    if (columnResizeController.hasActiveSession() || isResizeModeActive()) {
+      columnResizeController.stop();
     }
   });
 
   document.addEventListener('pointerdown', event => {
-    if (!isResizeModeActive() || activeResizeSession) {
+    if (!isResizeModeActive() || columnResizeController.hasActiveSession()) {
       return;
     }
 
     if (!isEventInsideActiveResizeColumn(event.target)) {
-      stopResizeSession();
+      columnResizeController.stop();
     }
   }, true);
 
