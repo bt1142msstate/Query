@@ -8,6 +8,7 @@ import { appServices } from '../core/appServices.js';
 import { appUiActions } from '../core/appUiActions.js';
 import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { MoneyUtils, TableBuilder, TextMeasurement, ValueFormatting } from '../core/utils.js';
+import { sortRowsByColumn } from './tableSort.js';
 (function initializeVirtualTable() {
 // Virtual scrolling state
 let virtualTableData = {
@@ -39,6 +40,7 @@ let resizeModeState = {
   fieldName: ''
 };
 let simpleTableInstance = null; // Store the SimpleTable instance
+let isRenderingVirtualRows = false;
 
 const HEADER_ACTION_SPACE = 116;
 const HEADER_TEXT_BALANCE_SPACE = 116;
@@ -627,31 +629,6 @@ function applyPostFilters(options = {}) {
   }
 }
 
-function sortRowsByColumn(rows, colIndex, type, direction) {
-  rows.sort((a, b) => {
-    let valA = a[colIndex];
-    let valB = b[colIndex];
-
-    const emptyA = valA === undefined || valA === null || valA === '';
-    const emptyB = valB === undefined || valB === null || valB === '';
-
-    if (emptyA && emptyB) return 0;
-    if (emptyA) return direction === 'asc' ? 1 : -1;
-    if (emptyB) return direction === 'asc' ? -1 : 1;
-
-    let result = 0;
-    if (type === 'number' || type === 'money') {
-      result = (parseNumericValue(valA, type) || 0) - (parseNumericValue(valB, type) || 0);
-    } else if (type === 'date') {
-      result = (parseInt(valA, 10) || 0) - (parseInt(valB, 10) || 0);
-    } else {
-      result = String(valA).localeCompare(String(valB));
-    }
-
-    return direction === 'asc' ? result : -result;
-  });
-}
-
 /**
  * Sorts the virtual table data by the specified column.
  * Toggles direction if already sorted by this column.
@@ -735,11 +712,16 @@ function renderVirtualTable() {
   
   const tbody = table.querySelector('tbody');
   if (!tbody) return;
+
+  const preservedScrollTop = Math.max(0, tableScrollTop);
+  const preservedScrollLeft = Math.max(0, tableScrollContainer.scrollLeft || 0);
   
   // Clean up existing event listeners on body cells before clearing them
   services.cleanupDragDropTableListeners(table);
   
   // Clear existing body rows
+  isRenderingVirtualRows = true;
+  try {
   tbody.innerHTML = '';
 
   if (!Array.isArray(virtualTableData.rows) || virtualTableData.rows.length === 0) {
@@ -755,6 +737,9 @@ function renderVirtualTable() {
     emptyCell.textContent = message;
     emptyRow.appendChild(emptyCell);
     tbody.appendChild(emptyRow);
+    tableScrollTop = 0;
+    tableScrollContainer.scrollTop = 0;
+    tableScrollContainer.scrollLeft = preservedScrollLeft;
     return;
   }
 
@@ -915,6 +900,16 @@ function renderVirtualTable() {
   
   // Re-apply drag and drop to the new rows
   services.addDragAndDrop(table);
+
+  // Clearing tbody can temporarily collapse scrollHeight and cause the browser to
+  // clamp scrollTop to 0. Restore it after spacer rows are back in the DOM so
+  // virtual scrolling remains continuous through each re-render.
+  tableScrollContainer.scrollTop = preservedScrollTop;
+  tableScrollContainer.scrollLeft = preservedScrollLeft;
+  tableScrollTop = tableScrollContainer.scrollTop;
+  } finally {
+  isRenderingVirtualRows = false;
+  }
 }
 
 /**
@@ -929,6 +924,10 @@ let isRenderScheduled = false;
 function handleTableScroll(e) {
   // Don't process scroll events during active drag
   if (document.body.classList.contains('dragging-cursor')) {
+    return;
+  }
+
+  if (isRenderingVirtualRows) {
     return;
   }
   
