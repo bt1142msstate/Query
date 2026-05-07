@@ -3,7 +3,6 @@
  */
 import { appUiActions } from '../core/appUiActions.js';
 import { DOM } from '../core/domCache.js';
-import { appRuntime } from '../core/appRuntime.js';
 
 let TableNameInput;
 
@@ -85,7 +84,6 @@ let TableNameInput;
   TableNameInput = Object.freeze({
     initialize
   });
-  appRuntime.TableNameInput = TableNameInput;
 })();
 
 export { TableNameInput };

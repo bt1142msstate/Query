@@ -6,6 +6,7 @@ import { appServices } from './appServices.js';
 import { registerQueryStateRuntimeAccessors } from './queryState.js';
 import { DOM } from './domCache.js';
 import { appRuntime } from './appRuntime.js';
+import { updateQueryJson as updateJsonPreview } from '../ui/jsonViewerUI.js';
 
 let appUiActions;
 
@@ -36,7 +37,7 @@ let appUiActions;
   }
 
   function updateQueryJson() {
-    appRuntime.JsonViewerUI?.updateQueryJson?.();
+    updateJsonPreview();
   }
 
   function updateTableResultsLip() {
@@ -126,12 +127,6 @@ let appUiActions;
     finalizeQueryClear
   });
 
-  Object.defineProperty(appRuntime, 'AppUiActions', {
-    configurable: false,
-    enumerable: false,
-    writable: false,
-    value: appUiActions
-  });
   registerQueryStateRuntimeAccessors({ getUiActions: () => appUiActions });
 })();
 

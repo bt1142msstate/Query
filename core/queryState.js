@@ -7,13 +7,14 @@ import { showToastMessage } from './toast.js';
 import { OperatorLabels } from './operatorLabels.js';
 import { appRuntime } from './appRuntime.js';
 
-let getServices = () => null, getUiActions = () => null, getColumnOps = () => null;
+let getServices = () => null, getUiActions = () => null, getColumnOps = () => null, getPrevalidation = () => null;
 let resolveRuntimeFieldName = fieldName => fieldName, getRuntimeFieldDefinition = () => null;
 
 function registerQueryStateRuntimeAccessors(accessors = {}) {
   if (typeof accessors.getServices === 'function') getServices = accessors.getServices;
   if (typeof accessors.getUiActions === 'function') getUiActions = accessors.getUiActions;
   if (typeof accessors.getColumnOps === 'function') getColumnOps = accessors.getColumnOps;
+  if (typeof accessors.getPrevalidation === 'function') getPrevalidation = accessors.getPrevalidation;
   if (typeof accessors.resolveFieldName === 'function') resolveRuntimeFieldName = accessors.resolveFieldName;
   if (typeof accessors.getFieldDefinition === 'function') getRuntimeFieldDefinition = accessors.getFieldDefinition;
 }
@@ -102,7 +103,6 @@ function defineAppStateProperty(target, key) {
 const appStateStore = {};
 Object.keys(appRuntimeState).forEach(key => {
   defineAppStateProperty(appStateStore, key);
-  if (typeof window !== 'undefined') defineAppStateProperty(window, key);
 });
 Object.freeze(appStateStore);
 Object.defineProperty(appRuntime, 'AppState', {
@@ -118,25 +118,6 @@ Object.defineProperty(appRuntime, 'AppState', {
 const displayedFieldsState = [];
 const activeFiltersState = {};
 const queryStateSubscribers = new Set();
-const legacyReadWarnings = new Set();
-
-function warnReadOnlyQueryStateMutation(path) {
-  console.warn(`Direct query state mutation blocked for ${path}. Use QueryChangeManager instead.`);
-}
-
-function warnLegacyQueryStateRead(path) {
-  if (legacyReadWarnings.has(path)) {
-    return;
-  }
-
-  legacyReadWarnings.add(path);
-  console.warn(`Direct query state read via ${path} is deprecated. Use QueryStateReaders instead.`);
-}
-
-function throwLegacyQueryStateRead(path) {
-  warnLegacyQueryStateRead(path);
-  throw new Error(`Direct query state read via ${path} is blocked. Use QueryStateReaders instead.`);
-}
 
 function cloneFilterEntry(filter) {
   if (!filter || typeof filter !== 'object') {
@@ -392,9 +373,7 @@ function shouldSkipQueryChangeToast(meta = {}) {
     'Query.clearCurrentQuery',
     'QueryHistory.loadQueryConfig',
     'VirtualTable.setSplitMode',
-    'Query.groupMethodChange',
-    'appRuntime.displayedFields setter',
-    'appRuntime.activeFilters setter'
+    'Query.groupMethodChange'
   ].includes(source);
 }
 
@@ -992,7 +971,7 @@ function createManagerStoreMethod(storeMethodName, requiredArgCount, fallbackSou
     }
 
     const meta = args[requiredArgCount];
-    const prevalidation = appRuntime.QueryPrevalidation;
+    const prevalidation = getPrevalidation();
     if (
       prevalidatedManagerMethods.has(storeMethodName)
       && prevalidation
@@ -1122,46 +1101,6 @@ Object.defineProperty(appRuntime, 'QueryStateReaders', {
   enumerable: false,
   writable: false,
   value: queryStateReaders
-});
-
-Object.defineProperty(appRuntime, 'QueryStateStore', {
-  configurable: false,
-  enumerable: false,
-  get() {
-    throw new Error('appRuntime.QueryStateStore is private. Use QueryChangeManager or QueryStateReaders instead.');
-  },
-  set() {
-    throw new Error('appRuntime.QueryStateStore is private. Use QueryChangeManager or QueryStateReaders instead.');
-  }
-});
-
-Object.defineProperty(appRuntime, 'displayedFields', {
-  configurable: false,
-  get() {
-    throwLegacyQueryStateRead('appRuntime.displayedFields');
-  },
-  set() {
-    warnReadOnlyQueryStateMutation('appRuntime.displayedFields');
-  }
-});
-
-Object.defineProperty(appRuntime, 'activeFilters', {
-  configurable: false,
-  get() {
-    throwLegacyQueryStateRead('appRuntime.activeFilters');
-  },
-  set() {
-    warnReadOnlyQueryStateMutation('appRuntime.activeFilters');
-  }
-});
-
-Object.defineProperty(appRuntime, 'getCurrentQueryState', {
-  configurable: false,
-  enumerable: false,
-  writable: false,
-  value: function legacyGetCurrentQueryState() {
-    throwLegacyQueryStateRead('appRuntime.getCurrentQueryState');
-  }
 });
 
 queryStateStore.subscribe(event => {

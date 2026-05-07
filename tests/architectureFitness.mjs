@@ -51,6 +51,11 @@ function findPublicWindowExports(source) {
     exports.push(match[1]);
   }
 
+  for (const match of source.matchAll(/\bdefine[A-Za-z_$]*Property\s*\(\s*window\s*,\s*([A-Za-z_$][\w$]*|['"][^'"]+['"])/gu)) {
+    const rawName = match[1];
+    exports.push(/^['"]/u.test(rawName) ? rawName.slice(1, -1) : `${rawName} (dynamic window property)`);
+  }
+
   return exports;
 }
 
