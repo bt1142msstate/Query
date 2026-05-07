@@ -154,7 +154,7 @@ const forbiddenWindowMemberReads = new Map([
 const legacyLargeModuleBudgets = new Map([
   ['history/queryHistory.js', 1208],
   ['core/queryState.js', 1040],
-  ['templates/queryTemplates.js', 1592],
+  ['templates/queryTemplates.js', 1340],
   ['core/utils.js', 674],
   ['filters/filterManager.js', 1371],
   ['table/dragDropInteractions.js', 1348],
