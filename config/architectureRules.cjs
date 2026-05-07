@@ -5,6 +5,8 @@ const appRuntimeUsageBudget = {
   maxMemberReferences: 200,
   forbiddenMembers: new Set([
     'AppUiActions',
+    'AppState',
+    'AppServices',
     'activeFilters',
     'BackendApi',
     'calculateCategoryCounts',
@@ -36,6 +38,8 @@ const appRuntimeUsageBudget = {
     'JsonViewerUI',
     'QueryHistoryViewHelpers',
     'QueryPrevalidation',
+    'QueryChangeManager',
+    'QueryStateReaders',
     'QueryStateStore',
     'QueryStateSubscriptions',
     'registerDynamicField',

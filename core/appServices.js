@@ -398,12 +398,6 @@ function registerFilterService(service) {
     renderConditionList
   });
 
-  Object.defineProperty(appRuntime, 'AppServices', {
-    configurable: false,
-    enumerable: false,
-    writable: false,
-    value: appServices
-  });
   registerQueryStateRuntimeAccessors({ getServices: () => appServices });
 })();
 

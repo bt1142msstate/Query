@@ -5,7 +5,6 @@
  */
 import { showToastMessage } from './toast.js';
 import { OperatorLabels } from './operatorLabels.js';
-import { appRuntime } from './appRuntime.js';
 
 let getServices = () => null, getUiActions = () => null, getColumnOps = () => null, getPrevalidation = () => null;
 let resolveRuntimeFieldName = fieldName => fieldName, getRuntimeFieldDefinition = () => null;
@@ -105,12 +104,6 @@ Object.keys(appRuntimeState).forEach(key => {
   defineAppStateProperty(appStateStore, key);
 });
 Object.freeze(appStateStore);
-Object.defineProperty(appRuntime, 'AppState', {
-  configurable: false,
-  enumerable: false,
-  writable: false,
-  value: appStateStore
-});
 
 // Bubble animation state is owned by BubbleSystem (bubble.js).
 // Access via appRuntime.BubbleSystem.isBubbleAnimating etc.
@@ -1089,20 +1082,6 @@ const queryStateReaders = Object.freeze({
     queryStateReaderMethodNames.map(methodName => [methodName, queryStateStore[methodName]])
   )
 });
-Object.defineProperty(appRuntime, 'QueryChangeManager', {
-  configurable: false,
-  enumerable: false,
-  writable: false,
-  value: queryChangeManager
-});
-
-Object.defineProperty(appRuntime, 'QueryStateReaders', {
-  configurable: false,
-  enumerable: false,
-  writable: false,
-  value: queryStateReaders
-});
-
 queryStateStore.subscribe(event => {
   if (!event) {
     return;
