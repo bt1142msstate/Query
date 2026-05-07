@@ -4,7 +4,13 @@
  */
 import { appServices } from '../core/appServices.js';
 import { appUiActions } from '../core/appUiActions.js';
-import { AppState, QueryChangeManager, QueryStateReaders, registerQueryStateRuntimeAccessors } from '../core/queryState.js';
+import {
+  AppState,
+  getBaseFieldName,
+  QueryChangeManager,
+  QueryStateReaders,
+  registerQueryStateRuntimeAccessors
+} from '../core/queryState.js';
 import { FormatUtils } from '../core/utils.js';
 import { appRuntime } from '../core/appRuntime.js';
 import { fieldDefs } from '../filters/fieldDefs.js';
@@ -40,7 +46,7 @@ let dragDropColumnOps;
       return [];
     }
 
-    const baseFieldName = appRuntime.getBaseFieldName(normalizedField);
+    const baseFieldName = getBaseFieldName(normalizedField);
     const relatedFieldPattern = new RegExp(`^\\d+(st|nd|rd|th)\\s+${baseFieldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`);
 
     return displayedFields.filter(field => field === baseFieldName || relatedFieldPattern.test(field));
@@ -78,7 +84,7 @@ let dragDropColumnOps;
       return false;
     }
 
-    const baseFieldName = appRuntime.getBaseFieldName(normalizedField);
+    const baseFieldName = getBaseFieldName(normalizedField);
     const remainingFields = displayedFieldsBeforeRemoval.filter(field => !relatedFieldNames.includes(field));
     const removedColumnIndices = relatedFieldNames
       .map(field => displayedFieldsBeforeRemoval.indexOf(field))

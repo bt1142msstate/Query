@@ -4,6 +4,7 @@ import { Icons } from './icons.js';
 import { OperatorLabels } from './operatorLabels.js';
 import { appRuntime } from './appRuntime.js';
 import { fieldDefs } from '../filters/fieldDefs.js';
+import { getBaseFieldName } from './queryState.js';
 
 /**
  * Shared Utility Functions
@@ -185,10 +186,7 @@ const ValueFormatting = (() => {
       return fieldDef;
     }
 
-    const baseField = typeof appRuntime.getBaseFieldName === 'function'
-      ? appRuntime.getBaseFieldName(normalizedField)
-      : normalizedField.replace(/ \d+$/, '');
-
+    const baseField = getBaseFieldName(normalizedField);
     fieldDef = fieldDefs.get(baseField);
     return fieldDef || null;
   }

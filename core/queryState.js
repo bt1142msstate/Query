@@ -47,8 +47,6 @@ function getBaseFieldName(fieldName) {
   return withoutOrdinalPrefix;
 }
 
-appRuntime.getBaseFieldName = getBaseFieldName;
-
 const appRuntimeState = {
   selectedField: '',
   totalRows: 0,
@@ -347,7 +345,7 @@ function getSerializableQueryState(snapshot = getQueryStateSnapshot()) {
       const def = getRuntimeFieldDefinition(field);
       return !(def && def.is_buildable);
     })
-    .map(field => appRuntime.getBaseFieldName(field))
+    .map(field => getBaseFieldName(field))
     .filter((field, index, array) => array.indexOf(field) === index);
 
   return {
