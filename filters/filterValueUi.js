@@ -3,24 +3,14 @@
  * Extracted from filterManager.js so value-display behavior is separate from condition editing.
  */
 import { ClipboardUtils } from '../core/clipboard.js';
+import { getFieldValueDisplayMap } from '../core/fieldValueMaps.js';
 import { showToastMessage } from '../core/toast.js';
 import { MoneyUtils, ValueFormatting } from '../core/utils.js';
 import { VisibilityUtils } from '../core/visibility.js';
-import { appRuntime } from '../core/appRuntime.js';
 import { escapeHtml } from '../core/html.js';
 
   function getFilterValueMap(fieldDef) {
-    if (!fieldDef || !fieldDef.values || fieldDef.values.length === 0) {
-      return new Map();
-    }
-
-    if (appRuntime.getLiteralToDisplayMap) {
-      return appRuntime.getLiteralToDisplayMap(fieldDef);
-    }
-
-    return typeof fieldDef.values[0] === 'object'
-      ? new Map(fieldDef.values.map(value => [value.RawValue, value.Name]))
-      : new Map();
+    return getFieldValueDisplayMap(fieldDef);
   }
 
   function getFilterDisplayValues(filter, fieldDef) {

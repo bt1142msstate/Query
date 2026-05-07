@@ -21,6 +21,7 @@ const appRuntimeUsageBudget = {
     'getFieldFilterOperators',
     'getFieldOutputSegments',
     'getBaseFieldName',
+    'getLiteralToDisplayMap',
     'hasLoadedFieldDefinitions',
     'Icons',
     'isFieldBackendFilterable',
