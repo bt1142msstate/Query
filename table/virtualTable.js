@@ -62,6 +62,7 @@ const tableColumnLayout = createTableColumnLayoutController({
   getContainer: () => tableScrollContainer,
   getDisplayedFields: () => getDisplayedFields(),
   getColumnWidth: field => calculatedColumnWidths[field],
+  isManualColumnWidth: field => Object.prototype.hasOwnProperty.call(manualColumnWidths, field),
   calculateColumnWidths: (fields, data) => calculateOptimalColumnWidths(fields, data),
   getTableData: () => virtualTableData
 });
@@ -182,7 +183,7 @@ function syncResizeModeUi() {
 
 function setManualColumnWidth(fieldName, width) {
   const normalizedField = String(fieldName || '').trim();
-  const normalizedWidth = Math.max(90, Number(width) || 150);
+  const normalizedWidth = tableColumnLayout.normalizeColumnWidth(width);
   if (!normalizedField) {
     return normalizedWidth;
   }

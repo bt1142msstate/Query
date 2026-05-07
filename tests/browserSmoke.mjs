@@ -611,6 +611,75 @@ async function exerciseExpandedVirtualTableColumnAlignment(page) {
   await page.waitForFunction(() => !document.querySelector('#table-shell')?.classList.contains('table-shell-expanded'), null, { timeout: 5000 });
 }
 
+async function exerciseColumnResizeInteraction(page) {
+  await seedLoadedResults(page, { rowCount: 320 });
+
+  await page.evaluate(async () => {
+    const { appRuntime } = await import('./core/appRuntime.js');
+    appRuntime.AppServices.activateColumnResizeMode?.('Smoke Title');
+  });
+
+  const titleHeader = page.locator('#example-table th[data-sort-field="Smoke Title"]').first();
+  const rightHandle = titleHeader.locator('.th-resize-handle-right').first();
+  await titleHeader.waitFor({ state: 'visible', timeout: 5000 });
+  await rightHandle.waitFor({ state: 'visible', timeout: 5000 });
+
+  const beforeMetrics = await page.evaluate(() => {
+    const titleHeaderEl = document.querySelector('#example-table th[data-sort-field="Smoke Title"]');
+    const titleCellEl = document.querySelector('#example-table tbody tr[data-row-index="0"] td[data-col-index="0"]');
+    return {
+      cellWidth: Math.round(titleCellEl?.getBoundingClientRect().width || 0),
+      headerWidth: Math.round(titleHeaderEl?.getBoundingClientRect().width || 0),
+      resizeModeActive: document.body.classList.contains('table-resize-mode')
+    };
+  });
+
+  if (!beforeMetrics.resizeModeActive || beforeMetrics.headerWidth <= 0 || Math.abs(beforeMetrics.headerWidth - beforeMetrics.cellWidth) > 1) {
+    throw new Error(`Column resize did not start from an aligned active state: ${JSON.stringify(beforeMetrics)}`);
+  }
+
+  const handleBox = await rightHandle.boundingBox();
+  if (!handleBox) {
+    throw new Error('Column resize handle was not measurable');
+  }
+
+  const dragStartX = Math.floor(handleBox.x + (handleBox.width / 2));
+  const dragStartY = Math.floor(handleBox.y + (handleBox.height / 2));
+  const resizeDelta = 80;
+  await page.mouse.move(dragStartX, dragStartY);
+  await page.mouse.down();
+  await page.mouse.move(dragStartX + resizeDelta, dragStartY, { steps: 8 });
+  await page.mouse.up();
+
+  await page.waitForFunction(({ expectedWidth }) => {
+    const titleHeaderEl = document.querySelector('#example-table th[data-sort-field="Smoke Title"]');
+    const titleCellEl = document.querySelector('#example-table tbody tr[data-row-index="0"] td[data-col-index="0"]');
+    const headerWidth = Math.round(titleHeaderEl?.getBoundingClientRect().width || 0);
+    const cellWidth = Math.round(titleCellEl?.getBoundingClientRect().width || 0);
+    return Math.abs(headerWidth - expectedWidth) <= 2 && Math.abs(headerWidth - cellWidth) <= 1;
+  }, { expectedWidth: beforeMetrics.headerWidth + resizeDelta }, { timeout: 5000 });
+
+  const afterMetrics = await page.evaluate(() => {
+    const titleHeaderEl = document.querySelector('#example-table th[data-sort-field="Smoke Title"]');
+    const titleCellEl = document.querySelector('#example-table tbody tr[data-row-index="0"] td[data-col-index="0"]');
+    return {
+      cellWidth: Math.round(titleCellEl?.getBoundingClientRect().width || 0),
+      headerWidth: Math.round(titleHeaderEl?.getBoundingClientRect().width || 0),
+      resizeModeActive: document.body.classList.contains('table-resize-mode')
+    };
+  });
+
+  const actualDelta = afterMetrics.headerWidth - beforeMetrics.headerWidth;
+  if (Math.abs(actualDelta - resizeDelta) > 2 || Math.abs(afterMetrics.headerWidth - afterMetrics.cellWidth) > 1) {
+    throw new Error(`Column resize drag was nonlinear or misaligned: before=${JSON.stringify(beforeMetrics)}, after=${JSON.stringify(afterMetrics)}`);
+  }
+
+  await page.evaluate(async () => {
+    const { appRuntime } = await import('./core/appRuntime.js');
+    appRuntime.AppServices.clearColumnResizeMode?.();
+  });
+}
+
 async function expectEmptyTableMessage(page, expectedPattern, label) {
   await page.locator('#example-table tbody td').first().waitFor({ state: 'visible', timeout: 5000 });
   const message = (await page.locator('#example-table tbody td').first().textContent())?.trim() || '';
@@ -912,6 +981,7 @@ async function runSmokeTest() {
     await exerciseZeroResultQueryWorkflow(page, queryApiStub);
     await exerciseVirtualTableScrollInteraction(page);
     await exerciseExpandedVirtualTableColumnAlignment(page);
+    await exerciseColumnResizeInteraction(page);
 
     await page.getByRole('button', { name: 'Queries' }).click();
     await page.locator('input[placeholder="Search queries..."]').waitFor({ state: 'visible', timeout: 5000 });

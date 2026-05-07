@@ -59,6 +59,7 @@ export function createTableColumnLayoutController(options = {}) {
   const getContainer = typeof options.getContainer === 'function' ? options.getContainer : () => null;
   const getDisplayedFields = typeof options.getDisplayedFields === 'function' ? options.getDisplayedFields : () => [];
   const getColumnWidth = typeof options.getColumnWidth === 'function' ? options.getColumnWidth : () => DEFAULT_COLUMN_WIDTH;
+  const isManualColumnWidth = typeof options.isManualColumnWidth === 'function' ? options.isManualColumnWidth : () => false;
   const calculateColumnWidths = typeof options.calculateColumnWidths === 'function' ? options.calculateColumnWidths : () => {};
   const getTableData = typeof options.getTableData === 'function' ? options.getTableData : () => null;
 
@@ -89,10 +90,25 @@ export function createTableColumnLayoutController(options = {}) {
       };
     }
 
+    const stretchableIndexes = renderFields
+      .map((field, index) => isManualColumnWidth(field) ? -1 : index)
+      .filter(index => index >= 0);
+
+    if (!stretchableIndexes.length) {
+      return {
+        fields: renderFields,
+        widths: baseWidths,
+        totalWidth: baseTotalWidth
+      };
+    }
+
     const extraWidth = availableWidth - baseTotalWidth;
-    const sharedExtraWidth = Math.floor(extraWidth / renderFields.length);
-    const remainderWidth = extraWidth % renderFields.length;
-    const widths = baseWidths.map((width, index) => width + sharedExtraWidth + (index < remainderWidth ? 1 : 0));
+    const sharedExtraWidth = Math.floor(extraWidth / stretchableIndexes.length);
+    const remainderWidth = extraWidth % stretchableIndexes.length;
+    const widths = [...baseWidths];
+    stretchableIndexes.forEach((columnIndex, stretchIndex) => {
+      widths[columnIndex] += sharedExtraWidth + (stretchIndex < remainderWidth ? 1 : 0);
+    });
 
     return {
       fields: renderFields,
