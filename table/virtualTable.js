@@ -40,10 +40,10 @@ let resizeModeState = {
   fieldName: ''
 };
 let simpleTableInstance = null; // Store the SimpleTable instance
-let isRenderingVirtualRows = false;
 
 const HEADER_ACTION_SPACE = 116;
 const HEADER_TEXT_BALANCE_SPACE = 116;
+const FULL_TABLE_RENDER_ROW_LIMIT = 2000;
 var services = appServices, uiActions = appUiActions;
 
 // Keep track of sorting state
@@ -712,17 +712,10 @@ function renderVirtualTable() {
   
   const tbody = table.querySelector('tbody');
   if (!tbody) return;
-
-  const preservedScrollTop = Math.max(0, tableScrollTop);
-  const preservedScrollLeft = Math.max(0, tableScrollContainer.scrollLeft || 0);
+  const nextBody = document.createDocumentFragment();
   
   // Clean up existing event listeners on body cells before clearing them
   services.cleanupDragDropTableListeners(table);
-  
-  // Clear existing body rows
-  isRenderingVirtualRows = true;
-  try {
-  tbody.innerHTML = '';
 
   if (!Array.isArray(virtualTableData.rows) || virtualTableData.rows.length === 0) {
     const emptyRow = document.createElement('tr');
@@ -732,36 +725,47 @@ function renderVirtualTable() {
       ? 'No rows match the active post filters.'
       : (isCurrentQueryResultSetLoaded() ? 'No results matched this query.' : 'Run a query to load results.');
 
+    tbody.classList.remove('query-table-virtual-body');
+    tbody.style.height = '';
+    tbody.style.position = '';
+    table.style.height = '';
     emptyCell.setAttribute('colspan', displayedFields.length.toString());
     emptyCell.className = 'px-6 py-10 text-center text-sm text-gray-500 italic';
     emptyCell.textContent = message;
     emptyRow.appendChild(emptyCell);
-    tbody.appendChild(emptyRow);
+    nextBody.appendChild(emptyRow);
+    tbody.replaceChildren(nextBody);
     tableScrollTop = 0;
     tableScrollContainer.scrollTop = 0;
-    tableScrollContainer.scrollLeft = preservedScrollLeft;
     return;
   }
 
-  const { start, end } = calculateVisibleRows();
-  
-  // Create spacer for rows above visible area
-  if (start > 0) {
-    const topSpacer = document.createElement('tr');
-    const spacerCell = document.createElement('td');
-    spacerCell.setAttribute('colspan', displayedFields.length.toString());
-    spacerCell.style.height = `${start * tableRowHeight}px`;
-    spacerCell.style.padding = '0';
-    spacerCell.style.border = 'none';
-    topSpacer.appendChild(spacerCell);
-    tbody.appendChild(topSpacer);
-  }
+  const shouldRenderAllRows = virtualTableData.rows.length <= FULL_TABLE_RENDER_ROW_LIMIT;
+  const { start, end } = shouldRenderAllRows
+    ? { start: 0, end: virtualTableData.rows.length }
+    : calculateVisibleRows();
+
+  table.style.height = '';
+  tbody.classList.toggle('query-table-virtual-body', !shouldRenderAllRows);
+  tbody.style.height = shouldRenderAllRows ? '' : `${virtualTableData.rows.length * tableRowHeight}px`;
+  tbody.style.position = shouldRenderAllRows ? '' : 'relative';
   
   // Render visible rows
   for (let i = start; i < end; i++) {
     const rowData = virtualTableData.rows[i]; // Access the 2D array row
     const tr = TableBuilder.createRow();
     tr.style.height = `${tableRowHeight}px`;
+
+    if (!shouldRenderAllRows) {
+      tr.style.position = 'absolute';
+      tr.style.top = `${i * tableRowHeight}px`;
+      tr.style.left = '0';
+      tr.style.right = '0';
+      tr.style.display = 'table';
+      tr.style.tableLayout = 'fixed';
+      tr.style.width = '100%';
+    }
+
     tr.dataset.rowIndex = i;
     
     displayedFields.forEach((field, colIndex) => {
@@ -882,34 +886,13 @@ function renderVirtualTable() {
       tr.appendChild(td);
     });
     
-    tbody.appendChild(tr);
+    nextBody.appendChild(tr);
   }
   
-  // Create spacer for rows below visible area
-  const remainingRows = virtualTableData.rows.length - end;
-  if (remainingRows > 0) {
-    const bottomSpacer = document.createElement('tr');
-    const spacerCell = document.createElement('td');
-    spacerCell.setAttribute('colspan', displayedFields.length.toString());
-    spacerCell.style.height = `${remainingRows * tableRowHeight}px`;
-    spacerCell.style.padding = '0';
-    spacerCell.style.border = 'none';
-    bottomSpacer.appendChild(spacerCell);
-    tbody.appendChild(bottomSpacer);
-  }
+  tbody.replaceChildren(nextBody);
   
   // Re-apply drag and drop to the new rows
   services.addDragAndDrop(table);
-
-  // Clearing tbody can temporarily collapse scrollHeight and cause the browser to
-  // clamp scrollTop to 0. Restore it after spacer rows are back in the DOM so
-  // virtual scrolling remains continuous through each re-render.
-  tableScrollContainer.scrollTop = preservedScrollTop;
-  tableScrollContainer.scrollLeft = preservedScrollLeft;
-  tableScrollTop = tableScrollContainer.scrollTop;
-  } finally {
-  isRenderingVirtualRows = false;
-  }
 }
 
 /**
@@ -921,18 +904,7 @@ function renderVirtualTable() {
  */
 let isRenderScheduled = false;
 
-function handleTableScroll(e) {
-  // Don't process scroll events during active drag
-  if (document.body.classList.contains('dragging-cursor')) {
-    return;
-  }
-
-  if (isRenderingVirtualRows) {
-    return;
-  }
-  
-  tableScrollTop = e.target.scrollTop;
-  
+function scheduleVirtualTableRender() {
   if (!isRenderScheduled) {
     isRenderScheduled = true;
     requestAnimationFrame(() => {
@@ -940,6 +912,21 @@ function handleTableScroll(e) {
       isRenderScheduled = false;
     });
   }
+}
+
+function handleTableScroll(e) {
+  // Don't process scroll events during active drag
+  if (document.body.classList.contains('dragging-cursor')) {
+    return;
+  }
+  
+  tableScrollTop = e.target.scrollTop;
+
+  if (virtualTableData.rows.length <= FULL_TABLE_RENDER_ROW_LIMIT) {
+    return;
+  }
+
+  scheduleVirtualTableRender();
 }
 
 /**
@@ -1070,6 +1057,7 @@ async function setupVirtualTable(container, fields, options = {}) {
 
   
   // Add scroll event listener
+  container.removeEventListener('scroll', handleTableScroll);
   container.addEventListener('scroll', handleTableScroll);
 
   if (shouldPreserveScroll) {

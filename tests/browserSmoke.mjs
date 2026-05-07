@@ -405,29 +405,52 @@ async function exerciseVirtualTableScrollInteraction(page) {
   const tableContainer = page.locator('#table-container');
   const beforeMetrics = await tableContainer.evaluate(element => ({
     clientHeight: element.clientHeight,
-    firstRenderedRowIndex: Number(document.querySelector('#example-table tbody tr[data-row-index]')?.dataset.rowIndex || 0),
+    renderedRowCount: document.querySelectorAll('#example-table tbody tr[data-row-index]').length,
     scrollHeight: element.scrollHeight,
-    scrollTop: element.scrollTop
+    scrollTop: element.scrollTop,
+    visibleRowIndexBelowHeader: 0
   }));
 
   if (beforeMetrics.scrollHeight <= beforeMetrics.clientHeight) {
     throw new Error(`Virtual table is not scrollable: ${JSON.stringify(beforeMetrics)}`);
   }
 
+  if (beforeMetrics.renderedRowCount !== 320) {
+    throw new Error(`Ordinary result sets should use native table scrolling; rendered ${beforeMetrics.renderedRowCount} rows`);
+  }
+
   await tableContainer.hover();
   await page.mouse.wheel(0, 9000);
   await page.waitForFunction(() => {
     const container = document.querySelector('#table-container');
-    const firstRenderedRowIndex = Number(document.querySelector('#example-table tbody tr[data-row-index]')?.dataset.rowIndex || 0);
-    return Boolean(container && container.scrollTop > 500 && firstRenderedRowIndex > 10);
+    const header = document.querySelector('#example-table thead th');
+    if (!container || !header) {
+      return false;
+    }
+
+    const containerRect = container.getBoundingClientRect();
+    const headerRect = header.getBoundingClientRect();
+    const visibleRow = document
+      .elementFromPoint(containerRect.left + 80, headerRect.bottom + 8)
+      ?.closest('tr[data-row-index]');
+    return Boolean(container.scrollTop > 500 && Number(visibleRow?.dataset.rowIndex || 0) > 10);
   }, null, { timeout: 5000 });
 
   const afterMetrics = await tableContainer.evaluate(element => ({
-    firstRenderedRowIndex: Number(document.querySelector('#example-table tbody tr[data-row-index]')?.dataset.rowIndex || 0),
-    scrollTop: element.scrollTop
+    renderedRowCount: document.querySelectorAll('#example-table tbody tr[data-row-index]').length,
+    scrollTop: element.scrollTop,
+    visibleRowIndexBelowHeader: Number(
+      document
+        .elementFromPoint(
+          element.getBoundingClientRect().left + 80,
+          document.querySelector('#example-table thead th').getBoundingClientRect().bottom + 8
+        )
+        ?.closest('tr[data-row-index]')
+        ?.dataset.rowIndex || 0
+    )
   }));
 
-  if (afterMetrics.scrollTop <= beforeMetrics.scrollTop || afterMetrics.firstRenderedRowIndex <= beforeMetrics.firstRenderedRowIndex) {
+  if (afterMetrics.scrollTop <= beforeMetrics.scrollTop || afterMetrics.visibleRowIndexBelowHeader <= beforeMetrics.visibleRowIndexBelowHeader) {
     throw new Error(`Virtual table did not advance after wheel scroll: before=${JSON.stringify(beforeMetrics)}, after=${JSON.stringify(afterMetrics)}`);
   }
 }

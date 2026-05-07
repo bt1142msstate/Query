@@ -368,6 +368,11 @@ body.export-overlay-open {
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
+#example-table tbody.query-table-virtual-body {
+  display: block;
+  position: relative;
+}
+
 #example-table tbody tr:last-child {
   border-bottom: none;
 }
