@@ -19,6 +19,7 @@ import { OperatorLabels } from '../core/operatorLabels.js';
 import { Icons } from '../core/icons.js';
 import { SharedFieldPicker } from '../ui/fieldPicker.js';
 import { appRuntime } from '../core/appRuntime.js';
+import { fieldDefs } from './fieldDefs.js';
 
 appRuntime.FilterSidePanel = (function () {
     const services = appServices;
@@ -580,7 +581,7 @@ appRuntime.FilterSidePanel = (function () {
     }
 
     function createFilterGroup(field, data, container) {
-        const fieldDef = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(field) : null;
+        const fieldDef = fieldDefs ? fieldDefs.get(field) : null;
         const group = document.createElement('div');
         group.className = 'fp-field-group';
         group.dataset.field = field;

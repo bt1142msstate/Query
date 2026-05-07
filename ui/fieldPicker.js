@@ -7,7 +7,7 @@ import { VisibilityUtils } from '../core/visibility.js';
 import { FormModeControls as formModeControls } from './formModeControls.js';
 import { initializeSearchInputs } from './searchUI.js';
 import { appRuntime } from '../core/appRuntime.js';
-
+import { fieldDefs, fieldDefsArray, isFieldBackendFilterable, loadFieldDefinitions } from '../filters/fieldDefs.js';
 let SharedFieldPicker;
 
 (function() {
@@ -15,17 +15,17 @@ let SharedFieldPicker;
   const { getDisplayedFields, getFilterGroupForField } = QueryStateReaders;
 
   function getFieldPickerOptionsFromDefinitions() {
-    const source = Array.isArray(appRuntime.fieldDefsArray) && appRuntime.fieldDefsArray.length > 0
-      ? appRuntime.fieldDefsArray
-      : Array.from((appRuntime.fieldDefs && appRuntime.fieldDefs.values()) || []);
+    const source = Array.isArray(fieldDefsArray) && fieldDefsArray.length > 0
+      ? fieldDefsArray
+      : Array.from((fieldDefs && fieldDefs.values()) || []);
 
     return source
       .filter(fieldDef => fieldDef && fieldDef.name)
       .map(fieldDef => ({
         name: String(fieldDef.name),
         type: String(fieldDef.type || 'text'),
-        filterable: typeof appRuntime.isFieldBackendFilterable === 'function'
-          ? appRuntime.isFieldBackendFilterable(fieldDef)
+        filterable: typeof isFieldBackendFilterable === 'function'
+          ? isFieldBackendFilterable(fieldDef)
           : Array.isArray(fieldDef.filters) && fieldDef.filters.length > 0,
         desc: typeof fieldDef.desc === 'string' ? fieldDef.desc : '',
         description: typeof fieldDef.description === 'string' ? fieldDef.description : '',
@@ -914,7 +914,7 @@ let SharedFieldPicker;
     const controls = formModeControls;
     if (
       !container
-      || !appRuntime.fieldDefs
+      || !fieldDefs
       || !controls
       || typeof controls.createGeneratedInputSpec !== 'function'
       || typeof controls.createControl !== 'function'
@@ -923,8 +923,8 @@ let SharedFieldPicker;
       return null;
     }
 
-    const fieldDef = appRuntime.fieldDefs.get(fieldName);
-    if (!fieldDef || (typeof appRuntime.isFieldBackendFilterable === 'function' && !appRuntime.isFieldBackendFilterable(fieldDef))) {
+    const fieldDef = fieldDefs.get(fieldName);
+    if (!fieldDef || (typeof isFieldBackendFilterable === 'function' && !isFieldBackendFilterable(fieldDef))) {
       return null;
     }
 
@@ -1098,7 +1098,7 @@ let SharedFieldPicker;
   }
 
   function openQueryFilterEditor(fieldName) {
-    const fieldDef = appRuntime.fieldDefs && appRuntime.fieldDefs.get(fieldName);
+    const fieldDef = fieldDefs && fieldDefs.get(fieldName);
     if (!fieldDef || !services.bubble || typeof services.bubble.Bubble !== 'function') {
       return false;
     }
@@ -1159,8 +1159,8 @@ let SharedFieldPicker;
 
     await openSharedFieldPicker({
       beforeOpen: async () => {
-        if (typeof appRuntime.loadFieldDefinitions === 'function') {
-          await appRuntime.loadFieldDefinitions();
+        if (typeof loadFieldDefinitions === 'function') {
+          await loadFieldDefinitions();
         }
       },
       labels: {

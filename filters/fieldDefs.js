@@ -4,7 +4,8 @@
  * @module FieldDefs
  */
 import { BackendApi } from '../core/backendApi.js';
-import { QueryStateReaders } from '../core/queryState.js';
+import { registerDataFormatterFieldDefinitions } from '../core/dataFormatters.js';
+import { QueryStateReaders, registerQueryStateRuntimeAccessors } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
 import { appRuntime } from '../core/appRuntime.js';
 
@@ -21,8 +22,6 @@ const SYSTEM_CATEGORIES = ['All', 'Selected'];
 function hasLoadedFieldDefinitions() {
   return isFieldsLoaded && fieldDefsArray.length > 0;
 }
-
-appRuntime.hasLoadedFieldDefinitions = hasLoadedFieldDefinitions;
 
 function normalizeCategoryName(category) {
   return (typeof category === 'string') ? category.trim() : '';
@@ -120,7 +119,13 @@ function resolveFieldName(fieldName, options = {}) {
   return normalized;
 }
 
-appRuntime.resolveFieldName = resolveFieldName;
+registerQueryStateRuntimeAccessors({
+  resolveFieldName,
+  getFieldDefinition(fieldName) {
+    return fieldDefs.get(fieldName) || null;
+  }
+});
+registerDataFormatterFieldDefinitions(() => fieldDefs);
 
 async function loadFieldDefinitions() {
     if (isFieldsLoaded) return fieldDefsArray;
@@ -161,10 +166,6 @@ async function loadFieldDefinitions() {
         });
         filteredDefs = [...fieldDefsArray];
 
-        appRuntime.fieldDefsArray = fieldDefsArray;
-        appRuntime.fieldDefs = fieldDefs;
-        appRuntime.filteredDefs = filteredDefs;
-        
         isFieldsLoaded = true;
         return fieldDefsArray;
     } catch (e) {
@@ -176,8 +177,6 @@ async function loadFieldDefinitions() {
         return [];
     }
 }
-
-appRuntime.loadFieldDefinitions = loadFieldDefinitions;
 
 /**
  * Updates the filtered definitions array based on search term.
@@ -192,8 +191,6 @@ function updateFilteredDefs(searchTerm) {
   } else {
     filteredDefs = fieldDefsArray.filter(d => d.name.toLowerCase().includes(searchTerm.toLowerCase()));
   }
-  // Keep appRuntime.filteredDefs in sync so other scripts (e.g. bubble.js) see the updated array
-  appRuntime.filteredDefs = filteredDefs;
   return filteredDefs;
 }
 
@@ -220,8 +217,72 @@ function isFieldBackendFilterable(fieldOrName) {
   return getFieldFilterOperators(fieldOrName).length > 0;
 }
 
-appRuntime.getFieldFilterOperators = getFieldFilterOperators;
-appRuntime.isFieldBackendFilterable = isFieldBackendFilterable;
+function registerDynamicField(fieldName, opts = {}) {
+  if (!fieldName || fieldDefs.has(fieldName)) return;
+
+  let parentDef = null;
+  if (Array.isArray(fieldDefsArray)) {
+    parentDef = fieldDefsArray.find(definition => {
+      if (!definition.is_buildable || !definition.field_template) return false;
+      const pattern = definition.field_template.replace(/\{[^}]+\}/g, '[^|]+');
+      return new RegExp('^' + pattern + '$').test(fieldName);
+    });
+  }
+
+  let resolvedPayload = opts.special_payload || null;
+  if (!resolvedPayload && parentDef && parentDef.special_payload_template && parentDef.field_template) {
+    const keys = [];
+    const capturingPattern = parentDef.field_template.replace(/\{([^}]+)\}/g, (_, key) => {
+      keys.push(key);
+      return '(.+)';
+    });
+    const match = new RegExp('^' + capturingPattern + '$').exec(fieldName);
+    if (match) {
+      resolvedPayload = JSON.parse(JSON.stringify(parentDef.special_payload_template));
+      keys.forEach((key, index) => {
+        for (const payloadKey in resolvedPayload) {
+          if (typeof resolvedPayload[payloadKey] === 'string') {
+            resolvedPayload[payloadKey] = resolvedPayload[payloadKey].replace(`{${key}}`, match[index + 1]);
+          }
+        }
+      });
+    }
+  }
+
+  const newDef = {
+    name: fieldName,
+    type: opts.type ?? (parentDef ? parentDef.type : null),
+    category: opts.category ?? (parentDef ? parentDef.category : null),
+    desc: opts.desc ?? (parentDef ? parentDef.desc : ''),
+    special_payload: resolvedPayload
+  };
+
+  [
+    'allowValueList',
+    'description',
+    'filters',
+    'numberFormat',
+    'numericFormat',
+    'operators',
+    'parts',
+    'values'
+  ].forEach(key => {
+    if (opts[key] !== undefined) {
+      newDef[key] = opts[key];
+    } else if (parentDef && parentDef[key] !== undefined) {
+      newDef[key] = parentDef[key];
+    }
+  });
+
+  fieldDefs.set(fieldName, newDef);
+
+  if (!fieldDefsArray.find(definition => definition.name === fieldName)) {
+    fieldDefsArray.push({ ...newDef });
+  }
+  if (!filteredDefs.find(definition => definition.name === fieldName)) {
+    filteredDefs.push({ ...newDef });
+  }
+}
 
 /**
  * Checks if a field should have purple styling (filtered or displayed).
@@ -346,17 +407,6 @@ function renderCategorySelectors(categoryCounts, currentCategory, onCategoryChan
   }
 }
 
-// Export global variables and functions for use in other modules
-appRuntime.fieldDefs = fieldDefs;
-appRuntime.fieldDefsArray = fieldDefsArray;
-appRuntime.fieldAliases = fieldAliases;
-appRuntime.filteredDefs = filteredDefs;
-appRuntime.updateFilteredDefs = updateFilteredDefs;
-appRuntime.shouldFieldHavePurpleStylingBase = shouldFieldHavePurpleStylingBase;
-appRuntime.shouldFieldHavePurpleStyling = shouldFieldHavePurpleStyling;
-appRuntime.calculateCategoryCounts = calculateCategoryCounts;
-appRuntime.renderCategorySelectors = renderCategorySelectors;
-
 export {
   calculateCategoryCounts,
   fieldAliases,
@@ -368,6 +418,7 @@ export {
   hasLoadedFieldDefinitions,
   isFieldBackendFilterable,
   loadFieldDefinitions,
+  registerDynamicField,
   renderCategorySelectors,
   resolveFieldName,
   shouldFieldHavePurpleStyling,

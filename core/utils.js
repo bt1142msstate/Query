@@ -2,6 +2,7 @@ import { DragUtils } from './dragUtils.js';
 import { Icons } from './icons.js';
 import { OperatorLabels } from './operatorLabels.js';
 import { appRuntime } from './appRuntime.js';
+import { fieldDefs } from '../filters/fieldDefs.js';
 
 /**
  * Shared Utility Functions
@@ -169,7 +170,7 @@ const OperatorSelectUtils = (() => {
 
 const ValueFormatting = (() => {
   function getFieldDefinition(fieldName) {
-    if (!appRuntime.fieldDefs) {
+    if (!fieldDefs) {
       return null;
     }
 
@@ -178,7 +179,7 @@ const ValueFormatting = (() => {
       return null;
     }
 
-    let fieldDef = appRuntime.fieldDefs.get(normalizedField);
+    let fieldDef = fieldDefs.get(normalizedField);
     if (fieldDef) {
       return fieldDef;
     }
@@ -187,7 +188,7 @@ const ValueFormatting = (() => {
       ? appRuntime.getBaseFieldName(normalizedField)
       : normalizedField.replace(/ \d+$/, '');
 
-    fieldDef = appRuntime.fieldDefs.get(baseField);
+    fieldDef = fieldDefs.get(baseField);
     return fieldDef || null;
   }
 

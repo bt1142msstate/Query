@@ -4,6 +4,7 @@ import { OperatorLabels } from '../core/operatorLabels.js';
 import { MoneyUtils, OperatorSelectUtils, ValueFormatting } from '../core/utils.js';
 import { SelectorControls } from './selectorControls.js';
 import { appRuntime } from '../core/appRuntime.js';
+import { fieldDefs, isFieldBackendFilterable } from '../filters/fieldDefs.js';
 
   function parseFieldOptions(fieldDef, inputSpec, normalizeOperatorForField) {
     const source = Array.isArray(inputSpec.options) && inputSpec.options.length > 0
@@ -45,7 +46,7 @@ import { appRuntime } from '../core/appRuntime.js';
   }
 
   function getAvailableOperators(fieldDef, inputSpec, normalizeOperatorForField) {
-    if (fieldDef && typeof appRuntime.isFieldBackendFilterable === 'function' && !appRuntime.isFieldBackendFilterable(fieldDef)) {
+    if (fieldDef && typeof isFieldBackendFilterable === 'function' && !isFieldBackendFilterable(fieldDef)) {
       return [];
     }
 
@@ -96,7 +97,7 @@ import { appRuntime } from '../core/appRuntime.js';
       return false;
     }
 
-    const resolvedFieldDef = fieldDef || (appRuntime.fieldDefs && inputSpec.field ? appRuntime.fieldDefs.get(inputSpec.field) : null);
+    const resolvedFieldDef = fieldDef || (fieldDefs && inputSpec.field ? fieldDefs.get(inputSpec.field) : null);
     return Boolean(
       inputSpec.multiple
       || (resolvedFieldDef && resolvedFieldDef.multiSelect)
@@ -105,8 +106,8 @@ import { appRuntime } from '../core/appRuntime.js';
   }
 
   function createGeneratedInputSpec(fieldName, specInputs, uniqueInputKey, normalizeOperatorForField) {
-    const fieldDef = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(fieldName) : null;
-    if (fieldDef && typeof appRuntime.isFieldBackendFilterable === 'function' && !appRuntime.isFieldBackendFilterable(fieldDef)) {
+    const fieldDef = fieldDefs ? fieldDefs.get(fieldName) : null;
+    if (fieldDef && typeof isFieldBackendFilterable === 'function' && !isFieldBackendFilterable(fieldDef)) {
       return null;
     }
 
@@ -137,7 +138,7 @@ import { appRuntime } from '../core/appRuntime.js';
   }
 
   function resolveInputInitialValues(inputSpec, searchParams, getInputParamKeys, splitListValues) {
-    const fieldDef = appRuntime.fieldDefs && inputSpec && inputSpec.field ? appRuntime.fieldDefs.get(inputSpec.field) : null;
+    const fieldDef = fieldDefs && inputSpec && inputSpec.field ? fieldDefs.get(inputSpec.field) : null;
     const isMultiValue = supportsMultipleValues(inputSpec, fieldDef);
     const keys = getInputParamKeys(inputSpec);
 

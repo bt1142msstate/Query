@@ -1,6 +1,7 @@
 import { appRuntime } from '../core/appRuntime.js';
+import { fieldDefs, registerDynamicField } from '../filters/fieldDefs.js';
   function getFieldDef(fieldName) {
-    return appRuntime.fieldDefs && fieldName ? appRuntime.fieldDefs.get(fieldName) : null;
+    return fieldDefs && fieldName ? fieldDefs.get(fieldName) : null;
   }
 
   function collectBindings(spec, getCurrentInputValues, supportsMultipleValues, getInputParamKeys) {
@@ -63,8 +64,8 @@ import { appRuntime } from '../core/appRuntime.js';
   }
 
   function ensureColumnsRegistered(columns) {
-    if (typeof appRuntime.registerDynamicField !== 'function') return;
-    columns.forEach(column => appRuntime.registerDynamicField(column));
+    if (typeof registerDynamicField !== 'function') return;
+    columns.forEach(column => registerDynamicField(column));
   }
 
   function appendFilter(targetFilters, fieldName, operator, values) {

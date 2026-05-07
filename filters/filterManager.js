@@ -10,6 +10,14 @@ import {
 } from './filterValueUi.js';
 import { SelectorControls } from '../ui/selectorControls.js';
 import { appRuntime } from '../core/appRuntime.js';
+import {
+  fieldDefs,
+  getFieldFilterOperators,
+  isFieldBackendFilterable,
+  registerDynamicField,
+  shouldFieldHavePurpleStyling,
+  updateFilteredDefs
+} from './fieldDefs.js';
 
 /**
  * FilterPill UI component class
@@ -266,10 +274,10 @@ function buildBubbleConditionPanel(bubble) {
     }
 
     const perBubble = bubble.dataset.filters ? JSON.parse(bubble.dataset.filters) : null;
-    const fieldDefInfo = appRuntime.fieldDefs ? appRuntime.fieldDefs.get(appState.selectedField) : null;
+    const fieldDefInfo = fieldDefs ? fieldDefs.get(appState.selectedField) : null;
     const isBuildable = fieldDefInfo && fieldDefInfo.is_buildable;
-    const backendOperators = typeof appRuntime.getFieldFilterOperators === 'function'
-        ? appRuntime.getFieldFilterOperators(fieldDefInfo)
+    const backendOperators = typeof getFieldFilterOperators === 'function'
+        ? getFieldFilterOperators(fieldDefInfo)
         : ((perBubble && perBubble.length > 0)
             ? perBubble.map(label => String(label).split(' ')[0].toLowerCase())
             : []);
@@ -352,7 +360,7 @@ function buildBubbleConditionPanel(bubble) {
         conditionPanel.appendChild(createConditionOperatorPicker(operatorConditions, appRuntime.handleConditionBtnClick));
 
         if (listValues && listValues.length) {
-            const fieldDef = appRuntime.fieldDefs.get(appState.selectedField);
+            const fieldDef = fieldDefs.get(appState.selectedField);
             const isMultiSelect = fieldDef && fieldDef.multiSelect;
             const shouldGroupValues = Boolean(fieldDef && fieldDef.groupValues);
             const isBooleanField = Boolean(fieldDef && fieldDef.type === 'boolean');
@@ -607,7 +615,7 @@ appRuntime.renderConditionList = function(field) {
         
         // Only re-render bubbles if the field was in Selected and is now gone
         if (appState.currentCategory === 'Selected') {
-            const stillSelected = appRuntime.shouldFieldHavePurpleStyling(normalizedField);
+            const stillSelected = shouldFieldHavePurpleStyling(normalizedField);
             if (!stillSelected) {
                 services.rerenderBubbles();
             }
@@ -619,7 +627,7 @@ appRuntime.renderConditionList = function(field) {
     list.className = 'cond-list';
 
     // Create pills for each filter
-    const fieldDef = normalizedField ? appRuntime.fieldDefs.get(normalizedField) : null;
+    const fieldDef = normalizedField ? fieldDefs.get(normalizedField) : null;
     if (hasFieldFilters) {
         data.filters.forEach((f, idx) => {
             const pill = new FilterPill(f, fieldDef, () => {
@@ -787,7 +795,7 @@ appRuntime.handleFilterConfirm = function(e) {
     let val = conditionInput.value.trim();
     let val2 = conditionInput2.value.trim();
     
-    const fieldDef = appRuntime.fieldDefs.get(field);
+    const fieldDef = fieldDefs.get(field);
     const fieldType = (bubble && bubble.dataset.type) || (fieldDef && fieldDef.type) || 'string';
     const numberFormat = ValueFormatting.getNumberFormat(field) || '';
     if (fieldType === 'money' || fieldType === 'number') {
@@ -806,7 +814,7 @@ appRuntime.handleFilterConfirm = function(e) {
 
     // Validation
     if (cond && cond !== 'display') {
-        if (!isBuildable && typeof appRuntime.isFieldBackendFilterable === 'function' && !appRuntime.isFieldBackendFilterable(fieldDef)) {
+        if (!isBuildable && typeof isFieldBackendFilterable === 'function' && !isFieldBackendFilterable(fieldDef)) {
             showFilterError('This field is not filterable in the backend.', []);
             return;
         }
@@ -991,7 +999,7 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
     if (dynamicFieldName === fieldDef.name) return;
     
     // Dynamically add field definition if missing
-    appRuntime.registerDynamicField(dynamicFieldName, {
+    registerDynamicField(dynamicFieldName, {
         special_payload: specialPayload
     });
     
@@ -1012,7 +1020,7 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
     const queryInput = getFilterQueryInputElement();
     if (queryInput && queryInput.value.trim()) {
         queryInput.value = '';
-        appRuntime.updateFilteredDefs('');
+        updateFilteredDefs('');
     }
 
     setTimeout(() => {
@@ -1032,67 +1040,6 @@ function handleBuildableFieldConfirm(fieldDef, cond, val) {
         });
     }
 }
-
-/**
- * Ensures a dynamically-created field is registered in the in-memory field registries
- * so it participates in selector filtering and counts. Safe to call multiple times
- * for the same field.
- *
- * @param {string} fieldName - The resolved field name
- * @param {Object} [opts] - Optional overrides: type, category, desc, special_payload
- */
-appRuntime.registerDynamicField = function(fieldName, opts = {}) {
-    if (!fieldName || appRuntime.fieldDefs.has(fieldName)) return;
-
-    // Copy metadata from a matching buildable parent template when available.
-    let parentDef = null;
-    if (appRuntime.fieldDefsArray) {
-        parentDef = appRuntime.fieldDefsArray.find(d => {
-            if (!d.is_buildable || !d.field_template) return false;
-            // Build a regex from the template, replacing {key} placeholders with dynamic segments.
-            const pattern = d.field_template.replace(/\{[^}]+\}/g, '[^|]+');
-            return new RegExp('^' + pattern + '$').test(fieldName);
-        });
-    }
-
-    // Resolve special_payload from the parent's template by substituting captured values.
-    let resolvedPayload = opts.special_payload || null;
-    if (!resolvedPayload && parentDef && parentDef.special_payload_template && parentDef.field_template) {
-        const keys = [];
-        const capturingPattern = parentDef.field_template.replace(/\{([^}]+)\}/g, (_, key) => {
-            keys.push(key);
-            return '(.+)';
-        });
-        const match = new RegExp('^' + capturingPattern + '$').exec(fieldName);
-        if (match) {
-            resolvedPayload = JSON.parse(JSON.stringify(parentDef.special_payload_template));
-            keys.forEach((key, i) => {
-                for (const pKey in resolvedPayload) {
-                    if (typeof resolvedPayload[pKey] === 'string') {
-                        resolvedPayload[pKey] = resolvedPayload[pKey].replace(`{${key}}`, match[i + 1]);
-                    }
-                }
-            });
-        }
-    }
-
-    const newDef = {
-        name: fieldName,
-        type: opts.type ?? (parentDef ? parentDef.type : null),
-        category: opts.category || (parentDef ? parentDef.category : null),
-        desc: opts.desc ?? (parentDef ? parentDef.desc : ''),
-        special_payload: resolvedPayload
-    };
-
-    appRuntime.fieldDefs.set(fieldName, newDef);
-
-    if (appRuntime.fieldDefsArray && !appRuntime.fieldDefsArray.find(d => d.name === fieldName)) {
-        appRuntime.fieldDefsArray.push({ ...newDef });
-    }
-    if (appRuntime.filteredDefs && !appRuntime.filteredDefs.find(d => d.name === fieldName)) {
-        appRuntime.filteredDefs.push({ ...newDef });
-    }
-};
 
 // Global confirm action finalizer
 appRuntime.finalizeConfirmAction = function() {

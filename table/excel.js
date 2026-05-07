@@ -9,6 +9,7 @@ import { QueryStateReaders } from '../core/queryState.js';
 import { MoneyUtils, ValueFormatting } from '../core/utils.js';
 import { VisibilityUtils } from '../core/visibility.js';
 import { appRuntime } from '../core/appRuntime.js';
+import { fieldDefs } from '../filters/fieldDefs.js';
 
 (() => {
   // When true, multi-value cells (delimited by \x1F) are split into separate columns
@@ -86,10 +87,10 @@ import { appRuntime } from '../core/appRuntime.js';
     const fieldTypeMap = new Map();
 
     displayedFields.forEach(field => {
-      let def = appRuntime.fieldDefs && appRuntime.fieldDefs.get(field);
+      let def = fieldDefs && fieldDefs.get(field);
       if (!def) {
         const baseName = field.replace(/ \d+$/, '');
-        def = appRuntime.fieldDefs && appRuntime.fieldDefs.get(baseName);
+        def = fieldDefs && fieldDefs.get(baseName);
       }
       fieldTypeMap.set(field, def ? def.type : 'string');
     });
