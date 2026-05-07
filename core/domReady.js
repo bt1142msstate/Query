@@ -1,4 +1,3 @@
-import { appRuntime } from './appRuntime.js';
 function onDOMReady(callback) {
   if (typeof callback !== 'function') {
     return;
@@ -15,15 +14,6 @@ function onDOMReady(callback) {
   }
 
   callback();
-}
-
-if (typeof window !== 'undefined') {
-  Object.defineProperty(appRuntime, 'onDOMReady', {
-    configurable: false,
-    enumerable: true,
-    value: onDOMReady,
-    writable: false
-  });
 }
 
 export { onDOMReady };

@@ -1,4 +1,3 @@
-import { appRuntime } from './appRuntime.js';
 let toastImplementation = null;
 
 function normalizeToastImplementation(implementation = {}) {
@@ -53,29 +52,6 @@ const toast = Object.freeze({
     return showToastMessage(message, 'error', duration);
   }
 });
-
-if (typeof window !== 'undefined') {
-  Object.defineProperty(appRuntime, 'dismissToastMessage', {
-    configurable: true,
-    enumerable: true,
-    get: () => dismissToastMessage
-  });
-  Object.defineProperty(appRuntime, 'showToast', {
-    configurable: true,
-    enumerable: true,
-    get: () => showToastMessage
-  });
-  Object.defineProperty(appRuntime, 'showToastMessage', {
-    configurable: true,
-    enumerable: true,
-    get: () => showToastMessage
-  });
-  Object.defineProperty(appRuntime, 'toast', {
-    configurable: true,
-    enumerable: true,
-    get: () => toast
-  });
-}
 
 export {
   dismissToastMessage,

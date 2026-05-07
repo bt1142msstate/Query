@@ -1,5 +1,3 @@
-import { appRuntime } from './appRuntime.js';
-
 let getDefaultFieldDefinitions = () => null;
 
 function registerDataFormatterFieldDefinitions(getter) {
@@ -61,33 +59,6 @@ function parsePipeDelimitedRow(line, columns, options = {}) {
   });
 
   return row;
-}
-
-if (typeof window !== 'undefined') {
-  Object.defineProperty(appRuntime, 'escapeRegExp', {
-    configurable: false,
-    enumerable: true,
-    value: escapeRegExp,
-    writable: false
-  });
-  Object.defineProperty(appRuntime, 'formatDuration', {
-    configurable: false,
-    enumerable: true,
-    value: formatDuration,
-    writable: false
-  });
-  Object.defineProperty(appRuntime, 'getFieldOutputSegments', {
-    configurable: false,
-    enumerable: true,
-    value: getFieldOutputSegments,
-    writable: false
-  });
-  Object.defineProperty(appRuntime, 'parsePipeDelimitedRow', {
-    configurable: false,
-    enumerable: true,
-    value: parsePipeDelimitedRow,
-    writable: false
-  });
 }
 
 export {

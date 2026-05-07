@@ -1,4 +1,3 @@
-import { appRuntime } from './appRuntime.js';
 const raisedUiKeys = new Set();
 
 function normalizeTargets(targets) {
@@ -101,15 +100,6 @@ const VisibilityUtils = Object.freeze({
   releaseRaisedUi,
   show
 });
-
-if (typeof window !== 'undefined') {
-  Object.defineProperty(appRuntime, 'VisibilityUtils', {
-    configurable: false,
-    enumerable: true,
-    value: VisibilityUtils,
-    writable: false
-  });
-}
 
 export {
   VisibilityUtils,

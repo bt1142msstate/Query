@@ -3,7 +3,6 @@ import { formatDisplayValue } from './dateValues.js';
 import { escapeHtml } from './html.js';
 import { Icons } from './icons.js';
 import { OperatorLabels } from './operatorLabels.js';
-import { appRuntime } from './appRuntime.js';
 import { fieldDefs } from '../filters/fieldDefs.js';
 import { getBaseFieldName } from './queryState.js';
 
@@ -72,7 +71,7 @@ const TextMeasurement = {
  * Event Handler Utilities - Bulk event listener attachment
  * @namespace EventUtils
  */
-appRuntime.EventUtils = {
+const EventUtils = {
   /**
    * Attaches click event listeners to multiple elements by ID.
    * @param {Object} elementIdToHandlerMap - Map of element IDs to click handlers
@@ -636,8 +635,6 @@ const FormatUtils = {
     return s;
   }
 };
-
-const EventUtils = appRuntime.EventUtils;
 
 export {
   DragUtils,
