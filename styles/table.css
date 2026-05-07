@@ -270,6 +270,8 @@ body.export-overlay-open {
   z-index: 10;
   position: relative;
   overflow-x: auto;
+  overscroll-behavior: none;
+  overflow-anchor: none;
   clip-path: inset(0 0 0 0 round 0 0 var(--border-radius-xl) var(--border-radius-xl));
 }
 
