@@ -23,13 +23,12 @@ import {
 import {
   assignInputSpecDefaultValues,
   buildGeneratedInputSpecsFromActiveFilters,
-  clearInputSpecDefaultValue,
-  getInputSignature,
   getInputSpecDefaultValues,
   normalizeOperatorForField,
   syncInputSpecFromState,
   uniqueInputKey
 } from './formModeQuerySpec.js';
+import { syncSpecInputsWithActiveFilters } from './formModeQuerySync.js';
 import { FormModeStateHelpers as formModeStateHelpers } from './formModeStateHelpers.js';
 import { SharedFieldPicker } from './fieldPicker.js';
 import { QueryTableView } from './queryTableView.js';
@@ -112,18 +111,6 @@ let QueryFormMode;
       : '';
   }
 
-  function shouldRemoveUnmatchedInputFromQuerySync(inputSpec) {
-    if (!inputSpec) {
-      return false;
-    }
-
-    if (inputSpec.source === 'query-filter') {
-      return true;
-    }
-
-    return state.specSource === 'generated';
-  }
-
   function syncActiveSpecWithCurrentQuery(options = {}) {
     if (!state.active || !state.spec) {
       return false;
@@ -137,90 +124,13 @@ let QueryFormMode;
     const querySnapshot = getQuerySnapshot();
     let changed = syncSpecColumnsWithDisplayedFields({ refreshUrl: false, snapshot: querySnapshot });
 
-    const existingInputs = Array.isArray(state.spec.inputs) ? state.spec.inputs.slice() : [];
-    const generatedInputs = buildGeneratedInputSpecsFromActiveFilters(existingInputs, querySnapshot.activeFilters, {
-      fieldDefs
+    const inputSync = syncSpecInputsWithActiveFilters({
+      spec: state.spec,
+      activeFilters: querySnapshot.activeFilters,
+      fieldDefs,
+      specSource: state.specSource
     });
-    const existingBySignature = new Map();
-    const controlsToSync = [];
-
-    existingInputs.forEach(inputSpec => {
-      const signature = getInputSignature(inputSpec);
-      if (!existingBySignature.has(signature)) {
-        existingBySignature.set(signature, []);
-      }
-      existingBySignature.get(signature).push(inputSpec);
-    });
-
-    const usedInputs = new Set();
-    const nextInputs = [];
-
-    generatedInputs.forEach(generatedInput => {
-      const signature = getInputSignature(generatedInput);
-      const candidates = existingBySignature.get(signature) || [];
-      const match = candidates.find(candidate => !usedInputs.has(candidate));
-
-      if (!match) {
-        nextInputs.push(generatedInput);
-        changed = true;
-        return;
-      }
-
-      const fieldDef = fieldDefs ? fieldDefs.get(match.field) : null;
-      const previousOperator = match.operator;
-      const previousType = match.type;
-      const previousDefaults = JSON.stringify(getInputSpecDefaultValues(match));
-      const nextDefaults = getInputSpecDefaultValues(generatedInput);
-      const nextMultiple = Boolean(generatedInput.multiple);
-
-      match.operator = generatedInput.operator;
-      match.type = generatedInput.type || match.type;
-      assignInputSpecDefaultValues(match, nextDefaults, fieldDef);
-      if (match.multiple !== nextMultiple) {
-        match.multiple = nextMultiple;
-      }
-
-      const defaultsChanged = previousDefaults !== JSON.stringify(getInputSpecDefaultValues(match));
-      const operatorChanged = previousOperator !== match.operator;
-      const typeChanged = previousType !== match.type;
-
-      if (defaultsChanged || operatorChanged || typeChanged) {
-        changed = true;
-        controlsToSync.push({
-          inputSpec: match,
-          previousOperator
-        });
-      }
-
-      usedInputs.add(match);
-      nextInputs.push(match);
-    });
-
-    existingInputs.forEach(inputSpec => {
-      if (usedInputs.has(inputSpec)) {
-        return;
-      }
-
-      if (shouldRemoveUnmatchedInputFromQuerySync(inputSpec)) {
-        changed = true;
-        return;
-      }
-
-      const previousDefaults = JSON.stringify(getInputSpecDefaultValues(inputSpec));
-      clearInputSpecDefaultValue(inputSpec);
-      if (previousDefaults !== JSON.stringify(getInputSpecDefaultValues(inputSpec))) {
-        changed = true;
-      }
-      nextInputs.push(inputSpec);
-    });
-
-    if (
-      state.spec.inputs.length !== nextInputs.length
-      || state.spec.inputs.some((inputSpec, index) => inputSpec !== nextInputs[index])
-    ) {
-      state.spec.inputs = nextInputs;
-      changed = true;
-    }
+    changed = changed || inputSync.changed;
 
     if (rebuildCard && state.viewMode === 'form') {
       rebuildFormCardFromSpec({
@@ -229,8 +139,8 @@ let QueryFormMode;
         refreshUrl: false,
         clearSearchParams: true
       });
-    } else if (state.viewMode === 'form' && controlsToSync.length > 0) {
-      controlsToSync.forEach(({ inputSpec, previousOperator }) => {
+    } else if (state.viewMode === 'form' && inputSync.controlsToSync.length > 0) {
+      inputSync.controlsToSync.forEach(({ inputSpec, previousOperator }) => {
         syncMountedControlFromInputSpec(inputSpec, {
           previousOperator,
           querySource: 'QueryFormMode.syncActiveSpecWithCurrentQuery'
