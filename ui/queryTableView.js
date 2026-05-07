@@ -8,9 +8,10 @@ import { AppState, QueryChangeManager, QueryStateReaders } from '../core/querySt
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 import { appRuntime } from '../core/appRuntime.js';
 import { fieldDefs } from '../filters/fieldDefs.js';
+import { DOM } from '../core/domCache.js';
 
 (function initializeQueryTableView() {
-  const dom = appRuntime.DOM;
+  const dom = DOM;
   const appState = AppState;
   const services = appServices;
   const uiActions = appUiActions;

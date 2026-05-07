@@ -1,5 +1,6 @@
 import { appRuntime } from '../core/appRuntime.js';
 import { fieldDefs, registerDynamicField } from '../filters/fieldDefs.js';
+import { DOM } from '../core/domCache.js';
   function getFieldDef(fieldName) {
     return fieldDefs && fieldName ? fieldDefs.get(fieldName) : null;
   }
@@ -26,7 +27,7 @@ import { fieldDefs, registerDynamicField } from '../filters/fieldDefs.js';
   }
 
   function setTableName(state, bindings, interpolateValue) {
-    const tableNameInput = appRuntime.DOM && appRuntime.DOM.tableNameInput;
+    const tableNameInput = DOM && DOM.tableNameInput;
     if (!tableNameInput) return;
 
     if (state.suppressAutoTableNameOnce) {

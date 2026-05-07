@@ -13,7 +13,7 @@ import './filters/fieldDefs.js';
 import './core/queryPrevalidation.js';
 import './core/queryState.js';
 import './core/queryStateSubscriptions.js';
-import './ui/domCache.js';
+import './core/domCache.js';
 import './core/appServices.js';
 import './core/appUiActions.js';
 import './ui/conditionEditorLayout.js';

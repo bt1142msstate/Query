@@ -2,7 +2,7 @@
  * Table-name input sizing and header layout helpers.
  */
 import { appUiActions } from '../core/appUiActions.js';
-import { DOM } from './domCache.js';
+import { DOM } from '../core/domCache.js';
 import { appRuntime } from '../core/appRuntime.js';
 
 let TableNameInput;

@@ -7,11 +7,12 @@
 import { appServices } from '../core/appServices.js';
 import { VisibilityUtils } from '../core/visibility.js';
 import { appRuntime } from '../core/appRuntime.js';
+import { DOM } from '../core/domCache.js';
 
 class ModalManager {
   constructor() {
     this.initialized = false;
-    this.overlay = appRuntime.DOM?.overlay || document.getElementById('overlay');
+    this.overlay = DOM?.overlay || document.getElementById('overlay');
     this.panels = ['json-panel', 'queries-panel', 'templates-panel', 'help-panel', 'mobile-menu-dropdown'];
     this.panelTitles = {
       'json-panel': 'Query JSON',
@@ -201,7 +202,7 @@ class ModalManager {
   }
 
   syncHeaderOverlayTitle(panelId) {
-    const titleEl = appRuntime.DOM?.headerOverlayTitle || document.getElementById('header-overlay-title');
+    const titleEl = DOM?.headerOverlayTitle || document.getElementById('header-overlay-title');
     if (!titleEl) {
       return;
     }
@@ -245,7 +246,7 @@ class ModalManager {
     });
 
     // Mobile: Hamburger Menu
-    const mobileMenuToggle = appRuntime.DOM?.mobileMenuToggle || document.getElementById('mobile-menu-toggle');
+    const mobileMenuToggle = DOM?.mobileMenuToggle || document.getElementById('mobile-menu-toggle');
     if (mobileMenuToggle) {
         mobileMenuToggle.addEventListener('click', () => this.togglePanel('mobile-menu-dropdown'));
     }

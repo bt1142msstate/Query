@@ -8,6 +8,7 @@ import { FormModeControls as formModeControls } from './formModeControls.js';
 import { initializeSearchInputs } from './searchUI.js';
 import { appRuntime } from '../core/appRuntime.js';
 import { fieldDefs, fieldDefsArray, isFieldBackendFilterable, loadFieldDefinitions } from '../filters/fieldDefs.js';
+import { DOM } from '../core/domCache.js';
 let SharedFieldPicker;
 
 (function() {
@@ -1102,14 +1103,13 @@ let SharedFieldPicker;
     if (!fieldDef || !services.bubble || typeof services.bubble.Bubble !== 'function') {
       return false;
     }
-
     const bubble = new services.bubble.Bubble(fieldDef).getElement();
-    const overlay = appRuntime.DOM?.overlay || document.getElementById('overlay');
+    const overlay = DOM?.overlay || document.getElementById('overlay');
     const conditionPanel = services.bubble?.getConditionPanelElement ? services.bubble.getConditionPanelElement() : null;
     const inputWrapper = services.getBubbleInputWrapperElement();
     let filterCard = services.getBubbleFilterCardElement();
 
-    if (filterCard && !appRuntime.DOM?.filterCard) {
+    if (filterCard && !DOM?.filterCard) {
       document.body.appendChild(filterCard);
       filterCard.offsetHeight;
     }

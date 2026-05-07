@@ -4,6 +4,7 @@ import { ClipboardUtils } from '../core/clipboard.js';
 import { onDOMReady } from '../core/domReady.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 import { appRuntime } from '../core/appRuntime.js';
+import { DOM } from '../core/domCache.js';
 
 const jsonTreeCollapsedPaths = new Set();
 
@@ -102,15 +103,15 @@ function renderJsonTree(payload) {
 }
 
 function updateQueryJson() {
-  const tableNameInput = appRuntime.DOM.tableNameInput;
+  const tableNameInput = DOM.tableNameInput;
   const queryName = tableNameInput ? tableNameInput.value.trim() : '';
   const payload = buildBackendQueryPayload(queryName);
-  if (appRuntime.DOM.queryBox) {
+  if (DOM.queryBox) {
     const formattedJson = JSON.stringify(payload, null, 2);
-    if (appRuntime.DOM.queryBox instanceof HTMLTextAreaElement) {
-      appRuntime.DOM.queryBox.value = formattedJson;
+    if (DOM.queryBox instanceof HTMLTextAreaElement) {
+      DOM.queryBox.value = formattedJson;
     } else {
-      appRuntime.DOM.queryBox.textContent = formattedJson;
+      DOM.queryBox.textContent = formattedJson;
     }
   }
   renderJsonTree(payload);
@@ -133,7 +134,7 @@ onDOMReady(() => {
   const copyBtn = document.getElementById('copy-json-btn');
   if (copyBtn) {
     ClipboardUtils.bindCopyButton(copyBtn, () => {
-      const queryBox = appRuntime.DOM.queryBox;
+      const queryBox = DOM.queryBox;
       return queryBox instanceof HTMLTextAreaElement
         ? queryBox.value
         : (queryBox?.textContent || '');

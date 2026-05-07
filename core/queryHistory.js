@@ -29,6 +29,7 @@ import { VisibilityUtils } from './visibility.js';
 import { formatFieldOperatorForDisplay, mapFieldOperatorToUiCond, normalizeUiConfigFilters } from '../filters/queryPayload.js';
 import { appRuntime } from './appRuntime.js';
 import { registerDynamicField, resolveFieldName } from '../filters/fieldDefs.js';
+import { DOM } from './domCache.js';
 /* ---------- Query history state and renderer ---------- */
 let exampleQueries = [];
 let queryDurationUpdateInterval = null;
@@ -42,7 +43,7 @@ let lastHistoryRenderKey = '';
 const historyDependencies = createQueryHistoryDependencies(normalizeUiConfigFilters);
 
 function isQueriesPanelOpen() {
-  const panel = appRuntime.DOM.queriesPanel;
+  const panel = DOM.queriesPanel;
   return !!(panel && !panel.classList.contains('hidden'));
 }
 
@@ -103,7 +104,7 @@ function createHistoryRowHtml(query) {
 }
 
 function captureHistoryViewState() {
-  const panelContainer = appRuntime.DOM.queriesContainer;
+  const panelContainer = DOM.queriesContainer;
   const monitorShell = panelContainer?.querySelector('.history-monitor .history-table-shell');
 
   return {
@@ -117,7 +118,7 @@ function captureHistoryViewState() {
 function restoreHistoryViewState(viewState) {
   if (!viewState) return;
 
-  const panelContainer = appRuntime.DOM.queriesContainer;
+  const panelContainer = DOM.queriesContainer;
   if (panelContainer) {
     panelContainer.scrollTop = viewState.panelScrollTop;
     panelContainer.scrollLeft = viewState.panelScrollLeft;
@@ -131,8 +132,8 @@ function restoreHistoryViewState(viewState) {
 }
 
 function updateHistoryPollingMeta({ isPollingActive, refreshedAt }) {
-  const pollingValue = appRuntime.DOM.queriesList?.querySelector('.history-polling-value');
-  const pollingDetail = appRuntime.DOM.queriesList?.querySelector('.history-polling-detail');
+  const pollingValue = DOM.queriesList?.querySelector('.history-polling-value');
+  const pollingDetail = DOM.queriesList?.querySelector('.history-polling-detail');
   if (pollingValue) {
     pollingValue.textContent = isPollingActive ? 'Polling live' : 'Polling paused';
     pollingValue.classList.toggle('active', !!isPollingActive);
@@ -406,7 +407,7 @@ function loadQueryConfig(q) {
     return;
   }
 
-  const tableNameInput = appRuntime.DOM?.tableNameInput || document.getElementById('table-name-input');
+  const tableNameInput = DOM?.tableNameInput || document.getElementById('table-name-input');
 
   // Loading a query definition is not itself a partial-results state.
   // That flag belongs to the currently displayed result set and must be
@@ -673,7 +674,7 @@ function bindHistoryTableButtons(scope) {
       q.status = 'running';
       loadQueryConfig(q);
       closeHistoryDetailsOverlay();
-      appRuntime.DOM.runBtn?.click();
+      DOM.runBtn?.click();
       appRuntime.modalManager?.closePanel?.('queries-panel');
     });
   });
@@ -722,13 +723,13 @@ function patchQueriesPanelData(newHistory) {
   const oldById = new Map(exampleQueries.map(q => [q.id, q]));
   exampleQueries = newHistory;
 
-  const container = appRuntime.DOM.queriesList;
+  const container = DOM.queriesList;
   if (!container || !container.querySelector('.history-editorial-hero')) {
     renderQueries();
     return;
   }
 
-  const searchInput = appRuntime.DOM.queriesSearch;
+  const searchInput = DOM.queriesSearch;
   const searchTerm  = searchInput ? searchInput.value.trim().toLowerCase() : '';
   const matchesSearch = q =>
     !searchTerm ||
@@ -884,7 +885,7 @@ function patchQueriesPanelData(newHistory) {
  * @function updateRunningDurationsInPlace
  */
 function updateRunningDurationsInPlace() {
-  const list = appRuntime.DOM.queriesList;
+  const list = DOM.queriesList;
   if (!list) return;
   exampleQueries.filter(q => q.running && q.startTime).forEach(q => {
     const cell = list.querySelector(`.history-duration-cell[data-query-id="${q.id}"]`);
@@ -945,11 +946,11 @@ function stopQueryDurationUpdates() {
  * @function renderQueries
  */
 function renderQueries(){
-  const container = appRuntime.DOM.queriesList;
+  const container = DOM.queriesList;
   if(!container) return false;
   
   // Get search value
-  const searchInput = appRuntime.DOM.queriesSearch;
+  const searchInput = DOM.queriesSearch;
   const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
   
   let runningList = exampleQueries.filter(q => q.running);
@@ -1193,7 +1194,7 @@ onDOMReady(() => {
   }
 
   // Attach queries search event listener
-  const queriesSearchInput = appRuntime.DOM.queriesSearch;
+  const queriesSearchInput = DOM.queriesSearch;
   if (queriesSearchInput) {
     queriesSearchInput.addEventListener('input', renderQueries);
   }

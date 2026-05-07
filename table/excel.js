@@ -10,6 +10,7 @@ import { MoneyUtils, ValueFormatting } from '../core/utils.js';
 import { VisibilityUtils } from '../core/visibility.js';
 import { appRuntime } from '../core/appRuntime.js';
 import { fieldDefs } from '../filters/fieldDefs.js';
+import { DOM } from '../core/domCache.js';
 
 (() => {
   // When true, multi-value cells (delimited by \x1F) are split into separate columns
@@ -718,7 +719,7 @@ import { fieldDefs } from '../filters/fieldDefs.js';
    * @memberof ExcelExporter
    */
   function attach() {
-    const downloadBtn = appRuntime.DOM?.downloadBtn || document.getElementById('download-btn');
+    const downloadBtn = DOM?.downloadBtn || document.getElementById('download-btn');
     if (downloadBtn) {
       downloadBtn.addEventListener('click', handleDownload);
     }
@@ -771,7 +772,7 @@ import { fieldDefs } from '../filters/fieldDefs.js';
    * @memberof ExcelExporter
    */
   function handleDownload() {
-    const downloadBtn = appRuntime.DOM?.downloadBtn || document.getElementById('download-btn');
+    const downloadBtn = DOM?.downloadBtn || document.getElementById('download-btn');
     if (!downloadBtn) return;
     const missingLoadedColumns = appRuntime.QueryUI && typeof appRuntime.QueryUI.getDisplayedFieldsMissingFromLoadedData === 'function'
       ? appRuntime.QueryUI.getDisplayedFieldsMissingFromLoadedData()

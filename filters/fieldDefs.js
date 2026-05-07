@@ -7,7 +7,7 @@ import { BackendApi } from '../core/backendApi.js';
 import { registerDataFormatterFieldDefinitions } from '../core/dataFormatters.js';
 import { QueryStateReaders, registerQueryStateRuntimeAccessors } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
-import { appRuntime } from '../core/appRuntime.js';
+import { DOM } from '../core/domCache.js';
 
 // Field definitions dynamically loaded from backend
 let fieldDefsArray = [];
@@ -349,8 +349,8 @@ function calculateCategoryCounts(displayedFields, activeFilters) {
  * @param {Function} onCategoryChange - Callback function when selector changes
  */
 function renderCategorySelectors(categoryCounts, currentCategory, onCategoryChange) {
-  const categoryBar = appRuntime.DOM?.categoryBar || document.getElementById('category-bar');
-  const mobileSelector = appRuntime.DOM?.mobileCategorySelector || document.getElementById('mobile-category-selector');
+  const categoryBar = DOM?.categoryBar || document.getElementById('category-bar');
+  const mobileSelector = DOM?.mobileCategorySelector || document.getElementById('mobile-category-selector');
 
   if (!hasLoadedFieldDefinitions()) {
     if (categoryBar) {
