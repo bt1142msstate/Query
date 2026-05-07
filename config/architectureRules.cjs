@@ -1,15 +1,19 @@
 const sourceEntries = ['appModules.js', 'bubbles', 'core', 'filters', 'table', 'ui'];
 const maxModuleLines = 900;
 const appRuntimeUsageBudget = {
-  maxDistinctMembers: 54,
-  maxMemberReferences: 200,
+  maxDistinctMembers: 1,
+  maxMemberReferences: 1,
   forbiddenMembers: new Set([
     'AppUiActions',
     'AppState',
     'AppServices',
     'activeFilters',
     'BackendApi',
+    'BUBBLE_DEBUG',
     'BubbleConditionPanel',
+    'BubbleInteraction',
+    'BubbleReset',
+    'BubbleSystem',
     'calculateCategoryCounts',
     'clearCurrentQuery',
     'ClipboardUtils',
@@ -91,9 +95,12 @@ const appRuntimeUsageBudget = {
     'displayedFields',
     'resetSplitColumnsToggleUI',
     'setSplitColumnsToggleUIActive',
+    'setBubbleDebug',
     'updateCategoryCounts',
     'updateFilteredDefs',
-    'VisibilityUtils'
+    'VisibilityUtils',
+    'VirtualList',
+    'VirtualTable'
   ])
 };
 

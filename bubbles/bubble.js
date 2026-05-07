@@ -5,9 +5,9 @@
  */
 import { mapUiCondToFieldOperator } from '../filters/queryPayload.js';
 import { formatFieldDefinitionTooltipHTML, formatStandardFilterTooltipHTML } from '../core/tooltipFormatters.js';
+import { registerBubbleService } from '../core/appServices.js';
 import { AppState, QueryStateReaders } from '../core/queryState.js';
 import { VisibilityUtils } from '../core/visibility.js';
-import { appRuntime } from '../core/appRuntime.js';
 import { filteredDefs, isFieldBackendFilterable, shouldFieldHavePurpleStylingBase } from '../filters/fieldDefs.js';
 import { DOM } from '../core/domCache.js';
 import { CustomDatePicker } from '../ui/customDatePicker.js';
@@ -16,6 +16,16 @@ var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateRea
 var getActiveFilters = QueryStateReaders.getActiveFilters.bind(QueryStateReaders);
 var hasFiltersForField = QueryStateReaders.hasFiltersForField.bind(QueryStateReaders);
 var appState = AppState;
+let bubbleInteractionService = null;
+let bubbleResetService = null;
+
+function registerBubbleInteractionService(service) {
+  bubbleInteractionService = service && typeof service === 'object' ? service : null;
+}
+
+function registerBubbleResetService(service) {
+  bubbleResetService = service && typeof service === 'object' ? service : null;
+}
 
 class Bubble {
   constructor(def, state = {}) {
@@ -326,7 +336,7 @@ function resetBubbleScroll() {
 
 function bubbleDebugLog(eventName, payload = {}) {
   if (!window) return;
-  const debugEnabled = appRuntime.BUBBLE_DEBUG === true || (window.localStorage && window.localStorage.getItem('BUBBLE_DEBUG') === '1');
+  const debugEnabled = window.localStorage && window.localStorage.getItem('BUBBLE_DEBUG') === '1';
   if (!debugEnabled) return;
   try {
     console.log(`[BubbleDebug] ${eventName}`, payload);
@@ -335,17 +345,14 @@ function bubbleDebugLog(eventName, payload = {}) {
   }
 }
 
-if (typeof window !== 'undefined' && typeof appRuntime.setBubbleDebug !== 'function') {
-  appRuntime.setBubbleDebug = function setBubbleDebug(enabled = true) {
-    const nextValue = !!enabled;
-    appRuntime.BUBBLE_DEBUG = nextValue;
-    try {
-      window.localStorage && window.localStorage.setItem('BUBBLE_DEBUG', nextValue ? '1' : '0');
-    } catch (_) {
-      // Ignore storage restrictions.
-    }
-    console.log(`[BubbleDebug] ${nextValue ? 'enabled' : 'disabled'}`);
-  };
+function setBubbleDebug(enabled = true) {
+  const nextValue = !!enabled;
+  try {
+    window.localStorage && window.localStorage.setItem('BUBBLE_DEBUG', nextValue ? '1' : '0');
+  } catch (_) {
+    // Ignore storage restrictions.
+  }
+  console.log(`[BubbleDebug] ${nextValue ? 'enabled' : 'disabled'}`);
 }
 
 function applyCorrectBubbleStyling(bubbleElement) {
@@ -559,51 +566,53 @@ function createBubblePopParticles(bubbleClone) {
 }
 
 function initializeBubbles() {
-  if (appRuntime.BubbleInteraction && typeof appRuntime.BubbleInteraction.initializeBubbles === 'function') {
-    return appRuntime.BubbleInteraction.initializeBubbles();
+  if (bubbleInteractionService && typeof bubbleInteractionService.initializeBubbles === 'function') {
+    return bubbleInteractionService.initializeBubbles();
   }
   return false;
 }
 
 function resetActiveBubbles() {
-  if (appRuntime.BubbleReset && typeof appRuntime.BubbleReset.resetActiveBubbles === 'function') {
-    return appRuntime.BubbleReset.resetActiveBubbles();
+  if (bubbleResetService && typeof bubbleResetService.resetActiveBubbles === 'function') {
+    return bubbleResetService.resetActiveBubbles();
   }
 }
 
-if (typeof window !== 'undefined') {
-  appRuntime.BubbleSystem = {
-    Bubble,
-    applyCorrectBubbleStyling,
-    bubbleDebugLog,
-    createBubblePopParticles,
-    getBubbleMaxStartRow,
-    getOverlayElement: getBubbleOverlayElement,
-    getConditionPanelElement: getBubbleConditionPanelElement,
-    getInputWrapperElement: getBubbleInputWrapperElement,
-    getConditionInputElement: getBubbleConditionInputElement,
-    getConfirmButtonElement: getBubbleConfirmButtonElement,
-    getFilterCardElement: getBubbleFilterCardElement,
-    getFilterCardTitleElement: getBubbleFilterCardTitleElement,
-    prepareFilterCardForOpen: prepareBubbleFilterCardForOpen,
-    markFilterCardOpen: markBubbleFilterCardOpen,
-    resetEditorUi: resetBubbleEditorUi,
-    createOrUpdateBubble,
-    applyBubbleScrollRow,
-    scrollBubblesByRows,
-    resetBubbleScroll,
-    renderBubbles,
-    safeRenderBubbles,
-    updateScrollBar,
-    initializeBubbles,
-    resetActiveBubbles,
-    // Animation state — writable through these accessors only
-    get isBubbleAnimating() { return _isBubbleAnimating; },
-    set isBubbleAnimating(v) { _isBubbleAnimating = !!v; },
-    get isBubbleAnimatingBack() { return _isBubbleAnimatingBack; },
-    set isBubbleAnimatingBack(v) { _isBubbleAnimatingBack = !!v; },
-    get pendingRenderBubbles() { return _pendingRenderBubbles; },
-    set pendingRenderBubbles(v) { _pendingRenderBubbles = !!v; },
-    get animatingBackBubbles() { return _animatingBackBubbles; }
-  };
-}
+const BubbleSystem = {
+  Bubble,
+  applyCorrectBubbleStyling,
+  bubbleDebugLog,
+  createBubblePopParticles,
+  getBubbleMaxStartRow,
+  getOverlayElement: getBubbleOverlayElement,
+  getConditionPanelElement: getBubbleConditionPanelElement,
+  getInputWrapperElement: getBubbleInputWrapperElement,
+  getConditionInputElement: getBubbleConditionInputElement,
+  getConfirmButtonElement: getBubbleConfirmButtonElement,
+  getFilterCardElement: getBubbleFilterCardElement,
+  getFilterCardTitleElement: getBubbleFilterCardTitleElement,
+  prepareFilterCardForOpen: prepareBubbleFilterCardForOpen,
+  markFilterCardOpen: markBubbleFilterCardOpen,
+  resetEditorUi: resetBubbleEditorUi,
+  createOrUpdateBubble,
+  applyBubbleScrollRow,
+  scrollBubblesByRows,
+  resetBubbleScroll,
+  renderBubbles,
+  safeRenderBubbles,
+  updateScrollBar,
+  initializeBubbles,
+  resetActiveBubbles,
+  setBubbleDebug,
+  get isBubbleAnimating() { return _isBubbleAnimating; },
+  set isBubbleAnimating(v) { _isBubbleAnimating = !!v; },
+  get isBubbleAnimatingBack() { return _isBubbleAnimatingBack; },
+  set isBubbleAnimatingBack(v) { _isBubbleAnimatingBack = !!v; },
+  get pendingRenderBubbles() { return _pendingRenderBubbles; },
+  set pendingRenderBubbles(v) { _pendingRenderBubbles = !!v; },
+  get animatingBackBubbles() { return _animatingBackBubbles; }
+};
+
+registerBubbleService(BubbleSystem);
+
+export { BubbleSystem, registerBubbleInteractionService, registerBubbleResetService };

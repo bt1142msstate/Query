@@ -6,7 +6,7 @@ import { formatFieldDefinitionTooltipHTML } from '../core/tooltipFormatters.js';
 import { VisibilityUtils } from '../core/visibility.js';
 import { FormModeControls as formModeControls } from './formModeControls.js';
 import { initializeSearchInputs } from './searchUI.js';
-import { appRuntime } from '../core/appRuntime.js';
+import { VirtualList } from './virtualList.js';
 import { fieldDefs, fieldDefsArray, isFieldBackendFilterable, loadFieldDefinitions } from '../filters/fieldDefs.js';
 import { DOM } from '../core/domCache.js';
 let SharedFieldPicker;
@@ -697,8 +697,8 @@ let SharedFieldPicker;
       return button;
     }
 
-    if (appRuntime.VirtualList && !listEl.virtualList) {
-      listEl.virtualList = new appRuntime.VirtualList({
+    if (!listEl.virtualList) {
+      listEl.virtualList = new VirtualList({
         container: listEl,
         itemHeight: 52, // Approximate height of the option button (44px) + 8px margin
         renderItem: createOptionButton

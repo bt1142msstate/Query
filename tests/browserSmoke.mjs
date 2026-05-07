@@ -815,7 +815,7 @@ async function expectPostFilterStats(page, expected, label) {
 
 async function exerciseBubbleFilterInteraction(page) {
   await page.evaluate(async () => {
-    const { appRuntime } = await import('./core/appRuntime.js');
+    const { appServices } = await import('./core/appServices.js');
     const { AppState, QueryChangeManager } = await import('./core/queryState.js');
     const { FilterSidePanel } = await import('./filters/filterSidePanel.js');
     const { fieldDefs, fieldDefsArray, filteredDefs } = await import('./filters/fieldDefs.js');
@@ -847,7 +847,7 @@ async function exerciseBubbleFilterInteraction(page) {
       }
     }, { source: 'BrowserSmoke.bubbleFilterInteraction' });
 
-    appRuntime.BubbleSystem.safeRenderBubbles();
+    appServices.rerenderBubbles();
     FilterSidePanel.update();
   });
 

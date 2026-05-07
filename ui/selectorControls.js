@@ -1,7 +1,7 @@
 import { VisibilityUtils } from '../core/visibility.js';
 import { initializeSearchInputs } from './searchUI.js';
-import { appRuntime } from '../core/appRuntime.js';
 import { escapeHtml } from '../core/html.js';
+import { VirtualList } from './virtualList.js';
 
 function createBooleanPillSelector(values, currentValue = '', options = {}) {
   const onChange = typeof options.onChange === 'function' ? options.onChange : null;
@@ -482,19 +482,17 @@ function createGroupedSelector(values, isMultiSelect, currentValues = [], option
     return optionItem;
   }
 
-  if (appRuntime.VirtualList) {
-    optionsContainer.virtualList = new appRuntime.VirtualList({
-      container: optionsContainer,
-      itemHeight: item => item.height || 50,
-      renderItem: row => {
-        const searchTerm = searchInput.value.toLowerCase().trim();
-        return row.type === 'group'
-          ? createGroupRow(row, searchTerm)
-          : createOptionRow(row, searchTerm);
-      }
-    });
-    optionsContainer.style.overflowY = 'auto';
-  }
+  optionsContainer.virtualList = new VirtualList({
+    container: optionsContainer,
+    itemHeight: item => item.height || 50,
+    renderItem: row => {
+      const searchTerm = searchInput.value.toLowerCase().trim();
+      return row.type === 'group'
+        ? createGroupRow(row, searchTerm)
+        : createOptionRow(row, searchTerm);
+    }
+  });
+  optionsContainer.style.overflowY = 'auto';
 
   searchInput.addEventListener('input', () => {
     rebuildVisibleRows(true);

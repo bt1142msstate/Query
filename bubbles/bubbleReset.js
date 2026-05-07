@@ -1,6 +1,6 @@
 import { appServices } from '../core/appServices.js';
 import { AppState } from '../core/queryState.js';
-import { appRuntime } from '../core/appRuntime.js';
+import { registerBubbleResetService } from './bubble.js';
 import { fieldDefs, shouldFieldHavePurpleStyling } from '../filters/fieldDefs.js';
 
 var services = appServices;
@@ -160,7 +160,7 @@ function resetActiveBubblesImpl() {
   }, 650);
 }
 
-appRuntime.BubbleReset = {
+registerBubbleResetService({
   reconcileBubbleInteractionState: reconcileBubbleResetInteractionState,
   resetActiveBubbles: resetActiveBubblesImpl
-};
+});

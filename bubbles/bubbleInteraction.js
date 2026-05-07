@@ -3,7 +3,7 @@ import { appServices } from '../core/appServices.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
 import { VisibilityUtils } from '../core/visibility.js';
-import { appRuntime } from '../core/appRuntime.js';
+import { registerBubbleInteractionService } from './bubble.js';
 import { fieldDefs, isFieldBackendFilterable } from '../filters/fieldDefs.js';
 import { DOM } from '../core/domCache.js';
 
@@ -338,9 +338,9 @@ function initializeBubbleInteractions() {
   return true;
 }
 
-appRuntime.BubbleInteraction = {
+registerBubbleInteractionService({
   initializeBubbles: initializeBubbleInteractions
-};
+});
 
 // Keep bubbles in sync with query state changes reactively.
 QueryStateSubscriptions.subscribe(() => {
