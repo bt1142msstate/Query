@@ -5,6 +5,7 @@
 import { BackendApi } from './backendApi.js';
 import { parsePipeDelimitedRow } from './dataFormatters.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from './queryState.js';
+import { createStreamedQueryTextReader } from './queryStream.js';
 import { appServices } from './appServices.js';
 import { appUiActions } from './appUiActions.js';
 import { showToastMessage } from './toast.js';
@@ -17,6 +18,9 @@ const execDom = DOM;
 const appState = AppState;
 const services = appServices;
 const uiActions = appUiActions;
+const readStreamedQueryText = createStreamedQueryTextReader({
+  isQueryRunning: () => QueryStateReaders.getLifecycleState().queryRunning
+});
 appState.queryPageIsUnloading = false;
 
 function addQueryHistoryEntry(query) {
@@ -56,65 +60,6 @@ function updateLiveQueryProgress(resultCount, options = {}) {
   }
 
   updateQueryHistoryEntry(QueryStateReaders.getLifecycleState().currentQueryId, { resultCount }, { render: false });
-}
-
-/* ---------- Streaming response reader ---------- */
-
-async function readStreamedQueryText(response, options = {}) {
-  if (!response.body || typeof response.body.getReader !== 'function') {
-    const fallbackText = await response.text();
-    const fallbackLines = fallbackText.split('\n').filter(line => line.trim().length > 0);
-    if (typeof options.onProgress === 'function') {
-      options.onProgress(fallbackLines.length);
-    }
-    return { text: fallbackText, lines: fallbackLines };
-  }
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  const lines = [];
-  let bufferedText = '';
-  let fullText = '';
-  let partial = false;
-
-  while (true) {
-    if (!QueryStateReaders.getLifecycleState().queryRunning) { partial = true; break; }
-    const { value, done } = await reader.read();
-    if (done) break;
-
-    const chunk = decoder.decode(value, { stream: true });
-    fullText += chunk;
-    bufferedText += chunk;
-
-    const chunkParts = bufferedText.split(/\r?\n/);
-    bufferedText = chunkParts.pop() || '';
-    let didCountAdvance = false;
-
-    chunkParts.forEach(line => {
-      if (line.trim().length === 0) return;
-      lines.push(line);
-      didCountAdvance = true;
-    });
-
-    if (didCountAdvance && typeof options.onProgress === 'function') {
-      options.onProgress(lines.length);
-    }
-  }
-
-  const tail = decoder.decode();
-  if (tail) {
-    fullText += tail;
-    bufferedText += tail;
-  }
-
-  if (bufferedText.trim().length > 0) {
-    lines.push(bufferedText);
-    if (typeof options.onProgress === 'function') {
-      options.onProgress(lines.length);
-    }
-  }
-
-  return { text: fullText, lines, partial };
 }
 
 /* ---------- Page-unload guard ---------- */
@@ -257,7 +202,11 @@ if (execDom.runBtn) {
             showToastMessage('Query stopped — no results received.', 'info');
             return;
           }
-          console.log(`Query stopped mid-stream. Processing ${streamedPayload.lines.length} partial lines.`);
+          if (streamedPayload.streamError) {
+            console.warn(`${streamedPayload.streamError.message} Processing ${streamedPayload.lines.length} partial lines.`);
+          } else {
+            console.log(`Query stopped mid-stream. Processing ${streamedPayload.lines.length} partial lines.`);
+          }
         }
 
         // Parse pipe-delimited response.
@@ -283,10 +232,14 @@ if (execDom.runBtn) {
         updateLiveQueryProgress(rows.length, { startTime: queryStartedAt });
 
         // Mark as complete (or stopped) in history
+        const endedEarlyFromNetwork = Boolean(streamedPayload.streamError);
         updateQueryHistoryEntry(QueryStateReaders.getLifecycleState().currentQueryId, {
           running: false,
-          status: streamedPayload.partial ? 'stopped' : 'complete',
+          status: endedEarlyFromNetwork ? 'failed' : (streamedPayload.partial ? 'stopped' : 'complete'),
           resultCount: rows.length,
+          failed: endedEarlyFromNetwork,
+          cancelled: false,
+          error: endedEarlyFromNetwork ? streamedPayload.streamError.message : null,
           endTime: new Date().toISOString()
         });
 
@@ -334,7 +287,11 @@ if (execDom.runBtn) {
 
         if (streamedPayload.partial) {
           uiActions.updateTableResultsLip();
-          showToastMessage(`Query stopped early. Showing ${rows.length} partial result${rows.length !== 1 ? 's' : ''}.`, 'info');
+          if (endedEarlyFromNetwork) {
+            showToastMessage(`Query connection ended early. Showing ${rows.length} partial result${rows.length !== 1 ? 's' : ''}.`, 'warning');
+          } else {
+            showToastMessage(`Query stopped early. Showing ${rows.length} partial result${rows.length !== 1 ? 's' : ''}.`, 'info');
+          }
         } else {
           showToastMessage(`Query completed. Loaded ${rows.length} results.`, 'success');
         }
@@ -361,6 +318,7 @@ if (execDom.runBtn) {
         updateQueryHistoryEntry(QueryStateReaders.getLifecycleState().currentQueryId, {
           running: false,
           status: 'failed',
+          failed: true,
           error: error.message,
           endTime: new Date().toISOString()
         });
