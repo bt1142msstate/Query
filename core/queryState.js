@@ -5,6 +5,11 @@
  */
 import { showToastMessage } from './toast.js';
 import { OperatorLabels } from './operatorLabels.js';
+import {
+  areSerializableQueryStatesEqual as areLifecycleQueryStatesEqual,
+  computeQueryStatus as computeLifecycleQueryStatus,
+  createQueryLifecycleStore
+} from './queryLifecycle.js';
 
 let getServices = () => null, getUiActions = () => null, getColumnOps = () => null, getPrevalidation = () => null;
 let resolveRuntimeFieldName = fieldName => fieldName, getRuntimeFieldDefinition = () => null;
@@ -67,23 +72,7 @@ const appStateNormalizers = {
   queryPageIsUnloading: value => Boolean(value)
 };
 
-const queryLifecycleState = {
-  queryRunning: false,
-  lastExecutedQueryState: null,
-  currentQueryState: null,
-  hasPartialResults: false,
-  hasLoadedResultSet: false,
-  currentQueryId: null
-};
-
-const queryLifecycleNormalizers = {
-  queryRunning: value => Boolean(value),
-  lastExecutedQueryState: value => value ?? null,
-  currentQueryState: value => value ?? null,
-  hasPartialResults: value => Boolean(value),
-  hasLoadedResultSet: value => Boolean(value),
-  currentQueryId: value => value ? String(value) : null
-};
+const queryLifecycleStore = createQueryLifecycleStore();
 
 function defineAppStateProperty(target, key) {
   Object.defineProperty(target, key, {
@@ -229,83 +218,27 @@ function getQueryStateSnapshot() {
 }
 
 function getQueryLifecycleSnapshot() {
-  return {
-    queryRunning: queryLifecycleState.queryRunning,
-    hasPartialResults: queryLifecycleState.hasPartialResults,
-    hasLoadedResultSet: queryLifecycleState.hasLoadedResultSet,
-    currentQueryId: queryLifecycleState.currentQueryId,
-    currentQueryState: queryLifecycleState.currentQueryState,
-    lastExecutedQueryState: queryLifecycleState.lastExecutedQueryState
-  };
+  return queryLifecycleStore.getSnapshot();
 }
 
 function setQueryLifecycleState(nextState = {}) {
-  if (!nextState || typeof nextState !== 'object') {
-    return getQueryLifecycleSnapshot();
-  }
-
-  Object.entries(nextState).forEach(([key, value]) => {
-    if (!Object.prototype.hasOwnProperty.call(queryLifecycleState, key)) {
-      return;
-    }
-
-    const normalize = queryLifecycleNormalizers[key];
-    queryLifecycleState[key] = typeof normalize === 'function' ? normalize(value) : value;
-  });
-
-  return getQueryLifecycleSnapshot();
+  return queryLifecycleStore.setState(nextState);
 }
 
 function areSerializableQueryStatesEqual(currentState, executedState) {
-  if (!executedState) {
-    return false;
-  }
-
   const current = currentState || getSerializableQueryState();
-
-  if (JSON.stringify(getComparableDisplayedFields(current.displayedFields)) !== JSON.stringify(getComparableDisplayedFields(executedState.displayedFields))) {
-    return false;
-  }
-
-  if (JSON.stringify(current.activeFilters) !== JSON.stringify(executedState.activeFilters)) {
-    return false;
-  }
-
-  return current.groupMethod === executedState.groupMethod;
-}
-
-function hasLoadedCurrentQueryResultSet() {
-  return queryLifecycleState.hasLoadedResultSet
-    && areSerializableQueryStatesEqual(getSerializableQueryState(), queryLifecycleState.lastExecutedQueryState);
+  return areLifecycleQueryStatesEqual(current, executedState);
 }
 
 function computeQueryStatus(snapshot = getQueryStateSnapshot()) {
-  if (queryLifecycleState.queryRunning) {
-    return 'running';
-  }
-
   const tableRows = getServices()?.getVirtualTableData?.()?.rows;
   const rowCount = Array.isArray(tableRows) ? tableRows.length : 0;
-  const hasFilters = Object.values(snapshot?.activeFilters || {}).some(data => Array.isArray(data?.filters) && data.filters.length > 0);
-  const hasConfiguredQuery = (snapshot?.displayedFields?.length || 0) > 0 || hasFilters;
-
-  if (queryLifecycleState.hasPartialResults && rowCount > 0) {
-    return 'partial';
-  }
-
-  if (rowCount > 0) {
-    return 'results';
-  }
-
-  if (hasLoadedCurrentQueryResultSet()) {
-    return 'results';
-  }
-
-  if (hasConfiguredQuery) {
-    return 'planning';
-  }
-
-  return 'idle';
+  return computeLifecycleQueryStatus({
+    currentQueryState: getSerializableQueryState(snapshot),
+    lifecycleState: getQueryLifecycleSnapshot(),
+    rowCount,
+    snapshot
+  });
 }
 
 function getSerializableQueryState(snapshot = getQueryStateSnapshot()) {
@@ -332,14 +265,6 @@ function getSerializableQueryState(snapshot = getQueryStateSnapshot()) {
     ),
     groupMethod: snapshot?.groupMethod || 'ExpandIntoColumns'
   };
-}
-
-function getComparableDisplayedFields(fieldNames) {
-  return (Array.isArray(fieldNames) ? fieldNames : [])
-    .map(field => String(field || '').trim())
-    .filter(Boolean)
-    .slice()
-    .sort();
 }
 
 function shouldSkipQueryChangeToast(meta = {}) {
@@ -648,7 +573,7 @@ function getQueryChangeToastMessage(event) {
 
 function notifyQueryStateSubscribers(changes = {}, meta = {}) {
   const nextSnapshot = getQueryStateSnapshot();
-  const previousSnapshot = queryLifecycleState.currentQueryState || {
+  const previousSnapshot = getQueryLifecycleSnapshot().currentQueryState || {
     displayedFields: [],
     activeFilters: {},
     groupMethod: nextSnapshot.groupMethod || 'ExpandIntoColumns'
@@ -688,7 +613,7 @@ const queryStateStore = {
     return getSerializableQueryState();
   },
   hasQueryChanged() {
-    return !areSerializableQueryStatesEqual(getSerializableQueryState(), queryLifecycleState.lastExecutedQueryState);
+    return !areSerializableQueryStatesEqual(getSerializableQueryState(), getQueryLifecycleSnapshot().lastExecutedQueryState);
   },
   getDisplayedFields() {
     return cloneDisplayedFieldsSnapshot();
@@ -1019,7 +944,7 @@ async function clearQueryManagerState(meta = {}) {
   const uiActions = getUiActions();
   const suppressToast = meta && meta.suppressToast === true;
 
-  if (queryLifecycleState.queryRunning) {
+  if (getQueryLifecycleSnapshot().queryRunning) {
     showToastMessage('Stop the running query before clearing it.', 'warning');
     return false;
   }
