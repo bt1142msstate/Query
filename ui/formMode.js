@@ -26,6 +26,14 @@ import {
   isShareableFormSpec
 } from './formModeShareUrl.js';
 import {
+  clearFormSpecControlDefaults,
+  hasSpecColumn as hasFormSpecColumn,
+  hasSpecFilterInput as hasFormSpecFilterInput,
+  removeSpecFilterInputs as removeFormSpecFilterInputs,
+  removeSpecInputByKey as removeFormSpecInputByKey,
+  resetFormSpecToEmptyQuery
+} from './formModeSpecMutations.js';
+import {
   ensureFormModeToggleButton,
   getNextFormViewMode,
   refreshBubbleStageAfterModeSwitch as refreshFormModeBubbleStageAfterModeSwitch,
@@ -334,38 +342,19 @@ let QueryFormMode;
   }
 
   function hasSpecColumn(fieldName) {
-    if (!state.spec || !Array.isArray(state.spec.columns)) return false;
-    const baseFieldName = getBaseFieldName(fieldName);
-
-    return state.spec.columns.some(column => {
-      const baseColumnName = getBaseFieldName(column);
-      return baseColumnName === baseFieldName;
-    });
+    return hasFormSpecColumn(state.spec, fieldName, getBaseFieldName);
   }
 
   function hasSpecFilterInput(fieldName) {
-    if (!state.spec || !Array.isArray(state.spec.inputs)) return false;
-    const baseFieldName = getBaseFieldName(fieldName);
-
-    return state.spec.inputs.some(inputSpec => {
-      const baseInputField = getBaseFieldName(inputSpec.field);
-      return baseInputField === baseFieldName;
-    });
+    return hasFormSpecFilterInput(state.spec, fieldName, getBaseFieldName);
   }
 
   function removeSpecFilterInputs(fieldName) {
-    if (!state.spec || !Array.isArray(state.spec.inputs)) return;
-    const baseFieldName = getBaseFieldName(fieldName);
-
-    state.spec.inputs = state.spec.inputs.filter(inputSpec => {
-      const baseInputField = getBaseFieldName(inputSpec.field);
-      return baseInputField !== baseFieldName;
-    });
+    removeFormSpecFilterInputs(state.spec, fieldName, getBaseFieldName);
   }
 
   function removeSpecInputByKey(inputKey) {
-    if (!state.spec || !Array.isArray(state.spec.inputs) || !inputKey) return;
-    state.spec.inputs = state.spec.inputs.filter(inputSpec => inputSpec.key !== inputKey);
+    removeFormSpecInputByKey(state.spec, inputKey);
   }
 
   function captureCurrentControlDefaults(excludedInputKey = '') {
@@ -386,18 +375,7 @@ let QueryFormMode;
   }
 
   function clearFormControlDefaults() {
-    if (!state.spec || !Array.isArray(state.spec.inputs)) {
-      return;
-    }
-
-    state.spec.inputs.forEach(inputSpec => {
-      if (inputSpec.operator === 'between') {
-        inputSpec.defaultValue = ['', ''];
-        return;
-      }
-
-      inputSpec.defaultValue = inputSpec.multiple ? [] : '';
-    });
+    clearFormSpecControlDefaults(state.spec);
   }
 
   function cleanupFormControls() {
@@ -423,11 +401,7 @@ let QueryFormMode;
     // A full query clear should leave form mode with no active query structure,
     // regardless of whether the form came from the URL or was generated locally.
     // Reset can still restore the original spec from state.initialSpec.
-    state.spec.title = '';
-    state.spec.queryName = '';
-    state.spec.inputs = [];
-    state.spec.columns = [];
-    state.spec.lockedFilters = [];
+    resetFormSpecToEmptyQuery(state.spec);
 
     if (state.formCard && state.formCard.parentNode) {
       state.formCard.parentNode.removeChild(state.formCard);
