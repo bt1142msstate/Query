@@ -870,6 +870,7 @@ async function exerciseFieldPickerPreviewList(page) {
     await SharedFieldPicker.open({
       getOptions: () => [
         { name: 'Preview Smoke Title', type: 'text', filterable: true, category: 'Smoke' },
+        { name: 'Preview Smoke Description Match', type: 'text', filterable: true, category: 'Smoke', description: 'Preview Smoke Branch appears here' },
         { name: 'Preview Smoke Branch', type: 'text', filterable: true, category: 'Smoke' },
         { name: 'Preview Smoke Status', type: 'text', filterable: true, category: 'Smoke' }
       ],
@@ -896,15 +897,15 @@ async function exerciseFieldPickerPreviewList(page) {
   await modal.waitFor({ state: 'visible', timeout: 5000 });
 
   const optionCount = await modal.locator('.form-mode-field-picker-option').count();
-  if (optionCount !== 3) {
+  if (optionCount !== 4) {
     const listText = await modal.locator('.form-mode-field-picker-list').textContent();
-    throw new Error(`Field picker with preview rendered ${optionCount} options instead of 3. List text: ${listText}`);
+    throw new Error(`Field picker with preview rendered ${optionCount} options instead of 4. List text: ${listText}`);
   }
 
   await modal.locator('.form-mode-field-picker-search').fill('Preview Smoke Branch');
   await page.waitForFunction(() => {
     const options = Array.from(document.querySelectorAll('.form-mode-field-picker-modal:not(.hidden) .form-mode-field-picker-option'));
-    return options.length === 1 && /Preview Smoke Branch/u.test(options[0].textContent || '');
+    return options.length === 2 && /^Preview Smoke Branch/u.test((options[0].textContent || '').trim());
   }, null, { timeout: 5000 });
 
   await modal.locator('.form-mode-field-picker-close').click();
