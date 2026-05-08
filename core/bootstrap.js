@@ -5,7 +5,7 @@
 import { onDOMReady } from './domReady.js';
 import { showToastMessage } from './toast.js';
 import { QueryBuilderShell } from '../ui/queryBuilderShell.js';
-import { QueryFormMode } from '../ui/formMode.js';
+import { QueryFormMode } from '../ui/form-mode/formMode.js';
 import { QueryUI } from '../ui/queryUI.js';
 import { TableNameInput } from '../ui/tableNameInput.js';
 

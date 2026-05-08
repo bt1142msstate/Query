@@ -10,7 +10,7 @@ import { QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
 import { FormatUtils } from '../core/utils.js';
 import { VisibilityUtils } from '../core/visibility.js';
-import { SharedFieldPicker } from '../ui/fieldPicker.js';
+import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
 
 (() => {
   let menuEl = null;

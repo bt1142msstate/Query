@@ -110,14 +110,14 @@ const forbiddenWindowMemberReads = new Map([
   ['AppUiActions', 'Import from core/appUiActions.js instead of reading UI action facade from window'],
   ['BackendApi', 'Import from core/backendApi.js instead of reading the backend client from window'],
   ['ClipboardUtils', 'Import from core/clipboard.js instead of reading clipboard helpers from window'],
-  ['DragDropColumnOps', 'Import from table/dragDropColumns.js or register with query state accessors instead of reading column ops from window'],
+  ['DragDropColumnOps', 'Import from table/drag-drop/dragDropColumns.js or register with query state accessors instead of reading column ops from window'],
   ['DragUtils', 'Import from core/dragUtils.js instead of reading drag helpers from window'],
   ['escapeRegExp', 'Import from core/dataFormatters.js instead of reading this formatter from window'],
   ['formatDuration', 'Import from core/dataFormatters.js instead of reading this formatter from window'],
   ['FilterValueUi', 'Import from filters/filterValueUi.js instead of reading filter value helpers from window'],
   ['FormatUtils', 'Import from core/utils.js instead of reading format helpers from window'],
-  ['FormModeControls', 'Import from ui/formModeControls.js instead of reading form controls from window'],
-  ['FormModeStateHelpers', 'Import from ui/formModeStateHelpers.js instead of reading form state helpers from window'],
+  ['FormModeControls', 'Import from ui/form-mode/formModeControls.js instead of reading form controls from window'],
+  ['FormModeStateHelpers', 'Import from ui/form-mode/formModeStateHelpers.js instead of reading form state helpers from window'],
   ['getFieldOutputSegments', 'Import from core/dataFormatters.js instead of reading this formatter from window'],
   ['Icons', 'Import from core/icons.js instead of reading icon helpers from window'],
   ['MoneyUtils', 'Import from core/utils.js instead of reading money helpers from window'],
@@ -130,7 +130,7 @@ const forbiddenWindowMemberReads = new Map([
   ['QueryStateReaders', 'Import from core/queryState.js instead of reading query state selectors from window'],
   ['SearchUI', 'Import from ui/searchUI.js instead of reading search helpers from window'],
   ['SelectorControls', 'Import from ui/selectorControls.js instead of reading selector controls from window'],
-  ['SharedFieldPicker', 'Import from ui/fieldPicker.js instead of reading shared field picker from window'],
+  ['SharedFieldPicker', 'Import from ui/field-picker/fieldPicker.js instead of reading shared field picker from window'],
   ['TableBuilder', 'Import from core/utils.js instead of reading table builder helpers from window'],
   ['TextMeasurement', 'Import from core/utils.js instead of reading text measurement helpers from window'],
   ['TooltipManager', 'Import from core/tooltipFormatters.js for formatting or ui/tooltips.js for tooltip behavior instead of reading tooltip helpers from window'],
@@ -157,11 +157,11 @@ const legacyLargeModuleBudgets = new Map([
   ['templates/queryTemplates.js', 1295],
   ['core/utils.js', 674],
   ['filters/filterManager.js', 1371],
-  ['table/dragDropInteractions.js', 1264],
-  ['table/postFilters.js', 1109],
-  ['table/virtualTable.js', 1383],
-  ['ui/fieldPicker.js', 1266],
-  ['ui/formMode.js', 1279]
+  ['table/drag-drop/dragDropInteractions.js', 1264],
+  ['table/post-filters/postFilters.js', 1109],
+  ['table/virtual-table/virtualTable.js', 1383],
+  ['ui/field-picker/fieldPicker.js', 1266],
+  ['ui/form-mode/formMode.js', 1279]
 ]);
 
 const moduleBoundaryRules = [
