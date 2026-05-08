@@ -2,9 +2,7 @@
 
 This project is a static browser app organized as feature-oriented ES modules. The architecture is intentionally buildless so it can be served by any static web server, but it still uses explicit module loading, state facades, browser smoke tests, and architecture fitness checks.
 
-## Current Grade
-
-For a frontend job portfolio, the project is now an A+ architecture sample for a vanilla JavaScript application:
+## Architecture Summary
 
 - It solves a real workflow with complex state, async execution, virtualized data display, export, overlays, and editable forms.
 - It uses native browser ES modules and declares `"type": "module"` for Node-side tooling.
@@ -64,7 +62,7 @@ This removes the public browser-global API surface and keeps cross-feature coord
 - Circular imports fail the architecture gate.
 - Legacy large modules cannot grow beyond their current budget.
 
-This is the strongest portfolio signal in the project: the architecture rules are executable, versioned, and run in CI.
+The architecture rules are executable, versioned, and run in CI.
 
 ## Fitness Checks
 
@@ -104,4 +102,4 @@ The architecture fitness test prevents those files from growing. New large modul
 1. Continue splitting `ui/form-mode/formMode.js` by moving field-picker coordination and event binding into dedicated modules.
 2. Continue splitting `templates/queryTemplates.js` by moving rendering, category management, and editor coordination into dedicated modules.
 3. Add more workflow-level unit tests for history/template state transitions and form-mode schema parsing.
-4. Consider TypeScript or JSDoc type checking if the project needs a stronger enterprise-style portfolio signal.
+4. Consider TypeScript or JSDoc type checking if stricter static contracts become useful.
