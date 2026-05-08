@@ -5,6 +5,7 @@ import { showToastMessage } from '../core/toast.js';
 import { formatFieldDefinitionTooltipHTML } from '../core/tooltipFormatters.js';
 import { VisibilityUtils } from '../core/visibility.js';
 import { FormModeControls as formModeControls } from './formModeControls.js';
+import { getRankedFieldPickerOptions } from './fieldPickerSearch.js';
 import { initializeSearchInputs } from './searchUI.js';
 import { VirtualList } from './virtualList.js';
 import { fieldDefs, fieldDefsArray, isFieldBackendFilterable, loadFieldDefinitions } from '../filters/fieldDefs.js';
@@ -714,19 +715,9 @@ let SharedFieldPicker;
     }
 
     function renderList() {
-      const filteredOptions = options.filter(option => {
-        const categoryMatch = !selectedCategory
-          || String(option.category || '')
-            .split(',')
-            .map(category => category.trim())
-            .filter(Boolean)
-            .includes(selectedCategory);
-
-        if (!categoryMatch) return false;
-        if (!searchTerm) return true;
-
-        const haystack = `${option.name} ${option.type} ${option.category} ${option.desc} ${option.description}`.toLowerCase();
-        return haystack.includes(searchTerm);
+      const filteredOptions = getRankedFieldPickerOptions(options, {
+        searchTerm,
+        selectedCategory
       });
 
       let emptyState = listEl.parentNode.querySelector('.form-mode-field-picker-empty');
