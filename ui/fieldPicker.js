@@ -196,9 +196,6 @@ let SharedFieldPicker;
       if (currentFilterPreviewApi && typeof currentFilterPreviewApi.cleanup === 'function') {
         currentFilterPreviewApi.cleanup();
       }
-      if (listEl.virtualList) {
-        listEl.virtualList.destroy();
-      }
       currentFilterPreviewApi = null;
       if (filterPreviewHost) {
         filterPreviewHost.replaceChildren();
@@ -208,9 +205,19 @@ let SharedFieldPicker;
       }
     }
 
+    function destroyFieldList() {
+      if (!listEl.virtualList) {
+        return;
+      }
+
+      listEl.virtualList.destroy();
+      delete listEl.virtualList;
+    }
+
     function cleanup() {
       document.removeEventListener('keydown', onKeyDown);
       clearFilterPreview();
+      destroyFieldList();
       VisibilityUtils.hide([backdrop, modal], {
         ariaHidden: true,
         raisedUiKey: 'field-picker-modal'
