@@ -64,14 +64,22 @@ The table also supports sorting, expand/collapse layout, manual column resizing 
 | `core/` | Query execution, state management, service facades, and shared utilities |
 | `filters/` | Field definitions and filter/payload logic |
 | `history/` | Query history rendering, request mapping, status grouping, and detail overlays |
-| `table/` | Result rendering, virtual scrolling, and Excel export |
+| `table/` | Result rendering, virtual scrolling, drag/drop, post filters, and Excel export |
+| `table/drag-drop/` | Column drag/drop, duplicate column restoration, and resize coordination |
+| `table/virtual-table/` | Virtualized result rendering, column layout, scrollbar, and sort helpers |
+| `table/post-filters/` | Client-side post-filter UI and comparison logic |
+| `table/export/` | Excel export workflow |
 | `templates/` | Query template rendering, categories, draft state, and template models |
-| `ui/` | Form mode, modals, toasts, tooltips, and shared helpers |
+| `ui/` | App shell UI, modals, toasts, tooltips, and shared helpers |
+| `ui/form-mode/` | Form-mode shell, controls, spec parsing, URL sharing, and query sync |
+| `ui/field-picker/` | Shared field picker modal and search ranking |
 | `styles/` | Feature-based CSS |
 | `styles/app.css` | Stylesheet entrypoint that imports the feature CSS files |
 | `config/` | Shared architecture contracts for forbidden browser globals and module boundaries |
 | `docs/ARCHITECTURE.md` | Frontend architecture notes, quality gates, and refactor plan |
-| `tests/` | Architecture checks, module-specifier checks, unit tests, and Playwright browser smoke coverage |
+| `tests/architecture/` | Architecture fitness and module-specifier checks |
+| `tests/unit/` | Focused pure-logic unit tests |
+| `tests/browser/` | Playwright browser smoke coverage |
 
 ## 🛠️ Tech
 

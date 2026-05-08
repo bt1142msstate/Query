@@ -33,9 +33,11 @@ The former private runtime coordination layer has been removed. Feature coordina
 | Services/actions | `core/appServices.js`, `core/appUiActions.js` | Cross-feature coordination without direct feature coupling |
 | Data contract | `filters/queryPayload.js`, `filters/fieldDefs.js` | Backend payload generation, field metadata, filter normalization |
 | Feature UI | `ui/`, `filters/`, `bubbles/`, `table/`, `history/`, `templates/` | User workflows and rendering |
+| UI feature folders | `ui/form-mode/`, `ui/field-picker/` | Larger UI workflows with their own shell, state helpers, and interaction logic |
+| Table feature folders | `table/drag-drop/`, `table/virtual-table/`, `table/post-filters/`, `table/export/` | Result-table workflows grouped by behavior instead of one flat table folder |
 | Styles | `styles/app.css` plus feature CSS files | Feature-scoped styling with a single stylesheet entry |
 | Architecture config | `config/` | Forbidden browser globals, module budgets, and import-boundary rules |
-| Tests | `tests/` | Architecture checks and browser smoke coverage |
+| Tests | `tests/architecture/`, `tests/unit/`, `tests/browser/` | Architecture checks, focused unit coverage, and browser smoke coverage |
 
 ## Public Runtime Surface
 
@@ -54,7 +56,7 @@ This removes the public browser-global API surface and keeps cross-feature coord
 
 ## Module Graph Contract
 
-`tests/architectureFitness.mjs` builds a static graph from ES imports and enforces these constraints:
+`tests/architecture/architectureFitness.mjs` builds a static graph from ES imports and enforces these constraints:
 
 - Every application module must be reachable from `appModules.js`.
 - Local imports must resolve to explicit `.js` modules inside the application source set.
@@ -99,7 +101,7 @@ The architecture fitness test prevents those files from growing. New large modul
 
 ## Recommended Next Refactors
 
-1. Continue splitting `ui/formMode.js` by moving rendering, field-picker coordination, and event binding into dedicated modules.
+1. Continue splitting `ui/form-mode/formMode.js` by moving field-picker coordination and event binding into dedicated modules.
 2. Continue splitting `templates/queryTemplates.js` by moving rendering, category management, and editor coordination into dedicated modules.
 3. Add more workflow-level unit tests for history/template state transitions and form-mode schema parsing.
 4. Consider TypeScript or JSDoc type checking if the project needs a stronger enterprise-style portfolio signal.
