@@ -11,6 +11,12 @@ import {
 } from './columnManager.js';
 import { createColumnResizeController } from './columnResizeController.js';
 import { dragDropColumnOps } from './dragDropColumns.js';
+import {
+  calculateAutoScrollStep,
+  calculateHeaderActionLayout,
+  getAutoScrollIntent,
+  getHeaderInsertPositionFromRects
+} from './dragDropInteractionMath.js';
 import { SharedFieldPicker } from '../ui/fieldPicker.js';
 let DragDropInteractions;
 (function initializeDragDropInteractions() {
@@ -103,7 +109,6 @@ let DragDropInteractions;
   headerInsertAffordance.className = 'th-insert-affordance';
   headerInsertAffordance.appendChild(headerInsertButton);
 
-  const INSERT_AFFORDANCE_THRESHOLD = 40;
   let insertAffordanceShowTimer = null;
   let insertAffordanceHideTimer = null;
   let pendingInsertCandidate = null;
@@ -146,13 +151,17 @@ let DragDropInteractions;
     const actionsVisible = headerActions.parentNode === th;
     const sortWidth = sortIcon ? Math.ceil(sortIcon.getBoundingClientRect().width) : 0;
     const actionsWidth = actionsVisible ? Math.ceil(headerActions.getBoundingClientRect().width) : 0;
-    const sideBalance = Math.max(sortWidth + 10, actionsWidth + 18, 26);
     const labelWidth = Math.ceil(labelText.scrollWidth);
-    const availableInlineWidth = th.clientWidth - (sideBalance * 2);
-    const stackActions = actionsVisible && availableInlineWidth < (labelWidth + 18);
+    const layout = calculateHeaderActionLayout({
+      containerWidth: th.clientWidth,
+      labelWidth,
+      sortWidth,
+      actionsWidth,
+      actionsVisible
+    });
 
-    th.classList.toggle('th-actions-below', stackActions);
-    th.style.setProperty('--th-balance-space', `${stackActions ? Math.max(sortWidth + 10, 26) : sideBalance}px`);
+    th.classList.toggle('th-actions-below', layout.stackActions);
+    th.style.setProperty('--th-balance-space', `${layout.balanceSpace}px`);
   }
 
   function isEventInsideActiveResizeColumn(target) {
@@ -226,56 +235,10 @@ let DragDropInteractions;
       return null;
     }
 
-    let bestCandidate = null;
-    let bestDistance = Infinity;
-
-    const firstRect = headers[0].getBoundingClientRect();
-    const lastRect = headers[headers.length - 1].getBoundingClientRect();
-    const top = Math.min(firstRect.top, lastRect.top);
-    const height = Math.max(firstRect.bottom, lastRect.bottom) - top;
-
-    const leadingDistance = Math.abs(clientX - firstRect.left);
-    if (leadingDistance < bestDistance) {
-      bestDistance = leadingDistance;
-      bestCandidate = {
-        insertAt: 0,
-        boundaryX: firstRect.left,
-        top,
-        height
-      };
-    }
-
-    for (let index = 0; index < headers.length - 1; index += 1) {
-      const leftHeader = headers[index];
-      const rightHeader = headers[index + 1];
-      const leftRect = leftHeader.getBoundingClientRect();
-      const rightRect = rightHeader.getBoundingClientRect();
-      const boundaryX = (leftRect.right + rightRect.left) / 2;
-      const distance = Math.abs(clientX - boundaryX);
-
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        bestCandidate = {
-          insertAt: index + 1,
-          boundaryX,
-          top: Math.min(leftRect.top, rightRect.top),
-          height: Math.max(leftRect.bottom, rightRect.bottom) - Math.min(leftRect.top, rightRect.top)
-        };
-      }
-    }
-
-    const trailingDistance = Math.abs(clientX - lastRect.right);
-    if (trailingDistance < bestDistance) {
-      bestDistance = trailingDistance;
-      bestCandidate = {
-        insertAt: headers.length,
-        boundaryX: lastRect.right,
-        top,
-        height
-      };
-    }
-
-    return bestDistance <= INSERT_AFFORDANCE_THRESHOLD ? bestCandidate : null;
+    return getHeaderInsertPositionFromRects(
+      headers.map(header => header.getBoundingClientRect()),
+      clientX
+    );
   }
 
   function updateHeaderInsertAffordance(table, clientX) {
@@ -496,28 +459,18 @@ let DragDropInteractions;
           return;
         }
 
-        const rect = container.getBoundingClientRect();
-        const threshold = 90;
-        let proximity = 0;
+        const step = calculateAutoScrollStep({
+          direction,
+          pointerX: this.autoScrollPointerX,
+          containerRect: container.getBoundingClientRect(),
+          scrollLeft: container.scrollLeft,
+          scrollWidth: container.scrollWidth,
+          clientWidth: container.clientWidth
+        });
 
-        if (direction === 'left') {
-          proximity = Math.max(0, (rect.left + threshold) - this.autoScrollPointerX);
-        } else if (direction === 'right') {
-          proximity = Math.max(0, this.autoScrollPointerX - (rect.right - threshold));
-        }
+        container.scrollLeft = step.nextScrollLeft;
 
-        const intensity = Math.min(1, proximity / threshold);
-        const scrollAmount = Math.max(4, Math.round(4 + (intensity * 8)));
-        const previousScrollLeft = container.scrollLeft;
-
-        if (direction === 'left') {
-          container.scrollLeft = Math.max(0, container.scrollLeft - scrollAmount);
-        } else if (direction === 'right') {
-          const maxScrollLeft = Math.max(0, container.scrollWidth - container.clientWidth);
-          container.scrollLeft = Math.min(maxScrollLeft, container.scrollLeft + scrollAmount);
-        }
-
-        if (container.scrollLeft !== previousScrollLeft && this.activeTable) {
+        if (step.changed && this.activeTable) {
           this.updateDropIndicatorFromPointer(this.activeTable, this.autoScrollPointerX, this.lastDragY);
         }
       }, 16);
@@ -534,22 +487,27 @@ let DragDropInteractions;
     checkAutoScroll(e, container) {
       if (!container) return;
 
-      const rect = container.getBoundingClientRect();
-      const scrollThreshold = 90;
       const mouseX = e.clientX;
       const mouseY = e.clientY;
       this.autoScrollPointerX = mouseX;
 
-      if (mouseX < rect.left || mouseX > rect.right || mouseY < rect.top || mouseY > rect.bottom) {
+      const intent = getAutoScrollIntent({
+        pointerX: mouseX,
+        pointerY: mouseY,
+        containerRect: container.getBoundingClientRect(),
+        scrollLeft: container.scrollLeft,
+        scrollWidth: container.scrollWidth,
+        clientWidth: container.clientWidth
+      });
+
+      if (intent.outside) {
         this.stopAutoScroll();
         clearDropAnchor();
         return;
       }
 
-      if (mouseX < rect.left + scrollThreshold && container.scrollLeft > 0) {
-        this.startAutoScroll('left', container);
-      } else if (mouseX > rect.right - scrollThreshold && container.scrollLeft < container.scrollWidth - container.clientWidth) {
-        this.startAutoScroll('right', container);
+      if (intent.direction) {
+        this.startAutoScroll(intent.direction, container);
       } else {
         this.stopAutoScroll();
       }
