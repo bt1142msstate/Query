@@ -864,6 +864,53 @@ async function exerciseBubbleFilterInteraction(page) {
   await page.locator('.fp-cond-text', { hasText: 'Smoke Value' }).waitFor({ state: 'attached', timeout: 5000 });
 }
 
+async function exerciseFieldPickerPreviewList(page) {
+  await page.evaluate(async () => {
+    const { SharedFieldPicker } = await import('./ui/fieldPicker.js');
+    await SharedFieldPicker.open({
+      getOptions: () => [
+        { name: 'Preview Smoke Title', type: 'text', filterable: true, category: 'Smoke' },
+        { name: 'Preview Smoke Branch', type: 'text', filterable: true, category: 'Smoke' },
+        { name: 'Preview Smoke Status', type: 'text', filterable: true, category: 'Smoke' }
+      ],
+      getFieldState: () => ({ display: false, filter: false }),
+      labels: {
+        description: 'Choose a field for preview-list smoke coverage.',
+        footerNote: 'Smoke test field picker preview list.'
+      },
+      renderFilterPreview(container, fieldName) {
+        const preview = document.createElement('div');
+        preview.className = 'field-picker-preview-smoke';
+        preview.textContent = `Preview controls for ${fieldName}`;
+        container.replaceChildren(preview);
+
+        return {
+          getState: () => ({ fieldName, operator: 'equals', values: [] }),
+          cleanup() {}
+        };
+      }
+    });
+  });
+
+  const modal = page.locator('.form-mode-field-picker-modal:not(.hidden)');
+  await modal.waitFor({ state: 'visible', timeout: 5000 });
+
+  const optionCount = await modal.locator('.form-mode-field-picker-option').count();
+  if (optionCount !== 3) {
+    const listText = await modal.locator('.form-mode-field-picker-list').textContent();
+    throw new Error(`Field picker with preview rendered ${optionCount} options instead of 3. List text: ${listText}`);
+  }
+
+  await modal.locator('.form-mode-field-picker-search').fill('Preview Smoke Branch');
+  await page.waitForFunction(() => {
+    const options = Array.from(document.querySelectorAll('.form-mode-field-picker-modal:not(.hidden) .form-mode-field-picker-option'));
+    return options.length === 1 && /Preview Smoke Branch/u.test(options[0].textContent || '');
+  }, null, { timeout: 5000 });
+
+  await modal.locator('.form-mode-field-picker-close').click();
+  await page.locator('.form-mode-field-picker-modal').waitFor({ state: 'detached', timeout: 5000 });
+}
+
 async function exerciseDesktopResultsWorkflow(page) {
   await seedLoadedResults(page);
   await expectResultsCount(page, '3', 'Desktop seeded results');
@@ -1053,6 +1100,7 @@ async function runSmokeTest() {
     });
 
     await exerciseBubbleFilterInteraction(page);
+    await exerciseFieldPickerPreviewList(page);
     await exerciseDesktopResultsWorkflow(page);
     await exerciseZeroResultQueryWorkflow(page, queryApiStub);
     await exerciseVirtualTableScrollInteraction(page);
