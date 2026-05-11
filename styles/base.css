@@ -458,6 +458,21 @@ input, textarea, select, [contenteditable] {
   -ms-user-select: text;
 }
 
+@media (max-width: 640px), (hover: none) and (pointer: coarse) {
+  html,
+  body {
+    touch-action: pan-x pan-y;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
 #overlay {
   position: fixed;
   top: var(--header-height);
