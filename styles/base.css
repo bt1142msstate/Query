@@ -114,7 +114,7 @@
   overflow-x: hidden;
   overscroll-behavior: contain;
   padding-right: 0.2rem;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 #toast-container::-webkit-scrollbar {
@@ -152,7 +152,7 @@
   opacity: 0;
   transform: translateY(14px) scale(0.98);
   transition: opacity 0.18s ease, transform 0.18s ease;
-  pointer-events: auto;
+  pointer-events: none;
   overflow: hidden;
 }
 
@@ -285,6 +285,7 @@
 }
 
 .app-toast-action {
+  pointer-events: auto;
   border: 0;
   padding: 0.32rem 0.68rem;
   border-radius: 999px;
@@ -328,6 +329,7 @@
 }
 
 .app-toast-close {
+  pointer-events: auto;
   border: 0;
   background: transparent;
   color: #64748b;
@@ -609,6 +611,15 @@ body.raised-ui-open #table-shell.table-shell-expanded {
   cursor: not-allowed;
 }
 
+.mobile-builder-drawer,
+.mobile-builder-content {
+  display: contents;
+}
+
+.mobile-builder-toggle {
+  display: none;
+}
+
 /* Responsive Header Controls */
 /* Note: CSS variables are not supported in media queries in all browsers, so we keep 900px but document the variable for future use in JS or preprocessors. */
 @media (max-width: 900px) {
@@ -766,6 +777,18 @@ body.raised-ui-open #table-shell.table-shell-expanded {
     order: 40;
   }
 
+  .mobile-builder-drawer {
+    order: 10;
+    display: block;
+    width: 100%;
+  }
+
+  .mobile-builder-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
   body.form-mode-active #field-bubble-stage {
     order: 10;
   }
@@ -777,6 +800,84 @@ body.raised-ui-open #table-shell.table-shell-expanded {
   body.has-query-columns #table-with-filter,
   body.has-loaded-data #table-with-filter {
     order: 5;
+  }
+
+  body.has-query-columns .mobile-builder-drawer,
+  body.has-loaded-data .mobile-builder-drawer {
+    order: 15;
+  }
+
+  body.has-query-columns .mobile-builder-toggle,
+  body.has-loaded-data .mobile-builder-toggle {
+    display: flex;
+  }
+
+  body.has-query-columns .mobile-builder-drawer:not(.is-open) .mobile-builder-content,
+  body.has-loaded-data .mobile-builder-drawer:not(.is-open) .mobile-builder-content {
+    display: none;
+  }
+
+  .mobile-builder-toggle {
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.85rem;
+    width: 100%;
+    min-height: 3.2rem;
+    padding: 0.72rem 0.85rem;
+    border: 1px solid rgba(125, 211, 252, 0.18);
+    border-radius: 1rem;
+    background:
+      linear-gradient(180deg, rgba(8, 18, 32, 0.96), rgba(4, 10, 20, 0.98)),
+      radial-gradient(circle at top right, rgba(69, 235, 255, 0.14), transparent 44%);
+    color: #dffcff;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .mobile-builder-toggle-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
+    min-width: 0;
+  }
+
+  .mobile-builder-toggle-title {
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .mobile-builder-toggle-summary {
+    color: rgba(190, 236, 247, 0.72);
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .mobile-builder-toggle-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    min-width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #76f0ff;
+    font-size: 1.25rem;
+    line-height: 1;
+    transition: transform 0.18s ease;
+  }
+
+  .mobile-builder-toggle-icon svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .mobile-builder-drawer.is-open .mobile-builder-toggle-icon {
+    transform: rotate(180deg);
   }
 
   body.form-mode-active:not(.has-loaded-data):not(.has-query-columns) #table-with-filter {
