@@ -346,6 +346,24 @@ async function expectDarkInput(page, selector, label) {
   }
 }
 
+async function expectDarkSurface(page, selector, label) {
+  const theme = await page.locator(selector).evaluate(element => {
+    const readChannels = value => (value.match(/\d+/gu) || []).slice(0, 3).map(Number);
+    const style = window.getComputedStyle(element);
+    const [backgroundRed = 255, backgroundGreen = 255, backgroundBlue = 255] = readChannels(style.backgroundColor);
+    const [textRed = 0, textGreen = 0, textBlue = 0] = readChannels(style.color);
+
+    return {
+      backgroundLuma: (backgroundRed + backgroundGreen + backgroundBlue) / 3,
+      textLuma: (textRed + textGreen + textBlue) / 3
+    };
+  });
+
+  if (theme.backgroundLuma > 90 || theme.textLuma < 120) {
+    throw new Error(`${label} is not using the dark surface theme`);
+  }
+}
+
 async function expectLightInput(page, selector, label) {
   const theme = await page.locator(selector).evaluate(input => {
     const readChannels = value => (value.match(/\d+/gu) || []).slice(0, 3).map(Number);
@@ -1228,6 +1246,7 @@ async function runSmokeTest() {
 
     await page.getByRole('button', { name: 'Templates' }).click();
     await page.locator('input[placeholder="Search templates"]').waitFor({ state: 'visible', timeout: 5000 });
+    await expectDarkSurface(page, '#templates-panel > h2', 'Templates panel header');
     await expectDarkInput(page, '#templates-search-input', 'Templates search input');
 
     await page.getByRole('button', { name: 'Help' }).click();
@@ -1373,6 +1392,7 @@ async function runSmokeTest() {
 
     await openMobilePanel(mobilePage, 'toggle-templates', '#templates-search-input');
     await expectElementWithinViewport(mobilePage, '#templates-panel', 'Mobile templates panel');
+    await expectDarkSurface(mobilePage, '#templates-panel > h2', 'Mobile templates panel header');
     await expectDarkInput(mobilePage, '#templates-search-input', 'Mobile templates search input');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile templates panel');
 
@@ -1442,6 +1462,25 @@ async function runSmokeTest() {
       || mobileResultsLayout.tableToolbarDisplay !== 'none'
     ) {
       throw new Error(`Mobile table should use a sticky action bar and collapsed builder drawer: ${JSON.stringify(mobileResultsLayout)}`);
+    }
+    const mobileTableDensityMetrics = await mobilePage.locator('#table-container').evaluate(container => {
+      const table = document.querySelector('#example-table');
+      const cell = document.querySelector('#example-table tbody td');
+      const containerRect = container.getBoundingClientRect();
+      const tableRect = table?.getBoundingClientRect();
+      const cellStyle = cell ? window.getComputedStyle(cell) : null;
+      return {
+        cellFontSize: cellStyle ? Number.parseFloat(cellStyle.fontSize) : 0,
+        containerWidth: containerRect.width,
+        tableWidth: tableRect?.width || 0
+      };
+    });
+    if (
+      mobileTableDensityMetrics.tableWidth > mobileTableDensityMetrics.containerWidth + 4
+      || mobileTableDensityMetrics.cellFontSize < 11.2
+      || mobileTableDensityMetrics.cellFontSize > 12.5
+    ) {
+      throw new Error(`Mobile table should use balanced compact density so more columns are visible without making text too small: ${JSON.stringify(mobileTableDensityMetrics)}`);
     }
     await expectMinimumTapTarget(mobilePage, '#mobile-table-action-bar .mobile-table-action', 'Mobile table action bar controls');
     const mobileActionLabels = await mobilePage.locator('#mobile-table-action-bar .mobile-table-action').evaluateAll(buttons => {
