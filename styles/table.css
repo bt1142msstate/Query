@@ -2433,16 +2433,21 @@ body.post-filter-overlay-open {
     position: sticky;
     bottom: 0.65rem;
     z-index: 5;
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    display: flex;
     gap: 0.35rem;
     margin: 0.55rem 0.35rem 0.15rem;
     padding: 0.4rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-padding-inline: 0.4rem;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
     border: 1px solid rgba(15, 23, 42, 0.12);
     border-radius: 1.05rem;
     background: rgba(248, 250, 252, 0.96);
     box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.86);
     backdrop-filter: blur(14px);
+    scrollbar-width: thin;
   }
 
   .mobile-table-action {
@@ -2451,13 +2456,15 @@ body.post-filter-overlay-open {
     align-items: center;
     justify-content: center;
     gap: 0.22rem;
-    min-width: 0;
+    flex: 0 0 4.35rem;
+    min-width: 4.35rem;
     min-height: 3.05rem;
     padding: 0.35rem 0.2rem;
     border: 1px solid transparent;
     border-radius: 0.8rem;
     color: #0f172a;
     font-weight: 800;
+    scroll-snap-align: start;
     transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
   }
 
@@ -2539,6 +2546,8 @@ body.post-filter-overlay-open {
 
   #table-shell.table-shell-expanded {
     inset: calc(var(--header-height) + 0.5rem) 0.5rem 0.5rem;
+    width: auto;
+    max-width: none;
   }
 
   #table-shell.table-shell-expanded #table-container {
