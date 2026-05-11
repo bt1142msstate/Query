@@ -18,6 +18,125 @@ const getQueryStatus = QueryStateReaders.getQueryStatus.bind(QueryStateReaders);
 const services = appServices;
 let queryUiInitialized = false;
 let updateButtonStatesImpl = null;
+const MOBILE_TABLE_ACTION_SELECTOR = '[data-mobile-table-action-target]';
+
+function getMobileBuilderDrawer() {
+  return document.getElementById('mobile-builder-drawer');
+}
+
+function getMobileBuilderToggle() {
+  return document.getElementById('mobile-builder-toggle');
+}
+
+function getMobileBuilderSummary() {
+  return document.getElementById('mobile-builder-summary');
+}
+
+function getConfiguredFilterCount() {
+  return Object.values(getActiveFilters()).reduce((total, data) => {
+    return total + (data && Array.isArray(data.filters) ? data.filters.length : 0);
+  }, 0);
+}
+
+function syncMobileBuilderDrawer() {
+  const drawer = getMobileBuilderDrawer();
+  const toggle = getMobileBuilderToggle();
+  const summary = getMobileBuilderSummary();
+
+  if (!drawer || !toggle) {
+    return;
+  }
+
+  const fieldCount = getDisplayedFields().length;
+  const filterCount = getConfiguredFilterCount();
+  const rowCount = Array.isArray(services.getVirtualTableData()?.rows)
+    ? services.getVirtualTableData().rows.length
+    : 0;
+  const hasTableSurface = fieldCount > 0 || rowCount > 0;
+
+  drawer.classList.toggle('is-active', hasTableSurface);
+  if (!hasTableSurface) {
+    drawer.classList.remove('is-open');
+  }
+
+  toggle.setAttribute('aria-expanded', drawer.classList.contains('is-open') ? 'true' : 'false');
+
+  if (summary) {
+    const fieldsLabel = `${fieldCount} ${fieldCount === 1 ? 'field' : 'fields'}`;
+    const filtersLabel = filterCount > 0
+      ? `, ${filterCount} ${filterCount === 1 ? 'filter' : 'filters'}`
+      : '';
+    summary.textContent = hasTableSurface ? `${fieldsLabel}${filtersLabel}` : 'Edit fields and filters';
+  }
+}
+
+function syncMobileTableActions() {
+  document.querySelectorAll(MOBILE_TABLE_ACTION_SELECTOR).forEach(button => {
+    const sourceId = button.getAttribute('data-mobile-table-action-target');
+    const source = sourceId ? document.getElementById(sourceId) : null;
+    const disabled = !source || source.disabled || source.getAttribute('aria-disabled') === 'true';
+    const label = source?.getAttribute('aria-label')
+      || source?.getAttribute('data-tooltip')
+      || button.getAttribute('data-default-label')
+      || 'Table action';
+
+    button.disabled = disabled;
+    button.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+    button.setAttribute('aria-label', label);
+    button.setAttribute('data-tooltip', label);
+    button.classList.toggle('is-active', Boolean(
+      source?.classList.contains('table-toolbar-btn-active')
+      || (sourceId === 'table-expand-btn' && source?.dataset.state === 'expanded')
+    ));
+
+    if (sourceId === 'table-expand-btn') {
+      const labelEl = button.querySelector('.mobile-table-action-label');
+      if (labelEl) {
+        labelEl.textContent = source?.dataset.state === 'expanded' ? 'Collapse' : 'Expand';
+      }
+    }
+  });
+}
+
+function initializeMobileBuilderDrawer() {
+  const toggle = getMobileBuilderToggle();
+  const drawer = getMobileBuilderDrawer();
+
+  if (!toggle || !drawer || toggle.dataset.bound === 'true') {
+    return;
+  }
+
+  toggle.addEventListener('click', () => {
+    drawer.classList.toggle('is-open');
+    syncMobileBuilderDrawer();
+  });
+  toggle.dataset.bound = 'true';
+}
+
+function initializeMobileTableActionBar() {
+  const actionBar = document.getElementById('mobile-table-action-bar');
+  if (!actionBar || actionBar.dataset.bound === 'true') {
+    return;
+  }
+
+  actionBar.addEventListener('click', event => {
+    const button = event.target.closest(MOBILE_TABLE_ACTION_SELECTOR);
+    if (!button || button.disabled) {
+      return;
+    }
+
+    const sourceId = button.getAttribute('data-mobile-table-action-target');
+    const source = sourceId ? document.getElementById(sourceId) : null;
+    if (!source || source.disabled || source.getAttribute('aria-disabled') === 'true') {
+      syncMobileTableActions();
+      return;
+    }
+
+    source.click();
+    syncMobileTableActions();
+  });
+  actionBar.dataset.bound = 'true';
+}
 
 function updateTableResultsLip() {
   const resultsBadge = DOM.tableResultsBadge;
@@ -212,6 +331,8 @@ function updateTableChromeState() {
       iconShell.innerHTML = getTableExpandIconMarkup(expanded).trim();
     }
   }
+
+  syncMobileTableActions();
 }
 
 function setTableZoom(nextZoom) {
@@ -284,6 +405,9 @@ function initializeQueryUi() {
     });
   }
 
+  initializeMobileBuilderDrawer();
+  initializeMobileTableActionBar();
+
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && DOM.tableShell?.classList.contains('table-shell-expanded')) {
       toggleTableExpanded(false);
@@ -298,6 +422,8 @@ function initializeQueryUi() {
   });
 
   updateTableChromeState();
+  syncMobileBuilderDrawer();
+  syncMobileTableActions();
   refreshTableViewport();
 }
 
@@ -503,7 +629,9 @@ function baseUpdateButtonStates() {
   appUiActions.updateSplitColumnsToggleState();
 
   updateTableResultsLip();
+  syncMobileBuilderDrawer();
   appUiActions.syncPostFilterToolbarButton();
+  syncMobileTableActions();
 }
 
 function setUpdateButtonStatesImpl(nextImpl) {

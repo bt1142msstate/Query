@@ -1401,14 +1401,23 @@ async function runSmokeTest() {
           ? rect.top
           : Number.POSITIVE_INFINITY;
       };
-      const formRect = document.querySelector('#form-mode-card')?.getBoundingClientRect();
       const tableRect = document.querySelector('#table-with-filter')?.getBoundingClientRect();
+      const builderContent = document.querySelector('#mobile-builder-content');
+      const builderToggle = document.querySelector('#mobile-builder-toggle');
+      const mobileActionBar = document.querySelector('#mobile-table-action-bar');
+      const desktopToolbar = document.querySelector('#table-toolbar');
       return {
+        actionBarDisplay: mobileActionBar ? window.getComputedStyle(mobileActionBar).display : '',
+        actionBarPosition: mobileActionBar ? window.getComputedStyle(mobileActionBar).position : '',
         bubbleTop: visibleTop('#field-bubble-stage'),
-        formTop: formRect?.top ?? Number.POSITIVE_INFINITY,
+        builderCollapsed: builderContent ? window.getComputedStyle(builderContent).display === 'none' : false,
+        builderExpanded: builderToggle?.getAttribute('aria-expanded') || '',
+        builderToggleDisplay: builderToggle ? window.getComputedStyle(builderToggle).display : '',
+        formTop: visibleTop('#form-mode-card'),
         hasLoadedData: document.body.classList.contains('has-loaded-data'),
         hasQueryColumns: document.body.classList.contains('has-query-columns'),
         searchTop: visibleTop('#field-search-section'),
+        tableToolbarDisplay: desktopToolbar ? window.getComputedStyle(desktopToolbar).display : '',
         tableTop: tableRect?.top ?? Number.POSITIVE_INFINITY
       };
     });
@@ -1421,10 +1430,39 @@ async function runSmokeTest() {
     ) {
       throw new Error(`Mobile table should be the first main-screen surface once display fields exist: ${JSON.stringify(mobileResultsLayout)}`);
     }
-    await mobilePage.evaluate(async () => {
-      const { PostFilterSystem } = await import('./table/post-filters/postFilters.js');
-      PostFilterSystem.open();
+    if (
+      mobileResultsLayout.actionBarDisplay === 'none'
+      || mobileResultsLayout.actionBarPosition !== 'sticky'
+      || mobileResultsLayout.builderToggleDisplay === 'none'
+      || !mobileResultsLayout.builderCollapsed
+      || mobileResultsLayout.builderExpanded !== 'false'
+      || mobileResultsLayout.tableToolbarDisplay !== 'none'
+    ) {
+      throw new Error(`Mobile table should use a sticky action bar and collapsed builder drawer: ${JSON.stringify(mobileResultsLayout)}`);
+    }
+    await expectMinimumTapTarget(mobilePage, '#mobile-table-action-bar .mobile-table-action', 'Mobile table action bar controls');
+    await expectMinimumTapTarget(mobilePage, '#mobile-builder-toggle', 'Mobile builder drawer toggle');
+
+    await mobilePage.locator('#mobile-builder-toggle').click();
+    await mobilePage.waitForFunction(() => {
+      const content = document.querySelector('#mobile-builder-content');
+      return content && window.getComputedStyle(content).display !== 'none';
+    }, null, { timeout: 5000 });
+    const mobileBuilderOpenLayout = await mobilePage.evaluate(() => {
+      const tableRect = document.querySelector('#table-with-filter')?.getBoundingClientRect();
+      const builderRect = document.querySelector('#mobile-builder-drawer')?.getBoundingClientRect();
+      return {
+        builderExpanded: document.querySelector('#mobile-builder-toggle')?.getAttribute('aria-expanded') || '',
+        builderTop: builderRect?.top ?? 0,
+        tableTop: tableRect?.top ?? 0
+      };
     });
+    if (mobileBuilderOpenLayout.builderExpanded !== 'true' || mobileBuilderOpenLayout.builderTop < mobileBuilderOpenLayout.tableTop - 1) {
+      throw new Error(`Mobile builder drawer should expand below the table: ${JSON.stringify(mobileBuilderOpenLayout)}`);
+    }
+    await mobilePage.locator('#mobile-builder-toggle').click();
+
+    await mobilePage.locator('[data-mobile-table-action-target="post-filter-btn"]').click();
     await mobilePage.locator('#post-filter-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
     await expectElementWithinViewport(mobilePage, '#post-filter-overlay .post-filter-dialog', 'Mobile post filter dialog');
     await expectMinimumTapTarget(mobilePage, '#post-filter-overlay .post-filter-dialog__close, #post-filter-field, #post-filter-operator, #post-filter-logic, #post-filter-add-btn, #post-filter-clear-btn, #post-filter-done-btn', 'Mobile post filter controls');
@@ -1442,12 +1480,13 @@ async function runSmokeTest() {
     await mobilePage.locator('.form-mode-popup-list-done').click();
     await mobilePage.locator('#post-filter-done-btn').click();
 
-    await mobilePage.locator('#download-btn').scrollIntoViewIfNeeded();
-    const downloadDisabled = await mobilePage.locator('#download-btn').evaluate(button => button.disabled);
+    const mobileExportAction = mobilePage.locator('[data-mobile-table-action-target="download-btn"]');
+    await mobileExportAction.scrollIntoViewIfNeeded();
+    const downloadDisabled = await mobileExportAction.evaluate(button => button.disabled);
     if (downloadDisabled) {
       throw new Error('Download button is disabled after seeding loaded mobile results');
     }
-    await mobilePage.locator('#download-btn').click();
+    await mobileExportAction.click();
     await mobilePage.locator('#export-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
     await expectElementWithinViewport(mobilePage, '#export-overlay .export-dialog', 'Mobile export dialog');
     await expectMinimumTapTarget(mobilePage, '#export-overlay-close, #export-cancel-btn, #export-confirm-btn', 'Mobile export dialog controls');

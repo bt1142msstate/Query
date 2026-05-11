@@ -48,6 +48,15 @@
   justify-self: end;
 }
 
+.mobile-table-action-bar {
+  display: none;
+}
+
+.mobile-table-action {
+  border: 0;
+  background: transparent;
+}
+
 #table-zoom-controls {
   display: inline-flex;
   align-items: center;
@@ -2412,6 +2421,91 @@ body.post-filter-overlay-open {
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0.45rem;
     width: 100%;
+  }
+
+  body.has-query-columns:not(.table-expanded-open) #table-toolbar,
+  body.has-loaded-data:not(.table-expanded-open) #table-toolbar {
+    display: none;
+  }
+
+  body.has-query-columns:not(.table-expanded-open) #mobile-table-action-bar,
+  body.has-loaded-data:not(.table-expanded-open) #mobile-table-action-bar {
+    position: sticky;
+    bottom: 0.65rem;
+    z-index: 5;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.35rem;
+    margin: 0.55rem 0.35rem 0.15rem;
+    padding: 0.4rem;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    border-radius: 1.05rem;
+    background: rgba(248, 250, 252, 0.96);
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+    backdrop-filter: blur(14px);
+  }
+
+  .mobile-table-action {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.22rem;
+    min-width: 0;
+    min-height: 3.05rem;
+    padding: 0.35rem 0.2rem;
+    border: 1px solid transparent;
+    border-radius: 0.8rem;
+    color: #0f172a;
+    font-weight: 800;
+    transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
+  }
+
+  .mobile-table-action:not(:disabled):hover,
+  .mobile-table-action:not(:disabled):focus-visible {
+    border-color: rgba(14, 116, 144, 0.22);
+    background: rgba(224, 242, 254, 0.92);
+    color: #0369a1;
+    outline: none;
+    transform: translateY(-1px);
+  }
+
+  .mobile-table-action.is-active {
+    border-color: rgba(14, 116, 144, 0.28);
+    background: linear-gradient(135deg, rgba(224, 242, 254, 0.98), rgba(236, 254, 255, 0.92));
+    color: #0369a1;
+  }
+
+  .mobile-table-action:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+  }
+
+  .mobile-table-action-danger {
+    color: #b91c1c;
+  }
+
+  .mobile-table-action-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.2rem;
+    height: 1.2rem;
+  }
+
+  .mobile-table-action-icon svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .mobile-table-action-label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    white-space: nowrap;
   }
 
   .table-toolbar-btn,
