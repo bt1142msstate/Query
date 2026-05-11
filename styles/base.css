@@ -363,6 +363,10 @@
     max-height: calc(100vh - 1.5rem);
   }
 
+  body.raised-ui-open #toast-container {
+    z-index: calc(var(--z-dialog-backdrop) - 1);
+  }
+
   .app-toast {
     grid-template-columns: auto minmax(0, 1fr) auto;
     padding: 0.85rem 0.85rem;
