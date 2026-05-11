@@ -481,6 +481,48 @@ async function expectNoHorizontalOverflow(page, label) {
   }
 }
 
+async function expectMobileViewportStability(page) {
+  const metrics = await page.evaluate(() => {
+    const viewportContent = document.querySelector('meta[name="viewport"]')?.getAttribute('content') || '';
+    const rootStyle = window.getComputedStyle(document.documentElement);
+    const bodyStyle = window.getComputedStyle(document.body);
+    const undersizedControls = Array.from(document.querySelectorAll('input, textarea, select'))
+      .filter(control => !['checkbox', 'radio', 'range'].includes(String(control.getAttribute('type') || '').toLowerCase()))
+      .map(control => {
+        const style = window.getComputedStyle(control);
+        return {
+          fontSize: Number.parseFloat(style.fontSize || '0'),
+          id: control.id || '',
+          tagName: control.tagName,
+          type: control.getAttribute('type') || ''
+        };
+      })
+      .filter(control => control.fontSize < 16);
+
+    return {
+      bodyTouchAction: bodyStyle.touchAction,
+      rootTouchAction: rootStyle.touchAction,
+      undersizedControls,
+      viewportContent
+    };
+  });
+
+  if (
+    !/maximum-scale=1(?:\.0)?/u.test(metrics.viewportContent)
+    || !/user-scalable=no/u.test(metrics.viewportContent)
+  ) {
+    throw new Error(`Mobile viewport should prevent browser zoom drift: ${metrics.viewportContent}`);
+  }
+
+  if (metrics.rootTouchAction !== 'pan-x pan-y' || metrics.bodyTouchAction !== 'pan-x pan-y') {
+    throw new Error(`Mobile root should allow panning but not pinch gestures: ${JSON.stringify(metrics)}`);
+  }
+
+  if (metrics.undersizedControls.length > 0) {
+    throw new Error(`Mobile text controls should stay at least 16px to avoid focus zoom: ${JSON.stringify(metrics.undersizedControls)}`);
+  }
+}
+
 async function expectElementWithinViewport(page, selector, label) {
   const metrics = await page.locator(selector).evaluate(element => {
     const rect = element.getBoundingClientRect();
@@ -1316,6 +1358,7 @@ async function runSmokeTest() {
     const mobileQueryApiStub = await installQueryApiStub(mobilePage);
     await mobilePage.goto(baseUrl, { waitUntil: 'load', timeout: 15000 });
     await waitForAppModules(mobilePage, failures);
+    await expectMobileViewportStability(mobilePage);
 
     if (failures.length > 0) {
       throw new Error(`Browser smoke test failed:\n${failures.map(failure => `- ${failure}`).join('\n')}`);
