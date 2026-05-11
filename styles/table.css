@@ -2480,7 +2480,39 @@ body.post-filter-overlay-open {
     --header-action-space: 2.25rem;
     --header-text-balance-space: 0.5rem;
     --header-sort-space: 0.55rem;
-    --th-balance-space: 0.55rem;
+    --th-balance-space: 0.45rem;
+  }
+
+  #example-table th {
+    height: auto;
+    min-height: var(--table-header-height);
+    padding: calc(0.58rem * var(--table-zoom)) calc(0.35rem * var(--table-zoom)) !important;
+    vertical-align: middle;
+  }
+
+  #example-table th[draggable="true"] {
+    padding-right: calc(0.35rem * var(--table-zoom)) !important;
+    white-space: normal;
+  }
+
+  #example-table .th-header-content {
+    column-gap: 0.14rem;
+  }
+
+  #example-table .th-side-slot {
+    min-width: var(--th-balance-space);
+  }
+
+  #example-table .sort-icon {
+    font-size: 0.65rem;
+  }
+
+  #example-table .th-text {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.12;
   }
 
   #table-top-bar {

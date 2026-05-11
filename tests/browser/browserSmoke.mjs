@@ -1641,6 +1641,29 @@ async function runSmokeTest() {
     ) {
       throw new Error(`Mobile table should use balanced compact density so more columns are visible without making text too small: ${JSON.stringify(mobileTableDensityMetrics)}`);
     }
+    const mobileHeaderLabelMetrics = await mobilePage.locator('#example-table thead').evaluate(thead => {
+      return Array.from(thead.querySelectorAll('.th-text')).map(label => {
+        const style = window.getComputedStyle(label);
+        const headerRect = label.closest('th')?.getBoundingClientRect();
+        return {
+          clientWidth: label.clientWidth,
+          headerHeight: headerRect?.height || 0,
+          scrollWidth: label.scrollWidth,
+          text: label.textContent || '',
+          textOverflow: style.textOverflow,
+          whiteSpace: style.whiteSpace
+        };
+      });
+    });
+    const truncatedMobileHeader = mobileHeaderLabelMetrics.find(label => (
+      label.textOverflow === 'ellipsis'
+      || label.whiteSpace === 'nowrap'
+      || label.scrollWidth - label.clientWidth > 1
+      || label.headerHeight <= 0
+    ));
+    if (truncatedMobileHeader) {
+      throw new Error(`Mobile table headers should wrap instead of truncating with ellipsis: ${JSON.stringify(mobileHeaderLabelMetrics)}`);
+    }
     await expectMinimumTapTarget(mobilePage, '#mobile-table-action-bar .mobile-table-action', 'Mobile table action bar controls');
     const mobileActionLabels = await mobilePage.locator('#mobile-table-action-bar .mobile-table-action').evaluateAll(buttons => {
       return buttons.map(button => (button.textContent || '').trim().replace(/\s+/gu, ' '));
