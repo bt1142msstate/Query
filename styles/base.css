@@ -356,15 +356,21 @@
 
 @media (max-width: 640px) {
   #toast-container {
+    top: calc(var(--header-height, 4rem) + 0.55rem);
     right: 0.75rem;
+    bottom: auto;
     left: 0.75rem;
     width: auto;
     align-items: stretch;
-    max-height: calc(100vh - 1.5rem);
+    max-height: min(34vh, 18rem);
+    max-height: min(34dvh, 18rem);
   }
 
-  body.raised-ui-open #toast-container {
-    z-index: calc(var(--z-dialog-backdrop) - 1);
+  body.raised-ui-open #toast-container,
+  body.post-filter-overlay-open #toast-container,
+  body.export-overlay-open #toast-container,
+  body.mobile-filter-panel-open #toast-container {
+    z-index: calc(var(--z-overlay) - 1);
   }
 
   .app-toast {
