@@ -1452,6 +1452,14 @@ async function runSmokeTest() {
         throw new Error(`Mobile table action bar is missing "${expectedLabel}": ${JSON.stringify(mobileActionLabels)}`);
       }
     });
+    const mobileActionBarMetrics = await mobilePage.locator('#mobile-table-action-bar').evaluate(element => ({
+      clientWidth: element.clientWidth,
+      height: element.getBoundingClientRect().height,
+      scrollWidth: element.scrollWidth
+    }));
+    if (mobileActionBarMetrics.scrollWidth - mobileActionBarMetrics.clientWidth > 2 || mobileActionBarMetrics.height > 128) {
+      throw new Error(`Mobile table action bar should show all actions without horizontal scrolling: ${JSON.stringify(mobileActionBarMetrics)}`);
+    }
     await expectMinimumTapTarget(mobilePage, '#mobile-builder-toggle', 'Mobile builder drawer toggle');
 
     await mobilePage.locator('#mobile-builder-toggle').click();
