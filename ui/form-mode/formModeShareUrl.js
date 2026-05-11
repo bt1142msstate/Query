@@ -48,7 +48,12 @@ function buildFormShareUrl(currentUrl, spec, options = {}) {
   const nextUrl = new URL(currentUrl);
   nextUrl.search = '';
   nextUrl.searchParams.set('form', encodeSpec(spec));
-  nextUrl.searchParams.set('limited', '1');
+  if (options.limited !== false) {
+    nextUrl.searchParams.set('limited', '1');
+  }
+  if (options.limited === false && String(options.mode || '').trim().toLowerCase() === 'bubbles') {
+    nextUrl.searchParams.set('mode', 'bubbles');
+  }
 
   (Array.isArray(spec.inputs) ? spec.inputs : []).forEach(inputSpec => {
     const fieldDef = inputSpec.field ? getFieldDefinition(inputSpec.field, options) : null;

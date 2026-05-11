@@ -64,6 +64,15 @@ assert.equal(parsedUrl.searchParams.has('empty'), false);
 assert.equal(parsedUrl.searchParams.get('tableName'), 'Shared Table');
 assert.deepEqual(decodeSpec(parsedUrl.searchParams.get('form')).columns, ['Title']);
 
+const editableUrl = buildFormShareUrl('https://example.test/index.html?limited=1', spec, {
+  limited: false,
+  mode: 'bubbles'
+});
+const parsedEditableUrl = new URL(editableUrl);
+assert.equal(parsedEditableUrl.searchParams.has('limited'), false);
+assert.equal(parsedEditableUrl.searchParams.get('mode'), 'bubbles');
+assert.deepEqual(decodeSpec(parsedEditableUrl.searchParams.get('form')).columns, ['Title']);
+
 assert.equal(buildFormShareUrl('https://example.test/index.html?old=1', {
   columns: [],
   inputs: [],
