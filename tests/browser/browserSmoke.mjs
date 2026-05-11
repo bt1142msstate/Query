@@ -1510,6 +1510,32 @@ async function runSmokeTest() {
     await expectElementWithinViewport(mobilePage, '.form-mode-field-picker-modal:not(.hidden)', 'Mobile add field dialog');
     await expectLightInput(mobilePage, '.form-mode-field-picker-search-field input[type="search"]', 'Mobile add field search input');
     await expectMinimumTapTarget(mobilePage, '.form-mode-field-picker-close, .form-mode-field-picker-category-select, .form-mode-field-picker-option', 'Mobile add field controls');
+    const mobileAddFieldMetrics = await mobilePage.locator('.form-mode-field-picker-modal:not(.hidden)').evaluate(modal => {
+      const modalRect = modal.getBoundingClientRect();
+      const listRect = modal.querySelector('.form-mode-field-picker-list')?.getBoundingClientRect();
+      const detailsRect = modal.querySelector('.form-mode-field-picker-details')?.getBoundingClientRect();
+      const footer = modal.querySelector('.form-mode-field-picker-footer');
+      return {
+        bottomGap: Math.abs(window.innerHeight - modalRect.bottom),
+        detailsHeight: detailsRect?.height || 0,
+        detailsTop: detailsRect?.top || 0,
+        footerDisplay: footer ? window.getComputedStyle(footer).display : '',
+        listBottom: listRect?.bottom || 0,
+        listHeight: listRect?.height || 0,
+        top: modalRect.top,
+        viewportHeight: window.innerHeight
+      };
+    });
+    if (
+      mobileAddFieldMetrics.top > 16
+      || mobileAddFieldMetrics.bottomGap > 16
+      || mobileAddFieldMetrics.footerDisplay !== 'none'
+      || mobileAddFieldMetrics.listHeight < 240
+      || mobileAddFieldMetrics.detailsHeight > mobileAddFieldMetrics.viewportHeight * 0.42
+      || mobileAddFieldMetrics.listBottom > mobileAddFieldMetrics.detailsTop + 1
+    ) {
+      throw new Error(`Mobile add field picker should be a non-overlapping full-height sheet: ${JSON.stringify(mobileAddFieldMetrics)}`);
+    }
     await expectNoHorizontalOverflow(mobilePage, 'Mobile add field dialog');
     await mobilePage.locator('.form-mode-field-picker-close').click();
 
