@@ -1312,6 +1312,40 @@ async function runSmokeTest() {
       return document.querySelector('[data-history-book="complete"] .history-book-count')?.textContent?.trim() === '1'
         && document.querySelector('[data-history-book="running"] .history-book-count')?.textContent?.trim() === '1';
     }, null, { timeout: 5000 });
+    const mobileHistoryPickerMetrics = await mobilePage.locator('.history-bookshelf').evaluate(element => {
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+      const hero = document.querySelector('.history-editorial-hero');
+      const books = Array.from(element.querySelectorAll('[data-history-book]')).map(book => {
+        const bookRect = book.getBoundingClientRect();
+        return {
+          bottom: bookRect.bottom,
+          height: bookRect.height,
+          top: bookRect.top,
+          width: bookRect.width
+        };
+      }).filter(book => book.width > 0 && book.height > 0);
+
+      return {
+        bookCount: books.length,
+        bottom: rect.bottom,
+        columns: style.gridTemplateColumns.split(' ').filter(Boolean).length,
+        height: rect.height,
+        heroDisplay: hero ? window.getComputedStyle(hero).display : '',
+        maxBookHeight: Math.max(...books.map(book => book.height)),
+        viewportHeight: window.innerHeight
+      };
+    });
+    if (
+      mobileHistoryPickerMetrics.heroDisplay !== 'none'
+      || mobileHistoryPickerMetrics.bookCount !== 4
+      || mobileHistoryPickerMetrics.columns < 2
+      || mobileHistoryPickerMetrics.height > 180
+      || mobileHistoryPickerMetrics.maxBookHeight > 90
+      || mobileHistoryPickerMetrics.bottom > mobileHistoryPickerMetrics.viewportHeight * 0.55
+    ) {
+      throw new Error(`Mobile history status picker should keep all status choices visible without a long scroll: ${JSON.stringify(mobileHistoryPickerMetrics)}`);
+    }
     await expectMinimumTapTarget(mobilePage, '[data-history-book] .history-book-summary', 'Mobile history status cards');
     await mobilePage.locator('[data-history-book="complete"] .history-book-summary').click();
     await mobilePage.locator('.history-monitor').waitFor({ state: 'visible', timeout: 5000 });
