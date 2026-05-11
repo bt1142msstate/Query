@@ -1,4 +1,6 @@
 const MIN_COLUMN_WIDTH = 90;
+const MOBILE_MIN_COLUMN_WIDTH = 92;
+const MOBILE_COLUMN_WIDTH_SCALE = 0.62;
 const DEFAULT_COLUMN_WIDTH = 150;
 
 function normalizeColumnWidth(width) {
@@ -17,6 +19,22 @@ function getAvailableTableWidth(container) {
   }
 
   return Math.max(0, Math.floor(container.clientWidth));
+}
+
+function shouldUseCompactMobileColumns() {
+  return typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(max-width: 640px)').matches
+    && !document.body.classList.contains('table-expanded-open');
+}
+
+function getResponsiveColumnWidth(width, isManualWidth = false) {
+  const normalizedWidth = normalizeColumnWidth(width);
+  if (isManualWidth || !shouldUseCompactMobileColumns()) {
+    return normalizedWidth;
+  }
+
+  return Math.max(MOBILE_MIN_COLUMN_WIDTH, Math.round(normalizedWidth * MOBILE_COLUMN_WIDTH_SCALE));
 }
 
 function applyElementColumnWidth(element, width) {
@@ -78,7 +96,10 @@ export function createTableColumnLayoutController(options = {}) {
       calculateColumnWidths(renderFields, getTableData());
     }
 
-    const baseWidths = renderFields.map(field => normalizeColumnWidth(getColumnWidth(field)));
+    const baseWidths = renderFields.map(field => getResponsiveColumnWidth(
+      getColumnWidth(field),
+      isManualColumnWidth(field)
+    ));
     const baseTotalWidth = baseWidths.reduce((sum, width) => sum + width, 0);
     const availableWidth = getAvailableTableWidth(getContainer());
 

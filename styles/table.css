@@ -2476,6 +2476,13 @@ body.post-filter-overlay-open {
     margin-bottom: 0;
   }
 
+  #example-table {
+    --header-action-space: 2.25rem;
+    --header-text-balance-space: 0.5rem;
+    --header-sort-space: 0.55rem;
+    --th-balance-space: 0.55rem;
+  }
+
   #table-top-bar {
     gap: 0.6rem;
     padding: 0.65rem;

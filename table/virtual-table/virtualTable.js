@@ -128,6 +128,13 @@ function updateRenderedColumnWidth(fieldName, width) {
   tableColumnLayout.syncRenderedColumnLayout(table);
 }
 
+function shouldUseCompactMobileTable() {
+  return typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(max-width: 640px)').matches
+    && !document.body.classList.contains('table-expanded-open');
+}
+
 function syncResizeModeUi() {
   if (resizeModeState.active && getDisplayedFieldIndex(resizeModeState.fieldName) === -1) {
     resizeModeState.active = false;
@@ -781,9 +788,12 @@ function handleTableScroll(e) {
  */
 function calculateFieldWidth(fieldName, data = null) {
   let maxWidth = 0;
+  const compactMobileTable = shouldUseCompactMobileTable();
+  const headerActionSpace = compactMobileTable ? 34 : HEADER_ACTION_SPACE;
+  const headerTextBalanceSpace = compactMobileTable ? 14 : HEADER_TEXT_BALANCE_SPACE;
   
   // 1. Always measure header width (uppercase, as it appears in the table)
-  const headerWidth = TextMeasurement.measureText(fieldName.toUpperCase()) + HEADER_ACTION_SPACE + HEADER_TEXT_BALANCE_SPACE;
+  const headerWidth = TextMeasurement.measureText(fieldName.toUpperCase()) + headerActionSpace + headerTextBalanceSpace;
   maxWidth = Math.max(maxWidth, headerWidth);
   
   // 2. If we have data, measure content width
@@ -824,15 +834,15 @@ function calculateFieldWidth(fieldName, data = null) {
   }
   
   // 4. Add padding (24px left + 24px right from px-6 class) + buffer for comfort
-  const paddingAndBuffer = 48 + 32; // 48px padding + 32px buffer
+  const paddingAndBuffer = compactMobileTable ? 28 : 48 + 32; // 48px padding + 32px buffer on desktop
   const requiredHeaderWidth = headerWidth + paddingAndBuffer;
   
   // 5. Calculate max character width for clamping
-  const maxCharacterWidth = TextMeasurement.measureText('A'.repeat(50)) + paddingAndBuffer;
+  const maxCharacterWidth = TextMeasurement.measureText('A'.repeat(compactMobileTable ? 32 : 50)) + paddingAndBuffer;
   const maxAllowedWidth = Math.max(maxCharacterWidth, requiredHeaderWidth);
   
-  // 6. Clamp to reasonable bounds: min 150px, max 50 characters worth
-  return Math.max(150, Math.min(maxAllowedWidth, maxWidth + paddingAndBuffer));
+  // 6. Clamp to reasonable bounds.
+  return Math.max(compactMobileTable ? 96 : 150, Math.min(maxAllowedWidth, maxWidth + paddingAndBuffer));
 }
 
 /**

@@ -17,6 +17,45 @@
     linear-gradient(180deg, #09111d 0%, #050914 54%, #02050d 100%);
 }
 
+#templates-panel > h2 {
+  background:
+    radial-gradient(circle at top right, rgba(69, 235, 255, 0.14), transparent 36%),
+    linear-gradient(180deg, rgba(8, 15, 27, 0.98), rgba(4, 8, 18, 0.98)) !important;
+  background-color: #050914 !important;
+  color: #d7f7ff !important;
+  border-color: rgba(68, 226, 255, 0.22) !important;
+  border-bottom: 0 !important;
+  border-radius: 1rem 1rem 0 0;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+#templates-panel > h2 .collapse-btn {
+  border: 1px solid rgba(68, 226, 255, 0.24);
+  background: rgba(7, 14, 25, 0.86) !important;
+  color: #d7f7ff !important;
+}
+
+#templates-panel > h2 .collapse-btn:hover,
+#templates-panel > h2 .collapse-btn:focus-visible {
+  background: rgba(17, 32, 52, 0.96) !important;
+  color: #ffffff;
+  outline: none;
+}
+
+#templates-panel > h2 .collapse-btn svg {
+  stroke: currentColor;
+}
+
+#templates-container.templates-panel-shell {
+  border-color: rgba(68, 226, 255, 0.22) !important;
+  border-top: 0 !important;
+  background:
+    radial-gradient(circle at top right, rgba(70, 235, 255, 0.12), transparent 24%),
+    radial-gradient(circle at bottom left, rgba(255, 59, 126, 0.1), transparent 30%),
+    linear-gradient(180deg, #09111d 0%, #050914 54%, #02050d 100%) !important;
+  background-color: #050914 !important;
+}
+
 .pinned-templates-strip {
   margin: 0 0 1.35rem;
   padding: 0.75rem 1rem;

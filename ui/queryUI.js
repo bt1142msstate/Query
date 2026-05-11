@@ -407,8 +407,9 @@ function updateTableChromeState() {
 
   const expanded = tableShell.classList.contains('table-shell-expanded');
   const zoom = getTableZoom();
+  const effectiveZoom = !expanded && isMobileTableViewport() ? 0.84 : zoom;
 
-  tableShell.style.setProperty('--table-zoom', zoom.toFixed(2));
+  tableShell.style.setProperty('--table-zoom', effectiveZoom.toFixed(2));
 
   if (tableZoomControls) {
     tableZoomControls.classList.toggle('hidden', !expanded);
