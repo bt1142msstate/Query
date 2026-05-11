@@ -96,6 +96,10 @@ function getPreferredHistorySection(counts) {
   return getPreferredHistorySectionForCounts(counts, activeHistorySection);
 }
 
+function syncHistoryMonitorOpenState(isOpen) {
+  DOM.queriesPanel?.classList.toggle('history-monitor-open', Boolean(isOpen));
+}
+
 function createHistoryRowHtml(query) {
   return createQueriesTableRowHtml(query, {
     activeHistoryDetailQueryId,
@@ -1006,6 +1010,7 @@ function renderQueries(){
     failed: failedCount,
     canceled: cancelledCount
   });
+  syncHistoryMonitorOpenState(Boolean(openSection));
 
   let content = '';
   let renderKey = '';
