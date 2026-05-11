@@ -167,6 +167,22 @@
         <div id="filter-panel-content">
           <div id="filter-panel-header">
             <span id="filter-panel-title">Filters</span>
+            <button id="filter-panel-mobile-close"
+                    class="filter-panel-mobile-close"
+                    type="button"
+                    aria-label="Close display and filters panel">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round"
+                   aria-hidden="true">
+                <path d="M18 6 6 18"/>
+                <path d="m6 6 12 12"/>
+              </svg>
+            </button>
           </div>
           <div id="filter-panel-body"></div>
         </div>
@@ -318,6 +334,27 @@
             </div>
           </div>
           <nav id="mobile-table-action-bar" class="mobile-table-action-bar" aria-label="Table actions">
+            <button type="button" class="mobile-table-action" data-mobile-table-action-target="run-query-btn" data-default-label="Run query" aria-label="Run query">
+              <span class="mobile-table-action-icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M7 5v14l11-7z"/>
+                </svg>
+              </span>
+              <span class="mobile-table-action-label">Run</span>
+            </button>
+            <button type="button" class="mobile-table-action" data-mobile-table-action="fields-panel" data-default-label="Display fields and filters" aria-label="Display fields and filters" aria-controls="filter-side-panel" aria-expanded="false">
+              <span class="mobile-table-action-icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8 6h13"/>
+                  <path d="M8 12h13"/>
+                  <path d="M8 18h13"/>
+                  <path d="M3 6h.01"/>
+                  <path d="M3 12h.01"/>
+                  <path d="M3 18h.01"/>
+                </svg>
+              </span>
+              <span class="mobile-table-action-label">Fields</span>
+            </button>
             <button type="button" class="mobile-table-action" data-mobile-table-action-target="table-add-field-btn" data-default-label="Add field" aria-label="Add field">
               <span class="mobile-table-action-icon" aria-hidden="true">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -325,7 +362,7 @@
                   <path d="M5 12h14"/>
                 </svg>
               </span>
-              <span class="mobile-table-action-label">Fields</span>
+              <span class="mobile-table-action-label">Add</span>
             </button>
             <button type="button" class="mobile-table-action" data-mobile-table-action-target="post-filter-btn" data-default-label="Post filters" aria-label="Post filters">
               <span class="mobile-table-action-icon" aria-hidden="true">

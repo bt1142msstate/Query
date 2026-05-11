@@ -1406,6 +1406,7 @@ async function runSmokeTest() {
       const builderToggle = document.querySelector('#mobile-builder-toggle');
       const mobileActionBar = document.querySelector('#mobile-table-action-bar');
       const desktopToolbar = document.querySelector('#table-toolbar');
+      const filterSidePanel = document.querySelector('#filter-side-panel');
       return {
         actionBarDisplay: mobileActionBar ? window.getComputedStyle(mobileActionBar).display : '',
         actionBarPosition: mobileActionBar ? window.getComputedStyle(mobileActionBar).position : '',
@@ -1413,6 +1414,7 @@ async function runSmokeTest() {
         builderCollapsed: builderContent ? window.getComputedStyle(builderContent).display === 'none' : false,
         builderExpanded: builderToggle?.getAttribute('aria-expanded') || '',
         builderToggleDisplay: builderToggle ? window.getComputedStyle(builderToggle).display : '',
+        filterPanelDisplay: filterSidePanel ? window.getComputedStyle(filterSidePanel).display : '',
         formTop: visibleTop('#form-mode-card'),
         hasLoadedData: document.body.classList.contains('has-loaded-data'),
         hasQueryColumns: document.body.classList.contains('has-query-columns'),
@@ -1436,11 +1438,20 @@ async function runSmokeTest() {
       || mobileResultsLayout.builderToggleDisplay === 'none'
       || !mobileResultsLayout.builderCollapsed
       || mobileResultsLayout.builderExpanded !== 'false'
+      || mobileResultsLayout.filterPanelDisplay !== 'none'
       || mobileResultsLayout.tableToolbarDisplay !== 'none'
     ) {
       throw new Error(`Mobile table should use a sticky action bar and collapsed builder drawer: ${JSON.stringify(mobileResultsLayout)}`);
     }
     await expectMinimumTapTarget(mobilePage, '#mobile-table-action-bar .mobile-table-action', 'Mobile table action bar controls');
+    const mobileActionLabels = await mobilePage.locator('#mobile-table-action-bar .mobile-table-action').evaluateAll(buttons => {
+      return buttons.map(button => (button.textContent || '').trim().replace(/\s+/gu, ' '));
+    });
+    ['Run', 'Fields', 'Add', 'Filters', 'Export', 'Expand', 'Clear'].forEach(expectedLabel => {
+      if (!mobileActionLabels.includes(expectedLabel)) {
+        throw new Error(`Mobile table action bar is missing "${expectedLabel}": ${JSON.stringify(mobileActionLabels)}`);
+      }
+    });
     await expectMinimumTapTarget(mobilePage, '#mobile-builder-toggle', 'Mobile builder drawer toggle');
 
     await mobilePage.locator('#mobile-builder-toggle').click();
@@ -1461,6 +1472,67 @@ async function runSmokeTest() {
       throw new Error(`Mobile builder drawer should expand below the table: ${JSON.stringify(mobileBuilderOpenLayout)}`);
     }
     await mobilePage.locator('#mobile-builder-toggle').click();
+
+    await mobilePage.locator('[data-mobile-table-action="fields-panel"]').click();
+    await mobilePage.waitForFunction(() => document.body.classList.contains('mobile-filter-panel-open'), null, { timeout: 5000 });
+    await expectElementWithinViewport(mobilePage, '#filter-side-panel', 'Mobile display and filters sheet');
+    await expectMinimumTapTarget(mobilePage, '#filter-panel-mobile-close', 'Mobile display and filters close button');
+    const mobileFilterSheetMetrics = await mobilePage.locator('#filter-side-panel').evaluate(element => {
+      const rect = element.getBoundingClientRect();
+      const body = document.querySelector('#filter-panel-body');
+      return {
+        bottomGap: Math.abs(window.innerHeight - rect.bottom),
+        bodyText: (body?.textContent || '').trim().replace(/\s+/gu, ' '),
+        display: window.getComputedStyle(element).display,
+        position: window.getComputedStyle(element).position,
+        top: rect.top
+      };
+    });
+    if (
+      mobileFilterSheetMetrics.position !== 'fixed'
+      || mobileFilterSheetMetrics.display === 'none'
+      || mobileFilterSheetMetrics.top < 48
+      || mobileFilterSheetMetrics.bottomGap > 24
+      || !/Smoke Title/u.test(mobileFilterSheetMetrics.bodyText)
+    ) {
+      throw new Error(`Mobile display and filters should open as a usable sheet: ${JSON.stringify(mobileFilterSheetMetrics)}`);
+    }
+    await expectNoHorizontalOverflow(mobilePage, 'Mobile display and filters sheet');
+    await mobilePage.locator('#filter-panel-mobile-close').click();
+    await mobilePage.waitForFunction(() => !document.body.classList.contains('mobile-filter-panel-open'), null, { timeout: 5000 });
+    const closedMobileFilterDisplay = await mobilePage.locator('#filter-side-panel').evaluate(element => window.getComputedStyle(element).display);
+    if (closedMobileFilterDisplay !== 'none') {
+      throw new Error(`Closed mobile display and filters sheet should not sit above the table: ${closedMobileFilterDisplay}`);
+    }
+
+    await mobilePage.locator('[data-mobile-table-action-target="table-add-field-btn"]').click();
+    await mobilePage.locator('.form-mode-field-picker-modal:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+    await expectElementWithinViewport(mobilePage, '.form-mode-field-picker-modal:not(.hidden)', 'Mobile add field dialog');
+    await expectLightInput(mobilePage, '.form-mode-field-picker-search-field input[type="search"]', 'Mobile add field search input');
+    await expectMinimumTapTarget(mobilePage, '.form-mode-field-picker-close, .form-mode-field-picker-category-select, .form-mode-field-picker-option', 'Mobile add field controls');
+    await expectNoHorizontalOverflow(mobilePage, 'Mobile add field dialog');
+    await mobilePage.locator('.form-mode-field-picker-close').click();
+
+    const mobileRunAction = mobilePage.locator('[data-mobile-table-action-target="run-query-btn"]');
+    const mobileRunDisabled = await mobileRunAction.evaluate(button => button.disabled);
+    if (mobileRunDisabled) {
+      throw new Error('Mobile run action is disabled after seeding display fields');
+    }
+    mobileQueryApiStub.enqueue({
+      body: 'Mobile run result|Main|Open\n',
+      contentType: 'text/plain; charset=utf-8',
+      rawColumns: smokeResultHeaders
+    });
+    await mobileRunAction.click();
+    await mobilePage.waitForFunction(() => {
+      return document.querySelector('#table-results-count')?.textContent?.trim() === '1';
+    }, null, { timeout: 5000 });
+
+    await mobilePage.locator('[data-mobile-table-action-target="table-expand-btn"]').click();
+    await mobilePage.waitForFunction(() => document.body.classList.contains('table-expanded-open'), null, { timeout: 5000 });
+    await expectElementWithinViewport(mobilePage, '#table-shell.table-shell-expanded', 'Mobile expanded table');
+    await mobilePage.locator('#table-expand-btn').click();
+    await mobilePage.waitForFunction(() => !document.body.classList.contains('table-expanded-open'), null, { timeout: 5000 });
 
     await mobilePage.locator('[data-mobile-table-action-target="post-filter-btn"]').click();
     await mobilePage.locator('#post-filter-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
@@ -1492,28 +1564,6 @@ async function runSmokeTest() {
     await expectMinimumTapTarget(mobilePage, '#export-overlay-close, #export-cancel-btn, #export-confirm-btn', 'Mobile export dialog controls');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile export dialog');
     await mobilePage.locator('#export-cancel-btn').click();
-
-    await mobilePage.evaluate(async () => {
-      const { SharedFieldPicker } = await import('./ui/field-picker/fieldPicker.js');
-      SharedFieldPicker.open({
-        getOptions: () => [
-          { name: 'Mobile Field A', type: 'text', filterable: true, category: 'Smoke' },
-          { name: 'Mobile Field B', type: 'date', filterable: true, category: 'Smoke' },
-          { name: 'Mobile Field C', type: 'money', filterable: false, category: 'Smoke' }
-        ],
-        getFieldState: () => ({ display: false, filter: false }),
-        labels: {
-          description: 'Choose a field for mobile smoke coverage.',
-          footerNote: 'Smoke test field picker.'
-        }
-      });
-    });
-    await mobilePage.locator('.form-mode-field-picker-modal:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
-    await expectElementWithinViewport(mobilePage, '.form-mode-field-picker-modal:not(.hidden)', 'Mobile field picker dialog');
-    await expectLightInput(mobilePage, '.form-mode-field-picker-search-field input[type="search"]', 'Mobile field picker search input');
-    await expectMinimumTapTarget(mobilePage, '.form-mode-field-picker-close, .form-mode-field-picker-category-select, .form-mode-field-picker-option', 'Mobile field picker controls');
-    await expectNoHorizontalOverflow(mobilePage, 'Mobile field picker dialog');
-    await mobilePage.locator('.form-mode-field-picker-close').click();
 
     if (failures.length > 0) {
       throw new Error(`Browser smoke test failed:\n${failures.map(failure => `- ${failure}`).join('\n')}`);
