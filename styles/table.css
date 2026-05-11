@@ -2371,6 +2371,7 @@ body.post-filter-overlay-open {
 @media (max-width: 640px) {
   #table-shell {
     width: 100%;
+    margin-bottom: 0;
   }
 
   #table-top-bar {
@@ -2417,7 +2418,8 @@ body.post-filter-overlay-open {
 
   #table-container {
     width: 100%;
-    height: min(56vh, 420px) !important;
+    height: min(48vh, 380px) !important;
+    height: min(48dvh, 380px) !important;
     max-width: 100%;
     overscroll-behavior: contain;
   }
