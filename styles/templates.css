@@ -550,6 +550,14 @@
   z-index: var(--z-dialog-surface);
 }
 
+.templates-categories-overlay.hidden,
+.templates-detail-overlay.hidden,
+.templates-categories-overlay[hidden],
+.templates-detail-overlay[hidden] {
+  display: none;
+  pointer-events: none;
+}
+
 .templates-detail-backdrop {
   position: absolute;
   inset: 0;
