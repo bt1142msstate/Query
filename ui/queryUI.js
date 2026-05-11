@@ -50,6 +50,7 @@ function updateTableResultsLip() {
   // has-loaded-data is set only when actual row data is present — used by CSS
   // to scope interaction effects (e.g. cell hover glow) to real results.
   document.body.classList.toggle('has-loaded-data', rowCount > 0);
+  document.body.classList.toggle('has-query-columns', columnCount > 0);
 
   resultsCount.textContent = isFilteredResultView
     ? `${rowCount.toLocaleString()} of ${totalRowCount.toLocaleString()}`

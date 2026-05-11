@@ -362,13 +362,75 @@
 }
 
 @media (max-width: 640px) {
+  #form-mode-host {
+    margin-top: 0;
+  }
+
   .form-mode-card {
-    padding: 0.85rem;
-    max-height: min(72vh, 640px);
+    padding: 0.95rem;
+    max-height: none;
+    border-radius: 1.15rem;
+  }
+
+  .form-mode-header {
+    gap: 0.8rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .form-mode-title {
+    font-size: 1.25rem;
+    line-height: 1.2;
+  }
+
+  .form-mode-description {
+    font-size: 0.88rem;
+  }
+
+  .form-mode-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .form-mode-btn {
+    width: 100%;
+    min-height: 2.85rem;
+    padding: 0.72rem 0.75rem;
+    border-radius: 0.95rem;
+    line-height: 1.2;
+    white-space: normal;
+  }
+
+  #form-mode-run {
+    grid-column: 1 / -1;
+    order: -2;
+  }
+
+  #form-mode-add-field,
+  #form-mode-copy {
+    order: -1;
+  }
+
+  #form-mode-reset-original:disabled,
+  #form-mode-reset-shared:disabled,
+  #form-mode-copy:disabled {
+    display: none;
+  }
+
+  .form-mode-body {
+    overflow-x: hidden;
+    padding-right: 0;
   }
 
   .form-mode-fields {
     grid-template-columns: 1fr;
+    min-width: 0;
+  }
+
+  .form-mode-empty-state {
+    min-width: 0;
+    padding: 0.9rem;
+    font-size: 0.92rem;
   }
 }
 

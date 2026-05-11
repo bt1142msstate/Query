@@ -486,6 +486,18 @@ async function exerciseVirtualTableScrollInteraction(page) {
       container.scrollTop = 0;
     }
   });
+  await page.waitForFunction(() => {
+    const container = document.querySelector('#table-container');
+    const track = document.querySelector('.table-scrollbar');
+    const thumb = document.querySelector('.table-scrollbar-thumb');
+    if (!container || !track || !thumb) {
+      return false;
+    }
+
+    const trackTop = track.getBoundingClientRect().top;
+    const thumbTop = thumb.getBoundingClientRect().top;
+    return container.scrollTop === 0 && Math.abs(trackTop - thumbTop) <= 1;
+  }, null, { timeout: 5000 });
   await page.locator('.table-scrollbar-thumb').waitFor({ state: 'visible', timeout: 5000 });
   const thumbBox = await page.locator('.table-scrollbar-thumb').boundingBox();
   if (!thumbBox) {
@@ -496,13 +508,49 @@ async function exerciseVirtualTableScrollInteraction(page) {
     x: Math.floor(thumbBox.x + (thumbBox.width / 2)),
     y: Math.floor(thumbBox.y + Math.min(10, thumbBox.height / 2))
   };
+  const dragStartTarget = await page.evaluate(({ x, y }) => {
+    const node = document.elementFromPoint(x, y);
+    return {
+      className: typeof node?.className === 'string' ? node.className : '',
+      id: node?.id || '',
+      tagName: node?.tagName || ''
+    };
+  }, dragStart);
   await page.mouse.move(dragStart.x, dragStart.y);
   await page.mouse.down();
   await page.mouse.move(dragStart.x, dragStart.y + 120, { steps: 8 });
   await page.mouse.up();
   await page.waitForFunction(() => {
     return (document.querySelector('#table-container')?.scrollTop || 0) > 1000;
-  }, null, { timeout: 5000 });
+  }, null, { timeout: 5000 }).catch(async error => {
+    const dragMetrics = await page.evaluate(() => {
+      const container = document.querySelector('#table-container');
+      const track = document.querySelector('.table-scrollbar');
+      const thumb = document.querySelector('.table-scrollbar-thumb');
+      const containerRect = container?.getBoundingClientRect();
+      const trackRect = track?.getBoundingClientRect();
+      const thumbRect = thumb?.getBoundingClientRect();
+      return {
+        bodyClass: document.body.className,
+        container: container && containerRect ? {
+          clientHeight: container.clientHeight,
+          scrollHeight: container.scrollHeight,
+          scrollTop: container.scrollTop,
+          top: containerRect.top
+        } : null,
+        customScrollbarVisible: track?.classList.contains('is-visible') || false,
+        track: trackRect ? {
+          height: trackRect.height,
+          top: trackRect.top
+        } : null,
+        thumb: thumbRect ? {
+          height: thumbRect.height,
+          top: thumbRect.top
+        } : null
+      };
+    });
+    throw new Error(`Virtual table custom scrollbar thumb drag did not scroll far enough: ${JSON.stringify({ ...dragMetrics, dragStart, dragStartTarget })}\n${error.message}`);
+  });
 
   const thumbDragMetrics = await tableContainer.evaluate(element => ({
     customScrollbarVisible: document.querySelector('.table-scrollbar')?.classList.contains('is-visible') || false,
@@ -1141,8 +1189,39 @@ async function runSmokeTest() {
     }
 
     await expectNoHorizontalOverflow(mobilePage, 'Mobile initial layout');
+    const initialMobileFocusLayout = await mobilePage.evaluate(() => {
+      const formCard = document.querySelector('#form-mode-card');
+      const tableSection = document.querySelector('#table-with-filter');
+      const formRect = formCard?.getBoundingClientRect();
+      const tableStyles = tableSection ? window.getComputedStyle(tableSection) : null;
+      return {
+        formVisible: Boolean(formRect && formRect.width > 0 && formRect.height > 0),
+        formTop: formRect?.top ?? 0,
+        tableDisplay: tableStyles?.display || '',
+        hasLoadedData: document.body.classList.contains('has-loaded-data'),
+        hasQueryColumns: document.body.classList.contains('has-query-columns')
+      };
+    });
+    if (!initialMobileFocusLayout.formVisible || initialMobileFocusLayout.formTop > 120) {
+      throw new Error(`Mobile form should be the first visible workflow: ${JSON.stringify(initialMobileFocusLayout)}`);
+    }
+    if (initialMobileFocusLayout.tableDisplay !== 'none') {
+      throw new Error(`Empty mobile form mode should not show the result table first: ${JSON.stringify(initialMobileFocusLayout)}`);
+    }
+
     await mobilePage.locator('#mobile-menu-toggle').click();
     await mobilePage.locator('#mobile-menu-dropdown.show').waitFor({ state: 'visible', timeout: 5000 });
+    const mobileMenuMetrics = await mobilePage.locator('#mobile-menu-dropdown.show').evaluate(element => {
+      const rect = element.getBoundingClientRect();
+      return {
+        bottomGap: Math.abs(window.innerHeight - rect.bottom),
+        height: rect.height,
+        viewportHeight: window.innerHeight
+      };
+    });
+    if (mobileMenuMetrics.bottomGap > 1 || mobileMenuMetrics.height > mobileMenuMetrics.viewportHeight * 0.86) {
+      throw new Error(`Mobile menu should open as a bottom sheet: ${JSON.stringify(mobileMenuMetrics)}`);
+    }
     await expectNoHorizontalOverflow(mobilePage, 'Mobile menu');
     await mobilePage.locator('[data-source-control-id="toggle-queries"]').click();
     await mobilePage.locator('#queries-search').waitFor({ state: 'visible', timeout: 5000 });
@@ -1170,6 +1249,20 @@ async function runSmokeTest() {
     await mobilePage.locator('#help-panel.hidden').waitFor({ state: 'attached', timeout: 5000 });
 
     await seedLoadedResults(mobilePage);
+    await mobilePage.locator('#table-with-filter').waitFor({ state: 'visible', timeout: 5000 });
+    const mobileResultsLayout = await mobilePage.evaluate(() => {
+      const formRect = document.querySelector('#form-mode-card')?.getBoundingClientRect();
+      const tableRect = document.querySelector('#table-with-filter')?.getBoundingClientRect();
+      return {
+        hasLoadedData: document.body.classList.contains('has-loaded-data'),
+        hasQueryColumns: document.body.classList.contains('has-query-columns'),
+        formBottom: formRect?.bottom ?? 0,
+        tableTop: tableRect?.top ?? 0
+      };
+    });
+    if (!mobileResultsLayout.hasLoadedData || !mobileResultsLayout.hasQueryColumns || mobileResultsLayout.tableTop < mobileResultsLayout.formBottom - 1) {
+      throw new Error(`Mobile results should appear after the focused form once data exists: ${JSON.stringify(mobileResultsLayout)}`);
+    }
     await mobilePage.evaluate(async () => {
       const { PostFilterSystem } = await import('./table/post-filters/postFilters.js');
       PostFilterSystem.open();
