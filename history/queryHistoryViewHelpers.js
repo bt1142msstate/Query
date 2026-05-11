@@ -66,9 +66,9 @@ function buildHistorySection(sectionKey, count, isOpen = false) {
   const statusLabel = count === 0
     ? 'Empty'
     : isOpen
-      ? 'Projected'
+      ? 'Open'
       : 'Standby';
-  const openHint = isOpen ? 'Close feed' : 'Project feed';
+  const openHint = isOpen ? 'Close list' : 'Open list';
 
   return `
     <details class="${meta.detailsClass}" data-history-book="${sectionKey}"${openAttr}>
@@ -126,7 +126,7 @@ function buildHistoryMonitor(openSection, sections) {
     <section class="history-monitor ${activeSection.key}" data-history-monitor>
       <div class="history-monitor-header">
         <div class="history-monitor-copy">
-          <span class="history-monitor-kicker">Projected monitor</span>
+          <span class="history-monitor-kicker">History feed</span>
           <h4 class="history-monitor-title">${meta.title}</h4>
           <p class="history-monitor-subtitle">${meta.subtitle}</p>
         </div>
