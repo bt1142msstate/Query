@@ -619,7 +619,8 @@
   }
 
   .form-mode-popup-list-done {
-    min-height: 2.35rem;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
     padding-inline: 1rem;
   }
 
@@ -1085,8 +1086,10 @@
   }
 
   .form-mode-field-picker-close {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 2.75rem;
+    min-width: 2.75rem;
+    height: 2.75rem;
+    flex: 0 0 2.75rem;
   }
 
   .form-mode-field-picker-body {

@@ -1666,8 +1666,10 @@ body.post-filter-overlay-open {
   }
 
   .post-filter-dialog__close {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 2.75rem;
+    min-width: 2.75rem;
+    height: 2.75rem;
+    flex: 0 0 2.75rem;
   }
 
   .post-filter-dialog__summary {
@@ -1739,12 +1741,17 @@ body.post-filter-overlay-open {
   }
 
   .post-filter-pill__remove {
-    width: 2rem;
-    height: 2rem;
+    width: 2.75rem;
+    min-width: 2.75rem;
+    height: 2.75rem;
   }
 
   .post-filter-dialog__actions {
     flex-direction: column-reverse;
+  }
+
+  .post-filter-dialog__actions .export-action-btn {
+    min-height: 2.75rem;
   }
 }
 
@@ -2321,6 +2328,10 @@ body.post-filter-overlay-open {
     flex-direction: column-reverse;
   }
 
+  .export-action-btn {
+    min-height: 2.75rem;
+  }
+
   .export-dialog__header,
   .export-dialog__body,
   .export-dialog__footer {
@@ -2333,8 +2344,10 @@ body.post-filter-overlay-open {
   }
 
   .export-dialog__close {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 2.75rem;
+    min-width: 2.75rem;
+    height: 2.75rem;
+    flex: 0 0 2.75rem;
   }
 }
 

@@ -212,6 +212,42 @@ function buildDefaultQueryApiResponse(payload) {
   }
 }
 
+function buildHistoryStatusResponse() {
+  return {
+    queries: {
+      'browser-smoke-running': {
+        id: 'browser-smoke-running',
+        name: 'Mobile running smoke query',
+        status: 'running',
+        start_time: '2026-05-11 09:00:00',
+        row_count: 2,
+        request: {
+          name: 'Mobile running smoke query',
+          ui_config: {
+            DesiredColumnOrder: ['Smoke Title', 'Smoke Branch'],
+            Filters: {}
+          }
+        }
+      },
+      'browser-smoke-complete': {
+        id: 'browser-smoke-complete',
+        name: 'Mobile completed smoke query',
+        status: 'complete',
+        start_time: '2026-05-11 08:00:00',
+        end_time: '2026-05-11 08:00:04',
+        row_count: 3,
+        request: {
+          name: 'Mobile completed smoke query',
+          ui_config: {
+            DesiredColumnOrder: ['Smoke Title', 'Smoke Branch', 'Smoke Status'],
+            Filters: {}
+          }
+        }
+      }
+    }
+  };
+}
+
 async function installQueryApiStub(page) {
   const queuedResponses = [];
 
@@ -325,6 +361,36 @@ async function expectLightInput(page, selector, label) {
 
   if (theme.backgroundLuma < 180 || theme.textLuma > 120) {
     throw new Error(`${label} is not using the light search theme`);
+  }
+}
+
+async function expectMinimumTapTarget(page, selector, label, minSize = 44) {
+  const targets = await page.locator(selector).evaluateAll(elements => elements.map(element => {
+    const rect = element.getBoundingClientRect();
+    return {
+      className: element.className || '',
+      display: window.getComputedStyle(element).display,
+      height: rect.height,
+      id: element.id || '',
+      tagName: element.tagName,
+      visibility: window.getComputedStyle(element).visibility,
+      width: rect.width,
+      text: (element.textContent || '').trim().replace(/\s+/gu, ' ').slice(0, 60)
+    };
+  }).filter(target => {
+    return target.display !== 'none'
+      && target.visibility !== 'hidden'
+      && target.height > 0
+      && target.width > 0;
+  }));
+
+  if (targets.length === 0) {
+    throw new Error(`${label} did not find any visible tap targets`);
+  }
+
+  const undersized = targets.find(target => target.height < minSize || target.width < minSize);
+  if (undersized) {
+    throw new Error(`${label} has an undersized tap target: ${JSON.stringify(undersized)}`);
   }
 }
 
@@ -1172,7 +1238,7 @@ async function runSmokeTest() {
     });
     attachFailureListeners(mobilePage, failures, port);
     await stubExternalAssets(mobilePage);
-    await installQueryApiStub(mobilePage);
+    const mobileQueryApiStub = await installQueryApiStub(mobilePage);
     await mobilePage.goto(baseUrl, { waitUntil: 'load', timeout: 15000 });
     await waitForAppModules(mobilePage, failures);
 
@@ -1222,12 +1288,50 @@ async function runSmokeTest() {
     if (mobileMenuMetrics.bottomGap > 1 || mobileMenuMetrics.height > mobileMenuMetrics.viewportHeight * 0.86) {
       throw new Error(`Mobile menu should open as a bottom sheet: ${JSON.stringify(mobileMenuMetrics)}`);
     }
+    await expectMinimumTapTarget(mobilePage, '#mobile-menu-dropdown .mobile-menu-item', 'Mobile menu items');
+    const mobileMenuLabels = await mobilePage.locator('#mobile-menu-dropdown .mobile-menu-item').evaluateAll(items => {
+      return items.map(item => (item.textContent || '').trim().replace(/\s+/gu, ' '));
+    });
+    ['Run Query', 'Multi-value Export', 'JSON', 'Queries', 'Templates', 'Help'].forEach(expectedLabel => {
+      if (!mobileMenuLabels.some(label => label.includes(expectedLabel))) {
+        throw new Error(`Mobile menu is missing "${expectedLabel}": ${JSON.stringify(mobileMenuLabels)}`);
+      }
+    });
     await expectNoHorizontalOverflow(mobilePage, 'Mobile menu');
+    mobileQueryApiStub.enqueue(Array.from({ length: 4 }, () => ({
+      action: 'status',
+      body: JSON.stringify(buildHistoryStatusResponse()),
+      contentType: 'application/json; charset=utf-8'
+    })));
     await mobilePage.locator('[data-source-control-id="toggle-queries"]').click();
     await mobilePage.locator('#queries-search').waitFor({ state: 'visible', timeout: 5000 });
     await expectElementWithinViewport(mobilePage, '#queries-panel', 'Mobile query history panel');
     await expectDarkInput(mobilePage, '#queries-search', 'Mobile query history search input');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile query history panel');
+    await mobilePage.waitForFunction(() => {
+      return document.querySelector('[data-history-book="complete"] .history-book-count')?.textContent?.trim() === '1'
+        && document.querySelector('[data-history-book="running"] .history-book-count')?.textContent?.trim() === '1';
+    }, null, { timeout: 5000 });
+    await expectMinimumTapTarget(mobilePage, '[data-history-book] .history-book-summary', 'Mobile history status cards');
+    await mobilePage.locator('[data-history-book="complete"] .history-book-summary').click();
+    await mobilePage.locator('.history-monitor').waitFor({ state: 'visible', timeout: 5000 });
+    await expectElementWithinViewport(mobilePage, '.history-monitor', 'Mobile query history monitor');
+    await expectMinimumTapTarget(mobilePage, '.history-monitor-close, .history-monitor-tab, .history-monitor .history-expand-btn, .history-monitor .load-query-btn, .history-monitor .rerun-query-btn', 'Mobile history monitor controls');
+    const mobileHistoryMonitorMetrics = await mobilePage.locator('.history-monitor').evaluate(element => {
+      const rect = element.getBoundingClientRect();
+      const stageRect = element.querySelector('.history-monitor-stage')?.getBoundingClientRect();
+      return {
+        bottomGap: Math.abs(window.innerHeight - rect.bottom),
+        position: window.getComputedStyle(element).position,
+        stageHeight: stageRect?.height || 0,
+        top: rect.top
+      };
+    });
+    if (mobileHistoryMonitorMetrics.position !== 'fixed' || mobileHistoryMonitorMetrics.top > 80 || mobileHistoryMonitorMetrics.bottomGap > 1 || mobileHistoryMonitorMetrics.stageHeight < 120) {
+      throw new Error(`Mobile history monitor should open as a visible sheet: ${JSON.stringify(mobileHistoryMonitorMetrics)}`);
+    }
+    await mobilePage.locator('.history-monitor-close').click();
+    await mobilePage.locator('.history-monitor').waitFor({ state: 'detached', timeout: 5000 });
 
     await openMobilePanel(mobilePage, 'toggle-json', '#query-json-tree');
     await expectElementWithinViewport(mobilePage, '#json-panel', 'Mobile JSON panel');
@@ -1269,14 +1373,17 @@ async function runSmokeTest() {
     });
     await mobilePage.locator('#post-filter-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
     await expectElementWithinViewport(mobilePage, '#post-filter-overlay .post-filter-dialog', 'Mobile post filter dialog');
+    await expectMinimumTapTarget(mobilePage, '#post-filter-overlay .post-filter-dialog__close, #post-filter-field, #post-filter-operator, #post-filter-logic, #post-filter-add-btn, #post-filter-clear-btn, #post-filter-done-btn', 'Mobile post filter controls');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile post filter dialog');
 
     await mobilePage.locator('#post-filter-operator').selectOption('equals');
     await mobilePage.locator('#post-filter-value-picker-host .form-mode-popup-list-trigger').waitFor({ state: 'visible', timeout: 5000 });
+    await expectMinimumTapTarget(mobilePage, '#post-filter-value-picker-host .form-mode-popup-list-trigger', 'Mobile post filter value picker trigger');
     await mobilePage.locator('#post-filter-value-picker-host .form-mode-popup-list-trigger').click();
     await mobilePage.locator('.form-mode-popup-list-popup:not([hidden])').waitFor({ state: 'visible', timeout: 5000 });
     await expectElementWithinViewport(mobilePage, '.form-mode-popup-list-popup:not([hidden])', 'Mobile popup list picker');
     await expectLightInput(mobilePage, '.form-mode-popup-list-popup input[type="search"]', 'Mobile popup list search input');
+    await expectMinimumTapTarget(mobilePage, '.form-mode-popup-list-done', 'Mobile popup list done control');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile popup list picker');
     await mobilePage.locator('.form-mode-popup-list-done').click();
     await mobilePage.locator('#post-filter-done-btn').click();
@@ -1289,6 +1396,7 @@ async function runSmokeTest() {
     await mobilePage.locator('#download-btn').click();
     await mobilePage.locator('#export-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
     await expectElementWithinViewport(mobilePage, '#export-overlay .export-dialog', 'Mobile export dialog');
+    await expectMinimumTapTarget(mobilePage, '#export-overlay-close, #export-cancel-btn, #export-confirm-btn', 'Mobile export dialog controls');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile export dialog');
     await mobilePage.locator('#export-cancel-btn').click();
 
@@ -1310,6 +1418,7 @@ async function runSmokeTest() {
     await mobilePage.locator('.form-mode-field-picker-modal:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
     await expectElementWithinViewport(mobilePage, '.form-mode-field-picker-modal:not(.hidden)', 'Mobile field picker dialog');
     await expectLightInput(mobilePage, '.form-mode-field-picker-search-field input[type="search"]', 'Mobile field picker search input');
+    await expectMinimumTapTarget(mobilePage, '.form-mode-field-picker-close, .form-mode-field-picker-category-select, .form-mode-field-picker-option', 'Mobile field picker controls');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile field picker dialog');
     await mobilePage.locator('.form-mode-field-picker-close').click();
 
