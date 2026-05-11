@@ -774,6 +774,11 @@ body.raised-ui-open #table-shell.table-shell-expanded {
     order: 20;
   }
 
+  body.has-query-columns #table-with-filter,
+  body.has-loaded-data #table-with-filter {
+    order: 5;
+  }
+
   body.form-mode-active:not(.has-loaded-data):not(.has-query-columns) #table-with-filter {
     display: none;
   }
