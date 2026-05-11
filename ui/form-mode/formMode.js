@@ -312,7 +312,6 @@ let QueryFormMode;
 
     stopRunningQueryForReset();
     clearRenderedQueryResults();
-
     rebuildFormCardFromSpec({
       preserveCurrentDefaults: false,
       applyState: true,
@@ -325,10 +324,10 @@ let QueryFormMode;
   function refreshBrowserUrl(options = {}) {
     const forceShareUrl = options.forceShareUrl === true;
     const forceClearUrl = options.forceClearUrl === true;
-    const nextUrl = (forceShareUrl || (!forceClearUrl && shouldPersistFormUrlInBrowser()))
-      ? buildCurrentShareUrl()
+    const useFormUrl = forceShareUrl || (!forceClearUrl && shouldPersistFormUrlInBrowser());
+    const nextUrl = useFormUrl
+      ? buildCurrentShareUrl({ limited: forceShareUrl, mode: forceShareUrl ? '' : state.viewMode })
       : buildClearedBrowserUrl(window.location.href);
-
     if (state.lastBrowserUrl === nextUrl || window.location.href === nextUrl) {
       state.lastBrowserUrl = nextUrl;
       syncShareUi();
@@ -877,12 +876,13 @@ let QueryFormMode;
     return error;
   }
 
-  function buildCurrentShareUrl() {
+  function buildCurrentShareUrl(options = {}) {
     return buildFormShareUrl(window.location.href, state.spec, {
       fieldDefs,
       getInputValues: getCurrentInputValues,
       supportsMultipleValues,
-      tableName: getCurrentTableNameValue()
+      tableName: getCurrentTableNameValue(),
+      ...options
     });
   }
 

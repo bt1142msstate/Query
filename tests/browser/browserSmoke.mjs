@@ -602,6 +602,55 @@ async function seedLoadedResults(page, options = {}) {
   await page.locator('#example-table').waitFor({ state: 'attached', timeout: 5000 });
 }
 
+async function exerciseEditableFormUrlRefresh(page, failures) {
+  await seedLoadedResults(page);
+  await page.evaluate(async () => {
+    const { QueryFormMode } = await import('./ui/form-mode/formMode.js');
+    await QueryFormMode.activateFromCurrentQuery();
+  });
+  await page.locator('#form-mode-card').waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('#form-mode-toggle-btn').click();
+  await page.waitForFunction(() => !document.body.classList.contains('form-mode-active'), null, { timeout: 5000 });
+
+  const editableUrl = new URL(page.url());
+  if (!editableUrl.searchParams.has('form') || editableUrl.searchParams.has('limited') || editableUrl.searchParams.get('mode') !== 'bubbles') {
+    throw new Error(`Editable form browser URL should preserve table view without limited mode: ${editableUrl.toString()}`);
+  }
+
+  await page.reload({ waitUntil: 'load', timeout: 15000 });
+  await waitForAppModules(page, failures);
+  const refreshedState = await page.evaluate(async () => {
+    const { QueryFormMode } = await import('./ui/form-mode/formMode.js');
+    const browserUrl = new URL(window.location.href);
+    const shareUrl = new URL(QueryFormMode.buildCurrentShareUrl());
+    return {
+      active: QueryFormMode.isActive(),
+      browserHasLimited: browserUrl.searchParams.has('limited'),
+      browserMode: browserUrl.searchParams.get('mode'),
+      formModeActiveClass: document.body.classList.contains('form-mode-active'),
+      limitedView: QueryFormMode.isLimitedView(),
+      shareLimited: shareUrl.searchParams.get('limited')
+    };
+  });
+
+  if (
+    !refreshedState.active
+    || refreshedState.limitedView
+    || refreshedState.formModeActiveClass
+    || refreshedState.browserHasLimited
+    || refreshedState.browserMode !== 'bubbles'
+    || refreshedState.shareLimited !== '1'
+  ) {
+    throw new Error(`Refreshing an editable form URL should not enter limited mode, while Share remains limited: ${JSON.stringify(refreshedState)}`);
+  }
+
+  const cleanUrl = new URL(page.url());
+  cleanUrl.search = '';
+  cleanUrl.hash = '';
+  await page.goto(cleanUrl.toString(), { waitUntil: 'load', timeout: 15000 });
+  await waitForAppModules(page, failures);
+}
+
 async function exerciseVirtualTableScrollInteraction(page) {
   await seedLoadedResults(page, { rowCount: 320 });
 
@@ -1327,6 +1376,7 @@ async function runSmokeTest() {
 
     await exerciseBubbleFilterInteraction(page);
     await exerciseFieldPickerPreviewList(page);
+    await exerciseEditableFormUrlRefresh(page, failures);
     await exerciseDesktopResultsWorkflow(page);
     await exerciseZeroResultQueryWorkflow(page, queryApiStub);
     await exerciseVirtualTableScrollInteraction(page);
