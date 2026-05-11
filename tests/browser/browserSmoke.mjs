@@ -56,6 +56,23 @@ const smokeFieldDefinitions = [
     ]
   }
 ];
+const smokeTemplateResponse = {
+  categories: [
+    { id: 'smoke', name: 'Smoke', description: 'Smoke test templates' }
+  ],
+  templates: [
+    {
+      id: 'smoke-template',
+      name: 'Smoke Template',
+      description: 'Template used by the browser smoke test.',
+      categories: [{ id: 'smoke', name: 'Smoke', description: 'Smoke test templates' }],
+      ui_config: {
+        DesiredColumnOrder: ['Smoke Title', 'Smoke Branch'],
+        Filters: []
+      }
+    }
+  ]
+};
 
 function contentTypeFor(filePath) {
   return mimeTypes.get(extname(filePath).toLowerCase()) || 'application/octet-stream';
@@ -194,7 +211,7 @@ function buildDefaultQueryApiResponse(payload) {
       };
     case 'list_templates':
       return {
-        body: JSON.stringify({ categories: [], templates: [] }),
+        body: JSON.stringify(smokeTemplateResponse),
         contentType: 'application/json; charset=utf-8'
       };
     case 'status':
@@ -361,6 +378,40 @@ async function expectDarkSurface(page, selector, label) {
 
   if (theme.backgroundLuma > 90 || theme.textLuma < 120) {
     throw new Error(`${label} is not using the dark surface theme`);
+  }
+}
+
+async function expectVisibleCloseControlCount(page, rootSelector, expectedCount, label) {
+  const controls = await page.locator(rootSelector).evaluate(root => {
+    const isVisible = element => {
+      const style = window.getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0
+        && rect.height > 0
+        && style.display !== 'none'
+        && style.visibility !== 'hidden'
+        && Number.parseFloat(style.opacity || '1') > 0.05
+        && !element.hidden
+        && !element.closest('[hidden], .hidden');
+    };
+
+    return Array.from(root.querySelectorAll('button')).filter(button => {
+      if (!isVisible(button)) {
+        return false;
+      }
+
+      const labelText = String(button.getAttribute('aria-label') || '').trim();
+      const text = String(button.textContent || '').trim();
+      return /^Close\b/iu.test(labelText) || text === '×' || text === 'X';
+    }).map(button => ({
+      ariaLabel: button.getAttribute('aria-label') || '',
+      className: button.className,
+      text: String(button.textContent || '').trim()
+    }));
+  });
+
+  if (controls.length !== expectedCount) {
+    throw new Error(`${label} should show ${expectedCount} visible close control(s), found ${controls.length}: ${JSON.stringify(controls)}`);
   }
 }
 
@@ -1248,6 +1299,11 @@ async function runSmokeTest() {
     await page.locator('input[placeholder="Search templates"]').waitFor({ state: 'visible', timeout: 5000 });
     await expectDarkSurface(page, '#templates-panel > h2', 'Templates panel header');
     await expectDarkInput(page, '#templates-search-input', 'Templates search input');
+    await page.locator('#templates-list .templates-list-item').click();
+    await page.locator('#templates-detail-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+    await expectVisibleCloseControlCount(page, '#templates-panel', 1, 'Desktop template detail overlay');
+    await page.locator('#templates-detail-close-btn').click();
+    await page.locator('#templates-detail-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
 
     await page.getByRole('button', { name: 'Help' }).click();
 
@@ -1395,6 +1451,16 @@ async function runSmokeTest() {
     await expectDarkSurface(mobilePage, '#templates-panel > h2', 'Mobile templates panel header');
     await expectDarkInput(mobilePage, '#templates-search-input', 'Mobile templates search input');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile templates panel');
+    await mobilePage.locator('#templates-list .templates-list-item').click();
+    await mobilePage.locator('#templates-detail-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+    await expectVisibleCloseControlCount(mobilePage, '#templates-panel', 1, 'Mobile template detail overlay');
+    await mobilePage.locator('#templates-detail-close-btn').click();
+    await mobilePage.locator('#templates-detail-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
+    await mobilePage.locator('#templates-manage-categories-btn').click();
+    await mobilePage.locator('#templates-categories-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+    await expectVisibleCloseControlCount(mobilePage, '#templates-panel', 1, 'Mobile template categories overlay');
+    await mobilePage.locator('#templates-categories-close-btn').click();
+    await mobilePage.locator('#templates-categories-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
 
     await openMobilePanel(mobilePage, 'toggle-help', '#help-container');
     await expectElementWithinViewport(mobilePage, '#help-panel', 'Mobile help panel');

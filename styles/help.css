@@ -36,6 +36,14 @@
   border-radius: 0;
 }
 
+#templates-panel:has(#templates-detail-overlay:not(.hidden)) > h2 .collapse-btn,
+#templates-panel:has(#templates-categories-overlay:not(.hidden)) > h2 .collapse-btn,
+body.history-details-open #queries-panel > h2 .collapse-btn {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
 #help-panel > h2 {
   background:
     linear-gradient(90deg, rgba(255, 65, 126, 0.16), transparent 24%),
