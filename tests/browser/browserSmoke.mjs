@@ -1389,17 +1389,37 @@ async function runSmokeTest() {
     await seedLoadedResults(mobilePage);
     await mobilePage.locator('#table-with-filter').waitFor({ state: 'visible', timeout: 5000 });
     const mobileResultsLayout = await mobilePage.evaluate(() => {
+      const visibleTop = selector => {
+        const element = document.querySelector(selector);
+        const rect = element?.getBoundingClientRect();
+        const styles = element ? window.getComputedStyle(element) : null;
+        return rect
+          && rect.width > 0
+          && rect.height > 0
+          && styles?.display !== 'none'
+          && styles?.visibility !== 'hidden'
+          ? rect.top
+          : Number.POSITIVE_INFINITY;
+      };
       const formRect = document.querySelector('#form-mode-card')?.getBoundingClientRect();
       const tableRect = document.querySelector('#table-with-filter')?.getBoundingClientRect();
       return {
+        bubbleTop: visibleTop('#field-bubble-stage'),
+        formTop: formRect?.top ?? Number.POSITIVE_INFINITY,
         hasLoadedData: document.body.classList.contains('has-loaded-data'),
         hasQueryColumns: document.body.classList.contains('has-query-columns'),
-        formBottom: formRect?.bottom ?? 0,
-        tableTop: tableRect?.top ?? 0
+        searchTop: visibleTop('#field-search-section'),
+        tableTop: tableRect?.top ?? Number.POSITIVE_INFINITY
       };
     });
-    if (!mobileResultsLayout.hasLoadedData || !mobileResultsLayout.hasQueryColumns || mobileResultsLayout.tableTop < mobileResultsLayout.formBottom - 1) {
-      throw new Error(`Mobile results should appear after the focused form once data exists: ${JSON.stringify(mobileResultsLayout)}`);
+    if (
+      !mobileResultsLayout.hasLoadedData
+      || !mobileResultsLayout.hasQueryColumns
+      || mobileResultsLayout.tableTop > mobileResultsLayout.formTop + 1
+      || mobileResultsLayout.tableTop > mobileResultsLayout.bubbleTop + 1
+      || mobileResultsLayout.tableTop > mobileResultsLayout.searchTop + 1
+    ) {
+      throw new Error(`Mobile table should be the first main-screen surface once display fields exist: ${JSON.stringify(mobileResultsLayout)}`);
     }
     await mobilePage.evaluate(async () => {
       const { PostFilterSystem } = await import('./table/post-filters/postFilters.js');
