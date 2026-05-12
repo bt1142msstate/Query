@@ -16,7 +16,11 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
   let menuEl = null;
   let dismissHandlers = [];
   let clearPreview = null;
+  let touchContextState = null;
+  let suppressTableClickUntil = 0;
   const services = appServices;
+  const TOUCH_CONTEXT_DELAY = 520;
+  const TOUCH_CONTEXT_MOVE_TOLERANCE = 12;
 
   // ── Data helpers ────────────────────────────────────────────────────────────
 
@@ -231,19 +235,29 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
   }
 
   function attachDismissListeners(menu) {
-    const onDown   = ev => { if (!menu.contains(ev.target)) dismiss(); };
+    const onDown   = ev => {
+      if (Date.now() <= suppressTableClickUntil && ev.target.closest?.('#example-table')) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        return;
+      }
+
+      if (!menu.contains(ev.target)) dismiss();
+    };
     const onKey    = ev => { if (ev.key === 'Escape') { ev.preventDefault(); dismiss(); } };
     const onScroll = () => dismiss();
 
     // Defer so the right-click event itself doesn't immediately close the menu
     setTimeout(() => {
       document.addEventListener('mousedown', onDown);
+      document.addEventListener('pointerdown', onDown);
       document.addEventListener('keydown', onKey);
       window.addEventListener('scroll', onScroll, { capture: true, passive: true });
     }, 0);
 
     dismissHandlers = [
       () => document.removeEventListener('mousedown', onDown),
+      () => document.removeEventListener('pointerdown', onDown),
       () => document.removeEventListener('keydown', onKey),
       () => window.removeEventListener('scroll', onScroll, { capture: true }),
     ];
@@ -251,20 +265,62 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
 
   // ── Entry point ───────────────────────────────────────────────────────────────
 
-  function onContextMenu(e) {
-    const headerCell = e.target.closest('#example-table thead th[data-col-index]');
-    const bodyCell = e.target.closest('#example-table tbody td[data-col-index]');
+  function getContextTarget(target) {
+    const headerCell = target?.closest?.('#example-table thead th[data-col-index]') || null;
+    const bodyCell = target?.closest?.('#example-table tbody td[data-col-index]') || null;
     const targetCell = bodyCell || headerCell;
-    if (!targetCell) return;
-    e.preventDefault();
+    if (!targetCell) {
+      return null;
+    }
 
-    dismiss();
-
-    const tr       = bodyCell?.closest('tr') || null;
+    const tr = bodyCell?.closest('tr') || null;
     const colIndex = parseInt(targetCell.dataset.colIndex, 10);
     const rowIndex = parseInt(tr?.dataset?.rowIndex ?? 'NaN', 10);
 
-    if (isNaN(colIndex)) return;
+    if (Number.isNaN(colIndex)) {
+      return null;
+    }
+
+    return {
+      bodyCell,
+      colIndex,
+      headerCell,
+      rowIndex,
+      targetCell,
+      tr
+    };
+  }
+
+  function isTableContextInteractiveTarget(target) {
+    return Boolean(target?.closest?.([
+      'button',
+      'input',
+      'select',
+      'textarea',
+      'a[href]',
+      '[role="button"]',
+      '[contenteditable="true"]',
+      '.th-resize-handle',
+      '.th-insert-button',
+      '.table-scrollbar',
+      '.table-scrollbar-thumb',
+      '.table-scrollbar-track'
+    ].join(', ')));
+  }
+
+  function openContextMenuForTarget(target, mouseX, mouseY, options = {}) {
+    const contextTarget = getContextTarget(target);
+    if (!contextTarget) return false;
+
+    dismiss();
+
+    const {
+      bodyCell,
+      colIndex,
+      headerCell,
+      rowIndex,
+      tr
+    } = contextTarget;
 
     const fields   = getFields();
     const field    = fields[colIndex];
@@ -390,7 +446,10 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
     const menu = buildMenu(actions);
     menu.hidden = true;
     menu.classList.add('hidden');
-    positionMenu(menu, e.clientX, e.clientY);
+    if (options.source === 'touch') {
+      menu.classList.add('tcm--touch');
+    }
+    positionMenu(menu, mouseX, mouseY);
     menuEl = menu;
     VisibilityUtils.show([menu], {
       ariaHidden: false,
@@ -398,9 +457,100 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
     });
     requestAnimationFrame(() => menu.classList.add('tcm--visible'));
     attachDismissListeners(menu);
+    return true;
+  }
+
+  function onContextMenu(e) {
+    if (!getContextTarget(e.target)) return;
+    e.preventDefault();
+    openContextMenuForTarget(e.target, e.clientX, e.clientY);
+  }
+
+  function clearTouchContextState() {
+    if (touchContextState?.timerId) {
+      window.clearTimeout(touchContextState.timerId);
+    }
+    touchContextState = null;
+  }
+
+  function onPointerDown(e) {
+    const isTouch = e.pointerType === 'touch' || e.pointerType === 'pen';
+    if (!isTouch || isTableContextInteractiveTarget(e.target)) {
+      return;
+    }
+
+    const contextTarget = getContextTarget(e.target);
+    if (!contextTarget) {
+      return;
+    }
+
+    clearTouchContextState();
+    touchContextState = {
+      opened: false,
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      target: contextTarget.targetCell,
+      timerId: window.setTimeout(() => {
+        if (!touchContextState || touchContextState.pointerId !== e.pointerId) {
+          return;
+        }
+
+        const opened = openContextMenuForTarget(
+          touchContextState.target,
+          touchContextState.startX,
+          touchContextState.startY,
+          { source: 'touch' }
+        );
+        touchContextState.opened = opened;
+        if (opened) {
+          suppressTableClickUntil = Date.now() + 900;
+          navigator.vibrate?.(8);
+        }
+      }, TOUCH_CONTEXT_DELAY)
+    };
+  }
+
+  function onPointerMove(e) {
+    if (!touchContextState || touchContextState.pointerId !== e.pointerId) {
+      return;
+    }
+
+    const deltaX = e.clientX - touchContextState.startX;
+    const deltaY = e.clientY - touchContextState.startY;
+    if (Math.hypot(deltaX, deltaY) > TOUCH_CONTEXT_MOVE_TOLERANCE) {
+      clearTouchContextState();
+    }
+  }
+
+  function onPointerEnd(e) {
+    if (!touchContextState || touchContextState.pointerId !== e.pointerId) {
+      return;
+    }
+
+    const opened = touchContextState.opened;
+    clearTouchContextState();
+    if (opened) {
+      suppressTableClickUntil = Date.now() + 900;
+      e.preventDefault();
+    }
+  }
+
+  function onTableClickCapture(e) {
+    if (Date.now() > suppressTableClickUntil || !e.target.closest?.('#example-table')) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
   }
 
   document.addEventListener('contextmenu', onContextMenu);
+  document.addEventListener('pointerdown', onPointerDown, { passive: true });
+  document.addEventListener('pointermove', onPointerMove, { passive: true });
+  document.addEventListener('pointerup', onPointerEnd);
+  document.addEventListener('pointercancel', onPointerEnd);
+  document.addEventListener('click', onTableClickCapture, true);
 
   return { dismiss };
 })();
