@@ -935,6 +935,51 @@ async function expectOverlayTouchPanScroll(page, touchLocator, scrollSelector, l
   }
 }
 
+async function expectMobileTableContextMenu(page) {
+  const firstCell = page.locator('#example-table tbody tr[data-row-index="0"] td[data-col-index="0"]');
+  await firstCell.waitFor({ state: 'visible', timeout: 5000 });
+  await dragTouchLocator(page, firstCell, {
+    holdMs: 650,
+    steps: 1
+  });
+  await page.locator('.tcm.tcm--visible').waitFor({ state: 'visible', timeout: 5000 });
+
+  const menuMetrics = await page.locator('.tcm.tcm--visible').evaluate(menu => {
+    const rect = menu.getBoundingClientRect();
+    return {
+      bottom: rect.bottom,
+      className: menu.className,
+      labels: Array.from(menu.querySelectorAll('.tcm-label')).map(label => (label.textContent || '').trim()),
+      left: rect.left,
+      right: rect.right,
+      top: rect.top,
+      viewportHeight: window.innerHeight,
+      viewportWidth: window.innerWidth
+    };
+  });
+
+  ['Sort Ascending', 'Add Filter', 'Add Post Filter', 'Copy Cell', 'Copy Row', 'Copy Column', 'Resize Column'].forEach(label => {
+    if (!menuMetrics.labels.includes(label)) {
+      throw new Error(`Mobile table context menu is missing "${label}": ${JSON.stringify(menuMetrics)}`);
+    }
+  });
+
+  if (
+    !String(menuMetrics.className || '').includes('tcm--touch')
+    || menuMetrics.left < -1
+    || menuMetrics.top < -1
+    || menuMetrics.right - menuMetrics.viewportWidth > 1
+    || menuMetrics.bottom - menuMetrics.viewportHeight > 1
+  ) {
+    throw new Error(`Mobile table context menu should open from long press within the viewport: ${JSON.stringify(menuMetrics)}`);
+  }
+
+  await expectControlsNonSelectable(page, '.tcm.tcm--visible', 'Mobile table context menu controls');
+  await expectMinimumTapTarget(page, '.tcm.tcm--visible .tcm-item', 'Mobile table context menu items');
+  await page.keyboard.press('Escape');
+  await page.locator('.tcm').waitFor({ state: 'detached', timeout: 5000 });
+}
+
 async function seedLoadedResults(page, options = {}) {
   const rowCount = Math.max(0, Number(options.rowCount) || 3);
   const longTitle = options.longTitle === true;
@@ -2093,6 +2138,7 @@ async function runSmokeTest() {
       throw new Error(`Mobile table should use a sticky action bar and collapsed builder drawer: ${JSON.stringify(mobileResultsLayout)}`);
     }
     await expectControlsNonSelectable(mobilePage, '#table-with-filter', 'Mobile table controls');
+    await expectMobileTableContextMenu(mobilePage);
     const mobileTableDensityMetrics = await mobilePage.locator('#table-container').evaluate(container => {
       const table = document.querySelector('#example-table');
       const cell = document.querySelector('#example-table tbody td');
