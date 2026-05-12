@@ -70,7 +70,7 @@ function syncMobileBuilderDrawer() {
   const hasTableSurface = fieldCount > 0 || rowCount > 0;
 
   drawer.classList.toggle('is-active', hasTableSurface);
-  if (!hasTableSurface) {
+  if (!hasTableSurface || !isMobileTableViewport()) {
     drawer.classList.remove('is-open');
   }
 
@@ -406,8 +406,19 @@ function updateTableChromeState() {
   }
 
   const expanded = tableShell.classList.contains('table-shell-expanded');
+  const isMobileViewport = isMobileTableViewport();
+  if (expanded && isMobileViewport && getTableZoom() > 0.9) {
+    tableShell.dataset.zoom = '0.90';
+    tableShell.dataset.responsiveMobileZoom = 'true';
+  } else if (expanded && !isMobileViewport && tableShell.dataset.responsiveMobileZoom === 'true') {
+    tableShell.dataset.zoom = '1.00';
+    delete tableShell.dataset.responsiveMobileZoom;
+  } else if (!expanded) {
+    delete tableShell.dataset.responsiveMobileZoom;
+  }
+
   const zoom = getTableZoom();
-  const effectiveZoom = !expanded && isMobileTableViewport() ? 0.84 : zoom;
+  const effectiveZoom = !expanded && isMobileViewport ? 0.84 : zoom;
 
   tableShell.style.setProperty('--table-zoom', effectiveZoom.toFixed(2));
 
@@ -531,12 +542,11 @@ function initializeQueryUi() {
   });
 
   window.addEventListener('resize', () => {
-    if (DOM.tableShell?.classList.contains('table-shell-expanded')) {
-      refreshTableViewport();
-      return;
-    }
-
+    updateTableChromeState();
+    syncMobileBuilderDrawer();
     syncMobileFilterPanel();
+    syncMobileTableActions();
+    refreshTableViewport();
   });
 
   updateTableChromeState();

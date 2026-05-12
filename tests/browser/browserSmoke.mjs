@@ -618,6 +618,84 @@ async function expectNoHorizontalOverflow(page, label) {
   }
 }
 
+async function waitForResponsiveResize(page, expectedMobile) {
+  await page.waitForFunction(expected => {
+    return window.matchMedia('(max-width: 640px)').matches === expected;
+  }, expectedMobile, { timeout: 5000 });
+  await page.evaluate(() => new Promise(resolve => {
+    window.requestAnimationFrame(() => window.requestAnimationFrame(resolve));
+  }));
+}
+
+async function readResponsiveShellMetrics(page) {
+  return page.evaluate(() => {
+    const displayOf = selector => {
+      const element = document.querySelector(selector);
+      return element ? window.getComputedStyle(element).display : '';
+    };
+    const classHas = (selector, className) => {
+      return document.querySelector(selector)?.classList.contains(className) || false;
+    };
+    const tableShell = document.querySelector('#table-shell');
+    const tableRect = document.querySelector('#example-table')?.getBoundingClientRect();
+    const tableContainerRect = document.querySelector('#table-container')?.getBoundingClientRect();
+
+    return {
+      actionBarDisplay: displayOf('#mobile-table-action-bar'),
+      bodyLocked: document.body.classList.contains('mobile-overlay-scroll-locked'),
+      bodyModalPanelOpen: document.body.classList.contains('modal-panel-open'),
+      builderActive: classHas('#mobile-builder-drawer', 'is-active'),
+      builderOpen: classHas('#mobile-builder-drawer', 'is-open'),
+      builderExpanded: document.querySelector('#mobile-builder-toggle')?.getAttribute('aria-expanded') || '',
+      filterPanelMobileOpen: document.body.classList.contains('mobile-filter-panel-open')
+        || classHas('#filter-side-panel', 'mobile-filter-panel-open'),
+      headerControlsDisplay: displayOf('#header-controls'),
+      isExpanded: document.body.classList.contains('table-expanded-open'),
+      isMobile: window.matchMedia('(max-width: 640px)').matches,
+      mobileMenuDisplay: displayOf('#mobile-menu-toggle'),
+      mobileMenuOpen: classHas('#mobile-menu-dropdown', 'show')
+        && !classHas('#mobile-menu-dropdown', 'hidden'),
+      tableContainerWidth: tableContainerRect?.width || 0,
+      tableToolbarDisplay: displayOf('#table-toolbar'),
+      tableWidth: tableRect?.width || 0,
+      tableZoom: tableShell?.style.getPropertyValue('--table-zoom') || ''
+    };
+  });
+}
+
+async function expectResponsiveShellMode(page, mode, label) {
+  const metrics = await readResponsiveShellMetrics(page);
+
+  if (mode === 'mobile') {
+    if (
+      !metrics.isMobile
+      || metrics.headerControlsDisplay !== 'none'
+      || metrics.mobileMenuDisplay === 'none'
+      || metrics.actionBarDisplay !== 'grid'
+      || metrics.tableToolbarDisplay !== 'none'
+      || metrics.tableZoom !== '0.84'
+      || !metrics.builderActive
+      || metrics.builderOpen
+      || metrics.builderExpanded !== 'false'
+      || metrics.tableContainerWidth <= 0
+    ) {
+      throw new Error(`${label} should use the mobile responsive shell: ${JSON.stringify(metrics)}`);
+    }
+  } else if (
+    metrics.isMobile
+    || metrics.headerControlsDisplay === 'none'
+    || metrics.mobileMenuDisplay !== 'none'
+    || metrics.actionBarDisplay !== 'none'
+    || metrics.tableToolbarDisplay === 'none'
+    || metrics.tableZoom !== '1.00'
+    || metrics.builderOpen
+    || metrics.filterPanelMobileOpen
+    || metrics.bodyLocked
+  ) {
+    throw new Error(`${label} should use the desktop responsive shell: ${JSON.stringify(metrics)}`);
+  }
+}
+
 async function expectMobileViewportStability(page) {
   const metrics = await page.evaluate(() => {
     const viewportContent = document.querySelector('meta[name="viewport"]')?.getAttribute('content') || '';
@@ -1148,6 +1226,67 @@ async function seedLoadedResults(page, options = {}) {
     QueryUI.updateButtonStates();
   }, { longTitle, rowCount });
   await page.locator('#example-table').waitFor({ state: 'attached', timeout: 5000 });
+}
+
+async function exerciseLiveResponsiveResize(page) {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await waitForResponsiveResize(page, false);
+  await seedLoadedResults(page, { rowCount: 24 });
+  await expectResponsiveShellMode(page, 'desktop', 'Live resize desktop baseline');
+  await expectNoHorizontalOverflow(page, 'Live resize desktop baseline');
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await waitForResponsiveResize(page, true);
+  await expectResponsiveShellMode(page, 'mobile', 'Live resize desktop-to-mobile');
+  await expectNoHorizontalOverflow(page, 'Live resize desktop-to-mobile');
+
+  await page.locator('#mobile-builder-toggle').click();
+  await page.waitForFunction(() => {
+    return document.querySelector('#mobile-builder-drawer')?.classList.contains('is-open');
+  }, null, { timeout: 5000 });
+
+  await page.locator('[data-mobile-table-action="fields-panel"]').click();
+  await page.waitForFunction(() => document.body.classList.contains('mobile-filter-panel-open'), null, { timeout: 5000 });
+
+  await page.setViewportSize({ width: 1180, height: 820 });
+  await waitForResponsiveResize(page, false);
+  await expectResponsiveShellMode(page, 'desktop', 'Live resize mobile-to-desktop closes mobile-only surfaces');
+  await expectNoHorizontalOverflow(page, 'Live resize mobile-to-desktop');
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await waitForResponsiveResize(page, true);
+  await page.locator('#mobile-menu-toggle').click();
+  await page.locator('#mobile-menu-dropdown.show').waitFor({ state: 'visible', timeout: 5000 });
+  await page.setViewportSize({ width: 1180, height: 820 });
+  await waitForResponsiveResize(page, false);
+  await page.locator('#mobile-menu-dropdown.hidden').waitFor({ state: 'attached', timeout: 5000 });
+  const menuResizeMetrics = await readResponsiveShellMetrics(page);
+  if (menuResizeMetrics.mobileMenuOpen || menuResizeMetrics.bodyModalPanelOpen) {
+    throw new Error(`Live resize to desktop should close the mobile menu: ${JSON.stringify(menuResizeMetrics)}`);
+  }
+
+  await page.locator('#table-expand-btn').click();
+  await page.waitForFunction(() => document.body.classList.contains('table-expanded-open'), null, { timeout: 5000 });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await waitForResponsiveResize(page, true);
+  const expandedMobileMetrics = await readResponsiveShellMetrics(page);
+  if (!expandedMobileMetrics.isExpanded || expandedMobileMetrics.tableZoom !== '0.90') {
+    throw new Error(`Expanded table should compact when live-resized to mobile: ${JSON.stringify(expandedMobileMetrics)}`);
+  }
+  await expectElementWithinViewport(page, '#table-shell.table-shell-expanded', 'Live-resized expanded mobile table');
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await waitForResponsiveResize(page, false);
+  const expandedDesktopMetrics = await readResponsiveShellMetrics(page);
+  if (!expandedDesktopMetrics.isExpanded || expandedDesktopMetrics.tableZoom !== '1.00') {
+    throw new Error(`Expanded table should restore desktop zoom when live-resized back: ${JSON.stringify(expandedDesktopMetrics)}`);
+  }
+  await expectElementWithinViewport(page, '#table-shell.table-shell-expanded', 'Live-resized expanded desktop table');
+  await page.locator('#table-expand-btn').click();
+  await page.waitForFunction(() => !document.body.classList.contains('table-expanded-open'), null, { timeout: 5000 });
+
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await waitForResponsiveResize(page, false);
 }
 
 async function exerciseEditableFormUrlRefresh(page, failures) {
@@ -2066,6 +2205,7 @@ async function runSmokeTest() {
     await exerciseVirtualTableScrollInteraction(page);
     await exerciseExpandedVirtualTableColumnAlignment(page);
     await exerciseColumnResizeInteraction(page);
+    await exerciseLiveResponsiveResize(page);
 
     await page.getByRole('button', { name: 'Queries' }).click();
     await page.locator('input[placeholder="Search queries..."]').waitFor({ state: 'visible', timeout: 5000 });
