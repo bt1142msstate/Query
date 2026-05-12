@@ -415,6 +415,94 @@ async function expectVisibleCloseControlCount(page, rootSelector, expectedCount,
   }
 }
 
+const nonSelectableControlSelector = [
+  'button',
+  'input[type="button"]',
+  'input[type="submit"]',
+  'input[type="reset"]',
+  'a[href]',
+  'summary',
+  '[role="button"]',
+  '.collapse-btn',
+  '.mobile-menu-item',
+  '.mobile-table-action',
+  '.mobile-builder-toggle',
+  '.table-toolbar-btn',
+  '.th-insert-button',
+  '.templates-primary-btn',
+  '.templates-secondary-btn',
+  '.templates-danger-btn',
+  '.templates-categories-close',
+  '.templates-list-item',
+  '.templates-list-pin-btn',
+  '.pinned-template-bubble',
+  '.history-book-summary',
+  '.history-monitor-tab',
+  '.history-monitor-close',
+  '.history-expand-btn',
+  '.load-query-btn',
+  '.rerun-query-btn',
+  '.stop-query-btn',
+  '.filter-panel-mobile-close',
+  '.fp-icon-btn',
+  '.fp-display-item',
+  '.fp-display-btn',
+  '.fp-display-insert-btn',
+  '.fp-field-group',
+  '.fp-cond-btn',
+  '.fp-add-cond-btn',
+  '.post-filter-dialog__close',
+  '.post-filter-add-btn',
+  '.export-dialog__close',
+  '.export-action-btn'
+].join(', ');
+
+async function expectControlsNonSelectable(page, rootSelector, label) {
+  const violations = await page.locator(rootSelector).evaluate((root, selector) => {
+    const isVisible = element => {
+      const style = window.getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0
+        && rect.height > 0
+        && style.display !== 'none'
+        && style.visibility !== 'hidden'
+        && Number.parseFloat(style.opacity || '1') > 0.05
+        && !element.hidden
+        && !element.closest('[hidden], .hidden');
+    };
+    const isTapHighlightTransparent = value => {
+      const normalized = String(value || '').replace(/\s+/gu, '').toLowerCase();
+      return normalized === ''
+        || normalized === 'transparent'
+        || normalized === 'rgba(0,0,0,0)';
+    };
+
+    return Array.from(root.querySelectorAll(selector))
+      .filter(isVisible)
+      .map(element => {
+        const style = window.getComputedStyle(element);
+        return {
+          className: String(element.className || ''),
+          id: element.id || '',
+          tagName: element.tagName,
+          tapHighlight: style.webkitTapHighlightColor || '',
+          text: String(element.textContent || '').trim().replace(/\s+/gu, ' ').slice(0, 80),
+          userSelect: style.userSelect || '',
+          webkitUserSelect: style.webkitUserSelect || ''
+        };
+      })
+      .filter(control => (
+        control.userSelect !== 'none'
+        || (control.webkitUserSelect && control.webkitUserSelect !== 'none')
+        || !isTapHighlightTransparent(control.tapHighlight)
+      ));
+  }, nonSelectableControlSelector);
+
+  if (violations.length > 0) {
+    throw new Error(`${label} has selectable/highlightable controls: ${JSON.stringify(violations.slice(0, 12))}`);
+  }
+}
+
 async function expectLightInput(page, selector, label) {
   const theme = await page.locator(selector).evaluate(input => {
     const readChannels = value => (value.match(/\d+/gu) || []).slice(0, 3).map(Number);
@@ -1639,6 +1727,7 @@ async function runSmokeTest() {
     }
 
     await expectNoHorizontalOverflow(page, 'Desktop initial layout');
+    await expectControlsNonSelectable(page, 'body', 'Desktop initial layout');
     await expectDarkInput(page, '#query-input', 'Main field search input');
     await page.evaluate(async () => {
       const { QueryTableView } = await import('./ui/queryTableView.js');
@@ -1679,10 +1768,13 @@ async function runSmokeTest() {
     await page.locator('#templates-list .templates-list-item').click();
     await page.locator('#templates-detail-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
     await expectVisibleCloseControlCount(page, '#templates-panel', 1, 'Desktop template detail overlay');
+    await expectControlsNonSelectable(page, '#templates-panel', 'Desktop template controls');
     await page.locator('#templates-detail-close-btn').click();
     await page.locator('#templates-detail-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
 
     await page.getByRole('button', { name: 'Help' }).click();
+    await page.locator('#help-container').waitFor({ state: 'visible', timeout: 5000 });
+    await expectControlsNonSelectable(page, '#help-panel', 'Desktop help controls');
 
     const mobilePage = await browser.newPage({
       isMobile: true,
@@ -1731,6 +1823,7 @@ async function runSmokeTest() {
 
     await mobilePage.locator('#mobile-menu-toggle').click();
     await mobilePage.locator('#mobile-menu-dropdown.show').waitFor({ state: 'visible', timeout: 5000 });
+    await expectControlsNonSelectable(mobilePage, '#mobile-menu-dropdown', 'Mobile menu controls');
     const mobileMenuMetrics = await mobilePage.locator('#mobile-menu-dropdown.show').evaluate(element => {
       const rect = element.getBoundingClientRect();
       return {
@@ -1829,6 +1922,7 @@ async function runSmokeTest() {
     await expectElementWithinViewport(mobilePage, '#templates-panel', 'Mobile templates panel');
     await expectDarkSurface(mobilePage, '#templates-panel > h2', 'Mobile templates panel header');
     await expectDarkInput(mobilePage, '#templates-search-input', 'Mobile templates search input');
+    await expectControlsNonSelectable(mobilePage, '#templates-panel', 'Mobile templates controls');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile templates panel');
     const mobileTemplatesPanelMetrics = await mobilePage.locator('#templates-container').evaluate(container => {
       const top = container.querySelector('.templates-browser-top');
@@ -1862,6 +1956,7 @@ async function runSmokeTest() {
     await mobilePage.locator('#templates-list .templates-list-item').click();
     await mobilePage.locator('#templates-detail-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
     await expectVisibleCloseControlCount(mobilePage, '#templates-panel', 1, 'Mobile template detail overlay');
+    await expectControlsNonSelectable(mobilePage, '#templates-panel', 'Mobile template detail controls');
     const mobileTemplateDetailMetrics = await mobilePage.locator('#templates-detail').evaluate(detail => {
       const container = document.querySelector('#templates-container');
       const body = detail.querySelector('.templates-detail-body');
@@ -1900,6 +1995,7 @@ async function runSmokeTest() {
     await mobilePage.locator('#templates-manage-categories-btn').click();
     await mobilePage.locator('#templates-categories-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
     await expectVisibleCloseControlCount(mobilePage, '#templates-panel', 1, 'Mobile template categories overlay');
+    await expectControlsNonSelectable(mobilePage, '#templates-panel', 'Mobile template category controls');
     const mobileTemplateCategoriesMetrics = await mobilePage.locator('.templates-categories-dialog').evaluate(dialog => {
       const container = document.querySelector('#templates-container');
       const body = dialog.querySelector('.templates-categories-body');
@@ -1996,6 +2092,7 @@ async function runSmokeTest() {
     ) {
       throw new Error(`Mobile table should use a sticky action bar and collapsed builder drawer: ${JSON.stringify(mobileResultsLayout)}`);
     }
+    await expectControlsNonSelectable(mobilePage, '#table-with-filter', 'Mobile table controls');
     const mobileTableDensityMetrics = await mobilePage.locator('#table-container').evaluate(container => {
       const table = document.querySelector('#example-table');
       const cell = document.querySelector('#example-table tbody td');
@@ -2080,6 +2177,7 @@ async function runSmokeTest() {
     await mobilePage.locator('[data-mobile-table-action="fields-panel"]').click();
     await mobilePage.waitForFunction(() => document.body.classList.contains('mobile-filter-panel-open'), null, { timeout: 5000 });
     await expectElementWithinViewport(mobilePage, '#filter-side-panel', 'Mobile display and filters sheet');
+    await expectControlsNonSelectable(mobilePage, '#filter-side-panel', 'Mobile display and filters controls');
     await expectOverlayConsumesScroll(mobilePage, '#filter-panel-body', 'Mobile display and filters sheet');
     await expectOverlayTouchPanScroll(
       mobilePage,
