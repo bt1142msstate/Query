@@ -110,7 +110,13 @@ Then open:
 http://127.0.0.1:4173/index.html
 ```
 
-The app currently posts to the backend URL configured in `core/backendApi.js`. Use a compatible query API for live data, or rely on the Playwright smoke test stub for local validation.
+## Backend API Notice
+
+The backend URL currently configured in `core/backendApi.js` is a temporary example/testing integration. It is useful for demonstrating the request/response shape during development, and the Playwright smoke test stubs that route so local validation does not require a real external service.
+
+The public live site should not rely on that example API as its production data source. We plan to remove project-owned API usage from the live deployment. For real use, connect your own compatible query API and provide the API URLs/settings for your environment. The app is designed around a swappable backend contract: field metadata, query execution, status/cancel, history results, and template actions can be backed by your own service as long as it returns the expected payloads.
+
+Until runtime API settings are added to the hosted UI, local deployments can point the app at another service by updating `core/backendApi.js`. The intended live-site flow is to let users supply their own API URLs/configuration instead of using the checked-in example endpoint.
 
 ## Architecture
 

@@ -22,6 +22,12 @@ The former private runtime coordination layer has been removed. Feature coordina
 6. `core/queryExecution.js` builds the backend payload, runs or cancels work, then updates result state.
 7. Table, history, filters, templates, and overlays render from the current state and service facades.
 
+## Backend Integration Policy
+
+`core/backendApi.js` currently points at an example/testing query API. That endpoint exists to demonstrate the integration shape and gives the browser smoke test a stable route to stub. It should not be treated as the live site's long-term production backend.
+
+The intended deployment model is bring-your-own API. The public live site should remove project-owned API usage and let each deployment provide its own compatible API URLs/configuration for field metadata, query execution, status/cancel, history result loading, and template persistence. Local deployments can temporarily change `core/backendApi.js`, but the next integration step is a runtime API configuration layer so hosted users can supply their own endpoint settings without editing source.
+
 ## Layer Boundaries
 
 | Layer | Path | Responsibility |
