@@ -1724,6 +1724,8 @@ body.post-filter-overlay-open {
     gap: 0.65rem;
     padding: 0.75rem;
     overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   .post-filter-builder,
@@ -2395,6 +2397,8 @@ body.post-filter-overlay-open {
     gap: 0.7rem;
     padding: 0.75rem;
     overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   .export-mode-card {

@@ -638,6 +638,97 @@ async function exerciseMobileToastQueue(page) {
   }, null, { timeout: 5000 });
 }
 
+async function primeMobilePageScroll(page) {
+  await page.evaluate(() => {
+    if (!document.body.dataset.browserSmokePreviousMinHeight) {
+      document.body.dataset.browserSmokePreviousMinHeight = document.body.style.minHeight || ' ';
+    }
+    document.body.style.minHeight = '1800px';
+    window.scrollTo(0, 260);
+  });
+  await page.waitForFunction(() => window.scrollY >= 200, null, { timeout: 5000 });
+}
+
+async function cleanupMobilePageScroll(page) {
+  await page.evaluate(() => {
+    const previousMinHeight = document.body.dataset.browserSmokePreviousMinHeight;
+    if (previousMinHeight !== undefined) {
+      document.body.style.minHeight = previousMinHeight === ' ' ? '' : previousMinHeight;
+      delete document.body.dataset.browserSmokePreviousMinHeight;
+    }
+    window.scrollTo(0, 0);
+  });
+}
+
+async function expectMobileScrollLockActive(page, label) {
+  const metrics = await page.evaluate(() => ({
+    bodyLocked: document.body.classList.contains('mobile-overlay-scroll-locked'),
+    bodyPosition: window.getComputedStyle(document.body).position,
+    bodyTop: document.body.style.top,
+    htmlLocked: document.documentElement.classList.contains('mobile-overlay-scroll-locked'),
+    lockY: Number.parseInt(document.body.dataset.mobileScrollLockY || '0', 10),
+    windowScrollY: window.scrollY
+  }));
+
+  if (!metrics.bodyLocked || !metrics.htmlLocked || metrics.bodyPosition !== 'fixed' || metrics.lockY < 200 || metrics.bodyTop !== `-${metrics.lockY}px`) {
+    throw new Error(`${label} should lock the mobile page scroll: ${JSON.stringify(metrics)}`);
+  }
+
+  return metrics;
+}
+
+async function expectMobileScrollLockReleased(page, label) {
+  await page.waitForFunction(() => !document.body.classList.contains('mobile-overlay-scroll-locked'), null, { timeout: 5000 });
+  const metrics = await page.evaluate(() => ({
+    bodyLocked: document.body.classList.contains('mobile-overlay-scroll-locked'),
+    bodyPosition: window.getComputedStyle(document.body).position,
+    htmlLocked: document.documentElement.classList.contains('mobile-overlay-scroll-locked'),
+    windowScrollY: window.scrollY
+  }));
+
+  if (metrics.bodyLocked || metrics.htmlLocked || metrics.bodyPosition === 'fixed' || metrics.windowScrollY < 200) {
+    throw new Error(`${label} should restore the mobile page scroll after closing: ${JSON.stringify(metrics)}`);
+  }
+}
+
+async function expectOverlayConsumesScroll(page, scrollSelector, label) {
+  await page.locator(scrollSelector).waitFor({ state: 'visible', timeout: 5000 });
+  await page.evaluate(selector => {
+    const scroller = document.querySelector(selector);
+    if (!scroller || scroller.querySelector('[data-browser-smoke-overlay-filler]')) {
+      return;
+    }
+
+    const filler = document.createElement('div');
+    filler.dataset.browserSmokeOverlayFiller = 'true';
+    filler.style.flex = '0 0 900px';
+    filler.style.height = '900px';
+    filler.style.pointerEvents = 'none';
+    scroller.appendChild(filler);
+    scroller.scrollTop = 0;
+  }, scrollSelector);
+
+  const before = await expectMobileScrollLockActive(page, label);
+  await page.locator(scrollSelector).hover();
+  await page.mouse.wheel(0, 700);
+  await page.waitForFunction(selector => (document.querySelector(selector)?.scrollTop || 0) > 20, scrollSelector, { timeout: 5000 });
+
+  const after = await page.evaluate(selector => ({
+    bodyTop: document.body.style.top,
+    lockY: Number.parseInt(document.body.dataset.mobileScrollLockY || '0', 10),
+    scrollerTop: document.querySelector(selector)?.scrollTop || 0,
+    windowScrollY: window.scrollY
+  }), scrollSelector);
+
+  await page.evaluate(selector => {
+    document.querySelector(selector)?.querySelector('[data-browser-smoke-overlay-filler]')?.remove();
+  }, scrollSelector);
+
+  if (after.scrollerTop <= 20 || after.lockY !== before.lockY || after.bodyTop !== before.bodyTop) {
+    throw new Error(`${label} should scroll inside the overlay without moving the page: ${JSON.stringify({ before, after })}`);
+  }
+}
+
 async function seedLoadedResults(page, options = {}) {
   const rowCount = Math.max(0, Number(options.rowCount) || 3);
   const longTitle = options.longTitle === true;
@@ -1856,9 +1947,11 @@ async function runSmokeTest() {
       throw new Error(`Closed mobile display and filters sheet should not sit above the table: ${closedMobileFilterDisplay}`);
     }
 
+    await primeMobilePageScroll(mobilePage);
     await mobilePage.locator('[data-mobile-table-action-target="table-add-field-btn"]').click();
     await mobilePage.locator('.form-mode-field-picker-modal:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
     await expectElementWithinViewport(mobilePage, '.form-mode-field-picker-modal:not(.hidden)', 'Mobile add field dialog');
+    await expectOverlayConsumesScroll(mobilePage, '.form-mode-field-picker-list', 'Mobile add field dialog');
     await expectLightInput(mobilePage, '.form-mode-field-picker-search-field input[type="search"]', 'Mobile add field search input');
     await expectMinimumTapTarget(mobilePage, '.form-mode-field-picker-close, .form-mode-field-picker-category-select, .form-mode-field-picker-option', 'Mobile add field controls');
     const mobileAddFieldMetrics = await mobilePage.locator('.form-mode-field-picker-modal:not(.hidden)').evaluate(modal => {
@@ -1889,6 +1982,8 @@ async function runSmokeTest() {
     }
     await expectNoHorizontalOverflow(mobilePage, 'Mobile add field dialog');
     await mobilePage.locator('.form-mode-field-picker-close').click();
+    await expectMobileScrollLockReleased(mobilePage, 'Mobile add field dialog');
+    await cleanupMobilePageScroll(mobilePage);
 
     const mobileRunAction = mobilePage.locator('[data-mobile-table-action-target="run-query-btn"]');
     const mobileRunDisabled = await mobileRunAction.evaluate(button => button.disabled);
@@ -1963,9 +2058,11 @@ async function runSmokeTest() {
     await mobilePage.locator('#table-expand-btn').click();
     await mobilePage.waitForFunction(() => !document.body.classList.contains('table-expanded-open'), null, { timeout: 5000 });
 
+    await primeMobilePageScroll(mobilePage);
     await mobilePage.locator('[data-mobile-table-action-target="post-filter-btn"]').click();
     await mobilePage.locator('#post-filter-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
     await expectElementWithinViewport(mobilePage, '#post-filter-overlay .post-filter-dialog', 'Mobile post filter dialog');
+    await expectOverlayConsumesScroll(mobilePage, '.post-filter-dialog__body', 'Mobile post filter dialog');
     await expectMinimumTapTarget(mobilePage, '#post-filter-overlay .post-filter-dialog__close, #post-filter-field, #post-filter-operator, #post-filter-logic, #post-filter-add-btn, #post-filter-clear-btn, #post-filter-done-btn', 'Mobile post filter controls');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile post filter dialog');
 
@@ -1980,6 +2077,8 @@ async function runSmokeTest() {
     await expectNoHorizontalOverflow(mobilePage, 'Mobile popup list picker');
     await mobilePage.locator('.form-mode-popup-list-done').click();
     await mobilePage.locator('#post-filter-done-btn').click();
+    await expectMobileScrollLockReleased(mobilePage, 'Mobile post filter dialog');
+    await cleanupMobilePageScroll(mobilePage);
 
     const mobileExportAction = mobilePage.locator('[data-mobile-table-action-target="download-btn"]');
     await mobileExportAction.scrollIntoViewIfNeeded();
@@ -1987,12 +2086,16 @@ async function runSmokeTest() {
     if (downloadDisabled) {
       throw new Error('Download button is disabled after seeding loaded mobile results');
     }
+    await primeMobilePageScroll(mobilePage);
     await mobileExportAction.click();
     await mobilePage.locator('#export-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
     await expectElementWithinViewport(mobilePage, '#export-overlay .export-dialog', 'Mobile export dialog');
+    await expectOverlayConsumesScroll(mobilePage, '.export-dialog__body', 'Mobile export dialog');
     await expectMinimumTapTarget(mobilePage, '#export-overlay-close, #export-cancel-btn, #export-confirm-btn', 'Mobile export dialog controls');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile export dialog');
     await mobilePage.locator('#export-cancel-btn').click();
+    await expectMobileScrollLockReleased(mobilePage, 'Mobile export dialog');
+    await cleanupMobilePageScroll(mobilePage);
 
     if (failures.length > 0) {
       throw new Error(`Browser smoke test failed:\n${failures.map(failure => `- ${failure}`).join('\n')}`);

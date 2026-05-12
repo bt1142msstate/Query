@@ -1140,6 +1140,8 @@
     padding-top: 0;
     padding-right: 0.1rem;
     gap: 0.42rem;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   .form-mode-field-picker-option {
@@ -1166,6 +1168,8 @@
     flex: 0 0 auto;
     max-height: min(35dvh, 16rem);
     overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
     padding: 0.72rem;
     border-radius: 0.9rem;
   }
