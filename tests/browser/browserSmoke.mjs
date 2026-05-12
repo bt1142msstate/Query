@@ -1908,6 +1908,58 @@ async function runSmokeTest() {
     await mobilePage.locator('[data-mobile-table-action-target="table-expand-btn"]').click();
     await mobilePage.waitForFunction(() => document.body.classList.contains('table-expanded-open'), null, { timeout: 5000 });
     await expectElementWithinViewport(mobilePage, '#table-shell.table-shell-expanded', 'Mobile expanded table');
+    const mobileExpandedTableMetrics = await mobilePage.locator('#table-shell.table-shell-expanded').evaluate(shell => {
+      const topBar = shell.querySelector('#table-top-bar');
+      const toolbar = shell.querySelector('#table-toolbar');
+      const container = shell.querySelector('#table-container');
+      const table = shell.querySelector('#example-table');
+      const nameShell = shell.querySelector('#table-name-shell');
+      const zoomControls = shell.querySelector('#table-zoom-controls');
+      const visibleToolbarItems = Array.from(toolbar?.children || [])
+        .filter(child => {
+          const rect = child.getBoundingClientRect();
+          const style = window.getComputedStyle(child);
+          return style.display !== 'none'
+            && style.visibility !== 'hidden'
+            && rect.width > 0
+            && rect.height > 0;
+        })
+        .map(child => child.id || child.className || child.tagName);
+      const shellRect = shell.getBoundingClientRect();
+      const topBarRect = topBar?.getBoundingClientRect();
+      const containerRect = container?.getBoundingClientRect();
+      const tableRect = table?.getBoundingClientRect();
+      const zoomStyle = zoomControls ? window.getComputedStyle(zoomControls) : null;
+      const nameStyle = nameShell ? window.getComputedStyle(nameShell) : null;
+      return {
+        containerHeight: containerRect?.height || 0,
+        containerTop: containerRect?.top || 0,
+        containerWidth: containerRect?.width || 0,
+        shellBottomGap: Math.abs(window.innerHeight - (shellRect?.bottom || 0)),
+        shellTop: shellRect?.top || 0,
+        tableWidth: tableRect?.width || 0,
+        tableZoom: shell.style.getPropertyValue('--table-zoom') || '',
+        topBarHeight: topBarRect?.height || 0,
+        visibleToolbarItems,
+        viewportHeight: window.innerHeight,
+        zoomDisplay: zoomStyle?.display || '',
+        nameDisplay: nameStyle?.display || ''
+      };
+    });
+    if (
+      mobileExpandedTableMetrics.topBarHeight > 70
+      || mobileExpandedTableMetrics.containerTop > 88
+      || mobileExpandedTableMetrics.containerHeight < mobileExpandedTableMetrics.viewportHeight - 110
+      || mobileExpandedTableMetrics.tableWidth > mobileExpandedTableMetrics.containerWidth + 4
+      || mobileExpandedTableMetrics.shellTop > 10
+      || mobileExpandedTableMetrics.shellBottomGap > 10
+      || mobileExpandedTableMetrics.zoomDisplay === 'none'
+      || mobileExpandedTableMetrics.nameDisplay !== 'none'
+      || mobileExpandedTableMetrics.tableZoom !== '0.90'
+      || mobileExpandedTableMetrics.visibleToolbarItems.join('|') !== 'table-zoom-controls|table-expand-btn'
+    ) {
+      throw new Error(`Mobile expanded table should use compact full-screen chrome: ${JSON.stringify(mobileExpandedTableMetrics)}`);
+    }
     await mobilePage.locator('#table-expand-btn').click();
     await mobilePage.waitForFunction(() => !document.body.classList.contains('table-expanded-open'), null, { timeout: 5000 });
 

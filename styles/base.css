@@ -372,7 +372,8 @@
   body.raised-ui-open #toast-container,
   body.post-filter-overlay-open #toast-container,
   body.export-overlay-open #toast-container,
-  body.mobile-filter-panel-open #toast-container {
+  body.mobile-filter-panel-open #toast-container,
+  body.table-expanded-open #toast-container {
     z-index: calc(var(--z-overlay) - 1);
   }
 

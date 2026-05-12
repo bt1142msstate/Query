@@ -467,6 +467,10 @@ function toggleTableExpanded(forceExpanded) {
   tableShell.classList.toggle('table-shell-expanded', expanded);
   document.body.classList.toggle('table-expanded-open', expanded);
 
+  if (expanded && isMobileTableViewport() && getTableZoom() > 0.9) {
+    tableShell.dataset.zoom = '0.90';
+  }
+
   if (!expanded) {
     tableShell.dataset.zoom = '1.00';
   }
