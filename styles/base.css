@@ -356,15 +356,17 @@
 
 @media (max-width: 640px) {
   #toast-container {
-    top: 0.45rem;
-    right: 4.25rem;
+    top: 0.5rem;
+    right: auto;
     bottom: auto;
-    left: 0.75rem;
-    width: auto;
-    align-items: stretch;
-    gap: 0.45rem;
-    max-height: calc(var(--header-height, 4rem) - 0.85rem);
-    overflow: hidden;
+    left: 50%;
+    width: min(18.5rem, calc(100vw - 7rem));
+    max-height: none;
+    padding-right: 0;
+    align-items: center;
+    gap: 0;
+    overflow: visible;
+    transform: translateX(-50%);
   }
 
   body.raised-ui-open #toast-container,

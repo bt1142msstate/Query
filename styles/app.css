@@ -1,8 +1,8 @@
 /* Modular stylesheet hub */
-@import url("./base.css?v=6");
+@import url("./base.css?v=7");
 @import url("./help.css?v=4");
 @import url("./bubbles.css?v=2");
-@import url("./filters.css?v=19");
+@import url("./filters.css?v=20");
 @import url("./form-mode.css?v=28");
 @import url("./table.css?v=39");
 @import url("./controls.css?v=4");

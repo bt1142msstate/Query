@@ -562,6 +562,82 @@ async function openMobilePanel(page, sourceControlId, visibleSelector) {
   await page.locator(visibleSelector).waitFor({ state: 'visible', timeout: 5000 });
 }
 
+async function dragLocatorToLocator(page, sourceLocator, targetLocator, options = {}) {
+  await sourceLocator.waitFor({ state: 'visible', timeout: 5000 });
+  await targetLocator.waitFor({ state: 'visible', timeout: 5000 });
+
+  const sourceBox = await sourceLocator.boundingBox();
+  const targetBox = await targetLocator.boundingBox();
+  if (!sourceBox || !targetBox) {
+    throw new Error(`Unable to measure drag targets: ${JSON.stringify({ sourceBox, targetBox })}`);
+  }
+
+  const sourceX = Math.round(sourceBox.x + sourceBox.width * (options.sourceHorizontalRatio ?? 0.5));
+  const sourceY = Math.round(sourceBox.y + sourceBox.height * (options.sourceVerticalRatio ?? 0.5));
+  const targetX = Math.round(targetBox.x + targetBox.width * (options.targetHorizontalRatio ?? 0.5));
+  const targetY = Math.round(targetBox.y + targetBox.height * (options.targetVerticalRatio ?? 0.75));
+
+  await page.mouse.move(sourceX, sourceY);
+  await page.mouse.down();
+  await page.mouse.move(
+    Math.round((sourceX + targetX) / 2),
+    Math.round((sourceY + targetY) / 2),
+    { steps: 5 }
+  );
+  await page.mouse.move(targetX, targetY, { steps: 8 });
+  await page.mouse.up();
+}
+
+async function exerciseMobileToastQueue(page) {
+  await page.evaluate(async () => {
+    const { toast } = await import('./core/toast.js');
+    toast.dismissAll();
+    toast.info('Mobile toast one', 240);
+    toast.success('Mobile toast two', 240);
+    toast.warning('Mobile toast three', 240);
+  });
+
+  await page.waitForFunction(() => {
+    const visibleToasts = document.querySelectorAll('#toast-container .app-toast.is-visible');
+    return visibleToasts.length === 1 && /Mobile toast one/u.test(visibleToasts[0]?.textContent || '');
+  }, null, { timeout: 5000 });
+
+  const mobileToastMetrics = await page.locator('#toast-container').evaluate(container => {
+    const rect = container.getBoundingClientRect();
+    const menuRect = document.querySelector('#mobile-menu-toggle')?.getBoundingClientRect();
+    return {
+      centerDelta: Math.abs((rect.left + rect.width / 2) - (window.innerWidth / 2)),
+      menuGap: menuRect ? menuRect.left - rect.right : 0,
+      toastCount: container.querySelectorAll('.app-toast').length,
+      top: rect.top,
+      visibleToastCount: container.querySelectorAll('.app-toast.is-visible').length,
+      width: rect.width
+    };
+  });
+
+  if (
+    mobileToastMetrics.visibleToastCount !== 1
+    || mobileToastMetrics.toastCount !== 1
+    || mobileToastMetrics.centerDelta > 3
+    || mobileToastMetrics.menuGap < 4
+    || mobileToastMetrics.top > 16
+  ) {
+    throw new Error(`Mobile toasts should use one centered header slot clear of the menu button: ${JSON.stringify(mobileToastMetrics)}`);
+  }
+
+  await page.waitForFunction(() => {
+    return /Mobile toast two/u.test(document.querySelector('#toast-container .app-toast.is-visible')?.textContent || '');
+  }, null, { timeout: 3000 });
+
+  await page.evaluate(async () => {
+    const { toast } = await import('./core/toast.js');
+    toast.dismissAll();
+  });
+  await page.waitForFunction(() => {
+    return document.querySelectorAll('#toast-container .app-toast.is-visible').length === 0;
+  }, null, { timeout: 5000 });
+}
+
 async function seedLoadedResults(page, options = {}) {
   const rowCount = Math.max(0, Number(options.rowCount) || 3);
   const longTitle = options.longTitle === true;
@@ -1421,6 +1497,7 @@ async function runSmokeTest() {
     if (desktopControlsDisplay !== 'none') {
       throw new Error(`Desktop header controls are visible on mobile: display=${desktopControlsDisplay}`);
     }
+    await exerciseMobileToastQueue(mobilePage);
 
     await expectNoHorizontalOverflow(mobilePage, 'Mobile initial layout');
     const initialMobileFocusLayout = await mobilePage.evaluate(() => {
@@ -1727,6 +1804,51 @@ async function runSmokeTest() {
       throw new Error(`Mobile display and filters should open as a usable sheet: ${JSON.stringify(mobileFilterSheetMetrics)}`);
     }
     await expectNoHorizontalOverflow(mobilePage, 'Mobile display and filters sheet');
+    const reorderHandleCount = await mobilePage.locator('.fp-display-drag, .fp-drag-handle').count();
+    if (reorderHandleCount !== 0) {
+      throw new Error(`Display & Filters should not expose separate dot drag handles: found ${reorderHandleCount}`);
+    }
+
+    await dragLocatorToLocator(
+      mobilePage,
+      mobilePage.locator('.fp-display-item', { hasText: 'Smoke Title' }),
+      mobilePage.locator('.fp-display-item', { hasText: 'Smoke Status' }),
+      { targetVerticalRatio: 0.85 }
+    );
+    await mobilePage.waitForFunction(async () => {
+      const { QueryStateReaders } = await import('./core/queryState.js');
+      return QueryStateReaders.getDisplayedFields().join('|') === 'Smoke Branch|Smoke Status|Smoke Title';
+    }, null, { timeout: 5000 });
+
+    await mobilePage.evaluate(async () => {
+      const { QueryChangeManager } = await import('./core/queryState.js');
+      QueryChangeManager.setQueryState({
+        activeFilters: {
+          'Smoke Title': { filters: [{ cond: 'contains', val: 'Alpha' }] },
+          'Smoke Branch': { filters: [{ cond: 'equals', val: 'Main' }] },
+          'Smoke Status': { filters: [{ cond: 'equals', val: 'Open' }] }
+        }
+      }, { source: 'BrowserSmoke.seedMobileFilterGroups' });
+    });
+    await mobilePage.waitForFunction(() => document.querySelectorAll('.fp-field-group').length >= 3, null, { timeout: 5000 });
+    await dragLocatorToLocator(
+      mobilePage,
+      mobilePage.locator('.fp-field-group', { hasText: 'Smoke Title' }),
+      mobilePage.locator('.fp-field-group', { hasText: 'Smoke Status' }),
+      { targetVerticalRatio: 0.85 }
+    );
+    await mobilePage.waitForFunction(async () => {
+      const { QueryStateReaders } = await import('./core/queryState.js');
+      return Object.keys(QueryStateReaders.getActiveFilters()).join('|') === 'Smoke Branch|Smoke Status|Smoke Title';
+    }, null, { timeout: 5000 });
+    await mobilePage.evaluate(async ({ headers }) => {
+      const { QueryChangeManager } = await import('./core/queryState.js');
+      QueryChangeManager.setQueryState({
+        activeFilters: {},
+        displayedFields: headers
+      }, { source: 'BrowserSmoke.resetMobileReorderState' });
+    }, { headers: smokeResultHeaders });
+
     await mobilePage.locator('#filter-panel-mobile-close').click();
     await mobilePage.waitForFunction(() => !document.body.classList.contains('mobile-filter-panel-open'), null, { timeout: 5000 });
     const closedMobileFilterDisplay = await mobilePage.locator('#filter-side-panel').evaluate(element => window.getComputedStyle(element).display);

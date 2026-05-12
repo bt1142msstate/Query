@@ -924,6 +924,9 @@
   background: white;
   border: 1px solid rgba(0, 0, 0, 0.08);
   overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
 }
 
 .fp-section {
@@ -1091,7 +1094,7 @@
 
 .fp-display-item {
   display: grid;
-  grid-template-columns: 28px 28px minmax(0, 1fr) auto;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
@@ -1099,6 +1102,9 @@
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
   border: 1px solid rgba(148, 163, 184, 0.24);
   box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
 }
 
 .fp-display-rank {
@@ -1112,24 +1118,6 @@
   color: #115e59;
   font-size: 0.72rem;
   font-weight: 800;
-}
-
-.fp-display-drag {
-  width: 24px;
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #94a3b8;
-  border: none;
-  background: transparent;
-  border-radius: 8px;
-  cursor: grab;
-}
-
-.fp-display-drag:hover {
-  color: #334155;
-  background: rgba(226, 232, 240, 0.55);
 }
 
 .fp-display-name {
@@ -1146,6 +1134,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  cursor: auto;
 }
 
 .fp-display-btn {
@@ -1189,6 +1178,12 @@
 .fp-display-item.fp-dragging,
 .fp-field-group.fp-dragging {
   opacity: 0.6;
+  cursor: grabbing;
+}
+
+.fp-display-item.fp-reorder-armed,
+.fp-field-group.fp-reorder-armed {
+  box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.28), 0 10px 24px rgba(15, 23, 42, 0.1);
 }
 
 .fp-field-header {
@@ -1206,15 +1201,6 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: #4b5563;
-}
-
-.fp-drag-handle {
-  margin-right: 8px;
-  cursor: grab;
-  color: #9ca3af;
-  display: inline-flex;
-  align-items: center;
-  user-select: none;
 }
 
 /* Conditions list */
@@ -1410,22 +1396,4 @@
     width: 2rem;
     height: 2rem;
   }
-}
-
-/* Drag and Drop for Filter Panel */
-.fp-field-group[draggable="true"] {
-  cursor: grab;
-}
-
-.fp-field-group.fp-dragging {
-  opacity: 0.5;
-  cursor: grabbing;
-}
-
-.fp-field-group.fp-drag-over-top {
-  border-top: 2px solid #6366f1;
-}
-
-.fp-field-group.fp-drag-over-bottom {
-  border-bottom: 2px solid #6366f1;
 }
