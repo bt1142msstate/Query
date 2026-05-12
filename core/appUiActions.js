@@ -105,6 +105,10 @@ function registerAppUiActionDependencies(dependencies = {}) {
     actionDependencies.postFilterSystem?.close?.();
   }
 
+  function closeMobileFilterPanel() {
+    actionDependencies.queryUi?.closeMobileFilterPanel?.();
+  }
+
   function openPostFilterOverlayForField(fieldName) {
     actionDependencies.postFilterSystem?.openOverlayForField?.(fieldName);
   }
@@ -188,6 +192,7 @@ function registerAppUiActionDependencies(dependencies = {}) {
     updateFilterSidePanel,
     refreshTableViewport,
     updateTableChromeState,
+    closeMobileFilterPanel,
     syncPostFilterToolbarButton,
     openPostFilters,
     closePostFilters,

@@ -38,6 +38,7 @@ const DOM = {
   get queryInput() { return getCachedElement(this, '_queryInput', 'query-input'); },
   get filterCard() { return getCachedElement(this, '_filterCard', 'filter-card'); },
   get filterCardTitle() { return getCachedElement(this, '_filterCardTitle', 'filter-card-title'); },
+  get filterCardCloseBtn() { return getCachedElement(this, '_filterCardCloseBtn', 'filter-card-close-btn'); },
   get tableShell() { return getCachedElement(this, '_tableShell', 'table-shell'); },
   get tableContainer() { return getCachedElement(this, '_tableContainer', 'table-container'); },
   get tableTopBar() { return getCachedElement(this, '_tableTopBar', 'table-top-bar'); },

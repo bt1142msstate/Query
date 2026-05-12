@@ -13,6 +13,12 @@ var appState = AppState;
 var services = appServices;
 let bubbleEventsInitialized = false;
 
+function isMobileBubbleEditorViewport() {
+  return typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(max-width: 640px), (hover: none) and (pointer: coarse)').matches;
+}
+
 function initializeBubbleInteractions() {
   if (!QueryChangeManager) {
     console.log('Bubble system: Required globals not yet available, skipping initialization');
@@ -253,6 +259,29 @@ function initializeBubbleInteractions() {
     DOM.categoryBar?.querySelectorAll('.category-btn').forEach(btn =>
       btn.classList.toggle('active', btn.dataset.category === appState.currentCategory)
     );
+
+    if (isMobileBubbleEditorViewport()) {
+      clone.classList.add('active-bubble', 'enlarge-bubble', 'mobile-bubble-editor-clone', 'popping');
+      clone.style.opacity = '0';
+      clone.style.visibility = 'hidden';
+
+      if (conditionPanel) {
+        conditionPanel.classList.add('show');
+      }
+      if (filterCard) {
+        services.markBubbleFilterCardOpen(filterCard, { scrollReadyDelay: 0 })
+          || filterCard.classList.add('show', 'content-ready', 'scroll-ready');
+      }
+      if (overlay) {
+        overlay.classList.add('bubble-active');
+      }
+      const headerBar = DOM.headerBar;
+      if (headerBar) headerBar.classList.add('header-hide');
+
+      services.bubble.isBubbleAnimating = false;
+      services.bubbleDebugLog('click.open.mobileSheet', { fieldName });
+      return;
+    }
 
     clone.addEventListener('transitionend', function t(e) {
       services.bubbleDebugLog('clone.transitionend', {

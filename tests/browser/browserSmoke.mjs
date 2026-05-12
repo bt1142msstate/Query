@@ -1648,6 +1648,67 @@ async function expectMobileColumnResizeInteraction(page) {
   });
 }
 
+async function expectMobileFilterEditorSheet(page) {
+  const filterGroup = page.locator('.fp-field-group', { hasText: 'Smoke Title' }).first();
+  await filterGroup.waitFor({ state: 'visible', timeout: 5000 });
+  await filterGroup.locator('.fp-edit-btn').first().click();
+  await page.locator('#filter-card.show').waitFor({ state: 'visible', timeout: 5000 });
+  await page.waitForFunction(() => !document.body.classList.contains('mobile-filter-panel-open'), null, { timeout: 5000 });
+
+  const metrics = await page.locator('#filter-card.show').evaluate(card => {
+    const rect = card.getBoundingClientRect();
+    const close = card.querySelector('#filter-card-close-btn');
+    const closeRect = close?.getBoundingClientRect();
+    const operator = card.querySelector('#condition-operator-select');
+    const input = card.querySelector('#condition-input');
+    const conditionPanel = card.querySelector('#condition-panel');
+    const clone = document.querySelector('.mobile-bubble-editor-clone');
+    const active = document.activeElement;
+    return {
+      activeElementId: active?.id || '',
+      activeElementTag: active?.tagName || '',
+      bottom: rect.bottom,
+      closeHeight: closeRect?.height || 0,
+      closeWidth: closeRect?.width || 0,
+      conditionPanelVisible: conditionPanel ? window.getComputedStyle(conditionPanel).display !== 'none' : false,
+      inputFontSize: input ? Number.parseFloat(window.getComputedStyle(input).fontSize || '0') : 16,
+      left: rect.left,
+      mobilePanelOpen: document.body.classList.contains('mobile-filter-panel-open'),
+      operatorFontSize: operator ? Number.parseFloat(window.getComputedStyle(operator).fontSize || '0') : 16,
+      right: rect.right,
+      top: rect.top,
+      viewportHeight: window.innerHeight,
+      viewportWidth: window.innerWidth,
+      zoomCloneDisplay: clone ? window.getComputedStyle(clone).display : ''
+    };
+  });
+
+  if (
+    metrics.mobilePanelOpen
+    || metrics.left < 4
+    || metrics.right > metrics.viewportWidth - 4
+    || metrics.top < 48
+    || metrics.bottom > metrics.viewportHeight - 4
+    || metrics.closeWidth < 44
+    || metrics.closeHeight < 44
+    || !metrics.conditionPanelVisible
+    || metrics.operatorFontSize < 16
+    || metrics.inputFontSize < 16
+    || metrics.zoomCloneDisplay !== 'none'
+    || ['condition-input', 'condition-input-2', 'condition-operator-select'].includes(metrics.activeElementId)
+  ) {
+    throw new Error(`Mobile filter editor should open as a contained sheet without focus zoom: ${JSON.stringify(metrics)}`);
+  }
+
+  await expectNoHorizontalOverflow(page, 'Mobile filter editor sheet');
+  await page.locator('#filter-card-close-btn').click();
+  await page.waitForFunction(() => {
+    return !document.querySelector('#filter-card')?.classList.contains('show')
+      && !document.querySelector('#overlay')?.classList.contains('show')
+      && !document.querySelector('.active-bubble, .bubble-clone');
+  }, null, { timeout: 5000 });
+}
+
 async function expectEmptyTableMessage(page, expectedPattern, label) {
   await page.locator('#example-table tbody td').first().waitFor({ state: 'visible', timeout: 5000 });
   const message = (await page.locator('#example-table tbody td').first().textContent())?.trim() || '';
@@ -2486,6 +2547,10 @@ async function runSmokeTest() {
       }, { source: 'BrowserSmoke.seedMobileFilterGroups' });
     });
     await mobilePage.waitForFunction(() => document.querySelectorAll('.fp-field-group').length >= 3, null, { timeout: 5000 });
+    await expectMobileFilterEditorSheet(mobilePage);
+    await primeMobilePageScroll(mobilePage);
+    await mobilePage.locator('[data-mobile-table-action="fields-panel"]').click();
+    await mobilePage.waitForFunction(() => document.body.classList.contains('mobile-filter-panel-open'), null, { timeout: 5000 });
     await dragTouchLocatorToLocator(
       mobilePage,
       mobilePage.locator('.fp-field-group', { hasText: 'Smoke Title' }),

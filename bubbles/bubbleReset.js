@@ -59,6 +59,20 @@ function resetActiveBubblesImpl() {
     const originInDOM = origin && document.body.contains(origin);
     const fieldName = origin ? origin.textContent.trim() : (clone.textContent ? clone.textContent.trim() : '');
 
+    if (clone.classList.contains('mobile-bubble-editor-clone')) {
+      clone.remove();
+      if (originInDOM) {
+        origin.style.visibility = '';
+        origin.style.opacity = '1';
+        origin.classList.remove('bubble-disabled');
+        origin.removeAttribute('data-filter-for');
+        services.applyBubbleStyling(origin);
+      }
+      bubbleService.animatingBackBubbles.delete(fieldName);
+      finalizeBubbleReset('mobile-sheet-clone', { fieldName });
+      return;
+    }
+
     if (originInDOM) {
       bubbleService.animatingBackBubbles.add(fieldName);
 
