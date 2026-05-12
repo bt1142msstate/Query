@@ -562,30 +562,74 @@ async function openMobilePanel(page, sourceControlId, visibleSelector) {
   await page.locator(visibleSelector).waitFor({ state: 'visible', timeout: 5000 });
 }
 
-async function dragLocatorToLocator(page, sourceLocator, targetLocator, options = {}) {
+async function dragTouchLocator(page, locator, options = {}) {
+  await locator.waitFor({ state: 'visible', timeout: 5000 });
+  const box = await locator.boundingBox();
+  if (!box) {
+    throw new Error('Unable to measure touch drag target');
+  }
+
+  const startX = Math.round(box.x + box.width * (options.horizontalRatio ?? 0.5));
+  const startY = Math.round(box.y + box.height * (options.verticalRatio ?? 0.5));
+  const endX = Math.round(startX + (options.deltaX ?? 0));
+  const endY = Math.round(startY + (options.deltaY ?? 0));
+  const steps = Math.max(1, Number(options.steps) || 6);
+  const client = await page.context().newCDPSession(page);
+
+  try {
+    await client.send('Input.dispatchTouchEvent', {
+      touchPoints: [{ id: 1, x: startX, y: startY }],
+      type: 'touchStart'
+    });
+
+    if (options.holdMs) {
+      await new Promise(resolve => setTimeout(resolve, options.holdMs));
+    }
+
+    for (let index = 1; index <= steps; index += 1) {
+      const progress = index / steps;
+      await client.send('Input.dispatchTouchEvent', {
+        touchPoints: [{
+          id: 1,
+          x: Math.round(startX + ((endX - startX) * progress)),
+          y: Math.round(startY + ((endY - startY) * progress))
+        }],
+        type: 'touchMove'
+      });
+    }
+
+    await client.send('Input.dispatchTouchEvent', {
+      touchPoints: [],
+      type: 'touchEnd'
+    });
+  } finally {
+    await client.detach();
+  }
+}
+
+async function dragTouchLocatorToLocator(page, sourceLocator, targetLocator, options = {}) {
   await sourceLocator.waitFor({ state: 'visible', timeout: 5000 });
   await targetLocator.waitFor({ state: 'visible', timeout: 5000 });
 
   const sourceBox = await sourceLocator.boundingBox();
   const targetBox = await targetLocator.boundingBox();
   if (!sourceBox || !targetBox) {
-    throw new Error(`Unable to measure drag targets: ${JSON.stringify({ sourceBox, targetBox })}`);
+    throw new Error(`Unable to measure touch drag targets: ${JSON.stringify({ sourceBox, targetBox })}`);
   }
 
-  const sourceX = Math.round(sourceBox.x + sourceBox.width * (options.sourceHorizontalRatio ?? 0.5));
-  const sourceY = Math.round(sourceBox.y + sourceBox.height * (options.sourceVerticalRatio ?? 0.5));
+  const startX = Math.round(sourceBox.x + sourceBox.width * (options.sourceHorizontalRatio ?? 0.5));
+  const startY = Math.round(sourceBox.y + sourceBox.height * (options.sourceVerticalRatio ?? 0.5));
   const targetX = Math.round(targetBox.x + targetBox.width * (options.targetHorizontalRatio ?? 0.5));
   const targetY = Math.round(targetBox.y + targetBox.height * (options.targetVerticalRatio ?? 0.75));
 
-  await page.mouse.move(sourceX, sourceY);
-  await page.mouse.down();
-  await page.mouse.move(
-    Math.round((sourceX + targetX) / 2),
-    Math.round((sourceY + targetY) / 2),
-    { steps: 5 }
-  );
-  await page.mouse.move(targetX, targetY, { steps: 8 });
-  await page.mouse.up();
+  await dragTouchLocator(page, sourceLocator, {
+    deltaX: targetX - startX,
+    deltaY: targetY - startY,
+    holdMs: options.holdMs ?? 220,
+    horizontalRatio: options.sourceHorizontalRatio ?? 0.5,
+    steps: options.steps ?? 10,
+    verticalRatio: options.sourceVerticalRatio ?? 0.5
+  });
 }
 
 async function exerciseMobileToastQueue(page) {
@@ -721,11 +765,59 @@ async function expectOverlayConsumesScroll(page, scrollSelector, label) {
   }), scrollSelector);
 
   await page.evaluate(selector => {
-    document.querySelector(selector)?.querySelector('[data-browser-smoke-overlay-filler]')?.remove();
+    const scroller = document.querySelector(selector);
+    if (!scroller) {
+      return;
+    }
+    scroller.querySelector('[data-browser-smoke-overlay-filler]')?.remove();
+    scroller.scrollTop = 0;
   }, scrollSelector);
 
   if (after.scrollerTop <= 20 || after.lockY !== before.lockY || after.bodyTop !== before.bodyTop) {
     throw new Error(`${label} should scroll inside the overlay without moving the page: ${JSON.stringify({ before, after })}`);
+  }
+}
+
+async function expectOverlayTouchPanScroll(page, touchLocator, scrollSelector, label) {
+  await page.locator(scrollSelector).waitFor({ state: 'visible', timeout: 5000 });
+  await touchLocator.waitFor({ state: 'visible', timeout: 5000 });
+  await page.evaluate(selector => {
+    const scroller = document.querySelector(selector);
+    if (!scroller || scroller.querySelector('[data-browser-smoke-overlay-filler]')) {
+      return;
+    }
+
+    const filler = document.createElement('div');
+    filler.dataset.browserSmokeOverlayFiller = 'true';
+    filler.style.flex = '0 0 900px';
+    filler.style.height = '900px';
+    filler.style.pointerEvents = 'none';
+    scroller.appendChild(filler);
+    scroller.scrollTop = 0;
+  }, scrollSelector);
+
+  const before = await expectMobileScrollLockActive(page, label);
+  await dragTouchLocator(page, touchLocator, { deltaY: -150, steps: 8 });
+  await page.waitForFunction(selector => (document.querySelector(selector)?.scrollTop || 0) > 20, scrollSelector, { timeout: 5000 });
+
+  const after = await page.evaluate(selector => ({
+    bodyTop: document.body.style.top,
+    lockY: Number.parseInt(document.body.dataset.mobileScrollLockY || '0', 10),
+    scrollerTop: document.querySelector(selector)?.scrollTop || 0,
+    windowScrollY: window.scrollY
+  }), scrollSelector);
+
+  await page.evaluate(selector => {
+    const scroller = document.querySelector(selector);
+    if (!scroller) {
+      return;
+    }
+    scroller.querySelector('[data-browser-smoke-overlay-filler]')?.remove();
+    scroller.scrollTop = 0;
+  }, scrollSelector);
+
+  if (after.scrollerTop <= 20 || after.lockY !== before.lockY || after.bodyTop !== before.bodyTop) {
+    throw new Error(`${label} should allow touch panning inside the overlay without moving the page: ${JSON.stringify({ before, after })}`);
   }
 }
 
@@ -1870,9 +1962,17 @@ async function runSmokeTest() {
     }
     await mobilePage.locator('#mobile-builder-toggle').click();
 
+    await primeMobilePageScroll(mobilePage);
     await mobilePage.locator('[data-mobile-table-action="fields-panel"]').click();
     await mobilePage.waitForFunction(() => document.body.classList.contains('mobile-filter-panel-open'), null, { timeout: 5000 });
     await expectElementWithinViewport(mobilePage, '#filter-side-panel', 'Mobile display and filters sheet');
+    await expectOverlayConsumesScroll(mobilePage, '#filter-panel-body', 'Mobile display and filters sheet');
+    await expectOverlayTouchPanScroll(
+      mobilePage,
+      mobilePage.locator('.fp-display-item', { hasText: 'Smoke Title' }),
+      '#filter-panel-body',
+      'Mobile display and filters sheet'
+    );
     await expectMinimumTapTarget(mobilePage, '#filter-panel-mobile-close', 'Mobile display and filters close button');
     const mobileFilterSheetMetrics = await mobilePage.locator('#filter-side-panel').evaluate(element => {
       const rect = element.getBoundingClientRect();
@@ -1900,7 +2000,7 @@ async function runSmokeTest() {
       throw new Error(`Display & Filters should not expose separate dot drag handles: found ${reorderHandleCount}`);
     }
 
-    await dragLocatorToLocator(
+    await dragTouchLocatorToLocator(
       mobilePage,
       mobilePage.locator('.fp-display-item', { hasText: 'Smoke Title' }),
       mobilePage.locator('.fp-display-item', { hasText: 'Smoke Status' }),
@@ -1922,7 +2022,7 @@ async function runSmokeTest() {
       }, { source: 'BrowserSmoke.seedMobileFilterGroups' });
     });
     await mobilePage.waitForFunction(() => document.querySelectorAll('.fp-field-group').length >= 3, null, { timeout: 5000 });
-    await dragLocatorToLocator(
+    await dragTouchLocatorToLocator(
       mobilePage,
       mobilePage.locator('.fp-field-group', { hasText: 'Smoke Title' }),
       mobilePage.locator('.fp-field-group', { hasText: 'Smoke Status' }),
@@ -1942,6 +2042,8 @@ async function runSmokeTest() {
 
     await mobilePage.locator('#filter-panel-mobile-close').click();
     await mobilePage.waitForFunction(() => !document.body.classList.contains('mobile-filter-panel-open'), null, { timeout: 5000 });
+    await expectMobileScrollLockReleased(mobilePage, 'Mobile display and filters sheet');
+    await cleanupMobilePageScroll(mobilePage);
     const closedMobileFilterDisplay = await mobilePage.locator('#filter-side-panel').evaluate(element => window.getComputedStyle(element).display);
     if (closedMobileFilterDisplay !== 'none') {
       throw new Error(`Closed mobile display and filters sheet should not sit above the table: ${closedMobileFilterDisplay}`);

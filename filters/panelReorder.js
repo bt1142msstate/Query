@@ -62,23 +62,16 @@ function findNearestReorderTarget(container, itemSelector, draggedElement, clien
   return nearest;
 }
 
-function getScrollableParent(element) {
-  let node = element?.parentElement || null;
-  while (node && node !== document.body) {
-    const style = window.getComputedStyle(node);
-    if (/(auto|scroll)/u.test(`${style.overflowY} ${style.overflow}`) && node.scrollHeight > node.clientHeight) {
-      return node;
-    }
-    node = node.parentElement;
-  }
-  return document.scrollingElement || document.documentElement;
-}
-
 function capturePointer(element, pointerId) {
   try {
-    element.setPointerCapture?.(pointerId);
+    if (typeof element.setPointerCapture !== 'function') {
+      return false;
+    }
+    element.setPointerCapture(pointerId);
+    return true;
   } catch (_) {
     // Pointer capture is optional in older embedded browsers.
+    return false;
   }
 }
 
@@ -119,13 +112,16 @@ function attachPointerReorder({
     const target = dragState.target;
     const insertAfter = dragState.insertAfter;
     const pointerId = dragState.pointerId;
+    const pointerCaptured = dragState.pointerCaptured;
     clearHoldTimer();
     dragState = null;
 
     element.classList.remove('fp-reorder-armed', 'fp-dragging');
     document.body.classList.remove('dragging-cursor');
     clearReorderIndicators(container, itemSelector);
-    releasePointer(element, pointerId);
+    if (pointerCaptured) {
+      releasePointer(element, pointerId);
+    }
 
     if (completedDrag && target && target !== element) {
       event?.preventDefault?.();
@@ -144,25 +140,26 @@ function attachPointerReorder({
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
-      lastY: event.clientY,
       isTouch,
       armed: !isTouch,
-      scrolling: false,
       dragging: false,
+      pointerCaptured: false,
       target: null,
       insertAfter: false,
-      holdTimerId: null,
-      scrollParent: isTouch ? getScrollableParent(container) : null
+      holdTimerId: null
     };
 
-    capturePointer(element, event.pointerId);
+    if (!isTouch) {
+      dragState.pointerCaptured = capturePointer(element, event.pointerId);
+    }
 
     if (isTouch) {
       dragState.holdTimerId = window.setTimeout(() => {
-        if (!dragState || dragState.pointerId !== event.pointerId || dragState.scrolling) {
+        if (!dragState || dragState.pointerId !== event.pointerId) {
           return;
         }
         dragState.armed = true;
+        dragState.pointerCaptured = capturePointer(element, event.pointerId) || dragState.pointerCaptured;
         dragState.holdTimerId = null;
         element.classList.add('fp-reorder-armed');
       }, TOUCH_HOLD_DELAY);
@@ -180,13 +177,11 @@ function attachPointerReorder({
     const threshold = dragState.isTouch ? TOUCH_DRAG_THRESHOLD : DESKTOP_DRAG_THRESHOLD;
 
     if (dragState.isTouch && !dragState.armed && !dragState.dragging) {
-      if (Math.abs(deltaY) > threshold) {
-        dragState.scrolling = true;
+      if (Math.abs(deltaY) > threshold && Math.abs(deltaY) >= Math.abs(deltaX)) {
         clearHoldTimer();
-        if (dragState.scrollParent) {
-          dragState.scrollParent.scrollTop += dragState.lastY - event.clientY;
-        }
-        dragState.lastY = event.clientY;
+        cleanup(event);
+      } else if (distance > threshold) {
+        clearHoldTimer();
       }
       return;
     }
@@ -195,6 +190,7 @@ function attachPointerReorder({
       if (distance < threshold) {
         return;
       }
+      dragState.pointerCaptured = capturePointer(element, event.pointerId) || dragState.pointerCaptured;
       dragState.dragging = true;
       element.classList.add('fp-dragging');
       document.body.classList.add('dragging-cursor');
