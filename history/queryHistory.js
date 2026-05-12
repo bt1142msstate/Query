@@ -252,9 +252,7 @@ async function fetchQueryStatus() {
     }
     
   } catch (e) {
-    if (e?.isRateLimited) {
-      return;
-    }
+    if (e?.isRateLimited || !isQueriesPanelOpen()) return;
     console.warn('Failed to fetch query status', e);
   }
 }
