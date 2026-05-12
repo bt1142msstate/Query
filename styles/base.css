@@ -442,6 +442,12 @@ body#page-body {
   padding: var(--header-height) 1.5rem 1.5rem;
 }
 
+html.mobile-overlay-scroll-locked,
+body.mobile-overlay-scroll-locked {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+
 /* Disable text selection across the UI for a smoother feel */
 * {
   box-sizing: border-box;
@@ -732,6 +738,7 @@ body.raised-ui-open #table-shell.table-shell-expanded {
     color: #dffcff;
     padding: 1rem;
     overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   #mobile-menu-dropdown::before {

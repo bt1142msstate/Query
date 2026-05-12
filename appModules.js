@@ -8,6 +8,7 @@ import './core/toast.js';
 import './ui/toast.js';
 import './core/clipboard.js';
 import './core/visibility.js';
+import './core/mobileScrollLock.js';
 import './core/backendApi.js';
 import './filters/fieldDefs.js';
 import './core/queryPrevalidation.js';
