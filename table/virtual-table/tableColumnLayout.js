@@ -24,8 +24,7 @@ function getAvailableTableWidth(container) {
 function shouldUseCompactMobileColumns() {
   return typeof window !== 'undefined'
     && typeof window.matchMedia === 'function'
-    && window.matchMedia('(max-width: 640px)').matches
-    && !document.body.classList.contains('table-expanded-open');
+    && window.matchMedia('(max-width: 640px)').matches;
 }
 
 function getResponsiveColumnWidth(width, isManualWidth = false) {

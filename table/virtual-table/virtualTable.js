@@ -131,8 +131,7 @@ function updateRenderedColumnWidth(fieldName, width) {
 function shouldUseCompactMobileTable() {
   return typeof window !== 'undefined'
     && typeof window.matchMedia === 'function'
-    && window.matchMedia('(max-width: 640px)').matches
-    && !document.body.classList.contains('table-expanded-open');
+    && window.matchMedia('(max-width: 640px)').matches;
 }
 
 function syncResizeModeUi() {
