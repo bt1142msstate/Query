@@ -575,12 +575,15 @@ async function dragTouchLocator(page, locator, options = {}) {
   const endY = Math.round(startY + (options.deltaY ?? 0));
   const steps = Math.max(1, Number(options.steps) || 6);
   const client = await page.context().newCDPSession(page);
+  let touchActive = false;
+  let previewSeen = false;
 
   try {
     await client.send('Input.dispatchTouchEvent', {
       touchPoints: [{ id: 1, x: startX, y: startY }],
       type: 'touchStart'
     });
+    touchActive = true;
 
     if (options.holdMs) {
       await new Promise(resolve => setTimeout(resolve, options.holdMs));
@@ -596,14 +599,36 @@ async function dragTouchLocator(page, locator, options = {}) {
         }],
         type: 'touchMove'
       });
+      if (options.expectPreview && index >= Math.ceil(steps / 2) && !previewSeen) {
+        previewSeen = await page.locator('.fp-drag-preview').isVisible();
+      }
+    }
+
+    if (options.expectPreview && !previewSeen) {
+      throw new Error('Expected touch drag to show a floating reorder preview');
     }
 
     await client.send('Input.dispatchTouchEvent', {
       touchPoints: [],
       type: 'touchEnd'
     });
+    touchActive = false;
   } finally {
+    if (touchActive) {
+      try {
+        await client.send('Input.dispatchTouchEvent', {
+          touchPoints: [],
+          type: 'touchEnd'
+        });
+      } catch (_) {
+        // The browser may already have cancelled the touch stream.
+      }
+    }
     await client.detach();
+  }
+
+  if (options.expectPreview) {
+    await page.locator('.fp-drag-preview').waitFor({ state: 'detached', timeout: 5000 });
   }
 }
 
@@ -625,7 +650,8 @@ async function dragTouchLocatorToLocator(page, sourceLocator, targetLocator, opt
   await dragTouchLocator(page, sourceLocator, {
     deltaX: targetX - startX,
     deltaY: targetY - startY,
-    holdMs: options.holdMs ?? 220,
+    expectPreview: options.expectPreview === true,
+    holdMs: options.holdMs ?? 180,
     horizontalRatio: options.sourceHorizontalRatio ?? 0.5,
     steps: options.steps ?? 10,
     verticalRatio: options.sourceVerticalRatio ?? 0.5
@@ -1804,14 +1830,102 @@ async function runSmokeTest() {
     await expectDarkSurface(mobilePage, '#templates-panel > h2', 'Mobile templates panel header');
     await expectDarkInput(mobilePage, '#templates-search-input', 'Mobile templates search input');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile templates panel');
+    const mobileTemplatesPanelMetrics = await mobilePage.locator('#templates-container').evaluate(container => {
+      const top = container.querySelector('.templates-browser-top');
+      const listShell = container.querySelector('.templates-browser-list-shell');
+      const actions = container.querySelector('.templates-sidebar-actions--library');
+      const actionButtons = Array.from(actions?.querySelectorAll('button') || []);
+      const containerRect = container.getBoundingClientRect();
+      const topRect = top?.getBoundingClientRect();
+      const listRect = listShell?.getBoundingClientRect();
+      const actionsRect = actions?.getBoundingClientRect();
+      const actionColumns = actions ? window.getComputedStyle(actions).gridTemplateColumns.split(' ').filter(Boolean).length : 0;
+      return {
+        actionColumns,
+        actionCount: actionButtons.length,
+        actionsHeight: actionsRect?.height || 0,
+        containerHeight: containerRect.height,
+        listHeight: listRect?.height || 0,
+        topHeight: topRect?.height || 0,
+        viewportHeight: window.innerHeight
+      };
+    });
+    if (
+      mobileTemplatesPanelMetrics.actionColumns < 3
+      || mobileTemplatesPanelMetrics.actionCount < 3
+      || mobileTemplatesPanelMetrics.actionsHeight > 72
+      || mobileTemplatesPanelMetrics.topHeight > mobileTemplatesPanelMetrics.viewportHeight * 0.38
+      || mobileTemplatesPanelMetrics.listHeight < mobileTemplatesPanelMetrics.viewportHeight * 0.3
+    ) {
+      throw new Error(`Mobile templates panel should keep controls compact and leave room for the template list: ${JSON.stringify(mobileTemplatesPanelMetrics)}`);
+    }
     await mobilePage.locator('#templates-list .templates-list-item').click();
     await mobilePage.locator('#templates-detail-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
     await expectVisibleCloseControlCount(mobilePage, '#templates-panel', 1, 'Mobile template detail overlay');
+    const mobileTemplateDetailMetrics = await mobilePage.locator('#templates-detail').evaluate(detail => {
+      const container = document.querySelector('#templates-container');
+      const body = detail.querySelector('.templates-detail-body');
+      const actions = detail.querySelector('.templates-detail-actions');
+      const close = detail.querySelector('#templates-detail-close-btn');
+      const detailRect = detail.getBoundingClientRect();
+      const containerRect = container?.getBoundingClientRect();
+      const bodyRect = body?.getBoundingClientRect();
+      const actionsRect = actions?.getBoundingClientRect();
+      const closeRect = close?.getBoundingClientRect();
+      const actionColumns = actions ? window.getComputedStyle(actions).gridTemplateColumns.split(' ').filter(Boolean).length : 0;
+      return {
+        actionColumns,
+        actionsHeight: actionsRect?.height || 0,
+        bodyHeight: bodyRect?.height || 0,
+        bottomGap: containerRect ? Math.abs(containerRect.bottom - detailRect.bottom) : 0,
+        closeHeight: closeRect?.height || 0,
+        closeWidth: closeRect?.width || 0,
+        topGap: containerRect ? Math.abs(detailRect.top - containerRect.top) : 0,
+        viewportHeight: window.innerHeight
+      };
+    });
+    if (
+      mobileTemplateDetailMetrics.topGap > 2
+      || mobileTemplateDetailMetrics.bottomGap > 2
+      || mobileTemplateDetailMetrics.bodyHeight < mobileTemplateDetailMetrics.viewportHeight * 0.36
+      || mobileTemplateDetailMetrics.actionsHeight > 128
+      || mobileTemplateDetailMetrics.actionColumns < 2
+      || mobileTemplateDetailMetrics.closeWidth < 40
+      || mobileTemplateDetailMetrics.closeHeight < 40
+    ) {
+      throw new Error(`Mobile template detail should be a full-height sheet with compact actions: ${JSON.stringify(mobileTemplateDetailMetrics)}`);
+    }
     await mobilePage.locator('#templates-detail-close-btn').click();
     await mobilePage.locator('#templates-detail-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
     await mobilePage.locator('#templates-manage-categories-btn').click();
     await mobilePage.locator('#templates-categories-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
     await expectVisibleCloseControlCount(mobilePage, '#templates-panel', 1, 'Mobile template categories overlay');
+    const mobileTemplateCategoriesMetrics = await mobilePage.locator('.templates-categories-dialog').evaluate(dialog => {
+      const container = document.querySelector('#templates-container');
+      const body = dialog.querySelector('.templates-categories-body');
+      const close = dialog.querySelector('#templates-categories-close-btn');
+      const dialogRect = dialog.getBoundingClientRect();
+      const containerRect = container?.getBoundingClientRect();
+      const bodyRect = body?.getBoundingClientRect();
+      const closeRect = close?.getBoundingClientRect();
+      return {
+        bodyHeight: bodyRect?.height || 0,
+        bottomGap: containerRect ? Math.abs(containerRect.bottom - dialogRect.bottom) : 0,
+        closeHeight: closeRect?.height || 0,
+        closeWidth: closeRect?.width || 0,
+        topGap: containerRect ? Math.abs(dialogRect.top - containerRect.top) : 0,
+        viewportHeight: window.innerHeight
+      };
+    });
+    if (
+      mobileTemplateCategoriesMetrics.topGap > 2
+      || mobileTemplateCategoriesMetrics.bottomGap > 2
+      || mobileTemplateCategoriesMetrics.bodyHeight < mobileTemplateCategoriesMetrics.viewportHeight * 0.45
+      || mobileTemplateCategoriesMetrics.closeWidth < 40
+      || mobileTemplateCategoriesMetrics.closeHeight < 40
+    ) {
+      throw new Error(`Mobile template categories should be a full-height sheet with a scrollable body: ${JSON.stringify(mobileTemplateCategoriesMetrics)}`);
+    }
     await mobilePage.locator('#templates-categories-close-btn').click();
     await mobilePage.locator('#templates-categories-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
 
@@ -2004,7 +2118,7 @@ async function runSmokeTest() {
       mobilePage,
       mobilePage.locator('.fp-display-item', { hasText: 'Smoke Title' }),
       mobilePage.locator('.fp-display-item', { hasText: 'Smoke Status' }),
-      { targetVerticalRatio: 0.85 }
+      { expectPreview: true, targetVerticalRatio: 0.85 }
     );
     await mobilePage.waitForFunction(async () => {
       const { QueryStateReaders } = await import('./core/queryState.js');
@@ -2026,7 +2140,7 @@ async function runSmokeTest() {
       mobilePage,
       mobilePage.locator('.fp-field-group', { hasText: 'Smoke Title' }),
       mobilePage.locator('.fp-field-group', { hasText: 'Smoke Status' }),
-      { targetVerticalRatio: 0.85 }
+      { expectPreview: true, targetVerticalRatio: 0.85 }
     );
     await mobilePage.waitForFunction(async () => {
       const { QueryStateReaders } = await import('./core/queryState.js');

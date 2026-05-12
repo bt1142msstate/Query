@@ -926,7 +926,7 @@
   border: 1px solid rgba(0, 0, 0, 0.08);
   overflow: hidden;
   cursor: grab;
-  touch-action: pan-y;
+  touch-action: none;
   user-select: none;
 }
 
@@ -1104,7 +1104,7 @@
   border: 1px solid rgba(148, 163, 184, 0.24);
   box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
   cursor: grab;
-  touch-action: pan-y;
+  touch-action: none;
   user-select: none;
 }
 
@@ -1178,8 +1178,21 @@
 
 .fp-display-item.fp-dragging,
 .fp-field-group.fp-dragging {
-  opacity: 0.6;
+  opacity: 0.32;
   cursor: grabbing;
+}
+
+.fp-drag-preview {
+  position: fixed !important;
+  left: 0;
+  top: 0;
+  z-index: calc(var(--z-modal-panel, 10030) + 10);
+  margin: 0 !important;
+  pointer-events: none;
+  opacity: 0.96;
+  cursor: grabbing;
+  transform-origin: top left;
+  box-shadow: 0 22px 42px rgba(15, 23, 42, 0.24), 0 0 0 2px rgba(15, 118, 110, 0.3) !important;
 }
 
 .fp-display-item.fp-reorder-armed,
@@ -1386,6 +1399,40 @@
     text-align: center;
   }
 
+  .fp-display-item {
+    grid-template-columns: 2rem minmax(0, 1fr) auto;
+    min-height: 3.15rem;
+    padding: 0.62rem 0.72rem;
+  }
+
+  .fp-display-rank {
+    width: 1.85rem;
+    height: 1.85rem;
+  }
+
+  .fp-display-actions {
+    gap: 0.18rem;
+  }
+
+  .fp-display-btn {
+    width: 2.35rem;
+    height: 2.35rem;
+  }
+
+  .fp-field-group {
+    border-radius: 0.9rem;
+  }
+
+  .fp-field-header {
+    min-height: 2.85rem;
+    padding: 0.65rem 0.78rem;
+  }
+
+  .fp-add-cond-btn {
+    min-height: 2.65rem;
+    padding: 0.65rem 0.78rem;
+  }
+
   .fp-cond-row {
     align-items: flex-start;
   }
@@ -1396,7 +1443,7 @@
   }
 
   .fp-cond-btn {
-    width: 2rem;
-    height: 2rem;
+    width: 2.35rem;
+    height: 2.35rem;
   }
 }

@@ -15,7 +15,9 @@ const DEFAULT_INTERACTIVE_SELECTOR = [
 
 const DESKTOP_DRAG_THRESHOLD = 5;
 const TOUCH_DRAG_THRESHOLD = 7;
-const TOUCH_HOLD_DELAY = 140;
+const TOUCH_HOLD_DELAY = 90;
+const EDGE_SCROLL_ZONE = 64;
+const MAX_EDGE_SCROLL_STEP = 18;
 
 function isInteractiveTarget(target, interactiveSelector = DEFAULT_INTERACTIVE_SELECTOR) {
   return Boolean(target?.closest?.(interactiveSelector));
@@ -60,6 +62,63 @@ function findNearestReorderTarget(container, itemSelector, draggedElement, clien
   });
 
   return nearest;
+}
+
+function getScrollableParent(element) {
+  let node = element?.parentElement || null;
+  while (node && node !== document.body) {
+    const style = window.getComputedStyle(node);
+    if (/(auto|scroll)/u.test(`${style.overflowY} ${style.overflow}`) && node.scrollHeight > node.clientHeight) {
+      return node;
+    }
+    node = node.parentElement;
+  }
+  return document.scrollingElement || document.documentElement;
+}
+
+function createDragPreview(element, rect) {
+  const preview = element.cloneNode(true);
+  preview.classList.add('fp-drag-preview');
+  preview.setAttribute('aria-hidden', 'true');
+  preview.style.width = `${rect.width}px`;
+  preview.style.height = `${rect.height}px`;
+  document.body.appendChild(preview);
+  return preview;
+}
+
+function updateDragPreview(dragState, event) {
+  if (!dragState.dragPreview) {
+    return;
+  }
+
+  const left = event.clientX - dragState.dragOffsetX;
+  const top = event.clientY - dragState.dragOffsetY;
+  dragState.dragPreview.style.transform = `translate3d(${Math.round(left)}px, ${Math.round(top)}px, 0)`;
+}
+
+function autoScrollWhileDragging(dragState, event) {
+  const scrollParent = dragState.scrollParent;
+  if (!scrollParent) {
+    return;
+  }
+
+  const isDocumentScroller = scrollParent === document.scrollingElement || scrollParent === document.documentElement;
+  const rect = isDocumentScroller
+    ? { top: 0, bottom: window.innerHeight }
+    : scrollParent.getBoundingClientRect();
+
+  let scrollStep = 0;
+  if (event.clientY < rect.top + EDGE_SCROLL_ZONE) {
+    const intensity = (rect.top + EDGE_SCROLL_ZONE - event.clientY) / EDGE_SCROLL_ZONE;
+    scrollStep = -Math.ceil(Math.min(1, intensity) * MAX_EDGE_SCROLL_STEP);
+  } else if (event.clientY > rect.bottom - EDGE_SCROLL_ZONE) {
+    const intensity = (event.clientY - (rect.bottom - EDGE_SCROLL_ZONE)) / EDGE_SCROLL_ZONE;
+    scrollStep = Math.ceil(Math.min(1, intensity) * MAX_EDGE_SCROLL_STEP);
+  }
+
+  if (scrollStep !== 0) {
+    scrollParent.scrollTop += scrollStep;
+  }
 }
 
 function capturePointer(element, pointerId) {
@@ -113,12 +172,14 @@ function attachPointerReorder({
     const insertAfter = dragState.insertAfter;
     const pointerId = dragState.pointerId;
     const pointerCaptured = dragState.pointerCaptured;
+    const dragPreview = dragState.dragPreview;
     clearHoldTimer();
     dragState = null;
 
     element.classList.remove('fp-reorder-armed', 'fp-dragging');
     document.body.classList.remove('dragging-cursor');
     clearReorderIndicators(container, itemSelector);
+    dragPreview?.remove?.();
     if (pointerCaptured) {
       releasePointer(element, pointerId);
     }
@@ -130,20 +191,28 @@ function attachPointerReorder({
   }
 
   element.addEventListener('pointerdown', event => {
-    if ((event.button ?? 0) !== 0 || isInteractiveTarget(event.target, interactiveSelector)) {
+    const isTouch = event.pointerType === 'touch' || event.pointerType === 'pen';
+    const startsOnInteractive = isInteractiveTarget(event.target, interactiveSelector);
+    if ((event.button ?? 0) !== 0 || (!isTouch && startsOnInteractive)) {
       return;
     }
 
     clearHoldTimer();
-    const isTouch = event.pointerType === 'touch' || event.pointerType === 'pen';
     dragState = {
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
+      lastY: event.clientY,
       isTouch,
+      startsOnInteractive,
       armed: !isTouch,
       dragging: false,
+      scrolling: false,
       pointerCaptured: false,
+      dragOffsetX: 0,
+      dragOffsetY: 0,
+      dragPreview: null,
+      scrollParent: null,
       target: null,
       insertAfter: false,
       holdTimerId: null
@@ -151,11 +220,14 @@ function attachPointerReorder({
 
     if (!isTouch) {
       dragState.pointerCaptured = capturePointer(element, event.pointerId);
+    } else {
+      dragState.pointerCaptured = capturePointer(element, event.pointerId);
+      dragState.scrollParent = getScrollableParent(container);
     }
 
-    if (isTouch) {
+    if (isTouch && !startsOnInteractive) {
       dragState.holdTimerId = window.setTimeout(() => {
-        if (!dragState || dragState.pointerId !== event.pointerId) {
+        if (!dragState || dragState.pointerId !== event.pointerId || dragState.scrolling) {
           return;
         }
         dragState.armed = true;
@@ -165,6 +237,23 @@ function attachPointerReorder({
       }, TOUCH_HOLD_DELAY);
     }
   });
+
+  function startDragging(event) {
+    if (!dragState || dragState.dragging) {
+      return;
+    }
+
+    const rect = element.getBoundingClientRect();
+    dragState.pointerCaptured = capturePointer(element, event.pointerId) || dragState.pointerCaptured;
+    dragState.dragging = true;
+    dragState.dragOffsetX = event.clientX - rect.left;
+    dragState.dragOffsetY = event.clientY - rect.top;
+    dragState.scrollParent = getScrollableParent(element);
+    dragState.dragPreview = createDragPreview(element, rect);
+    element.classList.add('fp-dragging');
+    document.body.classList.add('dragging-cursor');
+    updateDragPreview(dragState, event);
+  }
 
   element.addEventListener('pointermove', event => {
     if (!dragState || event.pointerId !== dragState.pointerId) {
@@ -178,8 +267,13 @@ function attachPointerReorder({
 
     if (dragState.isTouch && !dragState.armed && !dragState.dragging) {
       if (Math.abs(deltaY) > threshold && Math.abs(deltaY) >= Math.abs(deltaX)) {
+        dragState.scrolling = true;
         clearHoldTimer();
-        cleanup(event);
+        if (dragState.scrollParent) {
+          dragState.scrollParent.scrollTop += dragState.lastY - event.clientY;
+        }
+        dragState.lastY = event.clientY;
+        event.preventDefault();
       } else if (distance > threshold) {
         clearHoldTimer();
       }
@@ -190,13 +284,12 @@ function attachPointerReorder({
       if (distance < threshold) {
         return;
       }
-      dragState.pointerCaptured = capturePointer(element, event.pointerId) || dragState.pointerCaptured;
-      dragState.dragging = true;
-      element.classList.add('fp-dragging');
-      document.body.classList.add('dragging-cursor');
+      startDragging(event);
     }
 
     event.preventDefault();
+    updateDragPreview(dragState, event);
+    autoScrollWhileDragging(dragState, event);
     const target = findNearestReorderTarget(container, itemSelector, element, event.clientX, event.clientY);
     clearReorderIndicators(container, itemSelector);
 
