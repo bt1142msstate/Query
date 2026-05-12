@@ -75,6 +75,8 @@ class ModalManager {
       }
     });
 
+    window.addEventListener('resize', () => this.syncResponsivePanels());
+
     // Toggle button listeners
     // We assume buttons have data-target="panel-id" or are specific named buttons
     document.addEventListener('click', (e) => {
@@ -85,6 +87,18 @@ class ModalManager {
         if (targetId) this.closePanel(targetId);
       }
     });
+  }
+
+  isMobileViewport() {
+    return typeof window !== 'undefined'
+      && typeof window.matchMedia === 'function'
+      && window.matchMedia('(max-width: 640px)').matches;
+  }
+
+  syncResponsivePanels() {
+    if (!this.isMobileViewport()) {
+      this.closePanel('mobile-menu-dropdown');
+    }
   }
 
   /**
