@@ -769,6 +769,46 @@ async function dragTouchLocator(page, locator, options = {}) {
   }
 }
 
+async function longPressLocatorWithDomTouchEvents(locator, holdMs = 650) {
+  await locator.waitFor({ state: 'visible', timeout: 5000 });
+  await locator.evaluate(async (target, delay) => {
+    const rect = target.getBoundingClientRect();
+    const x = Math.round(rect.left + (rect.width / 2));
+    const y = Math.round(rect.top + (rect.height / 2));
+    const touch = {
+      clientX: x,
+      clientY: y,
+      force: 1,
+      identifier: 42,
+      pageX: x + window.scrollX,
+      pageY: y + window.scrollY,
+      radiusX: 1,
+      radiusY: 1,
+      rotationAngle: 0,
+      screenX: x,
+      screenY: y,
+      target
+    };
+    const dispatchTouchEvent = (type, touches, changedTouches) => {
+      const event = new Event(type, {
+        bubbles: true,
+        cancelable: true,
+        composed: true
+      });
+      Object.defineProperties(event, {
+        changedTouches: { value: changedTouches },
+        targetTouches: { value: touches },
+        touches: { value: touches }
+      });
+      target.dispatchEvent(event);
+    };
+
+    dispatchTouchEvent('touchstart', [touch], [touch]);
+    await new Promise(resolve => setTimeout(resolve, delay));
+    dispatchTouchEvent('touchend', [], [touch]);
+  }, holdMs);
+}
+
 async function dragTouchLocatorToLocator(page, sourceLocator, targetLocator, options = {}) {
   await sourceLocator.waitFor({ state: 'visible', timeout: 5000 });
   await targetLocator.waitFor({ state: 'visible', timeout: 5000 });
@@ -984,19 +1024,12 @@ async function expectOverlayTouchPanScroll(page, touchLocator, scrollSelector, l
   }
 }
 
-async function expectMobileTableContextMenu(page) {
-  const firstCell = page.locator('#example-table tbody tr[data-row-index="0"] td[data-col-index="0"]');
-  await firstCell.waitFor({ state: 'visible', timeout: 5000 });
-  await page.evaluate(() => window.getSelection?.()?.removeAllRanges?.());
-  await dragTouchLocator(page, firstCell, {
-    holdMs: 650,
-    steps: 1
-  });
+async function expectVisibleMobileTableContextMenu(page, label) {
   await page.locator('.tcm.tcm--visible').waitFor({ state: 'visible', timeout: 5000 });
 
   const selectedText = await page.evaluate(() => (window.getSelection?.()?.toString?.() || '').trim());
   if (selectedText) {
-    throw new Error(`Mobile table long-press should open the custom menu without selecting table text: "${selectedText.slice(0, 120)}"`);
+    throw new Error(`${label} should open the custom menu without selecting table text: "${selectedText.slice(0, 120)}"`);
   }
 
   const menuMetrics = await page.locator('.tcm.tcm--visible').evaluate(menu => {
@@ -1013,9 +1046,9 @@ async function expectMobileTableContextMenu(page) {
     };
   });
 
-  ['Sort Ascending', 'Add Filter', 'Add Post Filter', 'Copy Cell', 'Copy Row', 'Copy Column', 'Resize Column'].forEach(label => {
-    if (!menuMetrics.labels.includes(label)) {
-      throw new Error(`Mobile table context menu is missing "${label}": ${JSON.stringify(menuMetrics)}`);
+  ['Sort Ascending', 'Add Filter', 'Add Post Filter', 'Copy Cell', 'Copy Row', 'Copy Column', 'Resize Column'].forEach(expectedLabel => {
+    if (!menuMetrics.labels.includes(expectedLabel)) {
+      throw new Error(`${label} mobile table context menu is missing "${expectedLabel}": ${JSON.stringify(menuMetrics)}`);
     }
   });
 
@@ -1026,13 +1059,33 @@ async function expectMobileTableContextMenu(page) {
     || menuMetrics.right - menuMetrics.viewportWidth > 1
     || menuMetrics.bottom - menuMetrics.viewportHeight > 1
   ) {
-    throw new Error(`Mobile table context menu should open from long press within the viewport: ${JSON.stringify(menuMetrics)}`);
+    throw new Error(`${label} should open the mobile table context menu within the viewport: ${JSON.stringify(menuMetrics)}`);
   }
 
   await expectControlsNonSelectable(page, '.tcm.tcm--visible', 'Mobile table context menu controls');
   await expectMinimumTapTarget(page, '.tcm.tcm--visible .tcm-item', 'Mobile table context menu items');
+}
+
+async function closeMobileTableContextMenu(page) {
   await page.keyboard.press('Escape');
   await page.locator('.tcm').waitFor({ state: 'detached', timeout: 5000 });
+}
+
+async function expectMobileTableContextMenu(page) {
+  const firstCell = page.locator('#example-table tbody tr[data-row-index="0"] td[data-col-index="0"]');
+  await firstCell.waitFor({ state: 'visible', timeout: 5000 });
+  await page.evaluate(() => window.getSelection?.()?.removeAllRanges?.());
+  await dragTouchLocator(page, firstCell, {
+    holdMs: 650,
+    steps: 1
+  });
+  await expectVisibleMobileTableContextMenu(page, 'CDP touch long-press');
+  await closeMobileTableContextMenu(page);
+
+  await page.evaluate(() => window.getSelection?.()?.removeAllRanges?.());
+  await longPressLocatorWithDomTouchEvents(firstCell);
+  await expectVisibleMobileTableContextMenu(page, 'DOM touch long-press');
+  await closeMobileTableContextMenu(page);
 }
 
 async function seedLoadedResults(page, options = {}) {

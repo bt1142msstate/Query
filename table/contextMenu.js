@@ -19,7 +19,7 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
   let touchContextState = null;
   let suppressTableClickUntil = 0;
   const services = appServices;
-  const TOUCH_CONTEXT_DELAY = 520;
+  const TOUCH_CONTEXT_DELAY = 420;
   const TOUCH_CONTEXT_MOVE_TOLERANCE = 12;
 
   // ── Data helpers ────────────────────────────────────────────────────────────
@@ -497,26 +497,16 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
     touchContextState = null;
   }
 
-  function onPointerDown(e) {
-    const isTouch = e.pointerType === 'touch' || e.pointerType === 'pen';
-    if (!isTouch || isTableContextInteractiveTarget(e.target)) {
-      return;
-    }
-
-    const contextTarget = getContextTarget(e.target);
-    if (!contextTarget) {
-      return;
-    }
-
+  function startTouchContext({ clientX, clientY, pointerId, target }) {
     clearTouchContextState();
     touchContextState = {
       opened: false,
-      pointerId: e.pointerId,
-      startX: e.clientX,
-      startY: e.clientY,
-      target: contextTarget.targetCell,
+      pointerId,
+      startX: clientX,
+      startY: clientY,
+      target,
       timerId: window.setTimeout(() => {
-        if (!touchContextState || touchContextState.pointerId !== e.pointerId) {
+        if (!touchContextState || touchContextState.pointerId !== pointerId) {
           return;
         }
 
@@ -535,27 +525,105 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
     };
   }
 
-  function onPointerMove(e) {
-    if (!touchContextState || touchContextState.pointerId !== e.pointerId) {
+  function updateTouchContextMove(pointerId, clientX, clientY) {
+    if (!touchContextState || touchContextState.pointerId !== pointerId) {
       return;
     }
 
-    const deltaX = e.clientX - touchContextState.startX;
-    const deltaY = e.clientY - touchContextState.startY;
+    const deltaX = clientX - touchContextState.startX;
+    const deltaY = clientY - touchContextState.startY;
     if (Math.hypot(deltaX, deltaY) > TOUCH_CONTEXT_MOVE_TOLERANCE) {
       clearTouchContextState();
     }
   }
 
-  function onPointerEnd(e) {
-    if (!touchContextState || touchContextState.pointerId !== e.pointerId) {
-      return;
+  function finishTouchContext(pointerId) {
+    if (!touchContextState || touchContextState.pointerId !== pointerId) {
+      return false;
     }
-
     const opened = touchContextState.opened;
     clearTouchContextState();
     if (opened) {
       suppressTableClickUntil = Date.now() + 900;
+    }
+    return opened;
+  }
+
+  function onPointerDown(e) {
+    const isTouch = e.pointerType === 'touch' || e.pointerType === 'pen';
+    if (!isTouch || isTableContextInteractiveTarget(e.target)) {
+      return;
+    }
+
+    const contextTarget = getContextTarget(e.target);
+    if (!contextTarget) {
+      return;
+    }
+
+    startTouchContext({
+      clientX: e.clientX,
+      clientY: e.clientY,
+      pointerId: `pointer:${e.pointerId}`,
+      target: contextTarget.targetCell
+    });
+  }
+
+  function onPointerMove(e) {
+    updateTouchContextMove(`pointer:${e.pointerId}`, e.clientX, e.clientY);
+  }
+
+  function onPointerEnd(e) {
+    if (finishTouchContext(`pointer:${e.pointerId}`)) {
+      e.preventDefault();
+    }
+  }
+
+  function getChangedTouch(e) {
+    const touches = Array.from(e.changedTouches || []);
+    if (!touchContextState?.pointerId?.startsWith?.('touch:')) {
+      return touches[0] || null;
+    }
+
+    return touches.find(touch => `touch:${touch.identifier ?? 0}` === touchContextState.pointerId) || null;
+  }
+
+  function onTouchStart(e) {
+    if ((e.touches?.length || 0) !== 1 || isTableContextInteractiveTarget(e.target)) {
+      clearTouchContextState();
+      return;
+    }
+
+    const touch = getChangedTouch(e);
+    const target = touch?.target || e.target;
+    const contextTarget = getContextTarget(target);
+    if (!touch || !contextTarget) {
+      return;
+    }
+
+    startTouchContext({
+      clientX: touch.clientX,
+      clientY: touch.clientY,
+      pointerId: `touch:${touch.identifier ?? 0}`,
+      target: contextTarget.targetCell
+    });
+  }
+
+  function onTouchMove(e) {
+    const touch = getChangedTouch(e);
+    if (!touch) {
+      return;
+    }
+
+    updateTouchContextMove(`touch:${touch.identifier ?? 0}`, touch.clientX, touch.clientY);
+  }
+
+  function onTouchEnd(e) {
+    const touch = getChangedTouch(e);
+    if (!touch) {
+      return;
+    }
+
+    if (finishTouchContext(`touch:${touch.identifier ?? 0}`)) {
       e.preventDefault();
     }
   }
@@ -574,6 +642,10 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
   document.addEventListener('pointermove', onPointerMove, { passive: true });
   document.addEventListener('pointerup', onPointerEnd);
   document.addEventListener('pointercancel', onPointerEnd);
+  document.addEventListener('touchstart', onTouchStart, { passive: true });
+  document.addEventListener('touchmove', onTouchMove, { passive: true });
+  document.addEventListener('touchend', onTouchEnd, { passive: false });
+  document.addEventListener('touchcancel', onTouchEnd, { passive: false });
   document.addEventListener('click', onTableClickCapture, true);
 
   return { dismiss };
