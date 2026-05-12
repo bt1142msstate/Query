@@ -3212,6 +3212,9 @@ body.scene-fade-transition #query-app-shell {
   .tcm {
     min-width: min(18rem, calc(100vw - 1rem));
     max-width: calc(100vw - 1rem);
+    max-height: calc(100dvh - 1.5rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 0.35rem;
     border-radius: 14px;
   }
@@ -3236,5 +3239,38 @@ body.scene-fade-transition #query-app-shell {
 
   .tcm-hint {
     display: none;
+  }
+
+  body.table-resize-mode #example-table th.query-table-column-resize-target {
+    cursor: col-resize;
+    touch-action: none;
+  }
+
+  body.table-resize-mode #example-table th.query-table-column-resize-target .th-header-content {
+    min-height: 2.55rem;
+  }
+
+  body.table-resize-mode .th-resize-handle {
+    top: 0;
+    width: 2.75rem;
+    height: 100%;
+    min-height: 2.75rem;
+    touch-action: none;
+    z-index: 8;
+  }
+
+  body.table-resize-mode .th-resize-handle-left {
+    left: -0.45rem;
+  }
+
+  body.table-resize-mode .th-resize-handle-right {
+    right: -0.45rem;
+  }
+
+  body.table-resize-mode .th-resize-handle span {
+    width: 0.38rem;
+    min-height: 1.85rem;
+    background: linear-gradient(180deg, rgba(29, 78, 216, 0.42), rgba(37, 99, 235, 0.94));
+    box-shadow: 0 0 0 0.45rem rgba(37, 99, 235, 0.1), 0 0 18px rgba(37, 99, 235, 0.26);
   }
 }

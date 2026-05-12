@@ -10,6 +10,10 @@ export function createColumnResizeController(options = {}) {
     if (activeSession) {
       window.removeEventListener('pointermove', activeSession.onMove);
       window.removeEventListener('pointerup', activeSession.onUp);
+      window.removeEventListener('pointercancel', activeSession.onUp);
+      window.removeEventListener('touchmove', activeSession.onMove);
+      window.removeEventListener('touchend', activeSession.onUp);
+      window.removeEventListener('touchcancel', activeSession.onUp);
       if (activeSession.renderFrame) {
         cancelAnimationFrame(activeSession.renderFrame);
       }
@@ -26,6 +30,21 @@ export function createColumnResizeController(options = {}) {
     if (hadActiveSession) {
       services.renderVirtualTable?.();
     }
+  }
+
+  function getEventPoint(event) {
+    const touch = event.touches?.[0] || event.changedTouches?.[0] || null;
+    if (touch) {
+      return {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+      };
+    }
+
+    return {
+      clientX: event.clientX,
+      clientY: event.clientY
+    };
   }
 
   function schedulePreviewRender() {
@@ -58,23 +77,39 @@ export function createColumnResizeController(options = {}) {
     stop({ keepMode: true });
 
     const initialWidth = th.getBoundingClientRect().width;
-    const startX = event.clientX;
+    const startPoint = getEventPoint(event);
+    const startX = startPoint.clientX;
+    if (!Number.isFinite(startX)) {
+      return;
+    }
+
     document.body.classList.add('table-column-resizing');
 
     const onMove = moveEvent => {
-      const deltaX = moveEvent.clientX - startX;
+      moveEvent.preventDefault?.();
+      const movePoint = getEventPoint(moveEvent);
+      if (!Number.isFinite(movePoint.clientX)) {
+        return;
+      }
+
+      const deltaX = movePoint.clientX - startX;
       const signedDelta = edge === 'left' ? -deltaX : deltaX;
       services.setManualColumnWidth?.(fieldName, initialWidth + signedDelta);
       schedulePreviewRender();
     };
 
-    const onUp = () => {
+    const onUp = upEvent => {
+      upEvent?.preventDefault?.();
       stop({ keepMode: true });
     };
 
     activeSession = { onMove, onUp, renderFrame: 0 };
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp, { once: true });
+    window.addEventListener('pointercancel', onUp, { once: true });
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onUp, { once: true });
+    window.addEventListener('touchcancel', onUp, { once: true });
   }
 
   return {

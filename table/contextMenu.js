@@ -207,26 +207,120 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
     return menu;
   }
 
-  function positionMenu(menu, mouseX, mouseY) {
+  function getViewportBounds() {
+    const visualViewport = window.visualViewport;
+    if (visualViewport) {
+      const width = Math.min(visualViewport.width, window.innerWidth);
+      const height = Math.min(visualViewport.height, window.innerHeight);
+      return {
+        bottom: height,
+        height,
+        left: 0,
+        right: width,
+        top: 0,
+        width
+      };
+    }
+
+    return {
+      bottom: window.innerHeight,
+      height: window.innerHeight,
+      left: 0,
+      right: window.innerWidth,
+      top: 0,
+      width: window.innerWidth
+    };
+  }
+
+  function clampMenuCoordinate(value, min, max) {
+    return Math.max(min, Math.min(value, Math.max(min, max)));
+  }
+
+  function nudgeMenuIntoLayoutViewport(menu, pad) {
+    const rect = menu.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    let deltaX = 0;
+    let deltaY = 0;
+
+    if (rect.right > viewportWidth - pad) {
+      deltaX = viewportWidth - pad - rect.right;
+    }
+    if (rect.left + deltaX < pad) {
+      deltaX += pad - (rect.left + deltaX);
+    }
+    if (rect.bottom > viewportHeight - pad) {
+      deltaY = viewportHeight - pad - rect.bottom;
+    }
+    if (rect.top + deltaY < pad) {
+      deltaY += pad - (rect.top + deltaY);
+    }
+
+    if (deltaX || deltaY) {
+      const currentLeft = Number.parseFloat(menu.style.left || '0') || 0;
+      const currentTop = Number.parseFloat(menu.style.top || '0') || 0;
+      menu.style.left = `${currentLeft + deltaX}px`;
+      menu.style.top = `${currentTop + deltaY}px`;
+    }
+  }
+
+  function positionMenu(menu, mouseX, mouseY, options = {}) {
     // Append off-screen first so we can measure its natural size
+    const wasHidden = menu.hidden;
+    const hadHiddenClass = menu.classList.contains('hidden');
+    const previousVisibility = menu.style.visibility;
+    const previousPointerEvents = menu.style.pointerEvents;
+    const previousTransform = menu.style.transform;
+    menu.hidden = false;
+    menu.classList.remove('hidden');
+    menu.style.visibility = 'hidden';
+    menu.style.pointerEvents = 'none';
+    menu.style.transform = 'none';
     menu.style.left = '-9999px';
     menu.style.top  = '-9999px';
+    menu.style.removeProperty('max-height');
+    menu.style.removeProperty('overflow-y');
     document.body.appendChild(menu);
 
+    const bounds = getViewportBounds();
+    const isTouchMenu = options.source === 'touch';
+    const pad = isTouchMenu ? 12 : 8;
+    const maxHeight = Math.max(160, bounds.height - (pad * 2));
+    menu.style.maxHeight = `${maxHeight}px`;
+    menu.style.overflowY = 'auto';
+
     const { width, height } = menu.getBoundingClientRect();
-    const PAD = 8;
-    const vw  = window.innerWidth;
-    const vh  = window.innerHeight;
+    const minLeft = bounds.left + pad;
+    const maxLeft = bounds.right - width - pad;
+    const minTop = bounds.top + pad;
+    const maxTop = bounds.bottom - height - pad;
+    const fallbackX = bounds.left + (bounds.width / 2);
+    const fallbackY = bounds.top + (bounds.height / 2);
+    const anchorX = Number.isFinite(mouseX) && mouseX > 0 ? mouseX : fallbackX;
+    const anchorY = Number.isFinite(mouseY) && mouseY > 0 ? mouseY : fallbackY;
 
-    let left = mouseX;
-    let top  = mouseY;
-    if (left + width  > vw - PAD) left = vw - width  - PAD;
-    if (top  + height > vh - PAD) top  = vh - height - PAD;
-    if (left < PAD) left = PAD;
-    if (top  < PAD) top  = PAD;
+    let left = isTouchMenu ? anchorX - (width / 2) : anchorX;
+    let top = anchorY;
+    if (isTouchMenu) {
+      const touchGap = 14;
+      const belowTop = anchorY + touchGap;
+      const aboveTop = anchorY - height - touchGap;
+      top = belowTop + height <= bounds.bottom - pad ? belowTop : aboveTop;
+    }
 
+    left = clampMenuCoordinate(left, minLeft, maxLeft);
+    top = clampMenuCoordinate(top, minTop, maxTop);
     menu.style.left = `${left}px`;
     menu.style.top  = `${top}px`;
+    nudgeMenuIntoLayoutViewport(menu, pad);
+    const finalLeft = Number.parseFloat(menu.style.left || `${left}`) || left;
+    const finalTop = Number.parseFloat(menu.style.top || `${top}`) || top;
+    menu.style.transformOrigin = `${clampMenuCoordinate(anchorX - finalLeft, 0, width)}px ${clampMenuCoordinate(anchorY - finalTop, 0, height)}px`;
+    menu.style.visibility = previousVisibility;
+    menu.style.pointerEvents = previousPointerEvents;
+    menu.style.transform = previousTransform;
+    menu.hidden = wasHidden;
+    menu.classList.toggle('hidden', hadHiddenClass);
   }
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────────
@@ -468,7 +562,7 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
     if (options.source === 'touch') {
       menu.classList.add('tcm--touch');
     }
-    positionMenu(menu, mouseX, mouseY);
+    positionMenu(menu, mouseX, mouseY, { source: options.source });
     menuEl = menu;
     VisibilityUtils.show([menu], {
       ariaHidden: false,
