@@ -351,6 +351,8 @@
   display: grid;
   gap: 0.9rem;
   overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   align-content: start;
   min-height: 0;
   padding-right: 0.15rem;
@@ -533,6 +535,8 @@
   grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
   gap: 0.85rem;
   overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   align-content: start;
   min-height: 0;
   padding-right: 0.15rem;
@@ -616,6 +620,9 @@
   grid-template-columns: minmax(0, 1.2fr) minmax(18rem, 0.8fr);
   gap: 1rem;
   min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .templates-category-card {
@@ -819,6 +826,8 @@
   gap: 0.9rem;
   min-height: 0;
   overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding-right: 0.15rem;
 }
 
@@ -947,6 +956,8 @@
   max-height: 11rem;
   min-height: 2.9rem;
   overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   align-content: start;
   padding-right: 0.15rem;
 }
@@ -1047,9 +1058,7 @@
   .templates-list,
   .templates-category-list,
   .templates-detail,
-  .templates-detail-body,
-  .template-category-assignment,
-  .templates-categories-body {
+  .template-category-assignment {
     max-height: none;
     overflow: visible;
   }
