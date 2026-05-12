@@ -74,6 +74,22 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
     return td.getAttribute('data-tooltip') || td.textContent || '';
   }
 
+  function isNodeInsideTable(node) {
+    const element = node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
+    return Boolean(element?.closest?.('#example-table'));
+  }
+
+  function clearTableTextSelection() {
+    const selection = window.getSelection?.();
+    if (!selection?.rangeCount) {
+      return;
+    }
+
+    if (isNodeInsideTable(selection.anchorNode) || isNodeInsideTable(selection.focusNode)) {
+      selection.removeAllRanges();
+    }
+  }
+
   // ── SVG icons ────────────────────────────────────────────────────────────────
 
   const CELL_ICON = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -313,6 +329,9 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
     if (!contextTarget) return false;
 
     dismiss();
+    if (options.source === 'touch') {
+      clearTableTextSelection();
+    }
 
     const {
       bodyCell,
@@ -463,7 +482,12 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
   function onContextMenu(e) {
     if (!getContextTarget(e.target)) return;
     e.preventDefault();
-    openContextMenuForTarget(e.target, e.clientX, e.clientY);
+    const source = e.pointerType === 'touch'
+      || e.pointerType === 'pen'
+      || e.sourceCapabilities?.firesTouchEvents
+      ? 'touch'
+      : 'mouse';
+    openContextMenuForTarget(e.target, e.clientX, e.clientY, { source });
   }
 
   function clearTouchContextState() {
