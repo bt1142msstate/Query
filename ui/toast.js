@@ -7,7 +7,9 @@ import {
 
 (() => {
   const TOAST_CONTAINER_ID = 'toast-container';
-  const MAX_VISIBLE_TOASTS = 4;
+  const DESKTOP_MAX_VISIBLE_TOASTS = 4;
+  const MOBILE_MAX_VISIBLE_TOASTS = 1;
+  const MOBILE_TOAST_QUERY = '(max-width: 640px)';
   const DEFAULT_DURATION = 3000;
   const EXIT_DURATION = 180;
   const TYPE_CONFIG = {
@@ -189,6 +191,12 @@ import {
     return total;
   }
 
+  function getMaxVisibleToasts() {
+    return window.matchMedia?.(MOBILE_TOAST_QUERY)?.matches
+      ? MOBILE_MAX_VISIBLE_TOASTS
+      : DESKTOP_MAX_VISIBLE_TOASTS;
+  }
+
   function findPendingToast(key) {
     return pendingToasts.find((entry) => entry.key === key) || null;
   }
@@ -253,7 +261,7 @@ import {
       return;
     }
 
-    while (pendingToasts.length > 0 && getVisibleToastCount() < MAX_VISIBLE_TOASTS) {
+    while (pendingToasts.length > 0 && getVisibleToastCount() < getMaxVisibleToasts()) {
       const nextEntry = pendingToasts.shift();
       activateToast(nextEntry, container);
     }
@@ -369,7 +377,7 @@ import {
     bindToastEvents(entry);
     updateToastCount(entry);
 
-    if (getVisibleToastCount() >= MAX_VISIBLE_TOASTS) {
+    if (getVisibleToastCount() >= getMaxVisibleToasts()) {
       pendingToasts.push(entry);
       return element;
     }

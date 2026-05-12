@@ -11,7 +11,6 @@ import {
 } from './filterValueUi.js';
 import { appServices } from '../core/appServices.js';
 import { appUiActions, registerAppUiActionDependencies } from '../core/appUiActions.js';
-import { DragUtils } from '../core/dragUtils.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 import { showToastMessage } from '../core/toast.js';
@@ -19,6 +18,7 @@ import { OperatorLabels } from '../core/operatorLabels.js';
 import { Icons } from '../core/icons.js';
 import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
 import { fieldDefs } from './fieldDefs.js';
+import { attachPointerReorder } from './panelReorder.js';
 import { DOM } from '../core/domCache.js';
 
 const FilterSidePanel = (function () {
@@ -26,8 +26,6 @@ const FilterSidePanel = (function () {
     const uiActions = appUiActions;
     let currentViewMode = 'both';
     const VIEW_MODES = new Set(['both', 'filters', 'display']);
-    const DISPLAY_REORDER_MIME = 'application/x-query-display-index';
-    const FILTER_REORDER_MIME = 'application/x-query-filter-field';
     let shellResizeObserver = null;
     let unsubscribeQueryState = null;
     const { getDisplayedFields, getActiveFilters } = QueryStateReaders;
@@ -233,6 +231,42 @@ const FilterSidePanel = (function () {
         return true;
     }
 
+    function moveDisplayedFieldRelativeToTarget(draggedItem, targetItem, insertAfter) {
+        const fromIndex = Number.parseInt(draggedItem?.dataset?.index || '', 10);
+        const targetIndex = Number.parseInt(targetItem?.dataset?.index || '', 10);
+        if (!Number.isInteger(fromIndex) || !Number.isInteger(targetIndex) || fromIndex === targetIndex) {
+            return false;
+        }
+
+        const nextIndex = insertAfter
+            ? (fromIndex < targetIndex ? targetIndex : targetIndex + 1)
+            : (fromIndex < targetIndex ? targetIndex - 1 : targetIndex);
+
+        return moveDisplayedField(fromIndex, nextIndex, 'FilterSidePanel.pointerDragDisplayedField');
+    }
+
+    function moveFilterGroupRelativeToTarget(draggedField, targetField, insertAfter) {
+        if (!draggedField || !targetField || draggedField === targetField) {
+            return false;
+        }
+
+        const order = Object.keys(getActiveFilters());
+        const fromIndex = order.indexOf(draggedField);
+        if (fromIndex === -1 || !order.includes(targetField)) {
+            return false;
+        }
+
+        order.splice(fromIndex, 1);
+        const targetIndex = order.indexOf(targetField);
+        order.splice(targetIndex + (insertAfter ? 1 : 0), 0, draggedField);
+
+        QueryChangeManager.reorderFilterGroups(order, {
+            source: 'FilterSidePanel.pointerDragFilterGroups'
+        });
+        uiActions.updateQueryJson();
+        return true;
+    }
+
     function removeDisplayedFieldAt(index) {
         const fields = getDisplayedFields();
         const fieldName = fields[index];
@@ -374,76 +408,18 @@ const FilterSidePanel = (function () {
             item.className = 'fp-display-item';
             item.dataset.index = String(index);
             item.draggable = false;
-
-            item.addEventListener('dragstart', event => {
-                item.classList.add('fp-dragging');
-                event.dataTransfer.setData(DISPLAY_REORDER_MIME, String(index));
-                event.dataTransfer.effectAllowed = 'move';
-            });
-
-            item.addEventListener('dragend', () => {
-                item.draggable = false;
-                item.classList.remove('fp-dragging');
-                list.querySelectorAll('.fp-display-item').forEach(entry => {
-                    entry.classList.remove('fp-drag-over-top', 'fp-drag-over-bottom');
-                });
-            });
-
-            item.addEventListener('dragover', event => {
-                if (!DragUtils.hasDragType(event, DISPLAY_REORDER_MIME)) {
-                    return;
+            attachPointerReorder({
+                element: item,
+                container: list,
+                itemSelector: '.fp-display-item',
+                onMove: (targetItem, insertAfter) => {
+                    moveDisplayedFieldRelativeToTarget(item, targetItem, insertAfter);
                 }
-                event.preventDefault();
-                const rect = item.getBoundingClientRect();
-                const isTopHalf = event.clientY < rect.top + rect.height / 2;
-                item.classList.toggle('fp-drag-over-top', isTopHalf);
-                item.classList.toggle('fp-drag-over-bottom', !isTopHalf);
-            });
-
-            item.addEventListener('dragleave', () => {
-                item.classList.remove('fp-drag-over-top', 'fp-drag-over-bottom');
-            });
-
-            item.addEventListener('drop', event => {
-                if (!DragUtils.hasDragType(event, DISPLAY_REORDER_MIME)) {
-                    return;
-                }
-                event.preventDefault();
-                item.classList.remove('fp-drag-over-top', 'fp-drag-over-bottom');
-
-                const fromIndex = Number.parseInt(event.dataTransfer.getData(DISPLAY_REORDER_MIME), 10);
-                if (!Number.isInteger(fromIndex) || fromIndex === index) {
-                    return;
-                }
-
-                const rect = item.getBoundingClientRect();
-                const isTopHalf = event.clientY < rect.top + rect.height / 2;
-                const targetIndex = isTopHalf
-                    ? (fromIndex < index ? index - 1 : index)
-                    : (fromIndex < index ? index : index + 1);
-
-                moveDisplayedField(fromIndex, targetIndex, 'FilterSidePanel.dragDisplayedField');
             });
 
             const rank = document.createElement('span');
             rank.className = 'fp-display-rank';
             rank.textContent = String(index + 1);
-
-            const dragHandle = document.createElement('button');
-            dragHandle.type = 'button';
-            dragHandle.className = 'fp-display-drag';
-            dragHandle.title = 'Drag to reorder';
-            dragHandle.setAttribute('aria-label', `Drag to reorder ${field}`);
-            dragHandle.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>`;
-            dragHandle.addEventListener('mousedown', () => {
-                item.draggable = true;
-            });
-            dragHandle.addEventListener('mouseup', () => {
-                item.draggable = false;
-            });
-            dragHandle.addEventListener('mouseleave', () => {
-                item.draggable = false;
-            });
 
             const name = document.createElement('span');
             name.className = 'fp-display-name';
@@ -481,7 +457,6 @@ const FilterSidePanel = (function () {
             }
 
             item.appendChild(rank);
-            item.appendChild(dragHandle);
             item.appendChild(name);
             item.appendChild(controls);
 
@@ -505,78 +480,13 @@ const FilterSidePanel = (function () {
     }
 
     function attachFilterGroupDragHandlers(group, field, container) {
-        group.addEventListener('dragstart', (e) => {
-            e.dataTransfer.setData(FILTER_REORDER_MIME, field);
-            e.dataTransfer.effectAllowed = 'move';
-            setTimeout(() => group.classList.add('fp-dragging'), 0);
-        });
-
-        group.addEventListener('dragend', () => {
-            group.removeAttribute('draggable');
-            group.classList.remove('fp-dragging');
-            container.querySelectorAll('.fp-field-group').forEach(item => {
-                item.classList.remove('fp-drag-over-top', 'fp-drag-over-bottom');
-            });
-        });
-
-        group.addEventListener('dragover', (e) => {
-            if (!DragUtils.hasDragType(e, FILTER_REORDER_MIME)) {
-                return;
+        attachPointerReorder({
+            element: group,
+            container,
+            itemSelector: '.fp-field-group',
+            onMove: (targetGroup, insertAfter) => {
+                moveFilterGroupRelativeToTarget(field, targetGroup?.dataset?.field || '', insertAfter);
             }
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-
-            const rect = group.getBoundingClientRect();
-            const midY = rect.top + rect.height / 2;
-            if (e.clientY < midY) {
-                group.classList.add('fp-drag-over-top');
-                group.classList.remove('fp-drag-over-bottom');
-            } else {
-                group.classList.add('fp-drag-over-bottom');
-                group.classList.remove('fp-drag-over-top');
-            }
-        });
-
-        group.addEventListener('dragleave', () => {
-            group.classList.remove('fp-drag-over-top', 'fp-drag-over-bottom');
-        });
-
-        group.addEventListener('drop', (e) => {
-            if (!DragUtils.hasDragType(e, FILTER_REORDER_MIME)) {
-                return;
-            }
-            e.preventDefault();
-            group.classList.remove('fp-drag-over-top', 'fp-drag-over-bottom');
-
-            const draggedField = e.dataTransfer.getData(FILTER_REORDER_MIME);
-            if (!draggedField || draggedField === field) return;
-
-            const draggedGroup = container.querySelector(`.fp-field-group[data-field="${CSS.escape(draggedField)}"]`);
-            if (!draggedGroup) return;
-
-            const rect = group.getBoundingClientRect();
-            const midY = rect.top + rect.height / 2;
-
-            if (e.clientY < midY) {
-                container.insertBefore(draggedGroup, group);
-            } else {
-                container.insertBefore(draggedGroup, group.nextSibling);
-            }
-
-            const newActiveFilters = {};
-            for (const child of container.children) {
-                if (child.classList.contains('fp-field-group')) {
-                    const childField = child.dataset.field;
-                    if (childField && getActiveFilters()[childField]) {
-                        newActiveFilters[childField] = getActiveFilters()[childField];
-                    }
-                }
-            }
-
-            QueryChangeManager.reorderFilterGroups(Object.keys(newActiveFilters), {
-                source: 'FilterSidePanel.reorderGroups'
-            });
-            uiActions.updateQueryJson();
         });
     }
 
@@ -590,19 +500,10 @@ const FilterSidePanel = (function () {
         const fieldHeader = document.createElement('div');
         fieldHeader.className = 'fp-field-header';
 
-        const dragHandle = document.createElement('span');
-        dragHandle.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>`;
-        dragHandle.className = 'fp-drag-handle';
-        dragHandle.title = 'Drag to reorder';
-        dragHandle.addEventListener('mousedown', () => group.setAttribute('draggable', 'true'));
-        dragHandle.addEventListener('mouseup', () => group.removeAttribute('draggable'));
-        dragHandle.addEventListener('mouseleave', () => group.removeAttribute('draggable'));
-
         const nameSpan = document.createElement('span');
         nameSpan.className = 'fp-field-name';
         nameSpan.textContent = field;
 
-        fieldHeader.appendChild(dragHandle);
         fieldHeader.appendChild(nameSpan);
         group.appendChild(fieldHeader);
 
