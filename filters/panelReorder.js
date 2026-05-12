@@ -191,20 +191,18 @@ function attachPointerReorder({
   }
 
   element.addEventListener('pointerdown', event => {
-    const isTouch = event.pointerType === 'touch' || event.pointerType === 'pen';
-    const startsOnInteractive = isInteractiveTarget(event.target, interactiveSelector);
-    if ((event.button ?? 0) !== 0 || (!isTouch && startsOnInteractive)) {
+    if ((event.button ?? 0) !== 0 || isInteractiveTarget(event.target, interactiveSelector)) {
       return;
     }
 
     clearHoldTimer();
+    const isTouch = event.pointerType === 'touch' || event.pointerType === 'pen';
     dragState = {
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
       lastY: event.clientY,
       isTouch,
-      startsOnInteractive,
       armed: !isTouch,
       dragging: false,
       scrolling: false,
@@ -225,7 +223,7 @@ function attachPointerReorder({
       dragState.scrollParent = getScrollableParent(container);
     }
 
-    if (isTouch && !startsOnInteractive) {
+    if (isTouch) {
       dragState.holdTimerId = window.setTimeout(() => {
         if (!dragState || dragState.pointerId !== event.pointerId || dragState.scrolling) {
           return;

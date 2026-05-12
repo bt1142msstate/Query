@@ -1,0 +1,96 @@
+/* Final interaction guardrails. Keep after feature styles in app.css. */
+:where(
+  button,
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  a[href],
+  summary,
+  [role="button"],
+  .collapse-btn,
+  .mobile-menu-item,
+  .mobile-table-action,
+  .mobile-builder-toggle,
+  .table-toolbar-btn,
+  .th-insert-button,
+  .templates-primary-btn,
+  .templates-secondary-btn,
+  .templates-danger-btn,
+  .templates-categories-close,
+  .templates-list-item,
+  .templates-list-pin-btn,
+  .pinned-template-bubble,
+  .history-book-summary,
+  .history-monitor-tab,
+  .history-monitor-close,
+  .history-expand-btn,
+  .load-query-btn,
+  .rerun-query-btn,
+  .stop-query-btn,
+  .filter-panel-mobile-close,
+  .fp-icon-btn,
+  .fp-display-item,
+  .fp-display-btn,
+  .fp-display-insert-btn,
+  .fp-field-group,
+  .fp-cond-btn,
+  .fp-add-cond-btn,
+  .post-filter-dialog__close,
+  .post-filter-add-btn,
+  .export-dialog__close,
+  .export-action-btn
+) {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -ms-user-select: none !important;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+
+:where(
+  button,
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  a[href],
+  summary,
+  [role="button"]
+) {
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+:where(
+  button,
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  a[href],
+  summary,
+  [role="button"]
+) :where(*) {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -ms-user-select: none !important;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+
+:where(
+  button,
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  a[href],
+  summary,
+  [role="button"]
+)::selection,
+:where(
+  button,
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  a[href],
+  summary,
+  [role="button"]
+) :where(*)::selection {
+  background: transparent;
+}
