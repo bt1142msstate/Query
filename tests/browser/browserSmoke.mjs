@@ -1037,9 +1037,11 @@ async function expectVisibleMobileTableContextMenu(page, label) {
     return {
       bottom: rect.bottom,
       className: menu.className,
+      clientHeight: menu.clientHeight,
       labels: Array.from(menu.querySelectorAll('.tcm-label')).map(label => (label.textContent || '').trim()),
       left: rect.left,
       right: rect.right,
+      scrollHeight: menu.scrollHeight,
       top: rect.top,
       viewportHeight: window.innerHeight,
       viewportWidth: window.innerWidth
@@ -1052,12 +1054,14 @@ async function expectVisibleMobileTableContextMenu(page, label) {
     }
   });
 
+  const viewportPad = 6;
   if (
     !String(menuMetrics.className || '').includes('tcm--touch')
-    || menuMetrics.left < -1
-    || menuMetrics.top < -1
-    || menuMetrics.right - menuMetrics.viewportWidth > 1
-    || menuMetrics.bottom - menuMetrics.viewportHeight > 1
+    || menuMetrics.left < viewportPad
+    || menuMetrics.top < viewportPad
+    || menuMetrics.right > menuMetrics.viewportWidth - viewportPad
+    || menuMetrics.bottom > menuMetrics.viewportHeight - viewportPad
+    || menuMetrics.clientHeight > menuMetrics.viewportHeight - (viewportPad * 2)
   ) {
     throw new Error(`${label} should open the mobile table context menu within the viewport: ${JSON.stringify(menuMetrics)}`);
   }
@@ -1086,6 +1090,24 @@ async function expectMobileTableContextMenu(page) {
   await longPressLocatorWithDomTouchEvents(firstCell);
   await expectVisibleMobileTableContextMenu(page, 'DOM touch long-press');
   await closeMobileTableContextMenu(page);
+
+  await page.locator('#table-container').evaluate(container => {
+    container.scrollLeft = container.scrollWidth;
+  });
+  const rightEdgeCell = page.locator('#example-table tbody tr[data-row-index="0"] td[data-col-index="2"]');
+  await rightEdgeCell.waitFor({ state: 'visible', timeout: 5000 });
+  await page.evaluate(() => window.getSelection?.()?.removeAllRanges?.());
+  await dragTouchLocator(page, rightEdgeCell, {
+    holdMs: 650,
+    horizontalRatio: 0.95,
+    steps: 1,
+    verticalRatio: 0.8
+  });
+  await expectVisibleMobileTableContextMenu(page, 'Right-edge touch long-press');
+  await closeMobileTableContextMenu(page);
+  await page.locator('#table-container').evaluate(container => {
+    container.scrollLeft = 0;
+  });
 }
 
 async function seedLoadedResults(page, options = {}) {
@@ -1549,6 +1571,80 @@ async function exerciseColumnResizeInteraction(page) {
   await page.evaluate(async () => {
     const { appServices } = await import('./core/appServices.js');
     appServices.clearColumnResizeMode?.();
+  });
+}
+
+async function expectMobileColumnResizeInteraction(page) {
+  await page.evaluate(async () => {
+    const { appServices } = await import('./core/appServices.js');
+    appServices.setManualColumnWidth?.('Smoke Title', 96);
+    appServices.renderVirtualTable?.();
+  });
+
+  const titleHeader = page.locator('#example-table th[data-sort-field="Smoke Title"]').first();
+  const firstCell = page.locator('#example-table tbody tr[data-row-index="0"] td[data-col-index="0"]');
+  await titleHeader.waitFor({ state: 'visible', timeout: 5000 });
+  await firstCell.waitFor({ state: 'visible', timeout: 5000 });
+
+  await longPressLocatorWithDomTouchEvents(firstCell);
+  await expectVisibleMobileTableContextMenu(page, 'Mobile resize action long-press');
+  await page.locator('.tcm.tcm--visible .tcm-item', { hasText: 'Resize Column' }).click();
+  await page.waitForFunction(() => document.body.classList.contains('table-resize-mode'), null, { timeout: 5000 });
+
+  const readMetrics = () => page.evaluate(() => {
+    const titleHeaderEl = document.querySelector('#example-table th[data-sort-field="Smoke Title"]');
+    const titleRowEl = document.querySelector('#example-table tbody tr[data-row-index="0"]');
+    const titleCellEl = titleRowEl?.querySelector('td[data-col-index="0"]');
+    const tableEl = document.querySelector('#example-table');
+    return {
+      cellWidth: Math.round(titleCellEl?.getBoundingClientRect().width || 0),
+      headerWidth: Math.round(titleHeaderEl?.getBoundingClientRect().width || 0),
+      resizeModeActive: document.body.classList.contains('table-resize-mode'),
+      rowWidth: Math.round(titleRowEl?.getBoundingClientRect().width || 0),
+      tableWidth: Math.round(tableEl?.getBoundingClientRect().width || 0)
+    };
+  });
+
+  const beforeMetrics = await readMetrics();
+  const resizeDelta = 72;
+  await dragTouchLocator(page, titleHeader, {
+    deltaX: resizeDelta,
+    horizontalRatio: 0.5,
+    steps: 8,
+    verticalRatio: 0.5
+  });
+
+  await page.waitForFunction(({ expectedWidth }) => {
+    const titleHeaderEl = document.querySelector('#example-table th[data-sort-field="Smoke Title"]');
+    const titleRowEl = document.querySelector('#example-table tbody tr[data-row-index="0"]');
+    const titleCellEl = titleRowEl?.querySelector('td[data-col-index="0"]');
+    const tableEl = document.querySelector('#example-table');
+    const headerWidth = Math.round(titleHeaderEl?.getBoundingClientRect().width || 0);
+    const cellWidth = Math.round(titleCellEl?.getBoundingClientRect().width || 0);
+    const rowWidth = Math.round(titleRowEl?.getBoundingClientRect().width || 0);
+    const tableWidth = Math.round(tableEl?.getBoundingClientRect().width || 0);
+    return Math.abs(headerWidth - expectedWidth) <= 4
+      && Math.abs(headerWidth - cellWidth) <= 1
+      && Math.abs(tableWidth - rowWidth) <= 1;
+  }, { expectedWidth: beforeMetrics.headerWidth + resizeDelta }, { timeout: 5000 });
+
+  const afterMetrics = await readMetrics();
+  const actualDelta = afterMetrics.headerWidth - beforeMetrics.headerWidth;
+  if (
+    !beforeMetrics.resizeModeActive
+    || !afterMetrics.resizeModeActive
+    || Math.abs(actualDelta - resizeDelta) > 4
+    || Math.abs(afterMetrics.headerWidth - afterMetrics.cellWidth) > 1
+    || Math.abs(afterMetrics.tableWidth - afterMetrics.rowWidth) > 1
+  ) {
+    throw new Error(`Mobile column resize should drag from the active header with aligned cells: before=${JSON.stringify(beforeMetrics)}, after=${JSON.stringify(afterMetrics)}`);
+  }
+
+  await page.evaluate(async () => {
+    const { appServices } = await import('./core/appServices.js');
+    appServices.clearColumnResizeMode?.();
+    appServices.setManualColumnWidth?.('Smoke Title', 96);
+    appServices.renderVirtualTable?.();
   });
 }
 
@@ -2307,6 +2403,7 @@ async function runSmokeTest() {
     if (mobileActionBarMetrics.scrollWidth - mobileActionBarMetrics.clientWidth > 2 || mobileActionBarMetrics.height > 128) {
       throw new Error(`Mobile table action bar should show all actions without horizontal scrolling: ${JSON.stringify(mobileActionBarMetrics)}`);
     }
+    await expectMobileColumnResizeInteraction(mobilePage);
     await expectMinimumTapTarget(mobilePage, '#mobile-builder-toggle', 'Mobile builder drawer toggle');
 
     await mobilePage.locator('#mobile-builder-toggle').click();

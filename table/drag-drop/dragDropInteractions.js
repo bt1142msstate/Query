@@ -17,6 +17,7 @@ import {
   getAutoScrollIntent,
   getHeaderInsertPositionFromRects
 } from './dragDropInteractionMath.js';
+import { resolveColumnResizeStartTarget } from './resizeStartTarget.js';
 import { SharedFieldPicker } from '../../ui/field-picker/fieldPicker.js';
 let DragDropInteractions;
 (function initializeDragDropInteractions() {
@@ -859,20 +860,18 @@ let DragDropInteractions;
 
       const headerRow = table.querySelector('thead tr');
       if (headerRow && !headerRow._insertAffordanceBound) {
-        const onPointerDown = event => {
-          const resizeHandle = event.target.closest('.th-resize-handle');
-          const th = resizeHandle?.closest('th');
-          if (!resizeHandle || !th) {
-            return;
+        const onResizeStart = event => {
+          const resizeTarget = resolveColumnResizeStartTarget(event, { getColumnResizeState, isResizeModeActive });
+          if (resizeTarget) {
+            columnResizeController.begin(event, resizeTarget.resizeHandle, resizeTarget.th);
           }
-
-          columnResizeController.begin(event, resizeHandle, th);
         };
         const onPointerMove = event => this.handleHeaderRowPointerMove(event, table);
         const onPointerLeave = event => this.handleHeaderRowPointerLeave(event);
         const onScroll = () => clearInsertAffordance({ immediate: true });
 
-        headerRow.addEventListener('pointerdown', onPointerDown);
+        headerRow.addEventListener('pointerdown', onResizeStart);
+        headerRow.addEventListener('touchstart', onResizeStart, { passive: false });
         headerRow.addEventListener('mousemove', onPointerMove);
         headerRow.addEventListener('mouseleave', onPointerLeave);
 
@@ -883,7 +882,8 @@ let DragDropInteractions;
 
         headerRow._insertAffordanceBound = true;
         headerRow._insertAffordanceCleanup = () => {
-          headerRow.removeEventListener('pointerdown', onPointerDown);
+          headerRow.removeEventListener('pointerdown', onResizeStart);
+          headerRow.removeEventListener('touchstart', onResizeStart);
           headerRow.removeEventListener('mousemove', onPointerMove);
           headerRow.removeEventListener('mouseleave', onPointerLeave);
           if (scrollContainerEl) {
