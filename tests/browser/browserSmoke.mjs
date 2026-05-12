@@ -503,6 +503,55 @@ async function expectControlsNonSelectable(page, rootSelector, label) {
   }
 }
 
+async function expectMobileTableTextNonSelectable(page) {
+  await page.locator('#example-table tbody td[data-col-index="0"]').first().waitFor({ state: 'visible', timeout: 5000 });
+  const violations = await page.locator('#example-table').evaluate(table => {
+    const isVisible = element => {
+      const style = window.getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0
+        && rect.height > 0
+        && style.display !== 'none'
+        && style.visibility !== 'hidden'
+        && Number.parseFloat(style.opacity || '1') > 0.05
+        && !element.hidden
+        && !element.closest('[hidden], .hidden');
+    };
+    const isTapHighlightTransparent = value => {
+      const normalized = String(value || '').replace(/\s+/gu, '').toLowerCase();
+      return normalized === ''
+        || normalized === 'transparent'
+        || normalized === 'rgba(0,0,0,0)';
+    };
+
+    return Array.from(table.querySelectorAll('th[data-col-index], td[data-col-index], th[data-col-index] *, td[data-col-index] *'))
+      .filter(isVisible)
+      .map(element => {
+        const style = window.getComputedStyle(element);
+        return {
+          className: String(element.className || ''),
+          id: element.id || '',
+          tagName: element.tagName,
+          tapHighlight: style.webkitTapHighlightColor || '',
+          text: String(element.textContent || '').trim().replace(/\s+/gu, ' ').slice(0, 80),
+          userSelect: style.userSelect || '',
+          webkitTouchCallout: style.webkitTouchCallout || '',
+          webkitUserSelect: style.webkitUserSelect || ''
+        };
+      })
+      .filter(cell => (
+        cell.userSelect !== 'none'
+        || (cell.webkitUserSelect && cell.webkitUserSelect !== 'none')
+        || (cell.webkitTouchCallout && cell.webkitTouchCallout !== 'none')
+        || !isTapHighlightTransparent(cell.tapHighlight)
+      ));
+  });
+
+  if (violations.length > 0) {
+    throw new Error(`Mobile table cells should not be selectable/highlightable: ${JSON.stringify(violations.slice(0, 12))}`);
+  }
+}
+
 async function expectLightInput(page, selector, label) {
   const theme = await page.locator(selector).evaluate(input => {
     const readChannels = value => (value.match(/\d+/gu) || []).slice(0, 3).map(Number);
@@ -938,11 +987,17 @@ async function expectOverlayTouchPanScroll(page, touchLocator, scrollSelector, l
 async function expectMobileTableContextMenu(page) {
   const firstCell = page.locator('#example-table tbody tr[data-row-index="0"] td[data-col-index="0"]');
   await firstCell.waitFor({ state: 'visible', timeout: 5000 });
+  await page.evaluate(() => window.getSelection?.()?.removeAllRanges?.());
   await dragTouchLocator(page, firstCell, {
     holdMs: 650,
     steps: 1
   });
   await page.locator('.tcm.tcm--visible').waitFor({ state: 'visible', timeout: 5000 });
+
+  const selectedText = await page.evaluate(() => (window.getSelection?.()?.toString?.() || '').trim());
+  if (selectedText) {
+    throw new Error(`Mobile table long-press should open the custom menu without selecting table text: "${selectedText.slice(0, 120)}"`);
+  }
 
   const menuMetrics = await page.locator('.tcm.tcm--visible').evaluate(menu => {
     const rect = menu.getBoundingClientRect();
@@ -2138,6 +2193,7 @@ async function runSmokeTest() {
       throw new Error(`Mobile table should use a sticky action bar and collapsed builder drawer: ${JSON.stringify(mobileResultsLayout)}`);
     }
     await expectControlsNonSelectable(mobilePage, '#table-with-filter', 'Mobile table controls');
+    await expectMobileTableTextNonSelectable(mobilePage);
     await expectMobileTableContextMenu(mobilePage);
     const mobileTableDensityMetrics = await mobilePage.locator('#table-container').evaluate(container => {
       const table = document.querySelector('#example-table');
