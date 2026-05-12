@@ -273,6 +273,7 @@ let QueryBuilderShell;
     dom.pageBody?.classList.add('night');
     bindConfirmEnterShortcut();
     dom.overlay?.addEventListener('click', handleOverlayClick);
+    dom.filterCardCloseBtn?.addEventListener('click', handleOverlayClick);
     dom.confirmBtn?.addEventListener('click', services.handleFilterConfirm);
     document.addEventListener('keydown', handleBubbleKeyboardNavigation);
     document.addEventListener('keydown', handleFocusedBubbleScroll);

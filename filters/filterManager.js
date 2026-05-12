@@ -84,6 +84,12 @@ function getActiveFilterFieldName() {
     return String(titleEl?.textContent || '').trim();
 }
 
+function isMobileFilterEditorViewport() {
+    return typeof window !== 'undefined'
+        && typeof window.matchMedia === 'function'
+        && window.matchMedia('(max-width: 640px), (hover: none) and (pointer: coarse)').matches;
+}
+
 function setConditionInputVisible(input, visible) {
     if (!input) return;
 
@@ -445,6 +451,7 @@ function buildBubbleConditionPanel(bubble) {
 
     if (isBuildable) {
         setTimeout(() => {
+            if (isMobileFilterEditorViewport()) return;
             const firstInput = document.querySelector('.dynamic-builder-input');
             if (firstInput) firstInput.focus();
         }, 300);
@@ -753,14 +760,15 @@ function handleConditionBtnClick(e) {
     inputWrapper.classList.add('show');
     uiActions.positionInputWrapper();
     
-    // Focus appropriate input
-    const listPasteInput = document.getElementById('condition-select-container');
-    if (listPasteInput && typeof listPasteInput.focusInput === 'function' && listPasteInput.style.display !== 'none') {
-        listPasteInput.focusInput();
-    } else if (sel && sel.style.display !== 'none') {
-        sel.focus();
-    } else {
-        (cond === 'between' ? conditionInput2 : conditionInput).focus();
+    if (!isMobileFilterEditorViewport()) {
+        const listPasteInput = document.getElementById('condition-select-container');
+        if (listPasteInput && typeof listPasteInput.focusInput === 'function' && listPasteInput.style.display !== 'none') {
+            listPasteInput.focusInput();
+        } else if (sel && sel.style.display !== 'none') {
+            sel.focus();
+        } else {
+            (cond === 'between' ? conditionInput2 : conditionInput).focus();
+        }
     }
     
     // Reposition again after layout change
@@ -1106,7 +1114,7 @@ function buildableConditionBtnHandler(e) {
         uiActions.positionInputWrapper();
     }
     
-    if (conditionInput) conditionInput.focus();
+    if (conditionInput && !isMobileFilterEditorViewport()) conditionInput.focus();
     
     // Re-position after toggling second input visibility
     uiActions.positionInputWrapper();

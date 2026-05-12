@@ -778,6 +778,7 @@ const queryUi = {
   getTableZoom,
   refreshTableViewport,
   updateTableChromeState,
+  closeMobileFilterPanel,
   setTableZoom,
   toggleTableExpanded,
   getDisplayedFieldsMissingFromLoadedData,
@@ -799,5 +800,6 @@ export {
   refreshTableViewport,
   setTableZoom,
   toggleTableExpanded,
+  closeMobileFilterPanel,
   updateTableChromeState
 };

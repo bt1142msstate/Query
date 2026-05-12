@@ -161,6 +161,12 @@ const FilterSidePanel = (function () {
         return currentViewMode === 'both' || currentViewMode === 'filters';
     }
 
+    function isMobileFilterEditorViewport() {
+        return typeof window !== 'undefined'
+            && typeof window.matchMedia === 'function'
+            && window.matchMedia('(max-width: 640px), (hover: none) and (pointer: coarse)').matches;
+    }
+
     function openBubbleForField(field) {
         if (!field) {
             return;
@@ -171,8 +177,14 @@ const FilterSidePanel = (function () {
             services.renderConditionList(field);
             const operatorSelect = document.getElementById('condition-operator-select');
             const conditionInput = DOM.conditionInput;
-            (operatorSelect || conditionInput)?.focus();
+            if (!isMobileFilterEditorViewport()) {
+                (operatorSelect || conditionInput)?.focus();
+            }
             return;
+        }
+
+        if (document.body.classList.contains('mobile-filter-panel-open')) {
+            appUiActions.closeMobileFilterPanel();
         }
 
         const bubble = Array.from(document.querySelectorAll('.bubble')).find(
