@@ -442,7 +442,7 @@ body.history-details-open #queries-panel > h2 .collapse-btn {
   border: 1px solid rgba(68, 225, 255, 0.12);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .help-shell {
     padding: 1rem;
   }
@@ -465,7 +465,7 @@ body.history-details-open #queries-panel > h2 .collapse-btn {
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
   #help-panel > h2 {
     font-size: 0.95rem;
     letter-spacing: 0.07em;
@@ -785,7 +785,7 @@ body.history-details-open #queries-panel > h2 .collapse-btn {
   background: rgba(255, 193, 77, 0.18);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
   .modal-panel:not(#mobile-menu-dropdown) {
     width: 100%;
     height: calc(100vh - var(--header-height));

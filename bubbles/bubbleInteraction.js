@@ -16,7 +16,7 @@ let bubbleEventsInitialized = false;
 function isMobileBubbleEditorViewport() {
   return typeof window !== 'undefined'
     && typeof window.matchMedia === 'function'
-    && window.matchMedia('(max-width: 640px), (hover: none) and (pointer: coarse)').matches;
+    && window.matchMedia('(max-width: 1024px), (hover: none) and (pointer: coarse)').matches;
 }
 
 function initializeBubbleInteractions() {

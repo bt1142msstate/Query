@@ -621,7 +621,7 @@
   background: rgba(255, 255, 255, 0.9);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
   #filter-card {
     top: auto;
     right: 0.5rem;
@@ -806,7 +806,7 @@
 }
 
 /* Responsive styling */
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   #category-bar {
     display: none;
   }
@@ -1381,7 +1381,7 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
   #table-with-filter {
     gap: 0;
   }

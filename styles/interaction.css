@@ -102,7 +102,7 @@
   background: transparent;
 }
 
-@media (max-width: 640px), (hover: none) and (pointer: coarse) {
+@media (max-width: 1024px), (hover: none) and (pointer: coarse) {
   :where(
     #example-table,
     #example-table thead,

@@ -346,7 +346,7 @@
   font-weight: 700;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .form-mode-header {
     flex-direction: column;
   }
@@ -361,7 +361,7 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
   #form-mode-host {
     margin-top: 0;
   }
@@ -600,7 +600,7 @@
   max-width: none;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
   .form-mode-popup-list-popup {
     top: auto;
     right: 0.5rem;
@@ -1053,7 +1053,7 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
   .form-mode-field-picker-modal {
     top: calc(env(safe-area-inset-top, 0px) + 0.5rem);
     right: 0.5rem;

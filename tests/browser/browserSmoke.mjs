@@ -620,7 +620,7 @@ async function expectNoHorizontalOverflow(page, label) {
 
 async function waitForResponsiveResize(page, expectedMobile) {
   await page.waitForFunction(expected => {
-    return window.matchMedia('(max-width: 640px)').matches === expected;
+    return window.matchMedia('(max-width: 1024px)').matches === expected;
   }, expectedMobile, { timeout: 5000 });
   await page.evaluate(() => new Promise(resolve => {
     window.requestAnimationFrame(() => window.requestAnimationFrame(resolve));
@@ -651,7 +651,7 @@ async function readResponsiveShellMetrics(page) {
         || classHas('#filter-side-panel', 'mobile-filter-panel-open'),
       headerControlsDisplay: displayOf('#header-controls'),
       isExpanded: document.body.classList.contains('table-expanded-open'),
-      isMobile: window.matchMedia('(max-width: 640px)').matches,
+      isMobile: window.matchMedia('(max-width: 1024px)').matches,
       mobileMenuDisplay: displayOf('#mobile-menu-toggle'),
       mobileMenuOpen: classHas('#mobile-menu-dropdown', 'show')
         && !classHas('#mobile-menu-dropdown', 'hidden'),
@@ -1234,6 +1234,16 @@ async function exerciseLiveResponsiveResize(page) {
   await seedLoadedResults(page, { rowCount: 24 });
   await expectResponsiveShellMode(page, 'desktop', 'Live resize desktop baseline');
   await expectNoHorizontalOverflow(page, 'Live resize desktop baseline');
+
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await waitForResponsiveResize(page, true);
+  await expectResponsiveShellMode(page, 'mobile', 'Live resize desktop-to-tablet-landscape');
+  await expectNoHorizontalOverflow(page, 'Live resize desktop-to-tablet-landscape');
+
+  await page.setViewportSize({ width: 844, height: 390 });
+  await waitForResponsiveResize(page, true);
+  await expectResponsiveShellMode(page, 'mobile', 'Live resize phone landscape');
+  await expectNoHorizontalOverflow(page, 'Live resize phone landscape');
 
   await page.setViewportSize({ width: 390, height: 844 });
   await waitForResponsiveResize(page, true);

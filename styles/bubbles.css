@@ -312,7 +312,7 @@
   background: rgba(196, 181, 253, 1); /* Brighter hover state */
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
   .bubble {
     width: 84px;
     height: 84px;

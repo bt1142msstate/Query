@@ -1313,7 +1313,7 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
   #queries-panel.history-monitor-open #queries-container {
     overflow: hidden;
   }
