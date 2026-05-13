@@ -89,12 +89,18 @@ function formatHistoryRowDate(value) {
   return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString();
 }
 
-function buildHistoryRowActions(query) {
+function buildHistoryRowActions(query, options = {}) {
   const queryId = escapeHistoryText(query.id);
-  const previewBtn = query.running ? `<button class="load-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" tabindex="-1" data-query-id="${queryId}" style="margin-left:4px;" data-tooltip="Open partial results"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></button>` : '';
+  const isLoading = options.activeHistoryResultLoadQueryId === query.id;
+  const loadAttrs = isLoading ? ' disabled aria-busy="true"' : '';
+  const loadClass = isLoading ? ' is-loading' : '';
+  const loadIcon = isLoading
+    ? '<span class="history-action-spinner" aria-hidden="true"></span>'
+    : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>';
+  const previewBtn = query.running ? `<button class="load-query-btn${loadClass} inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" tabindex="-1" data-query-id="${queryId}" style="margin-left:4px;" data-tooltip="${isLoading ? 'Loading partial results' : 'Open partial results'}"${loadAttrs}>${loadIcon}</button>` : '';
   const stopBtn = query.running ? `<button class="stop-query-btn inline-flex items-center justify-center p-1 rounded-full bg-red-100 hover:bg-red-200 text-red-600" tabindex="-1" data-query-id="${queryId}" data-tooltip="Stop"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>` : '';
   const loadTooltipCount = query.resultCount !== undefined ? query.resultCount : 'Unknown';
-  const loadBtn = !query.running && !query.cancelled ? `<button class="load-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" tabindex="-1" data-query-id="${queryId}" style="margin-left:4px;" data-tooltip="Open results - ${escapeHistoryText(loadTooltipCount)} rows"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></button>` : '';
+  const loadBtn = !query.running && !query.cancelled ? `<button class="load-query-btn${loadClass} inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" tabindex="-1" data-query-id="${queryId}" style="margin-left:4px;" data-tooltip="${isLoading ? 'Loading results' : `Open results - ${escapeHistoryText(loadTooltipCount)} rows`}"${loadAttrs}>${loadIcon}</button>` : '';
   const rerunBtn = !query.running ? `<button class="rerun-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-green-600" tabindex="-1" data-query-id="${queryId}" style="margin-left:4px;" data-tooltip="Rerun Query"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg></button>` : '';
 
   return { loadBtn, previewBtn, rerunBtn, stopBtn };
@@ -110,7 +116,7 @@ function createQueriesTableRowHtml(query, options = {}) {
   const queryId = escapeHistoryText(query.id);
   const rowDate = formatHistoryRowDate(query.startTime);
   const duration = formatHistoryRowDuration(query, dependencies);
-  const { loadBtn, previewBtn, rerunBtn, stopBtn } = buildHistoryRowActions(query);
+  const { loadBtn, previewBtn, rerunBtn, stopBtn } = buildHistoryRowActions(query, options);
 
   const reasonSummary = query.error
     ? '<span class="history-reason-icon">Issue</span>'

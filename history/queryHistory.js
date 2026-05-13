@@ -5,6 +5,7 @@
  */
 import { buildHistoryDetailsOverlayHtml } from './queryHistoryDetails.js';
 import { createQueryHistoryDependencies } from './queryHistoryDependencies.js';
+import { HistoryResultProgress } from './queryHistoryResultProgress.js';
 import {
   appendUniqueColumn,
   buildUiConfigFromRequest,
@@ -103,6 +104,7 @@ function syncHistoryMonitorOpenState(isOpen) {
 function createHistoryRowHtml(query) {
   return createQueriesTableRowHtml(query, {
     activeHistoryDetailQueryId,
+    activeHistoryResultLoadQueryId: HistoryResultProgress.getActiveQueryId(),
     dependencies: historyDependencies.display()
   });
 }
@@ -526,26 +528,18 @@ function loadQueryConfig(q) {
   }
 }
 
-/**
- * Loads query results from backend.
- * @async
- * @function loadQueryResults
- * @param {string} queryId - The ID of the query to load results for
- */
 async function loadQueryResults(queryId) {
     const q = exampleQueries.find(q => q.id === queryId);
     if (!q) return;
 
     // Load configuration first
     loadQueryConfig(q);
+    HistoryResultProgress.start(q, { render: renderQueries });
     
     showToastMessage(q.running ? 'Fetching live results...' : 'Fetching results...', 'info');
 
     try {
-        const { response, text } = await BackendApi.postText(
-            { action: 'get_results', query_id: queryId },
-            { jsonErrorMessage: 'Results are not available yet.' }
-        );
+        const { response, lines: streamedLines, streamError } = await HistoryResultProgress.fetchResults(queryId);
         
         // Use X-Raw-Columns or fallback to config used
         const rawColsHeader = response.headers.get('X-Raw-Columns');
@@ -557,7 +551,7 @@ async function loadQueryResults(queryId) {
         
         const rawColumns = rawColsHeader ? rawColsHeader.split('|') : currentDisplayedFields;
         
-        const lines = text.split('\n').filter(line => line.trim().length > 0);
+        const lines = Array.isArray(streamedLines) ? streamedLines : [];
         
         const headers = currentDisplayedFields;
         
@@ -618,9 +612,11 @@ async function loadQueryResults(queryId) {
         // Refresh badges after the loaded result-set state and table render settle.
         uiActions.updateTableResultsLip();
         
-        showToastMessage(q.running
-          ? `Loaded ${rows.length} partial results from running query.`
-          : `Loaded ${rows.length} results.`, 'success');
+        showToastMessage(streamError
+          ? `Connection ended early. Loaded ${rows.length} partial results.`
+          : (q.running
+            ? `Loaded ${rows.length} partial results from running query.`
+            : `Loaded ${rows.length} results.`), streamError ? 'warning' : 'success');
         
         // Close modal if open
         services.closeAllModals();
@@ -631,6 +627,8 @@ async function loadQueryResults(queryId) {
         }
         console.error('Failed to load results:', error);
         showToastMessage('Failed to load results: ' + error.message, 'error');
+    } finally {
+        HistoryResultProgress.clear({ render: renderQueries });
     }
 }
 
@@ -1082,6 +1080,7 @@ function renderQueries(){
           </div>
         </div>
       </section>
+      ${HistoryResultProgress.render()}
       <div class="history-bookshelf${openSection ? ' monitor-active' : ''}">
         ${runningSection}
         ${doneSection}
@@ -1101,6 +1100,7 @@ function renderQueries(){
       visibleCount,
       totalCount,
       openSection,
+      loadingQueryId: HistoryResultProgress.getActiveQueryId(),
       // Identity-based keys only — no computed display strings — so the key only
       // changes when the data actually changes, not every elapsed-second tick.
       runningIds: runningList.map(q => q.id),
