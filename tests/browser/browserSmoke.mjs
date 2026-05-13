@@ -770,6 +770,41 @@ async function expectElementWithinViewport(page, selector, label) {
   }
 }
 
+async function expectMobileEditableFocusContained(page, controlSelector, editorSelector, label) {
+  await page.locator(controlSelector).focus();
+  await page.evaluate(() => new Promise(resolve => {
+    window.requestAnimationFrame(() => window.requestAnimationFrame(resolve));
+  }));
+
+  const metrics = await page.locator(controlSelector).evaluate((control, selector) => {
+    const editor = control.closest(selector) || document.querySelector(selector);
+    const controlRect = control.getBoundingClientRect();
+    const editorRect = editor?.getBoundingClientRect() || controlRect;
+    const style = window.getComputedStyle(control);
+    return {
+      active: document.activeElement === control,
+      controlBottom: controlRect.bottom,
+      controlTop: controlRect.top,
+      editorBottom: editorRect.bottom,
+      editorTop: editorRect.top,
+      fontSize: Number.parseFloat(style.fontSize || '0'),
+      visualScale: window.visualViewport?.scale || 1,
+      viewportHeight: window.innerHeight
+    };
+  }, editorSelector);
+
+  const lowerBound = Math.min(metrics.editorBottom, metrics.viewportHeight);
+  if (
+    !metrics.active
+    || metrics.fontSize < 16
+    || metrics.visualScale > 1.01
+    || metrics.controlTop < metrics.editorTop - 2
+    || metrics.controlBottom > lowerBound + 2
+  ) {
+    throw new Error(`${label} should focus without zooming or leaving the editor viewport: ${JSON.stringify(metrics)}`);
+  }
+}
+
 async function openMobilePanel(page, sourceControlId, visibleSelector) {
   await page.locator('#mobile-menu-toggle').click();
   await page.locator('#mobile-menu-dropdown.show').waitFor({ state: 'visible', timeout: 5000 });
@@ -1850,6 +1885,7 @@ async function expectMobileFilterEditorSheet(page) {
   }
 
   await expectNoHorizontalOverflow(page, 'Mobile filter editor sheet');
+  await expectMobileEditableFocusContained(page, '#filter-card.show #condition-input', '#filter-card', 'Mobile filter value input');
   await page.locator('#filter-card-close-btn').click();
   await page.waitForFunction(() => {
     return !document.querySelector('#filter-card')?.classList.contains('show')
@@ -2846,6 +2882,7 @@ async function runSmokeTest() {
     await expectOverlayConsumesScroll(mobilePage, '.post-filter-dialog__body', 'Mobile post filter dialog');
     await expectMinimumTapTarget(mobilePage, '#post-filter-overlay .post-filter-dialog__close, #post-filter-field, #post-filter-operator, #post-filter-logic, #post-filter-add-btn, #post-filter-clear-btn, #post-filter-done-btn', 'Mobile post filter controls');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile post filter dialog');
+    await expectMobileEditableFocusContained(mobilePage, '#post-filter-operator', '.post-filter-dialog__body', 'Mobile post filter operator');
 
     await mobilePage.locator('#post-filter-operator').selectOption('equals');
     await mobilePage.locator('#post-filter-value-picker-host .form-mode-popup-list-trigger').waitFor({ state: 'visible', timeout: 5000 });
@@ -2854,6 +2891,18 @@ async function runSmokeTest() {
     await mobilePage.locator('.form-mode-popup-list-popup:not([hidden])').waitFor({ state: 'visible', timeout: 5000 });
     await expectElementWithinViewport(mobilePage, '.form-mode-popup-list-popup:not([hidden])', 'Mobile popup list picker');
     await expectLightInput(mobilePage, '.form-mode-popup-list-popup input[type="search"]', 'Mobile popup list search input');
+    const popupAutoFocus = await mobilePage.locator('.form-mode-popup-list-popup:not([hidden])').evaluate(popup => {
+      const active = document.activeElement;
+      return {
+        activeClass: String(active?.className || ''),
+        activeTag: active?.tagName || '',
+        popupFocused: active === popup
+      };
+    });
+    if (!popupAutoFocus.popupFocused || ['INPUT', 'TEXTAREA', 'SELECT'].includes(popupAutoFocus.activeTag)) {
+      throw new Error(`Mobile popup list should open without auto-focusing a text control: ${JSON.stringify(popupAutoFocus)}`);
+    }
+    await expectMobileEditableFocusContained(mobilePage, '.form-mode-popup-list-popup input[type="search"]', '.form-mode-popup-list-popup-body', 'Mobile popup list search input');
     await expectMinimumTapTarget(mobilePage, '.form-mode-popup-list-done', 'Mobile popup list done control');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile popup list picker');
     await mobilePage.locator('.form-mode-popup-list-done').click();

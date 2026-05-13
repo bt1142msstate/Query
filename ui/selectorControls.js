@@ -3,6 +3,12 @@ import { initializeSearchInputs } from './searchUI.js';
 import { escapeHtml } from '../core/html.js';
 import { VirtualList } from './virtualList.js';
 
+const MOBILE_SELECTOR_QUERY = '(max-width: 1024px), (hover: none) and (pointer: coarse)';
+
+function isMobileSelectorViewport() {
+  return Boolean(window.matchMedia?.(MOBILE_SELECTOR_QUERY).matches);
+}
+
 function createBooleanPillSelector(values, currentValue = '', options = {}) {
   const onChange = typeof options.onChange === 'function' ? options.onChange : null;
   const containerId = Object.prototype.hasOwnProperty.call(options, 'containerId')
@@ -564,6 +570,7 @@ function createPopupListControl(innerControl, label, placeholder) {
   popup.className = 'form-mode-popup-list-popup';
   popup.setAttribute('role', 'dialog');
   popup.setAttribute('aria-label', resolvedLabel);
+  popup.tabIndex = -1;
   popup.hidden = true;
   popup.classList.add('hidden');
 
@@ -627,6 +634,11 @@ function createPopupListControl(innerControl, label, placeholder) {
       raisedUiKey
     });
     trigger.setAttribute('aria-expanded', 'true');
+
+    if (isMobileSelectorViewport()) {
+      popup.focus({ preventScroll: true });
+      return;
+    }
 
     if (typeof innerControl.focusInput === 'function') {
       innerControl.focusInput();
