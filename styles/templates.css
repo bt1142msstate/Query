@@ -194,17 +194,21 @@
   filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.24));
 }
 
+.pinned-template-bubble__svg .template-default-icon,
 .pinned-template-bubble__svg .template-blueprint-icon,
+.template-svg-preview .template-default-icon,
 .template-svg-preview .template-blueprint-icon {
   box-sizing: border-box;
   background: #ffffff;
   border-radius: 24%;
 }
 
+.pinned-template-bubble__svg .template-default-icon,
 .pinned-template-bubble__svg .template-blueprint-icon {
   padding: 0.24rem;
 }
 
+.template-svg-preview .template-default-icon,
 .template-svg-preview .template-blueprint-icon {
   padding: 0.7rem;
   box-shadow: 0 12px 26px rgba(0, 0, 0, 0.18);
