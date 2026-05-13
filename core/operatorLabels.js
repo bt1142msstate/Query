@@ -9,6 +9,7 @@ const LABELS = Object.freeze({
   less: 'Less than',
   less_or_equal: 'Less than or equal',
   between: 'Between',
+  never: 'Never',
   before: 'Before',
   after: 'After',
   doesnotcontain: 'Does not contain',

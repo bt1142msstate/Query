@@ -32,6 +32,8 @@ function getFilterPhrase(filter) {
       return `be less than ${values[0]}`;
     case 'between':
       return `be between ${values[0]} and ${values[1]}`;
+    case 'never':
+      return 'be Never';
     case 'before':
       return `be before ${values[0]}`;
     case 'on_or_before':
@@ -46,6 +48,10 @@ function getFilterPhrase(filter) {
 }
 
 function getComparableFilterValues(filter, fieldType, getComparableDateValue) {
+  if (filter.cond === 'never') {
+    return [Number.NaN];
+  }
+
   return parseFilterValues(filter).map(value => {
     if (fieldType === 'date') {
       return getComparableDateValue(value);
@@ -62,16 +68,21 @@ function getContradictionMessage(existing, newFilter, fieldType, fieldLabel, opt
     : () => NaN;
 
   const newLabel = getFilterPhrase(newFilter);
+  if (newFilter.cond === 'never' && existing.filters.some(filter => filter.cond !== 'never')) {
+    return `${fieldLabel} cannot ${newLabel} and ${getFilterPhrase(existing.filters.find(filter => filter.cond !== 'never'))}`;
+  }
+
   const newValues = getComparableFilterValues(newFilter, fieldType, getComparableDateValue);
   const newLow = Math.min(...newValues);
   const newHigh = Math.max(...newValues);
 
   for (const filter of existing.filters) {
     const filterLabel = getFilterPhrase(filter);
+    const message = `${fieldLabel} cannot ${newLabel} and ${filterLabel}`;
+    if (filter.cond === 'never' && newFilter.cond !== 'never') return message;
     const filterValues = getComparableFilterValues(filter, fieldType, getComparableDateValue);
     const low = Math.min(...filterValues);
     const high = Math.max(...filterValues);
-    const message = `${fieldLabel} cannot ${newLabel} and ${filterLabel}`;
 
     if (newFilter.cond === 'equals') {
       if (filter.cond === 'does_not_equal' && newValues[0] === filterValues[0]) return message;

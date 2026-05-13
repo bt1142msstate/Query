@@ -29,6 +29,8 @@ const FIELD_OPERATOR_TO_UI_COND = {
   doesnotcontain: 'doesnotcontain',
   Between: 'between',
   between: 'between',
+  Never: 'never',
+  never: 'never',
   Before: 'before',
   before: 'before',
   After: 'after',
@@ -56,6 +58,7 @@ function formatFieldOperatorForDisplay(operator) {
     case 'contains': return 'contains';
     case 'doesnotcontain': return 'does not contain';
     case 'between': return 'between';
+    case 'never': return 'never';
     case 'before': return 'before';
     case 'after': return 'after';
     case 'on_or_before': return 'on or before';
