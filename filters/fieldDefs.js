@@ -18,6 +18,16 @@ let isFieldsLoaded = false;
 let pendingAliasNotifications = new Map();
 let aliasToastTimer = null;
 const SYSTEM_CATEGORIES = ['All', 'Selected'];
+const DEFAULT_DATE_FILTERS = Object.freeze([
+  'equals',
+  'does_not_equal',
+  'before',
+  'after',
+  'on_or_before',
+  'on_or_after',
+  'between',
+  'never'
+]);
 
 function hasLoadedFieldDefinitions() {
   return isFieldsLoaded && fieldDefsArray.length > 0;
@@ -207,10 +217,18 @@ function getFieldFilterOperators(fieldOrName) {
     ? fieldDef.filters
     : (Array.isArray(fieldDef.operators) ? fieldDef.operators : []);
 
-  return configured
+  const operators = configured
     .map(operator => String(operator || '').trim().toLowerCase())
     .filter(Boolean)
     .filter((operator, index, list) => list.indexOf(operator) === index);
+  if (String(fieldDef.type || '').trim().toLowerCase() === 'date') {
+    DEFAULT_DATE_FILTERS.forEach(operator => {
+      if (!operators.includes(operator)) {
+        operators.push(operator);
+      }
+    });
+  }
+  return operators;
 }
 
 function isFieldBackendFilterable(fieldOrName) {
