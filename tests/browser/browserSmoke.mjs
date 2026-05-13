@@ -291,7 +291,7 @@ async function installQueryApiStub(page) {
     const response = queuedResponseIndex === -1
       ? buildDefaultQueryApiResponse(payload)
       : queuedResponses.splice(queuedResponseIndex, 1)[0];
-    route.fulfill({
+    const fulfillResponse = () => route.fulfill({
       body: response.body || '',
       contentType: response.contentType || 'text/plain; charset=utf-8',
       headers: {
@@ -301,6 +301,13 @@ async function installQueryApiStub(page) {
       },
       status: response.status || 200
     });
+
+    if (response.delayMs) {
+      setTimeout(fulfillResponse, response.delayMs);
+      return;
+    }
+
+    fulfillResponse();
   };
 
   await page.route(QUERY_API_PATTERN, handler);
@@ -2253,9 +2260,33 @@ async function runSmokeTest() {
     await exerciseColumnResizeInteraction(page);
     await exerciseLiveResponsiveResize(page);
 
+    queryApiStub.enqueue(Array.from({ length: 2 }, () => ({
+      action: 'status',
+      body: JSON.stringify(buildHistoryStatusResponse()),
+      contentType: 'application/json; charset=utf-8'
+    })));
     await page.getByRole('button', { name: 'Queries' }).click();
     await page.locator('input[placeholder="Search queries..."]').waitFor({ state: 'visible', timeout: 5000 });
     await expectDarkInput(page, '#queries-search', 'Query history search input');
+    await page.waitForFunction(() => {
+      return document.querySelector('[data-history-book="complete"] .history-book-count')?.textContent?.trim() === '1';
+    }, null, { timeout: 5000 });
+    await page.locator('[data-history-book="complete"] .history-book-summary').click();
+    await page.locator('.history-monitor').waitFor({ state: 'visible', timeout: 5000 });
+    queryApiStub.enqueue({
+      action: 'get_results',
+      body: 'Loaded One|Main|Open\nLoaded Two|East|Closed\n',
+      delayMs: 300,
+      rawColumns: smokeResultHeaders
+    });
+    const historyLoadClick = page.locator('.history-monitor .load-query-btn').first().click();
+    await page.locator('.history-result-load-progress').waitFor({ state: 'visible', timeout: 5000 });
+    const historyLoadProgressText = await page.locator('.history-result-load-progress').textContent();
+    if (!/Loading saved results/iu.test(historyLoadProgressText || '') || !/Waiting for rows|rows received/iu.test(historyLoadProgressText || '')) {
+      throw new Error(`History result load progress should be visible while waiting: ${historyLoadProgressText}`);
+    }
+    await historyLoadClick;
+    await page.locator('.history-result-load-progress').waitFor({ state: 'detached', timeout: 5000 });
 
     await page.getByRole('button', { name: 'Templates' }).click();
     await page.locator('input[placeholder="Search templates"]').waitFor({ state: 'visible', timeout: 5000 });
