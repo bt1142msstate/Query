@@ -13,12 +13,14 @@ import { VisibilityUtils } from '../../core/visibility.js';
 import { QueryUI } from '../../ui/queryUI.js';
 import { fieldDefs } from '../../filters/fieldDefs.js';
 import { DOM } from '../../core/domCache.js';
+import { ExcelExportProgress, yieldToBrowser } from './exportProgress.js';
 
 (() => {
   // When true, multi-value cells (delimited by \x1F) are split into separate columns
   // instead of being stacked as newlines in a single cell.
   let splitMultiValues = false;
   let exportState = null;
+  let exportInProgress = false;
 
   const SHEET_NAME_LIMIT = 31;
   const MAX_GROUPED_SHEETS = 100;
@@ -376,23 +378,29 @@ import { DOM } from '../../core/domCache.js';
     if (!VisibilityUtils.isVisible(elements.overlay)) {
       return;
     }
+    if (exportInProgress) {
+      showToastMessage('Excel export is still preparing', 'info');
+      return;
+    }
 
     VisibilityUtils.hide([elements.overlay], {
       ariaHidden: true,
       bodyClass: 'export-overlay-open',
       raisedUiKey: 'export-overlay'
     });
+    ExcelExportProgress.hide();
   }
 
   function triggerWorkbookDownload(buffer, filename) {
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
+    const objectUrl = URL.createObjectURL(blob);
+    link.href = objectUrl;
     link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(link.href);
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
   }
 
   function configureWorksheetColumns(worksheet, sourceData, rowsToExport) {
@@ -460,12 +468,27 @@ import { DOM } from '../../core/domCache.js';
     });
   }
 
-  function addWorksheetTable(worksheet, sourceData, exportedRows, tableBaseName) {
+  async function addWorksheetTable(worksheet, sourceData, exportedRows, tableBaseName, progress = {}) {
+    const sheetLabel = worksheet.name || 'worksheet';
+    ExcelExportProgress.update({
+      title: progress.title || 'Building workbook',
+      detail: progress.detail || `Preparing ${sheetLabel}`,
+      percent: progress.percent || 12
+    });
+    await yieldToBrowser();
+
     worksheet.views = [{ state: 'frozen', ySplit: 1 }];
     configureWorksheetColumns(worksheet, sourceData, exportedRows.map(row => row.rawRow));
+    await yieldToBrowser();
 
+    ExcelExportProgress.update({
+      title: progress.title || 'Building workbook',
+      detail: `Adding ${exportedRows.length.toLocaleString()} rows to ${sheetLabel}`,
+      percent: progress.rowPercent || progress.percent || 35
+    });
     const tableRows = exportedRows.map(row => row.values);
     applyWorksheetFormatting(worksheet, sourceData, exportedRows.map(row => row.rawRow));
+    await yieldToBrowser();
 
     const safeTableName = tableBaseName.replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 240) || 'Query_Results';
     worksheet.addTable({
@@ -484,6 +507,7 @@ import { DOM } from '../../core/domCache.js';
         vertical: 'middle'
       };
     });
+    await yieldToBrowser();
   }
 
   function addOverviewWorksheet(workbook, groups, groupField, usedNames) {
@@ -510,6 +534,13 @@ import { DOM } from '../../core/domCache.js';
       return;
     }
 
+    ExcelExportProgress.update({
+      title: 'Preparing workbook',
+      detail: `Preparing ${state.exportedRows.length.toLocaleString()} rows for Excel`,
+      percent: 3
+    });
+    await yieldToBrowser();
+
     const workbook = new ExcelJS.Workbook();
     const usedNames = new Set();
 
@@ -519,27 +550,59 @@ import { DOM } from '../../core/domCache.js';
         throw new Error('A grouping field is required for grouped export');
       }
 
+      ExcelExportProgress.update({
+        title: 'Preparing grouped sheets',
+        detail: `Splitting rows by ${candidate.field}`,
+        percent: 8
+      });
+      await yieldToBrowser();
+
       const groups = Array.from(candidate.counts.keys()).map(label => ({
         label,
         rows: state.exportedRows.filter(row => getGroupingDisplayValue(row.values[candidate.index]) === label)
       })).sort((left, right) => left.label.localeCompare(right.label, undefined, { numeric: true, sensitivity: 'base' }));
 
+      const sheetCount = groups.length + (config.includeMasterSheet ? 1 : 0) + (config.includeOverviewSheet ? 1 : 0);
+      let sheetIndex = 0;
+      const getSheetProgress = () => {
+        sheetIndex += 1;
+        const basePercent = 12 + Math.floor((sheetIndex / Math.max(sheetCount, 1)) * 62);
+        return { percent: basePercent, rowPercent: Math.min(basePercent + 8, 80) };
+      };
+
       if (config.includeMasterSheet) {
         const masterSheetName = getUniqueSheetName('All Results', usedNames);
-        addWorksheetTable(workbook.addWorksheet(masterSheetName), state.sourceData, state.exportedRows, `${state.tableName}_AllResults`);
+        await addWorksheetTable(workbook.addWorksheet(masterSheetName), state.sourceData, state.exportedRows, `${state.tableName}_AllResults`, {
+          ...getSheetProgress(),
+          detail: 'Building the all-results sheet'
+        });
       }
 
       if (config.includeOverviewSheet) {
+        ExcelExportProgress.update({
+          title: 'Building workbook',
+          detail: 'Adding the grouped sheet overview',
+          percent: 18 + Math.floor((sheetIndex / Math.max(sheetCount, 1)) * 58)
+        });
         addOverviewWorksheet(workbook, groups, candidate.field, usedNames);
+        sheetIndex += 1;
+        await yieldToBrowser();
       }
 
-      groups.forEach(group => {
+      for (const group of groups) {
         const sheetName = getUniqueSheetName(group.label, usedNames);
-        addWorksheetTable(workbook.addWorksheet(sheetName), state.sourceData, group.rows, `${state.tableName}_${group.label}`);
-      });
+        await addWorksheetTable(workbook.addWorksheet(sheetName), state.sourceData, group.rows, `${state.tableName}_${group.label}`, {
+          ...getSheetProgress(),
+          detail: `Building ${sheetName}`
+        });
+      }
     } else {
       const sheetName = getUniqueSheetName(state.tableName, usedNames);
-      addWorksheetTable(workbook.addWorksheet(sheetName), state.sourceData, state.exportedRows, state.tableName);
+      await addWorksheetTable(workbook.addWorksheet(sheetName), state.sourceData, state.exportedRows, state.tableName, {
+        percent: 18,
+        rowPercent: 48,
+        detail: `Building ${sheetName}`
+      });
     }
 
     const safeFileName = state.tableName.replace(/[^a-zA-Z0-9\-_\s]/g, '').replace(/\s+/g, '-');
@@ -547,11 +610,28 @@ import { DOM } from '../../core/domCache.js';
       ? `-by-${config.groupField.replace(/[^a-zA-Z0-9\-_\s]/g, '').trim().replace(/\s+/g, '-')}`
       : '';
     const filename = `${safeFileName || 'Query-Results'}${suffix}.xlsx`;
+    ExcelExportProgress.update({
+      title: 'Packaging workbook',
+      detail: 'Compressing the Excel file for download',
+      percent: 86,
+      indeterminate: true
+    });
+    await yieldToBrowser();
     const buffer = await workbook.xlsx.writeBuffer();
+    ExcelExportProgress.update({
+      title: 'Starting download',
+      detail: `${filename} is ready`,
+      percent: 100
+    });
+    await yieldToBrowser();
     triggerWorkbookDownload(buffer, filename);
   }
 
   async function confirmExportFromOverlay() {
+    if (exportInProgress) {
+      return;
+    }
+
     const elements = getExportElements();
     const groupedModeActive = !!elements.groupedMode?.checked;
 
@@ -572,11 +652,20 @@ import { DOM } from '../../core/domCache.js';
     const confirmBtn = elements.confirmBtn;
     if (confirmBtn) {
       confirmBtn.disabled = true;
-      confirmBtn.textContent = 'Preparing...';
+      confirmBtn.textContent = 'Exporting...';
     }
+    exportInProgress = true;
+    ExcelExportProgress.setBusy(elements, true);
+    ExcelExportProgress.update({
+      title: 'Preparing workbook',
+      detail: 'Starting Excel export',
+      percent: 1
+    });
+    await yieldToBrowser();
 
     try {
       await runWorkbookExport(config);
+      exportInProgress = false;
       closeExportOverlay();
       showToastMessage(
         config.mode === 'grouped'
@@ -588,6 +677,10 @@ import { DOM } from '../../core/domCache.js';
       console.error('Failed to export workbook', error);
       showToastMessage('Could not generate the Excel file', 'error');
     } finally {
+      exportInProgress = false;
+      ExcelExportProgress.setBusy(elements, false);
+      ExcelExportProgress.hide();
+      updateExportModeUI(elements);
       if (confirmBtn) {
         confirmBtn.disabled = false;
         confirmBtn.textContent = 'Download';

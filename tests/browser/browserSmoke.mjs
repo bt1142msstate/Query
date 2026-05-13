@@ -158,7 +158,46 @@ async function stubExternalAssets(page) {
 
   await page.route(/^https:\/\/cdn\.jsdelivr\.net\/npm\/exceljs@.*\/dist\/exceljs\.min\.js/u, route => {
     route.fulfill({
-      body: 'window.ExcelJS = window.ExcelJS || { Workbook: class Workbook {} };',
+      body: `
+        window.ExcelJS = window.ExcelJS || {
+          Workbook: class Workbook {
+            constructor() {
+              this.worksheets = [];
+              this.xlsx = {
+                writeBuffer: async () => {
+                  await new Promise(resolve => setTimeout(resolve, 250));
+                  return new Uint8Array([80, 75, 3, 4]).buffer;
+                }
+              };
+            }
+
+            addWorksheet(name) {
+              const columns = new Map();
+              const worksheet = {
+                name,
+                views: [],
+                columns: [],
+                addTable(table) {
+                  this.table = table;
+                },
+                getColumn(index) {
+                  if (!columns.has(index)) columns.set(index, {});
+                  return columns.get(index);
+                },
+                getRow() {
+                  return {
+                    eachCell(callback) {
+                      callback({ alignment: {} }, 1);
+                    }
+                  };
+                }
+              };
+              this.worksheets.push(worksheet);
+              return worksheet;
+            }
+          }
+        };
+      `,
       contentType: 'text/javascript; charset=utf-8',
       status: 200
     });
@@ -2137,7 +2176,14 @@ async function exerciseDesktopResultsWorkflow(page) {
   await page.waitForFunction(() => {
     return /grouped sheet/iu.test(document.querySelector('#export-group-preview')?.textContent || '');
   }, null, { timeout: 5000 });
-  await page.locator('#export-cancel-btn').click();
+  const downloadPromise = page.waitForEvent('download', { timeout: 5000 }).catch(() => null);
+  await page.locator('#export-confirm-btn').click();
+  await page.locator('#export-progress:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+  await page.waitForFunction(() => {
+    return /Packaging workbook|Starting download|Building workbook/iu.test(document.querySelector('#export-progress')?.textContent || '');
+  }, null, { timeout: 5000 });
+  const download = await downloadPromise;
+  await download?.delete().catch(() => {});
   await page.locator('#export-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
 }
 
