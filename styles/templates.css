@@ -1124,7 +1124,7 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
   #templates-panel > h2 {
     font-size: 0.95rem;
     letter-spacing: 0.07em;

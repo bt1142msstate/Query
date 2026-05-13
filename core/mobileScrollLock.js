@@ -1,4 +1,4 @@
-const MOBILE_VIEWPORT_QUERY = '(max-width: 640px)';
+const MOBILE_VIEWPORT_QUERY = '(max-width: 1024px)';
 const LOCKED_CLASS = 'mobile-overlay-scroll-locked';
 const LOCK_TRIGGER_CLASSES = [
   'raised-ui-open',

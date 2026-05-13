@@ -1612,7 +1612,7 @@ body.post-filter-overlay-open {
   gap: 0.75rem;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .post-filter-dialog {
     width: min(100%, calc(100vw - 1.5rem));
   }
@@ -1640,7 +1640,7 @@ body.post-filter-overlay-open {
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
   .post-filter-overlay {
     align-items: flex-end;
     padding: 0.5rem;
@@ -2296,7 +2296,7 @@ body.post-filter-overlay-open {
   box-shadow: none;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .export-dialog {
     width: min(100%, calc(100vw - 1.5rem));
   }
@@ -2335,7 +2335,7 @@ body.post-filter-overlay-open {
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
   .export-overlay {
     padding: 0.5rem;
     align-items: flex-end;
@@ -2444,7 +2444,7 @@ body.post-filter-overlay-open {
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   #table-top-bar {
     display: flex;
     flex-direction: column;
@@ -2474,7 +2474,7 @@ body.post-filter-overlay-open {
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
   #table-shell {
     width: 100%;
     margin-bottom: 0;
@@ -3208,7 +3208,7 @@ body.scene-fade-transition #query-app-shell {
   text-overflow: ellipsis;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
   .tcm {
     min-width: min(18rem, calc(100vw - 1rem));
     max-width: calc(100vw - 1rem);

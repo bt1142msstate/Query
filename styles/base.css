@@ -85,7 +85,7 @@
   
   
   --header-height: 64px;
-  --mobile-breakpoint: 900px;
+  --mobile-breakpoint: 1024px;
   --clock-speed: 4s;
   --bubble-glass-bg: radial-gradient(
     130% 130% at 30% 30%,
@@ -354,7 +354,7 @@
   outline: none;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
   #toast-container {
     top: 0.5rem;
     right: auto;
@@ -467,7 +467,7 @@ input, textarea, select, [contenteditable] {
   -ms-user-select: text;
 }
 
-@media (max-width: 640px), (hover: none) and (pointer: coarse) {
+@media (max-width: 1024px), (hover: none) and (pointer: coarse) {
   html,
   body {
     touch-action: pan-x pan-y;
@@ -694,8 +694,7 @@ body.raised-ui-open #table-shell.table-shell-expanded {
 }
 
 /* Responsive Header Controls */
-/* Note: CSS variables are not supported in media queries in all browsers, so we keep 900px but document the variable for future use in JS or preprocessors. */
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   #header-bar {
     padding-left: 1rem;
     padding-right: 1rem;
@@ -817,7 +816,7 @@ body.raised-ui-open #table-shell.table-shell-expanded {
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
   body#page-body {
     padding-left: 0.75rem;
     padding-right: 0.75rem;
@@ -1004,7 +1003,7 @@ body.raised-ui-open #table-shell.table-shell-expanded {
   display: block;
   word-break: break-word;
 }
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .template-description {
     width: 100%;
     max-width: 100%;

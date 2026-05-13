@@ -9,7 +9,7 @@ import {
   const TOAST_CONTAINER_ID = 'toast-container';
   const DESKTOP_MAX_VISIBLE_TOASTS = 4;
   const MOBILE_MAX_VISIBLE_TOASTS = 1;
-  const MOBILE_TOAST_QUERY = '(max-width: 640px)';
+  const MOBILE_TOAST_QUERY = '(max-width: 1024px)';
   const DEFAULT_DURATION = 3000;
   const EXIT_DURATION = 180;
   const TYPE_CONFIG = {

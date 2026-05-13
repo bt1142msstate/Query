@@ -649,7 +649,7 @@ input[type="search"]:-webkit-autofill,
   background: rgba(226, 232, 240, 0.98);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
   .grouped-selector {
     width: 100%;
     min-width: 0;
