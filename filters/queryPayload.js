@@ -29,6 +29,8 @@ const FIELD_OPERATOR_TO_UI_COND = {
   doesnotcontain: 'doesnotcontain',
   Between: 'between',
   between: 'between',
+  Never: 'never',
+  never: 'never',
   Before: 'before',
   before: 'before',
   After: 'after',
@@ -52,6 +54,7 @@ const UI_COND_TO_FIELD_OPERATOR = {
   less_or_equal: 'LessThanOrEqual',
   on_or_before: 'LessThanOrEqual',
   between: 'Between',
+  never: 'Never',
   contains: 'Contains',
   starts: 'Contains',
   starts_with: 'Contains',
@@ -70,6 +73,7 @@ const UI_FILTER_TO_BACKEND = {
   on_or_after: [{ operator: '>=', valueTransform: value => value }],
   less_or_equal: [{ operator: '<=', valueTransform: value => value }],
   on_or_before: [{ operator: '<=', valueTransform: value => value }],
+  never: [{ operator: '=', valueTransform: () => 'NEVER' }],
   starts: [{ operator: '=', valueTransform: value => `${value}*` }],
   starts_with: [{ operator: '=', valueTransform: value => `${value}*` }],
   contains: [{ operator: '=', valueTransform: value => `*${value}*` }],
@@ -104,6 +108,8 @@ function formatFieldOperatorForDisplay(operator) {
       return 'does not contain';
     case 'between':
       return 'between';
+    case 'never':
+      return 'never';
     case 'before':
       return 'before';
     case 'after':

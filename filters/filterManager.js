@@ -709,6 +709,7 @@ function handleConditionBtnClick(e) {
     const conditionInput2 = getFilterConditionInput2Element();
     const betweenLbl = getFilterBetweenLabelElement();
     const sel = document.getElementById('condition-select');
+    const selContainer = document.getElementById('condition-select-container');
 
     if (!conditionPanel || !inputWrapper || !conditionInput || !conditionInput2 || !betweenLbl) return;
 
@@ -746,6 +747,12 @@ function handleConditionBtnClick(e) {
     }
 
     // "Between" logic
+    const isNeverCondition = cond === 'never';
+    const hasValuePicker = Boolean(
+        (sel && sel.style.display !== 'none') ||
+        (selContainer && selContainer.style.display !== 'none')
+    );
+    setConditionInputVisible(conditionInput, !isNeverCondition && !hasValuePicker);
     if (cond === 'between') {
         setConditionInputVisible(conditionInput2, true);
         betweenLbl.style.display = 'block';
@@ -756,6 +763,7 @@ function handleConditionBtnClick(e) {
         betweenLbl.style.display = 'none';
         inputWrapper.classList.remove('is-between');
     }
+    if (isNeverCondition) conditionInput.value = 'NEVER';
 
     inputWrapper.classList.add('show');
     uiActions.positionInputWrapper();
@@ -766,7 +774,7 @@ function handleConditionBtnClick(e) {
             listPasteInput.focusInput();
         } else if (sel && sel.style.display !== 'none') {
             sel.focus();
-        } else {
+        } else if (!isNeverCondition) {
             (cond === 'between' ? conditionInput2 : conditionInput).focus();
         }
     }
@@ -797,6 +805,10 @@ function handleFilterConfirm(e) {
     const cond = getSelectedCondition(conditionPanel);
     let val = conditionInput.value.trim();
     let val2 = conditionInput2.value.trim();
+    if (cond === 'never') {
+        val = 'NEVER';
+        val2 = '';
+    }
     
     const fieldDef = fieldDefs.get(field);
     const fieldType = (bubble && bubble.dataset.type) || (fieldDef && fieldDef.type) || 'string';
@@ -829,7 +841,7 @@ function handleFilterConfirm(e) {
             return;
         }
         
-        if (cond !== 'between') {
+        if (cond !== 'between' && cond !== 'never') {
             const isTextInputVisible = isConditionInputVisible(conditionInput);
             const isTextInputEmpty = val === '';
             const isSelectVisible = sel && sel.style.display !== 'none';
@@ -845,7 +857,7 @@ function handleFilterConfirm(e) {
             }
         }
 
-        if (fieldType === 'date') {
+        if (fieldType === 'date' && cond !== 'never') {
             const hasInvalidPrimaryDate = val && (!CustomDatePicker || !CustomDatePicker.isValidDateValue(val));
             const hasInvalidSecondaryDate = cond === 'between' && val2 && (!CustomDatePicker || !CustomDatePicker.isValidDateValue(val2));
             if (hasInvalidPrimaryDate || hasInvalidSecondaryDate) {

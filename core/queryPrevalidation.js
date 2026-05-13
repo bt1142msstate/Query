@@ -415,6 +415,14 @@ function chooseStrongerUpperBound(currentBound, nextBound) {
 }
 
 function validateComparableFilters(fieldName, filters) {
+  const neverFilters = filters.filter(filter => String(filter.cond || '').toLowerCase() === 'never');
+  if (neverFilters.length > 0 && filters.some(filter => String(filter.cond || '').toLowerCase() !== 'never')) {
+    return {
+      accepted: false,
+      message: `${describeField(fieldName)} cannot be Never and have a date or range filter at the same time.`
+    };
+  }
+
   const equalsFilters = filters
     .filter(filter => String(filter.cond || '').toLowerCase() === 'equals')
     .map(filter => parseComparableValue(fieldName, filter.val));

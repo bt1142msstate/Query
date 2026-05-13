@@ -25,6 +25,18 @@ assert.equal(
 
 assert.equal(
   getContradictionMessage({
+    filters: [{ cond: 'before', val: '20260110' }]
+  }, {
+    cond: 'never',
+    val: 'NEVER'
+  }, 'date', 'Checkout Date', {
+    getComparableDateValue: value => Number(value)
+  }),
+  'Checkout Date cannot be Never and be before 20260110'
+);
+
+assert.equal(
+  getContradictionMessage({
     filters: [{ cond: 'between', val: '20260110|20260120' }]
   }, {
     cond: 'equals',

@@ -71,7 +71,8 @@ import { CustomDatePicker } from '../customDatePicker.js';
       'after',
       'on_or_before',
       'on_or_after',
-      'between'
+      'between',
+      'never'
     ];
 
     return normalized.slice().sort((left, right) => {
@@ -88,7 +89,7 @@ import { CustomDatePicker } from '../customDatePicker.js';
 
   function getDefaultOperatorForField(fieldDef, normalizeOperatorForField) {
     const availableOperators = getAvailableOperators(fieldDef, { operator: 'equals' }, normalizeOperatorForField);
-    const preferredOperators = ['equals', 'does_not_equal', 'contains', 'starts', 'greater', 'less', 'before', 'after', 'on_or_after', 'on_or_before', 'between'];
+    const preferredOperators = ['equals', 'does_not_equal', 'contains', 'starts', 'greater', 'less', 'before', 'after', 'on_or_after', 'on_or_before', 'between', 'never'];
     return preferredOperators.find(operator => availableOperators.includes(operator)) || availableOperators[0] || 'equals';
   }
 
@@ -408,6 +409,16 @@ import { CustomDatePicker } from '../customDatePicker.js';
   function createControl(fieldDef, inputSpec, initialValues, operatorOverride, normalizeOperatorForField) {
     const activeOperator = operatorOverride || inputSpec.operator;
     const { values } = parseFieldOptions(fieldDef, inputSpec, normalizeOperatorForField);
+
+    if (activeOperator === 'never') {
+      const control = document.createElement('div');
+      control.className = 'form-mode-text-input form-mode-static-value';
+      control.textContent = 'Never';
+      control.getFormValues = () => ['NEVER'];
+      control.setFormValues = () => {};
+      control.focusInput = () => {};
+      return control;
+    }
 
     if (activeOperator === 'between') {
       return createBetweenControl(getFieldInputType(fieldDef, inputSpec), initialValues, inputSpec);

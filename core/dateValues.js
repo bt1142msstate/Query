@@ -9,6 +9,10 @@ function toDisplayDate(date) {
 }
 
 function toBackendDateValue(displayValue) {
+  if (isNeverDateValue(displayValue)) {
+    return 'NEVER';
+  }
+
   const parsed = parseDateValue(displayValue);
   if (!parsed) return displayValue;
   return `${parsed.getFullYear()}${pad(parsed.getMonth() + 1)}${pad(parsed.getDate())}`;
@@ -73,6 +77,11 @@ function getComparableValue(value) {
   return parsed ? parsed.getTime() : NaN;
 }
 
+function isNeverDateValue(value) {
+  const normalized = String(value || '').trim().toUpperCase();
+  return normalized === 'NEVER' || normalized === '=NEVER' || normalized === '0' || normalized === '=0';
+}
+
 function formatDisplayValue(value, options = {}) {
   const {
     invalidValue = 'Never',
@@ -82,6 +91,10 @@ function formatDisplayValue(value, options = {}) {
   const parsed = parseDateValue(value);
   if (parsed) {
     return toDisplayDate(parsed);
+  }
+
+  if (isNeverDateValue(value)) {
+    return invalidValue;
   }
 
   const rawText = String(value || '').trim();
