@@ -5,6 +5,7 @@ window.setTimeout = setTimeout;
 window.clearTimeout = clearTimeout;
 
 const { QueryChangeManager } = await import('../../core/queryState.js');
+const { isValidDateValue, normalizeDateValue } = await import('../../core/dateValues.js');
 const { fieldAliases, fieldDefs, getFieldFilterOperators } = await import('../../filters/fieldDefs.js');
 const {
   buildBackendFilters,
@@ -24,6 +25,7 @@ fieldAliases.set('Old Title', 'Title');
 fieldDefs.set('Title', { name: 'Title', filters: ['equals', 'contains'] });
 fieldDefs.set('Record Date', { name: 'Record Date', type: 'date', filters: ['between', 'equals', 'never'] });
 fieldDefs.set('Never Date', { name: 'Never Date', type: 'date', filters: ['never', 'before'] });
+fieldDefs.set('Equal Never Date', { name: 'Equal Never Date', type: 'date', filters: ['equals'] });
 fieldDefs.set('Backend Date', { name: 'Backend Date', type: 'date', filters: ['before'] });
 fieldDefs.set('Search Key', { name: 'Search Key', filters: ['equals'], allowValueList: true });
 fieldDefs.set('Synthetic Field', { name: 'Synthetic Field', is_buildable: true, filters: ['equals'] });
@@ -48,6 +50,9 @@ QueryChangeManager.setQueryState({
     'Never Date': {
       filters: [{ cond: 'never', val: 'NEVER' }]
     },
+    'Equal Never Date': {
+      filters: [{ cond: 'equals', val: 'Never' }]
+    },
     'Synthetic Field': {
       filters: [{ cond: 'equals', val: 'ignored' }]
     }
@@ -60,6 +65,9 @@ assert.equal(mapUiCondToFieldOperator('on_or_after'), 'GreaterThanOrEqual');
 assert.equal(mapUiCondToFieldOperator('never'), 'Never');
 assert.equal(formatFieldOperatorForDisplay('LessThanOrEqual'), '<=');
 assert.equal(formatFieldOperatorForDisplay('Never'), 'never');
+assert.equal(isValidDateValue('Never'), true);
+assert.equal(isValidDateValue('=0'), true);
+assert.equal(normalizeDateValue('NEVER'), 'Never');
 assert.deepEqual(getFieldFilterOperators('Backend Date'), [
   'before',
   'equals',
@@ -94,7 +102,8 @@ assert.deepEqual(buildBackendFilters(), [
   { field: 'Search Key', operator: '=', value: ['A', 'B', 'C'] },
   { field: 'Record Date', operator: '>=', value: '20260102' },
   { field: 'Record Date', operator: '<=', value: '20260105' },
-  { field: 'Never Date', operator: '=', value: 'NEVER' }
+  { field: 'Never Date', operator: '=', value: 'NEVER' },
+  { field: 'Equal Never Date', operator: '=', value: 'NEVER' }
 ]);
 
 assert.deepEqual(buildQueryUiConfig(), {
@@ -104,7 +113,8 @@ assert.deepEqual(buildQueryUiConfig(), {
     { field: 'Search Key', operator: '=', value: ['A', 'B', 'C'] },
     { field: 'Record Date', operator: '>=', value: '20260102' },
     { field: 'Record Date', operator: '<=', value: '20260105' },
-    { field: 'Never Date', operator: '=', value: 'NEVER' }
+    { field: 'Never Date', operator: '=', value: 'NEVER' },
+    { field: 'Equal Never Date', operator: '=', value: 'NEVER' }
   ],
   SpecialFields: [{ tag: '590', subfield: 'a' }]
 });
@@ -117,7 +127,8 @@ assert.deepEqual(buildBackendQueryPayload('Smoke Query'), {
     { field: 'Search Key', operator: '=', value: ['A', 'B', 'C'] },
     { field: 'Record Date', operator: '>=', value: '20260102' },
     { field: 'Record Date', operator: '<=', value: '20260105' },
-    { field: 'Never Date', operator: '=', value: 'NEVER' }
+    { field: 'Never Date', operator: '=', value: 'NEVER' },
+    { field: 'Equal Never Date', operator: '=', value: 'NEVER' }
   ],
   display_fields: ['Title', 'Record Date'],
   special_fields: [{ tag: '590', subfield: 'a' }]

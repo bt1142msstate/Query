@@ -64,10 +64,14 @@ function parseDateValue(value) {
 }
 
 function isValidDateValue(value) {
-  return Boolean(parseDateValue(value));
+  return isNeverDateValue(value) || Boolean(parseDateValue(value));
 }
 
 function normalizeDateValue(value) {
+  if (isNeverDateValue(value)) {
+    return 'Never';
+  }
+
   const parsed = parseDateValue(value);
   return parsed ? toIsoDate(parsed) : '';
 }
