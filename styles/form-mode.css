@@ -531,6 +531,10 @@
   display: none;
 }
 
+.form-mode-popup-list-popup:focus {
+  outline: none;
+}
+
 .form-mode-popup-list-popup-header {
   display: flex;
   align-items: center;
@@ -627,6 +631,8 @@
   .form-mode-popup-list-popup-body {
     min-height: 0;
     padding: 0.75rem;
+    scroll-padding: 1rem 0.75rem 5rem;
+    -webkit-overflow-scrolling: touch;
   }
 
   .form-mode-popup-list-popup-body .grouped-selector,

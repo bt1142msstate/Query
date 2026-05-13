@@ -634,7 +634,9 @@
     border-radius: 1.15rem;
     overflow-y: auto;
     overscroll-behavior: contain;
+    scroll-padding: 1rem 0.75rem 5rem;
     transform: none;
+    -webkit-overflow-scrolling: touch;
   }
 
   #filter-card.show {
@@ -694,6 +696,12 @@
     font-size: 16px;
     width: 100%;
     min-width: 0;
+  }
+
+  .condition-field,
+  .condition-operator-select {
+    min-height: 2.75rem;
+    line-height: 1.3;
   }
 
   .confirm-btn {

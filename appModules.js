@@ -18,6 +18,7 @@ import './core/domCache.js';
 import './core/appServices.js';
 import './core/appUiActions.js';
 import './ui/conditionEditorLayout.js';
+import './ui/mobileEditorFocus.js';
 import './ui/searchUI.js';
 import './ui/selectorControls.js';
 import './ui/customDatePicker.js';
