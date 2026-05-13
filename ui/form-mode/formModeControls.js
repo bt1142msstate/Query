@@ -3,7 +3,7 @@ import { Icons } from '../../core/icons.js';
 import { OperatorLabels } from '../../core/operatorLabels.js';
 import { MoneyUtils, OperatorSelectUtils, ValueFormatting } from '../../core/utils.js';
 import { SelectorControls } from '../selectorControls.js';
-import { fieldDefs, isFieldBackendFilterable } from '../../filters/fieldDefs.js';
+import { fieldDefs, getFieldFilterOperators, isFieldBackendFilterable } from '../../filters/fieldDefs.js';
 import { CustomDatePicker } from '../customDatePicker.js';
 
   function parseFieldOptions(fieldDef, inputSpec, normalizeOperatorForField) {
@@ -52,7 +52,7 @@ import { CustomDatePicker } from '../customDatePicker.js';
 
     const configured = Array.isArray(inputSpec.operatorOptions) && inputSpec.operatorOptions.length > 0
       ? inputSpec.operatorOptions
-      : (Array.isArray(fieldDef && fieldDef.filters) ? fieldDef.filters : [inputSpec.operator || 'equals']);
+      : getFieldFilterOperators(fieldDef || { filters: [inputSpec.operator || 'equals'] });
 
     const normalized = configured
       .map(operator => normalizeOperatorForField(fieldDef, operator))

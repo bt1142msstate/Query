@@ -5,7 +5,7 @@ window.setTimeout = setTimeout;
 window.clearTimeout = clearTimeout;
 
 const { QueryChangeManager } = await import('../../core/queryState.js');
-const { fieldAliases, fieldDefs } = await import('../../filters/fieldDefs.js');
+const { fieldAliases, fieldDefs, getFieldFilterOperators } = await import('../../filters/fieldDefs.js');
 const {
   buildBackendFilters,
   buildBackendQueryPayload,
@@ -24,6 +24,7 @@ fieldAliases.set('Old Title', 'Title');
 fieldDefs.set('Title', { name: 'Title', filters: ['equals', 'contains'] });
 fieldDefs.set('Record Date', { name: 'Record Date', type: 'date', filters: ['between', 'equals', 'never'] });
 fieldDefs.set('Never Date', { name: 'Never Date', type: 'date', filters: ['never', 'before'] });
+fieldDefs.set('Backend Date', { name: 'Backend Date', type: 'date', filters: ['before'] });
 fieldDefs.set('Search Key', { name: 'Search Key', filters: ['equals'], allowValueList: true });
 fieldDefs.set('Synthetic Field', { name: 'Synthetic Field', is_buildable: true, filters: ['equals'] });
 fieldDefs.set('Special MARC', {
@@ -59,6 +60,16 @@ assert.equal(mapUiCondToFieldOperator('on_or_after'), 'GreaterThanOrEqual');
 assert.equal(mapUiCondToFieldOperator('never'), 'Never');
 assert.equal(formatFieldOperatorForDisplay('LessThanOrEqual'), '<=');
 assert.equal(formatFieldOperatorForDisplay('Never'), 'never');
+assert.deepEqual(getFieldFilterOperators('Backend Date'), [
+  'before',
+  'equals',
+  'does_not_equal',
+  'after',
+  'on_or_before',
+  'on_or_after',
+  'between',
+  'never'
+]);
 
 assert.deepEqual(getNormalizedDisplayedFields(), ['Title', 'Special MARC', 'Record Date']);
 
