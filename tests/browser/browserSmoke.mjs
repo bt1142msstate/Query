@@ -1309,6 +1309,31 @@ async function seedLoadedResults(page, options = {}) {
   await page.locator('#example-table').waitFor({ state: 'attached', timeout: 5000 });
 }
 
+async function seedLargeExportResults(page) {
+  await page.evaluate(async () => {
+    const { appServices } = await import('./core/appServices.js');
+    const { QueryChangeManager } = await import('./core/queryState.js');
+    const { QueryTableView } = await import('./ui/queryTableView.js');
+    const { QueryUI } = await import('./ui/queryUI.js');
+    const headers = Array.from({ length: 80 }, (_, index) => `Large Export ${index + 1}`);
+    const rows = Array.from({ length: 1000 }, (_, rowIndex) => (
+      headers.map((field, columnIndex) => `${field} row ${rowIndex + 1}`)
+    ));
+    const columnMap = new Map(headers.map((field, index) => [field, index]));
+
+    QueryChangeManager.replaceDisplayedFields(headers, { source: 'BrowserSmoke.seedLargeExportResults' });
+    QueryChangeManager.setLifecycleState(
+      { hasLoadedResultSet: true, queryRunning: false },
+      { source: 'BrowserSmoke.seedLargeExportResults', silent: true }
+    );
+    appServices.setVirtualTableData({ headers, rows, columnMap });
+    await QueryTableView.showExampleTable(headers, { syncQueryState: false });
+    appServices.renderVirtualTable();
+    QueryUI.updateButtonStates();
+  });
+  await page.locator('#example-table').waitFor({ state: 'attached', timeout: 5000 });
+}
+
 async function exerciseLiveResponsiveResize(page) {
   await page.setViewportSize({ width: 1280, height: 900 });
   await waitForResponsiveResize(page, false);
@@ -2185,6 +2210,19 @@ async function exerciseDesktopResultsWorkflow(page) {
   const download = await downloadPromise;
   await download?.delete().catch(() => {});
   await page.locator('#export-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
+
+  await seedLargeExportResults(page);
+  await page.locator('#download-btn').scrollIntoViewIfNeeded();
+  await page.locator('#download-btn').click();
+  await page.locator('#export-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+  const largeDownloadPromise = page.waitForEvent('download', { timeout: 10000 }).catch(() => null);
+  await page.locator('#export-confirm-btn').click();
+  await page.waitForFunction(() => {
+    return /Building large workbook|memory-safe export/iu.test(document.querySelector('#export-progress')?.textContent || '');
+  }, null, { timeout: 5000 });
+  const largeDownload = await largeDownloadPromise;
+  await largeDownload?.delete().catch(() => {});
+  await page.locator('#export-overlay.hidden').waitFor({ state: 'attached', timeout: 10000 });
 }
 
 async function exerciseZeroResultQueryWorkflow(page, queryApiStub) {

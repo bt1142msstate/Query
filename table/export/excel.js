@@ -1,8 +1,3 @@
-/**
- * Excel Exporter Module
- * Handles exporting table data to Excel files with proper formatting and type detection.
- * @module ExcelExporter
- */
 import { appServices } from '../../core/appServices.js';
 import { registerAppUiActionDependencies } from '../../core/appUiActions.js';
 import { showToastMessage } from '../../core/toast.js';
@@ -14,6 +9,7 @@ import { QueryUI } from '../../ui/queryUI.js';
 import { fieldDefs } from '../../filters/fieldDefs.js';
 import { DOM } from '../../core/domCache.js';
 import { ExcelExportProgress, yieldToBrowser } from './exportProgress.js';
+import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from './largeWorkbookExport.js';
 
 (() => {
   // When true, multi-value cells (delimited by \x1F) are split into separate columns
@@ -161,12 +157,15 @@ import { ExcelExportProgress, yieldToBrowser } from './exportProgress.js';
     });
   }
 
-  function buildGroupingCandidates(sourceData, exportedRows) {
+  function buildGroupingCandidates(sourceData) {
     const candidates = sourceData.displayedFields.map((field, index) => {
       const counts = new Map();
+      const colIndex = sourceData.virtualData.columnMap.get(field);
+      const type = sourceData.fieldTypeMap.get(field);
 
-      exportedRows.forEach(row => {
-        const displayValue = getGroupingDisplayValue(row.values[index]);
+      sourceData.dataRows.forEach(row => {
+        const raw = colIndex !== undefined ? row[colIndex] : undefined;
+        const displayValue = getGroupingDisplayValue(getCellExportValue(raw, type));
         counts.set(displayValue, (counts.get(displayValue) || 0) + 1);
       });
 
@@ -199,13 +198,13 @@ import { ExcelExportProgress, yieldToBrowser } from './exportProgress.js';
       || QueryUI.getDefaultTableName?.()
       || 'Query Results';
 
-    const exportedRows = buildExportRows(sourceData);
-    const groupingCandidates = buildGroupingCandidates(sourceData, exportedRows);
+    const rowCount = sourceData.dataRows.length;
+    const groupingCandidates = buildGroupingCandidates(sourceData);
 
     return {
       sourceData,
       tableName,
-      exportedRows,
+      rowCount,
       groupingCandidates,
       selectedGroupingField: groupingCandidates[0]?.field || ''
     };
@@ -226,7 +225,7 @@ import { ExcelExportProgress, yieldToBrowser } from './exportProgress.js';
       elements.summaryName.textContent = exportState.tableName;
     }
     if (elements.summaryRows) {
-      elements.summaryRows.textContent = exportState.exportedRows.length.toLocaleString();
+      elements.summaryRows.textContent = exportState.rowCount.toLocaleString();
     }
     if (elements.summaryColumns) {
       elements.summaryColumns.textContent = exportState.sourceData.displayedFields.length.toLocaleString();
@@ -245,7 +244,7 @@ import { ExcelExportProgress, yieldToBrowser } from './exportProgress.js';
     const candidate = exportState.groupingCandidates.find(item => item.field === exportState.selectedGroupingField);
 
     if (!groupedModeActive) {
-      elements.preview.textContent = `${exportState.exportedRows.length.toLocaleString()} rows into 1 sheet.`;
+      elements.preview.textContent = `${exportState.rowCount.toLocaleString()} rows into 1 sheet.`;
       return;
     }
 
@@ -536,11 +535,27 @@ import { ExcelExportProgress, yieldToBrowser } from './exportProgress.js';
 
     ExcelExportProgress.update({
       title: 'Preparing workbook',
-      detail: `Preparing ${state.exportedRows.length.toLocaleString()} rows for Excel`,
+      detail: `Preparing ${state.rowCount.toLocaleString()} rows for Excel`,
       percent: 3
     });
     await yieldToBrowser();
 
+    if (shouldUseLargeWorkbookExport(state)) {
+      await exportLargeWorkbook({
+        state,
+        config,
+        helpers: {
+          getCellExportValue,
+          getGroupingDisplayValue,
+          getUniqueSheetName,
+          progress: ExcelExportProgress,
+          yieldToBrowser
+        }
+      });
+      return;
+    }
+
+    const exportedRows = buildExportRows(state.sourceData);
     const workbook = new ExcelJS.Workbook();
     const usedNames = new Set();
 
@@ -559,7 +574,7 @@ import { ExcelExportProgress, yieldToBrowser } from './exportProgress.js';
 
       const groups = Array.from(candidate.counts.keys()).map(label => ({
         label,
-        rows: state.exportedRows.filter(row => getGroupingDisplayValue(row.values[candidate.index]) === label)
+        rows: exportedRows.filter(row => getGroupingDisplayValue(row.values[candidate.index]) === label)
       })).sort((left, right) => left.label.localeCompare(right.label, undefined, { numeric: true, sensitivity: 'base' }));
 
       const sheetCount = groups.length + (config.includeMasterSheet ? 1 : 0) + (config.includeOverviewSheet ? 1 : 0);
@@ -572,7 +587,7 @@ import { ExcelExportProgress, yieldToBrowser } from './exportProgress.js';
 
       if (config.includeMasterSheet) {
         const masterSheetName = getUniqueSheetName('All Results', usedNames);
-        await addWorksheetTable(workbook.addWorksheet(masterSheetName), state.sourceData, state.exportedRows, `${state.tableName}_AllResults`, {
+        await addWorksheetTable(workbook.addWorksheet(masterSheetName), state.sourceData, exportedRows, `${state.tableName}_AllResults`, {
           ...getSheetProgress(),
           detail: 'Building the all-results sheet'
         });
@@ -598,7 +613,7 @@ import { ExcelExportProgress, yieldToBrowser } from './exportProgress.js';
       }
     } else {
       const sheetName = getUniqueSheetName(state.tableName, usedNames);
-      await addWorksheetTable(workbook.addWorksheet(sheetName), state.sourceData, state.exportedRows, state.tableName, {
+      await addWorksheetTable(workbook.addWorksheet(sheetName), state.sourceData, exportedRows, state.tableName, {
         percent: 18,
         rowPercent: 48,
         detail: `Building ${sheetName}`
@@ -813,11 +828,6 @@ import { ExcelExportProgress, yieldToBrowser } from './exportProgress.js';
   });
   registerAppUiActionDependencies({ splitColumnsUi });
 
-  /**
-   * Attaches the download and toggle event listeners.
-   * @function attach
-   * @memberof ExcelExporter
-   */
   function attach() {
     const downloadBtn = DOM?.downloadBtn || document.getElementById('download-btn');
     if (downloadBtn) {
@@ -853,18 +863,11 @@ import { ExcelExportProgress, yieldToBrowser } from './exportProgress.js';
     }
   }
 
-  /**
-   * Handles the download button click event.
-   * Validates data availability, creates Excel workbook, and triggers download.
-   * @function handleDownload
-   * @memberof ExcelExporter
-   */
   function handleDownload() {
     const downloadBtn = DOM?.downloadBtn || document.getElementById('download-btn');
     if (!downloadBtn) return;
     const missingLoadedColumns = QueryUI.getDisplayedFieldsMissingFromLoadedData();
 
-    // Check if button is disabled and show message
     if (downloadBtn.disabled) {
       const displayedFields = getDisplayedFields();
       const hasData = displayedFields.length > 0 && services.getVirtualTableRows().length > 0;
