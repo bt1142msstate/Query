@@ -101,6 +101,10 @@ assert.equal(downloadedBlob?.type, 'application/vnd.openxmlformats-officedocumen
 const workbookText = new TextDecoder().decode(await downloadedBlob.arrayBuffer());
 assert.match(workbookText.slice(0, 4), /^PK/u);
 assert.match(workbookText, /xl\/worksheets\/sheet1\.xml/u);
+assert.match(workbookText, /xl\/tables\/table1\.xml/u);
+assert.match(workbookText, /tableStyleInfo name="TableStyleMedium4"/u);
+assert.match(workbookText, /<cols><col min="1" max="1" width="/u);
+assert.match(workbookText, /<tableParts count="1"><tablePart r:id="rId1"\/><\/tableParts>/u);
 assert.match(workbookText, /Alpha &amp; Beta/u);
 assert.match(workbookText, /Gamma &lt; Delta/u);
 assert.match(workbookText, /mm\/dd\/yyyy/u);
