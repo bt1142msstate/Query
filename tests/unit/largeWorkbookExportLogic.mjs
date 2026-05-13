@@ -105,6 +105,7 @@ assert.match(workbookText, /xl\/tables\/table1\.xml/u);
 assert.match(workbookText, /tableStyleInfo name="TableStyleMedium4"/u);
 assert.match(workbookText, /<cols><col min="1" max="1" width="/u);
 assert.match(workbookText, /<tableParts count="1"><tablePart r:id="rId1"\/><\/tableParts>/u);
+assert.doesNotMatch(workbookText, /FFE5F3FF|applyFill="1"/u);
 assert.match(workbookText, /Alpha &amp; Beta/u);
 assert.match(workbookText, /Gamma &lt; Delta/u);
 assert.match(workbookText, /mm\/dd\/yyyy/u);
