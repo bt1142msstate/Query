@@ -1269,6 +1269,30 @@ async function expectMobileTableContextMenu(page) {
   });
 }
 
+async function expectMobileHeaderDragDoesNotOpenContextMenu(page) {
+  const titleHeader = page.locator('#example-table th[data-sort-field="Smoke Title"]').first();
+  await titleHeader.waitFor({ state: 'visible', timeout: 5000 });
+  await page.keyboard.press('Escape').catch(() => {});
+  await page.locator('.tcm').waitFor({ state: 'detached', timeout: 5000 }).catch(() => {});
+  await page.evaluate(() => window.getSelection?.()?.removeAllRanges?.());
+
+  await dragTouchLocator(page, titleHeader, {
+    deltaX: 36,
+    deltaY: 1,
+    holdMs: 520,
+    horizontalRatio: 0.5,
+    steps: 6,
+    verticalRatio: 0.5
+  });
+  await page.waitForTimeout(250);
+
+  const menuVisible = await page.locator('.tcm.tcm--visible').count();
+  const selectedText = await page.evaluate(() => (window.getSelection?.()?.toString?.() || '').trim());
+  if (menuVisible > 0 || selectedText) {
+    throw new Error(`Mobile header drag should not open the table context menu or select text: ${JSON.stringify({ menuVisible, selectedText })}`);
+  }
+}
+
 async function seedLoadedResults(page, options = {}) {
   const rowCount = Math.max(0, Number(options.rowCount) || 3);
   const longTitle = options.longTitle === true;
@@ -2706,6 +2730,7 @@ async function runSmokeTest() {
     await expectControlsNonSelectable(mobilePage, '#table-with-filter', 'Mobile table controls');
     await expectMobileTableTextNonSelectable(mobilePage);
     await expectMobileTableContextMenu(mobilePage);
+    await expectMobileHeaderDragDoesNotOpenContextMenu(mobilePage);
     const mobileTableDensityMetrics = await mobilePage.locator('#table-container').evaluate(container => {
       const table = document.querySelector('#example-table');
       const cell = document.querySelector('#example-table tbody td');
