@@ -641,12 +641,28 @@ input[type="search"]:-webkit-autofill,
   color: #475569;
 }
 
+.custom-date-picker__action--never {
+  background: rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+}
+
+.custom-date-picker__action.is-selected {
+  background: linear-gradient(135deg, #0f766e, #0ea5a4);
+  color: #f8fafc;
+  box-shadow: 0 8px 16px rgba(15, 118, 110, 0.18);
+}
+
 .custom-date-picker__action:hover {
   background: rgba(20, 184, 166, 0.18);
 }
 
 .custom-date-picker__action--ghost:hover {
   background: rgba(226, 232, 240, 0.98);
+}
+
+.custom-date-picker__action.is-selected:hover {
+  background: linear-gradient(135deg, #0f766e, #0ea5a4);
+  color: #f8fafc;
 }
 
 @media (max-width: 1024px) {

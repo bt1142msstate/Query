@@ -10,6 +10,7 @@ function normalizeOperatorForField(fieldDef, operator) {
   }
 
   if (fieldDef.type === 'date') {
+    if (normalized === 'never') return 'equals';
     if (normalized === 'greater') return 'after';
     if (normalized === 'less') return 'before';
     if (normalized === 'greater_or_equal') return 'on_or_after';

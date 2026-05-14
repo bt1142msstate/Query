@@ -24,6 +24,7 @@ const fieldDefs = new Map([
 
 assert.equal(normalizeOperatorForField(fieldDefs.get('Checkout Date'), 'GreaterThan'), 'after');
 assert.equal(normalizeOperatorForField(fieldDefs.get('Checkout Date'), 'LessThanOrEqual'), 'on_or_before');
+assert.equal(normalizeOperatorForField(fieldDefs.get('Checkout Date'), 'Never'), 'equals');
 assert.equal(normalizeOperatorForField(fieldDefs.get('Search Key'), 'Contains'), 'contains');
 
 const seenKeys = new Set(['branch-equals']);
@@ -84,5 +85,14 @@ assert.equal(generatedInputs[1].operator, 'between');
 assert.deepEqual(generatedInputs[1].defaultValue, ['1/1/2026', '1/5/2026']);
 assert.equal(generatedInputs[1].type, 'date');
 assert.equal(getInputSignature(generatedInputs[1]), 'Checkout Date::between');
+
+const generatedNeverDateInput = buildGeneratedInputSpecsFromActiveFilters([], {
+  'Checkout Date': {
+    filters: [{ cond: 'never', val: 'NEVER' }]
+  }
+}, { fieldDefs })[0];
+assert.equal(generatedNeverDateInput.operator, 'equals');
+assert.equal(generatedNeverDateInput.defaultValue, 'NEVER');
+assert.equal(getInputSignature(generatedNeverDateInput), 'Checkout Date::equals');
 
 console.log('Form mode query spec logic tests passed');

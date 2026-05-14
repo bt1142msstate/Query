@@ -2346,6 +2346,46 @@ async function exerciseZeroResultQueryWorkflow(page, queryApiStub) {
   }
 }
 
+async function expectCustomDatePickerNeverOption(page) {
+  await page.evaluate(async () => {
+    document.querySelector('[data-browser-smoke-date-picker-host]')?.remove();
+    const { CustomDatePicker } = await import('./ui/customDatePicker.js');
+    const host = document.createElement('div');
+    host.setAttribute('data-browser-smoke-date-picker-host', '');
+    host.style.position = 'fixed';
+    host.style.left = '24px';
+    host.style.top = '24px';
+    host.style.zIndex = '9999';
+    const input = document.createElement('input');
+    input.id = 'browser-smoke-never-date-input';
+    host.appendChild(input);
+    document.body.appendChild(host);
+    CustomDatePicker.enhanceInput(input, {
+      enabled: true,
+      placeholder: 'M/D/YYYY',
+      variant: 'filter'
+    });
+  });
+
+  const input = page.locator('#browser-smoke-never-date-input');
+  await input.click();
+  await page.locator('.custom-date-picker [data-date-action="never"]').click();
+  const metrics = await input.evaluate(element => ({
+    errorMessage: element.dataset.errorMsg || '',
+    pattern: element.getAttribute('pattern') || '',
+    value: element.value
+  }));
+  await page.evaluate(async () => {
+    const { CustomDatePicker } = await import('./ui/customDatePicker.js');
+    CustomDatePicker.close();
+    document.querySelector('[data-browser-smoke-date-picker-host]')?.remove();
+  });
+
+  if (metrics.value !== 'Never' || !metrics.pattern.includes('Never') || !/Never/u.test(metrics.errorMessage)) {
+    throw new Error(`Custom date picker should expose Never as a date value: ${JSON.stringify(metrics)}`);
+  }
+}
+
 async function runSmokeTest() {
   const server = createServer(serveStaticFile);
   const port = await listen(server);
@@ -2371,6 +2411,7 @@ async function runSmokeTest() {
     await expectNoHorizontalOverflow(page, 'Desktop initial layout');
     await expectControlsNonSelectable(page, 'body', 'Desktop initial layout');
     await expectDarkInput(page, '#query-input', 'Main field search input');
+    await expectCustomDatePickerNeverOption(page);
     await page.evaluate(async () => {
       const { QueryTableView } = await import('./ui/queryTableView.js');
       QueryTableView.renderEmptyQueryTableState();
