@@ -1,4 +1,5 @@
 import { ZIP_MIME_TYPE, createZipBlob } from './xlsxZipWriter.js';
+import { buildOverviewRows, getOverviewColumns } from './workbookOverview.js';
 
 const LARGE_EXPORT_CELL_THRESHOLD = 75000;
 const EXCEL_MAX_DATA_ROWS_PER_SHEET = 1048575;
@@ -211,12 +212,13 @@ function buildWorkbookPlan(state, config, helpers) {
   }
 
   if (config.includeOverviewSheet) {
+    const overviewRows = buildOverviewRows(groups, state.rowCount);
     sheets.push({
-      columns: [candidate.field, 'Rows'],
-      dataRowCount: groups.length,
+      columns: getOverviewColumns(candidate.field),
+      dataRowCount: overviewRows.length,
       kind: 'overview',
       name: helpers.getUniqueSheetName('Overview', usedNames),
-      rows: groups.map(group => [group.label, group.count])
+      rows: overviewRows
     });
   }
 
@@ -266,7 +268,7 @@ function buildPackageRelationships() {
 }
 
 function buildStylesXml() {
-  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="mm/dd/yyyy"/><numFmt numFmtId="165" formatCode="$#,##0.00"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="6"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"><alignment horizontal="right"/></xf><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"><alignment horizontal="right"/></xf><xf numFmtId="3" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"><alignment horizontal="right"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"><alignment horizontal="center"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="mm/dd/yyyy"/><numFmt numFmtId="165" formatCode="$#,##0.00"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="7"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"><alignment horizontal="right"/></xf><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"><alignment horizontal="right"/></xf><xf numFmtId="3" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"><alignment horizontal="right"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"><alignment horizontal="center"/></xf><xf numFmtId="10" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"><alignment horizontal="right"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
 }
 
 function buildColumnXml(widths) {
@@ -349,7 +351,7 @@ async function* createOverviewSheetChunks(sheet, context) {
   let chunk = '';
   sheet.rows.forEach((row, index) => {
     const rowNumber = index + 2;
-    chunk += `<row r="${rowNumber}">${buildTextCell(row[0], rowNumber, 1)}${buildCell(row[1], rowNumber, 2, '4')}</row>`;
+    chunk += `<row r="${rowNumber}">${buildTextCell(row[0], rowNumber, 1)}${buildCell(row[1], rowNumber, 2, '4')}${buildCell(row[2], rowNumber, 3, '6')}</row>`;
   });
   context.writtenRows += sheet.rows.length;
   yield chunk;

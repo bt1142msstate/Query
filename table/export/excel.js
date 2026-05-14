@@ -9,6 +9,7 @@ import { QueryUI } from '../../ui/queryUI.js';
 import { fieldDefs } from '../../filters/fieldDefs.js';
 import { DOM } from '../../core/domCache.js';
 import { ExcelExportProgress, yieldToBrowser } from './exportProgress.js';
+import { addOverviewWorksheet } from './excelOverviewWorksheet.js';
 import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from './largeWorkbookExport.js';
 
 (() => {
@@ -509,24 +510,6 @@ import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from './largeWorkbo
     await yieldToBrowser();
   }
 
-  function addOverviewWorksheet(workbook, groups, groupField, usedNames) {
-    const overviewSheet = workbook.addWorksheet(getUniqueSheetName('Overview', usedNames));
-    overviewSheet.views = [{ state: 'frozen', ySplit: 1 }];
-    overviewSheet.columns = [
-      { header: groupField, key: 'group', width: 26 },
-      { header: 'Rows', key: 'count', width: 12 }
-    ];
-    overviewSheet.addTable({
-      name: `Overview_${Date.now()}`,
-      ref: 'A1',
-      headerRow: true,
-      style: { theme: 'TableStyleMedium2', showRowStripes: true },
-      columns: [{ name: groupField, filterButton: true }, { name: 'Rows', filterButton: true }],
-      rows: groups.map(group => [group.label, group.rows.length])
-    });
-    overviewSheet.getColumn(2).alignment = { horizontal: 'right' };
-  }
-
   async function runWorkbookExport(config) {
     const state = exportState || buildExportState();
     if (!state) {
@@ -599,7 +582,12 @@ import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from './largeWorkbo
           detail: 'Adding the grouped sheet overview',
           percent: 18 + Math.floor((sheetIndex / Math.max(sheetCount, 1)) * 58)
         });
-        addOverviewWorksheet(workbook, groups, candidate.field, usedNames);
+        addOverviewWorksheet(workbook, {
+          getUniqueSheetName,
+          groupField: candidate.field,
+          groups,
+          usedNames
+        });
         sheetIndex += 1;
         await yieldToBrowser();
       }

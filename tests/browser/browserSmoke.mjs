@@ -170,6 +170,8 @@ async function stubExternalAssets(page) {
           Workbook: class Workbook {
             constructor() {
               this.worksheets = [];
+              window.__browserSmokeExcelWorkbooks = window.__browserSmokeExcelWorkbooks || [];
+              window.__browserSmokeExcelWorkbooks.push(this);
               this.xlsx = {
                 writeBuffer: async () => {
                   await new Promise(resolve => setTimeout(resolve, 250));
@@ -181,6 +183,7 @@ async function stubExternalAssets(page) {
             addWorksheet(name) {
               const columns = new Map();
               const worksheet = {
+                columnSettings: columns,
                 name,
                 views: [],
                 columns: [],
@@ -2264,6 +2267,9 @@ async function exerciseDesktopResultsWorkflow(page) {
   await page.waitForFunction(() => {
     return /grouped sheet/iu.test(document.querySelector('#export-group-preview')?.textContent || '');
   }, null, { timeout: 5000 });
+  await page.evaluate(() => {
+    window.__browserSmokeExcelWorkbooks = [];
+  });
   const downloadPromise = page.waitForEvent('download', { timeout: 5000 }).catch(() => null);
   await page.locator('#export-confirm-btn').click();
   await page.locator('#export-progress:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
@@ -2272,6 +2278,26 @@ async function exerciseDesktopResultsWorkflow(page) {
   }, null, { timeout: 5000 });
   const download = await downloadPromise;
   await download?.delete().catch(() => {});
+  const overviewMetrics = await page.evaluate(() => {
+    const workbook = window.__browserSmokeExcelWorkbooks?.at(-1);
+    const overview = workbook?.worksheets?.find(sheet => sheet.name === 'Overview');
+    const totalRow = overview?.table?.rows?.find(row => row[0] === 'Total');
+    return {
+      headers: overview?.table?.columns?.map(column => column.name) || [],
+      percentFormat: overview?.columnSettings?.get?.(3)?.numFmt || '',
+      rowCount: overview?.table?.rows?.length || 0,
+      totalRow
+    };
+  });
+  if (
+    overviewMetrics.headers.join('|') !== 'Smoke Branch|Rows|Percent of Total'
+    || overviewMetrics.rowCount !== 3
+    || overviewMetrics.totalRow?.[1] !== 3
+    || overviewMetrics.totalRow?.[2] !== 1
+    || overviewMetrics.percentFormat !== '0.00%'
+  ) {
+    throw new Error(`Grouped export overview should include percentages and a total row: ${JSON.stringify(overviewMetrics)}`);
+  }
   await page.locator('#export-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
 
   await seedLargeExportResults(page);
