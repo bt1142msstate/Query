@@ -19,12 +19,14 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
   let touchContextState = null;
   let suppressTableClickUntil = 0;
   let suppressTouchContextMenuUntil = 0;
+  let lastTouchContextActivityUntil = 0;
   const services = appServices;
   const TOUCH_CONTEXT_CELL_DELAY = 420;
   const TOUCH_CONTEXT_CELL_MOVE_TOLERANCE = 12;
   const TOUCH_CONTEXT_HEADER_DELAY = 650;
   const TOUCH_CONTEXT_HEADER_MOVE_TOLERANCE = 6;
   const TOUCH_CONTEXT_SUPPRESSION_MS = 900;
+  const TOUCH_CONTEXT_ACTIVITY_MS = 1600;
 
   // ── Data helpers ────────────────────────────────────────────────────────────
 
@@ -577,15 +579,28 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
     return true;
   }
 
+  function markTouchContextActivity() {
+    lastTouchContextActivityUntil = Date.now() + TOUCH_CONTEXT_ACTIVITY_MS;
+  }
+
+  function isRecentTouchContextActivity() {
+    return Date.now() <= lastTouchContextActivityUntil;
+  }
+
   function onContextMenu(e) {
-    if (!getContextTarget(e.target)) return;
+    const contextTarget = getContextTarget(e.target);
+    if (!contextTarget) return;
     e.preventDefault();
     const source = e.pointerType === 'touch'
       || e.pointerType === 'pen'
       || e.sourceCapabilities?.firesTouchEvents
+      || isRecentTouchContextActivity()
       ? 'touch'
       : 'mouse';
     if (source === 'touch' && Date.now() <= suppressTouchContextMenuUntil) {
+      return;
+    }
+    if (source === 'touch' && contextTarget.headerCell && touchContextState?.openOnRelease) {
       return;
     }
     openContextMenuForTarget(e.target, e.clientX, e.clientY, { source });
@@ -599,7 +614,13 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
   }
 
   function cancelTouchContextForMovement() {
+    const hadOpenedMenu = Boolean(touchContextState?.opened || menuEl);
     suppressTouchContextMenuUntil = Date.now() + TOUCH_CONTEXT_SUPPRESSION_MS;
+    if (hadOpenedMenu) {
+      dismiss();
+      clearTableTextSelection();
+      suppressTableClickUntil = Date.now() + TOUCH_CONTEXT_SUPPRESSION_MS;
+    }
     clearTouchContextState();
   }
 
@@ -607,22 +628,32 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
     const isHeaderTarget = Boolean(contextTarget?.headerCell && !contextTarget?.bodyCell);
     return {
       delay: isHeaderTarget ? TOUCH_CONTEXT_HEADER_DELAY : TOUCH_CONTEXT_CELL_DELAY,
-      moveTolerance: isHeaderTarget ? TOUCH_CONTEXT_HEADER_MOVE_TOLERANCE : TOUCH_CONTEXT_CELL_MOVE_TOLERANCE
+      moveTolerance: isHeaderTarget ? TOUCH_CONTEXT_HEADER_MOVE_TOLERANCE : TOUCH_CONTEXT_CELL_MOVE_TOLERANCE,
+      openOnRelease: isHeaderTarget
     };
   }
 
   function startTouchContext({ clientX, clientY, contextTarget, pointerId, target }) {
     clearTouchContextState();
+    markTouchContextActivity();
     const profile = getTouchContextProfile(contextTarget);
     touchContextState = {
+      armedForRelease: false,
       moveTolerance: profile.moveTolerance,
       opened: false,
+      openOnRelease: profile.openOnRelease,
       pointerId,
       startX: clientX,
       startY: clientY,
       target,
       timerId: window.setTimeout(() => {
         if (!touchContextState || touchContextState.pointerId !== pointerId) {
+          return;
+        }
+
+        if (touchContextState.openOnRelease) {
+          touchContextState.armedForRelease = true;
+          navigator.vibrate?.(8);
           return;
         }
 
@@ -646,6 +677,7 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
       return;
     }
 
+    markTouchContextActivity();
     const deltaX = clientX - touchContextState.startX;
     const deltaY = clientY - touchContextState.startY;
     const moveTolerance = touchContextState.moveTolerance || TOUCH_CONTEXT_CELL_MOVE_TOLERANCE;
@@ -658,7 +690,15 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
     if (!touchContextState || touchContextState.pointerId !== pointerId) {
       return false;
     }
-    const opened = touchContextState.opened;
+    let opened = touchContextState.opened;
+    if (!opened && touchContextState.openOnRelease && touchContextState.armedForRelease) {
+      opened = openContextMenuForTarget(
+        touchContextState.target,
+        touchContextState.startX,
+        touchContextState.startY,
+        { source: 'touch' }
+      );
+    }
     clearTouchContextState();
     if (opened) {
       suppressTableClickUntil = Date.now() + 900;
@@ -687,6 +727,9 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
   }
 
   function onPointerMove(e) {
+    if (e.pointerType === 'touch' || e.pointerType === 'pen') {
+      markTouchContextActivity();
+    }
     updateTouchContextMove(`pointer:${e.pointerId}`, e.clientX, e.clientY);
   }
 
@@ -706,6 +749,7 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
   }
 
   function onTouchStart(e) {
+    markTouchContextActivity();
     if ((e.touches?.length || 0) !== 1 || isTableContextInteractiveTarget(e.target)) {
       clearTouchContextState();
       return;
@@ -728,6 +772,7 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
   }
 
   function onTouchMove(e) {
+    markTouchContextActivity();
     const touch = getChangedTouch(e);
     if (!touch) {
       return;
@@ -737,6 +782,7 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
   }
 
   function onTouchEnd(e) {
+    markTouchContextActivity();
     const touch = getChangedTouch(e);
     if (!touch) {
       return;
@@ -745,6 +791,15 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
     if (finishTouchContext(`touch:${touch.identifier ?? 0}`)) {
       e.preventDefault();
     }
+  }
+
+  function onTableDragStartCapture(e) {
+    const contextTarget = getContextTarget(e.target);
+    if (!contextTarget?.headerCell || !isRecentTouchContextActivity()) {
+      return;
+    }
+
+    cancelTouchContextForMovement();
   }
 
   function onTableClickCapture(e) {
@@ -765,6 +820,7 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
   document.addEventListener('touchmove', onTouchMove, { passive: true });
   document.addEventListener('touchend', onTouchEnd, { passive: false });
   document.addEventListener('touchcancel', onTouchEnd, { passive: false });
+  document.addEventListener('dragstart', onTableDragStartCapture, true);
   document.addEventListener('click', onTableClickCapture, true);
 
   return { dismiss };
