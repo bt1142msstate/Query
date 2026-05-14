@@ -75,9 +75,9 @@ assert.deepEqual(getFieldFilterOperators('Backend Date'), [
   'after',
   'on_or_before',
   'on_or_after',
-  'between',
-  'never'
+  'between'
 ]);
+assert.equal(getFieldFilterOperators('Never Date').includes('never'), false);
 
 assert.deepEqual(getNormalizedDisplayedFields(), ['Title', 'Special MARC', 'Record Date']);
 

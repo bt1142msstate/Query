@@ -73,6 +73,7 @@ const CustomDatePicker = (() => {
       <div class="custom-date-picker__grid" data-date-grid></div>
       <div class="custom-date-picker__footer">
         <button type="button" class="custom-date-picker__action" data-date-action="today">Today</button>
+        <button type="button" class="custom-date-picker__action custom-date-picker__action--never" data-date-action="never">Never</button>
         <button type="button" class="custom-date-picker__action custom-date-picker__action--ghost" data-date-action="clear">Clear</button>
       </div>
     `;
@@ -116,6 +117,8 @@ const CustomDatePicker = (() => {
       if (action) {
         if (action.dataset.dateAction === 'today') {
           commitDateValue(toIsoDate(new Date()));
+        } else if (action.dataset.dateAction === 'never') {
+          commitDateValue('Never');
         } else if (action.dataset.dateAction === 'clear') {
           commitDateValue('');
         }
@@ -271,6 +274,7 @@ const CustomDatePicker = (() => {
     const todayIso = toIsoDate(new Date());
     renderTitle();
     gridEl.classList.remove('is-picker-grid');
+    popup.querySelector('[data-date-action="never"]')?.classList.toggle('is-selected', selectedIso === 'Never');
 
     if (viewMode === 'months') {
       renderMonthsView();
@@ -468,9 +472,9 @@ const CustomDatePicker = (() => {
     input.autocomplete = 'off';
     input.spellcheck = false;
     input.placeholder = options.placeholder || input.placeholder || 'M/D/YYYY';
-    input.setAttribute('pattern', '^\\d{1,2}\\/\\d{1,2}\\/\\d{4}$');
-    if (!input.dataset.errorMsg) {
-      input.dataset.errorMsg = 'Use M/D/YYYY';
+    input.setAttribute('pattern', '^(\\d{1,2}\\/\\d{1,2}\\/\\d{4}|Never)$');
+    if (!input.dataset.errorMsg || input.dataset.errorMsg === 'Use M/D/YYYY') {
+      input.dataset.errorMsg = 'Use M/D/YYYY or Never';
     }
 
     setInputEnabled(api, options.enabled !== false);

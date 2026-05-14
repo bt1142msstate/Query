@@ -861,7 +861,7 @@ function handleFilterConfirm(e) {
             const hasInvalidPrimaryDate = val && (!CustomDatePicker || !CustomDatePicker.isValidDateValue(val));
             const hasInvalidSecondaryDate = cond === 'between' && val2 && (!CustomDatePicker || !CustomDatePicker.isValidDateValue(val2));
             if (hasInvalidPrimaryDate || hasInvalidSecondaryDate) {
-                showFilterError('Use M/D/YYYY', tintInputs);
+                showFilterError('Use M/D/YYYY or Never', tintInputs);
                 return;
             }
         }
@@ -1224,11 +1224,11 @@ function configureInputsForType(type){
                     enabled: true,
                     placeholder: 'M/D/YYYY'
                 });
-                inp.dataset.errorMsg = 'Use M/D/YYYY';
-                inp.setAttribute('pattern', '^\\d{1,2}\\/\\d{1,2}\\/\\d{4}$');
+                inp.dataset.errorMsg = 'Use M/D/YYYY or Never';
+                inp.setAttribute('pattern', '^(\\d{1,2}\\/\\d{1,2}\\/\\d{4}|Never)$');
             } else {
                 inp.removeAttribute('pattern');
-                if (inp.dataset.errorMsg === 'Use M/D/YYYY') {
+                if (inp.dataset.errorMsg === 'Use M/D/YYYY' || inp.dataset.errorMsg === 'Use M/D/YYYY or Never') {
                     delete inp.dataset.errorMsg;
                 }
             }

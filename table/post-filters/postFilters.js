@@ -680,7 +680,7 @@ let PostFilterSystem;
         });
       } else if (!isDate) {
         input.removeAttribute('pattern');
-        if (input.dataset.errorMsg === 'Use M/D/YYYY') {
+        if (input.dataset.errorMsg === 'Use M/D/YYYY' || input.dataset.errorMsg === 'Use M/D/YYYY or Never') {
           delete input.dataset.errorMsg;
         }
       }
@@ -898,7 +898,7 @@ let PostFilterSystem;
       const invalidPrimaryDate = value && (!CustomDatePicker || !CustomDatePicker.isValidDateValue(value));
       const invalidSecondaryDate = cond === 'between' && value2 && (!CustomDatePicker || !CustomDatePicker.isValidDateValue(value2));
       if (invalidPrimaryDate || invalidSecondaryDate) {
-        showToastMessage('Use M/D/YYYY for post filter dates.', 'warning');
+        showToastMessage('Use M/D/YYYY or Never for post filter dates.', 'warning');
         return;
       }
     }

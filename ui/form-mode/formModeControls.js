@@ -54,9 +54,11 @@ import { CustomDatePicker } from '../customDatePicker.js';
       ? inputSpec.operatorOptions
       : getFieldFilterOperators(fieldDef || { filters: [inputSpec.operator || 'equals'] });
 
+    const inputType = getFieldInputType(fieldDef, inputSpec);
     const normalized = configured
       .map(operator => normalizeOperatorForField(fieldDef, operator))
       .filter(Boolean)
+      .filter(operator => !(inputType === 'date' && operator === 'never'))
       .filter((operator, index, list) => list.indexOf(operator) === index);
 
     const preferredOrder = [
@@ -71,8 +73,7 @@ import { CustomDatePicker } from '../customDatePicker.js';
       'after',
       'on_or_before',
       'on_or_after',
-      'between',
-      'never'
+      'between'
     ];
 
     return normalized.slice().sort((left, right) => {
@@ -89,7 +90,7 @@ import { CustomDatePicker } from '../customDatePicker.js';
 
   function getDefaultOperatorForField(fieldDef, normalizeOperatorForField) {
     const availableOperators = getAvailableOperators(fieldDef, { operator: 'equals' }, normalizeOperatorForField);
-    const preferredOperators = ['equals', 'does_not_equal', 'contains', 'starts', 'greater', 'less', 'before', 'after', 'on_or_after', 'on_or_before', 'between', 'never'];
+    const preferredOperators = ['equals', 'does_not_equal', 'contains', 'starts', 'greater', 'less', 'before', 'after', 'on_or_after', 'on_or_before', 'between'];
     return preferredOperators.find(operator => availableOperators.includes(operator)) || availableOperators[0] || 'equals';
   }
 

@@ -25,8 +25,7 @@ const DEFAULT_DATE_FILTERS = Object.freeze([
   'after',
   'on_or_before',
   'on_or_after',
-  'between',
-  'never'
+  'between'
 ]);
 
 function hasLoadedFieldDefinitions() {
@@ -217,11 +216,13 @@ function getFieldFilterOperators(fieldOrName) {
     ? fieldDef.filters
     : (Array.isArray(fieldDef.operators) ? fieldDef.operators : []);
 
+  const isDateField = String(fieldDef.type || '').trim().toLowerCase() === 'date';
   const operators = configured
     .map(operator => String(operator || '').trim().toLowerCase())
     .filter(Boolean)
+    .filter(operator => !(isDateField && operator === 'never'))
     .filter((operator, index, list) => list.indexOf(operator) === index);
-  if (String(fieldDef.type || '').trim().toLowerCase() === 'date') {
+  if (isDateField) {
     DEFAULT_DATE_FILTERS.forEach(operator => {
       if (!operators.includes(operator)) {
         operators.push(operator);
