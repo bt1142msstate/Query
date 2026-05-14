@@ -192,7 +192,7 @@ import { DOM } from '../../core/domCache.js';
     }
 
     if (invalidDateLabels.length > 0) {
-      return `Use M/D/YYYY or Never for: ${invalidDateLabels.join(', ')}`;
+      return `Enter a date or Never for: ${invalidDateLabels.join(', ')}`;
     }
 
     return '';
