@@ -18,9 +18,13 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
   let clearPreview = null;
   let touchContextState = null;
   let suppressTableClickUntil = 0;
+  let suppressTouchContextMenuUntil = 0;
   const services = appServices;
-  const TOUCH_CONTEXT_DELAY = 420;
-  const TOUCH_CONTEXT_MOVE_TOLERANCE = 12;
+  const TOUCH_CONTEXT_CELL_DELAY = 420;
+  const TOUCH_CONTEXT_CELL_MOVE_TOLERANCE = 12;
+  const TOUCH_CONTEXT_HEADER_DELAY = 650;
+  const TOUCH_CONTEXT_HEADER_MOVE_TOLERANCE = 6;
+  const TOUCH_CONTEXT_SUPPRESSION_MS = 900;
 
   // ── Data helpers ────────────────────────────────────────────────────────────
 
@@ -581,6 +585,9 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
       || e.sourceCapabilities?.firesTouchEvents
       ? 'touch'
       : 'mouse';
+    if (source === 'touch' && Date.now() <= suppressTouchContextMenuUntil) {
+      return;
+    }
     openContextMenuForTarget(e.target, e.clientX, e.clientY, { source });
   }
 
@@ -591,9 +598,24 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
     touchContextState = null;
   }
 
-  function startTouchContext({ clientX, clientY, pointerId, target }) {
+  function cancelTouchContextForMovement() {
+    suppressTouchContextMenuUntil = Date.now() + TOUCH_CONTEXT_SUPPRESSION_MS;
     clearTouchContextState();
+  }
+
+  function getTouchContextProfile(contextTarget) {
+    const isHeaderTarget = Boolean(contextTarget?.headerCell && !contextTarget?.bodyCell);
+    return {
+      delay: isHeaderTarget ? TOUCH_CONTEXT_HEADER_DELAY : TOUCH_CONTEXT_CELL_DELAY,
+      moveTolerance: isHeaderTarget ? TOUCH_CONTEXT_HEADER_MOVE_TOLERANCE : TOUCH_CONTEXT_CELL_MOVE_TOLERANCE
+    };
+  }
+
+  function startTouchContext({ clientX, clientY, contextTarget, pointerId, target }) {
+    clearTouchContextState();
+    const profile = getTouchContextProfile(contextTarget);
     touchContextState = {
+      moveTolerance: profile.moveTolerance,
       opened: false,
       pointerId,
       startX: clientX,
@@ -615,7 +637,7 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
           suppressTableClickUntil = Date.now() + 900;
           navigator.vibrate?.(8);
         }
-      }, TOUCH_CONTEXT_DELAY)
+      }, profile.delay)
     };
   }
 
@@ -626,8 +648,9 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
 
     const deltaX = clientX - touchContextState.startX;
     const deltaY = clientY - touchContextState.startY;
-    if (Math.hypot(deltaX, deltaY) > TOUCH_CONTEXT_MOVE_TOLERANCE) {
-      clearTouchContextState();
+    const moveTolerance = touchContextState.moveTolerance || TOUCH_CONTEXT_CELL_MOVE_TOLERANCE;
+    if (Math.hypot(deltaX, deltaY) > moveTolerance) {
+      cancelTouchContextForMovement();
     }
   }
 
@@ -657,6 +680,7 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
     startTouchContext({
       clientX: e.clientX,
       clientY: e.clientY,
+      contextTarget,
       pointerId: `pointer:${e.pointerId}`,
       target: contextTarget.targetCell
     });
@@ -697,6 +721,7 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
     startTouchContext({
       clientX: touch.clientX,
       clientY: touch.clientY,
+      contextTarget,
       pointerId: `touch:${touch.identifier ?? 0}`,
       target: contextTarget.targetCell
     });
