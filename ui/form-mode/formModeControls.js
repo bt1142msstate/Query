@@ -5,6 +5,7 @@ import { MoneyUtils, OperatorSelectUtils, ValueFormatting } from '../../core/uti
 import { SelectorControls } from '../selectorControls.js';
 import { fieldDefs, getFieldFilterOperators, isFieldBackendFilterable } from '../../filters/fieldDefs.js';
 import { CustomDatePicker } from '../customDatePicker.js';
+import { createFormModeDateInputState } from './formModeDateInput.js';
 
   function parseFieldOptions(fieldDef, inputSpec, normalizeOperatorForField) {
     const source = Array.isArray(inputSpec.options) && inputSpec.options.length > 0
@@ -277,17 +278,19 @@ import { CustomDatePicker } from '../customDatePicker.js';
           })
         : null;
       const control = api ? api.shell : input;
+      const dateInputState = createFormModeDateInputState(input, {
+        normalizeDateValue: CustomDatePicker && typeof CustomDatePicker.normalizeDateValue === 'function'
+          ? CustomDatePicker.normalizeDateValue
+          : null
+      });
 
       control.getFormValues = function() {
-        const value = String(input.value || '').trim();
-        return value ? [value] : [];
+        return dateInputState.getFormValues();
       };
 
       control.setFormValues = function(values) {
         const nextValue = Array.isArray(values) && values.length ? String(values[0]) : '';
-        input.value = (CustomDatePicker && typeof CustomDatePicker.normalizeDateValue === 'function')
-          ? CustomDatePicker.normalizeDateValue(nextValue)
-          : nextValue;
+        dateInputState.setValue(nextValue);
       };
 
       control.focusInput = function() {
@@ -295,6 +298,7 @@ import { CustomDatePicker } from '../customDatePicker.js';
       };
 
       control._cleanupPopup = function() {
+        dateInputState.destroy();
         if (api && typeof api.closeIfActive === 'function') {
           api.closeIfActive();
         }

@@ -54,6 +54,13 @@ const smokeFieldDefinitions = [
       { Name: 'Open', RawValue: 'Open' },
       { Name: 'Closed', RawValue: 'Closed' }
     ]
+  },
+  {
+    name: 'Smoke Due Date',
+    category: 'Smoke',
+    desc: 'Smoke-test due date field',
+    filters: ['equals', 'before', 'after', 'between'],
+    type: 'date'
   }
 ];
 const smokeTemplateResponse = {
@@ -2386,6 +2393,89 @@ async function expectCustomDatePickerNeverOption(page) {
   }
 }
 
+async function exerciseFormModeDateTypingCommit(page) {
+  await page.evaluate(async () => {
+    const { QueryChangeManager } = await import('./core/queryState.js');
+    const { QueryFormMode } = await import('./ui/form-mode/formMode.js');
+    const { fieldDefs, fieldDefsArray, filteredDefs } = await import('./filters/fieldDefs.js');
+    const dateField = {
+      name: 'Smoke Due Date',
+      category: 'Smoke',
+      desc: 'Smoke-test due date field',
+      filters: ['equals', 'before', 'after', 'between'],
+      type: 'date'
+    };
+
+    fieldDefs.set(dateField.name, dateField);
+    if (!fieldDefsArray.some(field => field?.name === dateField.name)) fieldDefsArray.push(dateField);
+    if (!filteredDefs.some(field => field?.name === dateField.name)) filteredDefs.push(dateField);
+
+    QueryChangeManager.setQueryState({
+      activeFilters: {
+        [dateField.name]: {
+          filters: [{ cond: 'equals', val: '1/2/2026' }]
+        }
+      },
+      displayedFields: ['Smoke Title']
+    }, { source: 'BrowserSmoke.dateTypingSeed' });
+    await QueryFormMode.activateFromCurrentQuery();
+  });
+
+  const dateInput = page.locator('#form-mode-card .custom-date-input--form input').first();
+  await dateInput.waitFor({ state: 'visible', timeout: 5000 });
+  await dateInput.fill('1/');
+  await page.waitForTimeout(120);
+
+  const draftMetrics = await page.evaluate(async () => {
+    const { QueryStateReaders } = await import('./core/queryState.js');
+    const input = document.querySelector('#form-mode-card .custom-date-input--form input');
+    const validation = document.querySelector('#form-mode-validation');
+    return {
+      filterValue: QueryStateReaders.getActiveFilters()['Smoke Due Date']?.filters?.[0]?.val || '',
+      inputValue: input?.value || '',
+      validationHidden: validation?.classList.contains('hidden') || false,
+      validationText: validation?.textContent || ''
+    };
+  });
+  if (draftMetrics.inputValue !== '1/' || draftMetrics.filterValue !== '1/2/2026' || !draftMetrics.validationHidden) {
+    throw new Error(`Partial form date typing should remain a draft without live conversion or validation: ${JSON.stringify(draftMetrics)}`);
+  }
+
+  await page.waitForTimeout(900);
+  const partialIdleMetrics = await page.evaluate(async () => {
+    const { QueryStateReaders } = await import('./core/queryState.js');
+    return {
+      filterValue: QueryStateReaders.getActiveFilters()['Smoke Due Date']?.filters?.[0]?.val || '',
+      inputValue: document.querySelector('#form-mode-card .custom-date-input--form input')?.value || ''
+    };
+  });
+  if (partialIdleMetrics.inputValue !== '1/' || partialIdleMetrics.filterValue !== '1/2/2026') {
+    throw new Error(`Partial form date typing should not commit after idle: ${JSON.stringify(partialIdleMetrics)}`);
+  }
+
+  await dateInput.fill('Feb 3, 2026');
+  await page.waitForFunction(async () => {
+    const { QueryStateReaders } = await import('./core/queryState.js');
+    const inputValue = document.querySelector('#form-mode-card .custom-date-input--form input')?.value || '';
+    const filterValue = QueryStateReaders.getActiveFilters()['Smoke Due Date']?.filters?.[0]?.val || '';
+    return inputValue === '2/3/2026' && filterValue === '2/3/2026';
+  }, null, { timeout: 5000 });
+
+  await dateInput.fill('Mar 4, 2026');
+  await dateInput.evaluate(input => input.blur());
+  await page.waitForFunction(async () => {
+    const { QueryStateReaders } = await import('./core/queryState.js');
+    const inputValue = document.querySelector('#form-mode-card .custom-date-input--form input')?.value || '';
+    const filterValue = QueryStateReaders.getActiveFilters()['Smoke Due Date']?.filters?.[0]?.val || '';
+    return inputValue === '3/4/2026' && filterValue === '3/4/2026';
+  }, null, { timeout: 5000 });
+
+  await page.evaluate(async () => {
+    const { QueryChangeManager } = await import('./core/queryState.js');
+    await QueryChangeManager.clearQuery({ source: 'BrowserSmoke.dateTypingCleanup' });
+  });
+}
+
 async function runSmokeTest() {
   const server = createServer(serveStaticFile);
   const port = await listen(server);
@@ -2412,6 +2502,7 @@ async function runSmokeTest() {
     await expectControlsNonSelectable(page, 'body', 'Desktop initial layout');
     await expectDarkInput(page, '#query-input', 'Main field search input');
     await expectCustomDatePickerNeverOption(page);
+    await exerciseFormModeDateTypingCommit(page);
     await page.evaluate(async () => {
       const { QueryTableView } = await import('./ui/queryTableView.js');
       QueryTableView.renderEmptyQueryTableState();
