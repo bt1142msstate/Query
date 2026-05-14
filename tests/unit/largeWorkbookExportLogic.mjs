@@ -109,6 +109,7 @@ assert.doesNotMatch(workbookText, /FFE5F3FF|applyFill="1"/u);
 assert.match(workbookText, /Alpha &amp; Beta/u);
 assert.match(workbookText, /Gamma &lt; Delta/u);
 assert.match(workbookText, /mm\/dd\/yyyy/u);
+assert.match(workbookText, /<c r="C3" t="inlineStr" s="7"><is><t>Never<\/t><\/is><\/c>/u);
 
 downloadedBlob = null;
 downloadedFilename = '';
@@ -146,5 +147,6 @@ assert.match(groupedWorkbookText, /ref="A1:C4"/u);
 assert.match(groupedWorkbookText, /<v>0\.5<\/v>/u);
 assert.match(groupedWorkbookText, /<v>1<\/v>/u);
 assert.match(groupedWorkbookText, /numFmtId="10"/u);
+assert.match(groupedWorkbookText, /<cellXfs count="8">/u);
 
 console.log('Large workbook export logic tests passed');

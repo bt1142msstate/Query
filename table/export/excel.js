@@ -8,6 +8,7 @@ import { VisibilityUtils } from '../../core/visibility.js';
 import { QueryUI } from '../../ui/queryUI.js';
 import { fieldDefs } from '../../filters/fieldDefs.js';
 import { DOM } from '../../core/domCache.js';
+import { alignDateTextCells } from './excelDateCellFormatting.js';
 import { ExcelExportProgress, yieldToBrowser } from './exportProgress.js';
 import { addOverviewWorksheet } from './excelOverviewWorksheet.js';
 import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from './largeWorkbookExport.js';
@@ -499,6 +500,7 @@ import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from './largeWorkbo
       columns: sourceData.displayedFields.map(field => ({ name: field, filterButton: true })),
       rows: tableRows
     });
+    alignDateTextCells(worksheet, sourceData, exportedRows);
 
     worksheet.getRow(1).eachCell(cell => {
       cell.alignment = {
