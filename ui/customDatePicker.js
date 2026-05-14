@@ -1,5 +1,6 @@
 import { VisibilityUtils } from '../core/visibility.js';
 import {
+  DATE_INPUT_PATTERN,
   formatDisplayValue,
   getComparableValue,
   isValidDateValue,
@@ -472,9 +473,9 @@ const CustomDatePicker = (() => {
     input.autocomplete = 'off';
     input.spellcheck = false;
     input.placeholder = options.placeholder || input.placeholder || 'M/D/YYYY';
-    input.setAttribute('pattern', '^(\\d{1,2}\\/\\d{1,2}\\/\\d{4}|Never)$');
+    input.setAttribute('pattern', DATE_INPUT_PATTERN);
     if (!input.dataset.errorMsg || input.dataset.errorMsg === 'Use M/D/YYYY') {
-      input.dataset.errorMsg = 'Use M/D/YYYY or Never';
+      input.dataset.errorMsg = 'Enter a date or Never';
     }
 
     setInputEnabled(api, options.enabled !== false);
@@ -511,6 +512,7 @@ const CustomDatePicker = (() => {
 
   return Object.freeze({
     enhanceInput,
+    inputPattern: DATE_INPUT_PATTERN,
     parseDateValue,
     formatDisplayValue,
     getComparableValue,
