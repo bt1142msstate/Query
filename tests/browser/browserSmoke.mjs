@@ -1286,11 +1286,43 @@ async function expectMobileHeaderDragDoesNotOpenContextMenu(page) {
   });
   await page.waitForTimeout(250);
 
+  await dragTouchLocator(page, titleHeader, {
+    deltaX: 36,
+    deltaY: 1,
+    holdMs: 760,
+    horizontalRatio: 0.5,
+    steps: 6,
+    verticalRatio: 0.5
+  });
+  await page.waitForTimeout(250);
+
   const menuVisible = await page.locator('.tcm.tcm--visible').count();
   const selectedText = await page.evaluate(() => (window.getSelection?.()?.toString?.() || '').trim());
   if (menuVisible > 0 || selectedText) {
     throw new Error(`Mobile header drag should not open the table context menu or select text: ${JSON.stringify({ menuVisible, selectedText })}`);
   }
+
+  await dragTouchLocator(page, titleHeader, {
+    holdMs: 760,
+    horizontalRatio: 0.5,
+    steps: 1,
+    verticalRatio: 0.5
+  });
+  await page.locator('.tcm.tcm--visible').waitFor({ state: 'visible', timeout: 5000 });
+  const headerMenuLabels = await page.locator('.tcm.tcm--visible .tcm-label').evaluateAll(labels => {
+    return labels.map(label => (label.textContent || '').trim());
+  });
+  ['Sort Ascending', 'Add Filter', 'Add Post Filter', 'Copy Column', 'Resize Column'].forEach(expectedLabel => {
+    if (!headerMenuLabels.includes(expectedLabel)) {
+      throw new Error(`Mobile stationary header long-press is missing "${expectedLabel}": ${JSON.stringify(headerMenuLabels)}`);
+    }
+  });
+  ['Copy Cell', 'Copy Row'].forEach(unexpectedLabel => {
+    if (headerMenuLabels.includes(unexpectedLabel)) {
+      throw new Error(`Mobile stationary header long-press should not show "${unexpectedLabel}": ${JSON.stringify(headerMenuLabels)}`);
+    }
+  });
+  await closeMobileTableContextMenu(page);
 }
 
 async function seedLoadedResults(page, options = {}) {
