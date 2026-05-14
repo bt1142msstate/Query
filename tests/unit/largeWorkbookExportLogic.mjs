@@ -110,4 +110,41 @@ assert.match(workbookText, /Alpha &amp; Beta/u);
 assert.match(workbookText, /Gamma &lt; Delta/u);
 assert.match(workbookText, /mm\/dd\/yyyy/u);
 
+downloadedBlob = null;
+downloadedFilename = '';
+await exportLargeWorkbook({
+  config: {
+    groupField: 'Title',
+    includeMasterSheet: false,
+    includeOverviewSheet: true,
+    mode: 'grouped'
+  },
+  helpers,
+  state: {
+    groupingCandidates: [
+      {
+        counts: new Map([
+          ['Alpha & Beta', 1],
+          ['Gamma < Delta', 1]
+        ]),
+        field: 'Title',
+        index: 0
+      }
+    ],
+    rowCount: sourceData.dataRows.length,
+    sourceData,
+    tableName: 'Large Report'
+  }
+});
+
+const groupedWorkbookText = new TextDecoder().decode(await downloadedBlob.arrayBuffer());
+assert.equal(downloadedFilename, 'Large-Report-by-Title.xlsx');
+assert.match(groupedWorkbookText, /Overview/u);
+assert.match(groupedWorkbookText, /Percent of Total/u);
+assert.match(groupedWorkbookText, /Total/u);
+assert.match(groupedWorkbookText, /ref="A1:C4"/u);
+assert.match(groupedWorkbookText, /<v>0\.5<\/v>/u);
+assert.match(groupedWorkbookText, /<v>1<\/v>/u);
+assert.match(groupedWorkbookText, /numFmtId="10"/u);
+
 console.log('Large workbook export logic tests passed');
