@@ -182,17 +182,30 @@ async function stubExternalAssets(page) {
 
             addWorksheet(name) {
               const columns = new Map();
+              const cells = new Map();
               const worksheet = {
+                cells,
                 columnSettings: columns,
                 name,
                 views: [],
                 columns: [],
                 addTable(table) {
                   this.table = table;
+                  table.rows.forEach((row, rowIndex) => {
+                    row.forEach((value, columnIndex) => {
+                      const cell = this.getCell(rowIndex + 2, columnIndex + 1);
+                      cell.value = value;
+                    });
+                  });
                 },
                 getColumn(index) {
                   if (!columns.has(index)) columns.set(index, {});
                   return columns.get(index);
+                },
+                getCell(row, column) {
+                  const key = row + ':' + column;
+                  if (!cells.has(key)) cells.set(key, { alignment: {} });
+                  return cells.get(key);
                 },
                 getRow() {
                   return {
@@ -1337,29 +1350,33 @@ async function expectMobileHeaderDragDoesNotOpenContextMenu(page) {
 
 async function seedLoadedResults(page, options = {}) {
   const rowCount = Math.max(0, Number(options.rowCount) || 3);
+  const includeDate = options.includeDate === true;
   const longTitle = options.longTitle === true;
 
-  await page.evaluate(async ({ longTitle: useLongTitle, rowCount: requestedRowCount }) => {
+  await page.evaluate(async ({ includeDate: useDate, longTitle: useLongTitle, rowCount: requestedRowCount }) => {
     const { appServices } = await import('./core/appServices.js');
     const { QueryChangeManager } = await import('./core/queryState.js');
     const { QueryTableView } = await import('./ui/queryTableView.js');
     const { QueryUI } = await import('./ui/queryUI.js');
-    const headers = ['Smoke Title', 'Smoke Branch', 'Smoke Status'];
+    const headers = useDate
+      ? ['Smoke Title', 'Smoke Branch', 'Smoke Status', 'Smoke Due Date']
+      : ['Smoke Title', 'Smoke Branch', 'Smoke Status'];
     const makeTitle = title => useLongTitle
       ? `${title} with a deliberately long title for live column resize coverage`
       : title;
+    const withDate = (row, value) => useDate ? [...row, value] : row;
     const baseRows = [
-      [makeTitle('Alpha record'), 'Main', 'Open'],
-      [makeTitle('Beta record'), 'East', 'Closed'],
-      [makeTitle('Gamma record'), 'Main', 'Open']
+      withDate([makeTitle('Alpha record'), 'Main', 'Open'], '20240131'),
+      withDate([makeTitle('Beta record'), 'East', 'Closed'], 'NEVER'),
+      withDate([makeTitle('Gamma record'), 'Main', 'Open'], '20240215')
     ];
     const rows = requestedRowCount <= baseRows.length
       ? baseRows.slice(0, requestedRowCount)
-      : Array.from({ length: requestedRowCount }, (_, index) => [
-        makeTitle(`Smoke record ${String(index + 1).padStart(3, '0')}`),
-        index % 2 === 0 ? 'Main' : 'East',
-        index % 3 === 0 ? 'Closed' : 'Open'
-      ]);
+      : Array.from({ length: requestedRowCount }, (_, index) => withDate([
+          makeTitle(`Smoke record ${String(index + 1).padStart(3, '0')}`),
+          index % 2 === 0 ? 'Main' : 'East',
+          index % 3 === 0 ? 'Closed' : 'Open'
+        ], index % 5 === 0 ? 'NEVER' : '20240131'));
     const columnMap = new Map(headers.map((field, index) => [field, index]));
 
     QueryChangeManager.replaceDisplayedFields(headers, { source: 'BrowserSmoke.seedLoadedResults' });
@@ -1371,7 +1388,7 @@ async function seedLoadedResults(page, options = {}) {
     await QueryTableView.showExampleTable(headers, { syncQueryState: false });
     appServices.renderVirtualTable();
     QueryUI.updateButtonStates();
-  }, { longTitle, rowCount });
+  }, { includeDate, longTitle, rowCount });
   await page.locator('#example-table').waitFor({ state: 'attached', timeout: 5000 });
 }
 
@@ -2255,6 +2272,7 @@ async function exerciseDesktopResultsWorkflow(page) {
   await page.locator('#post-filter-done-btn').click();
   await page.locator('#post-filter-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
 
+  await seedLoadedResults(page, { includeDate: true });
   await page.locator('#download-btn').scrollIntoViewIfNeeded();
   const downloadDisabled = await page.locator('#download-btn').evaluate(button => button.disabled);
   if (downloadDisabled) {
@@ -2280,10 +2298,18 @@ async function exerciseDesktopResultsWorkflow(page) {
   await download?.delete().catch(() => {});
   const overviewMetrics = await page.evaluate(() => {
     const workbook = window.__browserSmokeExcelWorkbooks?.at(-1);
+    const allResults = workbook?.worksheets?.find(sheet => sheet.name === 'All Results');
     const overview = workbook?.worksheets?.find(sheet => sheet.name === 'Overview');
     const totalRow = overview?.table?.rows?.find(row => row[0] === 'Total');
+    const dateColumnIndex = (allResults?.table?.columns || []).findIndex(column => column.name === 'Smoke Due Date') + 1;
+    const neverRowIndex = (allResults?.table?.rows || []).findIndex(row => row[dateColumnIndex - 1] === 'Never') + 2;
+    const neverDateCell = dateColumnIndex > 0 && neverRowIndex > 1
+      ? allResults?.getCell?.(neverRowIndex, dateColumnIndex)
+      : null;
     return {
+      dateColumnAlignment: allResults?.columnSettings?.get?.(dateColumnIndex)?.alignment?.horizontal || '',
       headers: overview?.table?.columns?.map(column => column.name) || [],
+      neverDateCellAlignment: neverDateCell?.alignment?.horizontal || '',
       percentFormat: overview?.columnSettings?.get?.(3)?.numFmt || '',
       rowCount: overview?.table?.rows?.length || 0,
       totalRow
@@ -2294,6 +2320,8 @@ async function exerciseDesktopResultsWorkflow(page) {
     || overviewMetrics.rowCount !== 3
     || overviewMetrics.totalRow?.[1] !== 3
     || overviewMetrics.totalRow?.[2] !== 1
+    || overviewMetrics.dateColumnAlignment !== 'right'
+    || overviewMetrics.neverDateCellAlignment !== 'right'
     || overviewMetrics.percentFormat !== '0.00%'
   ) {
     throw new Error(`Grouped export overview should include percentages and a total row: ${JSON.stringify(overviewMetrics)}`);

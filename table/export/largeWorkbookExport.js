@@ -9,6 +9,7 @@ const WORKSHEET_TYPE = 'http://schemas.openxmlformats.org/officeDocument/2006/re
 const STYLES_TYPE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles';
 const OFFICE_DOCUMENT_TYPE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument';
 const TABLE_TYPE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/table';
+const DATE_TEXT_STYLE_ID = '7';
 
 function shouldUseLargeWorkbookExport(state) {
   const rowCount = Number(state?.rowCount || 0);
@@ -59,7 +60,7 @@ function getCellStyle(type) {
   return '';
 }
 
-function buildCell(value, rowNumber, columnNumber, styleId = '') {
+function buildCell(value, rowNumber, columnNumber, styleId = '', textStyleId = '') {
   if (value === undefined || value === null || value === '') {
     return '';
   }
@@ -75,7 +76,13 @@ function buildCell(value, rowNumber, columnNumber, styleId = '') {
   if (typeof value === 'boolean') {
     return `<c r="${reference}" t="b"${style}><v>${value ? 1 : 0}</v></c>`;
   }
-  return buildTextCell(value, rowNumber, columnNumber);
+  return buildTextCell(value, rowNumber, columnNumber, textStyleId);
+}
+
+function getCellTextStyle(type) {
+  if (type === 'date') return DATE_TEXT_STYLE_ID;
+  if (type === 'boolean') return '5';
+  return '';
 }
 
 function buildHeaderRow(fields) {
@@ -91,7 +98,7 @@ function buildSourceRow(sourceData, rawRow, rowNumber, getCellExportValue) {
   const cells = sourceData.displayedFields.map((field, index) => {
     const raw = getRawValue(sourceData, rawRow, field);
     const type = sourceData.fieldTypeMap.get(field);
-    return buildCell(getCellExportValue(raw, type), rowNumber, index + 1, getCellStyle(type));
+    return buildCell(getCellExportValue(raw, type), rowNumber, index + 1, getCellStyle(type), getCellTextStyle(type));
   }).join('');
   return `<row r="${rowNumber}">${cells}</row>`;
 }
@@ -268,7 +275,7 @@ function buildPackageRelationships() {
 }
 
 function buildStylesXml() {
-  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="mm/dd/yyyy"/><numFmt numFmtId="165" formatCode="$#,##0.00"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="7"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"><alignment horizontal="right"/></xf><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"><alignment horizontal="right"/></xf><xf numFmtId="3" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"><alignment horizontal="right"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"><alignment horizontal="center"/></xf><xf numFmtId="10" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"><alignment horizontal="right"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="mm/dd/yyyy"/><numFmt numFmtId="165" formatCode="$#,##0.00"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="8"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"><alignment horizontal="right"/></xf><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"><alignment horizontal="right"/></xf><xf numFmtId="3" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"><alignment horizontal="right"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"><alignment horizontal="center"/></xf><xf numFmtId="10" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"><alignment horizontal="right"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"><alignment horizontal="right"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
 }
 
 function buildColumnXml(widths) {
