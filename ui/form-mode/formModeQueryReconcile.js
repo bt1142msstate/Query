@@ -44,6 +44,10 @@ function getQueryStateSyncPlan(event = {}, state = {}) {
   };
 
   if (state.isApplyingFormState) {
+    if (source.startsWith('QueryFormMode.')) {
+      return { action: 'skip' };
+    }
+
     return {
       action: 'queue',
       options: {

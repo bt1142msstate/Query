@@ -101,6 +101,15 @@ import { DOM } from '../../core/domCache.js';
     return resolved;
   }
 
+  function isDateInput(fieldDef, inputSpec) {
+    return String(inputSpec?.type || fieldDef?.type || '').trim().toLowerCase() === 'date';
+  }
+
+  function isValidDateFilterValue(value) {
+    const normalized = String(value ?? '').trim();
+    return !normalized || isValidDateValue(normalized);
+  }
+
   function updateHeaderCopy(formCard, spec, bindings, interpolateValue) {
     if (!formCard) return;
 
@@ -134,10 +143,11 @@ import { DOM } from '../../core/domCache.js';
       const fieldDef = getFieldDef(inputSpec.field);
       const isMultiValue = supportsMultipleValues(inputSpec, fieldDef);
       const values = getCurrentInputValues(inputSpec);
+      const isDateField = isDateInput(fieldDef, inputSpec);
 
       if (inputSpec.operator === 'between') {
         const betweenValues = values.slice(0, 2).map(value => String(value ?? '').trim());
-        if (betweenValues.every(Boolean)) {
+        if (betweenValues.every(Boolean) && (!isDateField || betweenValues.every(isValidDateFilterValue))) {
           appendFilter(nextActiveFilters, inputSpec.field, 'between', betweenValues);
         }
         return;
@@ -146,7 +156,7 @@ import { DOM } from '../../core/domCache.js';
       const activeValues = isMultiValue
         ? values.filter(value => value !== '')
         : values.slice(0, 1).filter(value => value !== '');
-      if (activeValues.length > 0) {
+      if (activeValues.length > 0 && (!isDateField || activeValues.every(isValidDateFilterValue))) {
         appendFilter(nextActiveFilters, inputSpec.field, inputSpec.operator, activeValues);
       }
     });

@@ -49,6 +49,14 @@ assert.deepEqual(getQueryStateSyncPlan({}, {
 }), { action: 'skip' });
 
 assert.deepEqual(getQueryStateSyncPlan({
+  meta: { source: 'QueryFormMode.scheduleApply' },
+  changes: { activeFilters: true }
+}, {
+  isApplyingFormState: true,
+  viewMode: 'form'
+}), { action: 'skip' });
+
+assert.deepEqual(getQueryStateSyncPlan({
   changes: { activeFilters: true }
 }, {
   isApplyingFormState: true,
