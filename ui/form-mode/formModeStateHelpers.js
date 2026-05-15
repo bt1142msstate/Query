@@ -1,5 +1,6 @@
 import { isValidDateValue } from '../../core/dateValues.js';
 import { fieldDefs, registerDynamicField } from '../../filters/fieldDefs.js';
+import { getDateFilterValidationMessage } from '../../filters/filterConditionLogic.js';
 import { DOM } from '../../core/domCache.js';
   function getFieldDef(fieldName) {
     return fieldDefs && fieldName ? fieldDefs.get(fieldName) : null;
@@ -110,6 +111,20 @@ import { DOM } from '../../core/domCache.js';
     return !normalized || isValidDateValue(normalized);
   }
 
+  function getInputFilterObject(inputSpec, values) {
+    if (inputSpec.operator === 'between') {
+      return {
+        cond: 'between',
+        val: values.slice(0, 2).map(value => String(value ?? '').trim()).join('|')
+      };
+    }
+
+    return {
+      cond: inputSpec.operator,
+      val: String(values[0] ?? '').trim()
+    };
+  }
+
   function updateHeaderCopy(formCard, spec, bindings, interpolateValue) {
     if (!formCard) return;
 
@@ -147,7 +162,10 @@ import { DOM } from '../../core/domCache.js';
 
       if (inputSpec.operator === 'between') {
         const betweenValues = values.slice(0, 2).map(value => String(value ?? '').trim());
-        if (betweenValues.every(Boolean) && (!isDateField || betweenValues.every(isValidDateFilterValue))) {
+        const dateLogicMessage = isDateField
+          ? getDateFilterValidationMessage(getInputFilterObject(inputSpec, betweenValues), inputSpec.label || inputSpec.field)
+          : null;
+        if (betweenValues.every(Boolean) && (!isDateField || (betweenValues.every(isValidDateFilterValue) && !dateLogicMessage))) {
           appendFilter(nextActiveFilters, inputSpec.field, 'between', betweenValues);
         }
         return;
@@ -156,7 +174,10 @@ import { DOM } from '../../core/domCache.js';
       const activeValues = isMultiValue
         ? values.filter(value => value !== '')
         : values.slice(0, 1).filter(value => value !== '');
-      if (activeValues.length > 0 && (!isDateField || activeValues.every(isValidDateFilterValue))) {
+      const dateLogicMessage = isDateField && activeValues.length > 0
+        ? getDateFilterValidationMessage(getInputFilterObject(inputSpec, activeValues), inputSpec.label || inputSpec.field)
+        : null;
+      if (activeValues.length > 0 && (!isDateField || (activeValues.every(isValidDateFilterValue) && !dateLogicMessage))) {
         appendFilter(nextActiveFilters, inputSpec.field, inputSpec.operator, activeValues);
       }
     });
@@ -169,6 +190,7 @@ import { DOM } from '../../core/domCache.js';
 
     const missingLabels = [];
     const invalidDateLabels = [];
+    const dateLogicMessages = [];
 
     state.spec.inputs.forEach(inputSpec => {
       const values = getControlValues(inputSpec);
@@ -181,10 +203,13 @@ import { DOM } from '../../core/domCache.js';
         const normalized = String(value ?? '').trim();
         return normalized && !isValidDateValue(normalized);
       });
+      const dateLogicMessage = isDateField && !hasInvalidDate
+        ? getDateFilterValidationMessage(getInputFilterObject(inputSpec, values), inputSpec.label || inputSpec.field)
+        : null;
 
       const control = controls.get(inputSpec.key);
       if (control) {
-        control.classList.toggle('form-mode-control-invalid', (inputSpec.required && isMissing) || hasInvalidDate);
+        control.classList.toggle('form-mode-control-invalid', (inputSpec.required && isMissing) || hasInvalidDate || Boolean(dateLogicMessage));
       }
 
       if (inputSpec.required && isMissing) {
@@ -194,6 +219,11 @@ import { DOM } from '../../core/domCache.js';
 
       if (hasInvalidDate) {
         invalidDateLabels.push(inputSpec.label);
+        return;
+      }
+
+      if (dateLogicMessage) {
+        dateLogicMessages.push(dateLogicMessage);
       }
     });
 
@@ -203,6 +233,10 @@ import { DOM } from '../../core/domCache.js';
 
     if (invalidDateLabels.length > 0) {
       return `Enter a date or Never for: ${invalidDateLabels.join(', ')}`;
+    }
+
+    if (dateLogicMessages.length > 0) {
+      return dateLogicMessages[0];
     }
 
     return '';

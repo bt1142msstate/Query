@@ -11,6 +11,7 @@ import { initializeSearchInputs } from '../../ui/searchUI.js';
 import { SelectorControls } from '../../ui/selectorControls.js';
 import { CustomDatePicker } from '../../ui/customDatePicker.js';
 import { escapeHtml } from '../../core/html.js';
+import { getPostFilterDateValidationMessage, postFilterDateOperatorAllowsNever } from './postFilterDateValidation.js';
 let PostFilterSystem;
 (function() {
   let equalsValueControl = null, equalsValueControlField = '';
@@ -676,6 +677,7 @@ let PostFilterSystem;
         CustomDatePicker.enhanceInput(input, {
           variant: 'filter',
           enabled: true,
+          allowNever: postFilterDateOperatorAllowsNever(elements.operatorSelect.value),
           placeholder: 'M/D/YYYY'
         });
       } else if (!isDate) {
@@ -895,10 +897,9 @@ let PostFilterSystem;
     }
 
     if (fieldType === 'date') {
-      const invalidPrimaryDate = value && (!CustomDatePicker || !CustomDatePicker.isValidDateValue(value));
-      const invalidSecondaryDate = cond === 'between' && value2 && (!CustomDatePicker || !CustomDatePicker.isValidDateValue(value2));
-      if (invalidPrimaryDate || invalidSecondaryDate) {
-        showToastMessage('Enter a date or Never for post filter dates.', 'warning');
+      const message = getPostFilterDateValidationMessage({ cond, customDatePicker: CustomDatePicker, field, value, value2 });
+      if (message) {
+        showToastMessage(message, 'warning');
         return;
       }
     }

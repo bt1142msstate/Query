@@ -274,6 +274,7 @@ import { createFormModeDateInputState } from './formModeDateInput.js';
         ? CustomDatePicker.enhanceInput(input, {
             variant: 'form',
             enabled: true,
+            allowNever: ['equals', 'does_not_equal'].includes(String(inputSpec.operator || '').trim().toLowerCase()),
             placeholder: input.placeholder
           })
         : null;

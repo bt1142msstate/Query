@@ -118,7 +118,7 @@ const CustomDatePicker = (() => {
       if (action) {
         if (action.dataset.dateAction === 'today') {
           commitDateValue(toIsoDate(new Date()));
-        } else if (action.dataset.dateAction === 'never') {
+        } else if (action.dataset.dateAction === 'never' && activeInput?._customDatePickerApi?.allowNever !== false) {
           commitDateValue('Never');
         } else if (action.dataset.dateAction === 'clear') {
           commitDateValue('');
@@ -275,7 +275,13 @@ const CustomDatePicker = (() => {
     const todayIso = toIsoDate(new Date());
     renderTitle();
     gridEl.classList.remove('is-picker-grid');
-    popup.querySelector('[data-date-action="never"]')?.classList.toggle('is-selected', selectedIso === 'Never');
+    const neverAction = popup.querySelector('[data-date-action="never"]');
+    if (neverAction) {
+      const allowNever = activeInput?._customDatePickerApi?.allowNever !== false;
+      neverAction.classList.toggle('is-selected', allowNever && selectedIso === 'Never');
+      neverAction.disabled = !allowNever;
+      neverAction.hidden = !allowNever;
+    }
 
     if (viewMode === 'months') {
       renderMonthsView();
@@ -401,6 +407,7 @@ const CustomDatePicker = (() => {
         shell,
         button,
         enabled: true,
+        allowNever: true,
         closeIfActive() {
           if (activeInput === input) {
             closePopup();
@@ -465,6 +472,7 @@ const CustomDatePicker = (() => {
     }
 
     const variant = options.variant || 'form';
+    api.allowNever = options.allowNever !== false;
     api.shell.classList.toggle('custom-date-input--filter', variant === 'filter');
     api.shell.classList.toggle('custom-date-input--form', variant === 'form');
 

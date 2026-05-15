@@ -2445,6 +2445,40 @@ async function expectCustomDatePickerNeverOption(page) {
   if (metrics.value !== 'Never' || !metrics.pattern.includes('Never') || !/Never/u.test(metrics.errorMessage)) {
     throw new Error(`Custom date picker should expose Never as a date value: ${JSON.stringify(metrics)}`);
   }
+
+  await page.evaluate(async () => {
+    document.querySelector('[data-browser-smoke-date-picker-host]')?.remove();
+    const { CustomDatePicker } = await import('./ui/customDatePicker.js');
+    const host = document.createElement('div');
+    host.setAttribute('data-browser-smoke-date-picker-host', '');
+    host.style.position = 'fixed';
+    host.style.left = '24px';
+    host.style.top = '24px';
+    host.style.zIndex = '9999';
+    const input = document.createElement('input');
+    input.id = 'browser-smoke-no-never-date-input';
+    host.appendChild(input);
+    document.body.appendChild(host);
+    CustomDatePicker.enhanceInput(input, {
+      allowNever: false,
+      enabled: true,
+      placeholder: 'M/D/YYYY',
+      variant: 'filter'
+    });
+  });
+
+  await page.locator('#browser-smoke-no-never-date-input').click();
+  const neverHidden = await page.locator('.custom-date-picker [data-date-action="never"]').evaluate(button => {
+    return button.hidden || button.disabled || window.getComputedStyle(button).display === 'none';
+  });
+  await page.evaluate(async () => {
+    const { CustomDatePicker } = await import('./ui/customDatePicker.js');
+    CustomDatePicker.close();
+    document.querySelector('[data-browser-smoke-date-picker-host]')?.remove();
+  });
+  if (!neverHidden) {
+    throw new Error('Custom date picker should hide Never when the active date operator cannot use it');
+  }
 }
 
 async function exerciseFormModeDateTypingCommit(page) {

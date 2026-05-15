@@ -53,6 +53,9 @@ QueryChangeManager.setQueryState({
     'Equal Never Date': {
       filters: [{ cond: 'equals', val: 'Never' }]
     },
+    'Backend Date': {
+      filters: [{ cond: 'before', val: 'Never' }]
+    },
     'Synthetic Field': {
       filters: [{ cond: 'equals', val: 'ignored' }]
     }

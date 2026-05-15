@@ -1,3 +1,5 @@
+import { getComparableValue as getDefaultComparableDateValue, normalizeDateValue } from '../core/dateValues.js';
+
 function supportsListSelectorCondition(cond) {
   const normalized = String(cond || '').trim().toLowerCase();
   return normalized === 'equals' || normalized === 'does_not_equal';
@@ -60,12 +62,132 @@ function getComparableFilterValues(filter, fieldType, getComparableDateValue) {
   });
 }
 
+function normalizeRangeCondition(cond) {
+  switch (String(cond || '').trim().toLowerCase()) {
+    case 'after':
+    case 'greater':
+      return 'greater';
+    case 'on_or_after':
+    case 'greater_or_equal':
+      return 'greater_or_equal';
+    case 'before':
+    case 'less':
+      return 'less';
+    case 'on_or_before':
+    case 'less_or_equal':
+      return 'less_or_equal';
+    case 'equals':
+    case 'between':
+      return String(cond || '').trim().toLowerCase();
+    default:
+      return '';
+  }
+}
+
+function getFilterRange(filter, fieldType, getComparableDateValue) {
+  const cond = normalizeRangeCondition(filter?.cond);
+  if (!cond) return null;
+
+  const values = getComparableFilterValues(filter, fieldType, getComparableDateValue);
+  if (!values.length || values.some(value => !Number.isFinite(value))) {
+    return null;
+  }
+
+  if (cond === 'equals') {
+    return { low: values[0], lowInclusive: true, high: values[0], highInclusive: true };
+  }
+
+  if (cond === 'between') {
+    return {
+      low: Math.min(...values),
+      lowInclusive: true,
+      high: Math.max(...values),
+      highInclusive: true
+    };
+  }
+
+  if (cond === 'greater') {
+    return { low: values[0], lowInclusive: false, high: Infinity, highInclusive: false };
+  }
+
+  if (cond === 'greater_or_equal') {
+    return { low: values[0], lowInclusive: true, high: Infinity, highInclusive: false };
+  }
+
+  if (cond === 'less') {
+    return { low: -Infinity, lowInclusive: false, high: values[0], highInclusive: false };
+  }
+
+  if (cond === 'less_or_equal') {
+    return { low: -Infinity, lowInclusive: false, high: values[0], highInclusive: true };
+  }
+
+  return null;
+}
+
+function filterRangesOverlap(left, right) {
+  if (left.high < right.low || right.high < left.low) {
+    return false;
+  }
+
+  if (left.high === right.low) {
+    return left.highInclusive && right.lowInclusive;
+  }
+
+  if (right.high === left.low) {
+    return right.highInclusive && left.lowInclusive;
+  }
+
+  return true;
+}
+
+function isNeverDateFilterValue(value) {
+  return normalizeDateValue(value) === 'Never';
+}
+
+function getDateFilterValidationMessage(filter, fieldLabel, options = {}) {
+  const cond = String(filter?.cond || '').trim().toLowerCase();
+  const values = parseFilterValues(filter).filter(value => value !== '');
+
+  if (values.some(isNeverDateFilterValue)) {
+    if (cond === 'between') {
+      return `${fieldLabel} cannot use Never in a between filter. Use Before for open-ended ranges, or Equals Never by itself.`;
+    }
+
+    if (cond && !['equals', 'does_not_equal', 'never'].includes(cond)) {
+      return `${fieldLabel} can only use Never with equals or does not equal.`;
+    }
+  }
+
+  if (cond !== 'between' || values.length < 2 || values.some(isNeverDateFilterValue)) {
+    return null;
+  }
+
+  const getComparableDateValue = typeof options.getComparableDateValue === 'function'
+    ? options.getComparableDateValue
+    : getDefaultComparableDateValue;
+  const [start, end] = values.map(getComparableDateValue);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) {
+    return null;
+  }
+
+  if (start === end) {
+    return `${fieldLabel} between dates must be different.`;
+  }
+
+  if (start > end) {
+    return `${fieldLabel} start date must be before the end date.`;
+  }
+
+  return null;
+}
+
 function getContradictionMessage(existing, newFilter, fieldType, fieldLabel, options = {}) {
   if (!existing || !Array.isArray(existing.filters)) return null;
 
   const getComparableDateValue = typeof options.getComparableDateValue === 'function'
     ? options.getComparableDateValue
-    : () => NaN;
+    : getDefaultComparableDateValue;
 
   const newLabel = getFilterPhrase(newFilter);
   if (newFilter.cond === 'never' && existing.filters.some(filter => filter.cond !== 'never')) {
@@ -83,6 +205,11 @@ function getContradictionMessage(existing, newFilter, fieldType, fieldLabel, opt
     const filterValues = getComparableFilterValues(filter, fieldType, getComparableDateValue);
     const low = Math.min(...filterValues);
     const high = Math.max(...filterValues);
+    const newRange = getFilterRange(newFilter, fieldType, getComparableDateValue);
+    const existingRange = getFilterRange(filter, fieldType, getComparableDateValue);
+    if (newRange && existingRange && !filterRangesOverlap(newRange, existingRange)) {
+      return message;
+    }
 
     if (newFilter.cond === 'equals') {
       if (filter.cond === 'does_not_equal' && newValues[0] === filterValues[0]) return message;
@@ -120,6 +247,7 @@ function getContradictionMessage(existing, newFilter, fieldType, fieldLabel, opt
 }
 
 export {
+  getDateFilterValidationMessage,
   getContradictionMessage,
   isListPasteField,
   supportsListSelectorCondition
