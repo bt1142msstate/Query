@@ -1,6 +1,7 @@
 import { getBaseFieldName, QueryStateReaders } from '../core/queryState.js';
 import { toBackendDateValue } from '../core/dateValues.js';
 import { fieldDefs, isFieldBackendFilterable, resolveFieldName } from './fieldDefs.js';
+import { getDateFilterValidationMessage } from './filterConditionLogic.js';
 
 const FIELD_OPERATOR_TO_UI_COND = {
   Equals: 'equals',
@@ -272,6 +273,9 @@ function buildBackendFilters() {
 
     (filterGroup?.filters || []).forEach(filter => {
       if (filter.val === '') return;
+      if (fieldDef?.type === 'date' && getDateFilterValidationMessage(filter, canonicalFieldName)) {
+        return;
+      }
 
       if (fieldDef && fieldDef.allowValueList && filter.cond === 'equals') {
         const keyValues = splitKeyFilterValues(filter.val);

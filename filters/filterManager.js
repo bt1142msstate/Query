@@ -21,6 +21,7 @@ import { DOM } from '../core/domCache.js';
 import { CustomDatePicker } from '../ui/customDatePicker.js';
 import { escapeHtml } from '../core/html.js';
 import {
+    getDateFilterValidationMessage,
     getContradictionMessage,
     isListPasteField,
     supportsListSelectorCondition
@@ -117,6 +118,21 @@ function getComparableDateValue(value) {
     }
 
     return NaN;
+}
+
+function conditionAllowsNeverDateValue(cond) {
+    const normalized = String(cond || '').trim().toLowerCase();
+    return normalized === 'equals' || normalized === 'does_not_equal' || normalized === 'never';
+}
+
+function syncDatePickerNeverAvailability(cond) {
+    [getFilterConditionInputElement(), getFilterConditionInput2Element()]
+        .filter(Boolean)
+        .forEach(input => {
+            if (input._customDatePickerApi) {
+                input._customDatePickerApi.allowNever = conditionAllowsNeverDateValue(cond);
+            }
+        });
 }
 
 function getConditionOperatorSelect(conditionPanel = null) {
@@ -717,6 +733,7 @@ function handleConditionBtnClick(e) {
     if (!cond) return;
 
     syncConditionSelection(conditionPanel, cond);
+    syncDatePickerNeverAvailability(cond);
 
     // Handle show/hide/display actions
     if (cond === 'show' || cond === 'hide') {
@@ -864,6 +881,17 @@ function handleFilterConfirm(e) {
                 showFilterError('Enter a date or Never', tintInputs);
                 return;
             }
+
+            const dateLogicMessage = getDateFilterValidationMessage({
+                cond,
+                val: cond === 'between' ? `${val}|${val2}` : val
+            }, field, {
+                getComparableDateValue
+            });
+            if (dateLogicMessage) {
+                showFilterError(dateLogicMessage, tintInputs);
+                return;
+            }
         }
     }
 
@@ -873,15 +901,13 @@ function handleFilterConfirm(e) {
         let a = val, b = val2;
         if (type === 'number' || type === 'money') {
             a = parseFloat(a); b = parseFloat(b);
-        } else if (type === 'date') {
-            a = getComparableDateValue(a); b = getComparableDateValue(b);
         }
         
-        if (a === b) {
+        if ((type === 'number' || type === 'money') && a === b) {
             showFilterError('Between values must be different', [conditionInput, conditionInput2]);
             return;
         }
-        if (a > b) {
+        if ((type === 'number' || type === 'money') && a > b) {
             // Swap values
             conditionInput.value = val2;
             conditionInput2.value = val;
@@ -1186,6 +1212,7 @@ function configureInputsForType(type){
     const currentFieldName = getActiveFilterFieldName();
     const numberFormat = ValueFormatting.getNumberFormat(currentFieldName) || '';
     const isDate = type === 'date';
+    const selectedCondition = getSelectedCondition(getFilterConditionPanelElement());
     const htmlType = 'text';
 
     if (!isDate) {
@@ -1222,6 +1249,7 @@ function configureInputsForType(type){
                 CustomDatePicker.enhanceInput(inp, {
                     variant: 'filter',
                     enabled: true,
+                    allowNever: conditionAllowsNeverDateValue(selectedCondition),
                     placeholder: 'M/D/YYYY'
                 });
                 inp.dataset.errorMsg = 'Enter a date or Never';
