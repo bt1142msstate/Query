@@ -574,6 +574,7 @@ async function loadQueryResults(queryId) {
         // Result-set state must be established before rendering so a zero-row
         // history result does not reuse the pre-run planning placeholder.
         QueryChangeManager.setLifecycleState({
+          currentQueryId: q.id,
           hasPartialResults: Boolean(q.running),
           hasLoadedResultSet: true
         }, { source: 'QueryHistory.loadQueryResults', silent: true });

@@ -95,7 +95,8 @@ function setBusy(elements, busy) {
     elements.groupedMode,
     elements.groupField,
     elements.includeMasterSheet,
-    elements.includeOverviewSheet
+    elements.includeOverviewSheet,
+    elements.includeRunDetailsSheet
   ].forEach(element => {
     if (element) {
       element.disabled = busy;
