@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from '../../table/export/largeWorkbookExport.js';
 
+const NativeURL = globalThis.URL;
 let downloadedBlob = null;
 let downloadedFilename = '';
 
@@ -158,5 +159,78 @@ assert.match(groupedWorkbookText, /<v>0\.5<\/v>/u);
 assert.match(groupedWorkbookText, /<v>1<\/v>/u);
 assert.match(groupedWorkbookText, /numFmtId="10"/u);
 assert.match(groupedWorkbookText, /<cellXfs count="8">/u);
+
+let workerUrl = '';
+let workerOptions = null;
+let workerPayload = null;
+let workerTerminated = false;
+function TestURL(input, base) {
+  return new NativeURL(input, base);
+}
+TestURL.createObjectURL = blob => {
+  downloadedBlob = blob;
+  return 'blob:test-worker-workbook';
+};
+TestURL.revokeObjectURL = () => {};
+
+globalThis.URL = TestURL;
+globalThis.Worker = class MockWorker {
+  constructor(url, options) {
+    workerUrl = String(url);
+    workerOptions = options;
+  }
+
+  postMessage(payload) {
+    workerPayload = payload;
+    this.onmessage?.({
+      data: {
+        id: payload.id,
+        payload: {
+          detail: 'Worker progress',
+          percent: 50,
+          title: 'Building large workbook'
+        },
+        type: 'progress'
+      }
+    });
+    this.onmessage?.({
+      data: {
+        blob: new Blob(['worker-generated'], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        }),
+        filename: 'Worker-Report.xlsx',
+        id: payload.id,
+        type: 'complete'
+      }
+    });
+  }
+
+  terminate() {
+    workerTerminated = true;
+  }
+};
+
+downloadedBlob = null;
+downloadedFilename = '';
+await exportLargeWorkbook({
+  config: {
+    mode: 'single'
+  },
+  helpers,
+  state: {
+    groupingCandidates: [],
+    rowCount: sourceData.dataRows.length,
+    sourceData,
+    tableName: 'Worker Report'
+  }
+});
+
+assert.match(workerUrl, /largeWorkbookWorker\.js$/u);
+assert.equal(workerOptions?.type, 'module');
+assert.equal(workerPayload?.config?.mode, 'single');
+assert.equal('helpers' in workerPayload, false);
+assert.equal(workerTerminated, true);
+assert.equal(downloadedFilename, 'Worker-Report.xlsx');
+assert.equal(await downloadedBlob.text(), 'worker-generated');
 
 console.log('Large workbook export logic tests passed');
