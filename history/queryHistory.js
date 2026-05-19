@@ -13,6 +13,7 @@ import {
   resolveSpecialPayloadFieldNames
 } from './queryHistoryRequestMapper.js';
 import { HISTORY_TABLE_HEADS, createQueriesTableRowHtml } from './queryHistoryRows.js';
+import { notifyHistoryResultLoadComplete, prepareHistoryResultLoadNotification } from './queryHistoryNotifications.js';
 import {
   buildHistoryMonitor,
   buildHistorySection,
@@ -535,6 +536,7 @@ async function loadQueryResults(queryId) {
     // Load configuration first
     loadQueryConfig(q);
     HistoryResultProgress.start(q, { render: renderQueries });
+    const notificationPermission = prepareHistoryResultLoadNotification();
     
     showToastMessage(q.running ? 'Fetching live results...' : 'Fetching results...', 'info');
 
@@ -618,6 +620,7 @@ async function loadQueryResults(queryId) {
           : (q.running
             ? `Loaded ${rows.length} partial results from running query.`
             : `Loaded ${rows.length} results.`), streamError ? 'warning' : 'success');
+        notifyHistoryResultLoadComplete({ permissionPromise: notificationPermission, query: q, queryId, rowCount: rows.length, streamError });
         
         // Close modal if open
         services.closeAllModals();
