@@ -13,15 +13,13 @@ import { ExcelExportProgress, yieldToBrowser } from './exportProgress.js';
 import { addOverviewWorksheet } from './excelOverviewWorksheet.js';
 import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from './largeWorkbookExport.js';
 import { addWorkbookDetailsWorksheet, buildWorkbookDetailsRowsFromRuntime } from './workbookDetails.js';
-import { buildWorkbookFilename, triggerWorkbookDownload } from './workbookDownload.js';
-
+import { buildWorkbookFilename, notifyWorkbookDownloadComplete, prepareWorkbookDownloadNotification, triggerWorkbookDownload } from './workbookDownload.js';
 (() => {
   // When true, multi-value cells (delimited by \x1F) are split into separate columns
   // instead of being stacked as newlines in a single cell.
   let splitMultiValues = false;
   let exportState = null;
   let exportInProgress = false;
-
   const SHEET_NAME_LIMIT = 31;
   const MAX_GROUPED_SHEETS = 100;
   const { getDisplayedFields } = QueryStateReaders;
@@ -529,7 +527,7 @@ import { buildWorkbookFilename, triggerWorkbookDownload } from './workbookDownlo
       : [];
 
     if (shouldUseLargeWorkbookExport(state)) {
-      await exportLargeWorkbook({
+      return exportLargeWorkbook({
         state,
         config,
         helpers: {
@@ -540,7 +538,6 @@ import { buildWorkbookFilename, triggerWorkbookDownload } from './workbookDownlo
           yieldToBrowser
         }
       });
-      return;
     }
 
     const exportedRows = buildExportRows(state.sourceData);
@@ -638,6 +635,7 @@ import { buildWorkbookFilename, triggerWorkbookDownload } from './workbookDownlo
     });
     await yieldToBrowser();
     triggerWorkbookDownload(buffer, filename);
+    return filename;
   }
 
   async function confirmExportFromOverlay() {
@@ -663,6 +661,7 @@ import { buildWorkbookFilename, triggerWorkbookDownload } from './workbookDownlo
       return;
     }
 
+    const notificationPermission = prepareWorkbookDownloadNotification();
     const confirmBtn = elements.confirmBtn;
     if (confirmBtn) {
       confirmBtn.disabled = true;
@@ -678,9 +677,10 @@ import { buildWorkbookFilename, triggerWorkbookDownload } from './workbookDownlo
     await yieldToBrowser();
 
     try {
-      await runWorkbookExport(config);
+      const filename = await runWorkbookExport(config);
       exportInProgress = false;
       closeExportOverlay();
+      notifyWorkbookDownloadComplete({ filename, permissionPromise: notificationPermission }).catch(() => {});
       showToastMessage(
         config.mode === 'grouped'
           ? `Workbook downloaded with sheets grouped by ${config.groupField}`
