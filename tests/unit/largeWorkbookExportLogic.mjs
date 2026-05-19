@@ -85,7 +85,13 @@ assert.equal(shouldUseLargeWorkbookExport({
 assert.equal(shouldUseLargeWorkbookExport({ rowCount: 2, sourceData }), false);
 
 await exportLargeWorkbook({
-  config: { mode: 'single' },
+  config: {
+    mode: 'single',
+    runDetailsRows: [
+      ['Export', 'Workbook', 'Large Report'],
+      ['Query', 'Duration', '12s']
+    ]
+  },
   helpers,
   state: {
     groupingCandidates: [],
@@ -103,6 +109,10 @@ assert.match(workbookText.slice(0, 4), /^PK/u);
 assert.match(workbookText, /xl\/worksheets\/sheet1\.xml/u);
 assert.match(workbookText, /xl\/tables\/table1\.xml/u);
 assert.match(workbookText, /tableStyleInfo name="TableStyleMedium4"/u);
+assert.match(workbookText, /Run Details/u);
+assert.match(workbookText, /Duration/u);
+assert.match(workbookText, /12s/u);
+assert.match(workbookText, /TableStyleMedium9/u);
 assert.match(workbookText, /<cols><col min="1" max="1" width="/u);
 assert.match(workbookText, /<tableParts count="1"><tablePart r:id="rId1"\/><\/tableParts>/u);
 assert.doesNotMatch(workbookText, /FFE5F3FF|applyFill="1"/u);

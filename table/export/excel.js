@@ -12,6 +12,8 @@ import { alignDateTextCells } from './excelDateCellFormatting.js';
 import { ExcelExportProgress, yieldToBrowser } from './exportProgress.js';
 import { addOverviewWorksheet } from './excelOverviewWorksheet.js';
 import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from './largeWorkbookExport.js';
+import { addWorkbookDetailsWorksheet, buildWorkbookDetailsRowsFromRuntime } from './workbookDetails.js';
+import { buildWorkbookFilename, triggerWorkbookDownload } from './workbookDownload.js';
 
 (() => {
   // When true, multi-value cells (delimited by \x1F) are split into separate columns
@@ -43,6 +45,7 @@ import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from './largeWorkbo
       summaryGroups: document.getElementById('export-summary-groups'),
       includeMasterSheet: document.getElementById('export-include-master-sheet'),
       includeOverviewSheet: document.getElementById('export-include-overview-sheet'),
+      includeRunDetailsSheet: document.getElementById('export-include-run-details-sheet'),
       modeCards: Array.from(document.querySelectorAll('[data-export-mode-card]'))
     };
   }
@@ -268,6 +271,11 @@ import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from './largeWorkbo
       extras.push('Overview');
     }
 
+    if (elements.includeRunDetailsSheet?.checked) {
+      sheetCount += 1;
+      extras.push('Run Details');
+    }
+
     const descriptor = extras.length ? `plus ${extras.join(' and ')}` : 'group sheets only';
     elements.preview.textContent = `${candidate.distinctCount.toLocaleString()} grouped sheet${candidate.distinctCount === 1 ? '' : 's'} from ${candidate.field} (${descriptor}, ${sheetCount.toLocaleString()} total tab${sheetCount === 1 ? '' : 's'}).`;
   }
@@ -359,6 +367,9 @@ import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from './largeWorkbo
     if (elements.groupField) {
       elements.groupField.value = exportState.selectedGroupingField;
     }
+    if (elements.includeRunDetailsSheet) {
+      elements.includeRunDetailsSheet.checked = false;
+    }
 
     VisibilityUtils.show([elements.overlay], {
       ariaHidden: false,
@@ -390,18 +401,6 @@ import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from './largeWorkbo
       raisedUiKey: 'export-overlay'
     });
     ExcelExportProgress.hide();
-  }
-
-  function triggerWorkbookDownload(buffer, filename) {
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const link = document.createElement('a');
-    const objectUrl = URL.createObjectURL(blob);
-    link.href = objectUrl;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
   }
 
   function configureWorksheetColumns(worksheet, sourceData, rowsToExport) {
@@ -525,6 +524,10 @@ import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from './largeWorkbo
     });
     await yieldToBrowser();
 
+    config.runDetailsRows = config.includeRunDetailsSheet
+      ? buildWorkbookDetailsRowsFromRuntime({ config, queryStateReaders: QueryStateReaders, services, splitMultiValues, state })
+      : [];
+
     if (shouldUseLargeWorkbookExport(state)) {
       await exportLargeWorkbook({
         state,
@@ -562,7 +565,7 @@ import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from './largeWorkbo
         rows: exportedRows.filter(row => getGroupingDisplayValue(row.values[candidate.index]) === label)
       })).sort((left, right) => left.label.localeCompare(right.label, undefined, { numeric: true, sensitivity: 'base' }));
 
-      const sheetCount = groups.length + (config.includeMasterSheet ? 1 : 0) + (config.includeOverviewSheet ? 1 : 0);
+      const sheetCount = groups.length + (config.includeMasterSheet ? 1 : 0) + (config.includeOverviewSheet ? 1 : 0) + (config.runDetailsRows.length ? 1 : 0);
       let sheetIndex = 0;
       const getSheetProgress = () => {
         sheetIndex += 1;
@@ -570,6 +573,11 @@ import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from './largeWorkbo
         return { percent: basePercent, rowPercent: Math.min(basePercent + 8, 80) };
       };
 
+      if (config.runDetailsRows.length) {
+        addWorkbookDetailsWorksheet(workbook, { getUniqueSheetName, rows: config.runDetailsRows, usedNames });
+        sheetIndex += 1;
+        await yieldToBrowser();
+      }
       if (config.includeMasterSheet) {
         const masterSheetName = getUniqueSheetName('All Results', usedNames);
         await addWorksheetTable(workbook.addWorksheet(masterSheetName), state.sourceData, exportedRows, `${state.tableName}_AllResults`, {
@@ -602,6 +610,10 @@ import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from './largeWorkbo
         });
       }
     } else {
+      if (config.runDetailsRows.length) {
+        addWorkbookDetailsWorksheet(workbook, { getUniqueSheetName, rows: config.runDetailsRows, usedNames });
+        await yieldToBrowser();
+      }
       const sheetName = getUniqueSheetName(state.tableName, usedNames);
       await addWorksheetTable(workbook.addWorksheet(sheetName), state.sourceData, exportedRows, state.tableName, {
         percent: 18,
@@ -610,11 +622,7 @@ import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from './largeWorkbo
       });
     }
 
-    const safeFileName = state.tableName.replace(/[^a-zA-Z0-9\-_\s]/g, '').replace(/\s+/g, '-');
-    const suffix = config.mode === 'grouped' && config.groupField
-      ? `-by-${config.groupField.replace(/[^a-zA-Z0-9\-_\s]/g, '').trim().replace(/\s+/g, '-')}`
-      : '';
-    const filename = `${safeFileName || 'Query-Results'}${suffix}.xlsx`;
+    const filename = buildWorkbookFilename(state.tableName, config);
     ExcelExportProgress.update({
       title: 'Packaging workbook',
       detail: 'Compressing the Excel file for download',
@@ -645,9 +653,10 @@ import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from './largeWorkbo
           mode: 'grouped',
           groupField: elements.groupField?.value || exportState?.selectedGroupingField || '',
           includeMasterSheet: !!elements.includeMasterSheet?.checked,
-          includeOverviewSheet: !!elements.includeOverviewSheet?.checked
+          includeOverviewSheet: !!elements.includeOverviewSheet?.checked,
+          includeRunDetailsSheet: !!elements.includeRunDetailsSheet?.checked
         }
-      : { mode: 'single' };
+      : { mode: 'single', includeRunDetailsSheet: !!elements.includeRunDetailsSheet?.checked };
 
     if (config.mode === 'grouped' && !config.groupField) {
       showToastMessage('Choose a field to split sheets by', 'warning');
@@ -710,6 +719,7 @@ import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from './largeWorkbo
     elements.groupedMode?.addEventListener('change', () => updateExportModeUI(elements));
     elements.includeMasterSheet?.addEventListener('change', () => updateExportPreview(elements));
     elements.includeOverviewSheet?.addEventListener('change', () => updateExportPreview(elements));
+    elements.includeRunDetailsSheet?.addEventListener('change', () => updateExportPreview(elements));
     elements.groupField?.addEventListener('change', event => {
       exportState.selectedGroupingField = event.target.value;
       updateExportPreview(elements);

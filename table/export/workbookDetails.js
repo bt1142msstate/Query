@@ -1,0 +1,186 @@
+import { formatDuration } from '../../core/dataFormatters.js';
+import { OperatorLabels } from '../../core/operatorLabels.js';
+
+const WORKBOOK_DETAILS_SHEET_NAME = 'Run Details';
+const WORKBOOK_DETAILS_COLUMNS = Object.freeze(['Section', 'Item', 'Value']);
+
+function formatMetadataValue(value) {
+  if (value === undefined || value === null || value === '') return '';
+  if (value instanceof Date) return value.toLocaleString();
+  if (typeof value === 'number' && Number.isFinite(value)) return value.toLocaleString();
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  return String(value);
+}
+
+function formatDateTime(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleString();
+}
+
+function addDetailRow(rows, section, item, value, options = {}) {
+  const formattedValue = formatMetadataValue(value);
+  if (!formattedValue && !options.keepBlank) return;
+  rows.push([section, item, formattedValue || options.blankValue || '']);
+}
+
+function getQueryDurationSeconds(query) {
+  if (!query?.startTime) return null;
+  const start = new Date(query.startTime);
+  const end = query.running ? new Date() : new Date(query.endTime || query.cancelledTime || '');
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
+  return Math.max(0, Math.floor((end - start) / 1000));
+}
+
+function formatQueryDuration(query) {
+  const seconds = getQueryDurationSeconds(query);
+  return Number.isFinite(seconds) ? formatDuration(seconds) : '';
+}
+
+function formatFilterValue(cond, value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  if (String(cond || '').toLowerCase() === 'between') {
+    return text.split('|').map(part => part.trim()).filter(Boolean).join(' to ');
+  }
+  return text.split(',').map(part => part.trim()).filter(Boolean).join(', ') || text;
+}
+
+function formatFilterLine(filter) {
+  const operator = OperatorLabels.get(filter?.cond, 'Equals');
+  const value = formatFilterValue(filter?.cond, filter?.val);
+  return value ? `${operator} ${value}` : operator;
+}
+
+function appendDisplayedFieldRows(rows, displayedFields) {
+  const fields = Array.isArray(displayedFields) ? displayedFields : [];
+  addDetailRow(rows, 'Displayed Fields', 'Count', fields.length);
+  fields.forEach((field, index) => {
+    addDetailRow(rows, 'Displayed Fields', String(index + 1), field);
+  });
+}
+
+function appendFilterRows(rows, section, filtersByField) {
+  const entries = Object.entries(filtersByField || {})
+    .flatMap(([field, data]) => (Array.isArray(data?.filters) ? data.filters : [])
+      .map(filter => ({ field, filter })));
+
+  if (!entries.length) {
+    addDetailRow(rows, section, 'Applied', 'None');
+    return;
+  }
+
+  entries.forEach(({ field, filter }) => {
+    addDetailRow(rows, section, field, formatFilterLine(filter));
+  });
+}
+
+function appendPostFilterRows(rows, postFilters) {
+  const entries = Object.entries(postFilters || {})
+    .flatMap(([field, data]) => (Array.isArray(data?.filters) ? data.filters : [])
+      .map(filter => ({ field, filter, logic: data?.logic || 'all' })));
+
+  if (!entries.length) {
+    addDetailRow(rows, 'Post Filters', 'Applied', 'None');
+    return;
+  }
+
+  entries.forEach(({ field, filter, logic }) => {
+    addDetailRow(rows, 'Post Filters', `${field} (${String(logic).toUpperCase()})`, formatFilterLine(filter));
+  });
+}
+
+function buildWorkbookDetailsRows({
+  activeFilters = {},
+  config = {},
+  displayedFields = [],
+  exportedAt = new Date(),
+  postFilters = {},
+  postFilterStats = null,
+  query = null,
+  queryId = '',
+  rowCount = 0,
+  splitMultiValues = false,
+  tableName = ''
+} = {}) {
+  const rows = [];
+  const hasPostFilters = Object.values(postFilters || {}).some(data => Array.isArray(data?.filters) && data.filters.length);
+  const totalRows = hasPostFilters && Number.isFinite(Number(postFilterStats?.totalRows))
+    ? Number(postFilterStats.totalRows)
+    : rowCount;
+
+  addDetailRow(rows, 'Export', 'Workbook', tableName || 'Query Results');
+  addDetailRow(rows, 'Export', 'Exported At', exportedAt);
+  addDetailRow(rows, 'Export', 'Mode', config.mode === 'grouped' ? 'Split into sheets' : 'One sheet');
+  addDetailRow(rows, 'Export', 'Group Field', config.mode === 'grouped' ? config.groupField : '');
+  addDetailRow(rows, 'Export', 'Multi-value Layout', splitMultiValues ? 'Split into numbered columns' : 'Stacked in one cell');
+  addDetailRow(rows, 'Query', 'Query ID', query?.id || queryId);
+  addDetailRow(rows, 'Query', 'Status', query?.status || '');
+  addDetailRow(rows, 'Query', 'Started', formatDateTime(query?.startTime));
+  addDetailRow(rows, 'Query', 'Completed', formatDateTime(query?.endTime || query?.cancelledTime));
+  addDetailRow(rows, 'Query', 'Duration', formatQueryDuration(query), { keepBlank: true, blankValue: 'Unknown' });
+  addDetailRow(rows, 'Rows', 'Exported Rows', rowCount);
+  addDetailRow(rows, 'Rows', 'Loaded Rows Before Post Filters', totalRows);
+  if (hasPostFilters) {
+    addDetailRow(rows, 'Rows', 'Rows After Post Filters', postFilterStats?.filteredRows ?? rowCount);
+  }
+  appendDisplayedFieldRows(rows, displayedFields);
+  appendFilterRows(rows, 'Query Filters', activeFilters);
+  appendPostFilterRows(rows, postFilters);
+  return rows;
+}
+
+function buildWorkbookDetailsRowsFromRuntime({
+  config,
+  queryStateReaders,
+  services,
+  splitMultiValues,
+  state
+} = {}) {
+  const lifecycle = queryStateReaders?.getLifecycleState?.() || {};
+  const query = services?.getHistoryQueryById?.(lifecycle.currentQueryId) || null;
+  return buildWorkbookDetailsRows({
+    activeFilters: queryStateReaders?.getActiveFilters?.() || {},
+    config,
+    displayedFields: state?.sourceData?.displayedFields || [],
+    postFilters: services?.getPostFilterState?.() || {},
+    postFilterStats: services?.getPostFilterStats?.() || null,
+    query,
+    queryId: lifecycle.currentQueryId || '',
+    rowCount: state?.rowCount || 0,
+    splitMultiValues,
+    tableName: state?.tableName || ''
+  });
+}
+
+function getWorkbookDetailsColumns() {
+  return [...WORKBOOK_DETAILS_COLUMNS];
+}
+
+function addWorkbookDetailsWorksheet(workbook, { getUniqueSheetName, rows, usedNames }) {
+  const worksheet = workbook.addWorksheet(getUniqueSheetName(WORKBOOK_DETAILS_SHEET_NAME, usedNames));
+  worksheet.views = [{ state: 'frozen', ySplit: 1 }];
+  worksheet.columns = [
+    { header: WORKBOOK_DETAILS_COLUMNS[0], key: 'section', width: 20 },
+    { header: WORKBOOK_DETAILS_COLUMNS[1], key: 'item', width: 28 },
+    { header: WORKBOOK_DETAILS_COLUMNS[2], key: 'value', width: 52 }
+  ];
+  worksheet.addTable({
+    name: `Run_Details_${Date.now()}`,
+    ref: 'A1',
+    headerRow: true,
+    style: { theme: 'TableStyleMedium9', showRowStripes: true },
+    columns: WORKBOOK_DETAILS_COLUMNS.map(name => ({ name, filterButton: true })),
+    rows
+  });
+  worksheet.getColumn(3).alignment = { wrapText: true, vertical: 'top' };
+}
+
+export {
+  WORKBOOK_DETAILS_COLUMNS,
+  WORKBOOK_DETAILS_SHEET_NAME,
+  addWorkbookDetailsWorksheet,
+  buildWorkbookDetailsRows,
+  buildWorkbookDetailsRowsFromRuntime,
+  getWorkbookDetailsColumns
+};

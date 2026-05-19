@@ -1,4 +1,6 @@
 import { ZIP_MIME_TYPE, createZipBlob } from './xlsxZipWriter.js';
+import { buildWorkbookFilename, downloadWorkbookBlob } from './workbookDownload.js';
+import { WORKBOOK_DETAILS_SHEET_NAME, getWorkbookDetailsColumns } from './workbookDetails.js';
 import { buildOverviewRows, getOverviewColumns } from './workbookOverview.js';
 
 const LARGE_EXPORT_CELL_THRESHOLD = 75000;
@@ -200,6 +202,16 @@ function buildWorkbookPlan(state, config, helpers) {
   const sourceData = state.sourceData;
   const sheets = [];
 
+  if (Array.isArray(config.runDetailsRows) && config.runDetailsRows.length) {
+    sheets.push({
+      columns: getWorkbookDetailsColumns(),
+      dataRowCount: config.runDetailsRows.length,
+      kind: 'details',
+      name: helpers.getUniqueSheetName(WORKBOOK_DETAILS_SHEET_NAME, usedNames),
+      rows: config.runDetailsRows
+    });
+  }
+
   if (config.mode !== 'grouped') {
     sheets.push(...splitSourceSheets(state.tableName, state.rowCount, usedNames, helpers.getUniqueSheetName));
     return sheets;
@@ -300,12 +312,18 @@ function buildSafeTableName(name, index) {
   return `${normalized || 'Table'}_${index}`;
 }
 
+function getSheetColumns(sheet) {
+  return sheet.kind === 'overview' || sheet.kind === 'details'
+    ? sheet.columns
+    : sheet.sourceData.displayedFields;
+}
+
 function buildTableXml(sheet, tableId) {
-  const columns = sheet.kind === 'overview' ? sheet.columns : sheet.sourceData.displayedFields;
+  const columns = getSheetColumns(sheet);
   const ref = `A1:${getColumnName(columns.length)}${Math.max(1, sheet.dataRowCount + 1)}`;
   const tableColumns = columns.map((column, index) => `<tableColumn id="${index + 1}" name="${escapeXmlAttribute(column)}"/>`).join('');
   const tableName = buildSafeTableName(sheet.name, tableId);
-  const styleName = sheet.kind === 'overview' ? 'TableStyleMedium2' : 'TableStyleMedium4';
+  const styleName = sheet.kind === 'overview' ? 'TableStyleMedium2' : (sheet.kind === 'details' ? 'TableStyleMedium9' : 'TableStyleMedium4');
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><table xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" id="${tableId}" name="${tableName}" displayName="${tableName}" ref="${ref}" totalsRowShown="0"><autoFilter ref="${ref}"/><tableColumns count="${columns.length}">${tableColumns}</tableColumns><tableStyleInfo name="${styleName}" showFirstColumn="0" showLastColumn="0" showRowStripes="1" showColumnStripes="0"/></table>`;
 }
 
@@ -366,23 +384,20 @@ async function* createOverviewSheetChunks(sheet, context) {
   await context.reportProgress(sheet.name);
 }
 
-function buildFilename(tableName, config) {
-  const safeFileName = tableName.replace(/[^a-zA-Z0-9\-_\s]/g, '').replace(/\s+/g, '-');
-  const suffix = config.mode === 'grouped' && config.groupField
-    ? `-by-${config.groupField.replace(/[^a-zA-Z0-9\-_\s]/g, '').trim().replace(/\s+/g, '-')}`
-    : '';
-  return `${safeFileName || 'Query-Results'}${suffix}.xlsx`;
-}
-
-function downloadBlob(blob, filename) {
-  const link = document.createElement('a');
-  const objectUrl = URL.createObjectURL(blob);
-  link.href = objectUrl;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+async function* createDetailsSheetChunks(sheet, context) {
+  yield buildWorksheetStart(sheet.columns, sheet.dataRowCount, sheet.columnWidths);
+  let chunk = '';
+  sheet.rows.forEach((row, rowIndex) => {
+    const rowNumber = rowIndex + 2;
+    const cells = sheet.columns.map((column, columnIndex) => (
+      buildTextCell(row[columnIndex] ?? '', rowNumber, columnIndex + 1)
+    )).join('');
+    chunk += `<row r="${rowNumber}">${cells}</row>`;
+  });
+  context.writtenRows += sheet.rows.length;
+  yield chunk;
+  yield buildWorksheetEnd(sheet.columns, sheet.dataRowCount);
+  await context.reportProgress(sheet.name);
 }
 
 async function exportLargeWorkbook({ state, config, helpers }) {
@@ -390,7 +405,7 @@ async function exportLargeWorkbook({ state, config, helpers }) {
   const sourceColumnWidths = await calculateSourceColumnWidths(state.sourceData, helpers);
   sheets.forEach((sheet, index) => {
     sheet.tableId = index + 1;
-    if (sheet.kind === 'overview') {
+    if (sheet.kind === 'overview' || sheet.kind === 'details') {
       sheet.columnWidths = calculateRowsColumnWidths(sheet.columns, sheet.rows);
     } else {
       sheet.columnWidths = sourceColumnWidths;
@@ -437,21 +452,23 @@ async function exportLargeWorkbook({ state, config, helpers }) {
     })),
     ...sheets.map((sheet, index) => ({
       path: `xl/worksheets/sheet${index + 1}.xml`,
-      chunks: () => sheet.kind === 'overview'
-        ? createOverviewSheetChunks(sheet, context)
-        : createSourceSheetChunks(sheet, context)
+      chunks: () => {
+        if (sheet.kind === 'overview') return createOverviewSheetChunks(sheet, context);
+        if (sheet.kind === 'details') return createDetailsSheetChunks(sheet, context);
+        return createSourceSheetChunks(sheet, context);
+      }
     }))
   ];
 
   const blob = await createZipBlob(entries, { mimeType: ZIP_MIME_TYPE, yieldToBrowser: helpers.yieldToBrowser });
-  const filename = buildFilename(state.tableName, config);
+  const filename = buildWorkbookFilename(state.tableName, config);
   helpers.progress.update({
     title: 'Starting download',
     detail: `${filename} is ready`,
     percent: 100
   });
   await helpers.yieldToBrowser();
-  downloadBlob(blob, filename);
+  downloadWorkbookBlob(blob, filename);
 }
 
 export { exportLargeWorkbook, shouldUseLargeWorkbookExport };

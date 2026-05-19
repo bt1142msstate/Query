@@ -2281,10 +2281,15 @@ async function exerciseDesktopResultsWorkflow(page) {
   await page.locator('#download-btn').click();
   await page.locator('#export-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
   await expectElementWithinViewport(page, '#export-overlay .export-dialog', 'Desktop export dialog');
+  const detailsSheetDefaultChecked = await page.locator('#export-include-run-details-sheet').isChecked();
+  if (detailsSheetDefaultChecked) {
+    throw new Error('Run details export sheet should be off by default');
+  }
   await page.locator('[data-export-mode-card="grouped"]').click();
   await page.waitForFunction(() => {
     return /grouped sheet/iu.test(document.querySelector('#export-group-preview')?.textContent || '');
   }, null, { timeout: 5000 });
+  await page.locator('#export-include-run-details-sheet').check();
   await page.evaluate(() => {
     window.__browserSmokeExcelWorkbooks = [];
   });
@@ -2300,6 +2305,7 @@ async function exerciseDesktopResultsWorkflow(page) {
     const workbook = window.__browserSmokeExcelWorkbooks?.at(-1);
     const allResults = workbook?.worksheets?.find(sheet => sheet.name === 'All Results');
     const overview = workbook?.worksheets?.find(sheet => sheet.name === 'Overview');
+    const runDetails = workbook?.worksheets?.find(sheet => sheet.name === 'Run Details');
     const totalRow = overview?.table?.rows?.find(row => row[0] === 'Total');
     const dateColumnIndex = (allResults?.table?.columns || []).findIndex(column => column.name === 'Smoke Due Date') + 1;
     const neverRowIndex = (allResults?.table?.rows || []).findIndex(row => row[dateColumnIndex - 1] === 'Never') + 2;
@@ -2312,6 +2318,7 @@ async function exerciseDesktopResultsWorkflow(page) {
       neverDateCellAlignment: neverDateCell?.alignment?.horizontal || '',
       percentFormat: overview?.columnSettings?.get?.(3)?.numFmt || '',
       rowCount: overview?.table?.rows?.length || 0,
+      runDetailsRows: runDetails?.table?.rows || [],
       totalRow
     };
   });
@@ -2323,6 +2330,8 @@ async function exerciseDesktopResultsWorkflow(page) {
     || overviewMetrics.dateColumnAlignment !== 'right'
     || overviewMetrics.neverDateCellAlignment !== 'right'
     || overviewMetrics.percentFormat !== '0.00%'
+    || !overviewMetrics.runDetailsRows.some(row => row.join('|') === 'Export|Mode|Split into sheets')
+    || !overviewMetrics.runDetailsRows.some(row => row.join('|') === 'Displayed Fields|Count|4')
   ) {
     throw new Error(`Grouped export overview should include percentages and a total row: ${JSON.stringify(overviewMetrics)}`);
   }
