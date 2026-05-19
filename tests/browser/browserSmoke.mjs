@@ -450,6 +450,68 @@ async function expectDarkSurface(page, selector, label) {
   }
 }
 
+async function installHiddenTabNotificationSpy(page) {
+  await page.evaluate(() => {
+    window.__browserSmokeOriginalNotification = window.Notification;
+    window.__browserSmokeNotifications = [];
+    class BrowserSmokeNotification {
+      static permission = 'granted';
+
+      static requestPermission() {
+        return Promise.resolve('granted');
+      }
+
+      constructor(title, options = {}) {
+        this.title = title;
+        this.options = options;
+        window.__browserSmokeNotifications.push({ options, title });
+      }
+
+      close() {}
+    }
+
+    Object.defineProperty(window, 'Notification', {
+      configurable: true,
+      value: BrowserSmokeNotification
+    });
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      get: () => true
+    });
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => 'hidden'
+    });
+    Object.defineProperty(document, 'hasFocus', {
+      configurable: true,
+      value: () => false
+    });
+  });
+}
+
+async function restoreVisibleTabNotificationSpy(page) {
+  await page.evaluate(() => {
+    if (window.__browserSmokeOriginalNotification) {
+      Object.defineProperty(window, 'Notification', {
+        configurable: true,
+        value: window.__browserSmokeOriginalNotification
+      });
+    }
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      get: () => false
+    });
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => 'visible'
+    });
+    Object.defineProperty(document, 'hasFocus', {
+      configurable: true,
+      value: () => true
+    });
+  });
+}
+
 async function expectVisibleCloseControlCount(page, rootSelector, expectedCount, label) {
   const controls = await page.locator(rootSelector).evaluate(root => {
     const isVisible = element => {
@@ -2342,6 +2404,7 @@ async function exerciseDesktopResultsWorkflow(page) {
   await page.locator('#download-btn').click();
   await page.locator('#export-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
   const largeDownloadPromise = page.waitForEvent('download', { timeout: 10000 }).catch(() => null);
+  await installHiddenTabNotificationSpy(page);
   await page.locator('#export-confirm-btn').click();
   await page.waitForFunction(() => {
     return /Building large workbook|memory-safe export/iu.test(document.querySelector('#export-progress')?.textContent || '');
@@ -2349,6 +2412,15 @@ async function exerciseDesktopResultsWorkflow(page) {
   const largeDownload = await largeDownloadPromise;
   await largeDownload?.delete().catch(() => {});
   await page.locator('#export-overlay.hidden').waitFor({ state: 'attached', timeout: 10000 });
+  const exportNotifications = await page.evaluate(() => window.__browserSmokeNotifications || []);
+  await restoreVisibleTabNotificationSpy(page);
+  if (!exportNotifications.some(notification => (
+    notification.title === 'Excel export finished'
+    && /\.xlsx is ready\.$/u.test(notification.options?.body || '')
+    && notification.options?.tag === 'query-workbook-export'
+  ))) {
+    throw new Error(`Hidden-tab large export should send completion notification: ${JSON.stringify(exportNotifications)}`);
+  }
 }
 
 async function exerciseZeroResultQueryWorkflow(page, queryApiStub) {

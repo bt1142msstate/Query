@@ -40,7 +40,7 @@ function isPageUnfocusedForBackgroundTaskNotification() {
 }
 
 async function notifyBackgroundTaskComplete({
-  autoCloseMs = 10000,
+  autoCloseMs = 0,
   body = 'The background task is done.',
   permissionPromise = null,
   tag = 'query-background-task',
@@ -60,8 +60,10 @@ async function notifyBackgroundTaskComplete({
       if (typeof window !== 'undefined') window.focus?.();
       notification.close?.();
     };
-    const timeout = typeof window !== 'undefined' && typeof window.setTimeout === 'function' ? window.setTimeout : setTimeout;
-    timeout(() => notification.close?.(), autoCloseMs);
+    if (autoCloseMs > 0) {
+      const timeout = typeof window !== 'undefined' && typeof window.setTimeout === 'function' ? window.setTimeout : setTimeout;
+      timeout(() => notification.close?.(), autoCloseMs);
+    }
     return true;
   } catch {
     return false;

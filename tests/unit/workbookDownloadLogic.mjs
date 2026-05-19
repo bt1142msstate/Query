@@ -82,11 +82,12 @@ assert.equal(unfocusedResult, true);
 assert.equal(notifications.length, 1);
 assert.equal(notifications[0].title, 'Excel export finished');
 assert.equal(notifications[0].options.body, 'My-Report.xlsx is ready.');
-assert.equal(notifications[0].closed, true);
-assert.equal(timeoutCalls, 1);
+assert.equal(notifications[0].closed, false);
+assert.equal(timeoutCalls, 0);
 
 notifications[0].onclick();
 assert.equal(focusCalls, 1);
+assert.equal(notifications[0].closed, true);
 
 TestNotification.permission = 'denied';
 globalThis.document = {
