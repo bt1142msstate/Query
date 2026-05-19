@@ -2,6 +2,7 @@ import { ZIP_MIME_TYPE, createZipBlob } from './xlsxZipWriter.js';
 import { buildWorkbookFilename, downloadWorkbookBlob } from './workbookDownload.js';
 import { WORKBOOK_DETAILS_SHEET_NAME, getWorkbookDetailsColumns } from './workbookDetails.js';
 import { buildOverviewRows, getOverviewColumns } from './workbookOverview.js';
+import { formatDisplayValue, parseDateValue } from '../../core/dateValues.js';
 
 const LARGE_EXPORT_CELL_THRESHOLD = 75000;
 const EXCEL_MAX_DATA_ROWS_PER_SHEET = 1048575;
@@ -12,6 +13,8 @@ const STYLES_TYPE = 'http://schemas.openxmlformats.org/officeDocument/2006/relat
 const OFFICE_DOCUMENT_TYPE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument';
 const TABLE_TYPE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/table';
 const DATE_TEXT_STYLE_ID = '7';
+const SHEET_NAME_LIMIT = 31;
+let largeWorkbookWorkerSequence = 0;
 
 function shouldUseLargeWorkbookExport(state) {
   const rowCount = Number(state?.rowCount || 0);
@@ -40,6 +43,98 @@ function getColumnName(index) {
     current = Math.floor((current - 1) / 26);
   }
   return name;
+}
+
+function normalizeSheetName(name) {
+  const cleaned = String(name || 'Sheet')
+    .replace(/[\\/?*\[\]:]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return (cleaned || 'Sheet').slice(0, SHEET_NAME_LIMIT);
+}
+
+function getUniqueSheetName(baseName, usedNames) {
+  const normalizedBase = normalizeSheetName(baseName);
+  if (!usedNames.has(normalizedBase)) {
+    usedNames.add(normalizedBase);
+    return normalizedBase;
+  }
+
+  let suffix = 2;
+  while (suffix < 1000) {
+    const suffixText = ` (${suffix})`;
+    const truncatedBase = normalizedBase.slice(0, SHEET_NAME_LIMIT - suffixText.length).trim() || 'Sheet';
+    const candidate = `${truncatedBase}${suffixText}`;
+    if (!usedNames.has(candidate)) {
+      usedNames.add(candidate);
+      return candidate;
+    }
+    suffix += 1;
+  }
+
+  return normalizedBase;
+}
+
+function getMapValue(source, key) {
+  if (source instanceof Map) return source.get(key);
+  if (source && typeof source === 'object') return source[key];
+  return undefined;
+}
+
+function getColumnIndex(sourceData, field) {
+  return getMapValue(sourceData?.virtualData?.columnMap, field);
+}
+
+function getFieldType(sourceData, field) {
+  return getMapValue(sourceData?.fieldTypeMap, field) || 'string';
+}
+
+function parseWorkbookNumericValue(raw, options = {}) {
+  if (typeof raw === 'number') return raw;
+  const { allowDecimal = true } = options;
+  const text = String(raw || '');
+  const isNegative = text.trim().startsWith('-');
+  const numeric = text.replace(allowDecimal ? /[^0-9.]/gu : /[^0-9]/gu, '');
+  const firstDot = numeric.indexOf('.');
+  const whole = firstDot >= 0 ? numeric.slice(0, firstDot) : numeric;
+  const decimals = allowDecimal && firstDot >= 0 ? numeric.slice(firstDot + 1).replace(/\./gu, '') : '';
+  const normalized = `${isNegative ? '-' : ''}${whole || '0'}${decimals ? `.${decimals}` : ''}`;
+  if (!whole && !decimals) return Number.NaN;
+  return Number.parseFloat(normalized);
+}
+
+function getDefaultCellExportValue(raw, type) {
+  if (raw === undefined || raw === null) return '';
+  if (type === 'date') {
+    const dt = parseDateValue(raw);
+    return dt !== null ? dt : 'Never';
+  }
+  if (type === 'number' || type === 'money') {
+    const n = parseWorkbookNumericValue(raw);
+    return Number.isNaN(n) ? '' : n;
+  }
+  if (typeof raw === 'string' && raw.includes('\x1F')) {
+    return raw.split('\x1F').join('\n');
+  }
+  return raw;
+}
+
+function getDefaultGroupingDisplayValue(rawValue) {
+  if (rawValue === undefined || rawValue === null || rawValue === '') return 'Blank';
+  if (rawValue instanceof Date) return formatDisplayValue(rawValue, { fallbackToRaw: true, invalidValue: 'Blank' });
+  if (typeof rawValue === 'boolean') return rawValue ? 'True' : 'False';
+  const text = String(rawValue).replace(/\n+/gu, ' / ').trim();
+  return text || 'Blank';
+}
+
+function getLargeWorkbookHelpers(helpers = {}) {
+  return {
+    getCellExportValue: typeof helpers.getCellExportValue === 'function' ? helpers.getCellExportValue : getDefaultCellExportValue,
+    getGroupingDisplayValue: typeof helpers.getGroupingDisplayValue === 'function' ? helpers.getGroupingDisplayValue : getDefaultGroupingDisplayValue,
+    getUniqueSheetName: typeof helpers.getUniqueSheetName === 'function' ? helpers.getUniqueSheetName : getUniqueSheetName,
+    progress: helpers.progress || { update() {} },
+    yieldToBrowser: typeof helpers.yieldToBrowser === 'function' ? helpers.yieldToBrowser : async () => {}
+  };
 }
 
 function getExcelDateSerial(date) {
@@ -92,14 +187,14 @@ function buildHeaderRow(fields) {
 }
 
 function getRawValue(sourceData, rawRow, field) {
-  const colIndex = sourceData.virtualData.columnMap.get(field);
+  const colIndex = getColumnIndex(sourceData, field);
   return colIndex !== undefined ? rawRow[colIndex] : undefined;
 }
 
 function buildSourceRow(sourceData, rawRow, rowNumber, getCellExportValue) {
   const cells = sourceData.displayedFields.map((field, index) => {
     const raw = getRawValue(sourceData, rawRow, field);
-    const type = sourceData.fieldTypeMap.get(field);
+    const type = getFieldType(sourceData, field);
     return buildCell(getCellExportValue(raw, type), rowNumber, index + 1, getCellStyle(type), getCellTextStyle(type));
   }).join('');
   return `<row r="${rowNumber}">${cells}</row>`;
@@ -109,7 +204,7 @@ function getColumnWidthValue(sourceData, rawRow, field) {
   const raw = getRawValue(sourceData, rawRow, field);
   if (raw === undefined || raw === null) return '';
 
-  const type = sourceData.fieldTypeMap.get(field);
+  const type = getFieldType(sourceData, field);
   if (type === 'date') return '12/31/2000';
   if (type === 'number' || type === 'money') {
     const parsed = typeof raw === 'number' ? raw : Number.parseFloat(String(raw).replace(/,/gu, ''));
@@ -156,7 +251,7 @@ function calculateRowsColumnWidths(columns, rows) {
 function getGroupingLabel(sourceData, rawRow, candidate, helpers) {
   const field = sourceData.displayedFields[candidate.index];
   const raw = getRawValue(sourceData, rawRow, field);
-  const type = sourceData.fieldTypeMap.get(field);
+  const type = getFieldType(sourceData, field);
   return helpers.getGroupingDisplayValue(helpers.getCellExportValue(raw, type));
 }
 
@@ -400,9 +495,10 @@ async function* createDetailsSheetChunks(sheet, context) {
   await context.reportProgress(sheet.name);
 }
 
-async function exportLargeWorkbook({ state, config, helpers }) {
-  const sheets = buildWorkbookPlan(state, config, helpers);
-  const sourceColumnWidths = await calculateSourceColumnWidths(state.sourceData, helpers);
+async function createLargeWorkbookBlob({ state, config, helpers }) {
+  const resolvedHelpers = getLargeWorkbookHelpers(helpers);
+  const sheets = buildWorkbookPlan(state, config, resolvedHelpers);
+  const sourceColumnWidths = await calculateSourceColumnWidths(state.sourceData, resolvedHelpers);
   sheets.forEach((sheet, index) => {
     sheet.tableId = index + 1;
     if (sheet.kind === 'overview' || sheet.kind === 'details') {
@@ -414,27 +510,27 @@ async function exportLargeWorkbook({ state, config, helpers }) {
   });
   const totalRows = Math.max(1, sheets.reduce((sum, sheet) => sum + sheet.dataRowCount, 0));
   const context = {
-    helpers,
+    helpers: resolvedHelpers,
     sourceData: state.sourceData,
     totalRows,
     writtenRows: 0,
     async reportProgress(sheetName) {
       const percent = Math.min(94, 8 + Math.round((this.writtenRows / this.totalRows) * 82));
-      helpers.progress.update({
+      resolvedHelpers.progress.update({
         title: 'Building large workbook',
         detail: `Writing ${sheetName} (${this.writtenRows.toLocaleString()} of ${this.totalRows.toLocaleString()} rows)`,
         percent
       });
-      await helpers.yieldToBrowser();
+      await resolvedHelpers.yieldToBrowser();
     }
   };
 
-  helpers.progress.update({
+  resolvedHelpers.progress.update({
     title: 'Building large workbook',
     detail: `Using memory-safe export for ${state.rowCount.toLocaleString()} rows`,
     percent: 5
   });
-  await helpers.yieldToBrowser();
+  await resolvedHelpers.yieldToBrowser();
 
   const entries = [
     { path: '[Content_Types].xml', chunks: [buildContentTypes(sheets.length)] },
@@ -460,16 +556,81 @@ async function exportLargeWorkbook({ state, config, helpers }) {
     }))
   ];
 
-  const blob = await createZipBlob(entries, { mimeType: ZIP_MIME_TYPE, yieldToBrowser: helpers.yieldToBrowser });
+  const blob = await createZipBlob(entries, { mimeType: ZIP_MIME_TYPE, yieldToBrowser: resolvedHelpers.yieldToBrowser });
   const filename = buildWorkbookFilename(state.tableName, config);
-  helpers.progress.update({
+  resolvedHelpers.progress.update({
     title: 'Starting download',
     detail: `${filename} is ready`,
     percent: 100
   });
-  await helpers.yieldToBrowser();
+  await resolvedHelpers.yieldToBrowser();
+  return { blob, filename };
+}
+
+function canUseLargeWorkbookWorker(config = {}) {
+  return config.useWorker !== false && typeof Worker === 'function' && typeof URL === 'function';
+}
+
+function exportLargeWorkbookInWorker({ state, config, helpers }) {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL('./largeWorkbookWorker.js', import.meta.url), { type: 'module' });
+    const id = `large-export-${Date.now()}-${largeWorkbookWorkerSequence += 1}`;
+    let settled = false;
+    function finish(callback, value) {
+      if (settled) return;
+      settled = true;
+      worker.terminate();
+      callback(value);
+    }
+
+    worker.onmessage = event => {
+      const message = event.data || {};
+      if (message.id !== id) return;
+      if (message.type === 'progress') {
+        helpers.progress.update(message.payload || {});
+        return;
+      }
+      if (message.type === 'complete') {
+        downloadWorkbookBlob(message.blob, message.filename);
+        finish(resolve, message.filename);
+        return;
+      }
+      if (message.type === 'error') {
+        finish(reject, new Error(message.error || 'Large workbook worker failed'));
+      }
+    };
+    worker.onerror = event => {
+      finish(reject, new Error(event.message || 'Large workbook worker failed'));
+    };
+    worker.onmessageerror = () => {
+      finish(reject, new Error('Large workbook worker message failed'));
+    };
+    helpers.progress.update({
+      title: 'Building large workbook',
+      detail: 'Preparing workbook in a background worker',
+      percent: 4
+    });
+    try {
+      worker.postMessage({ config, id, state });
+    } catch (error) {
+      finish(reject, error);
+    }
+  });
+}
+
+async function exportLargeWorkbook({ state, config, helpers }) {
+  const resolvedHelpers = getLargeWorkbookHelpers(helpers);
+  if (canUseLargeWorkbookWorker(config)) {
+    try {
+      return await exportLargeWorkbookInWorker({ config, helpers: resolvedHelpers, state });
+    } catch (error) {
+      console.warn('Large workbook worker failed; falling back to page export.', error);
+    }
+  }
+
+  const { blob, filename } = await createLargeWorkbookBlob({ config, helpers: resolvedHelpers, state });
   downloadWorkbookBlob(blob, filename);
   return filename;
 }
 
-export { exportLargeWorkbook, shouldUseLargeWorkbookExport };
+export { createLargeWorkbookBlob, exportLargeWorkbook, shouldUseLargeWorkbookExport };

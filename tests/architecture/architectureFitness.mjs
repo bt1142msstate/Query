@@ -18,6 +18,7 @@ const {
 const staticImportPattern = /\bimport\s+(?:[^'"]*?\bfrom\s*)?["']([^"']+)["']/gu;
 const dynamicImportPattern = /\bimport\s*\(\s*["']([^"']+)["']\s*\)/gu;
 const reExportPattern = /\bexport\s+[^'"]*?\bfrom\s*["']([^"']+)["']/gu;
+const workerEntrypointPattern = /\bnew\s+Worker\(\s*new\s+URL\(\s*["']([^"']+)["']\s*,\s*import\.meta\.url\s*\)/gu;
 
 async function collectJavaScriptFiles(entry) {
   const fullPath = resolve(rootDir, entry);
@@ -153,6 +154,10 @@ function findImportSpecifiers(source) {
   ];
 }
 
+function findWorkerEntrypointSpecifiers(source) {
+  return [...source.matchAll(workerEntrypointPattern)].map(match => match[1]);
+}
+
 function resolveLocalImport(importerPath, specifier) {
   if (!specifier.startsWith('.')) {
     return null;
@@ -241,6 +246,7 @@ const sourceFilePaths = new Set(sourceFiles.map(toRepoPath));
 const importGraph = new Map();
 const failures = [];
 const runtimeBridgeMembers = new Set();
+const workerEntrypoints = new Set();
 let runtimeBridgeMemberReferenceCount = 0;
 
 for (const filePath of sourceFiles) {
@@ -310,6 +316,24 @@ for (const filePath of sourceFiles) {
     localImports.push(importedPath);
   }
 
+  for (const specifier of findWorkerEntrypointSpecifiers(source)) {
+    const workerPath = resolveLocalImport(relativePath, specifier);
+    if (!workerPath || extname(workerPath) !== '.js') {
+      failures.push(`${relativePath}: worker entrypoint "${specifier}" must resolve to an explicit .js module`);
+      continue;
+    }
+    if (!sourceFilePaths.has(workerPath)) {
+      failures.push(`${relativePath}: worker entrypoint "${specifier}" resolves to missing or non-application module ${workerPath}`);
+      continue;
+    }
+    const boundaryRule = findBoundaryRule(relativePath);
+    const importedLayer = classifyLayer(workerPath);
+    if (!boundaryRule || !boundaryRule.allowedLayers.includes(importedLayer)) {
+      failures.push(`${relativePath}: ${describeBoundary(boundaryRule)} modules cannot reference worker ${workerPath} (${importedLayer} layer)`);
+    }
+    workerEntrypoints.add(workerPath);
+  }
+
   importGraph.set(relativePath, localImports);
 }
 
@@ -318,6 +342,11 @@ for (const cycle of assertAcyclicImportGraph(importGraph)) {
 }
 
 const reachableModules = collectReachableModules(importGraph, 'appModules.js');
+for (const workerPath of workerEntrypoints) {
+  for (const reachableWorkerModule of collectReachableModules(importGraph, workerPath)) {
+    reachableModules.add(reachableWorkerModule);
+  }
+}
 for (const sourcePath of sourceFilePaths) {
   if (!reachableModules.has(sourcePath)) {
     failures.push(`${sourcePath}: application module is not reachable from appModules.js`);
