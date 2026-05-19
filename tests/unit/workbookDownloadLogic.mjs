@@ -6,14 +6,17 @@ import {
 } from '../../table/export/workbookDownload.js';
 
 const originalDocument = globalThis.document;
+const originalNavigatorDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
 const originalNotification = globalThis.Notification;
 const originalSetTimeout = globalThis.setTimeout;
 const originalWindow = globalThis.window;
 
 const notifications = [];
+const serviceWorkerNotifications = [];
 let focusCalls = 0;
 let permissionRequests = 0;
 let timeoutCalls = 0;
+let serviceWorkerRegisterCalls = 0;
 
 class TestNotification {
   static permission = 'default';
@@ -54,6 +57,10 @@ globalThis.window = {
   setTimeout: globalThis.setTimeout
 };
 globalThis.Notification = TestNotification;
+Object.defineProperty(globalThis, 'navigator', {
+  configurable: true,
+  value: {}
+});
 
 assert.equal(buildWorkbookFilename('My Report', { mode: 'single' }), 'My-Report.xlsx');
 assert.equal(buildWorkbookFilename('My Report', { groupField: 'Home Library', mode: 'grouped' }), 'My-Report-by-Home-Library.xlsx');
@@ -102,9 +109,53 @@ const deniedResult = await notifyWorkbookDownloadComplete({
 assert.equal(deniedResult, false);
 assert.equal(notifications.length, 1);
 
+TestNotification.permission = 'granted';
+const serviceWorkerRegistration = {
+  showNotification(title, options) {
+    serviceWorkerNotifications.push({ options, title });
+    return Promise.resolve();
+  },
+  update() {
+    return Promise.resolve();
+  }
+};
+Object.defineProperty(globalThis, 'navigator', {
+  configurable: true,
+  value: {
+    serviceWorker: {
+      ready: Promise.resolve(serviceWorkerRegistration),
+      register(url, options) {
+        serviceWorkerRegisterCalls += 1;
+        assert.match(String(url), /backgroundNotificationServiceWorker\.js$/u);
+        assert.equal(options?.updateViaCache, 'none');
+        return Promise.resolve(serviceWorkerRegistration);
+      }
+    }
+  }
+});
+
+assert.equal(await prepareWorkbookDownloadNotification(), 'granted');
+const serviceWorkerResult = await notifyWorkbookDownloadComplete({
+  filename: 'Service-Worker.xlsx',
+  permissionPromise: Promise.resolve('granted')
+});
+assert.equal(serviceWorkerResult, true);
+assert.equal(serviceWorkerRegisterCalls, 1);
+assert.equal(serviceWorkerNotifications.length, 1);
+assert.equal(serviceWorkerNotifications[0].title, 'Excel export finished');
+assert.equal(serviceWorkerNotifications[0].options.body, 'Service-Worker.xlsx is ready.');
+assert.equal(serviceWorkerNotifications[0].options.requireInteraction, true);
+assert.equal(serviceWorkerNotifications[0].options.tag, 'query-workbook-export');
+assert.equal(notifications.length, 1);
+
 globalThis.document = originalDocument;
 globalThis.Notification = originalNotification;
 globalThis.setTimeout = originalSetTimeout;
 globalThis.window = originalWindow;
+if (originalNavigatorDescriptor) {
+  Object.defineProperty(globalThis, 'navigator', originalNavigatorDescriptor);
+} else {
+  delete globalThis.navigator;
+}
 
 console.log('Workbook download logic tests passed');

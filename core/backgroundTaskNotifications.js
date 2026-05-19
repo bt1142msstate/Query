@@ -1,4 +1,6 @@
 let notificationPermissionPromise = null;
+let notificationServiceWorkerRegistrationPromise = null;
+const NOTIFICATION_SERVICE_WORKER_URL = '../backgroundNotificationServiceWorker.js';
 
 function getBrowserNotificationApi() {
   return (typeof window !== 'undefined' && window.Notification)
@@ -29,8 +31,44 @@ function requestBackgroundTaskNotificationPermission(notificationApi) {
   return notificationPermissionPromise;
 }
 
+function canUseNotificationServiceWorker() {
+  return typeof navigator !== 'undefined'
+    && navigator.serviceWorker
+    && typeof navigator.serviceWorker.register === 'function'
+    && typeof window !== 'undefined'
+    && window.isSecureContext !== false;
+}
+
+async function ensureNotificationServiceWorker() {
+  if (!canUseNotificationServiceWorker()) {
+    return null;
+  }
+
+  if (!notificationServiceWorkerRegistrationPromise) {
+    notificationServiceWorkerRegistrationPromise = navigator.serviceWorker
+      .register(new URL(NOTIFICATION_SERVICE_WORKER_URL, import.meta.url), { updateViaCache: 'none' })
+      .then(registration => {
+        registration.update?.().catch(() => {});
+        return navigator.serviceWorker.ready
+          .then(readyRegistration => readyRegistration || registration)
+          .catch(() => registration);
+      })
+      .catch(() => {
+        notificationServiceWorkerRegistrationPromise = null;
+        return null;
+      });
+  }
+
+  return notificationServiceWorkerRegistrationPromise;
+}
+
 function prepareBackgroundTaskNotification() {
-  return requestBackgroundTaskNotificationPermission(getBrowserNotificationApi());
+  return requestBackgroundTaskNotificationPermission(getBrowserNotificationApi()).then(permission => {
+    if (permission === 'granted') {
+      ensureNotificationServiceWorker().catch(() => {});
+    }
+    return permission;
+  });
 }
 
 function isPageUnfocusedForBackgroundTaskNotification() {
@@ -50,12 +88,28 @@ async function notifyBackgroundTaskComplete({
   const notificationApi = getBrowserNotificationApi();
   const permission = permissionPromise ? await permissionPromise : notificationApi?.permission;
   if (!notificationApi || (permission !== 'granted' && notificationApi.permission !== 'granted')) return false;
+  const options = {
+    body,
+    data: {
+      url: typeof location !== 'undefined' ? location.href : './index.html'
+    },
+    renotify: true,
+    requireInteraction: autoCloseMs <= 0,
+    tag
+  };
+
+  const registration = await ensureNotificationServiceWorker();
+  if (registration && typeof registration.showNotification === 'function') {
+    try {
+      await registration.showNotification(title, options);
+      return true;
+    } catch {
+      // Fall back to the page Notification API below.
+    }
+  }
+
   try {
-    const notification = new notificationApi(title, {
-      body,
-      tag,
-      renotify: true
-    });
+    const notification = new notificationApi(title, options);
     notification.onclick = () => {
       if (typeof window !== 'undefined') window.focus?.();
       notification.close?.();

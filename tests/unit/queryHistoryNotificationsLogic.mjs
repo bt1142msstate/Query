@@ -5,6 +5,7 @@ import {
 } from '../../history/queryHistoryNotifications.js';
 
 const originalDocument = globalThis.document;
+const originalNavigatorDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
 const originalNotification = globalThis.Notification;
 const originalSetTimeout = globalThis.setTimeout;
 const originalWindow = globalThis.window;
@@ -37,6 +38,10 @@ globalThis.window = {
   setTimeout: globalThis.setTimeout
 };
 globalThis.Notification = TestNotification;
+Object.defineProperty(globalThis, 'navigator', {
+  configurable: true,
+  value: {}
+});
 
 assert.equal(await prepareHistoryResultLoadNotification(), 'granted');
 
@@ -48,7 +53,8 @@ notifyHistoryResultLoadComplete({
   streamError: null
 });
 
-await new Promise(resolve => setTimeout(resolve, 0));
+await Promise.resolve();
+await Promise.resolve();
 
 assert.equal(notifications.length, 1);
 assert.equal(notifications[0].title, 'History results loaded');
@@ -59,5 +65,10 @@ globalThis.document = originalDocument;
 globalThis.Notification = originalNotification;
 globalThis.setTimeout = originalSetTimeout;
 globalThis.window = originalWindow;
+if (originalNavigatorDescriptor) {
+  Object.defineProperty(globalThis, 'navigator', originalNavigatorDescriptor);
+} else {
+  delete globalThis.navigator;
+}
 
 console.log('Query history notification logic tests passed');
