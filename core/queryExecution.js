@@ -3,6 +3,7 @@
 // UI coordination after a query completes goes through AppUiActions/AppServices.
 
 import { BackendApi } from './backendApi.js';
+import { notifyBackgroundTaskComplete, prepareBackgroundTaskNotification } from './backgroundTaskNotifications.js';
 import { parsePipeDelimitedRow } from './dataFormatters.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from './queryState.js';
 import { createStreamedQueryTextReader } from './queryStream.js';
@@ -57,6 +58,15 @@ function updateLiveQueryProgress(resultCount, options = {}) {
   });
 
   updateQueryHistoryEntry(QueryStateReaders.getLifecycleState().currentQueryId, { resultCount }, { render: false });
+}
+
+function notifyQueryTaskComplete({ message, permissionPromise, queryId, title }) {
+  notifyBackgroundTaskComplete({
+    body: message,
+    permissionPromise,
+    tag: queryId ? `query-${queryId}` : 'query-execution',
+    title
+  }).catch(() => {});
 }
 
 /* ---------- Page-unload guard ---------- */
@@ -120,6 +130,7 @@ if (execDom.runBtn) {
 
     // Start query execution
     (async () => {
+      const completionNotification = prepareBackgroundTaskNotification();
       // Remember if split mode was active, then disable it to avoid mapping dynamic Field N names.
       const wasSplitActive = services.isSplitColumnsActive();
       if (wasSplitActive) {
@@ -190,13 +201,15 @@ if (execDom.runBtn) {
         if (streamedPayload.partial) {
           if (streamedPayload.lines.length === 0) {
             console.log('Query stopped by user before any data arrived; discarding.');
+            const stoppedMessage = 'Query stopped — no results received.';
             updateQueryHistoryEntry(QueryStateReaders.getLifecycleState().currentQueryId, {
               running: false,
               status: 'stopped',
               resultCount: 0,
               endTime: new Date().toISOString()
             });
-            showToastMessage('Query stopped — no results received.', 'info');
+            notifyQueryTaskComplete({ message: stoppedMessage, permissionPromise: completionNotification, queryId: QueryStateReaders.getLifecycleState().currentQueryId, title: 'Query stopped' });
+            showToastMessage(stoppedMessage, 'info');
             return;
           }
           if (streamedPayload.streamError) {
@@ -277,16 +290,22 @@ if (execDom.runBtn) {
           }
         }
 
+        const completionMessage = streamedPayload.partial
+          ? (endedEarlyFromNetwork
+              ? `Query connection ended early. Showing ${rows.length} partial result${rows.length !== 1 ? 's' : ''}.`
+              : `Query stopped early. Showing ${rows.length} partial result${rows.length !== 1 ? 's' : ''}.`)
+          : `Query completed. Loaded ${rows.length} results.`;
+        const completionType = endedEarlyFromNetwork ? 'warning' : (streamedPayload.partial ? 'info' : 'success');
+        notifyQueryTaskComplete({
+          message: completionMessage,
+          permissionPromise: completionNotification,
+          queryId: QueryStateReaders.getLifecycleState().currentQueryId,
+          title: endedEarlyFromNetwork ? 'Query interrupted' : (streamedPayload.partial ? 'Query stopped' : 'Query complete')
+        });
         if (streamedPayload.partial) {
           uiActions.updateTableResultsLip();
-          if (endedEarlyFromNetwork) {
-            showToastMessage(`Query connection ended early. Showing ${rows.length} partial result${rows.length !== 1 ? 's' : ''}.`, 'warning');
-          } else {
-            showToastMessage(`Query stopped early. Showing ${rows.length} partial result${rows.length !== 1 ? 's' : ''}.`, 'info');
-          }
-        } else {
-          showToastMessage(`Query completed. Loaded ${rows.length} results.`, 'success');
         }
+        showToastMessage(completionMessage, completionType);
 
       } catch (error) {
         if (appState.queryPageIsUnloading) {
@@ -315,7 +334,9 @@ if (execDom.runBtn) {
           endTime: new Date().toISOString()
         });
 
-        showToastMessage('Query execution failed: ' + error.message, 'error');
+        const failureMessage = 'Query execution failed: ' + error.message;
+        notifyQueryTaskComplete({ message: failureMessage, permissionPromise: completionNotification, queryId: QueryStateReaders.getLifecycleState().currentQueryId, title: 'Query failed' });
+        showToastMessage(failureMessage, 'error');
       } finally {
         QueryChangeManager.setLifecycleState({ queryRunning: false }, { source: 'QueryExecution.finishQuery', silent: true });
         uiActions.updateTableResultsLip();
