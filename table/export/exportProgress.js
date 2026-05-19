@@ -104,13 +104,45 @@ function setBusy(elements, busy) {
   });
 }
 
+function queueTaskYield(resolve) {
+  const scheduler = typeof window !== 'undefined' ? window.scheduler : null;
+  if (scheduler && typeof scheduler.postTask === 'function') {
+    Promise.resolve(scheduler.postTask(resolve, { priority: 'user-visible' }))
+      .catch(() => setTimeout(resolve, 0));
+    return;
+  }
+
+  const Channel = typeof MessageChannel === 'function'
+    ? MessageChannel
+    : (typeof window !== 'undefined' ? window.MessageChannel : null);
+  if (typeof Channel === 'function') {
+    const channel = new Channel();
+    channel.port1.onmessage = () => {
+      channel.port1.close?.();
+      channel.port2.close?.();
+      resolve();
+    };
+    channel.port2.postMessage(undefined);
+    return;
+  }
+
+  setTimeout(resolve, 0);
+}
+
+function shouldYieldWithAnimationFrame() {
+  // Background tabs heavily throttle animation frames; use task yields there so exports keep advancing.
+  return typeof window !== 'undefined'
+    && typeof window.requestAnimationFrame === 'function'
+    && !(typeof document !== 'undefined' && document.hidden);
+}
+
 function yieldToBrowser() {
   return new Promise(resolve => {
-    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+    if (shouldYieldWithAnimationFrame()) {
       window.requestAnimationFrame(() => resolve());
       return;
     }
-    setTimeout(resolve, 0);
+    queueTaskYield(resolve);
   });
 }
 
