@@ -469,6 +469,7 @@ async function exportLargeWorkbook({ state, config, helpers }) {
   });
   await helpers.yieldToBrowser();
   downloadWorkbookBlob(blob, filename);
+  return filename;
 }
 
 export { exportLargeWorkbook, shouldUseLargeWorkbookExport };
