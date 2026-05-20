@@ -6,6 +6,8 @@ const ZIP_END_OF_CENTRAL_DIRECTORY = 0x06054b50;
 const ZIP_DATA_DESCRIPTOR = 0x08074b50;
 const ZIP_FLAG_UTF8 = 0x0800;
 const ZIP_FLAG_DATA_DESCRIPTOR = 0x0008;
+// Store XLSX parts without DEFLATE compression. Excel accepts this, and avoiding
+// compression keeps large browser exports CPU-light and predictable.
 const ZIP_STORE_METHOD = 0;
 const UINT32_LIMIT = 0xffffffff;
 
