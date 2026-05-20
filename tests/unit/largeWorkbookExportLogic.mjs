@@ -83,6 +83,10 @@ assert.equal(shouldUseLargeWorkbookExport({
   rowCount: 1000,
   sourceData: { displayedFields: Array.from({ length: 80 }) }
 }), true);
+assert.equal(shouldUseLargeWorkbookExport({
+  rowCount: 200,
+  sourceData: { displayedFields: Array.from({ length: 80 }) }
+}), true);
 assert.equal(shouldUseLargeWorkbookExport({ rowCount: 2, sourceData }), false);
 
 await exportLargeWorkbook({
@@ -154,6 +158,8 @@ assert.equal(downloadedFilename, 'Large-Report-by-Title.xlsx');
 assert.match(groupedWorkbookText, /Overview/u);
 assert.match(groupedWorkbookText, /Percent of Total/u);
 assert.match(groupedWorkbookText, /Total/u);
+assert.match(groupedWorkbookText, /Alpha &amp; Beta/u);
+assert.match(groupedWorkbookText, /Gamma &lt; Delta/u);
 assert.match(groupedWorkbookText, /ref="A1:C4"/u);
 assert.match(groupedWorkbookText, /<v>0\.5<\/v>/u);
 assert.match(groupedWorkbookText, /<v>1<\/v>/u);

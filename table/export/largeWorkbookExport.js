@@ -4,7 +4,7 @@ import { WORKBOOK_DETAILS_SHEET_NAME, getWorkbookDetailsColumns } from './workbo
 import { buildOverviewRows, getOverviewColumns } from './workbookOverview.js';
 import { formatDisplayValue, parseDateValue } from '../../core/dateValues.js';
 
-const LARGE_EXPORT_CELL_THRESHOLD = 75000;
+const LARGE_EXPORT_CELL_THRESHOLD = 15000;
 const EXCEL_MAX_DATA_ROWS_PER_SHEET = 1048575;
 const XML_CHUNK_SIZE = 256000;
 const PROGRESS_ROW_BATCH = 500;
@@ -89,6 +89,20 @@ function getFieldType(sourceData, field) {
   return getMapValue(sourceData?.fieldTypeMap, field) || 'string';
 }
 
+function buildSourceColumnPlan(sourceData) {
+  return sourceData.displayedFields.map((field, index) => {
+    const type = getFieldType(sourceData, field);
+    return {
+      columnName: getColumnName(index + 1),
+      field,
+      sourceIndex: getColumnIndex(sourceData, field),
+      styleId: getCellStyle(type),
+      textStyleId: getCellTextStyle(type),
+      type
+    };
+  });
+}
+
 function parseWorkbookNumericValue(raw, options = {}) {
   if (typeof raw === 'number') return raw;
   const { allowDecimal = true } = options;
@@ -142,11 +156,15 @@ function getExcelDateSerial(date) {
   return Math.round((utcDate - Date.UTC(1899, 11, 30)) / 86400000);
 }
 
-function buildTextCell(value, rowNumber, columnNumber, styleId = '') {
+function buildTextCellAtReference(value, reference, styleId = '') {
   const text = escapeXml(value);
   const style = styleId ? ` s="${styleId}"` : '';
   const space = /^\s|\s$|\n/u.test(String(value ?? '')) ? ' xml:space="preserve"' : '';
-  return `<c r="${getColumnName(columnNumber)}${rowNumber}" t="inlineStr"${style}><is><t${space}>${text}</t></is></c>`;
+  return `<c r="${reference}" t="inlineStr"${style}><is><t${space}>${text}</t></is></c>`;
+}
+
+function buildTextCell(value, rowNumber, columnNumber, styleId = '') {
+  return buildTextCellAtReference(value, `${getColumnName(columnNumber)}${rowNumber}`, styleId);
 }
 
 function getCellStyle(type) {
@@ -157,12 +175,11 @@ function getCellStyle(type) {
   return '';
 }
 
-function buildCell(value, rowNumber, columnNumber, styleId = '', textStyleId = '') {
+function buildCellAtReference(value, reference, styleId = '', textStyleId = '') {
   if (value === undefined || value === null || value === '') {
     return '';
   }
 
-  const reference = `${getColumnName(columnNumber)}${rowNumber}`;
   const style = styleId ? ` s="${styleId}"` : '';
   if (value instanceof Date) {
     return `<c r="${reference}" s="1"><v>${getExcelDateSerial(value)}</v></c>`;
@@ -173,7 +190,11 @@ function buildCell(value, rowNumber, columnNumber, styleId = '', textStyleId = '
   if (typeof value === 'boolean') {
     return `<c r="${reference}" t="b"${style}><v>${value ? 1 : 0}</v></c>`;
   }
-  return buildTextCell(value, rowNumber, columnNumber, textStyleId);
+  return buildTextCellAtReference(value, reference, textStyleId);
+}
+
+function buildCell(value, rowNumber, columnNumber, styleId = '', textStyleId = '') {
+  return buildCellAtReference(value, `${getColumnName(columnNumber)}${rowNumber}`, styleId, textStyleId);
 }
 
 function getCellTextStyle(type) {
@@ -186,40 +207,39 @@ function buildHeaderRow(fields) {
   return `<row r="1">${fields.map((field, index) => buildTextCell(field, 1, index + 1, '2')).join('')}</row>`;
 }
 
-function getRawValue(sourceData, rawRow, field) {
-  const colIndex = getColumnIndex(sourceData, field);
-  return colIndex !== undefined ? rawRow[colIndex] : undefined;
+function getRawValue(rawRow, column) {
+  return column.sourceIndex !== undefined ? rawRow[column.sourceIndex] : undefined;
 }
 
-function buildSourceRow(sourceData, rawRow, rowNumber, getCellExportValue) {
-  const cells = sourceData.displayedFields.map((field, index) => {
-    const raw = getRawValue(sourceData, rawRow, field);
-    const type = getFieldType(sourceData, field);
-    return buildCell(getCellExportValue(raw, type), rowNumber, index + 1, getCellStyle(type), getCellTextStyle(type));
-  }).join('');
+function buildSourceRow(columnPlan, rawRow, rowNumber, getCellExportValue) {
+  let cells = '';
+  for (const column of columnPlan) {
+    const raw = getRawValue(rawRow, column);
+    const value = getCellExportValue(raw, column.type);
+    cells += buildCellAtReference(value, `${column.columnName}${rowNumber}`, column.styleId, column.textStyleId);
+  }
   return `<row r="${rowNumber}">${cells}</row>`;
 }
 
-function getColumnWidthValue(sourceData, rawRow, field) {
-  const raw = getRawValue(sourceData, rawRow, field);
+function getColumnWidthValue(rawRow, column) {
+  const raw = getRawValue(rawRow, column);
   if (raw === undefined || raw === null) return '';
 
-  const type = getFieldType(sourceData, field);
-  if (type === 'date') return '12/31/2000';
-  if (type === 'number' || type === 'money') {
-    const parsed = typeof raw === 'number' ? raw : Number.parseFloat(String(raw).replace(/,/gu, ''));
+  if (column.type === 'date') return '12/31/2000';
+  if (column.type === 'number' || column.type === 'money') {
+    const parsed = parseWorkbookNumericValue(raw);
     return Number.isNaN(parsed) ? '' : String(parsed);
   }
   return String(raw).replace(/\x1F/gu, ' ');
 }
 
-async function calculateSourceColumnWidths(sourceData, helpers) {
-  const widths = sourceData.displayedFields.map(field => field.length);
+async function calculateSourceColumnWidths(sourceData, helpers, columnPlan) {
+  const widths = columnPlan.map(column => column.field.length);
 
   for (let rowIndex = 0; rowIndex < sourceData.dataRows.length; rowIndex += 1) {
     const row = sourceData.dataRows[rowIndex];
-    sourceData.displayedFields.forEach((field, fieldIndex) => {
-      const value = getColumnWidthValue(sourceData, row, field);
+    columnPlan.forEach((column, fieldIndex) => {
+      const value = getColumnWidthValue(row, column);
       if (value) {
         widths[fieldIndex] = Math.max(widths[fieldIndex], value.length);
       }
@@ -248,11 +268,10 @@ function calculateRowsColumnWidths(columns, rows) {
   return widths.map(width => Math.max(4, Math.min(60, width + 2)));
 }
 
-function getGroupingLabel(sourceData, rawRow, candidate, helpers) {
-  const field = sourceData.displayedFields[candidate.index];
-  const raw = getRawValue(sourceData, rawRow, field);
-  const type = getFieldType(sourceData, field);
-  return helpers.getGroupingDisplayValue(helpers.getCellExportValue(raw, type));
+function getGroupingLabel(rawRow, candidate, helpers, columnPlan) {
+  const column = columnPlan[candidate.index];
+  const raw = getRawValue(rawRow, column);
+  return helpers.getGroupingDisplayValue(helpers.getCellExportValue(raw, column.type));
 }
 
 function splitSourceSheets(baseName, rowCount, usedNames, getUniqueSheetName) {
@@ -273,7 +292,7 @@ function splitSourceSheets(baseName, rowCount, usedNames, getUniqueSheetName) {
   return sheets;
 }
 
-function splitGroupSheets(label, count, usedNames, getUniqueSheetName) {
+function splitGroupSheets(label, count, rowIndexes, usedNames, getUniqueSheetName) {
   const sheets = [];
   let part = 1;
   for (let skip = 0; skip < count; skip += EXCEL_MAX_DATA_ROWS_PER_SHEET) {
@@ -282,6 +301,7 @@ function splitGroupSheets(label, count, usedNames, getUniqueSheetName) {
     sheets.push({
       dataRowCount: take,
       groupLabel: label,
+      groupRowIndexes: rowIndexes,
       groupSkip: skip,
       groupTake: take,
       kind: 'group',
@@ -292,7 +312,22 @@ function splitGroupSheets(label, count, usedNames, getUniqueSheetName) {
   return sheets;
 }
 
-function buildWorkbookPlan(state, config, helpers) {
+function buildGroupRowIndex(sourceData, candidate, helpers, columnPlan) {
+  const groups = new Map();
+  for (let rowIndex = 0; rowIndex < sourceData.dataRows.length; rowIndex += 1) {
+    const row = sourceData.dataRows[rowIndex];
+    const label = getGroupingLabel(row, candidate, helpers, columnPlan);
+    let indexes = groups.get(label);
+    if (!indexes) {
+      indexes = [];
+      groups.set(label, indexes);
+    }
+    indexes.push(rowIndex);
+  }
+  return groups;
+}
+
+function buildWorkbookPlan(state, config, helpers, columnPlan) {
   const usedNames = new Set();
   const sourceData = state.sourceData;
   const sheets = [];
@@ -320,6 +355,7 @@ function buildWorkbookPlan(state, config, helpers) {
   const groups = Array.from(candidate.counts.entries())
     .map(([label, count]) => ({ count, label }))
     .sort((left, right) => left.label.localeCompare(right.label, undefined, { numeric: true, sensitivity: 'base' }));
+  const groupRowIndex = buildGroupRowIndex(sourceData, candidate, helpers, columnPlan);
 
   if (config.includeMasterSheet) {
     sheets.push(...splitSourceSheets('All Results', state.rowCount, usedNames, helpers.getUniqueSheetName));
@@ -337,7 +373,13 @@ function buildWorkbookPlan(state, config, helpers) {
   }
 
   groups.forEach(group => {
-    sheets.push(...splitGroupSheets(group.label, group.count, usedNames, helpers.getUniqueSheetName));
+    sheets.push(...splitGroupSheets(
+      group.label,
+      group.count,
+      groupRowIndex.get(group.label) || [],
+      usedNames,
+      helpers.getUniqueSheetName
+    ));
   });
 
   sheets.forEach(sheet => {
@@ -423,29 +465,23 @@ function buildTableXml(sheet, tableId) {
 }
 
 async function* createSourceSheetChunks(sheet, context) {
-  const { helpers, sourceData } = context;
+  const { columnPlan, helpers, sourceData } = context;
   yield buildWorksheetStart(sourceData.displayedFields, sheet.dataRowCount, sheet.columnWidths);
 
   let rowNumber = 2;
   let chunk = '';
+  let written = 0;
+  const rowIndexes = Array.isArray(sheet.groupRowIndexes) ? sheet.groupRowIndexes : null;
+  const groupStart = sheet.groupSkip || 0;
   const start = sheet.kind === 'source' ? (sheet.rowStart || 0) : 0;
   const end = sheet.kind === 'source' ? (sheet.rowEnd ?? sourceData.dataRows.length) : sourceData.dataRows.length;
-  let matched = 0;
-  let written = 0;
+  const rowCount = rowIndexes ? Math.min(sheet.groupTake, Math.max(0, rowIndexes.length - groupStart)) : end - start;
 
-  for (let rowIndex = start; rowIndex < end; rowIndex += 1) {
+  for (let rowOffset = 0; rowOffset < rowCount; rowOffset += 1) {
+    const rowIndex = rowIndexes ? rowIndexes[groupStart + rowOffset] : start + rowOffset;
     const rawRow = sourceData.dataRows[rowIndex];
-    if (sheet.kind === 'group') {
-      if (getGroupingLabel(sourceData, rawRow, sheet.candidate, helpers) !== sheet.groupLabel) {
-        continue;
-      }
-      matched += 1;
-      if (matched <= sheet.groupSkip || written >= sheet.groupTake) {
-        continue;
-      }
-    }
 
-    chunk += buildSourceRow(sourceData, rawRow, rowNumber, helpers.getCellExportValue);
+    chunk += buildSourceRow(columnPlan, rawRow, rowNumber, helpers.getCellExportValue);
     rowNumber += 1;
     written += 1;
     context.writtenRows += 1;
@@ -497,8 +533,9 @@ async function* createDetailsSheetChunks(sheet, context) {
 
 async function createLargeWorkbookBlob({ state, config, helpers }) {
   const resolvedHelpers = getLargeWorkbookHelpers(helpers);
-  const sheets = buildWorkbookPlan(state, config, resolvedHelpers);
-  const sourceColumnWidths = await calculateSourceColumnWidths(state.sourceData, resolvedHelpers);
+  const sourceColumnPlan = buildSourceColumnPlan(state.sourceData);
+  const sheets = buildWorkbookPlan(state, config, resolvedHelpers, sourceColumnPlan);
+  const sourceColumnWidths = await calculateSourceColumnWidths(state.sourceData, resolvedHelpers, sourceColumnPlan);
   sheets.forEach((sheet, index) => {
     sheet.tableId = index + 1;
     if (sheet.kind === 'overview' || sheet.kind === 'details') {
@@ -511,6 +548,7 @@ async function createLargeWorkbookBlob({ state, config, helpers }) {
   const totalRows = Math.max(1, sheets.reduce((sum, sheet) => sum + sheet.dataRowCount, 0));
   const context = {
     helpers: resolvedHelpers,
+    columnPlan: sourceColumnPlan,
     sourceData: state.sourceData,
     totalRows,
     writtenRows: 0,
