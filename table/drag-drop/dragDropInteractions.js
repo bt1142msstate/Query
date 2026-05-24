@@ -1,6 +1,5 @@
 import { ClipboardUtils } from '../../core/clipboard.js';
-import { appServices } from '../../core/appServices.js';
-import { DragUtils } from '../../core/dragUtils.js';
+import { appServices, registerDragDropService } from '../../core/appServices.js';
 import { Icons } from '../../core/icons.js';
 import { QueryStateReaders, getBaseFieldName } from '../../core/queryState.js';
 import { showToastMessage } from '../../core/toast.js';
@@ -43,8 +42,14 @@ let DragDropInteractions;
     moveColumn,
     removeColumn
   } = dragDropColumnOps;
+
+  function hasDragType(event, dragType) {
+    const types = event?.dataTransfer?.types;
+    return Boolean(types && Array.from(types).includes(dragType));
+  }
+
   function isSupportedTableDrag(event) {
-    return DragUtils.hasDragType(event, TABLE_COLUMN_DRAG_MIME) || DragUtils.hasDragType(event, BUBBLE_FIELD_DRAG_MIME);
+    return hasDragType(event, TABLE_COLUMN_DRAG_MIME) || hasDragType(event, BUBBLE_FIELD_DRAG_MIME);
   }
   const dropAnchor = document.createElement('div');
   dropAnchor.className = 'drop-anchor';
@@ -854,8 +859,11 @@ let DragDropInteractions;
     clearDropAnchor,
     addColumn,
     removeColumnByName,
+    restoreFieldWithDuplicates,
     getDuplicateGroups
   });
+
+  registerDragDropService(DragDropInteractions);
 })();
 
 export { DragDropInteractions };
