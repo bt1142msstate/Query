@@ -644,6 +644,23 @@
   .form-mode-popup-list-popup-body .grouped-options-container {
     max-height: min(46vh, 360px);
   }
+
+  @media (min-width: 700px) {
+    .form-mode-popup-list-popup {
+      right: 0.75rem;
+      left: 0.75rem;
+      max-width: min(46rem, calc(100vw - 1.5rem));
+      margin-inline: auto;
+    }
+
+    .form-mode-popup-list-popup-body {
+      padding: 0.85rem;
+    }
+
+    .form-mode-popup-list-popup-body .grouped-options-container {
+      max-height: min(52vh, 420px);
+    }
+  }
 }
 
 /* Field picker modal */
