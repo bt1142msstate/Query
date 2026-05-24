@@ -13,7 +13,6 @@ import {
 } from './fieldDefs.js';
 import { DOM } from '../core/domCache.js';
 import { CustomDatePicker } from '../ui/customDatePicker.js';
-import { escapeHtml } from '../core/html.js';
 import {
     getDateFilterValidationMessage,
     getContradictionMessage,
@@ -25,6 +24,13 @@ import {
     configureConditionInputsForType
 } from './filterInputConfiguration.js';
 import { createFilterPillElement, createPostFilterPillElement } from './filterPills.js';
+import { createBuildableFilterFieldHandlers } from './buildableFilterFields.js';
+import {
+    getPreferredCondition as resolvePreferredCondition,
+    removeConditionPanelNote as removePanelNote,
+    showFilterError as showPanelFilterError,
+    showConditionPanelNote as showPanelNote
+} from './filterConditionPanelUi.js';
 
 /**
  * FilterPill UI component class
@@ -163,46 +169,16 @@ function createConditionOperatorPicker(conditions, handler) {
 }
 
 function showFilterError(message, inputElements = [], duration = 3000) {
-    const errorLabel = DOM.filterError;
-
-    inputElements.forEach(inp => {
-        if (inp) inp.classList.add('error');
+    return showPanelFilterError({
+        errorLabel: DOM.filterError,
+        inputElements,
+        message,
+        duration
     });
-
-    if (errorLabel) {
-        errorLabel.textContent = message;
-        errorLabel.style.display = 'block';
-    }
-
-    setTimeout(() => {
-        if (errorLabel) errorLabel.style.display = 'none';
-        inputElements.forEach(inp => {
-            if (inp) inp.classList.remove('error');
-        });
-    }, duration);
-
-    return false;
 }
 
 function getPreferredCondition(conditions, fieldName) {
-    const available = Array.isArray(conditions) ? conditions.filter(Boolean) : [];
-    if (!available.length) return '';
-
-    const activeFieldFilters = fieldName ? getFilterGroupForField(fieldName) : null;
-    const filterConds = activeFieldFilters && Array.isArray(activeFieldFilters.filters)
-        ? activeFieldFilters.filters.map(filter => String(filter.cond || '').trim().toLowerCase())
-        : [];
-
-    const preferredFromActive = filterConds.find(cond => available.includes(cond));
-    if (preferredFromActive) {
-        return preferredFromActive;
-    }
-
-    if (available.includes('equals')) {
-        return 'equals';
-    }
-
-    return available[0];
+    return resolvePreferredCondition(conditions, fieldName, getFilterGroupForField);
 }
 
 function syncConditionSelection(conditionPanel, cond) {
@@ -225,34 +201,15 @@ function getSelectedCondition(conditionPanel = null) {
 }
 
 function removeConditionPanelNote() {
-    const existingNote = document.getElementById('condition-panel-note');
-    if (existingNote && existingNote.parentNode) {
-        existingNote.parentNode.removeChild(existingNote);
-    }
+    removePanelNote(document);
 }
 
 function showConditionPanelNote(options) {
-    const inputWrapper = getFilterInputWrapperElement();
-    if (!inputWrapper) return;
-
-    const config = typeof options === 'string'
-        ? { body: options }
-        : (options && typeof options === 'object' ? options : {});
-
-    removeConditionPanelNote();
-
-    const note = document.createElement('div');
-    note.id = 'condition-panel-note';
-    note.className = 'condition-panel-note';
-    const kicker = config.kicker ? `<span class="condition-panel-note-kicker">${escapeHtml(config.kicker)}</span>` : '';
-    const title = config.title ? `<strong class="condition-panel-note-title">${escapeHtml(config.title)}</strong>` : '';
-    const body = config.body ? `<p class="condition-panel-note-body">${escapeHtml(config.body)}</p>` : '';
-    const hint = config.hint ? `<p class="condition-panel-note-hint">${escapeHtml(config.hint)}</p>` : '';
-    note.innerHTML = `${kicker}${title}${body}${hint}`;
-
-    inputWrapper.appendChild(note);
-    inputWrapper.style.display = 'flex';
-    inputWrapper.classList.add('show');
+    showPanelNote({
+        document,
+        inputWrapper: getFilterInputWrapperElement(),
+        options
+    });
 }
 
 function buildBubbleConditionPanel(bubble) {
@@ -470,6 +427,32 @@ function buildBubbleConditionPanel(bubble) {
 
 var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
 var getFilterGroupForField = QueryStateReaders.getFilterGroupForField.bind(QueryStateReaders);
+const {
+    buildableConditionBtnHandler,
+    handleBuildableFieldConfirm
+} = createBuildableFilterFieldHandlers({
+    appState,
+    document,
+    getDisplayedFields,
+    getFilterBetweenLabelElement,
+    getFilterConditionInput2Element,
+    getFilterConditionInputElement,
+    getFilterConditionPanelElement,
+    getFilterErrorLabelElement,
+    getFilterInputWrapperElement,
+    getFilterQueryInputElement,
+    getConditionFromControl,
+    getFilterGroupForField,
+    isMobileFilterEditorViewport,
+    queryChangeManager: QueryChangeManager,
+    registerDynamicField,
+    services,
+    setConditionInputVisible,
+    showFilterError,
+    syncConditionSelection,
+    updateFilteredDefs,
+    uiActions
+});
 
 function getPostFilterSummary() {
     const snapshot = services.getPostFilterState ? services.getPostFilterState() : {};
@@ -893,165 +876,12 @@ function handleFilterConfirm(e) {
     finalizeConfirmAction();
 }
 
-/**
- * Specific logic for MARC fields creation
- */
-function handleBuildableFieldConfirm(fieldDef, cond, val) {
-    const inputs = document.querySelectorAll('.dynamic-builder-input');
-    const inputVals = {};
-    
-    // Gather all variables
-    let missingInput = false;
-    for (const inp of inputs) {
-        let value = inp.value.trim();
-        const patternStr = inp.getAttribute('pattern');
-        const errorMsg = inp.dataset.errorMsg || 'Invalid input';
-        const inputId = inp.dataset.inputId;
-        
-        if (!value || (patternStr && !new RegExp(patternStr).test(value))) {
-           missingInput = true;
-              showFilterError(errorMsg, [inp]);
-           break;
-        }
-        
-        inputVals[inputId] = value;
-    }
-    
-    if (missingInput) return;
-
-    // Build the dynamic field name from the template
-    let dynamicFieldName = fieldDef.field_template || fieldDef.name;
-    let specialPayload = fieldDef.special_payload_template ? JSON.parse(JSON.stringify(fieldDef.special_payload_template)) : null;
-
-    for (const [key, v] of Object.entries(inputVals)) {
-        dynamicFieldName = dynamicFieldName.replace(`{${key}}`, v);
-        if (specialPayload) {
-            // Replace references in special payload
-            for (const pKey in specialPayload) {
-                if (typeof specialPayload[pKey] === 'string') {
-                    specialPayload[pKey] = specialPayload[pKey].replace(`{${key}}`, v);
-                }
-            }
-        }
-    }
-    
-    if (dynamicFieldName === fieldDef.name) return;
-    
-    // Dynamically add field definition if missing
-    registerDynamicField(dynamicFieldName, {
-        special_payload: specialPayload
-    });
-    
-    services.restoreFieldWithDuplicates(dynamicFieldName);
-
-    // Apply filter if one was selected
-    if (cond && val) {
-        const alreadyExists = Boolean(getFilterGroupForField(dynamicFieldName)?.filters?.some(f => f.cond === cond && f.val === val));
-        if (!alreadyExists) {
-            QueryChangeManager.upsertFilter(dynamicFieldName, { cond, val }, {
-                dedupe: true,
-                source: 'FilterManager.addDynamicFieldFilter'
-            });
-        }
-    }
-
-    // Clear search
-    const queryInput = getFilterQueryInputElement();
-    if (queryInput && queryInput.value.trim()) {
-        queryInput.value = '';
-        updateFilteredDefs('');
-    }
-
-    setTimeout(() => {
-        // Switch to Selected category
-        appState.currentCategory = 'Selected';
-        document.querySelectorAll('#category-bar .category-btn').forEach(btn =>
-            btn.classList.toggle('active', btn.dataset.category === 'Selected')
-        );
-        services.rerenderBubbles();
-    }, 200);
-    
-    // Clean up base buildable filters just in case
-    if (getFilterGroupForField(fieldDef.name)) {
-        QueryChangeManager.removeFilter(fieldDef.name, {
-            removeAll: true,
-            source: 'FilterManager.clearBuildableBaseFilter'
-        });
-    }
-}
-
 // Global confirm action finalizer
 function finalizeConfirmAction() {
     uiActions.updateQueryJson();
 
     uiActions.updateFilterSidePanel();
     uiActions.updateCategoryCounts();
-}
-
-/**
- * Special handler for condition buttons when in a buildable field (e.g., Marc)
- */
-function buildableConditionBtnHandler(e) {
-    e.stopPropagation();
-    const control = e.currentTarget;
-    const conditionPanel = getFilterConditionPanelElement();
-    const conditionInput = getFilterConditionInputElement();
-    const inputWrapper = getFilterInputWrapperElement();
-    const conditionInput2 = getFilterConditionInput2Element();
-    const betweenLbl = getFilterBetweenLabelElement();
-
-    if (!conditionPanel || !conditionInput || !conditionInput2 || !betweenLbl) return;
-    
-    const cond = getConditionFromControl(control);
-    if (!cond) return;
-
-    syncConditionSelection(conditionPanel, cond);
-    
-    // Validate the dynamic inputs
-    const inputs = document.querySelectorAll('.dynamic-builder-input');
-    let isValid = true;
-    for (const inp of inputs) {
-        let value = inp.value.trim();
-        const patternStr = inp.getAttribute('pattern');
-        const errorMsg = inp.dataset.errorMsg || 'Invalid input';
-        
-        const firstVal = value.split(',')[0].trim();
-        if (!firstVal || (patternStr && !new RegExp(patternStr).test(firstVal))) {
-            const errorLabel = getFilterErrorLabelElement();
-            if (errorLabel) {
-                errorLabel.textContent = errorMsg;
-                errorLabel.style.display = 'block';
-                setTimeout(() => { errorLabel.style.display = 'none'; }, 3000);
-            }
-            isValid = false;
-            break;
-        }
-    }
-    
-    if (!isValid) return;
-    
-    // Normal condition button behavior (show input field)
-    // Show second input and "and" label only for "between"
-    if (cond === 'between') {
-        setConditionInputVisible(conditionInput2, true);
-        betweenLbl.style.display = 'block';
-        conditionInput2.type = conditionInput.type;     // match type (date, number, text)
-        if (inputWrapper) inputWrapper.classList.add('is-between');
-    } else {
-        setConditionInputVisible(conditionInput2, false);
-        betweenLbl.style.display = 'none';
-        if (inputWrapper) inputWrapper.classList.remove('is-between');
-    }
-    
-    if (inputWrapper) {
-        inputWrapper.classList.add('show');
-        uiActions.positionInputWrapper();
-    }
-    
-    if (conditionInput && !isMobileFilterEditorViewport()) conditionInput.focus();
-    
-    // Re-position after toggling second input visibility
-    uiActions.positionInputWrapper();
 }
 
 function configureInputsForType(type){
