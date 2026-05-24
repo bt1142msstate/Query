@@ -28,6 +28,7 @@ import {
   calculateFieldWidth as calculateMeasuredFieldWidth,
   calculateOptimalColumnWidths as calculateMeasuredOptimalColumnWidths
 } from './tableColumnWidthCalculation.js';
+import { buildExpandedMultiValueTable } from './splitColumnExpansion.js';
 import { escapeHtml } from '../../core/html.js';
 import { QueryTableView } from '../../ui/queryTableView.js';
 let VirtualTable;
@@ -986,65 +987,7 @@ function getVirtualTableState() {
 function expandMultiValueColumns() {
   if (!rawTableData || !rawTableData.rows || !rawTableData.rows.length) return;
 
-  // Find max count for every multi-value column
-  const multiMax = new Map();
-  rawTableData.headers.forEach(field => {
-    const idx = rawTableData.columnMap.get(field);
-    if (idx === undefined) return;
-    let max = 1;
-    rawTableData.rows.forEach(row => {
-      const v = row[idx];
-      if (v != null && typeof v === 'string' && v.includes('\x1F')) {
-        const c = v.split('\x1F').length;
-        if (c > max) max = c;
-      }
-    });
-    if (max > 1) multiMax.set(field, max);
-  });
-
-  if (multiMax.size === 0) {
-    // Nothing to split — just mirror raw data
-    baseViewData = {
-      headers: [...rawTableData.headers],
-      rows: rawTableData.rows.map(r => [...r]),
-      columnMap: new Map(rawTableData.columnMap)
-    };
-    invalidatePostFilterValueOptionsCache();
-    return;
-  }
-
-  // Build expanded header list
-  const newHeaders = [];
-  rawTableData.headers.forEach(field => {
-    const max = multiMax.get(field);
-    if (max !== undefined) {
-      for (let i = 0; i < max; i++) newHeaders.push(`${field} ${i + 1}`);
-    } else {
-      newHeaders.push(field);
-    }
-  });
-
-  const newColumnMap = new Map(newHeaders.map((h, i) => [h, i]));
-
-  const newRows = rawTableData.rows.map(row => {
-    const newRow = [];
-    rawTableData.headers.forEach(field => {
-      const srcIdx = rawTableData.columnMap.get(field);
-      const raw = srcIdx !== undefined ? row[srcIdx] : undefined;
-      const max = multiMax.get(field);
-      if (max !== undefined) {
-        const parts = (raw != null && typeof raw === 'string' && raw.includes('\x1F'))
-          ? raw.split('\x1F')
-          : [raw ?? ''];
-        for (let i = 0; i < max; i++) newRow.push(parts[i] ?? '');
-      } else {
-        newRow.push(raw ?? '');
-      }
-    });
-    return newRow;
-  });
-
-  baseViewData = { headers: newHeaders, rows: newRows, columnMap: newColumnMap };
+  baseViewData = buildExpandedMultiValueTable(rawTableData);
   invalidatePostFilterValueOptionsCache();
 }
 
