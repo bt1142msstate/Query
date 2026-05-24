@@ -3,8 +3,12 @@ const EDITABLE_SELECTOR = 'input:not([type="checkbox"]):not([type="radio"]):not(
 const EDITOR_SCROLL_SELECTOR = [
   '#filter-card',
   '.post-filter-dialog__body',
+  '.export-dialog__body',
   '.form-mode-popup-list-popup-body',
-  '.form-mode-field-picker-list'
+  '.form-mode-field-picker-list',
+  '.templates-detail-body',
+  '.templates-categories-body',
+  '.history-details-modal'
 ].join(', ');
 
 let viewportQuery = null;
