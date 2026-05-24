@@ -24,6 +24,10 @@ import {
 import { createTableColumnLayoutController } from './tableColumnLayout.js';
 import { createTableScrollbarController } from './tableScrollbar.js';
 import { sortRowsByColumn } from './tableSort.js';
+import {
+  calculateFieldWidth as calculateMeasuredFieldWidth,
+  calculateOptimalColumnWidths as calculateMeasuredOptimalColumnWidths
+} from './tableColumnWidthCalculation.js';
 import { escapeHtml } from '../../core/html.js';
 import { QueryTableView } from '../../ui/queryTableView.js';
 let VirtualTable;
@@ -126,12 +130,6 @@ function updateRenderedColumnWidth(fieldName, width) {
 
   calculatedColumnWidths[fieldName] = normalizedWidth;
   tableColumnLayout.syncRenderedColumnLayout(table);
-}
-
-function shouldUseCompactMobileTable() {
-  return typeof window !== 'undefined'
-    && typeof window.matchMedia === 'function'
-    && window.matchMedia('(max-width: 1024px)').matches;
 }
 
 function syncResizeModeUi() {
@@ -786,62 +784,14 @@ function handleTableScroll(e) {
  * @returns {number} Optimal column width in pixels (min 150px, max ~50 characters)
  */
 function calculateFieldWidth(fieldName, data = null) {
-  let maxWidth = 0;
-  const compactMobileTable = shouldUseCompactMobileTable();
-  const headerActionSpace = compactMobileTable ? 34 : HEADER_ACTION_SPACE;
-  const headerTextBalanceSpace = compactMobileTable ? 14 : HEADER_TEXT_BALANCE_SPACE;
-  
-  // 1. Always measure header width (uppercase, as it appears in the table)
-  const headerWidth = TextMeasurement.measureText(fieldName.toUpperCase()) + headerActionSpace + headerTextBalanceSpace;
-  maxWidth = Math.max(maxWidth, headerWidth);
-  
-  // 2. If we have data, measure content width
-  if (data && data.rows && data.rows.length > 0) {
-    const columnIndex = data.columnMap.get(fieldName);
-    if (columnIndex !== undefined) {
-      const type = getFieldType(fieldName);
-      // Sample data for performance (check every nth row)
-      const sampleStep = Math.max(1, Math.floor(data.rows.length / 1000));
-      
-      for (let i = 0; i < data.rows.length; i += sampleStep) {
-        const value = data.rows[i][columnIndex];
-        if (value != null) {
-          let measuredValue = String(value);
-          if (type === 'date') {
-            measuredValue = ValueFormatting.formatValueByType(value, type, {
-              fieldName,
-              invalidDateValue: 'Never',
-              dateFallbackToRaw: true
-            });
-          } else if (type === 'number' || type === 'money') {
-            const numericValue = parseNumericValue(value, type);
-            if (!isNaN(numericValue)) {
-              measuredValue = ValueFormatting.formatValueByType(numericValue, type, { fieldName });
-            }
-          }
-          const textWidth = TextMeasurement.measureText(measuredValue);
-          maxWidth = Math.max(maxWidth, textWidth);
-        }
-      }
-    }
-  }
-  
-  // 3. For fields not in data (showing "..."), ensure reasonable width for the placeholder
-  if (!data || !data.columnMap || !data.columnMap.has(fieldName)) {
-    const placeholderWidth = TextMeasurement.measureText('...');
-    maxWidth = Math.max(maxWidth, placeholderWidth);
-  }
-  
-  // 4. Add padding (24px left + 24px right from px-6 class) + buffer for comfort
-  const paddingAndBuffer = compactMobileTable ? 28 : 48 + 32; // 48px padding + 32px buffer on desktop
-  const requiredHeaderWidth = headerWidth + paddingAndBuffer;
-  
-  // 5. Calculate max character width for clamping
-  const maxCharacterWidth = TextMeasurement.measureText('A'.repeat(compactMobileTable ? 32 : 50)) + paddingAndBuffer;
-  const maxAllowedWidth = Math.max(maxCharacterWidth, requiredHeaderWidth);
-  
-  // 6. Clamp to reasonable bounds.
-  return Math.max(compactMobileTable ? 96 : 150, Math.min(maxAllowedWidth, maxWidth + paddingAndBuffer));
+  return calculateMeasuredFieldWidth(fieldName, data, {
+    getFieldType,
+    parseNumericValue,
+    textMeasurement: TextMeasurement,
+    valueFormatting: ValueFormatting,
+    headerActionSpace: HEADER_ACTION_SPACE,
+    headerTextBalanceSpace: HEADER_TEXT_BALANCE_SPACE
+  });
 }
 
 /**
@@ -864,10 +814,15 @@ function calculateOptimalColumnWidths(fields, data) {
     return {};
   }
   
-  const widths = {};
-  targetFields.forEach(field => {
-    widths[field] = calculateFieldWidth(field, targetData);
+  const widths = calculateMeasuredOptimalColumnWidths(targetFields, targetData, {
+    getFieldType,
+    parseNumericValue,
+    textMeasurement: TextMeasurement,
+    valueFormatting: ValueFormatting,
+    headerActionSpace: HEADER_ACTION_SPACE,
+    headerTextBalanceSpace: HEADER_TEXT_BALANCE_SPACE
   });
+
   applyManualWidthsToMap(widths, targetFields);
   
   // Keep the shared width cache current whenever we measure against the active table data.
