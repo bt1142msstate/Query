@@ -1680,6 +1680,73 @@ async function exerciseTabletLandscapeMobileParity(page, queryApiStub) {
   await page.locator('#queries-panel .collapse-btn').click();
   await page.locator('#queries-panel.hidden').waitFor({ state: 'attached', timeout: 5000 });
 
+  await primeMobilePageScroll(page);
+  await openMobilePanel(page, 'toggle-json', '#query-json-tree');
+  await expectElementWithinViewport(page, '#json-panel', 'Tablet landscape JSON panel');
+  await expectOverlayConsumesScroll(page, '#query-json-tree', 'Tablet landscape JSON panel');
+  const jsonMetrics = await page.locator('#json-editor-shell').evaluate(shell => {
+    const rect = shell.getBoundingClientRect();
+    const tree = document.querySelector('#query-json-tree');
+    const treeStyle = tree ? window.getComputedStyle(tree) : null;
+    return {
+      bottomGap: Math.abs(window.innerHeight - rect.bottom),
+      fontSize: treeStyle ? Number.parseFloat(treeStyle.fontSize || '0') : 0,
+      height: rect.height,
+      width: rect.width
+    };
+  });
+  if (
+    jsonMetrics.bottomGap > 2
+    || jsonMetrics.fontSize < 12
+    || jsonMetrics.height < 600
+    || jsonMetrics.width < 900
+  ) {
+    throw new Error(`Tablet landscape JSON panel should keep a dense scroll-contained editor: ${JSON.stringify(jsonMetrics)}`);
+  }
+  await page.locator('#json-panel .collapse-btn').click();
+  await page.locator('#json-panel.hidden').waitFor({ state: 'attached', timeout: 5000 });
+  await expectMobileScrollLockReleased(page, 'Tablet landscape JSON panel');
+
+  await openMobilePanel(page, 'toggle-help', '#help-container');
+  await expectElementWithinViewport(page, '#help-panel', 'Tablet landscape help panel');
+  await expectOverlayConsumesScroll(page, '.help-shell', 'Tablet landscape help panel');
+  const helpMetrics = await page.locator('#help-container').evaluate(container => {
+    const shell = container.querySelector('.help-shell');
+    const hero = container.querySelector('.help-hero');
+    const cardGrid = container.querySelector('.help-card-grid');
+    const actionsGrid = container.querySelector('.help-actions-grid');
+    const tipGrid = container.querySelector('.help-tip-grid');
+    const shellRect = shell?.getBoundingClientRect();
+    const shellStyle = shell ? window.getComputedStyle(shell) : null;
+    const heroStyle = hero ? window.getComputedStyle(hero) : null;
+    const cardStyle = cardGrid ? window.getComputedStyle(cardGrid) : null;
+    const actionsStyle = actionsGrid ? window.getComputedStyle(actionsGrid) : null;
+    const tipStyle = tipGrid ? window.getComputedStyle(tipGrid) : null;
+    return {
+      actionsColumns: actionsStyle ? actionsStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      cardColumns: cardStyle ? cardStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      heroColumns: heroStyle ? heroStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      shellHeight: shellRect?.height || 0,
+      shellOverflowY: shellStyle?.overflowY || '',
+      tipColumns: tipStyle ? tipStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      viewportHeight: window.innerHeight
+    };
+  });
+  if (
+    helpMetrics.heroColumns !== 2
+    || helpMetrics.cardColumns !== 2
+    || helpMetrics.actionsColumns !== 3
+    || helpMetrics.tipColumns !== 2
+    || helpMetrics.shellOverflowY !== 'auto'
+    || helpMetrics.shellHeight < helpMetrics.viewportHeight - 160
+  ) {
+    throw new Error(`Tablet landscape help panel should use tablet-width sections inside a scroll-contained mobile shell: ${JSON.stringify(helpMetrics)}`);
+  }
+  await page.locator('#help-panel .collapse-btn').click();
+  await page.locator('#help-panel.hidden').waitFor({ state: 'attached', timeout: 5000 });
+  await expectMobileScrollLockReleased(page, 'Tablet landscape help panel');
+  await cleanupMobilePageScroll(page);
+
   await openMobilePanel(page, 'toggle-templates', '#templates-search-input');
   await expectElementWithinViewport(page, '#templates-panel', 'Tablet landscape templates panel');
   await expectNoHorizontalOverflow(page, 'Tablet landscape templates panel');
