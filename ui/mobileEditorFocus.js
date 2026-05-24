@@ -1,4 +1,4 @@
-const MOBILE_EDITOR_QUERY = '(max-width: 1024px), (hover: none) and (pointer: coarse)';
+const MOBILE_EDITOR_QUERY = '(max-width: 1180px), (hover: none) and (pointer: coarse)';
 const EDITABLE_SELECTOR = 'input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, select, [contenteditable="true"]';
 const EDITOR_SCROLL_SELECTOR = [
   '#filter-card',

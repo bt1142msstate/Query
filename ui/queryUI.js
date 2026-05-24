@@ -40,7 +40,7 @@ function getMobileFilterPanelCloseButton() {
 function isMobileTableViewport() {
   return typeof window !== 'undefined'
     && typeof window.matchMedia === 'function'
-    && window.matchMedia('(max-width: 1024px)').matches;
+    && window.matchMedia('(max-width: 1180px)').matches;
 }
 
 function getConfiguredFilterCount() {

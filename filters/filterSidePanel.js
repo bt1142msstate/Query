@@ -50,7 +50,7 @@ const FilterSidePanel = (function () {
             return;
         }
 
-        if (window.innerWidth <= 1024 || !shell) {
+        if (window.innerWidth <= 1180 || !shell) {
             panel.style.height = '';
             return;
         }
@@ -164,7 +164,7 @@ const FilterSidePanel = (function () {
     function isMobileFilterEditorViewport() {
         return typeof window !== 'undefined'
             && typeof window.matchMedia === 'function'
-            && window.matchMedia('(max-width: 1024px), (hover: none) and (pointer: coarse)').matches;
+            && window.matchMedia('(max-width: 1180px), (hover: none) and (pointer: coarse)').matches;
     }
 
     function openBubbleForField(field) {
