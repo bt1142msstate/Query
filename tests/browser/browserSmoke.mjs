@@ -1936,17 +1936,30 @@ async function exerciseTabletLandscapeMobileParity(page, queryApiStub) {
   await page.locator('[data-mobile-table-action="fields-panel"]').click();
   await page.waitForFunction(() => document.body.classList.contains('mobile-filter-panel-open'), null, { timeout: 5000 });
   await expectElementWithinViewport(page, '#filter-side-panel', 'Tablet landscape display and filters sheet');
-  await expectOverlayConsumesScroll(page, '#filter-panel-body', 'Tablet landscape display and filters sheet');
+  await expectOverlayConsumesScroll(page, '#filter-panel-body .fp-display-section', 'Tablet landscape display and filters sheet');
   await expectNoHorizontalOverflow(page, 'Tablet landscape display and filters sheet');
   const filterSheetMetrics = await page.locator('#filter-side-panel').evaluate(element => {
     const rect = element.getBoundingClientRect();
-    const bodyRect = document.querySelector('#filter-panel-body')?.getBoundingClientRect();
+    const body = document.querySelector('#filter-panel-body');
+    const bodyRect = body?.getBoundingClientRect();
+    const bodyStyle = body ? window.getComputedStyle(body) : null;
+    const sections = Array.from(body?.querySelectorAll('.fp-section') || []).map(section => {
+      const sectionRect = section.getBoundingClientRect();
+      return {
+        height: sectionRect.height,
+        overflowY: window.getComputedStyle(section).overflowY,
+        scrollHeight: section.scrollHeight
+      };
+    });
     return {
       bodyHeight: bodyRect?.height || 0,
+      bodyColumns: bodyStyle ? bodyStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
       bottomGap: Math.abs(window.innerHeight - rect.bottom),
       left: rect.left,
       position: window.getComputedStyle(element).position,
       right: rect.right,
+      sectionCount: sections.length,
+      sections,
       top: rect.top,
       viewportHeight: window.innerHeight,
       viewportWidth: window.innerWidth
@@ -1959,6 +1972,9 @@ async function exerciseTabletLandscapeMobileParity(page, queryApiStub) {
     || filterSheetMetrics.top < 48
     || filterSheetMetrics.bottomGap > 24
     || filterSheetMetrics.bodyHeight < filterSheetMetrics.viewportHeight * 0.46
+    || filterSheetMetrics.bodyColumns !== 2
+    || filterSheetMetrics.sectionCount < 2
+    || filterSheetMetrics.sections.some(section => section.overflowY === 'visible' || section.height < filterSheetMetrics.bodyHeight * 0.82)
   ) {
     throw new Error(`Tablet landscape display and filters should remain a usable mobile sheet: ${JSON.stringify(filterSheetMetrics)}`);
   }
