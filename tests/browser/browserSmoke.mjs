@@ -1551,6 +1551,76 @@ async function exerciseLiveResponsiveResize(page) {
   await page.locator('#table-expand-btn').click();
   await page.waitForFunction(() => !document.body.classList.contains('table-expanded-open'), null, { timeout: 5000 });
 
+  await page.setViewportSize({ width: 820, height: 1180 });
+  await waitForResponsiveResize(page, true);
+  await primeMobilePageScroll(page);
+  await page.locator('[data-mobile-table-action="fields-panel"]').click();
+  await page.waitForFunction(() => document.body.classList.contains('mobile-filter-panel-open'), null, { timeout: 5000 });
+  await page.setViewportSize({ width: 1180, height: 820 });
+  await waitForResponsiveResize(page, true);
+  await expectElementWithinViewport(page, '#filter-side-panel', 'Live-rotated tablet display and filters sheet');
+  await expectOverlayConsumesScroll(page, '#filter-panel-body .fp-display-section', 'Live-rotated tablet display and filters sheet');
+  const rotatedFilterMetrics = await page.locator('#filter-side-panel').evaluate(element => {
+    const rect = element.getBoundingClientRect();
+    const body = document.querySelector('#filter-panel-body');
+    const bodyStyle = body ? window.getComputedStyle(body) : null;
+    return {
+      bodyColumns: bodyStyle ? bodyStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      bodyLocked: document.body.classList.contains('mobile-overlay-scroll-locked'),
+      bottomGap: Math.abs(window.innerHeight - rect.bottom),
+      top: rect.top,
+      width: rect.width
+    };
+  });
+  if (
+    !rotatedFilterMetrics.bodyLocked
+    || rotatedFilterMetrics.bodyColumns !== 2
+    || rotatedFilterMetrics.width < 900
+    || rotatedFilterMetrics.top < 48
+    || rotatedFilterMetrics.bottomGap > 24
+  ) {
+    throw new Error(`Display and filters should remain usable while rotating tablet portrait-to-landscape: ${JSON.stringify(rotatedFilterMetrics)}`);
+  }
+  await page.locator('#filter-panel-mobile-close').click();
+  await page.waitForFunction(() => !document.body.classList.contains('mobile-filter-panel-open'), null, { timeout: 5000 });
+  await expectMobileScrollLockReleased(page, 'Live-rotated tablet display and filters sheet');
+  await cleanupMobilePageScroll(page);
+
+  await page.setViewportSize({ width: 820, height: 1180 });
+  await waitForResponsiveResize(page, true);
+  await primeMobilePageScroll(page);
+  await page.locator('[data-mobile-table-action-target="table-add-field-btn"]').click();
+  await page.locator('.form-mode-field-picker-modal:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+  await page.setViewportSize({ width: 1180, height: 820 });
+  await waitForResponsiveResize(page, true);
+  await expectElementWithinViewport(page, '.form-mode-field-picker-modal:not(.hidden)', 'Live-rotated tablet add field dialog');
+  const rotatedAddFieldMetrics = await page.locator('.form-mode-field-picker-modal:not(.hidden)').evaluate(modal => {
+    const body = modal.querySelector('.form-mode-field-picker-body');
+    const bodyStyle = body ? window.getComputedStyle(body) : null;
+    const rect = modal.getBoundingClientRect();
+    return {
+      bodyColumns: bodyStyle ? bodyStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      bodyLocked: document.body.classList.contains('mobile-overlay-scroll-locked'),
+      bottomGap: Math.abs(window.innerHeight - rect.bottom),
+      sideGapDelta: Math.abs(rect.left - Math.abs(window.innerWidth - rect.right)),
+      top: rect.top,
+      width: rect.width
+    };
+  });
+  if (
+    !rotatedAddFieldMetrics.bodyLocked
+    || rotatedAddFieldMetrics.bodyColumns !== 2
+    || rotatedAddFieldMetrics.width < 900
+    || rotatedAddFieldMetrics.sideGapDelta > 2
+    || rotatedAddFieldMetrics.top > 16
+    || rotatedAddFieldMetrics.bottomGap > 16
+  ) {
+    throw new Error(`Add field dialog should remain centered and usable while rotating tablet portrait-to-landscape: ${JSON.stringify(rotatedAddFieldMetrics)}`);
+  }
+  await page.locator('.form-mode-field-picker-close').click();
+  await expectMobileScrollLockReleased(page, 'Live-rotated tablet add field dialog');
+  await cleanupMobilePageScroll(page);
+
   await page.setViewportSize({ width: 1280, height: 720 });
   await waitForResponsiveResize(page, false);
 }
