@@ -96,7 +96,7 @@ No application module currently uses a legacy large-module budget. The architect
 
 ## Recommended Next Refactors
 
-1. Continue splitting `filters/filterManager.js` by moving condition mutation and panel coordination into dedicated modules.
-2. Continue splitting `table/drag-drop/dragDropInteractions.js` by moving remaining gesture coordination into dedicated modules.
-3. Continue splitting `templates/queryTemplates.js` by moving remaining shell-only coordination into dedicated modules.
-4. Continue splitting `history/queryHistory.js` by moving remaining shell-only coordination into dedicated modules.
+1. Continue splitting `table/drag-drop/dragDropInteractions.js` by moving remaining gesture coordination into dedicated modules.
+2. Continue splitting `templates/queryTemplates.js` by moving remaining shell-only coordination into dedicated modules.
+3. Continue splitting `history/queryHistory.js` by moving remaining shell-only coordination into dedicated modules.
+4. Continue splitting `table/contextMenu.js` by moving menu action construction into dedicated modules.
