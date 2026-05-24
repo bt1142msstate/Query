@@ -40,7 +40,7 @@ The intended deployment model is bring-your-own API. The public live site should
 | Feature UI | `ui/`, `filters/`, `bubbles/`, `table/`, `history/`, `templates/` | User workflows and rendering, with complex widgets split into focused view/helper modules |
 | Filter workflows | `filters/` | Backend payload contracts, field metadata, condition validation, filter-pill rendering, and condition input configuration |
 | UI feature folders | `ui/form-mode/`, `ui/field-picker/` | Larger UI workflows with dedicated shell, field-picker, query-preview, state helper, presentation, and interaction modules |
-| Table feature folders | `table/drag-drop/`, `table/virtual-table/`, `table/post-filters/`, `table/export/` | Result-table workflows grouped by behavior, with drag/drop split into column, resize, bubble-document, and interaction modules and virtual table measurement, row rendering, post-filter state, and split-column transforms split from the coordinator |
+| Table feature folders | `table/drag-drop/`, `table/virtual-table/`, `table/post-filters/`, `table/export/` | Result-table workflows grouped by behavior, with drag/drop split into column, resize, bubble-document, and interaction modules; virtual table measurement, row rendering, post-filter state, and split-column transforms split from the coordinator; post-filter value virtualization isolated from the overlay coordinator |
 | Styles | `styles/app.css` plus feature CSS files | Feature-scoped styling with a single stylesheet entry |
 | Architecture config | `config/` | Forbidden browser globals, module budgets, and import-boundary rules |
 | Tests | `tests/architecture/`, `tests/unit/`, `tests/browser/` | Architecture checks, focused unit coverage, and browser smoke coverage |
@@ -110,4 +110,4 @@ The architecture fitness test prevents those files from growing. New large modul
 1. Continue splitting `ui/field-picker/fieldPicker.js` by moving modal rendering and option-list wiring into dedicated modules.
 2. Continue splitting `templates/queryTemplates.js` by moving detail/editor rendering and pinned-strip rendering into dedicated modules.
 3. Continue splitting `filters/filterManager.js` by moving condition-panel builders and buildable-field confirmation into dedicated modules.
-4. Continue splitting `table/post-filters/postFilters.js` by moving option scanning and panel event wiring into dedicated modules.
+4. Continue splitting `table/drag-drop/dragDropInteractions.js` by moving header action rendering and drop-affordance positioning into dedicated modules.
