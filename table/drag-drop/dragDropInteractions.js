@@ -19,6 +19,7 @@ import {
 } from './dragDropInteractionMath.js';
 import { resolveColumnResizeStartTarget } from './resizeStartTarget.js';
 import { SharedFieldPicker } from '../../ui/field-picker/fieldPicker.js';
+import { bindBubbleDocumentDragHandlers } from './bubbleDocumentDrag.js';
 let DragDropInteractions;
 (function initializeDragDropInteractions() {
   var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders), getLifecycleState = QueryStateReaders.getLifecycleState.bind(QueryStateReaders), services = appServices;
@@ -1019,179 +1020,17 @@ let DragDropInteractions;
     clearInsertAffordance();
   });
 
-  document.addEventListener('dragstart', e => {
-    if (getLifecycleState().queryRunning || isResizeModeActive()) {
-      e.preventDefault();
-      return;
-    }
-    clearInsertAffordance({ immediate: true });
-    const bubble = e.target.closest('.bubble');
-    if (!bubble) return;
-
-    const fieldName = bubble.textContent.trim();
-    if (getDisplayedFields().includes(fieldName)) {
-      e.preventDefault();
-      return;
-    }
-
-    dragDropManager.draggedBubble = bubble;
-    dragDropManager.draggedBubbleOriginalRect = bubble.getBoundingClientRect();
-    dragDropManager.dropSuccessful = false;
-
-    e.dataTransfer.setData(BUBBLE_FIELD_DRAG_MIME, fieldName);
-    e.dataTransfer.effectAllowed = 'copyMove';
-    e.dataTransfer.dropEffect = 'move';
-    dragDropManager.setBubbleDrag(true);
-
-    const wrapper = document.createElement('div');
-    const pad = 16;
-    wrapper.style.position = 'absolute';
-    wrapper.style.top = '-9999px';
-    wrapper.style.left = '-9999px';
-    wrapper.style.padding = pad / 2 + 'px';
-    wrapper.style.pointerEvents = 'none';
-    wrapper.style.boxSizing = 'content-box';
-    const ghost = bubble.cloneNode(true);
-    ghost.style.overflow = 'visible';
-    wrapper.appendChild(ghost);
-    document.body.appendChild(wrapper);
-    const gw = wrapper.offsetWidth;
-    const gh = wrapper.offsetHeight;
-    e.dataTransfer.setDragImage(wrapper, gw / 2, gh / 2);
-    setTimeout(() => wrapper.remove(), 0);
-
-    bubble.style.opacity = '0.3';
-  });
-
-  document.addEventListener('dragover', e => {
-    if (document.body.classList.contains('dragging-cursor') && !dragDropManager.isBubbleDrag) {
-      dragDropManager.lastDragX = e.clientX;
-      dragDropManager.lastDragY = e.clientY;
-
-      if (dragDropManager.activeTable && !isPointerWithinDropViewport(dragDropManager.activeTable, e.clientX, e.clientY)) {
-        clearDropAnchor();
-      }
-
-      if (dragDropManager.scrollContainer) {
-        dragDropManager.checkAutoScroll(e, dragDropManager.scrollContainer);
-      }
-    }
-
-    if (dragDropManager.isBubbleDrag) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-
-      const margin = 50;
-      const clampedX = Math.max(margin, Math.min(window.innerWidth - margin, e.clientX));
-      const clampedY = Math.max(margin, Math.min(window.innerHeight - margin, e.clientY));
-
-      dragDropManager.lastDragX = clampedX;
-      dragDropManager.lastDragY = clampedY;
-
-      if (dragDropManager.scrollContainer) {
-        dragDropManager.checkAutoScroll(e, dragDropManager.scrollContainer);
-      }
-    }
-  });
-
-  document.addEventListener('drop', e => {
-    if (dragDropManager.isBubbleDrag) {
-      e.preventDefault();
-    }
-  });
-
-  window.addEventListener('dragover', e => {
-    if (dragDropManager.isBubbleDrag) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-    }
-  }, { capture: true });
-
-  window.addEventListener('drop', e => {
-    if (dragDropManager.isBubbleDrag) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-    }
-  }, { capture: true });
-
-  document.addEventListener('dragend', e => {
-    const bubble = e.target.closest('.bubble');
-    if (bubble && dragDropManager.draggedBubble) {
-      console.log('Dragend event fired for:', bubble.textContent.trim());
-      dragDropManager.setBubbleDrag(false);
-      dragDropManager.stopAutoScroll();
-      dragDropManager.activeTable = null;
-
-      const fieldName = bubble.textContent.trim();
-      const wasActuallyDropped = getDisplayedFields().includes(fieldName);
-
-      if (!wasActuallyDropped && dragDropManager.draggedBubble && dragDropManager.draggedBubbleOriginalRect && !dragDropManager.isAnimating) {
-        console.log('Starting return animation for:', fieldName);
-        dragDropManager.isAnimating = true;
-        const originalRect = dragDropManager.draggedBubbleOriginalRect;
-        const originalBubble = dragDropManager.draggedBubble;
-
-        const returnClone = bubble.cloneNode(true);
-        const rootStyles = getComputedStyle(document.documentElement);
-        returnClone.style.position = 'fixed';
-        returnClone.style.zIndex = rootStyles.getPropertyValue('--z-drag-ghost').trim() || '1000';
-        returnClone.style.pointerEvents = 'none';
-        returnClone.style.opacity = '1';
-        returnClone.style.transition = 'transform 0.45s ease';
-        returnClone.style.transform = 'translate(0, 0)';
-
-        let startX = dragDropManager.lastDragX - 25;
-        let startY = dragDropManager.lastDragY - 15;
-
-        if (dragDropManager.lastDragX === 0 && dragDropManager.lastDragY === 0) {
-          startX = window.innerWidth / 2 - 25;
-          startY = window.innerHeight / 2 - 15;
-          console.log('Using fallback position - bubble was dragged off-screen');
-        }
-
-        const margin = 50;
-        startX = Math.max(margin, Math.min(window.innerWidth - margin, startX));
-        startY = Math.max(margin, Math.min(window.innerHeight - margin, startY));
-        returnClone.style.top = startY + 'px';
-        returnClone.style.left = startX + 'px';
-
-        document.body.appendChild(returnClone);
-        returnClone.offsetHeight;
-
-        const deltaX = originalRect.left - startX;
-        const deltaY = originalRect.top - startY;
-
-        requestAnimationFrame(() => {
-          returnClone.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-        });
-
-        returnClone.addEventListener('transitionend', function cleanup() {
-          console.log('Animation finished for:', fieldName);
-          returnClone.remove();
-          originalBubble.style.opacity = '';
-          dragDropManager.isAnimating = false;
-        }, { once: true });
-
-        setTimeout(() => {
-          if (returnClone.parentNode) {
-            console.log('Fallback cleanup for:', fieldName);
-            returnClone.remove();
-          }
-          originalBubble.style.opacity = '';
-          dragDropManager.isAnimating = false;
-        }, 600);
-      } else if (dragDropManager.draggedBubble) {
-        dragDropManager.draggedBubble.style.opacity = '';
-        dragDropManager.draggedBubble.style.visibility = '';
-      }
-
-      dragDropManager.draggedBubble = null;
-      dragDropManager.draggedBubbleOriginalRect = null;
-      dragDropManager.dropSuccessful = false;
-      dragDropManager.lastDragX = 0;
-      dragDropManager.lastDragY = 0;
-      dragDropManager.isAnimating = false;
-    }
+  bindBubbleDocumentDragHandlers({
+    document,
+    window,
+    dragDropManager,
+    bubbleFieldDragMime: BUBBLE_FIELD_DRAG_MIME,
+    getLifecycleState,
+    getDisplayedFields,
+    isResizeModeActive,
+    clearInsertAffordance,
+    clearDropAnchor,
+    isPointerWithinDropViewport
   });
 
   function addDragAndDrop(table) {
