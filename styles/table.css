@@ -1800,35 +1800,6 @@ body.post-filter-overlay-open {
     min-height: 2.75rem;
   }
 
-  @media (min-width: 700px) {
-    .post-filter-dialog {
-      max-width: min(58rem, calc(100vw - 1.5rem));
-      margin-inline: auto;
-    }
-
-    .post-filter-builder {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 0.7rem;
-    }
-
-    .post-filter-field--value,
-    .post-filter-add-btn {
-      grid-column: 1 / -1;
-    }
-
-    .post-filter-value-row {
-      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-    }
-
-    .post-filter-dialog__actions {
-      flex-direction: row;
-    }
-
-    .post-filter-dialog__body {
-      gap: 0.75rem;
-    }
-  }
-
   @supports selector(:has(*)) {
     .post-filter-list-panel:has(.post-filter-empty:not(.hidden)) {
       display: none;
@@ -2600,29 +2571,6 @@ body.post-filter-overlay-open {
     flex: 0 0 2.75rem;
   }
 
-  @media (min-width: 700px) {
-    .export-dialog {
-      max-width: min(60rem, calc(100vw - 1.5rem));
-      margin-inline: auto;
-    }
-
-    .export-dialog__summary {
-      grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr));
-    }
-
-    .export-summary-pill--name {
-      grid-column: auto;
-    }
-
-    .export-mode-grid,
-    .export-option-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .export-progress {
-      grid-template-columns: minmax(0, 1fr) minmax(12rem, 18rem);
-    }
-  }
 }
 
 @media (max-width: 1180px) {
@@ -2813,37 +2761,6 @@ body.post-filter-overlay-open {
     white-space: nowrap;
   }
 
-  @media (min-width: 700px) {
-    body.has-query-columns:not(.table-expanded-open) #mobile-table-action-bar,
-    body.has-loaded-data:not(.table-expanded-open) #mobile-table-action-bar {
-      grid-template-columns: repeat(7, minmax(0, 1fr));
-      gap: 0.4rem;
-      margin-left: 0.5rem;
-      margin-right: 0.5rem;
-      padding: 0.4rem;
-    }
-
-    .mobile-table-action {
-      min-height: 3rem;
-      gap: 0.22rem;
-      padding: 0.36rem 0.28rem;
-    }
-
-    .mobile-table-action-icon {
-      width: 1.18rem;
-      height: 1.18rem;
-    }
-
-    .mobile-table-action-icon svg {
-      width: 1.05rem;
-      height: 1.05rem;
-    }
-
-    .mobile-table-action-label {
-      font-size: 0.62rem;
-    }
-  }
-
   .table-toolbar-btn,
   .table-expand-btn {
     width: 100%;
@@ -2979,6 +2896,86 @@ body.post-filter-overlay-open {
   .table-query-bubble-content {
     width: min(86%, 15rem);
     gap: 0.7rem;
+  }
+}
+
+@media (min-width: 700px) and (max-width: 1180px) {
+  .post-filter-dialog {
+    max-width: min(58rem, calc(100vw - 1.5rem));
+    margin-inline: auto;
+  }
+
+  .post-filter-builder {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.7rem;
+  }
+
+  .post-filter-field--value,
+  .post-filter-add-btn {
+    grid-column: 1 / -1;
+  }
+
+  .post-filter-value-row {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  }
+
+  .post-filter-dialog__actions {
+    flex-direction: row;
+  }
+
+  .post-filter-dialog__body {
+    gap: 0.75rem;
+  }
+
+  .export-dialog {
+    max-width: min(60rem, calc(100vw - 1.5rem));
+    margin-inline: auto;
+  }
+
+  .export-dialog__summary {
+    grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr));
+  }
+
+  .export-summary-pill--name {
+    grid-column: auto;
+  }
+
+  .export-mode-grid,
+  .export-option-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .export-progress {
+    grid-template-columns: minmax(0, 1fr) minmax(12rem, 18rem);
+  }
+
+  body.has-query-columns:not(.table-expanded-open) #mobile-table-action-bar,
+  body.has-loaded-data:not(.table-expanded-open) #mobile-table-action-bar {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.4rem;
+    margin-left: 0.5rem;
+    margin-right: 0.5rem;
+    padding: 0.4rem;
+  }
+
+  .mobile-table-action {
+    min-height: 3rem;
+    gap: 0.22rem;
+    padding: 0.36rem 0.28rem;
+  }
+
+  .mobile-table-action-icon {
+    width: 1.18rem;
+    height: 1.18rem;
+  }
+
+  .mobile-table-action-icon svg {
+    width: 1.05rem;
+    height: 1.05rem;
+  }
+
+  .mobile-table-action-label {
+    font-size: 0.62rem;
   }
 }
 
