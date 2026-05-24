@@ -1555,6 +1555,174 @@ async function exerciseLiveResponsiveResize(page) {
   await waitForResponsiveResize(page, false);
 }
 
+async function exerciseTabletLandscapeMobileParity(page, queryApiStub) {
+  await page.setViewportSize({ width: 1180, height: 820 });
+  await waitForResponsiveResize(page, true);
+  await expectMobileViewportStability(page);
+  await expectNoHorizontalOverflow(page, 'Tablet landscape initial layout');
+  const initialShellMetrics = await readResponsiveShellMetrics(page);
+  if (
+    !initialShellMetrics.isMobile
+    || initialShellMetrics.headerControlsDisplay !== 'none'
+    || initialShellMetrics.mobileMenuDisplay === 'none'
+    || initialShellMetrics.tableZoom !== '0.84'
+  ) {
+    throw new Error(`Tablet landscape should start in the mobile shell even before results load: ${JSON.stringify(initialShellMetrics)}`);
+  }
+  await exerciseMobileToastQueue(page);
+
+  await page.locator('#mobile-menu-toggle').click();
+  await page.locator('#mobile-menu-dropdown.show').waitFor({ state: 'visible', timeout: 5000 });
+  await expectMinimumTapTarget(page, '#mobile-menu-dropdown .mobile-menu-item', 'Tablet landscape mobile menu items');
+  const menuMetrics = await page.locator('#mobile-menu-dropdown.show').evaluate(element => {
+    const rect = element.getBoundingClientRect();
+    return {
+      bottomGap: Math.abs(window.innerHeight - rect.bottom),
+      height: rect.height,
+      left: rect.left,
+      position: window.getComputedStyle(element).position,
+      rightGap: Math.abs(window.innerWidth - rect.right),
+      viewportHeight: window.innerHeight,
+      width: rect.width
+    };
+  });
+  if (
+    menuMetrics.position !== 'fixed'
+    || menuMetrics.bottomGap > 1
+    || menuMetrics.rightGap > 24
+    || menuMetrics.width < 320
+    || menuMetrics.height > menuMetrics.viewportHeight * 0.86
+  ) {
+    throw new Error(`Tablet landscape should keep the mobile menu reachable as a sheet: ${JSON.stringify(menuMetrics)}`);
+  }
+
+  queryApiStub.enqueue(Array.from({ length: 2 }, () => ({
+    action: 'status',
+    body: JSON.stringify(buildHistoryStatusResponse()),
+    contentType: 'application/json; charset=utf-8'
+  })));
+  await page.locator('[data-source-control-id="toggle-queries"]').click();
+  await page.locator('#queries-search').waitFor({ state: 'visible', timeout: 5000 });
+  await expectElementWithinViewport(page, '#queries-panel', 'Tablet landscape query history panel');
+  await expectDarkInput(page, '#queries-search', 'Tablet landscape query history search input');
+  await page.waitForFunction(() => {
+    return document.querySelector('[data-history-book="complete"] .history-book-count')?.textContent?.trim() === '1'
+      && document.querySelector('[data-history-book="running"] .history-book-count')?.textContent?.trim() === '1';
+  }, null, { timeout: 5000 });
+  const historyMetrics = await page.locator('.history-bookshelf').evaluate(element => {
+    const rect = element.getBoundingClientRect();
+    const style = window.getComputedStyle(element);
+    const books = Array.from(element.querySelectorAll('[data-history-book]')).map(book => {
+      const bookRect = book.getBoundingClientRect();
+      return {
+        height: bookRect.height,
+        width: bookRect.width
+      };
+    }).filter(book => book.width > 0 && book.height > 0);
+    return {
+      bookCount: books.length,
+      columns: style.gridTemplateColumns.split(' ').filter(Boolean).length,
+      height: rect.height,
+      maxBookHeight: Math.max(...books.map(book => book.height)),
+      viewportHeight: window.innerHeight
+    };
+  });
+  if (
+    historyMetrics.bookCount !== 4
+    || historyMetrics.columns < 2
+    || historyMetrics.height > 140
+    || historyMetrics.maxBookHeight > 110
+  ) {
+    throw new Error(`Tablet landscape history should preserve the compact mobile picker: ${JSON.stringify(historyMetrics)}`);
+  }
+  await page.locator('#queries-panel .collapse-btn').click();
+  await page.locator('#queries-panel.hidden').waitFor({ state: 'attached', timeout: 5000 });
+
+  await seedLoadedResults(page, { longTitle: true, rowCount: 36 });
+  await expectResponsiveShellMode(page, 'mobile', 'Tablet landscape seeded table shell');
+  await expectNoHorizontalOverflow(page, 'Tablet landscape seeded table');
+  const tableMetrics = await page.evaluate(() => {
+    const table = document.querySelector('#example-table');
+    const tableRect = table?.getBoundingClientRect();
+    const containerRect = document.querySelector('#table-container')?.getBoundingClientRect();
+    const actionBar = document.querySelector('#mobile-table-action-bar');
+    const actionBarRect = actionBar?.getBoundingClientRect();
+    const builder = document.querySelector('#mobile-builder-drawer');
+    const builderRect = builder?.getBoundingClientRect();
+    return {
+      actionBarDisplay: actionBar ? window.getComputedStyle(actionBar).display : '',
+      actionBarHeight: actionBarRect?.height || 0,
+      builderActive: builder?.classList.contains('is-active') || false,
+      builderTop: builderRect?.top || 0,
+      containerTop: containerRect?.top || 0,
+      containerWidth: containerRect?.width || 0,
+      tableTop: tableRect?.top || 0,
+      tableWidth: tableRect?.width || 0
+    };
+  });
+  if (
+    tableMetrics.actionBarDisplay !== 'grid'
+    || tableMetrics.actionBarHeight > 128
+    || !tableMetrics.builderActive
+    || tableMetrics.tableWidth > tableMetrics.containerWidth + 4
+    || tableMetrics.containerTop > tableMetrics.builderTop + 1
+  ) {
+    throw new Error(`Tablet landscape table should use the same compact mobile workflow: ${JSON.stringify(tableMetrics)}`);
+  }
+  await expectMinimumTapTarget(page, '#mobile-table-action-bar .mobile-table-action', 'Tablet landscape table action bar controls');
+
+  await page.locator('#mobile-builder-toggle').click();
+  await page.waitForFunction(() => document.querySelector('#mobile-builder-drawer')?.classList.contains('is-open'), null, { timeout: 5000 });
+  const builderMetrics = await page.evaluate(() => {
+    const tableRect = document.querySelector('#table-with-filter')?.getBoundingClientRect();
+    const builderRect = document.querySelector('#mobile-builder-drawer')?.getBoundingClientRect();
+    return {
+      builderExpanded: document.querySelector('#mobile-builder-toggle')?.getAttribute('aria-expanded') || '',
+      builderTop: builderRect?.top || 0,
+      tableTop: tableRect?.top || 0
+    };
+  });
+  if (builderMetrics.builderExpanded !== 'true' || builderMetrics.builderTop < builderMetrics.tableTop - 1) {
+    throw new Error(`Tablet landscape builder drawer should expand below the table: ${JSON.stringify(builderMetrics)}`);
+  }
+  await page.locator('#mobile-builder-toggle').click();
+
+  await primeMobilePageScroll(page);
+  await page.locator('[data-mobile-table-action="fields-panel"]').click();
+  await page.waitForFunction(() => document.body.classList.contains('mobile-filter-panel-open'), null, { timeout: 5000 });
+  await expectElementWithinViewport(page, '#filter-side-panel', 'Tablet landscape display and filters sheet');
+  await expectOverlayConsumesScroll(page, '#filter-panel-body', 'Tablet landscape display and filters sheet');
+  await expectNoHorizontalOverflow(page, 'Tablet landscape display and filters sheet');
+  const filterSheetMetrics = await page.locator('#filter-side-panel').evaluate(element => {
+    const rect = element.getBoundingClientRect();
+    const bodyRect = document.querySelector('#filter-panel-body')?.getBoundingClientRect();
+    return {
+      bodyHeight: bodyRect?.height || 0,
+      bottomGap: Math.abs(window.innerHeight - rect.bottom),
+      left: rect.left,
+      position: window.getComputedStyle(element).position,
+      right: rect.right,
+      top: rect.top,
+      viewportHeight: window.innerHeight,
+      viewportWidth: window.innerWidth
+    };
+  });
+  if (
+    filterSheetMetrics.position !== 'fixed'
+    || filterSheetMetrics.left < -1
+    || filterSheetMetrics.right > filterSheetMetrics.viewportWidth + 1
+    || filterSheetMetrics.top < 48
+    || filterSheetMetrics.bottomGap > 24
+    || filterSheetMetrics.bodyHeight < filterSheetMetrics.viewportHeight * 0.46
+  ) {
+    throw new Error(`Tablet landscape display and filters should remain a usable mobile sheet: ${JSON.stringify(filterSheetMetrics)}`);
+  }
+  await page.locator('#filter-panel-mobile-close').click();
+  await page.waitForFunction(() => !document.body.classList.contains('mobile-filter-panel-open'), null, { timeout: 5000 });
+  await expectMobileScrollLockReleased(page, 'Tablet landscape display and filters sheet');
+  await cleanupMobilePageScroll(page);
+}
+
 async function exerciseEditableFormUrlRefresh(page, failures) {
   await seedLoadedResults(page);
   await page.evaluate(async () => {
@@ -2748,6 +2916,19 @@ async function runSmokeTest() {
     await page.getByRole('button', { name: 'Help' }).click();
     await page.locator('#help-container').waitFor({ state: 'visible', timeout: 5000 });
     await expectControlsNonSelectable(page, '#help-panel', 'Desktop help controls');
+
+    const tabletPage = await browser.newPage({
+      hasTouch: true,
+      isMobile: true,
+      viewport: { width: 1180, height: 820 }
+    });
+    attachFailureListeners(tabletPage, failures, port);
+    await stubExternalAssets(tabletPage);
+    const tabletQueryApiStub = await installQueryApiStub(tabletPage);
+    await tabletPage.goto(baseUrl, { waitUntil: 'load', timeout: 15000 });
+    await waitForAppModules(tabletPage, failures);
+    await exerciseTabletLandscapeMobileParity(tabletPage, tabletQueryApiStub);
+    await tabletPage.close();
 
     const mobilePage = await browser.newPage({
       isMobile: true,
