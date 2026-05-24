@@ -14,6 +14,7 @@ import {
 } from './queryHistoryRequestMapper.js';
 import { HISTORY_TABLE_HEADS, createQueriesTableRowHtml } from './queryHistoryRows.js';
 import { groupHistoryQueries } from './queryHistoryGrouping.js';
+import { mapStatusPayloadToHistoryRows } from './queryHistoryStatusMapper.js';
 import { notifyHistoryResultLoadComplete, prepareHistoryResultLoadNotification } from './queryHistoryNotifications.js';
 import {
   buildHistoryMonitor,
@@ -191,60 +192,11 @@ async function fetchQueryStatus() {
     const { data } = await BackendApi.postJson({ action: 'status' }, { notifyOnRateLimit: isQueriesPanelOpen() });
     if (!data.queries) return;
     
-    const newHistory = [];
-    
-    // Sort server queries by ID descending (newest first)
-    const serverQueries = Object.entries(data.queries).map(([id, info]) => ({
-        id, 
-        ...info 
-    })).sort((a,b) => (b.id.localeCompare(a.id)));
-    
-    serverQueries.forEach(sq => {
-        // Prepare UI Config from request payload if available
-        let jsonConfig = null;
-        const mapperDependencies = historyDependencies.mapper();
-        if (sq.request && sq.request.ui_config) {
-          jsonConfig = mergeUiConfigWithRequest(sq.request.ui_config, sq.request, mapperDependencies);
-        } else if (sq.request) {
-            jsonConfig = buildUiConfigFromRequest(sq.request, mapperDependencies);
-        }
-        
-        const qData = {
-            id: sq.id,
-            name: sq.name || (sq.request ? sq.request.name : 'Unknown Query'),
-            status: sq.status,
-            statusBucket: classifyQueryStatus(sq.status),
-            launchMode: sq.launch_mode || '',
-            deliveryMode: sq.delivery_mode || '',
-            running: (sq.status === 'running'),
-            cancelled: (sq.status === 'canceled'),
-            failed: (classifyQueryStatus(sq.status) !== 'running'
-              && classifyQueryStatus(sq.status) !== 'complete'
-              && classifyQueryStatus(sq.status) !== 'canceled'),
-            startTime: sq.start_time,
-            endTime: sq.end_time || '-',
-            duration: '-', 
-            jsonConfig: jsonConfig,
-            resultCount: sq.row_count !== undefined ? sq.row_count : (sq.start_time && sq.end_time ? '?' : '-'),
-            error: sq.error || sq.warning || ''
-        };
-        
-        if (sq.start_time && sq.end_time) {
-             const start = new Date(sq.start_time.replace(/-/g, '/')); 
-             const end = new Date(sq.end_time.replace(/-/g, '/'));
-             if (!isNaN(start) && !isNaN(end)) {
-                 const diff = Math.floor((end - start) / 1000);
-                 qData.duration = `${diff}s`;
-             }
-        } else if (sq.start_time && sq.status === 'running') {
-             const start = new Date(sq.start_time.replace(/-/g, '/'));
-             if (!isNaN(start)) {
-                 const diff = Math.floor((Date.now() - start) / 1000);
-                 qData.duration = `${diff}s...`;
-             }
-        }
-        
-        newHistory.push(qData);
+    const newHistory = mapStatusPayloadToHistoryRows(data, {
+      buildUiConfigFromRequest,
+      classifyQueryStatus,
+      mapperDependencies: historyDependencies.mapper(),
+      mergeUiConfigWithRequest
     });
 
     patchQueriesPanelData(newHistory);
