@@ -1775,6 +1775,82 @@ async function exerciseTabletLandscapeMobileParity(page, queryApiStub) {
   await expectMobileScrollLockReleased(page, 'Tablet landscape add field dialog');
   await cleanupMobilePageScroll(page);
 
+  await primeMobilePageScroll(page);
+  await page.locator('[data-mobile-table-action-target="post-filter-btn"]').click();
+  await page.locator('#post-filter-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+  await expectElementWithinViewport(page, '#post-filter-overlay .post-filter-dialog', 'Tablet landscape post filter dialog');
+  await expectOverlayConsumesScroll(page, '.post-filter-dialog__body', 'Tablet landscape post filter dialog');
+  const postFilterMetrics = await page.locator('#post-filter-overlay .post-filter-dialog').evaluate(dialog => {
+    const builder = dialog.querySelector('.post-filter-builder');
+    const actions = dialog.querySelector('.post-filter-dialog__actions');
+    const valueRow = dialog.querySelector('.post-filter-value-row');
+    const builderStyle = builder ? window.getComputedStyle(builder) : null;
+    const actionsStyle = actions ? window.getComputedStyle(actions) : null;
+    const valueRowStyle = valueRow ? window.getComputedStyle(valueRow) : null;
+    const dialogRect = dialog.getBoundingClientRect();
+    return {
+      actionDirection: actionsStyle?.flexDirection || '',
+      builderColumns: builderStyle ? builderStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      bottomGap: Math.abs(window.innerHeight - dialogRect.bottom),
+      sideGapDelta: Math.abs(dialogRect.left - Math.abs(window.innerWidth - dialogRect.right)),
+      valueColumns: valueRowStyle ? valueRowStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      width: dialogRect.width
+    };
+  });
+  if (
+    postFilterMetrics.builderColumns !== 2
+    || postFilterMetrics.valueColumns !== 3
+    || postFilterMetrics.actionDirection !== 'row'
+    || postFilterMetrics.sideGapDelta > 2
+    || postFilterMetrics.bottomGap > 8
+  ) {
+    throw new Error(`Tablet landscape post filter dialog should use tablet-width mobile controls: ${JSON.stringify(postFilterMetrics)}`);
+  }
+  await page.locator('#post-filter-done-btn').click();
+  await expectMobileScrollLockReleased(page, 'Tablet landscape post filter dialog');
+  await cleanupMobilePageScroll(page);
+
+  await primeMobilePageScroll(page);
+  await page.locator('[data-mobile-table-action-target="download-btn"]').click();
+  await page.locator('#export-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+  await expectElementWithinViewport(page, '#export-overlay .export-dialog', 'Tablet landscape export dialog');
+  await expectOverlayConsumesScroll(page, '.export-dialog__body', 'Tablet landscape export dialog');
+  const exportMetrics = await page.locator('#export-overlay .export-dialog').evaluate(dialog => {
+    const summary = dialog.querySelector('.export-dialog__summary');
+    const modeGrid = dialog.querySelector('.export-mode-grid');
+    const optionGrid = dialog.querySelector('.export-option-grid');
+    const progress = dialog.querySelector('.export-progress');
+    const summaryStyle = summary ? window.getComputedStyle(summary) : null;
+    const modeStyle = modeGrid ? window.getComputedStyle(modeGrid) : null;
+    const optionStyle = optionGrid ? window.getComputedStyle(optionGrid) : null;
+    const progressStyle = progress ? window.getComputedStyle(progress) : null;
+    const dialogRect = dialog.getBoundingClientRect();
+    return {
+      bottomGap: Math.abs(window.innerHeight - dialogRect.bottom),
+      modeColumns: modeStyle ? modeStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      optionColumns: optionStyle ? optionStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      progressColumns: progressStyle && progressStyle.display !== 'none'
+        ? progressStyle.gridTemplateColumns.split(' ').filter(Boolean).length
+        : 2,
+      sideGapDelta: Math.abs(dialogRect.left - Math.abs(window.innerWidth - dialogRect.right)),
+      summaryColumns: summaryStyle ? summaryStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      width: dialogRect.width
+    };
+  });
+  if (
+    exportMetrics.summaryColumns !== 4
+    || exportMetrics.modeColumns !== 2
+    || exportMetrics.optionColumns !== 2
+    || exportMetrics.progressColumns !== 2
+    || exportMetrics.sideGapDelta > 2
+    || exportMetrics.bottomGap > 8
+  ) {
+    throw new Error(`Tablet landscape export dialog should use tablet-width mobile columns: ${JSON.stringify(exportMetrics)}`);
+  }
+  await page.locator('#export-cancel-btn').click();
+  await expectMobileScrollLockReleased(page, 'Tablet landscape export dialog');
+  await cleanupMobilePageScroll(page);
+
   await page.locator('#mobile-builder-toggle').click();
   await page.waitForFunction(() => document.querySelector('#mobile-builder-drawer')?.classList.contains('is-open'), null, { timeout: 5000 });
   const builderMetrics = await page.evaluate(() => {

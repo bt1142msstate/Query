@@ -1800,6 +1800,35 @@ body.post-filter-overlay-open {
     min-height: 2.75rem;
   }
 
+  @media (min-width: 700px) {
+    .post-filter-dialog {
+      max-width: min(58rem, calc(100vw - 1.5rem));
+      margin-inline: auto;
+    }
+
+    .post-filter-builder {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.7rem;
+    }
+
+    .post-filter-field--value,
+    .post-filter-add-btn {
+      grid-column: 1 / -1;
+    }
+
+    .post-filter-value-row {
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    }
+
+    .post-filter-dialog__actions {
+      flex-direction: row;
+    }
+
+    .post-filter-dialog__body {
+      gap: 0.75rem;
+    }
+  }
+
   @supports selector(:has(*)) {
     .post-filter-list-panel:has(.post-filter-empty:not(.hidden)) {
       display: none;
@@ -2569,6 +2598,30 @@ body.post-filter-overlay-open {
     min-width: 2.75rem;
     height: 2.75rem;
     flex: 0 0 2.75rem;
+  }
+
+  @media (min-width: 700px) {
+    .export-dialog {
+      max-width: min(60rem, calc(100vw - 1.5rem));
+      margin-inline: auto;
+    }
+
+    .export-dialog__summary {
+      grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr));
+    }
+
+    .export-summary-pill--name {
+      grid-column: auto;
+    }
+
+    .export-mode-grid,
+    .export-option-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .export-progress {
+      grid-template-columns: minmax(0, 1fr) minmax(12rem, 18rem);
+    }
   }
 }
 
