@@ -43,6 +43,20 @@ function isMobileTableViewport() {
     && window.matchMedia('(max-width: 1180px)').matches;
 }
 
+function isTabletWidthMobileViewport() {
+  return typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(min-width: 700px) and (max-width: 1180px)').matches;
+}
+
+function getResponsiveExpandedTableZoomLimit() {
+  if (!isMobileTableViewport()) {
+    return null;
+  }
+
+  return isTabletWidthMobileViewport() ? 1 : 0.9;
+}
+
 function getConfiguredFilterCount() {
   return Object.values(getActiveFilters()).reduce((total, data) => {
     return total + (data && Array.isArray(data.filters) ? data.filters.length : 0);
@@ -407,10 +421,18 @@ function updateTableChromeState() {
 
   const expanded = tableShell.classList.contains('table-shell-expanded');
   const isMobileViewport = isMobileTableViewport();
-  if (expanded && isMobileViewport && getTableZoom() > 0.9) {
-    tableShell.dataset.zoom = '0.90';
+  const responsiveExpandedZoom = expanded ? getResponsiveExpandedTableZoomLimit() : null;
+  const currentZoom = getTableZoom();
+  if (
+    responsiveExpandedZoom !== null
+    && (
+      currentZoom > responsiveExpandedZoom
+      || tableShell.dataset.responsiveMobileZoom === 'true'
+    )
+  ) {
+    tableShell.dataset.zoom = responsiveExpandedZoom.toFixed(2);
     tableShell.dataset.responsiveMobileZoom = 'true';
-  } else if (expanded && !isMobileViewport && tableShell.dataset.responsiveMobileZoom === 'true') {
+  } else if (expanded && responsiveExpandedZoom === null && tableShell.dataset.responsiveMobileZoom === 'true') {
     tableShell.dataset.zoom = '1.00';
     delete tableShell.dataset.responsiveMobileZoom;
   } else if (!expanded) {
@@ -478,8 +500,10 @@ function toggleTableExpanded(forceExpanded) {
   tableShell.classList.toggle('table-shell-expanded', expanded);
   document.body.classList.toggle('table-expanded-open', expanded);
 
-  if (expanded && isMobileTableViewport() && getTableZoom() > 0.9) {
-    tableShell.dataset.zoom = '0.90';
+  const responsiveExpandedZoom = expanded ? getResponsiveExpandedTableZoomLimit() : null;
+  if (responsiveExpandedZoom !== null && getTableZoom() > responsiveExpandedZoom) {
+    tableShell.dataset.zoom = responsiveExpandedZoom.toFixed(2);
+    tableShell.dataset.responsiveMobileZoom = 'true';
   }
 
   if (!expanded) {
