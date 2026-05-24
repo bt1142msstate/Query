@@ -13,6 +13,7 @@ import {
   resolveSpecialPayloadFieldNames
 } from './queryHistoryRequestMapper.js';
 import { HISTORY_TABLE_HEADS, createQueriesTableRowHtml } from './queryHistoryRows.js';
+import { groupHistoryQueries } from './queryHistoryGrouping.js';
 import { notifyHistoryResultLoadComplete, prepareHistoryResultLoadNotification } from './queryHistoryNotifications.js';
 import {
   buildHistoryMonitor,
@@ -730,25 +731,8 @@ function patchQueriesPanelData(newHistory) {
 
   const searchInput = DOM.queriesSearch;
   const searchTerm  = searchInput ? searchInput.value.trim().toLowerCase() : '';
-  const matchesSearch = q =>
-    !searchTerm ||
-    (q.name && q.name.toLowerCase().includes(searchTerm)) ||
-    q.id.toLowerCase().includes(searchTerm) ||
-    (q.jsonConfig?.DesiredColumnOrder || []).some(col => col.toLowerCase().includes(searchTerm));
-
-  const runningList   = newHistory.filter(q => q.running && matchesSearch(q));
-  const doneList      = newHistory.filter(q => !q.running && !q.cancelled && !q.failed && matchesSearch(q));
-  const failedList    = newHistory.filter(q => q.failed    && matchesSearch(q));
-  const cancelledList = newHistory.filter(q => q.cancelled && matchesSearch(q));
-
-  const counts = {
-    running:  runningList.length,
-    complete: doneList.length,
-    failed:   failedList.length,
-    canceled: cancelledList.length
-  };
-  const visibleCount = Object.values(counts).reduce((a, b) => a + b, 0);
-  const totalCount   = newHistory.length;
+  const grouped = groupHistoryQueries(newHistory, searchTerm);
+  const { running: runningList, complete: doneList, failed: failedList, canceled: cancelledList, counts, visibleCount, totalCount } = grouped;
 
   // — Editorial hero subtitle
   const heroSubtitle = container.querySelector('.history-editorial-subtitle');
@@ -951,48 +935,20 @@ function renderQueries(){
   // Get search value
   const searchInput = DOM.queriesSearch;
   const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
-  
-  let runningList = exampleQueries.filter(q => q.running);
-  let doneList = exampleQueries.filter(q => !q.running && !q.cancelled && !q.failed);
-  let failedList = exampleQueries.filter(q => q.failed);
-  let cancelledList = exampleQueries.filter(q => q.cancelled);
-  
-  // Apply search filter if there's a search term
-  if (searchTerm) {
-    runningList = runningList.filter(q => 
-      (q.name && q.name.toLowerCase().includes(searchTerm)) ||
-      q.id.toLowerCase().includes(searchTerm) ||
-      (q.jsonConfig?.DesiredColumnOrder || []).some(col => col.toLowerCase().includes(searchTerm))
-    );
-    doneList = doneList.filter(q => 
-      (q.name && q.name.toLowerCase().includes(searchTerm)) ||
-      q.id.toLowerCase().includes(searchTerm) ||
-      (q.jsonConfig?.DesiredColumnOrder || []).some(col => col.toLowerCase().includes(searchTerm))
-    );
-    failedList = failedList.filter(q => 
-      (q.name && q.name.toLowerCase().includes(searchTerm)) ||
-      q.id.toLowerCase().includes(searchTerm) ||
-      (q.error && q.error.toLowerCase().includes(searchTerm)) ||
-      (q.jsonConfig?.DesiredColumnOrder || []).some(col => col.toLowerCase().includes(searchTerm))
-    );
-    cancelledList = cancelledList.filter(q => 
-      (q.name && q.name.toLowerCase().includes(searchTerm)) ||
-      q.id.toLowerCase().includes(searchTerm) ||
-      (q.jsonConfig?.DesiredColumnOrder || []).some(col => col.toLowerCase().includes(searchTerm))
-    );
-  }
+  const grouped = groupHistoryQueries(exampleQueries, searchTerm);
+  const { running: runningList, complete: doneList, failed: failedList, canceled: cancelledList } = grouped;
   
   const runningRows = runningList.map(createHistoryRowHtml).join('');
   const doneRows = doneList.map(createHistoryRowHtml).join('');
   const failedRows = failedList.map(createHistoryRowHtml).join('');
   const cancelledRows = cancelledList.map(createHistoryRowHtml).join('');
 
-  const runningCount = runningList.length;
-  const doneCount = doneList.length;
-  const failedCount = failedList.length;
-  const cancelledCount = cancelledList.length;
-  const visibleCount = runningCount + doneCount + failedCount + cancelledCount;
-  const totalCount = exampleQueries.length;
+  const runningCount = grouped.counts.running;
+  const doneCount = grouped.counts.complete;
+  const failedCount = grouped.counts.failed;
+  const cancelledCount = grouped.counts.canceled;
+  const visibleCount = grouped.visibleCount;
+  const totalCount = grouped.totalCount;
   const liveSignal = runningCount > 0
     ? `${runningCount} live ${runningCount === 1 ? 'query is' : 'queries are'} still updating.`
     : 'No active queries are running right now.';

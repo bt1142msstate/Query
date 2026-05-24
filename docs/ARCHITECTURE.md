@@ -7,7 +7,7 @@ This project is a static browser app organized as feature-oriented ES modules. T
 - It solves a real workflow with complex state, async execution, virtualized data display, export, overlays, and editable forms.
 - It uses native browser ES modules and declares `"type": "module"` for Node-side tooling.
 - It has executable guardrails for module specifiers, forbidden browser globals, query-state access, module reachability, import cycles, layer boundaries, unit-tested business logic, and browser smoke behavior.
-- Query history is split into request mapping, row rendering, detail rendering, view metadata, and coordinator modules.
+- Query history is split into grouping/search, request mapping, row rendering, detail rendering, view metadata, and coordinator modules.
 - Query templates are split into repository, payload, collection, state, category-view, list-view, and coordinator modules.
 - It documents the intended module boundaries and known legacy areas.
 
