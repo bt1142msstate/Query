@@ -1806,6 +1806,35 @@ async function exerciseTabletLandscapeMobileParity(page, queryApiStub) {
   ) {
     throw new Error(`Tablet landscape post filter dialog should use tablet-width mobile controls: ${JSON.stringify(postFilterMetrics)}`);
   }
+  await page.locator('#post-filter-operator').selectOption('equals');
+  await page.locator('#post-filter-value-picker-host .form-mode-popup-list-trigger').waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('#post-filter-value-picker-host .form-mode-popup-list-trigger').click();
+  await page.locator('.form-mode-popup-list-popup:not([hidden])').waitFor({ state: 'visible', timeout: 5000 });
+  const popupListMetrics = await page.locator('.form-mode-popup-list-popup:not([hidden])').evaluate(popup => {
+    const body = popup.querySelector('.form-mode-popup-list-popup-body');
+    const options = popup.querySelector('.grouped-options-container');
+    const popupRect = popup.getBoundingClientRect();
+    const bodyRect = body?.getBoundingClientRect();
+    const optionsRect = options?.getBoundingClientRect();
+    return {
+      bodyHeight: bodyRect?.height || 0,
+      bottomGap: Math.abs(window.innerHeight - popupRect.bottom),
+      optionsHeight: optionsRect?.height || 0,
+      sideGapDelta: Math.abs(popupRect.left - Math.abs(window.innerWidth - popupRect.right)),
+      viewportHeight: window.innerHeight,
+      width: popupRect.width
+    };
+  });
+  if (
+    popupListMetrics.width < 560
+    || popupListMetrics.width > 740
+    || popupListMetrics.sideGapDelta > 2
+    || popupListMetrics.optionsHeight < popupListMetrics.viewportHeight * 0.36
+    || popupListMetrics.bottomGap > 8
+  ) {
+    throw new Error(`Tablet landscape popup list should be centered and wide enough for touch selection: ${JSON.stringify(popupListMetrics)}`);
+  }
+  await page.locator('.form-mode-popup-list-done').click();
   await page.locator('#post-filter-done-btn').click();
   await expectMobileScrollLockReleased(page, 'Tablet landscape post filter dialog');
   await cleanupMobilePageScroll(page);
