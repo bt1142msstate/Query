@@ -14,7 +14,6 @@ import {
 import {
   createTemplateDraftFromConfig,
   filterVisibleTemplates,
-  getAssignedCategoryIds,
   removeCategoryFromTemplates,
   replaceCategoryInTemplates,
   validateCategoryName,
@@ -35,13 +34,15 @@ import {
 } from './queryTemplatePayloads.js';
 import { createQueryTemplateRepository } from './queryTemplateRepository.js';
 import {
-  buildCategoryCardMeta,
-  buildCategoryFilterOptions,
   buildTemplateDetailMeta,
-  buildTemplateFilterSummary,
-  getPinnedTemplatesForStrip,
-  getTemplateListSections
+  getPinnedTemplatesForStrip
 } from './queryTemplateViewState.js';
+import {
+  renderTemplateCategoryAssignment,
+  renderTemplateCategoryFilter,
+  renderTemplateCategoryList
+} from './queryTemplateCategoryView.js';
+import { renderTemplateList } from './queryTemplateListView.js';
 import { escapeHtml } from '../core/html.js';
 (function initializeQueryTemplates() {
   const NEW_TEMPLATE_ID = '__new_template__';
@@ -728,285 +729,59 @@ import { escapeHtml } from '../core/html.js';
 
   function renderCategoryFilter() {
     const elements = getElements();
-    if (!elements.categoryFilter || !elements.searchInput || !elements.resultsSummary) {
-      return;
-    }
-
-    const options = buildCategoryFilterOptions(state.categories)
-      .map(option => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`);
-    elements.categoryFilter.innerHTML = options.join('');
-    elements.categoryFilter.value = state.selectedCategoryFilter;
-    elements.categoryFilter.disabled = state.loading || state.saving;
-    elements.searchInput.value = state.searchQuery;
-    elements.searchInput.disabled = state.loading || state.saving;
-
-    const visibleCount = getVisibleTemplates().length;
-    const totalCount = state.templates.length;
-    elements.resultsSummary.textContent = buildTemplateFilterSummary({
-      searchQuery: state.searchQuery,
-      selectedCategoryFilter: state.selectedCategoryFilter,
-      categories: state.categories,
-      visibleCount,
-      totalCount
+    renderTemplateCategoryFilter({
+      elements,
+      state,
+      visibleCount: getVisibleTemplates().length
     });
   }
 
   function renderCategoryList() {
     const elements = getElements();
-    const restricted = isRestrictedMode();
-    if (!elements.categoryList || !elements.categoryNameInput || !elements.categoryDescriptionInput || !elements.categorySaveBtn || !elements.categoryCancelBtn || !elements.categoryNameLabel) {
-      return;
-    }
-
-    if (!state.categories.length) {
-      const empty = document.createElement('div');
-      empty.className = 'templates-category-empty-state';
-      empty.innerHTML = restricted
-        ? '<h4>No categories yet</h4><p>Categories have not been created yet. You can still browse and use templates.</p>'
-        : '<h4>No categories yet</h4><p>Create a category to group related templates and speed up browsing.</p>';
-      elements.categoryList.replaceChildren(empty);
-    } else {
-      elements.categoryList.replaceChildren(...state.categories.map(category => {
-        const card = document.createElement('article');
-        card.className = 'templates-category-card';
-        card.classList.toggle('is-filter-active', category.id === state.selectedCategoryFilter);
-
-        const infoButton = document.createElement('button');
-        infoButton.type = 'button';
-        infoButton.className = 'templates-category-card__main';
-        infoButton.addEventListener('click', () => {
-          state.selectedCategoryFilter = state.selectedCategoryFilter === category.id ? '' : category.id;
-          reconcileTemplateSelection();
-          render();
-        });
-
-        const name = document.createElement('div');
-        name.className = 'templates-category-card__name';
-        name.textContent = category.name;
-
-        const meta = document.createElement('div');
-        meta.className = 'templates-category-card__meta';
-        meta.textContent = buildCategoryCardMeta(category, state.templates);
-
-        infoButton.append(name, meta);
-        card.appendChild(infoButton);
-
-        if (!restricted) {
-          const actions = document.createElement('div');
-          actions.className = 'templates-category-card__actions';
-
-          const editBtn = document.createElement('button');
-          editBtn.type = 'button';
-          editBtn.className = 'templates-category-card__btn';
-          editBtn.textContent = 'Edit';
-          editBtn.title = `Edit ${category.name}`;
-          editBtn.addEventListener('click', event => {
-            event.stopPropagation();
-            startCategoryEdit(category.id);
-          });
-          actions.appendChild(editBtn);
-
-          const deleteBtn = document.createElement('button');
-          deleteBtn.type = 'button';
-          deleteBtn.className = 'templates-category-card__btn templates-category-card__btn--danger';
-          deleteBtn.textContent = 'Delete';
-          deleteBtn.title = `Delete ${category.name}`;
-          deleteBtn.addEventListener('click', event => {
-            event.stopPropagation();
-            deleteCategory(category.id);
-          });
-          actions.appendChild(deleteBtn);
-
-          card.appendChild(actions);
-        }
-
-        return card;
-      }));
-    }
-
-    elements.categoryNameInput.disabled = restricted || state.saving;
-    elements.categoryDescriptionInput.disabled = restricted || state.saving;
-    elements.categorySaveBtn.disabled = restricted || state.saving;
-    elements.categoryCancelBtn.disabled = restricted || state.saving;
-    elements.categorySaveBtn.classList.toggle('hidden', restricted);
-    elements.categoryCancelBtn.classList.toggle('hidden', restricted || !state.editingCategoryId);
-    elements.categorySaveBtn.textContent = state.editingCategoryId ? 'Save Category' : 'Add Category';
-    elements.categoryNameLabel.textContent = state.editingCategoryId ? 'Edit Category' : 'New Category';
+    renderTemplateCategoryList({
+      elements,
+      state,
+      restricted: isRestrictedMode(),
+      onToggleCategoryFilter(categoryId) {
+        state.selectedCategoryFilter = state.selectedCategoryFilter === categoryId ? '' : categoryId;
+        reconcileTemplateSelection();
+        render();
+      },
+      onStartCategoryEdit: startCategoryEdit,
+      onDeleteCategory: deleteCategory
+    });
   }
 
   function renderCategoryAssignment() {
-    const elements = getElements();
-    const restricted = isRestrictedMode();
-    const selected = getSelectedTemplate();
-    if (!elements.categoryAssignment) {
-      return;
-    }
-
-    if (!selected) {
-      elements.categoryAssignment.replaceChildren();
-      return;
-    }
-
-    if (!state.categories.length) {
-      const empty = document.createElement('div');
-      empty.className = 'template-category-empty';
-      empty.textContent = restricted
-        ? 'No categories have been created yet.'
-        : 'No categories yet. Add categories in the sidebar to organize templates.';
-      elements.categoryAssignment.replaceChildren(empty);
-      return;
-    }
-
-    const assignedIds = new Set(getAssignedCategoryIds(selected));
-    elements.categoryAssignment.replaceChildren(...state.categories.map(category => {
-      const label = document.createElement('label');
-      label.className = 'template-category-option';
-
-      const input = document.createElement('input');
-      input.type = 'checkbox';
-      input.value = category.id;
-      input.checked = assignedIds.has(category.id);
-      input.disabled = restricted || state.saving;
-      input.addEventListener('change', () => {
-        syncDraftCategoriesFromInputs();
+    renderTemplateCategoryAssignment({
+      elements: getElements(),
+      state,
+      restricted: isRestrictedMode(),
+      selected: getSelectedTemplate(),
+      onDraftCategoriesChange: syncDraftCategoriesFromInputs,
+      onClearValidation() {
         renderValidation([]);
-      });
-
-      const text = document.createElement('span');
-      text.textContent = category.name;
-
-      label.append(input, text);
-      return label;
-    }));
+      }
+    });
   }
 
   function renderList() {
-    const elements = getElements();
-    if (!elements.list || !elements.listStatus) {
-      return;
-    }
-
-    const visibleTemplates = getVisibleTemplates();
-    const sections = getTemplateListSections(visibleTemplates);
-    const pinnedTemplates = sections.find(section => section.key === 'pinned')?.items || [];
-    if (state.loading) {
-      elements.listStatus.textContent = 'Loading templates…';
-      elements.listStatus.classList.remove('hidden');
-      elements.list.replaceChildren();
-      elements.emptyState?.classList.add('hidden');
-      return;
-    }
-
-    if (!visibleTemplates.length) {
-      elements.listStatus.classList.add('hidden');
-      elements.list.replaceChildren();
-      elements.emptyState?.classList.remove('hidden');
-      return;
-    }
-
-    elements.emptyState?.classList.add('hidden');
-    elements.listStatus.classList.add('hidden');
-    function createTemplateRow(template, options = {}) {
-      const row = document.createElement('div');
-      row.className = 'templates-list-row';
-      row.classList.toggle('is-pinned', Boolean(template.pinned));
-      row.classList.toggle('is-draggable', Boolean(options.draggable));
-      row.dataset.templateId = template.id;
-
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'templates-list-item';
-      button.classList.toggle('is-selected', template.id === state.selectedId);
-      button.dataset.templateId = template.id;
-      const descriptionTooltip = String(template.description || '').trim() || 'No description provided.';
-      button.setAttribute('data-tooltip', descriptionTooltip);
-      button.setAttribute('aria-label', `${template.name}. ${descriptionTooltip}`);
-      button.innerHTML = `
-        <div class="templates-list-item__title-row">
-          ${template.pinned ? '<span class="templates-list-item__pin-badge">Pinned</span>' : ''}
-          <div class="templates-list-item__title">${escapeHtml(template.name)}</div>
-        </div>`;
-      button.addEventListener('click', () => selectTemplate(template.id));
-      row.appendChild(button);
-
-      if (!isRestrictedMode()) {
-        const pinBtn = document.createElement('button');
-        pinBtn.type = 'button';
-        pinBtn.className = 'templates-list-pin-btn';
-        pinBtn.textContent = template.pinned ? 'Unpin' : 'Pin';
-        pinBtn.setAttribute('aria-label', `${template.pinned ? 'Unpin' : 'Pin'} ${template.name}`);
-        pinBtn.addEventListener('click', async event => {
-          event.stopPropagation();
-          state.selectedId = template.id;
-          setDraftFromTemplate(template);
-          await togglePinSelectedTemplate();
-        });
-        row.appendChild(pinBtn);
+    renderTemplateList({
+      elements: getElements(),
+      state,
+      visibleTemplates: getVisibleTemplates(),
+      restricted: isRestrictedMode(),
+      onSelectTemplate: selectTemplate,
+      async onPinTemplate(template) {
+        state.selectedId = template.id;
+        setDraftFromTemplate(template);
+        await togglePinSelectedTemplate();
+      },
+      onReorderPinnedTemplates: reorderPinnedTemplates,
+      onDraggedPinnedIdChange(nextId) {
+        state.draggedPinnedId = nextId;
       }
-
-      if (options.draggable && !isRestrictedMode()) {
-        row.draggable = true;
-        row.addEventListener('dragstart', event => {
-          state.draggedPinnedId = template.id;
-          row.classList.add('is-dragging');
-          event.dataTransfer.effectAllowed = 'move';
-          event.dataTransfer.setData('text/plain', template.id);
-        });
-        row.addEventListener('dragend', () => {
-          state.draggedPinnedId = '';
-          row.classList.remove('is-dragging');
-          elements.list.querySelectorAll('.templates-list-row').forEach(item => item.classList.remove('is-drop-target'));
-        });
-        row.addEventListener('dragover', event => {
-          event.preventDefault();
-          if (state.draggedPinnedId && state.draggedPinnedId !== template.id) {
-            row.classList.add('is-drop-target');
-          }
-        });
-        row.addEventListener('dragleave', () => {
-          row.classList.remove('is-drop-target');
-        });
-        row.addEventListener('drop', event => {
-          event.preventDefault();
-          row.classList.remove('is-drop-target');
-          const draggedId = state.draggedPinnedId || event.dataTransfer.getData('text/plain');
-          if (!draggedId || draggedId === template.id) {
-            return;
-          }
-          const nextPinnedIds = pinnedTemplates.map(item => item.id);
-          const fromIndex = nextPinnedIds.indexOf(draggedId);
-          const toIndex = nextPinnedIds.indexOf(template.id);
-          if (fromIndex === -1 || toIndex === -1) {
-            return;
-          }
-          nextPinnedIds.splice(toIndex, 0, nextPinnedIds.splice(fromIndex, 1)[0]);
-          reorderPinnedTemplates(nextPinnedIds);
-        });
-      }
-
-      return row;
-    }
-
-    const fragment = document.createDocumentFragment();
-    const buildSection = (title, items, options = {}) => {
-      if (!items.length) return;
-      const section = document.createElement('section');
-      section.className = 'templates-list-section';
-      const header = document.createElement('div');
-      header.className = 'templates-list-section__header';
-      header.innerHTML = `<h4 class="templates-list-section__title">${escapeHtml(title)}</h4><span class="templates-list-section__count">${items.length}</span>`;
-      section.appendChild(header);
-      const body = document.createElement('div');
-      body.className = 'templates-list-section__body';
-      items.forEach(template => body.appendChild(createTemplateRow(template, options)));
-      section.appendChild(body);
-      fragment.appendChild(section);
-    };
-
-    sections.forEach(section => {
-      buildSection(section.title, section.items, { draggable: section.draggable });
     });
-    elements.list.replaceChildren(fragment);
   }
 
   function renderDetail() {
