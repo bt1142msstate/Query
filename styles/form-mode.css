@@ -645,21 +645,22 @@
     max-height: min(46vh, 360px);
   }
 
-  @media (min-width: 700px) {
-    .form-mode-popup-list-popup {
-      right: 0.75rem;
-      left: 0.75rem;
-      max-width: min(46rem, calc(100vw - 1.5rem));
-      margin-inline: auto;
-    }
+}
 
-    .form-mode-popup-list-popup-body {
-      padding: 0.85rem;
-    }
+@media (min-width: 700px) and (max-width: 1180px) {
+  .form-mode-popup-list-popup {
+    right: 0.75rem;
+    left: 0.75rem;
+    max-width: min(46rem, calc(100vw - 1.5rem));
+    margin-inline: auto;
+  }
 
-    .form-mode-popup-list-popup-body .grouped-options-container {
-      max-height: min(52vh, 420px);
-    }
+  .form-mode-popup-list-popup-body {
+    padding: 0.85rem;
+  }
+
+  .form-mode-popup-list-popup-body .grouped-options-container {
+    max-height: min(52vh, 420px);
   }
 }
 
@@ -1225,38 +1226,39 @@
     gap: 0.45rem;
   }
 
-  @media (min-width: 700px) {
-    .form-mode-field-picker-modal {
-      right: 0.75rem;
-      left: 0.75rem;
-      max-width: 58rem;
-      margin-inline: auto;
-    }
+}
 
-    .form-mode-field-picker-body {
-      display: grid;
-      grid-template-columns: minmax(0, 1.15fr) minmax(18rem, 0.85fr);
-      align-items: stretch;
-      gap: 0.75rem;
-    }
+@media (min-width: 700px) and (max-width: 1180px) {
+  .form-mode-field-picker-modal {
+    right: 0.75rem;
+    left: 0.75rem;
+    max-width: 58rem;
+    margin-inline: auto;
+  }
 
-    .form-mode-field-picker-controls {
-      grid-template-columns: minmax(0, 1fr) minmax(12rem, 15rem);
-    }
+  .form-mode-field-picker-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(18rem, 0.85fr);
+    align-items: stretch;
+    gap: 0.75rem;
+  }
 
-    .form-mode-field-picker-list-panel {
-      min-width: 0;
-    }
+  .form-mode-field-picker-controls {
+    grid-template-columns: minmax(0, 1fr) minmax(12rem, 15rem);
+  }
 
-    .form-mode-field-picker-details {
-      flex: initial;
-      max-height: none;
-      min-height: 0;
-    }
+  .form-mode-field-picker-list-panel {
+    min-width: 0;
+  }
 
-    .form-mode-field-picker-list {
-      margin-top: 0.65rem;
-    }
+  .form-mode-field-picker-details {
+    flex: initial;
+    max-height: none;
+    min-height: 0;
+  }
+
+  .form-mode-field-picker-list {
+    margin-top: 0.65rem;
   }
 }
 select.form-mode-operator-select {
