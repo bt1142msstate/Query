@@ -20,9 +20,12 @@ import {
     supportsListSelectorCondition
 } from './filterConditionLogic.js';
 import {
-    conditionAllowsNeverDateValue,
-    configureConditionInputsForType
-} from './filterInputConfiguration.js';
+    configureFilterInputsForType,
+    getComparableDateValue as getComparableDateValueFromPicker,
+    isConditionInputVisible as isConditionInputVisibleAdapter,
+    setConditionInputVisible as setConditionInputVisibleAdapter,
+    syncDatePickerNeverAvailability as syncDatePickerNeverAvailabilityForInputs
+} from './filterInputAdapters.js';
 import { createFilterPillElement, createPostFilterPillElement } from './filterPills.js';
 import { createBuildableFilterFieldHandlers } from './buildableFilterFields.js';
 import {
@@ -97,42 +100,22 @@ function isMobileFilterEditorViewport() {
 }
 
 function setConditionInputVisible(input, visible) {
-    if (!input) return;
-
-    if (CustomDatePicker && typeof CustomDatePicker.setInputVisibility === 'function') {
-        CustomDatePicker.setInputVisibility(input, visible);
-        return;
-    }
-
-    input.style.display = visible ? '' : 'none';
+    setConditionInputVisibleAdapter(input, visible, CustomDatePicker);
 }
 
 function isConditionInputVisible(input) {
-    if (!input) return false;
-
-    if (CustomDatePicker && typeof CustomDatePicker.isInputVisible === 'function') {
-        return CustomDatePicker.isInputVisible(input);
-    }
-
-    return input.style.display !== 'none';
+    return isConditionInputVisibleAdapter(input, CustomDatePicker);
 }
 
 function getComparableDateValue(value) {
-    if (CustomDatePicker && typeof CustomDatePicker.getComparableValue === 'function') {
-        return CustomDatePicker.getComparableValue(value);
-    }
-
-    return NaN;
+    return getComparableDateValueFromPicker(value, CustomDatePicker);
 }
 
 function syncDatePickerNeverAvailability(cond) {
-    [getFilterConditionInputElement(), getFilterConditionInput2Element()]
-        .filter(Boolean)
-        .forEach(input => {
-            if (input._customDatePickerApi) {
-                input._customDatePickerApi.allowNever = conditionAllowsNeverDateValue(cond);
-            }
-        });
+    syncDatePickerNeverAvailabilityForInputs([
+        getFilterConditionInputElement(),
+        getFilterConditionInput2Element()
+    ], cond);
 }
 
 function getConditionOperatorSelect(conditionPanel = null) {
@@ -887,10 +870,9 @@ function finalizeConfirmAction() {
 function configureInputsForType(type){
     const inp1 = getFilterConditionInputElement();
     const inp2 = getFilterConditionInput2Element();
-    const inputs=[inp1,inp2].filter(Boolean);
-    configureConditionInputsForType({
+    configureFilterInputsForType({
       type,
-      inputs,
+      inputs: [inp1, inp2],
       currentFieldName: getActiveFilterFieldName(),
       selectedCondition: getSelectedCondition(getFilterConditionPanelElement()),
       customDatePicker: CustomDatePicker,
