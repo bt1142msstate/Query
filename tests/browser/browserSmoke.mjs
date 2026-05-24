@@ -1675,6 +1675,46 @@ async function exerciseTabletLandscapeMobileParity(page, queryApiStub) {
   ) {
     throw new Error(`Tablet landscape history monitor should use a centered tablet sheet with compact rows: ${JSON.stringify(historyMonitorMetrics)}`);
   }
+  await page.locator('.history-monitor .history-expand-btn').first().click();
+  await page.locator('.history-details-modal').waitFor({ state: 'visible', timeout: 5000 });
+  await expectElementWithinViewport(page, '.history-details-modal', 'Tablet landscape history details modal');
+  await expectMinimumTapTarget(page, '.history-details-modal-close', 'Tablet landscape history details close button');
+  const tabletHistoryDetailsMetrics = await page.locator('.history-details-modal').evaluate(modal => {
+    const rect = modal.getBoundingClientRect();
+    const grid = modal.querySelector('.history-details-grid');
+    const gridStyle = grid ? window.getComputedStyle(grid) : null;
+    modal.scrollTop = 0;
+    const filler = document.createElement('div');
+    filler.dataset.browserSmokeHistoryDetailsFiller = 'true';
+    filler.style.height = '900px';
+    filler.style.pointerEvents = 'none';
+    modal.appendChild(filler);
+    modal.scrollTop = 240;
+    const scrollTop = modal.scrollTop;
+    filler.remove();
+    modal.scrollTop = 0;
+    return {
+      bottomGap: Math.abs(window.innerHeight - rect.bottom),
+      gridColumns: gridStyle ? gridStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      height: rect.height,
+      scrollTop,
+      sideGapDelta: Math.abs(rect.left - Math.abs(window.innerWidth - rect.right)),
+      top: rect.top,
+      width: rect.width
+    };
+  });
+  if (
+    tabletHistoryDetailsMetrics.gridColumns !== 2
+    || tabletHistoryDetailsMetrics.width < 680
+    || tabletHistoryDetailsMetrics.sideGapDelta > 2
+    || tabletHistoryDetailsMetrics.top < 60
+    || tabletHistoryDetailsMetrics.bottomGap < 0
+    || tabletHistoryDetailsMetrics.scrollTop < 120
+  ) {
+    throw new Error(`Tablet landscape history details should use a centered scrollable tablet modal: ${JSON.stringify(tabletHistoryDetailsMetrics)}`);
+  }
+  await page.locator('.history-details-modal-close').click();
+  await page.locator('.history-details-modal-shell').waitFor({ state: 'detached', timeout: 5000 });
   await page.locator('.history-monitor-close').click();
   await page.locator('.history-monitor').waitFor({ state: 'detached', timeout: 5000 });
   await page.locator('#queries-panel .collapse-btn').click();
@@ -3430,6 +3470,49 @@ async function runSmokeTest() {
     if (mobileHistoryMonitorMetrics.position !== 'fixed' || mobileHistoryMonitorMetrics.top > 80 || mobileHistoryMonitorMetrics.bottomGap > 1 || mobileHistoryMonitorMetrics.stageHeight < 120) {
       throw new Error(`Mobile history monitor should open as a visible sheet: ${JSON.stringify(mobileHistoryMonitorMetrics)}`);
     }
+    await mobilePage.locator('.history-monitor .history-expand-btn').first().click();
+    await mobilePage.locator('.history-details-modal').waitFor({ state: 'visible', timeout: 5000 });
+    await expectElementWithinViewport(mobilePage, '.history-details-modal', 'Mobile history details modal');
+    await expectMinimumTapTarget(mobilePage, '.history-details-modal-close', 'Mobile history details close button');
+    const mobileHistoryDetailsMetrics = await mobilePage.locator('.history-details-modal').evaluate(modal => {
+      const shell = document.querySelector('.history-details-modal-shell');
+      const rect = modal.getBoundingClientRect();
+      const shellRect = shell?.getBoundingClientRect();
+      const grid = modal.querySelector('.history-details-grid');
+      const gridStyle = grid ? window.getComputedStyle(grid) : null;
+      modal.scrollTop = 0;
+      const filler = document.createElement('div');
+      filler.dataset.browserSmokeHistoryDetailsFiller = 'true';
+      filler.style.height = '900px';
+      filler.style.pointerEvents = 'none';
+      modal.appendChild(filler);
+      modal.scrollTop = 240;
+      const scrollTop = modal.scrollTop;
+      filler.remove();
+      modal.scrollTop = 0;
+      return {
+        bodyLocked: document.body.classList.contains('mobile-overlay-scroll-locked'),
+        bottomGap: Math.abs((shellRect?.bottom || window.innerHeight) - rect.bottom),
+        gridColumns: gridStyle ? gridStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+        height: rect.height,
+        scrollTop,
+        shellBottom: shellRect?.bottom || 0,
+        top: rect.top,
+        width: rect.width
+      };
+    });
+    if (
+      !mobileHistoryDetailsMetrics.bodyLocked
+      || mobileHistoryDetailsMetrics.gridColumns !== 1
+      || mobileHistoryDetailsMetrics.width < 360
+      || mobileHistoryDetailsMetrics.top < 48
+      || mobileHistoryDetailsMetrics.bottomGap > 10
+      || mobileHistoryDetailsMetrics.scrollTop < 120
+    ) {
+      throw new Error(`Mobile history details should open as a bottom-aligned scrollable sheet: ${JSON.stringify(mobileHistoryDetailsMetrics)}`);
+    }
+    await mobilePage.locator('.history-details-modal-close').click();
+    await mobilePage.locator('.history-details-modal-shell').waitFor({ state: 'detached', timeout: 5000 });
     await mobilePage.locator('.history-monitor-close').click();
     await mobilePage.locator('.history-monitor').waitFor({ state: 'detached', timeout: 5000 });
 

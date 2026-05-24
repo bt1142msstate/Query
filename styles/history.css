@@ -1111,8 +1111,10 @@
   position: sticky;
   top: 0;
   margin-left: auto;
-  width: 2.3rem;
-  height: 2.3rem;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  min-height: 2.75rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1725,13 +1727,15 @@
 
   .history-details-modal-shell {
     padding: 0.5rem;
+    align-items: end;
   }
 
   .history-details-modal {
-    width: calc(100vw - 1rem);
-    max-height: calc(100vh - 1rem);
+    width: 100%;
+    max-height: calc(100vh - var(--header-height) - 0.5rem);
+    max-height: calc(100dvh - var(--header-height) - 0.5rem);
     padding: 0.85rem;
-    border-radius: 1rem;
+    border-radius: 1rem 1rem 0.85rem 0.85rem;
   }
 
   .history-details-modal-header,
@@ -1794,6 +1798,22 @@
   .history-monitor .history-meta-line {
     max-height: 1.45rem;
     overflow: hidden;
+  }
+
+  .history-details-modal-shell {
+    place-items: center;
+    padding: 0.75rem;
+  }
+
+  .history-details-modal {
+    width: min(58rem, calc(100vw - 1.5rem));
+    max-height: calc(100vh - var(--header-height) - 1.5rem);
+    max-height: calc(100dvh - var(--header-height) - 1.5rem);
+    border-radius: 1.1rem;
+  }
+
+  .history-details-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
