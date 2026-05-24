@@ -39,7 +39,7 @@ The intended deployment model is bring-your-own API. The public live site should
 | Data contract | `filters/queryPayload.js`, `filters/fieldDefs.js` | Backend payload generation, field metadata, filter normalization |
 | Feature UI | `ui/`, `filters/`, `bubbles/`, `table/`, `history/`, `templates/` | User workflows and rendering, with complex widgets split into focused view/helper modules |
 | UI feature folders | `ui/form-mode/`, `ui/field-picker/` | Larger UI workflows with dedicated shell, field-picker, query-preview, state helper, presentation, and interaction modules |
-| Table feature folders | `table/drag-drop/`, `table/virtual-table/`, `table/post-filters/`, `table/export/` | Result-table workflows grouped by behavior, with drag/drop split into column, resize, bubble-document, and interaction modules |
+| Table feature folders | `table/drag-drop/`, `table/virtual-table/`, `table/post-filters/`, `table/export/` | Result-table workflows grouped by behavior, with drag/drop split into column, resize, bubble-document, and interaction modules and virtual table measurement split from rendering |
 | Styles | `styles/app.css` plus feature CSS files | Feature-scoped styling with a single stylesheet entry |
 | Architecture config | `config/` | Forbidden browser globals, module budgets, and import-boundary rules |
 | Tests | `tests/architecture/`, `tests/unit/`, `tests/browser/` | Architecture checks, focused unit coverage, and browser smoke coverage |
@@ -109,4 +109,4 @@ The architecture fitness test prevents those files from growing. New large modul
 1. Continue splitting `ui/field-picker/fieldPicker.js` by moving modal rendering and option-list wiring into dedicated modules.
 2. Continue splitting `templates/queryTemplates.js` by moving detail/editor rendering and pinned-strip rendering into dedicated modules.
 3. Continue splitting `filters/filterManager.js` by moving condition-panel builders and confirm validation into dedicated modules.
-4. Continue splitting `table/drag-drop/dragDropInteractions.js` by moving header actions and insert affordance UI into dedicated modules.
+4. Continue splitting `table/virtual-table/virtualTable.js` by moving row rendering and post-filter state application into dedicated modules.
