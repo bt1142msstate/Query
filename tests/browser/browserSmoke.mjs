@@ -1733,6 +1733,48 @@ async function exerciseTabletLandscapeMobileParity(page, queryApiStub) {
   }
   await expectMinimumTapTarget(page, '#mobile-table-action-bar .mobile-table-action', 'Tablet landscape table action bar controls');
 
+  await primeMobilePageScroll(page);
+  await page.locator('[data-mobile-table-action-target="table-add-field-btn"]').click();
+  await page.locator('.form-mode-field-picker-modal:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+  await expectElementWithinViewport(page, '.form-mode-field-picker-modal:not(.hidden)', 'Tablet landscape add field dialog');
+  await expectNoHorizontalOverflow(page, 'Tablet landscape add field dialog');
+  const addFieldMetrics = await page.locator('.form-mode-field-picker-modal:not(.hidden)').evaluate(modal => {
+    const body = modal.querySelector('.form-mode-field-picker-body');
+    const list = modal.querySelector('.form-mode-field-picker-list');
+    const details = modal.querySelector('.form-mode-field-picker-details');
+    const controls = modal.querySelector('.form-mode-field-picker-controls');
+    const bodyStyle = body ? window.getComputedStyle(body) : null;
+    const controlsStyle = controls ? window.getComputedStyle(controls) : null;
+    const modalRect = modal.getBoundingClientRect();
+    const listRect = list?.getBoundingClientRect();
+    const detailsRect = details?.getBoundingClientRect();
+    return {
+      bodyColumns: bodyStyle ? bodyStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      bottomGap: Math.abs(window.innerHeight - modalRect.bottom),
+      controlsColumns: controlsStyle ? controlsStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      detailsHeight: detailsRect?.height || 0,
+      listHeight: listRect?.height || 0,
+      modalWidth: modalRect.width,
+      sideGapDelta: Math.abs(modalRect.left - Math.abs(window.innerWidth - modalRect.right)),
+      top: modalRect.top,
+      viewportHeight: window.innerHeight
+    };
+  });
+  if (
+    addFieldMetrics.bodyColumns !== 2
+    || addFieldMetrics.controlsColumns !== 2
+    || addFieldMetrics.listHeight < addFieldMetrics.viewportHeight * 0.48
+    || addFieldMetrics.detailsHeight < addFieldMetrics.viewportHeight * 0.48
+    || addFieldMetrics.sideGapDelta > 2
+    || addFieldMetrics.top > 16
+    || addFieldMetrics.bottomGap > 16
+  ) {
+    throw new Error(`Tablet landscape add field dialog should use a centered two-column mobile sheet: ${JSON.stringify(addFieldMetrics)}`);
+  }
+  await page.locator('.form-mode-field-picker-close').click();
+  await expectMobileScrollLockReleased(page, 'Tablet landscape add field dialog');
+  await cleanupMobilePageScroll(page);
+
   await page.locator('#mobile-builder-toggle').click();
   await page.waitForFunction(() => document.querySelector('#mobile-builder-drawer')?.classList.contains('is-open'), null, { timeout: 5000 });
   const builderMetrics = await page.evaluate(() => {
