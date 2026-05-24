@@ -1647,10 +1647,12 @@ async function exerciseTabletLandscapeMobileParity(page, queryApiStub) {
     const containerRect = document.querySelector('#table-container')?.getBoundingClientRect();
     const actionBar = document.querySelector('#mobile-table-action-bar');
     const actionBarRect = actionBar?.getBoundingClientRect();
+    const actionBarStyle = actionBar ? window.getComputedStyle(actionBar) : null;
     const builder = document.querySelector('#mobile-builder-drawer');
     const builderRect = builder?.getBoundingClientRect();
     return {
-      actionBarDisplay: actionBar ? window.getComputedStyle(actionBar).display : '',
+      actionBarColumns: actionBarStyle ? actionBarStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      actionBarDisplay: actionBarStyle?.display || '',
       actionBarHeight: actionBarRect?.height || 0,
       builderActive: builder?.classList.contains('is-active') || false,
       builderTop: builderRect?.top || 0,
@@ -1662,12 +1664,13 @@ async function exerciseTabletLandscapeMobileParity(page, queryApiStub) {
   });
   if (
     tableMetrics.actionBarDisplay !== 'grid'
-    || tableMetrics.actionBarHeight > 128
+    || tableMetrics.actionBarColumns !== 7
+    || tableMetrics.actionBarHeight > 72
     || !tableMetrics.builderActive
     || tableMetrics.tableWidth > tableMetrics.containerWidth + 4
     || tableMetrics.containerTop > tableMetrics.builderTop + 1
   ) {
-    throw new Error(`Tablet landscape table should use the same compact mobile workflow: ${JSON.stringify(tableMetrics)}`);
+    throw new Error(`Tablet landscape table should use a one-row mobile action bar with the compact workflow: ${JSON.stringify(tableMetrics)}`);
   }
   await expectMinimumTapTarget(page, '#mobile-table-action-bar .mobile-table-action', 'Tablet landscape table action bar controls');
 
