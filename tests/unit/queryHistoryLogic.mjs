@@ -6,6 +6,9 @@ import {
   mergeUiConfigWithRequest,
   resolveFieldNameFromSpecialPayload
 } from '../../history/queryHistoryRequestMapper.js';
+import { buildHistoryActiveFilters } from '../../history/queryHistoryConfigLoader.js';
+import { buildHistoryResultRows } from '../../history/queryHistoryResultsLoader.js';
+import { formatColumnsTooltip, formatHistoryFiltersTooltip } from '../../history/queryHistoryTooltips.js';
 import {
   classifyQueryStatus,
   getPreferredHistorySection,
@@ -78,6 +81,32 @@ const mergedConfig = mergeUiConfigWithRequest({
 
 assert.deepEqual(mergedConfig.DesiredColumnOrder, ['Existing', 'Resolved Alias']);
 assert.deepEqual(mergedConfig.Filters, [{ FieldName: 'Existing', FieldOperator: 'Equals', Values: ['1'] }]);
+
+assert.deepEqual(buildHistoryActiveFilters([
+  { FieldName: 'alias', FieldOperator: 'Equals', Values: ['A', 'B'] },
+  { FieldName: 'Date', FieldOperator: 'Between', Values: ['20240101', '20240201'] }
+], {
+  resolveFieldName: mapperDependencies.resolveFieldName,
+  mapFieldOperatorToUiCond: op => op === 'Between' ? 'between' : 'equals'
+}), {
+  'Resolved Alias': { filters: [{ cond: 'equals', val: 'A,B' }] },
+  Date: { filters: [{ cond: 'between', val: '20240101|20240201' }] }
+});
+
+const resultRows = buildHistoryResultRows({
+  response: { headers: { get: name => name === 'X-Raw-Columns' ? 'A|B' : null } },
+  streamedLines: ['one|two'],
+  displayedFields: ['A', 'B', 'C'],
+  fallbackColumns: [],
+  parsePipeDelimitedRow: (line, columns) => Object.fromEntries(line.split('|').map((value, index) => [columns[index], value]))
+});
+assert.deepEqual(resultRows, {
+  headers: ['A', 'B', 'C'],
+  objectRows: [{ A: 'one', B: 'two', C: '' }]
+});
+
+assert.match(formatColumnsTooltip(['Title', '<Branch>']), /&lt;Branch&gt;/u);
+assert.equal(formatHistoryFiltersTooltip({ Filters: [] }), 'None');
 
 const rowHtml = createQueriesTableRowHtml({
   id: 'Q1',
