@@ -8,6 +8,7 @@ This project is a static browser app organized as feature-oriented ES modules. T
 - It uses native browser ES modules and declares `"type": "module"` for Node-side tooling.
 - It has executable guardrails for module specifiers, forbidden browser globals, query-state access, module reachability, import cycles, layer boundaries, unit-tested business logic, and browser smoke behavior.
 - Query history is split into request mapping, row rendering, detail rendering, view metadata, and coordinator modules.
+- Query templates are split into repository, payload, collection, state, category-view, list-view, and coordinator modules.
 - It documents the intended module boundaries and known legacy areas.
 
 The former private runtime coordination layer has been removed. Feature coordination now goes through ES imports plus explicit service/action registration.
@@ -106,6 +107,6 @@ The architecture fitness test prevents those files from growing. New large modul
 ## Recommended Next Refactors
 
 1. Continue splitting `ui/form-mode/formMode.js` by moving field-picker coordination and event binding into dedicated modules.
-2. Continue splitting `templates/queryTemplates.js` by moving rendering, category management, and editor coordination into dedicated modules.
+2. Continue splitting `templates/queryTemplates.js` by moving detail/editor rendering and pinned-strip rendering into dedicated modules.
 3. Add more workflow-level unit tests for history/template state transitions and form-mode schema parsing.
 4. Consider TypeScript or JSDoc type checking if stricter static contracts become useful.
