@@ -96,7 +96,7 @@ No application module currently uses a legacy large-module budget. The architect
 
 ## Recommended Next Refactors
 
-1. Continue splitting `templates/queryTemplates.js` by moving remaining shell-only coordination into dedicated modules.
-2. Continue splitting `history/queryHistory.js` by moving remaining shell-only coordination into dedicated modules.
-3. Continue splitting `table/contextMenu.js` by moving menu action construction into dedicated modules.
-4. Continue splitting `ui/form-mode/formMode.js` by moving remaining initialization coordination into dedicated modules.
+1. Continue splitting `history/queryHistory.js` by moving remaining shell-only coordination into dedicated modules.
+2. Continue splitting `table/contextMenu.js` by moving menu action construction into dedicated modules.
+3. Continue splitting `ui/form-mode/formMode.js` by moving remaining initialization coordination into dedicated modules.
+4. Continue splitting `filters/filterManager.js` by moving remaining confirmation workflow into dedicated modules.
