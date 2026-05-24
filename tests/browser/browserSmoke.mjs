@@ -1876,6 +1876,9 @@ async function exerciseTabletLandscapeMobileParity(page, queryApiStub) {
     throw new Error(`Tablet landscape table should use a one-row mobile action bar with the compact workflow: ${JSON.stringify(tableMetrics)}`);
   }
   await expectMinimumTapTarget(page, '#mobile-table-action-bar .mobile-table-action', 'Tablet landscape table action bar controls');
+  await expectMobileTableContextMenu(page);
+  await expectMobileHeaderDragDoesNotOpenContextMenu(page);
+  await expectMobileColumnResizeInteraction(page);
 
   await primeMobilePageScroll(page);
   await page.locator('[data-mobile-table-action-target="table-add-field-btn"]').click();
