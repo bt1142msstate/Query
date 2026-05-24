@@ -31,6 +31,7 @@ import {
 import { buildExpandedMultiValueTable } from './splitColumnExpansion.js';
 import { escapeHtml } from '../../core/html.js';
 import { QueryTableView } from '../../ui/queryTableView.js';
+import { createVirtualTableEmptyRow, createVirtualTableRow } from './virtualTableRows.js';
 let VirtualTable;
 (function initializeVirtualTable() {
 // Virtual scrolling state
@@ -562,8 +563,6 @@ function renderVirtualTable() {
   services.cleanupDragDropTableListeners(table);
 
   if (!Array.isArray(virtualTableData.rows) || virtualTableData.rows.length === 0) {
-    const emptyRow = document.createElement('tr');
-    const emptyCell = document.createElement('td');
     const hasLoadedRows = Array.isArray(baseViewData.rows) && baseViewData.rows.length > 0;
     const message = hasLoadedRows && hasActivePostFilters()
       ? 'No rows match the active post filters.'
@@ -573,11 +572,11 @@ function renderVirtualTable() {
     tbody.style.height = '';
     tbody.style.position = '';
     table.style.height = '';
-    emptyCell.setAttribute('colspan', displayedFields.length.toString());
-    emptyCell.className = 'px-6 py-10 text-center text-sm text-gray-500 italic';
-    emptyCell.textContent = message;
-    emptyRow.appendChild(emptyCell);
-    nextBody.appendChild(emptyRow);
+    nextBody.appendChild(createVirtualTableEmptyRow({
+      colSpan: displayedFields.length,
+      message,
+      document
+    }));
     tbody.replaceChildren(nextBody);
     tableScrollTop = 0;
     tableScrollContainer.scrollTop = 0;
@@ -595,141 +594,25 @@ function renderVirtualTable() {
   tbody.style.height = shouldRenderAllRows ? '' : `${virtualTableData.rows.length * tableRowHeight}px`;
   tbody.style.position = shouldRenderAllRows ? '' : 'relative';
   
-  // Render visible rows
   for (let i = start; i < end; i++) {
-    const rowData = virtualTableData.rows[i]; // Access the 2D array row
-    const tr = TableBuilder.createRow();
-    tr.style.height = `${tableRowHeight}px`;
-
-    if (!shouldRenderAllRows) {
-      tr.style.position = 'absolute';
-      tr.style.top = `${i * tableRowHeight}px`;
-      tr.style.left = '0';
-      tr.style.right = '0';
-      tr.style.display = 'table';
-      tr.style.tableLayout = 'fixed';
-      tr.style.width = `${columnLayout.totalWidth}px`;
-    }
-
-    tr.dataset.rowIndex = i;
-    
-    displayedFields.forEach((field, colIndex) => {
-      const td = TableBuilder.createCell('', 'px-6 py-3 whitespace-nowrap text-sm text-gray-900');
-      td.dataset.colIndex = colIndex;
-      
-      // Get the column index for this field and access the data by index
-      const columnIndex = virtualTableData.columnMap.get(field);
-      const fieldExistsInData = columnIndex !== undefined;
-      let cellValue;
-      
-      if (columnIndex !== undefined && rowData[columnIndex] !== undefined) {
-        // Field exists in data and has a value
-        cellValue = rowData[columnIndex];
-      } else if (columnIndex === undefined) {
-        // Field doesn't exist in the current data - show empty
-        cellValue = '';
-      } else {
-        // Field exists but value is empty/undefined - show em dash
-        cellValue = '—';
-      }
-      
-      // Apply formatting based on field type (same logic as Excel export)
-      const type = getFieldType(field);
-      let displayValue = cellValue;
-      
-      if (cellValue !== '' && cellValue !== '—' && cellValue !== undefined && cellValue !== null) {
-        if (type === 'date') {
-          displayValue = ValueFormatting.formatValueByType(cellValue, type, {
-            fieldName: field,
-            invalidDateValue: 'Never'
-          });
-          td.style.textAlign = 'right';
-        } 
-        else if (type === 'number' || type === 'money') {
-          const n = parseNumericValue(cellValue, type);
-          if (!isNaN(n)) {
-            displayValue = ValueFormatting.formatValueByType(n, type, { fieldName: field });
-            td.style.textAlign = 'right';
-          }
-        } 
-        else if (type === 'boolean') {
-          td.style.textAlign = 'center';
-        }
-      }
-      
-      // Apply the same fixed width as the header
-      const width = columnLayout.widths[colIndex] || calculatedColumnWidths[field] || 150;
-      tableColumnLayout.applyElementColumnWidth(td, width);
-
-      if (!fieldExistsInData) {
-        td.classList.add('query-table-column-missing-data');
-        td.setAttribute('data-tooltip', 'This field is not in the current data. Run a new query to populate it.');
-      }
-
-      if (typeof displayValue === 'string' && displayValue.includes('\x1F')) {
-        // Special handling for multi-value cells (e.g. MARC fields with multiple instances)
-        const items = displayValue.split('\x1F').filter(s => s.trim() !== '');
-        
-        // Override default line-clamp classes
-        td.className = 'px-3 py-2 text-sm text-gray-900 align-top'; 
-        td.style.whiteSpace = 'normal';
-        
-        const scrollContainer = document.createElement('div');
-        // Force strict height confinement to maintain virtual scroll map integrity
-        // Subtract vertical padding to ensure the row height stays exactly at tableRowHeight
-        const paddingOffset = 16; 
-        scrollContainer.style.maxHeight = `${tableRowHeight - paddingOffset > 20 ? tableRowHeight - paddingOffset : 26}px`; 
-        scrollContainer.style.overflowY = 'auto';
-        scrollContainer.style.paddingRight = '4px'; 
-        scrollContainer.style.scrollbarWidth = 'thin'; // Clean scrollbar UI for modern browsers
-        
-        items.forEach((itm, idx) => {
-           const div = document.createElement('div');
-           div.style.marginBottom = idx < items.length - 1 ? '4px' : '0';
-           div.style.paddingBottom = idx < items.length - 1 ? '4px' : '0';
-           div.style.borderBottom = idx < items.length - 1 ? '1px solid #f3f4f6' : 'none';
-           div.style.wordBreak = 'break-word';
-           div.textContent = itm;
-           scrollContainer.appendChild(div);
-        });
-        
-        // Build an elegant HTML tooltip with a list
-        const tooltipItems = items.map(function(itm) {
-          return '<li>' + escapeHtml(itm) + '</li>';
-        }).join('');
-        const tooltipHtml = '<div class="text-left font-sans text-sm pb-1"><div class="font-bold border-b border-gray-500 pb-1 mb-2">Multiple Values (' + items.length + ')</div><ul class="list-disc pl-4 space-y-1">' + tooltipItems + '</ul></div>';
-        
-          td.setAttribute('data-tooltip-html', tooltipHtml);
-        
-        td.textContent = '';
-        td.appendChild(scrollContainer);
-        tr.appendChild(td);
-        return; // skip standard truncation below
-      }
-      
-      // Check if content would be visually truncated and handle it manually
-      if (typeof displayValue === 'string' && displayValue.length > 0 && displayValue !== '—') {
-        const availableWidth = width - 48; // Subtract padding (24px left + 24px right)
-        const fullTextWidth = TextMeasurement.measureText(displayValue);
-        
-        // If text is too wide, truncate it manually and add tooltip
-        if (fullTextWidth > availableWidth) {
-          const maxFitChars = TextMeasurement.findMaxFittingChars(displayValue, availableWidth);
-          const truncatedText = displayValue.substring(0, maxFitChars) + '...';
-          td.textContent = truncatedText;
-          td.setAttribute('data-tooltip', displayValue);
-        } else {
-          // Text fits, no truncation needed
-          td.textContent = displayValue;
-        }
-      } else {
-        td.textContent = displayValue;
-      }
-      
-      tr.appendChild(td);
-    });
-    
-    nextBody.appendChild(tr);
+    nextBody.appendChild(createVirtualTableRow({
+      rowData: virtualTableData.rows[i],
+      rowIndex: i,
+      displayedFields,
+      columnLayout,
+      calculatedColumnWidths,
+      columnMap: virtualTableData.columnMap,
+      rowHeight: tableRowHeight,
+      shouldRenderAllRows,
+      tableBuilder: TableBuilder,
+      tableColumnLayout,
+      textMeasurement: TextMeasurement,
+      valueFormatting: ValueFormatting,
+      parseNumericValue,
+      getFieldType,
+      escapeHtml,
+      document
+    }));
   }
   
   tbody.replaceChildren(nextBody);
