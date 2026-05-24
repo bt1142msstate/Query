@@ -152,8 +152,7 @@ const forbiddenWindowMemberReads = new Map([
 ]);
 
 const legacyLargeModuleBudgets = new Map([
-  ['core/utils.js', 674],
-  ['ui/field-picker/fieldPicker.js', 973]
+  ['core/utils.js', 674]
 ]);
 
 const moduleBoundaryRules = [

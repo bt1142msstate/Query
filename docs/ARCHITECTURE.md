@@ -95,13 +95,12 @@ That runs:
 Some modules are intentionally allowed above the normal line-count budget while they are being split:
 
 - Shared utilities
-- Field picker
 
 The architecture fitness test prevents those files from growing. New large modules should be split instead of added to the budget.
 
 ## Recommended Next Refactors
 
-1. Continue splitting `ui/field-picker/fieldPicker.js` by moving modal rendering and option-list wiring into dedicated modules.
-2. Continue splitting `ui/selectorControls.js` by moving grouped selector rendering and selection-state helpers into dedicated modules.
-3. Continue splitting `table/export/excel.js` by moving workbook assembly and progress coordination into dedicated modules.
-4. Continue splitting `filters/filterManager.js` by moving condition mutation and panel coordination into dedicated modules.
+1. Continue splitting `ui/selectorControls.js` by moving grouped selector rendering and selection-state helpers into dedicated modules.
+2. Continue splitting `table/export/excel.js` by moving workbook assembly and progress coordination into dedicated modules.
+3. Continue splitting `filters/filterManager.js` by moving condition mutation and panel coordination into dedicated modules.
+4. Continue splitting `table/drag-drop/dragDropInteractions.js` by moving remaining gesture coordination into dedicated modules.
