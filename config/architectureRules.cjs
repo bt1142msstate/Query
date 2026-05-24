@@ -154,8 +154,7 @@ const forbiddenWindowMemberReads = new Map([
 const legacyLargeModuleBudgets = new Map([
   ['core/queryState.js', 1040],
   ['core/utils.js', 674],
-  ['ui/field-picker/fieldPicker.js', 973],
-  ['ui/form-mode/formMode.js', 1060]
+  ['ui/field-picker/fieldPicker.js', 973]
 ]);
 
 const moduleBoundaryRules = [

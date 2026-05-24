@@ -94,22 +94,15 @@ That runs:
 
 Some modules are intentionally allowed above the normal line-count budget while they are being split:
 
-- Query history coordinator
 - Query state
-- Query templates
 - Shared utilities
-- Filter manager
-- Drag/drop interactions
-- Post filters
-- Virtual table
 - Field picker
-- Form mode
 
 The architecture fitness test prevents those files from growing. New large modules should be split instead of added to the budget.
 
 ## Recommended Next Refactors
 
-1. Continue splitting `ui/form-mode/formMode.js` by moving remaining URL/share and initialization coordination into dedicated modules.
-2. Continue splitting `core/queryState.js` by moving lifecycle/read-only selector helpers into dedicated modules.
-3. Continue splitting `ui/field-picker/fieldPicker.js` by moving modal rendering and option-list wiring into dedicated modules.
-4. Continue splitting `ui/selectorControls.js` by moving grouped selector rendering and selection-state helpers into dedicated modules.
+1. Continue splitting `core/queryState.js` by moving lifecycle/read-only selector helpers into dedicated modules.
+2. Continue splitting `ui/field-picker/fieldPicker.js` by moving modal rendering and option-list wiring into dedicated modules.
+3. Continue splitting `ui/selectorControls.js` by moving grouped selector rendering and selection-state helpers into dedicated modules.
+4. Continue splitting `table/export/excel.js` by moving workbook assembly and progress coordination into dedicated modules.
