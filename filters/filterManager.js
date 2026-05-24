@@ -1,13 +1,7 @@
 import { appServices, registerFilterService } from '../core/appServices.js';
 import { appUiActions } from '../core/appUiActions.js';
-import { Icons, MoneyUtils, OperatorSelectUtils, ValueFormatting } from '../core/utils.js';
+import { MoneyUtils, OperatorSelectUtils, ValueFormatting } from '../core/utils.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
-import {
-    buildFilterValueLabel,
-    getFilterDisplayValues,
-    openFilterListViewer,
-    shouldUseFilterListViewer
-} from './filterValueUi.js';
 import { SelectorControls } from '../ui/selectorControls.js';
 import {
   fieldDefs,
@@ -26,6 +20,7 @@ import {
     isListPasteField,
     supportsListSelectorCondition
 } from './filterConditionLogic.js';
+import { createFilterPillElement, createPostFilterPillElement } from './filterPills.js';
 
 /**
  * FilterPill UI component class
@@ -474,76 +469,6 @@ function buildBubbleConditionPanel(bubble) {
     }
 }
 
-class FilterPill {
-    constructor(filter, fieldDef, onRemove) {
-        this.filter = filter; // Note: using 'filter' prop consistent with queryUI version logic
-        this.filterData = filter; // Keep compatibility if needed
-        this.fieldDef = fieldDef;
-        this.onRemove = onRemove;
-        this.el = document.createElement('span');
-        this.el.className = 'cond-pill'; // Changed class to match queryUI style
-        this.render();
-    }
-
-    render() {
-        const { filter, fieldDef } = this;
-        const useListViewer = shouldUseFilterListViewer(filter, fieldDef);
-
-        // Operator label (always show full word)
-        let opLabel = filter.cond.charAt(0).toUpperCase() + filter.cond.slice(1);
-
-        // Between: show each bound separately so it reads naturally: "Between X and Y"
-        let condContent;
-        if (filter.cond.toLowerCase() === 'between') {
-            const parts = getFilterDisplayValues(filter, fieldDef);
-            const lo = parts[0] || '';
-            const hi = parts[1] || '';
-            condContent = `Between <b>${lo}</b> and <b>${hi}</b>`;
-        } else {
-            const valueLabel = buildFilterValueLabel(filter, fieldDef);
-            condContent = `${opLabel} <b>${valueLabel}</b>`;
-        }
-        
-        const trashSVG = `<button type="button" class="filter-trash" aria-label="Remove filter" tabindex="0" style="background:none;border:none;padding:0;margin-left:0.7em;display:flex;align-items:center;cursor:pointer;color:#888;">${Icons.trashSVG(20, 20)}</button>`;
-        // Render pill content with trash can at the end using flex
-        this.el.style.display = 'flex';
-        this.el.style.alignItems = 'center';
-        this.el.style.justifyContent = 'space-between';
-        this.el.innerHTML = `<span>${condContent}</span>${trashSVG}`;
-        if (useListViewer) {
-            this.el.classList.add('cond-pill-clickable');
-            this.el.setAttribute('role', 'button');
-            this.el.setAttribute('tabindex', '0');
-            this.el.setAttribute('aria-label', `View ${fieldDef?.name || 'filter'} values`);
-            this.el.removeAttribute('data-tooltip-html');
-            this.el.removeAttribute('data-tooltip');
-            this.el.addEventListener('click', event => {
-                if (event.target.closest('.filter-trash')) return;
-                openFilterListViewer(filter, fieldDef, { fieldName: fieldDef?.name, operatorLabel: opLabel });
-            });
-            this.el.addEventListener('keydown', event => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    openFilterListViewer(filter, fieldDef, { fieldName: fieldDef?.name, operatorLabel: opLabel });
-                }
-            });
-        } else {
-            this.el.classList.remove('cond-pill-clickable');
-            this.el.removeAttribute('role');
-            this.el.removeAttribute('data-tooltip-html');
-        }
-    
-        this.el.querySelector('.filter-trash').addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (this.onRemove) this.onRemove();
-        });
-    }
-
-    getElement() {
-        return this.el;
-    }
-}
-
 var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
 var getFilterGroupForField = QueryStateReaders.getFilterGroupForField.bind(QueryStateReaders);
 
@@ -560,36 +485,6 @@ function getPostFilterSummary() {
     };
 }
 
-function createPostFilterPill() {
-    const summary = getPostFilterSummary();
-    if (!summary.hasPostFilters) {
-        return null;
-    }
-
-    const pill = document.createElement('button');
-    pill.type = 'button';
-    pill.className = 'cond-pill cond-pill-post-filter cond-pill-clickable';
-    pill.setAttribute('aria-label', 'Open post filters');
-    pill.setAttribute('data-tooltip', 'Edit active post filters');
-
-    const fieldLabel = summary.fieldCount === 1 ? 'field' : 'fields';
-    const ruleLabel = summary.ruleCount === 1 ? 'rule' : 'rules';
-    pill.innerHTML = `Post Filters <b>${summary.ruleCount} ${ruleLabel}</b> across <b>${summary.fieldCount} ${fieldLabel}</b>`;
-
-    pill.addEventListener('click', () => {
-        uiActions.openPostFilters();
-    });
-
-    pill.addEventListener('keydown', event => {
-        if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            uiActions.openPostFilters();
-        }
-    });
-
-    return pill;
-}
-
 /**
  * Renders the list of active filters for a given field.
  * @param {string} field - The field name
@@ -601,7 +496,9 @@ function renderConditionList(field) {
     container.innerHTML = '';
     const normalizedField = String(field || '').trim();
     const data = normalizedField ? getFilterGroupForField(normalizedField) : { filters: [] };
-    const postFilterPill = createPostFilterPill();
+    const postFilterPill = createPostFilterPillElement(getPostFilterSummary(), () => {
+        uiActions.openPostFilters();
+    });
     const hasFieldFilters = Boolean(data && Array.isArray(data.filters) && data.filters.length);
 
     if (!hasFieldFilters && !postFilterPill) {
@@ -642,7 +539,7 @@ function renderConditionList(field) {
     const fieldDef = normalizedField ? fieldDefs.get(normalizedField) : null;
     if (hasFieldFilters) {
         data.filters.forEach((f, idx) => {
-            const pill = new FilterPill(f, fieldDef, () => {
+            const pill = createFilterPillElement(f, fieldDef, () => {
                 QueryChangeManager.removeFilter(normalizedField, {
                 index: idx,
                 source: 'FilterManager.removeFilterPill'
@@ -689,7 +586,7 @@ function renderConditionList(field) {
             renderConditionList(normalizedField);
             uiActions.updateCategoryCounts();
         });
-            list.appendChild(pill.getElement());
+            list.appendChild(pill);
         });
     }
 

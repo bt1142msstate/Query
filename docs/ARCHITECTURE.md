@@ -37,7 +37,7 @@ The intended deployment model is bring-your-own API. The public live site should
 | State | `core/queryState.js` | Query state, lifecycle flags, read/write facades |
 | Services/actions | `core/appServices.js`, `core/appUiActions.js` | Cross-feature coordination without direct feature coupling |
 | Data contract | `filters/queryPayload.js`, `filters/fieldDefs.js` | Backend payload generation, field metadata, filter normalization |
-| Feature UI | `ui/`, `filters/`, `bubbles/`, `table/`, `history/`, `templates/` | User workflows and rendering |
+| Feature UI | `ui/`, `filters/`, `bubbles/`, `table/`, `history/`, `templates/` | User workflows and rendering, with complex widgets split into focused view/helper modules |
 | UI feature folders | `ui/form-mode/`, `ui/field-picker/` | Larger UI workflows with dedicated shell, field-picker, state helper, presentation, and interaction modules |
 | Table feature folders | `table/drag-drop/`, `table/virtual-table/`, `table/post-filters/`, `table/export/` | Result-table workflows grouped by behavior instead of one flat table folder |
 | Styles | `styles/app.css` plus feature CSS files | Feature-scoped styling with a single stylesheet entry |
@@ -108,5 +108,5 @@ The architecture fitness test prevents those files from growing. New large modul
 
 1. Continue splitting `ui/form-mode/formMode.js` by moving card mounting and event binding into dedicated modules.
 2. Continue splitting `templates/queryTemplates.js` by moving detail/editor rendering and pinned-strip rendering into dedicated modules.
-3. Add more workflow-level unit tests for history/template state transitions and form-mode schema parsing.
+3. Continue splitting `filters/filterManager.js` by moving condition-panel builders and confirm validation into dedicated modules.
 4. Consider TypeScript or JSDoc type checking if stricter static contracts become useful.
