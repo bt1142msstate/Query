@@ -1880,6 +1880,42 @@ async function exerciseTabletLandscapeMobileParity(page, queryApiStub) {
   await expectMobileScrollLockReleased(page, 'Tablet landscape export dialog');
   await cleanupMobilePageScroll(page);
 
+  await page.locator('[data-mobile-table-action-target="table-expand-btn"]').click();
+  await page.waitForFunction(() => document.body.classList.contains('table-expanded-open'), null, { timeout: 5000 });
+  await expectElementWithinViewport(page, '#table-shell.table-shell-expanded', 'Tablet landscape expanded table');
+  const tabletExpandedTableMetrics = await page.locator('#table-shell.table-shell-expanded').evaluate(shell => {
+    const topBar = shell.querySelector('#table-top-bar');
+    const container = shell.querySelector('#table-container');
+    const table = shell.querySelector('#example-table');
+    const topBarRect = topBar?.getBoundingClientRect();
+    const containerRect = container?.getBoundingClientRect();
+    const tableRect = table?.getBoundingClientRect();
+    const shellRect = shell.getBoundingClientRect();
+    return {
+      containerHeight: containerRect?.height || 0,
+      containerTop: containerRect?.top || 0,
+      containerWidth: containerRect?.width || 0,
+      shellBottomGap: Math.abs(window.innerHeight - (shellRect?.bottom || 0)),
+      shellTop: shellRect?.top || 0,
+      tableWidth: tableRect?.width || 0,
+      tableZoom: shell.style.getPropertyValue('--table-zoom') || '',
+      topBarHeight: topBarRect?.height || 0,
+      viewportHeight: window.innerHeight
+    };
+  });
+  if (
+    tabletExpandedTableMetrics.tableZoom !== '1.00'
+    || tabletExpandedTableMetrics.topBarHeight > 70
+    || tabletExpandedTableMetrics.containerHeight < tabletExpandedTableMetrics.viewportHeight - 110
+    || tabletExpandedTableMetrics.tableWidth > tabletExpandedTableMetrics.containerWidth + 4
+    || tabletExpandedTableMetrics.shellTop > 10
+    || tabletExpandedTableMetrics.shellBottomGap > 10
+  ) {
+    throw new Error(`Tablet landscape expanded table should keep mobile chrome while using full tablet table zoom: ${JSON.stringify(tabletExpandedTableMetrics)}`);
+  }
+  await page.locator('#table-expand-btn').click();
+  await page.waitForFunction(() => !document.body.classList.contains('table-expanded-open'), null, { timeout: 5000 });
+
   await page.locator('#mobile-builder-toggle').click();
   await page.waitForFunction(() => document.querySelector('#mobile-builder-drawer')?.classList.contains('is-open'), null, { timeout: 5000 });
   const builderMetrics = await page.evaluate(() => {
