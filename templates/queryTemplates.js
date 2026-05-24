@@ -6,7 +6,6 @@ import { buildQueryUiConfig } from '../filters/queryPayload.js';
 import { appServices, registerQueryTemplatesService } from '../core/appServices.js';
 import {
   cloneTemplate,
-  normalizeCategory,
   normalizeCategoryList,
   normalizeTemplate,
   sanitizeSvgMarkup
@@ -14,9 +13,6 @@ import {
 import {
   createTemplateDraftFromConfig,
   filterVisibleTemplates,
-  removeCategoryFromTemplates,
-  replaceCategoryInTemplates,
-  validateCategoryName,
   validateTemplateDraft
 } from './queryTemplateState.js';
 import {
@@ -37,6 +33,8 @@ import {
   buildTemplateDetailMeta,
   getPinnedTemplatesForStrip
 } from './queryTemplateViewState.js';
+import { renderTemplateDetailView } from './queryTemplateDetailView.js';
+import { createQueryTemplateCategoryActions } from './queryTemplateCategoryActions.js';
 import {
   renderTemplateCategoryAssignment,
   renderTemplateCategoryFilter,
@@ -583,139 +581,22 @@ import { escapeHtml } from '../core/html.js';
     }
   }
 
-  function startCategoryEdit(categoryId) {
-    if (isRestrictedMode()) {
-      return;
-    }
-
-    const category = state.categories.find(item => item.id === categoryId);
-    if (!category) {
-      return;
-    }
-
-    state.editingCategoryId = category.id;
-    const elements = getElements();
-    if (elements.categoryNameLabel) {
-      elements.categoryNameLabel.textContent = 'Edit Category';
-    }
-    if (elements.categoryNameInput) {
-      elements.categoryNameInput.value = category.name;
-      elements.categoryNameInput.focus();
-    }
-    if (elements.categoryDescriptionInput) {
-      elements.categoryDescriptionInput.value = category.description || '';
-    }
-    render();
-  }
-
-  function resetCategoryEditor() {
-    state.editingCategoryId = '';
-    const elements = getElements();
-    if (elements.categoryNameLabel) {
-      elements.categoryNameLabel.textContent = 'New Category';
-    }
-    if (elements.categoryNameInput) {
-      elements.categoryNameInput.value = '';
-    }
-    if (elements.categoryDescriptionInput) {
-      elements.categoryDescriptionInput.value = '';
-    }
-  }
-
-  async function saveCategory() {
-    if (isRestrictedMode()) {
-      return;
-    }
-
-    const elements = getElements();
-    const rawName = String(elements.categoryNameInput?.value || '').trim();
-    const validationError = validateCategoryName(rawName, {
-      categories: state.categories,
-      currentCategoryId: state.editingCategoryId
-    });
-    if (validationError) {
-      renderValidation([validationError]);
-      return;
-    }
-
-    state.saving = true;
-    render();
-
-    try {
-      const payload = await templateRepository.saveCategory({
-        categoryId: state.editingCategoryId,
-        name: rawName,
-        description: String(elements.categoryDescriptionInput?.value || '').trim()
-      });
-
-      state.categories = normalizeCategoryList(payload.categories);
-      const renamedCategory = payload.category ? normalizeCategory(payload.category, 0) : null;
-      if (renamedCategory) {
-        state.templates = replaceCategoryInTemplates(state.templates, renamedCategory);
-
-        if (state.draft?.categories) {
-          state.draft.categories = replaceCategoryInTemplates([state.draft], renamedCategory)[0].categories;
-        }
-      }
-      resetCategoryEditor();
-      renderValidation([]);
-
-      showToastMessage(`Category "${rawName}" saved.`, 'success');
-    } catch (error) {
-      if (error?.isRateLimited) {
-        return;
-      }
-      renderValidation([error.message]);
-    } finally {
-      state.saving = false;
-      render();
-    }
-  }
-
-  async function deleteCategory(categoryId) {
-    if (isRestrictedMode()) {
-      return;
-    }
-
-    const category = state.categories.find(item => item.id === categoryId);
-    if (!category) {
-      return;
-    }
-
-    if (!window.confirm(`Delete category "${category.name}" from all templates?`)) {
-      return;
-    }
-
-    state.saving = true;
-    render();
-
-    try {
-      const payload = await templateRepository.deleteCategory(categoryId);
-
-      state.categories = normalizeCategoryList(payload.categories);
-      state.templates = removeCategoryFromTemplates(state.templates, categoryId);
-      if (state.draft?.categories) {
-        state.draft.categories = removeCategoryFromTemplates([state.draft], categoryId)[0].categories;
-      }
-      if (state.selectedCategoryFilter === categoryId) {
-        state.selectedCategoryFilter = '';
-      }
-      if (state.editingCategoryId === categoryId) {
-        resetCategoryEditor();
-      }
-      renderValidation([]);
-
-      showToastMessage(`Category "${category.name}" deleted.`, 'success');
-    } catch (error) {
-      if (error?.isRateLimited) {
-        return;
-      }
-      renderValidation([error.message]);
-    } finally {
-      state.saving = false;
-      render();
-    }
-  }
+  const categoryActions = createQueryTemplateCategoryActions({
+    getElements,
+    isRestrictedMode,
+    render,
+    renderValidation,
+    showToastMessage,
+    state,
+    templateRepository,
+    window
+  });
+  const {
+    deleteCategory,
+    resetCategoryEditor,
+    saveCategory,
+    startCategoryEdit
+  } = categoryActions;
 
   function renderValidation(errors = []) {
     const validationEl = getElements().validation;
@@ -785,98 +666,17 @@ import { escapeHtml } from '../core/html.js';
   }
 
   function renderDetail() {
-    const elements = getElements();
-    const restricted = isRestrictedMode();
-    const selected = getSelectedTemplate();
-    const isNew = state.selectedId === NEW_TEMPLATE_ID;
-
-    if (elements.modeNote) {
-      elements.modeNote.textContent = restricted
-        ? 'Restricted mode: you can browse and use templates, but editing categories or templates is disabled.'
-        : 'Templates are saved on the server, are not auto-pruned, and can be organized with categories.';
-    }
-
-    if (elements.newBtn) {
-      elements.newBtn.classList.toggle('hidden', restricted);
-      elements.newBtn.disabled = restricted || state.saving;
-    }
-
-    if (elements.refreshBtn) {
-      elements.refreshBtn.disabled = state.loading || state.saving;
-    }
-
-    if (elements.manageCategoriesBtn) {
-      elements.manageCategoriesBtn.disabled = state.loading || state.saving;
-    }
-
-    if (!selected || !state.detailOverlayOpen) {
-      elements.detail?.classList.add('hidden');
-      renderValidation([]);
-      renderCategoryAssignment();
-      return;
-    }
-
-    elements.detail?.classList.remove('hidden');
-
-    if (elements.detailMode) {
-      elements.detailMode.textContent = isNew ? 'New Template' : (restricted ? 'Read Only' : 'Editable Template');
-    }
-
-    if (elements.detailTitle) {
-      elements.detailTitle.textContent = isNew ? 'Create Template From Current Query' : selected.name;
-    }
-
-    if (elements.nameInput) {
-      elements.nameInput.value = state.draft?.name ?? selected.name ?? '';
-      elements.nameInput.disabled = restricted || state.saving;
-      elements.nameInput.readOnly = restricted;
-    }
-
-    if (elements.descriptionInput) {
-      elements.descriptionInput.value = state.draft?.description ?? selected.description ?? '';
-      elements.descriptionInput.disabled = restricted || state.saving;
-      elements.descriptionInput.readOnly = restricted;
-    }
-
-    if (elements.svgInput) {
-      elements.svgInput.value = state.draft?.svg ?? selected.svg ?? '';
-      elements.svgInput.disabled = restricted || state.saving;
-      elements.svgInput.readOnly = restricted;
-    }
-
-    if (elements.svgPreview) {
-      elements.svgPreview.innerHTML = getTemplateSvgMarkup(state.draft ?? selected);
-    }
-
-    renderCategoryAssignment();
-
-    if (elements.meta) {
-      elements.meta.textContent = buildTemplateDetailMeta({ selected, isNew, restricted });
-    }
-
-    if (elements.useBtn) {
-      elements.useBtn.disabled = state.saving;
-      elements.useBtn.classList.toggle('hidden', isNew);
-    }
-
-    if (elements.pinBtn) {
-      elements.pinBtn.disabled = restricted || state.saving || isNew;
-      elements.pinBtn.textContent = selected.pinned ? 'Unpin Template' : 'Pin Template';
-      elements.pinBtn.classList.toggle('hidden', restricted || isNew);
-    }
-
-    if (elements.saveBtn) {
-      elements.saveBtn.textContent = isNew ? 'Create Template' : 'Save Changes';
-      elements.saveBtn.disabled = restricted || state.saving;
-      elements.saveBtn.classList.toggle('hidden', restricted);
-    }
-
-    if (elements.deleteBtn) {
-      elements.deleteBtn.disabled = restricted || state.saving || isNew;
-      elements.deleteBtn.classList.toggle('hidden', restricted || isNew);
-    }
-
-    renderValidation([]);
+    renderTemplateDetailView({
+      elements: getElements(),
+      state,
+      selected: getSelectedTemplate(),
+      restricted: isRestrictedMode(),
+      isNew: state.selectedId === NEW_TEMPLATE_ID,
+      getTemplateSvgMarkup,
+      buildTemplateDetailMeta,
+      renderCategoryAssignment,
+      renderValidation
+    });
   }
 
   function render() {
