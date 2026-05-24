@@ -2131,6 +2131,193 @@ async function exerciseTabletLandscapeMobileParity(page, queryApiStub) {
   await cleanupMobilePageScroll(page);
 }
 
+async function exerciseTabletPortraitMobileParity(page, queryApiStub) {
+  await page.setViewportSize({ width: 820, height: 1180 });
+  await waitForResponsiveResize(page, true);
+  await expectMobileViewportStability(page);
+  await expectNoHorizontalOverflow(page, 'Tablet portrait initial layout');
+
+  const initialShellMetrics = await readResponsiveShellMetrics(page);
+  if (
+    !initialShellMetrics.isMobile
+    || initialShellMetrics.headerControlsDisplay !== 'none'
+    || initialShellMetrics.mobileMenuDisplay === 'none'
+    || initialShellMetrics.tableZoom !== '0.84'
+  ) {
+    throw new Error(`Tablet portrait should start in the mobile shell: ${JSON.stringify(initialShellMetrics)}`);
+  }
+
+  await page.locator('#mobile-menu-toggle').click();
+  await page.locator('#mobile-menu-dropdown.show').waitFor({ state: 'visible', timeout: 5000 });
+  await expectMinimumTapTarget(page, '#mobile-menu-dropdown .mobile-menu-item', 'Tablet portrait mobile menu items');
+  const menuMetrics = await page.locator('#mobile-menu-dropdown.show').evaluate(element => {
+    const rect = element.getBoundingClientRect();
+    const items = document.querySelector('#mobile-menu-items');
+    const itemsStyle = items ? window.getComputedStyle(items) : null;
+    return {
+      bottomGap: Math.abs(window.innerHeight - rect.bottom),
+      columns: itemsStyle ? itemsStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      height: rect.height,
+      sideGapDelta: Math.abs(rect.left - Math.abs(window.innerWidth - rect.right)),
+      viewportHeight: window.innerHeight,
+      width: rect.width
+    };
+  });
+  if (
+    menuMetrics.columns !== 3
+    || menuMetrics.sideGapDelta > 2
+    || menuMetrics.width < 680
+    || menuMetrics.bottomGap > 1
+    || menuMetrics.height > menuMetrics.viewportHeight * 0.65
+  ) {
+    throw new Error(`Tablet portrait should use the tablet-width mobile menu sheet: ${JSON.stringify(menuMetrics)}`);
+  }
+  await page.locator('#mobile-menu-dropdown .collapse-btn').click();
+  await page.locator('#mobile-menu-dropdown.hidden').waitFor({ state: 'attached', timeout: 5000 });
+
+  queryApiStub.enqueue(Array.from({ length: 2 }, () => ({
+    action: 'status',
+    body: JSON.stringify(buildHistoryStatusResponse()),
+    contentType: 'application/json; charset=utf-8'
+  })));
+  await openMobilePanel(page, 'toggle-queries', '#queries-search');
+  await page.waitForFunction(() => {
+    return document.querySelector('[data-history-book="complete"] .history-book-count')?.textContent?.trim() === '1'
+      && document.querySelector('[data-history-book="running"] .history-book-count')?.textContent?.trim() === '1';
+  }, null, { timeout: 5000 });
+  const historyMetrics = await page.locator('.history-bookshelf').evaluate(element => {
+    const rect = element.getBoundingClientRect();
+    const style = window.getComputedStyle(element);
+    return {
+      columns: style.gridTemplateColumns.split(' ').filter(Boolean).length,
+      height: rect.height
+    };
+  });
+  if (historyMetrics.columns !== 4 || historyMetrics.height > 120) {
+    throw new Error(`Tablet portrait history picker should keep all statuses compact: ${JSON.stringify(historyMetrics)}`);
+  }
+  await page.locator('#queries-panel .collapse-btn').click();
+  await page.locator('#queries-panel.hidden').waitFor({ state: 'attached', timeout: 5000 });
+
+  await seedLoadedResults(page, { longTitle: true, rowCount: 24 });
+  await expectResponsiveShellMode(page, 'mobile', 'Tablet portrait seeded table shell');
+  await expectNoHorizontalOverflow(page, 'Tablet portrait seeded table');
+  const tableMetrics = await page.evaluate(() => {
+    const actionBar = document.querySelector('#mobile-table-action-bar');
+    const actionBarRect = actionBar?.getBoundingClientRect();
+    const actionBarStyle = actionBar ? window.getComputedStyle(actionBar) : null;
+    const tableRect = document.querySelector('#example-table')?.getBoundingClientRect();
+    const containerRect = document.querySelector('#table-container')?.getBoundingClientRect();
+    return {
+      actionBarColumns: actionBarStyle ? actionBarStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      actionBarHeight: actionBarRect?.height || 0,
+      containerWidth: containerRect?.width || 0,
+      tableWidth: tableRect?.width || 0
+    };
+  });
+  if (
+    tableMetrics.actionBarColumns !== 7
+    || tableMetrics.actionBarHeight > 72
+    || tableMetrics.tableWidth > tableMetrics.containerWidth + 4
+  ) {
+    throw new Error(`Tablet portrait table should keep tablet action density: ${JSON.stringify(tableMetrics)}`);
+  }
+
+  await primeMobilePageScroll(page);
+  await page.locator('[data-mobile-table-action-target="table-add-field-btn"]').click();
+  await page.locator('.form-mode-field-picker-modal:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+  await expectElementWithinViewport(page, '.form-mode-field-picker-modal:not(.hidden)', 'Tablet portrait add field dialog');
+  const addFieldMetrics = await page.locator('.form-mode-field-picker-modal:not(.hidden)').evaluate(modal => {
+    const body = modal.querySelector('.form-mode-field-picker-body');
+    const list = modal.querySelector('.form-mode-field-picker-list');
+    const details = modal.querySelector('.form-mode-field-picker-details');
+    const bodyStyle = body ? window.getComputedStyle(body) : null;
+    const modalRect = modal.getBoundingClientRect();
+    const listRect = list?.getBoundingClientRect();
+    const detailsRect = details?.getBoundingClientRect();
+    return {
+      bodyColumns: bodyStyle ? bodyStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      detailsHeight: detailsRect?.height || 0,
+      listHeight: listRect?.height || 0,
+      sideGapDelta: Math.abs(modalRect.left - Math.abs(window.innerWidth - modalRect.right)),
+      width: modalRect.width
+    };
+  });
+  if (
+    addFieldMetrics.bodyColumns !== 2
+    || addFieldMetrics.width < 760
+    || addFieldMetrics.sideGapDelta > 2
+    || addFieldMetrics.listHeight < 420
+    || addFieldMetrics.detailsHeight < 420
+  ) {
+    throw new Error(`Tablet portrait add field dialog should retain tablet two-column layout: ${JSON.stringify(addFieldMetrics)}`);
+  }
+  await page.locator('.form-mode-field-picker-close').click();
+  await expectMobileScrollLockReleased(page, 'Tablet portrait add field dialog');
+  await cleanupMobilePageScroll(page);
+
+  await primeMobilePageScroll(page);
+  await page.locator('[data-mobile-table-action="fields-panel"]').click();
+  await page.waitForFunction(() => document.body.classList.contains('mobile-filter-panel-open'), null, { timeout: 5000 });
+  await expectElementWithinViewport(page, '#filter-side-panel', 'Tablet portrait display and filters sheet');
+  await expectOverlayConsumesScroll(page, '#filter-panel-body .fp-display-section', 'Tablet portrait display and filters sheet');
+  const filterSheetMetrics = await page.locator('#filter-side-panel').evaluate(element => {
+    const rect = element.getBoundingClientRect();
+    const body = document.querySelector('#filter-panel-body');
+    const bodyRect = body?.getBoundingClientRect();
+    const bodyStyle = body ? window.getComputedStyle(body) : null;
+    return {
+      bodyColumns: bodyStyle ? bodyStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      bodyHeight: bodyRect?.height || 0,
+      bottomGap: Math.abs(window.innerHeight - rect.bottom),
+      top: rect.top,
+      viewportHeight: window.innerHeight
+    };
+  });
+  if (
+    filterSheetMetrics.bodyColumns !== 2
+    || filterSheetMetrics.top < 48
+    || filterSheetMetrics.bottomGap > 24
+    || filterSheetMetrics.bodyHeight < filterSheetMetrics.viewportHeight * 0.62
+  ) {
+    throw new Error(`Tablet portrait display and filters should use the tablet two-column sheet: ${JSON.stringify(filterSheetMetrics)}`);
+  }
+  await page.locator('#filter-panel-mobile-close').click();
+  await page.waitForFunction(() => !document.body.classList.contains('mobile-filter-panel-open'), null, { timeout: 5000 });
+  await expectMobileScrollLockReleased(page, 'Tablet portrait display and filters sheet');
+  await cleanupMobilePageScroll(page);
+
+  await page.locator('[data-mobile-table-action-target="table-expand-btn"]').click();
+  await page.waitForFunction(() => document.body.classList.contains('table-expanded-open'), null, { timeout: 5000 });
+  const expandedMetrics = await page.locator('#table-shell.table-shell-expanded').evaluate(shell => {
+    const container = shell.querySelector('#table-container');
+    const table = shell.querySelector('#example-table');
+    const shellRect = shell.getBoundingClientRect();
+    const containerRect = container?.getBoundingClientRect();
+    const tableRect = table?.getBoundingClientRect();
+    return {
+      containerHeight: containerRect?.height || 0,
+      containerWidth: containerRect?.width || 0,
+      shellBottomGap: Math.abs(window.innerHeight - shellRect.bottom),
+      shellTop: shellRect.top,
+      tableWidth: tableRect?.width || 0,
+      tableZoom: shell.style.getPropertyValue('--table-zoom') || '',
+      viewportHeight: window.innerHeight
+    };
+  });
+  if (
+    expandedMetrics.tableZoom !== '1.00'
+    || expandedMetrics.shellTop > 10
+    || expandedMetrics.shellBottomGap > 10
+    || expandedMetrics.containerHeight < expandedMetrics.viewportHeight - 110
+    || expandedMetrics.tableWidth > expandedMetrics.containerWidth + 4
+  ) {
+    throw new Error(`Tablet portrait expanded table should use tablet zoom and full-height chrome: ${JSON.stringify(expandedMetrics)}`);
+  }
+  await page.locator('#table-expand-btn').click();
+  await page.waitForFunction(() => !document.body.classList.contains('table-expanded-open'), null, { timeout: 5000 });
+}
+
 async function exerciseEditableFormUrlRefresh(page, failures) {
   await seedLoadedResults(page);
   await page.evaluate(async () => {
@@ -3337,6 +3524,19 @@ async function runSmokeTest() {
     await waitForAppModules(tabletPage, failures);
     await exerciseTabletLandscapeMobileParity(tabletPage, tabletQueryApiStub);
     await tabletPage.close();
+
+    const tabletPortraitPage = await browser.newPage({
+      hasTouch: true,
+      isMobile: true,
+      viewport: { width: 820, height: 1180 }
+    });
+    attachFailureListeners(tabletPortraitPage, failures, port);
+    await stubExternalAssets(tabletPortraitPage);
+    const tabletPortraitQueryApiStub = await installQueryApiStub(tabletPortraitPage);
+    await tabletPortraitPage.goto(baseUrl, { waitUntil: 'load', timeout: 15000 });
+    await waitForAppModules(tabletPortraitPage, failures);
+    await exerciseTabletPortraitMobileParity(tabletPortraitPage, tabletPortraitQueryApiStub);
+    await tabletPortraitPage.close();
 
     const mobilePage = await browser.newPage({
       isMobile: true,
