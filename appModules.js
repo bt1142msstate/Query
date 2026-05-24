@@ -35,7 +35,6 @@ import './templates/queryTemplates.js';
 import './table/drag-drop/columnManager.js';
 import './table/drag-drop/dragDropColumns.js';
 import './table/drag-drop/dragDropInteractions.js';
-import './table/drag-drop/dragDrop.js';
 import './table/contextMenu.js';
 import './bubbles/bubble.js';
 import './bubbles/bubbleReset.js';
