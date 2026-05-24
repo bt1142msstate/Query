@@ -3509,6 +3509,7 @@ async function runSmokeTest() {
     ) {
       throw new Error(`Mobile template detail should be a full-height sheet with compact actions: ${JSON.stringify(mobileTemplateDetailMetrics)}`);
     }
+    await expectMobileEditableFocusContained(mobilePage, '#template-name-input', '.templates-detail-body', 'Mobile template name input');
     await mobilePage.locator('#templates-detail-close-btn').click();
     await mobilePage.locator('#templates-detail-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
     await mobilePage.locator('#templates-manage-categories-btn').click();
@@ -3541,6 +3542,7 @@ async function runSmokeTest() {
     ) {
       throw new Error(`Mobile template categories should be a full-height sheet with a scrollable body: ${JSON.stringify(mobileTemplateCategoriesMetrics)}`);
     }
+    await expectMobileEditableFocusContained(mobilePage, '#template-category-name-input', '.templates-categories-body', 'Mobile template category name input');
     await mobilePage.locator('#templates-categories-close-btn').click();
     await mobilePage.locator('#templates-categories-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
 
@@ -3934,6 +3936,7 @@ async function runSmokeTest() {
     await expectMobileScrollLockReleased(mobilePage, 'Mobile post filter dialog');
     await cleanupMobilePageScroll(mobilePage);
 
+    await seedLoadedResults(mobilePage, { rowCount: 3 });
     const mobileExportAction = mobilePage.locator('[data-mobile-table-action-target="download-btn"]');
     await mobileExportAction.scrollIntoViewIfNeeded();
     const downloadDisabled = await mobileExportAction.evaluate(button => button.disabled);
@@ -3947,6 +3950,8 @@ async function runSmokeTest() {
     await expectOverlayConsumesScroll(mobilePage, '.export-dialog__body', 'Mobile export dialog');
     await expectMinimumTapTarget(mobilePage, '#export-overlay-close, #export-cancel-btn, #export-confirm-btn', 'Mobile export dialog controls');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile export dialog');
+    await mobilePage.locator('[data-export-mode-card="grouped"]').click();
+    await expectMobileEditableFocusContained(mobilePage, '#export-group-field', '.export-dialog__body', 'Mobile export group field select');
     await mobilePage.locator('#export-cancel-btn').click();
     await expectMobileScrollLockReleased(mobilePage, 'Mobile export dialog');
     await cleanupMobilePageScroll(mobilePage);
