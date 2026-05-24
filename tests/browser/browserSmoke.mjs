@@ -751,7 +751,7 @@ async function expectNoHorizontalOverflow(page, label) {
 
 async function waitForResponsiveResize(page, expectedMobile) {
   await page.waitForFunction(expected => {
-    return window.matchMedia('(max-width: 1024px)').matches === expected;
+    return window.matchMedia('(max-width: 1180px)').matches === expected;
   }, expectedMobile, { timeout: 5000 });
   await page.evaluate(() => new Promise(resolve => {
     window.requestAnimationFrame(() => window.requestAnimationFrame(resolve));
@@ -782,7 +782,7 @@ async function readResponsiveShellMetrics(page) {
         || classHas('#filter-side-panel', 'mobile-filter-panel-open'),
       headerControlsDisplay: displayOf('#header-controls'),
       isExpanded: document.body.classList.contains('table-expanded-open'),
-      isMobile: window.matchMedia('(max-width: 1024px)').matches,
+      isMobile: window.matchMedia('(max-width: 1180px)').matches,
       mobileMenuDisplay: displayOf('#mobile-menu-toggle'),
       mobileMenuOpen: classHas('#mobile-menu-dropdown', 'show')
         && !classHas('#mobile-menu-dropdown', 'hidden'),
@@ -1491,6 +1491,11 @@ async function exerciseLiveResponsiveResize(page) {
   await expectResponsiveShellMode(page, 'mobile', 'Live resize desktop-to-tablet-landscape');
   await expectNoHorizontalOverflow(page, 'Live resize desktop-to-tablet-landscape');
 
+  await page.setViewportSize({ width: 1180, height: 820 });
+  await waitForResponsiveResize(page, true);
+  await expectResponsiveShellMode(page, 'mobile', 'Live resize large-tablet-landscape');
+  await expectNoHorizontalOverflow(page, 'Live resize large-tablet-landscape');
+
   await page.setViewportSize({ width: 844, height: 390 });
   await waitForResponsiveResize(page, true);
   await expectResponsiveShellMode(page, 'mobile', 'Live resize phone landscape');
@@ -1509,7 +1514,7 @@ async function exerciseLiveResponsiveResize(page) {
   await page.locator('[data-mobile-table-action="fields-panel"]').click();
   await page.waitForFunction(() => document.body.classList.contains('mobile-filter-panel-open'), null, { timeout: 5000 });
 
-  await page.setViewportSize({ width: 1180, height: 820 });
+  await page.setViewportSize({ width: 1181, height: 820 });
   await waitForResponsiveResize(page, false);
   await expectResponsiveShellMode(page, 'desktop', 'Live resize mobile-to-desktop closes mobile-only surfaces');
   await expectNoHorizontalOverflow(page, 'Live resize mobile-to-desktop');
@@ -1518,7 +1523,7 @@ async function exerciseLiveResponsiveResize(page) {
   await waitForResponsiveResize(page, true);
   await page.locator('#mobile-menu-toggle').click();
   await page.locator('#mobile-menu-dropdown.show').waitFor({ state: 'visible', timeout: 5000 });
-  await page.setViewportSize({ width: 1180, height: 820 });
+  await page.setViewportSize({ width: 1181, height: 820 });
   await waitForResponsiveResize(page, false);
   await page.locator('#mobile-menu-dropdown.hidden').waitFor({ state: 'attached', timeout: 5000 });
   const menuResizeMetrics = await readResponsiveShellMetrics(page);

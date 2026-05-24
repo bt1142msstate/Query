@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 
 globalThis.window = {
   matchMedia: query => ({
-    matches: query.includes('max-width: 1024px') ? false : false
+    matches: query.includes('max-width: 1180px') ? false : false
   })
 };
 

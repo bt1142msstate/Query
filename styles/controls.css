@@ -665,7 +665,7 @@ input[type="search"]:-webkit-autofill,
   color: #f8fafc;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1180px) {
   .grouped-selector {
     width: 100%;
     min-width: 0;

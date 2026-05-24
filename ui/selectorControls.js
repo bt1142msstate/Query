@@ -4,7 +4,7 @@ import { escapeHtml } from '../core/formatting/html.js';
 import { VirtualList } from './virtualList.js';
 import { createListPasteInput, parseListInputValues } from './selectorListPasteInput.js';
 
-const MOBILE_SELECTOR_QUERY = '(max-width: 1024px), (hover: none) and (pointer: coarse)';
+const MOBILE_SELECTOR_QUERY = '(max-width: 1180px), (hover: none) and (pointer: coarse)';
 
 function isMobileSelectorViewport() {
   return Boolean(window.matchMedia?.(MOBILE_SELECTOR_QUERY).matches);

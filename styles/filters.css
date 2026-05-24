@@ -621,7 +621,7 @@
   background: rgba(255, 255, 255, 0.9);
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1180px) {
   #filter-card {
     top: auto;
     right: 0.5rem;
@@ -814,7 +814,7 @@
 }
 
 /* Responsive styling */
-@media (max-width: 1024px) {
+@media (max-width: 1180px) {
   #category-bar {
     display: none;
   }
@@ -839,7 +839,7 @@
 }
 
 /* On smaller screens, wrap the panel to sit above the table instead of overlapping */
-@media (max-width: 1024px) {
+@media (max-width: 1180px) {
   #table-with-filter {
     flex-direction: column;
   }
@@ -1375,7 +1375,7 @@
   color: #374151;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1180px) {
   #filter-side-panel {
     height: auto;
     width: 100%;
@@ -1389,7 +1389,7 @@
   }
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1180px) {
   #table-with-filter {
     gap: 0;
   }
