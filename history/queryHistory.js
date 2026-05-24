@@ -4,8 +4,10 @@
  * @module QueryHistory
  */
 import { buildHistoryDetailsOverlayHtml } from './queryHistoryDetails.js';
+import { createQueryHistoryConfigLoader } from './queryHistoryConfigLoader.js';
 import { createQueryHistoryDependencies } from './queryHistoryDependencies.js';
 import { HistoryResultProgress } from './queryHistoryResultProgress.js';
+import { createQueryHistoryResultsLoader } from './queryHistoryResultsLoader.js';
 import {
   appendUniqueColumn,
   buildUiConfigFromRequest,
@@ -15,6 +17,7 @@ import {
 import { HISTORY_TABLE_HEADS, createQueriesTableRowHtml } from './queryHistoryRows.js';
 import { groupHistoryQueries } from './queryHistoryGrouping.js';
 import { mapStatusPayloadToHistoryRows } from './queryHistoryStatusMapper.js';
+import { formatColumnsTooltip, formatHistoryFiltersTooltip } from './queryHistoryTooltips.js';
 import { notifyHistoryResultLoadComplete, prepareHistoryResultLoadNotification } from './queryHistoryNotifications.js';
 import {
   buildHistoryMonitor,
@@ -30,10 +33,9 @@ import { onDOMReady } from '../core/domReady.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
 import { VisibilityUtils } from '../core/visibility.js';
-import { formatFieldOperatorForDisplay, mapFieldOperatorToUiCond, normalizeUiConfigFilters } from '../filters/queryPayload.js';
+import { mapFieldOperatorToUiCond, normalizeUiConfigFilters } from '../filters/queryPayload.js';
 import { registerDynamicField, resolveFieldName } from '../filters/fieldDefs.js';
 import { DOM } from '../core/domCache.js';
-import { escapeHtml } from '../core/html.js';
 /* ---------- Query history state and renderer ---------- */
 let exampleQueries = [];
 let queryDurationUpdateInterval = null;
@@ -256,49 +258,6 @@ async function cancelQuery(queryId) {
   }
 }
 
-/* ---------- Tooltip Formatters ---------- */
-
-/**
- * Formats a list of column names into an HTML tooltip.
- * @function formatColumnsTooltip
- * @param {string[]} columns - Array of column names
- * @returns {string} Formatted tooltip HTML
- */
-function formatColumnsTooltip(columns) {
-  if (!columns || !columns.length) return '';
-
-  const columnItems = columns.map((column, index) => (
-    '<li class="tt-filter-item tt-column-item">' +
-    `  <span class="tt-column-index">${index + 1}</span>` +
-    `  <span class="tt-column-name">${escapeHtml(column || '')}</span>` +
-    '</li>'
-  )).join('');
-
-  return '<div class="tt-filter-container tt-columns-container">' +
-    '<div class="tt-filter-title">Displayed Columns</div>' +
-    `<ol class="tt-filter-list tt-columns-list">${columnItems}</ol>` +
-    '</div>';
-}
-
-/**
- * Formats filters into a tooltip string for history display.
- * @function formatHistoryFiltersTooltip
- * @param {Object[]|Object} filtersInput - Filters array or ui_config object
- * @returns {string} Formatted tooltip text
- */
-function formatHistoryFiltersTooltip(filtersInput) {
-  const filters = normalizeUiConfigFilters(filtersInput);
-  if (!filters.length) return 'None';
-  
-  const lines = [];
-  filters.forEach(f => {
-    const op = formatFieldOperatorForDisplay(f.FieldOperator);
-    lines.push(`${f.FieldName || ''} ${op} ${f.Values ? f.Values.join('|') : ''}`);
-  });
-  
-  return lines.join(', ');
-}
-
 function closeHistoryDetailsOverlay() {
   const shell = document.querySelector('.history-details-modal-shell');
   if (shell) {
@@ -345,249 +304,38 @@ function renderHistoryDetailsOverlay(queryId = activeHistoryDetailQueryId) {
   });
 }
 
-/**
- * Loads a query configuration into the main UI.
- * Updates displayed fields, filters, and JSON display to match the selected query.
- * @function loadQueryConfig
- * @param {Object} q - The query object to load
- * @param {Object} q.jsonConfig - The query configuration
- * @param {string[]} q.jsonConfig.DesiredColumnOrder - Array of column names
- * @param {Object[]} q.jsonConfig.Filters - Array of flat filters
- */
-function loadQueryConfig(q) {
-  if(!q || !q.jsonConfig) return;
+const loadQueryConfig = createQueryHistoryConfigLoader({
+  appServices,
+  document,
+  dom: DOM,
+  historyDependencies,
+  queryChangeManager: QueryChangeManager,
+  queryStateReaders: QueryStateReaders,
+  services,
+  uiActions,
+  appendUniqueColumn,
+  mapFieldOperatorToUiCond,
+  normalizeUiConfigFilters,
+  registerDynamicField,
+  resolveFieldName,
+  resolveSpecialPayloadFieldNames
+});
 
-  const getDisplayedFields = () => QueryStateReaders?.getDisplayedFields?.() || [];
-  
-  // Access global variables from query.js
-  if (!QueryChangeManager) {
-    console.error('Query history module requires QueryChangeManager access');
-    return;
-  }
-
-  const tableNameInput = DOM?.tableNameInput || document.getElementById('table-name-input');
-
-  // Loading a query definition is not itself a partial-results state.
-  // That flag belongs to the currently displayed result set and must be
-  // recomputed when/if results are loaded afterward.
-  QueryChangeManager.setLifecycleState({
-    hasPartialResults: false,
-    hasLoadedResultSet: false
-  }, { source: 'QueryHistory.loadQueryConfig', silent: true });
-  services.clearPostFilters?.({ refreshView: false, notify: true, resetScroll: false });
-  uiActions.updateTableResultsLip();
-
-  if (tableNameInput) {
-    tableNameInput.value = q.name || '';
-    tableNameInput.classList.remove('error');
-    tableNameInput.dispatchEvent(new Event('input', { bubbles: true }));
-  }
-  
-  // Load fields
-  const filters = normalizeUiConfigFilters(q.jsonConfig, { trackAliases: true });
-  const desiredColumns = Array.isArray(q.jsonConfig.DesiredColumnOrder)
-    ? q.jsonConfig.DesiredColumnOrder.map(fieldName => (
-        typeof resolveFieldName === 'function'
-          ? resolveFieldName(fieldName, { trackAlias: true })
-          : fieldName
-      ))
-    : [];
-  const resolvedSpecialFields = resolveSpecialPayloadFieldNames(
-    q.jsonConfig.SpecialFields || q.jsonConfig.specialFields || [],
-    historyDependencies.mapper()
-  );
-  resolvedSpecialFields.forEach(fieldName => appendUniqueColumn(desiredColumns, fieldName));
-
-  if (typeof registerDynamicField === 'function') {
-    resolvedSpecialFields.forEach(fieldName => registerDynamicField(fieldName));
-    filters.forEach(filter => {
-      if (filter?.FieldName) {
-        registerDynamicField(filter.FieldName);
-      }
-    });
-  }
-
-  const nextActiveFilters = {};
-
-  if (filters.length) {
-    filters.forEach(ff => {
-      const fieldName = typeof resolveFieldName === 'function'
-        ? resolveFieldName(ff.FieldName)
-        : ff.FieldName;
-      const uiCond = mapFieldOperatorToUiCond(ff.FieldOperator);
-      const valueGlue = uiCond === 'between' ? '|' : ',';
-
-      if (!fieldName) {
-        return;
-      }
-
-      if (!nextActiveFilters[fieldName]) {
-        nextActiveFilters[fieldName] = { filters: [] };
-      }
-
-      nextActiveFilters[fieldName].filters.push({
-        cond: uiCond,
-        val: (ff.Values || []).join(valueGlue)
-      });
-    });
-  }
-
-  QueryChangeManager.setQueryState({
-    displayedFields: desiredColumns,
-    activeFilters: nextActiveFilters
-  }, { source: 'QueryHistory.loadQueryConfig' });
-
-  // Register any dynamically-built fields (e.g. Marc590) that may not exist
-  // in the current session's fieldDefs registry.
-  if (typeof registerDynamicField === 'function') {
-    getDisplayedFields().forEach(f => registerDynamicField(f));
-  }
-  
-  // Clear filters and reapply from query
-  if (QueryChangeManager) {
-    document.querySelectorAll('.bubble-filter').forEach(b => {
-      b.classList.remove('bubble-filter');
-      b.removeAttribute('data-filtered');
-    });
-    
-    if(filters.length){
-      filters.forEach(ff => {
-        const bubbleEl = Array.from(document.querySelectorAll('.bubble'))
-          .find(b => b.textContent.trim() === ff.FieldName);
-        if(bubbleEl){
-          bubbleEl.classList.add('bubble-filter');
-          bubbleEl.dataset.filtered = 'true';
-        }
-      });
-      // Ensure the filter panel shows up right away if there are filters
-      uiActions.updateFilterSidePanel();
-    } else {
-      // If no filters were loaded but panel was open, it should re-evaluate to close
-      uiActions.updateFilterSidePanel();
-    }
-  }
-  
-  // Update button state to "Refresh" instead of "Run Query" since it's an existing query
-  if (QueryStateReaders && typeof QueryStateReaders.getSerializableState === 'function') {
-    QueryChangeManager.setLifecycleState({
-      lastExecutedQueryState: QueryStateReaders.getSerializableState()
-    }, { source: 'QueryHistory.setLastExecutedState', silent: true });
-  }
-  uiActions.updateButtonStates();
-
-  if (appServices.isFormModeActive()) {
-    Promise.resolve(appServices.syncFormModeFromCurrentQuery()).catch(error => {
-      console.error('Failed to sync form URL after loading query config:', error);
-    });
-  }
-}
-
-async function loadQueryResults(queryId) {
-    const q = exampleQueries.find(q => q.id === queryId);
-    if (!q) return;
-
-    // Load configuration first
-    loadQueryConfig(q);
-    HistoryResultProgress.start(q, { render: renderQueries });
-    const notificationPermission = prepareHistoryResultLoadNotification();
-    
-    showToastMessage(q.running ? 'Fetching live results...' : 'Fetching results...', 'info');
-
-    try {
-        const { response, lines: streamedLines, streamError } = await HistoryResultProgress.fetchResults(queryId);
-        
-        // Use X-Raw-Columns or fallback to config used
-        const rawColsHeader = response.headers.get('X-Raw-Columns');
-        // Ensure displayedFields is updated after loadQueryConfig
-        const displayedFields = QueryStateReaders?.getDisplayedFields?.() || [];
-        const currentDisplayedFields = displayedFields.length
-          ? displayedFields
-          : (q.jsonConfig ? q.jsonConfig.DesiredColumnOrder : []);
-        
-        const rawColumns = rawColsHeader ? rawColsHeader.split('|') : currentDisplayedFields;
-        
-        const lines = Array.isArray(streamedLines) ? streamedLines : [];
-        
-        const headers = currentDisplayedFields;
-        
-        const rows = lines.map(line => {
-          const obj = parsePipeDelimitedRow(line, rawColumns);
-            // Ensure all requested headers exist
-            headers.forEach(h => {
-                if (!(h in obj)) obj[h] = '';
-            });
-            return obj;
-        });
-
-        console.log(`Loaded ${rows.length} rows from history`);
-
-        if (q.running) {
-          q.resultCount = rows.length;
-          renderQueries();
-        }
-
-        // Result-set state must be established before rendering so a zero-row
-        // history result does not reuse the pre-run planning placeholder.
-        QueryChangeManager.setLifecycleState({
-          currentQueryId: q.id,
-          hasPartialResults: Boolean(q.running),
-          hasLoadedResultSet: true
-        }, { source: 'QueryHistory.loadQueryResults', silent: true });
-
-        if (services.table) {
-            const columnMap = new Map();
-            headers.forEach((h, i) => columnMap.set(h, i));
-            
-            // Map object rows back to array of values in headers order
-            const tableRows = rows.map(r => headers.map(h => r[h]));
-            
-            const newTableData = {
-                headers: headers,
-                rows: tableRows,
-                columnMap: columnMap
-            };
-            
-            services.setVirtualTableData(newTableData);
-            
-            // Re-render the full table to reset red column headers and redraw the rows with new widths
-            await uiActions.showExampleTable(headers);
-            
-            // Re-render the bubbles to update grouping for new active filters
-            services.rerenderBubbles();
-            
-            // Reset bubble scroll position since we may have new filters/selected fields
-            if (services.bubble?.resetBubbleScroll) {
-              services.resetBubbleScroll();
-            } else {
-              AppState.scrollRow = 0;
-              services.updateBubbleScrollBar();
-            }
-            uiActions.updateButtonStates();
-        }
-
-        // Refresh badges after the loaded result-set state and table render settle.
-        uiActions.updateTableResultsLip();
-        
-        showToastMessage(streamError
-          ? `Connection ended early. Loaded ${rows.length} partial results.`
-          : (q.running
-            ? `Loaded ${rows.length} partial results from running query.`
-            : `Loaded ${rows.length} results.`), streamError ? 'warning' : 'success');
-        notifyHistoryResultLoadComplete({ permissionPromise: notificationPermission, query: q, queryId, rowCount: rows.length, streamError });
-        
-        // Close modal if open
-        services.closeAllModals();
-
-    } catch (error) {
-        if (error?.isRateLimited) {
-            return;
-        }
-        console.error('Failed to load results:', error);
-        showToastMessage('Failed to load results: ' + error.message, 'error');
-    } finally {
-        HistoryResultProgress.clear({ render: renderQueries });
-    }
-}
+const loadQueryResults = createQueryHistoryResultsLoader({
+  appState: AppState,
+  historyResultProgress: HistoryResultProgress,
+  notifyHistoryResultLoadComplete,
+  parsePipeDelimitedRow,
+  prepareHistoryResultLoadNotification,
+  queryChangeManager: QueryChangeManager,
+  queryStateReaders: QueryStateReaders,
+  services,
+  showToastMessage,
+  uiActions,
+  getHistoryQueryById,
+  loadQueryConfig,
+  renderQueries
+});
 
 /**
  * Binds load/rerun/stop button event handlers on all matching buttons within
