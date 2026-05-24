@@ -161,7 +161,7 @@ const legacyLargeModuleBudgets = new Map([
   ['table/post-filters/postFilters.js', 1109],
   ['table/virtual-table/virtualTable.js', 1383],
   ['ui/field-picker/fieldPicker.js', 1266],
-  ['ui/form-mode/formMode.js', 1279]
+  ['ui/form-mode/formMode.js', 1060]
 ]);
 
 const moduleBoundaryRules = [
