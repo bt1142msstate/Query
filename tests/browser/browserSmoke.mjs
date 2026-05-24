@@ -1643,6 +1643,60 @@ async function exerciseTabletLandscapeMobileParity(page, queryApiStub) {
   await page.locator('#queries-panel .collapse-btn').click();
   await page.locator('#queries-panel.hidden').waitFor({ state: 'attached', timeout: 5000 });
 
+  await openMobilePanel(page, 'toggle-templates', '#templates-search-input');
+  await expectElementWithinViewport(page, '#templates-panel', 'Tablet landscape templates panel');
+  await expectNoHorizontalOverflow(page, 'Tablet landscape templates panel');
+  await page.locator('#templates-list .templates-list-item').click();
+  await page.locator('#templates-detail-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+  const templateDetailMetrics = await page.locator('#templates-detail').evaluate(detail => {
+    const body = detail.querySelector('.templates-detail-body');
+    const actions = detail.querySelector('.templates-detail-actions');
+    const actionStyle = actions ? window.getComputedStyle(actions) : null;
+    const bodyRect = body?.getBoundingClientRect();
+    const actionsRect = actions?.getBoundingClientRect();
+    return {
+      actionColumns: actionStyle ? actionStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      actionsHeight: actionsRect?.height || 0,
+      bodyHeight: bodyRect?.height || 0,
+      viewportHeight: window.innerHeight
+    };
+  });
+  if (
+    templateDetailMetrics.actionColumns !== 4
+    || templateDetailMetrics.actionsHeight > 72
+    || templateDetailMetrics.bodyHeight < templateDetailMetrics.viewportHeight * 0.5
+  ) {
+    throw new Error(`Tablet landscape template detail should use one-row actions and preserve body space: ${JSON.stringify(templateDetailMetrics)}`);
+  }
+  await page.locator('#templates-detail-close-btn').click();
+  await page.locator('#templates-detail-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
+  await page.locator('#templates-manage-categories-btn').click();
+  await page.locator('#templates-categories-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+  const templateCategoryMetrics = await page.locator('.templates-categories-dialog').evaluate(dialog => {
+    const body = dialog.querySelector('.templates-categories-body');
+    const list = dialog.querySelector('.templates-category-list');
+    const bodyStyle = body ? window.getComputedStyle(body) : null;
+    const listStyle = list ? window.getComputedStyle(list) : null;
+    const bodyRect = body?.getBoundingClientRect();
+    return {
+      bodyColumns: bodyStyle ? bodyStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      bodyHeight: bodyRect?.height || 0,
+      listColumns: listStyle ? listStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      viewportHeight: window.innerHeight
+    };
+  });
+  if (
+    templateCategoryMetrics.bodyColumns !== 2
+    || templateCategoryMetrics.listColumns !== 2
+    || templateCategoryMetrics.bodyHeight < templateCategoryMetrics.viewportHeight * 0.58
+  ) {
+    throw new Error(`Tablet landscape template categories should use tablet-width columns inside the mobile sheet: ${JSON.stringify(templateCategoryMetrics)}`);
+  }
+  await page.locator('#templates-categories-close-btn').click();
+  await page.locator('#templates-categories-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
+  await page.locator('#templates-panel .collapse-btn').click();
+  await page.locator('#templates-panel.hidden').waitFor({ state: 'attached', timeout: 5000 });
+
   await seedLoadedResults(page, { longTitle: true, rowCount: 36 });
   await expectResponsiveShellMode(page, 'mobile', 'Tablet landscape seeded table shell');
   await expectNoHorizontalOverflow(page, 'Tablet landscape seeded table');
