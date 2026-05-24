@@ -1,7 +1,4 @@
-import { DragUtils } from './dragUtils.js';
 import { formatDisplayValue } from './dateValues.js';
-import { escapeHtml } from './html.js';
-import { Icons } from './icons.js';
 import { MoneyUtils } from './moneyUtils.js';
 import { OperatorLabels } from './operatorLabels.js';
 import { fieldDefs } from '../filters/fieldDefs.js';
@@ -416,15 +413,12 @@ const FormatUtils = {
 };
 
 export {
-  DragUtils,
   EventUtils,
   FormatUtils,
-  Icons,
   MoneyUtils,
   OperatorLabels,
   OperatorSelectUtils,
   TableBuilder,
   TextMeasurement,
-  ValueFormatting,
-  escapeHtml
+  ValueFormatting
 };

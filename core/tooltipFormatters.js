@@ -1,4 +1,5 @@
 import { getFieldValueDisplayMap } from './fieldValueMaps.js';
+import { escapeHtml } from './html.js';
 import { OperatorLabels } from './operatorLabels.js';
 import { fieldDefs, getFieldFilterOperators, isFieldBackendFilterable, resolveFieldName } from '../filters/fieldDefs.js';
 
@@ -107,15 +108,6 @@ function normalizeUiConfigFilters(input) {
   if (Array.isArray(input.Filters)) return input.Filters.map(normalizeFilter).filter(Boolean);
   if (Array.isArray(input.FilterGroups)) return input.FilterGroups.flatMap(group => (group.Filters || []).map(normalizeFilter).filter(Boolean));
   return [];
-}
-
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
 }
 
 function getFilterValueMap(fieldDef) {
