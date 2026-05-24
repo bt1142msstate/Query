@@ -4,11 +4,8 @@ import { ClipboardUtils } from '../../core/clipboard.js';
 import { QueryChangeManager, getBaseFieldName, QueryStateReaders } from '../../core/queryState.js';
 import { showToastMessage } from '../../core/toast.js';
 import { QueryStateSubscriptions } from '../../core/queryStateSubscriptions.js';
-import {
-  createFormModeEmptyState,
-  getVisibleFormInputs,
-  mountFormModeCard
-} from './formModeCard.js';
+import { createFormModeEmptyState, getVisibleFormInputs, mountFormModeCard } from './formModeCard.js';
+import { buildInteractiveFormModeCard } from './formModeCardBuilder.js';
 import { FormModeControls as formModeControls } from './formModeControls.js';
 import {
   cloneSpec,
@@ -47,12 +44,9 @@ import {
   syncInputSpecFromState,
   uniqueInputKey
 } from './formModeQuerySpec.js';
-import {
-  getQueryStateSyncPlan,
-  mergeQuerySyncOptions,
-  normalizeQuerySyncOptions,
-  shouldRunQueuedQuerySync
-} from './formModeQueryReconcile.js';
+import { getQueryStateSyncPlan, mergeQuerySyncOptions, normalizeQuerySyncOptions, shouldRunQueuedQuerySync } from './formModeQueryReconcile.js';
+import { bindFormModeQueryStateSync } from './formModeQueryStateBridge.js';
+import { bindFormModeTableNameUrlSync } from './formModeTableNameSync.js';
 import { syncSpecInputsWithActiveFilters } from './formModeQuerySync.js';
 import { FormModeStateHelpers as formModeStateHelpers } from './formModeStateHelpers.js';
 import { openFormModeFieldPicker } from './formModeFieldPicker.js';
@@ -726,95 +720,41 @@ let QueryFormMode;
   }
 
   function buildFormCard() {
-    // Cleanup any previously body-appended popups from prior form card builds
-    state.controls.forEach(function(control) {
-      if (typeof control._cleanupPopup === 'function') control._cleanupPopup();
-    });
-
-    const mountedCard = mountFormModeCard(document);
-    if (!mountedCard) return;
-
-    state.formHost = mountedCard.host;
-    state.formCard = mountedCard.card;
-    state.validationEl = mountedCard.validationEl;
-    state.runBtn = mountedCard.runBtn;
-    state.copyBtn = mountedCard.copyBtn;
-    state.resetOriginalBtn = mountedCard.resetOriginalBtn;
-    state.resetSharedBtn = mountedCard.resetSharedBtn;
-
-    const fieldsWrap = mountedCard.fieldsWrap;
-    const visibleInputs = getVisibleFormInputs(state.spec.inputs);
-
-    if (visibleInputs.length === 0) {
-      fieldsWrap.appendChild(createFormModeEmptyState(document));
-    }
-
-    visibleInputs.forEach(inputSpec => {
-      const fieldDef = fieldDefs ? fieldDefs.get(inputSpec.field) : null;
-      inputSpec.operator = normalizeOperatorForField(fieldDef, inputSpec.operator);
-      const control = createFormControl(
-        fieldDef,
-        inputSpec,
-        resolveFormInputInitialValues(inputSpec, state.searchParams, getInputParamKeys, splitListValues),
-        inputSpec.operator,
-        normalizeOperatorForField
-      );
-      control.addEventListener('change', scheduleApply);
-      control.addEventListener('input', scheduleApply);
-      state.controls.set(inputSpec.key, control);
-      fieldsWrap.appendChild(createFormFieldRow({
-        inputSpec,
-        fieldDef,
-        control,
-        normalizeOperatorForField,
-        removeSpecInputByKey,
-        rebuildFormCardFromSpec,
-        captureCurrentControlDefaults
-      }));
-    });
-
-    state.runBtn.addEventListener('click', () => {
-      const error = syncValidationUi();
-      if (error) {
-        showToastMessage(error, 'warning');
-        return;
+    buildInteractiveFormModeCard({
+      document,
+      state,
+      fieldDefs,
+      mountFormModeCard,
+      createFormModeEmptyState,
+      getVisibleFormInputs,
+      normalizeOperatorForField,
+      createFormControl,
+      resolveFormInputInitialValues,
+      getInputParamKeys,
+      splitListValues,
+      createFormFieldRow,
+      scheduleApply,
+      removeSpecInputByKey,
+      rebuildFormCardFromSpec,
+      captureCurrentControlDefaults,
+      openFieldPicker,
+      resetFormToBaseline,
+      saveCurrentFormAsSharedBaseline,
+      buildCurrentShareUrl,
+      syncShareUi,
+      syncValidationUi,
+      showToastMessage,
+      clipboardUtils: ClipboardUtils,
+      cleanupControls() {
+        // Cleanup any previously body-appended popups from prior form card builds.
+        state.controls.forEach(function(control) {
+          if (typeof control._cleanupPopup === 'function') control._cleanupPopup();
+        });
+      },
+      runQuery() {
+        DOM && DOM.runBtn && DOM.runBtn.click();
       }
-      DOM && DOM.runBtn && DOM.runBtn.click();
     });
-
-    mountedCard.addFieldBtn.addEventListener('click', () => {
-      openFieldPicker().catch(error => {
-        console.error('Failed to open field picker:', error);
-        showToastMessage('Failed to open the field picker.', 'error');
-      });
-    });
-
-    state.resetOriginalBtn.addEventListener('click', () => {
-      resetFormToBaseline('original');
-    });
-
-    state.resetSharedBtn.addEventListener('click', () => {
-      if (!state.sharedBaselineSpec) {
-        showToastMessage('Share this form first to create a shared baseline.', 'warning');
-        return;
-      }
-      resetFormToBaseline('shared');
-    });
-
-    state.copyBtn.addEventListener('click', async () => {
-      const saved = saveCurrentFormAsSharedBaseline();
-      if (!saved) {
-        showToastMessage('No form link is available to share.', 'warning');
-        return;
-      }
-
-      await ClipboardUtils.copyFromSource(() => buildCurrentShareUrl(), {
-        successMessage: 'Shared link copied. Reset to Last Shared now returns to this version.',
-        errorMessage: 'Failed to copy form link.',
-        emptyMessage: 'No form link is available to share.'
-      });
-    });
-    syncShareUi();
   }
 
   function ensureModeToggleButtons() {
@@ -844,99 +784,6 @@ let QueryFormMode;
     });
   }
 
-  function bindTableNameUrlSync() {
-    if (state.tableNameListenersBound) {
-      return;
-    }
-
-    const tableNameInput = DOM && DOM.tableNameInput;
-    if (!tableNameInput) {
-      return;
-    }
-
-    tableNameInput.placeholder = 'No name';
-
-    const syncBrowserUrl = () => {
-      if (!state.active || !state.spec || state.isClearingQuery) {
-        return;
-      }
-
-      const currentTableName = tableNameInput.value.trim();
-      state.spec.title = currentTableName;
-      state.spec.queryName = currentTableName;
-
-      const bindings = collectFormBindings(state.spec, getCurrentInputValues, supportsMultipleValues, getInputParamKeys);
-      syncFormHeaderCopy(state.formCard, state.spec, bindings, interpolateValue);
-      refreshBrowserUrl();
-    };
-
-    tableNameInput.addEventListener('input', syncBrowserUrl);
-    tableNameInput.addEventListener('change', syncBrowserUrl);
-    state.tableNameListenersBound = true;
-  }
-
-  function deferCompletedClearReset() {
-    const runReset = () => {
-      if (!state.active) {
-        state.isClearingQuery = false;
-        return;
-      }
-
-      try {
-        resetActiveFormAfterClear();
-      } finally {
-        state.isClearingQuery = false;
-      }
-    };
-
-    if (typeof window.queueMicrotask === 'function') {
-      window.queueMicrotask(runReset);
-      return;
-    }
-
-    Promise.resolve().then(runReset);
-  }
-
-  function queueQueryStateReconcile(options = {}) {
-    state.pendingQuerySync = mergeQuerySyncOptions(state.pendingQuerySync, options);
-
-    if (state.querySyncQueued) {
-      return;
-    }
-
-    state.querySyncQueued = true;
-    const runSync = () => {
-      state.querySyncQueued = false;
-      const queuedOptions = state.pendingQuerySync;
-      state.pendingQuerySync = null;
-
-      if (!shouldRunQueuedQuerySync(state, queuedOptions)) {
-        return;
-      }
-
-      syncActiveSpecWithCurrentQuery(queuedOptions);
-
-      if (state.viewMode === 'form') {
-        syncValidationUi();
-      }
-    };
-
-    if (typeof window.queueMicrotask === 'function') {
-      window.queueMicrotask(runSync);
-      return;
-    }
-
-    Promise.resolve().then(runSync);
-  }
-
-  function getQueryStateSyncOptions(event) {
-    return getQueryStateSyncPlan(event, {
-      isApplyingFormState: state.isApplyingFormState,
-      isClearingQuery: state.isClearingQuery,
-      viewMode: state.viewMode
-    });
-  }
-
   async function initialize() {
     if (initialized) {
       return;
@@ -948,42 +795,31 @@ let QueryFormMode;
     state.searchParams = searchParams;
     state.lastBrowserUrl = window.location.href;
 
-    if (!state.unsubscribeQueryState) {
-      state.unsubscribeQueryState = QueryStateSubscriptions.subscribe(event => {
-        if (!state.active) {
-          return;
-        }
-
-        const syncPlan = getQueryStateSyncOptions(event);
-        if (syncPlan.action === 'clear') {
-          state.isClearingQuery = true;
-          deferCompletedClearReset();
-          return;
-        }
-
-        if (syncPlan.action === 'skip') {
-          return;
-        }
-
-        if (syncPlan.action === 'queue') {
-          queueQueryStateReconcile(normalizeQuerySyncOptions(syncPlan.options));
-          return;
-        }
-
-        syncActiveSpecWithCurrentQuery(syncPlan.options);
-
-        if (state.viewMode === 'form') {
-          syncValidationUi();
-        }
-      }, {
-        displayedFields: true,
-        activeFilters: true,
-        predicate: () => state.active
-      });
-    }
+    bindFormModeQueryStateSync({
+      state,
+      window,
+      queryStateSubscriptions: QueryStateSubscriptions,
+      getQueryStateSyncPlan,
+      mergeQuerySyncOptions,
+      normalizeQuerySyncOptions,
+      shouldRunQueuedQuerySync,
+      syncActiveSpecWithCurrentQuery,
+      syncValidationUi,
+      resetActiveFormAfterClear
+    });
 
     wrapUpdateButtonStates();
-    bindTableNameUrlSync();
+    bindFormModeTableNameUrlSync({
+      state,
+      tableNameInput: DOM && DOM.tableNameInput,
+      collectFormBindings,
+      getCurrentInputValues,
+      supportsMultipleValues,
+      getInputParamKeys,
+      syncFormHeaderCopy,
+      interpolateValue,
+      refreshBrowserUrl
+    });
     ensureModeToggleButtons();
 
     const rawFormSpec = searchParams.get('form');
