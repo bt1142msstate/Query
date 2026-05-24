@@ -28,6 +28,7 @@ import {
   getDropIndicatorViewportRect,
   isPointerWithinDropViewport
 } from './dragDropViewport.js';
+import { getDropAnchorLayout } from './dragDropAnchorLayout.js';
 let DragDropInteractions;
 (function initializeDragDropInteractions() {
   var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders), getLifecycleState = QueryStateReaders.getLifecycleState.bind(QueryStateReaders), services = appServices;
@@ -114,45 +115,26 @@ let DragDropInteractions;
 
   function positionDropAnchor(rect, table, clientX, colIndex) {
     const viewportRect = getDropIndicatorViewportRect(table);
-    if (!viewportRect) {
+    const layout = getDropAnchorLayout({
+      columnRect: rect,
+      viewportRect,
+      clientX,
+      colIndex,
+      displayedFields: getDisplayedFields(),
+      getBaseFieldName,
+      scrollX: window.scrollX,
+      scrollY: window.scrollY
+    });
+    if (!layout.visible) {
       clearDropAnchor();
       return;
-    }
-
-    if (rect.right < viewportRect.left || rect.left > viewportRect.right) {
-      clearDropAnchor();
-      return;
-    }
-
-    const insertLeft = (clientX - rect.left) < rect.width / 2;
-    const insertAt = insertLeft ? colIndex : colIndex + 1;
-    const displayedFields = getDisplayedFields();
-
-    if (displayedFields.length > 1 && insertAt > 0 && insertAt < displayedFields.length) {
-      const beforeField = displayedFields[insertAt - 1];
-      const afterField = displayedFields[insertAt];
-
-      if (beforeField && afterField) {
-        const beforeBase = getBaseFieldName(beforeField);
-        const afterBase = getBaseFieldName(afterField);
-
-        if (beforeBase === afterBase) {
-          dropAnchor.style.display = 'none';
-          return;
-        }
-      }
     }
 
     dropAnchor.classList.add('vertical');
-
-    const rawAnchorX = insertLeft ? rect.left : rect.right;
-    const clampedAnchorX = Math.max(viewportRect.left, Math.min(rawAnchorX, viewportRect.right));
-    const anchorHeight = Math.max(0, viewportRect.height);
-
-    dropAnchor.style.width = '4px';
-    dropAnchor.style.height = anchorHeight + 'px';
-    dropAnchor.style.left = clampedAnchorX + window.scrollX - 2 + 'px';
-    dropAnchor.style.top = viewportRect.top + window.scrollY + 'px';
+    dropAnchor.style.width = layout.width + 'px';
+    dropAnchor.style.height = layout.height + 'px';
+    dropAnchor.style.left = layout.left + 'px';
+    dropAnchor.style.top = layout.top + 'px';
     dropAnchor.style.display = 'block';
   }
 
