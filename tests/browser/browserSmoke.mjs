@@ -1576,12 +1576,16 @@ async function exerciseTabletLandscapeMobileParity(page, queryApiStub) {
   await expectMinimumTapTarget(page, '#mobile-menu-dropdown .mobile-menu-item', 'Tablet landscape mobile menu items');
   const menuMetrics = await page.locator('#mobile-menu-dropdown.show').evaluate(element => {
     const rect = element.getBoundingClientRect();
+    const items = document.querySelector('#mobile-menu-items');
+    const itemsStyle = items ? window.getComputedStyle(items) : null;
     return {
       bottomGap: Math.abs(window.innerHeight - rect.bottom),
+      columns: itemsStyle ? itemsStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
       height: rect.height,
       left: rect.left,
       position: window.getComputedStyle(element).position,
       rightGap: Math.abs(window.innerWidth - rect.right),
+      sideGapDelta: Math.abs(rect.left - Math.abs(window.innerWidth - rect.right)),
       viewportHeight: window.innerHeight,
       width: rect.width
     };
@@ -1589,7 +1593,8 @@ async function exerciseTabletLandscapeMobileParity(page, queryApiStub) {
   if (
     menuMetrics.position !== 'fixed'
     || menuMetrics.bottomGap > 1
-    || menuMetrics.rightGap > 24
+    || menuMetrics.columns !== 3
+    || menuMetrics.sideGapDelta > 2
     || menuMetrics.width < 320
     || menuMetrics.height > menuMetrics.viewportHeight * 0.86
   ) {
@@ -1629,8 +1634,8 @@ async function exerciseTabletLandscapeMobileParity(page, queryApiStub) {
   });
   if (
     historyMetrics.bookCount !== 4
-    || historyMetrics.columns < 2
-    || historyMetrics.height > 140
+    || historyMetrics.columns !== 4
+    || historyMetrics.height > 100
     || historyMetrics.maxBookHeight > 110
   ) {
     throw new Error(`Tablet landscape history should preserve the compact mobile picker: ${JSON.stringify(historyMetrics)}`);

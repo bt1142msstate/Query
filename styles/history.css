@@ -1464,6 +1464,13 @@
     transform: none;
   }
 
+  @media (min-width: 700px) {
+    .history-bookshelf,
+    .history-bookshelf.monitor-active {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
   .history-book[open] {
     border-color: var(--history-accent);
     box-shadow: 0 0 0 1px var(--history-accent-soft), 0 12px 24px rgba(0, 0, 0, 0.28), 0 0 18px var(--history-panel-glow);
