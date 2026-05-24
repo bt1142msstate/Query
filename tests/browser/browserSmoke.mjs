@@ -1640,6 +1640,43 @@ async function exerciseTabletLandscapeMobileParity(page, queryApiStub) {
   ) {
     throw new Error(`Tablet landscape history should preserve the compact mobile picker: ${JSON.stringify(historyMetrics)}`);
   }
+  await page.locator('[data-history-book="complete"] .history-book-summary').click();
+  await page.locator('.history-monitor').waitFor({ state: 'visible', timeout: 5000 });
+  await expectElementWithinViewport(page, '.history-monitor', 'Tablet landscape query history monitor');
+  await expectMinimumTapTarget(page, '.history-monitor-close, .history-monitor-tab, .history-monitor .history-expand-btn, .history-monitor .load-query-btn, .history-monitor .rerun-query-btn', 'Tablet landscape history monitor controls');
+  const historyMonitorMetrics = await page.locator('.history-monitor').evaluate(element => {
+    const rect = element.getBoundingClientRect();
+    const tabs = element.querySelector('.history-monitor-tabs');
+    const tabsStyle = tabs ? window.getComputedStyle(tabs) : null;
+    const stageRect = element.querySelector('.history-monitor-stage')?.getBoundingClientRect();
+    const firstRow = element.querySelector('.history-row');
+    const rowStyle = firstRow ? window.getComputedStyle(firstRow) : null;
+    const firstCellRect = firstRow?.querySelector('td:first-child')?.getBoundingClientRect();
+    return {
+      bottomGap: window.innerHeight - rect.bottom,
+      firstCellWidth: firstCellRect?.width || 0,
+      left: rect.left,
+      rowColumns: rowStyle ? rowStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      sideGapDelta: Math.abs(rect.left - Math.abs(window.innerWidth - rect.right)),
+      stageHeight: stageRect?.height || 0,
+      tabColumns: tabsStyle ? tabsStyle.gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      viewportHeight: window.innerHeight,
+      width: rect.width
+    };
+  });
+  if (
+    historyMonitorMetrics.tabColumns !== 4
+    || historyMonitorMetrics.rowColumns < 4
+    || historyMonitorMetrics.firstCellWidth < 240
+    || historyMonitorMetrics.stageHeight < historyMonitorMetrics.viewportHeight * 0.45
+    || historyMonitorMetrics.sideGapDelta > 2
+    || historyMonitorMetrics.bottomGap < 0
+    || historyMonitorMetrics.width < 680
+  ) {
+    throw new Error(`Tablet landscape history monitor should use a centered tablet sheet with compact rows: ${JSON.stringify(historyMonitorMetrics)}`);
+  }
+  await page.locator('.history-monitor-close').click();
+  await page.locator('.history-monitor').waitFor({ state: 'detached', timeout: 5000 });
   await page.locator('#queries-panel .collapse-btn').click();
   await page.locator('#queries-panel.hidden').waitFor({ state: 'attached', timeout: 5000 });
 

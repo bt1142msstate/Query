@@ -1748,6 +1748,57 @@
   }
 }
 
+@media (min-width: 700px) and (max-width: 1180px) {
+  .history-monitor {
+    top: calc(var(--header-height) + 0.75rem);
+    right: auto;
+    bottom: 0.75rem;
+    left: 50%;
+    width: min(72rem, calc(100vw - 1.5rem));
+    padding: 0.9rem;
+    border: 1px solid rgba(101, 239, 255, 0.34);
+    border-radius: 1.1rem;
+    transform: translateX(-50%);
+  }
+
+  .history-monitor-tabs {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .history-monitor-tab {
+    padding-inline: 0.7rem;
+  }
+
+  .history-monitor .history-table-shell {
+    padding: 0.65rem;
+  }
+
+  .history-monitor .history-table tbody {
+    gap: 0.55rem;
+  }
+
+  .history-monitor .history-row {
+    grid-template-columns: minmax(14rem, 1fr) repeat(3, minmax(2.75rem, auto));
+    gap: 0.55rem;
+    min-height: 4.25rem;
+    padding: 0.7rem;
+  }
+
+  .history-monitor .history-row td:first-child {
+    grid-column: auto;
+  }
+
+  .history-monitor .history-name-cell {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .history-monitor .history-meta-line {
+    max-height: 1.45rem;
+    overflow: hidden;
+  }
+}
+
 
 .history-animated .clock-hour {
   transform-origin: 12px 12px;
