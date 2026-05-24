@@ -151,9 +151,7 @@ const forbiddenWindowMemberReads = new Map([
   ['normalizeUiConfigFilters', 'Import from filters/queryPayload.js instead of reading this helper from window']
 ]);
 
-const legacyLargeModuleBudgets = new Map([
-  ['core/utils.js', 674]
-]);
+const legacyLargeModuleBudgets = new Map([]);
 
 const moduleBoundaryRules = [
   {

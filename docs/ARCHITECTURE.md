@@ -92,11 +92,7 @@ That runs:
 
 ## Legacy Budgets
 
-Some modules are intentionally allowed above the normal line-count budget while they are being split:
-
-- Shared utilities
-
-The architecture fitness test prevents those files from growing. New large modules should be split instead of added to the budget.
+No application module currently uses a legacy large-module budget. The architecture fitness test enforces the normal module size limit across the app, so new large modules should be split instead of added to an exception list.
 
 ## Recommended Next Refactors
 
