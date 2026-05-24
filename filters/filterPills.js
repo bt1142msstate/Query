@@ -1,4 +1,4 @@
-import { Icons } from '../core/utils.js';
+import { Icons } from '../core/icons.js';
 import {
   buildFilterValueLabel,
   getFilterDisplayValues,

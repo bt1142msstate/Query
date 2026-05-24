@@ -1,10 +1,3 @@
-import './core/domReady.js';
-import './core/dragUtils.js';
-import './core/icons.js';
-import './core/operatorLabels.js';
-import './core/utils.js';
-import './core/dataFormatters.js';
-import './core/toast.js';
 import './ui/toast.js';
 import './core/clipboard.js';
 import './core/visibility.js';
