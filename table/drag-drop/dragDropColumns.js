@@ -11,7 +11,7 @@ import {
   QueryStateReaders,
   registerQueryStateRuntimeAccessors
 } from '../../core/queryState.js';
-import { FormatUtils } from '../../core/utils.js';
+import { CellDisplayFormatting } from '../../core/cellDisplayFormatting.js';
 import { QueryTableView } from '../../ui/queryTableView.js';
 import {
   fieldOrDuplicatesExist,
@@ -30,7 +30,7 @@ let dragDropColumnOps;
   const uiActions = appUiActions;
 
   function formatColumnClipboardValue(rawValue, fieldName) {
-    return FormatUtils.formatCellDisplay(rawValue, fieldName);
+    return CellDisplayFormatting.formatCellDisplay(rawValue, fieldName);
   }
 
   function getHeaderFieldName(th) {

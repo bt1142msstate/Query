@@ -36,6 +36,7 @@ The intended deployment model is bring-your-own API. The public live site should
 | Entry/bootstrap | `appModules.js`, `core/bootstrap.js` | Module loading and app startup |
 | State | `core/queryState.js` | Query state, lifecycle flags, read/write facades |
 | Services/actions | `core/appServices.js`, `core/appUiActions.js` | Cross-feature coordination without direct feature coupling |
+| Core utilities | `core/*Formatting.js`, `core/*Utils.js`, `core/tableBuilder.js`, `core/textMeasurement.js` | Focused helpers imported from their owning modules instead of a mixed utility facade |
 | Data contract | `filters/queryPayload.js`, `filters/fieldDefs.js` | Backend payload generation, field metadata, filter normalization |
 | Feature UI | `ui/`, `filters/`, `bubbles/`, `table/`, `history/`, `templates/` | User workflows and rendering, with complex widgets split into focused view/helper modules |
 | Query history | `history/` | History shell split from request mapping, config loading, result hydration, row rendering, grouping, notifications, tooltips, and status mapping |

@@ -1,4 +1,4 @@
-import { MoneyUtils } from '../../core/utils.js';
+import { MoneyUtils } from '../../core/moneyUtils.js';
 
 function parseSortNumericValue(value, type = 'number') {
   if (type === 'money') {

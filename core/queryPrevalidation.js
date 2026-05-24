@@ -1,6 +1,7 @@
 import { showToastMessage } from './toast.js';
 import { getComparableValue } from './dateValues.js';
-import { MoneyUtils, ValueFormatting } from './utils.js';
+import { MoneyUtils } from './moneyUtils.js';
+import { ValueFormatting } from './valueFormatting.js';
 import { registerQueryStateRuntimeAccessors } from './queryState.js';
 import { resolveFieldName } from '../filters/fieldDefs.js';
 

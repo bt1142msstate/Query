@@ -7,7 +7,9 @@
 import { appServices, registerTableService } from '../../core/appServices.js';
 import { appUiActions } from '../../core/appUiActions.js';
 import { QueryChangeManager, QueryStateReaders } from '../../core/queryState.js';
-import { TableBuilder, TextMeasurement, ValueFormatting } from '../../core/utils.js';
+import { TableBuilder } from '../../core/tableBuilder.js';
+import { TextMeasurement } from '../../core/textMeasurement.js';
+import { ValueFormatting } from '../../core/valueFormatting.js';
 import { parseNumericValue } from '../post-filters/postFilterLogic.js';
 import { createTableColumnLayoutController } from './tableColumnLayout.js';
 import { createTableScrollbarController } from './tableScrollbar.js';
