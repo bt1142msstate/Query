@@ -4,7 +4,7 @@ import {
   formatInputValue,
   parseNumber,
   sanitizeInputValue
-} from '../../core/moneyUtils.js';
+} from '../../core/formatting/moneyUtils.js';
 
 assert.equal(sanitizeInputValue('$001,234.567'), '1234.56');
 assert.equal(sanitizeInputValue('-$001,234.5'), '-1234.5');

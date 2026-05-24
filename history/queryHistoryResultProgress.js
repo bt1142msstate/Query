@@ -1,5 +1,5 @@
 import { BackendApi } from '../core/backendApi.js';
-import { escapeHtml } from '../core/html.js';
+import { escapeHtml } from '../core/formatting/html.js';
 import { readStreamedQueryText } from '../core/queryStream.js';
 
 let loadState = null;

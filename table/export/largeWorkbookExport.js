@@ -2,7 +2,7 @@ import { ZIP_MIME_TYPE, createZipBlob } from './xlsxZipWriter.js';
 import { buildWorkbookFilename, downloadWorkbookBlob } from './workbookDownload.js';
 import { WORKBOOK_DETAILS_SHEET_NAME, getWorkbookDetailsColumns } from './workbookDetails.js';
 import { buildOverviewRows, getOverviewColumns } from './workbookOverview.js';
-import { formatDisplayValue, parseDateValue } from '../../core/dateValues.js';
+import { formatDisplayValue, parseDateValue } from '../../core/formatting/dateValues.js';
 
 const LARGE_EXPORT_CELL_THRESHOLD = 15000;
 const EXCEL_MAX_DATA_ROWS_PER_SHEET = 1048575;

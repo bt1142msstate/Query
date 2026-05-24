@@ -1,4 +1,4 @@
-import { normalizeDateValue as normalizeSharedDateValue } from '../../core/dateValues.js';
+import { normalizeDateValue as normalizeSharedDateValue } from '../../core/formatting/dateValues.js';
 
 const FORM_MODE_DATE_IDLE_MS = 800;
 

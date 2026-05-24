@@ -28,7 +28,7 @@ import {
 import { appServices, registerQueryHistoryService } from '../core/appServices.js';
 import { appUiActions } from '../core/appUiActions.js';
 import { BackendApi } from '../core/backendApi.js';
-import { formatDuration, parsePipeDelimitedRow } from '../core/dataFormatters.js';
+import { formatDuration, parsePipeDelimitedRow } from '../core/formatting/dataFormatters.js';
 import { onDOMReady } from '../core/domReady.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';

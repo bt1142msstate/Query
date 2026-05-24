@@ -1,5 +1,5 @@
-import { formatDuration } from '../../core/dataFormatters.js';
-import { OperatorLabels } from '../../core/operatorLabels.js';
+import { formatDuration } from '../../core/formatting/dataFormatters.js';
+import { OperatorLabels } from '../../core/formatting/operatorLabels.js';
 
 const WORKBOOK_DETAILS_SHEET_NAME = 'Run Details';
 const WORKBOOK_DETAILS_COLUMNS = Object.freeze(['Section', 'Item', 'Value']);

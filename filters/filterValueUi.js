@@ -3,12 +3,12 @@
  * Extracted from filterManager.js so value-display behavior is separate from condition editing.
  */
 import { ClipboardUtils } from '../core/clipboard.js';
-import { getFieldValueDisplayMap } from '../core/fieldValueMaps.js';
+import { getFieldValueDisplayMap } from '../core/formatting/fieldValueMaps.js';
 import { showToastMessage } from '../core/toast.js';
-import { MoneyUtils } from '../core/moneyUtils.js';
-import { ValueFormatting } from '../core/valueFormatting.js';
+import { MoneyUtils } from '../core/formatting/moneyUtils.js';
+import { ValueFormatting } from '../core/formatting/valueFormatting.js';
 import { VisibilityUtils } from '../core/visibility.js';
-import { escapeHtml } from '../core/html.js';
+import { escapeHtml } from '../core/formatting/html.js';
 
   function getFilterValueMap(fieldDef) {
     return getFieldValueDisplayMap(fieldDef);

@@ -1,7 +1,7 @@
 import { formatDisplayValue } from './dateValues.js';
 import { MoneyUtils } from './moneyUtils.js';
-import { getBaseFieldName } from './queryState.js';
-import { fieldDefs } from '../filters/fieldDefs.js';
+import { getBaseFieldName } from '../queryState.js';
+import { fieldDefs } from '../../filters/fieldDefs.js';
 
 function getFieldDefinition(fieldName) {
   if (!fieldDefs) {

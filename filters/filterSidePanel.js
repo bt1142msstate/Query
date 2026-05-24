@@ -14,7 +14,7 @@ import { appUiActions, registerAppUiActionDependencies } from '../core/appUiActi
 import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 import { showToastMessage } from '../core/toast.js';
-import { OperatorLabels } from '../core/operatorLabels.js';
+import { OperatorLabels } from '../core/formatting/operatorLabels.js';
 import { Icons } from '../core/icons.js';
 import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
 import { fieldDefs } from './fieldDefs.js';

@@ -11,7 +11,7 @@ import {
   QueryStateReaders,
   registerQueryStateRuntimeAccessors
 } from '../../core/queryState.js';
-import { CellDisplayFormatting } from '../../core/cellDisplayFormatting.js';
+import { CellDisplayFormatting } from '../../core/formatting/cellDisplayFormatting.js';
 import { QueryTableView } from '../../ui/queryTableView.js';
 import {
   fieldOrDuplicatesExist,

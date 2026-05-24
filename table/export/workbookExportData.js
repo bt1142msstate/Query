@@ -1,5 +1,5 @@
-import { formatDisplayValue, parseDateValue } from '../../core/dateValues.js';
-import { MoneyUtils } from '../../core/moneyUtils.js';
+import { formatDisplayValue, parseDateValue } from '../../core/formatting/dateValues.js';
+import { MoneyUtils } from '../../core/formatting/moneyUtils.js';
 
 const SHEET_NAME_LIMIT = 31;
 const MAX_GROUPED_SHEETS = 100;

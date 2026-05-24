@@ -1,7 +1,7 @@
 import { getFieldValueDisplayMap } from './fieldValueMaps.js';
 import { escapeHtml } from './html.js';
 import { OperatorLabels } from './operatorLabels.js';
-import { fieldDefs, getFieldFilterOperators, isFieldBackendFilterable, resolveFieldName } from '../filters/fieldDefs.js';
+import { fieldDefs, getFieldFilterOperators, isFieldBackendFilterable, resolveFieldName } from '../../filters/fieldDefs.js';
 
 const FIELD_OPERATOR_TO_UI_COND = {
   Equals: 'equals',

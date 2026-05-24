@@ -5,7 +5,7 @@ window.setTimeout = setTimeout;
 window.clearTimeout = clearTimeout;
 
 const { QueryChangeManager } = await import('../../core/queryState.js');
-const { isValidDateValue, normalizeDateValue } = await import('../../core/dateValues.js');
+const { isValidDateValue, normalizeDateValue } = await import('../../core/formatting/dateValues.js');
 const { fieldAliases, fieldDefs, getFieldFilterOperators } = await import('../../filters/fieldDefs.js');
 const {
   buildBackendFilters,

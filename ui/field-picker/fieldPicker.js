@@ -1,5 +1,5 @@
 import { showToastMessage } from '../../core/toast.js';
-import { formatFieldDefinitionTooltipHTML } from '../../core/tooltipFormatters.js';
+import { formatFieldDefinitionTooltipHTML } from '../../core/formatting/tooltipFormatters.js';
 import { VisibilityUtils } from '../../core/visibility.js';
 import { getRankedFieldPickerOptions } from './fieldPickerSearch.js';
 import { createQueryFieldPickerIntegration } from './fieldPickerQueryIntegration.js';

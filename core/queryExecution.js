@@ -4,7 +4,7 @@
 
 import { BackendApi } from './backendApi.js';
 import { notifyBackgroundTaskComplete, prepareBackgroundTaskNotification } from './backgroundTaskNotifications.js';
-import { parsePipeDelimitedRow } from './dataFormatters.js';
+import { parsePipeDelimitedRow } from './formatting/dataFormatters.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from './queryState.js';
 import { createStreamedQueryTextReader } from './queryStream.js';
 import { appServices, registerQueryExecutionService } from './appServices.js';

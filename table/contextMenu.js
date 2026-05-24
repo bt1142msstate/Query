@@ -8,7 +8,7 @@ import { appServices } from '../core/appServices.js';
 import { appUiActions } from '../core/appUiActions.js';
 import { QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
-import { CellDisplayFormatting } from '../core/cellDisplayFormatting.js';
+import { CellDisplayFormatting } from '../core/formatting/cellDisplayFormatting.js';
 import { VisibilityUtils } from '../core/visibility.js';
 import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
 

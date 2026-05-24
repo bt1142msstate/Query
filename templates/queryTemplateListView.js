@@ -1,4 +1,4 @@
-import { escapeHtml } from '../core/html.js';
+import { escapeHtml } from '../core/formatting/html.js';
 import { getTemplateListSections } from './queryTemplateViewState.js';
 
 export function renderTemplateList({
