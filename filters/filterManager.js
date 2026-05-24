@@ -20,6 +20,10 @@ import {
     isListPasteField,
     supportsListSelectorCondition
 } from './filterConditionLogic.js';
+import {
+    conditionAllowsNeverDateValue,
+    configureConditionInputsForType
+} from './filterInputConfiguration.js';
 import { createFilterPillElement, createPostFilterPillElement } from './filterPills.js';
 
 /**
@@ -113,11 +117,6 @@ function getComparableDateValue(value) {
     }
 
     return NaN;
-}
-
-function conditionAllowsNeverDateValue(cond) {
-    const normalized = String(cond || '').trim().toLowerCase();
-    return normalized === 'equals' || normalized === 'does_not_equal' || normalized === 'never';
 }
 
 function syncDatePickerNeverAvailability(cond) {
@@ -1055,108 +1054,17 @@ function buildableConditionBtnHandler(e) {
     uiActions.positionInputWrapper();
 }
 
-/* ---------- Input helpers to avoid duplicated numeric-config blocks ---------- */
-function setNumericProps(inputs, allowDecimal){
-  inputs.forEach(inp=>{
-    inp.setAttribute('inputmode', allowDecimal ? 'decimal' : 'numeric');
-    inp.setAttribute('step', allowDecimal ? '0.01' : '1');
-    inp.onkeypress = e=>{
-      const regex = allowDecimal ? /[0-9.]/ : /[0-9]/;
-      if(!regex.test(e.key)) e.preventDefault();
-    };
-  });
-}
-
-function clearNumericProps(inputs){
-  inputs.forEach(inp=>{
-    inp.removeAttribute('inputmode');
-    inp.removeAttribute('step');
-    inp.onkeypress = null;
-  });
-}
-
-function setNumericFieldAppearance(inputs, numericKind) {
-    inputs.forEach(inp => {
-        const isMoney = numericKind === 'money';
-        const isInteger = numericKind === 'integer';
-        const isDecimal = numericKind === 'decimal';
-        inp.classList.toggle('condition-field-money', isMoney);
-        if (isMoney) {
-            inp.placeholder = '0.00';
-        } else if (isDecimal) {
-            inp.placeholder = '0.00';
-        } else if (isInteger) {
-            inp.placeholder = '0';
-        } else if (inp.placeholder === '0.00') {
-            inp.placeholder = 'Enter value...';
-        } else if (inp.placeholder === '0') {
-            inp.placeholder = 'Enter value...';
-        }
-
-        const mode = isMoney
-          ? true
-          : (isDecimal ? { kind: 'decimal' } : (isInteger ? { kind: 'integer' } : false));
-        MoneyUtils.configureInputBehavior(inp, mode);
-    });
-}
-
 function configureInputsForType(type){
     const inp1 = getFilterConditionInputElement();
     const inp2 = getFilterConditionInput2Element();
     const inputs=[inp1,inp2].filter(Boolean);
-  const isMoney  = type==='money';
-  const isNumber = type==='number';
-    const currentFieldName = getActiveFilterFieldName();
-    const numberFormat = ValueFormatting.getNumberFormat(currentFieldName) || '';
-    const isDate = type === 'date';
-    const selectedCondition = getSelectedCondition(getFilterConditionPanelElement());
-    const htmlType = 'text';
-
-    if (!isDate) {
-        inputs.forEach(inp => {
-            const datePickerApi = inp._customDatePickerApi;
-            if (datePickerApi && typeof datePickerApi.destroy === 'function') {
-                datePickerApi.destroy();
-            }
-        });
-    }
-
-  inputs.forEach(inp=> inp.type = htmlType);
-
-  if(isMoney || (isNumber && numberFormat === 'decimal')){
-    setNumericProps(inputs,true);
-  }else if(isNumber){
-    setNumericProps(inputs,false);
-  }else{
-    clearNumericProps(inputs);
-  }
-
-    setNumericFieldAppearance(
+    configureConditionInputsForType({
+      type,
       inputs,
-      isMoney ? 'money' : (
-        isNumber
-          ? (numberFormat === 'decimal' ? 'decimal' : (numberFormat !== 'year' ? 'integer' : 'plain'))
-          : 'plain'
-      )
-    );
-
-    if (CustomDatePicker && typeof CustomDatePicker.enhanceInput === 'function') {
-        inputs.forEach(inp => {
-            if (isDate) {
-                CustomDatePicker.enhanceInput(inp, {
-                    variant: 'filter',
-                    enabled: true,
-                    allowNever: conditionAllowsNeverDateValue(selectedCondition),
-                    placeholder: 'M/D/YYYY'
-                });
-                inp.dataset.errorMsg = 'Enter a date or Never';
-                inp.setAttribute('pattern', CustomDatePicker.inputPattern || '^(Never|\\d{1,2}\\/\\d{1,2}\\/\\d{4})$');
-            } else {
-                inp.removeAttribute('pattern');
-                if (inp.dataset.errorMsg === 'Use M/D/YYYY' || inp.dataset.errorMsg === 'Enter a date or Never') {
-                    delete inp.dataset.errorMsg;
-                }
-            }
-        });
-    }
+      currentFieldName: getActiveFilterFieldName(),
+      selectedCondition: getSelectedCondition(getFilterConditionPanelElement()),
+      customDatePicker: CustomDatePicker,
+      moneyUtils: MoneyUtils,
+      valueFormatting: ValueFormatting
+    });
 }
