@@ -9,7 +9,7 @@ import { appUiActions } from '../../core/appUiActions.js';
 import { QueryChangeManager, QueryStateReaders } from '../../core/queryState.js';
 import { TableBuilder } from '../../core/tableBuilder.js';
 import { TextMeasurement } from '../../core/textMeasurement.js';
-import { ValueFormatting } from '../../core/valueFormatting.js';
+import { ValueFormatting } from '../../core/formatting/valueFormatting.js';
 import { parseNumericValue } from '../post-filters/postFilterLogic.js';
 import { createTableColumnLayoutController } from './tableColumnLayout.js';
 import { createTableScrollbarController } from './tableScrollbar.js';
@@ -19,7 +19,7 @@ import {
   calculateOptimalColumnWidths as calculateMeasuredOptimalColumnWidths
 } from './tableColumnWidthCalculation.js';
 import { buildExpandedMultiValueTable } from './splitColumnExpansion.js';
-import { escapeHtml } from '../../core/html.js';
+import { escapeHtml } from '../../core/formatting/html.js';
 import { QueryTableView } from '../../ui/queryTableView.js';
 import { createVirtualTableEmptyRow, createVirtualTableRow } from './virtualTableRows.js';
 import { createVirtualTablePostFilterController } from './virtualTablePostFilters.js';

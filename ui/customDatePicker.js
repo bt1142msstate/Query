@@ -9,7 +9,7 @@ import {
   parseIsoDate,
   toBackendDateValue,
   toIsoDate
-} from '../core/dateValues.js';
+} from '../core/formatting/dateValues.js';
 
 const CustomDatePicker = (() => {
   const MONTH_NAMES = [

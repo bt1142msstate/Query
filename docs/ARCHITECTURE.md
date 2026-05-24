@@ -36,7 +36,7 @@ The intended deployment model is bring-your-own API. The public live site should
 | Entry/bootstrap | `appModules.js`, `core/bootstrap.js` | Module loading and app startup |
 | State | `core/queryState.js` | Query state, lifecycle flags, read/write facades |
 | Services/actions | `core/appServices.js`, `core/appUiActions.js` | Cross-feature coordination without direct feature coupling |
-| Core utilities | `core/*Formatting.js`, `core/*Utils.js`, `core/tableBuilder.js`, `core/textMeasurement.js` | Focused helpers imported from their owning modules instead of a mixed utility facade |
+| Core utilities | `core/formatting/`, `core/*Utils.js`, `core/tableBuilder.js`, `core/textMeasurement.js` | Focused helpers imported from their owning modules instead of a mixed utility facade |
 | Data contract | `filters/queryPayload.js`, `filters/fieldDefs.js` | Backend payload generation, field metadata, filter normalization |
 | Feature UI | `ui/`, `filters/`, `bubbles/`, `table/`, `history/`, `templates/` | User workflows and rendering, with complex widgets split into focused view/helper modules |
 | Query history | `history/` | History shell split from request mapping, config loading, result hydration, row rendering, grouping, notifications, tooltips, and status mapping |
@@ -47,6 +47,14 @@ The intended deployment model is bring-your-own API. The public live site should
 | Styles | `styles/app.css` plus feature CSS files | Feature-scoped styling with a single stylesheet entry |
 | Architecture config | `config/` | Forbidden browser globals, module budgets, and import-boundary rules |
 | Tests | `tests/architecture/`, `tests/unit/`, `tests/browser/` | Architecture checks, focused unit coverage, and browser smoke coverage |
+
+## Folder Organization
+
+- `core/formatting/` owns value conversion, escaping, date/money formatting, tooltip formatting, and cell display formatting.
+- `core/` root owns app-wide state, services/actions, lifecycle, backend/query execution, browser primitives, and startup glue.
+- `table/` keeps the top-level table surface in `table/contextMenu.js` and groups complex table workflows into `drag-drop/`, `export/`, `post-filters/`, and `virtual-table/`.
+- `ui/` keeps shared UI systems at the root and groups larger workflows in `field-picker/` and `form-mode/`.
+- `filters/`, `history/`, `templates/`, and `bubbles/` are already feature folders; they should only gain subfolders if a workflow grows into multiple independently owned clusters.
 
 ## Public Runtime Surface
 

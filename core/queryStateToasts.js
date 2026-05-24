@@ -1,4 +1,4 @@
-import { OperatorLabels } from './operatorLabels.js';
+import { OperatorLabels } from './formatting/operatorLabels.js';
 
 function shouldSkipQueryChangeToast(meta = {}) {
   if (!meta || meta.toast === false) {

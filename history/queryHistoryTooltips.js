@@ -1,4 +1,4 @@
-import { escapeHtml } from '../core/html.js';
+import { escapeHtml } from '../core/formatting/html.js';
 import { formatFieldOperatorForDisplay, normalizeUiConfigFilters } from '../filters/queryPayload.js';
 
 export function formatColumnsTooltip(columns) {

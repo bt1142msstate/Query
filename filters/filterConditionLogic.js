@@ -1,4 +1,4 @@
-import { getComparableValue as getDefaultComparableDateValue, normalizeDateValue } from '../core/dateValues.js';
+import { getComparableValue as getDefaultComparableDateValue, normalizeDateValue } from '../core/formatting/dateValues.js';
 
 function supportsListSelectorCondition(cond) {
   const normalized = String(cond || '').trim().toLowerCase();

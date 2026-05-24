@@ -1,5 +1,5 @@
 import { getBaseFieldName, QueryStateReaders } from '../core/queryState.js';
-import { toBackendDateValue } from '../core/dateValues.js';
+import { toBackendDateValue } from '../core/formatting/dateValues.js';
 import { fieldDefs, isFieldBackendFilterable, resolveFieldName } from './fieldDefs.js';
 import { getDateFilterValidationMessage } from './filterConditionLogic.js';
 

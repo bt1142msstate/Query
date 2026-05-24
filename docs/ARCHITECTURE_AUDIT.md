@@ -6,6 +6,13 @@ This audit checks whether the frontend is split at useful ownership boundaries w
 
 The module graph is appropriately split for the current raw JavaScript architecture. The remaining large files are feature coordinators that delegate stable logic to focused modules. The small modules that remain have a clear purpose: shared pure helpers, worker boundaries, DOM adapters, service registration, or unit-tested behavior.
 
+## Folder Organization Completed
+
+- Added `core/formatting/` for shared date, money, value, tooltip, cell-display, escaping, and data-formatting helpers.
+- Kept `core/` root for app-wide state, services, lifecycle, backend/query execution, browser primitives, and startup glue.
+- Left `filters/`, `history/`, `templates/`, and `bubbles/` flat because each is already a feature folder with cohesive module names.
+- Kept existing `table/drag-drop/`, `table/export/`, `table/post-filters/`, `table/virtual-table/`, `ui/field-picker/`, and `ui/form-mode/` subfolders because those areas have enough internal workflow complexity to justify subfolders.
+
 ## Consolidation Completed
 
 - Removed `core/dragUtils.js`; its single drag data-transfer helper was only used by the table drag/drop workflow, so it now lives with that workflow.
@@ -13,8 +20,8 @@ The module graph is appropriately split for the current raw JavaScript architect
 
 ## Modules That Should Stay Split
 
-- `core/html.js`, `core/icons.js`, `core/domReady.js`, `core/toast.js`: small but shared cross-feature primitives.
-- `core/valueFormatting.js`, `core/moneyUtils.js`, `core/textMeasurement.js`, `core/tableBuilder.js`: focused core helpers with concrete consumers.
+- `core/formatting/*`, `core/icons.js`, `core/domReady.js`, `core/toast.js`: small but shared cross-feature primitives.
+- `core/textMeasurement.js`, `core/tableBuilder.js`: focused core helpers with concrete consumers.
 - `table/export/*`: export has separate workbook data shaping, progress/yielding, download, overview/details sheets, large workbook generation, and worker/zip boundaries.
 - `table/virtual-table/*`: virtual scrolling, rows, column layout, width measurement, scrollbar behavior, sort, split-column transforms, and post-filter projection are distinct responsibilities.
 - `ui/form-mode/*`, `ui/field-picker/*`, `templates/*`, `history/*`: larger user workflows are split into shell/coordinator modules plus pure logic, view helpers, payload mapping, and repository/integration adapters.

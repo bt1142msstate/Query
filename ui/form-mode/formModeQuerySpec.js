@@ -1,4 +1,4 @@
-import { OperatorLabels } from '../../core/operatorLabels.js';
+import { OperatorLabels } from '../../core/formatting/operatorLabels.js';
 import { mapFieldOperatorToUiCond } from '../../filters/queryPayload.js';
 import { slugify, splitListValues } from './formModeSpec.js';
 

@@ -5,7 +5,7 @@ const {
   isValidDateValue,
   normalizeDateValue,
   toBackendDateValue
-} = await import('../../core/dateValues.js');
+} = await import('../../core/formatting/dateValues.js');
 
 const acceptedFormats = [
   ['1/2/2026', '1/2/2026'],

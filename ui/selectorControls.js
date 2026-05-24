@@ -1,6 +1,6 @@
 import { VisibilityUtils } from '../core/visibility.js';
 import { initializeSearchInputs } from './searchUI.js';
-import { escapeHtml } from '../core/html.js';
+import { escapeHtml } from '../core/formatting/html.js';
 import { VirtualList } from './virtualList.js';
 import { createListPasteInput, parseListInputValues } from './selectorListPasteInput.js';
 

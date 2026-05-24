@@ -42,7 +42,7 @@ import {
 } from './queryTemplateCategoryView.js';
 import { renderTemplateList } from './queryTemplateListView.js';
 import { getQueryTemplateElements } from './queryTemplateElements.js';
-import { escapeHtml } from '../core/html.js';
+import { escapeHtml } from '../core/formatting/html.js';
 (function initializeQueryTemplates() {
   const NEW_TEMPLATE_ID = '__new_template__';
   const DEFAULT_TEMPLATE_SVG = `

@@ -3,7 +3,7 @@
  * Provides client-side data manipulation including grouping, filtering, and post-processing
  */
 import { normalizeUiConfigFilters } from '../../filters/queryPayload.js';
-import { parseDateValue } from '../../core/dateValues.js';
+import { parseDateValue } from '../../core/formatting/dateValues.js';
 
 // Enum for GroupMethod
 const GroupMethod = {

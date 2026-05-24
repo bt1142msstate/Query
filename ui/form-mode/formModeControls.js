@@ -1,9 +1,9 @@
 import { showToastMessage } from '../../core/toast.js';
 import { Icons } from '../../core/icons.js';
-import { OperatorLabels } from '../../core/operatorLabels.js';
-import { MoneyUtils } from '../../core/moneyUtils.js';
+import { OperatorLabels } from '../../core/formatting/operatorLabels.js';
+import { MoneyUtils } from '../../core/formatting/moneyUtils.js';
 import { OperatorSelectUtils } from '../../core/operatorSelectUtils.js';
-import { ValueFormatting } from '../../core/valueFormatting.js';
+import { ValueFormatting } from '../../core/formatting/valueFormatting.js';
 import { SelectorControls } from '../selectorControls.js';
 import { fieldDefs, getFieldFilterOperators, isFieldBackendFilterable } from '../../filters/fieldDefs.js';
 import { CustomDatePicker } from '../customDatePicker.js';

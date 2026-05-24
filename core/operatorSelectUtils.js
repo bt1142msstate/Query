@@ -1,4 +1,4 @@
-import { OperatorLabels } from './operatorLabels.js';
+import { OperatorLabels } from './formatting/operatorLabels.js';
 
 function createSelect(operators, options = {}) {
   const {

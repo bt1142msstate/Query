@@ -1,4 +1,4 @@
-import { formatDuration } from './dataFormatters.js';
+import { formatDuration } from './formatting/dataFormatters.js';
 import { showToastMessage } from './toast.js';
 
 const API_URL = 'https://mlp.sirsi.net/uhtbin/query_api.pl';

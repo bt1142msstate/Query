@@ -4,7 +4,7 @@
  * @class Bubble
  */
 import { mapUiCondToFieldOperator } from '../filters/queryPayload.js';
-import { formatFieldDefinitionTooltipHTML, formatStandardFilterTooltipHTML } from '../core/tooltipFormatters.js';
+import { formatFieldDefinitionTooltipHTML, formatStandardFilterTooltipHTML } from '../core/formatting/tooltipFormatters.js';
 import { registerBubbleService } from '../core/appServices.js';
 import { AppState, QueryStateReaders } from '../core/queryState.js';
 import { VisibilityUtils } from '../core/visibility.js';

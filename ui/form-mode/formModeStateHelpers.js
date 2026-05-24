@@ -1,4 +1,4 @@
-import { isValidDateValue } from '../../core/dateValues.js';
+import { isValidDateValue } from '../../core/formatting/dateValues.js';
 import { fieldDefs, registerDynamicField } from '../../filters/fieldDefs.js';
 import { getDateFilterValidationMessage } from '../../filters/filterConditionLogic.js';
 import { DOM } from '../../core/domCache.js';
