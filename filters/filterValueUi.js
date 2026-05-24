@@ -5,7 +5,8 @@
 import { ClipboardUtils } from '../core/clipboard.js';
 import { getFieldValueDisplayMap } from '../core/fieldValueMaps.js';
 import { showToastMessage } from '../core/toast.js';
-import { MoneyUtils, ValueFormatting } from '../core/utils.js';
+import { MoneyUtils } from '../core/moneyUtils.js';
+import { ValueFormatting } from '../core/valueFormatting.js';
 import { VisibilityUtils } from '../core/visibility.js';
 import { escapeHtml } from '../core/html.js';
 

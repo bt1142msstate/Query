@@ -1,6 +1,8 @@
 import { appServices, registerFilterService } from '../core/appServices.js';
 import { appUiActions } from '../core/appUiActions.js';
-import { MoneyUtils, OperatorSelectUtils, ValueFormatting } from '../core/utils.js';
+import { MoneyUtils } from '../core/moneyUtils.js';
+import { OperatorSelectUtils } from '../core/operatorSelectUtils.js';
+import { ValueFormatting } from '../core/valueFormatting.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { SelectorControls } from '../ui/selectorControls.js';
 import {

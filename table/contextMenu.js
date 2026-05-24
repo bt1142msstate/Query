@@ -8,7 +8,7 @@ import { appServices } from '../core/appServices.js';
 import { appUiActions } from '../core/appUiActions.js';
 import { QueryStateReaders } from '../core/queryState.js';
 import { showToastMessage } from '../core/toast.js';
-import { FormatUtils } from '../core/utils.js';
+import { CellDisplayFormatting } from '../core/cellDisplayFormatting.js';
 import { VisibilityUtils } from '../core/visibility.js';
 import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
 
@@ -39,7 +39,7 @@ import { SharedFieldPicker } from '../ui/field-picker/fieldPicker.js';
   }
 
   function formatCellValue(raw, field) {
-    return FormatUtils.formatCellDisplay(raw, field);
+    return CellDisplayFormatting.formatCellDisplay(raw, field);
   }
 
   function getCellValue(rowIndex, colIndex) {
