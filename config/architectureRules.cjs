@@ -155,7 +155,6 @@ const legacyLargeModuleBudgets = new Map([
   ['core/queryState.js', 1040],
   ['templates/queryTemplates.js', 1066],
   ['core/utils.js', 674],
-  ['filters/filterManager.js', 1070],
   ['ui/field-picker/fieldPicker.js', 973],
   ['ui/form-mode/formMode.js', 1060]
 ]);

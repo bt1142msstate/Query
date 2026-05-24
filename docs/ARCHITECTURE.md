@@ -39,7 +39,7 @@ The intended deployment model is bring-your-own API. The public live site should
 | Data contract | `filters/queryPayload.js`, `filters/fieldDefs.js` | Backend payload generation, field metadata, filter normalization |
 | Feature UI | `ui/`, `filters/`, `bubbles/`, `table/`, `history/`, `templates/` | User workflows and rendering, with complex widgets split into focused view/helper modules |
 | Query history | `history/` | History shell split from request mapping, config loading, result hydration, row rendering, grouping, notifications, tooltips, and status mapping |
-| Filter workflows | `filters/` | Backend payload contracts, field metadata, condition validation, filter-pill rendering, and condition input configuration |
+| Filter workflows | `filters/` | Backend payload contracts, field metadata, condition validation, buildable-field construction, filter-pill rendering, and condition input/panel configuration |
 | UI feature folders | `ui/form-mode/`, `ui/field-picker/` | Larger UI workflows with dedicated shell, field-picker, query-preview, state helper, presentation, and interaction modules |
 | Table feature folders | `table/drag-drop/`, `table/virtual-table/`, `table/post-filters/`, `table/export/` | Result-table workflows grouped by behavior, with drag/drop split into column, resize, header-action, viewport, bubble-document, and interaction modules; virtual table measurement, row rendering, post-filter state, and split-column transforms split from the coordinator; post-filter value virtualization isolated from the overlay coordinator |
 | Styles | `styles/app.css` plus feature CSS files | Feature-scoped styling with a single stylesheet entry |
@@ -108,7 +108,7 @@ The architecture fitness test prevents those files from growing. New large modul
 
 ## Recommended Next Refactors
 
-1. Continue splitting `filters/filterManager.js` by moving condition-panel builders and buildable-field confirmation into dedicated modules.
-2. Continue splitting `templates/queryTemplates.js` by moving detail/editor rendering and pinned-strip rendering into dedicated modules.
-3. Continue splitting `ui/form-mode/formMode.js` by moving remaining URL/share and initialization coordination into dedicated modules.
-4. Continue splitting `core/queryState.js` by moving lifecycle/read-only selector helpers into dedicated modules.
+1. Continue splitting `templates/queryTemplates.js` by moving detail/editor rendering and pinned-strip rendering into dedicated modules.
+2. Continue splitting `ui/form-mode/formMode.js` by moving remaining URL/share and initialization coordination into dedicated modules.
+3. Continue splitting `core/queryState.js` by moving lifecycle/read-only selector helpers into dedicated modules.
+4. Continue splitting `ui/field-picker/fieldPicker.js` by moving modal rendering and option-list wiring into dedicated modules.
