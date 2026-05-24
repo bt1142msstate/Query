@@ -11,6 +11,8 @@ import {
 } from './columnManager.js';
 import { createColumnResizeController } from './columnResizeController.js';
 import { dragDropColumnOps } from './dragDropColumns.js';
+import { createDragDropHeaderActions } from './dragDropHeaderActions.js';
+import { createDragDropHeaderInsertAffordance } from './dragDropHeaderInsertAffordance.js';
 import {
   calculateAutoScrollStep,
   calculateHeaderActionLayout,
@@ -20,6 +22,12 @@ import {
 import { resolveColumnResizeStartTarget } from './resizeStartTarget.js';
 import { SharedFieldPicker } from '../../ui/field-picker/fieldPicker.js';
 import { bindBubbleDocumentDragHandlers } from './bubbleDocumentDrag.js';
+import {
+  getClosestVisibleHeaderByX,
+  getDragScrollContainer,
+  getDropIndicatorViewportRect,
+  isPointerWithinDropViewport
+} from './dragDropViewport.js';
 let DragDropInteractions;
 (function initializeDragDropInteractions() {
   var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders), getLifecycleState = QueryStateReaders.getLifecycleState.bind(QueryStateReaders), services = appServices;
@@ -41,80 +49,6 @@ let DragDropInteractions;
   dropAnchor.className = 'drop-anchor';
   document.body.appendChild(dropAnchor);
 
-  const headerActions = document.createElement('div');
-  headerActions.className = 'th-actions';
-
-  const headerInsertButton = document.createElement('button');
-  headerInsertButton.type = 'button';
-  headerInsertButton.className = 'th-insert-button';
-  headerInsertButton.setAttribute('aria-label', 'Insert field at this position');
-  headerInsertButton.setAttribute('data-tooltip', 'Add field here');
-  headerInsertButton.innerHTML = `
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path fill="currentColor" d="M19 11H13V5h-2v6H5v2h6v6h2v-6h6z"/>
-    </svg>
-  `;
-
-  const headerCopy = document.createElement('button');
-  headerCopy.type = 'button';
-  headerCopy.className = 'th-action th-copy';
-  headerCopy.setAttribute('aria-label', 'Copy column values');
-  headerCopy.setAttribute('data-tooltip', 'Copy column values');
-  headerCopy.innerHTML = `
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path fill="currentColor" d="M16 1H6a2 2 0 0 0-2 2v12h2V3h10V1zm3 4H10a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H10V7h9v14z"/>
-    </svg>
-  `;
-
-  const headerSort = document.createElement('button');
-  headerSort.type = 'button';
-  headerSort.className = 'th-action th-sort';
-  headerSort.setAttribute('aria-label', 'Sort column');
-  headerSort.setAttribute('data-tooltip', 'Sort ascending');
-  headerSort.innerHTML = `
-    <svg viewBox="0 0 24 24" aria-hidden="true" class="th-sort-icon">
-      <path fill="currentColor" d="M8 5l-4 4h3v10h2V9h3L8 5zm8 14l4-4h-3V5h-2v10h-3l4 4z"/>
-    </svg>
-  `;
-
-  const headerTrash = document.createElement('button');
-  headerTrash.type = 'button';
-  headerTrash.className = 'th-action th-trash';
-  headerTrash.setAttribute('aria-label', 'Remove column');
-  headerTrash.setAttribute('data-tooltip', 'Remove column');
-  headerTrash.innerHTML = Icons.trashSVG();
-
-  headerActions.appendChild(headerSort);
-  headerActions.appendChild(headerCopy);
-  headerActions.appendChild(headerTrash);
-
-  function syncHeaderSortActionState(th = dragDropManager.hoverTh) {
-    if (!headerSort) {
-      return;
-    }
-
-    const state = services.getVirtualTableState();
-    const sortField = String(state?.currentSortColumn || '');
-    const sortDirection = String(state?.currentSortDirection || 'asc');
-    const fieldName = th?.getAttribute('data-sort-field') || '';
-    const isSortable = Boolean(fieldName);
-    const isActive = isSortable && fieldName === sortField;
-
-    headerSort.disabled = !isSortable || Boolean(getLifecycleState().queryRunning);
-    headerSort.classList.toggle('is-active', isActive);
-    headerSort.classList.toggle('is-desc', isActive && sortDirection === 'desc');
-    headerSort.setAttribute('aria-label', !isSortable ? 'Sorting unavailable for this column' : (isActive ? `Sorted ${sortDirection === 'asc' ? 'ascending' : 'descending'}. Click to reverse.` : 'Sort column'));
-    headerSort.setAttribute('data-tooltip', !isSortable ? 'Sorting unavailable' : (isActive ? `Sorted ${sortDirection === 'asc' ? 'ascending' : 'descending'} - click to reverse` : 'Sort ascending'));
-  }
-
-  const headerInsertAffordance = document.createElement('div');
-  headerInsertAffordance.className = 'th-insert-affordance';
-  headerInsertAffordance.appendChild(headerInsertButton);
-
-  let insertAffordanceShowTimer = null;
-  let insertAffordanceHideTimer = null;
-  let pendingInsertCandidate = null;
-
   function getColumnResizeState() {
     return services.getColumnResizeState?.() || { active: false, fieldName: '' };
   }
@@ -128,43 +62,15 @@ let DragDropInteractions;
     getColumnResizeState
   });
 
-  function clearHeaderLayoutState(th) {
-    if (!th) {
-      return;
-    }
-
-    th.classList.remove('th-actions-below');
-    th.style.removeProperty('--th-balance-space');
-  }
-
-  function updateHeaderActionLayout(th) {
-    if (!th) {
-      return;
-    }
-
-    const headerContent = th.querySelector('.th-header-content');
-    const labelText = th.querySelector('.th-text');
-    const sortIcon = th.querySelector('.sort-icon');
-    if (!headerContent || !labelText) {
-      clearHeaderLayoutState(th);
-      return;
-    }
-
-    const actionsVisible = headerActions.parentNode === th;
-    const sortWidth = sortIcon ? Math.ceil(sortIcon.getBoundingClientRect().width) : 0;
-    const actionsWidth = actionsVisible ? Math.ceil(headerActions.getBoundingClientRect().width) : 0;
-    const labelWidth = Math.ceil(labelText.scrollWidth);
-    const layout = calculateHeaderActionLayout({
-      containerWidth: th.clientWidth,
-      labelWidth,
-      sortWidth,
-      actionsWidth,
-      actionsVisible
-    });
-
-    th.classList.toggle('th-actions-below', layout.stackActions);
-    th.style.setProperty('--th-balance-space', `${layout.balanceSpace}px`);
-  }
+  const headerActionControls = createDragDropHeaderActions({
+    document,
+    window,
+    icons: Icons,
+    services,
+    getLifecycleState,
+    calculateHeaderActionLayout,
+    getHoverHeader: () => dragDropManager.hoverTh
+  });
 
   function isEventInsideActiveResizeColumn(target) {
     if (!target || !isResizeModeActive()) {
@@ -185,52 +91,6 @@ let DragDropInteractions;
     return Number.parseInt(cell.dataset.colIndex || '', 10) === targetIndex;
   }
 
-  function applyInsertAffordancePosition(candidate) {
-    headerInsertAffordance.dataset.insertAt = String(candidate.insertAt);
-    headerInsertAffordance.style.left = `${candidate.boundaryX + window.scrollX}px`;
-    headerInsertAffordance.style.top = `${candidate.top + (candidate.height / 2) + window.scrollY}px`;
-  }
-
-  function showInsertAffordance(candidate) {
-    if (!candidate) return;
-
-    clearTimeout(insertAffordanceHideTimer);
-    applyInsertAffordancePosition(candidate);
-
-    if (!headerInsertAffordance.parentNode) {
-      document.body.appendChild(headerInsertAffordance);
-    }
-
-    window.requestAnimationFrame(() => {
-      headerInsertAffordance.classList.add('is-visible');
-    });
-  }
-
-  function clearInsertAffordance(options = {}) {
-    const immediate = options.immediate === true;
-    clearTimeout(insertAffordanceShowTimer);
-    pendingInsertCandidate = null;
-    headerInsertAffordance.removeAttribute('data-insert-at');
-
-    if (!headerInsertAffordance.parentNode) {
-      return;
-    }
-
-    headerInsertAffordance.classList.remove('is-visible');
-
-    clearTimeout(insertAffordanceHideTimer);
-    if (immediate) {
-      headerInsertAffordance.parentNode.removeChild(headerInsertAffordance);
-      return;
-    }
-
-    insertAffordanceHideTimer = window.setTimeout(() => {
-      if (headerInsertAffordance.parentNode && !headerInsertAffordance.classList.contains('is-visible')) {
-        headerInsertAffordance.parentNode.removeChild(headerInsertAffordance);
-      }
-    }, 160);
-  }
-
   function getHeaderInsertPosition(table, clientX) {
     const headers = Array.from(table.querySelectorAll('thead th[data-col-index]'));
     if (headers.length === 0) {
@@ -243,34 +103,14 @@ let DragDropInteractions;
     );
   }
 
-  function updateHeaderInsertAffordance(table, clientX) {
-    if (!table || getLifecycleState().queryRunning || document.body.classList.contains('dragging-cursor') || isResizeModeActive()) {
-      clearInsertAffordance({ immediate: true });
-      return;
-    }
-
-    const candidate = getHeaderInsertPosition(table, clientX);
-    if (!candidate) {
-      clearInsertAffordance();
-      return;
-    }
-
-    const currentInsertAt = parseInt(headerInsertAffordance.dataset.insertAt || '', 10);
-    const hasVisibleAffordance = headerInsertAffordance.parentNode && headerInsertAffordance.classList.contains('is-visible');
-
-    if (hasVisibleAffordance && currentInsertAt === candidate.insertAt) {
-      clearTimeout(insertAffordanceHideTimer);
-      applyInsertAffordancePosition(candidate);
-      return;
-    }
-
-    pendingInsertCandidate = candidate;
-    clearTimeout(insertAffordanceShowTimer);
-    clearTimeout(insertAffordanceHideTimer);
-    if (pendingInsertCandidate && pendingInsertCandidate.insertAt === candidate.insertAt) {
-      showInsertAffordance(candidate);
-    }
-  }
+  const headerInsertAffordance = createDragDropHeaderInsertAffordance({
+    document,
+    window,
+    getLifecycleState,
+    getHeaderInsertPosition,
+    isResizeModeActive,
+    isDragging: () => document.body.classList.contains('dragging-cursor')
+  });
 
   function positionDropAnchor(rect, table, clientX, colIndex) {
     const viewportRect = getDropIndicatorViewportRect(table);
@@ -319,65 +159,6 @@ let DragDropInteractions;
   function clearDropAnchor() {
     dropAnchor.classList.remove('vertical');
     dropAnchor.style.display = 'none';
-  }
-
-  function getDragScrollContainer(table) {
-    return table?.closest('.overflow-x-auto') || null;
-  }
-
-  function getDropIndicatorViewportRect(table) {
-    const scrollContainer = getDragScrollContainer(table);
-    const target = scrollContainer || table;
-    return target ? target.getBoundingClientRect() : null;
-  }
-
-  function isPointerWithinDropViewport(table, clientX, clientY) {
-    const rect = getDropIndicatorViewportRect(table);
-    if (!rect) {
-      return false;
-    }
-
-    return clientX >= rect.left
-      && clientX <= rect.right
-      && clientY >= rect.top
-      && clientY <= rect.bottom;
-  }
-
-  function getVisibleHeaderTargets(table, scrollContainer = getDragScrollContainer(table)) {
-    const headers = Array.from(table.querySelectorAll('thead th[data-col-index]'));
-    if (!headers.length || !scrollContainer) {
-      return headers;
-    }
-
-    const containerRect = scrollContainer.getBoundingClientRect();
-    const visibleHeaders = headers.filter(th => {
-      const rect = th.getBoundingClientRect();
-      return rect.right > containerRect.left + 1 && rect.left < containerRect.right - 1;
-    });
-
-    return visibleHeaders.length ? visibleHeaders : headers;
-  }
-
-  function getClosestVisibleHeaderByX(table, clientX, scrollContainer = getDragScrollContainer(table)) {
-    const headers = getVisibleHeaderTargets(table, scrollContainer);
-    if (!headers.length) {
-      return null;
-    }
-
-    let best = headers[0];
-    let bestDist = Infinity;
-
-    headers.forEach(th => {
-      const rect = th.getBoundingClientRect();
-      const center = rect.left + rect.width / 2;
-      const dist = Math.abs(clientX - center);
-      if (dist < bestDist) {
-        bestDist = dist;
-        best = th;
-      }
-    });
-
-    return best;
   }
 
   function attachBubbleDropTarget(container) {
@@ -547,27 +328,24 @@ let DragDropInteractions;
       }
       th.classList.add('th-hover');
       this.hoverTh = th;
-      th.appendChild(headerActions);
-      syncHeaderSortActionState(th);
-      window.requestAnimationFrame(() => updateHeaderActionLayout(th));
+      headerActionControls.attachToHeader(th);
     },
 
     handleHeaderLeave(th) {
       th.classList.remove('th-hover');
       this.hoverTh = null;
-      clearHeaderLayoutState(th);
-      if (headerActions.parentNode) headerActions.parentNode.removeChild(headerActions);
+      headerActionControls.detachFromHeader(th);
     },
 
     handleHeaderRowPointerMove(event, table) {
-      updateHeaderInsertAffordance(table, event.clientX);
+      headerInsertAffordance.update(table, event.clientX);
     },
 
     handleHeaderRowPointerLeave(event) {
       if (event && headerInsertAffordance.contains(event.relatedTarget)) {
         return;
       }
-      clearInsertAffordance();
+      headerInsertAffordance.clear();
     },
 
     handleHeaderDragStart(e, th, scrollContainer) {
@@ -575,7 +353,7 @@ let DragDropInteractions;
         e.preventDefault();
         return;
       }
-      clearInsertAffordance({ immediate: true });
+      headerInsertAffordance.clear({ immediate: true });
       this.isBubbleDrag = false;
       this.activeTable = th.closest('table');
       th.classList.add('th-dragging');
@@ -869,7 +647,7 @@ let DragDropInteractions;
         };
         const onPointerMove = event => this.handleHeaderRowPointerMove(event, table);
         const onPointerLeave = event => this.handleHeaderRowPointerLeave(event);
-        const onScroll = () => clearInsertAffordance({ immediate: true });
+        const onScroll = () => headerInsertAffordance.clear({ immediate: true });
 
         headerRow.addEventListener('pointerdown', onResizeStart);
         headerRow.addEventListener('touchstart', onResizeStart, { passive: false });
@@ -942,7 +720,7 @@ let DragDropInteractions;
     }
   };
 
-  ClipboardUtils.bindCopyButton(headerCopy, async () => {
+  ClipboardUtils.bindCopyButton(headerActionControls.copyButton, async () => {
     if (getLifecycleState().queryRunning) {
       return '';
     }
@@ -973,7 +751,7 @@ let DragDropInteractions;
     emptyMessage: 'No column data available to copy.'
   });
 
-  headerSort.addEventListener('click', e => {
+  headerActionControls.sortButton.addEventListener('click', e => {
     e.stopPropagation();
     if (getLifecycleState().queryRunning) return;
     const th = dragDropManager.hoverTh;
@@ -983,10 +761,10 @@ let DragDropInteractions;
     }
 
     services.sortTableBy(fieldName);
-    syncHeaderSortActionState(th);
+    headerActionControls.syncSortState(th);
   });
 
-  headerTrash.addEventListener('click', e => {
+  headerActionControls.trashButton.addEventListener('click', e => {
     e.stopPropagation();
     if (getLifecycleState().queryRunning) return;
     const th = dragDropManager.hoverTh;
@@ -997,27 +775,27 @@ let DragDropInteractions;
     }
   });
 
-  headerInsertButton.addEventListener('click', e => {
+  headerInsertAffordance.insertButton.addEventListener('click', e => {
     e.stopPropagation();
     if (getLifecycleState().queryRunning) return;
 
-    const insertAt = parseInt(headerInsertAffordance.dataset.insertAt || '', 10);
+    const insertAt = headerInsertAffordance.getInsertAt();
     if (!Number.isInteger(insertAt)) {
       return;
     }
 
-    clearInsertAffordance();
+    headerInsertAffordance.clear();
     SharedFieldPicker.openQueryFieldPicker({ insertAt }).catch(error => {
       console.error('Failed to open insert field picker:', error);
       showToastMessage('Failed to open the field picker.', 'error');
     });
   });
 
-  headerInsertAffordance.addEventListener('mouseleave', event => {
+  headerInsertAffordance.root.addEventListener('mouseleave', event => {
     if (event.relatedTarget && event.relatedTarget.closest && event.relatedTarget.closest('thead tr')) {
       return;
     }
-    clearInsertAffordance();
+    headerInsertAffordance.clear();
   });
 
   bindBubbleDocumentDragHandlers({
@@ -1028,7 +806,7 @@ let DragDropInteractions;
     getLifecycleState,
     getDisplayedFields,
     isResizeModeActive,
-    clearInsertAffordance,
+    clearInsertAffordance: headerInsertAffordance.clear,
     clearDropAnchor,
     isPointerWithinDropViewport
   });
@@ -1039,7 +817,7 @@ let DragDropInteractions;
   }
 
   function resetHeaderUi() {
-    clearInsertAffordance({ immediate: true });
+    headerInsertAffordance.clear({ immediate: true });
     clearDropAnchor();
     columnResizeController.stop({ keepMode: true });
 
@@ -1047,11 +825,9 @@ let DragDropInteractions;
       dragDropManager.hoverTh.classList.remove('th-hover');
     }
 
-    if (headerActions.parentNode) {
-      headerActions.parentNode.removeChild(headerActions);
-    }
+    headerActionControls.detachFromHeader(dragDropManager.hoverTh);
 
-    document.querySelectorAll('#example-table th').forEach(th => clearHeaderLayoutState(th));
+    document.querySelectorAll('#example-table th').forEach(th => headerActionControls.clearLayoutState(th));
 
     document.querySelectorAll('#example-table .th-drag-over, #example-table .th-dragging').forEach(el => {
       el.classList.remove('th-drag-over', 'th-dragging');
@@ -1087,8 +863,8 @@ let DragDropInteractions;
     addDragAndDrop,
     attachBubbleDropTarget,
     resetHeaderUi,
-    clearInsertAffordance,
-    syncHeaderSortActionState,
+    clearInsertAffordance: headerInsertAffordance.clear,
+    syncHeaderSortActionState: headerActionControls.syncSortState,
     refreshColIndices,
     moveColumn,
     removeColumn,
