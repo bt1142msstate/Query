@@ -154,6 +154,19 @@ function findImportSpecifiers(source) {
   ];
 }
 
+function getPackageNameFromSpecifier(specifier) {
+  if (specifier.startsWith('.') || specifier.startsWith('node:')) {
+    return null;
+  }
+
+  if (specifier.startsWith('@')) {
+    const [scope, packageName] = specifier.split('/');
+    return packageName ? `${scope}/${packageName}` : specifier;
+  }
+
+  return specifier.split('/')[0];
+}
+
 function findWorkerEntrypointSpecifiers(source) {
   return [...source.matchAll(workerEntrypointPattern)].map(match => match[1]);
 }
@@ -247,6 +260,7 @@ const importGraph = new Map();
 const failures = [];
 const runtimeBridgeMembers = new Set();
 const workerEntrypoints = new Set();
+const productionDependencyImports = new Set();
 let runtimeBridgeMemberReferenceCount = 0;
 
 for (const filePath of sourceFiles) {
@@ -292,6 +306,11 @@ for (const filePath of sourceFiles) {
   }
 
   for (const specifier of findImportSpecifiers(source)) {
+    const packageName = getPackageNameFromSpecifier(specifier);
+    if (packageName) {
+      productionDependencyImports.add(packageName);
+    }
+
     const importedPath = resolveLocalImport(relativePath, specifier);
     if (!importedPath) {
       continue;
@@ -359,6 +378,13 @@ if (runtimeBridgeMemberReferenceCount > runtimeBridgeUsageBudget.maxMemberRefere
 
 if (runtimeBridgeMembers.size > runtimeBridgeUsageBudget.maxDistinctMembers) {
   failures.push(`appRuntime distinct members: ${runtimeBridgeMembers.size} exceeds budget of ${runtimeBridgeUsageBudget.maxDistinctMembers}; use ES imports or explicit dependency injection`);
+}
+
+const packageJson = JSON.parse(await readFile(resolve(rootDir, 'package.json'), 'utf8'));
+for (const dependencyName of Object.keys(packageJson.dependencies || {})) {
+  if (!productionDependencyImports.has(dependencyName)) {
+    failures.push(`package.json: production dependency "${dependencyName}" is not imported by application modules; remove it or move it to devDependencies`);
+  }
 }
 
 if (failures.length > 0) {

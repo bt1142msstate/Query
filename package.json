@@ -13,9 +13,6 @@
     "test:modules": "node tests/architecture/moduleSpecifiers.mjs",
     "test:browser": "node tests/browser/browserSmoke.mjs"
   },
-  "dependencies": {
-    "three": "^0.183.2"
-  },
   "devDependencies": {
     "eslint": "^10.0.3",
     "globals": "^17.4.0",

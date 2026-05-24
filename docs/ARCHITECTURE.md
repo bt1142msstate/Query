@@ -68,6 +68,7 @@ This removes the public browser-global API surface and keeps cross-feature coord
 
 - Every application module must be reachable from `appModules.js`.
 - Local imports must resolve to explicit `.js` modules inside the application source set.
+- Production package dependencies must be imported by application modules; unused runtime packages fail the gate.
 - Imports must follow the layer rules in `config/architectureRules.cjs`.
 - Circular imports fail the architecture gate.
 - Legacy large modules cannot grow beyond their current budget.
@@ -94,9 +95,11 @@ That runs:
 
 No application module currently uses a legacy large-module budget. The architecture fitness test enforces the normal module size limit across the app, so new large modules should be split instead of added to an exception list.
 
-## Recommended Next Refactors
+## Current Review Focus
 
-1. Continue splitting `history/queryHistory.js` by moving remaining shell-only coordination into dedicated modules.
-2. Continue splitting `table/contextMenu.js` by moving menu action construction into dedicated modules.
-3. Continue splitting `ui/form-mode/formMode.js` by moving remaining initialization coordination into dedicated modules.
-4. Continue splitting `filters/filterManager.js` by moving remaining confirmation workflow into dedicated modules.
+Future structure work should be cohesion-driven, not size-driven. Large feature shells can stay intact when they own a single workflow and delegate testable logic to focused modules. Small modules should only remain split when they isolate a stable contract, pure logic, worker entrypoint, or feature boundary.
+
+1. Audit the remaining large shells for mixed responsibilities before extracting anything else.
+2. Consolidate tiny single-use helpers when their boundary does not improve testing, ownership, or reuse.
+3. Keep runtime dependencies minimal; add production packages only when app modules import them directly and the dependency earns its weight.
+4. Continue expanding interaction tests around real workflows rather than adding thin tests around implementation details.
