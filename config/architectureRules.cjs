@@ -160,7 +160,7 @@ const legacyLargeModuleBudgets = new Map([
   ['table/drag-drop/dragDropInteractions.js', 1103],
   ['table/post-filters/postFilters.js', 1109],
   ['table/virtual-table/virtualTable.js', 1383],
-  ['ui/field-picker/fieldPicker.js', 1266],
+  ['ui/field-picker/fieldPicker.js', 973],
   ['ui/form-mode/formMode.js', 1060]
 ]);
 
