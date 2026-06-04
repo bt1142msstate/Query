@@ -1,5 +1,9 @@
 let getDefaultFieldDefinitions = () => null;
 
+const DEFAULT_FIELD_OUTPUT_SEGMENTS = Object.freeze({
+  'Item Key': 3
+});
+
 function registerDataFormatterFieldDefinitions(getter) {
   getDefaultFieldDefinitions = typeof getter === 'function' ? getter : () => null;
 }
@@ -29,8 +33,9 @@ function formatDuration(seconds) {
 
 function getFieldOutputSegments(fieldName, fieldDefinitions = null) {
   const definitions = fieldDefinitions || getDefaultFieldDefinitions();
+  const fallbackSegments = DEFAULT_FIELD_OUTPUT_SEGMENTS[fieldName] || 1;
   if (!definitions || typeof definitions.get !== 'function') {
-    return 1;
+    return fallbackSegments;
   }
 
   let fieldDef = definitions.get(fieldName);
@@ -42,7 +47,7 @@ function getFieldOutputSegments(fieldName, fieldDefinitions = null) {
   }
 
   const parsed = Number.parseInt(fieldDef && fieldDef.parts, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallbackSegments;
 }
 
 function parsePipeDelimitedRow(line, columns, options = {}) {

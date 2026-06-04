@@ -24,17 +24,27 @@ assert.equal(normalizeResultValue(123), '123');
 assert.deepEqual(parseQueryResultPayload({
   response: createResponse({ 'X-Raw-Columns': 'Item Key|Title' }),
   streamedLines: ['128450|6|1|A history'],
-  displayedFields: ['Item Key', 'Title'],
-  parsePipeRow: (line, columns) => {
-    const parts = line.split('|');
-    return {
-      [columns[0]]: parts.slice(0, 3).join('|'),
-      [columns[1]]: parts[3]
-    };
-  }
+  displayedFields: ['Item Key', 'Title']
 }), {
   headers: ['Item Key', 'Title'],
   objectRows: [{ 'Item Key': '128450|6|1', Title: 'A history' }],
+  source: 'pipe'
+});
+
+assert.deepEqual(parseQueryResultPayload({
+  response: createResponse({ 'X-Raw-Columns': 'Catalog Key|Item Key|Item Id|Call Number|Title|Public Note' }),
+  streamedLines: ['11240|11240|44|1|32278012457739  |PR1 .C3 NO.73 2011|Cahiers victoriens & edouardiens|Located on the first floor'],
+  displayedFields: ['Catalog Key', 'Item Key', 'Item Id', 'Call Number', 'Title', 'Public Note']
+}), {
+  headers: ['Catalog Key', 'Item Key', 'Item Id', 'Call Number', 'Title', 'Public Note'],
+  objectRows: [{
+    'Catalog Key': '11240',
+    'Item Key': '11240|44|1',
+    'Item Id': '32278012457739  ',
+    'Call Number': 'PR1 .C3 NO.73 2011',
+    Title: 'Cahiers victoriens & edouardiens',
+    'Public Note': 'Located on the first floor'
+  }],
   source: 'pipe'
 });
 
