@@ -685,8 +685,7 @@ function baseUpdateButtonStates() {
       const payload = buildBackendQueryPayload(tableName);
       const hasFields = !!(
         payload && (
-          (Array.isArray(payload.display_fields) && payload.display_fields.length > 0) ||
-          (Array.isArray(payload.special_fields) && payload.special_fields.length > 0)
+          (Array.isArray(payload.display_fields) && payload.display_fields.length > 0)
         )
       );
 
@@ -762,7 +761,6 @@ function baseUpdateButtonStates() {
     const hasConfiguredPayload = !!(
       payload && (
         (Array.isArray(payload.display_fields) && payload.display_fields.length > 0) ||
-        (Array.isArray(payload.special_fields) && payload.special_fields.length > 0) ||
         (Array.isArray(payload.filters) && payload.filters.length > 0)
       )
     );

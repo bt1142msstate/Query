@@ -58,52 +58,14 @@ function deriveTemplateBindings(template, actual, bindings, escapeRegExp = escap
 }
 
 function resolveFieldNameFromSpecialPayload(payload, dependencies = getDefaultRequestMapperDependencies()) {
-  const fieldDefsArray = dependencies.fieldDefsArray;
-  if (!payload || typeof payload !== 'object' || !Array.isArray(fieldDefsArray)) {
+  if (!payload || typeof payload !== 'object') {
     return '';
   }
 
-  const exactMatch = fieldDefsArray.find(fieldDef => {
-    if (!fieldDef || !fieldDef.special_payload) return false;
-    return JSON.stringify(fieldDef.special_payload) === JSON.stringify(payload);
-  });
-  if (exactMatch?.name) {
-    return exactMatch.name;
-  }
-
-  for (const fieldDef of fieldDefsArray) {
-    if (!fieldDef?.is_buildable || !fieldDef.field_template || !fieldDef.special_payload_template) {
-      continue;
-    }
-
-    const bindings = {};
-    let isMatch = true;
-
-    for (const [key, templateValue] of Object.entries(fieldDef.special_payload_template)) {
-      const actualValue = payload[key];
-
-      if (typeof templateValue === 'string' && templateValue.includes('{')) {
-        if (!deriveTemplateBindings(templateValue, actualValue, bindings, dependencies.escapeRegExp || escapeRegExpFallback)) {
-          isMatch = false;
-          break;
-        }
-        continue;
-      }
-
-      if (templateValue !== actualValue) {
-        isMatch = false;
-        break;
-      }
-    }
-
-    if (!isMatch) {
-      continue;
-    }
-
-    const resolvedName = fieldDef.field_template.replace(/\{([^}]+)\}/g, (_, key) => bindings[key] || '');
-    if (resolvedName && resolvedName !== fieldDef.name) {
-      return resolvedName;
-    }
+  const legacyType = String(payload.type || '').trim().toLowerCase();
+  const legacyTag = String(payload.tag || '').trim();
+  if ((!legacyType || legacyType === 'marc') && /^\d{1,3}$/.test(legacyTag)) {
+    return `Marc${legacyTag.padStart(3, '0')}`;
   }
 
   return '';
@@ -118,9 +80,7 @@ function resolveSpecialPayloadFieldNames(specialFields, dependencies = getDefaul
     const resolvedFieldName = resolveFieldNameFromSpecialPayload(payload, dependencies);
     if (resolvedFieldName) {
       if (typeof dependencies.registerDynamicField === 'function') {
-        dependencies.registerDynamicField(resolvedFieldName, {
-          special_payload: payload && typeof payload === 'object' ? { ...payload } : payload
-        });
+        dependencies.registerDynamicField(resolvedFieldName);
       }
       appendUniqueColumn(resolved, resolvedFieldName, dependencies);
     }
@@ -163,8 +123,7 @@ function buildUiConfigFromRequest(request, dependencies = getDefaultRequestMappe
 
   const uiConfig = {
     DesiredColumnOrder: desiredColumns,
-    Filters: [],
-    SpecialFields: specialFields
+    Filters: []
   };
 
   if (Array.isArray(request.filters)) {
@@ -189,16 +148,17 @@ function mergeUiConfigWithRequest(uiConfig, request, dependencies = getDefaultRe
         DesiredColumnOrder: Array.isArray(uiConfig.DesiredColumnOrder) ? [...uiConfig.DesiredColumnOrder] : [],
         Filters: typeof dependencies.normalizeUiConfigFilters === 'function'
           ? dependencies.normalizeUiConfigFilters(uiConfig, { trackAliases: true })
-          : (Array.isArray(uiConfig.Filters) ? uiConfig.Filters.map(filter => ({ ...filter })) : []),
-        SpecialFields: Array.isArray(uiConfig.SpecialFields)
-          ? uiConfig.SpecialFields.map(field => (field && typeof field === 'object' ? { ...field } : field))
-          : []
+          : (Array.isArray(uiConfig.Filters) ? uiConfig.Filters.map(filter => ({ ...filter })) : [])
       }
     : {
-        DesiredColumnOrder: [],
-        Filters: [],
-        SpecialFields: []
-      };
+      DesiredColumnOrder: [],
+      Filters: []
+    };
+
+  resolveSpecialPayloadFieldNames(
+    uiConfig?.SpecialFields || uiConfig?.specialFields || [],
+    dependencies
+  ).forEach(fieldName => appendUniqueColumn(baseUiConfig.DesiredColumnOrder, fieldName, dependencies));
 
   const requestUiConfig = buildUiConfigFromRequest(request, dependencies);
   if (!requestUiConfig) {
@@ -209,10 +169,6 @@ function mergeUiConfigWithRequest(uiConfig, request, dependencies = getDefaultRe
 
   if (!baseUiConfig.Filters.length && requestUiConfig.Filters.length) {
     baseUiConfig.Filters = requestUiConfig.Filters.map(filter => ({ ...filter }));
-  }
-
-  if (!baseUiConfig.SpecialFields.length && requestUiConfig.SpecialFields.length) {
-    baseUiConfig.SpecialFields = requestUiConfig.SpecialFields.map(field => (field && typeof field === 'object' ? { ...field } : field));
   }
 
   return baseUiConfig;

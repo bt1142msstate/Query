@@ -19,7 +19,7 @@ import {
   removedColumnInfo,
   restoreFieldWithDuplicates
 } from './columnManager.js';
-import { fieldDefs } from '../../filters/fieldDefs.js';
+import { fieldDefs, isFieldBuildable } from '../../filters/fieldDefs.js';
 
 let dragDropColumnOps;
 
@@ -120,7 +120,7 @@ let dragDropColumnOps;
       document.querySelectorAll('.bubble').forEach(bubbleEl => {
         if (bubbleEl.textContent.trim() === baseFieldName) {
           const fieldDef = fieldDefs ? fieldDefs.get(baseFieldName) : null;
-          if (fieldDef && fieldDef.is_buildable) {
+          if (isFieldBuildable(fieldDef)) {
             bubbleEl.setAttribute('draggable', 'false');
           } else {
             bubbleEl.setAttribute('draggable', 'true');

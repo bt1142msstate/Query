@@ -5,25 +5,19 @@ import {
 } from '../../filters/buildableFilterFields.js';
 
 const fieldDef = {
-  name: 'Marc {tag}',
-  field_template: 'Marc {tag}${subfield}',
-  special_payload_template: {
-    tag: '{tag}',
-    subfield: '{subfield}',
-    fixed: 'literal'
+  name: 'MARC Field',
+  builder: {
+    outputFieldIdTemplate: 'Marc{tag}',
+    inputs: [
+      { id: 'tag', pattern: '^\\d{3}$' }
+    ]
   }
 };
 
 assert.deepEqual(buildDynamicFieldDefinition(fieldDef, {
-  tag: '590',
-  subfield: 'a'
+  tag: '590'
 }), {
-  dynamicFieldName: 'Marc 590$a',
-  specialPayload: {
-    tag: '590',
-    subfield: 'a',
-    fixed: 'literal'
-  }
+  dynamicFieldName: 'Marc590'
 });
 
 function makeInput({ value, pattern = '', inputId = 'tag', errorMsg = 'Bad value' }) {

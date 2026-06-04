@@ -1,6 +1,6 @@
 import { getBaseFieldName, QueryStateReaders } from '../core/queryState.js';
 import { toBackendDateValue } from '../core/formatting/dateValues.js';
-import { fieldDefs, isFieldBackendFilterable, resolveFieldName } from './fieldDefs.js';
+import { fieldDefs, isFieldBackendFilterable, isFieldBuildable, resolveFieldName } from './fieldDefs.js';
 import { getDateFilterValidationMessage } from './filterConditionLogic.js';
 
 const FIELD_OPERATOR_TO_UI_COND = {
@@ -171,7 +171,7 @@ function getNormalizedDisplayedFields(fields = getDisplayedFields()) {
     .map(field => getCanonicalPayloadFieldName(field))
     .filter(field => {
       const def = fieldDefs.get(field);
-      return !(def && def.is_buildable);
+      return !isFieldBuildable(def);
     })
     .filter((field, index, array) => array.indexOf(field) === index);
 }
@@ -223,43 +223,13 @@ function normalizeUiConfigFilters(input, options = {}) {
 
 function buildQueryUiConfig() {
   const backendFilters = buildBackendFilters();
-  const specialFields = collectCurrentSpecialFields();
 
   const query = {
     DesiredColumnOrder: getNormalizedDisplayedFields(),
-    Filters: backendFilters.map(filter => ({ ...filter })),
-    SpecialFields: specialFields.map(field => (field && typeof field === 'object' ? { ...field } : field))
+    Filters: backendFilters.map(filter => ({ ...filter }))
   };
 
   return query;
-}
-
-function collectCurrentSpecialFields() {
-  const specialFields = [];
-
-  const appendSpecialPayload = fieldName => {
-    const canonicalFieldName = getCanonicalPayloadFieldName(fieldName);
-    if (!canonicalFieldName) return;
-
-    const fieldDef = fieldDefs.get(canonicalFieldName);
-    if (!fieldDef || !fieldDef.special_payload) return;
-
-    const isDuplicate = specialFields.some(existing => JSON.stringify(existing) === JSON.stringify(fieldDef.special_payload));
-    if (!isDuplicate) {
-      specialFields.push(fieldDef.special_payload);
-    }
-  };
-
-  getDisplayedFields().forEach(appendSpecialPayload);
-
-  Object.entries(getActiveFilters()).forEach(([fieldName, filterGroup]) => {
-    if (!filterGroup || !Array.isArray(filterGroup.filters) || filterGroup.filters.length === 0) {
-      return;
-    }
-    appendSpecialPayload(fieldName);
-  });
-
-  return specialFields;
 }
 
 function buildBackendFilters() {
@@ -268,7 +238,7 @@ function buildBackendFilters() {
   Object.entries(getActiveFilters()).forEach(([fieldName, filterGroup]) => {
     const canonicalFieldName = getCanonicalPayloadFieldName(fieldName);
     const fieldDef = fieldDefs.get(canonicalFieldName);
-    if (fieldDef && fieldDef.is_buildable) return;
+    if (isFieldBuildable(fieldDef)) return;
     if (fieldDef && !isFieldBackendFilterable(fieldDef)) return;
 
     (filterGroup?.filters || []).forEach(filter => {
@@ -307,14 +277,9 @@ function buildBackendFilters() {
 
 function buildBackendQueryPayload(queryName = '') {
   const standardDisplayFields = [];
-  const specialFields = collectCurrentSpecialFields();
 
   getNormalizedDisplayedFields().forEach(field => {
     const canonicalFieldName = getCanonicalPayloadFieldName(field);
-    const fieldDef = fieldDefs.get(canonicalFieldName);
-    if (fieldDef && fieldDef.special_payload) {
-      return;
-    }
 
     if (canonicalFieldName && !standardDisplayFields.includes(canonicalFieldName)) {
       standardDisplayFields.push(canonicalFieldName);
@@ -325,8 +290,7 @@ function buildBackendQueryPayload(queryName = '') {
     action: 'run',
     name: queryName || undefined,
     filters: buildBackendFilters(),
-    display_fields: standardDisplayFields,
-    special_fields: specialFields.map(field => (field && typeof field === 'object' ? { ...field } : field))
+    display_fields: standardDisplayFields
   };
 
   return payload;
@@ -336,7 +300,6 @@ export {
   buildBackendFilters,
   buildBackendQueryPayload,
   buildQueryUiConfig,
-  collectCurrentSpecialFields,
   formatFieldOperatorForDisplay,
   getNormalizedDisplayedFields,
   mapFieldOperatorToUiCond,

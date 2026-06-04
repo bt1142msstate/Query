@@ -16,18 +16,7 @@ import {
 } from '../../history/queryHistoryViewHelpers.js';
 import { createQueriesTableRowHtml } from '../../history/queryHistoryRows.js';
 
-const fieldDefsArray = [
-  {
-    name: 'Exact Special',
-    special_payload: { tag: '590', subfield: 'a' }
-  },
-  {
-    name: 'Marc {tag}',
-    is_buildable: true,
-    field_template: 'Marc {tag}',
-    special_payload_template: { tag: '{tag}', subfield: 'a' }
-  }
-];
+const fieldDefsArray = [];
 
 const mapperDependencies = {
   escapeRegExp: value => String(value).replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'),
@@ -48,8 +37,8 @@ assert.equal(deriveTemplateBindings('Marc {tag}', 'Marc 590', bindings, mapperDe
 assert.deepEqual(bindings, { tag: '590' });
 assert.equal(deriveTemplateBindings('Marc {tag}', 'Item 590', {}, mapperDependencies.escapeRegExp), false);
 
-assert.equal(resolveFieldNameFromSpecialPayload({ tag: '590', subfield: 'a' }, mapperDependencies), 'Exact Special');
-assert.equal(resolveFieldNameFromSpecialPayload({ tag: '999', subfield: 'a' }, mapperDependencies), 'Marc 999');
+assert.equal(resolveFieldNameFromSpecialPayload({ tag: '590', subfield: 'a' }, mapperDependencies), 'Marc590');
+assert.equal(resolveFieldNameFromSpecialPayload({ type: 'marc', tag: '999' }, mapperDependencies), 'Marc999');
 
 assert.equal(mapRequestOperatorToUiOperator('=', '*abc'), 'Contains');
 assert.equal(mapRequestOperatorToUiOperator('!=', '*abc'), 'DoesNotContain');
@@ -64,7 +53,7 @@ const requestConfig = buildUiConfigFromRequest({
   special_fields: [{ tag: '999', subfield: 'a' }]
 }, mapperDependencies);
 
-assert.deepEqual(requestConfig.DesiredColumnOrder, ['Resolved Alias', 'Title', 'Marc 999']);
+assert.deepEqual(requestConfig.DesiredColumnOrder, ['Resolved Alias', 'Title', 'Marc999']);
 assert.deepEqual(requestConfig.Filters, [
   { FieldName: 'Resolved Alias', FieldOperator: 'Contains', Values: ['*needle*'] },
   { FieldName: 'Price', FieldOperator: 'GreaterThanOrEqual', Values: [10] }
@@ -73,7 +62,6 @@ assert.deepEqual(requestConfig.Filters, [
 const mergedConfig = mergeUiConfigWithRequest({
   DesiredColumnOrder: ['Existing'],
   Filters: [{ FieldName: 'Existing', FieldOperator: 'Equals', Values: ['1'] }],
-  SpecialFields: []
 }, {
   display_fields: ['alias'],
   filters: [{ field: 'alias', operator: '=', value: '2' }]
