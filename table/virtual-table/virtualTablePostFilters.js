@@ -6,6 +6,7 @@ import {
   getPostFilterEntryValues,
   isBlankCellValue,
   isBlankPostFilterValue,
+  normalizeNoValuePostFilterOperator,
   parseComparableDateValue,
   parseNumericValue,
   rowMatchesDoesNotEqualSelection,
@@ -165,9 +166,17 @@ export function createVirtualTablePostFilterController({
 }
 
 export function doesCellMatchPostFilter(rawCellValue, type, filter) {
-  const cond = String(filter?.cond || '').trim().toLowerCase();
+  const cond = normalizeNoValuePostFilterOperator(filter?.cond);
   const filterValues = getPostFilterEntryValues(filter);
   const filterValue = filterValues[0] || '';
+
+  if (cond === 'is_blank') {
+    return isBlankCellValue(rawCellValue);
+  }
+
+  if (cond === 'has_value') {
+    return !isBlankCellValue(rawCellValue);
+  }
 
   if (cond === 'equals' && filterValues.length > 1) {
     return rowMatchesEqualsSelection(rawCellValue, type, filterValues);

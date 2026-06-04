@@ -4,6 +4,8 @@ const LABELS = Object.freeze({
   starts_with: 'Starts with',
   equals: 'Equals',
   does_not_equal: 'Does not equal',
+  is_blank: 'Is blank',
+  has_value: 'Has value',
   greater: 'Greater than',
   greater_or_equal: 'Greater than or equal',
   less: 'Less than',
