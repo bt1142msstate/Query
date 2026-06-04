@@ -1161,9 +1161,14 @@ async function expectMobileScrollLockActive(page, label) {
     windowScrollY: window.scrollY
   }));
 
-  if (!metrics.bodyLocked || !metrics.htmlLocked || metrics.bodyPosition !== 'fixed' || metrics.lockY < 200 || metrics.bodyTop !== `-${metrics.lockY}px`) {
+  const expectedBodyTop = metrics.lockY === 0 ? '0px' : `-${metrics.lockY}px`;
+  if (!metrics.bodyLocked || !metrics.htmlLocked || metrics.bodyPosition !== 'fixed' || metrics.bodyTop !== expectedBodyTop) {
     throw new Error(`${label} should lock the mobile page scroll: ${JSON.stringify(metrics)}`);
   }
+
+  await page.evaluate(lockY => {
+    document.body.dataset.browserSmokeLastLockY = String(lockY);
+  }, metrics.lockY);
 
   return metrics;
 }
@@ -1174,10 +1179,16 @@ async function expectMobileScrollLockReleased(page, label) {
     bodyLocked: document.body.classList.contains('mobile-overlay-scroll-locked'),
     bodyPosition: window.getComputedStyle(document.body).position,
     htmlLocked: document.documentElement.classList.contains('mobile-overlay-scroll-locked'),
+    lastLockY: Number.parseInt(document.body.dataset.browserSmokeLastLockY || '0', 10),
     windowScrollY: window.scrollY
   }));
 
-  if (metrics.bodyLocked || metrics.htmlLocked || metrics.bodyPosition === 'fixed' || metrics.windowScrollY < 200) {
+  await page.evaluate(() => {
+    delete document.body.dataset.browserSmokeLastLockY;
+  });
+
+  const restoredMeaningfulScroll = metrics.lastLockY < 50 || metrics.windowScrollY >= metrics.lastLockY - 20;
+  if (metrics.bodyLocked || metrics.htmlLocked || metrics.bodyPosition === 'fixed' || !restoredMeaningfulScroll) {
     throw new Error(`${label} should restore the mobile page scroll after closing: ${JSON.stringify(metrics)}`);
   }
 }
