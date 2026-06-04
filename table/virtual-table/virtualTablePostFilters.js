@@ -4,6 +4,7 @@ import {
   compareScalarCondition,
   getComparableRowValues,
   getPostFilterEntryValues,
+  getRawCellValueParts,
   isBlankCellValue,
   isBlankPostFilterValue,
   isMultiValueCellValue,
@@ -210,6 +211,10 @@ export function doesCellMatchPostFilter(rawCellValue, type, filter) {
   }
 
   const comparableExpected = getComparableExpectedValue(filterValue, type);
+  if (cond === 'does_not_equal') {
+    return rowValues.every(value => compareScalarCondition(value, comparableExpected, cond, type));
+  }
+
   return rowValues.some(value => compareScalarCondition(value, comparableExpected, cond, type));
 }
 
@@ -243,9 +248,10 @@ function buildFieldOptions({ rows, columnIndex, fieldType }) {
       return;
     }
 
+    const rawParts = getRawCellValueParts(rawValue).filter(value => String(value ?? '').trim());
     const values = getComparableRowValues(rawValue, fieldType)
-      .map(value => fieldType === 'number' || fieldType === 'money' || fieldType === 'date'
-        ? String(rawValue).trim()
+      .map((value, index) => fieldType === 'number' || fieldType === 'money' || fieldType === 'date'
+        ? String(rawParts[index] ?? rawValue).trim()
         : String(value ?? '').trim())
       .filter(Boolean);
 

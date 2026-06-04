@@ -118,24 +118,34 @@ function parseComparableDateValue(value) {
   return getComparableValue(value);
 }
 
-function getComparableRowValues(rawValue, type) {
+function getRawCellValueParts(rawValue) {
   if (isBlankCellValue(rawValue)) {
     return [''];
-  }
-
-  if (type === 'number' || type === 'money') {
-    return [parseNumericValue(rawValue, type)];
-  }
-
-  if (type === 'date') {
-    return [parseComparableDateValue(rawValue)];
   }
 
   if (typeof rawValue === 'string' && rawValue.includes('\x1F')) {
     return rawValue.split('\x1F').map(part => String(part).trim()).filter(Boolean);
   }
 
-  return [String(rawValue ?? '').trim()];
+  return [rawValue];
+}
+
+function getComparableRowValues(rawValue, type) {
+  const rawParts = getRawCellValueParts(rawValue);
+
+  if (rawParts.length === 1 && rawParts[0] === '') {
+    return [''];
+  }
+
+  if (type === 'number' || type === 'money') {
+    return rawParts.map(value => parseNumericValue(value, type));
+  }
+
+  if (type === 'date') {
+    return rawParts.map(parseComparableDateValue);
+  }
+
+  return rawParts.map(value => String(value ?? '').trim()).filter(Boolean);
 }
 
 function compareScalarCondition(actual, expected, cond, type) {
@@ -228,6 +238,7 @@ export {
   compareScalarCondition,
   getComparableRowValues,
   getPostFilterEntryValues,
+  getRawCellValueParts,
   isBlankCellValue,
   isBlankPostFilterValue,
   isMultiValueCellValue,
