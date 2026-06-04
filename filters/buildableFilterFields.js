@@ -1,15 +1,41 @@
+function getBuilderInputs(fieldDef, builder) {
+  return Array.isArray(builder?.inputs)
+    ? builder.inputs
+    : (Array.isArray(fieldDef?.builder_inputs) ? fieldDef.builder_inputs : []);
+}
+
+function isOptionalBuilderInput(input) {
+  return Boolean(input && (input.optional === true || input.required === false));
+}
+
+function renderBuilderTemplate(template, inputValues, inputs = []) {
+  const inputById = new Map(inputs.map(input => [input.id, input]));
+
+  return String(template || '').replace(/(.?)\{([^}]+)\}/g, (match, prefix, key) => {
+    const value = String(inputValues?.[key] ?? '').trim();
+    const input = inputById.get(key);
+
+    if (!value && isOptionalBuilderInput(input)) {
+      return '';
+    }
+
+    return `${prefix}${value}`;
+  }).trim();
+}
+
 export function buildDynamicFieldDefinition(fieldDef, inputValues) {
   const builder = fieldDef && typeof fieldDef.builder === 'object' ? fieldDef.builder : null;
-  let dynamicFieldName = builder?.outputFieldIdTemplate
+  const inputs = getBuilderInputs(fieldDef, builder);
+  const fieldTemplate = builder?.outputFieldIdTemplate
     || builder?.fieldTemplate
     || fieldDef.field_template
     || fieldDef.name;
+  const labelTemplate = builder?.displayLabelTemplate || fieldTemplate;
 
-  Object.entries(inputValues || {}).forEach(([key, value]) => {
-    dynamicFieldName = dynamicFieldName.replace(`{${key}}`, value);
-  });
+  const dynamicFieldName = renderBuilderTemplate(fieldTemplate, inputValues, inputs);
+  const displayLabel = renderBuilderTemplate(labelTemplate, inputValues, inputs);
 
-  return { dynamicFieldName };
+  return { dynamicFieldName, displayLabel };
 }
 
 export function collectBuilderInputValues(inputs, {
@@ -24,6 +50,12 @@ export function collectBuilderInputValues(inputs, {
     const patternStr = input.getAttribute('pattern');
     const errorMsg = input.dataset.errorMsg || 'Invalid input';
     const inputId = input.dataset.inputId;
+    const isOptional = input.dataset.optional === 'true';
+
+    if (!valueToValidate && isOptional) {
+      inputValues[inputId] = value;
+      continue;
+    }
 
     if (!valueToValidate || (patternStr && !new RegExp(patternStr).test(valueToValidate))) {
       showFilterError(errorMsg, [input]);
@@ -64,10 +96,10 @@ export function createBuildableFilterFieldHandlers({
     const result = collectBuilderInputValues(inputs, { showFilterError });
     if (!result.ok) return;
 
-    const { dynamicFieldName } = buildDynamicFieldDefinition(fieldDef, result.values);
+    const { dynamicFieldName, displayLabel } = buildDynamicFieldDefinition(fieldDef, result.values);
     if (dynamicFieldName === fieldDef.name) return;
 
-    registerDynamicField(dynamicFieldName);
+    registerDynamicField(dynamicFieldName, { label: displayLabel });
 
     services.restoreFieldWithDuplicates(dynamicFieldName);
 

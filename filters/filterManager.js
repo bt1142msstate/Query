@@ -264,10 +264,12 @@ function buildBubbleConditionPanel(bubble) {
 
                 const inputEl = document.createElement('input');
                 inputEl.type = input.type || 'text';
-                inputEl.pattern = input.pattern;
-                inputEl.placeholder = input.placeholder;
+                if (input.pattern) inputEl.pattern = input.pattern;
+                if (input.placeholder) inputEl.placeholder = input.placeholder;
                 inputEl.dataset.inputId = input.id;
                 inputEl.dataset.errorMsg = input.error_msg || input.errorMessage || 'Invalid input';
+                inputEl.dataset.optional = (input.optional === true || input.required === false) ? 'true' : 'false';
+                inputEl.required = inputEl.dataset.optional !== 'true';
                 inputEl.className = 'dynamic-builder-input condition-field';
                 if (input.id === 'tag') {
                     inputEl.id = 'marc-field-input';

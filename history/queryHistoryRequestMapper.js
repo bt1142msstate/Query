@@ -65,7 +65,11 @@ function resolveFieldNameFromSpecialPayload(payload, dependencies = getDefaultRe
   const legacyType = String(payload.type || '').trim().toLowerCase();
   const legacyTag = String(payload.tag || '').trim();
   if ((!legacyType || legacyType === 'marc') && /^\d{1,3}$/.test(legacyTag)) {
-    return `Marc${legacyTag.padStart(3, '0')}`;
+    const normalizedTag = legacyTag.padStart(3, '0');
+    const subfield = String(payload.subfield || '').trim();
+    return /^[0-9A-Za-z]$/.test(subfield)
+      ? `MARC ${normalizedTag}$${subfield}`
+      : `MARC ${normalizedTag}`;
   }
 
   return '';

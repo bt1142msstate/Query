@@ -7,25 +7,38 @@ import {
 const fieldDef = {
   name: 'MARC Field',
   builder: {
-    outputFieldIdTemplate: 'Marc{tag}',
+    outputFieldIdTemplate: 'MARC {tag}${subfield}',
+    displayLabelTemplate: 'MARC {tag}${subfield}',
     inputs: [
-      { id: 'tag', pattern: '^\\d{3}$' }
+      { id: 'tag', pattern: '^\\d{3}$' },
+      { id: 'subfield', pattern: '^[0-9A-Za-z]$', optional: true }
     ]
   }
 };
 
 assert.deepEqual(buildDynamicFieldDefinition(fieldDef, {
-  tag: '590'
+  tag: '590',
+  subfield: ''
 }), {
-  dynamicFieldName: 'Marc590'
+  dynamicFieldName: 'MARC 590',
+  displayLabel: 'MARC 590'
 });
 
-function makeInput({ value, pattern = '', inputId = 'tag', errorMsg = 'Bad value' }) {
+assert.deepEqual(buildDynamicFieldDefinition(fieldDef, {
+  tag: '590',
+  subfield: 'a'
+}), {
+  dynamicFieldName: 'MARC 590$a',
+  displayLabel: 'MARC 590$a'
+});
+
+function makeInput({ value, pattern = '', inputId = 'tag', errorMsg = 'Bad value', optional = false }) {
   return {
     value,
     dataset: {
       inputId,
-      errorMsg
+      errorMsg,
+      optional: optional ? 'true' : 'false'
     },
     getAttribute(name) {
       return name === 'pattern' ? pattern : '';
@@ -44,6 +57,20 @@ assert.deepEqual(validResult, {
   values: {
     tag: '590',
     subfield: 'a'
+  }
+});
+
+const optionalResult = collectBuilderInputValues([
+  makeInput({ value: '590', pattern: '\\d{3}', inputId: 'tag' }),
+  makeInput({ value: '', pattern: '[0-9A-Za-z]', inputId: 'subfield', optional: true })
+], {
+  showFilterError: () => assert.fail('Empty optional input should not show an error')
+});
+assert.deepEqual(optionalResult, {
+  ok: true,
+  values: {
+    tag: '590',
+    subfield: ''
   }
 });
 

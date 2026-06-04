@@ -29,13 +29,17 @@ fieldDefs.set('Equal Never Date', { name: 'Equal Never Date', type: 'date', filt
 fieldDefs.set('Backend Date', { name: 'Backend Date', type: 'date', filters: ['before'] });
 fieldDefs.set('Search Key', { name: 'Search Key', filters: ['equals'], allowValueList: true });
 fieldDefs.set('Synthetic Field', { name: 'Synthetic Field', builder: { outputFieldIdTemplate: 'Synthetic{value}', inputs: [] }, filters: ['equals'] });
-fieldDefs.set('Marc590', {
-  name: 'Marc590',
+fieldDefs.set('MARC 590', {
+  name: 'MARC 590',
+  filters: ['equals', 'contains']
+});
+fieldDefs.set('MARC 590$a', {
+  name: 'MARC 590$a',
   filters: ['equals', 'contains']
 });
 
 QueryChangeManager.setQueryState({
-  displayedFields: ['Old Title', 'Title', 'Synthetic Field', 'Marc590', 'Record Date'],
+  displayedFields: ['Old Title', 'Title', 'Synthetic Field', 'MARC 590', 'Record Date'],
   activeFilters: {
     'Old Title': {
       filters: [{ cond: 'contains', val: 'needle' }]
@@ -58,7 +62,7 @@ QueryChangeManager.setQueryState({
     'Synthetic Field': {
       filters: [{ cond: 'equals', val: 'ignored' }]
     },
-    Marc590: {
+    'MARC 590$a': {
       filters: [{ cond: 'contains', val: 'donor' }]
     }
   }
@@ -84,7 +88,7 @@ assert.deepEqual(getFieldFilterOperators('Backend Date'), [
 ]);
 assert.equal(getFieldFilterOperators('Never Date').includes('never'), false);
 
-assert.deepEqual(getNormalizedDisplayedFields(), ['Title', 'Marc590', 'Record Date']);
+assert.deepEqual(getNormalizedDisplayedFields(), ['Title', 'MARC 590', 'Record Date']);
 
 assert.deepEqual(normalizeUiConfigFilters({
   FilterGroups: [
@@ -109,11 +113,11 @@ assert.deepEqual(buildBackendFilters(), [
   { field: 'Record Date', operator: '<=', value: '20260105' },
   { field: 'Never Date', operator: '=', value: 'NEVER' },
   { field: 'Equal Never Date', operator: '=', value: 'NEVER' },
-  { field: 'Marc590', operator: '=', value: '*donor*' }
+  { field: 'MARC 590$a', operator: '=', value: '*donor*' }
 ]);
 
 assert.deepEqual(buildQueryUiConfig(), {
-  DesiredColumnOrder: ['Title', 'Marc590', 'Record Date'],
+  DesiredColumnOrder: ['Title', 'MARC 590', 'Record Date'],
   Filters: [
     { field: 'Title', operator: '=', value: '*needle*' },
     { field: 'Search Key', operator: '=', value: ['A', 'B', 'C'] },
@@ -121,7 +125,7 @@ assert.deepEqual(buildQueryUiConfig(), {
     { field: 'Record Date', operator: '<=', value: '20260105' },
     { field: 'Never Date', operator: '=', value: 'NEVER' },
     { field: 'Equal Never Date', operator: '=', value: 'NEVER' },
-    { field: 'Marc590', operator: '=', value: '*donor*' }
+    { field: 'MARC 590$a', operator: '=', value: '*donor*' }
   ]
 });
 
@@ -135,9 +139,9 @@ assert.deepEqual(buildBackendQueryPayload('Smoke Query'), {
     { field: 'Record Date', operator: '<=', value: '20260105' },
     { field: 'Never Date', operator: '=', value: 'NEVER' },
     { field: 'Equal Never Date', operator: '=', value: 'NEVER' },
-    { field: 'Marc590', operator: '=', value: '*donor*' }
+    { field: 'MARC 590$a', operator: '=', value: '*donor*' }
   ],
-  display_fields: ['Title', 'Marc590', 'Record Date']
+  display_fields: ['Title', 'MARC 590', 'Record Date']
 });
 
 console.log('Query payload logic tests passed');
