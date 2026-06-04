@@ -2448,6 +2448,8 @@ async function exerciseEditableFormUrlRefresh(page, failures) {
 
   await page.reload({ waitUntil: 'load', timeout: 15000 });
   await waitForAppModules(page, failures);
+  await page.locator('#form-mode-card').waitFor({ state: 'visible', timeout: 5000 });
+  await page.waitForFunction(() => document.body.classList.contains('form-mode-active'), null, { timeout: 5000 });
   const refreshedState = await page.evaluate(async () => {
     const { QueryFormMode } = await import('./ui/form-mode/formMode.js');
     const browserUrl = new URL(window.location.href);
