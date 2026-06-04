@@ -135,4 +135,32 @@ assert.deepEqual(controller.getFilteredRows(), [
   ['Gamma Notes', '10', 'Main\x1FEast']
 ]);
 
+controller.assign({
+  Branch: {
+    filters: [{ cond: 'has_multiple_values' }]
+  }
+});
+assert.deepEqual(controller.getFilteredRows(), [
+  ['Gamma Notes', '10', 'Main\x1FEast']
+]);
+
+controller.assign({
+  Branch: {
+    filters: [{ cond: 'single_value' }]
+  }
+});
+assert.deepEqual(controller.cloneSnapshot(), {
+  Branch: {
+    logic: 'all',
+    filters: [{ cond: 'does_not_have_multiple_values', val: '' }]
+  }
+});
+assert.deepEqual(controller.getFilteredRows(), [
+  ['Alpha Guide', '3', 'Main'],
+  ['Beta Guide', '1', 'East'],
+  ['Alpha Manual', '8', ''],
+  ['', '5', 'Main'],
+  ['  ', '9', '\x1F']
+]);
+
 console.log('Virtual table post-filter logic tests passed');

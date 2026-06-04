@@ -6,6 +6,8 @@ const LABELS = Object.freeze({
   does_not_equal: 'Does not equal',
   is_blank: 'Is blank',
   has_value: 'Has value',
+  has_multiple_values: 'Has multiple values',
+  does_not_have_multiple_values: 'Does not have multiple values',
   greater: 'Greater than',
   greater_or_equal: 'Greater than or equal',
   less: 'Less than',
