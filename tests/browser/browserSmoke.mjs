@@ -3513,7 +3513,7 @@ async function exerciseJsonResultPayloadWorkflow(page, queryApiStub) {
     const { QueryChangeManager } = await import('./core/queryState.js');
     const { QueryUI } = await import('./ui/queryUI.js');
     await QueryChangeManager.clearQuery({ source: 'BrowserSmoke.jsonResultPayloadSetup' });
-    QueryChangeManager.replaceDisplayedFields(['Smoke Title', 'Public Note'], {
+    QueryChangeManager.replaceDisplayedFields(['Smoke Title', 'Public Note', 'MARC 590'], {
       source: 'BrowserSmoke.jsonResultPayloadSetup'
     });
     QueryUI.updateButtonStates();
@@ -3522,10 +3522,22 @@ async function exerciseJsonResultPayloadWorkflow(page, queryApiStub) {
   queryApiStub.enqueue({
     action: 'run',
     body: JSON.stringify({
-      columns: ['Smoke Title', 'Public Note'],
+      columns: ['Smoke Title', 'Public Note', 'MARC 590'],
       rows: [
-        { 'Smoke Title': 'JSON Alpha', 'Public Note': ['First public note', 'Second public note'] },
-        { 'Smoke Title': 'JSON Beta', 'Public Note': { values: ['Only public note'] } }
+        {
+          'Smoke Title': 'JSON Alpha',
+          'Public Note': ['First public note', 'Second public note', 'Third public note'],
+          'MARC 590': [
+            '$a MSU -- Ulysses S. Grant Association.',
+            '$a MSU -- Gift of Marcia Ewing-Current.',
+            '$a MSU -- Richard Current Collection.'
+          ]
+        },
+        {
+          'Smoke Title': 'JSON Beta',
+          'Public Note': { values: ['Only public note'] },
+          'MARC 590': { values: ['$a Single local note'] }
+        }
       ]
     }),
     contentType: 'application/json; charset=utf-8',
@@ -3547,19 +3559,29 @@ async function exerciseJsonResultPayloadWorkflow(page, queryApiStub) {
 
   if (
     jsonResultState.lifecycle.currentQueryId !== 'browser-smoke-json-results'
-    || jsonResultState.rows[0]?.[1] !== 'First public note\x1FSecond public note'
+    || jsonResultState.rows[0]?.[1] !== 'First public note\x1FSecond public note\x1FThird public note'
+    || jsonResultState.rows[0]?.[2] !== '$a MSU -- Ulysses S. Grant Association.\x1F$a MSU -- Gift of Marcia Ewing-Current.\x1F$a MSU -- Richard Current Collection.'
   ) {
     throw new Error(`JSON result payload should hydrate multi-value arrays: ${JSON.stringify(jsonResultState)}`);
   }
 
-  const renderedValues = await page.locator('#example-table tbody tr[data-row-index="0"] td[data-col-index="1"]').evaluate(cell => {
+  const renderedPublicNoteValues = await page.locator('#example-table tbody tr[data-row-index="0"] td[data-col-index="1"]').evaluate(cell => {
+    return Array.from(cell.querySelectorAll('div > div'))
+      .map(node => node.textContent?.trim())
+      .filter(Boolean);
+  });
+  const renderedMarcValues = await page.locator('#example-table tbody tr[data-row-index="0"] td[data-col-index="2"]').evaluate(cell => {
     return Array.from(cell.querySelectorAll('div > div'))
       .map(node => node.textContent?.trim())
       .filter(Boolean);
   });
 
-  if (renderedValues.join('|') !== 'First public note|Second public note') {
-    throw new Error(`JSON multi-value cell should render each value on its own line: ${JSON.stringify(renderedValues)}`);
+  if (renderedPublicNoteValues.join('|') !== 'First public note|Second public note|Third public note') {
+    throw new Error(`JSON multi-value Public Note cell should render each value on its own line: ${JSON.stringify(renderedPublicNoteValues)}`);
+  }
+
+  if (renderedMarcValues.join('|') !== '$a MSU -- Ulysses S. Grant Association.|$a MSU -- Gift of Marcia Ewing-Current.|$a MSU -- Richard Current Collection.') {
+    throw new Error(`JSON multi-value MARC cell should render each value on its own line: ${JSON.stringify(renderedMarcValues)}`);
   }
 }
 
