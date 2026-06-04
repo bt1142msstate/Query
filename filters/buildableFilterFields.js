@@ -4,8 +4,24 @@ function getBuilderInputs(fieldDef, builder) {
     : (Array.isArray(fieldDef?.builder_inputs) ? fieldDef.builder_inputs : []);
 }
 
-function isOptionalBuilderInput(input) {
-  return Boolean(input && (input.optional === true || input.required === false));
+function isTruthyMetadataFlag(value) {
+  if (value === true || value === 1) return true;
+  if (typeof value === 'string') {
+    return ['1', 'true', 'yes'].includes(value.trim().toLowerCase());
+  }
+  return false;
+}
+
+function isFalseyMetadataFlag(value) {
+  if (value === false || value === 0) return true;
+  if (typeof value === 'string') {
+    return ['0', 'false', 'no'].includes(value.trim().toLowerCase());
+  }
+  return false;
+}
+
+export function isOptionalBuilderInput(input) {
+  return Boolean(input && (isTruthyMetadataFlag(input.optional) || isFalseyMetadataFlag(input.required)));
 }
 
 function renderBuilderTemplate(template, inputValues, inputs = []) {

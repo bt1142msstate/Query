@@ -78,6 +78,7 @@ const smokeFieldDefinitions = [
     builder: {
       outputFieldIdTemplate: 'MARC {tag}${subfield}',
       displayLabelTemplate: 'MARC {tag}${subfield}',
+      matchPattern: '^(?:MARC\\s+\\d{3}(?:\\$[0-9A-Za-z])?|Marc\\d{3}(?:\\$[0-9A-Za-z])?)$',
       inputs: [
         {
           id: 'tag',
@@ -89,7 +90,7 @@ const smokeFieldDefinitions = [
           id: 'subfield',
           label: 'Subfield',
           pattern: '^[0-9A-Za-z]$',
-          optional: true,
+          optional: 1,
           placeholder: 'Optional'
         }
       ]
@@ -3175,14 +3176,20 @@ async function exerciseFormModeBuildableDisplayField(page) {
   }
 
   await modal.locator('.form-mode-buildable-input[data-input-id="tag"]').fill('590');
-  await modal.locator('.form-mode-buildable-input[data-input-id="subfield"]').fill('a');
+  const subfieldOptional = await modal.locator('.form-mode-buildable-input[data-input-id="subfield"]').evaluate(input => ({
+    optional: input.dataset.optional,
+    required: input.required
+  }));
+  if (subfieldOptional.optional !== 'true' || subfieldOptional.required) {
+    throw new Error(`MARC subfield input should be optional: ${JSON.stringify(subfieldOptional)}`);
+  }
   await modal.locator('button', { hasText: 'Create and display field' }).click();
   await page.locator('.form-mode-field-picker-modal').waitFor({ state: 'detached', timeout: 5000 });
 
   const state = await page.evaluate(async () => {
     const { QueryStateReaders } = await import('./core/queryState.js');
     const { fieldDefs } = await import('./filters/fieldDefs.js');
-    const dynamicDef = fieldDefs.get('MARC 590$a');
+    const dynamicDef = fieldDefs.get('MARC 590');
     return {
       displayedFields: QueryStateReaders.getDisplayedFields(),
       dynamicParent: dynamicDef?.dynamic_parent || null
@@ -3190,7 +3197,7 @@ async function exerciseFormModeBuildableDisplayField(page) {
   });
 
   if (
-    !state.displayedFields.includes('MARC 590$a')
+    !state.displayedFields.includes('MARC 590')
     || state.displayedFields.includes('MARC Field')
     || state.dynamicParent !== 'MARC Field'
   ) {

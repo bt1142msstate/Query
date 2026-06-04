@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import {
   buildDynamicFieldDefinition,
-  collectBuilderInputValues
+  collectBuilderInputValues,
+  isOptionalBuilderInput
 } from '../../filters/buildableFilterFields.js';
 
 const fieldDef = {
@@ -73,6 +74,13 @@ assert.deepEqual(optionalResult, {
     subfield: ''
   }
 });
+
+assert.equal(isOptionalBuilderInput({ optional: 1 }), true);
+assert.equal(isOptionalBuilderInput({ optional: '1' }), true);
+assert.equal(isOptionalBuilderInput({ optional: 'true' }), true);
+assert.equal(isOptionalBuilderInput({ required: 0 }), true);
+assert.equal(isOptionalBuilderInput({ required: 'false' }), true);
+assert.equal(isOptionalBuilderInput({ optional: 0, required: 1 }), false);
 
 let errorMessage = '';
 const invalidResult = collectBuilderInputValues([

@@ -10,7 +10,8 @@ import {
 } from '../../filters/fieldDefs.js';
 import {
   buildDynamicFieldDefinition,
-  collectBuilderInputValues
+  collectBuilderInputValues,
+  isOptionalBuilderInput
 } from '../../filters/buildableFilterFields.js';
 import { SharedFieldPicker } from '../field-picker/fieldPicker.js';
 import { FormModeControls as formModeControls } from './formModeControls.js';
@@ -290,7 +291,7 @@ function renderBuildableFieldPreview({
     input.autocomplete = 'off';
     input.dataset.inputId = inputSpec.id || '';
     input.dataset.errorMsg = inputSpec.error_msg || inputSpec.errorMessage || 'Invalid field value';
-    input.dataset.optional = (inputSpec.optional === true || inputSpec.required === false) ? 'true' : 'false';
+    input.dataset.optional = isOptionalBuilderInput(inputSpec) ? 'true' : 'false';
     input.required = input.dataset.optional !== 'true';
     if (inputSpec.pattern) {
       input.pattern = inputSpec.pattern;
