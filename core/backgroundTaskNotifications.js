@@ -39,6 +39,19 @@ function canUseNotificationServiceWorker() {
     && window.isSecureContext !== false;
 }
 
+function getNotificationServiceWorkerUrl() {
+  const url = new URL(NOTIFICATION_SERVICE_WORKER_URL, import.meta.url);
+  const cacheVersion = typeof document !== 'undefined'
+    ? document.documentElement?.dataset?.queryAppCacheVersion
+    : '';
+
+  if (cacheVersion) {
+    url.searchParams.set('v', cacheVersion);
+  }
+
+  return url;
+}
+
 async function ensureNotificationServiceWorker() {
   if (!canUseNotificationServiceWorker()) {
     return null;
@@ -46,7 +59,7 @@ async function ensureNotificationServiceWorker() {
 
   if (!notificationServiceWorkerRegistrationPromise) {
     notificationServiceWorkerRegistrationPromise = navigator.serviceWorker
-      .register(new URL(NOTIFICATION_SERVICE_WORKER_URL, import.meta.url), { updateViaCache: 'none' })
+      .register(getNotificationServiceWorkerUrl(), { updateViaCache: 'none' })
       .then(registration => {
         registration.update?.().catch(() => {});
         return navigator.serviceWorker.ready

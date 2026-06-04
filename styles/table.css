@@ -2665,7 +2665,7 @@ body.post-filter-overlay-open {
   #table-name-input {
     min-width: 0 !important;
     min-height: 2.5rem;
-    font-size: 0.82rem;
+    font-size: 16px !important;
   }
 
   #table-toolbar {

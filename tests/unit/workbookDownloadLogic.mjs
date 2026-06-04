@@ -99,6 +99,11 @@ assert.equal(notifications[0].closed, true);
 TestNotification.permission = 'denied';
 globalThis.document = {
   hidden: true,
+  documentElement: {
+    dataset: {
+      queryAppCacheVersion: 'unit-test-version'
+    }
+  },
   visibilityState: 'hidden',
   hasFocus: () => false
 };
@@ -126,7 +131,7 @@ Object.defineProperty(globalThis, 'navigator', {
       ready: Promise.resolve(serviceWorkerRegistration),
       register(url, options) {
         serviceWorkerRegisterCalls += 1;
-        assert.match(String(url), /backgroundNotificationServiceWorker\.js$/u);
+        assert.match(String(url), /backgroundNotificationServiceWorker\.js\?v=unit-test-version$/u);
         assert.equal(options?.updateViaCache, 'none');
         return Promise.resolve(serviceWorkerRegistration);
       }

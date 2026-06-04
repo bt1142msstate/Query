@@ -150,11 +150,12 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for module boundaries, runtim
 npm test
 ```
 
-Runs lint, architecture fitness checks, module-specifier checks, focused unit tests, and desktop/mobile browser smoke tests.
+Runs the cache-busting manifest check, lint, architecture fitness checks, module-specifier checks, focused unit tests, and desktop/mobile browser smoke tests.
 
 Individual checks:
 
 ```bash
+npm run cache:bust:check
 npm run lint
 npm run test:architecture
 npm run test:modules
@@ -163,6 +164,18 @@ npm run test:browser
 ```
 
 The browser smoke test starts a local static server, stubs the backend API, and covers desktop plus mobile flows: panel layout, dark/light search inputs, virtual-table scrolling and resize behavior, post filters, zero-result queries, export overlays, and mobile dialogs.
+
+## Cache Busting
+
+Runtime assets are versioned through `cache-bust.json`, which is generated from the app HTML, JavaScript, and CSS asset hashes. `index.html` loads that manifest with `cache: no-store`, applies the version to the stylesheet and app module entry, and registers the root service worker with the same version so nested ES module imports are fetched network-first after deployments.
+
+When app assets change, update the manifest before committing:
+
+```bash
+npm run cache:bust
+```
+
+`npm test` runs `npm run cache:bust:check`, so GitHub Actions will fail if a push changes app assets without committing the updated manifest.
 
 ## Roadmap
 
