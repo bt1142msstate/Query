@@ -33,9 +33,25 @@ function isBlankCellValue(rawValue) {
   return false;
 }
 
+function isNoValuePostFilterOperator(cond) {
+  const normalized = String(cond || '').trim().toLowerCase();
+  return ['is_blank', 'blank', 'is_empty', 'empty', 'has_value', 'is_not_blank', 'not_blank', 'not_empty'].includes(normalized);
+}
+
+function normalizeNoValuePostFilterOperator(cond) {
+  const normalized = String(cond || '').trim().toLowerCase();
+  if (['is_blank', 'blank', 'is_empty', 'empty'].includes(normalized)) {
+    return 'is_blank';
+  }
+  if (['has_value', 'is_not_blank', 'not_blank', 'not_empty'].includes(normalized)) {
+    return 'has_value';
+  }
+  return normalized;
+}
+
 function clonePostFilterEntry(filter) {
   const entry = {
-    cond: String(filter?.cond || '').trim().toLowerCase(),
+    cond: normalizeNoValuePostFilterOperator(filter?.cond),
     val: String(filter?.val || '')
   };
 
@@ -47,6 +63,10 @@ function clonePostFilterEntry(filter) {
 }
 
 function getPostFilterEntryValues(filter) {
+  if (isNoValuePostFilterOperator(filter?.cond)) {
+    return [''];
+  }
+
   if (Array.isArray(filter?.vals)) {
     return filter.vals.map(value => String(value || '')).filter(value => value || isBlankPostFilterValue(value));
   }
@@ -171,6 +191,8 @@ export {
   getPostFilterEntryValues,
   isBlankCellValue,
   isBlankPostFilterValue,
+  isNoValuePostFilterOperator,
+  normalizeNoValuePostFilterOperator,
   parseComparableDateValue,
   parseNumericValue,
   rowMatchesDoesNotEqualSelection,

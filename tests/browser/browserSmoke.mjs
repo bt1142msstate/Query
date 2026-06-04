@@ -3169,6 +3169,46 @@ async function exerciseDesktopResultsWorkflow(page) {
     totalRows: 3
   }, 'Desktop cleared post filter state');
   await expectResultsCount(page, '3', 'Desktop restored results');
+
+  await page.locator('#post-filter-field').selectOption('Smoke Branch');
+  await page.locator('#post-filter-operator').selectOption('is_blank');
+  const valuelessPostFilterMetrics = await page.locator('#post-filter-overlay').evaluate(overlay => {
+    const valueHost = overlay.querySelector('#post-filter-value-picker-host');
+    const valueInput = overlay.querySelector('#post-filter-value');
+    const valueInput2 = overlay.querySelector('#post-filter-value-2');
+    const displayOf = element => element ? window.getComputedStyle(element).display : '';
+    return {
+      valueHostHidden: valueHost?.classList.contains('hidden') || false,
+      valueInputDisplay: displayOf(valueInput),
+      valueInputHidden: valueInput?.classList.contains('hidden') || false,
+      valueInput2Display: displayOf(valueInput2),
+      valueInput2Hidden: valueInput2?.classList.contains('hidden') || false
+    };
+  });
+  if (
+    !valuelessPostFilterMetrics.valueHostHidden
+    || valuelessPostFilterMetrics.valueInputDisplay !== 'none'
+    || !valuelessPostFilterMetrics.valueInputHidden
+    || valuelessPostFilterMetrics.valueInput2Display !== 'none'
+    || !valuelessPostFilterMetrics.valueInput2Hidden
+  ) {
+    throw new Error(`Valueless post filter operators should hide value controls: ${JSON.stringify(valuelessPostFilterMetrics)}`);
+  }
+  await page.locator('#post-filter-add-btn').click();
+  await expectPostFilterStats(page, {
+    filteredRows: 0,
+    hasPostFilters: true,
+    totalRows: 3
+  }, 'Desktop valueless post filter state');
+  await expectEmptyTableMessage(page, /No rows match the active post filters\./u, 'Desktop blank post filter empty table');
+  await page.locator('#post-filter-list .post-filter-pill', { hasText: 'Is blank' }).waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('#post-filter-clear-btn').click();
+  await expectPostFilterStats(page, {
+    filteredRows: 3,
+    hasPostFilters: false,
+    totalRows: 3
+  }, 'Desktop cleared valueless post filter state');
+
   await page.locator('#post-filter-done-btn').click();
   await page.locator('#post-filter-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
 

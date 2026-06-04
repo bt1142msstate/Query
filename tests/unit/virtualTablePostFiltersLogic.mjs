@@ -32,7 +32,9 @@ const baseViewData = {
     ['Alpha Guide', '3', 'Main'],
     ['Beta Guide', '1', 'East'],
     ['Alpha Manual', '8', ''],
-    ['', '5', 'Main']
+    ['', '5', 'Main'],
+    ['  ', '9', '\x1F'],
+    ['Gamma Notes', '10', 'Main\x1FEast']
   ],
   columnMap: new Map([
     ['Title', 0],
@@ -78,19 +80,19 @@ assert.deepEqual(branchOptions, [
   {
     value: controller.blankValue,
     label: '(Blank values)',
-    count: 1,
+    count: 2,
     isBlank: true
   },
   {
     value: 'East',
     label: 'East',
-    count: 1,
+    count: 2,
     isBlank: false
   },
   {
     value: 'Main',
     label: 'Main',
-    count: 2,
+    count: 3,
     isBlank: false
   }
 ]);
@@ -110,5 +112,27 @@ assert.deepEqual(controller.cloneSnapshot(), {
 controller.clear();
 assert.equal(controller.hasActiveFilters(), false);
 assert.deepEqual(controller.getFilteredRows(), baseViewData.rows);
+
+controller.assign({
+  Title: {
+    filters: [{ cond: 'is_blank' }]
+  }
+});
+assert.deepEqual(controller.getFilteredRows(), [
+  ['', '5', 'Main'],
+  ['  ', '9', '\x1F']
+]);
+
+controller.assign({
+  Branch: {
+    filters: [{ cond: 'has_value' }]
+  }
+});
+assert.deepEqual(controller.getFilteredRows(), [
+  ['Alpha Guide', '3', 'Main'],
+  ['Beta Guide', '1', 'East'],
+  ['', '5', 'Main'],
+  ['Gamma Notes', '10', 'Main\x1FEast']
+]);
 
 console.log('Virtual table post-filter logic tests passed');

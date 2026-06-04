@@ -13,6 +13,7 @@ import { CustomDatePicker } from '../../ui/customDatePicker.js';
 import { escapeHtml } from '../../core/formatting/html.js';
 import { getPostFilterDateValidationMessage, postFilterDateOperatorAllowsNever } from './postFilterDateValidation.js';
 import { createPostFilterStreamedEqualsSelector } from './postFilterStreamedEqualsSelector.js';
+import { isNoValuePostFilterOperator, normalizeNoValuePostFilterOperator } from './postFilterLogic.js';
 let PostFilterSystem;
 (function() {
   let equalsValueControl = null, equalsValueControlField = '';
@@ -89,20 +90,21 @@ let PostFilterSystem;
 
   function getOperatorOptions(fieldName) {
     const type = getFieldType(fieldName);
+    const noValueOperators = ['is_blank', 'has_value'];
 
     if (type === 'number' || type === 'money') {
-      return ['greater', 'less', 'equals', 'does_not_equal', 'between'];
+      return ['greater', 'less', 'equals', 'does_not_equal', 'between', ...noValueOperators];
     }
 
     if (type === 'date') {
-      return ['equals', 'does_not_equal', 'before', 'after', 'on_or_before', 'on_or_after', 'between'];
+      return ['equals', 'does_not_equal', 'before', 'after', 'on_or_before', 'on_or_after', 'between', ...noValueOperators];
     }
 
     if (type === 'boolean') {
-      return ['equals', 'does_not_equal'];
+      return ['equals', 'does_not_equal', ...noValueOperators];
     }
 
-    return ['contains', 'starts', 'equals', 'does_not_equal'];
+    return ['contains', 'starts', 'equals', 'does_not_equal', ...noValueOperators];
   }
 
   function usesValuePickerOperator(cond) {
@@ -112,7 +114,12 @@ let PostFilterSystem;
 
   function formatFilterValue(filter, fieldName) {
     const type = getFieldType(fieldName);
+    const cond = normalizeNoValuePostFilterOperator(filter?.cond);
     const rawValue = String(filter?.val || '');
+
+    if (isNoValuePostFilterOperator(cond)) {
+      return '';
+    }
 
     if (Array.isArray(filter?.vals) && filter.vals.length > 0) {
       const labels = filter.vals.map(value => isBlankSentinel(value)
@@ -130,7 +137,7 @@ let PostFilterSystem;
       return '(Blank values)';
     }
 
-    if (String(filter?.cond || '').toLowerCase() === 'between') {
+    if (cond === 'between') {
       const [left, right] = rawValue.split('|');
       const formatBound = value => ValueFormatting.formatValueByType(String(value || ''), type, {
         fieldName,
@@ -284,11 +291,12 @@ let PostFilterSystem;
     }
 
     const activeOperator = String(elements.operatorSelect.value || '').trim().toLowerCase();
-    const isValuePickerOperator = usesValuePickerOperator(activeOperator);
+    const isNoValueOperator = isNoValuePostFilterOperator(activeOperator);
+    const isValuePickerOperator = !isNoValueOperator && usesValuePickerOperator(activeOperator);
     const fieldName = String(elements.fieldSelect.value || '').trim();
 
     elements.valuePickerHost.classList.toggle('hidden', !isValuePickerOperator);
-    setValueInputVisible(elements.valueInput, !isValuePickerOperator);
+    setValueInputVisible(elements.valueInput, !isValuePickerOperator && !isNoValueOperator);
 
     if (!isValuePickerOperator || !fieldName) {
       if (isBlankSentinel(elements.valueInput.value)) {
@@ -315,7 +323,9 @@ let PostFilterSystem;
 
     const fieldType = getFieldType(elements.fieldSelect.value);
     const numberFormat = getNumberFormat(elements.fieldSelect.value);
-    const isBetween = elements.operatorSelect.value === 'between';
+    const activeOperator = normalizeNoValuePostFilterOperator(elements.operatorSelect.value);
+    const isBetween = activeOperator === 'between';
+    const isNoValueOperator = isNoValuePostFilterOperator(activeOperator);
     const isDate = fieldType === 'date';
     const inputType = 'text';
 
@@ -343,7 +353,7 @@ let PostFilterSystem;
         CustomDatePicker.enhanceInput(input, {
           variant: 'filter',
           enabled: true,
-          allowNever: postFilterDateOperatorAllowsNever(elements.operatorSelect.value),
+          allowNever: postFilterDateOperatorAllowsNever(activeOperator),
           placeholder: 'M/D/YYYY'
         });
       } else if (!isDate) {
@@ -354,7 +364,7 @@ let PostFilterSystem;
       }
     });
 
-    setValueInputVisible(elements.valueInput2, isBetween);
+    setValueInputVisible(elements.valueInput2, isBetween && !isNoValueOperator);
     elements.betweenLabel.classList.toggle('hidden', !isBetween);
     syncValuePicker();
   }
@@ -409,7 +419,8 @@ let PostFilterSystem;
       const ruleLabel = entry.logic === 'any' ? 'Rows can match any rule below' : 'Rows must match every rule below';
       const safeRuleLabel = escapeHtml(ruleLabel);
       const filterMarkup = entry.filters.map(({ filter, index }) => {
-        const label = `${OperatorLabels.get(filter.cond)} ${formatFilterValue(filter, entry.field)}`;
+        const valueLabel = formatFilterValue(filter, entry.field);
+        const label = valueLabel ? `${OperatorLabels.get(filter.cond)} ${valueLabel}` : OperatorLabels.get(filter.cond);
         const safeLabel = escapeHtml(label);
         return `
           <div class="post-filter-pill">
@@ -544,7 +555,7 @@ let PostFilterSystem;
     if (!elements.fieldSelect || !elements.operatorSelect || !elements.valueInput || !elements.valueInput2) return;
 
     const field = String(elements.fieldSelect.value || '').trim();
-    const cond = String(elements.operatorSelect.value || '').trim();
+    const cond = normalizeNoValuePostFilterOperator(elements.operatorSelect.value);
     const logic = elements.logicSelect ? String(elements.logicSelect.value || 'all').trim().toLowerCase() : 'all';
     let value = String(elements.valueInput.value || '').trim();
     let value2 = String(elements.valueInput2.value || '').trim();
@@ -562,7 +573,7 @@ let PostFilterSystem;
       value2 = MoneyUtils.sanitizeInputValue(value2, { allowDecimal });
     }
 
-    if (fieldType === 'date') {
+    if (fieldType === 'date' && !isNoValuePostFilterOperator(cond)) {
       const message = getPostFilterDateValidationMessage({ cond, customDatePicker: CustomDatePicker, field, value, value2 });
       if (message) {
         showToastMessage(message, 'warning');
@@ -570,7 +581,10 @@ let PostFilterSystem;
       }
     }
 
-    if (usesValuePickerOperator(cond) && equalsValueControl && typeof equalsValueControl.getSelectedValues === 'function') {
+    if (isNoValuePostFilterOperator(cond)) {
+      value = '';
+      value2 = '';
+    } else if (usesValuePickerOperator(cond) && equalsValueControl && typeof equalsValueControl.getSelectedValues === 'function') {
       selectedValues = equalsValueControl.getSelectedValues()
         .map(entry => String(entry || ''))
         .filter(entry => entry || isBlankSentinel(entry));
