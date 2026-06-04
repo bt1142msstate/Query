@@ -6,6 +6,7 @@ const LOCK_TRIGGER_CLASSES = [
   'mobile-filter-panel-open',
   'post-filter-overlay-open',
   'export-overlay-open',
+  'multi-value-viewer-open',
   'table-expanded-open',
   'history-details-open'
 ];
