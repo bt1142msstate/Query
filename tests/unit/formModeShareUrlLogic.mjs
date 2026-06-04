@@ -70,7 +70,7 @@ const editableUrl = buildFormShareUrl('https://example.test/index.html?limited=1
 });
 const parsedEditableUrl = new URL(editableUrl);
 assert.equal(parsedEditableUrl.searchParams.has('limited'), false);
-assert.equal(parsedEditableUrl.searchParams.get('mode'), 'bubbles');
+assert.equal(parsedEditableUrl.searchParams.has('mode'), false);
 assert.deepEqual(decodeSpec(parsedEditableUrl.searchParams.get('form')).columns, ['Title']);
 
 assert.equal(buildFormShareUrl('https://example.test/index.html?old=1', {

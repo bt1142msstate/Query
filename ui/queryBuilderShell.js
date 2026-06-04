@@ -219,11 +219,6 @@ let QueryBuilderShell;
   }
 
   async function initializeBuilderState() {
-    const initialContainer = dom.tableContainer;
-    if (initialContainer) {
-      services.attachBubbleDropTarget(initialContainer);
-    }
-
     try {
       console.log('Initializing application for live queries (test data disabled)');
       QueryChangeManager.replaceDisplayedFields([], { source: 'Query.initialization' });

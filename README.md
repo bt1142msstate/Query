@@ -12,8 +12,8 @@ A single-page app for building queries, applying filters, reviewing results, and
 
 | Feature | What it gives you |
 | --- | --- |
-| **Bubble builder** | Browse and select fields by category, apply filter conditions |
-| **Form mode** | URL-driven guided forms for focused reporting workflows |
+| **Core query builder** | Add display fields, search field metadata, and apply filter conditions |
+| **Shared form workflow** | URL-driven guided forms for focused reporting workflows |
 | **Query history** | Live status tracking — reload, rerun, cancel, or inspect past runs |
 | **Query templates** | Save, categorize, pin, search, and reapply reusable query setups |
 | **Query JSON** | Inspect the exact payload being sent to the backend |
@@ -23,9 +23,9 @@ A single-page app for building queries, applying filters, reviewing results, and
 
 ## 💻 Features
 
-### 🔍 Bubble Builder
+### 🔍 Core Query Builder
 
-The default view. Browse fields by category or search by name, then select fields to add them to your output. Click any active field to open a filter condition panel — supports `equals`, `contains`, `between`, `before/after`, `starts with`, and more.
+The default view. Add fields through the shared field picker, browse by category, or search by field name and description. Active fields appear in the Display & Filters panel, where display order and filter conditions can be edited. Conditions support `equals`, `contains`, `between`, `before/after`, `starts with`, empty/non-empty post filters, date `Never`, and more.
 
 ### 📜 Query History
 
@@ -39,9 +39,9 @@ Templates let users save reusable query configurations, organize them into categ
 
 Shows the structured JSON payload for the current query. Useful for debugging filter logic or copying the spec for reuse.
 
-### 📝 Form Mode
+### 📝 Shared Form Workflow
 
-A URL-driven mode for guided workflows. Pass a JSON spec via the `?spec=` parameter (raw JSON, URL-encoded, or Base64URL) to generate a focused input form instead of the full bubble builder. A form spec can define:
+A URL-driven workflow for guided reports. Pass a JSON spec via the `?spec=` parameter (raw JSON, URL-encoded, or Base64URL) to generate focused input controls on top of the same core query state. A form spec can define:
 
 - title and description
 - default query name
@@ -60,7 +60,7 @@ The table also supports sorting, expand/collapse layout, manual column resizing 
 
 | Path | Purpose |
 | --- | --- |
-| `bubbles/` | Bubble rendering and interaction logic |
+| `bubbles/` | Legacy filter-card visuals retained for compatibility with the current condition editor |
 | `core/` | Query execution, state management, service facades, and shared utilities |
 | `filters/` | Field definitions and filter/payload logic |
 | `history/` | Query history rendering, request mapping, status grouping, and detail overlays |

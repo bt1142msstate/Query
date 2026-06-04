@@ -235,10 +235,6 @@ function registerTableService(service) {
     return getQueryHistoryService()?.applyQueryConfig?.(config);
   }
 
-  function attachBubbleDropTarget(target) {
-    getDragDropService()?.attachBubbleDropTarget?.(target);
-  }
-
   function restoreFieldWithDuplicates(fieldName, insertAt) {
     return getDragDropService()?.restoreFieldWithDuplicates?.(fieldName, insertAt) || false;
   }
@@ -253,13 +249,6 @@ function registerTableService(service) {
 
   function syncHeaderSortActionState() {
     getDragDropService()?.syncHeaderSortActionState?.();
-  }
-
-  function markDropSuccessful() {
-    const dragDrop = getDragDropService();
-    if (dragDrop?.dragDropManager) {
-      dragDrop.dragDropManager.dropSuccessful = true;
-    }
   }
 
   function clearInsertAffordance(options = {}) {
@@ -469,12 +458,10 @@ function registerTableService(service) {
     closeHistoryDetailsOverlay,
     cancelHistoryQuery,
     applyHistoryQueryConfig,
-    attachBubbleDropTarget,
     restoreFieldWithDuplicates,
     addDragAndDrop,
     resetDragDropHeaderUi,
     syncHeaderSortActionState,
-    markDropSuccessful,
     clearInsertAffordance,
     cleanupDragDropTableListeners,
     getSimpleTable,

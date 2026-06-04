@@ -31,9 +31,6 @@ import {
   resetFormSpecToEmptyQuery
 } from './formModeSpecMutations.js';
 import {
-  ensureFormModeToggleButton,
-  getNextFormViewMode,
-  refreshBubbleStageAfterModeSwitch as refreshFormModeBubbleStageAfterModeSwitch,
   resolveRequestedFormViewMode,
   syncFormModePresentation
 } from './formModePresentation.js';
@@ -315,7 +312,7 @@ let QueryFormMode;
     const forceClearUrl = options.forceClearUrl === true;
     const useFormUrl = forceShareUrl || (!forceClearUrl && shouldPersistFormUrlInBrowser());
     const nextUrl = useFormUrl
-      ? buildCurrentShareUrl({ limited: forceShareUrl, mode: forceShareUrl ? '' : state.viewMode })
+      ? buildCurrentShareUrl({ limited: forceShareUrl })
       : buildClearedBrowserUrl(window.location.href);
     if (state.lastBrowserUrl === nextUrl || window.location.href === nextUrl) {
       state.lastBrowserUrl = nextUrl;
@@ -670,18 +667,8 @@ let QueryFormMode;
     });
   }
 
-  function refreshBubbleStageAfterModeSwitch() {
-    refreshFormModeBubbleStageAfterModeSwitch({
-      services,
-      window
-    });
-  }
-
   async function setViewMode(nextMode, options = {}) {
-    const requestedMode = resolveRequestedFormViewMode({
-      limitedView: state.limitedView,
-      nextMode
-    });
+    const requestedMode = resolveRequestedFormViewMode({ nextMode });
 
     if (requestedMode === 'form' && !state.active) {
       const activated = await activateGeneratedFormFromCurrentQuery();
@@ -689,28 +676,15 @@ let QueryFormMode;
         return;
       }
     } else if (requestedMode === 'form' && state.active && state.specSource === 'generated') {
-      // Re-entering form mode after changes in bubble mode: sync spec and rebuild controls
-      // so the form reflects the current query state rather than stale control values.
       await syncGeneratedFormFromCurrentQuery({ forceFormMode: true, rebuildCard: true });
     }
 
     state.viewMode = requestedMode;
     syncPresentationMode();
 
-    if (requestedMode === 'bubbles') {
-      refreshBubbleStageAfterModeSwitch();
-    }
-
     if (options.updateUrl !== false) {
       refreshBrowserUrl();
     }
-  }
-
-  function toggleViewMode() {
-    setViewMode(getNextFormViewMode(state.viewMode)).catch(error => {
-      console.error('Failed to toggle form mode:', error);
-      showToastMessage('Failed to switch modes.', 'error');
-    });
   }
 
   function scheduleApply() {
@@ -755,15 +729,6 @@ let QueryFormMode;
         DOM && DOM.runBtn && DOM.runBtn.click();
       }
     });
-  }
-
-  function ensureModeToggleButtons() {
-    ensureFormModeToggleButton({
-      state,
-      document,
-      onToggle: toggleViewMode
-    });
-    syncPresentationMode();
   }
 
   function wrapUpdateButtonStates() {
@@ -820,8 +785,6 @@ let QueryFormMode;
       interpolateValue,
       refreshBrowserUrl
     });
-    ensureModeToggleButtons();
-
     const rawFormSpec = searchParams.get('form');
     if (!rawFormSpec) {
       await setViewMode('form', { updateUrl: false });
@@ -851,9 +814,7 @@ let QueryFormMode;
     state.sharedBaselineSpec = null;
     state.searchParams = searchParams;
     state.sharedBaselineSearchParams = null;
-    state.viewMode = state.limitedView
-      ? 'form'
-      : (searchParams.get('mode') === 'bubbles' ? 'bubbles' : 'form');
+    state.viewMode = 'form';
 
     if (typeof loadFieldDefinitions === 'function') {
       await loadFieldDefinitions();
@@ -863,7 +824,6 @@ let QueryFormMode;
 
     state.controls.clear();
     buildFormCard();
-    ensureModeToggleButtons();
     applyFormState({ source: 'QueryFormMode.initializeFromUrl' });
     syncPresentationMode();
     state.searchParams = new URLSearchParams();

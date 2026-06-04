@@ -39,7 +39,7 @@ function getQueryStateSyncPlan(event = {}, state = {}) {
 
   const hasActiveFilterChanges = Boolean(event && event.changes && event.changes.activeFilters);
   const baseOptions = {
-    rebuildCard: Boolean(state.viewMode === 'form' && hasActiveFilterChanges),
+    rebuildCard: hasActiveFilterChanges,
     refreshUrl: true
   };
 

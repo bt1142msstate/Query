@@ -90,7 +90,7 @@ assert.deepEqual(getQueryStateSyncPlan({
 }), {
   action: 'sync',
   options: {
-    rebuildCard: false,
+    rebuildCard: true,
     refreshUrl: true
   }
 });

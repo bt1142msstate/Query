@@ -4,16 +4,14 @@
  */
 import { appServices } from '../core/appServices.js';
 import { appUiActions, registerAppUiActionDependencies } from '../core/appUiActions.js';
-import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
+import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
-import { fieldDefs, isFieldBuildable } from '../filters/fieldDefs.js';
 import { DOM } from '../core/domCache.js';
 
 let QueryTableView;
 
 (function initializeQueryTableView() {
   const dom = DOM;
-  const appState = AppState;
   const services = appServices;
   const uiActions = appUiActions;
   const getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
@@ -33,30 +31,8 @@ let QueryTableView;
     return true;
   }
 
-  function syncBubbleDragState(renderFields) {
-    document.querySelectorAll('.bubble').forEach(bubbleEl => {
-      const field = bubbleEl.textContent.trim();
-      const fieldDef = fieldDefs ? fieldDefs.get(field) : null;
-      if (isFieldBuildable(fieldDef)) {
-        bubbleEl.setAttribute('draggable', 'false');
-      } else if (renderFields.includes(field)) {
-        bubbleEl.removeAttribute('draggable');
-        services.applyBubbleStyling(bubbleEl);
-      } else {
-        bubbleEl.setAttribute('draggable', 'true');
-        services.applyBubbleStyling(bubbleEl);
-      }
-    });
-  }
-
-  function isFormModePresentationActive() {
-    return document.body.classList.contains('form-mode-active');
-  }
-
   function getEmptyTableMessage() {
-    return isFormModePresentationActive()
-      ? 'Add a field to show your first column'
-      : 'Drag a bubble here to add your first column';
+    return 'Add a field to show your first column';
   }
 
   function syncEmptyTableMessage() {
@@ -67,11 +43,9 @@ let QueryTableView;
   }
 
   function restoreEmptyTableDropTarget(container) {
-    if (!container || !services.dragDrop) {
+    if (!container) {
       return;
     }
-
-    services.attachBubbleDropTarget(container);
 
     const placeholderTh = container.querySelector('thead th');
     if (!placeholderTh) {
@@ -81,31 +55,9 @@ let QueryTableView;
     placeholderTh.addEventListener('dragover', event => event.preventDefault());
     placeholderTh.addEventListener('drop', event => {
       event.preventDefault();
-      if (isFormModePresentationActive()) {
-        return;
-      }
-      const field = event.dataTransfer.getData('bubble-field');
-      if (!field) {
-        return;
-      }
-
-      services.markDropSuccessful();
-      services.restoreFieldWithDuplicates(field);
-    });
-    placeholderTh.addEventListener('dragenter', () => {
-      if (isFormModePresentationActive()) {
-        return;
-      }
-      placeholderTh.classList.add('th-drag-over');
     });
     placeholderTh.addEventListener('dragleave', () => {
       placeholderTh.classList.remove('th-drag-over');
-    });
-
-    container.addEventListener('dragover', () => {
-      if (!isFormModePresentationActive() && getDisplayedFields().length === 0) {
-        placeholderTh.classList.add('th-drag-over');
-      }
     });
     container.addEventListener('dragleave', () => {
       placeholderTh.classList.remove('th-drag-over');
@@ -134,12 +86,6 @@ let QueryTableView;
 
       restoreEmptyTableDropTarget(container);
     }
-
-    document.querySelectorAll('.bubble').forEach(bubble => {
-      const fieldName = bubble.textContent.trim();
-      const fieldDef = fieldDefs ? fieldDefs.get(fieldName) : null;
-      bubble.setAttribute('draggable', isFieldBuildable(fieldDef) ? 'false' : 'true');
-    });
 
     uiActions.updateCategoryCounts();
   }
@@ -368,14 +314,8 @@ let QueryTableView;
     }
 
     services.addDragAndDrop(table);
-    services.attachBubbleDropTarget(container);
 
-    syncBubbleDragState(renderFields);
     uiActions.updateCategoryCounts();
-
-    if (appState.currentCategory === 'Selected') {
-      services.rerenderBubbles();
-    }
   }
 
   QueryTableView = Object.freeze({
