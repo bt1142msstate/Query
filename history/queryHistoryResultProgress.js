@@ -1,5 +1,6 @@
 import { BackendApi } from '../core/backendApi.js';
 import { escapeHtml } from '../core/formatting/html.js';
+import { hasResultRowsPayload } from '../core/queryResultParser.js';
 import { readStreamedQueryText } from '../core/queryStream.js';
 
 let loadState = null;
@@ -71,7 +72,22 @@ async function fetchResults(queryId) {
   const contentType = response.headers.get('Content-Type') || '';
 
   if (contentType.includes('application/json')) {
-    const data = await BackendApi.parseJsonResponse(response);
+    const text = await response.text();
+    let data = {};
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch {
+      data = { error: text };
+    }
+
+    if (response.ok && hasResultRowsPayload(data)) {
+      const rowCount = Array.isArray(data)
+        ? data.length
+        : (data.rows || data.results || data.data || data.items || data.records || []).length;
+      updateRowsLoaded(rowCount);
+      return { response, text, lines: [], jsonPayload: data, partial: false, streamError: null };
+    }
+
     throw BackendApi.buildHttpError(response, {
       ...data,
       error: data?.error || 'Results are not available yet.'

@@ -1,10 +1,23 @@
 import { MoneyUtils } from './moneyUtils.js';
 import { ValueFormatting } from './valueFormatting.js';
 
-function formatCellDisplay(raw, field) {
+function getMultiValueDisplayValues(raw) {
+  if (typeof raw !== 'string' || !raw.includes('\x1F')) {
+    return [];
+  }
+
+  return raw
+    .split('\x1F')
+    .map(value => value.trim())
+    .filter(Boolean);
+}
+
+function formatCellDisplay(raw, field, options = {}) {
   if (raw == null) return '';
-  if (typeof raw === 'string' && raw.includes('\x1F')) {
-    return raw.split('\x1F').filter(value => value.trim()).join(', ');
+  const multiValueParts = getMultiValueDisplayValues(raw);
+  if (multiValueParts.length > 0) {
+    const separator = options.multiValueSeparator ?? ', ';
+    return multiValueParts.join(separator);
   }
 
   const value = String(raw);
@@ -34,6 +47,13 @@ function formatCellDisplay(raw, field) {
   return value;
 }
 
-const CellDisplayFormatting = Object.freeze({ formatCellDisplay });
+const CellDisplayFormatting = Object.freeze({
+  formatCellDisplay,
+  getMultiValueDisplayValues
+});
 
-export { CellDisplayFormatting, formatCellDisplay };
+export {
+  CellDisplayFormatting,
+  formatCellDisplay,
+  getMultiValueDisplayValues
+};

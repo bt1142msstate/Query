@@ -63,6 +63,13 @@ const smokeFieldDefinitions = [
     type: 'date'
   },
   {
+    name: 'Public Note',
+    category: 'Smoke',
+    desc: 'Smoke-test multi-value public note field',
+    filters: ['contains', 'equals'],
+    type: 'string'
+  },
+  {
     name: 'MARC Field',
     category: 'Smoke',
     desc: 'Smoke-test buildable MARC field placeholder',
@@ -3449,6 +3456,61 @@ async function exerciseZeroResultQueryWorkflow(page, queryApiStub) {
   }
 }
 
+async function exerciseJsonResultPayloadWorkflow(page, queryApiStub) {
+  await page.evaluate(async () => {
+    const { QueryChangeManager } = await import('./core/queryState.js');
+    const { QueryUI } = await import('./ui/queryUI.js');
+    await QueryChangeManager.clearQuery({ source: 'BrowserSmoke.jsonResultPayloadSetup' });
+    QueryChangeManager.replaceDisplayedFields(['Smoke Title', 'Public Note'], {
+      source: 'BrowserSmoke.jsonResultPayloadSetup'
+    });
+    QueryUI.updateButtonStates();
+  });
+
+  queryApiStub.enqueue({
+    action: 'run',
+    body: JSON.stringify({
+      columns: ['Smoke Title', 'Public Note'],
+      rows: [
+        { 'Smoke Title': 'JSON Alpha', 'Public Note': ['First public note', 'Second public note'] },
+        { 'Smoke Title': 'JSON Beta', 'Public Note': { values: ['Only public note'] } }
+      ]
+    }),
+    contentType: 'application/json; charset=utf-8',
+    queryId: 'browser-smoke-json-results'
+  });
+
+  await page.locator('#run-query-btn').click();
+  await expectResultsCount(page, '2', 'Desktop JSON result payload');
+
+  const jsonResultState = await page.evaluate(async () => {
+    const { appServices } = await import('./core/appServices.js');
+    const { QueryStateReaders } = await import('./core/queryState.js');
+    const tableData = appServices.getVirtualTableData?.();
+    return {
+      lifecycle: QueryStateReaders.getLifecycleState(),
+      rows: tableData?.rows || []
+    };
+  });
+
+  if (
+    jsonResultState.lifecycle.currentQueryId !== 'browser-smoke-json-results'
+    || jsonResultState.rows[0]?.[1] !== 'First public note\x1FSecond public note'
+  ) {
+    throw new Error(`JSON result payload should hydrate multi-value arrays: ${JSON.stringify(jsonResultState)}`);
+  }
+
+  const renderedValues = await page.locator('#example-table tbody tr[data-row-index="0"] td[data-col-index="1"]').evaluate(cell => {
+    return Array.from(cell.querySelectorAll('div > div'))
+      .map(node => node.textContent?.trim())
+      .filter(Boolean);
+  });
+
+  if (renderedValues.join('|') !== 'First public note|Second public note') {
+    throw new Error(`JSON multi-value cell should render each value on its own line: ${JSON.stringify(renderedValues)}`);
+  }
+}
+
 async function expectCustomDatePickerNeverOption(page) {
   await page.evaluate(async () => {
     document.querySelector('[data-browser-smoke-date-picker-host]')?.remove();
@@ -3658,6 +3720,7 @@ async function runSmokeTest() {
     await exerciseEditableFormUrlRefresh(page, failures);
     await exerciseDesktopResultsWorkflow(page);
     await exerciseZeroResultQueryWorkflow(page, queryApiStub);
+    await exerciseJsonResultPayloadWorkflow(page, queryApiStub);
     await exerciseVirtualTableScrollInteraction(page);
     await exerciseExpandedVirtualTableColumnAlignment(page);
     await exerciseColumnResizeInteraction(page);

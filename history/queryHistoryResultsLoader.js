@@ -1,3 +1,5 @@
+import { parseQueryResultPayload } from '../core/queryResultParser.js';
+
 export function createQueryHistoryResultsLoader({
   appState,
   historyResultProgress,
@@ -24,10 +26,12 @@ export function createQueryHistoryResultsLoader({
     showToastMessage(query.running ? 'Fetching live results...' : 'Fetching results...', 'info');
 
     try {
-      const { response, lines: streamedLines, streamError } = await historyResultProgress.fetchResults(queryId);
+      const { response, lines: streamedLines, streamError, text, jsonPayload } = await historyResultProgress.fetchResults(queryId);
       const rows = buildHistoryResultRows({
         response,
         streamedLines,
+        text,
+        jsonPayload,
         displayedFields: queryStateReaders?.getDisplayedFields?.() || [],
         fallbackColumns: query.jsonConfig ? query.jsonConfig.DesiredColumnOrder : [],
         parsePipeDelimitedRow
@@ -87,26 +91,21 @@ export function createQueryHistoryResultsLoader({
 export function buildHistoryResultRows({
   response,
   streamedLines,
+  text = '',
+  jsonPayload = null,
   displayedFields,
   fallbackColumns,
   parsePipeDelimitedRow
 }) {
-  const rawColsHeader = response.headers.get('X-Raw-Columns');
-  const headers = displayedFields.length
-    ? displayedFields
-    : (Array.isArray(fallbackColumns) ? fallbackColumns : []);
-  const rawColumns = rawColsHeader ? rawColsHeader.split('|') : headers;
-  const lines = Array.isArray(streamedLines) ? streamedLines : [];
-
-  const objectRows = lines.map(line => {
-    const row = parsePipeDelimitedRow(line, rawColumns);
-    headers.forEach(header => {
-      if (!(header in row)) row[header] = '';
-    });
-    return row;
+  return parseQueryResultPayload({
+    response,
+    streamedLines,
+    text,
+    jsonPayload,
+    displayedFields,
+    fallbackColumns,
+    parsePipeRow: parsePipeDelimitedRow
   });
-
-  return { headers, objectRows };
 }
 
 async function hydrateHistoryResultTable({

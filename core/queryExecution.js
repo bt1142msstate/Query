@@ -4,7 +4,7 @@
 
 import { BackendApi } from './backendApi.js';
 import { notifyBackgroundTaskComplete, prepareBackgroundTaskNotification } from './backgroundTaskNotifications.js';
-import { parsePipeDelimitedRow } from './formatting/dataFormatters.js';
+import { parseQueryResultPayload } from './queryResultParser.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from './queryState.js';
 import { createStreamedQueryTextReader } from './queryStream.js';
 import { appServices, registerQueryExecutionService } from './appServices.js';
@@ -219,24 +219,15 @@ if (execDom.runBtn) {
           }
         }
 
-        // Parse pipe-delimited response.
-        // Use X-Raw-Columns to understand the actual output order from the backend,
-        // then map into the requested state.displayedFields order.
-        const rawColsHeader = response.headers.get('X-Raw-Columns');
-        const rawColumns = rawColsHeader ? rawColsHeader.split('|') : state.displayedFields;
-
-        const lines = Array.isArray(streamedPayload.lines)
-          ? streamedPayload.lines.slice()
-          : text.split('\n').filter(line => line.trim().length > 0);
-        const headers = state.displayedFields; // Requested order
-        const rows = lines.map(line => {
-          const obj = parsePipeDelimitedRow(line, rawColumns);
-          // Ensure all requested headers exist
-          headers.forEach(h => {
-            if (!(h in obj)) obj[h] = '';
-          });
-          return obj;
+        const parsedResults = parseQueryResultPayload({
+          response,
+          text,
+          streamedLines: streamedPayload.lines,
+          displayedFields: state.displayedFields,
+          fallbackColumns: state.displayedFields
         });
+        const headers = parsedResults.headers;
+        const rows = parsedResults.objectRows;
 
         console.log(`Received ${rows.length} rows`);
         updateLiveQueryProgress(rows.length, { startTime: queryStartedAt });

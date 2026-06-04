@@ -118,6 +118,28 @@ The public live site should not rely on that example API as its production data 
 
 Until runtime API settings are added to the hosted UI, local deployments can point the app at another service by updating `core/backendApi.js`. The intended live-site flow is to let users supply their own API URLs/configuration instead of using the checked-in example endpoint.
 
+### Result Response Formats
+
+Query execution and history result loading support both the current text format and a JSON format for easier integrations.
+
+Legacy text responses use `X-Raw-Columns: Title|Public Note` and newline-delimited pipe rows.
+
+JSON responses can return row objects or arrays:
+
+```json
+{
+  "columns": ["Title", "Public Note"],
+  "rows": [
+    {
+      "Title": "Example title",
+      "Public Note": ["First note", "Second note"]
+    }
+  ]
+}
+```
+
+The accepted aliases are `columns`/`headers`/`fields` for columns and `rows`/`results`/`data`/`items`/`records` for rows. Multi-value field values may be arrays or `{ "values": [...] }`; the app normalizes them into stacked table cells, split-column views, post filters, and Excel export.
+
 ## Architecture
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for module boundaries, runtime flow, quality gates, and the remaining compatibility layer.
