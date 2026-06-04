@@ -23,7 +23,10 @@ globalThis.document = globalThis.document || {
   }
 };
 
-const { createVirtualTablePostFilterController } = await import('../../table/virtual-table/virtualTablePostFilters.js');
+const {
+  createVirtualTablePostFilterController,
+  doesCellMatchPostFilter
+} = await import('../../table/virtual-table/virtualTablePostFilters.js');
 
 let displayedFields = ['Title', 'Bill Count', 'Branch'];
 const baseViewData = {
@@ -114,6 +117,70 @@ assert.equal(controller.hasActiveFilters(), false);
 assert.deepEqual(controller.getFilteredRows(), baseViewData.rows);
 
 controller.assign({
+  Branch: {
+    filters: [{ cond: 'contains', val: 'east' }]
+  }
+});
+assert.deepEqual(controller.getFilteredRows(), [
+  ['Beta Guide', '1', 'East'],
+  ['Gamma Notes', '10', 'Main\x1FEast']
+]);
+
+controller.assign({
+  Branch: {
+    filters: [{ cond: 'starts', val: 'ea' }]
+  }
+});
+assert.deepEqual(controller.getFilteredRows(), [
+  ['Beta Guide', '1', 'East'],
+  ['Gamma Notes', '10', 'Main\x1FEast']
+]);
+
+controller.assign({
+  Branch: {
+    filters: [{ cond: 'equals', val: 'Main' }]
+  }
+});
+assert.deepEqual(controller.getFilteredRows(), [
+  ['Alpha Guide', '3', 'Main'],
+  ['', '5', 'Main'],
+  ['Gamma Notes', '10', 'Main\x1FEast']
+]);
+
+controller.assign({
+  Branch: {
+    filters: [{ cond: 'equals', val: 'Main', vals: ['Main', 'East'] }]
+  }
+});
+assert.deepEqual(controller.getFilteredRows(), [
+  ['Alpha Guide', '3', 'Main'],
+  ['Beta Guide', '1', 'East'],
+  ['', '5', 'Main'],
+  ['Gamma Notes', '10', 'Main\x1FEast']
+]);
+
+controller.assign({
+  Branch: {
+    filters: [{ cond: 'does_not_equal', val: 'Main' }]
+  }
+});
+assert.deepEqual(controller.getFilteredRows(), [
+  ['Beta Guide', '1', 'East'],
+  ['Alpha Manual', '8', ''],
+  ['  ', '9', '\x1F']
+]);
+
+controller.assign({
+  Branch: {
+    filters: [{ cond: 'does_not_equal', val: 'Main', vals: ['Main', 'East'] }]
+  }
+});
+assert.deepEqual(controller.getFilteredRows(), [
+  ['Alpha Manual', '8', ''],
+  ['  ', '9', '\x1F']
+]);
+
+controller.assign({
   Title: {
     filters: [{ cond: 'is_blank' }]
   }
@@ -162,5 +229,10 @@ assert.deepEqual(controller.getFilteredRows(), [
   ['', '5', 'Main'],
   ['  ', '9', '\x1F']
 ]);
+
+assert.equal(doesCellMatchPostFilter('3\x1F10', 'number', { cond: 'greater', val: '8' }), true);
+assert.equal(doesCellMatchPostFilter('3\x1F10', 'number', { cond: 'does_not_equal', val: '3' }), false);
+assert.equal(doesCellMatchPostFilter('20240101\x1F20250101', 'date', { cond: 'after', val: '20241231' }), true);
+assert.equal(doesCellMatchPostFilter('20240101\x1F20250101', 'date', { cond: 'does_not_equal', val: '20250101' }), false);
 
 console.log('Virtual table post-filter logic tests passed');
