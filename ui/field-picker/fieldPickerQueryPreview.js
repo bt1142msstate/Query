@@ -1,6 +1,6 @@
 import { QueryChangeManager, QueryStateReaders, getBaseFieldName } from '../../core/queryState.js';
 import { mapFieldOperatorToUiCond } from '../../filters/queryPayload.js';
-import { fieldDefs, isFieldBackendFilterable } from '../../filters/fieldDefs.js';
+import { fieldDefs, isFieldBackendFilterable, isFieldBuildable } from '../../filters/fieldDefs.js';
 import { FormModeControls as formModeControls } from '../form-mode/formModeControls.js';
 
 export function fieldMatchesBase(fieldName, targetField) {
@@ -21,6 +21,10 @@ export function createQueryFilterPreview(container, fieldName, context = {}) {
   }
 
   const fieldDef = fieldDefs.get(fieldName);
+  if (isFieldBuildable(fieldDef)) {
+    return null;
+  }
+
   if (!fieldDef || (typeof isFieldBackendFilterable === 'function' && !isFieldBackendFilterable(fieldDef))) {
     return null;
   }

@@ -915,6 +915,15 @@
   font-weight: 700;
 }
 
+.form-mode-field-picker-badge--muted {
+  background: rgba(241, 245, 249, 0.95);
+  color: #64748b;
+}
+
+.form-mode-field-picker-option.is-display-disabled {
+  border-style: dashed;
+}
+
 .form-mode-field-picker-details {
   display: flex;
   flex-direction: column;
@@ -1056,6 +1065,45 @@
 .form-mode-field-picker-filter-control {
   display: flex;
   flex-direction: column;
+}
+
+.form-mode-buildable-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.form-mode-buildable-preview-copy,
+.form-mode-buildable-error {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.form-mode-buildable-preview-copy {
+  color: #475569;
+}
+
+.form-mode-buildable-error {
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.form-mode-buildable-input-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.form-mode-buildable-input-label {
+  color: #334155;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.form-mode-buildable-actions {
+  display: flex;
+  justify-content: flex-start;
 }
 
 @media (max-width: 760px) {

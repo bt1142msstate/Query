@@ -8,6 +8,7 @@ const {
   assignInputSpecDefaultValues,
   buildGeneratedInputSpecsFromActiveFilters,
   clearInputSpecDefaultValue,
+  getDisplayableFormColumns,
   getInputSignature,
   getInputSpecDefaultValues,
   normalizeOperatorForField,
@@ -33,6 +34,14 @@ assert.equal(uniqueInputKey('', seenKeys), 'field');
 
 assert.deepEqual(readStoredFilterValues({ cond: 'between', val: '1/1/2026|1/5/2026|ignored' }), ['1/1/2026', '1/5/2026']);
 assert.deepEqual(readStoredFilterValues({ cond: 'equals', val: 'A, B\nC' }), ['A', 'B', 'C']);
+assert.deepEqual(getDisplayableFormColumns([
+  'Title',
+  'MARC Field',
+  'MARC 590$a',
+  'MARC 590$a'
+], {
+  isFieldDisplayable: fieldName => fieldName !== 'MARC Field'
+}), ['Title', 'MARC 590$a']);
 
 const scalarInput = { operator: 'equals', multiple: false, defaultValue: 'Alpha, Beta' };
 assert.deepEqual(getInputSpecDefaultValues(scalarInput), ['Alpha', 'Beta']);

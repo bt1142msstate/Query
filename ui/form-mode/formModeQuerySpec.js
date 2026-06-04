@@ -107,6 +107,18 @@ function syncInputSpecFromState(inputSpec, nextState, fieldDef = null) {
   assignInputSpecDefaultValues(inputSpec, normalizedState.values || [], fieldDef);
 }
 
+function getDisplayableFormColumns(columns = [], options = {}) {
+  const isDisplayable = typeof options.isFieldDisplayable === 'function'
+    ? options.isFieldDisplayable
+    : null;
+
+  return (Array.isArray(columns) ? columns : [])
+    .map(column => String(column ?? '').trim())
+    .filter(Boolean)
+    .filter(column => !isDisplayable || isDisplayable(column) !== false)
+    .filter((column, index, list) => list.indexOf(column) === index);
+}
+
 function clearInputSpecDefaultValue(inputSpec) {
   if (!inputSpec) {
     return;
@@ -202,6 +214,7 @@ export {
   buildGeneratedInputSpecFromFilter,
   buildGeneratedInputSpecsFromActiveFilters,
   clearInputSpecDefaultValue,
+  getDisplayableFormColumns,
   getInputSignature,
   getInputSpecDefaultValues,
   normalizeOperatorForField,

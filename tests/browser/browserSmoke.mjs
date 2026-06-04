@@ -61,6 +61,32 @@ const smokeFieldDefinitions = [
     desc: 'Smoke-test due date field',
     filters: ['equals', 'before', 'after', 'between'],
     type: 'date'
+  },
+  {
+    name: 'MARC Field',
+    category: 'Smoke',
+    desc: 'Smoke-test buildable MARC field placeholder',
+    filters: ['contains', 'equals'],
+    type: 'string',
+    builder: {
+      outputFieldIdTemplate: 'MARC {tag}${subfield}',
+      displayLabelTemplate: 'MARC {tag}${subfield}',
+      inputs: [
+        {
+          id: 'tag',
+          label: 'MARC tag',
+          pattern: '^\\d{3}$',
+          error_msg: 'Enter a three digit MARC tag'
+        },
+        {
+          id: 'subfield',
+          label: 'Subfield',
+          pattern: '^[0-9A-Za-z]$',
+          optional: true,
+          placeholder: 'Optional'
+        }
+      ]
+    }
   }
 ];
 const smokeTemplateResponse = {
@@ -3105,6 +3131,66 @@ async function exerciseFieldPickerPreviewList(page) {
   await page.locator('.form-mode-field-picker-modal').waitFor({ state: 'detached', timeout: 5000 });
 }
 
+async function exerciseFormModeBuildableDisplayField(page) {
+  await page.evaluate(async () => {
+    const { QueryChangeManager } = await import('./core/queryState.js');
+    const { QueryFormMode } = await import('./ui/form-mode/formMode.js');
+
+    QueryChangeManager.replaceDisplayedFields(['Smoke Title'], {
+      source: 'BrowserSmoke.seedBuildableFormMode'
+    });
+    await QueryFormMode.activateFromCurrentQuery();
+  });
+
+  const addFieldButton = page.locator('#form-mode-add-field');
+  if (await addFieldButton.count() !== 1) {
+    throw new Error('Form mode Add Field button was not available for buildable-field smoke test');
+  }
+  await addFieldButton.click();
+
+  const modal = page.locator('.form-mode-field-picker-modal:not(.hidden)');
+  await modal.waitFor({ state: 'visible', timeout: 5000 });
+  await modal.locator('.form-mode-field-picker-search').fill('MARC Field');
+  await page.waitForFunction(() => {
+    const options = Array.from(document.querySelectorAll('.form-mode-field-picker-modal:not(.hidden) .form-mode-field-picker-option'));
+    return options.length === 1 && /MARC Field/u.test(options[0].textContent || '');
+  }, null, { timeout: 5000 });
+
+  const marcOption = modal.locator('.form-mode-field-picker-option', { hasText: 'MARC Field' });
+  if (await marcOption.count() !== 1) {
+    throw new Error('Buildable MARC field option did not resolve to exactly one picker option');
+  }
+  await marcOption.click();
+
+  const builderInputs = modal.locator('.form-mode-buildable-input');
+  if (await builderInputs.count() !== 2) {
+    throw new Error('Buildable MARC field should render tag and subfield builder inputs');
+  }
+
+  await modal.locator('.form-mode-buildable-input[data-input-id="tag"]').fill('590');
+  await modal.locator('.form-mode-buildable-input[data-input-id="subfield"]').fill('a');
+  await modal.locator('button', { hasText: 'Create and display field' }).click();
+  await page.locator('.form-mode-field-picker-modal').waitFor({ state: 'detached', timeout: 5000 });
+
+  const state = await page.evaluate(async () => {
+    const { QueryStateReaders } = await import('./core/queryState.js');
+    const { fieldDefs } = await import('./filters/fieldDefs.js');
+    const dynamicDef = fieldDefs.get('MARC 590$a');
+    return {
+      displayedFields: QueryStateReaders.getDisplayedFields(),
+      dynamicParent: dynamicDef?.dynamic_parent || null
+    };
+  });
+
+  if (
+    !state.displayedFields.includes('MARC 590$a')
+    || state.displayedFields.includes('MARC Field')
+    || state.dynamicParent !== 'MARC Field'
+  ) {
+    throw new Error(`Form mode should display the generated MARC field, not the raw placeholder: ${JSON.stringify(state)}`);
+  }
+}
+
 async function exerciseDesktopResultsWorkflow(page) {
   await seedLoadedResults(page);
   await expectResultsCount(page, '3', 'Desktop seeded results');
@@ -3568,6 +3654,7 @@ async function runSmokeTest() {
 
     await exerciseCoreFilterStateInteraction(page);
     await exerciseFieldPickerPreviewList(page);
+    await exerciseFormModeBuildableDisplayField(page);
     await exerciseEditableFormUrlRefresh(page, failures);
     await exerciseDesktopResultsWorkflow(page);
     await exerciseZeroResultQueryWorkflow(page, queryApiStub);
