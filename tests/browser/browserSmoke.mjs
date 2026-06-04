@@ -2406,12 +2406,10 @@ async function exerciseEditableFormUrlRefresh(page, failures) {
     await QueryFormMode.activateFromCurrentQuery();
   });
   await page.locator('#form-mode-card').waitFor({ state: 'visible', timeout: 5000 });
-  await page.locator('#form-mode-toggle-btn').click();
-  await page.waitForFunction(() => !document.body.classList.contains('form-mode-active'), null, { timeout: 5000 });
 
   const editableUrl = new URL(page.url());
-  if (!editableUrl.searchParams.has('form') || editableUrl.searchParams.has('limited') || editableUrl.searchParams.get('mode') !== 'bubbles') {
-    throw new Error(`Editable form browser URL should preserve table view without limited mode: ${editableUrl.toString()}`);
+  if (!editableUrl.searchParams.has('form') || editableUrl.searchParams.has('limited') || editableUrl.searchParams.has('mode')) {
+    throw new Error(`Editable form browser URL should stay in core mode without limited or legacy mode flags: ${editableUrl.toString()}`);
   }
 
   await page.reload({ waitUntil: 'load', timeout: 15000 });
@@ -2423,7 +2421,7 @@ async function exerciseEditableFormUrlRefresh(page, failures) {
     return {
       active: QueryFormMode.isActive(),
       browserHasLimited: browserUrl.searchParams.has('limited'),
-      browserMode: browserUrl.searchParams.get('mode'),
+      browserHasMode: browserUrl.searchParams.has('mode'),
       formModeActiveClass: document.body.classList.contains('form-mode-active'),
       limitedView: QueryFormMode.isLimitedView(),
       shareLimited: shareUrl.searchParams.get('limited')
@@ -2433,12 +2431,12 @@ async function exerciseEditableFormUrlRefresh(page, failures) {
   if (
     !refreshedState.active
     || refreshedState.limitedView
-    || refreshedState.formModeActiveClass
+    || !refreshedState.formModeActiveClass
     || refreshedState.browserHasLimited
-    || refreshedState.browserMode !== 'bubbles'
+    || refreshedState.browserHasMode
     || refreshedState.shareLimited !== '1'
   ) {
-    throw new Error(`Refreshing an editable form URL should not enter limited mode, while Share remains limited: ${JSON.stringify(refreshedState)}`);
+    throw new Error(`Refreshing an editable form URL should stay editable in core mode, while Share remains limited: ${JSON.stringify(refreshedState)}`);
   }
 
   const cleanUrl = new URL(page.url());
@@ -3020,9 +3018,8 @@ async function expectPostFilterStats(page, expected, label) {
   }
 }
 
-async function exerciseBubbleFilterInteraction(page) {
+async function exerciseCoreFilterStateInteraction(page) {
   await page.evaluate(async () => {
-    const { appServices } = await import('./core/appServices.js');
     const { AppState, QueryChangeManager } = await import('./core/queryState.js');
     const { FilterSidePanel } = await import('./filters/filterSidePanel.js');
     const { fieldDefs, fieldDefsArray, filteredDefs } = await import('./filters/fieldDefs.js');
@@ -3052,21 +3049,10 @@ async function exerciseBubbleFilterInteraction(page) {
           ]
         }
       }
-    }, { source: 'BrowserSmoke.bubbleFilterInteraction' });
+    }, { source: 'BrowserSmoke.coreFilterStateInteraction' });
 
-    appServices.rerenderBubbles();
     FilterSidePanel.update();
   });
-
-  const activeBubble = page.locator('#bubble-list .bubble[data-filtered="true"]', {
-    hasText: 'Smoke Filter Field'
-  }).first();
-  await activeBubble.waitFor({ state: 'attached', timeout: 5000 });
-
-  const tooltipHtml = await activeBubble.getAttribute('data-tooltip-html');
-  if (!tooltipHtml || !tooltipHtml.includes('Smoke Value')) {
-    throw new Error('Filtered bubble tooltip did not include the active filter value');
-  }
 
   await page.locator('.fp-cond-text', { hasText: 'Smoke Value' }).waitFor({ state: 'attached', timeout: 5000 });
 }
@@ -3580,7 +3566,7 @@ async function runSmokeTest() {
       QueryTableView.syncEmptyTableMessage();
     });
 
-    await exerciseBubbleFilterInteraction(page);
+    await exerciseCoreFilterStateInteraction(page);
     await exerciseFieldPickerPreviewList(page);
     await exerciseEditableFormUrlRefresh(page, failures);
     await exerciseDesktopResultsWorkflow(page);
@@ -3987,7 +3973,7 @@ async function runSmokeTest() {
       return {
         actionBarDisplay: mobileActionBar ? window.getComputedStyle(mobileActionBar).display : '',
         actionBarPosition: mobileActionBar ? window.getComputedStyle(mobileActionBar).position : '',
-        bubbleTop: visibleTop('#field-bubble-stage'),
+        builderStageTop: visibleTop('#field-bubble-stage'),
         builderCollapsed: builderContent ? window.getComputedStyle(builderContent).display === 'none' : false,
         builderExpanded: builderToggle?.getAttribute('aria-expanded') || '',
         builderToggleDisplay: builderToggle ? window.getComputedStyle(builderToggle).display : '',
@@ -4004,7 +3990,7 @@ async function runSmokeTest() {
       !mobileResultsLayout.hasLoadedData
       || !mobileResultsLayout.hasQueryColumns
       || mobileResultsLayout.tableTop > mobileResultsLayout.formTop + 1
-      || mobileResultsLayout.tableTop > mobileResultsLayout.bubbleTop + 1
+      || mobileResultsLayout.tableTop > mobileResultsLayout.builderStageTop + 1
       || mobileResultsLayout.tableTop > mobileResultsLayout.searchTop + 1
     ) {
       throw new Error(`Mobile table should be the first main-screen surface once display fields exist: ${JSON.stringify(mobileResultsLayout)}`);

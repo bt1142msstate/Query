@@ -311,10 +311,10 @@
               <thead></thead>
               <tbody></tbody>
             </table>
-            <div id="placeholder-message"
-                 class="py-8 absolute inset-0 flex items-center justify-center text-center text-gray-500 italic pointer-events-none"
-                 data-empty-table-message>
-              Drag a bubble here to add your first column
+              <div id="placeholder-message"
+                   class="py-8 absolute inset-0 flex items-center justify-center text-center text-gray-500 italic pointer-events-none"
+                   data-empty-table-message>
+              Add a field to show your first column
             </div>
           </div>
           <nav id="mobile-table-action-bar" class="mobile-table-action-bar" aria-label="Table actions">
@@ -417,7 +417,7 @@
           <div class="relative w-full max-w-3xl mx-auto">
             <input
               type="text"
-              placeholder="Type to find a specific field bubble…"
+              placeholder="Type to find a specific field..."
               class="w-full pr-14 px-6 py-3 rounded-full shadow backdrop-blur-md focus:outline-none text-center transition-all duration-300"
               id="query-input"
             />
@@ -437,7 +437,7 @@
              class="mb-4 flex w-max gap-0 mx-auto"></div>
         <!-- Mobile category selector (only shown on small screens) -->
         <select id="mobile-category-selector" class="mb-4 hidden"></select>
-        <!-- bubble grid + scrollbar -->
+        <!-- legacy field list host used by the core builder -->
         <div id="field-bubble-stage" class="flex items-start justify-center">
           <div id="bubble-container" class="overflow-hidden" style="max-width:720px;">
             <div id="bubble-list" class="flex flex-wrap gap-4 justify-center"></div>
@@ -597,11 +597,11 @@
                   <textarea id="template-description-input" rows="5" maxlength="1000" placeholder="Explain what this template is for and when to use it."></textarea>
                 </label>
                 <label class="templates-field templates-field--wide">
-                  <span>Bubble SVG</span>
-                  <textarea id="template-svg-input" rows="6" maxlength="12000" placeholder="Paste an SVG for the pinned template bubble. If left empty, the default template icon will be used."></textarea>
+                  <span>Pinned Icon SVG</span>
+                  <textarea id="template-svg-input" rows="6" maxlength="12000" placeholder="Paste an SVG for the pinned template icon. If left empty, the default template icon will be used."></textarea>
                 </label>
                 <div class="templates-field templates-field--wide">
-                  <span>Bubble Preview</span>
+                  <span>Icon Preview</span>
                   <div id="template-svg-preview" class="template-svg-preview"></div>
                 </div>
                 <div class="templates-field templates-field--wide">
@@ -666,12 +666,12 @@
             <div class="help-hero-copy">
               <span class="help-kicker">Query Guide</span>
               <h3>Build library reports without guessing what the tool is doing.</h3>
-              <p>Start with bubbles, shape the result table, run the query, then reuse or export what worked. The interface is designed so the visual state stays aligned with the backend payload.</p>
+              <p>Start by adding fields, shape the result table, run the query, then reuse or export what worked. The interface is designed so the visible query state stays aligned with the backend payload.</p>
             </div>
             <div class="help-summary-grid">
               <article class="help-summary-card">
                 <span class="help-summary-label">1. Build</span>
-                <strong>Choose columns and filters from bubbles.</strong>
+                <strong>Choose columns and filters from the field picker.</strong>
               </article>
               <article class="help-summary-card">
                 <span class="help-summary-label">2. Run</span>
@@ -695,14 +695,14 @@
                   <span class="help-step-number">01</span>
                   <div>
                     <strong>Find a field.</strong>
-                    <p>Use the search bar or category tabs to narrow the bubble list to the field you want.</p>
+                    <p>Use Add Field, search, and category filters to find the field you want.</p>
                   </div>
                 </li>
                 <li>
                   <span class="help-step-number">02</span>
                   <div>
                     <strong>Choose how it should be used.</strong>
-                    <p>Drag a bubble to the table to add a column, or click it to open filter controls for that field.</p>
+                    <p>Choose whether the field should display as a column, act as a filter, or do both.</p>
                   </div>
                 </li>
                 <li>
@@ -724,13 +724,13 @@
 
             <article class="help-card">
               <div class="help-card-heading">
-                <span class="help-card-tag">Bubbles</span>
-                <h4>How field bubbles behave</h4>
+                <span class="help-card-tag">Fields</span>
+                <h4>How fields behave</h4>
               </div>
               <ul class="help-detail-list">
-                <li>Click a bubble to open the filter card for that field.</li>
-                <li>Drag a bubble into the table area to add it as a displayed column.</li>
-                <li>Displayed or filtered bubbles stay visually marked so you can scan the current query quickly.</li>
+                <li>Use Add Field to add display columns, filter controls, or both from the same picker.</li>
+                <li>Use the Display & Filters panel to reorder, edit, or remove fields already in the query.</li>
+                <li>Displayed and filtered fields stay visible in the side panel so you can scan the current query quickly.</li>
                 <li>Some fields offer grouped lists or boolean pills because those values come from backend field metadata.</li>
               </ul>
             </article>
@@ -743,7 +743,7 @@
               <ul class="help-detail-list">
                 <li>Filtering is flat and backend-aligned. There is no AND/OR group builder in the current query model.</li>
                 <li>Equals filters on selector fields replace the previous selection instead of stacking conflicting values.</li>
-                <li>The side filter panel and the bubble panel both edit the same live filter state.</li>
+                <li>The form controls and Display & Filters panel edit the same live filter state.</li>
                 <li>Panels stay open after applying values so you can keep refining a field without reopening it.</li>
               </ul>
             </article>

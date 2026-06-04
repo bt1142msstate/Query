@@ -38,12 +38,12 @@ The intended deployment model is bring-your-own API. The public live site should
 | Services/actions | `core/appServices.js`, `core/appUiActions.js` | Cross-feature coordination without direct feature coupling |
 | Core utilities | `core/formatting/`, `core/*Utils.js`, `core/tableBuilder.js`, `core/textMeasurement.js` | Focused helpers imported from their owning modules instead of a mixed utility facade |
 | Data contract | `filters/queryPayload.js`, `filters/fieldDefs.js` | Backend payload generation, field metadata, filter normalization |
-| Feature UI | `ui/`, `filters/`, `bubbles/`, `table/`, `history/`, `templates/` | User workflows and rendering, with complex widgets split into focused view/helper modules |
+| Feature UI | `ui/`, `filters/`, `table/`, `history/`, `templates/`, `bubbles/` | User workflows and rendering, with complex widgets split into focused view/helper modules. `bubbles/` is compatibility UI for the current filter-card editor, not a separate builder mode |
 | Query history | `history/` | History shell split from request mapping, config loading, result hydration, row rendering, grouping, notifications, tooltips, and status mapping |
 | Filter workflows | `filters/` | Backend payload contracts, field metadata, condition validation, buildable-field construction, filter-pill rendering, and condition input/panel configuration |
 | Template workflows | `templates/` | Template shell split from models, state, repository, payloads, category actions/views, list/detail rendering, and view-state helpers |
 | UI feature folders | `ui/form-mode/`, `ui/field-picker/` | Larger UI workflows with dedicated shell, field-picker, query-preview, state helper, presentation, and interaction modules |
-| Table feature folders | `table/drag-drop/`, `table/virtual-table/`, `table/post-filters/`, `table/export/` | Result-table workflows grouped by behavior, with drag/drop split into column, resize, header-action, viewport, bubble-document, and interaction modules; virtual table measurement, row rendering, post-filter state, and split-column transforms split from the coordinator; post-filter value virtualization isolated from the overlay coordinator |
+| Table feature folders | `table/drag-drop/`, `table/virtual-table/`, `table/post-filters/`, `table/export/` | Result-table workflows grouped by behavior, with drag/drop split into column, resize, header-action, viewport, and interaction modules; virtual table measurement, row rendering, post-filter state, and split-column transforms split from the coordinator; post-filter value virtualization isolated from the overlay coordinator |
 | Styles | `styles/app.css` plus feature CSS files | Feature-scoped styling with a single stylesheet entry |
 | Architecture config | `config/` | Forbidden browser globals, module budgets, and import-boundary rules |
 | Tests | `tests/architecture/`, `tests/unit/`, `tests/browser/` | Architecture checks, focused unit coverage, and browser smoke coverage |
@@ -54,7 +54,8 @@ The intended deployment model is bring-your-own API. The public live site should
 - `core/` root owns app-wide state, services/actions, lifecycle, backend/query execution, browser primitives, and startup glue.
 - `table/` keeps the top-level table surface in `table/contextMenu.js` and groups complex table workflows into `drag-drop/`, `export/`, `post-filters/`, and `virtual-table/`.
 - `ui/` keeps shared UI systems at the root and groups larger workflows in `field-picker/` and `form-mode/`.
-- `filters/`, `history/`, `templates/`, and `bubbles/` are already feature folders; they should only gain subfolders if a workflow grows into multiple independently owned clusters.
+- `filters/`, `history/`, and `templates/` are active feature folders; they should only gain subfolders if a workflow grows into multiple independently owned clusters.
+- `bubbles/` remains as legacy filter-card presentation code while the condition editor still depends on it. It should not grow new builder-mode behavior.
 
 ## Public Runtime Surface
 

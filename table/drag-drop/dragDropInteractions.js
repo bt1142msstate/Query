@@ -20,7 +20,6 @@ import {
 } from './dragDropInteractionMath.js';
 import { resolveColumnResizeStartTarget } from './resizeStartTarget.js';
 import { SharedFieldPicker } from '../../ui/field-picker/fieldPicker.js';
-import { bindBubbleDocumentDragHandlers } from './bubbleDocumentDrag.js';
 import {
   getClosestVisibleHeaderByX,
   getDragScrollContainer,
@@ -32,7 +31,6 @@ let DragDropInteractions;
 (function initializeDragDropInteractions() {
   var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders), getLifecycleState = QueryStateReaders.getLifecycleState.bind(QueryStateReaders), services = appServices;
   const TABLE_COLUMN_DRAG_MIME = 'application/x-query-table-column-index';
-  const BUBBLE_FIELD_DRAG_MIME = 'bubble-field';
   const {
     addColumn,
     removeColumnByName,
@@ -49,7 +47,7 @@ let DragDropInteractions;
   }
 
   function isSupportedTableDrag(event) {
-    return hasDragType(event, TABLE_COLUMN_DRAG_MIME) || hasDragType(event, BUBBLE_FIELD_DRAG_MIME);
+    return hasDragType(event, TABLE_COLUMN_DRAG_MIME);
   }
   const dropAnchor = document.createElement('div');
   dropAnchor.className = 'drop-anchor';
@@ -148,65 +146,12 @@ let DragDropInteractions;
     dropAnchor.style.display = 'none';
   }
 
-  function attachBubbleDropTarget(container) {
-    if (container._bubbleDropSetup) return;
-
-    container.addEventListener('dragover', e => {
-      if (!isSupportedTableDrag(e)) {
-        clearDropAnchor();
-        return;
-      }
-      e.preventDefault();
-      if (e.target.closest('th') || e.target.closest('tbody')) return;
-      const table = container.querySelector('table');
-      if (table) dragDropManager.handleDragOverByX(e, table);
-    });
-
-    container.addEventListener('dragleave', e => {
-      if (!container.contains(e.relatedTarget)) {
-        clearDropAnchor();
-      }
-    });
-
-    container.addEventListener('drop', e => {
-      if (!isSupportedTableDrag(e)) {
-        clearDropAnchor();
-        return;
-      }
-      e.preventDefault();
-      if (e.target.closest('th') || e.target.closest('tbody')) return;
-
-      const table = container.querySelector('table');
-      if (table) {
-        const best = getClosestVisibleHeaderByX(table, e.clientX, getDragScrollContainer(table));
-        if (best) {
-          dragDropManager.handleDrop(e, best, table);
-          return;
-        }
-      }
-
-      const field = e.dataTransfer.getData(BUBBLE_FIELD_DRAG_MIME);
-      if (field) {
-        if (restoreFieldWithDuplicates(field)) {
-          dragDropManager.dropSuccessful = true;
-        }
-      }
-      clearDropAnchor();
-    });
-
-    container._bubbleDropSetup = true;
-  }
-
   const dragDropManager = {
-    isBubbleDrag: false,
     hoverTh: null,
     autoScrollInterval: null,
     autoScrollDirection: null,
     autoScrollPointerX: 0,
     scrollContainer: null,
-    draggedBubble: null,
-    draggedBubbleOriginalRect: null,
-    dropSuccessful: false,
     lastDragX: 0,
     lastDragY: 0,
     isAnimating: false,
@@ -341,7 +286,6 @@ let DragDropInteractions;
         return;
       }
       headerInsertAffordance.clear({ immediate: true });
-      this.isBubbleDrag = false;
       this.activeTable = th.closest('table');
       th.classList.add('th-dragging');
       th.classList.remove('th-hover');
@@ -526,15 +470,6 @@ let DragDropInteractions;
         return;
       }
 
-      const bubbleField = e.dataTransfer.getData(BUBBLE_FIELD_DRAG_MIME);
-      if (bubbleField) {
-        const rect = th.getBoundingClientRect();
-        const insertAt = (e.clientX - rect.left) < rect.width / 2 ? toIndex : toIndex + 1;
-        if (restoreFieldWithDuplicates(bubbleField, insertAt)) {
-          dragDropManager.dropSuccessful = true;
-        }
-      }
-
       th.classList.remove('th-drag-over');
       clearDropAnchor();
     },
@@ -551,17 +486,6 @@ let DragDropInteractions;
       const toIndex = parseInt(td.dataset.colIndex, 10);
       this.stopAutoScroll();
 
-      const bubbleField = e.dataTransfer.getData(BUBBLE_FIELD_DRAG_MIME);
-      if (bubbleField) {
-        const rect = td.getBoundingClientRect();
-        const insertAt = (e.clientX - rect.left) < rect.width / 2 ? toIndex : toIndex + 1;
-        if (restoreFieldWithDuplicates(bubbleField, insertAt)) {
-          dragDropManager.dropSuccessful = true;
-        }
-        clearDropAnchor();
-        return;
-      }
-
       const fromIndex = parseInt(e.dataTransfer.getData(TABLE_COLUMN_DRAG_MIME), 10);
       if (!isNaN(fromIndex) && fromIndex !== toIndex) {
         const targetHeader = table.querySelector(`thead th[data-col-index="${toIndex}"]`);
@@ -575,10 +499,6 @@ let DragDropInteractions;
 
       table.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
       clearDropAnchor();
-    },
-
-    setBubbleDrag(state) {
-      this.isBubbleDrag = state;
     },
 
     cleanupTableListeners(table) {
@@ -785,19 +705,6 @@ let DragDropInteractions;
     headerInsertAffordance.clear();
   });
 
-  bindBubbleDocumentDragHandlers({
-    document,
-    window,
-    dragDropManager,
-    bubbleFieldDragMime: BUBBLE_FIELD_DRAG_MIME,
-    getLifecycleState,
-    getDisplayedFields,
-    isResizeModeActive,
-    clearInsertAffordance: headerInsertAffordance.clear,
-    clearDropAnchor,
-    isPointerWithinDropViewport
-  });
-
   function addDragAndDrop(table) {
     dragDropManager.initTableDragDrop(table);
     services.syncColumnResizeModeUi?.();
@@ -848,7 +755,6 @@ let DragDropInteractions;
   DragDropInteractions = Object.freeze({
     dragDropManager,
     addDragAndDrop,
-    attachBubbleDropTarget,
     resetHeaderUi,
     clearInsertAffordance: headerInsertAffordance.clear,
     syncHeaderSortActionState: headerActionControls.syncSortState,
