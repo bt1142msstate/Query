@@ -1,3 +1,5 @@
+import { getMultiValueItems, renderMultiValueCell } from './multiValueCells.js';
+
 export function createVirtualTableEmptyRow({
   colSpan,
   message,
@@ -27,7 +29,6 @@ export function createVirtualTableRow({
   valueFormatting,
   parseNumericValue,
   getFieldType,
-  escapeHtml,
   document
 }) {
   const tr = tableBuilder.createRow();
@@ -60,7 +61,6 @@ export function createVirtualTableRow({
       valueFormatting,
       parseNumericValue,
       getFieldType,
-      escapeHtml,
       document
     }));
   });
@@ -82,7 +82,6 @@ function createVirtualTableCell({
   valueFormatting,
   parseNumericValue,
   getFieldType,
-  escapeHtml,
   document
 }) {
   const td = tableBuilder.createCell('', 'px-6 py-3 whitespace-nowrap text-sm text-gray-900');
@@ -112,11 +111,22 @@ function createVirtualTableCell({
   }
 
   if (typeof displayValue === 'string' && displayValue.includes('\x1F')) {
+    const multiValueItems = getMultiValueItems(displayValue);
+    if (multiValueItems.length <= 1) {
+      renderStandardCell({
+        td,
+        displayValue: multiValueItems[0] || '',
+        width,
+        textMeasurement
+      });
+      return td;
+    }
+
     renderMultiValueCell({
       td,
-      displayValue,
+      field,
+      items: multiValueItems,
       rowHeight,
-      escapeHtml,
       document
     });
     return td;
@@ -173,43 +183,6 @@ export function getVirtualTableCellDisplay({
   }
 
   return { displayValue, textAlign };
-}
-
-function renderMultiValueCell({
-  td,
-  displayValue,
-  rowHeight,
-  escapeHtml,
-  document
-}) {
-  const items = displayValue.split('\x1F').filter(item => item.trim() !== '');
-
-  td.className = 'px-3 py-2 text-sm text-gray-900 align-top';
-  td.style.whiteSpace = 'normal';
-
-  const scrollContainer = document.createElement('div');
-  const paddingOffset = 16;
-  scrollContainer.style.maxHeight = `${rowHeight - paddingOffset > 20 ? rowHeight - paddingOffset : 26}px`;
-  scrollContainer.style.overflowY = 'auto';
-  scrollContainer.style.paddingRight = '4px';
-  scrollContainer.style.scrollbarWidth = 'thin';
-
-  items.forEach((item, index) => {
-    const div = document.createElement('div');
-    div.style.marginBottom = index < items.length - 1 ? '4px' : '0';
-    div.style.paddingBottom = index < items.length - 1 ? '4px' : '0';
-    div.style.borderBottom = index < items.length - 1 ? '1px solid #f3f4f6' : 'none';
-    div.style.wordBreak = 'break-word';
-    div.textContent = item;
-    scrollContainer.appendChild(div);
-  });
-
-  const tooltipItems = items.map(item => `<li>${escapeHtml(item)}</li>`).join('');
-  const tooltipHtml = `<div class="text-left font-sans text-sm pb-1"><div class="font-bold border-b border-gray-500 pb-1 mb-2">Multiple Values (${items.length})</div><ul class="list-disc pl-4 space-y-1">${tooltipItems}</ul></div>`;
-
-  td.setAttribute('data-tooltip-html', tooltipHtml);
-  td.textContent = '';
-  td.appendChild(scrollContainer);
 }
 
 function renderStandardCell({

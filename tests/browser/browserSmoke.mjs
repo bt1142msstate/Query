@@ -3565,24 +3565,86 @@ async function exerciseJsonResultPayloadWorkflow(page, queryApiStub) {
     throw new Error(`JSON result payload should hydrate multi-value arrays: ${JSON.stringify(jsonResultState)}`);
   }
 
-  const renderedPublicNoteValues = await page.locator('#example-table tbody tr[data-row-index="0"] td[data-col-index="1"]').evaluate(cell => {
-    return Array.from(cell.querySelectorAll('div > div'))
-      .map(node => node.textContent?.trim())
-      .filter(Boolean);
-  });
-  const renderedMarcValues = await page.locator('#example-table tbody tr[data-row-index="0"] td[data-col-index="2"]').evaluate(cell => {
-    return Array.from(cell.querySelectorAll('div > div'))
-      .map(node => node.textContent?.trim())
-      .filter(Boolean);
+  await page.evaluate(() => {
+    window.__browserSmokeCopiedText = '';
+    try {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          async writeText(text) {
+            window.__browserSmokeCopiedText = String(text || '');
+          }
+        }
+      });
+    } catch {
+      document.execCommand = () => {
+        window.__browserSmokeCopiedText = document.activeElement?.value || '';
+        return true;
+      };
+    }
   });
 
-  if (renderedPublicNoteValues.join('|') !== 'First public note|Second public note|Third public note') {
-    throw new Error(`JSON multi-value Public Note cell should render each value on its own line: ${JSON.stringify(renderedPublicNoteValues)}`);
+  async function assertMultiValueViewer({ cellSelector, expectedField, expectedValues, label }) {
+    const compactCellMetrics = await page.locator(cellSelector).evaluate(cell => ({
+      hasTrigger: Boolean(cell.querySelector('.query-table-multi-value-trigger')),
+      text: cell.textContent?.replace(/\s+/gu, ' ').trim() || ''
+    }));
+
+    if (
+      !compactCellMetrics.hasTrigger
+      || !compactCellMetrics.text.includes(expectedValues[0])
+      || compactCellMetrics.text.includes(expectedValues[1])
+      || !compactCellMetrics.text.includes(`${expectedValues.length} values`)
+    ) {
+      throw new Error(`${label} should show a compact multi-value cell: ${JSON.stringify(compactCellMetrics)}`);
+    }
+
+    await page.locator(`${cellSelector} .query-table-multi-value-trigger`).click();
+    await page.locator('.query-multi-value-viewer').waitFor({ state: 'visible', timeout: 5000 });
+
+    const viewerState = await page.locator('.query-multi-value-viewer').evaluate(viewer => ({
+      bodyLocked: document.body.classList.contains('multi-value-viewer-open'),
+      title: viewer.querySelector('.query-multi-value-viewer__title')?.textContent?.trim() || '',
+      values: Array.from(viewer.querySelectorAll('.query-multi-value-viewer__value'))
+        .map(node => node.textContent?.trim())
+        .filter(Boolean)
+    }));
+
+    if (
+      !viewerState.bodyLocked
+      || viewerState.title !== expectedField
+      || viewerState.values.join('|') !== expectedValues.join('|')
+    ) {
+      throw new Error(`${label} viewer did not show all values: ${JSON.stringify(viewerState)}`);
+    }
+
+    await page.locator('.query-multi-value-viewer__copy').click();
+    const copiedText = await page.evaluate(() => window.__browserSmokeCopiedText || '');
+    if (copiedText !== expectedValues.join('\n')) {
+      throw new Error(`${label} Copy all should copy newline-separated values: ${JSON.stringify(copiedText)}`);
+    }
+
+    await page.locator('.query-multi-value-viewer__close').click();
+    await page.locator('.query-multi-value-viewer').waitFor({ state: 'detached', timeout: 5000 });
   }
 
-  if (renderedMarcValues.join('|') !== '$a MSU -- Ulysses S. Grant Association.|$a MSU -- Gift of Marcia Ewing-Current.|$a MSU -- Richard Current Collection.') {
-    throw new Error(`JSON multi-value MARC cell should render each value on its own line: ${JSON.stringify(renderedMarcValues)}`);
-  }
+  await assertMultiValueViewer({
+    cellSelector: '#example-table tbody tr[data-row-index="0"] td[data-col-index="1"]',
+    expectedField: 'Public Note',
+    expectedValues: ['First public note', 'Second public note', 'Third public note'],
+    label: 'JSON multi-value Public Note cell'
+  });
+
+  await assertMultiValueViewer({
+    cellSelector: '#example-table tbody tr[data-row-index="0"] td[data-col-index="2"]',
+    expectedField: 'MARC 590',
+    expectedValues: [
+      '$a MSU -- Ulysses S. Grant Association.',
+      '$a MSU -- Gift of Marcia Ewing-Current.',
+      '$a MSU -- Richard Current Collection.'
+    ],
+    label: 'JSON multi-value MARC cell'
+  });
 }
 
 async function expectCustomDatePickerNeverOption(page) {
