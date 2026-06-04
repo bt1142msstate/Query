@@ -26,6 +26,14 @@ assert.equal(getCellExportValue('$1,234.50', 'money'), 1234.5);
 assert.equal(getCellExportValue('1,234', 'number'), 1234);
 assert.equal(getCellExportValue('A\x1FB', 'string'), 'A\nB');
 
+const repeatedPublicNote = 'First public note\x1FSecond public note';
+const repeatedMarc590 = '$a MSU -- Ulysses S. Grant Association.\x1F$a MSU -- Gift of Marcia Ewing-Current.\x1F$a MSU -- Richard Current Collection.\x1F$a DSU-180442';
+assert.equal(getCellExportValue(repeatedPublicNote, 'string'), 'First public note\nSecond public note');
+assert.equal(
+  getCellExportValue(repeatedMarc590, 'string'),
+  '$a MSU -- Ulysses S. Grant Association.\n$a MSU -- Gift of Marcia Ewing-Current.\n$a MSU -- Richard Current Collection.\n$a DSU-180442'
+);
+
 assert.equal(getGroupingDisplayValue(''), 'Blank');
 assert.equal(getGroupingDisplayValue(null), 'Blank');
 assert.equal(getGroupingDisplayValue(true), 'True');
@@ -58,6 +66,38 @@ assert.deepEqual(
     { values: ['A', 'Open', 1], rawRow: ['A', 'Open', '$1.00'] },
     { values: ['B', 'Closed', 2], rawRow: ['B', 'Closed', '$2.00'] },
     { values: ['C', 'Open', 3], rawRow: ['C', 'Open', '$3.00'] }
+  ]
+);
+
+const multiValueSourceData = {
+  displayedFields: ['Title', 'Public Note', 'MARC 590'],
+  dataRows: [
+    ['A history of the Southern Confederacy', repeatedPublicNote, repeatedMarc590],
+    ['Single-value record', 'Only public note', '$a Single local note']
+  ],
+  virtualData: {
+    columnMap: new Map([
+      ['Title', 0],
+      ['Public Note', 1],
+      ['MARC 590', 2]
+    ])
+  },
+  fieldTypeMap: new Map([
+    ['Title', 'string'],
+    ['Public Note', 'string'],
+    ['MARC 590', 'string']
+  ])
+};
+
+assert.deepEqual(
+  buildExportRows(multiValueSourceData).map(row => row.values),
+  [
+    [
+      'A history of the Southern Confederacy',
+      'First public note\nSecond public note',
+      '$a MSU -- Ulysses S. Grant Association.\n$a MSU -- Gift of Marcia Ewing-Current.\n$a MSU -- Richard Current Collection.\n$a DSU-180442'
+    ],
+    ['Single-value record', 'Only public note', '$a Single local note']
   ]
 );
 

@@ -2,33 +2,60 @@ import assert from 'node:assert/strict';
 import { buildExpandedMultiValueTable } from '../../table/virtual-table/splitColumnExpansion.js';
 
 const rawTableData = {
-  headers: ['Title', 'Marc Field', 'Branch'],
+  headers: ['Title', 'Public Note', 'MARC 590', 'Branch'],
   rows: [
-    ['One', 'A\x1FB\x1FC', 'Main'],
-    ['Two', 'D\x1FE', 'East'],
-    ['Three', '', 'West']
+    [
+      'One',
+      'First public note\x1FSecond public note',
+      '$a MSU -- Ulysses S. Grant Association.\x1F$a MSU -- Gift of Marcia Ewing-Current.\x1F$a MSU -- Richard Current Collection.\x1F$a DSU-180442',
+      'Main'
+    ],
+    ['Two', 'Only public note', '$a Single local note', 'East'],
+    ['Three', '', '', 'West']
   ],
   columnMap: new Map([
     ['Title', 0],
-    ['Marc Field', 1],
-    ['Branch', 2]
+    ['Public Note', 1],
+    ['MARC 590', 2],
+    ['Branch', 3]
   ])
 };
 
 const expanded = buildExpandedMultiValueTable(rawTableData);
 
-assert.deepEqual(expanded.headers, ['Title', 'Marc Field 1', 'Marc Field 2', 'Marc Field 3', 'Branch']);
+assert.deepEqual(expanded.headers, [
+  'Title',
+  'Public Note 1',
+  'Public Note 2',
+  'MARC 590 1',
+  'MARC 590 2',
+  'MARC 590 3',
+  'MARC 590 4',
+  'Branch'
+]);
 assert.deepEqual(expanded.rows, [
-  ['One', 'A', 'B', 'C', 'Main'],
-  ['Two', 'D', 'E', '', 'East'],
-  ['Three', '', '', '', 'West']
+  [
+    'One',
+    'First public note',
+    'Second public note',
+    '$a MSU -- Ulysses S. Grant Association.',
+    '$a MSU -- Gift of Marcia Ewing-Current.',
+    '$a MSU -- Richard Current Collection.',
+    '$a DSU-180442',
+    'Main'
+  ],
+  ['Two', 'Only public note', '', '$a Single local note', '', '', '', 'East'],
+  ['Three', '', '', '', '', '', '', 'West']
 ]);
 assert.deepEqual(Array.from(expanded.columnMap.entries()), [
   ['Title', 0],
-  ['Marc Field 1', 1],
-  ['Marc Field 2', 2],
-  ['Marc Field 3', 3],
-  ['Branch', 4]
+  ['Public Note 1', 1],
+  ['Public Note 2', 2],
+  ['MARC 590 1', 3],
+  ['MARC 590 2', 4],
+  ['MARC 590 3', 5],
+  ['MARC 590 4', 6],
+  ['Branch', 7]
 ]);
 
 const unsplit = buildExpandedMultiValueTable({

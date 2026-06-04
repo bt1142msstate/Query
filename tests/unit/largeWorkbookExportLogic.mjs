@@ -35,22 +35,29 @@ globalThis.window = {
   }
 };
 
+const repeatedPublicNote = 'First public note\x1FSecond public note';
+const repeatedMarc590 = '$a MSU -- Ulysses S. Grant Association.\x1F$a MSU -- Gift of Marcia Ewing-Current.\x1F$a MSU -- Richard Current Collection.\x1F$a DSU-180442';
+
 const sourceData = {
   dataRows: [
-    ['Alpha & Beta', '12', '20240131'],
-    ['Gamma < Delta', '7', 'NEVER']
+    ['Alpha & Beta', '12', '20240131', repeatedPublicNote, repeatedMarc590],
+    ['Gamma < Delta', '7', 'NEVER', 'Only public note', '$a Single local note']
   ],
-  displayedFields: ['Title', 'Copies', 'Due Date'],
+  displayedFields: ['Title', 'Copies', 'Due Date', 'Public Note', 'MARC 590'],
   fieldTypeMap: new Map([
     ['Title', 'string'],
     ['Copies', 'number'],
-    ['Due Date', 'date']
+    ['Due Date', 'date'],
+    ['Public Note', 'string'],
+    ['MARC 590', 'string']
   ]),
   virtualData: {
     columnMap: new Map([
       ['Title', 0],
       ['Copies', 1],
-      ['Due Date', 2]
+      ['Due Date', 2],
+      ['Public Note', 3],
+      ['MARC 590', 4]
     ])
   }
 };
@@ -62,6 +69,9 @@ const helpers = {
     if (type === 'date') {
       if (raw === 'NEVER') return 'Never';
       return new Date(Date.UTC(2024, 0, 31));
+    }
+    if (typeof raw === 'string' && raw.includes('\x1F')) {
+      return raw.split('\x1F').join('\n');
     }
     return raw;
   },
@@ -123,6 +133,8 @@ assert.match(workbookText, /<tableParts count="1"><tablePart r:id="rId1"\/><\/ta
 assert.doesNotMatch(workbookText, /FFE5F3FF|applyFill="1"/u);
 assert.match(workbookText, /Alpha &amp; Beta/u);
 assert.match(workbookText, /Gamma &lt; Delta/u);
+assert.match(workbookText, /First public note\s+Second public note/u);
+assert.match(workbookText, /MSU -- Gift of Marcia Ewing-Current/u);
 assert.match(workbookText, /mm\/dd\/yyyy/u);
 assert.match(workbookText, /<c r="C3" t="inlineStr" s="7"><is><t>Never<\/t><\/is><\/c>/u);
 
