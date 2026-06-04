@@ -90,7 +90,8 @@ const resultRows = buildHistoryResultRows({
 });
 assert.deepEqual(resultRows, {
   headers: ['A', 'B', 'C'],
-  objectRows: [{ A: 'one', B: 'two', C: '' }]
+  objectRows: [{ A: 'one', B: 'two', C: '' }],
+  source: 'pipe'
 });
 
 assert.match(formatColumnsTooltip(['Title', '<Branch>']), /&lt;Branch&gt;/u);
