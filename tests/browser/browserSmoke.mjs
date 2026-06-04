@@ -3811,6 +3811,7 @@ async function runSmokeTest() {
     const mobileQueryApiStub = await installQueryApiStub(mobilePage);
     await mobilePage.goto(baseUrl, { waitUntil: 'load', timeout: 15000 });
     await waitForAppModules(mobilePage, failures);
+    await waitForResponsiveResize(mobilePage, true);
     await expectMobileViewportStability(mobilePage);
 
     if (failures.length > 0) {

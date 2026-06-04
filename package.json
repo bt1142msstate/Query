@@ -1,8 +1,10 @@
 {
   "type": "module",
   "scripts": {
+    "cache:bust": "node scripts/updateCacheBusting.mjs",
+    "cache:bust:check": "node scripts/updateCacheBusting.mjs --check",
     "lint": "eslint \"**/*.{js,mjs,cjs}\"",
-    "test": "npm run lint && npm run test:architecture && npm run test:modules && npm run test:unit && npm run test:browser",
+    "test": "npm run cache:bust:check && npm run lint && npm run test:architecture && npm run test:modules && npm run test:unit && npm run test:browser",
     "test:architecture": "node tests/architecture/architectureFitness.mjs",
     "test:unit": "npm run test:unit:history && npm run test:unit:payload && npm run test:unit:table && npm run test:unit:stream && npm run test:unit:helpers",
     "test:unit:history": "node tests/unit/queryHistoryLogic.mjs && node tests/unit/queryHistoryGroupingLogic.mjs && node tests/unit/queryHistoryStatusMapperLogic.mjs",
