@@ -37,8 +37,8 @@ assert.equal(deriveTemplateBindings('Marc {tag}', 'Marc 590', bindings, mapperDe
 assert.deepEqual(bindings, { tag: '590' });
 assert.equal(deriveTemplateBindings('Marc {tag}', 'Item 590', {}, mapperDependencies.escapeRegExp), false);
 
-assert.equal(resolveFieldNameFromSpecialPayload({ tag: '590', subfield: 'a' }, mapperDependencies), 'Marc590');
-assert.equal(resolveFieldNameFromSpecialPayload({ type: 'marc', tag: '999' }, mapperDependencies), 'Marc999');
+assert.equal(resolveFieldNameFromSpecialPayload({ tag: '590', subfield: 'a' }, mapperDependencies), 'MARC 590$a');
+assert.equal(resolveFieldNameFromSpecialPayload({ type: 'marc', tag: '999' }, mapperDependencies), 'MARC 999');
 
 assert.equal(mapRequestOperatorToUiOperator('=', '*abc'), 'Contains');
 assert.equal(mapRequestOperatorToUiOperator('!=', '*abc'), 'DoesNotContain');
@@ -53,7 +53,7 @@ const requestConfig = buildUiConfigFromRequest({
   special_fields: [{ tag: '999', subfield: 'a' }]
 }, mapperDependencies);
 
-assert.deepEqual(requestConfig.DesiredColumnOrder, ['Resolved Alias', 'Title', 'Marc999']);
+assert.deepEqual(requestConfig.DesiredColumnOrder, ['Resolved Alias', 'Title', 'MARC 999$a']);
 assert.deepEqual(requestConfig.Filters, [
   { FieldName: 'Resolved Alias', FieldOperator: 'Contains', Values: ['*needle*'] },
   { FieldName: 'Price', FieldOperator: 'GreaterThanOrEqual', Values: [10] }

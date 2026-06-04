@@ -264,6 +264,12 @@ function getDynamicFieldTemplate(fieldDef) {
     || '';
 }
 
+function getDynamicFieldMatchPatterns(fieldDef) {
+  const builder = fieldDef && typeof fieldDef.builder === 'object' ? fieldDef.builder : null;
+  const rawPatterns = builder?.matchPattern || builder?.matchPatterns || fieldDef?.matchPattern || [];
+  return Array.isArray(rawPatterns) ? rawPatterns : [rawPatterns].filter(Boolean);
+}
+
 function escapeRegExpLiteral(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -290,6 +296,17 @@ function registerDynamicField(fieldName, opts = {}) {
   if (Array.isArray(fieldDefsArray)) {
     parentDef = fieldDefsArray.find(definition => {
       if (!isFieldBuildable(definition)) return false;
+      const matchPatterns = getDynamicFieldMatchPatterns(definition);
+      if (matchPatterns.some(pattern => {
+        try {
+          return new RegExp(pattern, 'u').test(fieldName);
+        } catch (_error) {
+          return false;
+        }
+      })) {
+        return true;
+      }
+
       const template = getDynamicFieldTemplate(definition);
       if (!template) return false;
       return buildTemplateRegex(template).test(fieldName);
@@ -301,6 +318,7 @@ function registerDynamicField(fieldName, opts = {}) {
     type: opts.type ?? (parentDef ? parentDef.type : null),
     category: opts.category ?? (parentDef ? parentDef.category : null),
     desc: opts.desc ?? (parentDef ? parentDef.desc : ''),
+    label: opts.label || fieldName,
     dynamic_parent: parentDef ? parentDef.name : null
   };
 
