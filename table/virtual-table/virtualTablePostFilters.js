@@ -6,6 +6,7 @@ import {
   getPostFilterEntryValues,
   isBlankCellValue,
   isBlankPostFilterValue,
+  isMultiValueCellValue,
   normalizeNoValuePostFilterOperator,
   parseComparableDateValue,
   parseNumericValue,
@@ -176,6 +177,14 @@ export function doesCellMatchPostFilter(rawCellValue, type, filter) {
 
   if (cond === 'has_value') {
     return !isBlankCellValue(rawCellValue);
+  }
+
+  if (cond === 'has_multiple_values') {
+    return isMultiValueCellValue(rawCellValue);
+  }
+
+  if (cond === 'does_not_have_multiple_values') {
+    return !isMultiValueCellValue(rawCellValue);
   }
 
   if (cond === 'equals' && filterValues.length > 1) {

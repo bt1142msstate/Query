@@ -33,9 +33,37 @@ function isBlankCellValue(rawValue) {
   return false;
 }
 
+function isMultiValueCellValue(rawValue) {
+  if (typeof rawValue !== 'string' || !rawValue.includes('\x1F')) {
+    return false;
+  }
+
+  return rawValue
+    .split('\x1F')
+    .map(part => String(part).trim())
+    .filter(Boolean)
+    .length > 1;
+}
+
 function isNoValuePostFilterOperator(cond) {
   const normalized = String(cond || '').trim().toLowerCase();
-  return ['is_blank', 'blank', 'is_empty', 'empty', 'has_value', 'is_not_blank', 'not_blank', 'not_empty'].includes(normalized);
+  return [
+    'is_blank',
+    'blank',
+    'is_empty',
+    'empty',
+    'has_value',
+    'is_not_blank',
+    'not_blank',
+    'not_empty',
+    'has_multiple_values',
+    'multiple_values',
+    'is_multi_value',
+    'does_not_have_multiple_values',
+    'not_multiple_values',
+    'single_value',
+    'is_single_value'
+  ].includes(normalized);
 }
 
 function normalizeNoValuePostFilterOperator(cond) {
@@ -45,6 +73,17 @@ function normalizeNoValuePostFilterOperator(cond) {
   }
   if (['has_value', 'is_not_blank', 'not_blank', 'not_empty'].includes(normalized)) {
     return 'has_value';
+  }
+  if (['has_multiple_values', 'multiple_values', 'is_multi_value'].includes(normalized)) {
+    return 'has_multiple_values';
+  }
+  if ([
+    'does_not_have_multiple_values',
+    'not_multiple_values',
+    'single_value',
+    'is_single_value'
+  ].includes(normalized)) {
+    return 'does_not_have_multiple_values';
   }
   return normalized;
 }
@@ -191,6 +230,7 @@ export {
   getPostFilterEntryValues,
   isBlankCellValue,
   isBlankPostFilterValue,
+  isMultiValueCellValue,
   isNoValuePostFilterOperator,
   normalizeNoValuePostFilterOperator,
   parseComparableDateValue,

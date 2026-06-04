@@ -90,7 +90,7 @@ let PostFilterSystem;
 
   function getOperatorOptions(fieldName) {
     const type = getFieldType(fieldName);
-    const noValueOperators = ['is_blank', 'has_value'];
+    const noValueOperators = ['is_blank', 'has_value', 'has_multiple_values', 'does_not_have_multiple_values'];
 
     if (type === 'number' || type === 'money') {
       return ['greater', 'less', 'equals', 'does_not_equal', 'between', ...noValueOperators];

@@ -1458,9 +1458,10 @@ async function expectMobileHeaderDragDoesNotOpenContextMenu(page) {
 async function seedLoadedResults(page, options = {}) {
   const rowCount = Math.max(0, Number(options.rowCount) || 3);
   const includeDate = options.includeDate === true;
+  const includeMultiValueBranch = options.includeMultiValueBranch === true;
   const longTitle = options.longTitle === true;
 
-  await page.evaluate(async ({ includeDate: useDate, longTitle: useLongTitle, rowCount: requestedRowCount }) => {
+  await page.evaluate(async ({ includeDate: useDate, includeMultiValueBranch: useMultiValueBranch, longTitle: useLongTitle, rowCount: requestedRowCount }) => {
     const { appServices } = await import('./core/appServices.js');
     const { QueryChangeManager } = await import('./core/queryState.js');
     const { QueryTableView } = await import('./ui/queryTableView.js');
@@ -1475,7 +1476,7 @@ async function seedLoadedResults(page, options = {}) {
     const baseRows = [
       withDate([makeTitle('Alpha record'), 'Main', 'Open'], '20240131'),
       withDate([makeTitle('Beta record'), 'East', 'Closed'], 'NEVER'),
-      withDate([makeTitle('Gamma record'), 'Main', 'Open'], '20240215')
+      withDate([makeTitle('Gamma record'), useMultiValueBranch ? 'Main\x1FEast' : 'Main', 'Open'], '20240215')
     ];
     const rows = requestedRowCount <= baseRows.length
       ? baseRows.slice(0, requestedRowCount)
@@ -1495,7 +1496,7 @@ async function seedLoadedResults(page, options = {}) {
     await QueryTableView.showExampleTable(headers, { syncQueryState: false });
     appServices.renderVirtualTable();
     QueryUI.updateButtonStates();
-  }, { includeDate, longTitle, rowCount });
+  }, { includeDate, includeMultiValueBranch, longTitle, rowCount });
   await page.locator('#example-table').waitFor({ state: 'attached', timeout: 5000 });
 }
 
@@ -3307,6 +3308,48 @@ async function exerciseDesktopResultsWorkflow(page) {
     hasPostFilters: false,
     totalRows: 3
   }, 'Desktop cleared valueless post filter state');
+
+  await page.locator('#post-filter-done-btn').click();
+  await page.locator('#post-filter-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
+
+  await seedLoadedResults(page, { includeMultiValueBranch: true });
+  await page.evaluate(async () => {
+    const { PostFilterSystem } = await import('./table/post-filters/postFilters.js');
+    PostFilterSystem.openOverlayForField?.('Smoke Branch');
+  });
+  await page.locator('#post-filter-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('#post-filter-field').selectOption('Smoke Branch');
+  await page.locator('#post-filter-operator').selectOption('has_multiple_values');
+  await page.locator('#post-filter-add-btn').click();
+  await expectPostFilterStats(page, {
+    filteredRows: 1,
+    hasPostFilters: true,
+    totalRows: 3
+  }, 'Desktop multi-value post filter state');
+  await expectResultsCount(page, '1 of 3', 'Desktop multi-value filtered results');
+  await page.locator('#post-filter-list .post-filter-pill', { hasText: 'Has multiple values' }).waitFor({ state: 'visible', timeout: 5000 });
+
+  await page.locator('#post-filter-clear-btn').click();
+  await expectPostFilterStats(page, {
+    filteredRows: 3,
+    hasPostFilters: false,
+    totalRows: 3
+  }, 'Desktop cleared multi-value post filter state');
+  await page.locator('#post-filter-field').selectOption('Smoke Branch');
+  await page.locator('#post-filter-operator').selectOption('does_not_have_multiple_values');
+  await page.locator('#post-filter-add-btn').click();
+  await expectPostFilterStats(page, {
+    filteredRows: 2,
+    hasPostFilters: true,
+    totalRows: 3
+  }, 'Desktop not-multi-value post filter state');
+  await page.locator('#post-filter-list .post-filter-pill', { hasText: 'Does not have multiple values' }).waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('#post-filter-clear-btn').click();
+  await expectPostFilterStats(page, {
+    filteredRows: 3,
+    hasPostFilters: false,
+    totalRows: 3
+  }, 'Desktop cleared not-multi-value post filter state');
 
   await page.locator('#post-filter-done-btn').click();
   await page.locator('#post-filter-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
