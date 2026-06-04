@@ -6,7 +6,7 @@ import { appServices } from '../core/appServices.js';
 import { appUiActions, registerAppUiActionDependencies } from '../core/appUiActions.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
-import { fieldDefs } from '../filters/fieldDefs.js';
+import { fieldDefs, isFieldBuildable } from '../filters/fieldDefs.js';
 import { DOM } from '../core/domCache.js';
 
 let QueryTableView;
@@ -37,7 +37,7 @@ let QueryTableView;
     document.querySelectorAll('.bubble').forEach(bubbleEl => {
       const field = bubbleEl.textContent.trim();
       const fieldDef = fieldDefs ? fieldDefs.get(field) : null;
-      if (fieldDef && fieldDef.is_buildable) {
+      if (isFieldBuildable(fieldDef)) {
         bubbleEl.setAttribute('draggable', 'false');
       } else if (renderFields.includes(field)) {
         bubbleEl.removeAttribute('draggable');
@@ -138,7 +138,7 @@ let QueryTableView;
     document.querySelectorAll('.bubble').forEach(bubble => {
       const fieldName = bubble.textContent.trim();
       const fieldDef = fieldDefs ? fieldDefs.get(fieldName) : null;
-      bubble.setAttribute('draggable', fieldDef && fieldDef.is_buildable ? 'false' : 'true');
+      bubble.setAttribute('draggable', isFieldBuildable(fieldDef) ? 'false' : 'true');
     });
 
     uiActions.updateCategoryCounts();

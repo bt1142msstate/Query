@@ -4,7 +4,7 @@ import { AppState, QueryChangeManager, QueryStateReaders } from '../core/querySt
 import { showToastMessage } from '../core/toast.js';
 import { VisibilityUtils } from '../core/visibility.js';
 import { registerBubbleInteractionService } from './bubble.js';
-import { fieldDefs, isFieldBackendFilterable } from '../filters/fieldDefs.js';
+import { fieldDefs, isFieldBackendFilterable, isFieldBuildable } from '../filters/fieldDefs.js';
 import { DOM } from '../core/domCache.js';
 
 var getFilterGroupForField = QueryStateReaders.getFilterGroupForField.bind(QueryStateReaders);
@@ -165,7 +165,7 @@ function initializeBubbleInteractions() {
 
     const fieldName = bubble.textContent.trim();
     const fieldDef = fieldDefs ? fieldDefs.get(fieldName) : null;
-    const isBuildable = Boolean(fieldDef && fieldDef.is_buildable);
+    const isBuildable = isFieldBuildable(fieldDef);
     const isFilterable = typeof isFieldBackendFilterable === 'function'
       ? isFieldBackendFilterable(fieldDef || fieldName)
       : Boolean(fieldDef && Array.isArray(fieldDef.filters) && fieldDef.filters.length > 0);
@@ -324,8 +324,8 @@ function initializeBubbleInteractions() {
       if (!document.body.contains(clone._origin)) {
         let baseFieldName = fieldName;
         const fieldDef = fieldDefs ? fieldDefs.get(fieldName) : null;
-        if (fieldDef && fieldDef.special_payload) {
-          baseFieldName = fieldDef.category;
+        if (fieldDef && fieldDef.dynamic_parent) {
+          baseFieldName = fieldDef.dynamic_parent;
         }
 
         const fallbackBubble = Array.from(document.querySelectorAll('.bubble')).find(b => b.textContent.trim() === baseFieldName);

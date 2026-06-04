@@ -8,7 +8,7 @@ import { formatFieldDefinitionTooltipHTML, formatStandardFilterTooltipHTML } fro
 import { registerBubbleService } from '../core/appServices.js';
 import { AppState, QueryStateReaders } from '../core/queryState.js';
 import { VisibilityUtils } from '../core/visibility.js';
-import { filteredDefs, isFieldBackendFilterable, shouldFieldHavePurpleStylingBase } from '../filters/fieldDefs.js';
+import { filteredDefs, isFieldBackendFilterable, isFieldBuildable, shouldFieldHavePurpleStylingBase } from '../filters/fieldDefs.js';
 import { DOM } from '../core/domCache.js';
 import { CustomDatePicker } from '../ui/customDatePicker.js';
 
@@ -88,7 +88,8 @@ class Bubble {
       this.el.removeAttribute('data-tooltip-html');
     }
 
-    this.el.setAttribute('draggable', def.is_buildable || getDisplayedFields().includes(fieldName) ? 'false' : 'true');
+    const isBuildable = isFieldBuildable(def);
+    this.el.setAttribute('draggable', isBuildable || getDisplayedFields().includes(fieldName) ? 'false' : 'true');
 
     if (_animatingBackBubbles.has(fieldName)) {
       this.el.dataset.animatingBack = 'true';
@@ -108,7 +109,7 @@ class Bubble {
       this.el.removeAttribute('data-filter-for');
     }
 
-    this.el.classList.toggle('bubble-display-only', !isFilterable && !def.is_buildable);
+    this.el.classList.toggle('bubble-display-only', !isFilterable && !isBuildable);
 
     applyCorrectBubbleStyling(this.el);
   }

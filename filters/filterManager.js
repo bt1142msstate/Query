@@ -7,7 +7,9 @@ import { AppState, QueryChangeManager, QueryStateReaders } from '../core/querySt
 import { SelectorControls } from '../ui/selectorControls.js';
 import {
   fieldDefs,
+  getFieldBuilderInputs,
   getFieldFilterOperators,
+  isFieldBuildable,
   isFieldBackendFilterable,
   registerDynamicField,
   shouldFieldHavePurpleStyling,
@@ -235,7 +237,7 @@ function buildBubbleConditionPanel(bubble) {
 
     const perBubble = bubble.dataset.filters ? JSON.parse(bubble.dataset.filters) : null;
     const fieldDefInfo = fieldDefs ? fieldDefs.get(appState.selectedField) : null;
-    const isBuildable = fieldDefInfo && fieldDefInfo.is_buildable;
+    const isBuildable = isFieldBuildable(fieldDefInfo);
     const backendOperators = typeof getFieldFilterOperators === 'function'
         ? getFieldFilterOperators(fieldDefInfo)
         : ((perBubble && perBubble.length > 0)
@@ -250,8 +252,9 @@ function buildBubbleConditionPanel(bubble) {
     document.querySelectorAll('.dynamic-input-group').forEach(el => el.remove());
 
     if (isBuildable) {
-        if (fieldDefInfo.builder_inputs) {
-            [...fieldDefInfo.builder_inputs].reverse().forEach(input => {
+        const builderInputs = getFieldBuilderInputs(fieldDefInfo);
+        if (builderInputs.length) {
+            [...builderInputs].reverse().forEach(input => {
                 const group = document.createElement('div');
                 group.className = 'dynamic-input-group marc-input-group';
 
@@ -260,11 +263,11 @@ function buildBubbleConditionPanel(bubble) {
                 label.className = 'dynamic-label marc-label';
 
                 const inputEl = document.createElement('input');
-                inputEl.type = input.type;
+                inputEl.type = input.type || 'text';
                 inputEl.pattern = input.pattern;
                 inputEl.placeholder = input.placeholder;
                 inputEl.dataset.inputId = input.id;
-                inputEl.dataset.errorMsg = input.error_msg || 'Invalid input';
+                inputEl.dataset.errorMsg = input.error_msg || input.errorMessage || 'Invalid input';
                 inputEl.className = 'dynamic-builder-input condition-field';
                 if (input.id === 'tag') {
                     inputEl.id = 'marc-field-input';
@@ -699,7 +702,7 @@ function handleFilterConfirm(e) {
         val = MoneyUtils.sanitizeInputValue(val, { allowDecimal });
         val2 = MoneyUtils.sanitizeInputValue(val2, { allowDecimal });
     }
-    const isBuildable = fieldDef && fieldDef.is_buildable;
+    const isBuildable = isFieldBuildable(fieldDef);
 
     // Special handling for buildable fields
     if (isBuildable) {

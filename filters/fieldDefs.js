@@ -236,36 +236,64 @@ function isFieldBackendFilterable(fieldOrName) {
   return getFieldFilterOperators(fieldOrName).length > 0;
 }
 
+function isFieldBuildable(fieldOrName) {
+  const fieldDef = typeof fieldOrName === 'string'
+    ? fieldDefs.get(fieldOrName)
+    : fieldOrName;
+
+  return Boolean(fieldDef && (fieldDef.is_buildable || fieldDef.builder));
+}
+
+function getFieldBuilderInputs(fieldOrName) {
+  const fieldDef = typeof fieldOrName === 'string'
+    ? fieldDefs.get(fieldOrName)
+    : fieldOrName;
+  const builder = fieldDef && typeof fieldDef.builder === 'object' ? fieldDef.builder : null;
+
+  return Array.isArray(builder?.inputs)
+    ? builder.inputs
+    : (Array.isArray(fieldDef?.builder_inputs) ? fieldDef.builder_inputs : []);
+}
+
+function getDynamicFieldTemplate(fieldDef) {
+  const builder = fieldDef && typeof fieldDef.builder === 'object' ? fieldDef.builder : null;
+
+  return builder?.outputFieldIdTemplate
+    || builder?.fieldTemplate
+    || fieldDef?.field_template
+    || '';
+}
+
+function escapeRegExpLiteral(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function buildTemplateRegex(template) {
+  let pattern = '';
+  let lastIndex = 0;
+
+  String(template || '').replace(/\{([^}]+)\}/g, (match, _key, offset) => {
+    pattern += escapeRegExpLiteral(template.slice(lastIndex, offset));
+    pattern += '(.+)';
+    lastIndex = offset + match.length;
+    return match;
+  });
+
+  pattern += escapeRegExpLiteral(template.slice(lastIndex));
+  return new RegExp(`^${pattern}$`);
+}
+
 function registerDynamicField(fieldName, opts = {}) {
   if (!fieldName || fieldDefs.has(fieldName)) return;
 
   let parentDef = null;
   if (Array.isArray(fieldDefsArray)) {
     parentDef = fieldDefsArray.find(definition => {
-      if (!definition.is_buildable || !definition.field_template) return false;
-      const pattern = definition.field_template.replace(/\{[^}]+\}/g, '[^|]+');
-      return new RegExp('^' + pattern + '$').test(fieldName);
+      if (!isFieldBuildable(definition)) return false;
+      const template = getDynamicFieldTemplate(definition);
+      if (!template) return false;
+      return buildTemplateRegex(template).test(fieldName);
     });
-  }
-
-  let resolvedPayload = opts.special_payload || null;
-  if (!resolvedPayload && parentDef && parentDef.special_payload_template && parentDef.field_template) {
-    const keys = [];
-    const capturingPattern = parentDef.field_template.replace(/\{([^}]+)\}/g, (_, key) => {
-      keys.push(key);
-      return '(.+)';
-    });
-    const match = new RegExp('^' + capturingPattern + '$').exec(fieldName);
-    if (match) {
-      resolvedPayload = JSON.parse(JSON.stringify(parentDef.special_payload_template));
-      keys.forEach((key, index) => {
-        for (const payloadKey in resolvedPayload) {
-          if (typeof resolvedPayload[payloadKey] === 'string') {
-            resolvedPayload[payloadKey] = resolvedPayload[payloadKey].replace(`{${key}}`, match[index + 1]);
-          }
-        }
-      });
-    }
   }
 
   const newDef = {
@@ -273,7 +301,7 @@ function registerDynamicField(fieldName, opts = {}) {
     type: opts.type ?? (parentDef ? parentDef.type : null),
     category: opts.category ?? (parentDef ? parentDef.category : null),
     desc: opts.desc ?? (parentDef ? parentDef.desc : ''),
-    special_payload: resolvedPayload
+    dynamic_parent: parentDef ? parentDef.name : null
   };
 
   [
@@ -433,8 +461,10 @@ export {
   fieldDefsArray,
   filteredDefs,
   getAvailableCategories,
+  getFieldBuilderInputs,
   getFieldFilterOperators,
   hasLoadedFieldDefinitions,
+  isFieldBuildable,
   isFieldBackendFilterable,
   loadFieldDefinitions,
   registerDynamicField,

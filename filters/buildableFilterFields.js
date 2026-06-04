@@ -1,21 +1,15 @@
 export function buildDynamicFieldDefinition(fieldDef, inputValues) {
-  let dynamicFieldName = fieldDef.field_template || fieldDef.name;
-  const specialPayload = fieldDef.special_payload_template
-    ? JSON.parse(JSON.stringify(fieldDef.special_payload_template))
-    : null;
+  const builder = fieldDef && typeof fieldDef.builder === 'object' ? fieldDef.builder : null;
+  let dynamicFieldName = builder?.outputFieldIdTemplate
+    || builder?.fieldTemplate
+    || fieldDef.field_template
+    || fieldDef.name;
 
   Object.entries(inputValues || {}).forEach(([key, value]) => {
     dynamicFieldName = dynamicFieldName.replace(`{${key}}`, value);
-    if (specialPayload) {
-      Object.keys(specialPayload).forEach(payloadKey => {
-        if (typeof specialPayload[payloadKey] === 'string') {
-          specialPayload[payloadKey] = specialPayload[payloadKey].replace(`{${key}}`, value);
-        }
-      });
-    }
   });
 
-  return { dynamicFieldName, specialPayload };
+  return { dynamicFieldName };
 }
 
 export function collectBuilderInputValues(inputs, {
@@ -70,12 +64,10 @@ export function createBuildableFilterFieldHandlers({
     const result = collectBuilderInputValues(inputs, { showFilterError });
     if (!result.ok) return;
 
-    const { dynamicFieldName, specialPayload } = buildDynamicFieldDefinition(fieldDef, result.values);
+    const { dynamicFieldName } = buildDynamicFieldDefinition(fieldDef, result.values);
     if (dynamicFieldName === fieldDef.name) return;
 
-    registerDynamicField(dynamicFieldName, {
-      special_payload: specialPayload
-    });
+    registerDynamicField(dynamicFieldName);
 
     services.restoreFieldWithDuplicates(dynamicFieldName);
 

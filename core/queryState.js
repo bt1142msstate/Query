@@ -253,7 +253,7 @@ function getSerializableQueryState(snapshot = getQueryStateSnapshot()) {
   const baseFields = [...displayedFields]
     .filter(field => {
       const def = getRuntimeFieldDefinition(field);
-      return !(def && def.is_buildable);
+      return !(def && (def.is_buildable || def.builder));
     })
     .map(field => getBaseFieldName(field))
     .filter((field, index, array) => array.indexOf(field) === index);

@@ -142,7 +142,6 @@ const forbiddenWindowMemberReads = new Map([
   ['buildBackendFilters', 'Import from filters/queryPayload.js instead of reading this helper from window'],
   ['buildBackendQueryPayload', 'Import from filters/queryPayload.js instead of reading this helper from window'],
   ['buildQueryUiConfig', 'Import from filters/queryPayload.js instead of reading this helper from window'],
-  ['collectCurrentSpecialFields', 'Import from filters/queryPayload.js instead of reading this helper from window'],
   ['formatFieldOperatorForDisplay', 'Import from filters/queryPayload.js instead of reading this helper from window'],
   ['getNormalizedDisplayedFields', 'Import from filters/queryPayload.js instead of reading this helper from window'],
   ['mapFieldOperatorToUiCond', 'Import from filters/queryPayload.js instead of reading this helper from window'],
