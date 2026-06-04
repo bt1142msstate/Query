@@ -31,7 +31,7 @@ import {
     syncDatePickerNeverAvailability as syncDatePickerNeverAvailabilityForInputs
 } from './filterInputAdapters.js';
 import { createFilterPillElement, createPostFilterPillElement } from './filterPills.js';
-import { createBuildableFilterFieldHandlers } from './buildableFilterFields.js';
+import { createBuildableFilterFieldHandlers, isOptionalBuilderInput } from './buildableFilterFields.js';
 import {
     getPreferredCondition as resolvePreferredCondition,
     removeConditionPanelNote as removePanelNote,
@@ -268,7 +268,7 @@ function buildBubbleConditionPanel(bubble) {
                 if (input.placeholder) inputEl.placeholder = input.placeholder;
                 inputEl.dataset.inputId = input.id;
                 inputEl.dataset.errorMsg = input.error_msg || input.errorMessage || 'Invalid input';
-                inputEl.dataset.optional = (input.optional === true || input.required === false) ? 'true' : 'false';
+                inputEl.dataset.optional = isOptionalBuilderInput(input) ? 'true' : 'false';
                 inputEl.required = inputEl.dataset.optional !== 'true';
                 inputEl.className = 'dynamic-builder-input condition-field';
                 if (input.id === 'tag') {
