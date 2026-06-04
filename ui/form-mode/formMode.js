@@ -36,6 +36,7 @@ import {
 } from './formModePresentation.js';
 import {
   buildGeneratedInputSpecsFromActiveFilters,
+  getDisplayableFormColumns,
   getInputSpecDefaultValues,
   normalizeOperatorForField,
   syncInputSpecFromState,
@@ -49,7 +50,7 @@ import { FormModeStateHelpers as formModeStateHelpers } from './formModeStateHel
 import { openFormModeFieldPicker } from './formModeFieldPicker.js';
 import { QueryTableView } from '../queryTableView.js';
 import { QueryUI } from '../queryUI.js';
-import { fieldDefs, loadFieldDefinitions } from '../../filters/fieldDefs.js';
+import { fieldDefs, isFieldDisplayable, loadFieldDefinitions } from '../../filters/fieldDefs.js';
 import { DOM } from '../../core/domCache.js';
 
 let QueryFormMode;
@@ -172,7 +173,7 @@ let QueryFormMode;
 
   function buildSpecFromCurrentQuery() {
     const querySnapshot = getQuerySnapshot();
-    const columns = Array.isArray(querySnapshot.displayedFields) ? querySnapshot.displayedFields.slice() : [];
+    const columns = getDisplayableColumns(querySnapshot.displayedFields);
     const tableNameInput = DOM && DOM.tableNameInput;
     const title = tableNameInput ? tableNameInput.value.trim() : '';
     const inputs = buildGeneratedInputSpecsFromActiveFilters([], querySnapshot.activeFilters, {
@@ -193,7 +194,7 @@ let QueryFormMode;
     if (!state.active || !state.spec) return false;
 
     const snapshot = options.snapshot || getQuerySnapshot();
-    const nextColumns = Array.isArray(snapshot.displayedFields) ? snapshot.displayedFields.slice() : [];
+    const nextColumns = getDisplayableColumns(snapshot.displayedFields);
     if (state.isClearingQuery && nextColumns.length === 0) return false;
 
     const currentColumns = Array.isArray(state.spec.columns) ? state.spec.columns : [];
@@ -209,6 +210,24 @@ let QueryFormMode;
     }
 
     return true;
+  }
+
+  function getDisplayableColumns(columns = []) {
+    return getDisplayableFormColumns(columns, { isFieldDisplayable });
+  }
+
+  function sanitizeSpecDisplayColumns(spec = state.spec) {
+    if (!spec || !Array.isArray(spec.columns)) {
+      return false;
+    }
+
+    const nextColumns = getDisplayableColumns(spec.columns);
+    const changed = spec.columns.length !== nextColumns.length
+      || spec.columns.some((column, index) => column !== nextColumns[index]);
+    if (changed) {
+      spec.columns = nextColumns;
+    }
+    return changed;
   }
 
   function shouldPersistFormUrlInBrowser() {
@@ -253,6 +272,7 @@ let QueryFormMode;
     }
 
     captureCurrentControlDefaults();
+    sanitizeSpecDisplayColumns(state.spec);
     const nextSpec = cloneSpec(state.spec);
     if (!nextSpec) {
       return false;
@@ -292,6 +312,7 @@ let QueryFormMode;
 
     state.searchParams = nextSearchParamsSource ? new URLSearchParams(nextSearchParamsSource.toString()) : new URLSearchParams();
     state.spec = nextSpec;
+    sanitizeSpecDisplayColumns(state.spec);
     state.lastSuggestedTableName = '';
     state.suppressAutoTableNameOnce = false;
     state.forceTableNameSyncOnce = true;
@@ -607,6 +628,7 @@ let QueryFormMode;
     syncFormTableName(state, bindings, interpolateValue);
     syncFormHeaderCopy(state.formCard, state.spec, bindings, interpolateValue);
 
+    sanitizeSpecDisplayColumns(state.spec);
     const columns = state.spec.columns.slice();
     ensureColumnsRegistered(columns);
     const nextActiveFilters = buildActiveFilters(
@@ -649,6 +671,7 @@ let QueryFormMode;
   }
 
   function buildCurrentShareUrl(options = {}) {
+    sanitizeSpecDisplayColumns(state.spec);
     return buildFormShareUrl(window.location.href, state.spec, {
       fieldDefs,
       getInputValues: getCurrentInputValues,
@@ -810,7 +833,6 @@ let QueryFormMode;
     state.spec = decodedSpec;
     state.limitedView = resolveLimitedView(decodedSpec, searchParams);
     state.spec.limitedView = state.limitedView;
-    state.initialSpec = cloneSpec(decodedSpec);
     state.sharedBaselineSpec = null;
     state.searchParams = searchParams;
     state.sharedBaselineSearchParams = null;
@@ -819,6 +841,15 @@ let QueryFormMode;
     if (typeof loadFieldDefinitions === 'function') {
       await loadFieldDefinitions();
     }
+
+    sanitizeSpecDisplayColumns(state.spec);
+    if (state.spec.columns.length === 0) {
+      state.active = false;
+      state.spec = null;
+      showToastMessage('Form mode requires a real output column. Create the MARC field first, then display the generated field.', 'warning');
+      return;
+    }
+    state.initialSpec = cloneSpec(state.spec);
 
     services.clearVirtualTableData();
 

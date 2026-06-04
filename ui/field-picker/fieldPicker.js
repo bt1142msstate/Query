@@ -5,7 +5,7 @@ import { getRankedFieldPickerOptions } from './fieldPickerSearch.js';
 import { createQueryFieldPickerIntegration } from './fieldPickerQueryIntegration.js';
 import { initializeSearchInputs } from '../searchUI.js';
 import { VirtualList } from '../virtualList.js';
-import { fieldDefs, fieldDefsArray, isFieldBackendFilterable } from '../../filters/fieldDefs.js';
+import { fieldDefs, fieldDefsArray, isFieldBackendFilterable, isFieldDisplayable } from '../../filters/fieldDefs.js';
 let SharedFieldPicker;
 
 (function() {
@@ -22,6 +22,9 @@ let SharedFieldPicker;
         filterable: typeof isFieldBackendFilterable === 'function'
           ? isFieldBackendFilterable(fieldDef)
           : Array.isArray(fieldDef.filters) && fieldDef.filters.length > 0,
+        displayable: typeof isFieldDisplayable === 'function'
+          ? isFieldDisplayable(fieldDef)
+          : true,
         desc: typeof fieldDef.desc === 'string' ? fieldDef.desc : '',
         description: typeof fieldDef.description === 'string' ? fieldDef.description : '',
         category: Array.isArray(fieldDef.category)
@@ -230,11 +233,18 @@ let SharedFieldPicker;
       return normalizePickerState(getFieldState(selectedFieldName));
     }
 
+    function isOptionDisplayable(option) {
+      return !(option && option.displayable === false);
+    }
+
     function syncChoiceInputs() {
       const state = getSelectedState();
       const selected = options.find(option => option.name === selectedFieldName) || null;
       syncingControls = true;
-      if (displayChoice) displayChoice.checked = state.display;
+      if (displayChoice) {
+        displayChoice.checked = state.display && isOptionDisplayable(selected);
+        displayChoice.disabled = !isOptionDisplayable(selected);
+      }
       if (filterChoice) {
         filterChoice.checked = state.filter;
         filterChoice.disabled = Boolean(selected && selected.filterable === false);
@@ -248,6 +258,8 @@ let SharedFieldPicker;
         if (!fieldName) return;
 
         button.classList.toggle('is-selected', fieldName === selectedFieldName);
+        const option = options.find(candidate => candidate.name === fieldName) || null;
+        button.classList.toggle('is-display-disabled', !isOptionDisplayable(option));
 
         const state = normalizePickerState(getFieldState(fieldName));
         const badges = [];
@@ -256,6 +268,9 @@ let SharedFieldPicker;
         }
         if (allowFilter && state.filter) {
           badges.push(`<span class="form-mode-field-picker-badge">${labels.filterBadge}</span>`);
+        }
+        if (allowDisplay && !isOptionDisplayable(option)) {
+          badges.push('<span class="form-mode-field-picker-badge form-mode-field-picker-badge--muted">Build first</span>');
         }
 
         const badgesEl = button.querySelector('.form-mode-field-picker-option-badges');
@@ -371,13 +386,14 @@ let SharedFieldPicker;
 
       clearFilterPreview();
       const selected = options.find(option => option.name === selectedFieldName) || null;
-      if (!selected || selected.filterable === false) {
+      if (!selected || (selected.filterable === false && isOptionDisplayable(selected))) {
         return;
       }
 
       const previewApi = config.renderFilterPreview(filterPreviewHost, selectedFieldName, {
         selected,
         state: getSelectedState(),
+        cleanup,
         previewState: filterPreviewDrafts.get(selectedFieldName) || null,
         onPreviewChange: scheduleAutoFilterSync,
         onRemoveFilter: () => {
@@ -409,7 +425,9 @@ let SharedFieldPicker;
       const state = getSelectedState();
       const statusParts = [];
       if (allowDisplay) {
-        if (displayChoice) {
+        if (!isOptionDisplayable(selected)) {
+          statusParts.push('Create this field before displaying it');
+        } else if (displayChoice) {
           if (displayChoice.checked && !state.display) {
             statusParts.push(`Will ${labels.displayChoice.toLowerCase()}`);
           } else if (!displayChoice.checked && state.display) {
@@ -432,7 +450,7 @@ let SharedFieldPicker;
         } else if (state.filter) {
           statusParts.push(labels.filterBadge);
         }
-      } else if (allowFilter && autoAddFilterFromPreview) {
+      } else if (allowFilter && autoAddFilterFromPreview && isOptionDisplayable(selected)) {
         if (selected.filterable === false) {
           statusParts.push('Backend filtering unavailable');
         } else if (state.filter) {
@@ -500,6 +518,15 @@ let SharedFieldPicker;
 
     async function applyDisplayChange(fieldName, nextChecked, options = {}) {
       if (!fieldName || typeof config.onDisplayChange !== 'function') {
+        return;
+      }
+
+      const selected = optionsListFind(fieldName);
+      if (nextChecked && !isOptionDisplayable(selected)) {
+        showToastMessage(`${fieldName} must be created before it can be displayed.`, 'warning');
+        renderList();
+        syncChoiceInputs();
+        syncDetails();
         return;
       }
 
@@ -588,6 +615,12 @@ let SharedFieldPicker;
         return true;
       }
 
+      const selected = optionsListFind(fieldName);
+      if (!isOptionDisplayable(selected)) {
+        showToastMessage(`${fieldName} must be created before it can be displayed.`, 'warning');
+        return true;
+      }
+
       await applyDisplayChange(fieldName, true, {
         trigger: 'option-click',
         closeAfterApply: true,
@@ -605,6 +638,9 @@ let SharedFieldPicker;
       if (option.name === selectedFieldName) {
         button.classList.add('is-selected');
       }
+      if (!isOptionDisplayable(option)) {
+        button.classList.add('is-display-disabled');
+      }
 
       if (option.tooltipHtml) {
         button.setAttribute('data-tooltip-html', option.tooltipHtml);
@@ -617,6 +653,9 @@ let SharedFieldPicker;
       }
       if (allowFilter && state.filter) {
         badges.push(`<span class="form-mode-field-picker-badge">${labels.filterBadge}</span>`);
+      }
+      if (allowDisplay && !isOptionDisplayable(option)) {
+        badges.push('<span class="form-mode-field-picker-badge form-mode-field-picker-badge--muted">Build first</span>');
       }
 
       const nameSpan = document.createElement('span');
@@ -655,7 +694,11 @@ let SharedFieldPicker;
 
         if (config.autoDisplayOnSelect) {
           const state = normalizePickerState(getFieldState(option.name));
-          if (!state.display) {
+          if (!isOptionDisplayable(option)) {
+            renderList();
+            syncChoiceInputs();
+            syncDetails();
+          } else if (!state.display) {
             await applyDisplayChange(option.name, true, { trigger: 'option-click' });
           } else {
             renderList();

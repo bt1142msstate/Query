@@ -244,6 +244,10 @@ function isFieldBuildable(fieldOrName) {
   return Boolean(fieldDef && (fieldDef.is_buildable || fieldDef.builder));
 }
 
+function isFieldDisplayable(fieldOrName) {
+  return !isFieldBuildable(fieldOrName);
+}
+
 function getFieldBuilderInputs(fieldOrName) {
   const fieldDef = typeof fieldOrName === 'string'
     ? fieldDefs.get(fieldOrName)
@@ -484,6 +488,7 @@ export {
   hasLoadedFieldDefinitions,
   isFieldBuildable,
   isFieldBackendFilterable,
+  isFieldDisplayable,
   loadFieldDefinitions,
   registerDynamicField,
   renderCategorySelectors,

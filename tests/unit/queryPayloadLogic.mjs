@@ -6,7 +6,7 @@ window.clearTimeout = clearTimeout;
 
 const { QueryChangeManager } = await import('../../core/queryState.js');
 const { isValidDateValue, normalizeDateValue } = await import('../../core/formatting/dateValues.js');
-const { fieldAliases, fieldDefs, getFieldFilterOperators } = await import('../../filters/fieldDefs.js');
+const { fieldAliases, fieldDefs, getFieldFilterOperators, isFieldDisplayable } = await import('../../filters/fieldDefs.js');
 const {
   buildBackendFilters,
   buildBackendQueryPayload,
@@ -87,6 +87,8 @@ assert.deepEqual(getFieldFilterOperators('Backend Date'), [
   'between'
 ]);
 assert.equal(getFieldFilterOperators('Never Date').includes('never'), false);
+assert.equal(isFieldDisplayable('Synthetic Field'), false);
+assert.equal(isFieldDisplayable('MARC 590$a'), true);
 
 assert.deepEqual(getNormalizedDisplayedFields(), ['Title', 'MARC 590', 'Record Date']);
 

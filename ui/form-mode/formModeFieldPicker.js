@@ -1,6 +1,17 @@
 import { QueryChangeManager, QueryStateReaders } from '../../core/queryState.js';
 import { showToastMessage } from '../../core/toast.js';
-import { fieldDefs, isFieldBackendFilterable, loadFieldDefinitions } from '../../filters/fieldDefs.js';
+import {
+  fieldDefs,
+  getFieldBuilderInputs,
+  isFieldBackendFilterable,
+  isFieldBuildable,
+  loadFieldDefinitions,
+  registerDynamicField
+} from '../../filters/fieldDefs.js';
+import {
+  buildDynamicFieldDefinition,
+  collectBuilderInputValues
+} from '../../filters/buildableFilterFields.js';
 import { SharedFieldPicker } from '../field-picker/fieldPicker.js';
 import { FormModeControls as formModeControls } from './formModeControls.js';
 import {
@@ -66,7 +77,11 @@ export async function openFormModeFieldPicker({
       getCurrentInputValues,
       removeSpecInputByKey,
       rebuildFormCardFromSpec,
-      captureCurrentControlDefaults
+      captureCurrentControlDefaults,
+      applyFormState,
+      refreshBrowserUrl,
+      syncValidationUi,
+      updateButtonStates
     }),
     onDisplayChange: async (fieldName, nextChecked) => {
       handleDisplayChange({
@@ -115,12 +130,30 @@ function renderFilterPreview({
   state,
   createGeneratedInputSpec,
   getCurrentInputValues,
+  applyFormState,
+  refreshBrowserUrl,
+  syncValidationUi,
+  updateButtonStates
 }) {
   if (!container || !state.spec || !fieldDefs) {
     return null;
   }
 
   const fieldDef = fieldDefs.get(fieldName);
+  if (isFieldBuildable(fieldDef)) {
+    return renderBuildableFieldPreview({
+      container,
+      context,
+      fieldDef,
+      fieldName,
+      state,
+      applyFormState,
+      refreshBrowserUrl,
+      syncValidationUi,
+      updateButtonStates
+    });
+  }
+
   if (!fieldDef || (typeof isFieldBackendFilterable === 'function' && !isFieldBackendFilterable(fieldDef))) {
     return null;
   }
@@ -214,6 +247,132 @@ function renderFilterPreview({
         control._cleanupPopup();
       }
     }
+  };
+}
+
+function renderBuildableFieldPreview({
+  container,
+  context,
+  fieldDef,
+  fieldName,
+  state,
+  applyFormState,
+  refreshBrowserUrl,
+  syncValidationUi,
+  updateButtonStates
+}) {
+  const builderInputs = getFieldBuilderInputs(fieldDef);
+  if (!container || !state?.spec || !builderInputs.length) {
+    return null;
+  }
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'form-mode-buildable-preview';
+
+  const intro = document.createElement('p');
+  intro.className = 'form-mode-buildable-preview-copy';
+  intro.textContent = 'Enter the field details, then add the generated field to results.';
+  wrapper.appendChild(intro);
+
+  const inputEls = [];
+  builderInputs.forEach(inputSpec => {
+    const row = document.createElement('label');
+    row.className = 'form-mode-buildable-input-row';
+
+    const label = document.createElement('span');
+    label.className = 'form-mode-buildable-input-label';
+    label.textContent = inputSpec.label || inputSpec.id || 'Field value';
+
+    const input = document.createElement('input');
+    input.type = inputSpec.type || 'text';
+    input.className = 'form-mode-text-input form-mode-buildable-input';
+    input.placeholder = inputSpec.placeholder || '';
+    input.autocomplete = 'off';
+    input.dataset.inputId = inputSpec.id || '';
+    input.dataset.errorMsg = inputSpec.error_msg || inputSpec.errorMessage || 'Invalid field value';
+    input.dataset.optional = (inputSpec.optional === true || inputSpec.required === false) ? 'true' : 'false';
+    input.required = input.dataset.optional !== 'true';
+    if (inputSpec.pattern) {
+      input.pattern = inputSpec.pattern;
+    }
+
+    input.addEventListener('input', () => {
+      input.classList.remove('form-mode-control-invalid');
+      error.classList.add('hidden');
+      error.textContent = '';
+    });
+
+    row.appendChild(label);
+    row.appendChild(input);
+    wrapper.appendChild(row);
+    inputEls.push(input);
+  });
+
+  const error = document.createElement('p');
+  error.className = 'form-mode-buildable-error hidden';
+  wrapper.appendChild(error);
+
+  const actionRow = document.createElement('div');
+  actionRow.className = 'form-mode-buildable-actions';
+
+  const addButton = document.createElement('button');
+  addButton.type = 'button';
+  addButton.className = 'form-mode-add-filter-btn';
+  addButton.textContent = 'Create and display field';
+  actionRow.appendChild(addButton);
+  wrapper.appendChild(actionRow);
+
+  function showBuilderError(message, inputs = []) {
+    error.textContent = message;
+    error.classList.remove('hidden');
+    inputs.forEach(input => input.classList.add('form-mode-control-invalid'));
+    inputs[0]?.focus();
+  }
+
+  addButton.addEventListener('click', () => {
+    inputEls.forEach(input => input.classList.remove('form-mode-control-invalid'));
+    error.classList.add('hidden');
+    error.textContent = '';
+
+    const result = collectBuilderInputValues(inputEls, { showFilterError: showBuilderError });
+    if (!result.ok) {
+      return;
+    }
+
+    const { dynamicFieldName, displayLabel } = buildDynamicFieldDefinition(fieldDef, result.values);
+    if (!dynamicFieldName || dynamicFieldName === fieldName) {
+      showBuilderError('Enter enough information to create a real field.', inputEls);
+      return;
+    }
+
+    registerDynamicField(dynamicFieldName, { label: displayLabel });
+
+    if (!Array.isArray(state.spec.columns)) {
+      state.spec.columns = [];
+    }
+    if (!state.spec.columns.includes(dynamicFieldName)) {
+      state.spec.columns.push(dynamicFieldName);
+    }
+
+    applyFormState({ source: 'QueryFormMode.fieldPicker.addDynamicDisplayField' });
+    refreshBrowserUrl();
+    syncValidationUi();
+    updateButtonStates();
+    showToastMessage(`${dynamicFieldName}: added results column.`, 'success');
+
+    if (typeof context.cleanup === 'function') {
+      context.cleanup();
+    }
+  });
+
+  container.replaceChildren(wrapper);
+  window.setTimeout(() => inputEls[0]?.focus(), 0);
+
+  return {
+    getState() {
+      return null;
+    },
+    cleanup() {}
   };
 }
 
