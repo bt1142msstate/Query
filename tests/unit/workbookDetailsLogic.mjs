@@ -5,7 +5,7 @@ import {
   buildWorkbookDetailsRows,
   buildWorkbookDetailsRowsFromRuntime,
   getWorkbookDetailsColumns
-} from '../../table/export/workbookDetails.js';
+} from '../../src/features/table/export/workbookDetails.js';
 import test from 'node:test';
 
 test('workbook details', async () => {

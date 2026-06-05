@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { alignDateTextCells } from '../../table/export/excelDateCellFormatting.js';
+import { alignDateTextCells } from '../../src/features/table/export/excelDateCellFormatting.js';
 import test from 'node:test';
 
 test('excel date cell formatting', async () => {

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { getQueryTemplateElements, getTemplateElement } from '../../templates/queryTemplateElements.js';
+import { getQueryTemplateElements, getTemplateElement } from '../../src/features/templates/queryTemplateElements.js';
 import test from 'node:test';
 
 test('query template elements', async () => {

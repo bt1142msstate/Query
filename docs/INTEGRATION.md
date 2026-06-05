@@ -14,7 +14,7 @@ The current checked-in endpoint remains the default example/testing backend. New
 
 ## Choosing an API URL
 
-The default endpoint is still defined in `core/backendApi.js` as `DEFAULT_API_URL`.
+The default endpoint is still defined in `src/core/backendApi.js` as `DEFAULT_API_URL`.
 
 For a static deployment, the frontend can use another compatible backend by providing one of these browser settings:
 
@@ -445,7 +445,7 @@ Your API must allow the frontend origin with CORS. If users authenticate through
 - The frontend field catalog comes from `get_fields`.
 - Dynamic/buildable fields come from backend builder metadata.
 - The architecture test `tests/architecture/noHardcodedFrontendFields.mjs` fails if production frontend code adds backend field-name literals or a local field catalog.
-- `core/queryResultParser.js` accepts both current legacy text results and standard JSON result payloads.
+- `src/core/queryResultParser.js` accepts both current legacy text results and standard JSON result payloads.
 - `npm test` runs the integration guard, parser tests, payload tests, and browser smoke tests.
 
 ## Minimal Backend Checklist

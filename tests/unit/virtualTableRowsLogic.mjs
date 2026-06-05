@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { getVirtualTableCellDisplay } from '../../table/virtual-table/virtualTableRows.js';
+import { getVirtualTableCellDisplay } from '../../src/features/table/virtual-table/virtualTableRows.js';
 import test from 'node:test';
 
 test('virtual table rows', async () => {

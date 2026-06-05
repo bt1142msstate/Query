@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {
   conditionAllowsNeverDateValue,
   configureConditionInputsForType
-} from '../../filters/condition-editor/filterInputConfiguration.js';
+} from '../../src/features/filters/condition-editor/filterInputConfiguration.js';
 import test from 'node:test';
 
 test('filter input configuration', async () => {

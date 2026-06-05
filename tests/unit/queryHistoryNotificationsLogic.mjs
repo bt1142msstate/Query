@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {
   notifyHistoryResultLoadComplete,
   prepareHistoryResultLoadNotification
-} from '../../history/queryHistoryNotifications.js';
+} from '../../src/features/history/queryHistoryNotifications.js';
 import test from 'node:test';
 
 test('query history notifications', async () => {

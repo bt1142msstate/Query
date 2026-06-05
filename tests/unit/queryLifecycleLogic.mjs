@@ -7,7 +7,7 @@ import {
   hasConfiguredQuery,
   hasLoadedCurrentQueryResultSet,
   normalizeQueryLifecyclePatch
-} from '../../core/queryLifecycle.js';
+} from '../../src/core/queryLifecycle.js';
 import test from 'node:test';
 
 test('query lifecycle', async () => {

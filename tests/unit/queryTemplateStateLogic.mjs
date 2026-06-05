@@ -9,7 +9,7 @@ import {
   sortTemplatesInDisplayOrder,
   validateCategoryName,
   validateTemplateDraft
-} from '../../templates/queryTemplateState.js';
+} from '../../src/features/templates/queryTemplateState.js';
 import test from 'node:test';
 
 test('query template state', async () => {

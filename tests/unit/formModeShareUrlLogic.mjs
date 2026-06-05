@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { Buffer } from 'node:buffer';
-import { decodeSpec } from '../../ui/form-mode/formModeSpec.js';
+import { decodeSpec } from '../../src/ui/form-mode/formModeSpec.js';
 import {
   buildClearedBrowserUrl,
   buildFormShareUrl,
   isShareableFormSpec
-} from '../../ui/form-mode/formModeShareUrl.js';
+} from '../../src/ui/form-mode/formModeShareUrl.js';
 import test from 'node:test';
 
 test('form mode share url', async () => {

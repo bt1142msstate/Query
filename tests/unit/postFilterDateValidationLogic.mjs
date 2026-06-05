@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {
   getPostFilterDateValidationMessage,
   postFilterDateOperatorAllowsNever
-} from '../../table/post-filters/postFilterDateValidation.js';
+} from '../../src/features/table/post-filters/postFilterDateValidation.js';
 import test from 'node:test';
 
 test('post filter date validation', async () => {

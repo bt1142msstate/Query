@@ -4,7 +4,7 @@ import {
   formatInputValue,
   parseNumber,
   sanitizeInputValue
-} from '../../core/formatting/moneyUtils.js';
+} from '../../src/core/formatting/moneyUtils.js';
 import test from 'node:test';
 
 test('money utils', async () => {

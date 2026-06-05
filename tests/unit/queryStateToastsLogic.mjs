@@ -4,7 +4,7 @@ import {
   getDisplayedFieldDiff,
   getQueryChangeToastMessage,
   shouldSkipQueryChangeToast
-} from '../../core/queryStateToasts.js';
+} from '../../src/core/queryStateToasts.js';
 import test from 'node:test';
 
 test('query state toasts', async () => {

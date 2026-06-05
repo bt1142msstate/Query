@@ -4,7 +4,7 @@ import {
   getContradictionMessage,
   isListPasteField,
   supportsListSelectorCondition
-} from '../../filters/filterConditionLogic.js';
+} from '../../src/features/filters/filterConditionLogic.js';
 import test from 'node:test';
 
 test('filter condition', async () => {

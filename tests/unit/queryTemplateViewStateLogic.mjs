@@ -7,7 +7,7 @@ import {
   getCategoryUsageCount,
   getPinnedTemplatesForStrip,
   getTemplateListSections
-} from '../../templates/queryTemplateViewState.js';
+} from '../../src/features/templates/queryTemplateViewState.js';
 import test from 'node:test';
 
 test('query template view state', async () => {

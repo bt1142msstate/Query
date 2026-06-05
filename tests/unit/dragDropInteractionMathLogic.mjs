@@ -4,7 +4,7 @@ import {
   calculateHeaderActionLayout,
   getAutoScrollIntent,
   getHeaderInsertPositionFromRects
-} from '../../table/drag-drop/dragDropInteractionMath.js';
+} from '../../src/features/table/drag-drop/dragDropInteractionMath.js';
 import test from 'node:test';
 
 test('drag drop interaction math', async () => {

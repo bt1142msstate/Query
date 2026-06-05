@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {
   createFormModeDateInputState,
   resolveDateValue
-} from '../../ui/form-mode/formModeDateInput.js';
+} from '../../src/ui/form-mode/formModeDateInput.js';
 import test from 'node:test';
 
 test('form mode date input', async () => {

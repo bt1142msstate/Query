@@ -422,7 +422,9 @@ async function installQueryApiStub(page) {
 function attachFailureListeners(page, failures, port) {
   page.on('console', message => {
     if (['error', 'warning', 'warn'].includes(message.type())) {
-      failures.push(`console ${message.type()}: ${message.text()}`);
+      const location = message.location();
+      const locationText = location.url ? ` (${location.url}:${location.lineNumber}:${location.columnNumber})` : '';
+      failures.push(`console ${message.type()}: ${message.text()}${locationText}`);
     }
   });
 
@@ -433,6 +435,12 @@ function attachFailureListeners(page, failures, port) {
   page.on('requestfailed', request => {
     if (request.url().startsWith(`http://127.0.0.1:${port}/`)) {
       failures.push(`request failed: ${request.method()} ${request.url()} ${request.failure()?.errorText || ''}`);
+    }
+  });
+
+  page.on('response', response => {
+    if (/^https?:/u.test(response.url()) && response.status() >= 400) {
+      failures.push(`bad response: ${response.status()} ${response.url()}`);
     }
   });
 }
@@ -1116,7 +1124,7 @@ async function dragTouchLocatorToLocator(page, sourceLocator, targetLocator, opt
 
 async function exerciseMobileToastQueue(page) {
   await page.evaluate(async () => {
-    const { toast } = await import('./core/toast.js');
+    const { toast } = await import('./src/core/toast.js');
     toast.dismissAll();
     toast.info('Mobile toast one', 240);
     toast.success('Mobile toast two', 240);
@@ -1156,7 +1164,7 @@ async function exerciseMobileToastQueue(page) {
   }, null, { timeout: 3000 });
 
   await page.evaluate(async () => {
-    const { toast } = await import('./core/toast.js');
+    const { toast } = await import('./src/core/toast.js');
     toast.dismissAll();
   });
   await page.waitForFunction(() => {
@@ -1463,10 +1471,10 @@ async function seedLoadedResults(page, options = {}) {
   const longTitle = options.longTitle === true;
 
   await page.evaluate(async ({ includeDate: useDate, includeMultiValueBranch: useMultiValueBranch, longTitle: useLongTitle, rowCount: requestedRowCount }) => {
-    const { appServices } = await import('./core/appServices.js');
-    const { QueryChangeManager } = await import('./core/queryState.js');
-    const { QueryTableView } = await import('./ui/queryTableView.js');
-    const { QueryUI } = await import('./ui/queryUI.js');
+    const { appServices } = await import('./src/core/appServices.js');
+    const { QueryChangeManager } = await import('./src/core/queryState.js');
+    const { QueryTableView } = await import('./src/ui/queryTableView.js');
+    const { QueryUI } = await import('./src/ui/queryUI.js');
     const headers = useDate
       ? ['Smoke Title', 'Smoke Branch', 'Smoke Status', 'Smoke Due Date']
       : ['Smoke Title', 'Smoke Branch', 'Smoke Status'];
@@ -1503,10 +1511,10 @@ async function seedLoadedResults(page, options = {}) {
 
 async function seedLargeExportResults(page) {
   await page.evaluate(async () => {
-    const { appServices } = await import('./core/appServices.js');
-    const { QueryChangeManager } = await import('./core/queryState.js');
-    const { QueryTableView } = await import('./ui/queryTableView.js');
-    const { QueryUI } = await import('./ui/queryUI.js');
+    const { appServices } = await import('./src/core/appServices.js');
+    const { QueryChangeManager } = await import('./src/core/queryState.js');
+    const { QueryTableView } = await import('./src/ui/queryTableView.js');
+    const { QueryUI } = await import('./src/ui/queryUI.js');
     const headers = Array.from({ length: 80 }, (_, index) => `Large Export ${index + 1}`);
     const rows = Array.from({ length: 1000 }, (_, rowIndex) => (
       headers.map((field, columnIndex) => `${field} row ${rowIndex + 1}`)
@@ -2438,7 +2446,7 @@ async function exerciseTabletPortraitMobileParity(page, queryApiStub) {
 async function exerciseEditableFormUrlRefresh(page, failures) {
   await seedLoadedResults(page);
   await page.evaluate(async () => {
-    const { QueryFormMode } = await import('./ui/form-mode/formMode.js');
+    const { QueryFormMode } = await import('./src/ui/form-mode/formMode.js');
     await QueryFormMode.activateFromCurrentQuery();
   });
   await page.locator('#form-mode-card').waitFor({ state: 'visible', timeout: 5000 });
@@ -2453,7 +2461,7 @@ async function exerciseEditableFormUrlRefresh(page, failures) {
   await page.locator('#form-mode-card').waitFor({ state: 'visible', timeout: 5000 });
   await page.waitForFunction(() => document.body.classList.contains('form-mode-active'), null, { timeout: 5000 });
   const refreshedState = await page.evaluate(async () => {
-    const { QueryFormMode } = await import('./ui/form-mode/formMode.js');
+    const { QueryFormMode } = await import('./src/ui/form-mode/formMode.js');
     const browserUrl = new URL(window.location.href);
     const shareUrl = new URL(QueryFormMode.buildCurrentShareUrl());
     return {
@@ -2729,7 +2737,7 @@ async function exerciseColumnResizeInteraction(page) {
   await seedLoadedResults(page, { longTitle: true, rowCount: 2400 });
 
   await page.evaluate(async () => {
-    const { appServices } = await import('./core/appServices.js');
+    const { appServices } = await import('./src/core/appServices.js');
     appServices.setManualColumnWidth?.('Smoke Title', 90);
     appServices.renderVirtualTable?.();
     appServices.activateColumnResizeMode?.('Smoke Title');
@@ -2854,14 +2862,14 @@ async function exerciseColumnResizeInteraction(page) {
   }
 
   await page.evaluate(async () => {
-    const { appServices } = await import('./core/appServices.js');
+    const { appServices } = await import('./src/core/appServices.js');
     appServices.clearColumnResizeMode?.();
   });
 }
 
 async function expectMobileColumnResizeInteraction(page) {
   await page.evaluate(async () => {
-    const { appServices } = await import('./core/appServices.js');
+    const { appServices } = await import('./src/core/appServices.js');
     appServices.setManualColumnWidth?.('Smoke Title', 96);
     appServices.renderVirtualTable?.();
   });
@@ -2926,7 +2934,7 @@ async function expectMobileColumnResizeInteraction(page) {
   }
 
   await page.evaluate(async () => {
-    const { appServices } = await import('./core/appServices.js');
+    const { appServices } = await import('./src/core/appServices.js');
     appServices.clearColumnResizeMode?.();
     appServices.setManualColumnWidth?.('Smoke Title', 96);
     appServices.renderVirtualTable?.();
@@ -3018,7 +3026,7 @@ async function expectResultsCount(page, expectedText, label) {
 async function expectPostFilterStats(page, expected, label) {
   try {
     await page.waitForFunction(async ({ filteredRows, hasPostFilters, totalRows }) => {
-      const { appServices } = await import('./core/appServices.js');
+      const { appServices } = await import('./src/core/appServices.js');
       const stats = appServices.getPostFilterStats?.();
       return stats?.filteredRows === filteredRows
         && stats?.totalRows === totalRows
@@ -3026,7 +3034,7 @@ async function expectPostFilterStats(page, expected, label) {
     }, expected, { timeout: 5000 });
   } catch (error) {
     const observed = await page.evaluate(async () => {
-      const { appServices } = await import('./core/appServices.js');
+      const { appServices } = await import('./src/core/appServices.js');
       const stats = appServices.getPostFilterStats?.();
       return {
         filteredRows: stats?.filteredRows,
@@ -3038,7 +3046,7 @@ async function expectPostFilterStats(page, expected, label) {
   }
 
   const observed = await page.evaluate(async () => {
-    const { appServices } = await import('./core/appServices.js');
+    const { appServices } = await import('./src/core/appServices.js');
     const stats = appServices.getPostFilterStats?.();
     return {
       filteredRows: stats?.filteredRows,
@@ -3058,9 +3066,9 @@ async function expectPostFilterStats(page, expected, label) {
 
 async function exerciseCoreFilterStateInteraction(page) {
   await page.evaluate(async () => {
-    const { AppState, QueryChangeManager } = await import('./core/queryState.js');
-    const { FilterSidePanel } = await import('./filters/filterSidePanel.js');
-    const { fieldDefs, fieldDefsArray, filteredDefs } = await import('./filters/fieldDefs.js');
+    const { AppState, QueryChangeManager } = await import('./src/core/queryState.js');
+    const { FilterSidePanel } = await import('./src/features/filters/filterSidePanel.js');
+    const { fieldDefs, fieldDefsArray, filteredDefs } = await import('./src/features/filters/fieldDefs.js');
     const fieldDef = {
       name: 'Smoke Filter Field',
       category: 'Smoke',
@@ -3097,7 +3105,7 @@ async function exerciseCoreFilterStateInteraction(page) {
 
 async function exerciseFieldPickerPreviewList(page) {
   await page.evaluate(async () => {
-    const { SharedFieldPicker } = await import('./ui/field-picker/fieldPicker.js');
+    const { SharedFieldPicker } = await import('./src/ui/field-picker/fieldPicker.js');
     await SharedFieldPicker.open({
       getOptions: () => [
         { name: 'Preview Smoke Title', type: 'text', filterable: true, category: 'Smoke' },
@@ -3145,8 +3153,8 @@ async function exerciseFieldPickerPreviewList(page) {
 
 async function exerciseFormModeBuildableDisplayField(page) {
   await page.evaluate(async () => {
-    const { QueryChangeManager } = await import('./core/queryState.js');
-    const { QueryFormMode } = await import('./ui/form-mode/formMode.js');
+    const { QueryChangeManager } = await import('./src/core/queryState.js');
+    const { QueryFormMode } = await import('./src/ui/form-mode/formMode.js');
 
     QueryChangeManager.replaceDisplayedFields(['Smoke Title'], {
       source: 'BrowserSmoke.seedBuildableFormMode'
@@ -3191,8 +3199,8 @@ async function exerciseFormModeBuildableDisplayField(page) {
   await page.locator('.form-mode-field-picker-modal').waitFor({ state: 'detached', timeout: 5000 });
 
   const state = await page.evaluate(async () => {
-    const { QueryStateReaders } = await import('./core/queryState.js');
-    const { fieldDefs } = await import('./filters/fieldDefs.js');
+    const { QueryStateReaders } = await import('./src/core/queryState.js');
+    const { fieldDefs } = await import('./src/features/filters/fieldDefs.js');
     const dynamicDef = fieldDefs.get('MARC 590');
     return {
       displayedFields: QueryStateReaders.getDisplayedFields(),
@@ -3222,7 +3230,7 @@ async function exerciseDesktopResultsWorkflow(page) {
   await titleHeader.waitFor({ state: 'visible', timeout: 5000 });
   await titleHeader.click();
   await page.waitForFunction(async () => {
-    const { appServices } = await import('./core/appServices.js');
+    const { appServices } = await import('./src/core/appServices.js');
     const state = appServices.getVirtualTableState?.();
     return state?.currentSortColumn === 'Smoke Title' && state?.currentSortDirection === 'asc';
   }, null, { timeout: 5000 });
@@ -3233,7 +3241,7 @@ async function exerciseDesktopResultsWorkflow(page) {
 
   await titleHeader.click();
   await page.waitForFunction(async () => {
-    const { appServices } = await import('./core/appServices.js');
+    const { appServices } = await import('./src/core/appServices.js');
     const state = appServices.getVirtualTableState?.();
     return state?.currentSortColumn === 'Smoke Title' && state?.currentSortDirection === 'desc';
   }, null, { timeout: 5000 });
@@ -3245,7 +3253,7 @@ async function exerciseDesktopResultsWorkflow(page) {
   }
 
   await page.evaluate(async () => {
-    const { PostFilterSystem } = await import('./table/post-filters/postFilters.js');
+    const { PostFilterSystem } = await import('./src/features/table/post-filters/postFilters.js');
     PostFilterSystem.openOverlayForField?.('Smoke Branch');
   });
   await page.locator('#post-filter-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
@@ -3315,7 +3323,7 @@ async function exerciseDesktopResultsWorkflow(page) {
 
   await seedLoadedResults(page, { includeMultiValueBranch: true });
   await page.evaluate(async () => {
-    const { PostFilterSystem } = await import('./table/post-filters/postFilters.js');
+    const { PostFilterSystem } = await import('./src/features/table/post-filters/postFilters.js');
     PostFilterSystem.openOverlayForField?.('Smoke Branch');
   });
   await page.locator('#post-filter-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
@@ -3450,8 +3458,8 @@ async function exerciseDesktopResultsWorkflow(page) {
 async function exerciseZeroResultQueryWorkflow(page, queryApiStub) {
   await seedLoadedResults(page);
   await page.evaluate(async () => {
-    const { appServices } = await import('./core/appServices.js');
-    const { QueryUI } = await import('./ui/queryUI.js');
+    const { appServices } = await import('./src/core/appServices.js');
+    const { QueryUI } = await import('./src/ui/queryUI.js');
     appServices.replacePostFilters({
       'Smoke Branch': {
         logic: 'all',
@@ -3479,8 +3487,8 @@ async function exerciseZeroResultQueryWorkflow(page, queryApiStub) {
 
   await page.locator('#run-query-btn').click();
   await page.waitForFunction(async () => {
-    const { appServices } = await import('./core/appServices.js');
-    const { QueryStateReaders } = await import('./core/queryState.js');
+    const { appServices } = await import('./src/core/appServices.js');
+    const { QueryStateReaders } = await import('./src/core/queryState.js');
     const lifecycle = QueryStateReaders.getLifecycleState();
     const tableData = appServices.getVirtualTableData?.();
     return lifecycle.queryRunning === false
@@ -3499,7 +3507,7 @@ async function exerciseZeroResultQueryWorkflow(page, queryApiStub) {
   await expectEmptyTableMessage(page, /no results matched this query/iu, 'Desktop zero-result query');
 
   const queryStatus = await page.evaluate(async () => {
-    const { QueryStateReaders } = await import('./core/queryState.js');
+    const { QueryStateReaders } = await import('./src/core/queryState.js');
     return QueryStateReaders.getQueryStatus();
   });
   if (queryStatus !== 'results') {
@@ -3514,8 +3522,8 @@ async function exerciseZeroResultQueryWorkflow(page, queryApiStub) {
 
 async function exerciseJsonResultPayloadWorkflow(page, queryApiStub) {
   await page.evaluate(async () => {
-    const { QueryChangeManager } = await import('./core/queryState.js');
-    const { QueryUI } = await import('./ui/queryUI.js');
+    const { QueryChangeManager } = await import('./src/core/queryState.js');
+    const { QueryUI } = await import('./src/ui/queryUI.js');
     await QueryChangeManager.clearQuery({ source: 'BrowserSmoke.jsonResultPayloadSetup' });
     QueryChangeManager.replaceDisplayedFields(['Smoke Title', 'Public Note', 'MARC 590'], {
       source: 'BrowserSmoke.jsonResultPayloadSetup'
@@ -3552,8 +3560,8 @@ async function exerciseJsonResultPayloadWorkflow(page, queryApiStub) {
   await expectResultsCount(page, '2', 'Desktop JSON result payload');
 
   const jsonResultState = await page.evaluate(async () => {
-    const { appServices } = await import('./core/appServices.js');
-    const { QueryStateReaders } = await import('./core/queryState.js');
+    const { appServices } = await import('./src/core/appServices.js');
+    const { QueryStateReaders } = await import('./src/core/queryState.js');
     const tableData = appServices.getVirtualTableData?.();
     return {
       lifecycle: QueryStateReaders.getLifecycleState(),
@@ -3654,7 +3662,7 @@ async function exerciseJsonResultPayloadWorkflow(page, queryApiStub) {
 async function expectCustomDatePickerNeverOption(page) {
   await page.evaluate(async () => {
     document.querySelector('[data-browser-smoke-date-picker-host]')?.remove();
-    const { CustomDatePicker } = await import('./ui/customDatePicker.js');
+    const { CustomDatePicker } = await import('./src/ui/customDatePicker.js');
     const host = document.createElement('div');
     host.setAttribute('data-browser-smoke-date-picker-host', '');
     host.style.position = 'fixed';
@@ -3681,7 +3689,7 @@ async function expectCustomDatePickerNeverOption(page) {
     value: element.value
   }));
   await page.evaluate(async () => {
-    const { CustomDatePicker } = await import('./ui/customDatePicker.js');
+    const { CustomDatePicker } = await import('./src/ui/customDatePicker.js');
     CustomDatePicker.close();
     document.querySelector('[data-browser-smoke-date-picker-host]')?.remove();
   });
@@ -3692,7 +3700,7 @@ async function expectCustomDatePickerNeverOption(page) {
 
   await page.evaluate(async () => {
     document.querySelector('[data-browser-smoke-date-picker-host]')?.remove();
-    const { CustomDatePicker } = await import('./ui/customDatePicker.js');
+    const { CustomDatePicker } = await import('./src/ui/customDatePicker.js');
     const host = document.createElement('div');
     host.setAttribute('data-browser-smoke-date-picker-host', '');
     host.style.position = 'fixed';
@@ -3716,7 +3724,7 @@ async function expectCustomDatePickerNeverOption(page) {
     return button.hidden || button.disabled || window.getComputedStyle(button).display === 'none';
   });
   await page.evaluate(async () => {
-    const { CustomDatePicker } = await import('./ui/customDatePicker.js');
+    const { CustomDatePicker } = await import('./src/ui/customDatePicker.js');
     CustomDatePicker.close();
     document.querySelector('[data-browser-smoke-date-picker-host]')?.remove();
   });
@@ -3727,9 +3735,9 @@ async function expectCustomDatePickerNeverOption(page) {
 
 async function exerciseFormModeDateTypingCommit(page) {
   await page.evaluate(async () => {
-    const { QueryChangeManager } = await import('./core/queryState.js');
-    const { QueryFormMode } = await import('./ui/form-mode/formMode.js');
-    const { fieldDefs, fieldDefsArray, filteredDefs } = await import('./filters/fieldDefs.js');
+    const { QueryChangeManager } = await import('./src/core/queryState.js');
+    const { QueryFormMode } = await import('./src/ui/form-mode/formMode.js');
+    const { fieldDefs, fieldDefsArray, filteredDefs } = await import('./src/features/filters/fieldDefs.js');
     const dateField = {
       name: 'Smoke Due Date',
       category: 'Smoke',
@@ -3759,7 +3767,7 @@ async function exerciseFormModeDateTypingCommit(page) {
   await page.waitForTimeout(120);
 
   const draftMetrics = await page.evaluate(async () => {
-    const { QueryStateReaders } = await import('./core/queryState.js');
+    const { QueryStateReaders } = await import('./src/core/queryState.js');
     const input = document.querySelector('#form-mode-card .custom-date-input--form input');
     const validation = document.querySelector('#form-mode-validation');
     return {
@@ -3775,7 +3783,7 @@ async function exerciseFormModeDateTypingCommit(page) {
 
   await page.waitForTimeout(900);
   const partialIdleMetrics = await page.evaluate(async () => {
-    const { QueryStateReaders } = await import('./core/queryState.js');
+    const { QueryStateReaders } = await import('./src/core/queryState.js');
     return {
       filterValue: QueryStateReaders.getActiveFilters()['Smoke Due Date']?.filters?.[0]?.val || '',
       inputValue: document.querySelector('#form-mode-card .custom-date-input--form input')?.value || ''
@@ -3787,7 +3795,7 @@ async function exerciseFormModeDateTypingCommit(page) {
 
   await dateInput.fill('Feb 3, 2026');
   await page.waitForFunction(async () => {
-    const { QueryStateReaders } = await import('./core/queryState.js');
+    const { QueryStateReaders } = await import('./src/core/queryState.js');
     const inputValue = document.querySelector('#form-mode-card .custom-date-input--form input')?.value || '';
     const filterValue = QueryStateReaders.getActiveFilters()['Smoke Due Date']?.filters?.[0]?.val || '';
     return inputValue === '2/3/2026' && filterValue === '2/3/2026';
@@ -3796,14 +3804,14 @@ async function exerciseFormModeDateTypingCommit(page) {
   await dateInput.fill('Mar 4, 2026');
   await dateInput.evaluate(input => input.blur());
   await page.waitForFunction(async () => {
-    const { QueryStateReaders } = await import('./core/queryState.js');
+    const { QueryStateReaders } = await import('./src/core/queryState.js');
     const inputValue = document.querySelector('#form-mode-card .custom-date-input--form input')?.value || '';
     const filterValue = QueryStateReaders.getActiveFilters()['Smoke Due Date']?.filters?.[0]?.val || '';
     return inputValue === '3/4/2026' && filterValue === '3/4/2026';
   }, null, { timeout: 5000 });
 
   await page.evaluate(async () => {
-    const { QueryChangeManager } = await import('./core/queryState.js');
+    const { QueryChangeManager } = await import('./src/core/queryState.js');
     await QueryChangeManager.clearQuery({ source: 'BrowserSmoke.dateTypingCleanup' });
   });
 }
@@ -3836,7 +3844,7 @@ async function runSmokeTest() {
     await expectCustomDatePickerNeverOption(page);
     await exerciseFormModeDateTypingCommit(page);
     await page.evaluate(async () => {
-      const { QueryTableView } = await import('./ui/queryTableView.js');
+      const { QueryTableView } = await import('./src/ui/queryTableView.js');
       QueryTableView.renderEmptyQueryTableState();
       document.body.classList.add('form-mode-active');
       QueryTableView.syncEmptyTableMessage();
@@ -3849,7 +3857,7 @@ async function runSmokeTest() {
       throw new Error(`Unexpected form mode empty table message: ${formModeEmptyTableMessage}`);
     }
     await page.evaluate(async () => {
-      const { QueryTableView } = await import('./ui/queryTableView.js');
+      const { QueryTableView } = await import('./src/ui/queryTableView.js');
       document.body.classList.remove('form-mode-active');
       QueryTableView.syncEmptyTableMessage();
     });
@@ -4235,7 +4243,7 @@ async function runSmokeTest() {
     await expectNoHorizontalOverflow(mobilePage, 'Mobile help panel');
 
     await mobilePage.evaluate(async () => {
-      const { appServices } = await import('./core/appServices.js');
+      const { appServices } = await import('./src/core/appServices.js');
       appServices.closeAllModals();
     });
     await mobilePage.locator('#help-panel.hidden').waitFor({ state: 'attached', timeout: 5000 });
@@ -4428,12 +4436,12 @@ async function runSmokeTest() {
       { expectPreview: true, targetVerticalRatio: 0.85 }
     );
     await mobilePage.waitForFunction(async () => {
-      const { QueryStateReaders } = await import('./core/queryState.js');
+      const { QueryStateReaders } = await import('./src/core/queryState.js');
       return QueryStateReaders.getDisplayedFields().join('|') === 'Smoke Branch|Smoke Status|Smoke Title';
     }, null, { timeout: 5000 });
 
     await mobilePage.evaluate(async () => {
-      const { QueryChangeManager } = await import('./core/queryState.js');
+      const { QueryChangeManager } = await import('./src/core/queryState.js');
       QueryChangeManager.setQueryState({
         activeFilters: {
           'Smoke Title': { filters: [{ cond: 'contains', val: 'Alpha' }] },
@@ -4454,11 +4462,11 @@ async function runSmokeTest() {
       { expectPreview: true, targetVerticalRatio: 0.85 }
     );
     await mobilePage.waitForFunction(async () => {
-      const { QueryStateReaders } = await import('./core/queryState.js');
+      const { QueryStateReaders } = await import('./src/core/queryState.js');
       return Object.keys(QueryStateReaders.getActiveFilters()).join('|') === 'Smoke Branch|Smoke Status|Smoke Title';
     }, null, { timeout: 5000 });
     await mobilePage.evaluate(async ({ headers }) => {
-      const { QueryChangeManager } = await import('./core/queryState.js');
+      const { QueryChangeManager } = await import('./src/core/queryState.js');
       QueryChangeManager.setQueryState({
         activeFilters: {},
         displayedFields: headers

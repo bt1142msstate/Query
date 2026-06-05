@@ -7,15 +7,8 @@ const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const manifestPath = resolve(rootDir, 'cache-bust.json');
 const sourceEntries = [
   'index.html',
-  'appModules.js',
   'backgroundNotificationServiceWorker.js',
-  'core',
-  'filters',
-  'history',
-  'table',
-  'templates',
-  'ui',
-  'styles'
+  'src'
 ];
 const hashedExtensions = new Set(['.css', '.html', '.js']);
 const checkOnly = process.argv.includes('--check');
@@ -50,7 +43,7 @@ async function collectAssetFiles(entry) {
 }
 
 async function getExpectedStylesheetHubSource() {
-  const appStylesheetPath = resolve(rootDir, 'styles/app.css');
+  const appStylesheetPath = resolve(rootDir, 'src/styles/app.css');
   const source = await readFile(appStylesheetPath, 'utf8');
   const importPattern = /@import\s+url\((["'])(\.\/[^"')?#]+\.css)(?:\?v=[^"')]+)?\1\);/gu;
   const importedHashes = new Map();
@@ -69,7 +62,7 @@ async function getExpectedStylesheetHubSource() {
 }
 
 async function refreshStylesheetHub() {
-  const appStylesheetPath = resolve(rootDir, 'styles/app.css');
+  const appStylesheetPath = resolve(rootDir, 'src/styles/app.css');
   const expectedSource = await getExpectedStylesheetHubSource();
   const expectedBuffer = Buffer.from(expectedSource, 'utf8');
   const currentSource = await readFile(appStylesheetPath, 'utf8');
@@ -81,7 +74,7 @@ async function refreshStylesheetHub() {
   }
 
   if (checkOnly) {
-    throw new Error('styles/app.css has stale @import cache keys. Run npm run cache:bust.');
+    throw new Error('src/styles/app.css has stale @import cache keys. Run npm run cache:bust.');
   }
 
   await writeFile(appStylesheetPath, expectedSource);

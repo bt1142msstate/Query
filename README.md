@@ -60,21 +60,22 @@ The table also supports sorting, expand/collapse layout, manual column resizing 
 
 | Path | Purpose |
 | --- | --- |
-| `core/` | Query execution, state management, service facades, and shared utilities |
-| `filters/` | Field definitions and filter/payload logic |
-| `filters/condition-editor/` | Condition editor layout, input adapters, panel UI, and bubble-shaped field controls |
-| `history/` | Query history rendering, request mapping, status grouping, and detail overlays |
-| `table/` | Result rendering, virtual scrolling, drag/drop, post filters, and Excel export |
-| `table/drag-drop/` | Column drag/drop, duplicate column restoration, and resize coordination |
-| `table/virtual-table/` | Virtualized result rendering, column layout, scrollbar, and sort helpers |
-| `table/post-filters/` | Client-side post-filter UI and comparison logic |
-| `table/export/` | Excel export workflow |
-| `templates/` | Query template rendering, categories, draft state, and template models |
-| `ui/` | App shell UI, modals, toasts, tooltips, and shared helpers |
-| `ui/form-mode/` | Form-mode shell, controls, spec parsing, URL sharing, and query sync |
-| `ui/field-picker/` | Shared field picker modal and search ranking |
-| `styles/` | Feature-based CSS |
-| `styles/app.css` | Stylesheet entrypoint that imports the feature CSS files |
+| `src/` | Browser application source |
+| `src/appModules.js` | Deterministic ES module startup entrypoint |
+| `src/core/` | Query execution, state management, service facades, and shared utilities |
+| `src/features/filters/` | Field definitions, filter workflows, payload logic, and condition editor |
+| `src/features/history/` | Query history rendering, request mapping, status grouping, and detail overlays |
+| `src/features/table/` | Result rendering, virtual scrolling, drag/drop, post filters, and Excel export |
+| `src/features/table/drag-drop/` | Column drag/drop, duplicate column restoration, and resize coordination |
+| `src/features/table/virtual-table/` | Virtualized result rendering, column layout, scrollbar, and sort helpers |
+| `src/features/table/post-filters/` | Client-side post-filter UI and comparison logic |
+| `src/features/table/export/` | Excel export workflow |
+| `src/features/templates/` | Query template rendering, categories, draft state, and template models |
+| `src/ui/` | App shell UI, modals, toasts, tooltips, and shared helpers |
+| `src/ui/form-mode/` | Form-mode shell, controls, spec parsing, URL sharing, and query sync |
+| `src/ui/field-picker/` | Shared field picker modal and search ranking |
+| `src/styles/` | Feature-based CSS |
+| `src/styles/app.css` | Stylesheet entrypoint that imports the feature CSS files |
 | `config/` | Shared architecture contracts for forbidden browser globals and module boundaries |
 | `docs/ARCHITECTURE.md` | Frontend architecture notes, quality gates, and refactor plan |
 | `docs/INTEGRATION.md` | Backend integration contract, JSON result formats, legacy compatibility, and deployment options |
@@ -113,11 +114,11 @@ http://127.0.0.1:4173/index.html
 
 ## Backend API Notice
 
-The backend URL currently configured in `core/backendApi.js` is a temporary example/testing integration. It is useful for demonstrating the request/response shape during development, and the Playwright smoke test stubs that route so local validation does not require a real external service.
+The backend URL currently configured in `src/core/backendApi.js` is a temporary example/testing integration. It is useful for demonstrating the request/response shape during development, and the Playwright smoke test stubs that route so local validation does not require a real external service.
 
 The public live site should not rely on that example API as its production data source. We plan to remove project-owned API usage from the live deployment. For real use, connect your own compatible query API and provide the API URLs/settings for your environment. The app is designed around a swappable backend contract: field metadata, query execution, status/cancel, history results, and template actions can be backed by your own service as long as it returns the expected payloads.
 
-Static deployments can point the app at another compatible service with `?api_url=...` or `?query_api_url=...`; valid values are stored in `localStorage` under `query-project.api-url`. Local deployments can still change the default in `core/backendApi.js` when that is simpler.
+Static deployments can point the app at another compatible service with `?api_url=...` or `?query_api_url=...`; valid values are stored in `localStorage` under `query-project.api-url`. Local deployments can still change the default in `src/core/backendApi.js` when that is simpler.
 
 See [`docs/INTEGRATION.md`](docs/INTEGRATION.md) for the full backend contract, including field metadata, query payloads, JSON result shapes, legacy text streams, history/cancel actions, template actions, rate-limit errors, and deployment options.
 

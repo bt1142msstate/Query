@@ -16,21 +16,21 @@ The former private runtime coordination layer has been removed. Feature coordina
 ## Runtime Flow
 
 1. `index.html` loads vendor scripts, fetches `cache-bust.json` with `cache: no-store`, versions the app stylesheet/module entry, and registers the root service worker for same-origin app assets.
-2. `index.html` dynamically imports `appModules.js` with the current cache version.
-3. `appModules.js` imports feature modules in deterministic startup order.
-4. `core/bootstrap.js` initializes DOM-bound systems after DOM readiness.
+2. `index.html` dynamically imports `src/appModules.js` with the current cache version.
+3. `src/appModules.js` imports feature modules in deterministic startup order.
+4. `src/core/bootstrap.js` initializes DOM-bound systems after DOM readiness.
 5. User actions write query state through `QueryChangeManager`.
 6. UI reads query state through `QueryStateReaders` and subscriptions.
-7. `core/queryExecution.js` builds the backend payload, runs or cancels work, then updates result state.
+7. `src/core/queryExecution.js` builds the backend payload, runs or cancels work, then updates result state.
 8. Table, history, filters, templates, and overlays render from the current state and service facades.
 
 ## Backend Integration Policy
 
-`core/backendApi.js` currently points at an example/testing query API. That endpoint exists to demonstrate the integration shape and gives the browser smoke test a stable route to stub. It should not be treated as the live site's long-term production backend.
+`src/core/backendApi.js` currently points at an example/testing query API. That endpoint exists to demonstrate the integration shape and gives the browser smoke test a stable route to stub. It should not be treated as the live site's long-term production backend.
 
-The intended deployment model is bring-your-own API. The public live site should remove project-owned API usage and let each deployment provide its own compatible API URLs/configuration for field metadata, query execution, status/cancel, history result loading, and template persistence. Static deployments can supply `?api_url=...` or `?query_api_url=...`; valid values are stored in `localStorage` under `query-project.api-url`. Local deployments can still change the default in `core/backendApi.js` when that is simpler.
+The intended deployment model is bring-your-own API. The public live site should remove project-owned API usage and let each deployment provide its own compatible API URLs/configuration for field metadata, query execution, status/cancel, history result loading, and template persistence. Static deployments can supply `?api_url=...` or `?query_api_url=...`; valid values are stored in `localStorage` under `query-project.api-url`. Local deployments can still change the default in `src/core/backendApi.js` when that is simpler.
 
-Result hydration is intentionally tolerant while integrations evolve. `core/queryResultParser.js` accepts the legacy `X-Raw-Columns` plus pipe-delimited row stream and standard JSON result payloads such as `{ "columns": [...], "rows": [...] }`, `{ "headers": [...], "results": [...] }`, `{ "fields": [...], "data": [...] }`, or a bare array of row objects. JSON array values normalize to the same internal multi-value separator used by repeated MARC/public-note fields, so table rendering, split columns, post filters, and Excel export share one representation.
+Result hydration is intentionally tolerant while integrations evolve. `src/core/queryResultParser.js` accepts the legacy `X-Raw-Columns` plus pipe-delimited row stream and standard JSON result payloads such as `{ "columns": [...], "rows": [...] }`, `{ "headers": [...], "results": [...] }`, `{ "fields": [...], "data": [...] }`, or a bare array of row objects. JSON array values normalize to the same internal multi-value separator used by repeated MARC/public-note fields, so table rendering, split columns, post filters, and Excel export share one representation.
 
 The full backend integration contract is documented in `docs/INTEGRATION.md`.
 
@@ -38,33 +38,35 @@ The full backend integration contract is documented in `docs/INTEGRATION.md`.
 
 | Layer | Path | Responsibility |
 | --- | --- | --- |
-| Entry/bootstrap | `appModules.js`, `core/bootstrap.js` | Module loading and app startup |
-| State | `core/queryState.js` | Query state, lifecycle flags, read/write facades |
-| Services/actions | `core/appServices.js`, `core/appUiActions.js` | Cross-feature coordination without direct feature coupling |
-| Core utilities | `core/formatting/`, `core/*Utils.js`, `core/textMeasurement.js` | Focused helpers imported from their owning modules instead of a mixed utility facade |
-| Data contract | `filters/queryPayload.js`, `filters/fieldDefs.js` | Backend payload generation, field metadata, filter normalization |
-| Feature UI | `ui/`, `filters/`, `table/`, `history/`, `templates/` | User workflows and rendering, with complex widgets split into focused view/helper modules. The condition editor lives under `filters/condition-editor/`, not as a separate builder mode |
-| Query history | `history/` | History shell split from request mapping, config loading, result hydration, row rendering, grouping, notifications, tooltips, and status mapping |
-| Filter workflows | `filters/` | Backend payload contracts, field metadata, condition validation, buildable-field construction, filter-pill rendering, and condition input/panel configuration |
-| Template workflows | `templates/` | Template shell split from models, state, repository, payloads, category actions/views, list/detail rendering, and view-state helpers |
-| UI feature folders | `ui/form-mode/`, `ui/field-picker/` | Larger UI workflows with dedicated shell, field-picker, query-preview, state helper, presentation, and interaction modules |
-| Table feature folders | `table/drag-drop/`, `table/virtual-table/`, `table/post-filters/`, `table/export/` | Result-table workflows grouped by behavior, with drag/drop split into column, resize, header-action, viewport, and interaction modules; virtual table measurement, row rendering, post-filter state, and split-column transforms split from the coordinator; post-filter value virtualization isolated from the overlay coordinator |
-| Styles | `styles/app.css` plus feature CSS files | Feature-scoped styling with a single stylesheet entry |
+| Entry/bootstrap | `src/appModules.js`, `src/core/bootstrap.js` | Module loading and app startup |
+| State | `src/core/queryState.js` | Query state, lifecycle flags, read/write facades |
+| Services/actions | `src/core/appServices.js`, `src/core/appUiActions.js` | Cross-feature coordination without direct feature coupling |
+| Core utilities | `src/core/formatting/`, `src/core/*Utils.js`, `src/core/textMeasurement.js` | Focused helpers imported from their owning modules instead of a mixed utility facade |
+| Data contract | `src/features/filters/queryPayload.js`, `src/features/filters/fieldDefs.js` | Backend payload generation, field metadata, filter normalization |
+| Features | `src/features/filters/`, `src/features/table/`, `src/features/history/`, `src/features/templates/` | User workflows grouped by product feature, with complex widgets split into focused view/helper modules |
+| Query history | `src/features/history/` | History shell split from request mapping, config loading, result hydration, row rendering, grouping, notifications, tooltips, and status mapping |
+| Filter workflows | `src/features/filters/` | Backend payload contracts, field metadata, condition validation, buildable-field construction, filter-pill rendering, and condition input/panel configuration |
+| Template workflows | `src/features/templates/` | Template shell split from models, state, repository, payloads, category actions/views, list/detail rendering, and view-state helpers |
+| UI feature folders | `src/ui/form-mode/`, `src/ui/field-picker/` | Larger UI workflows with dedicated shell, field-picker, query-preview, state helper, presentation, and interaction modules |
+| Table feature folders | `src/features/table/drag-drop/`, `src/features/table/virtual-table/`, `src/features/table/post-filters/`, `src/features/table/export/` | Result-table workflows grouped by behavior, with drag/drop split into column, resize, header-action, viewport, and interaction modules; virtual table measurement, row rendering, post-filter state, and split-column transforms split from the coordinator; post-filter value virtualization isolated from the overlay coordinator |
+| Shared UI | `src/ui/` | App shell rendering, shared selectors, modals, toasts, tooltips, date picker, field picker, and form mode |
+| Styles | `src/styles/app.css` plus feature CSS files | Feature-scoped styling with a single stylesheet entry |
 | Architecture config | `config/` | Forbidden browser globals, module budgets, and import-boundary rules |
 | Tests | `tests/architecture/`, `tests/unit/`, `tests/browser/` | Architecture checks, focused unit coverage, and browser smoke coverage |
 
 ## Folder Organization
 
-- `core/formatting/` owns value conversion, escaping, date/money formatting, tooltip formatting, and cell display formatting.
-- `core/` root owns app-wide state, services/actions, lifecycle, backend/query execution, browser primitives, and startup glue.
-- `table/` keeps the top-level table surface in `table/contextMenu.js` and groups complex table workflows into `drag-drop/`, `export/`, `post-filters/`, and `virtual-table/`.
-- `ui/` keeps shared UI systems at the root and groups larger workflows in `field-picker/` and `form-mode/`.
-- `filters/`, `history/`, and `templates/` are active feature folders; they should only gain subfolders if a workflow grows into multiple independently owned clusters.
-- `filters/condition-editor/` owns condition editor layout, input adapters, panel UI, interaction wiring, reset behavior, and bubble-shaped field controls. This keeps the retired standalone bubble-builder concept out of the top-level folder model.
+- `src/` owns the browser application source, keeping the repository root focused on deployment files, tooling, docs, and tests.
+- `src/core/` owns app-wide state, services/actions, lifecycle, backend/query execution, browser primitives, startup glue, and shared formatting helpers under `src/core/formatting/`.
+- `src/features/` owns product features: filters, history, table, and templates.
+- `src/features/table/` keeps the top-level table surface in `contextMenu.js` and groups complex table workflows into `drag-drop/`, `export/`, `post-filters/`, and `virtual-table/`.
+- `src/features/filters/condition-editor/` owns condition editor layout, input adapters, panel UI, interaction wiring, reset behavior, and bubble-shaped field controls. This keeps the retired standalone bubble-builder concept out of the top-level folder model.
+- `src/ui/` keeps shared UI systems at the root and groups larger workflows in `field-picker/` and `form-mode/`.
+- `src/styles/` owns the stylesheet entrypoint and feature CSS.
 
 ## Public Runtime Surface
 
-The project no longer exposes application APIs through `window.*`. Startup readiness is represented by the `data-query-app-modules-ready` attribute on the document root and the `query-app:modules-ready` DOM event from `appModules.js`.
+The project no longer exposes application APIs through `window.*`. Startup readiness is represented by the `data-query-app-modules-ready` attribute on the document root and the `query-app:modules-ready` DOM event from `src/appModules.js`.
 
 Rules now enforced:
 
@@ -87,7 +89,7 @@ Source modules still use clean ES import specifiers. Cache keys are applied at t
 
 `tests/architecture/architectureFitness.mjs` builds a static graph from ES imports and enforces these constraints:
 
-- Every application module must be reachable from `appModules.js`.
+- Every application module must be reachable from `src/appModules.js`.
 - Local imports must resolve to explicit `.js` modules inside the application source set.
 - Production package dependencies must be imported by application modules; unused runtime packages fail the gate.
 - Imports must follow the layer rules in `config/architectureRules.cjs`.

@@ -5,7 +5,7 @@ import {
   getDragScrollContainer,
   getVisibleHeaderTargets,
   isPointerWithinDropViewport
-} from '../../table/drag-drop/dragDropViewport.js';
+} from '../../src/features/table/drag-drop/dragDropViewport.js';
 import test from 'node:test';
 
 test('drag drop viewport', async () => {

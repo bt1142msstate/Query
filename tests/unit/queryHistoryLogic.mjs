@@ -5,16 +5,16 @@ import {
   mapRequestOperatorToUiOperator,
   mergeUiConfigWithRequest,
   resolveFieldNameFromSpecialPayload
-} from '../../history/queryHistoryRequestMapper.js';
-import { buildHistoryActiveFilters } from '../../history/queryHistoryConfigLoader.js';
-import { buildHistoryResultRows } from '../../history/queryHistoryResultsLoader.js';
-import { formatColumnsTooltip, formatHistoryFiltersTooltip } from '../../history/queryHistoryTooltips.js';
+} from '../../src/features/history/queryHistoryRequestMapper.js';
+import { buildHistoryActiveFilters } from '../../src/features/history/queryHistoryConfigLoader.js';
+import { buildHistoryResultRows } from '../../src/features/history/queryHistoryResultsLoader.js';
+import { formatColumnsTooltip, formatHistoryFiltersTooltip } from '../../src/features/history/queryHistoryTooltips.js';
 import {
   classifyQueryStatus,
   getPreferredHistorySection,
   getQueryStatusMeta
-} from '../../history/queryHistoryViewHelpers.js';
-import { createQueriesTableRowHtml } from '../../history/queryHistoryRows.js';
+} from '../../src/features/history/queryHistoryViewHelpers.js';
+import { createQueriesTableRowHtml } from '../../src/features/history/queryHistoryRows.js';
 import test from 'node:test';
 
 test('query history', async () => {

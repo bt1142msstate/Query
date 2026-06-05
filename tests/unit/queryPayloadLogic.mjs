@@ -6,9 +6,9 @@ test('query payload', async () => {
   window.setTimeout = setTimeout;
   window.clearTimeout = clearTimeout;
 
-  const { QueryChangeManager } = await import('../../core/queryState.js');
-  const { isValidDateValue, normalizeDateValue } = await import('../../core/formatting/dateValues.js');
-  const { fieldAliases, fieldDefs, getFieldFilterOperators, isFieldDisplayable } = await import('../../filters/fieldDefs.js');
+  const { QueryChangeManager } = await import('../../src/core/queryState.js');
+  const { isValidDateValue, normalizeDateValue } = await import('../../src/core/formatting/dateValues.js');
+  const { fieldAliases, fieldDefs, getFieldFilterOperators, isFieldDisplayable } = await import('../../src/features/filters/fieldDefs.js');
   const {
     buildBackendFilters,
     buildBackendQueryPayload,
@@ -18,7 +18,7 @@ test('query payload', async () => {
     mapFieldOperatorToUiCond,
     mapUiCondToFieldOperator,
     normalizeUiConfigFilters
-  } = await import('../../filters/queryPayload.js');
+  } = await import('../../src/features/filters/queryPayload.js');
 
   fieldDefs.clear();
   fieldAliases.clear();

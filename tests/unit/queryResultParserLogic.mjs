@@ -3,8 +3,8 @@ import {
   MULTI_VALUE_SEPARATOR,
   normalizeResultValue,
   parseQueryResultPayload
-} from '../../core/queryResultParser.js';
-import { registerDataFormatterFieldDefinitions } from '../../core/formatting/dataFormatters.js';
+} from '../../src/core/queryResultParser.js';
+import { registerDataFormatterFieldDefinitions } from '../../src/core/formatting/dataFormatters.js';
 import test from 'node:test';
 
 test('query result parser', async () => {

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { createStreamedQueryTextReader } from '../../core/queryStream.js';
+import { createStreamedQueryTextReader } from '../../src/core/queryStream.js';
 import test from 'node:test';
 
 test('query stream', async () => {

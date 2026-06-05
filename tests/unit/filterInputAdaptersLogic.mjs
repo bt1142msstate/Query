@@ -5,7 +5,7 @@ import {
   isConditionInputVisible,
   setConditionInputVisible,
   syncDatePickerNeverAvailability
-} from '../../filters/condition-editor/filterInputAdapters.js';
+} from '../../src/features/filters/condition-editor/filterInputAdapters.js';
 import test from 'node:test';
 
 test('filter input adapters', async () => {

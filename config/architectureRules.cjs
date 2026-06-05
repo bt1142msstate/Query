@@ -1,4 +1,4 @@
-const sourceEntries = ['appModules.js', 'core', 'filters', 'history', 'table', 'templates', 'ui'];
+const sourceEntries = ['src'];
 const maxModuleLines = 900;
 const runtimeBridgeUsageBudget = {
   maxDistinctMembers: 0,
@@ -104,92 +104,92 @@ const runtimeBridgeUsageBudget = {
 };
 
 const forbiddenWindowMemberReads = new Map([
-  ['AppState', 'Import from core/queryState.js instead of reading AppState from window'],
-  ['AppServices', 'Import from core/appServices.js instead of reading app service facade from window'],
-  ['AppUiActions', 'Import from core/appUiActions.js instead of reading UI action facade from window'],
-  ['BackendApi', 'Import from core/backendApi.js instead of reading the backend client from window'],
-  ['ClipboardUtils', 'Import from core/clipboard.js instead of reading clipboard helpers from window'],
-  ['DragDropColumnOps', 'Import from table/drag-drop/dragDropColumns.js or register with query state accessors instead of reading column ops from window'],
+  ['AppState', 'Import from src/core/queryState.js instead of reading AppState from window'],
+  ['AppServices', 'Import from src/core/appServices.js instead of reading app service facade from window'],
+  ['AppUiActions', 'Import from src/core/appUiActions.js instead of reading UI action facade from window'],
+  ['BackendApi', 'Import from src/core/backendApi.js instead of reading the backend client from window'],
+  ['ClipboardUtils', 'Import from src/core/clipboard.js instead of reading clipboard helpers from window'],
+  ['DragDropColumnOps', 'Import from src/features/table/drag-drop/dragDropColumns.js or register with query state accessors instead of reading column ops from window'],
   ['DragUtils', 'Keep drag data-transfer helpers local to the table drag/drop module instead of reading drag helpers from window'],
-  ['escapeRegExp', 'Import from core/formatting/dataFormatters.js instead of reading this formatter from window'],
-  ['formatDuration', 'Import from core/formatting/dataFormatters.js instead of reading this formatter from window'],
-  ['FilterValueUi', 'Import from filters/filterValueUi.js instead of reading filter value helpers from window'],
-  ['FormatUtils', 'Import from core/formatting/cellDisplayFormatting.js instead of reading format helpers from window'],
-  ['FormModeControls', 'Import from ui/form-mode/formModeControls.js instead of reading form controls from window'],
-  ['FormModeStateHelpers', 'Import from ui/form-mode/formModeStateHelpers.js instead of reading form state helpers from window'],
-  ['getFieldOutputSegments', 'Import from core/formatting/dataFormatters.js instead of reading this formatter from window'],
-  ['Icons', 'Import from core/icons.js instead of reading icon helpers from window'],
-  ['MoneyUtils', 'Import from core/formatting/moneyUtils.js instead of reading money helpers from window'],
-  ['onDOMReady', 'Import from core/domReady.js instead of reading DOM lifecycle helpers from window'],
-  ['OperatorLabels', 'Import from core/formatting/operatorLabels.js instead of reading operator labels from window'],
-  ['OperatorSelectUtils', 'Import from core/operatorSelectUtils.js instead of reading operator select helpers from window'],
-  ['parsePipeDelimitedRow', 'Import from core/formatting/dataFormatters.js instead of reading this formatter from window'],
-  ['QueryChangeManager', 'Import from core/queryState.js instead of reading query state mutations from window'],
-  ['QueryStateSubscriptions', 'Import from core/queryStateSubscriptions.js instead of reading query state subscriptions from window'],
-  ['QueryStateReaders', 'Import from core/queryState.js instead of reading query state selectors from window'],
-  ['SearchUI', 'Import from ui/searchUI.js instead of reading search helpers from window'],
-  ['SelectorControls', 'Import from ui/selectorControls.js instead of reading selector controls from window'],
-  ['SharedFieldPicker', 'Import from ui/field-picker/fieldPicker.js instead of reading shared field picker from window'],
-  ['TableBuilder', 'Import from table/virtual-table/tableBuilder.js instead of reading table builder helpers from window'],
-  ['TextMeasurement', 'Import from core/textMeasurement.js instead of reading text measurement helpers from window'],
-  ['TooltipManager', 'Import from core/formatting/tooltipFormatters.js for formatting or ui/tooltips.js for tooltip behavior instead of reading tooltip helpers from window'],
-  ['VisibilityUtils', 'Import from core/visibility.js instead of reading visibility helpers from window'],
-  ['dismissToastMessage', 'Import from core/toast.js instead of reading toast helpers from window'],
-  ['showToast', 'Import from core/toast.js instead of reading toast helpers from window'],
-  ['showToastMessage', 'Import from core/toast.js instead of reading toast helpers from window'],
-  ['toast', 'Import from core/toast.js instead of reading toast helpers from window'],
-  ['ValueFormatting', 'Import from core/formatting/valueFormatting.js instead of reading value-formatting helpers from window'],
-  ['buildBackendFilters', 'Import from filters/queryPayload.js instead of reading this helper from window'],
-  ['buildBackendQueryPayload', 'Import from filters/queryPayload.js instead of reading this helper from window'],
-  ['buildQueryUiConfig', 'Import from filters/queryPayload.js instead of reading this helper from window'],
-  ['formatFieldOperatorForDisplay', 'Import from filters/queryPayload.js instead of reading this helper from window'],
-  ['getNormalizedDisplayedFields', 'Import from filters/queryPayload.js instead of reading this helper from window'],
-  ['mapFieldOperatorToUiCond', 'Import from filters/queryPayload.js instead of reading this helper from window'],
-  ['mapUiCondToFieldOperator', 'Import from filters/queryPayload.js instead of reading this helper from window'],
-  ['normalizeUiConfigFilters', 'Import from filters/queryPayload.js instead of reading this helper from window']
+  ['escapeRegExp', 'Import from src/core/formatting/dataFormatters.js instead of reading this formatter from window'],
+  ['formatDuration', 'Import from src/core/formatting/dataFormatters.js instead of reading this formatter from window'],
+  ['FilterValueUi', 'Import from src/features/filters/filterValueUi.js instead of reading filter value helpers from window'],
+  ['FormatUtils', 'Import from src/core/formatting/cellDisplayFormatting.js instead of reading format helpers from window'],
+  ['FormModeControls', 'Import from src/ui/form-mode/formModeControls.js instead of reading form controls from window'],
+  ['FormModeStateHelpers', 'Import from src/ui/form-mode/formModeStateHelpers.js instead of reading form state helpers from window'],
+  ['getFieldOutputSegments', 'Import from src/core/formatting/dataFormatters.js instead of reading this formatter from window'],
+  ['Icons', 'Import from src/core/icons.js instead of reading icon helpers from window'],
+  ['MoneyUtils', 'Import from src/core/formatting/moneyUtils.js instead of reading money helpers from window'],
+  ['onDOMReady', 'Import from src/core/domReady.js instead of reading DOM lifecycle helpers from window'],
+  ['OperatorLabels', 'Import from src/core/formatting/operatorLabels.js instead of reading operator labels from window'],
+  ['OperatorSelectUtils', 'Import from src/core/operatorSelectUtils.js instead of reading operator select helpers from window'],
+  ['parsePipeDelimitedRow', 'Import from src/core/formatting/dataFormatters.js instead of reading this formatter from window'],
+  ['QueryChangeManager', 'Import from src/core/queryState.js instead of reading query state mutations from window'],
+  ['QueryStateSubscriptions', 'Import from src/core/queryStateSubscriptions.js instead of reading query state subscriptions from window'],
+  ['QueryStateReaders', 'Import from src/core/queryState.js instead of reading query state selectors from window'],
+  ['SearchUI', 'Import from src/ui/searchUI.js instead of reading search helpers from window'],
+  ['SelectorControls', 'Import from src/ui/selectorControls.js instead of reading selector controls from window'],
+  ['SharedFieldPicker', 'Import from src/ui/field-picker/fieldPicker.js instead of reading shared field picker from window'],
+  ['TableBuilder', 'Import from src/features/table/virtual-table/tableBuilder.js instead of reading table builder helpers from window'],
+  ['TextMeasurement', 'Import from src/core/textMeasurement.js instead of reading text measurement helpers from window'],
+  ['TooltipManager', 'Import from src/core/formatting/tooltipFormatters.js for formatting or src/ui/tooltips.js for tooltip behavior instead of reading tooltip helpers from window'],
+  ['VisibilityUtils', 'Import from src/core/visibility.js instead of reading visibility helpers from window'],
+  ['dismissToastMessage', 'Import from src/core/toast.js instead of reading toast helpers from window'],
+  ['showToast', 'Import from src/core/toast.js instead of reading toast helpers from window'],
+  ['showToastMessage', 'Import from src/core/toast.js instead of reading toast helpers from window'],
+  ['toast', 'Import from src/core/toast.js instead of reading toast helpers from window'],
+  ['ValueFormatting', 'Import from src/core/formatting/valueFormatting.js instead of reading value-formatting helpers from window'],
+  ['buildBackendFilters', 'Import from src/features/filters/queryPayload.js instead of reading this helper from window'],
+  ['buildBackendQueryPayload', 'Import from src/features/filters/queryPayload.js instead of reading this helper from window'],
+  ['buildQueryUiConfig', 'Import from src/features/filters/queryPayload.js instead of reading this helper from window'],
+  ['formatFieldOperatorForDisplay', 'Import from src/features/filters/queryPayload.js instead of reading this helper from window'],
+  ['getNormalizedDisplayedFields', 'Import from src/features/filters/queryPayload.js instead of reading this helper from window'],
+  ['mapFieldOperatorToUiCond', 'Import from src/features/filters/queryPayload.js instead of reading this helper from window'],
+  ['mapUiCondToFieldOperator', 'Import from src/features/filters/queryPayload.js instead of reading this helper from window'],
+  ['normalizeUiConfigFilters', 'Import from src/features/filters/queryPayload.js instead of reading this helper from window']
 ]);
 
 const legacyLargeModuleBudgets = new Map([]);
 
 const moduleBoundaryRules = [
   {
-    path: 'appModules.js',
+    path: 'src/appModules.js',
     allowedLayers: ['core', 'filters', 'history', 'templates', 'ui', 'table']
   },
   {
-    path: 'core/appUiActions.js',
+    path: 'src/core/appUiActions.js',
     allowedLayers: ['core', 'ui']
   },
   {
-    path: 'core/bootstrap.js',
+    path: 'src/core/bootstrap.js',
     allowedLayers: ['core', 'ui']
   },
   {
-    path: 'core/queryExecution.js',
+    path: 'src/core/queryExecution.js',
     allowedLayers: ['core', 'filters', 'ui']
   },
   {
-    prefix: 'core/',
+    prefix: 'src/core/',
     allowedLayers: ['core', 'filters']
   },
   {
-    prefix: 'filters/',
+    prefix: 'src/features/filters/',
     allowedLayers: ['core', 'filters', 'ui']
   },
   {
-    prefix: 'history/',
+    prefix: 'src/features/history/',
     allowedLayers: ['core', 'filters', 'history']
   },
   {
-    prefix: 'ui/',
+    prefix: 'src/ui/',
     allowedLayers: ['core', 'filters', 'ui']
   },
   {
-    prefix: 'table/',
+    prefix: 'src/features/table/',
     allowedLayers: ['core', 'filters', 'table', 'ui']
   },
   {
-    prefix: 'templates/',
+    prefix: 'src/features/templates/',
     allowedLayers: ['core', 'filters', 'templates']
   }
 ];

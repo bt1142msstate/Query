@@ -6,7 +6,7 @@ import {
   removeSpecFilterInputs,
   removeSpecInputByKey,
   resetFormSpecToEmptyQuery
-} from '../../ui/form-mode/formModeSpecMutations.js';
+} from '../../src/ui/form-mode/formModeSpecMutations.js';
 import test from 'node:test';
 
 test('form mode spec mutations', async () => {
