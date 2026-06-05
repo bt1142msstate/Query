@@ -13,6 +13,8 @@ This project is a static browser app organized as feature-oriented ES modules. T
 
 The former private runtime coordination layer has been removed. Feature coordination now goes through ES imports plus explicit service/action registration.
 
+Current product status and remaining roadmap items are tracked in `docs/ROADMAP.md`.
+
 ## Runtime Flow
 
 1. `index.html` loads vendor scripts, fetches `cache-bust.json` with `cache: no-store`, versions the app stylesheet/module entry, and registers the root service worker for same-origin app assets.
