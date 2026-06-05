@@ -79,6 +79,7 @@ The table also supports sorting, expand/collapse layout, manual column resizing 
 | `config/` | Shared architecture contracts for forbidden browser globals and module boundaries |
 | `docs/ARCHITECTURE.md` | Frontend architecture notes, quality gates, and refactor plan |
 | `docs/INTEGRATION.md` | Backend integration contract, JSON result formats, legacy compatibility, and deployment options |
+| `docs/ROADMAP.md` | Current project status, completed milestones, and remaining roadmap items |
 | `tests/architecture/` | Architecture fitness and module-specifier checks |
 | `tests/unit/` | Focused pure-logic unit tests |
 | `tests/browser/` | Playwright browser smoke coverage |
@@ -146,8 +147,9 @@ The accepted aliases are `columns`/`headers`/`fields` for columns and `rows`/`re
 
 ## Architecture
 
-See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for module boundaries, runtime flow, quality gates, and the remaining compatibility layer.
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for module boundaries, runtime flow, quality gates, and architecture guardrails.
 See [`docs/INTEGRATION.md`](docs/INTEGRATION.md) for the supported backend integration patterns.
+See [`docs/ROADMAP.md`](docs/ROADMAP.md) for current status, completed milestones, and remaining roadmap items.
 
 ## Quality Checks
 
@@ -186,6 +188,14 @@ npm run cache:bust
 
 ## Roadmap
 
-- Runtime UI for configuring API endpoints without editing source or URL parameters
-- Continue splitting the remaining large legacy modules into smaller feature modules
-- Add focused unit tests for form-mode schema parsing and query-state lifecycle edge cases
+Current status: the frontend architecture, ES module migration, source-tree organization, mobile/tablet pass, cache-busting enforcement, backend-driven field contract, JSON result support, large Excel export, and modernized test suite are in place.
+
+Remaining work is mostly integration and polish:
+
+- Add a first-class API settings screen so users can connect their own backend without editing source or URL parameters.
+- Remove project-owned API usage from the public live default and make bring-your-own-API the primary deployment path.
+- Add deployment examples for compatible APIs, including CORS/auth, field metadata, result JSON, history, cancel, and template persistence.
+- Continue adding realistic browser interaction coverage when new workflow bugs are found.
+- Keep reviewing large coordinator modules as features change, but only split them when a real ownership boundary appears.
+
+See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the detailed milestone/status table.

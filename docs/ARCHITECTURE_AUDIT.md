@@ -2,6 +2,8 @@
 
 This audit checks whether the frontend is split at useful ownership boundaries without creating avoidable one-off modules.
 
+Current product status and remaining roadmap items are tracked in `docs/ROADMAP.md`.
+
 ## Current Finding
 
 The module graph is appropriately split for the current raw JavaScript architecture. The remaining large files are feature coordinators that delegate stable logic to focused modules. The small modules that remain have a clear purpose: shared pure helpers, worker boundaries, DOM adapters, service registration, or unit-tested behavior.
