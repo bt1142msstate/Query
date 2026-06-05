@@ -1,7 +1,7 @@
 /* Modular stylesheet hub */
 @import url("./base.css?v=5cd4d75ed96df06f");
 @import url("./help.css?v=b94827718f727813");
-@import url("./bubbles.css?v=88e24a35ae7497a1");
+@import url("./condition-editor.css?v=c3151b483e049c2e");
 @import url("./filters.css?v=9a0f72aec9cace0d");
 @import url("./form-mode.css?v=390b35de077fd343");
 @import url("./table.css?v=64382bc51aaa0455");

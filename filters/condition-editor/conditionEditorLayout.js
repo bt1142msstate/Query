@@ -1,5 +1,5 @@
-import { registerAppUiActionDependencies } from '../core/appUiActions.js';
-import { DOM } from '../core/domCache.js';
+import { registerAppUiActionDependencies } from '../../core/appUiActions.js';
+import { DOM } from '../../core/domCache.js';
 /* Keep the condition input capsule aligned above the active editor controls. */
 function positionInputWrapper() {
   const inputWrapper = DOM.inputWrapper;

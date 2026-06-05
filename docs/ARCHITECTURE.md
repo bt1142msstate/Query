@@ -43,7 +43,7 @@ The full backend integration contract is documented in `docs/INTEGRATION.md`.
 | Services/actions | `core/appServices.js`, `core/appUiActions.js` | Cross-feature coordination without direct feature coupling |
 | Core utilities | `core/formatting/`, `core/*Utils.js`, `core/textMeasurement.js` | Focused helpers imported from their owning modules instead of a mixed utility facade |
 | Data contract | `filters/queryPayload.js`, `filters/fieldDefs.js` | Backend payload generation, field metadata, filter normalization |
-| Feature UI | `ui/`, `filters/`, `table/`, `history/`, `templates/`, `bubbles/` | User workflows and rendering, with complex widgets split into focused view/helper modules. `bubbles/` is compatibility UI for the current filter-card editor, not a separate builder mode |
+| Feature UI | `ui/`, `filters/`, `table/`, `history/`, `templates/` | User workflows and rendering, with complex widgets split into focused view/helper modules. The condition editor lives under `filters/condition-editor/`, not as a separate builder mode |
 | Query history | `history/` | History shell split from request mapping, config loading, result hydration, row rendering, grouping, notifications, tooltips, and status mapping |
 | Filter workflows | `filters/` | Backend payload contracts, field metadata, condition validation, buildable-field construction, filter-pill rendering, and condition input/panel configuration |
 | Template workflows | `templates/` | Template shell split from models, state, repository, payloads, category actions/views, list/detail rendering, and view-state helpers |
@@ -60,7 +60,7 @@ The full backend integration contract is documented in `docs/INTEGRATION.md`.
 - `table/` keeps the top-level table surface in `table/contextMenu.js` and groups complex table workflows into `drag-drop/`, `export/`, `post-filters/`, and `virtual-table/`.
 - `ui/` keeps shared UI systems at the root and groups larger workflows in `field-picker/` and `form-mode/`.
 - `filters/`, `history/`, and `templates/` are active feature folders; they should only gain subfolders if a workflow grows into multiple independently owned clusters.
-- `bubbles/` remains as legacy filter-card presentation code while the condition editor still depends on it. It should not grow new builder-mode behavior.
+- `filters/condition-editor/` owns condition editor layout, input adapters, panel UI, interaction wiring, reset behavior, and bubble-shaped field controls. This keeps the retired standalone bubble-builder concept out of the top-level folder model.
 
 ## Public Runtime Surface
 

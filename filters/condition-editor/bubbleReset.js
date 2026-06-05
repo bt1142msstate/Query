@@ -1,7 +1,7 @@
-import { appServices } from '../core/appServices.js';
-import { AppState } from '../core/queryState.js';
+import { appServices } from '../../core/appServices.js';
+import { AppState } from '../../core/queryState.js';
 import { registerBubbleResetService } from './bubble.js';
-import { fieldDefs, shouldFieldHavePurpleStyling } from '../filters/fieldDefs.js';
+import { fieldDefs, shouldFieldHavePurpleStyling } from '../fieldDefs.js';
 
 var services = appServices;
 

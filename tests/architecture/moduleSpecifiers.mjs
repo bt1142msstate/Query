@@ -1,19 +1,14 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
 test('module specifiers', async () => {
   const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-  const sourceEntries = [
-    'appModules.js',
-    'index.html',
-    'bubbles',
-    'core',
-    'filters',
-    'table',
-    'ui'
-  ];
+  const require = createRequire(import.meta.url);
+  const { sourceEntries: appSourceEntries } = require('../../config/architectureRules.cjs');
+  const sourceEntries = ['index.html', ...appSourceEntries];
 
   const moduleSpecifierPattern = /(?:\bimport\s*(?:\([\s\n\r]*|[^'"]*?\bfrom\s*)|\bexport\s+[^'"]*?\bfrom\s*|<script\b[^>]*\btype=["']module["'][^>]*\bsrc=)\s*["']([^"']+)["']/gu;
   const cacheBustedScriptPattern = /<script\b[^>]*\btype=["']module["'][^>]*\bsrc=["'][^"']+[?#][^"']*["']/giu;

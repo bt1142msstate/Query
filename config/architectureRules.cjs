@@ -1,4 +1,4 @@
-const sourceEntries = ['appModules.js', 'bubbles', 'core', 'filters', 'history', 'table', 'templates', 'ui'];
+const sourceEntries = ['appModules.js', 'core', 'filters', 'history', 'table', 'templates', 'ui'];
 const maxModuleLines = 900;
 const runtimeBridgeUsageBudget = {
   maxDistinctMembers: 0,
@@ -130,7 +130,7 @@ const forbiddenWindowMemberReads = new Map([
   ['SearchUI', 'Import from ui/searchUI.js instead of reading search helpers from window'],
   ['SelectorControls', 'Import from ui/selectorControls.js instead of reading selector controls from window'],
   ['SharedFieldPicker', 'Import from ui/field-picker/fieldPicker.js instead of reading shared field picker from window'],
-  ['TableBuilder', 'Import from core/tableBuilder.js instead of reading table builder helpers from window'],
+  ['TableBuilder', 'Import from table/virtual-table/tableBuilder.js instead of reading table builder helpers from window'],
   ['TextMeasurement', 'Import from core/textMeasurement.js instead of reading text measurement helpers from window'],
   ['TooltipManager', 'Import from core/formatting/tooltipFormatters.js for formatting or ui/tooltips.js for tooltip behavior instead of reading tooltip helpers from window'],
   ['VisibilityUtils', 'Import from core/visibility.js instead of reading visibility helpers from window'],
@@ -154,7 +154,7 @@ const legacyLargeModuleBudgets = new Map([]);
 const moduleBoundaryRules = [
   {
     path: 'appModules.js',
-    allowedLayers: ['core', 'filters', 'history', 'templates', 'ui', 'table', 'bubbles']
+    allowedLayers: ['core', 'filters', 'history', 'templates', 'ui', 'table']
   },
   {
     path: 'core/appUiActions.js',
@@ -191,10 +191,6 @@ const moduleBoundaryRules = [
   {
     prefix: 'templates/',
     allowedLayers: ['core', 'filters', 'templates']
-  },
-  {
-    prefix: 'bubbles/',
-    allowedLayers: ['core', 'filters', 'ui', 'bubbles']
   }
 ];
 
