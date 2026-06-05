@@ -127,6 +127,7 @@ class ModalManager {
     const panel = document.getElementById(panelId);
     if (!panel) return;
 
+    window.dispatchEvent(new CustomEvent('query-app:hide-tooltips'));
     panel.classList.remove('hidden');
     if (panelId === 'mobile-menu-dropdown') {
       this.rebuildMobileMenu();
