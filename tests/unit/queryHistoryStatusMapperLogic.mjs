@@ -20,6 +20,18 @@ test('query history status mapper', async () => {
         name: 'Running query',
         status: 'running',
         start_time: '2026-05-24 12:00:00',
+        progress: {
+          stage: 'loading_dynamic_fields',
+          label: 'Loading requested field values',
+          detail: 'Preparing additional result fields',
+          current: '250',
+          total: 1000,
+          unit: 'records',
+          counters: {
+            candidate_rows: 1000,
+            lookup_keys: '300'
+          }
+        },
         request: {
           name: 'Fallback name',
           ui_config: { DesiredColumnOrder: ['User ID'] }
@@ -55,6 +67,22 @@ test('query history status mapper', async () => {
   assert.equal(rows[0].duration, '30s...');
   assert.equal(rows[0].resultCount, '-');
   assert.equal(rows[0].jsonConfig.source, 'ui_config');
+  assert.deepEqual(rows[0].progress, {
+    schemaVersion: 1,
+    stage: 'loading_dynamic_fields',
+    label: 'Loading requested field values',
+    detail: 'Preparing additional result fields',
+    current: 250,
+    total: 1000,
+    percent: 25,
+    unit: 'records',
+    counters: {
+      candidate_rows: 1000,
+      lookup_keys: 300
+    },
+    updatedAt: '',
+    updatedEpoch: null
+  });
 
   assert.equal(rows[1].name, 'Completed from request');
   assert.equal(rows[1].running, false);
