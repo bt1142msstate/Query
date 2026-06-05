@@ -29,7 +29,7 @@ import {
     isConditionInputVisible as isConditionInputVisibleAdapter,
     setConditionInputVisible as setConditionInputVisibleAdapter,
     syncDatePickerNeverAvailability as syncDatePickerNeverAvailabilityForInputs
-} from './filterInputAdapters.js';
+} from './condition-editor/filterInputAdapters.js';
 import { createFilterPillElement, createPostFilterPillElement } from './filterPills.js';
 import { createBuildableFilterFieldHandlers, isOptionalBuilderInput } from './buildableFilterFields.js';
 import {
@@ -37,7 +37,7 @@ import {
     removeConditionPanelNote as removePanelNote,
     showFilterError as showPanelFilterError,
     showConditionPanelNote as showPanelNote
-} from './filterConditionPanelUi.js';
+} from './condition-editor/filterConditionPanelUi.js';
 
 /**
  * FilterPill UI component class

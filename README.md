@@ -60,9 +60,9 @@ The table also supports sorting, expand/collapse layout, manual column resizing 
 
 | Path | Purpose |
 | --- | --- |
-| `bubbles/` | Legacy filter-card visuals retained for compatibility with the current condition editor |
 | `core/` | Query execution, state management, service facades, and shared utilities |
 | `filters/` | Field definitions and filter/payload logic |
+| `filters/condition-editor/` | Condition editor layout, input adapters, panel UI, and bubble-shaped field controls |
 | `history/` | Query history rendering, request mapping, status grouping, and detail overlays |
 | `table/` | Result rendering, virtual scrolling, drag/drop, post filters, and Excel export |
 | `table/drag-drop/` | Column drag/drop, duplicate column restoration, and resize coordination |

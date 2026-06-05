@@ -9,7 +9,6 @@ const sourceEntries = [
   'index.html',
   'appModules.js',
   'backgroundNotificationServiceWorker.js',
-  'bubbles',
   'core',
   'filters',
   'history',

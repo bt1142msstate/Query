@@ -10,8 +10,8 @@ The module graph is appropriately split for the current raw JavaScript architect
 
 - Added `core/formatting/` for shared date, money, value, tooltip, cell-display, escaping, and data-formatting helpers.
 - Kept `core/` root for app-wide state, services, lifecycle, backend/query execution, browser primitives, and startup glue.
-- Left `filters/`, `history/`, and `templates/` flat because each is already a feature folder with cohesive module names.
-- Kept `bubbles/` flat as legacy filter-card presentation code only; the standalone bubble builder mode has been retired.
+- Left `history/` and `templates/` flat because each is already a feature folder with cohesive module names.
+- Added `filters/condition-editor/` for condition editor layout, input adapters, panel UI, and bubble-shaped field controls; the standalone bubble builder mode has been retired, so there is no top-level `bubbles/` feature folder.
 - Kept existing `table/drag-drop/`, `table/export/`, `table/post-filters/`, `table/virtual-table/`, `ui/field-picker/`, and `ui/form-mode/` subfolders because those areas have enough internal workflow complexity to justify subfolders.
 
 ## Consolidation Completed

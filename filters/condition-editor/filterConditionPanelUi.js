@@ -1,4 +1,4 @@
-import { escapeHtml } from '../core/formatting/html.js';
+import { escapeHtml } from '../../core/formatting/html.js';
 
 export function getPreferredCondition(conditions, fieldName, getFilterGroupForField) {
   const available = Array.isArray(conditions) ? conditions.filter(Boolean) : [];
