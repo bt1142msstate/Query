@@ -6,6 +6,7 @@ import { BackendApi } from './backendApi.js';
 import { notifyBackgroundTaskComplete, prepareBackgroundTaskNotification } from './backgroundTaskNotifications.js';
 import { parseQueryResultPayload } from './queryResultParser.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from './queryState.js';
+import { assertQueryRunStreamResponse } from './queryRunResponse.js';
 import { createStreamedQueryTextReader } from './queryStream.js';
 import { appServices, registerQueryExecutionService } from './appServices.js';
 import { appUiActions } from './appUiActions.js';
@@ -201,6 +202,7 @@ if (execDom.runBtn) {
         console.log('Sending query payload:', payload);
 
         const response = await BackendApi.request(payload, { keepalive: true });
+        await assertQueryRunStreamResponse(response, BackendApi);
 
         // Capture Query ID and register in history
         const responseQueryId = response.headers.get('X-Query-Id');
@@ -222,10 +224,6 @@ if (execDom.runBtn) {
           // Start external polling for status
           services.startHistoryDurationUpdates();
           startActiveQueryStatusPolling(responseQueryId);
-        }
-
-        if (!response.ok) {
-          throw new Error(`Server error: ${response.status} ${response.statusText}`);
         }
 
         showToastMessage('Connected — streaming results…', 'info');
