@@ -2,7 +2,10 @@
 
 # Item Query Project
 
-A browser-based report builder for library data.
+A static frontend for backend-driven item queries, virtualized results, and Excel export.
+
+[![Test](https://github.com/bt1142msstate/Query/actions/workflows/lint.yml/badge.svg)](https://github.com/bt1142msstate/Query/actions/workflows/lint.yml)
+[![Live site](https://img.shields.io/badge/live-GitHub%20Pages-2ea44f?logo=github)](https://bt1142msstate.github.io/Query/)
 
 </div>
 
