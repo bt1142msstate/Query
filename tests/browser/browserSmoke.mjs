@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { dirname, extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import test from 'node:test';
 import { chromium } from 'playwright';
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -4643,7 +4644,6 @@ async function runSmokeTest() {
       throw new Error(`Browser smoke test failed:\n${failures.map(failure => `- ${failure}`).join('\n')}`);
     }
 
-    console.log(`Browser smoke test passed: ${baseUrl}`);
   } finally {
     if (browser) {
       await browser.close();
@@ -4652,7 +4652,4 @@ async function runSmokeTest() {
   }
 }
 
-runSmokeTest().catch(error => {
-  console.error(error.stack || error.message);
-  process.exitCode = 1;
-});
+test('browser smoke', { timeout: 120000 }, runSmokeTest);

@@ -107,10 +107,11 @@ npm test
 That runs:
 
 - `npm run lint`: syntax, globals, module rules, query-state boundaries.
-- `npm run test:architecture`: architecture fitness checks, legacy module budgets, forbidden browser globals, import graph reachability, import cycles, layer boundaries, and the hardcoded-field integration guard.
-- `npm run test:modules`: canonical ES module specifiers.
+- `npm run test:architecture`: architecture fitness checks, legacy module budgets, forbidden browser globals, import graph reachability, import cycles, layer boundaries, canonical ES module specifiers, cache-stable import paths, and the hardcoded-field integration guard.
 - `npm run test:unit`: focused pure-logic tests for query-history status, request mapping, row output, backend payload contracts, and table transforms.
 - `npm run test:browser`: Playwright smoke test for runtime behavior and key UI styling.
+
+All `.mjs` tests run through Node's built-in test runner with explicit test names. See `tests/README.md` for the test-layer standards and redundancy rules.
 
 ## Legacy Budgets
 
