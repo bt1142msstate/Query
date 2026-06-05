@@ -6,6 +6,7 @@ import { createQueryFieldPickerIntegration } from './fieldPickerQueryIntegration
 import { initializeSearchInputs } from '../searchUI.js';
 import { VirtualList } from '../virtualList.js';
 import { fieldDefs, fieldDefsArray, isFieldBackendFilterable, isFieldDisplayable } from '../../features/filters/fieldDefs.js';
+import { getFieldPerformanceWarning } from '../../features/filters/fieldWarnings.js';
 let SharedFieldPicker;
 
 (function() {
@@ -27,6 +28,7 @@ let SharedFieldPicker;
           : true,
         desc: typeof fieldDef.desc === 'string' ? fieldDef.desc : '',
         description: typeof fieldDef.description === 'string' ? fieldDef.description : '',
+        performanceWarning: getFieldPerformanceWarning(fieldDef),
         category: Array.isArray(fieldDef.category)
           ? fieldDef.category.filter(Boolean).join(', ')
           : String(fieldDef.category || ''),
@@ -124,6 +126,7 @@ let SharedFieldPicker;
             <button type="button" class="form-mode-field-picker-field-info hidden" aria-label="Show field details">i</button>
           </div>
           <p class="form-mode-field-picker-field-meta hidden"></p>
+          <p class="form-mode-field-picker-warning hidden" data-field-picker-warning></p>
           ${allowDisplay && config.showDisplayChoice !== false ? `<label class="form-mode-field-picker-choice"><input type="checkbox" data-field-picker-choice="display" /><span>${labels.displayChoice}</span></label>` : ''}
           ${allowFilter && !autoAddFilterFromPreview ? `<label class="form-mode-field-picker-choice"><input type="checkbox" data-field-picker-choice="filter" /><span>${labels.filterChoice}</span></label>` : ''}
           ${allowFilter && typeof config.renderFilterPreview === 'function' ? `<div class="form-mode-field-picker-filter-preview hidden" data-field-picker-filter-preview>
@@ -148,6 +151,7 @@ let SharedFieldPicker;
     const fieldNameEl = modal.querySelector('.form-mode-field-picker-field-name');
     const fieldInfoEl = modal.querySelector('.form-mode-field-picker-field-info');
     const fieldMetaEl = modal.querySelector('.form-mode-field-picker-field-meta');
+    const fieldWarningEl = modal.querySelector('[data-field-picker-warning]');
     const statusEl = modal.querySelector('.form-mode-field-picker-status');
     const displayChoice = modal.querySelector('[data-field-picker-choice="display"]');
     const filterChoice = modal.querySelector('[data-field-picker-choice="filter"]');
@@ -167,6 +171,7 @@ let SharedFieldPicker;
     let searchTerm = '';
     let selectedCategory = '';
     let syncingControls = false;
+    const shownPerformanceWarnings = new Set();
 
     const categories = options
       .flatMap(option => String(option.category || '')
@@ -271,6 +276,9 @@ let SharedFieldPicker;
         }
         if (allowDisplay && !isOptionDisplayable(option)) {
           badges.push('<span class="form-mode-field-picker-badge form-mode-field-picker-badge--muted">Build first</span>');
+        }
+        if (getFieldPerformanceWarning(option)) {
+          badges.push('<span class="form-mode-field-picker-badge form-mode-field-picker-badge--warning">May take longer</span>');
         }
 
         const badgesEl = button.querySelector('.form-mode-field-picker-option-badges');
@@ -465,6 +473,19 @@ let SharedFieldPicker;
         : 'No changes for this field.';
     }
 
+    function showPerformanceWarningToast(option, action) {
+      const warning = getFieldPerformanceWarning(option);
+      if (!warning) return;
+
+      const fieldName = String(option?.name || selectedFieldName || '').trim();
+      const key = `${fieldName}:${action}:${warning.message}`;
+      if (shownPerformanceWarnings.has(key)) return;
+
+      shownPerformanceWarnings.add(key);
+      const level = warning.level === 'info' ? 'info' : 'warning';
+      showToastMessage(`${fieldName}: ${warning.message}`, level, 8500);
+    }
+
     function syncDetails() {
       if (!fieldNameEl || !fieldMetaEl || !statusEl) {
         return;
@@ -479,6 +500,10 @@ let SharedFieldPicker;
         }
         fieldMetaEl.textContent = '';
         fieldMetaEl.classList.add('hidden');
+        if (fieldWarningEl) {
+          fieldWarningEl.textContent = '';
+          fieldWarningEl.classList.add('hidden');
+        }
         statusEl.textContent = 'No field selected.';
         clearFilterPreview();
         return;
@@ -498,6 +523,11 @@ let SharedFieldPicker;
       }
       fieldMetaEl.textContent = '';
       fieldMetaEl.classList.add('hidden');
+      if (fieldWarningEl) {
+        const warning = getFieldPerformanceWarning(selected);
+        fieldWarningEl.textContent = warning?.message || '';
+        fieldWarningEl.classList.toggle('hidden', !warning);
+      }
 
       syncStatusTextOnly(selected);
       syncFilterPreview();
@@ -543,6 +573,9 @@ let SharedFieldPicker;
       }
 
       selectedFieldName = fieldName;
+      if (nextChecked) {
+        showPerformanceWarningToast(selected, 'display');
+      }
       const result = await config.onDisplayChange(fieldName, nextChecked, { cleanup, modal, trigger: options.trigger });
       await handlePickerActionResult(result);
 
@@ -572,6 +605,9 @@ let SharedFieldPicker;
       }
 
       selectedFieldName = fieldName;
+      if (nextChecked) {
+        showPerformanceWarningToast(selected, 'filter');
+      }
       const result = await config.onFilterChange(fieldName, nextChecked, {
         cleanup,
         modal,
@@ -656,6 +692,9 @@ let SharedFieldPicker;
       }
       if (allowDisplay && !isOptionDisplayable(option)) {
         badges.push('<span class="form-mode-field-picker-badge form-mode-field-picker-badge--muted">Build first</span>');
+      }
+      if (getFieldPerformanceWarning(option)) {
+        badges.push('<span class="form-mode-field-picker-badge form-mode-field-picker-badge--warning">May take longer</span>');
       }
 
       const nameSpan = document.createElement('span');

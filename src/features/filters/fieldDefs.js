@@ -345,6 +345,9 @@ function registerDynamicField(fieldName, opts = {}) {
     'numericFormat',
     'operators',
     'parts',
+    'fieldWarning',
+    'performanceWarning',
+    'retrievalWarning',
     'values'
   ].forEach(key => {
     if (opts[key] !== undefined) {

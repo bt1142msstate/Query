@@ -920,6 +920,11 @@
   color: #64748b;
 }
 
+.form-mode-field-picker-badge--warning {
+  background: rgba(245, 158, 11, 0.14);
+  color: #92400e;
+}
+
 .form-mode-field-picker-option.is-display-disabled {
   border-style: dashed;
 }
@@ -995,6 +1000,17 @@
 
 .form-mode-field-picker-field-meta {
   margin-top: -0.15rem;
+}
+
+.form-mode-field-picker-warning {
+  margin: 0;
+  padding: 0.72rem 0.82rem;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: 0.75rem;
+  background: rgba(255, 251, 235, 0.9);
+  color: #78350f;
+  font-size: 0.86rem;
+  line-height: 1.42;
 }
 
 .form-mode-field-picker-empty {
