@@ -127,4 +127,4 @@ function initializeMobileScrollLock() {
 
 initializeMobileScrollLock();
 
-export { initializeMobileScrollLock, syncMobileScrollLock };
+export { syncMobileScrollLock };

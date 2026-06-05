@@ -10,7 +10,7 @@ export function mapStatusPayloadToHistoryRows(payload, dependencies = {}) {
     .map(serverQuery => mapServerQueryToHistoryRow(serverQuery, dependencies));
 }
 
-export function mapServerQueryToHistoryRow(serverQuery, dependencies = {}) {
+function mapServerQueryToHistoryRow(serverQuery, dependencies = {}) {
   const {
     buildUiConfigFromRequest,
     classifyQueryStatus,

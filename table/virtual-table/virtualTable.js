@@ -7,7 +7,7 @@
 import { appServices, registerTableService } from '../../core/appServices.js';
 import { appUiActions } from '../../core/appUiActions.js';
 import { QueryChangeManager, QueryStateReaders } from '../../core/queryState.js';
-import { TableBuilder } from '../../core/tableBuilder.js';
+import { TableBuilder } from './tableBuilder.js';
 import { TextMeasurement } from '../../core/textMeasurement.js';
 import { ValueFormatting } from '../../core/formatting/valueFormatting.js';
 import { parseNumericValue } from '../post-filters/postFilterLogic.js';

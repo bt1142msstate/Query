@@ -308,4 +308,4 @@ function attachPointerReorder({
   element.addEventListener('pointercancel', cleanup);
 }
 
-export { attachPointerReorder, clearReorderIndicators, getInsertAfter };
+export { attachPointerReorder, clearReorderIndicators };

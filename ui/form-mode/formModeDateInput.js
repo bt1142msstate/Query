@@ -133,7 +133,6 @@ function createFormModeDateInputState(input, options = {}) {
 }
 
 export {
-  FORM_MODE_DATE_IDLE_MS,
   createFormModeDateInputState,
   resolveDateValue
 };

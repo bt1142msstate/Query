@@ -1,13 +1,13 @@
 /**
  * Custom Tooltip Component
  * Provides intelligent tooltip positioning and behavior for elements with data-tooltip attributes.
- * @module TooltipManager
+ * @module Tooltips
  */
 /**
  * Tooltip manager handling tooltip creation, positioning, and lifecycle.
- * @namespace TooltipManager
+ * @namespace Tooltips
  */
-const TooltipManager = (() => {
+(() => {
   const TOOLTIP_SELECTOR = '[data-tooltip], [data-tooltip-html]';
   const TOOLTIP_DELAY_ATTR = 'data-tooltip-delay';
   const HOVER_SHOW_DELAY_MS = 2500;
@@ -113,7 +113,7 @@ const TooltipManager = (() => {
   /**
    * Creates the tooltip DOM element and arrow.
    * @function createTooltip
-   * @memberof TooltipManager
+   * @memberof Tooltips
    */
   function createTooltip() {
     tooltipEl = document.createElement('div');
@@ -172,7 +172,7 @@ const TooltipManager = (() => {
   /**
    * Shows a tooltip for the specified target element.
    * @function showTooltip
-   * @memberof TooltipManager
+   * @memberof Tooltips
    * @param {HTMLElement} target - The element to show tooltip for
    * @param {string} text - The tooltip text to display
    * @param {Event} [event] - Optional mouse event for positioning
@@ -233,7 +233,7 @@ const TooltipManager = (() => {
   /**
    * Hides the currently visible tooltip with a delay.
    * @function hideTooltip
-   * @memberof TooltipManager
+   * @memberof Tooltips
    */
   function hideTooltip() {
     if (!tooltipEl) return;
@@ -256,7 +256,7 @@ const TooltipManager = (() => {
   /**
    * Immediately hides the tooltip without delay.
    * @function forceHide
-   * @memberof TooltipManager
+   * @memberof Tooltips
    */
   function forceHide() {
     clearShowTimeout();
@@ -274,7 +274,7 @@ const TooltipManager = (() => {
    * Positions the tooltip relative to the target element.
    * Handles viewport boundary detection and arrow positioning.
    * @function positionTooltip
-   * @memberof TooltipManager
+   * @memberof Tooltips
    * @param {HTMLElement} target - The target element
    * @param {Event} [event] - Optional mouse event for cursor-following
    */
@@ -321,7 +321,7 @@ const TooltipManager = (() => {
    * Attaches global event listeners for tooltip functionality.
    * Handles mouse events, focus events, drag events, and keyboard shortcuts.
    * @function attach
-   * @memberof TooltipManager
+   * @memberof Tooltips
    */
   function attach() {
     document.addEventListener('mouseover', e => {
@@ -442,11 +442,4 @@ const TooltipManager = (() => {
     });
   }
   attach();
-  return {
-    forceHide,
-    hide: hideTooltip,
-    show: showTooltip
-  };
 })();
-
-export { TooltipManager };

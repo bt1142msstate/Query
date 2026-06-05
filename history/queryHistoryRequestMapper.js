@@ -276,7 +276,6 @@ export {
   appendUniqueColumn,
   buildUiConfigFromRequest,
   deriveTemplateBindings,
-  escapeRegExpFallback,
   mapRequestOperatorToUiOperator,
   mergeUiConfigWithRequest,
   resolveFieldNameFromSpecialPayload,

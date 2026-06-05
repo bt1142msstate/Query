@@ -121,7 +121,6 @@ function formatTimestamp(value) {
 export {
   cloneTemplate,
   formatTimestamp,
-  getTemplateId,
   normalizeCategory,
   normalizeCategoryList,
   normalizeTemplate,

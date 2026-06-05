@@ -54,5 +54,3 @@ function initializeMobileEditorFocus() {
 }
 
 initializeMobileEditorFocus();
-
-export { initializeMobileEditorFocus };

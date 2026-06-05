@@ -572,4 +572,4 @@ const QueryPrevalidation = Object.freeze({
 
 registerQueryStateRuntimeAccessors({ getPrevalidation: () => QueryPrevalidation });
 
-export { QueryPrevalidation, buildNextState, validateQueryChange };
+export { buildNextState, validateQueryChange };

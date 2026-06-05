@@ -138,7 +138,6 @@ async function notifyBackgroundTaskComplete({
 }
 
 export {
-  isPageUnfocusedForBackgroundTaskNotification,
   notifyBackgroundTaskComplete,
   prepareBackgroundTaskNotification
 };

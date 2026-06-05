@@ -211,7 +211,6 @@ function getInputSignature(inputSpec) {
 
 export {
   assignInputSpecDefaultValues,
-  buildGeneratedInputSpecFromFilter,
   buildGeneratedInputSpecsFromActiveFilters,
   clearInputSpecDefaultValue,
   getDisplayableFormColumns,
