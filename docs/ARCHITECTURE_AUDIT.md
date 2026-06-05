@@ -42,6 +42,6 @@ These files are still relatively large, but their current role is coordination: 
 
 ## Guardrails
 
-- `npm test` runs lint, architecture fitness, module specifier checks, unit tests, and browser smoke coverage.
+- `npm test` runs lint, Node test-runner architecture checks, unit tests, and browser smoke coverage. Module-specifier checks are part of the architecture suite.
 - The architecture fitness test enforces reachability from `appModules.js`, explicit `.js` imports, no import cycles, layer boundaries, no app `window.*` bridge exports, no former bridge reads, and no unused production dependencies.
 - `config/architectureRules.cjs` has no legacy large-module exceptions.

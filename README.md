@@ -154,18 +154,20 @@ See [`docs/INTEGRATION.md`](docs/INTEGRATION.md) for the supported backend integ
 npm test
 ```
 
-Runs the cache-busting manifest check, lint, architecture fitness checks, the hardcoded-field integration guard, module-specifier checks, focused unit tests, and desktop/mobile browser smoke tests.
+Runs the cache-busting manifest check, lint, Node test-runner architecture checks, focused unit tests, and desktop/mobile browser smoke tests. The architecture suite includes module-specifier checks and the hardcoded-field integration guard.
 
 Individual checks:
 
 ```bash
 npm run cache:bust:check
 npm run lint
+npm run test:static
 npm run test:architecture
-npm run test:modules
 npm run test:unit
 npm run test:browser
 ```
+
+See [`tests/README.md`](tests/README.md) for the testing standards, layer ownership, and rules for avoiding redundant coverage.
 
 The browser smoke test starts a local static server, stubs the backend API, and covers desktop plus mobile flows: panel layout, dark/light search inputs, virtual-table scrolling and resize behavior, post filters, zero-result queries, export overlays, and mobile dialogs.
 
