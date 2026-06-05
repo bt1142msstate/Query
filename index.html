@@ -14,7 +14,7 @@
   <link href="src/styles/app.css" rel="stylesheet" data-app-stylesheet>
   <link rel="icon" href="data:,">
 </head>
-<body class="relative min-h-screen overflow-x-hidden overflow-y-auto pt-16 px-6 pb-6" id="page-body">
+<body class="relative min-h-screen overflow-x-hidden overflow-y-auto pt-16 px-6 pb-6 app-starting" id="page-body">
   <div id="overlay"></div>
   
   <!-- New Header Bar -->
@@ -125,6 +125,25 @@
       <div id="mobile-menu-items"></div>
     </div>
   </div>
+
+  <section id="app-startup-status"
+           class="app-startup-status"
+           role="status"
+           aria-live="polite"
+           aria-atomic="true">
+    <div class="app-startup-status__bubble" data-app-startup-space aria-hidden="true">
+      <div class="table-query-bubble-ripples app-startup-status__ripples" aria-hidden="true">
+        <span class="table-query-bubble-ripple" style="--ripple-delay: 0s"></span>
+        <span class="table-query-bubble-ripple" style="--ripple-delay: 1.05s"></span>
+        <span class="table-query-bubble-ripple" style="--ripple-delay: 2.1s"></span>
+      </div>
+      <div class="app-startup-status__bubble-copy">
+        <span class="app-startup-status__eyebrow">Backend Sync</span>
+        <strong data-app-startup-title>Loading field metadata</strong>
+      </div>
+    </div>
+    <p data-app-startup-detail>Pulling available fields from the backend and preparing the builder...</p>
+  </section>
   
   <div id="filter-card">
     <div id="filter-card-header">

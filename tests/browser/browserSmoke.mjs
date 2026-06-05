@@ -364,6 +364,7 @@ function buildHistoryStatusResponse() {
 
 async function installQueryApiStub(page) {
   const queuedResponses = [];
+  const requests = [];
 
   const handler = route => {
     const request = route.request();
@@ -384,6 +385,7 @@ async function installQueryApiStub(page) {
     }
 
     const payload = parseQueryApiPayload(request);
+    requests.push({ action: payload.action || '', payload });
     const queuedResponseIndex = queuedResponses.findIndex(response => !response.action || response.action === payload.action);
     const response = queuedResponseIndex === -1
       ? buildDefaultQueryApiResponse(payload)
@@ -412,6 +414,9 @@ async function installQueryApiStub(page) {
   return {
     async dispose() {
       await page.unroute(QUERY_API_PATTERN, handler);
+    },
+    countAction(action) {
+      return requests.filter(request => request.action === action).length;
     },
     enqueue(responses) {
       queuedResponses.push(...(Array.isArray(responses) ? responses : [responses]));
@@ -454,6 +459,50 @@ async function waitForAppModules(page, failures) {
     );
   } catch (error) {
     failures.push(`module loader did not finish: ${error.message}`);
+  }
+}
+
+async function waitForAppReady(page, failures) {
+  await waitForAppModules(page, failures);
+
+  try {
+    await page.waitForFunction(
+      () => document.documentElement.dataset.queryAppReady === 'true'
+        && !document.body.classList.contains('app-starting'),
+      null,
+      { timeout: 15000 }
+    );
+  } catch (error) {
+    failures.push(`app startup did not finish: ${error.message}`);
+  }
+}
+
+async function expectStartupStatusVisible(page) {
+  await page.locator('#app-startup-status').waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('#app-startup-spacefield canvas').waitFor({ state: 'attached', timeout: 5000 });
+  const startupMetrics = await page.locator('#app-startup-status').evaluate(element => {
+    const style = window.getComputedStyle(element);
+    return {
+      appStarting: document.body.classList.contains('app-starting'),
+      detail: element.querySelector('[data-app-startup-detail]')?.textContent || '',
+      display: style.display,
+      ready: document.documentElement.dataset.queryAppReady,
+      spacefield: Boolean(element.querySelector('#app-startup-spacefield canvas')),
+      title: element.querySelector('[data-app-startup-title]')?.textContent || '',
+      visibility: style.visibility
+    };
+  });
+
+  if (
+    !startupMetrics.appStarting
+    || startupMetrics.ready !== 'false'
+    || startupMetrics.display === 'none'
+    || startupMetrics.visibility === 'hidden'
+    || !/field metadata/iu.test(startupMetrics.title)
+    || !/backend/iu.test(startupMetrics.detail)
+    || !startupMetrics.spacefield
+  ) {
+    throw new Error(`Startup status should show backend field loading with the shared space animation: ${JSON.stringify(startupMetrics)}`);
   }
 }
 
@@ -2457,7 +2506,7 @@ async function exerciseEditableFormUrlRefresh(page, failures) {
   }
 
   await page.reload({ waitUntil: 'load', timeout: 15000 });
-  await waitForAppModules(page, failures);
+  await waitForAppReady(page, failures);
   await page.locator('#form-mode-card').waitFor({ state: 'visible', timeout: 5000 });
   await page.waitForFunction(() => document.body.classList.contains('form-mode-active'), null, { timeout: 5000 });
   const refreshedState = await page.evaluate(async () => {
@@ -2489,7 +2538,7 @@ async function exerciseEditableFormUrlRefresh(page, failures) {
   cleanUrl.search = '';
   cleanUrl.hash = '';
   await page.goto(cleanUrl.toString(), { waitUntil: 'load', timeout: 15000 });
-  await waitForAppModules(page, failures);
+  await waitForAppReady(page, failures);
 }
 
 async function exerciseVirtualTableScrollInteraction(page) {
@@ -3831,8 +3880,18 @@ async function runSmokeTest() {
 
     await stubExternalAssets(page);
     const queryApiStub = await installQueryApiStub(page);
+    queryApiStub.enqueue({
+      action: 'get_fields',
+      body: JSON.stringify({ fields: smokeFieldDefinitions }),
+      contentType: 'application/json; charset=utf-8',
+      delayMs: 850
+    });
     await page.goto(baseUrl, { waitUntil: 'load', timeout: 15000 });
-    await waitForAppModules(page, failures);
+    await expectStartupStatusVisible(page);
+    await waitForAppReady(page, failures);
+    if (queryApiStub.countAction('get_fields') !== 1) {
+      throw new Error(`Startup should share one backend field metadata request, saw ${queryApiStub.countAction('get_fields')}`);
+    }
 
     if (failures.length > 0) {
       throw new Error(`Browser smoke test failed:\n${failures.map(failure => `- ${failure}`).join('\n')}`);
@@ -3926,7 +3985,7 @@ async function runSmokeTest() {
     await stubExternalAssets(tabletPage);
     const tabletQueryApiStub = await installQueryApiStub(tabletPage);
     await tabletPage.goto(baseUrl, { waitUntil: 'load', timeout: 15000 });
-    await waitForAppModules(tabletPage, failures);
+    await waitForAppReady(tabletPage, failures);
     await exerciseTabletLandscapeMobileParity(tabletPage, tabletQueryApiStub);
     await tabletPage.close();
 
@@ -3939,7 +3998,7 @@ async function runSmokeTest() {
     await stubExternalAssets(tabletPortraitPage);
     const tabletPortraitQueryApiStub = await installQueryApiStub(tabletPortraitPage);
     await tabletPortraitPage.goto(baseUrl, { waitUntil: 'load', timeout: 15000 });
-    await waitForAppModules(tabletPortraitPage, failures);
+    await waitForAppReady(tabletPortraitPage, failures);
     await exerciseTabletPortraitMobileParity(tabletPortraitPage, tabletPortraitQueryApiStub);
     await tabletPortraitPage.close();
 
@@ -3951,7 +4010,7 @@ async function runSmokeTest() {
     await stubExternalAssets(mobilePage);
     const mobileQueryApiStub = await installQueryApiStub(mobilePage);
     await mobilePage.goto(baseUrl, { waitUntil: 'load', timeout: 15000 });
-    await waitForAppModules(mobilePage, failures);
+    await waitForAppReady(mobilePage, failures);
     await waitForResponsiveResize(mobilePage, true);
     await expectMobileViewportStability(mobilePage);
 
