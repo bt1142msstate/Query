@@ -39,7 +39,18 @@ test('query history status mapper', async () => {
       },
       '099': {
         status: 'failed',
-        warning: 'Backend disconnected'
+        warning: 'Backend disconnected',
+        error_details: {
+          stage: 'loading_dynamic_fields',
+          component: 'marc_enrichment',
+          code: 'catalogdump_failed',
+          message: 'catalogdump failed with exit code 2',
+          hint: 'Check catalogdump permissions.',
+          exit_code: 2,
+          context: {
+            candidate_rows: 42
+          }
+        }
       }
     }
   };
@@ -93,6 +104,21 @@ test('query history status mapper', async () => {
 
   assert.equal(rows[2].failed, true);
   assert.equal(rows[2].error, 'Backend disconnected');
+  assert.deepEqual(rows[2].errorDetails, {
+    schemaVersion: 1,
+    stage: 'loading_dynamic_fields',
+    component: 'marc_enrichment',
+    code: 'catalogdump_failed',
+    message: 'catalogdump failed with exit code 2',
+    hint: 'Check catalogdump permissions.',
+    command: '',
+    exitCode: 2,
+    occurredAt: '',
+    occurredEpoch: null,
+    context: {
+      candidate_rows: 42
+    }
+  });
   assert.equal(rows[2].jsonConfig, null);
 
   assert.deepEqual(mapStatusPayloadToHistoryRows(null), []);

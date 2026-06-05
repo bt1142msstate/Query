@@ -159,6 +159,10 @@ function didProgressChange(oldProgress, newProgress) {
   return JSON.stringify(oldProgress || null) !== JSON.stringify(newProgress || null);
 }
 
+function didErrorDetailsChange(oldDetails, newDetails) {
+  return JSON.stringify(oldDetails || null) !== JSON.stringify(newDetails || null);
+}
+
 function syncActiveQueryProgressFromHistory(historyRows) {
   const lifecycleState = QueryStateReaders.getLifecycleState?.();
   const currentQueryId = lifecycleState?.currentQueryId;
@@ -433,6 +437,7 @@ function hasQueryRowChanged(oldQ, newQ) {
       || oldQ.error       !== newQ.error
       || oldQ.endTime     !== newQ.endTime
       || oldQ.name        !== newQ.name
+      || didErrorDetailsChange(oldQ.errorDetails, newQ.errorDetails)
       || didProgressChange(oldQ.progress, newQ.progress);
 }
 

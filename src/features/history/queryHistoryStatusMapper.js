@@ -1,3 +1,4 @@
+import { normalizeBackendErrorDetails } from '../../core/queryErrorDetails.js';
 import { normalizeBackendProgress } from '../../core/queryProgress.js';
 
 export function mapStatusPayloadToHistoryRows(payload, dependencies = {}) {
@@ -44,6 +45,7 @@ function mapServerQueryToHistoryRow(serverQuery, dependencies = {}) {
     duration: getHistoryQueryDuration(serverQuery, now),
     jsonConfig,
     resultCount: serverQuery.row_count !== undefined ? serverQuery.row_count : (serverQuery.start_time && serverQuery.end_time ? '?' : '-'),
+    errorDetails: normalizeBackendErrorDetails(serverQuery.error_details || serverQuery.errorDetails),
     progress: normalizeBackendProgress(serverQuery.progress),
     error: serverQuery.error || serverQuery.warning || ''
   };
