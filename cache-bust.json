@@ -1,5 +1,5 @@
 {
-  "version": "c901ddcd8ab91a01",
+  "version": "ee3482d073a1718a",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "appModules.js": "0e686258ce143847",
@@ -9,7 +9,7 @@
     "bubbles/bubbleReset.js": "27f98db22bdc0437",
     "core/appServices.js": "57c7168277a0bb50",
     "core/appUiActions.js": "3147cca705a0e038",
-    "core/backendApi.js": "9b1627980c9343df",
+    "core/backendApi.js": "5378f6e18275fe23",
     "core/backgroundTaskNotifications.js": "f088a9d18fc6684c",
     "core/bootstrap.js": "6de7933753ec6c94",
     "core/clipboard.js": "fe63aabe0dbd765a",

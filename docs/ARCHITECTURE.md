@@ -28,9 +28,11 @@ The former private runtime coordination layer has been removed. Feature coordina
 
 `core/backendApi.js` currently points at an example/testing query API. That endpoint exists to demonstrate the integration shape and gives the browser smoke test a stable route to stub. It should not be treated as the live site's long-term production backend.
 
-The intended deployment model is bring-your-own API. The public live site should remove project-owned API usage and let each deployment provide its own compatible API URLs/configuration for field metadata, query execution, status/cancel, history result loading, and template persistence. Local deployments can temporarily change `core/backendApi.js`, but the next integration step is a runtime API configuration layer so hosted users can supply their own endpoint settings without editing source.
+The intended deployment model is bring-your-own API. The public live site should remove project-owned API usage and let each deployment provide its own compatible API URLs/configuration for field metadata, query execution, status/cancel, history result loading, and template persistence. Static deployments can supply `?api_url=...` or `?query_api_url=...`; valid values are stored in `localStorage` under `query-project.api-url`. Local deployments can still change the default in `core/backendApi.js` when that is simpler.
 
 Result hydration is intentionally tolerant while integrations evolve. `core/queryResultParser.js` accepts the legacy `X-Raw-Columns` plus pipe-delimited row stream and standard JSON result payloads such as `{ "columns": [...], "rows": [...] }`, `{ "headers": [...], "results": [...] }`, `{ "fields": [...], "data": [...] }`, or a bare array of row objects. JSON array values normalize to the same internal multi-value separator used by repeated MARC/public-note fields, so table rendering, split columns, post filters, and Excel export share one representation.
+
+The full backend integration contract is documented in `docs/INTEGRATION.md`.
 
 ## Layer Boundaries
 
@@ -105,7 +107,7 @@ npm test
 That runs:
 
 - `npm run lint`: syntax, globals, module rules, query-state boundaries.
-- `npm run test:architecture`: architecture fitness checks, legacy module budgets, forbidden browser globals, import graph reachability, import cycles, and layer boundaries.
+- `npm run test:architecture`: architecture fitness checks, legacy module budgets, forbidden browser globals, import graph reachability, import cycles, layer boundaries, and the hardcoded-field integration guard.
 - `npm run test:modules`: canonical ES module specifiers.
 - `npm run test:unit`: focused pure-logic tests for query-history status, request mapping, row output, backend payload contracts, and table transforms.
 - `npm run test:browser`: Playwright smoke test for runtime behavior and key UI styling.

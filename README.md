@@ -77,6 +77,7 @@ The table also supports sorting, expand/collapse layout, manual column resizing 
 | `styles/app.css` | Stylesheet entrypoint that imports the feature CSS files |
 | `config/` | Shared architecture contracts for forbidden browser globals and module boundaries |
 | `docs/ARCHITECTURE.md` | Frontend architecture notes, quality gates, and refactor plan |
+| `docs/INTEGRATION.md` | Backend integration contract, JSON result formats, legacy compatibility, and deployment options |
 | `tests/architecture/` | Architecture fitness and module-specifier checks |
 | `tests/unit/` | Focused pure-logic unit tests |
 | `tests/browser/` | Playwright browser smoke coverage |
@@ -116,7 +117,9 @@ The backend URL currently configured in `core/backendApi.js` is a temporary exam
 
 The public live site should not rely on that example API as its production data source. We plan to remove project-owned API usage from the live deployment. For real use, connect your own compatible query API and provide the API URLs/settings for your environment. The app is designed around a swappable backend contract: field metadata, query execution, status/cancel, history results, and template actions can be backed by your own service as long as it returns the expected payloads.
 
-Until runtime API settings are added to the hosted UI, local deployments can point the app at another service by updating `core/backendApi.js`. The intended live-site flow is to let users supply their own API URLs/configuration instead of using the checked-in example endpoint.
+Static deployments can point the app at another compatible service with `?api_url=...` or `?query_api_url=...`; valid values are stored in `localStorage` under `query-project.api-url`. Local deployments can still change the default in `core/backendApi.js` when that is simpler.
+
+See [`docs/INTEGRATION.md`](docs/INTEGRATION.md) for the full backend contract, including field metadata, query payloads, JSON result shapes, legacy text streams, history/cancel actions, template actions, rate-limit errors, and deployment options.
 
 ### Result Response Formats
 
@@ -143,6 +146,7 @@ The accepted aliases are `columns`/`headers`/`fields` for columns and `rows`/`re
 ## Architecture
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for module boundaries, runtime flow, quality gates, and the remaining compatibility layer.
+See [`docs/INTEGRATION.md`](docs/INTEGRATION.md) for the supported backend integration patterns.
 
 ## Quality Checks
 
@@ -150,7 +154,7 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for module boundaries, runtim
 npm test
 ```
 
-Runs the cache-busting manifest check, lint, architecture fitness checks, module-specifier checks, focused unit tests, and desktop/mobile browser smoke tests.
+Runs the cache-busting manifest check, lint, architecture fitness checks, the hardcoded-field integration guard, module-specifier checks, focused unit tests, and desktop/mobile browser smoke tests.
 
 Individual checks:
 
@@ -179,6 +183,6 @@ npm run cache:bust
 
 ## Roadmap
 
-- Cleaner backend contract layer to make integrations easier to swap
+- Runtime UI for configuring API endpoints without editing source or URL parameters
 - Continue splitting the remaining large legacy modules into smaller feature modules
 - Add focused unit tests for form-mode schema parsing and query-state lifecycle edge cases

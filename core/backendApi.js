@@ -1,8 +1,125 @@
 import { formatDuration } from './formatting/dataFormatters.js';
 import { showToastMessage } from './toast.js';
 
-const API_URL = 'https://mlp.sirsi.net/uhtbin/query_api.pl';
+const DEFAULT_API_URL = 'https://mlp.sirsi.net/uhtbin/query_api.pl';
+const API_URL = DEFAULT_API_URL;
+const API_URL_STORAGE_KEY = 'query-project.api-url';
+const API_URL_PARAM_NAMES = ['api_url', 'query_api_url'];
 let lastRateLimitNoticeUntil = 0;
+let runtimeApiUrl = resolveConfiguredApiUrl();
+
+function getLocationHref() {
+  return typeof globalThis.location?.href === 'string'
+    ? globalThis.location.href
+    : 'http://localhost/';
+}
+
+function normalizeApiUrl(value) {
+  const rawValue = String(value || '').trim();
+  if (!rawValue) {
+    return '';
+  }
+
+  try {
+    const parsed = new URL(rawValue, getLocationHref());
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+      ? parsed.href
+      : '';
+  } catch (_error) {
+    return '';
+  }
+}
+
+function getStorage() {
+  if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+    return window.localStorage || null;
+  }
+
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  const storage = descriptor && Object.prototype.hasOwnProperty.call(descriptor, 'value')
+    ? descriptor.value
+    : null;
+
+  return storage?.__queryProjectStorageMock === true ? storage : null;
+}
+
+function readStoredApiUrl() {
+  try {
+    return getStorage()?.getItem?.(API_URL_STORAGE_KEY) || '';
+  } catch (_error) {
+    return '';
+  }
+}
+
+function writeStoredApiUrl(url) {
+  try {
+    getStorage()?.setItem?.(API_URL_STORAGE_KEY, url);
+  } catch (_error) {
+    // Storage can be blocked in private browsing or embedded contexts.
+  }
+}
+
+function clearStoredApiUrl() {
+  try {
+    getStorage()?.removeItem?.(API_URL_STORAGE_KEY);
+  } catch (_error) {
+    // Storage can be blocked in private browsing or embedded contexts.
+  }
+}
+
+function getSearchParamApiUrl() {
+  const search = typeof globalThis.location?.search === 'string'
+    ? globalThis.location.search
+    : '';
+  if (!search) {
+    return '';
+  }
+
+  const params = new URLSearchParams(search);
+  for (const paramName of API_URL_PARAM_NAMES) {
+    const configured = normalizeApiUrl(params.get(paramName));
+    if (configured) {
+      return configured;
+    }
+  }
+
+  return '';
+}
+
+function resolveConfiguredApiUrl() {
+  const fromSearch = getSearchParamApiUrl();
+  if (fromSearch) {
+    writeStoredApiUrl(fromSearch);
+    return fromSearch;
+  }
+
+  return normalizeApiUrl(readStoredApiUrl()) || DEFAULT_API_URL;
+}
+
+function getApiUrl() {
+  return runtimeApiUrl;
+}
+
+function configureApiUrl(url, options = {}) {
+  const normalized = normalizeApiUrl(url);
+  if (!normalized) {
+    throw new Error('API URL must be an absolute or same-origin HTTP(S) URL.');
+  }
+
+  runtimeApiUrl = normalized;
+  if (options.persist !== false) {
+    writeStoredApiUrl(normalized);
+  }
+  return runtimeApiUrl;
+}
+
+function resetApiUrl(options = {}) {
+  runtimeApiUrl = DEFAULT_API_URL;
+  if (options.clearStorage !== false) {
+    clearStoredApiUrl();
+  }
+  return runtimeApiUrl;
+}
 
 function getRetryAfterSeconds(payload) {
   const rawValue = payload?.retry_after_seconds ?? payload?.retry_after ?? 0;
@@ -69,7 +186,7 @@ async function request(payload, options = {}) {
     notifyOnRateLimit = true
   } = options;
 
-  const response = await fetch(API_URL, {
+  const response = await fetch(getApiUrl(), {
     method,
     headers: {
       'Content-Type': 'application/json',
@@ -136,25 +253,40 @@ async function postText(payload, options = {}) {
 
 const backendApi = Object.freeze({
   API_URL,
+  API_URL_PARAM_NAMES,
+  API_URL_STORAGE_KEY,
+  DEFAULT_API_URL,
   assertNotRateLimited,
   buildHttpError,
   buildRateLimitMessage,
+  configureApiUrl,
   formatRetryDelay,
+  getApiUrl,
   parseJsonResponse,
   postJson,
   postText,
-  request
+  request,
+  resetApiUrl,
+  resolveConfiguredApiUrl
 });
 
 export {
   API_URL,
+  API_URL_PARAM_NAMES,
+  API_URL_STORAGE_KEY,
+  DEFAULT_API_URL,
   assertNotRateLimited,
   backendApi as BackendApi,
   buildHttpError,
   buildRateLimitMessage,
+  configureApiUrl,
   formatRetryDelay,
+  getApiUrl,
+  normalizeApiUrl,
   parseJsonResponse,
   postJson,
   postText,
-  request
+  request,
+  resetApiUrl,
+  resolveConfiguredApiUrl
 };
