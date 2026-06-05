@@ -155,6 +155,29 @@ function updateHistoryPollingMeta({ isPollingActive, refreshedAt }) {
   }
 }
 
+function didProgressChange(oldProgress, newProgress) {
+  return JSON.stringify(oldProgress || null) !== JSON.stringify(newProgress || null);
+}
+
+function syncActiveQueryProgressFromHistory(historyRows) {
+  const lifecycleState = QueryStateReaders.getLifecycleState?.();
+  const currentQueryId = lifecycleState?.currentQueryId;
+  if (!lifecycleState?.queryRunning || !currentQueryId) {
+    return;
+  }
+
+  const activeQuery = historyRows.find(query => String(query.id) === String(currentQueryId));
+  if (!activeQuery?.progress) {
+    return;
+  }
+
+  const resultCount = Number(activeQuery.resultCount);
+  uiActions.updateTableQueryAnimationProgress({
+    progress: activeQuery.progress,
+    resultCount: Number.isFinite(resultCount) ? resultCount : undefined
+  });
+}
+
 function bindHistoryBookShelf(container) {
   const books = Array.from(container.querySelectorAll('[data-history-book]'));
   books.forEach(book => {
@@ -202,6 +225,7 @@ async function fetchQueryStatus() {
     });
 
     patchQueriesPanelData(newHistory);
+    syncActiveQueryProgressFromHistory(newHistory);
 
     if (isQueriesPanelOpen()) {
       // Keep the interval alive so queries from other users surface automatically.
@@ -408,7 +432,8 @@ function hasQueryRowChanged(oldQ, newQ) {
       || oldQ.resultCount !== newQ.resultCount
       || oldQ.error       !== newQ.error
       || oldQ.endTime     !== newQ.endTime
-      || oldQ.name        !== newQ.name;
+      || oldQ.name        !== newQ.name
+      || didProgressChange(oldQ.progress, newQ.progress);
 }
 
 /**

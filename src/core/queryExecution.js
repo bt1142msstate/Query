@@ -18,6 +18,8 @@ const execDom = DOM;
 const appState = AppState;
 const services = appServices;
 const uiActions = appUiActions;
+const ACTIVE_QUERY_STATUS_POLL_MS = 2000;
+let activeQueryStatusPollTimer = null;
 const readStreamedQueryText = createStreamedQueryTextReader({
   isQueryRunning: () => QueryStateReaders.getLifecycleState().queryRunning
 });
@@ -54,10 +56,47 @@ function updateQueryHistoryEntry(queryId, updates, options = {}) {
 function updateLiveQueryProgress(resultCount, options = {}) {
   uiActions.updateTableQueryAnimationProgress({
     resultCount,
-    startTime: options.startTime
+    startTime: options.startTime,
+    progress: options.progress
   });
 
-  updateQueryHistoryEntry(QueryStateReaders.getLifecycleState().currentQueryId, { resultCount }, { render: false });
+  updateQueryHistoryEntry(QueryStateReaders.getLifecycleState().currentQueryId, {
+    resultCount,
+    ...(options.progress ? { progress: options.progress } : {})
+  }, { render: false });
+}
+
+function stopActiveQueryStatusPolling() {
+  if (!activeQueryStatusPollTimer) {
+    return;
+  }
+
+  clearInterval(activeQueryStatusPollTimer);
+  activeQueryStatusPollTimer = null;
+}
+
+function startActiveQueryStatusPolling(queryId) {
+  stopActiveQueryStatusPolling();
+  if (!queryId) {
+    return;
+  }
+
+  const poll = () => {
+    const lifecycleState = QueryStateReaders.getLifecycleState();
+    if (!lifecycleState.queryRunning || String(lifecycleState.currentQueryId || '') !== String(queryId)) {
+      stopActiveQueryStatusPolling();
+      return;
+    }
+
+    Promise.resolve(services.fetchHistoryQueryStatus?.()).catch(error => {
+      if (!error?.isRateLimited) {
+        console.warn('Failed to refresh active query progress', error);
+      }
+    });
+  };
+
+  poll();
+  activeQueryStatusPollTimer = setInterval(poll, ACTIVE_QUERY_STATUS_POLL_MS);
 }
 
 function notifyQueryTaskComplete({ message, permissionPromise, queryId, title }) {
@@ -182,6 +221,7 @@ if (execDom.runBtn) {
 
           // Start external polling for status
           services.startHistoryDurationUpdates();
+          startActiveQueryStatusPolling(responseQueryId);
         }
 
         if (!response.ok) {
@@ -329,6 +369,7 @@ if (execDom.runBtn) {
         notifyQueryTaskComplete({ message: failureMessage, permissionPromise: completionNotification, queryId: QueryStateReaders.getLifecycleState().currentQueryId, title: 'Query failed' });
         showToastMessage(failureMessage, 'error');
       } finally {
+        stopActiveQueryStatusPolling();
         QueryChangeManager.setLifecycleState({ queryRunning: false }, { source: 'QueryExecution.finishQuery', silent: true });
         uiActions.updateTableResultsLip();
         uiActions.updateRunButtonIcon();

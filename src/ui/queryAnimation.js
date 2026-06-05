@@ -1,6 +1,11 @@
 import { QueryStateReaders } from '../core/queryState.js';
 import { appServices } from '../core/appServices.js';
 import { registerAppUiActionDependencies } from '../core/appUiActions.js';
+import {
+  formatBackendProgressDetail,
+  formatBackendProgressSummary,
+  normalizeBackendProgress
+} from '../core/queryProgress.js';
 import { createTableQueryCircuitOverlay } from './spacefieldOverlay.js';
 
 function formatQueryBubbleElapsed(seconds) {
@@ -27,16 +32,32 @@ function updateTableQueryBubbleMetrics(bubble, metrics = {}) {
   if (typeof metrics.resultCount === 'number' && Number.isFinite(metrics.resultCount)) {
     bubble._resultCount = metrics.resultCount;
   }
+  if (metrics.progress !== undefined) {
+    bubble._queryProgress = normalizeBackendProgress(metrics.progress);
+  }
 
   const metricsRoot = bubble._hud || bubble;
   const elapsedValue = metricsRoot.querySelector('[data-query-elapsed-value]');
   const resultsValue = metricsRoot.querySelector('[data-query-results-value]');
+  const progressRoot = metricsRoot.querySelector('[data-query-progress]');
+  const progressSummary = metricsRoot.querySelector('[data-query-progress-summary]');
+  const progressDetail = metricsRoot.querySelector('[data-query-progress-detail]');
   if (elapsedValue) {
     const startTime = Number.isFinite(bubble._queryStartTime) ? bubble._queryStartTime : Date.now();
     elapsedValue.textContent = formatQueryBubbleElapsed((Date.now() - startTime) / 1000);
   }
   if (resultsValue) {
     resultsValue.textContent = Number(bubble._resultCount || 0).toLocaleString();
+  }
+  if (progressRoot) {
+    const progress = bubble._queryProgress;
+    progressRoot.hidden = !progress;
+    if (progressSummary) {
+      progressSummary.textContent = progress ? formatBackendProgressSummary(progress) : '';
+    }
+    if (progressDetail) {
+      progressDetail.textContent = progress ? formatBackendProgressDetail(progress) : '';
+    }
   }
 }
 
@@ -74,6 +95,10 @@ function startTableQueryAnimation() {
     <div class="table-query-bubble-metric">
       <span class="table-query-bubble-metric-label">Results</span>
       <span class="table-query-bubble-metric-value" data-query-results-value>0</span>
+    </div>
+    <div class="table-query-bubble-progress" data-query-progress hidden>
+      <span class="table-query-bubble-progress-summary" data-query-progress-summary></span>
+      <span class="table-query-bubble-progress-detail" data-query-progress-detail></span>
     </div>
   `;
 

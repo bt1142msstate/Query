@@ -1,5 +1,10 @@
 import { buildHistoryExpandButton, escapeHistoryText } from './queryHistoryDetails.js';
 import { formatDuration } from '../../core/formatting/dataFormatters.js';
+import {
+  formatBackendProgressDetail,
+  formatBackendProgressSummary,
+  getBackendProgressCounterItems
+} from '../../core/queryProgress.js';
 import { getQueryStatusMeta } from './queryHistoryViewHelpers.js';
 
 const HISTORY_TABLE_HEADS = Object.freeze({
@@ -89,6 +94,34 @@ function formatHistoryRowDate(value) {
   return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString();
 }
 
+function buildHistoryProgressHtml(progress) {
+  if (!progress) {
+    return '';
+  }
+
+  const summary = formatBackendProgressSummary(progress);
+  const detail = formatBackendProgressDetail(progress);
+  const counters = getBackendProgressCounterItems(progress, 2)
+    .map(counter => `
+      <span class="history-progress-counter">
+        <span>${escapeHistoryText(counter.label)}</span>
+        <strong>${escapeHistoryText(counter.value)}</strong>
+      </span>
+    `)
+    .join('');
+
+  if (!summary && !detail && !counters) {
+    return '';
+  }
+
+  return `
+    <div class="history-progress-line" role="status" aria-live="polite">
+      ${summary ? `<span class="history-progress-title">${escapeHistoryText(summary)}</span>` : ''}
+      ${detail ? `<span class="history-progress-detail">${escapeHistoryText(detail)}</span>` : ''}
+      ${counters ? `<span class="history-progress-counters">${counters}</span>` : ''}
+    </div>`;
+}
+
 function buildHistoryRowActions(query, options = {}) {
   const queryId = escapeHistoryText(query.id);
   const isLoading = options.activeHistoryResultLoadQueryId === query.id;
@@ -138,6 +171,7 @@ function createQueriesTableRowHtml(query, options = {}) {
       <div class="history-name-block">
         <span class="history-query-name">${escapeHistoryText(query.name || query.id)}</span>
         <div class="history-meta-line">${metaPills.join('')}</div>
+        ${query.running ? buildHistoryProgressHtml(query.progress) : ''}
       </div>
     </div>`;
   const statusCell = `<span class="${statusMeta.badgeClass}">${statusMeta.label}</span>`;

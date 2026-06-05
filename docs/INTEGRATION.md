@@ -329,6 +329,17 @@ Response:
       "start_time": "2026-06-05T02:30:00Z",
       "end_time": "2026-06-05T02:30:07Z",
       "row_count": 25,
+      "progress": {
+        "schema_version": 1,
+        "stage": "complete",
+        "label": "Complete",
+        "current": 25,
+        "unit": "rows",
+        "counters": {
+          "emitted_rows": 25
+        },
+        "updated_at": "2026-06-05T02:30:07Z"
+      },
       "request": {
         "name": "Optional query name",
         "display_fields": ["Title"],
@@ -344,6 +355,25 @@ Response:
 ```
 
 Recognized statuses include `running`, `complete`, `failed`, and `canceled`.
+
+Running queries may include a backend-neutral `progress` object. The frontend treats this as a generic status contract and does not assume anything about the backend's query engine, database, or enrichment tools.
+
+Recommended progress fields:
+
+| Field | Meaning |
+| --- | --- |
+| `schema_version` | Optional contract version. Use `1` for the current shape. |
+| `stage` | Machine-readable stage such as `queued`, `base_query`, `loading_dynamic_fields`, `filtering_results`, `streaming_results`, `complete`, `failed`, or `canceled`. Custom stage names are allowed. |
+| `label` | Short user-facing status such as `Finding matching rows` or `Loading requested field values`. |
+| `detail` | Optional extra user-facing detail. Keep it backend-neutral when possible. |
+| `current` | Optional numeric progress count. |
+| `total` | Optional numeric total for determinate work. |
+| `percent` | Optional numeric percent from `0` to `100`. The frontend can derive this from `current` and `total` when both are present. |
+| `unit` | Optional unit label such as `rows`, `records`, or `items`. |
+| `counters` | Optional object of extra neutral counters, for example `candidate_rows`, `lookup_keys`, `lookup_records`, `matched_rows`, `emitted_rows`, or `skipped_records`. |
+| `updated_at` | Optional timestamp for the latest progress update. |
+
+This contract is intentionally generic. A backend can use any internal tools it wants, but the status response should describe progress in terms users can understand without exposing implementation details.
 
 ### `cancel`
 

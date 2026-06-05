@@ -142,4 +142,35 @@ test('query history', async () => {
   assert.match(rowHtml, /12 rows/u);
   assert.match(rowHtml, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/u);
   assert.doesNotMatch(rowHtml, /<script>alert/u);
+
+  const runningRowHtml = createQueriesTableRowHtml({
+    id: 'Q2',
+    name: 'Running progress',
+    status: 'running',
+    running: true,
+    startTime: '2026-01-01T00:00:00.000Z',
+    resultCount: 0,
+    progress: {
+      stage: 'loading_dynamic_fields',
+      label: 'Loading requested field values',
+      detail: 'Preparing additional result fields',
+      current: 250,
+      total: 1000,
+      unit: 'records',
+      counters: {
+        candidate_rows: 1000,
+        lookup_keys: 300
+      }
+    },
+    jsonConfig: { DesiredColumnOrder: ['Title'], Filters: [] }
+  }, {
+    dependencies: {
+      formatDuration: seconds => `${seconds}s`,
+      normalizeUiConfigFilters: () => []
+    }
+  });
+
+  assert.match(runningRowHtml, /Loading requested field values/u);
+  assert.match(runningRowHtml, /Preparing additional result fields - 250 \/ 1,000 records/u);
+  assert.match(runningRowHtml, /Candidate Rows/u);
 });
