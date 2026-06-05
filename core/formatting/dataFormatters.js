@@ -64,7 +64,6 @@ function parsePipeDelimitedRow(line, columns, options = {}) {
 export {
   escapeRegExp,
   formatDuration,
-  getFieldOutputSegments,
   parsePipeDelimitedRow,
   registerDataFormatterFieldDefinitions
 };

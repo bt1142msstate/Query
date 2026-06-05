@@ -22,7 +22,8 @@ The module graph is appropriately split for the current raw JavaScript architect
 ## Modules That Should Stay Split
 
 - `core/formatting/*`, `core/icons.js`, `core/domReady.js`, `core/toast.js`: small but shared cross-feature primitives.
-- `core/textMeasurement.js`, `core/tableBuilder.js`: focused core helpers with concrete consumers.
+- `core/textMeasurement.js`: focused shared measurement helper with concrete consumers.
+- `table/virtual-table/tableBuilder.js`: virtual-table-owned DOM table element helper.
 - `table/export/*`: export has separate workbook data shaping, progress/yielding, download, overview/details sheets, large workbook generation, and worker/zip boundaries.
 - `table/virtual-table/*`: virtual scrolling, rows, column layout, width measurement, scrollbar behavior, sort, split-column transforms, and post-filter projection are distinct responsibilities.
 - `ui/form-mode/*`, `ui/field-picker/*`, `templates/*`, `history/*`: larger user workflows are split into shell/coordinator modules plus pure logic, view helpers, payload mapping, and repository/integration adapters.

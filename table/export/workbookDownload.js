@@ -45,7 +45,6 @@ async function notifyWorkbookDownloadComplete({ filename = '', permissionPromise
 }
 
 export {
-  XLSX_MIME_TYPE,
   buildWorkbookFilename,
   downloadWorkbookBlob,
   notifyWorkbookDownloadComplete,

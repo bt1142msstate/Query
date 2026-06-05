@@ -121,7 +121,6 @@ function buildGroupingCandidates(sourceData) {
 }
 
 export {
-  MAX_GROUPED_SHEETS,
   SHEET_NAME_LIMIT,
   buildExportRows,
   buildGroupingCandidates,

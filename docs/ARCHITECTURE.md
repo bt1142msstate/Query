@@ -41,7 +41,7 @@ The full backend integration contract is documented in `docs/INTEGRATION.md`.
 | Entry/bootstrap | `appModules.js`, `core/bootstrap.js` | Module loading and app startup |
 | State | `core/queryState.js` | Query state, lifecycle flags, read/write facades |
 | Services/actions | `core/appServices.js`, `core/appUiActions.js` | Cross-feature coordination without direct feature coupling |
-| Core utilities | `core/formatting/`, `core/*Utils.js`, `core/tableBuilder.js`, `core/textMeasurement.js` | Focused helpers imported from their owning modules instead of a mixed utility facade |
+| Core utilities | `core/formatting/`, `core/*Utils.js`, `core/textMeasurement.js` | Focused helpers imported from their owning modules instead of a mixed utility facade |
 | Data contract | `filters/queryPayload.js`, `filters/fieldDefs.js` | Backend payload generation, field metadata, filter normalization |
 | Feature UI | `ui/`, `filters/`, `table/`, `history/`, `templates/`, `bubbles/` | User workflows and rendering, with complex widgets split into focused view/helper modules. `bubbles/` is compatibility UI for the current filter-card editor, not a separate builder mode |
 | Query history | `history/` | History shell split from request mapping, config loading, result hydration, row rendering, grouping, notifications, tooltips, and status mapping |

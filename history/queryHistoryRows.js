@@ -199,6 +199,5 @@ function createQueriesTableRowHtml(query, options = {}) {
 
 export {
   HISTORY_TABLE_HEADS,
-  createQueriesTableRowHtml,
-  formatHistoryRowDuration
+  createQueriesTableRowHtml
 };

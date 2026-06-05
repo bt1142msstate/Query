@@ -154,9 +154,4 @@ QueryStateSubscriptions.subscribe(() => {
   updateQueryJson();
 }, { displayedFields: true, activeFilters: true });
 
-const JsonViewerUI = Object.freeze({
-  renderJsonTree,
-  updateQueryJson
-});
-
-export { JsonViewerUI, renderJsonTree, updateQueryJson };
+export { updateQueryJson };

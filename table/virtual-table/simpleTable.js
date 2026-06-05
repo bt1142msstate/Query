@@ -666,7 +666,6 @@ class SimpleTable {
 }
 
 export {
-    FieldSpec,
     Filter,
     FilterGroup,
     FilterOperator,

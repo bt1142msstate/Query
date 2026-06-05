@@ -115,10 +115,7 @@ function buildHistoryDetailsOverlayHtml(q, dependencies = getDefaultHistoryDetai
 }
 
 export {
-  buildHistoryColumnsMarkup,
   buildHistoryDetailsOverlayHtml,
   buildHistoryExpandButton,
-  buildHistoryFiltersMarkup,
-  buildHistoryIssueMarkup,
   escapeHistoryText
 };

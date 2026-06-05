@@ -187,16 +187,7 @@ import { escapeHtml } from '../core/formatting/html.js';
     return values.join(', ');
   }
 
-const FilterValueUi = Object.freeze({
-  getFilterValueMap,
-  getFilterDisplayValues,
-  shouldUseFilterListViewer,
-  openFilterListViewer,
-  buildFilterValueLabel
-});
-
 export {
-  FilterValueUi,
   buildFilterValueLabel,
   getFilterDisplayValues,
   openFilterListViewer,

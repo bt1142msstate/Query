@@ -108,7 +108,4 @@ function bindFormModeQueryStateSync(options) {
   return state.unsubscribeQueryState;
 }
 
-export {
-  bindFormModeQueryStateSync,
-  createMicrotaskScheduler
-};
+export { bindFormModeQueryStateSync };

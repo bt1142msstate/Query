@@ -302,7 +302,5 @@ export {
   MULTI_VALUE_SEPARATOR,
   hasResultRowsPayload,
   normalizeResultValue,
-  parseJsonResultPayload,
-  parsePipeResultPayload,
   parseQueryResultPayload
 };
