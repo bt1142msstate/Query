@@ -1,9 +1,9 @@
 {
-  "version": "9546892faa615d00",
+  "version": "51032bef3a6d9718",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "backgroundNotificationServiceWorker.js": "2f8933df91d32a1a",
-    "index.html": "0f9b255a6bb53919",
+    "index.html": "d9482bf15c2cf4cd",
     "src/appModules.js": "52af243189e76441",
     "src/core/appServices.js": "57c7168277a0bb50",
     "src/core/appUiActions.js": "3147cca705a0e038",
@@ -114,13 +114,13 @@
     "src/features/templates/queryTemplates.js": "ec3a0ba1d623d71f",
     "src/features/templates/queryTemplateState.js": "c049618451a6077a",
     "src/features/templates/queryTemplateViewState.js": "8f58ee237921b433",
-    "src/styles/app.css": "b0de24bc92dd40de",
+    "src/styles/app.css": "96e1d39121157b78",
     "src/styles/base.css": "3c3de1e55e3f2f14",
     "src/styles/condition-editor.css": "c3151b483e049c2e",
     "src/styles/controls.css": "2a894de55192a694",
     "src/styles/filters.css": "9a0f72aec9cace0d",
     "src/styles/form-mode.css": "390b35de077fd343",
-    "src/styles/help.css": "b94827718f727813",
+    "src/styles/help.css": "06c9cb11fe071501",
     "src/styles/history.css": "6f72bb5e78e59af2",
     "src/styles/interaction.css": "02c3f588d0b8e7f2",
     "src/styles/table.css": "64382bc51aaa0455",
@@ -150,7 +150,7 @@
     "src/ui/form-mode/formModeTableNameSync.js": "0edbb1b5a732f736",
     "src/ui/jsonViewerUI.js": "e2e766f2f11b5447",
     "src/ui/mobileEditorFocus.js": "e59a919520b102fb",
-    "src/ui/modalManager.js": "5ad327edaca0cad6",
+    "src/ui/modalManager.js": "297c88c883b1c8db",
     "src/ui/queryAnimation.js": "9d6193e9ecf98932",
     "src/ui/queryBuilderShell.js": "9f0943369aa414f6",
     "src/ui/queryTableView.js": "2906642dae4a903f",
@@ -161,7 +161,7 @@
     "src/ui/startupStatus.js": "5b9e4728db3a08f4",
     "src/ui/tableNameInput.js": "3778f7da002f9faf",
     "src/ui/toast.js": "cbf5e5e1abd48fd4",
-    "src/ui/tooltips.js": "8b41e2fa5b00d087",
+    "src/ui/tooltips.js": "aa91dcb1c0f0d32a",
     "src/ui/virtualList.js": "bd7a8d24c7c48493"
   }
 }

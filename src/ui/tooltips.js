@@ -390,6 +390,7 @@
 
     // Hide tooltip on scroll or escape
     window.addEventListener('scroll', forceHide, true); // Use capture to catch all scroll events
+    window.addEventListener('query-app:hide-tooltips', forceHide);
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') forceHide();
     });
@@ -422,23 +423,11 @@
     window.addEventListener('drop', resetDragState, true);
     window.addEventListener('blur', resetDragState);
 
-    // On click, update tooltip if data-tooltip changed
+    // Clicking a control should perform the action, not leave its tooltip behind.
     document.addEventListener('click', e => {
       const el = closestFromTarget(e.target, TOOLTIP_SELECTOR);
       if (!el) return;
-      const { isHtml, text } = readTooltipContent(el);
-      if (currentTarget === el && isTooltipVisible()) {
-        // If tooltip is already showing for this element, update text if changed
-        const currentContent = isHtml ? tooltipEl.innerHTML : tooltipEl.textContent;
-        // Basic check to prevent unnecessary updates, might not be perfect for HTML due to serialization differences but sufficient
-        if (currentContent !== text && !isHtml) { // For simplicity, only check change on text
-          showTooltip(el, text, e, isHtml);
-        } else if (isHtml) {
-          showTooltip(el, text, e, isHtml);
-        }
-      } else if (text) {
-        showTooltip(el, text, e, isHtml);
-      }
+      forceHide();
     });
   }
   attach();
