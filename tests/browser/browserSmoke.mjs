@@ -362,6 +362,14 @@ function buildHistoryStatusResponse() {
   };
 }
 
+function queueHistoryStatusResponses(queryApiStub, count = 6) {
+  queryApiStub.enqueue(Array.from({ length: count }, () => ({
+    action: 'status',
+    body: JSON.stringify(buildHistoryStatusResponse()),
+    contentType: 'application/json; charset=utf-8'
+  })));
+}
+
 async function installQueryApiStub(page) {
   const queuedResponses = [];
   const requests = [];
@@ -1775,11 +1783,7 @@ async function exerciseTabletLandscapeMobileParity(page, queryApiStub) {
     throw new Error(`Tablet landscape should keep the mobile menu reachable as a sheet: ${JSON.stringify(menuMetrics)}`);
   }
 
-  queryApiStub.enqueue(Array.from({ length: 2 }, () => ({
-    action: 'status',
-    body: JSON.stringify(buildHistoryStatusResponse()),
-    contentType: 'application/json; charset=utf-8'
-  })));
+  queueHistoryStatusResponses(queryApiStub);
   await page.locator('[data-source-control-id="toggle-queries"]').click();
   await page.locator('#queries-search').waitFor({ state: 'visible', timeout: 5000 });
   await expectElementWithinViewport(page, '#queries-panel', 'Tablet landscape query history panel');
@@ -2349,11 +2353,7 @@ async function exerciseTabletPortraitMobileParity(page, queryApiStub) {
   await page.locator('#mobile-menu-dropdown .collapse-btn').click();
   await page.locator('#mobile-menu-dropdown.hidden').waitFor({ state: 'attached', timeout: 5000 });
 
-  queryApiStub.enqueue(Array.from({ length: 2 }, () => ({
-    action: 'status',
-    body: JSON.stringify(buildHistoryStatusResponse()),
-    contentType: 'application/json; charset=utf-8'
-  })));
+  queueHistoryStatusResponses(queryApiStub);
   await openMobilePanel(page, 'toggle-queries', '#queries-search');
   await page.waitForFunction(() => {
     return document.querySelector('[data-history-book="complete"] .history-book-count')?.textContent?.trim() === '1'
@@ -3933,11 +3933,7 @@ async function runSmokeTest() {
     await exerciseColumnResizeInteraction(page);
     await exerciseLiveResponsiveResize(page);
 
-    queryApiStub.enqueue(Array.from({ length: 2 }, () => ({
-      action: 'status',
-      body: JSON.stringify(buildHistoryStatusResponse()),
-      contentType: 'application/json; charset=utf-8'
-    })));
+    queueHistoryStatusResponses(queryApiStub);
     await page.getByRole('button', { name: 'Queries' }).click();
     await page.locator('input[placeholder="Search queries..."]').waitFor({ state: 'visible', timeout: 5000 });
     await expectDarkInput(page, '#queries-search', 'Query history search input');
@@ -4072,11 +4068,7 @@ async function runSmokeTest() {
       }
     });
     await expectNoHorizontalOverflow(mobilePage, 'Mobile menu');
-    mobileQueryApiStub.enqueue(Array.from({ length: 4 }, () => ({
-      action: 'status',
-      body: JSON.stringify(buildHistoryStatusResponse()),
-      contentType: 'application/json; charset=utf-8'
-    })));
+    queueHistoryStatusResponses(mobileQueryApiStub);
     await mobilePage.locator('[data-source-control-id="toggle-queries"]').click();
     await mobilePage.locator('#queries-search').waitFor({ state: 'visible', timeout: 5000 });
     await expectElementWithinViewport(mobilePage, '#queries-panel', 'Mobile query history panel');
