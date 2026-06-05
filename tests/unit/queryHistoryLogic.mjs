@@ -16,7 +16,29 @@ import {
 } from '../../history/queryHistoryViewHelpers.js';
 import { createQueriesTableRowHtml } from '../../history/queryHistoryRows.js';
 
-const fieldDefsArray = [];
+const fieldDefsArray = [
+  {
+    name: 'MARC Field',
+    builder: {
+      outputFieldIdTemplate: 'MARC {tag}${subfield}',
+      displayLabelTemplate: 'MARC {tag}${subfield}',
+      inputs: [
+        { id: 'tag' },
+        { id: 'subfield', optional: true }
+      ]
+    }
+  },
+  {
+    name: 'Generated Field',
+    builder: {
+      outputFieldIdTemplate: 'Generated {code}',
+      displayLabelTemplate: 'Generated {code}',
+      inputs: [
+        { id: 'code' }
+      ]
+    }
+  }
+];
 
 const mapperDependencies = {
   escapeRegExp: value => String(value).replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'),
@@ -39,6 +61,8 @@ assert.equal(deriveTemplateBindings('Marc {tag}', 'Item 590', {}, mapperDependen
 
 assert.equal(resolveFieldNameFromSpecialPayload({ tag: '590', subfield: 'a' }, mapperDependencies), 'MARC 590$a');
 assert.equal(resolveFieldNameFromSpecialPayload({ type: 'marc', tag: '999' }, mapperDependencies), 'MARC 999');
+assert.equal(resolveFieldNameFromSpecialPayload({ type: 'generated', code: 'ABC' }, mapperDependencies), 'Generated ABC');
+assert.equal(resolveFieldNameFromSpecialPayload({ type: 'missing', code: 'ABC' }, mapperDependencies), '');
 
 assert.equal(mapRequestOperatorToUiOperator('=', '*abc'), 'Contains');
 assert.equal(mapRequestOperatorToUiOperator('!=', '*abc'), 'DoesNotContain');

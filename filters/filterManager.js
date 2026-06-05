@@ -247,8 +247,6 @@ function buildBubbleConditionPanel(bubble) {
     conditionPanel.innerHTML = '';
     removeConditionPanelNote();
 
-    const oldMarcInput = document.getElementById('marc-field-input');
-    if (oldMarcInput && oldMarcInput.parentNode) oldMarcInput.parentNode.remove();
     document.querySelectorAll('.dynamic-input-group').forEach(el => el.remove());
 
     if (isBuildable) {
@@ -256,11 +254,11 @@ function buildBubbleConditionPanel(bubble) {
         if (builderInputs.length) {
             [...builderInputs].reverse().forEach(input => {
                 const group = document.createElement('div');
-                group.className = 'dynamic-input-group marc-input-group';
+                group.className = 'dynamic-input-group buildable-input-group';
 
                 const label = document.createElement('label');
                 label.textContent = input.label;
-                label.className = 'dynamic-label marc-label';
+                label.className = 'dynamic-label buildable-input-label';
 
                 const inputEl = document.createElement('input');
                 inputEl.type = input.type || 'text';
@@ -270,11 +268,7 @@ function buildBubbleConditionPanel(bubble) {
                 inputEl.dataset.errorMsg = input.error_msg || input.errorMessage || 'Invalid input';
                 inputEl.dataset.optional = isOptionalBuilderInput(input) ? 'true' : 'false';
                 inputEl.required = inputEl.dataset.optional !== 'true';
-                inputEl.className = 'dynamic-builder-input condition-field';
-                if (input.id === 'tag') {
-                    inputEl.id = 'marc-field-input';
-                    inputEl.classList.add('marc-field-input');
-                }
+                inputEl.className = 'dynamic-builder-input condition-field buildable-field-input';
 
                 group.appendChild(label);
                 group.appendChild(inputEl);

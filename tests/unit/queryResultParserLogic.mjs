@@ -4,6 +4,13 @@ import {
   normalizeResultValue,
   parseQueryResultPayload
 } from '../../core/queryResultParser.js';
+import { registerDataFormatterFieldDefinitions } from '../../core/formatting/dataFormatters.js';
+
+const parserFieldDefs = new Map([
+  ['Item Key', { name: 'Item Key', parts: 3 }]
+]);
+
+registerDataFormatterFieldDefinitions(() => parserFieldDefs);
 
 function createResponse(headers = {}) {
   const normalized = new Map(Object.entries(headers).map(([key, value]) => [key.toLowerCase(), value]));

@@ -846,7 +846,7 @@ let QueryFormMode;
     if (state.spec.columns.length === 0) {
       state.active = false;
       state.spec = null;
-      showToastMessage('Form mode requires a real output column. Create the MARC field first, then display the generated field.', 'warning');
+      showToastMessage('Form mode requires a real output column. Create the generated field first, then display it.', 'warning');
       return;
     }
     state.initialSpec = cloneSpec(state.spec);
