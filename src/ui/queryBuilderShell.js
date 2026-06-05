@@ -5,6 +5,7 @@
 import {
   calculateCategoryCounts,
   fieldDefs,
+  fieldDefsArray,
   filteredDefs,
   hasLoadedFieldDefinitions,
   loadFieldDefinitions,
@@ -15,6 +16,7 @@ import { AppState, QueryChangeManager, QueryStateReaders } from '../core/querySt
 import { appServices } from '../core/appServices.js';
 import { appUiActions, registerAppUiActionDependencies } from '../core/appUiActions.js';
 import { DOM } from '../core/domCache.js';
+import { StartupStatus } from './startupStatus.js';
 
 let QueryBuilderShell;
 
@@ -231,12 +233,36 @@ let QueryBuilderShell;
   }
 
   async function loadDynamicFields() {
+    let loadedFields = false;
+    StartupStatus.update({
+      title: 'Loading field metadata',
+      detail: 'Pulling available fields from the backend and preparing the builder...'
+    });
+
     try {
       await loadFieldDefinitions();
       updateCategoryCounts();
       services.rerenderBubbles();
+      loadedFields = hasLoadedFieldDefinitions();
+      if (loadedFields) {
+        StartupStatus.update({
+          title: 'Fields ready',
+          detail: `${fieldDefsArray.length.toLocaleString()} fields loaded. Opening the query builder...`
+        });
+      } else {
+        StartupStatus.update({
+          title: 'Opening builder',
+          detail: 'Field metadata was unavailable, so the app is opening with limited field controls.'
+        });
+      }
     } catch (error) {
       console.error('Failed async initialization:', error);
+      StartupStatus.update({
+        title: 'Opening builder',
+        detail: 'The backend field list could not be loaded. You can still review the app shell and retry later.'
+      });
+    } finally {
+      StartupStatus.complete({ delay: loadedFields ? 180 : 700 });
     }
   }
 
@@ -265,6 +291,7 @@ let QueryBuilderShell;
 
     initialized = true;
 
+    StartupStatus.initialize();
     dom.pageBody?.classList.add('night');
     bindConfirmEnterShortcut();
     dom.overlay?.addEventListener('click', handleOverlayClick);

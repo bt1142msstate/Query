@@ -578,3 +578,5 @@ const queryTableAnimation = Object.freeze({
 });
 
 registerAppUiActionDependencies({ queryTableAnimation });
+
+export { createTableQueryCircuitOverlay };

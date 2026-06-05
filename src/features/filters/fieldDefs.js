@@ -15,6 +15,7 @@ let fieldDefs = new Map();
 let fieldAliases = new Map();
 let filteredDefs = [];
 let isFieldsLoaded = false;
+let fieldDefinitionsLoadPromise = null;
 let pendingAliasNotifications = new Map();
 let aliasToastTimer = null;
 const SYSTEM_CATEGORIES = ['All', 'Selected'];
@@ -136,9 +137,7 @@ registerQueryStateRuntimeAccessors({
 });
 registerDataFormatterFieldDefinitions(() => fieldDefs);
 
-async function loadFieldDefinitions() {
-    if (isFieldsLoaded) return fieldDefsArray;
-    
+async function fetchFieldDefinitions() {
     try {
         const { data } = await BackendApi.postJson({ action: 'get_fields' });
         
@@ -185,6 +184,18 @@ async function loadFieldDefinitions() {
         showToastMessage("Could not load field settings from backend", "error");
         return [];
     }
+}
+
+async function loadFieldDefinitions() {
+    if (isFieldsLoaded) return fieldDefsArray;
+    if (fieldDefinitionsLoadPromise) return fieldDefinitionsLoadPromise;
+
+    fieldDefinitionsLoadPromise = fetchFieldDefinitions()
+      .finally(() => {
+        fieldDefinitionsLoadPromise = null;
+      });
+
+    return fieldDefinitionsLoadPromise;
 }
 
 /**
