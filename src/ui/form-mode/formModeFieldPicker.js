@@ -13,6 +13,7 @@ import {
   collectBuilderInputValues,
   isOptionalBuilderInput
 } from '../../features/filters/buildableFilterFields.js';
+import { getFieldPerformanceWarning } from '../../features/filters/fieldWarnings.js';
 import { SharedFieldPicker } from '../field-picker/fieldPicker.js';
 import { FormModeControls as formModeControls } from './formModeControls.js';
 import {
@@ -360,6 +361,11 @@ function renderBuildableFieldPreview({
     syncValidationUi();
     updateButtonStates();
     showToastMessage(`${dynamicFieldName}: added results column.`, 'success');
+    const performanceWarning = getFieldPerformanceWarning(fieldDef);
+    if (performanceWarning) {
+      const level = performanceWarning.level === 'info' ? 'info' : 'warning';
+      showToastMessage(`${dynamicFieldName}: ${performanceWarning.message}`, level, 8500);
+    }
 
     if (typeof context.cleanup === 'function') {
       context.cleanup();
