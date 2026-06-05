@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-query-app-ready="false">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
@@ -144,6 +144,13 @@
     </div>
     <p data-app-startup-detail>Pulling available fields from the backend and preparing the builder...</p>
   </section>
+  <script>
+    import('./src/ui/startupStatus.js')
+      .then(({ StartupStatus }) => StartupStatus.initialize())
+      .catch(error => {
+        console.warn('Startup animation could not be started early.', error);
+      });
+  </script>
   
   <div id="filter-card">
     <div id="filter-card-header">

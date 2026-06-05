@@ -485,7 +485,7 @@ async function waitForAppReady(page, failures) {
   }
 }
 
-async function expectStartupStatusVisible(page) {
+async function expectStartupStatusVisible(page, options = {}) {
   await page.locator('#app-startup-status').waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('#app-startup-spacefield canvas').waitFor({ state: 'attached', timeout: 5000 });
   const startupMetrics = await page.locator('#app-startup-status').evaluate(element => {
@@ -494,6 +494,7 @@ async function expectStartupStatusVisible(page) {
       appStarting: document.body.classList.contains('app-starting'),
       detail: element.querySelector('[data-app-startup-detail]')?.textContent || '',
       display: style.display,
+      modulesReady: document.documentElement.dataset.queryAppModulesReady || '',
       ready: document.documentElement.dataset.queryAppReady,
       spacefield: Boolean(element.querySelector('#app-startup-spacefield canvas')),
       title: element.querySelector('[data-app-startup-title]')?.textContent || '',
@@ -511,6 +512,10 @@ async function expectStartupStatusVisible(page) {
     || !startupMetrics.spacefield
   ) {
     throw new Error(`Startup status should show backend field loading with the shared space animation: ${JSON.stringify(startupMetrics)}`);
+  }
+
+  if (options.beforeAppModules && startupMetrics.modulesReady === 'true') {
+    throw new Error(`Startup space animation should start before the full app module loader finishes: ${JSON.stringify(startupMetrics)}`);
   }
 }
 
@@ -3886,8 +3891,18 @@ async function runSmokeTest() {
       contentType: 'application/json; charset=utf-8',
       delayMs: 850
     });
-    await page.goto(baseUrl, { waitUntil: 'load', timeout: 15000 });
-    await expectStartupStatusVisible(page);
+    let delayedCacheManifest = false;
+    await page.route(/\/cache-bust\.json/u, async route => {
+      if (!delayedCacheManifest) {
+        delayedCacheManifest = true;
+        await new Promise(resolve => setTimeout(resolve, 900));
+      }
+      await route.continue();
+    });
+
+    const navigation = page.goto(baseUrl, { waitUntil: 'load', timeout: 15000 });
+    await expectStartupStatusVisible(page, { beforeAppModules: true });
+    await navigation;
     await waitForAppReady(page, failures);
     if (queryApiStub.countAction('get_fields') !== 1) {
       throw new Error(`Startup should share one backend field metadata request, saw ${queryApiStub.countAction('get_fields')}`);

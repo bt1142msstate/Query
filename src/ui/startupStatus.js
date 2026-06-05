@@ -1,4 +1,4 @@
-import { createTableQueryCircuitOverlay } from './queryAnimation.js';
+import { createTableQueryCircuitOverlay } from './spacefieldOverlay.js';
 
 const STARTING_CLASS = 'app-starting';
 const READY_CLASS = 'app-ready';
