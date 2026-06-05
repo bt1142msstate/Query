@@ -1,5 +1,6 @@
 import { buildHistoryExpandButton, escapeHistoryText } from './queryHistoryDetails.js';
 import { formatDuration } from '../../core/formatting/dataFormatters.js';
+import { formatBackendErrorSummary } from '../../core/queryErrorDetails.js';
 import {
   formatBackendProgressDetail,
   formatBackendProgressSummary,
@@ -122,6 +123,19 @@ function buildHistoryProgressHtml(progress) {
     </div>`;
 }
 
+function buildHistoryReasonSummaryHtml(query) {
+  if (!query.error && !query.errorDetails) {
+    return '<span class="text-gray-400">None</span>';
+  }
+
+  const detailSummary = formatBackendErrorSummary(query.errorDetails);
+  return `
+    <span class="history-reason-summary">
+      <span class="history-reason-icon">Issue</span>
+      ${detailSummary ? `<span class="history-reason-detail">${escapeHistoryText(detailSummary)}</span>` : ''}
+    </span>`;
+}
+
 function buildHistoryRowActions(query, options = {}) {
   const queryId = escapeHistoryText(query.id);
   const isLoading = options.activeHistoryResultLoadQueryId === query.id;
@@ -151,9 +165,7 @@ function createQueriesTableRowHtml(query, options = {}) {
   const duration = formatHistoryRowDuration(query, dependencies);
   const { loadBtn, previewBtn, rerunBtn, stopBtn } = buildHistoryRowActions(query, options);
 
-  const reasonSummary = query.error
-    ? '<span class="history-reason-icon">Issue</span>'
-    : '<span class="text-gray-400">None</span>';
+  const reasonSummary = buildHistoryReasonSummaryHtml(query);
 
   const metaPills = [`<span class="history-inline-pill subtle">${queryId}</span>`];
   if (!query.running && query.resultCount !== undefined && query.resultCount !== '-' && query.resultCount !== '?') {

@@ -14,6 +14,7 @@ import {
   getPreferredHistorySection,
   getQueryStatusMeta
 } from '../../src/features/history/queryHistoryViewHelpers.js';
+import { buildHistoryDetailsOverlayHtml } from '../../src/features/history/queryHistoryDetails.js';
 import { createQueriesTableRowHtml } from '../../src/features/history/queryHistoryRows.js';
 import test from 'node:test';
 
@@ -173,4 +174,45 @@ test('query history', async () => {
   assert.match(runningRowHtml, /Loading requested field values/u);
   assert.match(runningRowHtml, /Preparing additional result fields - 250 \/ 1,000 records/u);
   assert.match(runningRowHtml, /Candidate Rows/u);
+
+  const failedQuery = {
+    id: 'Q3',
+    name: 'Failed diagnostics',
+    status: 'failed',
+    failed: true,
+    startTime: '2026-01-01T00:00:00.000Z',
+    endTime: '2026-01-01T00:00:05.000Z',
+    error: 'Backend failed',
+    errorDetails: {
+      stage: 'loading_dynamic_fields',
+      component: 'marc_enrichment',
+      code: 'catalogdump_failed',
+      message: 'catalogdump failed with exit code 2',
+      hint: 'Check catalogdump permissions.',
+      command: 'catalogdump -ka -z -om',
+      exitCode: 2,
+      context: {
+        candidate_rows: 42
+      }
+    },
+    jsonConfig: { DesiredColumnOrder: ['Title'], Filters: [] }
+  };
+
+  const failedRowHtml = createQueriesTableRowHtml(failedQuery, {
+    dependencies: {
+      formatDuration: seconds => `${seconds}s`,
+      normalizeUiConfigFilters: () => []
+    }
+  });
+
+  assert.match(failedRowHtml, /Marc Enrichment - Catalogdump Failed/u);
+
+  const failedDetailsHtml = buildHistoryDetailsOverlayHtml(failedQuery, {
+    normalizeUiConfigFilters: () => [],
+    formatStandardFilterTooltipHTML: () => ''
+  });
+
+  assert.match(failedDetailsHtml, /Check catalogdump permissions\./u);
+  assert.match(failedDetailsHtml, /catalogdump -ka -z -om/u);
+  assert.match(failedDetailsHtml, /Candidate Rows/u);
 });

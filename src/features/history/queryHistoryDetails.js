@@ -1,3 +1,4 @@
+import { getBackendErrorDetailItems } from '../../core/queryErrorDetails.js';
 import { formatStandardFilterTooltipHTML } from '../../core/formatting/tooltipFormatters.js';
 
 function getDefaultHistoryDetailsDependencies() {
@@ -42,12 +43,27 @@ function buildHistoryFiltersMarkup(filters, dependencies = getDefaultHistoryDeta
   return '<p class="history-details-empty">No filters saved for this query.</p>';
 }
 
-function buildHistoryIssueMarkup(reason) {
-  if (!reason) {
+function buildHistoryIssueMarkup(reason, errorDetails) {
+  const detailItems = getBackendErrorDetailItems(errorDetails);
+  if (!reason && !detailItems.length) {
     return '<p class="history-details-empty">No issue recorded.</p>';
   }
 
-  return `<p class="history-details-issue">${escapeHistoryText(reason)}</p>`;
+  const detailsMarkup = detailItems.length
+    ? `
+      <dl class="history-error-details-list">
+        ${detailItems.map(item => `
+          <div class="history-error-details-item">
+            <dt>${escapeHistoryText(item.label)}</dt>
+            <dd>${escapeHistoryText(item.value)}</dd>
+          </div>
+        `).join('')}
+      </dl>`
+    : '';
+
+  return `
+    ${reason ? `<p class="history-details-issue">${escapeHistoryText(reason)}</p>` : ''}
+    ${detailsMarkup}`;
 }
 
 function buildHistoryExpandButton(queryId, isExpanded, columnCount, filterCount) {
@@ -106,7 +122,7 @@ function buildHistoryDetailsOverlayHtml(q, dependencies = getDefaultHistoryDetai
         ${q.failed ? `
           <section class="history-details-panel history-details-panel-full">
             <h5>Issue</h5>
-            ${buildHistoryIssueMarkup(q.error || '')}
+            ${buildHistoryIssueMarkup(q.error || '', q.errorDetails)}
           </section>
         ` : ''}
       </div>
