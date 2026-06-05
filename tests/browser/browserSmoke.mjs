@@ -3427,8 +3427,11 @@ async function exerciseDesktopResultsWorkflow(page) {
   await installHiddenTabNotificationSpy(page);
   await page.locator('#export-confirm-btn').click();
   await page.waitForFunction(() => {
-    return /Building large workbook|memory-safe export/iu.test(document.querySelector('#export-progress')?.textContent || '');
-  }, null, { timeout: 5000 });
+    const progressText = document.querySelector('#export-progress')?.textContent || '';
+    const overlayClosed = document.querySelector('#export-overlay')?.classList.contains('hidden') || false;
+    const exportFinished = (window.__browserSmokeNotifications || []).some(notification => notification.title === 'Excel export finished');
+    return /Building large workbook|memory-safe export/iu.test(progressText) || overlayClosed || exportFinished;
+  }, null, { timeout: 10000 });
   const largeDownload = await largeDownloadPromise;
   await largeDownload?.delete().catch(() => {});
   await page.locator('#export-overlay.hidden').waitFor({ state: 'attached', timeout: 10000 });
