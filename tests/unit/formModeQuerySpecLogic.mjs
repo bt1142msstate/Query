@@ -17,7 +17,7 @@ test('form mode query spec', async () => {
     readStoredFilterValues,
     syncInputSpecFromState,
     uniqueInputKey
-  } = await import('../../ui/form-mode/formModeQuerySpec.js');
+  } = await import('../../src/ui/form-mode/formModeQuerySpec.js');
 
   const fieldDefs = new Map([
     ['Checkout Date', { name: 'Checkout Date', type: 'date' }],

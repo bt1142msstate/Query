@@ -11,7 +11,7 @@
   <meta http-equiv="Expires" content="0">
   <title>Library Item Reports</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link href="styles/app.css" rel="stylesheet" data-app-stylesheet>
+  <link href="src/styles/app.css" rel="stylesheet" data-app-stylesheet>
   <link rel="icon" href="data:,">
 </head>
 <body class="relative min-h-screen overflow-x-hidden overflow-y-auto pt-16 px-6 pb-6" id="page-body">
@@ -1056,8 +1056,8 @@
 <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.10.9/dist/autoNumeric.min.js"></script>
   <script type="module">
     const CACHE_MANIFEST_URL = './cache-bust.json';
-    const APP_MODULE_URL = './appModules.js';
-    const APP_STYLESHEET_URL = 'styles/app.css';
+    const APP_MODULE_URL = './src/appModules.js';
+    const APP_STYLESHEET_URL = 'src/styles/app.css';
     const APP_SERVICE_WORKER_URL = './backgroundNotificationServiceWorker.js';
 
     async function loadCacheManifest() {

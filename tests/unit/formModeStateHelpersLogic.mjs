@@ -6,8 +6,8 @@ test('form mode state helpers', async () => {
   window.setTimeout = setTimeout;
   window.clearTimeout = clearTimeout;
 
-  const { buildActiveFilters, getValidationError } = await import('../../ui/form-mode/formModeStateHelpers.js');
-  const { fieldDefs } = await import('../../filters/fieldDefs.js');
+  const { buildActiveFilters, getValidationError } = await import('../../src/ui/form-mode/formModeStateHelpers.js');
+  const { fieldDefs } = await import('../../src/features/filters/fieldDefs.js');
 
   fieldDefs.clear();
   fieldDefs.set('Checkout Date', { name: 'Checkout Date', type: 'date' });

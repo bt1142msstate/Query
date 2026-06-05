@@ -4,7 +4,7 @@ import {
   buildPinTemplatePayload,
   buildUpdateTemplatePayload,
   getTemplatePinOrder
-} from '../../templates/queryTemplatePayloads.js';
+} from '../../src/features/templates/queryTemplatePayloads.js';
 import test from 'node:test';
 
 test('query template payloads', async () => {

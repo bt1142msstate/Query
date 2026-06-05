@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { buildExpandedMultiValueTable } from '../../table/virtual-table/splitColumnExpansion.js';
+import { buildExpandedMultiValueTable } from '../../src/features/table/virtual-table/splitColumnExpansion.js';
 import test from 'node:test';
 
 test('split column expansion', async () => {

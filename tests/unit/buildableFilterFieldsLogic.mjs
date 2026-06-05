@@ -3,7 +3,7 @@ import {
   buildDynamicFieldDefinition,
   collectBuilderInputValues,
   isOptionalBuilderInput
-} from '../../filters/buildableFilterFields.js';
+} from '../../src/features/filters/buildableFilterFields.js';
 import test from 'node:test';
 
 test('buildable filter fields', async () => {

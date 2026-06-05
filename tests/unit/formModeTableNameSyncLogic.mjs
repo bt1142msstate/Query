@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { bindFormModeTableNameUrlSync } from '../../ui/form-mode/formModeTableNameSync.js';
+import { bindFormModeTableNameUrlSync } from '../../src/ui/form-mode/formModeTableNameSync.js';
 import test from 'node:test';
 
 test('form mode table name sync', async () => {

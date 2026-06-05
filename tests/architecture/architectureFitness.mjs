@@ -183,9 +183,16 @@ test('architecture fitness', async () => {
   }
 
   function classifyLayer(relativePath) {
-    if (relativePath === 'appModules.js') {
+    if (relativePath === 'src/appModules.js') {
       return 'entry';
     }
+
+    if (relativePath.startsWith('src/core/')) return 'core';
+    if (relativePath.startsWith('src/ui/')) return 'ui';
+    if (relativePath.startsWith('src/features/filters/')) return 'filters';
+    if (relativePath.startsWith('src/features/history/')) return 'history';
+    if (relativePath.startsWith('src/features/table/')) return 'table';
+    if (relativePath.startsWith('src/features/templates/')) return 'templates';
 
     return relativePath.split('/')[0] || 'unknown';
   }
@@ -362,7 +369,7 @@ test('architecture fitness', async () => {
     failures.push(`Import cycle detected: ${cycle}`);
   }
 
-  const reachableModules = collectReachableModules(importGraph, 'appModules.js');
+  const reachableModules = collectReachableModules(importGraph, 'src/appModules.js');
   for (const workerPath of workerEntrypoints) {
     for (const reachableWorkerModule of collectReachableModules(importGraph, workerPath)) {
       reachableModules.add(reachableWorkerModule);
@@ -370,7 +377,7 @@ test('architecture fitness', async () => {
   }
   for (const sourcePath of sourceFilePaths) {
     if (!reachableModules.has(sourcePath)) {
-      failures.push(`${sourcePath}: application module is not reachable from appModules.js`);
+      failures.push(`${sourcePath}: application module is not reachable from src/appModules.js`);
     }
   }
 

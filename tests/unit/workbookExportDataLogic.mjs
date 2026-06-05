@@ -6,7 +6,7 @@ import {
   getGroupingDisplayValue,
   getUniqueSheetName,
   normalizeSheetName
-} from '../../table/export/workbookExportData.js';
+} from '../../src/features/table/export/workbookExportData.js';
 import test from 'node:test';
 
 test('workbook export data', async () => {

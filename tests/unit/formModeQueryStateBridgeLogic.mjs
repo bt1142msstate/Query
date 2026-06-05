@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { bindFormModeQueryStateSync } from '../../ui/form-mode/formModeQueryStateBridge.js';
+import { bindFormModeQueryStateSync } from '../../src/ui/form-mode/formModeQueryStateBridge.js';
 import test from 'node:test';
 
 test('form mode query state bridge', async () => {

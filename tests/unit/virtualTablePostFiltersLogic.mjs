@@ -28,7 +28,7 @@ test('virtual table post filters', async () => {
   const {
     createVirtualTablePostFilterController,
     doesCellMatchPostFilter
-  } = await import('../../table/virtual-table/virtualTablePostFilters.js');
+  } = await import('../../src/features/table/virtual-table/virtualTablePostFilters.js');
 
   let displayedFields = ['Title', 'Bill Count', 'Branch'];
   const baseViewData = {

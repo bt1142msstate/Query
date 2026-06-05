@@ -39,7 +39,7 @@ test('backend api', async () => {
     href: 'https://app.example.test/query/index.html?api_url=/api/query',
     search: '?api_url=/api/query'
   });
-  const searchModule = await import(`../../core/backendApi.js?case=search-${Date.now()}`);
+  const searchModule = await import(`../../src/core/backendApi.js?case=search-${Date.now()}`);
 
   assert.equal(searchModule.API_URL, searchModule.DEFAULT_API_URL);
   assert.equal(searchModule.getApiUrl(), 'https://app.example.test/api/query');
@@ -65,6 +65,6 @@ test('backend api', async () => {
     search: '',
     storedApiUrl: 'https://stored.example.test/query'
   });
-  const storedModule = await import(`../../core/backendApi.js?case=stored-${Date.now()}`);
+  const storedModule = await import(`../../src/core/backendApi.js?case=stored-${Date.now()}`);
   assert.equal(storedModule.getApiUrl(), 'https://stored.example.test/query');
 });

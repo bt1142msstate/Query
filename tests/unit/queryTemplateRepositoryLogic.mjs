@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { createQueryTemplateRepository } from '../../templates/queryTemplateRepository.js';
+import { createQueryTemplateRepository } from '../../src/features/templates/queryTemplateRepository.js';
 import test from 'node:test';
 
 test('query template repository', async () => {

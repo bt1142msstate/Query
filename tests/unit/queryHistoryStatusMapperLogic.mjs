@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mapStatusPayloadToHistoryRows } from '../../history/queryHistoryStatusMapper.js';
+import { mapStatusPayloadToHistoryRows } from '../../src/features/history/queryHistoryStatusMapper.js';
 import test from 'node:test';
 
 test('query history status mapper', async () => {

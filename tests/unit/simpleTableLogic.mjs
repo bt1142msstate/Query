@@ -11,7 +11,7 @@ test('simple table', async () => {
     GroupMethod,
     LogicalOperator,
     SimpleTable
-  } = await import('../../table/virtual-table/simpleTable.js');
+  } = await import('../../src/features/table/virtual-table/simpleTable.js');
 
   const tableConfig = {
     DataLines: [

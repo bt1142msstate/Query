@@ -523,14 +523,7 @@ module.exports = [
   },
   {
     files: [
-      'appModules.js',
-      'bubbles/**/*.js',
-      'core/**/*.js',
-      'filters/**/*.js',
-      'history/**/*.js',
-      'table/**/*.js',
-      'templates/**/*.js',
-      'ui/**/*.js'
+      'src/**/*.js'
     ],
     languageOptions: {
       sourceType: 'module'

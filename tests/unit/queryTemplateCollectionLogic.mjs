@@ -7,7 +7,7 @@ import {
   renumberPinnedTemplateOrder,
   replaceTemplateInCollection,
   sortTemplateCollection
-} from '../../templates/queryTemplateCollection.js';
+} from '../../src/features/templates/queryTemplateCollection.js';
 import test from 'node:test';
 
 test('query template collection', async () => {

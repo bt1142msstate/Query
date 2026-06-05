@@ -3,7 +3,7 @@ import {
   buildWorkbookFilename,
   notifyWorkbookDownloadComplete,
   prepareWorkbookDownloadNotification
-} from '../../table/export/workbookDownload.js';
+} from '../../src/features/table/export/workbookDownload.js';
 import test from 'node:test';
 
 test('workbook download', async () => {

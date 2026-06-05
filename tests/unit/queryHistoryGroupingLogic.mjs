@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {
   groupHistoryQueries,
   queryMatchesHistorySearch
-} from '../../history/queryHistoryGrouping.js';
+} from '../../src/features/history/queryHistoryGrouping.js';
 import test from 'node:test';
 
 test('query history grouping', async () => {

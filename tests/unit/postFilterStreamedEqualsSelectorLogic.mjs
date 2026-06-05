@@ -10,7 +10,7 @@ test('post filter streamed equals selector', async () => {
     }
   };
 
-  const { getNormalizedEqualsOptionValues } = await import('../../table/post-filters/postFilterStreamedEqualsSelector.js');
+  const { getNormalizedEqualsOptionValues } = await import('../../src/features/table/post-filters/postFilterStreamedEqualsSelector.js');
 
   const blankValue = '__BLANK__';
   const getBlankSentinel = () => blankValue;

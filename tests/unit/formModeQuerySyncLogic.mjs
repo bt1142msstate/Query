@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {
   shouldRemoveUnmatchedInputFromQuerySync,
   syncSpecInputsWithActiveFilters
-} from '../../ui/form-mode/formModeQuerySync.js';
+} from '../../src/ui/form-mode/formModeQuerySync.js';
 import test from 'node:test';
 
 test('form mode query sync', async () => {

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {
   getFieldPickerSearchRank,
   getRankedFieldPickerOptions
-} from '../../ui/field-picker/fieldPickerSearch.js';
+} from '../../src/ui/field-picker/fieldPickerSearch.js';
 import test from 'node:test';
 
 test('field picker search', async () => {

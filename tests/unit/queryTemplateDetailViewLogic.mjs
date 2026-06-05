@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { renderTemplateDetailView } from '../../templates/queryTemplateDetailView.js';
+import { renderTemplateDetailView } from '../../src/features/templates/queryTemplateDetailView.js';
 import test from 'node:test';
 
 test('query template detail view', async () => {

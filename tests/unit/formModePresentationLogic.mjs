@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {
   getFormModePresentationState,
   resolveRequestedFormViewMode
-} from '../../ui/form-mode/formModePresentation.js';
+} from '../../src/ui/form-mode/formModePresentation.js';
 import test from 'node:test';
 
 test('form mode presentation', async () => {

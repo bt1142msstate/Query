@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { yieldToBrowser } from '../../table/export/exportProgress.js';
+import { yieldToBrowser } from '../../src/features/table/export/exportProgress.js';
 import test from 'node:test';
 
 test('export progress', async () => {

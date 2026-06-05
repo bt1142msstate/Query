@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from '../../table/export/largeWorkbookExport.js';
+import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from '../../src/features/table/export/largeWorkbookExport.js';
 import test from 'node:test';
 
 test('large workbook export', async () => {

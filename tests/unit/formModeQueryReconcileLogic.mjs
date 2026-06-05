@@ -4,7 +4,7 @@ import {
   mergeQuerySyncOptions,
   normalizeQuerySyncOptions,
   shouldRunQueuedQuerySync
-} from '../../ui/form-mode/formModeQueryReconcile.js';
+} from '../../src/ui/form-mode/formModeQueryReconcile.js';
 import test from 'node:test';
 
 test('form mode query reconcile', async () => {

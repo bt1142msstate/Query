@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { parseListInputValues } from '../../ui/selectorListPasteInput.js';
+import { parseListInputValues } from '../../src/ui/selectorListPasteInput.js';
 import test from 'node:test';
 
 test('selector list paste input', async () => {

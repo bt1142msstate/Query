@@ -4,7 +4,7 @@ import {
   getFormModeCardHtml,
   getFormModeEmptyStateHtml,
   getVisibleFormInputs
-} from '../../ui/form-mode/formModeCard.js';
+} from '../../src/ui/form-mode/formModeCard.js';
 import test from 'node:test';
 
 test('form mode card', async () => {

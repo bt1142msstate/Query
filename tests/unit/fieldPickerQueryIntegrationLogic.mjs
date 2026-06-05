@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {
   buildNextDisplayedFieldsForPicker,
   parseFieldPickerInsertAt
-} from '../../ui/field-picker/fieldPickerQuerySelection.js';
+} from '../../src/ui/field-picker/fieldPickerQuerySelection.js';
 import test from 'node:test';
 
 test('field picker query integration', async () => {
