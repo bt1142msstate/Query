@@ -20,7 +20,9 @@ import {
 } from './tableColumnWidthCalculation.js';
 import { buildExpandedMultiValueTable } from './splitColumnExpansion.js';
 import {
+  buildDisplayedFieldMove,
   getPostFilterActionFieldsForTable,
+  getSplitFieldGroupIndices,
   getSplitFieldParentName
 } from './splitColumnFields.js';
 import { escapeHtml } from '../../../core/formatting/html.js';
@@ -768,6 +770,8 @@ VirtualTable = {
   expandMultiValueColumns,
   getFilterActionFieldName: fieldName => getSplitFieldParentName(fieldName, baseViewData),
   getPostFilterActionFields: fields => getPostFilterActionFieldsForTable(fields, baseViewData),
+  getDisplayedFieldMoveGroupIndices: (fieldName, fields = getDisplayedFields()) => getSplitFieldGroupIndices(fieldName, fields, baseViewData),
+  buildDisplayedFieldMove: (fields, fromIndex, toIndex) => buildDisplayedFieldMove(fields, fromIndex, toIndex, baseViewData),
   getPostFilterState: () => postFilters.cloneSnapshot(),
   getPostFilterFieldOptions: fieldName => postFilters.getFieldOptions(fieldName),
   replacePostFilters(nextFilters, options = {}) {

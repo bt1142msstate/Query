@@ -81,9 +81,129 @@ function getPostFilterActionFieldsForTable(displayedFields, tableData) {
   return actionFields;
 }
 
+function getSplitFieldGroupNames(fieldName, tableData) {
+  const normalizedField = String(fieldName || '').trim();
+  if (!normalizedField) {
+    return [];
+  }
+
+  const parentField = getSplitFieldParentName(normalizedField, tableData);
+  const group = getSplitColumnGroups(tableData).get(parentField);
+  if (!Array.isArray(group) || !group.includes(normalizedField)) {
+    return [];
+  }
+
+  return group.slice();
+}
+
+function getSplitFieldGroupIndices(fieldName, displayedFields, tableData) {
+  const fields = Array.isArray(displayedFields) ? displayedFields : [];
+  const groupNames = getSplitFieldGroupNames(fieldName, tableData);
+  if (!groupNames.length) {
+    return [];
+  }
+
+  return fields
+    .map((field, index) => groupNames.includes(field) ? index : -1)
+    .filter(index => index >= 0)
+    .sort((left, right) => left - right);
+}
+
+function buildDisplayedFieldMove(displayedFields, fromIndex, toIndex, tableData) {
+  const fields = Array.isArray(displayedFields) ? displayedFields.slice() : [];
+  if (
+    !Number.isInteger(fromIndex)
+    || !Number.isInteger(toIndex)
+    || fromIndex < 0
+    || fromIndex >= fields.length
+  ) {
+    return createMoveResult(fields);
+  }
+
+  const groupIndices = getSplitFieldGroupIndices(fields[fromIndex], fields, tableData);
+  if (groupIndices.length <= 1) {
+    return buildSingleDisplayedFieldMove(fields, fromIndex, toIndex);
+  }
+
+  const groupSet = new Set(groupIndices);
+  if (groupSet.has(toIndex)) {
+    return createMoveResult(fields, {
+      groupIndices,
+      isGroupMove: true,
+      movedFields: groupIndices.map(index => fields[index])
+    });
+  }
+
+  const rawInsertAt = fromIndex < toIndex ? toIndex + 1 : toIndex;
+  const movedFields = fields.filter((field, index) => groupSet.has(index));
+  const remainingFields = [];
+  fields.forEach((field, index) => {
+    if (!groupSet.has(index)) {
+      remainingFields.push(field);
+    }
+  });
+  const removedBeforeInsert = groupIndices.filter(index => index < rawInsertAt).length;
+  const insertAt = clampIndex(rawInsertAt - removedBeforeInsert, 0, remainingFields.length);
+  const nextFields = remainingFields.slice();
+  nextFields.splice(insertAt, 0, ...movedFields);
+
+  return createMoveResult(nextFields, {
+    changed: !areStringArraysEqual(fields, nextFields),
+    groupIndices,
+    insertAt,
+    isGroupMove: true,
+    movedFields
+  });
+}
+
+function buildSingleDisplayedFieldMove(fields, fromIndex, toIndex) {
+  if (fromIndex === toIndex) {
+    return createMoveResult(fields);
+  }
+
+  const nextFields = fields.slice();
+  const [movedField] = nextFields.splice(fromIndex, 1);
+  const insertAt = clampIndex(toIndex, 0, nextFields.length);
+  nextFields.splice(insertAt, 0, movedField);
+
+  return createMoveResult(nextFields, {
+    changed: !areStringArraysEqual(fields, nextFields),
+    groupIndices: [fromIndex],
+    insertAt,
+    movedFields: [movedField]
+  });
+}
+
+function createMoveResult(fields, overrides = {}) {
+  return {
+    changed: false,
+    fields,
+    groupIndices: [],
+    insertAt: -1,
+    isGroupMove: false,
+    movedFields: [],
+    ...overrides
+  };
+}
+
+function clampIndex(value, min, max) {
+  return Math.max(min, Math.min(value, max));
+}
+
+function areStringArraysEqual(left, right) {
+  if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) {
+    return false;
+  }
+
+  return left.every((value, index) => value === right[index]);
+}
+
 export {
+  buildDisplayedFieldMove,
   getPostFilterActionFieldsForTable,
   getSplitFieldColumnIndexes,
+  getSplitFieldGroupIndices,
+  getSplitFieldGroupNames,
   getSplitFieldParentName,
   getSplitFieldValue,
   isSplitFieldAvailable

@@ -58,6 +58,15 @@ let dragDropColumnOps;
     return displayedFields.filter(field => field === baseFieldName || relatedFieldPattern.test(field));
   }
 
+  function getColumnMoveGroupIndices(fieldName, displayedFields = getDisplayedFields()) {
+    const splitGroupIndices = services.getDisplayedFieldMoveGroupIndices?.(fieldName, displayedFields) || [];
+    if (splitGroupIndices.length > 1) {
+      return splitGroupIndices;
+    }
+
+    return findRelatedColumnIndices(fieldName);
+  }
+
   function syncTableAfterColumnMutation(options = {}) {
     uiActions.updateQueryJson();
     uiActions.updateButtonStates();
@@ -302,10 +311,31 @@ let dragDropColumnOps;
   function moveColumn(table, fromIndex, toIndex) {
     if (fromIndex === toIndex) return;
 
-    const fromFieldName = getDisplayedFields()[fromIndex];
+    const displayedFields = getDisplayedFields();
+    const fromFieldName = displayedFields[fromIndex];
     if (!fromFieldName) return;
 
-    const relatedIndices = findRelatedColumnIndices(fromFieldName);
+    const splitMove = services.buildDisplayedFieldMove?.(displayedFields, fromIndex, toIndex) || null;
+    if (splitMove?.isGroupMove) {
+      if (!splitMove.changed) {
+        return;
+      }
+
+      const movedFieldName = splitMove.movedFields[0] || fromFieldName;
+      queueColumnMutationRender({
+        preserveScroll: true,
+        scrollAnchorField: movedFieldName
+      });
+
+      QueryChangeManager.replaceDisplayedFields(splitMove.fields, {
+        source: 'DragDrop.moveSplitColumnGroup'
+      });
+
+      finalizeMoveOperation({ scrollAnchorField: movedFieldName });
+      return;
+    }
+
+    const relatedIndices = getColumnMoveGroupIndices(fromFieldName, displayedFields);
     if (relatedIndices.length === 1) {
       moveSingleColumn(table, fromIndex, toIndex);
     } else {
@@ -353,6 +383,7 @@ let dragDropColumnOps;
     getSampleColumnData,
     createColumnDragGhost,
     refreshColIndices,
+    getColumnMoveGroupIndices,
     moveColumn,
     moveSingleColumn,
     moveColumnGroup,
