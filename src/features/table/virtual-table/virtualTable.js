@@ -37,7 +37,8 @@ let virtualTableData = {
   rows: [],
   columnMap: new Map(),
   splitColumnGroups: new Map(),
-  splitColumnParent: new Map()
+  splitColumnParent: new Map(),
+  splitColumnSourceMap: new Map()
 };
 
 let baseViewData = {
@@ -45,7 +46,8 @@ let baseViewData = {
   rows: [],
   columnMap: new Map(),
   splitColumnGroups: new Map(),
-  splitColumnParent: new Map()
+  splitColumnParent: new Map(),
+  splitColumnSourceMap: new Map()
 };
 
 // Stores the original collapsed data so split mode can be toggled on/off non-destructively
@@ -100,7 +102,8 @@ function cloneTableData(data) {
     rows: Array.isArray(data?.rows) ? data.rows.map(row => Array.isArray(row) ? [...row] : row) : [],
     columnMap: data?.columnMap instanceof Map ? new Map(data.columnMap) : new Map(),
     splitColumnGroups: cloneSplitColumnGroups(data?.splitColumnGroups),
-    splitColumnParent: cloneSplitColumnParent(data?.splitColumnParent)
+    splitColumnParent: cloneSplitColumnParent(data?.splitColumnParent),
+    splitColumnSourceMap: cloneSplitColumnSourceMap(data?.splitColumnSourceMap)
   };
 }
 
@@ -112,6 +115,10 @@ function cloneSplitColumnGroups(groups) {
 
 function cloneSplitColumnParent(parentMap) {
   return parentMap instanceof Map ? new Map(parentMap) : new Map();
+}
+
+function cloneSplitColumnSourceMap(sourceMap) {
+  return sourceMap instanceof Map ? new Map(sourceMap) : new Map();
 }
 
 function applyManualWidthsToMap(widths, fields = null) {
@@ -615,14 +622,16 @@ function clearVirtualTableData() {
     rows: [],
     columnMap: new Map(),
     splitColumnGroups: new Map(),
-    splitColumnParent: new Map()
+    splitColumnParent: new Map(),
+    splitColumnSourceMap: new Map()
   };
   baseViewData = {
     headers: [],
     rows: [],
     columnMap: new Map(),
     splitColumnGroups: new Map(),
-    splitColumnParent: new Map()
+    splitColumnParent: new Map(),
+    splitColumnSourceMap: new Map()
   };
   splitViewData = null;
   postFilters.clear();
@@ -713,7 +722,8 @@ function setSplitColumnsMode(active) {
         rows: rawTableData.rows.map(r => [...r]),
         columnMap: new Map(rawTableData.columnMap),
         splitColumnGroups: cloneSplitColumnGroups(splitViewData?.splitColumnGroups),
-        splitColumnParent: cloneSplitColumnParent(splitViewData?.splitColumnParent)
+        splitColumnParent: cloneSplitColumnParent(splitViewData?.splitColumnParent),
+        splitColumnSourceMap: cloneSplitColumnSourceMap(splitViewData?.splitColumnSourceMap)
       };
       postFilters.invalidateValueOptionsCache();
     }
