@@ -12,17 +12,26 @@ export function buildExpandedMultiValueTable(rawTableData) {
     return {
       headers: [...rawTableData.headers],
       rows: rawTableData.rows.map(row => Array.isArray(row) ? [...row] : row),
-      columnMap: new Map(sourceColumnMap)
+      columnMap: new Map(sourceColumnMap),
+      splitColumnGroups: new Map(),
+      splitColumnParent: new Map()
     };
   }
 
   const headers = [];
+  const splitColumnGroups = new Map();
+  const splitColumnParent = new Map();
   rawTableData.headers.forEach(field => {
     const max = multiMax.get(field);
     if (max !== undefined) {
+      const groupHeaders = [];
       for (let index = 0; index < max; index += 1) {
-        headers.push(`${field} ${index + 1}`);
+        const childHeader = `${field} ${index + 1}`;
+        headers.push(childHeader);
+        groupHeaders.push(childHeader);
+        splitColumnParent.set(childHeader, field);
       }
+      splitColumnGroups.set(field, groupHeaders);
       return;
     }
 
@@ -51,7 +60,13 @@ export function buildExpandedMultiValueTable(rawTableData) {
     return nextRow;
   });
 
-  return { headers, rows, columnMap };
+  return {
+    headers,
+    rows,
+    columnMap,
+    splitColumnGroups,
+    splitColumnParent
+  };
 }
 
 function getMultiValueColumnMaxes(headers, rows, columnMap) {
@@ -81,6 +96,8 @@ function createEmptyTableData() {
   return {
     headers: [],
     rows: [],
-    columnMap: new Map()
+    columnMap: new Map(),
+    splitColumnGroups: new Map(),
+    splitColumnParent: new Map()
   };
 }

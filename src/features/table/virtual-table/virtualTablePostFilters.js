@@ -68,11 +68,13 @@ export function createVirtualTablePostFilterController({
   }
 
   function sanitizeForCurrentView() {
-    const visibleFieldSet = getVisibleFieldSet(getDisplayedFields());
     const baseViewData = getBaseViewData();
+    const visibleFieldSet = getVisibleFieldSet(getDisplayedFields(), baseViewData);
 
     Object.keys(state).forEach(field => {
-      if (!visibleFieldSet.has(field) || !baseViewData.columnMap.has(field)) {
+      const canonicalField = getCanonicalFieldName(field, baseViewData);
+      const isVisible = visibleFieldSet.has(field) || visibleFieldSet.has(canonicalField);
+      if (!isVisible || !resolveFieldColumnIndexes(field, baseViewData).length) {
         delete state[field];
         return;
       }
@@ -98,15 +100,15 @@ export function createVirtualTablePostFilterController({
     }
 
     const baseViewData = getBaseViewData();
-    const columnIndex = baseViewData.columnMap.get(normalizedField);
-    if (columnIndex === undefined) {
+    const columnIndexes = resolveFieldColumnIndexes(normalizedField, baseViewData);
+    if (!columnIndexes.length) {
       return [];
     }
 
     const options = buildFieldOptions({
       rows: baseViewData.rows,
-      columnIndex,
-      fieldType: getFieldType(normalizedField)
+      getRawValue: row => getResolvedFieldValue(row, columnIndexes),
+      fieldType: getFieldType(getCanonicalFieldName(normalizedField, baseViewData))
     });
     valueOptionsCache.set(normalizedField, options);
     return cloneOptions(options);
@@ -145,13 +147,13 @@ export function createVirtualTablePostFilterController({
 
   function doesRowMatchFilter(row, field, filter) {
     const baseViewData = getBaseViewData();
-    const columnIndex = baseViewData.columnMap.get(field);
-    if (columnIndex === undefined) {
+    const columnIndexes = resolveFieldColumnIndexes(field, baseViewData);
+    if (!columnIndexes.length) {
       return true;
     }
 
-    const type = getFieldType(field);
-    return doesCellMatchPostFilter(row[columnIndex], type, filter);
+    const type = getFieldType(getCanonicalFieldName(field, baseViewData));
+    return doesCellMatchPostFilter(getResolvedFieldValue(row, columnIndexes), type, filter);
   }
 
   return {
@@ -228,20 +230,26 @@ function normalizeFilters(filters) {
     : [];
 }
 
-function getVisibleFieldSet(displayedFields) {
-  return new Set(
-    (Array.isArray(displayedFields) ? displayedFields : [])
-      .map(field => String(field || '').trim())
-      .filter(Boolean)
-  );
+function getVisibleFieldSet(displayedFields, baseViewData) {
+  const visibleFields = new Set();
+  (Array.isArray(displayedFields) ? displayedFields : [])
+    .map(field => String(field || '').trim())
+    .filter(Boolean)
+    .forEach(field => {
+      visibleFields.add(field);
+      visibleFields.add(getCanonicalFieldName(field, baseViewData));
+    });
+  return visibleFields;
 }
 
-function buildFieldOptions({ rows, columnIndex, fieldType }) {
+function buildFieldOptions({ rows, columnIndex, getRawValue, fieldType }) {
   const counts = new Map();
   let blankCount = 0;
 
   rows.forEach(row => {
-    const rawValue = row[columnIndex];
+    const rawValue = typeof getRawValue === 'function'
+      ? getRawValue(row)
+      : row[columnIndex];
 
     if (isBlankCellValue(rawValue)) {
       blankCount += 1;
@@ -288,6 +296,63 @@ function buildFieldOptions({ rows, columnIndex, fieldType }) {
 
 function cloneOptions(options) {
   return options.map(option => ({ ...option }));
+}
+
+function getSplitColumnParentMap(baseViewData) {
+  return baseViewData?.splitColumnParent instanceof Map ? baseViewData.splitColumnParent : new Map();
+}
+
+function getSplitColumnGroups(baseViewData) {
+  return baseViewData?.splitColumnGroups instanceof Map ? baseViewData.splitColumnGroups : new Map();
+}
+
+function getCanonicalFieldName(field, baseViewData) {
+  const normalizedField = String(field || '').trim();
+  if (!normalizedField) {
+    return '';
+  }
+
+  return getSplitColumnParentMap(baseViewData).get(normalizedField) || normalizedField;
+}
+
+function resolveFieldColumnIndexes(field, baseViewData) {
+  const normalizedField = String(field || '').trim();
+  if (!normalizedField) {
+    return [];
+  }
+
+  const columnMap = baseViewData?.columnMap instanceof Map ? baseViewData.columnMap : new Map();
+  if (columnMap.has(normalizedField)) {
+    return [columnMap.get(normalizedField)];
+  }
+
+  const splitChildren = getSplitColumnGroups(baseViewData).get(normalizedField);
+  if (Array.isArray(splitChildren) && splitChildren.length) {
+    return splitChildren
+      .map(childField => columnMap.get(childField))
+      .filter(index => index !== undefined);
+  }
+
+  const parentField = getSplitColumnParentMap(baseViewData).get(normalizedField);
+  if (parentField && columnMap.has(parentField)) {
+    return [columnMap.get(parentField)];
+  }
+
+  return [];
+}
+
+function getResolvedFieldValue(row, columnIndexes) {
+  if (!Array.isArray(row) || !Array.isArray(columnIndexes) || !columnIndexes.length) {
+    return '';
+  }
+
+  if (columnIndexes.length === 1) {
+    return row[columnIndexes[0]] ?? '';
+  }
+
+  return columnIndexes
+    .map(index => row[index] ?? '')
+    .join('\x1F');
 }
 
 function doesCellMatchBetweenFilter(rowValues, filterValue, type) {

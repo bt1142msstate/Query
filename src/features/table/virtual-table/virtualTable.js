@@ -29,17 +29,22 @@ let VirtualTable;
 let virtualTableData = {
   headers: [],
   rows: [],
-  columnMap: new Map()
+  columnMap: new Map(),
+  splitColumnGroups: new Map(),
+  splitColumnParent: new Map()
 };
 
 let baseViewData = {
   headers: [],
   rows: [],
-  columnMap: new Map()
+  columnMap: new Map(),
+  splitColumnGroups: new Map(),
+  splitColumnParent: new Map()
 };
 
 // Stores the original collapsed data so split mode can be toggled on/off non-destructively
 let rawTableData = null;
+let splitViewData = null;
 let splitColumnsActive = false;
 let tableRowHeight = 42;    // estimated row height in pixels
 let tableScrollTop = 0;
@@ -87,8 +92,20 @@ function cloneTableData(data) {
   return {
     headers: Array.isArray(data?.headers) ? [...data.headers] : [],
     rows: Array.isArray(data?.rows) ? data.rows.map(row => Array.isArray(row) ? [...row] : row) : [],
-    columnMap: data?.columnMap instanceof Map ? new Map(data.columnMap) : new Map()
+    columnMap: data?.columnMap instanceof Map ? new Map(data.columnMap) : new Map(),
+    splitColumnGroups: cloneSplitColumnGroups(data?.splitColumnGroups),
+    splitColumnParent: cloneSplitColumnParent(data?.splitColumnParent)
   };
+}
+
+function cloneSplitColumnGroups(groups) {
+  return groups instanceof Map
+    ? new Map(Array.from(groups.entries()).map(([field, children]) => [field, [...children]]))
+    : new Map();
+}
+
+function cloneSplitColumnParent(parentMap) {
+  return parentMap instanceof Map ? new Map(parentMap) : new Map();
 }
 
 function applyManualWidthsToMap(widths, fields = null) {
@@ -226,11 +243,13 @@ function applyPostFilters(options = {}) {
     tableScrollContainer.scrollTop = 0;
   }
 
-  const displayedFields = getDisplayedFields();
-  const fieldsForWidth = displayedFields.length
-    ? displayedFields
-    : virtualTableData.headers;
-  calculatedColumnWidths = calculateOptimalColumnWidths(fieldsForWidth, virtualTableData);
+  if (options.recalculateWidths !== false) {
+    const displayedFields = getDisplayedFields();
+    const fieldsForWidth = displayedFields.length
+      ? displayedFields
+      : virtualTableData.headers;
+    calculatedColumnWidths = calculateOptimalColumnWidths(fieldsForWidth, virtualTableData);
+  }
 
   if (options.refreshView !== false) {
     updateHeaderWidthsFromCurrentState();
@@ -584,13 +603,18 @@ function clearVirtualTableData() {
   virtualTableData = {
     headers: [],
     rows: [],
-    columnMap: new Map()
+    columnMap: new Map(),
+    splitColumnGroups: new Map(),
+    splitColumnParent: new Map()
   };
   baseViewData = {
     headers: [],
     rows: [],
-    columnMap: new Map()
+    columnMap: new Map(),
+    splitColumnGroups: new Map(),
+    splitColumnParent: new Map()
   };
+  splitViewData = null;
   postFilters.clear();
   calculatedColumnWidths = {};
   manualColumnWidths = {};
@@ -643,7 +667,10 @@ function getVirtualTableState() {
 function expandMultiValueColumns() {
   if (!rawTableData || !rawTableData.rows || !rawTableData.rows.length) return;
 
-  baseViewData = buildExpandedMultiValueTable(rawTableData);
+  if (!splitViewData) {
+    splitViewData = buildExpandedMultiValueTable(rawTableData);
+  }
+  baseViewData = cloneTableData(splitViewData);
   postFilters.invalidateValueOptionsCache();
 }
 
@@ -674,24 +701,26 @@ function setSplitColumnsMode(active) {
       baseViewData = {
         headers: [...rawTableData.headers],
         rows: rawTableData.rows.map(r => [...r]),
-        columnMap: new Map(rawTableData.columnMap)
+        columnMap: new Map(rawTableData.columnMap),
+        splitColumnGroups: cloneSplitColumnGroups(splitViewData?.splitColumnGroups),
+        splitColumnParent: cloneSplitColumnParent(splitViewData?.splitColumnParent)
       };
       postFilters.invalidateValueOptionsCache();
     }
   }
 
-  applyPostFilters({ refreshView: false, notify: true, resetScroll: false });
+  applyPostFilters({
+    refreshView: false,
+    notify: false,
+    resetScroll: false,
+    recalculateWidths: false
+  });
 
   // Keep query-state columns aligned with the active split/stacked header set.
+  QueryTableView.queueNextStateRenderOptions({ preserveScroll: true });
   QueryChangeManager.replaceDisplayedFields(baseViewData.headers, { source: 'VirtualTable.setSplitMode' });
-
-  // Recalculate column widths and re-render
-  calculatedColumnWidths = calculateOptimalColumnWidths(virtualTableData.headers, virtualTableData);
-  renderVirtualTable();
+  notifyPostFiltersUpdated();
   syncResizeModeUi();
-
-  // Rebuild the example table fallback when it exists.
-  uiActions.showExampleTable(baseViewData.headers).catch(() => {});
 }
 
 VirtualTable = {
@@ -702,6 +731,7 @@ VirtualTable = {
     // When new data is loaded from outside, update rawTableData so split mode
     // always has a fresh snapshot to work from.
     rawTableData = cloneTableData(nextData);
+    splitViewData = null;
     baseViewData = cloneTableData(nextData);
     postFilters.invalidateValueOptionsCache();
     // Reset split mode — caller will re-expand if needed
