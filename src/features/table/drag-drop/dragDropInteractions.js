@@ -4,7 +4,6 @@ import { Icons } from '../../../core/icons.js';
 import { QueryStateReaders, getBaseFieldName } from '../../../core/queryState.js';
 import { showToastMessage } from '../../../core/toast.js';
 import {
-  findRelatedColumnIndices,
   getDuplicateGroups,
   restoreFieldWithDuplicates
 } from './columnManager.js';
@@ -37,6 +36,7 @@ let DragDropInteractions;
     formatColumnClipboardValue,
     createColumnDragGhost,
     refreshColIndices,
+    getColumnMoveGroupIndices,
     moveColumn,
     removeColumn
   } = dragDropColumnOps;
@@ -296,7 +296,7 @@ let DragDropInteractions;
 
       const colIndex = parseInt(th.dataset.colIndex, 10);
       const fieldName = getDisplayedFields()[colIndex];
-      const relatedIndices = findRelatedColumnIndices(fieldName);
+      const relatedIndices = getColumnMoveGroupIndices(fieldName, getDisplayedFields());
 
       relatedIndices.forEach(index => {
         const relatedHeader = document.querySelector(`thead th[data-col-index="${index}"]`);

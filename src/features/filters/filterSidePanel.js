@@ -218,12 +218,25 @@ const FilterSidePanel = (function () {
 
     function moveDisplayedFieldByOffset(index, offset) {
         const fields = getDisplayedFields();
-        const targetIndex = index + offset;
+        const targetIndex = getDisplayedFieldOffsetTargetIndex(fields, index, offset);
         if (index < 0 || index >= fields.length || targetIndex < 0 || targetIndex >= fields.length) {
             return;
         }
 
         moveDisplayedField(index, targetIndex, 'FilterSidePanel.moveDisplayedField');
+    }
+
+    function getDisplayedFieldOffsetTargetIndex(fields, index, offset) {
+        const normalizedOffset = Number(offset) < 0 ? -1 : 1;
+        const fieldName = fields[index];
+        const groupIndices = services.getDisplayedFieldMoveGroupIndices(fieldName, fields);
+        if (groupIndices.length <= 1) {
+            return index + normalizedOffset;
+        }
+
+        const groupStart = Math.min(...groupIndices);
+        const groupEnd = Math.max(...groupIndices);
+        return normalizedOffset < 0 ? groupStart - 1 : groupEnd + 1;
     }
 
     function moveDisplayedField(fromIndex, toIndex, source) {
@@ -234,6 +247,19 @@ const FilterSidePanel = (function () {
 
         if (fromIndex < 0 || fromIndex >= fields.length) {
             return false;
+        }
+
+        const splitMove = services.buildDisplayedFieldMove(fields, fromIndex, toIndex);
+        if (splitMove?.isGroupMove) {
+            if (!splitMove.changed) {
+                return false;
+            }
+
+            QueryChangeManager.replaceDisplayedFields(splitMove.fields, {
+                source
+            });
+
+            return true;
         }
 
         QueryChangeManager.moveDisplayedField(fromIndex, toIndex, {

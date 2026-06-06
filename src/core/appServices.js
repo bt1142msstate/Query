@@ -367,6 +367,16 @@ function registerTableService(service) {
     return getTableService()?.getPostFilterActionFields?.(fields) || fields;
   }
 
+  function getDisplayedFieldMoveGroupIndices(fieldName, displayedFields) {
+    const fields = Array.isArray(displayedFields) ? displayedFields : [];
+    return getTableService()?.getDisplayedFieldMoveGroupIndices?.(fieldName, fields) || [];
+  }
+
+  function buildDisplayedFieldMove(displayedFields, fromIndex, toIndex) {
+    const fields = Array.isArray(displayedFields) ? displayedFields : [];
+    return getTableService()?.buildDisplayedFieldMove?.(fields, fromIndex, toIndex) || null;
+  }
+
   function replacePostFilters(snapshot, options = {}) {
     getTableService()?.replacePostFilters?.(snapshot, options);
   }
@@ -499,6 +509,8 @@ function registerTableService(service) {
     getPostFilterFieldOptions,
     getFilterActionFieldName,
     getPostFilterActionFields,
+    getDisplayedFieldMoveGroupIndices,
+    buildDisplayedFieldMove,
     replacePostFilters,
     hasPostFilters,
     isSplitColumnsActive,
