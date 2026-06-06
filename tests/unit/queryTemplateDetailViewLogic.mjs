@@ -97,6 +97,31 @@ test('query template detail view', async () => {
   assert.equal(categoryAssignmentRendered, true);
   assert.equal(validationCleared, true);
 
+  renderTemplateDetailView({
+    elements,
+    state: {
+      ...state,
+      draft: {
+        ...state.draft,
+        source: 'history'
+      }
+    },
+    selected: {
+      name: 'History Draft',
+      pinned: false,
+      source: 'history'
+    },
+    restricted: false,
+    isNew: true,
+    getTemplateSvgMarkup: template => template.svg || 'fallback',
+    buildTemplateDetailMeta: () => 'new template meta',
+    renderCategoryAssignment: () => {},
+    renderValidation: () => {}
+  });
+
+  assert.equal(elements.detailTitle.textContent, 'Create Template From Query History');
+  assert.equal(elements.saveBtn.textContent, 'Create Template');
+
   categoryAssignmentRendered = false;
   renderTemplateDetailView({
     elements,

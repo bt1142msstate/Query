@@ -42,7 +42,10 @@ export function renderTemplateDetailView({
   }
 
   if (elements.detailTitle) {
-    elements.detailTitle.textContent = isNew ? 'Create Template From Current Query' : selected.name;
+    const createTitle = selected.source === 'history'
+      ? 'Create Template From Query History'
+      : 'Create Template From Current Query';
+    elements.detailTitle.textContent = isNew ? createTitle : selected.name;
   }
 
   if (elements.nameInput) {

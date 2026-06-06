@@ -47,10 +47,9 @@ import { escapeHtml } from '../../core/formatting/html.js';
   const NEW_TEMPLATE_ID = '__new_template__';
   const DEFAULT_TEMPLATE_SVG = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="template-default-icon" aria-hidden="true">
-      <rect x="8" y="8" width="48" height="48" rx="10" fill="#FFFFFF" stroke="#111827" stroke-width="4"/>
-      <rect x="18" y="18" width="28" height="11" rx="3" fill="#111827"/>
-      <path d="M18 38h10M36 38h10M18 46h28" fill="none" stroke="#111827" stroke-width="4" stroke-linecap="round"/>
-      <path d="M48 8v13a4 4 0 0 0 4 4h4" fill="none" stroke="#111827" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="10" y="8" width="44" height="48" rx="12" fill="#FFFFFF" stroke="#111827" stroke-width="4"/>
+      <path d="M22 22h20M22 32h20M22 42h12" fill="none" stroke="#111827" stroke-width="4" stroke-linecap="round"/>
+      <path d="M44 8v10a4 4 0 0 0 4 4h6" fill="none" stroke="#111827" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
   `;
   const state = {
@@ -96,17 +95,52 @@ import { escapeHtml } from '../../core/formatting/html.js';
     return buildQueryUiConfig();
   }
 
-  function hasUsableCurrentQuery() {
-    const config = getCurrentQueryConfigSnapshot();
-    if (!config) {
+  function cloneUiConfig(uiConfig) {
+    return uiConfig && typeof uiConfig === 'object'
+      ? JSON.parse(JSON.stringify(uiConfig))
+      : null;
+  }
+
+  function hasUsableUiConfig(uiConfig) {
+    if (!uiConfig) {
       return false;
     }
 
     return Boolean(
-      (Array.isArray(config.DesiredColumnOrder) && config.DesiredColumnOrder.length)
-      || (Array.isArray(config.Filters) && config.Filters.length)
-      || (Array.isArray(config.SpecialFields) && config.SpecialFields.length)
+      (Array.isArray(uiConfig.DesiredColumnOrder) && uiConfig.DesiredColumnOrder.length)
+      || (Array.isArray(uiConfig.Filters) && uiConfig.Filters.length)
+      || (Array.isArray(uiConfig.SpecialFields) && uiConfig.SpecialFields.length)
     );
+  }
+
+  function hasUsableCurrentQuery() {
+    return hasUsableUiConfig(getCurrentQueryConfigSnapshot());
+  }
+
+  function getDraftUiConfigForSave() {
+    if (hasUsableUiConfig(state.draft?.uiConfig)) {
+      return cloneUiConfig(state.draft.uiConfig);
+    }
+
+    return getCurrentQueryConfigSnapshot();
+  }
+
+  function getUniqueTemplateName(baseName) {
+    const fallbackName = 'History query template';
+    const base = String(baseName || '').trim() || fallbackName;
+    const existingNames = new Set(state.templates.map(template => template.name.toLowerCase()));
+    if (!existingNames.has(base.toLowerCase())) {
+      return base;
+    }
+
+    for (let suffix = 2; suffix < 1000; suffix += 1) {
+      const candidate = `${base} ${suffix}`;
+      if (!existingNames.has(candidate.toLowerCase())) {
+        return candidate;
+      }
+    }
+
+    return `${base} ${Date.now()}`;
   }
 
   function syncDraftCategoriesFromInputs() {
@@ -305,6 +339,35 @@ import { escapeHtml } from '../../core/formatting/html.js';
     openDetailOverlay();
   }
 
+  function createFromHistoryQuery(query) {
+    if (isRestrictedMode()) {
+      return false;
+    }
+
+    const uiConfig = cloneUiConfig(query?.jsonConfig || query?.uiConfig || query?.config);
+    if (!hasUsableUiConfig(uiConfig)) {
+      showToastMessage('This history query does not have saved fields or filters to use as a template.', 'warning');
+      return false;
+    }
+
+    appServices.openModalPanel('templates-panel');
+    state.selectedId = NEW_TEMPLATE_ID;
+    state.draft = createTemplateDraftFromConfig(uiConfig);
+    state.draft.source = 'history';
+    state.draft.name = getUniqueTemplateName(query?.name || 'History query template');
+    state.draft.description = query?.id
+      ? `Created from query history item ${query.id}.`
+      : 'Created from query history.';
+    state.detailOverlayOpen = true;
+    renderValidation([]);
+    render();
+    refreshTemplates({ force: !state.loaded });
+    window.requestAnimationFrame(() => {
+      getElements().nameInput?.focus?.();
+    });
+    return true;
+  }
+
   async function createTemplate() {
     if (isRestrictedMode() || !state.draft) {
       return;
@@ -312,7 +375,7 @@ import { escapeHtml } from '../../core/formatting/html.js';
 
     syncDraftFromInputs();
     const validationErrors = validateTemplateDraft(state.draft, {
-      hasUsableCurrentQuery: hasUsableCurrentQuery(),
+      hasUsableCurrentQuery: hasUsableUiConfig(getDraftUiConfigForSave()),
       templates: state.templates
     });
     if (validationErrors.length) {
@@ -327,7 +390,7 @@ import { escapeHtml } from '../../core/formatting/html.js';
       const payload = await templateRepository.createTemplate(buildCreateTemplatePayload({
         draft: state.draft,
         categories: state.categories,
-        uiConfig: getCurrentQueryConfigSnapshot()
+        uiConfig: getDraftUiConfigForSave()
       }));
 
       const normalized = normalizeTemplate(payload.template || payload, state.templates.length);
@@ -811,7 +874,8 @@ import { escapeHtml } from '../../core/formatting/html.js';
   registerQueryTemplatesService(Object.freeze({
     openPanel,
     closePanel,
-    refreshTemplates
+    refreshTemplates,
+    createFromHistoryQuery
   }));
 
   onDOMReady(() => {

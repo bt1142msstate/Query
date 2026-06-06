@@ -407,6 +407,184 @@ body.history-details-open #queries-panel > h2 .collapse-btn {
   background: linear-gradient(180deg, #ffffff, #f8fafc);
 }
 
+/* Dark help panel theme */
+#help-panel > h2 {
+  background:
+    linear-gradient(90deg, rgba(68, 225, 255, 0.12), transparent 28%),
+    linear-gradient(135deg, #070d18 0%, #101928 56%, #050914 100%);
+  border-color: rgba(68, 225, 255, 0.24);
+  color: #effbff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 0 1px rgba(68, 225, 255, 0.12);
+  font-family: "Orbitron", "Space Grotesk", sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.help-panel-title {
+  color: #f7fdff;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.help-panel-subtitle {
+  background: rgba(68, 225, 255, 0.1);
+  border: 1px solid rgba(68, 225, 255, 0.22);
+  color: #9ff7ff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+#help-panel > h2 .collapse-btn {
+  border-color: rgba(68, 225, 255, 0.22);
+  background: linear-gradient(180deg, rgba(12, 21, 34, 0.96), rgba(5, 10, 19, 0.98));
+  color: #baf8ff;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+#help-panel > h2 .collapse-btn:hover,
+#help-panel > h2 .collapse-btn:focus-visible {
+  background: linear-gradient(180deg, rgba(16, 30, 48, 0.98), rgba(7, 14, 25, 1));
+  border-color: rgba(68, 225, 255, 0.42);
+  color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(68, 225, 255, 0.12), 0 14px 30px rgba(0, 0, 0, 0.34);
+}
+
+#help-container {
+  background:
+    linear-gradient(180deg, rgba(6, 12, 22, 0.98), rgba(3, 7, 14, 1)),
+    linear-gradient(90deg, rgba(68, 225, 255, 0.04), rgba(119, 255, 152, 0.03) 48%, rgba(255, 111, 145, 0.04));
+  border-color: rgba(68, 225, 255, 0.2);
+}
+
+.help-shell {
+  color: #e8f7ff;
+}
+
+.help-hero {
+  background:
+    linear-gradient(135deg, rgba(14, 24, 39, 0.96), rgba(7, 13, 24, 0.98)),
+    linear-gradient(90deg, rgba(68, 225, 255, 0.08), rgba(119, 255, 152, 0.04));
+  border-color: rgba(68, 225, 255, 0.2);
+  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.help-kicker,
+.help-summary-label,
+.help-card-tag,
+.help-mini-heading {
+  color: #87f7ff;
+}
+
+.help-kicker,
+.help-card-tag {
+  background: rgba(68, 225, 255, 0.08);
+  border-color: rgba(68, 225, 255, 0.22);
+}
+
+.help-hero-copy h3,
+.help-card-heading h4,
+.help-step-list strong,
+.help-tip-item strong,
+.help-mini-heading,
+.help-summary-card strong {
+  color: #f4fbff;
+}
+
+.help-hero-copy p,
+.help-step-list p,
+.help-detail-list li,
+.help-action-item p,
+.help-tip-item p,
+.help-status-list span:last-child {
+  color: rgba(219, 239, 247, 0.78);
+}
+
+.help-summary-card,
+.help-card,
+.help-step-list li,
+.help-action-item,
+.help-tip-item {
+  background: linear-gradient(180deg, rgba(12, 21, 34, 0.86), rgba(7, 13, 24, 0.94));
+  border-color: rgba(68, 225, 255, 0.13);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 12px 30px rgba(0, 0, 0, 0.2);
+}
+
+.help-card:nth-child(2n) {
+  --help-accent-bg: rgba(119, 255, 152, 0.1);
+  --help-accent-border: rgba(119, 255, 152, 0.24);
+  --help-accent-text: #9effb4;
+}
+
+.help-card:nth-child(3n) {
+  --help-accent-bg: rgba(255, 207, 115, 0.11);
+  --help-accent-border: rgba(255, 207, 115, 0.25);
+  --help-accent-text: #ffe2a3;
+}
+
+.help-card:nth-child(4n) {
+  --help-accent-bg: rgba(232, 213, 255, 0.1);
+  --help-accent-border: rgba(232, 213, 255, 0.24);
+  --help-accent-text: #e8d5ff;
+}
+
+.help-step-number {
+  background: linear-gradient(180deg, #44e1ff, #208da2);
+  color: #031018;
+  box-shadow: 0 0 18px rgba(68, 225, 255, 0.18);
+}
+
+.help-detail-list li::before,
+.help-status-list li::before {
+  background: #44e1ff;
+  box-shadow: 0 0 10px rgba(68, 225, 255, 0.35);
+}
+
+.help-action-pill.run,
+.help-status.complete {
+  background: rgba(119, 255, 152, 0.1);
+  color: #9effb4;
+  border-color: rgba(119, 255, 152, 0.28);
+}
+
+.help-action-pill.export,
+.help-action-pill.split {
+  background: rgba(68, 225, 255, 0.09);
+  color: #9ff7ff;
+  border-color: rgba(68, 225, 255, 0.24);
+}
+
+.help-action-pill.json {
+  background: rgba(255, 207, 115, 0.11);
+  color: #ffe2a3;
+  border-color: rgba(255, 207, 115, 0.25);
+}
+
+.help-action-pill.history,
+.help-status.running,
+.help-action-pill.templates {
+  background: rgba(232, 213, 255, 0.1);
+  color: #e8d5ff;
+  border-color: rgba(232, 213, 255, 0.24);
+}
+
+.help-status.failed {
+  background: rgba(255, 111, 145, 0.12);
+  color: #ffb6c7;
+  border-color: rgba(255, 111, 145, 0.28);
+}
+
+.help-status.canceled {
+  background: rgba(255, 207, 115, 0.11);
+  color: #ffe2a3;
+  border-color: rgba(255, 207, 115, 0.25);
+}
+
+.help-callout-card {
+  background:
+    linear-gradient(180deg, rgba(13, 23, 37, 0.92), rgba(7, 13, 24, 0.96)),
+    linear-gradient(90deg, rgba(255, 207, 115, 0.07), transparent 48%, rgba(68, 225, 255, 0.05));
+  border-color: rgba(255, 207, 115, 0.2);
+}
+
 @media (max-width: 1180px) {
   #help-panel > h2 {
     min-height: 3rem;

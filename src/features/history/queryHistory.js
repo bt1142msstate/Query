@@ -18,15 +18,19 @@ import {
   mergeUiConfigWithRequest,
   resolveSpecialPayloadFieldNames
 } from './queryHistoryRequestMapper.js';
-import { HISTORY_TABLE_HEADS, createQueriesTableRowHtml } from './queryHistoryRows.js';
+import { createQueriesTableRowHtml } from './queryHistoryRows.js';
 import { groupHistoryQueries } from './queryHistoryGrouping.js';
+import {
+  buildHistorySubtitleText,
+  buildHistoryVisibleMetaDetail,
+  normalizeHistoryViewOptions
+} from './queryHistoryControls.js';
+import { buildHistoryPanelView } from './queryHistoryPanelView.js';
 import { mapStatusPayloadToHistoryRows } from './queryHistoryStatusMapper.js';
 import { formatColumnsTooltip, formatHistoryFiltersTooltip } from './queryHistoryTooltips.js';
 import { notifyHistoryResultLoadComplete, prepareHistoryResultLoadNotification } from './queryHistoryNotifications.js';
 import { rememberOpenedHistoryResult, shouldRestoreOpenedHistoryResult } from './queryHistoryResultSession.js';
 import {
-  buildHistoryMonitor,
-  buildHistorySection,
   classifyQueryStatus,
   getPreferredHistorySection as getPreferredHistorySectionForCounts
 } from './queryHistoryViewHelpers.js';
@@ -106,6 +110,23 @@ function getPreferredHistorySection(counts) {
 
 function syncHistoryMonitorOpenState(isOpen) {
   DOM.queriesPanel?.classList.toggle('history-monitor-open', Boolean(isOpen));
+}
+
+function getHistoryControlElement(id) {
+  return document.getElementById(id);
+}
+
+function getHistorySearchTerm() {
+  return DOM.queriesSearch ? DOM.queriesSearch.value.trim() : '';
+}
+
+function getHistoryViewOptionsFromControls() {
+  return normalizeHistoryViewOptions({
+    statusFilter: getHistoryControlElement('queries-status-filter')?.value,
+    resultFilter: getHistoryControlElement('queries-result-filter')?.value,
+    durationFilter: getHistoryControlElement('queries-duration-filter')?.value,
+    sortKey: getHistoryControlElement('queries-sort')?.value
+  });
 }
 
 function createHistoryRowHtml(query) {
@@ -358,6 +379,20 @@ function bindHistoryTableButtons(scope) {
     });
   });
 
+  scope.querySelectorAll('.template-query-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = btn.getAttribute('data-query-id');
+      const query = getHistoryQueryById(id);
+      if (!query) return;
+      closeHistoryDetailsOverlay();
+      const opened = appServices.createTemplateFromHistoryQuery(query);
+      if (opened !== false) {
+        appServices.closeModalPanel('queries-panel');
+      }
+    });
+  });
+
   scope.querySelectorAll('.rerun-query-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
@@ -428,21 +463,21 @@ function patchQueriesPanelData(newHistory) {
     return;
   }
 
-  const searchInput = DOM.queriesSearch;
-  const searchTerm  = searchInput ? searchInput.value.trim().toLowerCase() : '';
-  const grouped = groupHistoryQueries(newHistory, searchTerm);
+  const searchTerm = getHistorySearchTerm();
+  const viewOptions = getHistoryViewOptionsFromControls();
+  const grouped = groupHistoryQueries(newHistory, searchTerm, viewOptions);
   const { running: runningList, complete: doneList, failed: failedList, canceled: cancelledList, counts, visibleCount, totalCount } = grouped;
 
   // — Editorial hero subtitle
   const heroSubtitle = container.querySelector('.history-editorial-subtitle');
   if (heroSubtitle) {
-    const liveSignal  = counts.running > 0
-      ? `${counts.running} live ${counts.running === 1 ? 'query is' : 'queries are'} still updating.`
-      : 'No active queries are running right now.';
-    const searchLabel = searchTerm
-      ? `Showing ${visibleCount} of ${totalCount} saved queries matching "${searchTerm}".`
-      : `Showing ${visibleCount} recent ${visibleCount === 1 ? 'query' : 'queries'} across your workspace history.`;
-    const next = `${searchLabel} ${liveSignal}`;
+    const next = buildHistorySubtitleText({
+      searchTerm,
+      visibleCount,
+      totalCount,
+      runningCount: counts.running,
+      viewOptions
+    });
     if (heroSubtitle.textContent !== next) heroSubtitle.textContent = next;
   }
 
@@ -451,6 +486,9 @@ function patchQueriesPanelData(newHistory) {
   if (metaCards[1]) {
     const el = metaCards[1].querySelector('.history-meta-value');
     if (el && el.textContent !== String(visibleCount)) el.textContent = String(visibleCount);
+    const detail = metaCards[1].querySelector('.history-meta-detail');
+    const nextDetail = buildHistoryVisibleMetaDetail(searchTerm, viewOptions);
+    if (detail && detail.textContent !== nextDetail) detail.textContent = nextDetail;
   }
 
   // — Polling meta (text + CSS class only)
@@ -517,6 +555,17 @@ function patchQueriesPanelData(newHistory) {
   if (!tbody) {
     const viewState  = captureHistoryViewState(DOM);
     const didRender  = renderQueries();
+    if (didRender) restoreHistoryViewState(DOM, viewState);
+    return;
+  }
+
+  const currentOrderedIds = Array.from(tbody.querySelectorAll('tr[data-query-id]')).map(tr => tr.dataset.queryId);
+  const nextOrderedIds = sectionList.map(q => q.id);
+  const rowOrderChanged = currentOrderedIds.length !== nextOrderedIds.length
+    || currentOrderedIds.some((id, index) => id !== nextOrderedIds[index]);
+  if (rowOrderChanged) {
+    const viewState = captureHistoryViewState(DOM);
+    const didRender = renderQueries();
     if (didRender) restoreHistoryViewState(DOM, viewState);
     return;
   }
@@ -631,143 +680,33 @@ function renderQueries(){
   const container = DOM.queriesList;
   if(!container) return false;
   
-  // Get search value
-  const searchInput = DOM.queriesSearch;
-  const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
-  const grouped = groupHistoryQueries(exampleQueries, searchTerm);
-  const { running: runningList, complete: doneList, failed: failedList, canceled: cancelledList } = grouped;
-  
-  const runningRows = runningList.map(createHistoryRowHtml).join('');
-  const doneRows = doneList.map(createHistoryRowHtml).join('');
-  const failedRows = failedList.map(createHistoryRowHtml).join('');
-  const cancelledRows = cancelledList.map(createHistoryRowHtml).join('');
-
+  const searchTerm = getHistorySearchTerm();
+  const viewOptions = getHistoryViewOptionsFromControls();
+  const grouped = groupHistoryQueries(exampleQueries, searchTerm, viewOptions);
   const runningCount = grouped.counts.running;
-  const doneCount = grouped.counts.complete;
-  const failedCount = grouped.counts.failed;
-  const cancelledCount = grouped.counts.canceled;
-  const visibleCount = grouped.visibleCount;
-  const totalCount = grouped.totalCount;
-  const liveSignal = runningCount > 0
-    ? `${runningCount} live ${runningCount === 1 ? 'query is' : 'queries are'} still updating.`
-    : 'No active queries are running right now.';
-  const searchLabel = searchTerm
-    ? `Showing ${visibleCount} of ${totalCount} saved queries matching "${searchTerm}".`
-    : `Showing ${visibleCount} recent ${visibleCount === 1 ? 'query' : 'queries'} across your workspace history.`;
   const refreshedAt = lastQueryStatusPollAt
     ? new Date(lastQueryStatusPollAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
     : 'Awaiting refresh';
   const isPollingActive = !!(queryDurationUpdateInterval && isQueriesPanelOpen());
-  const pollingLabel = isPollingActive ? 'Polling live' : 'Polling paused';
   const openSection = getPreferredHistorySection({
     running: runningCount,
-    complete: doneCount,
-    failed: failedCount,
-    canceled: cancelledCount
+    complete: grouped.counts.complete,
+    failed: grouped.counts.failed,
+    canceled: grouped.counts.canceled
   });
   syncHistoryMonitorOpenState(Boolean(openSection));
-
-  let content = '';
-  let renderKey = '';
-
-  // Show "no results" message if search returns nothing
-  if (searchTerm && runningCount === 0 && doneCount === 0 && failedCount === 0 && cancelledCount === 0) {
-    content = `<div class="history-empty-state history-empty-search">No queries found matching "${searchTerm}".</div>`;
-    renderKey = JSON.stringify({
-      searchTerm,
-      runningCount,
-      doneCount,
-      failedCount,
-      cancelledCount,
-      activeHistorySection,
-      empty: true,
-      content
-    });
-  } else {
-    const sections = [
-      {
-        key: 'running',
-        count: runningCount,
-        rows: runningRows,
-        tableHead: HISTORY_TABLE_HEADS.running,
-        emptyMessage: 'No running queries right now.'
-      },
-      {
-        key: 'complete',
-        count: doneCount,
-        rows: doneRows,
-        tableHead: HISTORY_TABLE_HEADS.complete,
-        emptyMessage: 'No completed queries yet.'
-      },
-      {
-        key: 'failed',
-        count: failedCount,
-        rows: failedRows,
-        tableHead: HISTORY_TABLE_HEADS.failed,
-        emptyMessage: 'No failed or interrupted queries.'
-      },
-      {
-        key: 'canceled',
-        count: cancelledCount,
-        rows: cancelledRows,
-        tableHead: HISTORY_TABLE_HEADS.canceled,
-        emptyMessage: 'No cancelled queries yet.'
-      }
-    ];
-    const historyMonitor = buildHistoryMonitor(openSection, sections);
-    const runningSection = buildHistorySection('running', runningCount, openSection === 'running');
-    const doneSection = buildHistorySection('complete', doneCount, openSection === 'complete');
-    const failedSection = buildHistorySection('failed', failedCount, openSection === 'failed');
-    const cancelledSection = buildHistorySection('canceled', cancelledCount, openSection === 'canceled');
-
-    content = `
-      <section class="history-editorial-hero">
-        <div class="history-editorial-copy">
-          <h3 class="history-editorial-title">Query Hub</h3>
-          <p class="history-editorial-subtitle">${searchLabel} ${liveSignal}</p>
-        </div>
-        <div class="history-editorial-meta">
-          <div class="history-meta-card">
-            <span class="history-meta-label">Polling</span>
-            <span class="history-meta-value history-polling-value ${isPollingActive ? 'active' : 'idle'}">${pollingLabel}</span>
-            <span class="history-meta-detail history-polling-detail">Last refresh ${refreshedAt}</span>
-          </div>
-          <div class="history-meta-card">
-            <span class="history-meta-label">Visible Queries</span>
-            <span class="history-meta-value">${visibleCount}</span>
-            <span class="history-meta-detail">${searchTerm ? 'Filtered view' : 'Across all query statuses'}</span>
-          </div>
-        </div>
-      </section>
-      ${HistoryResultProgress.render()}
-      <div class="history-bookshelf${openSection ? ' monitor-active' : ''}">
-        ${runningSection}
-        ${doneSection}
-        ${failedSection}
-        ${cancelledSection}
-        ${historyMonitor}
-      </div>
-    `;
-
-    renderKey = JSON.stringify({
-      searchTerm,
-      activeHistorySection,
-      runningCount,
-      doneCount,
-      failedCount,
-      cancelledCount,
-      visibleCount,
-      totalCount,
-      openSection,
-      loadingQueryId: HistoryResultProgress.getActiveQueryId(),
-      // Identity-based keys only — no computed display strings — so the key only
-      // changes when the data actually changes, not every elapsed-second tick.
-      runningIds: runningList.map(q => q.id),
-      doneIds: doneList.map(q => `${q.id}:${q.resultCount ?? ''}`),
-      failedIds: failedList.map(q => `${q.id}:${q.error ?? ''}`),
-      cancelledIds: cancelledList.map(q => q.id)
-    });
-  }
+  const { content, renderKey } = buildHistoryPanelView({
+    activeHistorySection,
+    createHistoryRowHtml,
+    grouped,
+    isPollingActive,
+    loadingQueryId: HistoryResultProgress.getActiveQueryId(),
+    openSection,
+    progressHtml: HistoryResultProgress.render(),
+    refreshedAt,
+    searchTerm,
+    viewOptions
+  });
 
   if (renderKey === lastHistoryRenderKey) {
     updateHistoryPollingMeta(DOM, { isPollingActive, refreshedAt });
@@ -862,6 +801,17 @@ onDOMReady(() => {
   if (queriesSearchInput) {
     queriesSearchInput.addEventListener('input', renderQueries);
   }
+
+  [
+    'queries-status-filter',
+    'queries-result-filter',
+    'queries-duration-filter',
+    'queries-sort'
+  ].forEach(controlId => {
+    const control = getHistoryControlElement(controlId);
+    control?.addEventListener('change', renderQueries);
+    control?.addEventListener('input', renderQueries);
+  });
 
   QueryStateReaders.subscribe(event => {
     if (event?.meta?.source === 'QueryChangeManager.clearQuery') {

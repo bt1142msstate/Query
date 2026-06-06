@@ -1,12 +1,12 @@
 /* Modular stylesheet hub */
 @import url("./base.css?v=3c3de1e55e3f2f14");
-@import url("./help.css?v=06c9cb11fe071501");
+@import url("./help.css?v=28055b8007549109");
 @import url("./condition-editor.css?v=c3151b483e049c2e");
 @import url("./filters.css?v=9a0f72aec9cace0d");
 @import url("./form-mode.css?v=a067901056d47bf4");
 @import url("./table.css?v=dabb6518912947a4");
 @import url("./controls.css?v=2a894de55192a694");
-@import url("./history.css?v=257a98a8babcd94d");
+@import url("./history.css?v=081dbbcc1d03ac4a");
 @import url("./templates.css?v=0116650a211f013c");
 @import url("./tooltips.css?v=ef1ac9877dc6bbdb");
-@import url("./interaction.css?v=02c3f588d0b8e7f2");
+@import url("./interaction.css?v=13df25573561806c");

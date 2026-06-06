@@ -17,7 +17,7 @@ const HISTORY_TABLE_HEADS = Object.freeze({
         <th class="px-4 py-2 text-center" data-tooltip="Open fields and filters for this query">Details</th>
         <th class="px-4 py-2 text-center" data-tooltip="When this query was started">Started</th>
         <th class="px-4 py-2 text-center" data-tooltip="How long this running query has been active">Duration</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Open the results accumulated so far for this running query">Results</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Open partial results or create a reusable template">Results / Template</th>
         <th class="px-4 py-2 text-center" data-tooltip="Stop the currently running query">Stop/Cancel</th>
       </tr>
     </thead>`,
@@ -30,7 +30,7 @@ const HISTORY_TABLE_HEADS = Object.freeze({
         <th class="px-4 py-2 text-center" data-tooltip="When this query was last executed">Last Run</th>
         <th class="px-4 py-2 text-center" data-tooltip="How long the query took to complete">Duration</th>
         <th class="px-4 py-2 text-center" data-tooltip="Load the query results or view report">Results</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Re-execute this query with the same settings">Rerun</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Re-execute this query or save it as a reusable template">Actions</th>
       </tr>
     </thead>`,
   failed: `
@@ -42,7 +42,7 @@ const HISTORY_TABLE_HEADS = Object.freeze({
         <th class="px-4 py-2 text-center" data-tooltip="When this query last ran">Last Run</th>
         <th class="px-4 py-2 text-center" data-tooltip="How long the query ran before failing">Duration</th>
         <th class="px-4 py-2 text-center" data-tooltip="Failure reason or backend warning">Issue</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Re-execute this query with the same settings">Rerun</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Re-execute this query or save it as a reusable template">Actions</th>
       </tr>
     </thead>`,
   canceled: `
@@ -53,7 +53,7 @@ const HISTORY_TABLE_HEADS = Object.freeze({
         <th class="px-4 py-2 text-center" data-tooltip="Open fields and filters for this query">Details</th>
         <th class="px-4 py-2 text-center" data-tooltip="When this query was last executed before cancellation">Last Run</th>
         <th class="px-4 py-2 text-center" data-tooltip="How long the query ran before being cancelled">Duration</th>
-        <th class="px-4 py-2 text-center" data-tooltip="Re-execute this query with the same settings">Rerun</th>
+        <th class="px-4 py-2 text-center" data-tooltip="Re-execute this query or save it as a reusable template">Actions</th>
       </tr>
     </thead>`
 });
@@ -149,8 +149,9 @@ function buildHistoryRowActions(query, options = {}) {
   const loadTooltipCount = query.resultCount !== undefined ? query.resultCount : 'Unknown';
   const loadBtn = !query.running && !query.cancelled ? `<button class="load-query-btn${loadClass} inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" tabindex="-1" data-query-id="${queryId}" style="margin-left:4px;" data-tooltip="${isLoading ? 'Loading results' : `Open results - ${escapeHistoryText(loadTooltipCount)} rows`}"${loadAttrs}>${loadIcon}</button>` : '';
   const rerunBtn = !query.running ? `<button class="rerun-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-green-600" tabindex="-1" data-query-id="${queryId}" style="margin-left:4px;" data-tooltip="Rerun Query"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg></button>` : '';
+  const templateBtn = `<button class="template-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-purple-600" tabindex="-1" data-query-id="${queryId}" style="margin-left:4px;" data-tooltip="Create template from this query" aria-label="Create template from this query"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h4"/></svg></button>`;
 
-  return { loadBtn, previewBtn, rerunBtn, stopBtn };
+  return { loadBtn, previewBtn, rerunBtn, stopBtn, templateBtn };
 }
 
 function createQueriesTableRowHtml(query, options = {}) {
@@ -163,7 +164,7 @@ function createQueriesTableRowHtml(query, options = {}) {
   const queryId = escapeHistoryText(query.id);
   const rowDate = formatHistoryRowDate(query.startTime);
   const duration = formatHistoryRowDuration(query, dependencies);
-  const { loadBtn, previewBtn, rerunBtn, stopBtn } = buildHistoryRowActions(query, options);
+  const { loadBtn, previewBtn, rerunBtn, stopBtn, templateBtn } = buildHistoryRowActions(query, options);
 
   const reasonSummary = buildHistoryReasonSummaryHtml(query);
 
@@ -197,7 +198,7 @@ function createQueriesTableRowHtml(query, options = {}) {
         <td class="px-4 py-2 text-xs text-center">${detailsCell}</td>
         <td class="px-4 py-2 text-xs text-center">${rowDate}</td>
         <td class="px-4 py-2 text-xs text-center history-duration-cell" data-query-id="${queryId}">${duration}</td>
-        <td class="px-4 py-2 text-center">${previewBtn}</td>
+        <td class="px-4 py-2 text-center">${previewBtn}${templateBtn}</td>
         <td class="px-4 py-2 text-center">${stopBtn}</td>
       </tr>
     `;
@@ -211,7 +212,7 @@ function createQueriesTableRowHtml(query, options = {}) {
         <td class="px-4 py-2 text-xs text-center">${detailsCell}</td>
         <td class="px-4 py-2 text-xs text-center">${rowDate}</td>
         <td class="px-4 py-2 text-xs text-center">${duration}</td>
-        <td class="px-4 py-2 text-xs text-center">${rerunBtn}</td>
+        <td class="px-4 py-2 text-xs text-center">${templateBtn}${rerunBtn}</td>
       </tr>
     `;
   }
@@ -225,7 +226,7 @@ function createQueriesTableRowHtml(query, options = {}) {
         <td class="px-4 py-2 text-xs text-center">${rowDate}</td>
         <td class="px-4 py-2 text-xs text-center">${duration}</td>
         <td class="px-4 py-2 text-xs text-center">${reasonSummary}</td>
-        <td class="px-4 py-2 text-xs text-center">${rerunBtn}</td>
+        <td class="px-4 py-2 text-xs text-center">${templateBtn}${rerunBtn}</td>
       </tr>
     `;
   }
@@ -238,7 +239,7 @@ function createQueriesTableRowHtml(query, options = {}) {
       <td class="px-4 py-2 text-xs text-center">${rowDate}</td>
       <td class="px-4 py-2 text-xs text-center">${duration}</td>
       <td class="px-4 py-2 text-xs text-center">${loadBtn}</td>
-      <td class="px-4 py-2 text-xs text-center">${rerunBtn}</td>
+      <td class="px-4 py-2 text-xs text-center">${templateBtn}${rerunBtn}</td>
     </tr>
   `;
 }
