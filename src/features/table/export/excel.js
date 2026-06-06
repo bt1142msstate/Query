@@ -12,6 +12,7 @@ import { alignDateTextCells } from './excelDateCellFormatting.js';
 import { ExcelExportProgress, yieldToBrowser } from './exportProgress.js';
 import { addOverviewWorksheet } from './excelOverviewWorksheet.js';
 import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from './largeWorkbookExport.js';
+import { materializeExpandedRow } from '../virtual-table/splitColumnExpansion.js';
 import { addWorkbookDetailsWorksheet, buildWorkbookDetailsRowsFromRuntime } from './workbookDetails.js';
 import { buildWorkbookFilename, notifyWorkbookDownloadComplete, prepareWorkbookDownloadNotification, triggerWorkbookDownload } from './workbookDownload.js';
 import {
@@ -60,7 +61,15 @@ import {
       return null;
     }
 
-    const dataRows = virtualData.rows;
+    const dataRows = services.isSplitColumnsActive?.()
+      ? virtualData.rows.map(materializeExpandedRow)
+      : virtualData.rows;
+    const exportVirtualData = dataRows === virtualData.rows
+      ? virtualData
+      : {
+          ...virtualData,
+          rows: dataRows
+        };
     const fieldTypeMap = new Map();
 
     displayedFields.forEach(field => {
@@ -73,7 +82,7 @@ import {
     });
 
     return {
-      virtualData,
+      virtualData: exportVirtualData,
       dataRows,
       displayedFields: [...displayedFields],
       fieldTypeMap

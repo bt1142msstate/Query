@@ -117,6 +117,7 @@ test('virtual table post filters', async () => {
 
   controller.clear();
   assert.equal(controller.hasActiveFilters(), false);
+  assert.equal(controller.getFilteredRows(), baseViewData.rows);
   assert.deepEqual(controller.getFilteredRows(), baseViewData.rows);
 
   controller.assign({

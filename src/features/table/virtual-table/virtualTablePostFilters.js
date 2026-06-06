@@ -125,12 +125,11 @@ export function createVirtualTablePostFilterController({
       .filter(([, data]) => Array.isArray(data?.filters) && data.filters.length > 0);
 
     if (!activeEntries.length) {
-      return baseViewData.rows.map(row => [...row]);
+      return baseViewData.rows;
     }
 
     return baseViewData.rows
-      .filter(row => activeEntries.every(([field, data]) => doesRowMatchFieldFilters(row, field, data)))
-      .map(row => [...row]);
+      .filter(row => activeEntries.every(([field, data]) => doesRowMatchFieldFilters(row, field, data)));
   }
 
   function hasActiveFilters() {

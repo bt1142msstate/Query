@@ -296,7 +296,11 @@ function sortTableBy(fieldName) {
   sortRowsByColumn(virtualTableData.rows, colIndex, type, currentSortDirection);
 
   const sourceColIndex = baseViewData.columnMap.get(fieldName);
-  if (sourceColIndex !== undefined && Array.isArray(baseViewData.rows)) {
+  if (
+    sourceColIndex !== undefined
+    && Array.isArray(baseViewData.rows)
+    && baseViewData.rows !== virtualTableData.rows
+  ) {
     sortRowsByColumn(baseViewData.rows, sourceColIndex, type, currentSortDirection);
   }
 
@@ -674,9 +678,9 @@ function expandMultiValueColumns() {
   if (!rawTableData || !rawTableData.rows || !rawTableData.rows.length) return;
 
   if (!splitViewData) {
-    splitViewData = buildExpandedMultiValueTable(rawTableData);
+    splitViewData = buildExpandedMultiValueTable(rawTableData, { lazyRows: true });
   }
-  baseViewData = cloneTableData(splitViewData);
+  baseViewData = splitViewData;
   postFilters.invalidateValueOptionsCache();
 }
 

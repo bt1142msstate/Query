@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict';
-import { buildExpandedMultiValueTable } from '../../src/features/table/virtual-table/splitColumnExpansion.js';
+import {
+  buildExpandedMultiValueTable,
+  isLazyExpandedRow,
+  materializeExpandedRow
+} from '../../src/features/table/virtual-table/splitColumnExpansion.js';
 import test from 'node:test';
 
 test('split column expansion', async () => {
@@ -72,6 +76,25 @@ test('split column expansion', async () => {
     ['MARC 590 4', 'MARC 590']
   ]);
 
+  const lazyExpanded = buildExpandedMultiValueTable(rawTableData, { lazyRows: true });
+  assert.deepEqual(lazyExpanded.headers, expanded.headers);
+  assert.equal(Array.isArray(lazyExpanded.rows[0]), true);
+  assert.equal(isLazyExpandedRow(lazyExpanded.rows[0]), true);
+  assert.equal(lazyExpanded.rows[0].length, expanded.headers.length);
+  assert.equal(lazyExpanded.rows[0][1], 'First public note');
+  assert.equal(lazyExpanded.rows[0][6], '$a DSU-180442');
+  assert.deepEqual([...lazyExpanded.rows[0]], expanded.rows[0]);
+  assert.deepEqual(lazyExpanded.rows.map(row => row[0]), ['One', 'Two', 'Three']);
+  assert.deepEqual(lazyExpanded.rows.filter(row => row[0] !== 'Two').map(row => row[0]), ['One', 'Three']);
+  assert.deepEqual(Object.keys(lazyExpanded.rows[0]), ['0', '1', '2', '3', '4', '5', '6', '7']);
+  assert.deepEqual(materializeExpandedRow(lazyExpanded.rows[1]), expanded.rows[1]);
+  assert.equal(materializeExpandedRow(expanded.rows[1]), expanded.rows[1]);
+
+  const sortableLazyExpanded = buildExpandedMultiValueTable(rawTableData, { lazyRows: true });
+  sortableLazyExpanded.rows.sort((left, right) => String(left[0]).localeCompare(String(right[0]), undefined, { numeric: true }));
+  assert.deepEqual(sortableLazyExpanded.rows.map(row => row[0]), ['One', 'Three', 'Two']);
+  assert.equal(sortableLazyExpanded.rows[0][1], 'First public note');
+
   const unsplit = buildExpandedMultiValueTable({
     headers: ['Title'],
     rows: [['Only']],
@@ -81,4 +104,13 @@ test('split column expansion', async () => {
   assert.deepEqual(unsplit.headers, ['Title']);
   assert.deepEqual(unsplit.rows, [['Only']]);
   assert.notEqual(unsplit.rows[0], rawTableData.rows[0]);
+
+  const lazyUnsplit = buildExpandedMultiValueTable({
+    headers: ['Title'],
+    rows: [['Only']],
+    columnMap: new Map([['Title', 0]])
+  }, { lazyRows: true });
+  assert.deepEqual(lazyUnsplit.headers, ['Title']);
+  assert.deepEqual(lazyUnsplit.rows, [['Only']]);
+  assert.equal(lazyUnsplit.rows[0][0], 'Only');
 });
