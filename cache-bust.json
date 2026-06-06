@@ -1,5 +1,5 @@
 {
-  "version": "db13598c4dafc9cc",
+  "version": "b8474a1b55e72334",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "backgroundNotificationServiceWorker.js": "2f8933df91d32a1a",
@@ -69,7 +69,7 @@
     "src/features/history/queryHistoryStatusMapper.js": "02c2c2ab7a86e2e9",
     "src/features/history/queryHistoryTooltips.js": "9fd4f253fecea091",
     "src/features/history/queryHistoryViewHelpers.js": "62a1a4872c9b628a",
-    "src/features/table/contextMenu.js": "77d14b74909ec36e",
+    "src/features/table/contextMenu.js": "dff92fd64fee73f7",
     "src/features/table/drag-drop/columnManager.js": "cddcb95526b161d5",
     "src/features/table/drag-drop/columnResizeController.js": "f9623a02aad91c76",
     "src/features/table/drag-drop/dragDropAnchorLayout.js": "53272943c2cc24be",

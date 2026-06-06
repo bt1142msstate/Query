@@ -3436,6 +3436,24 @@ async function exerciseDesktopResultsWorkflow(page) {
       throw new Error(`Split column context menu should target parent field for "${label}": ${JSON.stringify(splitColumnMenuHints)}`);
     }
   });
+  for (const label of ['Add Filter', 'Add Post Filter']) {
+    await page.locator('.tcm.tcm--visible .tcm-item', { hasText: label }).hover();
+    const previewState = await page.evaluate(() => ({
+      bodyColumns: Array.from(document.querySelectorAll('#example-table tbody td.tcm-preview-column'))
+        .map(cell => cell.dataset.colIndex)
+        .filter((value, index, values) => values.indexOf(value) === index)
+        .sort(),
+      headerColumns: Array.from(document.querySelectorAll('#example-table thead th.tcm-preview-column-header'))
+        .map(header => header.dataset.colIndex)
+        .sort()
+    }));
+    if (
+      previewState.headerColumns.join('|') !== '1|2'
+      || previewState.bodyColumns.join('|') !== '1|2'
+    ) {
+      throw new Error(`Split column context menu should preview the whole group for "${label}": ${JSON.stringify(previewState)}`);
+    }
+  }
   await page.locator('.tcm.tcm--visible .tcm-item', { hasText: 'Add Post Filter' }).click();
   await page.locator('#post-filter-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
   const splitPostFilterState = await page.locator('#post-filter-field').evaluate(select => ({
