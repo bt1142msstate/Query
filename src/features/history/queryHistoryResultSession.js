@@ -1,4 +1,8 @@
-import { RESULT_QUERY_URL_PARAM } from '../../core/queryResultUrl.js';
+import {
+  hasLimitedFormUrlFlag,
+  normalizeResultQueryUrl,
+  RESULT_QUERY_URL_PARAM
+} from '../../core/queryResultUrl.js';
 
 const OPENED_HISTORY_RESULT_STORAGE_KEY = 'query:lastOpenedHistoryResult';
 const OPENED_HISTORY_RESULT_URL_PARAM = RESULT_QUERY_URL_PARAM;
@@ -44,15 +48,11 @@ function syncOpenedHistoryResultUrl(queryId, options = {}) {
       return false;
     }
 
-    const url = new URL(currentUrl);
     const normalizedQueryId = normalizeQueryId(queryId);
-    if (normalizedQueryId && options.clearUrl !== true) {
-      url.searchParams.set(OPENED_HISTORY_RESULT_URL_PARAM, normalizedQueryId);
-    } else {
-      url.searchParams.delete(OPENED_HISTORY_RESULT_URL_PARAM);
-    }
-
-    const nextUrl = url.toString();
+    const nextUrl = normalizeResultQueryUrl(currentUrl, {
+      clearResult: options.clearUrl === true,
+      resultQueryId: options.clearUrl === true ? '' : normalizedQueryId
+    });
     if (nextUrl !== currentUrl) {
       historyRef.replaceState({}, '', nextUrl);
     }
@@ -134,15 +134,6 @@ function hasSharedFormUrl(locationLike = globalThis.location) {
   }
 }
 
-function parseBooleanFlag(value) {
-  const normalized = String(value ?? '').trim().toLowerCase();
-  return normalized === ''
-    || normalized === '1'
-    || normalized === 'true'
-    || normalized === 'yes'
-    || normalized === 'limited';
-}
-
 function hasLimitedSharedFormUrl(locationLike = globalThis.location) {
   try {
     const searchParams = new URLSearchParams(getLocationSearch(locationLike));
@@ -150,15 +141,7 @@ function hasLimitedSharedFormUrl(locationLike = globalThis.location) {
       return false;
     }
 
-    if (searchParams.has('limited')) {
-      return parseBooleanFlag(searchParams.get('limited'));
-    }
-
-    if (searchParams.has('limitedView')) {
-      return parseBooleanFlag(searchParams.get('limitedView'));
-    }
-
-    return String(searchParams.get('view') || searchParams.get('mode') || '').trim().toLowerCase() === 'limited';
+    return hasLimitedFormUrlFlag(searchParams);
   } catch {
     return false;
   }
