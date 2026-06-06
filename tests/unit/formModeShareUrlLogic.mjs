@@ -75,6 +75,17 @@ test('form mode share url', async () => {
   assert.equal(parsedEditableUrl.searchParams.has('mode'), false);
   assert.deepEqual(decodeSpec(parsedEditableUrl.searchParams.get('form')).columns, ['Title']);
 
+  const editableResultUrl = buildFormShareUrl('https://example.test/index.html?result=query-123', spec, {
+    limited: false,
+    preserveResult: true
+  });
+  assert.equal(new URL(editableResultUrl).searchParams.get('result'), 'query-123');
+
+  const explicitResultUrl = buildFormShareUrl('https://example.test/index.html', spec, {
+    resultQueryId: 'query-456'
+  });
+  assert.equal(new URL(explicitResultUrl).searchParams.get('result'), 'query-456');
+
   assert.equal(buildFormShareUrl('https://example.test/index.html?old=1', {
     columns: [],
     inputs: [],

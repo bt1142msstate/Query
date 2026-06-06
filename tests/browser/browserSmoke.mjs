@@ -4188,9 +4188,29 @@ async function runSmokeTest() {
 
     queueHistoryStatusResponses(queryApiStub, 6);
     const getResultsRequestsBeforeReload = queryApiStub.countAction('get_results');
-    await page.evaluate(url => {
-      window.history.replaceState({}, '', url);
-    }, baseUrl);
+    const editableResultUrl = await page.evaluate(async () => {
+      const { QueryFormMode } = await import('./src/ui/form-mode/formMode.js');
+      const nextUrl = QueryFormMode.buildCurrentShareUrl({ limited: false });
+      const rawRemembered = window.localStorage.getItem('query:lastOpenedHistoryResult');
+      const remembered = rawRemembered ? JSON.parse(rawRemembered) : null;
+      const url = new URL(nextUrl || window.location.href);
+      if (remembered?.queryId) {
+        url.searchParams.set('result', remembered.queryId);
+      }
+      window.localStorage.removeItem('query:lastOpenedHistoryResult');
+      if (nextUrl) {
+        window.history.replaceState({}, '', url.toString());
+      }
+      return window.location.href;
+    });
+    const parsedEditableResultUrl = new URL(editableResultUrl);
+    if (
+      !parsedEditableResultUrl.searchParams.has('form')
+      || parsedEditableResultUrl.searchParams.has('limited')
+      || parsedEditableResultUrl.searchParams.get('result') !== 'browser-smoke-complete'
+    ) {
+      throw new Error(`Result reload smoke should exercise an editable form URL: ${editableResultUrl}`);
+    }
     await page.reload({ waitUntil: 'load', timeout: 15000 });
     await waitForAppReady(page, failures);
     await page.waitForFunction(async () => {
@@ -4199,11 +4219,18 @@ async function runSmokeTest() {
     }, null, { timeout: 7000 });
     const restoredHistoryResult = await page.evaluate(async () => {
       const { appServices } = await import('./src/core/appServices.js');
+      const { QueryFormMode } = await import('./src/ui/form-mode/formMode.js');
       const { QueryStateReaders } = await import('./src/core/queryState.js');
       const tableData = appServices.getVirtualTableData();
       const rawRemembered = window.localStorage.getItem('query:lastOpenedHistoryResult');
+      const defaultShareUrl = new URL(QueryFormMode.buildCurrentShareUrl());
+      const cleanFormUrl = new URL(QueryFormMode.buildCurrentShareUrl({ includeResult: false, limited: false }));
       return {
+        cleanFormHasLimited: cleanFormUrl.searchParams.has('limited'),
+        cleanFormResult: cleanFormUrl.searchParams.get('result'),
         currentQueryId: QueryStateReaders.getLifecycleState().currentQueryId,
+        defaultShareLimited: defaultShareUrl.searchParams.get('limited'),
+        defaultShareResult: defaultShareUrl.searchParams.get('result'),
         hasLoadedResultSet: QueryStateReaders.getLifecycleState().hasLoadedResultSet,
         headers: tableData?.headers || [],
         remembered: rawRemembered ? JSON.parse(rawRemembered) : null,
@@ -4215,6 +4242,11 @@ async function runSmokeTest() {
       || restoredHistoryResult.hasLoadedResultSet !== true
       || restoredHistoryResult.rows.length !== 2
       || restoredHistoryResult.rows[0][0] !== 'Loaded One'
+      || restoredHistoryResult.remembered?.queryId !== 'browser-smoke-complete'
+      || restoredHistoryResult.defaultShareResult !== 'browser-smoke-complete'
+      || restoredHistoryResult.defaultShareLimited !== '1'
+      || restoredHistoryResult.cleanFormResult !== null
+      || restoredHistoryResult.cleanFormHasLimited
       || queryApiStub.countAction('get_results') !== getResultsRequestsBeforeReload
     ) {
       throw new Error(`Reload should restore the last opened history results: ${JSON.stringify({

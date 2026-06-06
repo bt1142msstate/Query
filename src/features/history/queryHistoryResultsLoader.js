@@ -68,7 +68,7 @@ export function createQueryHistoryResultsLoader({
 
       uiActions.updateTableResultsLip();
       if (options.remember !== false) {
-        rememberOpenedHistoryResult(query.id);
+        rememberOpenedHistoryResult(query.id, { updateUrl: true });
         await writeCachedHistoryResultSnapshot({
           query,
           queryId: query.id,

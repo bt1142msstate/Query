@@ -1,5 +1,6 @@
 const FORM_MODE_CARD_SELECTORS = Object.freeze({
   addFieldBtn: '#form-mode-add-field',
+  cleanCopyBtn: '#form-mode-copy-clean',
   copyBtn: '#form-mode-copy',
   fieldsWrap: '#form-mode-fields',
   resetOriginalBtn: '#form-mode-reset-original',
@@ -21,6 +22,7 @@ function getFormModeCardHtml() {
         <button type="button" id="form-mode-reset-original" class="form-mode-btn" data-tooltip="Restore the original form version.">Reset to Original</button>
         <button type="button" id="form-mode-reset-shared" class="form-mode-btn" data-tooltip="Share this form first to create a shared baseline.">Reset to Last Shared</button>
         <button type="button" id="form-mode-copy" class="form-mode-btn">Share</button>
+        <button type="button" id="form-mode-copy-clean" class="form-mode-btn form-mode-btn-secondary">Form Link</button>
       </div>
     </div>
     <div class="form-mode-body">
@@ -89,6 +91,7 @@ function mountFormModeCard(documentRef) {
   return {
     addFieldBtn: card.querySelector(FORM_MODE_CARD_SELECTORS.addFieldBtn),
     card,
+    cleanCopyBtn: card.querySelector(FORM_MODE_CARD_SELECTORS.cleanCopyBtn),
     copyBtn: card.querySelector(FORM_MODE_CARD_SELECTORS.copyBtn),
     fieldsWrap: card.querySelector(FORM_MODE_CARD_SELECTORS.fieldsWrap),
     host,
