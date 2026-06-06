@@ -16,12 +16,47 @@ function shouldHideAnchorBetweenDuplicateColumns(displayedFields, insertAt, getB
   return getBase(beforeField) === getBase(afterField);
 }
 
+function shouldHideAnchorForNoOpDrop(insertAt, draggedIndex, dragGroupIndices = []) {
+  if (!Number.isInteger(insertAt)) {
+    return false;
+  }
+
+  const normalizedGroup = getNormalizedDragGroupIndices(draggedIndex, dragGroupIndices);
+  if (!normalizedGroup.length || !isContiguousIndexGroup(normalizedGroup)) {
+    return false;
+  }
+
+  const firstIndex = normalizedGroup[0];
+  const lastIndex = normalizedGroup[normalizedGroup.length - 1];
+  return insertAt >= firstIndex && insertAt <= lastIndex + 1;
+}
+
+function getNormalizedDragGroupIndices(draggedIndex, dragGroupIndices) {
+  const indices = Array.isArray(dragGroupIndices)
+    ? dragGroupIndices
+      .map(index => Number(index))
+      .filter(Number.isInteger)
+    : [];
+
+  if (!indices.length && Number.isInteger(draggedIndex)) {
+    indices.push(draggedIndex);
+  }
+
+  return [...new Set(indices)].sort((left, right) => left - right);
+}
+
+function isContiguousIndexGroup(indices) {
+  return indices.every((index, offset) => index === indices[0] + offset);
+}
+
 function getDropAnchorLayout(options) {
   const {
     columnRect,
     viewportRect,
     clientX,
     colIndex,
+    draggedIndex,
+    dragGroupIndices,
     displayedFields,
     getBaseFieldName,
     scrollX = 0,
@@ -39,7 +74,10 @@ function getDropAnchorLayout(options) {
   const insertLeft = (clientX - columnRect.left) < columnRect.width / 2;
   const insertAt = insertLeft ? colIndex : colIndex + 1;
 
-  if (shouldHideAnchorBetweenDuplicateColumns(displayedFields, insertAt, getBaseFieldName)) {
+  if (
+    shouldHideAnchorForNoOpDrop(insertAt, draggedIndex, dragGroupIndices)
+    || shouldHideAnchorBetweenDuplicateColumns(displayedFields, insertAt, getBaseFieldName)
+  ) {
     return { visible: false, insertAt };
   }
 
@@ -58,5 +96,6 @@ function getDropAnchorLayout(options) {
 
 export {
   getDropAnchorLayout,
-  shouldHideAnchorBetweenDuplicateColumns
+  shouldHideAnchorBetweenDuplicateColumns,
+  shouldHideAnchorForNoOpDrop
 };

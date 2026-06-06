@@ -123,6 +123,8 @@ let DragDropInteractions;
       viewportRect,
       clientX,
       colIndex,
+      draggedIndex: dragDropManager.activeDragIndex,
+      dragGroupIndices: dragDropManager.activeDragGroupIndices,
       displayedFields: getDisplayedFields(),
       getBaseFieldName,
       scrollX: window.scrollX,
@@ -130,7 +132,7 @@ let DragDropInteractions;
     });
     if (!layout.visible) {
       clearDropAnchor();
-      return;
+      return false;
     }
 
     dropAnchor.classList.add('vertical');
@@ -139,6 +141,7 @@ let DragDropInteractions;
     dropAnchor.style.left = layout.left + 'px';
     dropAnchor.style.top = layout.top + 'px';
     dropAnchor.style.display = 'block';
+    return true;
   }
 
   function clearDropAnchor() {
@@ -156,9 +159,13 @@ let DragDropInteractions;
     lastDragY: 0,
     isAnimating: false,
     activeTable: null,
+    activeDragIndex: -1,
+    activeDragGroupIndices: [],
 
     startAutoScroll(direction, container) {
-      this.autoScrollPointerX = this.lastDragX || this.autoScrollPointerX;
+      if (Number.isFinite(this.lastDragX)) {
+        this.autoScrollPointerX = this.lastDragX;
+      }
 
       if (this.autoScrollInterval && this.autoScrollDirection === direction) {
         return;
@@ -204,6 +211,8 @@ let DragDropInteractions;
 
       const mouseX = e.clientX;
       const mouseY = e.clientY;
+      this.lastDragX = mouseX;
+      this.lastDragY = mouseY;
       this.autoScrollPointerX = mouseX;
 
       const intent = getAutoScrollIntent({
@@ -249,7 +258,9 @@ let DragDropInteractions;
 
       const colIndex = parseInt(targetHeader.dataset.colIndex, 10);
       const rect = targetHeader.getBoundingClientRect();
-      positionDropAnchor(rect, table, clientX, colIndex);
+      if (!positionDropAnchor(rect, table, clientX, colIndex)) {
+        targetHeader.classList.remove('th-drag-over');
+      }
     },
 
     handleHeaderEnter(th) {
@@ -297,6 +308,8 @@ let DragDropInteractions;
       const colIndex = parseInt(th.dataset.colIndex, 10);
       const fieldName = getDisplayedFields()[colIndex];
       const relatedIndices = getColumnMoveGroupIndices(fieldName, getDisplayedFields());
+      this.activeDragIndex = colIndex;
+      this.activeDragGroupIndices = relatedIndices;
 
       relatedIndices.forEach(index => {
         const relatedHeader = document.querySelector(`thead th[data-col-index="${index}"]`);
@@ -337,6 +350,10 @@ let DragDropInteractions;
       clearDropAnchor();
       this.stopAutoScroll();
       this.activeTable = null;
+      this.activeDragIndex = -1;
+      this.activeDragGroupIndices = [];
+      this.lastDragX = 0;
+      this.lastDragY = 0;
 
       if (th._ghost) {
         if (th._ghost.parentNode) {
@@ -359,7 +376,9 @@ let DragDropInteractions;
       }
       const rect = element.getBoundingClientRect();
       const colIndex = parseInt(element.dataset.colIndex, 10);
-      positionDropAnchor(rect, table, e.clientX, colIndex);
+      if (!positionDropAnchor(rect, table, e.clientX, colIndex)) {
+        element.classList.remove('th-drag-over');
+      }
 
       if (this.scrollContainer) {
         this.checkAutoScroll(e, this.scrollContainer);
@@ -402,7 +421,9 @@ let DragDropInteractions;
         targetHeader.classList.add('th-drag-over');
       }
       const rect = targetHeader.getBoundingClientRect();
-      positionDropAnchor(rect, table, e.clientX, colIndex);
+      if (!positionDropAnchor(rect, table, e.clientX, colIndex)) {
+        targetHeader.classList.remove('th-drag-over');
+      }
 
       if (this.scrollContainer) {
         this.checkAutoScroll(e, this.scrollContainer);
@@ -412,6 +433,10 @@ let DragDropInteractions;
     handleDragOverByX(e, table) {
       if (!isSupportedTableDrag(e)) {
         clearDropAnchor();
+        this.activeDragIndex = -1;
+        this.activeDragGroupIndices = [];
+        this.lastDragX = 0;
+        this.lastDragY = 0;
         return;
       }
       e.preventDefault();
@@ -435,7 +460,9 @@ let DragDropInteractions;
       const targetHeader = table.querySelector(`thead th[data-col-index="${colIndex}"]`);
       if (!targetHeader) return;
       const rect = targetHeader.getBoundingClientRect();
-      positionDropAnchor(rect, table, e.clientX, colIndex);
+      if (!positionDropAnchor(rect, table, e.clientX, colIndex)) {
+        targetHeader.classList.remove('th-drag-over');
+      }
 
       if (this.scrollContainer) {
         this.checkAutoScroll(e, this.scrollContainer);
@@ -467,11 +494,19 @@ let DragDropInteractions;
         }
         th.classList.remove('th-drag-over');
         clearDropAnchor();
+        this.activeDragIndex = -1;
+        this.activeDragGroupIndices = [];
+        this.lastDragX = 0;
+        this.lastDragY = 0;
         return;
       }
 
       th.classList.remove('th-drag-over');
       clearDropAnchor();
+      this.activeDragIndex = -1;
+      this.activeDragGroupIndices = [];
+      this.lastDragX = 0;
+      this.lastDragY = 0;
     },
 
     handleCellDrop(e, td, table) {
@@ -499,6 +534,10 @@ let DragDropInteractions;
 
       table.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
       clearDropAnchor();
+      this.activeDragIndex = -1;
+      this.activeDragGroupIndices = [];
+      this.lastDragX = 0;
+      this.lastDragY = 0;
     },
 
     cleanupTableListeners(table) {
