@@ -3,6 +3,7 @@ import {
   getClosestVisibleHeaderByX,
   getDropIndicatorViewportRect,
   getDragScrollContainer,
+  getOutsideDropViewportOptions,
   getVisibleHeaderTargets,
   isPointerNearDropViewport,
   isPointerWithinDropViewport
@@ -75,4 +76,13 @@ test('drag drop viewport', async () => {
     }
   };
   assert.equal(getDragScrollContainer(tableWithIdContainer), tableContainer);
+
+  assert.deepEqual(getOutsideDropViewportOptions({ innerWidth: 375, innerHeight: 720 }), {
+    horizontalTolerance: 640,
+    verticalTolerance: 324
+  });
+  assert.deepEqual(getOutsideDropViewportOptions({ innerWidth: 1440, innerHeight: 1600 }), {
+    horizontalTolerance: 1440,
+    verticalTolerance: 520
+  });
 });
