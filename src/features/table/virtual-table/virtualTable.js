@@ -60,6 +60,7 @@ let tableScrollTop = 0;
 let tableScrollContainer = null;
 let calculatedColumnWidths = {}; // Store calculated optimal widths for each column
 let manualColumnWidths = {};
+let splitPrecomputeToken = 0;
 let resizeModeState = {
   active: false,
   fieldName: ''
@@ -531,6 +532,62 @@ function calculateOptimalColumnWidths(fields, data) {
   return widths;
 }
 
+function ensureColumnWidths(fields, data = virtualTableData) {
+  const targetFields = Array.isArray(fields) ? fields.filter(Boolean) : [];
+  if (!targetFields.length) {
+    calculatedColumnWidths = {};
+    return calculatedColumnWidths;
+  }
+
+  const missingFields = targetFields.filter(field => {
+    const cachedWidth = Number(calculatedColumnWidths[field]);
+    return !Number.isFinite(cachedWidth) || cachedWidth <= 0;
+  });
+
+  if (missingFields.length) {
+    calculatedColumnWidths = {
+      ...calculatedColumnWidths,
+      ...calculateOptimalColumnWidths(missingFields, data)
+    };
+  }
+
+  return calculatedColumnWidths;
+}
+
+function scheduleSplitViewPrecompute() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  splitPrecomputeToken += 1;
+  const token = splitPrecomputeToken;
+  const run = () => {
+    if (
+      token !== splitPrecomputeToken
+      || splitColumnsActive
+      || splitViewData
+      || !rawTableData
+      || !Array.isArray(rawTableData.rows)
+      || rawTableData.rows.length === 0
+    ) {
+      return;
+    }
+
+    splitViewData = buildExpandedMultiValueTable(rawTableData, { lazyRows: true });
+    const splitDisplayedFields = buildSplitModeDisplayedFields(getDisplayedFields(), splitViewData, true);
+    if (splitDisplayedFields.length) {
+      ensureColumnWidths(splitDisplayedFields, splitViewData);
+    }
+  };
+
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(run, { timeout: 2500 });
+    return;
+  }
+
+  window.setTimeout(run, 250);
+}
+
 /**
  * Sets up a virtual table with the specified container and fields.
  * Initializes scrolling and column widths.
@@ -557,7 +614,7 @@ async function setupVirtualTable(container, fields, options = {}) {
 
   // Calculate widths if we have fields
   if (fields && fields.length > 0) {
-    calculatedColumnWidths = calculateOptimalColumnWidths(fields, virtualTableData);
+    ensureColumnWidths(fields, virtualTableData);
   } else {
     // Just initialize empty if no fields yet
     calculatedColumnWidths = {};
@@ -573,6 +630,7 @@ async function setupVirtualTable(container, fields, options = {}) {
     container.scrollLeft = preservedScrollLeft;
   }
   tableScrollbar.scheduleSync();
+  scheduleSplitViewPrecompute();
   
   return { virtualTableData, calculatedColumnWidths };
 }
@@ -756,7 +814,9 @@ VirtualTable = {
     // always has a fresh snapshot to work from.
     rawTableData = cloneTableData(nextData);
     splitViewData = null;
+    splitPrecomputeToken += 1;
     baseViewData = cloneTableData(nextData);
+    calculatedColumnWidths = {};
     postFilters.invalidateValueOptionsCache();
     // Reset split mode — caller will re-expand if needed
     splitColumnsActive = false;

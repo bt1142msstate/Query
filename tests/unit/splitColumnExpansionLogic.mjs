@@ -3,6 +3,7 @@ import {
   buildExpandedMultiValueTable,
   getLazyExpandedRowSourceValue,
   getLazyExpandedRowsSourceRows,
+  getMultiValueTableSummary,
   isLazyExpandedRow,
   materializeExpandedRow
 } from '../../src/features/table/virtual-table/splitColumnExpansion.js';
@@ -81,6 +82,11 @@ test('split column expansion', async () => {
     ['Public Note', 1],
     ['MARC 590', 2]
   ]);
+  assert.deepEqual(getMultiValueTableSummary(rawTableData), {
+    eligible: true,
+    columnCount: 2,
+    valueCount: 4
+  });
 
   const lazyExpanded = buildExpandedMultiValueTable(rawTableData, { lazyRows: true });
   assert.deepEqual(lazyExpanded.headers, expanded.headers);
@@ -122,4 +128,19 @@ test('split column expansion', async () => {
   assert.deepEqual(lazyUnsplit.headers, ['Title']);
   assert.deepEqual(lazyUnsplit.rows, [['Only']]);
   assert.equal(lazyUnsplit.rows[0][0], 'Only');
+  assert.deepEqual(getMultiValueTableSummary({
+    headers: ['Title', 'Notes'],
+    rows: [
+      ['Only', 'First\x1F\x1FSecond\x1F  '],
+      ['Other', 'Solo']
+    ],
+    columnMap: new Map([
+      ['Title', 0],
+      ['Notes', 1]
+    ])
+  }), {
+    eligible: true,
+    columnCount: 1,
+    valueCount: 1
+  });
 });

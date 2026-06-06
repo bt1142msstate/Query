@@ -371,7 +371,36 @@ registerBubbleInteractionService({
   initializeBubbles: initializeBubbleInteractions
 });
 
+let deferredSplitBubbleRender = 0;
+
+function scheduleDeferredBubbleRender() {
+  if (deferredSplitBubbleRender) {
+    return;
+  }
+
+  const run = () => {
+    deferredSplitBubbleRender = 0;
+    services.rerenderBubbles();
+  };
+
+  if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+    deferredSplitBubbleRender = window.requestIdleCallback(run, { timeout: 500 });
+    return;
+  }
+
+  if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+    deferredSplitBubbleRender = window.requestAnimationFrame(run);
+    return;
+  }
+
+  deferredSplitBubbleRender = setTimeout(run, 0);
+}
+
 // Keep bubbles in sync with query state changes reactively.
-QueryStateSubscriptions.subscribe(() => {
+QueryStateSubscriptions.subscribe(event => {
+  if (event?.meta?.source === 'VirtualTable.setSplitMode') {
+    scheduleDeferredBubbleRender();
+    return;
+  }
   services.rerenderBubbles();
 }, { displayedFields: true, activeFilters: true });

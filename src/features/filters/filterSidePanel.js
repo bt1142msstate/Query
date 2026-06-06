@@ -28,6 +28,7 @@ const FilterSidePanel = (function () {
     const VIEW_MODES = new Set(['both', 'filters', 'display']);
     let shellResizeObserver = null;
     let unsubscribeQueryState = null;
+    let deferredSplitUpdate = 0;
     const { getDisplayedFields, getActiveFilters } = QueryStateReaders;
 
     function cleanupPopupControls(container) {
@@ -79,12 +80,39 @@ const FilterSidePanel = (function () {
             return;
         }
 
-        unsubscribeQueryState = QueryStateSubscriptions.subscribe(() => {
+        unsubscribeQueryState = QueryStateSubscriptions.subscribe(event => {
+            if (event?.meta?.source === 'VirtualTable.setSplitMode') {
+                scheduleDeferredSplitUpdate();
+                return;
+            }
             update();
         }, {
             displayedFields: true,
             activeFilters: true
         });
+    }
+
+    function scheduleDeferredSplitUpdate() {
+        if (deferredSplitUpdate) {
+            return;
+        }
+
+        const run = () => {
+            deferredSplitUpdate = 0;
+            update();
+        };
+
+        if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+            deferredSplitUpdate = window.requestIdleCallback(run, { timeout: 500 });
+            return;
+        }
+
+        if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+            deferredSplitUpdate = window.requestAnimationFrame(run);
+            return;
+        }
+
+        deferredSplitUpdate = setTimeout(run, 0);
     }
 
     function hasAnyFilters() {

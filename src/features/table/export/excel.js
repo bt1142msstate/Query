@@ -12,7 +12,7 @@ import { alignDateTextCells } from './excelDateCellFormatting.js';
 import { ExcelExportProgress, yieldToBrowser } from './exportProgress.js';
 import { addOverviewWorksheet } from './excelOverviewWorksheet.js';
 import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from './largeWorkbookExport.js';
-import { materializeExpandedRow } from '../virtual-table/splitColumnExpansion.js';
+import { getMultiValueTableSummary, materializeExpandedRow } from '../virtual-table/splitColumnExpansion.js';
 import { addWorkbookDetailsWorksheet, buildWorkbookDetailsRowsFromRuntime } from './workbookDetails.js';
 import { buildWorkbookFilename, notifyWorkbookDownloadComplete, prepareWorkbookDownloadNotification, triggerWorkbookDownload } from './workbookDownload.js';
 import {
@@ -28,6 +28,10 @@ import {
   let splitMultiValues = false;
   let exportState = null;
   let exportInProgress = false;
+  let splitEligibleSummaryCache = {
+    rawData: null,
+    summary: null
+  };
   const { getDisplayedFields } = QueryStateReaders;
   const services = appServices;
 
@@ -632,34 +636,13 @@ import {
 
   function getSplitEligibleSummary() {
     const rawData = services.getRawTableData();
-    if (!rawData || !Array.isArray(rawData.headers) || !Array.isArray(rawData.rows) || rawData.headers.length === 0 || rawData.rows.length === 0) {
-      return { eligible: false, columnCount: 0, valueCount: 0 };
+    if (splitEligibleSummaryCache.rawData === rawData && splitEligibleSummaryCache.summary) {
+      return splitEligibleSummaryCache.summary;
     }
 
-    let columnCount = 0;
-    let valueCount = 0;
-
-    rawData.headers.forEach((field, columnIndex) => {
-      let fieldHasMultiValues = false;
-
-      rawData.rows.forEach(row => {
-        const raw = row[columnIndex];
-        if (typeof raw === 'string' && raw.includes('\x1F')) {
-          fieldHasMultiValues = true;
-          valueCount += raw.split('\x1F').filter(part => part !== '').length - 1;
-        }
-      });
-
-      if (fieldHasMultiValues) {
-        columnCount += 1;
-      }
-    });
-
-    return {
-      eligible: columnCount > 0,
-      columnCount,
-      valueCount
-    };
+    const summary = getMultiValueTableSummary(rawData);
+    splitEligibleSummaryCache = { rawData, summary };
+    return summary;
   }
 
   function buildSplitToggleTooltipHtml(active, summary) {
