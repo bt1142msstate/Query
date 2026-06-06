@@ -318,6 +318,7 @@ if (execDom.runBtn) {
             services.setSplitColumnsMode(true);
           }
         }
+        services.rememberOpenedHistoryResult?.(QueryStateReaders.getLifecycleState().currentQueryId);
 
         const completionMessage = streamedPayload.partial
           ? (endedEarlyFromNetwork

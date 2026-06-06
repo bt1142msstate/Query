@@ -4167,6 +4167,55 @@ async function runSmokeTest() {
     }
     await historyLoadClick;
     await page.locator('.history-result-load-progress').waitFor({ state: 'detached', timeout: 5000 });
+    const rememberedHistoryResult = await page.evaluate(() => {
+      const raw = window.localStorage.getItem('query:lastOpenedHistoryResult');
+      return raw ? JSON.parse(raw) : null;
+    });
+    if (rememberedHistoryResult?.queryId !== 'browser-smoke-complete') {
+      throw new Error(`History result load should remember the opened query id: ${JSON.stringify(rememberedHistoryResult)}`);
+    }
+
+    queueHistoryStatusResponses(queryApiStub, 6);
+    queryApiStub.enqueue({
+      action: 'get_results',
+      body: 'Loaded One|Main|Open\nLoaded Two|East|Closed\n',
+      delayMs: 120,
+      rawColumns: smokeResultHeaders
+    });
+    await page.evaluate(url => {
+      window.history.replaceState({}, '', url);
+    }, baseUrl);
+    await page.reload({ waitUntil: 'load', timeout: 15000 });
+    await waitForAppReady(page, failures);
+    await page.waitForFunction(async () => {
+      const { appServices } = await import('./src/core/appServices.js');
+      return appServices.getVirtualTableData()?.rows?.some(row => row[0] === 'Loaded One');
+    }, null, { timeout: 7000 });
+    const restoredHistoryResult = await page.evaluate(async () => {
+      const { appServices } = await import('./src/core/appServices.js');
+      const { QueryStateReaders } = await import('./src/core/queryState.js');
+      const tableData = appServices.getVirtualTableData();
+      const rawRemembered = window.localStorage.getItem('query:lastOpenedHistoryResult');
+      return {
+        currentQueryId: QueryStateReaders.getLifecycleState().currentQueryId,
+        hasLoadedResultSet: QueryStateReaders.getLifecycleState().hasLoadedResultSet,
+        headers: tableData?.headers || [],
+        remembered: rawRemembered ? JSON.parse(rawRemembered) : null,
+        rows: tableData?.rows || []
+      };
+    });
+    if (
+      restoredHistoryResult.currentQueryId !== 'browser-smoke-complete'
+      || restoredHistoryResult.hasLoadedResultSet !== true
+      || restoredHistoryResult.rows.length !== 2
+      || restoredHistoryResult.rows[0][0] !== 'Loaded One'
+    ) {
+      throw new Error(`Reload should restore the last opened history results: ${JSON.stringify({
+        ...restoredHistoryResult,
+        getResultsRequests: queryApiStub.countAction('get_results'),
+        statusRequests: queryApiStub.countAction('status')
+      })}`);
+    }
 
     await page.getByRole('button', { name: 'Templates' }).click();
     await page.locator('input[placeholder="Search templates"]').waitFor({ state: 'visible', timeout: 5000 });
