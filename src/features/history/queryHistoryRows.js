@@ -95,6 +95,14 @@ function formatHistoryRowDate(value) {
   return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString();
 }
 
+function buildHistoryRowMetricHtml(label, value) {
+  return `
+    <span class="history-row-metric">
+      <span class="history-row-metric-label">${escapeHistoryText(label)}</span>
+      <span class="history-row-metric-value">${escapeHistoryText(value)}</span>
+    </span>`;
+}
+
 function buildHistoryProgressHtml(progress) {
   if (!progress) {
     return '';
@@ -174,6 +182,9 @@ function createQueriesTableRowHtml(query, options = {}) {
   const rowDate = formatHistoryRowDate(query.startTime);
   const duration = formatHistoryRowDuration(query, dependencies);
   const { loadBtn, previewBtn, rerunBtn, stopBtn, templateBtn } = buildHistoryRowActions(query, options);
+  const dateLabel = query.running ? 'Started' : 'Last run';
+  const dateCell = buildHistoryRowMetricHtml(dateLabel, rowDate);
+  const durationCell = buildHistoryRowMetricHtml('Duration', duration);
 
   const reasonSummary = buildHistoryReasonSummaryHtml(query);
 
@@ -205,8 +216,8 @@ function createQueriesTableRowHtml(query, options = {}) {
         <td class="history-name-column px-4 py-3 text-xs text-left font-mono">${nameCell}</td>
         <td class="history-status-cell px-4 py-2 text-xs text-center">${statusCell}</td>
         <td class="history-details-cell px-4 py-2 text-xs text-center">${detailsCell}</td>
-        <td class="history-date-cell px-4 py-2 text-xs text-center">${rowDate}</td>
-        <td class="px-4 py-2 text-xs text-center history-duration-cell" data-query-id="${queryId}">${duration}</td>
+        <td class="history-date-cell px-4 py-2 text-xs text-center">${dateCell}</td>
+        <td class="history-duration-cell px-4 py-2 text-xs text-center" data-query-id="${queryId}">${durationCell}</td>
         <td class="history-actions-cell px-4 py-2 text-center" colspan="2">${buildHistoryActionGroup([previewBtn, templateBtn, stopBtn])}</td>
       </tr>
     `;
@@ -218,8 +229,8 @@ function createQueriesTableRowHtml(query, options = {}) {
         <td class="history-name-column px-4 py-3 text-xs text-left font-mono">${nameCell}</td>
         <td class="history-status-cell px-4 py-2 text-xs text-center">${statusCell}</td>
         <td class="history-details-cell px-4 py-2 text-xs text-center">${detailsCell}</td>
-        <td class="history-date-cell px-4 py-2 text-xs text-center">${rowDate}</td>
-        <td class="history-duration-cell px-4 py-2 text-xs text-center">${duration}</td>
+        <td class="history-date-cell px-4 py-2 text-xs text-center">${dateCell}</td>
+        <td class="history-duration-cell px-4 py-2 text-xs text-center">${durationCell}</td>
         <td class="history-actions-cell px-4 py-2 text-xs text-center">${buildHistoryActionGroup([templateBtn, rerunBtn])}</td>
       </tr>
     `;
@@ -231,8 +242,8 @@ function createQueriesTableRowHtml(query, options = {}) {
         <td class="history-name-column px-4 py-3 text-xs text-left font-mono">${nameCell}</td>
         <td class="history-status-cell px-4 py-2 text-xs text-center">${statusCell}</td>
         <td class="history-details-cell px-4 py-2 text-xs text-center">${detailsCell}</td>
-        <td class="history-date-cell px-4 py-2 text-xs text-center">${rowDate}</td>
-        <td class="history-duration-cell px-4 py-2 text-xs text-center">${duration}</td>
+        <td class="history-date-cell px-4 py-2 text-xs text-center">${dateCell}</td>
+        <td class="history-duration-cell px-4 py-2 text-xs text-center">${durationCell}</td>
         <td class="history-issue-cell px-4 py-2 text-xs text-center">${reasonSummary}</td>
         <td class="history-actions-cell px-4 py-2 text-xs text-center">${buildHistoryActionGroup([templateBtn, rerunBtn])}</td>
       </tr>
@@ -244,8 +255,8 @@ function createQueriesTableRowHtml(query, options = {}) {
       <td class="history-name-column px-4 py-3 text-xs text-left font-mono">${nameCell}</td>
       <td class="history-status-cell px-4 py-2 text-xs text-center">${statusCell}</td>
       <td class="history-details-cell px-4 py-2 text-xs text-center">${detailsCell}</td>
-      <td class="history-date-cell px-4 py-2 text-xs text-center">${rowDate}</td>
-      <td class="history-duration-cell px-4 py-2 text-xs text-center">${duration}</td>
+      <td class="history-date-cell px-4 py-2 text-xs text-center">${dateCell}</td>
+      <td class="history-duration-cell px-4 py-2 text-xs text-center">${durationCell}</td>
       <td class="history-actions-cell px-4 py-2 text-xs text-center" colspan="2">${buildHistoryActionGroup([loadBtn, templateBtn, rerunBtn])}</td>
     </tr>
   `;

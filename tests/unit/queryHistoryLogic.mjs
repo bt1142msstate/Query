@@ -159,6 +159,8 @@ test('query history', async () => {
   assert.match(rowHtml, /history-actions-cell/u);
   assert.match(rowHtml, /history-actions-group/u);
   assert.match(rowHtml, /history-results-icon/u);
+  assert.match(rowHtml, /history-row-metric-label">Last run/u);
+  assert.match(rowHtml, /history-row-metric-label">Duration/u);
   assert.match(rowHtml, /history-action-label">Open/u);
   assert.match(rowHtml, /history-action-label">Template/u);
   assert.match(rowHtml, /history-action-label">Rerun/u);
