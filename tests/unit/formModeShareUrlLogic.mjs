@@ -86,6 +86,35 @@ test('form mode share url', async () => {
   });
   assert.equal(new URL(explicitResultUrl).searchParams.get('result'), 'query-456');
 
+  const canonicalResultUrl = buildFormShareUrl(
+    'https://example.test/index.html?form=old&mode=bubbles&view=limited&limitedView=1&limited=0&stale=1&result=old-result',
+    spec,
+    {
+      limited: false,
+      resultQueryId: 'query-789'
+    }
+  );
+  const parsedCanonicalResultUrl = new URL(canonicalResultUrl);
+  assert.equal(parsedCanonicalResultUrl.searchParams.get('result'), 'query-789');
+  assert.equal(parsedCanonicalResultUrl.searchParams.has('mode'), false);
+  assert.equal(parsedCanonicalResultUrl.searchParams.has('view'), false);
+  assert.equal(parsedCanonicalResultUrl.searchParams.has('limitedView'), false);
+  assert.equal(parsedCanonicalResultUrl.searchParams.has('limited'), false);
+  assert.equal(parsedCanonicalResultUrl.searchParams.has('stale'), false);
+
+  const limitedSpecUrl = buildFormShareUrl('https://example.test/index.html', {
+    ...spec,
+    limited: true,
+    limitedView: true,
+    viewMode: 'limited'
+  });
+  const parsedLimitedSpecUrl = new URL(limitedSpecUrl);
+  const decodedLimitedSpec = decodeSpec(parsedLimitedSpecUrl.searchParams.get('form'));
+  assert.equal(parsedLimitedSpecUrl.searchParams.get('limited'), '1');
+  assert.equal(Object.prototype.hasOwnProperty.call(decodedLimitedSpec, 'limited'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(decodedLimitedSpec, 'limitedView'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(decodedLimitedSpec, 'viewMode'), false);
+
   assert.equal(buildFormShareUrl('https://example.test/index.html?old=1', {
     columns: [],
     inputs: [],

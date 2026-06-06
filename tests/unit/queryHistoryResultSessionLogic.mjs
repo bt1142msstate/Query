@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { Buffer } from 'node:buffer';
 import test from 'node:test';
 import {
   OPENED_HISTORY_RESULT_STORAGE_KEY,
@@ -25,6 +26,14 @@ function createMemoryStorage() {
       values.set(key, String(value));
     }
   };
+}
+
+function encodeFormSpecForUrl(spec) {
+  return Buffer.from(JSON.stringify(spec), 'utf8')
+    .toString('base64')
+    .replace(/\+/gu, '-')
+    .replace(/\//gu, '_')
+    .replace(/=+$/gu, '');
 }
 
 test('query history result session remembers and clears the last opened result id', () => {
@@ -90,6 +99,41 @@ test('query history result session can sync the result id into the browser url',
   const rememberedUrl = new URL(replacements.at(-1));
   assert.equal(rememberedUrl.searchParams.get(OPENED_HISTORY_RESULT_URL_PARAM), 'query-123');
   assert.equal(rememberedUrl.searchParams.get('form'), 'abc');
+
+  assert.equal(rememberOpenedHistoryResult('query-456', {
+    history,
+    storage,
+    updateUrl: true,
+    url: 'https://example.test/index.html?mode=bubbles&stale=1'
+  }), true);
+  const resultOnlyUrl = new URL(replacements.at(-1));
+  assert.equal(resultOnlyUrl.searchParams.get(OPENED_HISTORY_RESULT_URL_PARAM), 'query-456');
+  assert.equal(resultOnlyUrl.searchParams.has('mode'), false);
+  assert.equal(resultOnlyUrl.searchParams.has('stale'), false);
+
+  const encodedFormSpec = encodeFormSpecForUrl({
+    columns: ['Title'],
+    inputs: [
+      { key: 'branch', field: 'Branch', operator: 'equals' }
+    ],
+    lockedFilters: [],
+    limitedView: true
+  });
+  assert.equal(rememberOpenedHistoryResult('query-789', {
+    history,
+    storage,
+    updateUrl: true,
+    url: `https://example.test/index.html?form=${encodedFormSpec}&mode=limited&view=limited&limitedView=1&limited=false&branch=Main&stale=1`
+  }), true);
+  const canonicalFormResultUrl = new URL(replacements.at(-1));
+  assert.equal(canonicalFormResultUrl.searchParams.get(OPENED_HISTORY_RESULT_URL_PARAM), 'query-789');
+  assert.equal(canonicalFormResultUrl.searchParams.has('form'), true);
+  assert.equal(canonicalFormResultUrl.searchParams.get('branch'), 'Main');
+  assert.equal(canonicalFormResultUrl.searchParams.get('limited'), '1');
+  assert.equal(canonicalFormResultUrl.searchParams.has('mode'), false);
+  assert.equal(canonicalFormResultUrl.searchParams.has('view'), false);
+  assert.equal(canonicalFormResultUrl.searchParams.has('limitedView'), false);
+  assert.equal(canonicalFormResultUrl.searchParams.has('stale'), false);
 
   assert.equal(forgetOpenedHistoryResult({
     clearUrl: true,

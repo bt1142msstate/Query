@@ -310,8 +310,9 @@ let QueryFormMode;
     const forceShareUrl = options.forceShareUrl === true;
     const forceClearUrl = options.forceClearUrl === true;
     const useFormUrl = forceShareUrl || (!forceClearUrl && shouldPersistFormUrlInBrowser());
+    const persistLimitedView = forceShareUrl || state.limitedView === true;
     const nextUrl = useFormUrl
-      ? buildCurrentShareUrl({ limited: forceShareUrl, preserveResult: !forceShareUrl })
+      ? buildCurrentShareUrl({ limited: persistLimitedView, preserveResult: !forceShareUrl })
       : buildClearedBrowserUrl(window.location.href);
     if (state.lastBrowserUrl === nextUrl || window.location.href === nextUrl) {
       state.lastBrowserUrl = nextUrl;

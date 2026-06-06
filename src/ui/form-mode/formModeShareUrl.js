@@ -18,6 +18,14 @@ function buildClearedBrowserUrl(currentUrl) {
   return nextUrl.toString();
 }
 
+function buildSerializableFormSpec(spec) {
+  const nextSpec = { ...spec };
+  delete nextSpec.limited;
+  delete nextSpec.limitedView;
+  delete nextSpec.viewMode;
+  return nextSpec;
+}
+
 function getFieldDefinition(fieldName, options = {}) {
   if (typeof options.getFieldDef === 'function') {
     return options.getFieldDef(fieldName);
@@ -47,12 +55,13 @@ function buildFormShareUrl(currentUrl, spec, options = {}) {
   }
 
   const nextUrl = new URL(currentUrl);
+  const serializableSpec = buildSerializableFormSpec(spec);
   const resultQueryId = String(options.resultQueryId || '').trim();
   const preservedResultQueryId = !resultQueryId && options.preserveResult === true
     ? String(nextUrl.searchParams.get(RESULT_QUERY_URL_PARAM) || '').trim()
     : '';
   nextUrl.search = '';
-  nextUrl.searchParams.set('form', encodeSpec(spec));
+  nextUrl.searchParams.set('form', encodeSpec(serializableSpec));
   if (options.limited !== false) {
     nextUrl.searchParams.set('limited', '1');
   }

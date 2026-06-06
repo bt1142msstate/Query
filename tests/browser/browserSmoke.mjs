@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
+import { Buffer } from 'node:buffer';
 import { dirname, extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
@@ -115,6 +116,14 @@ const smokeTemplateResponse = {
     }
   ]
 };
+
+function encodeFormSpecForUrl(spec) {
+  return Buffer.from(JSON.stringify(spec), 'utf8')
+    .toString('base64')
+    .replace(/\+/gu, '-')
+    .replace(/\//gu, '_')
+    .replace(/=+$/gu, '');
+}
 
 function contentTypeFor(filePath) {
   return mimeTypes.get(extname(filePath).toLowerCase()) || 'application/octet-stream';
@@ -2576,6 +2585,65 @@ async function exerciseEditableFormUrlRefresh(page, failures) {
   await waitForAppReady(page, failures);
 }
 
+async function exerciseLegacyFormUrlCanonicalization(page, baseUrl, failures) {
+  const formSpec = {
+    title: 'Legacy Limited Form',
+    queryName: 'Legacy Limited Form',
+    description: '',
+    columns: ['Smoke Title'],
+    lockedFilters: [],
+    inputs: [],
+    limitedView: true,
+    viewMode: 'limited'
+  };
+  const legacyUrl = new URL(baseUrl);
+  legacyUrl.searchParams.set('form', encodeFormSpecForUrl(formSpec));
+  legacyUrl.searchParams.set('mode', 'limited');
+  legacyUrl.searchParams.set('view', 'limited');
+  legacyUrl.searchParams.set('limitedView', '1');
+  legacyUrl.searchParams.set('limited', 'false');
+  legacyUrl.searchParams.set('stale', '1');
+
+  await page.goto(legacyUrl.toString(), { waitUntil: 'load', timeout: 15000 });
+  await waitForAppReady(page, failures);
+  await page.locator('#form-mode-card').waitFor({ state: 'visible', timeout: 5000 });
+
+  const canonicalState = await page.evaluate(async () => {
+    const { QueryFormMode } = await import('./src/ui/form-mode/formMode.js');
+    const browserUrl = new URL(window.location.href);
+    const decodedSpec = QueryFormMode.decodeSpec(browserUrl.searchParams.get('form'));
+    return {
+      decodedHasLimited: Object.prototype.hasOwnProperty.call(decodedSpec, 'limited'),
+      decodedHasLimitedView: Object.prototype.hasOwnProperty.call(decodedSpec, 'limitedView'),
+      decodedHasViewMode: Object.prototype.hasOwnProperty.call(decodedSpec, 'viewMode'),
+      hasForm: browserUrl.searchParams.has('form'),
+      hasLimitedViewParam: browserUrl.searchParams.has('limitedView'),
+      hasMode: browserUrl.searchParams.has('mode'),
+      hasStale: browserUrl.searchParams.has('stale'),
+      hasView: browserUrl.searchParams.has('view'),
+      isLimitedView: QueryFormMode.isLimitedView(),
+      limited: browserUrl.searchParams.get('limited'),
+      tableName: browserUrl.searchParams.get('tableName')
+    };
+  });
+
+  if (
+    !canonicalState.hasForm
+    || canonicalState.limited !== '1'
+    || canonicalState.tableName !== 'Legacy Limited Form'
+    || canonicalState.hasMode
+    || canonicalState.hasView
+    || canonicalState.hasLimitedViewParam
+    || canonicalState.hasStale
+    || canonicalState.decodedHasLimited
+    || canonicalState.decodedHasLimitedView
+    || canonicalState.decodedHasViewMode
+    || !canonicalState.isLimitedView
+  ) {
+    throw new Error(`Legacy limited form URLs should canonicalize to current params: ${JSON.stringify(canonicalState)}`);
+  }
+}
+
 async function exerciseVirtualTableScrollInteraction(page) {
   await seedLoadedResults(page, { rowCount: 320 });
 
@@ -4135,6 +4203,7 @@ async function runSmokeTest() {
     await exerciseFieldPickerPreviewList(page);
     await exerciseFormModeBuildableDisplayField(page);
     await exerciseEditableFormUrlRefresh(page, failures);
+    await exerciseLegacyFormUrlCanonicalization(page, baseUrl, failures);
     await exerciseDesktopResultsWorkflow(page);
     await exerciseZeroResultQueryWorkflow(page, queryApiStub);
     await exerciseJsonResultPayloadWorkflow(page, queryApiStub);
