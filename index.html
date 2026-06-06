@@ -693,7 +693,7 @@
             <div class="help-hero-copy">
               <span class="help-kicker">Start Here</span>
               <h3>Build a report in a few clear steps.</h3>
-              <p>Add the fields you want, choose filters, run the query, then review or export the results. This guide focuses on the controls people use most often.</p>
+              <p>Add the fields you want, choose filters, run the query, then review, share, reload, or export the results. This guide focuses on the controls people use most often.</p>
             </div>
             <div class="help-summary-grid">
               <article class="help-summary-card">
@@ -702,11 +702,11 @@
               </article>
               <article class="help-summary-card">
                 <span class="help-summary-label">Run</span>
-                <strong>Use the play button and watch progress while results load.</strong>
+                <strong>Use Run and watch progress while results load.</strong>
               </article>
               <article class="help-summary-card">
                 <span class="help-summary-label">Finish</span>
-                <strong>Use history, templates, JSON, or Excel export when the table looks right.</strong>
+                <strong>Use history, templates, sharing, JSON, or Excel export when the table looks right.</strong>
               </article>
             </div>
           </section>
@@ -722,28 +722,28 @@
                   <span class="help-step-number">1</span>
                   <div>
                     <strong>Add fields.</strong>
-                    <p>Use Add Field to choose columns, filters, or both.</p>
+                    <p>Use Add Field or the builder search to choose columns, filters, or both.</p>
                   </div>
                 </li>
                 <li>
                   <span class="help-step-number">2</span>
                   <div>
                     <strong>Set filter values.</strong>
-                    <p>Use the Display & Filters panel to edit, reorder, or remove fields.</p>
+                    <p>Use the Display & Filters panel to edit, reorder, split, or remove fields.</p>
                   </div>
                 </li>
                 <li>
                   <span class="help-step-number">3</span>
                   <div>
                     <strong>Run the query.</strong>
-                    <p>Press Play. While it runs, the progress view shows elapsed time and loaded rows.</p>
+                    <p>Press Run. While it runs, the progress view shows elapsed time, backend progress, and loaded rows when available.</p>
                   </div>
                 </li>
                 <li>
                   <span class="help-step-number">4</span>
                   <div>
                     <strong>Review and reuse.</strong>
-                    <p>Sort, resize, post-filter, export, save a template, or reload the run from history.</p>
+                    <p>Sort, resize, post-filter, share results, export, save a template, or reload the run from history.</p>
                   </div>
                 </li>
               </ol>
@@ -755,9 +755,9 @@
                 <h4>Choosing fields</h4>
               </div>
               <ul class="help-detail-list">
-                <li>Search by field name first; descriptions help when you do not know the exact name.</li>
-                <li>Some fields need values before they become real display columns, such as dynamic MARC fields.</li>
-                <li>The available fields come from backend metadata, so deployments can define their own fields.</li>
+                <li>Field-name matches rank ahead of description matches, so exact names rise to the top.</li>
+                <li>Some backend-defined fields ask for details before becoming real display columns, such as MARC tag and optional subfield inputs.</li>
+                <li>The available fields come from backend metadata, so deployments can define their own field list, builders, warnings, and filter support.</li>
               </ul>
             </article>
 
@@ -768,9 +768,10 @@
               </div>
               <ul class="help-detail-list">
                 <li>Backend filters decide what gets requested from the API.</li>
-                <li>Post filters only refine the rows already loaded in the table.</li>
+                <li>Post filters only refine rows already loaded in the table and never get sent to the backend.</li>
                 <li>Post filters clear between query runs so one report does not silently affect the next.</li>
-                <li>Date fields support normal date comparisons and Never where the backend field allows it.</li>
+                <li>Post filters handle blank values, values that exist, and multi-value cells.</li>
+                <li>Date filters support normal date comparisons and Never values.</li>
               </ul>
             </article>
 
@@ -782,8 +783,9 @@
               <ul class="help-detail-list">
                 <li>Drag headers to reorder columns and resize headers when the table needs more room.</li>
                 <li>Right-click on desktop or long-press on mobile for cell and column actions.</li>
-                <li>Multi-value cells stay compact in the table and can still be copied or exported fully.</li>
-                <li>Use expand mode when the table needs the full screen.</li>
+                <li>Multi-value cells stay compact by default; open the cell menu to inspect or copy the full values.</li>
+                <li>Split mode can expand multi-value fields into grouped columns without changing the original result data.</li>
+                <li>Use expand mode when the table needs the full screen, including on mobile.</li>
               </ul>
             </article>
 
@@ -794,12 +796,25 @@
               </div>
               <div class="help-actions-grid">
                 <div class="help-action-item"><span class="help-action-pill run">Run</span><p>Runs the current query. While active, the button switches to stop mode.</p></div>
-                <div class="help-action-item"><span class="help-action-pill export">Export</span><p>Downloads the current result set to Excel.</p></div>
-                <div class="help-action-item"><span class="help-action-pill split">Split</span><p>Changes how multi-value fields are written in Excel.</p></div>
-                <div class="help-action-item"><span class="help-action-pill json">JSON</span><p>Shows the payload being sent to the backend.</p></div>
-                <div class="help-action-item"><span class="help-action-pill history">History</span><p>Shows running and completed query runs.</p></div>
-                <div class="help-action-item"><span class="help-action-pill templates">Templates</span><p>Saves and reloads reusable query setups.</p></div>
+                <div class="help-action-item"><span class="help-action-pill export">Export</span><p>Builds an Excel workbook with progress shown during large exports.</p></div>
+                <div class="help-action-item"><span class="help-action-pill split">Split</span><p>Toggles multi-value fields between compact cells and split columns.</p></div>
+                <div class="help-action-item"><span class="help-action-pill json">JSON</span><p>Shows the backend payload for the current query.</p></div>
+                <div class="help-action-item"><span class="help-action-pill history">History</span><p>Shows running, completed, failed, and canceled query runs.</p></div>
+                <div class="help-action-item"><span class="help-action-pill templates">Templates</span><p>Creates, edits, pins, categorizes, and reloads reusable query setups.</p></div>
               </div>
+            </article>
+
+            <article class="help-card">
+              <div class="help-card-heading">
+                <span class="help-card-tag">Sharing</span>
+                <h4>Form and result links</h4>
+              </div>
+              <ul class="help-detail-list">
+                <li>Share copies a limited link, and when results are loaded it defaults to a result link.</li>
+                <li>Form Link copies a clean editable form link without opening saved results.</li>
+                <li>Refresh keeps the current editable form or opened results instead of forcing limited mode.</li>
+                <li>Old URL flags are cleaned into the current form, limited, tableName, and result parameters.</li>
+              </ul>
             </article>
 
             <article class="help-card help-card-wide">
@@ -812,9 +827,10 @@
                   <p class="help-mini-heading">Useful actions</p>
                   <ul class="help-detail-list compact">
                     <li>Reload a previous query setup.</li>
-                    <li>Open results from a completed run.</li>
+                    <li>Open results from a completed run or partial results from a run that is still active.</li>
                     <li>Cancel a run that is still active.</li>
                     <li>Rerun a useful report without rebuilding it.</li>
+                    <li>Refresh returns to the last opened results when the result URL or local cache is available.</li>
                   </ul>
                 </div>
                 <div>
@@ -845,11 +861,11 @@
                 </div>
                 <div class="help-tip-item">
                   <strong>Confirm export settings first.</strong>
-                  <p>Column order and split mode affect the workbook.</p>
+                  <p>Column order, grouping, split mode, and optional run details affect the workbook.</p>
                 </div>
                 <div class="help-tip-item">
                   <strong>Connect your own API for production.</strong>
-                  <p>The live site is a frontend; backend URLs are configurable.</p>
+                  <p>The live site is a frontend; compatible backend URLs can be configured per deployment.</p>
                 </div>
               </div>
             </article>

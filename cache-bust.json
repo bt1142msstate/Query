@@ -1,9 +1,9 @@
 {
-  "version": "e8b8e90e32a1e7c8",
+  "version": "6a7f93ae790b4583",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "backgroundNotificationServiceWorker.js": "2f8933df91d32a1a",
-    "index.html": "7d5bf0212665ae5b",
+    "index.html": "27ea4066cef2bd8c",
     "src/appModules.js": "52af243189e76441",
     "src/core/appServices.js": "2a910d42652eb6af",
     "src/core/appStartupEvents.js": "cb111b751d0cac20",
