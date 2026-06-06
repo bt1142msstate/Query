@@ -28,7 +28,7 @@ function createOpenedHistoryResultRestoreController({
   }
 
   async function forgetRestoreSnapshot() {
-    forgetOpenedHistoryResult();
+    forgetOpenedHistoryResult({ clearUrl: true });
     await clearCachedHistoryResultSnapshots();
   }
 
@@ -37,7 +37,7 @@ function createOpenedHistoryResultRestoreController({
       return false;
     }
 
-    const remembered = readOpenedHistoryResult();
+    const remembered = readOpenedHistoryResult({ location: options.location });
     const queryId = remembered?.queryId || '';
     if (!queryId) {
       return false;
@@ -70,7 +70,7 @@ function createOpenedHistoryResultRestoreController({
     });
 
     uiActions.updateTableResultsLip();
-    rememberOpenedHistoryResult(query.id);
+    rememberOpenedHistoryResult(query.id, { updateUrl: true });
     services.closeAllModals();
     showToastMessage(`Restored ${snapshot.rows.length} cached results.`, 'info');
     return true;
@@ -81,7 +81,7 @@ function createOpenedHistoryResultRestoreController({
       return;
     }
 
-    const remembered = readOpenedHistoryResult();
+    const remembered = readOpenedHistoryResult({ location: options.location });
     const queryId = remembered?.queryId || '';
     if (!queryId) {
       return;

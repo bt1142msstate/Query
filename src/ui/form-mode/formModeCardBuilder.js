@@ -108,7 +108,21 @@ function buildInteractiveFormModeCard(options) {
     }
 
     await clipboardUtils.copyFromSource(() => buildCurrentShareUrl(), {
-      successMessage: 'Shared link copied. Reset to Last Shared now returns to this version.',
+      successMessage: 'Shared link copied. Reset to Last Shared now returns to this form version.',
+      errorMessage: 'Failed to copy form link.',
+      emptyMessage: 'No form link is available to share.'
+    });
+  });
+
+  mountedCard.cleanCopyBtn?.addEventListener('click', async () => {
+    const saved = saveCurrentFormAsSharedBaseline();
+    if (!saved) {
+      showToastMessage('No form link is available to share.', 'warning');
+      return;
+    }
+
+    await clipboardUtils.copyFromSource(() => buildCurrentShareUrl({ includeResult: false, limited: false }), {
+      successMessage: 'Editable form link copied.',
       errorMessage: 'Failed to copy form link.',
       emptyMessage: 'No form link is available to share.'
     });

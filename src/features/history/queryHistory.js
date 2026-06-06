@@ -31,6 +31,7 @@ import {
   getPreferredHistorySection as getPreferredHistorySectionForCounts
 } from './queryHistoryViewHelpers.js';
 import { appServices, registerQueryHistoryService } from '../../core/appServices.js';
+import { waitForFormModeReady } from '../../core/appStartupEvents.js';
 import { appUiActions } from '../../core/appUiActions.js';
 import { BackendApi } from '../../core/backendApi.js';
 import { formatDuration, parsePipeDelimitedRow } from '../../core/formatting/dataFormatters.js';
@@ -325,7 +326,7 @@ async function cacheOpenedHistoryResultSnapshot(snapshot = {}) {
     return false;
   }
 
-  rememberOpenedHistoryResult(queryId);
+  rememberOpenedHistoryResult(queryId, { updateUrl: true });
   return writeCachedHistoryResultSnapshot({
     ...snapshot,
     query,
@@ -878,13 +879,15 @@ onDOMReady(() => {
   // result download. If the cache is unavailable, the status poll keeps the
   // previous backend fallback path.
   if (shouldRestoreOpenedHistoryResult({ location: window.location })) {
-    openedHistoryResultRestoreController.restoreFromCache({ location: window.location })
-      .catch(error => {
-        console.warn('Failed to restore cached history results:', error);
-      })
-      .finally(() => {
-        fetchQueryStatus();
-      });
+    waitForFormModeReady().then(() => {
+      openedHistoryResultRestoreController.restoreFromCache({ location: window.location })
+        .catch(error => {
+          console.warn('Failed to restore cached history results:', error);
+        })
+        .finally(() => {
+          fetchQueryStatus();
+        });
+    });
   } else {
     setTimeout(fetchQueryStatus, 500);
   }

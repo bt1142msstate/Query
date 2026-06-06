@@ -47,10 +47,12 @@ import { bindFormModeQueryStateSync } from './formModeQueryStateBridge.js';
 import { bindFormModeTableNameUrlSync } from './formModeTableNameSync.js';
 import { syncSpecInputsWithActiveFilters } from './formModeQuerySync.js';
 import { FormModeStateHelpers as formModeStateHelpers } from './formModeStateHelpers.js';
+import { resolveCurrentShareResultQueryId, syncFormModeShareUi } from './formModeShareState.js';
 import { openFormModeFieldPicker } from './formModeFieldPicker.js';
 import { QueryTableView } from '../queryTableView.js';
 import { QueryUI } from '../queryUI.js';
 import { fieldDefs, isFieldDisplayable, loadFieldDefinitions } from '../../features/filters/fieldDefs.js';
+import { FORM_MODE_READY_EVENT } from '../../core/appStartupEvents.js';
 import { DOM } from '../../core/domCache.js';
 
 let QueryFormMode;
@@ -234,36 +236,12 @@ let QueryFormMode;
     return state.active && isShareableFormSpec(state.spec);
   }
 
+  function getCurrentShareResultQueryId(options = {}) {
+    return resolveCurrentShareResultQueryId(QueryStateReaders, options);
+  }
+
   function syncShareUi() {
-    if (!state.copyBtn) {
-      return;
-    }
-
-    const isShareable = isShareableFormSpec(state.spec);
-    state.copyBtn.disabled = !isShareable;
-    state.copyBtn.setAttribute(
-      'data-tooltip',
-      isShareable
-        ? 'Copy a shareable link and save this as the reset baseline.'
-        : 'Add a displayed field or filter control before sharing this form.'
-    );
-    state.copyBtn.setAttribute(
-      'aria-label',
-      isShareable
-        ? 'Share form link'
-        : 'Share unavailable until fields are added'
-    );
-
-    if (state.resetSharedBtn) {
-      const hasSharedBaseline = Boolean(state.sharedBaselineSpec);
-      state.resetSharedBtn.disabled = !hasSharedBaseline;
-      state.resetSharedBtn.setAttribute(
-        'data-tooltip',
-        hasSharedBaseline
-          ? 'Restore the last version you shared.'
-          : 'Share this form first to create a shared baseline.'
-      );
-    }
+    syncFormModeShareUi({ getCurrentShareResultQueryId, isShareableFormSpec, state });
   }
 
   function saveCurrentFormAsSharedBaseline() {
@@ -279,7 +257,7 @@ let QueryFormMode;
     }
 
     state.sharedBaselineSpec = nextSpec;
-    const shareUrl = buildCurrentShareUrl();
+    const shareUrl = buildCurrentShareUrl({ includeResult: false });
     state.sharedBaselineSearchParams = shareUrl
       ? new URL(shareUrl).searchParams
       : new URLSearchParams();
@@ -333,7 +311,7 @@ let QueryFormMode;
     const forceClearUrl = options.forceClearUrl === true;
     const useFormUrl = forceShareUrl || (!forceClearUrl && shouldPersistFormUrlInBrowser());
     const nextUrl = useFormUrl
-      ? buildCurrentShareUrl({ limited: forceShareUrl })
+      ? buildCurrentShareUrl({ limited: forceShareUrl, preserveResult: !forceShareUrl })
       : buildClearedBrowserUrl(window.location.href);
     if (state.lastBrowserUrl === nextUrl || window.location.href === nextUrl) {
       state.lastBrowserUrl = nextUrl;
@@ -672,9 +650,11 @@ let QueryFormMode;
 
   function buildCurrentShareUrl(options = {}) {
     sanitizeSpecDisplayColumns(state.spec);
+    const resultQueryId = getCurrentShareResultQueryId(options);
     return buildFormShareUrl(window.location.href, state.spec, {
       fieldDefs,
       getInputValues: getCurrentInputValues,
+      resultQueryId,
       supportsMultipleValues,
       tableName: getCurrentTableNameValue(),
       ...options
@@ -772,12 +752,11 @@ let QueryFormMode;
     });
   }
 
-  async function initialize() {
-    if (initialized) {
-      return;
-    }
+  function dispatchFormModeReady() {
+    window.dispatchEvent(new CustomEvent(FORM_MODE_READY_EVENT));
+  }
 
-    initialized = true;
+  async function initializeRuntime() {
     const searchParams = new URLSearchParams(window.location.search);
     state.initialSearchParams = new URLSearchParams(window.location.search);
     state.searchParams = searchParams;
@@ -862,6 +841,20 @@ let QueryFormMode;
     uiActions.updateButtonStates();
   }
 
+  async function initialize() {
+    if (initialized) {
+      dispatchFormModeReady();
+      return;
+    }
+
+    initialized = true;
+    try {
+      await initializeRuntime();
+    } finally {
+      dispatchFormModeReady();
+    }
+  }
+
   QueryFormMode = {
     initialize,
     encodeSpec,
@@ -883,5 +876,4 @@ let QueryFormMode;
   };
   registerFormModeService(QueryFormMode);
 })();
-
 export { QueryFormMode };
