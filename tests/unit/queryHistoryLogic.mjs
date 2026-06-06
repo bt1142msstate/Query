@@ -156,8 +156,15 @@ test('query history', async () => {
   assert.match(rowHtml, /12 rows/u);
   assert.match(rowHtml, /template-query-btn/u);
   assert.match(rowHtml, /Create template from this query/u);
+  assert.match(rowHtml, /history-actions-cell/u);
+  assert.match(rowHtml, /history-actions-group/u);
+  assert.match(rowHtml, /history-results-icon/u);
+  assert.match(rowHtml, /history-action-label">Open/u);
+  assert.match(rowHtml, /history-action-label">Template/u);
+  assert.match(rowHtml, /history-action-label">Rerun/u);
   assert.match(rowHtml, /history-rerun-icon/u);
   assert.match(rowHtml, /M3 12a9 9 0 0 1 9-9/u);
+  assert.doesNotMatch(rowHtml, /margin-left:4px/u);
   assert.match(rowHtml, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/u);
   assert.doesNotMatch(rowHtml, /<script>alert/u);
 

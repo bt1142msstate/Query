@@ -986,7 +986,7 @@
 
 .history-monitor .history-row {
   display: grid;
-  grid-template-columns: minmax(12rem, 1fr) auto auto auto auto;
+  grid-template-columns: minmax(12rem, 1fr) auto auto auto;
   gap: 0.5rem;
   align-items: center;
   min-width: 0;
@@ -1007,15 +1007,36 @@
   white-space: normal !important;
 }
 
-.history-monitor .history-row td:nth-child(4) {
+.history-monitor .history-date-cell,
+.history-monitor .history-duration-cell,
+.history-monitor .history-issue-cell {
   display: none;
 }
 
-.history-monitor .history-row td:nth-child(n + 2) {
+.history-monitor .history-status-cell,
+.history-monitor .history-details-cell {
   justify-content: center;
 }
 
-.history-monitor .history-row td:nth-child(n + 6) {
+.history-monitor .history-actions-cell {
+  justify-content: flex-end;
+  justify-self: end;
+  overflow: visible;
+}
+
+.history-actions-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.42rem;
+  flex-wrap: wrap;
+}
+
+.history-monitor .history-actions-group {
+  padding-left: 0.1rem;
+}
+
+.history-monitor .history-actions-cell .history-actions-group {
   justify-content: flex-end;
 }
 
@@ -1706,13 +1727,34 @@
 #queries-list .rerun-query-btn,
 #queries-list .stop-query-btn,
 #queries-list .template-query-btn {
-  width: 2rem;
+  width: auto;
+  min-width: 2.4rem;
   height: 2rem;
+  gap: 0.34rem;
+  padding: 0 0.62rem !important;
   border-radius: 999px;
   border: 1px solid rgba(70, 226, 255, 0.14);
   background: rgba(7, 13, 24, 0.94) !important;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02), 0 8px 18px rgba(0, 0, 0, 0.28);
   transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+#queries-list .load-query-btn svg,
+#queries-list .rerun-query-btn svg,
+#queries-list .stop-query-btn svg,
+#queries-list .template-query-btn svg {
+  flex: 0 0 auto;
+}
+
+.history-action-label {
+  display: inline-block;
+  color: currentColor;
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: none;
 }
 
 #queries-list .load-query-btn:hover,
@@ -2172,21 +2214,33 @@
     white-space: normal !important;
   }
 
-  .history-monitor .history-row td:first-child {
+  .history-monitor .history-name-column {
     grid-column: 1 / -1;
   }
 
-  .history-monitor .history-row td:nth-child(4),
-  .history-monitor .history-row td:nth-child(5) {
+  .history-monitor .history-date-cell,
+  .history-monitor .history-duration-cell,
+  .history-monitor .history-issue-cell {
     display: none;
   }
 
-  .history-monitor .history-row td:nth-child(2) {
+  .history-monitor .history-status-cell {
     justify-content: flex-start;
   }
 
-  .history-monitor .history-row td:nth-child(n + 3) {
+  .history-monitor .history-details-cell,
+  .history-monitor .history-actions-cell {
     justify-content: flex-end;
+  }
+
+  .history-monitor .history-actions-cell {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
+
+  .history-monitor .history-actions-cell .history-actions-group {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .history-monitor .history-name-cell {
@@ -2209,9 +2263,14 @@
   #queries-list .rerun-query-btn,
   #queries-list .stop-query-btn,
   #queries-list .template-query-btn {
-    width: 2.75rem;
+    width: auto;
     min-width: 2.75rem;
     height: 2.75rem;
+    padding: 0 0.72rem !important;
+  }
+
+  .history-action-label {
+    font-size: 0.76rem;
   }
 
   #queries-container th,
@@ -2281,8 +2340,18 @@
     padding: 0.7rem;
   }
 
-  .history-monitor .history-row td:first-child {
+  .history-monitor .history-name-column {
     grid-column: auto;
+  }
+
+  .history-monitor .history-actions-cell {
+    grid-column: auto;
+    justify-self: end;
+  }
+
+  .history-monitor .history-actions-cell .history-actions-group {
+    width: auto;
+    justify-content: flex-end;
   }
 
   .history-monitor .history-name-cell {
