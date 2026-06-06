@@ -173,6 +173,26 @@ import { SharedFieldPicker } from '../../ui/field-picker/fieldPicker.js';
     return clearTablePreviewClasses;
   }
 
+  function previewColumnGroup(fieldName, fallbackColIndex) {
+    const fields = getFields();
+    const groupIndices = services.getDisplayedFieldMoveGroupIndices?.(fieldName, fields) || [];
+    const previewIndices = groupIndices.length > 1 ? groupIndices : [fallbackColIndex];
+
+    clearTablePreviewClasses();
+    previewIndices.forEach(index => {
+      if (Number.isNaN(index)) {
+        return;
+      }
+
+      document.querySelector(`#example-table thead th[data-col-index="${index}"]`)?.classList.add('tcm-preview-column-header');
+      document.querySelectorAll(`#example-table tbody td[data-col-index="${index}"]`).forEach(td => {
+        td.classList.add('tcm-preview-column');
+      });
+    });
+
+    return clearTablePreviewClasses;
+  }
+
   // ── Menu DOM ─────────────────────────────────────────────────────────────────
 
   function buildMenu(actions) {
@@ -480,7 +500,7 @@ import { SharedFieldPicker } from '../../ui/field-picker/fieldPicker.js';
         label: 'Add Filter',
         hint:  filterLabel,
         preview() {
-          return previewColumn(colIndex);
+          return previewColumnGroup(field, colIndex);
         },
         run() {
           if (!filterField) {
@@ -494,7 +514,7 @@ import { SharedFieldPicker } from '../../ui/field-picker/fieldPicker.js';
         label: 'Add Post Filter',
         hint:  filterLabel,
         preview() {
-          return previewColumn(colIndex);
+          return previewColumnGroup(field, colIndex);
         },
         run() {
           if (!filterField) {
