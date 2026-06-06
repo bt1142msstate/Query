@@ -121,7 +121,10 @@ function getAutoScrollIntent({
   scrollLeft,
   scrollWidth,
   clientWidth,
-  threshold = DEFAULT_AUTO_SCROLL_THRESHOLD
+  threshold = DEFAULT_AUTO_SCROLL_THRESHOLD,
+  allowOutsideViewport = false,
+  horizontalTolerance = threshold,
+  verticalTolerance = 220
 }) {
   const rect = normalizeRect(containerRect);
   const currentScrollLeft = Math.max(0, toFiniteNumber(scrollLeft));
@@ -129,7 +132,16 @@ function getAutoScrollIntent({
   const x = toFiniteNumber(pointerX);
   const y = toFiniteNumber(pointerY);
 
-  if (!isPointInsideRect(rect, x, y)) {
+  const outside = allowOutsideViewport
+    ? (
+      x < rect.left - horizontalTolerance
+      || x > rect.right + horizontalTolerance
+      || y < rect.top - verticalTolerance
+      || y > rect.bottom + verticalTolerance
+    )
+    : !isPointInsideRect(rect, x, y);
+
+  if (outside) {
     return {
       direction: null,
       outside: true,

@@ -20,6 +20,25 @@ export function isPointerWithinDropViewport(table, clientX, clientY) {
     && clientY <= rect.bottom;
 }
 
+export function isPointerNearDropViewport(table, clientX, clientY, options = {}) {
+  const rect = getDropIndicatorViewportRect(table);
+  if (!rect) {
+    return false;
+  }
+
+  const horizontalTolerance = Number.isFinite(Number(options.horizontalTolerance))
+    ? Math.max(0, Number(options.horizontalTolerance))
+    : 140;
+  const verticalTolerance = Number.isFinite(Number(options.verticalTolerance))
+    ? Math.max(0, Number(options.verticalTolerance))
+    : 220;
+
+  return clientX >= rect.left - horizontalTolerance
+    && clientX <= rect.right + horizontalTolerance
+    && clientY >= rect.top - verticalTolerance
+    && clientY <= rect.bottom + verticalTolerance;
+}
+
 export function getVisibleHeaderTargets(table, scrollContainer = getDragScrollContainer(table)) {
   const headers = Array.from(table.querySelectorAll('thead th[data-col-index]'));
   if (!headers.length || !scrollContainer) {

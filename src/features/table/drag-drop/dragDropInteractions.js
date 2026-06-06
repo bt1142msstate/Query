@@ -23,6 +23,7 @@ import {
   getClosestVisibleHeaderByX,
   getDragScrollContainer,
   getDropIndicatorViewportRect,
+  isPointerNearDropViewport,
   isPointerWithinDropViewport
 } from './dragDropViewport.js';
 import { getDropAnchorLayout } from './dragDropAnchorLayout.js';
@@ -131,10 +132,11 @@ let DragDropInteractions;
       scrollY: window.scrollY
     });
     if (!layout.visible) {
-      clearDropAnchor();
+      clearDropAnchor(table);
       return false;
     }
 
+    highlightDropTargetColumn(table, colIndex);
     dropAnchor.classList.add('vertical');
     dropAnchor.style.width = layout.width + 'px';
     dropAnchor.style.height = layout.height + 'px';
@@ -144,9 +146,33 @@ let DragDropInteractions;
     return true;
   }
 
-  function clearDropAnchor() {
+  function clearDropTargetColumn(root = document) {
+    const scope = root || document;
+    scope.querySelectorAll('.th-drag-over, .query-table-column-drop-target').forEach(el => {
+      el.classList.remove('th-drag-over', 'query-table-column-drop-target');
+    });
+  }
+
+  function highlightDropTargetColumn(table, colIndex) {
+    if (!table || !Number.isInteger(colIndex)) {
+      return;
+    }
+
+    clearDropTargetColumn(table);
+    table.querySelectorAll(`[data-col-index="${colIndex}"]`).forEach(cell => {
+      cell.classList.add('query-table-column-drop-target');
+    });
+
+    const targetHeader = table.querySelector(`thead th[data-col-index="${colIndex}"]`);
+    if (targetHeader && !targetHeader.classList.contains('th-dragging')) {
+      targetHeader.classList.add('th-drag-over');
+    }
+  }
+
+  function clearDropAnchor(root = document) {
     dropAnchor.classList.remove('vertical');
     dropAnchor.style.display = 'none';
+    clearDropTargetColumn(root);
   }
 
   const dragDropManager = {
@@ -161,8 +187,9 @@ let DragDropInteractions;
     activeTable: null,
     activeDragIndex: -1,
     activeDragGroupIndices: [],
+    autoScrollAllowOutsideViewport: true,
 
-    startAutoScroll(direction, container) {
+    startAutoScroll(direction, container, options = {}) {
       if (Number.isFinite(this.lastDragX)) {
         this.autoScrollPointerX = this.lastDragX;
       }
@@ -173,10 +200,20 @@ let DragDropInteractions;
 
       this.stopAutoScroll();
       this.autoScrollDirection = direction;
+      this.autoScrollAllowOutsideViewport = options.allowOutsideViewport !== false;
 
       this.autoScrollInterval = setInterval(() => {
-        if (this.activeTable && !isPointerWithinDropViewport(this.activeTable, this.autoScrollPointerX, this.lastDragY)) {
-          clearDropAnchor();
+        if (!this.activeTable) {
+          this.stopAutoScroll();
+          return;
+        }
+
+        const pointerStillNearTable = this.autoScrollAllowOutsideViewport
+          ? isPointerNearDropViewport(this.activeTable, this.autoScrollPointerX, this.lastDragY)
+          : isPointerWithinDropViewport(this.activeTable, this.autoScrollPointerX, this.lastDragY);
+
+        if (!pointerStillNearTable) {
+          clearDropAnchor(this.activeTable);
           this.stopAutoScroll();
           return;
         }
@@ -192,8 +229,14 @@ let DragDropInteractions;
 
         container.scrollLeft = step.nextScrollLeft;
 
-        if (step.changed && this.activeTable) {
-          this.updateDropIndicatorFromPointer(this.activeTable, this.autoScrollPointerX, this.lastDragY);
+        if (this.activeTable) {
+          this.updateDropIndicatorFromPointer(this.activeTable, this.autoScrollPointerX, this.lastDragY, {
+            allowOutsideViewport: this.autoScrollAllowOutsideViewport
+          });
+        }
+
+        if (!step.changed) {
+          this.stopAutoScroll();
         }
       }, 16);
     },
@@ -204,9 +247,10 @@ let DragDropInteractions;
         this.autoScrollInterval = null;
       }
       this.autoScrollDirection = null;
+      this.autoScrollAllowOutsideViewport = true;
     },
 
-    checkAutoScroll(e, container) {
+    checkAutoScroll(e, container, options = {}) {
       if (!container) return;
 
       const mouseX = e.clientX;
@@ -221,46 +265,45 @@ let DragDropInteractions;
         containerRect: container.getBoundingClientRect(),
         scrollLeft: container.scrollLeft,
         scrollWidth: container.scrollWidth,
-        clientWidth: container.clientWidth
+        clientWidth: container.clientWidth,
+        allowOutsideViewport: options.allowOutsideViewport !== false
       });
 
       if (intent.outside) {
         this.stopAutoScroll();
-        clearDropAnchor();
+        clearDropAnchor(this.activeTable || document);
         return;
       }
 
       if (intent.direction) {
-        this.startAutoScroll(intent.direction, container);
+        this.startAutoScroll(intent.direction, container, {
+          allowOutsideViewport: options.allowOutsideViewport !== false
+        });
       } else {
         this.stopAutoScroll();
       }
     },
 
-    updateDropIndicatorFromPointer(table, clientX, clientY = this.lastDragY) {
-      if (!isPointerWithinDropViewport(table, clientX, clientY)) {
-        table.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
-        clearDropAnchor();
+    updateDropIndicatorFromPointer(table, clientX, clientY = this.lastDragY, options = {}) {
+      const pointerIsInTargetZone = options.allowOutsideViewport
+        ? isPointerNearDropViewport(table, clientX, clientY)
+        : isPointerWithinDropViewport(table, clientX, clientY);
+
+      if (!pointerIsInTargetZone) {
+        clearDropAnchor(table);
         return;
       }
 
       const scrollContainer = this.scrollContainer || getDragScrollContainer(table);
       const targetHeader = getClosestVisibleHeaderByX(table, clientX, scrollContainer);
       if (!targetHeader) {
-        clearDropAnchor();
+        clearDropAnchor(table);
         return;
-      }
-
-      table.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
-      if (!targetHeader.classList.contains('th-dragging')) {
-        targetHeader.classList.add('th-drag-over');
       }
 
       const colIndex = parseInt(targetHeader.dataset.colIndex, 10);
       const rect = targetHeader.getBoundingClientRect();
-      if (!positionDropAnchor(rect, table, clientX, colIndex)) {
-        targetHeader.classList.remove('th-drag-over');
-      }
+      positionDropAnchor(rect, table, clientX, colIndex);
     },
 
     handleHeaderEnter(th) {
@@ -370,18 +413,12 @@ let DragDropInteractions;
       }
       e.preventDefault();
       this.activeTable = table;
-      table.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
-      if (!element.classList.contains('th-dragging')) {
-        element.classList.add('th-drag-over');
-      }
       const rect = element.getBoundingClientRect();
       const colIndex = parseInt(element.dataset.colIndex, 10);
-      if (!positionDropAnchor(rect, table, e.clientX, colIndex)) {
-        element.classList.remove('th-drag-over');
-      }
+      positionDropAnchor(rect, table, e.clientX, colIndex);
 
       if (this.scrollContainer) {
-        this.checkAutoScroll(e, this.scrollContainer);
+        this.checkAutoScroll(e, this.scrollContainer, { allowOutsideViewport: true });
       }
     },
 
@@ -401,7 +438,7 @@ let DragDropInteractions;
       positionDropAnchor(rect, table, e.clientX, colIndex);
 
       if (this.scrollContainer) {
-        this.checkAutoScroll(e, this.scrollContainer);
+        this.checkAutoScroll(e, this.scrollContainer, { allowOutsideViewport: true });
       }
     },
 
@@ -412,21 +449,15 @@ let DragDropInteractions;
       }
       e.preventDefault();
       this.activeTable = table;
-      table.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
       const colIndex = parseInt(td.dataset.colIndex, 10);
       if (isNaN(colIndex)) return;
       const targetHeader = table.querySelector(`thead th[data-col-index="${colIndex}"]`);
       if (!targetHeader) return;
-      if (!targetHeader.classList.contains('th-dragging')) {
-        targetHeader.classList.add('th-drag-over');
-      }
       const rect = targetHeader.getBoundingClientRect();
-      if (!positionDropAnchor(rect, table, e.clientX, colIndex)) {
-        targetHeader.classList.remove('th-drag-over');
-      }
+      positionDropAnchor(rect, table, e.clientX, colIndex);
 
       if (this.scrollContainer) {
-        this.checkAutoScroll(e, this.scrollContainer);
+        this.checkAutoScroll(e, this.scrollContainer, { allowOutsideViewport: true });
       }
     },
 
@@ -441,10 +472,10 @@ let DragDropInteractions;
       }
       e.preventDefault();
       this.activeTable = table;
-      this.updateDropIndicatorFromPointer(table, e.clientX, e.clientY);
+      this.updateDropIndicatorFromPointer(table, e.clientX, e.clientY, { allowOutsideViewport: true });
 
       if (this.scrollContainer) {
-        this.checkAutoScroll(e, this.scrollContainer);
+        this.checkAutoScroll(e, this.scrollContainer, { allowOutsideViewport: true });
       }
     },
 
@@ -460,13 +491,60 @@ let DragDropInteractions;
       const targetHeader = table.querySelector(`thead th[data-col-index="${colIndex}"]`);
       if (!targetHeader) return;
       const rect = targetHeader.getBoundingClientRect();
-      if (!positionDropAnchor(rect, table, e.clientX, colIndex)) {
-        targetHeader.classList.remove('th-drag-over');
-      }
+      positionDropAnchor(rect, table, e.clientX, colIndex);
 
       if (this.scrollContainer) {
-        this.checkAutoScroll(e, this.scrollContainer);
+        this.checkAutoScroll(e, this.scrollContainer, { allowOutsideViewport: true });
       }
+    },
+
+    handleDocumentDragOver(e) {
+      if (!this.activeTable || !isSupportedTableDrag(e) || this.activeTable.contains(e.target)) {
+        return;
+      }
+
+      if (!isPointerNearDropViewport(this.activeTable, e.clientX, e.clientY)) {
+        if (this.scrollContainer) {
+          this.checkAutoScroll(e, this.scrollContainer, { allowOutsideViewport: true });
+        } else {
+          clearDropAnchor(this.activeTable);
+        }
+        return;
+      }
+
+      e.preventDefault();
+      this.updateDropIndicatorFromPointer(this.activeTable, e.clientX, e.clientY, { allowOutsideViewport: true });
+
+      if (this.scrollContainer) {
+        this.checkAutoScroll(e, this.scrollContainer, { allowOutsideViewport: true });
+      }
+    },
+
+    handleDocumentDrop(e) {
+      if (!this.activeTable || !isSupportedTableDrag(e) || this.activeTable.contains(e.target)) {
+        return;
+      }
+
+      const table = this.activeTable;
+      if (!isPointerNearDropViewport(table, e.clientX, e.clientY)) {
+        clearDropAnchor(table);
+        this.stopAutoScroll();
+        this.activeTable = null;
+        return;
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const best = getClosestVisibleHeaderByX(table, e.clientX, getDragScrollContainer(table));
+      if (!best) {
+        clearDropAnchor(table);
+        this.stopAutoScroll();
+        this.activeTable = null;
+        return;
+      }
+
+      this.handleDrop(e, best, table);
     },
 
     handleDrop(e, th, table) {
@@ -780,6 +858,9 @@ let DragDropInteractions;
       columnResizeController.stop();
     }
   });
+
+  document.addEventListener('dragover', event => dragDropManager.handleDocumentDragOver(event), true);
+  document.addEventListener('drop', event => dragDropManager.handleDocumentDrop(event), true);
 
   document.addEventListener('pointerdown', event => {
     if (!isResizeModeActive() || columnResizeController.hasActiveSession()) {
