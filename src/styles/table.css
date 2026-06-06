@@ -813,7 +813,8 @@ th.th-drag-over {
 }
 
 .dragging-scroll-lock {
-  overflow-x: hidden !important;
+  overflow-x: auto !important;
+  scrollbar-gutter: stable;
 }
 
 body.dragging-cursor,

@@ -156,6 +156,43 @@ function buildDisplayedFieldMove(displayedFields, fromIndex, toIndex, tableData)
   });
 }
 
+function buildSplitModeDisplayedFields(displayedFields, tableData, splitActive) {
+  const fields = Array.isArray(displayedFields) ? displayedFields : [];
+  const nextFields = [];
+  const seen = new Set();
+  const columnMap = getColumnMap(tableData);
+  const splitGroups = getSplitColumnGroups(tableData);
+
+  fields
+    .map(field => String(field || '').trim())
+    .filter(Boolean)
+    .forEach(field => {
+      const parentField = getSplitFieldParentName(field, tableData);
+      if (splitActive) {
+        const group = splitGroups.get(parentField);
+        if (Array.isArray(group) && group.length) {
+          group.forEach(childField => appendField(nextFields, seen, childField, columnMap));
+          return;
+        }
+        appendField(nextFields, seen, field, columnMap);
+        return;
+      }
+
+      appendField(nextFields, seen, parentField, columnMap);
+    });
+
+  return nextFields;
+}
+
+function appendField(fields, seen, field, columnMap) {
+  const normalizedField = String(field || '').trim();
+  if (!normalizedField || seen.has(normalizedField) || !columnMap.has(normalizedField)) {
+    return;
+  }
+  seen.add(normalizedField);
+  fields.push(normalizedField);
+}
+
 function buildSingleDisplayedFieldMove(fields, fromIndex, toIndex) {
   if (fromIndex === toIndex) {
     return createMoveResult(fields);
@@ -200,6 +237,7 @@ function areStringArraysEqual(left, right) {
 
 export {
   buildDisplayedFieldMove,
+  buildSplitModeDisplayedFields,
   getPostFilterActionFieldsForTable,
   getSplitFieldColumnIndexes,
   getSplitFieldGroupIndices,
