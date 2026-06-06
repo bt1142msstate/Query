@@ -1,4 +1,6 @@
 const LAZY_EXPANDED_ROW_MARKER = Symbol('lazyExpandedRow');
+const LAZY_EXPANDED_ROW_SOURCE = Symbol('lazyExpandedRowSource');
+const LAZY_EXPANDED_ROWS_SOURCE = Symbol('lazyExpandedRowsSource');
 
 export function buildExpandedMultiValueTable(rawTableData, options = {}) {
   if (!rawTableData || !Array.isArray(rawTableData.headers) || !Array.isArray(rawTableData.rows)) {
@@ -19,7 +21,8 @@ export function buildExpandedMultiValueTable(rawTableData, options = {}) {
         : rawTableData.rows.map(row => Array.isArray(row) ? [...row] : row),
       columnMap: new Map(sourceColumnMap),
       splitColumnGroups: new Map(),
-      splitColumnParent: new Map()
+      splitColumnParent: new Map(),
+      splitColumnSourceMap: new Map()
     };
   }
 
@@ -27,6 +30,7 @@ export function buildExpandedMultiValueTable(rawTableData, options = {}) {
   const columnPlan = [];
   const splitColumnGroups = new Map();
   const splitColumnParent = new Map();
+  const splitColumnSourceMap = new Map();
   rawTableData.headers.forEach(field => {
     const max = multiMax.get(field);
     const sourceIndex = sourceColumnMap.get(field);
@@ -44,6 +48,7 @@ export function buildExpandedMultiValueTable(rawTableData, options = {}) {
         });
       }
       splitColumnGroups.set(field, groupHeaders);
+      splitColumnSourceMap.set(field, sourceIndex);
       return;
     }
 
@@ -79,15 +84,21 @@ export function buildExpandedMultiValueTable(rawTableData, options = {}) {
     rows,
     columnMap,
     splitColumnGroups,
-    splitColumnParent
+    splitColumnParent,
+    splitColumnSourceMap
   };
 }
 
 function createLazyExpandedRows(sourceRows, columnPlan) {
   const target = new Array(sourceRows.length);
+  let hasIndexedOverrides = false;
 
   return new Proxy(target, {
     get(rowTarget, prop, receiver) {
+      if (prop === LAZY_EXPANDED_ROWS_SOURCE) {
+        return hasIndexedOverrides ? null : sourceRows;
+      }
+
       const index = getArrayIndex(prop, sourceRows.length);
       if (index !== -1) {
         if (Object.prototype.hasOwnProperty.call(rowTarget, prop)) {
@@ -99,12 +110,20 @@ function createLazyExpandedRows(sourceRows, columnPlan) {
       return Reflect.get(rowTarget, prop, receiver);
     },
     has(rowTarget, prop) {
-      return getArrayIndex(prop, sourceRows.length) !== -1 || Reflect.has(rowTarget, prop);
+      return prop === LAZY_EXPANDED_ROWS_SOURCE
+        || getArrayIndex(prop, sourceRows.length) !== -1
+        || Reflect.has(rowTarget, prop);
     },
     set(rowTarget, prop, value, receiver) {
+      if (getArrayIndex(prop, sourceRows.length) !== -1) {
+        hasIndexedOverrides = true;
+      }
       return Reflect.set(rowTarget, prop, value, receiver);
     },
     deleteProperty(rowTarget, prop) {
+      if (getArrayIndex(prop, sourceRows.length) !== -1) {
+        hasIndexedOverrides = true;
+      }
       return Reflect.deleteProperty(rowTarget, prop);
     }
   });
@@ -118,6 +137,9 @@ function createLazyExpandedRow(sourceRow, columnPlan) {
     get(rowTarget, prop, receiver) {
       if (prop === LAZY_EXPANDED_ROW_MARKER) {
         return true;
+      }
+      if (prop === LAZY_EXPANDED_ROW_SOURCE) {
+        return sourceRow;
       }
 
       const index = getArrayIndex(prop, columnPlan.length);
@@ -142,6 +164,7 @@ function createLazyExpandedRow(sourceRow, columnPlan) {
     },
     has(rowTarget, prop) {
       return prop === LAZY_EXPANDED_ROW_MARKER
+        || prop === LAZY_EXPANDED_ROW_SOURCE
         || getArrayIndex(prop, columnPlan.length) !== -1
         || Reflect.has(rowTarget, prop);
     },
@@ -233,7 +256,8 @@ function createEmptyTableData() {
     rows: [],
     columnMap: new Map(),
     splitColumnGroups: new Map(),
-    splitColumnParent: new Map()
+    splitColumnParent: new Map(),
+    splitColumnSourceMap: new Map()
   };
 }
 
@@ -243,4 +267,16 @@ export function isLazyExpandedRow(row) {
 
 export function materializeExpandedRow(row) {
   return isLazyExpandedRow(row) ? Array.from(row) : row;
+}
+
+export function getLazyExpandedRowSourceValue(row, sourceIndex) {
+  const sourceRow = row?.[LAZY_EXPANDED_ROW_SOURCE];
+  return Array.isArray(sourceRow) && sourceIndex !== undefined
+    ? sourceRow[sourceIndex] ?? ''
+    : undefined;
+}
+
+export function getLazyExpandedRowsSourceRows(rows) {
+  const sourceRows = rows?.[LAZY_EXPANDED_ROWS_SOURCE];
+  return Array.isArray(sourceRows) ? sourceRows : null;
 }

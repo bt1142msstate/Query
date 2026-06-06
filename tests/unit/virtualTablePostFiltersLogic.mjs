@@ -305,6 +305,25 @@ test('virtual table post filters', async () => {
     }
   ]);
 
+  const lazySplitMultiValueData = buildExpandedMultiValueTable(compactMultiValueData, { lazyRows: true });
+  baseViewData = lazySplitMultiValueData;
+  displayedFields = baseViewData.headers;
+  controller.invalidateValueOptionsCache();
+  controller.assign({
+    'Public Note': {
+      filters: [{ cond: 'contains', val: 'second' }]
+    }
+  });
+  assert.deepEqual(controller.getFilteredRows().map(row => row[0]), ['Alpha']);
+
+  lazySplitMultiValueData.rows.sort((left, right) => String(right[0]).localeCompare(String(left[0])));
+  controller.assign({
+    'Public Note': {
+      filters: [{ cond: 'contains', val: 'first' }]
+    }
+  });
+  assert.deepEqual(controller.getFilteredRows().map(row => row[0]), ['Beta', 'Alpha']);
+
   controller.assign({
     'Public Note 2': {
       filters: [{ cond: 'equals', val: 'Second note' }]

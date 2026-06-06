@@ -1,24 +1,24 @@
 import {
   POST_FILTER_BLANK_SENTINEL,
   clonePostFilterEntry,
-  compareScalarCondition,
   getComparableRowValues,
   getPostFilterEntryValues,
   getRawCellValueParts,
   isBlankCellValue,
   isBlankPostFilterValue,
-  isMultiValueCellValue,
   normalizeNoValuePostFilterOperator,
   parseComparableDateValue,
-  parseNumericValue,
-  rowMatchesDoesNotEqualSelection,
-  rowMatchesEqualsSelection
+  parseNumericValue
 } from '../post-filters/postFilterLogic.js';
 import {
   getSplitFieldColumnIndexes,
   getSplitFieldParentName,
   getSplitFieldValue
 } from './splitColumnFields.js';
+import {
+  getLazyExpandedRowSourceValue,
+  getLazyExpandedRowsSourceRows
+} from './splitColumnExpansion.js';
 
 export function createVirtualTablePostFilterController({
   getBaseViewData,
@@ -128,36 +128,36 @@ export function createVirtualTablePostFilterController({
       return baseViewData.rows;
     }
 
-    return baseViewData.rows
-      .filter(row => activeEntries.every(([field, data]) => doesRowMatchFieldFilters(row, field, data)));
+    const groups = compilePostFilterGroups(activeEntries, baseViewData, getFieldType);
+    if (!groups.length) {
+      return baseViewData.rows;
+    }
+
+    const rows = baseViewData.rows;
+    const sourceRows = getLazyExpandedRowsSourceRows(rows);
+    if (sourceRows && groups.every(group => group.sourceIndex !== undefined)) {
+      return getFilteredRowsFromSourceRows(rows, sourceRows, groups);
+    }
+
+    const filteredRows = [];
+    for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
+      const row = rows[rowIndex];
+      let matchesAllGroups = true;
+      for (let groupIndex = 0; groupIndex < groups.length; groupIndex += 1) {
+        if (!doesRowMatchCompiledGroup(row, groups[groupIndex])) {
+          matchesAllGroups = false;
+          break;
+        }
+      }
+      if (matchesAllGroups) {
+        filteredRows.push(row);
+      }
+    }
+    return filteredRows;
   }
 
   function hasActiveFilters() {
     return Object.values(state).some(data => Array.isArray(data?.filters) && data.filters.length > 0);
-  }
-
-  function doesRowMatchFieldFilters(row, field, data) {
-    const filters = Array.isArray(data?.filters) ? data.filters : [];
-    if (!filters.length) {
-      return true;
-    }
-
-    if (normalizeLogic(data?.logic) === 'any') {
-      return filters.some(filter => doesRowMatchFilter(row, field, filter));
-    }
-
-    return filters.every(filter => doesRowMatchFilter(row, field, filter));
-  }
-
-  function doesRowMatchFilter(row, field, filter) {
-    const baseViewData = getBaseViewData();
-    const columnIndexes = getSplitFieldColumnIndexes(field, baseViewData);
-    if (!columnIndexes.length) {
-      return true;
-    }
-
-    const type = getFieldType(getCanonicalFieldName(field, baseViewData));
-    return doesCellMatchPostFilter(getSplitFieldValue(row, columnIndexes), type, filter);
   }
 
   return {
@@ -173,55 +173,450 @@ export function createVirtualTablePostFilterController({
   };
 }
 
-export function doesCellMatchPostFilter(rawCellValue, type, filter) {
+function compilePostFilterGroups(activeEntries, baseViewData, getFieldType) {
+  const groups = [];
+  activeEntries.forEach(([field, data]) => {
+    const columnIndexes = getSplitFieldColumnIndexes(field, baseViewData);
+    if (!columnIndexes.length) {
+      return;
+    }
+
+    const type = getFieldType(getCanonicalFieldName(field, baseViewData));
+    const predicates = (Array.isArray(data?.filters) ? data.filters : [])
+      .map(filter => compilePostFilterPredicate(filter, type))
+      .filter(Boolean);
+    if (!predicates.length) {
+      return;
+    }
+
+    const splitSourceIndex = getSplitFieldSourceIndex(field, baseViewData);
+    groups.push({
+      any: normalizeLogic(data?.logic) === 'any',
+      columnIndexes,
+      predicates,
+      sourceIndex: splitSourceIndex,
+      readValue: splitSourceIndex !== undefined
+        ? row => getLazyExpandedRowSourceValue(row, splitSourceIndex) ?? getSplitFieldValue(row, columnIndexes)
+        : (columnIndexes.length === 1
+        ? row => row[columnIndexes[0]] ?? ''
+        : row => getSplitFieldValue(row, columnIndexes))
+    });
+  });
+  return groups;
+}
+
+function getFilteredRowsFromSourceRows(rows, sourceRows, groups) {
+  const filteredRows = [];
+  for (let rowIndex = 0; rowIndex < sourceRows.length; rowIndex += 1) {
+    const sourceRow = sourceRows[rowIndex];
+    let matchesAllGroups = true;
+    for (let groupIndex = 0; groupIndex < groups.length; groupIndex += 1) {
+      const group = groups[groupIndex];
+      const rawCellValue = Array.isArray(sourceRow) ? sourceRow[group.sourceIndex] ?? '' : '';
+      if (!doesRawCellValueMatchCompiledGroup(rawCellValue, group)) {
+        matchesAllGroups = false;
+        break;
+      }
+    }
+    if (matchesAllGroups) {
+      filteredRows.push(rows[rowIndex]);
+    }
+  }
+  return filteredRows;
+}
+
+function doesRowMatchCompiledGroup(row, group) {
+  return doesRawCellValueMatchCompiledGroup(group.readValue(row), group);
+}
+
+function doesRawCellValueMatchCompiledGroup(rawCellValue, group) {
+  if (group.any) {
+    for (let index = 0; index < group.predicates.length; index += 1) {
+      if (group.predicates[index](rawCellValue)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  for (let index = 0; index < group.predicates.length; index += 1) {
+    if (!group.predicates[index](rawCellValue)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function compilePostFilterPredicate(filter, type) {
   const cond = normalizeNoValuePostFilterOperator(filter?.cond);
   const filterValues = getPostFilterEntryValues(filter);
   const filterValue = filterValues[0] || '';
 
   if (cond === 'is_blank') {
-    return isBlankCellValue(rawCellValue);
+    return isBlankCellValueFast;
   }
 
   if (cond === 'has_value') {
-    return !isBlankCellValue(rawCellValue);
+    return rawCellValue => !isBlankCellValueFast(rawCellValue);
   }
 
   if (cond === 'has_multiple_values') {
-    return isMultiValueCellValue(rawCellValue);
+    return hasMultipleCellValues;
   }
 
   if (cond === 'does_not_have_multiple_values') {
-    return !isMultiValueCellValue(rawCellValue);
+    return rawCellValue => !hasMultipleCellValues(rawCellValue);
   }
 
   if (cond === 'equals' && filterValues.length > 1) {
-    return rowMatchesEqualsSelection(rawCellValue, type, filterValues);
+    return compileSelectionPredicate(filterValues, type, true);
   }
 
   if (cond === 'does_not_equal' && filterValues.length > 1) {
-    return rowMatchesDoesNotEqualSelection(rawCellValue, type, filterValues);
+    return compileSelectionPredicate(filterValues, type, false);
   }
 
   if (cond === 'equals' && isBlankPostFilterValue(filterValue)) {
-    return isBlankCellValue(rawCellValue);
+    return isBlankCellValueFast;
   }
 
   if (cond === 'does_not_equal' && isBlankPostFilterValue(filterValue)) {
-    return !isBlankCellValue(rawCellValue);
+    return rawCellValue => !isBlankCellValueFast(rawCellValue);
   }
-
-  const rowValues = getComparableRowValues(rawCellValue, type);
 
   if (cond === 'between') {
-    return doesCellMatchBetweenFilter(rowValues, filterValue, type);
+    return compileBetweenPredicate(filterValue, type);
   }
 
-  const comparableExpected = getComparableExpectedValue(filterValue, type);
+  return compileScalarPredicate(cond, filterValue, type);
+}
+
+function compileSelectionPredicate(filterValues, type, equalsMode) {
+  const includesBlank = filterValues.some(isBlankPostFilterValue);
+  if (type === 'number' || type === 'money' || type === 'date') {
+    const expectedValues = new Set(filterValues
+      .filter(value => !isBlankPostFilterValue(value))
+      .map(value => getComparableExpectedValueFast(value, type))
+      .filter(value => !Number.isNaN(value)));
+    return rawCellValue => {
+      if (isBlankCellValueFast(rawCellValue)) {
+        return equalsMode ? includesBlank : !includesBlank;
+      }
+      const hasMatch = someComparableCellValue(rawCellValue, type, actual => expectedValues.has(actual));
+      return equalsMode ? hasMatch : !hasMatch;
+    };
+  }
+
+  const expectedValues = new Set(
+    filterValues
+      .filter(value => !isBlankPostFilterValue(value))
+      .map(value => String(value || '').trim().toLowerCase())
+  );
+  return rawCellValue => {
+    if (isBlankCellValueFast(rawCellValue)) {
+      return equalsMode ? includesBlank : !includesBlank;
+    }
+    const hasMatch = someTextCellValue(rawCellValue, actual => expectedValues.has(actual));
+    return equalsMode ? hasMatch : !hasMatch;
+  };
+}
+
+function compileBetweenPredicate(filterValue, type) {
+  const [leftRaw, rightRaw] = String(filterValue || '').split('|');
+  const left = getComparableExpectedValueFast(leftRaw, type);
+  const right = getComparableExpectedValueFast(rightRaw, type);
+
+  if (Number.isNaN(left) || Number.isNaN(right)) {
+    return () => false;
+  }
+
+  const minValue = Math.min(left, right);
+  const maxValue = Math.max(left, right);
+  return rawCellValue => someComparableCellValue(rawCellValue, type, value => value >= minValue && value <= maxValue);
+}
+
+function compileScalarPredicate(cond, filterValue, type) {
+  if (type === 'number' || type === 'money' || type === 'date') {
+    const expected = getComparableExpectedValueFast(filterValue, type);
+    return rawCellValue => {
+      if (cond === 'does_not_equal') {
+        return everyComparableCellValue(rawCellValue, type, value => compareComparableValue(value, expected, cond));
+      }
+      return someComparableCellValue(rawCellValue, type, value => compareComparableValue(value, expected, cond));
+    };
+  }
+
+  const expected = String(filterValue || '').trim().toLowerCase();
   if (cond === 'does_not_equal') {
-    return rowValues.every(value => compareScalarCondition(value, comparableExpected, cond, type));
+    return rawCellValue => everyTextCellValue(rawCellValue, value => value !== expected);
+  }
+  if (cond === 'starts' || cond === 'starts_with') {
+    return rawCellValue => someTextCellValue(rawCellValue, value => value.startsWith(expected));
+  }
+  if (cond === 'contains') {
+    return rawCellValue => someTextCellValue(rawCellValue, value => value.includes(expected));
+  }
+  if (cond === 'equals') {
+    return rawCellValue => someTextCellValue(rawCellValue, value => value === expected);
+  }
+  return () => false;
+}
+
+export function doesCellMatchPostFilter(rawCellValue, type, filter) {
+  const predicate = compilePostFilterPredicate(filter, type);
+  return predicate ? predicate(rawCellValue) : true;
+}
+
+function isBlankCellValueFast(rawValue) {
+  if (rawValue === undefined || rawValue === null) {
+    return true;
   }
 
-  return rowValues.some(value => compareScalarCondition(value, comparableExpected, cond, type));
+  if (typeof rawValue !== 'string') {
+    return false;
+  }
+
+  for (let index = 0; index < rawValue.length; index += 1) {
+    const code = rawValue.charCodeAt(index);
+    if (code !== 31 && !isFastWhitespaceCode(code)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function isFastWhitespaceCode(code) {
+  return code === 32 || (code >= 9 && code <= 13) || (code > 127 && String.fromCharCode(code).trim() === '');
+}
+
+function hasMultipleCellValues(rawValue) {
+  if (typeof rawValue !== 'string' || !rawValue.includes('\x1F')) {
+    return false;
+  }
+
+  let nonBlankPartCount = 0;
+  let hasContent = false;
+  for (let index = 0; index <= rawValue.length; index += 1) {
+    const code = index < rawValue.length ? rawValue.charCodeAt(index) : 31;
+    if (code === 31) {
+      if (hasContent) {
+        nonBlankPartCount += 1;
+        if (nonBlankPartCount > 1) {
+          return true;
+        }
+      }
+      hasContent = false;
+      continue;
+    }
+
+    if (!isFastWhitespaceCode(code)) {
+      hasContent = true;
+    }
+  }
+  return false;
+}
+
+function someTextCellValue(rawValue, predicate) {
+  if (rawValue === undefined || rawValue === null) {
+    return predicate('');
+  }
+
+  const text = String(rawValue);
+  if (!text.includes('\x1F')) {
+    return predicate(text.trim().toLowerCase());
+  }
+
+  let foundPart = false;
+  let start = 0;
+  while (start <= text.length) {
+    const end = text.indexOf('\x1F', start);
+    const part = text.slice(start, end === -1 ? text.length : end).trim();
+    if (part) {
+      foundPart = true;
+      if (predicate(part.toLowerCase())) {
+        return true;
+      }
+    }
+    if (end === -1) {
+      break;
+    }
+    start = end + 1;
+  }
+  return foundPart ? false : predicate('');
+}
+
+function everyTextCellValue(rawValue, predicate) {
+  if (rawValue === undefined || rawValue === null) {
+    return predicate('');
+  }
+
+  const text = String(rawValue);
+  if (!text.includes('\x1F')) {
+    return predicate(text.trim().toLowerCase());
+  }
+
+  let foundPart = false;
+  let start = 0;
+  while (start <= text.length) {
+    const end = text.indexOf('\x1F', start);
+    const part = text.slice(start, end === -1 ? text.length : end).trim();
+    if (part) {
+      foundPart = true;
+      if (!predicate(part.toLowerCase())) {
+        return false;
+      }
+    }
+    if (end === -1) {
+      break;
+    }
+    start = end + 1;
+  }
+  return foundPart ? true : predicate('');
+}
+
+function someComparableCellValue(rawValue, type, predicate) {
+  if (isBlankCellValueFast(rawValue)) {
+    return predicate(Number.NaN);
+  }
+
+  if (typeof rawValue !== 'string' || !rawValue.includes('\x1F')) {
+    return predicate(getComparableExpectedValueFast(rawValue, type));
+  }
+
+  let start = 0;
+  while (start <= rawValue.length) {
+    const end = rawValue.indexOf('\x1F', start);
+    const part = rawValue.slice(start, end === -1 ? rawValue.length : end).trim();
+    if (part && predicate(getComparableExpectedValueFast(part, type))) {
+      return true;
+    }
+    if (end === -1) {
+      break;
+    }
+    start = end + 1;
+  }
+  return false;
+}
+
+function everyComparableCellValue(rawValue, type, predicate) {
+  if (isBlankCellValueFast(rawValue)) {
+    return predicate(Number.NaN);
+  }
+
+  if (typeof rawValue !== 'string' || !rawValue.includes('\x1F')) {
+    return predicate(getComparableExpectedValueFast(rawValue, type));
+  }
+
+  let foundPart = false;
+  let start = 0;
+  while (start <= rawValue.length) {
+    const end = rawValue.indexOf('\x1F', start);
+    const part = rawValue.slice(start, end === -1 ? rawValue.length : end).trim();
+    if (part) {
+      foundPart = true;
+      if (!predicate(getComparableExpectedValueFast(part, type))) {
+        return false;
+      }
+    }
+    if (end === -1) {
+      break;
+    }
+    start = end + 1;
+  }
+  return foundPart ? true : predicate(Number.NaN);
+}
+
+function getComparableExpectedValueFast(value, type) {
+  if (type === 'number' || type === 'money') {
+    return parseNumericValueFast(value, type);
+  }
+
+  if (type === 'date') {
+    return parseDateComparableFast(value);
+  }
+
+  return String(value || '').trim().toLowerCase();
+}
+
+function parseNumericValueFast(value, type) {
+  if (type === 'money') {
+    return parseNumericValue(value, type);
+  }
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  const text = String(value || '').trim();
+  if (!text) {
+    return Number.NaN;
+  }
+  return text.includes(',') ? parseNumericValue(text, type) : Number.parseFloat(text);
+}
+
+function parseDateComparableFast(value) {
+  const text = String(value || '').trim();
+  if (!text) {
+    return Number.NaN;
+  }
+
+  if (/^\d{8}(?:\d{4}|\d{6})?$/u.test(text)) {
+    const year = Number(text.slice(0, 4));
+    const month = Number(text.slice(4, 6));
+    const day = Number(text.slice(6, 8));
+    if (isValidDateParts(year, month, day)) {
+      return year * 10000 + month * 100 + day;
+    }
+  }
+
+  const comparable = parseComparableDateValue(text);
+  if (Number.isNaN(comparable)) {
+    return Number.NaN;
+  }
+
+  const date = new Date(comparable);
+  return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
+}
+
+function isValidDateParts(year, month, day) {
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+    return false;
+  }
+  if (month < 1 || month > 12 || day < 1) {
+    return false;
+  }
+  const monthLengths = [31, isLeapYear(year) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return day <= monthLengths[month - 1];
+}
+
+function isLeapYear(year) {
+  return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+}
+
+function compareComparableValue(actual, expected, cond) {
+  if (Number.isNaN(actual) || Number.isNaN(expected)) {
+    return false;
+  }
+
+  switch (cond) {
+    case 'greater':
+    case 'after':
+      return actual > expected;
+    case 'less':
+    case 'before':
+      return actual < expected;
+    case 'greater_or_equal':
+    case 'on_or_after':
+      return actual >= expected;
+    case 'less_or_equal':
+    case 'on_or_before':
+      return actual <= expected;
+    case 'equals':
+      return actual === expected;
+    case 'does_not_equal':
+      return actual !== expected;
+    default:
+      return false;
+  }
 }
 
 function normalizeLogic(logic) {
@@ -306,28 +701,10 @@ function getCanonicalFieldName(field, baseViewData) {
   return getSplitFieldParentName(field, baseViewData);
 }
 
-function doesCellMatchBetweenFilter(rowValues, filterValue, type) {
-  const [leftRaw, rightRaw] = filterValue.split('|');
-  const left = getComparableExpectedValue(leftRaw, type);
-  const right = getComparableExpectedValue(rightRaw, type);
-
-  if (Number.isNaN(left) || Number.isNaN(right)) {
-    return false;
-  }
-
-  const minValue = Math.min(left, right);
-  const maxValue = Math.max(left, right);
-  return rowValues.some(value => !Number.isNaN(value) && value >= minValue && value <= maxValue);
-}
-
-function getComparableExpectedValue(value, type) {
-  if (type === 'number' || type === 'money') {
-    return parseNumericValue(value, type);
-  }
-
-  if (type === 'date') {
-    return parseComparableDateValue(value);
-  }
-
-  return value;
+function getSplitFieldSourceIndex(field, baseViewData) {
+  const normalizedField = String(field || '').trim();
+  const sourceMap = baseViewData?.splitColumnSourceMap instanceof Map
+    ? baseViewData.splitColumnSourceMap
+    : new Map();
+  return sourceMap.get(normalizedField);
 }

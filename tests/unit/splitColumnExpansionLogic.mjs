@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import {
   buildExpandedMultiValueTable,
+  getLazyExpandedRowSourceValue,
+  getLazyExpandedRowsSourceRows,
   isLazyExpandedRow,
   materializeExpandedRow
 } from '../../src/features/table/virtual-table/splitColumnExpansion.js';
@@ -75,14 +77,20 @@ test('split column expansion', async () => {
     ['MARC 590 3', 'MARC 590'],
     ['MARC 590 4', 'MARC 590']
   ]);
+  assert.deepEqual(Array.from(expanded.splitColumnSourceMap.entries()), [
+    ['Public Note', 1],
+    ['MARC 590', 2]
+  ]);
 
   const lazyExpanded = buildExpandedMultiValueTable(rawTableData, { lazyRows: true });
   assert.deepEqual(lazyExpanded.headers, expanded.headers);
+  assert.equal(getLazyExpandedRowsSourceRows(lazyExpanded.rows), rawTableData.rows);
   assert.equal(Array.isArray(lazyExpanded.rows[0]), true);
   assert.equal(isLazyExpandedRow(lazyExpanded.rows[0]), true);
   assert.equal(lazyExpanded.rows[0].length, expanded.headers.length);
   assert.equal(lazyExpanded.rows[0][1], 'First public note');
   assert.equal(lazyExpanded.rows[0][6], '$a DSU-180442');
+  assert.equal(getLazyExpandedRowSourceValue(lazyExpanded.rows[0], 1), rawTableData.rows[0][1]);
   assert.deepEqual([...lazyExpanded.rows[0]], expanded.rows[0]);
   assert.deepEqual(lazyExpanded.rows.map(row => row[0]), ['One', 'Two', 'Three']);
   assert.deepEqual(lazyExpanded.rows.filter(row => row[0] !== 'Two').map(row => row[0]), ['One', 'Three']);
@@ -92,6 +100,7 @@ test('split column expansion', async () => {
 
   const sortableLazyExpanded = buildExpandedMultiValueTable(rawTableData, { lazyRows: true });
   sortableLazyExpanded.rows.sort((left, right) => String(left[0]).localeCompare(String(right[0]), undefined, { numeric: true }));
+  assert.equal(getLazyExpandedRowsSourceRows(sortableLazyExpanded.rows), null);
   assert.deepEqual(sortableLazyExpanded.rows.map(row => row[0]), ['One', 'Three', 'Two']);
   assert.equal(sortableLazyExpanded.rows[0][1], 'First public note');
 
