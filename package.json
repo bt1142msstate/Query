@@ -1,6 +1,7 @@
 {
   "type": "module",
   "scripts": {
+    "benchmark:split-columns": "node scripts/benchmarkSplitColumns.mjs",
     "cache:bust": "node scripts/updateCacheBusting.mjs",
     "cache:bust:check": "node scripts/updateCacheBusting.mjs --check",
     "lint": "eslint \"**/*.{js,mjs,cjs}\"",
