@@ -59,6 +59,18 @@ test('split column expansion', async () => {
     ['MARC 590 4', 6],
     ['Branch', 7]
   ]);
+  assert.deepEqual(Array.from(expanded.splitColumnGroups.entries()), [
+    ['Public Note', ['Public Note 1', 'Public Note 2']],
+    ['MARC 590', ['MARC 590 1', 'MARC 590 2', 'MARC 590 3', 'MARC 590 4']]
+  ]);
+  assert.deepEqual(Array.from(expanded.splitColumnParent.entries()), [
+    ['Public Note 1', 'Public Note'],
+    ['Public Note 2', 'Public Note'],
+    ['MARC 590 1', 'MARC 590'],
+    ['MARC 590 2', 'MARC 590'],
+    ['MARC 590 3', 'MARC 590'],
+    ['MARC 590 4', 'MARC 590']
+  ]);
 
   const unsplit = buildExpandedMultiValueTable({
     headers: ['Title'],

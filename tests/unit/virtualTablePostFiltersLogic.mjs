@@ -29,9 +29,10 @@ test('virtual table post filters', async () => {
     createVirtualTablePostFilterController,
     doesCellMatchPostFilter
   } = await import('../../src/features/table/virtual-table/virtualTablePostFilters.js');
+  const { buildExpandedMultiValueTable } = await import('../../src/features/table/virtual-table/splitColumnExpansion.js');
 
   let displayedFields = ['Title', 'Bill Count', 'Branch'];
-  const baseViewData = {
+  let baseViewData = {
     headers: ['Title', 'Bill Count', 'Branch'],
     rows: [
       ['Alpha Guide', '3', 'Main'],
@@ -236,4 +237,108 @@ test('virtual table post filters', async () => {
   assert.equal(doesCellMatchPostFilter('3\x1F10', 'number', { cond: 'does_not_equal', val: '3' }), false);
   assert.equal(doesCellMatchPostFilter('20240101\x1F20250101', 'date', { cond: 'after', val: '20241231' }), true);
   assert.equal(doesCellMatchPostFilter('20240101\x1F20250101', 'date', { cond: 'does_not_equal', val: '20250101' }), false);
+
+  const compactMultiValueData = {
+    headers: ['Title', 'Public Note'],
+    rows: [
+      ['Alpha', 'First note\x1FSecond note'],
+      ['Beta', 'First note'],
+      ['Gamma', 'Other note\x1FThird note']
+    ],
+    columnMap: new Map([
+      ['Title', 0],
+      ['Public Note', 1]
+    ])
+  };
+
+  baseViewData = compactMultiValueData;
+  displayedFields = compactMultiValueData.headers;
+  controller.invalidateValueOptionsCache();
+  controller.assign({
+    'Public Note': {
+      filters: [{ cond: 'contains', val: 'second' }]
+    }
+  });
+  assert.deepEqual(controller.getFilteredRows(), [
+    ['Alpha', 'First note\x1FSecond note']
+  ]);
+
+  const splitMultiValueData = buildExpandedMultiValueTable(compactMultiValueData);
+  baseViewData = splitMultiValueData;
+  displayedFields = baseViewData.headers;
+  controller.invalidateValueOptionsCache();
+  controller.sanitizeForCurrentView();
+  assert.deepEqual(controller.cloneSnapshot(), {
+    'Public Note': {
+      logic: 'all',
+      filters: [{ cond: 'contains', val: 'second' }]
+    }
+  });
+  assert.deepEqual(controller.getFilteredRows(), [
+    ['Alpha', 'First note', 'Second note']
+  ]);
+  assert.deepEqual(controller.getFieldOptions('Public Note'), [
+    {
+      value: 'First note',
+      label: 'First note',
+      count: 2,
+      isBlank: false
+    },
+    {
+      value: 'Other note',
+      label: 'Other note',
+      count: 1,
+      isBlank: false
+    },
+    {
+      value: 'Second note',
+      label: 'Second note',
+      count: 1,
+      isBlank: false
+    },
+    {
+      value: 'Third note',
+      label: 'Third note',
+      count: 1,
+      isBlank: false
+    }
+  ]);
+
+  controller.assign({
+    'Public Note 2': {
+      filters: [{ cond: 'equals', val: 'Second note' }]
+    }
+  });
+  assert.deepEqual(controller.getFilteredRows(), [
+    ['Alpha', 'First note', 'Second note']
+  ]);
+
+  baseViewData = compactMultiValueData;
+  displayedFields = compactMultiValueData.headers;
+  controller.invalidateValueOptionsCache();
+  controller.sanitizeForCurrentView();
+  assert.deepEqual(controller.cloneSnapshot(), {});
+
+  controller.assign({
+    'Public Note 2': {
+      filters: [{ cond: 'equals', val: 'Second note' }]
+    }
+  });
+  baseViewData = {
+    ...compactMultiValueData,
+    splitColumnGroups: splitMultiValueData.splitColumnGroups,
+    splitColumnParent: splitMultiValueData.splitColumnParent
+  };
+  displayedFields = compactMultiValueData.headers;
+  controller.invalidateValueOptionsCache();
+  controller.sanitizeForCurrentView();
+  assert.deepEqual(controller.cloneSnapshot(), {
+    'Public Note 2': {
+      logic: 'all',
+      filters: [{ cond: 'equals', val: 'Second note' }]
+    }
+  });
+  assert.deepEqual(controller.getFilteredRows(), [
+    ['Alpha', 'First note\x1FSecond note']
+  ]);
 });

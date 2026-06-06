@@ -759,7 +759,11 @@ let PostFilterSystem;
       refreshOverlay();
     });
 
-    QueryStateSubscriptions.subscribe(() => {
+    QueryStateSubscriptions.subscribe(event => {
+      if (event?.meta?.source === 'VirtualTable.setSplitMode') {
+        return;
+      }
+
       services.replacePostFilters(getPostFilterSnapshot(), {
         refreshView: true,
         notify: true,
