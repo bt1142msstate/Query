@@ -1596,6 +1596,36 @@ async function seedLargeExportResults(page) {
   await page.locator('#example-table').waitFor({ state: 'attached', timeout: 5000 });
 }
 
+async function seedWideDragResults(page) {
+  await page.evaluate(async () => {
+    const { appServices } = await import('./src/core/appServices.js');
+    const { QueryChangeManager } = await import('./src/core/queryState.js');
+    const { QueryTableView } = await import('./src/ui/queryTableView.js');
+    const { QueryUI } = await import('./src/ui/queryUI.js');
+    const headers = Array.from({ length: 16 }, (_, index) => `Drag Column ${index + 1}`);
+    const rows = Array.from({ length: 8 }, (_, rowIndex) => (
+      headers.map((field, columnIndex) => `${field} value ${rowIndex + 1}-${columnIndex + 1}`)
+    ));
+    const columnMap = new Map(headers.map((field, index) => [field, index]));
+
+    QueryChangeManager.replaceDisplayedFields(headers, { source: 'BrowserSmoke.seedWideDragResults' });
+    QueryChangeManager.setLifecycleState(
+      { hasLoadedResultSet: true, queryRunning: false },
+      { source: 'BrowserSmoke.seedWideDragResults', silent: true }
+    );
+    appServices.setVirtualTableData({ headers, rows, columnMap });
+    headers.forEach(field => appServices.setManualColumnWidth?.(field, 180));
+    await QueryTableView.showExampleTable(headers, { syncQueryState: false });
+    appServices.renderVirtualTable();
+    QueryUI.updateButtonStates();
+  });
+  await page.locator('#example-table').waitFor({ state: 'attached', timeout: 5000 });
+  await page.waitForFunction(() => {
+    const container = document.querySelector('#table-container');
+    return Boolean(container && container.scrollWidth > container.clientWidth + 400);
+  }, null, { timeout: 5000 });
+}
+
 async function exerciseLiveResponsiveResize(page) {
   await page.setViewportSize({ width: 1280, height: 900 });
   await waitForResponsiveResize(page, false);
@@ -2921,6 +2951,98 @@ async function exerciseColumnResizeInteraction(page) {
   });
 }
 
+async function exerciseColumnDragOutsideTableInteraction(page) {
+  await seedWideDragResults(page);
+  await page.locator('#table-container').evaluate(container => {
+    container.scrollLeft = 0;
+  });
+
+  const sourceHeader = page.locator('#example-table th[data-col-index="0"]');
+  await sourceHeader.waitFor({ state: 'visible', timeout: 5000 });
+  const headerBox = await sourceHeader.boundingBox();
+  const containerBox = await page.locator('#table-container').boundingBox();
+  if (!headerBox || !containerBox) {
+    throw new Error(`Unable to measure column drag targets: ${JSON.stringify({ headerBox, containerBox })}`);
+  }
+
+  const startX = Math.round(headerBox.x + (headerBox.width / 2));
+  const startY = Math.round(headerBox.y + (headerBox.height / 2));
+  const outsideX = Math.round(containerBox.x + containerBox.width + 36);
+  const outsideY = Math.max(8, Math.round(containerBox.y - 36));
+
+  const dragMetrics = await page.evaluate(async ({ outsideX: dragX, outsideY: dragY, startX: dragStartX, startY: dragStartY }) => {
+    const source = document.querySelector('#example-table th[data-col-index="0"]');
+    const dataTransfer = new DataTransfer();
+    const dispatchDragEvent = (target, type, x, y) => {
+      const event = new DragEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        clientX: x,
+        clientY: y,
+        dataTransfer
+      });
+      target.dispatchEvent(event);
+      return event;
+    };
+    const readMetrics = () => {
+      const container = document.querySelector('#table-container');
+      const anchor = document.querySelector('.drop-anchor');
+      const highlighted = Array.from(document.querySelectorAll('#example-table .query-table-column-drop-target')).map(element => ({
+        colIndex: element.getAttribute('data-col-index'),
+        tagName: element.tagName
+      }));
+      return {
+        anchorDisplay: anchor ? window.getComputedStyle(anchor).display : '',
+        bodyClass: document.body.className,
+        clientWidth: container?.clientWidth || 0,
+        highlighted,
+        scrollLeft: container?.scrollLeft || 0,
+        scrollWidth: container?.scrollWidth || 0
+      };
+    };
+
+    dispatchDragEvent(source, 'dragstart', dragStartX, dragStartY);
+    const startTime = Date.now();
+    let during = readMetrics();
+    while (Date.now() - startTime < 2500) {
+      dispatchDragEvent(document, 'dragover', dragX, dragY);
+      await new Promise(resolve => setTimeout(resolve, 32));
+      during = readMetrics();
+      if (
+        during.scrollLeft > 0
+        && during.anchorDisplay !== 'none'
+        && during.highlighted.length > 1
+        && during.highlighted.some(entry => entry.tagName === 'TD')
+      ) {
+        break;
+      }
+    }
+
+    dispatchDragEvent(document, 'drop', dragX, dragY);
+    dispatchDragEvent(source, 'dragend', dragX, dragY);
+    await new Promise(resolve => setTimeout(resolve, 50));
+    const after = readMetrics();
+    return { after, during };
+  }, { outsideX, outsideY, startX, startY });
+
+  if (
+    dragMetrics.during.scrollLeft <= 0
+    || dragMetrics.during.anchorDisplay === 'none'
+    || dragMetrics.during.highlighted.length <= 1
+    || !dragMetrics.during.highlighted.some(entry => entry.tagName === 'TD')
+  ) {
+    throw new Error(`Column drag outside table should keep auto-scrolling and highlight the target column: ${JSON.stringify(dragMetrics.during)}`);
+  }
+
+  if (
+    dragMetrics.after.anchorDisplay !== 'none'
+    || dragMetrics.after.highlighted.length > 0
+    || /dragging-cursor/u.test(dragMetrics.after.bodyClass)
+  ) {
+    throw new Error(`Column drag outside table should clean up after drop: ${JSON.stringify(dragMetrics.after)}`);
+  }
+}
+
 async function expectMobileColumnResizeInteraction(page) {
   await page.evaluate(async () => {
     const { appServices } = await import('./src/core/appServices.js');
@@ -4019,6 +4141,7 @@ async function runSmokeTest() {
     await exerciseVirtualTableScrollInteraction(page);
     await exerciseExpandedVirtualTableColumnAlignment(page);
     await exerciseColumnResizeInteraction(page);
+    await exerciseColumnDragOutsideTableInteraction(page);
     await exerciseLiveResponsiveResize(page);
 
     queueHistoryStatusResponses(queryApiStub);

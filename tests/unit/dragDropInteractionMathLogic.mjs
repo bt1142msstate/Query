@@ -104,6 +104,34 @@ test('drag drop interaction math', async () => {
     maxScrollLeft: 500
   });
 
+  assert.deepEqual(getAutoScrollIntent({
+    pointerX: 320,
+    pointerY: -20,
+    containerRect,
+    scrollLeft: 50,
+    scrollWidth: 800,
+    clientWidth: 300,
+    allowOutsideViewport: true
+  }), {
+    direction: 'right',
+    outside: false,
+    maxScrollLeft: 500
+  });
+
+  assert.deepEqual(getAutoScrollIntent({
+    pointerX: 460,
+    pointerY: -20,
+    containerRect,
+    scrollLeft: 50,
+    scrollWidth: 800,
+    clientWidth: 300,
+    allowOutsideViewport: true
+  }), {
+    direction: null,
+    outside: true,
+    maxScrollLeft: 500
+  });
+
   assert.deepEqual(calculateAutoScrollStep({
     direction: 'left',
     pointerX: 20,

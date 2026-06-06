@@ -4,6 +4,7 @@ import {
   getDropIndicatorViewportRect,
   getDragScrollContainer,
   getVisibleHeaderTargets,
+  isPointerNearDropViewport,
   isPointerWithinDropViewport
 } from '../../src/features/table/drag-drop/dragDropViewport.js';
 import test from 'node:test';
@@ -44,6 +45,9 @@ test('drag drop viewport', async () => {
   assert.equal(getDropIndicatorViewportRect(table), scrollContainer.getBoundingClientRect());
   assert.equal(isPointerWithinDropViewport(table, 100, 50), true);
   assert.equal(isPointerWithinDropViewport(table, 250, 50), false);
+  assert.equal(isPointerNearDropViewport(table, 250, 50), true);
+  assert.equal(isPointerNearDropViewport(table, 100, -120), true);
+  assert.equal(isPointerNearDropViewport(table, 500, 50), false);
   assert.deepEqual(getVisibleHeaderTargets(table), [headers[1], headers[2]]);
   assert.equal(getClosestVisibleHeaderByX(table, 125), headers[2]);
 
