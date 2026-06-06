@@ -986,13 +986,17 @@
 
 .history-monitor .history-row {
   display: grid;
-  grid-template-columns: minmax(12rem, 1fr) auto auto auto;
-  gap: 0.5rem;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  grid-template-areas:
+    "name name status details"
+    "date duration issue issue"
+    "actions actions actions actions";
+  gap: 0.55rem 0.7rem;
+  align-items: start;
   min-width: 0;
-  padding: 0.62rem 0.68rem;
+  padding: 0.72rem 0.78rem;
   border: 1px solid rgba(108, 190, 205, 0.12);
-  border-radius: 0.78rem;
+  border-radius: 0.9rem;
   background: rgba(8, 15, 27, 0.78);
 }
 
@@ -1007,10 +1011,32 @@
   white-space: normal !important;
 }
 
-.history-monitor .history-date-cell,
-.history-monitor .history-duration-cell,
+.history-monitor .history-name-column {
+  grid-area: name;
+}
+
+.history-monitor .history-status-cell {
+  grid-area: status;
+  justify-self: end;
+}
+
+.history-monitor .history-details-cell {
+  grid-area: details;
+  justify-self: end;
+}
+
+.history-monitor .history-date-cell {
+  grid-area: date;
+}
+
+.history-monitor .history-duration-cell {
+  grid-area: duration;
+}
+
 .history-monitor .history-issue-cell {
-  display: none;
+  grid-area: issue;
+  min-width: 0;
+  justify-self: stretch;
 }
 
 .history-monitor .history-status-cell,
@@ -1019,9 +1045,12 @@
 }
 
 .history-monitor .history-actions-cell {
+  grid-area: actions;
   justify-content: flex-end;
-  justify-self: end;
+  justify-self: stretch;
   overflow: visible;
+  padding-top: 0.58rem !important;
+  border-top: 1px solid rgba(108, 190, 205, 0.12) !important;
 }
 
 .history-actions-group {
@@ -1037,7 +1066,7 @@
 }
 
 .history-monitor .history-actions-cell .history-actions-group {
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .history-monitor .history-name-cell,
@@ -1111,6 +1140,50 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.history-row-metric {
+  display: inline-grid;
+  gap: 0.14rem;
+  min-width: 0;
+}
+
+.history-row-metric-label {
+  display: none;
+}
+
+.history-row-metric-value {
+  min-width: 0;
+  overflow: hidden;
+  color: rgba(208, 245, 255, 0.86);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-monitor .history-row-metric {
+  width: 100%;
+  padding: 0.44rem 0.58rem;
+  border: 1px solid rgba(108, 190, 205, 0.12);
+  border-radius: 0.72rem;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.history-monitor .history-row-metric-label {
+  display: block;
+  color: rgba(178, 222, 232, 0.66);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.history-monitor .history-row-metric-value {
+  color: rgba(239, 252, 255, 0.9);
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .history-monitor .history-expand-btn {
@@ -2195,9 +2268,15 @@
 
   .history-monitor .history-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) repeat(3, auto);
-    gap: 0.7rem;
-    align-items: center;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "name status"
+      "date duration"
+      "details details"
+      "issue issue"
+      "actions actions";
+    gap: 0.62rem;
+    align-items: start;
     padding: 0.9rem;
     border: 1px solid rgba(68, 225, 255, 0.12);
     border-radius: 1rem;
@@ -2215,27 +2294,43 @@
   }
 
   .history-monitor .history-name-column {
-    grid-column: 1 / -1;
-  }
-
-  .history-monitor .history-date-cell,
-  .history-monitor .history-duration-cell,
-  .history-monitor .history-issue-cell {
-    display: none;
+    grid-area: name;
   }
 
   .history-monitor .history-status-cell {
+    grid-area: status;
     justify-content: flex-start;
-  }
-
-  .history-monitor .history-details-cell,
-  .history-monitor .history-actions-cell {
-    justify-content: flex-end;
-  }
-
-  .history-monitor .history-actions-cell {
-    grid-column: 1 / -1;
     justify-self: end;
+  }
+
+  .history-monitor .history-date-cell {
+    grid-area: date;
+  }
+
+  .history-monitor .history-duration-cell {
+    grid-area: duration;
+  }
+
+  .history-monitor .history-issue-cell {
+    grid-area: issue;
+    display: block;
+  }
+
+  .history-monitor .history-details-cell {
+    grid-area: details;
+    justify-content: flex-start;
+    justify-self: stretch;
+  }
+
+  .history-monitor .history-details-cell .history-expand-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .history-monitor .history-actions-cell {
+    grid-area: actions;
+    justify-content: flex-start;
+    justify-self: stretch;
   }
 
   .history-monitor .history-actions-cell .history-actions-group {
@@ -2334,24 +2429,28 @@
   }
 
   .history-monitor .history-row {
-    grid-template-columns: minmax(14rem, 1fr) repeat(3, minmax(2.75rem, auto));
+    grid-template-columns: minmax(14rem, 1fr) minmax(8rem, 0.55fr) minmax(7rem, 0.45fr) auto;
+    grid-template-areas:
+      "name name status details"
+      "date duration issue issue"
+      "actions actions actions actions";
     gap: 0.55rem;
     min-height: 4.25rem;
     padding: 0.7rem;
   }
 
   .history-monitor .history-name-column {
-    grid-column: auto;
+    grid-area: name;
   }
 
   .history-monitor .history-actions-cell {
-    grid-column: auto;
-    justify-self: end;
+    grid-area: actions;
+    justify-self: stretch;
   }
 
   .history-monitor .history-actions-cell .history-actions-group {
-    width: auto;
-    justify-content: flex-end;
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .history-monitor .history-name-cell {
