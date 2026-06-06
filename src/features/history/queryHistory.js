@@ -9,6 +9,13 @@ import { createQueryHistoryDependencies } from './queryHistoryDependencies.js';
 import { HistoryResultProgress } from './queryHistoryResultProgress.js';
 import { createQueryHistoryResultsLoader } from './queryHistoryResultsLoader.js';
 import {
+  captureHistoryViewState,
+  didErrorDetailsChange,
+  didProgressChange,
+  restoreHistoryViewState,
+  updateHistoryPollingMeta
+} from './queryHistoryRenderHelpers.js';
+import {
   appendUniqueColumn,
   buildUiConfigFromRequest,
   mergeUiConfigWithRequest,
@@ -19,6 +26,12 @@ import { groupHistoryQueries } from './queryHistoryGrouping.js';
 import { mapStatusPayloadToHistoryRows } from './queryHistoryStatusMapper.js';
 import { formatColumnsTooltip, formatHistoryFiltersTooltip } from './queryHistoryTooltips.js';
 import { notifyHistoryResultLoadComplete, prepareHistoryResultLoadNotification } from './queryHistoryNotifications.js';
+import {
+  forgetOpenedHistoryResult,
+  readOpenedHistoryResult,
+  rememberOpenedHistoryResult,
+  shouldRestoreOpenedHistoryResult
+} from './queryHistoryResultSession.js';
 import {
   buildHistoryMonitor,
   buildHistorySection,
@@ -47,6 +60,7 @@ const QUERY_STATUS_POLL_MS = 2000;
 const IDLE_POLL_MS = 8000;
 let lastHistoryRenderKey = '';
 const historyDependencies = createQueryHistoryDependencies(normalizeUiConfigFilters);
+let openedHistoryResultRestoreAttempted = false;
 
 function isQueriesPanelOpen() {
   const panel = DOM.queriesPanel;
@@ -112,55 +126,6 @@ function createHistoryRowHtml(query) {
     activeHistoryResultLoadQueryId: HistoryResultProgress.getActiveQueryId(),
     dependencies: historyDependencies.display()
   });
-}
-
-function captureHistoryViewState() {
-  const panelContainer = DOM.queriesContainer;
-  const monitorShell = panelContainer?.querySelector('.history-monitor .history-table-shell');
-
-  return {
-    panelScrollTop: panelContainer?.scrollTop || 0,
-    panelScrollLeft: panelContainer?.scrollLeft || 0,
-    monitorScrollTop: monitorShell?.scrollTop || 0,
-    monitorScrollLeft: monitorShell?.scrollLeft || 0
-  };
-}
-
-function restoreHistoryViewState(viewState) {
-  if (!viewState) return;
-
-  const panelContainer = DOM.queriesContainer;
-  if (panelContainer) {
-    panelContainer.scrollTop = viewState.panelScrollTop;
-    panelContainer.scrollLeft = viewState.panelScrollLeft;
-  }
-
-  const monitorShell = panelContainer?.querySelector('.history-monitor .history-table-shell');
-  if (monitorShell) {
-    monitorShell.scrollTop = viewState.monitorScrollTop;
-    monitorShell.scrollLeft = viewState.monitorScrollLeft;
-  }
-}
-
-function updateHistoryPollingMeta({ isPollingActive, refreshedAt }) {
-  const pollingValue = DOM.queriesList?.querySelector('.history-polling-value');
-  const pollingDetail = DOM.queriesList?.querySelector('.history-polling-detail');
-  if (pollingValue) {
-    pollingValue.textContent = isPollingActive ? 'Polling live' : 'Polling paused';
-    pollingValue.classList.toggle('active', !!isPollingActive);
-    pollingValue.classList.toggle('idle', !isPollingActive);
-  }
-  if (pollingDetail) {
-    pollingDetail.textContent = `Last refresh ${refreshedAt}`;
-  }
-}
-
-function didProgressChange(oldProgress, newProgress) {
-  return JSON.stringify(oldProgress || null) !== JSON.stringify(newProgress || null);
-}
-
-function didErrorDetailsChange(oldDetails, newDetails) {
-  return JSON.stringify(oldDetails || null) !== JSON.stringify(newDetails || null);
 }
 
 function syncActiveQueryProgressFromHistory(historyRows) {
@@ -230,6 +195,7 @@ async function fetchQueryStatus() {
 
     patchQueriesPanelData(newHistory);
     syncActiveQueryProgressFromHistory(newHistory);
+    restoreOpenedHistoryResultAfterStatus();
 
     if (isQueriesPanelOpen()) {
       // Keep the interval alive so queries from other users surface automatically.
@@ -365,6 +331,28 @@ const loadQueryResults = createQueryHistoryResultsLoader({
   renderQueries
 });
 
+function restoreOpenedHistoryResultAfterStatus() {
+  if (openedHistoryResultRestoreAttempted || !shouldRestoreOpenedHistoryResult({ location: window.location })) {
+    return;
+  }
+
+  openedHistoryResultRestoreAttempted = true;
+  const remembered = readOpenedHistoryResult();
+  const queryId = remembered?.queryId || '';
+  if (!queryId) {
+    return;
+  }
+
+  if (!getHistoryQueryById(queryId)) {
+    forgetOpenedHistoryResult();
+    return;
+  }
+
+  loadQueryResults(queryId, { notify: false, restore: true }).catch(error => {
+    console.error('Failed to restore opened history results:', error);
+  });
+}
+
 /**
  * Binds load/rerun/stop button event handlers on all matching buttons within
  * a given root element. Called after both full re-renders and surgical row
@@ -488,7 +476,7 @@ function patchQueriesPanelData(newHistory) {
   const refreshedAt = lastQueryStatusPollAt
     ? new Date(lastQueryStatusPollAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
     : 'Awaiting refresh';
-  updateHistoryPollingMeta({
+  updateHistoryPollingMeta(DOM, {
     isPollingActive: !!(queryDurationUpdateInterval && isQueriesPanelOpen()),
     refreshedAt
   });
@@ -546,9 +534,9 @@ function patchQueriesPanelData(newHistory) {
 
   // Section first populated — table scaffolding not in DOM yet; one-time full render
   if (!tbody) {
-    const viewState  = captureHistoryViewState();
+    const viewState  = captureHistoryViewState(DOM);
     const didRender  = renderQueries();
-    if (didRender) restoreHistoryViewState(viewState);
+    if (didRender) restoreHistoryViewState(DOM, viewState);
     return;
   }
 
@@ -801,7 +789,7 @@ function renderQueries(){
   }
 
   if (renderKey === lastHistoryRenderKey) {
-    updateHistoryPollingMeta({ isPollingActive, refreshedAt });
+    updateHistoryPollingMeta(DOM, { isPollingActive, refreshedAt });
     return false;
   }
 
@@ -846,6 +834,8 @@ const QueryHistorySystem = {
   cancelQuery,
   formatColumnsTooltip, formatHistoryFiltersTooltip,
   fetchQueryStatus,
+  rememberOpenedResult: rememberOpenedHistoryResult,
+  forgetOpenedResult: forgetOpenedHistoryResult,
   closeDetailsOverlay: closeHistoryDetailsOverlay,
   startQueryDurationUpdates,
   stopQueryDurationUpdates,
@@ -886,9 +876,21 @@ onDOMReady(() => {
     queriesSearchInput.addEventListener('input', renderQueries);
   }
 
+  QueryStateReaders.subscribe(event => {
+    if (event?.meta?.source === 'QueryChangeManager.clearQuery') {
+      forgetOpenedHistoryResult();
+    }
+  });
+
   // Add row click event listener
   document.addEventListener('click', handleQueryRowClick);
 
-  // Initial fetch of query history
-  setTimeout(fetchQueryStatus, 500);
+  // Initial fetch of query history. When results were open before refresh,
+  // fetch immediately so the restore path can rehydrate them without waiting
+  // for the regular delayed history poll.
+  if (shouldRestoreOpenedHistoryResult({ location: window.location })) {
+    fetchQueryStatus();
+  } else {
+    setTimeout(fetchQueryStatus, 500);
+  }
 });

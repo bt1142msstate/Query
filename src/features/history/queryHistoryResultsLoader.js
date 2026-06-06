@@ -1,4 +1,5 @@
 import { parseQueryResultPayload } from '../../core/queryResultParser.js';
+import { rememberOpenedHistoryResult } from './queryHistoryResultSession.js';
 
 export function createQueryHistoryResultsLoader({
   appState,
@@ -15,15 +16,18 @@ export function createQueryHistoryResultsLoader({
   loadQueryConfig,
   renderQueries
 }) {
-  return async function loadQueryResults(queryId) {
+  return async function loadQueryResults(queryId, options = {}) {
     const query = getHistoryQueryById(queryId);
     if (!query) return;
 
     loadQueryConfig(query);
     historyResultProgress.start(query, { render: renderQueries });
-    const notificationPermission = prepareHistoryResultLoadNotification();
+    const notificationPermission = options.notify === false ? null : prepareHistoryResultLoadNotification();
 
-    showToastMessage(query.running ? 'Fetching live results...' : 'Fetching results...', 'info');
+    showToastMessage(
+      options.restore ? 'Restoring last opened results...' : (query.running ? 'Fetching live results...' : 'Fetching results...'),
+      'info'
+    );
 
     try {
       const { response, lines: streamedLines, streamError, text, jsonPayload } = await historyResultProgress.fetchResults(queryId);
@@ -61,19 +65,24 @@ export function createQueryHistoryResultsLoader({
       }
 
       uiActions.updateTableResultsLip();
+      if (options.remember !== false) {
+        rememberOpenedHistoryResult(query.id);
+      }
 
       showToastMessage(streamError
         ? `Connection ended early. Loaded ${rows.objectRows.length} partial results.`
         : (query.running
           ? `Loaded ${rows.objectRows.length} partial results from running query.`
           : `Loaded ${rows.objectRows.length} results.`), streamError ? 'warning' : 'success');
-      notifyHistoryResultLoadComplete({
-        permissionPromise: notificationPermission,
-        query,
-        queryId,
-        rowCount: rows.objectRows.length,
-        streamError
-      });
+      if (options.notify !== false) {
+        notifyHistoryResultLoadComplete({
+          permissionPromise: notificationPermission,
+          query,
+          queryId,
+          rowCount: rows.objectRows.length,
+          streamError
+        });
+      }
 
       services.closeAllModals();
     } catch (error) {
