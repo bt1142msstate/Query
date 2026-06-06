@@ -357,6 +357,16 @@ function registerTableService(service) {
     return getTableService()?.getPostFilterFieldOptions?.(fieldName) || [];
   }
 
+  function getFilterActionFieldName(fieldName) {
+    const normalizedField = String(fieldName || '').trim();
+    return getTableService()?.getFilterActionFieldName?.(normalizedField) || normalizedField;
+  }
+
+  function getPostFilterActionFields(displayedFields) {
+    const fields = Array.isArray(displayedFields) ? displayedFields : [];
+    return getTableService()?.getPostFilterActionFields?.(fields) || fields;
+  }
+
   function replacePostFilters(snapshot, options = {}) {
     getTableService()?.replacePostFilters?.(snapshot, options);
   }
@@ -487,6 +497,8 @@ function registerTableService(service) {
     getPostFilterStats,
     getPostFilterState,
     getPostFilterFieldOptions,
+    getFilterActionFieldName,
+    getPostFilterActionFields,
     replacePostFilters,
     hasPostFilters,
     isSplitColumnsActive,

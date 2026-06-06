@@ -3417,6 +3417,45 @@ async function exerciseDesktopResultsWorkflow(page) {
   await page.locator('#post-filter-done-btn').click();
   await page.locator('#post-filter-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
 
+  await page.evaluate(async () => {
+    const { appServices } = await import('./src/core/appServices.js');
+    appServices.setSplitColumnsMode(true);
+  });
+  await page.locator('#example-table th[data-sort-field="Smoke Branch 2"]').waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('#example-table th[data-sort-field="Smoke Branch 2"]').click({ button: 'right' });
+  await page.locator('.tcm.tcm--visible').waitFor({ state: 'visible', timeout: 5000 });
+  const splitColumnMenuHints = await page.locator('.tcm.tcm--visible .tcm-item').evaluateAll(items => {
+    return items.map(item => ({
+      hint: item.querySelector('.tcm-hint')?.textContent?.trim() || '',
+      label: item.querySelector('.tcm-label')?.textContent?.trim() || ''
+    }));
+  });
+  ['Add Filter', 'Add Post Filter'].forEach(label => {
+    const item = splitColumnMenuHints.find(entry => entry.label === label);
+    if (!item || item.hint !== 'Smoke Branch') {
+      throw new Error(`Split column context menu should target parent field for "${label}": ${JSON.stringify(splitColumnMenuHints)}`);
+    }
+  });
+  await page.locator('.tcm.tcm--visible .tcm-item', { hasText: 'Add Post Filter' }).click();
+  await page.locator('#post-filter-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+  const splitPostFilterState = await page.locator('#post-filter-field').evaluate(select => ({
+    options: Array.from(select.options).map(option => option.value),
+    value: select.value
+  }));
+  if (
+    splitPostFilterState.value !== 'Smoke Branch'
+    || splitPostFilterState.options.includes('Smoke Branch 1')
+    || splitPostFilterState.options.includes('Smoke Branch 2')
+  ) {
+    throw new Error(`Split column post filter overlay should use the parent field only: ${JSON.stringify(splitPostFilterState)}`);
+  }
+  await page.locator('#post-filter-done-btn').click();
+  await page.locator('#post-filter-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
+  await page.evaluate(async () => {
+    const { appServices } = await import('./src/core/appServices.js');
+    appServices.setSplitColumnsMode(false);
+  });
+
   await seedLoadedResults(page, { includeDate: true });
   await page.locator('#download-btn').scrollIntoViewIfNeeded();
   const downloadDisabled = await page.locator('#download-btn').evaluate(button => button.disabled);
