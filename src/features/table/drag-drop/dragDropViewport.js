@@ -1,3 +1,19 @@
+const MIN_OUTSIDE_DRAG_HORIZONTAL_TOLERANCE = 640;
+const MIN_OUTSIDE_DRAG_VERTICAL_TOLERANCE = 320;
+const MAX_OUTSIDE_DRAG_VERTICAL_TOLERANCE = 520;
+
+export function getOutsideDropViewportOptions(viewportWindow = globalThis.window) {
+  const viewportWidth = Number(viewportWindow?.innerWidth) || 0;
+  const viewportHeight = Number(viewportWindow?.innerHeight) || 0;
+  return {
+    horizontalTolerance: Math.max(MIN_OUTSIDE_DRAG_HORIZONTAL_TOLERANCE, viewportWidth),
+    verticalTolerance: Math.max(
+      MIN_OUTSIDE_DRAG_VERTICAL_TOLERANCE,
+      Math.min(MAX_OUTSIDE_DRAG_VERTICAL_TOLERANCE, viewportHeight * 0.45)
+    )
+  };
+}
+
 export function getDragScrollContainer(table) {
   return table?.closest('.overflow-x-auto, #table-container') || null;
 }

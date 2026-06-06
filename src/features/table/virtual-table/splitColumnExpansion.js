@@ -1,6 +1,8 @@
 const LAZY_EXPANDED_ROW_MARKER = Symbol('lazyExpandedRow');
 const LAZY_EXPANDED_ROW_SOURCE = Symbol('lazyExpandedRowSource');
+const LAZY_EXPANDED_ROW_COLUMN_PLAN = Symbol('lazyExpandedRowColumnPlan');
 const LAZY_EXPANDED_ROWS_SOURCE = Symbol('lazyExpandedRowsSource');
+const LAZY_EXPANDED_ROWS_COLUMN_PLAN = Symbol('lazyExpandedRowsColumnPlan');
 
 export function buildExpandedMultiValueTable(rawTableData, options = {}) {
   if (!rawTableData || !Array.isArray(rawTableData.headers) || !Array.isArray(rawTableData.rows)) {
@@ -134,6 +136,9 @@ function createLazyExpandedRows(sourceRows, columnPlan) {
       if (prop === LAZY_EXPANDED_ROWS_SOURCE) {
         return hasIndexedOverrides ? null : sourceRows;
       }
+      if (prop === LAZY_EXPANDED_ROWS_COLUMN_PLAN) {
+        return hasIndexedOverrides ? null : columnPlan;
+      }
 
       const index = getArrayIndex(prop, sourceRows.length);
       if (index !== -1) {
@@ -176,6 +181,9 @@ function createLazyExpandedRow(sourceRow, columnPlan) {
       }
       if (prop === LAZY_EXPANDED_ROW_SOURCE) {
         return sourceRow;
+      }
+      if (prop === LAZY_EXPANDED_ROW_COLUMN_PLAN) {
+        return columnPlan;
       }
 
       const index = getArrayIndex(prop, columnPlan.length);
@@ -340,7 +348,22 @@ export function getLazyExpandedRowSourceValue(row, sourceIndex) {
     : undefined;
 }
 
+export function getLazyExpandedRowSourceRow(row) {
+  const sourceRow = row?.[LAZY_EXPANDED_ROW_SOURCE];
+  return Array.isArray(sourceRow) ? sourceRow : null;
+}
+
+export function getLazyExpandedRowColumnPlan(row) {
+  const columnPlan = row?.[LAZY_EXPANDED_ROW_COLUMN_PLAN];
+  return Array.isArray(columnPlan) ? columnPlan : null;
+}
+
 export function getLazyExpandedRowsSourceRows(rows) {
   const sourceRows = rows?.[LAZY_EXPANDED_ROWS_SOURCE];
   return Array.isArray(sourceRows) ? sourceRows : null;
+}
+
+export function getLazyExpandedRowsColumnPlan(rows) {
+  const columnPlan = rows?.[LAZY_EXPANDED_ROWS_COLUMN_PLAN];
+  return Array.isArray(columnPlan) ? columnPlan : null;
 }

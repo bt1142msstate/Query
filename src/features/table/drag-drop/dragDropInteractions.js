@@ -23,6 +23,7 @@ import {
   getClosestVisibleHeaderByX,
   getDragScrollContainer,
   getDropIndicatorViewportRect,
+  getOutsideDropViewportOptions,
   isPointerNearDropViewport,
   isPointerWithinDropViewport
 } from './dragDropViewport.js';
@@ -209,7 +210,7 @@ let DragDropInteractions;
         }
 
         const pointerStillNearTable = this.autoScrollAllowOutsideViewport
-          ? isPointerNearDropViewport(this.activeTable, this.autoScrollPointerX, this.lastDragY)
+          ? isPointerNearDropViewport(this.activeTable, this.autoScrollPointerX, this.lastDragY, getOutsideDropViewportOptions(window))
           : isPointerWithinDropViewport(this.activeTable, this.autoScrollPointerX, this.lastDragY);
 
         if (!pointerStillNearTable) {
@@ -266,7 +267,8 @@ let DragDropInteractions;
         scrollLeft: container.scrollLeft,
         scrollWidth: container.scrollWidth,
         clientWidth: container.clientWidth,
-        allowOutsideViewport: options.allowOutsideViewport !== false
+        allowOutsideViewport: options.allowOutsideViewport !== false,
+        ...(options.allowOutsideViewport !== false ? getOutsideDropViewportOptions(window) : {})
       });
 
       if (intent.outside) {
@@ -286,7 +288,7 @@ let DragDropInteractions;
 
     updateDropIndicatorFromPointer(table, clientX, clientY = this.lastDragY, options = {}) {
       const pointerIsInTargetZone = options.allowOutsideViewport
-        ? isPointerNearDropViewport(table, clientX, clientY)
+        ? isPointerNearDropViewport(table, clientX, clientY, getOutsideDropViewportOptions(window))
         : isPointerWithinDropViewport(table, clientX, clientY);
 
       if (!pointerIsInTargetZone) {
@@ -503,7 +505,7 @@ let DragDropInteractions;
         return;
       }
 
-      if (!isPointerNearDropViewport(this.activeTable, e.clientX, e.clientY)) {
+      if (!isPointerNearDropViewport(this.activeTable, e.clientX, e.clientY, getOutsideDropViewportOptions(window))) {
         if (this.scrollContainer) {
           this.checkAutoScroll(e, this.scrollContainer, { allowOutsideViewport: true });
         } else {
@@ -526,7 +528,7 @@ let DragDropInteractions;
       }
 
       const table = this.activeTable;
-      if (!isPointerNearDropViewport(table, e.clientX, e.clientY)) {
+      if (!isPointerNearDropViewport(table, e.clientX, e.clientY, getOutsideDropViewportOptions(window))) {
         clearDropAnchor(table);
         this.stopAutoScroll();
         this.activeTable = null;
