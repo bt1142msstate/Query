@@ -236,11 +236,11 @@ function buildHistorySubtitleText({
   const activeFilterLabel = getHistoryActiveFilterLabel(viewOptions);
   const sortLabel = getHistorySortLabel(viewOptions);
   const liveSignal = runningCount > 0
-    ? `${runningCount} live ${runningCount === 1 ? 'query is' : 'queries are'} still updating.`
-    : 'No active queries are running right now.';
+    ? `${runningCount} ${runningCount === 1 ? 'query is' : 'queries are'} still running.`
+    : 'Nothing is running right now.';
   const scopeLabel = searchTerm
-    ? `Showing ${visibleCount} of ${totalCount} saved queries matching "${searchTerm}".`
-    : `Showing ${visibleCount} of ${totalCount} saved ${totalCount === 1 ? 'query' : 'queries'}.`;
+    ? `${visibleCount} of ${totalCount} runs match "${searchTerm}".`
+    : `${visibleCount} of ${totalCount} saved ${totalCount === 1 ? 'run' : 'runs'} shown.`;
   const filterLabel = activeFilterLabel ? ` Filtered by ${activeFilterLabel}.` : '';
   const sortSummary = sortLabel ? ` Sorted by ${sortLabel.toLowerCase()}.` : '';
 

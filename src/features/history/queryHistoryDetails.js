@@ -1,6 +1,8 @@
 import { getBackendErrorDetailItems } from '../../core/queryErrorDetails.js';
 import { formatStandardFilterTooltipHTML } from '../../core/formatting/tooltipFormatters.js';
 
+const HISTORY_DETAILS_PREVIEW_LIMIT = 6;
+
 function getDefaultHistoryDetailsDependencies() {
   return {
     formatStandardFilterTooltipHTML,
@@ -17,30 +19,143 @@ function escapeHistoryText(value) {
     .replace(/'/g, '&#39;');
 }
 
+function buildHistoryColumnItems(columns) {
+  return columns.map((column, index) => (
+    '<li class="tt-filter-item tt-column-item">' +
+    `  <span class="tt-column-index">${index + 1}</span>` +
+    `  <span class="tt-column-name">${escapeHistoryText(column)}</span>` +
+    '</li>'
+  )).join('');
+}
+
 function buildHistoryColumnsMarkup(columns) {
   const safeColumns = Array.isArray(columns) ? columns : [];
   if (!safeColumns.length) {
     return '<p class="history-details-empty">No displayed columns saved for this query.</p>';
   }
 
-  const items = safeColumns.map((column, index) => (
-    '<li class="tt-filter-item tt-column-item">' +
-    `  <span class="tt-column-index">${index + 1}</span>` +
-    `  <span class="tt-column-name">${escapeHistoryText(column)}</span>` +
-    '</li>'
-  )).join('');
-
-  return '<div class="tt-filter-container tt-columns-container">' +
+  const buildColumnContainer = items => '<div class="tt-filter-container tt-columns-container">' +
     `<ol class="tt-filter-list tt-columns-list">${items}</ol>` +
     '</div>';
+
+  if (safeColumns.length <= HISTORY_DETAILS_PREVIEW_LIMIT) {
+    return buildColumnContainer(buildHistoryColumnItems(safeColumns));
+  }
+
+  const previewColumns = safeColumns.slice(0, HISTORY_DETAILS_PREVIEW_LIMIT);
+  const hiddenCount = safeColumns.length - previewColumns.length;
+
+  return `
+    <details class="history-details-list-expander">
+      <summary>
+        <span>Showing ${previewColumns.length} of ${safeColumns.length} fields</span>
+        <span class="history-details-list-expander-action">Show all</span>
+      </summary>
+      <div class="history-details-list-preview">
+        ${buildColumnContainer(buildHistoryColumnItems(previewColumns))}
+        <span class="history-details-list-more">... ${hiddenCount} more</span>
+      </div>
+      <div class="history-details-list-full">
+        ${buildColumnContainer(buildHistoryColumnItems(safeColumns))}
+      </div>
+    </details>`;
+}
+
+function formatFilterOperatorLabel(operator) {
+  const normalized = String(operator || '').trim();
+  const labels = {
+    Equals: '=',
+    equals: '=',
+    '=': '=',
+    DoesNotEqual: '!=',
+    does_not_equal: '!=',
+    '!=': '!=',
+    GreaterThan: '>',
+    greater: '>',
+    '>': '>',
+    LessThan: '<',
+    less: '<',
+    '<': '<',
+    GreaterThanOrEqual: '>=',
+    greater_or_equal: '>=',
+    '>=': '>=',
+    LessThanOrEqual: '<=',
+    less_or_equal: '<=',
+    '<=': '<=',
+    Contains: 'contains',
+    contains: 'contains',
+    DoesNotContain: 'does not contain',
+    does_not_contain: 'does not contain',
+    doesnotcontain: 'does not contain',
+    Between: 'between',
+    between: 'between',
+    Never: 'never',
+    never: 'never',
+    Before: 'before',
+    before: 'before',
+    After: 'after',
+    after: 'after',
+    OnOrBefore: 'on or before',
+    on_or_before: 'on or before',
+    OnOrAfter: 'on or after',
+    on_or_after: 'on or after'
+  };
+
+  return labels[normalized] || normalized;
+}
+
+function buildHistoryFilterPreviewItem(filter) {
+  const values = Array.isArray(filter?.Values) ? filter.Values : [];
+  const valuePreview = values
+    .slice(0, 2)
+    .map(value => escapeHistoryText(value))
+    .join(', ');
+  const valueSuffix = values.length > 2 ? ` +${values.length - 2} more` : '';
+  const valueMarkup = valuePreview
+    ? `<span class="history-details-filter-preview-values">${valuePreview}${escapeHistoryText(valueSuffix)}</span>`
+    : '<span class="history-details-filter-preview-values muted">No value</span>';
+
+  return `
+    <li class="history-details-filter-preview-item">
+      <span class="history-details-filter-preview-field">${escapeHistoryText(filter?.FieldName || '')}</span>
+      <span class="history-details-filter-preview-op">${escapeHistoryText(formatFilterOperatorLabel(filter?.FieldOperator))}</span>
+      ${valueMarkup}
+    </li>`;
 }
 
 function buildHistoryFiltersMarkup(filters, dependencies = getDefaultHistoryDetailsDependencies()) {
-  if (typeof dependencies.formatStandardFilterTooltipHTML === 'function') {
-    return dependencies.formatStandardFilterTooltipHTML(filters, '') || '<p class="history-details-empty">No filters saved for this query.</p>';
+  const safeFilters = Array.isArray(filters) ? filters : [];
+  const fullMarkup = typeof dependencies.formatStandardFilterTooltipHTML === 'function'
+    ? dependencies.formatStandardFilterTooltipHTML(safeFilters, '')
+    : '';
+
+  if (!fullMarkup) {
+    return '<p class="history-details-empty">No filters saved for this query.</p>';
   }
 
-  return '<p class="history-details-empty">No filters saved for this query.</p>';
+  if (safeFilters.length <= HISTORY_DETAILS_PREVIEW_LIMIT) {
+    return fullMarkup;
+  }
+
+  const previewFilters = safeFilters.slice(0, HISTORY_DETAILS_PREVIEW_LIMIT);
+  const hiddenCount = safeFilters.length - previewFilters.length;
+
+  return `
+    <details class="history-details-list-expander">
+      <summary>
+        <span>Showing ${previewFilters.length} of ${safeFilters.length} filters</span>
+        <span class="history-details-list-expander-action">Show all</span>
+      </summary>
+      <div class="history-details-list-preview">
+        <ul class="history-details-filter-preview-list">
+          ${previewFilters.map(buildHistoryFilterPreviewItem).join('')}
+        </ul>
+        <span class="history-details-list-more">... ${hiddenCount} more</span>
+      </div>
+      <div class="history-details-list-full">
+        ${fullMarkup}
+      </div>
+    </details>`;
 }
 
 function buildHistoryIssueMarkup(reason, errorDetails) {

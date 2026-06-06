@@ -34,25 +34,25 @@ function getHistorySectionMeta(sectionKey) {
   return {
     running: {
       title: 'Running',
-      subtitle: 'Queries currently executing on the backend.',
+      subtitle: 'Currently running queries.',
       detailsClass: 'history-book running',
       summaryClass: 'history-book-summary running'
     },
     complete: {
       title: 'Completed',
-      subtitle: 'Finished results ready to inspect or reload.',
+      subtitle: 'Results ready to open, rerun, or save.',
       detailsClass: 'history-book complete',
       summaryClass: 'history-book-summary complete'
     },
     failed: {
-      title: 'Failed / Interrupted',
-      subtitle: 'Queries that errored, were abandoned, or quit unexpectedly.',
+      title: 'Needs Review',
+      subtitle: 'Queries that ended with an error.',
       detailsClass: 'history-book failed',
       summaryClass: 'history-book-summary failed'
     },
     canceled: {
       title: 'Cancelled',
-      subtitle: 'Queries stopped intentionally before they completed.',
+      subtitle: 'Queries stopped before finishing.',
       detailsClass: 'history-book canceled',
       summaryClass: 'history-book-summary canceled'
     }
@@ -64,11 +64,11 @@ function buildHistorySection(sectionKey, count, isOpen = false) {
 
   const openAttr = isOpen ? ' open' : '';
   const statusLabel = count === 0
-    ? 'Empty'
+    ? 'None'
     : isOpen
-      ? 'Open'
-      : 'Standby';
-  const openHint = isOpen ? 'Close list' : 'Open list';
+      ? 'Selected'
+      : 'View';
+  const openHint = isOpen ? 'Hide' : 'Review';
 
   return `
     <details class="${meta.detailsClass}" data-history-book="${sectionKey}"${openAttr}>
@@ -126,21 +126,21 @@ function buildHistoryMonitor(openSection, sections) {
     <section class="history-monitor ${activeSection.key}" data-history-monitor>
       <div class="history-monitor-header">
         <div class="history-monitor-copy">
-          <span class="history-monitor-kicker">History feed</span>
+          <span class="history-monitor-kicker">Saved runs</span>
           <h4 class="history-monitor-title">${meta.title}</h4>
           <p class="history-monitor-subtitle">${meta.subtitle}</p>
         </div>
         <div class="history-monitor-actions">
           <div class="history-monitor-status">
-            <span class="history-monitor-status-label">Channel load</span>
+            <span class="history-monitor-status-label">Items</span>
             <span class="history-monitor-status-value">${activeSection.count}</span>
           </div>
-          <button type="button" class="history-monitor-close" data-history-monitor-close aria-label="Close projected monitor">
+          <button type="button" class="history-monitor-close" data-history-monitor-close aria-label="Close history list">
             <span aria-hidden="true">×</span>
           </button>
         </div>
       </div>
-      <div class="history-monitor-tabs" role="tablist" aria-label="Query history feeds">
+      <div class="history-monitor-tabs" role="tablist" aria-label="Query history sections">
         ${tabs}
       </div>
       <div class="history-monitor-stage">

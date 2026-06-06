@@ -508,7 +508,7 @@ function patchQueriesPanelData(newHistory) {
     if (countEl && countEl.textContent !== String(count)) countEl.textContent = String(count);
     const stateEl = book.querySelector('.history-book-state');
     if (stateEl) {
-      const next = count === 0 ? 'Empty' : key === activeHistorySection ? 'Projected' : 'Standby';
+      const next = count === 0 ? 'None' : key === activeHistorySection ? 'Selected' : 'View';
       if (stateEl.textContent !== next) stateEl.textContent = next;
     }
   });

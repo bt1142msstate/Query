@@ -522,7 +522,10 @@
     <!-- QUERIES PANEL -->
     <div id="queries-panel" class="w-full modal-panel hidden">
       <h2 class="mt-8 mb-0 px-3 py-2 bg-blue-100 text-blue-800 font-semibold text-sm uppercase tracking-wider border border-blue-200 flex items-center justify-between">
-        <span class="sr-only">Queries</span>
+        <span class="queries-panel-heading">
+          <span class="queries-panel-title">Query History</span>
+          <span class="queries-panel-subtitle">Open previous results, rerun a query, or save it as a template.</span>
+        </span>
         <div class="flex gap-2 ml-auto items-center">
           <button class="collapse-btn p-1.5 rounded hover:bg-blue-200 focus:outline-none transition-colors ml-2" data-target="queries-panel" aria-label="Close">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
@@ -536,7 +539,7 @@
            class="w-full -mt-px border border-blue-200 border-t-0 rounded-b overflow-x-auto">
         <div id="queries-search-wrapper" class="sticky top-0 z-10 pb-2 px-4 pt-4">
           <div class="queries-history-toolbar">
-            <input id="queries-search" type="search" placeholder="Search queries..." class="w-full px-3 py-2 rounded-lg focus:outline-none text-sm" data-search-ui="enhanced" data-search-wrapper-class="queries-search-field" data-search-clear-label="Clear query search" />
+            <input id="queries-search" type="search" placeholder="Search history" class="w-full px-3 py-2 rounded-lg focus:outline-none text-sm" data-search-ui="enhanced" data-search-wrapper-class="queries-search-field" data-search-clear-label="Clear query search" />
             <div class="queries-history-controls" aria-label="Query history filters and sort controls">
               <label class="queries-history-control" for="queries-status-filter">
                 <span>Status</span>

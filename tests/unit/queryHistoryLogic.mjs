@@ -10,11 +10,13 @@ import { buildHistoryActiveFilters } from '../../src/features/history/queryHisto
 import { buildHistoryResultRows } from '../../src/features/history/queryHistoryResultsLoader.js';
 import { formatColumnsTooltip, formatHistoryFiltersTooltip } from '../../src/features/history/queryHistoryTooltips.js';
 import {
+  buildHistorySection,
   classifyQueryStatus,
   getPreferredHistorySection,
   getQueryStatusMeta
 } from '../../src/features/history/queryHistoryViewHelpers.js';
 import { buildHistoryDetailsOverlayHtml } from '../../src/features/history/queryHistoryDetails.js';
+import { buildHistorySubtitleText } from '../../src/features/history/queryHistoryControls.js';
 import { createQueriesTableRowHtml } from '../../src/features/history/queryHistoryRows.js';
 import test from 'node:test';
 
@@ -56,6 +58,17 @@ test('query history', async () => {
   assert.equal(getQueryStatusMeta('canceled').label, 'Cancelled');
   assert.equal(getPreferredHistorySection({ running: 0, complete: 2, failed: 0, canceled: 0 }, 'running'), 'complete');
   assert.equal(getPreferredHistorySection({ running: 1, complete: 2, failed: 0, canceled: 0 }, 'none'), null);
+  assert.match(buildHistorySubtitleText({
+    searchTerm: '',
+    visibleCount: 4,
+    totalCount: 10,
+    runningCount: 0,
+    viewOptions: {}
+  }), /4 of 10 saved runs shown\. Sorted by newest first\. Nothing is running right now\./u);
+  const historySectionHtml = buildHistorySection('complete', 3, false);
+  assert.match(historySectionHtml, /Review/u);
+  assert.match(historySectionHtml, /View/u);
+  assert.doesNotMatch(historySectionHtml, /Standby|Open list|Close list/u);
 
   const bindings = {};
   assert.equal(deriveTemplateBindings('Marc {tag}', 'Marc 590', bindings, mapperDependencies.escapeRegExp), true);
@@ -143,6 +156,8 @@ test('query history', async () => {
   assert.match(rowHtml, /12 rows/u);
   assert.match(rowHtml, /template-query-btn/u);
   assert.match(rowHtml, /Create template from this query/u);
+  assert.match(rowHtml, /history-rerun-icon/u);
+  assert.match(rowHtml, /M3 12a9 9 0 0 1 9-9/u);
   assert.match(rowHtml, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/u);
   assert.doesNotMatch(rowHtml, /<script>alert/u);
 
@@ -217,4 +232,34 @@ test('query history', async () => {
   assert.match(failedDetailsHtml, /Check catalogdump permissions\./u);
   assert.match(failedDetailsHtml, /catalogdump -ka -z -om/u);
   assert.match(failedDetailsHtml, /Candidate Rows/u);
+
+  const longDetailsHtml = buildHistoryDetailsOverlayHtml({
+    id: 'Q4',
+    name: 'Large query shape',
+    status: 'complete',
+    jsonConfig: {
+      DesiredColumnOrder: ['Title', 'Author', 'Branch', 'Status', 'Call Number', 'Barcode', 'Public Note', 'MARC 590', '<Unsafe>'],
+      Filters: [
+        { FieldName: 'Title', FieldOperator: 'Contains', Values: ['history'] },
+        { FieldName: 'Author', FieldOperator: 'Equals', Values: ['Smith'] },
+        { FieldName: 'Branch', FieldOperator: 'Equals', Values: ['Main'] },
+        { FieldName: 'Status', FieldOperator: 'DoesNotEqual', Values: ['Lost'] },
+        { FieldName: 'Public Note', FieldOperator: 'Contains', Values: ['one', 'two', 'three'] },
+        { FieldName: 'MARC 590', FieldOperator: 'Contains', Values: ['local'] },
+        { FieldName: 'Due Date', FieldOperator: 'Before', Values: ['20260101'] },
+        { FieldName: 'Bill Count', FieldOperator: 'GreaterThan', Values: ['2'] }
+      ]
+    }
+  }, {
+    normalizeUiConfigFilters: uiConfig => uiConfig.Filters,
+    formatStandardFilterTooltipHTML: filters => `<div class="tt-filter-container"><ul class="tt-filter-list">${filters.map(filter => `<li>${filter.FieldName}</li>`).join('')}</ul></div>`
+  });
+
+  assert.match(longDetailsHtml, /history-details-list-expander/u);
+  assert.match(longDetailsHtml, /Showing 6 of 9 fields/u);
+  assert.match(longDetailsHtml, /\.\.\. 3 more/u);
+  assert.match(longDetailsHtml, /Showing 6 of 8 filters/u);
+  assert.match(longDetailsHtml, /\.\.\. 2 more/u);
+  assert.match(longDetailsHtml, /history-details-list-full/u);
+  assert.match(longDetailsHtml, /&lt;Unsafe&gt;/u);
 });
