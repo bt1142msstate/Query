@@ -89,6 +89,42 @@ export function buildExpandedMultiValueTable(rawTableData, options = {}) {
   };
 }
 
+export function getMultiValueTableSummary(rawTableData) {
+  if (!rawTableData || !Array.isArray(rawTableData.headers) || !Array.isArray(rawTableData.rows)) {
+    return { eligible: false, columnCount: 0, valueCount: 0 };
+  }
+
+  const columnMap = rawTableData.columnMap instanceof Map
+    ? rawTableData.columnMap
+    : new Map();
+  let columnCount = 0;
+  let valueCount = 0;
+
+  rawTableData.headers.forEach((field, fallbackIndex) => {
+    const columnIndex = columnMap.has(field) ? columnMap.get(field) : fallbackIndex;
+    let fieldHasMultiValues = false;
+
+    rawTableData.rows.forEach(row => {
+      const rawValue = Array.isArray(row) ? row[columnIndex] : undefined;
+      const extraValueCount = getExtraMultiValueCount(rawValue);
+      if (extraValueCount > 0) {
+        fieldHasMultiValues = true;
+        valueCount += extraValueCount;
+      }
+    });
+
+    if (fieldHasMultiValues) {
+      columnCount += 1;
+    }
+  });
+
+  return {
+    eligible: columnCount > 0,
+    columnCount,
+    valueCount
+  };
+}
+
 function createLazyExpandedRows(sourceRows, columnPlan) {
   const target = new Array(sourceRows.length);
   let hasIndexedOverrides = false;
@@ -248,6 +284,34 @@ function countMultiValueParts(value) {
     }
   }
   return count;
+}
+
+function getExtraMultiValueCount(value) {
+  if (typeof value !== 'string' || value.indexOf('\x1F') === -1) {
+    return 0;
+  }
+
+  let nonBlankPartCount = 0;
+  let hasContent = false;
+  for (let index = 0; index <= value.length; index += 1) {
+    const code = index < value.length ? value.charCodeAt(index) : 31;
+    if (code === 31) {
+      if (hasContent) {
+        nonBlankPartCount += 1;
+      }
+      hasContent = false;
+      continue;
+    }
+    if (!isWhitespaceCode(code)) {
+      hasContent = true;
+    }
+  }
+
+  return Math.max(0, nonBlankPartCount - 1);
+}
+
+function isWhitespaceCode(code) {
+  return code === 32 || (code >= 9 && code <= 13) || (code > 127 && String.fromCharCode(code).trim() === '');
 }
 
 function createEmptyTableData() {

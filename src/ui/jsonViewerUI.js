@@ -150,7 +150,36 @@ onDOMReady(() => {
 });
 
 // Keep JSON preview in sync with query state changes reactively.
-QueryStateSubscriptions.subscribe(() => {
+let deferredSplitJsonUpdate = 0;
+
+function scheduleDeferredJsonUpdate() {
+  if (deferredSplitJsonUpdate) {
+    return;
+  }
+
+  const run = () => {
+    deferredSplitJsonUpdate = 0;
+    updateQueryJson();
+  };
+
+  if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+    deferredSplitJsonUpdate = window.requestIdleCallback(run, { timeout: 500 });
+    return;
+  }
+
+  if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+    deferredSplitJsonUpdate = window.requestAnimationFrame(run);
+    return;
+  }
+
+  deferredSplitJsonUpdate = setTimeout(run, 0);
+}
+
+QueryStateSubscriptions.subscribe(event => {
+  if (event?.meta?.source === 'VirtualTable.setSplitMode') {
+    scheduleDeferredJsonUpdate();
+    return;
+  }
   updateQueryJson();
 }, { displayedFields: true, activeFilters: true });
 
