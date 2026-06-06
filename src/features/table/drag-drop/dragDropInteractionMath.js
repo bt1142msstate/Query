@@ -1,5 +1,5 @@
 const DEFAULT_INSERT_AFFORDANCE_THRESHOLD = 40;
-const DEFAULT_AUTO_SCROLL_THRESHOLD = 90;
+const DEFAULT_AUTO_SCROLL_THRESHOLD = 110;
 
 function toFiniteNumber(value, fallback = 0) {
   const number = Number(value);
@@ -182,7 +182,8 @@ function calculateAutoScrollStep({
   }
 
   const intensity = Math.min(1, proximity / threshold);
-  const scrollAmount = Math.max(4, Math.round(4 + (intensity * 8)));
+  const easedIntensity = intensity * intensity;
+  const scrollAmount = Math.max(6, Math.round(6 + (easedIntensity * 26)));
   let nextScrollLeft = currentScrollLeft;
 
   if (direction === 'left') {

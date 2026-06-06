@@ -112,10 +112,10 @@ test('drag drop interaction math', async () => {
     scrollWidth: 800,
     clientWidth: 300
   }), {
-    proximity: 70,
-    intensity: 70 / 90,
-    scrollAmount: 10,
-    nextScrollLeft: 40,
+    proximity: 90,
+    intensity: 90 / 110,
+    scrollAmount: 23,
+    nextScrollLeft: 27,
     changed: true,
     maxScrollLeft: 500
   });
@@ -128,9 +128,9 @@ test('drag drop interaction math', async () => {
     scrollWidth: 800,
     clientWidth: 300
   }), {
-    proximity: 70,
-    intensity: 70 / 90,
-    scrollAmount: 10,
+    proximity: 90,
+    intensity: 90 / 110,
+    scrollAmount: 23,
     nextScrollLeft: 500,
     changed: true,
     maxScrollLeft: 500

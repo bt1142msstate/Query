@@ -1,5 +1,5 @@
 {
-  "version": "63086b9d4b70b158",
+  "version": "27177f98e291f104",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "backgroundNotificationServiceWorker.js": "2f8933df91d32a1a",
@@ -72,12 +72,12 @@
     "src/features/table/contextMenu.js": "dff92fd64fee73f7",
     "src/features/table/drag-drop/columnManager.js": "cddcb95526b161d5",
     "src/features/table/drag-drop/columnResizeController.js": "f9623a02aad91c76",
-    "src/features/table/drag-drop/dragDropAnchorLayout.js": "53272943c2cc24be",
+    "src/features/table/drag-drop/dragDropAnchorLayout.js": "ff2a3ccbfdb992b8",
     "src/features/table/drag-drop/dragDropColumns.js": "aad4325cf52f6495",
     "src/features/table/drag-drop/dragDropHeaderActions.js": "ee13d3c5ecfc41bb",
     "src/features/table/drag-drop/dragDropHeaderInsertAffordance.js": "fda27d41c6e0e9a4",
-    "src/features/table/drag-drop/dragDropInteractionMath.js": "43133e6ca9617ad1",
-    "src/features/table/drag-drop/dragDropInteractions.js": "684d2c2ac9b30b6a",
+    "src/features/table/drag-drop/dragDropInteractionMath.js": "841b198937588b82",
+    "src/features/table/drag-drop/dragDropInteractions.js": "f46e2a12bf940c33",
     "src/features/table/drag-drop/dragDropViewport.js": "d225aed57f867da0",
     "src/features/table/drag-drop/resizeStartTarget.js": "8ee9f5716616abde",
     "src/features/table/export/excel.js": "a57cfc428db1a36d",
