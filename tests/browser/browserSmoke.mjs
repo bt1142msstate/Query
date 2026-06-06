@@ -435,6 +435,9 @@ async function installQueryApiStub(page) {
     countAction(action) {
       return requests.filter(request => request.action === action).length;
     },
+    getRequests(action) {
+      return requests.filter(request => !action || request.action === action);
+    },
     enqueue(responses) {
       queuedResponses.push(...(Array.isArray(responses) ? responses : [responses]));
     }
@@ -688,6 +691,7 @@ const nonSelectableControlSelector = [
   '.load-query-btn',
   '.rerun-query-btn',
   '.stop-query-btn',
+  '.template-query-btn',
   '.filter-panel-mobile-close',
   '.fp-icon-btn',
   '.fp-display-item',
@@ -1865,7 +1869,7 @@ async function exerciseTabletLandscapeMobileParity(page, queryApiStub) {
   await page.locator('[data-history-book="complete"] .history-book-summary').click();
   await page.locator('.history-monitor').waitFor({ state: 'visible', timeout: 5000 });
   await expectElementWithinViewport(page, '.history-monitor', 'Tablet landscape query history monitor');
-  await expectMinimumTapTarget(page, '.history-monitor-close, .history-monitor-tab, .history-monitor .history-expand-btn, .history-monitor .load-query-btn, .history-monitor .rerun-query-btn', 'Tablet landscape history monitor controls');
+  await expectMinimumTapTarget(page, '.history-monitor-close, .history-monitor-tab, .history-monitor .history-expand-btn, .history-monitor .load-query-btn, .history-monitor .rerun-query-btn, .history-monitor .template-query-btn', 'Tablet landscape history monitor controls');
   const historyMonitorMetrics = await page.locator('.history-monitor').evaluate(element => {
     const rect = element.getBoundingClientRect();
     const tabs = element.querySelector('.history-monitor-tabs');
@@ -4213,14 +4217,90 @@ async function runSmokeTest() {
     await exerciseColumnDragOutsideTableInteraction(page);
     await exerciseLiveResponsiveResize(page);
 
+    await page.goto(baseUrl, { waitUntil: 'load', timeout: 15000 });
+    await waitForAppReady(page, failures);
+
     queueHistoryStatusResponses(queryApiStub);
     await page.getByRole('button', { name: 'Queries' }).click();
     await page.locator('input[placeholder="Search queries..."]').waitFor({ state: 'visible', timeout: 5000 });
     await expectDarkInput(page, '#queries-search', 'Query history search input');
+    await page.locator('#queries-status-filter').waitFor({ state: 'visible', timeout: 5000 });
+    await page.locator('#queries-result-filter').waitFor({ state: 'visible', timeout: 5000 });
+    await page.locator('#queries-duration-filter').waitFor({ state: 'visible', timeout: 5000 });
+    await page.locator('#queries-sort').waitFor({ state: 'visible', timeout: 5000 });
     await page.waitForFunction(() => {
-      return document.querySelector('[data-history-book="complete"] .history-book-count')?.textContent?.trim() === '1';
+      return document.querySelector('[data-history-book="complete"] .history-book-count')?.textContent?.trim() === '1'
+        && document.querySelector('[data-history-book="running"] .history-book-count')?.textContent?.trim() === '1';
+    }, null, { timeout: 5000 });
+    await page.locator('#queries-status-filter').selectOption('complete');
+    await page.locator('#queries-result-filter').selectOption('has_results');
+    await page.locator('#queries-sort').selectOption('most_results');
+    await page.waitForFunction(() => {
+      return document.querySelector('[data-history-book="complete"] .history-book-count')?.textContent?.trim() === '1'
+        && document.querySelector('[data-history-book="running"] .history-book-count')?.textContent?.trim() === '0'
+        && document.querySelector('#queries-sort')?.value === 'most_results';
     }, null, { timeout: 5000 });
     await page.locator('[data-history-book="complete"] .history-book-summary').click();
+    await page.locator('.history-monitor').waitFor({ state: 'visible', timeout: 5000 });
+    await page.locator('.history-monitor .template-query-btn').first().click();
+    await page.locator('#templates-detail-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+    const historyTemplateDraft = await page.evaluate(() => ({
+      templatePanelOpen: !document.querySelector('#templates-panel')?.classList.contains('hidden'),
+      queriesPanelOpen: !document.querySelector('#queries-panel')?.classList.contains('hidden'),
+      name: document.querySelector('#template-name-input')?.value || '',
+      description: document.querySelector('#template-description-input')?.value || ''
+    }));
+    if (
+      !historyTemplateDraft.templatePanelOpen
+      || historyTemplateDraft.queriesPanelOpen
+      || historyTemplateDraft.name !== 'Mobile completed smoke query'
+      || !historyTemplateDraft.description.includes('browser-smoke-complete')
+    ) {
+      throw new Error(`History query should open as a template draft: ${JSON.stringify(historyTemplateDraft)}`);
+    }
+    queryApiStub.enqueue({
+      action: 'create_template',
+      body: JSON.stringify({
+        template: {
+          id: 'history-template-from-smoke',
+          name: 'Mobile completed smoke query',
+          description: 'Created from query history item browser-smoke-complete.',
+          categories: [],
+          ui_config: {
+            DesiredColumnOrder: ['Smoke Title', 'Smoke Branch', 'Smoke Status'],
+            Filters: {}
+          }
+        }
+      }),
+      contentType: 'application/json; charset=utf-8'
+    });
+    const createHistoryTemplateResponse = page.waitForResponse(response => {
+      if (!QUERY_API_PATTERN.test(response.url())) {
+        return false;
+      }
+      const payload = parseQueryApiPayload(response.request());
+      return payload.action === 'create_template';
+    });
+    await page.locator('#template-save-btn').click();
+    await createHistoryTemplateResponse;
+    const createTemplateRequest = queryApiStub.getRequests('create_template').at(-1)?.payload;
+    if (
+      createTemplateRequest?.name !== 'Mobile completed smoke query'
+      || !Array.isArray(createTemplateRequest?.ui_config?.DesiredColumnOrder)
+      || !createTemplateRequest.ui_config.DesiredColumnOrder.includes('Smoke Status')
+    ) {
+      throw new Error(`History template save should use the history query config: ${JSON.stringify(createTemplateRequest)}`);
+    }
+    await page.locator('#templates-detail-close-btn').click();
+    await page.locator('#templates-detail-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
+    await page.locator('#templates-panel .collapse-btn').click();
+    await page.locator('#templates-panel.hidden').waitFor({ state: 'attached', timeout: 5000 });
+
+    queueHistoryStatusResponses(queryApiStub, 3);
+    await page.getByRole('button', { name: 'Queries' }).click();
+    if (!(await page.locator('.history-monitor').isVisible())) {
+      await page.locator('[data-history-book="complete"] .history-book-summary').click();
+    }
     await page.locator('.history-monitor').waitFor({ state: 'visible', timeout: 5000 });
     queryApiStub.enqueue({
       action: 'get_results',
@@ -4485,7 +4565,7 @@ async function runSmokeTest() {
     await mobilePage.locator('[data-history-book="complete"] .history-book-summary').click();
     await mobilePage.locator('.history-monitor').waitFor({ state: 'visible', timeout: 5000 });
     await expectElementWithinViewport(mobilePage, '.history-monitor', 'Mobile query history monitor');
-    await expectMinimumTapTarget(mobilePage, '.history-monitor-close, .history-monitor-tab, .history-monitor .history-expand-btn, .history-monitor .load-query-btn, .history-monitor .rerun-query-btn', 'Mobile history monitor controls');
+    await expectMinimumTapTarget(mobilePage, '.history-monitor-close, .history-monitor-tab, .history-monitor .history-expand-btn, .history-monitor .load-query-btn, .history-monitor .rerun-query-btn, .history-monitor .template-query-btn', 'Mobile history monitor controls');
     const mobileHistoryMonitorMetrics = await mobilePage.locator('.history-monitor').evaluate(element => {
       const rect = element.getBoundingClientRect();
       const stageRect = element.querySelector('.history-monitor-stage')?.getBoundingClientRect();

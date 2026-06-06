@@ -141,6 +141,8 @@ test('query history', async () => {
 
   assert.match(rowHtml, /Completed/u);
   assert.match(rowHtml, /12 rows/u);
+  assert.match(rowHtml, /template-query-btn/u);
+  assert.match(rowHtml, /Create template from this query/u);
   assert.match(rowHtml, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/u);
   assert.doesNotMatch(rowHtml, /<script>alert/u);
 

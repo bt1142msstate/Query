@@ -85,10 +85,9 @@
               class="p-2 rounded-full bg-white hover:bg-gray-100 text-black focus:outline-none transition-colors border border-gray-200"
               aria-label="Templates" data-tooltip="Show Query Templates" data-tooltip-delay="0">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="template-default-icon w-5 h-5 pointer-events-none" aria-hidden="true">
-          <rect x="8" y="8" width="48" height="48" rx="10" fill="#FFFFFF" stroke="#111827" stroke-width="4"/>
-          <rect x="18" y="18" width="28" height="11" rx="3" fill="#111827"/>
-          <path d="M18 38h10M36 38h10M18 46h28" fill="none" stroke="#111827" stroke-width="4" stroke-linecap="round"/>
-          <path d="M48 8v13a4 4 0 0 0 4 4h4" fill="none" stroke="#111827" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="10" y="8" width="44" height="48" rx="12" fill="#FFFFFF" stroke="#111827" stroke-width="4"/>
+          <path d="M22 22h20M22 32h20M22 42h12" fill="none" stroke="#111827" stroke-width="4" stroke-linecap="round"/>
+          <path d="M44 8v10a4 4 0 0 0 4 4h6" fill="none" stroke="#111827" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
 
@@ -536,7 +535,50 @@
       <div id="queries-container"
            class="w-full -mt-px border border-blue-200 border-t-0 rounded-b overflow-x-auto">
         <div id="queries-search-wrapper" class="sticky top-0 z-10 pb-2 px-4 pt-4">
-          <input id="queries-search" type="search" placeholder="Search queries..." class="w-full px-3 py-2 rounded-lg focus:outline-none text-sm" data-search-ui="enhanced" data-search-wrapper-class="queries-search-field" data-search-clear-label="Clear query search" />
+          <div class="queries-history-toolbar">
+            <input id="queries-search" type="search" placeholder="Search queries..." class="w-full px-3 py-2 rounded-lg focus:outline-none text-sm" data-search-ui="enhanced" data-search-wrapper-class="queries-search-field" data-search-clear-label="Clear query search" />
+            <div class="queries-history-controls" aria-label="Query history filters and sort controls">
+              <label class="queries-history-control" for="queries-status-filter">
+                <span>Status</span>
+                <select id="queries-status-filter">
+                  <option value="all">All statuses</option>
+                  <option value="running">Running</option>
+                  <option value="complete">Completed</option>
+                  <option value="failed">Failed</option>
+                  <option value="canceled">Cancelled</option>
+                </select>
+              </label>
+              <label class="queries-history-control" for="queries-result-filter">
+                <span>Results</span>
+                <select id="queries-result-filter">
+                  <option value="all">Any result count</option>
+                  <option value="has_results">Has rows</option>
+                  <option value="no_results">No rows</option>
+                  <option value="large_results">1,000+ rows</option>
+                  <option value="unknown_results">Unknown count</option>
+                </select>
+              </label>
+              <label class="queries-history-control" for="queries-duration-filter">
+                <span>Duration</span>
+                <select id="queries-duration-filter">
+                  <option value="all">Any duration</option>
+                  <option value="over_5m">Over 5 minutes</option>
+                  <option value="over_30m">Over 30 minutes</option>
+                </select>
+              </label>
+              <label class="queries-history-control" for="queries-sort">
+                <span>Sort</span>
+                <select id="queries-sort">
+                  <option value="newest">Newest first</option>
+                  <option value="oldest">Oldest first</option>
+                  <option value="most_results">Most results</option>
+                  <option value="longest_duration">Longest duration</option>
+                  <option value="fastest_duration">Fastest duration</option>
+                  <option value="name">Name A-Z</option>
+                </select>
+              </label>
+            </div>
+          </div>
         </div>
         <div id="queries-list">
           <!-- list will be injected here -->

@@ -1,3 +1,10 @@
+import {
+  getHistoryQueryStatus,
+  normalizeHistoryViewOptions,
+  queryMatchesHistoryFilters,
+  sortHistoryQueries
+} from './queryHistoryControls.js';
+
 export function queryMatchesHistorySearch(query, searchTerm, options = {}) {
   const normalizedSearch = String(searchTerm || '').trim().toLowerCase();
   if (!normalizedSearch) {
@@ -18,30 +25,42 @@ export function queryMatchesHistorySearch(query, searchTerm, options = {}) {
     || columns.some(column => String(column || '').toLowerCase().includes(normalizedSearch));
 }
 
-export function groupHistoryQueries(queries, searchTerm = '') {
+export function groupHistoryQueries(queries, searchTerm = '', options = {}) {
   const source = Array.isArray(queries) ? queries : [];
+  const normalizedOptions = normalizeHistoryViewOptions(options);
+  const explicitNowNumber = Number(options?.now);
+  const explicitNowDate = options?.now ? new Date(options.now).getTime() : NaN;
+  const now = Number.isFinite(explicitNowNumber)
+    ? explicitNowNumber
+    : Number.isFinite(explicitNowDate)
+      ? explicitNowDate
+      : Date.now();
   const running = [];
   const complete = [];
   const failed = [];
   const canceled = [];
 
-  source.forEach(query => {
-    if (query?.running) {
-      if (queryMatchesHistorySearch(query, searchTerm)) running.push(query);
+  const matchingQueries = sortHistoryQueries(source.filter(query => {
+    const includeError = query?.failed || getHistoryQueryStatus(query) === 'failed';
+    return queryMatchesHistorySearch(query, searchTerm, { includeError })
+      && queryMatchesHistoryFilters(query, normalizedOptions, now);
+  }), normalizedOptions.sortKey, now);
+
+  matchingQueries.forEach(query => {
+    const status = getHistoryQueryStatus(query);
+    if (status === 'running') {
+      running.push(query);
       return;
     }
-
-    if (query?.failed) {
-      if (queryMatchesHistorySearch(query, searchTerm, { includeError: true })) failed.push(query);
+    if (status === 'failed') {
+      failed.push(query);
       return;
     }
-
-    if (query?.cancelled) {
-      if (queryMatchesHistorySearch(query, searchTerm)) canceled.push(query);
+    if (status === 'canceled') {
+      canceled.push(query);
       return;
     }
-
-    if (queryMatchesHistorySearch(query, searchTerm)) complete.push(query);
+    complete.push(query);
   });
 
   const counts = {
@@ -60,6 +79,7 @@ export function groupHistoryQueries(queries, searchTerm = '') {
     counts,
     visibleCount,
     totalCount: source.length,
-    hasVisibleQueries: visibleCount > 0
+    hasVisibleQueries: visibleCount > 0,
+    options: normalizedOptions
   };
 }

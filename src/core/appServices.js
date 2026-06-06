@@ -441,6 +441,10 @@ function registerTableService(service) {
     queryTemplatesService?.refreshTemplates?.(options);
   }
 
+  function createTemplateFromHistoryQuery(query) {
+    return queryTemplatesService?.createFromHistoryQuery?.(query);
+  }
+
   appServices = Object.freeze({
     get bubble() {
       return getBubbleService();
@@ -538,7 +542,8 @@ function registerTableService(service) {
     syncFormModeFromCurrentQuery,
     openQueryTemplatesPanel,
     closeQueryTemplatesPanel,
-    refreshQueryTemplates
+    refreshQueryTemplates,
+    createTemplateFromHistoryQuery
   });
 
   registerQueryStateRuntimeAccessors({ getServices: () => appServices });
