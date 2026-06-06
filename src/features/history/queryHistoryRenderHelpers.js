@@ -30,7 +30,7 @@ function updateHistoryPollingMeta(dom, { isPollingActive, refreshedAt }) {
   const pollingValue = dom?.queriesList?.querySelector('.history-polling-value');
   const pollingDetail = dom?.queriesList?.querySelector('.history-polling-detail');
   if (pollingValue) {
-    pollingValue.textContent = isPollingActive ? 'Polling live' : 'Polling paused';
+    pollingValue.textContent = isPollingActive ? 'Auto refresh on' : 'Auto refresh paused';
     pollingValue.classList.toggle('active', !!isPollingActive);
     pollingValue.classList.toggle('idle', !isPollingActive);
   }

@@ -101,22 +101,22 @@ function buildHistoryPanelView({
     }
   ];
   const historyMonitor = buildHistoryMonitor(openSection, sections);
-  const pollingLabel = isPollingActive ? 'Polling live' : 'Polling paused';
+  const pollingLabel = isPollingActive ? 'Auto refresh on' : 'Auto refresh paused';
   const visibleMetaDetail = buildHistoryVisibleMetaDetail(searchTerm, viewOptions);
   const content = `
     <section class="history-editorial-hero">
       <div class="history-editorial-copy">
-        <h3 class="history-editorial-title">Query Hub</h3>
+        <h3 class="history-editorial-title">Query History</h3>
         <p class="history-editorial-subtitle">${escapeHistoryText(historySubtitle)}</p>
       </div>
       <div class="history-editorial-meta">
         <div class="history-meta-card">
-          <span class="history-meta-label">Polling</span>
+          <span class="history-meta-label">Updates</span>
           <span class="history-meta-value history-polling-value ${isPollingActive ? 'active' : 'idle'}">${pollingLabel}</span>
           <span class="history-meta-detail history-polling-detail">Last refresh ${escapeHistoryText(refreshedAt)}</span>
         </div>
         <div class="history-meta-card">
-          <span class="history-meta-label">Visible Queries</span>
+          <span class="history-meta-label">Shown</span>
           <span class="history-meta-value">${visibleCount}</span>
           <span class="history-meta-detail">${escapeHistoryText(visibleMetaDetail)}</span>
         </div>

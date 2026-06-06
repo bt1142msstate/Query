@@ -4222,7 +4222,7 @@ async function runSmokeTest() {
 
     queueHistoryStatusResponses(queryApiStub);
     await page.getByRole('button', { name: 'Queries' }).click();
-    await page.locator('input[placeholder="Search queries..."]').waitFor({ state: 'visible', timeout: 5000 });
+    await page.locator('input[placeholder="Search history"]').waitFor({ state: 'visible', timeout: 5000 });
     await expectDarkInput(page, '#queries-search', 'Query history search input');
     await page.locator('#queries-status-filter').waitFor({ state: 'visible', timeout: 5000 });
     await page.locator('#queries-result-filter').waitFor({ state: 'visible', timeout: 5000 });
