@@ -14,6 +14,11 @@ import {
   rowMatchesDoesNotEqualSelection,
   rowMatchesEqualsSelection
 } from '../post-filters/postFilterLogic.js';
+import {
+  getSplitFieldColumnIndexes,
+  getSplitFieldParentName,
+  getSplitFieldValue
+} from './splitColumnFields.js';
 
 export function createVirtualTablePostFilterController({
   getBaseViewData,
@@ -74,7 +79,7 @@ export function createVirtualTablePostFilterController({
     Object.keys(state).forEach(field => {
       const canonicalField = getCanonicalFieldName(field, baseViewData);
       const isVisible = visibleFieldSet.has(field) || visibleFieldSet.has(canonicalField);
-      if (!isVisible || !resolveFieldColumnIndexes(field, baseViewData).length) {
+      if (!isVisible || !getSplitFieldColumnIndexes(field, baseViewData).length) {
         delete state[field];
         return;
       }
@@ -100,14 +105,14 @@ export function createVirtualTablePostFilterController({
     }
 
     const baseViewData = getBaseViewData();
-    const columnIndexes = resolveFieldColumnIndexes(normalizedField, baseViewData);
+    const columnIndexes = getSplitFieldColumnIndexes(normalizedField, baseViewData);
     if (!columnIndexes.length) {
       return [];
     }
 
     const options = buildFieldOptions({
       rows: baseViewData.rows,
-      getRawValue: row => getResolvedFieldValue(row, columnIndexes),
+      getRawValue: row => getSplitFieldValue(row, columnIndexes),
       fieldType: getFieldType(getCanonicalFieldName(normalizedField, baseViewData))
     });
     valueOptionsCache.set(normalizedField, options);
@@ -147,13 +152,13 @@ export function createVirtualTablePostFilterController({
 
   function doesRowMatchFilter(row, field, filter) {
     const baseViewData = getBaseViewData();
-    const columnIndexes = resolveFieldColumnIndexes(field, baseViewData);
+    const columnIndexes = getSplitFieldColumnIndexes(field, baseViewData);
     if (!columnIndexes.length) {
       return true;
     }
 
     const type = getFieldType(getCanonicalFieldName(field, baseViewData));
-    return doesCellMatchPostFilter(getResolvedFieldValue(row, columnIndexes), type, filter);
+    return doesCellMatchPostFilter(getSplitFieldValue(row, columnIndexes), type, filter);
   }
 
   return {
@@ -298,61 +303,8 @@ function cloneOptions(options) {
   return options.map(option => ({ ...option }));
 }
 
-function getSplitColumnParentMap(baseViewData) {
-  return baseViewData?.splitColumnParent instanceof Map ? baseViewData.splitColumnParent : new Map();
-}
-
-function getSplitColumnGroups(baseViewData) {
-  return baseViewData?.splitColumnGroups instanceof Map ? baseViewData.splitColumnGroups : new Map();
-}
-
 function getCanonicalFieldName(field, baseViewData) {
-  const normalizedField = String(field || '').trim();
-  if (!normalizedField) {
-    return '';
-  }
-
-  return getSplitColumnParentMap(baseViewData).get(normalizedField) || normalizedField;
-}
-
-function resolveFieldColumnIndexes(field, baseViewData) {
-  const normalizedField = String(field || '').trim();
-  if (!normalizedField) {
-    return [];
-  }
-
-  const columnMap = baseViewData?.columnMap instanceof Map ? baseViewData.columnMap : new Map();
-  if (columnMap.has(normalizedField)) {
-    return [columnMap.get(normalizedField)];
-  }
-
-  const splitChildren = getSplitColumnGroups(baseViewData).get(normalizedField);
-  if (Array.isArray(splitChildren) && splitChildren.length) {
-    return splitChildren
-      .map(childField => columnMap.get(childField))
-      .filter(index => index !== undefined);
-  }
-
-  const parentField = getSplitColumnParentMap(baseViewData).get(normalizedField);
-  if (parentField && columnMap.has(parentField)) {
-    return [columnMap.get(parentField)];
-  }
-
-  return [];
-}
-
-function getResolvedFieldValue(row, columnIndexes) {
-  if (!Array.isArray(row) || !Array.isArray(columnIndexes) || !columnIndexes.length) {
-    return '';
-  }
-
-  if (columnIndexes.length === 1) {
-    return row[columnIndexes[0]] ?? '';
-  }
-
-  return columnIndexes
-    .map(index => row[index] ?? '')
-    .join('\x1F');
+  return getSplitFieldParentName(field, baseViewData);
 }
 
 function doesCellMatchBetweenFilter(rowValues, filterValue, type) {

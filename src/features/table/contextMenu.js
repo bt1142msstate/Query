@@ -75,6 +75,11 @@ import { SharedFieldPicker } from '../../ui/field-picker/fieldPicker.js';
     return vt.rows.map(row => formatCellValue(row[dataColIdx], field));
   }
 
+  function truncateMenuHint(value) {
+    const text = String(value || '');
+    return text.length > 24 ? `${text.slice(0, 22)}\u2026` : text;
+  }
+
   // For cells that don't have a row index (shouldn't happen in practice but safe fallback)
   function getCellFallbackText(td) {
     return td.getAttribute('data-tooltip') || td.textContent || '';
@@ -443,9 +448,9 @@ import { SharedFieldPicker } from '../../ui/field-picker/fieldPicker.js';
 
     const fields   = getFields();
     const field    = fields[colIndex];
-    const colLabel = field
-      ? (field.length > 24 ? field.slice(0, 22) + '\u2026' : field)
-      : `Column ${colIndex + 1}`;
+    const colLabel = field ? truncateMenuHint(field) : `Column ${colIndex + 1}`;
+    const filterField = field ? services.getFilterActionFieldName(field) : '';
+    const filterLabel = filterField ? truncateMenuHint(filterField) : colLabel;
 
     const hasRow = !isNaN(rowIndex);
     const isHeaderTarget = Boolean(headerCell && !bodyCell);
@@ -473,30 +478,30 @@ import { SharedFieldPicker } from '../../ui/field-picker/fieldPicker.js';
       {
         icon:  FILTER_ICON,
         label: 'Add Filter',
-        hint:  colLabel,
+        hint:  filterLabel,
         preview() {
           return previewColumn(colIndex);
         },
         run() {
-          if (!field) {
+          if (!filterField) {
             return;
           }
-          SharedFieldPicker.openQueryFilterEditor(field);
+          SharedFieldPicker.openQueryFilterEditor(filterField);
         }
       },
       {
         icon:  FILTER_ICON,
         label: 'Add Post Filter',
-        hint:  colLabel,
+        hint:  filterLabel,
         preview() {
           return previewColumn(colIndex);
         },
         run() {
-          if (!field) {
+          if (!filterField) {
             return;
           }
 
-          appUiActions.openPostFilterOverlayForField(field);
+          appUiActions.openPostFilterOverlayForField(filterField);
         }
       },
       ...(!isHeaderTarget ? [

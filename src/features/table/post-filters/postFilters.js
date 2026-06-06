@@ -75,9 +75,7 @@ let PostFilterSystem;
 
   function getAvailableFields() {
     const displayedFields = getDisplayedFields();
-    const columnMap = services.getBaseViewColumnMap();
-
-    return displayedFields.filter(field => columnMap instanceof Map && columnMap.has(field));
+    return services.getPostFilterActionFields(displayedFields);
   }
 
   function getFieldType(fieldName) {
@@ -495,7 +493,7 @@ let PostFilterSystem;
   }
 
   function openOverlayForField(fieldName) {
-    const field = String(fieldName || '').trim();
+    const field = services.getFilterActionFieldName(fieldName);
     if (!field) {
       return false;
     }

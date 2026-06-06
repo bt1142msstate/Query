@@ -19,6 +19,10 @@ import {
   calculateOptimalColumnWidths as calculateMeasuredOptimalColumnWidths
 } from './tableColumnWidthCalculation.js';
 import { buildExpandedMultiValueTable } from './splitColumnExpansion.js';
+import {
+  getPostFilterActionFieldsForTable,
+  getSplitFieldParentName
+} from './splitColumnFields.js';
 import { escapeHtml } from '../../../core/formatting/html.js';
 import { QueryTableView } from '../../../ui/queryTableView.js';
 import { createVirtualTableEmptyRow, createVirtualTableRow } from './virtualTableRows.js';
@@ -762,6 +766,8 @@ VirtualTable = {
   sortTableBy,
   setSplitColumnsMode,
   expandMultiValueColumns,
+  getFilterActionFieldName: fieldName => getSplitFieldParentName(fieldName, baseViewData),
+  getPostFilterActionFields: fields => getPostFilterActionFieldsForTable(fields, baseViewData),
   getPostFilterState: () => postFilters.cloneSnapshot(),
   getPostFilterFieldOptions: fieldName => postFilters.getFieldOptions(fieldName),
   replacePostFilters(nextFilters, options = {}) {
