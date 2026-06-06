@@ -318,7 +318,11 @@ if (execDom.runBtn) {
             services.setSplitColumnsMode(true);
           }
         }
-        services.rememberOpenedHistoryResult?.(QueryStateReaders.getLifecycleState().currentQueryId);
+        await services.cacheOpenedHistoryResult?.({
+          queryId: QueryStateReaders.getLifecycleState().currentQueryId,
+          headers,
+          rows: services.getVirtualTableData?.()?.rows || rows.map(row => headers.map(header => row[header]))
+        });
 
         const completionMessage = streamedPayload.partial
           ? (endedEarlyFromNetwork

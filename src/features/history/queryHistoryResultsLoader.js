@@ -1,4 +1,5 @@
 import { parseQueryResultPayload } from '../../core/queryResultParser.js';
+import { buildTableRowsFromObjectRows, writeCachedHistoryResultSnapshot } from './queryHistoryResultCache.js';
 import { rememberOpenedHistoryResult } from './queryHistoryResultSession.js';
 
 export function createQueryHistoryResultsLoader({
@@ -42,6 +43,7 @@ export function createQueryHistoryResultsLoader({
       });
 
       console.log(`Loaded ${rows.objectRows.length} rows from history`);
+      const tableRows = buildTableRowsFromObjectRows(rows.headers, rows.objectRows);
 
       if (query.running) {
         query.resultCount = rows.objectRows.length;
@@ -57,7 +59,7 @@ export function createQueryHistoryResultsLoader({
       if (services.table) {
         await hydrateHistoryResultTable({
           headers: rows.headers,
-          objectRows: rows.objectRows,
+          rows: tableRows,
           appState,
           services,
           uiActions
@@ -67,6 +69,12 @@ export function createQueryHistoryResultsLoader({
       uiActions.updateTableResultsLip();
       if (options.remember !== false) {
         rememberOpenedHistoryResult(query.id);
+        await writeCachedHistoryResultSnapshot({
+          query,
+          queryId: query.id,
+          headers: rows.headers,
+          rows: tableRows
+        });
       }
 
       showToastMessage(streamError
@@ -120,13 +128,16 @@ export function buildHistoryResultRows({
 async function hydrateHistoryResultTable({
   headers,
   objectRows,
+  rows,
   appState,
   services,
   uiActions
 }) {
   const columnMap = new Map();
   headers.forEach((header, index) => columnMap.set(header, index));
-  const tableRows = objectRows.map(row => headers.map(header => row[header]));
+  const tableRows = Array.isArray(rows)
+    ? rows
+    : buildTableRowsFromObjectRows(headers, objectRows);
 
   services.setVirtualTableData({
     headers,
@@ -145,3 +156,5 @@ async function hydrateHistoryResultTable({
   }
   uiActions.updateButtonStates();
 }
+
+export { hydrateHistoryResultTable };

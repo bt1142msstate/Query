@@ -1,13 +1,10 @@
-/**
- * Query History Management Module
- * Handles display and management of query history, including running, completed, and cancelled queries.
- * @module QueryHistory
- */
 import { buildHistoryDetailsOverlayHtml } from './queryHistoryDetails.js';
 import { createQueryHistoryConfigLoader } from './queryHistoryConfigLoader.js';
 import { createQueryHistoryDependencies } from './queryHistoryDependencies.js';
 import { HistoryResultProgress } from './queryHistoryResultProgress.js';
 import { createQueryHistoryResultsLoader } from './queryHistoryResultsLoader.js';
+import { writeCachedHistoryResultSnapshot } from './queryHistoryResultCache.js';
+import { createOpenedHistoryResultRestoreController } from './queryHistoryResultRestore.js';
 import {
   captureHistoryViewState,
   didErrorDetailsChange,
@@ -26,12 +23,7 @@ import { groupHistoryQueries } from './queryHistoryGrouping.js';
 import { mapStatusPayloadToHistoryRows } from './queryHistoryStatusMapper.js';
 import { formatColumnsTooltip, formatHistoryFiltersTooltip } from './queryHistoryTooltips.js';
 import { notifyHistoryResultLoadComplete, prepareHistoryResultLoadNotification } from './queryHistoryNotifications.js';
-import {
-  forgetOpenedHistoryResult,
-  readOpenedHistoryResult,
-  rememberOpenedHistoryResult,
-  shouldRestoreOpenedHistoryResult
-} from './queryHistoryResultSession.js';
+import { rememberOpenedHistoryResult, shouldRestoreOpenedHistoryResult } from './queryHistoryResultSession.js';
 import {
   buildHistoryMonitor,
   buildHistorySection,
@@ -60,18 +52,13 @@ const QUERY_STATUS_POLL_MS = 2000;
 const IDLE_POLL_MS = 8000;
 let lastHistoryRenderKey = '';
 const historyDependencies = createQueryHistoryDependencies(normalizeUiConfigFilters);
-let openedHistoryResultRestoreAttempted = false;
+let openedHistoryResultRestoreController = null;
 
 function isQueriesPanelOpen() {
   const panel = DOM.queriesPanel;
   return !!(panel && !panel.classList.contains('hidden'));
 }
 
-/**
- * Adds a new query to the history list.
- * @function addQueryToHistory
- * @param {Object} query - The query object to add
- */
 function addQueryToHistory(query) {
   exampleQueries.unshift(query);
   // Keep only last 50 queries
@@ -195,7 +182,7 @@ async function fetchQueryStatus() {
 
     patchQueriesPanelData(newHistory);
     syncActiveQueryProgressFromHistory(newHistory);
-    restoreOpenedHistoryResultAfterStatus();
+    openedHistoryResultRestoreController?.restoreFromBackendAfterStatus({ location: window.location });
 
     if (isQueriesPanelOpen()) {
       // Keep the interval alive so queries from other users surface automatically.
@@ -331,25 +318,18 @@ const loadQueryResults = createQueryHistoryResultsLoader({
   renderQueries
 });
 
-function restoreOpenedHistoryResultAfterStatus() {
-  if (openedHistoryResultRestoreAttempted || !shouldRestoreOpenedHistoryResult({ location: window.location })) {
-    return;
+async function cacheOpenedHistoryResultSnapshot(snapshot = {}) {
+  const queryId = snapshot.queryId || snapshot.query?.id || '';
+  const query = snapshot.query || getHistoryQueryById(queryId);
+  if (!queryId || !query) {
+    return false;
   }
 
-  openedHistoryResultRestoreAttempted = true;
-  const remembered = readOpenedHistoryResult();
-  const queryId = remembered?.queryId || '';
-  if (!queryId) {
-    return;
-  }
-
-  if (!getHistoryQueryById(queryId)) {
-    forgetOpenedHistoryResult();
-    return;
-  }
-
-  loadQueryResults(queryId, { notify: false, restore: true }).catch(error => {
-    console.error('Failed to restore opened history results:', error);
+  rememberOpenedHistoryResult(queryId);
+  return writeCachedHistoryResultSnapshot({
+    ...snapshot,
+    query,
+    queryId
   });
 }
 
@@ -835,7 +815,8 @@ const QueryHistorySystem = {
   formatColumnsTooltip, formatHistoryFiltersTooltip,
   fetchQueryStatus,
   rememberOpenedResult: rememberOpenedHistoryResult,
-  forgetOpenedResult: forgetOpenedHistoryResult,
+  cacheOpenedResult: cacheOpenedHistoryResultSnapshot,
+  forgetOpenedResult: () => openedHistoryResultRestoreController?.forgetRestoreSnapshot?.(),
   closeDetailsOverlay: closeHistoryDetailsOverlay,
   startQueryDurationUpdates,
   stopQueryDurationUpdates,
@@ -855,6 +836,17 @@ let queryHistoryInitialized = false;
 
 // Initialize query history functionality
 onDOMReady(() => {
+  openedHistoryResultRestoreController = createOpenedHistoryResultRestoreController({
+    appState: AppState,
+    getHistoryQueryById,
+    loadQueryConfig,
+    loadQueryResults,
+    queryChangeManager: QueryChangeManager,
+    services,
+    showToastMessage,
+    uiActions
+  });
+
   if (queryHistoryInitialized) {
     return;
   }
@@ -864,12 +856,6 @@ onDOMReady(() => {
   // Initial render of the query history list
   renderQueries();
 
-  // Start duration updates if there are running queries
-  if (exampleQueries.some(q => q.running)) {
-    // Don't start immediately - only when the panel is opened
-    // The openModal function will handle starting updates
-  }
-
   // Attach queries search event listener
   const queriesSearchInput = DOM.queriesSearch;
   if (queriesSearchInput) {
@@ -878,7 +864,9 @@ onDOMReady(() => {
 
   QueryStateReaders.subscribe(event => {
     if (event?.meta?.source === 'QueryChangeManager.clearQuery') {
-      forgetOpenedHistoryResult();
+      openedHistoryResultRestoreController.forgetRestoreSnapshot().catch(error => {
+        console.warn('Failed to clear cached history result:', error);
+      });
     }
   });
 
@@ -886,10 +874,17 @@ onDOMReady(() => {
   document.addEventListener('click', handleQueryRowClick);
 
   // Initial fetch of query history. When results were open before refresh,
-  // fetch immediately so the restore path can rehydrate them without waiting
-  // for the regular delayed history poll.
+  // try local cache first so table results can rehydrate without a backend
+  // result download. If the cache is unavailable, the status poll keeps the
+  // previous backend fallback path.
   if (shouldRestoreOpenedHistoryResult({ location: window.location })) {
-    fetchQueryStatus();
+    openedHistoryResultRestoreController.restoreFromCache({ location: window.location })
+      .catch(error => {
+        console.warn('Failed to restore cached history results:', error);
+      })
+      .finally(() => {
+        fetchQueryStatus();
+      });
   } else {
     setTimeout(fetchQueryStatus, 500);
   }

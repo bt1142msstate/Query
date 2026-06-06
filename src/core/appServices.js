@@ -215,6 +215,14 @@ function registerTableService(service) {
     return getQueryHistoryService()?.rememberOpenedResult?.(queryId);
   }
 
+  function cacheOpenedHistoryResult(snapshot) {
+    return getQueryHistoryService()?.cacheOpenedResult?.(snapshot);
+  }
+
+  function forgetOpenedHistoryResult() {
+    return getQueryHistoryService()?.forgetOpenedResult?.();
+  }
+
   function startHistoryDurationUpdates() {
     return getQueryHistoryService()?.startQueryDurationUpdates?.();
   }
@@ -477,6 +485,8 @@ function registerTableService(service) {
     getHistoryQueryById,
     renderHistoryQueries,
     rememberOpenedHistoryResult,
+    cacheOpenedHistoryResult,
+    forgetOpenedHistoryResult,
     startHistoryDurationUpdates,
     stopHistoryDurationUpdates,
     fetchHistoryQueryStatus,

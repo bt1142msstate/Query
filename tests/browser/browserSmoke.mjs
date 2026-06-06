@@ -4174,14 +4174,20 @@ async function runSmokeTest() {
     if (rememberedHistoryResult?.queryId !== 'browser-smoke-complete') {
       throw new Error(`History result load should remember the opened query id: ${JSON.stringify(rememberedHistoryResult)}`);
     }
+    const cachedHistoryResult = await page.evaluate(async () => {
+      const { readCachedHistoryResultSnapshot } = await import('./src/features/history/queryHistoryResultCache.js');
+      return readCachedHistoryResultSnapshot('browser-smoke-complete');
+    });
+    if (
+      cachedHistoryResult?.queryId !== 'browser-smoke-complete'
+      || cachedHistoryResult?.rows?.length !== 2
+      || cachedHistoryResult.rows[0][0] !== 'Loaded One'
+    ) {
+      throw new Error(`History result load should cache the opened rows locally: ${JSON.stringify(cachedHistoryResult)}`);
+    }
 
     queueHistoryStatusResponses(queryApiStub, 6);
-    queryApiStub.enqueue({
-      action: 'get_results',
-      body: 'Loaded One|Main|Open\nLoaded Two|East|Closed\n',
-      delayMs: 120,
-      rawColumns: smokeResultHeaders
-    });
+    const getResultsRequestsBeforeReload = queryApiStub.countAction('get_results');
     await page.evaluate(url => {
       window.history.replaceState({}, '', url);
     }, baseUrl);
@@ -4209,9 +4215,11 @@ async function runSmokeTest() {
       || restoredHistoryResult.hasLoadedResultSet !== true
       || restoredHistoryResult.rows.length !== 2
       || restoredHistoryResult.rows[0][0] !== 'Loaded One'
+      || queryApiStub.countAction('get_results') !== getResultsRequestsBeforeReload
     ) {
       throw new Error(`Reload should restore the last opened history results: ${JSON.stringify({
         ...restoredHistoryResult,
+        getResultsRequestsBeforeReload,
         getResultsRequests: queryApiStub.countAction('get_results'),
         statusRequests: queryApiStub.countAction('status')
       })}`);
