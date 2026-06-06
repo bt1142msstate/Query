@@ -1,5 +1,5 @@
 export function getDragScrollContainer(table) {
-  return table?.closest('.overflow-x-auto') || null;
+  return table?.closest('.overflow-x-auto, #table-container') || null;
 }
 
 export function getDropIndicatorViewportRect(table) {

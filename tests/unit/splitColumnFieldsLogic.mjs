@@ -4,6 +4,7 @@ import test from 'node:test';
 import { buildExpandedMultiValueTable } from '../../src/features/table/virtual-table/splitColumnExpansion.js';
 import {
   buildDisplayedFieldMove,
+  buildSplitModeDisplayedFields,
   getPostFilterActionFieldsForTable,
   getSplitFieldColumnIndexes,
   getSplitFieldGroupIndices,
@@ -133,5 +134,42 @@ test('displayed field moves keep explicit split column groups together', () => {
       split
     ).fields,
     ['Branch', 'Status', 'Title']
+  );
+});
+
+test('split mode displayed fields preserve current column order', () => {
+  const compact = {
+    headers: ['Title', 'Public Note', 'Branch', 'Status'],
+    rows: [
+      ['Alpha', 'First note\x1FSecond note', 'Main', 'Open'],
+      ['Beta', 'Only note', 'East', 'Closed']
+    ],
+    columnMap: new Map([
+      ['Title', 0],
+      ['Public Note', 1],
+      ['Branch', 2],
+      ['Status', 3]
+    ])
+  };
+  const split = buildExpandedMultiValueTable(compact);
+  const collapsedWithMetadata = {
+    ...compact,
+    splitColumnGroups: split.splitColumnGroups,
+    splitColumnParent: split.splitColumnParent
+  };
+
+  assert.deepEqual(
+    buildSplitModeDisplayedFields(['Status', 'Public Note', 'Title'], split, true),
+    ['Status', 'Public Note 1', 'Public Note 2', 'Title']
+  );
+
+  assert.deepEqual(
+    buildSplitModeDisplayedFields(['Status', 'Public Note 1', 'Public Note 2', 'Title'], collapsedWithMetadata, false),
+    ['Status', 'Public Note', 'Title']
+  );
+
+  assert.deepEqual(
+    buildSplitModeDisplayedFields(['Public Note 2', 'Status', 'Public Note 1'], collapsedWithMetadata, false),
+    ['Public Note', 'Status']
   );
 });

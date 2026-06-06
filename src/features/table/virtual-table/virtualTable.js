@@ -21,6 +21,7 @@ import {
 import { buildExpandedMultiValueTable } from './splitColumnExpansion.js';
 import {
   buildDisplayedFieldMove,
+  buildSplitModeDisplayedFields,
   getPostFilterActionFieldsForTable,
   getSplitFieldGroupIndices,
   getSplitFieldParentName
@@ -546,6 +547,7 @@ async function setupVirtualTable(container, fields, options = {}) {
 
   // Set up container for virtual scrolling
   container.style.height = container.dataset.expanded === 'true' ? 'calc(100vh - 11rem)' : '400px';
+  container.style.overflowX = 'auto';
   container.style.overflowY = 'auto';
   
   // Set up scroll container reference
@@ -702,6 +704,7 @@ function expandMultiValueColumns() {
  * @param {boolean} active
  */
 function setSplitColumnsMode(active) {
+  const currentDisplayedFields = getDisplayedFields();
   splitColumnsActive = active;
 
   if (active) {
@@ -737,8 +740,9 @@ function setSplitColumnsMode(active) {
   });
 
   // Keep query-state columns aligned with the active split/stacked header set.
+  const nextDisplayedFields = buildSplitModeDisplayedFields(currentDisplayedFields, baseViewData, active);
   QueryTableView.queueNextStateRenderOptions({ preserveScroll: true });
-  QueryChangeManager.replaceDisplayedFields(baseViewData.headers, { source: 'VirtualTable.setSplitMode' });
+  QueryChangeManager.replaceDisplayedFields(nextDisplayedFields, { source: 'VirtualTable.setSplitMode' });
   notifyPostFiltersUpdated();
   syncResizeModeUi();
 }

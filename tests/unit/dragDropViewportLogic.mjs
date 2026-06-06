@@ -14,7 +14,7 @@ test('drag drop viewport', async () => {
       parent,
       headers,
       closest(selector) {
-        return selector === '.overflow-x-auto' ? this.parent : null;
+        return selector.includes('.overflow-x-auto') || selector.includes('#table-container') ? this.parent : null;
       },
       getBoundingClientRect() {
         return rect;
@@ -54,4 +54,21 @@ test('drag drop viewport', async () => {
   assert.equal(getDragScrollContainer(tableWithoutScroll), null);
   assert.equal(getDropIndicatorViewportRect(tableWithoutScroll), tableWithoutScroll.getBoundingClientRect());
   assert.deepEqual(getVisibleHeaderTargets(tableWithoutScroll), [headers[0]]);
+
+  const tableContainer = createNode({
+    rect: { left: 0, right: 240, top: 0, bottom: 100, width: 240, height: 100 }
+  });
+  const tableWithIdContainer = {
+    parent: tableContainer,
+    closest(selector) {
+      return selector.includes('#table-container') ? this.parent : null;
+    },
+    getBoundingClientRect() {
+      return { left: 0, right: 480, top: 0, bottom: 100, width: 480, height: 100 };
+    },
+    querySelectorAll() {
+      return [];
+    }
+  };
+  assert.equal(getDragScrollContainer(tableWithIdContainer), tableContainer);
 });
