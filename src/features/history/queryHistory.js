@@ -3,8 +3,8 @@ import { createQueryHistoryConfigLoader } from './queryHistoryConfigLoader.js';
 import { createQueryHistoryDependencies } from './queryHistoryDependencies.js';
 import { HistoryResultProgress } from './results/queryHistoryResultProgress.js';
 import { createQueryHistoryResultsLoader } from './results/queryHistoryResultsLoader.js';
-import { writeCachedHistoryResultSnapshot } from './results/queryHistoryResultCache.js';
 import { createOpenedHistoryResultRestoreController } from './results/queryHistoryResultRestore.js';
+import { createOpenedResultViewStatePersistence } from './results/queryHistoryResultViewPersistence.js';
 import {
   captureHistoryViewState,
   didErrorDetailsChange,
@@ -58,6 +58,7 @@ const IDLE_POLL_MS = 8000;
 let lastHistoryRenderKey = '';
 const historyDependencies = createQueryHistoryDependencies(normalizeUiConfigFilters);
 let openedHistoryResultRestoreController = null;
+let openedResultViewStatePersistence = null;
 
 function isQueriesPanelOpen() {
   const panel = DOM.queriesPanel;
@@ -339,21 +340,6 @@ const loadQueryResults = createQueryHistoryResultsLoader({
   loadQueryConfig,
   renderQueries
 });
-
-async function cacheOpenedHistoryResultSnapshot(snapshot = {}) {
-  const queryId = snapshot.queryId || snapshot.query?.id || '';
-  const query = snapshot.query || getHistoryQueryById(queryId);
-  if (!queryId || !query) {
-    return false;
-  }
-
-  rememberOpenedHistoryResult(queryId, { updateUrl: true });
-  return writeCachedHistoryResultSnapshot({
-    ...snapshot,
-    query,
-    queryId
-  });
-}
 
 /**
  * Binds load/rerun/stop button event handlers on all matching buttons within
@@ -755,7 +741,7 @@ const QueryHistorySystem = {
   formatColumnsTooltip, formatHistoryFiltersTooltip,
   fetchQueryStatus,
   rememberOpenedResult: rememberOpenedHistoryResult,
-  cacheOpenedResult: cacheOpenedHistoryResultSnapshot,
+  cacheOpenedResult: snapshot => openedResultViewStatePersistence?.cacheSnapshot(snapshot),
   forgetOpenedResult: () => openedHistoryResultRestoreController?.forgetRestoreSnapshot?.(),
   closeDetailsOverlay: closeHistoryDetailsOverlay,
   startQueryDurationUpdates,
@@ -786,6 +772,11 @@ onDOMReady(() => {
     services,
     showToastMessage,
     uiActions
+  });
+  openedResultViewStatePersistence = createOpenedResultViewStatePersistence({
+    getHistoryQueryById,
+    queryStateReaders: QueryStateReaders,
+    services
   });
 
   if (queryHistoryInitialized) {
@@ -819,7 +810,15 @@ onDOMReady(() => {
       openedHistoryResultRestoreController.forgetRestoreSnapshot().catch(error => {
         console.warn('Failed to clear cached history result:', error);
       });
+      return;
     }
+
+    if (event?.changes?.displayedFields) {
+      openedResultViewStatePersistence.schedule(event);
+    }
+  });
+  window.addEventListener('postfilters:updated', () => {
+    openedResultViewStatePersistence.schedule({ meta: { source: 'postfilters:updated' } });
   });
 
   // Add row click event listener

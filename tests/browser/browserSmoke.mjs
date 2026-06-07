@@ -275,6 +275,68 @@ async function runSmokeTest() {
     if (splitPreferenceBeforeReload !== 'split') {
       throw new Error(`Split preference should be stored before result reload: ${splitPreferenceBeforeReload}`);
     }
+    await page.evaluate(async () => {
+      const { appServices } = await import('./src/core/appServices.js');
+      const { QueryChangeManager, QueryStateReaders } = await import('./src/core/queryState.js');
+      const currentFields = QueryStateReaders.getDisplayedFields();
+      const branchFields = currentFields.filter(field => /^Smoke Branch(?:\s+\d+)?$/u.test(field));
+      QueryChangeManager.replaceDisplayedFields([
+        'Smoke Status',
+        ...branchFields,
+        'Smoke Title'
+      ], { source: 'BrowserSmoke.seedOpenedResultViewState' });
+      appServices.replacePostFilters({
+        'Smoke Status': {
+          logic: 'all',
+          filters: [
+            { cond: 'equals', val: 'Open', vals: ['Open'] }
+          ]
+        }
+      }, { refreshView: true, notify: true, resetScroll: true });
+    });
+    let seededResultViewState = null;
+    const resultViewWaitStart = Date.now();
+    while (Date.now() - resultViewWaitStart < 5000) {
+      seededResultViewState = await page.evaluate(async () => {
+        const {
+          RESULT_VIEW_URL_PARAM,
+          decodeResultViewStateParam
+        } = await import('./src/core/resultViewState.js');
+        const { readCachedHistoryResultSnapshot } = await import('./src/features/history/results/queryHistoryResultCache.js');
+        const snapshot = await readCachedHistoryResultSnapshot('browser-smoke-complete');
+        const fields = snapshot?.viewState?.displayedFields || [];
+        const filter = snapshot?.viewState?.postFilters?.['Smoke Status']?.filters?.[0];
+        const raw = new URL(window.location.href).searchParams.get(RESULT_VIEW_URL_PARAM);
+        const urlState = decodeResultViewStateParam(raw);
+        const urlFilter = urlState?.postFilters?.['Smoke Status']?.filters?.[0];
+        return {
+          cacheFilter: filter,
+          cacheFields: fields,
+          decoded: urlState,
+          raw,
+          urlFilter
+        };
+      });
+      if (
+        seededResultViewState.cacheFields.join('|') === 'Smoke Status|Smoke Branch 1|Smoke Branch 2|Smoke Title'
+        && seededResultViewState.cacheFilter?.cond === 'equals'
+        && seededResultViewState.cacheFilter?.val === 'Open'
+        && seededResultViewState.decoded?.displayedFields?.join('|') === 'Smoke Status|Smoke Branch 1|Smoke Branch 2|Smoke Title'
+        && seededResultViewState.urlFilter?.cond === 'equals'
+        && seededResultViewState.urlFilter?.val === 'Open'
+      ) {
+        break;
+      }
+      await page.waitForTimeout(50);
+    }
+    if (
+      !seededResultViewState?.raw
+      || seededResultViewState?.decoded?.displayedFields?.join('|') !== 'Smoke Status|Smoke Branch 1|Smoke Branch 2|Smoke Title'
+      || seededResultViewState?.decoded?.postFilters?.['Smoke Status']?.filters?.[0]?.val !== 'Open'
+      || ['rows', 'objectRows', 'headers', 'data', 'items', 'records'].some(key => Object.prototype.hasOwnProperty.call(seededResultViewState?.decoded || {}, key))
+    ) {
+      throw new Error(`Result URL should include view state only, without result rows: ${JSON.stringify(seededResultViewState)}`);
+    }
     const editableResultUrl = await page.evaluate(async () => {
       const { QueryFormMode } = await import('./src/ui/form-mode/formMode.js');
       const nextUrl = QueryFormMode.buildCurrentShareUrl({ limited: false });
@@ -295,6 +357,7 @@ async function runSmokeTest() {
       !parsedEditableResultUrl.searchParams.has('form')
       || parsedEditableResultUrl.searchParams.has('limited')
       || parsedEditableResultUrl.searchParams.get('result') !== 'browser-smoke-complete'
+      || !parsedEditableResultUrl.searchParams.get('resultView')
     ) {
       throw new Error(`Result reload smoke should exercise an editable form URL: ${editableResultUrl}`);
     }
@@ -308,20 +371,25 @@ async function runSmokeTest() {
       const { appServices } = await import('./src/core/appServices.js');
       const { QueryFormMode } = await import('./src/ui/form-mode/formMode.js');
       const { QueryStateReaders } = await import('./src/core/queryState.js');
+      const { decodeResultViewStateParam } = await import('./src/core/resultViewState.js');
       const tableData = appServices.getVirtualTableData();
       const { SPLIT_COLUMNS_PREFERENCE_STORAGE_KEY } = await import('./src/features/table/export/splitColumnsToggleUi.js');
       const rawRemembered = window.localStorage.getItem('query:lastOpenedHistoryResult');
       const defaultShareUrl = new URL(QueryFormMode.buildCurrentShareUrl());
       const cleanFormUrl = new URL(QueryFormMode.buildCurrentShareUrl({ includeResult: false, limited: false }));
+      const resultViewParam = new URL(window.location.href).searchParams.get('resultView');
       return {
         cleanFormHasLimited: cleanFormUrl.searchParams.has('limited'),
         cleanFormResult: cleanFormUrl.searchParams.get('result'),
         currentQueryId: QueryStateReaders.getLifecycleState().currentQueryId,
         defaultShareLimited: defaultShareUrl.searchParams.get('limited'),
         defaultShareResult: defaultShareUrl.searchParams.get('result'),
+        displayedFields: QueryStateReaders.getDisplayedFields(),
         hasLoadedResultSet: QueryStateReaders.getLifecycleState().hasLoadedResultSet,
         headers: tableData?.headers || [],
+        postFilters: appServices.getPostFilterState?.() || {},
         remembered: rawRemembered ? JSON.parse(rawRemembered) : null,
+        resultView: decodeResultViewStateParam(resultViewParam),
         rows: tableData?.rows || [],
         splitActive: appServices.isSplitColumnsActive?.(),
         splitPreference: window.localStorage.getItem(SPLIT_COLUMNS_PREFERENCE_STORAGE_KEY),
@@ -331,10 +399,13 @@ async function runSmokeTest() {
     if (
       restoredHistoryResult.currentQueryId !== 'browser-smoke-complete'
       || restoredHistoryResult.hasLoadedResultSet !== true
-      || restoredHistoryResult.rows.length !== 2
+      || restoredHistoryResult.rows.length !== 1
       || restoredHistoryResult.rows[0][0] !== 'Loaded One'
       || !restoredHistoryResult.headers.includes('Smoke Branch 2')
       || restoredHistoryResult.rows[0][2] !== 'East'
+      || restoredHistoryResult.displayedFields.join('|') !== 'Smoke Status|Smoke Branch 1|Smoke Branch 2|Smoke Title'
+      || restoredHistoryResult.postFilters?.['Smoke Status']?.filters?.[0]?.val !== 'Open'
+      || restoredHistoryResult.resultView?.displayedFields?.join('|') !== 'Smoke Status|Smoke Branch 1|Smoke Branch 2|Smoke Title'
       || restoredHistoryResult.splitActive !== true
       || restoredHistoryResult.splitPreference !== 'split'
       || restoredHistoryResult.splitToggleActive !== true

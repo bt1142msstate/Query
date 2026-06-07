@@ -82,9 +82,11 @@ test('form mode share url', async () => {
   assert.equal(new URL(editableResultUrl).searchParams.get('result'), 'query-123');
 
   const explicitResultUrl = buildFormShareUrl('https://example.test/index.html', spec, {
-    resultQueryId: 'query-456'
+    resultQueryId: 'query-456',
+    resultViewParam: 'encoded-view'
   });
   assert.equal(new URL(explicitResultUrl).searchParams.get('result'), 'query-456');
+  assert.equal(new URL(explicitResultUrl).searchParams.get('resultView'), 'encoded-view');
 
   const canonicalResultUrl = buildFormShareUrl(
     'https://example.test/index.html?form=old&mode=bubbles&view=limited&limitedView=1&limited=0&stale=1&result=old-result',

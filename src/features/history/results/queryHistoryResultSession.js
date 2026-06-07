@@ -51,7 +51,8 @@ function syncOpenedHistoryResultUrl(queryId, options = {}) {
     const normalizedQueryId = normalizeQueryId(queryId);
     const nextUrl = normalizeResultQueryUrl(currentUrl, {
       clearResult: options.clearUrl === true,
-      resultQueryId: options.clearUrl === true ? '' : normalizedQueryId
+      resultQueryId: options.clearUrl === true ? '' : normalizedQueryId,
+      resultViewParam: options.resultViewParam
     });
     if (nextUrl !== currentUrl) {
       historyRef.replaceState({}, '', nextUrl);

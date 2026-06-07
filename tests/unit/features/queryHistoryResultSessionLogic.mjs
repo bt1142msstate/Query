@@ -102,12 +102,14 @@ test('query history result session can sync the result id into the browser url',
 
   assert.equal(rememberOpenedHistoryResult('query-456', {
     history,
+    resultViewParam: 'encoded-view-state',
     storage,
     updateUrl: true,
     url: 'https://example.test/index.html?mode=bubbles&stale=1'
   }), true);
   const resultOnlyUrl = new URL(replacements.at(-1));
   assert.equal(resultOnlyUrl.searchParams.get(OPENED_HISTORY_RESULT_URL_PARAM), 'query-456');
+  assert.equal(resultOnlyUrl.searchParams.get('resultView'), 'encoded-view-state');
   assert.equal(resultOnlyUrl.searchParams.has('mode'), false);
   assert.equal(resultOnlyUrl.searchParams.has('stale'), false);
 
@@ -139,9 +141,9 @@ test('query history result session can sync the result id into the browser url',
     clearUrl: true,
     history,
     storage,
-    url: rememberedUrl.toString()
+    url: resultOnlyUrl.toString()
   }), true);
   const clearedUrl = new URL(replacements.at(-1));
   assert.equal(clearedUrl.searchParams.has(OPENED_HISTORY_RESULT_URL_PARAM), false);
-  assert.equal(clearedUrl.searchParams.get('form'), 'abc');
+  assert.equal(clearedUrl.searchParams.has('resultView'), false);
 });
