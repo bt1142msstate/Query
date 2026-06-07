@@ -12,30 +12,26 @@ import { alignDateTextCells } from './excelDateCellFormatting.js';
 import { ExcelExportProgress, yieldToBrowser } from './exportProgress.js';
 import { addOverviewWorksheet } from './excelOverviewWorksheet.js';
 import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from './largeWorkbookExport.js';
-import { getMultiValueTableSummary, materializeExpandedRow } from '../virtual-table/splitColumnExpansion.js';
 import { addWorkbookDetailsWorksheet, buildWorkbookDetailsRowsFromRuntime } from './workbookDetails.js';
 import { buildWorkbookFilename, notifyWorkbookDownloadComplete, prepareWorkbookDownloadNotification, triggerWorkbookDownload } from './workbookDownload.js';
+import { createSplitColumnsToggleUi } from './splitColumnsToggleUi.js';
 import {
   buildExportRows,
   buildGroupingCandidates,
+  buildGroupingCandidatesAsync,
   getCellExportValue,
   getGroupingDisplayValue,
   getUniqueSheetName
 } from './workbookExportData.js';
 (() => {
-  // When true, multi-value cells (delimited by \x1F) are split into separate columns
-  // instead of being stacked as newlines in a single cell.
-  let splitMultiValues = false;
   let exportState = null;
   let exportInProgress = false;
   let exportOverlayPreparing = false;
+  let exportGroupingPreparing = false;
   let exportOverlayHydrationId = 0;
-  let splitEligibleSummaryCache = {
-    rawData: null,
-    summary: null
-  };
   const { getDisplayedFields } = QueryStateReaders;
   const services = appServices;
+  const splitColumnsToggleUi = createSplitColumnsToggleUi({ services, showToastMessage });
 
   function getExportElements() {
     return {
@@ -67,15 +63,8 @@ import {
       return null;
     }
 
-    const dataRows = services.isSplitColumnsActive?.()
-      ? virtualData.rows.map(materializeExpandedRow)
-      : virtualData.rows;
-    const exportVirtualData = dataRows === virtualData.rows
-      ? virtualData
-      : {
-          ...virtualData,
-          rows: dataRows
-        };
+    const dataRows = virtualData.rows;
+    const exportVirtualData = virtualData;
     const fieldTypeMap = new Map();
 
     displayedFields.forEach(field => {
@@ -95,7 +84,8 @@ import {
     };
   }
 
-  function buildExportState() {
+  function buildExportState(options = {}) {
+    const includeGrouping = options.includeGrouping !== false;
     const sourceData = getWorkbookSourceData();
     if (!sourceData) {
       return null;
@@ -106,13 +96,14 @@ import {
       || 'Query Results';
 
     const rowCount = sourceData.dataRows.length;
-    const groupingCandidates = buildGroupingCandidates(sourceData);
+    const groupingCandidates = includeGrouping ? buildGroupingCandidates(sourceData) : [];
 
     return {
       sourceData,
       tableName,
       rowCount,
       groupingCandidates,
+      groupingCandidatesReady: includeGrouping,
       selectedGroupingField: groupingCandidates[0]?.field || ''
     };
   }
@@ -153,7 +144,9 @@ import {
       elements.summaryColumns.textContent = exportState.sourceData.displayedFields.length.toLocaleString();
     }
     if (elements.summaryGroups) {
-      elements.summaryGroups.textContent = exportState.groupingCandidates.length.toLocaleString();
+      elements.summaryGroups.textContent = exportState.groupingCandidatesReady === false || exportGroupingPreparing
+        ? 'Preparing'
+        : exportState.groupingCandidates.length.toLocaleString();
     }
   }
 
@@ -168,6 +161,10 @@ import {
     }
 
     const groupedModeActive = !!elements.groupedMode?.checked;
+    if (groupedModeActive && (exportState.groupingCandidatesReady === false || exportGroupingPreparing)) {
+      elements.preview.textContent = 'Preparing grouped sheet options...';
+      return;
+    }
     const candidate = exportState.groupingCandidates.find(item => item.field === exportState.selectedGroupingField);
 
     if (!groupedModeActive) {
@@ -210,6 +207,11 @@ import {
     const candidates = exportState?.groupingCandidates || [];
     elements.groupField.innerHTML = '';
 
+    if (exportState?.groupingCandidatesReady === false || exportGroupingPreparing) {
+      renderPreparingGroupingOptions(elements);
+      return;
+    }
+
     if (!candidates.length) {
       const option = document.createElement('option');
       option.value = '';
@@ -246,6 +248,7 @@ import {
   function renderPreparingExportOverlay(elements, snapshot) {
     exportState = null;
     exportOverlayPreparing = true;
+    exportGroupingPreparing = false;
 
     if (elements.summaryName) {
       elements.summaryName.textContent = snapshot.tableName;
@@ -276,7 +279,8 @@ import {
 
   function updateExportModeUI(elements) {
     const preparing = exportOverlayPreparing || !exportState;
-    const hasGrouping = !!exportState?.groupingCandidates?.length;
+    const groupingReady = !preparing && exportState.groupingCandidatesReady !== false && !exportGroupingPreparing;
+    const hasGrouping = groupingReady && !!exportState?.groupingCandidates?.length;
     const groupedModeActive = !preparing && !!elements.groupedMode?.checked;
     setModeCardState(elements, groupedModeActive ? 'grouped' : 'single');
 
@@ -315,6 +319,71 @@ import {
     updateExportPreview(elements);
   }
 
+  function applyExportGroupingCandidates(candidates, elements) {
+    if (!exportState) {
+      return;
+    }
+
+    const previousSelection = exportState.selectedGroupingField;
+    exportState.groupingCandidates = candidates;
+    exportState.groupingCandidatesReady = true;
+    exportState.selectedGroupingField = candidates.some(candidate => candidate.field === previousSelection)
+      ? previousSelection
+      : candidates[0]?.field || '';
+    exportGroupingPreparing = false;
+    renderGroupingOptions(elements);
+    updateExportSummary(elements);
+    if (elements.groupField && exportState.selectedGroupingField) {
+      elements.groupField.value = exportState.selectedGroupingField;
+    }
+    updateExportModeUI(elements);
+  }
+
+  function cancelGroupingCandidatesHydration() {
+    exportOverlayHydrationId += 1;
+    exportGroupingPreparing = false;
+  }
+
+  function scheduleGroupingCandidatesHydration(hydrationId) {
+    exportGroupingPreparing = true;
+    window.setTimeout(async () => {
+      if (hydrationId !== exportOverlayHydrationId || !exportState) {
+        return;
+      }
+
+      const elements = getExportElements();
+      if (!VisibilityUtils.isVisible(elements.overlay)) {
+        return;
+      }
+
+      try {
+        const candidates = await buildGroupingCandidatesAsync(exportState.sourceData, {
+          shouldContinue: () => hydrationId === exportOverlayHydrationId && !exportInProgress && !!exportState,
+          yieldToBrowser
+        });
+        if (hydrationId !== exportOverlayHydrationId || !exportState) {
+          return;
+        }
+        applyExportGroupingCandidates(candidates, elements);
+      } catch (error) {
+        console.error('Failed to prepare grouped export options', error);
+        if (hydrationId !== exportOverlayHydrationId) {
+          return;
+        }
+        exportGroupingPreparing = false;
+        if (exportState) {
+          exportState.groupingCandidates = [];
+          exportState.groupingCandidatesReady = true;
+          exportState.selectedGroupingField = '';
+        }
+        updateExportSummary(elements);
+        renderGroupingOptions(elements);
+        updateExportModeUI(elements);
+        showToastMessage('Could not prepare grouped export options', 'error');
+      }
+    }, 0);
+  }
+
   function scheduleExportOverlayHydration(hydrationId) {
     window.requestAnimationFrame(() => {
       window.setTimeout(() => {
@@ -329,7 +398,7 @@ import {
 
         let nextState = null;
         try {
-          nextState = buildExportState();
+          nextState = buildExportState({ includeGrouping: false });
         } catch (error) {
           console.error('Failed to prepare export options', error);
           exportOverlayPreparing = false;
@@ -349,12 +418,14 @@ import {
 
         exportState = nextState;
         exportOverlayPreparing = false;
+        exportGroupingPreparing = false;
         renderGroupingOptions(elements);
         updateExportSummary(elements);
         if (elements.groupField) {
           elements.groupField.value = exportState.selectedGroupingField;
         }
         updateExportModeUI(elements);
+        scheduleGroupingCandidatesHydration(hydrationId);
       }, 0);
     });
   }
@@ -362,7 +433,7 @@ import {
   function openExportOverlay() {
     const elements = getExportElements();
     if (!elements.overlay) {
-      exportState = buildExportState();
+      exportState = buildExportState({ includeGrouping: false });
       if (!exportState) {
         return;
       }
@@ -405,6 +476,7 @@ import {
     });
     exportOverlayHydrationId += 1;
     exportOverlayPreparing = false;
+    exportGroupingPreparing = false;
     ExcelExportProgress.hide();
   }
 
@@ -463,7 +535,7 @@ import {
       } else if (type === 'boolean') {
         column.alignment = { horizontal: 'center' };
       } else {
-        const needsWrap = !splitMultiValues && (() => {
+        const needsWrap = !splitColumnsToggleUi.isActive() && (() => {
           const cIdx = sourceData.virtualData.columnMap.get(field);
           if (cIdx === undefined) return false;
           return rowsToExport.some(r => r[cIdx] != null && typeof r[cIdx] === 'string' && r[cIdx].includes('\x1F'));
@@ -517,9 +589,21 @@ import {
   }
 
   async function runWorkbookExport(config) {
-    const state = exportState || buildExportState();
+    const state = exportState || buildExportState({ includeGrouping: config?.mode === 'grouped' });
     if (!state) {
       return;
+    }
+
+    if (config.mode === 'grouped' && state.groupingCandidatesReady === false) {
+      ExcelExportProgress.update({
+        title: 'Preparing grouped export',
+        detail: 'Scanning rows for grouped sheets',
+        percent: 3,
+        indeterminate: true
+      });
+      const elements = getExportElements();
+      const candidates = await buildGroupingCandidatesAsync(state.sourceData, { yieldToBrowser });
+      applyExportGroupingCandidates(candidates, elements);
     }
 
     ExcelExportProgress.update({
@@ -530,7 +614,13 @@ import {
     await yieldToBrowser();
 
     config.runDetailsRows = config.includeRunDetailsSheet
-      ? buildWorkbookDetailsRowsFromRuntime({ config, queryStateReaders: QueryStateReaders, services, splitMultiValues, state })
+      ? buildWorkbookDetailsRowsFromRuntime({
+          config,
+          queryStateReaders: QueryStateReaders,
+          services,
+          splitMultiValues: splitColumnsToggleUi.isActive(),
+          state
+        })
       : [];
 
     if (shouldUseLargeWorkbookExport(state)) {
@@ -672,6 +762,10 @@ import {
       return;
     }
 
+    if (config.mode !== 'grouped') {
+      cancelGroupingCandidatesHydration();
+    }
+
     const notificationPermission = prepareWorkbookDownloadNotification();
     const confirmBtn = elements.confirmBtn;
     if (confirmBtn) {
@@ -732,6 +826,9 @@ import {
     elements.includeOverviewSheet?.addEventListener('change', () => updateExportPreview(elements));
     elements.includeRunDetailsSheet?.addEventListener('change', () => updateExportPreview(elements));
     elements.groupField?.addEventListener('change', event => {
+      if (!exportState) {
+        return;
+      }
       exportState.selectedGroupingField = event.target.value;
       updateExportPreview(elements);
     });
@@ -743,80 +840,7 @@ import {
     });
   }
 
-  function getSplitEligibleSummary() {
-    const rawData = services.getRawTableData();
-    if (splitEligibleSummaryCache.rawData === rawData && splitEligibleSummaryCache.summary) {
-      return splitEligibleSummaryCache.summary;
-    }
-
-    const summary = getMultiValueTableSummary(rawData);
-    splitEligibleSummaryCache = { rawData, summary };
-    return summary;
-  }
-
-  function buildSplitToggleTooltipHtml(active, summary) {
-    const title = active ? 'Multi-Value Export: Split Columns' : 'Multi-Value Export: Stacked Cells';
-    const stateLine = active
-      ? 'Values are currently expanded into numbered columns for export.'
-      : 'Values are currently kept together inside a single export cell.';
-    const actionLine = summary.eligible
-      ? (active ? 'Click to compact them back into one cell per field.' : 'Click to expand them into separate numbered columns.')
-      : 'No current result columns contain multi-value data to expand or compact.';
-    const statsLine = summary.eligible
-      ? `${summary.columnCount} column${summary.columnCount === 1 ? '' : 's'} can change layout${summary.valueCount > 0 ? `, affecting ${summary.valueCount} extra value${summary.valueCount === 1 ? '' : 's'}` : ''}.`
-      : 'Run or load results that include multi-value or repeated-entry fields.';
-
-    return `<div class="split-toggle-tooltip"><div class="tt-filter-container"><div class="tt-filter-title" style="color: #93c5fd; display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="18" rx="1"></rect><rect x="14" y="3" width="7" height="18" rx="1"></rect></svg>${title}</div><div style="color: #f8fafc; font-size: 0.95rem; line-height: 1.4; padding-top: 2px;">${stateLine}</div><div style="color: #cbd5e1; font-size: 0.84rem; line-height: 1.45; padding-top: 8px;">${actionLine}</div><div style="color: #94a3b8; font-size: 0.8rem; line-height: 1.45; padding-top: 8px;">${statsLine}</div></div></div>`;
-  }
-
-  function applySplitToggleVisualState(toggleBtn, active, eligible) {
-    const iconStack = document.getElementById('split-toggle-icon-stack');
-    const iconCols  = document.getElementById('split-toggle-icon-cols');
-
-    if (active) {
-      toggleBtn.classList.replace('bg-white', 'bg-indigo-100');
-      toggleBtn.classList.replace('text-black', 'text-indigo-700');
-      iconStack && iconStack.classList.add('hidden');
-      iconCols  && iconCols.classList.remove('hidden');
-    } else {
-      toggleBtn.classList.replace('bg-indigo-100', 'bg-white');
-      if (!toggleBtn.classList.contains('bg-white')) toggleBtn.classList.add('bg-white');
-      toggleBtn.classList.replace('text-indigo-700', 'text-black');
-      if (!toggleBtn.classList.contains('text-black')) toggleBtn.classList.add('text-black');
-      iconStack && iconStack.classList.remove('hidden');
-      iconCols  && iconCols.classList.add('hidden');
-    }
-
-    toggleBtn.setAttribute('aria-disabled', eligible ? 'false' : 'true');
-    toggleBtn.classList.toggle('split-toggle-disabled', !eligible);
-  }
-
-  function updateSplitColumnsToggleState() {
-    const toggleBtn = document.getElementById('split-columns-toggle');
-    if (!toggleBtn) return;
-
-    const summary = getSplitEligibleSummary();
-    if (!summary.eligible) {
-      splitMultiValues = false;
-    }
-
-    applySplitToggleVisualState(toggleBtn, splitMultiValues, summary.eligible);
-    toggleBtn.removeAttribute('data-tooltip');
-    toggleBtn.setAttribute('data-tooltip-html', buildSplitToggleTooltipHtml(splitMultiValues, summary));
-  }
-
-  const splitColumnsUi = Object.freeze({
-    resetSplitColumnsToggleUI() {
-      splitMultiValues = false;
-      updateSplitColumnsToggleState();
-    },
-    setSplitColumnsToggleUIActive() {
-      splitMultiValues = true;
-      updateSplitColumnsToggleState();
-    },
-    updateSplitColumnsToggleState
-  });
-  registerAppUiActionDependencies({ splitColumnsUi });
+  registerAppUiActionDependencies({ splitColumnsUi: splitColumnsToggleUi });
 
   function attach() {
     const downloadBtn = DOM?.downloadBtn || document.getElementById('download-btn');
@@ -826,31 +850,7 @@ import {
 
     attachExportOverlayListeners();
 
-    const toggleBtn = document.getElementById('split-columns-toggle');
-    if (toggleBtn) {
-      toggleBtn.addEventListener('click', () => {
-        const summary = getSplitEligibleSummary();
-        if (!summary.eligible) {
-          updateSplitColumnsToggleState();
-          return;
-        }
-
-        splitMultiValues = !splitMultiValues;
-
-        if (splitMultiValues) {
-          showToastMessage('Multi-values split into separate columns', 'info');
-        } else {
-          showToastMessage('Multi-values stacked in one cell', 'info');
-        }
-
-        updateSplitColumnsToggleState();
-
-        // Drive the virtual table to match
-        services.setSplitColumnsMode(splitMultiValues);
-      });
-
-      updateSplitColumnsToggleState();
-    }
+    splitColumnsToggleUi.attach();
   }
 
   function handleDownload() {
