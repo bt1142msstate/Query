@@ -2,7 +2,21 @@
 
 This roadmap tracks the current product and architecture state. It is meant to explain what is done, what is intentionally still open, and what should guide future work.
 
-## Current Status
+## Current Stage
+
+**Stage 4: Integration readiness and public deployment hardening**
+
+The frontend architecture and core product workflows are in stable shape. The project is now focused on making the app easier for someone else to connect to their own backend, deploy safely, and understand from the repository without needing project-specific context.
+
+Current stage goals:
+
+- Make backend setup obvious from the README and integration docs.
+- Remove reliance on the project-owned example API for the public live default.
+- Keep the browser app buildless and static while making API configuration first-class.
+- Keep every new workflow covered by focused unit tests or realistic browser smoke tests.
+- Continue small cohesion reviews, but only split modules where there is a real ownership boundary.
+
+## Current Product State
 
 The project is in a stable, production-oriented frontend shape for a static browser app:
 
@@ -14,6 +28,16 @@ The project is in a stable, production-oriented frontend shape for a static brow
 - Results support virtualized rendering, sorting, resizing, split multi-value columns, post filters, and worker-backed large Excel export.
 - Mobile and tablet workflows are covered by browser smoke tests for overlays, menus, virtual table behavior, mobile dialogs, and responsive resizing.
 - `npm test` is the full quality gate and runs cache-bust validation, lint, architecture checks, unit tests, and browser smoke tests.
+
+## Stage Summary
+
+| Stage | Status | Notes |
+| --- | --- | --- |
+| Stage 1: Core query builder | Complete | Query building, field search, filters, result rendering, and query JSON are implemented. |
+| Stage 2: Frontend architecture modernization | Complete | Source lives under `src/`, ES modules are canonical, public `window.*` app coordination is removed, and architecture tests enforce boundaries. |
+| Stage 3: Results, export, and mobile usability | Complete | Virtual table behavior, post filters, split multi-value columns, large Excel export, mobile overlays, and responsive resizing are covered by the current test gate. |
+| Stage 4: Integration readiness and public deployment hardening | In progress | Backend integration is documented and swappable, but API settings and live-site default behavior still need final product polish. |
+| Stage 5: Public release polish | Not started | Dedicated accessibility audit, more deployment examples, and optional user-facing setup polish belong here after Stage 4 is done. |
 
 ## Completed Milestones
 
@@ -33,16 +57,26 @@ The project is in a stable, production-oriented frontend shape for a static brow
 | Cache-busting enforcement | Complete through `cache-bust.json` and CI |
 | Test suite modernization | Complete: unified on Node's built-in test runner plus Playwright smoke coverage |
 
-## Open Roadmap
+## Remaining Work
 
-| Priority | Work | Why it matters |
-| --- | --- | --- |
-| High | Add a first-class API settings screen | The app already supports `?api_url=` and local storage, but non-technical users should be able to connect their own API from the UI without editing source or URL parameters. |
-| High | Remove project-owned API usage from the public live default | The checked-in endpoint is useful as an example/testing integration, but the live deployment should default to a bring-your-own-API setup. |
-| Medium | Add deployment examples for compatible APIs | A small set of examples for CORS, auth, field metadata, result JSON, history, cancel, and template persistence would make third-party integration easier. |
-| Medium | Keep expanding browser smoke coverage around new workflows | The current suite covers the main desktop/mobile flows. New workflow bugs should usually add one realistic browser interaction test plus focused unit coverage for reusable logic. |
-| Medium | Continue cohesion reviews as features change | There are no current large-module exceptions, but some coordinator modules are intentionally still large. Split them only when a stable responsibility boundary appears. |
-| Low | Optional accessibility audit | The app has keyboard-friendly controls in many areas, but a dedicated audit for focus order, screen reader labels, and reduced-motion behavior would be useful before broader public use. |
+| Stage | Priority | Work | Why it matters |
+| --- | --- | --- | --- |
+| Stage 4 | High | Add a first-class API settings screen | The app already supports `?api_url=` and local storage, but non-technical users should be able to connect their own API from the UI without editing source or URL parameters. |
+| Stage 4 | High | Remove project-owned API usage from the public live default | The checked-in endpoint is useful as an example/testing integration, but the live deployment should default to a bring-your-own-API setup. |
+| Stage 4 | Medium | Add deployment examples for compatible APIs | A small set of examples for CORS, auth, field metadata, result JSON, history, cancel, and template persistence would make third-party integration easier. |
+| Stage 4 | Medium | Keep expanding browser smoke coverage around new workflows | The current suite covers the main desktop/mobile flows. New workflow bugs should usually add one realistic browser interaction test plus focused unit coverage for reusable logic. |
+| Stage 4 | Medium | Continue cohesion reviews as features change | There are no current large-module exceptions, but some coordinator modules are intentionally still large. Split them only when a stable responsibility boundary appears. |
+| Stage 5 | Low | Optional accessibility audit | The app has keyboard-friendly controls in many areas, but a dedicated audit for focus order, screen reader labels, and reduced-motion behavior would be useful before broader public use. |
+
+## Stage 4 Exit Criteria
+
+Stage 4 is done when:
+
+- A user can configure a compatible backend from the app UI.
+- The public live deployment no longer defaults to the project-owned example API.
+- The README clearly routes new users through local setup, API setup, and deployment choices.
+- `docs/INTEGRATION.md` includes enough examples for a developer to implement the compatible backend contract without reading app internals.
+- The test gate still passes with cache-busting enforcement, architecture rules, unit tests, and browser smoke coverage.
 
 ## Not Currently Planned
 
