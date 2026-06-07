@@ -18,6 +18,7 @@ Runs the full gate:
 
 - Use `node:test` with an explicit test name in every `.mjs` test file.
 - Use `node:assert/strict` for assertions.
+- Import application modules from the canonical `src/` tree. Tests should not introduce or document a parallel top-level app source layout.
 - Do not add custom success logging; let the runner report pass/fail output.
 - Prefer pure unit tests for parsing, mapping, validation, state transforms, payload contracts, and export formatting.
 - Prefer browser smoke coverage for behavior that only fails through real DOM, touch, overlay, scrolling, export, or responsive interactions.
