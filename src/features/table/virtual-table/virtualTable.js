@@ -818,10 +818,8 @@ VirtualTable = {
     baseViewData = cloneTableData(nextData);
     calculatedColumnWidths = {};
     postFilters.invalidateValueOptionsCache();
-    // Reset split mode — caller will re-expand if needed
-    splitColumnsActive = false;
+    if (splitColumnsActive) expandMultiValueColumns();
     applyPostFilters({ refreshView: false, notify: true, resetScroll: false });
-    appUiActions.resetSplitColumnsToggleUI();
   },
   get calculatedColumnWidths() { return calculatedColumnWidths; },
   set calculatedColumnWidths(value) { calculatedColumnWidths = value; },

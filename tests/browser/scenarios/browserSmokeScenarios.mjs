@@ -15,6 +15,7 @@ import {
   expectOverlayConsumesScroll,
   expectResponsiveShellMode,
   expectSplitTogglePreviewAnimation,
+  expectSplitTogglePreferenceWithoutEligibleResults,
   expectVisibleMobileTableContextMenu,
   installHiddenTabNotificationSpy,
   longPressLocatorWithDomTouchEvents,
@@ -1869,6 +1870,7 @@ async function exerciseDesktopResultsWorkflow(page) {
     hasPostFilters: false,
     totalRows: 3
   }, 'Desktop seeded post filter state');
+  await expectSplitTogglePreferenceWithoutEligibleResults(page);
 
   const titleHeader = page.locator('#example-table th[data-sort-field="Smoke Title"]').first();
   await titleHeader.waitFor({ state: 'visible', timeout: 5000 });
