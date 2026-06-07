@@ -782,6 +782,7 @@ onDOMReady(() => {
     loadQueryConfig,
     loadQueryResults,
     queryChangeManager: QueryChangeManager,
+    queryStateReaders: QueryStateReaders,
     services,
     showToastMessage,
     uiActions

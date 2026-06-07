@@ -232,7 +232,7 @@ async function runSmokeTest() {
     await page.locator('.history-monitor').waitFor({ state: 'visible', timeout: 5000 });
     queryApiStub.enqueue({
       action: 'get_results',
-      body: 'Loaded One|Main|Open\nLoaded Two|East|Closed\n',
+      body: 'Loaded One|Main\x1FEast|Open\nLoaded Two|East|Closed\n',
       delayMs: 300,
       rawColumns: smokeResultHeaders
     });
@@ -265,6 +265,16 @@ async function runSmokeTest() {
 
     queueHistoryStatusResponses(queryApiStub, 6);
     const getResultsRequestsBeforeReload = queryApiStub.countAction('get_results');
+    const splitPreferenceBeforeReload = await page.locator('#split-columns-toggle').evaluate(async button => {
+      const { SPLIT_COLUMNS_PREFERENCE_STORAGE_KEY } = await import('./src/features/table/export/splitColumnsToggleUi.js');
+      if (button.querySelector('#split-toggle-icon-stack') && !button.querySelector('#split-toggle-icon-stack').classList.contains('hidden')) {
+        button.click();
+      }
+      return window.localStorage.getItem(SPLIT_COLUMNS_PREFERENCE_STORAGE_KEY);
+    });
+    if (splitPreferenceBeforeReload !== 'split') {
+      throw new Error(`Split preference should be stored before result reload: ${splitPreferenceBeforeReload}`);
+    }
     const editableResultUrl = await page.evaluate(async () => {
       const { QueryFormMode } = await import('./src/ui/form-mode/formMode.js');
       const nextUrl = QueryFormMode.buildCurrentShareUrl({ limited: false });
@@ -299,6 +309,7 @@ async function runSmokeTest() {
       const { QueryFormMode } = await import('./src/ui/form-mode/formMode.js');
       const { QueryStateReaders } = await import('./src/core/queryState.js');
       const tableData = appServices.getVirtualTableData();
+      const { SPLIT_COLUMNS_PREFERENCE_STORAGE_KEY } = await import('./src/features/table/export/splitColumnsToggleUi.js');
       const rawRemembered = window.localStorage.getItem('query:lastOpenedHistoryResult');
       const defaultShareUrl = new URL(QueryFormMode.buildCurrentShareUrl());
       const cleanFormUrl = new URL(QueryFormMode.buildCurrentShareUrl({ includeResult: false, limited: false }));
@@ -311,7 +322,10 @@ async function runSmokeTest() {
         hasLoadedResultSet: QueryStateReaders.getLifecycleState().hasLoadedResultSet,
         headers: tableData?.headers || [],
         remembered: rawRemembered ? JSON.parse(rawRemembered) : null,
-        rows: tableData?.rows || []
+        rows: tableData?.rows || [],
+        splitActive: appServices.isSplitColumnsActive?.(),
+        splitPreference: window.localStorage.getItem(SPLIT_COLUMNS_PREFERENCE_STORAGE_KEY),
+        splitToggleActive: !document.querySelector('#split-toggle-icon-cols')?.classList.contains('hidden')
       };
     });
     if (
@@ -319,6 +333,11 @@ async function runSmokeTest() {
       || restoredHistoryResult.hasLoadedResultSet !== true
       || restoredHistoryResult.rows.length !== 2
       || restoredHistoryResult.rows[0][0] !== 'Loaded One'
+      || !restoredHistoryResult.headers.includes('Smoke Branch 2')
+      || restoredHistoryResult.rows[0][2] !== 'East'
+      || restoredHistoryResult.splitActive !== true
+      || restoredHistoryResult.splitPreference !== 'split'
+      || restoredHistoryResult.splitToggleActive !== true
       || restoredHistoryResult.remembered?.queryId !== 'browser-smoke-complete'
       || restoredHistoryResult.defaultShareResult !== 'browser-smoke-complete'
       || restoredHistoryResult.defaultShareLimited !== '1'
