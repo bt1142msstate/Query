@@ -1,4 +1,4 @@
-import { getMultiValueItems, renderMultiValueCell } from './multiValueCells.js';
+import { getMultiValueItems, renderMultiValueCell, renderTruncatedValueCell } from './multiValueCells.js';
 import { hasMultipleCellValues } from '../../../core/resultCellValues.js';
 
 export function createVirtualTableEmptyRow({
@@ -116,9 +116,11 @@ function createVirtualTableCell({
     if (multiValueItems.length <= 1) {
       renderStandardCell({
         td,
+        field,
         displayValue: multiValueItems[0] || '',
         width,
-        textMeasurement
+        textMeasurement,
+        document
       });
       return td;
     }
@@ -135,9 +137,11 @@ function createVirtualTableCell({
 
   renderStandardCell({
     td,
+    field,
     displayValue,
     width,
-    textMeasurement
+    textMeasurement,
+    document
   });
 
   return td;
@@ -190,18 +194,23 @@ export function getVirtualTableCellDisplay({
 
 function renderStandardCell({
   td,
+  field,
   displayValue,
   width,
-  textMeasurement
+  textMeasurement,
+  document
 }) {
   if (typeof displayValue === 'string' && displayValue.length > 0 && displayValue !== '—') {
     const availableWidth = width - 48;
     const fullTextWidth = textMeasurement.measureText(displayValue);
 
     if (fullTextWidth > availableWidth) {
-      const maxFitChars = textMeasurement.findMaxFittingChars(displayValue, availableWidth);
-      td.textContent = `${displayValue.substring(0, maxFitChars)}...`;
-      td.setAttribute('data-tooltip', displayValue);
+      renderTruncatedValueCell({
+        td,
+        field,
+        value: displayValue,
+        document
+      });
       return;
     }
   }
