@@ -54,7 +54,7 @@ http://127.0.0.1:4173/index.html?api_url=https://your.example.org/query-api
 
 The app stores valid API URL overrides in `localStorage` under `query-project.api-url`. You can also use `?query_api_url=...`.
 
-For a new backend, start with [`docs/INTEGRATION.md`](docs/INTEGRATION.md). The minimum integration is `POST` JSON actions for `get_fields` and `run`; history, cancellation, saved templates, and old-result loading are optional extensions.
+For a new backend, start with [`docs/INTEGRATION.md`](docs/INTEGRATION.md). The minimum integration is `POST` JSON actions for `get_fields` and `run`; history, cancellation, saved templates, and saved-result loading are optional extensions.
 
 The recommended backend contract is intentionally small:
 
@@ -65,13 +65,13 @@ The recommended backend contract is intentionally small:
 ```json
 {
   "action": "run",
-  "result_format": "json",
+  "result_format": "jsonl",
   "display_fields": ["Title"],
   "filters": [{ "field": "Title", "operator": "=", "value": "*history*" }]
 }
 ```
 
-New backends should return JSON results as `{ "columns": [...], "rows": [...] }`. The machine-readable contract lives at [`docs/schemas/query-api.schema.json`](docs/schemas/query-api.schema.json), and the full setup guide is [`docs/INTEGRATION.md`](docs/INTEGRATION.md).
+Backends stream results as JSON Lines events using `Content-Type: application/x-ndjson`. The machine-readable contract lives at [`docs/schemas/query-api.schema.json`](docs/schemas/query-api.schema.json), and the full setup guide is [`docs/INTEGRATION.md`](docs/INTEGRATION.md).
 
 The checked-in default endpoint in `src/core/backendApi.js` is an example/testing integration, not the intended production backend for the public live site. Real deployments should provide their own compatible API URL or same-origin API route.
 
@@ -136,7 +136,7 @@ Canonical layout decision: application source lives in `src/`. We are not using 
 | `src/styles/app.css` | Stylesheet entrypoint that imports the feature CSS files |
 | `config/` | Shared architecture contracts for forbidden browser globals and module boundaries |
 | `docs/ARCHITECTURE.md` | Frontend architecture notes, quality gates, and refactor plan |
-| `docs/INTEGRATION.md` | Backend integration contract, JSON result formats, legacy compatibility, and deployment options |
+| `docs/INTEGRATION.md` | Backend integration contract, streaming JSONL results, and deployment options |
 | `docs/ROADMAP.md` | Current project status, completed milestones, and remaining roadmap items |
 | `docs/schemas/query-api.schema.json` | Machine-readable JSON Schema for the recommended backend contract |
 | `tests/architecture/` | Architecture fitness and module-specifier checks |
@@ -164,29 +164,24 @@ The public live site should not rely on that example API as its production data 
 
 Static deployments can point the app at another compatible service with `?api_url=...` or `?query_api_url=...`; valid values are stored in `localStorage` under `query-project.api-url`. Local deployments can still change the default in `src/core/backendApi.js` when that is simpler.
 
-See [`docs/INTEGRATION.md`](docs/INTEGRATION.md) for the full backend contract, including field metadata, query payloads, JSON result shapes, legacy text streams, history/cancel actions, template actions, rate-limit errors, deployment options, and the [`docs/schemas/query-api.schema.json`](docs/schemas/query-api.schema.json) schema.
+See [`docs/INTEGRATION.md`](docs/INTEGRATION.md) for the full backend contract, including field metadata, query payloads, streaming JSONL results, history/cancel actions, template actions, rate-limit errors, deployment options, and the [`docs/schemas/query-api.schema.json`](docs/schemas/query-api.schema.json) schema.
 
-### Result Response Formats
+### Streaming JSONL Results
 
-Query execution and history result loading support both the current text format and a JSON format for easier integrations.
+Query execution and history result loading use one result format: newline-delimited JSON events.
 
-Legacy text responses use `X-Raw-Columns: Title|Public Note` and newline-delimited pipe rows.
-
-JSON responses can return row objects or arrays:
-
-```json
-{
-  "columns": ["Title", "Public Note"],
-  "rows": [
-    {
-      "Title": "Example title",
-      "Public Note": ["First note", "Second note"]
-    }
-  ]
-}
+```http
+Content-Type: application/x-ndjson; charset=utf-8
+X-Query-Id: optional-query-id
 ```
 
-The accepted aliases are `columns`/`headers`/`fields` for columns and `rows`/`results`/`data`/`items`/`records` for rows. Multi-value field values may be arrays or `{ "values": [...] }`; the app normalizes them into stacked table cells, split-column views, post filters, and Excel export.
+```jsonl
+{"type":"meta","version":1,"format":"jsonl","query_id":"query-1","columns":["Title","Public Note"]}
+{"type":"row","values":["Example title",["First note","Second note"]]}
+{"type":"done","rows":1}
+```
+
+Rows use array values in the same order as the `meta.columns` list. Multi-value cells are JSON arrays and flow through stacked table cells, split-column views, post filters, and Excel export.
 
 ## Architecture
 
@@ -231,7 +226,7 @@ npm run cache:bust
 
 ## Roadmap
 
-Current stage: Stage 4, integration readiness and public deployment hardening. The frontend architecture, ES module migration, source-tree organization, responsive/mobile workflow baseline, cache-busting enforcement, backend-driven field contract, JSON result support, large Excel export, and modernized test suite are in place.
+Current stage: Stage 4, integration readiness and public deployment hardening. The frontend architecture, ES module migration, source-tree organization, responsive/mobile workflow baseline, cache-busting enforcement, backend-driven field contract, streaming JSONL result support, large Excel export, and modernized test suite are in place.
 
 Remaining work is mostly integration and polish:
 

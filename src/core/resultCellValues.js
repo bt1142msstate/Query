@@ -1,4 +1,4 @@
-const LEGACY_MULTI_VALUE_SEPARATOR = '\x1F';
+const SERIALIZED_MULTI_VALUE_SEPARATOR = '\x1F';
 
 function normalizeResultScalar(value) {
   if (value === null || value === undefined) return '';
@@ -46,8 +46,8 @@ function getCellValueParts(value) {
     }
   }
 
-  if (typeof value === 'string' && value.includes(LEGACY_MULTI_VALUE_SEPARATOR)) {
-    return value.split(LEGACY_MULTI_VALUE_SEPARATOR).map(item => item.trim());
+  if (typeof value === 'string' && value.includes(SERIALIZED_MULTI_VALUE_SEPARATOR)) {
+    return value.split(SERIALIZED_MULTI_VALUE_SEPARATOR).map(item => item.trim());
   }
 
   return [normalizeResultScalar(value)];
@@ -89,7 +89,6 @@ function cloneResultCellValue(value) {
 }
 
 export {
-  LEGACY_MULTI_VALUE_SEPARATOR,
   cloneResultCellValue,
   formatCellValueForText,
   getCellValueParts,

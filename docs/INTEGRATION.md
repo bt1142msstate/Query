@@ -1,6 +1,6 @@
 # Backend Integration Guide
 
-This app is a static frontend. It does not own the data system. A compatible backend only needs to provide field metadata, accept query payloads, and return results in one of the supported response formats.
+This app is a static frontend. It does not own the data system. A compatible backend only needs to provide field metadata, accept query payloads, and stream results as JSON Lines events.
 
 The current checked-in endpoint remains the default example/testing backend. New deployments can point the same frontend at another backend without changing field logic in the frontend.
 
@@ -11,7 +11,7 @@ For new integrations, keep the backend adapter small and boring:
 1. Accept JSON `POST` requests at one URL.
 2. Implement `get_fields` so the frontend can discover fields.
 3. Implement `run` so the frontend can execute the selected fields and filters.
-4. Return JSON results as `{ "columns": [...], "rows": [...] }`.
+4. Stream result events as JSONL with one `meta` event, zero or more `row` events, and a final `done` event.
 5. Add query IDs, history, cancellation, saved results, and templates only when your deployment needs those panels.
 
 The machine-readable schema is [`docs/schemas/query-api.schema.json`](schemas/query-api.schema.json). It uses JSON Schema draft 2020-12 and intentionally allows extra properties so a backend can include deployment-specific metadata without forking the frontend.
@@ -22,10 +22,10 @@ The machine-readable schema is [`docs/schemas/query-api.schema.json`](schemas/qu
 2. Launch the app with `?api_url=https://your.example.org/query-api` or a same-origin route such as `?api_url=/api/query`.
 3. Implement `POST` JSON handling for `get_fields`.
 4. Implement `POST` JSON handling for `run`.
-5. Return JSON results using `columns` and `rows` when possible.
+5. Return `application/x-ndjson` result streams with ordered columns and row value arrays.
 6. Add `status`, `cancel`, `get_results`, and template actions only when those panels need to work against your backend.
 
-The frontend does not require backend-specific code for field definitions. Your `get_fields` response defines available fields, filter operators, field warnings, dynamic/buildable field inputs, and multi-segment legacy fields.
+The frontend does not require backend-specific code for field definitions. Your `get_fields` response defines available fields, filter operators, field warnings, dynamic/buildable field inputs, and any fields that return multi-value cells.
 
 ## Minimum Working Backend
 
@@ -57,7 +57,7 @@ Request:
 ```json
 {
   "action": "run",
-  "result_format": "json",
+  "result_format": "jsonl",
   "display_fields": ["Title"],
   "filters": [
     { "field": "Title", "operator": "=", "value": "*history*" }
@@ -67,22 +67,18 @@ Request:
 
 Response:
 
-```json
-{
-  "columns": ["Title"],
-  "rows": [
-    { "Title": "Example title" }
-  ]
-}
+```jsonl
+{"type":"meta","version":1,"format":"jsonl","query_id":"query-1","columns":["Title"]}
+{"type":"row","values":["Example title"]}
+{"type":"done","rows":1}
 ```
 
-That is enough for field loading, query building, result display, post filters, copy, and Excel export. The rest of this guide documents optional features, compatibility formats, and deployment choices.
+That is enough for field loading, query building, result display, post filters, copy, and Excel export. The rest of this guide documents optional features and deployment choices.
 
 ## Integration Goals
 
-- Keep the current backend path working.
-- Prefer standard JSON request and response bodies for new integrations.
-- Keep legacy pipe-delimited result streams working for existing systems.
+- Use JSON request bodies for actions.
+- Stream query results as JSON Lines events.
 - Keep field definitions backend-driven. The frontend must not ship a built-in field catalog.
 - Make optional features clear: core querying can work without template persistence, but the template panel needs template actions.
 
@@ -122,7 +118,7 @@ POST /query-api
 Content-Type: application/json
 ```
 
-Every request has an `action` property. Successful JSON endpoints should return `Content-Type: application/json`. Query result endpoints may return either JSON or the legacy text stream described below.
+Every request has an `action` property. Successful non-result JSON endpoints should return `Content-Type: application/json`. Query result endpoints must return `Content-Type: application/x-ndjson; charset=utf-8`.
 
 Errors should use normal HTTP status codes. A useful error body is:
 
@@ -147,7 +143,7 @@ Use [`docs/schemas/query-api.schema.json`](schemas/query-api.schema.json) as the
 
 - field metadata returned by `get_fields`
 - `run` payloads and backend filters
-- recommended JSON result payloads
+- streaming JSONL result events
 - optional query status/progress payloads
 - optional cancellation, saved-result loading, template payloads, and error responses
 
@@ -203,7 +199,7 @@ Supported field metadata:
 | `allowValueList` | Allows comma/newline values for equality filters |
 | `multiSelect` | Allows selecting multiple values from `values` |
 | `groupValues` | Lets the UI group selector values with dashed labels |
-| `parts` | Number of pipe-delimited output segments consumed by this field in legacy text results |
+| `parts` | Optional backend-specific segment hint for fields that are assembled from multiple backend values |
 | `numberFormat` or `numericFormat` | `integer`, `decimal`, `year`, or `currency` style hints |
 | `builder` | Defines dynamic/buildable fields |
 
@@ -256,7 +252,7 @@ Request:
 {
   "action": "run",
   "name": "Optional query name",
-  "result_format": "json",
+  "result_format": "jsonl",
   "display_fields": ["Title", "Custom LOCAL"],
   "filters": [
     {
@@ -286,74 +282,29 @@ Supported backend operators currently sent by the frontend:
 
 For text contains/starts filters, the frontend sends wildcard values such as `*needle*` or `needle*`. For date fields, the frontend sends normalized `YYYYMMDD` values or `NEVER`. For fields with `allowValueList`, an equals filter may send `value` as an array.
 
-The frontend requests JSON results with `result_format: "json"`. Compatible backends should honor that by returning the recommended JSON result payload. Older backends may ignore the flag and continue returning the legacy text stream; the frontend still supports that fallback.
+The frontend requests streaming JSONL results with `result_format: "jsonl"`. Result responses must use `Content-Type: application/x-ndjson; charset=utf-8` and emit the event format below. JSON object error responses are still valid before result streaming starts.
 
 Post filters are intentionally not sent to the backend. They operate only on already-loaded result rows and are cleared between query runs.
 
-## Recommended JSON Result Format
+## Streaming JSONL Result Format
 
-New backends should return JSON object rows. This avoids delimiter escaping problems and gives a natural representation for multi-value cells.
+Backends stream newline-delimited JSON events. This keeps the old streaming performance characteristics while avoiding delimiter escaping problems and giving a natural representation for multi-value cells.
 
-```json
-{
-  "columns": [
-    { "key": "title", "label": "Title" },
-    { "key": "public_note", "label": "Public Note" },
-    { "key": "custom_local", "label": "Custom LOCAL" }
-  ],
-  "rows": [
-    {
-      "title": "Example title",
-      "public_note": ["First note", "Second note"],
-      "custom_local": {
-        "values": ["Local value one", "Local value two"]
-      }
-    }
-  ]
-}
+```jsonl
+{"type":"meta","version":1,"format":"jsonl","query_id":"query-1","columns":["Title","Public Note","Custom LOCAL"]}
+{"type":"row","values":["Example title",["First note","Second note"],["Local value one","Local value two"]]}
+{"type":"progress","rows":1000,"message":"Rows streamed"}
+{"type":"done","rows":1000,"elapsed_ms":12345}
 ```
 
-Supported column keys:
+Event types:
 
-- `columns` (recommended)
-- `headers`
-- `fields`
-- `rawColumns`
-- `columnOrder`
-
-Each column may be a string or an object. For object descriptors, the frontend recognizes:
-
-- `name`
-- `label`
-- `fieldName`
-- `field`
-- `id`
-- `key`
-- `source`
-- `sourceName`
-- `output`
-- `column`
-
-Supported row containers:
-
-- `rows` (recommended)
-- `results`
-- `data`
-- `items`
-- `records`
-- a bare array of row objects
-
-Supported row shapes:
-
-```json
-{
-  "columns": ["Title", "Count"],
-  "rows": [
-    { "Title": "Object row", "Count": 3 },
-    ["Array row", 4]
-  ]
-}
-```
+- `meta`: first event; includes `version`, `format`, optional `query_id`, and ordered `columns`.
+- `row`: one result row; includes `values`, an array matching the `meta.columns` order.
+- `progress`: optional progress metadata for long-running work.
+- `warning`: optional recoverable issue metadata.
+- `error`: failure after streaming has started.
+- `done`: final success event with the total row count.
 
 Supported cell shapes:
 
@@ -368,30 +319,9 @@ Supported cell shapes:
 
 Multi-value arrays are normalized by the frontend and work with the virtual table, copy cell, post filters, split-column views, and Excel export.
 
-## Legacy Text Result Format
-
-Existing backends can keep returning the current text stream.
-
-Response headers:
-
-```http
-X-Query-Id: optional-query-id
-X-Raw-Columns: Title|Item Key|Count
-Content-Type: text/plain
-```
-
-Response body:
-
-```text
-Example title|123|1|1|4
-Another title|456|1|1|2
-```
-
-The frontend uses field metadata `parts` to know when one displayed column consumes multiple pipe-delimited output segments. If a cell can contain pipes, repeated values, or complex nested values, prefer the JSON result format instead. Older legacy responses that already use the unit separator character `\u001F` for repeated values remain supported, but new integrations should return repeated values as JSON arrays.
-
 ## Long-Running Query Actions
 
-The core query builder can show results from the direct `run` response. Query history, cancellation, and loading old results work best when the backend also supports IDs and status actions.
+The core query builder can show results from the direct `run` response. Query history, cancellation, and loading saved results work best when the backend also supports IDs and status actions.
 
 ### Query IDs
 
@@ -488,7 +418,7 @@ Request:
 }
 ```
 
-Response can use the same recommended JSON result format or the legacy text result format.
+Response uses the same streaming JSONL event format as `run`.
 
 ## Template Actions
 
@@ -529,17 +459,13 @@ Template objects may use either camelCase or snake_case for common keys:
 
 ## Integration Options
 
-### Native JSON Backend
+### Native JSONL Backend
 
-Best option for new systems. Implement the actions above and return JSON result objects. This gives clean multi-value cells and avoids delimiter issues.
+Best option for new systems. Implement the actions above and stream JSONL result events. This gives clean multi-value cells, progress/error events, and immediate row delivery.
 
 ### Adapter or Proxy Backend
 
-Use a small backend adapter that accepts the app's JSON payload, translates it to your internal system, then returns the recommended JSON result format. This is usually the cleanest path for systems that already have their own query language.
-
-### Legacy Pipe Backend
-
-Keep an existing text-stream backend and return `X-Raw-Columns` plus pipe-delimited rows. Add `parts` to field metadata when a displayed field consumes multiple pipe segments.
+Use a small backend adapter that accepts the app's JSON payload, translates it to your internal system, then streams JSONL events. This is usually the cleanest path for systems that already have their own query language.
 
 ### Static Deployment with Same-Origin API
 
@@ -565,7 +491,7 @@ Your API must allow the frontend origin with CORS. If users authenticate through
 - Dynamic/buildable fields come from backend builder metadata.
 - The schema contract lives in `docs/schemas/query-api.schema.json`.
 - The architecture test `tests/architecture/noHardcodedFrontendFields.mjs` fails if production frontend code adds backend field-name literals or a local field catalog.
-- `src/core/queryResultParser.js` accepts both current legacy text results and standard JSON result payloads.
+- `src/core/queryResultParser.js` hydrates rows only from JSONL-derived payloads.
 - `npm test` runs the integration guard, parser tests, payload tests, and browser smoke tests.
 
 ## Minimal Backend Checklist

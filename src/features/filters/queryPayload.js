@@ -289,7 +289,7 @@ function buildBackendQueryPayload(queryName = '') {
   const payload = {
     action: 'run',
     name: queryName || undefined,
-    result_format: 'json',
+    result_format: 'jsonl',
     filters: buildBackendFilters(),
     display_fields: standardDisplayFields
   };

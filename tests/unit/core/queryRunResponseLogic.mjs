@@ -50,10 +50,18 @@ function createBackendApi() {
   };
 }
 
-test('allows successful text stream responses without consuming the body', async () => {
+test('rejects successful non-JSONL stream responses', async () => {
   const response = createResponse({ body: 'row one\nrow two\n' });
 
-  await assertQueryRunStreamResponse(response, createBackendApi());
+  await assert.rejects(
+    () => assertQueryRunStreamResponse(response, createBackendApi()),
+    error => {
+      assert.equal(error.name, 'BackendApiError');
+      assert.equal(error.status, 200);
+      assert.match(error.message, /must return streaming JSONL/u);
+      return true;
+    }
+  );
 
   assert.equal(response.textReadCount, 0);
 });
@@ -85,13 +93,32 @@ test('rejects JSON error payloads even when the backend returns HTTP 200', async
   assert.equal(response.textReadCount, 0);
 });
 
-test('allows JSON result payloads without consuming the original response body', async () => {
+test('rejects non-streaming JSON result payloads', async () => {
   const response = createResponse({
     contentType: 'application/json; charset=utf-8',
     body: JSON.stringify({
       columns: ['Title'],
       rows: [{ Title: 'JSON result row' }]
     })
+  });
+
+  await assert.rejects(
+    () => assertQueryRunStreamResponse(response, createBackendApi()),
+    error => {
+      assert.equal(error.name, 'BackendApiError');
+      assert.equal(error.status, 200);
+      assert.match(error.message, /non-streaming JSON results/u);
+      return true;
+    }
+  );
+
+  assert.equal(response.textReadCount, 0);
+});
+
+test('allows JSONL stream responses without consuming the body', async () => {
+  const response = createResponse({
+    contentType: 'application/x-ndjson; charset=utf-8',
+    body: '{"type":"meta","columns":["Title"]}\n{"type":"row","values":["A"]}\n'
   });
 
   await assertQueryRunStreamResponse(response, createBackendApi());

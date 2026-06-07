@@ -122,16 +122,17 @@ test('query history', async () => {
   });
 
   const resultRows = buildHistoryResultRows({
-    response: { headers: { get: name => name === 'X-Raw-Columns' ? 'A|B' : null } },
-    streamedLines: ['one|two'],
+    jsonPayload: {
+      columns: ['A', 'B'],
+      rows: [['one', 'two']]
+    },
     displayedFields: ['A', 'B', 'C'],
-    fallbackColumns: [],
-    parsePipeDelimitedRow: (line, columns) => Object.fromEntries(line.split('|').map((value, index) => [columns[index], value]))
+    fallbackColumns: []
   });
   assert.deepEqual(resultRows, {
     headers: ['A', 'B', 'C'],
     objectRows: [{ A: 'one', B: 'two', C: '' }],
-    source: 'pipe'
+    source: 'jsonl'
   });
 
   assert.match(formatColumnsTooltip(['Title', '<Branch>']), /&lt;Branch&gt;/u);

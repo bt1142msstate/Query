@@ -24,7 +24,7 @@ The project is in a stable, production-oriented frontend shape for a static brow
 - The app uses native ES modules, deterministic startup through `src/appModules.js`, and executable architecture rules.
 - The former public `window.*` application bridge has been removed; app coordination now goes through ES imports and explicit service/action registration.
 - Field metadata is backend-driven. The frontend does not ship a built-in field catalog, and architecture tests guard against adding one.
-- Query execution supports backend-driven dynamic/buildable fields, date `Never` handling, legacy text result streams, and standard JSON result payloads.
+- Query execution supports backend-driven dynamic/buildable fields, date `Never` handling, and streaming JSONL result events.
 - Results support virtualized rendering, sorting, resizing, split multi-value columns, post filters, and worker-backed large Excel export.
 - Mobile and tablet workflows are covered by browser smoke tests for overlays, menus, virtual table behavior, mobile dialogs, and responsive resizing.
 - `npm test` is the full quality gate and runs cache-bust validation, lint, architecture checks, unit tests, and browser smoke tests.
@@ -58,7 +58,7 @@ The completed stages above are limited to work that is actually implemented or g
 | Source tree cleanup | Complete: app source lives under `src/` |
 | Folder ownership | Complete: product workflows live under `src/features/` |
 | Backend-driven fields | Complete, with hardcoded-field guardrails |
-| Standard JSON result support | Complete, alongside legacy text stream compatibility |
+| Streaming JSONL result support | Complete |
 | Dynamic/buildable fields | Complete from the frontend contract side |
 | Public note and MARC-style multi-value handling | Complete from the frontend contract side |
 | Post filters | Complete for result-only filtering, including empty/non-empty and multi-value operators |

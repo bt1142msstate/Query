@@ -1,4 +1,5 @@
 import {
+  buildJsonlResultStream,
   cleanupMobilePageScroll,
   dragTouchLocator,
   encodeFormSpecForUrl,
@@ -2233,7 +2234,11 @@ async function exerciseZeroResultQueryWorkflow(page, queryApiStub) {
   queryApiStub.enqueue([
     {
       action: 'run',
-      body: '',
+      body: buildJsonlResultStream({
+        queryId: 'browser-smoke-zero-results',
+        rows: []
+      }),
+      contentType: 'application/x-ndjson; charset=utf-8',
       delayMs: 300,
       queryId: 'browser-smoke-zero-results',
       rawColumns: smokeResultHeaders
@@ -2333,31 +2338,28 @@ async function exerciseJsonResultPayloadWorkflow(page, queryApiStub) {
 
   queryApiStub.enqueue({
     action: 'run',
-    body: JSON.stringify({
+    body: buildJsonlResultStream({
       columns: ['Smoke Title', 'Public Note', 'MARC 590'],
+      queryId: 'browser-smoke-json-results',
       rows: [
-        {
-          'Smoke Title': 'JSON Alpha',
-          'Public Note': ['First public note', 'Second public note', 'Third public note'],
-          'MARC 590': [
+        [
+          'JSON Alpha',
+          ['First public note', 'Second public note', 'Third public note'],
+          [
             '$a MSU -- Ulysses S. Grant Association.',
             '$a MSU -- Gift of Marcia Ewing-Current.',
             '$a MSU -- Richard Current Collection.'
           ]
-        },
-        {
-          'Smoke Title': 'JSON Beta',
-          'Public Note': { values: ['Only public note'] },
-          'MARC 590': { values: ['$a Single local note'] }
-        }
+        ],
+        ['JSON Beta', ['Only public note'], ['$a Single local note']]
       ]
     }),
-    contentType: 'application/json; charset=utf-8',
+    contentType: 'application/x-ndjson; charset=utf-8',
     queryId: 'browser-smoke-json-results'
   });
 
   await page.locator('#run-query-btn').click();
-  await expectResultsCount(page, '2', 'Desktop JSON result payload');
+  await expectResultsCount(page, '2', 'Desktop JSONL result stream');
 
   const jsonResultState = await page.evaluate(async () => {
     const { appServices } = await import('./src/core/appServices.js');
@@ -2378,7 +2380,7 @@ async function exerciseJsonResultPayloadWorkflow(page, queryApiStub) {
       '$a MSU -- Richard Current Collection.'
     ])
   ) {
-    throw new Error(`JSON result payload should hydrate multi-value arrays: ${JSON.stringify(jsonResultState)}`);
+    throw new Error(`JSONL result stream should hydrate multi-value arrays: ${JSON.stringify(jsonResultState)}`);
   }
 
   await page.evaluate(() => {

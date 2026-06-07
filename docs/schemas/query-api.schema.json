@@ -83,7 +83,7 @@
         "parts": {
           "type": "integer",
           "minimum": 1,
-          "description": "Only needed for legacy pipe-delimited responses when one displayed field consumes multiple output segments."
+          "description": "Optional backend-specific hint when one displayed field is assembled from multiple backend values."
         },
         "numberFormat": { "type": "string" },
         "numericFormat": { "type": "string" },
@@ -239,8 +239,8 @@
         "name": { "type": "string" },
         "result_format": {
           "type": "string",
-          "enum": ["json"],
-          "description": "Recommended response format. Older backends may ignore this and return the legacy text stream."
+          "const": "jsonl",
+          "description": "Canonical result response format. Query results stream as JSON Lines with meta, row, progress, done, warning, and error events."
         },
         "display_fields": {
           "type": "array",
@@ -413,8 +413,8 @@
         "query_id": { "type": "string", "minLength": 1 },
         "result_format": {
           "type": "string",
-          "enum": ["json"],
-          "description": "Recommended response format for saved result loading."
+          "const": "jsonl",
+          "description": "Canonical saved-result response format. Saved results stream as JSON Lines events."
         }
       },
       "additionalProperties": true

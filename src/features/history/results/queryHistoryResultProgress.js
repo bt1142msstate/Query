@@ -1,7 +1,7 @@
 import { BackendApi } from '../../../core/backendApi.js';
 import { escapeHtml } from '../../../core/formatting/html.js';
 import { hasResultRowsPayload } from '../../../core/queryResultParser.js';
-import { readStreamedQueryText } from '../../../core/queryStream.js';
+import { isJsonLinesContentType, readStreamedQueryResult } from '../../../core/queryStream.js';
 
 let loadState = null;
 
@@ -68,8 +68,16 @@ function render() {
 }
 
 async function fetchResults(queryId) {
-  const response = await BackendApi.request({ action: 'get_results', query_id: queryId, result_format: 'json' });
+  const response = await BackendApi.request({ action: 'get_results', query_id: queryId, result_format: 'jsonl' });
   const contentType = response.headers.get('Content-Type') || '';
+
+  if (isJsonLinesContentType(contentType)) {
+    const streamedPayload = await readStreamedQueryResult(response, {
+      onProgress: updateRowsLoaded
+    });
+    updateRowsLoaded(streamedPayload.jsonPayload?.rows?.length || 0);
+    return { response, ...streamedPayload };
+  }
 
   if (contentType.includes('application/json')) {
     const text = await response.text();
@@ -80,17 +88,11 @@ async function fetchResults(queryId) {
       data = { error: text };
     }
 
-    if (response.ok && hasResultRowsPayload(data)) {
-      const rowCount = Array.isArray(data)
-        ? data.length
-        : (data.rows || data.results || data.data || data.items || data.records || []).length;
-      updateRowsLoaded(rowCount);
-      return { response, text, lines: [], jsonPayload: data, partial: false, streamError: null };
-    }
-
     throw BackendApi.buildHttpError(response, {
       ...data,
-      error: data?.error || 'Results are not available yet.'
+      error: data?.error || (hasResultRowsPayload(data)
+        ? 'The backend returned non-streaming JSON results. Results must be streamed as JSONL.'
+        : 'Results are not available yet.')
     });
   }
 
@@ -99,11 +101,9 @@ async function fetchResults(queryId) {
     throw BackendApi.buildHttpError(response, { error: text });
   }
 
-  const streamedPayload = await readStreamedQueryText(response, {
-    onProgress: updateRowsLoaded
+  throw BackendApi.buildHttpError(response, {
+    error: 'The backend must return streaming JSONL results with Content-Type application/x-ndjson.'
   });
-  updateRowsLoaded(streamedPayload.lines?.length || 0);
-  return { response, ...streamedPayload };
 }
 
 const HistoryResultProgress = Object.freeze({

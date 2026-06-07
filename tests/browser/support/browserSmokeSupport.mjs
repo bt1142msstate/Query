@@ -24,6 +24,19 @@ const mimeTypes = new Map([
 
 const QUERY_API_PATTERN = /^https:\/\/mlp\.sirsi\.net\/uhtbin\/query_api\.pl/u;
 const smokeResultHeaders = ['Smoke Title', 'Smoke Branch', 'Smoke Status'];
+
+function buildJsonlResultStream({
+  columns = smokeResultHeaders,
+  queryId = 'browser-smoke-query',
+  rows = []
+} = {}) {
+  return [
+    { type: 'meta', version: 1, format: 'jsonl', query_id: queryId, columns },
+    ...rows.map(values => ({ type: 'row', values })),
+    { type: 'done', rows: rows.length }
+  ].map(event => JSON.stringify(event)).join('\n') + '\n';
+}
+
 const smokeFieldDefinitions = [
   {
     name: 'Smoke Title',
@@ -1831,6 +1844,7 @@ async function seedWideDragResults(page) {
 export {
   QUERY_API_PATTERN,
   attachFailureListeners,
+  buildJsonlResultStream,
   cleanupMobilePageScroll,
   closeMobileTableContextMenu,
   closeServer,

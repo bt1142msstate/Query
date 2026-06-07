@@ -12,18 +12,150 @@ function createQueryStreamError(error, options = {}) {
   return streamError;
 }
 
-function createStreamedQueryTextReader(options = {}) {
+function isJsonLinesContentType(contentType = '') {
+  const normalized = String(contentType || '').toLowerCase();
+  return normalized.includes('application/x-ndjson')
+    || normalized.includes('application/jsonl')
+    || normalized.includes('application/json-lines')
+    || normalized.includes('text/jsonl')
+    || normalized.includes('text/x-jsonl');
+}
+
+function getResponseContentType(response) {
+  return response?.headers?.get?.('Content-Type')
+    || response?.headers?.get?.('content-type')
+    || '';
+}
+
+function createJsonLineProtocolError(message, payload = {}) {
+  const error = new Error(message || 'The backend sent an invalid JSONL result stream.');
+  error.name = 'QueryJsonLineStreamError';
+  error.isQueryStreamError = true;
+  error.isNetworkError = false;
+  error.payload = payload;
+  return error;
+}
+
+function normalizeJsonLineEventType(event) {
+  return String(event?.type || event?.event || '').trim().toLowerCase();
+}
+
+function getJsonLineRowPayload(event) {
+  if (Array.isArray(event)) return event;
+  if (!event || typeof event !== 'object') return event;
+  if (Object.prototype.hasOwnProperty.call(event, 'values')) return event.values;
+  if (Object.prototype.hasOwnProperty.call(event, 'row')) return event.row;
+  if (Object.prototype.hasOwnProperty.call(event, 'data')) return event.data;
+  if (Object.prototype.hasOwnProperty.call(event, 'record')) return event.record;
+  return event;
+}
+
+function getJsonLineRowCount(event, fallback) {
+  const candidates = [
+    event?.rows,
+    event?.row_count,
+    event?.rowCount,
+    event?.count,
+    event?.current,
+    event?.progress?.rows,
+    event?.progress?.row_count,
+    event?.progress?.current
+  ];
+  const value = candidates.find(candidate => Number.isFinite(Number(candidate)));
+  return value === undefined ? fallback : Math.max(0, Number(value) || 0);
+}
+
+function processJsonLineEvent(line, state, readOptions = {}) {
+  let event;
+  try {
+    event = JSON.parse(line);
+  } catch (error) {
+    state.streamError ||= createJsonLineProtocolError(
+      `The backend sent invalid JSONL: ${error.message}`,
+      { line }
+    );
+    return;
+  }
+
+  const type = normalizeJsonLineEventType(event);
+  state.events.push(event);
+
+  if (type === 'meta' || type === 'metadata' || type === 'header' || type === 'columns') {
+    state.queryId ||= event.query_id || event.queryId || '';
+    const columns = event.columns || event.headers || event.fields || event.rawColumns || event.columnOrder;
+    if (Array.isArray(columns) && columns.length) {
+      state.columns = columns;
+    }
+    return;
+  }
+
+  if (type === 'progress') {
+    state.progress = event;
+    const rowCount = getJsonLineRowCount(event, state.rows.length);
+    if (typeof readOptions.onProgress === 'function' && rowCount !== state.lastProgressRows) {
+      state.lastProgressRows = rowCount;
+      readOptions.onProgress(rowCount, { progress: event });
+    }
+    return;
+  }
+
+  if (type === 'warning') {
+    state.warnings.push(event);
+    return;
+  }
+
+  if (type === 'done' || type === 'complete') {
+    state.doneEvent = event;
+    state.progress = event;
+    const rowCount = getJsonLineRowCount(event, state.rows.length);
+    if (typeof readOptions.onProgress === 'function' && rowCount !== state.lastProgressRows) {
+      state.lastProgressRows = rowCount;
+      readOptions.onProgress(rowCount, { progress: event });
+    }
+    return;
+  }
+
+  if (type === 'error' || type === 'failed') {
+    state.streamError ||= createJsonLineProtocolError(
+      event?.message || event?.error || 'The backend reported a JSONL stream error.',
+      event
+    );
+    return;
+  }
+
+  if (type === 'row' || type === 'result' || type === '' || Array.isArray(event)) {
+    state.rows.push(getJsonLineRowPayload(event));
+    if (typeof readOptions.onProgress === 'function') {
+      state.lastProgressRows = state.rows.length;
+      readOptions.onProgress(state.rows.length, { row: event });
+    }
+    return;
+  }
+
+  state.warnings.push({
+    type: 'warning',
+    message: `Ignoring unsupported JSONL event type: ${type}`,
+    event
+  });
+}
+
+function createStreamedLineReader(options = {}) {
   const isQueryRunning = typeof options.isQueryRunning === 'function'
     ? options.isQueryRunning
     : () => true;
 
-  return async function readStreamedQueryText(response, readOptions = {}) {
+  return async function readStreamedLines(response, readOptions = {}) {
     if (!response.body || typeof response.body.getReader !== 'function') {
       try {
         const fallbackText = await response.text();
         const fallbackLines = fallbackText.split('\n').filter(line => line.trim().length > 0);
         if (typeof readOptions.onProgress === 'function') {
           readOptions.onProgress(fallbackLines.length);
+        }
+        if (typeof readOptions.onLine === 'function') {
+          fallbackLines.forEach((line, index) => {
+            readOptions.onLine(line, index + 1);
+          });
         }
         return { text: fallbackText, lines: fallbackLines, partial: false, streamError: null };
       } catch (error) {
@@ -68,6 +200,9 @@ function createStreamedQueryTextReader(options = {}) {
       chunkParts.forEach(line => {
         if (line.trim().length === 0) return;
         lines.push(line);
+        if (typeof readOptions.onLine === 'function') {
+          readOptions.onLine(line, lines.length);
+        }
         didCountAdvance = true;
       });
 
@@ -84,6 +219,9 @@ function createStreamedQueryTextReader(options = {}) {
 
     if (bufferedText.trim().length > 0) {
       lines.push(bufferedText);
+      if (typeof readOptions.onLine === 'function') {
+        readOptions.onLine(bufferedText, lines.length);
+      }
       if (typeof readOptions.onProgress === 'function') {
         readOptions.onProgress(lines.length);
       }
@@ -101,10 +239,64 @@ function createStreamedQueryTextReader(options = {}) {
   };
 }
 
-const readStreamedQueryText = createStreamedQueryTextReader();
+function createStreamedQueryResultReader(options = {}) {
+  const readStreamedLines = createStreamedLineReader(options);
+
+  return async function readStreamedQueryResult(response, readOptions = {}) {
+    if (!isJsonLinesContentType(getResponseContentType(response))) {
+      throw createJsonLineProtocolError(
+        'The backend must return streaming JSONL results with Content-Type application/x-ndjson.',
+        { contentType: getResponseContentType(response) }
+      );
+    }
+
+    const state = {
+      columns: [],
+      doneEvent: null,
+      events: [],
+      progress: null,
+      queryId: '',
+      lastProgressRows: undefined,
+      rows: [],
+      streamError: null,
+      warnings: []
+    };
+
+    const streamed = await readStreamedLines(response, {
+      ...readOptions,
+      onProgress: null,
+      onLine: line => processJsonLineEvent(line, state, readOptions)
+    });
+
+    const streamError = streamed.streamError
+      ? createQueryStreamError(streamed.streamError.cause || streamed.streamError, { rowCount: state.rows.length })
+      : state.streamError;
+    if (state.streamError && state.rows.length === 0) {
+      throw state.streamError;
+    }
+
+    return {
+      ...streamed,
+      jsonPayload: {
+        query_id: state.queryId,
+        columns: state.columns,
+        rows: state.rows
+      },
+      jsonlEvents: state.events,
+      partial: Boolean(streamed.partial || state.streamError),
+      progress: state.progress,
+      source: 'jsonl',
+      streamError,
+      warnings: state.warnings
+    };
+  };
+}
+
+const readStreamedQueryResult = createStreamedQueryResultReader();
 
 export {
   createQueryStreamError,
-  createStreamedQueryTextReader,
-  readStreamedQueryText
+  createStreamedQueryResultReader,
+  isJsonLinesContentType,
+  readStreamedQueryResult
 };
