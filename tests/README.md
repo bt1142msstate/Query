@@ -14,6 +14,8 @@ Runs the full gate:
 - `npm run test:unit`: focused pure-logic and contract tests.
 - `npm run test:browser`: Playwright smoke coverage for real desktop/mobile UI workflows.
 
+Browser smoke coverage starts from `tests/browser/browserSmoke.mjs`; shared fixtures and assertions live in `tests/browser/support/`, and longer workflow scenarios live in `tests/browser/scenarios/`.
+
 ## Standards
 
 - Use `node:test` with an explicit test name in every `.mjs` test file.
