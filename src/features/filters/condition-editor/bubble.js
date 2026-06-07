@@ -10,7 +10,7 @@ import { AppState, QueryStateReaders } from '../../../core/queryState.js';
 import { VisibilityUtils } from '../../../core/visibility.js';
 import { filteredDefs, isFieldBackendFilterable, isFieldBuildable, shouldFieldHavePurpleStylingBase } from '../fieldDefs.js';
 import { DOM } from '../../../core/domCache.js';
-import { CustomDatePicker } from '../../../ui/customDatePicker.js';
+import { CustomDatePicker } from '../../../ui/controls/customDatePicker.js';
 
 var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
 var getActiveFilters = QueryStateReaders.getActiveFilters.bind(QueryStateReaders);

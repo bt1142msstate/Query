@@ -122,7 +122,7 @@ Canonical layout decision: application source lives in `src/`. We are not using 
 | `docs/INTEGRATION.md` | Backend integration contract, JSON result formats, legacy compatibility, and deployment options |
 | `docs/ROADMAP.md` | Current project status, completed milestones, and remaining roadmap items |
 | `tests/architecture/` | Architecture fitness and module-specifier checks |
-| `tests/unit/` | Focused pure-logic unit tests |
+| `tests/unit/` | Focused pure-logic unit tests grouped by `core/`, `features/`, and `ui/` |
 | `tests/browser/` | Playwright browser smoke coverage |
 
 ## 🛠️ Tech

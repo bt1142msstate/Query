@@ -9,12 +9,12 @@ import {
   normalizeCategoryList,
   normalizeTemplate,
   sanitizeSvgMarkup
-} from './queryTemplateModels.js';
+} from './data/queryTemplateModels.js';
 import {
   createTemplateDraftFromConfig,
   filterVisibleTemplates,
   validateTemplateDraft
-} from './queryTemplateState.js';
+} from './data/queryTemplateState.js';
 import {
   appendTemplateToCollection,
   applyPinnedTemplateOrder,
@@ -22,26 +22,26 @@ import {
   removeTemplateFromCollection,
   replaceTemplateInCollection,
   sortTemplateCollection
-} from './queryTemplateCollection.js';
+} from './data/queryTemplateCollection.js';
 import {
   buildCreateTemplatePayload,
   buildPinTemplatePayload,
   buildUpdateTemplatePayload
-} from './queryTemplatePayloads.js';
-import { createQueryTemplateRepository } from './queryTemplateRepository.js';
+} from './data/queryTemplatePayloads.js';
+import { createQueryTemplateRepository } from './data/queryTemplateRepository.js';
 import {
   buildTemplateDetailMeta,
   getPinnedTemplatesForStrip
-} from './queryTemplateViewState.js';
-import { renderTemplateDetailView } from './queryTemplateDetailView.js';
-import { createQueryTemplateCategoryActions } from './queryTemplateCategoryActions.js';
+} from './view/queryTemplateViewState.js';
+import { renderTemplateDetailView } from './view/queryTemplateDetailView.js';
+import { createQueryTemplateCategoryActions } from './category/queryTemplateCategoryActions.js';
 import {
   renderTemplateCategoryAssignment,
   renderTemplateCategoryFilter,
   renderTemplateCategoryList
-} from './queryTemplateCategoryView.js';
-import { renderTemplateList } from './queryTemplateListView.js';
-import { getQueryTemplateElements } from './queryTemplateElements.js';
+} from './category/queryTemplateCategoryView.js';
+import { renderTemplateList } from './view/queryTemplateListView.js';
+import { getQueryTemplateElements } from './view/queryTemplateElements.js';
 import { escapeHtml } from '../../core/formatting/html.js';
 (function initializeQueryTemplates() {
   const NEW_TEMPLATE_ID = '__new_template__';

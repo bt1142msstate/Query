@@ -1,4 +1,4 @@
-import { initializeSearchInputs } from '../../../ui/searchUI.js';
+import { initializeSearchInputs } from '../../../ui/controls/searchUI.js';
 
 const STREAMED_EQUALS_BATCH_SIZE = 800;
 const STREAMED_EQUALS_ROW_HEIGHT = 50;

@@ -11,7 +11,7 @@ npm test
 Runs the full gate:
 
 - `npm run test:static`: cache-busting check, ESLint, and architecture tests.
-- `npm run test:unit`: focused pure-logic and contract tests.
+- `npm run test:unit`: focused pure-logic and contract tests from `tests/unit/core/`, `tests/unit/features/`, and `tests/unit/ui/`.
 - `npm run test:browser`: Playwright smoke coverage for real desktop/mobile UI workflows.
 
 Browser smoke coverage starts from `tests/browser/browserSmoke.mjs`; shared fixtures and assertions live in `tests/browser/support/`, and longer workflow scenarios live in `tests/browser/scenarios/`.

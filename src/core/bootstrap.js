@@ -7,7 +7,7 @@ import { showToastMessage } from './toast.js';
 import { QueryBuilderShell } from '../ui/queryBuilderShell.js';
 import { QueryFormMode } from '../ui/form-mode/formMode.js';
 import { QueryUI } from '../ui/queryUI.js';
-import { TableNameInput } from '../ui/tableNameInput.js';
+import { TableNameInput } from '../ui/controls/tableNameInput.js';
 
 (function initializeAppBootstrap() {
   function runInitializer(label, initializer) {
