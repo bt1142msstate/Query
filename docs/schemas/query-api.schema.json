@@ -1,0 +1,471 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bt1142msstate.github.io/Query/docs/schemas/query-api.schema.json",
+  "title": "Item Query API Contract",
+  "description": "Backend contract for the Item Query Project frontend. The recommended integration uses get_fields and run first, then adds history, cancellation, result loading, and templates as needed.",
+  "$defs": {
+    "scalar": {
+      "type": ["string", "number", "integer", "boolean", "null"]
+    },
+    "cellValue": {
+      "oneOf": [
+        { "$ref": "#/$defs/scalar" },
+        {
+          "type": "array",
+          "items": { "$ref": "#/$defs/scalar" }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "value": { "$ref": "#/$defs/cellValue" },
+            "values": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/cellValue" }
+            }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "fieldDefinition": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Canonical field name sent back in display_fields and filters."
+        },
+        "label": {
+          "type": "string",
+          "description": "Optional user-facing label. Defaults to name."
+        },
+        "desc": {
+          "type": "string",
+          "description": "Optional user-facing field description."
+        },
+        "description": {
+          "type": "string",
+          "description": "Alias for desc."
+        },
+        "category": {
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          ]
+        },
+        "type": {
+          "type": "string",
+          "examples": ["string", "date", "number", "money", "boolean"]
+        },
+        "filters": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "operators": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "values": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/scalar" }
+        },
+        "aliases": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "allowValueList": { "type": "boolean" },
+        "multiSelect": { "type": "boolean" },
+        "groupValues": { "type": "boolean" },
+        "parts": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Only needed for legacy pipe-delimited responses when one displayed field consumes multiple output segments."
+        },
+        "numberFormat": { "type": "string" },
+        "numericFormat": { "type": "string" },
+        "warning": { "$ref": "#/$defs/fieldWarning" },
+        "warnings": {
+          "oneOf": [
+            { "$ref": "#/$defs/fieldWarning" },
+            {
+              "type": "array",
+              "items": { "$ref": "#/$defs/fieldWarning" }
+            }
+          ]
+        },
+        "builder": { "$ref": "#/$defs/fieldBuilder" }
+      },
+      "additionalProperties": true
+    },
+    "fieldWarning": {
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "properties": {
+            "message": { "type": "string" },
+            "text": { "type": "string" },
+            "detail": { "type": "string" },
+            "description": { "type": "string" },
+            "level": { "type": "string" },
+            "severity": { "type": "string" },
+            "type": { "type": "string" }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "fieldBuilder": {
+      "type": "object",
+      "required": ["outputFieldIdTemplate", "inputs"],
+      "properties": {
+        "outputFieldIdTemplate": {
+          "type": "string",
+          "description": "Template used to create the backend field id, for example Custom {code}${subfield}."
+        },
+        "displayLabelTemplate": {
+          "type": "string",
+          "description": "Optional template used for the user-facing label."
+        },
+        "matchPattern": {
+          "type": "string",
+          "description": "Regular expression string that matches generated field names when restoring saved queries."
+        },
+        "inputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/builderInput" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "builderInput": {
+      "type": "object",
+      "required": ["id", "label"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string", "minLength": 1 },
+        "type": {
+          "type": "string",
+          "examples": ["text", "select", "number"]
+        },
+        "pattern": {
+          "type": "string",
+          "description": "Optional regular expression string for client-side validation."
+        },
+        "placeholder": { "type": "string" },
+        "optional": { "type": "boolean" },
+        "error_msg": { "type": "string" },
+        "options": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "$ref": "#/$defs/scalar" },
+              {
+                "type": "object",
+                "properties": {
+                  "label": { "type": "string" },
+                  "value": { "$ref": "#/$defs/scalar" }
+                },
+                "additionalProperties": true
+              }
+            ]
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "backendFilter": {
+      "type": "object",
+      "required": ["field", "operator", "value"],
+      "properties": {
+        "field": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operator": {
+          "type": "string",
+          "enum": ["=", "!=", ">", "<", ">=", "<="]
+        },
+        "value": {
+          "oneOf": [
+            { "$ref": "#/$defs/scalar" },
+            {
+              "type": "array",
+              "items": { "$ref": "#/$defs/scalar" }
+            }
+          ],
+          "description": "Date filters use YYYYMMDD or NEVER. Text contains/starts filters may use backend wildcards such as *value* or value*."
+        }
+      },
+      "additionalProperties": true
+    },
+    "getFieldsRequest": {
+      "type": "object",
+      "required": ["action"],
+      "properties": {
+        "action": { "const": "get_fields" }
+      },
+      "additionalProperties": true
+    },
+    "getFieldsResponse": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["fields"],
+          "properties": {
+            "fields": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/fieldDefinition" }
+            }
+          },
+          "additionalProperties": true
+        },
+        {
+          "type": "array",
+          "items": { "$ref": "#/$defs/fieldDefinition" }
+        }
+      ]
+    },
+    "runRequest": {
+      "type": "object",
+      "required": ["action", "display_fields", "filters"],
+      "properties": {
+        "action": { "const": "run" },
+        "name": { "type": "string" },
+        "display_fields": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "filters": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/backendFilter" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "columnDescriptor": {
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "label": { "type": "string" },
+            "fieldName": { "type": "string" },
+            "field": { "type": "string" },
+            "id": { "type": "string" },
+            "key": { "type": "string" },
+            "source": { "type": "string" },
+            "sourceName": { "type": "string" },
+            "output": { "type": "string" },
+            "column": { "type": "string" }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "resultRow": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/cellValue" }
+        },
+        {
+          "type": "array",
+          "items": { "$ref": "#/$defs/cellValue" }
+        }
+      ]
+    },
+    "queryResult": {
+      "type": "object",
+      "required": ["columns", "rows"],
+      "properties": {
+        "columns": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/columnDescriptor" }
+        },
+        "rows": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/resultRow" }
+        },
+        "query_id": { "type": "string" },
+        "progress": { "$ref": "#/$defs/progress" }
+      },
+      "additionalProperties": true
+    },
+    "statusRequest": {
+      "type": "object",
+      "required": ["action"],
+      "properties": {
+        "action": { "const": "status" }
+      },
+      "additionalProperties": true
+    },
+    "statusResponse": {
+      "type": "object",
+      "properties": {
+        "queries": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": { "$ref": "#/$defs/queryStatus" }
+            },
+            {
+              "type": "array",
+              "items": { "$ref": "#/$defs/queryStatus" }
+            }
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "queryStatus": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "query_id": { "type": "string" },
+        "name": { "type": "string" },
+        "status": {
+          "type": "string",
+          "examples": ["running", "complete", "failed", "canceled"]
+        },
+        "start_time": { "type": "string" },
+        "end_time": { "type": "string" },
+        "row_count": { "type": "integer", "minimum": 0 },
+        "result_count": { "type": "integer", "minimum": 0 },
+        "progress": { "$ref": "#/$defs/progress" },
+        "request": { "$ref": "#/$defs/runRequest" },
+        "ui_config": { "$ref": "#/$defs/uiConfig" },
+        "error": { "type": "string" },
+        "error_details": { "type": "object", "additionalProperties": true }
+      },
+      "additionalProperties": true
+    },
+    "progress": {
+      "type": "object",
+      "properties": {
+        "schema_version": { "type": "integer", "minimum": 1 },
+        "stage": { "type": "string" },
+        "label": { "type": "string" },
+        "detail": { "type": "string" },
+        "current": { "type": "number" },
+        "total": { "type": "number" },
+        "percent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "unit": { "type": "string" },
+        "counters": {
+          "type": "object",
+          "additionalProperties": { "type": "number" }
+        },
+        "updated_at": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "uiConfig": {
+      "type": "object",
+      "properties": {
+        "DesiredColumnOrder": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "Filters": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/uiConfigFilter" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "uiConfigFilter": {
+      "type": "object",
+      "properties": {
+        "FieldName": { "type": "string" },
+        "FieldOperator": { "type": "string" },
+        "Values": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/scalar" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "cancelRequest": {
+      "type": "object",
+      "required": ["action", "query_id"],
+      "properties": {
+        "action": { "const": "cancel" },
+        "query_id": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": true
+    },
+    "getResultsRequest": {
+      "type": "object",
+      "required": ["action", "query_id"],
+      "properties": {
+        "action": { "const": "get_results" },
+        "query_id": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": true
+    },
+    "errorResponse": {
+      "type": "object",
+      "required": ["error"],
+      "properties": {
+        "error": { "type": "string" },
+        "error_details": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "errorDetails": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "retry_after_seconds": { "type": "number", "minimum": 0 },
+        "retry_after": {
+          "oneOf": [
+            { "type": "number", "minimum": 0 },
+            { "type": "string" }
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "template": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "svg": { "type": "string" },
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "ui_config": { "$ref": "#/$defs/uiConfig" },
+        "pinned": { "type": "boolean" },
+        "pin_order": { "type": "number" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "anyOf": [
+    { "$ref": "#/$defs/getFieldsRequest" },
+    { "$ref": "#/$defs/getFieldsResponse" },
+    { "$ref": "#/$defs/runRequest" },
+    { "$ref": "#/$defs/queryResult" },
+    { "$ref": "#/$defs/statusRequest" },
+    { "$ref": "#/$defs/statusResponse" },
+    { "$ref": "#/$defs/cancelRequest" },
+    { "$ref": "#/$defs/getResultsRequest" },
+    { "$ref": "#/$defs/errorResponse" },
+    { "$ref": "#/$defs/template" }
+  ]
+}

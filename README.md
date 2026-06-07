@@ -56,6 +56,22 @@ The app stores valid API URL overrides in `localStorage` under `query-project.ap
 
 For a new backend, start with [`docs/INTEGRATION.md`](docs/INTEGRATION.md). The minimum integration is `POST` JSON actions for `get_fields` and `run`; history, cancellation, saved templates, and old-result loading are optional extensions.
 
+The recommended backend contract is intentionally small:
+
+```json
+{ "action": "get_fields" }
+```
+
+```json
+{
+  "action": "run",
+  "display_fields": ["Title"],
+  "filters": [{ "field": "Title", "operator": "=", "value": "*history*" }]
+}
+```
+
+New backends should return JSON results as `{ "columns": [...], "rows": [...] }`. The machine-readable contract lives at [`docs/schemas/query-api.schema.json`](docs/schemas/query-api.schema.json), and the full setup guide is [`docs/INTEGRATION.md`](docs/INTEGRATION.md).
+
 The checked-in default endpoint in `src/core/backendApi.js` is an example/testing integration, not the intended production backend for the public live site. Real deployments should provide their own compatible API URL or same-origin API route.
 
 ## 💻 Features
@@ -121,6 +137,7 @@ Canonical layout decision: application source lives in `src/`. We are not using 
 | `docs/ARCHITECTURE.md` | Frontend architecture notes, quality gates, and refactor plan |
 | `docs/INTEGRATION.md` | Backend integration contract, JSON result formats, legacy compatibility, and deployment options |
 | `docs/ROADMAP.md` | Current project status, completed milestones, and remaining roadmap items |
+| `docs/schemas/query-api.schema.json` | Machine-readable JSON Schema for the recommended backend contract |
 | `tests/architecture/` | Architecture fitness and module-specifier checks |
 | `tests/unit/` | Focused pure-logic unit tests grouped by `core/`, `features/`, and `ui/` |
 | `tests/browser/` | Playwright browser smoke coverage |
@@ -146,7 +163,7 @@ The public live site should not rely on that example API as its production data 
 
 Static deployments can point the app at another compatible service with `?api_url=...` or `?query_api_url=...`; valid values are stored in `localStorage` under `query-project.api-url`. Local deployments can still change the default in `src/core/backendApi.js` when that is simpler.
 
-See [`docs/INTEGRATION.md`](docs/INTEGRATION.md) for the full backend contract, including field metadata, query payloads, JSON result shapes, legacy text streams, history/cancel actions, template actions, rate-limit errors, and deployment options.
+See [`docs/INTEGRATION.md`](docs/INTEGRATION.md) for the full backend contract, including field metadata, query payloads, JSON result shapes, legacy text streams, history/cancel actions, template actions, rate-limit errors, deployment options, and the [`docs/schemas/query-api.schema.json`](docs/schemas/query-api.schema.json) schema.
 
 ### Result Response Formats
 

@@ -4,6 +4,18 @@ This app is a static frontend. It does not own the data system. A compatible bac
 
 The current checked-in endpoint remains the default example/testing backend. New deployments can point the same frontend at another backend without changing field logic in the frontend.
 
+## Recommended Contract
+
+For new integrations, keep the backend adapter small and boring:
+
+1. Accept JSON `POST` requests at one URL.
+2. Implement `get_fields` so the frontend can discover fields.
+3. Implement `run` so the frontend can execute the selected fields and filters.
+4. Return JSON results as `{ "columns": [...], "rows": [...] }`.
+5. Add query IDs, history, cancellation, saved results, and templates only when your deployment needs those panels.
+
+The machine-readable schema is [`docs/schemas/query-api.schema.json`](schemas/query-api.schema.json). It uses JSON Schema draft 2020-12 and intentionally allows extra properties so a backend can include deployment-specific metadata without forking the frontend.
+
 ## Fastest Setup Path
 
 1. Serve this repository as a static site.
@@ -14,6 +26,56 @@ The current checked-in endpoint remains the default example/testing backend. New
 6. Add `status`, `cancel`, `get_results`, and template actions only when those panels need to work against your backend.
 
 The frontend does not require backend-specific code for field definitions. Your `get_fields` response defines available fields, filter operators, field warnings, dynamic/buildable field inputs, and multi-segment legacy fields.
+
+## Minimum Working Backend
+
+A minimal backend only needs these two request/response pairs.
+
+Request:
+
+```json
+{ "action": "get_fields" }
+```
+
+Response:
+
+```json
+{
+  "fields": [
+    {
+      "name": "Title",
+      "type": "string",
+      "category": "Bibliographic",
+      "filters": ["contains", "equals"]
+    }
+  ]
+}
+```
+
+Request:
+
+```json
+{
+  "action": "run",
+  "display_fields": ["Title"],
+  "filters": [
+    { "field": "Title", "operator": "=", "value": "*history*" }
+  ]
+}
+```
+
+Response:
+
+```json
+{
+  "columns": ["Title"],
+  "rows": [
+    { "Title": "Example title" }
+  ]
+}
+```
+
+That is enough for field loading, query building, result display, post filters, copy, and Excel export. The rest of this guide documents optional features, compatibility formats, and deployment choices.
 
 ## Integration Goals
 
@@ -77,6 +139,18 @@ Rate limits should return HTTP `429`. The frontend understands either `retry_aft
   "retry_after_seconds": 30
 }
 ```
+
+## Schema Reference
+
+Use [`docs/schemas/query-api.schema.json`](schemas/query-api.schema.json) as the shared contract between the frontend and a backend adapter. The schema includes definitions for:
+
+- field metadata returned by `get_fields`
+- `run` payloads and backend filters
+- recommended JSON result payloads
+- optional query status/progress payloads
+- optional cancellation, saved-result loading, template payloads, and error responses
+
+The schema is permissive by design. Required fields are limited to the contract the frontend needs, while `additionalProperties` allows backend-specific IDs, timing data, diagnostics, auth context, or deployment metadata.
 
 ## Required Core Actions
 
@@ -237,7 +311,7 @@ New backends should return JSON object rows. This avoids delimiter escaping prob
 
 Supported column keys:
 
-- `columns`
+- `columns` (recommended)
 - `headers`
 - `fields`
 - `rawColumns`
@@ -258,7 +332,7 @@ Each column may be a string or an object. For object descriptors, the frontend r
 
 Supported row containers:
 
-- `rows`
+- `rows` (recommended)
 - `results`
 - `data`
 - `items`
@@ -485,6 +559,7 @@ Your API must allow the frontend origin with CORS. If users authenticate through
 
 - The frontend field catalog comes from `get_fields`.
 - Dynamic/buildable fields come from backend builder metadata.
+- The schema contract lives in `docs/schemas/query-api.schema.json`.
 - The architecture test `tests/architecture/noHardcodedFrontendFields.mjs` fails if production frontend code adds backend field-name literals or a local field catalog.
 - `src/core/queryResultParser.js` accepts both current legacy text results and standard JSON result payloads.
 - `npm test` runs the integration guard, parser tests, payload tests, and browser smoke tests.
