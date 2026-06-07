@@ -1,5 +1,5 @@
 {
-  "version": "9b7f21347ae549f4",
+  "version": "7485e39a8f00b68a",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "backgroundNotificationServiceWorker.js": "2f8933df91d32a1a",
@@ -131,8 +131,8 @@
     "src/features/templates/view/queryTemplateElements.js": "0259a4deb71c3f34",
     "src/features/templates/view/queryTemplateListView.js": "2f4f1ac2cd5440d4",
     "src/features/templates/view/queryTemplateViewState.js": "a1a4e7e2fdd668f8",
-    "src/styles/app.css": "d769374a778644d3",
-    "src/styles/base.css": "3c3de1e55e3f2f14",
+    "src/styles/app.css": "8031ca5a83b5319f",
+    "src/styles/base.css": "ed683add928f9a02",
     "src/styles/condition-editor.css": "c3151b483e049c2e",
     "src/styles/controls.css": "559e7223fe9f17b0",
     "src/styles/filters.css": "9a0f72aec9cace0d",

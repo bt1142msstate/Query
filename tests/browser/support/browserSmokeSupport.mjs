@@ -997,6 +997,53 @@ async function expectMobileViewportStability(page) {
   }
 }
 
+async function expectMobileHeaderDoesNotCoverTableOnScroll(page, label) {
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.evaluate(() => new Promise(resolve => {
+    window.requestAnimationFrame(() => window.requestAnimationFrame(resolve));
+  }));
+
+  const metrics = await page.evaluate(() => {
+    const scrollTarget = Math.min(
+      180,
+      Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
+    );
+    window.scrollTo(0, scrollTarget);
+    return new Promise(resolve => {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          const header = document.querySelector('#header-bar');
+          const table = document.querySelector('#table-shell');
+          const headerRect = header?.getBoundingClientRect();
+          const tableRect = table?.getBoundingClientRect();
+          const overlaps = Boolean(headerRect && tableRect
+            && headerRect.bottom > tableRect.top + 1
+            && headerRect.top < tableRect.bottom - 1);
+
+          resolve({
+            bodyPaddingTop: window.getComputedStyle(document.body).paddingTop,
+            headerBottom: headerRect?.bottom ?? null,
+            headerPosition: header ? window.getComputedStyle(header).position : '',
+            headerTop: headerRect?.top ?? null,
+            overlaps,
+            scrollY: window.scrollY,
+            tableBottom: tableRect?.bottom ?? null,
+            tableTop: tableRect?.top ?? null
+          });
+        });
+      });
+    });
+  });
+
+  if (
+    metrics.headerPosition === 'fixed'
+    || metrics.bodyPaddingTop !== '0px'
+    || metrics.overlaps
+  ) {
+    throw new Error(`${label} should keep the mobile header in page flow instead of covering the table: ${JSON.stringify(metrics)}`);
+  }
+}
+
 async function expectElementWithinViewport(page, selector, label) {
   const metrics = await page.locator(selector).evaluate(element => {
     const rect = element.getBoundingClientRect();
@@ -1859,6 +1906,7 @@ export {
   expectLightInput,
   expectMinimumTapTarget,
   expectMobileEditableFocusContained,
+  expectMobileHeaderDoesNotCoverTableOnScroll,
   expectMobileHeaderDragDoesNotOpenContextMenu,
   expectMobileScrollLockReleased,
   expectMobileTableContextMenu,

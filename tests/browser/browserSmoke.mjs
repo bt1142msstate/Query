@@ -17,6 +17,7 @@ import {
   expectLightInput,
   expectMinimumTapTarget,
   expectMobileEditableFocusContained,
+  expectMobileHeaderDoesNotCoverTableOnScroll,
   expectMobileHeaderDragDoesNotOpenContextMenu,
   expectMobileScrollLockReleased,
   expectMobileTableContextMenu,
@@ -906,6 +907,7 @@ async function runSmokeTest() {
     if (mobileActionBarMetrics.scrollWidth - mobileActionBarMetrics.clientWidth > 2 || mobileActionBarMetrics.height > 128) {
       throw new Error(`Mobile table action bar should show all actions without horizontal scrolling: ${JSON.stringify(mobileActionBarMetrics)}`);
     }
+    await expectMobileHeaderDoesNotCoverTableOnScroll(mobilePage, 'Mobile header and table');
     await expectMobileColumnResizeInteraction(mobilePage);
     await expectMinimumTapTarget(mobilePage, '#mobile-builder-toggle', 'Mobile builder drawer toggle');
 
