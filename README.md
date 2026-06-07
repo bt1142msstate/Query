@@ -213,13 +213,13 @@ npm run cache:bust
 
 ## Roadmap
 
-Current status: the frontend architecture, ES module migration, source-tree organization, mobile/tablet pass, cache-busting enforcement, backend-driven field contract, JSON result support, large Excel export, and modernized test suite are in place.
+Current stage: Stage 4, integration readiness and public deployment hardening. The frontend architecture, ES module migration, source-tree organization, responsive/mobile workflow baseline, cache-busting enforcement, backend-driven field contract, JSON result support, large Excel export, and modernized test suite are in place.
 
 Remaining work is mostly integration and polish:
 
 - Add a first-class API settings screen so users can connect their own backend without editing source or URL parameters.
 - Remove project-owned API usage from the public live default and make bring-your-own-API the primary deployment path.
-- Add deployment examples for compatible APIs, including CORS/auth, field metadata, result JSON, history, cancel, and template persistence.
+- Add minimal compatible API implementation examples, including CORS/auth, field metadata, result JSON, history, cancel, and template persistence.
 - Continue adding realistic browser interaction coverage when new workflow bugs are found.
 - Keep reviewing large coordinator modules as features change, but only split them when a real ownership boundary appears.
 
