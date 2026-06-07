@@ -8,10 +8,11 @@ import {
 } from './queryHistoryResultCache.js';
 import { rememberOpenedHistoryResult } from './queryHistoryResultSession.js';
 
-function buildResultViewState({ queryStateReaders, services }) {
+function buildResultViewState({ queryStateReaders, services, uiState }) {
   return buildCurrentResultViewState({
     queryStateReaders,
-    services
+    services,
+    uiState
   });
 }
 
@@ -19,6 +20,7 @@ function createOpenedResultViewStatePersistence({
   getHistoryQueryById,
   queryStateReaders,
   services,
+  uiState,
   windowRef = globalThis.window || globalThis
 }) {
   let persistTimer = null;
@@ -34,7 +36,8 @@ function createOpenedResultViewStatePersistence({
 
     const viewState = snapshot.viewState || buildResultViewState({
       queryStateReaders,
-      services
+      services,
+      uiState
     });
 
     rememberOpenedHistoryResult(queryId, {
@@ -69,7 +72,8 @@ function createOpenedResultViewStatePersistence({
 
     const viewState = buildResultViewState({
       queryStateReaders,
-      services
+      services,
+      uiState
     });
 
     if (generation !== persistGeneration) {

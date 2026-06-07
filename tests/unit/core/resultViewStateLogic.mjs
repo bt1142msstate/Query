@@ -16,6 +16,7 @@ test('result view state normalizes and encodes view settings only', () => {
 
   const viewState = normalizeResultViewState({
     displayedFields: ['Status', '', 'Title'],
+    fieldSearch: ' status ',
     headers: ['Title', 'Status'],
     objectRows: [{ Title: 'Loaded object data should not be included' }],
     rows: [['Loaded row data should not be included']],
@@ -34,6 +35,7 @@ test('result view state normalizes and encodes view settings only', () => {
   assert.deepEqual(viewState, {
     version: 1,
     displayedFields: ['Status', 'Title'],
+    fieldSearch: 'status',
     postFilters: {
       Status: {
         logic: 'any',
@@ -90,6 +92,11 @@ test('result view state restore clears stale post filters when a shared view has
         calls.push({ type: 'split', value });
       }
     },
+    uiState: {
+      setFieldSearch(value) {
+        calls.push({ type: 'fieldSearch', value });
+      }
+    },
     uiActions: {
       resetSplitColumnsToggleUI() {
         calls.push({ type: 'toggleReset' });
@@ -99,5 +106,30 @@ test('result view state restore clears stale post filters when a shared view has
 
   assert.deepEqual(calls.find(call => call.type === 'postFilters')?.filters, {});
   assert.deepEqual(calls.find(call => call.type === 'fields')?.fields, ['Status']);
+  assert.equal(calls.find(call => call.type === 'fieldSearch'), undefined);
   assert.equal(calls.find(call => call.type === 'split')?.value, false);
+});
+
+test('result view state restore can apply field search text', () => {
+  const calls = [];
+
+  applyResultViewState({
+    fieldSearch: 'branch'
+  }, {
+    services: {
+      replacePostFilters(filters) {
+        calls.push({ filters, type: 'postFilters' });
+      }
+    },
+    uiState: {
+      setFieldSearch(value) {
+        calls.push({ type: 'fieldSearch', value });
+      }
+    }
+  });
+
+  assert.deepEqual(calls, [
+    { type: 'fieldSearch', value: 'branch' },
+    { type: 'postFilters', filters: {} }
+  ]);
 });

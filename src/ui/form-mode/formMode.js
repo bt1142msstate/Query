@@ -654,7 +654,13 @@ let QueryFormMode;
     sanitizeSpecDisplayColumns(state.spec);
     const resultQueryId = getCurrentShareResultQueryId(options);
     const resultViewParam = resultQueryId
-      ? encodeResultViewState(buildCurrentResultViewState({ queryStateReaders: QueryStateReaders, services }))
+      ? encodeResultViewState(buildCurrentResultViewState({
+          queryStateReaders: QueryStateReaders,
+          services,
+          uiState: {
+            getFieldSearch: () => DOM?.queryInput?.value || ''
+          }
+        }))
       : '';
     return buildFormShareUrl(window.location.href, state.spec, {
       fieldDefs,

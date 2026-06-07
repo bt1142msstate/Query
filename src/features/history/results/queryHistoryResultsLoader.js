@@ -17,6 +17,7 @@ export function createQueryHistoryResultsLoader({
   queryChangeManager,
   queryStateReaders,
   services,
+  uiState,
   showToastMessage,
   uiActions,
   getHistoryQueryById,
@@ -72,13 +73,14 @@ export function createQueryHistoryResultsLoader({
           queryChangeManager,
           viewState: incomingViewState,
           services,
+          uiState,
           uiActions
         });
       }
 
       uiActions.updateTableResultsLip();
       if (options.remember !== false) {
-        const viewState = buildCurrentResultViewState({ queryStateReaders, services });
+        const viewState = buildCurrentResultViewState({ queryStateReaders, services, uiState });
         const resultViewParam = options.resultViewParam === undefined
           ? encodeResultViewState(viewState)
           : options.resultViewParam;
@@ -152,6 +154,7 @@ async function hydrateHistoryResultTable({
   queryChangeManager,
   viewState,
   services,
+  uiState,
   uiActions
 }) {
   const columnMap = new Map();
@@ -174,6 +177,7 @@ async function hydrateHistoryResultTable({
   applyResultViewState(viewState, {
     queryChangeManager,
     services,
+    uiState,
     uiActions
   });
 
