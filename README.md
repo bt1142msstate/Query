@@ -137,6 +137,7 @@ Canonical layout decision: application source lives in `src/`. We are not using 
 | `config/` | Shared architecture contracts for forbidden browser globals and module boundaries |
 | `docs/ARCHITECTURE.md` | Frontend architecture notes, quality gates, and refactor plan |
 | `docs/INTEGRATION.md` | Backend integration contract, streaming JSONL results, and deployment options |
+| `docs/PROJECT_HISTORY.md` | Non-redundant build history and backend work summary |
 | `docs/ROADMAP.md` | Current project status, completed milestones, and remaining roadmap items |
 | `docs/schemas/query-api.schema.json` | Machine-readable JSON Schema for the recommended backend contract |
 | `tests/architecture/` | Architecture fitness and module-specifier checks |
@@ -187,6 +188,7 @@ Rows use array values in the same order as the `meta.columns` list. Multi-value 
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for module boundaries, runtime flow, quality gates, and architecture guardrails.
 See [`docs/INTEGRATION.md`](docs/INTEGRATION.md) for the supported backend integration patterns.
+See [`docs/PROJECT_HISTORY.md`](docs/PROJECT_HISTORY.md) for a consolidated list of what was built and what backend work was required.
 See [`docs/ROADMAP.md`](docs/ROADMAP.md) for current status, completed milestones, and remaining roadmap items.
 
 ## Quality Checks
