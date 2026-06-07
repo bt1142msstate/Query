@@ -1649,6 +1649,43 @@ async function seedLoadedResults(page, options = {}) {
   await page.locator('#example-table').waitFor({ state: 'attached', timeout: 5000 });
 }
 
+async function expectSplitTogglePreviewAnimation(page) {
+  await page.evaluate(async () => {
+    const { appUiActions } = await import('./src/core/appUiActions.js');
+    appUiActions.updateSplitColumnsToggleState();
+  });
+
+  const toggle = page.locator('#split-columns-toggle');
+  await toggle.waitFor({ state: 'visible', timeout: 5000 });
+  await toggle.scrollIntoViewIfNeeded();
+
+  const beforeHoverState = await toggle.evaluate(button => ({
+    ariaDisabled: button.getAttribute('aria-disabled'),
+    className: button.className,
+    disabledClass: button.classList.contains('split-toggle-disabled')
+  }));
+  if (beforeHoverState.ariaDisabled !== 'false' || beforeHoverState.disabledClass) {
+    throw new Error(`Multi-value export toggle should be enabled for split-capable results: ${JSON.stringify(beforeHoverState)}`);
+  }
+
+  await toggle.hover();
+  await page.waitForFunction(() => {
+    const button = document.querySelector('#split-columns-toggle');
+    const primary = button?.querySelector('.split-toggle-icon:not(.hidden)');
+    const alternate = Array.from(button?.querySelectorAll('.split-toggle-icon') || [])
+      .find(icon => icon.classList.contains('hidden'));
+    if (!primary || !alternate) return false;
+
+    const primaryStyle = window.getComputedStyle(primary);
+    const alternateStyle = window.getComputedStyle(alternate);
+    return primaryStyle.animationName.includes('splitTogglePrimaryPreview')
+      && alternateStyle.animationName.includes('splitToggleAlternatePreview')
+      && alternateStyle.display !== 'none';
+  }, null, { timeout: 5000 });
+
+  await page.mouse.move(0, 0);
+}
+
 async function seedLargeExportResults(page) {
   await page.evaluate(async () => {
     const { appServices } = await import('./src/core/appServices.js');
@@ -3635,6 +3672,7 @@ async function exerciseDesktopResultsWorkflow(page) {
   await page.locator('#post-filter-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
 
   await seedLoadedResults(page, { includeMultiValueBranch: true });
+  await expectSplitTogglePreviewAnimation(page);
   await page.evaluate(async () => {
     const { PostFilterSystem } = await import('./src/features/table/post-filters/postFilters.js');
     PostFilterSystem.openOverlayForField?.('Smoke Branch');
