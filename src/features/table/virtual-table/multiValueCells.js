@@ -51,11 +51,81 @@ function renderMultiValueCell({
   td.appendChild(trigger);
 }
 
+function renderTruncatedValueCell({
+  td,
+  field,
+  value,
+  document
+}) {
+  td.classList.add('query-table-truncated-cell');
+  td.setAttribute('data-tooltip', value);
+  td.dataset.fullCellValue = value;
+
+  const trigger = document.createElement('button');
+  trigger.type = 'button';
+  trigger.className = 'query-table-truncated-trigger';
+  trigger.setAttribute('aria-label', `View full value for ${field}`);
+
+  const valueText = document.createElement('span');
+  valueText.className = 'query-table-truncated-text';
+  valueText.textContent = value;
+
+  trigger.appendChild(valueText);
+  trigger.addEventListener('click', event => {
+    event.preventDefault();
+    event.stopPropagation();
+    openSingleValueViewer({ document, field, value, trigger });
+  });
+
+  td.textContent = '';
+  td.appendChild(trigger);
+}
+
+function openSingleValueViewer({
+  document,
+  field,
+  value,
+  trigger
+}) {
+  openCellValueViewer({
+    copyLabel: 'Copy value',
+    copyText: value,
+    eyebrowText: 'Full value',
+    field,
+    trigger,
+    values: [value],
+    valueCountLabel: '1 value',
+    document
+  });
+}
+
 function openMultiValueViewer({
   document,
   field,
   items,
   trigger
+}) {
+  openCellValueViewer({
+    copyLabel: 'Copy all',
+    copyText: items.join('\n'),
+    eyebrowText: `${items.length} values`,
+    field,
+    trigger,
+    values: items,
+    valueCountLabel: `${items.length} values`,
+    document
+  });
+}
+
+function openCellValueViewer({
+  copyLabel,
+  copyText,
+  eyebrowText,
+  field,
+  trigger,
+  values,
+  valueCountLabel,
+  document
 }) {
   closeActiveMultiValueViewer();
 
@@ -84,7 +154,7 @@ function openMultiValueViewer({
 
   const eyebrow = document.createElement('p');
   eyebrow.className = 'query-multi-value-viewer__eyebrow';
-  eyebrow.textContent = `${items.length} values`;
+  eyebrow.textContent = eyebrowText || valueCountLabel;
 
   const title = document.createElement('h3');
   title.id = 'query-multi-value-viewer-title';
@@ -103,7 +173,7 @@ function openMultiValueViewer({
 
   const list = document.createElement('ol');
   list.className = 'query-multi-value-viewer__list';
-  items.forEach((item, index) => {
+  values.forEach((item, index) => {
     const row = document.createElement('li');
     row.className = 'query-multi-value-viewer__item';
 
@@ -125,13 +195,13 @@ function openMultiValueViewer({
   const copyButton = document.createElement('button');
   copyButton.type = 'button';
   copyButton.className = 'query-multi-value-viewer__copy';
-  copyButton.textContent = 'Copy all';
+  copyButton.textContent = copyLabel;
   copyButton.addEventListener('click', async event => {
     event.preventDefault();
     event.stopPropagation();
-    await ClipboardUtils.copy(items.join('\n'), {
-      errorMessage: 'Failed to copy values.',
-      successMessage: `${items.length} values copied.`
+    await ClipboardUtils.copy(copyText, {
+      errorMessage: values.length === 1 ? 'Failed to copy value.' : 'Failed to copy values.',
+      successMessage: values.length === 1 ? 'Value copied.' : `${values.length} values copied.`
     });
   });
 
@@ -173,5 +243,6 @@ function closeActiveMultiValueViewer() {
 
 export {
   getMultiValueItems,
-  renderMultiValueCell
+  renderMultiValueCell,
+  renderTruncatedValueCell
 };

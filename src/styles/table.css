@@ -497,6 +497,45 @@ body.has-loaded-data #example-table tbody td:hover {
   white-space: nowrap;
 }
 
+#example-table td.query-table-truncated-cell {
+  padding: calc(0.65rem * var(--table-zoom)) calc(0.75rem * var(--table-zoom)) !important;
+}
+
+.query-table-truncated-trigger {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-height: calc(1.9rem * var(--table-zoom));
+  padding: calc(0.25rem * var(--table-zoom)) calc(0.3rem * var(--table-zoom));
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  line-height: inherit;
+  text-align: inherit;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+}
+
+.query-table-truncated-trigger:hover,
+.query-table-truncated-trigger:focus-visible {
+  border-color: rgba(14, 116, 144, 0.36);
+  background: rgba(240, 253, 250, 0.74);
+  box-shadow: 0 0 0 2px rgba(14, 116, 144, 0.1);
+  outline: none;
+}
+
+.query-table-truncated-text {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .query-table-multi-value-trigger {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -559,7 +598,9 @@ body.has-loaded-data #example-table tbody td:hover {
 }
 
 #example-table td .query-table-multi-value-trigger,
-#example-table td .query-table-multi-value-trigger * {
+#example-table td .query-table-multi-value-trigger *,
+#example-table td .query-table-truncated-trigger,
+#example-table td .query-table-truncated-trigger * {
   user-select: none;
   -webkit-user-select: none;
   -ms-user-select: none;

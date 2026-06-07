@@ -433,6 +433,10 @@ import { SharedFieldPicker } from '../../ui/field-picker/fieldPicker.js';
   }
 
   function isTableContextInteractiveTarget(target) {
+    if (target?.closest?.('#example-table tbody td .query-table-truncated-trigger')) {
+      return false;
+    }
+
     return Boolean(target?.closest?.([
       'button',
       'input',

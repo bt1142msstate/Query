@@ -1306,10 +1306,13 @@ async function exerciseColumnResizeInteraction(page) {
     const titleHeaderEl = document.querySelector('#example-table th[data-sort-field="Smoke Title"]');
     const titleRowEl = document.querySelector('#example-table tbody tr[data-row-index="0"]');
     const titleCellEl = titleRowEl?.querySelector('td[data-col-index="0"]');
+    const truncatedTextEl = titleCellEl?.querySelector('.query-table-truncated-text');
     const tableEl = document.querySelector('#example-table');
     return {
       cellWidth: Math.round(titleCellEl?.getBoundingClientRect().width || 0),
+      hasTruncatedTrigger: Boolean(titleCellEl?.querySelector('.query-table-truncated-trigger')),
       headerWidth: Math.round(titleHeaderEl?.getBoundingClientRect().width || 0),
+      isEllipsized: Boolean(truncatedTextEl && truncatedTextEl.scrollWidth - truncatedTextEl.clientWidth > 1),
       rowWidth: Math.round(titleRowEl?.getBoundingClientRect().width || 0),
       tableWidth: Math.round(tableEl?.getBoundingClientRect().width || 0),
       text: titleCellEl?.textContent?.trim() || '',
@@ -1322,7 +1325,8 @@ async function exerciseColumnResizeInteraction(page) {
     || beforeMetrics.headerWidth <= 0
     || Math.abs(beforeMetrics.headerWidth - beforeMetrics.cellWidth) > 1
     || Math.abs(beforeMetrics.tableWidth - beforeMetrics.rowWidth) > 1
-    || !beforeMetrics.text.includes('...')
+    || !beforeMetrics.hasTruncatedTrigger
+    || !beforeMetrics.isEllipsized
   ) {
     throw new Error(`Column resize did not start from an aligned active state: ${JSON.stringify(beforeMetrics)}`);
   }
@@ -1351,7 +1355,7 @@ async function exerciseColumnResizeInteraction(page) {
     return Math.abs(headerWidth - expectedWidth) <= 2
       && Math.abs(headerWidth - cellWidth) <= 1
       && Math.abs(tableWidth - rowWidth) <= 1
-      && !(titleCellEl?.textContent || '').includes('...');
+      && !titleCellEl?.querySelector('.query-table-truncated-trigger');
   }, { expectedWidth: beforeMetrics.headerWidth + resizeDelta }, { timeout: 5000 });
 
   const duringMetrics = await page.evaluate(() => {
@@ -1361,6 +1365,7 @@ async function exerciseColumnResizeInteraction(page) {
     const tableEl = document.querySelector('#example-table');
     return {
       cellWidth: Math.round(titleCellEl?.getBoundingClientRect().width || 0),
+      hasTruncatedTrigger: Boolean(titleCellEl?.querySelector('.query-table-truncated-trigger')),
       headerWidth: Math.round(titleHeaderEl?.getBoundingClientRect().width || 0),
       rowWidth: Math.round(titleRowEl?.getBoundingClientRect().width || 0),
       tableWidth: Math.round(tableEl?.getBoundingClientRect().width || 0),
@@ -1392,6 +1397,7 @@ async function exerciseColumnResizeInteraction(page) {
     const tableEl = document.querySelector('#example-table');
     return {
       cellWidth: Math.round(titleCellEl?.getBoundingClientRect().width || 0),
+      hasTruncatedTrigger: Boolean(titleCellEl?.querySelector('.query-table-truncated-trigger')),
       headerWidth: Math.round(titleHeaderEl?.getBoundingClientRect().width || 0),
       rowWidth: Math.round(titleRowEl?.getBoundingClientRect().width || 0),
       tableWidth: Math.round(tableEl?.getBoundingClientRect().width || 0),
@@ -1407,10 +1413,10 @@ async function exerciseColumnResizeInteraction(page) {
     || Math.abs(actualDelta - resizeDelta) > 2
     || Math.abs(duringMetrics.headerWidth - duringMetrics.cellWidth) > 1
     || Math.abs(duringMetrics.tableWidth - duringMetrics.rowWidth) > 1
-    || duringMetrics.text.includes('...')
+    || duringMetrics.hasTruncatedTrigger
     || Math.abs(afterMetrics.headerWidth - afterMetrics.cellWidth) > 1
     || Math.abs(afterMetrics.tableWidth - afterMetrics.rowWidth) > 1
-    || afterMetrics.text.includes('...')
+    || afterMetrics.hasTruncatedTrigger
   ) {
     throw new Error(`Column resize drag was nonlinear or misaligned: before=${JSON.stringify(beforeMetrics)}, during=${JSON.stringify(duringMetrics)}, after=${JSON.stringify(afterMetrics)}`);
   }
@@ -2326,6 +2332,8 @@ async function exerciseZeroResultQueryWorkflow(page, queryApiStub) {
 }
 
 async function exerciseJsonResultPayloadWorkflow(page, queryApiStub) {
+  const longSmokeTitle = 'JSON Alpha with an intentionally long title that should be clipped in the virtual table cell but remain fully readable in the value viewer';
+
   await page.evaluate(async () => {
     const { QueryChangeManager } = await import('./src/core/queryState.js');
     const { QueryUI } = await import('./src/ui/queryUI.js');
@@ -2343,7 +2351,7 @@ async function exerciseJsonResultPayloadWorkflow(page, queryApiStub) {
       queryId: 'browser-smoke-json-results',
       rows: [
         [
-          'JSON Alpha',
+          longSmokeTitle,
           ['First public note', 'Second public note', 'Third public note'],
           [
             '$a MSU -- Ulysses S. Grant Association.',
@@ -2400,6 +2408,70 @@ async function exerciseJsonResultPayloadWorkflow(page, queryApiStub) {
         return true;
       };
     }
+  });
+
+  async function assertTruncatedCellViewer({ cellSelector, expectedField, expectedValue, label }) {
+    const compactCellMetrics = await page.locator(cellSelector).evaluate(cell => {
+      const trigger = cell.querySelector('.query-table-truncated-trigger');
+      const text = cell.querySelector('.query-table-truncated-text');
+      const textStyle = text ? window.getComputedStyle(text) : null;
+      return {
+        dataFullCellValue: cell.getAttribute('data-full-cell-value') || cell.dataset.fullCellValue || '',
+        hasTrigger: Boolean(trigger),
+        isEllipsized: Boolean(text && text.scrollWidth - text.clientWidth > 1),
+        textOverflow: textStyle?.textOverflow || '',
+        triggerLabel: trigger?.getAttribute('aria-label') || ''
+      };
+    });
+
+    if (
+      !compactCellMetrics.hasTrigger
+      || compactCellMetrics.dataFullCellValue !== expectedValue
+      || !compactCellMetrics.isEllipsized
+      || compactCellMetrics.textOverflow !== 'ellipsis'
+      || !compactCellMetrics.triggerLabel.includes(expectedField)
+    ) {
+      throw new Error(`${label} should render as a clickable ellipsized cell: ${JSON.stringify(compactCellMetrics)}`);
+    }
+
+    await page.locator(`${cellSelector} .query-table-truncated-trigger`).click();
+    await page.locator('.query-multi-value-viewer').waitFor({ state: 'visible', timeout: 5000 });
+
+    const viewerState = await page.locator('.query-multi-value-viewer').evaluate(viewer => ({
+      bodyLocked: document.body.classList.contains('multi-value-viewer-open'),
+      copyLabel: viewer.querySelector('.query-multi-value-viewer__copy')?.textContent?.trim() || '',
+      eyebrow: viewer.querySelector('.query-multi-value-viewer__eyebrow')?.textContent?.trim() || '',
+      title: viewer.querySelector('.query-multi-value-viewer__title')?.textContent?.trim() || '',
+      values: Array.from(viewer.querySelectorAll('.query-multi-value-viewer__value'))
+        .map(node => node.textContent?.trim())
+        .filter(Boolean)
+    }));
+
+    if (
+      !viewerState.bodyLocked
+      || viewerState.title !== expectedField
+      || viewerState.eyebrow !== 'Full value'
+      || viewerState.copyLabel !== 'Copy value'
+      || viewerState.values.join('|') !== expectedValue
+    ) {
+      throw new Error(`${label} viewer did not show the full value: ${JSON.stringify(viewerState)}`);
+    }
+
+    await page.locator('.query-multi-value-viewer__copy').click();
+    const copiedText = await page.evaluate(() => window.__browserSmokeCopiedText || '');
+    if (copiedText !== expectedValue) {
+      throw new Error(`${label} Copy value should copy the full value: ${JSON.stringify(copiedText)}`);
+    }
+
+    await page.locator('.query-multi-value-viewer__close').click();
+    await page.locator('.query-multi-value-viewer').waitFor({ state: 'detached', timeout: 5000 });
+  }
+
+  await assertTruncatedCellViewer({
+    cellSelector: '#example-table tbody tr[data-row-index="0"] td[data-col-index="0"]',
+    expectedField: 'Smoke Title',
+    expectedValue: longSmokeTitle,
+    label: 'JSON long Smoke Title cell'
   });
 
   async function assertMultiValueViewer({ cellSelector, expectedField, expectedValues, label }) {
