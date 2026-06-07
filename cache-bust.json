@@ -1,10 +1,10 @@
 {
-  "version": "5ac69d6623eeb0f0",
+  "version": "f47fa584881a7e79",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
-    "assets/app-icon-180.png": "d0706a02ba3f3328",
-    "assets/app-icon-512.png": "56c4108c17ee6395",
-    "assets/app-icon.svg": "62986ff27feca8b9",
+    "assets/app-icon-180.png": "0138531e3c9193c9",
+    "assets/app-icon-512.png": "5b60700e2023914a",
+    "assets/app-icon.svg": "d60d6fbc5672c0ed",
     "backgroundNotificationServiceWorker.js": "2f8933df91d32a1a",
     "index.html": "9d733d1019abba7f",
     "site.webmanifest": "9276c13bc1bb23b1",
