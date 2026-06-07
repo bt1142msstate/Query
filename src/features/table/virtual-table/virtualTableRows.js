@@ -1,4 +1,5 @@
 import { getMultiValueItems, renderMultiValueCell } from './multiValueCells.js';
+import { hasMultipleCellValues } from '../../../core/resultCellValues.js';
 
 export function createVirtualTableEmptyRow({
   colSpan,
@@ -110,7 +111,7 @@ function createVirtualTableCell({
     td.setAttribute('data-tooltip', 'This field is not in the current data. Run a new query to populate it.');
   }
 
-  if (typeof displayValue === 'string' && displayValue.includes('\x1F')) {
+  if (hasMultipleCellValues(displayValue)) {
     const multiValueItems = getMultiValueItems(displayValue);
     if (multiValueItems.length <= 1) {
       renderStandardCell({
@@ -165,7 +166,9 @@ export function getVirtualTableCellDisplay({
   let textAlign = '';
 
   if (cellValue !== '' && cellValue !== '—' && cellValue !== undefined && cellValue !== null) {
-    if (type === 'date') {
+    if (hasMultipleCellValues(cellValue)) {
+      displayValue = cellValue;
+    } else if (type === 'date') {
       displayValue = valueFormatting.formatValueByType(cellValue, type, {
         fieldName: field,
         invalidDateValue: 'Never'

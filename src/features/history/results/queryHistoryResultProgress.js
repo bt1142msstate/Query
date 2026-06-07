@@ -68,7 +68,7 @@ function render() {
 }
 
 async function fetchResults(queryId) {
-  const response = await BackendApi.request({ action: 'get_results', query_id: queryId });
+  const response = await BackendApi.request({ action: 'get_results', query_id: queryId, result_format: 'json' });
   const contentType = response.headers.get('Content-Type') || '';
 
   if (contentType.includes('application/json')) {

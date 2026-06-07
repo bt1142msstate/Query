@@ -29,7 +29,7 @@ test('post filter streamed equals selector', async () => {
 
   assert.deepEqual(getNormalizedEqualsOptionValues({
     fieldName: 'Title',
-    rawValue: 'Alpha\x1FBeta\x1F ',
+    rawValue: ['Alpha', 'Beta', ' '],
     getBlankSentinel,
     getFieldType
   }), ['Alpha', 'Beta']);

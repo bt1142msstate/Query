@@ -2371,8 +2371,12 @@ async function exerciseJsonResultPayloadWorkflow(page, queryApiStub) {
 
   if (
     jsonResultState.lifecycle.currentQueryId !== 'browser-smoke-json-results'
-    || jsonResultState.rows[0]?.[1] !== 'First public note\x1FSecond public note\x1FThird public note'
-    || jsonResultState.rows[0]?.[2] !== '$a MSU -- Ulysses S. Grant Association.\x1F$a MSU -- Gift of Marcia Ewing-Current.\x1F$a MSU -- Richard Current Collection.'
+    || JSON.stringify(jsonResultState.rows[0]?.[1]) !== JSON.stringify(['First public note', 'Second public note', 'Third public note'])
+    || JSON.stringify(jsonResultState.rows[0]?.[2]) !== JSON.stringify([
+      '$a MSU -- Ulysses S. Grant Association.',
+      '$a MSU -- Gift of Marcia Ewing-Current.',
+      '$a MSU -- Richard Current Collection.'
+    ])
   ) {
     throw new Error(`JSON result payload should hydrate multi-value arrays: ${JSON.stringify(jsonResultState)}`);
   }

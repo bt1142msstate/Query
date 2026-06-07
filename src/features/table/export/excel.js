@@ -8,6 +8,7 @@ import { VisibilityUtils } from '../../../core/visibility.js';
 import { QueryUI } from '../../../ui/queryUI.js';
 import { fieldDefs } from '../../filters/fieldDefs.js';
 import { DOM } from '../../../core/domCache.js';
+import { hasMultipleCellValues } from '../../../core/resultCellValues.js';
 import { alignDateTextCells } from './excelDateCellFormatting.js';
 import { ExcelExportProgress, yieldToBrowser } from './exportProgress.js';
 import { addOverviewWorksheet } from './excelOverviewWorksheet.js';
@@ -538,7 +539,7 @@ import {
         const needsWrap = !splitColumnsToggleUi.isActive() && (() => {
           const cIdx = sourceData.virtualData.columnMap.get(field);
           if (cIdx === undefined) return false;
-          return rowsToExport.some(r => r[cIdx] != null && typeof r[cIdx] === 'string' && r[cIdx].includes('\x1F'));
+          return rowsToExport.some(r => hasMultipleCellValues(r[cIdx]));
         })();
         column.alignment = { horizontal: 'left', wrapText: needsWrap };
       }

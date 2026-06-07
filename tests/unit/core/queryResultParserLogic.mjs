@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import {
-  MULTI_VALUE_SEPARATOR,
   normalizeResultValue,
   parseQueryResultPayload
 } from '../../../src/core/queryResultParser.js';
@@ -25,8 +24,8 @@ test('query result parser', async () => {
     };
   }
 
-  assert.equal(normalizeResultValue(['One', 'Two']), `One${MULTI_VALUE_SEPARATOR}Two`);
-  assert.equal(normalizeResultValue({ values: ['A', 'B'] }), `A${MULTI_VALUE_SEPARATOR}B`);
+  assert.deepEqual(normalizeResultValue(['One', 'Two']), ['One', 'Two']);
+  assert.deepEqual(normalizeResultValue({ values: ['A', 'B'] }), ['A', 'B']);
   assert.equal(normalizeResultValue(null), '');
   assert.equal(normalizeResultValue(123), '123');
 
@@ -70,8 +69,8 @@ test('query result parser', async () => {
   }), {
     headers: ['Title', 'Public Note'],
     objectRows: [
-      { Title: 'First', 'Public Note': `Note one${MULTI_VALUE_SEPARATOR}Note two` },
-      { Title: 'Second', 'Public Note': `A${MULTI_VALUE_SEPARATOR}B` }
+      { Title: 'First', 'Public Note': ['Note one', 'Note two'] },
+      { Title: 'Second', 'Public Note': ['A', 'B'] }
     ],
     source: 'json'
   });
@@ -88,7 +87,7 @@ test('query result parser', async () => {
   }), {
     headers: ['Title', 'MARC 590$a'],
     objectRows: [
-      { Title: 'First', 'MARC 590$a': `Local one${MULTI_VALUE_SEPARATOR}Local two` }
+      { Title: 'First', 'MARC 590$a': ['Local one', 'Local two'] }
     ],
     source: 'json'
   });
@@ -108,7 +107,7 @@ test('query result parser', async () => {
   }), {
     headers: ['Title', 'Public Note'],
     objectRows: [
-      { Title: 'Aliased title', 'Public Note': `Alias one${MULTI_VALUE_SEPARATOR}Alias two` }
+      { Title: 'Aliased title', 'Public Note': ['Alias one', 'Alias two'] }
     ],
     source: 'json'
   });

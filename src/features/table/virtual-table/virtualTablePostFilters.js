@@ -368,110 +368,35 @@ export function doesCellMatchPostFilter(rawCellValue, type, filter) {
 }
 
 function isBlankCellValueFast(rawValue) {
-  if (rawValue === undefined || rawValue === null) {
-    return true;
-  }
-
-  if (typeof rawValue !== 'string') {
-    return false;
-  }
-
-  for (let index = 0; index < rawValue.length; index += 1) {
-    const code = rawValue.charCodeAt(index);
-    if (code !== 31 && !isFastWhitespaceCode(code)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-function isFastWhitespaceCode(code) {
-  return code === 32 || (code >= 9 && code <= 13) || (code > 127 && String.fromCharCode(code).trim() === '');
+  return isBlankCellValue(rawValue);
 }
 
 function hasMultipleCellValues(rawValue) {
-  if (typeof rawValue !== 'string' || !rawValue.includes('\x1F')) {
-    return false;
-  }
-
-  let nonBlankPartCount = 0;
-  let hasContent = false;
-  for (let index = 0; index <= rawValue.length; index += 1) {
-    const code = index < rawValue.length ? rawValue.charCodeAt(index) : 31;
-    if (code === 31) {
-      if (hasContent) {
-        nonBlankPartCount += 1;
-        if (nonBlankPartCount > 1) {
-          return true;
-        }
-      }
-      hasContent = false;
-      continue;
-    }
-
-    if (!isFastWhitespaceCode(code)) {
-      hasContent = true;
-    }
-  }
-  return false;
+  return getRawCellValueParts(rawValue).filter(value => String(value ?? '').trim()).length > 1;
 }
 
 function someTextCellValue(rawValue, predicate) {
-  if (rawValue === undefined || rawValue === null) {
+  const parts = getRawCellValueParts(rawValue);
+  if (parts.length === 1 && parts[0] === '') {
     return predicate('');
   }
 
-  const text = String(rawValue);
-  if (!text.includes('\x1F')) {
-    return predicate(text.trim().toLowerCase());
-  }
-
-  let foundPart = false;
-  let start = 0;
-  while (start <= text.length) {
-    const end = text.indexOf('\x1F', start);
-    const part = text.slice(start, end === -1 ? text.length : end).trim();
-    if (part) {
-      foundPart = true;
-      if (predicate(part.toLowerCase())) {
-        return true;
-      }
-    }
-    if (end === -1) {
-      break;
-    }
-    start = end + 1;
-  }
-  return foundPart ? false : predicate('');
+  const nonBlankParts = parts.map(part => String(part ?? '').trim()).filter(Boolean);
+  return nonBlankParts.length
+    ? nonBlankParts.some(part => predicate(part.toLowerCase()))
+    : predicate('');
 }
 
 function everyTextCellValue(rawValue, predicate) {
-  if (rawValue === undefined || rawValue === null) {
+  const parts = getRawCellValueParts(rawValue);
+  if (parts.length === 1 && parts[0] === '') {
     return predicate('');
   }
 
-  const text = String(rawValue);
-  if (!text.includes('\x1F')) {
-    return predicate(text.trim().toLowerCase());
-  }
-
-  let foundPart = false;
-  let start = 0;
-  while (start <= text.length) {
-    const end = text.indexOf('\x1F', start);
-    const part = text.slice(start, end === -1 ? text.length : end).trim();
-    if (part) {
-      foundPart = true;
-      if (!predicate(part.toLowerCase())) {
-        return false;
-      }
-    }
-    if (end === -1) {
-      break;
-    }
-    start = end + 1;
-  }
-  return foundPart ? true : predicate('');
+  const nonBlankParts = parts.map(part => String(part ?? '').trim()).filter(Boolean);
+  return nonBlankParts.length
+    ? nonBlankParts.every(part => predicate(part.toLowerCase()))
+    : predicate('');
 }
 
 function someComparableCellValue(rawValue, type, predicate) {
@@ -479,23 +404,10 @@ function someComparableCellValue(rawValue, type, predicate) {
     return predicate(Number.NaN);
   }
 
-  if (typeof rawValue !== 'string' || !rawValue.includes('\x1F')) {
-    return predicate(getComparableExpectedValueFast(rawValue, type));
-  }
-
-  let start = 0;
-  while (start <= rawValue.length) {
-    const end = rawValue.indexOf('\x1F', start);
-    const part = rawValue.slice(start, end === -1 ? rawValue.length : end).trim();
-    if (part && predicate(getComparableExpectedValueFast(part, type))) {
-      return true;
-    }
-    if (end === -1) {
-      break;
-    }
-    start = end + 1;
-  }
-  return false;
+  return getRawCellValueParts(rawValue)
+    .map(part => String(part ?? '').trim())
+    .filter(Boolean)
+    .some(part => predicate(getComparableExpectedValueFast(part, type)));
 }
 
 function everyComparableCellValue(rawValue, type, predicate) {
@@ -503,27 +415,12 @@ function everyComparableCellValue(rawValue, type, predicate) {
     return predicate(Number.NaN);
   }
 
-  if (typeof rawValue !== 'string' || !rawValue.includes('\x1F')) {
-    return predicate(getComparableExpectedValueFast(rawValue, type));
-  }
-
-  let foundPart = false;
-  let start = 0;
-  while (start <= rawValue.length) {
-    const end = rawValue.indexOf('\x1F', start);
-    const part = rawValue.slice(start, end === -1 ? rawValue.length : end).trim();
-    if (part) {
-      foundPart = true;
-      if (!predicate(getComparableExpectedValueFast(part, type))) {
-        return false;
-      }
-    }
-    if (end === -1) {
-      break;
-    }
-    start = end + 1;
-  }
-  return foundPart ? true : predicate(Number.NaN);
+  const parts = getRawCellValueParts(rawValue)
+    .map(part => String(part ?? '').trim())
+    .filter(Boolean);
+  return parts.length
+    ? parts.every(part => predicate(getComparableExpectedValueFast(part, type)))
+    : predicate(Number.NaN);
 }
 
 function getComparableExpectedValueFast(value, type) {

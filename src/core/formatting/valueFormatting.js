@@ -1,6 +1,7 @@
 import { formatDisplayValue } from './dateValues.js';
 import { MoneyUtils } from './moneyUtils.js';
 import { getBaseFieldName } from '../queryState.js';
+import { formatCellValueForText } from '../resultCellValues.js';
 import { fieldDefs } from '../../features/filters/fieldDefs.js';
 
 function getFieldDefinition(fieldName) {
@@ -106,15 +107,11 @@ function formatNumberDisplay(rawValue, options = {}) {
 }
 
 function formatDelimitedValue(rawValue, joiner = ' | ') {
-  if (typeof rawValue !== 'string' || !rawValue.includes('\x1F')) {
+  if (!Array.isArray(rawValue) && (typeof rawValue !== 'string' || !rawValue.includes('\x1F'))) {
     return String(rawValue ?? '');
   }
 
-  return rawValue
-    .split('\x1F')
-    .map(value => value.trim())
-    .filter(Boolean)
-    .join(joiner);
+  return formatCellValueForText(rawValue, joiner);
 }
 
 function formatValueByType(rawValue, type, options = {}) {

@@ -65,6 +65,7 @@ The recommended backend contract is intentionally small:
 ```json
 {
   "action": "run",
+  "result_format": "json",
   "display_fields": ["Title"],
   "filters": [{ "field": "Title", "operator": "=", "value": "*history*" }]
 }

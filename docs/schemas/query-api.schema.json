@@ -237,6 +237,11 @@
       "properties": {
         "action": { "const": "run" },
         "name": { "type": "string" },
+        "result_format": {
+          "type": "string",
+          "enum": ["json"],
+          "description": "Recommended response format. Older backends may ignore this and return the legacy text stream."
+        },
         "display_fields": {
           "type": "array",
           "items": { "type": "string" }
@@ -405,7 +410,12 @@
       "required": ["action", "query_id"],
       "properties": {
         "action": { "const": "get_results" },
-        "query_id": { "type": "string", "minLength": 1 }
+        "query_id": { "type": "string", "minLength": 1 },
+        "result_format": {
+          "type": "string",
+          "enum": ["json"],
+          "description": "Recommended response format for saved result loading."
+        }
       },
       "additionalProperties": true
     },

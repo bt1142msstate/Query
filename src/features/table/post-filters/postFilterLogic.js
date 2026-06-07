@@ -1,5 +1,10 @@
 import { getComparableValue } from '../../../core/formatting/dateValues.js';
 import { MoneyUtils } from '../../../core/formatting/moneyUtils.js';
+import {
+  getCellValueParts,
+  hasMultipleCellValues,
+  isBlankCellValue as isBlankResultCellValue
+} from '../../../core/resultCellValues.js';
 
 const POST_FILTER_BLANK_SENTINEL = '__QUERY_POST_FILTER_BLANK__';
 
@@ -17,32 +22,11 @@ function isBlankPostFilterValue(value) {
 }
 
 function isBlankCellValue(rawValue) {
-  if (rawValue === undefined || rawValue === null) {
-    return true;
-  }
-
-  if (typeof rawValue === 'string') {
-    if (rawValue.includes('\x1F')) {
-      const parts = rawValue.split('\x1F').map(part => String(part).trim());
-      return parts.length === 0 || parts.every(part => !part);
-    }
-
-    return String(rawValue).trim() === '';
-  }
-
-  return false;
+  return isBlankResultCellValue(rawValue);
 }
 
 function isMultiValueCellValue(rawValue) {
-  if (typeof rawValue !== 'string' || !rawValue.includes('\x1F')) {
-    return false;
-  }
-
-  return rawValue
-    .split('\x1F')
-    .map(part => String(part).trim())
-    .filter(Boolean)
-    .length > 1;
+  return hasMultipleCellValues(rawValue);
 }
 
 function isNoValuePostFilterOperator(cond) {
@@ -123,11 +107,7 @@ function getRawCellValueParts(rawValue) {
     return [''];
   }
 
-  if (typeof rawValue === 'string' && rawValue.includes('\x1F')) {
-    return rawValue.split('\x1F').map(part => String(part).trim()).filter(Boolean);
-  }
-
-  return [rawValue];
+  return getCellValueParts(rawValue).map(part => String(part ?? '').trim()).filter(Boolean);
 }
 
 function getComparableRowValues(rawValue, type) {

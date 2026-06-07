@@ -1,4 +1,5 @@
 import { normalizeResultViewState } from '../../../core/resultViewState.js';
+import { cloneResultCellValue, normalizeResultCellValue } from '../../../core/resultCellValues.js';
 
 const HISTORY_RESULT_CACHE_DB_NAME = 'query-history-result-cache';
 const HISTORY_RESULT_CACHE_STORE_NAME = 'resultSnapshots';
@@ -28,12 +29,7 @@ function normalizeHeaders(headers) {
 }
 
 function normalizeCellValue(value) {
-  if (value === null || value === undefined) return '';
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
-    return String(value);
-  }
-  return JSON.stringify(value);
+  return cloneResultCellValue(normalizeResultCellValue(value));
 }
 
 function buildTableRowsFromObjectRows(headers, objectRows) {

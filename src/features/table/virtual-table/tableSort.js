@@ -1,4 +1,5 @@
 import { MoneyUtils } from '../../../core/formatting/moneyUtils.js';
+import { getCellValueParts } from '../../../core/resultCellValues.js';
 import {
   getLazyExpandedRowColumnPlan,
   getLazyExpandedRowSourceRow,
@@ -261,6 +262,10 @@ function getProjectedSourceRowSortValue(sourceRow, columnPlan) {
 function getMultiValuePart(value, splitIndex) {
   if (value === undefined || value === null) {
     return '';
+  }
+
+  if (Array.isArray(value)) {
+    return getCellValueParts(value)[splitIndex] ?? '';
   }
 
   const text = typeof value === 'string' ? value : String(value);
