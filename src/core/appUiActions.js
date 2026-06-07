@@ -140,12 +140,6 @@ function registerAppUiActionDependencies(dependencies = {}) {
     closePostFilters();
 
     services?.clearPostFilters?.({ refreshView: false, notify: true, resetScroll: false });
-
-    if (services?.isSplitColumnsActive?.()) {
-      services.setSplitColumnsMode(false);
-    }
-
-    resetSplitColumnsToggleUI();
   }
 
   function finalizeQueryClear(options = {}) {

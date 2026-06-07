@@ -1702,6 +1702,72 @@ async function expectSplitTogglePreviewAnimation(page) {
   }, null, { timeout: 5000 });
 }
 
+async function expectSplitTogglePreferenceWithoutEligibleResults(page) {
+  await page.evaluate(async () => {
+    const { appUiActions } = await import('./src/core/appUiActions.js');
+    appUiActions.updateSplitColumnsToggleState();
+  });
+
+  const toggle = page.locator('#split-columns-toggle');
+  await toggle.waitFor({ state: 'visible', timeout: 5000 });
+  await toggle.scrollIntoViewIfNeeded();
+
+  const initialState = await toggle.evaluate(button => ({
+    ariaDisabled: button.getAttribute('aria-disabled'),
+    className: button.className,
+    disabledClass: button.classList.contains('split-toggle-disabled'),
+    activeIconVisible: !button.querySelector('#split-toggle-icon-cols')?.classList.contains('hidden'),
+    inactiveIconVisible: !button.querySelector('#split-toggle-icon-stack')?.classList.contains('hidden')
+  }));
+  if (initialState.ariaDisabled !== 'false' || initialState.disabledClass) {
+    throw new Error(`Split preference toggle should stay enabled without split-capable data: ${JSON.stringify(initialState)}`);
+  }
+
+  await toggle.click();
+  await page.waitForFunction(async () => {
+    const { appServices } = await import('./src/core/appServices.js');
+    return appServices.isSplitColumnsActive?.() === true;
+  }, null, { timeout: 5000 });
+
+  const activeState = await toggle.evaluate(button => ({
+    ariaDisabled: button.getAttribute('aria-disabled'),
+    disabledClass: button.classList.contains('split-toggle-disabled'),
+    activeIconVisible: !button.querySelector('#split-toggle-icon-cols')?.classList.contains('hidden'),
+    inactiveIconVisible: !button.querySelector('#split-toggle-icon-stack')?.classList.contains('hidden')
+  }));
+  if (
+    activeState.ariaDisabled !== 'false'
+    || activeState.disabledClass
+    || !activeState.activeIconVisible
+    || activeState.inactiveIconVisible
+  ) {
+    throw new Error(`Split preference toggle did not switch on without split-capable data: ${JSON.stringify(activeState)}`);
+  }
+
+  const splitPreferenceState = await page.evaluate(async () => {
+    const { appServices } = await import('./src/core/appServices.js');
+    const { QueryStateReaders } = await import('./src/core/queryState.js');
+    return {
+      active: appServices.isSplitColumnsActive?.(),
+      displayedFields: QueryStateReaders.getDisplayedFields(),
+      headers: appServices.getVirtualTableData?.()?.headers || []
+    };
+  });
+  if (
+    !splitPreferenceState.active
+    || splitPreferenceState.displayedFields.includes('Smoke Branch 2')
+    || splitPreferenceState.headers.includes('Smoke Branch 2')
+  ) {
+    throw new Error(`Split preference should save without inventing split columns for unsplit data: ${JSON.stringify(splitPreferenceState)}`);
+  }
+
+  await toggle.click();
+  await page.waitForFunction(async () => {
+    const { appServices } = await import('./src/core/appServices.js');
+    return appServices.isSplitColumnsActive?.() === false;
+  }, null, { timeout: 5000 });
+}
+
 async function seedLargeExportResults(page) {
   await page.evaluate(async () => {
     const { appServices } = await import('./src/core/appServices.js');
@@ -1784,6 +1850,7 @@ export {
   expectOverlayTouchPanScroll,
   expectResponsiveShellMode,
   expectSplitTogglePreviewAnimation,
+  expectSplitTogglePreferenceWithoutEligibleResults,
   expectStartupStatusVisible,
   expectVisibleCloseControlCount,
   expectVisibleMobileTableContextMenu,

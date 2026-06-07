@@ -171,11 +171,11 @@ if (execDom.runBtn) {
     // Start query execution
     (async () => {
       const completionNotification = prepareBackgroundTaskNotification();
-      // Remember if split mode was active, then disable it to avoid mapping dynamic Field N names.
-      const wasSplitActive = services.isSplitColumnsActive();
-      if (wasSplitActive) {
+      // Temporarily use the stacked table state for payload building so generated
+      // split-column names are never sent to the backend.
+      const wasSplitPreferred = services.isSplitColumnsActive();
+      if (wasSplitPreferred) {
         services.setSplitColumnsMode(false);
-        uiActions.resetSplitColumnsToggleUI();
       }
 
       if (services.hasPostFilters?.()) {
@@ -312,9 +312,8 @@ if (execDom.runBtn) {
           // Reset bubble scroll back to the top
           services.resetBubbleScroll();
 
-          // Restore split-columns mode if it was active before the query ran
-          if (wasSplitActive) {
-            uiActions.setSplitColumnsToggleUIActive();
+          // Restore the user's split-columns preference after the new raw data is loaded.
+          if (wasSplitPreferred) {
             services.setSplitColumnsMode(true);
           }
         }
