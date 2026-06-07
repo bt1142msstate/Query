@@ -15,6 +15,19 @@ The former private runtime coordination layer has been removed. Feature coordina
 
 Current product status and remaining roadmap items are tracked in `docs/ROADMAP.md`.
 
+## Canonical Source Layout
+
+The canonical application source root is `src/`.
+
+The repository intentionally rejects a mixed top-level JavaScript source layout. Top-level files are for static hosting, runtime entry files, tooling, docs, tests, scripts, and config:
+
+- `index.html` is the static host entrypoint.
+- `backgroundNotificationServiceWorker.js` stays at the root because browsers register service workers by served scope.
+- `cache-bust.json`, `package.json`, `eslint.config.cjs`, `.github/`, `config/`, `docs/`, `scripts/`, and `tests/` stay at the root as project/runtime/tooling files.
+- Browser application modules, feature logic, UI systems, and stylesheet source live under `src/`.
+
+New app code should be added under `src/core/`, `src/features/`, `src/ui/`, or `src/styles/` according to the ownership rules below. Tests and scripts should import app modules from `src/`; they should not create a parallel top-level source tree.
+
 ## Runtime Flow
 
 1. `index.html` loads vendor scripts, fetches `cache-bust.json` with `cache: no-store`, versions the app stylesheet/module entry, and registers the root service worker for same-origin app assets.
@@ -58,7 +71,7 @@ The full backend integration contract is documented in `docs/INTEGRATION.md`.
 
 ## Folder Organization
 
-- `src/` owns the browser application source, keeping the repository root focused on deployment files, tooling, docs, and tests.
+- `src/` owns the browser application source, keeping the repository root focused on static-host files, runtime files, tooling, docs, and tests.
 - `src/core/` owns app-wide state, services/actions, lifecycle, backend/query execution, browser primitives, startup glue, and shared formatting helpers under `src/core/formatting/`.
 - `src/features/` owns product features: filters, history, table, and templates.
 - `src/features/table/` keeps the top-level table surface in `contextMenu.js` and groups complex table workflows into `drag-drop/`, `export/`, `post-filters/`, and `virtual-table/`.

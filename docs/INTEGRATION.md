@@ -4,6 +4,17 @@ This app is a static frontend. It does not own the data system. A compatible bac
 
 The current checked-in endpoint remains the default example/testing backend. New deployments can point the same frontend at another backend without changing field logic in the frontend.
 
+## Fastest Setup Path
+
+1. Serve this repository as a static site.
+2. Launch the app with `?api_url=https://your.example.org/query-api` or a same-origin route such as `?api_url=/api/query`.
+3. Implement `POST` JSON handling for `get_fields`.
+4. Implement `POST` JSON handling for `run`.
+5. Return JSON results using `columns` and `rows` when possible.
+6. Add `status`, `cancel`, `get_results`, and template actions only when those panels need to work against your backend.
+
+The frontend does not require backend-specific code for field definitions. Your `get_fields` response defines available fields, filter operators, field warnings, dynamic/buildable field inputs, and multi-segment legacy fields.
+
 ## Integration Goals
 
 - Keep the current backend path working.

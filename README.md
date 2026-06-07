@@ -24,6 +24,40 @@ A single-page app for building queries, applying filters, reviewing results, and
 | **Results table** | Virtualized large-table rendering with resize, sort, post-filter, and Excel export support |
 | **Mobile workflow** | Responsive panels, mobile menu controls, and smoke-tested overlays |
 
+## 🚀 Quick Start: Run and Connect a Backend
+
+This repository is a static frontend with a swappable backend contract. The canonical app source lives under `src/`; root-level files are limited to static-host entry files, deployment/runtime files, docs, tests, scripts, and config.
+
+1. Install the test/dev dependencies:
+
+```bash
+npm install
+```
+
+2. Serve the project directory with any static server:
+
+```bash
+python3 -m http.server 4173
+```
+
+3. Open the app:
+
+```text
+http://127.0.0.1:4173/index.html
+```
+
+4. Connect your backend by launching with an API URL:
+
+```text
+http://127.0.0.1:4173/index.html?api_url=https://your.example.org/query-api
+```
+
+The app stores valid API URL overrides in `localStorage` under `query-project.api-url`. You can also use `?query_api_url=...`.
+
+For a new backend, start with [`docs/INTEGRATION.md`](docs/INTEGRATION.md). The minimum integration is `POST` JSON actions for `get_fields` and `run`; history, cancellation, saved templates, and old-result loading are optional extensions.
+
+The checked-in default endpoint in `src/core/backendApi.js` is an example/testing integration, not the intended production backend for the public live site. Real deployments should provide their own compatible API URL or same-origin API route.
+
 ## 💻 Features
 
 ### 🔍 Core Query Builder
@@ -61,8 +95,12 @@ The table also supports sorting, expand/collapse layout, manual column resizing 
 
 ## 📁 Structure
 
+Canonical layout decision: application source lives in `src/`. We are not using a mixed top-level JavaScript source layout. Keep root-level JavaScript reserved for static-host/runtime entry files such as the service worker; put app modules, feature logic, UI systems, and styles under `src/`.
+
 | Path | Purpose |
 | --- | --- |
+| `index.html` | Static host entrypoint that loads cache-busted `src/` assets |
+| `backgroundNotificationServiceWorker.js` | Root service-worker/runtime file required by the static host |
 | `src/` | Browser application source |
 | `src/appModules.js` | Deterministic ES module startup entrypoint |
 | `src/core/` | Query execution, state management, service facades, and shared utilities |
@@ -96,25 +134,9 @@ The table also supports sorting, expand/collapse layout, manual column resizing 
 - Tailwind CSS and AutoNumeric are loaded from CDNs in `index.html`
 - [ExcelJS](https://github.com/exceljs/exceljs) for Excel export
 
-## 🚀 Running Locally
+## Running Locally
 
-Install dependencies once:
-
-```bash
-npm install
-```
-
-Serve the project directory with any static server, then open the app through that server rather than directly from the filesystem:
-
-```bash
-python3 -m http.server 4173
-```
-
-Then open:
-
-```text
-http://127.0.0.1:4173/index.html
-```
+Use the Quick Start steps above. The important rule is to open the app through a local web server rather than directly from the filesystem, because native ES modules, cache busting, and service-worker behavior expect an HTTP origin.
 
 ## Backend API Notice
 
