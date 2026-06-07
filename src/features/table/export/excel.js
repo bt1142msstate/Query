@@ -28,6 +28,8 @@ import {
   let splitMultiValues = false;
   let exportState = null;
   let exportInProgress = false;
+  let exportOverlayPreparing = false;
+  let exportOverlayHydrationId = 0;
   let splitEligibleSummaryCache = {
     rawData: null,
     summary: null
@@ -115,6 +117,21 @@ import {
     };
   }
 
+  function buildQuickExportSnapshot() {
+    const displayedFields = getDisplayedFields();
+    const virtualData = services.getVirtualTableData();
+    const rowCount = virtualData?.rows?.length || services.getVirtualTableRows?.()?.length || 0;
+    const tableName = QueryUI.ensureTableName?.()
+      || QueryUI.getDefaultTableName?.()
+      || 'Query Results';
+
+    return {
+      columnCount: displayedFields.length,
+      rowCount,
+      tableName
+    };
+  }
+
   function setModeCardState(elements, mode) {
     elements.modeCards.forEach(card => {
       card.classList.toggle('export-mode-card--active', card.dataset.exportModeCard === mode);
@@ -141,7 +158,12 @@ import {
   }
 
   function updateExportPreview(elements) {
-    if (!exportState || !elements.preview) {
+    if (!elements.preview) {
+      return;
+    }
+
+    if (exportOverlayPreparing || !exportState) {
+      elements.preview.textContent = 'Preparing export options...';
       return;
     }
 
@@ -208,9 +230,66 @@ import {
     elements.groupField.value = exportState.selectedGroupingField || candidates[0].field;
   }
 
+  function renderPreparingGroupingOptions(elements) {
+    if (!elements.groupField) {
+      return;
+    }
+
+    elements.groupField.innerHTML = '';
+    const option = document.createElement('option');
+    option.value = '';
+    option.textContent = 'Preparing grouping fields...';
+    elements.groupField.appendChild(option);
+    elements.groupField.disabled = true;
+  }
+
+  function renderPreparingExportOverlay(elements, snapshot) {
+    exportState = null;
+    exportOverlayPreparing = true;
+
+    if (elements.summaryName) {
+      elements.summaryName.textContent = snapshot.tableName;
+    }
+    if (elements.summaryRows) {
+      elements.summaryRows.textContent = snapshot.rowCount.toLocaleString();
+    }
+    if (elements.summaryColumns) {
+      elements.summaryColumns.textContent = snapshot.columnCount.toLocaleString();
+    }
+    if (elements.summaryGroups) {
+      elements.summaryGroups.textContent = 'Preparing';
+    }
+    if (elements.singleMode) {
+      elements.singleMode.checked = true;
+    }
+    if (elements.groupedMode) {
+      elements.groupedMode.checked = false;
+      elements.groupedMode.disabled = true;
+    }
+    if (elements.includeRunDetailsSheet) {
+      elements.includeRunDetailsSheet.checked = false;
+    }
+
+    renderPreparingGroupingOptions(elements);
+    updateExportModeUI(elements);
+  }
+
   function updateExportModeUI(elements) {
-    const groupedModeActive = !!elements.groupedMode?.checked;
+    const preparing = exportOverlayPreparing || !exportState;
+    const hasGrouping = !!exportState?.groupingCandidates?.length;
+    const groupedModeActive = !preparing && !!elements.groupedMode?.checked;
     setModeCardState(elements, groupedModeActive ? 'grouped' : 'single');
+
+    if (elements.groupedMode) {
+      elements.groupedMode.disabled = preparing || !hasGrouping;
+      if (elements.groupedMode.disabled) {
+        elements.groupedMode.checked = false;
+      }
+    }
+
+    if (preparing && elements.singleMode) {
+      elements.singleMode.checked = true;
+    }
 
     if (elements.groupPanel) {
       elements.groupPanel.classList.toggle('is-disabled', !groupedModeActive);
@@ -218,8 +297,7 @@ import {
     }
 
     if (elements.groupField) {
-      const noCandidates = !exportState?.groupingCandidates?.length;
-      elements.groupField.disabled = !groupedModeActive || noCandidates;
+      elements.groupField.disabled = preparing || !groupedModeActive || !hasGrouping;
     }
 
     if (elements.includeMasterSheet) {
@@ -231,20 +309,63 @@ import {
     }
 
     if (elements.confirmBtn) {
-      elements.confirmBtn.disabled = groupedModeActive && !exportState?.selectedGroupingField;
+      elements.confirmBtn.disabled = preparing || (groupedModeActive && !exportState?.selectedGroupingField);
     }
 
     updateExportPreview(elements);
   }
 
-  function openExportOverlay() {
-    exportState = buildExportState();
-    if (!exportState) {
-      return;
-    }
+  function scheduleExportOverlayHydration(hydrationId) {
+    window.requestAnimationFrame(() => {
+      window.setTimeout(() => {
+        if (hydrationId !== exportOverlayHydrationId) {
+          return;
+        }
 
+        const elements = getExportElements();
+        if (!VisibilityUtils.isVisible(elements.overlay)) {
+          return;
+        }
+
+        let nextState = null;
+        try {
+          nextState = buildExportState();
+        } catch (error) {
+          console.error('Failed to prepare export options', error);
+          exportOverlayPreparing = false;
+          updateExportModeUI(elements);
+          showToastMessage('Could not prepare the Excel export options', 'error');
+          return;
+        }
+        if (hydrationId !== exportOverlayHydrationId) {
+          return;
+        }
+        if (!nextState) {
+          exportOverlayPreparing = false;
+          closeExportOverlay();
+          showToastMessage('Add columns to download', 'warning');
+          return;
+        }
+
+        exportState = nextState;
+        exportOverlayPreparing = false;
+        renderGroupingOptions(elements);
+        updateExportSummary(elements);
+        if (elements.groupField) {
+          elements.groupField.value = exportState.selectedGroupingField;
+        }
+        updateExportModeUI(elements);
+      }, 0);
+    });
+  }
+
+  function openExportOverlay() {
     const elements = getExportElements();
     if (!elements.overlay) {
+      exportState = buildExportState();
+      if (!exportState) {
+        return;
+      }
       runWorkbookExport({ mode: 'single' }).catch(error => {
         console.error('Failed to export workbook', error);
         showToastMessage('Could not generate the Excel file', 'error');
@@ -252,24 +373,8 @@ import {
       return;
     }
 
-    renderGroupingOptions(elements);
-    updateExportSummary(elements);
-
-    if (elements.singleMode) {
-      const hasGrouping = exportState.groupingCandidates.length > 0;
-      elements.singleMode.checked = true;
-      if (elements.groupedMode) {
-        elements.groupedMode.checked = false;
-        elements.groupedMode.disabled = !hasGrouping;
-      }
-    }
-
-    if (elements.groupField) {
-      elements.groupField.value = exportState.selectedGroupingField;
-    }
-    if (elements.includeRunDetailsSheet) {
-      elements.includeRunDetailsSheet.checked = false;
-    }
+    const snapshot = buildQuickExportSnapshot();
+    renderPreparingExportOverlay(elements, snapshot);
 
     VisibilityUtils.show([elements.overlay], {
       ariaHidden: false,
@@ -277,11 +382,9 @@ import {
       raisedUiKey: 'export-overlay'
     });
 
-    updateExportModeUI(elements);
-
-    const focusTarget = elements.groupedMode?.checked && !elements.groupField?.disabled
-      ? elements.groupField
-      : elements.confirmBtn;
+    const hydrationId = exportOverlayHydrationId += 1;
+    scheduleExportOverlayHydration(hydrationId);
+    const focusTarget = elements.confirmBtn;
     window.requestAnimationFrame(() => focusTarget?.focus());
   }
 
@@ -300,6 +403,8 @@ import {
       bodyClass: 'export-overlay-open',
       raisedUiKey: 'export-overlay'
     });
+    exportOverlayHydrationId += 1;
+    exportOverlayPreparing = false;
     ExcelExportProgress.hide();
   }
 
@@ -542,6 +647,10 @@ import {
 
   async function confirmExportFromOverlay() {
     if (exportInProgress) {
+      return;
+    }
+    if (exportOverlayPreparing || !exportState) {
+      showToastMessage('Export options are still preparing', 'info');
       return;
     }
 

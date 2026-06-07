@@ -1019,6 +1019,47 @@ async function expectElementWithinViewport(page, selector, label) {
   }
 }
 
+async function openExportOverlayPromptly(page, triggerSelector, label) {
+  const trigger = page.locator(triggerSelector).first();
+  await trigger.waitFor({ state: 'visible', timeout: 5000 });
+  await trigger.evaluate(element => {
+    window.__browserSmokeExportOverlayStartedAt = performance.now();
+    element.click();
+  });
+  await page.locator('#export-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+  const elapsedMs = await page.evaluate(() => {
+    return performance.now() - (window.__browserSmokeExportOverlayStartedAt || performance.now());
+  });
+  if (elapsedMs > 300) {
+    throw new Error(`${label} should show the export dialog within 300ms, took ${elapsedMs.toFixed(1)}ms`);
+  }
+  return elapsedMs;
+}
+
+async function waitForExportOptionsReady(page, label) {
+  await page.waitForFunction(() => {
+    const overlay = document.querySelector('#export-overlay');
+    const confirmBtn = document.querySelector('#export-confirm-btn');
+    const previewText = document.querySelector('#export-group-preview')?.textContent || '';
+    return overlay
+      && !overlay.classList.contains('hidden')
+      && confirmBtn
+      && !confirmBtn.disabled
+      && !/Preparing export options/iu.test(previewText);
+  }, null, { timeout: 5000 }).catch(error => {
+    throw new Error(`${label} export options should finish preparing: ${error.message}`);
+  });
+}
+
+async function waitForGroupedExportAvailable(page, label) {
+  await page.waitForFunction(() => {
+    const groupedMode = document.querySelector('#export-mode-grouped');
+    return groupedMode && !groupedMode.disabled;
+  }, null, { timeout: 5000 }).catch(error => {
+    throw new Error(`${label} grouped export option should become available: ${error.message}`);
+  });
+}
+
 async function expectMobileEditableFocusContained(page, controlSelector, editorSelector, label) {
   await page.locator(controlSelector).focus();
   await page.evaluate(() => new Promise(resolve => {
@@ -2237,9 +2278,9 @@ async function exerciseTabletLandscapeMobileParity(page, queryApiStub) {
   await cleanupMobilePageScroll(page);
 
   await primeMobilePageScroll(page);
-  await page.locator('[data-mobile-table-action-target="download-btn"]').click();
-  await page.locator('#export-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+  await openExportOverlayPromptly(page, '[data-mobile-table-action-target="download-btn"]', 'Tablet landscape export action');
   await expectElementWithinViewport(page, '#export-overlay .export-dialog', 'Tablet landscape export dialog');
+  await waitForExportOptionsReady(page, 'Tablet landscape export dialog');
   await expectOverlayConsumesScroll(page, '.export-dialog__body', 'Tablet landscape export dialog');
   const exportMetrics = await page.locator('#export-overlay .export-dialog').evaluate(dialog => {
     const summary = dialog.querySelector('.export-dialog__summary');
@@ -3717,13 +3758,14 @@ async function exerciseDesktopResultsWorkflow(page) {
   if (downloadDisabled) {
     throw new Error('Download button is disabled after desktop result interactions');
   }
-  await page.locator('#download-btn').click();
-  await page.locator('#export-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+  await openExportOverlayPromptly(page, '#download-btn', 'Desktop download button');
   await expectElementWithinViewport(page, '#export-overlay .export-dialog', 'Desktop export dialog');
+  await waitForExportOptionsReady(page, 'Desktop export dialog');
   const detailsSheetDefaultChecked = await page.locator('#export-include-run-details-sheet').isChecked();
   if (detailsSheetDefaultChecked) {
     throw new Error('Run details export sheet should be off by default');
   }
+  await waitForGroupedExportAvailable(page, 'Desktop export dialog');
   await page.locator('[data-export-mode-card="grouped"]').click();
   await page.waitForFunction(() => {
     return /grouped sheet/iu.test(document.querySelector('#export-group-preview')?.textContent || '');
@@ -3778,8 +3820,8 @@ async function exerciseDesktopResultsWorkflow(page) {
 
   await seedLargeExportResults(page);
   await page.locator('#download-btn').scrollIntoViewIfNeeded();
-  await page.locator('#download-btn').click();
-  await page.locator('#export-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+  await openExportOverlayPromptly(page, '#download-btn', 'Large desktop download button');
+  await waitForExportOptionsReady(page, 'Large desktop export dialog');
   const largeDownloadPromise = page.waitForEvent('download', { timeout: 10000 }).catch(() => null);
   await installHiddenTabNotificationSpy(page);
   await page.locator('#export-confirm-btn').click();
@@ -5163,12 +5205,13 @@ async function runSmokeTest() {
       throw new Error('Download button is disabled after seeding loaded mobile results');
     }
     await primeMobilePageScroll(mobilePage);
-    await mobileExportAction.click();
-    await mobilePage.locator('#export-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+    await openExportOverlayPromptly(mobilePage, '[data-mobile-table-action-target="download-btn"]', 'Mobile export action');
     await expectElementWithinViewport(mobilePage, '#export-overlay .export-dialog', 'Mobile export dialog');
+    await waitForExportOptionsReady(mobilePage, 'Mobile export dialog');
     await expectOverlayConsumesScroll(mobilePage, '.export-dialog__body', 'Mobile export dialog');
     await expectMinimumTapTarget(mobilePage, '#export-overlay-close, #export-cancel-btn, #export-confirm-btn', 'Mobile export dialog controls');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile export dialog');
+    await waitForGroupedExportAvailable(mobilePage, 'Mobile export dialog');
     await mobilePage.locator('[data-export-mode-card="grouped"]').click();
     await expectMobileEditableFocusContained(mobilePage, '#export-group-field', '.export-dialog__body', 'Mobile export group field select');
     await mobilePage.locator('#export-cancel-btn').click();
