@@ -1,5 +1,5 @@
 {
-  "version": "7485e39a8f00b68a",
+  "version": "1c2b3c2b0090a4c8",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "backgroundNotificationServiceWorker.js": "2f8933df91d32a1a",
@@ -37,7 +37,7 @@
     "src/core/queryState.js": "52ac11b4e9b3869b",
     "src/core/queryStateSubscriptions.js": "706732f308f57201",
     "src/core/queryStateToasts.js": "bde369e04795ed4e",
-    "src/core/queryStream.js": "657f36caa0ec4854",
+    "src/core/queryStream.js": "081a0f9857b1c3ed",
     "src/core/resultCellValues.js": "fda57801673545f0",
     "src/core/resultViewState.js": "43cbc8d959ee14da",
     "src/core/textMeasurement.js": "3ddf0a995c4ff001",
