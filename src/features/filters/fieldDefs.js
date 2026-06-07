@@ -4,7 +4,6 @@
  * @module FieldDefs
  */
 import { BackendApi } from '../../core/backendApi.js';
-import { registerDataFormatterFieldDefinitions } from '../../core/formatting/dataFormatters.js';
 import { QueryStateReaders, registerQueryStateRuntimeAccessors } from '../../core/queryState.js';
 import { showToastMessage } from '../../core/toast.js';
 import { DOM } from '../../core/domCache.js';
@@ -135,7 +134,6 @@ registerQueryStateRuntimeAccessors({
     return fieldDefs.get(fieldName) || null;
   }
 });
-registerDataFormatterFieldDefinitions(() => fieldDefs);
 
 async function fetchFieldDefinitions() {
     try {

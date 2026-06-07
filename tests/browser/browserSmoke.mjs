@@ -5,6 +5,7 @@ import { chromium } from 'playwright';
 import {
   QUERY_API_PATTERN,
   attachFailureListeners,
+  buildJsonlResultStream,
   cleanupMobilePageScroll,
   closeServer,
   dragTouchLocatorToLocator,
@@ -232,7 +233,14 @@ async function runSmokeTest() {
     await page.locator('.history-monitor').waitFor({ state: 'visible', timeout: 5000 });
     queryApiStub.enqueue({
       action: 'get_results',
-      body: 'Loaded One|Main\x1FEast|Open\nLoaded Two|East|Closed\n',
+      body: buildJsonlResultStream({
+        queryId: 'browser-smoke-complete',
+        rows: [
+          ['Loaded One', ['Main', 'East'], 'Open'],
+          ['Loaded Two', 'East', 'Closed']
+        ]
+      }),
+      contentType: 'application/x-ndjson; charset=utf-8',
       delayMs: 300,
       rawColumns: smokeResultHeaders
     });
@@ -1056,8 +1064,11 @@ async function runSmokeTest() {
       throw new Error('Mobile run action is disabled after seeding display fields');
     }
     mobileQueryApiStub.enqueue({
-      body: 'Mobile run result|Main|Open\n',
-      contentType: 'text/plain; charset=utf-8',
+      body: buildJsonlResultStream({
+        queryId: 'mobile-run-smoke',
+        rows: [['Mobile run result', 'Main', 'Open']]
+      }),
+      contentType: 'application/x-ndjson; charset=utf-8',
       rawColumns: smokeResultHeaders
     });
     await mobileRunAction.click();

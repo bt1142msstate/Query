@@ -1,7 +1,17 @@
 import { hasResultRowsPayload } from './queryResultParser.js';
+import { isJsonLinesContentType } from './queryStream.js';
 
 async function assertQueryRunStreamResponse(response, backendApi) {
   const contentType = response.headers.get('Content-Type') || '';
+
+  if (isJsonLinesContentType(contentType)) {
+    if (!response.ok) {
+      throw backendApi.buildHttpError(response, {
+        error: `Server error: ${response.status} ${response.statusText}`
+      });
+    }
+    return;
+  }
 
   if (contentType.toLowerCase().includes('application/json')) {
     const parseTarget = typeof response.clone === 'function' ? response.clone() : response;
@@ -10,7 +20,10 @@ async function assertQueryRunStreamResponse(response, backendApi) {
     const hasResultPayload = hasResultRowsPayload(data);
 
     if (response.ok && hasResultPayload && !hasErrorPayload) {
-      return;
+      throw backendApi.buildHttpError(response, {
+        ...data,
+        error: 'The backend returned non-streaming JSON results. Results must be streamed as JSONL.'
+      });
     }
 
     throw backendApi.buildHttpError(response, {
@@ -24,6 +37,10 @@ async function assertQueryRunStreamResponse(response, backendApi) {
       error: `Server error: ${response.status} ${response.statusText}`
     });
   }
+
+  throw backendApi.buildHttpError(response, {
+    error: 'The backend must return streaming JSONL results with Content-Type application/x-ndjson.'
+  });
 }
 
 export { assertQueryRunStreamResponse };

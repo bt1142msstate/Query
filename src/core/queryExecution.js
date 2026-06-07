@@ -7,7 +7,7 @@ import { notifyBackgroundTaskComplete, prepareBackgroundTaskNotification } from 
 import { parseQueryResultPayload } from './queryResultParser.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from './queryState.js';
 import { assertQueryRunStreamResponse } from './queryRunResponse.js';
-import { createStreamedQueryTextReader } from './queryStream.js';
+import { createStreamedQueryResultReader } from './queryStream.js';
 import { appServices, registerQueryExecutionService } from './appServices.js';
 import { appUiActions } from './appUiActions.js';
 import { showToastMessage } from './toast.js';
@@ -21,7 +21,7 @@ const services = appServices;
 const uiActions = appUiActions;
 const ACTIVE_QUERY_STATUS_POLL_MS = 2000;
 let activeQueryStatusPollTimer = null;
-const readStreamedQueryText = createStreamedQueryTextReader({
+const readStreamedQueryResult = createStreamedQueryResultReader({
   isQueryRunning: () => QueryStateReaders.getLifecycleState().queryRunning
 });
 appState.queryPageIsUnloading = false;
@@ -229,14 +229,12 @@ if (execDom.runBtn) {
         }
 
         showToastMessage('Connected — streaming results…', 'info');
-        const streamedPayload = await readStreamedQueryText(response, {
+        const streamedPayload = await readStreamedQueryResult(response, {
           onProgress: rowCount => {
             if (!QueryStateReaders.getLifecycleState().queryRunning) return;
             updateLiveQueryProgress(rowCount, { startTime: queryStartedAt });
           }
         });
-        const text = streamedPayload.text;
-
         // If user stopped mid-stream, show whatever was received as partial results
         if (streamedPayload.partial) {
           if (streamedPayload.lines.length === 0) {
@@ -261,8 +259,7 @@ if (execDom.runBtn) {
 
         const parsedResults = parseQueryResultPayload({
           response,
-          text,
-          streamedLines: streamedPayload.lines,
+          jsonPayload: streamedPayload.jsonPayload,
           displayedFields: state.displayedFields,
           fallbackColumns: state.displayedFields
         });

@@ -12,7 +12,6 @@ export function createQueryHistoryResultsLoader({
   appState,
   historyResultProgress,
   notifyHistoryResultLoadComplete,
-  parsePipeDelimitedRow,
   prepareHistoryResultLoadNotification,
   queryChangeManager,
   queryStateReaders,
@@ -38,15 +37,12 @@ export function createQueryHistoryResultsLoader({
     );
 
     try {
-      const { response, lines: streamedLines, streamError, text, jsonPayload } = await historyResultProgress.fetchResults(queryId);
+      const { response, streamError, jsonPayload } = await historyResultProgress.fetchResults(queryId);
       const rows = buildHistoryResultRows({
         response,
-        streamedLines,
-        text,
         jsonPayload,
         displayedFields: queryStateReaders?.getDisplayedFields?.() || [],
-        fallbackColumns: query.jsonConfig ? query.jsonConfig.DesiredColumnOrder : [],
-        parsePipeDelimitedRow
+        fallbackColumns: query.jsonConfig ? query.jsonConfig.DesiredColumnOrder : []
       });
 
       console.log(`Loaded ${rows.objectRows.length} rows from history`);
@@ -127,21 +123,15 @@ export function createQueryHistoryResultsLoader({
 
 export function buildHistoryResultRows({
   response,
-  streamedLines,
-  text = '',
   jsonPayload = null,
   displayedFields,
-  fallbackColumns,
-  parsePipeDelimitedRow
+  fallbackColumns
 }) {
   return parseQueryResultPayload({
     response,
-    streamedLines,
-    text,
     jsonPayload,
     displayedFields,
-    fallbackColumns,
-    parsePipeRow: parsePipeDelimitedRow
+    fallbackColumns
   });
 }
 

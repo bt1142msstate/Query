@@ -1,9 +1,3 @@
-let getDefaultFieldDefinitions = () => null;
-
-function registerDataFormatterFieldDefinitions(getter) {
-  getDefaultFieldDefinitions = typeof getter === 'function' ? getter : () => null;
-}
-
 function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -27,43 +21,7 @@ function formatDuration(seconds) {
   return parts.join(' ');
 }
 
-function getFieldOutputSegments(fieldName, fieldDefinitions = null) {
-  const definitions = fieldDefinitions || getDefaultFieldDefinitions();
-  if (!definitions || typeof definitions.get !== 'function') {
-    return 1;
-  }
-
-  let fieldDef = definitions.get(fieldName);
-  if (!fieldDef && typeof fieldName === 'string') {
-    const baseName = fieldName.replace(/ \d+$/, '');
-    if (baseName !== fieldName) {
-      fieldDef = definitions.get(baseName);
-    }
-  }
-
-  const parsed = Number.parseInt(fieldDef && fieldDef.parts, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
-}
-
-function parsePipeDelimitedRow(line, columns, options = {}) {
-  const values = String(line || '').split('|');
-  const row = {};
-  let valueIndex = 0;
-
-  columns.forEach(column => {
-    const segmentCount = getFieldOutputSegments(column, options.fieldDefs);
-    row[column] = valueIndex < values.length
-      ? values.slice(valueIndex, valueIndex + segmentCount).join('|')
-      : '';
-    valueIndex += segmentCount;
-  });
-
-  return row;
-}
-
 export {
   escapeRegExp,
-  formatDuration,
-  parsePipeDelimitedRow,
-  registerDataFormatterFieldDefinitions
+  formatDuration
 };

@@ -136,7 +136,7 @@ test('query payload', async () => {
   assert.deepEqual(buildBackendQueryPayload('Smoke Query'), {
     action: 'run',
     name: 'Smoke Query',
-    result_format: 'json',
+    result_format: 'jsonl',
     filters: [
       { field: 'Title', operator: '=', value: '*needle*' },
       { field: 'Search Key', operator: '=', value: ['A', 'B', 'C'] },

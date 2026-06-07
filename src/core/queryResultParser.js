@@ -1,8 +1,4 @@
-import { parsePipeDelimitedRow } from './formatting/dataFormatters.js';
-import {
-  LEGACY_MULTI_VALUE_SEPARATOR as MULTI_VALUE_SEPARATOR,
-  normalizeResultCellValue as normalizeResultValue
-} from './resultCellValues.js';
+import { normalizeResultCellValue as normalizeResultValue } from './resultCellValues.js';
 
 function normalizeColumnName(column) {
   if (typeof column === 'string') return column;
@@ -192,18 +188,8 @@ function parseJsonResultPayload(payload, options = {}) {
     objectRows: Array.isArray(rows)
       ? rows.map(row => mapJsonRowToObject(row, headers, sourceColumnDescriptors))
       : [],
-    source: 'json'
+    source: 'jsonl'
   };
-}
-
-function tryParseJson(text) {
-  const trimmed = String(text || '').trim();
-  if (!trimmed || !/^[\[{]/u.test(trimmed)) return null;
-  try {
-    return JSON.parse(trimmed);
-  } catch {
-    return null;
-  }
 }
 
 function isJsonResultPayload(payload) {
@@ -216,58 +202,17 @@ function isJsonResultPayload(payload) {
     || Array.isArray(payload.records);
 }
 
-function parsePipeResultPayload(options = {}) {
-  const {
-    displayedFields = [],
-    fallbackColumns = [],
-    parsePipeRow = parsePipeDelimitedRow,
-    rawColumns = [],
-    streamedLines = []
-  } = options;
-  const headers = displayedFields.length
-    ? displayedFields
-    : (Array.isArray(fallbackColumns) ? fallbackColumns : []);
-  const sourceColumns = rawColumns.length ? rawColumns : headers;
-  const lines = Array.isArray(streamedLines) ? streamedLines : [];
-  const objectRows = lines.map(line => {
-    const row = parsePipeRow(line, sourceColumns);
-    headers.forEach(header => {
-      if (!(header in row)) row[header] = '';
-    });
-    return row;
-  });
-
-  return { headers, objectRows, source: 'pipe' };
-}
-
 function parseQueryResultPayload(options = {}) {
   const {
     displayedFields = [],
-    fallbackColumns = [],
-    parsePipeRow = parsePipeDelimitedRow,
-    response = null,
-    streamedLines = [],
-    text = ''
+    fallbackColumns = []
   } = options;
-  const contentType = response?.headers?.get?.('Content-Type') || response?.headers?.get?.('content-type') || '';
-  const jsonPayload = options.jsonPayload || tryParseJson(text);
-  if ((contentType.includes('application/json') || jsonPayload) && isJsonResultPayload(jsonPayload)) {
+  const jsonPayload = options.jsonPayload;
+  if (isJsonResultPayload(jsonPayload)) {
     return parseJsonResultPayload(jsonPayload, { displayedFields, fallbackColumns });
   }
 
-  const rawColsHeader = response?.headers?.get?.('X-Raw-Columns') || response?.headers?.get?.('x-raw-columns') || '';
-  const rawColumns = rawColsHeader ? rawColsHeader.split('|') : [];
-  const lines = Array.isArray(streamedLines) && streamedLines.length
-    ? streamedLines
-    : String(text || '').split(/\r?\n/u).filter(line => line.trim().length > 0);
-
-  return parsePipeResultPayload({
-    displayedFields,
-    fallbackColumns,
-    parsePipeRow,
-    rawColumns,
-    streamedLines: lines
-  });
+  throw new Error('Query results must be streamed as JSONL row events.');
 }
 
 function hasResultRowsPayload(payload) {
@@ -275,7 +220,6 @@ function hasResultRowsPayload(payload) {
 }
 
 export {
-  MULTI_VALUE_SEPARATOR,
   hasResultRowsPayload,
   normalizeResultValue,
   parseQueryResultPayload
