@@ -35,9 +35,19 @@ The project is in a stable, production-oriented frontend shape for a static brow
 | --- | --- | --- |
 | Stage 1: Core query builder | Complete | Query building, field search, filters, result rendering, and query JSON are implemented. |
 | Stage 2: Frontend architecture modernization | Complete | Source lives under `src/`, ES modules are canonical, public `window.*` app coordination is removed, and architecture tests enforce boundaries. |
-| Stage 3: Results, export, and mobile usability | Complete | Virtual table behavior, post filters, split multi-value columns, large Excel export, mobile overlays, and responsive resizing are covered by the current test gate. |
+| Stage 3: Results, export, and responsive workflow baseline | Complete | Virtual table behavior, post filters, split multi-value columns, large Excel export, mobile overlays, and responsive resizing are covered by the current test gate. This does not claim a completed accessibility or exhaustive device audit. |
 | Stage 4: Integration readiness and public deployment hardening | In progress | Backend integration is documented and swappable, but API settings and live-site default behavior still need final product polish. |
-| Stage 5: Public release polish | Not started | Dedicated accessibility audit, more deployment examples, and optional user-facing setup polish belong here after Stage 4 is done. |
+| Stage 5: Public release polish | Not started | Dedicated accessibility audit, expanded production deployment recipes, and optional user-facing setup polish belong here after Stage 4 is done. |
+
+## Stage Audit Notes
+
+The completed stages above are limited to work that is actually implemented or guarded by the repository:
+
+- Stage 1 is complete because the app has the core query builder, field picker/search, display fields, filter conditions, query JSON inspection, query execution, and result rendering in place.
+- Stage 2 is complete because source modules live under `src/`, native ES modules are canonical, app-level `window.*` bridge exports are forbidden by architecture checks, and module boundaries are tested.
+- Stage 3 is complete as a functional results/export/responsive baseline because virtual-table scrolling, resizing, sorting, split multi-value columns, post filters, large workbook export, mobile overlays, and live responsive resizing are covered by the test gate.
+- Stage 3 does not include a full accessibility audit, exhaustive device matrix, or production API setup. Those are intentionally Stage 4 or Stage 5 items.
+- Stage 4 is the current stage because the backend is already swappable through documented contracts and API URL overrides, but the app still needs a first-class API settings screen and a live default that no longer relies on the project-owned example endpoint.
 
 ## Completed Milestones
 
@@ -53,7 +63,7 @@ The project is in a stable, production-oriented frontend shape for a static brow
 | Public note and MARC-style multi-value handling | Complete from the frontend contract side |
 | Post filters | Complete for result-only filtering, including empty/non-empty and multi-value operators |
 | Large Excel export | Complete with worker-backed generation, progress, and notification hooks |
-| Mobile/tablet usability pass | Complete for current workflows covered by smoke tests |
+| Responsive/mobile workflow baseline | Complete for current workflows covered by smoke tests |
 | Cache-busting enforcement | Complete through `cache-bust.json` and CI |
 | Test suite modernization | Complete: unified on Node's built-in test runner plus Playwright smoke coverage |
 
@@ -63,7 +73,7 @@ The project is in a stable, production-oriented frontend shape for a static brow
 | --- | --- | --- | --- |
 | Stage 4 | High | Add a first-class API settings screen | The app already supports `?api_url=` and local storage, but non-technical users should be able to connect their own API from the UI without editing source or URL parameters. |
 | Stage 4 | High | Remove project-owned API usage from the public live default | The checked-in endpoint is useful as an example/testing integration, but the live deployment should default to a bring-your-own-API setup. |
-| Stage 4 | Medium | Add deployment examples for compatible APIs | A small set of examples for CORS, auth, field metadata, result JSON, history, cancel, and template persistence would make third-party integration easier. |
+| Stage 4 | Medium | Add minimal compatible API implementation examples | Small examples for CORS/auth, field metadata, result JSON, history, cancel, and template persistence would make third-party integration easier. |
 | Stage 4 | Medium | Keep expanding browser smoke coverage around new workflows | The current suite covers the main desktop/mobile flows. New workflow bugs should usually add one realistic browser interaction test plus focused unit coverage for reusable logic. |
 | Stage 4 | Medium | Continue cohesion reviews as features change | There are no current large-module exceptions, but some coordinator modules are intentionally still large. Split them only when a stable responsibility boundary appears. |
 | Stage 5 | Low | Optional accessibility audit | The app has keyboard-friendly controls in many areas, but a dedicated audit for focus order, screen reader labels, and reduced-motion behavior would be useful before broader public use. |
@@ -75,7 +85,7 @@ Stage 4 is done when:
 - A user can configure a compatible backend from the app UI.
 - The public live deployment no longer defaults to the project-owned example API.
 - The README clearly routes new users through local setup, API setup, and deployment choices.
-- `docs/INTEGRATION.md` includes enough examples for a developer to implement the compatible backend contract without reading app internals.
+- `docs/INTEGRATION.md` includes enough contract detail and minimal examples for a developer to implement the compatible backend without reading app internals.
 - The test gate still passes with cache-busting enforcement, architecture rules, unit tests, and browser smoke coverage.
 
 ## Not Currently Planned
