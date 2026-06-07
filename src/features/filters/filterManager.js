@@ -4,7 +4,7 @@ import { MoneyUtils } from '../../core/formatting/moneyUtils.js';
 import { OperatorSelectUtils } from '../../core/operatorSelectUtils.js';
 import { ValueFormatting } from '../../core/formatting/valueFormatting.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from '../../core/queryState.js';
-import { SelectorControls } from '../../ui/selectorControls.js';
+import { SelectorControls } from '../../ui/controls/selectorControls.js';
 import {
   fieldDefs,
   getFieldBuilderInputs,
@@ -16,7 +16,7 @@ import {
   updateFilteredDefs
 } from './fieldDefs.js';
 import { DOM } from '../../core/domCache.js';
-import { CustomDatePicker } from '../../ui/customDatePicker.js';
+import { CustomDatePicker } from '../../ui/controls/customDatePicker.js';
 import {
     getDateFilterValidationMessage,
     getContradictionMessage,

@@ -3,8 +3,8 @@ import { formatFieldDefinitionTooltipHTML } from '../../core/formatting/tooltipF
 import { VisibilityUtils } from '../../core/visibility.js';
 import { getRankedFieldPickerOptions } from './fieldPickerSearch.js';
 import { createQueryFieldPickerIntegration } from './fieldPickerQueryIntegration.js';
-import { initializeSearchInputs } from '../searchUI.js';
-import { VirtualList } from '../virtualList.js';
+import { initializeSearchInputs } from '../controls/searchUI.js';
+import { VirtualList } from '../controls/virtualList.js';
 import { fieldDefs, fieldDefsArray, isFieldBackendFilterable, isFieldDisplayable } from '../../features/filters/fieldDefs.js';
 import { getFieldPerformanceWarning } from '../../features/filters/fieldWarnings.js';
 let SharedFieldPicker;

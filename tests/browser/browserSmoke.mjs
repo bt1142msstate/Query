@@ -252,7 +252,7 @@ async function runSmokeTest() {
       throw new Error(`History result load should remember the opened query id: ${JSON.stringify(rememberedHistoryResult)}`);
     }
     const cachedHistoryResult = await page.evaluate(async () => {
-      const { readCachedHistoryResultSnapshot } = await import('./src/features/history/queryHistoryResultCache.js');
+      const { readCachedHistoryResultSnapshot } = await import('./src/features/history/results/queryHistoryResultCache.js');
       return readCachedHistoryResultSnapshot('browser-smoke-complete');
     });
     if (

@@ -4,9 +4,9 @@ import { OperatorLabels } from '../../core/formatting/operatorLabels.js';
 import { MoneyUtils } from '../../core/formatting/moneyUtils.js';
 import { OperatorSelectUtils } from '../../core/operatorSelectUtils.js';
 import { ValueFormatting } from '../../core/formatting/valueFormatting.js';
-import { SelectorControls } from '../selectorControls.js';
+import { SelectorControls } from '../controls/selectorControls.js';
 import { fieldDefs, getFieldFilterOperators, isFieldBackendFilterable } from '../../features/filters/fieldDefs.js';
-import { CustomDatePicker } from '../customDatePicker.js';
+import { CustomDatePicker } from '../controls/customDatePicker.js';
 import { createFormModeDateInputState } from './formModeDateInput.js';
 
   function parseFieldOptions(fieldDef, inputSpec, normalizeOperatorForField) {

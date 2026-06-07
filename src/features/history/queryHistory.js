@@ -1,39 +1,39 @@
-import { buildHistoryDetailsOverlayHtml } from './queryHistoryDetails.js';
+import { buildHistoryDetailsOverlayHtml } from './view/queryHistoryDetails.js';
 import { createQueryHistoryConfigLoader } from './queryHistoryConfigLoader.js';
 import { createQueryHistoryDependencies } from './queryHistoryDependencies.js';
-import { HistoryResultProgress } from './queryHistoryResultProgress.js';
-import { createQueryHistoryResultsLoader } from './queryHistoryResultsLoader.js';
-import { writeCachedHistoryResultSnapshot } from './queryHistoryResultCache.js';
-import { createOpenedHistoryResultRestoreController } from './queryHistoryResultRestore.js';
+import { HistoryResultProgress } from './results/queryHistoryResultProgress.js';
+import { createQueryHistoryResultsLoader } from './results/queryHistoryResultsLoader.js';
+import { writeCachedHistoryResultSnapshot } from './results/queryHistoryResultCache.js';
+import { createOpenedHistoryResultRestoreController } from './results/queryHistoryResultRestore.js';
 import {
   captureHistoryViewState,
   didErrorDetailsChange,
   didProgressChange,
   restoreHistoryViewState,
   updateHistoryPollingMeta
-} from './queryHistoryRenderHelpers.js';
+} from './view/queryHistoryRenderHelpers.js';
 import {
   appendUniqueColumn,
   buildUiConfigFromRequest,
   mergeUiConfigWithRequest,
   resolveSpecialPayloadFieldNames
 } from './queryHistoryRequestMapper.js';
-import { createQueriesTableRowHtml } from './queryHistoryRows.js';
+import { createQueriesTableRowHtml } from './view/queryHistoryRows.js';
 import { groupHistoryQueries } from './queryHistoryGrouping.js';
 import {
   buildHistorySubtitleText,
   buildHistoryVisibleMetaDetail,
   normalizeHistoryViewOptions
-} from './queryHistoryControls.js';
-import { buildHistoryPanelView } from './queryHistoryPanelView.js';
-import { mapStatusPayloadToHistoryRows } from './queryHistoryStatusMapper.js';
-import { formatColumnsTooltip, formatHistoryFiltersTooltip } from './queryHistoryTooltips.js';
-import { notifyHistoryResultLoadComplete, prepareHistoryResultLoadNotification } from './queryHistoryNotifications.js';
-import { rememberOpenedHistoryResult, shouldRestoreOpenedHistoryResult } from './queryHistoryResultSession.js';
+} from './view/queryHistoryControls.js';
+import { buildHistoryPanelView } from './view/queryHistoryPanelView.js';
+import { mapStatusPayloadToHistoryRows } from './status/queryHistoryStatusMapper.js';
+import { formatColumnsTooltip, formatHistoryFiltersTooltip } from './view/queryHistoryTooltips.js';
+import { notifyHistoryResultLoadComplete, prepareHistoryResultLoadNotification } from './status/queryHistoryNotifications.js';
+import { rememberOpenedHistoryResult, shouldRestoreOpenedHistoryResult } from './results/queryHistoryResultSession.js';
 import {
   classifyQueryStatus,
   getPreferredHistorySection as getPreferredHistorySectionForCounts
-} from './queryHistoryViewHelpers.js';
+} from './view/queryHistoryViewHelpers.js';
 import { appServices, registerQueryHistoryService } from '../../core/appServices.js';
 import { waitForFormModeReady } from '../../core/appStartupEvents.js';
 import { appUiActions } from '../../core/appUiActions.js';

@@ -2384,7 +2384,7 @@ async function exerciseJsonResultPayloadWorkflow(page, queryApiStub) {
 async function expectCustomDatePickerNeverOption(page) {
   await page.evaluate(async () => {
     document.querySelector('[data-browser-smoke-date-picker-host]')?.remove();
-    const { CustomDatePicker } = await import('./src/ui/customDatePicker.js');
+    const { CustomDatePicker } = await import('./src/ui/controls/customDatePicker.js');
     const host = document.createElement('div');
     host.setAttribute('data-browser-smoke-date-picker-host', '');
     host.style.position = 'fixed';
@@ -2411,7 +2411,7 @@ async function expectCustomDatePickerNeverOption(page) {
     value: element.value
   }));
   await page.evaluate(async () => {
-    const { CustomDatePicker } = await import('./src/ui/customDatePicker.js');
+    const { CustomDatePicker } = await import('./src/ui/controls/customDatePicker.js');
     CustomDatePicker.close();
     document.querySelector('[data-browser-smoke-date-picker-host]')?.remove();
   });
@@ -2422,7 +2422,7 @@ async function expectCustomDatePickerNeverOption(page) {
 
   await page.evaluate(async () => {
     document.querySelector('[data-browser-smoke-date-picker-host]')?.remove();
-    const { CustomDatePicker } = await import('./src/ui/customDatePicker.js');
+    const { CustomDatePicker } = await import('./src/ui/controls/customDatePicker.js');
     const host = document.createElement('div');
     host.setAttribute('data-browser-smoke-date-picker-host', '');
     host.style.position = 'fixed';
@@ -2446,7 +2446,7 @@ async function expectCustomDatePickerNeverOption(page) {
     return button.hidden || button.disabled || window.getComputedStyle(button).display === 'none';
   });
   await page.evaluate(async () => {
-    const { CustomDatePicker } = await import('./src/ui/customDatePicker.js');
+    const { CustomDatePicker } = await import('./src/ui/controls/customDatePicker.js');
     CustomDatePicker.close();
     document.querySelector('[data-browser-smoke-date-picker-host]')?.remove();
   });
