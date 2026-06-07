@@ -24,6 +24,7 @@ function createOpenedHistoryResultRestoreController({
   queryStateReaders,
   services,
   showToastMessage,
+  uiState,
   uiActions
 }) {
   let restoreAttempted = false;
@@ -76,6 +77,7 @@ function createOpenedHistoryResultRestoreController({
       queryChangeManager,
       viewState,
       services,
+      uiState,
       uiActions
     });
 

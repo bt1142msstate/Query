@@ -60,6 +60,30 @@ const historyDependencies = createQueryHistoryDependencies(normalizeUiConfigFilt
 let openedHistoryResultRestoreController = null;
 let openedResultViewStatePersistence = null;
 
+function getFieldSearchValue() {
+  return DOM.queryInput?.value || '';
+}
+
+function setFieldSearchValue(value) {
+  const queryInput = DOM.queryInput;
+  if (!queryInput) {
+    return;
+  }
+
+  const nextValue = String(value || '');
+  if (queryInput.value === nextValue) {
+    return;
+  }
+
+  queryInput.value = nextValue;
+  queryInput.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+const resultViewUiState = {
+  getFieldSearch: getFieldSearchValue,
+  setFieldSearch: setFieldSearchValue
+};
+
 function isQueriesPanelOpen() {
   const panel = DOM.queriesPanel;
   return !!(panel && !panel.classList.contains('hidden'));
@@ -334,6 +358,7 @@ const loadQueryResults = createQueryHistoryResultsLoader({
   queryChangeManager: QueryChangeManager,
   queryStateReaders: QueryStateReaders,
   services,
+  uiState: resultViewUiState,
   showToastMessage,
   uiActions,
   getHistoryQueryById,
@@ -771,12 +796,14 @@ onDOMReady(() => {
     queryStateReaders: QueryStateReaders,
     services,
     showToastMessage,
+    uiState: resultViewUiState,
     uiActions
   });
   openedResultViewStatePersistence = createOpenedResultViewStatePersistence({
     getHistoryQueryById,
     queryStateReaders: QueryStateReaders,
-    services
+    services,
+    uiState: resultViewUiState
   });
 
   if (queryHistoryInitialized) {
@@ -819,6 +846,9 @@ onDOMReady(() => {
   });
   window.addEventListener('postfilters:updated', () => {
     openedResultViewStatePersistence.schedule({ meta: { source: 'postfilters:updated' } });
+  });
+  DOM.queryInput?.addEventListener('input', () => {
+    openedResultViewStatePersistence.schedule({ meta: { source: 'field-search' } });
   });
 
   // Add row click event listener

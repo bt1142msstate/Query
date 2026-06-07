@@ -60,6 +60,7 @@ function normalizePostFilterSnapshot(snapshot) {
 function normalizeResultViewState(viewState = {}) {
   const source = viewState && typeof viewState === 'object' ? viewState : {};
   const displayedFields = normalizeStringList(source.displayedFields);
+  const fieldSearch = String(source.fieldSearch || '').trim();
   const postFilters = normalizePostFilterSnapshot(source.postFilters);
   const splitColumns = typeof source.splitColumns === 'boolean'
     ? source.splitColumns
@@ -68,6 +69,9 @@ function normalizeResultViewState(viewState = {}) {
 
   if (displayedFields.length) {
     normalized.displayedFields = displayedFields;
+  }
+  if (fieldSearch) {
+    normalized.fieldSearch = fieldSearch;
   }
   if (Object.keys(postFilters).length) {
     normalized.postFilters = postFilters;
@@ -83,14 +87,16 @@ function hasResultViewStatePayload(viewState) {
   const normalized = normalizeResultViewState(viewState);
   return Boolean(
     normalized.displayedFields?.length
+    || normalized.fieldSearch
     || Object.keys(normalized.postFilters || {}).length
     || typeof normalized.splitColumns === 'boolean'
   );
 }
 
-function buildCurrentResultViewState({ queryStateReaders, services } = {}) {
+function buildCurrentResultViewState({ queryStateReaders, services, uiState } = {}) {
   return normalizeResultViewState({
     displayedFields: queryStateReaders?.getDisplayedFields?.() || [],
+    fieldSearch: uiState?.getFieldSearch?.() || '',
     postFilters: services?.getPostFilterState?.() || {},
     splitColumns: Boolean(services?.isSplitColumnsActive?.())
   });
@@ -154,6 +160,7 @@ function applyResultViewState(viewState, options = {}) {
   const {
     queryChangeManager,
     services,
+    uiState,
     uiActions
   } = options;
 
@@ -172,6 +179,10 @@ function applyResultViewState(viewState, options = {}) {
     queryChangeManager?.replaceDisplayedFields?.(normalized.displayedFields, {
       source: 'ResultViewState.restoreDisplayedFields'
     });
+  }
+
+  if (normalized.fieldSearch || Object.prototype.hasOwnProperty.call(viewState || {}, 'fieldSearch')) {
+    uiState?.setFieldSearch?.(normalized.fieldSearch || '');
   }
 
   if (hasPayload || Object.prototype.hasOwnProperty.call(viewState || {}, 'postFilters')) {

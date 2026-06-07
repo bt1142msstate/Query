@@ -43,6 +43,7 @@ test('query history result cache preserves result view state', () => {
     rows: [['One', 'Main', 'Open']],
     viewState: {
       displayedFields: ['Status', 'Title'],
+      fieldSearch: 'status',
       postFilters: {
         Status: {
           logic: 'all',
@@ -56,6 +57,7 @@ test('query history result cache preserves result view state', () => {
   assert.deepEqual(snapshot.viewState, {
     version: 1,
     displayedFields: ['Status', 'Title'],
+    fieldSearch: 'status',
     postFilters: {
       Status: {
         logic: 'all',

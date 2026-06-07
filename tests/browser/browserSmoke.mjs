@@ -278,8 +278,13 @@ async function runSmokeTest() {
     await page.evaluate(async () => {
       const { appServices } = await import('./src/core/appServices.js');
       const { QueryChangeManager, QueryStateReaders } = await import('./src/core/queryState.js');
+      const queryInput = document.querySelector('#query-input');
       const currentFields = QueryStateReaders.getDisplayedFields();
       const branchFields = currentFields.filter(field => /^Smoke Branch(?:\s+\d+)?$/u.test(field));
+      if (queryInput) {
+        queryInput.value = 'status';
+        queryInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
       QueryChangeManager.replaceDisplayedFields([
         'Smoke Status',
         ...branchFields,
@@ -312,6 +317,7 @@ async function runSmokeTest() {
         return {
           cacheFilter: filter,
           cacheFields: fields,
+          cacheFieldSearch: snapshot?.viewState?.fieldSearch || '',
           decoded: urlState,
           raw,
           urlFilter
@@ -319,9 +325,11 @@ async function runSmokeTest() {
       });
       if (
         seededResultViewState.cacheFields.join('|') === 'Smoke Status|Smoke Branch 1|Smoke Branch 2|Smoke Title'
+        && seededResultViewState.cacheFieldSearch === 'status'
         && seededResultViewState.cacheFilter?.cond === 'equals'
         && seededResultViewState.cacheFilter?.val === 'Open'
         && seededResultViewState.decoded?.displayedFields?.join('|') === 'Smoke Status|Smoke Branch 1|Smoke Branch 2|Smoke Title'
+        && seededResultViewState.decoded?.fieldSearch === 'status'
         && seededResultViewState.urlFilter?.cond === 'equals'
         && seededResultViewState.urlFilter?.val === 'Open'
       ) {
@@ -332,6 +340,7 @@ async function runSmokeTest() {
     if (
       !seededResultViewState?.raw
       || seededResultViewState?.decoded?.displayedFields?.join('|') !== 'Smoke Status|Smoke Branch 1|Smoke Branch 2|Smoke Title'
+      || seededResultViewState?.decoded?.fieldSearch !== 'status'
       || seededResultViewState?.decoded?.postFilters?.['Smoke Status']?.filters?.[0]?.val !== 'Open'
       || ['rows', 'objectRows', 'headers', 'data', 'items', 'records'].some(key => Object.prototype.hasOwnProperty.call(seededResultViewState?.decoded || {}, key))
     ) {
@@ -385,6 +394,7 @@ async function runSmokeTest() {
         defaultShareLimited: defaultShareUrl.searchParams.get('limited'),
         defaultShareResult: defaultShareUrl.searchParams.get('result'),
         displayedFields: QueryStateReaders.getDisplayedFields(),
+        fieldSearch: document.querySelector('#query-input')?.value || '',
         hasLoadedResultSet: QueryStateReaders.getLifecycleState().hasLoadedResultSet,
         headers: tableData?.headers || [],
         postFilters: appServices.getPostFilterState?.() || {},
@@ -404,8 +414,10 @@ async function runSmokeTest() {
       || !restoredHistoryResult.headers.includes('Smoke Branch 2')
       || restoredHistoryResult.rows[0][2] !== 'East'
       || restoredHistoryResult.displayedFields.join('|') !== 'Smoke Status|Smoke Branch 1|Smoke Branch 2|Smoke Title'
+      || restoredHistoryResult.fieldSearch !== 'status'
       || restoredHistoryResult.postFilters?.['Smoke Status']?.filters?.[0]?.val !== 'Open'
       || restoredHistoryResult.resultView?.displayedFields?.join('|') !== 'Smoke Status|Smoke Branch 1|Smoke Branch 2|Smoke Title'
+      || restoredHistoryResult.resultView?.fieldSearch !== 'status'
       || restoredHistoryResult.splitActive !== true
       || restoredHistoryResult.splitPreference !== 'split'
       || restoredHistoryResult.splitToggleActive !== true
