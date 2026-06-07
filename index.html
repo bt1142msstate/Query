@@ -9,10 +9,16 @@
   <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&display=swap" rel="stylesheet">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="application-name" content="Library Item Reports">
+  <meta name="apple-mobile-web-app-title" content="Item Reports">
   <title>Library Item Reports</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="src/styles/app.css" rel="stylesheet" data-app-stylesheet>
-  <link rel="icon" href="data:,">
+  <link rel="icon" href="assets/app-icon.svg" type="image/svg+xml" sizes="any">
+  <link rel="alternate icon" href="assets/app-icon-512.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/app-icon-180.png">
+  <link rel="manifest" href="site.webmanifest">
 </head>
 <body class="relative min-h-screen overflow-x-hidden overflow-y-auto pt-16 px-6 pb-6 app-starting" id="page-body">
   <div id="overlay"></div>
@@ -20,7 +26,9 @@
   <!-- New Header Bar -->
   <div id="header-bar" class="fixed top-0 left-0 right-0 text-white py-3 px-6 flex justify-between items-center">
     <span id="header-overlay-title" class="hidden" aria-live="polite" aria-atomic="true"></span>
-    <div class="w-32 flex items-center justify-start" style="min-width: 32px; gap:2px;">
+    <div id="header-brand" class="app-brand" aria-label="Library Item Reports">
+      <img class="app-brand-icon" src="assets/app-icon.svg" alt="" aria-hidden="true">
+      <span class="sr-only">Library Item Reports</span>
     </div>
     <div id="header-controls" class="flex gap-2">
       <button id="run-query-btn"

@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Magnifying glass looking at a book</title>
+  <desc id="desc">A clean vector icon of a magnifying glass inspecting an open book, suitable for a library querying tool.</desc>
+  <defs>
+    <!-- Paper Texture/Background Gradient -->
+    <linearGradient id="bgPaper" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#faf9f6"/>
+      <stop offset="100%" stop-color="#e5e2d9"/>
+    </linearGradient>
+
+    <!-- Book Page Gradient (Parchment/Ivory) -->
+    <linearGradient id="pageParchment" x1="116" y1="174" x2="388" y2="340" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fffdf9"/>
+      <stop offset="1" stop-color="#f3ede0"/>
+    </linearGradient>
+
+    <!-- Glowing Amber/Gold Query Highlight Gradient -->
+    <linearGradient id="goldAccent" x1="172" y1="205" x2="330" y2="310" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fbbf24"/>
+      <stop offset="1" stop-color="#ea580c"/>
+    </linearGradient>
+
+    <!-- Metallic Silver Gradient -->
+    <linearGradient id="silverGradient" x1="40" y1="40" x2="472" y2="472" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="25%" stop-color="#94a3b8"/>
+      <stop offset="50%" stop-color="#cbd5e1"/>
+      <stop offset="75%" stop-color="#64748b"/>
+      <stop offset="100%" stop-color="#cbd5e1"/>
+    </linearGradient>
+
+    <!-- Soft Drop Shadow Filter for Main Content -->
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#09284a" flood-opacity="0.14"/>
+    </filter>
+
+    <!-- Welded Joint/Gooey Filter for Metal Connections -->
+    <filter id="weldFilter">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur" />
+      <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -8" result="gooey" />
+    </filter>
+
+    <!-- Mask to slice Handle cleanly along the inner Lens Ring curve -->
+    <mask id="handleMask">
+      <rect x="0" y="0" width="512" height="512" fill="#ffffff" />
+      <circle cx="181" cy="181" r="119" fill="#000000" />
+    </mask>
+  </defs>
+
+  <!-- Card Background with rounded corners -->
+  <rect id="app-background" width="512" height="512" rx="64" fill="url(#bgPaper)"/>
+
+  <!-- Main Content Group with Drop Shadow -->
+  <g id="icon-content" filter="url(#softShadow)">
+    
+    <!-- Glass Lens Inner Fill -->
+    <circle id="lens-glass-fill" cx="181" cy="181" r="119" fill="#ffffff" fill-opacity="0.3"/>
+
+    <!-- Welded Metal Frame OUTLINE (Ring & Weld Transition) -->
+    <g id="welded-metal-frame-outline" filter="url(#weldFilter)">
+      <circle cx="181" cy="181" r="130" fill="none" stroke="#2a2018" stroke-width="32"/>
+      <path d="M231 231l70 70" fill="none" stroke="#2a2018" stroke-width="50" mask="url(#handleMask)"/>
+    </g>
+
+    <!-- Main Handle OUTLINE (outside weld filter to keep vector round cap perfectly sharp & smooth) -->
+    <path id="lens-handle-outline" d="M281 281l171 171" fill="none" stroke="#2a2018" stroke-width="50" stroke-linecap="round"/>
+
+    <!-- Welded Metal Frame SILVER (Ring & Weld Transition) -->
+    <g id="welded-metal-frame-silver" filter="url(#weldFilter)">
+      <circle id="lens-ring-stroke" cx="181" cy="181" r="130" fill="none" stroke="url(#silverGradient)" stroke-width="22"/>
+      <path id="lens-handle-weld-bridge" d="M231 231l70 70" fill="none" stroke="url(#silverGradient)" stroke-width="40" mask="url(#handleMask)"/>
+    </g>
+
+    <!-- Main Handle SILVER (outside weld filter to keep vector round cap perfectly sharp & smooth) -->
+    <path id="lens-handle-main" d="M281 281l171 171" fill="none" stroke="url(#silverGradient)" stroke-width="40" stroke-linecap="round"/>
+
+    <!-- Miniature Book (scaled and translated to center inside lens) -->
+    <g id="miniature-book" transform="translate(181, 181) scale(0.48) translate(-256, -270.5)">
+      <!-- Book Pages -->
+      <path id="book-page-left" d="M74 151c65-15 122-4 182 34v220c-58-38-118-50-182-35V151z" fill="url(#pageParchment)" stroke="#2a2018" stroke-width="16" stroke-linejoin="round"/>
+      <path id="book-page-right" d="M438 151c-65-15-122-4-182 34v220c58-38 118-50 182-35V151z" fill="url(#pageParchment)" stroke="#2a2018" stroke-width="16" stroke-linejoin="round"/>
+      
+      <!-- Book Spine -->
+      <path id="book-spine" d="M256 185v220" fill="none" stroke="#2a2018" stroke-width="12" stroke-linecap="round"/>
+      
+      <!-- Text Lines -->
+      <path id="book-line-left-1" d="M112 211c39-4 74 3 108 20" fill="none" stroke="#2a2018" stroke-width="10" stroke-linecap="round" opacity="0.75"/>
+      <path id="book-line-left-2" d="M112 254c39-4 74 3 108 20" fill="none" stroke="#2a2018" stroke-width="10" stroke-linecap="round" opacity="0.75"/>
+      <path id="book-line-right-1" d="M292 231c34-17 69-24 108-20" fill="none" stroke="#2a2018" stroke-width="10" stroke-linecap="round" opacity="0.75"/>
+      <path id="book-line-right-2" d="M292 274c34-17 69-24 108-20" fill="none" stroke="#2a2018" stroke-width="10" stroke-linecap="round" opacity="0.75"/>
+      
+      <!-- Highlighted Query Accent Line -->
+      <path id="book-line-accent" d="M154 309c28 5 54 14 79 28" fill="none" stroke="url(#goldAccent)" stroke-width="12" stroke-linecap="round"/>
+    </g>
+
+    <!-- Glass Lens Gloss/Highlight -->
+    <path id="lens-glass-highlight" d="M82 145 A 105 105 0 0 1 145 82" fill="none" stroke="#ffffff" stroke-width="14" stroke-linecap="round" opacity="0.9"/>
+  </g>
+</svg>
