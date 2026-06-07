@@ -1007,6 +1007,62 @@ input[type="search"]:-webkit-autofill,
   animation: jump 0.7s cubic-bezier(.4,1.6,.6,1) infinite;
 }
 
+#split-columns-toggle {
+  position: relative;
+  overflow: hidden;
+}
+
+#split-columns-toggle .split-toggle-icon {
+  transform-box: fill-box;
+  transform-origin: center;
+  will-change: opacity, transform;
+}
+
+#split-columns-toggle .split-toggle-icon.hidden {
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(0.72) rotate(8deg);
+}
+
+#split-columns-toggle:not(.split-toggle-disabled):is(:hover, :focus-visible) .split-toggle-icon:not(.hidden) {
+  animation: splitTogglePrimaryPreview 1.15s ease-in-out infinite;
+}
+
+#split-columns-toggle:not(.split-toggle-disabled):is(:hover, :focus-visible) .split-toggle-icon.hidden {
+  animation: splitToggleAlternatePreview 1.15s ease-in-out infinite;
+  display: block;
+}
+
+@keyframes splitTogglePrimaryPreview {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+
+  42%,
+  58% {
+    opacity: 0.18;
+    transform: scale(0.76) rotate(-8deg);
+  }
+}
+
+@keyframes splitToggleAlternatePreview {
+  0%,
+  30%,
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.72) rotate(8deg);
+  }
+
+  44%,
+  64% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+  }
+}
+
 #split-columns-toggle.split-toggle-disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -1021,4 +1077,14 @@ input[type="search"]:-webkit-autofill,
 #run-query-btn:hover #refresh-icon {
   animation: rotate 1s linear infinite;
   transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #split-columns-toggle:not(.split-toggle-disabled):is(:hover, :focus-visible) .split-toggle-icon {
+    animation: none;
+  }
+
+  #split-columns-toggle:not(.split-toggle-disabled):is(:hover, :focus-visible) .split-toggle-icon.hidden {
+    display: none;
+  }
 }
