@@ -8,9 +8,11 @@ const manifestPath = resolve(rootDir, 'cache-bust.json');
 const sourceEntries = [
   'index.html',
   'backgroundNotificationServiceWorker.js',
+  'site.webmanifest',
+  'assets',
   'src'
 ];
-const hashedExtensions = new Set(['.css', '.html', '.js']);
+const hashedExtensions = new Set(['.css', '.html', '.js', '.json', '.png', '.svg', '.webmanifest']);
 const checkOnly = process.argv.includes('--check');
 const sourceOverrides = new Map();
 
