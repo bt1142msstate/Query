@@ -1019,45 +1019,42 @@ input[type="search"]:-webkit-autofill,
 }
 
 #split-columns-toggle .split-toggle-icon.hidden {
+  display: none;
   left: 50%;
+  opacity: 0;
   position: absolute;
   top: 50%;
   transform: translate(-50%, -50%) scale(0.72) rotate(8deg);
 }
 
 #split-columns-toggle:not(.split-toggle-disabled):is(:hover, :focus-visible) .split-toggle-icon:not(.hidden) {
-  animation: splitTogglePrimaryPreview 1.15s ease-in-out infinite;
+  animation: splitToggleActiveIconExit 0.28s ease-out forwards;
 }
 
 #split-columns-toggle:not(.split-toggle-disabled):is(:hover, :focus-visible) .split-toggle-icon.hidden {
-  animation: splitToggleAlternatePreview 1.15s ease-in-out infinite;
+  animation: splitTogglePreviewIconEnter 0.28s ease-out forwards;
   display: block;
 }
 
-@keyframes splitTogglePrimaryPreview {
-  0%,
-  100% {
+@keyframes splitToggleActiveIconExit {
+  0% {
     opacity: 1;
     transform: scale(1) rotate(0deg);
   }
 
-  42%,
-  58% {
-    opacity: 0.18;
+  100% {
+    opacity: 0;
     transform: scale(0.76) rotate(-8deg);
   }
 }
 
-@keyframes splitToggleAlternatePreview {
-  0%,
-  30%,
-  100% {
+@keyframes splitTogglePreviewIconEnter {
+  0% {
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.72) rotate(8deg);
   }
 
-  44%,
-  64% {
+  100% {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1) rotate(0deg);
   }
@@ -1084,7 +1081,14 @@ input[type="search"]:-webkit-autofill,
     animation: none;
   }
 
+  #split-columns-toggle:not(.split-toggle-disabled):is(:hover, :focus-visible) .split-toggle-icon:not(.hidden) {
+    opacity: 0;
+    transform: scale(0.76) rotate(-8deg);
+  }
+
   #split-columns-toggle:not(.split-toggle-disabled):is(:hover, :focus-visible) .split-toggle-icon.hidden {
-    display: none;
+    display: block;
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
   }
 }
