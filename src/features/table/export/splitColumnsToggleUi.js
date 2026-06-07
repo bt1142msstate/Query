@@ -1,5 +1,31 @@
 import { getMultiValueTableSummary } from '../virtual-table/splitColumnExpansion.js';
 
+const SPLIT_COLUMNS_PREFERENCE_STORAGE_KEY = 'query-project.split-columns-mode';
+
+function getPreferenceStorage() {
+  try {
+    return globalThis.window?.localStorage || globalThis.localStorage || null;
+  } catch {
+    return null;
+  }
+}
+
+function readStoredSplitPreference() {
+  const value = getPreferenceStorage()?.getItem?.(SPLIT_COLUMNS_PREFERENCE_STORAGE_KEY);
+  return value === 'split' || value === 'true';
+}
+
+function writeStoredSplitPreference(active) {
+  try {
+    getPreferenceStorage()?.setItem?.(
+      SPLIT_COLUMNS_PREFERENCE_STORAGE_KEY,
+      active ? 'split' : 'stacked'
+    );
+  } catch {
+    // Storage may be blocked in private browsing or embedded contexts.
+  }
+}
+
 function createSplitColumnsToggleUi({ services, showToastMessage }) {
   let splitMultiValues = false;
   let splitEligibleSummaryCache = {
@@ -68,38 +94,46 @@ function createSplitColumnsToggleUi({ services, showToastMessage }) {
     toggleBtn.setAttribute('data-tooltip-html', buildSplitToggleTooltipHtml(splitMultiValues, summary));
   }
 
+  function setSplitPreference(nextValue, options = {}) {
+    splitMultiValues = Boolean(nextValue);
+    if (options.persist !== false) {
+      writeStoredSplitPreference(splitMultiValues);
+    }
+    updateSplitColumnsToggleState();
+    if (options.syncService !== false) {
+      services.setSplitColumnsMode(splitMultiValues);
+    }
+  }
+
   function attach() {
     const toggleBtn = document.getElementById('split-columns-toggle');
     if (!toggleBtn) {
       return;
     }
 
+    setSplitPreference(readStoredSplitPreference(), { persist: false, syncService: true });
+
     toggleBtn.addEventListener('click', () => {
-      splitMultiValues = !splitMultiValues;
+      const nextPreference = !splitMultiValues;
       showToastMessage(
-        splitMultiValues ? 'Multi-value preference set to split columns' : 'Multi-value preference set to stacked cells',
+        nextPreference ? 'Multi-value preference set to split columns' : 'Multi-value preference set to stacked cells',
         'info'
       );
-      updateSplitColumnsToggleState();
-      services.setSplitColumnsMode(splitMultiValues);
+      setSplitPreference(nextPreference);
     });
-
-    updateSplitColumnsToggleState();
   }
 
   return Object.freeze({
     attach,
     isActive: () => splitMultiValues,
     resetSplitColumnsToggleUI() {
-      splitMultiValues = false;
-      updateSplitColumnsToggleState();
+      setSplitPreference(false, { syncService: false });
     },
     setSplitColumnsToggleUIActive() {
-      splitMultiValues = true;
-      updateSplitColumnsToggleState();
+      setSplitPreference(true, { syncService: false });
     },
     updateSplitColumnsToggleState
   });
 }
 
-export { createSplitColumnsToggleUi };
+export { SPLIT_COLUMNS_PREFERENCE_STORAGE_KEY, createSplitColumnsToggleUi };

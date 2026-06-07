@@ -17,6 +17,7 @@ function createOpenedHistoryResultRestoreController({
   loadQueryConfig,
   loadQueryResults,
   queryChangeManager,
+  queryStateReaders,
   services,
   showToastMessage,
   uiActions
@@ -65,6 +66,7 @@ function createOpenedHistoryResultRestoreController({
       headers: snapshot.headers,
       rows: snapshot.rows,
       appState,
+      queryStateReaders,
       services,
       uiActions
     });

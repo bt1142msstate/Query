@@ -61,6 +61,7 @@ export function createQueryHistoryResultsLoader({
           headers: rows.headers,
           rows: tableRows,
           appState,
+          queryStateReaders,
           services,
           uiActions
         });
@@ -130,6 +131,7 @@ async function hydrateHistoryResultTable({
   objectRows,
   rows,
   appState,
+  queryStateReaders,
   services,
   uiActions
 }) {
@@ -145,7 +147,17 @@ async function hydrateHistoryResultTable({
     columnMap
   });
 
-  await uiActions.showExampleTable(headers);
+  if (services.isSplitColumnsActive?.()) {
+    services.setSplitColumnsMode(true);
+  }
+  uiActions.updateSplitColumnsToggleState?.();
+
+  const displayedFields = queryStateReaders?.getDisplayedFields?.() || [];
+  const renderFields = displayedFields.length
+    ? displayedFields
+    : (services.getVirtualTableData?.()?.headers || headers);
+
+  await uiActions.showExampleTable(renderFields);
   services.rerenderBubbles();
 
   if (services.bubble?.resetBubbleScroll) {

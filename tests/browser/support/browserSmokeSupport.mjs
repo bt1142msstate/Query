@@ -1747,14 +1747,17 @@ async function expectSplitTogglePreferenceWithoutEligibleResults(page) {
   const splitPreferenceState = await page.evaluate(async () => {
     const { appServices } = await import('./src/core/appServices.js');
     const { QueryStateReaders } = await import('./src/core/queryState.js');
+    const { SPLIT_COLUMNS_PREFERENCE_STORAGE_KEY } = await import('./src/features/table/export/splitColumnsToggleUi.js');
     return {
       active: appServices.isSplitColumnsActive?.(),
       displayedFields: QueryStateReaders.getDisplayedFields(),
-      headers: appServices.getVirtualTableData?.()?.headers || []
+      headers: appServices.getVirtualTableData?.()?.headers || [],
+      storedPreference: window.localStorage.getItem(SPLIT_COLUMNS_PREFERENCE_STORAGE_KEY)
     };
   });
   if (
     !splitPreferenceState.active
+    || splitPreferenceState.storedPreference !== 'split'
     || splitPreferenceState.displayedFields.includes('Smoke Branch 2')
     || splitPreferenceState.headers.includes('Smoke Branch 2')
   ) {
@@ -1764,7 +1767,9 @@ async function expectSplitTogglePreferenceWithoutEligibleResults(page) {
   await toggle.click();
   await page.waitForFunction(async () => {
     const { appServices } = await import('./src/core/appServices.js');
-    return appServices.isSplitColumnsActive?.() === false;
+    const { SPLIT_COLUMNS_PREFERENCE_STORAGE_KEY } = await import('./src/features/table/export/splitColumnsToggleUi.js');
+    return appServices.isSplitColumnsActive?.() === false
+      && window.localStorage.getItem(SPLIT_COLUMNS_PREFERENCE_STORAGE_KEY) === 'stacked';
   }, null, { timeout: 5000 });
 }
 
