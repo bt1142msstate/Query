@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   buildExportRows,
   buildGroupingCandidates,
+  buildGroupingCandidatesAsync,
   getCellExportValue,
   getGroupingDisplayValue,
   getUniqueSheetName,
@@ -131,4 +132,59 @@ test('workbook export data', async () => {
       }
     ]
   );
+});
+
+test('workbook grouping candidates can hydrate asynchronously and stay bounded', async () => {
+  const sourceData = {
+    displayedFields: ['Unique Title', 'Branch', 'Status'],
+    dataRows: Array.from({ length: 500 }, (_, index) => [
+      `Unique title ${index + 1}`,
+      index % 2 === 0 ? 'Main' : 'East',
+      index % 3 === 0 ? 'Open' : 'Closed'
+    ]),
+    virtualData: {
+      columnMap: new Map([
+        ['Unique Title', 0],
+        ['Branch', 1],
+        ['Status', 2]
+      ])
+    },
+    fieldTypeMap: new Map([
+      ['Unique Title', 'string'],
+      ['Branch', 'string'],
+      ['Status', 'string']
+    ])
+  };
+  let yieldCount = 0;
+
+  const syncCandidates = buildGroupingCandidates(sourceData);
+  const asyncCandidates = await buildGroupingCandidatesAsync(sourceData, {
+    rowBatch: 25,
+    async yieldToBrowser() {
+      yieldCount += 1;
+    }
+  });
+
+  assert.equal(yieldCount > 0, true);
+  assert.deepEqual(
+    asyncCandidates.map(candidate => ({
+      counts: Object.fromEntries(candidate.counts),
+      distinctCount: candidate.distinctCount,
+      field: candidate.field,
+      index: candidate.index
+    })),
+    syncCandidates.map(candidate => ({
+      counts: Object.fromEntries(candidate.counts),
+      distinctCount: candidate.distinctCount,
+      field: candidate.field,
+      index: candidate.index
+    }))
+  );
+  assert.deepEqual(asyncCandidates.map(candidate => candidate.field), ['Branch', 'Status']);
+
+  const cancelledCandidates = await buildGroupingCandidatesAsync(sourceData, {
+    rowBatch: 25,
+    shouldContinue: () => false
+  });
+  assert.deepEqual(cancelledCandidates, []);
 });

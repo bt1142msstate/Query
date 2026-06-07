@@ -3,6 +3,7 @@ import { MoneyUtils } from '../../../core/formatting/moneyUtils.js';
 
 const SHEET_NAME_LIMIT = 31;
 const MAX_GROUPED_SHEETS = 100;
+const DEFAULT_GROUPING_ROW_BATCH = 5000;
 
 function normalizeSheetName(name) {
   const cleaned = String(name || 'Sheet')
@@ -89,25 +90,43 @@ function buildExportRows(sourceData) {
   });
 }
 
-function buildGroupingCandidates(sourceData) {
-  const candidates = sourceData.displayedFields.map((field, index) => {
-    const counts = new Map();
-    const colIndex = sourceData.virtualData.columnMap.get(field);
-    const type = sourceData.fieldTypeMap.get(field);
+function createGroupingTrackers(sourceData) {
+  return sourceData.displayedFields.map((field, index) => ({
+    active: true,
+    colIndex: sourceData.virtualData.columnMap.get(field),
+    counts: new Map(),
+    field,
+    index,
+    type: sourceData.fieldTypeMap.get(field)
+  }));
+}
 
-    sourceData.dataRows.forEach(row => {
-      const raw = colIndex !== undefined ? row[colIndex] : undefined;
-      const displayValue = getGroupingDisplayValue(getCellExportValue(raw, type));
-      counts.set(displayValue, (counts.get(displayValue) || 0) + 1);
-    });
+function updateGroupingTrackers(trackers, row) {
+  trackers.forEach(tracker => {
+    if (!tracker.active) {
+      return;
+    }
 
-    return {
-      field,
-      index,
-      distinctCount: counts.size,
-      counts
-    };
-  }).filter(candidate => candidate.distinctCount > 1 && candidate.distinctCount <= MAX_GROUPED_SHEETS);
+    const raw = tracker.colIndex !== undefined ? row[tracker.colIndex] : undefined;
+    const displayValue = getGroupingDisplayValue(getCellExportValue(raw, tracker.type));
+    tracker.counts.set(displayValue, (tracker.counts.get(displayValue) || 0) + 1);
+
+    if (tracker.counts.size > MAX_GROUPED_SHEETS) {
+      tracker.active = false;
+      tracker.counts.clear();
+    }
+  });
+}
+
+function finalizeGroupingCandidates(trackers) {
+  const candidates = trackers
+    .filter(tracker => tracker.active && tracker.counts.size > 1 && tracker.counts.size <= MAX_GROUPED_SHEETS)
+    .map(tracker => ({
+      counts: tracker.counts,
+      distinctCount: tracker.counts.size,
+      field: tracker.field,
+      index: tracker.index
+    }));
 
   candidates.sort((left, right) => {
     if (left.distinctCount !== right.distinctCount) {
@@ -120,10 +139,44 @@ function buildGroupingCandidates(sourceData) {
   return candidates;
 }
 
+function buildGroupingCandidates(sourceData) {
+  const trackers = createGroupingTrackers(sourceData);
+  sourceData.dataRows.forEach(row => updateGroupingTrackers(trackers, row));
+  return finalizeGroupingCandidates(trackers);
+}
+
+async function buildGroupingCandidatesAsync(sourceData, options = {}) {
+  const trackers = createGroupingTrackers(sourceData);
+  const rows = sourceData.dataRows;
+  const rowBatch = Math.max(1, Number(options.rowBatch) || DEFAULT_GROUPING_ROW_BATCH);
+  const shouldContinue = typeof options.shouldContinue === 'function'
+    ? options.shouldContinue
+    : null;
+  const yieldToBrowser = typeof options.yieldToBrowser === 'function'
+    ? options.yieldToBrowser
+    : null;
+
+  for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
+    if (shouldContinue && !shouldContinue()) {
+      return [];
+    }
+    updateGroupingTrackers(trackers, rows[rowIndex]);
+    if (yieldToBrowser && rowIndex > 0 && rowIndex % rowBatch === 0) {
+      await yieldToBrowser();
+      if (shouldContinue && !shouldContinue()) {
+        return [];
+      }
+    }
+  }
+
+  return finalizeGroupingCandidates(trackers);
+}
+
 export {
   SHEET_NAME_LIMIT,
   buildExportRows,
   buildGroupingCandidates,
+  buildGroupingCandidatesAsync,
   getCellExportValue,
   getGroupingDisplayValue,
   getUniqueSheetName,
