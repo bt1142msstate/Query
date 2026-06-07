@@ -1448,6 +1448,30 @@ async function closeMobileTableContextMenu(page) {
   await page.locator('.tcm').waitFor({ state: 'detached', timeout: 5000 });
 }
 
+async function openDesktopTableContextMenu(page, selector, label) {
+  const target = page.locator(selector).first();
+  await target.waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('.tcm').waitFor({ state: 'detached', timeout: 5000 }).catch(() => {});
+  await target.evaluate(element => {
+    const rect = element.getBoundingClientRect();
+    const clientX = rect.left + Math.min(Math.max(rect.width / 2, 8), Math.max(rect.width - 8, 8));
+    const clientY = rect.top + Math.min(Math.max(rect.height / 2, 8), Math.max(rect.height - 8, 8));
+    element.dispatchEvent(new MouseEvent('contextmenu', {
+      bubbles: true,
+      button: 2,
+      buttons: 2,
+      cancelable: true,
+      clientX,
+      clientY
+    }));
+  });
+  await page.locator('.tcm.tcm--visible').waitFor({ state: 'visible', timeout: 5000 });
+  const menuItems = await page.locator('.tcm.tcm--visible .tcm-item').count();
+  if (menuItems <= 0) {
+    throw new Error(`${label} should open the table context menu with visible actions`);
+  }
+}
+
 async function expectMobileTableContextMenu(page) {
   const firstCell = page.locator('#example-table tbody tr[data-row-index="0"] td[data-col-index="0"]');
   await firstCell.waitFor({ state: 'visible', timeout: 5000 });
@@ -3616,8 +3640,11 @@ async function exerciseDesktopResultsWorkflow(page) {
     appServices.setSplitColumnsMode(true);
   });
   await page.locator('#example-table th[data-sort-field="Smoke Branch 2"]').waitFor({ state: 'visible', timeout: 5000 });
-  await page.locator('#example-table th[data-sort-field="Smoke Branch 2"]').click({ button: 'right' });
-  await page.locator('.tcm.tcm--visible').waitFor({ state: 'visible', timeout: 5000 });
+  await openDesktopTableContextMenu(
+    page,
+    '#example-table th[data-sort-field="Smoke Branch 2"]',
+    'Desktop split column header'
+  );
   const splitColumnMenuHints = await page.locator('.tcm.tcm--visible .tcm-item').evaluateAll(items => {
     return items.map(item => ({
       hint: item.querySelector('.tcm-hint')?.textContent?.trim() || '',
