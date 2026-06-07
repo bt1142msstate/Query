@@ -1,3 +1,9 @@
+import {
+  cloneResultCellValue,
+  getNonBlankCellValueParts,
+  hasMultipleCellValues
+} from '../../../core/resultCellValues.js';
+
 const LAZY_EXPANDED_ROW_MARKER = Symbol('lazyExpandedRow');
 const LAZY_EXPANDED_ROW_SOURCE = Symbol('lazyExpandedRowSource');
 const LAZY_EXPANDED_ROW_COLUMN_PLAN = Symbol('lazyExpandedRowColumnPlan');
@@ -20,7 +26,7 @@ export function buildExpandedMultiValueTable(rawTableData, options = {}) {
       headers: [...rawTableData.headers],
       rows: lazyRows
         ? rawTableData.rows.slice()
-        : rawTableData.rows.map(row => Array.isArray(row) ? [...row] : row),
+        : rawTableData.rows.map(row => Array.isArray(row) ? row.map(cloneResultCellValue) : row),
       columnMap: new Map(sourceColumnMap),
       splitColumnGroups: new Map(),
       splitColumnParent: new Map(),
@@ -69,9 +75,7 @@ export function buildExpandedMultiValueTable(rawTableData, options = {}) {
       const { sourceIndex, splitIndex, splitSource } = plan;
       const rawValue = sourceIndex !== undefined && Array.isArray(row) ? row[sourceIndex] : undefined;
       if (splitSource) {
-        const parts = rawValue != null && typeof rawValue === 'string' && rawValue.includes('\x1F')
-          ? rawValue.split('\x1F')
-          : [rawValue ?? ''];
+        const parts = getMultiValueParts(rawValue);
         nextRow.push(parts[splitIndex] ?? '');
         return;
       }
@@ -254,11 +258,8 @@ function getArrayIndex(prop, length) {
 }
 
 function getMultiValueParts(value) {
-  if (value != null && typeof value === 'string' && value.includes('\x1F')) {
-    return value.split('\x1F');
-  }
-
-  return [value ?? ''];
+  const parts = getNonBlankCellValueParts(value);
+  return parts.length ? parts : [''];
 }
 
 function getMultiValueColumnMaxes(headers, rows, columnMap) {
@@ -271,7 +272,7 @@ function getMultiValueColumnMaxes(headers, rows, columnMap) {
     let max = 1;
     rows.forEach(row => {
       const value = Array.isArray(row) ? row[columnIndex] : undefined;
-      if (value != null && typeof value === 'string' && value.includes('\x1F')) {
+      if (hasMultipleCellValues(value)) {
         max = Math.max(max, countMultiValueParts(value));
       }
     });
@@ -285,41 +286,11 @@ function getMultiValueColumnMaxes(headers, rows, columnMap) {
 }
 
 function countMultiValueParts(value) {
-  let count = 1;
-  for (let index = 0; index < value.length; index += 1) {
-    if (value.charCodeAt(index) === 31) {
-      count += 1;
-    }
-  }
-  return count;
+  return getMultiValueParts(value).length;
 }
 
 function getExtraMultiValueCount(value) {
-  if (typeof value !== 'string' || value.indexOf('\x1F') === -1) {
-    return 0;
-  }
-
-  let nonBlankPartCount = 0;
-  let hasContent = false;
-  for (let index = 0; index <= value.length; index += 1) {
-    const code = index < value.length ? value.charCodeAt(index) : 31;
-    if (code === 31) {
-      if (hasContent) {
-        nonBlankPartCount += 1;
-      }
-      hasContent = false;
-      continue;
-    }
-    if (!isWhitespaceCode(code)) {
-      hasContent = true;
-    }
-  }
-
-  return Math.max(0, nonBlankPartCount - 1);
-}
-
-function isWhitespaceCode(code) {
-  return code === 32 || (code >= 9 && code <= 13) || (code > 127 && String.fromCharCode(code).trim() === '');
+  return Math.max(0, getNonBlankCellValueParts(value).length - 1);
 }
 
 function createEmptyTableData() {

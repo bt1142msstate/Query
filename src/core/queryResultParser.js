@@ -1,32 +1,8 @@
 import { parsePipeDelimitedRow } from './formatting/dataFormatters.js';
-
-const MULTI_VALUE_SEPARATOR = '\x1F';
-
-function normalizeResultScalar(value) {
-  if (value === null || value === undefined) return '';
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
-    return String(value);
-  }
-  return JSON.stringify(value);
-}
-
-function normalizeResultValue(value) {
-  if (Array.isArray(value)) {
-    return value.map(normalizeResultValue).join(MULTI_VALUE_SEPARATOR);
-  }
-
-  if (value && typeof value === 'object') {
-    if (Array.isArray(value.values)) {
-      return normalizeResultValue(value.values);
-    }
-    if (Object.prototype.hasOwnProperty.call(value, 'value')) {
-      return normalizeResultValue(value.value);
-    }
-  }
-
-  return normalizeResultScalar(value);
-}
+import {
+  LEGACY_MULTI_VALUE_SEPARATOR as MULTI_VALUE_SEPARATOR,
+  normalizeResultCellValue as normalizeResultValue
+} from './resultCellValues.js';
 
 function normalizeColumnName(column) {
   if (typeof column === 'string') return column;

@@ -131,7 +131,7 @@ test('split column expansion', async () => {
   assert.deepEqual(getMultiValueTableSummary({
     headers: ['Title', 'Notes'],
     rows: [
-      ['Only', 'First\x1F\x1FSecond\x1F  '],
+      ['Only', ['First', 'Second', '  ']],
       ['Other', 'Solo']
     ],
     columnMap: new Map([
@@ -143,4 +143,21 @@ test('split column expansion', async () => {
     columnCount: 1,
     valueCount: 1
   });
+
+  const expandedJsonArrays = buildExpandedMultiValueTable({
+    headers: ['Title', 'Notes'],
+    rows: [
+      ['Only', ['First', 'Second']],
+      ['Other', 'Solo']
+    ],
+    columnMap: new Map([
+      ['Title', 0],
+      ['Notes', 1]
+    ])
+  });
+  assert.deepEqual(expandedJsonArrays.headers, ['Title', 'Notes 1', 'Notes 2']);
+  assert.deepEqual(expandedJsonArrays.rows, [
+    ['Only', 'First', 'Second'],
+    ['Other', 'Solo', '']
+  ]);
 });

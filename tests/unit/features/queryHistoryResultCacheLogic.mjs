@@ -32,6 +32,26 @@ test('query history result cache normalizes object rows into table rows', () => 
   assert.equal(isUsableCachedHistoryResultSnapshot(snapshot, 'cached-query'), true);
 });
 
+test('query history result cache preserves JSON multi-value arrays', () => {
+  const snapshot = normalizeCachedHistoryResultSnapshot({
+    queryId: 'json-array-cache',
+    query: {
+      id: 'json-array-cache',
+      jsonConfig: { DesiredColumnOrder: ['Title', 'Public Note'] }
+    },
+    headers: ['Title', 'Public Note'],
+    objectRows: [
+      { Title: 'Alpha', 'Public Note': ['One', 'Two'] },
+      { Title: 'Beta', 'Public Note': { values: ['Only'] } }
+    ]
+  });
+
+  assert.deepEqual(snapshot.rows, [
+    ['Alpha', ['One', 'Two']],
+    ['Beta', 'Only']
+  ]);
+});
+
 test('query history result cache preserves result view state', () => {
   const snapshot = normalizeCachedHistoryResultSnapshot({
     queryId: 'cached-query',

@@ -1,5 +1,6 @@
 import { formatDisplayValue, parseDateValue } from '../../../core/formatting/dateValues.js';
 import { MoneyUtils } from '../../../core/formatting/moneyUtils.js';
+import { getCellValueParts, hasMultipleCellValues } from '../../../core/resultCellValues.js';
 
 const SHEET_NAME_LIMIT = 31;
 const MAX_GROUPED_SHEETS = 100;
@@ -38,6 +39,13 @@ function getUniqueSheetName(baseName, usedNames) {
 function getCellExportValue(raw, type) {
   if (raw === undefined || raw === null) return '';
 
+  if (hasMultipleCellValues(raw)) {
+    return getCellValueParts(raw)
+      .map(value => getCellExportValue(value, type))
+      .filter(value => value !== '')
+      .join('\n');
+  }
+
   if (type === 'date') {
     const dt = parseDateValue(raw);
     return dt !== null ? dt : 'Never';
@@ -48,10 +56,6 @@ function getCellExportValue(raw, type) {
       ? MoneyUtils.parseNumber(raw)
       : (typeof raw === 'number' ? raw : parseFloat(String(raw).replace(/,/g, '')));
     return isNaN(n) ? '' : n;
-  }
-
-  if (typeof raw === 'string' && raw.includes('\x1F')) {
-    return raw.split('\x1F').join('\n');
   }
 
   return raw;

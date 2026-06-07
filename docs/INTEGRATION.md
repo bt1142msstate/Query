@@ -57,6 +57,7 @@ Request:
 ```json
 {
   "action": "run",
+  "result_format": "json",
   "display_fields": ["Title"],
   "filters": [
     { "field": "Title", "operator": "=", "value": "*history*" }
@@ -255,6 +256,7 @@ Request:
 {
   "action": "run",
   "name": "Optional query name",
+  "result_format": "json",
   "display_fields": ["Title", "Custom LOCAL"],
   "filters": [
     {
@@ -283,6 +285,8 @@ Supported backend operators currently sent by the frontend:
 | `<=` | less than/equal or on/before |
 
 For text contains/starts filters, the frontend sends wildcard values such as `*needle*` or `needle*`. For date fields, the frontend sends normalized `YYYYMMDD` values or `NEVER`. For fields with `allowValueList`, an equals filter may send `value` as an array.
+
+The frontend requests JSON results with `result_format: "json"`. Compatible backends should honor that by returning the recommended JSON result payload. Older backends may ignore the flag and continue returning the legacy text stream; the frontend still supports that fallback.
 
 Post filters are intentionally not sent to the backend. They operate only on already-loaded result rows and are cleared between query runs.
 
@@ -383,7 +387,7 @@ Example title|123|1|1|4
 Another title|456|1|1|2
 ```
 
-The frontend uses field metadata `parts` to know when one displayed column consumes multiple pipe-delimited output segments. If a cell can contain pipes, repeated values, or complex nested values, prefer the JSON result format instead. If a legacy text backend must send repeated values inside one cell, use the unit separator character `\u001F` between values.
+The frontend uses field metadata `parts` to know when one displayed column consumes multiple pipe-delimited output segments. If a cell can contain pipes, repeated values, or complex nested values, prefer the JSON result format instead. Older legacy responses that already use the unit separator character `\u001F` for repeated values remain supported, but new integrations should return repeated values as JSON arrays.
 
 ## Long-Running Query Actions
 

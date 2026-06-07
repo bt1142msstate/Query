@@ -3,6 +3,7 @@ import { buildWorkbookFilename, downloadWorkbookBlob } from './workbookDownload.
 import { WORKBOOK_DETAILS_SHEET_NAME, getWorkbookDetailsColumns } from './workbookDetails.js';
 import { buildOverviewRows, getOverviewColumns } from './workbookOverview.js';
 import { formatDisplayValue, parseDateValue } from '../../../core/formatting/dateValues.js';
+import { getCellValueParts, hasMultipleCellValues } from '../../../core/resultCellValues.js';
 
 const LARGE_EXPORT_CELL_THRESHOLD = 15000;
 const EXCEL_MAX_DATA_ROWS_PER_SHEET = 1048575;
@@ -119,6 +120,12 @@ function parseWorkbookNumericValue(raw, options = {}) {
 
 function getDefaultCellExportValue(raw, type) {
   if (raw === undefined || raw === null) return '';
+  if (hasMultipleCellValues(raw)) {
+    return getCellValueParts(raw)
+      .map(value => getDefaultCellExportValue(value, type))
+      .filter(value => value !== '')
+      .join('\n');
+  }
   if (type === 'date') {
     const dt = parseDateValue(raw);
     return dt !== null ? dt : 'Never';
@@ -126,9 +133,6 @@ function getDefaultCellExportValue(raw, type) {
   if (type === 'number' || type === 'money') {
     const n = parseWorkbookNumericValue(raw);
     return Number.isNaN(n) ? '' : n;
-  }
-  if (typeof raw === 'string' && raw.includes('\x1F')) {
-    return raw.split('\x1F').join('\n');
   }
   return raw;
 }

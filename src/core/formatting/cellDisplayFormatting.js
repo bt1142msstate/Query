@@ -1,21 +1,15 @@
 import { MoneyUtils } from './moneyUtils.js';
 import { ValueFormatting } from './valueFormatting.js';
+import { getNonBlankCellValueParts } from '../resultCellValues.js';
 
 function getMultiValueDisplayValues(raw) {
-  if (typeof raw !== 'string' || !raw.includes('\x1F')) {
-    return [];
-  }
-
-  return raw
-    .split('\x1F')
-    .map(value => value.trim())
-    .filter(Boolean);
+  return getNonBlankCellValueParts(raw);
 }
 
 function formatCellDisplay(raw, field, options = {}) {
   if (raw == null) return '';
   const multiValueParts = getMultiValueDisplayValues(raw);
-  if (multiValueParts.length > 0) {
+  if (multiValueParts.length > 1) {
     const separator = options.multiValueSeparator ?? ', ';
     return multiValueParts.join(separator);
   }

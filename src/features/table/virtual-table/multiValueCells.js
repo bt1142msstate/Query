@@ -1,14 +1,11 @@
 import { ClipboardUtils } from '../../../core/clipboard.js';
+import { getNonBlankCellValueParts } from '../../../core/resultCellValues.js';
 
-const MULTI_VALUE_SEPARATOR = '\x1F';
 const MULTI_VALUE_VIEWER_ID = 'query-multi-value-viewer';
 let activeMultiValueViewerCleanup = null;
 
 function getMultiValueItems(displayValue) {
-  return String(displayValue || '')
-    .split(MULTI_VALUE_SEPARATOR)
-    .map(item => item.trim())
-    .filter(Boolean);
+  return getNonBlankCellValueParts(displayValue);
 }
 
 function renderMultiValueCell({

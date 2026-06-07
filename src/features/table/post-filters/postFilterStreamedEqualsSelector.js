@@ -1,4 +1,5 @@
 import { initializeSearchInputs } from '../../../ui/controls/searchUI.js';
+import { getNonBlankCellValueParts, isBlankCellValue } from '../../../core/resultCellValues.js';
 
 const STREAMED_EQUALS_BATCH_SIZE = 800;
 const STREAMED_EQUALS_ROW_HEIGHT = 50;
@@ -16,26 +17,20 @@ export function getNormalizedEqualsOptionValues({
     return [getBlankSentinel()];
   }
 
-  if (typeof rawValue === 'string') {
-    if (rawValue.includes('\x1F')) {
-      const values = rawValue
-        .split('\x1F')
-        .map(part => String(part).trim())
-        .filter(Boolean);
+  if (isBlankCellValue(rawValue)) {
+    return [getBlankSentinel()];
+  }
 
-      return values.length ? values : [getBlankSentinel()];
-    }
-
-    if (!rawValue.trim()) {
-      return [getBlankSentinel()];
-    }
+  const parts = getNonBlankCellValueParts(rawValue);
+  if (parts.length > 1) {
+    return parts;
   }
 
   if (fieldType === 'number' || fieldType === 'money' || fieldType === 'date') {
-    return [String(rawValue).trim()].filter(Boolean);
+    return [String(parts[0] ?? rawValue).trim()].filter(Boolean);
   }
 
-  return [String(rawValue ?? '').trim()].filter(Boolean);
+  return [String(parts[0] ?? rawValue).trim()].filter(Boolean);
 }
 
 export function createPostFilterStreamedEqualsSelector({

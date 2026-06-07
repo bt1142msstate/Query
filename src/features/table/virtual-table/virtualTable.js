@@ -7,6 +7,7 @@
 import { appServices, registerTableService } from '../../../core/appServices.js';
 import { appUiActions } from '../../../core/appUiActions.js';
 import { QueryChangeManager, QueryStateReaders } from '../../../core/queryState.js';
+import { cloneResultCellValue } from '../../../core/resultCellValues.js';
 import { TableBuilder } from './tableBuilder.js';
 import { TextMeasurement } from '../../../core/textMeasurement.js';
 import { ValueFormatting } from '../../../core/formatting/valueFormatting.js';
@@ -101,7 +102,7 @@ const postFilters = createVirtualTablePostFilterController({
 function cloneTableData(data) {
   return {
     headers: Array.isArray(data?.headers) ? [...data.headers] : [],
-    rows: Array.isArray(data?.rows) ? data.rows.map(row => Array.isArray(row) ? [...row] : row) : [],
+    rows: Array.isArray(data?.rows) ? data.rows.map(row => Array.isArray(row) ? row.map(cloneResultCellValue) : row) : [],
     columnMap: data?.columnMap instanceof Map ? new Map(data.columnMap) : new Map(),
     splitColumnGroups: cloneSplitColumnGroups(data?.splitColumnGroups),
     splitColumnParent: cloneSplitColumnParent(data?.splitColumnParent),
