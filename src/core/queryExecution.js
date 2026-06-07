@@ -171,6 +171,7 @@ if (execDom.runBtn) {
     // Start query execution
     (async () => {
       const completionNotification = prepareBackgroundTaskNotification();
+      await services.forgetOpenedHistoryResult?.();
       // Temporarily use the stacked table state for payload building so generated
       // split-column names are never sent to the backend.
       const wasSplitPreferred = services.isSplitColumnsActive();
@@ -192,6 +193,7 @@ if (execDom.runBtn) {
         uiActions.updateButtonStates();
         uiActions.startTableQueryAnimation();
         const queryStartedAt = Date.now();
+        let currentHistoryQuery = null;
         updateLiveQueryProgress(0, { startTime: queryStartedAt });
 
         const state = QueryStateReaders.getSerializableState();
@@ -219,7 +221,7 @@ if (execDom.runBtn) {
             resultCount: 0
           };
 
-          addQueryHistoryEntry(newQuery);
+          currentHistoryQuery = addQueryHistoryEntry(newQuery) || newQuery;
 
           // Start external polling for status
           services.startHistoryDurationUpdates();
@@ -318,6 +320,7 @@ if (execDom.runBtn) {
           }
         }
         await services.cacheOpenedHistoryResult?.({
+          query: currentHistoryQuery,
           queryId: QueryStateReaders.getLifecycleState().currentQueryId,
           headers,
           rows: services.getVirtualTableData?.()?.rows || rows.map(row => headers.map(header => row[header]))
