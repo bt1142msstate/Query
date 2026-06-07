@@ -1,3 +1,5 @@
+const JSONL_PROTOCOL_VERSION = 1;
+
 function createQueryStreamError(error, options = {}) {
   const rowCount = Math.max(0, Number(options.rowCount) || 0);
   const message = rowCount > 0
@@ -50,6 +52,75 @@ function getJsonLineRowPayload(event) {
   return event;
 }
 
+function isSupportedJsonLineVersion(event) {
+  return Number(event?.version) === JSONL_PROTOCOL_VERSION;
+}
+
+function getJsonLineColumns(event) {
+  return event?.columns || event?.headers || event?.fields || event?.rawColumns || event?.columnOrder;
+}
+
+function validateJsonLineEvent(event, type, state) {
+  if (!event || typeof event !== 'object') {
+    return createJsonLineProtocolError('JSONL stream events must be JSON objects.', { event });
+  }
+
+  if (state.doneEvent) {
+    return createJsonLineProtocolError('The backend sent JSONL events after the done event.', { event });
+  }
+
+  if (type !== 'meta' && type !== 'metadata' && type !== 'header' && type !== 'columns' && !state.metaEvent) {
+    return createJsonLineProtocolError('The backend must send a JSONL meta event before row, progress, warning, error, or done events.', { event });
+  }
+
+  if (type === 'meta' || type === 'metadata' || type === 'header' || type === 'columns') {
+    if (state.metaEvent) {
+      return createJsonLineProtocolError('The backend sent more than one JSONL meta event.', { event });
+    }
+    if (!isSupportedJsonLineVersion(event)) {
+      return createJsonLineProtocolError(
+        `Unsupported JSONL protocol version. Expected version ${JSONL_PROTOCOL_VERSION}.`,
+        { event, expectedVersion: JSONL_PROTOCOL_VERSION }
+      );
+    }
+    if (String(event.format || '').toLowerCase() !== 'jsonl') {
+      return createJsonLineProtocolError('The JSONL meta event must include format "jsonl".', { event });
+    }
+    if (!Array.isArray(getJsonLineColumns(event))) {
+      return createJsonLineProtocolError('The JSONL meta event must include an ordered columns array.', { event });
+    }
+    return null;
+  }
+
+  if (type === 'row' || type === 'result' || type === '') {
+    if (!Array.isArray(event.values)) {
+      return createJsonLineProtocolError('JSONL row events must include a values array.', { event });
+    }
+    return null;
+  }
+
+  if (type === 'done' || type === 'complete') {
+    const rows = getJsonLineRowCount(event, undefined);
+    if (!Number.isFinite(rows)) {
+      return createJsonLineProtocolError('JSONL done events must include a numeric rows count.', { event });
+    }
+    return null;
+  }
+
+  if (type === 'error' || type === 'failed') {
+    if (!event.error && !event.message) {
+      return createJsonLineProtocolError('JSONL error events must include error or message text.', { event });
+    }
+    return null;
+  }
+
+  if (type === 'progress' || type === 'warning') {
+    return null;
+  }
+
+  return createJsonLineProtocolError(`Unsupported JSONL event type: ${type}`, { event });
+}
+
 function getJsonLineRowCount(event, fallback) {
   const candidates = [
     event?.rows,
@@ -80,9 +151,16 @@ function processJsonLineEvent(line, state, readOptions = {}) {
   const type = normalizeJsonLineEventType(event);
   state.events.push(event);
 
+  const validationError = validateJsonLineEvent(event, type, state);
+  if (validationError) {
+    state.streamError ||= validationError;
+    return;
+  }
+
   if (type === 'meta' || type === 'metadata' || type === 'header' || type === 'columns') {
     state.queryId ||= event.query_id || event.queryId || '';
-    const columns = event.columns || event.headers || event.fields || event.rawColumns || event.columnOrder;
+    state.metaEvent = event;
+    const columns = getJsonLineColumns(event);
     if (Array.isArray(columns) && columns.length) {
       state.columns = columns;
     }
@@ -254,6 +332,7 @@ function createStreamedQueryResultReader(options = {}) {
       columns: [],
       doneEvent: null,
       events: [],
+      metaEvent: null,
       progress: null,
       queryId: '',
       lastProgressRows: undefined,

@@ -147,7 +147,7 @@ Use [`docs/schemas/query-api.schema.json`](schemas/query-api.schema.json) as the
 - optional query status/progress payloads
 - optional cancellation, saved-result loading, template payloads, and error responses
 
-The schema is permissive by design. Required fields are limited to the contract the frontend needs, while `additionalProperties` allows backend-specific IDs, timing data, diagnostics, auth context, or deployment metadata.
+The schema is permissive by design outside the core stream protocol. Required fields are limited to the contract the frontend needs, while `additionalProperties` allows backend-specific IDs, timing data, diagnostics, auth context, or deployment metadata. JSONL examples in this guide are validated in the architecture test suite against the `jsonlEvent` schema definition.
 
 ## Required Core Actions
 
@@ -288,7 +288,7 @@ Post filters are intentionally not sent to the backend. They operate only on alr
 
 ## Streaming JSONL Result Format
 
-Backends stream newline-delimited JSON events. This keeps the old streaming performance characteristics while avoiding delimiter escaping problems and giving a natural representation for multi-value cells.
+Backends stream newline-delimited JSON events. This keeps the old streaming performance characteristics while avoiding delimiter escaping problems and giving a natural representation for multi-value cells. The first non-empty line must be a `meta` event with `version: 1` and `format: "jsonl"` so clients can reject incompatible streams before processing rows.
 
 ```jsonl
 {"type":"meta","version":1,"format":"jsonl","query_id":"query-1","columns":["Title","Public Note","Custom LOCAL"]}
@@ -299,12 +299,12 @@ Backends stream newline-delimited JSON events. This keeps the old streaming perf
 
 Event types:
 
-- `meta`: first event; includes `version`, `format`, optional `query_id`, and ordered `columns`.
-- `row`: one result row; includes `values`, an array matching the `meta.columns` order.
+- `meta`: required first event; includes `version: 1`, `format: "jsonl"`, optional `query_id`, and ordered `columns`.
+- `row`: one result row; includes canonical `values`, an array matching the `meta.columns` order.
 - `progress`: optional progress metadata for long-running work.
 - `warning`: optional recoverable issue metadata.
 - `error`: failure after streaming has started.
-- `done`: final success event with the total row count.
+- `done`: required final success event with the total row count.
 
 Supported cell shapes:
 

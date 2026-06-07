@@ -37,7 +37,7 @@ test('query stream', async () => {
     const progress = [];
     const readStreamedQueryResult = createStreamedQueryResultReader();
     const result = await readStreamedQueryResult(createChunkedResponse([
-      '{"type":"meta","query_id":"jsonl-smoke","columns":["Title","Public Note"]}\n',
+      '{"type":"meta","version":1,"format":"jsonl","query_id":"jsonl-smoke","columns":["Title","Public Note"]}\n',
       '{"type":"row","values":["Alpha",["One","Two"]]}\n',
       '{"type":"progress","rows":1,"message":"One row"}\n',
       '{"type":"row","values":["Beta","Only"]}\n',
@@ -76,7 +76,7 @@ test('query stream', async () => {
     const readStreamedQueryResult = createStreamedQueryResultReader();
     await assert.rejects(
       () => readStreamedQueryResult(createChunkedResponse([
-        '{"type":"meta","columns":["Title"]}\n',
+        '{"type":"meta","version":1,"format":"jsonl","columns":["Title"]}\n',
         '{"type":"error","error":"MARC enrichment failed","stage":"marc"}\n'
       ], { 'Content-Type': 'application/x-ndjson; charset=utf-8' })),
       error => {
@@ -91,7 +91,7 @@ test('query stream', async () => {
   {
     const readStreamedQueryResult = createStreamedQueryResultReader();
     const result = await readStreamedQueryResult(createErroredResponse([
-      '{"type":"meta","columns":["Title"]}\n',
+      '{"type":"meta","version":1,"format":"jsonl","columns":["Title"]}\n',
       '{"type":"row","values":["Partial"]}\n'
     ], new TypeError('network error'), { 'Content-Type': 'application/x-ndjson; charset=utf-8' }));
 
@@ -99,5 +99,50 @@ test('query stream', async () => {
     assert.equal(result.partial, true);
     assert.equal(result.streamError?.isQueryStreamError, true);
     assert.match(result.streamError.message, /ended early after 1 result/u);
+  }
+
+  {
+    const readStreamedQueryResult = createStreamedQueryResultReader();
+    await assert.rejects(
+      () => readStreamedQueryResult(createChunkedResponse([
+        '{"type":"meta","version":2,"format":"jsonl","columns":["Title"]}\n',
+        '{"type":"row","values":["Unsupported"]}\n'
+      ], { 'Content-Type': 'application/x-ndjson; charset=utf-8' })),
+      error => {
+        assert.equal(error.isQueryStreamError, true);
+        assert.match(error.message, /Unsupported JSONL protocol version/u);
+        assert.equal(error.payload.expectedVersion, 1);
+        return true;
+      }
+    );
+  }
+
+  {
+    const readStreamedQueryResult = createStreamedQueryResultReader();
+    await assert.rejects(
+      () => readStreamedQueryResult(createChunkedResponse([
+        '{"type":"row","values":["No meta"]}\n'
+      ], { 'Content-Type': 'application/x-ndjson; charset=utf-8' })),
+      error => {
+        assert.equal(error.isQueryStreamError, true);
+        assert.match(error.message, /meta event before/u);
+        return true;
+      }
+    );
+  }
+
+  {
+    const readStreamedQueryResult = createStreamedQueryResultReader();
+    await assert.rejects(
+      () => readStreamedQueryResult(createChunkedResponse([
+        '{"type":"meta","version":1,"format":"jsonl","columns":["Title"]}\n',
+        '{"type":"row","row":["Missing canonical values"]}\n'
+      ], { 'Content-Type': 'application/x-ndjson; charset=utf-8' })),
+      error => {
+        assert.equal(error.isQueryStreamError, true);
+        assert.match(error.message, /values array/u);
+        return true;
+      }
+    );
   }
 });

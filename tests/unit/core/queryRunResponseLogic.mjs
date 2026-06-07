@@ -118,7 +118,7 @@ test('rejects non-streaming JSON result payloads', async () => {
 test('allows JSONL stream responses without consuming the body', async () => {
   const response = createResponse({
     contentType: 'application/x-ndjson; charset=utf-8',
-    body: '{"type":"meta","columns":["Title"]}\n{"type":"row","values":["A"]}\n'
+    body: '{"type":"meta","version":1,"format":"jsonl","columns":["Title"]}\n{"type":"row","values":["A"]}\n'
   });
 
   await assertQueryRunStreamResponse(response, createBackendApi());

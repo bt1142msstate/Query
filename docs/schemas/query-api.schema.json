@@ -286,6 +286,111 @@
         }
       ]
     },
+    "jsonlProtocolVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "Current streaming JSONL protocol version. Backends must emit this on the meta event so clients can fail fast on incompatible streams."
+    },
+    "jsonlMetaEvent": {
+      "type": "object",
+      "required": ["type", "version", "format", "columns"],
+      "properties": {
+        "type": { "const": "meta" },
+        "version": { "$ref": "#/$defs/jsonlProtocolVersion" },
+        "format": { "const": "jsonl" },
+        "query_id": { "type": "string" },
+        "queryId": { "type": "string" },
+        "columns": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/columnDescriptor" }
+        },
+        "headers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/columnDescriptor" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "jsonlRowEvent": {
+      "type": "object",
+      "required": ["type", "values"],
+      "properties": {
+        "type": { "const": "row" },
+        "values": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/cellValue" },
+          "description": "Ordered row values matching the meta.columns order. Array cell values represent multi-value fields."
+        }
+      },
+      "additionalProperties": true
+    },
+    "jsonlProgressEvent": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "progress" },
+        "rows": { "type": "integer", "minimum": 0 },
+        "row_count": { "type": "integer", "minimum": 0 },
+        "rowCount": { "type": "integer", "minimum": 0 },
+        "message": { "type": "string" },
+        "progress": { "$ref": "#/$defs/progress" }
+      },
+      "additionalProperties": true
+    },
+    "jsonlWarningEvent": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "warning" },
+        "message": { "type": "string" },
+        "warning": { "type": "string" },
+        "stage": { "type": "string" },
+        "error_details": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "jsonlErrorEvent": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "error" },
+        "error": { "type": "string" },
+        "message": { "type": "string" },
+        "stage": { "type": "string" },
+        "error_details": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "anyOf": [
+        { "required": ["error"] },
+        { "required": ["message"] }
+      ],
+      "additionalProperties": true
+    },
+    "jsonlDoneEvent": {
+      "type": "object",
+      "required": ["type", "rows"],
+      "properties": {
+        "type": { "const": "done" },
+        "rows": { "type": "integer", "minimum": 0 },
+        "elapsed_ms": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": true
+    },
+    "jsonlEvent": {
+      "oneOf": [
+        { "$ref": "#/$defs/jsonlMetaEvent" },
+        { "$ref": "#/$defs/jsonlRowEvent" },
+        { "$ref": "#/$defs/jsonlProgressEvent" },
+        { "$ref": "#/$defs/jsonlWarningEvent" },
+        { "$ref": "#/$defs/jsonlErrorEvent" },
+        { "$ref": "#/$defs/jsonlDoneEvent" }
+      ]
+    },
     "queryResult": {
       "type": "object",
       "required": ["columns", "rows"],
@@ -471,6 +576,7 @@
     { "$ref": "#/$defs/getFieldsResponse" },
     { "$ref": "#/$defs/runRequest" },
     { "$ref": "#/$defs/queryResult" },
+    { "$ref": "#/$defs/jsonlEvent" },
     { "$ref": "#/$defs/statusRequest" },
     { "$ref": "#/$defs/statusResponse" },
     { "$ref": "#/$defs/cancelRequest" },
