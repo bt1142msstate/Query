@@ -1,3 +1,5 @@
+import { normalizeResultViewState } from '../../../core/resultViewState.js';
+
 const HISTORY_RESULT_CACHE_DB_NAME = 'query-history-result-cache';
 const HISTORY_RESULT_CACHE_STORE_NAME = 'resultSnapshots';
 const HISTORY_RESULT_CACHE_DB_VERSION = 1;
@@ -85,7 +87,8 @@ function normalizeCachedHistoryResultSnapshot(snapshot = {}) {
     query: serializeQueryForCache(snapshot.query, queryId, rows.length),
     headers,
     rows,
-    rowCount: rows.length
+    rowCount: rows.length,
+    viewState: normalizeResultViewState(snapshot.viewState)
   };
 }
 

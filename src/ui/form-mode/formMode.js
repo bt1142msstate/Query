@@ -2,6 +2,7 @@ import { appServices, registerFormModeService } from '../../core/appServices.js'
 import { appUiActions } from '../../core/appUiActions.js';
 import { ClipboardUtils } from '../../core/clipboard.js';
 import { QueryChangeManager, getBaseFieldName, QueryStateReaders } from '../../core/queryState.js';
+import { buildCurrentResultViewState, encodeResultViewState } from '../../core/resultViewState.js';
 import { showToastMessage } from '../../core/toast.js';
 import { QueryStateSubscriptions } from '../../core/queryStateSubscriptions.js';
 import { createFormModeEmptyState, getVisibleFormInputs, mountFormModeCard } from './formModeCard.js';
@@ -652,10 +653,14 @@ let QueryFormMode;
   function buildCurrentShareUrl(options = {}) {
     sanitizeSpecDisplayColumns(state.spec);
     const resultQueryId = getCurrentShareResultQueryId(options);
+    const resultViewParam = resultQueryId
+      ? encodeResultViewState(buildCurrentResultViewState({ queryStateReaders: QueryStateReaders, services }))
+      : '';
     return buildFormShareUrl(window.location.href, state.spec, {
       fieldDefs,
       getInputValues: getCurrentInputValues,
       resultQueryId,
+      resultViewParam,
       supportsMultipleValues,
       tableName: getCurrentTableNameValue(),
       ...options

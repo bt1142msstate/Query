@@ -1,5 +1,5 @@
 import { encodeSpec, getInputParamKeys } from './formModeSpec.js';
-import { RESULT_QUERY_URL_PARAM } from '../../core/queryResultUrl.js';
+import { RESULT_QUERY_URL_PARAM, RESULT_VIEW_URL_PARAM } from '../../core/queryResultUrl.js';
 
 function isShareableFormSpec(spec) {
   if (!spec || typeof spec !== 'object') {
@@ -60,6 +60,8 @@ function buildFormShareUrl(currentUrl, spec, options = {}) {
   const preservedResultQueryId = !resultQueryId && options.preserveResult === true
     ? String(nextUrl.searchParams.get(RESULT_QUERY_URL_PARAM) || '').trim()
     : '';
+  const resultViewParam = String(options.resultViewParam || '').trim()
+    || (options.preserveResult === true ? String(nextUrl.searchParams.get(RESULT_VIEW_URL_PARAM) || '').trim() : '');
   nextUrl.search = '';
   nextUrl.searchParams.set('form', encodeSpec(serializableSpec));
   if (options.limited !== false) {
@@ -99,6 +101,9 @@ function buildFormShareUrl(currentUrl, spec, options = {}) {
   }
   if (resultQueryId || preservedResultQueryId) {
     nextUrl.searchParams.set(RESULT_QUERY_URL_PARAM, resultQueryId || preservedResultQueryId);
+    if (resultViewParam) {
+      nextUrl.searchParams.set(RESULT_VIEW_URL_PARAM, resultViewParam);
+    }
   }
 
   return nextUrl.toString();

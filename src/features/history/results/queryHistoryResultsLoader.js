@@ -1,4 +1,10 @@
 import { parseQueryResultPayload } from '../../../core/queryResultParser.js';
+import {
+  applyResultViewState,
+  buildCurrentResultViewState,
+  encodeResultViewState,
+  readResultViewStateFromLocation
+} from '../../../core/resultViewState.js';
 import { buildTableRowsFromObjectRows, writeCachedHistoryResultSnapshot } from './queryHistoryResultCache.js';
 import { rememberOpenedHistoryResult } from './queryHistoryResultSession.js';
 
@@ -44,6 +50,7 @@ export function createQueryHistoryResultsLoader({
 
       console.log(`Loaded ${rows.objectRows.length} rows from history`);
       const tableRows = buildTableRowsFromObjectRows(rows.headers, rows.objectRows);
+      const incomingViewState = options.viewState || readResultViewStateFromLocation(options.location, { queryId });
 
       if (query.running) {
         query.resultCount = rows.objectRows.length;
@@ -62,6 +69,8 @@ export function createQueryHistoryResultsLoader({
           rows: tableRows,
           appState,
           queryStateReaders,
+          queryChangeManager,
+          viewState: incomingViewState,
           services,
           uiActions
         });
@@ -69,12 +78,20 @@ export function createQueryHistoryResultsLoader({
 
       uiActions.updateTableResultsLip();
       if (options.remember !== false) {
-        rememberOpenedHistoryResult(query.id, { updateUrl: true });
+        const viewState = buildCurrentResultViewState({ queryStateReaders, services });
+        const resultViewParam = options.resultViewParam === undefined
+          ? encodeResultViewState(viewState)
+          : options.resultViewParam;
+        rememberOpenedHistoryResult(query.id, {
+          resultViewParam,
+          updateUrl: true
+        });
         await writeCachedHistoryResultSnapshot({
           query,
           queryId: query.id,
           headers: rows.headers,
-          rows: tableRows
+          rows: tableRows,
+          viewState
         });
       }
 
@@ -132,6 +149,8 @@ async function hydrateHistoryResultTable({
   rows,
   appState,
   queryStateReaders,
+  queryChangeManager,
+  viewState,
   services,
   uiActions
 }) {
@@ -151,6 +170,12 @@ async function hydrateHistoryResultTable({
     services.setSplitColumnsMode(true);
   }
   uiActions.updateSplitColumnsToggleState?.();
+
+  applyResultViewState(viewState, {
+    queryChangeManager,
+    services,
+    uiActions
+  });
 
   const displayedFields = queryStateReaders?.getDisplayedFields?.() || [];
   const renderFields = displayedFields.length

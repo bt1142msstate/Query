@@ -1,3 +1,5 @@
+import { RESULT_VIEW_URL_PARAM } from './resultViewState.js';
+
 const RESULT_QUERY_URL_PARAM = 'result';
 const FORM_QUERY_URL_PARAM = 'form';
 const LIMITED_FORM_QUERY_URL_PARAM = 'limited';
@@ -128,6 +130,10 @@ function buildCanonicalFormSearchParams(searchParams) {
     nextParams.set(TABLE_NAME_QUERY_URL_PARAM, searchParams.get(TABLE_NAME_QUERY_URL_PARAM));
   }
 
+  if (searchParams.has(RESULT_VIEW_URL_PARAM)) {
+    nextParams.set(RESULT_VIEW_URL_PARAM, searchParams.get(RESULT_VIEW_URL_PARAM));
+  }
+
   (Array.isArray(decodedSpec.inputs) ? decodedSpec.inputs : []).forEach(inputSpec => {
     getInputParamKeys(inputSpec).forEach(paramName => {
       if (searchParams.has(paramName)) {
@@ -145,6 +151,10 @@ function normalizeResultQueryUrl(currentUrl, options = {}) {
   const limited = hasForm && hasLimitedFormUrlFlag(nextUrl.searchParams);
   const resultQueryId = String(options.resultQueryId || '').trim();
   const clearResult = options.clearResult === true;
+  const existingResultViewParam = String(nextUrl.searchParams.get(RESULT_VIEW_URL_PARAM) || '').trim();
+  const resultViewParam = options.resultViewParam === undefined
+    ? existingResultViewParam
+    : String(options.resultViewParam || '').trim();
 
   if (!hasForm) {
     nextUrl.search = '';
@@ -167,8 +177,14 @@ function normalizeResultQueryUrl(currentUrl, options = {}) {
 
   if (resultQueryId && !clearResult) {
     nextUrl.searchParams.set(RESULT_QUERY_URL_PARAM, resultQueryId);
+    if (resultViewParam) {
+      nextUrl.searchParams.set(RESULT_VIEW_URL_PARAM, resultViewParam);
+    } else {
+      nextUrl.searchParams.delete(RESULT_VIEW_URL_PARAM);
+    }
   } else if (clearResult) {
     nextUrl.searchParams.delete(RESULT_QUERY_URL_PARAM);
+    nextUrl.searchParams.delete(RESULT_VIEW_URL_PARAM);
   }
 
   return nextUrl.toString();
@@ -181,5 +197,6 @@ export {
   normalizeResultQueryUrl,
   parseQueryUrlBooleanFlag,
   RESULT_QUERY_URL_PARAM,
+  RESULT_VIEW_URL_PARAM,
   TABLE_NAME_QUERY_URL_PARAM
 };

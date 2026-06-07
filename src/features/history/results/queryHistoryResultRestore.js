@@ -1,4 +1,8 @@
 import {
+  encodeResultViewState,
+  readResultViewStateFromLocation
+} from '../../../core/resultViewState.js';
+import {
   clearCachedHistoryResultSnapshots,
   isUsableCachedHistoryResultSnapshot,
   readCachedHistoryResultSnapshot
@@ -62,17 +66,24 @@ function createOpenedHistoryResultRestoreController({
       hasLoadedResultSet: true
     }, { source: 'QueryHistory.restoreCachedResults', silent: true });
 
+    const viewState = readResultViewStateFromLocation(options.location, { queryId }) || snapshot.viewState;
+
     await hydrateHistoryResultTable({
       headers: snapshot.headers,
       rows: snapshot.rows,
       appState,
       queryStateReaders,
+      queryChangeManager,
+      viewState,
       services,
       uiActions
     });
 
     uiActions.updateTableResultsLip();
-    rememberOpenedHistoryResult(query.id, { updateUrl: true });
+    rememberOpenedHistoryResult(query.id, {
+      resultViewParam: encodeResultViewState(viewState),
+      updateUrl: true
+    });
     services.closeAllModals();
     showToastMessage(`Restored ${snapshot.rows.length} cached results.`, 'info');
     return true;

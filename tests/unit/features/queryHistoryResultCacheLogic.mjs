@@ -32,6 +32,40 @@ test('query history result cache normalizes object rows into table rows', () => 
   assert.equal(isUsableCachedHistoryResultSnapshot(snapshot, 'cached-query'), true);
 });
 
+test('query history result cache preserves result view state', () => {
+  const snapshot = normalizeCachedHistoryResultSnapshot({
+    queryId: 'cached-query',
+    query: {
+      id: 'cached-query',
+      jsonConfig: { DesiredColumnOrder: ['Title', 'Branch', 'Status'] }
+    },
+    headers: ['Title', 'Branch', 'Status'],
+    rows: [['One', 'Main', 'Open']],
+    viewState: {
+      displayedFields: ['Status', 'Title'],
+      postFilters: {
+        Status: {
+          logic: 'all',
+          filters: [{ cond: 'equals', val: 'Open' }]
+        }
+      },
+      splitColumns: true
+    }
+  });
+
+  assert.deepEqual(snapshot.viewState, {
+    version: 1,
+    displayedFields: ['Status', 'Title'],
+    postFilters: {
+      Status: {
+        logic: 'all',
+        filters: [{ cond: 'equals', val: 'Open' }]
+      }
+    },
+    splitColumns: true
+  });
+});
+
 test('query history result cache rejects stale or malformed snapshots', () => {
   const snapshot = normalizeCachedHistoryResultSnapshot({
     queryId: 'cached-query',
