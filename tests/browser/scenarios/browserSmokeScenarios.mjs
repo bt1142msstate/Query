@@ -2199,17 +2199,64 @@ async function exerciseZeroResultQueryWorkflow(page, queryApiStub) {
     hasPostFilters: true,
     totalRows: 3
   }, 'Desktop pre-run post filter state');
+  await page.evaluate(async () => {
+    const { encodeResultViewState } = await import('./src/core/resultViewState.js');
+    const { rememberOpenedHistoryResult } = await import('./src/features/history/results/queryHistoryResultSession.js');
+    rememberOpenedHistoryResult('browser-smoke-stale-result', {
+      resultViewParam: encodeResultViewState({
+        displayedFields: ['Smoke Status', 'Smoke Title'],
+        fieldSearch: 'stale',
+        postFilters: {
+          'Smoke Branch': {
+            logic: 'all',
+            filters: [{ cond: 'equals', val: 'Main', vals: ['Main'] }]
+          }
+        },
+        splitColumns: true
+      }),
+      updateUrl: true
+    });
+  });
+  const staleResultUrlState = await page.evaluate(() => ({
+    remembered: JSON.parse(window.localStorage.getItem('query:lastOpenedHistoryResult') || 'null'),
+    result: new URL(window.location.href).searchParams.get('result'),
+    resultView: new URL(window.location.href).searchParams.get('resultView')
+  }));
+  if (
+    staleResultUrlState.result !== 'browser-smoke-stale-result'
+    || !staleResultUrlState.resultView
+    || staleResultUrlState.remembered?.queryId !== 'browser-smoke-stale-result'
+  ) {
+    throw new Error(`Smoke setup should start from a stale opened result URL: ${JSON.stringify(staleResultUrlState)}`);
+  }
 
   queryApiStub.enqueue([
     {
       action: 'run',
       body: '',
+      delayMs: 300,
       queryId: 'browser-smoke-zero-results',
       rawColumns: smokeResultHeaders
     }
   ]);
 
   await page.locator('#run-query-btn').click();
+  await page.waitForFunction(async () => {
+    const { QueryStateReaders } = await import('./src/core/queryState.js');
+    return QueryStateReaders.getLifecycleState().queryRunning === true;
+  }, null, { timeout: 5000 });
+  const inFlightRunUrlState = await page.evaluate(() => ({
+    remembered: window.localStorage.getItem('query:lastOpenedHistoryResult'),
+    result: new URL(window.location.href).searchParams.get('result'),
+    resultView: new URL(window.location.href).searchParams.get('resultView')
+  }));
+  if (
+    inFlightRunUrlState.result !== null
+    || inFlightRunUrlState.resultView !== null
+    || inFlightRunUrlState.remembered !== null
+  ) {
+    throw new Error(`Starting a new query should clear stale opened-result restore state: ${JSON.stringify(inFlightRunUrlState)}`);
+  }
   await page.waitForFunction(async () => {
     const { appServices } = await import('./src/core/appServices.js');
     const { QueryStateReaders } = await import('./src/core/queryState.js');
@@ -2221,6 +2268,35 @@ async function exerciseZeroResultQueryWorkflow(page, queryApiStub) {
       && Array.isArray(tableData?.rows)
       && tableData.rows.length === 0;
   }, null, { timeout: 10000 });
+  let completedRunUrlState = null;
+  const completedRunUrlWaitStart = Date.now();
+  while (Date.now() - completedRunUrlWaitStart < 5000) {
+    completedRunUrlState = await page.evaluate(async () => {
+      const {
+        RESULT_VIEW_URL_PARAM,
+        decodeResultViewStateParam
+      } = await import('./src/core/resultViewState.js');
+      const url = new URL(window.location.href);
+      const resultView = decodeResultViewStateParam(url.searchParams.get(RESULT_VIEW_URL_PARAM));
+      return {
+        remembered: JSON.parse(window.localStorage.getItem('query:lastOpenedHistoryResult') || 'null'),
+        result: url.searchParams.get('result'),
+        resultView
+      };
+    });
+    if (completedRunUrlState.result === 'browser-smoke-zero-results') {
+      break;
+    }
+    await page.waitForTimeout(50);
+  }
+  if (
+    completedRunUrlState?.result !== 'browser-smoke-zero-results'
+    || completedRunUrlState?.remembered?.queryId !== 'browser-smoke-zero-results'
+    || completedRunUrlState?.resultView?.fieldSearch === 'stale'
+    || completedRunUrlState?.resultView?.postFilters?.['Smoke Branch']
+  ) {
+    throw new Error(`Completed new query should publish fresh result URL state only: ${JSON.stringify(completedRunUrlState)}`);
+  }
 
   await expectPostFilterStats(page, {
     filteredRows: 0,

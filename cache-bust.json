@@ -1,5 +1,5 @@
 {
-  "version": "8eb50bddfc80a1e1",
+  "version": "a2cb12603ef16703",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "backgroundNotificationServiceWorker.js": "2f8933df91d32a1a",
@@ -27,7 +27,7 @@
     "src/core/mobileScrollLock.js": "6b736ada147cf169",
     "src/core/operatorSelectUtils.js": "8815c66de0baa6f1",
     "src/core/queryErrorDetails.js": "5c26531918b7a2c8",
-    "src/core/queryExecution.js": "e0d7f90c4cc9c1a0",
+    "src/core/queryExecution.js": "08ae27d80d7cd86c",
     "src/core/queryLifecycle.js": "b44948b17608f70b",
     "src/core/queryPrevalidation.js": "2ec4a6cb48f44366",
     "src/core/queryProgress.js": "0593226f5d9437ca",
@@ -66,7 +66,7 @@
     "src/features/history/queryHistoryRequestMapper.js": "e98ba9ba84874e5e",
     "src/features/history/results/queryHistoryResultCache.js": "5f6aa9a262eb5094",
     "src/features/history/results/queryHistoryResultProgress.js": "ff7857244df3e012",
-    "src/features/history/results/queryHistoryResultRestore.js": "9d448a3b6ecfa9fc",
+    "src/features/history/results/queryHistoryResultRestore.js": "5ea1aa7baff226a0",
     "src/features/history/results/queryHistoryResultSession.js": "5680166e94180ffa",
     "src/features/history/results/queryHistoryResultsLoader.js": "ec028d892708a9a7",
     "src/features/history/results/queryHistoryResultViewPersistence.js": "7cbfa64b4cf4e055",

@@ -96,6 +96,11 @@ function createOpenedHistoryResultRestoreController({
       return;
     }
 
+    const lifecycleState = queryStateReaders?.getLifecycleState?.();
+    if (lifecycleState?.queryRunning || lifecycleState?.hasLoadedResultSet) {
+      return;
+    }
+
     const remembered = readOpenedHistoryResult({ location: options.location });
     const queryId = remembered?.queryId || '';
     if (!queryId) {
