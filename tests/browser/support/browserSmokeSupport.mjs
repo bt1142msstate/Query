@@ -1675,12 +1675,31 @@ async function expectSplitTogglePreviewAnimation(page) {
 
     const primaryStyle = window.getComputedStyle(primary);
     const alternateStyle = window.getComputedStyle(alternate);
-    return primaryStyle.animationName.includes('splitTogglePrimaryPreview')
-      && alternateStyle.animationName.includes('splitToggleAlternatePreview')
-      && alternateStyle.display !== 'none';
+    return primaryStyle.animationName.includes('splitToggleActiveIconExit')
+      && primaryStyle.animationIterationCount !== 'infinite'
+      && Number.parseFloat(primaryStyle.opacity || '1') <= 0.05
+      && alternateStyle.animationName.includes('splitTogglePreviewIconEnter')
+      && alternateStyle.animationIterationCount !== 'infinite'
+      && alternateStyle.display !== 'none'
+      && Number.parseFloat(alternateStyle.opacity || '0') >= 0.95;
   }, null, { timeout: 5000 });
 
-  await page.mouse.move(0, 0);
+  await page.evaluate(() => {
+    document.activeElement?.blur?.();
+  });
+  await page.mouse.move(12, await page.evaluate(() => window.innerHeight - 12));
+  await page.waitForFunction(() => {
+    const button = document.querySelector('#split-columns-toggle');
+    const primary = button?.querySelector('.split-toggle-icon:not(.hidden)');
+    const alternate = Array.from(button?.querySelectorAll('.split-toggle-icon') || [])
+      .find(icon => icon.classList.contains('hidden'));
+    if (!primary || !alternate) return false;
+
+    const primaryStyle = window.getComputedStyle(primary);
+    const alternateStyle = window.getComputedStyle(alternate);
+    return Number.parseFloat(primaryStyle.opacity || '0') >= 0.95
+      && alternateStyle.display === 'none';
+  }, null, { timeout: 5000 });
 }
 
 async function seedLargeExportResults(page) {
