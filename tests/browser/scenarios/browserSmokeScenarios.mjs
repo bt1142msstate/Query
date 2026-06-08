@@ -1825,10 +1825,10 @@ async function exerciseFormModeBuildableDisplayField(page) {
   await modal.locator('.form-mode-field-picker-search').fill('MARC Field');
   await page.waitForFunction(() => {
     const options = Array.from(document.querySelectorAll('.form-mode-field-picker-modal:not(.hidden) .form-mode-field-picker-option'));
-    return options.length === 1 && /MARC Field/u.test(options[0].textContent || '');
+    return options.some(option => option.dataset.fieldName === 'MARC Field');
   }, null, { timeout: 5000 });
 
-  const marcOption = modal.locator('.form-mode-field-picker-option', { hasText: 'MARC Field' });
+  const marcOption = modal.locator('.form-mode-field-picker-option[data-field-name="MARC Field"]');
   if (await marcOption.count() !== 1) {
     throw new Error('Buildable MARC field option did not resolve to exactly one picker option');
   }
@@ -1866,6 +1866,69 @@ async function exerciseFormModeBuildableDisplayField(page) {
     || state.dynamicParent !== 'MARC Field'
   ) {
     throw new Error(`Form mode should display the generated MARC field, not the raw placeholder: ${JSON.stringify(state)}`);
+  }
+}
+
+async function exerciseTableBuildableDisplayField(page) {
+  await page.evaluate(async () => {
+    const { QueryChangeManager } = await import('./src/core/queryState.js');
+
+    document.body.classList.remove('form-mode-active');
+    QueryChangeManager.replaceDisplayedFields(['Smoke Title'], {
+      source: 'BrowserSmoke.seedBuildableTable'
+    });
+  });
+
+  const addFieldButton = page.locator('#table-add-field-btn');
+  if (await addFieldButton.count() !== 1) {
+    throw new Error('Table Add Field button was not available for buildable-field smoke test');
+  }
+  await addFieldButton.click();
+
+  const modal = page.locator('.form-mode-field-picker-modal:not(.hidden)');
+  await modal.waitFor({ state: 'visible', timeout: 5000 });
+  await modal.locator('.form-mode-field-picker-search').fill('MARC Field');
+  await page.waitForFunction(() => {
+    const options = Array.from(document.querySelectorAll('.form-mode-field-picker-modal:not(.hidden) .form-mode-field-picker-option'));
+    return options.some(option => option.dataset.fieldName === 'MARC Field');
+  }, null, { timeout: 5000 });
+
+  const marcOption = modal.locator('.form-mode-field-picker-option[data-field-name="MARC Field"]');
+  if (await marcOption.count() !== 1) {
+    throw new Error('Table buildable MARC field option did not resolve to exactly one picker option');
+  }
+  await marcOption.click();
+
+  const builderInputs = modal.locator('.form-mode-buildable-input');
+  if (await builderInputs.count() !== 2) {
+    throw new Error('Table field picker should render buildable tag and subfield inputs');
+  }
+
+  const builderLabel = await modal.locator('.form-mode-field-picker-filter-preview-label').textContent();
+  if (!/field builder/iu.test(builderLabel || '')) {
+    throw new Error(`Buildable field detail panel should be labeled as a field builder: ${builderLabel}`);
+  }
+
+  await modal.locator('.form-mode-buildable-input[data-input-id="tag"]').fill('591');
+  await modal.locator('button', { hasText: 'Create and add field' }).click();
+  await page.locator('.form-mode-field-picker-modal').waitFor({ state: 'detached', timeout: 5000 });
+
+  const state = await page.evaluate(async () => {
+    const { QueryStateReaders } = await import('./src/core/queryState.js');
+    const { fieldDefs } = await import('./src/features/filters/fieldDefs.js');
+    const dynamicDef = fieldDefs.get('MARC 591');
+    return {
+      displayedFields: QueryStateReaders.getDisplayedFields(),
+      dynamicParent: dynamicDef?.dynamic_parent || null
+    };
+  });
+
+  if (
+    !state.displayedFields.includes('MARC 591')
+    || state.displayedFields.includes('MARC Field')
+    || state.dynamicParent !== 'MARC Field'
+  ) {
+    throw new Error(`Table picker should display the generated MARC field, not the raw placeholder: ${JSON.stringify(state)}`);
   }
 }
 
@@ -2703,6 +2766,7 @@ export {
   exerciseExpandedVirtualTableColumnAlignment,
   exerciseFieldPickerPreviewList,
   exerciseFormModeBuildableDisplayField,
+  exerciseTableBuildableDisplayField,
   exerciseFormModeDateTypingCommit,
   exerciseJsonResultPayloadWorkflow,
   exerciseLegacyFormUrlCanonicalization,

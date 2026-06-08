@@ -4,6 +4,10 @@ function getBuilderInputs(fieldDef, builder) {
     : (Array.isArray(fieldDef?.builder_inputs) ? fieldDef.builder_inputs : []);
 }
 
+function getBuilderInputId(input) {
+  return input?.id || input?.name || input?.key || '';
+}
+
 function isTruthyMetadataFlag(value) {
   if (value === true || value === 1) return true;
   if (typeof value === 'string') {
@@ -25,7 +29,7 @@ export function isOptionalBuilderInput(input) {
 }
 
 function renderBuilderTemplate(template, inputValues, inputs = []) {
-  const inputById = new Map(inputs.map(input => [input.id, input]));
+  const inputById = new Map(inputs.map(input => [getBuilderInputId(input), input]));
 
   return String(template || '').replace(/(.?)\{([^}]+)\}/g, (match, prefix, key) => {
     const value = String(inputValues?.[key] ?? '').trim();

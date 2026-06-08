@@ -35,6 +35,24 @@ test('buildable filter fields', async () => {
     displayLabel: 'MARC 590$a'
   });
 
+  assert.deepEqual(buildDynamicFieldDefinition({
+    name: 'Local Metadata Field',
+    builder: {
+      outputFieldIdTemplate: 'Local Metadata {code}${subfield}',
+      displayLabelTemplate: 'Local Metadata {code}${subfield}',
+      inputs: [
+        { name: 'code', required: true },
+        { name: 'subfield', required: false }
+      ]
+    }
+  }, {
+    code: '590',
+    subfield: 'a'
+  }), {
+    dynamicFieldName: 'Local Metadata 590$a',
+    displayLabel: 'Local Metadata 590$a'
+  });
+
   function makeInput({ value, pattern = '', inputId = 'tag', errorMsg = 'Bad value', optional = false }) {
     return {
       value,

@@ -54,6 +54,7 @@ import {
   exerciseExpandedVirtualTableColumnAlignment,
   exerciseFieldPickerPreviewList,
   exerciseFormModeBuildableDisplayField,
+  exerciseTableBuildableDisplayField,
   exerciseFormModeDateTypingCommit,
   exerciseJsonResultPayloadWorkflow,
   exerciseLegacyFormUrlCanonicalization,
@@ -135,6 +136,7 @@ async function runSmokeTest() {
 
     await exerciseCoreFilterStateInteraction(page);
     await exerciseFieldPickerPreviewList(page);
+    await exerciseTableBuildableDisplayField(page);
     await exerciseFormModeBuildableDisplayField(page);
     await exerciseEditableFormUrlRefresh(page, failures);
     await exerciseLegacyFormUrlCanonicalization(page, baseUrl, failures);
