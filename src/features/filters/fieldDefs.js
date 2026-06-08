@@ -7,6 +7,11 @@ import { BackendApi } from '../../core/backendApi.js';
 import { QueryStateReaders, registerQueryStateRuntimeAccessors } from '../../core/queryState.js';
 import { showToastMessage } from '../../core/toast.js';
 import { DOM } from '../../core/domCache.js';
+import {
+  forgetDynamicFieldDefinition,
+  readStoredDynamicFields,
+  rememberDynamicFieldDefinition
+} from './dynamicFieldStorage.js';
 
 // Field definitions dynamically loaded from backend
 let fieldDefsArray = [];
@@ -17,6 +22,8 @@ let isFieldsLoaded = false;
 let fieldDefinitionsLoadPromise = null;
 let pendingAliasNotifications = new Map();
 let aliasToastTimer = null;
+const backendFieldNames = new Set();
+const localDynamicFieldNames = new Set();
 const SYSTEM_CATEGORIES = ['All', 'Selected'];
 const DEFAULT_DATE_FILTERS = Object.freeze([
   'equals',
@@ -128,6 +135,41 @@ function resolveFieldName(fieldName, options = {}) {
   return normalized;
 }
 
+function upsertFieldDefinition(fieldDef) {
+  if (!fieldDef || !fieldDef.name) {
+    return false;
+  }
+
+  fieldDefs.set(fieldDef.name, fieldDef);
+
+  const fieldIndex = fieldDefsArray.findIndex(definition => definition?.name === fieldDef.name);
+  if (fieldIndex >= 0) {
+    fieldDefsArray[fieldIndex] = { ...fieldDef };
+  } else {
+    fieldDefsArray.push({ ...fieldDef });
+  }
+
+  const filteredIndex = filteredDefs.findIndex(definition => definition?.name === fieldDef.name);
+  if (filteredIndex >= 0) {
+    filteredDefs[filteredIndex] = { ...fieldDef };
+  } else {
+    filteredDefs.push({ ...fieldDef });
+  }
+
+  return true;
+}
+
+function restoreStoredDynamicFields() {
+  readStoredDynamicFields().forEach(fieldDef => {
+    if (backendFieldNames.has(fieldDef.name) || fieldDefs.has(fieldDef.name)) {
+      return;
+    }
+
+    upsertFieldDefinition(fieldDef);
+    localDynamicFieldNames.add(fieldDef.name);
+  });
+}
+
 registerQueryStateRuntimeAccessors({
   resolveFieldName,
   getFieldDefinition(fieldName) {
@@ -155,7 +197,10 @@ async function fetchFieldDefinitions() {
         // Initialize helper map and filter array
         fieldDefs.clear();
         fieldAliases.clear();
+        backendFieldNames.clear();
+        localDynamicFieldNames.clear();
         fieldDefsArray.forEach(field => {
+          backendFieldNames.add(field.name);
           fieldDefs.set(field.name, field);
         });
         fieldDefsArray.forEach(field => {
@@ -171,6 +216,7 @@ async function fetchFieldDefinitions() {
           });
         });
         filteredDefs = [...fieldDefsArray];
+        restoreStoredDynamicFields();
 
         isFieldsLoaded = true;
         return fieldDefsArray;
@@ -303,7 +349,18 @@ function buildTemplateRegex(template) {
 }
 
 function registerDynamicField(fieldName, opts = {}) {
-  if (!fieldName || fieldDefs.has(fieldName)) return;
+  if (!fieldName) return null;
+  if (fieldDefs.has(fieldName)) {
+    const existingField = fieldDefs.get(fieldName);
+    if (
+      opts.persist !== false
+      && localDynamicFieldNames.has(fieldName)
+      && existingField?.dynamic_parent
+    ) {
+      rememberDynamicFieldDefinition(existingField);
+    }
+    return existingField;
+  }
 
   let parentDef = null;
   if (Array.isArray(fieldDefsArray)) {
@@ -357,12 +414,54 @@ function registerDynamicField(fieldName, opts = {}) {
 
   fieldDefs.set(fieldName, newDef);
 
-  if (!fieldDefsArray.find(definition => definition.name === fieldName)) {
-    fieldDefsArray.push({ ...newDef });
+  upsertFieldDefinition(newDef);
+
+  if (newDef.dynamic_parent) {
+    localDynamicFieldNames.add(fieldName);
+    if (opts.persist !== false) {
+      rememberDynamicFieldDefinition(newDef);
+    }
   }
-  if (!filteredDefs.find(definition => definition.name === fieldName)) {
-    filteredDefs.push({ ...newDef });
+
+  return newDef;
+}
+
+function isLocalDynamicField(fieldOrName) {
+  const fieldName = typeof fieldOrName === 'string'
+    ? fieldOrName
+    : String(fieldOrName?.name || '');
+  return localDynamicFieldNames.has(fieldName);
+}
+
+function removeDynamicField(fieldName, opts = {}) {
+  const normalizedFieldName = String(fieldName || '').trim();
+  if (!normalizedFieldName || backendFieldNames.has(normalizedFieldName)) {
+    return false;
   }
+
+  const fieldDef = fieldDefs.get(normalizedFieldName);
+  if (!fieldDef || (!localDynamicFieldNames.has(normalizedFieldName) && !fieldDef.dynamic_parent)) {
+    return false;
+  }
+
+  fieldDefs.delete(normalizedFieldName);
+  localDynamicFieldNames.delete(normalizedFieldName);
+
+  const fieldIndex = fieldDefsArray.findIndex(definition => definition?.name === normalizedFieldName);
+  if (fieldIndex >= 0) {
+    fieldDefsArray.splice(fieldIndex, 1);
+  }
+
+  const filteredIndex = filteredDefs.findIndex(definition => definition?.name === normalizedFieldName);
+  if (filteredIndex >= 0) {
+    filteredDefs.splice(filteredIndex, 1);
+  }
+
+  if (opts.persist !== false) {
+    forgetDynamicFieldDefinition(normalizedFieldName);
+  }
+
+  return true;
 }
 
 /**
@@ -501,8 +600,10 @@ export {
   isFieldBuildable,
   isFieldBackendFilterable,
   isFieldDisplayable,
+  isLocalDynamicField,
   loadFieldDefinitions,
   registerDynamicField,
+  removeDynamicField,
   renderCategorySelectors,
   resolveFieldName,
   shouldFieldHavePurpleStyling,

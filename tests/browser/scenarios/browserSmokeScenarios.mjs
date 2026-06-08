@@ -1930,6 +1930,72 @@ async function exerciseTableBuildableDisplayField(page) {
   ) {
     throw new Error(`Table picker should display the generated MARC field, not the raw placeholder: ${JSON.stringify(state)}`);
   }
+
+  const persistedBeforeReload = await page.evaluate(async () => {
+    const { DYNAMIC_FIELD_STORAGE_KEY } = await import('./src/features/filters/dynamicFieldStorage.js');
+    const storedFields = JSON.parse(window.localStorage.getItem(DYNAMIC_FIELD_STORAGE_KEY) || '[]');
+    return {
+      storageKey: DYNAMIC_FIELD_STORAGE_KEY,
+      storedFields
+    };
+  });
+  if (!persistedBeforeReload.storedFields.some(field => field?.name === 'MARC 591')) {
+    throw new Error(`Built field should be saved locally before reload: ${JSON.stringify(persistedBeforeReload)}`);
+  }
+
+  const reloadFailures = [];
+  await page.reload({ waitUntil: 'load', timeout: 15000 });
+  await waitForAppReady(page, reloadFailures);
+  if (reloadFailures.length > 0) {
+    throw new Error(`Reload after saving built field failed: ${reloadFailures.join('; ')}`);
+  }
+
+  const restoredState = await page.evaluate(async () => {
+    const { fieldDefs, isLocalDynamicField } = await import('./src/features/filters/fieldDefs.js');
+    return {
+      hasField: fieldDefs.has('MARC 591'),
+      localDynamic: isLocalDynamicField('MARC 591')
+    };
+  });
+  if (!restoredState.hasField || !restoredState.localDynamic) {
+    throw new Error(`Built field should restore from local storage after reload: ${JSON.stringify(restoredState)}`);
+  }
+
+  await page.locator('#table-add-field-btn').click();
+  const removalModal = page.locator('.form-mode-field-picker-modal:not(.hidden)');
+  await removalModal.waitFor({ state: 'visible', timeout: 5000 });
+  await removalModal.locator('.form-mode-field-picker-search').fill('MARC 591');
+  await page.waitForFunction(() => {
+    return Boolean(document.querySelector('.form-mode-field-picker-modal:not(.hidden) .form-mode-field-picker-option[data-field-name="MARC 591"]'));
+  }, null, { timeout: 5000 });
+  await removalModal.locator('.form-mode-field-picker-option[data-field-name="MARC 591"]').click();
+  const removeBuiltButton = removalModal.locator('[data-field-picker-remove-built]');
+  await removeBuiltButton.waitFor({ state: 'visible', timeout: 5000 });
+  await removeBuiltButton.click();
+
+  const removedState = await page.evaluate(async () => {
+    const { DYNAMIC_FIELD_STORAGE_KEY, readStoredDynamicFields } = await import('./src/features/filters/dynamicFieldStorage.js');
+    const { QueryStateReaders } = await import('./src/core/queryState.js');
+    const { fieldDefs, isLocalDynamicField } = await import('./src/features/filters/fieldDefs.js');
+    return {
+      displayedFields: QueryStateReaders.getDisplayedFields(),
+      hasField: fieldDefs.has('MARC 591'),
+      localDynamic: isLocalDynamicField('MARC 591'),
+      rawStorage: window.localStorage.getItem(DYNAMIC_FIELD_STORAGE_KEY),
+      storedFields: readStoredDynamicFields()
+    };
+  });
+  if (
+    removedState.hasField
+    || removedState.localDynamic
+    || removedState.displayedFields.includes('MARC 591')
+    || removedState.storedFields.some(field => field?.name === 'MARC 591')
+  ) {
+    throw new Error(`Removing a built field should clear field definitions, display state, and local storage: ${JSON.stringify(removedState)}`);
+  }
+
+  await page.locator('.form-mode-field-picker-close').click();
+  await page.locator('.form-mode-field-picker-modal').waitFor({ state: 'detached', timeout: 5000 });
 }
 
 async function exerciseDesktopResultsWorkflow(page) {

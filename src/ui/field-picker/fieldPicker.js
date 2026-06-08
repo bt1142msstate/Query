@@ -2,20 +2,16 @@ import { showToastMessage } from '../../core/toast.js';
 import { VisibilityUtils } from '../../core/visibility.js';
 import { getRankedFieldPickerOptions } from './fieldPickerSearch.js';
 import { createQueryFieldPickerIntegration } from './fieldPickerQueryIntegration.js';
+import { createFieldPickerModal } from './fieldPickerModal.js';
 import { getFieldPickerOptionsFromDefinitions } from './fieldPickerOptions.js';
 import { initializeSearchInputs } from '../controls/searchUI.js';
 import { VirtualList } from '../controls/virtualList.js';
-import { fieldDefs, isFieldBuildable } from '../../features/filters/fieldDefs.js';
+import { fieldDefs, isFieldBuildable, isLocalDynamicField } from '../../features/filters/fieldDefs.js';
 import { getFieldPerformanceWarning } from '../../features/filters/fieldWarnings.js';
 let SharedFieldPicker;
 
 (function() {
-  function normalizePickerState(state) {
-    return {
-      display: Boolean(state && state.display),
-      filter: Boolean(state && state.filter)
-    };
-  }
+  const normalizePickerState = state => ({ display: Boolean(state && state.display), filter: Boolean(state && state.filter) });
 
   async function openSharedFieldPicker(config = {}) {
     if (typeof config.beforeOpen === 'function') {
@@ -58,79 +54,36 @@ let SharedFieldPicker;
       ? config.getFieldState
       : (() => ({ display: false, filter: false }));
 
-    const backdrop = document.createElement('div');
-    backdrop.className = 'form-mode-field-picker-backdrop';
-    backdrop.hidden = true;
-    backdrop.classList.add('hidden');
-
-    const modal = document.createElement('div');
-    modal.className = 'form-mode-field-picker-modal';
-    modal.hidden = true;
-    modal.classList.add('hidden');
-    if (compactLayout) {
-      modal.classList.add('form-mode-field-picker-modal--compact');
-    }
-    modal.innerHTML = `
-      <div class="form-mode-field-picker-header">
-        <div>
-          ${labels.kicker ? `<span class="form-mode-field-picker-kicker">${labels.kicker}</span>` : ''}
-          <h3 class="form-mode-field-picker-title">${labels.title}</h3>
-          <p class="form-mode-field-picker-description">${labels.description}</p>
-        </div>
-        <button type="button" class="form-mode-field-picker-close" aria-label="Close field picker">×</button>
-      </div>
-      <div class="form-mode-field-picker-body">
-        <div class="form-mode-field-picker-list-panel">
-          <div class="form-mode-field-picker-controls">
-            <input type="search" class="form-mode-field-picker-search" placeholder="Search fields..." aria-label="Search fields" data-search-ui="enhanced" data-search-wrapper-class="form-mode-field-picker-search-field" data-search-clear-label="Clear field search" />
-            <label class="form-mode-field-picker-category-wrap">
-              <span class="form-mode-field-picker-category-label">Category</span>
-              <select class="form-mode-field-picker-category-select" aria-label="Filter fields by category">
-                <option value="">All categories</option>
-              </select>
-            </label>
-          </div>
-          <div class="form-mode-field-picker-list" role="listbox" aria-label="Available fields"></div>
-        </div>
-        ${compactLayout ? '' : `<div class="form-mode-field-picker-details">
-          <p class="form-mode-field-picker-selected-label">${labels.selectedFieldLabel}</p>
-          <div class="form-mode-field-picker-field-header">
-            <h4 class="form-mode-field-picker-field-name"></h4>
-            <button type="button" class="form-mode-field-picker-field-info hidden" aria-label="Show field details">i</button>
-          </div>
-          <p class="form-mode-field-picker-field-meta hidden"></p>
-          <p class="form-mode-field-picker-warning hidden" data-field-picker-warning></p>
-          ${allowDisplay && config.showDisplayChoice !== false ? `<label class="form-mode-field-picker-choice"><input type="checkbox" data-field-picker-choice="display" /><span>${labels.displayChoice}</span></label>` : ''}
-          ${allowFilter && !autoAddFilterFromPreview ? `<label class="form-mode-field-picker-choice"><input type="checkbox" data-field-picker-choice="filter" /><span>${labels.filterChoice}</span></label>` : ''}
-          ${allowFilter && typeof config.renderFilterPreview === 'function' ? `<div class="form-mode-field-picker-filter-preview hidden" data-field-picker-filter-preview>
-            <p class="form-mode-field-picker-filter-preview-label">Filter preview</p>
-            <div class="form-mode-field-picker-filter-preview-host"></div>
-          </div>` : ''}
-          <p class="form-mode-field-picker-status"></p>
-        </div>`}
-      </div>
-      <div class="form-mode-field-picker-footer">
-        <span class="form-mode-field-picker-footer-note">${labels.footerNote}</span>
-      </div>
-    `;
+    const {
+      backdrop,
+      categorySelect,
+      closeButton,
+      displayChoice,
+      fieldInfoEl,
+      fieldMetaEl,
+      fieldNameEl,
+      fieldWarningEl,
+      filterChoice,
+      filterPreviewHost,
+      filterPreviewLabelEl,
+      filterPreviewWrap,
+      listEl,
+      modal,
+      removeBuiltFieldBtn,
+      searchInput,
+      statusEl
+    } = createFieldPickerModal({
+      allowDisplay,
+      allowFilter,
+      autoAddFilterFromPreview,
+      compactLayout,
+      hasFilterPreview: typeof config.renderFilterPreview === 'function',
+      labels,
+      showDisplayChoice: config.showDisplayChoice
+    });
 
     document.body.appendChild(backdrop);
     document.body.appendChild(modal);
-
-    const closeButton = modal.querySelector('.form-mode-field-picker-close');
-    const searchInput = modal.querySelector('.form-mode-field-picker-search');
-    const categorySelect = modal.querySelector('.form-mode-field-picker-category-select');
-    const listEl = modal.querySelector('.form-mode-field-picker-list');
-    const fieldNameEl = modal.querySelector('.form-mode-field-picker-field-name');
-    const fieldInfoEl = modal.querySelector('.form-mode-field-picker-field-info');
-    const fieldMetaEl = modal.querySelector('.form-mode-field-picker-field-meta');
-    const fieldWarningEl = modal.querySelector('[data-field-picker-warning]');
-    const statusEl = modal.querySelector('.form-mode-field-picker-status');
-    const displayChoice = modal.querySelector('[data-field-picker-choice="display"]');
-    const filterChoice = modal.querySelector('[data-field-picker-choice="filter"]');
-    const filterPreviewWrap = modal.querySelector('[data-field-picker-filter-preview]');
-    const filterPreviewLabelEl = modal.querySelector('.form-mode-field-picker-filter-preview-label');
-    const filterPreviewHost = modal.querySelector('.form-mode-field-picker-filter-preview-host');
     let currentFilterPreviewApi = null;
     let previewSyncTimer = null;
     const filterPreviewDrafts = new Map();
@@ -227,6 +180,10 @@ let SharedFieldPicker;
         : false;
     }
 
+    function isOptionLocalDynamic(option) {
+      return Boolean(option && (option.localDynamic || (typeof isLocalDynamicField === 'function' && isLocalDynamicField(option.name))));
+    }
+
     function syncChoiceInputs() {
       const state = getSelectedState();
       const selected = options.find(option => option.name === selectedFieldName) || null;
@@ -261,6 +218,9 @@ let SharedFieldPicker;
         }
         if (allowDisplay && !isOptionDisplayable(option)) {
           badges.push('<span class="form-mode-field-picker-badge form-mode-field-picker-badge--muted">Build first</span>');
+        }
+        if (isOptionLocalDynamic(option)) {
+          badges.push('<span class="form-mode-field-picker-badge form-mode-field-picker-badge--local">Built</span>');
         }
         if (getFieldPerformanceWarning(option)) {
           badges.push('<span class="form-mode-field-picker-badge form-mode-field-picker-badge--warning">May take longer</span>');
@@ -494,6 +454,10 @@ let SharedFieldPicker;
           fieldWarningEl.textContent = '';
           fieldWarningEl.classList.add('hidden');
         }
+        if (removeBuiltFieldBtn) {
+          removeBuiltFieldBtn.classList.add('hidden');
+          removeBuiltFieldBtn.disabled = true;
+        }
         statusEl.textContent = 'No field selected.';
         clearFilterPreview();
         return;
@@ -517,6 +481,12 @@ let SharedFieldPicker;
         const warning = getFieldPerformanceWarning(selected);
         fieldWarningEl.textContent = warning?.message || '';
         fieldWarningEl.classList.toggle('hidden', !warning);
+      }
+      if (removeBuiltFieldBtn) {
+        const canRemove = isOptionLocalDynamic(selected) && typeof config.onRemoveDynamicField === 'function';
+        removeBuiltFieldBtn.classList.toggle('hidden', !canRemove);
+        removeBuiltFieldBtn.disabled = !canRemove;
+        removeBuiltFieldBtn.setAttribute('aria-label', canRemove ? `Remove built field ${selected.name}` : 'Remove built field');
       }
 
       syncStatusTextOnly(selected);
@@ -690,6 +660,9 @@ let SharedFieldPicker;
       if (allowDisplay && !isOptionDisplayable(option)) {
         badges.push('<span class="form-mode-field-picker-badge form-mode-field-picker-badge--muted">Build first</span>');
       }
+      if (isOptionLocalDynamic(option)) {
+        badges.push('<span class="form-mode-field-picker-badge form-mode-field-picker-badge--local">Built</span>');
+      }
       if (getFieldPerformanceWarning(option)) {
         badges.push('<span class="form-mode-field-picker-badge form-mode-field-picker-badge--warning">May take longer</span>');
       }
@@ -847,6 +820,33 @@ let SharedFieldPicker;
       filterChoice.addEventListener('change', async () => {
         if (syncingControls) return;
         await applySelectedFieldChanges('filter');
+      });
+    }
+
+    if (removeBuiltFieldBtn) {
+      removeBuiltFieldBtn.addEventListener('click', async () => {
+        const selected = optionsListFind(selectedFieldName);
+        if (!selected || !isOptionLocalDynamic(selected) || typeof config.onRemoveDynamicField !== 'function') {
+          return;
+        }
+
+        removeBuiltFieldBtn.disabled = true;
+        const result = await config.onRemoveDynamicField(selectedFieldName, { cleanup, modal });
+        removeBuiltFieldBtn.disabled = false;
+        if (result === false || result?.removed === false) {
+          syncDetails();
+          return;
+        }
+
+        const removedFieldName = selectedFieldName;
+        const optionIndex = options.findIndex(option => option.name === removedFieldName);
+        if (optionIndex >= 0) {
+          options.splice(optionIndex, 1);
+        }
+
+        selectedFieldName = options[0]?.name || '';
+        showToastMessage(result?.successMessage || `${removedFieldName} removed from built fields.`, 'success');
+        renderList();
       });
     }
 

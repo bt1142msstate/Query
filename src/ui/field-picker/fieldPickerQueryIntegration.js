@@ -3,7 +3,7 @@ import { QueryChangeManager, QueryStateReaders } from '../../core/queryState.js'
 import { showToastMessage } from '../../core/toast.js';
 import { VisibilityUtils } from '../../core/visibility.js';
 import { DOM } from '../../core/domCache.js';
-import { fieldDefs, isFieldBuildable, loadFieldDefinitions } from '../../features/filters/fieldDefs.js';
+import { fieldDefs, isFieldBuildable, loadFieldDefinitions, removeDynamicField } from '../../features/filters/fieldDefs.js';
 import { renderBuildableFieldPreview } from './buildableFieldPreview.js';
 import {
   applyQueryPreviewFilterState,
@@ -184,6 +184,23 @@ function createQueryFieldPickerIntegration(options) {
           afterClose: () => {
             openQueryFilterEditor(fieldName);
           }
+        };
+      },
+      onRemoveDynamicField: async fieldName => {
+        if (QueryChangeManager) {
+          QueryChangeManager.removeDisplayedField(fieldName, {
+            source: 'SharedFieldPicker.removeDynamicDisplayedField'
+          });
+          QueryChangeManager.removeFilter(fieldName, {
+            removeAll: true,
+            source: 'SharedFieldPicker.removeDynamicFieldFilters'
+          });
+        }
+
+        const removed = removeDynamicField(fieldName);
+        return {
+          removed,
+          successMessage: `${fieldName} removed from built fields.`
         };
       }
     });
