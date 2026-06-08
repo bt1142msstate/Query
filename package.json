@@ -1,5 +1,6 @@
 {
   "type": "module",
+  "license": "MIT",
   "scripts": {
     "benchmark:post-filters": "node scripts/benchmarkPostFilters.mjs",
     "benchmark:sort": "node scripts/benchmarkSort.mjs",
