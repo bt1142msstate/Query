@@ -250,6 +250,7 @@ Remaining work is mostly integration and polish:
 
 - Remove project-owned API usage from the public live default and make bring-your-own-API the primary deployment path.
 - Add production deployment recipes for common same-origin proxy, CORS, authentication, history, cancel, and template persistence setups.
+- Add optional backend adapter examples for teams that need to translate existing systems into the recommended JSONL API contract.
 - Continue adding realistic browser interaction coverage when new workflow bugs are found.
 - Keep reviewing large coordinator modules as features change, but only split them when a real ownership boundary appears.
 
