@@ -257,14 +257,15 @@ function buildBubbleConditionPanel(bubble) {
                 group.className = 'dynamic-input-group buildable-input-group';
 
                 const label = document.createElement('label');
-                label.textContent = input.label;
+                const inputId = input.id || input.name || input.key || '';
+                label.textContent = input.label || inputId;
                 label.className = 'dynamic-label buildable-input-label';
 
                 const inputEl = document.createElement('input');
                 inputEl.type = input.type || 'text';
                 if (input.pattern) inputEl.pattern = input.pattern;
                 if (input.placeholder) inputEl.placeholder = input.placeholder;
-                inputEl.dataset.inputId = input.id;
+                inputEl.dataset.inputId = inputId;
                 inputEl.dataset.errorMsg = input.error_msg || input.errorMessage || 'Invalid input';
                 inputEl.dataset.optional = isOptionalBuilderInput(input) ? 'true' : 'false';
                 inputEl.required = inputEl.dataset.optional !== 'true';

@@ -1,42 +1,15 @@
 import { showToastMessage } from '../../core/toast.js';
-import { formatFieldDefinitionTooltipHTML } from '../../core/formatting/tooltipFormatters.js';
 import { VisibilityUtils } from '../../core/visibility.js';
 import { getRankedFieldPickerOptions } from './fieldPickerSearch.js';
 import { createQueryFieldPickerIntegration } from './fieldPickerQueryIntegration.js';
+import { getFieldPickerOptionsFromDefinitions } from './fieldPickerOptions.js';
 import { initializeSearchInputs } from '../controls/searchUI.js';
 import { VirtualList } from '../controls/virtualList.js';
-import { fieldDefs, fieldDefsArray, isFieldBackendFilterable, isFieldDisplayable } from '../../features/filters/fieldDefs.js';
+import { fieldDefs, isFieldBuildable } from '../../features/filters/fieldDefs.js';
 import { getFieldPerformanceWarning } from '../../features/filters/fieldWarnings.js';
 let SharedFieldPicker;
 
 (function() {
-  function getFieldPickerOptionsFromDefinitions() {
-    const source = Array.isArray(fieldDefsArray) && fieldDefsArray.length > 0
-      ? fieldDefsArray
-      : Array.from((fieldDefs && fieldDefs.values()) || []);
-
-    return source
-      .filter(fieldDef => fieldDef && fieldDef.name)
-      .map(fieldDef => ({
-        name: String(fieldDef.name),
-        type: String(fieldDef.type || 'text'),
-        filterable: typeof isFieldBackendFilterable === 'function'
-          ? isFieldBackendFilterable(fieldDef)
-          : Array.isArray(fieldDef.filters) && fieldDef.filters.length > 0,
-        displayable: typeof isFieldDisplayable === 'function'
-          ? isFieldDisplayable(fieldDef)
-          : true,
-        desc: typeof fieldDef.desc === 'string' ? fieldDef.desc : '',
-        description: typeof fieldDef.description === 'string' ? fieldDef.description : '',
-        performanceWarning: getFieldPerformanceWarning(fieldDef),
-        category: Array.isArray(fieldDef.category)
-          ? fieldDef.category.filter(Boolean).join(', ')
-          : String(fieldDef.category || ''),
-        tooltipHtml: formatFieldDefinitionTooltipHTML(fieldDef, { title: fieldDef.name }) || ''
-      }))
-      .sort((left, right) => left.name.localeCompare(right.name, undefined, { numeric: true, sensitivity: 'base' }));
-  }
-
   function normalizePickerState(state) {
     return {
       display: Boolean(state && state.display),
@@ -156,6 +129,7 @@ let SharedFieldPicker;
     const displayChoice = modal.querySelector('[data-field-picker-choice="display"]');
     const filterChoice = modal.querySelector('[data-field-picker-choice="filter"]');
     const filterPreviewWrap = modal.querySelector('[data-field-picker-filter-preview]');
+    const filterPreviewLabelEl = modal.querySelector('.form-mode-field-picker-filter-preview-label');
     const filterPreviewHost = modal.querySelector('.form-mode-field-picker-filter-preview-host');
     let currentFilterPreviewApi = null;
     let previewSyncTimer = null;
@@ -205,6 +179,9 @@ let SharedFieldPicker;
       if (filterPreviewWrap) {
         filterPreviewWrap.classList.add('hidden');
       }
+      if (filterPreviewLabelEl) {
+        filterPreviewLabelEl.textContent = 'Filter preview';
+      }
     }
 
     function destroyFieldList() {
@@ -240,6 +217,14 @@ let SharedFieldPicker;
 
     function isOptionDisplayable(option) {
       return !(option && option.displayable === false);
+    }
+
+    function isOptionBuildable(option) {
+      if (!option) return false;
+      if (option.buildable) return true;
+      return typeof isFieldBuildable === 'function'
+        ? isFieldBuildable(fieldDefs?.get(option.name) || option)
+        : false;
     }
 
     function syncChoiceInputs() {
@@ -414,6 +399,11 @@ let SharedFieldPicker;
 
       if (previewApi && typeof previewApi === 'object') {
         currentFilterPreviewApi = previewApi;
+      }
+      if (filterPreviewLabelEl) {
+        filterPreviewLabelEl.textContent = typeof previewApi?.label === 'string' && previewApi.label.trim()
+          ? previewApi.label.trim()
+          : 'Filter preview';
       }
       if (filterPreviewHost.childNodes.length > 0) {
         filterPreviewWrap.classList.remove('hidden');
@@ -653,6 +643,13 @@ let SharedFieldPicker;
 
       const selected = optionsListFind(fieldName);
       if (!isOptionDisplayable(selected)) {
+        if (isOptionBuildable(selected) && filterPreviewHost) {
+          selectedFieldName = fieldName;
+          renderList();
+          syncChoiceInputs();
+          syncDetails();
+          return true;
+        }
         showToastMessage(`${fieldName} must be created before it can be displayed.`, 'warning');
         return true;
       }

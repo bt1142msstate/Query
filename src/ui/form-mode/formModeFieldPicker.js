@@ -2,18 +2,11 @@ import { QueryChangeManager, QueryStateReaders } from '../../core/queryState.js'
 import { showToastMessage } from '../../core/toast.js';
 import {
   fieldDefs,
-  getFieldBuilderInputs,
   isFieldBackendFilterable,
   isFieldBuildable,
-  loadFieldDefinitions,
-  registerDynamicField
+  loadFieldDefinitions
 } from '../../features/filters/fieldDefs.js';
-import {
-  buildDynamicFieldDefinition,
-  collectBuilderInputValues,
-  isOptionalBuilderInput
-} from '../../features/filters/buildableFilterFields.js';
-import { getFieldPerformanceWarning } from '../../features/filters/fieldWarnings.js';
+import { renderBuildableFieldPreview } from '../field-picker/buildableFieldPreview.js';
 import { SharedFieldPicker } from '../field-picker/fieldPicker.js';
 import { FormModeControls as formModeControls } from './formModeControls.js';
 import {
@@ -148,11 +141,23 @@ function renderFilterPreview({
       context,
       fieldDef,
       fieldName,
-      state,
-      applyFormState,
-      refreshBrowserUrl,
-      syncValidationUi,
-      updateButtonStates
+      onCreated: dynamicFieldName => {
+        if (!Array.isArray(state.spec.columns)) {
+          state.spec.columns = [];
+        }
+        if (!state.spec.columns.includes(dynamicFieldName)) {
+          state.spec.columns.push(dynamicFieldName);
+        }
+
+        applyFormState({ source: 'QueryFormMode.fieldPicker.addDynamicDisplayField' });
+        refreshBrowserUrl();
+        syncValidationUi();
+        updateButtonStates();
+
+        return {
+          successMessage: `${dynamicFieldName}: added results column.`
+        };
+      }
     });
   }
 
@@ -249,137 +254,6 @@ function renderFilterPreview({
         control._cleanupPopup();
       }
     }
-  };
-}
-
-function renderBuildableFieldPreview({
-  container,
-  context,
-  fieldDef,
-  fieldName,
-  state,
-  applyFormState,
-  refreshBrowserUrl,
-  syncValidationUi,
-  updateButtonStates
-}) {
-  const builderInputs = getFieldBuilderInputs(fieldDef);
-  if (!container || !state?.spec || !builderInputs.length) {
-    return null;
-  }
-
-  const wrapper = document.createElement('div');
-  wrapper.className = 'form-mode-buildable-preview';
-
-  const intro = document.createElement('p');
-  intro.className = 'form-mode-buildable-preview-copy';
-  intro.textContent = 'Enter the field details, then add the generated field to results.';
-  wrapper.appendChild(intro);
-
-  const inputEls = [];
-  builderInputs.forEach(inputSpec => {
-    const row = document.createElement('label');
-    row.className = 'form-mode-buildable-input-row';
-
-    const label = document.createElement('span');
-    label.className = 'form-mode-buildable-input-label';
-    label.textContent = inputSpec.label || inputSpec.id || 'Field value';
-
-    const input = document.createElement('input');
-    input.type = inputSpec.type || 'text';
-    input.className = 'form-mode-text-input form-mode-buildable-input';
-    input.placeholder = inputSpec.placeholder || '';
-    input.autocomplete = 'off';
-    input.dataset.inputId = inputSpec.id || '';
-    input.dataset.errorMsg = inputSpec.error_msg || inputSpec.errorMessage || 'Invalid field value';
-    input.dataset.optional = isOptionalBuilderInput(inputSpec) ? 'true' : 'false';
-    input.required = input.dataset.optional !== 'true';
-    if (inputSpec.pattern) {
-      input.pattern = inputSpec.pattern;
-    }
-
-    input.addEventListener('input', () => {
-      input.classList.remove('form-mode-control-invalid');
-      error.classList.add('hidden');
-      error.textContent = '';
-    });
-
-    row.appendChild(label);
-    row.appendChild(input);
-    wrapper.appendChild(row);
-    inputEls.push(input);
-  });
-
-  const error = document.createElement('p');
-  error.className = 'form-mode-buildable-error hidden';
-  wrapper.appendChild(error);
-
-  const actionRow = document.createElement('div');
-  actionRow.className = 'form-mode-buildable-actions';
-
-  const addButton = document.createElement('button');
-  addButton.type = 'button';
-  addButton.className = 'form-mode-add-filter-btn';
-  addButton.textContent = 'Create and display field';
-  actionRow.appendChild(addButton);
-  wrapper.appendChild(actionRow);
-
-  function showBuilderError(message, inputs = []) {
-    error.textContent = message;
-    error.classList.remove('hidden');
-    inputs.forEach(input => input.classList.add('form-mode-control-invalid'));
-    inputs[0]?.focus();
-  }
-
-  addButton.addEventListener('click', () => {
-    inputEls.forEach(input => input.classList.remove('form-mode-control-invalid'));
-    error.classList.add('hidden');
-    error.textContent = '';
-
-    const result = collectBuilderInputValues(inputEls, { showFilterError: showBuilderError });
-    if (!result.ok) {
-      return;
-    }
-
-    const { dynamicFieldName, displayLabel } = buildDynamicFieldDefinition(fieldDef, result.values);
-    if (!dynamicFieldName || dynamicFieldName === fieldName) {
-      showBuilderError('Enter enough information to create a real field.', inputEls);
-      return;
-    }
-
-    registerDynamicField(dynamicFieldName, { label: displayLabel });
-
-    if (!Array.isArray(state.spec.columns)) {
-      state.spec.columns = [];
-    }
-    if (!state.spec.columns.includes(dynamicFieldName)) {
-      state.spec.columns.push(dynamicFieldName);
-    }
-
-    applyFormState({ source: 'QueryFormMode.fieldPicker.addDynamicDisplayField' });
-    refreshBrowserUrl();
-    syncValidationUi();
-    updateButtonStates();
-    showToastMessage(`${dynamicFieldName}: added results column.`, 'success');
-    const performanceWarning = getFieldPerformanceWarning(fieldDef);
-    if (performanceWarning) {
-      const level = performanceWarning.level === 'info' ? 'info' : 'warning';
-      showToastMessage(`${dynamicFieldName}: ${performanceWarning.message}`, level, 8500);
-    }
-
-    if (typeof context.cleanup === 'function') {
-      context.cleanup();
-    }
-  });
-
-  container.replaceChildren(wrapper);
-  window.setTimeout(() => inputEls[0]?.focus(), 0);
-
-  return {
-    getState() {
-      return null;
-    },
-    cleanup() {}
   };
 }
 

@@ -3,7 +3,8 @@ import { QueryChangeManager, QueryStateReaders } from '../../core/queryState.js'
 import { showToastMessage } from '../../core/toast.js';
 import { VisibilityUtils } from '../../core/visibility.js';
 import { DOM } from '../../core/domCache.js';
-import { fieldDefs, loadFieldDefinitions } from '../../features/filters/fieldDefs.js';
+import { fieldDefs, isFieldBuildable, loadFieldDefinitions } from '../../features/filters/fieldDefs.js';
+import { renderBuildableFieldPreview } from './buildableFieldPreview.js';
 import {
   applyQueryPreviewFilterState,
   createQueryFilterPreview,
@@ -21,6 +22,51 @@ function createQueryFieldPickerIntegration(options) {
   } = options;
   const services = appServices;
   const { getDisplayedFields, getFilterGroupForField } = QueryStateReaders;
+
+  function replaceDisplayedFieldSelection(fieldName, nextChecked, insertAt, source) {
+    const nextFields = buildNextDisplayedFieldsForPicker(
+      getDisplayedFields(),
+      fieldName,
+      nextChecked,
+      insertAt,
+      fieldMatchesBase
+    );
+
+    if (QueryChangeManager) {
+      QueryChangeManager.replaceDisplayedFields(nextFields, { source });
+    }
+  }
+
+  function createQueryPickerPreview(container, fieldName, context, insertAt) {
+    const fieldDef = fieldDefs && fieldDefs.get(fieldName);
+    if (isFieldBuildable(fieldDef)) {
+      return renderBuildableFieldPreview({
+        container,
+        context,
+        fieldDef,
+        fieldName,
+        actionLabel: insertAt >= 0 ? 'Create and insert field' : 'Create and add field',
+        onCreated: dynamicFieldName => {
+          replaceDisplayedFieldSelection(
+            dynamicFieldName,
+            true,
+            insertAt,
+            'SharedFieldPicker.addDynamicDisplayedField'
+          );
+
+          return {
+            successMessage: `${dynamicFieldName} added to results.`
+          };
+        }
+      });
+    }
+
+    if (insertAt >= 0) {
+      return null;
+    }
+
+    return createQueryFilterPreview(container, fieldName, context);
+  }
 
   function openQueryFilterEditor(fieldName) {
     const fieldDef = fieldDefs && fieldDefs.get(fieldName);
@@ -91,28 +137,26 @@ function createQueryFieldPickerIntegration(options) {
       autoApplyDisplayOnOptionClick: insertAt >= 0,
       autoDisplayOnSelect: insertAt < 0,
       showDisplayChoice: false,
-      compactLayout: insertAt >= 0,
+      compactLayout: false,
       autoAddFilterFromPreview: insertAt < 0,
       getOptions: getFieldPickerOptionsFromDefinitions,
       getFieldState: fieldName => ({
         display: getDisplayedFields().some(column => fieldMatchesBase(column, fieldName)),
         filter: Boolean(getFilterGroupForField(fieldName)?.filters?.length)
       }),
-      renderFilterPreview: insertAt < 0 ? createQueryFilterPreview : undefined,
+      renderFilterPreview: (container, fieldName, context = {}) => createQueryPickerPreview(
+        container,
+        fieldName,
+        context,
+        insertAt
+      ),
       onDisplayChange: async (fieldName, nextChecked) => {
-        const nextFields = buildNextDisplayedFieldsForPicker(
-          getDisplayedFields(),
+        replaceDisplayedFieldSelection(
           fieldName,
           nextChecked,
           insertAt,
-          fieldMatchesBase
+          'SharedFieldPicker.toggleDisplayedField'
         );
-
-        if (QueryChangeManager) {
-          QueryChangeManager.replaceDisplayedFields(nextFields, {
-            source: 'SharedFieldPicker.toggleDisplayedField'
-          });
-        }
 
         showToastMessage(
           nextChecked ? `${fieldName} added to results.` : `${fieldName} removed from results.`,
