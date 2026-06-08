@@ -3,8 +3,10 @@ import { createTableQueryCircuitOverlay } from './spacefieldOverlay.js';
 const STARTING_CLASS = 'app-starting';
 const READY_CLASS = 'app-ready';
 const COMPLETE_CLASS = 'is-complete';
+const DEFAULT_STARTUP_WATCHDOG_MS = 18000;
 
 let startupSpaceOverlay = null;
+let startupWatchdogTimer = null;
 
 function getStatusElement() {
   return typeof document === 'undefined'
@@ -43,7 +45,37 @@ function stopSpaceAnimation() {
   }, 260);
 }
 
-function initialize() {
+function clearStartupWatchdog() {
+  if (!startupWatchdogTimer) return;
+  window.clearTimeout(startupWatchdogTimer);
+  startupWatchdogTimer = null;
+}
+
+function scheduleStartupWatchdog(timeoutMs) {
+  if (typeof window === 'undefined') return;
+
+  clearStartupWatchdog();
+  const timeoutValue = Number.isFinite(Number(timeoutMs))
+    ? Number(timeoutMs)
+    : DEFAULT_STARTUP_WATCHDOG_MS;
+
+  if (timeoutValue <= 0) return;
+
+  startupWatchdogTimer = window.setTimeout(() => {
+    startupWatchdogTimer = null;
+    if (document.documentElement.dataset.queryAppReady === 'true') {
+      return;
+    }
+
+    update({
+      title: 'Opening builder',
+      detail: 'Field metadata is taking longer than expected. Opening the app so you can check API Settings or retry.'
+    });
+    complete();
+  }, timeoutValue);
+}
+
+function initialize(options = {}) {
   if (typeof document === 'undefined') return;
 
   document.documentElement.dataset.queryAppReady = 'false';
@@ -56,6 +88,7 @@ function initialize() {
   statusElement.classList.remove(COMPLETE_CLASS);
   statusElement.setAttribute('aria-hidden', 'false');
   mountSpaceAnimation(statusElement);
+  scheduleStartupWatchdog(options.watchdogMs);
 }
 
 function update({ title, detail } = {}) {
@@ -76,6 +109,7 @@ function update({ title, detail } = {}) {
 function complete(options = {}) {
   if (typeof document === 'undefined') return;
 
+  clearStartupWatchdog();
   const delay = Number.isFinite(Number(options.delay)) ? Math.max(0, Number(options.delay)) : 0;
   const finish = () => {
     const statusElement = getStatusElement();

@@ -8,6 +8,15 @@ const API_URL_PARAM_NAMES = ['api_url', 'query_api_url'];
 let lastRateLimitNoticeUntil = 0;
 let runtimeApiUrl = resolveConfiguredApiUrl();
 
+function buildTimeoutError(timeoutMs) {
+  const timeoutSeconds = Math.max(1, Math.ceil(Number(timeoutMs || 0) / 1000));
+  const error = new Error(`Backend request timed out after ${formatDuration(timeoutSeconds)}.`);
+  error.name = 'BackendRequestTimeoutError';
+  error.isTimeout = true;
+  error.timeoutMs = timeoutMs;
+  return error;
+}
+
 function getLocationHref() {
   return typeof globalThis.location?.href === 'string'
     ? globalThis.location.href
@@ -183,18 +192,41 @@ async function request(payload, options = {}) {
     method = 'POST',
     headers = {},
     keepalive = false,
-    notifyOnRateLimit = true
+    notifyOnRateLimit = true,
+    timeoutMs = 0
   } = options;
 
-  const response = await fetch(getApiUrl(), {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers
-    },
-    keepalive,
-    body: JSON.stringify(payload)
-  });
+  const timeoutValue = Number(timeoutMs);
+  const shouldTimeout = Number.isFinite(timeoutValue)
+    && timeoutValue > 0
+    && typeof AbortController !== 'undefined';
+  const controller = shouldTimeout ? new AbortController() : null;
+  const timeoutId = controller
+    ? setTimeout(() => controller.abort(), timeoutValue)
+    : null;
+
+  let response;
+  try {
+    response = await fetch(getApiUrl(), {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers
+      },
+      keepalive,
+      body: JSON.stringify(payload),
+      ...(controller ? { signal: controller.signal } : {})
+    });
+  } catch (error) {
+    if (controller?.signal?.aborted) {
+      throw buildTimeoutError(timeoutValue);
+    }
+    throw error;
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
 
   await assertNotRateLimited(response, { notify: notifyOnRateLimit });
   return response;

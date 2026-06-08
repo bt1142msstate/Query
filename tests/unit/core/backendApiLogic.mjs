@@ -1,40 +1,40 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-test('backend api', async () => {
-  function installBrowserConfig({ href = 'https://app.example.test/index.html', search = '', storedApiUrl = '' } = {}) {
-    const storage = new Map();
-    if (storedApiUrl) {
-      storage.set('query-project.api-url', storedApiUrl);
-    }
-
-    Object.defineProperty(globalThis, 'location', {
-      configurable: true,
-      value: {
-        href,
-        search
-      }
-    });
-
-    Object.defineProperty(globalThis, 'localStorage', {
-      configurable: true,
-      value: {
-        __queryProjectStorageMock: true,
-        getItem(key) {
-          return storage.has(key) ? storage.get(key) : null;
-        },
-        removeItem(key) {
-          storage.delete(key);
-        },
-        setItem(key, value) {
-          storage.set(key, String(value));
-        }
-      }
-    });
-
-    return storage;
+function installBrowserConfig({ href = 'https://app.example.test/index.html', search = '', storedApiUrl = '' } = {}) {
+  const storage = new Map();
+  if (storedApiUrl) {
+    storage.set('query-project.api-url', storedApiUrl);
   }
 
+  Object.defineProperty(globalThis, 'location', {
+    configurable: true,
+    value: {
+      href,
+      search
+    }
+  });
+
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: {
+      __queryProjectStorageMock: true,
+      getItem(key) {
+        return storage.has(key) ? storage.get(key) : null;
+      },
+      removeItem(key) {
+        storage.delete(key);
+      },
+      setItem(key, value) {
+        storage.set(key, String(value));
+      }
+    }
+  });
+
+  return storage;
+}
+
+test('backend api', async () => {
   const searchStorage = installBrowserConfig({
     href: 'https://app.example.test/query/index.html?api_url=/api/query',
     search: '?api_url=/api/query'
@@ -67,4 +67,36 @@ test('backend api', async () => {
   });
   const storedModule = await import(`../../../src/core/backendApi.js?case=stored-${Date.now()}`);
   assert.equal(storedModule.getApiUrl(), 'https://stored.example.test/query');
+});
+
+test('backend api times out pending requests', async () => {
+  installBrowserConfig({
+    href: 'https://app.example.test/index.html',
+    search: ''
+  });
+  const timeoutModule = await import(`../../../src/core/backendApi.js?case=timeout-${Date.now()}`);
+  const originalFetch = globalThis.fetch;
+
+  timeoutModule.configureApiUrl('https://backend.example.test/query', { persist: false });
+  globalThis.fetch = async (_url, options = {}) => new Promise((_resolve, reject) => {
+    options.signal?.addEventListener('abort', () => {
+      const error = new Error('The operation was aborted.');
+      error.name = 'AbortError';
+      reject(error);
+    }, { once: true });
+  });
+
+  try {
+    await assert.rejects(
+      () => timeoutModule.postJson({ action: 'get_fields' }, { timeoutMs: 5 }),
+      error => {
+        assert.equal(error.name, 'BackendRequestTimeoutError');
+        assert.equal(error.isTimeout, true);
+        assert.equal(error.timeoutMs, 5);
+        return true;
+      }
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });

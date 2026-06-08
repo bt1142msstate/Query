@@ -24,6 +24,7 @@ let pendingAliasNotifications = new Map();
 let aliasToastTimer = null;
 const backendFieldNames = new Set();
 const localDynamicFieldNames = new Set();
+const FIELD_DEFINITION_TIMEOUT_MS = 12000;
 const SYSTEM_CATEGORIES = ['All', 'Selected'];
 const DEFAULT_DATE_FILTERS = Object.freeze([
   'equals',
@@ -179,7 +180,10 @@ registerQueryStateRuntimeAccessors({
 
 async function fetchFieldDefinitions() {
     try {
-        const { data } = await BackendApi.postJson({ action: 'get_fields' });
+        const { data } = await BackendApi.postJson(
+          { action: 'get_fields' },
+          { timeoutMs: FIELD_DEFINITION_TIMEOUT_MS }
+        );
         
         let errorMsg = null;
         if (data.error) {
@@ -222,6 +226,11 @@ async function fetchFieldDefinitions() {
         return fieldDefsArray;
     } catch (e) {
         if (e?.isRateLimited) {
+            return [];
+        }
+        if (e?.isTimeout) {
+            console.error("Timed out loading backend field mappings.", e);
+            showToastMessage("Field settings took too long to load. Check API Settings and retry.", "error");
             return [];
         }
         console.error("Failed to load backend field mappings.", e);

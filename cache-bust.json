@@ -1,5 +1,5 @@
 {
-  "version": "4ad39212ea8aa5f6",
+  "version": "1254e8fa21c33c3a",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -12,7 +12,7 @@
     "src/core/appServices.js": "1f5f9768c94a730c",
     "src/core/appStartupEvents.js": "cb111b751d0cac20",
     "src/core/appUiActions.js": "e8269b0bfcee2b9f",
-    "src/core/backendApi.js": "5378f6e18275fe23",
+    "src/core/backendApi.js": "4f55d8753b8ba61f",
     "src/core/backgroundTaskNotifications.js": "9f23ed0c3a09a030",
     "src/core/bootstrap.js": "6550fd6a729866a6",
     "src/core/clipboard.js": "fe63aabe0dbd765a",
@@ -56,7 +56,7 @@
     "src/features/filters/condition-editor/filterInputAdapters.js": "404bcf83fc8a0d6d",
     "src/features/filters/condition-editor/filterInputConfiguration.js": "8a69e6c4a092aab5",
     "src/features/filters/dynamicFieldStorage.js": "20fcab5f9a75e750",
-    "src/features/filters/fieldDefs.js": "7af0ab4e0b8d86f0",
+    "src/features/filters/fieldDefs.js": "cdbbdd95ad804ccd",
     "src/features/filters/fieldWarnings.js": "3125478b52ec6a6a",
     "src/features/filters/filterConditionLogic.js": "43d6986eb7807894",
     "src/features/filters/filterManager.js": "7a514d667006607d",
@@ -190,7 +190,7 @@
     "src/ui/queryTableView.js": "2906642dae4a903f",
     "src/ui/queryUI.js": "14bbe37b794f8d7e",
     "src/ui/spacefieldOverlay.js": "b1cc13f40ec4a036",
-    "src/ui/startupStatus.js": "9e1557a77d315937",
+    "src/ui/startupStatus.js": "e3f94a036cbd8cdc",
     "src/ui/toast.js": "cbf5e5e1abd48fd4",
     "src/ui/tooltips.js": "aa91dcb1c0f0d32a"
   }
