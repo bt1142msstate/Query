@@ -4,7 +4,8 @@ import {
   fieldDefs,
   isFieldBackendFilterable,
   isFieldBuildable,
-  loadFieldDefinitions
+  loadFieldDefinitions,
+  removeDynamicField
 } from '../../features/filters/fieldDefs.js';
 import { renderBuildableFieldPreview } from '../field-picker/buildableFieldPreview.js';
 import { SharedFieldPicker } from '../field-picker/fieldPicker.js';
@@ -114,6 +115,38 @@ export async function openFormModeFieldPicker({
         syncValidationUi,
         updateButtonStates
       });
+    },
+    onRemoveDynamicField: async fieldName => {
+      if (!state.spec) {
+        return { removed: false };
+      }
+
+      captureCurrentControlDefaults();
+      if (Array.isArray(state.spec.columns)) {
+        state.spec.columns = state.spec.columns.filter(column => column !== fieldName);
+      }
+      removeSpecFilterInputs(fieldName);
+
+      QueryChangeManager.removeDisplayedField(fieldName, {
+        source: 'QueryFormMode.fieldPicker.removeDynamicDisplayedField'
+      });
+      QueryChangeManager.removeFilter(fieldName, {
+        removeAll: true,
+        source: 'QueryFormMode.fieldPicker.removeDynamicFieldFilters'
+      });
+
+      const removed = removeDynamicField(fieldName);
+      rebuildFormCardFromSpec({
+        preserveCurrentDefaults: false,
+        querySource: 'QueryFormMode.fieldPicker.removeDynamicField'
+      });
+      syncValidationUi();
+      updateButtonStates();
+
+      return {
+        removed,
+        successMessage: `${fieldName}: removed built field.`
+      };
     }
   });
 }

@@ -4,7 +4,8 @@ import {
   fieldDefsArray,
   isFieldBackendFilterable,
   isFieldBuildable,
-  isFieldDisplayable
+  isFieldDisplayable,
+  isLocalDynamicField
 } from '../../features/filters/fieldDefs.js';
 import { getFieldPerformanceWarning } from '../../features/filters/fieldWarnings.js';
 
@@ -27,6 +28,9 @@ export function getFieldPickerOptionsFromDefinitions() {
       buildable: typeof isFieldBuildable === 'function'
         ? isFieldBuildable(fieldDef)
         : Boolean(fieldDef.is_buildable || fieldDef.builder),
+      localDynamic: typeof isLocalDynamicField === 'function'
+        ? isLocalDynamicField(fieldDef)
+        : false,
       desc: typeof fieldDef.desc === 'string' ? fieldDef.desc : '',
       description: typeof fieldDef.description === 'string' ? fieldDef.description : '',
       performanceWarning: getFieldPerformanceWarning(fieldDef),
