@@ -4,7 +4,7 @@ This app is a static frontend. It does not own the data system. A compatible bac
 
 The current checked-in endpoint remains the default example/testing backend. New deployments can point the same frontend at another backend without changing field logic in the frontend.
 
-The easiest user-facing path is the in-app **API Settings** panel. It saves a compatible API URL in the browser, can test `get_fields`, and can build a launch link that includes only the API override.
+The easiest user-facing path is the in-app **API Settings** panel. It saves a compatible API URL in the browser, can test `get_fields`, can run a compatibility report, and can build a launch link that includes only the API override.
 
 ## Recommended Contract
 
@@ -25,7 +25,8 @@ The machine-readable schema is [`docs/schemas/query-api.schema.json`](schemas/qu
 3. Return `application/x-ndjson` result streams with ordered columns and row value arrays.
 4. Serve this repository as a static site.
 5. Open **API Settings**, enter `https://your.example.org/query-api` or a same-origin route such as `/api/query`, save it, and reload fields.
-6. Add `status`, `cancel`, `get_results`, and template actions only when those panels need to work against your backend.
+6. Run **Compatibility Check** in API Settings.
+7. Add `status`, `cancel`, `get_results`, and template actions only when those panels need to work against your backend.
 
 The frontend does not require backend-specific code for field definitions. Your `get_fields` response defines available fields, filter operators, field warnings, dynamic/buildable field inputs, and any fields that return multi-value cells.
 
@@ -105,8 +106,9 @@ From the app UI:
 1. Open **API Settings**.
 2. Enter an absolute API URL or a same-origin path.
 3. Use **Test Connection** to verify that `get_fields` returns metadata.
-4. Save the endpoint.
-5. Reload fields so the app refreshes metadata from that backend.
+4. Use **Run Compatibility Check** to verify browser access, JSONL streaming, event order, multi-value arrays, and optional workflow actions.
+5. Save the endpoint.
+6. Reload fields so the app refreshes metadata from that backend.
 
 For a static deployment, the frontend can use another compatible backend by providing one of these browser settings:
 
@@ -130,6 +132,31 @@ query-project.api-url
 You can also pre-seed that localStorage value in your deployment shell. The default endpoint remains the fallback if no override is supplied. Do not put secrets or API keys in the settings screen or URL; use normal authenticated sessions, reverse proxies, or server-side API credentials instead.
 
 Your backend must allow browser requests from the deployed frontend origin through normal CORS rules, unless it is served from the same origin.
+
+## Compatibility Report
+
+The API Settings panel includes a compatibility report that sends safe diagnostic requests to the configured endpoint.
+
+Core checks:
+
+| Check | What it verifies |
+| --- | --- |
+| CORS / browser access | The browser can complete a `POST` request to the API URL |
+| Field metadata | `get_fields` returns a non-empty field list |
+| JSONL stream | `run` returns protocol version 1 JSONL with a `meta` event |
+| Event order | The stream uses `meta` first, `row` values as arrays, and `done` last |
+| Multi-value arrays | At least one sampled row contains an array-valued cell, when present in the result sample |
+
+Optional checks:
+
+| Check | Action |
+| --- | --- |
+| Query status | `status` |
+| Cancellation | `cancel` |
+| Saved results | `get_results` |
+| Templates | `list_templates` |
+
+The run diagnostic sends a small request with `compatibility_check: true`, `limit: 5`, and `max_rows: 5`. Backends should honor those hints when possible so compatibility tests stay fast and avoid large result streams. If a backend does not have sample multi-value data, the multi-value check can report a warning rather than a failure.
 
 ## Transport
 
@@ -489,6 +516,8 @@ Best option for new systems. Implement the actions above and stream JSONL result
 
 Use a small backend adapter that accepts the app's JSON payload, translates it to your internal system, then streams JSONL events. This is usually the cleanest path for systems that already have their own query language.
 
+Adapter sketches are available in [`examples/adapters/`](../examples/adapters/), including Node/Express, Python/FastAPI, legacy delimited output, and SQL/reporting API shapes.
+
 ### Static Deployment with Same-Origin API
 
 Serve the app and API under the same origin, then launch the app with:
@@ -521,8 +550,9 @@ Your API must allow the frontend origin with CORS. If users authenticate through
 1. Implement `POST` JSON handling.
 2. Support `get_fields`.
 3. Support `run`.
-4. Return result rows as JSON if possible.
+4. Return result rows as JSONL events with `meta`, `row`, and `done`.
 5. Add `X-Query-Id`, `status`, `cancel`, and `get_results` if you want history and cancellation.
 6. Add template actions only if you want saved templates.
 7. Return useful `{ "error": "..." }` bodies for failures.
 8. Configure CORS or serve the API from the same origin as the static app.
+9. Honor `compatibility_check`, `limit`, and `max_rows` hints when possible.

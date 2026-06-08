@@ -41,6 +41,12 @@ npm install
 python3 -m http.server 4173
 ```
 
+Or run the full local demo, which starts the static frontend and minimal backend together:
+
+```bash
+npm run demo
+```
+
 3. Open the app:
 
 ```text
@@ -48,6 +54,8 @@ http://127.0.0.1:4173/index.html
 ```
 
 4. Connect a backend from the app: open **API Settings**, enter your compatible query API URL, save it, and reload fields.
+
+Use **Run Compatibility Check** in API Settings to verify browser access, field loading, JSONL streaming, event order, multi-value arrays, and optional workflow actions.
 
 You can also launch with an API URL:
 
@@ -70,6 +78,8 @@ http://127.0.0.1:8787/query-api
 ```
 
 For a new backend, start with [`docs/INTEGRATION.md`](docs/INTEGRATION.md). The minimum integration is `POST` JSON actions for `get_fields` and `run`; history, cancellation, saved templates, and saved-result loading are optional extensions.
+
+If your system does not already speak this contract, use an adapter or proxy backend. The repository includes adapter sketches in [`examples/adapters/`](examples/adapters/) for Node/Express, Python/FastAPI, legacy delimited output, and SQL/reporting APIs.
 
 The recommended backend contract is intentionally small:
 
@@ -152,9 +162,11 @@ Canonical layout decision: application source lives in `src/`. We are not using 
 | `config/` | Shared architecture contracts for forbidden browser globals and module boundaries |
 | `docs/ARCHITECTURE.md` | Frontend architecture notes, quality gates, and refactor plan |
 | `docs/INTEGRATION.md` | Backend integration contract, streaming JSONL results, and deployment options |
+| `docs/DEPLOYMENT.md` | Deployment recipes for same-origin proxying, CORS, auth, GitHub Pages, and internal hosting |
 | `docs/PROJECT_HISTORY.md` | Non-redundant build history and backend work summary |
 | `docs/ROADMAP.md` | Current project status, completed milestones, and remaining roadmap items |
 | `docs/schemas/query-api.schema.json` | Machine-readable JSON Schema for the recommended backend contract |
+| `examples/adapters/` | Adapter sketches for translating existing systems into the JSONL contract |
 | `examples/minimal-backend/` | Dependency-free JSONL backend example for local integration testing |
 | `tests/architecture/` | Architecture fitness and module-specifier checks |
 | `tests/unit/` | Focused pure-logic unit tests grouped by `core/`, `features/`, and `ui/` |
@@ -181,7 +193,7 @@ The public live site should not rely on that example API as its production data 
 
 Static deployments can point the app at another compatible service through the API Settings panel, `?api_url=...`, or `?query_api_url=...`; valid values are stored in `localStorage` under `query-project.api-url`. Local deployments can still change the default in `src/core/backendApi.js` when that is simpler.
 
-See [`docs/INTEGRATION.md`](docs/INTEGRATION.md) for the full backend contract, including field metadata, query payloads, streaming JSONL results, history/cancel actions, template actions, rate-limit errors, deployment options, and the [`docs/schemas/query-api.schema.json`](docs/schemas/query-api.schema.json) schema.
+See [`docs/INTEGRATION.md`](docs/INTEGRATION.md) for the full backend contract, including field metadata, query payloads, streaming JSONL results, history/cancel actions, template actions, rate-limit errors, deployment options, and the [`docs/schemas/query-api.schema.json`](docs/schemas/query-api.schema.json) schema. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for production hosting recipes.
 
 ### Streaming JSONL Results
 
@@ -244,13 +256,12 @@ npm run cache:bust
 
 ## Roadmap
 
-Current stage: Stage 4, integration readiness and public deployment hardening. The frontend architecture, ES module migration, source-tree organization, responsive/mobile workflow baseline, cache-busting enforcement, backend-driven field contract, API Settings screen, minimal example backend, streaming JSONL result support, large Excel export, and modernized test suite are in place.
+Current stage: Stage 4, integration readiness and public deployment hardening. The frontend architecture, ES module migration, source-tree organization, responsive/mobile workflow baseline, cache-busting enforcement, backend-driven field contract, API Settings screen with compatibility diagnostics, minimal example backend, one-command demo, adapter sketches, deployment recipes, streaming JSONL result support, large Excel export, and modernized test suite are in place.
 
 Remaining work is mostly integration and polish:
 
 - Remove project-owned API usage from the public live default and make bring-your-own-API the primary deployment path.
-- Add production deployment recipes for common same-origin proxy, CORS, authentication, history, cancel, and template persistence setups.
-- Add optional backend adapter examples for teams that need to translate existing systems into the recommended JSONL API contract.
+- Expand adapter examples into runnable backend packages only if real integrators need more than the current sketches.
 - Continue adding realistic browser interaction coverage when new workflow bugs are found.
 - Keep reviewing large coordinator modules as features change, but only split them when a real ownership boundary appears.
 

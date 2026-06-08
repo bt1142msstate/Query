@@ -28,7 +28,10 @@ The project is in a stable, production-oriented frontend shape for a static brow
 - Query execution supports backend-driven dynamic/buildable fields, date `Never` handling, and streaming JSONL result events.
 - Results support virtualized rendering, sorting, resizing, split multi-value columns, post filters, and worker-backed large Excel export.
 - The app includes a first-class API Settings panel for selecting, saving, testing, and sharing compatible backend endpoints.
+- API Settings includes a compatibility report for browser access, field metadata, JSONL streaming, event order, multi-value arrays, and optional workflow actions.
 - A dependency-free minimal backend example demonstrates the JSONL contract for new integrations.
+- `npm run demo` starts the static frontend and minimal backend together for a one-command local demo.
+- Adapter sketches and deployment recipes document common integration paths without adding alternate frontend protocols.
 - Mobile and tablet workflows are covered by browser smoke tests for overlays, menus, virtual table behavior, mobile dialogs, API settings, and responsive resizing.
 - `npm test` is the full quality gate and runs cache-bust validation, lint, architecture checks, unit tests, and browser smoke tests.
 
@@ -62,7 +65,11 @@ The completed stages above are limited to work that is actually implemented or g
 | Folder ownership | Complete: product workflows live under `src/features/` |
 | Backend-driven fields | Complete, with hardcoded-field guardrails |
 | API settings screen | Complete: users can save, reset, test, and share API endpoint settings |
+| API compatibility diagnostics | Complete: API Settings reports core JSONL support and optional workflow actions |
 | Minimal backend example | Complete: `examples/minimal-backend/` demonstrates `get_fields`, `run`, JSONL streaming, CORS, status, and cancel |
+| One-command local demo | Complete: `npm run demo` starts the static frontend and minimal backend |
+| Deployment recipes | Complete: same-origin proxy, CORS, cookie/session auth, GitHub Pages, internal hosting, and secret-handling guidance |
+| Adapter examples | Complete at the sketch level: Node/Express, Python/FastAPI, legacy text output, and SQL/reporting API translation patterns |
 | Streaming JSONL result support | Complete |
 | Dynamic/buildable fields | Complete from the frontend contract side |
 | Public note and MARC-style multi-value handling | Complete from the frontend contract side |
@@ -77,8 +84,7 @@ The completed stages above are limited to work that is actually implemented or g
 | Stage | Priority | Work | Why it matters |
 | --- | --- | --- | --- |
 | Stage 4 | High | Remove project-owned API usage from the public live default | The checked-in endpoint is useful as an example/testing integration, but the live deployment should default to a bring-your-own-API setup. |
-| Stage 4 | Medium | Add production deployment recipes | Same-origin proxy, CORS, authentication, saved history, cancellation, and template persistence recipes would make third-party deployment easier. |
-| Stage 4 | Medium | Add optional backend adapter examples | Native JSONL remains the recommended contract. Adapter examples can show how to translate existing systems, legacy text output, SQL/reporting APIs, or vendor-specific query tools into the same frontend JSONL stream without changing frontend code. |
+| Stage 4 | Medium | Expand adapter examples only as needed | Native JSONL remains the recommended contract. The current adapter sketches cover the main patterns; runnable adapter packages should be added only when real integrations need them. |
 | Stage 4 | Medium | Keep expanding browser smoke coverage around new workflows | The current suite covers the main desktop/mobile flows. New workflow bugs should usually add one realistic browser interaction test plus focused unit coverage for reusable logic. |
 | Stage 4 | Medium | Continue cohesion reviews as features change | There are no current large-module exceptions, but some coordinator modules are intentionally still large. Split them only when a stable responsibility boundary appears. |
 | Stage 5 | Low | Optional accessibility audit | The app has keyboard-friendly controls in many areas, but a dedicated audit for focus order, screen reader labels, and reduced-motion behavior would be useful before broader public use. |
@@ -92,6 +98,7 @@ Stage 4 is done when:
 - The README clearly routes new users through local setup, API setup, and deployment choices.
 - `docs/INTEGRATION.md` includes enough contract detail and minimal examples for a developer to implement the compatible backend without reading app internals.
 - The roadmap clearly distinguishes the recommended native JSONL backend from optional adapter examples for deployments whose existing systems need a translation layer.
+- API Settings can run a compatibility report against a configured backend.
 - The test gate still passes with cache-busting enforcement, architecture rules, unit tests, and browser smoke coverage.
 
 ## Not Currently Planned

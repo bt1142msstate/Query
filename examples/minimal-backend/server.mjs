@@ -240,7 +240,10 @@ function getRequestedColumns(payload) {
 
 function getFilteredRows(payload) {
   const filters = Array.isArray(payload.filters) ? payload.filters : [];
-  return rows.filter(row => filters.every(filter => rowMatchesFilter(row, filter)));
+  const limit = Math.max(0, Number(payload.limit || payload.max_rows || rows.length) || rows.length);
+  return rows
+    .filter(row => filters.every(filter => rowMatchesFilter(row, filter)))
+    .slice(0, limit || rows.length);
 }
 
 function writeJsonl(response, event) {
@@ -311,6 +314,9 @@ async function handleApiRequest(request, response) {
       return;
     case 'cancel':
       sendJson(response, 200, { ok: true });
+      return;
+    case 'list_templates':
+      sendJson(response, 200, { categories: [], templates: [] });
       return;
     default:
       sendJson(response, 400, { error: `Unsupported action: ${payload.action || '(missing)'}` });
