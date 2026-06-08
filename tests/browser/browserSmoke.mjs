@@ -480,6 +480,59 @@ async function runSmokeTest() {
     }
     await page.locator('#api-settings-test-btn').click();
     await page.waitForFunction(() => /Connected\. Loaded \d+ fields\./u.test(document.querySelector('#api-settings-status')?.textContent || ''), null, { timeout: 5000 });
+    queryApiStub.enqueue({
+      action: 'run',
+      body: buildJsonlResultStream({
+        columns: ['Public Note', 'Smoke Title', 'Smoke Branch'],
+        queryId: 'browser-smoke-compatibility',
+        rows: [
+          [['First note', 'Second note'], 'Compatibility title', 'Main']
+        ]
+      }),
+      contentType: 'application/x-ndjson; charset=utf-8',
+      rawColumns: ['Public Note', 'Smoke Title', 'Smoke Branch']
+    });
+    await page.locator('#api-settings-compatibility-btn').click();
+    await page.waitForFunction(() => {
+      return document.querySelectorAll('#api-compatibility-results .api-compatibility-row').length >= 9;
+    }, null, { timeout: 5000 });
+    const compatibilityReport = await page.evaluate(() => {
+      const rows = Array.from(document.querySelectorAll('#api-compatibility-results .api-compatibility-row'));
+      return {
+        checks: rows.map(row => ({
+          id: row.getAttribute('data-check-id'),
+          status: row.getAttribute('data-status'),
+          text: row.textContent?.replace(/\s+/gu, ' ').trim() || ''
+        })),
+        status: document.querySelector('#api-settings-status')?.textContent?.trim() || '',
+        summary: document.querySelector('#api-compatibility-summary')?.textContent?.trim() || ''
+      };
+    });
+    const statusById = new Map(compatibilityReport.checks.map(check => [check.id, check.status]));
+    if (
+      statusById.get('cors') !== 'supported'
+      || statusById.get('get-fields') !== 'supported'
+      || statusById.get('jsonl-stream') !== 'supported'
+      || statusById.get('jsonl-order') !== 'supported'
+      || statusById.get('multi-values') !== 'supported'
+      || statusById.get('optional-status') !== 'supported'
+      || statusById.get('optional-cancel') !== 'supported'
+      || statusById.get('optional-list_templates') !== 'supported'
+      || statusById.get('optional-get_results') !== 'missing'
+      || !/8 supported, 0 warnings, 1 missing, 0 failed/u.test(compatibilityReport.summary)
+      || !/items to review/iu.test(compatibilityReport.status)
+    ) {
+      throw new Error(`API compatibility report should show core support and optional saved-results gap: ${JSON.stringify(compatibilityReport)}`);
+    }
+    const compatibilityRunPayload = queryApiStub.getRequests('run').at(-1)?.payload;
+    if (
+      compatibilityRunPayload?.compatibility_check !== true
+      || compatibilityRunPayload?.result_format !== 'jsonl'
+      || compatibilityRunPayload?.max_rows !== 5
+      || !compatibilityRunPayload?.display_fields?.includes('Public Note')
+    ) {
+      throw new Error(`API compatibility run should request a small JSONL diagnostic stream: ${JSON.stringify(compatibilityRunPayload)}`);
+    }
     await page.locator('#api-settings-url-input').fill('/query-api');
     await page.locator('#api-settings-save-btn').click();
     const savedApiSettings = await page.evaluate(async () => {

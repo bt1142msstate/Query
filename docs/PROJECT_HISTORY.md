@@ -163,7 +163,11 @@ This is a non-redundant summary of the work represented by the repository commit
 - Added architecture documentation describing module boundaries, quality gates, and current structure.
 - Added an integration guide and JSON Schema for compatible backend implementations.
 - Added a first-class API Settings screen for saving, resetting, testing, and sharing compatible backend API endpoints.
+- Added API Settings compatibility diagnostics for browser access, field metadata, JSONL streaming, event order, multi-value arrays, and optional workflow actions.
 - Added a dependency-free minimal backend example that demonstrates field metadata, CORS, status/cancel stubs, and streaming JSONL results.
+- Added a one-command local demo that starts the static frontend and minimal backend together.
+- Added adapter sketches for Node/Express, Python/FastAPI, legacy delimited output, and SQL/reporting API translation into the JSONL contract.
+- Added deployment recipes for same-origin proxying, CORS, cookie/session auth, GitHub Pages plus a separate API, internal hosting, and keeping secrets out of browser URLs.
 - Added roadmap documentation with current stage, completed milestones, remaining work, and non-goals.
 - Added testing documentation to explain test layers and avoid redundant coverage.
 - Updated repository metadata and icons so the project presents cleanly on GitHub and as an installed web app.
@@ -206,6 +210,6 @@ The frontend is intentionally backend-swappable. To make the full project work w
 
 ## Current Result
 
-The project is now a buildless static frontend with a documented backend contract, backend-driven field definitions, a first-class API Settings screen, a minimal backend example, streaming JSONL result support, a virtualized results table, large Excel export, mobile/tablet workflows, query history, templates, form sharing, result sharing, and a modern test/architecture gate.
+The project is now a buildless static frontend with a documented backend contract, backend-driven field definitions, a first-class API Settings screen with compatibility diagnostics, a minimal backend example, a one-command local demo, adapter/deployment guidance, streaming JSONL result support, a virtualized results table, large Excel export, mobile/tablet workflows, query history, templates, form sharing, result sharing, and a modern test/architecture gate.
 
-The remaining work is mainly integration polish: removal of the example API as the live-site default, production deployment recipes, and a dedicated accessibility audit before broader public use.
+The remaining work is mainly deployment polish: removal of the example API as the live-site default, expanding adapter examples only when real integrations need runnable packages, and a dedicated accessibility audit before broader public use.

@@ -8,6 +8,7 @@ import {
 } from '../core/backendApi.js';
 import { ClipboardUtils } from '../core/clipboard.js';
 import { showToastMessage } from '../core/toast.js';
+import { runApiCompatibilityCheck, summarizeCompatibilityChecks } from './apiCompatibility.js';
 
 const DEFAULT_TEST_TIMEOUT_MS = 10000;
 let initialized = false;
@@ -65,6 +66,9 @@ function getElements() {
     input: document.getElementById('api-settings-url-input'),
     launchUrl: document.getElementById('api-settings-launch-url'),
     mode: document.getElementById('api-settings-mode'),
+    compatibilityButton: document.getElementById('api-settings-compatibility-btn'),
+    compatibilityResults: document.getElementById('api-compatibility-results'),
+    compatibilitySummary: document.getElementById('api-compatibility-summary'),
     reloadButton: document.getElementById('api-settings-reload-btn'),
     resetButton: document.getElementById('api-settings-reset-btn'),
     saveButton: document.getElementById('api-settings-save-btn'),
@@ -213,6 +217,74 @@ function getConnectionErrorMessage(error) {
   return error?.message || 'Connection test failed.';
 }
 
+function getCompatibilityStatusLabel(status) {
+  switch (status) {
+    case 'supported':
+      return 'Supported';
+    case 'warning':
+      return 'Check';
+    case 'missing':
+      return 'Missing';
+    case 'failed':
+      return 'Failed';
+    default:
+      return 'Unknown';
+  }
+}
+
+function createCompatibilityRow(check) {
+  const item = document.createElement('li');
+  item.className = 'api-compatibility-row';
+  item.dataset.status = check.status || 'unknown';
+  item.dataset.checkId = check.id || '';
+
+  const copy = document.createElement('span');
+  copy.className = 'api-compatibility-row-copy';
+
+  const label = document.createElement('strong');
+  label.textContent = check.label || 'Compatibility check';
+  copy.appendChild(label);
+
+  const detail = document.createElement('span');
+  detail.textContent = check.detail || '';
+  copy.appendChild(detail);
+
+  const badge = document.createElement('span');
+  badge.className = 'api-compatibility-badge';
+  badge.textContent = getCompatibilityStatusLabel(check.status);
+  item.append(copy, badge);
+
+  return item;
+}
+
+function renderCompatibilityReport(report) {
+  const { compatibilityResults, compatibilitySummary } = getElements();
+  if (!compatibilityResults || !compatibilitySummary) {
+    return;
+  }
+
+  const checks = Array.isArray(report?.checks) ? report.checks : [];
+  const summary = report?.summary || summarizeCompatibilityChecks(checks);
+
+  compatibilitySummary.dataset.status = summary.worstStatus || 'supported';
+  compatibilitySummary.textContent = checks.length
+    ? `${summary.supported || 0} supported, ${summary.warning || 0} warnings, ${summary.missing || 0} missing, ${summary.failed || 0} failed.`
+    : 'Run a compatibility check to test the API contract.';
+
+  compatibilityResults.replaceChildren(...checks.map(createCompatibilityRow));
+}
+
+function resetCompatibilityReport() {
+  const { compatibilityResults, compatibilitySummary } = getElements();
+  if (compatibilitySummary) {
+    compatibilitySummary.removeAttribute('data-status');
+    compatibilitySummary.textContent = 'Run a compatibility check to test field loading, JSONL streaming, and optional actions.';
+  }
+  if (compatibilityResults) {
+    compatibilityResults.replaceChildren();
+  }
+}
+
 function handleSave() {
   const { input } = getElements();
   const normalized = normalizeApiUrl(input?.value || '');
@@ -283,9 +355,48 @@ async function handleTestConnection() {
   }
 }
 
+async function handleCompatibilityCheck() {
+  const { compatibilityButton } = getElements();
+  const targetUrl = getInputApiUrl();
+  if (!targetUrl) {
+    setStatus('Enter a valid API URL before running compatibility checks.', 'error');
+    return;
+  }
+
+  setBusy(compatibilityButton, true);
+  setStatus('Running API compatibility checks...', 'info');
+  resetCompatibilityReport();
+
+  try {
+    const report = await runApiCompatibilityCheck(targetUrl);
+    renderCompatibilityReport(report);
+    const summary = report.summary || summarizeCompatibilityChecks(report.checks);
+    const tone = summary.failed || summary.missing ? 'warning' : summary.warning ? 'warning' : 'success';
+    const message = summary.failed || summary.missing
+      ? 'Compatibility check finished with items to review.'
+      : summary.warning
+        ? 'Compatibility check finished with warnings.'
+        : 'Compatibility check passed.';
+    setStatus(message, tone);
+  } catch (error) {
+    renderCompatibilityReport({
+      checks: [{
+        detail: getConnectionErrorMessage(error),
+        id: 'compatibility',
+        label: 'Compatibility check',
+        status: 'failed'
+      }]
+    });
+    setStatus(getConnectionErrorMessage(error), 'error');
+  } finally {
+    setBusy(compatibilityButton, false);
+  }
+}
+
 function bindEvents() {
   const {
     copyLinkButton,
+    compatibilityButton,
     input,
     reloadButton,
     resetButton,
@@ -298,6 +409,7 @@ function bindEvents() {
   resetButton?.addEventListener('click', handleReset);
   reloadButton?.addEventListener('click', handleReload);
   copyLinkButton?.addEventListener('click', handleCopyLaunchLink);
+  compatibilityButton?.addEventListener('click', handleCompatibilityCheck);
   testButton?.addEventListener('click', handleTestConnection);
 }
 

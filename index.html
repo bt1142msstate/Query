@@ -770,9 +770,21 @@
             <div class="api-settings-actions">
               <button id="api-settings-save-btn" type="button" class="api-settings-primary-btn">Save Endpoint</button>
               <button id="api-settings-test-btn" type="button" class="api-settings-secondary-btn">Test Connection</button>
+              <button id="api-settings-compatibility-btn" type="button" class="api-settings-secondary-btn">Run Compatibility Check</button>
               <button id="api-settings-reload-btn" type="button" class="api-settings-secondary-btn hidden">Reload Fields</button>
             </div>
             <p id="api-settings-status" class="api-settings-status-text" aria-live="polite"></p>
+          </article>
+
+          <article class="api-settings-card api-settings-card--wide api-compatibility-card">
+            <div class="api-settings-field-header">
+              <div>
+                <span class="api-settings-card-label">Compatibility report</span>
+                <p>Checks field metadata, browser access, JSONL streaming, event order, multi-value arrays, and optional workflow actions.</p>
+              </div>
+              <span id="api-compatibility-summary" class="api-compatibility-summary" aria-live="polite">Run a compatibility check to test the API contract.</span>
+            </div>
+            <ul id="api-compatibility-results" class="api-compatibility-results" aria-label="API compatibility results"></ul>
           </article>
 
           <article class="api-settings-card">

@@ -340,6 +340,11 @@ function buildDefaultQueryApiResponse(payload) {
         body: JSON.stringify({ ok: true }),
         contentType: 'application/json; charset=utf-8'
       };
+    case 'get_results':
+      return {
+        body: JSON.stringify({ error: 'Saved result not available in smoke stub.', unsupported: true }),
+        contentType: 'application/json; charset=utf-8'
+      };
     default:
       return {};
   }
