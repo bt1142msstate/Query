@@ -20,6 +20,7 @@ A single-page app for building queries, applying filters, reviewing results, and
 | **Query history** | Live status tracking — reload, rerun, cancel, or inspect past runs |
 | **Query templates** | Save, categorize, pin, search, and reapply reusable query setups |
 | **Query JSON** | Inspect the exact payload being sent to the backend |
+| **API Settings** | Connect a compatible backend from the app without editing source files |
 | **Post filters** | Apply result-only filters without sending them to the backend |
 | **Results table** | Virtualized large-table rendering with resize, sort, post-filter, and Excel export support |
 | **Mobile workflow** | Responsive panels, mobile menu controls, and smoke-tested overlays |
@@ -46,13 +47,27 @@ python3 -m http.server 4173
 http://127.0.0.1:4173/index.html
 ```
 
-4. Connect your backend by launching with an API URL:
+4. Connect a backend from the app: open **API Settings**, enter your compatible query API URL, save it, and reload fields.
+
+You can also launch with an API URL:
 
 ```text
 http://127.0.0.1:4173/index.html?api_url=https://your.example.org/query-api
 ```
 
-The app stores valid API URL overrides in `localStorage` under `query-project.api-url`. You can also use `?query_api_url=...`.
+The app defaults to the checked-in public example/testing endpoint. Valid API URL overrides from the settings screen, `?api_url=...`, or `?query_api_url=...` are stored in `localStorage` under `query-project.api-url`.
+
+To run the minimal local example backend:
+
+```bash
+npm run example:backend
+```
+
+Then set the API URL to:
+
+```text
+http://127.0.0.1:8787/query-api
+```
 
 For a new backend, start with [`docs/INTEGRATION.md`](docs/INTEGRATION.md). The minimum integration is `POST` JSON actions for `get_fields` and `run`; history, cancellation, saved templates, and saved-result loading are optional extensions.
 
@@ -140,6 +155,7 @@ Canonical layout decision: application source lives in `src/`. We are not using 
 | `docs/PROJECT_HISTORY.md` | Non-redundant build history and backend work summary |
 | `docs/ROADMAP.md` | Current project status, completed milestones, and remaining roadmap items |
 | `docs/schemas/query-api.schema.json` | Machine-readable JSON Schema for the recommended backend contract |
+| `examples/minimal-backend/` | Dependency-free JSONL backend example for local integration testing |
 | `tests/architecture/` | Architecture fitness and module-specifier checks |
 | `tests/unit/` | Focused pure-logic unit tests grouped by `core/`, `features/`, and `ui/` |
 | `tests/browser/` | Playwright browser smoke coverage |
@@ -163,7 +179,7 @@ The backend URL currently configured in `src/core/backendApi.js` is a temporary 
 
 The public live site should not rely on that example API as its production data source. We plan to remove project-owned API usage from the live deployment. For real use, connect your own compatible query API and provide the API URLs/settings for your environment. The app is designed around a swappable backend contract: field metadata, query execution, status/cancel, history results, and template actions can be backed by your own service as long as it returns the expected payloads.
 
-Static deployments can point the app at another compatible service with `?api_url=...` or `?query_api_url=...`; valid values are stored in `localStorage` under `query-project.api-url`. Local deployments can still change the default in `src/core/backendApi.js` when that is simpler.
+Static deployments can point the app at another compatible service through the API Settings panel, `?api_url=...`, or `?query_api_url=...`; valid values are stored in `localStorage` under `query-project.api-url`. Local deployments can still change the default in `src/core/backendApi.js` when that is simpler.
 
 See [`docs/INTEGRATION.md`](docs/INTEGRATION.md) for the full backend contract, including field metadata, query payloads, streaming JSONL results, history/cancel actions, template actions, rate-limit errors, deployment options, and the [`docs/schemas/query-api.schema.json`](docs/schemas/query-api.schema.json) schema.
 
@@ -228,13 +244,12 @@ npm run cache:bust
 
 ## Roadmap
 
-Current stage: Stage 4, integration readiness and public deployment hardening. The frontend architecture, ES module migration, source-tree organization, responsive/mobile workflow baseline, cache-busting enforcement, backend-driven field contract, streaming JSONL result support, large Excel export, and modernized test suite are in place.
+Current stage: Stage 4, integration readiness and public deployment hardening. The frontend architecture, ES module migration, source-tree organization, responsive/mobile workflow baseline, cache-busting enforcement, backend-driven field contract, API Settings screen, minimal example backend, streaming JSONL result support, large Excel export, and modernized test suite are in place.
 
 Remaining work is mostly integration and polish:
 
-- Add a first-class API settings screen so users can connect their own backend without editing source or URL parameters.
 - Remove project-owned API usage from the public live default and make bring-your-own-API the primary deployment path.
-- Add minimal compatible API implementation examples, including CORS/auth, field metadata, result JSON, history, cancel, and template persistence.
+- Add production deployment recipes for common same-origin proxy, CORS, authentication, history, cancel, and template persistence setups.
 - Continue adding realistic browser interaction coverage when new workflow bugs are found.
 - Keep reviewing large coordinator modules as features change, but only split them when a real ownership boundary appears.
 

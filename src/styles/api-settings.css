@@ -1,0 +1,297 @@
+#api-settings-panel > h2.api-settings-heading {
+  background: #07111f;
+  border-color: rgba(20, 184, 166, 0.28);
+  color: #e5f8f6;
+  min-height: 52px;
+}
+
+#api-settings-panel > h2 .collapse-btn {
+  color: #d7fffb;
+  min-height: 40px;
+  min-width: 40px;
+}
+
+#api-settings-panel > h2 .collapse-btn:hover,
+#api-settings-panel > h2 .collapse-btn:focus-visible {
+  background: rgba(20, 184, 166, 0.18);
+}
+
+.api-settings-panel-title {
+  letter-spacing: 0.08em;
+}
+
+.api-settings-panel-subtitle {
+  color: #8ee7de;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-left: 0.75rem;
+}
+
+.api-settings-shell {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(20, 184, 166, 0.16), transparent 34rem),
+    linear-gradient(160deg, #07111f 0%, #0f172a 58%, #111827 100%);
+  border-color: rgba(20, 184, 166, 0.28);
+  color: #e5e7eb;
+  max-height: min(78vh, 720px);
+  overscroll-behavior: contain;
+  padding: clamp(1rem, 2vw, 1.5rem);
+  -webkit-overflow-scrolling: touch;
+}
+
+.api-settings-summary {
+  align-items: end;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-bottom: 1.25rem;
+}
+
+.api-settings-kicker,
+.api-settings-card-label,
+.api-settings-status-label {
+  color: #7dd3fc;
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.api-settings-summary h3 {
+  color: #f8fafc;
+  font-size: clamp(1.45rem, 3vw, 2.15rem);
+  font-weight: 800;
+  line-height: 1.08;
+  margin: 0.25rem 0 0;
+}
+
+.api-settings-status-card,
+.api-settings-card {
+  background: rgba(15, 23, 42, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.24);
+}
+
+.api-settings-status-card {
+  border-radius: 8px;
+  min-width: 12rem;
+  padding: 0.85rem 1rem;
+}
+
+.api-settings-status-card strong {
+  color: #ffffff;
+  display: block;
+  font-size: 1rem;
+  margin-top: 0.25rem;
+}
+
+.api-settings-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.api-settings-card {
+  border-radius: 8px;
+  min-width: 0;
+  padding: 1rem;
+}
+
+.api-settings-card--primary,
+.api-settings-card--wide {
+  grid-column: 1 / -1;
+}
+
+.api-settings-field-header {
+  align-items: start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.api-settings-field-header label,
+.api-settings-field-header span {
+  color: #f8fafc;
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.api-settings-field-header p,
+.api-settings-card p {
+  color: #bfd3df;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  margin: 0.2rem 0 0;
+}
+
+#api-settings-url-input {
+  background: #020617;
+  border: 1px solid rgba(45, 212, 191, 0.34);
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 1rem;
+  line-height: 1.4;
+  min-height: 46px;
+  outline: none;
+  padding: 0.72rem 0.85rem;
+  width: 100%;
+}
+
+#api-settings-url-input::placeholder {
+  color: #64748b;
+}
+
+#api-settings-url-input:focus {
+  border-color: #5eead4;
+  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.16);
+}
+
+.api-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+}
+
+.api-settings-primary-btn,
+.api-settings-secondary-btn {
+  align-items: center;
+  border-radius: 8px;
+  display: inline-flex;
+  font-size: 0.86rem;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0.62rem 0.9rem;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.api-settings-primary-btn {
+  background: #2dd4bf;
+  border: 1px solid #5eead4;
+  color: #042f2e;
+}
+
+.api-settings-primary-btn:hover,
+.api-settings-primary-btn:focus-visible {
+  background: #5eead4;
+  transform: translateY(-1px);
+}
+
+.api-settings-secondary-btn {
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  color: #e0f2fe;
+}
+
+.api-settings-secondary-btn:hover,
+.api-settings-secondary-btn:focus-visible {
+  background: rgba(30, 41, 59, 0.95);
+  border-color: rgba(94, 234, 212, 0.55);
+  color: #ffffff;
+}
+
+.api-settings-primary-btn:disabled,
+.api-settings-secondary-btn:disabled {
+  cursor: progress;
+  opacity: 0.72;
+  transform: none;
+}
+
+.api-settings-url-value {
+  background: rgba(2, 6, 23, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  color: #dcfce7;
+  display: block;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  margin-top: 0.55rem;
+  overflow-wrap: anywhere;
+  padding: 0.75rem;
+  user-select: text;
+}
+
+.api-settings-url-value--large {
+  min-height: 3.25rem;
+}
+
+.api-settings-status-text {
+  color: #bfdbfe;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  margin: 0.8rem 0 0;
+  min-height: 1.25rem;
+}
+
+.api-settings-status-text[data-tone="success"] {
+  color: #86efac;
+}
+
+.api-settings-status-text[data-tone="warning"] {
+  color: #fef08a;
+}
+
+.api-settings-status-text[data-tone="error"] {
+  color: #fca5a5;
+}
+
+@media (max-width: 1180px) {
+  .api-settings-shell {
+    border-radius: 0;
+    max-height: calc(100dvh - var(--header-height, 64px));
+    padding: 1rem;
+  }
+
+  .api-settings-summary {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .api-settings-status-card {
+    min-width: 0;
+  }
+
+  .api-settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .api-settings-field-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .api-settings-actions,
+  .api-settings-field-header > .api-settings-secondary-btn {
+    width: 100%;
+  }
+
+  .api-settings-primary-btn,
+  .api-settings-secondary-btn {
+    min-height: 46px;
+    width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  #api-settings-panel > h2.api-settings-heading {
+    min-height: 48px;
+  }
+
+  #api-settings-panel > h2 .collapse-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .api-settings-panel-subtitle {
+    display: none;
+  }
+
+  .api-settings-summary h3 {
+    font-size: 1.35rem;
+  }
+}

@@ -4,6 +4,7 @@
  */
 import { onDOMReady } from './domReady.js';
 import { showToastMessage } from './toast.js';
+import { ApiSettings } from '../ui/apiSettings.js';
 import { QueryBuilderShell } from '../ui/queryBuilderShell.js';
 import { QueryFormMode } from '../ui/form-mode/formMode.js';
 import { QueryUI } from '../ui/queryUI.js';
@@ -26,6 +27,7 @@ import { TableNameInput } from '../ui/controls/tableNameInput.js';
   function bootstrap() {
     runInitializer('query UI', QueryUI?.initialize);
     runInitializer('table name input', TableNameInput?.initialize);
+    runInitializer('API settings', ApiSettings?.initialize);
     runInitializer('query builder shell', QueryBuilderShell?.initialize);
     runInitializer('form mode', QueryFormMode?.initialize);
   }

@@ -6,6 +6,7 @@
     "benchmark:split-columns": "node scripts/benchmarkSplitColumns.mjs",
     "cache:bust": "node scripts/updateCacheBusting.mjs",
     "cache:bust:check": "node scripts/updateCacheBusting.mjs --check",
+    "example:backend": "node examples/minimal-backend/server.mjs",
     "lint": "eslint \"**/*.{js,mjs,cjs}\"",
     "test": "npm run test:static && npm run test:unit && npm run test:browser",
     "test:static": "npm run cache:bust:check && npm run lint && npm run test:architecture",

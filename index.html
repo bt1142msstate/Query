@@ -95,6 +95,15 @@
         </svg>
       </button>
 
+      <button id="toggle-api-settings"
+              class="p-2 rounded-full bg-white hover:bg-gray-100 text-black focus:outline-none transition-colors border border-gray-200"
+              aria-label="API Settings" data-tooltip="API Settings" data-tooltip-delay="0">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z"/>
+          <path d="M19.4 15a1.9 1.9 0 0 0 .38 2.09l.05.05a2.2 2.2 0 0 1-3.11 3.11l-.05-.05a1.9 1.9 0 0 0-2.09-.38 1.9 1.9 0 0 0-1.15 1.74V22a2.2 2.2 0 0 1-4.4 0v-.08a1.9 1.9 0 0 0-1.25-1.76 1.9 1.9 0 0 0-2.09.38l-.05.05a2.2 2.2 0 0 1-3.11-3.11l.05-.05A1.9 1.9 0 0 0 3 15.34a1.9 1.9 0 0 0-1.74-1.15H1a2.2 2.2 0 0 1 0-4.4h.08A1.9 1.9 0 0 0 2.84 8.6a1.9 1.9 0 0 0-.38-2.09l-.05-.05a2.2 2.2 0 0 1 3.11-3.11l.05.05A1.9 1.9 0 0 0 7.66 3a1.9 1.9 0 0 0 1.15-1.74V1a2.2 2.2 0 0 1 4.4 0v.08A1.9 1.9 0 0 0 14.4 2.84a1.9 1.9 0 0 0 2.09-.38l.05-.05a2.2 2.2 0 0 1 3.11 3.11l-.05.05A1.9 1.9 0 0 0 19.22 7.66a1.9 1.9 0 0 0 1.74 1.15H21a2.2 2.2 0 0 1 0 4.4h-.08A1.9 1.9 0 0 0 19.4 15Z"/>
+        </svg>
+      </button>
+
       <button id="toggle-help"
               class="p-2 rounded-full bg-white hover:bg-gray-100 text-black focus:outline-none transition-colors border border-gray-200"
               aria-label="Help" data-tooltip="Show Help" data-tooltip-delay="0">
@@ -721,6 +730,74 @@
         </div>
       </div>
     </div><!-- end templates-panel -->
+
+    <!-- API SETTINGS PANEL -->
+    <div id="api-settings-panel" class="w-full modal-panel hidden">
+      <h2 class="api-settings-heading mt-8 mb-0 px-3 py-2 font-semibold text-sm uppercase tracking-wider border flex items-center justify-between">
+        <span class="api-settings-panel-title">API Settings</span>
+        <span class="api-settings-panel-subtitle">Backend connection</span>
+        <div class="flex gap-2 ml-auto items-center">
+          <button class="collapse-btn p-1.5 rounded focus:outline-none transition-colors ml-2" data-target="api-settings-panel" aria-label="Close">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+              <line x1="4" y1="4" x2="16" y2="16" />
+              <line x1="16" y1="4" x2="4" y2="16" />
+            </svg>
+          </button>
+        </div>
+      </h2>
+      <div id="api-settings-container" class="api-settings-shell w-full -mt-px border border-t-0 rounded-b overflow-y-auto">
+        <section class="api-settings-summary" aria-labelledby="api-settings-title">
+          <div>
+            <p class="api-settings-kicker">Connection</p>
+            <h3 id="api-settings-title">Choose the query API for this browser.</h3>
+          </div>
+          <div class="api-settings-status-card">
+            <span class="api-settings-status-label">Active mode</span>
+            <strong id="api-settings-mode">Public default</strong>
+          </div>
+        </section>
+
+        <section class="api-settings-grid" aria-label="API endpoint settings">
+          <article class="api-settings-card api-settings-card--primary">
+            <div class="api-settings-field-header">
+              <div>
+                <label for="api-settings-url-input">API URL</label>
+                <p>Use an absolute URL or a same-origin path.</p>
+              </div>
+              <button id="api-settings-reset-btn" type="button" class="api-settings-secondary-btn">Use Public Default</button>
+            </div>
+            <input id="api-settings-url-input" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://example.org/query-api">
+            <div class="api-settings-actions">
+              <button id="api-settings-save-btn" type="button" class="api-settings-primary-btn">Save Endpoint</button>
+              <button id="api-settings-test-btn" type="button" class="api-settings-secondary-btn">Test Connection</button>
+              <button id="api-settings-reload-btn" type="button" class="api-settings-secondary-btn hidden">Reload Fields</button>
+            </div>
+            <p id="api-settings-status" class="api-settings-status-text" aria-live="polite"></p>
+          </article>
+
+          <article class="api-settings-card">
+            <span class="api-settings-card-label">Current endpoint</span>
+            <code id="api-settings-current-url" class="api-settings-url-value"></code>
+          </article>
+
+          <article class="api-settings-card">
+            <span class="api-settings-card-label">Public default</span>
+            <code id="api-settings-default-url" class="api-settings-url-value"></code>
+          </article>
+
+          <article class="api-settings-card api-settings-card--wide">
+            <div class="api-settings-field-header">
+              <div>
+                <span class="api-settings-card-label">Launch link</span>
+                <p>Includes only the API URL override.</p>
+              </div>
+              <button id="api-settings-copy-link-btn" type="button" class="api-settings-secondary-btn">Copy Link</button>
+            </div>
+            <code id="api-settings-launch-url" class="api-settings-url-value api-settings-url-value--large"></code>
+          </article>
+        </section>
+      </div>
+    </div><!-- end api-settings-panel -->
 
     <!-- HELP PANEL -->
     <div id="help-panel" class="w-full modal-panel hidden">
