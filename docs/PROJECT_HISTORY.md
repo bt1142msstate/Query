@@ -176,6 +176,12 @@ The frontend is intentionally backend-swappable. To make the full project work w
 - Return field metadata with names, labels, categories, descriptions, data types, supported filter operators, selector values, aliases, multi-value hints, and warnings for fields that may be slow.
 - Return dynamic/buildable field definitions for custom fields such as public-note-style values or MARC-style fields, including optional subfield inputs where needed.
 - Accept `run` payloads with `result_format: "jsonl"`, ordered `display_fields`, backend filters, query names, and dynamic field names created by the frontend.
+- Build a backend command-construction layer around the existing library query/search tools so frontend JSON payloads can become safe, repeatable backend commands instead of hand-built shell strings.
+- Map frontend field names, filter operators, date values, display fields, and dynamic fields into the correct backend command arguments, flags, quoting, escaping, and output columns.
+- Keep command construction separate from request handling so the public API can validate input, apply rate limits, start/cancel jobs, stream progress, and report errors without mixing that logic into command assembly.
+- Add backend orchestration for multi-step queries where one frontend filter requires more than one backend command, such as date-before plus `Never` handling, then merge and de-duplicate the result keys.
+- Build a public API wrapper around the backend tools with stable actions such as field metadata loading, query execution, status checks, cancellation, saved result retrieval, and optional template persistence.
+- Translate raw tool output into stable frontend rows while preserving the requested display-field order, row identity, and backend key values.
 - Convert the underlying query tool output into streaming JSON Lines events:
   - one `meta` event with `version`, `format`, `query_id`, and ordered `columns`
   - zero or more `row` events with `values` in the same order as `columns`
@@ -184,6 +190,7 @@ The frontend is intentionally backend-swappable. To make the full project work w
 - Preserve repeated values as JSON arrays so the frontend can support multi-value cells, split columns, post filters, and Excel export correctly.
 - Support public-note-style fields in a way that returns all notes for an item, not only the first note.
 - Support MARC-style dynamic fields without requiring a subfield when the whole field is requested, while still allowing subfield-specific output when supplied.
+- Add backend enrichment for fields that cannot come directly from the base query command by collecting the base result keys, running the needed catalog/dump or metadata extraction command, parsing repeated fields/subfields, and merging those values back into the streamed rows.
 - Handle date `Never` semantics on the backend, including equality with `Never` and before-date behavior that includes both normal before-date results and `Never` results when that is the intended filter behavior.
 - De-duplicate combined backend result sets when a filter requires more than one backend query.
 - Stream rows progressively instead of buffering the entire result set before sending the first result.
