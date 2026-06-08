@@ -1,4 +1,4 @@
-const DEFAULT_COMPATIBILITY_TIMEOUT_MS = 10000;
+const DEFAULT_COMPATIBILITY_TIMEOUT_MS = 30000;
 const DEFAULT_TEXT_LIMIT = 512 * 1024;
 const OPTIONAL_ACTIONS = [
   {
@@ -10,13 +10,15 @@ const OPTIONAL_ACTIONS = [
   {
     id: 'cancel',
     label: 'Cancellation',
-    payload: () => ({ action: 'cancel', id: 'compatibility-check', query_id: 'compatibility-check' }),
+    payload: () => ({ action: 'cancel', id: 'query_0_0000', query_id: 'query_0_0000' }),
+    recognizedErrorPattern: /query not found|valid query_id|required|already marked/i,
     supportedDetail: () => 'Cancel endpoint responded.'
   },
   {
     id: 'get_results',
     label: 'Saved results',
-    payload: () => ({ action: 'get_results', id: 'compatibility-check', query_id: 'compatibility-check' }),
+    payload: () => ({ action: 'get_results', id: 'query_0_0000', query_id: 'query_0_0000' }),
+    recognizedErrorPattern: /query not found|result file not found|valid query_id|required/i,
     supportedDetail: () => 'Saved-result endpoint responded.'
   },
   {
@@ -73,8 +75,27 @@ function fieldLooksMultiValue(field) {
   );
 }
 
+function fieldLooksExpensive(field) {
+  return Boolean(field?.performanceWarning || field?.retrievalWarning);
+}
+
+function scoreCompatibilityField(field, name) {
+  const metadata = `${name || ''} ${field?.desc || ''} ${field?.description || ''} ${field?.category || ''} ${field?.type || ''}`.toLowerCase();
+  let score = 0;
+
+  score += fieldLooksExpensive(field) ? -20 : 10;
+  score += fieldLooksMultiValue(field) ? 3 : 0;
+  score += field?.allowValueList ? 4 : 0;
+  score += /\b(?:key|identifier|barcode|id)\b/u.test(metadata) ? 8 : 0;
+  score += /\bitem\b/u.test(metadata) ? 2 : 0;
+  score += /\bstring\b/u.test(metadata) ? 1 : 0;
+  score += Array.isArray(field?.filters) && field.filters.length <= 2 ? 1 : 0;
+
+  return score;
+}
+
 function selectCompatibilityDisplayFields(fields = [], options = {}) {
-  const maxFields = Math.max(1, Number(options.maxFields) || 3);
+  const maxFields = Math.max(1, Number(options.maxFields) || 1);
   const usableFields = fields
     .map(field => ({
       field,
@@ -89,9 +110,13 @@ function selectCompatibilityDisplayFields(fields = [], options = {}) {
     }
   };
 
-  const multiValueCandidate = usableFields.find(({ field }) => fieldLooksMultiValue(field));
-  addField(multiValueCandidate?.name);
-  usableFields.forEach(({ name }) => addField(name));
+  usableFields
+    .map(entry => ({
+      ...entry,
+      score: scoreCompatibilityField(entry.field, entry.name)
+    }))
+    .sort((left, right) => right.score - left.score || left.name.localeCompare(right.name))
+    .forEach(({ name }) => addField(name));
 
   return selected;
 }
@@ -133,9 +158,10 @@ function parseJsonPayload(text) {
   }
 }
 
-function parseJsonlEvents(text) {
+function parseJsonlEvents(text, options = {}) {
   const errors = [];
   const events = [];
+  let ignoredTruncatedLine = false;
   const lines = String(text || '')
     .split(/\r?\n/u)
     .map(line => line.trim())
@@ -145,11 +171,15 @@ function parseJsonlEvents(text) {
     try {
       events.push(JSON.parse(line));
     } catch (error) {
+      if (options.truncated && index === lines.length - 1) {
+        ignoredTruncatedLine = true;
+        return;
+      }
       errors.push(`Line ${index + 1}: ${error.message}`);
     }
   });
 
-  return { errors, events };
+  return { errors, events, ignoredTruncatedLine };
 }
 
 function validateJsonlEvents(events = [], options = {}) {
@@ -337,6 +367,15 @@ async function requestText(apiUrl, payload, options = {}) {
 async function probeOptionalAction(apiUrl, actionConfig, options = {}) {
   try {
     const { data } = await requestJson(apiUrl, actionConfig.payload(), options);
+    const errorText = String(data?.error || '').trim();
+    if (errorText && actionConfig.recognizedErrorPattern?.test(errorText)) {
+      return createCompatibilityCheck(
+        `optional-${actionConfig.id}`,
+        actionConfig.label,
+        'supported',
+        'Endpoint recognized the action; a real query id is needed for a live workflow check.'
+      );
+    }
     if (data?.error || data?.unsupported) {
       throw new Error(data.error || 'Action is not supported.');
     }
@@ -391,13 +430,13 @@ async function runApiCompatibilityCheck(apiUrl, options = {}) {
   try {
     const runPayload = buildCompatibilityRunPayload(fields, options);
     const { text, truncated } = await requestText(apiUrl, runPayload, options);
-    const { errors, events } = parseJsonlEvents(text);
+    const { errors, events, ignoredTruncatedLine } = parseJsonlEvents(text, { truncated });
     if (errors.length) {
       checks.push(createCompatibilityCheck('jsonl-stream', 'JSONL stream', 'failed', errors.slice(0, 2).join(' ')));
       checks.push(createCompatibilityCheck('jsonl-order', 'Event order', 'failed', 'Stream contained invalid JSON lines.'));
       checks.push(createCompatibilityCheck('multi-values', 'Multi-value arrays', 'warning', 'No valid rows were available to inspect.'));
     } else {
-      checks.push(...validateJsonlEvents(events, { truncated }));
+      checks.push(...validateJsonlEvents(events, { ignoredTruncatedLine, truncated }));
     }
   } catch (error) {
     const detail = getRequestErrorDetail(error);
