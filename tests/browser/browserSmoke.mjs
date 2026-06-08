@@ -456,6 +456,71 @@ async function runSmokeTest() {
     await page.locator('#templates-detail-close-btn').click();
     await page.locator('#templates-detail-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
 
+    await page.getByRole('button', { name: 'API Settings' }).click();
+    await page.locator('#api-settings-container').waitFor({ state: 'visible', timeout: 5000 });
+    await expectDarkSurface(page, '#api-settings-panel > h2', 'API settings panel header');
+    await expectDarkInput(page, '#api-settings-url-input', 'API settings URL input');
+    const initialApiSettings = await page.evaluate(async () => {
+      const { DEFAULT_API_URL, API_URL_STORAGE_KEY, getApiUrl } = await import('./src/core/backendApi.js');
+      return {
+        current: getApiUrl(),
+        defaultUrl: DEFAULT_API_URL,
+        inputValue: document.querySelector('#api-settings-url-input')?.value || '',
+        mode: document.querySelector('#api-settings-mode')?.textContent?.trim() || '',
+        stored: window.localStorage.getItem(API_URL_STORAGE_KEY)
+      };
+    });
+    if (
+      initialApiSettings.current !== initialApiSettings.defaultUrl
+      || initialApiSettings.inputValue !== initialApiSettings.defaultUrl
+      || initialApiSettings.mode !== 'Public default'
+      || initialApiSettings.stored !== null
+    ) {
+      throw new Error(`API settings should start on the public default: ${JSON.stringify(initialApiSettings)}`);
+    }
+    await page.locator('#api-settings-test-btn').click();
+    await page.waitForFunction(() => /Connected\. Loaded \d+ fields\./u.test(document.querySelector('#api-settings-status')?.textContent || ''), null, { timeout: 5000 });
+    await page.locator('#api-settings-url-input').fill('/query-api');
+    await page.locator('#api-settings-save-btn').click();
+    const savedApiSettings = await page.evaluate(async () => {
+      const { API_URL_STORAGE_KEY, getApiUrl } = await import('./src/core/backendApi.js');
+      return {
+        current: getApiUrl(),
+        launchUrl: document.querySelector('#api-settings-launch-url')?.textContent || '',
+        mode: document.querySelector('#api-settings-mode')?.textContent?.trim() || '',
+        reloadVisible: !document.querySelector('#api-settings-reload-btn')?.classList.contains('hidden'),
+        stored: window.localStorage.getItem(API_URL_STORAGE_KEY)
+      };
+    });
+    if (
+      !savedApiSettings.current.endsWith('/query-api')
+      || savedApiSettings.current !== savedApiSettings.stored
+      || savedApiSettings.mode !== 'Custom endpoint'
+      || !savedApiSettings.reloadVisible
+      || !new URL(savedApiSettings.launchUrl).searchParams.get('api_url')?.endsWith('/query-api')
+    ) {
+      throw new Error(`API settings should save custom endpoints and build launch links: ${JSON.stringify(savedApiSettings)}`);
+    }
+    await page.locator('#api-settings-reset-btn').click();
+    const resetApiSettings = await page.evaluate(async () => {
+      const { API_URL_STORAGE_KEY, DEFAULT_API_URL, getApiUrl } = await import('./src/core/backendApi.js');
+      return {
+        current: getApiUrl(),
+        defaultUrl: DEFAULT_API_URL,
+        mode: document.querySelector('#api-settings-mode')?.textContent?.trim() || '',
+        stored: window.localStorage.getItem(API_URL_STORAGE_KEY)
+      };
+    });
+    if (
+      resetApiSettings.current !== resetApiSettings.defaultUrl
+      || resetApiSettings.mode !== 'Public default'
+      || resetApiSettings.stored !== null
+    ) {
+      throw new Error(`API settings should reset to the public default: ${JSON.stringify(resetApiSettings)}`);
+    }
+    await page.locator('#api-settings-panel .collapse-btn').click();
+    await page.locator('#api-settings-panel.hidden').waitFor({ state: 'attached', timeout: 5000 });
+
     await page.getByRole('button', { name: 'Help' }).click();
     await page.locator('#help-container').waitFor({ state: 'visible', timeout: 5000 });
     await expectControlsNonSelectable(page, '#help-panel', 'Desktop help controls');
@@ -786,6 +851,18 @@ async function runSmokeTest() {
       appServices.closeAllModals();
     });
     await mobilePage.locator('#help-panel.hidden').waitFor({ state: 'attached', timeout: 5000 });
+
+    await openMobilePanel(mobilePage, 'toggle-api-settings', '#api-settings-container');
+    await expectElementWithinViewport(mobilePage, '#api-settings-panel', 'Mobile API settings panel');
+    await expectNoHorizontalOverflow(mobilePage, 'Mobile API settings panel');
+    await expectDarkInput(mobilePage, '#api-settings-url-input', 'Mobile API settings URL input');
+    await expectMinimumTapTarget(mobilePage, '#api-settings-panel button', 'Mobile API settings controls');
+
+    await mobilePage.evaluate(async () => {
+      const { appServices } = await import('./src/core/appServices.js');
+      appServices.closeAllModals();
+    });
+    await mobilePage.locator('#api-settings-panel.hidden').waitFor({ state: 'attached', timeout: 5000 });
 
     await seedLoadedResults(mobilePage);
     await mobilePage.locator('#table-with-filter').waitFor({ state: 'visible', timeout: 5000 });

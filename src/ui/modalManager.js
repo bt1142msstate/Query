@@ -12,11 +12,12 @@ class ModalManager {
   constructor() {
     this.initialized = false;
     this.overlay = DOM?.overlay || document.getElementById('overlay');
-    this.panels = ['json-panel', 'queries-panel', 'templates-panel', 'help-panel', 'mobile-menu-dropdown'];
+    this.panels = ['json-panel', 'queries-panel', 'templates-panel', 'api-settings-panel', 'help-panel', 'mobile-menu-dropdown'];
     this.panelTitles = {
       'json-panel': 'Query JSON',
       'queries-panel': 'Queries',
       'templates-panel': 'Templates',
+      'api-settings-panel': 'API Settings',
       'help-panel': 'Help'
     };
     this.activePanel = null;
@@ -26,6 +27,7 @@ class ModalManager {
       'toggle-json': 'JSON',
       'toggle-queries': 'Queries',
       'toggle-templates': 'Templates',
+      'toggle-api-settings': 'API Settings',
       'toggle-help': 'Help'
     };
 
@@ -249,6 +251,7 @@ class ModalManager {
       'toggle-json': 'json-panel',
       'toggle-queries': 'queries-panel',
       'toggle-templates': 'templates-panel',
+      'toggle-api-settings': 'api-settings-panel',
       'toggle-help': 'help-panel'
     };
     

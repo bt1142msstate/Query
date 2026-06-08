@@ -162,6 +162,8 @@ This is a non-redundant summary of the work represented by the repository commit
 - Updated the README to explain the app, local setup, source layout, backend connection path, quality checks, cache busting, and current roadmap.
 - Added architecture documentation describing module boundaries, quality gates, and current structure.
 - Added an integration guide and JSON Schema for compatible backend implementations.
+- Added a first-class API Settings screen for saving, resetting, testing, and sharing compatible backend API endpoints.
+- Added a dependency-free minimal backend example that demonstrates field metadata, CORS, status/cancel stubs, and streaming JSONL results.
 - Added roadmap documentation with current stage, completed milestones, remaining work, and non-goals.
 - Added testing documentation to explain test layers and avoid redundant coverage.
 - Updated repository metadata and icons so the project presents cleanly on GitHub and as an installed web app.
@@ -204,6 +206,6 @@ The frontend is intentionally backend-swappable. To make the full project work w
 
 ## Current Result
 
-The project is now a buildless static frontend with a documented backend contract, backend-driven field definitions, streaming JSONL result support, a virtualized results table, large Excel export, mobile/tablet workflows, query history, templates, form sharing, result sharing, and a modern test/architecture gate.
+The project is now a buildless static frontend with a documented backend contract, backend-driven field definitions, a first-class API Settings screen, a minimal backend example, streaming JSONL result support, a virtualized results table, large Excel export, mobile/tablet workflows, query history, templates, form sharing, result sharing, and a modern test/architecture gate.
 
-The remaining work is mainly integration polish: first-class API settings in the UI, removal of the example API as the live-site default, and small compatible backend examples for new deployments.
+The remaining work is mainly integration polish: removal of the example API as the live-site default, production deployment recipes, and a dedicated accessibility audit before broader public use.

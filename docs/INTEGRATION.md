@@ -4,6 +4,8 @@ This app is a static frontend. It does not own the data system. A compatible bac
 
 The current checked-in endpoint remains the default example/testing backend. New deployments can point the same frontend at another backend without changing field logic in the frontend.
 
+The easiest user-facing path is the in-app **API Settings** panel. It saves a compatible API URL in the browser, can test `get_fields`, and can build a launch link that includes only the API override.
+
 ## Recommended Contract
 
 For new integrations, keep the backend adapter small and boring:
@@ -18,11 +20,11 @@ The machine-readable schema is [`docs/schemas/query-api.schema.json`](schemas/qu
 
 ## Fastest Setup Path
 
-1. Serve this repository as a static site.
-2. Launch the app with `?api_url=https://your.example.org/query-api` or a same-origin route such as `?api_url=/api/query`.
-3. Implement `POST` JSON handling for `get_fields`.
-4. Implement `POST` JSON handling for `run`.
-5. Return `application/x-ndjson` result streams with ordered columns and row value arrays.
+1. Implement `POST` JSON handling for `get_fields`.
+2. Implement `POST` JSON handling for `run`.
+3. Return `application/x-ndjson` result streams with ordered columns and row value arrays.
+4. Serve this repository as a static site.
+5. Open **API Settings**, enter `https://your.example.org/query-api` or a same-origin route such as `/api/query`, save it, and reload fields.
 6. Add `status`, `cancel`, `get_results`, and template actions only when those panels need to work against your backend.
 
 The frontend does not require backend-specific code for field definitions. Your `get_fields` response defines available fields, filter operators, field warnings, dynamic/buildable field inputs, and any fields that return multi-value cells.
@@ -30,6 +32,18 @@ The frontend does not require backend-specific code for field definitions. Your 
 ## Minimum Working Backend
 
 A minimal backend only needs these two request/response pairs.
+
+The repository also includes a runnable Node example at [`examples/minimal-backend/`](../examples/minimal-backend/):
+
+```bash
+npm run example:backend
+```
+
+Use this URL in the API Settings panel:
+
+```text
+http://127.0.0.1:8787/query-api
+```
 
 Request:
 
@@ -86,6 +100,14 @@ That is enough for field loading, query building, result display, post filters, 
 
 The default endpoint is still defined in `src/core/backendApi.js` as `DEFAULT_API_URL`.
 
+From the app UI:
+
+1. Open **API Settings**.
+2. Enter an absolute API URL or a same-origin path.
+3. Use **Test Connection** to verify that `get_fields` returns metadata.
+4. Save the endpoint.
+5. Reload fields so the app refreshes metadata from that backend.
+
 For a static deployment, the frontend can use another compatible backend by providing one of these browser settings:
 
 ```text
@@ -105,7 +127,7 @@ When a valid URL is supplied, the app stores it in `localStorage` under:
 query-project.api-url
 ```
 
-You can also pre-seed that localStorage value in your deployment shell. The default endpoint remains the fallback if no override is supplied. Do not put secrets or API keys in the URL; use normal authenticated sessions, reverse proxies, or server-side API credentials instead.
+You can also pre-seed that localStorage value in your deployment shell. The default endpoint remains the fallback if no override is supplied. Do not put secrets or API keys in the settings screen or URL; use normal authenticated sessions, reverse proxies, or server-side API credentials instead.
 
 Your backend must allow browser requests from the deployed frontend origin through normal CORS rules, unless it is served from the same origin.
 
