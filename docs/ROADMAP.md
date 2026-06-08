@@ -13,6 +13,7 @@ Current stage goals:
 - Make backend setup obvious from the README and integration docs.
 - Remove reliance on the project-owned example API for the public live default.
 - Keep the browser app buildless and static while keeping API configuration first-class.
+- Keep the native JSONL API contract as the recommended path while documenting optional adapter patterns for systems that need translation.
 - Keep every new workflow covered by focused unit tests or realistic browser smoke tests.
 - Continue small cohesion reviews, but only split modules where there is a real ownership boundary.
 
@@ -77,6 +78,7 @@ The completed stages above are limited to work that is actually implemented or g
 | --- | --- | --- | --- |
 | Stage 4 | High | Remove project-owned API usage from the public live default | The checked-in endpoint is useful as an example/testing integration, but the live deployment should default to a bring-your-own-API setup. |
 | Stage 4 | Medium | Add production deployment recipes | Same-origin proxy, CORS, authentication, saved history, cancellation, and template persistence recipes would make third-party deployment easier. |
+| Stage 4 | Medium | Add optional backend adapter examples | Native JSONL remains the recommended contract. Adapter examples can show how to translate existing systems, legacy text output, SQL/reporting APIs, or vendor-specific query tools into the same frontend JSONL stream without changing frontend code. |
 | Stage 4 | Medium | Keep expanding browser smoke coverage around new workflows | The current suite covers the main desktop/mobile flows. New workflow bugs should usually add one realistic browser interaction test plus focused unit coverage for reusable logic. |
 | Stage 4 | Medium | Continue cohesion reviews as features change | There are no current large-module exceptions, but some coordinator modules are intentionally still large. Split them only when a stable responsibility boundary appears. |
 | Stage 5 | Low | Optional accessibility audit | The app has keyboard-friendly controls in many areas, but a dedicated audit for focus order, screen reader labels, and reduced-motion behavior would be useful before broader public use. |
@@ -89,6 +91,7 @@ Stage 4 is done when:
 - The public live deployment no longer defaults to the project-owned example API.
 - The README clearly routes new users through local setup, API setup, and deployment choices.
 - `docs/INTEGRATION.md` includes enough contract detail and minimal examples for a developer to implement the compatible backend without reading app internals.
+- The roadmap clearly distinguishes the recommended native JSONL backend from optional adapter examples for deployments whose existing systems need a translation layer.
 - The test gate still passes with cache-busting enforcement, architecture rules, unit tests, and browser smoke coverage.
 
 ## Not Currently Planned
