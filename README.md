@@ -236,11 +236,22 @@ npm run test:static
 npm run test:architecture
 npm run test:unit
 npm run test:browser
+npm run test:live
 ```
 
 See [`tests/README.md`](tests/README.md) for the testing standards, layer ownership, and rules for avoiding redundant coverage.
 
 The browser smoke test starts a local static server, stubs the backend API, and covers desktop plus mobile flows: panel layout, dark/light search inputs, virtual-table scrolling and resize behavior, post filters, zero-result queries, export overlays, and mobile dialogs.
+
+`npm run test:live` is separate from the default gate because it uses the deployed site and a real API over the network. It opens the live app, runs API Settings against `LIVE_API_URL`, fails on browser console warnings/errors, and runs the compatibility report without stubbing the backend. Defaults:
+
+```bash
+LIVE_SITE_URL=https://bt1142msstate.github.io/Query/
+LIVE_API_URL=https://mlp.sirsi.net/uhtbin/query_api.pl
+```
+
+The GitHub Actions **Live Integration** workflow can run this check manually after deployment or when validating a backend.
+If the configured live API returns compatibility warnings or failures, this command is expected to fail until the backend/API behavior is corrected.
 
 ## Cache Busting
 
