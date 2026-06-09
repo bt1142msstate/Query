@@ -1,0 +1,39 @@
+name: Live Integration
+
+on:
+  workflow_dispatch:
+    inputs:
+      site_url:
+        description: "Live site URL to test"
+        required: false
+        default: "https://bt1142msstate.github.io/Query/"
+      api_url:
+        description: "Live API URL to test"
+        required: false
+        default: "https://mlp.sirsi.net/uhtbin/query_api.pl"
+
+jobs:
+  live-integration:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run live integration test
+        run: npm run test:live
+        env:
+          LIVE_SITE_URL: ${{ inputs.site_url }}
+          LIVE_API_URL: ${{ inputs.api_url }}

@@ -16,6 +16,16 @@ Runs the full gate:
 
 Browser smoke coverage starts from `tests/browser/browserSmoke.mjs`; shared fixtures and assertions live in `tests/browser/support/`, and longer workflow scenarios live in `tests/browser/scenarios/`.
 
+Live integration coverage starts from `tests/browser/liveIntegration.mjs` and is intentionally separate from `npm test` because it hits the deployed site and a real API over the network. Run it when validating deployment/API behavior:
+
+```bash
+npm run test:live
+LIVE_SITE_URL=https://bt1142msstate.github.io/Query/ LIVE_API_URL=https://mlp.sirsi.net/uhtbin/query_api.pl npm run test:live
+```
+
+The live test does not stub the backend. It opens the actual site, uses API Settings against the configured API URL, runs the compatibility report, fails on console warnings/errors, and only allows optional API actions to be reported as missing.
+Treat a live-test failure as an integration finding. The default public API currently needs to return a compatibility sample with inspectable multi-value rows for the strict live gate to pass.
+
 ## Standards
 
 - Use `node:test` with an explicit test name in every `.mjs` test file.
@@ -24,6 +34,7 @@ Browser smoke coverage starts from `tests/browser/browserSmoke.mjs`; shared fixt
 - Do not add custom success logging; let the runner report pass/fail output.
 - Prefer pure unit tests for parsing, mapping, validation, state transforms, payload contracts, and export formatting.
 - Prefer browser smoke coverage for behavior that only fails through real DOM, touch, overlay, scrolling, export, or responsive interactions.
+- Prefer live integration coverage when the risk depends on CORS, deployed assets, real API responses, or backend compatibility warnings that a stubbed smoke test cannot reveal.
 - Avoid duplicate assertions that prove the same behavior through the same layer. If a browser test already proves the full workflow, add unit coverage only for the reusable logic behind it.
 - Keep architecture tests focused on repo contracts that should fail before runtime: module graph rules, field metadata boundaries, large-module budgets, and cache-stable imports.
 

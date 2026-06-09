@@ -110,13 +110,19 @@ function selectCompatibilityDisplayFields(fields = [], options = {}) {
     }
   };
 
-  usableFields
+  const scoredFields = usableFields
     .map(entry => ({
       ...entry,
       score: scoreCompatibilityField(entry.field, entry.name)
     }))
-    .sort((left, right) => right.score - left.score || left.name.localeCompare(right.name))
-    .forEach(({ name }) => addField(name));
+    .sort((left, right) => right.score - left.score || left.name.localeCompare(right.name));
+
+  const multiValueField = scoredFields.find(({ field }) => fieldLooksMultiValue(field));
+  if (multiValueField) {
+    addField(multiValueField.name);
+  }
+
+  scoredFields.forEach(({ name }) => addField(name));
 
   return selected;
 }

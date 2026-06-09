@@ -32,7 +32,7 @@ test('api compatibility selects compact diagnostic display fields', () => {
   });
 });
 
-test('api compatibility prefers cheap key fields over expensive multi-value fields', () => {
+test('api compatibility includes a multi-value field before cheap fallback fields', () => {
   const fields = [
     {
       name: 'Public Note',
@@ -44,8 +44,8 @@ test('api compatibility prefers cheap key fields over expensive multi-value fiel
     { name: 'Title' }
   ];
 
-  assert.deepEqual(selectCompatibilityDisplayFields(fields), ['Item Key']);
-  assert.deepEqual(selectCompatibilityDisplayFields(fields, { maxFields: 3 }), ['Item Key', 'Author', 'Title']);
+  assert.deepEqual(selectCompatibilityDisplayFields(fields), ['Public Note']);
+  assert.deepEqual(selectCompatibilityDisplayFields(fields, { maxFields: 3 }), ['Public Note', 'Item Key', 'Author']);
 });
 
 test('api compatibility validates canonical JSONL event order and multi-value arrays', () => {
