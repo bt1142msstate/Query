@@ -1,13 +1,8 @@
-/**
- * Virtual Table Module
- * Handles large dataset rendering with virtual scrolling for performance optimization.
- * Provides efficient rendering of thousands of rows by only displaying visible rows.
- * @module VirtualTable
- */
 import { appServices, registerTableService } from '../../../core/appServices.js';
 import { appUiActions } from '../../../core/appUiActions.js';
 import { QueryChangeManager, QueryStateReaders } from '../../../core/queryState.js';
 import { cloneResultCellValue } from '../../../core/resultCellValues.js';
+import { showToastMessage } from '../../../core/toast.js';
 import { TableBuilder } from './tableBuilder.js';
 import { TextMeasurement } from '../../../core/textMeasurement.js';
 import { ValueFormatting } from '../../../core/formatting/valueFormatting.js';
@@ -30,6 +25,12 @@ import {
 import { escapeHtml } from '../../../core/formatting/html.js';
 import { QueryTableView } from '../../../ui/queryTableView.js';
 import { createVirtualTableEmptyRow, createVirtualTableRow } from './virtualTableRows.js';
+import {
+  buildDuplicateCollapseSignature,
+  buildDuplicateCollapseToastMessage,
+  buildVirtualTableProjection,
+  createEmptyDuplicateCollapseStats
+} from './virtualTableDuplicateCollapse.js';
 import { createVirtualTablePostFilterController } from './virtualTablePostFilters.js';
 let VirtualTable;
 (function initializeVirtualTable() {
@@ -56,6 +57,9 @@ let baseViewData = {
 let rawTableData = null;
 let splitViewData = null;
 let splitColumnsActive = false;
+let tableDataGeneration = 0;
+let duplicateCollapseToastSignature = '';
+let duplicateCollapseStats = createEmptyDuplicateCollapseStats();
 let tableRowHeight = 42;    // estimated row height in pixels
 let tableScrollTop = 0;
 let tableScrollContainer = null;
@@ -235,24 +239,43 @@ function updateHeaderWidthsFromCurrentState() {
   tableColumnLayout.syncRenderedColumnLayout();
 }
 
+function getPostFilterStats() {
+  return {
+    totalRows: duplicateCollapseStats.totalRows,
+    filteredRows: duplicateCollapseStats.uniqueRows,
+    postFilteredRows: duplicateCollapseStats.postFilteredRows,
+    uniqueRows: duplicateCollapseStats.uniqueRows,
+    duplicateRowsCollapsed: duplicateCollapseStats.duplicateRowsCollapsed
+  };
+}
+
 function notifyPostFiltersUpdated() {
   window.dispatchEvent(new CustomEvent('postfilters:updated', {
     detail: {
       filters: postFilters.cloneSnapshot(),
-      totalRows: baseViewData.rows.length,
-      filteredRows: virtualTableData.rows.length
+      ...getPostFilterStats()
     }
   }));
 }
 
+function maybeShowDuplicateCollapseToast(stats, options = {}) {
+  if (options.toast === false || !stats?.duplicateRowsCollapsed) return;
+  const signature = buildDuplicateCollapseSignature(stats, tableDataGeneration);
+  if (signature === duplicateCollapseToastSignature) return;
+  duplicateCollapseToastSignature = signature;
+  showToastMessage(buildDuplicateCollapseToastMessage(stats), 'info', 5200);
+}
+
 function applyPostFilters(options = {}) {
   postFilters.sanitizeForCurrentView();
-
-  virtualTableData = {
-    headers: [...baseViewData.headers],
-    rows: postFilters.getFilteredRows(),
-    columnMap: new Map(baseViewData.columnMap)
-  };
+  const projection = buildVirtualTableProjection({
+    baseViewData,
+    displayedFields: getDisplayedFields(),
+    filteredRows: postFilters.getFilteredRows()
+  });
+  duplicateCollapseStats = projection.stats;
+  virtualTableData = projection.tableData;
+  maybeShowDuplicateCollapseToast(duplicateCollapseStats, options);
 
   if (options.resetScroll !== false && tableScrollContainer) {
     tableScrollTop = 0;
@@ -281,15 +304,9 @@ function applyPostFilters(options = {}) {
   }
 }
 
-/**
- * Sorts the virtual table data by the specified column.
- * Toggles direction if already sorted by this column.
- * @function sortTableBy
- * @param {string} fieldName - The field to sort by
- */
 function sortTableBy(fieldName) {
-  if (!virtualTableData.rows || virtualTableData.rows.length === 0) return;
-  const colIndex = virtualTableData.columnMap.get(fieldName);
+  if (!baseViewData.rows || baseViewData.rows.length === 0) return;
+  const colIndex = baseViewData.columnMap.get(fieldName);
   if (colIndex === undefined) return;
 
   // Toggle direction if same column
@@ -303,28 +320,14 @@ function sortTableBy(fieldName) {
   // Find the exact field definition for sorting typing
   const type = getFieldType(fieldName);
 
-  sortRowsByColumn(virtualTableData.rows, colIndex, type, currentSortDirection);
-
-  const sourceColIndex = baseViewData.columnMap.get(fieldName);
-  if (
-    sourceColIndex !== undefined
-    && Array.isArray(baseViewData.rows)
-    && baseViewData.rows !== virtualTableData.rows
-  ) {
-    sortRowsByColumn(baseViewData.rows, sourceColIndex, type, currentSortDirection);
-  }
+  sortRowsByColumn(baseViewData.rows, colIndex, type, currentSortDirection);
+  applyPostFilters({ refreshView: false, resetScroll: false, recalculateWidths: false });
 
   // Re-render and update headers UI
   renderVirtualTable();
   QueryTableView.updateSortHeadersUI(currentSortColumn, currentSortDirection);
 }
 
-/**
- * Calculates which table rows should be visible based on current scroll position.
- * Used for virtual scrolling to only render visible rows for performance.
- * @function calculateVisibleRows
- * @returns {{start: number, end: number}} Object containing start and end row indices
- */
 function calculateVisibleRows() {
   if (!tableScrollContainer) return { start: 0, end: 0 };
   
@@ -348,12 +351,6 @@ function calculateVisibleRows() {
   return { start: startIndex, end: endIndex };
 }
 
-/**
- * Renders only the visible portion of the virtual table based on scroll position.
- * Creates spacer elements for non-visible rows to maintain proper scrolling.
- * Handles text truncation and tooltips for long content.
- * @function renderVirtualTable
- */
 function renderVirtualTable() {
   const displayedFields = getDisplayedFields();
   if (!tableScrollContainer || !displayedFields.length) return;
@@ -612,6 +609,7 @@ async function setupVirtualTable(container, fields, options = {}) {
   tableScrollContainer = container;
   tableScrollTop = shouldPreserveScroll ? preservedScrollTop : 0;
   tableScrollbar.attach(container);
+  applyPostFilters({ refreshView: false, notify: true, resetScroll: false, recalculateWidths: false });
 
   // Calculate widths if we have fields
   if (fields && fields.length > 0) {
@@ -695,6 +693,9 @@ function clearVirtualTableData() {
     splitColumnSourceMap: new Map()
   };
   splitViewData = null;
+  tableDataGeneration += 1;
+  duplicateCollapseToastSignature = '';
+  duplicateCollapseStats = createEmptyDuplicateCollapseStats();
   postFilters.clear();
   calculatedColumnWidths = {};
   manualColumnWidths = {};
@@ -816,6 +817,8 @@ VirtualTable = {
     rawTableData = cloneTableData(nextData);
     splitViewData = null;
     splitPrecomputeToken += 1;
+    tableDataGeneration += 1;
+    duplicateCollapseToastSignature = '';
     baseViewData = cloneTableData(nextData);
     calculatedColumnWidths = {};
     postFilters.invalidateValueOptionsCache();
@@ -881,12 +884,7 @@ VirtualTable = {
     };
   },
   syncResizeModeUi,
-  getPostFilterStats() {
-    return {
-      totalRows: baseViewData.rows.length,
-      filteredRows: virtualTableData.rows.length
-    };
-  },
+  getPostFilterStats,
   get splitColumnsActive() { return splitColumnsActive; },
   get rawTableData() { return rawTableData; },
   get baseViewData() { return baseViewData; },

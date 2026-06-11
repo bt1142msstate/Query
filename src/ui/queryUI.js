@@ -277,7 +277,11 @@ function updateTableResultsLip() {
   const postFilterStats = services.getPostFilterStats?.() || null;
   const hasPostFilters = services.hasPostFilters?.() === true;
   const totalRowCount = Number(postFilterStats?.totalRows || 0);
-  const isFilteredResultView = hasPostFilters && totalRowCount > 0 && totalRowCount !== rowCount;
+  const postFilteredRowCount = Number(postFilterStats?.postFilteredRows ?? rowCount);
+  const collapsedDuplicateRows = Number(postFilterStats?.duplicateRowsCollapsed || 0);
+  const hasCollapsedDuplicates = collapsedDuplicateRows > 0 && postFilteredRowCount > rowCount;
+  const isFilteredResultView = hasPostFilters && totalRowCount > 0 && totalRowCount !== postFilteredRowCount;
+  const shouldShowRowContext = isFilteredResultView || hasCollapsedDuplicates;
   const columnCount = getDisplayedFields().length;
   const hasResults = rowCount > 0 || columnCount > 0;
 
@@ -291,17 +295,24 @@ function updateTableResultsLip() {
   document.body.classList.toggle('has-loaded-data', rowCount > 0);
   document.body.classList.toggle('has-query-columns', columnCount > 0);
 
-  resultsCount.textContent = isFilteredResultView
-    ? `${rowCount.toLocaleString()} of ${totalRowCount.toLocaleString()}`
+  resultsCount.textContent = shouldShowRowContext
+    ? `${rowCount.toLocaleString()} of ${(isFilteredResultView ? totalRowCount : postFilteredRowCount).toLocaleString()}`
     : rowCount.toLocaleString();
-  resultsLabel.textContent = rowCount === 1 ? 'result' : 'results';
+  resultsLabel.textContent = hasCollapsedDuplicates
+    ? (rowCount === 1 ? 'unique result' : 'unique results')
+    : (rowCount === 1 ? 'result' : 'results');
   columnsCount.textContent = columnCount.toLocaleString();
   columnsLabel.textContent = columnCount === 1 ? 'column' : 'columns';
   // Hide the results badge while in planning mode to avoid showing "0 results"
   // alongside the Planning badge — the two are mutually exclusive.
   resultsBadge.classList.toggle('hidden', !hasResults || isPlanningMode);
   resultsBadge.setAttribute('aria-hidden', (hasResults && !isPlanningMode) ? 'false' : 'true');
-  if (isFilteredResultView) {
+  if (hasCollapsedDuplicates) {
+    const filterText = isFilteredResultView
+      ? ` from ${postFilteredRowCount.toLocaleString()} rows after post filters`
+      : ` from ${postFilteredRowCount.toLocaleString()} loaded rows`;
+    resultsBadge.setAttribute('data-tooltip', `Showing ${rowCount.toLocaleString()} unique rows${filterText}; ${collapsedDuplicateRows.toLocaleString()} duplicate row${collapsedDuplicateRows === 1 ? '' : 's'} collapsed`);
+  } else if (isFilteredResultView) {
     resultsBadge.setAttribute('data-tooltip', `Showing ${rowCount.toLocaleString()} of ${totalRowCount.toLocaleString()} rows after post filters`);
   } else {
     resultsBadge.removeAttribute('data-tooltip');

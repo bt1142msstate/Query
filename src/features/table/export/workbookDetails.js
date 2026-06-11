@@ -108,6 +108,10 @@ function buildWorkbookDetailsRows({
   const totalRows = hasPostFilters && Number.isFinite(Number(postFilterStats?.totalRows))
     ? Number(postFilterStats.totalRows)
     : rowCount;
+  const rowsAfterPostFilters = Number.isFinite(Number(postFilterStats?.postFilteredRows))
+    ? Number(postFilterStats.postFilteredRows)
+    : (postFilterStats?.filteredRows ?? rowCount);
+  const duplicateRowsCollapsed = Number(postFilterStats?.duplicateRowsCollapsed || 0);
 
   addDetailRow(rows, 'Export', 'Workbook', tableName || 'Query Results');
   addDetailRow(rows, 'Export', 'Exported At', exportedAt);
@@ -122,7 +126,10 @@ function buildWorkbookDetailsRows({
   addDetailRow(rows, 'Rows', 'Exported Rows', rowCount);
   addDetailRow(rows, 'Rows', 'Loaded Rows Before Post Filters', totalRows);
   if (hasPostFilters) {
-    addDetailRow(rows, 'Rows', 'Rows After Post Filters', postFilterStats?.filteredRows ?? rowCount);
+    addDetailRow(rows, 'Rows', 'Rows After Post Filters', rowsAfterPostFilters);
+  }
+  if (duplicateRowsCollapsed > 0) {
+    addDetailRow(rows, 'Rows', 'Duplicate Rows Collapsed', duplicateRowsCollapsed);
   }
   appendDisplayedFieldRows(rows, displayedFields);
   appendFilterRows(rows, 'Query Filters', activeFilters);

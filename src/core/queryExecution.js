@@ -320,7 +320,7 @@ if (execDom.runBtn) {
           query: currentHistoryQuery,
           queryId: QueryStateReaders.getLifecycleState().currentQueryId,
           headers,
-          rows: services.getVirtualTableData?.()?.rows || rows.map(row => headers.map(header => row[header]))
+          rows: services.getRawTableData?.()?.rows || rows.map(row => headers.map(header => row[header]))
         });
 
         const completionMessage = streamedPayload.partial

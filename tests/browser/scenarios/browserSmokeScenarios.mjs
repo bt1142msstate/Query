@@ -1841,6 +1841,49 @@ async function expectPostFilterStats(page, expected, label) {
   }
 }
 
+async function exerciseProjectedDuplicateCollapse(page) {
+  await page.evaluate(async () => {
+    const { appServices } = await import('./src/core/appServices.js');
+    const { QueryChangeManager } = await import('./src/core/queryState.js');
+    const { QueryTableView } = await import('./src/ui/queryTableView.js');
+    const { QueryUI } = await import('./src/ui/queryUI.js');
+    const headers = ['Smoke Title', 'Smoke Branch', 'Smoke Item ID'];
+    const rows = [
+      ['Same title', 'Main', 'item-1'],
+      ['Same title', 'Main', 'item-2'],
+      ['Different title', 'East', 'item-3']
+    ];
+    QueryChangeManager.replaceDisplayedFields(headers, { source: 'BrowserSmoke.duplicateCollapse' });
+    QueryChangeManager.setLifecycleState(
+      { hasLoadedResultSet: true, queryRunning: false },
+      { source: 'BrowserSmoke.duplicateCollapse', silent: true }
+    );
+    appServices.setVirtualTableData({
+      headers,
+      rows,
+      columnMap: new Map(headers.map((header, index) => [header, index]))
+    });
+    await QueryTableView.showExampleTable(headers, { syncQueryState: false });
+    QueryUI.updateButtonStates();
+  });
+  await expectResultsCount(page, '3', 'Desktop duplicate baseline with ID column');
+
+  await page.evaluate(async () => {
+    const { QueryChangeManager } = await import('./src/core/queryState.js');
+    QueryChangeManager.replaceDisplayedFields(['Smoke Title', 'Smoke Branch'], {
+      source: 'BrowserSmoke.duplicateCollapse.removeId'
+    });
+  });
+  await expectResultsCount(page, '2 of 3', 'Desktop duplicate collapse after removing ID column');
+  await page.waitForFunction(async () => {
+    const { appServices } = await import('./src/core/appServices.js');
+    const stats = appServices.getPostFilterStats?.();
+    return stats?.duplicateRowsCollapsed === 1 && stats?.uniqueRows === 2 && stats?.postFilteredRows === 3;
+  }, null, { timeout: 5000 });
+  await page.locator('.app-toast', { hasText: '1 duplicate row collapsed for the current columns' })
+    .waitFor({ state: 'visible', timeout: 5000 });
+}
+
 async function exerciseCoreFilterStateInteraction(page) {
   await page.evaluate(async () => {
     const { AppState, QueryChangeManager } = await import('./src/core/queryState.js');
@@ -2124,6 +2167,7 @@ async function exerciseTableBuildableDisplayField(page) {
 }
 
 async function exerciseDesktopResultsWorkflow(page) {
+  await exerciseProjectedDuplicateCollapse(page);
   await seedLoadedResults(page);
   await expectResultsCount(page, '3', 'Desktop seeded results');
   await expectPostFilterStats(page, {
