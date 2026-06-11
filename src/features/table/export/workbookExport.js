@@ -5,7 +5,7 @@ import { buildOverviewRows, getOverviewColumns } from './workbookOverview.js';
 import { formatDisplayValue, parseDateValue } from '../../../core/formatting/dateValues.js';
 import { getCellValueParts, hasMultipleCellValues } from '../../../core/resultCellValues.js';
 
-const LARGE_EXPORT_CELL_THRESHOLD = 15000;
+const BACKGROUND_WORKER_CELL_THRESHOLD = 15000;
 const EXCEL_MAX_DATA_ROWS_PER_SHEET = 1048575;
 const XML_CHUNK_SIZE = 256000;
 const PROGRESS_ROW_BATCH = 500;
@@ -15,12 +15,22 @@ const OFFICE_DOCUMENT_TYPE = 'http://schemas.openxmlformats.org/officeDocument/2
 const TABLE_TYPE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/table';
 const DATE_TEXT_STYLE_ID = '7';
 const SHEET_NAME_LIMIT = 31;
-let largeWorkbookWorkerSequence = 0;
+let workbookWorkerSequence = 0;
 
-function shouldUseLargeWorkbookExport(state) {
+function getWorkbookCellCount(state) {
   const rowCount = Number(state?.rowCount || 0);
   const columnCount = Number(state?.sourceData?.displayedFields?.length || 0);
-  return rowCount * columnCount >= LARGE_EXPORT_CELL_THRESHOLD;
+  return rowCount * columnCount;
+}
+
+function shouldUseWorkbookWorker(state, config = {}) {
+  if (config.useWorker === false) {
+    return false;
+  }
+  if (config.useWorker === true) {
+    return true;
+  }
+  return getWorkbookCellCount(state) >= BACKGROUND_WORKER_CELL_THRESHOLD;
 }
 
 function escapeXml(value) {
@@ -145,7 +155,7 @@ function getDefaultGroupingDisplayValue(rawValue) {
   return text || 'Blank';
 }
 
-function getLargeWorkbookHelpers(helpers = {}) {
+function getWorkbookHelpers(helpers = {}) {
   return {
     getCellExportValue: typeof helpers.getCellExportValue === 'function' ? helpers.getCellExportValue : getDefaultCellExportValue,
     getGroupingDisplayValue: typeof helpers.getGroupingDisplayValue === 'function' ? helpers.getGroupingDisplayValue : getDefaultGroupingDisplayValue,
@@ -535,8 +545,8 @@ async function* createDetailsSheetChunks(sheet, context) {
   await context.reportProgress(sheet.name);
 }
 
-async function createLargeWorkbookBlob({ state, config, helpers }) {
-  const resolvedHelpers = getLargeWorkbookHelpers(helpers);
+async function createWorkbookBlob({ state, config, helpers }) {
+  const resolvedHelpers = getWorkbookHelpers(helpers);
   const sourceColumnPlan = buildSourceColumnPlan(state.sourceData);
   const sheets = buildWorkbookPlan(state, config, resolvedHelpers, sourceColumnPlan);
   const sourceColumnWidths = await calculateSourceColumnWidths(state.sourceData, resolvedHelpers, sourceColumnPlan);
@@ -559,7 +569,7 @@ async function createLargeWorkbookBlob({ state, config, helpers }) {
     async reportProgress(sheetName) {
       const percent = Math.min(94, 8 + Math.round((this.writtenRows / this.totalRows) * 82));
       resolvedHelpers.progress.update({
-        title: 'Building large workbook',
+        title: 'Building workbook',
         detail: `Writing ${sheetName} (${this.writtenRows.toLocaleString()} of ${this.totalRows.toLocaleString()} rows)`,
         percent
       });
@@ -568,8 +578,8 @@ async function createLargeWorkbookBlob({ state, config, helpers }) {
   };
 
   resolvedHelpers.progress.update({
-    title: 'Building large workbook',
-    detail: `Using memory-safe export for ${state.rowCount.toLocaleString()} rows`,
+    title: 'Building workbook',
+    detail: `Writing ${state.rowCount.toLocaleString()} rows to Excel`,
     percent: 5
   });
   await resolvedHelpers.yieldToBrowser();
@@ -609,14 +619,14 @@ async function createLargeWorkbookBlob({ state, config, helpers }) {
   return { blob, filename };
 }
 
-function canUseLargeWorkbookWorker(config = {}) {
-  return config.useWorker !== false && typeof Worker === 'function' && typeof URL === 'function';
+function canUseWorkbookWorker() {
+  return typeof Worker === 'function' && typeof URL === 'function';
 }
 
-function exportLargeWorkbookInWorker({ state, config, helpers }) {
+function exportWorkbookInWorker({ state, config, helpers }) {
   return new Promise((resolve, reject) => {
-    const worker = new Worker(new URL('./largeWorkbookWorker.js', import.meta.url), { type: 'module' });
-    const id = `large-export-${Date.now()}-${largeWorkbookWorkerSequence += 1}`;
+    const worker = new Worker(new URL('./workbookExportWorker.js', import.meta.url), { type: 'module' });
+    const id = `workbook-export-${Date.now()}-${workbookWorkerSequence += 1}`;
     let settled = false;
     function finish(callback, value) {
       if (settled) return;
@@ -638,17 +648,17 @@ function exportLargeWorkbookInWorker({ state, config, helpers }) {
         return;
       }
       if (message.type === 'error') {
-        finish(reject, new Error(message.error || 'Large workbook worker failed'));
+        finish(reject, new Error(message.error || 'Workbook export worker failed'));
       }
     };
     worker.onerror = event => {
-      finish(reject, new Error(event.message || 'Large workbook worker failed'));
+      finish(reject, new Error(event.message || 'Workbook export worker failed'));
     };
     worker.onmessageerror = () => {
-      finish(reject, new Error('Large workbook worker message failed'));
+      finish(reject, new Error('Workbook export worker message failed'));
     };
     helpers.progress.update({
-      title: 'Building large workbook',
+      title: 'Building workbook',
       detail: 'Preparing workbook in a background worker',
       percent: 4
     });
@@ -660,19 +670,19 @@ function exportLargeWorkbookInWorker({ state, config, helpers }) {
   });
 }
 
-async function exportLargeWorkbook({ state, config, helpers }) {
-  const resolvedHelpers = getLargeWorkbookHelpers(helpers);
-  if (canUseLargeWorkbookWorker(config)) {
+async function exportWorkbook({ state, config, helpers }) {
+  const resolvedHelpers = getWorkbookHelpers(helpers);
+  if (shouldUseWorkbookWorker(state, config) && canUseWorkbookWorker()) {
     try {
-      return await exportLargeWorkbookInWorker({ config, helpers: resolvedHelpers, state });
+      return await exportWorkbookInWorker({ config, helpers: resolvedHelpers, state });
     } catch (error) {
-      console.warn('Large workbook worker failed; falling back to page export.', error);
+      console.warn('Workbook export worker failed; falling back to page export.', error);
     }
   }
 
-  const { blob, filename } = await createLargeWorkbookBlob({ config, helpers: resolvedHelpers, state });
+  const { blob, filename } = await createWorkbookBlob({ config, helpers: resolvedHelpers, state });
   downloadWorkbookBlob(blob, filename);
   return filename;
 }
 
-export { createLargeWorkbookBlob, exportLargeWorkbook, shouldUseLargeWorkbookExport };
+export { createWorkbookBlob, exportWorkbook, getWorkbookCellCount, shouldUseWorkbookWorker };

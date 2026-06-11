@@ -105,15 +105,15 @@ This is a non-redundant summary of the work represented by the repository commit
 
 ## Excel Export
 
-- Added Excel export through ExcelJS with table styling, frozen headers, filters, and type-aware formatting.
+- Added Excel export with a custom browser-side XLSX writer, table styling, frozen headers, filters, and type-aware formatting.
 - Added column type handling for dates, money, numbers, text, and special `Never` date values.
-- Added large workbook export support that avoids crashing the site on large result sets.
-- Moved large export generation into a worker so the page remains responsive and background tabs do not pause the work as aggressively.
+- Unified small and large workbook exports through the same custom XLSX writer.
+- Moved larger export generation into a worker so the page remains responsive and background tabs do not pause the work as aggressively.
 - Added visible export progress and completion notifications for long-running exports.
 - Added optional workbook run details with displayed fields, filters, post filters, and timing metadata.
 - Added overview/summary sheets with total rows and percentage calculations for grouped exports.
 - Preserved multi-value display choices in export, including stacked values and split columns.
-- Kept large-export styling aligned with the normal export path.
+- Kept workbook styling aligned across small and large result sets.
 
 ## Mobile And Responsive Work
 

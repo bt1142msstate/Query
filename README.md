@@ -179,7 +179,7 @@ Canonical layout decision: application source lives in `src/`. We are not using 
 - Feature-oriented folder structure with ES modules, explicit dependency registration for cross-feature services/actions, and enforced module boundaries
 - ESLint, architecture fitness checks, and Playwright browser smoke tests
 - Tailwind CSS and AutoNumeric are loaded from CDNs in `index.html`
-- [ExcelJS](https://github.com/exceljs/exceljs) for Excel export
+- Custom browser-side XLSX export with worker support for larger workbooks
 
 ## Running Locally
 

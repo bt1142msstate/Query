@@ -51,7 +51,7 @@ The completed stages above are limited to work that is actually implemented or g
 
 - Stage 1 is complete because the app has the core query builder, field picker/search, display fields, filter conditions, query JSON inspection, query execution, and result rendering in place.
 - Stage 2 is complete because source modules live under `src/`, native ES modules are canonical, app-level `window.*` bridge exports are forbidden by architecture checks, and module boundaries are tested.
-- Stage 3 is complete as a functional results/export/responsive baseline because virtual-table scrolling, resizing, sorting, split multi-value columns, post filters, large workbook export, mobile overlays, and live responsive resizing are covered by the test gate.
+- Stage 3 is complete as a functional results/export/responsive baseline because virtual-table scrolling, resizing, sorting, split multi-value columns, post filters, workbook export, mobile overlays, and live responsive resizing are covered by the test gate.
 - Stage 3 does not include a full accessibility audit, exhaustive device matrix, or production API setup. Those are intentionally Stage 4 or Stage 5 items.
 - Stage 4 is the current stage because the backend is already swappable through documented contracts, the app now has first-class API settings, and the public live deployment still needs a default path that no longer relies on the project-owned example endpoint.
 
