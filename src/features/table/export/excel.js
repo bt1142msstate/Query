@@ -2,22 +2,16 @@ import { appServices } from '../../../core/appServices.js';
 import { registerAppUiActionDependencies } from '../../../core/appUiActions.js';
 import { showToastMessage } from '../../../core/toast.js';
 import { QueryStateReaders } from '../../../core/queryState.js';
-import { MoneyUtils } from '../../../core/formatting/moneyUtils.js';
-import { ValueFormatting } from '../../../core/formatting/valueFormatting.js';
 import { VisibilityUtils } from '../../../core/visibility.js';
 import { QueryUI } from '../../../ui/queryUI.js';
 import { fieldDefs } from '../../filters/fieldDefs.js';
 import { DOM } from '../../../core/domCache.js';
-import { hasMultipleCellValues } from '../../../core/resultCellValues.js';
-import { alignDateTextCells } from './excelDateCellFormatting.js';
 import { ExcelExportProgress, yieldToBrowser } from './exportProgress.js';
-import { addOverviewWorksheet } from './excelOverviewWorksheet.js';
-import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from './largeWorkbookExport.js';
-import { addWorkbookDetailsWorksheet, buildWorkbookDetailsRowsFromRuntime } from './workbookDetails.js';
-import { buildWorkbookFilename, notifyWorkbookDownloadComplete, prepareWorkbookDownloadNotification, triggerWorkbookDownload } from './workbookDownload.js';
+import { exportWorkbook } from './workbookExport.js';
+import { buildWorkbookDetailsRowsFromRuntime } from './workbookDetails.js';
+import { notifyWorkbookDownloadComplete, prepareWorkbookDownloadNotification } from './workbookDownload.js';
 import { createSplitColumnsToggleUi } from './splitColumnsToggleUi.js';
 import {
-  buildExportRows,
   buildGroupingCandidates,
   buildGroupingCandidatesAsync,
   getCellExportValue,
@@ -481,114 +475,6 @@ import {
     ExcelExportProgress.hide();
   }
 
-  function configureWorksheetColumns(worksheet, sourceData, rowsToExport) {
-    worksheet.columns = sourceData.displayedFields.map(field => {
-      let maxLen = field.length;
-      const colIndex = sourceData.virtualData.columnMap.get(field);
-      const type = sourceData.fieldTypeMap.get(field);
-
-      if (colIndex !== undefined) {
-        rowsToExport.forEach(row => {
-          let val = row[colIndex];
-          if (val === undefined || val === null) return;
-          if (type === 'date') val = '12/31/2000';
-          else if (type === 'number' || type === 'money') {
-            const parsedNumericValue = type === 'money'
-              ? MoneyUtils.parseNumber(val)
-              : (typeof val === 'number' ? val : parseFloat(String(val).replace(/,/g, '')));
-            if (Number.isNaN(parsedNumericValue)) return;
-            val = String(parsedNumericValue);
-          }
-          else val = String(val).replace(/\x1F/g, ' ');
-          maxLen = Math.max(maxLen, val.length);
-        });
-      }
-
-      return { header: field, key: field, width: Math.max(4, Math.min(60, maxLen + 2)) };
-    });
-  }
-
-  function applyWorksheetFormatting(worksheet, sourceData, rowsToExport) {
-    sourceData.displayedFields.forEach((field, idx) => {
-      const column = worksheet.getColumn(idx + 1);
-      const type = sourceData.fieldTypeMap.get(field);
-
-      if (type === 'date') {
-        column.numFmt = 'mm/dd/yyyy';
-        column.alignment = { horizontal: 'right' };
-      } else if (type === 'number' || type === 'money') {
-        const numberFormat = ValueFormatting.getNumberFormat(field) || '';
-        const colIndex = sourceData.virtualData.columnMap.get(field);
-        const sample = colIndex !== undefined
-          ? rowsToExport.map(r => r[colIndex]).find(v => v !== null && v !== undefined && v !== '')
-          : null;
-        if (type === 'money') {
-          column.numFmt = '$#,##0.00';
-        } else if (numberFormat === 'year') {
-          column.numFmt = '0';
-        } else {
-          const isDecimal = sample !== undefined && sample !== null && !Number.isInteger(
-            typeof sample === 'number' ? sample : parseFloat(String(sample))
-          );
-          column.numFmt = isDecimal ? '#,##0.00' : '#,##0';
-        }
-        column.alignment = { horizontal: 'right' };
-      } else if (type === 'boolean') {
-        column.alignment = { horizontal: 'center' };
-      } else {
-        const needsWrap = !splitColumnsToggleUi.isActive() && (() => {
-          const cIdx = sourceData.virtualData.columnMap.get(field);
-          if (cIdx === undefined) return false;
-          return rowsToExport.some(r => hasMultipleCellValues(r[cIdx]));
-        })();
-        column.alignment = { horizontal: 'left', wrapText: needsWrap };
-      }
-    });
-  }
-
-  async function addWorksheetTable(worksheet, sourceData, exportedRows, tableBaseName, progress = {}) {
-    const sheetLabel = worksheet.name || 'worksheet';
-    ExcelExportProgress.update({
-      title: progress.title || 'Building workbook',
-      detail: progress.detail || `Preparing ${sheetLabel}`,
-      percent: progress.percent || 12
-    });
-    await yieldToBrowser();
-
-    worksheet.views = [{ state: 'frozen', ySplit: 1 }];
-    configureWorksheetColumns(worksheet, sourceData, exportedRows.map(row => row.rawRow));
-    await yieldToBrowser();
-
-    ExcelExportProgress.update({
-      title: progress.title || 'Building workbook',
-      detail: `Adding ${exportedRows.length.toLocaleString()} rows to ${sheetLabel}`,
-      percent: progress.rowPercent || progress.percent || 35
-    });
-    const tableRows = exportedRows.map(row => row.values);
-    applyWorksheetFormatting(worksheet, sourceData, exportedRows.map(row => row.rawRow));
-    await yieldToBrowser();
-
-    const safeTableName = tableBaseName.replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 240) || 'Query_Results';
-    worksheet.addTable({
-      name: safeTableName,
-      ref: 'A1',
-      headerRow: true,
-      style: { theme: 'TableStyleMedium4', showRowStripes: true },
-      columns: sourceData.displayedFields.map(field => ({ name: field, filterButton: true })),
-      rows: tableRows
-    });
-    alignDateTextCells(worksheet, sourceData, exportedRows);
-
-    worksheet.getRow(1).eachCell(cell => {
-      cell.alignment = {
-        ...(cell.alignment || {}),
-        horizontal: 'center',
-        vertical: 'middle'
-      };
-    });
-    await yieldToBrowser();
-  }
-
   async function runWorkbookExport(config) {
     const state = exportState || buildExportState({ includeGrouping: config?.mode === 'grouped' });
     if (!state) {
@@ -624,116 +510,17 @@ import {
         })
       : [];
 
-    if (shouldUseLargeWorkbookExport(state)) {
-      return exportLargeWorkbook({
-        state,
-        config,
-        helpers: {
-          getCellExportValue,
-          getGroupingDisplayValue,
-          getUniqueSheetName,
-          progress: ExcelExportProgress,
-          yieldToBrowser
-        }
-      });
-    }
-
-    const exportedRows = buildExportRows(state.sourceData);
-    const workbook = new ExcelJS.Workbook();
-    const usedNames = new Set();
-
-    if (config.mode === 'grouped') {
-      const candidate = state.groupingCandidates.find(item => item.field === config.groupField);
-      if (!candidate) {
-        throw new Error('A grouping field is required for grouped export');
+    return exportWorkbook({
+      state,
+      config,
+      helpers: {
+        getCellExportValue,
+        getGroupingDisplayValue,
+        getUniqueSheetName,
+        progress: ExcelExportProgress,
+        yieldToBrowser
       }
-
-      ExcelExportProgress.update({
-        title: 'Preparing grouped sheets',
-        detail: `Splitting rows by ${candidate.field}`,
-        percent: 8
-      });
-      await yieldToBrowser();
-
-      const groups = Array.from(candidate.counts.keys()).map(label => ({
-        label,
-        rows: exportedRows.filter(row => getGroupingDisplayValue(row.values[candidate.index]) === label)
-      })).sort((left, right) => left.label.localeCompare(right.label, undefined, { numeric: true, sensitivity: 'base' }));
-
-      const sheetCount = groups.length + (config.includeMasterSheet ? 1 : 0) + (config.includeOverviewSheet ? 1 : 0) + (config.runDetailsRows.length ? 1 : 0);
-      let sheetIndex = 0;
-      const getSheetProgress = () => {
-        sheetIndex += 1;
-        const basePercent = 12 + Math.floor((sheetIndex / Math.max(sheetCount, 1)) * 62);
-        return { percent: basePercent, rowPercent: Math.min(basePercent + 8, 80) };
-      };
-
-      if (config.runDetailsRows.length) {
-        addWorkbookDetailsWorksheet(workbook, { getUniqueSheetName, rows: config.runDetailsRows, usedNames });
-        sheetIndex += 1;
-        await yieldToBrowser();
-      }
-      if (config.includeMasterSheet) {
-        const masterSheetName = getUniqueSheetName('All Results', usedNames);
-        await addWorksheetTable(workbook.addWorksheet(masterSheetName), state.sourceData, exportedRows, `${state.tableName}_AllResults`, {
-          ...getSheetProgress(),
-          detail: 'Building the all-results sheet'
-        });
-      }
-
-      if (config.includeOverviewSheet) {
-        ExcelExportProgress.update({
-          title: 'Building workbook',
-          detail: 'Adding the grouped sheet overview',
-          percent: 18 + Math.floor((sheetIndex / Math.max(sheetCount, 1)) * 58)
-        });
-        addOverviewWorksheet(workbook, {
-          getUniqueSheetName,
-          groupField: candidate.field,
-          groups,
-          usedNames
-        });
-        sheetIndex += 1;
-        await yieldToBrowser();
-      }
-
-      for (const group of groups) {
-        const sheetName = getUniqueSheetName(group.label, usedNames);
-        await addWorksheetTable(workbook.addWorksheet(sheetName), state.sourceData, group.rows, `${state.tableName}_${group.label}`, {
-          ...getSheetProgress(),
-          detail: `Building ${sheetName}`
-        });
-      }
-    } else {
-      if (config.runDetailsRows.length) {
-        addWorkbookDetailsWorksheet(workbook, { getUniqueSheetName, rows: config.runDetailsRows, usedNames });
-        await yieldToBrowser();
-      }
-      const sheetName = getUniqueSheetName(state.tableName, usedNames);
-      await addWorksheetTable(workbook.addWorksheet(sheetName), state.sourceData, exportedRows, state.tableName, {
-        percent: 18,
-        rowPercent: 48,
-        detail: `Building ${sheetName}`
-      });
-    }
-
-    const filename = buildWorkbookFilename(state.tableName, config);
-    ExcelExportProgress.update({
-      title: 'Packaging workbook',
-      detail: 'Compressing the Excel file for download',
-      percent: 86,
-      indeterminate: true
     });
-    await yieldToBrowser();
-    const buffer = await workbook.xlsx.writeBuffer();
-    ExcelExportProgress.update({
-      title: 'Starting download',
-      detail: `${filename} is ready`,
-      percent: 100
-    });
-    await yieldToBrowser();
-    triggerWorkbookDownload(buffer, filename);
-    return filename;
   }
 
   async function confirmExportFromOverlay() {

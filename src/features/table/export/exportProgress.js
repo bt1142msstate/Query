@@ -1,6 +1,6 @@
 /**
  * Excel export progress UI helpers.
- * Keeps long workbook exports visibly active while heavy ExcelJS work runs.
+ * Keeps workbook exports visibly active while browser-side XLSX generation runs.
  */
 const EXPORT_PROGRESS_ID = 'export-progress';
 

@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises';
+
 import {
   buildJsonlResultStream,
   cleanupMobilePageScroll,
@@ -36,6 +38,129 @@ import {
   waitForGroupedExportAvailable,
   waitForResponsiveResize
 } from '../support/browserSmokeSupport.mjs';
+
+const XML_ENTITIES = new Map([
+  ['amp', '&'],
+  ['apos', "'"],
+  ['gt', '>'],
+  ['lt', '<'],
+  ['quot', '"']
+]);
+const ZIP_LOCAL_FILE_HEADER = 0x04034b50;
+const ZIP_CENTRAL_FILE_HEADER = 0x02014b50;
+const ZIP_END_OF_CENTRAL_DIRECTORY = 0x06054b50;
+
+function decodeXmlEntities(value = '') {
+  return String(value).replace(/&([^;]+);/gu, (match, entity) => XML_ENTITIES.get(entity) || match);
+}
+
+function getColumnName(index) {
+  let current = index;
+  let name = '';
+  while (current > 0) {
+    const remainder = (current - 1) % 26;
+    name = String.fromCharCode(65 + remainder) + name;
+    current = Math.floor((current - 1) / 26);
+  }
+  return name;
+}
+
+function findEndOfCentralDirectory(view) {
+  for (let offset = view.byteLength - 22; offset >= 0; offset -= 1) {
+    if (view.getUint32(offset, true) === ZIP_END_OF_CENTRAL_DIRECTORY) {
+      return offset;
+    }
+  }
+  return -1;
+}
+
+function readWorkbookZipEntries(bytes) {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const decoder = new TextDecoder();
+  const endOffset = findEndOfCentralDirectory(view);
+  if (endOffset === -1) return new Map();
+
+  const entryCount = view.getUint16(endOffset + 10, true);
+  let centralOffset = view.getUint32(endOffset + 16, true);
+  const entries = new Map();
+
+  for (let entryIndex = 0; entryIndex < entryCount; entryIndex += 1) {
+    if (view.getUint32(centralOffset, true) !== ZIP_CENTRAL_FILE_HEADER) {
+      break;
+    }
+    const compressedSize = view.getUint32(centralOffset + 20, true);
+    const nameLength = view.getUint16(centralOffset + 28, true);
+    const extraLength = view.getUint16(centralOffset + 30, true);
+    const commentLength = view.getUint16(centralOffset + 32, true);
+    const localOffset = view.getUint32(centralOffset + 42, true);
+    const nameStart = centralOffset + 46;
+    const name = decoder.decode(bytes.slice(nameStart, nameStart + nameLength));
+
+    if (view.getUint32(localOffset, true) === ZIP_LOCAL_FILE_HEADER) {
+      const localNameLength = view.getUint16(localOffset + 26, true);
+      const localExtraLength = view.getUint16(localOffset + 28, true);
+      const dataStart = localOffset + 30 + localNameLength + localExtraLength;
+      const dataEnd = dataStart + compressedSize;
+      entries.set(name, decoder.decode(bytes.slice(dataStart, dataEnd)));
+    }
+
+    centralOffset += 46 + nameLength + extraLength + commentLength;
+  }
+
+  return entries;
+}
+
+function extractZipEntryText(workbookEntries, path) {
+  return workbookEntries.get(path) || '';
+}
+
+function getWorkbookSheetId(workbookEntries, sheetName) {
+  const workbookXml = extractZipEntryText(workbookEntries, 'xl/workbook.xml');
+  for (const match of workbookXml.matchAll(/<sheet\b[^>]*name="([^"]+)"[^>]*sheetId="(\d+)"/gu)) {
+    if (decodeXmlEntities(match[1]) === sheetName) {
+      return Number(match[2]);
+    }
+  }
+  return 0;
+}
+
+function getTableColumns(tableXml) {
+  return [...tableXml.matchAll(/<tableColumn\b[^>]*name="([^"]*)"/gu)]
+    .map(match => decodeXmlEntities(match[1]));
+}
+
+function parseSheetRows(sheetXml) {
+  return [...sheetXml.matchAll(/<row\b[^>]*>([\s\S]*?)<\/row>/gu)]
+    .slice(1)
+    .map(rowMatch => [...rowMatch[1].matchAll(/<c\b([^>]*)>([\s\S]*?)<\/c>/gu)].map(cellMatch => {
+      const cellBody = cellMatch[2];
+      const textMatch = cellBody.match(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/u);
+      if (textMatch) return decodeXmlEntities(textMatch[1]);
+      const valueMatch = cellBody.match(/<v>([\s\S]*?)<\/v>/u);
+      if (!valueMatch) return '';
+      const numericValue = Number(valueMatch[1]);
+      return Number.isFinite(numericValue) ? numericValue : valueMatch[1];
+    }));
+}
+
+function getStyleXml(stylesXml, styleId) {
+  const cellXfs = stylesXml.match(/<cellXfs\b[^>]*>([\s\S]*?)<\/cellXfs>/u)?.[1] || '';
+  return [...cellXfs.matchAll(/<xf\b[^>]*\/>|<xf\b[^>]*>[\s\S]*?<\/xf>/gu)][Number(styleId)]?.[0] || '';
+}
+
+function getCellStyleId(sheetXml, cellReference) {
+  const escapedReference = cellReference.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+  const match = sheetXml.match(new RegExp(`<c\\b[^>]*r="${escapedReference}"[^>]*s="([^"]+)"`, 'u'));
+  return match?.[1] || '';
+}
+
+async function readWorkbookDownloadEntries(download) {
+  if (!download) return new Map();
+  const downloadPath = await download.path();
+  if (!downloadPath) return new Map();
+  const workbookBytes = await readFile(downloadPath);
+  return readWorkbookZipEntries(workbookBytes);
+}
 
 async function exerciseLiveResponsiveResize(page) {
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -2241,9 +2366,6 @@ async function exerciseDesktopResultsWorkflow(page) {
     return /grouped sheet/iu.test(document.querySelector('#export-group-preview')?.textContent || '');
   }, null, { timeout: 5000 });
   await page.locator('#export-include-run-details-sheet').check();
-  await page.evaluate(() => {
-    window.__browserSmokeExcelWorkbooks = [];
-  });
   const downloadPromise = page.waitForEvent('download', { timeout: 5000 }).catch(() => null);
   await page.locator('#export-confirm-btn').click();
   await page.locator('#export-progress:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
@@ -2251,28 +2373,33 @@ async function exerciseDesktopResultsWorkflow(page) {
     return /Packaging workbook|Starting download|Building workbook/iu.test(document.querySelector('#export-progress')?.textContent || '');
   }, null, { timeout: 5000 });
   const download = await downloadPromise;
+  const workbookEntries = await readWorkbookDownloadEntries(download);
   await download?.delete().catch(() => {});
-  const overviewMetrics = await page.evaluate(() => {
-    const workbook = window.__browserSmokeExcelWorkbooks?.at(-1);
-    const allResults = workbook?.worksheets?.find(sheet => sheet.name === 'All Results');
-    const overview = workbook?.worksheets?.find(sheet => sheet.name === 'Overview');
-    const runDetails = workbook?.worksheets?.find(sheet => sheet.name === 'Run Details');
-    const totalRow = overview?.table?.rows?.find(row => row[0] === 'Total');
-    const dateColumnIndex = (allResults?.table?.columns || []).findIndex(column => column.name === 'Smoke Due Date') + 1;
-    const neverRowIndex = (allResults?.table?.rows || []).findIndex(row => row[dateColumnIndex - 1] === 'Never') + 2;
-    const neverDateCell = dateColumnIndex > 0 && neverRowIndex > 1
-      ? allResults?.getCell?.(neverRowIndex, dateColumnIndex)
-      : null;
-    return {
-      dateColumnAlignment: allResults?.columnSettings?.get?.(dateColumnIndex)?.alignment?.horizontal || '',
-      headers: overview?.table?.columns?.map(column => column.name) || [],
-      neverDateCellAlignment: neverDateCell?.alignment?.horizontal || '',
-      percentFormat: overview?.columnSettings?.get?.(3)?.numFmt || '',
-      rowCount: overview?.table?.rows?.length || 0,
-      runDetailsRows: runDetails?.table?.rows || [],
-      totalRow
-    };
-  });
+  const allResultsSheetId = getWorkbookSheetId(workbookEntries, 'All Results');
+  const overviewSheetId = getWorkbookSheetId(workbookEntries, 'Overview');
+  const runDetailsSheetId = getWorkbookSheetId(workbookEntries, 'Run Details');
+  const allResultsSheetXml = extractZipEntryText(workbookEntries, `xl/worksheets/sheet${allResultsSheetId}.xml`);
+  const overviewSheetXml = extractZipEntryText(workbookEntries, `xl/worksheets/sheet${overviewSheetId}.xml`);
+  const runDetailsSheetXml = extractZipEntryText(workbookEntries, `xl/worksheets/sheet${runDetailsSheetId}.xml`);
+  const overviewTableXml = extractZipEntryText(workbookEntries, `xl/tables/table${overviewSheetId}.xml`);
+  const overviewRows = parseSheetRows(overviewSheetXml);
+  const allResultsTableXml = extractZipEntryText(workbookEntries, `xl/tables/table${allResultsSheetId}.xml`);
+  const allResultsColumns = getTableColumns(allResultsTableXml);
+  const dateColumnIndex = allResultsColumns.indexOf('Smoke Due Date') + 1;
+  const dateColumnName = getColumnName(dateColumnIndex);
+  const stylesXml = extractZipEntryText(workbookEntries, 'xl/styles.xml');
+  const dateStyleId = getCellStyleId(allResultsSheetXml, `${dateColumnName}2`);
+  const neverDateStyleId = getCellStyleId(allResultsSheetXml, `${dateColumnName}3`);
+  const percentStyleId = getCellStyleId(overviewSheetXml, 'C2');
+  const overviewMetrics = {
+    dateColumnAlignment: /horizontal="right"/u.test(getStyleXml(stylesXml, dateStyleId)) ? 'right' : '',
+    headers: getTableColumns(overviewTableXml),
+    neverDateCellAlignment: /horizontal="right"/u.test(getStyleXml(stylesXml, neverDateStyleId)) ? 'right' : '',
+    percentFormat: /numFmtId="10"/u.test(getStyleXml(stylesXml, percentStyleId)) ? '0.00%' : '',
+    rowCount: overviewRows.length,
+    runDetailsRows: parseSheetRows(runDetailsSheetXml),
+    totalRow: overviewRows.find(row => row[0] === 'Total')
+  };
   if (
     overviewMetrics.headers.join('|') !== 'Smoke Branch|Rows|Percent of Total'
     || overviewMetrics.rowCount !== 3
@@ -2299,7 +2426,7 @@ async function exerciseDesktopResultsWorkflow(page) {
     const progressText = document.querySelector('#export-progress')?.textContent || '';
     const overlayClosed = document.querySelector('#export-overlay')?.classList.contains('hidden') || false;
     const exportFinished = (window.__browserSmokeNotifications || []).some(notification => notification.title === 'Excel export finished');
-    return /Building large workbook|memory-safe export/iu.test(progressText) || overlayClosed || exportFinished;
+    return /Building workbook|Writing [\d,]+ rows to Excel/iu.test(progressText) || overlayClosed || exportFinished;
   }, null, { timeout: 10000 });
   const largeDownload = await largeDownloadPromise;
   await largeDownload?.delete().catch(() => {});

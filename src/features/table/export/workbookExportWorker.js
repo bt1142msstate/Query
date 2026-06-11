@@ -1,4 +1,4 @@
-import { createLargeWorkbookBlob } from './largeWorkbookExport.js';
+import { createWorkbookBlob } from './workbookExport.js';
 
 function yieldToWorker() {
   return new Promise(resolve => {
@@ -13,7 +13,7 @@ function yieldToWorker() {
 self.onmessage = async event => {
   const { config, id, state } = event.data || {};
   try {
-    const { blob, filename } = await createLargeWorkbookBlob({
+    const { blob, filename } = await createWorkbookBlob({
       config,
       state,
       helpers: {
@@ -28,7 +28,7 @@ self.onmessage = async event => {
     self.postMessage({ blob, filename, id, type: 'complete' });
   } catch (error) {
     self.postMessage({
-      error: error?.message || 'Large workbook worker failed',
+      error: error?.message || 'Workbook export worker failed',
       id,
       type: 'error'
     });

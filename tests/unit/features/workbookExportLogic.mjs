@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import { exportLargeWorkbook, shouldUseLargeWorkbookExport } from '../../../src/features/table/export/largeWorkbookExport.js';
+import { exportWorkbook, getWorkbookCellCount, shouldUseWorkbookWorker } from '../../../src/features/table/export/workbookExport.js';
 import test from 'node:test';
 
-test('large workbook export', async () => {
+test('custom workbook export', async () => {
   const NativeURL = globalThis.URL;
   let downloadedBlob = null;
   let downloadedFilename = '';
@@ -91,17 +91,23 @@ test('large workbook export', async () => {
     async yieldToBrowser() {}
   };
 
-  assert.equal(shouldUseLargeWorkbookExport({
+  assert.equal(getWorkbookCellCount({ rowCount: 2, sourceData }), 10);
+  assert.equal(shouldUseWorkbookWorker({
     rowCount: 1000,
     sourceData: { displayedFields: Array.from({ length: 80 }) }
   }), true);
-  assert.equal(shouldUseLargeWorkbookExport({
+  assert.equal(shouldUseWorkbookWorker({
     rowCount: 200,
     sourceData: { displayedFields: Array.from({ length: 80 }) }
   }), true);
-  assert.equal(shouldUseLargeWorkbookExport({ rowCount: 2, sourceData }), false);
+  assert.equal(shouldUseWorkbookWorker({ rowCount: 2, sourceData }), false);
+  assert.equal(shouldUseWorkbookWorker({ rowCount: 2, sourceData }, { useWorker: true }), true);
+  assert.equal(shouldUseWorkbookWorker({
+    rowCount: 1000,
+    sourceData: { displayedFields: Array.from({ length: 80 }) }
+  }, { useWorker: false }), false);
 
-  await exportLargeWorkbook({
+  await exportWorkbook({
     config: {
       mode: 'single',
       runDetailsRows: [
@@ -142,7 +148,7 @@ test('large workbook export', async () => {
 
   downloadedBlob = null;
   downloadedFilename = '';
-  await exportLargeWorkbook({
+  await exportWorkbook({
     config: {
       groupField: 'Title',
       includeMasterSheet: false,
@@ -208,7 +214,7 @@ test('large workbook export', async () => {
           payload: {
             detail: 'Worker progress',
             percent: 50,
-            title: 'Building large workbook'
+            title: 'Building workbook'
           },
           type: 'progress'
         }
@@ -232,9 +238,10 @@ test('large workbook export', async () => {
 
   downloadedBlob = null;
   downloadedFilename = '';
-  await exportLargeWorkbook({
+  await exportWorkbook({
     config: {
-      mode: 'single'
+      mode: 'single',
+      useWorker: true
     },
     helpers,
     state: {
@@ -245,7 +252,7 @@ test('large workbook export', async () => {
     }
   });
 
-  assert.match(workerUrl, /largeWorkbookWorker\.js$/u);
+  assert.match(workerUrl, /workbookExportWorker\.js$/u);
   assert.equal(workerOptions?.type, 'module');
   assert.equal(workerPayload?.config?.mode, 'single');
   assert.equal('helpers' in workerPayload, false);

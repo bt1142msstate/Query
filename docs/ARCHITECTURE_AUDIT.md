@@ -27,7 +27,7 @@ The module graph is appropriately split for the current raw JavaScript architect
 - `src/core/formatting/*`, `src/core/icons.js`, `src/core/domReady.js`, `src/core/toast.js`: small but shared cross-feature primitives.
 - `src/core/textMeasurement.js`: focused shared measurement helper with concrete consumers.
 - `src/features/table/virtual-table/tableBuilder.js`: virtual-table-owned DOM table element helper.
-- `src/features/table/export/*`: export has separate workbook data shaping, progress/yielding, download, overview/details sheets, large workbook generation, and worker/zip boundaries.
+- `src/features/table/export/*`: export has separate workbook data shaping, progress/yielding, download, overview/details sheets, workbook generation, and worker/zip boundaries.
 - `src/features/table/virtual-table/*`: virtual scrolling, rows, column layout, width measurement, scrollbar behavior, sort, split-column transforms, and post-filter projection are distinct responsibilities.
 - `src/ui/form-mode/*`, `src/ui/field-picker/*`, `src/features/templates/*`, `src/features/history/*`: larger user workflows are split into shell/coordinator modules plus pure logic, view helpers, payload mapping, and repository/integration adapters.
 

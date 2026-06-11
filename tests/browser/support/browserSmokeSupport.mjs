@@ -217,69 +217,6 @@ async function stubExternalAssets(page) {
     });
   });
 
-  await page.route(/^https:\/\/cdn\.jsdelivr\.net\/npm\/exceljs@.*\/dist\/exceljs\.min\.js/u, route => {
-    route.fulfill({
-      body: `
-        window.ExcelJS = window.ExcelJS || {
-          Workbook: class Workbook {
-            constructor() {
-              this.worksheets = [];
-              window.__browserSmokeExcelWorkbooks = window.__browserSmokeExcelWorkbooks || [];
-              window.__browserSmokeExcelWorkbooks.push(this);
-              this.xlsx = {
-                writeBuffer: async () => {
-                  await new Promise(resolve => setTimeout(resolve, 250));
-                  return new Uint8Array([80, 75, 3, 4]).buffer;
-                }
-              };
-            }
-
-            addWorksheet(name) {
-              const columns = new Map();
-              const cells = new Map();
-              const worksheet = {
-                cells,
-                columnSettings: columns,
-                name,
-                views: [],
-                columns: [],
-                addTable(table) {
-                  this.table = table;
-                  table.rows.forEach((row, rowIndex) => {
-                    row.forEach((value, columnIndex) => {
-                      const cell = this.getCell(rowIndex + 2, columnIndex + 1);
-                      cell.value = value;
-                    });
-                  });
-                },
-                getColumn(index) {
-                  if (!columns.has(index)) columns.set(index, {});
-                  return columns.get(index);
-                },
-                getCell(row, column) {
-                  const key = row + ':' + column;
-                  if (!cells.has(key)) cells.set(key, { alignment: {} });
-                  return cells.get(key);
-                },
-                getRow() {
-                  return {
-                    eachCell(callback) {
-                      callback({ alignment: {} }, 1);
-                    }
-                  };
-                }
-              };
-              this.worksheets.push(worksheet);
-              return worksheet;
-            }
-          }
-        };
-      `,
-      contentType: 'text/javascript; charset=utf-8',
-      status: 200
-    });
-  });
-
   await page.route(/^https:\/\/cdn\.jsdelivr\.net\/npm\/autonumeric@.*\/dist\/autoNumeric\.min\.js/u, route => {
     route.fulfill({
       body: `
