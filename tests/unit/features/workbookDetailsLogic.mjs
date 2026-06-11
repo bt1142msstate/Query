@@ -27,7 +27,9 @@ test('workbook details', async () => {
       }
     },
     postFilterStats: {
+      duplicateRowsCollapsed: 2,
       filteredRows: 8,
+      postFilteredRows: 10,
       totalRows: 12
     },
     query: {
@@ -48,7 +50,8 @@ test('workbook details', async () => {
   assert.ok(rows.some(row => row.join('|') === 'Query|Query ID|query-123'));
   assert.ok(rows.some(row => row.join('|') === 'Query|Duration|35s'));
   assert.ok(rows.some(row => row.join('|') === 'Rows|Loaded Rows Before Post Filters|12'));
-  assert.ok(rows.some(row => row.join('|') === 'Rows|Rows After Post Filters|8'));
+  assert.ok(rows.some(row => row.join('|') === 'Rows|Rows After Post Filters|10'));
+  assert.ok(rows.some(row => row.join('|') === 'Rows|Duplicate Rows Collapsed|2'));
   assert.ok(rows.some(row => row.join('|') === 'Displayed Fields|2|Branch'));
   assert.ok(rows.some(row => row.join('|') === 'Query Filters|Checkout Date|Between 1/1/2026 to 1/31/2026'));
   assert.ok(rows.some(row => row.join('|') === 'Post Filters|Title (ANY)|Contains history'));
