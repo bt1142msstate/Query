@@ -1,6 +1,11 @@
 import { ZIP_MIME_TYPE, createZipBlob } from './xlsxZipWriter.js';
 import { buildWorkbookFilename, downloadWorkbookBlob } from './workbookDownload.js';
-import { WORKBOOK_DETAILS_SHEET_NAME, getWorkbookDetailsColumns } from './workbookDetails.js';
+import {
+  WORKBOOK_DETAILS_SHEET_NAME,
+  ensureWorkbookGenerationTimeRow,
+  getWorkbookDetailsColumns,
+  setWorkbookGenerationTimeRow
+} from './workbookDetails.js';
 import { buildOverviewRows, getOverviewColumns } from './workbookOverview.js';
 import { formatDisplayValue, parseDateValue } from '../../../core/formatting/dateValues.js';
 import { getCellValueParts, hasMultipleCellValues } from '../../../core/resultCellValues.js';
@@ -24,7 +29,14 @@ const XML_ATTRIBUTE_NEEDS_ESCAPE_PATTERN = /["'&<>\u0000-\u0008\u000B\u000C\u000
 const XML_PRESERVE_SPACE_PATTERN = /^\s|\s$|\n/u;
 const SIMPLE_NUMBER_PATTERN = /^-?\d+(?:\.\d+)?$/u;
 const COLUMN_NAME_CACHE = [''];
+const DETAILS_WRAP_STYLE_ID = '8';
 let workbookWorkerSequence = 0;
+
+function getCurrentTimeMs() {
+  return typeof performance !== 'undefined' && typeof performance.now === 'function'
+    ? performance.now()
+    : Date.now();
+}
 
 function getWorkbookCellCount(state) {
   const rowCount = Number(state?.rowCount || 0);
@@ -321,7 +333,7 @@ function buildSourceRow(columnPlan, rawRow, rowNumber, getCellExportValue) {
   let cells = '';
   for (let index = 0; index < columnPlan.length; index += 1) {
     const column = columnPlan[index];
-    const raw = getRawValue(rawRow, column);
+    const raw = column.sourceIndex !== undefined ? rawRow[column.sourceIndex] : undefined;
     const value = getCellExportValue(raw, column.type);
     cells += buildSourceCellAtReference(value, `${column.columnName}${rowNumber}`, column);
   }
@@ -329,7 +341,7 @@ function buildSourceRow(columnPlan, rawRow, rowNumber, getCellExportValue) {
 }
 
 function getColumnWidthValue(rawRow, column) {
-  const raw = getRawValue(rawRow, column);
+  const raw = column.sourceIndex !== undefined ? rawRow[column.sourceIndex] : undefined;
   if (raw === undefined || raw === null) return '';
 
   if (column.type === 'date') return '12/31/2000';
@@ -449,12 +461,13 @@ function buildWorkbookPlan(state, config, helpers, columnPlan) {
   const sheets = [];
 
   if (Array.isArray(config.runDetailsRows) && config.runDetailsRows.length) {
+    const rows = ensureWorkbookGenerationTimeRow(config.runDetailsRows);
     sheets.push({
       columns: getWorkbookDetailsColumns(),
-      dataRowCount: config.runDetailsRows.length,
+      dataRowCount: rows.length,
       kind: 'details',
       name: helpers.getUniqueSheetName(WORKBOOK_DETAILS_SHEET_NAME, usedNames),
-      rows: config.runDetailsRows
+      rows
     });
   }
 
@@ -540,7 +553,7 @@ function buildPackageRelationships() {
 }
 
 function buildStylesXml() {
-  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="mm/dd/yyyy"/><numFmt numFmtId="165" formatCode="$#,##0.00"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="8"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"><alignment horizontal="right"/></xf><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"><alignment horizontal="right"/></xf><xf numFmtId="3" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"><alignment horizontal="right"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"><alignment horizontal="center"/></xf><xf numFmtId="10" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"><alignment horizontal="right"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"><alignment horizontal="right"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="mm/dd/yyyy"/><numFmt numFmtId="165" formatCode="$#,##0.00"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="9"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"><alignment horizontal="right"/></xf><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"><alignment horizontal="right"/></xf><xf numFmtId="3" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"><alignment horizontal="right"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"><alignment horizontal="center"/></xf><xf numFmtId="10" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"><alignment horizontal="right"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"><alignment horizontal="right"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"><alignment vertical="top" wrapText="1"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
 }
 
 function buildColumnXml(widths) {
@@ -634,6 +647,7 @@ async function* createOverviewSheetChunks(sheet, context) {
 }
 
 async function* createDetailsSheetChunks(sheet, context) {
+  setWorkbookGenerationTimeRow(sheet.rows, context.getGenerationElapsedMs());
   yield buildWorksheetStart(sheet.columns, sheet.dataRowCount, sheet.columnWidths);
   let chunk = '';
   for (let rowIndex = 0; rowIndex < sheet.rows.length; rowIndex += 1) {
@@ -641,7 +655,7 @@ async function* createDetailsSheetChunks(sheet, context) {
     const rowNumber = rowIndex + 2;
     let cells = '';
     for (let columnIndex = 0; columnIndex < sheet.columns.length; columnIndex += 1) {
-      cells += buildTextCell(row[columnIndex] ?? '', rowNumber, columnIndex + 1);
+      cells += buildTextCell(row[columnIndex] ?? '', rowNumber, columnIndex + 1, DETAILS_WRAP_STYLE_ID);
     }
     chunk += `<row r="${rowNumber}">${cells}</row>`;
   }
@@ -652,6 +666,7 @@ async function* createDetailsSheetChunks(sheet, context) {
 }
 
 async function createWorkbookBlob({ state, config, helpers }) {
+  const workbookStartedAt = getCurrentTimeMs();
   const resolvedHelpers = getWorkbookHelpers(helpers);
   const sourceColumnPlan = buildSourceColumnPlan(state.sourceData);
   const sheets = buildWorkbookPlan(state, config, resolvedHelpers, sourceColumnPlan);
@@ -672,6 +687,9 @@ async function createWorkbookBlob({ state, config, helpers }) {
     sourceData: state.sourceData,
     totalRows,
     writtenRows: 0,
+    getGenerationElapsedMs() {
+      return getCurrentTimeMs() - workbookStartedAt;
+    },
     async reportProgress(sheetName) {
       const percent = Math.min(94, 8 + Math.round((this.writtenRows / this.totalRows) * 82));
       resolvedHelpers.progress.update({
@@ -690,6 +708,20 @@ async function createWorkbookBlob({ state, config, helpers }) {
   });
   await resolvedHelpers.yieldToBrowser();
 
+  const worksheetEntries = sheets.map((sheet, index) => ({
+    path: `xl/worksheets/sheet${index + 1}.xml`,
+    sheet,
+    chunks: () => {
+      if (sheet.kind === 'overview') return createOverviewSheetChunks(sheet, context);
+      if (sheet.kind === 'details') return createDetailsSheetChunks(sheet, context);
+      return createSourceSheetChunks(sheet, context);
+    }
+  }));
+  const orderedWorksheetEntries = [
+    ...worksheetEntries.filter(entry => entry.sheet.kind !== 'details'),
+    ...worksheetEntries.filter(entry => entry.sheet.kind === 'details')
+  ].map(({ sheet, ...entry }) => entry);
+
   const entries = [
     { path: '[Content_Types].xml', chunks: [buildContentTypes(sheets.length)] },
     { path: '_rels/.rels', chunks: [buildPackageRelationships()] },
@@ -704,14 +736,7 @@ async function createWorkbookBlob({ state, config, helpers }) {
       path: `xl/tables/table${sheet.tableId}.xml`,
       chunks: [buildTableXml(sheet, sheet.tableId)]
     })),
-    ...sheets.map((sheet, index) => ({
-      path: `xl/worksheets/sheet${index + 1}.xml`,
-      chunks: () => {
-        if (sheet.kind === 'overview') return createOverviewSheetChunks(sheet, context);
-        if (sheet.kind === 'details') return createDetailsSheetChunks(sheet, context);
-        return createSourceSheetChunks(sheet, context);
-      }
-    }))
+    ...orderedWorksheetEntries
   ];
 
   const blob = await createZipBlob(entries, { mimeType: ZIP_MIME_TYPE, yieldToBrowser: resolvedHelpers.yieldToBrowser });
