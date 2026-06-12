@@ -429,8 +429,11 @@ async function exerciseTableHeaderResponsiveRegions(page) {
       inputClientWidth: input?.clientWidth || 0,
       inputScrollWidth: input?.scrollWidth || 0,
       name: readRect('#table-name-shell'),
+      resultMetric: readRect('#table-results-badge .table-info-metric:first-child'),
+      resultSeparator: readRect('#table-results-badge .table-info-separator'),
       shell: readRect('#table-shell'),
       title: input?.value || '',
+      columnMetric: readRect('#table-results-badge .table-info-metric:last-child'),
       toolbar: readRect('#table-toolbar'),
       topBar: readRect('#table-top-bar'),
       topBarClientWidth: topBar?.clientWidth || 0,
@@ -451,9 +454,15 @@ async function exerciseTableHeaderResponsiveRegions(page) {
     || !metrics.info
     || !metrics.name
     || !metrics.toolbar
+    || !metrics.resultMetric
+    || !metrics.resultSeparator
+    || !metrics.columnMetric
     || metrics.shell.width > 724
     || metrics.name.width < 260
     || metrics.inputClientWidth < 250
+    || Math.abs((metrics.resultMetric?.top || 0) - (metrics.columnMetric?.top || 0)) > 1
+    || metrics.resultSeparator?.left <= metrics.resultMetric?.left
+    || metrics.columnMetric?.left <= metrics.resultSeparator?.left
     || metrics.topBarScrollWidth > metrics.topBarClientWidth + 2
     || metrics.name.right > metrics.toolbar.left + 1
   ) {
