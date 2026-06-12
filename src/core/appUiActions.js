@@ -15,6 +15,7 @@ const actionDependencies = {
   queryBuilderShell: null,
   queryTableAnimation: null,
   queryTableView: null,
+  duplicateRowsUi: null,
   queryUi: null,
   splitColumnsUi: null
 };
@@ -125,6 +126,18 @@ function registerAppUiActionDependencies(dependencies = {}) {
     actionDependencies.splitColumnsUi?.setSplitColumnsToggleUIActive?.();
   }
 
+  function updateDuplicateRowsToggleState() {
+    actionDependencies.duplicateRowsUi?.updateDuplicateRowsToggleState?.();
+  }
+
+  function resetDuplicateRowsToggleUI() {
+    actionDependencies.duplicateRowsUi?.resetDuplicateRowsToggleUI?.();
+  }
+
+  function setDuplicateRowsToggleUIActive() {
+    actionDependencies.duplicateRowsUi?.setDuplicateRowsToggleUIActive?.();
+  }
+
   function prepareForQueryClear(options = {}) {
     const previousSelectedField = String(options.previousSelectedField || '').trim();
     const services = getServices();
@@ -194,6 +207,9 @@ function registerAppUiActionDependencies(dependencies = {}) {
     updateSplitColumnsToggleState,
     resetSplitColumnsToggleUI,
     setSplitColumnsToggleUIActive,
+    updateDuplicateRowsToggleState,
+    resetDuplicateRowsToggleUI,
+    setDuplicateRowsToggleUIActive,
     prepareForQueryClear,
     finalizeQueryClear
   });

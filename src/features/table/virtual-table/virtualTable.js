@@ -57,6 +57,7 @@ let baseViewData = {
 let rawTableData = null;
 let splitViewData = null;
 let splitColumnsActive = false;
+let duplicateRowCollapseActive = true;
 let tableDataGeneration = 0;
 let duplicateCollapseToastSignature = '';
 let duplicateCollapseStats = createEmptyDuplicateCollapseStats();
@@ -245,7 +246,8 @@ function getPostFilterStats() {
     filteredRows: duplicateCollapseStats.uniqueRows,
     postFilteredRows: duplicateCollapseStats.postFilteredRows,
     uniqueRows: duplicateCollapseStats.uniqueRows,
-    duplicateRowsCollapsed: duplicateCollapseStats.duplicateRowsCollapsed
+    duplicateRowsCollapsed: duplicateCollapseStats.duplicateRowsCollapsed,
+    duplicateRowCollapseActive
   };
 }
 
@@ -271,7 +273,8 @@ function applyPostFilters(options = {}) {
   const projection = buildVirtualTableProjection({
     baseViewData,
     displayedFields: getDisplayedFields(),
-    filteredRows: postFilters.getFilteredRows()
+    filteredRows: postFilters.getFilteredRows(),
+    collapseDuplicates: duplicateRowCollapseActive
   });
   duplicateCollapseStats = projection.stats;
   virtualTableData = projection.tableData;
@@ -432,13 +435,6 @@ function renderVirtualTable() {
   tableScrollbar.scheduleSync();
 }
 
-/**
- * Handles scroll events for the virtual table container.
- * Updates scroll position and triggers re-rendering of visible rows.
- * Uses requestAnimationFrame to prevent layout thrashing and scrolling glitches.
- * @function handleTableScroll
- * @param {Event} e - The scroll event
- */
 let isRenderScheduled = false;
 
 function scheduleVirtualTableRender() {
@@ -467,16 +463,6 @@ function handleTableScroll(e) {
   scheduleVirtualTableRender();
 }
 
-/**
- * Calculates the optimal width for a table column based on header and content.
- * Uses canvas text measurement for accurate width calculation.
- * @function calculateFieldWidth
- * @param {string} fieldName - The name of the field/column
- * @param {Object|null} data - Optional table data for content width measurement
- * @param {Array} data.rows - Array of row data
- * @param {Map} data.columnMap - Map of field names to column indices
- * @returns {number} Optimal column width in pixels (min 150px, max ~50 characters)
- */
 function calculateFieldWidth(fieldName, data = null) {
   return calculateMeasuredFieldWidth(fieldName, data, {
     getFieldType,
@@ -488,13 +474,6 @@ function calculateFieldWidth(fieldName, data = null) {
   });
 }
 
-/**
- * Calculates optimal widths for all specified table columns.
- * @function calculateOptimalColumnWidths
- * @param {string[]} [fields] - Array of field names to calculate widths for. Defaults to global virtualTableData.headers.
- * @param {Object} [data] - Table data containing rows and column mapping. Defaults to global virtualTableData.
- * @returns {Object} Object mapping field names to optimal widths in pixels
- */
 function calculateOptimalColumnWidths(fields, data) {
   // Use global data if arguments not provided
   const targetFields = fields || virtualTableData.headers;
@@ -586,15 +565,6 @@ function scheduleSplitViewPrecompute() {
   window.setTimeout(run, 250);
 }
 
-/**
- * Sets up a virtual table with the specified container and fields.
- * Initializes scrolling and column widths.
- * @async
- * @function setupVirtualTable
- * @param {HTMLElement} container - The DOM element to contain the virtual table
- * @param {string[]} fields - Array of field names to display as columns
- * @returns {Promise<{virtualTableData: Object, calculatedColumnWidths: Object}>} Table data and column widths
- */
 async function setupVirtualTable(container, fields, options = {}) {
   const preservedScrollTop = Math.max(0, Number(options.preserveScrollTop) || 0);
   const preservedScrollLeft = Math.max(0, Number(options.preserveScrollLeft) || 0);
@@ -634,13 +604,6 @@ async function setupVirtualTable(container, fields, options = {}) {
   return { virtualTableData, calculatedColumnWidths };
 }
 
-/**
- * Measures the actual height of a table row by temporarily rendering one.
- * Updates the global tableRowHeight variable for virtual scrolling calculations.
- * @function measureRowHeight
- * @param {HTMLElement} table - The table element to measure
- * @param {string[]} fields - Array of field names for the columns
- */
 function measureRowHeight(table, fields) {
   if (virtualTableData.rows && virtualTableData.rows.length > 0) {
     // Temporarily render one row to measure height
@@ -670,11 +633,6 @@ function measureRowHeight(table, fields) {
   }
 }
 
-/**
- * Clears all virtual table data and resets state variables.
- * Used when switching between different datasets or clearing the table.
- * @function clearVirtualTableData
- */
 function clearVirtualTableData() {
   virtualTableData = {
     headers: [],
@@ -711,11 +669,6 @@ function clearVirtualTableData() {
   );
 }
 
-/**
- * Returns the current state of the virtual table for debugging or external access.
- * @function getVirtualTableState
- * @returns {Object} Object containing all virtual table state variables
- */
 function getVirtualTableState() {
   return {
     virtualTableData,
@@ -734,12 +687,6 @@ function getVirtualTableState() {
   };
 }
 
-/**
- * Global VirtualTable object containing all virtual table functionality.
- * Exported to window for use by other modules.
- * @namespace VirtualTable
- * @global
- */
 /**
  * Expands multi-value cells (\x1F-delimited) into separate numbered columns.
  * Operates on rawTableData → virtualTableData non-destructively.
@@ -807,6 +754,19 @@ function setSplitColumnsMode(active) {
   syncResizeModeUi();
 }
 
+function setDuplicateRowCollapseMode(active, options = {}) {
+  duplicateRowCollapseActive = active !== false;
+  duplicateCollapseToastSignature = '';
+  applyPostFilters({
+    refreshView: options.refreshView !== false,
+    notify: options.notify !== false,
+    resetScroll: options.resetScroll === true,
+    recalculateWidths: options.recalculateWidths === true,
+    toast: options.toast !== false
+  });
+  return duplicateRowCollapseActive;
+}
+
 VirtualTable = {
   // State
   get virtualTableData() { return virtualTableData; },
@@ -847,6 +807,7 @@ VirtualTable = {
   getVirtualTableState,
   sortTableBy,
   setSplitColumnsMode,
+  setDuplicateRowCollapseMode,
   expandMultiValueColumns,
   getFilterActionFieldName: fieldName => getSplitFieldParentName(fieldName, baseViewData),
   getPostFilterActionFields: fields => getPostFilterActionFieldsForTable(fields, baseViewData),
@@ -886,6 +847,7 @@ VirtualTable = {
   syncResizeModeUi,
   getPostFilterStats,
   get splitColumnsActive() { return splitColumnsActive; },
+  get duplicateRowCollapseActive() { return duplicateRowCollapseActive; },
   get rawTableData() { return rawTableData; },
   get baseViewData() { return baseViewData; },
   get postFilterBlankValue() { return postFilters.blankValue; }

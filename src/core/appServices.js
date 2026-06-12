@@ -405,6 +405,14 @@ function registerTableService(service) {
     getTableService()?.setSplitColumnsMode?.(nextValue);
   }
 
+  function isDuplicateRowCollapseActive() {
+    return getTableService()?.duplicateRowCollapseActive !== false;
+  }
+
+  function setDuplicateRowCollapseMode(nextValue, options = {}) {
+    return getTableService()?.setDuplicateRowCollapseMode?.(nextValue, options);
+  }
+
   function renderConditionList(fieldName) {
     filterService?.renderConditionList?.(fieldName);
   }
@@ -534,6 +542,8 @@ function registerTableService(service) {
     hasPostFilters,
     isSplitColumnsActive,
     setSplitColumnsMode,
+    isDuplicateRowCollapseActive,
+    setDuplicateRowCollapseMode,
     renderConditionList,
     handleFilterConfirm,
     clearCurrentQuery,

@@ -3,6 +3,7 @@ import test from 'node:test';
 
 test('virtual table duplicate collapse', async () => {
   const {
+    buildVirtualTableProjection,
     buildDuplicateCollapseToastMessage,
     collapseDuplicateProjectedRows
   } = await import('../../../src/features/table/virtual-table/virtualTableDuplicateCollapse.js');
@@ -63,4 +64,15 @@ test('virtual table duplicate collapse', async () => {
     }),
     '2 duplicate rows collapsed for the current columns. Showing 2 unique rows.'
   );
+
+  const uncollapsedProjection = buildVirtualTableProjection({
+    baseViewData: { headers: ['Title', 'Branch'], rows, columnMap },
+    displayedFields: ['Title', 'Branch'],
+    filteredRows: rows,
+    collapseDuplicates: false
+  });
+  assert.equal(uncollapsedProjection.stats.duplicateRowsCollapsed, 0);
+  assert.equal(uncollapsedProjection.stats.uniqueRows, 4);
+  assert.equal(uncollapsedProjection.stats.postFilteredRows, 4);
+  assert.equal(uncollapsedProjection.tableData.rows, rows);
 });

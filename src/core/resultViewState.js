@@ -65,6 +65,9 @@ function normalizeResultViewState(viewState = {}) {
   const splitColumns = typeof source.splitColumns === 'boolean'
     ? source.splitColumns
     : undefined;
+  const collapseDuplicateRows = typeof source.collapseDuplicateRows === 'boolean'
+    ? source.collapseDuplicateRows
+    : undefined;
   const normalized = { version: RESULT_VIEW_STATE_VERSION };
 
   if (displayedFields.length) {
@@ -79,6 +82,9 @@ function normalizeResultViewState(viewState = {}) {
   if (typeof splitColumns === 'boolean') {
     normalized.splitColumns = splitColumns;
   }
+  if (typeof collapseDuplicateRows === 'boolean') {
+    normalized.collapseDuplicateRows = collapseDuplicateRows;
+  }
 
   return normalized;
 }
@@ -90,6 +96,7 @@ function hasResultViewStatePayload(viewState) {
     || normalized.fieldSearch
     || Object.keys(normalized.postFilters || {}).length
     || typeof normalized.splitColumns === 'boolean'
+    || typeof normalized.collapseDuplicateRows === 'boolean'
   );
 }
 
@@ -98,7 +105,8 @@ function buildCurrentResultViewState({ queryStateReaders, services, uiState } = 
     displayedFields: queryStateReaders?.getDisplayedFields?.() || [],
     fieldSearch: uiState?.getFieldSearch?.() || '',
     postFilters: services?.getPostFilterState?.() || {},
-    splitColumns: Boolean(services?.isSplitColumnsActive?.())
+    splitColumns: Boolean(services?.isSplitColumnsActive?.()),
+    collapseDuplicateRows: services?.isDuplicateRowCollapseActive?.() !== false
   });
 }
 
@@ -172,6 +180,17 @@ function applyResultViewState(viewState, options = {}) {
     }
     if (services?.isSplitColumnsActive?.() !== normalized.splitColumns) {
       services?.setSplitColumnsMode?.(normalized.splitColumns);
+    }
+  }
+
+  if (typeof normalized.collapseDuplicateRows === 'boolean') {
+    if (normalized.collapseDuplicateRows) {
+      uiActions?.setDuplicateRowsToggleUIActive?.();
+    } else {
+      uiActions?.resetDuplicateRowsToggleUI?.();
+    }
+    if (services?.isDuplicateRowCollapseActive?.() !== normalized.collapseDuplicateRows) {
+      services?.setDuplicateRowCollapseMode?.(normalized.collapseDuplicateRows, { resetScroll: false });
     }
   }
 

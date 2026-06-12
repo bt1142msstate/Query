@@ -75,13 +75,23 @@ function createEmptyDuplicateCollapseStats() {
   return { totalRows: 0, postFilteredRows: 0, uniqueRows: 0, duplicateRowsCollapsed: 0, displayedFields: [] };
 }
 
-function buildVirtualTableProjection({ baseViewData, displayedFields, filteredRows }) {
+function buildVirtualTableProjection({ baseViewData, displayedFields, filteredRows, collapseDuplicates = true }) {
   const baseRows = Array.isArray(baseViewData?.rows) ? baseViewData.rows : [];
-  const collapseResult = collapseDuplicateProjectedRows({
-    rows: filteredRows,
-    displayedFields,
-    columnMap: baseViewData?.columnMap
-  });
+  const sourceRows = Array.isArray(filteredRows) ? filteredRows : [];
+  const fields = normalizeFieldList(displayedFields);
+  const collapseResult = collapseDuplicates === false
+    ? {
+        collapsedRows: 0,
+        displayedFields: fields,
+        rows: sourceRows,
+        sourceRows: sourceRows.length,
+        uniqueRows: sourceRows.length
+      }
+    : collapseDuplicateProjectedRows({
+        rows: sourceRows,
+        displayedFields: fields,
+        columnMap: baseViewData?.columnMap
+      });
 
   return {
     stats: {

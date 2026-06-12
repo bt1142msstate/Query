@@ -1882,6 +1882,28 @@ async function exerciseProjectedDuplicateCollapse(page) {
   }, null, { timeout: 5000 });
   await page.locator('.app-toast', { hasText: '1 duplicate row collapsed for the current columns' })
     .waitFor({ state: 'visible', timeout: 5000 });
+
+  await page.locator('#duplicate-rows-toggle').click();
+  await expectResultsCount(page, '3', 'Desktop duplicate collapse disabled');
+  await page.waitForFunction(async () => {
+    const { appServices } = await import('./src/core/appServices.js');
+    const stats = appServices.getPostFilterStats?.();
+    return appServices.isDuplicateRowCollapseActive?.() === false
+      && stats?.duplicateRowsCollapsed === 0
+      && stats?.uniqueRows === 3
+      && stats?.postFilteredRows === 3;
+  }, null, { timeout: 5000 });
+
+  await page.locator('#duplicate-rows-toggle').click();
+  await expectResultsCount(page, '2 of 3', 'Desktop duplicate collapse re-enabled');
+  await page.waitForFunction(async () => {
+    const { appServices } = await import('./src/core/appServices.js');
+    const stats = appServices.getPostFilterStats?.();
+    return appServices.isDuplicateRowCollapseActive?.() === true
+      && stats?.duplicateRowsCollapsed === 1
+      && stats?.uniqueRows === 2
+      && stats?.postFilteredRows === 3;
+  }, null, { timeout: 5000 });
 }
 
 async function exerciseCoreFilterStateInteraction(page) {
