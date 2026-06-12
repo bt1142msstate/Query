@@ -29,7 +29,8 @@ test('result view state normalizes and encodes view settings only', () => {
         ]
       }
     },
-    splitColumns: true
+    splitColumns: true,
+    collapseDuplicateRows: false
   });
 
   assert.deepEqual(viewState, {
@@ -42,7 +43,8 @@ test('result view state normalizes and encodes view settings only', () => {
         filters: [{ cond: 'equals', val: 'Open' }]
       }
     },
-    splitColumns: true
+    splitColumns: true,
+    collapseDuplicateRows: false
   });
 
   const encoded = encodeResultViewState(viewState);
@@ -59,14 +61,16 @@ test('result view state normalizes and encodes view settings only', () => {
 test('result view state reads only for the matching result id', () => {
   const encoded = encodeResultViewState({
     displayedFields: ['Status'],
-    splitColumns: false
+    splitColumns: false,
+    collapseDuplicateRows: false
   });
   const url = `https://example.test/index.html?result=query-123&${RESULT_VIEW_URL_PARAM}=${encoded}`;
 
   assert.deepEqual(readResultViewStateFromLocation(url, { queryId: 'query-123' }), {
     version: 1,
     displayedFields: ['Status'],
-    splitColumns: false
+    splitColumns: false,
+    collapseDuplicateRows: false
   });
   assert.equal(readResultViewStateFromLocation(url, { queryId: 'other-query' }), null);
 });
@@ -76,7 +80,8 @@ test('result view state restore clears stale post filters when a shared view has
 
   applyResultViewState({
     displayedFields: ['Status'],
-    splitColumns: false
+    splitColumns: false,
+    collapseDuplicateRows: false
   }, {
     queryChangeManager: {
       replaceDisplayedFields(fields, meta) {
@@ -85,11 +90,15 @@ test('result view state restore clears stale post filters when a shared view has
     },
     services: {
       isSplitColumnsActive: () => true,
+      isDuplicateRowCollapseActive: () => true,
       replacePostFilters(filters, options) {
         calls.push({ filters, options, type: 'postFilters' });
       },
       setSplitColumnsMode(value) {
         calls.push({ type: 'split', value });
+      },
+      setDuplicateRowCollapseMode(value) {
+        calls.push({ type: 'duplicateCollapse', value });
       }
     },
     uiState: {
@@ -100,6 +109,9 @@ test('result view state restore clears stale post filters when a shared view has
     uiActions: {
       resetSplitColumnsToggleUI() {
         calls.push({ type: 'toggleReset' });
+      },
+      resetDuplicateRowsToggleUI() {
+        calls.push({ type: 'duplicateToggleReset' });
       }
     }
   });
@@ -108,6 +120,7 @@ test('result view state restore clears stale post filters when a shared view has
   assert.deepEqual(calls.find(call => call.type === 'fields')?.fields, ['Status']);
   assert.equal(calls.find(call => call.type === 'fieldSearch'), undefined);
   assert.equal(calls.find(call => call.type === 'split')?.value, false);
+  assert.equal(calls.find(call => call.type === 'duplicateCollapse')?.value, false);
 });
 
 test('result view state restore can apply field search text', () => {

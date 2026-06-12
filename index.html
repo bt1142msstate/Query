@@ -282,6 +282,28 @@
                   </g>
                 </svg>
               </button>
+              <button id="duplicate-rows-toggle"
+                      class="table-toolbar-btn table-toolbar-btn-icon table-toolbar-btn-active"
+                      type="button"
+                      data-duplicate-rows-toggle
+                      aria-pressed="true"
+                      aria-label="Show duplicate visible rows"
+                      data-mobile-label="Unique"
+                      data-tooltip="Duplicate visible rows collapse into one row. Click to show all rows." data-tooltip-delay="0">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     stroke-linecap="round"
+                     stroke-linejoin="round"
+                     class="w-4 h-4 pointer-events-none duplicate-rows-toggle-icon">
+                  <path d="M5 7h14"/>
+                  <path d="M5 12h14"/>
+                  <path d="M5 17h14"/>
+                  <path class="duplicate-rows-toggle-slash" d="M4 4l16 16"/>
+                </svg>
+              </button>
               <button id="post-filter-btn"
                       class="table-toolbar-btn table-toolbar-btn-icon"
                       type="button"
@@ -470,6 +492,33 @@
               </svg>
             </button>
           </div>
+        </div>
+        <div id="mobile-table-preferences" class="mobile-table-preferences" aria-label="Table preferences">
+          <button id="mobile-duplicate-rows-toggle"
+                  class="mobile-preference-toggle table-toolbar-btn-active"
+                  type="button"
+                  data-duplicate-rows-toggle
+                  aria-pressed="true"
+                  aria-label="Show duplicate visible rows">
+            <span class="mobile-preference-toggle__icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <path d="M5 7h14"/>
+                <path d="M5 12h14"/>
+                <path d="M5 17h14"/>
+                <path class="duplicate-rows-toggle-slash" d="M4 4l16 16"/>
+              </svg>
+            </span>
+            <span class="mobile-preference-toggle__copy">
+              <span data-duplicate-rows-toggle-title>Unique rows</span>
+              <small data-duplicate-rows-toggle-detail>Collapsing matching visible rows</small>
+            </span>
+          </button>
         </div>
         <div id="category-bar"
              class="mb-4 flex w-max gap-0 mx-auto"></div>

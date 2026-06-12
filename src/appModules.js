@@ -24,6 +24,7 @@ import './features/filters/queryPayload.js';
 import './ui/tooltips.js';
 import './features/table/virtual-table/simpleTable.js';
 import './features/table/virtual-table/virtualTable.js';
+import './features/table/virtual-table/duplicateRowsToggleUi.js';
 import './features/table/export/excel.js';
 import './features/table/post-filters/postFilters.js';
 import './ui/apiSettings.js';

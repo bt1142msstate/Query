@@ -135,6 +135,61 @@
   box-shadow: 0 12px 24px rgba(37, 99, 235, 0.16);
 }
 
+[data-duplicate-rows-toggle] .duplicate-rows-toggle-slash {
+  opacity: 1;
+  transition: opacity 0.16s ease;
+}
+
+[data-duplicate-rows-toggle][aria-pressed="true"] .duplicate-rows-toggle-slash {
+  opacity: 0;
+}
+
+.mobile-table-preferences {
+  display: none;
+}
+
+.mobile-preference-toggle {
+  align-items: center;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 0.9rem;
+  color: #0f172a;
+  display: inline-flex;
+  gap: 0.65rem;
+  justify-content: flex-start;
+  min-height: 3rem;
+  padding: 0.55rem 0.8rem;
+  text-align: left;
+  width: min(100%, 22rem);
+}
+
+.mobile-preference-toggle__icon {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  width: 1.25rem;
+}
+
+.mobile-preference-toggle__icon svg {
+  height: 1.05rem;
+  width: 1.05rem;
+}
+
+.mobile-preference-toggle__copy {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.mobile-preference-toggle__copy span {
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.mobile-preference-toggle__copy small {
+  color: #475569;
+  font-size: 0.68rem;
+  font-weight: 650;
+}
+
 .table-toolbar-btn-danger {
   color: #b91c1c;
   background: rgba(254, 242, 242, 0.92);
@@ -2953,6 +3008,13 @@ body.post-filter-overlay-open {
 }
 
 @media (max-width: 1180px) {
+  .mobile-table-preferences {
+    display: flex;
+    justify-content: center;
+    order: 15;
+    width: 100%;
+  }
+
   #table-shell {
     width: 100%;
     margin-bottom: 0;
@@ -3200,6 +3262,7 @@ body.post-filter-overlay-open {
 
   #table-shell.table-shell-expanded #table-add-field-btn,
   #table-shell.table-shell-expanded #download-btn,
+  #table-shell.table-shell-expanded #duplicate-rows-toggle,
   #table-shell.table-shell-expanded #post-filter-btn,
   #table-shell.table-shell-expanded #clear-query-btn {
     display: none;
