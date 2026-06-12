@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict';
-import { exportWorkbook, getWorkbookCellCount, shouldUseWorkbookWorker } from '../../../src/features/table/export/workbookExport.js';
+import {
+  createWorkbookBlob,
+  exportWorkbook,
+  getWorkbookCellCount,
+  shouldUseWorkbookWorker
+} from '../../../src/features/table/export/workbookExport.js';
 import test from 'node:test';
 
 test('custom workbook export', async () => {
@@ -106,6 +111,25 @@ test('custom workbook export', async () => {
     rowCount: 1000,
     sourceData: { displayedFields: Array.from({ length: 80 }) }
   }, { useWorker: false }), false);
+
+  const defaultWorkbook = await createWorkbookBlob({
+    config: { mode: 'single', runDetailsRows: [] },
+    helpers: {
+      progress: { update() {} },
+      async yieldToBrowser() {}
+    },
+    state: {
+      groupingCandidates: [],
+      rowCount: sourceData.dataRows.length,
+      sourceData,
+      tableName: 'Default Helper Report'
+    }
+  });
+  const defaultWorkbookText = new TextDecoder().decode(await defaultWorkbook.blob.arrayBuffer());
+  assert.match(defaultWorkbookText, /<c r="B2" s="4"><v>12<\/v><\/c>/u);
+  assert.match(defaultWorkbookText, /<c r="C2" s="1"><v>\d+<\/v><\/c>/u);
+  assert.match(defaultWorkbookText, /<c r="C3" t="inlineStr" s="7"><is><t>Never<\/t><\/is><\/c>/u);
+  assert.match(defaultWorkbookText, /First public note\s+Second public note/u);
 
   await exportWorkbook({
     config: {

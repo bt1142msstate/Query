@@ -5,6 +5,8 @@ import { getCellValueParts, hasMultipleCellValues } from '../../../core/resultCe
 const SHEET_NAME_LIMIT = 31;
 const MAX_GROUPED_SHEETS = 100;
 const DEFAULT_GROUPING_ROW_BATCH = 5000;
+const SERIALIZED_MULTI_VALUE_SEPARATOR = '\x1F';
+const SIMPLE_NUMBER_PATTERN = /^-?\d+(?:\.\d+)?$/u;
 
 function normalizeSheetName(name) {
   const cleaned = String(name || 'Sheet')
@@ -36,10 +38,63 @@ function getUniqueSheetName(baseName, usedNames) {
   return normalizedBase;
 }
 
+function parseCompactWorkbookDate(raw) {
+  if (typeof raw !== 'string') {
+    return null;
+  }
+  const text = raw.trim();
+  if (text.length !== 8 && text.length !== 12 && text.length !== 14) {
+    return null;
+  }
+  for (let index = 0; index < 8; index += 1) {
+    const code = text.charCodeAt(index);
+    if (code < 48 || code > 57) {
+      return null;
+    }
+  }
+  const year = Number(text.slice(0, 4));
+  const month = Number(text.slice(4, 6));
+  const day = Number(text.slice(6, 8));
+  const date = new Date(year, month - 1, day);
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+    ? date
+    : null;
+}
+
+function parseWorkbookDateValue(raw) {
+  if (raw instanceof Date) {
+    return Number.isNaN(raw.getTime()) ? null : new Date(raw.getTime());
+  }
+  return parseCompactWorkbookDate(raw) || parseDateValue(raw);
+}
+
+function parseWorkbookNumber(raw, type) {
+  if (typeof raw === 'number') {
+    return raw;
+  }
+  const text = String(raw ?? '').trim();
+  if (SIMPLE_NUMBER_PATTERN.test(text)) {
+    return Number(text);
+  }
+  return type === 'money'
+    ? MoneyUtils.parseNumber(raw)
+    : parseFloat(text.replace(/,/g, ''));
+}
+
+function mayHaveMultipleCellValues(raw) {
+  if (Array.isArray(raw)) {
+    return true;
+  }
+  if (raw && typeof raw === 'object') {
+    return Array.isArray(raw.values) || Object.prototype.hasOwnProperty.call(raw, 'value');
+  }
+  return typeof raw === 'string' && raw.includes(SERIALIZED_MULTI_VALUE_SEPARATOR);
+}
+
 function getCellExportValue(raw, type) {
   if (raw === undefined || raw === null) return '';
 
-  if (hasMultipleCellValues(raw)) {
+  if (mayHaveMultipleCellValues(raw) && hasMultipleCellValues(raw)) {
     return getCellValueParts(raw)
       .map(value => getCellExportValue(value, type))
       .filter(value => value !== '')
@@ -47,14 +102,12 @@ function getCellExportValue(raw, type) {
   }
 
   if (type === 'date') {
-    const dt = parseDateValue(raw);
+    const dt = parseWorkbookDateValue(raw);
     return dt !== null ? dt : 'Never';
   }
 
   if (type === 'number' || type === 'money') {
-    const n = type === 'money'
-      ? MoneyUtils.parseNumber(raw)
-      : (typeof raw === 'number' ? raw : parseFloat(String(raw).replace(/,/g, '')));
+    const n = parseWorkbookNumber(raw, type);
     return isNaN(n) ? '' : n;
   }
 
