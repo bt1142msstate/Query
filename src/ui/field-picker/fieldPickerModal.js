@@ -27,7 +27,7 @@ function createFieldPickerModal({
         <h3 class="form-mode-field-picker-title">${labels.title}</h3>
         <p class="form-mode-field-picker-description">${labels.description}</p>
       </div>
-      <button type="button" class="form-mode-field-picker-close" aria-label="Close field picker">×</button>
+      <button type="button" class="form-mode-field-picker-close panel-close-button" aria-label="Close field picker">×</button>
     </div>
     <div class="form-mode-field-picker-body">
       <div class="form-mode-field-picker-list-panel">
