@@ -1,5 +1,13 @@
 {
   "type": "module",
+  "exports": {
+    ".": "./src/components/index.js",
+    "./components": "./src/components/index.js",
+    "./components/date-picker": "./src/components/date-picker/index.js",
+    "./components/tooltips": "./src/components/tooltips/index.js",
+    "./components/virtual-table": "./src/components/virtual-table/index.js",
+    "./components/workbook-export": "./src/components/workbook-export/index.js"
+  },
   "license": "MIT",
   "scripts": {
     "benchmark:post-filters": "node scripts/benchmarkPostFilters.mjs",
