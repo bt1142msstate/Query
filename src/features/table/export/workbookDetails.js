@@ -92,12 +92,19 @@ function formatFilterLine(filter) {
   return value ? `${operator} ${value}` : operator;
 }
 
+function formatNumberedList(values) {
+  const items = (Array.isArray(values) ? values : [])
+    .map(value => String(value || '').trim())
+    .filter(Boolean);
+  return items.length
+    ? items.map((value, index) => `${index + 1}. ${value}`).join('\n')
+    : 'None';
+}
+
 function appendDisplayedFieldRows(rows, displayedFields) {
   const fields = Array.isArray(displayedFields) ? displayedFields : [];
   addDetailRow(rows, 'Displayed Fields', 'Count', fields.length);
-  fields.forEach((field, index) => {
-    addDetailRow(rows, 'Displayed Fields', String(index + 1), field);
-  });
+  addDetailRow(rows, 'Displayed Fields', 'Fields', formatNumberedList(fields));
 }
 
 function appendFilterRows(rows, section, filtersByField) {

@@ -1,5 +1,5 @@
 {
-  "version": "4b3fc4a4c0c78f50",
+  "version": "632046b0723e9e45",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -108,7 +108,7 @@
     "src/features/table/export/excel.js": "68364e83f45f2bed",
     "src/features/table/export/exportProgress.js": "adf5e356c456fc9e",
     "src/features/table/export/splitColumnsToggleUi.js": "ee33440628736829",
-    "src/features/table/export/workbookDetails.js": "0226be3d5d02796c",
+    "src/features/table/export/workbookDetails.js": "d3f832e4a33d4dd4",
     "src/features/table/export/workbookDownload.js": "1872986ad44cdedd",
     "src/features/table/export/workbookExport.js": "c54877059584859b",
     "src/features/table/export/workbookExportData.js": "eebaa09a1cc3412b",
