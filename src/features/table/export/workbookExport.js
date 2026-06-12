@@ -8,7 +8,7 @@ import { getCellValueParts, hasMultipleCellValues } from '../../../core/resultCe
 const BACKGROUND_WORKER_CELL_THRESHOLD = 15000;
 const EXCEL_MAX_DATA_ROWS_PER_SHEET = 1048575;
 const XML_CHUNK_SIZE = 1024 * 1024;
-const PROGRESS_ROW_BATCH = 5000;
+const PROGRESS_ROW_BATCH = 10000;
 const WORKSHEET_TYPE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet';
 const STYLES_TYPE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles';
 const OFFICE_DOCUMENT_TYPE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument';
@@ -22,6 +22,7 @@ const XML_TEXT_NEEDS_ESCAPE_PATTERN = /[&<>\u0000-\u0008\u000B\u000C\u000E-\u001
 const XML_ATTRIBUTE_QUOTE_PATTERN = /["']/gu;
 const XML_ATTRIBUTE_NEEDS_ESCAPE_PATTERN = /["'&<>\u0000-\u0008\u000B\u000C\u000E-\u001F]/u;
 const XML_PRESERVE_SPACE_PATTERN = /^\s|\s$|\n/u;
+const SIMPLE_NUMBER_PATTERN = /^-?\d+(?:\.\d+)?$/u;
 const COLUMN_NAME_CACHE = [''];
 let workbookWorkerSequence = 0;
 
@@ -129,12 +130,16 @@ function getFieldType(sourceData, field) {
 function buildSourceColumnPlan(sourceData) {
   return sourceData.displayedFields.map((field, index) => {
     const type = getFieldType(sourceData, field);
+    const styleId = getCellStyle(type);
+    const textStyleId = getCellTextStyle(type);
     return {
       columnName: getColumnName(index + 1),
       field,
       sourceIndex: getColumnIndex(sourceData, field),
-      styleId: getCellStyle(type),
-      textStyleId: getCellTextStyle(type),
+      styleAttr: styleId ? ` s="${styleId}"` : '',
+      styleId,
+      textStyleAttr: textStyleId ? ` s="${textStyleId}"` : '',
+      textStyleId,
       type
     };
   });
@@ -143,7 +148,10 @@ function buildSourceColumnPlan(sourceData) {
 function parseWorkbookNumericValue(raw, options = {}) {
   if (typeof raw === 'number') return raw;
   const { allowDecimal = true } = options;
-  const text = String(raw || '');
+  const text = String(raw || '').trim();
+  if (allowDecimal && SIMPLE_NUMBER_PATTERN.test(text)) {
+    return Number(text);
+  }
   const isNegative = text.trim().startsWith('-');
   const numeric = text.replace(allowDecimal ? /[^0-9.]/gu : /[^0-9]/gu, '');
   const firstDot = numeric.indexOf('.');
@@ -154,16 +162,56 @@ function parseWorkbookNumericValue(raw, options = {}) {
   return Number.parseFloat(normalized);
 }
 
+function parseCompactWorkbookDate(raw) {
+  if (typeof raw !== 'string') {
+    return null;
+  }
+  const text = raw.trim();
+  if (text.length !== 8 && text.length !== 12 && text.length !== 14) {
+    return null;
+  }
+  for (let index = 0; index < 8; index += 1) {
+    const code = text.charCodeAt(index);
+    if (code < 48 || code > 57) {
+      return null;
+    }
+  }
+  const year = Number(text.slice(0, 4));
+  const month = Number(text.slice(4, 6));
+  const day = Number(text.slice(6, 8));
+  const date = new Date(year, month - 1, day);
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+    ? date
+    : null;
+}
+
+function parseWorkbookDateValue(raw) {
+  if (raw instanceof Date) {
+    return Number.isNaN(raw.getTime()) ? null : new Date(raw.getTime());
+  }
+  return parseCompactWorkbookDate(raw) || parseDateValue(raw);
+}
+
+function mayHaveMultipleCellValues(raw) {
+  if (Array.isArray(raw)) {
+    return true;
+  }
+  if (raw && typeof raw === 'object') {
+    return Array.isArray(raw.values) || Object.prototype.hasOwnProperty.call(raw, 'value');
+  }
+  return typeof raw === 'string' && raw.includes(SERIALIZED_MULTI_VALUE_SEPARATOR);
+}
+
 function getDefaultCellExportValue(raw, type) {
   if (raw === undefined || raw === null) return '';
-  if (hasMultipleCellValues(raw)) {
+  if (mayHaveMultipleCellValues(raw) && hasMultipleCellValues(raw)) {
     return getCellValueParts(raw)
       .map(value => getDefaultCellExportValue(value, type))
       .filter(value => value !== '')
       .join('\n');
   }
   if (type === 'date') {
-    const dt = parseDateValue(raw);
+    const dt = parseWorkbookDateValue(raw);
     return dt !== null ? dt : 'Never';
   }
   if (type === 'number' || type === 'money') {
@@ -196,10 +244,10 @@ function getExcelDateSerial(date) {
   return Math.round((utcDate - Date.UTC(1899, 11, 30)) / 86400000);
 }
 
-function buildTextCellAtReference(value, reference, styleId = '') {
+function buildTextCellAtReference(value, reference, styleId = '', styleAttr = '') {
   const rawText = String(value ?? '');
   const text = escapeXmlText(rawText);
-  const style = styleId ? ` s="${styleId}"` : '';
+  const style = styleAttr || (styleId ? ` s="${styleId}"` : '');
   const space = XML_PRESERVE_SPACE_PATTERN.test(rawText) ? ' xml:space="preserve"' : '';
   return `<c r="${reference}" t="inlineStr"${style}><is><t${space}>${text}</t></is></c>`;
 }
@@ -234,6 +282,23 @@ function buildCellAtReference(value, reference, styleId = '', textStyleId = '') 
   return buildTextCellAtReference(value, reference, textStyleId);
 }
 
+function buildSourceCellAtReference(value, reference, column) {
+  if (value === undefined || value === null || value === '') {
+    return '';
+  }
+
+  if (value instanceof Date) {
+    return `<c r="${reference}" s="1"><v>${getExcelDateSerial(value)}</v></c>`;
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return `<c r="${reference}"${column.styleAttr}><v>${value}</v></c>`;
+  }
+  if (typeof value === 'boolean') {
+    return `<c r="${reference}" t="b"${column.styleAttr}><v>${value ? 1 : 0}</v></c>`;
+  }
+  return buildTextCellAtReference(value, reference, column.textStyleId, column.textStyleAttr);
+}
+
 function buildCell(value, rowNumber, columnNumber, styleId = '', textStyleId = '') {
   return buildCellAtReference(value, `${getColumnName(columnNumber)}${rowNumber}`, styleId, textStyleId);
 }
@@ -258,7 +323,7 @@ function buildSourceRow(columnPlan, rawRow, rowNumber, getCellExportValue) {
     const column = columnPlan[index];
     const raw = getRawValue(rawRow, column);
     const value = getCellExportValue(raw, column.type);
-    cells += buildCellAtReference(value, `${column.columnName}${rowNumber}`, column.styleId, column.textStyleId);
+    cells += buildSourceCellAtReference(value, `${column.columnName}${rowNumber}`, column);
   }
   return `<row r="${rowNumber}">${cells}</row>`;
 }

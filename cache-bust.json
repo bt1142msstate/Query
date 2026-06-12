@@ -1,5 +1,5 @@
 {
-  "version": "168f0179074b6f41",
+  "version": "61e6dc9f9dcba6e0",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -110,8 +110,8 @@
     "src/features/table/export/splitColumnsToggleUi.js": "ee33440628736829",
     "src/features/table/export/workbookDetails.js": "24881164f994ede1",
     "src/features/table/export/workbookDownload.js": "1872986ad44cdedd",
-    "src/features/table/export/workbookExport.js": "895caccdf6c758f2",
-    "src/features/table/export/workbookExportData.js": "3e8f444a7fc61911",
+    "src/features/table/export/workbookExport.js": "c8401a8f4f5191bf",
+    "src/features/table/export/workbookExportData.js": "eebaa09a1cc3412b",
     "src/features/table/export/workbookExportWorker.js": "8c6999ef3bf033aa",
     "src/features/table/export/workbookOverview.js": "ebc9328644e88d9f",
     "src/features/table/export/xlsxZipWriter.js": "5f4c1f6e98fbcb06",
