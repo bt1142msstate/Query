@@ -3550,6 +3550,7 @@ body.post-filter-overlay-open {
 
   #table-shell.table-shell-expanded #table-add-field-btn,
   #table-shell.table-shell-expanded #download-btn,
+  #table-shell.table-shell-expanded #split-columns-toggle,
   #table-shell.table-shell-expanded #duplicate-rows-toggle,
   #table-shell.table-shell-expanded #post-filter-btn,
   #table-shell.table-shell-expanded #clear-query-btn {
@@ -3657,7 +3658,7 @@ body.post-filter-overlay-open {
 
   body.has-query-columns:not(.table-expanded-open) #mobile-table-action-bar,
   body.has-loaded-data:not(.table-expanded-open) #mobile-table-action-bar {
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(8, minmax(0, 1fr));
     gap: 0.4rem;
     margin-left: 0.5rem;
     margin-right: 0.5rem;

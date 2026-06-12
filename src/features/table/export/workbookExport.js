@@ -214,13 +214,30 @@ function mayHaveMultipleCellValues(raw) {
   return typeof raw === 'string' && raw.includes(SERIALIZED_MULTI_VALUE_SEPARATOR);
 }
 
+function formatWorkbookListItem(value) {
+  if (value instanceof Date) {
+    return formatDisplayValue(value, { fallbackToRaw: true, invalidValue: 'Never' });
+  }
+  if (typeof value === 'boolean') {
+    return value ? 'True' : 'False';
+  }
+  return String(value ?? '').trim();
+}
+
+function formatNumberedWorkbookList(values) {
+  const items = (Array.isArray(values) ? values : [])
+    .map(formatWorkbookListItem)
+    .filter(Boolean);
+  return items.map((value, index) => `${index + 1}. ${value}`).join('\n');
+}
+
 function getDefaultCellExportValue(raw, type) {
   if (raw === undefined || raw === null) return '';
   if (mayHaveMultipleCellValues(raw) && hasMultipleCellValues(raw)) {
-    return getCellValueParts(raw)
+    const values = getCellValueParts(raw)
       .map(value => getDefaultCellExportValue(value, type))
-      .filter(value => value !== '')
-      .join('\n');
+      .filter(value => value !== '');
+    return formatNumberedWorkbookList(values);
   }
   if (type === 'date') {
     const dt = parseWorkbookDateValue(raw);
@@ -308,6 +325,9 @@ function buildSourceCellAtReference(value, reference, column) {
   if (typeof value === 'boolean') {
     return `<c r="${reference}" t="b"${column.styleAttr}><v>${value ? 1 : 0}</v></c>`;
   }
+  if (String(value).includes('\n')) {
+    return buildTextCellAtReference(value, reference, DETAILS_WRAP_STYLE_ID, ` s="${DETAILS_WRAP_STYLE_ID}"`);
+  }
   return buildTextCellAtReference(value, reference, column.textStyleId, column.textStyleAttr);
 }
 
@@ -343,6 +363,12 @@ function buildSourceRow(columnPlan, rawRow, rowNumber, getCellExportValue) {
 function getColumnWidthValue(rawRow, column) {
   const raw = column.sourceIndex !== undefined ? rawRow[column.sourceIndex] : undefined;
   if (raw === undefined || raw === null) return '';
+
+  if (mayHaveMultipleCellValues(raw) && hasMultipleCellValues(raw)) {
+    return getCellValueParts(raw)
+      .map((value, index) => `${index + 1}. ${getColumnWidthValue([value], { ...column, sourceIndex: 0 })}`)
+      .join(' ');
+  }
 
   if (column.type === 'date') return '12/31/2000';
   if (column.type === 'number' || column.type === 'money') {

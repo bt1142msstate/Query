@@ -769,7 +769,7 @@ async function exerciseTabletLandscapeMobileParity(page, queryApiStub) {
   });
   if (
     tableMetrics.actionBarDisplay !== 'grid'
-    || tableMetrics.actionBarColumns !== 7
+    || tableMetrics.actionBarColumns !== 8
     || tableMetrics.actionBarHeight > 72
     || !tableMetrics.builderActive
     || tableMetrics.tableWidth > tableMetrics.containerWidth + 4
@@ -1114,7 +1114,7 @@ async function exerciseTabletPortraitMobileParity(page, queryApiStub) {
     };
   });
   if (
-    tableMetrics.actionBarColumns !== 7
+    tableMetrics.actionBarColumns !== 8
     || tableMetrics.actionBarHeight > 72
     || tableMetrics.tableWidth > tableMetrics.containerWidth + 4
   ) {

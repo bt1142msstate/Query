@@ -23,7 +23,6 @@ class ModalManager {
     this.activePanel = null;
     this.mobileMenuLabelMap = {
       'run-query-btn': 'Run Query',
-      'split-columns-toggle': 'Multi-value Export',
       'toggle-json': 'JSON',
       'toggle-queries': 'Queries',
       'toggle-templates': 'Templates',

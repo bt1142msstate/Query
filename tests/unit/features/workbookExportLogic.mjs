@@ -78,7 +78,9 @@ test('custom workbook export', async () => {
         return new Date(Date.UTC(2024, 0, 31));
       }
       if (typeof raw === 'string' && raw.includes('\x1F')) {
-        return raw.split('\x1F').join('\n');
+        return raw.split('\x1F')
+          .map((value, index) => `${index + 1}. ${value}`)
+          .join('\n');
       }
       return raw;
     },
@@ -129,7 +131,8 @@ test('custom workbook export', async () => {
   assert.match(defaultWorkbookText, /<c r="B2" s="4"><v>12<\/v><\/c>/u);
   assert.match(defaultWorkbookText, /<c r="C2" s="1"><v>\d+<\/v><\/c>/u);
   assert.match(defaultWorkbookText, /<c r="C3" t="inlineStr" s="7"><is><t>Never<\/t><\/is><\/c>/u);
-  assert.match(defaultWorkbookText, /First public note\s+Second public note/u);
+  assert.match(defaultWorkbookText, /1\. First public note\s+2\. Second public note/u);
+  assert.match(defaultWorkbookText, /<c r="D2" t="inlineStr" s="8"><is><t(?: xml:space="preserve")?>1\. First public note\s+2\. Second public note<\/t><\/is><\/c>/u);
 
   await exportWorkbook({
     config: {
@@ -170,7 +173,7 @@ test('custom workbook export', async () => {
   assert.doesNotMatch(workbookText, /FFE5F3FF|applyFill="1"/u);
   assert.match(workbookText, /Alpha &amp; Beta/u);
   assert.match(workbookText, /Gamma &lt; Delta/u);
-  assert.match(workbookText, /First public note\s+Second public note/u);
+  assert.match(workbookText, /1\. First public note\s+2\. Second public note/u);
   assert.match(workbookText, /MSU -- Gift of Marcia Ewing-Current/u);
   assert.match(workbookText, /mm\/dd\/yyyy/u);
   assert.match(workbookText, /<c r="C3" t="inlineStr" s="7"><is><t>Never<\/t><\/is><\/c>/u);

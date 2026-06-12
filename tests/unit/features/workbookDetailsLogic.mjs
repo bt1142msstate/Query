@@ -13,7 +13,7 @@ import test from 'node:test';
 test('workbook details', async () => {
   const rows = buildWorkbookDetailsRows({
     activeFilters: {
-      Branch: { filters: [{ cond: 'equals', val: 'Main' }] },
+      Branch: { filters: [{ cond: 'equals', val: 'Main, East' }] },
       'Checkout Date': { filters: [{ cond: 'between', val: '1/1/2026|1/31/2026' }] }
     },
     config: {
@@ -56,6 +56,7 @@ test('workbook details', async () => {
   assert.ok(rows.some(row => row.join('|') === 'Rows|Rows After Post Filters|10'));
   assert.ok(rows.some(row => row.join('|') === 'Rows|Duplicate Rows Collapsed|2'));
   assert.ok(rows.some(row => row.join('|') === 'Displayed Fields|Fields|1. Title\n2. Branch\n3. Checkout Date'));
+  assert.ok(rows.some(row => row.join('|') === 'Query Filters|Branch|Equals\n1. Main\n2. East'));
   assert.ok(rows.some(row => row.join('|') === 'Query Filters|Checkout Date|Between 1/1/2026 to 1/31/2026'));
   assert.ok(rows.some(row => row.join('|') === 'Post Filters|Title (ANY)|Contains history'));
 

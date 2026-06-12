@@ -91,14 +91,31 @@ function mayHaveMultipleCellValues(raw) {
   return typeof raw === 'string' && raw.includes(SERIALIZED_MULTI_VALUE_SEPARATOR);
 }
 
+function formatWorkbookListItem(value) {
+  if (value instanceof Date) {
+    return formatDisplayValue(value, { fallbackToRaw: true, invalidValue: 'Never' });
+  }
+  if (typeof value === 'boolean') {
+    return value ? 'True' : 'False';
+  }
+  return String(value ?? '').trim();
+}
+
+function formatNumberedWorkbookList(values) {
+  const items = (Array.isArray(values) ? values : [])
+    .map(formatWorkbookListItem)
+    .filter(Boolean);
+  return items.map((value, index) => `${index + 1}. ${value}`).join('\n');
+}
+
 function getCellExportValue(raw, type) {
   if (raw === undefined || raw === null) return '';
 
   if (mayHaveMultipleCellValues(raw) && hasMultipleCellValues(raw)) {
-    return getCellValueParts(raw)
+    const values = getCellValueParts(raw)
       .map(value => getCellExportValue(value, type))
-      .filter(value => value !== '')
-      .join('\n');
+      .filter(value => value !== '');
+    return formatNumberedWorkbookList(values);
   }
 
   if (type === 'date') {

@@ -77,19 +77,30 @@ function formatQueryDuration(query) {
   return Number.isFinite(seconds) ? formatDuration(seconds) : '';
 }
 
+function getFilterValueParts(value) {
+  const text = String(value || '').trim();
+  if (!text) return [];
+  return text.split(',').map(part => part.trim()).filter(Boolean);
+}
+
 function formatFilterValue(cond, value) {
   const text = String(value || '').trim();
   if (!text) return '';
   if (String(cond || '').toLowerCase() === 'between') {
     return text.split('|').map(part => part.trim()).filter(Boolean).join(' to ');
   }
-  return text.split(',').map(part => part.trim()).filter(Boolean).join(', ') || text;
+  const parts = getFilterValueParts(value);
+  if (parts.length > 1) {
+    return `\n${formatNumberedList(parts)}`;
+  }
+  return parts[0] || text;
 }
 
 function formatFilterLine(filter) {
   const operator = OperatorLabels.get(filter?.cond, 'Equals');
   const value = formatFilterValue(filter?.cond, filter?.val);
-  return value ? `${operator} ${value}` : operator;
+  if (!value) return operator;
+  return value.startsWith('\n') ? `${operator}${value}` : `${operator} ${value}`;
 }
 
 function formatNumberedList(values) {

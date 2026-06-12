@@ -149,6 +149,7 @@ function getMobileActionLabelText({ action, sourceId, source }) {
   if (sourceId === 'table-add-field-btn') return 'Add';
   if (sourceId === 'post-filter-btn') return 'Filters';
   if (sourceId === 'download-btn') return 'Export';
+  if (sourceId === 'split-columns-toggle') return source?.dataset.mobileLabel || 'Split';
   if (sourceId === 'clear-query-btn') return 'Clear';
   if (sourceId === 'table-expand-btn') {
     return source?.dataset.state === 'expanded' ? 'Collapse' : 'Expand';

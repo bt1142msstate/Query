@@ -82,7 +82,7 @@ test('reusable workbook export component creates the same workbook blob path as 
   const workbookText = new TextDecoder().decode(await blob.arrayBuffer());
   assert.match(workbookText.slice(0, 4), /^PK/u);
   assert.match(workbookText, /Reusable Report/u);
-  assert.match(workbookText, /First note\s+Second note/u);
+  assert.match(workbookText, /1\. First note\s+2\. Second note/u);
 });
 
 test('date picker and tooltip component entrypoints expose browser-safe APIs', () => {
