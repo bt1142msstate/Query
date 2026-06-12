@@ -1,5 +1,5 @@
 {
-  "version": "0b35222dda8afecb",
+  "version": "b4e4c9bc841eae9f",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -147,7 +147,7 @@
     "src/features/templates/view/queryTemplateListView.js": "2f4f1ac2cd5440d4",
     "src/features/templates/view/queryTemplateViewState.js": "a1a4e7e2fdd668f8",
     "src/styles/api-settings.css": "7c6ff2277eb40a47",
-    "src/styles/app.css": "c3e8a061726f0da9",
+    "src/styles/app.css": "e38656d2dfbcc811",
     "src/styles/base.css": "ad5747a35178886b",
     "src/styles/condition-editor.css": "c3151b483e049c2e",
     "src/styles/controls.css": "559e7223fe9f17b0",
@@ -156,7 +156,7 @@
     "src/styles/help.css": "28055b8007549109",
     "src/styles/history.css": "7e62c03c853c79e2",
     "src/styles/interaction.css": "13df25573561806c",
-    "src/styles/table.css": "0b7874af40352370",
+    "src/styles/table.css": "27d0f21c20bae891",
     "src/styles/templates.css": "0116650a211f013c",
     "src/styles/tooltips.css": "ef1ac9877dc6bbdb",
     "src/ui/apiCompatibility.js": "650125d9c6d0b03e",

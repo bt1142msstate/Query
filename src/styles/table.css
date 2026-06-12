@@ -5,6 +5,7 @@
 /* Table shell and chrome */
 #table-shell {
   --table-zoom: 1;
+  container: query-table-shell / inline-size;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -13,7 +14,7 @@
 
 #table-top-bar {
   display: grid;
-  grid-template-columns: minmax(max-content, auto) minmax(0, 1fr) max-content;
+  grid-template-columns: minmax(10rem, 16rem) minmax(12rem, 1fr) max-content;
   align-items: stretch;
   gap: 0.85rem;
   padding: 0.55rem 0.8rem 0.45rem;
@@ -33,7 +34,7 @@
   justify-content: center;
   align-self: center;
   justify-self: start;
-  width: max-content;
+  width: 100%;
   max-width: 100%;
   min-width: 0;
   overflow: hidden;
@@ -50,6 +51,36 @@
   justify-self: end;
   min-width: max-content;
   max-width: 100%;
+}
+
+@container query-table-shell (max-width: 760px) {
+  #table-top-bar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "table-name table-toolbar"
+      "table-info table-toolbar";
+    align-items: center;
+    gap: 0.42rem 0.62rem;
+  }
+
+  #table-info-bar {
+    grid-area: table-info;
+    align-self: start;
+  }
+
+  #table-name-shell {
+    grid-area: table-name;
+  }
+
+  #table-toolbar {
+    display: grid;
+    grid-area: table-toolbar;
+    grid-template-columns: repeat(3, 1.95rem);
+    align-self: center;
+    justify-content: end;
+    gap: 0.35rem;
+    min-width: 0;
+  }
 }
 
 .mobile-table-action-bar {
@@ -1624,6 +1655,7 @@ body.table-column-resizing * {
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
+  flex-wrap: wrap;
   gap: 0.45rem;
   min-height: 0.9rem;
   padding: 0;
@@ -1634,7 +1666,10 @@ body.table-column-resizing * {
   text-transform: uppercase;
   line-height: 1;
   box-sizing: border-box;
-  white-space: nowrap;
+  max-width: 100%;
+  min-width: 0;
+  row-gap: 0.18rem;
+  white-space: normal;
 }
 
 #table-results-count {
@@ -1651,6 +1686,7 @@ body.table-column-resizing * {
   display: inline-flex;
   align-items: baseline;
   gap: 0.26rem;
+  min-width: 0;
   white-space: nowrap;
 }
 

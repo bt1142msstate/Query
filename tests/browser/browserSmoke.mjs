@@ -59,6 +59,7 @@ import {
   exerciseJsonResultPayloadWorkflow,
   exerciseLegacyFormUrlCanonicalization,
   exerciseLiveResponsiveResize,
+  exerciseTableHeaderResponsiveRegions,
   exerciseTabletLandscapeMobileParity,
   exerciseTabletPortraitMobileParity,
   exerciseVirtualTableScrollInteraction,
@@ -148,6 +149,7 @@ async function runSmokeTest() {
     await exerciseColumnResizeInteraction(page);
     await exerciseColumnDragOutsideTableInteraction(page);
     await exerciseLiveResponsiveResize(page);
+    await exerciseTableHeaderResponsiveRegions(page);
 
     await page.goto(baseUrl, { waitUntil: 'load', timeout: 15000 });
     await waitForAppReady(page, failures);

@@ -308,6 +308,95 @@ async function exerciseLiveResponsiveResize(page) {
   await waitForResponsiveResize(page, false);
 }
 
+async function exerciseTableHeaderResponsiveRegions(page) {
+  await page.setViewportSize({ width: 1280, height: 760 });
+  await waitForResponsiveResize(page, false);
+  await seedLoadedResults(page, { longTitle: true, rowCount: 24 });
+
+  await page.evaluate(() => {
+    const tableShell = document.querySelector('#table-shell');
+    const tableNameInput = document.querySelector('#table-name-input');
+    const resultsBadge = document.querySelector('#table-results-badge');
+    const resultsCount = document.querySelector('#table-results-count');
+    const resultsLabel = document.querySelector('#table-results-label');
+    const columnsCount = document.querySelector('#table-columns-count');
+    const columnsLabel = document.querySelector('#table-columns-label');
+
+    if (tableShell) {
+      tableShell.style.width = '720px';
+      tableShell.style.maxWidth = '720px';
+    }
+    if (tableNameInput) {
+      tableNameInput.value = 'Atlas browser result set with a readable table title';
+      tableNameInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    if (resultsBadge) {
+      resultsBadge.classList.remove('hidden');
+      resultsBadge.setAttribute('aria-hidden', 'false');
+    }
+    if (resultsCount) resultsCount.textContent = '83,113 of 160,163';
+    if (resultsLabel) resultsLabel.textContent = 'unique results';
+    if (columnsCount) columnsCount.textContent = '1';
+    if (columnsLabel) columnsLabel.textContent = 'column';
+  });
+
+  await page.waitForTimeout(100);
+
+  const metrics = await page.evaluate(() => {
+    const readRect = selector => {
+      const rect = document.querySelector(selector)?.getBoundingClientRect();
+      return rect
+        ? {
+            bottom: rect.bottom,
+            height: rect.height,
+            left: rect.left,
+            right: rect.right,
+            top: rect.top,
+            width: rect.width
+          }
+        : null;
+    };
+    const topBar = document.querySelector('#table-top-bar');
+    const input = document.querySelector('#table-name-input');
+    const topBarStyle = topBar ? window.getComputedStyle(topBar) : null;
+    return {
+      gridColumns: topBarStyle?.gridTemplateColumns || '',
+      info: readRect('#table-info-bar'),
+      inputClientWidth: input?.clientWidth || 0,
+      inputScrollWidth: input?.scrollWidth || 0,
+      name: readRect('#table-name-shell'),
+      shell: readRect('#table-shell'),
+      title: input?.value || '',
+      toolbar: readRect('#table-toolbar'),
+      topBar: readRect('#table-top-bar'),
+      topBarClientWidth: topBar?.clientWidth || 0,
+      topBarScrollWidth: topBar?.scrollWidth || 0
+    };
+  });
+
+  await page.evaluate(() => {
+    const tableShell = document.querySelector('#table-shell');
+    if (tableShell) {
+      tableShell.style.width = '';
+      tableShell.style.maxWidth = '';
+    }
+  });
+
+  if (
+    !metrics.shell
+    || !metrics.info
+    || !metrics.name
+    || !metrics.toolbar
+    || metrics.shell.width > 724
+    || metrics.name.width < 260
+    || metrics.inputClientWidth < 250
+    || metrics.topBarScrollWidth > metrics.topBarClientWidth + 2
+    || metrics.name.right > metrics.toolbar.left + 1
+  ) {
+    throw new Error(`Narrow desktop table header should preserve readable title space beside long result counts: ${JSON.stringify(metrics)}`);
+  }
+}
+
 async function exerciseTabletLandscapeMobileParity(page, queryApiStub) {
   await page.setViewportSize({ width: 1180, height: 820 });
   await waitForResponsiveResize(page, true);
@@ -3082,6 +3171,7 @@ export {
   exerciseJsonResultPayloadWorkflow,
   exerciseLegacyFormUrlCanonicalization,
   exerciseLiveResponsiveResize,
+  exerciseTableHeaderResponsiveRegions,
   exerciseTabletLandscapeMobileParity,
   exerciseTabletPortraitMobileParity,
   exerciseVirtualTableScrollInteraction,
