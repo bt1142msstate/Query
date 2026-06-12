@@ -37,12 +37,27 @@ function syncFormModeShareUi({
       : 'Add a displayed field or filter control before sharing this form.');
   }
 
+  const hasSharedBaseline = Boolean(state.sharedBaselineSpec);
+
+  if (state.resetBtn) {
+    state.resetBtn.disabled = !isShareable;
+    state.resetBtn.setAttribute('data-tooltip', isShareable
+      ? 'Choose the original form or your last shared link.'
+      : 'Add a displayed field or filter control before reset options are available.');
+  }
+
+  if (state.resetOriginalBtn) {
+    state.resetOriginalBtn.disabled = !isShareable;
+    state.resetOriginalBtn.setAttribute('data-tooltip', isShareable
+      ? 'Restore the form as it first opened, including results when available.'
+      : 'Add a displayed field or filter control before reset options are available.');
+  }
+
   if (state.resetSharedBtn) {
-    const hasSharedBaseline = Boolean(state.sharedBaselineSpec);
     state.resetSharedBtn.disabled = !hasSharedBaseline;
     state.resetSharedBtn.setAttribute('data-tooltip', hasSharedBaseline
-      ? 'Restore the last version you shared.'
-      : 'Share this form first to create a shared baseline.');
+      ? 'Restore the last link you copied, including results when available.'
+      : 'Share this form first to create a shared reset point.');
   }
 }
 

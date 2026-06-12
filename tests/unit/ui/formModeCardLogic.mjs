@@ -14,7 +14,9 @@ test('form mode card', async () => {
   });
 
   assert.equal(cardHtml.includes('Run Form'), true);
-  assert.equal(cardHtml.includes('Reset to Last Shared'), true);
+  assert.equal(cardHtml.includes('id="form-mode-reset"'), true);
+  assert.equal(cardHtml.includes('Original form'), true);
+  assert.equal(cardHtml.includes('Last shared link'), true);
   assert.equal(cardHtml.includes('data-form-mode-title'), true);
 
   const emptyStateHtml = getFormModeEmptyStateHtml();

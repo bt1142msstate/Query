@@ -56,6 +56,7 @@ import {
   exerciseFormModeBuildableDisplayField,
   exerciseTableBuildableDisplayField,
   exerciseFormModeDateTypingCommit,
+  exerciseFormModeResetMenuPreservesResults,
   exerciseJsonResultPayloadWorkflow,
   exerciseLegacyFormUrlCanonicalization,
   exerciseLiveResponsiveResize,
@@ -140,6 +141,7 @@ async function runSmokeTest() {
     await exerciseTableBuildableDisplayField(page);
     await exerciseFormModeBuildableDisplayField(page);
     await exerciseEditableFormUrlRefresh(page, failures);
+    await exerciseFormModeResetMenuPreservesResults(page, queryApiStub);
     await exerciseLegacyFormUrlCanonicalization(page, baseUrl, failures);
     await exerciseDesktopResultsWorkflow(page);
     await exerciseZeroResultQueryWorkflow(page, queryApiStub);

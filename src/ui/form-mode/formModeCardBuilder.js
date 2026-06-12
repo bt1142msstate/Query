@@ -38,6 +38,9 @@ function buildInteractiveFormModeCard(options) {
   state.validationEl = mountedCard.validationEl;
   state.runBtn = mountedCard.runBtn;
   state.copyBtn = mountedCard.copyBtn;
+  state.resetBtn = mountedCard.resetBtn;
+  state.resetMenu = mountedCard.resetMenu;
+  state.resetMenuShell = mountedCard.resetMenuShell;
   state.resetOriginalBtn = mountedCard.resetOriginalBtn;
   state.resetSharedBtn = mountedCard.resetSharedBtn;
 
@@ -88,7 +91,36 @@ function buildInteractiveFormModeCard(options) {
     });
   });
 
+  function setResetMenuOpen(open) {
+    if (!state.resetBtn || !state.resetMenu) {
+      return;
+    }
+
+    state.resetMenu.classList.toggle('hidden', !open);
+    state.resetBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  state.resetBtn?.addEventListener('click', event => {
+    event.stopPropagation();
+    const isOpen = state.resetBtn.getAttribute('aria-expanded') === 'true';
+    setResetMenuOpen(!isOpen);
+  });
+
+  state.resetMenuShell?.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      setResetMenuOpen(false);
+      state.resetBtn?.focus();
+    }
+  });
+
+  state.resetMenuShell?.addEventListener('focusout', event => {
+    if (!event.relatedTarget || !state.resetMenuShell?.contains(event.relatedTarget)) {
+      setResetMenuOpen(false);
+    }
+  });
+
   state.resetOriginalBtn.addEventListener('click', () => {
+    setResetMenuOpen(false);
     resetFormToBaseline('original');
   });
 
@@ -97,25 +129,26 @@ function buildInteractiveFormModeCard(options) {
       showToastMessage('Share this form first to create a shared baseline.', 'warning');
       return;
     }
+    setResetMenuOpen(false);
     resetFormToBaseline('shared');
   });
 
   state.copyBtn.addEventListener('click', async () => {
-    const saved = saveCurrentFormAsSharedBaseline();
+    const saved = saveCurrentFormAsSharedBaseline({ includeResult: true });
     if (!saved) {
       showToastMessage('No form link is available to share.', 'warning');
       return;
     }
 
     await clipboardUtils.copyFromSource(() => buildCurrentShareUrl(), {
-      successMessage: 'Shared link copied. Reset to Last Shared now returns to this form version.',
+      successMessage: 'Shared link copied. Reset can return to this shared version.',
       errorMessage: 'Failed to copy form link.',
       emptyMessage: 'No form link is available to share.'
     });
   });
 
   mountedCard.cleanCopyBtn?.addEventListener('click', async () => {
-    const saved = saveCurrentFormAsSharedBaseline();
+    const saved = saveCurrentFormAsSharedBaseline({ includeResult: false });
     if (!saved) {
       showToastMessage('No form link is available to share.', 'warning');
       return;

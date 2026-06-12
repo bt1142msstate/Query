@@ -25,7 +25,7 @@ export function createQueryHistoryResultsLoader({
 }) {
   return async function loadQueryResults(queryId, options = {}) {
     const query = getHistoryQueryById(queryId);
-    if (!query) return;
+    if (!query) return false;
 
     loadQueryConfig(query);
     historyResultProgress.start(query, { render: renderQueries });
@@ -109,12 +109,14 @@ export function createQueryHistoryResultsLoader({
       }
 
       services.closeAllModals();
+      return true;
     } catch (error) {
       if (error?.isRateLimited) {
-        return;
+        return false;
       }
       console.error('Failed to load results:', error);
       showToastMessage(`Failed to load results: ${error.message}`, 'error');
+      return false;
     } finally {
       historyResultProgress.clear({ render: renderQueries });
     }

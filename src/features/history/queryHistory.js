@@ -767,6 +767,7 @@ const QueryHistorySystem = {
   rememberOpenedResult: rememberOpenedHistoryResult,
   cacheOpenedResult: snapshot => openedResultViewStatePersistence?.cacheSnapshot(snapshot),
   forgetOpenedResult: () => openedHistoryResultRestoreController?.forgetRestoreSnapshot?.(),
+  loadQueryResults,
   closeDetailsOverlay: closeHistoryDetailsOverlay,
   startQueryDurationUpdates,
   stopQueryDurationUpdates,
