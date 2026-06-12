@@ -24,16 +24,23 @@ function syncFormModeShareUi({
   const cleanCopyBtn = state.formCard?.querySelector('#form-mode-copy-clean');
   const resultQueryId = getCurrentShareResultQueryId();
   state.copyBtn.disabled = !isShareable;
-  state.copyBtn.textContent = resultQueryId ? 'Share Results' : 'Share';
+  state.copyBtn.textContent = 'Share';
   state.copyBtn.setAttribute('data-tooltip', isShareable
-    ? (resultQueryId ? 'Copy a link that opens these results.' : 'Copy a shareable form link and save this as the reset baseline.')
+    ? 'Choose whether to share results or the form only.'
     : 'Add a displayed field or filter control before sharing this form.');
-  state.copyBtn.setAttribute('aria-label', isShareable ? 'Share form link' : 'Share unavailable until fields are added');
+  state.copyBtn.setAttribute('aria-label', isShareable ? 'Open share options' : 'Share unavailable until fields are added');
+
+  if (state.shareResultsBtn) {
+    state.shareResultsBtn.disabled = !isShareable || !resultQueryId;
+    state.shareResultsBtn.setAttribute('data-tooltip', resultQueryId
+      ? 'Copy a link that opens these results.'
+      : 'Run or load results before sharing a results link.');
+  }
 
   if (cleanCopyBtn) {
     cleanCopyBtn.disabled = !isShareable;
     cleanCopyBtn.setAttribute('data-tooltip', isShareable
-      ? 'Copy a clean editable form link without results.'
+      ? 'Copy an editable form link without results.'
       : 'Add a displayed field or filter control before sharing this form.');
   }
 

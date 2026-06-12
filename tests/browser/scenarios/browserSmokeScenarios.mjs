@@ -1305,7 +1305,7 @@ async function exerciseFormModeResetMenuPreservesResults(page, queryApiStub) {
 
   await page.locator('#form-mode-card').waitFor({ state: 'visible', timeout: 5000 });
   const closedResetState = await page.evaluate(() => {
-    const visibleButtons = Array.from(document.querySelectorAll('.form-mode-actions > button, .form-mode-actions > .form-mode-reset-menu > button'))
+    const visibleButtons = Array.from(document.querySelectorAll('.form-mode-actions > button, .form-mode-actions > .form-mode-reset-menu > button, .form-mode-actions > .form-mode-share-menu > button'))
       .filter(button => {
         const rect = button.getBoundingClientRect();
         const style = window.getComputedStyle(button);
@@ -1317,21 +1317,60 @@ async function exerciseFormModeResetMenuPreservesResults(page, queryApiStub) {
       .map(button => button.textContent?.replace(/\s+/gu, ' ').trim() || '');
     return {
       hasResetMenu: Boolean(document.querySelector('#form-mode-reset-menu')),
+      hasShareMenu: Boolean(document.querySelector('#form-mode-share-menu')),
       menuHidden: document.querySelector('#form-mode-reset-options')?.classList.contains('hidden') || false,
       resetTriggerCount: document.querySelectorAll('#form-mode-reset').length,
+      shareMenuHidden: document.querySelector('#form-mode-share-options')?.classList.contains('hidden') || false,
+      shareTriggerCount: document.querySelectorAll('#form-mode-copy').length,
       visibleButtons
     };
   });
 
   if (
     !closedResetState.hasResetMenu
+    || !closedResetState.hasShareMenu
     || !closedResetState.menuHidden
+    || !closedResetState.shareMenuHidden
     || closedResetState.resetTriggerCount !== 1
+    || closedResetState.shareTriggerCount !== 1
     || !closedResetState.visibleButtons.includes('Reset')
+    || !closedResetState.visibleButtons.includes('Share')
     || closedResetState.visibleButtons.some(label => /Reset to Original|Reset to Last Shared/iu.test(label))
+    || closedResetState.visibleButtons.some(label => /Share Results|Form Link/iu.test(label))
   ) {
-    throw new Error(`Form mode should expose one reset trigger before the menu opens: ${JSON.stringify(closedResetState)}`);
+    throw new Error(`Form mode should expose one reset trigger and one share trigger before menus open: ${JSON.stringify(closedResetState)}`);
   }
+
+  await page.locator('#form-mode-copy').click();
+  await page.locator('#form-mode-share-options:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+  const openShareState = await page.locator('#form-mode-share-options').evaluate(menu => ({
+    formDisabled: Boolean(menu.querySelector('#form-mode-copy-clean')?.disabled),
+    formText: menu.querySelector('#form-mode-copy-clean')?.textContent?.replace(/\s+/gu, ' ').trim() || '',
+    resultsDisabled: Boolean(menu.querySelector('#form-mode-share-results')?.disabled),
+    resultsText: menu.querySelector('#form-mode-share-results')?.textContent?.replace(/\s+/gu, ' ').trim() || '',
+    tooltipVisible: (() => {
+      const tooltip = document.querySelector('.custom-tooltip.show');
+      if (!tooltip) return false;
+      const rect = tooltip.getBoundingClientRect();
+      const style = window.getComputedStyle(tooltip);
+      return style.display !== 'none'
+        && style.visibility !== 'hidden'
+        && Number.parseFloat(style.opacity || '0') > 0
+        && rect.width > 0
+        && rect.height > 0;
+    })()
+  }));
+  if (
+    openShareState.resultsDisabled
+    || openShareState.formDisabled
+    || !/Results link.+current result set/iu.test(openShareState.resultsText)
+    || !/Form link.+without loading the current results/iu.test(openShareState.formText)
+    || openShareState.tooltipVisible
+  ) {
+    throw new Error(`Share menu should explain result/form link targets: ${JSON.stringify(openShareState)}`);
+  }
+  await page.locator('#form-mode-copy').click();
+  await page.locator('#form-mode-share-options.hidden').waitFor({ state: 'attached', timeout: 5000 });
 
   await page.locator('#form-mode-reset').click();
   await page.locator('#form-mode-reset-options:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });

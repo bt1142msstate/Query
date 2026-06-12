@@ -160,6 +160,12 @@ const Tooltips = (() => {
     };
   }
 
+  function shouldSuppressTooltip(el) {
+    return el instanceof Element
+      && el.getAttribute('aria-haspopup') === 'menu'
+      && el.getAttribute('aria-expanded') === 'true';
+  }
+
   function getTooltipDelay(target) {
     if (!(target instanceof Element)) {
       return HOVER_SHOW_DELAY_MS;
@@ -193,6 +199,7 @@ const Tooltips = (() => {
    */
   function showTooltip(target, text, event, isHtml = false) {
     if (isDragging) return; // Do not show tooltip while dragging
+    if (shouldSuppressTooltip(target)) return;
     if (!tooltipEl) createTooltip();
     clearShowTimeout();
 
@@ -234,7 +241,7 @@ const Tooltips = (() => {
     // Position
     positionTooltip(target, event);
     setTimeout(() => {
-      if (tooltipEl) {
+      if (tooltipEl && currentTarget === target && tooltipEl.style.display === 'block') {
         tooltipEl.classList.add('show');
         tooltipEl.style.opacity = '1';
       }
@@ -344,6 +351,10 @@ const Tooltips = (() => {
       if (isDragging) return;
       const el = closestFromTarget(e.target, TOOLTIP_SELECTOR);
       if (!el) return;
+      if (shouldSuppressTooltip(el)) {
+        forceHide();
+        return;
+      }
       tooltipDebugLog('mouseover', {
         targetText: el.textContent ? el.textContent.trim() : null,
         rawTargetNodeType: e.target && e.target.nodeType
@@ -393,6 +404,10 @@ const Tooltips = (() => {
       if (isDragging) return;
       const el = closestFromTarget(e.target, TOOLTIP_SELECTOR);
       if (!el) return;
+      if (shouldSuppressTooltip(el)) {
+        forceHide();
+        return;
+      }
       tooltipDebugLog('focusin', {
         targetText: el.textContent ? el.textContent.trim() : null
       });

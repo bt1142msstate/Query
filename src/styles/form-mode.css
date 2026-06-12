@@ -113,12 +113,14 @@
   background: rgba(240, 253, 250, 0.96);
 }
 
-.form-mode-reset-menu {
+.form-mode-reset-menu,
+.form-mode-share-menu {
   position: relative;
   display: inline-flex;
 }
 
-.form-mode-reset-options {
+.form-mode-reset-options,
+.form-mode-share-options {
   position: absolute;
   top: auto;
   right: 0;
@@ -134,11 +136,13 @@
   box-shadow: 0 22px 45px rgba(15, 23, 42, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
-.form-mode-reset-options.hidden {
+.form-mode-reset-options.hidden,
+.form-mode-share-options.hidden {
   display: none;
 }
 
-.form-mode-reset-option {
+.form-mode-reset-option,
+.form-mode-share-option {
   display: grid;
   gap: 0.22rem;
   width: 100%;
@@ -151,23 +155,28 @@
 }
 
 .form-mode-reset-option:hover:not(:disabled),
-.form-mode-reset-option:focus-visible {
+.form-mode-reset-option:focus-visible,
+.form-mode-share-option:hover:not(:disabled),
+.form-mode-share-option:focus-visible {
   border-color: rgba(14, 165, 164, 0.25);
   background: rgba(240, 253, 250, 0.88);
   outline: none;
 }
 
-.form-mode-reset-option:disabled {
+.form-mode-reset-option:disabled,
+.form-mode-share-option:disabled {
   cursor: not-allowed;
   opacity: 0.58;
 }
 
-.form-mode-reset-option span {
+.form-mode-reset-option span,
+.form-mode-share-option span {
   font-size: 0.9rem;
   font-weight: 800;
 }
 
-.form-mode-reset-option small {
+.form-mode-reset-option small,
+.form-mode-share-option small {
   color: #64748b;
   font-size: 0.78rem;
   font-weight: 600;
@@ -421,7 +430,8 @@
     flex: 1 1 0;
   }
 
-  .form-mode-reset-menu {
+  .form-mode-reset-menu,
+  .form-mode-share-menu {
     flex: 1 1 0;
   }
 }
@@ -472,24 +482,27 @@
   }
 
   #form-mode-add-field,
-  #form-mode-copy {
+  .form-mode-share-menu {
     order: -1;
   }
 
-  #form-mode-copy:disabled {
+  .form-mode-share-menu:has(#form-mode-copy:disabled) {
     display: none;
   }
 
-  .form-mode-reset-menu {
+  .form-mode-reset-menu,
+  .form-mode-share-menu {
     width: 100%;
     min-width: 0;
   }
 
-  .form-mode-reset-trigger {
+  .form-mode-reset-trigger,
+  .form-mode-share-trigger {
     width: 100%;
   }
 
-  .form-mode-reset-options {
+  .form-mode-reset-options,
+  .form-mode-share-options {
     right: auto;
     left: 0;
     width: min(100%, calc(100vw - 2rem));
