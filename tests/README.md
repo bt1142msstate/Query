@@ -16,6 +16,14 @@ Runs the full gate:
 
 Browser smoke coverage starts from `tests/browser/browserSmoke.mjs`; shared fixtures and assertions live in `tests/browser/support/`, and longer workflow scenarios live in `tests/browser/scenarios/`.
 
+For manual browser QA against the public live backend, start the local live-backed server:
+
+```bash
+npm run serve:live
+```
+
+That server serves the static frontend locally and proxies API calls through `/live-query-api`, so manual testing uses the real backend without browser CORS differences or stale API URLs from `localStorage`.
+
 Live integration coverage starts from `tests/browser/liveIntegration.mjs` and is intentionally separate from `npm test` because it hits the deployed site and a real API over the network. Run it when validating deployment/API behavior:
 
 ```bash
