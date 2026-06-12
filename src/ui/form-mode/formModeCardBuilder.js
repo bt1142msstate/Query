@@ -38,6 +38,9 @@ function buildInteractiveFormModeCard(options) {
   state.validationEl = mountedCard.validationEl;
   state.runBtn = mountedCard.runBtn;
   state.copyBtn = mountedCard.copyBtn;
+  state.shareMenu = mountedCard.shareMenu;
+  state.shareMenuShell = mountedCard.shareMenuShell;
+  state.shareResultsBtn = mountedCard.shareResultsBtn;
   state.resetBtn = mountedCard.resetBtn;
   state.resetMenu = mountedCard.resetMenu;
   state.resetMenuShell = mountedCard.resetMenuShell;
@@ -91,6 +94,14 @@ function buildInteractiveFormModeCard(options) {
     });
   });
 
+  function hideOpenTooltips() {
+    const windowRef = document?.defaultView;
+    if (!windowRef || typeof windowRef.dispatchEvent !== 'function') {
+      return;
+    }
+    windowRef.dispatchEvent(new windowRef.CustomEvent('query-app:hide-tooltips'));
+  }
+
   function setResetMenuOpen(open) {
     if (!state.resetBtn || !state.resetMenu) {
       return;
@@ -98,6 +109,7 @@ function buildInteractiveFormModeCard(options) {
 
     state.resetMenu.classList.toggle('hidden', !open);
     state.resetBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    hideOpenTooltips();
   }
 
   state.resetBtn?.addEventListener('click', event => {
@@ -133,15 +145,45 @@ function buildInteractiveFormModeCard(options) {
     resetFormToBaseline('shared');
   });
 
-  state.copyBtn.addEventListener('click', async () => {
+  function setShareMenuOpen(open) {
+    if (!state.copyBtn || !state.shareMenu) {
+      return;
+    }
+
+    state.shareMenu.classList.toggle('hidden', !open);
+    state.copyBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    hideOpenTooltips();
+  }
+
+  state.copyBtn.addEventListener('click', event => {
+    event.stopPropagation();
+    const isOpen = state.copyBtn.getAttribute('aria-expanded') === 'true';
+    setShareMenuOpen(!isOpen);
+  });
+
+  state.shareMenuShell?.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      setShareMenuOpen(false);
+      state.copyBtn?.focus();
+    }
+  });
+
+  state.shareMenuShell?.addEventListener('focusout', event => {
+    if (!event.relatedTarget || !state.shareMenuShell?.contains(event.relatedTarget)) {
+      setShareMenuOpen(false);
+    }
+  });
+
+  mountedCard.shareResultsBtn?.addEventListener('click', async () => {
     const saved = saveCurrentFormAsSharedBaseline({ includeResult: true });
     if (!saved) {
       showToastMessage('No form link is available to share.', 'warning');
       return;
     }
+    setShareMenuOpen(false);
 
     await clipboardUtils.copyFromSource(() => buildCurrentShareUrl(), {
-      successMessage: 'Shared link copied. Reset can return to this shared version.',
+      successMessage: 'Results link copied. Reset can return to this shared version.',
       errorMessage: 'Failed to copy form link.',
       emptyMessage: 'No form link is available to share.'
     });
@@ -153,9 +195,10 @@ function buildInteractiveFormModeCard(options) {
       showToastMessage('No form link is available to share.', 'warning');
       return;
     }
+    setShareMenuOpen(false);
 
     await clipboardUtils.copyFromSource(() => buildCurrentShareUrl({ includeResult: false, limited: false }), {
-      successMessage: 'Editable form link copied.',
+      successMessage: 'Form link copied.',
       errorMessage: 'Failed to copy form link.',
       emptyMessage: 'No form link is available to share.'
     });

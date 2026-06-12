@@ -9,6 +9,9 @@ const FORM_MODE_CARD_SELECTORS = Object.freeze({
   resetOriginalBtn: '#form-mode-reset-original',
   resetSharedBtn: '#form-mode-reset-shared',
   runBtn: '#form-mode-run',
+  shareMenu: '#form-mode-share-options',
+  shareMenuShell: '#form-mode-share-menu',
+  shareResultsBtn: '#form-mode-share-results',
   validationEl: '#form-mode-validation'
 });
 
@@ -46,8 +49,30 @@ function getFormModeCardHtml() {
             </button>
           </div>
         </div>
-        <button type="button" id="form-mode-copy" class="form-mode-btn">Share</button>
-        <button type="button" id="form-mode-copy-clean" class="form-mode-btn form-mode-btn-secondary">Form Link</button>
+        <div id="form-mode-share-menu" class="form-mode-share-menu">
+          <button type="button"
+                  id="form-mode-copy"
+                  class="form-mode-btn form-mode-share-trigger"
+                  aria-haspopup="menu"
+                  aria-expanded="false"
+                  aria-controls="form-mode-share-options"
+                  data-tooltip="Choose whether to share the current results or the form only.">
+            Share
+          </button>
+          <div id="form-mode-share-options"
+               class="form-mode-share-options hidden"
+               role="menu"
+               aria-labelledby="form-mode-copy">
+            <button type="button" id="form-mode-share-results" class="form-mode-share-option" role="menuitem">
+              <span>Results link</span>
+              <small>Open this form with the current result set and table view.</small>
+            </button>
+            <button type="button" id="form-mode-copy-clean" class="form-mode-share-option" role="menuitem">
+              <span>Form link</span>
+              <small>Open an editable form without loading the current results.</small>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
     <div class="form-mode-body">
@@ -126,6 +151,9 @@ function mountFormModeCard(documentRef) {
     resetOriginalBtn: card.querySelector(FORM_MODE_CARD_SELECTORS.resetOriginalBtn),
     resetSharedBtn: card.querySelector(FORM_MODE_CARD_SELECTORS.resetSharedBtn),
     runBtn: card.querySelector(FORM_MODE_CARD_SELECTORS.runBtn),
+    shareMenu: card.querySelector(FORM_MODE_CARD_SELECTORS.shareMenu),
+    shareMenuShell: card.querySelector(FORM_MODE_CARD_SELECTORS.shareMenuShell),
+    shareResultsBtn: card.querySelector(FORM_MODE_CARD_SELECTORS.shareResultsBtn),
     validationEl: card.querySelector(FORM_MODE_CARD_SELECTORS.validationEl)
   };
 }

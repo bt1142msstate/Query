@@ -1,5 +1,5 @@
 {
-  "version": "c756ae9267a6e0db",
+  "version": "8146ec6951829de4",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -147,12 +147,12 @@
     "src/features/templates/view/queryTemplateListView.js": "2f4f1ac2cd5440d4",
     "src/features/templates/view/queryTemplateViewState.js": "a1a4e7e2fdd668f8",
     "src/styles/api-settings.css": "7c6ff2277eb40a47",
-    "src/styles/app.css": "3565f565b5ec7a25",
+    "src/styles/app.css": "c784a82c55d8ee87",
     "src/styles/base.css": "dffd008384b3d9bf",
     "src/styles/condition-editor.css": "c3151b483e049c2e",
     "src/styles/controls.css": "1de12e8064d5e287",
     "src/styles/filters.css": "9a0f72aec9cace0d",
-    "src/styles/form-mode.css": "e6f9b450ccd7daa5",
+    "src/styles/form-mode.css": "666f8e2897f8dbf6",
     "src/styles/help.css": "28055b8007549109",
     "src/styles/history.css": "7e62c03c853c79e2",
     "src/styles/interaction.css": "13df25573561806c",
@@ -175,9 +175,9 @@
     "src/ui/field-picker/fieldPickerQueryPreview.js": "019bce50d54c6e10",
     "src/ui/field-picker/fieldPickerQuerySelection.js": "56af597e3e74de70",
     "src/ui/field-picker/fieldPickerSearch.js": "3ee7aca8505a6e52",
-    "src/ui/form-mode/formMode.js": "42f122d14f461676",
-    "src/ui/form-mode/formModeCard.js": "72e6385658b51697",
-    "src/ui/form-mode/formModeCardBuilder.js": "2fd145cc8a13a5f2",
+    "src/ui/form-mode/formMode.js": "6bede86d7617ff18",
+    "src/ui/form-mode/formModeCard.js": "14453dfea3291a45",
+    "src/ui/form-mode/formModeCardBuilder.js": "83e8a837c8b205e5",
     "src/ui/form-mode/formModeControls.js": "e2c0a5de4393e791",
     "src/ui/form-mode/formModeDateInput.js": "f08093e5d0548828",
     "src/ui/form-mode/formModeFieldPicker.js": "1e2f45da5a74b191",
@@ -188,7 +188,7 @@
     "src/ui/form-mode/formModeQuerySync.js": "86c16ec1af9b77f4",
     "src/ui/form-mode/formModeReset.js": "94168957dede1058",
     "src/ui/form-mode/formModeShareBuilder.js": "0276b02303a982d1",
-    "src/ui/form-mode/formModeShareState.js": "f43d57c8a75f5119",
+    "src/ui/form-mode/formModeShareState.js": "5788f91bad99a1e5",
     "src/ui/form-mode/formModeShareUrl.js": "996623d793f95382",
     "src/ui/form-mode/formModeSpec.js": "75c5f48e0d2db430",
     "src/ui/form-mode/formModeSpecMutations.js": "fcea2032430f08ca",
@@ -204,6 +204,6 @@
     "src/ui/spacefieldOverlay.js": "b1cc13f40ec4a036",
     "src/ui/startupStatus.js": "e3f94a036cbd8cdc",
     "src/ui/toast.js": "cbf5e5e1abd48fd4",
-    "src/ui/tooltips.js": "9f3ca047ef904ed0"
+    "src/ui/tooltips.js": "796ff90a0625c6eb"
   }
 }
