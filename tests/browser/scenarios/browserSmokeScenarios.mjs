@@ -313,6 +313,39 @@ async function exerciseTableHeaderResponsiveRegions(page) {
   await waitForResponsiveResize(page, false);
   await seedLoadedResults(page, { longTitle: true, rowCount: 24 });
 
+  const desktopWorkAreaMetrics = await page.evaluate(() => {
+    const readRect = selector => {
+      const rect = document.querySelector(selector)?.getBoundingClientRect();
+      return rect
+        ? {
+            height: rect.height,
+            left: rect.left,
+            right: rect.right,
+            width: rect.width
+          }
+        : null;
+    };
+    return {
+      formCard: readRect('#form-mode-card'),
+      shell: readRect('#query-app-shell'),
+      tableColumn: readRect('#table-column'),
+      tableWithFilter: readRect('#table-with-filter'),
+      viewportWidth: window.innerWidth
+    };
+  });
+
+  if (
+    !desktopWorkAreaMetrics.shell
+    || !desktopWorkAreaMetrics.tableWithFilter
+    || !desktopWorkAreaMetrics.formCard
+    || desktopWorkAreaMetrics.shell.width < desktopWorkAreaMetrics.viewportWidth - 80
+    || desktopWorkAreaMetrics.tableWithFilter.width < desktopWorkAreaMetrics.viewportWidth - 80
+    || desktopWorkAreaMetrics.tableColumn.width < 860
+    || Math.abs(desktopWorkAreaMetrics.tableWithFilter.width - desktopWorkAreaMetrics.formCard.width) > 2
+  ) {
+    throw new Error(`Desktop work area should use the available viewport width: ${JSON.stringify(desktopWorkAreaMetrics)}`);
+  }
+
   await page.evaluate(() => {
     const tableShell = document.querySelector('#table-shell');
     const tableNameInput = document.querySelector('#table-name-input');
