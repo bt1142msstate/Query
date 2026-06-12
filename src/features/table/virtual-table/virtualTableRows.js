@@ -18,6 +18,7 @@ export function createVirtualTableEmptyRow({
 export function createVirtualTableRow({
   rowData,
   rowIndex,
+  duplicateRowGroup,
   displayedFields,
   columnLayout,
   calculatedColumnWidths,
@@ -46,6 +47,7 @@ export function createVirtualTableRow({
   }
 
   tr.dataset.rowIndex = rowIndex;
+  applyDuplicateRowGroupMetadata(tr, duplicateRowGroup);
 
   displayedFields.forEach((field, colIndex) => {
     tr.appendChild(createVirtualTableCell({
@@ -67,6 +69,44 @@ export function createVirtualTableRow({
   });
 
   return tr;
+}
+
+function applyDuplicateRowGroupMetadata(tr, duplicateRowGroup) {
+  const matchingRowCount = Number(duplicateRowGroup?.matchingRowCount || 0);
+  if (matchingRowCount <= 1) {
+    return;
+  }
+
+  const collapsedRowCount = Math.max(0, Number(duplicateRowGroup?.collapsedRowCount || matchingRowCount - 1));
+  tr.classList.add('query-table-collapsed-row');
+  tr.dataset.collapsedRowCount = String(collapsedRowCount);
+  tr.dataset.matchingRowCount = String(matchingRowCount);
+  tr.setAttribute('data-tooltip', buildCollapsedRowTooltip(duplicateRowGroup));
+}
+
+function buildCollapsedRowTooltip(duplicateRowGroup) {
+  const matchingRowCount = Number(duplicateRowGroup?.matchingRowCount || 0);
+  const collapsedRowCount = Math.max(0, Number(duplicateRowGroup?.collapsedRowCount || matchingRowCount - 1));
+  const fields = Array.isArray(duplicateRowGroup?.displayedFields)
+    ? duplicateRowGroup.displayedFields.filter(Boolean)
+    : [];
+  const fieldLabel = formatCollapsedFieldsLabel(fields);
+  const rowLabel = matchingRowCount === 1 ? 'row' : 'rows';
+  const hiddenLabel = collapsedRowCount === 1 ? 'row is' : 'rows are';
+
+  return `${matchingRowCount.toLocaleString()} matching ${rowLabel} share the same visible ${fieldLabel}. ${collapsedRowCount.toLocaleString()} ${hiddenLabel} collapsed here. Right-click to inspect them.`;
+}
+
+function formatCollapsedFieldsLabel(fields) {
+  if (!fields.length) {
+    return 'columns';
+  }
+
+  if (fields.length <= 3) {
+    return fields.length === 1 ? `field: ${fields[0]}` : `fields: ${fields.join(', ')}`;
+  }
+
+  return `fields: ${fields.slice(0, 3).join(', ')} + ${fields.length - 3} more`;
 }
 
 function createVirtualTableCell({

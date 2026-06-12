@@ -361,6 +361,10 @@ function registerTableService(service) {
     return getTableService()?.getPostFilterStats?.() || null;
   }
 
+  function getCollapsedRowGroup(rowIndex) {
+    return getTableService()?.getCollapsedRowGroup?.(rowIndex) || null;
+  }
+
   function getPostFilterState() {
     return getTableService()?.getPostFilterState?.() || {};
   }
@@ -532,6 +536,7 @@ function registerTableService(service) {
     syncColumnResizeModeUi,
     clearPostFilters,
     getPostFilterStats,
+    getCollapsedRowGroup,
     getPostFilterState,
     getPostFilterFieldOptions,
     getFilterActionFieldName,

@@ -32,6 +32,17 @@ test('virtual table duplicate collapse', async () => {
     ['Same title', 'Main', 'item-1'],
     ['Different title', 'East', 'item-3']
   ]);
+  assert.equal(collapsedWithoutItemId.duplicateRowGroups.length, 2);
+  assert.equal(collapsedWithoutItemId.duplicateRowGroups[0].matchingRowCount, 3);
+  assert.equal(collapsedWithoutItemId.duplicateRowGroups[0].collapsedRowCount, 2);
+  assert.deepEqual(collapsedWithoutItemId.duplicateRowGroups[0].sourceRowIndexes, [0, 1, 3]);
+  assert.deepEqual(collapsedWithoutItemId.duplicateRowGroups[0].displayedFields, ['Title', 'Branch']);
+  assert.deepEqual(collapsedWithoutItemId.duplicateRowGroups[0].rows, [
+    ['Same title', 'Main', 'item-1'],
+    ['Same title', 'Main', 'item-2'],
+    ['Same title', 'Main', 'item-4']
+  ]);
+  assert.equal(collapsedWithoutItemId.duplicateRowGroups[1].matchingRowCount, 1);
 
   const collapsedWithItemId = collapseDuplicateProjectedRows({
     rows,
@@ -41,6 +52,7 @@ test('virtual table duplicate collapse', async () => {
   assert.equal(collapsedWithItemId.uniqueRows, 4);
   assert.equal(collapsedWithItemId.collapsedRows, 0);
   assert.equal(collapsedWithItemId.rows, rows);
+  assert.deepEqual(collapsedWithItemId.duplicateRowGroups, []);
 
   const multiValueRows = [
     ['Alpha', ['A', 'B']],
@@ -57,6 +69,7 @@ test('virtual table duplicate collapse', async () => {
   });
   assert.equal(multiValueResult.uniqueRows, 2);
   assert.deepEqual(multiValueResult.rows, [multiValueRows[0], multiValueRows[2]]);
+  assert.equal(multiValueResult.duplicateRowGroups[0].matchingRowCount, 2);
   assert.equal(
     buildDuplicateCollapseToastMessage({
       duplicateRowsCollapsed: 2,
@@ -75,4 +88,14 @@ test('virtual table duplicate collapse', async () => {
   assert.equal(uncollapsedProjection.stats.uniqueRows, 4);
   assert.equal(uncollapsedProjection.stats.postFilteredRows, 4);
   assert.equal(uncollapsedProjection.tableData.rows, rows);
+  assert.deepEqual(uncollapsedProjection.tableData.duplicateRowGroups, []);
+
+  const collapsedProjection = buildVirtualTableProjection({
+    baseViewData: { headers: ['Title', 'Branch', 'Item ID'], rows, columnMap },
+    displayedFields: ['Title', 'Branch'],
+    filteredRows: rows,
+    collapseDuplicates: true
+  });
+  assert.equal(collapsedProjection.tableData.duplicateRowGroups[0].matchingRowCount, 3);
+  assert.deepEqual(collapsedProjection.tableData.duplicateRowGroups[0].sourceRowIndexes, [0, 1, 3]);
 });
