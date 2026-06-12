@@ -7,14 +7,22 @@ import { getCellValueParts, hasMultipleCellValues } from '../../../core/resultCe
 
 const BACKGROUND_WORKER_CELL_THRESHOLD = 15000;
 const EXCEL_MAX_DATA_ROWS_PER_SHEET = 1048575;
-const XML_CHUNK_SIZE = 256000;
-const PROGRESS_ROW_BATCH = 500;
+const XML_CHUNK_SIZE = 1024 * 1024;
+const PROGRESS_ROW_BATCH = 5000;
 const WORKSHEET_TYPE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet';
 const STYLES_TYPE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles';
 const OFFICE_DOCUMENT_TYPE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument';
 const TABLE_TYPE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/table';
 const DATE_TEXT_STYLE_ID = '7';
 const SHEET_NAME_LIMIT = 31;
+const SERIALIZED_MULTI_VALUE_SEPARATOR = '\x1F';
+const XML_CONTROL_CHARACTERS_PATTERN = /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/gu;
+const XML_TEXT_ESCAPE_PATTERN = /[&<>]/gu;
+const XML_TEXT_NEEDS_ESCAPE_PATTERN = /[&<>\u0000-\u0008\u000B\u000C\u000E-\u001F]/u;
+const XML_ATTRIBUTE_QUOTE_PATTERN = /["']/gu;
+const XML_ATTRIBUTE_NEEDS_ESCAPE_PATTERN = /["'&<>\u0000-\u0008\u000B\u000C\u000E-\u001F]/u;
+const XML_PRESERVE_SPACE_PATTERN = /^\s|\s$|\n/u;
+const COLUMN_NAME_CACHE = [''];
 let workbookWorkerSequence = 0;
 
 function getWorkbookCellCount(state) {
@@ -33,19 +41,36 @@ function shouldUseWorkbookWorker(state, config = {}) {
   return getWorkbookCellCount(state) >= BACKGROUND_WORKER_CELL_THRESHOLD;
 }
 
-function escapeXml(value) {
-  return String(value ?? '')
-    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/gu, '')
-    .replace(/&/gu, '&amp;')
-    .replace(/</gu, '&lt;')
-    .replace(/>/gu, '&gt;');
+function getXmlTextEntity(character) {
+  if (character === '&') return '&amp;';
+  if (character === '<') return '&lt;';
+  return '&gt;';
+}
+
+function escapeXmlText(text) {
+  if (!XML_TEXT_NEEDS_ESCAPE_PATTERN.test(text)) {
+    return text;
+  }
+  return text
+    .replace(XML_CONTROL_CHARACTERS_PATTERN, '')
+    .replace(XML_TEXT_ESCAPE_PATTERN, getXmlTextEntity);
 }
 
 function escapeXmlAttribute(value) {
-  return escapeXml(value).replace(/"/gu, '&quot;').replace(/'/gu, '&apos;');
+  const text = String(value ?? '');
+  if (!XML_ATTRIBUTE_NEEDS_ESCAPE_PATTERN.test(text)) {
+    return text;
+  }
+  return escapeXmlText(text).replace(XML_ATTRIBUTE_QUOTE_PATTERN, character => (
+    character === '"' ? '&quot;' : '&apos;'
+  ));
 }
 
 function getColumnName(index) {
+  if (COLUMN_NAME_CACHE[index]) {
+    return COLUMN_NAME_CACHE[index];
+  }
+
   let current = index;
   let name = '';
   while (current > 0) {
@@ -53,6 +78,7 @@ function getColumnName(index) {
     name = String.fromCharCode(65 + remainder) + name;
     current = Math.floor((current - 1) / 26);
   }
+  COLUMN_NAME_CACHE[index] = name;
   return name;
 }
 
@@ -171,9 +197,10 @@ function getExcelDateSerial(date) {
 }
 
 function buildTextCellAtReference(value, reference, styleId = '') {
-  const text = escapeXml(value);
+  const rawText = String(value ?? '');
+  const text = escapeXmlText(rawText);
   const style = styleId ? ` s="${styleId}"` : '';
-  const space = /^\s|\s$|\n/u.test(String(value ?? '')) ? ' xml:space="preserve"' : '';
+  const space = XML_PRESERVE_SPACE_PATTERN.test(rawText) ? ' xml:space="preserve"' : '';
   return `<c r="${reference}" t="inlineStr"${style}><is><t${space}>${text}</t></is></c>`;
 }
 
@@ -227,7 +254,8 @@ function getRawValue(rawRow, column) {
 
 function buildSourceRow(columnPlan, rawRow, rowNumber, getCellExportValue) {
   let cells = '';
-  for (const column of columnPlan) {
+  for (let index = 0; index < columnPlan.length; index += 1) {
+    const column = columnPlan[index];
     const raw = getRawValue(rawRow, column);
     const value = getCellExportValue(raw, column.type);
     cells += buildCellAtReference(value, `${column.columnName}${rowNumber}`, column.styleId, column.textStyleId);
@@ -244,25 +272,32 @@ function getColumnWidthValue(rawRow, column) {
     const parsed = parseWorkbookNumericValue(raw);
     return Number.isNaN(parsed) ? '' : String(parsed);
   }
-  return String(raw).replace(/\x1F/gu, ' ');
+  const text = String(raw);
+  return text.includes(SERIALIZED_MULTI_VALUE_SEPARATOR)
+    ? text.replace(/\x1F/gu, ' ')
+    : text;
 }
 
 async function calculateSourceColumnWidths(sourceData, helpers, columnPlan) {
   const widths = columnPlan.map(column => column.field.length);
+  const rows = sourceData.dataRows;
+  const rowCount = rows.length;
+  const columnCount = columnPlan.length;
 
-  for (let rowIndex = 0; rowIndex < sourceData.dataRows.length; rowIndex += 1) {
-    const row = sourceData.dataRows[rowIndex];
-    columnPlan.forEach((column, fieldIndex) => {
+  for (let rowIndex = 0; rowIndex < rowCount; rowIndex += 1) {
+    const row = rows[rowIndex];
+    for (let fieldIndex = 0; fieldIndex < columnCount; fieldIndex += 1) {
+      const column = columnPlan[fieldIndex];
       const value = getColumnWidthValue(row, column);
       if (value) {
         widths[fieldIndex] = Math.max(widths[fieldIndex], value.length);
       }
-    });
+    }
 
     if (rowIndex > 0 && rowIndex % PROGRESS_ROW_BATCH === 0) {
       helpers.progress.update({
         title: 'Sizing workbook columns',
-        detail: `Measured ${rowIndex.toLocaleString()} of ${sourceData.dataRows.length.toLocaleString()} rows`,
+        detail: `Measured ${rowIndex.toLocaleString()} of ${rowCount.toLocaleString()} rows`,
         percent: 6
       });
       await helpers.yieldToBrowser();
@@ -274,11 +309,13 @@ async function calculateSourceColumnWidths(sourceData, helpers, columnPlan) {
 
 function calculateRowsColumnWidths(columns, rows) {
   const widths = columns.map(field => field.length);
-  rows.forEach(row => {
-    row.forEach((value, index) => {
+  for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
+    const row = rows[rowIndex];
+    for (let index = 0; index < row.length; index += 1) {
+      const value = row[index];
       widths[index] = Math.max(widths[index], String(value ?? '').length);
-    });
-  });
+    }
+  }
   return widths.map(width => Math.max(4, Math.min(60, width + 2)));
 }
 
@@ -485,17 +522,19 @@ async function* createSourceSheetChunks(sheet, context) {
   let rowNumber = 2;
   let chunk = '';
   let written = 0;
+  const dataRows = sourceData.dataRows;
+  const getCellExportValue = helpers.getCellExportValue;
   const rowIndexes = Array.isArray(sheet.groupRowIndexes) ? sheet.groupRowIndexes : null;
   const groupStart = sheet.groupSkip || 0;
   const start = sheet.kind === 'source' ? (sheet.rowStart || 0) : 0;
-  const end = sheet.kind === 'source' ? (sheet.rowEnd ?? sourceData.dataRows.length) : sourceData.dataRows.length;
+  const end = sheet.kind === 'source' ? (sheet.rowEnd ?? dataRows.length) : dataRows.length;
   const rowCount = rowIndexes ? Math.min(sheet.groupTake, Math.max(0, rowIndexes.length - groupStart)) : end - start;
 
   for (let rowOffset = 0; rowOffset < rowCount; rowOffset += 1) {
     const rowIndex = rowIndexes ? rowIndexes[groupStart + rowOffset] : start + rowOffset;
-    const rawRow = sourceData.dataRows[rowIndex];
+    const rawRow = dataRows[rowIndex];
 
-    chunk += buildSourceRow(columnPlan, rawRow, rowNumber, helpers.getCellExportValue);
+    chunk += buildSourceRow(columnPlan, rawRow, rowNumber, getCellExportValue);
     rowNumber += 1;
     written += 1;
     context.writtenRows += 1;
@@ -532,13 +571,15 @@ async function* createOverviewSheetChunks(sheet, context) {
 async function* createDetailsSheetChunks(sheet, context) {
   yield buildWorksheetStart(sheet.columns, sheet.dataRowCount, sheet.columnWidths);
   let chunk = '';
-  sheet.rows.forEach((row, rowIndex) => {
+  for (let rowIndex = 0; rowIndex < sheet.rows.length; rowIndex += 1) {
+    const row = sheet.rows[rowIndex];
     const rowNumber = rowIndex + 2;
-    const cells = sheet.columns.map((column, columnIndex) => (
-      buildTextCell(row[columnIndex] ?? '', rowNumber, columnIndex + 1)
-    )).join('');
+    let cells = '';
+    for (let columnIndex = 0; columnIndex < sheet.columns.length; columnIndex += 1) {
+      cells += buildTextCell(row[columnIndex] ?? '', rowNumber, columnIndex + 1);
+    }
     chunk += `<row r="${rowNumber}">${cells}</row>`;
-  });
+  }
   context.writtenRows += sheet.rows.length;
   yield chunk;
   yield buildWorksheetEnd(sheet.columns, sheet.dataRowCount);
@@ -623,6 +664,35 @@ function canUseWorkbookWorker() {
   return typeof Worker === 'function' && typeof URL === 'function';
 }
 
+function getWorkerGroupingCandidates(state, config = {}) {
+  const candidates = Array.isArray(state?.groupingCandidates) ? state.groupingCandidates : [];
+  if (config.mode !== 'grouped') {
+    return [];
+  }
+  const selectedCandidate = candidates.find(candidate => candidate.field === config.groupField);
+  return selectedCandidate ? [selectedCandidate] : candidates;
+}
+
+function getWorkerSourceData(sourceData = {}) {
+  return {
+    dataRows: sourceData.dataRows,
+    displayedFields: sourceData.displayedFields,
+    fieldTypeMap: sourceData.fieldTypeMap,
+    virtualData: {
+      columnMap: sourceData.virtualData?.columnMap
+    }
+  };
+}
+
+function createWorkerExportState(state, config = {}) {
+  return {
+    groupingCandidates: getWorkerGroupingCandidates(state, config),
+    rowCount: state.rowCount,
+    sourceData: getWorkerSourceData(state.sourceData),
+    tableName: state.tableName
+  };
+}
+
 function exportWorkbookInWorker({ state, config, helpers }) {
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL('./workbookExportWorker.js', import.meta.url), { type: 'module' });
@@ -663,7 +733,7 @@ function exportWorkbookInWorker({ state, config, helpers }) {
       percent: 4
     });
     try {
-      worker.postMessage({ config, id, state });
+      worker.postMessage({ config, id, state: createWorkerExportState(state, config) });
     } catch (error) {
       finish(reject, error);
     }

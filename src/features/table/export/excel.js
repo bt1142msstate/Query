@@ -28,6 +28,13 @@ import {
   const services = appServices;
   const splitColumnsToggleUi = createSplitColumnsToggleUi({ services, showToastMessage });
 
+  function getExportColumnMap(displayedFields, virtualData) {
+    const sourceColumnMap = virtualData?.columnMap instanceof Map ? virtualData.columnMap : new Map();
+    return new Map(displayedFields
+      .filter(field => sourceColumnMap.has(field))
+      .map(field => [field, sourceColumnMap.get(field)]));
+  }
+
   function getExportElements() {
     return {
       overlay: document.getElementById('export-overlay'),
@@ -59,7 +66,9 @@ import {
     }
 
     const dataRows = virtualData.rows;
-    const exportVirtualData = virtualData;
+    const exportVirtualData = {
+      columnMap: getExportColumnMap(displayedFields, virtualData)
+    };
     const fieldTypeMap = new Map();
 
     displayedFields.forEach(field => {

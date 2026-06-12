@@ -256,6 +256,9 @@ test('custom workbook export', async () => {
   assert.equal(workerOptions?.type, 'module');
   assert.equal(workerPayload?.config?.mode, 'single');
   assert.equal('helpers' in workerPayload, false);
+  assert.deepEqual(workerPayload?.state?.groupingCandidates, []);
+  assert.equal(workerPayload?.state?.sourceData?.virtualData?.rows, undefined);
+  assert.equal(workerPayload?.state?.sourceData?.virtualData?.columnMap instanceof Map, true);
   assert.equal(workerTerminated, true);
   assert.equal(downloadedFilename, 'Worker-Report.xlsx');
   assert.equal(await downloadedBlob.text(), 'worker-generated');
