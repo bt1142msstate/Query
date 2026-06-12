@@ -7,6 +7,7 @@ Use these public component entrypoints for outside integrations:
 ```js
 import {
   createVirtualTableComponent,
+  createColumnDragDropComponent,
   createWorkbookExportComponent,
   CustomDatePicker,
   Tooltips
@@ -58,6 +59,70 @@ console.log(table.displayedFields);
 ```
 
 This entrypoint does not mount a table by itself. It is intentionally usable in any UI framework or plain DOM page.
+
+## Drag And Drop
+
+Entrypoint:
+
+```js
+import { createColumnDragDropComponent } from './src/components/drag-drop/index.js';
+```
+
+The drag/drop component is a headless column-order controller. It does not attach pointer listeners or mutate the DOM. A host page wires its own mouse, touch, or framework drag events into the controller and uses the returned state to render drop anchors, highlight columns, and commit field-order changes.
+
+It provides:
+
+- split-column group moves so numbered multi-value columns stay together
+- host-controlled field-order updates
+- drop-anchor preview geometry
+- header insert-position detection
+- horizontal auto-scroll intent and step calculation
+- viewport helpers for table-like layouts
+
+Example:
+
+```js
+const dragDrop = createColumnDragDropComponent({
+  displayedFields: ['Title', 'Public Note 1', 'Public Note 2', 'Branch'],
+  tableData: {
+    columnMap: new Map([
+      ['Title', 0],
+      ['Public Note 1', 1],
+      ['Public Note 2', 2],
+      ['Branch', 3]
+    ]),
+    splitColumnGroups: new Map([
+      ['Public Note', ['Public Note 1', 'Public Note 2']]
+    ]),
+    splitColumnParent: new Map([
+      ['Public Note 1', 'Public Note'],
+      ['Public Note 2', 'Public Note']
+    ])
+  },
+  onFieldsChange(nextFields) {
+    renderColumns(nextFields);
+  }
+});
+
+dragDrop.startDrag({ field: 'Public Note 1' });
+
+const preview = dragDrop.getDropPreview({
+  clientX,
+  colIndex,
+  columnRect,
+  viewportRect,
+  scrollX: window.scrollX,
+  scrollY: window.scrollY
+});
+
+if (preview.visible) {
+  renderDropAnchor(preview);
+}
+
+dragDrop.dropAt(3);
+```
+
+For lower-level integrations, the entrypoint also exports helpers such as `getDropAnchorLayout()`, `getHeaderInsertPositionFromRects()`, `getAutoScrollIntent()`, `calculateAutoScrollStep()`, and viewport/resize-target helpers.
 
 ## Workbook Export
 

@@ -23,7 +23,7 @@ A single-page app for building queries, applying filters, reviewing results, and
 | **API Settings** | Connect a compatible backend from the app without editing source files |
 | **Post filters** | Apply result-only filters without sending them to the backend |
 | **Results table** | Virtualized large-table rendering with resize, sort, post-filter, and Excel export support |
-| **Reusable components** | Public ES module entrypoints for virtual-table projection, workbook export, date input, and tooltips |
+| **Reusable components** | Public ES module entrypoints for virtual-table projection, drag/drop, workbook export, date input, and tooltips |
 | **Mobile workflow** | Responsive panels, mobile menu controls, and smoke-tested overlays |
 
 ## 🚀 Quick Start: Run and Connect a Backend
@@ -138,7 +138,7 @@ Results render in a virtualized table that only draws the visible viewport plus 
 
 The table also supports sorting, expand/collapse layout, manual column resizing with live row/header alignment, a draggable scrollbar thumb, and post filters that only affect the loaded result set. Post filters are intentionally client-side and are cleared between query runs.
 
-The virtual-table projection logic, XLSX generation path, custom date picker, and tooltip system are also exposed as reusable ES module components in `src/components/` for other static pages or frontend apps.
+The virtual-table projection logic, column drag/drop controller, XLSX generation path, custom date picker, and tooltip system are also exposed as reusable ES module components in `src/components/` for other static pages or frontend apps.
 
 ## 📁 Structure
 
@@ -184,7 +184,7 @@ Canonical layout decision: application source lives in `src/`. We are not using 
 - Static HTML, CSS, and vanilla JavaScript — no build step required
 - Native browser ES modules with `"type": "module"` in Node tooling
 - Feature-oriented folder structure with ES modules, explicit dependency registration for cross-feature services/actions, and enforced module boundaries
-- Public reusable component entrypoints for table data projection, workbook export, date input, and tooltips
+- Public reusable component entrypoints for table data projection, column drag/drop, workbook export, date input, and tooltips
 - ESLint, architecture fitness checks, and Playwright browser smoke tests
 - Tailwind CSS and AutoNumeric are loaded from CDNs in `index.html`
 - Custom browser-side XLSX export with worker support for larger workbooks

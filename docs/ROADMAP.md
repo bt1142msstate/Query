@@ -27,7 +27,7 @@ The project is in a stable, production-oriented frontend shape for a static brow
 - Field metadata is backend-driven. The frontend does not ship a built-in field catalog, and architecture tests guard against adding one.
 - Query execution supports backend-driven dynamic/buildable fields, date `Never` handling, and streaming JSONL result events.
 - Results support virtualized rendering, sorting, resizing, split multi-value columns, post filters, and worker-backed large Excel export.
-- Reusable component entrypoints expose virtual-table projection, workbook export, date input, and tooltip behavior for other static pages or frontend apps.
+- Reusable component entrypoints expose virtual-table projection, column drag/drop, workbook export, date input, and tooltip behavior for other static pages or frontend apps.
 - The app includes a first-class API Settings panel for selecting, saving, testing, and sharing compatible backend endpoints.
 - API Settings includes a compatibility report for browser access, field metadata, JSONL streaming, event order, multi-value arrays, and optional workflow actions.
 - A dependency-free minimal backend example demonstrates the JSONL contract for new integrations.
@@ -76,7 +76,7 @@ The completed stages above are limited to work that is actually implemented or g
 | Public note and MARC-style multi-value handling | Complete from the frontend contract side |
 | Post filters | Complete for result-only filtering, including empty/non-empty and multi-value operators |
 | Large Excel export | Complete with worker-backed generation, progress, and notification hooks |
-| Reusable frontend components | Complete: public ES module entrypoints exist for virtual-table projection, workbook export, date input, and tooltips |
+| Reusable frontend components | Complete: public ES module entrypoints exist for virtual-table projection, column drag/drop, workbook export, date input, and tooltips |
 | Responsive/mobile workflow baseline | Complete for current workflows covered by smoke tests |
 | Cache-busting enforcement | Complete through `cache-bust.json` and CI |
 | Test suite modernization | Complete: unified on Node's built-in test runner plus Playwright smoke coverage |
