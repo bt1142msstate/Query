@@ -29,6 +29,7 @@ import {
   buildDuplicateCollapseSignature,
   buildDuplicateCollapseToastMessage,
   buildVirtualTableProjection,
+  cloneDuplicateRowGroups,
   createEmptyDuplicateCollapseStats
 } from './virtualTableDuplicateCollapse.js';
 import { createVirtualTablePostFilterController } from './virtualTablePostFilters.js';
@@ -39,6 +40,7 @@ let virtualTableData = {
   headers: [],
   rows: [],
   columnMap: new Map(),
+  duplicateRowGroups: [],
   splitColumnGroups: new Map(),
   splitColumnParent: new Map(),
   splitColumnSourceMap: new Map()
@@ -48,6 +50,7 @@ let baseViewData = {
   headers: [],
   rows: [],
   columnMap: new Map(),
+  duplicateRowGroups: [],
   splitColumnGroups: new Map(),
   splitColumnParent: new Map(),
   splitColumnSourceMap: new Map()
@@ -109,6 +112,7 @@ function cloneTableData(data) {
     headers: Array.isArray(data?.headers) ? [...data.headers] : [],
     rows: Array.isArray(data?.rows) ? data.rows.map(row => Array.isArray(row) ? row.map(cloneResultCellValue) : row) : [],
     columnMap: data?.columnMap instanceof Map ? new Map(data.columnMap) : new Map(),
+    duplicateRowGroups: cloneDuplicateRowGroups(data?.duplicateRowGroups),
     splitColumnGroups: cloneSplitColumnGroups(data?.splitColumnGroups),
     splitColumnParent: cloneSplitColumnParent(data?.splitColumnParent),
     splitColumnSourceMap: cloneSplitColumnSourceMap(data?.splitColumnSourceMap)
@@ -249,6 +253,16 @@ function getPostFilterStats() {
     duplicateRowsCollapsed: duplicateCollapseStats.duplicateRowsCollapsed,
     duplicateRowCollapseActive
   };
+}
+
+function getCollapsedRowGroup(rowIndex) {
+  const index = Number.parseInt(rowIndex, 10);
+  if (!Number.isFinite(index) || index < 0) {
+    return null;
+  }
+
+  const group = virtualTableData?.duplicateRowGroups?.[index] || null;
+  return Number(group?.matchingRowCount || 0) > 1 ? group : null;
 }
 
 function notifyPostFiltersUpdated() {
@@ -411,6 +425,7 @@ function renderVirtualTable() {
     nextBody.appendChild(createVirtualTableRow({
       rowData: virtualTableData.rows[i],
       rowIndex: i,
+      duplicateRowGroup: getCollapsedRowGroup(i),
       displayedFields,
       columnLayout,
       calculatedColumnWidths,
@@ -638,6 +653,7 @@ function clearVirtualTableData() {
     headers: [],
     rows: [],
     columnMap: new Map(),
+    duplicateRowGroups: [],
     splitColumnGroups: new Map(),
     splitColumnParent: new Map(),
     splitColumnSourceMap: new Map()
@@ -646,6 +662,7 @@ function clearVirtualTableData() {
     headers: [],
     rows: [],
     columnMap: new Map(),
+    duplicateRowGroups: [],
     splitColumnGroups: new Map(),
     splitColumnParent: new Map(),
     splitColumnSourceMap: new Map()
@@ -720,7 +737,8 @@ function setSplitColumnsMode(active) {
       rawTableData = {
         headers: [...virtualTableData.headers],
         rows: virtualTableData.rows.map(r => [...r]),
-        columnMap: new Map(virtualTableData.columnMap)
+        columnMap: new Map(virtualTableData.columnMap),
+        duplicateRowGroups: []
       };
     }
     expandMultiValueColumns();
@@ -731,6 +749,7 @@ function setSplitColumnsMode(active) {
         headers: [...rawTableData.headers],
         rows: rawTableData.rows.map(r => [...r]),
         columnMap: new Map(rawTableData.columnMap),
+        duplicateRowGroups: [],
         splitColumnGroups: cloneSplitColumnGroups(splitViewData?.splitColumnGroups),
         splitColumnParent: cloneSplitColumnParent(splitViewData?.splitColumnParent),
         splitColumnSourceMap: cloneSplitColumnSourceMap(splitViewData?.splitColumnSourceMap)
@@ -814,6 +833,7 @@ VirtualTable = {
   getDisplayedFieldMoveGroupIndices: (fieldName, fields = getDisplayedFields()) => getSplitFieldGroupIndices(fieldName, fields, baseViewData),
   buildDisplayedFieldMove: (fields, fromIndex, toIndex) => buildDisplayedFieldMove(fields, fromIndex, toIndex, baseViewData),
   getPostFilterState: () => postFilters.cloneSnapshot(),
+  getCollapsedRowGroup,
   getPostFilterFieldOptions: fieldName => postFilters.getFieldOptions(fieldName),
   replacePostFilters(nextFilters, options = {}) {
     postFilters.assign(nextFilters);

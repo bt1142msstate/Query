@@ -29,6 +29,43 @@ function buildProjectedRowKey(row, fields, columnMap) {
   }));
 }
 
+function createDuplicateRowGroup({ key, row, rowIndex, displayedFields }) {
+  return {
+    collapsedRowCount: 0,
+    displayedFields: [...displayedFields],
+    key,
+    matchingRowCount: 1,
+    rows: [row],
+    sourceRowIndexes: [rowIndex]
+  };
+}
+
+function addRowToDuplicateGroup(group, row, rowIndex) {
+  group.rows.push(row);
+  group.sourceRowIndexes.push(rowIndex);
+  group.matchingRowCount = group.rows.length;
+  group.collapsedRowCount = Math.max(0, group.rows.length - 1);
+}
+
+function cloneDuplicateRowGroup(group) {
+  if (!group || typeof group !== 'object') {
+    return null;
+  }
+
+  return {
+    collapsedRowCount: Number(group.collapsedRowCount || 0),
+    displayedFields: Array.isArray(group.displayedFields) ? [...group.displayedFields] : [],
+    key: String(group.key || ''),
+    matchingRowCount: Number(group.matchingRowCount || 0),
+    rows: Array.isArray(group.rows) ? [...group.rows] : [],
+    sourceRowIndexes: Array.isArray(group.sourceRowIndexes) ? [...group.sourceRowIndexes] : []
+  };
+}
+
+function cloneDuplicateRowGroups(groups) {
+  return (Array.isArray(groups) ? groups : []).map(cloneDuplicateRowGroup);
+}
+
 function collapseDuplicateProjectedRows({ rows, displayedFields, columnMap }) {
   const sourceRows = Array.isArray(rows) ? rows : [];
   const fields = normalizeFieldList(displayedFields);
@@ -38,6 +75,7 @@ function collapseDuplicateProjectedRows({ rows, displayedFields, columnMap }) {
     return {
       collapsedRows: 0,
       displayedFields: fields,
+      duplicateRowGroups: [],
       rows: sourceRows,
       sourceRows: sourceRows.length,
       uniqueRows: sourceRows.length
@@ -45,22 +83,42 @@ function collapseDuplicateProjectedRows({ rows, displayedFields, columnMap }) {
   }
 
   const seen = new Set();
+  const groupsByKey = new Map();
   const uniqueRows = [];
+  const uniqueRowGroups = [];
   let collapsedRows = 0;
 
-  sourceRows.forEach(row => {
+  sourceRows.forEach((row, rowIndex) => {
     const key = buildProjectedRowKey(row, fields, columns);
+    const existingGroup = groupsByKey.get(key);
+
+    if (existingGroup) {
+      addRowToDuplicateGroup(existingGroup, row, rowIndex);
+      collapsedRows += 1;
+      return;
+    }
+
+    const group = createDuplicateRowGroup({
+      key,
+      row,
+      rowIndex,
+      displayedFields: fields
+    });
+    groupsByKey.set(key, group);
+
     if (seen.has(key)) {
       collapsedRows += 1;
       return;
     }
     seen.add(key);
     uniqueRows.push(row);
+    uniqueRowGroups.push(group);
   });
 
   return {
     collapsedRows,
     displayedFields: fields,
+    duplicateRowGroups: collapsedRows > 0 ? cloneDuplicateRowGroups(uniqueRowGroups) : [],
     rows: collapsedRows > 0 ? uniqueRows : sourceRows,
     sourceRows: sourceRows.length,
     uniqueRows: uniqueRows.length
@@ -83,6 +141,7 @@ function buildVirtualTableProjection({ baseViewData, displayedFields, filteredRo
     ? {
         collapsedRows: 0,
         displayedFields: fields,
+        duplicateRowGroups: [],
         rows: sourceRows,
         sourceRows: sourceRows.length,
         uniqueRows: sourceRows.length
@@ -105,6 +164,7 @@ function buildVirtualTableProjection({ baseViewData, displayedFields, filteredRo
       headers: Array.isArray(baseViewData?.headers) ? [...baseViewData.headers] : [],
       rows: collapseResult.rows,
       columnMap: cloneMap(baseViewData?.columnMap),
+      duplicateRowGroups: cloneDuplicateRowGroups(collapseResult.duplicateRowGroups),
       splitColumnGroups: cloneMap(baseViewData?.splitColumnGroups),
       splitColumnParent: cloneMap(baseViewData?.splitColumnParent),
       splitColumnSourceMap: cloneMap(baseViewData?.splitColumnSourceMap)
@@ -133,5 +193,6 @@ export {
   buildDuplicateCollapseSignature,
   buildVirtualTableProjection,
   collapseDuplicateProjectedRows,
+  cloneDuplicateRowGroups,
   createEmptyDuplicateCollapseStats
 };

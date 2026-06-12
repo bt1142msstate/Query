@@ -1904,6 +1904,58 @@ async function exerciseProjectedDuplicateCollapse(page) {
       && stats?.uniqueRows === 2
       && stats?.postFilteredRows === 3;
   }, null, { timeout: 5000 });
+
+  const collapsedRowState = await page.evaluate(() => {
+    const row = document.querySelector('#example-table tbody tr[data-row-index="0"]');
+    return {
+      collapsedRowCount: row?.dataset.collapsedRowCount || '',
+      matchingRowCount: row?.dataset.matchingRowCount || '',
+      tooltip: row?.getAttribute('data-tooltip') || ''
+    };
+  });
+  if (
+    collapsedRowState.collapsedRowCount !== '1'
+    || collapsedRowState.matchingRowCount !== '2'
+    || !/2 matching rows/iu.test(collapsedRowState.tooltip)
+    || !/Smoke Title/iu.test(collapsedRowState.tooltip)
+  ) {
+    throw new Error(`Collapsed duplicate row should expose count and tooltip metadata: ${JSON.stringify(collapsedRowState)}`);
+  }
+
+  const collapsedCell = page.locator('#example-table tbody tr[data-row-index="0"] td[data-col-index="0"]');
+  await collapsedCell.click({ button: 'right' });
+  const collapsedRowsMenuAction = page.locator('.tcm--visible .tcm-item', { hasText: 'View Collapsed Rows' });
+  await collapsedRowsMenuAction.waitFor({ state: 'visible', timeout: 5000 });
+  await collapsedRowsMenuAction.click();
+  await page.locator('#query-collapsed-rows-viewer').waitFor({ state: 'visible', timeout: 5000 });
+
+  const collapsedRowsViewerState = await page.evaluate(() => {
+    const viewer = document.querySelector('#query-collapsed-rows-viewer');
+    const rows = Array.from(viewer?.querySelectorAll('tbody tr') || []);
+    const collapseHeaders = Array.from(viewer?.querySelectorAll('thead th.query-collapsed-rows-viewer__collapse-field') || [])
+      .map(cell => cell.textContent.trim());
+    const bodyText = viewer?.textContent || '';
+    return {
+      collapseHeaders,
+      rowCount: rows.length,
+      hasCopiedRepresentative: /item-1/iu.test(bodyText),
+      hasCopiedDuplicate: /item-2/iu.test(bodyText),
+      summary: viewer?.querySelector('.query-collapsed-rows-viewer__summary')?.textContent?.trim() || ''
+    };
+  });
+  if (
+    collapsedRowsViewerState.rowCount !== 2
+    || !collapsedRowsViewerState.hasCopiedRepresentative
+    || !collapsedRowsViewerState.hasCopiedDuplicate
+    || !collapsedRowsViewerState.collapseHeaders.includes('Smoke Title')
+    || !collapsedRowsViewerState.collapseHeaders.includes('Smoke Branch')
+    || !/visible fields matched/iu.test(collapsedRowsViewerState.summary)
+  ) {
+    throw new Error(`Collapsed rows viewer should list the grouped source rows and collapse fields: ${JSON.stringify(collapsedRowsViewerState)}`);
+  }
+
+  await page.locator('#query-collapsed-rows-viewer .query-collapsed-rows-viewer__close').click();
+  await page.locator('#query-collapsed-rows-viewer').waitFor({ state: 'detached', timeout: 5000 });
 }
 
 async function exerciseCoreFilterStateInteraction(page) {

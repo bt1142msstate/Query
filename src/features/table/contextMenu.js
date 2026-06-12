@@ -11,6 +11,7 @@ import { showToastMessage } from '../../core/toast.js';
 import { CellDisplayFormatting } from '../../core/formatting/cellDisplayFormatting.js';
 import { VisibilityUtils } from '../../core/visibility.js';
 import { SharedFieldPicker } from '../../ui/field-picker/fieldPicker.js';
+import { openCollapsedRowsViewer } from './virtual-table/collapsedRowsViewer.js';
 
 (() => {
   let menuEl = null;
@@ -85,6 +86,11 @@ import { SharedFieldPicker } from '../../ui/field-picker/fieldPicker.js';
     return td.getAttribute('data-tooltip') || td.textContent || '';
   }
 
+  function getCollapsedRowGroup(rowIndex) {
+    const group = services.getCollapsedRowGroup?.(rowIndex) || getVT()?.duplicateRowGroups?.[rowIndex] || null;
+    return Number(group?.matchingRowCount || 0) > 1 ? group : null;
+  }
+
   function isNodeInsideTable(node) {
     const element = node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
     return Boolean(element?.closest?.('#example-table'));
@@ -138,6 +144,12 @@ import { SharedFieldPicker } from '../../ui/field-picker/fieldPicker.js';
     <path d="M11 8h3"/>
     <path d="M3.5 6.5 2 8l1.5 1.5"/>
     <path d="M12.5 6.5 14 8l-1.5 1.5"/>
+  </svg>`;
+
+  const COLLAPSED_ROWS_ICON = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="2.5" width="12" height="3" rx="1"/>
+    <rect x="2" y="6.5" width="12" height="3" rx="1"/>
+    <rect x="2" y="10.5" width="12" height="3" rx="1"/>
   </svg>`;
 
   function clearTablePreviewClasses() {
@@ -477,6 +489,8 @@ import { SharedFieldPicker } from '../../ui/field-picker/fieldPicker.js';
     const filterLabel = filterField ? truncateMenuHint(filterField) : colLabel;
 
     const hasRow = !isNaN(rowIndex);
+    const collapsedRowGroup = hasRow ? getCollapsedRowGroup(rowIndex) : null;
+    const hasCollapsedRowGroup = Boolean(collapsedRowGroup);
     const isHeaderTarget = Boolean(headerCell && !bodyCell);
     const sortState = services.getVirtualTableState?.() || {};
     const isActiveSort = Boolean(field) && String(sortState.currentSortColumn || '') === field;
@@ -529,6 +543,24 @@ import { SharedFieldPicker } from '../../ui/field-picker/fieldPicker.js';
         }
       },
       ...(!isHeaderTarget ? [
+        ...(hasCollapsedRowGroup ? [{
+          icon:  COLLAPSED_ROWS_ICON,
+          label: 'View Collapsed Rows',
+          hint:  `${Number(collapsedRowGroup.matchingRowCount || 0).toLocaleString()} rows`,
+          preview() {
+            return hasRow ? previewRow(tr) : null;
+          },
+          run() {
+            const vt = getVT();
+            openCollapsedRowsViewer({
+              document,
+              displayedFields: fields,
+              group: collapsedRowGroup,
+              headers: vt?.headers || [],
+              trigger: bodyCell
+            });
+          }
+        }] : []),
         {
           icon:  CELL_ICON,
           label: 'Copy Cell',
