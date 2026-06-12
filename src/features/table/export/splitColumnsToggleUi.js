@@ -65,16 +65,18 @@ function createSplitColumnsToggleUi({ services, showToastMessage }) {
     const iconStack = document.getElementById('split-toggle-icon-stack');
     const iconCols = document.getElementById('split-toggle-icon-cols');
 
+    toggleBtn.classList.toggle('table-toolbar-btn-active', active);
+    toggleBtn.setAttribute(
+      'aria-label',
+      active ? 'Use stacked cells for multi-value fields' : 'Use split columns for multi-value fields'
+    );
+    toggleBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    toggleBtn.dataset.mobileLabel = active ? 'Stack' : 'Split';
+
     if (active) {
-      toggleBtn.classList.replace('bg-white', 'bg-indigo-100');
-      toggleBtn.classList.replace('text-black', 'text-indigo-700');
       iconStack && iconStack.classList.add('hidden');
       iconCols && iconCols.classList.remove('hidden');
     } else {
-      toggleBtn.classList.replace('bg-indigo-100', 'bg-white');
-      if (!toggleBtn.classList.contains('bg-white')) toggleBtn.classList.add('bg-white');
-      toggleBtn.classList.replace('text-indigo-700', 'text-black');
-      if (!toggleBtn.classList.contains('text-black')) toggleBtn.classList.add('text-black');
       iconStack && iconStack.classList.remove('hidden');
       iconCols && iconCols.classList.add('hidden');
     }

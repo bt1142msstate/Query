@@ -27,14 +27,14 @@ test('workbook export data', async () => {
   assert.equal(getCellExportValue('NEVER', 'date'), 'Never');
   assert.equal(getCellExportValue('$1,234.50', 'money'), 1234.5);
   assert.equal(getCellExportValue('1,234', 'number'), 1234);
-  assert.equal(getCellExportValue('A\x1FB', 'string'), 'A\nB');
+  assert.equal(getCellExportValue('A\x1FB', 'string'), '1. A\n2. B');
 
   const repeatedPublicNote = 'First public note\x1FSecond public note';
   const repeatedMarc590 = '$a MSU -- Ulysses S. Grant Association.\x1F$a MSU -- Gift of Marcia Ewing-Current.\x1F$a MSU -- Richard Current Collection.\x1F$a DSU-180442';
-  assert.equal(getCellExportValue(repeatedPublicNote, 'string'), 'First public note\nSecond public note');
+  assert.equal(getCellExportValue(repeatedPublicNote, 'string'), '1. First public note\n2. Second public note');
   assert.equal(
     getCellExportValue(repeatedMarc590, 'string'),
-    '$a MSU -- Ulysses S. Grant Association.\n$a MSU -- Gift of Marcia Ewing-Current.\n$a MSU -- Richard Current Collection.\n$a DSU-180442'
+    '1. $a MSU -- Ulysses S. Grant Association.\n2. $a MSU -- Gift of Marcia Ewing-Current.\n3. $a MSU -- Richard Current Collection.\n4. $a DSU-180442'
   );
 
   assert.equal(getGroupingDisplayValue(''), 'Blank');
@@ -97,8 +97,8 @@ test('workbook export data', async () => {
     [
       [
         'A history of the Southern Confederacy',
-        'First public note\nSecond public note',
-        '$a MSU -- Ulysses S. Grant Association.\n$a MSU -- Gift of Marcia Ewing-Current.\n$a MSU -- Richard Current Collection.\n$a DSU-180442'
+        '1. First public note\n2. Second public note',
+        '1. $a MSU -- Ulysses S. Grant Association.\n2. $a MSU -- Gift of Marcia Ewing-Current.\n3. $a MSU -- Richard Current Collection.\n4. $a DSU-180442'
       ],
       ['Single-value record', 'Only public note', '$a Single local note']
     ]

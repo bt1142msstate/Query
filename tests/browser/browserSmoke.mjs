@@ -672,7 +672,7 @@ async function runSmokeTest() {
     const mobileMenuLabels = await mobilePage.locator('#mobile-menu-dropdown .mobile-menu-item').evaluateAll(items => {
       return items.map(item => (item.textContent || '').trim().replace(/\s+/gu, ' '));
     });
-    ['Run Query', 'Multi-value Export', 'JSON', 'Queries', 'Templates', 'Help'].forEach(expectedLabel => {
+    ['Run Query', 'JSON', 'Queries', 'Templates', 'Help'].forEach(expectedLabel => {
       if (!mobileMenuLabels.some(label => label.includes(expectedLabel))) {
         throw new Error(`Mobile menu is missing "${expectedLabel}": ${JSON.stringify(mobileMenuLabels)}`);
       }
@@ -1028,7 +1028,7 @@ async function runSmokeTest() {
     const mobileActionLabels = await mobilePage.locator('#mobile-table-action-bar .mobile-table-action').evaluateAll(buttons => {
       return buttons.map(button => (button.textContent || '').trim().replace(/\s+/gu, ' '));
     });
-    ['Run', 'Fields', 'Add', 'Filters', 'Export', 'Expand', 'Clear'].forEach(expectedLabel => {
+    ['Run', 'Fields', 'Add', 'Filters', 'Export', 'Split', 'Expand', 'Clear'].forEach(expectedLabel => {
       if (!mobileActionLabels.includes(expectedLabel)) {
         throw new Error(`Mobile table action bar is missing "${expectedLabel}": ${JSON.stringify(mobileActionLabels)}`);
       }
