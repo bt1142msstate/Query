@@ -26,7 +26,7 @@ The repository intentionally rejects a mixed top-level JavaScript source layout.
 - `cache-bust.json`, `package.json`, `eslint.config.cjs`, `.github/`, `config/`, `docs/`, `scripts/`, and `tests/` stay at the root as project/runtime/tooling files.
 - Browser application modules, feature logic, UI systems, and stylesheet source live under `src/`.
 
-New app code should be added under `src/core/`, `src/features/`, `src/ui/`, or `src/styles/` according to the ownership rules below. Tests and scripts should import app modules from `src/`; they should not create a parallel top-level source tree.
+New app code should be added under `src/core/`, `src/features/`, `src/ui/`, or `src/styles/` according to the ownership rules below. Reusable frontend surfaces that are intended for other websites should be exposed under `src/components/` as public entrypoints over the app internals. Tests and scripts should import app modules from `src/`; they should not create a parallel top-level source tree.
 
 ## Runtime Flow
 
@@ -57,6 +57,7 @@ The full backend integration contract is documented in `docs/INTEGRATION.md`.
 | State | `src/core/queryState.js` | Query state, lifecycle flags, read/write facades |
 | Services/actions | `src/core/appServices.js`, `src/core/appUiActions.js` | Cross-feature coordination without direct feature coupling |
 | Core utilities | `src/core/formatting/`, `src/core/*Utils.js`, `src/core/textMeasurement.js` | Focused helpers imported from their owning modules instead of a mixed utility facade |
+| Reusable components | `src/components/` | Public ES module entrypoints for reusable table projection, workbook export, date input, and tooltip behavior |
 | Data contract | `src/features/filters/queryPayload.js`, `src/features/filters/fieldDefs.js` | Backend payload generation, field metadata, filter normalization |
 | Features | `src/features/filters/`, `src/features/table/`, `src/features/history/`, `src/features/templates/` | User workflows grouped by product feature, with complex widgets split into focused view/helper modules |
 | Query history | `src/features/history/` | History shell split from request mapping, config loading, result hydration, row rendering, grouping, notifications, tooltips, and status mapping |
@@ -72,12 +73,31 @@ The full backend integration contract is documented in `docs/INTEGRATION.md`.
 ## Folder Organization
 
 - `src/` owns the browser application source, keeping the repository root focused on static-host files, runtime files, tooling, docs, and tests.
+- `src/components/` owns public reusable entrypoints. These modules wrap stable internals for outside sites and future package exports; they should stay small and avoid importing app-shell coordinators.
 - `src/core/` owns app-wide state, services/actions, lifecycle, backend/query execution, browser primitives, startup glue, and shared formatting helpers under `src/core/formatting/`.
 - `src/features/` owns product features: filters, history, table, and templates.
 - `src/features/table/` keeps the top-level table surface in `contextMenu.js` and groups complex table workflows into `drag-drop/`, `export/`, `post-filters/`, and `virtual-table/`.
 - `src/features/filters/condition-editor/` owns condition editor layout, input adapters, panel UI, interaction wiring, reset behavior, and bubble-shaped field controls. This keeps the retired standalone bubble-builder concept out of the top-level folder model.
 - `src/ui/` keeps shared UI systems at the root and groups larger workflows in `field-picker/` and `form-mode/`.
 - `src/styles/` owns the stylesheet entrypoint and feature CSS.
+
+## Reusable Component Surface
+
+Reusable components are documented in `docs/COMPONENTS.md` and exported through `src/components/index.js`.
+
+Current public surfaces:
+
+- `src/components/virtual-table/`: headless virtual-table projection, split-column transforms, duplicate-row collapse, table sorting, and column-layout helpers.
+- `src/components/workbook-export/`: custom XLSX Blob/download generation, grouping helpers, workbook details, and overview helpers.
+- `src/components/date-picker/`: DOM-bound date input enhancement plus shared date parsing/normalization helpers.
+- `src/components/tooltips/`: browser-safe tooltip behavior plus field/filter tooltip HTML formatters.
+
+Rules for this surface:
+
+- Outside sites should import from `src/components/`, not from `src/features/`.
+- Component entrypoints may wrap feature internals, but they should not depend on query-state stores, app bootstrap, app shell rendering, or overlay coordinators.
+- Public component behavior should have focused coverage in `tests/unit/components/`.
+- If a component starts needing framework-specific mounting, add that as an adapter around the public entrypoint instead of mixing it into the feature internals.
 
 ## Public Runtime Surface
 
@@ -104,7 +124,7 @@ Source modules still use clean ES import specifiers. Cache keys are applied at t
 
 `tests/architecture/architectureFitness.mjs` builds a static graph from ES imports and enforces these constraints:
 
-- Every application module must be reachable from `src/appModules.js`.
+- Every application module must be reachable from `src/appModules.js`, a configured public component entrypoint, or a worker entrypoint.
 - Local imports must resolve to explicit `.js` modules inside the application source set.
 - Production package dependencies must be imported by application modules; unused runtime packages fail the gate.
 - Imports must follow the layer rules in `config/architectureRules.cjs`.

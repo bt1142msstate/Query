@@ -13,6 +13,7 @@ test('architecture fitness', async () => {
     legacyLargeModuleBudgets,
     maxModuleLines,
     moduleBoundaryRules,
+    publicModuleEntrypoints,
     runtimeBridgeUsageBudget,
     sourceEntries
   } = require('../../config/architectureRules.cjs');
@@ -188,6 +189,7 @@ test('architecture fitness', async () => {
     }
 
     if (relativePath.startsWith('src/core/')) return 'core';
+    if (relativePath.startsWith('src/components/')) return 'components';
     if (relativePath.startsWith('src/ui/')) return 'ui';
     if (relativePath.startsWith('src/features/filters/')) return 'filters';
     if (relativePath.startsWith('src/features/history/')) return 'history';
@@ -370,6 +372,11 @@ test('architecture fitness', async () => {
   }
 
   const reachableModules = collectReachableModules(importGraph, 'src/appModules.js');
+  for (const entryPath of publicModuleEntrypoints || []) {
+    for (const reachablePublicModule of collectReachableModules(importGraph, entryPath)) {
+      reachableModules.add(reachablePublicModule);
+    }
+  }
   for (const workerPath of workerEntrypoints) {
     for (const reachableWorkerModule of collectReachableModules(importGraph, workerPath)) {
       reachableModules.add(reachableWorkerModule);

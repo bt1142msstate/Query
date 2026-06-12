@@ -7,7 +7,19 @@
  * Tooltip manager handling tooltip creation, positioning, and lifecycle.
  * @namespace Tooltips
  */
-(() => {
+const Tooltips = (() => {
+  if (typeof document === 'undefined' || typeof window === 'undefined') {
+    const noop = () => {};
+    return Object.freeze({
+      attach: noop,
+      forceHide: noop,
+      hide: noop,
+      hideTooltip: noop,
+      isVisible: () => false,
+      showTooltip: noop
+    });
+  }
+
   const TOOLTIP_SELECTOR = '[data-tooltip], [data-tooltip-html]';
   const TOOLTIP_DELAY_ATTR = 'data-tooltip-delay';
   const HOVER_SHOW_DELAY_MS = 2500;
@@ -20,6 +32,7 @@
   let pendingTarget = null;
   let isDragging = false; // Track drag state
   let targetMonitorFrame = null;
+  let attached = false;
 
   function resetDragState() {
     isDragging = false;
@@ -324,6 +337,9 @@
    * @memberof Tooltips
    */
   function attach() {
+    if (attached) return;
+    attached = true;
+
     document.addEventListener('mouseover', e => {
       if (isDragging) return;
       const el = closestFromTarget(e.target, TOOLTIP_SELECTOR);
@@ -431,4 +447,14 @@
     });
   }
   attach();
+  return Object.freeze({
+    attach,
+    forceHide,
+    hide: forceHide,
+    hideTooltip,
+    isVisible: isTooltipVisible,
+    showTooltip
+  });
 })();
+
+export { Tooltips };

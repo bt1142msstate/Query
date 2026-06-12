@@ -11,7 +11,7 @@ npm test
 Runs the full gate:
 
 - `npm run test:static`: cache-busting check, ESLint, and architecture tests.
-- `npm run test:unit`: focused pure-logic and contract tests from `tests/unit/core/`, `tests/unit/features/`, and `tests/unit/ui/`.
+- `npm run test:unit`: focused pure-logic and contract tests from `tests/unit/components/`, `tests/unit/core/`, `tests/unit/features/`, and `tests/unit/ui/`.
 - `npm run test:browser`: Playwright smoke coverage for real desktop/mobile UI workflows.
 
 Browser smoke coverage starts from `tests/browser/browserSmoke.mjs`; shared fixtures and assertions live in `tests/browser/support/`, and longer workflow scenarios live in `tests/browser/scenarios/`.
@@ -31,6 +31,7 @@ Treat a live-test failure as an integration finding. The default public API curr
 - Use `node:test` with an explicit test name in every `.mjs` test file.
 - Use `node:assert/strict` for assertions.
 - Import application modules from the canonical `src/` tree. Tests should not introduce or document a parallel top-level app source layout.
+- Reusable public component coverage belongs in `tests/unit/components/` and should import from `src/components/` entrypoints instead of feature internals.
 - Do not add custom success logging; let the runner report pass/fail output.
 - Prefer pure unit tests for parsing, mapping, validation, state transforms, payload contracts, and export formatting.
 - Prefer browser smoke coverage for behavior that only fails through real DOM, touch, overlay, scrolling, export, or responsive interactions.

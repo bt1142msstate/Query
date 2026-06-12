@@ -1,4 +1,5 @@
 const sourceEntries = ['src'];
+const publicModuleEntrypoints = ['src/components/index.js'];
 const maxModuleLines = 900;
 const runtimeBridgeUsageBudget = {
   maxDistinctMembers: 0,
@@ -173,6 +174,10 @@ const moduleBoundaryRules = [
     allowedLayers: ['core', 'filters']
   },
   {
+    prefix: 'src/components/',
+    allowedLayers: ['components', 'core', 'filters', 'table', 'ui']
+  },
+  {
     prefix: 'src/features/filters/',
     allowedLayers: ['core', 'filters', 'ui']
   },
@@ -199,6 +204,7 @@ module.exports = {
   legacyLargeModuleBudgets,
   maxModuleLines,
   moduleBoundaryRules,
+  publicModuleEntrypoints,
   runtimeBridgeUsageBudget,
   sourceEntries
 };

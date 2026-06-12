@@ -23,6 +23,7 @@ A single-page app for building queries, applying filters, reviewing results, and
 | **API Settings** | Connect a compatible backend from the app without editing source files |
 | **Post filters** | Apply result-only filters without sending them to the backend |
 | **Results table** | Virtualized large-table rendering with resize, sort, post-filter, and Excel export support |
+| **Reusable components** | Public ES module entrypoints for virtual-table projection, workbook export, date input, and tooltips |
 | **Mobile workflow** | Responsive panels, mobile menu controls, and smoke-tested overlays |
 
 ## 🚀 Quick Start: Run and Connect a Backend
@@ -78,6 +79,8 @@ http://127.0.0.1:8787/query-api
 ```
 
 For a new backend, start with [`docs/INTEGRATION.md`](docs/INTEGRATION.md). The minimum integration is `POST` JSON actions for `get_fields` and `run`; history, cancellation, saved templates, and saved-result loading are optional extensions.
+
+For reusing pieces of the frontend in another site, start with [`docs/COMPONENTS.md`](docs/COMPONENTS.md). The supported public entrypoints are under `src/components/`; outside sites should use those instead of importing directly from feature internals.
 
 If your system does not already speak this contract, use an adapter or proxy backend. The repository includes adapter sketches in [`examples/adapters/`](examples/adapters/) for Node/Express, Python/FastAPI, legacy delimited output, and SQL/reporting APIs.
 
@@ -135,6 +138,8 @@ Results render in a virtualized table that only draws the visible viewport plus 
 
 The table also supports sorting, expand/collapse layout, manual column resizing with live row/header alignment, a draggable scrollbar thumb, and post filters that only affect the loaded result set. Post filters are intentionally client-side and are cleared between query runs.
 
+The virtual-table projection logic, XLSX generation path, custom date picker, and tooltip system are also exposed as reusable ES module components in `src/components/` for other static pages or frontend apps.
+
 ## 📁 Structure
 
 Canonical layout decision: application source lives in `src/`. We are not using a mixed top-level JavaScript source layout. Keep root-level JavaScript reserved for static-host/runtime entry files such as the service worker; put app modules, feature logic, UI systems, and styles under `src/`.
@@ -145,6 +150,7 @@ Canonical layout decision: application source lives in `src/`. We are not using 
 | `backgroundNotificationServiceWorker.js` | Root service-worker/runtime file required by the static host |
 | `src/` | Browser application source |
 | `src/appModules.js` | Deterministic ES module startup entrypoint |
+| `src/components/` | Public reusable component entrypoints for outside sites and future package exports |
 | `src/core/` | Query execution, state management, service facades, and shared utilities |
 | `src/features/filters/` | Field definitions, filter workflows, payload logic, and condition editor |
 | `src/features/history/` | Query history rendering, request mapping, status grouping, and detail overlays |
@@ -161,6 +167,7 @@ Canonical layout decision: application source lives in `src/`. We are not using 
 | `src/styles/app.css` | Stylesheet entrypoint that imports the feature CSS files |
 | `config/` | Shared architecture contracts for forbidden browser globals and module boundaries |
 | `docs/ARCHITECTURE.md` | Frontend architecture notes, quality gates, and refactor plan |
+| `docs/COMPONENTS.md` | Reusable component entrypoints and integration examples |
 | `docs/INTEGRATION.md` | Backend integration contract, streaming JSONL results, and deployment options |
 | `docs/DEPLOYMENT.md` | Deployment recipes for same-origin proxying, CORS, auth, GitHub Pages, and internal hosting |
 | `docs/PROJECT_HISTORY.md` | Non-redundant build history and backend work summary |
@@ -169,7 +176,7 @@ Canonical layout decision: application source lives in `src/`. We are not using 
 | `examples/adapters/` | Adapter sketches for translating existing systems into the JSONL contract |
 | `examples/minimal-backend/` | Dependency-free JSONL backend example for local integration testing |
 | `tests/architecture/` | Architecture fitness and module-specifier checks |
-| `tests/unit/` | Focused pure-logic unit tests grouped by `core/`, `features/`, and `ui/` |
+| `tests/unit/` | Focused pure-logic unit tests grouped by `components/`, `core/`, `features/`, and `ui/` |
 | `tests/browser/` | Playwright browser smoke coverage |
 
 ## 🛠️ Tech
@@ -177,6 +184,7 @@ Canonical layout decision: application source lives in `src/`. We are not using 
 - Static HTML, CSS, and vanilla JavaScript — no build step required
 - Native browser ES modules with `"type": "module"` in Node tooling
 - Feature-oriented folder structure with ES modules, explicit dependency registration for cross-feature services/actions, and enforced module boundaries
+- Public reusable component entrypoints for table data projection, workbook export, date input, and tooltips
 - ESLint, architecture fitness checks, and Playwright browser smoke tests
 - Tailwind CSS and AutoNumeric are loaded from CDNs in `index.html`
 - Custom browser-side XLSX export with worker support for larger workbooks
@@ -215,6 +223,7 @@ Rows use array values in the same order as the `meta.columns` list. Multi-value 
 ## Architecture
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for module boundaries, runtime flow, quality gates, and architecture guardrails.
+See [`docs/COMPONENTS.md`](docs/COMPONENTS.md) for reusable frontend component entrypoints.
 See [`docs/INTEGRATION.md`](docs/INTEGRATION.md) for the supported backend integration patterns.
 See [`docs/PROJECT_HISTORY.md`](docs/PROJECT_HISTORY.md) for a consolidated list of what was built and what backend work was required.
 See [`docs/ROADMAP.md`](docs/ROADMAP.md) for current status, completed milestones, and remaining roadmap items.
