@@ -68,8 +68,65 @@ function isBlankCellValue(value) {
   return parts.length === 0 || parts.every(part => String(part ?? '').trim() === '');
 }
 
+function countSerializedNonBlankParts(value, limit) {
+  let count = 0;
+  let start = 0;
+
+  while (start <= value.length) {
+    const separatorIndex = value.indexOf(SERIALIZED_MULTI_VALUE_SEPARATOR, start);
+    const end = separatorIndex === -1 ? value.length : separatorIndex;
+    if (value.slice(start, end).trim()) {
+      count += 1;
+      if (count >= limit) {
+        return count;
+      }
+    }
+    if (separatorIndex === -1) {
+      return count;
+    }
+    start = separatorIndex + SERIALIZED_MULTI_VALUE_SEPARATOR.length;
+  }
+
+  return count;
+}
+
+function countNonBlankCellValueParts(value, limit = Number.POSITIVE_INFINITY) {
+  if (value === undefined || value === null) {
+    return 0;
+  }
+
+  if (Array.isArray(value)) {
+    let count = 0;
+    for (const item of value) {
+      count += countNonBlankCellValueParts(item, limit - count);
+      if (count >= limit) {
+        return count;
+      }
+    }
+    return count;
+  }
+
+  if (value && typeof value === 'object') {
+    if (Array.isArray(value.values)) {
+      return countNonBlankCellValueParts(value.values, limit);
+    }
+    if (Object.prototype.hasOwnProperty.call(value, 'value')) {
+      return countNonBlankCellValueParts(value.value, limit);
+    }
+  }
+
+  if (typeof value === 'string') {
+    if (value.includes(SERIALIZED_MULTI_VALUE_SEPARATOR)) {
+      return countSerializedNonBlankParts(value, limit);
+    }
+    return value.trim() ? 1 : 0;
+  }
+
+  return String(normalizeResultScalar(value) ?? '').trim() ? 1 : 0;
+}
+
 function hasMultipleCellValues(value) {
-  return getNonBlankCellValueParts(value).length > 1;
+  return countNonBlankCellValueParts(value, 2) > 1;
 }
 
 function formatCellValueForText(value, separator = '\n') {
