@@ -1625,7 +1625,7 @@ body.table-column-resizing * {
 }
 
 #table-name-input {
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease, transform 0.2s ease;
   cursor: pointer;
   border-radius: 16px;
   padding: 0.3rem 0.9rem;
@@ -1640,11 +1640,11 @@ body.table-column-resizing * {
   border: 2px solid rgba(59, 130, 246, 0.2);
   box-shadow: 0 5px 12px rgba(15, 23, 42, 0.06);
   line-height: 1.1;
-  width: 100% !important;
+  width: auto;
   height: 100%;
   min-width: 0;
   min-height: 0;
-  max-width: none;
+  max-width: min(100%, 32rem);
   box-sizing: border-box;
   overflow: hidden;
   text-overflow: ellipsis;

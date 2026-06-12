@@ -31,9 +31,9 @@ let TableNameInput;
     temp.textContent = input.value || input.placeholder;
     document.body.appendChild(temp);
 
-    const textWidth = temp.offsetWidth + 20;
+    const textWidth = temp.offsetWidth + 18;
     document.body.removeChild(temp);
-    return Math.max(200, Math.min(maxWidth, textWidth));
+    return Math.max(132, Math.min(maxWidth, textWidth));
   }
 
   function bindTableNameInput() {
@@ -47,7 +47,7 @@ let TableNameInput;
     function autoResizeInput() {
       const toolbarWidth = dom.tableToolbar ? dom.tableToolbar.offsetWidth : 0;
       const maxWidth = dom.tableTopBar
-        ? Math.max(240, dom.tableTopBar.offsetWidth - toolbarWidth - 64)
+        ? Math.max(180, Math.min(520, dom.tableTopBar.offsetWidth - toolbarWidth - 64))
         : 400;
       tableNameInput.style.width = `${measureInputWidth(tableNameInput, maxWidth)}px`;
     }

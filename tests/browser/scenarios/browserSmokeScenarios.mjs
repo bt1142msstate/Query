@@ -347,6 +347,37 @@ async function exerciseTableHeaderResponsiveRegions(page) {
   }
 
   await page.evaluate(() => {
+    const tableNameInput = document.querySelector('#table-name-input');
+    if (tableNameInput) {
+      tableNameInput.value = 'Short';
+      tableNameInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  });
+  await page.waitForTimeout(50);
+
+  const compactTableNameMetrics = await page.evaluate(() => {
+    const input = document.querySelector('#table-name-input');
+    const nameShell = document.querySelector('#table-name-shell');
+    const inputRect = input?.getBoundingClientRect();
+    const shellRect = nameShell?.getBoundingClientRect();
+    return {
+      inputStyleWidth: input?.style.width || '',
+      inputWidth: inputRect?.width || 0,
+      shellWidth: shellRect?.width || 0,
+      value: input?.value || ''
+    };
+  });
+
+  if (
+    compactTableNameMetrics.value !== 'Short'
+    || compactTableNameMetrics.inputWidth < 120
+    || compactTableNameMetrics.inputWidth > 170
+    || compactTableNameMetrics.inputWidth > compactTableNameMetrics.shellWidth * 0.5
+  ) {
+    throw new Error(`Short table names should render as compact controls instead of filling the header slot: ${JSON.stringify(compactTableNameMetrics)}`);
+  }
+
+  await page.evaluate(() => {
     const tableShell = document.querySelector('#table-shell');
     const tableNameInput = document.querySelector('#table-name-input');
     const resultsBadge = document.querySelector('#table-results-badge');
