@@ -1,5 +1,5 @@
 {
-  "version": "2bf692ea6fac8a42",
+  "version": "3322a74c130eb60c",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -10,7 +10,9 @@
     "site.webmanifest": "9276c13bc1bb23b1",
     "src/appModules.js": "73e0dc1c0bcda50c",
     "src/components/date-picker/index.js": "c9a9363a3fdae5ee",
-    "src/components/index.js": "4ff204226e3f6a4f",
+    "src/components/drag-drop/createColumnDragDropComponent.js": "61048fc1593ad31d",
+    "src/components/drag-drop/index.js": "41b5a08d9d258346",
+    "src/components/index.js": "e25ad64d4d208dfa",
     "src/components/tooltips/index.js": "67c2bc99f6ed3011",
     "src/components/virtual-table/createVirtualTableComponent.js": "2612d051a3b10b35",
     "src/components/virtual-table/index.js": "a68ed40c2df4f0f5",
