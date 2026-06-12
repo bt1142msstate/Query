@@ -36,11 +36,13 @@ This repository is a static frontend with a swappable backend contract. The cano
 npm install
 ```
 
-2. Serve the project directory with any static server:
+2. For manual UI testing against the public live backend, run the live-backed local server:
 
 ```bash
-python3 -m http.server 4173
+npm run serve:live
 ```
+
+This starts a local static frontend and a same-origin `/live-query-api` proxy to the configured live backend. The printed URL includes `?api_url=/live-query-api`, so manual testing does not accidentally use a stale API URL saved in browser storage.
 
 Or run the full local demo, which starts the static frontend and minimal backend together:
 
@@ -51,7 +53,7 @@ npm run demo
 3. Open the app:
 
 ```text
-http://127.0.0.1:4173/index.html
+http://127.0.0.1:4173/index.html?api_url=%2Flive-query-api
 ```
 
 4. Connect a backend from the app: open **API Settings**, enter your compatible query API URL, save it, and reload fields.
@@ -251,6 +253,8 @@ npm run test:live
 See [`tests/README.md`](tests/README.md) for the testing standards, layer ownership, and rules for avoiding redundant coverage.
 
 The browser smoke test starts a local static server, stubs the backend API, and covers desktop plus mobile flows: panel layout, dark/light search inputs, virtual-table scrolling and resize behavior, post filters, zero-result queries, export overlays, and mobile dialogs.
+
+For manual browser QA against the real backend, use `npm run serve:live`. It serves the static app locally and proxies API calls through `/live-query-api`, which avoids browser CORS differences and stale `localStorage` API overrides during testing.
 
 `npm run test:live` is separate from the default gate because it uses the deployed site and a real API over the network. It opens the live app, runs API Settings against `LIVE_API_URL`, fails on browser console warnings/errors, and runs the compatibility report without stubbing the backend. Defaults:
 

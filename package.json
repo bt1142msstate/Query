@@ -20,6 +20,7 @@
     "demo": "node scripts/runDemo.mjs",
     "example:backend": "node examples/minimal-backend/server.mjs",
     "lint": "eslint \"**/*.{js,mjs,cjs}\"",
+    "serve:live": "node scripts/serveLiveFrontend.mjs",
     "test": "npm run test:static && npm run test:unit && npm run test:browser",
     "test:static": "npm run cache:bust:check && npm run lint && npm run test:architecture",
     "test:architecture": "node --test --test-reporter=spec 'tests/architecture/*.mjs'",
