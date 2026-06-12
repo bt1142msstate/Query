@@ -247,6 +247,10 @@ function registerTableService(service) {
     return getQueryHistoryService()?.applyQueryConfig?.(config);
   }
 
+  function loadHistoryQueryResults(queryId, options = {}) {
+    return getQueryHistoryService()?.loadQueryResults?.(queryId, options) || Promise.resolve(false);
+  }
+
   function restoreFieldWithDuplicates(fieldName, insertAt) {
     return getDragDropService()?.restoreFieldWithDuplicates?.(fieldName, insertAt) || false;
   }
@@ -509,6 +513,7 @@ function registerTableService(service) {
     closeHistoryDetailsOverlay,
     cancelHistoryQuery,
     applyHistoryQueryConfig,
+    loadHistoryQueryResults,
     restoreFieldWithDuplicates,
     addDragAndDrop,
     resetDragDropHeaderUi,

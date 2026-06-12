@@ -3,6 +3,9 @@ const FORM_MODE_CARD_SELECTORS = Object.freeze({
   cleanCopyBtn: '#form-mode-copy-clean',
   copyBtn: '#form-mode-copy',
   fieldsWrap: '#form-mode-fields',
+  resetBtn: '#form-mode-reset',
+  resetMenu: '#form-mode-reset-options',
+  resetMenuShell: '#form-mode-reset-menu',
   resetOriginalBtn: '#form-mode-reset-original',
   resetSharedBtn: '#form-mode-reset-shared',
   runBtn: '#form-mode-run',
@@ -19,8 +22,30 @@ function getFormModeCardHtml() {
       <div class="form-mode-actions">
         <button type="button" id="form-mode-add-field" class="form-mode-btn form-mode-btn-secondary">+ Add Field</button>
         <button type="button" id="form-mode-run" class="form-mode-btn form-mode-btn-primary">Run Form</button>
-        <button type="button" id="form-mode-reset-original" class="form-mode-btn" data-tooltip="Restore the original form version.">Reset to Original</button>
-        <button type="button" id="form-mode-reset-shared" class="form-mode-btn" data-tooltip="Share this form first to create a shared baseline.">Reset to Last Shared</button>
+        <div id="form-mode-reset-menu" class="form-mode-reset-menu">
+          <button type="button"
+                  id="form-mode-reset"
+                  class="form-mode-btn form-mode-reset-trigger"
+                  aria-haspopup="menu"
+                  aria-expanded="false"
+                  aria-controls="form-mode-reset-options"
+                  data-tooltip="Choose which saved form state to restore.">
+            Reset
+          </button>
+          <div id="form-mode-reset-options"
+               class="form-mode-reset-options hidden"
+               role="menu"
+               aria-labelledby="form-mode-reset">
+            <button type="button" id="form-mode-reset-original" class="form-mode-reset-option" role="menuitem">
+              <span>Original form</span>
+              <small>Restore the form as it first opened, including its results when available.</small>
+            </button>
+            <button type="button" id="form-mode-reset-shared" class="form-mode-reset-option" role="menuitem">
+              <span>Last shared link</span>
+              <small>Restore the last link you copied, including shared results when that link had results.</small>
+            </button>
+          </div>
+        </div>
         <button type="button" id="form-mode-copy" class="form-mode-btn">Share</button>
         <button type="button" id="form-mode-copy-clean" class="form-mode-btn form-mode-btn-secondary">Form Link</button>
       </div>
@@ -95,6 +120,9 @@ function mountFormModeCard(documentRef) {
     copyBtn: card.querySelector(FORM_MODE_CARD_SELECTORS.copyBtn),
     fieldsWrap: card.querySelector(FORM_MODE_CARD_SELECTORS.fieldsWrap),
     host,
+    resetBtn: card.querySelector(FORM_MODE_CARD_SELECTORS.resetBtn),
+    resetMenu: card.querySelector(FORM_MODE_CARD_SELECTORS.resetMenu),
+    resetMenuShell: card.querySelector(FORM_MODE_CARD_SELECTORS.resetMenuShell),
     resetOriginalBtn: card.querySelector(FORM_MODE_CARD_SELECTORS.resetOriginalBtn),
     resetSharedBtn: card.querySelector(FORM_MODE_CARD_SELECTORS.resetSharedBtn),
     runBtn: card.querySelector(FORM_MODE_CARD_SELECTORS.runBtn),

@@ -1274,6 +1274,127 @@ async function exerciseEditableFormUrlRefresh(page, failures) {
   await waitForAppReady(page, failures);
 }
 
+async function exerciseFormModeResetMenuPreservesResults(page, queryApiStub) {
+  const resetResultQueryId = 'browser-smoke-form-reset-result';
+  await seedLoadedResults(page);
+  await page.evaluate(async queryId => {
+    const { appServices } = await import('./src/core/appServices.js');
+    const { QueryChangeManager, QueryStateReaders } = await import('./src/core/queryState.js');
+    const { QueryFormMode } = await import('./src/ui/form-mode/formMode.js');
+
+    appServices.addHistoryQuery({
+      endTime: '2026-06-12 10:00:03',
+      id: queryId,
+      jsonConfig: {
+        DesiredColumnOrder: ['Smoke Title', 'Smoke Branch', 'Smoke Status'],
+        Filters: []
+      },
+      name: 'Form reset original result',
+      resultCount: 2,
+      running: false,
+      startTime: '2026-06-12 10:00:00'
+    });
+    QueryChangeManager.setLifecycleState({
+      currentQueryId: queryId,
+      hasLoadedResultSet: true,
+      lastExecutedQueryState: QueryStateReaders.getSerializableState(),
+      queryRunning: false
+    }, { source: 'BrowserSmoke.formResetBaseline', silent: true });
+    await QueryFormMode.activateFromCurrentQuery();
+  }, resetResultQueryId);
+
+  await page.locator('#form-mode-card').waitFor({ state: 'visible', timeout: 5000 });
+  const closedResetState = await page.evaluate(() => {
+    const visibleButtons = Array.from(document.querySelectorAll('.form-mode-actions > button, .form-mode-actions > .form-mode-reset-menu > button'))
+      .filter(button => {
+        const rect = button.getBoundingClientRect();
+        const style = window.getComputedStyle(button);
+        return rect.width > 0
+          && rect.height > 0
+          && style.display !== 'none'
+          && style.visibility !== 'hidden';
+      })
+      .map(button => button.textContent?.replace(/\s+/gu, ' ').trim() || '');
+    return {
+      hasResetMenu: Boolean(document.querySelector('#form-mode-reset-menu')),
+      menuHidden: document.querySelector('#form-mode-reset-options')?.classList.contains('hidden') || false,
+      resetTriggerCount: document.querySelectorAll('#form-mode-reset').length,
+      visibleButtons
+    };
+  });
+
+  if (
+    !closedResetState.hasResetMenu
+    || !closedResetState.menuHidden
+    || closedResetState.resetTriggerCount !== 1
+    || !closedResetState.visibleButtons.includes('Reset')
+    || closedResetState.visibleButtons.some(label => /Reset to Original|Reset to Last Shared/iu.test(label))
+  ) {
+    throw new Error(`Form mode should expose one reset trigger before the menu opens: ${JSON.stringify(closedResetState)}`);
+  }
+
+  await page.locator('#form-mode-reset').click();
+  await page.locator('#form-mode-reset-options:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+  const openResetState = await page.locator('#form-mode-reset-options').evaluate(menu => ({
+    originalText: menu.querySelector('#form-mode-reset-original')?.textContent?.replace(/\s+/gu, ' ').trim() || '',
+    sharedDisabled: Boolean(menu.querySelector('#form-mode-reset-shared')?.disabled),
+    sharedText: menu.querySelector('#form-mode-reset-shared')?.textContent?.replace(/\s+/gu, ' ').trim() || ''
+  }));
+
+  if (
+    !/Original form.+first opened.+results/iu.test(openResetState.originalText)
+    || !openResetState.sharedDisabled
+    || !/Last shared link.+last link.+results/iu.test(openResetState.sharedText)
+  ) {
+    throw new Error(`Reset menu should explain original/shared reset targets: ${JSON.stringify(openResetState)}`);
+  }
+
+  await page.evaluate(async () => {
+    const { QueryChangeManager } = await import('./src/core/queryState.js');
+    QueryChangeManager.replaceDisplayedFields(['Smoke Title'], {
+      source: 'BrowserSmoke.formResetChangedState'
+    });
+  });
+  await page.waitForFunction(async () => {
+    const { QueryStateReaders } = await import('./src/core/queryState.js');
+    return QueryStateReaders.getDisplayedFields().join('|') === 'Smoke Title';
+  }, null, { timeout: 5000 });
+
+  queryApiStub.enqueue({
+    action: 'get_results',
+    body: buildJsonlResultStream({
+      columns: smokeResultHeaders,
+      queryId: resetResultQueryId,
+      rows: [
+        ['Reset Alpha record', 'Main', 'Open'],
+        ['Reset Beta record', 'East', 'Closed']
+      ]
+    }),
+    contentType: 'application/x-ndjson; charset=utf-8',
+    queryId: resetResultQueryId,
+    rawColumns: smokeResultHeaders
+  });
+
+  await page.locator('#form-mode-reset-original').click();
+  await page.waitForFunction(queryId => {
+    return document.querySelector('#form-mode-reset-options')?.classList.contains('hidden')
+      && new URL(window.location.href).searchParams.get('result') === queryId;
+  }, resetResultQueryId, { timeout: 5000 });
+  await page.waitForFunction(async queryId => {
+    const { appServices } = await import('./src/core/appServices.js');
+    const { QueryStateReaders } = await import('./src/core/queryState.js');
+    const lifecycle = QueryStateReaders.getLifecycleState();
+    const tableData = appServices.getVirtualTableData?.();
+    return lifecycle.currentQueryId === queryId
+      && lifecycle.hasLoadedResultSet === true
+      && QueryStateReaders.getDisplayedFields().join('|') === 'Smoke Title|Smoke Branch|Smoke Status'
+      && Array.isArray(tableData?.rows)
+      && tableData.rows.length === 2
+      && document.querySelector('#table-results-count')?.textContent?.trim() === '2'
+      && !document.body.classList.contains('is-planning');
+  }, resetResultQueryId, { timeout: 10000 });
+}
+
 async function exerciseLegacyFormUrlCanonicalization(page, baseUrl, failures) {
   const formSpec = {
     title: 'Legacy Limited Form',
@@ -3241,6 +3362,7 @@ export {
   exerciseFormModeBuildableDisplayField,
   exerciseTableBuildableDisplayField,
   exerciseFormModeDateTypingCommit,
+  exerciseFormModeResetMenuPreservesResults,
   exerciseJsonResultPayloadWorkflow,
   exerciseLegacyFormUrlCanonicalization,
   exerciseLiveResponsiveResize,

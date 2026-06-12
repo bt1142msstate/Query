@@ -2,52 +2,23 @@ import { appServices, registerFormModeService } from '../../core/appServices.js'
 import { appUiActions } from '../../core/appUiActions.js';
 import { ClipboardUtils } from '../../core/clipboard.js';
 import { QueryChangeManager, getBaseFieldName, QueryStateReaders } from '../../core/queryState.js';
-import { buildCurrentResultViewState, encodeResultViewState } from '../../core/resultViewState.js';
 import { showToastMessage } from '../../core/toast.js';
 import { QueryStateSubscriptions } from '../../core/queryStateSubscriptions.js';
 import { createFormModeEmptyState, getVisibleFormInputs, mountFormModeCard } from './formModeCard.js';
 import { buildInteractiveFormModeCard } from './formModeCardBuilder.js';
 import { FormModeControls as formModeControls } from './formModeControls.js';
-import {
-  cloneSpec,
-  decodeSpec,
-  encodeSpec,
-  getInputParamKeys,
-  interpolateValue,
-  normalizeSpec,
-  resolveLimitedView,
-  splitListValues
-} from './formModeSpec.js';
-import {
-  buildClearedBrowserUrl,
-  buildFormShareUrl,
-  isShareableFormSpec
-} from './formModeShareUrl.js';
-import {
-  clearFormSpecControlDefaults,
-  hasSpecColumn as hasFormSpecColumn,
-  hasSpecFilterInput as hasFormSpecFilterInput,
-  removeSpecFilterInputs as removeFormSpecFilterInputs,
-  removeSpecInputByKey as removeFormSpecInputByKey,
-  resetFormSpecToEmptyQuery
-} from './formModeSpecMutations.js';
-import {
-  resolveRequestedFormViewMode,
-  syncFormModePresentation
-} from './formModePresentation.js';
-import {
-  buildGeneratedInputSpecsFromActiveFilters,
-  getDisplayableFormColumns,
-  getInputSpecDefaultValues,
-  normalizeOperatorForField,
-  syncInputSpecFromState,
-  uniqueInputKey
-} from './formModeQuerySpec.js';
+import { cloneSpec, decodeSpec, encodeSpec, getInputParamKeys, interpolateValue, normalizeSpec, resolveLimitedView, splitListValues } from './formModeSpec.js';
+import { buildClearedBrowserUrl, isShareableFormSpec } from './formModeShareUrl.js';
+import { clearFormSpecControlDefaults, hasSpecColumn as hasFormSpecColumn, hasSpecFilterInput as hasFormSpecFilterInput, removeSpecFilterInputs as removeFormSpecFilterInputs, removeSpecInputByKey as removeFormSpecInputByKey, resetFormSpecToEmptyQuery } from './formModeSpecMutations.js';
+import { resolveRequestedFormViewMode, syncFormModePresentation } from './formModePresentation.js';
+import { buildGeneratedInputSpecsFromActiveFilters, getDisplayableFormColumns, getInputSpecDefaultValues, normalizeOperatorForField, syncInputSpecFromState, uniqueInputKey } from './formModeQuerySpec.js';
 import { getQueryStateSyncPlan, mergeQuerySyncOptions, normalizeQuerySyncOptions, shouldRunQueuedQuerySync } from './formModeQueryReconcile.js';
 import { bindFormModeQueryStateSync } from './formModeQueryStateBridge.js';
 import { bindFormModeTableNameUrlSync } from './formModeTableNameSync.js';
 import { syncSpecInputsWithActiveFilters } from './formModeQuerySync.js';
 import { FormModeStateHelpers as formModeStateHelpers } from './formModeStateHelpers.js';
+import { buildCurrentShareUrl as buildFormModeCurrentShareUrl, saveCurrentFormAsSharedBaseline as saveFormModeSharedBaseline } from './formModeShareBuilder.js';
+import { buildCurrentResultSearchParams as buildResetResultSearchParams, clearRenderedQueryResults, getBaselineResultSearchParams, replaceBrowserResultParams, restoreBaselineResultsForReset, stopRunningQueryForReset } from './formModeReset.js';
 import { resolveCurrentShareResultQueryId, syncFormModeShareUi } from './formModeShareState.js';
 import { openFormModeFieldPicker } from './formModeFieldPicker.js';
 import { QueryTableView } from '../queryTableView.js';
@@ -92,6 +63,9 @@ let QueryFormMode;
     validationEl: null,
     runBtn: null,
     copyBtn: null,
+    resetBtn: null,
+    resetMenu: null,
+    resetMenuShell: null,
     resetOriginalBtn: null,
     resetSharedBtn: null,
     modeToggleBtn: null,
@@ -245,59 +219,58 @@ let QueryFormMode;
     syncFormModeShareUi({ getCurrentShareResultQueryId, isShareableFormSpec, state });
   }
 
-  function saveCurrentFormAsSharedBaseline() {
-    if (!state.active || !state.spec) {
-      return false;
-    }
-
-    captureCurrentControlDefaults();
-    sanitizeSpecDisplayColumns(state.spec);
-    const nextSpec = cloneSpec(state.spec);
-    if (!nextSpec) {
-      return false;
-    }
-
-    state.sharedBaselineSpec = nextSpec;
-    const shareUrl = buildCurrentShareUrl({ includeResult: false });
-    state.sharedBaselineSearchParams = shareUrl
-      ? new URL(shareUrl).searchParams
-      : new URLSearchParams();
-    return true;
+  function buildCurrentResultSearchParams(options = {}) {
+    return buildResetResultSearchParams({
+      getCurrentShareResultQueryId: () => getCurrentShareResultQueryId(options),
+      getFieldSearch: () => DOM?.queryInput?.value || '',
+      queryStateReaders: QueryStateReaders,
+      services
+    });
   }
 
-  function stopRunningQueryForReset() {
-    const lifecycleState = QueryStateReaders.getLifecycleState();
-    if (lifecycleState.queryRunning && lifecycleState.currentQueryId) {
-      Promise.resolve(services.cancelHistoryQuery(lifecycleState.currentQueryId)).catch(console.error);
-      QueryChangeManager.setLifecycleState({ queryRunning: false }, { source: 'QueryFormMode.reset.stopQuery', silent: true });
-      uiActions.updateRunButtonIcon();
-    }
+  function saveCurrentFormAsSharedBaseline(options = {}) {
+    return saveFormModeSharedBaseline({
+      buildShareUrl: buildCurrentShareUrl,
+      captureCurrentControlDefaults,
+      cloneSpec,
+      sanitizeSpecDisplayColumns,
+      state
+    }, options);
   }
 
-  function clearRenderedQueryResults() {
-    services.clearVirtualTableData();
-
-    QueryTableView.renderEmptyQueryTableState();
-  }
-
-  function resetFormToBaseline(kind) {
+  async function resetFormToBaseline(kind) {
     const isShared = kind === 'shared';
     const nextSpec = cloneSpec(isShared ? state.sharedBaselineSpec : state.initialSpec) || cloneSpec(state.spec);
     const nextSearchParamsSource = isShared ? state.sharedBaselineSearchParams : state.initialSearchParams;
+    const nextSearchParams = nextSearchParamsSource
+      ? new URLSearchParams(nextSearchParamsSource.toString())
+      : new URLSearchParams();
 
     if (!nextSpec) {
       return;
     }
 
-    state.searchParams = nextSearchParamsSource ? new URLSearchParams(nextSearchParamsSource.toString()) : new URLSearchParams();
+    const { resultQueryId, resultViewParam } = getBaselineResultSearchParams(nextSearchParams);
+    replaceBrowserResultParams({
+      resultQueryId,
+      resultViewParam,
+      state,
+      windowRef: window
+    });
+
+    state.searchParams = nextSearchParams;
     state.spec = nextSpec;
     sanitizeSpecDisplayColumns(state.spec);
     state.lastSuggestedTableName = '';
     state.suppressAutoTableNameOnce = false;
     state.forceTableNameSyncOnce = true;
 
-    stopRunningQueryForReset();
-    clearRenderedQueryResults();
+    stopRunningQueryForReset({
+      queryChangeManager: QueryChangeManager,
+      queryStateReaders: QueryStateReaders,
+      services,
+      uiActions
+    });
     rebuildFormCardFromSpec({
       preserveCurrentDefaults: false,
       applyState: true,
@@ -305,6 +278,23 @@ let QueryFormMode;
       clearSearchParams: false,
       querySource: isShared ? 'QueryFormMode.resetToShared' : 'QueryFormMode.resetToOriginal'
     });
+
+    await restoreBaselineResultsForReset({
+      clearRenderedResults: () => clearRenderedQueryResults({
+        queryTableView: QueryTableView,
+        services
+      }),
+      label: isShared ? 'last shared link' : 'original form',
+      searchParams: nextSearchParams,
+      services,
+      showToastMessage
+    });
+    const preservedBaselineSearchParams = new URLSearchParams(nextSearchParams.toString());
+    if (isShared) {
+      state.sharedBaselineSearchParams = preservedBaselineSearchParams;
+    } else {
+      state.initialSearchParams = preservedBaselineSearchParams;
+    }
   }
 
   function refreshBrowserUrl(options = {}) {
@@ -453,7 +443,7 @@ let QueryFormMode;
     state.initialSpec = cloneSpec(nextSpec);
     state.sharedBaselineSpec = null;
     state.searchParams = new URLSearchParams();
-    state.initialSearchParams = new URLSearchParams();
+    state.initialSearchParams = buildCurrentResultSearchParams();
     state.sharedBaselineSearchParams = null;
     state.viewMode = 'form';
     state.controls.clear();
@@ -485,6 +475,7 @@ let QueryFormMode;
     state.initialSpec = cloneSpec(nextSpec);
     state.sharedBaselineSpec = state.sharedBaselineSpec ? cloneSpec(state.sharedBaselineSpec) : null;
     state.searchParams = new URLSearchParams();
+    state.initialSearchParams = buildCurrentResultSearchParams();
 
     if (options.forceFormMode) {
       state.viewMode = 'form';
@@ -652,25 +643,17 @@ let QueryFormMode;
 
   function buildCurrentShareUrl(options = {}) {
     sanitizeSpecDisplayColumns(state.spec);
-    const resultQueryId = getCurrentShareResultQueryId(options);
-    const resultViewParam = resultQueryId
-      ? encodeResultViewState(buildCurrentResultViewState({
-          queryStateReaders: QueryStateReaders,
-          services,
-          uiState: {
-            getFieldSearch: () => DOM?.queryInput?.value || ''
-          }
-        }))
-      : '';
-    return buildFormShareUrl(window.location.href, state.spec, {
+    return buildFormModeCurrentShareUrl({
       fieldDefs,
       getInputValues: getCurrentInputValues,
-      resultQueryId,
-      resultViewParam,
+      getCurrentShareResultQueryId,
+      getCurrentTableNameValue,
+      getFieldSearch: () => DOM?.queryInput?.value || '',
+      queryStateReaders: QueryStateReaders,
+      services,
+      state,
       supportsMultipleValues,
-      tableName: getCurrentTableNameValue(),
-      ...options
-    });
+    }, options);
   }
 
   function syncPresentationMode() {
