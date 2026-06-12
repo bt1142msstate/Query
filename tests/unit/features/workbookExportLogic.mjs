@@ -157,9 +157,14 @@ test('custom workbook export', async () => {
   assert.match(workbookText, /xl\/tables\/table1\.xml/u);
   assert.match(workbookText, /tableStyleInfo name="TableStyleMedium4"/u);
   assert.match(workbookText, /Run Details/u);
+  assert.match(workbookText, /Workbook Generation Time/u);
+  assert.doesNotMatch(workbookText, /Calculating\.\.\./u);
+  assert.match(workbookText, /<c r="C\d+" t="inlineStr" s="8"><is><t>\d+(?: ms|(?:\.\d)? sec)<\/t><\/is><\/c>/u);
   assert.match(workbookText, /Duration/u);
   assert.match(workbookText, /12s/u);
   assert.match(workbookText, /TableStyleMedium9/u);
+  assert.match(workbookText, /wrapText="1"/u);
+  assert.match(workbookText, /<cellXfs count="9">/u);
   assert.match(workbookText, /<cols><col min="1" max="1" width="/u);
   assert.match(workbookText, /<tableParts count="1"><tablePart r:id="rId1"\/><\/tableParts>/u);
   assert.doesNotMatch(workbookText, /FFE5F3FF|applyFill="1"/u);
@@ -208,7 +213,7 @@ test('custom workbook export', async () => {
   assert.match(groupedWorkbookText, /<v>0\.5<\/v>/u);
   assert.match(groupedWorkbookText, /<v>1<\/v>/u);
   assert.match(groupedWorkbookText, /numFmtId="10"/u);
-  assert.match(groupedWorkbookText, /<cellXfs count="8">/u);
+  assert.match(groupedWorkbookText, /<cellXfs count="9">/u);
 
   let workerUrl = '';
   let workerOptions = null;

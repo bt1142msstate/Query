@@ -4,6 +4,8 @@ import {
   WORKBOOK_DETAILS_SHEET_NAME,
   buildWorkbookDetailsRows,
   buildWorkbookDetailsRowsFromRuntime,
+  ensureWorkbookGenerationTimeRow,
+  formatWorkbookGenerationDuration,
   getWorkbookDetailsColumns
 } from '../../../src/features/table/export/workbookDetails.js';
 import test from 'node:test';
@@ -47,6 +49,7 @@ test('workbook details', async () => {
   assert.deepEqual(getWorkbookDetailsColumns(), WORKBOOK_DETAILS_COLUMNS);
   assert.ok(rows.some(row => row.join('|') === 'Export|Workbook|Audit Export'));
   assert.ok(rows.some(row => row.join('|') === 'Export|Mode|Split into sheets'));
+  assert.ok(rows.some(row => row.join('|') === 'Export|Workbook Generation Time|Calculating...'));
   assert.ok(rows.some(row => row.join('|') === 'Query|Query ID|query-123'));
   assert.ok(rows.some(row => row.join('|') === 'Query|Duration|35s'));
   assert.ok(rows.some(row => row.join('|') === 'Rows|Loaded Rows Before Post Filters|12'));
@@ -78,4 +81,14 @@ test('workbook details', async () => {
   assert.ok(runtimeRows.some(row => row.join('|') === 'Query|Duration|Unknown'));
   assert.ok(runtimeRows.some(row => row.join('|') === 'Query Filters|Patron|Does not equal Blocked'));
   assert.ok(runtimeRows.some(row => row.join('|') === 'Post Filters|Applied|None'));
+
+  assert.deepEqual(
+    ensureWorkbookGenerationTimeRow([['Export', 'Mode', 'One sheet']]),
+    [
+      ['Export', 'Mode', 'One sheet'],
+      ['Export', 'Workbook Generation Time', 'Calculating...']
+    ]
+  );
+  assert.equal(formatWorkbookGenerationDuration(421), '421 ms');
+  assert.equal(formatWorkbookGenerationDuration(1250), '1.3 sec');
 });

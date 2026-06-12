@@ -3,6 +3,8 @@ import { OperatorLabels } from '../../../core/formatting/operatorLabels.js';
 
 const WORKBOOK_DETAILS_SHEET_NAME = 'Run Details';
 const WORKBOOK_DETAILS_COLUMNS = Object.freeze(['Section', 'Item', 'Value']);
+const WORKBOOK_GENERATION_TIME_ITEM = 'Workbook Generation Time';
+const WORKBOOK_GENERATION_TIME_PENDING = 'Calculating...';
 
 function formatMetadataValue(value) {
   if (value === undefined || value === null || value === '') return '';
@@ -22,6 +24,44 @@ function addDetailRow(rows, section, item, value, options = {}) {
   const formattedValue = formatMetadataValue(value);
   if (!formattedValue && !options.keepBlank) return;
   rows.push([section, item, formattedValue || options.blankValue || '']);
+}
+
+function formatWorkbookGenerationDuration(elapsedMs) {
+  const safeMs = Number(elapsedMs);
+  if (!Number.isFinite(safeMs) || safeMs < 0) {
+    return WORKBOOK_GENERATION_TIME_PENDING;
+  }
+  if (safeMs < 1000) {
+    return `${Math.max(1, Math.round(safeMs))} ms`;
+  }
+  if (safeMs < 60000) {
+    const seconds = safeMs / 1000;
+    return `${seconds < 10 ? seconds.toFixed(1).replace(/\.0$/u, '') : Math.round(seconds)} sec`;
+  }
+  return formatDuration(Math.round(safeMs / 1000));
+}
+
+function findWorkbookGenerationTimeRow(rows) {
+  return (Array.isArray(rows) ? rows : []).find(row => (
+    Array.isArray(row)
+    && row[0] === 'Export'
+    && row[1] === WORKBOOK_GENERATION_TIME_ITEM
+  ));
+}
+
+function ensureWorkbookGenerationTimeRow(rows) {
+  const detailRows = (Array.isArray(rows) ? rows : []).map(row => (Array.isArray(row) ? [...row] : row));
+  if (!findWorkbookGenerationTimeRow(detailRows)) {
+    detailRows.push(['Export', WORKBOOK_GENERATION_TIME_ITEM, WORKBOOK_GENERATION_TIME_PENDING]);
+  }
+  return detailRows;
+}
+
+function setWorkbookGenerationTimeRow(rows, elapsedMs) {
+  const row = findWorkbookGenerationTimeRow(rows);
+  if (row) {
+    row[2] = formatWorkbookGenerationDuration(elapsedMs);
+  }
 }
 
 function getQueryDurationSeconds(query) {
@@ -118,6 +158,7 @@ function buildWorkbookDetailsRows({
   addDetailRow(rows, 'Export', 'Mode', config.mode === 'grouped' ? 'Split into sheets' : 'One sheet');
   addDetailRow(rows, 'Export', 'Group Field', config.mode === 'grouped' ? config.groupField : '');
   addDetailRow(rows, 'Export', 'Multi-value Layout', splitMultiValues ? 'Split into numbered columns' : 'Stacked in one cell');
+  addDetailRow(rows, 'Export', WORKBOOK_GENERATION_TIME_ITEM, WORKBOOK_GENERATION_TIME_PENDING);
   addDetailRow(rows, 'Query', 'Query ID', query?.id || queryId);
   addDetailRow(rows, 'Query', 'Status', query?.status || '');
   addDetailRow(rows, 'Query', 'Started', formatDateTime(query?.startTime));
@@ -189,5 +230,8 @@ export {
   addWorkbookDetailsWorksheet,
   buildWorkbookDetailsRows,
   buildWorkbookDetailsRowsFromRuntime,
-  getWorkbookDetailsColumns
+  ensureWorkbookGenerationTimeRow,
+  formatWorkbookGenerationDuration,
+  getWorkbookDetailsColumns,
+  setWorkbookGenerationTimeRow
 };
