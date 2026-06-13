@@ -86,6 +86,10 @@ function registerAppUiActionDependencies(dependencies = {}) {
     actionDependencies.filterSidePanel?.update?.();
   }
 
+  function syncFilterSidePanelDisplayOrder(fields) {
+    return actionDependencies.filterSidePanel?.syncDisplayListOrder?.(fields) === true;
+  }
+
   function refreshTableViewport() {
     actionDependencies.queryUi?.refreshTableViewport?.();
   }
@@ -201,6 +205,7 @@ function registerAppUiActionDependencies(dependencies = {}) {
     updateTableQueryAnimationProgress,
     endTableQueryAnimation,
     updateFilterSidePanel,
+    syncFilterSidePanelDisplayOrder,
     refreshTableViewport,
     syncTableViewportHeight,
     updateTableChromeState,

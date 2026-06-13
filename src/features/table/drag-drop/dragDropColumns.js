@@ -200,6 +200,9 @@ let dragDropColumnOps;
       ? { changed: true, skippedBodyRows: 0 }
       : applyImmediateColumnRemoval(table, remainingFields);
     const appliedOptimistically = removalMetrics.changed === true;
+    if (appliedOptimistically || options.tableDomAlreadySynced === true) {
+      uiActions.syncFilterSidePanelDisplayOrder(remainingFields);
+    }
     const tableDomAlreadySynced = appliedOptimistically && Number(removalMetrics.skippedBodyRows || 0) === 0;
     const runCommit = () => {
       const currentFields = getDisplayedFields();
@@ -391,6 +394,9 @@ let dragDropColumnOps;
     const displayedFieldsBeforeMove = getDisplayedFields();
     const moveMetrics = applyOptimisticColumnMove(table, nextFields);
     const appliedOptimistically = moveMetrics.changed === true;
+    if (appliedOptimistically) {
+      uiActions.syncFilterSidePanelDisplayOrder(nextFields);
+    }
     const tableDomAlreadySynced = appliedOptimistically && Number(moveMetrics.skippedBodyRows || 0) === 0;
     if (document.body.classList.contains('dragging-cursor')) {
       document.body.classList.remove('dragging-cursor');

@@ -415,6 +415,16 @@ function registerTableService(service) {
     };
   }
 
+  function applyImmediateColumnRemoval(nextFields, options = {}) {
+    return getTableService()?.applyImmediateColumnRemoval?.(nextFields, options) || {
+      bodyRowsUpdated: 0,
+      changed: false,
+      colgroupColumnsRemoved: 0,
+      headerColumnsRemoved: 0,
+      skippedBodyRows: 0
+    };
+  }
+
   function replacePostFilters(snapshot, options = {}) {
     getTableService()?.replacePostFilters?.(snapshot, options);
   }
@@ -569,6 +579,7 @@ function registerTableService(service) {
     buildDisplayedFieldMove,
     buildDisplayedFieldRemoval,
     applyImmediateColumnOrder,
+    applyImmediateColumnRemoval,
     replacePostFilters,
     hasPostFilters,
     isSplitColumnsActive,
