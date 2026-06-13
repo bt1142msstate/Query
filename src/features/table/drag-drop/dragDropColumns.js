@@ -451,11 +451,6 @@ let dragDropColumnOps;
       });
     };
 
-    if (appliedOptimistically) {
-      deferAuthoritativeColumnMutation(runCommit);
-      return;
-    }
-
     runCommit();
   }
 

@@ -2910,8 +2910,8 @@ async function exerciseDesktopResultsWorkflow(page) {
   });
   if (
     !panelSplitMove.moveButtonFound
-    || panelSplitMove.headers.join('|') !== 'Smoke Title|Smoke Status|Smoke Branch 1|Smoke Branch 2'
-    || panelSplitMove.displayFields.join('|') !== 'Smoke Title|Smoke Status|Smoke Branch 1|Smoke Branch 2'
+    || panelSplitMove.headers.join('|') !== 'Smoke Title|Smoke Branch 1|Smoke Branch 2|Smoke Status'
+    || panelSplitMove.displayFields.join('|') !== 'Smoke Title|Smoke Branch 1|Smoke Branch 2|Smoke Status'
     || panelSplitMove.durationMs > 300
   ) {
     throw new Error(`Side panel split column move should complete under 300ms: ${JSON.stringify(panelSplitMove)}`);
