@@ -386,7 +386,10 @@ const queryStateStore = {
     }
 
     if (removed) {
-      notifyQueryStateSubscribers({ displayedFields: true }, { source: options.source || 'QueryStateStore.removeDisplayedField' });
+      notifyQueryStateSubscribers(
+        { displayedFields: true },
+        { ...options, source: options.source || 'QueryStateStore.removeDisplayedField' }
+      );
     }
 
     return removed;
@@ -419,7 +422,10 @@ const queryStateStore = {
     insertAt = Math.max(0, Math.min(insertAt, displayedFieldsState.length));
     displayedFieldsState.splice(insertAt, 0, ...movedFields);
 
-    notifyQueryStateSubscribers({ displayedFields: true }, { source: options.source || 'QueryStateStore.moveDisplayedField' });
+    notifyQueryStateSubscribers(
+      { displayedFields: true },
+      { ...options, source: options.source || 'QueryStateStore.moveDisplayedField' }
+    );
     return true;
   },
   replaceActiveFilters(nextFilters, meta = {}) {
