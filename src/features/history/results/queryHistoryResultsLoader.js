@@ -6,7 +6,7 @@ import {
   readResultViewStateFromLocation
 } from '../../../core/resultViewState.js';
 import { buildTableRowsFromObjectRows, writeCachedHistoryResultSnapshot } from './queryHistoryResultCache.js';
-import { rememberOpenedHistoryResult } from './queryHistoryResultSession.js';
+import { forgetOpenedHistoryResult, rememberOpenedHistoryResult } from './queryHistoryResultSession.js';
 
 export function createQueryHistoryResultsLoader({
   appState,
@@ -23,11 +23,31 @@ export function createQueryHistoryResultsLoader({
   loadQueryConfig,
   renderQueries
 }) {
+  let activeLoadToken = 0;
+
   return async function loadQueryResults(queryId, options = {}) {
     const query = getHistoryQueryById(queryId);
     if (!query) return false;
 
+    const loadToken = activeLoadToken + 1;
+    activeLoadToken = loadToken;
+    const isLatestLoad = () => loadToken === activeLoadToken;
+
     await loadQueryConfig(query);
+    if (!isLatestLoad()) {
+      return false;
+    }
+
+    queryChangeManager.setLifecycleState({
+      currentQueryId: query.id,
+      hasPartialResults: false,
+      hasLoadedResultSet: false
+    }, { source: 'QueryHistory.loadQueryResults.start', silent: true });
+
+    if (options.restore !== true) {
+      forgetOpenedHistoryResult({ clearUrl: true });
+    }
+
     historyResultProgress.start(query, { render: renderQueries });
     const notificationPermission = options.notify === false ? null : prepareHistoryResultLoadNotification();
 
@@ -38,6 +58,10 @@ export function createQueryHistoryResultsLoader({
 
     try {
       const { response, streamError, jsonPayload } = await historyResultProgress.fetchResults(queryId);
+      if (!isLatestLoad()) {
+        return false;
+      }
+
       const rows = buildHistoryResultRows({
         response,
         jsonPayload,
@@ -112,6 +136,9 @@ export function createQueryHistoryResultsLoader({
       syncHistoryResultWorkspaceLayout({ services, uiActions });
       return true;
     } catch (error) {
+      if (!isLatestLoad()) {
+        return false;
+      }
       if (error?.isRateLimited) {
         return false;
       }
@@ -119,7 +146,9 @@ export function createQueryHistoryResultsLoader({
       showToastMessage(`Failed to load results: ${error.message}`, 'error');
       return false;
     } finally {
-      historyResultProgress.clear({ render: renderQueries });
+      if (isLatestLoad()) {
+        historyResultProgress.clear({ render: renderQueries });
+      }
     }
   };
 }

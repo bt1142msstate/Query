@@ -6,8 +6,8 @@ import {
   mergeUiConfigWithRequest,
   resolveFieldNameFromSpecialPayload
 } from '../../../src/features/history/queryHistoryRequestMapper.js';
-import { buildHistoryActiveFilters } from '../../../src/features/history/queryHistoryConfigLoader.js';
-import { buildHistoryResultRows } from '../../../src/features/history/results/queryHistoryResultsLoader.js';
+import { buildHistoryActiveFilters, createQueryHistoryConfigLoader } from '../../../src/features/history/queryHistoryConfigLoader.js';
+import { buildHistoryResultRows, createQueryHistoryResultsLoader } from '../../../src/features/history/results/queryHistoryResultsLoader.js';
 import { formatColumnsTooltip, formatHistoryFiltersTooltip } from '../../../src/features/history/view/queryHistoryTooltips.js';
 import {
   buildHistorySection,
@@ -272,4 +272,171 @@ test('query history', async () => {
   assert.match(longDetailsHtml, /\.\.\. 2 more/u);
   assert.match(longDetailsHtml, /history-details-list-full/u);
   assert.match(longDetailsHtml, /&lt;Unsafe&gt;/u);
+});
+
+test('query history config clears stale table data before rendering new fields', () => {
+  let clearedTableData = false;
+  let nextQueryState = null;
+  const tableNameInput = {
+    classList: { remove() {} },
+    dispatchEvent() {},
+    value: ''
+  };
+  const loadQueryConfig = createQueryHistoryConfigLoader({
+    appServices: { isFormModeActive: () => false },
+    document: {
+      getElementById: () => tableNameInput,
+      querySelectorAll: () => []
+    },
+    dom: { tableNameInput },
+    historyDependencies: { mapper: () => ({}) },
+    queryChangeManager: {
+      setLifecycleState() {},
+      setQueryState(state) {
+        nextQueryState = state;
+      }
+    },
+    queryStateReaders: {
+      getDisplayedFields: () => nextQueryState?.displayedFields || [],
+      getSerializableState: () => ({})
+    },
+    services: {
+      clearPostFilters() {},
+      clearVirtualTableData() {
+        clearedTableData = true;
+      }
+    },
+    uiActions: {
+      updateButtonStates() {},
+      updateFilterSidePanel() {},
+      updateTableResultsLip() {}
+    },
+    appendUniqueColumn: (columns, field) => {
+      if (!columns.includes(field)) columns.push(field);
+    },
+    mapFieldOperatorToUiCond: () => 'equals',
+    normalizeUiConfigFilters: () => [],
+    registerDynamicField: () => {},
+    resolveFieldName: field => field,
+    resolveSpecialPayloadFieldNames: () => []
+  });
+
+  assert.equal(loadQueryConfig({
+    id: 'next-query',
+    name: 'Next query',
+    jsonConfig: { DesiredColumnOrder: ['Title'] }
+  }), true);
+  assert.equal(clearedTableData, true);
+  assert.deepEqual(nextQueryState.displayedFields, ['Title']);
+});
+
+test('query history result loads ignore stale responses after a newer result is opened', async () => {
+  const deferred = [];
+  const hydratedRows = [];
+  const lifecycleEvents = [];
+  const queries = new Map([
+    ['old-query', {
+      id: 'old-query',
+      name: 'Old query',
+      jsonConfig: { DesiredColumnOrder: ['Title'] }
+    }],
+    ['new-query', {
+      id: 'new-query',
+      name: 'New query',
+      jsonConfig: { DesiredColumnOrder: ['Title'] }
+    }]
+  ]);
+  let activeProgressQueryId = '';
+  let currentTableData = null;
+
+  function createDeferredResult(queryId) {
+    let resolve;
+    const promise = new Promise(resolvePromise => {
+      resolve = resolvePromise;
+    });
+    deferred.push({ queryId, resolve });
+    return promise;
+  }
+
+  const loadQueryResults = createQueryHistoryResultsLoader({
+    appState: {},
+    historyResultProgress: {
+      clear() {
+        activeProgressQueryId = '';
+      },
+      fetchResults: queryId => createDeferredResult(queryId),
+      getActiveQueryId: () => activeProgressQueryId,
+      start(query) {
+        activeProgressQueryId = query.id;
+      }
+    },
+    notifyHistoryResultLoadComplete() {},
+    prepareHistoryResultLoadNotification: () => null,
+    queryChangeManager: {
+      replaceDisplayedFields(fields) {
+        this.displayedFields = fields;
+      },
+      setLifecycleState(state) {
+        lifecycleEvents.push(state);
+      }
+    },
+    queryStateReaders: {
+      getDisplayedFields: () => ['Title'],
+      getLifecycleState: () => ({ currentQueryId: 'new-query', hasLoadedResultSet: true })
+    },
+    services: {
+      table: true,
+      closeAllModals() {},
+      getPostFilterState: () => ({}),
+      getVirtualTableData: () => currentTableData,
+      isDuplicateRowCollapseActive: () => true,
+      isSplitColumnsActive: () => false,
+      renderVirtualTable() {},
+      rerenderBubbles() {},
+      resetBubbleScroll() {},
+      setVirtualTableData(data) {
+        currentTableData = data;
+        hydratedRows.push(data.rows[0][0]);
+      },
+      syncColumnResizeModeUi() {},
+      updateBubbleScrollBar() {}
+    },
+    uiState: { getFieldSearch: () => '' },
+    showToastMessage() {},
+    uiActions: {
+      showExampleTable: () => Promise.resolve(),
+      syncTableViewportHeight() {},
+      updateButtonStates() {},
+      updateSplitColumnsToggleState() {},
+      updateTableResultsLip() {}
+    },
+    getHistoryQueryById: queryId => queries.get(queryId),
+    loadQueryConfig: () => true,
+    renderQueries() {}
+  });
+
+  const oldLoad = loadQueryResults('old-query');
+  await Promise.resolve();
+  assert.deepEqual(deferred.map(entry => entry.queryId), ['old-query']);
+  const newLoad = loadQueryResults('new-query');
+  await Promise.resolve();
+  assert.deepEqual(deferred.map(entry => entry.queryId), ['old-query', 'new-query']);
+
+  deferred[1].resolve({
+    jsonPayload: { columns: ['Title'], rows: [['New row']] },
+    response: null,
+    streamError: false
+  });
+  assert.equal(await newLoad, true);
+  assert.deepEqual(hydratedRows, ['New row']);
+
+  deferred[0].resolve({
+    jsonPayload: { columns: ['Title'], rows: [['Old row']] },
+    response: null,
+    streamError: false
+  });
+  assert.equal(await oldLoad, false);
+  assert.deepEqual(hydratedRows, ['New row']);
+  assert.equal(currentTableData.rows[0][0], 'New row');
+  assert.equal(lifecycleEvents.some(event => event.currentQueryId === 'new-query'), true);
 });
