@@ -90,6 +90,10 @@ function registerAppUiActionDependencies(dependencies = {}) {
     actionDependencies.queryUi?.refreshTableViewport?.();
   }
 
+  function syncTableViewportHeight() {
+    actionDependencies.queryUi?.syncTableViewportHeight?.();
+  }
+
   function updateTableChromeState() {
     actionDependencies.queryUi?.updateTableChromeState?.();
   }
@@ -198,6 +202,7 @@ function registerAppUiActionDependencies(dependencies = {}) {
     endTableQueryAnimation,
     updateFilterSidePanel,
     refreshTableViewport,
+    syncTableViewportHeight,
     updateTableChromeState,
     closeMobileFilterPanel,
     syncPostFilterToolbarButton,

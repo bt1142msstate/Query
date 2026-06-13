@@ -28,6 +28,17 @@ export function buildHistoryActiveFilters(filters, {
   return nextActiveFilters;
 }
 
+function syncFormModeAfterHistoryConfig(appServices) {
+  if (!appServices.isFormModeActive()) {
+    return true;
+  }
+
+  return Promise.resolve(appServices.syncFormModeFromCurrentQuery()).catch(error => {
+    console.error('Failed to sync form URL after loading query config:', error);
+    return false;
+  });
+}
+
 export function createQueryHistoryConfigLoader({
   appServices,
   document,
@@ -45,13 +56,13 @@ export function createQueryHistoryConfigLoader({
   resolveSpecialPayloadFieldNames
 }) {
   return function loadQueryConfig(query) {
-    if (!query || !query.jsonConfig) return;
+    if (!query || !query.jsonConfig) return false;
 
     const getDisplayedFields = () => queryStateReaders?.getDisplayedFields?.() || [];
 
     if (!queryChangeManager) {
       console.error('Query history module requires QueryChangeManager access');
-      return;
+      return false;
     }
 
     const tableNameInput = dom?.tableNameInput || document.getElementById('table-name-input');
@@ -128,10 +139,8 @@ export function createQueryHistoryConfigLoader({
     }
     uiActions.updateButtonStates();
 
-    if (appServices.isFormModeActive()) {
-      Promise.resolve(appServices.syncFormModeFromCurrentQuery()).catch(error => {
-        console.error('Failed to sync form URL after loading query config:', error);
-      });
-    }
+    return syncFormModeAfterHistoryConfig(appServices);
   };
 }
+
+export { syncFormModeAfterHistoryConfig };

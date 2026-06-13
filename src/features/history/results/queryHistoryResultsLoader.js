@@ -27,7 +27,7 @@ export function createQueryHistoryResultsLoader({
     const query = getHistoryQueryById(queryId);
     if (!query) return false;
 
-    loadQueryConfig(query);
+    await loadQueryConfig(query);
     historyResultProgress.start(query, { render: renderQueries });
     const notificationPermission = options.notify === false ? null : prepareHistoryResultLoadNotification();
 
@@ -109,6 +109,7 @@ export function createQueryHistoryResultsLoader({
       }
 
       services.closeAllModals();
+      syncHistoryResultWorkspaceLayout({ services, uiActions });
       return true;
     } catch (error) {
       if (error?.isRateLimited) {
@@ -188,6 +189,35 @@ async function hydrateHistoryResultTable({
     services.updateBubbleScrollBar();
   }
   uiActions.updateButtonStates();
+  syncHistoryResultWorkspaceLayout({ services, uiActions });
 }
 
-export { hydrateHistoryResultTable };
+function syncHistoryResultWorkspaceLayout({
+  services,
+  uiActions,
+  windowRef = globalThis.window
+} = {}) {
+  const sync = () => {
+    uiActions?.syncTableViewportHeight?.();
+    services?.renderVirtualTable?.();
+  };
+
+  sync();
+  const requestFrame = windowRef?.requestAnimationFrame;
+  const setTimer = windowRef?.setTimeout;
+
+  if (typeof requestFrame === 'function') {
+    requestFrame.call(windowRef, () => {
+      sync();
+      requestFrame.call(windowRef, sync);
+    });
+  }
+
+  if (typeof setTimer === 'function') {
+    [50, 150, 300].forEach(delay => {
+      setTimer.call(windowRef, sync, delay);
+    });
+  }
+}
+
+export { hydrateHistoryResultTable, syncHistoryResultWorkspaceLayout };

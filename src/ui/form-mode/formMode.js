@@ -24,7 +24,7 @@ import { openFormModeFieldPicker } from './formModeFieldPicker.js';
 import { QueryTableView } from '../queryTableView.js';
 import { QueryUI } from '../queryUI.js';
 import { fieldDefs, isFieldDisplayable, loadFieldDefinitions } from '../../features/filters/fieldDefs.js';
-import { FORM_MODE_READY_EVENT } from '../../core/appStartupEvents.js';
+import { markFormModeReady } from '../../core/appStartupEvents.js';
 import { DOM } from '../../core/domCache.js';
 
 let QueryFormMode;
@@ -423,10 +423,16 @@ let QueryFormMode;
     syncPresentationMode();
 
     uiActions.updateButtonStates();
+    refreshWorkspaceLayout();
 
     if (refreshUrl) {
       refreshBrowserUrl();
     }
+  }
+
+  function refreshWorkspaceLayout() {
+    uiActions.refreshTableViewport();
+    window.requestAnimationFrame(() => uiActions.refreshTableViewport());
   }
 
   async function activateGeneratedFormFromCurrentQuery() {
@@ -457,6 +463,7 @@ let QueryFormMode;
     syncPresentationMode();
 
     uiActions.updateButtonStates();
+    refreshWorkspaceLayout();
 
     refreshBrowserUrl();
     return true;
@@ -492,6 +499,7 @@ let QueryFormMode;
       syncPresentationMode();
 
       uiActions.updateButtonStates();
+      refreshWorkspaceLayout();
     }
 
     refreshBrowserUrl();
@@ -751,7 +759,7 @@ let QueryFormMode;
   }
 
   function dispatchFormModeReady() {
-    window.dispatchEvent(new CustomEvent(FORM_MODE_READY_EVENT));
+    markFormModeReady(window);
   }
 
   async function initializeRuntime() {
@@ -837,6 +845,7 @@ let QueryFormMode;
     state.searchParams = new URLSearchParams();
     refreshBrowserUrl();
     uiActions.updateButtonStates();
+    refreshWorkspaceLayout();
   }
 
   async function initialize() {

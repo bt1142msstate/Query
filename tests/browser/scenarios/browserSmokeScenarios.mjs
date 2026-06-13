@@ -318,18 +318,23 @@ async function exerciseTableHeaderResponsiveRegions(page) {
       const rect = document.querySelector(selector)?.getBoundingClientRect();
       return rect
         ? {
+            bottom: rect.bottom,
             height: rect.height,
             left: rect.left,
             right: rect.right,
+            top: rect.top,
             width: rect.width
           }
         : null;
     };
     return {
+      filterPanel: readRect('#filter-side-panel'),
       formCard: readRect('#form-mode-card'),
       shell: readRect('#query-app-shell'),
+      tableContainer: readRect('#table-container'),
       tableColumn: readRect('#table-column'),
       tableWithFilter: readRect('#table-with-filter'),
+      viewportHeight: window.innerHeight,
       viewportWidth: window.innerWidth
     };
   });
@@ -338,12 +343,17 @@ async function exerciseTableHeaderResponsiveRegions(page) {
     !desktopWorkAreaMetrics.shell
     || !desktopWorkAreaMetrics.tableWithFilter
     || !desktopWorkAreaMetrics.formCard
+    || !desktopWorkAreaMetrics.filterPanel
+    || !desktopWorkAreaMetrics.tableContainer
     || desktopWorkAreaMetrics.shell.width < desktopWorkAreaMetrics.viewportWidth - 80
     || desktopWorkAreaMetrics.tableWithFilter.width < desktopWorkAreaMetrics.viewportWidth - 80
     || desktopWorkAreaMetrics.tableColumn.width < 860
     || Math.abs(desktopWorkAreaMetrics.tableWithFilter.width - desktopWorkAreaMetrics.formCard.width) > 2
+    || Math.abs(desktopWorkAreaMetrics.tableWithFilter.height - desktopWorkAreaMetrics.filterPanel.height) > 2
+    || desktopWorkAreaMetrics.formCard.bottom > desktopWorkAreaMetrics.viewportHeight - 8
+    || desktopWorkAreaMetrics.viewportHeight - desktopWorkAreaMetrics.formCard.bottom > 42
   ) {
-    throw new Error(`Desktop work area should use the available viewport width: ${JSON.stringify(desktopWorkAreaMetrics)}`);
+    throw new Error(`Desktop work area should use the available viewport width and height: ${JSON.stringify(desktopWorkAreaMetrics)}`);
   }
 
   await page.evaluate(() => {

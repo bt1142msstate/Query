@@ -7,7 +7,7 @@ import {
   isUsableCachedHistoryResultSnapshot,
   readCachedHistoryResultSnapshot
 } from './queryHistoryResultCache.js';
-import { hydrateHistoryResultTable } from './queryHistoryResultsLoader.js';
+import { hydrateHistoryResultTable, syncHistoryResultWorkspaceLayout } from './queryHistoryResultsLoader.js';
 import {
   forgetOpenedHistoryResult,
   readOpenedHistoryResult,
@@ -60,7 +60,7 @@ function createOpenedHistoryResultRestoreController({
     }
 
     restoreAttempted = true;
-    loadQueryConfig(query);
+    await loadQueryConfig(query);
     queryChangeManager.setLifecycleState({
       currentQueryId: query.id,
       hasPartialResults: false,
@@ -87,6 +87,7 @@ function createOpenedHistoryResultRestoreController({
       updateUrl: true
     });
     services.closeAllModals();
+    syncHistoryResultWorkspaceLayout({ services, uiActions });
     showToastMessage(`Restored ${snapshot.rows.length} cached results.`, 'info');
     return true;
   }
