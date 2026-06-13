@@ -1,5 +1,5 @@
 {
-  "version": "fbe998a71c71c754",
+  "version": "b88c82a40c268264",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -99,7 +99,7 @@
     "src/features/table/drag-drop/columnManager.js": "cddcb95526b161d5",
     "src/features/table/drag-drop/columnResizeController.js": "f9623a02aad91c76",
     "src/features/table/drag-drop/dragDropAnchorLayout.js": "ff2a3ccbfdb992b8",
-    "src/features/table/drag-drop/dragDropColumns.js": "eadc26dd69529b10",
+    "src/features/table/drag-drop/dragDropColumns.js": "7ba9ff612cb61109",
     "src/features/table/drag-drop/dragDropHeaderActions.js": "ee13d3c5ecfc41bb",
     "src/features/table/drag-drop/dragDropHeaderInsertAffordance.js": "fda27d41c6e0e9a4",
     "src/features/table/drag-drop/dragDropImmediateReorder.js": "b354c7b5507bdf0f",
