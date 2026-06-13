@@ -2838,18 +2838,42 @@ async function exerciseDesktopResultsWorkflow(page) {
   }
   await page.locator('#post-filter-done-btn').click();
   await page.locator('#post-filter-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
-  await page.evaluate(async () => {
+  const firstSplitMove = await page.evaluate(async () => {
     const { dragDropColumnOps } = await import('./src/features/table/drag-drop/dragDropColumns.js');
+    const startedAt = performance.now();
     dragDropColumnOps.moveColumn(document.querySelector('#example-table'), 2, 3);
+    return {
+      durationMs: performance.now() - startedAt,
+      headers: Array.from(document.querySelectorAll('#example-table thead th[data-col-index]'))
+        .map(header => header.getAttribute('data-sort-field') || header.textContent.trim())
+    };
   });
+  if (
+    firstSplitMove.headers.join('|') !== 'Smoke Title|Smoke Status|Smoke Branch 1|Smoke Branch 2'
+    || firstSplitMove.durationMs > 120
+  ) {
+    throw new Error(`Split column move should reorder the visible table immediately: ${JSON.stringify(firstSplitMove)}`);
+  }
   await page.waitForFunction(async () => {
     const { QueryStateReaders } = await import('./src/core/queryState.js');
     return QueryStateReaders.getDisplayedFields().join('|') === 'Smoke Title|Smoke Status|Smoke Branch 1|Smoke Branch 2';
   }, null, { timeout: 5000 });
-  await page.evaluate(async () => {
+  const secondSplitMove = await page.evaluate(async () => {
     const { dragDropColumnOps } = await import('./src/features/table/drag-drop/dragDropColumns.js');
+    const startedAt = performance.now();
     dragDropColumnOps.moveColumn(document.querySelector('#example-table'), 2, 0);
+    return {
+      durationMs: performance.now() - startedAt,
+      headers: Array.from(document.querySelectorAll('#example-table thead th[data-col-index]'))
+        .map(header => header.getAttribute('data-sort-field') || header.textContent.trim())
+    };
   });
+  if (
+    secondSplitMove.headers.join('|') !== 'Smoke Branch 1|Smoke Branch 2|Smoke Title|Smoke Status'
+    || secondSplitMove.durationMs > 120
+  ) {
+    throw new Error(`Split column group move should reorder the visible table immediately: ${JSON.stringify(secondSplitMove)}`);
+  }
   await page.waitForFunction(async () => {
     const { QueryStateReaders } = await import('./src/core/queryState.js');
     return QueryStateReaders.getDisplayedFields().join('|') === 'Smoke Branch 1|Smoke Branch 2|Smoke Title|Smoke Status';
