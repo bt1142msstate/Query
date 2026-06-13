@@ -382,4 +382,20 @@ if (execDom.runBtn) {
   });
 }
 
+if (execDom.tableRefreshQueryBtn) {
+  execDom.tableRefreshQueryBtn.addEventListener('click', () => {
+    const lifecycleState = QueryStateReaders.getLifecycleState();
+    if (
+      execDom.tableRefreshQueryBtn.disabled
+      || lifecycleState.queryRunning
+      || !execDom.runBtn
+      || execDom.runBtn.disabled
+    ) {
+      return;
+    }
+
+    execDom.runBtn.click();
+  });
+}
+
 export { clearCurrentQuery };

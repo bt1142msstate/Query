@@ -31,6 +31,7 @@ const DOM = {
   get runIcon() { return getCachedElement(this, '_runIcon', 'run-icon'); },
   get refreshIcon() { return getCachedElement(this, '_refreshIcon', 'refresh-icon'); },
   get stopIcon() { return getCachedElement(this, '_stopIcon', 'stop-icon'); },
+  get tableRefreshQueryBtn() { return getCachedElement(this, '_tableRefreshQueryBtn', 'table-refresh-query-btn'); },
   get downloadBtn() { return getCachedElement(this, '_downloadBtn', 'download-btn'); },
   get postFilterBtn() { return getCachedElement(this, '_postFilterBtn', 'post-filter-btn'); },
   get clearQueryBtn() { return getCachedElement(this, '_clearQueryBtn', 'clear-query-btn'); },

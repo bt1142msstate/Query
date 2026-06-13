@@ -11,6 +11,7 @@ import { appUiActions, registerAppUiActionDependencies } from '../core/appUiActi
 import { buildBackendQueryPayload } from '../features/filters/queryPayload.js';
 import { DOM } from '../core/domCache.js';
 import { getNormalTableViewportHeight } from './tableViewportSizing.js';
+import { updateTableRefreshQueryButtonState as updateTableRefreshQueryButtonElement } from './tableRefreshQueryButton.js';
 import { initializeWorkspaceLayoutObservers } from './workspaceLayoutObservers.js';
 
 const getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
@@ -686,6 +687,16 @@ function updateRunButtonIcon(validationError) {
   }
 }
 
+function updateTableRefreshQueryButtonState(validationError = null) {
+  updateTableRefreshQueryButtonElement({
+    button: DOM.tableRefreshQueryBtn,
+    displayedFields: getDisplayedFields(),
+    lifecycleState: getLifecycleState(),
+    queryChanged: QueryStateReaders.hasQueryChanged(),
+    validationError
+  });
+}
+
 function updateButtonStates() {
   return updateButtonStatesImpl();
 }
@@ -731,9 +742,11 @@ function baseUpdateButtonStates() {
       runBtn.disabled = !hasFields || getLifecycleState().queryRunning;
 
       updateRunButtonIcon(validationError);
+      updateTableRefreshQueryButtonState(validationError);
     } catch (_) {
       runBtn.disabled = true;
       updateRunButtonIcon();
+      updateTableRefreshQueryButtonState('Add columns to enable query');
     }
   }
 

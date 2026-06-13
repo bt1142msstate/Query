@@ -2583,6 +2583,35 @@ async function exerciseDesktopResultsWorkflow(page) {
   }, 'Desktop seeded post filter state');
   await expectSplitTogglePreferenceWithoutEligibleResults(page);
 
+  const tableRefreshState = await page.locator('#table-refresh-query-btn').evaluate(button => ({
+    ariaLabel: button.getAttribute('aria-label') || '',
+    disabled: button.disabled,
+    hidden: button.hidden || button.classList.contains('hidden'),
+    tooltip: button.getAttribute('data-tooltip') || ''
+  }));
+  if (
+    tableRefreshState.hidden
+    || tableRefreshState.disabled
+    || !/run updated query|refresh results/iu.test(tableRefreshState.tooltip)
+    || !/run updated query|refresh results/iu.test(tableRefreshState.ariaLabel)
+  ) {
+    throw new Error(`Desktop table refresh shortcut should be enabled for loaded results: ${JSON.stringify(tableRefreshState)}`);
+  }
+
+  await page.evaluate(() => {
+    window.__tableRefreshShortcutDelegatedRun = false;
+    document.querySelector('#run-query-btn')?.addEventListener('click', event => {
+      window.__tableRefreshShortcutDelegatedRun = true;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }, { capture: true, once: true });
+  });
+  await page.locator('#table-refresh-query-btn').click();
+  const tableRefreshDelegatedRun = await page.evaluate(() => window.__tableRefreshShortcutDelegatedRun === true);
+  if (!tableRefreshDelegatedRun) {
+    throw new Error('Desktop table refresh shortcut should delegate to the main run button');
+  }
+
   const titleHeader = page.locator('#example-table th[data-sort-field="Smoke Title"]').first();
   await titleHeader.waitFor({ state: 'visible', timeout: 5000 });
   await titleHeader.click();
