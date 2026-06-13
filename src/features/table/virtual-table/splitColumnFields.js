@@ -89,7 +89,7 @@ function getSplitFieldGroupNames(fieldName, tableData) {
 
   const parentField = getSplitFieldParentName(normalizedField, tableData);
   const group = getSplitColumnGroups(tableData).get(parentField);
-  if (!Array.isArray(group) || !group.includes(normalizedField)) {
+  if (!Array.isArray(group) || (parentField !== normalizedField && !group.includes(normalizedField))) {
     return [];
   }
 
@@ -156,6 +156,43 @@ function buildDisplayedFieldMove(displayedFields, fromIndex, toIndex, tableData)
   });
 }
 
+function buildDisplayedFieldRemoval(displayedFields, fieldName, tableData) {
+  const fields = Array.isArray(displayedFields) ? displayedFields.slice() : [];
+  const normalizedField = String(fieldName || '').trim();
+  if (!normalizedField) {
+    return createRemovalResult(fields);
+  }
+
+  const parentField = getSplitFieldParentName(normalizedField, tableData);
+  const groupNames = getSplitFieldGroupNames(normalizedField, tableData);
+  const targetNames = new Set(groupNames.length ? [parentField, ...groupNames] : [normalizedField]);
+  const removedFields = [];
+  const removedIndices = [];
+  const nextFields = [];
+
+  fields.forEach((field, index) => {
+    if (targetNames.has(field)) {
+      removedFields.push(field);
+      removedIndices.push(index);
+      return;
+    }
+
+    nextFields.push(field);
+  });
+
+  if (!removedFields.length) {
+    return createRemovalResult(fields);
+  }
+
+  return createRemovalResult(nextFields, {
+    changed: true,
+    isGroupRemoval: groupNames.length > 1 && removedFields.length > 1,
+    parentField,
+    removedFields,
+    removedIndices
+  });
+}
+
 function buildSplitModeDisplayedFields(displayedFields, tableData, splitActive) {
   const fields = Array.isArray(displayedFields) ? displayedFields : [];
   const nextFields = [];
@@ -191,6 +228,18 @@ function appendField(fields, seen, field, columnMap) {
   }
   seen.add(normalizedField);
   fields.push(normalizedField);
+}
+
+function createRemovalResult(fields, overrides = {}) {
+  return {
+    changed: false,
+    fields,
+    isGroupRemoval: false,
+    parentField: '',
+    removedFields: [],
+    removedIndices: [],
+    ...overrides
+  };
 }
 
 function buildSingleDisplayedFieldMove(fields, fromIndex, toIndex) {
@@ -237,6 +286,7 @@ function areStringArraysEqual(left, right) {
 
 export {
   buildDisplayedFieldMove,
+  buildDisplayedFieldRemoval,
   buildSplitModeDisplayedFields,
   getPostFilterActionFieldsForTable,
   getSplitFieldColumnIndexes,

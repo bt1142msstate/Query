@@ -1,5 +1,5 @@
 {
-  "version": "236959de4aea334e",
+  "version": "5fe7f26eda272746",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -98,7 +98,7 @@
     "src/features/table/drag-drop/columnManager.js": "cddcb95526b161d5",
     "src/features/table/drag-drop/columnResizeController.js": "f9623a02aad91c76",
     "src/features/table/drag-drop/dragDropAnchorLayout.js": "ff2a3ccbfdb992b8",
-    "src/features/table/drag-drop/dragDropColumns.js": "aad4325cf52f6495",
+    "src/features/table/drag-drop/dragDropColumns.js": "f768076f639d9a8b",
     "src/features/table/drag-drop/dragDropHeaderActions.js": "ee13d3c5ecfc41bb",
     "src/features/table/drag-drop/dragDropHeaderInsertAffordance.js": "fda27d41c6e0e9a4",
     "src/features/table/drag-drop/dragDropInteractionMath.js": "996b2a87de12eeb4",
@@ -124,7 +124,7 @@
     "src/features/table/virtual-table/multiValueCells.js": "761db0d87272f879",
     "src/features/table/virtual-table/simpleTable.js": "aa76e13e1b92ecf4",
     "src/features/table/virtual-table/splitColumnExpansion.js": "c9cc3a9080d90a35",
-    "src/features/table/virtual-table/splitColumnFields.js": "1648d9f98f5306a1",
+    "src/features/table/virtual-table/splitColumnFields.js": "80ec01584a815d05",
     "src/features/table/virtual-table/tableBuilder.js": "38a9895d48fc0bae",
     "src/features/table/virtual-table/tableColumnLayout.js": "21b1f8f3b7ca16ba",
     "src/features/table/virtual-table/tableColumnWidthCalculation.js": "a8b598acf764748b",
