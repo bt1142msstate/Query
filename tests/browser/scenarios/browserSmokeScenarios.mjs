@@ -1442,6 +1442,24 @@ async function exerciseFormModeResetMenuPreservesResults(page, queryApiStub) {
       && document.querySelector('#table-results-count')?.textContent?.trim() === '2'
       && !document.body.classList.contains('is-planning');
   }, resetResultQueryId, { timeout: 10000 });
+
+  const resetUrlState = await page.evaluate(async () => {
+    const {
+      decodeResultViewStateParam,
+      RESULT_VIEW_URL_PARAM
+    } = await import('./src/core/resultViewState.js');
+    const url = new URL(window.location.href);
+    return {
+      result: url.searchParams.get('result'),
+      resultView: decodeResultViewStateParam(url.searchParams.get(RESULT_VIEW_URL_PARAM))
+    };
+  });
+  if (
+    resetUrlState.result !== resetResultQueryId
+    || resetUrlState.resultView?.displayedFields?.join('|') !== 'Smoke Title|Smoke Branch|Smoke Status'
+  ) {
+    throw new Error(`Reset to original should restore the original result view URL, not the edited one: ${JSON.stringify(resetUrlState)}`);
+  }
 }
 
 async function exerciseLegacyFormUrlCanonicalization(page, baseUrl, failures) {
