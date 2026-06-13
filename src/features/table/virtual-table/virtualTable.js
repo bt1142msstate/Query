@@ -108,7 +108,6 @@ const postFilters = createVirtualTablePostFilterController({
   getDisplayedFields: () => getDisplayedFields(),
   getFieldType
 });
-
 function cloneTableData(data) {
   return {
     headers: Array.isArray(data?.headers) ? [...data.headers] : [],
@@ -122,9 +121,7 @@ function cloneTableData(data) {
 }
 
 function cloneSplitColumnGroups(groups) {
-  return groups instanceof Map
-    ? new Map(Array.from(groups.entries()).map(([field, children]) => [field, [...children]]))
-    : new Map();
+  return groups instanceof Map ? new Map(Array.from(groups.entries()).map(([field, children]) => [field, [...children]])) : new Map();
 }
 
 function cloneSplitColumnParent(parentMap) {
@@ -133,6 +130,18 @@ function cloneSplitColumnParent(parentMap) {
 
 function cloneSplitColumnSourceMap(sourceMap) {
   return sourceMap instanceof Map ? new Map(sourceMap) : new Map();
+}
+
+function syncVirtualTableStructureFromBaseViewData() {
+  virtualTableData = {
+    headers: Array.isArray(baseViewData?.headers) ? [...baseViewData.headers] : [],
+    rows: Array.isArray(virtualTableData?.rows) ? virtualTableData.rows : [],
+    columnMap: baseViewData?.columnMap instanceof Map ? new Map(baseViewData.columnMap) : new Map(),
+    duplicateRowGroups: cloneDuplicateRowGroups(virtualTableData?.duplicateRowGroups),
+    splitColumnGroups: cloneSplitColumnGroups(baseViewData?.splitColumnGroups),
+    splitColumnParent: cloneSplitColumnParent(baseViewData?.splitColumnParent),
+    splitColumnSourceMap: cloneSplitColumnSourceMap(baseViewData?.splitColumnSourceMap)
+  };
 }
 
 function applyManualWidthsToMap(widths, fields = null) {
@@ -772,15 +781,9 @@ function setSplitColumnsMode(active) {
     }
   }
 
-  applyPostFilters({
-    refreshView: false,
-    notify: false,
-    resetScroll: false,
-    recalculateWidths: false
-  });
-
   // Keep query-state columns aligned with the active split/stacked header set.
   const nextDisplayedFields = buildSplitModeDisplayedFields(currentDisplayedFields, baseViewData, active);
+  syncVirtualTableStructureFromBaseViewData();
   QueryTableView.queueNextStateRenderOptions({ preserveScroll: true });
   QueryChangeManager.replaceDisplayedFields(nextDisplayedFields, { source: 'VirtualTable.setSplitMode' });
   notifyPostFiltersUpdated();

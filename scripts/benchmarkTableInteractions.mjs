@@ -45,6 +45,7 @@ function shouldAssertBudget() {
 async function seedStressResults(page, { rowCount, collapseDuplicates }) {
   return page.evaluate(async ({ rowCount: requestedRows, collapseDuplicates: collapseRows }) => {
     const { appServices } = await import('./src/core/appServices.js');
+    const { appUiActions } = await import('./src/core/appUiActions.js');
     const { QueryChangeManager } = await import('./src/core/queryState.js');
     const { QueryTableView } = await import('./src/ui/queryTableView.js');
     const { QueryUI } = await import('./src/ui/queryUI.js');
@@ -57,6 +58,9 @@ async function seedStressResults(page, { rowCount, collapseDuplicates }) {
     ]);
     const columnMap = new Map(headers.map((field, index) => [field, index]));
 
+    window.localStorage?.setItem?.('query-project.split-columns-mode', 'stacked');
+    appServices.setSplitColumnsMode(false);
+    appUiActions.resetSplitColumnsToggleUI();
     QueryChangeManager.replaceDisplayedFields(headers, { source: 'TableInteractionBenchmark.seed' });
     QueryChangeManager.setLifecycleState(
       { hasLoadedResultSet: true, queryRunning: false },
@@ -77,32 +81,88 @@ async function seedStressResults(page, { rowCount, collapseDuplicates }) {
     await QueryTableView.showExampleTable(headers, { syncQueryState: false });
     appServices.renderVirtualTable();
     QueryUI.updateButtonStates();
+    appUiActions.updateSplitColumnsToggleState();
     const renderMs = performance.now() - renderStartedAt;
 
-    const splitStartedAt = performance.now();
-    appServices.setSplitColumnsMode(true);
-    await new Promise(resolve => requestAnimationFrame(resolve));
-    await new Promise(resolve => setTimeout(resolve, 0));
-    await new Promise(resolve => requestAnimationFrame(resolve));
-    const splitMs = performance.now() - splitStartedAt;
-
-    return { renderMs, setDataMs, splitMs };
+    return { renderMs, setDataMs };
   }, { collapseDuplicates, rowCount });
+}
+
+async function measureSplitToggleClick(page) {
+  return page.evaluate(async () => {
+    function getHeaders() {
+      return Array.from(document.querySelectorAll('#example-table thead th[data-col-index]'))
+        .map(header => header.getAttribute('data-sort-field') || header.textContent.trim());
+    }
+
+    function getDisplayFields() {
+      return Array.from(document.querySelectorAll('.fp-display-name')).map(name => name.textContent.trim());
+    }
+
+    async function waitForRenderedState(predicate) {
+      const deadline = performance.now() + 3000;
+      while (performance.now() < deadline) {
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await new Promise(resolve => setTimeout(resolve, 0));
+        if (predicate()) {
+          await new Promise(resolve => requestAnimationFrame(resolve));
+          return true;
+        }
+      }
+      return false;
+    }
+
+    const toggleButton = document.getElementById('split-columns-toggle');
+    const startedAt = performance.now();
+    toggleButton?.click();
+    const rendered = await waitForRenderedState(() => getHeaders().includes('Stress Branch 2'));
+    return {
+      displayFields: getDisplayFields(),
+      durationMs: performance.now() - startedAt,
+      headers: getHeaders(),
+      rendered,
+      toggleButtonFound: Boolean(toggleButton)
+    };
+  });
 }
 
 async function measureMove(page) {
   return page.evaluate(async () => {
-    const { dragDropColumnOps } = await import('./src/features/table/drag-drop/dragDropColumns.js');
+    const displayItem = Array.from(document.querySelectorAll('.fp-display-item'))
+      .find(item => (item.textContent || '').includes('Stress Branch 1'));
+    const moveButton = displayItem?.querySelector('.fp-display-btn-down');
+
+    function getHeaders() {
+      return Array.from(document.querySelectorAll('#example-table thead th[data-col-index]'))
+        .map(header => header.getAttribute('data-sort-field') || header.textContent.trim());
+    }
+
+    function getDisplayFields() {
+      return Array.from(document.querySelectorAll('.fp-display-name')).map(name => name.textContent.trim());
+    }
+
+    async function waitForRenderedState(predicate) {
+      const deadline = performance.now() + 3000;
+      while (performance.now() < deadline) {
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await new Promise(resolve => setTimeout(resolve, 0));
+        if (predicate()) {
+          await new Promise(resolve => requestAnimationFrame(resolve));
+          return true;
+        }
+      }
+      return false;
+    }
+
     const startedAt = performance.now();
-    dragDropColumnOps.moveColumn(document.querySelector('#example-table'), 1, 3);
-    await new Promise(resolve => requestAnimationFrame(resolve));
-    await new Promise(resolve => setTimeout(resolve, 0));
-    await new Promise(resolve => requestAnimationFrame(resolve));
+    moveButton?.click();
+    const rendered = await waitForRenderedState(() => getHeaders().join('|') === 'Stress Title|Stress Status|Stress Branch 1|Stress Branch 2');
     return {
+      displayFields: getDisplayFields(),
       durationMs: performance.now() - startedAt,
-      displayFields: Array.from(document.querySelectorAll('.fp-display-name')).map(name => name.textContent.trim()),
-      headers: Array.from(document.querySelectorAll('#example-table thead th[data-col-index]'))
-        .map(header => header.getAttribute('data-sort-field') || header.textContent.trim())
+      headers: getHeaders(),
+      moveButtonFound: Boolean(moveButton),
+      rendered
     };
   });
 }
@@ -112,17 +172,38 @@ async function measureRemoval(page) {
     const displayItem = Array.from(document.querySelectorAll('.fp-display-item'))
       .find(item => (item.textContent || '').includes('Stress Branch 2'));
     const removeButton = displayItem?.querySelector('.fp-display-btn-remove');
+
+    function getHeaders() {
+      return Array.from(document.querySelectorAll('#example-table thead th[data-col-index]'))
+        .map(header => header.getAttribute('data-sort-field') || header.textContent.trim());
+    }
+
+    function getDisplayFields() {
+      return Array.from(document.querySelectorAll('.fp-display-name')).map(name => name.textContent.trim());
+    }
+
+    async function waitForRenderedState(predicate) {
+      const deadline = performance.now() + 3000;
+      while (performance.now() < deadline) {
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await new Promise(resolve => setTimeout(resolve, 0));
+        if (predicate()) {
+          await new Promise(resolve => requestAnimationFrame(resolve));
+          return true;
+        }
+      }
+      return false;
+    }
+
     const startedAt = performance.now();
     removeButton?.click();
-    await new Promise(resolve => requestAnimationFrame(resolve));
-    await new Promise(resolve => setTimeout(resolve, 0));
-    await new Promise(resolve => requestAnimationFrame(resolve));
+    const rendered = await waitForRenderedState(() => getHeaders().join('|') === 'Stress Title|Stress Status');
     return {
-      displayFields: Array.from(document.querySelectorAll('.fp-display-name')).map(name => name.textContent.trim()),
+      displayFields: getDisplayFields(),
       durationMs: performance.now() - startedAt,
-      headers: Array.from(document.querySelectorAll('#example-table thead th[data-col-index]'))
-        .map(header => header.getAttribute('data-sort-field') || header.textContent.trim()),
-      removeButtonFound: Boolean(removeButton)
+      headers: getHeaders(),
+      removeButtonFound: Boolean(removeButton),
+      rendered
     };
   });
 }
@@ -147,14 +228,26 @@ async function resetSplitMode(page) {
 
 function assertCase(result) {
   const failures = [];
+  if (result.splitToggle.durationMs > INTERACTION_BUDGET_MS) {
+    failures.push(`split toggle ${Math.round(result.splitToggle.durationMs)}ms`);
+  }
   if (result.move.durationMs > INTERACTION_BUDGET_MS) {
     failures.push(`move ${Math.round(result.move.durationMs)}ms`);
   }
   if (result.removal.durationMs > INTERACTION_BUDGET_MS) {
     failures.push(`removal ${Math.round(result.removal.durationMs)}ms`);
   }
+  if (!result.splitToggle.toggleButtonFound || !result.splitToggle.rendered) {
+    failures.push('split toggle did not render expected split headers');
+  }
+  if (!result.move.moveButtonFound || !result.move.rendered) {
+    failures.push('move button did not render expected order');
+  }
   if (!result.removal.removeButtonFound) {
     failures.push('remove button missing');
+  }
+  if (!result.removal.rendered) {
+    failures.push('removal did not render expected headers');
   }
   if (!result.afterDeferredSync.usesVirtualBody) {
     failures.push('virtual body inactive after sync');
@@ -199,10 +292,11 @@ async function run() {
       for (const collapseDuplicates of collapseModes) {
         const setup = await seedStressResults(page, { collapseDuplicates, rowCount });
         await page.waitForTimeout(500);
+        const splitToggle = await measureSplitToggleClick(page);
         const move = await measureMove(page);
         const removal = await measureRemoval(page);
         const afterDeferredSync = await readDeferredState(page);
-        const result = { afterDeferredSync, collapseDuplicates, move, removal, rowCount, setup };
+        const result = { afterDeferredSync, collapseDuplicates, move, removal, rowCount, setup, splitToggle };
         if (assertBudget) {
           assertCase(result);
         }
