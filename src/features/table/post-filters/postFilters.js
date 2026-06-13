@@ -758,7 +758,10 @@ let PostFilterSystem;
     });
 
     QueryStateSubscriptions.subscribe(event => {
-      if (event?.meta?.source === 'VirtualTable.setSplitMode') {
+      if (
+        event?.meta?.source === 'VirtualTable.setSplitMode'
+        || event?.meta?.optimisticTableDomAlreadySynced === true
+      ) {
         return;
       }
 

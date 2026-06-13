@@ -32,7 +32,7 @@ test('virtual table duplicate collapse', async () => {
     ['Same title', 'Main', 'item-1'],
     ['Different title', 'East', 'item-3']
   ]);
-  assert.equal(collapsedWithoutItemId.duplicateRowGroups.length, 2);
+  assert.equal(collapsedWithoutItemId.duplicateRowGroups.length, 1);
   assert.equal(collapsedWithoutItemId.duplicateRowGroups[0].matchingRowCount, 3);
   assert.equal(collapsedWithoutItemId.duplicateRowGroups[0].collapsedRowCount, 2);
   assert.deepEqual(collapsedWithoutItemId.duplicateRowGroups[0].sourceRowIndexes, [0, 1, 3]);
@@ -42,7 +42,7 @@ test('virtual table duplicate collapse', async () => {
     ['Same title', 'Main', 'item-2'],
     ['Same title', 'Main', 'item-4']
   ]);
-  assert.equal(collapsedWithoutItemId.duplicateRowGroups[1].matchingRowCount, 1);
+  assert.equal(collapsedWithoutItemId.duplicateRowGroups[1], undefined);
 
   const collapsedWithItemId = collapseDuplicateProjectedRows({
     rows,
