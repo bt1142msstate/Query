@@ -14,6 +14,7 @@ import {
 import { CellDisplayFormatting } from '../../../core/formatting/cellDisplayFormatting.js';
 import { QueryTableView } from '../../../ui/queryTableView.js';
 import { buildDisplayedFieldRemoval } from '../virtual-table/splitColumnFields.js';
+import { applyImmediateColumnOrder } from './dragDropImmediateReorder.js';
 import {
   fieldOrDuplicatesExist,
   findRelatedColumnIndices,
@@ -83,6 +84,60 @@ let dragDropColumnOps;
       preserveScroll: options.preserveScroll !== false,
       scrollAnchorField: options.scrollAnchorField || ''
     });
+  }
+
+  function deferAuthoritativeColumnMove(commit) {
+    if (typeof commit !== 'function') {
+      return;
+    }
+
+    if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
+      commit();
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      window.setTimeout(commit, 0);
+    });
+  }
+
+  function buildSingleColumnOrder(fields, fromIndex, toIndex) {
+    const nextFields = Array.isArray(fields) ? fields.slice() : [];
+    if (
+      !Number.isInteger(fromIndex)
+      || !Number.isInteger(toIndex)
+      || fromIndex < 0
+      || fromIndex >= nextFields.length
+      || fromIndex === toIndex
+    ) {
+      return nextFields;
+    }
+
+    const [movedField] = nextFields.splice(fromIndex, 1);
+    const insertAt = Math.max(0, Math.min(toIndex, nextFields.length));
+    nextFields.splice(insertAt, 0, movedField);
+    return nextFields;
+  }
+
+  function buildColumnGroupOrder(fields, groupIndices, targetIndex) {
+    const nextFields = Array.isArray(fields) ? fields.slice() : [];
+    const startIndex = Array.isArray(groupIndices) && groupIndices.length ? groupIndices[0] : -1;
+    const count = Array.isArray(groupIndices) ? groupIndices.length : 0;
+    if (startIndex < 0 || count <= 0 || startIndex >= nextFields.length) {
+      return nextFields;
+    }
+
+    const safeCount = Math.min(count, nextFields.length - startIndex);
+    const movedFields = nextFields.splice(startIndex, safeCount);
+    let insertAt = targetIndex;
+    for (let offset = 0; offset < safeCount; offset += 1) {
+      if (startIndex + offset < targetIndex) {
+        insertAt -= 1;
+      }
+    }
+    insertAt = Math.max(0, Math.min(insertAt, nextFields.length));
+    nextFields.splice(insertAt, 0, ...movedFields);
+    return nextFields;
   }
 
   function getSplitRemovalTableData() {
@@ -285,42 +340,77 @@ let dragDropColumnOps;
       document.body.classList.remove('dragging-cursor');
     }
 
-    syncTableAfterColumnMutation(getDisplayedFields(), {
+    syncTableAfterColumnMutation({
       preserveScroll: true,
       scrollAnchorField: options.scrollAnchorField || ''
     });
   }
 
+  function applyOptimisticColumnMove(table, nextFields) {
+    return applyImmediateColumnOrder(table, nextFields).changed;
+  }
+
+  function commitColumnMove({ commit, movedFieldName, table, nextFields }) {
+    const appliedOptimistically = applyOptimisticColumnMove(table, nextFields);
+    if (document.body.classList.contains('dragging-cursor')) {
+      document.body.classList.remove('dragging-cursor');
+    }
+
+    const runCommit = () => {
+      queueColumnMutationRender({
+        preserveScroll: true,
+        scrollAnchorField: movedFieldName
+      });
+      commit();
+      syncTableAfterColumnMutation({
+        preserveScroll: true,
+        scrollAnchorField: movedFieldName
+      });
+    };
+
+    if (appliedOptimistically) {
+      deferAuthoritativeColumnMove(runCommit);
+      return;
+    }
+
+    runCommit();
+  }
+
   function moveSingleColumn(table, fromIndex, toIndex) {
     if (fromIndex === toIndex) return;
-    const movedFieldName = getDisplayedFields()[fromIndex];
+    const displayedFields = getDisplayedFields();
+    const movedFieldName = displayedFields[fromIndex];
+    const nextFields = buildSingleColumnOrder(displayedFields, fromIndex, toIndex);
 
-    queueColumnMutationRender({
-      preserveScroll: true,
-      scrollAnchorField: movedFieldName
+    commitColumnMove({
+      movedFieldName,
+      nextFields,
+      table,
+      commit() {
+        QueryChangeManager.moveDisplayedField(fromIndex, toIndex, {
+          source: 'DragDrop.moveSingleColumn'
+        });
+      }
     });
-
-    QueryChangeManager.moveDisplayedField(fromIndex, toIndex, {
-      source: 'DragDrop.moveSingleColumn'
-    });
-
-    finalizeMoveOperation({ scrollAnchorField: movedFieldName });
   }
 
   function moveColumnGroup(table, groupIndices, targetIndex) {
-    const movedFieldName = getDisplayedFields()[groupIndices[0]];
-    queueColumnMutationRender({
-      preserveScroll: true,
-      scrollAnchorField: movedFieldName
-    });
+    const displayedFields = getDisplayedFields();
+    const movedFieldName = displayedFields[groupIndices[0]];
+    const nextFields = buildColumnGroupOrder(displayedFields, groupIndices, targetIndex);
 
-    QueryChangeManager.moveDisplayedField(groupIndices[0], targetIndex, {
-      count: groupIndices.length,
-      behavior: 'group',
-      source: 'DragDrop.moveColumnGroup'
+    commitColumnMove({
+      movedFieldName,
+      nextFields,
+      table,
+      commit() {
+        QueryChangeManager.moveDisplayedField(groupIndices[0], targetIndex, {
+          count: groupIndices.length,
+          behavior: 'group',
+          source: 'DragDrop.moveColumnGroup'
+        });
+      }
     });
-
-    finalizeMoveOperation({ scrollAnchorField: movedFieldName });
   }
 
   function moveColumn(table, fromIndex, toIndex) {
@@ -337,16 +427,16 @@ let dragDropColumnOps;
       }
 
       const movedFieldName = splitMove.movedFields[0] || fromFieldName;
-      queueColumnMutationRender({
-        preserveScroll: true,
-        scrollAnchorField: movedFieldName
+      commitColumnMove({
+        movedFieldName,
+        nextFields: splitMove.fields,
+        table,
+        commit() {
+          QueryChangeManager.replaceDisplayedFields(splitMove.fields, {
+            source: 'DragDrop.moveSplitColumnGroup'
+          });
+        }
       });
-
-      QueryChangeManager.replaceDisplayedFields(splitMove.fields, {
-        source: 'DragDrop.moveSplitColumnGroup'
-      });
-
-      finalizeMoveOperation({ scrollAnchorField: movedFieldName });
       return;
     }
 
