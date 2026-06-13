@@ -2792,6 +2792,14 @@ async function exerciseDesktopResultsWorkflow(page) {
     const { QueryStateReaders } = await import('./src/core/queryState.js');
     return QueryStateReaders.getDisplayedFields().join('|') === 'Smoke Branch 1|Smoke Branch 2|Smoke Title|Smoke Status';
   }, null, { timeout: 5000 });
+  await page.locator('.fp-display-item', { hasText: 'Smoke Branch 2' }).locator('.fp-display-btn-remove').click();
+  await page.waitForFunction(async () => {
+    const { QueryStateReaders } = await import('./src/core/queryState.js');
+    const fields = QueryStateReaders.getDisplayedFields();
+    return fields.join('|') === 'Smoke Title|Smoke Status'
+      && !document.querySelector('#example-table th[data-sort-field="Smoke Branch 1"]')
+      && !document.querySelector('#example-table th[data-sort-field="Smoke Branch 2"]');
+  }, null, { timeout: 5000 });
   await page.evaluate(async () => {
     const { appServices } = await import('./src/core/appServices.js');
     appServices.setSplitColumnsMode(false);

@@ -13,6 +13,7 @@ import {
 } from '../../../core/queryState.js';
 import { CellDisplayFormatting } from '../../../core/formatting/cellDisplayFormatting.js';
 import { QueryTableView } from '../../../ui/queryTableView.js';
+import { buildDisplayedFieldRemoval } from '../virtual-table/splitColumnFields.js';
 import {
   fieldOrDuplicatesExist,
   findRelatedColumnIndices,
@@ -84,6 +85,10 @@ let dragDropColumnOps;
     });
   }
 
+  function getSplitRemovalTableData() {
+    return services.getVirtualTableState?.()?.baseViewData || services.getVirtualTableData?.() || null;
+  }
+
   function removeColumnsByFieldName(fieldName, options = {}) {
     const normalizedField = String(fieldName || '').trim();
     if (!normalizedField) {
@@ -91,20 +96,30 @@ let dragDropColumnOps;
     }
 
     const displayedFieldsBeforeRemoval = getDisplayedFields();
-    const removeRelated = options.allRelated === true;
-    const relatedFieldNames = removeRelated
-      ? getRelatedDisplayedFieldNames(normalizedField, displayedFieldsBeforeRemoval)
-      : displayedFieldsBeforeRemoval.filter(field => field === normalizedField);
+    let removal = buildDisplayedFieldRemoval(displayedFieldsBeforeRemoval, normalizedField, getSplitRemovalTableData());
+    if (!removal.changed && options.allRelated === true) {
+      const relatedFieldNames = getRelatedDisplayedFieldNames(normalizedField, displayedFieldsBeforeRemoval);
+      removal = {
+        changed: relatedFieldNames.length > 0,
+        fields: displayedFieldsBeforeRemoval.filter(field => !relatedFieldNames.includes(field)),
+        isGroupRemoval: relatedFieldNames.length > 1,
+        parentField: getBaseFieldName(normalizedField),
+        removedFields: relatedFieldNames,
+        removedIndices: relatedFieldNames
+          .map(field => displayedFieldsBeforeRemoval.indexOf(field))
+          .filter(index => index >= 0)
+          .sort((left, right) => left - right)
+      };
+    }
+
+    const relatedFieldNames = removal.removedFields || [];
     if (!relatedFieldNames.length) {
       return false;
     }
 
-    const baseFieldName = getBaseFieldName(normalizedField);
-    const remainingFields = displayedFieldsBeforeRemoval.filter(field => !relatedFieldNames.includes(field));
-    const removedColumnIndices = relatedFieldNames
-      .map(field => displayedFieldsBeforeRemoval.indexOf(field))
-      .filter(index => index >= 0)
-      .sort((left, right) => left - right);
+    const baseFieldName = removal.parentField || getBaseFieldName(normalizedField);
+    const remainingFields = removal.fields;
+    const removedColumnIndices = removal.removedIndices || [];
     const anchorIndex = removedColumnIndices.length ? removedColumnIndices[0] : 0;
     const scrollAnchorField = remainingFields.length
       ? (remainingFields[Math.min(anchorIndex, remainingFields.length - 1)] || remainingFields[Math.max(0, anchorIndex - 1)] || '')
@@ -121,8 +136,8 @@ let dragDropColumnOps;
       scrollAnchorField
     });
 
-    QueryChangeManager.removeDisplayedField(relatedFieldNames, {
-      source: 'DragDrop.removeColumn'
+    QueryChangeManager.replaceDisplayedFields(remainingFields, {
+      source: removal.isGroupRemoval ? 'DragDrop.removeSplitColumnGroup' : 'DragDrop.removeColumn'
     });
 
     if (baseFieldName) {

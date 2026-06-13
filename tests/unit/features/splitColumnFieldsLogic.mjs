@@ -4,6 +4,7 @@ import test from 'node:test';
 import { buildExpandedMultiValueTable } from '../../../src/features/table/virtual-table/splitColumnExpansion.js';
 import {
   buildDisplayedFieldMove,
+  buildDisplayedFieldRemoval,
   buildSplitModeDisplayedFields,
   getPostFilterActionFieldsForTable,
   getSplitFieldColumnIndexes,
@@ -33,11 +34,70 @@ test('split column fields resolve only through explicit metadata', () => {
   assert.deepEqual(getSplitFieldColumnIndexes('Public Note', split), [1, 2]);
   assert.deepEqual(getSplitFieldColumnIndexes('Public Note 2', split), [2]);
   assert.deepEqual(getSplitFieldColumnIndexes('Public Note 2', compact), []);
+  assert.deepEqual(getSplitFieldGroupIndices('Public Note', split.headers, split), [1, 2]);
   assert.deepEqual(getSplitFieldGroupIndices('Public Note 2', split.headers, split), [1, 2]);
   assert.deepEqual(getSplitFieldGroupIndices('Public Note 2', compact.headers, compact), []);
   assert.equal(getSplitFieldValue(split.rows[0], [1, 2]), 'First note\x1FSecond note');
   assert.equal(isSplitFieldAvailable('Public Note', split), true);
   assert.equal(isSplitFieldAvailable('Public Note 2', compact), false);
+});
+
+test('displayed field removal removes explicit split column groups together', () => {
+  const compact = {
+    headers: ['Title', 'Public Note', 'Branch', 'Status'],
+    rows: [
+      ['Alpha', 'First note\x1FSecond note', 'Main', 'Open'],
+      ['Beta', 'Only note', 'East', 'Closed']
+    ],
+    columnMap: new Map([
+      ['Title', 0],
+      ['Public Note', 1],
+      ['Branch', 2],
+      ['Status', 3]
+    ])
+  };
+  const split = buildExpandedMultiValueTable(compact);
+
+  assert.deepEqual(
+    buildDisplayedFieldRemoval(
+      ['Title', 'Public Note 1', 'Public Note 2', 'Branch', 'Status'],
+      'Public Note 2',
+      split
+    ),
+    {
+      changed: true,
+      fields: ['Title', 'Branch', 'Status'],
+      isGroupRemoval: true,
+      parentField: 'Public Note',
+      removedFields: ['Public Note 1', 'Public Note 2'],
+      removedIndices: [1, 2]
+    }
+  );
+
+  assert.deepEqual(
+    buildDisplayedFieldRemoval(
+      ['Title', 'Public Note 1', 'Public Note 2', 'Branch', 'Status'],
+      'Public Note',
+      split
+    ).fields,
+    ['Title', 'Branch', 'Status']
+  );
+
+  assert.deepEqual(
+    buildDisplayedFieldRemoval(
+      ['Title', 'Branch', 'Status'],
+      'Public Note 2',
+      split
+    ),
+    {
+      changed: false,
+      fields: ['Title', 'Branch', 'Status'],
+      isGroupRemoval: false,
+      parentField: '',
+      removedFields: [],
+      removedIndices: []
+    }
+  );
 });
 
 test('post filter action fields collapse split children to parent fields', () => {
