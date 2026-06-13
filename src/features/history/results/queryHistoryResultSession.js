@@ -9,12 +9,20 @@ const OPENED_HISTORY_RESULT_URL_PARAM = RESULT_QUERY_URL_PARAM;
 const OPENED_HISTORY_RESULT_STORAGE_VERSION = 1;
 
 function getStorage(storage) {
-  if (storage) {
+  const isUsableStorage = candidate => Boolean(
+    candidate
+    && typeof candidate.getItem === 'function'
+    && typeof candidate.setItem === 'function'
+    && typeof candidate.removeItem === 'function'
+  );
+
+  if (isUsableStorage(storage)) {
     return storage;
   }
 
   try {
-    return globalThis.window?.localStorage || globalThis.localStorage || null;
+    const candidate = globalThis.window?.localStorage || globalThis.localStorage || null;
+    return isUsableStorage(candidate) ? candidate : null;
   } catch {
     return null;
   }

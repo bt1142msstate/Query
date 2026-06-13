@@ -72,6 +72,7 @@ export function createQueryHistoryConfigLoader({
       hasLoadedResultSet: false
     }, { source: 'QueryHistory.loadQueryConfig', silent: true });
     services.clearPostFilters?.({ refreshView: false, notify: true, resetScroll: false });
+    services.clearVirtualTableData?.();
     uiActions.updateTableResultsLip();
 
     if (tableNameInput) {
