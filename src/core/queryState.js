@@ -632,7 +632,7 @@ function hideManagedField(fieldName, options = {}) {
   }
 
   const columnOps = getColumnOps();
-  if (typeof columnOps?.removeColumnByName === 'function') return columnOps.removeColumnByName(normalizedField);
+  if (typeof columnOps?.removeColumnByName === 'function') return columnOps.removeColumnByName(normalizedField, options);
 
   return queryStateStore.removeDisplayedField(normalizedField, normalizeManagerMeta(options, 'QueryChangeManager.hideField'));
 }

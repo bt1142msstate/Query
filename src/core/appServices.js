@@ -317,6 +317,10 @@ function registerTableService(service) {
     getTableService()?.renderVirtualTable?.();
   }
 
+  function syncVirtualTableProjectionFromQueryState(options = {}) {
+    getTableService()?.syncProjectionFromQueryState?.(options);
+  }
+
   function calculateOptimalColumnWidths(fields, data) {
     return getTableService()?.calculateOptimalColumnWidths?.(fields, data);
   }
@@ -395,6 +399,20 @@ function registerTableService(service) {
   function buildDisplayedFieldMove(displayedFields, fromIndex, toIndex) {
     const fields = Array.isArray(displayedFields) ? displayedFields : [];
     return getTableService()?.buildDisplayedFieldMove?.(fields, fromIndex, toIndex) || null;
+  }
+
+  function buildDisplayedFieldRemoval(displayedFields, fieldName) {
+    const fields = Array.isArray(displayedFields) ? displayedFields : [];
+    return getTableService()?.buildDisplayedFieldRemoval?.(fields, fieldName) || null;
+  }
+
+  function applyImmediateColumnOrder(nextFields, options = {}) {
+    return getTableService()?.applyImmediateColumnOrder?.(nextFields, options) || {
+      bodyRowsReordered: 0,
+      changed: false,
+      headerReordered: false,
+      skippedBodyRows: 0
+    };
   }
 
   function replacePostFilters(snapshot, options = {}) {
@@ -529,6 +547,7 @@ function registerTableService(service) {
     setupVirtualTable,
     measureTableRowHeight,
     renderVirtualTable,
+    syncVirtualTableProjectionFromQueryState,
     calculateOptimalColumnWidths,
     getCalculatedColumnWidth,
     sortTableBy,
@@ -548,6 +567,8 @@ function registerTableService(service) {
     getPostFilterActionFields,
     getDisplayedFieldMoveGroupIndices,
     buildDisplayedFieldMove,
+    buildDisplayedFieldRemoval,
+    applyImmediateColumnOrder,
     replacePostFilters,
     hasPostFilters,
     isSplitColumnsActive,

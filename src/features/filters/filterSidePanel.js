@@ -19,6 +19,7 @@ import { Icons } from '../../core/icons.js';
 import { SharedFieldPicker } from '../../ui/field-picker/fieldPicker.js';
 import { fieldDefs } from './fieldDefs.js';
 import { attachPointerReorder } from './panelReorder.js';
+import { QueryTableView } from '../../ui/queryTableView.js';
 import { DOM } from '../../core/domCache.js';
 
 const FilterSidePanel = (function () {
@@ -267,6 +268,97 @@ const FilterSidePanel = (function () {
         return normalizedOffset < 0 ? groupStart - 1 : groupEnd + 1;
     }
 
+    function areStringArraysEqual(left, right) {
+        if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) {
+            return false;
+        }
+
+        return left.every((value, index) => value === right[index]);
+    }
+
+    function getDisplayItemFieldName(item) {
+        return String(item?.querySelector?.('.fp-display-name')?.textContent || '').trim();
+    }
+
+    function updateDisplayListItemIndexes(list) {
+        Array.from(list?.querySelectorAll?.('.fp-display-item') || []).forEach((item, index) => {
+            item.dataset.index = String(index);
+            const rank = item.querySelector('.fp-display-rank');
+            if (rank) {
+                rank.textContent = String(index + 1);
+            }
+        });
+    }
+
+    function applyOptimisticDisplayListOrder(nextFields) {
+        const list = DOM.filterPanelBody?.querySelector?.('.fp-display-list');
+        const fields = Array.isArray(nextFields) ? nextFields.filter(Boolean) : [];
+        if (!list) {
+            return false;
+        }
+
+        const slots = Array.from(list.querySelectorAll('.fp-display-slot'));
+        if (fields.length === 0) {
+            if (!slots.length) {
+                return false;
+            }
+            list.replaceChildren();
+            const displaySection = list.closest('.fp-display-section');
+            const count = displaySection?.querySelector('.fp-section-count');
+            if (count) {
+                count.textContent = '0 fields';
+            }
+            return true;
+        }
+
+        const remainingSlotsByField = new Map();
+        slots.forEach(slot => {
+            const field = getDisplayItemFieldName(slot.querySelector('.fp-display-item'));
+            if (!field) {
+                return;
+            }
+            if (!remainingSlotsByField.has(field)) {
+                remainingSlotsByField.set(field, []);
+            }
+            remainingSlotsByField.get(field).push(slot);
+        });
+
+        const nextSlots = [];
+        for (const field of fields) {
+            const fieldSlots = remainingSlotsByField.get(field);
+            if (!fieldSlots?.length) {
+                return false;
+            }
+            nextSlots.push(fieldSlots.shift());
+        }
+
+        const changed = nextSlots.length !== slots.length
+            || nextSlots.some((slot, index) => slot !== slots[index]);
+
+        if (!changed) {
+            return false;
+        }
+
+        list.replaceChildren(...nextSlots);
+        updateDisplayListItemIndexes(list);
+
+        const displaySection = list.closest('.fp-display-section');
+        const count = displaySection?.querySelector('.fp-section-count');
+        if (count) {
+            count.textContent = `${fields.length} ${fields.length === 1 ? 'field' : 'fields'}`;
+        }
+
+        return true;
+    }
+
+    function queueOptimisticTableStateSync(metrics, scrollAnchorField) {
+        QueryTableView.queueNextStateRenderOptions({
+            preserveScroll: true,
+            scrollAnchorField: scrollAnchorField || '',
+            tableDomAlreadySynced: metrics?.changed === true && Number(metrics?.skippedBodyRows || 0) === 0
+        });
+    }
+
     function moveDisplayedField(fromIndex, toIndex, source) {
         const fields = getDisplayedFields();
         if (!Number.isInteger(fromIndex) || !Number.isInteger(toIndex) || fromIndex === toIndex) {
@@ -283,6 +375,9 @@ const FilterSidePanel = (function () {
                 return false;
             }
 
+            applyOptimisticDisplayListOrder(splitMove.fields);
+            const moveMetrics = services.applyImmediateColumnOrder(splitMove.fields);
+            queueOptimisticTableStateSync(moveMetrics, splitMove.movedFields?.[0] || fields[fromIndex] || '');
             QueryChangeManager.replaceDisplayedFields(splitMove.fields, {
                 source
             });
@@ -290,6 +385,13 @@ const FilterSidePanel = (function () {
             return true;
         }
 
+        const nextFields = fields.slice();
+        const [movedField] = nextFields.splice(fromIndex, 1);
+        const insertAt = Math.max(0, Math.min(toIndex, nextFields.length));
+        nextFields.splice(insertAt, 0, movedField);
+        applyOptimisticDisplayListOrder(nextFields);
+        const moveMetrics = services.applyImmediateColumnOrder(nextFields);
+        queueOptimisticTableStateSync(moveMetrics, movedField);
         QueryChangeManager.moveDisplayedField(fromIndex, toIndex, {
             source
         });
@@ -338,6 +440,11 @@ const FilterSidePanel = (function () {
         const fieldName = fields[index];
         if (!fieldName) {
             return;
+        }
+
+        const removal = services.buildDisplayedFieldRemoval(fields, fieldName);
+        if (removal?.changed && !areStringArraysEqual(removal.fields, fields)) {
+            applyOptimisticDisplayListOrder(removal.fields);
         }
 
         QueryChangeManager.hideField(fieldName, {

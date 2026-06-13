@@ -82,7 +82,8 @@ let dragDropColumnOps;
   function queueColumnMutationRender(options = {}) {
     QueryTableView.queueNextStateRenderOptions({
       preserveScroll: options.preserveScroll !== false,
-      scrollAnchorField: options.scrollAnchorField || ''
+      scrollAnchorField: options.scrollAnchorField || '',
+      tableDomAlreadySynced: options.tableDomAlreadySynced === true
     });
   }
 
@@ -195,7 +196,11 @@ let dragDropColumnOps;
     });
 
     const table = options.table || document.querySelector('#example-table');
-    const appliedOptimistically = applyImmediateColumnRemoval(table, remainingFields).changed;
+    const removalMetrics = options.tableDomAlreadySynced === true
+      ? { changed: true, skippedBodyRows: 0 }
+      : applyImmediateColumnRemoval(table, remainingFields);
+    const appliedOptimistically = removalMetrics.changed === true;
+    const tableDomAlreadySynced = appliedOptimistically && Number(removalMetrics.skippedBodyRows || 0) === 0;
     const runCommit = () => {
       const currentFields = getDisplayedFields();
       const stateAlreadyUpdated = areDisplayedFieldsEqual(currentFields, remainingFields);
@@ -209,7 +214,8 @@ let dragDropColumnOps;
 
       queueColumnMutationRender({
         preserveScroll: true,
-        scrollAnchorField
+        scrollAnchorField,
+        tableDomAlreadySynced
       });
 
       if (!stateAlreadyUpdated) {
@@ -378,12 +384,14 @@ let dragDropColumnOps;
   }
 
   function applyOptimisticColumnMove(table, nextFields) {
-    return applyImmediateColumnOrder(table, nextFields).changed;
+    return applyImmediateColumnOrder(table, nextFields);
   }
 
   function commitColumnMove({ commit, movedFieldName, table, nextFields }) {
     const displayedFieldsBeforeMove = getDisplayedFields();
-    const appliedOptimistically = applyOptimisticColumnMove(table, nextFields);
+    const moveMetrics = applyOptimisticColumnMove(table, nextFields);
+    const appliedOptimistically = moveMetrics.changed === true;
+    const tableDomAlreadySynced = appliedOptimistically && Number(moveMetrics.skippedBodyRows || 0) === 0;
     if (document.body.classList.contains('dragging-cursor')) {
       document.body.classList.remove('dragging-cursor');
     }
@@ -401,7 +409,8 @@ let dragDropColumnOps;
 
       queueColumnMutationRender({
         preserveScroll: true,
-        scrollAnchorField: movedFieldName
+        scrollAnchorField: movedFieldName,
+        tableDomAlreadySynced
       });
 
       if (!stateAlreadyUpdated) {
@@ -525,8 +534,8 @@ let dragDropColumnOps;
     return success;
   }
 
-  function removeColumnByName(fieldName) {
-    return removeColumnsByFieldName(fieldName, { allRelated: false });
+  function removeColumnByName(fieldName, options = {}) {
+    return removeColumnsByFieldName(fieldName, { allRelated: false, ...options });
   }
 
   dragDropColumnOps = Object.freeze({

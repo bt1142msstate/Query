@@ -1640,7 +1640,7 @@ async function seedLoadedResults(page, options = {}) {
       ? baseRows.slice(0, requestedRowCount)
       : Array.from({ length: requestedRowCount }, (_, index) => withDate([
           makeTitle(`Smoke record ${String(index + 1).padStart(3, '0')}`),
-          index % 2 === 0 ? 'Main' : 'East',
+          useMultiValueBranch && index % 4 === 0 ? 'Main\x1FEast' : (index % 2 === 0 ? 'Main' : 'East'),
           index % 3 === 0 ? 'Closed' : 'Open'
         ], index % 5 === 0 ? 'NEVER' : '20240131'));
     const columnMap = new Map(headers.map((field, index) => [field, index]));

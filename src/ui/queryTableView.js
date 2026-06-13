@@ -185,6 +185,42 @@ let QueryTableView;
     services.syncHeaderSortActionState();
   }
 
+  function preserveScrollAnchor(container, scrollAnchorField) {
+    if (!scrollAnchorField || !container) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      const table = container.querySelector('#example-table');
+      const anchorHeader = Array.from(table?.querySelectorAll('thead th[data-sort-field]') || []).find(th =>
+        th.getAttribute('data-sort-field') === scrollAnchorField
+      );
+      if (anchorHeader) {
+        container.scrollLeft = Math.max(0, anchorHeader.offsetLeft - 12);
+      }
+    });
+  }
+
+  function syncOptimisticallyRenderedTable(options = {}) {
+    services.syncVirtualTableProjectionFromQueryState?.({
+      notify: true,
+      recalculateWidths: false
+    });
+    services.syncColumnResizeModeUi?.();
+    uiActions.syncTableViewportHeight();
+    uiActions.updateCategoryCounts();
+
+    const state = services.getVirtualTableState();
+    if (state && state.currentSortColumn) {
+      updateSortHeadersUI(state.currentSortColumn, state.currentSortDirection);
+    } else {
+      services.syncHeaderSortActionState();
+    }
+
+    preserveScrollAnchor(dom.tableContainer, options.scrollAnchorField || '');
+  }
+
+
   async function showExampleTable(fields, options = {}) {
     const syncQueryState = options.syncQueryState !== false;
 
@@ -286,16 +322,7 @@ let QueryTableView;
     uiActions.syncTableViewportHeight();
     services.renderVirtualTable();
 
-    if (options.scrollAnchorField) {
-      window.requestAnimationFrame(() => {
-        const anchorHeader = Array.from(table.querySelectorAll('thead th[data-sort-field]')).find(th =>
-          th.getAttribute('data-sort-field') === options.scrollAnchorField
-        );
-        if (anchorHeader) {
-          container.scrollLeft = Math.max(0, anchorHeader.offsetLeft - 12);
-        }
-      });
-    }
+    preserveScrollAnchor(container, options.scrollAnchorField || '');
 
     table.querySelectorAll('th.sortable-header').forEach(th => {
       th.addEventListener('click', event => {
@@ -337,6 +364,11 @@ let QueryTableView;
     if (event?.changes?.displayedFields) {
       const queuedOptions = nextStateRenderOptions ? { ...nextStateRenderOptions } : {};
       nextStateRenderOptions = null;
+      if (queuedOptions.tableDomAlreadySynced === true) {
+        syncOptimisticallyRenderedTable(queuedOptions);
+        return;
+      }
+
       showExampleTable(event.snapshot?.displayedFields || [], {
         syncQueryState: false,
         ...queuedOptions
