@@ -2878,6 +2878,18 @@ async function exerciseDesktopResultsWorkflow(page) {
     const { QueryStateReaders } = await import('./src/core/queryState.js');
     return QueryStateReaders.getDisplayedFields().join('|') === 'Smoke Branch 1|Smoke Branch 2|Smoke Title|Smoke Status';
   }, null, { timeout: 5000 });
+  const syncedSplitPanelAfterDrag = await page.evaluate(() => ({
+    displayFields: Array.from(document.querySelectorAll('.fp-display-name'))
+      .map(name => name.textContent.trim()),
+    headers: Array.from(document.querySelectorAll('#example-table thead th[data-col-index]'))
+      .map(header => header.getAttribute('data-sort-field') || header.textContent.trim())
+  }));
+  if (
+    syncedSplitPanelAfterDrag.displayFields.join('|') !== 'Smoke Branch 1|Smoke Branch 2|Smoke Title|Smoke Status'
+    || syncedSplitPanelAfterDrag.headers.join('|') !== 'Smoke Branch 1|Smoke Branch 2|Smoke Title|Smoke Status'
+  ) {
+    throw new Error(`Split column table drag should immediately sync the display panel: ${JSON.stringify(syncedSplitPanelAfterDrag)}`);
+  }
   const panelSplitMove = await page.evaluate(async () => {
     const displayItem = Array.from(document.querySelectorAll('.fp-display-item'))
       .find(item => (item.textContent || '').includes('Smoke Branch 1'));

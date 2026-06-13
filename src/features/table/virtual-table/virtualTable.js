@@ -23,7 +23,7 @@ import {
   getSplitFieldGroupIndices,
   getSplitFieldParentName
 } from './splitColumnFields.js';
-import { applyImmediateColumnOrder } from '../drag-drop/dragDropImmediateReorder.js';
+import { applyImmediateColumnOrder, applyImmediateColumnRemoval } from '../drag-drop/dragDropImmediateReorder.js';
 import { escapeHtml } from '../../../core/formatting/html.js';
 import { QueryTableView } from '../../../ui/queryTableView.js';
 import { createVirtualTableEmptyRow, createVirtualTableRow } from './virtualTableRows.js';
@@ -849,6 +849,7 @@ VirtualTable = {
   buildDisplayedFieldMove: (fields, fromIndex, toIndex) => buildDisplayedFieldMove(fields, fromIndex, toIndex, baseViewData),
   buildDisplayedFieldRemoval: (fields, fieldName) => buildDisplayedFieldRemoval(fields, fieldName, baseViewData),
   applyImmediateColumnOrder: (nextFields, options = {}) => applyImmediateColumnOrder(document.getElementById('example-table'), nextFields, options),
+  applyImmediateColumnRemoval: (nextFields, options = {}) => applyImmediateColumnRemoval(document.getElementById('example-table'), nextFields, options),
   getPostFilterState: () => postFilters.cloneSnapshot(),
   getCollapsedRowGroup,
   getPostFilterFieldOptions: fieldName => postFilters.getFieldOptions(fieldName),

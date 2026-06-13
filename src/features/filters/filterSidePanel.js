@@ -255,6 +255,26 @@ const FilterSidePanel = (function () {
         moveDisplayedField(index, targetIndex, 'FilterSidePanel.moveDisplayedField');
     }
 
+    function getDisplayItemCurrentIndex(item) {
+        const fieldName = getDisplayItemFieldName(item);
+        if (!fieldName) {
+            return -1;
+        }
+
+        const fields = getDisplayedFields();
+        const displayItems = Array.from(DOM.filterPanelBody?.querySelectorAll?.('.fp-display-item') || []);
+        const domIndex = displayItems.indexOf(item);
+        if (domIndex >= 0 && fields[domIndex] === fieldName) {
+            return domIndex;
+        }
+
+        return fields.findIndex(field => field === fieldName);
+    }
+
+    function moveDisplayedFieldItemByOffset(item, offset) {
+        moveDisplayedFieldByOffset(getDisplayItemCurrentIndex(item), offset);
+    }
+
     function getDisplayedFieldOffsetTargetIndex(fields, index, offset) {
         const normalizedOffset = Number(offset) < 0 ? -1 : 1;
         const fieldName = fields[index];
@@ -280,74 +300,22 @@ const FilterSidePanel = (function () {
         return String(item?.querySelector?.('.fp-display-name')?.textContent || '').trim();
     }
 
-    function updateDisplayListItemIndexes(list) {
-        Array.from(list?.querySelectorAll?.('.fp-display-item') || []).forEach((item, index) => {
-            item.dataset.index = String(index);
-            const rank = item.querySelector('.fp-display-rank');
-            if (rank) {
-                rank.textContent = String(index + 1);
-            }
-        });
-    }
-
     function applyOptimisticDisplayListOrder(nextFields) {
-        const list = DOM.filterPanelBody?.querySelector?.('.fp-display-list');
         const fields = Array.isArray(nextFields) ? nextFields.filter(Boolean) : [];
-        if (!list) {
+        const displaySection = DOM.filterPanelBody?.querySelector?.('.fp-display-section');
+        if (!displaySection) {
             return false;
         }
 
-        const slots = Array.from(list.querySelectorAll('.fp-display-slot'));
-        if (fields.length === 0) {
-            if (!slots.length) {
-                return false;
-            }
-            list.replaceChildren();
-            const displaySection = list.closest('.fp-display-section');
-            const count = displaySection?.querySelector('.fp-section-count');
-            if (count) {
-                count.textContent = '0 fields';
-            }
-            return true;
-        }
-
-        const remainingSlotsByField = new Map();
-        slots.forEach(slot => {
-            const field = getDisplayItemFieldName(slot.querySelector('.fp-display-item'));
-            if (!field) {
-                return;
-            }
-            if (!remainingSlotsByField.has(field)) {
-                remainingSlotsByField.set(field, []);
-            }
-            remainingSlotsByField.get(field).push(slot);
-        });
-
-        const nextSlots = [];
-        for (const field of fields) {
-            const fieldSlots = remainingSlotsByField.get(field);
-            if (!fieldSlots?.length) {
-                return false;
-            }
-            nextSlots.push(fieldSlots.shift());
-        }
-
-        const changed = nextSlots.length !== slots.length
-            || nextSlots.some((slot, index) => slot !== slots[index]);
-
+        const currentFields = Array.from(displaySection.querySelectorAll('.fp-display-item'))
+            .map(getDisplayItemFieldName)
+            .filter(Boolean);
+        const changed = !areStringArraysEqual(currentFields, fields);
         if (!changed) {
             return false;
         }
 
-        list.replaceChildren(...nextSlots);
-        updateDisplayListItemIndexes(list);
-
-        const displaySection = list.closest('.fp-display-section');
-        const count = displaySection?.querySelector('.fp-section-count');
-        if (count) {
-            count.textContent = `${fields.length} ${fields.length === 1 ? 'field' : 'fields'}`;
-        }
-
+        displaySection.replaceWith(createDisplaySection(fields));
         return true;
     }
 
@@ -445,11 +413,20 @@ const FilterSidePanel = (function () {
         const removal = services.buildDisplayedFieldRemoval(fields, fieldName);
         if (removal?.changed && !areStringArraysEqual(removal.fields, fields)) {
             applyOptimisticDisplayListOrder(removal.fields);
+            const removalMetrics = services.applyImmediateColumnRemoval(removal.fields);
+            const scrollAnchorField = removal.fields[Math.min(index, removal.fields.length - 1)]
+                || removal.fields[Math.max(0, index - 1)]
+                || '';
+            queueOptimisticTableStateSync(removalMetrics, scrollAnchorField);
         }
 
         QueryChangeManager.hideField(fieldName, {
             source: 'FilterSidePanel.removeDisplayedField'
         });
+    }
+
+    function removeDisplayedFieldItem(item) {
+        removeDisplayedFieldAt(getDisplayItemCurrentIndex(item));
     }
 
     function openDisplayFieldPicker(insertAt = -1) {
@@ -548,10 +525,12 @@ const FilterSidePanel = (function () {
         return header;
     }
 
-    function createDisplaySection() {
+    function createDisplaySection(displayedFieldsOverride = null) {
         const wrapper = document.createElement('section');
         wrapper.className = 'fp-section fp-display-section';
-        const fields = getDisplayedFields();
+        const fields = Array.isArray(displayedFieldsOverride)
+            ? displayedFieldsOverride
+            : getDisplayedFields();
 
         wrapper.appendChild(createSectionHeader('Fields Being Displayed', fields.length, fields.length === 1 ? 'field' : 'fields'));
 
@@ -605,21 +584,21 @@ const FilterSidePanel = (function () {
                 'fp-display-btn fp-display-btn-up',
                 `Move ${field} up`,
                 `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="m18 15-6-6-6 6"/></svg>`,
-                () => moveDisplayedFieldByOffset(index, -1)
+                () => moveDisplayedFieldItemByOffset(item, -1)
             ));
 
             controls.appendChild(createIconButton(
                 'fp-display-btn fp-display-btn-down',
                 `Move ${field} down`,
                 `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="m6 9 6 6 6-6"/></svg>`,
-                () => moveDisplayedFieldByOffset(index, 1)
+                () => moveDisplayedFieldItemByOffset(item, 1)
             ));
 
             controls.appendChild(createIconButton(
                 'fp-display-btn fp-display-btn-remove',
                 `Remove ${field} from display`,
                 Icons.trashSVG(14, 14),
-                () => removeDisplayedFieldAt(index)
+                () => removeDisplayedFieldItem(item)
             ));
 
             if (index === 0) {
@@ -847,7 +826,7 @@ const FilterSidePanel = (function () {
         });
     }
 
-    return { update, open, close, toggle, setViewMode };
+    return { update, open, close, toggle, setViewMode, syncDisplayListOrder: applyOptimisticDisplayListOrder };
 }());
 
 registerAppUiActionDependencies({ filterSidePanel: FilterSidePanel });
