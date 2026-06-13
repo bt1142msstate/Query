@@ -165,6 +165,34 @@
   font-weight: 800;
 }
 
+#table-refresh-query-btn {
+  border-color: rgba(16, 185, 129, 0.32);
+  background: linear-gradient(135deg, rgba(236, 253, 245, 0.98), rgba(255, 255, 255, 0.94));
+  color: #047857;
+}
+
+#table-refresh-query-btn.hidden,
+#table-refresh-query-btn[hidden] {
+  display: none;
+}
+
+#table-refresh-query-btn:hover:not(:disabled) .table-refresh-query-icon,
+#table-refresh-query-btn:focus-visible:not(:disabled) .table-refresh-query-icon {
+  animation: tableRefreshQuerySpin 0.8s linear infinite;
+  transform-origin: center;
+}
+
+@keyframes tableRefreshQuerySpin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #table-refresh-query-btn:hover:not(:disabled) .table-refresh-query-icon,
+  #table-refresh-query-btn:focus-visible:not(:disabled) .table-refresh-query-icon {
+    animation: none;
+  }
+}
+
 #table-add-field-btn:hover:not(:disabled) {
   border-color: rgba(37, 99, 235, 0.54);
   box-shadow: 0 12px 24px rgba(37, 99, 235, 0.16);
@@ -3550,6 +3578,7 @@ body.post-filter-overlay-open {
   }
 
   #table-shell.table-shell-expanded #table-add-field-btn,
+  #table-shell.table-shell-expanded #table-refresh-query-btn,
   #table-shell.table-shell-expanded #download-btn,
   #table-shell.table-shell-expanded #split-columns-toggle,
   #table-shell.table-shell-expanded #duplicate-rows-toggle,
