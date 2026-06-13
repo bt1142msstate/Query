@@ -11,6 +11,7 @@ import { showToastMessage } from '../../core/toast.js';
 import { CellDisplayFormatting } from '../../core/formatting/cellDisplayFormatting.js';
 import { VisibilityUtils } from '../../core/visibility.js';
 import { SharedFieldPicker } from '../../ui/field-picker/fieldPicker.js';
+import { createTableContextPreview } from './contextMenuPreview.js';
 import { openCollapsedRowsViewer } from './virtual-table/collapsedRowsViewer.js';
 
 (() => {
@@ -152,58 +153,17 @@ import { openCollapsedRowsViewer } from './virtual-table/collapsedRowsViewer.js'
     <rect x="2" y="10.5" width="12" height="3" rx="1"/>
   </svg>`;
 
-  function clearTablePreviewClasses() {
-    document.querySelectorAll('.tcm-preview-cell, .tcm-preview-row, .tcm-preview-column, .tcm-preview-column-header').forEach(node => {
-      node.classList.remove('tcm-preview-cell', 'tcm-preview-row', 'tcm-preview-column', 'tcm-preview-column-header');
-    });
-  }
-
-  function previewCell(td) {
-    clearTablePreviewClasses();
-    td?.classList.add('tcm-preview-cell');
-    return clearTablePreviewClasses;
-  }
-
-  function previewRow(tr) {
-    clearTablePreviewClasses();
-    tr?.classList.add('tcm-preview-row');
-    tr?.querySelectorAll('td').forEach(td => td.classList.add('tcm-preview-row'));
-    return clearTablePreviewClasses;
-  }
-
-  function previewColumn(colIndex) {
-    clearTablePreviewClasses();
-    if (Number.isNaN(colIndex)) {
-      return clearTablePreviewClasses;
-    }
-
-    document.querySelector(`#example-table thead th[data-col-index="${colIndex}"]`)?.classList.add('tcm-preview-column-header');
-    document.querySelectorAll(`#example-table tbody td[data-col-index="${colIndex}"]`).forEach(td => {
-      td.classList.add('tcm-preview-column');
-    });
-
-    return clearTablePreviewClasses;
-  }
-
-  function previewColumnGroup(fieldName, fallbackColIndex) {
-    const fields = getFields();
-    const groupIndices = services.getDisplayedFieldMoveGroupIndices?.(fieldName, fields) || [];
-    const previewIndices = groupIndices.length > 1 ? groupIndices : [fallbackColIndex];
-
-    clearTablePreviewClasses();
-    previewIndices.forEach(index => {
-      if (Number.isNaN(index)) {
-        return;
-      }
-
-      document.querySelector(`#example-table thead th[data-col-index="${index}"]`)?.classList.add('tcm-preview-column-header');
-      document.querySelectorAll(`#example-table tbody td[data-col-index="${index}"]`).forEach(td => {
-        td.classList.add('tcm-preview-column');
-      });
-    });
-
-    return clearTablePreviewClasses;
-  }
+  const {
+    previewCell,
+    previewColumn,
+    previewColumnGroup,
+    previewRow,
+    reapplyColumnPreview
+  } = createTableContextPreview({
+    document,
+    getFields,
+    services
+  });
 
   // ── Menu DOM ─────────────────────────────────────────────────────────────────
 
@@ -883,6 +843,7 @@ import { openCollapsedRowsViewer } from './virtual-table/collapsedRowsViewer.js'
   document.addEventListener('touchcancel', onTouchEnd, { passive: false });
   document.addEventListener('dragstart', onTableDragStartCapture, true);
   document.addEventListener('click', onTableClickCapture, true);
+  document.addEventListener('query-table-body-rendered', reapplyColumnPreview);
 
   return { dismiss };
 })();

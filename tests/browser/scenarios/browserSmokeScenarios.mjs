@@ -2726,6 +2726,10 @@ async function exerciseDesktopResultsWorkflow(page) {
     appServices.setSplitColumnsMode(true);
   });
   await page.locator('#example-table th[data-sort-field="Smoke Branch 2"]').waitFor({ state: 'visible', timeout: 5000 });
+  await page.waitForFunction(() => {
+    return document.querySelector('#example-table tbody td[data-col-index="1"]')
+      && document.querySelector('#example-table tbody td[data-col-index="2"]');
+  }, null, { timeout: 5000 });
   await openDesktopTableContextMenu(
     page,
     '#example-table th[data-sort-field="Smoke Branch 2"]',
@@ -2745,15 +2749,26 @@ async function exerciseDesktopResultsWorkflow(page) {
   });
   for (const label of ['Add Filter', 'Add Post Filter']) {
     await page.locator('.tcm.tcm--visible .tcm-item', { hasText: label }).hover();
-    const previewState = await page.evaluate(() => ({
-      bodyColumns: Array.from(document.querySelectorAll('#example-table tbody td.tcm-preview-column'))
-        .map(cell => cell.dataset.colIndex)
-        .filter((value, index, values) => values.indexOf(value) === index)
-        .sort(),
-      headerColumns: Array.from(document.querySelectorAll('#example-table thead th.tcm-preview-column-header'))
-        .map(header => header.dataset.colIndex)
-        .sort()
-    }));
+    let previewState = null;
+    const previewWaitStart = Date.now();
+    while (Date.now() - previewWaitStart < 2000) {
+      previewState = await page.evaluate(() => ({
+        bodyColumns: Array.from(document.querySelectorAll('#example-table tbody td.tcm-preview-column'))
+          .map(cell => cell.dataset.colIndex)
+          .filter((value, index, values) => values.indexOf(value) === index)
+          .sort(),
+        headerColumns: Array.from(document.querySelectorAll('#example-table thead th.tcm-preview-column-header'))
+          .map(header => header.dataset.colIndex)
+          .sort()
+      }));
+      if (
+        previewState.headerColumns.join('|') === '1|2'
+        && previewState.bodyColumns.join('|') === '1|2'
+      ) {
+        break;
+      }
+      await page.waitForTimeout(50);
+    }
     if (
       previewState.headerColumns.join('|') !== '1|2'
       || previewState.bodyColumns.join('|') !== '1|2'
@@ -3125,21 +3140,35 @@ async function exerciseJsonResultPayloadWorkflow(page, queryApiStub) {
   });
 
   async function assertTruncatedCellViewer({ cellSelector, expectedField, expectedValue, label }) {
-    const compactCellMetrics = await page.locator(cellSelector).evaluate(cell => {
-      const trigger = cell.querySelector('.query-table-truncated-trigger');
-      const text = cell.querySelector('.query-table-truncated-text');
-      const textStyle = text ? window.getComputedStyle(text) : null;
-      return {
-        dataFullCellValue: cell.getAttribute('data-full-cell-value') || cell.dataset.fullCellValue || '',
-        hasTrigger: Boolean(trigger),
-        isEllipsized: Boolean(text && text.scrollWidth - text.clientWidth > 1),
-        textOverflow: textStyle?.textOverflow || '',
-        triggerLabel: trigger?.getAttribute('aria-label') || ''
-      };
-    });
+    let compactCellMetrics = null;
+    const metricsWaitStart = Date.now();
+    while (Date.now() - metricsWaitStart < 2000) {
+      compactCellMetrics = await page.locator(cellSelector).evaluate(cell => {
+        const trigger = cell.querySelector('.query-table-truncated-trigger');
+        const text = cell.querySelector('.query-table-truncated-text');
+        const textStyle = text ? window.getComputedStyle(text) : null;
+        return {
+          dataFullCellValue: cell.getAttribute('data-full-cell-value') || cell.dataset.fullCellValue || '',
+          hasText: Boolean(text),
+          hasTrigger: Boolean(trigger),
+          isEllipsized: Boolean(text && text.scrollWidth - text.clientWidth > 1),
+          textOverflow: textStyle?.textOverflow || '',
+          triggerLabel: trigger?.getAttribute('aria-label') || ''
+        };
+      });
+      if (
+        compactCellMetrics.hasText
+        && compactCellMetrics.hasTrigger
+        && compactCellMetrics.textOverflow === 'ellipsis'
+      ) {
+        break;
+      }
+      await page.waitForTimeout(50);
+    }
 
     if (
-      !compactCellMetrics.hasTrigger
+      !compactCellMetrics.hasText
+      || !compactCellMetrics.hasTrigger
       || compactCellMetrics.dataFullCellValue !== expectedValue
       || !compactCellMetrics.isEllipsized
       || compactCellMetrics.textOverflow !== 'ellipsis'

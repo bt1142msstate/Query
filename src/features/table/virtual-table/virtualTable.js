@@ -444,6 +444,9 @@ function renderVirtualTable() {
   }
   
   tbody.replaceChildren(nextBody);
+  document.dispatchEvent(typeof CustomEvent === 'function'
+    ? new CustomEvent('query-table-body-rendered')
+    : new Event('query-table-body-rendered'));
   
   // Re-apply drag and drop to the new rows
   services.addDragAndDrop(table);

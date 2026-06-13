@@ -249,11 +249,46 @@ async function runSmokeTest() {
       }),
       contentType: 'application/x-ndjson; charset=utf-8',
       delayMs: 300,
+      queryId: 'browser-smoke-complete',
       rawColumns: smokeResultHeaders
     });
+    await page.evaluate(() => {
+      window.__historyResultLoadProgressTexts = [];
+      window.__historyResultLoadProgressObserver?.disconnect?.();
+
+      const recordProgressText = () => {
+        const text = document.querySelector('[data-history-result-load-progress]')?.textContent?.trim() || '';
+        if (text) {
+          window.__historyResultLoadProgressTexts.push(text);
+        }
+      };
+
+      window.__historyResultLoadProgressObserver = new MutationObserver(recordProgressText);
+      window.__historyResultLoadProgressObserver.observe(document.body, {
+        childList: true,
+        characterData: true,
+        subtree: true
+      });
+      recordProgressText();
+    });
     const historyLoadClick = page.locator('.history-monitor .load-query-btn').first().click();
-    await page.locator('.history-result-load-progress').waitFor({ state: 'visible', timeout: 5000 });
-    const historyLoadProgressText = await page.locator('.history-result-load-progress').textContent();
+    await page.waitForFunction(() => {
+      const texts = Array.isArray(window.__historyResultLoadProgressTexts)
+        ? window.__historyResultLoadProgressTexts
+        : [];
+      return texts.some(text => (
+        /Loading saved results/iu.test(text)
+        && /Waiting for rows|rows received/iu.test(text)
+      ));
+    }, null, { timeout: 5000 });
+    const historyLoadProgressText = await page.evaluate(() => {
+      const texts = Array.isArray(window.__historyResultLoadProgressTexts)
+        ? window.__historyResultLoadProgressTexts
+        : [];
+      window.__historyResultLoadProgressObserver?.disconnect?.();
+      window.__historyResultLoadProgressObserver = null;
+      return texts.join('\n');
+    });
     if (!/Loading saved results/iu.test(historyLoadProgressText || '') || !/Waiting for rows|rows received/iu.test(historyLoadProgressText || '')) {
       throw new Error(`History result load progress should be visible while waiting: ${historyLoadProgressText}`);
     }

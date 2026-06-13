@@ -355,7 +355,17 @@ async function installQueryApiStub(page) {
 
     const payload = parseQueryApiPayload(request);
     requests.push({ action: payload.action || '', payload });
-    const queuedResponseIndex = queuedResponses.findIndex(response => !response.action || response.action === payload.action);
+    const queuedResponseIndex = queuedResponses.findIndex(response => {
+      const actionMatches = !response.action || response.action === payload.action;
+      if (!actionMatches) {
+        return false;
+      }
+      const requestQueryId = String(payload.query_id || payload.queryId || '');
+      if (!response.queryId || !requestQueryId) {
+        return true;
+      }
+      return String(response.queryId) === requestQueryId;
+    });
     const response = queuedResponseIndex === -1
       ? buildDefaultQueryApiResponse(payload)
       : queuedResponses.splice(queuedResponseIndex, 1)[0];
