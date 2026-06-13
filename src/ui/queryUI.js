@@ -10,6 +10,8 @@ import { appServices } from '../core/appServices.js';
 import { appUiActions, registerAppUiActionDependencies } from '../core/appUiActions.js';
 import { buildBackendQueryPayload } from '../features/filters/queryPayload.js';
 import { DOM } from '../core/domCache.js';
+import { getNormalTableViewportHeight } from './tableViewportSizing.js';
+import { initializeWorkspaceLayoutObservers } from './workspaceLayoutObservers.js';
 
 const getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
 const getActiveFilters = QueryStateReaders.getActiveFilters.bind(QueryStateReaders);
@@ -391,7 +393,7 @@ function getTableExpandIconMarkup(expanded) {
   `;
 }
 
-function refreshTableViewport() {
+function syncTableViewportHeight() {
   const tableShell = DOM.tableShell;
   const tableContainer = DOM.tableContainer;
 
@@ -401,7 +403,25 @@ function refreshTableViewport() {
 
   const expanded = tableShell.classList.contains('table-shell-expanded');
   tableContainer.dataset.expanded = expanded ? 'true' : 'false';
-  tableContainer.style.height = expanded ? 'calc(100vh - 11rem)' : '400px';
+  tableContainer.style.height = expanded
+    ? 'calc(100vh - 11rem)'
+    : `${getNormalTableViewportHeight(tableShell, tableContainer, {
+      documentRef: document,
+      isMobileViewport: isMobileTableViewport(),
+      windowRef: window
+    })}px`;
+  appUiActions.updateFilterSidePanel();
+}
+
+function refreshTableViewport() {
+  const tableShell = DOM.tableShell;
+  const tableContainer = DOM.tableContainer;
+
+  if (!tableShell || !tableContainer) {
+    return;
+  }
+
+  syncTableViewportHeight();
 
   window.requestAnimationFrame(() => {
     const table = document.getElementById('example-table');
@@ -566,6 +586,12 @@ function initializeQueryUi() {
   initializeMobileBuilderDrawer();
   initializeMobileTableActionBar();
   initializeMobileFilterPanelControls();
+  initializeWorkspaceLayoutObservers({
+    documentRef: document,
+    renderVirtualTable: () => services.renderVirtualTable(),
+    syncTableViewportHeight,
+    windowRef: window
+  });
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && document.body.classList.contains(MOBILE_FILTER_PANEL_CLASS)) {
@@ -821,6 +847,7 @@ const queryUi = {
   ensureTableName,
   getTableZoom,
   refreshTableViewport,
+  syncTableViewportHeight,
   updateTableChromeState,
   closeMobileFilterPanel,
   setTableZoom,
@@ -842,6 +869,7 @@ export {
   getDefaultTableName,
   getTableZoom,
   refreshTableViewport,
+  syncTableViewportHeight,
   setTableZoom,
   toggleTableExpanded,
   closeMobileFilterPanel,

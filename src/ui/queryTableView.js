@@ -283,6 +283,8 @@ let QueryTableView;
     services.measureTableRowHeight(table, renderFields);
     services.renderVirtualTable();
     services.syncColumnResizeModeUi?.();
+    uiActions.syncTableViewportHeight();
+    services.renderVirtualTable();
 
     if (options.scrollAnchorField) {
       window.requestAnimationFrame(() => {

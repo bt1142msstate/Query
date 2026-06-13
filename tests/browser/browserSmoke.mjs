@@ -391,6 +391,39 @@ async function runSmokeTest() {
       const { appServices } = await import('./src/core/appServices.js');
       return appServices.getVirtualTableData()?.rows?.some(row => row[0] === 'Loaded One');
     }, null, { timeout: 7000 });
+    let restoredResultLayout = null;
+    const restoredLayoutWaitStart = Date.now();
+    while (Date.now() - restoredLayoutWaitStart < 5000) {
+      restoredResultLayout = await page.evaluate(() => {
+        const readRect = selector => {
+          const rect = document.querySelector(selector)?.getBoundingClientRect();
+          return rect
+            ? {
+                bottom: rect.bottom,
+                height: rect.height,
+                top: rect.top,
+                width: rect.width
+              }
+            : null;
+        };
+        return {
+          filterPanel: readRect('#filter-side-panel'),
+          formCard: readRect('#form-mode-card'),
+          tableContainer: readRect('#table-container'),
+          tableWithFilter: readRect('#table-with-filter'),
+          viewportHeight: window.innerHeight
+        };
+      });
+
+      if (
+        restoredResultLayout.formCard?.height > 0
+        && restoredResultLayout.formCard.bottom <= restoredResultLayout.viewportHeight - 8
+        && restoredResultLayout.viewportHeight - restoredResultLayout.formCard.bottom <= 42
+      ) {
+        break;
+      }
+      await page.waitForTimeout(50);
+    }
     const restoredHistoryResult = await page.evaluate(async () => {
       const { appServices } = await import('./src/core/appServices.js');
       const { QueryFormMode } = await import('./src/ui/form-mode/formMode.js');
@@ -449,6 +482,16 @@ async function runSmokeTest() {
         getResultsRequests: queryApiStub.countAction('get_results'),
         statusRequests: queryApiStub.countAction('status')
       })}`);
+    }
+    if (
+      !restoredResultLayout.formCard
+      || !restoredResultLayout.tableWithFilter
+      || restoredResultLayout.formCard.bottom > restoredResultLayout.viewportHeight - 8
+      || restoredResultLayout.viewportHeight - restoredResultLayout.formCard.bottom > 42
+      || (restoredResultLayout.filterPanel?.height > 0
+        && Math.abs(restoredResultLayout.tableWithFilter.height - restoredResultLayout.filterPanel.height) > 2)
+    ) {
+      throw new Error(`Reloaded result layout should keep the table row and lower form panel within the viewport: ${JSON.stringify(restoredResultLayout)}`);
     }
 
     await page.getByRole('button', { name: 'Templates' }).click();

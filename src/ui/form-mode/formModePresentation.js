@@ -55,6 +55,10 @@ function syncFormModePresentation({
   });
 
   removeModeToggleButton(state);
+  uiActions?.syncTableViewportHeight?.();
+  documentRef.defaultView?.requestAnimationFrame?.(() => {
+    uiActions?.syncTableViewportHeight?.();
+  });
   uiActions?.updateFilterSidePanel?.();
   queryTableView?.syncEmptyTableMessage?.();
 }

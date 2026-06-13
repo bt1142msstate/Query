@@ -1,8 +1,19 @@
 const FORM_MODE_READY_EVENT = 'query-form-mode:ready';
 const FORM_MODE_READY_TIMEOUT_MS = 3000;
+let formModeReady = false;
 
-function waitForFormModeReady() {
-  if (typeof window === 'undefined') {
+function markFormModeReady(windowRef = globalThis.window) {
+  formModeReady = true;
+  if (windowRef && typeof windowRef.dispatchEvent === 'function') {
+    windowRef.dispatchEvent(new windowRef.CustomEvent(FORM_MODE_READY_EVENT));
+  }
+}
+
+function waitForFormModeReady(options = {}) {
+  const windowRef = options.windowRef || globalThis.window;
+  const timeoutMs = Number(options.timeoutMs) || FORM_MODE_READY_TIMEOUT_MS;
+
+  if (!windowRef || formModeReady) {
     return Promise.resolve();
   }
 
@@ -12,14 +23,14 @@ function waitForFormModeReady() {
     const finish = () => {
       if (resolved) return;
       resolved = true;
-      window.removeEventListener(FORM_MODE_READY_EVENT, finish);
+      windowRef.removeEventListener(FORM_MODE_READY_EVENT, finish);
       if (timerId) clearTimeout(timerId);
       resolve();
     };
 
-    window.addEventListener(FORM_MODE_READY_EVENT, finish, { once: true });
-    timerId = setTimeout(finish, FORM_MODE_READY_TIMEOUT_MS);
+    windowRef.addEventListener(FORM_MODE_READY_EVENT, finish, { once: true });
+    timerId = setTimeout(finish, timeoutMs);
   });
 }
 
-export { FORM_MODE_READY_EVENT, waitForFormModeReady };
+export { FORM_MODE_READY_EVENT, markFormModeReady, waitForFormModeReady };
