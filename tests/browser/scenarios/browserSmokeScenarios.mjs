@@ -2878,6 +2878,36 @@ async function exerciseDesktopResultsWorkflow(page) {
     const { QueryStateReaders } = await import('./src/core/queryState.js');
     return QueryStateReaders.getDisplayedFields().join('|') === 'Smoke Branch 1|Smoke Branch 2|Smoke Title|Smoke Status';
   }, null, { timeout: 5000 });
+  const panelSplitMove = await page.evaluate(async () => {
+    const displayItem = Array.from(document.querySelectorAll('.fp-display-item'))
+      .find(item => (item.textContent || '').includes('Smoke Branch 1'));
+    const downButton = displayItem?.querySelector('.fp-display-btn-down');
+    const startedAt = performance.now();
+    downButton?.click();
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    return {
+      displayFields: Array.from(document.querySelectorAll('.fp-display-name'))
+        .map(name => name.textContent.trim()),
+      durationMs: performance.now() - startedAt,
+      headers: Array.from(document.querySelectorAll('#example-table thead th[data-col-index]'))
+        .map(header => header.getAttribute('data-sort-field') || header.textContent.trim()),
+      moveButtonFound: Boolean(downButton)
+    };
+  });
+  if (
+    !panelSplitMove.moveButtonFound
+    || panelSplitMove.headers.join('|') !== 'Smoke Title|Smoke Status|Smoke Branch 1|Smoke Branch 2'
+    || panelSplitMove.displayFields.join('|') !== 'Smoke Title|Smoke Status|Smoke Branch 1|Smoke Branch 2'
+    || panelSplitMove.durationMs > 300
+  ) {
+    throw new Error(`Side panel split column move should complete under 300ms: ${JSON.stringify(panelSplitMove)}`);
+  }
+  await page.waitForFunction(async () => {
+    const { QueryStateReaders } = await import('./src/core/queryState.js');
+    return QueryStateReaders.getDisplayedFields().join('|') === 'Smoke Title|Smoke Status|Smoke Branch 1|Smoke Branch 2';
+  }, null, { timeout: 5000 });
   const splitRemoval = await page.evaluate(() => {
     const displayItem = Array.from(document.querySelectorAll('.fp-display-item'))
       .find(item => (item.textContent || '').includes('Smoke Branch 2'));
@@ -2889,6 +2919,8 @@ async function exerciseDesktopResultsWorkflow(page) {
       bodyColumnCounts: Array.from(document.querySelectorAll('#example-table tbody tr'))
         .map(row => row.querySelectorAll('td[data-col-index]').length),
       durationMs: performance.now() - startedAt,
+      displayFields: Array.from(document.querySelectorAll('.fp-display-name'))
+        .map(name => name.textContent.trim()),
       headers: Array.from(document.querySelectorAll('#example-table thead th[data-col-index]'))
         .map(header => header.getAttribute('data-sort-field') || header.textContent.trim()),
       removeButtonFound: Boolean(removeButton)
@@ -2897,6 +2929,7 @@ async function exerciseDesktopResultsWorkflow(page) {
   if (
     !splitRemoval.removeButtonFound
     || splitRemoval.headers.join('|') !== 'Smoke Title|Smoke Status'
+    || splitRemoval.displayFields.join('|') !== 'Smoke Title|Smoke Status'
     || splitRemoval.branchHeadersRemaining !== 0
     || !splitRemoval.bodyColumnCounts.every(count => count === 2)
     || splitRemoval.durationMs > 120
@@ -2913,6 +2946,85 @@ async function exerciseDesktopResultsWorkflow(page) {
   await page.evaluate(async () => {
     const { appServices } = await import('./src/core/appServices.js');
     appServices.setSplitColumnsMode(false);
+  });
+
+  await seedLoadedResults(page, { includeMultiValueBranch: true, rowCount: 1000 });
+  await page.evaluate(async () => {
+    const { appServices } = await import('./src/core/appServices.js');
+    appServices.setDuplicateRowCollapseMode(false, { notify: false, refreshView: false });
+    appServices.setSplitColumnsMode(true);
+  });
+  await page.locator('#example-table th[data-sort-field="Smoke Branch 2"]').waitFor({ state: 'visible', timeout: 5000 });
+  const largeSplitMove = await page.evaluate(async () => {
+    const { dragDropColumnOps } = await import('./src/features/table/drag-drop/dragDropColumns.js');
+    const startedAt = performance.now();
+    dragDropColumnOps.moveColumn(document.querySelector('#example-table'), 1, 3);
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    return {
+      durationMs: performance.now() - startedAt,
+      headers: Array.from(document.querySelectorAll('#example-table thead th[data-col-index]'))
+        .map(header => header.getAttribute('data-sort-field') || header.textContent.trim()),
+      renderedRows: document.querySelectorAll('#example-table tbody tr[data-row-index]').length,
+      usesVirtualBody: document.querySelector('#example-table tbody')?.classList.contains('query-table-virtual-body') || false
+    };
+  });
+  if (
+    largeSplitMove.headers.join('|') !== 'Smoke Title|Smoke Status|Smoke Branch 1|Smoke Branch 2'
+    || largeSplitMove.durationMs > 300
+    || !largeSplitMove.usesVirtualBody
+    || largeSplitMove.renderedRows > 120
+  ) {
+    throw new Error(`Large split column move should stay virtualized and complete under 300ms: ${JSON.stringify(largeSplitMove)}`);
+  }
+  await page.waitForFunction(async () => {
+    const { QueryStateReaders } = await import('./src/core/queryState.js');
+    return QueryStateReaders.getDisplayedFields().join('|') === 'Smoke Title|Smoke Status|Smoke Branch 1|Smoke Branch 2';
+  }, null, { timeout: 5000 });
+  const largeSplitRemoval = await page.evaluate(async () => {
+    const displayItem = Array.from(document.querySelectorAll('.fp-display-item'))
+      .find(item => (item.textContent || '').includes('Smoke Branch 2'));
+    const removeButton = displayItem?.querySelector('.fp-display-btn-remove');
+    const startedAt = performance.now();
+    removeButton?.click();
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    return {
+      displayFields: Array.from(document.querySelectorAll('.fp-display-name'))
+        .map(name => name.textContent.trim()),
+      durationMs: performance.now() - startedAt,
+      headers: Array.from(document.querySelectorAll('#example-table thead th[data-col-index]'))
+        .map(header => header.getAttribute('data-sort-field') || header.textContent.trim()),
+      removeButtonFound: Boolean(removeButton),
+      renderedRows: document.querySelectorAll('#example-table tbody tr[data-row-index]').length,
+      usesVirtualBody: document.querySelector('#example-table tbody')?.classList.contains('query-table-virtual-body') || false
+    };
+  });
+  if (
+    !largeSplitRemoval.removeButtonFound
+    || largeSplitRemoval.headers.join('|') !== 'Smoke Title|Smoke Status'
+    || largeSplitRemoval.displayFields.join('|') !== 'Smoke Title|Smoke Status'
+    || largeSplitRemoval.durationMs > 300
+    || !largeSplitRemoval.usesVirtualBody
+    || largeSplitRemoval.renderedRows > 120
+  ) {
+    throw new Error(`Large split column removal should stay virtualized and complete under 300ms: ${JSON.stringify(largeSplitRemoval)}`);
+  }
+  await page.waitForFunction(async () => {
+    const { QueryStateReaders } = await import('./src/core/queryState.js');
+    return QueryStateReaders.getDisplayedFields().join('|') === 'Smoke Title|Smoke Status';
+  }, null, { timeout: 5000 });
+  await page.evaluate(async () => {
+    const { appServices } = await import('./src/core/appServices.js');
+    appServices.setSplitColumnsMode(false);
+    appServices.setDuplicateRowCollapseMode(true, {
+      notify: false,
+      recalculateWidths: false,
+      refreshView: false,
+      resetScroll: false
+    });
   });
 
   await seedLoadedResults(page, { includeDate: true });

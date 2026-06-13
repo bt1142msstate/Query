@@ -17,11 +17,13 @@ import {
 import { buildExpandedMultiValueTable } from './splitColumnExpansion.js';
 import {
   buildDisplayedFieldMove,
+  buildDisplayedFieldRemoval,
   buildSplitModeDisplayedFields,
   getPostFilterActionFieldsForTable,
   getSplitFieldGroupIndices,
   getSplitFieldParentName
 } from './splitColumnFields.js';
+import { applyImmediateColumnOrder } from '../drag-drop/dragDropImmediateReorder.js';
 import { escapeHtml } from '../../../core/formatting/html.js';
 import { QueryTableView } from '../../../ui/queryTableView.js';
 import { createVirtualTableEmptyRow, createVirtualTableRow } from './virtualTableRows.js';
@@ -78,7 +80,7 @@ let simpleTableInstance = null; // Store the SimpleTable instance
 
 const HEADER_ACTION_SPACE = 116;
 const HEADER_TEXT_BALANCE_SPACE = 116;
-const FULL_TABLE_RENDER_ROW_LIMIT = 2000;
+const FULL_TABLE_RENDER_ROW_LIMIT = 500;
 var services = appServices, uiActions = appUiActions;
 const tableScrollbar = createTableScrollbarController({
   getRowHeight: () => tableRowHeight
@@ -319,6 +321,15 @@ function applyPostFilters(options = {}) {
   if (options.notify !== false) {
     notifyPostFiltersUpdated();
   }
+}
+
+function syncProjectionFromQueryState(options = {}) {
+  applyPostFilters({
+    refreshView: false,
+    notify: options.notify !== false,
+    resetScroll: false,
+    recalculateWidths: options.recalculateWidths === true
+  });
 }
 
 function sortTableBy(fieldName) {
@@ -828,6 +839,7 @@ VirtualTable = {
   clearVirtualTableData,
   getVirtualTableState,
   sortTableBy,
+  syncProjectionFromQueryState,
   setSplitColumnsMode,
   setDuplicateRowCollapseMode,
   expandMultiValueColumns,
@@ -835,6 +847,8 @@ VirtualTable = {
   getPostFilterActionFields: fields => getPostFilterActionFieldsForTable(fields, baseViewData),
   getDisplayedFieldMoveGroupIndices: (fieldName, fields = getDisplayedFields()) => getSplitFieldGroupIndices(fieldName, fields, baseViewData),
   buildDisplayedFieldMove: (fields, fromIndex, toIndex) => buildDisplayedFieldMove(fields, fromIndex, toIndex, baseViewData),
+  buildDisplayedFieldRemoval: (fields, fieldName) => buildDisplayedFieldRemoval(fields, fieldName, baseViewData),
+  applyImmediateColumnOrder: (nextFields, options = {}) => applyImmediateColumnOrder(document.getElementById('example-table'), nextFields, options),
   getPostFilterState: () => postFilters.cloneSnapshot(),
   getCollapsedRowGroup,
   getPostFilterFieldOptions: fieldName => postFilters.getFieldOptions(fieldName),
