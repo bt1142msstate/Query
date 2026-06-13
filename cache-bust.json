@@ -1,5 +1,5 @@
 {
-  "version": "064a33b3d5b6ba64",
+  "version": "3808429da3eefa38",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -132,7 +132,7 @@
     "src/features/table/virtual-table/tableScrollbar.js": "f4df5e42292a5171",
     "src/features/table/virtual-table/tableSort.js": "209025137d0c0552",
     "src/features/table/virtual-table/virtualTable.js": "fb9a29539e17386f",
-    "src/features/table/virtual-table/virtualTableDuplicateCollapse.js": "8246545561098344",
+    "src/features/table/virtual-table/virtualTableDuplicateCollapse.js": "30f14d079bb956ce",
     "src/features/table/virtual-table/virtualTablePostFilters.js": "c297560105d95848",
     "src/features/table/virtual-table/virtualTableRows.js": "499b8779edbf78c8",
     "src/features/templates/category/queryTemplateCategoryActions.js": "8288dc05858b0451",
@@ -176,7 +176,7 @@
     "src/ui/field-picker/fieldPickerQueryPreview.js": "019bce50d54c6e10",
     "src/ui/field-picker/fieldPickerQuerySelection.js": "56af597e3e74de70",
     "src/ui/field-picker/fieldPickerSearch.js": "3ee7aca8505a6e52",
-    "src/ui/form-mode/formMode.js": "d92eb3c826e6bccc",
+    "src/ui/form-mode/formMode.js": "393f955646071ea0",
     "src/ui/form-mode/formModeCard.js": "14453dfea3291a45",
     "src/ui/form-mode/formModeCardBuilder.js": "83e8a837c8b205e5",
     "src/ui/form-mode/formModeControls.js": "e2c0a5de4393e791",

@@ -245,9 +245,7 @@ let QueryFormMode;
     const isShared = kind === 'shared';
     const nextSpec = cloneSpec(isShared ? state.sharedBaselineSpec : state.initialSpec) || cloneSpec(state.spec);
     const nextSearchParamsSource = isShared ? state.sharedBaselineSearchParams : state.initialSearchParams;
-    const nextSearchParams = nextSearchParamsSource
-      ? new URLSearchParams(nextSearchParamsSource.toString())
-      : new URLSearchParams();
+    const nextSearchParams = new URLSearchParams(nextSearchParamsSource ? nextSearchParamsSource.toString() : '');
 
     if (!nextSpec) {
       return;
@@ -277,7 +275,7 @@ let QueryFormMode;
     rebuildFormCardFromSpec({
       preserveCurrentDefaults: false,
       applyState: true,
-      refreshUrl: true,
+      refreshUrl: false,
       clearSearchParams: false,
       querySource: isShared ? 'QueryFormMode.resetToShared' : 'QueryFormMode.resetToOriginal'
     });
@@ -291,6 +289,12 @@ let QueryFormMode;
       searchParams: nextSearchParams,
       services,
       showToastMessage
+    });
+    refreshBrowserUrl({
+      includeResult: Boolean(resultQueryId),
+      preserveResult: false,
+      resultQueryId,
+      resultViewParam
     });
     const preservedBaselineSearchParams = new URLSearchParams(nextSearchParams.toString());
     if (isShared) {
@@ -306,7 +310,11 @@ let QueryFormMode;
     const useFormUrl = forceShareUrl || (!forceClearUrl && shouldPersistFormUrlInBrowser());
     const persistLimitedView = forceShareUrl || state.limitedView === true;
     const nextUrl = useFormUrl
-      ? buildCurrentShareUrl({ limited: persistLimitedView, preserveResult: !forceShareUrl })
+      ? buildCurrentShareUrl({
+          ...options,
+          limited: persistLimitedView,
+          preserveResult: options.preserveResult === undefined ? !forceShareUrl : options.preserveResult
+        })
       : buildClearedBrowserUrl(window.location.href);
     if (state.lastBrowserUrl === nextUrl || window.location.href === nextUrl) {
       state.lastBrowserUrl = nextUrl;
@@ -413,7 +421,10 @@ let QueryFormMode;
     cleanupFormControls();
     buildFormCard();
     if (applyState) {
-      applyFormState({ source: querySource });
+      applyFormState({
+        source: querySource,
+        refreshUrl
+      });
     } else {
       const bindings = collectFormBindings(state.spec, getCurrentInputValues, supportsMultipleValues, getInputParamKeys);
       syncFormTableName(state, bindings, interpolateValue);
@@ -631,7 +642,9 @@ let QueryFormMode;
       state.isApplyingFormState = false;
     }
 
-    refreshBrowserUrl();
+    if (options.refreshUrl !== false) {
+      refreshBrowserUrl();
+    }
   }
 
   function getValidationError() {

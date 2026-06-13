@@ -5,28 +5,35 @@ function normalizeFieldList(fields) {
 }
 
 function normalizeCellValueForKey(value) {
-  if (value === undefined) return ['undefined'];
-  if (value === null) return ['null'];
-  if (Array.isArray(value)) return ['array', value.map(normalizeCellValueForKey)];
-
-  if (value && typeof value === 'object') {
-    const entries = Object.keys(value)
-      .sort()
-      .map(key => [key, normalizeCellValueForKey(value[key])]);
-    return ['object', entries];
+  if (value === undefined) return 'u:';
+  if (value === null) return 'n:';
+  if (Array.isArray(value)) {
+    return `a:[${value.map(normalizeCellValueForKey).join(',')}]`;
   }
 
-  return [typeof value, value];
+  if (value && typeof value === 'object') {
+    return `o:{${Object.keys(value)
+      .sort()
+      .map(key => `${JSON.stringify(key)}:${normalizeCellValueForKey(value[key])}`)
+      .join(',')}}`;
+  }
+
+  return `${typeof value}:${JSON.stringify(value)}`;
 }
 
-function buildProjectedRowKey(row, fields, columnMap) {
-  return JSON.stringify(fields.map(field => {
-    const columnIndex = columnMap.get(field);
-    if (columnIndex === undefined) {
-      return [field, 'missing'];
-    }
-    return [field, normalizeCellValueForKey(row?.[columnIndex])];
-  }));
+function createProjectedRowKeyBuilder(fields, columnMap) {
+  const columns = columnMap instanceof Map ? columnMap : new Map();
+  const columnIndexes = normalizeFieldList(fields).map(field => (
+    columns.has(field) ? columns.get(field) : -1
+  ));
+
+  return row => columnIndexes
+    .map(columnIndex => (
+      columnIndex >= 0
+        ? normalizeCellValueForKey(row?.[columnIndex])
+        : 'm:'
+    ))
+    .join('\x1E');
 }
 
 function createDuplicateRowGroup({ key, row, rowIndex, displayedFields }) {
@@ -82,14 +89,14 @@ function collapseDuplicateProjectedRows({ rows, displayedFields, columnMap }) {
     };
   }
 
-  const seen = new Set();
   const groupsByKey = new Map();
   const uniqueRows = [];
   const uniqueRowGroups = [];
+  const buildProjectedRowKey = createProjectedRowKeyBuilder(fields, columns);
   let collapsedRows = 0;
 
   sourceRows.forEach((row, rowIndex) => {
-    const key = buildProjectedRowKey(row, fields, columns);
+    const key = buildProjectedRowKey(row);
     const existingGroup = groupsByKey.get(key);
 
     if (existingGroup) {
@@ -106,11 +113,6 @@ function collapseDuplicateProjectedRows({ rows, displayedFields, columnMap }) {
     });
     groupsByKey.set(key, group);
 
-    if (seen.has(key)) {
-      collapsedRows += 1;
-      return;
-    }
-    seen.add(key);
     uniqueRows.push(row);
     uniqueRowGroups.push(group);
   });
