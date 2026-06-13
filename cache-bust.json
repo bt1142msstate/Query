@@ -1,5 +1,5 @@
 {
-  "version": "c424f20e39973b09",
+  "version": "3cd0d6d44b573a6d",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -47,7 +47,7 @@
     "src/core/queryResultParser.js": "5655ba280c6265a9",
     "src/core/queryResultUrl.js": "755aaec8d8b2fbcb",
     "src/core/queryRunResponse.js": "57d565c3a89e5bdc",
-    "src/core/queryState.js": "e28402b9c357f659",
+    "src/core/queryState.js": "3593b6a8929d56ff",
     "src/core/queryStateSubscriptions.js": "706732f308f57201",
     "src/core/queryStateToasts.js": "bde369e04795ed4e",
     "src/core/queryStream.js": "081a0f9857b1c3ed",
