@@ -14,7 +14,7 @@ import {
 import { CellDisplayFormatting } from '../../../core/formatting/cellDisplayFormatting.js';
 import { QueryTableView } from '../../../ui/queryTableView.js';
 import { buildDisplayedFieldRemoval } from '../virtual-table/splitColumnFields.js';
-import { applyImmediateColumnOrder } from './dragDropImmediateReorder.js';
+import { applyImmediateColumnOrder, applyImmediateColumnRemoval } from './dragDropImmediateReorder.js';
 import {
   fieldOrDuplicatesExist,
   findRelatedColumnIndices,
@@ -86,7 +86,15 @@ let dragDropColumnOps;
     });
   }
 
-  function deferAuthoritativeColumnMove(commit) {
+  function areDisplayedFieldsEqual(left, right) {
+    if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) {
+      return false;
+    }
+
+    return left.every((field, index) => field === right[index]);
+  }
+
+  function deferAuthoritativeColumnMutation(commit) {
     if (typeof commit !== 'function') {
       return;
     }
@@ -186,30 +194,53 @@ let dragDropColumnOps;
       removedAt: Date.now()
     });
 
-    queueColumnMutationRender({
-      preserveScroll: true,
-      scrollAnchorField
-    });
+    const table = options.table || document.querySelector('#example-table');
+    const appliedOptimistically = applyImmediateColumnRemoval(table, remainingFields).changed;
+    const runCommit = () => {
+      const currentFields = getDisplayedFields();
+      const stateAlreadyUpdated = areDisplayedFieldsEqual(currentFields, remainingFields);
+      if (
+        appliedOptimistically
+        && !stateAlreadyUpdated
+        && !areDisplayedFieldsEqual(currentFields, displayedFieldsBeforeRemoval)
+      ) {
+        return;
+      }
 
-    QueryChangeManager.replaceDisplayedFields(remainingFields, {
-      source: removal.isGroupRemoval ? 'DragDrop.removeSplitColumnGroup' : 'DragDrop.removeColumn'
-    });
-
-    if (baseFieldName) {
-      document.querySelectorAll('.bubble').forEach(bubbleEl => {
-        if (bubbleEl.textContent.trim() === baseFieldName) {
-          const fieldDef = fieldDefs ? fieldDefs.get(baseFieldName) : null;
-          if (isFieldBuildable(fieldDef)) {
-            bubbleEl.setAttribute('draggable', 'false');
-          } else {
-            bubbleEl.setAttribute('draggable', 'true');
-          }
-          services.applyBubbleStyling(bubbleEl);
-        }
+      queueColumnMutationRender({
+        preserveScroll: true,
+        scrollAnchorField
       });
+
+      if (!stateAlreadyUpdated) {
+        QueryChangeManager.replaceDisplayedFields(remainingFields, {
+          source: removal.isGroupRemoval ? 'DragDrop.removeSplitColumnGroup' : 'DragDrop.removeColumn'
+        });
+      }
+
+      if (baseFieldName) {
+        document.querySelectorAll('.bubble').forEach(bubbleEl => {
+          if (bubbleEl.textContent.trim() === baseFieldName) {
+            const fieldDef = fieldDefs ? fieldDefs.get(baseFieldName) : null;
+            if (isFieldBuildable(fieldDef)) {
+              bubbleEl.setAttribute('draggable', 'false');
+            } else {
+              bubbleEl.setAttribute('draggable', 'true');
+            }
+            services.applyBubbleStyling(bubbleEl);
+          }
+        });
+      }
+
+      syncTableAfterColumnMutation({ scrollAnchorField });
+    };
+
+    if (appliedOptimistically) {
+      deferAuthoritativeColumnMutation(runCommit);
+      return true;
     }
 
-    syncTableAfterColumnMutation({ scrollAnchorField });
+    runCommit();
     return true;
   }
 
@@ -351,17 +382,32 @@ let dragDropColumnOps;
   }
 
   function commitColumnMove({ commit, movedFieldName, table, nextFields }) {
+    const displayedFieldsBeforeMove = getDisplayedFields();
     const appliedOptimistically = applyOptimisticColumnMove(table, nextFields);
     if (document.body.classList.contains('dragging-cursor')) {
       document.body.classList.remove('dragging-cursor');
     }
 
     const runCommit = () => {
+      const currentFields = getDisplayedFields();
+      const stateAlreadyUpdated = areDisplayedFieldsEqual(currentFields, nextFields);
+      if (
+        appliedOptimistically
+        && !stateAlreadyUpdated
+        && !areDisplayedFieldsEqual(currentFields, displayedFieldsBeforeMove)
+      ) {
+        return;
+      }
+
       queueColumnMutationRender({
         preserveScroll: true,
         scrollAnchorField: movedFieldName
       });
-      commit();
+
+      if (!stateAlreadyUpdated) {
+        commit();
+      }
+
       syncTableAfterColumnMutation({
         preserveScroll: true,
         scrollAnchorField: movedFieldName
@@ -369,7 +415,7 @@ let dragDropColumnOps;
     };
 
     if (appliedOptimistically) {
-      deferAuthoritativeColumnMove(runCommit);
+      deferAuthoritativeColumnMutation(runCommit);
       return;
     }
 
@@ -452,7 +498,7 @@ let dragDropColumnOps;
     const headerCell = table.querySelector(`thead th[data-col-index="${colIndex}"]`);
     const fieldName = headerCell ? getHeaderFieldName(headerCell) : null;
     if (!fieldName) return;
-    removeColumnsByFieldName(fieldName, { allRelated: true });
+    removeColumnsByFieldName(fieldName, { allRelated: true, table });
   }
 
   function addColumn(fieldName, insertAt = -1) {

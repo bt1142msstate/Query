@@ -2878,7 +2878,31 @@ async function exerciseDesktopResultsWorkflow(page) {
     const { QueryStateReaders } = await import('./src/core/queryState.js');
     return QueryStateReaders.getDisplayedFields().join('|') === 'Smoke Branch 1|Smoke Branch 2|Smoke Title|Smoke Status';
   }, null, { timeout: 5000 });
-  await page.locator('.fp-display-item', { hasText: 'Smoke Branch 2' }).locator('.fp-display-btn-remove').click();
+  const splitRemoval = await page.evaluate(() => {
+    const displayItem = Array.from(document.querySelectorAll('.fp-display-item'))
+      .find(item => (item.textContent || '').includes('Smoke Branch 2'));
+    const removeButton = displayItem?.querySelector('.fp-display-btn-remove');
+    const startedAt = performance.now();
+    removeButton?.click();
+    return {
+      branchHeadersRemaining: document.querySelectorAll('#example-table th[data-sort-field^="Smoke Branch"]').length,
+      bodyColumnCounts: Array.from(document.querySelectorAll('#example-table tbody tr'))
+        .map(row => row.querySelectorAll('td[data-col-index]').length),
+      durationMs: performance.now() - startedAt,
+      headers: Array.from(document.querySelectorAll('#example-table thead th[data-col-index]'))
+        .map(header => header.getAttribute('data-sort-field') || header.textContent.trim()),
+      removeButtonFound: Boolean(removeButton)
+    };
+  });
+  if (
+    !splitRemoval.removeButtonFound
+    || splitRemoval.headers.join('|') !== 'Smoke Title|Smoke Status'
+    || splitRemoval.branchHeadersRemaining !== 0
+    || !splitRemoval.bodyColumnCounts.every(count => count === 2)
+    || splitRemoval.durationMs > 120
+  ) {
+    throw new Error(`Split column removal should update the visible table immediately: ${JSON.stringify(splitRemoval)}`);
+  }
   await page.waitForFunction(async () => {
     const { QueryStateReaders } = await import('./src/core/queryState.js');
     const fields = QueryStateReaders.getDisplayedFields();
