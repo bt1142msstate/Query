@@ -15,7 +15,10 @@ let QueryTableView;
   const services = appServices;
   const uiActions = appUiActions;
   const getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
+  const DEFERRED_PROJECTION_SYNC_DELAY_MS = 350;
   let nextStateRenderOptions = null;
+  let deferredProjectionSyncPending = false;
+  let deferredProjectionSyncOptions = null;
 
   function areDisplayedFieldsEqual(left, right) {
     if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) {
@@ -201,11 +204,14 @@ let QueryTableView;
     });
   }
 
-  function syncOptimisticallyRenderedTable(options = {}) {
+  function syncProjectionFromCurrentState(options = {}) {
     services.syncVirtualTableProjectionFromQueryState?.({
       notify: true,
       recalculateWidths: false
     });
+    if (options.refreshBody === true) {
+      services.renderVirtualTable?.();
+    }
     services.syncColumnResizeModeUi?.();
     uiActions.syncTableViewportHeight();
     uiActions.updateCategoryCounts();
@@ -218,6 +224,56 @@ let QueryTableView;
     }
 
     preserveScrollAnchor(dom.tableContainer, options.scrollAnchorField || '');
+  }
+
+  function scheduleDeferredProjectionSync(options = {}) {
+    deferredProjectionSyncOptions = {
+      ...(deferredProjectionSyncOptions || {}),
+      ...options,
+      refreshBody: true
+    };
+
+    if (deferredProjectionSyncPending) {
+      return;
+    }
+
+    deferredProjectionSyncPending = true;
+
+    const run = () => {
+      const syncOptions = deferredProjectionSyncOptions || {};
+      deferredProjectionSyncPending = false;
+      deferredProjectionSyncOptions = null;
+      syncProjectionFromCurrentState(syncOptions);
+    };
+
+    if (typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          window.setTimeout(run, DEFERRED_PROJECTION_SYNC_DELAY_MS);
+        });
+      });
+      return;
+    }
+
+    window.setTimeout(run, DEFERRED_PROJECTION_SYNC_DELAY_MS);
+  }
+
+  function syncOptimisticallyRenderedTable(options = {}) {
+    if (options.skipProjectionSync === true || options.deferProjectionSync === true) {
+      uiActions.updateTableResultsLip();
+      uiActions.updateButtonStates();
+      services.syncColumnResizeModeUi?.();
+      uiActions.syncTableViewportHeight();
+      uiActions.updateCategoryCounts();
+      services.syncHeaderSortActionState();
+      preserveScrollAnchor(dom.tableContainer, options.scrollAnchorField || '');
+      if (options.deferProjectionSync === true && options.skipProjectionSync !== true) {
+        scheduleDeferredProjectionSync(options);
+      }
+      return;
+    }
+
+    syncProjectionFromCurrentState(options);
   }
 
 

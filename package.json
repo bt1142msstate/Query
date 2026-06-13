@@ -14,6 +14,7 @@
     "benchmark:post-filters": "node scripts/benchmarkPostFilters.mjs",
     "benchmark:sort": "node scripts/benchmarkSort.mjs",
     "benchmark:split-columns": "node scripts/benchmarkSplitColumns.mjs",
+    "benchmark:table-interactions": "node scripts/benchmarkTableInteractions.mjs",
     "benchmark:workbook": "node scripts/benchmarkWorkbookExport.mjs",
     "cache:bust": "node scripts/updateCacheBusting.mjs",
     "cache:bust:check": "node scripts/updateCacheBusting.mjs --check",

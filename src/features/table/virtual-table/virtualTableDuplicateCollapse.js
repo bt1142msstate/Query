@@ -7,6 +7,10 @@ function normalizeFieldList(fields) {
 function normalizeCellValueForKey(value) {
   if (value === undefined) return 'u:';
   if (value === null) return 'n:';
+  if (typeof value === 'string') return `s:${value.length}:${value}`;
+  if (typeof value === 'number') return `num:${value}`;
+  if (typeof value === 'boolean') return value ? 'b:1' : 'b:0';
+  if (typeof value === 'bigint') return `bi:${value}`;
   if (Array.isArray(value)) {
     return `a:[${value.map(normalizeCellValueForKey).join(',')}]`;
   }
@@ -27,13 +31,20 @@ function createProjectedRowKeyBuilder(fields, columnMap) {
     columns.has(field) ? columns.get(field) : -1
   ));
 
-  return row => columnIndexes
-    .map(columnIndex => (
-      columnIndex >= 0
+  return row => {
+    let key = '';
+    for (let index = 0; index < columnIndexes.length; index += 1) {
+      if (index > 0) {
+        key += '\x1E';
+      }
+
+      const columnIndex = columnIndexes[index];
+      key += columnIndex >= 0
         ? normalizeCellValueForKey(row?.[columnIndex])
-        : 'm:'
-    ))
-    .join('\x1E');
+        : 'm:';
+    }
+    return key;
+  };
 }
 
 function createDuplicateRowGroup({ key, row, rowIndex, displayedFields }) {
@@ -91,7 +102,8 @@ function collapseDuplicateProjectedRows({ rows, displayedFields, columnMap }) {
 
   const groupsByKey = new Map();
   const uniqueRows = [];
-  const uniqueRowGroups = [];
+  const duplicateRowGroups = [];
+  const firstSourceRowIndexes = [];
   const buildProjectedRowKey = createProjectedRowKeyBuilder(fields, columns);
   let collapsedRows = 0;
 
@@ -99,28 +111,35 @@ function collapseDuplicateProjectedRows({ rows, displayedFields, columnMap }) {
     const key = buildProjectedRowKey(row);
     const existingGroup = groupsByKey.get(key);
 
-    if (existingGroup) {
+    if (existingGroup && typeof existingGroup !== 'number') {
       addRowToDuplicateGroup(existingGroup, row, rowIndex);
       collapsedRows += 1;
       return;
     }
 
-    const group = createDuplicateRowGroup({
-      key,
-      row,
-      rowIndex,
-      displayedFields: fields
-    });
-    groupsByKey.set(key, group);
+    if (typeof existingGroup === 'number') {
+      const group = createDuplicateRowGroup({
+        key,
+        row: uniqueRows[existingGroup],
+        rowIndex: firstSourceRowIndexes[existingGroup],
+        displayedFields: fields
+      });
+      addRowToDuplicateGroup(group, row, rowIndex);
+      duplicateRowGroups[existingGroup] = group;
+      groupsByKey.set(key, group);
+      collapsedRows += 1;
+      return;
+    }
 
+    groupsByKey.set(key, uniqueRows.length);
+    firstSourceRowIndexes.push(rowIndex);
     uniqueRows.push(row);
-    uniqueRowGroups.push(group);
   });
 
   return {
     collapsedRows,
     displayedFields: fields,
-    duplicateRowGroups: collapsedRows > 0 ? cloneDuplicateRowGroups(uniqueRowGroups) : [],
+    duplicateRowGroups: collapsedRows > 0 ? cloneDuplicateRowGroups(duplicateRowGroups) : [],
     rows: collapsedRows > 0 ? uniqueRows : sourceRows,
     sourceRows: sourceRows.length,
     uniqueRows: uniqueRows.length

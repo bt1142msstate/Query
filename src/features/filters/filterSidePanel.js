@@ -23,6 +23,7 @@ import { QueryTableView } from '../../ui/queryTableView.js';
 import { DOM } from '../../core/domCache.js';
 
 const FilterSidePanel = (function () {
+    const DEFER_PROJECTION_ROW_THRESHOLD = 50000;
     const services = appServices;
     const uiActions = appUiActions;
     let currentViewMode = 'both';
@@ -319,12 +320,31 @@ const FilterSidePanel = (function () {
         return true;
     }
 
-    function queueOptimisticTableStateSync(metrics, scrollAnchorField) {
+    function queueOptimisticTableStateSync(metrics, scrollAnchorField, options = {}) {
+        const tableDomAlreadySynced = metrics?.changed === true && Number(metrics?.skippedBodyRows || 0) === 0;
         QueryTableView.queueNextStateRenderOptions({
             preserveScroll: true,
             scrollAnchorField: scrollAnchorField || '',
-            tableDomAlreadySynced: metrics?.changed === true && Number(metrics?.skippedBodyRows || 0) === 0
+            tableDomAlreadySynced,
+            skipProjectionSync: tableDomAlreadySynced && options.skipProjectionSync === true,
+            deferProjectionSync: tableDomAlreadySynced && shouldDeferProjectionSync()
         });
+        return tableDomAlreadySynced;
+    }
+
+    function shouldDeferProjectionSync() {
+        if (services.isDuplicateRowCollapseActive?.() !== true) {
+            return false;
+        }
+
+        const state = services.getVirtualTableState?.();
+        const baseRowCount = Array.isArray(state?.baseViewData?.rows)
+            ? state.baseViewData.rows.length
+            : 0;
+        const currentData = services.getVirtualTableData?.();
+        const currentRowCount = Array.isArray(currentData?.rows) ? currentData.rows.length : 0;
+
+        return Math.max(baseRowCount, currentRowCount) >= DEFER_PROJECTION_ROW_THRESHOLD;
     }
 
     function moveDisplayedField(fromIndex, toIndex, source) {
@@ -345,8 +365,11 @@ const FilterSidePanel = (function () {
 
             applyOptimisticDisplayListOrder(splitMove.fields);
             const moveMetrics = services.applyImmediateColumnOrder(splitMove.fields);
-            queueOptimisticTableStateSync(moveMetrics, splitMove.movedFields?.[0] || fields[fromIndex] || '');
+            const tableDomAlreadySynced = queueOptimisticTableStateSync(moveMetrics, splitMove.movedFields?.[0] || fields[fromIndex] || '', {
+                skipProjectionSync: true
+            });
             QueryChangeManager.replaceDisplayedFields(splitMove.fields, {
+                optimisticTableDomAlreadySynced: tableDomAlreadySynced,
                 source
             });
 
@@ -359,8 +382,11 @@ const FilterSidePanel = (function () {
         nextFields.splice(insertAt, 0, movedField);
         applyOptimisticDisplayListOrder(nextFields);
         const moveMetrics = services.applyImmediateColumnOrder(nextFields);
-        queueOptimisticTableStateSync(moveMetrics, movedField);
+        const tableDomAlreadySynced = queueOptimisticTableStateSync(moveMetrics, movedField, {
+            skipProjectionSync: true
+        });
         QueryChangeManager.moveDisplayedField(fromIndex, toIndex, {
+            optimisticTableDomAlreadySynced: tableDomAlreadySynced,
             source
         });
 
@@ -417,7 +443,13 @@ const FilterSidePanel = (function () {
             const scrollAnchorField = removal.fields[Math.min(index, removal.fields.length - 1)]
                 || removal.fields[Math.max(0, index - 1)]
                 || '';
-            queueOptimisticTableStateSync(removalMetrics, scrollAnchorField);
+            const tableDomAlreadySynced = queueOptimisticTableStateSync(removalMetrics, scrollAnchorField);
+            QueryChangeManager.hideField(fieldName, {
+                optimisticTableDomAlreadySynced: tableDomAlreadySynced,
+                tableDomAlreadySynced,
+                source: 'FilterSidePanel.removeDisplayedField'
+            });
+            return;
         }
 
         QueryChangeManager.hideField(fieldName, {

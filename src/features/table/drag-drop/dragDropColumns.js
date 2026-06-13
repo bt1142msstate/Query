@@ -26,6 +26,7 @@ import { fieldDefs, isFieldBuildable } from '../../filters/fieldDefs.js';
 let dragDropColumnOps;
 
 (function initializeDragDropColumns() {
+  const DEFER_PROJECTION_ROW_THRESHOLD = 50000;
   const getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
   const appState = AppState;
   const services = appServices;
@@ -80,11 +81,30 @@ let dragDropColumnOps;
   }
 
   function queueColumnMutationRender(options = {}) {
+    const tableDomAlreadySynced = options.tableDomAlreadySynced === true;
     QueryTableView.queueNextStateRenderOptions({
       preserveScroll: options.preserveScroll !== false,
       scrollAnchorField: options.scrollAnchorField || '',
-      tableDomAlreadySynced: options.tableDomAlreadySynced === true
+      tableDomAlreadySynced,
+      skipProjectionSync: tableDomAlreadySynced && options.skipProjectionSync === true,
+      deferProjectionSync: tableDomAlreadySynced && shouldDeferProjectionSync()
     });
+  }
+
+  function shouldDeferProjectionSync() {
+    if (services.isDuplicateRowCollapseActive?.() !== true) {
+      return false;
+    }
+
+    const state = services.getVirtualTableState?.();
+    const baseRowCount = Array.isArray(state?.baseViewData?.rows)
+      ? state.baseViewData.rows.length
+      : 0;
+    const currentRowCount = Array.isArray(services.getVirtualTableData?.()?.rows)
+      ? services.getVirtualTableData().rows.length
+      : 0;
+
+    return Math.max(baseRowCount, currentRowCount) >= DEFER_PROJECTION_ROW_THRESHOLD;
   }
 
   function areDisplayedFieldsEqual(left, right) {
@@ -223,6 +243,7 @@ let dragDropColumnOps;
 
       if (!stateAlreadyUpdated) {
         QueryChangeManager.replaceDisplayedFields(remainingFields, {
+          optimisticTableDomAlreadySynced: tableDomAlreadySynced,
           source: removal.isGroupRemoval ? 'DragDrop.removeSplitColumnGroup' : 'DragDrop.removeColumn'
         });
       }
@@ -416,11 +437,12 @@ let dragDropColumnOps;
       queueColumnMutationRender({
         preserveScroll: true,
         scrollAnchorField: movedFieldName,
-        tableDomAlreadySynced
+        tableDomAlreadySynced,
+        skipProjectionSync: true
       });
 
       if (!stateAlreadyUpdated) {
-        commit();
+        commit({ tableDomAlreadySynced });
       }
 
       syncTableAfterColumnMutation({
@@ -447,8 +469,9 @@ let dragDropColumnOps;
       movedFieldName,
       nextFields,
       table,
-      commit() {
+      commit({ tableDomAlreadySynced }) {
         QueryChangeManager.moveDisplayedField(fromIndex, toIndex, {
+          optimisticTableDomAlreadySynced: tableDomAlreadySynced,
           source: 'DragDrop.moveSingleColumn'
         });
       }
@@ -464,10 +487,11 @@ let dragDropColumnOps;
       movedFieldName,
       nextFields,
       table,
-      commit() {
+      commit({ tableDomAlreadySynced }) {
         QueryChangeManager.moveDisplayedField(groupIndices[0], targetIndex, {
           count: groupIndices.length,
           behavior: 'group',
+          optimisticTableDomAlreadySynced: tableDomAlreadySynced,
           source: 'DragDrop.moveColumnGroup'
         });
       }
@@ -492,8 +516,9 @@ let dragDropColumnOps;
         movedFieldName,
         nextFields: splitMove.fields,
         table,
-        commit() {
+        commit({ tableDomAlreadySynced }) {
           QueryChangeManager.replaceDisplayedFields(splitMove.fields, {
+            optimisticTableDomAlreadySynced: tableDomAlreadySynced,
             source: 'DragDrop.moveSplitColumnGroup'
           });
         }
