@@ -1714,6 +1714,43 @@ async function expectSplitTogglePreviewAnimation(page) {
   }, null, { timeout: 5000 });
 }
 
+async function expectDestructiveFlameAnimation(page, selector, label) {
+  const control = page.locator(selector);
+  await control.waitFor({ state: 'visible', timeout: 5000 });
+  await control.scrollIntoViewIfNeeded();
+
+  const beforeHoverState = await control.evaluate(element => ({
+    ariaDisabled: element.getAttribute('aria-disabled'),
+    disabled: Boolean(element.disabled),
+    flameCount: element.querySelectorAll('.destructive-flame-icon').length,
+    shapeCount: element.querySelectorAll('.destructive-flame-shape').length
+  }));
+  if (
+    beforeHoverState.disabled
+    || beforeHoverState.ariaDisabled === 'true'
+    || beforeHoverState.flameCount < 1
+    || beforeHoverState.shapeCount < 1
+  ) {
+    throw new Error(`${label} should be an enabled fire-icon control: ${JSON.stringify(beforeHoverState)}`);
+  }
+
+  await control.hover();
+  await page.waitForFunction(targetSelector => {
+    const shape = document.querySelector(`${targetSelector} .destructive-flame-shape`);
+    if (!shape) return false;
+
+    const style = window.getComputedStyle(shape);
+    return style.animationName.includes('destructiveFlameWave')
+      && style.animationIterationCount === 'infinite'
+      && style.filter !== 'none';
+  }, selector, { timeout: 5000 });
+
+  await page.evaluate(() => {
+    document.activeElement?.blur?.();
+  });
+  await page.mouse.move(8, 8);
+}
+
 async function expectSplitTogglePreferenceWithoutEligibleResults(page) {
   await page.evaluate(async () => {
     const { appUiActions } = await import('./src/core/appUiActions.js');
@@ -1854,6 +1891,7 @@ export {
   expectControlsNonSelectable,
   expectDarkInput,
   expectDarkSurface,
+  expectDestructiveFlameAnimation,
   expectElementWithinViewport,
   expectLightInput,
   expectMinimumTapTarget,

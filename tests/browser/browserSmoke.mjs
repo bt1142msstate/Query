@@ -13,6 +13,7 @@ import {
   expectControlsNonSelectable,
   expectDarkInput,
   expectDarkSurface,
+  expectDestructiveFlameAnimation,
   expectElementWithinViewport,
   expectLightInput,
   expectMinimumTapTarget,
@@ -1003,6 +1004,7 @@ async function runSmokeTest() {
 
     await seedLoadedResults(mobilePage);
     await mobilePage.locator('#table-with-filter').waitFor({ state: 'visible', timeout: 5000 });
+    await expectDestructiveFlameAnimation(mobilePage, '[data-mobile-table-action-target="clear-query-btn"]', 'Mobile clear query action');
     const mobileResultsLayout = await mobilePage.evaluate(() => {
       const visibleTop = selector => {
         const element = document.querySelector(selector);

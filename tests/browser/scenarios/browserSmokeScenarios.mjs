@@ -6,6 +6,7 @@ import {
   dragTouchLocator,
   encodeFormSpecForUrl,
   expectDarkInput,
+  expectDestructiveFlameAnimation,
   expectElementWithinViewport,
   exerciseMobileToastQueue,
   expectMinimumTapTarget,
@@ -2658,6 +2659,7 @@ async function exerciseDesktopResultsWorkflow(page) {
   await exerciseProjectedDuplicateCollapse(page);
   await seedLoadedResults(page);
   await expectResultsCount(page, '3', 'Desktop seeded results');
+  await expectDestructiveFlameAnimation(page, '#clear-query-btn', 'Desktop clear query button');
   await expectPostFilterStats(page, {
     filteredRows: 3,
     hasPostFilters: false,

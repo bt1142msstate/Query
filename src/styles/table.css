@@ -273,8 +273,7 @@
   transform-origin: 50% 78%;
 }
 
-.table-toolbar-btn-danger:is(:hover, :focus-visible, :active):not(:disabled) .destructive-flame-shape,
-.mobile-table-action-danger:is(:hover, :focus-visible, :active):not(:disabled) .destructive-flame-shape {
+:where(button, [role="button"], a):is(:hover, :focus-visible, :active):not(:disabled):not([aria-disabled="true"]) .destructive-flame-icon .destructive-flame-shape {
   animation: destructiveFlameWave 0.72s ease-in-out infinite;
   filter: drop-shadow(0 0 0.28rem rgba(239, 68, 68, 0.32));
 }
@@ -299,8 +298,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .table-toolbar-btn-danger:is(:hover, :focus-visible, :active):not(:disabled) .destructive-flame-shape,
-  .mobile-table-action-danger:is(:hover, :focus-visible, :active):not(:disabled) .destructive-flame-shape {
+  :where(button, [role="button"], a):is(:hover, :focus-visible, :active):not(:disabled):not([aria-disabled="true"]) .destructive-flame-icon .destructive-flame-shape {
     animation: none;
     filter: none;
   }
