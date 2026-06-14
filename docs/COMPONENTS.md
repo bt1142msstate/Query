@@ -7,6 +7,7 @@ Use these public component entrypoints for outside integrations:
 ```js
 import {
   createVirtualTableComponent,
+  createVirtualRenderPlan,
   createColumnDragDropComponent,
   createWorkbookExportComponent,
   CustomDatePicker,
@@ -21,14 +22,18 @@ Do not import from `src/features/...` in another site unless you are intentional
 Entrypoint:
 
 ```js
-import { createVirtualTableComponent } from './src/components/virtual-table/index.js';
+import {
+  createVirtualRenderPlan,
+  createVirtualTableComponent
+} from './src/components/virtual-table/index.js';
 ```
 
-The virtual-table component is a headless data projection layer. It keeps the reusable behavior separate from this app's DOM shell:
+The virtual-table component is a headless data projection and render-planning layer. It keeps the reusable behavior separate from this app's DOM shell:
 
 - normalizes headers, rows, and column maps
 - expands JSON-array or serialized multi-value cells into numbered split columns
 - collapses duplicate rows based on the currently displayed columns
+- calculates bounded virtual row windows for scroll rendering
 - returns table data that a host site can render with its own UI
 
 Example:
@@ -56,9 +61,21 @@ console.log(projection.tableData.rows.length);
 
 table.setSplitColumns(true);
 console.log(table.displayedFields);
+
+const renderPlan = createVirtualRenderPlan({
+  rowCount: projection.tableData.rows.length,
+  scrollTop: viewport.scrollTop,
+  containerHeight: viewport.clientHeight,
+  headerHeight: header.offsetHeight,
+  rowHeight: 42
+});
+
+for (let index = renderPlan.start; index < renderPlan.end; index += 1) {
+  renderRow(projection.tableData.rows[index], index);
+}
 ```
 
-This entrypoint does not mount a table by itself. It is intentionally usable in any UI framework or plain DOM page.
+This entrypoint does not mount a table by itself. It is intentionally usable in any UI framework or plain DOM page. The render plan keeps scroll work proportional to the visible row window plus overscan, not the total result count.
 
 ## Drag And Drop
 
