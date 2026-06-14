@@ -761,6 +761,7 @@ let PostFilterSystem;
       if (
         event?.meta?.source === 'VirtualTable.setSplitMode'
         || event?.meta?.optimisticTableDomAlreadySynced === true
+        || event?.meta?.skipPostFilterRefresh === true
       ) {
         return;
       }

@@ -24,6 +24,13 @@ function createQueryFieldPickerIntegration(options) {
   const { getDisplayedFields, getFilterGroupForField } = QueryStateReaders;
 
   function replaceDisplayedFieldSelection(fieldName, nextChecked, insertAt, source) {
+    if (nextChecked && !getDisplayedFields().some(column => fieldMatchesBase(column, fieldName))) {
+      if (QueryChangeManager) {
+        QueryChangeManager.showField(fieldName, { insertAt, source });
+      }
+      return;
+    }
+
     const nextFields = buildNextDisplayedFieldsForPicker(
       getDisplayedFields(),
       fieldName,

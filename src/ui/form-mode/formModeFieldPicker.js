@@ -301,7 +301,7 @@ function handleDisplayChange({
 
   if (nextChecked) {
     if (!QueryStateReaders.hasDisplayedField(fieldName)) {
-      QueryChangeManager.addDisplayedField(fieldName, {
+      QueryChangeManager.showField(fieldName, {
         source: 'QueryFormMode.fieldPicker.addDisplayedField'
       });
       syncSpecColumnsWithDisplayedFields({ refreshUrl: false });
