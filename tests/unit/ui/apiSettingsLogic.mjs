@@ -77,3 +77,19 @@ test('api settings helpers expose connection mode and field extraction', async (
   assert.deepEqual(module.extractFields({ fields: [{ name: 'Example' }] }), [{ name: 'Example' }]);
   assert.deepEqual(module.extractFields({ rows: [] }), []);
 });
+
+test('api settings async guard ignores stale checks after endpoint edits', async () => {
+  installBrowserConfig('https://app.example.test/index.html');
+  const module = await import(`../../../src/ui/apiSettings.js?case=guard-${Date.now()}`);
+  const guard = module.createApiSettingsAsyncGuard();
+
+  const firstCheck = guard.next();
+  assert.equal(guard.isCurrent(firstCheck), true);
+
+  guard.invalidate();
+  assert.equal(guard.isCurrent(firstCheck), false);
+
+  const secondCheck = guard.next();
+  assert.equal(guard.isCurrent(firstCheck), false);
+  assert.equal(guard.isCurrent(secondCheck), true);
+});

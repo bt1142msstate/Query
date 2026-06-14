@@ -14,6 +14,37 @@ const DEFAULT_TEST_TIMEOUT_MS = 10000;
 let initialized = false;
 let pendingReloadHref = '';
 
+function createApiSettingsAsyncGuard() {
+  let version = 0;
+
+  return Object.freeze({
+    invalidate() {
+      version += 1;
+      return version;
+    },
+    isCurrent(token) {
+      return token === version;
+    },
+    next() {
+      version += 1;
+      return version;
+    }
+  });
+}
+
+const asyncActionGuard = createApiSettingsAsyncGuard();
+
+function invalidateAsyncActions(options = {}) {
+  asyncActionGuard.invalidate();
+  if (options.releaseButtons === false) {
+    return;
+  }
+
+  const { compatibilityButton, testButton } = getElements();
+  setBusy(compatibilityButton, false);
+  setBusy(testButton, false);
+}
+
 function normalizeApiUrlForHref(value, currentHref) {
   const rawValue = String(value || '').trim();
   if (!rawValue) {
@@ -293,6 +324,7 @@ function handleSave() {
     return;
   }
 
+  invalidateAsyncActions();
   configureApiUrl(normalized);
   sync();
   showReloadPrompt(buildApiLaunchUrl(globalThis.location?.href || 'http://localhost/', normalized));
@@ -301,6 +333,7 @@ function handleSave() {
 }
 
 function handleReset() {
+  invalidateAsyncActions();
   resetApiUrl();
   sync();
   showReloadPrompt(buildPageUrlWithoutApiParams(globalThis.location?.href || 'http://localhost/'));
@@ -338,20 +371,29 @@ async function handleTestConnection() {
     return;
   }
 
+  const actionToken = asyncActionGuard.next();
   setBusy(testButton, true);
   setStatus('Testing field metadata endpoint...', 'info');
 
   try {
     const { data } = await postJsonToApiUrl(targetUrl, { action: 'get_fields' });
+    if (!asyncActionGuard.isCurrent(actionToken)) {
+      return;
+    }
     const fields = extractFields(data);
     if (!fields.length) {
       throw new Error('The API responded, but no fields were returned.');
     }
     setStatus(`Connected. Loaded ${fields.length} field${fields.length === 1 ? '' : 's'}.`, 'success');
   } catch (error) {
+    if (!asyncActionGuard.isCurrent(actionToken)) {
+      return;
+    }
     setStatus(getConnectionErrorMessage(error), 'error');
   } finally {
-    setBusy(testButton, false);
+    if (asyncActionGuard.isCurrent(actionToken)) {
+      setBusy(testButton, false);
+    }
   }
 }
 
@@ -363,12 +405,16 @@ async function handleCompatibilityCheck() {
     return;
   }
 
+  const actionToken = asyncActionGuard.next();
   setBusy(compatibilityButton, true);
   setStatus('Running API compatibility checks...', 'info');
   resetCompatibilityReport();
 
   try {
     const report = await runApiCompatibilityCheck(targetUrl);
+    if (!asyncActionGuard.isCurrent(actionToken)) {
+      return;
+    }
     renderCompatibilityReport(report);
     const summary = report.summary || summarizeCompatibilityChecks(report.checks);
     const tone = summary.failed || summary.missing ? 'warning' : summary.warning ? 'warning' : 'success';
@@ -379,6 +425,9 @@ async function handleCompatibilityCheck() {
         : 'Compatibility check passed.';
     setStatus(message, tone);
   } catch (error) {
+    if (!asyncActionGuard.isCurrent(actionToken)) {
+      return;
+    }
     renderCompatibilityReport({
       checks: [{
         detail: getConnectionErrorMessage(error),
@@ -389,7 +438,9 @@ async function handleCompatibilityCheck() {
     });
     setStatus(getConnectionErrorMessage(error), 'error');
   } finally {
-    setBusy(compatibilityButton, false);
+    if (asyncActionGuard.isCurrent(actionToken)) {
+      setBusy(compatibilityButton, false);
+    }
   }
 }
 
@@ -404,7 +455,10 @@ function bindEvents() {
     testButton
   } = getElements();
 
-  input?.addEventListener('input', updateLaunchUrl);
+  input?.addEventListener('input', () => {
+    invalidateAsyncActions();
+    updateLaunchUrl();
+  });
   saveButton?.addEventListener('click', handleSave);
   resetButton?.addEventListener('click', handleReset);
   reloadButton?.addEventListener('click', handleReload);
@@ -437,6 +491,7 @@ export {
   ApiSettings,
   buildApiLaunchUrl,
   buildPageUrlWithoutApiParams,
+  createApiSettingsAsyncGuard,
   extractFields,
   getApiConnectionMode,
   normalizeApiUrlForHref,

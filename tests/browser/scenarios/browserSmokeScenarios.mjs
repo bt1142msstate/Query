@@ -3199,11 +3199,27 @@ async function exerciseZeroResultQueryWorkflow(page, queryApiStub) {
     }
   ]);
 
-  await page.locator('#run-query-btn').click();
+  const runRequestCountBeforeRapidClick = queryApiStub.countAction('run');
+  await page.evaluate(() => {
+    const runButton = document.querySelector('#run-query-btn');
+    runButton?.click();
+    runButton?.click();
+  });
   await page.waitForFunction(async () => {
     const { QueryStateReaders } = await import('./src/core/queryState.js');
     return QueryStateReaders.getLifecycleState().queryRunning === true;
   }, null, { timeout: 5000 });
+  const rapidClickWaitStart = Date.now();
+  while (
+    queryApiStub.countAction('run') < runRequestCountBeforeRapidClick + 1
+    && Date.now() - rapidClickWaitStart < 5000
+  ) {
+    await page.waitForTimeout(25);
+  }
+  const runRequestCountAfterRapidClick = queryApiStub.countAction('run');
+  if (runRequestCountAfterRapidClick !== runRequestCountBeforeRapidClick + 1) {
+    throw new Error(`Rapid run clicks should start exactly one backend run. Saw ${runRequestCountAfterRapidClick - runRequestCountBeforeRapidClick}.`);
+  }
   const inFlightRunUrlState = await page.evaluate(() => ({
     remembered: window.localStorage.getItem('query:lastOpenedHistoryResult'),
     result: new URL(window.location.href).searchParams.get('result'),
