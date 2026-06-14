@@ -1,5 +1,5 @@
 {
-  "version": "c0d34d20df0d3661",
+  "version": "8c58b9a4821cb480",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -134,7 +134,7 @@
     "src/features/table/virtual-table/tableSort.js": "209025137d0c0552",
     "src/features/table/virtual-table/virtualTable.js": "89603473a5347a14",
     "src/features/table/virtual-table/virtualTableDuplicateCollapse.js": "394fe866a5f56ba1",
-    "src/features/table/virtual-table/virtualTablePostFilters.js": "c297560105d95848",
+    "src/features/table/virtual-table/virtualTablePostFilters.js": "337516941e5ecade",
     "src/features/table/virtual-table/virtualTableRows.js": "499b8779edbf78c8",
     "src/features/templates/category/queryTemplateCategoryActions.js": "8288dc05858b0451",
     "src/features/templates/category/queryTemplateCategoryView.js": "62317b7affbc9887",
