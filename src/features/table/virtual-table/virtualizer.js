@@ -1,5 +1,6 @@
 const DEFAULT_FALLBACK_VIEWPORT_HEIGHT = 400;
 const DEFAULT_FULL_RENDER_ROW_LIMIT = 500;
+const DEFAULT_MAX_OVERSCAN_ROWS = 72;
 const DEFAULT_OVERSCAN_ROWS = 10;
 const DEFAULT_ROW_HEIGHT = 42;
 
@@ -29,7 +30,6 @@ function getAvailableBodyHeight({ containerHeight, headerHeight, rowHeight, fall
 function calculateVirtualRowRange(options = {}) {
   const rowCount = normalizeCount(options.rowCount);
   const rowHeight = normalizePositiveNumber(options.rowHeight, DEFAULT_ROW_HEIGHT);
-  const overscanRows = normalizeCount(options.overscanRows ?? DEFAULT_OVERSCAN_ROWS);
   const containerHeight = normalizeNonNegativeNumber(options.containerHeight);
   const headerHeight = normalizeNonNegativeNumber(options.headerHeight);
   const fallbackViewportHeight = normalizePositiveNumber(
@@ -41,6 +41,14 @@ function calculateVirtualRowRange(options = {}) {
     headerHeight,
     rowHeight,
     fallbackViewportHeight
+  });
+  const visibleRows = rowCount === 0 ? 0 : Math.max(1, Math.ceil(availableBodyHeight / rowHeight));
+  const overscanRows = calculateAdaptiveOverscanRows({
+    baseOverscanRows: options.overscanRows,
+    maxOverscanRows: options.maxOverscanRows,
+    rowHeight,
+    scrollDelta: options.scrollDelta,
+    visibleRows
   });
   const totalHeight = rowCount * rowHeight;
   const maxScrollTop = Math.max(0, totalHeight - availableBodyHeight);
@@ -63,7 +71,6 @@ function calculateVirtualRowRange(options = {}) {
     };
   }
 
-  const visibleRows = Math.max(1, Math.ceil(availableBodyHeight / rowHeight));
   const maxBaseStart = Math.max(0, rowCount - visibleRows);
   const baseStart = Math.min(Math.floor(scrollTop / rowHeight), maxBaseStart);
   const start = Math.max(0, baseStart - overscanRows);
@@ -87,6 +94,15 @@ function calculateVirtualRowRange(options = {}) {
 
 function shouldVirtualizeRows(rowCount, fullRenderRowLimit = DEFAULT_FULL_RENDER_ROW_LIMIT) {
   return normalizeCount(rowCount) > normalizeCount(fullRenderRowLimit);
+}
+
+function calculateAdaptiveOverscanRows(options = {}) {
+  const rowHeight = normalizePositiveNumber(options.rowHeight, DEFAULT_ROW_HEIGHT);
+  const baseOverscanRows = normalizeCount(options.baseOverscanRows ?? DEFAULT_OVERSCAN_ROWS);
+  const maxOverscanRows = Math.max(baseOverscanRows, normalizeCount(options.maxOverscanRows ?? DEFAULT_MAX_OVERSCAN_ROWS));
+  const scrollDeltaRows = Math.ceil(normalizeNonNegativeNumber(options.scrollDelta) / rowHeight);
+  const velocityOverscanRows = scrollDeltaRows > 0 ? Math.ceil(scrollDeltaRows * 0.45) : 0;
+  return Math.min(maxOverscanRows, Math.max(baseOverscanRows, velocityOverscanRows));
 }
 
 function createVirtualRenderPlan(options = {}) {
@@ -120,8 +136,10 @@ function createVirtualRenderPlan(options = {}) {
 
 export {
   DEFAULT_FULL_RENDER_ROW_LIMIT,
+  DEFAULT_MAX_OVERSCAN_ROWS,
   DEFAULT_OVERSCAN_ROWS,
   DEFAULT_ROW_HEIGHT,
+  calculateAdaptiveOverscanRows,
   calculateVirtualRowRange,
   createVirtualRenderPlan,
   shouldVirtualizeRows

@@ -1690,6 +1690,70 @@ async function exerciseVirtualTableScrollInteraction(page) {
   if (boundaryMetrics.bodyScrollY !== 0) {
     throw new Error(`Virtual table leaked wheel scrolling to the page at the result boundary: ${JSON.stringify(boundaryMetrics)}`);
   }
+
+  await seedLoadedResults(page, { rowCount: 2400 });
+  await page.waitForFunction(() => {
+    return document.querySelector('#example-table tbody')?.classList.contains('query-table-virtual-body') || false;
+  }, null, { timeout: 5000 });
+
+  const fastScrollMetrics = await page.evaluate(async () => {
+    const { appServices } = await import('./src/core/appServices.js');
+    const container = document.querySelector('#table-container');
+    const header = document.querySelector('#example-table thead th');
+    const tbody = document.querySelector('#example-table tbody');
+    if (!container || !header || !tbody) {
+      return { error: 'missing table pieces', samples: [], usesVirtualBody: false };
+    }
+
+    const rowHeight = Math.max(1, Number(appServices.getVirtualTableState?.()?.tableRowHeight || 42));
+    const readVisibleSample = () => {
+      const containerRect = container.getBoundingClientRect();
+      const headerRect = header.getBoundingClientRect();
+      const visibleRow = document
+        .elementFromPoint(containerRect.left + 80, headerRect.bottom + 8)
+        ?.closest('tr[data-row-index]');
+      const rowIndex = visibleRow ? Number(visibleRow.dataset.rowIndex || 0) : -1;
+      const expectedRowIndex = Math.floor(container.scrollTop / rowHeight);
+      return {
+        deltaFromExpected: rowIndex >= 0 ? Math.abs(rowIndex - expectedRowIndex) : Number.POSITIVE_INFINITY,
+        expectedRowIndex,
+        renderedRowCount: document.querySelectorAll('#example-table tbody tr[data-row-index]').length,
+        rowIndex,
+        scrollTop: container.scrollTop
+      };
+    };
+
+    const maxTop = Math.max(0, container.scrollHeight - container.clientHeight);
+    const targets = [42000, 84000, 21000, Math.max(0, maxTop - 1200)];
+    const samples = [];
+    for (const target of targets) {
+      container.scrollTop = Math.max(0, Math.min(target, maxTop));
+      container.dispatchEvent(new Event('scroll', { bubbles: true }));
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      samples.push(readVisibleSample());
+    }
+
+    return {
+      maxTop,
+      samples,
+      usesVirtualBody: tbody.classList.contains('query-table-virtual-body')
+    };
+  });
+
+  if (
+    fastScrollMetrics.error
+    || !fastScrollMetrics.usesVirtualBody
+    || fastScrollMetrics.samples.length !== 4
+    || fastScrollMetrics.samples.some(sample => (
+      sample.rowIndex < 0
+      || sample.deltaFromExpected > 3
+      || sample.renderedRowCount <= 0
+      || sample.renderedRowCount > 180
+    ))
+  ) {
+    throw new Error(`Fast virtual table scrolling should keep a bounded, nonblank viewport: ${JSON.stringify(fastScrollMetrics)}`);
+  }
 }
 
 async function exerciseExpandedVirtualTableColumnAlignment(page) {

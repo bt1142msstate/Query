@@ -32,8 +32,10 @@ export {
 } from '../../features/table/virtual-table/tableColumnWidthCalculation.js';
 export {
   DEFAULT_FULL_RENDER_ROW_LIMIT,
+  DEFAULT_MAX_OVERSCAN_ROWS,
   DEFAULT_OVERSCAN_ROWS,
   DEFAULT_ROW_HEIGHT,
+  calculateAdaptiveOverscanRows,
   calculateVirtualRowRange,
   createVirtualRenderPlan,
   shouldVirtualizeRows
