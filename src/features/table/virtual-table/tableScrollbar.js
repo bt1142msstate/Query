@@ -1,6 +1,10 @@
 const TABLE_SCROLLBAR_MIN_THUMB_HEIGHT = 40;
 const TABLE_SCROLLBAR_FALLBACK_SIZE = 12;
 
+function clampScrollTop(value, maxScroll) {
+  return Math.max(0, Math.min(Number(value) || 0, maxScroll));
+}
+
 function getMaxScroll(container) {
   if (!container) return 0;
   return Math.max(0, container.scrollHeight - container.clientHeight);
@@ -31,37 +35,27 @@ function getHorizontalGutter(container) {
 
 export function createTableScrollbarController(options = {}) {
   let elements = null;
+  let isDragging = false;
+  let layoutMetrics = null;
+  let pendingDragScrollTop = null;
+  let pendingGeometryRefresh = false;
+  let scrollDragFrame = 0;
   let syncFrame = 0;
   const getRowHeight = typeof options.getRowHeight === 'function'
     ? options.getRowHeight
     : () => 42;
 
-  function updateAria(container, track) {
-    track.setAttribute('aria-valuemax', String(Math.round(getMaxScroll(container))));
+  function handleResize() {
+    scheduleSync({ refreshGeometry: true });
+  }
+
+  function updateAria(container, track, maxScroll = getMaxScroll(container)) {
+    track.setAttribute('aria-valuemax', String(Math.round(maxScroll)));
     track.setAttribute('aria-valuenow', String(Math.round(container.scrollTop)));
   }
 
-  function sync() {
-    syncFrame = 0;
-
-    const container = elements?.container;
-    const host = elements?.host;
-    const track = elements?.track;
-    const thumb = elements?.thumb;
-    if (!container || !host || !track || !thumb) return;
-
+  function readLayoutMetrics(container, host, track, thumb) {
     const maxScroll = getMaxScroll(container);
-    const shouldShowScrollbar = maxScroll > 1;
-    container.classList.toggle('has-vertical-scroll', shouldShowScrollbar);
-    track.classList.toggle('is-visible', shouldShowScrollbar);
-    updateAria(container, track);
-
-    if (!shouldShowScrollbar) {
-      thumb.style.height = '';
-      thumb.style.transform = '';
-      return;
-    }
-
     const headerOffset = getHeaderOffset(container);
     const horizontalGutter = getHorizontalGutter(container);
     const hostRect = host.getBoundingClientRect();
@@ -76,15 +70,62 @@ export function createTableScrollbarController(options = {}) {
       Math.max(TABLE_SCROLLBAR_MIN_THUMB_HEIGHT, Math.round((container.clientHeight / container.scrollHeight) * trackHeight))
     );
     const maxThumbTop = Math.max(0, trackHeight - thumbHeight);
-    const thumbTop = maxScroll > 0 ? (container.scrollTop / maxScroll) * maxThumbTop : 0;
-
     thumb.style.height = `${thumbHeight}px`;
-    thumb.style.transform = `translateY(${Math.round(thumbTop)}px)`;
+
+    return {
+      maxScroll,
+      maxThumbTop,
+      thumbHeight,
+      trackHeight,
+      trackTop: containerRect.top + headerOffset
+    };
   }
 
-  function scheduleSync() {
+  function sync(options = {}) {
+    syncFrame = 0;
+    const shouldRefreshGeometry = options.refreshGeometry === true;
+
+    const container = elements?.container;
+    const host = elements?.host;
+    const track = elements?.track;
+    const thumb = elements?.thumb;
+    if (!container || !host || !track || !thumb) return null;
+
+    const maxScroll = shouldRefreshGeometry || !layoutMetrics
+      ? getMaxScroll(container)
+      : layoutMetrics.maxScroll;
+    const shouldShowScrollbar = maxScroll > 1;
+    container.classList.toggle('has-vertical-scroll', shouldShowScrollbar);
+    track.classList.toggle('is-visible', shouldShowScrollbar);
+    updateAria(container, track, maxScroll);
+
+    if (!shouldShowScrollbar) {
+      layoutMetrics = null;
+      thumb.style.height = '';
+      thumb.style.transform = '';
+      return null;
+    }
+
+    const metrics = shouldRefreshGeometry || !layoutMetrics
+      ? readLayoutMetrics(container, host, track, thumb)
+      : layoutMetrics;
+    layoutMetrics = metrics;
+
+    const thumbTop = metrics.maxScroll > 0
+      ? (container.scrollTop / metrics.maxScroll) * metrics.maxThumbTop
+      : 0;
+    thumb.style.transform = `translateY(${Math.round(thumbTop)}px)`;
+    return metrics;
+  }
+
+  function scheduleSync(options = {}) {
+    pendingGeometryRefresh = pendingGeometryRefresh || options.refreshGeometry === true;
     if (syncFrame) return;
-    syncFrame = requestAnimationFrame(sync);
+    syncFrame = requestAnimationFrame(() => {
+      const refreshGeometry = pendingGeometryRefresh;
+      pendingGeometryRefresh = false;
+      sync({ refreshGeometry });
+    });
   }
 
   function scrollFromPointer(clientY) {
@@ -93,12 +134,32 @@ export function createTableScrollbarController(options = {}) {
     const thumb = elements?.thumb;
     if (!container || !track || !thumb) return;
 
-    const maxScroll = getMaxScroll(container);
-    const trackRect = track.getBoundingClientRect();
-    const thumbHeight = thumb.getBoundingClientRect().height || TABLE_SCROLLBAR_MIN_THUMB_HEIGHT;
-    const maxThumbTop = Math.max(1, trackRect.height - thumbHeight);
-    const localThumbTop = Math.max(0, Math.min(clientY - trackRect.top - (thumbHeight / 2), maxThumbTop));
-    container.scrollTop = (localThumbTop / maxThumbTop) * maxScroll;
+    const metrics = sync({ refreshGeometry: !layoutMetrics });
+    if (!metrics) return;
+
+    const maxThumbTop = Math.max(1, metrics.maxThumbTop);
+    const localThumbTop = Math.max(0, Math.min(clientY - metrics.trackTop - (metrics.thumbHeight / 2), maxThumbTop));
+    container.scrollTop = (localThumbTop / maxThumbTop) * metrics.maxScroll;
+  }
+
+  function flushPendingDragScroll() {
+    const container = elements?.container;
+    const maxScroll = layoutMetrics?.maxScroll ?? getMaxScroll(container);
+    if (!container || pendingDragScrollTop === null) return;
+
+    const nextScrollTop = clampScrollTop(pendingDragScrollTop, maxScroll);
+    pendingDragScrollTop = null;
+    container.scrollTop = nextScrollTop;
+  }
+
+  function queueDragScroll(nextScrollTop) {
+    pendingDragScrollTop = nextScrollTop;
+    if (scrollDragFrame) return;
+
+    scrollDragFrame = requestAnimationFrame(() => {
+      scrollDragFrame = 0;
+      flushPendingDragScroll();
+    });
   }
 
   function handleKeydown(event) {
@@ -143,13 +204,13 @@ export function createTableScrollbarController(options = {}) {
     if (!container || !track || !thumb || event.button !== 0) return;
 
     event.preventDefault();
+    isDragging = true;
     track.classList.add('is-dragging');
     track.setPointerCapture?.(event.pointerId);
 
-    const maxScroll = getMaxScroll(container);
-    const trackRect = track.getBoundingClientRect();
-    const thumbHeight = thumb.getBoundingClientRect().height || TABLE_SCROLLBAR_MIN_THUMB_HEIGHT;
-    const maxThumbTop = Math.max(1, trackRect.height - thumbHeight);
+    const metrics = sync({ refreshGeometry: true });
+    const maxScroll = metrics?.maxScroll ?? getMaxScroll(container);
+    const maxThumbTop = Math.max(1, metrics?.maxThumbTop ?? 1);
     const startY = event.clientY;
     let startScrollTop = container.scrollTop;
 
@@ -162,13 +223,20 @@ export function createTableScrollbarController(options = {}) {
       if (moveEvent.pointerId !== event.pointerId) return;
       moveEvent.preventDefault();
       const nextScrollTop = startScrollTop + ((moveEvent.clientY - startY) / maxThumbTop) * maxScroll;
-      container.scrollTop = Math.max(0, Math.min(nextScrollTop, maxScroll));
+      queueDragScroll(nextScrollTop);
     };
 
     const handlePointerUp = upEvent => {
       if (upEvent.pointerId !== event.pointerId) return;
+      if (scrollDragFrame) {
+        cancelAnimationFrame(scrollDragFrame);
+        scrollDragFrame = 0;
+      }
+      flushPendingDragScroll();
+      isDragging = false;
       track.classList.remove('is-dragging');
       track.releasePointerCapture?.(event.pointerId);
+      scheduleSync();
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
       window.removeEventListener('pointercancel', handlePointerUp);
@@ -185,13 +253,14 @@ export function createTableScrollbarController(options = {}) {
     const host = container.closest('#table-shell') || container.parentElement || container;
     const existingTrack = host.querySelector('.table-scrollbar');
     if (elements?.container === container && existingTrack) {
-      scheduleSync();
+      scheduleSync({ refreshGeometry: true });
       return;
     }
 
     if (elements?.track) {
       elements.track.removeEventListener('pointerdown', handlePointerDown);
       elements.track.removeEventListener('keydown', handleKeydown);
+      window.removeEventListener('resize', handleResize);
       if (elements.track !== existingTrack) {
         elements.track.remove();
       }
@@ -214,10 +283,11 @@ export function createTableScrollbarController(options = {}) {
 
     track.addEventListener('pointerdown', handlePointerDown);
     track.addEventListener('keydown', handleKeydown);
-    window.addEventListener('resize', scheduleSync);
+    window.addEventListener('resize', handleResize);
     container.classList.add('table-scrollbar-enhanced');
     elements = { container, host, track, thumb };
-    scheduleSync();
+    layoutMetrics = null;
+    scheduleSync({ refreshGeometry: true });
   }
 
   function remove() {
@@ -225,21 +295,30 @@ export function createTableScrollbarController(options = {}) {
       cancelAnimationFrame(syncFrame);
       syncFrame = 0;
     }
+    if (scrollDragFrame) {
+      cancelAnimationFrame(scrollDragFrame);
+      scrollDragFrame = 0;
+    }
 
     if (elements?.track) {
       elements.track.removeEventListener('pointerdown', handlePointerDown);
       elements.track.removeEventListener('keydown', handleKeydown);
       elements.track.remove();
     }
-    window.removeEventListener('resize', scheduleSync);
+    window.removeEventListener('resize', handleResize);
 
     elements?.container?.classList.remove('has-vertical-scroll');
     elements?.container?.classList.remove('table-scrollbar-enhanced');
+    isDragging = false;
+    layoutMetrics = null;
+    pendingDragScrollTop = null;
+    pendingGeometryRefresh = false;
     elements = null;
   }
 
   return {
     attach,
+    isDragging: () => isDragging,
     remove,
     scheduleSync,
     sync

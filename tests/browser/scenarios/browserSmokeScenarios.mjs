@@ -1522,6 +1522,93 @@ async function exerciseLegacyFormUrlCanonicalization(page, baseUrl, failures) {
   }
 }
 
+async function exerciseLargeVirtualScrollbarThumbDragPerformance(page) {
+  await seedLoadedResults(page, { includeDate: true, longTitle: true, rowCount: 100000 });
+  await page.waitForFunction(() => {
+    return document.querySelector('#example-table tbody')?.classList.contains('query-table-virtual-body') || false;
+  }, null, { timeout: 5000 });
+
+  await page.evaluate(() => {
+    window.__largeVirtualThumbDragMetrics = { longTasks: [], renderTimes: [], scrollTimes: [] };
+    document.addEventListener('query-table-body-rendered', () => {
+      window.__largeVirtualThumbDragMetrics?.renderTimes?.push(performance.now());
+    });
+    document.querySelector('#table-container')?.addEventListener('scroll', () => {
+      window.__largeVirtualThumbDragMetrics?.scrollTimes?.push(performance.now());
+    }, { passive: true });
+
+    try {
+      const observer = new PerformanceObserver(list => {
+        window.__largeVirtualThumbDragMetrics?.longTasks?.push(
+          ...list.getEntries().map(entry => entry.duration)
+        );
+      });
+      observer.observe({ entryTypes: ['longtask'] });
+      window.__largeVirtualThumbDragObserver = observer;
+    } catch {
+      // Some browser builds do not expose longtask entries in headless mode.
+    }
+  });
+
+  const thumb = page.locator('.table-scrollbar-thumb');
+  await thumb.waitFor({ state: 'visible', timeout: 5000 });
+  const thumbBox = await thumb.boundingBox();
+  const trackBox = await page.locator('.table-scrollbar').boundingBox();
+  if (!thumbBox || !trackBox) {
+    throw new Error(`Large virtual table thumb drag target was not measurable: ${JSON.stringify({ thumbBox, trackBox })}`);
+  }
+
+  const startX = Math.round(thumbBox.x + (thumbBox.width / 2));
+  const startY = Math.round(thumbBox.y + Math.min(8, thumbBox.height / 2));
+  const endY = Math.round(trackBox.y + trackBox.height - 20);
+  const startedAt = Date.now();
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX, endY, { steps: 90 });
+  await page.mouse.up();
+  await page.waitForTimeout(250);
+
+  const dragMetrics = await page.evaluate(elapsedMs => {
+    const metrics = window.__largeVirtualThumbDragMetrics || { longTasks: [], renderTimes: [], scrollTimes: [] };
+    window.__largeVirtualThumbDragObserver?.disconnect?.();
+    const container = document.querySelector('#table-container');
+    const rows = Array.from(document.querySelectorAll('#example-table tbody tr[data-row-index]'))
+      .map(row => Number(row.dataset.rowIndex || 0));
+    const scrollGaps = metrics.scrollTimes.slice(1).map((time, index) => time - metrics.scrollTimes[index]);
+    const sortedGaps = [...scrollGaps].sort((a, b) => a - b);
+    const sortedLongTasks = [...metrics.longTasks].sort((a, b) => a - b);
+    const percentile = (values, p) => (
+      values.length ? values[Math.min(values.length - 1, Math.floor(values.length * p))] : 0
+    );
+
+    return {
+      elapsedMs,
+      firstRenderedRow: rows[0] ?? -1,
+      lastRenderedRow: rows.at(-1) ?? -1,
+      longTaskCount: sortedLongTasks.length,
+      longTaskMaxMs: sortedLongTasks.at(-1) || 0,
+      longTaskP95Ms: percentile(sortedLongTasks, 0.95),
+      maxScrollTop: Math.max(0, (container?.scrollHeight || 0) - (container?.clientHeight || 0)),
+      renderedRows: rows.length,
+      renderEvents: metrics.renderTimes.length,
+      scrollEvents: metrics.scrollTimes.length,
+      scrollGapP95Ms: percentile(sortedGaps, 0.95),
+      scrollTop: container?.scrollTop || 0
+    };
+  }, Date.now() - startedAt);
+
+  if (
+    dragMetrics.scrollTop < dragMetrics.maxScrollTop * 0.75
+    || dragMetrics.renderedRows <= 0
+    || dragMetrics.renderedRows > 50
+    || dragMetrics.scrollEvents < 20
+    || dragMetrics.elapsedMs > 6500
+    || dragMetrics.longTaskMaxMs > 120
+  ) {
+    throw new Error(`Large virtual table scrollbar thumb drag should stay responsive: ${JSON.stringify(dragMetrics)}`);
+  }
+}
+
 async function exerciseVirtualTableScrollInteraction(page) {
   await seedLoadedResults(page, { rowCount: 320 });
 
@@ -1755,6 +1842,8 @@ async function exerciseVirtualTableScrollInteraction(page) {
   ) {
     throw new Error(`Fast virtual table scrolling should keep a bounded, nonblank viewport: ${JSON.stringify(fastScrollMetrics)}`);
   }
+
+  await exerciseLargeVirtualScrollbarThumbDragPerformance(page);
 }
 
 async function exerciseExpandedVirtualTableColumnAlignment(page) {
