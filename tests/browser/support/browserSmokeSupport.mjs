@@ -1720,7 +1720,13 @@ async function expectSplitTogglePreviewAnimation(page) {
 }
 
 async function expectDestructiveFlameAnimation(page, selector, label) {
-  const control = page.locator(selector);
+  const matchingControls = page.locator(selector);
+  const controlCount = await matchingControls.count();
+  if (controlCount < 1) {
+    throw new Error(`${label} should exist`);
+  }
+
+  const control = matchingControls.first();
   await control.waitFor({ state: 'visible', timeout: 5000 });
   await control.scrollIntoViewIfNeeded();
 
