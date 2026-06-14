@@ -12,6 +12,7 @@
   "license": "MIT",
   "scripts": {
     "benchmark:post-filters": "node scripts/benchmarkPostFilters.mjs",
+    "benchmark:duplicate-collapse": "node scripts/benchmarkDuplicateCollapse.mjs",
     "benchmark:sort": "node scripts/benchmarkSort.mjs",
     "benchmark:split-columns": "node scripts/benchmarkSplitColumns.mjs",
     "benchmark:table-interactions": "node scripts/benchmarkTableInteractions.mjs",

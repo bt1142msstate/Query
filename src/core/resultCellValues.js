@@ -147,6 +147,7 @@ function cloneResultCellValue(value) {
 
 export {
   cloneResultCellValue,
+  countNonBlankCellValueParts,
   formatCellValueForText,
   getCellValueParts,
   getNonBlankCellValueParts,

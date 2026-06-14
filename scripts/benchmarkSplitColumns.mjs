@@ -1,8 +1,17 @@
 import { performance } from 'node:perf_hooks';
 import { buildExpandedMultiValueTable } from '../src/features/table/virtual-table/splitColumnExpansion.js';
 
-const rowCount = Number.parseInt(process.argv[2] || '500000', 10);
+function readArgValue(name, fallback = '') {
+  const prefix = `${name}=`;
+  const arg = process.argv.slice(2).find(value => value === name || value.startsWith(prefix));
+  if (!arg) return fallback;
+  if (arg === name) return 'true';
+  return arg.slice(prefix.length);
+}
+
+const rowCount = Number.parseInt(readArgValue('--rows', process.argv[2] || '500000'), 10);
 const safeRowCount = Number.isFinite(rowCount) && rowCount > 0 ? rowCount : 500000;
+const assertBudget = process.argv.includes('--assert');
 
 const rawTableData = {
   headers: ['Title', 'Public Note', 'MARC 590', 'Branch', 'Bill Count'],
@@ -25,8 +34,14 @@ const rawTableData = {
 const started = performance.now();
 const expanded = buildExpandedMultiValueTable(rawTableData, { lazyRows: true });
 const elapsed = performance.now() - started;
+const budgetMs = Math.max(75, safeRowCount / 4000);
+
+if (assertBudget && elapsed > budgetMs) {
+  throw new Error(`Split-column lazy expansion exceeded budget: ${Math.round(elapsed)}ms > ${Math.round(budgetMs)}ms for ${safeRowCount} rows`);
+}
 
 console.log(JSON.stringify({
+  budgetMs: Math.round(budgetMs * 100) / 100,
   elapsedMs: Math.round(elapsed * 100) / 100,
   rowCount: expanded.rows.length,
   columnCount: expanded.headers.length,
