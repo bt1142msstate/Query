@@ -42,6 +42,10 @@ function shouldAssertBudget() {
   return process.argv.includes('--assert');
 }
 
+function readPostFilterMode() {
+  return readArgValue('--post-filter', 'none').trim().toLowerCase();
+}
+
 async function seedStressResults(page, { rowCount, collapseDuplicates }) {
   return page.evaluate(async ({ rowCount: requestedRows, collapseDuplicates: collapseRows }) => {
     const { appServices } = await import('./src/core/appServices.js');
@@ -208,6 +212,33 @@ async function measureRemoval(page) {
   });
 }
 
+async function applyPostFilterMode(page, mode) {
+  if (mode !== 'unrelated') {
+    return { mode: 'none' };
+  }
+
+  return page.evaluate(async () => {
+    const { appServices } = await import('./src/core/appServices.js');
+    appServices.replacePostFilters({
+      'Stress Status': {
+        logic: 'all',
+        filters: [{ cond: 'equals', val: 'Open' }]
+      }
+    }, {
+      notify: true,
+      refreshView: true,
+      resetScroll: false
+    });
+
+    await new Promise(resolve => requestAnimationFrame(resolve));
+
+    return {
+      mode: 'unrelated',
+      stats: appServices.getPostFilterStats?.() || null
+    };
+  });
+}
+
 async function readDeferredState(page) {
   await page.waitForTimeout(1700);
   return page.evaluate(() => ({
@@ -223,6 +254,7 @@ async function resetSplitMode(page) {
   await page.evaluate(async () => {
     const { appServices } = await import('./src/core/appServices.js');
     appServices.setSplitColumnsMode(false);
+    appServices.clearPostFilters?.({ notify: true, refreshView: false, resetScroll: false });
   });
 }
 
@@ -261,6 +293,7 @@ async function run() {
   const rows = readRows();
   const collapseModes = readCollapseModes();
   const assertBudget = shouldAssertBudget();
+  const postFilterMode = readPostFilterMode();
   const server = createServer(serveStaticFile);
   const port = await listen(server);
   const browser = await chromium.launch({ headless: true });
@@ -294,9 +327,10 @@ async function run() {
         await page.waitForTimeout(500);
         const splitToggle = await measureSplitToggleClick(page);
         const move = await measureMove(page);
+        const postFilter = await applyPostFilterMode(page, postFilterMode);
         const removal = await measureRemoval(page);
         const afterDeferredSync = await readDeferredState(page);
-        const result = { afterDeferredSync, collapseDuplicates, move, removal, rowCount, setup, splitToggle };
+        const result = { afterDeferredSync, collapseDuplicates, move, postFilter, removal, rowCount, setup, splitToggle };
         if (assertBudget) {
           assertCase(result);
         }

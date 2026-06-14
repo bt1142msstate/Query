@@ -115,6 +115,49 @@ let dragDropColumnOps;
     return left.every((field, index) => field === right[index]);
   }
 
+  function normalizeFieldIdentity(fieldName) {
+    return String(fieldName || '').trim().toLowerCase();
+  }
+
+  function getEquivalentPostFilterFieldNames(fieldName) {
+    const field = String(fieldName || '').trim();
+    if (!field) {
+      return [];
+    }
+
+    return [
+      field,
+      getBaseFieldName(field),
+      services.getFilterActionFieldName?.(field)
+    ].filter(Boolean);
+  }
+
+  function hasPostFilterForRemovedFields(removedFields) {
+    const postFilters = services.getPostFilterState?.() || {};
+    const activePostFilterFields = new Set(Object.entries(postFilters)
+      .filter(([, data]) => Array.isArray(data?.filters) && data.filters.length > 0)
+      .flatMap(([field]) => getEquivalentPostFilterFieldNames(field))
+      .map(normalizeFieldIdentity)
+      .filter(Boolean));
+
+    if (!activePostFilterFields.size) {
+      return false;
+    }
+
+    return (Array.isArray(removedFields) ? removedFields : [])
+      .flatMap(getEquivalentPostFilterFieldNames)
+      .map(normalizeFieldIdentity)
+      .some(field => activePostFilterFields.has(field));
+  }
+
+  function canSkipProjectionAfterRemoval(removedFields) {
+    if (services.isDuplicateRowCollapseActive?.() === true) {
+      return false;
+    }
+
+    return !hasPostFilterForRemovedFields(removedFields);
+  }
+
   function deferAuthoritativeColumnMutation(commit) {
     if (typeof commit !== 'function') {
       return;
@@ -238,7 +281,8 @@ let dragDropColumnOps;
       queueColumnMutationRender({
         preserveScroll: true,
         scrollAnchorField,
-        tableDomAlreadySynced
+        tableDomAlreadySynced,
+        skipProjectionSync: canSkipProjectionAfterRemoval(relatedFieldNames)
       });
 
       if (!stateAlreadyUpdated) {
