@@ -1,5 +1,5 @@
 {
-  "version": "5116306445f4c236",
+  "version": "7b3eacc372320fda",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -40,7 +40,7 @@
     "src/core/mobileScrollLock.js": "6b736ada147cf169",
     "src/core/operatorSelectUtils.js": "8815c66de0baa6f1",
     "src/core/queryErrorDetails.js": "5c26531918b7a2c8",
-    "src/core/queryExecution.js": "163932e628fb8b62",
+    "src/core/queryExecution.js": "a69253606b2f0fcb",
     "src/core/queryLifecycle.js": "b44948b17608f70b",
     "src/core/queryPrevalidation.js": "2ec4a6cb48f44366",
     "src/core/queryProgress.js": "0593226f5d9437ca",
@@ -162,7 +162,7 @@
     "src/styles/templates.css": "0116650a211f013c",
     "src/styles/tooltips.css": "ef1ac9877dc6bbdb",
     "src/ui/apiCompatibility.js": "650125d9c6d0b03e",
-    "src/ui/apiSettings.js": "4f68e7bef33c89ec",
+    "src/ui/apiSettings.js": "8bfaa867a2b426fc",
     "src/ui/controls/customDatePicker.js": "88e4eb3245ac256c",
     "src/ui/controls/searchUI.js": "9e3cddb698d46468",
     "src/ui/controls/selectorControls.js": "cb561720b6e2d2b5",

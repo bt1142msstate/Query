@@ -21,10 +21,28 @@ const services = appServices;
 const uiActions = appUiActions;
 const ACTIVE_QUERY_STATUS_POLL_MS = 2000;
 let activeQueryStatusPollTimer = null;
+let queryStartPending = false;
 const readStreamedQueryResult = createStreamedQueryResultReader({
   isQueryRunning: () => QueryStateReaders.getLifecycleState().queryRunning
 });
 appState.queryPageIsUnloading = false;
+
+function setQueryStartPending(nextValue) {
+  queryStartPending = Boolean(nextValue);
+  if (!execDom.runBtn) {
+    return;
+  }
+
+  if (queryStartPending) {
+    execDom.runBtn.disabled = true;
+    execDom.runBtn.setAttribute('aria-busy', 'true');
+    execDom.runBtn.setAttribute('aria-label', 'Starting query');
+    execDom.runBtn.setAttribute('data-tooltip', 'Starting query...');
+    return;
+  }
+
+  execDom.runBtn.removeAttribute('aria-busy');
+}
 
 function addQueryHistoryEntry(query) {
   return services.addHistoryQuery(query);
@@ -149,6 +167,7 @@ if (execDom.clearQueryBtn) {
 
 if (execDom.runBtn) {
   execDom.runBtn.addEventListener('click', () => {
+    if (queryStartPending) return;
     if (execDom.runBtn.disabled) return;   // ignore when disabled
 
     // If query is running, stop it
@@ -170,25 +189,43 @@ if (execDom.runBtn) {
 
     // Start query execution
     (async () => {
-      const completionNotification = prepareBackgroundTaskNotification();
-      await services.forgetOpenedHistoryResult?.();
-      // Temporarily use the stacked table state for payload building so generated
-      // split-column names are never sent to the backend.
-      const wasSplitPreferred = services.isSplitColumnsActive();
-      if (wasSplitPreferred) {
-        services.setSplitColumnsMode(false);
-      }
+      setQueryStartPending(true);
+      let completionNotification = null;
+      let wasSplitPreferred = false;
+      let splitPreferenceRestored = false;
+      let runMarkedActive = false;
 
-      if (services.hasPostFilters?.()) {
-        services.clearPostFilters({ refreshView: false, notify: true, resetScroll: false });
-      }
+      const restoreSplitColumnsPreference = () => {
+        if (!wasSplitPreferred || splitPreferenceRestored) {
+          return;
+        }
 
-      QueryChangeManager.setLifecycleState({
-        currentQueryId: null,
-        queryRunning: true,
-        hasPartialResults: false
-      }, { source: 'QueryExecution.startQuery', silent: true });
+        services.setSplitColumnsMode(true);
+        uiActions.updateSplitColumnsToggleState?.();
+        splitPreferenceRestored = true;
+      };
+
       try {
+        completionNotification = prepareBackgroundTaskNotification();
+        await services.forgetOpenedHistoryResult?.();
+        // Temporarily use the stacked table state for payload building so generated
+        // split-column names are never sent to the backend.
+        wasSplitPreferred = services.isSplitColumnsActive();
+        if (wasSplitPreferred) {
+          services.setSplitColumnsMode(false);
+        }
+
+        if (services.hasPostFilters?.()) {
+          services.clearPostFilters({ refreshView: false, notify: true, resetScroll: false });
+        }
+
+        QueryChangeManager.setLifecycleState({
+          currentQueryId: null,
+          queryRunning: true,
+          hasPartialResults: false
+        }, { source: 'QueryExecution.startQuery', silent: true });
+        runMarkedActive = true;
+        setQueryStartPending(false);
         uiActions.updateRunButtonIcon();
         uiActions.updateButtonStates();
         uiActions.startTableQueryAnimation();
@@ -313,7 +350,7 @@ if (execDom.runBtn) {
 
           // Restore the user's split-columns preference after the new raw data is loaded.
           if (wasSplitPreferred) {
-            services.setSplitColumnsMode(true);
+            restoreSplitColumnsPreference();
           }
         }
         await services.cacheOpenedHistoryResult?.({
@@ -347,7 +384,7 @@ if (execDom.runBtn) {
         }
 
         // Checking if the query was manually stopped by the user
-        if (!QueryStateReaders.getLifecycleState().queryRunning) {
+        if (runMarkedActive && !QueryStateReaders.getLifecycleState().queryRunning) {
           console.log('Query execution interrupted by user stop/cancel.');
           return;
         }
@@ -371,6 +408,8 @@ if (execDom.runBtn) {
         notifyQueryTaskComplete({ message: failureMessage, permissionPromise: completionNotification, queryId: QueryStateReaders.getLifecycleState().currentQueryId, title: 'Query failed' });
         showToastMessage(failureMessage, 'error');
       } finally {
+        setQueryStartPending(false);
+        restoreSplitColumnsPreference();
         stopActiveQueryStatusPolling();
         QueryChangeManager.setLifecycleState({ queryRunning: false }, { source: 'QueryExecution.finishQuery', silent: true });
         uiActions.updateTableResultsLip();
