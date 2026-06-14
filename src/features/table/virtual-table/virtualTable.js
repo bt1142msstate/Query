@@ -34,10 +34,7 @@ import {
   createEmptyDuplicateCollapseStats
 } from './virtualTableDuplicateCollapse.js';
 import { createVirtualTablePostFilterController } from './virtualTablePostFilters.js';
-import {
-  DEFAULT_FULL_RENDER_ROW_LIMIT,
-  createVirtualRenderPlan
-} from './virtualizer.js';
+import { DEFAULT_FULL_RENDER_ROW_LIMIT, createVirtualRenderPlan } from './virtualizer.js';
 let VirtualTable;
 (function initializeVirtualTable() {
 let virtualTableData = {
@@ -75,19 +72,16 @@ let tableScrollContainer = null;
 let calculatedColumnWidths = {}; // Store calculated optimal widths for each column
 let manualColumnWidths = {};
 let splitPrecomputeToken = 0;
-let resizeModeState = {
-  active: false,
-  fieldName: ''
-};
+let resizeModeState = { active: false, fieldName: '' };
 let simpleTableInstance = null; // Store the SimpleTable instance
 
 const HEADER_ACTION_SPACE = 116;
 const HEADER_TEXT_BALANCE_SPACE = 116;
 const FULL_TABLE_RENDER_ROW_LIMIT = DEFAULT_FULL_RENDER_ROW_LIMIT;
+const SCROLLBAR_DRAG_MAX_OVERSCAN_ROWS = 12;
+const SCROLLBAR_DRAG_OVERSCAN_ROWS = 4;
 var services = appServices, uiActions = appUiActions;
-const tableScrollbar = createTableScrollbarController({
-  getRowHeight: () => tableRowHeight
-});
+const tableScrollbar = createTableScrollbarController({ getRowHeight: () => tableRowHeight });
 
 let currentSortColumn = null;
 let currentSortDirection = 'asc'; // 'asc' or 'desc'
@@ -379,7 +373,7 @@ function renderVirtualTable(options = {}) {
   const tbody = table.querySelector('tbody');
   if (!tbody) return;
   const syncInteractions = options.syncInteractions !== false;
-  const columnLayout = tableColumnLayout.syncRenderedColumnLayout(table, displayedFields);
+  const columnLayout = tableColumnLayout.syncRenderedColumnLayout(table, displayedFields, { syncBody: false });
   const nextBody = document.createDocumentFragment();
   
   if (syncInteractions) {
@@ -406,10 +400,11 @@ function renderVirtualTable(options = {}) {
     lastRenderedScrollTop = 0;
     pendingScrollDelta = 0;
     tableScrollContainer.scrollTop = 0;
-    tableScrollbar.scheduleSync();
+    tableScrollbar.scheduleSync({ refreshGeometry: true });
     return;
   }
 
+  const scrollbarDragging = options.scrollbarDragging === true || tableScrollbar.isDragging?.() === true;
   const renderPlan = createVirtualRenderPlan({
     rowCount: virtualTableData.rows.length,
     scrollTop: tableScrollContainer ? tableScrollContainer.scrollTop : tableScrollTop,
@@ -417,6 +412,8 @@ function renderVirtualTable(options = {}) {
     headerHeight: Math.ceil(table.querySelector('thead')?.getBoundingClientRect().height || 40),
     rowHeight: tableRowHeight,
     fullRenderRowLimit: FULL_TABLE_RENDER_ROW_LIMIT,
+    maxOverscanRows: scrollbarDragging ? SCROLLBAR_DRAG_MAX_OVERSCAN_ROWS : undefined,
+    overscanRows: scrollbarDragging ? SCROLLBAR_DRAG_OVERSCAN_ROWS : undefined,
     scrollDelta: options.scrollDelta ?? pendingScrollDelta
   });
   const shouldRenderAllRows = !renderPlan.virtualized;
@@ -462,7 +459,7 @@ function renderVirtualTable(options = {}) {
   if (syncInteractions) {
     services.addDragAndDrop(table);
   }
-  tableScrollbar.scheduleSync();
+  tableScrollbar.scheduleSync({ refreshGeometry: !scrollbarDragging });
 }
 
 let isRenderScheduled = false;
@@ -474,6 +471,7 @@ function scheduleVirtualTableRender() {
       try {
         renderVirtualTable({
           scrollDelta: pendingScrollDelta,
+          scrollbarDragging: tableScrollbar.isDragging?.() === true,
           syncInteractions: false
         });
       } finally {
@@ -490,7 +488,9 @@ function handleTableScroll(e) {
   }
   
   tableScrollTop = e.target.scrollTop;
-  pendingScrollDelta = Math.max(pendingScrollDelta, Math.abs(tableScrollTop - lastRenderedScrollTop));
+  pendingScrollDelta = tableScrollbar.isDragging?.() === true
+    ? 0
+    : Math.max(pendingScrollDelta, Math.abs(tableScrollTop - lastRenderedScrollTop));
   tableScrollbar.scheduleSync();
 
   if (virtualTableData.rows.length <= FULL_TABLE_RENDER_ROW_LIMIT) {
@@ -635,7 +635,7 @@ async function setupVirtualTable(container, fields, options = {}) {
     container.scrollTop = preservedScrollTop;
     container.scrollLeft = preservedScrollLeft;
   }
-  tableScrollbar.scheduleSync();
+  tableScrollbar.scheduleSync({ refreshGeometry: true });
   scheduleSplitViewPrecompute();
   
   return { virtualTableData, calculatedColumnWidths };

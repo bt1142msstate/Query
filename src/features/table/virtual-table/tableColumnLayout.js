@@ -137,7 +137,7 @@ export function createTableColumnLayoutController(options = {}) {
     };
   }
 
-  function syncRenderedColumnLayout(table = document.getElementById('example-table'), fields = getDisplayedFields()) {
+  function syncRenderedColumnLayout(table = document.getElementById('example-table'), fields = getDisplayedFields(), options = {}) {
     const layout = getRenderedColumnLayout(fields);
     if (!table || !layout.fields.length) {
       return layout;
@@ -157,18 +157,20 @@ export function createTableColumnLayoutController(options = {}) {
       }
     });
 
-    table.querySelectorAll('tbody td[data-col-index]').forEach(td => {
-      const columnIndex = Number.parseInt(td.dataset.colIndex || '', 10);
-      if (Number.isInteger(columnIndex)) {
-        applyElementColumnWidth(td, layout.widths[columnIndex]);
-      }
-    });
+    if (options.syncBody !== false) {
+      table.querySelectorAll('tbody td[data-col-index]').forEach(td => {
+        const columnIndex = Number.parseInt(td.dataset.colIndex || '', 10);
+        if (Number.isInteger(columnIndex)) {
+          applyElementColumnWidth(td, layout.widths[columnIndex]);
+        }
+      });
 
-    table.querySelectorAll('tbody tr[data-row-index]').forEach(row => {
-      if (row.style.display === 'table' || row.style.position === 'absolute') {
-        row.style.width = totalWidth;
-      }
-    });
+      table.querySelectorAll('tbody tr[data-row-index]').forEach(row => {
+        if (row.style.display === 'table' || row.style.position === 'absolute') {
+          row.style.width = totalWidth;
+        }
+      });
+    }
 
     return layout;
   }
