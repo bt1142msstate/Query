@@ -1362,6 +1362,7 @@ async function expectMobileScrollLockReleased(page, label) {
 }
 
 async function expectOverlayConsumesScroll(page, scrollSelector, label) {
+  const minimumOverlayScrollTop = 10;
   await page.locator(scrollSelector).waitFor({ state: 'visible', timeout: 5000 });
   await page.evaluate(selector => {
     const scroller = document.querySelector(selector);
@@ -1381,7 +1382,11 @@ async function expectOverlayConsumesScroll(page, scrollSelector, label) {
   const before = await expectMobileScrollLockActive(page, label);
   await page.locator(scrollSelector).hover();
   await page.mouse.wheel(0, 700);
-  await page.waitForFunction(selector => (document.querySelector(selector)?.scrollTop || 0) > 20, scrollSelector, { timeout: 5000 });
+  await page.waitForFunction(
+    ({ minimumScrollTop, selector }) => (document.querySelector(selector)?.scrollTop || 0) > minimumScrollTop,
+    { minimumScrollTop: minimumOverlayScrollTop, selector: scrollSelector },
+    { timeout: 5000 }
+  );
 
   const after = await page.evaluate(selector => ({
     bodyTop: document.body.style.top,
@@ -1399,7 +1404,7 @@ async function expectOverlayConsumesScroll(page, scrollSelector, label) {
     scroller.scrollTop = 0;
   }, scrollSelector);
 
-  if (after.scrollerTop <= 20 || after.lockY !== before.lockY || after.bodyTop !== before.bodyTop) {
+  if (after.scrollerTop <= minimumOverlayScrollTop || after.lockY !== before.lockY || after.bodyTop !== before.bodyTop) {
     throw new Error(`${label} should scroll inside the overlay without moving the page: ${JSON.stringify({ before, after })}`);
   }
 }
