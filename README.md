@@ -140,7 +140,7 @@ Results render in a virtualized table that only draws the visible viewport plus 
 
 The table also supports sorting, expand/collapse layout, manual column resizing with live row/header alignment, a draggable scrollbar thumb, and post filters that only affect the loaded result set. Post filters are intentionally client-side and are cleared between query runs.
 
-The virtual-table projection logic, column drag/drop controller, XLSX generation path, custom date picker, and tooltip system are also exposed as reusable ES module components in `src/components/` for other static pages or frontend apps.
+The virtual-table projection and render-planning logic, column drag/drop controller, XLSX generation path, custom date picker, and tooltip system are also exposed as reusable ES module components in `src/components/` for other static pages or frontend apps.
 
 ## 📁 Structure
 

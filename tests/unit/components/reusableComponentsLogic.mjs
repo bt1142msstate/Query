@@ -5,6 +5,7 @@ import {
   DATE_INPUT_PATTERN,
   Tooltips,
   buildFilterTooltipHtml,
+  createVirtualRenderPlan,
   createVirtualTableComponent,
   createWorkbookExportComponent,
   normalizeDateValue
@@ -52,6 +53,21 @@ test('reusable virtual table component projects split and deduplicated rows', ()
   assert.deepEqual(splitProjection.tableData.headers, ['Title', 'Public Note 1', 'Public Note 2', 'Branch']);
   assert.equal(splitProjection.tableData.rows[0][1], 'First note');
   assert.equal(splitProjection.tableData.rows[0][2], 'Second note');
+});
+
+test('reusable virtual table entrypoint exposes bounded render planning', () => {
+  const plan = createVirtualRenderPlan({
+    rowCount: 1000000,
+    scrollTop: 100000000,
+    containerHeight: 462,
+    headerHeight: 42,
+    rowHeight: 42
+  });
+
+  assert.equal(plan.virtualized, true);
+  assert.equal(plan.end, 1000000);
+  assert.ok(plan.renderedRows < 40);
+  assert.equal(plan.scrollTop, plan.maxScrollTop);
 });
 
 test('reusable workbook export component creates the same workbook blob path as the app', async () => {

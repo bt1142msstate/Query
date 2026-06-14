@@ -35,6 +35,10 @@ import {
   createEmptyDuplicateCollapseStats
 } from './virtualTableDuplicateCollapse.js';
 import { createVirtualTablePostFilterController } from './virtualTablePostFilters.js';
+import {
+  DEFAULT_FULL_RENDER_ROW_LIMIT,
+  createVirtualRenderPlan
+} from './virtualizer.js';
 let VirtualTable;
 (function initializeVirtualTable() {
 // Virtual scrolling state
@@ -80,7 +84,7 @@ let simpleTableInstance = null; // Store the SimpleTable instance
 
 const HEADER_ACTION_SPACE = 116;
 const HEADER_TEXT_BALANCE_SPACE = 116;
-const FULL_TABLE_RENDER_ROW_LIMIT = 500;
+const FULL_TABLE_RENDER_ROW_LIMIT = DEFAULT_FULL_RENDER_ROW_LIMIT;
 var services = appServices, uiActions = appUiActions;
 const tableScrollbar = createTableScrollbarController({
   getRowHeight: () => tableRowHeight
@@ -365,29 +369,6 @@ function sortTableBy(fieldName) {
   QueryTableView.updateSortHeadersUI(currentSortColumn, currentSortDirection);
 }
 
-function calculateVisibleRows() {
-  if (!tableScrollContainer) return { start: 0, end: 0 };
-  
-  const containerHeight = tableScrollContainer.clientHeight;
-  const headerRow = tableScrollContainer.querySelector('#example-table thead');
-  const headerHeight = headerRow ? Math.ceil(headerRow.getBoundingClientRect().height) : 40;
-  const availableHeight = containerHeight > 0 ? (containerHeight - headerHeight) : 400;
-  
-  // Add a generous overscan buffer (10 rows above and below) to prevent scroll glitches
-  const overscanRows = 10;
-  
-  const visibleRowsCount = Math.ceil(availableHeight / tableRowHeight);
-  const baseStartIndex = Math.floor(tableScrollTop / tableRowHeight);
-  
-  const startIndex = Math.max(0, baseStartIndex - overscanRows);
-  const endIndex = Math.min(
-    virtualTableData.rows.length,
-    baseStartIndex + visibleRowsCount + overscanRows
-  );
-  
-  return { start: startIndex, end: endIndex };
-}
-
 function renderVirtualTable() {
   const displayedFields = getDisplayedFields();
   if (!tableScrollContainer || !displayedFields.length) return;
@@ -431,15 +412,25 @@ function renderVirtualTable() {
     return;
   }
 
-  const shouldRenderAllRows = virtualTableData.rows.length <= FULL_TABLE_RENDER_ROW_LIMIT;
-  const { start, end } = shouldRenderAllRows
-    ? { start: 0, end: virtualTableData.rows.length }
-    : calculateVisibleRows();
+  const renderPlan = createVirtualRenderPlan({
+    rowCount: virtualTableData.rows.length,
+    scrollTop: tableScrollContainer ? tableScrollContainer.scrollTop : tableScrollTop,
+    containerHeight: tableScrollContainer.clientHeight,
+    headerHeight: Math.ceil(table.querySelector('thead')?.getBoundingClientRect().height || 40),
+    rowHeight: tableRowHeight,
+    fullRenderRowLimit: FULL_TABLE_RENDER_ROW_LIMIT
+  });
+  const shouldRenderAllRows = !renderPlan.virtualized;
+  const { start, end } = renderPlan;
 
   table.style.height = '';
   tbody.classList.toggle('query-table-virtual-body', !shouldRenderAllRows);
-  tbody.style.height = shouldRenderAllRows ? '' : `${virtualTableData.rows.length * tableRowHeight}px`;
+  tbody.style.height = shouldRenderAllRows ? '' : `${renderPlan.totalHeight}px`;
   tbody.style.position = shouldRenderAllRows ? '' : 'relative';
+  if (!shouldRenderAllRows && Math.abs(tableScrollContainer.scrollTop - renderPlan.scrollTop) > 1) {
+    tableScrollContainer.scrollTop = renderPlan.scrollTop;
+  }
+  tableScrollTop = renderPlan.scrollTop;
   
   for (let i = start; i < end; i++) {
     nextBody.appendChild(createVirtualTableRow({
@@ -479,8 +470,11 @@ function scheduleVirtualTableRender() {
   if (!isRenderScheduled) {
     isRenderScheduled = true;
     requestAnimationFrame(() => {
-      renderVirtualTable();
-      isRenderScheduled = false;
+      try {
+        renderVirtualTable();
+      } finally {
+        isRenderScheduled = false;
+      }
     });
   }
 }
@@ -832,7 +826,6 @@ VirtualTable = {
   get simpleTableInstance() { return simpleTableInstance; },
   
   // Functions
-  calculateVisibleRows,
   renderVirtualTable,
   handleTableScroll,
   calculateFieldWidth,

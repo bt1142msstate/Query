@@ -87,7 +87,7 @@ Reusable components are documented in `docs/COMPONENTS.md` and exported through 
 
 Current public surfaces:
 
-- `src/components/virtual-table/`: headless virtual-table projection, split-column transforms, duplicate-row collapse, table sorting, and column-layout helpers.
+- `src/components/virtual-table/`: headless virtual-table projection, bounded render-window planning, split-column transforms, duplicate-row collapse, table sorting, and column-layout helpers.
 - `src/components/drag-drop/`: headless column drag/drop controller plus reusable drop-anchor, auto-scroll, viewport, and resize-target helpers.
 - `src/components/workbook-export/`: custom XLSX Blob/download generation, grouping helpers, workbook details, and overview helpers.
 - `src/components/date-picker/`: DOM-bound date input enhancement plus shared date parsing/normalization helpers.
