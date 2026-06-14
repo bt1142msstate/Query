@@ -2488,30 +2488,47 @@
 
 .history-animated .clock-hour {
   transform-origin: 12px 12px;
-  transition: transform 0.3s;
+  transform-box: view-box;
 }
 
 .history-animated .clock-minute {
   transform-origin: 12px 12px;
-  transition: transform 0.3s;
+  transform-box: view-box;
 }
 
 #toggle-queries:hover .history-animated .clock-hour,
-#mobile-toggle-queries:hover .history-animated .clock-hour {
-  animation: none;
+#toggle-queries:focus-visible .history-animated .clock-hour,
+#mobile-toggle-queries:hover .history-animated .clock-hour,
+#mobile-toggle-queries:focus-visible .history-animated .clock-hour {
+  animation: historyClockHourSweep 28.8s linear infinite;
 }
 
 #toggle-queries:hover .history-animated .clock-minute,
-#mobile-toggle-queries:hover .history-animated .clock-minute {
-  animation: none;
+#toggle-queries:focus-visible .history-animated .clock-minute,
+#mobile-toggle-queries:hover .history-animated .clock-minute,
+#mobile-toggle-queries:focus-visible .history-animated .clock-minute {
+  animation: historyClockMinuteSweep 2.4s linear infinite;
 }
 
-@keyframes hourHandAnim {
-  100% { transform: rotate(360deg); }
+@keyframes historyClockHourSweep {
+  to { transform: rotate(360deg); }
 }
 
-@keyframes minuteHandAnim {
-  100% { transform: rotate(360deg); }
+@keyframes historyClockMinuteSweep {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #toggle-queries:hover .history-animated .clock-hour,
+  #toggle-queries:focus-visible .history-animated .clock-hour,
+  #toggle-queries:hover .history-animated .clock-minute,
+  #toggle-queries:focus-visible .history-animated .clock-minute,
+  #mobile-toggle-queries:hover .history-animated .clock-hour,
+  #mobile-toggle-queries:focus-visible .history-animated .clock-hour,
+  #mobile-toggle-queries:hover .history-animated .clock-minute,
+  #mobile-toggle-queries:focus-visible .history-animated .clock-minute {
+    animation: none;
+  }
 }
 
 /* Template description width */
