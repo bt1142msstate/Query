@@ -358,7 +358,10 @@ const queryStateStore = {
       }
     });
 
-    notifyQueryStateSubscribers({ displayedFields: true }, { source: options.source || 'QueryStateStore.addDisplayedField' });
+    notifyQueryStateSubscribers(
+      { displayedFields: true },
+      { ...options, source: options.source || 'QueryStateStore.addDisplayedField' }
+    );
     return true;
   },
   removeDisplayedField(fieldNames, options = {}) {
@@ -626,7 +629,7 @@ function showManagedField(fieldName, options = {}) {
   }
 
   const columnOps = getColumnOps();
-  if (typeof columnOps?.addColumn === 'function') return columnOps.addColumn(normalizedField, options.insertAt);
+  if (typeof columnOps?.addColumn === 'function') return columnOps.addColumn(normalizedField, options);
 
   return queryStateStore.addDisplayedField(normalizedField, normalizeManagerMeta(options, 'QueryChangeManager.showField'));
 }

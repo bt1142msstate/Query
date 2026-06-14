@@ -212,6 +212,47 @@ async function measureRemoval(page) {
   });
 }
 
+async function measureAdd(page) {
+  return page.evaluate(async () => {
+    const { QueryChangeManager } = await import('./src/core/queryState.js');
+
+    function getHeaders() {
+      return Array.from(document.querySelectorAll('#example-table thead th[data-col-index]'))
+        .map(header => header.getAttribute('data-sort-field') || header.textContent.trim());
+    }
+
+    function getDisplayFields() {
+      return Array.from(document.querySelectorAll('.fp-display-name')).map(name => name.textContent.trim());
+    }
+
+    async function waitForRenderedState(predicate) {
+      const deadline = performance.now() + 3000;
+      while (performance.now() < deadline) {
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await new Promise(resolve => setTimeout(resolve, 0));
+        if (predicate()) {
+          await new Promise(resolve => requestAnimationFrame(resolve));
+          return true;
+        }
+      }
+      return false;
+    }
+
+    const startedAt = performance.now();
+    const accepted = QueryChangeManager.showField('Stress Branch', {
+      source: 'TableInteractionBenchmark.addField'
+    });
+    const rendered = await waitForRenderedState(() => getHeaders().join('|') === 'Stress Title|Stress Status|Stress Branch 1|Stress Branch 2');
+    return {
+      accepted,
+      displayFields: getDisplayFields(),
+      durationMs: performance.now() - startedAt,
+      headers: getHeaders(),
+      rendered
+    };
+  });
+}
+
 async function applyPostFilterMode(page, mode) {
   if (mode !== 'unrelated') {
     return { mode: 'none' };
@@ -269,6 +310,9 @@ function assertCase(result) {
   if (result.removal.durationMs > INTERACTION_BUDGET_MS) {
     failures.push(`removal ${Math.round(result.removal.durationMs)}ms`);
   }
+  if (result.add.durationMs > INTERACTION_BUDGET_MS) {
+    failures.push(`add ${Math.round(result.add.durationMs)}ms`);
+  }
   if (!result.splitToggle.toggleButtonFound || !result.splitToggle.rendered) {
     failures.push('split toggle did not render expected split headers');
   }
@@ -280,6 +324,9 @@ function assertCase(result) {
   }
   if (!result.removal.rendered) {
     failures.push('removal did not render expected headers');
+  }
+  if (!result.add.accepted || !result.add.rendered) {
+    failures.push('add did not render expected restored split headers');
   }
   if (!result.afterDeferredSync.usesVirtualBody) {
     failures.push('virtual body inactive after sync');
@@ -329,8 +376,9 @@ async function run() {
         const move = await measureMove(page);
         const postFilter = await applyPostFilterMode(page, postFilterMode);
         const removal = await measureRemoval(page);
+        const add = await measureAdd(page);
         const afterDeferredSync = await readDeferredState(page);
-        const result = { afterDeferredSync, collapseDuplicates, move, postFilter, removal, rowCount, setup, splitToggle };
+        const result = { add, afterDeferredSync, collapseDuplicates, move, postFilter, removal, rowCount, setup, splitToggle };
         if (assertBudget) {
           assertCase(result);
         }

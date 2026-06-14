@@ -350,7 +350,8 @@ let QueryTableView;
       await services.setupVirtualTable(container, renderFields, {
         preserveScroll: options.preserveScroll === true,
         preserveScrollTop: preservedScrollTop,
-        preserveScrollLeft: preservedScrollLeft
+        preserveScrollLeft: preservedScrollLeft,
+        skipProjectionSync: options.skipProjectionSync === true || options.deferProjectionSync === true
       });
     } catch (error) {
       console.error('Error setting up virtual table:', error);
@@ -401,6 +402,10 @@ let QueryTableView;
     services.addDragAndDrop(table);
 
     uiActions.updateCategoryCounts();
+
+    if (options.deferProjectionSync === true && options.skipProjectionSync !== true) {
+      scheduleDeferredProjectionSync(options);
+    }
   }
 
   QueryTableView = Object.freeze({

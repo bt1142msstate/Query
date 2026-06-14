@@ -82,12 +82,14 @@ let dragDropColumnOps;
 
   function queueColumnMutationRender(options = {}) {
     const tableDomAlreadySynced = options.tableDomAlreadySynced === true;
+    const deferProjectionSync = options.deferProjectionSync === true
+      || (tableDomAlreadySynced && shouldDeferProjectionSync());
     QueryTableView.queueNextStateRenderOptions({
       preserveScroll: options.preserveScroll !== false,
       scrollAnchorField: options.scrollAnchorField || '',
       tableDomAlreadySynced,
-      skipProjectionSync: tableDomAlreadySynced && options.skipProjectionSync === true,
-      deferProjectionSync: tableDomAlreadySynced && shouldDeferProjectionSync()
+      skipProjectionSync: options.skipProjectionSync === true,
+      deferProjectionSync
     });
   }
 
@@ -156,6 +158,22 @@ let dragDropColumnOps;
     }
 
     return !hasPostFilterForRemovedFields(removedFields);
+  }
+
+  function canSkipProjectionAfterAdd() {
+    return services.isDuplicateRowCollapseActive?.() !== true;
+  }
+
+  function normalizeAddColumnOptions(input) {
+    if (typeof input === 'number') {
+      return { insertAt: input };
+    }
+
+    if (input && typeof input === 'object') {
+      return input;
+    }
+
+    return {};
   }
 
   function deferAuthoritativeColumnMutation(commit) {
@@ -580,17 +598,28 @@ let dragDropColumnOps;
     removeColumnsByFieldName(fieldName, { allRelated: true, table });
   }
 
-  function addColumn(fieldName, insertAt = -1) {
+  function addColumn(fieldName, input = {}) {
     if (fieldOrDuplicatesExist(fieldName)) {
       return false;
     }
 
+    const options = normalizeAddColumnOptions(input);
+    const insertAt = Number.isInteger(options.insertAt) ? options.insertAt : -1;
+    const skipProjectionSync = canSkipProjectionAfterAdd();
+    const deferProjectionSync = !skipProjectionSync && shouldDeferProjectionSync();
+
     queueColumnMutationRender({
       preserveScroll: true,
-      scrollAnchorField: fieldName
+      scrollAnchorField: fieldName,
+      skipProjectionSync,
+      deferProjectionSync
     });
 
-    const success = restoreFieldWithDuplicates(fieldName, insertAt);
+    const success = restoreFieldWithDuplicates(fieldName, insertAt, {
+      skipExistingCheck: true,
+      skipPostFilterRefresh: true,
+      source: options.source || 'DragDrop.addColumn'
+    });
 
     if (success) {
       syncTableAfterColumnMutation({

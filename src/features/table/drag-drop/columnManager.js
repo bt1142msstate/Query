@@ -112,24 +112,47 @@ function findRelatedColumnIndices(fieldName) {
  * @param {number} [insertAt=-1] - Position to insert at (-1 for end)
  * @returns {boolean} True if field was successfully restored
  */
-function restoreFieldWithDuplicates(fieldName, insertAt = -1) {
+function normalizeRestoreOptions(insertAtOrOptions, maybeOptions) {
+  if (typeof insertAtOrOptions === 'object' && insertAtOrOptions !== null) {
+    return {
+      insertAt: Number.isInteger(insertAtOrOptions.insertAt) ? insertAtOrOptions.insertAt : -1,
+      options: insertAtOrOptions
+    };
+  }
+
+  return {
+    insertAt: Number.isInteger(insertAtOrOptions) ? insertAtOrOptions : -1,
+    options: (maybeOptions && typeof maybeOptions === 'object') ? maybeOptions : {}
+  };
+}
+
+function buildRestoreMeta(options = {}) {
+  return {
+    ...options,
+    source: options.source || 'ColumnManager.restoreFieldWithDuplicates'
+  };
+}
+
+function restoreFieldWithDuplicates(fieldName, insertAtOrOptions = -1, maybeOptions = {}) {
+  const { insertAt, options } = normalizeRestoreOptions(insertAtOrOptions, maybeOptions);
+  const baseFieldName = getBaseFieldName(fieldName);
+
   // Check if any duplicate of this field already exists
-  if (fieldOrDuplicatesExist(fieldName)) {
+  if (options.skipExistingCheck !== true && fieldOrDuplicatesExist(fieldName)) {
     return false;
   }
   
   // Check if we have stored duplicate information for this field
-  const storedInfo = removedColumnInfo.get(fieldName);
+  const storedInfo = removedColumnInfo.get(fieldName) || removedColumnInfo.get(baseFieldName);
+  const meta = buildRestoreMeta(options);
   
   if (storedInfo && storedInfo.columnNames) {
     // Remove the stored info since we're restoring
     removedColumnInfo.delete(fieldName);
+    removedColumnInfo.delete(baseFieldName);
     
     // Insert all duplicate columns at the specified position
-    QueryChangeManager.addDisplayedField(storedInfo.columnNames, {
-      insertAt,
-      source: 'ColumnManager.restoreFieldWithDuplicates'
-    });
+    QueryChangeManager.addDisplayedField(storedInfo.columnNames, { ...meta, insertAt });
     
     return true;
   } else {
@@ -137,27 +160,20 @@ function restoreFieldWithDuplicates(fieldName, insertAt = -1) {
     const virtualTableData = services.getVirtualTableData();
     if (virtualTableData && virtualTableData.headers) {
       const relatedColumns = virtualTableData.headers.filter(header => {
-        const baseFieldName = getBaseFieldName(fieldName);
         const headerBase = getBaseFieldName(header);
         return header === fieldName || headerBase === baseFieldName;
       });
       
       if (relatedColumns.length > 0) {
         // Insert all related columns from original data
-        QueryChangeManager.addDisplayedField(relatedColumns, {
-          insertAt,
-          source: 'ColumnManager.restoreFieldWithDuplicates'
-        });
+        QueryChangeManager.addDisplayedField(relatedColumns, { ...meta, insertAt });
         
         return true;
       }
     }
     
     // Fallback to single field - this will show "..." in the table
-    QueryChangeManager.addDisplayedField(fieldName, {
-      insertAt,
-      source: 'ColumnManager.restoreFieldWithDuplicates'
-    });
+    QueryChangeManager.addDisplayedField(fieldName, { ...meta, insertAt });
     return true; // Changed to true since we did add the field
   }
 }

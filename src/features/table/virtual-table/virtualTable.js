@@ -617,7 +617,7 @@ async function setupVirtualTable(container, fields, options = {}) {
   tableScrollContainer = container;
   tableScrollTop = shouldPreserveScroll ? preservedScrollTop : 0;
   tableScrollbar.attach(container);
-  applyPostFilters({ refreshView: false, notify: true, resetScroll: false, recalculateWidths: false });
+  if (options.skipProjectionSync !== true) applyPostFilters({ refreshView: false, notify: true, resetScroll: false, recalculateWidths: false });
 
   // Calculate widths if we have fields
   if (fields && fields.length > 0) {
