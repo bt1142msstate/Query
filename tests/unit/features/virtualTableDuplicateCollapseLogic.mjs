@@ -88,6 +88,20 @@ test('virtual table duplicate collapse', async () => {
   assert.deepEqual(structuredResult.rows, [structuredRows[0], structuredRows[2]]);
   assert.equal(structuredResult.duplicateRowGroups[0].matchingRowCount, 2);
 
+  const mixedTypeRows = [
+    ['o:{}'],
+    [{}],
+    [{}]
+  ];
+  const mixedTypeResult = collapseDuplicateProjectedRows({
+    rows: mixedTypeRows,
+    displayedFields: ['Mixed'],
+    columnMap: new Map([['Mixed', 0]])
+  });
+  assert.equal(mixedTypeResult.uniqueRows, 2);
+  assert.deepEqual(mixedTypeResult.rows, [mixedTypeRows[0], mixedTypeRows[1]]);
+  assert.equal(mixedTypeResult.duplicateRowGroups[1].matchingRowCount, 2);
+
   assert.equal(
     buildDuplicateCollapseToastMessage({
       duplicateRowsCollapsed: 2,

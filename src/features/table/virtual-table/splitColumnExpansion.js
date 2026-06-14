@@ -1,7 +1,7 @@
 import {
   cloneResultCellValue,
-  getNonBlankCellValueParts,
-  hasMultipleCellValues
+  countNonBlankCellValueParts,
+  getNonBlankCellValueParts
 } from '../../../core/resultCellValues.js';
 
 const LAZY_EXPANDED_ROW_MARKER = Symbol('lazyExpandedRow');
@@ -272,9 +272,8 @@ function getMultiValueColumnMaxes(headers, rows, columnMap) {
     let max = 1;
     rows.forEach(row => {
       const value = Array.isArray(row) ? row[columnIndex] : undefined;
-      if (hasMultipleCellValues(value)) {
-        max = Math.max(max, countMultiValueParts(value));
-      }
+      const partCount = countNonBlankCellValueParts(value);
+      if (partCount > max) max = partCount;
     });
 
     if (max > 1) {
@@ -285,12 +284,8 @@ function getMultiValueColumnMaxes(headers, rows, columnMap) {
   return multiMax;
 }
 
-function countMultiValueParts(value) {
-  return getMultiValueParts(value).length;
-}
-
 function getExtraMultiValueCount(value) {
-  return Math.max(0, getNonBlankCellValueParts(value).length - 1);
+  return Math.max(0, countNonBlankCellValueParts(value) - 1);
 }
 
 function createEmptyTableData() {
