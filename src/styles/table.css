@@ -264,6 +264,48 @@
   box-shadow: 0 10px 20px rgba(239, 68, 68, 0.12);
 }
 
+.destructive-flame-icon {
+  overflow: visible;
+}
+
+.destructive-flame-shape {
+  transform-box: fill-box;
+  transform-origin: 50% 78%;
+}
+
+.table-toolbar-btn-danger:is(:hover, :focus-visible, :active):not(:disabled) .destructive-flame-shape,
+.mobile-table-action-danger:is(:hover, :focus-visible, :active):not(:disabled) .destructive-flame-shape {
+  animation: destructiveFlameWave 0.72s ease-in-out infinite;
+  filter: drop-shadow(0 0 0.28rem rgba(239, 68, 68, 0.32));
+}
+
+@keyframes destructiveFlameWave {
+  0%,
+  100% {
+    transform: translateY(0) skewX(0deg) scale(1);
+  }
+
+  24% {
+    transform: translate(-0.35px, -0.45px) skewX(-5deg) scaleX(0.98) scaleY(1.06);
+  }
+
+  52% {
+    transform: translate(0.35px, -0.7px) skewX(5deg) scaleX(0.96) scaleY(1.1);
+  }
+
+  76% {
+    transform: translate(-0.15px, -0.3px) skewX(-3deg) scaleX(1.02) scaleY(1.04);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .table-toolbar-btn-danger:is(:hover, :focus-visible, :active):not(:disabled) .destructive-flame-shape,
+  .mobile-table-action-danger:is(:hover, :focus-visible, :active):not(:disabled) .destructive-flame-shape {
+    animation: none;
+    filter: none;
+  }
+}
+
 .table-expand-btn {
   width: 1.95rem;
 }
