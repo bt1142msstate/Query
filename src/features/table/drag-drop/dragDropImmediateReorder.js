@@ -61,6 +61,16 @@ function getKeptColumnIndexes(currentFields, nextFields) {
   return keptIndexes;
 }
 
+function syncChildColumnIndex(child, index) {
+  if (child?.hasAttribute?.('data-col-index')) {
+    child.dataset.colIndex = String(index);
+  }
+}
+
+function syncRemainingChildColumnIndexes(parent) {
+  Array.from(parent?.children || []).forEach(syncChildColumnIndex);
+}
+
 function reorderChildrenByIndex(parent, order) {
   if (!parent || !order.length) {
     return false;
@@ -71,10 +81,11 @@ function reorderChildrenByIndex(parent, order) {
     return false;
   }
 
-  order.forEach(index => {
+  order.forEach((index, position) => {
     const child = children[index];
     if (child) {
       parent.appendChild(child);
+      syncChildColumnIndex(child, position);
     }
   });
   return true;
@@ -97,19 +108,8 @@ function removeChildrenByIndexes(parent, indexes) {
         removedCount += 1;
       }
     });
+  syncRemainingChildColumnIndexes(parent);
   return removedCount;
-}
-
-function syncColumnIndexes(table) {
-  Array.from(table.querySelectorAll('thead th[data-col-index]')).forEach((th, index) => {
-    th.dataset.colIndex = String(index);
-  });
-
-  Array.from(table.querySelectorAll('tbody tr')).forEach(row => {
-    Array.from(row.querySelectorAll('td[data-col-index]')).forEach((cell, index) => {
-      cell.dataset.colIndex = String(index);
-    });
-  });
 }
 
 function applyImmediateColumnOrder(table, nextFields, options = {}) {
@@ -147,8 +147,6 @@ function applyImmediateColumnOrder(table, nextFields, options = {}) {
       }
     });
   }
-
-  syncColumnIndexes(table);
 
   return {
     bodyRowsReordered,
@@ -220,8 +218,6 @@ function applyImmediateColumnRemoval(table, nextFields, options = {}) {
       }
     });
   }
-
-  syncColumnIndexes(table);
 
   return {
     bodyRowsUpdated,
