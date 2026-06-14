@@ -20,6 +20,8 @@ import {
   getLazyExpandedRowsSourceRows
 } from './splitColumnExpansion.js';
 
+const SERIALIZED_MULTI_VALUE_SEPARATOR = '\x1F';
+
 export function createVirtualTablePostFilterController({
   getBaseViewData,
   getDisplayedFields,
@@ -184,7 +186,8 @@ function compilePostFilterGroups(activeEntries, baseViewData, getFieldType) {
     const type = getFieldType(getCanonicalFieldName(field, baseViewData));
     const predicates = (Array.isArray(data?.filters) ? data.filters : [])
       .map(filter => compilePostFilterPredicate(filter, type))
-      .filter(Boolean);
+      .filter(Boolean)
+      .sort((left, right) => getPredicateRank(left) - getPredicateRank(right));
     if (!predicates.length) {
       return;
     }
@@ -253,44 +256,50 @@ function compilePostFilterPredicate(filter, type) {
   const filterValue = filterValues[0] || '';
 
   if (cond === 'is_blank') {
-    return isBlankCellValueFast;
+    return withPredicateRank(isBlankCellValueFast, 0);
   }
 
   if (cond === 'has_value') {
-    return rawCellValue => !isBlankCellValueFast(rawCellValue);
+    return withPredicateRank(rawCellValue => !isBlankCellValueFast(rawCellValue), 0);
   }
 
   if (cond === 'has_multiple_values') {
-    return hasMultipleCellValues;
+    return withPredicateRank(hasMultipleCellValues, 1);
   }
 
   if (cond === 'does_not_have_multiple_values') {
-    return rawCellValue => !hasMultipleCellValues(rawCellValue);
+    return withPredicateRank(rawCellValue => !hasMultipleCellValues(rawCellValue), 1);
   }
 
   if (cond === 'equals' && filterValues.length > 1) {
-    return compileSelectionPredicate(filterValues, type, true);
+    return withPredicateRank(compileSelectionPredicate(filterValues, type, true), 2);
   }
 
   if (cond === 'does_not_equal' && filterValues.length > 1) {
-    return compileSelectionPredicate(filterValues, type, false);
+    return withPredicateRank(compileSelectionPredicate(filterValues, type, false), 5);
   }
 
   if (cond === 'equals' && isBlankPostFilterValue(filterValue)) {
-    return isBlankCellValueFast;
+    return withPredicateRank(isBlankCellValueFast, 0);
   }
 
   if (cond === 'does_not_equal' && isBlankPostFilterValue(filterValue)) {
-    return rawCellValue => !isBlankCellValueFast(rawCellValue);
+    return withPredicateRank(rawCellValue => !isBlankCellValueFast(rawCellValue), 0);
   }
 
   if (cond === 'between') {
-    return compileBetweenPredicate(filterValue, type);
+    return withPredicateRank(compileBetweenPredicate(filterValue, type), 4);
   }
 
   return compileScalarPredicate(cond, filterValue, type);
 }
 
+function withPredicateRank(predicate, rank) {
+  predicate.rank = rank; return predicate;
+}
+function getPredicateRank(predicate) {
+  return Number.isFinite(Number(predicate?.rank)) ? Number(predicate.rank) : 10;
+}
 function compileSelectionPredicate(filterValues, type, equalsMode) {
   const includesBlank = filterValues.some(isBlankPostFilterValue);
   if (type === 'number' || type === 'money' || type === 'date') {
@@ -320,7 +329,6 @@ function compileSelectionPredicate(filterValues, type, equalsMode) {
     return equalsMode ? hasMatch : !hasMatch;
   };
 }
-
 function compileBetweenPredicate(filterValue, type) {
   const [leftRaw, rightRaw] = String(filterValue || '').split('|');
   const left = getComparableExpectedValueFast(leftRaw, type);
@@ -334,93 +342,338 @@ function compileBetweenPredicate(filterValue, type) {
   const maxValue = Math.max(left, right);
   return rawCellValue => someComparableCellValue(rawCellValue, type, value => value >= minValue && value <= maxValue);
 }
-
 function compileScalarPredicate(cond, filterValue, type) {
   if (type === 'number' || type === 'money' || type === 'date') {
     const expected = getComparableExpectedValueFast(filterValue, type);
-    return rawCellValue => {
+    const compare = compileComparablePredicate(cond, expected);
+    return withPredicateRank(rawCellValue => {
       if (cond === 'does_not_equal') {
-        return everyComparableCellValue(rawCellValue, type, value => compareComparableValue(value, expected, cond));
+        return everyComparableCellValue(rawCellValue, type, compare);
       }
-      return someComparableCellValue(rawCellValue, type, value => compareComparableValue(value, expected, cond));
-    };
+      return someComparableCellValue(rawCellValue, type, compare);
+    }, cond === 'does_not_equal' ? 5 : 3);
   }
 
   const expected = String(filterValue || '').trim().toLowerCase();
   if (cond === 'does_not_equal') {
-    return rawCellValue => everyTextCellValue(rawCellValue, value => value !== expected);
+    return withPredicateRank(rawCellValue => everyTextCellValue(rawCellValue, value => value !== expected), 5);
   }
   if (cond === 'starts' || cond === 'starts_with') {
-    return rawCellValue => someTextCellValue(rawCellValue, value => value.startsWith(expected));
+    return withPredicateRank(rawCellValue => someTextCellValue(rawCellValue, value => value.startsWith(expected)), 2);
   }
   if (cond === 'contains') {
-    return rawCellValue => someTextCellValue(rawCellValue, value => value.includes(expected));
+    return withPredicateRank(rawCellValue => someTextCellValue(rawCellValue, value => value.includes(expected)), 6);
   }
   if (cond === 'equals') {
-    return rawCellValue => someTextCellValue(rawCellValue, value => value === expected);
+    return withPredicateRank(rawCellValue => someTextCellValue(rawCellValue, value => value === expected), 2);
   }
-  return () => false;
+  return withPredicateRank(() => false, 0);
 }
 
 export function doesCellMatchPostFilter(rawCellValue, type, filter) {
   const predicate = compilePostFilterPredicate(filter, type);
   return predicate ? predicate(rawCellValue) : true;
 }
-
 function isBlankCellValueFast(rawValue) {
+  if (rawValue === undefined || rawValue === null) {
+    return true;
+  }
+
+  if (typeof rawValue === 'string') {
+    if (!rawValue.includes(SERIALIZED_MULTI_VALUE_SEPARATOR)) {
+      return rawValue.trim() === '';
+    }
+  } else if (typeof rawValue === 'number' || typeof rawValue === 'boolean' || typeof rawValue === 'bigint') {
+    return false;
+  }
+
   return isBlankCellValue(rawValue);
 }
-
 function hasMultipleCellValues(rawValue) {
+  if (typeof rawValue === 'string') {
+    if (!rawValue.includes(SERIALIZED_MULTI_VALUE_SEPARATOR)) {
+      return false;
+    }
+
+    let count = 0;
+    let start = 0;
+    while (start <= rawValue.length) {
+      const separatorIndex = rawValue.indexOf(SERIALIZED_MULTI_VALUE_SEPARATOR, start);
+      const end = separatorIndex === -1 ? rawValue.length : separatorIndex;
+      if (rawValue.slice(start, end).trim()) {
+        count += 1;
+        if (count > 1) {
+          return true;
+        }
+      }
+      if (separatorIndex === -1) {
+        return false;
+      }
+      start = separatorIndex + 1;
+    }
+    return false;
+  }
+
   return getRawCellValueParts(rawValue).filter(value => String(value ?? '').trim()).length > 1;
 }
-
 function someTextCellValue(rawValue, predicate) {
+  const scalar = getScalarCellText(rawValue);
+  if (scalar !== null) {
+    return predicate(scalar ? scalar.toLowerCase() : '');
+  }
+
+  if (typeof rawValue === 'string') {
+    return someSerializedTextCellValue(rawValue, predicate);
+  }
+
   const parts = getRawCellValueParts(rawValue);
   if (parts.length === 1 && parts[0] === '') {
     return predicate('');
   }
 
-  const nonBlankParts = parts.map(part => String(part ?? '').trim()).filter(Boolean);
-  return nonBlankParts.length
-    ? nonBlankParts.some(part => predicate(part.toLowerCase()))
-    : predicate('');
+  let sawValue = false;
+  for (let index = 0; index < parts.length; index += 1) {
+    const value = String(parts[index] ?? '').trim();
+    if (!value) {
+      continue;
+    }
+    sawValue = true;
+    if (predicate(value.toLowerCase())) {
+      return true;
+    }
+  }
+  return sawValue ? false : predicate('');
 }
-
 function everyTextCellValue(rawValue, predicate) {
+  const scalar = getScalarCellText(rawValue);
+  if (scalar !== null) {
+    return predicate(scalar ? scalar.toLowerCase() : '');
+  }
+
+  if (typeof rawValue === 'string') {
+    return everySerializedTextCellValue(rawValue, predicate);
+  }
+
   const parts = getRawCellValueParts(rawValue);
   if (parts.length === 1 && parts[0] === '') {
     return predicate('');
   }
 
-  const nonBlankParts = parts.map(part => String(part ?? '').trim()).filter(Boolean);
-  return nonBlankParts.length
-    ? nonBlankParts.every(part => predicate(part.toLowerCase()))
-    : predicate('');
+  let sawValue = false;
+  for (let index = 0; index < parts.length; index += 1) {
+    const value = String(parts[index] ?? '').trim();
+    if (!value) {
+      continue;
+    }
+    sawValue = true;
+    if (!predicate(value.toLowerCase())) {
+      return false;
+    }
+  }
+  return sawValue ? true : predicate('');
 }
-
 function someComparableCellValue(rawValue, type, predicate) {
+  const scalar = getScalarComparableValue(rawValue, type);
+  if (scalar !== null) {
+    return predicate(scalar);
+  }
+
+  if (typeof rawValue === 'string') {
+    return someSerializedComparableCellValue(rawValue, type, predicate);
+  }
+
   if (isBlankCellValueFast(rawValue)) {
     return predicate(Number.NaN);
   }
 
-  return getRawCellValueParts(rawValue)
-    .map(part => String(part ?? '').trim())
-    .filter(Boolean)
-    .some(part => predicate(getComparableExpectedValueFast(part, type)));
+  const parts = getRawCellValueParts(rawValue);
+  for (let index = 0; index < parts.length; index += 1) {
+    const value = String(parts[index] ?? '').trim();
+    if (value && predicate(getComparableExpectedValueFast(value, type))) {
+      return true;
+    }
+  }
+  return false;
+}
+function everyComparableCellValue(rawValue, type, predicate) {
+  const scalar = getScalarComparableValue(rawValue, type);
+  if (scalar !== null) {
+    return predicate(scalar);
+  }
+
+  if (typeof rawValue === 'string') {
+    return everySerializedComparableCellValue(rawValue, type, predicate);
+  }
+
+  if (isBlankCellValueFast(rawValue)) {
+    return predicate(Number.NaN);
+  }
+
+  const parts = getRawCellValueParts(rawValue);
+  let sawValue = false;
+  for (let index = 0; index < parts.length; index += 1) {
+    const value = String(parts[index] ?? '').trim();
+    if (!value) {
+      continue;
+    }
+    sawValue = true;
+    if (!predicate(getComparableExpectedValueFast(value, type))) {
+      return false;
+    }
+  }
+  return sawValue ? true : predicate(Number.NaN);
 }
 
-function everyComparableCellValue(rawValue, type, predicate) {
-  if (isBlankCellValueFast(rawValue)) {
-    return predicate(Number.NaN);
+function someSerializedTextCellValue(rawValue, predicate) {
+  let sawValue = false;
+  let start = 0;
+  while (start <= rawValue.length) {
+    const separatorIndex = rawValue.indexOf(SERIALIZED_MULTI_VALUE_SEPARATOR, start);
+    const end = separatorIndex === -1 ? rawValue.length : separatorIndex;
+    const value = rawValue.slice(start, end).trim();
+    if (value) {
+      sawValue = true;
+      if (predicate(value.toLowerCase())) {
+        return true;
+      }
+    }
+    if (separatorIndex === -1) {
+      return sawValue ? false : predicate('');
+    }
+    start = separatorIndex + 1;
+  }
+  return sawValue ? false : predicate('');
+}
+
+function everySerializedTextCellValue(rawValue, predicate) {
+  let sawValue = false;
+  let start = 0;
+  while (start <= rawValue.length) {
+    const separatorIndex = rawValue.indexOf(SERIALIZED_MULTI_VALUE_SEPARATOR, start);
+    const end = separatorIndex === -1 ? rawValue.length : separatorIndex;
+    const value = rawValue.slice(start, end).trim();
+    if (value) {
+      sawValue = true;
+      if (!predicate(value.toLowerCase())) {
+        return false;
+      }
+    }
+    if (separatorIndex === -1) {
+      return sawValue ? true : predicate('');
+    }
+    start = separatorIndex + 1;
+  }
+  return sawValue ? true : predicate('');
+}
+
+function someSerializedComparableCellValue(rawValue, type, predicate) {
+  let sawValue = false;
+  let start = 0;
+  while (start <= rawValue.length) {
+    const separatorIndex = rawValue.indexOf(SERIALIZED_MULTI_VALUE_SEPARATOR, start);
+    const end = separatorIndex === -1 ? rawValue.length : separatorIndex;
+    const value = rawValue.slice(start, end).trim();
+    if (value) {
+      sawValue = true;
+      if (predicate(getComparableExpectedValueFast(value, type))) {
+        return true;
+      }
+    }
+    if (separatorIndex === -1) {
+      return sawValue ? false : predicate(Number.NaN);
+    }
+    start = separatorIndex + 1;
+  }
+  return sawValue ? false : predicate(Number.NaN);
+}
+
+function everySerializedComparableCellValue(rawValue, type, predicate) {
+  let sawValue = false;
+  let start = 0;
+  while (start <= rawValue.length) {
+    const separatorIndex = rawValue.indexOf(SERIALIZED_MULTI_VALUE_SEPARATOR, start);
+    const end = separatorIndex === -1 ? rawValue.length : separatorIndex;
+    const value = rawValue.slice(start, end).trim();
+    if (value) {
+      sawValue = true;
+      if (!predicate(getComparableExpectedValueFast(value, type))) {
+        return false;
+      }
+    }
+    if (separatorIndex === -1) {
+      return sawValue ? true : predicate(Number.NaN);
+    }
+    start = separatorIndex + 1;
+  }
+  return sawValue ? true : predicate(Number.NaN);
+}
+
+function getScalarCellText(rawValue) {
+  if (rawValue === undefined || rawValue === null) {
+    return '';
   }
 
-  const parts = getRawCellValueParts(rawValue)
-    .map(part => String(part ?? '').trim())
-    .filter(Boolean);
-  return parts.length
-    ? parts.every(part => predicate(getComparableExpectedValueFast(part, type)))
-    : predicate(Number.NaN);
+  if (typeof rawValue === 'string') {
+    return rawValue.includes(SERIALIZED_MULTI_VALUE_SEPARATOR) ? null : rawValue.trim();
+  }
+
+  if (typeof rawValue === 'number' || typeof rawValue === 'boolean' || typeof rawValue === 'bigint') {
+    return String(rawValue).trim();
+  }
+
+  return null;
+}
+
+function getScalarComparableValue(rawValue, type) {
+  if (rawValue === undefined || rawValue === null) {
+    return Number.NaN;
+  }
+
+  if (typeof rawValue === 'string') {
+    if (rawValue.includes(SERIALIZED_MULTI_VALUE_SEPARATOR)) {
+      return null;
+    }
+
+    const text = rawValue.trim();
+    return text ? getComparableExpectedValueFast(text, type) : Number.NaN;
+  }
+
+  if (typeof rawValue === 'number') {
+    return type === 'date' ? getComparableExpectedValueFast(rawValue, type) : rawValue;
+  }
+
+  if (typeof rawValue === 'boolean' || typeof rawValue === 'bigint') {
+    return getComparableExpectedValueFast(rawValue, type);
+  }
+
+  return null;
+}
+
+function compileComparablePredicate(cond, expected) {
+  if (Number.isNaN(expected)) {
+    return () => false;
+  }
+
+  switch (cond) {
+    case 'greater':
+    case 'after':
+      return value => !Number.isNaN(value) && value > expected;
+    case 'less':
+    case 'before':
+      return value => !Number.isNaN(value) && value < expected;
+    case 'greater_or_equal':
+    case 'on_or_after':
+      return value => !Number.isNaN(value) && value >= expected;
+    case 'less_or_equal':
+    case 'on_or_before':
+      return value => !Number.isNaN(value) && value <= expected;
+    case 'equals':
+      return value => !Number.isNaN(value) && value === expected;
+    case 'does_not_equal':
+      return value => !Number.isNaN(value) && value !== expected;
+    default:
+      return () => false;
+  }
 }
 
 function getComparableExpectedValueFast(value, type) {
@@ -437,7 +690,7 @@ function getComparableExpectedValueFast(value, type) {
 
 function parseNumericValueFast(value, type) {
   if (type === 'money') {
-    return parseNumericValue(value, type);
+    return parseMoneyValueFast(value);
   }
   if (typeof value === 'number') {
     return value;
@@ -450,16 +703,57 @@ function parseNumericValueFast(value, type) {
   return text.includes(',') ? parseNumericValue(text, type) : Number.parseFloat(text);
 }
 
+function parseMoneyValueFast(value) {
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  const text = String(value || '').trim();
+  if (!text) {
+    return Number.NaN;
+  }
+
+  let whole = 0;
+  let fraction = 0;
+  let divisor = 1;
+  let sawDigit = false;
+  let sawDot = false;
+  const negative = text.startsWith('-');
+  for (let index = negative ? 1 : 0; index < text.length; index += 1) {
+    const charCode = text.charCodeAt(index);
+    if (charCode >= 48 && charCode <= 57) {
+      sawDigit = true;
+      if (sawDot) {
+        fraction = (fraction * 10) + (charCode - 48);
+        divisor *= 10;
+      } else {
+        whole = (whole * 10) + (charCode - 48);
+      }
+      continue;
+    }
+    if (charCode === 46 && !sawDot) {
+      sawDot = true;
+    }
+  }
+
+  if (!sawDigit) {
+    return Number.NaN;
+  }
+
+  const parsed = whole + (divisor > 1 ? fraction / divisor : 0);
+  return negative ? -parsed : parsed;
+}
+
 function parseDateComparableFast(value) {
   const text = String(value || '').trim();
   if (!text) {
     return Number.NaN;
   }
 
-  if (/^\d{8}(?:\d{4}|\d{6})?$/u.test(text)) {
-    const year = Number(text.slice(0, 4));
-    const month = Number(text.slice(4, 6));
-    const day = Number(text.slice(6, 8));
+  if (isCompactDateText(text)) {
+    const year = parseFixedDigits(text, 0, 4);
+    const month = parseFixedDigits(text, 4, 6);
+    const day = parseFixedDigits(text, 6, 8);
     if (isValidDateParts(year, month, day)) {
       return year * 10000 + month * 100 + day;
     }
@@ -474,6 +768,28 @@ function parseDateComparableFast(value) {
   return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
 }
 
+function parseFixedDigits(text, start, end) {
+  let value = 0;
+  for (let index = start; index < end; index += 1) {
+    value = (value * 10) + (text.charCodeAt(index) - 48);
+  }
+  return value;
+}
+
+function isCompactDateText(text) {
+  if (text.length !== 8 && text.length !== 12 && text.length !== 14) {
+    return false;
+  }
+
+  for (let index = 0; index < text.length; index += 1) {
+    const charCode = text.charCodeAt(index);
+    if (charCode < 48 || charCode > 57) {
+      return false;
+    }
+  }
+  return true;
+}
+
 function isValidDateParts(year, month, day) {
   if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
     return false;
@@ -486,34 +802,8 @@ function isValidDateParts(year, month, day) {
 }
 
 function isLeapYear(year) {
-  return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
-}
-
-function compareComparableValue(actual, expected, cond) {
-  if (Number.isNaN(actual) || Number.isNaN(expected)) {
-    return false;
-  }
-
-  switch (cond) {
-    case 'greater':
-    case 'after':
-      return actual > expected;
-    case 'less':
-    case 'before':
-      return actual < expected;
-    case 'greater_or_equal':
-    case 'on_or_after':
-      return actual >= expected;
-    case 'less_or_equal':
-    case 'on_or_before':
-      return actual <= expected;
-    case 'equals':
-      return actual === expected;
-    case 'does_not_equal':
-      return actual !== expected;
-    default:
-      return false;
-  }
+  return year % 4 === 0
+    && (year % 100 !== 0 || year % 400 === 0);
 }
 
 function normalizeLogic(logic) {
