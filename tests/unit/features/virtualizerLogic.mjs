@@ -3,8 +3,10 @@ import test from 'node:test';
 
 import {
   DEFAULT_FULL_RENDER_ROW_LIMIT,
+  DEFAULT_MAX_OVERSCAN_ROWS,
   DEFAULT_OVERSCAN_ROWS,
   DEFAULT_ROW_HEIGHT,
+  calculateAdaptiveOverscanRows,
   calculateVirtualRowRange,
   createVirtualRenderPlan,
   shouldVirtualizeRows
@@ -82,6 +84,30 @@ test('virtual render plan switches between full and virtualized rendering', () =
   assert.equal(virtualPlan.virtualized, true);
   assert.equal(virtualPlan.end, 20);
   assert.equal(virtualPlan.totalHeight, (DEFAULT_FULL_RENDER_ROW_LIMIT + 1) * DEFAULT_ROW_HEIGHT);
+});
+
+test('virtualizer increases overscan for fast scroll jumps without unbounded rendering', () => {
+  const adaptiveOverscan = calculateAdaptiveOverscanRows({
+    baseOverscanRows: DEFAULT_OVERSCAN_ROWS,
+    maxOverscanRows: DEFAULT_MAX_OVERSCAN_ROWS,
+    rowHeight: DEFAULT_ROW_HEIGHT,
+    scrollDelta: DEFAULT_ROW_HEIGHT * 180,
+    visibleRows: 10
+  });
+  assert.equal(adaptiveOverscan, DEFAULT_MAX_OVERSCAN_ROWS);
+
+  const plan = createVirtualRenderPlan({
+    rowCount: 1000000,
+    scrollTop: DEFAULT_ROW_HEIGHT * 10000,
+    containerHeight: 462,
+    headerHeight: 42,
+    rowHeight: DEFAULT_ROW_HEIGHT,
+    scrollDelta: DEFAULT_ROW_HEIGHT * 180
+  });
+  assert.equal(plan.overscanRows, DEFAULT_MAX_OVERSCAN_ROWS);
+  assert.equal(plan.start, 9928);
+  assert.equal(plan.end, 10082);
+  assert.equal(plan.renderedRows, 154);
 });
 
 test('virtualizer threshold helper treats invalid counts as non-virtualized', () => {

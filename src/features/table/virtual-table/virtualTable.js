@@ -24,7 +24,6 @@ import {
   getSplitFieldParentName
 } from './splitColumnFields.js';
 import { applyImmediateColumnOrder, applyImmediateColumnRemoval } from '../drag-drop/dragDropImmediateReorder.js';
-import { escapeHtml } from '../../../core/formatting/html.js';
 import { QueryTableView } from '../../../ui/queryTableView.js';
 import { createVirtualTableEmptyRow, createVirtualTableRow } from './virtualTableRows.js';
 import {
@@ -41,7 +40,6 @@ import {
 } from './virtualizer.js';
 let VirtualTable;
 (function initializeVirtualTable() {
-// Virtual scrolling state
 let virtualTableData = {
   headers: [],
   rows: [],
@@ -62,7 +60,6 @@ let baseViewData = {
   splitColumnSourceMap: new Map()
 };
 
-// Stores the original collapsed data so split mode can be toggled on/off non-destructively
 let rawTableData = null;
 let splitViewData = null;
 let splitColumnsActive = false;
@@ -72,6 +69,8 @@ let duplicateCollapseToastSignature = '';
 let duplicateCollapseStats = createEmptyDuplicateCollapseStats();
 let tableRowHeight = 42;    // estimated row height in pixels
 let tableScrollTop = 0;
+let lastRenderedScrollTop = 0;
+let pendingScrollDelta = 0;
 let tableScrollContainer = null;
 let calculatedColumnWidths = {}; // Store calculated optimal widths for each column
 let manualColumnWidths = {};
@@ -90,7 +89,6 @@ const tableScrollbar = createTableScrollbarController({
   getRowHeight: () => tableRowHeight
 });
 
-// Keep track of sorting state
 let currentSortColumn = null;
 let currentSortDirection = 'asc'; // 'asc' or 'desc'
 var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
@@ -350,7 +348,6 @@ function sortTableBy(fieldName) {
   const colIndex = baseViewData.columnMap.get(fieldName);
   if (colIndex === undefined) return;
 
-  // Toggle direction if same column
   if (currentSortColumn === fieldName) {
     currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
   } else {
@@ -358,18 +355,16 @@ function sortTableBy(fieldName) {
     currentSortDirection = 'asc';
   }
 
-  // Find the exact field definition for sorting typing
   const type = getFieldType(fieldName);
 
   sortRowsByColumn(baseViewData.rows, colIndex, type, currentSortDirection);
   applyPostFilters({ refreshView: false, resetScroll: false, recalculateWidths: false });
 
-  // Re-render and update headers UI
   renderVirtualTable();
   QueryTableView.updateSortHeadersUI(currentSortColumn, currentSortDirection);
 }
 
-function renderVirtualTable() {
+function renderVirtualTable(options = {}) {
   const displayedFields = getDisplayedFields();
   if (!tableScrollContainer || !displayedFields.length) return;
   tableScrollbar.attach(tableScrollContainer);
@@ -377,18 +372,19 @@ function renderVirtualTable() {
   const table = tableScrollContainer.querySelector('#example-table');
   if (!table) return;
   
-  // Check if a drag operation is in progress - don't re-render during active drag
   if (document.body.classList.contains('dragging-cursor')) {
     return;
   }
   
   const tbody = table.querySelector('tbody');
   if (!tbody) return;
+  const syncInteractions = options.syncInteractions !== false;
   const columnLayout = tableColumnLayout.syncRenderedColumnLayout(table, displayedFields);
   const nextBody = document.createDocumentFragment();
   
-  // Clean up existing event listeners on body cells before clearing them
-  services.cleanupDragDropTableListeners(table);
+  if (syncInteractions) {
+    services.cleanupDragDropTableListeners(table);
+  }
 
   if (!Array.isArray(virtualTableData.rows) || virtualTableData.rows.length === 0) {
     const hasLoadedRows = Array.isArray(baseViewData.rows) && baseViewData.rows.length > 0;
@@ -407,6 +403,8 @@ function renderVirtualTable() {
     }));
     tbody.replaceChildren(nextBody);
     tableScrollTop = 0;
+    lastRenderedScrollTop = 0;
+    pendingScrollDelta = 0;
     tableScrollContainer.scrollTop = 0;
     tableScrollbar.scheduleSync();
     return;
@@ -418,7 +416,8 @@ function renderVirtualTable() {
     containerHeight: tableScrollContainer.clientHeight,
     headerHeight: Math.ceil(table.querySelector('thead')?.getBoundingClientRect().height || 40),
     rowHeight: tableRowHeight,
-    fullRenderRowLimit: FULL_TABLE_RENDER_ROW_LIMIT
+    fullRenderRowLimit: FULL_TABLE_RENDER_ROW_LIMIT,
+    scrollDelta: options.scrollDelta ?? pendingScrollDelta
   });
   const shouldRenderAllRows = !renderPlan.virtualized;
   const { start, end } = renderPlan;
@@ -431,6 +430,8 @@ function renderVirtualTable() {
     tableScrollContainer.scrollTop = renderPlan.scrollTop;
   }
   tableScrollTop = renderPlan.scrollTop;
+  lastRenderedScrollTop = renderPlan.scrollTop;
+  pendingScrollDelta = 0;
   
   for (let i = start; i < end; i++) {
     nextBody.appendChild(createVirtualTableRow({
@@ -449,7 +450,6 @@ function renderVirtualTable() {
       valueFormatting: ValueFormatting,
       parseNumericValue,
       getFieldType,
-      escapeHtml,
       document
     }));
   }
@@ -459,8 +459,9 @@ function renderVirtualTable() {
     ? new CustomEvent('query-table-body-rendered')
     : new Event('query-table-body-rendered'));
   
-  // Re-apply drag and drop to the new rows
-  services.addDragAndDrop(table);
+  if (syncInteractions) {
+    services.addDragAndDrop(table);
+  }
   tableScrollbar.scheduleSync();
 }
 
@@ -471,7 +472,10 @@ function scheduleVirtualTableRender() {
     isRenderScheduled = true;
     requestAnimationFrame(() => {
       try {
-        renderVirtualTable();
+        renderVirtualTable({
+          scrollDelta: pendingScrollDelta,
+          syncInteractions: false
+        });
       } finally {
         isRenderScheduled = false;
       }
@@ -486,6 +490,7 @@ function handleTableScroll(e) {
   }
   
   tableScrollTop = e.target.scrollTop;
+  pendingScrollDelta = Math.max(pendingScrollDelta, Math.abs(tableScrollTop - lastRenderedScrollTop));
   tableScrollbar.scheduleSync();
 
   if (virtualTableData.rows.length <= FULL_TABLE_RENDER_ROW_LIMIT) {

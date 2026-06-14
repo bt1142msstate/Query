@@ -38,11 +38,12 @@ export function createVirtualTableRow({
 
   if (!shouldRenderAllRows) {
     tr.style.position = 'absolute';
-    tr.style.top = `${rowIndex * rowHeight}px`;
+    tr.style.top = '0';
     tr.style.left = '0';
     tr.style.right = '0';
     tr.style.display = 'table';
     tr.style.tableLayout = 'fixed';
+    tr.style.transform = `translate3d(0, ${rowIndex * rowHeight}px, 0)`;
     tr.style.width = `${columnLayout.totalWidth}px`;
   }
 

@@ -604,6 +604,11 @@ body.export-overlay-open {
   position: relative;
 }
 
+#example-table tbody.query-table-virtual-body tr {
+  transition: none;
+  will-change: transform;
+}
+
 #example-table tbody tr:last-child {
   border-bottom: none;
 }
