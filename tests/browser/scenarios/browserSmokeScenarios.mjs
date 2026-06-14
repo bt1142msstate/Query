@@ -2660,6 +2660,7 @@ async function exerciseDesktopResultsWorkflow(page) {
   await seedLoadedResults(page);
   await expectResultsCount(page, '3', 'Desktop seeded results');
   await expectDestructiveFlameAnimation(page, '#clear-query-btn', 'Desktop clear query button');
+  await expectDestructiveFlameAnimation(page, '.fp-display-btn-remove', 'Display field remove button');
   await expectPostFilterStats(page, {
     filteredRows: 3,
     hasPostFilters: false,
@@ -3685,6 +3686,7 @@ async function exerciseFormModeDateTypingCommit(page) {
 
   const dateInput = page.locator('#form-mode-card .custom-date-input--form input').first();
   await dateInput.waitFor({ state: 'visible', timeout: 5000 });
+  await expectDestructiveFlameAnimation(page, '#form-mode-card .form-mode-field-remove', 'Form-mode field remove button');
   await dateInput.fill('1/');
   await page.waitForTimeout(120);
 

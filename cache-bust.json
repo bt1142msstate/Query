@@ -1,5 +1,5 @@
 {
-  "version": "914ceef614507c20",
+  "version": "a51ef5e719f30e14",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -36,7 +36,7 @@
     "src/core/formatting/operatorLabels.js": "d0a26bc1a2e0df94",
     "src/core/formatting/tooltipFormatters.js": "4ea62e5515cff306",
     "src/core/formatting/valueFormatting.js": "e5277a9bf61893c9",
-    "src/core/icons.js": "430e4483cfd6e64b",
+    "src/core/icons.js": "873dc37358eb8916",
     "src/core/mobileScrollLock.js": "6b736ada147cf169",
     "src/core/operatorSelectUtils.js": "8815c66de0baa6f1",
     "src/core/queryErrorDetails.js": "5c26531918b7a2c8",
