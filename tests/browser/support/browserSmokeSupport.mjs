@@ -906,6 +906,30 @@ async function expectLightInput(page, selector, label) {
   }
 }
 
+async function expectLightSurface(page, selector, label) {
+  const theme = await page.locator(selector).evaluate(element => {
+    const readChannels = value => (value.match(/\d+(?:\.\d+)?/gu) || []).slice(0, 4).map(Number);
+    const style = window.getComputedStyle(element);
+    const [backgroundRed = 255, backgroundGreen = 255, backgroundBlue = 255, backgroundAlpha = 1] = readChannels(style.backgroundColor);
+    const [textRed = 0, textGreen = 0, textBlue = 0] = readChannels(style.color);
+
+    return {
+      backgroundAlpha,
+      backgroundLuma: (backgroundRed + backgroundGreen + backgroundBlue) / 3,
+      resolvedTheme: document.documentElement.dataset.themeResolved || '',
+      textLuma: (textRed + textGreen + textBlue) / 3
+    };
+  });
+
+  if (
+    theme.resolvedTheme !== 'light'
+    || theme.textLuma > 130
+    || (theme.backgroundAlpha > 0.01 && theme.backgroundLuma < 150)
+  ) {
+    throw new Error(`${label} is not using the light surface theme: ${JSON.stringify(theme)}`);
+  }
+}
+
 async function expectMinimumTapTarget(page, selector, label, minSize = 44) {
   const targets = await page.locator(selector).evaluateAll(elements => elements.map(element => {
     const rect = element.getBoundingClientRect();
@@ -2031,6 +2055,7 @@ export {
   expectDestructiveFlameAnimation,
   expectElementWithinViewport,
   expectLightInput,
+  expectLightSurface,
   expectMinimumTapTarget,
   expectMobileEditableFocusContained,
   expectMobileHeaderDoesNotCoverTableOnScroll,
