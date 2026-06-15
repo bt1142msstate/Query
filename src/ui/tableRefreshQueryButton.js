@@ -1,5 +1,31 @@
-function getActionLabel(queryChanged) {
-  return queryChanged ? 'Run updated query' : 'Refresh results';
+export function getQueryRunActionState({
+  hasLoadedResultSet = false,
+  queryChanged = true
+} = {}) {
+  if (hasLoadedResultSet && queryChanged !== true) {
+    return {
+      icon: 'refresh',
+      isRefresh: true,
+      label: 'Refresh results',
+      mode: 'refresh'
+    };
+  }
+
+  if (hasLoadedResultSet) {
+    return {
+      icon: 'run',
+      isRefresh: false,
+      label: 'Run updated query',
+      mode: 'run-updated'
+    };
+  }
+
+  return {
+    icon: 'run',
+    isRefresh: false,
+    label: 'Run query',
+    mode: 'run'
+  };
 }
 
 function normalizeDisplayedFields(displayedFields) {
@@ -28,13 +54,16 @@ export function updateTableRefreshQueryButtonState({
   const queryRunning = state.queryRunning === true;
   const hidden = !hasLoadedResultSet || !hasFields;
   const disabled = hidden || queryRunning || Boolean(validationError);
-  const actionLabel = getActionLabel(queryChanged === true);
-  const tooltip = validationError || (queryRunning ? 'Query is already running' : actionLabel);
+  const actionState = getQueryRunActionState({
+    hasLoadedResultSet,
+    queryChanged: queryChanged === true
+  });
+  const tooltip = validationError || (queryRunning ? 'Query is already running' : actionState.label);
 
   button.hidden = hidden;
   button.classList.toggle('hidden', hidden);
   button.disabled = disabled;
-  button.classList.toggle('table-toolbar-btn-active', !disabled && queryChanged !== true);
+  button.classList.toggle('table-toolbar-btn-active', !disabled && actionState.isRefresh);
   button.setAttribute('aria-label', tooltip);
   button.setAttribute('data-tooltip', tooltip);
 }

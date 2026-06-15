@@ -202,6 +202,10 @@ async function hydrateHistoryResultTable({
     uiState,
     uiActions
   });
+  markHydratedResultStateAsExecuted({
+    queryChangeManager,
+    queryStateReaders
+  });
 
   const displayedFields = queryStateReaders?.getDisplayedFields?.() || [];
   const renderFields = displayedFields.length
@@ -219,6 +223,21 @@ async function hydrateHistoryResultTable({
   }
   uiActions.updateButtonStates();
   syncHistoryResultWorkspaceLayout({ services, uiActions });
+}
+
+function markHydratedResultStateAsExecuted({
+  queryChangeManager,
+  queryStateReaders
+} = {}) {
+  const getSerializableState = queryStateReaders?.getSerializableState;
+  const setLifecycleState = queryChangeManager?.setLifecycleState;
+  if (typeof getSerializableState !== 'function' || typeof setLifecycleState !== 'function') {
+    return;
+  }
+
+  setLifecycleState.call(queryChangeManager, {
+    lastExecutedQueryState: getSerializableState.call(queryStateReaders)
+  }, { source: 'QueryHistory.hydrateResultState', silent: true });
 }
 
 function syncHistoryResultWorkspaceLayout({
@@ -249,4 +268,4 @@ function syncHistoryResultWorkspaceLayout({
   }
 }
 
-export { hydrateHistoryResultTable, syncHistoryResultWorkspaceLayout };
+export { hydrateHistoryResultTable, markHydratedResultStateAsExecuted, syncHistoryResultWorkspaceLayout };
