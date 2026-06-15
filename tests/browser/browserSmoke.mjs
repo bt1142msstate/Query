@@ -237,6 +237,15 @@ async function runSmokeTest() {
       '.history-monitor .history-query-name, .history-monitor .history-row-metric-label, .history-monitor .history-row-metric-value, .history-monitor .history-inline-pill, .history-monitor .history-status-badge, .history-monitor .history-expand-btn, .history-monitor .history-action-label, .history-monitor-tab-label, .history-monitor-tab-count',
       'Light query history run card controls'
     );
+    await page.locator('[data-query-id="browser-smoke-complete"] .history-expand-btn').click();
+    await page.locator('.history-details-modal').waitFor({ state: 'visible', timeout: 5000 });
+    await expectReadableLightText(
+      page,
+      '.history-details-modal-title, .history-details-panel h5, .history-details-panel .tt-column-index, .history-details-panel .tt-column-name, .history-details-empty, .history-details-modal .history-inline-pill',
+      'Light query history details modal'
+    );
+    await page.locator('.history-details-modal-close').click();
+    await page.locator('.history-details-modal-shell').waitFor({ state: 'detached', timeout: 5000 });
     await page.locator('.history-monitor .template-query-btn').first().click();
     await page.locator('#templates-detail-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
     const historyTemplateDraft = await page.evaluate(() => ({
@@ -931,6 +940,11 @@ async function runSmokeTest() {
     await mobilePage.locator('.history-monitor .history-expand-btn').first().click();
     await mobilePage.locator('.history-details-modal').waitFor({ state: 'visible', timeout: 5000 });
     await expectElementWithinViewport(mobilePage, '.history-details-modal', 'Mobile history details modal');
+    await expectReadableLightText(
+      mobilePage,
+      '.history-details-modal-title, .history-details-panel h5, .history-details-panel .tt-column-index, .history-details-panel .tt-column-name, .history-details-empty, .history-details-modal .history-inline-pill',
+      'Mobile light query history details modal'
+    );
     await expectMinimumTapTarget(mobilePage, '.history-details-modal-close', 'Mobile history details close button');
     const mobileHistoryDetailsMetrics = await mobilePage.locator('.history-details-modal').evaluate(modal => {
       const shell = document.querySelector('.history-details-modal-shell');
