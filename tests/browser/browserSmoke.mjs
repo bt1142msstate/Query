@@ -753,11 +753,15 @@ async function runSmokeTest() {
     const mobileMenuLabels = await mobilePage.locator('#mobile-menu-dropdown .mobile-menu-item').evaluateAll(items => {
       return items.map(item => (item.textContent || '').trim().replace(/\s+/gu, ' '));
     });
-    ['Run Query', 'JSON', 'Queries', 'Templates', 'Help'].forEach(expectedLabel => {
+    ['Run Query', 'JSON', 'Queries', 'Templates', 'Theme', 'Help'].forEach(expectedLabel => {
       if (!mobileMenuLabels.some(label => label.includes(expectedLabel))) {
         throw new Error(`Mobile menu is missing "${expectedLabel}": ${JSON.stringify(mobileMenuLabels)}`);
       }
     });
+    const mobileThemeLabel = mobileMenuLabels.find(label => label.includes('Theme'));
+    if (!mobileThemeLabel || !/^Theme: (Auto|Dark|Light)$/u.test(mobileThemeLabel)) {
+      throw new Error(`Mobile theme item should not duplicate the icon label: ${JSON.stringify(mobileMenuLabels)}`);
+    }
     await expectNoHorizontalOverflow(mobilePage, 'Mobile menu');
     queueHistoryStatusResponses(mobileQueryApiStub);
     await mobilePage.locator('[data-source-control-id="toggle-queries"]').click();

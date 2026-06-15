@@ -13,6 +13,26 @@
   <meta name="application-name" content="Library Item Reports">
   <meta name="apple-mobile-web-app-title" content="Item Reports">
   <title>Library Item Reports</title>
+  <script>
+    (() => {
+      const key = 'queryProjectTheme';
+      const root = document.documentElement;
+      const resolveSystemTheme = () => (
+        window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark'
+          : 'light'
+      );
+      try {
+        const savedTheme = localStorage.getItem(key);
+        if (savedTheme === 'light' || savedTheme === 'dark') {
+          root.dataset.theme = savedTheme;
+          root.dataset.themeResolved = savedTheme;
+          return;
+        }
+      } catch (_) {}
+      root.dataset.themeResolved = resolveSystemTheme();
+    })();
+  </script>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="src/styles/app.css" rel="stylesheet" data-app-stylesheet>
   <link rel="icon" href="assets/app-icon.svg" type="image/svg+xml" sizes="any">
@@ -116,6 +136,16 @@
           <path class="help-question-mark" d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
           <line class="help-question-dot" x1="12" y1="17" x2="12.01" y2="17"></line>
         </svg>
+      </button>
+      <button id="theme-toggle"
+              class="theme-toggle p-2 rounded-full bg-white hover:bg-gray-100 text-black focus:outline-none transition-colors border border-gray-200"
+              type="button"
+              data-theme-toggle
+              data-mobile-menu-label="Theme"
+              aria-label="Toggle color theme"
+              data-tooltip="Theme: Auto" data-tooltip-delay="0">
+        <span class="theme-toggle-icon" aria-hidden="true"></span>
+        <span class="theme-toggle-label">Auto</span>
       </button>
     </div>
 
@@ -429,7 +459,7 @@
               </button>
             </div>
           </div>
-          <div id="table-container" class="overflow-x-auto shadow relative" style="background: #fff; height: 400px;">
+          <div id="table-container" class="overflow-x-auto shadow relative" style="height: 400px;">
             <table id="example-table" class="min-w-full divide-y divide-gray-200 bg-white">
               <thead></thead>
               <tbody></tbody>
