@@ -36,6 +36,16 @@ function normalizeLifecycleState(lifecycleState) {
   return lifecycleState && typeof lifecycleState === 'object' ? lifecycleState : {};
 }
 
+function updateButtonIcon(button, actionState) {
+  const runIcon = button.querySelector?.('[data-table-query-icon="run"]');
+  const refreshIcon = button.querySelector?.('[data-table-query-icon="refresh"]');
+  const showRefresh = actionState.icon === 'refresh';
+
+  runIcon?.classList.toggle('hidden', showRefresh);
+  refreshIcon?.classList.toggle('hidden', !showRefresh);
+  button.dataset.queryActionMode = actionState.mode;
+}
+
 export function updateTableRefreshQueryButtonState({
   button,
   displayedFields,
@@ -64,6 +74,7 @@ export function updateTableRefreshQueryButtonState({
   button.classList.toggle('hidden', hidden);
   button.disabled = disabled;
   button.classList.toggle('table-toolbar-btn-active', !disabled && actionState.isRefresh);
+  updateButtonIcon(button, actionState);
   button.setAttribute('aria-label', tooltip);
   button.setAttribute('data-tooltip', tooltip);
 }
