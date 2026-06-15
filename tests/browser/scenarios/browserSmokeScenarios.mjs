@@ -6,6 +6,8 @@ import {
   dragTouchLocator,
   encodeFormSpecForUrl,
   expectDarkInput,
+  expectDarkSurface,
+  expectReadableDarkText,
   expectDestructiveFlameAnimation,
   expectElementWithinViewport,
   exerciseMobileToastQueue,
@@ -2426,12 +2428,24 @@ async function exerciseProjectedDuplicateCollapse(page) {
     throw new Error(`Collapsed duplicate row should expose count and tooltip metadata: ${JSON.stringify(collapsedRowState)}`);
   }
 
+  const previousCollapsedViewerThemeMode = await page.evaluate(async () => {
+    const { applyTheme, readStoredTheme, updateThemeToggle } = await import('./src/ui/themeToggle.js');
+    const previousMode = readStoredTheme();
+    applyTheme('dark');
+    updateThemeToggle(document.querySelector('[data-theme-toggle]'));
+    return previousMode;
+  });
+
   const collapsedCell = page.locator('#example-table tbody tr[data-row-index="0"] td[data-col-index="0"]');
   await collapsedCell.click({ button: 'right' });
   const collapsedRowsMenuAction = page.locator('.tcm--visible .tcm-item', { hasText: 'View Collapsed Rows' });
   await collapsedRowsMenuAction.waitFor({ state: 'visible', timeout: 5000 });
   await collapsedRowsMenuAction.click();
   await page.locator('#query-collapsed-rows-viewer').waitFor({ state: 'visible', timeout: 5000 });
+  await expectDarkSurface(page, '#query-collapsed-rows-viewer .query-collapsed-rows-viewer', 'Collapsed rows dark viewer');
+  await expectDarkSurface(page, '#query-collapsed-rows-viewer .query-collapsed-rows-viewer__header', 'Collapsed rows dark viewer header');
+  await expectDarkSurface(page, '#query-collapsed-rows-viewer th.query-collapsed-rows-viewer__row-number', 'Collapsed rows dark viewer table header');
+  await expectReadableDarkText(page, '#query-collapsed-rows-viewer .query-collapsed-rows-viewer', 'Collapsed rows dark viewer');
 
   const collapsedRowsViewerState = await page.evaluate(() => {
     const viewer = document.querySelector('#query-collapsed-rows-viewer');
@@ -2460,6 +2474,11 @@ async function exerciseProjectedDuplicateCollapse(page) {
 
   await page.locator('#query-collapsed-rows-viewer .query-collapsed-rows-viewer__close').click();
   await page.locator('#query-collapsed-rows-viewer').waitFor({ state: 'detached', timeout: 5000 });
+  await page.evaluate(async themeMode => {
+    const { applyTheme, updateThemeToggle } = await import('./src/ui/themeToggle.js');
+    applyTheme(themeMode || 'system');
+    updateThemeToggle(document.querySelector('[data-theme-toggle]'));
+  }, previousCollapsedViewerThemeMode);
 }
 
 async function exerciseCoreFilterStateInteraction(page) {
@@ -3536,6 +3555,14 @@ async function exerciseJsonResultPayloadWorkflow(page, queryApiStub) {
     }
   });
 
+  const previousThemeMode = await page.evaluate(async () => {
+    const { applyTheme, readStoredTheme, updateThemeToggle } = await import('./src/ui/themeToggle.js');
+    const previousMode = readStoredTheme();
+    applyTheme('dark');
+    updateThemeToggle(document.querySelector('[data-theme-toggle]'));
+    return previousMode;
+  });
+
   async function assertTruncatedCellViewer({ cellSelector, expectedField, expectedValue, label }) {
     let compactCellMetrics = null;
     const metricsWaitStart = Date.now();
@@ -3576,6 +3603,10 @@ async function exerciseJsonResultPayloadWorkflow(page, queryApiStub) {
 
     await page.locator(`${cellSelector} .query-table-truncated-trigger`).click();
     await page.locator('.query-multi-value-viewer').waitFor({ state: 'visible', timeout: 5000 });
+    await expectDarkSurface(page, '.query-multi-value-viewer', `${label} dark value viewer`);
+    await expectDarkSurface(page, '.query-multi-value-viewer__header', `${label} dark value viewer header`);
+    await expectDarkSurface(page, '.query-multi-value-viewer__item:first-child', `${label} dark value viewer item`);
+    await expectReadableDarkText(page, '.query-multi-value-viewer', `${label} dark value viewer`);
 
     const viewerState = await page.locator('.query-multi-value-viewer').evaluate(viewer => ({
       bodyLocked: document.body.classList.contains('multi-value-viewer-open'),
@@ -3629,8 +3660,15 @@ async function exerciseJsonResultPayloadWorkflow(page, queryApiStub) {
       throw new Error(`${label} should show a compact multi-value cell: ${JSON.stringify(compactCellMetrics)}`);
     }
 
+    await expectDarkSurface(page, `${cellSelector} .query-table-multi-value-trigger`, `${label} dark table trigger`);
+    await expectReadableDarkText(page, `${cellSelector} .query-table-multi-value-trigger`, `${label} dark table trigger`);
+
     await page.locator(`${cellSelector} .query-table-multi-value-trigger`).click();
     await page.locator('.query-multi-value-viewer').waitFor({ state: 'visible', timeout: 5000 });
+    await expectDarkSurface(page, '.query-multi-value-viewer', `${label} dark value viewer`);
+    await expectDarkSurface(page, '.query-multi-value-viewer__header', `${label} dark value viewer header`);
+    await expectDarkSurface(page, '.query-multi-value-viewer__item:first-child', `${label} dark value viewer item`);
+    await expectReadableDarkText(page, '.query-multi-value-viewer', `${label} dark value viewer`);
 
     const viewerState = await page.locator('.query-multi-value-viewer').evaluate(viewer => ({
       bodyLocked: document.body.classList.contains('multi-value-viewer-open'),
@@ -3675,6 +3713,12 @@ async function exerciseJsonResultPayloadWorkflow(page, queryApiStub) {
     ],
     label: 'JSON multi-value MARC cell'
   });
+
+  await page.evaluate(async themeMode => {
+    const { applyTheme, updateThemeToggle } = await import('./src/ui/themeToggle.js');
+    applyTheme(themeMode || 'system');
+    updateThemeToggle(document.querySelector('[data-theme-toggle]'));
+  }, previousThemeMode);
 }
 
 async function expectCustomDatePickerNeverOption(page) {
