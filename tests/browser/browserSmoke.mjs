@@ -80,6 +80,28 @@ async function applySmokeTheme(page, theme) {
   }, theme);
 }
 
+async function expectDarkPageBackdrop(page, label) {
+  const backdrop = await page.evaluate(() => {
+    const style = window.getComputedStyle(document.body);
+    const colorMatches = Array.from(style.backgroundImage.matchAll(/rgba?\(([^)]+)\)/giu));
+    const opaqueLumas = colorMatches
+      .map(match => match[1].split(',').map(part => Number.parseFloat(part.trim())))
+      .filter(parts => parts.length >= 3 && parts.slice(0, 3).every(part => Number.isFinite(part)))
+      .filter(parts => parts.length < 4 || Number.isNaN(parts[3]) || parts[3] >= 0.8)
+      .map(parts => (parts[0] + parts[1] + parts[2]) / 3);
+    return {
+      backgroundImage: style.backgroundImage,
+      className: document.body.className,
+      minOpaqueLuma: opaqueLumas.length ? Math.min(...opaqueLumas) : 255,
+      resolvedTheme: document.documentElement.dataset.themeResolved || ''
+    };
+  });
+
+  if (backdrop.minOpaqueLuma > 110) {
+    throw new Error(`${label} should keep the dark app backdrop: ${JSON.stringify(backdrop)}`);
+  }
+}
+
 async function runSmokeTest() {
   const server = createServer(serveStaticFile);
   const port = await listen(server);
@@ -112,6 +134,7 @@ async function runSmokeTest() {
 
     const navigation = page.goto(baseUrl, { waitUntil: 'load', timeout: 15000 });
     await expectStartupStatusVisible(page, { beforeAppModules: true });
+    await expectDarkPageBackdrop(page, 'Startup loading background');
     await navigation;
     await waitForAppReady(page, failures);
     if (queryApiStub.countAction('get_fields') !== 1) {
@@ -166,6 +189,7 @@ async function runSmokeTest() {
     await page.goto(baseUrl, { waitUntil: 'load', timeout: 15000 });
     await waitForAppReady(page, failures);
     await applySmokeTheme(page, 'light');
+    await expectDarkPageBackdrop(page, 'Light-mode main background');
 
     await page.locator('#table-add-field-btn').click();
     await page.locator('.form-mode-field-picker-modal').waitFor({ state: 'visible', timeout: 5000 });
