@@ -11,7 +11,10 @@ import { appUiActions, registerAppUiActionDependencies } from '../core/appUiActi
 import { buildBackendQueryPayload } from '../features/filters/queryPayload.js';
 import { DOM } from '../core/domCache.js';
 import { getNormalTableViewportHeight } from './tableViewportSizing.js';
-import { updateTableRefreshQueryButtonState as updateTableRefreshQueryButtonElement } from './tableRefreshQueryButton.js';
+import {
+  getQueryRunActionState,
+  updateTableRefreshQueryButtonState as updateTableRefreshQueryButtonElement
+} from './tableRefreshQueryButton.js';
 import { initializeWorkspaceLayoutObservers } from './workspaceLayoutObservers.js';
 
 const getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
@@ -676,14 +679,19 @@ function updateRunButtonIcon(validationError) {
   runBtn.disabled = false;
   runBtn.classList.remove('opacity-50', 'cursor-not-allowed');
 
-  if (QueryStateReaders.hasQueryChanged()) {
+  const actionState = getQueryRunActionState({
+    hasLoadedResultSet: getLifecycleState().hasLoadedResultSet === true,
+    queryChanged: QueryStateReaders.hasQueryChanged()
+  });
+
+  if (actionState.icon === 'run') {
     runIcon.classList.remove('hidden');
     refreshIcon.classList.add('hidden');
-    setRunTooltip('Run Query', 'Run query');
+    setRunTooltip(actionState.label, actionState.label);
   } else {
     runIcon.classList.add('hidden');
     refreshIcon.classList.remove('hidden');
-    setRunTooltip('Refresh Data', 'Refresh data');
+    setRunTooltip(actionState.label, actionState.label);
   }
 }
 

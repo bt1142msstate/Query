@@ -1,5 +1,5 @@
 {
-  "version": "6bbedc1df457a9ef",
+  "version": "0d470edd50f733ec",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -84,7 +84,7 @@
     "src/features/history/results/queryHistoryResultProgress.js": "0c95180bd5467f6b",
     "src/features/history/results/queryHistoryResultRestore.js": "819a50db8dae4a7f",
     "src/features/history/results/queryHistoryResultSession.js": "4a0ca39ebd3464f5",
-    "src/features/history/results/queryHistoryResultsLoader.js": "667b9e78c433cdf1",
+    "src/features/history/results/queryHistoryResultsLoader.js": "15ac2a537aa08200",
     "src/features/history/results/queryHistoryResultViewPersistence.js": "7cbfa64b4cf4e055",
     "src/features/history/status/queryHistoryNotifications.js": "49d236e7881af655",
     "src/features/history/status/queryHistoryStatusMapper.js": "07d00a0dd913b573",
@@ -204,10 +204,10 @@
     "src/ui/queryAnimation.js": "fde2d42d66c61f92",
     "src/ui/queryBuilderShell.js": "9f0943369aa414f6",
     "src/ui/queryTableView.js": "3f7ed2c07bff8da9",
-    "src/ui/queryUI.js": "ba8622c247bc5612",
+    "src/ui/queryUI.js": "275de5d66db29a03",
     "src/ui/spacefieldOverlay.js": "b1cc13f40ec4a036",
     "src/ui/startupStatus.js": "e3f94a036cbd8cdc",
-    "src/ui/tableRefreshQueryButton.js": "f441a48af9fbe6ab",
+    "src/ui/tableRefreshQueryButton.js": "ab868eb8b14af89a",
     "src/ui/tableViewportSizing.js": "04a3623757e272cd",
     "src/ui/toast.js": "cbf5e5e1abd48fd4",
     "src/ui/tooltips.js": "796ff90a0625c6eb",
