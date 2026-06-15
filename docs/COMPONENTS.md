@@ -7,6 +7,7 @@ Use these public component entrypoints for outside integrations:
 ```js
 import {
   createVirtualTableComponent,
+  createVirtualTableDomComponent,
   createVirtualRenderPlan,
   createColumnDragDropComponent,
   createWorkbookExportComponent,
@@ -24,11 +25,19 @@ Entrypoint:
 ```js
 import {
   createVirtualRenderPlan,
+  createVirtualTableDomComponent,
   createVirtualTableComponent
 } from './src/components/virtual-table/index.js';
 ```
 
-The virtual-table component is a headless data projection and render-planning layer. It keeps the reusable behavior separate from this app's DOM shell:
+The virtual-table package has two public layers:
+
+- `createVirtualTableDomComponent()` mounts a portable DOM table with virtual row rendering, column layout, multi-value cell display, duplicate-row collapse, and the custom scrollbar packaged together.
+- `createVirtualTableComponent()` is the headless projection layer for React, Vue, Svelte, or any host that wants to render its own DOM.
+
+The scroller is included by default in the DOM component. Advanced hosts can import `createTableScrollbarController()` from the same entrypoint when they need a custom table shell.
+
+The headless layer keeps the reusable data behavior separate from this app's query-builder shell:
 
 - normalizes headers, rows, and column maps
 - expands JSON-array or serialized multi-value cells into numbered split columns
@@ -36,7 +45,40 @@ The virtual-table component is a headless data projection and render-planning la
 - calculates bounded virtual row windows for scroll rendering
 - returns table data that a host site can render with its own UI
 
-Example:
+DOM component example:
+
+```js
+import { createVirtualTableDomComponent } from './src/components/virtual-table/index.js';
+
+const table = createVirtualTableDomComponent({
+  data: {
+    headers: ['Title', 'Public Note'],
+    rows: [
+      ['Alpha', ['First note', 'Second note']],
+      ['Beta', ['Only note']]
+    ],
+    columnMap: new Map([
+      ['Title', 0],
+      ['Public Note', 1]
+    ])
+  },
+  displayedFields: ['Title', 'Public Note'],
+  height: '32rem',
+  splitColumns: false,
+  collapseDuplicateRows: true
+});
+
+table.mount(document.querySelector('#results-table-host'));
+
+// Later, when new data arrives:
+table.setData(nextTableData);
+table.setDisplayedFields(['Title']);
+table.setSplitColumns(true);
+```
+
+`mount()` expects an empty host element. The component creates and owns its viewport, table, virtual body, and scrollbar inside that host. It injects minimal component CSS by default; pass `injectStyles: false` if your host app ships its own styles.
+
+Headless example:
 
 ```js
 const table = createVirtualTableComponent({
@@ -75,7 +117,7 @@ for (let index = renderPlan.start; index < renderPlan.end; index += 1) {
 }
 ```
 
-This entrypoint does not mount a table by itself. It is intentionally usable in any UI framework or plain DOM page. The render plan keeps scroll work proportional to the visible row window plus overscan, not the total result count.
+The render plan keeps scroll work proportional to the visible row window plus overscan, not the total result count.
 
 ## Drag And Drop
 

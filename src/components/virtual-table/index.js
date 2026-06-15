@@ -4,6 +4,10 @@ export {
   normalizeVirtualTableData
 } from './createVirtualTableComponent.js';
 export {
+  VIRTUAL_TABLE_DOM_COMPONENT_CSS,
+  createVirtualTableDomComponent
+} from './createVirtualTableDomComponent.js';
+export {
   buildDuplicateCollapseSignature,
   buildDuplicateCollapseToastMessage,
   buildVirtualTableProjection,
@@ -41,4 +45,5 @@ export {
   shouldVirtualizeRows
 } from '../../features/table/virtual-table/virtualizer.js';
 export { createTableColumnLayoutController } from '../../features/table/virtual-table/tableColumnLayout.js';
+export { createTableScrollbarController } from '../../features/table/virtual-table/tableScrollbar.js';
 export { sortRowsByColumn } from '../../features/table/virtual-table/tableSort.js';

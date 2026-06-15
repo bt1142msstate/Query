@@ -5,6 +5,9 @@ import {
   DATE_INPUT_PATTERN,
   Tooltips,
   buildFilterTooltipHtml,
+  VIRTUAL_TABLE_DOM_COMPONENT_CSS,
+  createTableScrollbarController,
+  createVirtualTableDomComponent,
   createVirtualRenderPlan,
   createVirtualTableComponent,
   createWorkbookExportComponent,
@@ -68,6 +71,33 @@ test('reusable virtual table entrypoint exposes bounded render planning', () => 
   assert.equal(plan.end, 1000000);
   assert.ok(plan.renderedRows < 40);
   assert.equal(plan.scrollTop, plan.maxScrollTop);
+});
+
+test('reusable DOM virtual table component is mountable without app shell services', () => {
+  const table = createVirtualTableDomComponent({
+    data: {
+      headers: ['Title', 'Public Note'],
+      rows: [
+        ['Alpha', ['First note', 'Second note']],
+        ['Alpha', ['First note', 'Second note']]
+      ],
+      columnMap: new Map([
+        ['Title', 0],
+        ['Public Note', 1]
+      ])
+    },
+    displayedFields: ['Title', 'Public Note'],
+    splitColumns: true
+  });
+
+  const projection = table.project();
+  assert.deepEqual(table.displayedFields, ['Title', 'Public Note 1', 'Public Note 2']);
+  assert.equal(projection.tableData.rows.length, 1);
+  assert.equal(projection.stats.duplicateRowsCollapsed, 1);
+  assert.equal(typeof table.mount, 'function');
+  assert.equal(typeof table.render, 'function');
+  assert.equal(typeof createTableScrollbarController, 'function');
+  assert.match(VIRTUAL_TABLE_DOM_COMPONENT_CSS, /query-virtual-table/u);
 });
 
 test('reusable workbook export component creates the same workbook blob path as the app', async () => {

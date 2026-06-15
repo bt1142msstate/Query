@@ -1,5 +1,5 @@
 {
-  "version": "c185d737b5eb6d05",
+  "version": "fb36d4e22df16cad",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -15,7 +15,8 @@
     "src/components/index.js": "e25ad64d4d208dfa",
     "src/components/tooltips/index.js": "67c2bc99f6ed3011",
     "src/components/virtual-table/createVirtualTableComponent.js": "2612d051a3b10b35",
-    "src/components/virtual-table/index.js": "f6814f4dfd3f9875",
+    "src/components/virtual-table/createVirtualTableDomComponent.js": "3541e7cc35f26b6b",
+    "src/components/virtual-table/index.js": "a57f1d512a12a0ab",
     "src/components/workbook-export/createWorkbookExportComponent.js": "caae4c24b5e76d06",
     "src/components/workbook-export/index.js": "76b64cad3c692884",
     "src/core/appServices.js": "ff2a2e9a367b17a7",
@@ -130,7 +131,7 @@
     "src/features/table/virtual-table/tableBuilder.js": "38a9895d48fc0bae",
     "src/features/table/virtual-table/tableColumnLayout.js": "ad958634d767e250",
     "src/features/table/virtual-table/tableColumnWidthCalculation.js": "a8b598acf764748b",
-    "src/features/table/virtual-table/tableScrollbar.js": "930790e4b55d5a69",
+    "src/features/table/virtual-table/tableScrollbar.js": "35f4fc0ae84d0368",
     "src/features/table/virtual-table/tableSort.js": "209025137d0c0552",
     "src/features/table/virtual-table/virtualizer.js": "db3525d2eb06556b",
     "src/features/table/virtual-table/virtualTable.js": "3c856670ace99baa",
