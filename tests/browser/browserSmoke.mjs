@@ -230,6 +230,13 @@ async function runSmokeTest() {
     }, null, { timeout: 5000 });
     await page.locator('[data-history-book="complete"] .history-book-summary').click();
     await page.locator('.history-monitor').waitFor({ state: 'visible', timeout: 5000 });
+    await expectLightSurface(page, '.history-monitor .history-row', 'Query history run card');
+    await expectLightSurface(page, '.history-monitor .history-expand-btn', 'Query history details button');
+    await expectReadableLightText(
+      page,
+      '.history-monitor .history-query-name, .history-monitor .history-row-metric-label, .history-monitor .history-row-metric-value, .history-monitor .history-inline-pill, .history-monitor .history-status-badge, .history-monitor .history-expand-btn, .history-monitor .history-action-label, .history-monitor-tab-label, .history-monitor-tab-count',
+      'Light query history run card controls'
+    );
     await page.locator('.history-monitor .template-query-btn').first().click();
     await page.locator('#templates-detail-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
     const historyTemplateDraft = await page.evaluate(() => ({
@@ -900,6 +907,13 @@ async function runSmokeTest() {
     await mobilePage.locator('[data-history-book="complete"] .history-book-summary').click();
     await mobilePage.locator('.history-monitor').waitFor({ state: 'visible', timeout: 5000 });
     await expectElementWithinViewport(mobilePage, '.history-monitor', 'Mobile query history monitor');
+    await expectLightSurface(mobilePage, '.history-monitor .history-row', 'Mobile query history run card');
+    await expectLightSurface(mobilePage, '.history-monitor .history-expand-btn', 'Mobile query history details button');
+    await expectReadableLightText(
+      mobilePage,
+      '.history-monitor .history-query-name, .history-monitor .history-row-metric-label, .history-monitor .history-row-metric-value, .history-monitor .history-inline-pill, .history-monitor .history-status-badge, .history-monitor .history-expand-btn, .history-monitor .history-action-label, .history-monitor-tab-label, .history-monitor-tab-count',
+      'Mobile light query history run card controls'
+    );
     await expectMinimumTapTarget(mobilePage, '.history-monitor-close, .history-monitor-tab, .history-monitor .history-expand-btn, .history-monitor .load-query-btn, .history-monitor .rerun-query-btn, .history-monitor .template-query-btn', 'Mobile history monitor controls');
     const mobileHistoryMonitorMetrics = await mobilePage.locator('.history-monitor').evaluate(element => {
       const rect = element.getBoundingClientRect();
