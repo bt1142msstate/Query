@@ -930,6 +930,87 @@ async function expectLightSurface(page, selector, label) {
   }
 }
 
+async function expectReadableLightText(page, selector, label, minRatio = 4.5) {
+  const checks = await page.locator(selector).evaluateAll((elements, ratioThreshold) => {
+    const parseColor = value => {
+      const match = String(value || '').match(/rgba?\(([^)]+)\)/iu);
+      if (!match) return null;
+      const parts = match[1].split(',').map(part => Number.parseFloat(part.trim()));
+      if (parts.length < 3 || parts.slice(0, 3).some(Number.isNaN)) return null;
+      return {
+        a: parts.length >= 4 && !Number.isNaN(parts[3]) ? parts[3] : 1,
+        b: parts[2],
+        g: parts[1],
+        r: parts[0]
+      };
+    };
+    const blend = (foreground, background) => {
+      const alpha = Math.max(0, Math.min(1, foreground.a ?? 1));
+      return {
+        a: 1,
+        b: foreground.b * alpha + background.b * (1 - alpha),
+        g: foreground.g * alpha + background.g * (1 - alpha),
+        r: foreground.r * alpha + background.r * (1 - alpha)
+      };
+    };
+    const luminance = color => {
+      const channel = value => {
+        const scaled = value / 255;
+        return scaled <= 0.03928 ? scaled / 12.92 : ((scaled + 0.055) / 1.055) ** 2.4;
+      };
+      return 0.2126 * channel(color.r) + 0.7152 * channel(color.g) + 0.0722 * channel(color.b);
+    };
+    const contrastRatio = (text, background) => {
+      const textLuma = luminance(text);
+      const backgroundLuma = luminance(background);
+      return (Math.max(textLuma, backgroundLuma) + 0.05) / (Math.min(textLuma, backgroundLuma) + 0.05);
+    };
+    const effectiveBackground = element => {
+      let background = { a: 1, b: 255, g: 255, r: 255 };
+      const ancestry = [];
+      for (let node = element; node && node.nodeType === 1; node = node.parentElement) {
+        ancestry.unshift(node);
+      }
+      ancestry.forEach(node => {
+        const color = parseColor(window.getComputedStyle(node).backgroundColor);
+        if (color && color.a > 0) {
+          background = blend(color, background);
+        }
+      });
+      return background;
+    };
+
+    return elements
+      .filter(element => {
+        const rect = element.getBoundingClientRect();
+        const style = window.getComputedStyle(element);
+        return rect.width > 0
+          && rect.height > 0
+          && style.display !== 'none'
+          && style.visibility !== 'hidden'
+          && String(element.textContent || '').trim();
+      })
+      .map(element => {
+        const style = window.getComputedStyle(element);
+        const textColor = parseColor(style.color) || { a: 1, b: 0, g: 0, r: 0 };
+        const background = effectiveBackground(element);
+        const ratio = contrastRatio(textColor, background);
+        return {
+          className: String(element.className || ''),
+          id: element.id || '',
+          ratio,
+          tagName: element.tagName,
+          text: String(element.textContent || '').trim().replace(/\s+/gu, ' ').slice(0, 100)
+        };
+      })
+      .filter(result => result.ratio < ratioThreshold);
+  }, minRatio);
+
+  if (checks.length > 0) {
+    throw new Error(`${label} has light-mode text below ${minRatio}: ${JSON.stringify(checks.slice(0, 8))}`);
+  }
+}
+
 async function expectMinimumTapTarget(page, selector, label, minSize = 44) {
   const targets = await page.locator(selector).evaluateAll(elements => elements.map(element => {
     const rect = element.getBoundingClientRect();
@@ -2056,6 +2137,7 @@ export {
   expectElementWithinViewport,
   expectLightInput,
   expectLightSurface,
+  expectReadableLightText,
   expectMinimumTapTarget,
   expectMobileEditableFocusContained,
   expectMobileHeaderDoesNotCoverTableOnScroll,

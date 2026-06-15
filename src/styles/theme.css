@@ -3,6 +3,15 @@
   color-scheme: light;
 }
 
+:root[data-theme-resolved="light"] body#page-body,
+:root[data-theme-resolved="light"] body#page-body.night {
+  background:
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 30rem),
+    radial-gradient(circle at bottom left, rgba(20, 184, 166, 0.08), transparent 28rem),
+    linear-gradient(180deg, #f8fafc 0%, #eef6ff 52%, #ffffff 100%);
+  color: #0f172a;
+}
+
 :root[data-theme-resolved="dark"] {
   color-scheme: dark;
   --theme-panel-bg: rgba(8, 13, 24, 0.96);
@@ -836,6 +845,102 @@
   color: #0f172a;
 }
 
+:root[data-theme-resolved="light"] #json-panel > h2 {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 251, 235, 0.96)) !important;
+  border-color: rgba(217, 119, 6, 0.24) !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.06);
+}
+
+:root[data-theme-resolved="light"] #json-panel > h2 #copy-json-btn,
+:root[data-theme-resolved="light"] #json-panel > h2 .collapse-btn,
+:root[data-theme-resolved="light"] #api-settings-panel > h2 .collapse-btn {
+  border-color: rgba(148, 163, 184, 0.3) !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+  color: #0f172a !important;
+}
+
+:root[data-theme-resolved="light"] #json-panel > h2 #copy-json-btn:hover,
+:root[data-theme-resolved="light"] #json-panel > h2 #copy-json-btn:focus-visible,
+:root[data-theme-resolved="light"] #json-panel > h2 .collapse-btn:hover,
+:root[data-theme-resolved="light"] #json-panel > h2 .collapse-btn:focus-visible,
+:root[data-theme-resolved="light"] #api-settings-panel > h2 .collapse-btn:hover,
+:root[data-theme-resolved="light"] #api-settings-panel > h2 .collapse-btn:focus-visible {
+  background: #fef3c7 !important;
+  border-color: rgba(217, 119, 6, 0.28) !important;
+  color: #92400e !important;
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.16);
+}
+
+:root[data-theme-resolved="light"] #json-editor-shell {
+  border-color: rgba(217, 119, 6, 0.22) !important;
+  background:
+    radial-gradient(circle at top right, rgba(251, 191, 36, 0.08), transparent 22%),
+    linear-gradient(180deg, #ffffff 0%, #fffaf0 100%) !important;
+  color: #0f172a !important;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+}
+
+:root[data-theme-resolved="light"] .json-editor-topbar {
+  border-bottom-color: rgba(217, 119, 6, 0.16) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 251, 235, 0.96)) !important;
+}
+
+:root[data-theme-resolved="light"] .json-editor-label {
+  color: #854d0e !important;
+}
+
+:root[data-theme-resolved="light"] .json-tree {
+  background: linear-gradient(180deg, #ffffff, #fffaf0) !important;
+  color: #0f172a !important;
+  caret-color: #b45309;
+  box-shadow: inset 0 1px 0 rgba(15, 23, 42, 0.04);
+}
+
+:root[data-theme-resolved="light"] .json-line::before,
+:root[data-theme-resolved="light"] .json-summary::before,
+:root[data-theme-resolved="light"] .json-closing::before {
+  color: #64748b !important;
+}
+
+:root[data-theme-resolved="light"] .json-summary:hover {
+  background: rgba(251, 191, 36, 0.12) !important;
+}
+
+:root[data-theme-resolved="light"] .json-disclosure::before {
+  border-color: #92400e !important;
+}
+
+:root[data-theme-resolved="light"] .json-key {
+  color: #075985 !important;
+}
+
+:root[data-theme-resolved="light"] .json-colon,
+:root[data-theme-resolved="light"] .json-comma,
+:root[data-theme-resolved="light"] .json-bracket,
+:root[data-theme-resolved="light"] .json-closing {
+  color: #92400e !important;
+}
+
+:root[data-theme-resolved="light"] .json-string {
+  color: #0f766e !important;
+}
+
+:root[data-theme-resolved="light"] .json-number {
+  color: #9d174d !important;
+}
+
+:root[data-theme-resolved="light"] .json-boolean {
+  color: #166534 !important;
+}
+
+:root[data-theme-resolved="light"] .json-null,
+:root[data-theme-resolved="light"] .json-meta {
+  color: #a16207 !important;
+}
+
 :root[data-theme-resolved="light"] #queries-panel > h2,
 :root[data-theme-resolved="light"] #templates-panel > h2,
 :root[data-theme-resolved="light"] #api-settings-panel > h2.api-settings-heading {
@@ -854,6 +959,7 @@
 :root[data-theme-resolved="light"] .templates-categories-title,
 :root[data-theme-resolved="light"] .templates-empty-state h3,
 :root[data-theme-resolved="light"] .templates-detail-title,
+:root[data-theme-resolved="light"] .templates-category-empty-state h4,
 :root[data-theme-resolved="light"] .api-settings-summary h3,
 :root[data-theme-resolved="light"] .api-settings-status-card strong,
 :root[data-theme-resolved="light"] .api-settings-field-header label,
@@ -870,6 +976,7 @@
 :root[data-theme-resolved="light"] .templates-category-card__meta,
 :root[data-theme-resolved="light"] .templates-category-empty-state p,
 :root[data-theme-resolved="light"] .templates-meta,
+:root[data-theme-resolved="light"] .templates-field span,
 :root[data-theme-resolved="light"] .api-settings-field-header p,
 :root[data-theme-resolved="light"] .api-settings-card p,
 :root[data-theme-resolved="light"] .api-compatibility-row-copy span {
@@ -966,8 +1073,10 @@
 }
 
 :root[data-theme-resolved="light"] .history-editorial-title,
+:root[data-theme-resolved="light"] .history-meta-label,
 :root[data-theme-resolved="light"] .history-meta-value,
 :root[data-theme-resolved="light"] .history-book-title,
+:root[data-theme-resolved="light"] .history-book-count,
 :root[data-theme-resolved="light"] .history-monitor-title,
 :root[data-theme-resolved="light"] .history-query-name,
 :root[data-theme-resolved="light"] .history-details-modal-title,
@@ -980,6 +1089,7 @@
 :root[data-theme-resolved="light"] .history-meta-detail,
 :root[data-theme-resolved="light"] .history-book-subtitle,
 :root[data-theme-resolved="light"] .history-book-open-hint,
+:root[data-theme-resolved="light"] .history-book-state,
 :root[data-theme-resolved="light"] .history-monitor-subtitle,
 :root[data-theme-resolved="light"] .history-meta-line,
 :root[data-theme-resolved="light"] .history-details-empty,
@@ -1013,6 +1123,12 @@
 :root[data-theme-resolved="light"] .history-row:hover,
 :root[data-theme-resolved="light"] .history-monitor .history-row:hover td {
   background: #f8fafc !important;
+}
+
+:root[data-theme-resolved="light"] .history-book-state {
+  border-color: rgba(14, 165, 233, 0.24) !important;
+  background: rgba(224, 242, 254, 0.86) !important;
+  color: #0369a1 !important;
 }
 
 :root[data-theme-resolved="light"] .history-details-modal-backdrop,
@@ -1051,6 +1167,8 @@
 
 :root[data-theme-resolved="light"] .templates-browser,
 :root[data-theme-resolved="light"] .templates-browser-top,
+:root[data-theme-resolved="light"] .templates-browser-toolbar,
+:root[data-theme-resolved="light"] .templates-category-filter-shell,
 :root[data-theme-resolved="light"] .templates-browser-list-shell,
 :root[data-theme-resolved="light"] .templates-empty-state,
 :root[data-theme-resolved="light"] .templates-detail,
@@ -1143,6 +1261,21 @@
 
 :root[data-theme-resolved="light"] .api-settings-status-text {
   color: #334155;
+}
+
+:root[data-theme-resolved="light"] .api-settings-panel-subtitle,
+:root[data-theme-resolved="light"] .templates-category-form .templates-field span,
+:root[data-theme-resolved="light"] .templates-category-form span,
+:root[data-theme-resolved="light"] .form-mode-field-picker-badge--muted,
+:root[data-theme-resolved="light"] .form-mode-popup-list-summary.is-placeholder,
+:root[data-theme-resolved="light"] .post-filter-empty,
+:root[data-theme-resolved="light"] .export-section-kicker,
+:root[data-theme-resolved="light"] .tcm-hint {
+  color: #475569 !important;
+}
+
+:root[data-theme-resolved="light"] .form-mode-field-picker-badge--muted {
+  background: #e2e8f0 !important;
 }
 
 :root[data-theme-resolved="light"] .api-settings-status-text[data-tone="success"],

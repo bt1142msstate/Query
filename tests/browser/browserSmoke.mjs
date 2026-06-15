@@ -16,6 +16,7 @@ import {
   expectElementWithinViewport,
   expectLightInput,
   expectLightSurface,
+  expectReadableLightText,
   expectMinimumTapTarget,
   expectMobileEditableFocusContained,
   expectMobileHeaderDoesNotCoverTableOnScroll,
@@ -166,12 +167,27 @@ async function runSmokeTest() {
     await waitForAppReady(page, failures);
     await applySmokeTheme(page, 'light');
 
+    await page.locator('#table-add-field-btn').click();
+    await page.locator('.form-mode-field-picker-modal').waitFor({ state: 'visible', timeout: 5000 });
+    await expectReadableLightText(
+      page,
+      '.form-mode-field-picker-badge--muted, .form-mode-popup-list-summary.is-placeholder',
+      'Light field picker muted labels'
+    );
+    await page.locator('.form-mode-field-picker-close').click();
+    await page.locator('.form-mode-field-picker-modal').waitFor({ state: 'hidden', timeout: 5000 });
+
     queueHistoryStatusResponses(queryApiStub);
     await page.getByRole('button', { name: 'Queries' }).click();
     await page.locator('input[placeholder="Search history"]').waitFor({ state: 'visible', timeout: 5000 });
     await expectLightSurface(page, '#queries-panel > h2', 'Query history panel header');
     await expectLightSurface(page, '.history-editorial-hero', 'Query history hero');
     await expectLightInput(page, '#queries-search', 'Query history search input');
+    await expectReadableLightText(
+      page,
+      '.history-meta-label, .history-book-count, .history-book-state',
+      'Light query history status cards'
+    );
     await page.locator('#queries-status-filter').waitFor({ state: 'visible', timeout: 5000 });
     await page.locator('#queries-result-filter').waitFor({ state: 'visible', timeout: 5000 });
     await page.locator('#queries-duration-filter').waitFor({ state: 'visible', timeout: 5000 });
@@ -541,6 +557,18 @@ async function runSmokeTest() {
       throw new Error(`Reloaded result layout should keep the table row and lower form panel within the viewport: ${JSON.stringify(restoredResultLayout)}`);
     }
 
+    await page.locator('#post-filter-btn').click();
+    await page.locator('#post-filter-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+    await expectReadableLightText(page, '#post-filter-empty', 'Light post-filter empty state');
+    await page.locator('#post-filter-overlay-close').click();
+    await page.locator('#post-filter-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
+
+    await openExportOverlayPromptly(page, '#download-btn', 'Light export overlay');
+    await waitForExportOptionsReady(page, 'Light export overlay');
+    await expectReadableLightText(page, '.export-section-kicker', 'Light export section kicker');
+    await page.locator('#export-overlay-close').click();
+    await page.locator('#export-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
+
     await page.getByRole('button', { name: 'Templates' }).click();
     await page.locator('input[placeholder="Search templates"]').waitFor({ state: 'visible', timeout: 5000 });
     await expectLightSurface(page, '#templates-panel > h2', 'Templates panel header');
@@ -552,12 +580,23 @@ async function runSmokeTest() {
     await expectControlsNonSelectable(page, '#templates-panel', 'Desktop template controls');
     await page.locator('#templates-detail-close-btn').click();
     await page.locator('#templates-detail-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
+    await page.locator('#templates-manage-categories-btn').click();
+    await page.locator('#templates-categories-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+    await expectReadableLightText(
+      page,
+      '.templates-category-empty-state h4, .templates-category-form .templates-field span',
+      'Light template category overlay labels'
+    );
+    await page.locator('#templates-categories-close-btn').click();
+    await page.locator('#templates-categories-overlay.hidden').waitFor({ state: 'attached', timeout: 5000 });
 
     await page.getByRole('button', { name: 'API Settings' }).click();
     await page.locator('#api-settings-container').waitFor({ state: 'visible', timeout: 5000 });
     await expectLightSurface(page, '#api-settings-panel > h2', 'API settings panel header');
+    await expectLightSurface(page, '#api-settings-panel > h2 .collapse-btn', 'API settings close button');
     await expectLightSurface(page, '.api-settings-card--primary', 'API settings card');
     await expectLightInput(page, '#api-settings-url-input', 'API settings URL input');
+    await expectReadableLightText(page, '.api-settings-panel-subtitle', 'Light API settings subtitle');
     const initialApiSettings = await page.evaluate(async () => {
       const { DEFAULT_API_URL, API_URL_STORAGE_KEY, getApiUrl } = await import('./src/core/backendApi.js');
       return {
@@ -671,6 +710,17 @@ async function runSmokeTest() {
     }
     await page.locator('#api-settings-panel .collapse-btn').click();
     await page.locator('#api-settings-panel.hidden').waitFor({ state: 'attached', timeout: 5000 });
+
+    await page.locator('#toggle-json').click();
+    await page.locator('#query-json-tree').waitFor({ state: 'visible', timeout: 5000 });
+    await expectLightSurface(page, '#json-panel > h2', 'JSON panel header');
+    await expectReadableLightText(
+      page,
+      '.json-editor-label, #query-json-tree, #query-json-tree .json-key, #query-json-tree .json-string, #query-json-tree .json-bracket, #query-json-tree .json-meta',
+      'Light JSON viewer text'
+    );
+    await page.locator('#json-panel .collapse-btn').click();
+    await page.locator('#json-panel.hidden').waitFor({ state: 'attached', timeout: 5000 });
 
     await page.getByRole('button', { name: 'Help' }).click();
     await page.locator('#help-container').waitFor({ state: 'visible', timeout: 5000 });
@@ -888,6 +938,11 @@ async function runSmokeTest() {
 
     await openMobilePanel(mobilePage, 'toggle-json', '#query-json-tree');
     await expectElementWithinViewport(mobilePage, '#json-panel', 'Mobile JSON panel');
+    await expectReadableLightText(
+      mobilePage,
+      '.json-editor-label, #query-json-tree, #query-json-tree .json-key, #query-json-tree .json-string, #query-json-tree .json-bracket',
+      'Mobile light JSON viewer text'
+    );
     await expectNoHorizontalOverflow(mobilePage, 'Mobile JSON panel');
 
     await openMobilePanel(mobilePage, 'toggle-templates', '#templates-search-input');
@@ -970,6 +1025,11 @@ async function runSmokeTest() {
     await mobilePage.locator('#templates-categories-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
     await expectVisibleCloseControlCount(mobilePage, '#templates-panel', 1, 'Mobile template categories overlay');
     await expectControlsNonSelectable(mobilePage, '#templates-panel', 'Mobile template category controls');
+    await expectReadableLightText(
+      mobilePage,
+      '.templates-category-empty-state h4, .templates-category-form .templates-field span',
+      'Mobile light template category labels'
+    );
     const mobileTemplateCategoriesMetrics = await mobilePage.locator('.templates-categories-dialog').evaluate(dialog => {
       const container = document.querySelector('#templates-container');
       const body = dialog.querySelector('.templates-categories-body');
@@ -1014,6 +1074,7 @@ async function runSmokeTest() {
     await expectElementWithinViewport(mobilePage, '#api-settings-panel', 'Mobile API settings panel');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile API settings panel');
     await expectLightSurface(mobilePage, '#api-settings-panel > h2', 'Mobile API settings panel header');
+    await expectLightSurface(mobilePage, '#api-settings-panel > h2 .collapse-btn', 'Mobile API settings close button');
     await expectLightInput(mobilePage, '#api-settings-url-input', 'Mobile API settings URL input');
     await expectMinimumTapTarget(mobilePage, '#api-settings-panel button', 'Mobile API settings controls');
 
