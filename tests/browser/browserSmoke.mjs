@@ -12,10 +12,10 @@ import {
   exerciseMobileToastQueue,
   expectControlsNonSelectable,
   expectDarkInput,
-  expectDarkSurface,
   expectDestructiveFlameAnimation,
   expectElementWithinViewport,
   expectLightInput,
+  expectLightSurface,
   expectMinimumTapTarget,
   expectMobileEditableFocusContained,
   expectMobileHeaderDoesNotCoverTableOnScroll,
@@ -70,6 +70,14 @@ import {
   expectMobileColumnResizeInteraction,
   expectMobileFilterEditorSheet
 } from './scenarios/browserSmokeScenarios.mjs';
+
+async function applySmokeTheme(page, theme) {
+  await page.evaluate(async nextTheme => {
+    const { applyTheme, updateThemeToggle } = await import('./src/ui/themeToggle.js');
+    applyTheme(nextTheme);
+    updateThemeToggle(document.querySelector('[data-theme-toggle]'));
+  }, theme);
+}
 
 async function runSmokeTest() {
   const server = createServer(serveStaticFile);
@@ -156,11 +164,14 @@ async function runSmokeTest() {
 
     await page.goto(baseUrl, { waitUntil: 'load', timeout: 15000 });
     await waitForAppReady(page, failures);
+    await applySmokeTheme(page, 'light');
 
     queueHistoryStatusResponses(queryApiStub);
     await page.getByRole('button', { name: 'Queries' }).click();
     await page.locator('input[placeholder="Search history"]').waitFor({ state: 'visible', timeout: 5000 });
-    await expectDarkInput(page, '#queries-search', 'Query history search input');
+    await expectLightSurface(page, '#queries-panel > h2', 'Query history panel header');
+    await expectLightSurface(page, '.history-editorial-hero', 'Query history hero');
+    await expectLightInput(page, '#queries-search', 'Query history search input');
     await page.locator('#queries-status-filter').waitFor({ state: 'visible', timeout: 5000 });
     await page.locator('#queries-result-filter').waitFor({ state: 'visible', timeout: 5000 });
     await page.locator('#queries-duration-filter').waitFor({ state: 'visible', timeout: 5000 });
@@ -532,8 +543,9 @@ async function runSmokeTest() {
 
     await page.getByRole('button', { name: 'Templates' }).click();
     await page.locator('input[placeholder="Search templates"]').waitFor({ state: 'visible', timeout: 5000 });
-    await expectDarkSurface(page, '#templates-panel > h2', 'Templates panel header');
-    await expectDarkInput(page, '#templates-search-input', 'Templates search input');
+    await expectLightSurface(page, '#templates-panel > h2', 'Templates panel header');
+    await expectLightSurface(page, '.templates-browser', 'Templates browser panel');
+    await expectLightInput(page, '#templates-search-input', 'Templates search input');
     await page.locator('#templates-list .templates-list-item').click();
     await page.locator('#templates-detail-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
     await expectVisibleCloseControlCount(page, '#templates-panel', 1, 'Desktop template detail overlay');
@@ -543,8 +555,9 @@ async function runSmokeTest() {
 
     await page.getByRole('button', { name: 'API Settings' }).click();
     await page.locator('#api-settings-container').waitFor({ state: 'visible', timeout: 5000 });
-    await expectDarkSurface(page, '#api-settings-panel > h2', 'API settings panel header');
-    await expectDarkInput(page, '#api-settings-url-input', 'API settings URL input');
+    await expectLightSurface(page, '#api-settings-panel > h2', 'API settings panel header');
+    await expectLightSurface(page, '.api-settings-card--primary', 'API settings card');
+    await expectLightInput(page, '#api-settings-url-input', 'API settings URL input');
     const initialApiSettings = await page.evaluate(async () => {
       const { DEFAULT_API_URL, API_URL_STORAGE_KEY, getApiUrl } = await import('./src/core/backendApi.js');
       return {
@@ -698,6 +711,7 @@ async function runSmokeTest() {
     const mobileQueryApiStub = await installQueryApiStub(mobilePage);
     await mobilePage.goto(baseUrl, { waitUntil: 'load', timeout: 15000 });
     await waitForAppReady(mobilePage, failures);
+    await applySmokeTheme(mobilePage, 'light');
     await waitForResponsiveResize(mobilePage, true);
     await expectMobileViewportStability(mobilePage);
 
@@ -767,7 +781,8 @@ async function runSmokeTest() {
     await mobilePage.locator('[data-source-control-id="toggle-queries"]').click();
     await mobilePage.locator('#queries-search').waitFor({ state: 'visible', timeout: 5000 });
     await expectElementWithinViewport(mobilePage, '#queries-panel', 'Mobile query history panel');
-    await expectDarkInput(mobilePage, '#queries-search', 'Mobile query history search input');
+    await expectLightSurface(mobilePage, '#queries-panel > h2', 'Mobile query history panel header');
+    await expectLightInput(mobilePage, '#queries-search', 'Mobile query history search input');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile query history panel');
     await mobilePage.waitForFunction(() => {
       return document.querySelector('[data-history-book="complete"] .history-book-count')?.textContent?.trim() === '1'
@@ -877,8 +892,9 @@ async function runSmokeTest() {
 
     await openMobilePanel(mobilePage, 'toggle-templates', '#templates-search-input');
     await expectElementWithinViewport(mobilePage, '#templates-panel', 'Mobile templates panel');
-    await expectDarkSurface(mobilePage, '#templates-panel > h2', 'Mobile templates panel header');
-    await expectDarkInput(mobilePage, '#templates-search-input', 'Mobile templates search input');
+    await expectLightSurface(mobilePage, '#templates-panel > h2', 'Mobile templates panel header');
+    await expectLightSurface(mobilePage, '.templates-browser', 'Mobile templates browser panel');
+    await expectLightInput(mobilePage, '#templates-search-input', 'Mobile templates search input');
     await expectControlsNonSelectable(mobilePage, '#templates-panel', 'Mobile templates controls');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile templates panel');
     const mobileTemplatesPanelMetrics = await mobilePage.locator('#templates-container').evaluate(container => {
@@ -997,7 +1013,8 @@ async function runSmokeTest() {
     await openMobilePanel(mobilePage, 'toggle-api-settings', '#api-settings-container');
     await expectElementWithinViewport(mobilePage, '#api-settings-panel', 'Mobile API settings panel');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile API settings panel');
-    await expectDarkInput(mobilePage, '#api-settings-url-input', 'Mobile API settings URL input');
+    await expectLightSurface(mobilePage, '#api-settings-panel > h2', 'Mobile API settings panel header');
+    await expectLightInput(mobilePage, '#api-settings-url-input', 'Mobile API settings URL input');
     await expectMinimumTapTarget(mobilePage, '#api-settings-panel button', 'Mobile API settings controls');
 
     await mobilePage.evaluate(async () => {

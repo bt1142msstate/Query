@@ -5,8 +5,9 @@ import {
   cleanupMobilePageScroll,
   dragTouchLocator,
   encodeFormSpecForUrl,
-  expectDarkInput,
   expectDarkSurface,
+  expectLightInput,
+  expectLightSurface,
   expectReadableDarkText,
   expectDestructiveFlameAnimation,
   expectElementWithinViewport,
@@ -485,6 +486,11 @@ async function exerciseTableHeaderResponsiveRegions(page) {
 
 async function exerciseTabletLandscapeMobileParity(page, queryApiStub) {
   await page.setViewportSize({ width: 1180, height: 820 });
+  await page.evaluate(async () => {
+    const { applyTheme, updateThemeToggle } = await import('./src/ui/themeToggle.js');
+    applyTheme('light');
+    updateThemeToggle(document.querySelector('[data-theme-toggle]'));
+  });
   await waitForResponsiveResize(page, true);
   await expectMobileViewportStability(page);
   await expectNoHorizontalOverflow(page, 'Tablet landscape initial layout');
@@ -533,7 +539,8 @@ async function exerciseTabletLandscapeMobileParity(page, queryApiStub) {
   await page.locator('[data-source-control-id="toggle-queries"]').click();
   await page.locator('#queries-search').waitFor({ state: 'visible', timeout: 5000 });
   await expectElementWithinViewport(page, '#queries-panel', 'Tablet landscape query history panel');
-  await expectDarkInput(page, '#queries-search', 'Tablet landscape query history search input');
+  await expectLightSurface(page, '#queries-panel > h2', 'Tablet landscape query history panel header');
+  await expectLightInput(page, '#queries-search', 'Tablet landscape query history search input');
   await page.waitForFunction(() => {
     return document.querySelector('[data-history-book="complete"] .history-book-count')?.textContent?.trim() === '1'
       && document.querySelector('[data-history-book="running"] .history-book-count')?.textContent?.trim() === '1';
