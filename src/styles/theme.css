@@ -1298,6 +1298,68 @@
   color: #9f1239 !important;
 }
 
+:root[data-theme-resolved="light"] .history-details-panel .tt-filter-title {
+  border-bottom-color: rgba(148, 163, 184, 0.24) !important;
+  color: #334155 !important;
+}
+
+:root[data-theme-resolved="light"] .history-details-panel .tt-filter-item,
+:root[data-theme-resolved="light"] .history-error-details-item,
+:root[data-theme-resolved="light"] .history-details-chip {
+  border-color: rgba(148, 163, 184, 0.24) !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.06);
+}
+
+:root[data-theme-resolved="light"] .history-details-panel .tt-column-index {
+  border-color: rgba(14, 165, 233, 0.24) !important;
+  background: rgba(224, 242, 254, 0.86) !important;
+  color: #0369a1 !important;
+}
+
+:root[data-theme-resolved="light"] .history-details-panel .tt-column-name {
+  color: #0f172a !important;
+}
+
+:root[data-theme-resolved="light"] .history-details-panel .tt-field {
+  color: #4338ca !important;
+}
+
+:root[data-theme-resolved="light"] .history-details-panel .tt-field::before {
+  background-color: #4338ca !important;
+}
+
+:root[data-theme-resolved="light"] .history-details-panel .tt-op {
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+}
+
+:root[data-theme-resolved="light"] .history-details-panel .tt-val,
+:root[data-theme-resolved="light"] .history-details-panel .tt-value-list-item {
+  border-color: rgba(37, 99, 235, 0.18) !important;
+  background: #eff6ff !important;
+  color: #1e3a8a !important;
+}
+
+:root[data-theme-resolved="light"] .history-details-panel .tt-value-more,
+:root[data-theme-resolved="light"] .history-error-details-item dt {
+  color: #475569 !important;
+}
+
+:root[data-theme-resolved="light"] .history-error-details-item dd {
+  color: #0f172a !important;
+}
+
+:root[data-theme-resolved="light"] .history-details-panel .tt-logic {
+  color: #92400e !important;
+}
+
+:root[data-theme-resolved="light"] .history-details-panel .tt-logic::before,
+:root[data-theme-resolved="light"] .history-details-panel .tt-logic::after {
+  background: rgba(217, 119, 6, 0.24) !important;
+}
+
 :root[data-theme-resolved="light"] .history-book-state {
   border-color: rgba(14, 165, 233, 0.24) !important;
   background: rgba(224, 242, 254, 0.86) !important;
