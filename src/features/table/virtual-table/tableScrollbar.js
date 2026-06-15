@@ -81,6 +81,17 @@ export function createTableScrollbarController(options = {}) {
     };
   }
 
+  function applyThumbPosition(scrollTop) {
+    const thumb = elements?.thumb;
+    const metrics = layoutMetrics;
+    if (!thumb || !metrics) return;
+
+    const thumbTop = metrics.maxScroll > 0
+      ? (scrollTop / metrics.maxScroll) * metrics.maxThumbTop
+      : 0;
+    thumb.style.transform = `translate3d(0, ${Math.round(thumbTop)}px, 0)`;
+  }
+
   function sync(options = {}) {
     syncFrame = 0;
     const shouldRefreshGeometry = options.refreshGeometry === true;
@@ -110,11 +121,7 @@ export function createTableScrollbarController(options = {}) {
       ? readLayoutMetrics(container, host, track, thumb)
       : layoutMetrics;
     layoutMetrics = metrics;
-
-    const thumbTop = metrics.maxScroll > 0
-      ? (container.scrollTop / metrics.maxScroll) * metrics.maxThumbTop
-      : 0;
-    thumb.style.transform = `translateY(${Math.round(thumbTop)}px)`;
+    applyThumbPosition(container.scrollTop);
     return metrics;
   }
 
@@ -139,7 +146,9 @@ export function createTableScrollbarController(options = {}) {
 
     const maxThumbTop = Math.max(1, metrics.maxThumbTop);
     const localThumbTop = Math.max(0, Math.min(clientY - metrics.trackTop - (metrics.thumbHeight / 2), maxThumbTop));
-    container.scrollTop = (localThumbTop / maxThumbTop) * metrics.maxScroll;
+    const nextScrollTop = (localThumbTop / maxThumbTop) * metrics.maxScroll;
+    container.scrollTop = nextScrollTop;
+    applyThumbPosition(nextScrollTop);
   }
 
   function flushPendingDragScroll() {
@@ -150,6 +159,8 @@ export function createTableScrollbarController(options = {}) {
     const nextScrollTop = clampScrollTop(pendingDragScrollTop, maxScroll);
     pendingDragScrollTop = null;
     container.scrollTop = nextScrollTop;
+    applyThumbPosition(nextScrollTop);
+    updateAria(container, elements.track, maxScroll);
   }
 
   function queueDragScroll(nextScrollTop) {
