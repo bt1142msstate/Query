@@ -166,9 +166,24 @@
 }
 
 #table-refresh-query-btn {
-  border-color: rgba(16, 185, 129, 0.32);
-  background: linear-gradient(135deg, rgba(236, 253, 245, 0.98), rgba(255, 255, 255, 0.94));
-  color: #047857;
+  border-color: rgba(15, 23, 42, 0.16);
+  background: #fff;
+  color: #0f172a;
+}
+
+#table-refresh-query-btn.table-toolbar-btn-active {
+  border-color: rgba(15, 23, 42, 0.18);
+  background: #fff;
+  color: #0f172a;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+}
+
+#table-refresh-query-btn:hover:not(:disabled),
+#table-refresh-query-btn:focus-visible:not(:disabled) {
+  border-color: rgba(15, 23, 42, 0.28);
+  background: #fff;
+  color: #020617;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.12);
 }
 
 #table-refresh-query-btn.hidden,
