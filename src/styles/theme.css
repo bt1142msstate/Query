@@ -1047,9 +1047,7 @@
 :root[data-theme-resolved="light"] .history-monitor-tabs,
 :root[data-theme-resolved="light"] .history-monitor-stage,
 :root[data-theme-resolved="light"] .history-details-modal,
-:root[data-theme-resolved="light"] .history-details-panel,
-:root[data-theme-resolved="light"] .history-details-filter-preview-item,
-:root[data-theme-resolved="light"] .history-details-list-expander summary {
+:root[data-theme-resolved="light"] .history-details-panel {
   border-color: rgba(148, 163, 184, 0.24) !important;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96)) !important;
@@ -1457,9 +1455,7 @@
 :root[data-theme-resolved="light"] .history-kicker,
 :root[data-theme-resolved="light"] .history-book-kicker,
 :root[data-theme-resolved="light"] .history-monitor-kicker,
-:root[data-theme-resolved="light"] .history-details-modal-kicker,
-:root[data-theme-resolved="light"] .history-details-list-expander-action,
-:root[data-theme-resolved="light"] .history-details-list-more {
+:root[data-theme-resolved="light"] .history-details-modal-kicker {
   border-color: rgba(14, 165, 233, 0.22) !important;
   background: rgba(224, 242, 254, 0.78) !important;
   color: #0369a1 !important;
