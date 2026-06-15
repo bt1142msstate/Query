@@ -191,8 +191,8 @@
   display: none;
 }
 
-#table-refresh-query-btn:hover:not(:disabled) .table-refresh-query-icon,
-#table-refresh-query-btn:focus-visible:not(:disabled) .table-refresh-query-icon {
+#table-refresh-query-btn:hover:not(:disabled) .table-refresh-query-icon:not(.hidden),
+#table-refresh-query-btn:focus-visible:not(:disabled) .table-refresh-query-icon:not(.hidden) {
   animation: tableRefreshQuerySpin 0.8s linear infinite;
   transform-origin: center;
 }
@@ -202,8 +202,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  #table-refresh-query-btn:hover:not(:disabled) .table-refresh-query-icon,
-  #table-refresh-query-btn:focus-visible:not(:disabled) .table-refresh-query-icon {
+  #table-refresh-query-btn:hover:not(:disabled) .table-refresh-query-icon:not(.hidden),
+  #table-refresh-query-btn:focus-visible:not(:disabled) .table-refresh-query-icon:not(.hidden) {
     animation: none;
   }
 }

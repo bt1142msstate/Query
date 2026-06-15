@@ -2761,13 +2761,19 @@ async function exerciseDesktopResultsWorkflow(page) {
     ariaLabel: button.getAttribute('aria-label') || '',
     disabled: button.disabled,
     hidden: button.hidden || button.classList.contains('hidden'),
+    refreshIconHidden: button.querySelector('[data-table-query-icon="refresh"]')?.classList.contains('hidden') ?? null,
+    runIconHidden: button.querySelector('[data-table-query-icon="run"]')?.classList.contains('hidden') ?? null,
     tooltip: button.getAttribute('data-tooltip') || ''
   }));
+  const tableRefreshShouldShowRunIcon = /run updated query/iu.test(tableRefreshState.tooltip);
+  const tableRefreshShouldShowRefreshIcon = /refresh results/iu.test(tableRefreshState.tooltip);
   if (
     tableRefreshState.hidden
     || tableRefreshState.disabled
     || !/run updated query|refresh results/iu.test(tableRefreshState.tooltip)
     || !/run updated query|refresh results/iu.test(tableRefreshState.ariaLabel)
+    || (tableRefreshShouldShowRunIcon && (tableRefreshState.runIconHidden || !tableRefreshState.refreshIconHidden))
+    || (tableRefreshShouldShowRefreshIcon && (!tableRefreshState.runIconHidden || tableRefreshState.refreshIconHidden))
   ) {
     throw new Error(`Desktop table refresh shortcut should be enabled for loaded results: ${JSON.stringify(tableRefreshState)}`);
   }

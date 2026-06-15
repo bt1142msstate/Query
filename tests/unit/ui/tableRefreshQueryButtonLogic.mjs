@@ -7,7 +7,10 @@ import {
 
 function createButtonStub() {
   const classes = new Set();
+  const runIcon = createIconStub();
+  const refreshIcon = createIconStub();
   return {
+    dataset: {},
     disabled: false,
     hidden: false,
     attributes: {},
@@ -23,11 +26,38 @@ function createButtonStub() {
         }
       }
     },
+    icons: {
+      refresh: refreshIcon,
+      run: runIcon
+    },
     getAttribute(name) {
       return this.attributes[name] || null;
     },
+    querySelector(selector) {
+      if (selector === '[data-table-query-icon="run"]') return runIcon;
+      if (selector === '[data-table-query-icon="refresh"]') return refreshIcon;
+      return null;
+    },
     setAttribute(name, value) {
       this.attributes[name] = value;
+    }
+  };
+}
+
+function createIconStub() {
+  const classes = new Set();
+  return {
+    classList: {
+      contains(className) {
+        return classes.has(className);
+      },
+      toggle(className, force) {
+        if (force) {
+          classes.add(className);
+        } else {
+          classes.delete(className);
+        }
+      }
     }
   };
 }
@@ -78,6 +108,9 @@ test('table refresh button tooltip tracks refresh versus updated-query mode', ()
   assert.equal(button.disabled, false);
   assert.equal(button.getAttribute('aria-label'), 'Refresh results');
   assert.equal(button.classList.contains('table-toolbar-btn-active'), true);
+  assert.equal(button.dataset.queryActionMode, 'refresh');
+  assert.equal(button.icons.refresh.classList.contains('hidden'), false);
+  assert.equal(button.icons.run.classList.contains('hidden'), true);
 
   updateTableRefreshQueryButtonState({
     button,
@@ -90,6 +123,9 @@ test('table refresh button tooltip tracks refresh versus updated-query mode', ()
   assert.equal(button.disabled, false);
   assert.equal(button.getAttribute('aria-label'), 'Run updated query');
   assert.equal(button.classList.contains('table-toolbar-btn-active'), false);
+  assert.equal(button.dataset.queryActionMode, 'run-updated');
+  assert.equal(button.icons.refresh.classList.contains('hidden'), true);
+  assert.equal(button.icons.run.classList.contains('hidden'), false);
 });
 
 test('table refresh button stays hidden until a result set exists', () => {
