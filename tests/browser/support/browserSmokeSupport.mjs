@@ -300,7 +300,9 @@ function buildHistoryStatusResponse() {
           name: 'Mobile running smoke query',
           ui_config: {
             DesiredColumnOrder: ['Smoke Title', 'Smoke Branch'],
-            Filters: {}
+            Filters: [
+              { FieldName: 'Smoke Branch', FieldOperator: 'Equals', Values: ['Main'] }
+            ]
           }
         }
       },
@@ -315,7 +317,11 @@ function buildHistoryStatusResponse() {
           name: 'Mobile completed smoke query',
           ui_config: {
             DesiredColumnOrder: ['Smoke Title', 'Smoke Branch', 'Smoke Status'],
-            Filters: {}
+            Filters: [
+              { FieldName: 'Smoke Branch', FieldOperator: 'Equals', Values: ['Main'] },
+              { FieldName: 'Smoke Status', FieldOperator: 'DoesNotEqual', Values: ['Missing'] },
+              { FieldName: 'Smoke Title', FieldOperator: 'Contains', Values: ['Atlas', 'Annual Report'] }
+            ]
           }
         }
       }
@@ -1343,8 +1349,16 @@ async function openMobilePanel(page, sourceControlId, visibleSelector) {
 
 async function dragTouchLocator(page, locator, options = {}) {
   await locator.waitFor({ state: 'visible', timeout: 5000 });
-  const box = await locator.boundingBox();
-  if (!box) {
+  let box = null;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await locator.evaluate(element => element.scrollIntoView({ block: 'center', inline: 'center' })).catch(() => {});
+    box = await locator.boundingBox();
+    if (box && box.width > 0 && box.height > 0) {
+      break;
+    }
+    await page.waitForTimeout(50);
+  }
+  if (!box || box.width <= 0 || box.height <= 0) {
     throw new Error('Unable to measure touch drag target');
   }
 

@@ -265,12 +265,13 @@ test('query history', async () => {
     formatStandardFilterTooltipHTML: filters => `<div class="tt-filter-container"><ul class="tt-filter-list">${filters.map(filter => `<li>${filter.FieldName}</li>`).join('')}</ul></div>`
   });
 
-  assert.match(longDetailsHtml, /history-details-list-expander/u);
-  assert.match(longDetailsHtml, /Showing 6 of 9 fields/u);
-  assert.match(longDetailsHtml, /\.\.\. 3 more/u);
-  assert.match(longDetailsHtml, /Showing 6 of 8 filters/u);
-  assert.match(longDetailsHtml, /\.\.\. 2 more/u);
-  assert.match(longDetailsHtml, /history-details-list-full/u);
+  assert.doesNotMatch(longDetailsHtml, /history-details-list-expander/u);
+  assert.doesNotMatch(longDetailsHtml, /Showing 6 of 9 fields/u);
+  assert.doesNotMatch(longDetailsHtml, /\.\.\. 3 more/u);
+  assert.doesNotMatch(longDetailsHtml, /Showing 6 of 8 filters/u);
+  assert.doesNotMatch(longDetailsHtml, /\.\.\. 2 more/u);
+  assert.match(longDetailsHtml, /history-details-scroll-list/u);
+  assert.match(longDetailsHtml, /Bill Count/u);
   assert.match(longDetailsHtml, /&lt;Unsafe&gt;/u);
 });
 

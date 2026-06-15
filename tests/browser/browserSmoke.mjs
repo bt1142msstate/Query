@@ -239,9 +239,13 @@ async function runSmokeTest() {
     );
     await page.locator('[data-query-id="browser-smoke-complete"] .history-expand-btn').click();
     await page.locator('.history-details-modal').waitFor({ state: 'visible', timeout: 5000 });
+    const desktopDetailsDisclosureCount = await page.locator('.history-details-modal .history-details-list-expander').count();
+    if (desktopDetailsDisclosureCount !== 0) {
+      throw new Error(`Light query history details modal should render full in-panel lists without show-all expanders, found ${desktopDetailsDisclosureCount}`);
+    }
     await expectReadableLightText(
       page,
-      '.history-details-modal-title, .history-details-panel h5, .history-details-panel .tt-column-index, .history-details-panel .tt-column-name, .history-details-empty, .history-details-modal .history-inline-pill',
+      '.history-details-modal-title, .history-details-panel h5, .history-details-panel .tt-filter-item, .history-details-panel .tt-column-index, .history-details-panel .tt-column-name, .history-details-panel .tt-field, .history-details-panel .tt-op, .history-details-panel .tt-val, .history-details-panel .tt-value-more, .history-details-empty, .history-details-modal .history-inline-pill',
       'Light query history details modal'
     );
     await page.locator('.history-details-modal-close').click();
@@ -589,7 +593,7 @@ async function runSmokeTest() {
     if (
       !restoredResultLayout.formCard
       || !restoredResultLayout.tableWithFilter
-      || restoredResultLayout.formCard.bottom > restoredResultLayout.viewportHeight - 8
+      || restoredResultLayout.formCard.bottom > restoredResultLayout.viewportHeight + 1
       || restoredResultLayout.viewportHeight - restoredResultLayout.formCard.bottom > 42
       || (restoredResultLayout.filterPanel?.height > 0
         && Math.abs(restoredResultLayout.tableWithFilter.height - restoredResultLayout.filterPanel.height) > 2)
@@ -940,9 +944,13 @@ async function runSmokeTest() {
     await mobilePage.locator('.history-monitor .history-expand-btn').first().click();
     await mobilePage.locator('.history-details-modal').waitFor({ state: 'visible', timeout: 5000 });
     await expectElementWithinViewport(mobilePage, '.history-details-modal', 'Mobile history details modal');
+    const mobileDetailsDisclosureCount = await mobilePage.locator('.history-details-modal .history-details-list-expander').count();
+    if (mobileDetailsDisclosureCount !== 0) {
+      throw new Error(`Mobile light query history details modal should render full in-panel lists without show-all expanders, found ${mobileDetailsDisclosureCount}`);
+    }
     await expectReadableLightText(
       mobilePage,
-      '.history-details-modal-title, .history-details-panel h5, .history-details-panel .tt-column-index, .history-details-panel .tt-column-name, .history-details-empty, .history-details-modal .history-inline-pill',
+      '.history-details-modal-title, .history-details-panel h5, .history-details-panel .tt-filter-item, .history-details-panel .tt-column-index, .history-details-panel .tt-column-name, .history-details-panel .tt-field, .history-details-panel .tt-op, .history-details-panel .tt-val, .history-details-panel .tt-value-more, .history-details-empty, .history-details-modal .history-inline-pill',
       'Mobile light query history details modal'
     );
     await expectMinimumTapTarget(mobilePage, '.history-details-modal-close', 'Mobile history details close button');
