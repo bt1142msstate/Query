@@ -529,6 +529,131 @@ async function expectDarkSurface(page, selector, label) {
   }
 }
 
+async function expectReadableDarkText(page, selector, label, { minContrastRatio = 4.5 } = {}) {
+  const failures = await page.locator(selector).evaluate((root, options) => {
+    const parseColor = value => {
+      const match = value?.match(/rgba?\(([^)]+)\)/u);
+      if (!match) {
+        return null;
+      }
+      const parts = match[1].split(/[,\s/]+/u).filter(Boolean).map(Number);
+      if (parts.length < 3 || parts.slice(0, 3).some(Number.isNaN)) {
+        return null;
+      }
+      return {
+        r: parts[0],
+        g: parts[1],
+        b: parts[2],
+        a: Number.isFinite(parts[3]) ? parts[3] : 1
+      };
+    };
+
+    const composite = (foreground, background) => {
+      const alpha = Math.max(0, Math.min(1, foreground.a ?? 1));
+      return {
+        r: foreground.r * alpha + background.r * (1 - alpha),
+        g: foreground.g * alpha + background.g * (1 - alpha),
+        b: foreground.b * alpha + background.b * (1 - alpha),
+        a: 1
+      };
+    };
+
+    const relativeLuminance = color => {
+      const convert = channel => {
+        const value = channel / 255;
+        return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+      };
+      return 0.2126 * convert(color.r) + 0.7152 * convert(color.g) + 0.0722 * convert(color.b);
+    };
+
+    const contrastRatio = (first, second) => {
+      const firstLuma = relativeLuminance(first);
+      const secondLuma = relativeLuminance(second);
+      const lighter = Math.max(firstLuma, secondLuma);
+      const darker = Math.min(firstLuma, secondLuma);
+      return (lighter + 0.05) / (darker + 0.05);
+    };
+
+    const isVisible = element => {
+      const style = window.getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return style.display !== 'none'
+        && style.visibility !== 'hidden'
+        && Number(style.opacity || 1) > 0.01
+        && rect.width > 0
+        && rect.height > 0;
+    };
+
+    const hasDirectText = element => Array.from(element.childNodes)
+      .some(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+
+    const elementText = element => {
+      if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+        return element.value || element.placeholder || '';
+      }
+      if (element instanceof HTMLSelectElement) {
+        return element.selectedOptions?.[0]?.textContent?.trim() || element.textContent.trim();
+      }
+      return Array.from(element.childNodes)
+        .filter(node => node.nodeType === Node.TEXT_NODE)
+        .map(node => node.textContent.trim())
+        .filter(Boolean)
+        .join(' ');
+    };
+
+    const resolvedBackground = element => {
+      const chain = [];
+      for (let node = element; node; node = node.parentElement) {
+        chain.unshift(node);
+      }
+      return chain.reduce((background, node) => {
+        const color = parseColor(window.getComputedStyle(node).backgroundColor);
+        return color && color.a > 0 ? composite(color, background) : background;
+      }, { r: 255, g: 255, b: 255, a: 1 });
+    };
+
+    const describeElement = element => {
+      const className = String(element.className || '').trim().split(/\s+/u).filter(Boolean).slice(0, 2).join('.');
+      return className ? `${element.tagName.toLowerCase()}.${className}` : element.tagName.toLowerCase();
+    };
+
+    const candidates = [root, ...root.querySelectorAll('*')].filter(element => {
+      if (!isVisible(element)) {
+        return false;
+      }
+      if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement) {
+        return Boolean(elementText(element));
+      }
+      return hasDirectText(element);
+    });
+
+    return candidates.flatMap(element => {
+      const style = window.getComputedStyle(element);
+      const background = resolvedBackground(element);
+      const foregroundColor = parseColor(style.color);
+      if (!foregroundColor) {
+        return [];
+      }
+      const foreground = composite(foregroundColor, background);
+      const ratio = contrastRatio(foreground, background);
+      if (ratio >= options.minContrastRatio) {
+        return [];
+      }
+      return [{
+        element: describeElement(element),
+        text: elementText(element).slice(0, 80),
+        ratio: Number(ratio.toFixed(2)),
+        color: style.color,
+        background: style.backgroundColor
+      }];
+    }).slice(0, 8);
+  }, { minContrastRatio });
+
+  if (failures.length > 0) {
+    throw new Error(`${label} has unreadable dark-mode text: ${JSON.stringify(failures)}`);
+  }
+}
+
 async function installHiddenTabNotificationSpy(page) {
   await page.evaluate(() => {
     window.__browserSmokeOriginalNotification = window.Notification;
@@ -1902,6 +2027,7 @@ export {
   expectControlsNonSelectable,
   expectDarkInput,
   expectDarkSurface,
+  expectReadableDarkText,
   expectDestructiveFlameAnimation,
   expectElementWithinViewport,
   expectLightInput,
