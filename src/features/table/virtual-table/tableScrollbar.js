@@ -10,8 +10,15 @@ function getMaxScroll(container) {
   return Math.max(0, container.scrollHeight - container.clientHeight);
 }
 
-function getHeaderOffset(container) {
-  const header = container?.querySelector('#example-table thead');
+function getHeaderOffset(container, tableSelector) {
+  const headerSelectors = [
+    tableSelector ? `${tableSelector} thead` : '',
+    'table thead',
+    'thead'
+  ].filter(Boolean);
+  const header = headerSelectors
+    .map(selector => container?.querySelector(selector))
+    .find(Boolean);
   if (header) {
     return Math.max(0, Math.ceil(header.getBoundingClientRect().height));
   }
@@ -44,6 +51,15 @@ export function createTableScrollbarController(options = {}) {
   const getRowHeight = typeof options.getRowHeight === 'function'
     ? options.getRowHeight
     : () => 42;
+  const tableSelector = typeof options.tableSelector === 'string'
+    ? options.tableSelector
+    : '#example-table';
+  const hostSelector = options.hostSelector === undefined
+    ? '#table-shell'
+    : options.hostSelector;
+  const scrollbarClassName = String(options.scrollbarClassName || 'table-scrollbar').trim() || 'table-scrollbar';
+  const thumbClassName = String(options.thumbClassName || 'table-scrollbar-thumb').trim() || 'table-scrollbar-thumb';
+  const scrollbarSelector = `.${scrollbarClassName.split(/\s+/u)[0]}`;
 
   function handleResize() {
     scheduleSync({ refreshGeometry: true });
@@ -56,7 +72,7 @@ export function createTableScrollbarController(options = {}) {
 
   function readLayoutMetrics(container, host, track, thumb) {
     const maxScroll = getMaxScroll(container);
-    const headerOffset = getHeaderOffset(container);
+    const headerOffset = getHeaderOffset(container, tableSelector);
     const horizontalGutter = getHorizontalGutter(container);
     const hostRect = host.getBoundingClientRect();
     const containerRect = container.getBoundingClientRect();
@@ -261,8 +277,8 @@ export function createTableScrollbarController(options = {}) {
   function attach(container) {
     if (!container) return;
 
-    const host = container.closest('#table-shell') || container.parentElement || container;
-    const existingTrack = host.querySelector('.table-scrollbar');
+    const host = (hostSelector ? container.closest(hostSelector) : null) || container.parentElement || container;
+    const existingTrack = host.querySelector(scrollbarSelector);
     if (elements?.container === container && existingTrack) {
       scheduleSync({ refreshGeometry: true });
       return;
@@ -280,15 +296,15 @@ export function createTableScrollbarController(options = {}) {
     const track = existingTrack || document.createElement('div');
     const thumb = track.querySelector('.table-scrollbar-thumb') || document.createElement('div');
 
-    track.className = 'table-scrollbar';
+    track.className = scrollbarClassName;
     track.setAttribute('role', 'scrollbar');
-    track.setAttribute('aria-controls', 'table-container');
+    track.setAttribute('aria-controls', String(options.ariaControls || container.id || 'table-container'));
     track.setAttribute('aria-label', 'Results table vertical scroll');
     track.setAttribute('aria-orientation', 'vertical');
     track.setAttribute('aria-valuemin', '0');
     track.tabIndex = 0;
 
-    thumb.className = 'table-scrollbar-thumb';
+    thumb.className = thumbClassName;
     if (!thumb.parentElement) track.appendChild(thumb);
     if (!track.parentElement) host.appendChild(track);
 
