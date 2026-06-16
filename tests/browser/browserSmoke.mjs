@@ -146,6 +146,67 @@ async function expectDarkGroupedSelectorContrast(page) {
   });
 }
 
+async function expectDarkSelectArrowRendering(page) {
+  const metrics = await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.id = 'browser-smoke-dark-select-host';
+    Object.assign(host.style, {
+      left: '1rem',
+      position: 'fixed',
+      top: '1rem',
+      width: '220px',
+      zIndex: '-1'
+    });
+
+    const formModeSelect = document.createElement('select');
+    formModeSelect.className = 'form-mode-operator-select';
+    formModeSelect.append(new Option('Equals', 'equals'));
+
+    const conditionSelect = document.createElement('select');
+    conditionSelect.className = 'condition-operator-select';
+    conditionSelect.append(new Option('Contains', 'contains'));
+
+    host.append(formModeSelect, conditionSelect);
+    document.body.appendChild(host);
+
+    const readSelect = (label, element) => {
+      const style = window.getComputedStyle(element);
+      return {
+        label,
+        appearance: style.appearance || '',
+        backgroundImage: style.backgroundImage || '',
+        backgroundPosition: style.backgroundPosition || '',
+        backgroundRepeat: style.backgroundRepeat || '',
+        backgroundSize: style.backgroundSize || '',
+        color: style.color || ''
+      };
+    };
+
+    const result = [
+      readSelect('form mode operator select', formModeSelect),
+      readSelect('condition operator select', conditionSelect)
+    ];
+    host.remove();
+    return result;
+  });
+
+  const failures = metrics.filter(metric => {
+    const repeats = String(metric.backgroundRepeat || '')
+      .split(',')
+      .map(value => value.trim())
+      .filter(Boolean);
+    const hasCustomArrow = metric.backgroundImage && metric.backgroundImage !== 'none';
+    const repeatsArrow = hasCustomArrow && repeats.some(value => value !== 'no-repeat');
+    const keepsNativeArrow = hasCustomArrow && metric.appearance !== 'none';
+    const lacksArrowSizing = hasCustomArrow && (!metric.backgroundSize || metric.backgroundSize === 'auto');
+    return repeatsArrow || keepsNativeArrow || lacksArrowSizing;
+  });
+
+  if (failures.length > 0) {
+    throw new Error(`Dark select arrows should render once without native duplicates: ${JSON.stringify(failures)}`);
+  }
+}
+
 async function runSmokeTest() {
   const server = createServer(serveStaticFile);
   const port = await listen(server);
@@ -199,6 +260,7 @@ async function runSmokeTest() {
     await page.locator('#table-name-input').focus();
     await page.waitForTimeout(260);
     await expectDarkInput(page, '#table-name-input', 'Focused table name input');
+    await expectDarkSelectArrowRendering(page);
     await expectDarkGroupedSelectorContrast(page);
     await expectCustomDatePickerNeverOption(page);
     await exerciseFormModeDateTypingCommit(page);

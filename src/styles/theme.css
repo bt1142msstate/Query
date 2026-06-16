@@ -494,7 +494,7 @@
 :root[data-theme-resolved="dark"] .app-search-input,
 :root[data-theme-resolved="dark"] .search-wrapper input[type="search"] {
   border-color: var(--theme-border-strong);
-  background: rgba(8, 13, 24, 0.9);
+  background-color: rgba(8, 13, 24, 0.9);
   color: var(--theme-text-strong);
   color-scheme: dark;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 18px rgba(2, 8, 23, 0.18);
@@ -523,7 +523,19 @@
 }
 
 :root[data-theme-resolved="dark"] select.form-mode-operator-select {
+  appearance: none;
+  -webkit-appearance: none;
   background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%208L10%2013L15%208%22%20stroke%3D%22%23cbd5e1%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E");
+  background-position: right 0.25rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+}
+
+:root[data-theme-resolved="dark"] .condition-operator-select {
+  background-image: linear-gradient(45deg, transparent 50%, #cbd5e1 50%), linear-gradient(135deg, #cbd5e1 50%, transparent 50%);
+  background-position: calc(100% - 1.15rem) calc(50% - 0.12rem), calc(100% - 0.82rem) calc(50% - 0.12rem);
+  background-repeat: no-repeat;
+  background-size: 0.42rem 0.42rem, 0.42rem 0.42rem;
 }
 
 :root[data-theme-resolved="dark"] select.form-mode-operator-select:hover {

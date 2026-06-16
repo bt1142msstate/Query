@@ -3577,6 +3577,7 @@ async function exerciseJsonResultPayloadWorkflow(page, queryApiStub) {
     updateThemeToggle(document.querySelector('[data-theme-toggle]'));
     return previousMode;
   });
+  await page.waitForTimeout(260);
 
   async function assertTruncatedCellViewer({ cellSelector, expectedField, expectedValue, label }) {
     let compactCellMetrics = null;
