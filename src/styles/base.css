@@ -431,6 +431,7 @@ body.night {
 
 html,
 body {
+  margin: 0;
   max-width: 100%;
 }
 
@@ -440,6 +441,13 @@ body#page-body {
   overflow-x: hidden;
   overflow-y: auto;
   padding: var(--header-height) 1.5rem 1.5rem;
+}
+
+@media (min-width: 1181px) {
+  body#page-body.has-query-columns,
+  body#page-body.has-loaded-data {
+    padding-bottom: 0;
+  }
 }
 
 #query-app-shell {

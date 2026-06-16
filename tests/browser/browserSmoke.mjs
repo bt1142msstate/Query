@@ -516,6 +516,11 @@ async function runSmokeTest() {
         return {
           filterPanel: readRect('#filter-side-panel'),
           formCard: readRect('#form-mode-card'),
+          pageOverflowY: Math.max(
+            0,
+            document.documentElement.scrollHeight - document.documentElement.clientHeight,
+            document.body.scrollHeight - window.innerHeight
+          ),
           tableContainer: readRect('#table-container'),
           tableWithFilter: readRect('#table-with-filter'),
           viewportHeight: window.innerHeight
@@ -526,6 +531,7 @@ async function runSmokeTest() {
         restoredResultLayout.formCard?.height > 0
         && restoredResultLayout.formCard.bottom <= restoredResultLayout.viewportHeight - 8
         && restoredResultLayout.viewportHeight - restoredResultLayout.formCard.bottom <= 42
+        && restoredResultLayout.pageOverflowY <= 1
       ) {
         break;
       }
@@ -595,6 +601,7 @@ async function runSmokeTest() {
       || !restoredResultLayout.tableWithFilter
       || restoredResultLayout.formCard.bottom > restoredResultLayout.viewportHeight + 1
       || restoredResultLayout.viewportHeight - restoredResultLayout.formCard.bottom > 42
+      || restoredResultLayout.pageOverflowY > 1
       || (restoredResultLayout.filterPanel?.height > 0
         && Math.abs(restoredResultLayout.tableWithFilter.height - restoredResultLayout.filterPanel.height) > 2)
     ) {
