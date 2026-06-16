@@ -3,6 +3,13 @@ let formCardResizeObserver = null;
 let observedFormCard = null;
 let pendingViewportHeightSync = 0;
 
+function isMobileWorkspaceViewport(windowRef) {
+  return Boolean(
+    windowRef?.matchMedia
+    && windowRef.matchMedia('(max-width: 1180px)').matches
+  );
+}
+
 function initializeWorkspaceLayoutObservers({
   documentRef = globalThis.document,
   renderVirtualTable,
@@ -56,11 +63,27 @@ function initializeWorkspaceLayoutObservers({
     return;
   }
 
-  formStageMutationObserver = new windowRef.MutationObserver(() => {
+  formStageMutationObserver = new windowRef.MutationObserver((mutations = []) => {
     syncFormCardObserver();
+    const bodyOnlyMutation = mutations.length > 0
+      && mutations.every(mutation => mutation.target === documentRef.body);
+    if (bodyOnlyMutation && isMobileWorkspaceViewport(windowRef)) {
+      return;
+    }
     scheduleSync();
   });
-  formStageMutationObserver.observe(formStage, { childList: true, subtree: true });
+  formStageMutationObserver.observe(formStage, {
+    attributeFilter: ['class', 'hidden', 'style'],
+    attributes: true,
+    childList: true,
+    subtree: true
+  });
+  if (documentRef.body) {
+    formStageMutationObserver.observe(documentRef.body, {
+      attributeFilter: ['class', 'style'],
+      attributes: true
+    });
+  }
   syncFormCardObserver();
 }
 

@@ -1,5 +1,5 @@
 {
-  "version": "46ddd9196cbf6f26",
+  "version": "e42b641b96f184f9",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -151,8 +151,8 @@
     "src/features/templates/view/queryTemplateListView.js": "2f4f1ac2cd5440d4",
     "src/features/templates/view/queryTemplateViewState.js": "a1a4e7e2fdd668f8",
     "src/styles/api-settings.css": "7c6ff2277eb40a47",
-    "src/styles/app.css": "6fc940443c199b7b",
-    "src/styles/base.css": "dffd008384b3d9bf",
+    "src/styles/app.css": "073249ababcf25fe",
+    "src/styles/base.css": "e3d2c534ee86fa9b",
     "src/styles/condition-editor.css": "c3151b483e049c2e",
     "src/styles/controls.css": "a5b786dda033c3e4",
     "src/styles/filters.css": "9a0f72aec9cace0d",
@@ -213,6 +213,6 @@
     "src/ui/themeToggle.js": "e60b88c185887230",
     "src/ui/toast.js": "cbf5e5e1abd48fd4",
     "src/ui/tooltips.js": "796ff90a0625c6eb",
-    "src/ui/workspaceLayoutObservers.js": "05be549dd99518bf"
+    "src/ui/workspaceLayoutObservers.js": "f1d23d23cf7facf9"
   }
 }

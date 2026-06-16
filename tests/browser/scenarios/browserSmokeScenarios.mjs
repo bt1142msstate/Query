@@ -332,8 +332,15 @@ async function exerciseTableHeaderResponsiveRegions(page) {
         : null;
     };
     return {
+      bodyMargin: window.getComputedStyle(document.body).margin,
+      bodyPaddingBottom: window.getComputedStyle(document.body).paddingBottom,
       filterPanel: readRect('#filter-side-panel'),
       formCard: readRect('#form-mode-card'),
+      pageOverflowY: Math.max(
+        0,
+        document.documentElement.scrollHeight - document.documentElement.clientHeight,
+        document.body.scrollHeight - window.innerHeight
+      ),
       shell: readRect('#query-app-shell'),
       tableContainer: readRect('#table-container'),
       tableColumn: readRect('#table-column'),
@@ -356,6 +363,7 @@ async function exerciseTableHeaderResponsiveRegions(page) {
     || Math.abs(desktopWorkAreaMetrics.tableWithFilter.height - desktopWorkAreaMetrics.filterPanel.height) > 2
     || desktopWorkAreaMetrics.formCard.bottom > desktopWorkAreaMetrics.viewportHeight - 8
     || desktopWorkAreaMetrics.viewportHeight - desktopWorkAreaMetrics.formCard.bottom > 42
+    || desktopWorkAreaMetrics.pageOverflowY > 1
   ) {
     throw new Error(`Desktop work area should use the available viewport width and height: ${JSON.stringify(desktopWorkAreaMetrics)}`);
   }
