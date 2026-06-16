@@ -12,6 +12,8 @@ import {
   exerciseMobileToastQueue,
   expectControlsNonSelectable,
   expectDarkInput,
+  expectDarkSurface,
+  expectReadableDarkText,
   expectDestructiveFlameAnimation,
   expectElementWithinViewport,
   expectLightInput,
@@ -102,6 +104,48 @@ async function expectDarkPageBackdrop(page, label) {
   }
 }
 
+async function expectDarkGroupedSelectorContrast(page) {
+  await page.evaluate(async () => {
+    document.querySelector('#browser-smoke-dark-selector-host')?.remove();
+    const { createGroupedSelector } = await import('./src/ui/controls/selectorControls.js');
+    const host = document.createElement('div');
+    host.id = 'browser-smoke-dark-selector-host';
+    Object.assign(host.style, {
+      bottom: '1rem',
+      maxWidth: 'calc(100vw - 2rem)',
+      position: 'fixed',
+      right: '1rem',
+      width: '360px',
+      zIndex: '5000'
+    });
+    host.appendChild(createGroupedSelector([
+      { Name: 'Title - Main Title', RawValue: 'TITLE_MAIN', Group: 'Title' },
+      { Name: 'Title - Added Title', RawValue: 'TITLE_ADDED', Group: 'Title' },
+      { Name: 'Author - Main Author', RawValue: 'AUTHOR_MAIN', Group: 'Author' }
+    ], true, []));
+    document.body.appendChild(host);
+  });
+
+  await expectDarkSurface(page, '#browser-smoke-dark-selector-host .grouped-selector', 'Dark grouped selector surface');
+  await expectDarkInput(page, '#browser-smoke-dark-selector-host input[type="search"]', 'Dark grouped selector search input');
+  await page.locator('#browser-smoke-dark-selector-host input[type="search"]').fill('title');
+  await page.locator('#browser-smoke-dark-selector-host .option-item-label').first().waitFor({ state: 'visible', timeout: 5000 });
+  await expectReadableDarkText(
+    page,
+    '#browser-smoke-dark-selector-host .grouped-selector',
+    'Dark grouped selector visible options'
+  );
+  await page.locator('#browser-smoke-dark-selector-host .group-checkbox').first().focus();
+  await expectReadableDarkText(
+    page,
+    '#browser-smoke-dark-selector-host .group-header',
+    'Dark grouped selector focused group header'
+  );
+  await page.evaluate(() => {
+    document.querySelector('#browser-smoke-dark-selector-host')?.remove();
+  });
+}
+
 async function runSmokeTest() {
   const server = createServer(serveStaticFile);
   const port = await listen(server);
@@ -147,7 +191,15 @@ async function runSmokeTest() {
 
     await expectNoHorizontalOverflow(page, 'Desktop initial layout');
     await expectControlsNonSelectable(page, 'body', 'Desktop initial layout');
+    await applySmokeTheme(page, 'dark');
+    await expectDarkPageBackdrop(page, 'Dark-mode main background');
+    await page.waitForTimeout(260);
     await expectDarkInput(page, '#query-input', 'Main field search input');
+    await page.locator('#table-name-input').fill('Dark mode table title');
+    await page.locator('#table-name-input').focus();
+    await page.waitForTimeout(260);
+    await expectDarkInput(page, '#table-name-input', 'Focused table name input');
+    await expectDarkGroupedSelectorContrast(page);
     await expectCustomDatePickerNeverOption(page);
     await exerciseFormModeDateTypingCommit(page);
     await page.evaluate(async () => {
