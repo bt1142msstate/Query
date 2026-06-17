@@ -157,6 +157,9 @@ test('query history', async () => {
   assert.match(rowHtml, /12 rows/u);
   assert.match(rowHtml, /template-query-btn/u);
   assert.match(rowHtml, /Create template from this query/u);
+  assert.match(rowHtml, /history-template-blocks-icon/u);
+  assert.match(rowHtml, /template-block-top/u);
+  assert.doesNotMatch(rowHtml, /<path d="M6 3h8l4 4v14H6z"/u);
   assert.match(rowHtml, /history-actions-cell/u);
   assert.match(rowHtml, /history-actions-group/u);
   assert.match(rowHtml, /history-results-icon/u);
