@@ -141,8 +141,150 @@ async function expectDarkGroupedSelectorContrast(page) {
     '#browser-smoke-dark-selector-host .group-header',
     'Dark grouped selector focused group header'
   );
+  const rowSeparation = await page.evaluate(() => {
+    const parseColor = value => {
+      const match = value?.match(/rgba?\(([^)]+)\)/u);
+      if (!match) {
+        return null;
+      }
+      const parts = match[1].split(/[,\s/]+/u).filter(Boolean).map(Number);
+      if (parts.length < 3 || parts.slice(0, 3).some(Number.isNaN)) {
+        return null;
+      }
+      return {
+        r: parts[0],
+        g: parts[1],
+        b: parts[2],
+        a: Number.isFinite(parts[3]) ? parts[3] : 1
+      };
+    };
+    const composite = (foreground, background) => {
+      const alpha = Math.max(0, Math.min(1, foreground.a ?? 1));
+      return {
+        r: foreground.r * alpha + background.r * (1 - alpha),
+        g: foreground.g * alpha + background.g * (1 - alpha),
+        b: foreground.b * alpha + background.b * (1 - alpha),
+        a: 1
+      };
+    };
+    const channelLuminance = channel => {
+      const value = channel / 255;
+      return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+    };
+    const luminance = color => (
+      (0.2126 * channelLuminance(color.r))
+      + (0.7152 * channelLuminance(color.g))
+      + (0.0722 * channelLuminance(color.b))
+    );
+    const contrastRatio = (first, second) => {
+      const firstLuma = luminance(first);
+      const secondLuma = luminance(second);
+      return (Math.max(firstLuma, secondLuma) + 0.05) / (Math.min(firstLuma, secondLuma) + 0.05);
+    };
+
+    const selector = document.querySelector('#browser-smoke-dark-selector-host .grouped-selector');
+    const selectorStyle = window.getComputedStyle(selector);
+    const bodyStyle = window.getComputedStyle(document.body);
+    const bodyBackground = parseColor(bodyStyle.backgroundColor) || { r: 8, g: 17, b: 31, a: 1 };
+    const selectorBackground = composite(parseColor(selectorStyle.backgroundColor) || { r: 8, g: 13, b: 24, a: 1 }, bodyBackground);
+
+    return Array.from(document.querySelectorAll('#browser-smoke-dark-selector-host .option-item-label'))
+      .slice(0, 3)
+      .map(label => {
+        const style = window.getComputedStyle(label);
+        const background = parseColor(style.backgroundColor) || { r: 0, g: 0, b: 0, a: 0 };
+        const border = parseColor(style.borderTopColor) || { r: 0, g: 0, b: 0, a: 0 };
+        const rowBackground = composite(background, selectorBackground);
+        const rowBorder = composite(border, selectorBackground);
+        return {
+          backgroundAlpha: background.a,
+          borderContrast: contrastRatio(rowBorder, selectorBackground),
+          borderStyle: style.borderTopStyle,
+          borderWidth: Number.parseFloat(style.borderTopWidth) || 0,
+          rowContrast: contrastRatio(rowBackground, selectorBackground),
+          text: label.textContent.trim()
+        };
+      });
+  });
+  const flatRows = rowSeparation.filter(row => (
+    row.backgroundAlpha < 0.65
+    || row.borderWidth < 1
+    || row.borderStyle === 'none'
+    || row.borderContrast < 3
+    || row.rowContrast < 1.08
+  ));
+  if (flatRows.length > 0) {
+    throw new Error(`Dark grouped selector options should have separated row surfaces: ${JSON.stringify(flatRows)}`);
+  }
   await page.evaluate(() => {
     document.querySelector('#browser-smoke-dark-selector-host')?.remove();
+  });
+}
+
+async function expectLightGroupedSelectorContrast(page) {
+  await page.evaluate(async () => {
+    document.querySelector('#browser-smoke-light-selector-host')?.remove();
+    const { createGroupedSelector } = await import('./src/ui/controls/selectorControls.js');
+    const host = document.createElement('div');
+    host.id = 'browser-smoke-light-selector-host';
+    Object.assign(host.style, {
+      bottom: '1rem',
+      maxWidth: 'calc(100vw - 2rem)',
+      position: 'fixed',
+      right: '1rem',
+      width: '360px',
+      zIndex: '5000'
+    });
+    host.appendChild(createGroupedSelector([
+      { Name: 'Title - Main Title', RawValue: 'TITLE_MAIN', Group: 'Title' },
+      { Name: 'Title - Added Title', RawValue: 'TITLE_ADDED', Group: 'Title' },
+      { Name: 'Author - Main Author', RawValue: 'AUTHOR_MAIN', Group: 'Author' }
+    ], true, []));
+    document.body.appendChild(host);
+  });
+
+  await expectLightSurface(page, '#browser-smoke-light-selector-host .grouped-selector', 'Light grouped selector surface');
+  await expectLightInput(page, '#browser-smoke-light-selector-host input[type="search"]', 'Light grouped selector search input');
+  await page.locator('#browser-smoke-light-selector-host input[type="search"]').fill('title');
+  await page.locator('#browser-smoke-light-selector-host .option-item-label').first().waitFor({ state: 'visible', timeout: 5000 });
+  await expectReadableLightText(
+    page,
+    '#browser-smoke-light-selector-host .grouped-selector',
+    'Light grouped selector visible options'
+  );
+  const rowSeparation = await page.evaluate(() => {
+    return Array.from(document.querySelectorAll('#browser-smoke-light-selector-host .option-item-label'))
+      .slice(0, 3)
+      .map(label => {
+        const parseAlpha = value => {
+          const match = String(value || '').match(/rgba?\(([^)]+)\)/u);
+          if (!match) {
+            return 1;
+          }
+          const parts = match[1].split(/[,\s/]+/u).filter(Boolean).map(Number);
+          return Number.isFinite(parts[3]) ? parts[3] : 1;
+        };
+        const style = window.getComputedStyle(label);
+        return {
+          backgroundAlpha: parseAlpha(style.backgroundColor),
+          borderAlpha: parseAlpha(style.borderTopColor),
+          borderStyle: style.borderTopStyle,
+          borderWidth: Number.parseFloat(style.borderTopWidth) || 0,
+          text: label.textContent.trim()
+        };
+      });
+  });
+  const flatRows = rowSeparation.filter(row => (
+    row.backgroundAlpha < 0.65
+    || row.borderAlpha < 0.65
+    || row.borderWidth < 1
+    || row.borderStyle === 'none'
+  ));
+  if (flatRows.length > 0) {
+    throw new Error(`Light grouped selector options should have separated row surfaces: ${JSON.stringify(flatRows)}`);
+  }
+  await page.evaluate(() => {
+    document.querySelector('#browser-smoke-light-selector-host')?.remove();
   });
 }
 
@@ -304,6 +446,8 @@ async function runSmokeTest() {
     await waitForAppReady(page, failures);
     await applySmokeTheme(page, 'light');
     await expectDarkPageBackdrop(page, 'Light-mode main background');
+    await page.waitForTimeout(260);
+    await expectLightGroupedSelectorContrast(page);
 
     await page.locator('#table-add-field-btn').click();
     await page.locator('.form-mode-field-picker-modal').waitFor({ state: 'visible', timeout: 5000 });
