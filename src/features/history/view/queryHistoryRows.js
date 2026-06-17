@@ -1,5 +1,6 @@
 import { buildHistoryExpandButton, escapeHistoryText } from './queryHistoryDetails.js';
 import { formatDuration } from '../../../core/formatting/dataFormatters.js';
+import { templateBlocksSVG } from '../../../core/icons.js';
 import { formatBackendErrorSummary } from '../../../core/queryErrorDetails.js';
 import {
   formatBackendProgressDetail,
@@ -157,7 +158,8 @@ function buildHistoryRowActions(query, options = {}) {
   const loadTooltipCount = query.resultCount !== undefined ? query.resultCount : 'Unknown';
   const loadBtn = !query.running && !query.cancelled ? `<button class="load-query-btn${loadClass} inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" tabindex="-1" data-query-id="${queryId}" data-tooltip="${isLoading ? 'Loading results' : `Open results - ${escapeHistoryText(loadTooltipCount)} rows`}" aria-label="${isLoading ? 'Loading results' : `Open results - ${escapeHistoryText(loadTooltipCount)} rows`}"${loadAttrs}>${loadIcon}<span class="history-action-label">${isLoading ? 'Loading' : 'Open'}</span></button>` : '';
   const rerunBtn = !query.running ? `<button class="rerun-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-green-600" tabindex="-1" data-query-id="${queryId}" data-tooltip="Rerun Query" aria-label="Rerun query"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="history-rerun-icon w-4 h-4" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg><span class="history-action-label">Rerun</span></button>` : '';
-  const templateBtn = `<button class="template-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-purple-600" tabindex="-1" data-query-id="${queryId}" data-tooltip="Create template from this query" aria-label="Create template from this query"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h4"/></svg><span class="history-action-label">Template</span></button>`;
+  const templateIcon = templateBlocksSVG('history-template-blocks-icon template-blocks-icon w-4 h-4');
+  const templateBtn = `<button class="template-query-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-purple-600" tabindex="-1" data-query-id="${queryId}" data-tooltip="Create template from this query" aria-label="Create template from this query">${templateIcon}<span class="history-action-label">Template</span></button>`;
 
   return { loadBtn, previewBtn, rerunBtn, stopBtn, templateBtn };
 }
