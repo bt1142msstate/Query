@@ -2,6 +2,7 @@ import { onDOMReady } from '../core/domReady.js';
 
 const THEME_STORAGE_KEY = 'queryProjectTheme';
 const DARK_QUERY = '(prefers-color-scheme: dark)';
+const CONTRAST_QUERY = '(prefers-contrast: more)';
 
 function getDefaultMatchMedia() {
   return globalThis.window?.matchMedia?.bind(globalThis.window);
@@ -13,6 +14,10 @@ function normalizeTheme(value) {
 
 function getSystemTheme(matchMediaRef = getDefaultMatchMedia()) {
   return typeof matchMediaRef === 'function' && matchMediaRef(DARK_QUERY).matches ? 'dark' : 'light';
+}
+
+function getSystemContrast(matchMediaRef = getDefaultMatchMedia()) {
+  return typeof matchMediaRef === 'function' && matchMediaRef(CONTRAST_QUERY).matches ? 'more' : 'standard';
 }
 
 function readStoredTheme(storage = globalThis.localStorage) {
@@ -57,6 +62,7 @@ function applyTheme(theme, options = {}) {
   }
 
   root.dataset.themeResolved = resolved;
+  root.dataset.themeContrast = getSystemContrast(options.matchMedia);
   return { mode: normalized, resolved };
 }
 
@@ -128,16 +134,25 @@ function initializeThemeToggle(options = {}) {
   });
 
   const systemTheme = typeof matchMediaRef === 'function' ? matchMediaRef(DARK_QUERY) : null;
+  const systemContrast = typeof matchMediaRef === 'function' ? matchMediaRef(CONTRAST_QUERY) : null;
   const onSystemThemeChange = () => {
     if (readStoredTheme(storage) === 'system') {
       applyTheme('system', { root, storage, matchMedia: matchMediaRef });
       updateThemeToggle(toggle, { storage, matchMedia: matchMediaRef });
     }
   };
+  const onSystemContrastChange = () => {
+    applyTheme(readStoredTheme(storage), { root, storage, matchMedia: matchMediaRef });
+  };
   if (systemTheme?.addEventListener) {
     systemTheme.addEventListener('change', onSystemThemeChange);
   } else {
     systemTheme?.addListener?.(onSystemThemeChange);
+  }
+  if (systemContrast?.addEventListener) {
+    systemContrast.addEventListener('change', onSystemContrastChange);
+  } else {
+    systemContrast?.addListener?.(onSystemContrastChange);
   }
 
   return { mode: readStoredTheme(storage), resolved: resolveTheme(readStoredTheme(storage), { matchMedia: matchMediaRef }) };
@@ -148,11 +163,13 @@ onDOMReady(() => {
 });
 
 export {
+  CONTRAST_QUERY,
   DARK_QUERY,
   THEME_STORAGE_KEY,
   applyTheme,
   formatThemeLabel,
   getNextTheme,
+  getSystemContrast,
   getSystemTheme,
   initializeThemeToggle,
   normalizeTheme,
