@@ -21,6 +21,7 @@ import './ui/queryTableView.js';
 import './ui/jsonViewerUI.js';
 import './ui/queryAnimation.js';
 import './ui/themeToggle.js';
+import './ui/siteUpdate.js';
 import './features/filters/queryPayload.js';
 import './ui/tooltips.js';
 import './features/table/virtual-table/simpleTable.js';
