@@ -66,7 +66,7 @@ The full backend integration contract is documented in `docs/INTEGRATION.md`.
 | UI feature folders | `src/ui/form-mode/`, `src/ui/field-picker/` | Larger UI workflows with dedicated shell, field-picker, query-preview, state helper, presentation, and interaction modules |
 | Table feature folders | `src/features/table/drag-drop/`, `src/features/table/virtual-table/`, `src/features/table/post-filters/`, `src/features/table/export/` | Result-table workflows grouped by behavior, with drag/drop split into column, resize, header-action, viewport, and interaction modules; virtual table measurement, row rendering, post-filter state, and split-column transforms split from the coordinator; post-filter value virtualization isolated from the overlay coordinator |
 | Shared UI | `src/ui/` | App shell rendering, shared selectors, modals, toasts, tooltips, date picker, field picker, and form mode |
-| Styles | `src/styles/app.css` plus feature CSS files | Feature-scoped styling with a single stylesheet entry |
+| Styles | `src/styles/tokens.css`, `src/styles/app.css`, plus feature CSS files | Token-driven theming, feature-scoped styling, and a single stylesheet entry |
 | Architecture config | `config/` | Forbidden browser globals, module budgets, and import-boundary rules |
 | Tests | `tests/architecture/`, `tests/unit/`, `tests/browser/` | Architecture checks, focused unit coverage, and browser smoke coverage |
 
@@ -79,7 +79,20 @@ The full backend integration contract is documented in `docs/INTEGRATION.md`.
 - `src/features/table/` keeps the top-level table surface in `contextMenu.js` and groups complex table workflows into `drag-drop/`, `export/`, `post-filters/`, and `virtual-table/`.
 - `src/features/filters/condition-editor/` owns condition editor layout, input adapters, panel UI, interaction wiring, reset behavior, and bubble-shaped field controls. This keeps the retired standalone bubble-builder concept out of the top-level folder model.
 - `src/ui/` keeps shared UI systems at the root and groups larger workflows in `field-picker/` and `form-mode/`.
-- `src/styles/` owns the stylesheet entrypoint and feature CSS.
+- `src/styles/` owns design tokens, the stylesheet entrypoint, and feature CSS.
+
+## Theme System
+
+The theme system follows a token layering model: reference tokens define raw values, semantic system tokens define UI roles, and component CSS consumes those roles. `src/styles/tokens.css` is the source of truth for those tokens and is imported before all feature styles from `src/styles/app.css`.
+
+Rules for theme work:
+
+- Add new visual modes by overriding `--qp-sys-*` semantic tokens under root attributes such as `data-theme-resolved`, `data-theme-accent`, or `data-theme-contrast`.
+- Keep feature CSS focused on component structure and state. Prefer semantic tokens such as `--qp-sys-color-surface`, `--qp-sys-color-on-surface`, `--qp-sys-color-outline`, and `--qp-sys-color-focus-ring` over hardcoded light/dark values.
+- `--theme-*` variables are compatibility aliases for older component rules. They must resolve to `--qp-sys-*` tokens and should not gain new raw values.
+- Contrast-sensitive states such as borders, focus rings, selected rows, and icon-only controls must be tokenized so they can satisfy light, dark, and higher-contrast variants together.
+
+The contract is executable in `tests/architecture/themeTokenContract.mjs`, which verifies token import order, required semantic roles, light/dark variants, contrast support, future accent axes, and alias ownership.
 
 ## Reusable Component Surface
 

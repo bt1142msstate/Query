@@ -142,6 +142,10 @@ The table also supports sorting, expand/collapse layout, manual column resizing 
 
 The virtual table is also exposed as a reusable ES module component in `src/components/`: hosts can either mount the DOM-backed table with its packaged virtual scroller or use the headless projection/render-plan API in their own framework. Column drag/drop, XLSX generation, the custom date picker, and the tooltip system have public component entrypoints too.
 
+### 🎨 Theme System
+
+The app uses semantic CSS custom properties in `src/styles/tokens.css` instead of one-off dark/light overrides. Feature CSS should consume roles such as surface, text, outline, focus, input, list-row, and status tokens. New visual variants should override `--qp-sys-*` tokens by root attributes such as `data-theme-resolved`, `data-theme-contrast`, or `data-theme-accent`.
+
 ## 📁 Structure
 
 Canonical layout decision: application source lives in `src/`. We are not using a mixed top-level JavaScript source layout. Keep root-level JavaScript reserved for static-host/runtime entry files such as the service worker; put app modules, feature logic, UI systems, and styles under `src/`.
@@ -165,7 +169,8 @@ Canonical layout decision: application source lives in `src/`. We are not using 
 | `src/ui/` | App shell UI, modals, toasts, tooltips, and shared helpers |
 | `src/ui/form-mode/` | Form-mode shell, controls, spec parsing, URL sharing, and query sync |
 | `src/ui/field-picker/` | Shared field picker modal and search ranking |
-| `src/styles/` | Feature-based CSS |
+| `src/styles/` | Design tokens and feature-based CSS |
+| `src/styles/tokens.css` | Semantic theme-token source of truth for light, dark, contrast, and future accent variants |
 | `src/styles/app.css` | Stylesheet entrypoint that imports the feature CSS files |
 | `config/` | Shared architecture contracts for forbidden browser globals and module boundaries |
 | `docs/ARCHITECTURE.md` | Frontend architecture notes, quality gates, and refactor plan |

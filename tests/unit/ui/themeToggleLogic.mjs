@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  CONTRAST_QUERY,
+  DARK_QUERY,
   THEME_STORAGE_KEY,
   applyTheme,
   formatThemeLabel,
   getNextTheme,
+  getSystemContrast,
   initializeThemeToggle,
   readStoredTheme,
   resolveTheme
@@ -35,6 +38,12 @@ function createRoot() {
 
 function createMatchMedia(matches) {
   return () => ({ matches });
+}
+
+function createThemeMatchMedia({ dark = false, contrastMore = false } = {}) {
+  return query => ({
+    matches: query === DARK_QUERY ? dark : query === CONTRAST_QUERY ? contrastMore : false
+  });
 }
 
 function createMutableMatchMedia(matches = false) {
@@ -92,6 +101,8 @@ test('theme helpers normalize storage and resolve system preference', () => {
   assert.equal(resolveTheme('system', { matchMedia: createMatchMedia(true) }), 'dark');
   assert.equal(resolveTheme('system', { matchMedia: createMatchMedia(false) }), 'light');
   assert.equal(resolveTheme('dark', { matchMedia: createMatchMedia(false) }), 'dark');
+  assert.equal(getSystemContrast(createThemeMatchMedia({ contrastMore: true })), 'more');
+  assert.equal(getSystemContrast(createThemeMatchMedia({ contrastMore: false })), 'standard');
 
   assert.equal(getNextTheme('system', { matchMedia: createMatchMedia(false) }), 'dark');
   assert.equal(getNextTheme('system', { matchMedia: createMatchMedia(true) }), 'light');
@@ -113,6 +124,7 @@ test('applyTheme persists manual themes and clears storage for Auto', () => {
   assert.equal(storage.getItem(THEME_STORAGE_KEY), 'dark');
   assert.equal(root.dataset.theme, 'dark');
   assert.equal(root.dataset.themeResolved, 'dark');
+  assert.equal(root.dataset.themeContrast, 'standard');
 
   assert.deepEqual(applyTheme('system', { root, storage, matchMedia: createMatchMedia(true) }), {
     mode: 'system',
@@ -121,6 +133,7 @@ test('applyTheme persists manual themes and clears storage for Auto', () => {
   assert.equal(storage.getItem(THEME_STORAGE_KEY), null);
   assert.equal(root.dataset.theme, undefined);
   assert.equal(root.dataset.themeResolved, 'dark');
+  assert.equal(root.dataset.themeContrast, 'more');
 });
 
 test('theme toggle click switches between Auto and a manual override', () => {

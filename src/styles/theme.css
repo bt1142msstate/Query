@@ -1,23 +1,10 @@
-/* Theme toggle and dark workspace overrides */
+/* Theme toggle and component-level theme overrides */
 :root {
-  color-scheme: light;
+  color-scheme: var(--qp-sys-color-scheme, light);
 }
 
 :root[data-theme-resolved="dark"] {
   color-scheme: dark;
-  --theme-panel-bg: rgba(8, 13, 24, 0.96);
-  --theme-panel-bg-soft: rgba(15, 23, 42, 0.92);
-  --theme-panel-bg-raised: rgba(20, 30, 48, 0.94);
-  --theme-border: rgba(148, 163, 184, 0.24);
-  --theme-border-strong: rgba(148, 163, 184, 0.38);
-  --theme-text: #e5edf7;
-  --theme-text-strong: #f8fafc;
-  --theme-text-muted: #94a3b8;
-  --theme-accent: #38bdf8;
-  --theme-accent-soft: rgba(14, 165, 233, 0.16);
-  --theme-list-row-bg: rgba(30, 41, 59, 0.72);
-  --theme-list-row-bg-hover: rgba(51, 65, 85, 0.88);
-  --theme-list-row-border: rgba(148, 163, 184, 0.55);
 }
 
 .theme-toggle {
@@ -77,9 +64,7 @@
 }
 
 :root[data-theme-resolved="dark"] body#page-body {
-  background:
-    radial-gradient(circle at top left, rgba(56, 189, 248, 0.16), transparent 34rem),
-    linear-gradient(180deg, #08111f 0%, #0b1220 52%, #07101d 100%);
+  background: var(--qp-sys-image-app-background);
   color: var(--theme-text);
 }
 
@@ -99,17 +84,15 @@
 
 :root[data-theme-resolved="dark"] #table-top-bar {
   border-color: var(--theme-border);
-  background:
-    linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.88)),
-    radial-gradient(circle at top left, rgba(56, 189, 248, 0.16), transparent 48%);
-  box-shadow: 0 18px 38px rgba(2, 8, 23, 0.34);
+  background: var(--qp-sys-image-surface-raised);
+  box-shadow: var(--qp-sys-shadow-surface);
 }
 
 :root[data-theme-resolved="dark"] #table-name-input {
-  background: rgba(15, 23, 42, 0.72) !important;
+  background: var(--qp-sys-color-input-background) !important;
   color: var(--theme-text-strong) !important;
-  border-color: rgba(148, 163, 184, 0.22);
-  caret-color: #7dd3fc;
+  border-color: var(--qp-sys-color-input-border);
+  caret-color: var(--theme-accent);
   color-scheme: dark;
 }
 
@@ -121,11 +104,11 @@
 }
 
 :root[data-theme-resolved="dark"] #table-name-input:focus {
-  background: rgba(8, 13, 24, 0.96) !important;
+  background: var(--qp-sys-color-input-background) !important;
   color: var(--theme-text-strong) !important;
-  border-color: rgba(56, 189, 248, 0.68) !important;
-  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18), 0 14px 30px rgba(2, 8, 23, 0.42) !important;
-  caret-color: #7dd3fc;
+  border-color: var(--theme-accent) !important;
+  box-shadow: 0 0 0 3px var(--qp-sys-color-focus-ring), 0 14px 30px rgba(2, 8, 23, 0.42) !important;
+  caret-color: var(--theme-accent);
 }
 
 :root[data-theme-resolved="dark"] #table-name-input.error {
@@ -158,7 +141,7 @@
 :root[data-theme-resolved="dark"] #table-zoom-controls,
 :root[data-theme-resolved="dark"] .table-toolbar-btn {
   border-color: var(--theme-border);
-  background: rgba(15, 23, 42, 0.92);
+  background: var(--theme-panel-bg-soft);
   color: var(--theme-text);
   box-shadow: 0 10px 22px rgba(2, 8, 23, 0.28);
 }
@@ -497,7 +480,7 @@
 :root[data-theme-resolved="dark"] .app-search-input,
 :root[data-theme-resolved="dark"] .search-wrapper input[type="search"] {
   border-color: var(--theme-border-strong);
-  background-color: rgba(8, 13, 24, 0.9);
+  background-color: var(--qp-sys-color-input-background);
   color: var(--theme-text-strong);
   color-scheme: dark;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 18px rgba(2, 8, 23, 0.18);
@@ -521,8 +504,8 @@
 :root[data-theme-resolved="dark"] .condition-operator-select:focus,
 :root[data-theme-resolved="dark"] .post-filter-field__select:focus,
 :root[data-theme-resolved="dark"] .post-filter-field__input:focus {
-  border-color: rgba(56, 189, 248, 0.62);
-  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.16), 0 12px 26px rgba(2, 8, 23, 0.24);
+  border-color: var(--theme-accent);
+  box-shadow: 0 0 0 3px var(--qp-sys-color-focus-ring), 0 12px 26px rgba(2, 8, 23, 0.24);
 }
 
 :root[data-theme-resolved="dark"] select.form-mode-operator-select {

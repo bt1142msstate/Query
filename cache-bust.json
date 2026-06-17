@@ -1,5 +1,5 @@
 {
-  "version": "09fc9ef9686ab35c",
+  "version": "1a11566e774d562a",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -151,10 +151,10 @@
     "src/features/templates/view/queryTemplateListView.js": "2f4f1ac2cd5440d4",
     "src/features/templates/view/queryTemplateViewState.js": "a1a4e7e2fdd668f8",
     "src/styles/api-settings.css": "7c6ff2277eb40a47",
-    "src/styles/app.css": "787871dd9c4b38c1",
+    "src/styles/app.css": "9cd3ad44e05dce05",
     "src/styles/base.css": "e3d2c534ee86fa9b",
     "src/styles/condition-editor.css": "c3151b483e049c2e",
-    "src/styles/controls.css": "5f139c05223e2f41",
+    "src/styles/controls.css": "59c7aadd55c39a1e",
     "src/styles/filters.css": "9a0f72aec9cace0d",
     "src/styles/form-mode.css": "b019b81b42575603",
     "src/styles/help.css": "e0502d4427ef63b8",
@@ -162,7 +162,8 @@
     "src/styles/interaction.css": "13df25573561806c",
     "src/styles/table.css": "dfe396cda6a6d6de",
     "src/styles/templates.css": "0116650a211f013c",
-    "src/styles/theme.css": "52d9c4aa8d142afd",
+    "src/styles/theme.css": "18148339229f1371",
+    "src/styles/tokens.css": "d20a2992e5150f85",
     "src/styles/tooltips.css": "ef1ac9877dc6bbdb",
     "src/ui/apiCompatibility.js": "650125d9c6d0b03e",
     "src/ui/apiSettings.js": "8bfaa867a2b426fc",
@@ -210,7 +211,7 @@
     "src/ui/startupStatus.js": "e3f94a036cbd8cdc",
     "src/ui/tableRefreshQueryButton.js": "4e300303c23443e6",
     "src/ui/tableViewportSizing.js": "04a3623757e272cd",
-    "src/ui/themeToggle.js": "e60b88c185887230",
+    "src/ui/themeToggle.js": "ff16927ad15e4df6",
     "src/ui/toast.js": "cbf5e5e1abd48fd4",
     "src/ui/tooltips.js": "796ff90a0625c6eb",
     "src/ui/workspaceLayoutObservers.js": "f1d23d23cf7facf9"

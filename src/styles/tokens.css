@@ -1,0 +1,183 @@
+/* Design token source of truth.
+   The layers are reference tokens, semantic system tokens, then legacy aliases. */
+:root {
+  color-scheme: light;
+
+  --qp-ref-color-neutral-0: #ffffff;
+  --qp-ref-color-neutral-50: #f8fafc;
+  --qp-ref-color-neutral-100: #f1f5f9;
+  --qp-ref-color-neutral-200: #e2e8f0;
+  --qp-ref-color-neutral-300: #cbd5e1;
+  --qp-ref-color-neutral-400: #94a3b8;
+  --qp-ref-color-neutral-500: #64748b;
+  --qp-ref-color-neutral-600: #475569;
+  --qp-ref-color-neutral-700: #334155;
+  --qp-ref-color-neutral-800: #1e293b;
+  --qp-ref-color-neutral-900: #0f172a;
+  --qp-ref-color-neutral-950: #08111f;
+  --qp-ref-color-cyan-50: #ecfeff;
+  --qp-ref-color-cyan-100: #cffafe;
+  --qp-ref-color-cyan-200: #a5f3fc;
+  --qp-ref-color-cyan-300: #67e8f9;
+  --qp-ref-color-cyan-400: #22d3ee;
+  --qp-ref-color-sky-400: #38bdf8;
+  --qp-ref-color-sky-500: #0ea5e9;
+  --qp-ref-color-teal-300: #5eead4;
+  --qp-ref-color-teal-400: #2dd4bf;
+  --qp-ref-color-teal-500: #14b8a6;
+  --qp-ref-color-teal-700: #0f766e;
+  --qp-ref-color-violet-400: #a78bfa;
+  --qp-ref-color-violet-500: #8b5cf6;
+  --qp-ref-color-red-300: #fca5a5;
+  --qp-ref-color-red-400: #f87171;
+  --qp-ref-color-red-600: #dc2626;
+  --qp-ref-color-amber-300: #fcd34d;
+  --qp-ref-color-amber-600: #d97706;
+  --qp-ref-color-emerald-400: #34d399;
+  --qp-ref-color-emerald-600: #059669;
+
+  --qp-sys-color-scheme: light;
+  --qp-sys-color-background: var(--qp-ref-color-neutral-50);
+  --qp-sys-color-on-background: var(--qp-ref-color-neutral-900);
+  --qp-sys-color-surface: rgba(255, 255, 255, 0.98);
+  --qp-sys-color-surface-container: rgba(248, 250, 252, 0.96);
+  --qp-sys-color-surface-container-high: rgba(241, 245, 249, 0.98);
+  --qp-sys-color-surface-overlay: rgba(255, 255, 255, 0.98);
+  --qp-sys-color-on-surface: var(--qp-ref-color-neutral-800);
+  --qp-sys-color-on-surface-strong: var(--qp-ref-color-neutral-900);
+  --qp-sys-color-on-surface-variant: var(--qp-ref-color-neutral-500);
+  --qp-sys-color-outline: rgba(100, 116, 139, 0.28);
+  --qp-sys-color-outline-strong: rgba(71, 85, 105, 0.46);
+  --qp-sys-color-primary: var(--qp-ref-color-teal-700);
+  --qp-sys-color-on-primary: var(--qp-ref-color-neutral-0);
+  --qp-sys-color-primary-container: rgba(20, 184, 166, 0.14);
+  --qp-sys-color-focus-ring: rgba(14, 165, 233, 0.24);
+  --qp-sys-color-state-hover: rgba(14, 165, 233, 0.1);
+  --qp-sys-color-state-selected: rgba(20, 184, 166, 0.14);
+  --qp-sys-color-input-background: rgba(255, 255, 255, 0.96);
+  --qp-sys-color-input-border: rgba(148, 163, 184, 0.42);
+  --qp-sys-color-list-row: rgba(255, 255, 255, 0.92);
+  --qp-sys-color-list-row-hover: rgba(241, 245, 249, 0.9);
+  --qp-sys-color-list-row-border: rgba(203, 213, 225, 0.9);
+  --qp-sys-color-danger: var(--qp-ref-color-red-600);
+  --qp-sys-color-danger-container: rgba(254, 226, 226, 0.92);
+  --qp-sys-color-warning: var(--qp-ref-color-amber-600);
+  --qp-sys-color-warning-container: rgba(254, 243, 199, 0.92);
+  --qp-sys-color-success: var(--qp-ref-color-emerald-600);
+  --qp-sys-color-success-container: rgba(209, 250, 229, 0.9);
+  --qp-sys-color-info: #2563eb;
+  --qp-sys-color-info-container: rgba(219, 234, 254, 0.92);
+  --qp-sys-image-app-background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+  --qp-sys-image-surface-raised: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
+  --qp-sys-shadow-surface: 0 18px 38px rgba(15, 23, 42, 0.12);
+  --qp-sys-shadow-surface-raised: 0 24px 70px rgba(15, 23, 42, 0.16);
+  --qp-sys-shadow-list-row: inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 4px 12px rgba(15, 23, 42, 0.04);
+
+  --theme-panel-bg: var(--qp-sys-color-surface-overlay);
+  --theme-panel-bg-soft: var(--qp-sys-color-surface-container);
+  --theme-panel-bg-raised: var(--qp-sys-color-surface-container-high);
+  --theme-border: var(--qp-sys-color-outline);
+  --theme-border-strong: var(--qp-sys-color-outline-strong);
+  --theme-text: var(--qp-sys-color-on-surface);
+  --theme-text-strong: var(--qp-sys-color-on-surface-strong);
+  --theme-text-muted: var(--qp-sys-color-on-surface-variant);
+  --theme-accent: var(--qp-sys-color-primary);
+  --theme-accent-soft: var(--qp-sys-color-primary-container);
+  --theme-list-row-bg: var(--qp-sys-color-list-row);
+  --theme-list-row-bg-hover: var(--qp-sys-color-list-row-hover);
+  --theme-list-row-border: var(--qp-sys-color-list-row-border);
+}
+
+:root[data-theme-resolved="dark"] {
+  color-scheme: dark;
+  --qp-sys-color-scheme: dark;
+  --qp-sys-color-background: var(--qp-ref-color-neutral-950);
+  --qp-sys-color-on-background: #e5edf7;
+  --qp-sys-color-surface: rgba(8, 13, 24, 0.96);
+  --qp-sys-color-surface-container: rgba(15, 23, 42, 0.92);
+  --qp-sys-color-surface-container-high: rgba(20, 30, 48, 0.94);
+  --qp-sys-color-surface-overlay: rgba(8, 13, 24, 0.96);
+  --qp-sys-color-on-surface: #e5edf7;
+  --qp-sys-color-on-surface-strong: var(--qp-ref-color-neutral-50);
+  --qp-sys-color-on-surface-variant: var(--qp-ref-color-neutral-400);
+  --qp-sys-color-outline: rgba(148, 163, 184, 0.24);
+  --qp-sys-color-outline-strong: rgba(148, 163, 184, 0.38);
+  --qp-sys-color-primary: var(--qp-ref-color-sky-400);
+  --qp-sys-color-on-primary: #082f49;
+  --qp-sys-color-primary-container: rgba(14, 165, 233, 0.16);
+  --qp-sys-color-focus-ring: rgba(14, 165, 233, 0.24);
+  --qp-sys-color-state-hover: rgba(56, 189, 248, 0.12);
+  --qp-sys-color-state-selected: rgba(20, 184, 166, 0.2);
+  --qp-sys-color-input-background: rgba(8, 13, 24, 0.9);
+  --qp-sys-color-input-border: rgba(148, 163, 184, 0.38);
+  --qp-sys-color-list-row: rgba(30, 41, 59, 0.72);
+  --qp-sys-color-list-row-hover: rgba(51, 65, 85, 0.88);
+  --qp-sys-color-list-row-border: rgba(148, 163, 184, 0.55);
+  --qp-sys-color-danger: var(--qp-ref-color-red-400);
+  --qp-sys-color-danger-container: rgba(127, 29, 29, 0.32);
+  --qp-sys-color-warning: var(--qp-ref-color-amber-300);
+  --qp-sys-color-warning-container: rgba(120, 53, 15, 0.24);
+  --qp-sys-color-success: var(--qp-ref-color-emerald-400);
+  --qp-sys-color-success-container: rgba(6, 95, 70, 0.24);
+  --qp-sys-color-info: var(--qp-ref-color-sky-400);
+  --qp-sys-color-info-container: rgba(14, 165, 233, 0.16);
+  --qp-sys-image-app-background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.16), transparent 34rem),
+    linear-gradient(180deg, #08111f 0%, #0b1220 52%, #07101d 100%);
+  --qp-sys-image-surface-raised:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.88)),
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.16), transparent 48%);
+  --qp-sys-shadow-surface: 0 18px 38px rgba(2, 8, 23, 0.34);
+  --qp-sys-shadow-surface-raised: 0 24px 70px rgba(2, 8, 23, 0.48);
+  --qp-sys-shadow-list-row: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 6px 16px rgba(2, 8, 23, 0.16);
+}
+
+:root[data-theme-accent="violet"] {
+  --qp-sys-color-primary: var(--qp-ref-color-violet-500);
+  --qp-sys-color-primary-container: rgba(139, 92, 246, 0.16);
+}
+
+:root[data-theme-resolved="dark"][data-theme-accent="violet"] {
+  --qp-sys-color-primary: var(--qp-ref-color-violet-400);
+  --qp-sys-color-primary-container: rgba(167, 139, 250, 0.16);
+}
+
+:root[data-theme-accent="cyan"] {
+  --qp-sys-color-primary: #0e7490;
+  --qp-sys-color-primary-container: rgba(6, 182, 212, 0.16);
+}
+
+:root[data-theme-resolved="dark"][data-theme-accent="cyan"] {
+  --qp-sys-color-primary: var(--qp-ref-color-cyan-300);
+  --qp-sys-color-primary-container: rgba(34, 211, 238, 0.16);
+}
+
+:root[data-theme-contrast="more"] {
+  --qp-sys-color-outline: rgba(51, 65, 85, 0.56);
+  --qp-sys-color-outline-strong: rgba(15, 23, 42, 0.7);
+  --qp-sys-color-focus-ring: rgba(2, 132, 199, 0.34);
+  --qp-sys-color-list-row-border: rgba(100, 116, 139, 0.78);
+}
+
+:root[data-theme-resolved="dark"][data-theme-contrast="more"] {
+  --qp-sys-color-outline: rgba(203, 213, 225, 0.38);
+  --qp-sys-color-outline-strong: rgba(226, 232, 240, 0.58);
+  --qp-sys-color-focus-ring: rgba(125, 211, 252, 0.34);
+  --qp-sys-color-list-row-border: rgba(203, 213, 225, 0.7);
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --qp-sys-color-outline: rgba(51, 65, 85, 0.56);
+    --qp-sys-color-outline-strong: rgba(15, 23, 42, 0.7);
+    --qp-sys-color-focus-ring: rgba(2, 132, 199, 0.34);
+    --qp-sys-color-list-row-border: rgba(100, 116, 139, 0.78);
+  }
+
+  :root[data-theme-resolved="dark"] {
+    --qp-sys-color-outline: rgba(203, 213, 225, 0.38);
+    --qp-sys-color-outline-strong: rgba(226, 232, 240, 0.58);
+    --qp-sys-color-focus-ring: rgba(125, 211, 252, 0.34);
+    --qp-sys-color-list-row-border: rgba(203, 213, 225, 0.7);
+  }
+}
