@@ -36,6 +36,18 @@ function normalizeSiteUpdateVersion(manifest) {
   return candidate === undefined || candidate === null ? '' : String(candidate).trim();
 }
 
+function normalizeSiteUpdateSummary(manifest) {
+  if (!manifest || typeof manifest !== 'object') {
+    return '';
+  }
+
+  const update = manifest.update && typeof manifest.update === 'object' ? manifest.update : {};
+  return String(update.title || manifest.updateTitle || manifest.title || update.summary || manifest.updateSummary || manifest.summary || '')
+    .replace(/\s+/gu, ' ')
+    .trim()
+    .slice(0, 140);
+}
+
 function getSiteUpdateAutoReloadState(options = {}) {
   const updateVersion = String(options.updateVersion || '').trim();
   const idleMs = Math.max(0, Number(options.idleMs) || 0);
@@ -241,6 +253,7 @@ function createSiteUpdateController(options = {}) {
   let currentVersion = readCurrentVersion(root, options.currentVersion);
   let updateVersion = '';
   let updateManifest = null;
+  let updateSummary = '';
   let lastInteractionAt = now();
   let lastInteractionCheckAt = 0;
   let hasLocalEdits = false;
@@ -250,6 +263,7 @@ function createSiteUpdateController(options = {}) {
   let banner = null;
   let autoReloadTimer = null;
   let checkInterval = null;
+  let updateDetailsPromise = null;
   const cleanupCallbacks = [];
 
   function updateRootDataset() {
@@ -296,7 +310,15 @@ function createSiteUpdateController(options = {}) {
         <strong data-site-update-title>Update ready</strong>
         <span data-site-update-status>Use the latest version when you are ready.</span>
       </div>
-      <button class="site-update-banner-action" type="button" data-site-update-action>Update now</button>
+      <div class="site-update-banner-actions">
+        <button class="site-update-banner-details-toggle" type="button" data-site-update-details-toggle aria-controls="site-update-details" aria-expanded="false" hidden>What changed</button>
+        <button class="site-update-banner-action" type="button" data-site-update-action>Update now</button>
+      </div>
+      <div class="site-update-banner-details" id="site-update-details" data-site-update-details hidden>
+        <strong class="site-update-banner-details-title" data-site-update-details-title></strong>
+        <p class="site-update-banner-details-summary" data-site-update-details-summary></p>
+        <ul class="site-update-banner-details-list" data-site-update-details-list></ul>
+      </div>
     `;
 
     banner.querySelector('[data-site-update-action]')?.addEventListener('click', () => {
@@ -304,6 +326,17 @@ function createSiteUpdateController(options = {}) {
     });
     documentRef.body.appendChild(banner);
     return banner;
+  }
+
+  function renderBannerUpdateDetails() {
+    if (!banner || !updateManifest) {
+      return;
+    }
+
+    updateDetailsPromise ||= import('./siteUpdateDetails.js');
+    updateDetailsPromise
+      .then(module => module.renderSiteUpdateDetails?.(banner, updateManifest, { document: documentRef }))
+      .catch(() => {});
   }
 
   function updateBanner(decision = getDecision()) {
@@ -317,6 +350,7 @@ function createSiteUpdateController(options = {}) {
     if (status) {
       status.textContent = getSiteUpdateStatusMessage(decision);
     }
+    renderBannerUpdateDetails();
   }
 
   function scheduleAutoReload() {
@@ -363,6 +397,7 @@ function createSiteUpdateController(options = {}) {
 
   function handleManifest(manifest) {
     const nextVersion = normalizeSiteUpdateVersion(manifest);
+    const nextSummary = normalizeSiteUpdateSummary(manifest);
     if (!nextVersion) {
       return false;
     }
@@ -378,12 +413,23 @@ function createSiteUpdateController(options = {}) {
     if (nextVersion === currentVersion) {
       updateVersion = '';
       updateManifest = null;
+      updateSummary = '';
       updateRootDataset();
+      return false;
+    }
+
+    if (nextVersion === updateVersion) {
+      updateManifest = manifest || updateManifest;
+      updateSummary = nextSummary || updateSummary;
+      updateRootDataset();
+      updateBanner();
+      scheduleAutoReload();
       return false;
     }
 
     updateVersion = nextVersion;
     updateManifest = manifest;
+    updateSummary = nextSummary;
     updateRootDataset();
     updateBanner();
     scheduleAutoReload();
@@ -495,9 +541,23 @@ function createSiteUpdateController(options = {}) {
     addManagedListener(documentRef, 'input', markLocalEdit, true);
     addManagedListener(documentRef, 'change', markLocalEdit, true);
     addManagedListener(documentRef, 'submit', clearSubmittedEdits, true);
-    addManagedListener(documentRef, 'visibilitychange', scheduleAutoReload);
-    addManagedListener(windowRef, 'focus', checkNow);
+    addManagedListener(documentRef, 'visibilitychange', () => {
+      if (documentRef.visibilityState === 'visible') {
+        void checkNow();
+      }
+      scheduleAutoReload();
+    });
+    addManagedListener(windowRef, 'focus', () => {
+      markInteraction();
+      void checkNow();
+    });
     addManagedListener(windowRef, 'online', checkNow);
+    addManagedListener(windowRef, 'pageshow', event => {
+      if (event?.persisted) {
+        void checkNow();
+      }
+      scheduleAutoReload();
+    });
     addManagedListener(windowRef, 'query-app:check-site-update', checkNow);
 
     checkInterval = setInterval(checkNow, checkIntervalMs);
@@ -527,6 +587,7 @@ function createSiteUpdateController(options = {}) {
       isChecking,
       isReloading,
       lastInteractionAt,
+      updateSummary,
       updateManifest,
       updateVersion
     };
@@ -554,5 +615,6 @@ export {
   hasActiveWork,
   isEditableElement,
   normalizeSiteUpdateVersion,
+  normalizeSiteUpdateSummary,
   prepareServiceWorkerForSiteUpdate
 };

@@ -4,8 +4,10 @@ import {
   getSiteUpdateAutoReloadState,
   getSiteUpdateStatusMessage,
   isEditableElement,
+  normalizeSiteUpdateSummary,
   normalizeSiteUpdateVersion
 } from '../../../src/ui/siteUpdate.js';
+import { getSiteUpdateDetails } from '../../../src/ui/siteUpdateDetails.js';
 
 function createElementStub({ tag = 'input', type = 'text', disabled = false, readOnly = false, contentEditable = false } = {}) {
   return {
@@ -33,6 +35,40 @@ test('site update version normalizes supported cache manifest keys', () => {
   assert.equal(normalizeSiteUpdateVersion({ build: 'build-7' }), 'build-7');
   assert.equal(normalizeSiteUpdateVersion({}), '');
   assert.equal(normalizeSiteUpdateVersion(null), '');
+});
+
+test('site update summary normalizes deployment metadata fallbacks', () => {
+  assert.equal(
+    normalizeSiteUpdateSummary({ update: { title: '  Fresh   query tools  ', summary: 'Ignored summary' } }),
+    'Fresh query tools'
+  );
+  assert.equal(normalizeSiteUpdateSummary({ updateSummary: '  Streamlined update banner  ' }), 'Streamlined update banner');
+  assert.equal(normalizeSiteUpdateSummary({ summary: '  Safer deployments  ' }), 'Safer deployments');
+  assert.equal(normalizeSiteUpdateSummary({}), '');
+  assert.equal(normalizeSiteUpdateSummary(null), '');
+});
+
+test('site update details parse nested, flat, and delimited manifest metadata', () => {
+  assert.deepEqual(
+    getSiteUpdateDetails({
+      update: {
+        title: '  Better   updater  ',
+        summary: '  Shows deployment details.  ',
+        items: ['  Recheck on focus  ', '  Keep idle auto update  ']
+      }
+    }),
+    {
+      title: 'Better updater',
+      summary: 'Shows deployment details.',
+      items: ['Recheck on focus', 'Keep idle auto update']
+    }
+  );
+
+  assert.deepEqual(getSiteUpdateDetails({ updateItems: 'First change|Second change\nThird change' }).items, [
+    'First change',
+    'Second change',
+    'Third change'
+  ]);
 });
 
 test('site update auto reload waits for work and reloads only when idle or hidden', () => {
