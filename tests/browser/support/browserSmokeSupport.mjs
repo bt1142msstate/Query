@@ -412,6 +412,14 @@ async function installQueryApiStub(page) {
   };
 }
 
+function isIgnorableSiteUpdateManifestAbort(request, port) {
+  const url = request.url();
+  const errorText = request.failure()?.errorText || '';
+  return url.startsWith(`http://127.0.0.1:${port}/`)
+    && new URL(url).pathname.endsWith('/cache-bust.json')
+    && errorText.includes('ERR_ABORTED');
+}
+
 function attachFailureListeners(page, failures, port) {
   page.on('console', message => {
     if (['error', 'warning', 'warn'].includes(message.type())) {
@@ -426,6 +434,10 @@ function attachFailureListeners(page, failures, port) {
   });
 
   page.on('requestfailed', request => {
+    if (isIgnorableSiteUpdateManifestAbort(request, port)) {
+      return;
+    }
+
     if (request.url().startsWith(`http://127.0.0.1:${port}/`)) {
       failures.push(`request failed: ${request.method()} ${request.url()} ${request.failure()?.errorText || ''}`);
     }
