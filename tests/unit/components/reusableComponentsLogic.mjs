@@ -3,6 +3,8 @@ import test from 'node:test';
 import {
   CustomDatePicker,
   DATE_INPUT_PATTERN,
+  HOVER_SHOW_DELAY_MS,
+  INSTANT_TOOLTIP_DELAY_MS,
   Tooltips,
   buildFilterTooltipHtml,
   VIRTUAL_TABLE_DOM_COMPONENT_CSS,
@@ -11,7 +13,8 @@ import {
   createVirtualRenderPlan,
   createVirtualTableComponent,
   createWorkbookExportComponent,
-  normalizeDateValue
+  normalizeDateValue,
+  resolveTooltipDelay
 } from '../../../src/components/index.js';
 
 function createSourceData(rows, displayedFields) {
@@ -140,4 +143,15 @@ test('date picker and tooltip component entrypoints expose browser-safe APIs', (
   assert.equal(typeof Tooltips.attach, 'function');
   assert.equal(typeof Tooltips.forceHide, 'function');
   assert.match(buildFilterTooltipHtml([{ field: 'Title', operator: 'Equals', value: 'Alpha' }]), /Title/u);
+});
+
+test('tooltip timing policy keeps affordances instant and dense lists delayed', () => {
+  assert.equal(resolveTooltipDelay({ rawDelay: '0', isDenseListTarget: true }), INSTANT_TOOLTIP_DELAY_MS);
+  assert.equal(resolveTooltipDelay({ rawDelay: '425' }), 425);
+  assert.equal(resolveTooltipDelay({ intent: 'instant' }), INSTANT_TOOLTIP_DELAY_MS);
+  assert.equal(resolveTooltipDelay({ isImmediateTarget: true }), INSTANT_TOOLTIP_DELAY_MS);
+  assert.equal(resolveTooltipDelay({ isCompactControl: true }), INSTANT_TOOLTIP_DELAY_MS);
+  assert.equal(resolveTooltipDelay({ intent: 'delayed', isImmediateTarget: true }), HOVER_SHOW_DELAY_MS);
+  assert.equal(resolveTooltipDelay({ isDenseListTarget: true, isCompactControl: true }), HOVER_SHOW_DELAY_MS);
+  assert.equal(resolveTooltipDelay({}), HOVER_SHOW_DELAY_MS);
 });

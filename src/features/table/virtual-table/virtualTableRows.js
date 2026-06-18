@@ -82,6 +82,7 @@ function applyDuplicateRowGroupMetadata(tr, duplicateRowGroup) {
   tr.classList.add('query-table-collapsed-row');
   tr.dataset.collapsedRowCount = String(collapsedRowCount);
   tr.dataset.matchingRowCount = String(matchingRowCount);
+  tr.dataset.tooltipIntent = 'instant';
   tr.setAttribute('data-tooltip', buildCollapsedRowTooltip(duplicateRowGroup));
 }
 

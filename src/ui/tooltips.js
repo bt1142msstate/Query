@@ -3,6 +3,116 @@
  * Provides intelligent tooltip positioning and behavior for elements with data-tooltip attributes.
  * @module Tooltips
  */
+const TOOLTIP_DELAY_ATTR = 'data-tooltip-delay';
+const TOOLTIP_INTENT_ATTR = 'data-tooltip-intent';
+const HOVER_SHOW_DELAY_MS = 2500;
+const INSTANT_TOOLTIP_DELAY_MS = 0;
+
+const IMMEDIATE_TOOLTIP_SELECTOR = [
+  '[data-tooltip-intent="instant"]',
+  '.query-table-truncated-cell',
+  '.query-table-truncated-trigger',
+  '.query-table-collapsed-row',
+  '.th-action',
+  '.table-toolbar-btn',
+  '.filter-list-viewer-icon-btn',
+  '.form-mode-field-picker-field-info',
+  '.list-paste-btn',
+  '.post-filter-pill__remove',
+  '.filter-trash'
+].join(', ');
+
+const DELAYED_TOOLTIP_SELECTOR = [
+  '[data-tooltip-intent="delayed"]',
+  '.form-mode-field-picker-option',
+  '.form-mode-field-picker-option-name',
+  '.option-item',
+  '.option-item-text',
+  '.group-label',
+  '.templates-list-item',
+  '.category-btn',
+  '.boolean-pill-option'
+].join(', ');
+
+function parseTooltipDelay(rawDelay) {
+  if (rawDelay === null || rawDelay === undefined || rawDelay === '') {
+    return null;
+  }
+
+  const parsedDelay = Number(rawDelay);
+  if (!Number.isFinite(parsedDelay)) {
+    return null;
+  }
+
+  return Math.max(0, parsedDelay);
+}
+
+function resolveTooltipDelay({
+  rawDelay = null,
+  intent = '',
+  isDenseListTarget = false,
+  isImmediateTarget = false,
+  isCompactControl = false
+} = {}) {
+  const explicitDelay = parseTooltipDelay(rawDelay);
+  if (explicitDelay !== null) {
+    return explicitDelay;
+  }
+
+  if (intent === 'instant') {
+    return INSTANT_TOOLTIP_DELAY_MS;
+  }
+
+  if (intent === 'delayed' || isDenseListTarget) {
+    return HOVER_SHOW_DELAY_MS;
+  }
+
+  if (isImmediateTarget || isCompactControl) {
+    return INSTANT_TOOLTIP_DELAY_MS;
+  }
+
+  return HOVER_SHOW_DELAY_MS;
+}
+
+function matchesSelector(el, selector) {
+  return Boolean(
+    el
+    && typeof el.matches === 'function'
+    && selector
+    && el.matches(selector)
+  );
+}
+
+function closestMatching(el, selector) {
+  return el && typeof el.closest === 'function' && selector
+    ? el.closest(selector)
+    : null;
+}
+
+function hasCompactControlShape(target) {
+  const control = closestMatching(target, 'button, [role="button"]');
+  if (!control || matchesSelector(control, DELAYED_TOOLTIP_SELECTOR)) {
+    return false;
+  }
+
+  if (!control.hasAttribute('data-tooltip') && !control.hasAttribute('data-tooltip-html')) {
+    return false;
+  }
+
+  const label = String(control.getAttribute('aria-label') || '').trim();
+  if (!label) {
+    return false;
+  }
+
+  const text = String(control.textContent || '').replace(/\s+/gu, ' ').trim();
+  const className = String(control.className || '');
+  const hasSvg = Boolean(typeof control.querySelector === 'function' && control.querySelector('svg'));
+  const hasCompactClass = /(?:^|\s|[-_])(?:action|icon|toolbar|control|copy|sort|trash|remove|clear|close|upload|download|zoom|expand|info|help|settings)(?:$|\s|[-_])/iu.test(className);
+  const isShortGlyph = text.length <= 2 || /^[×?!i]+$/iu.test(text);
+
+  return Boolean(hasSvg || hasCompactClass || isShortGlyph || text.length === 0);
+}
+
 /**
  * Tooltip manager handling tooltip creation, positioning, and lifecycle.
  * @namespace Tooltips
@@ -21,8 +131,6 @@ const Tooltips = (() => {
   }
 
   const TOOLTIP_SELECTOR = '[data-tooltip], [data-tooltip-html]';
-  const TOOLTIP_DELAY_ATTR = 'data-tooltip-delay';
-  const HOVER_SHOW_DELAY_MS = 2500;
   let tooltipEl = null;
   let arrowEl = null;
   let currentTarget = null;
@@ -171,17 +279,13 @@ const Tooltips = (() => {
       return HOVER_SHOW_DELAY_MS;
     }
 
-    const rawDelay = target.getAttribute(TOOLTIP_DELAY_ATTR);
-    if (rawDelay === null || rawDelay === '') {
-      return HOVER_SHOW_DELAY_MS;
-    }
-
-    const parsedDelay = Number(rawDelay);
-    if (!Number.isFinite(parsedDelay)) {
-      return HOVER_SHOW_DELAY_MS;
-    }
-
-    return Math.max(0, parsedDelay);
+    return resolveTooltipDelay({
+      rawDelay: target.getAttribute(TOOLTIP_DELAY_ATTR),
+      intent: target.getAttribute(TOOLTIP_INTENT_ATTR) || '',
+      isDenseListTarget: Boolean(closestMatching(target, DELAYED_TOOLTIP_SELECTOR)),
+      isImmediateTarget: Boolean(closestMatching(target, IMMEDIATE_TOOLTIP_SELECTOR)),
+      isCompactControl: hasCompactControlShape(target)
+    });
   }
 
   function isTooltipVisible() {
@@ -472,4 +576,4 @@ const Tooltips = (() => {
   });
 })();
 
-export { Tooltips };
+export { HOVER_SHOW_DELAY_MS, INSTANT_TOOLTIP_DELAY_MS, Tooltips, resolveTooltipDelay };
