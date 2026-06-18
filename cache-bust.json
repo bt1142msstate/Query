@@ -1,5 +1,5 @@
 {
-  "version": "e1877b6d59f7795a",
+  "version": "95ebc5049606bf18",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -13,7 +13,7 @@
     "src/components/drag-drop/createColumnDragDropComponent.js": "61048fc1593ad31d",
     "src/components/drag-drop/index.js": "41b5a08d9d258346",
     "src/components/index.js": "e25ad64d4d208dfa",
-    "src/components/tooltips/index.js": "67c2bc99f6ed3011",
+    "src/components/tooltips/index.js": "862d805577be5b57",
     "src/components/virtual-table/createVirtualTableComponent.js": "2612d051a3b10b35",
     "src/components/virtual-table/createVirtualTableDomComponent.js": "3541e7cc35f26b6b",
     "src/components/virtual-table/index.js": "a57f1d512a12a0ab",
@@ -137,7 +137,7 @@
     "src/features/table/virtual-table/virtualTable.js": "3c856670ace99baa",
     "src/features/table/virtual-table/virtualTableDuplicateCollapse.js": "2e7a94daac6bffaa",
     "src/features/table/virtual-table/virtualTablePostFilters.js": "337516941e5ecade",
-    "src/features/table/virtual-table/virtualTableRows.js": "a59e8f54bbb10867",
+    "src/features/table/virtual-table/virtualTableRows.js": "c1b1ee4532d121b4",
     "src/features/templates/category/queryTemplateCategoryActions.js": "8288dc05858b0451",
     "src/features/templates/category/queryTemplateCategoryView.js": "62317b7affbc9887",
     "src/features/templates/data/queryTemplateCollection.js": "19b217fcbf8ed43e",
@@ -215,7 +215,7 @@
     "src/ui/tableViewportSizing.js": "04a3623757e272cd",
     "src/ui/themeToggle.js": "ff16927ad15e4df6",
     "src/ui/toast.js": "cbf5e5e1abd48fd4",
-    "src/ui/tooltips.js": "796ff90a0625c6eb",
+    "src/ui/tooltips.js": "ff2a6d644ba977f9",
     "src/ui/workspaceLayoutObservers.js": "f1d23d23cf7facf9"
   }
 }
