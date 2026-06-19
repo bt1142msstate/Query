@@ -46,25 +46,53 @@ function createThemeMatchMedia({ dark = false, contrastMore = false } = {}) {
   });
 }
 
-function createMutableMatchMedia(matches = false) {
+function createMutableMedia(matches = false, { legacy = false } = {}) {
+  const listeners = [];
   const media = {
     matches,
     listeners: [],
     addEventListener(type, listener) {
       if (type === 'change') {
-        this.listeners.push(listener);
+        listeners.push(listener);
       }
     },
     setMatches(nextMatches) {
       this.matches = nextMatches;
-      this.listeners.forEach(listener => listener({ matches: nextMatches }));
+      listeners.forEach(listener => listener({ matches: nextMatches }));
     }
   };
 
+  if (legacy) {
+    delete media.addEventListener;
+    media.addListener = listener => {
+      listeners.push(listener);
+    };
+  }
+
+  Object.defineProperty(media, 'listeners', {
+    get() {
+      return listeners;
+    }
+  });
+
+  return media;
+}
+
+function createMutableThemeMatchMedia({ dark = false, contrastMore = false, legacy = false } = {}) {
+  const darkMedia = createMutableMedia(dark, { legacy });
+  const contrastMedia = createMutableMedia(contrastMore, { legacy });
+
   return {
-    media,
-    matchMedia() {
-      return media;
+    darkMedia,
+    contrastMedia,
+    matchMedia(query) {
+      if (query === DARK_QUERY) {
+        return darkMedia;
+      }
+      if (query === CONTRAST_QUERY) {
+        return contrastMedia;
+      }
+      return createMutableMedia(false, { legacy });
     }
   };
 }
@@ -171,11 +199,11 @@ test('theme toggle click switches between Auto and a manual override', () => {
   assert.equal(toggle.dataset.themeMode, 'system');
 });
 
-test('Auto mode follows operating-system theme changes', () => {
+test('Auto mode follows operating-system theme changes in both directions', () => {
   const root = createRoot();
   const storage = createStorage();
   const toggle = createToggle();
-  const media = createMutableMatchMedia(false);
+  const media = createMutableThemeMatchMedia({ dark: false });
 
   initializeThemeToggle({
     root,
@@ -186,7 +214,61 @@ test('Auto mode follows operating-system theme changes', () => {
 
   assert.equal(root.dataset.themeResolved, 'light');
 
-  media.media.setMatches(true);
+  media.darkMedia.setMatches(true);
+
+  assert.equal(root.dataset.themeResolved, 'dark');
+  assert.equal(toggle.label.textContent, 'Auto');
+  assert.match(toggle.attributes['aria-label'], /Theme: Auto \(dark\)/u);
+
+  media.darkMedia.setMatches(false);
+
+  assert.equal(root.dataset.themeResolved, 'light');
+  assert.equal(toggle.label.textContent, 'Auto');
+  assert.match(toggle.attributes['aria-label'], /Theme: Auto \(light\)/u);
+});
+
+test('manual theme overrides ignore operating-system theme changes', () => {
+  const root = createRoot();
+  const storage = createStorage('dark');
+  const toggle = createToggle();
+  const media = createMutableThemeMatchMedia({ dark: false });
+
+  initializeThemeToggle({
+    root,
+    storage,
+    toggle,
+    matchMedia: media.matchMedia
+  });
+
+  assert.equal(root.dataset.theme, 'dark');
+  assert.equal(root.dataset.themeResolved, 'dark');
+  assert.equal(toggle.label.textContent, 'Dark');
+
+  media.darkMedia.setMatches(true);
+  media.darkMedia.setMatches(false);
+
+  assert.equal(storage.getItem(THEME_STORAGE_KEY), 'dark');
+  assert.equal(root.dataset.theme, 'dark');
+  assert.equal(root.dataset.themeResolved, 'dark');
+  assert.equal(toggle.label.textContent, 'Dark');
+});
+
+test('Auto mode follows legacy media query listener changes', () => {
+  const root = createRoot();
+  const storage = createStorage();
+  const toggle = createToggle();
+  const media = createMutableThemeMatchMedia({ dark: false, legacy: true });
+
+  initializeThemeToggle({
+    root,
+    storage,
+    toggle,
+    matchMedia: media.matchMedia
+  });
+
+  assert.equal(root.dataset.themeResolved, 'light');
+
+  media.darkMedia.setMatches(true);
 
   assert.equal(root.dataset.themeResolved, 'dark');
   assert.equal(toggle.label.textContent, 'Auto');
