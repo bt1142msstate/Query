@@ -35,7 +35,6 @@ import {
   getPinnedTemplatesForStrip
 } from './view/queryTemplateViewState.js';
 import { renderTemplateDetailView } from './view/queryTemplateDetailView.js';
-import { renderTemplateWorkbenchFooter } from './view/queryTemplateFooterView.js';
 import { createQueryTemplateCategoryActions } from './category/queryTemplateCategoryActions.js';
 import {
   renderTemplateCategoryAssignment,
@@ -54,7 +53,6 @@ import { escapeHtml } from '../../core/formatting/html.js';
     loaded: false,
     loading: false,
     saving: false,
-    lastLoadedAt: 0,
     selectedId: '',
     selectedCategoryFilter: '',
     searchQuery: '',
@@ -260,7 +258,6 @@ import { escapeHtml } from '../../core/formatting/html.js';
       }
       reconcileTemplateSelection();
       state.loaded = true;
-      state.lastLoadedAt = Date.now();
     } catch (error) {
       if (error?.isRateLimited) {
         return;
@@ -669,7 +666,6 @@ import { escapeHtml } from '../../core/formatting/html.js';
       state,
       visibleTemplates: getVisibleTemplates(),
       restricted: isRestrictedMode(),
-      getTemplateSvgMarkup,
       onSelectTemplate: selectTemplate,
       async onPinTemplate(template) {
         state.selectedId = template.id;
@@ -702,10 +698,6 @@ import { escapeHtml } from '../../core/formatting/html.js';
     renderCategoryList();
     renderList();
     renderDetail();
-    renderTemplateWorkbenchFooter({
-      elements: getElements(),
-      state
-    });
     const elements = getElements();
     if (elements.detailOverlay) {
       elements.detailOverlay.classList.toggle('hidden', !state.detailOverlayOpen);
@@ -760,10 +752,6 @@ import { escapeHtml } from '../../core/formatting/html.js';
     });
 
     elements.manageCategoriesBtn?.addEventListener('click', () => {
-      openCategoriesOverlay();
-    });
-
-    elements.manageCategoriesFooterBtn?.addEventListener('click', () => {
       openCategoriesOverlay();
     });
 
