@@ -984,8 +984,8 @@
   background: white;
   border: 1px solid rgba(0, 0, 0, 0.08);
   overflow: hidden;
-  cursor: grab;
-  touch-action: none;
+  cursor: default;
+  touch-action: pan-y;
   user-select: none;
 }
 
@@ -1162,8 +1162,8 @@
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
   border: 1px solid rgba(148, 163, 184, 0.24);
   box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
-  cursor: grab;
-  touch-action: none;
+  cursor: default;
+  touch-action: pan-y;
   user-select: none;
 }
 
@@ -1225,55 +1225,88 @@
   cursor: not-allowed;
 }
 
-.fp-display-item.fp-drag-over-top,
-.fp-field-group.fp-drag-over-top {
-  box-shadow: inset 0 3px 0 #0f766e, 0 12px 28px rgba(15, 118, 110, 0.14);
+.fp-arrange-btn {
+  color: #0f766e;
+  background: rgba(240, 253, 250, 0.82);
 }
 
-.fp-display-item.fp-drag-over-bottom,
-.fp-field-group.fp-drag-over-bottom {
-  box-shadow: inset 0 -3px 0 #0f766e, 0 12px 28px rgba(15, 118, 110, 0.14);
+.fp-arrange-btn:hover {
+  color: #0f172a;
+  background: rgba(204, 251, 241, 0.92);
 }
 
-.fp-display-item.fp-drop-target,
-.fp-field-group.fp-drop-target {
+.fp-display-item.fp-arrange-source,
+.fp-field-group.fp-arrange-source {
+  border-color: rgba(15, 118, 110, 0.68);
+  outline: 2px solid rgba(15, 118, 110, 0.48);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 7px rgba(204, 251, 241, 0.72), 0 16px 34px rgba(15, 118, 110, 0.18);
+}
+
+.fp-display-item.fp-arrange-target,
+.fp-field-group.fp-arrange-target {
+  outline: 2px solid rgba(15, 118, 110, 0.18);
+  outline-offset: 3px;
+  cursor: pointer;
+}
+
+.fp-display-item.fp-arrange-active-target,
+.fp-field-group.fp-arrange-active-target {
   border-color: rgba(15, 118, 110, 0.58);
   background: linear-gradient(180deg, rgba(240, 253, 250, 0.98), rgba(204, 251, 241, 0.82));
+  outline-color: rgba(15, 118, 110, 0.45);
+  box-shadow: 0 0 0 5px rgba(204, 251, 241, 0.52), 0 12px 28px rgba(15, 118, 110, 0.14);
 }
 
-.fp-drop-anchor {
+.fp-arrange-drop-button {
   position: fixed;
-  z-index: calc(var(--z-modal-panel, 10030) + 12);
-  height: 4px;
+  z-index: calc(var(--z-modal-panel, 10030) + 14);
+  width: 40px;
+  height: 40px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  color: #0f172a;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(204, 251, 241, 0.86));
+  border: 1px solid rgba(255, 255, 255, 0.86);
   border-radius: 999px;
-  pointer-events: none;
-  background: linear-gradient(90deg, rgba(20, 184, 166, 0), #0f766e 12%, #14b8a6 50%, #0f766e 88%, rgba(20, 184, 166, 0));
-  box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.18), 0 8px 22px rgba(15, 118, 110, 0.28);
-  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  cursor: pointer;
+  touch-action: manipulation;
+  animation: fp-arrange-target-pulse 1.18s ease-in-out infinite;
+  backdrop-filter: blur(18px) saturate(1.12);
+  -webkit-backdrop-filter: blur(18px) saturate(1.12);
+  transition: color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
-.fp-display-item.fp-dragging,
-.fp-field-group.fp-dragging {
-  opacity: 0.32;
-  cursor: grabbing;
+.fp-arrange-drop-button:hover,
+.fp-arrange-drop-button:focus-visible {
+  color: white;
+  background: linear-gradient(135deg, #0f766e, #115e59);
+  outline: 3px solid rgba(15, 118, 110, 0.24);
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.24);
+  transform: scale(1.04);
 }
 
-.fp-drag-preview {
-  position: fixed !important;
-  left: 0;
-  top: 0;
-  z-index: calc(var(--z-modal-panel, 10030) + 10);
-  margin: 0 !important;
-  pointer-events: none;
-  opacity: 0.96;
-  cursor: grabbing;
-  transform-origin: top left;
-  box-shadow: 0 22px 42px rgba(15, 23, 42, 0.24), 0 0 0 2px rgba(15, 118, 110, 0.3) !important;
+.fp-arrange-drop-button:disabled {
+  cursor: wait;
+  filter: grayscale(0.35);
+  opacity: 0.62;
+  animation: none;
 }
 
-.fp-display-item.fp-reorder-armed,
-.fp-field-group.fp-reorder-armed {
-  box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.28), 0 10px 24px rgba(15, 23, 42, 0.1);
+body.fp-arrange-mode-active {
+  cursor: default;
+}
+
+@keyframes fp-arrange-target-pulse {
+  0%,
+  100% {
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.2), 0 0 0 5px rgba(204, 251, 241, 0.68), 0 0 24px rgba(20, 184, 166, 0.3);
+  }
+  50% {
+    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.24), 0 0 0 8px rgba(204, 251, 241, 0.34), 0 0 30px rgba(20, 184, 166, 0.42);
+  }
 }
 
 .fp-field-header {

@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 
 import {
+  arrangeSidePanelLocatorToLocator,
   buildJsonlResultStream,
   cleanupMobilePageScroll,
   dragTouchLocator,
@@ -53,83 +54,6 @@ const XML_ENTITIES = new Map([
 const ZIP_LOCAL_FILE_HEADER = 0x04034b50;
 const ZIP_CENTRAL_FILE_HEADER = 0x02014b50;
 const ZIP_END_OF_CENTRAL_DIRECTORY = 0x06054b50;
-
-async function dragMouseLocatorToLocator(page, sourceLocator, targetLocator, options = {}) {
-  async function measure(locator) {
-    let box = null;
-    for (let attempt = 0; attempt < 6; attempt += 1) {
-      try {
-        await locator.waitFor({ state: 'visible', timeout: 5000 });
-        await locator.scrollIntoViewIfNeeded();
-        box = await locator.boundingBox();
-        if (box && box.width > 0 && box.height > 0) {
-          return box;
-        }
-      } catch (error) {
-        if (!/not attached|detached|Target closed/iu.test(error?.message || '')) {
-          throw error;
-        }
-      }
-      await page.waitForTimeout(50);
-    }
-    return box;
-  }
-
-  let sourceBox = await measure(sourceLocator);
-  const targetBox = await measure(targetLocator);
-  const refreshedSourceBox = await sourceLocator.boundingBox();
-  if (refreshedSourceBox && refreshedSourceBox.width > 0 && refreshedSourceBox.height > 0) {
-    sourceBox = refreshedSourceBox;
-  }
-  if (!sourceBox || !targetBox) {
-    throw new Error(`Unable to measure mouse drag targets: ${JSON.stringify({ sourceBox, targetBox })}`);
-  }
-
-  const startX = Math.round(sourceBox.x + (sourceBox.width * (options.sourceHorizontalRatio ?? 0.5)));
-  const startY = Math.round(sourceBox.y + (sourceBox.height * (options.sourceVerticalRatio ?? 0.5)));
-  const endX = Math.round(targetBox.x + (targetBox.width * (options.targetHorizontalRatio ?? 0.5)));
-  const endY = Math.round(targetBox.y + (targetBox.height * (options.targetVerticalRatio ?? 0.5)));
-
-  const steps = options.steps || 12;
-  let dropAnchorSeen = false;
-  await page.mouse.move(startX, startY);
-  await page.mouse.down();
-  if (options.expectDropAnchor) {
-    for (let index = 1; index <= steps; index += 1) {
-      const progress = index / steps;
-      await page.mouse.move(
-        Math.round(startX + ((endX - startX) * progress)),
-        Math.round(startY + ((endY - startY) * progress))
-      );
-      if (index >= Math.ceil(steps / 2) && !dropAnchorSeen) {
-        dropAnchorSeen = dropAnchorSeen || await page.locator('.fp-drop-anchor').isVisible();
-      }
-    }
-  } else {
-    await page.mouse.move(endX, endY, { steps });
-  }
-
-  if (options.expectPreview) {
-    const previewVisible = await page.locator('.fp-drag-preview').isVisible();
-    if (!previewVisible) {
-      throw new Error('Expected mouse drag to show a floating reorder preview');
-    }
-  }
-  if (options.expectDropAnchor) {
-    if (!dropAnchorSeen) {
-      throw new Error(`Expected mouse drag to show a clear side-panel drop target: ${JSON.stringify({ dropAnchorSeen })}`);
-    }
-  }
-
-  await page.mouse.up();
-
-  if (options.expectPreview) {
-    await page.locator('.fp-drag-preview').waitFor({ state: 'detached', timeout: 5000 });
-  }
-  if (options.expectDropAnchor) {
-    await page.locator('.fp-drop-anchor').waitFor({ state: 'detached', timeout: 5000 });
-  }
-}
 
 function decodeXmlEntities(value = '') {
   return String(value).replace(/&([^;]+);/gu, (match, entity) => XML_ENTITIES.get(entity) || match);
@@ -2606,15 +2530,15 @@ async function exerciseCoreFilterStateInteraction(page) {
   });
 
   await page.locator('.fp-cond-text', { hasText: 'Smoke Value' }).waitFor({ state: 'attached', timeout: 5000 });
-  await dragMouseLocatorToLocator(
+  await arrangeSidePanelLocatorToLocator(
     page,
     page.locator('.fp-field-group[data-field="Smoke Filter Field"]'),
     page.locator('.fp-field-group[data-field="Smoke Status Filter"]'),
-    { expectDropAnchor: true, expectPreview: true, targetVerticalRatio: 0.85 }
+    { targetVerticalRatio: 0.85 }
   );
   await page.waitForFunction(async () => {
     const { QueryStateReaders } = await import('./src/core/queryState.js');
-    return Object.keys(QueryStateReaders.getActiveFilters()).join('|') === 'Smoke Branch Filter|Smoke Filter Field|Smoke Status Filter';
+    return Object.keys(QueryStateReaders.getActiveFilters()).join('|') === 'Smoke Branch Filter|Smoke Status Filter|Smoke Filter Field';
   }, null, { timeout: 5000 }).catch(async error => {
     const orderState = await page.evaluate(async () => {
       const { QueryStateReaders } = await import('./src/core/queryState.js');
@@ -2624,12 +2548,12 @@ async function exerciseCoreFilterStateInteraction(page) {
         state: Object.keys(QueryStateReaders.getActiveFilters())
       };
     });
-    throw new Error(`Filter card drag did not produce the expected order: ${JSON.stringify(orderState)} (${error.message})`);
+    throw new Error(`Filter card arrange did not produce the expected order: ${JSON.stringify(orderState)} (${error.message})`);
   });
   await page.waitForFunction(() => {
     const names = Array.from(document.querySelectorAll('.fp-filter-list > .fp-field-group > .fp-field-header .fp-field-name'))
       .map(name => name.textContent.trim());
-    return names.join('|') === 'Smoke Branch Filter|Smoke Filter Field|Smoke Status Filter';
+    return names.join('|') === 'Smoke Branch Filter|Smoke Status Filter|Smoke Filter Field';
   }, null, { timeout: 5000 }).catch(async error => {
     const orderState = await page.evaluate(async () => {
       const { QueryStateReaders } = await import('./src/core/queryState.js');
@@ -2643,18 +2567,18 @@ async function exerciseCoreFilterStateInteraction(page) {
   });
 
   await page.locator('.fp-field-group[data-field="Smoke Filter Field"]')
-    .locator('.fp-filter-order-btn-down')
-    .click();
-  await page.waitForFunction(async () => {
-    const { QueryStateReaders } = await import('./src/core/queryState.js');
-    return Object.keys(QueryStateReaders.getActiveFilters()).join('|') === 'Smoke Branch Filter|Smoke Status Filter|Smoke Filter Field';
-  }, null, { timeout: 5000 });
-  await page.locator('.fp-field-group[data-field="Smoke Filter Field"]')
     .locator('.fp-filter-order-btn-up')
     .click();
   await page.waitForFunction(async () => {
     const { QueryStateReaders } = await import('./src/core/queryState.js');
     return Object.keys(QueryStateReaders.getActiveFilters()).join('|') === 'Smoke Branch Filter|Smoke Filter Field|Smoke Status Filter';
+  }, null, { timeout: 5000 });
+  await page.locator('.fp-field-group[data-field="Smoke Filter Field"]')
+    .locator('.fp-filter-order-btn-down')
+    .click();
+  await page.waitForFunction(async () => {
+    const { QueryStateReaders } = await import('./src/core/queryState.js');
+    return Object.keys(QueryStateReaders.getActiveFilters()).join('|') === 'Smoke Branch Filter|Smoke Status Filter|Smoke Filter Field';
   }, null, { timeout: 5000 });
 }
 
@@ -3239,11 +3163,11 @@ async function exerciseDesktopResultsWorkflow(page) {
     const { QueryStateReaders } = await import('./src/core/queryState.js');
     return QueryStateReaders.getDisplayedFields().join('|') === 'Smoke Title|Smoke Status|Smoke Branch 1|Smoke Branch 2';
   }, null, { timeout: 5000 });
-  await dragMouseLocatorToLocator(
+  await arrangeSidePanelLocatorToLocator(
     page,
     page.locator('.fp-display-item', { hasText: 'Smoke Branch 2' }),
     page.locator('.fp-display-item', { hasText: 'Smoke Title' }),
-    { expectDropAnchor: true, expectPreview: true, targetVerticalRatio: 0.85 }
+    { targetVerticalRatio: 0.85 }
   );
   await page.waitForFunction(async () => {
     const { QueryStateReaders } = await import('./src/core/queryState.js');
@@ -3259,7 +3183,7 @@ async function exerciseDesktopResultsWorkflow(page) {
     panelSplitPointerMove.headers.join('|') !== 'Smoke Title|Smoke Branch 1|Smoke Branch 2|Smoke Status'
     || panelSplitPointerMove.displayFields.join('|') !== 'Smoke Title|Smoke Branch 1|Smoke Branch 2|Smoke Status'
   ) {
-    throw new Error(`Side panel split column pointer drag should move the whole group: ${JSON.stringify(panelSplitPointerMove)}`);
+    throw new Error(`Side panel split column arrange should move the whole group: ${JSON.stringify(panelSplitPointerMove)}`);
   }
   const splitRemoval = await page.evaluate(() => {
     const displayItem = Array.from(document.querySelectorAll('.fp-display-item'))
