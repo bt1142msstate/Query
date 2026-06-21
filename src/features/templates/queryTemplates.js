@@ -2,6 +2,7 @@ import { BackendApi } from '../../core/backendApi.js';
 import { onDOMReady } from '../../core/domReady.js';
 import { showToastMessage } from '../../core/toast.js';
 import { VisibilityUtils } from '../../core/visibility.js';
+import { templateBlocksSVG } from '../../core/icons.js';
 import { buildQueryUiConfig } from '../filters/queryPayload.js';
 import { appServices, registerQueryTemplatesService } from '../../core/appServices.js';
 import {
@@ -45,13 +46,7 @@ import { getQueryTemplateElements } from './view/queryTemplateElements.js';
 import { escapeHtml } from '../../core/formatting/html.js';
 (function initializeQueryTemplates() {
   const NEW_TEMPLATE_ID = '__new_template__';
-  const DEFAULT_TEMPLATE_SVG = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="template-default-icon" aria-hidden="true">
-      <rect x="10" y="8" width="44" height="48" rx="12" fill="#FFFFFF" stroke="#111827" stroke-width="4"/>
-      <path d="M22 22h20M22 32h20M22 42h12" fill="none" stroke="#111827" stroke-width="4" stroke-linecap="round"/>
-      <path d="M44 8v10a4 4 0 0 0 4 4h6" fill="none" stroke="#111827" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-  `;
+  const DEFAULT_TEMPLATE_SVG = templateBlocksSVG('template-default-icon template-blocks-icon');
   const state = {
     templates: [],
     categories: [],
