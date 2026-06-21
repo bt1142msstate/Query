@@ -1596,7 +1596,7 @@ async function runSmokeTest() {
       mobilePage,
       mobilePage.locator('.fp-display-item', { hasText: 'Smoke Title' }),
       mobilePage.locator('.fp-display-item', { hasText: 'Smoke Status' }),
-      { expectPreview: true, targetVerticalRatio: 0.85 }
+      { expectDropAnchor: true, expectPreview: true, targetVerticalRatio: 0.85 }
     );
     await mobilePage.waitForFunction(async () => {
       const { QueryStateReaders } = await import('./src/core/queryState.js');
@@ -1622,7 +1622,7 @@ async function runSmokeTest() {
       mobilePage,
       mobilePage.locator('.fp-field-group', { hasText: 'Smoke Title' }),
       mobilePage.locator('.fp-field-group', { hasText: 'Smoke Status' }),
-      { expectPreview: true, targetVerticalRatio: 0.85 }
+      { expectDropAnchor: true, expectPreview: true, targetVerticalRatio: 0.85 }
     );
     await mobilePage.waitForFunction(async () => {
       const { QueryStateReaders } = await import('./src/core/queryState.js');

@@ -23,10 +23,16 @@ function isInteractiveTarget(target, interactiveSelector = DEFAULT_INTERACTIVE_S
   return Boolean(target?.closest?.(interactiveSelector));
 }
 
-function clearReorderIndicators(container, itemSelector) {
+function clearReorderIndicators(container, itemSelector, options = {}) {
   container?.querySelectorAll?.(itemSelector)?.forEach(item => {
-    item.classList.remove('fp-drag-over-top', 'fp-drag-over-bottom');
+    item.classList.remove('fp-drag-over-top', 'fp-drag-over-bottom', 'fp-drop-target');
   });
+  const anchor = container?.ownerDocument?.querySelector?.('.fp-drop-anchor');
+  if (options.removeAnchor) {
+    anchor?.remove?.();
+  } else if (anchor) {
+    anchor.style.display = 'none';
+  }
 }
 
 function getInsertAfter(target, clientY) {
@@ -34,35 +40,60 @@ function getInsertAfter(target, clientY) {
   return clientY >= rect.top + rect.height / 2;
 }
 
-function findNearestReorderTarget(container, itemSelector, draggedElement, clientX, clientY) {
+function isNoOpDrop(container, itemSelector, draggedElement, target, insertAfter) {
+  const items = Array.from(container?.querySelectorAll?.(itemSelector) || []);
+  const sourceIndex = items.indexOf(draggedElement);
+  const targetIndex = items.indexOf(target);
+  if (sourceIndex === -1 || targetIndex === -1) {
+    return false;
+  }
+
+  return (
+    (sourceIndex < targetIndex && insertAfter === false && targetIndex === sourceIndex + 1)
+    || (sourceIndex > targetIndex && insertAfter === true && targetIndex === sourceIndex - 1)
+  );
+}
+
+function findNearestDropPlacement(container, itemSelector, draggedElement, clientX, clientY) {
   const documentRef = container?.ownerDocument || globalThis.document;
   const directTarget = documentRef
     .elementFromPoint(clientX, clientY)
     ?.closest?.(itemSelector);
+  const candidates = [];
+  const seen = new Set();
 
-  if (directTarget && directTarget !== draggedElement && container.contains(directTarget)) {
-    return directTarget;
-  }
-
-  let nearest = null;
-  let nearestDistance = Number.POSITIVE_INFINITY;
-  container.querySelectorAll(itemSelector).forEach(candidate => {
-    if (candidate === draggedElement) {
+  function addCandidate(candidate) {
+    if (!candidate || candidate === draggedElement || !container.contains(candidate) || seen.has(candidate)) {
       return;
     }
+    seen.add(candidate);
+    candidates.push(candidate);
+  }
 
-    const rect = candidate.getBoundingClientRect();
-    const clampedX = Math.max(rect.left, Math.min(clientX, rect.right));
-    const clampedY = Math.max(rect.top, Math.min(clientY, rect.bottom));
-    const distance = Math.hypot(clientX - clampedX, clientY - clampedY);
+  addCandidate(directTarget);
+  Array.from(container.querySelectorAll(itemSelector))
+    .filter(candidate => candidate !== draggedElement && !seen.has(candidate))
+    .map(candidate => {
+      const rect = candidate.getBoundingClientRect();
+      const clampedX = Math.max(rect.left, Math.min(clientX, rect.right));
+      const clampedY = Math.max(rect.top, Math.min(clientY, rect.bottom));
+      return {
+        candidate,
+        distance: Math.hypot(clientX - clampedX, clientY - clampedY)
+      };
+    })
+    .sort((left, right) => left.distance - right.distance)
+    .forEach(({ candidate }) => addCandidate(candidate));
 
-    if (distance < nearestDistance) {
-      nearest = candidate;
-      nearestDistance = distance;
+  for (let index = 0; index < candidates.length; index += 1) {
+    const target = candidates[index];
+    const insertAfter = getInsertAfter(target, clientY);
+    if (!isNoOpDrop(container, itemSelector, draggedElement, target, insertAfter)) {
+      return { insertAfter, target };
     }
-  });
+  }
 
-  return nearest;
+  return null;
 }
 
 function getScrollableParent(element) {
@@ -97,6 +128,34 @@ function updateDragPreview(dragState, event) {
   const left = event.clientX - dragState.dragOffsetX;
   const top = event.clientY - dragState.dragOffsetY;
   dragState.dragPreview.style.transform = `translate3d(${Math.round(left)}px, ${Math.round(top)}px, 0)`;
+}
+
+function ensureDropAnchor(documentRef) {
+  let anchor = documentRef.querySelector('.fp-drop-anchor');
+  if (!anchor) {
+    anchor = documentRef.createElement('div');
+    anchor.className = 'fp-drop-anchor';
+    anchor.setAttribute('aria-hidden', 'true');
+    documentRef.body.appendChild(anchor);
+  }
+  return anchor;
+}
+
+function updateDropAnchor(container, target, insertAfter) {
+  const documentRef = container?.ownerDocument || globalThis.document;
+  const anchor = ensureDropAnchor(documentRef);
+  const targetRect = target.getBoundingClientRect();
+  const containerRect = container.getBoundingClientRect();
+  const horizontalInset = Math.min(10, Math.max(0, containerRect.width * 0.04));
+  const left = Math.max(containerRect.left + horizontalInset, targetRect.left);
+  const right = Math.min(containerRect.right - horizontalInset, targetRect.right);
+  const top = insertAfter ? targetRect.bottom : targetRect.top;
+
+  anchor.style.left = `${Math.round(left)}px`;
+  anchor.style.top = `${Math.round(top)}px`;
+  anchor.style.width = `${Math.max(32, Math.round(right - left))}px`;
+  anchor.style.display = 'block';
+  return anchor;
 }
 
 function autoScrollWhileDragging(dragState, event) {
@@ -216,7 +275,7 @@ function attachPointerReorder({
 
     element.classList.remove('fp-reorder-armed', 'fp-dragging');
     documentRef.body.classList.remove('dragging-cursor');
-    clearReorderIndicators(container, itemSelector);
+    clearReorderIndicators(container, itemSelector, { removeAnchor: true });
     dragPreview?.remove?.();
     if (pointerCaptured) {
       releasePointer(element, pointerId);
@@ -333,7 +392,9 @@ function attachPointerReorder({
     event.preventDefault();
     updateDragPreview(dragState, event);
     autoScrollWhileDragging(dragState, event);
-    const target = findNearestReorderTarget(container, itemSelector, element, event.clientX, event.clientY);
+    const placement = findNearestDropPlacement(container, itemSelector, element, event.clientX, event.clientY);
+    const target = placement?.target || dragState.target;
+    const insertAfter = placement?.target ? placement.insertAfter : dragState.insertAfter;
     clearReorderIndicators(container, itemSelector);
 
     if (!target) {
@@ -342,9 +403,10 @@ function attachPointerReorder({
       return;
     }
 
-    const insertAfter = getInsertAfter(target, event.clientY);
     target.classList.toggle('fp-drag-over-bottom', insertAfter);
     target.classList.toggle('fp-drag-over-top', !insertAfter);
+    target.classList.add('fp-drop-target');
+    updateDropAnchor(container, target, insertAfter);
     dragState.target = target;
     dragState.insertAfter = insertAfter;
   }

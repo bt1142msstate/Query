@@ -75,8 +75,12 @@ async function dragMouseLocatorToLocator(page, sourceLocator, targetLocator, opt
     return box;
   }
 
-  const sourceBox = await measure(sourceLocator);
+  let sourceBox = await measure(sourceLocator);
   const targetBox = await measure(targetLocator);
+  const refreshedSourceBox = await sourceLocator.boundingBox();
+  if (refreshedSourceBox && refreshedSourceBox.width > 0 && refreshedSourceBox.height > 0) {
+    sourceBox = refreshedSourceBox;
+  }
   if (!sourceBox || !targetBox) {
     throw new Error(`Unable to measure mouse drag targets: ${JSON.stringify({ sourceBox, targetBox })}`);
   }
@@ -86,9 +90,24 @@ async function dragMouseLocatorToLocator(page, sourceLocator, targetLocator, opt
   const endX = Math.round(targetBox.x + (targetBox.width * (options.targetHorizontalRatio ?? 0.5)));
   const endY = Math.round(targetBox.y + (targetBox.height * (options.targetVerticalRatio ?? 0.5)));
 
+  const steps = options.steps || 12;
+  let dropAnchorSeen = false;
   await page.mouse.move(startX, startY);
   await page.mouse.down();
-  await page.mouse.move(endX, endY, { steps: options.steps || 12 });
+  if (options.expectDropAnchor) {
+    for (let index = 1; index <= steps; index += 1) {
+      const progress = index / steps;
+      await page.mouse.move(
+        Math.round(startX + ((endX - startX) * progress)),
+        Math.round(startY + ((endY - startY) * progress))
+      );
+      if (index >= Math.ceil(steps / 2) && !dropAnchorSeen) {
+        dropAnchorSeen = dropAnchorSeen || await page.locator('.fp-drop-anchor').isVisible();
+      }
+    }
+  } else {
+    await page.mouse.move(endX, endY, { steps });
+  }
 
   if (options.expectPreview) {
     const previewVisible = await page.locator('.fp-drag-preview').isVisible();
@@ -96,11 +115,19 @@ async function dragMouseLocatorToLocator(page, sourceLocator, targetLocator, opt
       throw new Error('Expected mouse drag to show a floating reorder preview');
     }
   }
+  if (options.expectDropAnchor) {
+    if (!dropAnchorSeen) {
+      throw new Error(`Expected mouse drag to show a clear side-panel drop target: ${JSON.stringify({ dropAnchorSeen })}`);
+    }
+  }
 
   await page.mouse.up();
 
   if (options.expectPreview) {
     await page.locator('.fp-drag-preview').waitFor({ state: 'detached', timeout: 5000 });
+  }
+  if (options.expectDropAnchor) {
+    await page.locator('.fp-drop-anchor').waitFor({ state: 'detached', timeout: 5000 });
   }
 }
 
@@ -2581,13 +2608,53 @@ async function exerciseCoreFilterStateInteraction(page) {
   await page.locator('.fp-cond-text', { hasText: 'Smoke Value' }).waitFor({ state: 'attached', timeout: 5000 });
   await dragMouseLocatorToLocator(
     page,
-    page.locator('.fp-cond-text', { hasText: 'Smoke Value' }),
-    page.locator('.fp-field-group', { hasText: 'Smoke Status Value' }),
-    { expectPreview: true, targetVerticalRatio: 0.85 }
+    page.locator('.fp-field-group[data-field="Smoke Filter Field"]'),
+    page.locator('.fp-field-group[data-field="Smoke Status Filter"]'),
+    { expectDropAnchor: true, expectPreview: true, targetVerticalRatio: 0.85 }
   );
   await page.waitForFunction(async () => {
     const { QueryStateReaders } = await import('./src/core/queryState.js');
+    return Object.keys(QueryStateReaders.getActiveFilters()).join('|') === 'Smoke Branch Filter|Smoke Filter Field|Smoke Status Filter';
+  }, null, { timeout: 5000 }).catch(async error => {
+    const orderState = await page.evaluate(async () => {
+      const { QueryStateReaders } = await import('./src/core/queryState.js');
+      return {
+        dom: Array.from(document.querySelectorAll('.fp-filter-list > .fp-field-group > .fp-field-header .fp-field-name'))
+          .map(name => name.textContent.trim()),
+        state: Object.keys(QueryStateReaders.getActiveFilters())
+      };
+    });
+    throw new Error(`Filter card drag did not produce the expected order: ${JSON.stringify(orderState)} (${error.message})`);
+  });
+  await page.waitForFunction(() => {
+    const names = Array.from(document.querySelectorAll('.fp-filter-list > .fp-field-group > .fp-field-header .fp-field-name'))
+      .map(name => name.textContent.trim());
+    return names.join('|') === 'Smoke Branch Filter|Smoke Filter Field|Smoke Status Filter';
+  }, null, { timeout: 5000 }).catch(async error => {
+    const orderState = await page.evaluate(async () => {
+      const { QueryStateReaders } = await import('./src/core/queryState.js');
+      return {
+        dom: Array.from(document.querySelectorAll('.fp-filter-list > .fp-field-group > .fp-field-header .fp-field-name'))
+          .map(name => name.textContent.trim()),
+        state: Object.keys(QueryStateReaders.getActiveFilters())
+      };
+    });
+    throw new Error(`Filter side panel DOM did not match reordered filter state: ${JSON.stringify(orderState)} (${error.message})`);
+  });
+
+  await page.locator('.fp-field-group[data-field="Smoke Filter Field"]')
+    .locator('.fp-filter-order-btn-down')
+    .click();
+  await page.waitForFunction(async () => {
+    const { QueryStateReaders } = await import('./src/core/queryState.js');
     return Object.keys(QueryStateReaders.getActiveFilters()).join('|') === 'Smoke Branch Filter|Smoke Status Filter|Smoke Filter Field';
+  }, null, { timeout: 5000 });
+  await page.locator('.fp-field-group[data-field="Smoke Filter Field"]')
+    .locator('.fp-filter-order-btn-up')
+    .click();
+  await page.waitForFunction(async () => {
+    const { QueryStateReaders } = await import('./src/core/queryState.js');
+    return Object.keys(QueryStateReaders.getActiveFilters()).join('|') === 'Smoke Branch Filter|Smoke Filter Field|Smoke Status Filter';
   }, null, { timeout: 5000 });
 }
 
@@ -3176,7 +3243,7 @@ async function exerciseDesktopResultsWorkflow(page) {
     page,
     page.locator('.fp-display-item', { hasText: 'Smoke Branch 2' }),
     page.locator('.fp-display-item', { hasText: 'Smoke Title' }),
-    { expectPreview: true, targetVerticalRatio: 0.85 }
+    { expectDropAnchor: true, expectPreview: true, targetVerticalRatio: 0.85 }
   );
   await page.waitForFunction(async () => {
     const { QueryStateReaders } = await import('./src/core/queryState.js');

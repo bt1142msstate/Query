@@ -464,6 +464,17 @@
   background: rgba(15, 23, 42, 0.82);
 }
 
+:root[data-theme-resolved="dark"] .fp-display-item.fp-drop-target,
+:root[data-theme-resolved="dark"] .fp-field-group.fp-drop-target {
+  border-color: rgba(45, 212, 191, 0.62);
+  background: linear-gradient(180deg, rgba(20, 83, 75, 0.82), rgba(15, 118, 110, 0.58));
+}
+
+:root[data-theme-resolved="dark"] .fp-drop-anchor {
+  background: linear-gradient(90deg, rgba(45, 212, 191, 0), #5eead4 12%, #99f6e4 50%, #5eead4 88%, rgba(45, 212, 191, 0));
+  box-shadow: 0 0 0 2px rgba(45, 212, 191, 0.18), 0 8px 22px rgba(45, 212, 191, 0.32);
+}
+
 :root[data-theme-resolved="dark"] .form-mode-text-input,
 :root[data-theme-resolved="dark"] .form-mode-money-input-wrap,
 :root[data-theme-resolved="dark"] .form-mode-money-input,

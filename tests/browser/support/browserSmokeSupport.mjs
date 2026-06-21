@@ -1382,6 +1382,7 @@ async function dragTouchLocator(page, locator, options = {}) {
   const client = await page.context().newCDPSession(page);
   let touchActive = false;
   let previewSeen = false;
+  let dropAnchorSeen = false;
 
   try {
     await client.send('Input.dispatchTouchEvent', {
@@ -1407,10 +1408,18 @@ async function dragTouchLocator(page, locator, options = {}) {
       if (options.expectPreview && index >= Math.ceil(steps / 2) && !previewSeen) {
         previewSeen = await page.locator('.fp-drag-preview').isVisible();
       }
+      if (options.expectDropAnchor && index >= Math.ceil(steps / 2) && !dropAnchorSeen) {
+        dropAnchorSeen = dropAnchorSeen || await page.locator('.fp-drop-anchor').isVisible();
+      }
     }
 
     if (options.expectPreview && !previewSeen) {
       throw new Error('Expected touch drag to show a floating reorder preview');
+    }
+    if (options.expectDropAnchor) {
+      if (!dropAnchorSeen) {
+        throw new Error(`Expected touch drag to show a clear side-panel drop target: ${JSON.stringify({ dropAnchorSeen })}`);
+      }
     }
 
     await client.send('Input.dispatchTouchEvent', {
@@ -1434,6 +1443,9 @@ async function dragTouchLocator(page, locator, options = {}) {
 
   if (options.expectPreview) {
     await page.locator('.fp-drag-preview').waitFor({ state: 'detached', timeout: 5000 });
+  }
+  if (options.expectDropAnchor) {
+    await page.locator('.fp-drop-anchor').waitFor({ state: 'detached', timeout: 5000 });
   }
 }
 
