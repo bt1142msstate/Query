@@ -30,6 +30,8 @@ test('query template elements', async () => {
       'newBtn',
       'refreshBtn',
       'manageCategoriesBtn',
+      'manageCategoriesFooterBtn',
+      'updatedStatus',
       'emptyState',
       'detailOverlay',
       'detailBackdrop',
