@@ -50,11 +50,21 @@ export function renderTemplateList({
     const descriptionTooltip = String(template.description || '').trim() || 'No description provided.';
     button.setAttribute('data-tooltip', descriptionTooltip);
     button.setAttribute('aria-label', `${template.name}. ${descriptionTooltip}`);
+    const descriptionClass = String(template.description || '').trim()
+      ? 'templates-list-item__description'
+      : 'templates-list-item__description templates-list-item__description--empty';
     button.innerHTML = `
-      <div class="templates-list-item__title-row">
-        ${template.pinned ? '<span class="templates-list-item__pin-badge">Pinned</span>' : ''}
-        <div class="templates-list-item__title">${escapeHtml(template.name)}</div>
-      </div>`;
+      <span class="templates-list-item__brick-face" aria-hidden="true">
+        <span class="templates-list-item__stud-row"><span></span><span></span><span></span><span></span></span>
+      </span>
+      <span class="templates-list-item__copy">
+        <span class="templates-list-item__title-row">
+          ${template.pinned ? '<span class="templates-list-item__pin-badge">Pinned</span>' : ''}
+          <span class="templates-list-item__title">${escapeHtml(template.name)}</span>
+        </span>
+        <span class="${descriptionClass}">${escapeHtml(descriptionTooltip)}</span>
+      </span>
+      <span class="templates-list-item__snap" aria-hidden="true"></span>`;
     button.addEventListener('click', () => onSelectTemplate(template.id));
     row.appendChild(button);
 

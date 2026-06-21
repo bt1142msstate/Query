@@ -236,10 +236,12 @@
 }
 
 :root[data-theme-resolved="dark"] .query-table-multi-value-trigger:hover,
+:root[data-theme-resolved="dark"] .query-table-multi-value-trigger:focus-visible,
 :root[data-theme-resolved="dark"] .query-table-truncated-trigger:hover,
 :root[data-theme-resolved="dark"] .query-table-truncated-trigger:focus-visible {
   border-color: rgba(56, 189, 248, 0.32);
-  background: rgba(14, 165, 233, 0.12);
+  background: #102033;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.18);
 }
 
 :root[data-theme-resolved="dark"] .query-table-multi-value-primary,
@@ -1553,6 +1555,18 @@
   --templates-block-shadow: rgba(15, 23, 42, 0.12);
   --templates-block-press: rgba(14, 165, 233, 0.16);
   --templates-block-hot-stud: rgba(225, 29, 72, 0.14);
+  --templates-board-dot: rgba(14, 165, 233, 0.12);
+  --templates-board-hole: rgba(148, 163, 184, 0.26);
+  --templates-brick-sky: #0891b2;
+  --templates-brick-pink: #db2777;
+  --templates-brick-ink: #334155;
+  --templates-brick-white: #ffffff;
+  --templates-brick-edge: rgba(15, 23, 42, 0.12);
+  --templates-brick-highlight: rgba(255, 255, 255, 0.9);
+  --templates-card-face: rgba(255, 255, 255, 0.98);
+  --templates-card-face-strong: rgba(224, 242, 254, 0.96);
+  --templates-card-rail: rgba(14, 165, 233, 0.16);
+  --templates-card-socket: rgba(100, 116, 139, 0.38);
 }
 
 :root[data-theme-resolved="light"] .templates-browser,
@@ -1600,6 +1614,75 @@
 :root[data-theme-resolved="light"] .pinned-template-bubble__name {
   color: #0f172a;
   text-shadow: none;
+}
+
+:root[data-theme-resolved="light"] .templates-browser {
+  background:
+    radial-gradient(circle at 1.2rem 1.2rem, rgba(14, 165, 233, 0.1) 0 0.16rem, rgba(148, 163, 184, 0.2) 0.18rem, transparent 0.24rem) 0 0 / 2.55rem 2.55rem,
+    radial-gradient(circle at top right, rgba(219, 39, 119, 0.08), transparent 18rem),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(239, 246, 255, 0.96)) !important;
+}
+
+:root[data-theme-resolved="light"] .templates-browser-top,
+:root[data-theme-resolved="light"] .templates-browser-list-shell,
+:root[data-theme-resolved="light"] .templates-empty-state,
+:root[data-theme-resolved="light"] .templates-detail,
+:root[data-theme-resolved="light"] .templates-categories-dialog {
+  background:
+    radial-gradient(circle at 1.15rem 1.15rem, rgba(14, 165, 233, 0.1) 0 0.18rem, rgba(148, 163, 184, 0.18) 0.2rem, transparent 0.28rem) 0 0 / 2.75rem 2.75rem,
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 250, 252, 0.96)) !important;
+  border-color: rgba(14, 165, 233, 0.18) !important;
+}
+
+:root[data-theme-resolved="light"] .templates-sidebar-copy,
+:root[data-theme-resolved="light"] .templates-brick-scene,
+:root[data-theme-resolved="light"] .templates-list-section__header {
+  border-color: rgba(14, 165, 233, 0.2) !important;
+  background:
+    radial-gradient(circle at 1rem 1rem, rgba(14, 165, 233, 0.12) 0 0.14rem, transparent 0.19rem) 0 0 / 2.2rem 2.2rem,
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(240, 249, 255, 0.94)) !important;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+:root[data-theme-resolved="light"] .templates-list .templates-list-item {
+  border-color: rgba(14, 165, 233, 0.22) !important;
+  background:
+    linear-gradient(90deg, rgba(224, 242, 254, 0.98), rgba(255, 255, 255, 0.98) 34%, rgba(248, 250, 252, 0.98)) !important;
+  color: #0f172a !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -0.55rem 1rem rgba(14, 165, 233, 0.05),
+    0 14px 28px rgba(15, 23, 42, 0.08);
+}
+
+:root[data-theme-resolved="light"] .templates-list-item__brick-face {
+  border-color: rgba(14, 165, 233, 0.18);
+  background:
+    linear-gradient(180deg, rgba(186, 230, 253, 0.94), rgba(125, 211, 252, 0.58)),
+    linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(219, 39, 119, 0.08));
+  box-shadow:
+    inset 0 0.45rem 0.95rem rgba(255, 255, 255, 0.52),
+    inset 0 -0.42rem 0.85rem rgba(15, 23, 42, 0.1),
+    0 10px 18px rgba(15, 23, 42, 0.08);
+}
+
+:root[data-theme-resolved="light"] .templates-list-item__description {
+  color: #475569;
+}
+
+:root[data-theme-resolved="light"] .templates-list-item__description--empty {
+  color: #94a3b8;
+}
+
+:root[data-theme-resolved="light"] .templates-list-item__snap {
+  background:
+    radial-gradient(circle at 50% 0.48rem, rgba(148, 163, 184, 0.42) 0 0.28rem, rgba(14, 165, 233, 0.13) 0.3rem, transparent 0.36rem) 0 0 / 100% 1.22rem;
+}
+
+:root[data-theme-resolved="light"] .templates-list-section__count {
+  background:
+    radial-gradient(circle at 0.55rem 0.43rem, rgba(255, 255, 255, 0.86) 0 0.08rem, transparent 0.1rem),
+    linear-gradient(180deg, rgba(224, 242, 254, 0.96), rgba(241, 245, 249, 0.96)) !important;
 }
 
 :root[data-theme-resolved="light"] .templates-empty-kicker,
