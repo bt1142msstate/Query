@@ -2,7 +2,7 @@ import { BackendApi } from '../../core/backendApi.js';
 import { onDOMReady } from '../../core/domReady.js';
 import { showToastMessage } from '../../core/toast.js';
 import { VisibilityUtils } from '../../core/visibility.js';
-import { templateBlocksSVG } from '../../core/icons.js';
+import { templateDocumentSVG } from '../../core/icons.js';
 import { buildQueryUiConfig } from '../filters/queryPayload.js';
 import { appServices, registerQueryTemplatesService } from '../../core/appServices.js';
 import {
@@ -46,7 +46,7 @@ import { getQueryTemplateElements } from './view/queryTemplateElements.js';
 import { escapeHtml } from '../../core/formatting/html.js';
 (function initializeQueryTemplates() {
   const NEW_TEMPLATE_ID = '__new_template__';
-  const DEFAULT_TEMPLATE_SVG = templateBlocksSVG('template-default-icon template-blocks-icon');
+  const DEFAULT_TEMPLATE_SVG = templateDocumentSVG('template-default-icon template-document-icon');
   const state = {
     templates: [],
     categories: [],
@@ -166,8 +166,16 @@ import { escapeHtml } from '../../core/formatting/html.js';
     syncDraftCategoriesFromInputs();
   }
 
+  function isLegacyTemplateBlockSvg(svgMarkup) {
+    return /\btemplate-block(?:s-icon|-top|-middle|-bottom)?\b/u.test(String(svgMarkup || ''));
+  }
+
   function getTemplateSvgMarkup(template) {
-    return sanitizeSvgMarkup(template?.svg) || DEFAULT_TEMPLATE_SVG;
+    const svgMarkup = sanitizeSvgMarkup(template?.svg);
+    if (!svgMarkup || isLegacyTemplateBlockSvg(svgMarkup)) {
+      return DEFAULT_TEMPLATE_SVG;
+    }
+    return svgMarkup;
   }
 
   function getVisibleTemplates() {
@@ -675,7 +683,8 @@ import { escapeHtml } from '../../core/formatting/html.js';
       onReorderPinnedTemplates: reorderPinnedTemplates,
       onDraggedPinnedIdChange(nextId) {
         state.draggedPinnedId = nextId;
-      }
+      },
+      getTemplateSvgMarkup
     });
   }
 

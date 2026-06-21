@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { templateBlocksSVG, trashSVG } from '../../../src/core/icons.js';
+import { templateBlocksSVG, templateDocumentSVG, trashSVG } from '../../../src/core/icons.js';
 
 test('trash icon exposes the destructive flame animation contract', () => {
   const icon = trashSVG(14, 14);
@@ -19,6 +19,17 @@ test('template icon exposes the block animation contract', () => {
   assert.match(icon, /template-block-top/u);
   assert.match(icon, /template-block-middle/u);
   assert.match(icon, /template-block-bottom/u);
+  assert.match(icon, /viewBox="0 0 64 64"/u);
+  assert.match(icon, /aria-hidden="true"/u);
+});
+
+test('template document icon exposes the neutral overlay contract', () => {
+  const icon = templateDocumentSVG('test-template-document-icon');
+
+  assert.match(icon, /class="test-template-document-icon"/u);
+  assert.match(icon, /template-document-page/u);
+  assert.match(icon, /template-document-fold/u);
+  assert.match(icon, /template-document-line/u);
   assert.match(icon, /viewBox="0 0 64 64"/u);
   assert.match(icon, /aria-hidden="true"/u);
 });
