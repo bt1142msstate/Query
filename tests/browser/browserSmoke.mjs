@@ -4,11 +4,11 @@ import { chromium } from 'playwright';
 
 import {
   QUERY_API_PATTERN,
+  arrangeSidePanelLocatorToLocator,
   attachFailureListeners,
   buildJsonlResultStream,
   cleanupMobilePageScroll,
   closeServer,
-  dragTouchLocatorToLocator,
   exerciseMobileToastQueue,
   expectControlsNonSelectable,
   expectDarkInput,
@@ -1655,11 +1655,11 @@ async function runSmokeTest() {
       throw new Error(`Display & Filters should not expose separate dot drag handles: found ${reorderHandleCount}`);
     }
 
-    await dragTouchLocatorToLocator(
+    await arrangeSidePanelLocatorToLocator(
       mobilePage,
       mobilePage.locator('.fp-display-item', { hasText: 'Smoke Title' }),
       mobilePage.locator('.fp-display-item', { hasText: 'Smoke Status' }),
-      { expectDropAnchor: true, expectPreview: true, targetVerticalRatio: 0.85 }
+      { targetVerticalRatio: 0.85 }
     );
     await mobilePage.waitForFunction(async () => {
       const { QueryStateReaders } = await import('./src/core/queryState.js');
@@ -1681,11 +1681,11 @@ async function runSmokeTest() {
     await primeMobilePageScroll(mobilePage);
     await mobilePage.locator('[data-mobile-table-action="fields-panel"]').click();
     await mobilePage.waitForFunction(() => document.body.classList.contains('mobile-filter-panel-open'), null, { timeout: 5000 });
-    await dragTouchLocatorToLocator(
+    await arrangeSidePanelLocatorToLocator(
       mobilePage,
       mobilePage.locator('.fp-field-group', { hasText: 'Smoke Title' }),
       mobilePage.locator('.fp-field-group', { hasText: 'Smoke Status' }),
-      { expectDropAnchor: true, expectPreview: true, targetVerticalRatio: 0.85 }
+      { targetVerticalRatio: 0.85 }
     );
     await mobilePage.waitForFunction(async () => {
       const { QueryStateReaders } = await import('./src/core/queryState.js');

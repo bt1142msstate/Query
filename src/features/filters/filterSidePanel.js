@@ -18,22 +18,12 @@ import { OperatorLabels } from '../../core/formatting/operatorLabels.js';
 import { Icons } from '../../core/icons.js';
 import { SharedFieldPicker } from '../../ui/field-picker/fieldPicker.js';
 import { fieldDefs } from './fieldDefs.js';
-import { attachPointerReorder } from './panelReorder.js';
+import { beginPanelArrangeMode, clearPanelArrangeMode, isPanelArrangeModeActive } from './panelArrange.js';
 import { createFilterSidePanelReorderActions } from './filterSidePanelReorderActions.js';
 import { QueryTableView } from '../../ui/queryTableView.js';
 import { DOM } from '../../core/domCache.js';
 
 const FilterSidePanel = (function () {
-    const FILTER_GROUP_REORDER_INTERACTIVE_SELECTOR = [
-        'a',
-        'button',
-        'input',
-        'select',
-        'textarea',
-        '[contenteditable="true"]',
-        '.fp-cond-actions',
-        '.fp-add-cond-btn'
-    ].join(', ');
     const services = appServices;
     const uiActions = appUiActions;
     let currentViewMode = 'both';
@@ -173,6 +163,7 @@ const FilterSidePanel = (function () {
 
     function hideFully() {
         const panel = DOM.filterSidePanel;
+        clearPanelArrangeMode();
         if (panel) {
             cleanupPopupControls(DOM.filterPanelBody);
             panel.classList.remove('panel-open');
@@ -309,6 +300,10 @@ const FilterSidePanel = (function () {
         return button;
     }
 
+    function getArrangeIconSvg() {
+        return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true"><path d="m8 7 4-4 4 4"/><path d="M12 3v18"/><path d="m8 17 4 4 4-4"/></svg>';
+    }
+
     const reorderActions = createFilterSidePanelReorderActions({
         DOM,
         QueryChangeManager,
@@ -402,14 +397,6 @@ const FilterSidePanel = (function () {
             item.className = 'fp-display-item';
             item.dataset.index = String(index);
             item.draggable = false;
-            attachPointerReorder({
-                element: item,
-                container: list,
-                itemSelector: '.fp-display-item',
-                onMove: (targetItem, insertAfter) => {
-                    reorderActions.moveDisplayedFieldRelativeToTarget(item, targetItem, insertAfter);
-                }
-            });
 
             const rank = document.createElement('span');
             rank.className = 'fp-display-rank';
@@ -421,6 +408,23 @@ const FilterSidePanel = (function () {
 
             const controls = document.createElement('div');
             controls.className = 'fp-display-actions';
+
+            const arrangeButton = createIconButton(
+                'fp-display-btn fp-arrange-btn fp-display-arrange-btn',
+                `Arrange ${field}`,
+                getArrangeIconSvg(),
+                () => beginPanelArrangeMode({
+                    source: item,
+                    container: list,
+                    label: field,
+                    getItems: () => Array.from(list.querySelectorAll('.fp-display-item')),
+                    commit: (targetItem, insertAfter) => reorderActions.moveDisplayedFieldRelativeToTarget(item, targetItem, insertAfter)
+                })
+            );
+            if (fields.length <= 1) {
+                arrangeButton.setAttribute('disabled', 'true');
+            }
+            controls.appendChild(arrangeButton);
 
             controls.appendChild(createIconButton(
                 'fp-display-btn fp-display-btn-up',
@@ -473,24 +477,11 @@ const FilterSidePanel = (function () {
         return wrapper;
     }
 
-    function attachFilterGroupDragHandlers(group, field, container) {
-        attachPointerReorder({
-            element: group,
-            container,
-            itemSelector: '.fp-field-group',
-            interactiveSelector: FILTER_GROUP_REORDER_INTERACTIVE_SELECTOR,
-            onMove: (targetGroup, insertAfter) => {
-                reorderActions.moveFilterGroupRelativeToTarget(field, targetGroup?.dataset?.field || '', insertAfter);
-            }
-        });
-    }
-
     function createFilterGroup(field, data, container, options = {}) {
         const fieldDef = fieldDefs ? fieldDefs.get(field) : null;
         const group = document.createElement('div');
         group.className = 'fp-field-group';
         group.dataset.field = field;
-        attachFilterGroupDragHandlers(group, field, container);
 
         const fieldHeader = document.createElement('div');
         fieldHeader.className = 'fp-field-header';
@@ -502,6 +493,18 @@ const FilterSidePanel = (function () {
         const headerActions = document.createElement('div');
         headerActions.className = 'fp-field-header-actions';
 
+        const arrangeButton = createIconButton(
+            'fp-display-btn fp-arrange-btn fp-filter-arrange-btn',
+            `Arrange ${field} filter`,
+            getArrangeIconSvg(),
+            () => beginPanelArrangeMode({
+                source: group,
+                container,
+                label: `${field} filter`,
+                getItems: () => Array.from(container.querySelectorAll('.fp-field-group')),
+                commit: (targetGroup, insertAfter) => reorderActions.moveFilterGroupRelativeToTarget(field, targetGroup?.dataset?.field || '', insertAfter)
+            })
+        );
         const moveUpButton = createIconButton(
             'fp-display-btn fp-filter-order-btn fp-filter-order-btn-up',
             `Move ${field} filter up`,
@@ -521,7 +524,11 @@ const FilterSidePanel = (function () {
         if (options.index === options.total - 1) {
             moveDownButton.setAttribute('disabled', 'true');
         }
+        if (options.total <= 1) {
+            arrangeButton.setAttribute('disabled', 'true');
+        }
 
+        headerActions.appendChild(arrangeButton);
         headerActions.appendChild(moveUpButton);
         headerActions.appendChild(moveDownButton);
 
@@ -647,6 +654,9 @@ const FilterSidePanel = (function () {
     function update() {
         const body = DOM.filterPanelBody;
         if (!body) return;
+        if (isPanelArrangeModeActive()) {
+            return;
+        }
         const previousScrollTop = body.scrollTop;
 
         ensureQueryStateSubscription();

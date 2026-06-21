@@ -1489,32 +1489,6 @@ async function longPressLocatorWithDomTouchEvents(locator, holdMs = 650) {
   }, holdMs);
 }
 
-async function dragTouchLocatorToLocator(page, sourceLocator, targetLocator, options = {}) {
-  await sourceLocator.waitFor({ state: 'visible', timeout: 5000 });
-  await targetLocator.waitFor({ state: 'visible', timeout: 5000 });
-
-  const sourceBox = await sourceLocator.boundingBox();
-  const targetBox = await targetLocator.boundingBox();
-  if (!sourceBox || !targetBox) {
-    throw new Error(`Unable to measure touch drag targets: ${JSON.stringify({ sourceBox, targetBox })}`);
-  }
-
-  const startX = Math.round(sourceBox.x + sourceBox.width * (options.sourceHorizontalRatio ?? 0.5));
-  const startY = Math.round(sourceBox.y + sourceBox.height * (options.sourceVerticalRatio ?? 0.5));
-  const targetX = Math.round(targetBox.x + targetBox.width * (options.targetHorizontalRatio ?? 0.5));
-  const targetY = Math.round(targetBox.y + targetBox.height * (options.targetVerticalRatio ?? 0.75));
-
-  await dragTouchLocator(page, sourceLocator, {
-    deltaX: targetX - startX,
-    deltaY: targetY - startY,
-    expectPreview: options.expectPreview === true,
-    holdMs: options.holdMs ?? 180,
-    horizontalRatio: options.sourceHorizontalRatio ?? 0.5,
-    steps: options.steps ?? 10,
-    verticalRatio: options.sourceVerticalRatio ?? 0.5
-  });
-}
-
 async function exerciseMobileToastQueue(page) {
   await page.evaluate(async () => {
     const { toast } = await import('./src/core/toast.js');
@@ -2156,15 +2130,100 @@ async function seedWideDragResults(page) {
   }, null, { timeout: 5000 });
 }
 
+async function arrangeSidePanelLocatorToLocator(page, sourceLocator, targetLocator, options = {}) {
+  const {
+    sourceButtonSelector = '.fp-arrange-btn',
+    targetVerticalRatio = 0.85
+  } = options;
+
+  async function scrollLocatorIntoView(locator, label) {
+    let lastError = null;
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      try {
+        await locator.waitFor({ state: 'visible', timeout: 5000 });
+        await locator.evaluate(element => element.scrollIntoView({ block: 'center', inline: 'nearest' }));
+        await page.waitForTimeout(25);
+        return;
+      } catch (error) {
+        lastError = error;
+        if (!/not attached|detached|Target closed/iu.test(error?.message || '')) {
+          throw error;
+        }
+        await page.waitForTimeout(50);
+      }
+    }
+    throw new Error(`Unable to keep side-panel ${label} attached while starting arrange mode: ${lastError?.message || 'unknown error'}`);
+  }
+
+  await scrollLocatorIntoView(targetLocator, 'target');
+  await scrollLocatorIntoView(sourceLocator, 'source');
+  const arrangeButton = sourceLocator.locator(sourceButtonSelector);
+  const arrangeButtonCount = await arrangeButton.count();
+  if (arrangeButtonCount !== 1) {
+    throw new Error(`Expected one side-panel arrange button, found ${arrangeButtonCount}`);
+  }
+
+  await arrangeButton.click();
+  await page.waitForFunction(() => document.body.classList.contains('fp-arrange-mode-active'), null, { timeout: 5000 });
+  const arrangeStarted = await page.evaluate(() => ({
+    sourceActive: Boolean(document.querySelector('.fp-arrange-source')),
+    targetCount: document.querySelectorAll('.fp-arrange-target').length
+  }));
+  if (!arrangeStarted.sourceActive || arrangeStarted.targetCount < 1) {
+    throw new Error(`Side-panel arrange mode did not expose source and targets: ${JSON.stringify(arrangeStarted)}`);
+  }
+
+  await targetLocator.evaluate((target, ratio) => {
+    const rect = target.getBoundingClientRect();
+    const eventInit = {
+      bubbles: true,
+      cancelable: true,
+      clientX: rect.left + rect.width / 2,
+      clientY: rect.top + rect.height * ratio,
+      pointerType: 'mouse'
+    };
+    const PointerCtor = typeof PointerEvent === 'function' ? PointerEvent : MouseEvent;
+    target.dispatchEvent(new PointerCtor('pointerenter', eventInit));
+    target.dispatchEvent(new PointerCtor('pointermove', eventInit));
+    target.dispatchEvent(new MouseEvent('click', eventInit));
+  }, targetVerticalRatio);
+
+  const dropButton = page.locator('.fp-arrange-drop-button');
+  try {
+    await dropButton.waitFor({ state: 'visible', timeout: 5000 });
+  } catch (error) {
+    const debugState = await targetLocator.evaluate(target => ({
+      activeMode: document.body.classList.contains('fp-arrange-mode-active'),
+      buttonCount: document.querySelectorAll('.fp-arrange-drop-button').length,
+      sourceText: document.querySelector('.fp-arrange-source')?.textContent?.replace(/\s+/gu, ' ').trim() || '',
+      targetClass: target.className,
+      targetText: target.textContent?.replace(/\s+/gu, ' ').trim() || '',
+      targets: Array.from(document.querySelectorAll('.fp-arrange-target')).map(item => item.textContent?.replace(/\s+/gu, ' ').trim()).slice(0, 8)
+    }));
+    throw new Error(`Side-panel arrange drop button did not appear: ${JSON.stringify(debugState)} (${error.message})`);
+  }
+  const dropState = await targetLocator.evaluate(target => ({
+    activeTarget: target.classList.contains('fp-arrange-active-target'),
+    placement: document.querySelector('.fp-arrange-drop-button')?.dataset?.arrangePlacement || ''
+  }));
+  if (!dropState.activeTarget || !dropState.placement) {
+    throw new Error(`Side-panel arrange target did not show a clear drop action: ${JSON.stringify(dropState)}`);
+  }
+
+  await dropButton.click();
+  await page.waitForFunction(() => !document.body.classList.contains('fp-arrange-mode-active'), null, { timeout: 5000 });
+  await page.locator('.fp-arrange-drop-button').waitFor({ state: 'detached', timeout: 5000 });
+}
+
 export {
   QUERY_API_PATTERN,
+  arrangeSidePanelLocatorToLocator,
   attachFailureListeners,
   buildJsonlResultStream,
   cleanupMobilePageScroll,
   closeMobileTableContextMenu,
   closeServer,
   dragTouchLocator,
-  dragTouchLocatorToLocator,
   encodeFormSpecForUrl,
   exerciseMobileToastQueue,
   expectControlsNonSelectable,
