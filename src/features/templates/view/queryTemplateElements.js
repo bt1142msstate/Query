@@ -12,6 +12,8 @@ function getQueryTemplateElements(documentRef = document) {
     newBtn: el('templates-new-btn'),
     refreshBtn: el('templates-refresh-btn'),
     manageCategoriesBtn: el('templates-manage-categories-btn'),
+    manageCategoriesFooterBtn: el('templates-manage-categories-footer-btn'),
+    updatedStatus: el('templates-updated-status'),
     emptyState: el('templates-empty-state'),
     detailOverlay: el('templates-detail-overlay'),
     detailBackdrop: el('templates-detail-backdrop'),

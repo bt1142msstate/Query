@@ -1724,6 +1724,27 @@
   color: #be123c !important;
 }
 
+:root[data-theme-resolved="light"] .templates-lego-overlay .templates-list-more-btn,
+:root[data-theme-resolved="light"] .templates-lego-overlay .templates-list-row:not(.is-pinned) .templates-list-pin-btn {
+  border-color: rgba(148, 163, 184, 0.32) !important;
+  background:
+    radial-gradient(circle at 1.1rem 0.55rem, rgba(14, 165, 233, 0.18) 0 0.13rem, transparent 0.16rem) 0 0 / 1.7rem 1.05rem,
+    linear-gradient(180deg, #ffffff, #e2e8f0) !important;
+  color: #0f172a !important;
+  box-shadow:
+    inset 0 0.35rem 0.7rem rgba(255, 255, 255, 0.62),
+    inset 0 -0.35rem 0.7rem rgba(15, 23, 42, 0.06),
+    0 10px 20px rgba(15, 23, 42, 0.08) !important;
+}
+
+:root[data-theme-resolved="light"] .templates-lego-overlay .templates-list-row.is-pinned .templates-list-pin-btn {
+  border-color: rgba(219, 39, 119, 0.28) !important;
+  background:
+    radial-gradient(circle at 1.1rem 0.55rem, rgba(255, 255, 255, 0.5) 0 0.13rem, transparent 0.16rem) 0 0 / 1.7rem 1.05rem,
+    linear-gradient(180deg, #fdf2f8, #fbcfe8) !important;
+  color: #9d174d !important;
+}
+
 :root[data-theme-resolved="light"] .api-settings-url-value {
   border-color: rgba(148, 163, 184, 0.24);
   background: #f8fafc;
@@ -1780,6 +1801,47 @@
 :root[data-theme-resolved="light"] .api-compatibility-row[data-status="missing"] .api-compatibility-badge,
 :root[data-theme-resolved="light"] .api-compatibility-row[data-status="failed"] .api-compatibility-badge {
   background: rgba(254, 226, 226, 0.96);
+}
+
+:root[data-theme-resolved="light"] .templates-workbench-footer,
+:root[data-theme-resolved="light"] .templates-updated-status {
+  border-color: rgba(14, 165, 233, 0.18) !important;
+  background:
+    radial-gradient(circle at 1rem 1rem, rgba(14, 165, 233, 0.1) 0 0.18rem, rgba(148, 163, 184, 0.16) 0.2rem, transparent 0.28rem) 0 0 / 2.75rem 2.75rem,
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 250, 252, 0.96)) !important;
+  color: #0f172a !important;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08) !important;
+}
+
+:root[data-theme-resolved="light"] .templates-lego-overlay .templates-footer-action {
+  border-color: rgba(14, 165, 233, 0.28) !important;
+  background: linear-gradient(180deg, #ffffff, #e0f2fe) !important;
+  color: #0f172a !important;
+}
+
+:root[data-theme-resolved="light"] .templates-lego-overlay .templates-list-item__meta {
+  color: #64748b !important;
+}
+
+:root[data-theme-resolved="light"] #templates-panel.templates-lego-overlay .templates-categories-dialog,
+:root[data-theme-resolved="light"] #templates-panel.templates-lego-overlay .templates-category-form {
+  border-color: rgba(148, 163, 184, 0.26) !important;
+  background-color: #ffffff !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 250, 252, 0.96)) !important;
+  color: #0f172a !important;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.1) !important;
+}
+
+:root[data-theme-resolved="light"] #templates-panel.templates-lego-overlay .templates-categories-dialog,
+:root[data-theme-resolved="light"] #templates-panel.templates-lego-overlay .templates-category-form,
+:root[data-theme-resolved="light"] #templates-panel.templates-lego-overlay .templates-category-form label {
+  background-color: #ffffff !important;
+}
+
+:root[data-theme-resolved="light"] #templates-panel.templates-lego-overlay .templates-category-form .templates-field span,
+:root[data-theme-resolved="light"] #templates-panel.templates-lego-overlay .templates-category-form span {
+  color: #334155 !important;
 }
 
 @media (max-width: 1180px) {

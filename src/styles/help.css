@@ -23,6 +23,10 @@
   display: none;
 }
 
+body.modal-panel-open .modal-panel:not(.hidden) {
+  z-index: calc(var(--z-filter-card) + 2);
+}
+
 .modal-panel > div:not(:first-child),
 .modal-panel > textarea {
   flex: 1;
