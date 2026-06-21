@@ -755,6 +755,54 @@ body.raised-ui-open #table-shell.table-shell-expanded {
   text-overflow: ellipsis;
 }
 
+.header-arrange-status {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  max-width: min(24rem, calc(100vw - 46rem));
+  min-height: 2rem;
+  padding: 0.42rem 0.78rem;
+  color: rgba(236, 253, 245, 0.98);
+  background:
+    linear-gradient(135deg, rgba(15, 118, 110, 0.86), rgba(8, 47, 73, 0.78)),
+    rgba(15, 23, 42, 0.74);
+  border: 1px solid rgba(153, 246, 228, 0.34);
+  border-radius: 999px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  pointer-events: none;
+  text-align: center;
+  text-overflow: ellipsis;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  overflow: hidden;
+  backdrop-filter: blur(16px) saturate(1.12);
+  -webkit-backdrop-filter: blur(16px) saturate(1.12);
+}
+
+.header-arrange-status::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 0.48rem;
+  height: 0.48rem;
+  border-radius: 999px;
+  background: #5eead4;
+  box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.18), 0 0 18px rgba(94, 234, 212, 0.62);
+}
+
+.header-arrange-status.hidden,
+.header-arrange-status[hidden] {
+  display: none;
+}
+
 #header-bar.header-hide {
   opacity: 0;
   visibility: hidden;
@@ -891,6 +939,13 @@ body.raised-ui-open #table-shell.table-shell-expanded {
   #header-overlay-title {
     font-size: 0.68rem;
     letter-spacing: 0.12em;
+  }
+
+  .header-arrange-status {
+    max-width: calc(100vw - 6rem);
+    min-height: 1.9rem;
+    padding: 0.38rem 0.68rem;
+    font-size: 0.72rem;
   }
 
   #header-controls {
@@ -1156,6 +1211,10 @@ body.raised-ui-open #table-shell.table-shell-expanded {
   #header-overlay-title {
     left: 0.75rem;
     max-width: calc(100vw - 5rem);
+  }
+
+  .header-arrange-status {
+    max-width: calc(100vw - 5.25rem);
   }
 
   #mobile-menu-dropdown {

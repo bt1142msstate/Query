@@ -959,6 +959,8 @@
   padding: 12px;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  scrollbar-color: rgba(100, 116, 139, 0.78) transparent;
+  scrollbar-width: auto;
   min-width: 292px;
   display: flex;
   flex-direction: column;
@@ -966,7 +968,7 @@
 }
 
 #filter-panel-body::-webkit-scrollbar {
-  width: 4px;
+  width: 12px;
 }
 
 #filter-panel-body::-webkit-scrollbar-track {
@@ -974,8 +976,16 @@
 }
 
 #filter-panel-body::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.5);
-  border-radius: 2px;
+  min-height: 48px;
+  background: rgba(100, 116, 139, 0.74);
+  background-clip: content-box;
+  border: 3px solid transparent;
+  border-radius: 999px;
+}
+
+#filter-panel-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 118, 110, 0.86);
+  background-clip: content-box;
 }
 
 /* Field group card */

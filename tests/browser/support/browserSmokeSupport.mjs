@@ -2106,7 +2106,24 @@ async function seedWideDragResults(page) {
     const { QueryChangeManager } = await import('./src/core/queryState.js');
     const { QueryTableView } = await import('./src/ui/queryTableView.js');
     const { QueryUI } = await import('./src/ui/queryUI.js');
-    const headers = Array.from({ length: 16 }, (_, index) => `Drag Column ${index + 1}`);
+    const headers = [
+      'Wide Smoke Title',
+      'Wide Smoke Author',
+      'Wide Smoke Branch',
+      'Wide Smoke Status',
+      'Wide Smoke Barcode',
+      'Wide Smoke Call Number',
+      'Wide Smoke Item Type',
+      'Wide Smoke Collection',
+      'Wide Smoke Location',
+      'Wide Smoke Created Date',
+      'Wide Smoke Updated Date',
+      'Wide Smoke Checkout Count',
+      'Wide Smoke Public Note',
+      'Wide Smoke Staff Note',
+      'Wide Smoke Home Library',
+      'Wide Smoke Current Library'
+    ];
     const rows = Array.from({ length: 8 }, (_, rowIndex) => (
       headers.map((field, columnIndex) => `${field} value ${rowIndex + 1}-${columnIndex + 1}`)
     ));
@@ -2162,14 +2179,26 @@ async function arrangeSidePanelLocatorToLocator(page, sourceLocator, targetLocat
   if (arrangeButtonCount !== 1) {
     throw new Error(`Expected one side-panel arrange button, found ${arrangeButtonCount}`);
   }
+  const expectedArrangeLabel = await sourceLocator.evaluate(source => (
+    source.querySelector('.fp-display-name, .fp-field-name')?.textContent?.replace(/\s+/gu, ' ').trim()
+    || source.textContent?.replace(/\s+/gu, ' ').trim()
+    || ''
+  ));
 
   await arrangeButton.click();
   await page.waitForFunction(() => document.body.classList.contains('fp-arrange-mode-active'), null, { timeout: 5000 });
   const arrangeStarted = await page.evaluate(() => ({
+    headerStatusText: document.querySelector('#header-arrange-status')?.textContent?.replace(/\s+/gu, ' ').trim() || '',
+    headerStatusVisible: !document.querySelector('#header-arrange-status')?.classList.contains('hidden'),
     sourceActive: Boolean(document.querySelector('.fp-arrange-source')),
     targetCount: document.querySelectorAll('.fp-arrange-target').length
   }));
-  if (!arrangeStarted.sourceActive || arrangeStarted.targetCount < 1) {
+  if (
+    !arrangeStarted.sourceActive
+    || arrangeStarted.targetCount < 1
+    || !arrangeStarted.headerStatusVisible
+    || !arrangeStarted.headerStatusText.includes(expectedArrangeLabel)
+  ) {
     throw new Error(`Side-panel arrange mode did not expose source and targets: ${JSON.stringify(arrangeStarted)}`);
   }
 
@@ -2213,6 +2242,71 @@ async function arrangeSidePanelLocatorToLocator(page, sourceLocator, targetLocat
   await dropButton.click();
   await page.waitForFunction(() => !document.body.classList.contains('fp-arrange-mode-active'), null, { timeout: 5000 });
   await page.locator('.fp-arrange-drop-button').waitFor({ state: 'detached', timeout: 5000 });
+  await page.waitForFunction(() => document.querySelector('#header-arrange-status')?.classList.contains('hidden'), null, { timeout: 5000 });
+}
+
+async function expectSidePanelArrangeAutoScroll(page, sourceLocator) {
+  const panelBody = page.locator('#filter-panel-body');
+  await panelBody.waitFor({ state: 'visible', timeout: 5000 });
+  await sourceLocator.waitFor({ state: 'visible', timeout: 5000 });
+  await page.evaluate(() => {
+    const body = document.querySelector('#filter-panel-body');
+    if (!body) return;
+    body.querySelector('[data-browser-smoke-arrange-filler]')?.remove();
+    const filler = document.createElement('div');
+    filler.dataset.browserSmokeArrangeFiller = 'true';
+    filler.style.flex = '0 0 880px';
+    filler.style.height = '880px';
+    filler.style.pointerEvents = 'none';
+    body.appendChild(filler);
+    body.scrollTop = 0;
+  });
+
+  try {
+    await sourceLocator.evaluate(element => element.scrollIntoView({ block: 'center', inline: 'nearest' }));
+    const arrangeButton = sourceLocator.locator('.fp-arrange-btn');
+    if (await arrangeButton.count() !== 1) {
+      throw new Error('Expected one side-panel arrange button for auto-scroll smoke check');
+    }
+    await arrangeButton.click();
+    await page.waitForFunction(() => document.body.classList.contains('fp-arrange-mode-active'), null, { timeout: 5000 });
+    const bodyBox = await panelBody.boundingBox();
+    if (!bodyBox) {
+      throw new Error('Unable to measure side-panel body for arrange auto-scroll smoke check');
+    }
+
+    const beforeScrollTop = await panelBody.evaluate(body => body.scrollTop);
+    await page.mouse.move(
+      Math.round(bodyBox.x + bodyBox.width / 2),
+      Math.round(bodyBox.y + bodyBox.height - 8)
+    );
+    await page.waitForFunction(
+      before => (document.querySelector('#filter-panel-body')?.scrollTop || 0) > before + 24,
+      beforeScrollTop,
+      { timeout: 5000 }
+    );
+    const autoScrollState = await page.evaluate(() => {
+      const status = document.querySelector('#header-arrange-status');
+      const body = document.querySelector('#filter-panel-body');
+      return {
+        headerStatusText: status?.textContent?.replace(/\s+/gu, ' ').trim() || '',
+        headerStatusVisible: Boolean(status && !status.classList.contains('hidden')),
+        scrollTop: body?.scrollTop || 0
+      };
+    });
+    if (!autoScrollState.headerStatusVisible || autoScrollState.scrollTop <= beforeScrollTop + 24) {
+      throw new Error(`Side-panel arrange mode should auto-scroll near panel edges: ${JSON.stringify(autoScrollState)}`);
+    }
+  } finally {
+    await page.keyboard.press('Escape').catch(() => {});
+    await page.waitForFunction(() => !document.body.classList.contains('fp-arrange-mode-active'), null, { timeout: 5000 }).catch(() => {});
+    await page.evaluate(() => {
+      const body = document.querySelector('#filter-panel-body');
+      if (!body) return;
+      body.querySelector('[data-browser-smoke-arrange-filler]')?.remove();
+      body.scrollTop = 0;
+    });
+  }
 }
 
 export {
@@ -2247,6 +2341,7 @@ export {
   expectOverlayConsumesScroll,
   expectOverlayTouchPanScroll,
   expectResponsiveShellMode,
+  expectSidePanelArrangeAutoScroll,
   expectSplitTogglePreviewAnimation,
   expectSplitTogglePreferenceWithoutEligibleResults,
   expectStartupStatusVisible,

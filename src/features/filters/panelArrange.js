@@ -1,3 +1,5 @@
+import { clearHeaderArrangeStatus, showHeaderArrangeStatus } from '../../ui/headerArrangeStatus.js';
+
 const ARRANGE_BODY_CLASS = 'fp-arrange-mode-active';
 const ARRANGE_SOURCE_CLASS = 'fp-arrange-source';
 const ARRANGE_TARGET_CLASS = 'fp-arrange-target';
@@ -12,6 +14,10 @@ const ARRANGE_INTERACTIVE_SELECTOR = [
   '[contenteditable="true"]',
   '[role="button"]'
 ].join(', ');
+const ARRANGE_AUTO_SCROLL_EDGE_PX = 76;
+const ARRANGE_AUTO_SCROLL_DELAY_MS = 160;
+const ARRANGE_AUTO_SCROLL_MIN_STEP = 3;
+const ARRANGE_AUTO_SCROLL_MAX_STEP = 18;
 
 let activeArrangeState = null;
 let arrangeRenderFrame = 0;
@@ -67,6 +73,15 @@ function getArrowSvg(insertAfter) {
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="18" height="18" aria-hidden="true"><path d="${path}"/></svg>`;
 }
 
+function getArrangeItemLabel(element, fallback = '') {
+  return String(
+    element?.querySelector?.('.fp-display-name, .fp-field-name')?.textContent
+    || fallback
+    || element?.textContent
+    || ''
+  ).replace(/\s+/gu, ' ').trim();
+}
+
 function removeArrangeDropButtons(documentRef = globalThis.document) {
   documentRef?.querySelectorAll?.(`.${ARRANGE_DROP_BUTTON_CLASS}`)?.forEach(button => button.remove());
 }
@@ -93,6 +108,122 @@ function clearTargetBindings(state = activeArrangeState) {
   if (state) {
     state.targetController = null;
   }
+}
+
+function getArrangeScrollContainer(state) {
+  const explicitContainer = state?.scrollContainer;
+  if (explicitContainer instanceof HTMLElement) {
+    return explicitContainer;
+  }
+
+  const container = state?.container;
+  if (!(container instanceof HTMLElement)) {
+    return null;
+  }
+
+  return container.closest('#filter-panel-body') || container;
+}
+
+function stopArrangeAutoScroll(state = activeArrangeState) {
+  if (state?.autoScrollPendingTimerId) {
+    const windowRef = state.document?.defaultView || globalThis.window;
+    windowRef.clearTimeout(state.autoScrollPendingTimerId);
+    state.autoScrollPendingTimerId = 0;
+  }
+  if (state?.autoScrollTimerId) {
+    const windowRef = state.document?.defaultView || globalThis.window;
+    windowRef.clearInterval(state.autoScrollTimerId);
+    state.autoScrollTimerId = 0;
+  }
+  if (state) {
+    state.autoScrollStep = 0;
+  }
+}
+
+function getArrangeAutoScrollStep(state, event) {
+  if (!Number.isFinite(event?.clientY) || state?.locked) {
+    return 0;
+  }
+
+  const scrollContainer = getArrangeScrollContainer(state);
+  if (!scrollContainer || scrollContainer.scrollHeight <= scrollContainer.clientHeight + 1) {
+    return 0;
+  }
+
+  const rect = scrollContainer.getBoundingClientRect();
+  const edgeSize = Math.max(36, Math.min(ARRANGE_AUTO_SCROLL_EDGE_PX, rect.height / 3));
+  const topDistance = event.clientY - rect.top;
+  const bottomDistance = rect.bottom - event.clientY;
+  const maxScrollTop = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+  let direction = 0;
+  let intensity = 0;
+
+  if (topDistance < edgeSize && scrollContainer.scrollTop > 0) {
+    direction = -1;
+    intensity = (edgeSize - Math.max(0, topDistance)) / edgeSize;
+  } else if (bottomDistance < edgeSize && scrollContainer.scrollTop < maxScrollTop) {
+    direction = 1;
+    intensity = (edgeSize - Math.max(0, bottomDistance)) / edgeSize;
+  }
+
+  if (!direction || intensity <= 0) {
+    return 0;
+  }
+
+  const step = ARRANGE_AUTO_SCROLL_MIN_STEP
+    + Math.round((ARRANGE_AUTO_SCROLL_MAX_STEP - ARRANGE_AUTO_SCROLL_MIN_STEP) * Math.min(1, intensity));
+  return direction * step;
+}
+
+function startArrangeAutoScroll(state, step) {
+  if (!state || !step) {
+    stopArrangeAutoScroll(state);
+    return;
+  }
+
+  state.autoScrollStep = step;
+  if (state.autoScrollTimerId || state.autoScrollPendingTimerId) {
+    return;
+  }
+
+  const windowRef = state.document?.defaultView || globalThis.window;
+  state.autoScrollPendingTimerId = windowRef.setTimeout(() => {
+    state.autoScrollPendingTimerId = 0;
+    if (!state.autoScrollStep || state.locked) {
+      return;
+    }
+    state.autoScrollTimerId = windowRef.setInterval(() => {
+      const scrollContainer = getArrangeScrollContainer(state);
+      if (!scrollContainer || !state.autoScrollStep || state.locked) {
+        stopArrangeAutoScroll(state);
+        return;
+      }
+
+      const maxScrollTop = Math.max(0, scrollContainer.scrollHeight - scrollContainer.clientHeight);
+      const nextScrollTop = Math.max(0, Math.min(maxScrollTop, scrollContainer.scrollTop + state.autoScrollStep));
+      if (nextScrollTop === scrollContainer.scrollTop) {
+        stopArrangeAutoScroll(state);
+        return;
+      }
+
+      scrollContainer.scrollTop = nextScrollTop;
+      queueArrangeTargetRender();
+    }, 16);
+  }, ARRANGE_AUTO_SCROLL_DELAY_MS);
+}
+
+function updateArrangeAutoScroll(event) {
+  const state = activeArrangeState;
+  const step = getArrangeAutoScrollStep(state, event);
+  if (!step) {
+    stopArrangeAutoScroll(state);
+    return;
+  }
+  startArrangeAutoScroll(state, step);
+}
+
+function handleArrangePointerMove(event) {
+  updateArrangeAutoScroll(event);
 }
 
 function scheduleButtonHide(state, event = null) {
@@ -281,6 +412,7 @@ function clearPanelArrangeMode() {
     arrangeRenderFrame = 0;
   }
   clearTargetBindings(state);
+  stopArrangeAutoScroll(state);
   clearActiveTarget(state);
   state?.container?.querySelectorAll?.(`.${ARRANGE_SOURCE_CLASS}, .${ARRANGE_TARGET_CLASS}, .${ARRANGE_ACTIVE_TARGET_CLASS}`)?.forEach(item => {
     item.classList.remove(ARRANGE_SOURCE_CLASS, ARRANGE_TARGET_CLASS, ARRANGE_ACTIVE_TARGET_CLASS);
@@ -288,9 +420,11 @@ function clearPanelArrangeMode() {
   });
   state?.document?.body?.classList?.remove(ARRANGE_BODY_CLASS);
   state?.document?.removeEventListener?.('keydown', handleArrangeEscape, true);
+  state?.document?.removeEventListener?.('pointermove', handleArrangePointerMove, true);
   const windowRef = state?.document?.defaultView || globalThis.window;
   windowRef?.removeEventListener?.('scroll', queueArrangeTargetRender, true);
   windowRef?.removeEventListener?.('resize', queueArrangeTargetRender, true);
+  clearHeaderArrangeStatus({ documentRef: state?.document || globalThis.document });
   activeArrangeState = null;
 }
 
@@ -320,6 +454,12 @@ function beginPanelArrangeMode(config = {}) {
     buttonSize: config.buttonSize || 40,
     locked: false,
     hideTimerId: 0,
+    autoScrollStep: 0,
+    autoScrollPendingTimerId: 0,
+    autoScrollTimerId: 0,
+    scrollContainer: config.scrollContainer instanceof HTMLElement
+      ? config.scrollContainer
+      : container.closest?.('#filter-panel-body') || container,
     targetController: null,
     activeTarget: null,
     activeInsertAfter: false
@@ -327,7 +467,12 @@ function beginPanelArrangeMode(config = {}) {
   source.classList.add(ARRANGE_SOURCE_CLASS);
   source.setAttribute('aria-grabbed', 'true');
   documentRef.body.classList.add(ARRANGE_BODY_CLASS);
+  showHeaderArrangeStatus(getArrangeItemLabel(source, config.label), {
+    action: 'Arranging',
+    documentRef
+  });
   documentRef.addEventListener('keydown', handleArrangeEscape, true);
+  documentRef.addEventListener('pointermove', handleArrangePointerMove, true);
   windowRef?.addEventListener?.('scroll', queueArrangeTargetRender, true);
   windowRef?.addEventListener?.('resize', queueArrangeTargetRender, true);
   renderArrangeTargets();

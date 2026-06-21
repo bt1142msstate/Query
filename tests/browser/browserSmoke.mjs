@@ -30,6 +30,7 @@ import {
   expectNoHorizontalOverflow,
   expectOverlayConsumesScroll,
   expectOverlayTouchPanScroll,
+  expectSidePanelArrangeAutoScroll,
   expectStartupStatusVisible,
   expectVisibleCloseControlCount,
   installQueryApiStub,
@@ -1654,6 +1655,11 @@ async function runSmokeTest() {
     if (reorderHandleCount !== 0) {
       throw new Error(`Display & Filters should not expose separate dot drag handles: found ${reorderHandleCount}`);
     }
+
+    await expectSidePanelArrangeAutoScroll(
+      mobilePage,
+      mobilePage.locator('.fp-display-item', { hasText: 'Smoke Title' })
+    );
 
     await arrangeSidePanelLocatorToLocator(
       mobilePage,
