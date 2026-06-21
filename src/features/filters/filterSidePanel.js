@@ -24,6 +24,16 @@ import { DOM } from '../../core/domCache.js';
 
 const FilterSidePanel = (function () {
     const DEFER_PROJECTION_ROW_THRESHOLD = 50000;
+    const FILTER_GROUP_REORDER_INTERACTIVE_SELECTOR = [
+        'a',
+        'button',
+        'input',
+        'select',
+        'textarea',
+        '[contenteditable="true"]',
+        '.fp-cond-actions',
+        '.fp-add-cond-btn'
+    ].join(', ');
     const services = appServices;
     const uiActions = appUiActions;
     let currentViewMode = 'both';
@@ -668,6 +678,7 @@ const FilterSidePanel = (function () {
             element: group,
             container,
             itemSelector: '.fp-field-group',
+            interactiveSelector: FILTER_GROUP_REORDER_INTERACTIVE_SELECTOR,
             onMove: (targetGroup, insertAfter) => {
                 moveFilterGroupRelativeToTarget(field, targetGroup?.dataset?.field || '', insertAfter);
             }

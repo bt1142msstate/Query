@@ -35,7 +35,8 @@ function getInsertAfter(target, clientY) {
 }
 
 function findNearestReorderTarget(container, itemSelector, draggedElement, clientX, clientY) {
-  const directTarget = document
+  const documentRef = container?.ownerDocument || globalThis.document;
+  const directTarget = documentRef
     .elementFromPoint(clientX, clientY)
     ?.closest?.(itemSelector);
 
@@ -66,23 +67,25 @@ function findNearestReorderTarget(container, itemSelector, draggedElement, clien
 
 function getScrollableParent(element) {
   let node = element?.parentElement || null;
-  while (node && node !== document.body) {
+  const documentRef = element?.ownerDocument || globalThis.document;
+  while (node && node !== documentRef.body) {
     const style = window.getComputedStyle(node);
     if (/(auto|scroll)/u.test(`${style.overflowY} ${style.overflow}`) && node.scrollHeight > node.clientHeight) {
       return node;
     }
     node = node.parentElement;
   }
-  return document.scrollingElement || document.documentElement;
+  return documentRef.scrollingElement || documentRef.documentElement;
 }
 
 function createDragPreview(element, rect) {
+  const documentRef = element?.ownerDocument || globalThis.document;
   const preview = element.cloneNode(true);
   preview.classList.add('fp-drag-preview');
   preview.setAttribute('aria-hidden', 'true');
   preview.style.width = `${rect.width}px`;
   preview.style.height = `${rect.height}px`;
-  document.body.appendChild(preview);
+  documentRef.body.appendChild(preview);
   return preview;
 }
 
@@ -102,9 +105,11 @@ function autoScrollWhileDragging(dragState, event) {
     return;
   }
 
-  const isDocumentScroller = scrollParent === document.scrollingElement || scrollParent === document.documentElement;
+  const documentRef = dragState.document || globalThis.document;
+  const windowRef = documentRef.defaultView || globalThis.window;
+  const isDocumentScroller = scrollParent === documentRef.scrollingElement || scrollParent === documentRef.documentElement;
   const rect = isDocumentScroller
-    ? { top: 0, bottom: window.innerHeight }
+    ? { top: 0, bottom: windowRef.innerHeight }
     : scrollParent.getBoundingClientRect();
 
   let scrollStep = 0;
@@ -154,12 +159,44 @@ function attachPointerReorder({
   }
 
   let dragState = null;
+  let suppressNextClick = false;
+
+  const documentRef = element.ownerDocument || globalThis.document;
+  const windowRef = documentRef.defaultView || globalThis.window;
+  const listenerOptions = { capture: true };
+  let documentListenersAttached = false;
 
   function clearHoldTimer() {
     if (dragState?.holdTimerId) {
       window.clearTimeout(dragState.holdTimerId);
       dragState.holdTimerId = null;
     }
+  }
+
+  function attachDocumentListeners() {
+    if (documentListenersAttached) {
+      return;
+    }
+    documentListenersAttached = true;
+    documentRef.addEventListener('pointermove', handlePointerMove, listenerOptions);
+    documentRef.addEventListener('pointerup', cleanup, listenerOptions);
+    documentRef.addEventListener('pointercancel', cleanup, listenerOptions);
+    windowRef?.addEventListener?.('blur', cleanupWithoutPointer, listenerOptions);
+  }
+
+  function detachDocumentListeners() {
+    if (!documentListenersAttached) {
+      return;
+    }
+    documentListenersAttached = false;
+    documentRef.removeEventListener('pointermove', handlePointerMove, listenerOptions);
+    documentRef.removeEventListener('pointerup', cleanup, listenerOptions);
+    documentRef.removeEventListener('pointercancel', cleanup, listenerOptions);
+    windowRef?.removeEventListener?.('blur', cleanupWithoutPointer, listenerOptions);
+  }
+
+  function cleanupWithoutPointer() {
+    cleanup();
   }
 
   function cleanup(event) {
@@ -175,13 +212,18 @@ function attachPointerReorder({
     const dragPreview = dragState.dragPreview;
     clearHoldTimer();
     dragState = null;
+    detachDocumentListeners();
 
     element.classList.remove('fp-reorder-armed', 'fp-dragging');
-    document.body.classList.remove('dragging-cursor');
+    documentRef.body.classList.remove('dragging-cursor');
     clearReorderIndicators(container, itemSelector);
     dragPreview?.remove?.();
     if (pointerCaptured) {
       releasePointer(element, pointerId);
+    }
+
+    if (completedDrag) {
+      suppressNextClick = true;
     }
 
     if (completedDrag && target && target !== element) {
@@ -195,9 +237,11 @@ function attachPointerReorder({
       return;
     }
 
+    cleanup();
     clearHoldTimer();
     const isTouch = event.pointerType === 'touch' || event.pointerType === 'pen';
     dragState = {
+      document: documentRef,
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
@@ -215,6 +259,7 @@ function attachPointerReorder({
       insertAfter: false,
       holdTimerId: null
     };
+    attachDocumentListeners();
 
     if (!isTouch) {
       dragState.pointerCaptured = capturePointer(element, event.pointerId);
@@ -249,11 +294,11 @@ function attachPointerReorder({
     dragState.scrollParent = getScrollableParent(element);
     dragState.dragPreview = createDragPreview(element, rect);
     element.classList.add('fp-dragging');
-    document.body.classList.add('dragging-cursor');
+    documentRef.body.classList.add('dragging-cursor');
     updateDragPreview(dragState, event);
   }
 
-  element.addEventListener('pointermove', event => {
+  function handlePointerMove(event) {
     if (!dragState || event.pointerId !== dragState.pointerId) {
       return;
     }
@@ -302,10 +347,16 @@ function attachPointerReorder({
     target.classList.toggle('fp-drag-over-top', !insertAfter);
     dragState.target = target;
     dragState.insertAfter = insertAfter;
-  });
+  }
 
-  element.addEventListener('pointerup', cleanup);
-  element.addEventListener('pointercancel', cleanup);
+  element.addEventListener('click', event => {
+    if (!suppressNextClick) {
+      return;
+    }
+    suppressNextClick = false;
+    event.preventDefault();
+    event.stopPropagation();
+  }, true);
 }
 
 export { attachPointerReorder, clearReorderIndicators };

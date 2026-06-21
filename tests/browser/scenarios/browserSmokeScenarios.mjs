@@ -54,6 +54,56 @@ const ZIP_LOCAL_FILE_HEADER = 0x04034b50;
 const ZIP_CENTRAL_FILE_HEADER = 0x02014b50;
 const ZIP_END_OF_CENTRAL_DIRECTORY = 0x06054b50;
 
+async function dragMouseLocatorToLocator(page, sourceLocator, targetLocator, options = {}) {
+  async function measure(locator) {
+    let box = null;
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      try {
+        await locator.waitFor({ state: 'visible', timeout: 5000 });
+        await locator.scrollIntoViewIfNeeded();
+        box = await locator.boundingBox();
+        if (box && box.width > 0 && box.height > 0) {
+          return box;
+        }
+      } catch (error) {
+        if (!/not attached|detached|Target closed/iu.test(error?.message || '')) {
+          throw error;
+        }
+      }
+      await page.waitForTimeout(50);
+    }
+    return box;
+  }
+
+  const sourceBox = await measure(sourceLocator);
+  const targetBox = await measure(targetLocator);
+  if (!sourceBox || !targetBox) {
+    throw new Error(`Unable to measure mouse drag targets: ${JSON.stringify({ sourceBox, targetBox })}`);
+  }
+
+  const startX = Math.round(sourceBox.x + (sourceBox.width * (options.sourceHorizontalRatio ?? 0.5)));
+  const startY = Math.round(sourceBox.y + (sourceBox.height * (options.sourceVerticalRatio ?? 0.5)));
+  const endX = Math.round(targetBox.x + (targetBox.width * (options.targetHorizontalRatio ?? 0.5)));
+  const endY = Math.round(targetBox.y + (targetBox.height * (options.targetVerticalRatio ?? 0.5)));
+
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(endX, endY, { steps: options.steps || 12 });
+
+  if (options.expectPreview) {
+    const previewVisible = await page.locator('.fp-drag-preview').isVisible();
+    if (!previewVisible) {
+      throw new Error('Expected mouse drag to show a floating reorder preview');
+    }
+  }
+
+  await page.mouse.up();
+
+  if (options.expectPreview) {
+    await page.locator('.fp-drag-preview').waitFor({ state: 'detached', timeout: 5000 });
+  }
+}
+
 function decodeXmlEntities(value = '') {
   return String(value).replace(/&([^;]+);/gu, (match, entity) => XML_ENTITIES.get(entity) || match);
 }
@@ -2501,38 +2551,52 @@ async function exerciseCoreFilterStateInteraction(page) {
     const { AppState, QueryChangeManager } = await import('./src/core/queryState.js');
     const { FilterSidePanel } = await import('./src/features/filters/filterSidePanel.js');
     const { fieldDefs, fieldDefsArray, filteredDefs } = await import('./src/features/filters/fieldDefs.js');
-    const fieldDef = {
-      name: 'Smoke Filter Field',
+    const smokeFields = [
+      ['Smoke Filter Field', 'Smoke Value'],
+      ['Smoke Branch Filter', 'Smoke Branch Value'],
+      ['Smoke Status Filter', 'Smoke Status Value']
+    ].map(([name, value]) => ({
       category: 'Smoke',
-      desc: 'Browser interaction coverage field',
+      desc: `${value} browser interaction coverage field`,
       filters: ['equals', 'contains'],
+      name,
+      smokeValue: value,
       type: 'string'
-    };
+    }));
 
-    fieldDefs.set(fieldDef.name, fieldDef);
-    const existingIndex = fieldDefsArray.findIndex(field => field?.name === fieldDef.name);
-    if (existingIndex >= 0) {
-      fieldDefsArray.splice(existingIndex, 1);
-    }
-    fieldDefsArray.unshift(fieldDef);
-    filteredDefs.splice(0, filteredDefs.length, fieldDef);
+    smokeFields.forEach(fieldDef => {
+      fieldDefs.set(fieldDef.name, fieldDef);
+      const existingIndex = fieldDefsArray.findIndex(field => field?.name === fieldDef.name);
+      if (existingIndex >= 0) {
+        fieldDefsArray.splice(existingIndex, 1);
+      }
+    });
+    fieldDefsArray.unshift(...smokeFields);
+    filteredDefs.splice(0, filteredDefs.length, ...smokeFields);
     AppState.currentCategory = 'All';
 
     QueryChangeManager.setQueryState({
       displayedFields: [],
-      activeFilters: {
-        [fieldDef.name]: {
-          filters: [
-            { cond: 'equals', val: 'Smoke Value' }
-          ]
-        }
-      }
+      activeFilters: Object.fromEntries(smokeFields.map(fieldDef => [
+        fieldDef.name,
+        { filters: [{ cond: 'equals', val: fieldDef.smokeValue }] }
+      ]))
     }, { source: 'BrowserSmoke.coreFilterStateInteraction' });
 
     FilterSidePanel.update();
   });
 
   await page.locator('.fp-cond-text', { hasText: 'Smoke Value' }).waitFor({ state: 'attached', timeout: 5000 });
+  await dragMouseLocatorToLocator(
+    page,
+    page.locator('.fp-cond-text', { hasText: 'Smoke Value' }),
+    page.locator('.fp-field-group', { hasText: 'Smoke Status Value' }),
+    { expectPreview: true, targetVerticalRatio: 0.85 }
+  );
+  await page.waitForFunction(async () => {
+    const { QueryStateReaders } = await import('./src/core/queryState.js');
+    return Object.keys(QueryStateReaders.getActiveFilters()).join('|') === 'Smoke Branch Filter|Smoke Status Filter|Smoke Filter Field';
+  }, null, { timeout: 5000 });
 }
 
 async function exerciseFieldPickerPreviewList(page) {
@@ -3116,6 +3180,28 @@ async function exerciseDesktopResultsWorkflow(page) {
     const { QueryStateReaders } = await import('./src/core/queryState.js');
     return QueryStateReaders.getDisplayedFields().join('|') === 'Smoke Title|Smoke Status|Smoke Branch 1|Smoke Branch 2';
   }, null, { timeout: 5000 });
+  await dragMouseLocatorToLocator(
+    page,
+    page.locator('.fp-display-item', { hasText: 'Smoke Branch 2' }),
+    page.locator('.fp-display-item', { hasText: 'Smoke Title' }),
+    { expectPreview: true, targetVerticalRatio: 0.85 }
+  );
+  await page.waitForFunction(async () => {
+    const { QueryStateReaders } = await import('./src/core/queryState.js');
+    return QueryStateReaders.getDisplayedFields().join('|') === 'Smoke Title|Smoke Branch 1|Smoke Branch 2|Smoke Status';
+  }, null, { timeout: 5000 });
+  const panelSplitPointerMove = await page.evaluate(() => ({
+    displayFields: Array.from(document.querySelectorAll('.fp-display-name'))
+      .map(name => name.textContent.trim()),
+    headers: Array.from(document.querySelectorAll('#example-table thead th[data-col-index]'))
+      .map(header => header.getAttribute('data-sort-field') || header.textContent.trim())
+  }));
+  if (
+    panelSplitPointerMove.headers.join('|') !== 'Smoke Title|Smoke Branch 1|Smoke Branch 2|Smoke Status'
+    || panelSplitPointerMove.displayFields.join('|') !== 'Smoke Title|Smoke Branch 1|Smoke Branch 2|Smoke Status'
+  ) {
+    throw new Error(`Side panel split column pointer drag should move the whole group: ${JSON.stringify(panelSplitPointerMove)}`);
+  }
   const splitRemoval = await page.evaluate(() => {
     const displayItem = Array.from(document.querySelectorAll('.fp-display-item'))
       .find(item => (item.textContent || '').includes('Smoke Branch 2'));
