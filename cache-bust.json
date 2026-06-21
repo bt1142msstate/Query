@@ -1,5 +1,5 @@
 {
-  "version": "391ba8ef98e2a9c3",
+  "version": "77912dd21b584e1a",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -71,9 +71,9 @@
     "src/features/filters/filterConditionLogic.js": "43d6986eb7807894",
     "src/features/filters/filterManager.js": "7a514d667006607d",
     "src/features/filters/filterPills.js": "0984c1ee75934f2f",
-    "src/features/filters/filterSidePanel.js": "48b05ea25eba65f4",
+    "src/features/filters/filterSidePanel.js": "5fca4f177c911509",
     "src/features/filters/filterValueUi.js": "ca523c44b42070fc",
-    "src/features/filters/panelReorder.js": "a19a3466718a34a3",
+    "src/features/filters/panelReorder.js": "7d4a2dc645eb89f4",
     "src/features/filters/queryPayload.js": "2c73312adc086a40",
     "src/features/history/queryHistory.js": "800938edbf86812b",
     "src/features/history/queryHistoryConfigLoader.js": "2e32e724115b207b",
