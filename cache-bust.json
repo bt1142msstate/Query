@@ -1,5 +1,5 @@
 {
-  "version": "6f64d8188558924b",
+  "version": "250dd9a5f04023a0",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -153,11 +153,11 @@
     "src/features/templates/view/queryTemplateListView.js": "2f4f1ac2cd5440d4",
     "src/features/templates/view/queryTemplateViewState.js": "a1a4e7e2fdd668f8",
     "src/styles/api-settings.css": "7c6ff2277eb40a47",
-    "src/styles/app.css": "e83508444ef3bdbf",
-    "src/styles/base.css": "d8b7250098c1da38",
+    "src/styles/app.css": "c035fa4fdadb7c90",
+    "src/styles/base.css": "e79adacaaf6336fe",
     "src/styles/condition-editor.css": "c3151b483e049c2e",
     "src/styles/controls.css": "59c7aadd55c39a1e",
-    "src/styles/filters.css": "583b4c5bfbf35df1",
+    "src/styles/filters.css": "889686d10bddba64",
     "src/styles/form-mode.css": "b019b81b42575603",
     "src/styles/help.css": "e0502d4427ef63b8",
     "src/styles/history.css": "838f8449bbe7f391",

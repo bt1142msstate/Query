@@ -2190,14 +2190,35 @@ async function arrangeSidePanelLocatorToLocator(page, sourceLocator, targetLocat
   const arrangeStarted = await page.evaluate(() => ({
     headerStatusText: document.querySelector('#header-arrange-status')?.textContent?.replace(/\s+/gu, ' ').trim() || '',
     headerStatusVisible: !document.querySelector('#header-arrange-status')?.classList.contains('hidden'),
+    headerStatusRect: (() => {
+      const rect = document.querySelector('#header-arrange-status')?.getBoundingClientRect();
+      return rect ? {
+        centerX: Math.round(rect.left + rect.width / 2),
+        left: Math.round(rect.left),
+        width: Math.round(rect.width)
+      } : null;
+    })(),
+    visibleInsertButtonCount: Array.from(document.querySelectorAll('.fp-display-insert-btn')).filter(button => {
+      const style = window.getComputedStyle(button);
+      const rect = button.getBoundingClientRect();
+      return style.display !== 'none'
+        && style.visibility !== 'hidden'
+        && Number.parseFloat(style.opacity || '0') > 0
+        && rect.width > 0
+        && rect.height > 0;
+    }).length,
     sourceActive: Boolean(document.querySelector('.fp-arrange-source')),
-    targetCount: document.querySelectorAll('.fp-arrange-target').length
+    targetCount: document.querySelectorAll('.fp-arrange-target').length,
+    viewportWidth: window.innerWidth
   }));
   if (
     !arrangeStarted.sourceActive
     || arrangeStarted.targetCount < 1
     || !arrangeStarted.headerStatusVisible
     || !arrangeStarted.headerStatusText.includes(expectedArrangeLabel)
+    || !arrangeStarted.headerStatusRect
+    || arrangeStarted.headerStatusRect.centerX >= arrangeStarted.viewportWidth * 0.45
+    || arrangeStarted.visibleInsertButtonCount !== 0
   ) {
     throw new Error(`Side-panel arrange mode did not expose source and targets: ${JSON.stringify(arrangeStarted)}`);
   }
@@ -2291,10 +2312,15 @@ async function expectSidePanelArrangeAutoScroll(page, sourceLocator) {
       return {
         headerStatusText: status?.textContent?.replace(/\s+/gu, ' ').trim() || '',
         headerStatusVisible: Boolean(status && !status.classList.contains('hidden')),
-        scrollTop: body?.scrollTop || 0
+        scrollTop: body?.scrollTop || 0,
+        scrollbarColor: body ? window.getComputedStyle(body).scrollbarColor : ''
       };
     });
-    if (!autoScrollState.headerStatusVisible || autoScrollState.scrollTop <= beforeScrollTop + 24) {
+    if (
+      !autoScrollState.headerStatusVisible
+      || autoScrollState.scrollTop <= beforeScrollTop + 24
+      || !/15,\s*118,\s*110/u.test(autoScrollState.scrollbarColor)
+    ) {
       throw new Error(`Side-panel arrange mode should auto-scroll near panel edges: ${JSON.stringify(autoScrollState)}`);
     }
   } finally {

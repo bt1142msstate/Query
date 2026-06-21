@@ -961,6 +961,7 @@
   -webkit-overflow-scrolling: touch;
   scrollbar-color: rgba(100, 116, 139, 0.78) transparent;
   scrollbar-width: auto;
+  cursor: default;
   min-width: 292px;
   display: flex;
   flex-direction: column;
@@ -981,11 +982,35 @@
   background-clip: content-box;
   border: 3px solid transparent;
   border-radius: 999px;
+  cursor: grab;
 }
 
 #filter-panel-body::-webkit-scrollbar-thumb:hover {
   background: rgba(15, 118, 110, 0.86);
   background-clip: content-box;
+}
+
+#filter-panel-body::-webkit-scrollbar-thumb:active {
+  cursor: grabbing;
+}
+
+body.fp-arrange-mode-active #filter-panel-body {
+  scrollbar-color: rgba(15, 118, 110, 0.96) rgba(204, 251, 241, 0.42);
+}
+
+body.fp-arrange-mode-active #filter-panel-body::-webkit-scrollbar-track {
+  background: rgba(204, 251, 241, 0.34);
+  border-radius: 999px;
+}
+
+body.fp-arrange-mode-active #filter-panel-body::-webkit-scrollbar-thumb {
+  background: rgba(15, 118, 110, 0.96);
+  background-clip: content-box;
+  cursor: grab;
+}
+
+body.fp-arrange-mode-active #filter-panel-body::-webkit-scrollbar-thumb:active {
+  cursor: grabbing;
 }
 
 /* Field group card */
@@ -1160,6 +1185,10 @@
   width: 1rem;
   height: 1rem;
   fill: currentColor;
+}
+
+body.fp-arrange-mode-active .fp-display-insert {
+  display: none;
 }
 
 .fp-display-item {
