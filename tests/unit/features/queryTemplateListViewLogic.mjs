@@ -69,7 +69,7 @@ function collectMarkup(node) {
   return `${node.innerHTML || ''}${(node.children || []).map(collectMarkup).join('')}`;
 }
 
-test('template list rows use neutral SVG previews without legacy overlay styling hooks', () => {
+test('template list rows keep the pre-block compact layout without legacy overlay styling hooks', () => {
   const previousDocument = globalThis.document;
   globalThis.document = {
     createDocumentFragment: () => createElement('#fragment'),
@@ -100,14 +100,14 @@ test('template list rows use neutral SVG previews without legacy overlay styling
       onSelectTemplate: () => {},
       onPinTemplate: () => {},
       onReorderPinnedTemplates: () => {},
-      onDraggedPinnedIdChange: () => {},
-      getTemplateSvgMarkup: () => '<svg class="neutral-icon" aria-hidden="true"></svg>'
+      onDraggedPinnedIdChange: () => {}
     });
 
     const markup = collectMarkup(elements.list);
 
-    assert.match(markup, /templates-list-item__template-preview/u);
-    assert.match(markup, /neutral-icon/u);
+    assert.match(markup, /templates-list-item__title-row/u);
+    assert.match(markup, /Recent Queries/u);
+    assert.doesNotMatch(markup, /templates-list-item__template-preview/u);
     assert.doesNotMatch(markup, /templates-list-item__brick-face/u);
     assert.doesNotMatch(markup, /templates-list-item__stud-row/u);
     assert.doesNotMatch(markup, /templates-list-item__snap/u);
