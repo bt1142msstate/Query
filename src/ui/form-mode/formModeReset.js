@@ -1,7 +1,9 @@
 import { RESULT_QUERY_URL_PARAM, RESULT_VIEW_URL_PARAM } from '../../core/queryResultUrl.js';
 import {
+  applyResultViewState,
   buildCurrentResultViewState,
-  encodeResultViewState
+  encodeResultViewState,
+  readResultViewStateFromLocation
 } from '../../core/resultViewState.js';
 
 function buildCurrentResultSearchParams({
@@ -96,12 +98,96 @@ function clearRenderedQueryResults({
   queryTableView?.renderEmptyQueryTableState?.();
 }
 
+function buildResultViewFieldSearchUiState(dom = {}) {
+  return {
+    getFieldSearch: () => dom?.queryInput?.value || '',
+    setFieldSearch: value => {
+      if (!dom?.queryInput) {
+        return;
+      }
+      dom.queryInput.value = String(value || '');
+      dom.queryInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  };
+}
+
+function hasLoadedBaselineResult({
+  queryStateReaders,
+  resultQueryId,
+  services
+} = {}) {
+  const normalizedQueryId = String(resultQueryId || '').trim();
+  const lifecycleState = queryStateReaders?.getLifecycleState?.();
+  const tableData = services?.getVirtualTableData?.();
+
+  return Boolean(
+    normalizedQueryId
+    && String(lifecycleState?.currentQueryId || '').trim() === normalizedQueryId
+    && lifecycleState?.hasLoadedResultSet === true
+    && Array.isArray(tableData?.headers)
+    && tableData.headers.length > 0
+    && Array.isArray(tableData?.rows)
+  );
+}
+
+async function preserveLoadedBaselineResultsForReset({
+  queryChangeManager,
+  queryStateReaders,
+  resultQueryId,
+  searchParams,
+  services,
+  uiActions,
+  uiState
+} = {}) {
+  if (!hasLoadedBaselineResult({ queryStateReaders, resultQueryId, services })) {
+    return false;
+  }
+
+  const viewState = readResultViewStateFromLocation(
+    { search: `?${searchParams.toString()}` },
+    { queryId: resultQueryId }
+  );
+
+  applyResultViewState(viewState, {
+    queryChangeManager,
+    services,
+    uiActions,
+    uiState
+  });
+
+  queryChangeManager?.setLifecycleState?.({
+    currentQueryId: resultQueryId,
+    hasLoadedResultSet: true,
+    hasPartialResults: false,
+    queryRunning: false
+  }, { source: 'QueryFormMode.reset.preserveLoadedResult', silent: true });
+
+  const displayedFields = queryStateReaders?.getDisplayedFields?.() || [];
+  const renderFields = displayedFields.length
+    ? displayedFields
+    : (services?.getVirtualTableData?.()?.headers || []);
+
+  await uiActions?.showExampleTable?.(renderFields, {
+    syncQueryState: false
+  });
+  services?.rerenderBubbles?.();
+  uiActions?.updateTableResultsLip?.();
+  uiActions?.updateButtonStates?.();
+  uiActions?.syncTableViewportHeight?.();
+  services?.renderVirtualTable?.();
+  return true;
+}
+
 async function restoreBaselineResultsForReset({
   clearRenderedResults,
   label,
+  queryChangeManager,
+  queryStateReaders,
   searchParams,
   services,
-  showToastMessage
+  showToastMessage,
+  uiActions,
+  uiState
 } = {}) {
   const { resultQueryId, resultViewParam } = getBaselineResultSearchParams(searchParams);
   if (!resultQueryId) {
@@ -110,6 +196,19 @@ async function restoreBaselineResultsForReset({
     });
     clearRenderedResults?.();
     return false;
+  }
+
+  const preserved = await preserveLoadedBaselineResultsForReset({
+    queryChangeManager,
+    queryStateReaders,
+    resultQueryId,
+    searchParams,
+    services,
+    uiActions,
+    uiState
+  });
+  if (preserved) {
+    return true;
   }
 
   const loaded = await services?.loadHistoryQueryResults?.(resultQueryId, {
@@ -127,8 +226,11 @@ async function restoreBaselineResultsForReset({
 
 export {
   buildCurrentResultSearchParams,
+  buildResultViewFieldSearchUiState,
   clearRenderedQueryResults,
   getBaselineResultSearchParams,
+  hasLoadedBaselineResult,
+  preserveLoadedBaselineResultsForReset,
   replaceBrowserResultParams,
   restoreBaselineResultsForReset,
   stopRunningQueryForReset
