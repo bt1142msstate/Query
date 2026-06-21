@@ -1,5 +1,5 @@
 {
-  "version": "77912dd21b584e1a",
+  "version": "1ad3e2c73bfd295e",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -182,7 +182,7 @@
     "src/ui/field-picker/fieldPickerQueryPreview.js": "019bce50d54c6e10",
     "src/ui/field-picker/fieldPickerQuerySelection.js": "56af597e3e74de70",
     "src/ui/field-picker/fieldPickerSearch.js": "3ee7aca8505a6e52",
-    "src/ui/form-mode/formMode.js": "393f955646071ea0",
+    "src/ui/form-mode/formMode.js": "ba6d5ae68ea69df3",
     "src/ui/form-mode/formModeCard.js": "14453dfea3291a45",
     "src/ui/form-mode/formModeCardBuilder.js": "83e8a837c8b205e5",
     "src/ui/form-mode/formModeControls.js": "e2c0a5de4393e791",
@@ -193,7 +193,7 @@
     "src/ui/form-mode/formModeQuerySpec.js": "5962d653c94b4350",
     "src/ui/form-mode/formModeQueryStateBridge.js": "dc821f21d41088f2",
     "src/ui/form-mode/formModeQuerySync.js": "86c16ec1af9b77f4",
-    "src/ui/form-mode/formModeReset.js": "94168957dede1058",
+    "src/ui/form-mode/formModeReset.js": "061a44122d9ff5ea",
     "src/ui/form-mode/formModeShareBuilder.js": "0276b02303a982d1",
     "src/ui/form-mode/formModeShareState.js": "5788f91bad99a1e5",
     "src/ui/form-mode/formModeShareUrl.js": "996623d793f95382",

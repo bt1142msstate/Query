@@ -1477,20 +1477,7 @@ async function exerciseFormModeResetMenuPreservesResults(page, queryApiStub) {
     return QueryStateReaders.getDisplayedFields().join('|') === 'Smoke Title';
   }, null, { timeout: 5000 });
 
-  queryApiStub.enqueue({
-    action: 'get_results',
-    body: buildJsonlResultStream({
-      columns: smokeResultHeaders,
-      queryId: resetResultQueryId,
-      rows: [
-        ['Reset Alpha record', 'Main', 'Open'],
-        ['Reset Beta record', 'East', 'Closed']
-      ]
-    }),
-    contentType: 'application/x-ndjson; charset=utf-8',
-    queryId: resetResultQueryId,
-    rawColumns: smokeResultHeaders
-  });
+  const getResultsBeforeReset = queryApiStub.countAction('get_results');
 
   await page.locator('#form-mode-reset-original').click();
   await page.waitForFunction(queryId => {
@@ -1506,8 +1493,9 @@ async function exerciseFormModeResetMenuPreservesResults(page, queryApiStub) {
       && lifecycle.hasLoadedResultSet === true
       && QueryStateReaders.getDisplayedFields().join('|') === 'Smoke Title|Smoke Branch|Smoke Status'
       && Array.isArray(tableData?.rows)
-      && tableData.rows.length === 2
-      && document.querySelector('#table-results-count')?.textContent?.trim() === '2'
+      && tableData.rows.length === 3
+      && tableData.rows[0]?.[0] === 'Alpha record'
+      && document.querySelector('#table-results-count')?.textContent?.trim() === '3'
       && !document.body.classList.contains('is-planning');
   }, resetResultQueryId, { timeout: 10000 });
 
@@ -1527,6 +1515,10 @@ async function exerciseFormModeResetMenuPreservesResults(page, queryApiStub) {
     || resetUrlState.resultView?.displayedFields?.join('|') !== 'Smoke Title|Smoke Branch|Smoke Status'
   ) {
     throw new Error(`Reset to original should restore the original result view URL, not the edited one: ${JSON.stringify(resetUrlState)}`);
+  }
+  const getResultsAfterReset = queryApiStub.countAction('get_results');
+  if (getResultsAfterReset !== getResultsBeforeReset) {
+    throw new Error(`Reset to original should preserve the loaded result set without refetching history results: before=${getResultsBeforeReset}, after=${getResultsAfterReset}`);
   }
 }
 

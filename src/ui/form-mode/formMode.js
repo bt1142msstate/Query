@@ -18,7 +18,7 @@ import { bindFormModeTableNameUrlSync } from './formModeTableNameSync.js';
 import { syncSpecInputsWithActiveFilters } from './formModeQuerySync.js';
 import { FormModeStateHelpers as formModeStateHelpers } from './formModeStateHelpers.js';
 import { buildCurrentShareUrl as buildFormModeCurrentShareUrl, saveCurrentFormAsSharedBaseline as saveFormModeSharedBaseline } from './formModeShareBuilder.js';
-import { buildCurrentResultSearchParams as buildResetResultSearchParams, clearRenderedQueryResults, getBaselineResultSearchParams, replaceBrowserResultParams, restoreBaselineResultsForReset, stopRunningQueryForReset } from './formModeReset.js';
+import { buildCurrentResultSearchParams as buildResetResultSearchParams, buildResultViewFieldSearchUiState, clearRenderedQueryResults, getBaselineResultSearchParams, replaceBrowserResultParams, restoreBaselineResultsForReset, stopRunningQueryForReset } from './formModeReset.js';
 import { resolveCurrentShareResultQueryId, syncFormModeShareUi } from './formModeShareState.js';
 import { openFormModeFieldPicker } from './formModeFieldPicker.js';
 import { QueryTableView } from '../queryTableView.js';
@@ -250,7 +250,6 @@ let QueryFormMode;
     if (!nextSpec) {
       return;
     }
-
     const { resultQueryId, resultViewParam } = getBaselineResultSearchParams(nextSearchParams);
     replaceBrowserResultParams({
       resultQueryId,
@@ -258,7 +257,6 @@ let QueryFormMode;
       state,
       windowRef: window
     });
-
     state.searchParams = nextSearchParams;
     state.spec = nextSpec;
     sanitizeSpecDisplayColumns(state.spec);
@@ -279,16 +277,19 @@ let QueryFormMode;
       clearSearchParams: false,
       querySource: isShared ? 'QueryFormMode.resetToShared' : 'QueryFormMode.resetToOriginal'
     });
-
     await restoreBaselineResultsForReset({
       clearRenderedResults: () => clearRenderedQueryResults({
         queryTableView: QueryTableView,
         services
       }),
       label: isShared ? 'last shared link' : 'original form',
+      queryChangeManager: QueryChangeManager,
+      queryStateReaders: QueryStateReaders,
       searchParams: nextSearchParams,
       services,
-      showToastMessage
+      showToastMessage,
+      uiActions,
+      uiState: buildResultViewFieldSearchUiState(DOM)
     });
     refreshBrowserUrl({
       includeResult: Boolean(resultQueryId),
