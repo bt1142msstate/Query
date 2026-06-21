@@ -9,8 +9,7 @@ export function renderTemplateList({
   onSelectTemplate,
   onPinTemplate,
   onReorderPinnedTemplates,
-  onDraggedPinnedIdChange,
-  getTemplateSvgMarkup = () => ''
+  onDraggedPinnedIdChange
 }) {
   if (!elements.list || !elements.listStatus) {
     return;
@@ -51,21 +50,11 @@ export function renderTemplateList({
     const descriptionTooltip = String(template.description || '').trim() || 'No description provided.';
     button.setAttribute('data-tooltip', descriptionTooltip);
     button.setAttribute('aria-label', `${template.name}. ${descriptionTooltip}`);
-    const descriptionClass = String(template.description || '').trim()
-      ? 'templates-list-item__description'
-      : 'templates-list-item__description templates-list-item__description--empty';
-    const templateSvgMarkup = getTemplateSvgMarkup(template);
     button.innerHTML = `
-      <span class="templates-list-item__template-preview" aria-hidden="true">
-        ${templateSvgMarkup}
-      </span>
-      <span class="templates-list-item__copy">
-        <span class="templates-list-item__title-row">
-          ${template.pinned ? '<span class="templates-list-item__pin-badge">Pinned</span>' : ''}
-          <span class="templates-list-item__title">${escapeHtml(template.name)}</span>
-        </span>
-        <span class="${descriptionClass}">${escapeHtml(descriptionTooltip)}</span>
-      </span>`;
+      <div class="templates-list-item__title-row">
+        ${template.pinned ? '<span class="templates-list-item__pin-badge">Pinned</span>' : ''}
+        <div class="templates-list-item__title">${escapeHtml(template.name)}</div>
+      </div>`;
     button.addEventListener('click', () => onSelectTemplate(template.id));
     row.appendChild(button);
 
