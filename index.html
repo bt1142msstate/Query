@@ -762,21 +762,10 @@
     </div><!-- end queries-panel -->
 
     <!-- TEMPLATES PANEL -->
-    <div id="templates-panel" class="templates-lego-overlay w-full modal-panel hidden">
-      <h2 class="templates-workbench-titlebar mt-8 mb-0 px-3 py-2 bg-emerald-100 text-emerald-800 font-semibold text-sm uppercase tracking-wider border border-emerald-200 flex items-center justify-between">
-        <span class="templates-panel-title-lockup">
-          <span class="templates-panel-logo" aria-hidden="true">
-            <span class="templates-panel-logo-brick templates-panel-logo-brick--top"></span>
-            <span class="templates-panel-logo-brick templates-panel-logo-brick--bottom"></span>
-          </span>
-          <span class="templates-panel-title">Templates</span>
-        </span>
-        <span class="templates-titlebar-brick-stack" aria-hidden="true">
-          <span class="templates-titlebar-brick templates-titlebar-brick--sky"><span></span><span></span><span></span><span></span></span>
-          <span class="templates-titlebar-brick templates-titlebar-brick--pink"><span></span><span></span><span></span><span></span></span>
-          <span class="templates-titlebar-brick templates-titlebar-brick--ink"><span></span><span></span><span></span><span></span></span>
-        </span>
-        <div class="templates-titlebar-actions flex gap-2 ml-auto items-center">
+    <div id="templates-panel" class="w-full modal-panel hidden">
+      <h2 class="mt-8 mb-0 px-3 py-2 bg-emerald-100 text-emerald-800 font-semibold text-sm uppercase tracking-wider border border-emerald-200 flex items-center justify-between">
+        <span class="sr-only">Templates</span>
+        <div class="flex gap-2 ml-auto items-center">
           <button class="collapse-btn p-1.5 rounded hover:bg-emerald-200 focus:outline-none transition-colors ml-2" data-target="templates-panel" aria-label="Close">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="#047857" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
               <line x1="4" y1="4" x2="16" y2="16" />
@@ -785,52 +774,50 @@
           </button>
         </div>
       </h2>
-      <div id="templates-container" class="templates-panel-shell templates-workbench-shell w-full -mt-px border border-emerald-200 border-t-0 rounded-b overflow-hidden bg-white">
-        <section class="templates-browser templates-workbench">
-          <div class="templates-workbench-plate" aria-hidden="true">
-            <span></span><span></span><span></span><span></span><span></span><span></span>
-          </div>
-          <div class="templates-browser-top templates-workbench-hero">
-            <div class="templates-workbench-hero-inner">
-              <div class="templates-sidebar-header templates-workbench-copy">
-                <div class="templates-sidebar-copy">
-                  <div class="templates-sidebar-kicker">Template Library</div>
-                  <h3 class="templates-sidebar-title">Saved Queries</h3>
-                  <p id="templates-mode-note" class="templates-sidebar-note">Create, edit, delete, and apply reusable query templates.</p>
-                </div>
-                <div class="templates-brick-scene" aria-hidden="true">
-                  <span class="templates-brick templates-brick--sky">
-                    <span></span><span></span><span></span><span></span>
-                  </span>
-                  <span class="templates-brick templates-brick--pink">
-                    <span></span><span></span><span></span><span></span>
-                  </span>
-                  <span class="templates-brick templates-brick--ink">
-                    <span></span><span></span><span></span><span></span>
-                  </span>
-                </div>
+      <div id="templates-container" class="templates-panel-shell w-full -mt-px border border-emerald-200 border-t-0 rounded-b overflow-hidden bg-white">
+        <section class="templates-browser">
+          <div class="templates-browser-top">
+            <div class="templates-sidebar-header">
+              <div class="templates-sidebar-copy">
+                <div class="templates-sidebar-kicker">Server Templates</div>
+                <h3 class="templates-sidebar-title">Saved Queries</h3>
+                <p id="templates-mode-note" class="templates-sidebar-note">Create, edit, delete, and apply reusable query templates.</p>
               </div>
-              <div class="templates-category-filter-shell templates-workbench-controls">
-                <div class="templates-browser-toolbar templates-browser-toolbar--library">
-                  <label class="templates-field templates-field--wide">
-                    <span>Search Templates</span>
-                    <input id="templates-search-input" type="search" maxlength="120" placeholder="Search templates">
-                  </label>
-                  <label class="templates-field">
-                    <span>Filter By Category</span>
-                    <select id="templates-category-filter"></select>
-                  </label>
-                </div>
-                <div class="templates-sidebar-actions templates-sidebar-actions--library">
-                  <button id="templates-refresh-btn" type="button" class="templates-secondary-btn">Refresh</button>
-                  <button id="templates-manage-categories-btn" type="button" class="templates-secondary-btn" aria-label="Manage template categories">Categories</button>
-                  <button id="templates-new-btn" type="button" class="templates-primary-btn" aria-label="Create template from current query">New Template</button>
-                </div>
-                <div id="templates-results-summary" class="templates-results-summary"></div>
+              <div class="templates-brick-scene" aria-hidden="true">
+                <span class="templates-brick templates-brick--sky">
+                  <span></span><span></span><span></span><span></span>
+                </span>
+                <span class="templates-brick templates-brick--pink">
+                  <span></span><span></span><span></span><span></span>
+                </span>
+                <span class="templates-brick templates-brick--ink">
+                  <span></span><span></span><span></span><span></span>
+                </span>
+                <span class="templates-brick templates-brick--mini templates-brick--white">
+                  <span></span><span></span>
+                </span>
               </div>
             </div>
+            <div class="templates-category-filter-shell">
+              <div class="templates-browser-toolbar templates-browser-toolbar--library">
+                <label class="templates-field templates-field--wide">
+                  <span>Search Templates</span>
+                  <input id="templates-search-input" type="search" maxlength="120" placeholder="Search templates">
+                </label>
+                <label class="templates-field">
+                  <span>Filter By Category</span>
+                  <select id="templates-category-filter"></select>
+                </label>
+              </div>
+              <div class="templates-sidebar-actions templates-sidebar-actions--library">
+                <button id="templates-refresh-btn" type="button" class="templates-secondary-btn">Refresh</button>
+                <button id="templates-manage-categories-btn" type="button" class="templates-secondary-btn" aria-label="Manage template categories">Categories</button>
+                <button id="templates-new-btn" type="button" class="templates-primary-btn" aria-label="Create template from current query">New Template</button>
+              </div>
+              <div id="templates-results-summary" class="templates-results-summary"></div>
+            </div>
           </div>
-          <div class="templates-browser-list-shell templates-workbench-list-board">
+          <div class="templates-browser-list-shell">
             <div id="templates-list-status" class="templates-status">Loading templates…</div>
             <div id="templates-list" class="templates-list" aria-live="polite"></div>
           </div>
@@ -839,10 +826,6 @@
             <h3>No templates match the current view.</h3>
             <p>Adjust the search or category filter, refresh from the server, or create a new template from the current query.</p>
           </div>
-          <footer class="templates-workbench-footer">
-            <button id="templates-manage-categories-footer-btn" type="button" class="templates-secondary-btn templates-footer-action" aria-label="Manage template categories from footer">Manage Categories</button>
-            <div id="templates-updated-status" class="templates-updated-status" aria-live="polite">Last updated: Not loaded</div>
-          </footer>
         </section>
         <div id="templates-detail-overlay" class="templates-detail-overlay hidden" aria-hidden="true">
           <div id="templates-detail-backdrop" class="templates-detail-backdrop" data-templates-detail-close></div>
