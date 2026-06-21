@@ -3,10 +3,14 @@ import { QueryStateReaders } from '../core/queryState.js';
 
 const DEFAULT_MANIFEST_URL = './cache-bust.json';
 const DEFAULT_SERVICE_WORKER_URL = './backgroundNotificationServiceWorker.js';
+const DEFAULT_PAGE_VERSION_META_NAME = 'query-app-cache-version';
+const DEFAULT_STORED_VERSION_KEY = 'queryAppCacheVersion';
+const DEFAULT_GLOBAL_NAME = 'QueryAppSiteUpdate';
 const DEFAULT_CHECK_INTERVAL_MS = 2 * 60 * 1000;
 const DEFAULT_INTERACTION_CHECK_THROTTLE_MS = 30 * 1000;
 const DEFAULT_IDLE_RELOAD_DELAY_MS = 8 * 1000;
 const DEFAULT_IDLE_THRESHOLD_MS = 45 * 1000;
+const DEFAULT_INITIAL_CHECK_DELAY_MS = 1200;
 const DEFAULT_RUNNING_RECHECK_MS = 5 * 1000;
 const DEFAULT_EDITING_RECHECK_MS = 3 * 1000;
 const INTERACTION_EVENTS = ['pointerdown', 'keydown', 'touchstart', 'wheel'];
@@ -33,7 +37,11 @@ function normalizeSiteUpdateVersion(manifest) {
   }
 
   const candidate = manifest.version || manifest.sha || manifest.commit || manifest.build;
-  return candidate === undefined || candidate === null ? '' : String(candidate).trim();
+  return normalizeSiteUpdateVersionValue(candidate);
+}
+
+function normalizeSiteUpdateVersionValue(value) {
+  return value === undefined || value === null ? '' : String(value).trim();
 }
 
 function normalizeSiteUpdateSummary(manifest) {
@@ -127,13 +135,52 @@ function isEditableElement(element) {
 function buildCacheBypassUrl(url, options = {}) {
   const baseHref = options.baseHref || options.window?.location?.href || globalThis.location?.href || 'http://localhost/';
   const now = options.now || Date.now;
+  const random = options.random || Math.random;
+  const cacheBuster = `${now()}-${String(random()).slice(2)}`;
   const parsed = new URL(url, baseHref);
-  parsed.searchParams.set('siteUpdate', String(now()));
+  parsed.searchParams.set('siteUpdate', cacheBuster);
   return parsed.toString();
 }
 
-function readCurrentVersion(root, explicitVersion = '') {
-  return String(explicitVersion || root?.dataset?.queryAppCacheVersion || '').trim();
+function readEmbeddedSiteUpdateVersion(options = {}) {
+  const documentRef = options.document || globalThis.document;
+  const root = options.root || documentRef?.documentElement;
+  const metaName = options.metaName || DEFAULT_PAGE_VERSION_META_NAME;
+  const metaVersion = documentRef?.querySelector?.(`meta[name="${metaName}"]`)?.getAttribute?.('content');
+  return normalizeSiteUpdateVersionValue(metaVersion || root?.dataset?.queryAppCacheVersion);
+}
+
+function readStoredSiteUpdateVersion(options = {}) {
+  const storage = options.storage || options.window?.localStorage || globalThis.window?.localStorage;
+  const storageKey = options.storageKey || DEFAULT_STORED_VERSION_KEY;
+  try {
+    return normalizeSiteUpdateVersionValue(storage?.getItem?.(storageKey));
+  } catch {
+    return '';
+  }
+}
+
+function rememberLoadedSiteUpdateVersion(version, options = {}) {
+  const normalizedVersion = normalizeSiteUpdateVersionValue(version);
+  const storage = options.storage || options.window?.localStorage || globalThis.window?.localStorage;
+  const storageKey = options.storageKey || DEFAULT_STORED_VERSION_KEY;
+
+  if (!normalizedVersion) {
+    return false;
+  }
+
+  try {
+    storage?.setItem?.(storageKey, normalizedVersion);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function readCurrentVersion(options = {}) {
+  return normalizeSiteUpdateVersionValue(options.explicitVersion)
+    || readEmbeddedSiteUpdateVersion(options)
+    || readStoredSiteUpdateVersion(options);
 }
 
 function getQueryRunning(queryStateReaders = QueryStateReaders) {
@@ -241,16 +288,29 @@ function createSiteUpdateController(options = {}) {
   const fetchRef = options.fetch || globalThis.fetch?.bind(globalThis);
   const queryStateReaders = options.queryStateReaders || QueryStateReaders;
   const manifestUrl = options.manifestUrl || DEFAULT_MANIFEST_URL;
+  const pageVersionMetaName = options.pageVersionMetaName || DEFAULT_PAGE_VERSION_META_NAME;
+  const storedVersionKey = options.storedVersionKey || DEFAULT_STORED_VERSION_KEY;
+  const globalName = options.globalName === undefined ? DEFAULT_GLOBAL_NAME : options.globalName;
   const now = options.now || Date.now;
+  const random = options.random || Math.random;
   const checkIntervalMs = options.checkIntervalMs || DEFAULT_CHECK_INTERVAL_MS;
   const interactionCheckThrottleMs = options.interactionCheckThrottleMs || DEFAULT_INTERACTION_CHECK_THROTTLE_MS;
   const idleReloadDelayMs = options.idleReloadDelayMs || DEFAULT_IDLE_RELOAD_DELAY_MS;
   const idleThresholdMs = options.idleThresholdMs || DEFAULT_IDLE_THRESHOLD_MS;
+  const initialCheckDelayMs = options.initialCheckDelayMs ?? DEFAULT_INITIAL_CHECK_DELAY_MS;
   const runningRecheckMs = options.runningRecheckMs || DEFAULT_RUNNING_RECHECK_MS;
   const editingRecheckMs = options.editingRecheckMs || DEFAULT_EDITING_RECHECK_MS;
   const reloadPage = options.reload || (() => windowRef?.location?.reload?.());
 
-  let currentVersion = readCurrentVersion(root, options.currentVersion);
+  let currentVersion = readCurrentVersion({
+    document: documentRef,
+    explicitVersion: options.currentVersion,
+    metaName: pageVersionMetaName,
+    root,
+    storage: windowRef?.localStorage,
+    storageKey: storedVersionKey,
+    window: windowRef
+  });
   let updateVersion = '';
   let updateManifest = null;
   let updateSummary = '';
@@ -263,6 +323,7 @@ function createSiteUpdateController(options = {}) {
   let banner = null;
   let autoReloadTimer = null;
   let checkInterval = null;
+  let initialCheckTimer = null;
   let updateDetailsPromise = null;
   const cleanupCallbacks = [];
 
@@ -279,6 +340,35 @@ function createSiteUpdateController(options = {}) {
 
     delete root.dataset.queryAppUpdateAvailable;
     delete root.dataset.queryAppUpdateVersion;
+  }
+
+  function rememberCurrentVersion(version = currentVersion) {
+    const normalizedVersion = normalizeSiteUpdateVersionValue(version);
+    if (!normalizedVersion) {
+      return;
+    }
+
+    rememberLoadedSiteUpdateVersion(normalizedVersion, {
+      storage: windowRef?.localStorage,
+      storageKey: storedVersionKey,
+      window: windowRef
+    });
+    if (root?.dataset && !root.dataset.queryAppCacheVersion) {
+      root.dataset.queryAppCacheVersion = normalizedVersion;
+    }
+  }
+
+  function clearUpdateState() {
+    updateVersion = '';
+    updateManifest = null;
+    updateSummary = '';
+    updateRootDataset();
+    if (autoReloadTimer !== null) {
+      clearTimeout(autoReloadTimer);
+      autoReloadTimer = null;
+    }
+    banner?.remove?.();
+    banner = null;
   }
 
   function getDecision() {
@@ -307,7 +397,7 @@ function createSiteUpdateController(options = {}) {
     banner.dataset.siteUpdateBanner = 'true';
     banner.innerHTML = `
       <div class="site-update-banner-copy">
-        <strong data-site-update-title>Update ready</strong>
+        <strong data-site-update-title>Site update ready</strong>
         <span data-site-update-status>Use the latest version when you are ready.</span>
       </div>
       <div class="site-update-banner-actions">
@@ -368,7 +458,13 @@ function createSiteUpdateController(options = {}) {
 
     if (decision.canReload) {
       autoReloadTimer = setTimeout(() => {
-        void reloadForUpdate();
+        const nextDecision = getDecision();
+        if (nextDecision.canReload) {
+          void reloadForUpdate();
+          return;
+        }
+        updateBanner(nextDecision);
+        scheduleAutoReload();
       }, idleReloadDelayMs);
       return;
     }
@@ -383,9 +479,12 @@ function createSiteUpdateController(options = {}) {
       return null;
     }
 
-    const response = await fetchRef(buildCacheBypassUrl(manifestUrl, { now, window: windowRef }), {
+    const response = await fetchRef(buildCacheBypassUrl(manifestUrl, { now, random, window: windowRef }), {
       cache: 'no-store',
-      credentials: 'same-origin'
+      credentials: 'same-origin',
+      headers: {
+        Accept: 'application/json'
+      }
     });
 
     if (!response?.ok) {
@@ -404,17 +503,13 @@ function createSiteUpdateController(options = {}) {
 
     if (!currentVersion) {
       currentVersion = nextVersion;
-      if (root?.dataset && !root.dataset.queryAppCacheVersion) {
-        root.dataset.queryAppCacheVersion = nextVersion;
-      }
+      rememberCurrentVersion(nextVersion);
       return false;
     }
 
     if (nextVersion === currentVersion) {
-      updateVersion = '';
-      updateManifest = null;
-      updateSummary = '';
-      updateRootDataset();
+      rememberCurrentVersion(nextVersion);
+      clearUpdateState();
       return false;
     }
 
@@ -535,6 +630,10 @@ function createSiteUpdateController(options = {}) {
     }
 
     isStarted = true;
+    rememberCurrentVersion();
+    if (globalName && windowRef) {
+      windowRef[globalName] = api;
+    }
     INTERACTION_EVENTS.forEach(eventName => {
       addManagedListener(windowRef, eventName, checkAfterInteraction, { capture: true, passive: true });
     });
@@ -561,7 +660,7 @@ function createSiteUpdateController(options = {}) {
     addManagedListener(windowRef, 'query-app:check-site-update', checkNow);
 
     checkInterval = setInterval(checkNow, checkIntervalMs);
-    void checkNow();
+    initialCheckTimer = setTimeout(checkNow, Math.max(0, initialCheckDelayMs));
     return api;
   }
 
@@ -571,12 +670,19 @@ function createSiteUpdateController(options = {}) {
       clearInterval(checkInterval);
       checkInterval = null;
     }
+    if (initialCheckTimer !== null) {
+      clearTimeout(initialCheckTimer);
+      initialCheckTimer = null;
+    }
     if (autoReloadTimer !== null) {
       clearTimeout(autoReloadTimer);
       autoReloadTimer = null;
     }
     banner?.remove?.();
     banner = null;
+    if (globalName && windowRef?.[globalName] === api) {
+      delete windowRef[globalName];
+    }
     isStarted = false;
   }
 
@@ -584,6 +690,7 @@ function createSiteUpdateController(options = {}) {
     return {
       currentVersion,
       hasLocalEdits,
+      bannerVisible: Boolean(banner?.isConnected),
       isChecking,
       isReloading,
       lastInteractionAt,
@@ -609,11 +716,17 @@ onDOMReady(() => {
 
 export {
   ACTIVE_WORK_SELECTOR,
+  buildCacheBypassUrl,
   createSiteUpdateController,
   getSiteUpdateAutoReloadState,
   getSiteUpdateStatusMessage,
   hasActiveWork,
   isEditableElement,
+  normalizeSiteUpdateVersionValue,
+  readCurrentVersion,
+  readEmbeddedSiteUpdateVersion,
+  readStoredSiteUpdateVersion,
+  rememberLoadedSiteUpdateVersion,
   normalizeSiteUpdateVersion,
   normalizeSiteUpdateSummary,
   prepareServiceWorkerForSiteUpdate

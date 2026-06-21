@@ -1,11 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  buildCacheBypassUrl,
   getSiteUpdateAutoReloadState,
   getSiteUpdateStatusMessage,
   isEditableElement,
+  normalizeSiteUpdateVersionValue,
   normalizeSiteUpdateSummary,
-  normalizeSiteUpdateVersion
+  normalizeSiteUpdateVersion,
+  readCurrentVersion,
+  readEmbeddedSiteUpdateVersion,
+  readStoredSiteUpdateVersion,
+  rememberLoadedSiteUpdateVersion
 } from '../../../src/ui/siteUpdate.js';
 import { getSiteUpdateDetails } from '../../../src/ui/siteUpdateDetails.js';
 
@@ -35,6 +41,48 @@ test('site update version normalizes supported cache manifest keys', () => {
   assert.equal(normalizeSiteUpdateVersion({ build: 'build-7' }), 'build-7');
   assert.equal(normalizeSiteUpdateVersion({}), '');
   assert.equal(normalizeSiteUpdateVersion(null), '');
+  assert.equal(normalizeSiteUpdateVersionValue(null), '');
+  assert.equal(normalizeSiteUpdateVersionValue('  deploy-a  '), 'deploy-a');
+});
+
+test('site update reads current version from explicit, embedded, and stored fallbacks', () => {
+  const storage = new Map();
+  const storageAdapter = {
+    getItem: key => storage.get(key) || '',
+    setItem: (key, value) => storage.set(key, value)
+  };
+  const root = { dataset: { queryAppCacheVersion: 'root-version' } };
+  const documentWithMeta = {
+    documentElement: root,
+    querySelector(selector) {
+      assert.equal(selector, 'meta[name="query-app-cache-version"]');
+      return { getAttribute: () => ' meta-version ' };
+    }
+  };
+  const documentWithoutMeta = {
+    documentElement: root,
+    querySelector: () => null
+  };
+
+  assert.equal(readEmbeddedSiteUpdateVersion({ document: documentWithMeta, root }), 'meta-version');
+  assert.equal(readEmbeddedSiteUpdateVersion({ document: documentWithoutMeta, root }), 'root-version');
+  assert.equal(readCurrentVersion({ explicitVersion: ' explicit-version ', document: documentWithMeta, root, storage: storageAdapter }), 'explicit-version');
+  assert.equal(readCurrentVersion({ document: documentWithoutMeta, root, storage: storageAdapter }), 'root-version');
+
+  delete root.dataset.queryAppCacheVersion;
+  assert.equal(rememberLoadedSiteUpdateVersion(' stored-version ', { storage: storageAdapter }), true);
+  assert.equal(readStoredSiteUpdateVersion({ storage: storageAdapter }), 'stored-version');
+  assert.equal(readCurrentVersion({ document: documentWithoutMeta, root, storage: storageAdapter }), 'stored-version');
+});
+
+test('site update cache bypass URL includes timestamp and random nonce', () => {
+  const url = buildCacheBypassUrl('./cache-bust.json', {
+    baseHref: 'https://example.test/app/index.html?mode=live',
+    now: () => 12345,
+    random: () => 0.6789
+  });
+
+  assert.equal(url, 'https://example.test/app/cache-bust.json?siteUpdate=12345-6789');
 });
 
 test('site update summary normalizes deployment metadata fallbacks', () => {
