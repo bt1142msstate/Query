@@ -854,6 +854,7 @@ async function runSmokeTest() {
         statusRequests: queryApiStub.countAction('status')
       })}`);
     }
+
     if (
       !restoredResultLayout.formCard
       || !restoredResultLayout.tableWithFilter
@@ -864,6 +865,68 @@ async function runSmokeTest() {
         && Math.abs(restoredResultLayout.tableWithFilter.height - restoredResultLayout.filterPanel.height) > 2)
     ) {
       throw new Error(`Reloaded result layout should keep the table row and lower form panel within the viewport: ${JSON.stringify(restoredResultLayout)}`);
+    }
+
+    const getResultsRequestsBeforeRememberedReload = queryApiStub.countAction('get_results');
+    await page.evaluate(() => {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('result');
+      url.searchParams.delete('resultView');
+      window.history.replaceState({}, '', url.toString());
+    });
+    await page.reload({ waitUntil: 'load', timeout: 15000 });
+    await waitForAppReady(page, failures);
+    await page.waitForFunction(async () => {
+      const { appServices } = await import('./src/core/appServices.js');
+      return appServices.getVirtualTableData()?.rows?.some(row => row[0] === 'Loaded One');
+    }, null, { timeout: 7000 });
+    await page.evaluate(async () => {
+      const { QueryChangeManager } = await import('./src/core/queryState.js');
+      QueryChangeManager.replaceDisplayedFields(['Smoke Title'], {
+        source: 'BrowserSmoke.mutateRememberedResultBeforeReset'
+      });
+    });
+    await page.waitForFunction(async () => {
+      const { QueryStateReaders } = await import('./src/core/queryState.js');
+      return QueryStateReaders.getDisplayedFields().join('|') === 'Smoke Title';
+    }, null, { timeout: 5000 });
+    await page.locator('#form-mode-reset').click();
+    await page.locator('#form-mode-reset-options:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+    await page.locator('#form-mode-reset-original').click();
+    await page.waitForFunction(() => document.querySelector('#form-mode-reset-options')?.classList.contains('hidden'), null, { timeout: 5000 });
+    const rememberedResetState = await page.evaluate(async () => {
+      const { appServices } = await import('./src/core/appServices.js');
+      const { QueryStateReaders } = await import('./src/core/queryState.js');
+      const { decodeResultViewStateParam } = await import('./src/core/resultViewState.js');
+      const url = new URL(window.location.href);
+      const lifecycle = QueryStateReaders.getLifecycleState();
+      const tableData = appServices.getVirtualTableData();
+      return {
+        currentQueryId: lifecycle.currentQueryId,
+        displayedFields: QueryStateReaders.getDisplayedFields(),
+        hasLoadedResultSet: lifecycle.hasLoadedResultSet,
+        isPlanning: document.body.classList.contains('is-planning'),
+        result: url.searchParams.get('result'),
+        resultView: decodeResultViewStateParam(url.searchParams.get('resultView')),
+        rows: tableData?.rows || []
+      };
+    });
+    if (
+      rememberedResetState.currentQueryId !== 'browser-smoke-complete'
+      || rememberedResetState.hasLoadedResultSet !== true
+      || rememberedResetState.rows.length !== 1
+      || rememberedResetState.rows[0][0] !== 'Loaded One'
+      || rememberedResetState.displayedFields.join('|') !== 'Smoke Status|Smoke Branch 1|Smoke Branch 2|Smoke Title'
+      || rememberedResetState.result !== 'browser-smoke-complete'
+      || rememberedResetState.resultView?.displayedFields?.join('|') !== 'Smoke Status|Smoke Branch 1|Smoke Branch 2|Smoke Title'
+      || rememberedResetState.isPlanning
+      || queryApiStub.countAction('get_results') !== getResultsRequestsBeforeRememberedReload
+    ) {
+      throw new Error(`Reset to original should preserve remembered restored results instead of entering planning mode: ${JSON.stringify({
+        ...rememberedResetState,
+        getResultsRequestsBeforeRememberedReload,
+        getResultsRequests: queryApiStub.countAction('get_results')
+      })}`);
     }
 
     await page.locator('#post-filter-btn').click();

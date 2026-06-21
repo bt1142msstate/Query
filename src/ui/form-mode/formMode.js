@@ -18,7 +18,9 @@ import { bindFormModeTableNameUrlSync } from './formModeTableNameSync.js';
 import { syncSpecInputsWithActiveFilters } from './formModeQuerySync.js';
 import { FormModeStateHelpers as formModeStateHelpers } from './formModeStateHelpers.js';
 import { buildCurrentShareUrl as buildFormModeCurrentShareUrl, saveCurrentFormAsSharedBaseline as saveFormModeSharedBaseline } from './formModeShareBuilder.js';
-import { buildCurrentResultSearchParams as buildResetResultSearchParams, buildResultViewFieldSearchUiState, clearRenderedQueryResults, getBaselineResultSearchParams, replaceBrowserResultParams, restoreBaselineResultsForReset, stopRunningQueryForReset } from './formModeReset.js';
+import { buildCurrentResultSearchParams as buildResetResultSearchParams, buildResultViewFieldSearchUiState, clearRenderedQueryResults, getBaselineResultSearchParams, mergeBaselineResultSearchParams, replaceBrowserResultParams, restoreBaselineResultsForReset, stopRunningQueryForReset } from './formModeReset.js';
+import { resetFormToBaselineAction } from './formModeResetController.js';
+import { syncFormModeResultBaseline } from './formModeResultBaseline.js';
 import { resolveCurrentShareResultQueryId, syncFormModeShareUi } from './formModeShareState.js';
 import { openFormModeFieldPicker } from './formModeFieldPicker.js';
 import { QueryTableView } from '../queryTableView.js';
@@ -241,68 +243,36 @@ let QueryFormMode;
     }, options);
   }
 
+  function syncResultBaselineFromCurrentQuery(options = {}) {
+    return syncFormModeResultBaseline({
+      buildCurrentResultSearchParams,
+      getBaselineResultSearchParams,
+      mergeBaselineResultSearchParams,
+      state
+    }, options);
+  }
+
   async function resetFormToBaseline(kind) {
-    const isShared = kind === 'shared';
-    const nextSpec = cloneSpec(isShared ? state.sharedBaselineSpec : state.initialSpec) || cloneSpec(state.spec);
-    const nextSearchParamsSource = isShared ? state.sharedBaselineSearchParams : state.initialSearchParams;
-    const nextSearchParams = new URLSearchParams(nextSearchParamsSource ? nextSearchParamsSource.toString() : '');
-
-    if (!nextSpec) {
-      return;
-    }
-    const { resultQueryId, resultViewParam } = getBaselineResultSearchParams(nextSearchParams);
-    replaceBrowserResultParams({
-      resultQueryId,
-      resultViewParam,
-      state,
-      windowRef: window
-    });
-    state.searchParams = nextSearchParams;
-    state.spec = nextSpec;
-    sanitizeSpecDisplayColumns(state.spec);
-    state.lastSuggestedTableName = '';
-    state.suppressAutoTableNameOnce = false;
-    state.forceTableNameSyncOnce = true;
-
-    stopRunningQueryForReset({
+    return resetFormToBaselineAction({
+      buildResultViewFieldSearchUiState,
+      clearRenderedQueryResults,
+      cloneSpec,
+      dom: DOM,
+      getBaselineResultSearchParams,
       queryChangeManager: QueryChangeManager,
       queryStateReaders: QueryStateReaders,
-      services,
-      uiActions
-    });
-    rebuildFormCardFromSpec({
-      preserveCurrentDefaults: false,
-      applyState: true,
-      refreshUrl: false,
-      clearSearchParams: false,
-      querySource: isShared ? 'QueryFormMode.resetToShared' : 'QueryFormMode.resetToOriginal'
-    });
-    await restoreBaselineResultsForReset({
-      clearRenderedResults: () => clearRenderedQueryResults({
-        queryTableView: QueryTableView,
-        services
-      }),
-      label: isShared ? 'last shared link' : 'original form',
-      queryChangeManager: QueryChangeManager,
-      queryStateReaders: QueryStateReaders,
-      searchParams: nextSearchParams,
+      queryTableView: QueryTableView,
+      rebuildFormCardFromSpec,
+      refreshBrowserUrl,
+      replaceBrowserResultParams,
+      restoreBaselineResultsForReset,
+      sanitizeSpecDisplayColumns,
       services,
       showToastMessage,
-      uiActions,
-      uiState: buildResultViewFieldSearchUiState(DOM)
-    });
-    refreshBrowserUrl({
-      includeResult: Boolean(resultQueryId),
-      preserveResult: false,
-      resultQueryId,
-      resultViewParam
-    });
-    const preservedBaselineSearchParams = new URLSearchParams(nextSearchParams.toString());
-    if (isShared) {
-      state.sharedBaselineSearchParams = preservedBaselineSearchParams;
-    } else {
-      state.initialSearchParams = preservedBaselineSearchParams;
-    }
+      state,
+      stopRunningQueryForReset,
+      uiActions
+    }, kind);
   }
 
   function refreshBrowserUrl(options = {}) {
@@ -893,7 +863,8 @@ let QueryFormMode;
       return state.active && state.limitedView;
     },
     getValidationError,
-    buildCurrentShareUrl
+    buildCurrentShareUrl,
+    syncResultBaselineFromCurrentQuery
   };
   registerFormModeService(QueryFormMode);
 })();

@@ -473,6 +473,10 @@ function registerTableService(service) {
     return formModeService?.syncFromCurrentQuery?.();
   }
 
+  function syncFormModeResultBaseline(options = {}) {
+    return Boolean(formModeService?.syncResultBaselineFromCurrentQuery?.(options));
+  }
+
   function openQueryTemplatesPanel() {
     queryTemplatesService?.openPanel?.();
   }
@@ -592,6 +596,7 @@ function registerTableService(service) {
     isFormModeActive,
     isFormModeLimitedView,
     syncFormModeFromCurrentQuery,
+    syncFormModeResultBaseline,
     openQueryTemplatesPanel,
     closeQueryTemplatesPanel,
     refreshQueryTemplates,
