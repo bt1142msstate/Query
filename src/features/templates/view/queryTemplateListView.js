@@ -9,7 +9,8 @@ export function renderTemplateList({
   onSelectTemplate,
   onPinTemplate,
   onReorderPinnedTemplates,
-  onDraggedPinnedIdChange
+  onDraggedPinnedIdChange,
+  getTemplateSvgMarkup = () => ''
 }) {
   if (!elements.list || !elements.listStatus) {
     return;
@@ -53,9 +54,10 @@ export function renderTemplateList({
     const descriptionClass = String(template.description || '').trim()
       ? 'templates-list-item__description'
       : 'templates-list-item__description templates-list-item__description--empty';
+    const templateSvgMarkup = getTemplateSvgMarkup(template);
     button.innerHTML = `
-      <span class="templates-list-item__brick-face" aria-hidden="true">
-        <span class="templates-list-item__stud-row"><span></span><span></span><span></span><span></span></span>
+      <span class="templates-list-item__template-preview" aria-hidden="true">
+        ${templateSvgMarkup}
       </span>
       <span class="templates-list-item__copy">
         <span class="templates-list-item__title-row">
@@ -63,8 +65,7 @@ export function renderTemplateList({
           <span class="templates-list-item__title">${escapeHtml(template.name)}</span>
         </span>
         <span class="${descriptionClass}">${escapeHtml(descriptionTooltip)}</span>
-      </span>
-      <span class="templates-list-item__snap" aria-hidden="true"></span>`;
+      </span>`;
     button.addEventListener('click', () => onSelectTemplate(template.id));
     row.appendChild(button);
 

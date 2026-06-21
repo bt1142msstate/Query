@@ -24,6 +24,15 @@ function templateBlocksSVG(className = 'template-default-icon template-blocks-ic
     </svg>`;
 }
 
-const Icons = Object.freeze({ templateBlocksSVG, trashSVG });
+function templateDocumentSVG(className = 'template-default-icon template-document-icon w-4 h-4') {
+  return `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="${className}" aria-hidden="true">
+      <path class="template-document-page" d="M16 7h23l9 9v41H16z" fill="#FFFFFF" stroke="#111827" stroke-width="4" stroke-linejoin="round"/>
+      <path class="template-document-fold" d="M39 7v11h10" fill="none" stroke="#111827" stroke-width="4" stroke-linejoin="round"/>
+      <path class="template-document-line" d="M23 27h18M23 36h18M23 45h12" fill="none" stroke="#111827" stroke-width="4" stroke-linecap="round"/>
+    </svg>`;
+}
 
-export { Icons, templateBlocksSVG, trashSVG };
+const Icons = Object.freeze({ templateBlocksSVG, templateDocumentSVG, trashSVG });
+
+export { Icons, templateBlocksSVG, templateDocumentSVG, trashSVG };
