@@ -41,6 +41,25 @@ function getBaselineResultSearchParams(searchParams) {
   return { resultQueryId, resultViewParam };
 }
 
+function mergeBaselineResultSearchParams(searchParams, resultSearchParams) {
+  const target = searchParams instanceof URLSearchParams
+    ? new URLSearchParams(searchParams.toString())
+    : new URLSearchParams();
+  const { resultQueryId, resultViewParam } = getBaselineResultSearchParams(resultSearchParams);
+
+  if (!resultQueryId) {
+    return target;
+  }
+
+  target.set(RESULT_QUERY_URL_PARAM, resultQueryId);
+  if (resultViewParam) {
+    target.set(RESULT_VIEW_URL_PARAM, resultViewParam);
+  } else {
+    target.delete(RESULT_VIEW_URL_PARAM);
+  }
+  return target;
+}
+
 function replaceBrowserResultParams({
   resultQueryId,
   resultViewParam = '',
@@ -230,6 +249,7 @@ export {
   clearRenderedQueryResults,
   getBaselineResultSearchParams,
   hasLoadedBaselineResult,
+  mergeBaselineResultSearchParams,
   preserveLoadedBaselineResultsForReset,
   replaceBrowserResultParams,
   restoreBaselineResultsForReset,

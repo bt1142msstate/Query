@@ -206,6 +206,7 @@ async function hydrateHistoryResultTable({
     queryChangeManager,
     queryStateReaders
   });
+  services.syncFormModeResultBaseline?.();
 
   const displayedFields = queryStateReaders?.getDisplayedFields?.() || [];
   const renderFields = displayedFields.length
