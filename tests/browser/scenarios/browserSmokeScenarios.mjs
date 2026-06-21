@@ -2106,10 +2106,13 @@ async function exerciseColumnDragOutsideTableInteraction(page) {
         colIndex: element.getAttribute('data-col-index'),
         tagName: element.tagName
       }));
+      const headerStatus = document.querySelector('#header-arrange-status');
       return {
         anchorDisplay: anchor ? window.getComputedStyle(anchor).display : '',
         bodyClass: document.body.className,
         clientWidth: container?.clientWidth || 0,
+        headerStatusText: headerStatus?.textContent?.replace(/\s+/gu, ' ').trim() || '',
+        headerStatusVisible: Boolean(headerStatus && !headerStatus.classList.contains('hidden')),
         highlighted,
         scrollLeft: container?.scrollLeft || 0,
         scrollWidth: container?.scrollWidth || 0
@@ -2143,6 +2146,8 @@ async function exerciseColumnDragOutsideTableInteraction(page) {
   if (
     dragMetrics.during.scrollLeft <= 0
     || dragMetrics.during.anchorDisplay === 'none'
+    || !dragMetrics.during.headerStatusVisible
+    || !/Dragging:\s*Wide Smoke Title/u.test(dragMetrics.during.headerStatusText)
     || dragMetrics.during.highlighted.length <= 1
     || !dragMetrics.during.highlighted.some(entry => entry.tagName === 'TD')
   ) {
@@ -2151,6 +2156,8 @@ async function exerciseColumnDragOutsideTableInteraction(page) {
 
   if (
     dragMetrics.after.anchorDisplay !== 'none'
+    || dragMetrics.after.headerStatusVisible
+    || dragMetrics.after.headerStatusText
     || dragMetrics.after.highlighted.length > 0
     || /dragging-cursor/u.test(dragMetrics.after.bodyClass)
   ) {

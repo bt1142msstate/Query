@@ -3,20 +3,13 @@ import { appServices, registerDragDropService } from '../../../core/appServices.
 import { Icons } from '../../../core/icons.js';
 import { QueryStateReaders, getBaseFieldName } from '../../../core/queryState.js';
 import { showToastMessage } from '../../../core/toast.js';
-import {
-  getDuplicateGroups,
-  restoreFieldWithDuplicates
-} from './columnManager.js';
+import { getDuplicateGroups, restoreFieldWithDuplicates } from './columnManager.js';
 import { createColumnResizeController } from './columnResizeController.js';
+import { clearColumnDragArrangeStatus, showColumnDragArrangeStatus } from './dragDropArrangeStatus.js';
 import { dragDropColumnOps } from './dragDropColumns.js';
 import { createDragDropHeaderActions } from './dragDropHeaderActions.js';
 import { createDragDropHeaderInsertAffordance } from './dragDropHeaderInsertAffordance.js';
-import {
-  calculateAutoScrollStep,
-  calculateHeaderActionLayout,
-  getAutoScrollIntent,
-  getHeaderInsertPositionFromRects
-} from './dragDropInteractionMath.js';
+import { calculateAutoScrollStep, calculateHeaderActionLayout, getAutoScrollIntent, getHeaderInsertPositionFromRects } from './dragDropInteractionMath.js';
 import { resolveColumnResizeStartTarget } from './resizeStartTarget.js';
 import { SharedFieldPicker } from '../../../ui/field-picker/fieldPicker.js';
 import {
@@ -351,10 +344,11 @@ let DragDropInteractions;
       e.dataTransfer.setData(TABLE_COLUMN_DRAG_MIME, th.dataset.colIndex);
 
       const colIndex = parseInt(th.dataset.colIndex, 10);
-      const fieldName = getDisplayedFields()[colIndex];
+      const fieldName = th.getAttribute('data-sort-field') || getDisplayedFields()[colIndex] || '';
       const relatedIndices = getColumnMoveGroupIndices(fieldName, getDisplayedFields());
       this.activeDragIndex = colIndex;
       this.activeDragGroupIndices = relatedIndices;
+      showColumnDragArrangeStatus(th, fieldName, relatedIndices);
 
       relatedIndices.forEach(index => {
         const relatedHeader = document.querySelector(`thead th[data-col-index="${index}"]`);
@@ -394,6 +388,7 @@ let DragDropInteractions;
       document.body.classList.remove('dragging-cursor');
       clearDropAnchor();
       this.stopAutoScroll();
+      clearColumnDragArrangeStatus();
       this.activeTable = null;
       this.activeDragIndex = -1;
       this.activeDragGroupIndices = [];
@@ -531,6 +526,7 @@ let DragDropInteractions;
       if (!isPointerNearDropViewport(table, e.clientX, e.clientY, getOutsideDropViewportOptions(window))) {
         clearDropAnchor(table);
         this.stopAutoScroll();
+        clearColumnDragArrangeStatus();
         this.activeTable = null;
         return;
       }
@@ -542,6 +538,7 @@ let DragDropInteractions;
       if (!best) {
         clearDropAnchor(table);
         this.stopAutoScroll();
+        clearColumnDragArrangeStatus();
         this.activeTable = null;
         return;
       }
@@ -560,6 +557,7 @@ let DragDropInteractions;
       const toIndex = parseInt(th.dataset.colIndex, 10);
 
       this.stopAutoScroll();
+      clearColumnDragArrangeStatus();
 
       const fromIndexStr = e.dataTransfer.getData(TABLE_COLUMN_DRAG_MIME).trim();
       if (/^\d+$/.test(fromIndexStr)) {
@@ -600,6 +598,7 @@ let DragDropInteractions;
 
       const toIndex = parseInt(td.dataset.colIndex, 10);
       this.stopAutoScroll();
+      clearColumnDragArrangeStatus();
 
       const fromIndex = parseInt(e.dataTransfer.getData(TABLE_COLUMN_DRAG_MIME), 10);
       if (!isNaN(fromIndex) && fromIndex !== toIndex) {
