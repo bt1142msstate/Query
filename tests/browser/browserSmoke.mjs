@@ -389,6 +389,83 @@ async function runSmokeTest() {
       throw new Error(`Startup should share one backend field metadata request, saw ${queryApiStub.countAction('get_fields')}`);
     }
 
+    const loadedCacheVersion = await page.evaluate(() => document.documentElement.dataset.queryAppCacheVersion || '');
+    const cacheManifestOverride = {
+      version: `${loadedCacheVersion || 'browser-smoke'}-next`,
+      update: {
+        title: 'Improve update prompts',
+        summary: 'The app can show deployment details before refreshing.',
+        items: ['Shows a What changed panel', 'Keeps the manual Update now action available']
+      }
+    };
+    const siteUpdateResult = await page.evaluate(async manifest => {
+      if (!window.QueryAppSiteUpdate?.stop) {
+        return { missing: true };
+      }
+      window.QueryAppSiteUpdate.stop();
+      const { createSiteUpdateController } = await import('./src/ui/siteUpdate.js');
+      const controller = createSiteUpdateController({
+        checkIntervalMs: 60_000,
+        currentVersion: document.documentElement.dataset.queryAppCacheVersion || '',
+        fetch: async () => ({
+          ok: true,
+          json: async () => manifest
+        }),
+        initialCheckDelayMs: 60_000
+      }).start();
+      const changed = await controller.checkNow();
+      return {
+        changed,
+        state: controller.getState()
+      };
+    }, cacheManifestOverride);
+    if (
+      siteUpdateResult.missing
+      || !siteUpdateResult.changed
+      || siteUpdateResult.state?.currentVersion !== loadedCacheVersion
+      || siteUpdateResult.state?.updateVersion !== cacheManifestOverride.version
+    ) {
+      throw new Error(`Site update controller should detect a newer deployment: ${JSON.stringify(siteUpdateResult)}`);
+    }
+
+    await page.locator('[data-site-update-banner]').waitFor({ state: 'visible', timeout: 5000 });
+    const siteUpdateBannerState = await page.locator('[data-site-update-banner]').evaluate(banner => ({
+      actionLabel: banner.querySelector('[data-site-update-action]')?.getAttribute('aria-label') || '',
+      actionText: banner.querySelector('[data-site-update-action]')?.textContent?.trim() || '',
+      detailsHidden: banner.querySelector('[data-site-update-details]')?.hidden,
+      detailsToggleHidden: banner.querySelector('[data-site-update-details-toggle]')?.hidden,
+      title: banner.querySelector('[data-site-update-title]')?.textContent?.trim() || ''
+    }));
+    if (
+      siteUpdateBannerState.title !== 'Site update ready'
+      || siteUpdateBannerState.actionText !== 'Update now'
+      || siteUpdateBannerState.actionLabel !== 'Update now: Improve update prompts'
+      || siteUpdateBannerState.detailsToggleHidden
+      || !siteUpdateBannerState.detailsHidden
+    ) {
+      throw new Error(`Site update banner should match the deployment prompt contract: ${JSON.stringify(siteUpdateBannerState)}`);
+    }
+
+    await page.locator('[data-site-update-details-toggle]').click();
+    const siteUpdateDetailsState = await page.locator('[data-site-update-banner]').evaluate(banner => ({
+      expanded: banner.querySelector('[data-site-update-details-toggle]')?.getAttribute('aria-expanded') || '',
+      hidden: banner.querySelector('[data-site-update-details]')?.hidden,
+      itemCount: banner.querySelectorAll('[data-site-update-details-list] li').length,
+      summary: banner.querySelector('[data-site-update-details-summary]')?.textContent?.trim() || '',
+      title: banner.querySelector('[data-site-update-details-title]')?.textContent?.trim() || ''
+    }));
+    if (
+      siteUpdateDetailsState.expanded !== 'true'
+      || siteUpdateDetailsState.hidden
+      || siteUpdateDetailsState.title !== 'Improve update prompts'
+      || siteUpdateDetailsState.summary !== 'The app can show deployment details before refreshing.'
+      || siteUpdateDetailsState.itemCount !== 2
+    ) {
+      throw new Error(`Site update details should open with manifest metadata: ${JSON.stringify(siteUpdateDetailsState)}`);
+    }
+
+    await page.evaluate(() => window.QueryAppSiteUpdate?.stop?.());
+
     if (failures.length > 0) {
       throw new Error(`Browser smoke test failed:\n${failures.map(failure => `- ${failure}`).join('\n')}`);
     }
