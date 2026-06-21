@@ -1227,12 +1227,29 @@
 
 .fp-display-item.fp-drag-over-top,
 .fp-field-group.fp-drag-over-top {
-  box-shadow: inset 0 3px 0 #0f766e;
+  box-shadow: inset 0 3px 0 #0f766e, 0 12px 28px rgba(15, 118, 110, 0.14);
 }
 
 .fp-display-item.fp-drag-over-bottom,
 .fp-field-group.fp-drag-over-bottom {
-  box-shadow: inset 0 -3px 0 #0f766e;
+  box-shadow: inset 0 -3px 0 #0f766e, 0 12px 28px rgba(15, 118, 110, 0.14);
+}
+
+.fp-display-item.fp-drop-target,
+.fp-field-group.fp-drop-target {
+  border-color: rgba(15, 118, 110, 0.58);
+  background: linear-gradient(180deg, rgba(240, 253, 250, 0.98), rgba(204, 251, 241, 0.82));
+}
+
+.fp-drop-anchor {
+  position: fixed;
+  z-index: calc(var(--z-modal-panel, 10030) + 12);
+  height: 4px;
+  border-radius: 999px;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(20, 184, 166, 0), #0f766e 12%, #14b8a6 50%, #0f766e 88%, rgba(20, 184, 166, 0));
+  box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.18), 0 8px 22px rgba(15, 118, 110, 0.28);
+  transform: translateY(-2px);
 }
 
 .fp-display-item.fp-dragging,
@@ -1269,11 +1286,28 @@
 }
 
 .fp-field-name {
+  min-width: 0;
   font-size: 0.68rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: #4b5563;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fp-field-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.fp-filter-order-btn {
+  width: 23px;
+  height: 23px;
+  border-radius: 7px;
 }
 
 /* Conditions list */

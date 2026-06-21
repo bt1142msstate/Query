@@ -19,11 +19,11 @@ import { Icons } from '../../core/icons.js';
 import { SharedFieldPicker } from '../../ui/field-picker/fieldPicker.js';
 import { fieldDefs } from './fieldDefs.js';
 import { attachPointerReorder } from './panelReorder.js';
+import { createFilterSidePanelReorderActions } from './filterSidePanelReorderActions.js';
 import { QueryTableView } from '../../ui/queryTableView.js';
 import { DOM } from '../../core/domCache.js';
 
 const FilterSidePanel = (function () {
-    const DEFER_PROJECTION_ROW_THRESHOLD = 50000;
     const FILTER_GROUP_REORDER_INTERACTIVE_SELECTOR = [
         'a',
         'button',
@@ -128,12 +128,16 @@ const FilterSidePanel = (function () {
     }
 
     function hasAnyFilters() {
-        const activeFilters = getActiveFilters();
-        return Object.keys(activeFilters).some(
-                k => activeFilters[k] &&
-                     activeFilters[k].filters &&
-                     activeFilters[k].filters.length > 0
-            );
+        return getActiveFilterEntries().length > 0;
+    }
+
+    function getActiveFilterEntries() {
+        return Object.entries(getActiveFilters())
+            .filter(([, data]) => data && Array.isArray(data.filters) && data.filters.length > 0);
+    }
+
+    function getActiveFilterFields() {
+        return getActiveFilterEntries().map(([field]) => field);
     }
 
     function hasDisplayedFields() {
@@ -256,221 +260,6 @@ const FilterSidePanel = (function () {
         }
     }
 
-    function moveDisplayedFieldByOffset(index, offset) {
-        const fields = getDisplayedFields();
-        const targetIndex = getDisplayedFieldOffsetTargetIndex(fields, index, offset);
-        if (index < 0 || index >= fields.length || targetIndex < 0 || targetIndex >= fields.length) {
-            return;
-        }
-
-        moveDisplayedField(index, targetIndex, 'FilterSidePanel.moveDisplayedField');
-    }
-
-    function getDisplayItemCurrentIndex(item) {
-        const fieldName = getDisplayItemFieldName(item);
-        if (!fieldName) {
-            return -1;
-        }
-
-        const fields = getDisplayedFields();
-        const displayItems = Array.from(DOM.filterPanelBody?.querySelectorAll?.('.fp-display-item') || []);
-        const domIndex = displayItems.indexOf(item);
-        if (domIndex >= 0 && fields[domIndex] === fieldName) {
-            return domIndex;
-        }
-
-        return fields.findIndex(field => field === fieldName);
-    }
-
-    function moveDisplayedFieldItemByOffset(item, offset) {
-        moveDisplayedFieldByOffset(getDisplayItemCurrentIndex(item), offset);
-    }
-
-    function getDisplayedFieldOffsetTargetIndex(fields, index, offset) {
-        const normalizedOffset = Number(offset) < 0 ? -1 : 1;
-        const fieldName = fields[index];
-        const groupIndices = services.getDisplayedFieldMoveGroupIndices(fieldName, fields);
-        if (groupIndices.length <= 1) {
-            return index + normalizedOffset;
-        }
-
-        const groupStart = Math.min(...groupIndices);
-        const groupEnd = Math.max(...groupIndices);
-        return normalizedOffset < 0 ? groupStart - 1 : groupEnd + 1;
-    }
-
-    function areStringArraysEqual(left, right) {
-        if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) {
-            return false;
-        }
-
-        return left.every((value, index) => value === right[index]);
-    }
-
-    function getDisplayItemFieldName(item) {
-        return String(item?.querySelector?.('.fp-display-name')?.textContent || '').trim();
-    }
-
-    function applyOptimisticDisplayListOrder(nextFields) {
-        const fields = Array.isArray(nextFields) ? nextFields.filter(Boolean) : [];
-        const displaySection = DOM.filterPanelBody?.querySelector?.('.fp-display-section');
-        if (!displaySection) {
-            return false;
-        }
-
-        const currentFields = Array.from(displaySection.querySelectorAll('.fp-display-item'))
-            .map(getDisplayItemFieldName)
-            .filter(Boolean);
-        const changed = !areStringArraysEqual(currentFields, fields);
-        if (!changed) {
-            return false;
-        }
-
-        displaySection.replaceWith(createDisplaySection(fields));
-        return true;
-    }
-
-    function queueOptimisticTableStateSync(metrics, scrollAnchorField, options = {}) {
-        const tableDomAlreadySynced = metrics?.changed === true && Number(metrics?.skippedBodyRows || 0) === 0;
-        QueryTableView.queueNextStateRenderOptions({
-            preserveScroll: true,
-            scrollAnchorField: scrollAnchorField || '',
-            tableDomAlreadySynced,
-            skipProjectionSync: tableDomAlreadySynced && options.skipProjectionSync === true,
-            deferProjectionSync: tableDomAlreadySynced && shouldDeferProjectionSync()
-        });
-        return tableDomAlreadySynced;
-    }
-
-    function shouldDeferProjectionSync() {
-        if (services.isDuplicateRowCollapseActive?.() !== true) {
-            return false;
-        }
-
-        const state = services.getVirtualTableState?.();
-        const baseRowCount = Array.isArray(state?.baseViewData?.rows)
-            ? state.baseViewData.rows.length
-            : 0;
-        const currentData = services.getVirtualTableData?.();
-        const currentRowCount = Array.isArray(currentData?.rows) ? currentData.rows.length : 0;
-
-        return Math.max(baseRowCount, currentRowCount) >= DEFER_PROJECTION_ROW_THRESHOLD;
-    }
-
-    function moveDisplayedField(fromIndex, toIndex, source) {
-        const fields = getDisplayedFields();
-        if (!Number.isInteger(fromIndex) || !Number.isInteger(toIndex) || fromIndex === toIndex) {
-            return false;
-        }
-
-        if (fromIndex < 0 || fromIndex >= fields.length) {
-            return false;
-        }
-
-        const splitMove = services.buildDisplayedFieldMove(fields, fromIndex, toIndex);
-        if (splitMove?.isGroupMove) {
-            if (!splitMove.changed) {
-                return false;
-            }
-
-            applyOptimisticDisplayListOrder(splitMove.fields);
-            const moveMetrics = services.applyImmediateColumnOrder(splitMove.fields);
-            const tableDomAlreadySynced = queueOptimisticTableStateSync(moveMetrics, splitMove.movedFields?.[0] || fields[fromIndex] || '', {
-                skipProjectionSync: true
-            });
-            QueryChangeManager.replaceDisplayedFields(splitMove.fields, {
-                optimisticTableDomAlreadySynced: tableDomAlreadySynced,
-                source
-            });
-
-            return true;
-        }
-
-        const nextFields = fields.slice();
-        const [movedField] = nextFields.splice(fromIndex, 1);
-        const insertAt = Math.max(0, Math.min(toIndex, nextFields.length));
-        nextFields.splice(insertAt, 0, movedField);
-        applyOptimisticDisplayListOrder(nextFields);
-        const moveMetrics = services.applyImmediateColumnOrder(nextFields);
-        const tableDomAlreadySynced = queueOptimisticTableStateSync(moveMetrics, movedField, {
-            skipProjectionSync: true
-        });
-        QueryChangeManager.moveDisplayedField(fromIndex, toIndex, {
-            optimisticTableDomAlreadySynced: tableDomAlreadySynced,
-            source
-        });
-
-        return true;
-    }
-
-    function moveDisplayedFieldRelativeToTarget(draggedItem, targetItem, insertAfter) {
-        const fromIndex = Number.parseInt(draggedItem?.dataset?.index || '', 10);
-        const targetIndex = Number.parseInt(targetItem?.dataset?.index || '', 10);
-        if (!Number.isInteger(fromIndex) || !Number.isInteger(targetIndex) || fromIndex === targetIndex) {
-            return false;
-        }
-
-        const nextIndex = insertAfter
-            ? (fromIndex < targetIndex ? targetIndex : targetIndex + 1)
-            : (fromIndex < targetIndex ? targetIndex - 1 : targetIndex);
-
-        return moveDisplayedField(fromIndex, nextIndex, 'FilterSidePanel.pointerDragDisplayedField');
-    }
-
-    function moveFilterGroupRelativeToTarget(draggedField, targetField, insertAfter) {
-        if (!draggedField || !targetField || draggedField === targetField) {
-            return false;
-        }
-
-        const order = Object.keys(getActiveFilters());
-        const fromIndex = order.indexOf(draggedField);
-        if (fromIndex === -1 || !order.includes(targetField)) {
-            return false;
-        }
-
-        order.splice(fromIndex, 1);
-        const targetIndex = order.indexOf(targetField);
-        order.splice(targetIndex + (insertAfter ? 1 : 0), 0, draggedField);
-
-        QueryChangeManager.reorderFilterGroups(order, {
-            source: 'FilterSidePanel.pointerDragFilterGroups'
-        });
-        uiActions.updateQueryJson();
-        return true;
-    }
-
-    function removeDisplayedFieldAt(index) {
-        const fields = getDisplayedFields();
-        const fieldName = fields[index];
-        if (!fieldName) {
-            return;
-        }
-
-        const removal = services.buildDisplayedFieldRemoval(fields, fieldName);
-        if (removal?.changed && !areStringArraysEqual(removal.fields, fields)) {
-            applyOptimisticDisplayListOrder(removal.fields);
-            const removalMetrics = services.applyImmediateColumnRemoval(removal.fields);
-            const scrollAnchorField = removal.fields[Math.min(index, removal.fields.length - 1)]
-                || removal.fields[Math.max(0, index - 1)]
-                || '';
-            const tableDomAlreadySynced = queueOptimisticTableStateSync(removalMetrics, scrollAnchorField);
-            QueryChangeManager.hideField(fieldName, {
-                optimisticTableDomAlreadySynced: tableDomAlreadySynced,
-                tableDomAlreadySynced,
-                source: 'FilterSidePanel.removeDisplayedField'
-            });
-            return;
-        }
-
-        QueryChangeManager.hideField(fieldName, {
-            source: 'FilterSidePanel.removeDisplayedField'
-        });
-    }
-
-    function removeDisplayedFieldItem(item) {
-        removeDisplayedFieldAt(getDisplayItemCurrentIndex(item));
-    }
-
     function openDisplayFieldPicker(insertAt = -1) {
         const lifecycleState = QueryStateReaders?.getLifecycleState?.();
         if (lifecycleState?.queryRunning) {
@@ -519,6 +308,17 @@ const FilterSidePanel = (function () {
         });
         return button;
     }
+
+    const reorderActions = createFilterSidePanelReorderActions({
+        DOM,
+        QueryChangeManager,
+        QueryStateReaders,
+        QueryTableView,
+        createDisplaySection,
+        getActiveFilterFields,
+        services,
+        uiActions
+    });
 
     function createPanelModeSwitch() {
         const switcher = document.createElement('div');
@@ -607,7 +407,7 @@ const FilterSidePanel = (function () {
                 container: list,
                 itemSelector: '.fp-display-item',
                 onMove: (targetItem, insertAfter) => {
-                    moveDisplayedFieldRelativeToTarget(item, targetItem, insertAfter);
+                    reorderActions.moveDisplayedFieldRelativeToTarget(item, targetItem, insertAfter);
                 }
             });
 
@@ -626,21 +426,21 @@ const FilterSidePanel = (function () {
                 'fp-display-btn fp-display-btn-up',
                 `Move ${field} up`,
                 `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="m18 15-6-6-6 6"/></svg>`,
-                () => moveDisplayedFieldItemByOffset(item, -1)
+                () => reorderActions.moveDisplayedFieldItemByOffset(item, -1)
             ));
 
             controls.appendChild(createIconButton(
                 'fp-display-btn fp-display-btn-down',
                 `Move ${field} down`,
                 `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="m6 9 6 6 6-6"/></svg>`,
-                () => moveDisplayedFieldItemByOffset(item, 1)
+                () => reorderActions.moveDisplayedFieldItemByOffset(item, 1)
             ));
 
             controls.appendChild(createIconButton(
                 'fp-display-btn fp-display-btn-remove',
                 `Remove ${field} from display`,
                 Icons.trashSVG(14, 14),
-                () => removeDisplayedFieldItem(item)
+                () => reorderActions.removeDisplayedFieldItem(item)
             ));
 
             if (index === 0) {
@@ -680,12 +480,12 @@ const FilterSidePanel = (function () {
             itemSelector: '.fp-field-group',
             interactiveSelector: FILTER_GROUP_REORDER_INTERACTIVE_SELECTOR,
             onMove: (targetGroup, insertAfter) => {
-                moveFilterGroupRelativeToTarget(field, targetGroup?.dataset?.field || '', insertAfter);
+                reorderActions.moveFilterGroupRelativeToTarget(field, targetGroup?.dataset?.field || '', insertAfter);
             }
         });
     }
 
-    function createFilterGroup(field, data, container) {
+    function createFilterGroup(field, data, container, options = {}) {
         const fieldDef = fieldDefs ? fieldDefs.get(field) : null;
         const group = document.createElement('div');
         group.className = 'fp-field-group';
@@ -699,7 +499,34 @@ const FilterSidePanel = (function () {
         nameSpan.className = 'fp-field-name';
         nameSpan.textContent = field;
 
+        const headerActions = document.createElement('div');
+        headerActions.className = 'fp-field-header-actions';
+
+        const moveUpButton = createIconButton(
+            'fp-display-btn fp-filter-order-btn fp-filter-order-btn-up',
+            `Move ${field} filter up`,
+            `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="m18 15-6-6-6 6"/></svg>`,
+            () => reorderActions.moveFilterGroupItemByOffset(group, -1)
+        );
+        const moveDownButton = createIconButton(
+            'fp-display-btn fp-filter-order-btn fp-filter-order-btn-down',
+            `Move ${field} filter down`,
+            `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="m6 9 6 6 6-6"/></svg>`,
+            () => reorderActions.moveFilterGroupItemByOffset(group, 1)
+        );
+
+        if (options.index === 0) {
+            moveUpButton.setAttribute('disabled', 'true');
+        }
+        if (options.index === options.total - 1) {
+            moveDownButton.setAttribute('disabled', 'true');
+        }
+
+        headerActions.appendChild(moveUpButton);
+        headerActions.appendChild(moveDownButton);
+
         fieldHeader.appendChild(nameSpan);
+        fieldHeader.appendChild(headerActions);
         group.appendChild(fieldHeader);
 
         const condsList = document.createElement('div');
@@ -792,8 +619,7 @@ const FilterSidePanel = (function () {
     function createFiltersSection() {
         const wrapper = document.createElement('section');
         wrapper.className = 'fp-section fp-filters-section';
-        const filterEntries = Object.entries(getActiveFilters())
-            .filter(([, data]) => data && Array.isArray(data.filters) && data.filters.length > 0);
+        const filterEntries = getActiveFilterEntries();
         const totalFilters = filterEntries.reduce((sum, [, data]) => sum + data.filters.length, 0);
 
         wrapper.appendChild(createSectionHeader('Filters', totalFilters, totalFilters === 1 ? 'active filter' : 'active filters'));
@@ -808,8 +634,11 @@ const FilterSidePanel = (function () {
 
         const list = document.createElement('div');
         list.className = 'fp-filter-list';
-        filterEntries.forEach(([field, data]) => {
-            list.appendChild(createFilterGroup(field, data, list));
+        filterEntries.forEach(([field, data], index) => {
+            list.appendChild(createFilterGroup(field, data, list, {
+                index,
+                total: filterEntries.length
+            }));
         });
         wrapper.appendChild(list);
         return wrapper;
@@ -869,7 +698,7 @@ const FilterSidePanel = (function () {
         });
     }
 
-    return { update, open, close, toggle, setViewMode, syncDisplayListOrder: applyOptimisticDisplayListOrder };
+    return { update, open, close, toggle, setViewMode, syncDisplayListOrder: reorderActions.syncDisplayListOrder };
 }());
 
 registerAppUiActionDependencies({ filterSidePanel: FilterSidePanel });
