@@ -3,7 +3,7 @@ import { getComparableValue } from './formatting/dateValues.js';
 import { MoneyUtils } from './formatting/moneyUtils.js';
 import { ValueFormatting } from './formatting/valueFormatting.js';
 import { registerQueryStateRuntimeAccessors } from './queryState.js';
-import { resolveFieldName } from '../features/filters/fieldDefs.js';
+import { resolveFieldName } from './fieldDefs.js';
 
 let lastRejectedToast = {
   message: '',

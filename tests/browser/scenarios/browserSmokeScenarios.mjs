@@ -2766,7 +2766,7 @@ async function exerciseTableBuildableDisplayField(page) {
   }
 
   const persistedBeforeReload = await page.evaluate(async () => {
-    const { DYNAMIC_FIELD_STORAGE_KEY } = await import('./src/features/filters/dynamicFieldStorage.js');
+    const { DYNAMIC_FIELD_STORAGE_KEY } = await import('./src/core/dynamicFieldStorage.js');
     const storedFields = JSON.parse(window.localStorage.getItem(DYNAMIC_FIELD_STORAGE_KEY) || '[]');
     return {
       storageKey: DYNAMIC_FIELD_STORAGE_KEY,
@@ -2808,7 +2808,7 @@ async function exerciseTableBuildableDisplayField(page) {
   await removeBuiltButton.click();
 
   const removedState = await page.evaluate(async () => {
-    const { DYNAMIC_FIELD_STORAGE_KEY, readStoredDynamicFields } = await import('./src/features/filters/dynamicFieldStorage.js');
+    const { DYNAMIC_FIELD_STORAGE_KEY, readStoredDynamicFields } = await import('./src/core/dynamicFieldStorage.js');
     const { QueryStateReaders } = await import('./src/core/queryState.js');
     const { fieldDefs, isLocalDynamicField } = await import('./src/features/filters/fieldDefs.js');
     return {

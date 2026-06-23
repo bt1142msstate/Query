@@ -9,9 +9,9 @@ import {
   filteredDefs,
   hasLoadedFieldDefinitions,
   loadFieldDefinitions,
-  renderCategorySelectors,
   updateFilteredDefs
-} from '../features/filters/fieldDefs.js';
+} from '../core/fieldDefs.js';
+import { renderCategorySelectors } from './categorySelectors.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { appServices } from '../core/appServices.js';
 import { appUiActions, registerAppUiActionDependencies } from '../core/appUiActions.js';
