@@ -6,7 +6,7 @@ import {
   buildOverviewRows,
   getOverviewColumns,
   getOverviewTotalCount
-} from '../../../src/features/table/export/workbookOverview.js';
+} from '../../../src/lib/workbook-export/workbookOverview.js';
 import test from 'node:test';
 
 test('workbook overview', async () => {

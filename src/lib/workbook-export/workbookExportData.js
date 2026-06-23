@@ -1,6 +1,6 @@
-import { formatDisplayValue, parseDateValue } from '../../../core/formatting/dateValues.js';
-import { MoneyUtils } from '../../../core/formatting/moneyUtils.js';
-import { getCellValueParts, hasMultipleCellValues } from '../../../core/resultCellValues.js';
+import { formatDisplayValue, parseDateValue } from '../../core/formatting/dateValues.js';
+import { MoneyUtils } from '../../core/formatting/moneyUtils.js';
+import { getCellValueParts, hasMultipleCellValues } from '../../core/resultCellValues.js';
 
 const SHEET_NAME_LIMIT = 31;
 const MAX_GROUPED_SHEETS = 100;

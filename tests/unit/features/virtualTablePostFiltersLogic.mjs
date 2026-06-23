@@ -29,7 +29,7 @@ test('virtual table post filters', async () => {
     createVirtualTablePostFilterController,
     doesCellMatchPostFilter
   } = await import('../../../src/features/table/virtual-table/virtualTablePostFilters.js');
-  const { buildExpandedMultiValueTable } = await import('../../../src/features/table/virtual-table/splitColumnExpansion.js');
+  const { buildExpandedMultiValueTable } = await import('../../../src/lib/virtual-table/splitColumnExpansion.js');
 
   let displayedFields = ['Title', 'Bill Count', 'Branch'];
   let baseViewData = {

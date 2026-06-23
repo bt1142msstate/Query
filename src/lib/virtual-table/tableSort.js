@@ -1,5 +1,5 @@
-import { MoneyUtils } from '../../../core/formatting/moneyUtils.js';
-import { getCellValueParts } from '../../../core/resultCellValues.js';
+import { MoneyUtils } from '../../core/formatting/moneyUtils.js';
+import { getCellValueParts } from '../../core/resultCellValues.js';
 import {
   getLazyExpandedRowColumnPlan,
   getLazyExpandedRowSourceRow,

@@ -6,7 +6,7 @@ test('virtual table duplicate collapse', async () => {
     buildVirtualTableProjection,
     buildDuplicateCollapseToastMessage,
     collapseDuplicateProjectedRows
-  } = await import('../../../src/features/table/virtual-table/virtualTableDuplicateCollapse.js');
+  } = await import('../../../src/lib/virtual-table/virtualTableDuplicateCollapse.js');
 
   const rows = [
     ['Same title', 'Main', 'item-1'],

@@ -53,6 +53,7 @@ function classifyLayer(relativePath) {
   if (relativePath === 'src/appModules.js') return 'entry';
   if (relativePath.startsWith('src/core/')) return 'core';
   if (relativePath.startsWith('src/components/')) return 'components';
+  if (relativePath.startsWith('src/lib/')) return 'lib';
   if (relativePath.startsWith('src/ui/')) return 'ui';
   if (relativePath.startsWith('src/features/filters/')) return 'filters';
   if (relativePath.startsWith('src/features/history/')) return 'history';

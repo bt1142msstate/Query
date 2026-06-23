@@ -1,13 +1,13 @@
-import { getDropAnchorLayout } from '../../features/table/drag-drop/dragDropAnchorLayout.js';
+import { getDropAnchorLayout } from '../../lib/drag-drop/dragDropAnchorLayout.js';
 import {
   calculateAutoScrollStep,
   getAutoScrollIntent,
   getHeaderInsertPositionFromRects
-} from '../../features/table/drag-drop/dragDropInteractionMath.js';
+} from '../../lib/drag-drop/dragDropInteractionMath.js';
 import {
   buildDisplayedFieldMove,
   getSplitFieldGroupIndices
-} from '../../features/table/virtual-table/splitColumnFields.js';
+} from '../../lib/virtual-table/splitColumnFields.js';
 
 function normalizeStringList(values) {
   return (Array.isArray(values) ? values : [])

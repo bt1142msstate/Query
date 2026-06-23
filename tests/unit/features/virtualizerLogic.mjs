@@ -10,7 +10,7 @@ import {
   calculateVirtualRowRange,
   createVirtualRenderPlan,
   shouldVirtualizeRows
-} from '../../../src/features/table/virtual-table/virtualizer.js';
+} from '../../../src/lib/virtual-table/virtualizer.js';
 
 test('virtualizer calculates a bounded visible row window with overscan', () => {
   const range = calculateVirtualRowRange({

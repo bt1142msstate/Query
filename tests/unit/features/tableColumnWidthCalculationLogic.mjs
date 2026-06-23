@@ -12,7 +12,7 @@ test('table column width calculation', async () => {
     calculateFieldWidth,
     calculateOptimalColumnWidths,
     shouldUseCompactMobileTable
-  } = await import('../../../src/features/table/virtual-table/tableColumnWidthCalculation.js');
+  } = await import('../../../src/lib/virtual-table/tableColumnWidthCalculation.js');
 
   const textMeasurement = {
     measureText: value => String(value || '').length * 8

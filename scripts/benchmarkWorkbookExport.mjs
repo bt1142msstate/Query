@@ -1,5 +1,5 @@
 import { performance } from 'node:perf_hooks';
-import { createWorkbookBlob } from '../src/features/table/export/workbookExport.js';
+import { createWorkbookBlob } from '../src/lib/workbook-export/workbookExport.js';
 
 const rowCount = readNumberArg('--rows', 100000);
 const columnCount = readNumberArg('--columns', 12);

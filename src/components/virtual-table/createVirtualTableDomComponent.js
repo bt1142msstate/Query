@@ -1,9 +1,9 @@
-import { TableBuilder } from '../../features/table/virtual-table/tableBuilder.js';
-import { calculateOptimalColumnWidths as calculateMeasuredOptimalColumnWidths } from '../../features/table/virtual-table/tableColumnWidthCalculation.js';
-import { createTableColumnLayoutController } from '../../features/table/virtual-table/tableColumnLayout.js';
-import { createTableScrollbarController } from '../../features/table/virtual-table/tableScrollbar.js';
-import { createVirtualTableEmptyRow, createVirtualTableRow } from '../../features/table/virtual-table/virtualTableRows.js';
-import { DEFAULT_FULL_RENDER_ROW_LIMIT, createVirtualRenderPlan } from '../../features/table/virtual-table/virtualizer.js';
+import { TableBuilder } from '../../lib/virtual-table/tableBuilder.js';
+import { calculateOptimalColumnWidths as calculateMeasuredOptimalColumnWidths } from '../../lib/virtual-table/tableColumnWidthCalculation.js';
+import { createTableColumnLayoutController } from '../../lib/virtual-table/tableColumnLayout.js';
+import { createTableScrollbarController } from '../../lib/virtual-table/tableScrollbar.js';
+import { createVirtualTableEmptyRow, createVirtualTableRow } from '../../lib/virtual-table/virtualTableRows.js';
+import { DEFAULT_FULL_RENDER_ROW_LIMIT, createVirtualRenderPlan } from '../../lib/virtual-table/virtualizer.js';
 import { createVirtualTableComponent } from './createVirtualTableComponent.js';
 
 const DEFAULT_ROW_HEIGHT = 42;

@@ -7,9 +7,9 @@ import { QueryUI } from '../../../ui/queryUI.js';
 import { fieldDefs } from '../../filters/fieldDefs.js';
 import { DOM } from '../../../core/domCache.js';
 import { ExcelExportProgress, yieldToBrowser } from './exportProgress.js';
-import { exportWorkbook } from './workbookExport.js';
-import { buildWorkbookDetailsRowsFromRuntime } from './workbookDetails.js';
-import { notifyWorkbookDownloadComplete, prepareWorkbookDownloadNotification } from './workbookDownload.js';
+import { exportWorkbook } from '../../../lib/workbook-export/workbookExport.js';
+import { buildWorkbookDetailsRowsFromRuntime } from '../../../lib/workbook-export/workbookDetails.js';
+import { notifyWorkbookDownloadComplete, prepareWorkbookDownloadNotification } from '../../../lib/workbook-export/workbookDownload.js';
 import { createSplitColumnsToggleUi } from './splitColumnsToggleUi.js';
 import {
   buildGroupingCandidates,
@@ -17,7 +17,7 @@ import {
   getCellExportValue,
   getGroupingDisplayValue,
   getUniqueSheetName
-} from './workbookExportData.js';
+} from '../../../lib/workbook-export/workbookExportData.js';
 (() => {
   let exportState = null;
   let exportInProgress = false;

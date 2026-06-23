@@ -6,7 +6,7 @@ import {
   getMultiValueTableSummary,
   isLazyExpandedRow,
   materializeExpandedRow
-} from '../../../src/features/table/virtual-table/splitColumnExpansion.js';
+} from '../../../src/lib/virtual-table/splitColumnExpansion.js';
 import test from 'node:test';
 
 test('split column expansion', async () => {

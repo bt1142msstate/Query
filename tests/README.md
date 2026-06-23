@@ -45,7 +45,7 @@ Treat a live-test failure as an integration finding. The default public API curr
 - Prefer browser smoke coverage for behavior that only fails through real DOM, touch, overlay, scrolling, export, or responsive interactions.
 - Prefer live integration coverage when the risk depends on CORS, deployed assets, real API responses, or backend compatibility warnings that a stubbed smoke test cannot reveal.
 - Avoid duplicate assertions that prove the same behavior through the same layer. If a browser test already proves the full workflow, add unit coverage only for the reusable logic behind it.
-- Keep architecture tests focused on repo contracts that should fail before runtime: module graph rules, field metadata boundaries, large-module budgets, and cache-stable imports.
+- Keep architecture tests focused on repo contracts that should fail before runtime: module graph rules, field metadata boundaries, layer-aware maintainability budgets, large-module budgets, and cache-stable imports.
 
 ## When Adding Tests
 

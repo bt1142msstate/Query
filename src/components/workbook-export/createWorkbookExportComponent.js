@@ -1,4 +1,4 @@
-import { createWorkbookBlob, exportWorkbook } from '../../features/table/export/workbookExport.js';
+import { createWorkbookBlob, exportWorkbook } from '../../lib/workbook-export/workbookExport.js';
 
 function mergeExportOptions(baseValue, overrideValue) {
   return {

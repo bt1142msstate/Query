@@ -1,4 +1,4 @@
-import { getMultiValueTableSummary } from '../virtual-table/splitColumnExpansion.js';
+import { getMultiValueTableSummary } from '../../../lib/virtual-table/splitColumnExpansion.js';
 
 const SPLIT_COLUMNS_PREFERENCE_STORAGE_KEY = 'query-project.split-columns-mode';
 

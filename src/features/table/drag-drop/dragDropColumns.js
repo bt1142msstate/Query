@@ -13,7 +13,7 @@ import {
 } from '../../../core/queryState.js';
 import { CellDisplayFormatting } from '../../../core/formatting/cellDisplayFormatting.js';
 import { QueryTableView } from '../../../ui/queryTableView.js';
-import { buildDisplayedFieldRemoval } from '../virtual-table/splitColumnFields.js';
+import { buildDisplayedFieldRemoval } from '../../../lib/virtual-table/splitColumnFields.js';
 import { applyImmediateColumnOrder, applyImmediateColumnRemoval } from './dragDropImmediateReorder.js';
 import {
   fieldOrDuplicatesExist,
