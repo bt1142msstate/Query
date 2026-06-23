@@ -4,7 +4,7 @@ import {
   exportWorkbook,
   getWorkbookCellCount,
   shouldUseWorkbookWorker
-} from '../../../src/features/table/export/workbookExport.js';
+} from '../../../src/lib/workbook-export/workbookExport.js';
 import test from 'node:test';
 
 test('custom workbook export', async () => {

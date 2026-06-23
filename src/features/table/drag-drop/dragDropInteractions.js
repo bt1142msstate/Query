@@ -9,8 +9,8 @@ import { clearColumnDragArrangeStatus, showColumnDragArrangeStatus } from './dra
 import { dragDropColumnOps } from './dragDropColumns.js';
 import { createDragDropHeaderActions } from './dragDropHeaderActions.js';
 import { createDragDropHeaderInsertAffordance } from './dragDropHeaderInsertAffordance.js';
-import { calculateAutoScrollStep, calculateHeaderActionLayout, getAutoScrollIntent, getHeaderInsertPositionFromRects } from './dragDropInteractionMath.js';
-import { resolveColumnResizeStartTarget } from './resizeStartTarget.js';
+import { calculateAutoScrollStep, calculateHeaderActionLayout, getAutoScrollIntent, getHeaderInsertPositionFromRects } from '../../../lib/drag-drop/dragDropInteractionMath.js';
+import { resolveColumnResizeStartTarget } from '../../../lib/drag-drop/resizeStartTarget.js';
 import { SharedFieldPicker } from '../../../ui/field-picker/fieldPicker.js';
 import {
   getClosestVisibleHeaderByX,
@@ -19,8 +19,8 @@ import {
   getOutsideDropViewportOptions,
   isPointerNearDropViewport,
   isPointerWithinDropViewport
-} from './dragDropViewport.js';
-import { getDropAnchorLayout } from './dragDropAnchorLayout.js';
+} from '../../../lib/drag-drop/dragDropViewport.js';
+import { getDropAnchorLayout } from '../../../lib/drag-drop/dragDropAnchorLayout.js';
 let DragDropInteractions;
 (function initializeDragDropInteractions() {
   var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders), getLifecycleState = QueryStateReaders.getLifecycleState.bind(QueryStateReaders), services = appServices;

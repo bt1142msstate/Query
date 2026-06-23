@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { buildExpandedMultiValueTable } from '../../../src/features/table/virtual-table/splitColumnExpansion.js';
+import { buildExpandedMultiValueTable } from '../../../src/lib/virtual-table/splitColumnExpansion.js';
 import {
   buildDisplayedFieldMove,
   buildDisplayedFieldRemoval,
@@ -12,7 +12,7 @@ import {
   getSplitFieldParentName,
   getSplitFieldValue,
   isSplitFieldAvailable
-} from '../../../src/features/table/virtual-table/splitColumnFields.js';
+} from '../../../src/lib/virtual-table/splitColumnFields.js';
 
 test('split column fields resolve only through explicit metadata', () => {
   const compact = {

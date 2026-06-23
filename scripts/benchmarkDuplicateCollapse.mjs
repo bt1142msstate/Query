@@ -1,5 +1,5 @@
 import { performance } from 'node:perf_hooks';
-import { buildVirtualTableProjection } from '../src/features/table/virtual-table/virtualTableDuplicateCollapse.js';
+import { buildVirtualTableProjection } from '../src/lib/virtual-table/virtualTableDuplicateCollapse.js';
 
 const DEFAULT_ROWS = [200000, 500000, 1000000];
 

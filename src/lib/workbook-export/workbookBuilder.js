@@ -7,8 +7,8 @@ import {
   setWorkbookGenerationTimeRow
 } from './workbookDetails.js';
 import { buildOverviewRows, getOverviewColumns } from './workbookOverview.js';
-import { formatDisplayValue, parseDateValue } from '../../../core/formatting/dateValues.js';
-import { getCellValueParts, hasMultipleCellValues } from '../../../core/resultCellValues.js';
+import { formatDisplayValue, parseDateValue } from '../../core/formatting/dateValues.js';
+import { getCellValueParts, hasMultipleCellValues } from '../../core/resultCellValues.js';
 
 const BACKGROUND_WORKER_CELL_THRESHOLD = 15000;
 const EXCEL_MAX_DATA_ROWS_PER_SHEET = 1048575;

@@ -14,11 +14,11 @@ import {
   getSplitFieldColumnIndexes,
   getSplitFieldParentName,
   getSplitFieldValue
-} from './splitColumnFields.js';
+} from '../../../lib/virtual-table/splitColumnFields.js';
 import {
   getLazyExpandedRowSourceValue,
   getLazyExpandedRowsSourceRows
-} from './splitColumnExpansion.js';
+} from '../../../lib/virtual-table/splitColumnExpansion.js';
 
 const SERIALIZED_MULTI_VALUE_SEPARATOR = '\x1F';
 

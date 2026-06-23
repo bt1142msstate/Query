@@ -1,5 +1,5 @@
-import { ClipboardUtils } from '../../../core/clipboard.js';
-import { getNonBlankCellValueParts } from '../../../core/resultCellValues.js';
+import { ClipboardUtils } from '../../core/clipboard.js';
+import { getNonBlankCellValueParts } from '../../core/resultCellValues.js';
 
 const MULTI_VALUE_VIEWER_ID = 'query-multi-value-viewer';
 let activeMultiValueViewerCleanup = null;

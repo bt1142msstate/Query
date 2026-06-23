@@ -3,7 +3,7 @@ import {
   getDropAnchorLayout,
   shouldHideAnchorBetweenDuplicateColumns,
   shouldHideAnchorForNoOpDrop
-} from '../../../src/features/table/drag-drop/dragDropAnchorLayout.js';
+} from '../../../src/lib/drag-drop/dragDropAnchorLayout.js';
 import test from 'node:test';
 
 test('drag drop anchor layout', async () => {

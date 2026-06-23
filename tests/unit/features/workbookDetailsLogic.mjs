@@ -7,7 +7,7 @@ import {
   ensureWorkbookGenerationTimeRow,
   formatWorkbookGenerationDuration,
   getWorkbookDetailsColumns
-} from '../../../src/features/table/export/workbookDetails.js';
+} from '../../../src/lib/workbook-export/workbookDetails.js';
 import test from 'node:test';
 
 test('workbook details', async () => {

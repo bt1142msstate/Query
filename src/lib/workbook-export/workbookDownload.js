@@ -1,4 +1,4 @@
-import { notifyBackgroundTaskComplete, prepareBackgroundTaskNotification } from '../../../core/backgroundTaskNotifications.js';
+import { notifyBackgroundTaskComplete, prepareBackgroundTaskNotification } from '../../core/backgroundTaskNotifications.js';
 
 const XLSX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 

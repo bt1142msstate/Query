@@ -1,5 +1,5 @@
 import { getMultiValueItems, renderMultiValueCell, renderTruncatedValueCell } from './multiValueCells.js';
-import { hasMultipleCellValues } from '../../../core/resultCellValues.js';
+import { hasMultipleCellValues } from '../../core/resultCellValues.js';
 
 export function createVirtualTableEmptyRow({
   colSpan,

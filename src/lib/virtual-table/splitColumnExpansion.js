@@ -2,7 +2,7 @@ import {
   cloneResultCellValue,
   countNonBlankCellValueParts,
   getNonBlankCellValueParts
-} from '../../../core/resultCellValues.js';
+} from '../../core/resultCellValues.js';
 
 const LAZY_EXPANDED_ROW_MARKER = Symbol('lazyExpandedRow');
 const LAZY_EXPANDED_ROW_SOURCE = Symbol('lazyExpandedRowSource');

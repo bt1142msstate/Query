@@ -3,18 +3,18 @@ import { appUiActions } from '../../../core/appUiActions.js';
 import { QueryChangeManager, QueryStateReaders } from '../../../core/queryState.js';
 import { cloneResultCellValue } from '../../../core/resultCellValues.js';
 import { showToastMessage } from '../../../core/toast.js';
-import { TableBuilder } from './tableBuilder.js';
+import { TableBuilder } from '../../../lib/virtual-table/tableBuilder.js';
 import { TextMeasurement } from '../../../core/textMeasurement.js';
 import { ValueFormatting } from '../../../core/formatting/valueFormatting.js';
 import { parseNumericValue } from '../post-filters/postFilterLogic.js';
-import { createTableColumnLayoutController } from './tableColumnLayout.js';
-import { createTableScrollbarController } from './tableScrollbar.js';
-import { sortRowsByColumn } from './tableSort.js';
+import { createTableColumnLayoutController } from '../../../lib/virtual-table/tableColumnLayout.js';
+import { createTableScrollbarController } from '../../../lib/virtual-table/tableScrollbar.js';
+import { sortRowsByColumn } from '../../../lib/virtual-table/tableSort.js';
 import {
   calculateFieldWidth as calculateMeasuredFieldWidth,
   calculateOptimalColumnWidths as calculateMeasuredOptimalColumnWidths
-} from './tableColumnWidthCalculation.js';
-import { buildExpandedMultiValueTable } from './splitColumnExpansion.js';
+} from '../../../lib/virtual-table/tableColumnWidthCalculation.js';
+import { buildExpandedMultiValueTable } from '../../../lib/virtual-table/splitColumnExpansion.js';
 import {
   buildDisplayedFieldMove,
   buildDisplayedFieldRemoval,
@@ -22,19 +22,19 @@ import {
   getPostFilterActionFieldsForTable,
   getSplitFieldGroupIndices,
   getSplitFieldParentName
-} from './splitColumnFields.js';
+} from '../../../lib/virtual-table/splitColumnFields.js';
 import { applyImmediateColumnOrder, applyImmediateColumnRemoval } from '../drag-drop/dragDropImmediateReorder.js';
 import { QueryTableView } from '../../../ui/queryTableView.js';
-import { createVirtualTableEmptyRow, createVirtualTableRow } from './virtualTableRows.js';
+import { createVirtualTableEmptyRow, createVirtualTableRow } from '../../../lib/virtual-table/virtualTableRows.js';
 import {
   buildDuplicateCollapseSignature,
   buildDuplicateCollapseToastMessage,
   buildVirtualTableProjection,
   cloneDuplicateRowGroups,
   createEmptyDuplicateCollapseStats
-} from './virtualTableDuplicateCollapse.js';
+} from '../../../lib/virtual-table/virtualTableDuplicateCollapse.js';
 import { createVirtualTablePostFilterController } from './virtualTablePostFilters.js';
-import { DEFAULT_FULL_RENDER_ROW_LIMIT, createVirtualRenderPlan } from './virtualizer.js';
+import { DEFAULT_FULL_RENDER_ROW_LIMIT, createVirtualRenderPlan } from '../../../lib/virtual-table/virtualizer.js';
 let VirtualTable;
 (function initializeVirtualTable() {
 let virtualTableData = {

@@ -1,5 +1,5 @@
 import { performance } from 'node:perf_hooks';
-import { buildExpandedMultiValueTable } from '../src/features/table/virtual-table/splitColumnExpansion.js';
+import { buildExpandedMultiValueTable } from '../src/lib/virtual-table/splitColumnExpansion.js';
 import { createVirtualTablePostFilterController } from '../src/features/table/virtual-table/virtualTablePostFilters.js';
 
 const TARGET_MS = 1000;

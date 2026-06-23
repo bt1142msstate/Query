@@ -1,8 +1,8 @@
 import { performance } from 'node:perf_hooks';
 import { parsePipeDelimitedRow } from '../src/core/formatting/dataFormatters.js';
 import { parseQueryResultPayload } from '../src/core/queryResultParser.js';
-import { buildExpandedMultiValueTable } from '../src/features/table/virtual-table/splitColumnExpansion.js';
-import { sortRowsByColumn } from '../src/features/table/virtual-table/tableSort.js';
+import { buildExpandedMultiValueTable } from '../src/lib/virtual-table/splitColumnExpansion.js';
+import { sortRowsByColumn } from '../src/lib/virtual-table/tableSort.js';
 
 const DEFAULT_API_URL = 'https://mlp.sirsi.net/uhtbin/query_api.pl';
 const args = new Set(process.argv.slice(2));

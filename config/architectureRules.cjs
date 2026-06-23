@@ -115,6 +115,50 @@ const couplingModularityBudgets = {
   maxNonEntrypointFanOut: 30
 };
 
+const maintainabilityBudgets = {
+  maxDepthByLayer: {
+    components: 5,
+    core: 6,
+    filters: 6,
+    history: 6,
+    lib: 6,
+    table: 6,
+    templates: 6,
+    ui: 6
+  },
+  maxFunctionLinesByLayer: {
+    components: 300,
+    core: 260,
+    filters: 310,
+    history: 260,
+    lib: 300,
+    table: 300,
+    templates: 260,
+    ui: 760
+  },
+  maxModuleLinesByLayer: {
+    components: 650,
+    core: 800,
+    filters: 900,
+    history: 900,
+    lib: 800,
+    table: 900,
+    templates: 900,
+    ui: 900
+  },
+  maxParams: 8,
+  maxCyclomaticComplexityByLayer: {
+    components: 25,
+    core: 60,
+    filters: 90,
+    history: 30,
+    lib: 40,
+    table: 45,
+    templates: 55,
+    ui: 45
+  }
+};
+
 const forbiddenWindowMemberReads = new Map([
   ['AppState', 'Import from src/core/queryState.js instead of reading AppState from window'],
   ['AppServices', 'Import from src/core/appServices.js instead of reading app service facade from window'],
@@ -166,7 +210,7 @@ const legacyLargeModuleBudgets = new Map([]);
 const moduleBoundaryRules = [
   {
     path: 'src/appModules.js',
-    allowedLayers: ['core', 'filters', 'history', 'templates', 'ui', 'table']
+    allowedLayers: ['core', 'filters', 'history', 'lib', 'templates', 'ui', 'table']
   },
   {
     path: 'src/core/appUiActions.js',
@@ -186,7 +230,11 @@ const moduleBoundaryRules = [
   },
   {
     prefix: 'src/components/',
-    allowedLayers: ['components', 'core', 'filters', 'table', 'ui']
+    allowedLayers: ['components', 'core', 'lib', 'ui']
+  },
+  {
+    prefix: 'src/lib/',
+    allowedLayers: ['core', 'lib']
   },
   {
     prefix: 'src/features/filters/',
@@ -202,7 +250,7 @@ const moduleBoundaryRules = [
   },
   {
     prefix: 'src/features/table/',
-    allowedLayers: ['core', 'filters', 'table', 'ui']
+    allowedLayers: ['core', 'filters', 'lib', 'table', 'ui']
   },
   {
     prefix: 'src/features/templates/',
@@ -214,6 +262,7 @@ module.exports = {
   forbiddenWindowMemberReads,
   couplingModularityBudgets,
   legacyLargeModuleBudgets,
+  maintainabilityBudgets,
   maxModuleLines,
   moduleBoundaryRules,
   publicModuleEntrypoints,

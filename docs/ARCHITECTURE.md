@@ -26,7 +26,7 @@ The repository intentionally rejects a mixed top-level JavaScript source layout.
 - `cache-bust.json`, `package.json`, `eslint.config.cjs`, `.github/`, `config/`, `docs/`, `scripts/`, and `tests/` stay at the root as project/runtime/tooling files.
 - Browser application modules, feature logic, UI systems, and stylesheet source live under `src/`.
 
-New app code should be added under `src/core/`, `src/features/`, `src/ui/`, or `src/styles/` according to the ownership rules below. Reusable frontend surfaces that are intended for other websites should be exposed under `src/components/` as public entrypoints over the app internals. Tests and scripts should import app modules from `src/`; they should not create a parallel top-level source tree.
+New app code should be added under `src/core/`, `src/features/`, `src/lib/`, `src/ui/`, or `src/styles/` according to the ownership rules below. Reusable frontend surfaces that are intended for other websites should be exposed under `src/components/` as public entrypoints over reusable `src/lib/` internals. Tests and scripts should import app modules from `src/`; they should not create a parallel top-level source tree.
 
 ## Runtime Flow
 
@@ -58,13 +58,14 @@ The full backend integration contract is documented in `docs/INTEGRATION.md`.
 | Services/actions | `src/core/appServices.js`, `src/core/appUiActions.js` | Cross-feature coordination without direct feature coupling |
 | Core utilities | `src/core/fieldDefs.js`, `src/core/formatting/`, `src/core/*Utils.js`, `src/core/textMeasurement.js` | Backend-driven field registry, focused helpers, and shared primitives imported from their owning modules instead of a mixed utility facade |
 | Reusable components | `src/components/` | Public ES module entrypoints for the reusable mounted virtual table, table projection, column drag/drop, workbook export, date input, and tooltip behavior |
+| Reusable library internals | `src/lib/` | Framework-free virtual-table, drag/drop, and workbook-export primitives that can be used by app features, public components, tests, and scripts without depending on app state |
 | Data contract | `src/core/fieldDefs.js`, `src/features/filters/queryPayload.js` | Backend field metadata registry, payload generation, and filter normalization |
 | Features | `src/features/filters/`, `src/features/table/`, `src/features/history/`, `src/features/templates/` | User workflows grouped by product feature, with complex widgets split into focused view/helper modules |
 | Query history | `src/features/history/` | History shell split from request mapping, config loading, result hydration, row rendering, grouping, notifications, tooltips, and status mapping |
 | Filter workflows | `src/features/filters/` | Backend payload contracts, field metadata, condition validation, buildable-field construction, filter-pill rendering, and condition input/panel configuration |
 | Template workflows | `src/features/templates/` | Template shell split from models, state, repository, payloads, category actions/views, list/detail rendering, and view-state helpers |
 | UI feature folders | `src/ui/form-mode/`, `src/ui/field-picker/` | Larger UI workflows with dedicated shell, field-picker, query-preview, state helper, presentation, and interaction modules |
-| Table feature folders | `src/features/table/drag-drop/`, `src/features/table/virtual-table/`, `src/features/table/post-filters/`, `src/features/table/export/` | Result-table workflows grouped by behavior, with drag/drop split into column, resize, header-action, viewport, and interaction modules; virtual table measurement, row rendering, post-filter state, and split-column transforms split from the coordinator; post-filter value virtualization isolated from the overlay coordinator |
+| Table feature folders | `src/features/table/drag-drop/`, `src/features/table/virtual-table/`, `src/features/table/post-filters/`, `src/features/table/export/` | App-specific result-table workflows grouped by behavior, with stateful drag/drop, resize, header-action, post-filter, context-menu, and export overlay coordination split from reusable `src/lib/` primitives |
 | Shared UI | `src/ui/` | App shell rendering, shared selectors, modals, toasts, tooltips, date picker, field picker, and form mode |
 | Styles | `src/styles/tokens.css`, `src/styles/app.css`, plus feature CSS files | Token-driven theming, feature-scoped styling, and a single stylesheet entry |
 | Architecture config | `config/` | Forbidden browser globals, module budgets, and import-boundary rules |
@@ -73,11 +74,15 @@ The full backend integration contract is documented in `docs/INTEGRATION.md`.
 ## Folder Organization
 
 - `src/` owns the browser application source, keeping the repository root focused on static-host files, runtime files, tooling, docs, and tests.
-- `src/components/` owns public reusable entrypoints. These modules wrap stable internals for outside sites and future package exports; they should stay small and avoid importing app-shell coordinators.
+- `src/components/` owns public reusable entrypoints. These modules wrap stable `src/lib/` internals for outside sites and future package exports; they should stay small and avoid importing app-shell coordinators.
 - `src/core/` owns app-wide state, services/actions, lifecycle, backend/query execution, the backend-driven field metadata registry, browser primitives, startup glue, and shared formatting helpers under `src/core/formatting/`.
+- `src/lib/` owns reusable, framework-free implementation internals. It can import `src/core/` primitives and other `src/lib/` modules, but it cannot import app features, app UI shells, query state stores, or overlay coordinators.
 - `src/features/` owns product features: filters, history, table, and templates.
-- `src/features/table/` keeps the top-level table surface in `contextMenu.js` and groups complex table workflows into `drag-drop/`, `export/`, `post-filters/`, and `virtual-table/`.
-- `src/features/table/export/` keeps workbook building separate from browser download/worker orchestration. The worker imports the worker-safe builder module instead of the browser wrapper, so export can use a background worker without creating an import cycle.
+- `src/features/table/` keeps the top-level table surface in `contextMenu.js` and groups app-specific table workflows into `drag-drop/`, `export/`, `post-filters/`, and `virtual-table/`.
+- `src/features/table/export/` owns the app export dialog, progress UI, split-column preference UI, and download orchestration. Worker-safe workbook building and ZIP/XLSX generation live in `src/lib/workbook-export/`.
+- `src/lib/workbook-export/` keeps workbook data shaping, overview/details sheets, browser-safe Blob generation, worker entrypoint support, and ZIP writing separate from app UI orchestration.
+- `src/lib/virtual-table/` owns reusable virtualizer, column layout, scrollbar controller, row projection, sort, split-column transforms, multi-value display helpers, and duplicate-row collapse.
+- `src/lib/drag-drop/` owns reusable drag/drop math, viewport auto-scroll, resize-start detection, and drop-anchor layout helpers.
 - `src/features/filters/condition-editor/` owns condition editor layout, input adapters, panel UI, interaction wiring, reset behavior, and bubble-shaped field controls. This keeps the retired standalone bubble-builder concept out of the top-level folder model.
 - `src/ui/` keeps shared UI systems at the root and groups larger workflows in `field-picker/` and `form-mode/`.
 - `src/styles/` owns design tokens, the stylesheet entrypoint, and feature CSS.
@@ -110,7 +115,7 @@ Current public surfaces:
 Rules for this surface:
 
 - Outside sites should import from `src/components/`, not from `src/features/`.
-- Component entrypoints may wrap feature internals, but they should not depend on query-state stores, app bootstrap, app shell rendering, or overlay coordinators.
+- Component entrypoints may wrap `src/lib/` internals, but they should not depend on query-state stores, app bootstrap, app shell rendering, feature coordinators, or overlay coordinators.
 - Public component behavior should have focused coverage in `tests/unit/components/`.
 - If a component starts needing framework-specific mounting, add that as an adapter around the public entrypoint instead of mixing it into the feature internals.
 
@@ -150,6 +155,8 @@ The architecture rules are executable, versioned, and run in CI.
 
 `tests/architecture/couplingModularityFitness.mjs` adds a metrics-oriented gate over the same source graph. It tracks average fan-out, maximum non-entrypoint fan-out, entrypoint fan-out, maximum fan-in, large-coordinator count, large high-fan-out coordinator count, and worker-inclusive import cycles. The budgets live in `config/architectureRules.cjs`; if a future change makes a coordinator too broad or turns a shared module into a hub, CI fails with the exact module names.
 
+`tests/architecture/maintainabilityFitness.mjs` adds layer-aware maintainability budgets using standard ESLint rule semantics for maximum module lines, function length, cyclomatic complexity, nesting depth, and parameter count. These are intentionally measured by layer because a public component wrapper, a stateful feature coordinator, and a low-level library module do not carry the same risk profile.
+
 For a human-readable scorecard, run:
 
 ```bash
@@ -167,7 +174,7 @@ npm test
 That runs:
 
 - `npm run lint`: syntax, globals, module rules, query-state boundaries.
-- `npm run test:architecture`: architecture fitness checks, coupling/modularity budgets, legacy module budgets, forbidden browser globals, import graph reachability, import cycles, layer boundaries, canonical ES module specifiers, cache-stable import paths, and the hardcoded-field integration guard.
+- `npm run test:architecture`: architecture fitness checks, coupling/modularity budgets, maintainability budgets, legacy module budgets, forbidden browser globals, import graph reachability, import cycles, layer boundaries, canonical ES module specifiers, cache-stable import paths, and the hardcoded-field integration guard.
 - `npm run test:unit`: focused pure-logic tests for query-history status, request mapping, row output, backend payload contracts, and table transforms.
 - `npm run test:browser`: Playwright smoke test for runtime behavior and key UI styling.
 

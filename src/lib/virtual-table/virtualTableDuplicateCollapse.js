@@ -2,7 +2,7 @@ import {
   getLazyExpandedRowsColumnPlan,
   getLazyExpandedRowsSourceRows
 } from './splitColumnExpansion.js';
-import { getNonBlankCellValueParts } from '../../../core/resultCellValues.js';
+import { getNonBlankCellValueParts } from '../../core/resultCellValues.js';
 
 function normalizeFieldList(fields) {
   return (Array.isArray(fields) ? fields : [])

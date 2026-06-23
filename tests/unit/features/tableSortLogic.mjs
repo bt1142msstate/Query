@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildExpandedMultiValueTable, getLazyExpandedRowsSourceRows } from '../../../src/features/table/virtual-table/splitColumnExpansion.js';
-import { sortRowsByColumn } from '../../../src/features/table/virtual-table/tableSort.js';
+import { buildExpandedMultiValueTable, getLazyExpandedRowsSourceRows } from '../../../src/lib/virtual-table/splitColumnExpansion.js';
+import { sortRowsByColumn } from '../../../src/lib/virtual-table/tableSort.js';
 
 test('table sort handles raw values and empty placement', () => {
   const rows = [

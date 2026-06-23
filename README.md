@@ -158,13 +158,17 @@ Canonical layout decision: application source lives in `src/`. We are not using 
 | `src/appModules.js` | Deterministic ES module startup entrypoint |
 | `src/components/` | Public reusable component entrypoints for outside sites and future package exports |
 | `src/core/` | Query execution, state management, service facades, backend-driven field metadata, and shared utilities |
+| `src/lib/` | Reusable framework-free virtual-table, drag/drop, and workbook-export internals used by app features and public components |
+| `src/lib/virtual-table/` | Virtualizer, column layout, scrollbar, row projection, sort, split-column transforms, multi-value cells, and duplicate collapse |
+| `src/lib/drag-drop/` | Drag/drop math, auto-scroll viewport helpers, resize target detection, and drop-anchor layout |
+| `src/lib/workbook-export/` | XLSX Blob generation, workbook sheets, ZIP writing, and worker-safe export internals |
 | `src/features/filters/` | Filter workflows, payload logic, buildable field helpers, and condition editor |
 | `src/features/history/` | Query history rendering, request mapping, status grouping, and detail overlays |
-| `src/features/table/` | Result rendering, virtual scrolling, drag/drop, post filters, and Excel export |
-| `src/features/table/drag-drop/` | Column drag/drop, duplicate column restoration, and resize coordination |
-| `src/features/table/virtual-table/` | Virtualized result rendering, column layout, scrollbar, and sort helpers |
+| `src/features/table/` | App-specific result table wiring, context menu, virtual-table coordination, post filters, and Excel export workflow |
+| `src/features/table/drag-drop/` | Stateful column drag/drop services, duplicate column restoration, resize coordination, and app state sync |
+| `src/features/table/virtual-table/` | App table coordinator, collapsed-row viewer, duplicate-row toggle UI, and legacy simple-table adapter |
 | `src/features/table/post-filters/` | Client-side post-filter UI and comparison logic |
-| `src/features/table/export/` | Excel export workflow, worker-safe workbook builder, and browser download orchestration |
+| `src/features/table/export/` | Excel export dialog, progress UI, split-column preference UI, and browser download orchestration |
 | `src/features/templates/` | Query template rendering, categories, draft state, and template models |
 | `src/ui/` | App shell UI, modals, toasts, tooltips, and shared helpers |
 | `src/ui/form-mode/` | Form-mode shell, controls, spec parsing, URL sharing, and query sync |
@@ -192,7 +196,7 @@ Canonical layout decision: application source lives in `src/`. We are not using 
 - Native browser ES modules with `"type": "module"` in Node tooling
 - Feature-oriented folder structure with ES modules, explicit dependency registration for cross-feature services/actions, and enforced module boundaries
 - Public reusable component entrypoints for the mounted virtual table, table data projection, column drag/drop, workbook export, date input, and tooltips
-- ESLint, architecture fitness checks, coupling/modularity metrics, and Playwright browser smoke tests
+- ESLint, architecture fitness checks, coupling/modularity metrics, layer-aware maintainability budgets, and Playwright browser smoke tests
 - Tailwind CSS and AutoNumeric are loaded from CDNs in `index.html`
 - Custom browser-side XLSX export with worker support for larger workbooks
 
@@ -241,7 +245,7 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md) for current status, completed milestone
 npm test
 ```
 
-Runs the cache-busting manifest check, lint, Node test-runner architecture checks, focused unit tests, and desktop/mobile browser smoke tests. The architecture suite includes module-specifier checks, coupling/modularity budgets, and the hardcoded-field integration guard.
+Runs the cache-busting manifest check, lint, Node test-runner architecture checks, focused unit tests, and desktop/mobile browser smoke tests. The architecture suite includes module-specifier checks, coupling/modularity budgets, maintainability budgets, and the hardcoded-field integration guard.
 
 Individual checks:
 
