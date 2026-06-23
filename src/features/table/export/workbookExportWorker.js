@@ -1,4 +1,4 @@
-import { createWorkbookBlob } from './workbookExport.js';
+import { createWorkbookBlob } from './workbookBuilder.js';
 
 function queueWorkerTask(resolve) {
   if (typeof scheduler !== 'undefined' && typeof scheduler.postTask === 'function') {

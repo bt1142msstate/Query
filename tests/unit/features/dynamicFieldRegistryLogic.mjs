@@ -37,7 +37,7 @@ test('dynamic field registry persists and removes locally built fields', async (
     storageModule,
     fieldDefsModule
   ] = await Promise.all([
-    import(`../../../src/features/filters/dynamicFieldStorage.js?case=${Date.now()}`),
+    import(`../../../src/core/dynamicFieldStorage.js?case=${Date.now()}`),
     import(`../../../src/features/filters/fieldDefs.js?case=${Date.now()}`)
   ]);
   const {

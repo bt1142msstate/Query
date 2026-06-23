@@ -104,6 +104,17 @@ const runtimeBridgeUsageBudget = {
   ])
 };
 
+const couplingModularityBudgets = {
+  largeCoordinatorLineThreshold: 850,
+  highFanOutThreshold: 10,
+  maxAverageFanOut: 3,
+  maxEntrypointFanOut: 55,
+  maxLargeCoordinatorCount: 9,
+  maxLargeHighFanOutCoordinatorCount: 7,
+  maxModuleFanIn: 32,
+  maxNonEntrypointFanOut: 30
+};
+
 const forbiddenWindowMemberReads = new Map([
   ['AppState', 'Import from src/core/queryState.js instead of reading AppState from window'],
   ['AppServices', 'Import from src/core/appServices.js instead of reading app service facade from window'],
@@ -171,7 +182,7 @@ const moduleBoundaryRules = [
   },
   {
     prefix: 'src/core/',
-    allowedLayers: ['core', 'filters']
+    allowedLayers: ['core']
   },
   {
     prefix: 'src/components/',
@@ -201,6 +212,7 @@ const moduleBoundaryRules = [
 
 module.exports = {
   forbiddenWindowMemberReads,
+  couplingModularityBudgets,
   legacyLargeModuleBudgets,
   maxModuleLines,
   moduleBoundaryRules,

@@ -2,7 +2,7 @@ import { formatDisplayValue } from './dateValues.js';
 import { MoneyUtils } from './moneyUtils.js';
 import { getBaseFieldName } from '../queryState.js';
 import { formatCellValueForText } from '../resultCellValues.js';
-import { fieldDefs } from '../../features/filters/fieldDefs.js';
+import { fieldDefs } from '../fieldDefs.js';
 
 function getFieldDefinition(fieldName) {
   if (!fieldDefs) {

@@ -6,7 +6,7 @@ This project is a static browser app organized as feature-oriented ES modules. T
 
 - It solves a real workflow with complex state, async execution, virtualized data display, export, overlays, and editable forms.
 - It uses native browser ES modules and declares `"type": "module"` for Node-side tooling.
-- It has executable guardrails for module specifiers, forbidden browser globals, query-state access, module reachability, import cycles, layer boundaries, unit-tested business logic, and browser smoke behavior.
+- It has executable guardrails for module specifiers, forbidden browser globals, query-state access, module reachability, import cycles, layer boundaries, coupling/modularity budgets, unit-tested business logic, and browser smoke behavior.
 - Query history is split into grouping/search, backend status mapping, request mapping, row rendering, detail rendering, view metadata, and coordinator modules.
 - Query templates are split into repository, payload, collection, state, category-view, list-view, and coordinator modules.
 - It documents the intended module boundaries and known legacy areas.
@@ -56,9 +56,9 @@ The full backend integration contract is documented in `docs/INTEGRATION.md`.
 | Entry/bootstrap | `src/appModules.js`, `src/core/bootstrap.js` | Module loading and app startup |
 | State | `src/core/queryState.js` | Query state, lifecycle flags, read/write facades |
 | Services/actions | `src/core/appServices.js`, `src/core/appUiActions.js` | Cross-feature coordination without direct feature coupling |
-| Core utilities | `src/core/formatting/`, `src/core/*Utils.js`, `src/core/textMeasurement.js` | Focused helpers imported from their owning modules instead of a mixed utility facade |
+| Core utilities | `src/core/fieldDefs.js`, `src/core/formatting/`, `src/core/*Utils.js`, `src/core/textMeasurement.js` | Backend-driven field registry, focused helpers, and shared primitives imported from their owning modules instead of a mixed utility facade |
 | Reusable components | `src/components/` | Public ES module entrypoints for the reusable mounted virtual table, table projection, column drag/drop, workbook export, date input, and tooltip behavior |
-| Data contract | `src/features/filters/queryPayload.js`, `src/features/filters/fieldDefs.js` | Backend payload generation, field metadata, filter normalization |
+| Data contract | `src/core/fieldDefs.js`, `src/features/filters/queryPayload.js` | Backend field metadata registry, payload generation, and filter normalization |
 | Features | `src/features/filters/`, `src/features/table/`, `src/features/history/`, `src/features/templates/` | User workflows grouped by product feature, with complex widgets split into focused view/helper modules |
 | Query history | `src/features/history/` | History shell split from request mapping, config loading, result hydration, row rendering, grouping, notifications, tooltips, and status mapping |
 | Filter workflows | `src/features/filters/` | Backend payload contracts, field metadata, condition validation, buildable-field construction, filter-pill rendering, and condition input/panel configuration |
@@ -74,9 +74,10 @@ The full backend integration contract is documented in `docs/INTEGRATION.md`.
 
 - `src/` owns the browser application source, keeping the repository root focused on static-host files, runtime files, tooling, docs, and tests.
 - `src/components/` owns public reusable entrypoints. These modules wrap stable internals for outside sites and future package exports; they should stay small and avoid importing app-shell coordinators.
-- `src/core/` owns app-wide state, services/actions, lifecycle, backend/query execution, browser primitives, startup glue, and shared formatting helpers under `src/core/formatting/`.
+- `src/core/` owns app-wide state, services/actions, lifecycle, backend/query execution, the backend-driven field metadata registry, browser primitives, startup glue, and shared formatting helpers under `src/core/formatting/`.
 - `src/features/` owns product features: filters, history, table, and templates.
 - `src/features/table/` keeps the top-level table surface in `contextMenu.js` and groups complex table workflows into `drag-drop/`, `export/`, `post-filters/`, and `virtual-table/`.
+- `src/features/table/export/` keeps workbook building separate from browser download/worker orchestration. The worker imports the worker-safe builder module instead of the browser wrapper, so export can use a background worker without creating an import cycle.
 - `src/features/filters/condition-editor/` owns condition editor layout, input adapters, panel UI, interaction wiring, reset behavior, and bubble-shaped field controls. This keeps the retired standalone bubble-builder concept out of the top-level folder model.
 - `src/ui/` keeps shared UI systems at the root and groups larger workflows in `field-picker/` and `form-mode/`.
 - `src/styles/` owns design tokens, the stylesheet entrypoint, and feature CSS.
@@ -147,6 +148,14 @@ Source modules still use clean ES import specifiers. Cache keys are applied at t
 
 The architecture rules are executable, versioned, and run in CI.
 
+`tests/architecture/couplingModularityFitness.mjs` adds a metrics-oriented gate over the same source graph. It tracks average fan-out, maximum non-entrypoint fan-out, entrypoint fan-out, maximum fan-in, large-coordinator count, large high-fan-out coordinator count, and worker-inclusive import cycles. The budgets live in `config/architectureRules.cjs`; if a future change makes a coordinator too broad or turns a shared module into a hub, CI fails with the exact module names.
+
+For a human-readable scorecard, run:
+
+```bash
+npm run architecture:metrics
+```
+
 ## Fitness Checks
 
 Run the full quality gate:
@@ -158,7 +167,7 @@ npm test
 That runs:
 
 - `npm run lint`: syntax, globals, module rules, query-state boundaries.
-- `npm run test:architecture`: architecture fitness checks, legacy module budgets, forbidden browser globals, import graph reachability, import cycles, layer boundaries, canonical ES module specifiers, cache-stable import paths, and the hardcoded-field integration guard.
+- `npm run test:architecture`: architecture fitness checks, coupling/modularity budgets, legacy module budgets, forbidden browser globals, import graph reachability, import cycles, layer boundaries, canonical ES module specifiers, cache-stable import paths, and the hardcoded-field integration guard.
 - `npm run test:unit`: focused pure-logic tests for query-history status, request mapping, row output, backend payload contracts, and table transforms.
 - `npm run test:browser`: Playwright smoke test for runtime behavior and key UI styling.
 

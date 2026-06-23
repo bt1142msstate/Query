@@ -3,7 +3,7 @@ import './core/clipboard.js';
 import './core/visibility.js';
 import './core/mobileScrollLock.js';
 import './core/backendApi.js';
-import './features/filters/fieldDefs.js';
+import './core/fieldDefs.js';
 import './core/queryPrevalidation.js';
 import './core/queryState.js';
 import './core/queryStateSubscriptions.js';
