@@ -245,7 +245,7 @@ Supported field metadata:
 | `filters` or `operators` | Backend-supported filter operators for the field |
 | `values` | Optional selector values for dropdown/pill controls |
 | `aliases` | Old or alternate names that should resolve to this field |
-| `allowValueList` | Allows comma/newline values for equality filters |
+| `allowValueList` | Allows comma/newline values for equality filters; the frontend sends bulk lists as `value` arrays |
 | `multiSelect` | Allows selecting multiple values from `values` |
 | `groupValues` | Lets the UI group selector values with dashed labels |
 | `parts` | Optional backend-specific segment hint for fields that are assembled from multiple backend values |
@@ -329,7 +329,7 @@ Supported backend operators currently sent by the frontend:
 | `>=` | greater than/equal or on/after |
 | `<=` | less than/equal or on/before |
 
-For text contains/starts filters, the frontend sends wildcard values such as `*needle*` or `needle*`. For date fields, the frontend sends normalized `YYYYMMDD` values or `NEVER`. For fields with `allowValueList`, an equals filter may send `value` as an array.
+For text contains/starts filters, the frontend sends wildcard values such as `*needle*` or `needle*`. For date fields, the frontend sends normalized `YYYYMMDD` values or `NEVER`. For fields with `allowValueList`, an equals filter may send `value` as an array. Backends should treat those arrays as a bulk input list for that field instead of applying the smaller limit normally used for repeated ad hoc filter values.
 
 The frontend requests streaming JSONL results with `result_format: "jsonl"`. Result responses must use `Content-Type: application/x-ndjson; charset=utf-8` and emit the event format below. JSON object error responses are still valid before result streaming starts.
 
