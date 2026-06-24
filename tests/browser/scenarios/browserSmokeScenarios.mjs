@@ -2322,36 +2322,35 @@ async function expectResultsCount(page, expectedText, label) {
 }
 
 async function expectPostFilterStats(page, expected, label) {
-  try {
-    await page.waitForFunction(async ({ filteredRows, hasPostFilters, totalRows }) => {
-      const { appServices } = await import('./src/core/appServices.js');
-      const stats = appServices.getPostFilterStats?.();
-      return stats?.filteredRows === filteredRows
-        && stats?.totalRows === totalRows
-        && appServices.hasPostFilters?.() === hasPostFilters;
-    }, expected, { timeout: 5000 });
-  } catch (error) {
-    const observed = await page.evaluate(async () => {
-      const { appServices } = await import('./src/core/appServices.js');
-      const stats = appServices.getPostFilterStats?.();
-      return {
-        filteredRows: stats?.filteredRows,
-        hasPostFilters: appServices.hasPostFilters?.(),
-        totalRows: stats?.totalRows
-      };
-    });
-    throw new Error(`${label} expected ${JSON.stringify(expected)}, received ${JSON.stringify(observed)}: ${error.message}`);
-  }
-
-  const observed = await page.evaluate(async () => {
+  const readObserved = () => page.evaluate(async () => {
     const { appServices } = await import('./src/core/appServices.js');
     const stats = appServices.getPostFilterStats?.();
     return {
+      activeElementId: document.activeElement?.id || '',
+      draftField: document.querySelector('#post-filter-field')?.value || '',
+      draftOperator: document.querySelector('#post-filter-operator')?.value || '',
+      draftValue: document.querySelector('#post-filter-value')?.value || '',
       filteredRows: stats?.filteredRows,
       hasPostFilters: appServices.hasPostFilters?.(),
+      overlayVisible: !document.querySelector('#post-filter-overlay')?.classList.contains('hidden'),
+      postFilters: appServices.getPostFilterState?.(),
       totalRows: stats?.totalRows
     };
   });
+
+  let observed = await readObserved();
+  const deadline = Date.now() + 5000;
+  while (
+    Date.now() < deadline
+    && (
+      observed.filteredRows !== expected.filteredRows
+      || observed.totalRows !== expected.totalRows
+      || observed.hasPostFilters !== expected.hasPostFilters
+    )
+  ) {
+    await page.waitForTimeout(100);
+    observed = await readObserved();
+  }
 
   if (
     observed.filteredRows !== expected.filteredRows
@@ -2912,11 +2911,15 @@ async function exerciseDesktopResultsWorkflow(page) {
   });
   await page.locator('#post-filter-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
   await expectElementWithinViewport(page, '#post-filter-overlay .post-filter-dialog', 'Desktop post filter dialog');
+  const legacyPostFilterApplyButtons = await page.locator('#post-filter-add-btn').count();
+  if (legacyPostFilterApplyButtons !== 0) {
+    throw new Error(`Post filter dialog should apply automatically without a legacy apply button: ${legacyPostFilterApplyButtons}`);
+  }
+  await page.locator('#post-filter-auto-status').waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('#post-filter-field').selectOption('Smoke Branch');
   await page.locator('#post-filter-operator').selectOption('contains');
   await page.locator('#post-filter-value').waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('#post-filter-value').fill('Main');
-  await page.locator('#post-filter-add-btn').click();
   await expectPostFilterStats(page, {
     filteredRows: 2,
     hasPostFilters: true,
@@ -2957,7 +2960,6 @@ async function exerciseDesktopResultsWorkflow(page) {
   ) {
     throw new Error(`Valueless post filter operators should hide value controls: ${JSON.stringify(valuelessPostFilterMetrics)}`);
   }
-  await page.locator('#post-filter-add-btn').click();
   await expectPostFilterStats(page, {
     filteredRows: 0,
     hasPostFilters: true,
@@ -2984,7 +2986,6 @@ async function exerciseDesktopResultsWorkflow(page) {
   await page.locator('#post-filter-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('#post-filter-field').selectOption('Smoke Branch');
   await page.locator('#post-filter-operator').selectOption('has_multiple_values');
-  await page.locator('#post-filter-add-btn').click();
   await expectPostFilterStats(page, {
     filteredRows: 1,
     hasPostFilters: true,
@@ -3001,7 +3002,6 @@ async function exerciseDesktopResultsWorkflow(page) {
   }, 'Desktop cleared multi-value post filter state');
   await page.locator('#post-filter-field').selectOption('Smoke Branch');
   await page.locator('#post-filter-operator').selectOption('does_not_have_multiple_values');
-  await page.locator('#post-filter-add-btn').click();
   await expectPostFilterStats(page, {
     filteredRows: 2,
     hasPostFilters: true,

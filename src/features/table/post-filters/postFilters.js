@@ -13,34 +13,22 @@ import { CustomDatePicker } from '../../../ui/controls/customDatePicker.js';
 import { escapeHtml } from '../../../core/formatting/html.js';
 import { getPostFilterDateValidationMessage, postFilterDateOperatorAllowsNever } from './postFilterDateValidation.js';
 import { formatPostFilterValue } from './postFilterValueFormatting.js';
+import { getPostFilterElements } from './postFilterElements.js';
 import { createPostFilterStreamedEqualsSelector } from './postFilterStreamedEqualsSelector.js';
+import { createPostFilterAutoApplyController } from './postFilterAutoApply.js';
+import {
+  applyScalarFilterToSnapshot,
+  applyValuePickerFilterToSnapshot
+} from './postFilterSnapshotMutations.js';
+import { buildPostFilterListMarkup } from './postFilterListMarkup.js';
 import { isNoValuePostFilterOperator, normalizeNoValuePostFilterOperator } from './postFilterLogic.js';
 let PostFilterSystem;
 (function() {
   let equalsValueControl = null, equalsValueControlField = '';
+  let autoApplyController = null;
   const { getDisplayedFields } = QueryStateReaders, services = appServices;
   function getElements() {
-    return {
-      button: document.getElementById('post-filter-btn'),
-      overlay: document.getElementById('post-filter-overlay'),
-      backdrop: document.getElementById('post-filter-overlay-backdrop'),
-      closeBtn: document.getElementById('post-filter-overlay-close'),
-      doneBtn: document.getElementById('post-filter-done-btn'),
-      clearBtn: document.getElementById('post-filter-clear-btn'),
-      fieldSelect: document.getElementById('post-filter-field'),
-      operatorSelect: document.getElementById('post-filter-operator'),
-      logicSelect: document.getElementById('post-filter-logic'),
-      valueInput: document.getElementById('post-filter-value'),
-      valueInput2: document.getElementById('post-filter-value-2'),
-      valuePickerHost: document.getElementById('post-filter-value-picker-host'),
-      betweenLabel: document.getElementById('post-filter-between-label'),
-      addBtn: document.getElementById('post-filter-add-btn'),
-      summaryRows: document.getElementById('post-filter-summary-rows'),
-      summaryBaseRows: document.getElementById('post-filter-summary-base-rows'),
-      summaryCount: document.getElementById('post-filter-summary-count'),
-      list: document.getElementById('post-filter-list'),
-      empty: document.getElementById('post-filter-empty')
-    };
+    return getPostFilterElements(document);
   }
   function getValueInputHost(input) {
     if (CustomDatePicker && typeof CustomDatePicker.getInputHost === 'function') {
@@ -369,56 +357,13 @@ let PostFilterSystem;
     const elements = getElements();
     if (!elements.list || !elements.empty) return;
 
-    const snapshot = getPostFilterSnapshot();
-    const entries = Object.entries(snapshot)
-      .filter(([, data]) => Array.isArray(data?.filters) && data.filters.length > 0)
-      .map(([field, data]) => ({
-        field,
-        logic: String(data?.logic || 'all').toLowerCase() === 'any' ? 'any' : 'all',
-        showLogic: data.filters.length > 1,
-        filters: data.filters.map((filter, index) => ({ filter, index }))
-      }));
-
-    elements.empty.classList.toggle('hidden', entries.length > 0);
-    elements.list.innerHTML = entries.map(entry => {
-      const safeField = escapeHtml(entry.field);
-      const ruleLabel = entry.logic === 'any' ? 'Rows can match any rule below' : 'Rows must match every rule below';
-      const safeRuleLabel = escapeHtml(ruleLabel);
-      const filterMarkup = entry.filters.map(({ filter, index }) => {
-        const valueLabel = formatFilterValue(filter, entry.field);
-        const label = valueLabel ? `${OperatorLabels.get(filter.cond)} ${valueLabel}` : OperatorLabels.get(filter.cond);
-        const safeLabel = escapeHtml(label);
-        return `
-          <div class="post-filter-pill">
-            <span class="post-filter-pill__text">${safeLabel}</span>
-            <button type="button" class="post-filter-pill__remove" data-field="${entry.field}" data-index="${index}" aria-label="Remove post filter">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 pointer-events-none">
-                <line x1="5" y1="5" x2="15" y2="15"></line>
-                <line x1="15" y1="5" x2="5" y2="15"></line>
-              </svg>
-            </button>
-          </div>`;
-      }).join('');
-
-      return `
-        <section class="post-filter-group" data-field="${entry.field}">
-          <div class="post-filter-group__header">
-            <div>
-              <h4 class="post-filter-group__title">${safeField}</h4>
-              <p class="post-filter-group__meta">${entry.filters.length} ${entry.filters.length === 1 ? 'rule' : 'rules'}</p>
-            </div>
-            ${entry.showLogic ? `
-            <label class="post-filter-group__logic">
-              <span class="post-filter-group__logic-label">${safeRuleLabel}</span>
-              <select class="post-filter-group__logic-select" data-field-logic="${entry.field}" aria-label="Change logic for ${safeField}">
-                <option value="all" ${entry.logic === 'all' ? 'selected' : ''}>Require all</option>
-                <option value="any" ${entry.logic === 'any' ? 'selected' : ''}>Allow any</option>
-              </select>
-            </label>` : ''}
-          </div>
-          <div class="post-filter-group__rules">${filterMarkup}</div>
-        </section>`;
-    }).join('');
+    const renderedList = buildPostFilterListMarkup(getPostFilterSnapshot(), {
+      escapeHtml,
+      formatFilterValue,
+      getOperatorLabel: cond => OperatorLabels.get(cond)
+    });
+    elements.empty.classList.toggle('hidden', renderedList.hasEntries);
+    elements.list.innerHTML = renderedList.html;
   }
 
   function refreshOverlay() {
@@ -430,6 +375,8 @@ let PostFilterSystem;
   }
 
   function closeOverlay() {
+    flushAutoApply();
+    getAutoApplyController().stop();
     const elements = getElements();
     if (!elements.overlay) return;
     VisibilityUtils.hide([elements.overlay], {
@@ -457,6 +404,7 @@ let PostFilterSystem;
       bodyClass: 'post-filter-overlay-open',
       raisedUiKey: 'post-filter-overlay'
     });
+    getAutoApplyController().start();
     window.requestAnimationFrame(() => elements.fieldSelect?.focus());
   }
 
@@ -499,6 +447,7 @@ let PostFilterSystem;
       bodyClass: 'post-filter-overlay-open',
       raisedUiKey: 'post-filter-overlay'
     });
+    getAutoApplyController().start();
 
     window.requestAnimationFrame(() => {
       if (equalsValueControl && typeof equalsValueControl.focusInput === 'function') {
@@ -514,6 +463,51 @@ let PostFilterSystem;
 
   function writeSnapshot(snapshot, options = {}) {
     services.replacePostFilters(snapshot, options);
+  }
+
+  function getAutoApplyController() {
+    if (!autoApplyController) {
+      autoApplyController = createPostFilterAutoApplyController({
+        applyDraft: applyCurrentFilterAutomatically,
+        getDraftSignature,
+        window
+      });
+    }
+    return autoApplyController;
+  }
+
+  function getDraftSignature() {
+    const elements = getElements();
+    return JSON.stringify({
+      field: elements.fieldSelect?.value || '',
+      operator: elements.operatorSelect?.value || '',
+      value: elements.valueInput?.value || '',
+      value2: elements.valueInput2?.value || '',
+      selectedValues: getSelectedPostFilterValues()
+    });
+  }
+
+  function clearDraftValues() {
+    const elements = getElements();
+    if (elements.valueInput) {
+      elements.valueInput.value = '';
+    }
+    if (elements.valueInput2) {
+      elements.valueInput2.value = '';
+    }
+    if (equalsValueControl && typeof equalsValueControl.setSelectedValues === 'function') {
+      equalsValueControl.setSelectedValues([]);
+    }
+  }
+
+  function resetDraftRule() {
+    const elements = getElements();
+    if (elements.operatorSelect && elements.operatorSelect.options.length) {
+      elements.operatorSelect.selectedIndex = 0;
+    }
+    clearDraftValues();
+    syncValueInputs();
+    getAutoApplyController().reset();
   }
 
   function getAddFilterContext(elements) {
@@ -548,7 +542,7 @@ let PostFilterSystem;
     };
   }
 
-  function validatePostFilterDateInput(context) {
+  function validatePostFilterDateInput(context, options = {}) {
     if (context.fieldType !== 'date' || isNoValuePostFilterOperator(context.cond)) {
       return true;
     }
@@ -561,6 +555,9 @@ let PostFilterSystem;
       value2: context.value2
     });
     if (message) {
+      if (options.showWarnings === false) {
+        return false;
+      }
       showToastMessage(message, 'warning');
       return false;
     }
@@ -577,7 +574,8 @@ let PostFilterSystem;
       .filter(entry => entry || isBlankSentinel(entry));
   }
 
-  function buildPostFilterValue(context) {
+  function buildPostFilterValue(context, options = {}) {
+    const showWarnings = options.showWarnings !== false;
     if (isNoValuePostFilterOperator(context.cond)) {
       return { ok: true, selectedValues: [], value: '' };
     }
@@ -585,7 +583,9 @@ let PostFilterSystem;
     if (usesValuePickerOperator(context.cond)) {
       const selectedValues = getSelectedPostFilterValues();
       if (!selectedValues.length) {
-        showToastMessage('Choose one or more loaded values for the post filter.', 'warning');
+        if (showWarnings) {
+          showToastMessage('Choose one or more loaded values for the post filter.', 'warning');
+        }
         return { ok: false };
       }
       return { ok: true, selectedValues, value: selectedValues[0] };
@@ -593,80 +593,21 @@ let PostFilterSystem;
 
     if (context.cond === 'between') {
       if (!context.value || !context.value2) {
-        showToastMessage('Enter both values for a between filter.', 'warning');
+        if (showWarnings) {
+          showToastMessage('Enter both values for a between filter.', 'warning');
+        }
         return { ok: false };
       }
       return { ok: true, selectedValues: [], value: `${context.value}|${context.value2}` };
     }
 
     if (!context.value && !isBlankSentinel(context.value)) {
-      showToastMessage('Enter a value for the post filter.', 'warning');
+      if (showWarnings) {
+        showToastMessage('Enter a value for the post filter.', 'warning');
+      }
       return { ok: false };
     }
     return { ok: true, selectedValues: [], value: context.value };
-  }
-
-  function preparePostFilterGroup(snapshot, field, logic) {
-    if (!snapshot[field]) {
-      snapshot[field] = { logic: 'all', filters: [] };
-    }
-
-    if (snapshot[field].filters.length > 0) {
-      snapshot[field].logic = logic === 'any' ? 'any' : 'all';
-    }
-
-    return snapshot[field];
-  }
-
-  function getSelectedValuesKey(values) {
-    return values.map(entry => String(entry || '')).join('\u001F');
-  }
-
-  function getExistingValuePickerFilterKey(filter) {
-    if (!filter) {
-      return '';
-    }
-
-    return Array.isArray(filter.vals) && filter.vals.length
-      ? getSelectedValuesKey(filter.vals)
-      : String(filter.val || '');
-  }
-
-  function applyValuePickerFilterToSnapshot(snapshot, context, prepared) {
-    const group = preparePostFilterGroup(snapshot, context.field, context.logic);
-    const nextValuesKey = getSelectedValuesKey(prepared.selectedValues);
-    const existingSameCond = group.filters.find(filter => String(filter?.cond || '').toLowerCase() === context.cond);
-    if (getExistingValuePickerFilterKey(existingSameCond) === nextValuesKey) {
-      showToastMessage('That post filter is already active.', 'info');
-      return false;
-    }
-
-    group.filters = group.filters.filter(filter => String(filter?.cond || '').toLowerCase() !== context.cond);
-    group.filters.push({
-      cond: context.cond,
-      val: prepared.value,
-      vals: prepared.selectedValues
-    });
-
-    if (group.filters.length === 1) {
-      group.logic = 'all';
-    }
-    return true;
-  }
-
-  function applyScalarFilterToSnapshot(snapshot, context, prepared) {
-    const group = preparePostFilterGroup(snapshot, context.field, context.logic);
-    const alreadyExists = group.filters.some(filter => filter.cond === context.cond && filter.val === prepared.value);
-    if (alreadyExists) {
-      showToastMessage('That post filter is already active.', 'info');
-      return false;
-    }
-
-    group.filters.push({ cond: context.cond, val: prepared.value });
-    if (group.filters.length === 1) {
-      group.logic = 'all';
-    }
-    return true;
   }
 
   function renderAppliedPostFilter(clearInputs) {
@@ -683,30 +624,63 @@ let PostFilterSystem;
     showToastMessage('Post filter applied.', 'success');
   }
 
-  function addFilter() {
+  function applyCurrentFilter(options = {}) {
     const elements = getElements();
     const context = getAddFilterContext(elements);
-    if (!context) return;
+    if (!context) return false;
 
-    if (!validatePostFilterDateInput(context)) return;
+    if (!validatePostFilterDateInput(context, options)) return false;
 
-    const prepared = buildPostFilterValue(context);
-    if (!prepared.ok) return;
+    const prepared = buildPostFilterValue(context, options);
+    if (!prepared.ok) return false;
 
     const snapshot = getPostFilterSnapshot();
+    const mutationOptions = { ...options, showToastMessage };
     const usesPicker = usesValuePickerOperator(context.cond) && prepared.selectedValues.length > 0;
     const didApply = usesPicker
-      ? applyValuePickerFilterToSnapshot(snapshot, context, prepared)
-      : applyScalarFilterToSnapshot(snapshot, context, prepared);
+      ? applyValuePickerFilterToSnapshot(snapshot, context, prepared, mutationOptions)
+      : applyScalarFilterToSnapshot(snapshot, context, prepared, mutationOptions);
     if (!didApply) {
-      return;
+      return false;
     }
 
-    writeSnapshot(snapshot, { refreshView: true, notify: true, resetScroll: true });
-    renderAppliedPostFilter(!usesPicker);
+    writeSnapshot(snapshot, {
+      refreshView: true,
+      notify: options.notify !== false,
+      resetScroll: options.resetScroll !== false
+    });
+    if (options.showSuccessToast === true) {
+      renderAppliedPostFilter(Boolean(options.clearInputs) && !usesPicker);
+    } else {
+      renderSummary();
+      renderFilterList();
+      syncLogicSelect();
+      updateToolbarButton();
+    }
+    return true;
+  }
+
+  function applyCurrentFilterAutomatically() {
+    return applyCurrentFilter({
+      notify: false,
+      replaceSameCondition: true,
+      resetScroll: true,
+      showDuplicateToast: false,
+      showSuccessToast: false,
+      showWarnings: false
+    });
+  }
+
+  function scheduleAutoApply(delay) {
+    getAutoApplyController().schedule(delay);
+  }
+
+  function flushAutoApply() {
+    getAutoApplyController().flush();
   }
 
   function removeFilter(field, index) {
+    getAutoApplyController().cancel();
     const snapshot = getPostFilterSnapshot();
     if (!snapshot[field] || !Array.isArray(snapshot[field].filters) || !snapshot[field].filters[index]) {
       return;
@@ -718,9 +692,11 @@ let PostFilterSystem;
     }
 
     writeSnapshot(snapshot, { refreshView: true, notify: true, resetScroll: true });
+    resetDraftRule();
     renderSummary();
     renderFilterList();
     updateToolbarButton();
+    getAutoApplyController().reset();
   }
 
   function updateFieldLogic(field, logic) {
@@ -738,8 +714,11 @@ let PostFilterSystem;
   }
 
   function clearAllFilters() {
+    getAutoApplyController().cancel();
+    clearDraftValues();
     services.clearPostFilters({ refreshView: true, notify: true, resetScroll: true });
     refreshOverlay();
+    resetDraftRule();
   }
 
   function handleListClick(event) {
@@ -764,9 +743,48 @@ let PostFilterSystem;
     elements.closeBtn?.addEventListener('click', closeOverlay);
     elements.doneBtn?.addEventListener('click', closeOverlay);
     elements.clearBtn?.addEventListener('click', clearAllFilters);
-    elements.addBtn?.addEventListener('click', addFilter);
-    elements.fieldSelect?.addEventListener('change', syncOperatorOptions);
-    elements.operatorSelect?.addEventListener('change', syncValueInputs);
+    elements.fieldSelect?.addEventListener('change', () => {
+      clearDraftValues();
+      syncOperatorOptions();
+      scheduleAutoApply(0);
+    });
+    elements.operatorSelect?.addEventListener('change', () => {
+      syncValueInputs();
+      scheduleAutoApply(0);
+    });
+    elements.valueInput?.addEventListener('input', () => scheduleAutoApply());
+    elements.valueInput2?.addEventListener('input', () => scheduleAutoApply());
+    elements.valueInput?.addEventListener('change', () => scheduleAutoApply(0));
+    elements.valueInput2?.addEventListener('change', () => scheduleAutoApply(0));
+    elements.valueInput?.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        flushAutoApply();
+      }
+    });
+    elements.valueInput2?.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        flushAutoApply();
+      }
+    });
+    elements.valuePickerHost?.addEventListener('change', () => scheduleAutoApply(0));
+    elements.overlay?.addEventListener('input', event => {
+      if (
+        event.target === elements.valueInput
+        || event.target === elements.valueInput2
+        || event.target?.closest?.('#post-filter-value-picker-host')
+      ) {
+        scheduleAutoApply();
+      }
+    });
+    elements.overlay?.addEventListener('change', event => {
+      if (
+        event.target === elements.valueInput
+        || event.target === elements.valueInput2
+        || event.target?.closest?.('#post-filter-value-picker-host')
+      ) {
+        scheduleAutoApply(0);
+      }
+    });
     elements.logicSelect?.addEventListener('change', () => {
       const field = String(elements.fieldSelect?.value || '').trim();
       if (!field) {
