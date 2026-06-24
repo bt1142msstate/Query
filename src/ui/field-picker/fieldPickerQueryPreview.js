@@ -289,3 +289,10 @@ function assignQueryPreviewDefaultValues(inputSpec, values, fieldDef) {
     ? normalizedValues.filter(Boolean)
     : (normalizedValues[0] || '');
 }
+
+export {
+  assignQueryPreviewDefaultValues,
+  getQueryPreviewDefaultValues,
+  normalizeQueryPreviewOperator,
+  readQueryPreviewFilterValues
+};

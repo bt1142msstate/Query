@@ -25,6 +25,7 @@ const ACTIVE_WORK_SELECTOR = [
   '#export-overlay:not(.hidden)',
   '#templates-detail-overlay:not(.hidden)',
   '#templates-categories-overlay:not(.hidden)',
+  '.query-filter-editor-backdrop:not([hidden])',
   '.form-mode-field-picker-backdrop:not([hidden])',
   '.form-mode-popup-list-backdrop:not([hidden])',
   '.query-multi-value-viewer-backdrop',
