@@ -396,14 +396,11 @@ test('query history result loads ignore stale responses after a newer result is 
       isDuplicateRowCollapseActive: () => true,
       isSplitColumnsActive: () => false,
       renderVirtualTable() {},
-      rerenderBubbles() {},
-      resetBubbleScroll() {},
       setVirtualTableData(data) {
         currentTableData = data;
         hydratedRows.push(data.rows[0][0]);
       },
       syncColumnResizeModeUi() {},
-      updateBubbleScrollBar() {}
     },
     uiState: { getFieldSearch: () => '' },
     showToastMessage() {},

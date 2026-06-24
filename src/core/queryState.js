@@ -56,22 +56,10 @@ function getBaseFieldName(fieldName) {
 }
 
 const appStateValues = {
-  selectedField: '',
-  totalRows: 0,
-  scrollRow: 0,
-  rowHeight: 0,
-  hoverScrollArea: false,
-  currentCategory: 'All',
   queryPageIsUnloading: false
 };
 
 const appStateNormalizers = {
-  selectedField: value => String(value || ''),
-  totalRows: value => Number.isFinite(Number(value)) ? Number(value) : 0,
-  scrollRow: value => Number.isFinite(Number(value)) ? Number(value) : 0,
-  rowHeight: value => Number.isFinite(Number(value)) ? Number(value) : 0,
-  hoverScrollArea: value => Boolean(value),
-  currentCategory: value => String(value || 'All') || 'All',
   queryPageIsUnloading: value => Boolean(value)
 };
 
@@ -96,9 +84,6 @@ Object.keys(appStateValues).forEach(key => {
   defineAppStateProperty(appStateStore, key);
 });
 Object.freeze(appStateStore);
-
-// Bubble animation state is owned by BubbleSystem (bubble.js).
-// Access through appServices bubble helpers.
 
 const displayedFieldsState = [];
 const activeFiltersState = {};
@@ -657,9 +642,7 @@ async function clearQueryManagerState(meta = {}) {
     return false;
   }
 
-  const previousSelectedField = appStateStore.selectedField || '';
-
-  uiActions?.prepareForQueryClear?.({ previousSelectedField });
+  uiActions?.prepareForQueryClear?.();
 
   // Clear lifecycle first so subscribers observing the reset event see the fully
   // cleared query state instead of stale partial-results/history metadata.
@@ -671,12 +654,10 @@ async function clearQueryManagerState(meta = {}) {
   });
 
   // State reset fires all QueryStateSubscriptions, which reactively
-  // update FilterSidePanel, category counts, JSON preview, button states, and bubbles.
+  // update FilterSidePanel, JSON preview, and button states.
   queryStateStore.resetState(normalizedMeta);
 
-  uiActions?.finalizeQueryClear?.({ previousSelectedField });
-  appStateStore.selectedField = '';
-  appStateStore.currentCategory = 'All';
+  uiActions?.finalizeQueryClear?.();
 
   if (!suppressToast) {
     showToastMessage('Query cleared.', 'info');

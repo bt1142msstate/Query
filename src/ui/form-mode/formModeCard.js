@@ -93,13 +93,9 @@ function getVisibleFormInputs(inputs = []) {
   return (Array.isArray(inputs) ? inputs : []).filter(inputSpec => !inputSpec.hidden);
 }
 
-function findFormModeStage(documentRef) {
-  return documentRef.getElementById('bubble-container')?.closest('.flex.items-start.justify-center') || null;
-}
-
 function ensureFormModeHost(documentRef) {
-  const bubbleStage = findFormModeStage(documentRef);
-  if (!bubbleStage) {
+  const formStage = documentRef.getElementById('form-mode-stage');
+  if (!formStage) {
     return null;
   }
 
@@ -108,7 +104,7 @@ function ensureFormModeHost(documentRef) {
     host = documentRef.createElement('div');
     host.id = 'form-mode-host';
     host.className = 'form-mode-host hidden';
-    bubbleStage.insertBefore(host, bubbleStage.firstChild);
+    formStage.insertBefore(host, formStage.firstChild);
   }
 
   return host;

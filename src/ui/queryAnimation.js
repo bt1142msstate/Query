@@ -1,5 +1,4 @@
 import { QueryStateReaders } from '../core/queryState.js';
-import { appServices } from '../core/appServices.js';
 import { registerAppUiActionDependencies } from '../core/appUiActions.js';
 import {
   formatBackendProgressDetail,
@@ -20,6 +19,46 @@ function clearTableQueryBubbleTimers(bubble) {
   if (bubble._elapsedTimer) {
     clearInterval(bubble._elapsedTimer);
     bubble._elapsedTimer = null;
+  }
+}
+
+function createQueryBubblePopParticles(bubble) {
+  if (!bubble) return;
+
+  const rect = bubble.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  const particleCount = 25;
+
+  for (let index = 0; index < particleCount; index += 1) {
+    const particle = document.createElement('div');
+    particle.className = 'bubble-particle';
+    particle.style.zIndex = getComputedStyle(bubble).zIndex;
+
+    const angle = Math.random() * Math.PI * 2;
+    const radiusX = (rect.width / 2) * (0.8 + Math.random() * 0.3);
+    const radiusY = (rect.height / 2) * (0.8 + Math.random() * 0.3);
+    const startX = centerX + Math.cos(angle) * radiusX;
+    const startY = centerY + Math.sin(angle) * radiusY;
+    const size = Math.random() * 10 + 4;
+    const burstSpeed = 20 + Math.random() * 50;
+    const travelX = Math.cos(angle) * burstSpeed;
+    const gravity = 60 + Math.random() * 60;
+    const travelY = Math.sin(angle) * burstSpeed + gravity;
+    const duration = 0.35 + Math.random() * 0.25;
+
+    particle.style.left = `${startX}px`;
+    particle.style.top = `${startY}px`;
+    particle.style.width = `${size}px`;
+    particle.style.height = `${size}px`;
+    particle.style.setProperty('--tx', `${travelX}px`);
+    particle.style.setProperty('--ty', `${travelY}px`);
+    particle.style.animation = `bubble-pop-anim ${duration}s ease-in forwards`;
+
+    document.body.appendChild(particle);
+    setTimeout(() => {
+      particle.remove();
+    }, duration * 1000);
   }
 }
 
@@ -269,7 +308,7 @@ function endTableQueryAnimation() {
 
     const finishAnim = () => {
       bubble.classList.add('popping');
-      appServices.createBubblePopParticles(bubble);
+      createQueryBubblePopParticles(bubble);
 
       tableContainer.classList.remove('table-container-hidden');
 

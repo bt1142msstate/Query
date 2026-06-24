@@ -348,12 +348,6 @@ if (execDom.runBtn) {
           // Re-render the full table to reset red column headers and redraw rows with new widths
           await uiActions.showExampleTable(state.displayedFields);
 
-          // Re-render bubbles to reflect the new state and correct totalRows
-          services.rerenderBubbles();
-
-          // Reset bubble scroll back to the top
-          services.resetBubbleScroll();
-
           // Restore the user's split-columns preference after the new raw data is loaded.
           if (wasSplitPreferred) {
             restoreSplitColumnsPreference();

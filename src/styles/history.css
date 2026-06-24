@@ -1458,7 +1458,7 @@
 .history-details-modal-shell {
   position: fixed;
   inset: 0;
-  z-index: calc(var(--z-filter-card) + 4);
+  z-index: calc(var(--z-floating-panel-base) + 4);
   display: grid;
   place-items: center;
   padding: 1.5rem;

@@ -58,7 +58,7 @@ function initializeWorkspaceLayoutObservers({
     return;
   }
 
-  const formStage = documentRef.getElementById('field-bubble-stage');
+  const formStage = documentRef.getElementById('form-mode-stage');
   if (!formStage) {
     return;
   }

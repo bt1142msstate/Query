@@ -24,7 +24,6 @@ let aliasToastTimer = null;
 const backendFieldNames = new Set();
 const localDynamicFieldNames = new Set();
 const FIELD_DEFINITION_TIMEOUT_MS = 12000;
-const SYSTEM_CATEGORIES = ['All', 'Selected'];
 const DEFAULT_DATE_FILTERS = Object.freeze([
   'equals',
   'does_not_equal',
@@ -37,34 +36,6 @@ const DEFAULT_DATE_FILTERS = Object.freeze([
 
 function hasLoadedFieldDefinitions() {
   return isFieldsLoaded && fieldDefsArray.length > 0;
-}
-
-function normalizeCategoryName(category) {
-  return (typeof category === 'string') ? category.trim() : '';
-}
-
-function getAvailableCategories() {
-  if (!hasLoadedFieldDefinitions()) {
-    return [];
-  }
-
-  const seen = new Set();
-  const derivedCategories = [];
-
-  fieldDefsArray.forEach(field => {
-    const categoryValues = Array.isArray(field.category) ? field.category : [field.category];
-    categoryValues.forEach(categoryValue => {
-      const normalized = normalizeCategoryName(categoryValue);
-      if (!normalized || seen.has(normalized)) {
-        return;
-      }
-
-      seen.add(normalized);
-      derivedCategories.push(normalized);
-    });
-  });
-
-  return [...SYSTEM_CATEGORIES, ...derivedCategories];
 }
 
 function scheduleAliasNotificationToast() {
@@ -490,40 +461,11 @@ function shouldFieldHavePurpleStyling(fieldName) {
   return shouldFieldHavePurpleStylingBase(fieldName, displayedFields, activeFilters);
 }
 
-/**
- * Calculates the count of fields in each selector group.
- * @function calculateCategoryCounts
- * @param {string[]} displayedFields - Array of currently displayed field names
- * @param {Object} activeFilters - Object containing active filter configurations
- * @returns {Object} Object mapping selector group names to field counts
- */
-function calculateCategoryCounts(displayedFields, activeFilters) {
-  const categoryCounts = {};
-  const categories = getAvailableCategories();
-  categories.forEach(cat => {
-    if (cat === 'All') {
-      categoryCounts.All = fieldDefsArray.length;
-    } else if (cat === 'Selected') {
-      categoryCounts.Selected = fieldDefsArray.filter(d => 
-        shouldFieldHavePurpleStylingBase(d.name, displayedFields || [], activeFilters || {})
-      ).length;
-    } else {
-      categoryCounts[cat] = fieldDefsArray.filter(d => {
-        const c = d.category;
-        return Array.isArray(c) ? c.includes(cat) : c === cat;
-      }).length;
-    }
-  });
-  return categoryCounts;
-}
-
 export {
-  calculateCategoryCounts,
   fieldAliases,
   fieldDefs,
   fieldDefsArray,
   filteredDefs,
-  getAvailableCategories,
   getFieldBuilderInputs,
   getFieldFilterOperators,
   hasLoadedFieldDefinitions,

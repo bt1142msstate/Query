@@ -5,7 +5,6 @@
 import { appServices } from '../tableServices.js';
 import { appUiActions } from '../../../core/appUiActions.js';
 import {
-  AppState,
   getBaseFieldName,
   QueryChangeManager,
   QueryStateReaders,
@@ -21,14 +20,12 @@ import {
   removedColumnInfo,
   restoreFieldWithDuplicates
 } from './columnManager.js';
-import { fieldDefs, isFieldBuildable } from '../../filters/fieldDefs.js';
 
 let dragDropColumnOps;
 
 (function initializeDragDropColumns() {
   const DEFER_PROJECTION_ROW_THRESHOLD = 50000;
   const getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
-  const appState = AppState;
   const services = appServices;
   const uiActions = appUiActions;
 
@@ -71,13 +68,10 @@ let dragDropColumnOps;
   }
 
   function syncTableAfterColumnMutation(options = {}) {
+    void options;
     uiActions.updateQueryJson();
     uiActions.updateButtonStates();
     uiActions.updateCategoryCounts();
-
-    if (appState.currentCategory === 'Selected') {
-      services.rerenderBubbles();
-    }
   }
 
   function queueColumnMutationRender(options = {}) {
@@ -307,20 +301,6 @@ let dragDropColumnOps;
         QueryChangeManager.replaceDisplayedFields(remainingFields, {
           optimisticTableDomAlreadySynced: tableDomAlreadySynced,
           source: removal.isGroupRemoval ? 'DragDrop.removeSplitColumnGroup' : 'DragDrop.removeColumn'
-        });
-      }
-
-      if (baseFieldName) {
-        document.querySelectorAll('.bubble').forEach(bubbleEl => {
-          if (bubbleEl.textContent.trim() === baseFieldName) {
-            const fieldDef = fieldDefs ? fieldDefs.get(baseFieldName) : null;
-            if (isFieldBuildable(fieldDef)) {
-              bubbleEl.setAttribute('draggable', 'false');
-            } else {
-              bubbleEl.setAttribute('draggable', 'true');
-            }
-            services.applyBubbleStyling(bubbleEl);
-          }
         });
       }
 

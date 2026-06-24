@@ -199,26 +199,10 @@
       });
   </script>
   
-  <div id="filter-card">
-    <div id="filter-card-header">
-      <span id="filter-card-title"></span>
-      <button id="filter-card-close-btn" class="filter-card-close" type="button" aria-label="Close filter editor">×</button>
-    </div>
-    <div id="condition-panel" class="gap-4"></div>
-    <div id="bubble-cond-list"></div>
-    <div id="condition-input-wrapper">
-      <input id="condition-input" class="condition-field" type="text" placeholder="Enter value…" />
-      <span id="between-label" class="mx-2 font-semibold" style="display:none;">to</span>
-      <input id="condition-input-2" class="condition-field" type="text" placeholder="Enter value…" style="display:none;" />
-      <button id="confirm-btn" class="confirm-btn" data-tooltip="Confirm" data-tooltip-delay="0">&#10003;</button>
-      <span id="filter-error"
-            class="ml-3 text-red-600 text-sm font-semibold"></span>
-    </div>
-  </div>
   <div id="query-app-shell" class="w-full mx-auto">
     <!-- Table + Filter Panel row -->
     <div id="table-with-filter">
-      <!-- Filter Panel (left of table, populated by filterManager.js) -->
+      <!-- Display/filter side panel -->
       <aside id="filter-side-panel" class="panel-hidden" aria-label="Filter panel">
         <!-- Content area -->
         <div id="filter-panel-content">
@@ -630,23 +614,7 @@
             </span>
           </button>
         </div>
-        <div id="category-bar"
-             class="mb-4 flex w-max gap-0 mx-auto"></div>
-        <!-- Mobile category selector (only shown on small screens) -->
-        <select id="mobile-category-selector" class="mb-4 hidden"></select>
-        <!-- legacy field list host used by the core builder -->
-        <div id="field-bubble-stage" class="flex items-start justify-center">
-          <div id="bubble-container" class="overflow-hidden" style="max-width:720px;">
-            <div id="bubble-list" class="flex flex-wrap gap-4 justify-center"></div>
-          </div>
-          <!-- Bubble pagination -->
-          <div id="bubble-nav" class="ml-4 flex flex-col items-center">
-            <div id="bubble-scrollbar" class="bubble-scrollbar-container">
-              <div id="bubble-scrollbar-track" class="bubble-scrollbar-track"></div>
-              <div id="bubble-scrollbar-thumb" class="bubble-scrollbar-thumb"></div>
-            </div>
-          </div>
-        </div> <!-- end wrapper -->
+        <div id="form-mode-stage" class="form-mode-stage"></div>
       </div>
     </section>
 

@@ -9,7 +9,6 @@ import { buildTableRowsFromObjectRows, writeCachedHistoryResultSnapshot } from '
 import { forgetOpenedHistoryResult, rememberOpenedHistoryResult } from './queryHistoryResultSession.js';
 
 export function createQueryHistoryResultsLoader({
-  appState,
   historyResultProgress,
   notifyHistoryResultLoadComplete,
   prepareHistoryResultLoadNotification,
@@ -63,7 +62,6 @@ export function createQueryHistoryResultsLoader({
         await hydrateHistoryResultTable({
           headers: rows.headers,
           rows: tableRows,
-          appState,
           queryStateReaders,
           queryChangeManager,
           viewState: incomingViewState,
@@ -238,7 +236,6 @@ async function hydrateHistoryResultTable({
   headers,
   objectRows,
   rows,
-  appState,
   queryStateReaders,
   queryChangeManager,
   viewState,
@@ -281,14 +278,6 @@ async function hydrateHistoryResultTable({
     : (services.getVirtualTableData?.()?.headers || headers);
 
   await uiActions.showExampleTable(renderFields);
-  services.rerenderBubbles();
-
-  if (services.bubble?.resetBubbleScroll) {
-    services.resetBubbleScroll();
-  } else {
-    appState.scrollRow = 0;
-    services.updateBubbleScrollBar();
-  }
   uiActions.updateButtonStates();
   syncHistoryResultWorkspaceLayout({ services, uiActions });
 }

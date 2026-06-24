@@ -1,6 +1,6 @@
 /**
  * Shared filter value formatting and list editor helpers.
- * Extracted from filterManager.js so value-display behavior is separate from condition editing.
+ * Keeps value-display behavior separate from query filter editing surfaces.
  */
 import { getFieldValueDisplayMap } from '../../core/formatting/fieldValueMaps.js';
 import { MoneyUtils } from '../../core/formatting/moneyUtils.js';

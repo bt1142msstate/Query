@@ -305,11 +305,7 @@ async function expectDarkSelectArrowRendering(page) {
     formModeSelect.className = 'form-mode-operator-select';
     formModeSelect.append(new Option('Equals', 'equals'));
 
-    const conditionSelect = document.createElement('select');
-    conditionSelect.className = 'condition-operator-select';
-    conditionSelect.append(new Option('Contains', 'contains'));
-
-    host.append(formModeSelect, conditionSelect);
+    host.append(formModeSelect);
     document.body.appendChild(host);
 
     const readSelect = (label, element) => {
@@ -326,8 +322,7 @@ async function expectDarkSelectArrowRendering(page) {
     };
 
     const result = [
-      readSelect('form mode operator select', formModeSelect),
-      readSelect('condition operator select', conditionSelect)
+      readSelect('form mode operator select', formModeSelect)
     ];
     host.remove();
     return result;
@@ -1575,7 +1570,7 @@ async function runSmokeTest() {
       return {
         actionBarDisplay: mobileActionBar ? window.getComputedStyle(mobileActionBar).display : '',
         actionBarPosition: mobileActionBar ? window.getComputedStyle(mobileActionBar).position : '',
-        builderStageTop: visibleTop('#field-bubble-stage'),
+        formStageTop: visibleTop('#form-mode-stage'),
         builderCollapsed: builderContent ? window.getComputedStyle(builderContent).display === 'none' : false,
         builderExpanded: builderToggle?.getAttribute('aria-expanded') || '',
         builderToggleDisplay: builderToggle ? window.getComputedStyle(builderToggle).display : '',
@@ -1592,7 +1587,7 @@ async function runSmokeTest() {
       !mobileResultsLayout.hasLoadedData
       || !mobileResultsLayout.hasQueryColumns
       || mobileResultsLayout.tableTop > mobileResultsLayout.formTop + 1
-      || mobileResultsLayout.tableTop > mobileResultsLayout.builderStageTop + 1
+      || mobileResultsLayout.tableTop > mobileResultsLayout.formStageTop + 1
       || mobileResultsLayout.tableTop > mobileResultsLayout.searchTop + 1
     ) {
       throw new Error(`Mobile table should be the first main-screen surface once display fields exist: ${JSON.stringify(mobileResultsLayout)}`);

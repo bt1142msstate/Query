@@ -62,7 +62,7 @@ The full backend integration contract is documented in `docs/INTEGRATION.md`.
 | Data contract | `src/core/fieldDefs.js`, `src/features/filters/queryPayload.js` | Backend field metadata registry, payload generation, and filter normalization |
 | Features | `src/features/filters/`, `src/features/table/`, `src/features/history/`, `src/features/templates/` | User workflows grouped by product feature, with complex widgets split into focused view/helper modules |
 | Query history | `src/features/history/` | History shell split from request mapping, config loading, result hydration, row rendering, grouping, notifications, tooltips, and status mapping |
-| Filter workflows | `src/features/filters/` | Backend payload contracts, field metadata, condition validation, buildable-field construction, filter-pill rendering, and condition input/panel configuration |
+| Filter workflows | `src/features/filters/` | Backend payload contracts, field metadata, condition validation, buildable-field construction, side-panel rendering, and side-panel reorder actions |
 | Template workflows | `src/features/templates/` | Template shell split from models, state, repository, payloads, category actions/views, list/detail rendering, and view-state helpers |
 | UI feature folders | `src/ui/form-mode/`, `src/ui/field-picker/` | Larger UI workflows with dedicated shell, field-picker, query-preview, state helper, presentation, and interaction modules |
 | Table feature folders | `src/features/table/drag-drop/`, `src/features/table/virtual-table/`, `src/features/table/post-filters/`, `src/features/table/export/` | App-specific result-table workflows grouped by behavior, with stateful drag/drop, resize, header-action, post-filter, context-menu, and export overlay coordination split from reusable `src/lib/` primitives |
@@ -83,7 +83,7 @@ The full backend integration contract is documented in `docs/INTEGRATION.md`.
 - `src/lib/workbook-export/` keeps workbook data shaping, overview/details sheets, browser-safe Blob generation, worker entrypoint support, and ZIP writing separate from app UI orchestration.
 - `src/lib/virtual-table/` owns reusable virtualizer, column layout, scrollbar controller, row projection, sort, split-column transforms, multi-value display helpers, and duplicate-row collapse.
 - `src/lib/drag-drop/` owns reusable drag/drop math, viewport auto-scroll, resize-start detection, and drop-anchor layout helpers.
-- `src/features/filters/condition-editor/` owns condition editor layout, input adapters, panel UI, interaction wiring, reset behavior, and bubble-shaped field controls. This keeps the retired standalone bubble-builder concept out of the top-level folder model.
+- `src/features/filters/` owns filter payload shaping, field warning metadata, side-panel rendering, and side-panel reorder actions. Shared query filter editing lives in `src/ui/filter-editor/`, while form-mode field selection lives in `src/ui/field-picker/` and `src/ui/form-mode/`.
 - `src/ui/` keeps shared UI systems at the root and groups larger workflows in `field-picker/` and `form-mode/`.
 - `src/styles/` owns design tokens, the stylesheet entrypoint, and feature CSS.
 
