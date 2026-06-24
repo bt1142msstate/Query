@@ -22,6 +22,7 @@
     "demo": "node scripts/runDemo.mjs",
     "example:backend": "node examples/minimal-backend/server.mjs",
     "architecture:metrics": "node scripts/reportArchitectureMetrics.mjs",
+    "architecture:score": "node scripts/reportArchitectureScore.mjs",
     "lint": "eslint \"**/*.{js,mjs,cjs}\"",
     "serve:live": "node scripts/serveLiveFrontend.mjs",
     "test": "npm run test:static && npm run test:unit && npm run test:browser",

@@ -161,11 +161,19 @@ The architecture rules are executable, versioned, and run in CI.
 
 The same cohesion test also runs a Git-history change-coupling analysis. Bulk refactor commits are skipped, and high-confidence cross-folder file pairs are budgeted so files that repeatedly change together are surfaced as candidates for a clearer boundary. GitHub Actions fetches full history for the normal test workflow so this check has enough data in CI.
 
-For a human-readable scorecard, run:
+For a human-readable metrics report, run:
 
 ```bash
 npm run architecture:metrics
 ```
+
+For a single integer architecture score, run:
+
+```bash
+npm run architecture:score
+```
+
+The score is a 0-100 composite over the same executable guardrails: graph integrity, coupling and modularity, maintainability, folder cohesion, and Git-history change coupling. It is intentionally integer-based so progress can be tracked without subjective grading language. The CI gate enforces the minimum in `config/architectureRules.cjs`, while the target score marks the level the project should work toward for near-perfect modularity.
 
 ## Fitness Checks
 
