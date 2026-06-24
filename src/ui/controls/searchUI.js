@@ -1,11 +1,13 @@
 import { onDOMReady } from '../../core/domReady.js';
 
-onDOMReady(() => {
-  initializeSearchInputs(document);
-});
+if (typeof document !== 'undefined') {
+  onDOMReady(() => {
+    initializeSearchInputs(document);
+  });
+}
 
 function enhanceSearchInput(input, options = {}) {
-  if (!(input instanceof HTMLInputElement)) {
+  if (typeof HTMLInputElement === 'undefined' || !(input instanceof HTMLInputElement)) {
     return null;
   }
 

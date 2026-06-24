@@ -15,7 +15,6 @@ const IMMEDIATE_TOOLTIP_SELECTOR = [
   '.query-table-collapsed-row',
   '.th-action',
   '.table-toolbar-btn',
-  '.filter-list-viewer-icon-btn',
   '.form-mode-field-picker-field-info',
   '.list-paste-btn',
   '.post-filter-pill__remove',

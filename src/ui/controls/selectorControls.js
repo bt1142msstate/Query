@@ -721,6 +721,9 @@ function createPopupListControl(innerControl, label, placeholder) {
     trigger.focus();
   };
 
+  wrapper.openPopup = openPopup;
+  wrapper.closePopup = closePopup;
+
   updateSummary();
   return wrapper;
 }

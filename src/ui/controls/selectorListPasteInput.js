@@ -1,8 +1,27 @@
+import { ClipboardUtils } from '../../core/clipboard.js';
+import { showToastMessage } from '../../core/toast.js';
+
 function parseListInputValues(rawValue) {
   return String(rawValue || '')
     .split(/[\r\n,]+/)
     .map(value => value.trim())
     .filter(Boolean);
+}
+
+function serializeListInputValues(values = []) {
+  return (Array.isArray(values) ? values : [])
+    .map(value => String(value ?? '').trim())
+    .filter(Boolean)
+    .join('\n');
+}
+
+function buildListDownloadFilename(label = 'filter-values') {
+  const safeLabel = String(label || 'filter-values')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  return `${safeLabel || 'filter-values'}.txt`;
 }
 
 function createListPasteInput(currentValues = [], options = {}) {
@@ -31,6 +50,20 @@ function createListPasteInput(currentValues = [], options = {}) {
   uploadBtn.setAttribute('aria-label', 'Upload list file');
   uploadBtn.setAttribute('data-tooltip', 'Upload text or CSV file');
   uploadBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16"><path d="M12 16V4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 9l5-5 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 20h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="sr-only">Upload file</span>';
+
+  const copyBtn = document.createElement('button');
+  copyBtn.type = 'button';
+  copyBtn.className = 'list-paste-btn list-paste-btn-secondary';
+  copyBtn.setAttribute('aria-label', 'Copy list values');
+  copyBtn.setAttribute('data-tooltip', 'Copy list values');
+  copyBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16"><rect x="9" y="9" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" fill="none" stroke="currentColor" stroke-width="2"/></svg><span class="sr-only">Copy values</span>';
+
+  const downloadBtn = document.createElement('button');
+  downloadBtn.type = 'button';
+  downloadBtn.className = 'list-paste-btn list-paste-btn-secondary';
+  downloadBtn.setAttribute('aria-label', 'Download list as text file');
+  downloadBtn.setAttribute('data-tooltip', 'Download list as text file');
+  downloadBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16"><path d="M12 3v12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 21h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="sr-only">Download values</span>';
 
   const clearBtn = document.createElement('button');
   clearBtn.type = 'button';
@@ -84,6 +117,32 @@ function createListPasteInput(currentValues = [], options = {}) {
     }
   });
 
+  ClipboardUtils.bindCopyButton(copyBtn, () => serializeListInputValues(container.getSelectedValues()), {
+    successMessage: 'List copied to clipboard.',
+    errorMessage: 'Failed to copy list.',
+    emptyMessage: 'No list values are available to copy.'
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    const rawText = serializeListInputValues(container.getSelectedValues());
+    if (!rawText) {
+      showToastMessage('No list values are available to download.', 'warning');
+      return;
+    }
+
+    const blob = new Blob([rawText], { type: 'text/plain;charset=utf-8' });
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = buildListDownloadFilename(options.filenameBase || options.label || 'filter-values');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(objectUrl);
+
+    showToastMessage('List downloaded.', 'success');
+  });
+
   fileInput.addEventListener('change', () => {
     const [file] = fileInput.files || [];
     if (!file) return;
@@ -124,6 +183,8 @@ function createListPasteInput(currentValues = [], options = {}) {
 
   toolbar.appendChild(hint);
   actions.appendChild(uploadBtn);
+  actions.appendChild(copyBtn);
+  actions.appendChild(downloadBtn);
   actions.appendChild(clearBtn);
   toolbar.appendChild(actions);
 
@@ -154,6 +215,8 @@ function createListPasteInput(currentValues = [], options = {}) {
 }
 
 export {
+  buildListDownloadFilename,
   createListPasteInput,
-  parseListInputValues
+  parseListInputValues,
+  serializeListInputValues
 };

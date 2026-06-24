@@ -1,14 +1,11 @@
 /**
- * Shared filter value formatting and list-viewer helpers.
+ * Shared filter value formatting and list editor helpers.
  * Extracted from filterManager.js so value-display behavior is separate from condition editing.
  */
-import { ClipboardUtils } from '../../core/clipboard.js';
 import { getFieldValueDisplayMap } from '../../core/formatting/fieldValueMaps.js';
-import { showToastMessage } from '../../core/toast.js';
 import { MoneyUtils } from '../../core/formatting/moneyUtils.js';
 import { ValueFormatting } from '../../core/formatting/valueFormatting.js';
-import { VisibilityUtils } from '../../core/visibility.js';
-import { escapeHtml } from '../../core/formatting/html.js';
+import { SelectorControls } from '../../ui/controls/selectorControls.js';
 
   function getFilterValueMap(fieldDef) {
     return getFieldValueDisplayMap(fieldDef);
@@ -57,119 +54,77 @@ import { escapeHtml } from '../../core/formatting/html.js';
     return Boolean(fieldDef && fieldDef.allowValueList && values.length > 1);
   }
 
-  function ensureFilterListViewer() {
-    let backdrop = document.getElementById('filter-list-viewer-backdrop');
-    let panel = document.getElementById('filter-list-viewer');
-
-    if (backdrop && panel) {
-      return { backdrop, panel };
-    }
-
-    backdrop = document.createElement('div');
-    backdrop.id = 'filter-list-viewer-backdrop';
-    backdrop.className = 'filter-list-viewer-backdrop hidden';
-
-    panel = document.createElement('div');
-    panel.id = 'filter-list-viewer';
-    panel.className = 'filter-list-viewer hidden';
-    panel.innerHTML = `
-        <div class="filter-list-viewer-header">
-            <div>
-                <div id="filter-list-viewer-title" class="filter-list-viewer-title"></div>
-                <div id="filter-list-viewer-meta" class="filter-list-viewer-meta"></div>
-            </div>
-            <div class="filter-list-viewer-actions">
-                <button type="button" id="filter-list-viewer-copy" class="filter-list-viewer-icon-btn" aria-label="Copy list" data-tooltip="Copy list">
-                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" fill="none" stroke="currentColor" stroke-width="2"/></svg>
-                </button>
-                <button type="button" id="filter-list-viewer-download" class="filter-list-viewer-icon-btn" aria-label="Download list" data-tooltip="Download list as text file">
-                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3v12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 21h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                </button>
-                <button type="button" id="filter-list-viewer-close" class="filter-list-viewer-close" aria-label="Close list viewer">
-                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 6l12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                </button>
-            </div>
-        </div>
-        <div id="filter-list-viewer-body" class="filter-list-viewer-body"></div>
-    `;
-
-    const closeViewer = () => {
-      VisibilityUtils.hide([backdrop, panel], {
-        raisedUiKey: 'filter-list-viewer'
-      });
-    };
-
-    panel._viewerState = {
-      values: [],
-      filenameBase: 'filter-values'
-    };
-
-    backdrop.addEventListener('click', closeViewer);
-    panel.querySelector('#filter-list-viewer-close').addEventListener('click', closeViewer);
-    ClipboardUtils.bindCopyButton(panel.querySelector('#filter-list-viewer-copy'), () => {
-      return (panel._viewerState.values || []).join('\n');
-    }, {
-      successMessage: 'List copied to clipboard.',
-      errorMessage: 'Failed to copy list.',
-      emptyMessage: 'No list values are available to copy.'
-    });
-    panel.querySelector('#filter-list-viewer-download').addEventListener('click', () => {
-      const rawText = (panel._viewerState.values || []).join('\n');
-      if (!rawText) return;
-
-      const blob = new Blob([rawText], { type: 'text/plain;charset=utf-8' });
-      const objectUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = objectUrl;
-      link.download = `${panel._viewerState.filenameBase || 'filter-values'}.txt`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(objectUrl);
-
-      showToastMessage('List downloaded.', 'success');
-    });
-    document.addEventListener('keydown', event => {
-      if (event.key === 'Escape' && VisibilityUtils.isVisible(panel)) {
-        closeViewer();
-      }
-    });
-
-    document.body.appendChild(backdrop);
-    document.body.appendChild(panel);
-    return { backdrop, panel };
+  function getFilterLiteralValues(filter) {
+    const rawValue = String(filter && filter.val || '');
+    const delimiter = filter && filter.cond && filter.cond.toLowerCase() === 'between' ? '|' : ',';
+    return rawValue
+      .split(delimiter)
+      .map(value => String(value).trim())
+      .filter(Boolean);
   }
 
-  function openFilterListViewer(filter, fieldDef, options = {}) {
-    const values = getFilterDisplayValues(filter, fieldDef);
-    if (values.length <= 1) {
-      return;
-    }
-
-    const { backdrop, panel } = ensureFilterListViewer();
-    const titleEl = panel.querySelector('#filter-list-viewer-title');
-    const metaEl = panel.querySelector('#filter-list-viewer-meta');
-    const bodyEl = panel.querySelector('#filter-list-viewer-body');
-    const fieldLabel = options.fieldName || fieldDef?.name || 'Selected Values';
-    const operatorLabel = options.operatorLabel || (filter.cond.charAt(0).toUpperCase() + filter.cond.slice(1));
-    const filenameBase = String(`${fieldLabel} ${operatorLabel}`)
+  function buildListFilenameBase(fieldLabel, operatorLabel) {
+    return String(`${fieldLabel} ${operatorLabel}`)
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '') || 'filter-values';
+  }
 
-    const items = values
-      .map(value => `<li class="filter-list-viewer-item">${escapeHtml(value)}</li>`)
-      .join('');
+  function areFilterListsEqual(left = [], right = []) {
+    if (left.length !== right.length) return false;
+    return left.every((value, index) => String(value) === String(right[index]));
+  }
 
-    titleEl.textContent = `${fieldLabel} ${operatorLabel}`;
-    metaEl.textContent = `${values.length} value${values.length === 1 ? '' : 's'}`;
-    bodyEl.innerHTML = `<ul class="filter-list-viewer-list">${items}</ul>`;
-    panel._viewerState.values = values.slice();
-    panel._viewerState.filenameBase = filenameBase;
+  function openFilterListEditor(filter, fieldDef, options = {}) {
+    const literalValues = getFilterLiteralValues(filter);
+    if (literalValues.length <= 1) {
+      return null;
+    }
 
-    VisibilityUtils.show([backdrop, panel], {
-      raisedUiKey: 'filter-list-viewer'
+    const fieldLabel = options.fieldName || fieldDef?.name || 'Selected Values';
+    const operatorLabel = options.operatorLabel || (filter.cond.charAt(0).toUpperCase() + filter.cond.slice(1));
+    const filenameBase = buildListFilenameBase(fieldLabel, operatorLabel);
+    const listInput = SelectorControls.createListPasteInput(literalValues, {
+      containerId: null,
+      filenameBase,
+      label: `${fieldLabel} ${operatorLabel}`,
+      placeholder: options.placeholder || 'Paste one value per line',
+      hint: options.hint || 'Paste values one per line, paste comma-separated values, or upload a text/CSV file.'
     });
+    const popupControl = SelectorControls.createPopupListControl(
+      listInput,
+      `${fieldLabel} ${operatorLabel}`,
+      options.summaryPlaceholder || `${literalValues.length} values loaded`
+    );
+    let cleanedUp = false;
+
+    popupControl.classList.add('filter-list-editor-proxy');
+    document.body.appendChild(popupControl);
+
+    const cleanup = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
+      if (typeof popupControl._cleanupPopup === 'function') {
+        popupControl._cleanupPopup();
+      }
+      popupControl.remove();
+    };
+
+    popupControl.addEventListener('change', () => {
+      const nextValues = typeof popupControl.getSelectedValues === 'function'
+        ? popupControl.getSelectedValues()
+        : [];
+      if (!areFilterListsEqual(literalValues, nextValues) && typeof options.onChange === 'function') {
+        options.onChange(nextValues);
+      }
+      cleanup();
+    }, { once: true });
+
+    if (typeof popupControl.openPopup === 'function') {
+      popupControl.openPopup();
+    }
+
+    return popupControl;
   }
 
   function buildFilterValueLabel(filter, fieldDef, betweenSeparator = ' - ') {
@@ -190,6 +145,7 @@ import { escapeHtml } from '../../core/formatting/html.js';
 export {
   buildFilterValueLabel,
   getFilterDisplayValues,
-  openFilterListViewer,
+  getFilterLiteralValues,
+  openFilterListEditor,
   shouldUseFilterListViewer
 };
