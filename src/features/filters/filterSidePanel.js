@@ -6,7 +6,7 @@
 import {
     buildFilterValueLabel,
     getFilterDisplayValues,
-    openFilterListViewer,
+    openFilterListEditor,
     shouldUseFilterListViewer
 } from './filterValueUi.js';
 import { appServices } from '../../core/appServices.js';
@@ -43,6 +43,49 @@ const FilterSidePanel = (function () {
                 control._cleanupPopup();
             }
         });
+    }
+
+    function replaceFilterListValues(field, index, nextValues) {
+        const values = (Array.isArray(nextValues) ? nextValues : [])
+            .map(value => String(value || '').trim())
+            .filter(Boolean);
+
+        if (values.length === 0) {
+            QueryChangeManager.removeFilter(field, {
+                index,
+                source: 'FilterSidePanel.clearListFilter'
+            });
+        } else {
+            const activeFilters = getActiveFilters();
+            const nextFilters = Object.fromEntries(
+                Object.entries(activeFilters).map(([filterField, data]) => [
+                    filterField,
+                    {
+                        ...data,
+                        filters: Array.isArray(data.filters)
+                            ? data.filters.map(filter => ({ ...filter }))
+                            : []
+                    }
+                ])
+            );
+
+            if (!nextFilters[field] || !Array.isArray(nextFilters[field].filters) || !nextFilters[field].filters[index]) {
+                return;
+            }
+
+            nextFilters[field].filters[index] = {
+                ...nextFilters[field].filters[index],
+                val: values.join(',')
+            };
+
+            QueryChangeManager.replaceActiveFilters(nextFilters, {
+                source: 'FilterSidePanel.updateListFilter'
+            });
+        }
+
+        uiActions.updateQueryJson();
+        services.renderConditionList(field);
+        update();
     }
 
     function syncPanelHeight() {
@@ -563,9 +606,10 @@ const FilterSidePanel = (function () {
                 textSpan.setAttribute('tabindex', '0');
                 textSpan.setAttribute('aria-label', `View ${field} filter values`);
                 const openViewer = () => {
-                    openFilterListViewer(filterItem, fieldDef, {
+                    openFilterListEditor(filterItem, fieldDef, {
                         fieldName: field,
-                        operatorLabel: OperatorLabels.get(filterItem.cond)
+                        operatorLabel: OperatorLabels.get(filterItem.cond),
+                        onChange: nextValues => replaceFilterListValues(field, idx, nextValues)
                     });
                 };
                 textSpan.addEventListener('click', openViewer);

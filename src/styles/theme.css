@@ -377,7 +377,6 @@
 :root[data-theme-resolved="dark"] .form-mode-popup-list-popup,
 :root[data-theme-resolved="dark"] #filter-panel-content,
 :root[data-theme-resolved="dark"] #filter-card,
-:root[data-theme-resolved="dark"] .filter-list-viewer,
 :root[data-theme-resolved="dark"] .post-filter-dialog {
   border-color: var(--theme-border);
   background:
@@ -397,7 +396,6 @@
 :root[data-theme-resolved="dark"] .fp-section-title,
 :root[data-theme-resolved="dark"] .fp-display-name,
 :root[data-theme-resolved="dark"] .fp-field-name,
-:root[data-theme-resolved="dark"] .filter-list-viewer-title,
 :root[data-theme-resolved="dark"] .post-filter-dialog__title,
 :root[data-theme-resolved="dark"] .post-filter-summary-pill__value,
 :root[data-theme-resolved="dark"] .post-filter-list-panel__title,
@@ -419,7 +417,6 @@
 :root[data-theme-resolved="dark"] .fp-section-count,
 :root[data-theme-resolved="dark"] .fp-empty-state,
 :root[data-theme-resolved="dark"] .fp-cond-op,
-:root[data-theme-resolved="dark"] .filter-list-viewer-meta,
 :root[data-theme-resolved="dark"] .post-filter-dialog__description,
 :root[data-theme-resolved="dark"] .post-filter-dialog__hint,
 :root[data-theme-resolved="dark"] .post-filter-list-panel__text,
@@ -464,7 +461,6 @@
 :root[data-theme-resolved="dark"] .fp-field-header,
 :root[data-theme-resolved="dark"] #filter-card-header,
 :root[data-theme-resolved="dark"] #condition-input-wrapper.show,
-:root[data-theme-resolved="dark"] .filter-list-viewer-header,
 :root[data-theme-resolved="dark"] .post-filter-dialog__header,
 :root[data-theme-resolved="dark"] .post-filter-dialog__footer {
   border-color: var(--theme-border);
@@ -593,8 +589,6 @@
 :root[data-theme-resolved="dark"] .filter-card-close,
 :root[data-theme-resolved="dark"] .form-mode-field-picker-close,
 :root[data-theme-resolved="dark"] .post-filter-dialog__close,
-:root[data-theme-resolved="dark"] .filter-list-viewer-icon-btn,
-:root[data-theme-resolved="dark"] .filter-list-viewer-close,
 :root[data-theme-resolved="dark"] .form-mode-field-remove,
 :root[data-theme-resolved="dark"] .fp-display-btn,
 :root[data-theme-resolved="dark"] .fp-cond-btn {
@@ -609,8 +603,6 @@
 :root[data-theme-resolved="dark"] .filter-card-close:hover,
 :root[data-theme-resolved="dark"] .form-mode-field-picker-close:hover,
 :root[data-theme-resolved="dark"] .post-filter-dialog__close:hover,
-:root[data-theme-resolved="dark"] .filter-list-viewer-icon-btn:hover,
-:root[data-theme-resolved="dark"] .filter-list-viewer-close:hover,
 :root[data-theme-resolved="dark"] .fp-display-btn:hover,
 :root[data-theme-resolved="dark"] .fp-cond-btn:hover {
   background: rgba(30, 41, 59, 0.98);

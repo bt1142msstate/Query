@@ -346,6 +346,7 @@ function buildBubbleConditionPanel(bubble) {
 
 var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
 var getFilterGroupForField = QueryStateReaders.getFilterGroupForField.bind(QueryStateReaders);
+var getActiveFilters = QueryStateReaders.getActiveFilters.bind(QueryStateReaders);
 const {
     buildableConditionBtnHandler,
     handleBuildableFieldConfirm
@@ -372,6 +373,49 @@ const {
     updateFilteredDefs,
     uiActions
 });
+
+function replaceListFilterValues(field, index, nextValues) {
+    const values = (Array.isArray(nextValues) ? nextValues : [])
+        .map(value => String(value || '').trim())
+        .filter(Boolean);
+
+    if (values.length === 0) {
+        QueryChangeManager.removeFilter(field, {
+            index,
+            source: 'FilterManager.clearListFilter'
+        });
+    } else {
+        const activeFilters = getActiveFilters();
+        const nextFilters = Object.fromEntries(
+            Object.entries(activeFilters).map(([filterField, data]) => [
+                filterField,
+                {
+                    ...data,
+                    filters: Array.isArray(data.filters)
+                        ? data.filters.map(filter => ({ ...filter }))
+                        : []
+                }
+            ])
+        );
+
+        if (!nextFilters[field] || !Array.isArray(nextFilters[field].filters) || !nextFilters[field].filters[index]) {
+            return;
+        }
+
+        nextFilters[field].filters[index] = {
+            ...nextFilters[field].filters[index],
+            val: values.join(',')
+        };
+
+        QueryChangeManager.replaceActiveFilters(nextFilters, {
+            source: 'FilterManager.updateListFilter'
+        });
+    }
+
+    renderConditionList(field);
+    uiActions.updateCategoryCounts();
+    uiActions.updateFilterSidePanel();
+}
 
 function getPostFilterSummary() {
     const snapshot = services.getPostFilterState ? services.getPostFilterState() : {};
@@ -442,51 +486,51 @@ function renderConditionList(field) {
         data.filters.forEach((f, idx) => {
             const pill = createFilterPillElement(f, fieldDef, () => {
                 QueryChangeManager.removeFilter(normalizedField, {
-                index: idx,
-                source: 'FilterManager.removeFilterPill'
-            });
-
-            if (!getFilterGroupForField(normalizedField)) {
-                document.querySelectorAll('.bubble').forEach(b => {
-                    if (b.textContent.trim() === normalizedField) {
-                        b.removeAttribute('data-filtered');
-                        b.classList.remove('bubble-filter');
-                    }
+                    index: idx,
+                    source: 'FilterManager.removeFilterPill'
                 });
-            }
-            
-            // Sync up select container if visible
-            const selContainer = document.getElementById('condition-select-container');
-            if (selContainer && appState.selectedField === normalizedField) {
-                if (supportsListSelectorCondition(f.cond)) {
-                    const activeCond = getSelectedCondition(getFilterConditionPanelElement()) || String(f.cond || '').trim().toLowerCase();
-                    const remainingFilter = data.filters.find(filterItem => String(filterItem.cond || '').trim().toLowerCase() === activeCond);
-                    const nextValues = remainingFilter ? remainingFilter.val.split(',').map(v => v.trim()).filter(Boolean) : [];
 
-                    if (typeof selContainer.setSelectedValues === 'function') {
-                        selContainer.setSelectedValues(nextValues);
-                    }
-
-                    const valueSet = new Set(nextValues);
-                    selContainer.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(input => {
-                        const inputValue = input.value || input.dataset.value;
-                        input.checked = valueSet.has(inputValue);
-                    });
-                    
-                    // Update group checkboxes
-                    selContainer.querySelectorAll('.group-checkbox').forEach(checkbox => {
-                        const groupName = checkbox.dataset.group;
-                        const groupOptions = selContainer.querySelectorAll(`.option-item[data-group="${groupName}"] input`);
-                        checkbox.checked = Array.from(groupOptions).some(opt => opt.checked);
+                if (!getFilterGroupForField(normalizedField)) {
+                    document.querySelectorAll('.bubble').forEach(b => {
+                        if (b.textContent.trim() === normalizedField) {
+                            b.removeAttribute('data-filtered');
+                            b.classList.remove('bubble-filter');
+                        }
                     });
                 }
-            }
-            
-            // updateQueryJson and safeRenderBubbles are handled reactively by
-            // jsonViewerUI.js and bubbleInteraction.js QueryStateSubscriptions — no need to call again here.
-            renderConditionList(normalizedField);
-            uiActions.updateCategoryCounts();
-        });
+
+                // Sync up select container if visible
+                const selContainer = document.getElementById('condition-select-container');
+                if (selContainer && appState.selectedField === normalizedField) {
+                    if (supportsListSelectorCondition(f.cond)) {
+                        const activeCond = getSelectedCondition(getFilterConditionPanelElement()) || String(f.cond || '').trim().toLowerCase();
+                        const remainingFilter = data.filters.find(filterItem => String(filterItem.cond || '').trim().toLowerCase() === activeCond);
+                        const nextValues = remainingFilter ? remainingFilter.val.split(',').map(v => v.trim()).filter(Boolean) : [];
+
+                        if (typeof selContainer.setSelectedValues === 'function') {
+                            selContainer.setSelectedValues(nextValues);
+                        }
+
+                        const valueSet = new Set(nextValues);
+                        selContainer.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(input => {
+                            const inputValue = input.value || input.dataset.value;
+                            input.checked = valueSet.has(inputValue);
+                        });
+
+                        // Update group checkboxes
+                        selContainer.querySelectorAll('.group-checkbox').forEach(checkbox => {
+                            const groupName = checkbox.dataset.group;
+                            const groupOptions = selContainer.querySelectorAll(`.option-item[data-group="${groupName}"] input`);
+                            checkbox.checked = Array.from(groupOptions).some(opt => opt.checked);
+                        });
+                    }
+                }
+
+                // updateQueryJson and safeRenderBubbles are handled reactively by
+                // jsonViewerUI.js and bubbleInteraction.js QueryStateSubscriptions — no need to call again here.
+                renderConditionList(normalizedField);
+                uiActions.updateCategoryCounts();
+            }, nextValues => replaceListFilterValues(normalizedField, idx, nextValues));
             list.appendChild(pill);
         });
     }

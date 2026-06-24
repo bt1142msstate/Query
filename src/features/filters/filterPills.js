@@ -2,11 +2,11 @@ import { Icons } from '../../core/icons.js';
 import {
   buildFilterValueLabel,
   getFilterDisplayValues,
-  openFilterListViewer,
+  openFilterListEditor,
   shouldUseFilterListViewer
 } from './filterValueUi.js';
 
-export function createFilterPillElement(filter, fieldDef, onRemove) {
+export function createFilterPillElement(filter, fieldDef, onRemove, onListChange) {
   const pill = document.createElement('span');
   pill.className = 'cond-pill';
   pill.style.display = 'flex';
@@ -27,12 +27,20 @@ export function createFilterPillElement(filter, fieldDef, onRemove) {
     pill.removeAttribute('data-tooltip');
     pill.addEventListener('click', event => {
       if (event.target.closest('.filter-trash')) return;
-      openFilterListViewer(filter, fieldDef, { fieldName: fieldDef?.name, operatorLabel });
+      openFilterListEditor(filter, fieldDef, {
+        fieldName: fieldDef?.name,
+        operatorLabel,
+        onChange: onListChange
+      });
     });
     pill.addEventListener('keydown', event => {
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
-        openFilterListViewer(filter, fieldDef, { fieldName: fieldDef?.name, operatorLabel });
+        openFilterListEditor(filter, fieldDef, {
+          fieldName: fieldDef?.name,
+          operatorLabel,
+          onChange: onListChange
+        });
       }
     });
   } else {

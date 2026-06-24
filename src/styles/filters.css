@@ -490,105 +490,8 @@
   box-shadow: 0 12px 20px rgba(8, 145, 178, 0.22);
 }
 
-.filter-list-viewer-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.5);
-  backdrop-filter: blur(6px);
-  z-index: calc(var(--z-filter-card) + 20);
-}
-
-.filter-list-viewer {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(90vw, 36rem);
-  max-height: 75vh;
-  display: flex;
-  flex-direction: column;
-  background: rgba(255, 255, 255, 0.97);
-  border-radius: 1rem;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
-  z-index: calc(var(--z-filter-card) + 21);
-  overflow: hidden;
-}
-
-.filter-list-viewer.hidden,
-.filter-list-viewer-backdrop.hidden {
+.filter-list-editor-proxy {
   display: none;
-}
-
-.filter-list-viewer-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1rem 1.1rem 0.9rem;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-}
-
-.filter-list-viewer-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-
-.filter-list-viewer-title {
-  color: #0f172a;
-  font-size: 1rem;
-  font-weight: 800;
-}
-
-.filter-list-viewer-meta {
-  color: #64748b;
-  font-size: 0.78rem;
-  font-weight: 600;
-  margin-top: 0.2rem;
-}
-
-.filter-list-viewer-icon-btn,
-.filter-list-viewer-close {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #334155;
-  background: #e2e8f0;
-  flex-shrink: 0;
-}
-
-.filter-list-viewer-icon-btn:hover,
-.filter-list-viewer-close:hover {
-  background: #cbd5e1;
-}
-
-.filter-list-viewer-body {
-  overflow: auto;
-  padding: 0.9rem 1.1rem 1.1rem;
-}
-
-.filter-list-viewer-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-}
-
-.filter-list-viewer-item {
-  padding: 0.65rem 0.8rem;
-  border-radius: 0.7rem;
-  background: rgba(15, 118, 110, 0.08);
-  border: 1px solid rgba(15, 118, 110, 0.12);
-  color: #0f172a;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.84rem;
-  line-height: 1.45;
-  word-break: break-word;
 }
 
 /* Show/Hide dual-toggle */
@@ -729,25 +632,6 @@
     justify-content: flex-end;
   }
 
-  .filter-list-viewer {
-    top: auto;
-    right: 0.5rem;
-    bottom: 0.5rem;
-    left: 0.5rem;
-    width: auto;
-    max-height: min(88vh, calc(100vh - 1rem));
-    max-height: min(88dvh, calc(100dvh - 1rem));
-    border-radius: 1rem;
-    transform: none;
-  }
-
-  .filter-list-viewer-header {
-    padding: 0.85rem;
-  }
-
-  .filter-list-viewer-body {
-    padding: 0.85rem;
-  }
 }
 
 /* ==========================================
