@@ -255,6 +255,7 @@ npm run lint
 npm run test:static
 npm run test:architecture
 npm run architecture:metrics
+npm run architecture:score
 npm run test:unit
 npm run test:browser
 npm run test:live

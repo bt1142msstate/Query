@@ -187,6 +187,11 @@ const changeCouplingBudgets = {
   minCoChanges: 4
 };
 
+const architectureScoreBudgets = {
+  minimumScore: 80,
+  targetScore: 95
+};
+
 const forbiddenWindowMemberReads = new Map([
   ['AppState', 'Import from src/core/queryState.js instead of reading AppState from window'],
   ['AppServices', 'Import from src/core/appServices.js instead of reading app service facade from window'],
@@ -287,6 +292,7 @@ const moduleBoundaryRules = [
 ];
 
 module.exports = {
+  architectureScoreBudgets,
   changeCouplingBudgets,
   forbiddenWindowMemberReads,
   couplingModularityBudgets,
