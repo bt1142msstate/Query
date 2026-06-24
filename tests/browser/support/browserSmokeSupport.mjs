@@ -806,7 +806,6 @@ const nonSelectableControlSelector = [
   '.fp-cond-btn',
   '.fp-add-cond-btn',
   '.post-filter-dialog__close',
-  '.post-filter-add-btn',
   '.export-dialog__close',
   '.export-action-btn'
 ].join(', ');

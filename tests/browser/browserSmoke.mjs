@@ -1910,7 +1910,7 @@ async function runSmokeTest() {
     await mobilePage.locator('#post-filter-overlay:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
     await expectElementWithinViewport(mobilePage, '#post-filter-overlay .post-filter-dialog', 'Mobile post filter dialog');
     await expectOverlayConsumesScroll(mobilePage, '.post-filter-dialog__body', 'Mobile post filter dialog');
-    await expectMinimumTapTarget(mobilePage, '#post-filter-overlay .post-filter-dialog__close, #post-filter-field, #post-filter-operator, #post-filter-logic, #post-filter-add-btn, #post-filter-clear-btn, #post-filter-done-btn', 'Mobile post filter controls');
+    await expectMinimumTapTarget(mobilePage, '#post-filter-overlay .post-filter-dialog__close, #post-filter-field, #post-filter-operator, #post-filter-logic, #post-filter-clear-btn, #post-filter-done-btn', 'Mobile post filter controls');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile post filter dialog');
     await expectMobileEditableFocusContained(mobilePage, '#post-filter-operator', '.post-filter-dialog__body', 'Mobile post filter operator');
 

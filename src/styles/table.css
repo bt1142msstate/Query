@@ -2244,17 +2244,19 @@ body.post-filter-overlay-open {
   box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.12), 0 10px 22px rgba(14, 165, 233, 0.1);
 }
 
-.post-filter-add-btn {
+.post-filter-auto-status {
   grid-column: 1 / -1;
   justify-self: end;
-  min-width: 9.5rem;
-  padding: 0.78rem 1.15rem;
-  border-radius: 999px;
-  border: 1px solid rgba(14, 116, 144, 0.34);
-  background: linear-gradient(135deg, #0ea5e9, #0284c7);
-  color: white;
+  margin: 0;
+  padding: 0.72rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(14, 116, 144, 0.22);
+  background: rgba(14, 165, 233, 0.1);
+  color: #0f766e;
+  font-size: 0.82rem;
   font-weight: 800;
-  box-shadow: 0 14px 28px rgba(2, 132, 199, 0.24);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .post-filter-list-panel {
@@ -2540,15 +2542,15 @@ body.post-filter-overlay-open {
     letter-spacing: 0.08em;
   }
 
-  .post-filter-add-btn,
+  .post-filter-auto-status,
   .post-filter-dialog__actions,
   .post-filter-dialog__actions .export-action-btn {
     width: 100%;
   }
 
-  .post-filter-add-btn {
+  .post-filter-auto-status {
     justify-self: stretch;
-    min-height: 2.75rem;
+    text-align: center;
   }
 
   .post-filter-group__header {
@@ -3712,7 +3714,7 @@ body.post-filter-overlay-open {
   }
 
   .post-filter-field--value,
-  .post-filter-add-btn {
+  .post-filter-auto-status {
     grid-column: 1 / -1;
   }
 

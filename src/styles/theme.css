@@ -443,11 +443,18 @@
 :root[data-theme-resolved="dark"] .post-filter-builder,
 :root[data-theme-resolved="dark"] .post-filter-list-panel,
 :root[data-theme-resolved="dark"] .post-filter-group,
-:root[data-theme-resolved="dark"] .post-filter-empty {
+:root[data-theme-resolved="dark"] .post-filter-empty,
+:root[data-theme-resolved="dark"] .post-filter-auto-status {
   border-color: var(--theme-border);
   background: rgba(15, 23, 42, 0.72);
   color: var(--theme-text);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+:root[data-theme-resolved="dark"] .post-filter-auto-status {
+  border-color: rgba(45, 212, 191, 0.28);
+  background: rgba(20, 83, 75, 0.36);
+  color: #99f6e4;
 }
 
 :root[data-theme-resolved="dark"] .form-mode-field-picker-header,
