@@ -1,5 +1,5 @@
 import { appServices } from '../../../core/appServices.js';
-import { AppState } from '../../../core/queryState.js';
+import { AppState } from '../filterQueryState.js';
 import { registerBubbleResetService } from './bubble.js';
 import { fieldDefs, shouldFieldHavePurpleStyling } from '../fieldDefs.js';
 

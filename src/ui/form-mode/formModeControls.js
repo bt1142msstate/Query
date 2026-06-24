@@ -168,155 +168,117 @@ import { createFormModeDateInputState } from './formModeDateInput.js';
     return isMultiValue ? splitListValues(inputSpec.defaultValue) : [String(inputSpec.defaultValue)];
   }
 
-  function createTextControl(inputType, initialValues, inputSpec) {
-    if (inputType === 'money') {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'form-mode-money-input-wrap';
+  function syncMoneyRawDataset(input, rawValue) {
+    if (rawValue) {
+      input.dataset.moneyRaw = rawValue;
+    } else {
+      delete input.dataset.moneyRaw;
+    }
+  }
 
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.className = 'form-mode-text-input form-mode-money-input';
-      input.placeholder = inputSpec.placeholder || '0.00';
-      input.value = MoneyUtils.formatInputValue(initialValues[0] || '');
-      input.autocomplete = 'off';
-      input.inputMode = 'decimal';
+  function createMoneyControl(initialValues, inputSpec) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'form-mode-money-input-wrap';
+    const input = createBaseTextInput('form-mode-text-input form-mode-money-input', inputSpec.placeholder || '0.00', 'decimal');
+    input.value = MoneyUtils.formatInputValue(initialValues[0] || '');
+    MoneyUtils.configureInputBehavior(input, true);
+    wrapper.appendChild(input);
+
+    wrapper.getFormValues = function() {
+      const value = MoneyUtils.sanitizeInputValue(input.value);
+      return value ? [value] : [];
+    };
+    wrapper.setFormValues = function(values) {
+      const rawValue = Array.isArray(values) && values.length ? String(values[0]) : '';
+      if (input._moneyAutoNumeric && typeof input._moneyAutoNumeric.set === 'function') {
+        input._moneyAutoNumeric.set(rawValue || '');
+        syncMoneyRawDataset(input, rawValue);
+        return;
+      }
+      input.value = MoneyUtils.formatInputValue(rawValue);
       MoneyUtils.configureInputBehavior(input, true);
+    };
+    wrapper.focusInput = function() {
+      input.focus();
+    };
+    return wrapper;
+  }
 
-      wrapper.appendChild(input);
+  function createNumberControl(initialValues, inputSpec) {
+    const numberFormat = ValueFormatting.getNumberFormat(inputSpec.field || '') || '';
+    const isDecimalNumber = numberFormat === 'decimal';
+    const useGroupedIntegerFormatting = !isDecimalNumber && numberFormat !== 'year';
+    const allowDecimal = isDecimalNumber;
+    const input = createBaseTextInput('form-mode-text-input', inputSpec.placeholder || (allowDecimal ? '0.00' : '0'), allowDecimal ? 'decimal' : 'numeric');
+    input.value = formatNumberControlValue(initialValues[0] || '', { allowDecimal, useGroupedIntegerFormatting });
+    configureNumberInputBehavior(input, { allowDecimal, useGroupedIntegerFormatting });
 
-      wrapper.getFormValues = function() {
-        const value = MoneyUtils.sanitizeInputValue(input.value);
-        return value ? [value] : [];
-      };
+    input.getFormValues = function() {
+      const value = MoneyUtils.sanitizeInputValue(input.value, { allowDecimal });
+      return value ? [value] : [];
+    };
+    input.setFormValues = function(values) {
+      const rawValue = Array.isArray(values) && values.length ? String(values[0]) : '';
+      if (input._moneyAutoNumeric && typeof input._moneyAutoNumeric.set === 'function') {
+        input._moneyAutoNumeric.set(rawValue || '');
+        syncMoneyRawDataset(input, rawValue);
+        return;
+      }
+      input.value = formatNumberControlValue(rawValue, { allowDecimal, useGroupedIntegerFormatting });
+      configureNumberInputBehavior(input, { allowDecimal, useGroupedIntegerFormatting });
+    };
+    input.focusInput = function() {
+      input.focus();
+    };
+    return input;
+  }
 
-      wrapper.setFormValues = function(values) {
-        const rawValue = Array.isArray(values) && values.length ? String(values[0]) : '';
-        if (input._moneyAutoNumeric && typeof input._moneyAutoNumeric.set === 'function') {
-          input._moneyAutoNumeric.set(rawValue || '');
-          if (rawValue) {
-            input.dataset.moneyRaw = rawValue;
-          } else {
-            delete input.dataset.moneyRaw;
-          }
-          return;
-        }
-        input.value = MoneyUtils.formatInputValue(rawValue);
-        MoneyUtils.configureInputBehavior(input, true);
-      };
+  function createDateControl(initialValues, inputSpec) {
+    const input = createBaseTextInput('form-mode-text-input', inputSpec.placeholder || 'M/D/YYYY', '');
+    input.value = (CustomDatePicker && typeof CustomDatePicker.normalizeDateValue === 'function')
+      ? CustomDatePicker.normalizeDateValue(initialValues[0] || '')
+      : (initialValues[0] || '');
+    const api = CustomDatePicker && typeof CustomDatePicker.enhanceInput === 'function'
+      ? CustomDatePicker.enhanceInput(input, {
+          variant: 'form',
+          enabled: true,
+          allowNever: ['equals', 'does_not_equal'].includes(String(inputSpec.operator || '').trim().toLowerCase()),
+          placeholder: input.placeholder
+        })
+      : null;
+    const control = api ? api.shell : input;
+    const dateInputState = createFormModeDateInputState(input, {
+      normalizeDateValue: CustomDatePicker && typeof CustomDatePicker.normalizeDateValue === 'function'
+        ? CustomDatePicker.normalizeDateValue
+        : null
+    });
 
-      wrapper.focusInput = function() {
-        input.focus();
-      };
+    control.getFormValues = () => dateInputState.getFormValues();
+    control.setFormValues = values => dateInputState.setValue(Array.isArray(values) && values.length ? String(values[0]) : '');
+    control.focusInput = () => input.focus();
+    control._cleanupPopup = function() {
+      dateInputState.destroy();
+      if (api && typeof api.closeIfActive === 'function') {
+        api.closeIfActive();
+      }
+    };
+    return control;
+  }
 
-      return wrapper;
-    }
-
-    if (inputType === 'number') {
-      const numberFormat = ValueFormatting.getNumberFormat(inputSpec.field || '') || '';
-      const isDecimalNumber = numberFormat === 'decimal';
-      const useGroupedIntegerFormatting = !isDecimalNumber && numberFormat !== 'year';
-      const allowDecimal = isDecimalNumber;
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.className = 'form-mode-text-input';
-      input.placeholder = inputSpec.placeholder || (allowDecimal ? '0.00' : '0');
-      input.value = useGroupedIntegerFormatting || allowDecimal
-        ? MoneyUtils.formatInputValue(initialValues[0] || '', { allowDecimal })
-        : MoneyUtils.sanitizeInputValue(initialValues[0] || '', { allowDecimal: false });
-      input.autocomplete = 'off';
-      input.inputMode = allowDecimal ? 'decimal' : 'numeric';
-      MoneyUtils.configureInputBehavior(
-        input,
-        allowDecimal ? { kind: 'decimal' } : (useGroupedIntegerFormatting ? { kind: 'integer' } : false)
-      );
-
-      input.getFormValues = function() {
-        const value = MoneyUtils.sanitizeInputValue(input.value, { allowDecimal });
-        return value ? [value] : [];
-      };
-
-      input.setFormValues = function(values) {
-        const rawValue = Array.isArray(values) && values.length ? String(values[0]) : '';
-        if (input._moneyAutoNumeric && typeof input._moneyAutoNumeric.set === 'function') {
-          input._moneyAutoNumeric.set(rawValue || '');
-          if (rawValue) {
-            input.dataset.moneyRaw = rawValue;
-          } else {
-            delete input.dataset.moneyRaw;
-          }
-          return;
-        }
-        input.value = useGroupedIntegerFormatting || allowDecimal
-          ? MoneyUtils.formatInputValue(rawValue, { allowDecimal })
-          : MoneyUtils.sanitizeInputValue(rawValue, { allowDecimal: false });
-        MoneyUtils.configureInputBehavior(
-          input,
-          allowDecimal ? { kind: 'decimal' } : (useGroupedIntegerFormatting ? { kind: 'integer' } : false)
-        );
-      };
-
-      input.focusInput = function() {
-        input.focus();
-      };
-
-      return input;
-    }
-
-    if (inputType === 'date') {
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.className = 'form-mode-text-input';
-      input.placeholder = inputSpec.placeholder || 'M/D/YYYY';
-      input.value = (CustomDatePicker && typeof CustomDatePicker.normalizeDateValue === 'function')
-        ? CustomDatePicker.normalizeDateValue(initialValues[0] || '')
-        : (initialValues[0] || '');
-      input.autocomplete = 'off';
-
-      const api = CustomDatePicker && typeof CustomDatePicker.enhanceInput === 'function'
-        ? CustomDatePicker.enhanceInput(input, {
-            variant: 'form',
-            enabled: true,
-            allowNever: ['equals', 'does_not_equal'].includes(String(inputSpec.operator || '').trim().toLowerCase()),
-            placeholder: input.placeholder
-          })
-        : null;
-      const control = api ? api.shell : input;
-      const dateInputState = createFormModeDateInputState(input, {
-        normalizeDateValue: CustomDatePicker && typeof CustomDatePicker.normalizeDateValue === 'function'
-          ? CustomDatePicker.normalizeDateValue
-          : null
-      });
-
-      control.getFormValues = function() {
-        return dateInputState.getFormValues();
-      };
-
-      control.setFormValues = function(values) {
-        const nextValue = Array.isArray(values) && values.length ? String(values[0]) : '';
-        dateInputState.setValue(nextValue);
-      };
-
-      control.focusInput = function() {
-        input.focus();
-      };
-
-      control._cleanupPopup = function() {
-        dateInputState.destroy();
-        if (api && typeof api.closeIfActive === 'function') {
-          api.closeIfActive();
-        }
-      };
-
-      return control;
-    }
-
+  function createBaseTextInput(className, placeholder, inputMode) {
     const input = document.createElement('input');
-    input.type = inputType;
-    input.className = 'form-mode-text-input';
-    input.placeholder = inputSpec.placeholder || 'Enter value';
-    input.value = initialValues[0] || '';
+    input.type = 'text';
+    input.className = className;
+    input.placeholder = placeholder;
     input.autocomplete = 'off';
+    if (inputMode) input.inputMode = inputMode;
+    return input;
+  }
 
+  function createPlainTextControl(inputType, initialValues, inputSpec) {
+    const input = createBaseTextInput('form-mode-text-input', inputSpec.placeholder || 'Enter value', '');
+    input.type = inputType;
+    input.value = initialValues[0] || '';
     input.getFormValues = function() {
       const value = String(input.value || '').trim();
       return value ? [value] : [];
@@ -327,6 +289,26 @@ import { createFormModeDateInputState } from './formModeDateInput.js';
     };
 
     return input;
+  }
+
+  function configureNumberInputBehavior(input, { allowDecimal, useGroupedIntegerFormatting }) {
+    MoneyUtils.configureInputBehavior(
+      input,
+      allowDecimal ? { kind: 'decimal' } : (useGroupedIntegerFormatting ? { kind: 'integer' } : false)
+    );
+  }
+
+  function formatNumberControlValue(rawValue, { allowDecimal, useGroupedIntegerFormatting }) {
+    return useGroupedIntegerFormatting || allowDecimal
+      ? MoneyUtils.formatInputValue(rawValue, { allowDecimal })
+      : MoneyUtils.sanitizeInputValue(rawValue, { allowDecimal: false });
+  }
+
+  function createTextControl(inputType, initialValues, inputSpec) {
+    if (inputType === 'money') return createMoneyControl(initialValues, inputSpec);
+    if (inputType === 'number') return createNumberControl(initialValues, inputSpec);
+    if (inputType === 'date') return createDateControl(initialValues, inputSpec);
+    return createPlainTextControl(inputType, initialValues, inputSpec);
   }
 
   function createBetweenControl(inputType, initialValues, inputSpec) {

@@ -519,14 +519,9 @@ function hasDisplayedFieldsMissingFromLoadedData() {
   return getDisplayedFieldsMissingFromLoadedData().length > 0;
 }
 
-function baseUpdateButtonStates() {
+function updateRunQueryButtonState(tableName) {
   const runBtn = DOM.runBtn;
-  const downloadBtn = DOM.downloadBtn;
-  const postFilterBtn = DOM.postFilterBtn;
-  const clearQueryBtn = DOM.clearQueryBtn;
-  const tableNameInput = DOM.tableNameInput;
-  const tableName = tableNameInput ? tableNameInput.value.trim() : '';
-
+  if (!runBtn) return;
   if (runBtn) {
     try {
       const payload = buildBackendQueryPayload(tableName);
@@ -547,84 +542,105 @@ function baseUpdateButtonStates() {
       updateTableRefreshQueryButtonState('Add columns to enable query');
     }
   }
+}
 
-  if (downloadBtn) {
-    const hasData =
-      getDisplayedFields().length > 0 &&
-      Array.isArray(services.getVirtualTableData()?.rows) &&
-      services.getVirtualTableData().rows.length > 0;
-    const missingLoadedColumns = getDisplayedFieldsMissingFromLoadedData();
-    const hasMissingLoadedColumns = missingLoadedColumns.length > 0;
+function updateDownloadButtonState(tableNameInput) {
+  const downloadBtn = DOM.downloadBtn;
+  if (!downloadBtn) return;
 
-    if (tableNameInput) {
-      tableNameInput.classList.remove('error');
-    }
+  const hasData =
+    getDisplayedFields().length > 0 &&
+    Array.isArray(services.getVirtualTableData()?.rows) &&
+    services.getVirtualTableData().rows.length > 0;
+  const missingLoadedColumns = getDisplayedFieldsMissingFromLoadedData();
+  const hasMissingLoadedColumns = missingLoadedColumns.length > 0;
 
-    downloadBtn.disabled = !hasData || hasMissingLoadedColumns;
-
-    if (!hasData) {
-      downloadBtn.setAttribute('data-tooltip', 'Add columns to download');
-    } else if (hasMissingLoadedColumns) {
-      downloadBtn.setAttribute(
-        'data-tooltip',
-        missingLoadedColumns.length === 1
-          ? `${missingLoadedColumns[0]} is not in the current data. Run a new query before downloading.`
-          : 'Some displayed columns are not in the current data. Run a new query before downloading.'
-      );
-    } else {
-      downloadBtn.setAttribute('data-tooltip', 'Download Excel file');
-    }
+  if (tableNameInput) {
+    tableNameInput.classList.remove('error');
   }
 
-  if (postFilterBtn) {
-    const postFilterStats = services.getPostFilterStats();
-    const hasLoadedResults =
-      getDisplayedFields().length > 0 &&
-      Number(postFilterStats?.totalRows || 0) > 0;
-    const hasPostFilters = services.hasPostFilters();
+  downloadBtn.disabled = !hasData || hasMissingLoadedColumns;
 
-    postFilterBtn.disabled = !hasLoadedResults;
-    postFilterBtn.classList.toggle('table-toolbar-btn-active', hasPostFilters);
-
-    if (!hasLoadedResults) {
-      postFilterBtn.setAttribute('data-tooltip', 'Run a query to use post filters');
-    } else if (hasPostFilters) {
-      postFilterBtn.setAttribute('data-tooltip', 'Edit active post filters');
-    } else {
-      postFilterBtn.setAttribute('data-tooltip', 'Post Filters');
-    }
-  }
-
-  if (clearQueryBtn) {
-    let payload = null;
-    try {
-      payload = buildBackendQueryPayload(tableName);
-    } catch (_) {
-      payload = null;
-    }
-
-    const hasTableName = !!(tableNameInput && tableNameInput.value.trim());
-    const hasQueryText = !!(DOM.queryInput && DOM.queryInput.value.trim());
-    const hasFields = getDisplayedFields().length > 0;
-    const hasFilters = Object.values(getActiveFilters()).some(data => data && Array.isArray(data.filters) && data.filters.length > 0);
-    const hasConfiguredPayload = !!(
-      payload && (
-        (Array.isArray(payload.display_fields) && payload.display_fields.length > 0) ||
-        (Array.isArray(payload.filters) && payload.filters.length > 0)
-      )
+  if (!hasData) {
+    downloadBtn.setAttribute('data-tooltip', 'Add columns to download');
+  } else if (hasMissingLoadedColumns) {
+    downloadBtn.setAttribute(
+      'data-tooltip',
+      missingLoadedColumns.length === 1
+        ? `${missingLoadedColumns[0]} is not in the current data. Run a new query before downloading.`
+        : 'Some displayed columns are not in the current data. Run a new query before downloading.'
     );
-    const hasData = !!(
-      Array.isArray(services.getVirtualTableData()?.rows) &&
-      services.getVirtualTableData().rows.length > 0
-    );
-    const canClear = hasTableName || hasQueryText || hasFields || hasFilters || hasConfiguredPayload || hasData;
-
-    const isQueryRunning = getLifecycleState().queryRunning;
-    clearQueryBtn.disabled = isQueryRunning || !canClear;
-    clearQueryBtn.classList.toggle('opacity-50', clearQueryBtn.disabled);
-    clearQueryBtn.classList.toggle('cursor-not-allowed', clearQueryBtn.disabled);
-    clearQueryBtn.setAttribute('data-tooltip', isQueryRunning ? 'Stop the running query before clearing' : (clearQueryBtn.disabled ? 'Nothing to clear' : 'Clear current query'));
+  } else {
+    downloadBtn.setAttribute('data-tooltip', 'Download Excel file');
   }
+}
+
+function updatePostFilterButtonState() {
+  const postFilterBtn = DOM.postFilterBtn;
+  if (!postFilterBtn) return;
+
+  const postFilterStats = services.getPostFilterStats();
+  const hasLoadedResults =
+    getDisplayedFields().length > 0 &&
+    Number(postFilterStats?.totalRows || 0) > 0;
+  const hasPostFilters = services.hasPostFilters();
+
+  postFilterBtn.disabled = !hasLoadedResults;
+  postFilterBtn.classList.toggle('table-toolbar-btn-active', hasPostFilters);
+
+  if (!hasLoadedResults) {
+    postFilterBtn.setAttribute('data-tooltip', 'Run a query to use post filters');
+  } else if (hasPostFilters) {
+    postFilterBtn.setAttribute('data-tooltip', 'Edit active post filters');
+  } else {
+    postFilterBtn.setAttribute('data-tooltip', 'Post Filters');
+  }
+}
+
+function getClearQueryPayload(tableName) {
+  try {
+    return buildBackendQueryPayload(tableName);
+  } catch (_) {
+    return null;
+  }
+}
+
+function updateClearQueryButtonState(tableName, tableNameInput) {
+  const clearQueryBtn = DOM.clearQueryBtn;
+  if (!clearQueryBtn) return;
+
+  const payload = getClearQueryPayload(tableName);
+  const hasTableName = !!(tableNameInput && tableNameInput.value.trim());
+  const hasQueryText = !!(DOM.queryInput && DOM.queryInput.value.trim());
+  const hasFields = getDisplayedFields().length > 0;
+  const hasFilters = Object.values(getActiveFilters()).some(data => data && Array.isArray(data.filters) && data.filters.length > 0);
+  const hasConfiguredPayload = !!(
+    payload && (
+      (Array.isArray(payload.display_fields) && payload.display_fields.length > 0) ||
+      (Array.isArray(payload.filters) && payload.filters.length > 0)
+    )
+  );
+  const hasData = !!(
+    Array.isArray(services.getVirtualTableData()?.rows) &&
+    services.getVirtualTableData().rows.length > 0
+  );
+  const canClear = hasTableName || hasQueryText || hasFields || hasFilters || hasConfiguredPayload || hasData;
+  const isQueryRunning = getLifecycleState().queryRunning;
+
+  clearQueryBtn.disabled = isQueryRunning || !canClear;
+  clearQueryBtn.classList.toggle('opacity-50', clearQueryBtn.disabled);
+  clearQueryBtn.classList.toggle('cursor-not-allowed', clearQueryBtn.disabled);
+  clearQueryBtn.setAttribute('data-tooltip', isQueryRunning ? 'Stop the running query before clearing' : (clearQueryBtn.disabled ? 'Nothing to clear' : 'Clear current query'));
+}
+
+function baseUpdateButtonStates() {
+  const tableNameInput = DOM.tableNameInput;
+  const tableName = tableNameInput ? tableNameInput.value.trim() : '';
+
+  updateRunQueryButtonState(tableName);
+  updateDownloadButtonState(tableNameInput);
+  updatePostFilterButtonState();
+  updateClearQueryButtonState(tableName, tableNameInput);
 
   appUiActions.updateSplitColumnsToggleState();
 

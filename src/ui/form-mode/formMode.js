@@ -1,9 +1,20 @@
-import { appServices, registerFormModeService } from '../../core/appServices.js';
-import { appUiActions } from '../../core/appUiActions.js';
-import { ClipboardUtils } from '../../core/clipboard.js';
-import { QueryChangeManager, getBaseFieldName, QueryStateReaders } from '../../core/queryState.js';
-import { showToastMessage } from '../../core/toast.js';
-import { QueryStateSubscriptions } from '../../core/queryStateSubscriptions.js';
+import {
+  DOM,
+  QueryChangeManager,
+  QueryStateReaders,
+  QueryStateSubscriptions,
+  QueryTableView,
+  QueryUI,
+  appServices,
+  appUiActions,
+  fieldDefs,
+  getBaseFieldName,
+  isFieldDisplayable,
+  loadFieldDefinitions,
+  markFormModeReady,
+  registerFormModeService,
+  showToastMessage
+} from './formModeRuntime.js';
 import { createFormModeEmptyState, getVisibleFormInputs, mountFormModeCard } from './formModeCard.js';
 import { buildInteractiveFormModeCard } from './formModeCardBuilder.js';
 import { FormModeControls as formModeControls } from './formModeControls.js';
@@ -23,11 +34,7 @@ import { resetFormToBaselineAction } from './formModeResetController.js';
 import { syncFormModeResultBaseline } from './formModeResultBaseline.js';
 import { resolveCurrentShareResultQueryId, syncFormModeShareUi } from './formModeShareState.js';
 import { openFormModeFieldPicker } from './formModeFieldPicker.js';
-import { QueryTableView } from '../queryTableView.js';
-import { QueryUI } from '../queryUI.js';
-import { fieldDefs, isFieldDisplayable, loadFieldDefinitions } from '../../features/filters/fieldDefs.js';
-import { markFormModeReady } from '../../core/appStartupEvents.js';
-import { DOM } from '../../core/domCache.js';
+import { createInitialFormModeState } from './formModeState.js';
 
 let QueryFormMode;
 
@@ -51,45 +58,7 @@ let QueryFormMode;
     createFieldRow: createFormFieldRow
   } = formModeControls;
   let initialized = false;
-  const state = {
-    active: false,
-    spec: null,
-    specSource: 'generated',
-    initialSpec: null,
-    sharedBaselineSpec: null,
-    searchParams: null,
-    initialSearchParams: null,
-    sharedBaselineSearchParams: null,
-    viewMode: 'form',
-    formCard: null,
-    validationEl: null,
-    runBtn: null,
-    copyBtn: null,
-    shareMenu: null,
-    shareMenuShell: null,
-    shareResultsBtn: null,
-    resetBtn: null,
-    resetMenu: null,
-    resetMenuShell: null,
-    resetOriginalBtn: null,
-    resetSharedBtn: null,
-    modeToggleBtn: null,
-    formHost: null,
-    controls: new Map(),
-    originalUpdateButtonStates: null,
-    unsubscribeQueryState: null,
-    lastSuggestedTableName: '',
-    lastBrowserUrl: '',
-    suppressAutoTableNameOnce: false,
-    forceTableNameSyncOnce: false,
-    isClearingQuery: false,
-    isApplyingFormState: false,
-    limitedView: false,
-    pendingQuerySync: null,
-    querySyncQueued: false,
-    tableNameListenersBound: false,
-    hiddenNodes: []
-  };
+  const state = createInitialFormModeState();
   const { getDisplayedFields, getActiveFilters } = QueryStateReaders;
 
   function getQuerySnapshot() {
@@ -711,7 +680,6 @@ let QueryFormMode;
       syncShareUi,
       syncValidationUi,
       showToastMessage,
-      clipboardUtils: ClipboardUtils,
       cleanupControls() {
         // Cleanup any previously body-appended popups from prior form card builds.
         state.controls.forEach(function(control) {

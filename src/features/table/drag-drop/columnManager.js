@@ -4,8 +4,8 @@
  * Does not handle Drag & Drop UI events.
  * @module ColumnManager
  */
-import { appServices } from '../../../core/appServices.js';
-import { QueryChangeManager, getBaseFieldName, QueryStateReaders } from '../../../core/queryState.js';
+import { appServices } from '../tableServices.js';
+import { QueryChangeManager, getBaseFieldName, QueryStateReaders } from '../tableQueryState.js';
 
 // Store information about removed columns with their duplicates for restoration
 const removedColumnInfo = new Map();

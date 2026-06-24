@@ -1,9 +1,9 @@
-import { buildExpandedMultiValueTable } from '../../lib/virtual-table/splitColumnExpansion.js';
-import { buildSplitModeDisplayedFields } from '../../lib/virtual-table/splitColumnFields.js';
 import {
+  buildExpandedMultiValueTable,
+  buildSplitModeDisplayedFields,
   buildVirtualTableProjection,
   createEmptyDuplicateCollapseStats
-} from '../../lib/virtual-table/virtualTableDuplicateCollapse.js';
+} from './virtualTableComponentRuntime.js';
 
 function normalizeStringList(values) {
   return (Array.isArray(values) ? values : [])

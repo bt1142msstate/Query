@@ -1,3 +1,5 @@
+import { ClipboardUtils } from '../../core/clipboard.js';
+
 function buildInteractiveFormModeCard(options) {
   const {
     document,
@@ -22,7 +24,7 @@ function buildInteractiveFormModeCard(options) {
     buildCurrentShareUrl,
     syncShareUi,
     showToastMessage,
-    clipboardUtils,
+    clipboardUtils = ClipboardUtils,
     cleanupControls
   } = options;
 

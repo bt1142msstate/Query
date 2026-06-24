@@ -1,10 +1,10 @@
 import { onDOMReady } from '../../../core/domReady.js';
-import { appServices } from '../../../core/appServices.js';
+import { appServices } from '../tableServices.js';
 import { registerAppUiActionDependencies } from '../../../core/appUiActions.js';
 import { OperatorLabels } from '../../../core/formatting/operatorLabels.js';
-import { QueryStateReaders } from '../../../core/queryState.js';
+import { QueryStateReaders } from '../tableQueryState.js';
 import { QueryStateSubscriptions } from '../../../core/queryStateSubscriptions.js';
-import { showToastMessage } from '../../../core/toast.js';
+import { showToastMessage } from '../tableToast.js';
 import { MoneyUtils } from '../../../core/formatting/moneyUtils.js';
 import { ValueFormatting } from '../../../core/formatting/valueFormatting.js';
 import { VisibilityUtils } from '../../../core/visibility.js';
@@ -12,6 +12,7 @@ import { SelectorControls } from '../../../ui/controls/selectorControls.js';
 import { CustomDatePicker } from '../../../ui/controls/customDatePicker.js';
 import { escapeHtml } from '../../../core/formatting/html.js';
 import { getPostFilterDateValidationMessage, postFilterDateOperatorAllowsNever } from './postFilterDateValidation.js';
+import { formatPostFilterValue } from './postFilterValueFormatting.js';
 import { createPostFilterStreamedEqualsSelector } from './postFilterStreamedEqualsSelector.js';
 import { isNoValuePostFilterOperator, normalizeNoValuePostFilterOperator } from './postFilterLogic.js';
 let PostFilterSystem;
@@ -111,42 +112,9 @@ let PostFilterSystem;
   }
 
   function formatFilterValue(filter, fieldName) {
-    const type = getFieldType(fieldName);
-    const cond = normalizeNoValuePostFilterOperator(filter?.cond);
-    const rawValue = String(filter?.val || '');
-
-    if (isNoValuePostFilterOperator(cond)) {
-      return '';
-    }
-
-    if (Array.isArray(filter?.vals) && filter.vals.length > 0) {
-      const labels = filter.vals.map(value => isBlankSentinel(value)
-        ? '(Blank values)'
-        : formatFilterValue({ cond: 'equals', val: value }, fieldName));
-
-      if (labels.length <= 2) {
-        return labels.join(', ');
-      }
-
-      return `${labels[0]}, ${labels[1]} and ${labels.length - 2} more`;
-    }
-
-    if (isBlankSentinel(rawValue)) {
-      return '(Blank values)';
-    }
-
-    if (cond === 'between') {
-      const [left, right] = rawValue.split('|');
-      const formatBound = value => ValueFormatting.formatValueByType(String(value || ''), type, {
-        fieldName,
-        dateFallbackToRaw: true
-      });
-      return `${formatBound(left)} - ${formatBound(right)}`;
-    }
-
-    return ValueFormatting.formatValueByType(rawValue, type, {
-      fieldName,
-      dateFallbackToRaw: true
+    return formatPostFilterValue(filter, fieldName, {
+      getFieldType,
+      isBlankValue: isBlankSentinel
     });
   }
 

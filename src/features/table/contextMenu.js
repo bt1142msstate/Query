@@ -4,10 +4,10 @@
  * Options: Copy Cell, Copy Row (tab-separated), Copy Column (newline-separated).
  */
 import { ClipboardUtils } from '../../core/clipboard.js';
-import { appServices } from '../../core/appServices.js';
+import { appServices } from './tableServices.js';
 import { appUiActions } from '../../core/appUiActions.js';
-import { QueryStateReaders } from '../../core/queryState.js';
-import { showToastMessage } from '../../core/toast.js';
+import { QueryStateReaders } from './tableQueryState.js';
+import { showToastMessage } from './tableToast.js';
 import { CellDisplayFormatting } from '../../core/formatting/cellDisplayFormatting.js';
 import { VisibilityUtils } from '../../core/visibility.js';
 import { SharedFieldPicker } from '../../ui/field-picker/fieldPicker.js';

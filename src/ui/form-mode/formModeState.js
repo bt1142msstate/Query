@@ -1,0 +1,43 @@
+function createInitialFormModeState() {
+  return {
+    active: false,
+    spec: null,
+    specSource: 'generated',
+    initialSpec: null,
+    sharedBaselineSpec: null,
+    searchParams: null,
+    initialSearchParams: null,
+    sharedBaselineSearchParams: null,
+    viewMode: 'form',
+    formCard: null,
+    validationEl: null,
+    runBtn: null,
+    copyBtn: null,
+    shareMenu: null,
+    shareMenuShell: null,
+    shareResultsBtn: null,
+    resetBtn: null,
+    resetMenu: null,
+    resetMenuShell: null,
+    resetOriginalBtn: null,
+    resetSharedBtn: null,
+    modeToggleBtn: null,
+    formHost: null,
+    controls: new Map(),
+    originalUpdateButtonStates: null,
+    unsubscribeQueryState: null,
+    lastSuggestedTableName: '',
+    lastBrowserUrl: '',
+    suppressAutoTableNameOnce: false,
+    forceTableNameSyncOnce: false,
+    isClearingQuery: false,
+    isApplyingFormState: false,
+    limitedView: false,
+    pendingQuerySync: null,
+    querySyncQueued: false,
+    tableNameListenersBound: false,
+    hiddenNodes: []
+  };
+}
+
+export { createInitialFormModeState };

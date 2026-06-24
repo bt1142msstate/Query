@@ -3,7 +3,7 @@ import {
   normalizeHistoryViewOptions,
   queryMatchesHistoryFilters,
   sortHistoryQueries
-} from './view/queryHistoryControls.js';
+} from './queryHistoryControls.js';
 
 export function queryMatchesHistorySearch(query, searchTerm, options = {}) {
   const normalizedSearch = String(searchTerm || '').trim().toLowerCase();

@@ -7,9 +7,9 @@ import { appServices, registerQueryTemplatesService } from '../../core/appServic
 import {
   cloneTemplate,
   normalizeCategoryList,
-  normalizeTemplate,
-  sanitizeSvgMarkup
+  normalizeTemplate
 } from './data/queryTemplateModels.js';
+import { cloneUiConfig, getUniqueTemplateName, hasUsableUiConfig } from './data/queryTemplateUiConfig.js';
 import {
   createTemplateDraftFromConfig,
   filterVisibleTemplates,
@@ -42,16 +42,10 @@ import {
 } from './category/queryTemplateCategoryView.js';
 import { renderTemplateList } from './view/queryTemplateListView.js';
 import { getQueryTemplateElements } from './view/queryTemplateElements.js';
+import { getTemplateSvgMarkup } from './view/queryTemplateSvg.js';
 import { escapeHtml } from '../../core/formatting/html.js';
 (function initializeQueryTemplates() {
   const NEW_TEMPLATE_ID = '__new_template__';
-  const DEFAULT_TEMPLATE_SVG = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="template-default-icon" aria-hidden="true">
-      <rect x="10" y="8" width="44" height="48" rx="12" fill="#FFFFFF" stroke="#111827" stroke-width="4"/>
-      <path d="M22 22h20M22 32h20M22 42h12" fill="none" stroke="#111827" stroke-width="4" stroke-linecap="round"/>
-      <path d="M44 8v10a4 4 0 0 0 4 4h6" fill="none" stroke="#111827" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-  `;
   const state = {
     templates: [],
     categories: [],
@@ -95,24 +89,6 @@ import { escapeHtml } from '../../core/formatting/html.js';
     return buildQueryUiConfig();
   }
 
-  function cloneUiConfig(uiConfig) {
-    return uiConfig && typeof uiConfig === 'object'
-      ? JSON.parse(JSON.stringify(uiConfig))
-      : null;
-  }
-
-  function hasUsableUiConfig(uiConfig) {
-    if (!uiConfig) {
-      return false;
-    }
-
-    return Boolean(
-      (Array.isArray(uiConfig.DesiredColumnOrder) && uiConfig.DesiredColumnOrder.length)
-      || (Array.isArray(uiConfig.Filters) && uiConfig.Filters.length)
-      || (Array.isArray(uiConfig.SpecialFields) && uiConfig.SpecialFields.length)
-    );
-  }
-
   function hasUsableCurrentQuery() {
     return hasUsableUiConfig(getCurrentQueryConfigSnapshot());
   }
@@ -123,24 +99,6 @@ import { escapeHtml } from '../../core/formatting/html.js';
     }
 
     return getCurrentQueryConfigSnapshot();
-  }
-
-  function getUniqueTemplateName(baseName) {
-    const fallbackName = 'History query template';
-    const base = String(baseName || '').trim() || fallbackName;
-    const existingNames = new Set(state.templates.map(template => template.name.toLowerCase()));
-    if (!existingNames.has(base.toLowerCase())) {
-      return base;
-    }
-
-    for (let suffix = 2; suffix < 1000; suffix += 1) {
-      const candidate = `${base} ${suffix}`;
-      if (!existingNames.has(candidate.toLowerCase())) {
-        return candidate;
-      }
-    }
-
-    return `${base} ${Date.now()}`;
   }
 
   function syncDraftCategoriesFromInputs() {
@@ -169,18 +127,6 @@ import { escapeHtml } from '../../core/formatting/html.js';
     state.draft.description = String(elements.descriptionInput?.value || '').trim();
     state.draft.svg = String(elements.svgInput?.value || '').trim();
     syncDraftCategoriesFromInputs();
-  }
-
-  function isLegacyTemplateBlockSvg(svgMarkup) {
-    return /\btemplate-block(?:s-icon|-top|-middle|-bottom)?\b/u.test(String(svgMarkup || ''));
-  }
-
-  function getTemplateSvgMarkup(template) {
-    const svgMarkup = sanitizeSvgMarkup(template?.svg);
-    if (!svgMarkup || isLegacyTemplateBlockSvg(svgMarkup)) {
-      return DEFAULT_TEMPLATE_SVG;
-    }
-    return svgMarkup;
   }
 
   function getVisibleTemplates() {
@@ -362,7 +308,7 @@ import { escapeHtml } from '../../core/formatting/html.js';
     state.selectedId = NEW_TEMPLATE_ID;
     state.draft = createTemplateDraftFromConfig(uiConfig);
     state.draft.source = 'history';
-    state.draft.name = getUniqueTemplateName(query?.name || 'History query template');
+    state.draft.name = getUniqueTemplateName(query?.name || 'History query template', state.templates);
     state.draft.description = query?.id
       ? `Created from query history item ${query.id}.`
       : 'Created from query history.';
