@@ -7,6 +7,7 @@ import { notifyBackgroundTaskComplete, prepareBackgroundTaskNotification } from 
 import { parseQueryResultPayload } from './queryResultParser.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from './queryState.js';
 import { assertQueryRunStreamResponse } from './queryRunResponse.js';
+import { shouldPreservePostFiltersForRun } from './queryExecutionPostFilters.js';
 import { createStreamedQueryResultReader } from './queryStream.js';
 import { appServices, registerQueryExecutionService } from './appServices.js';
 import { appUiActions } from './appUiActions.js';
@@ -208,6 +209,11 @@ if (execDom.runBtn) {
       try {
         completionNotification = prepareBackgroundTaskNotification();
         await services.forgetOpenedHistoryResult?.();
+        const preservePostFiltersForRun = shouldPreservePostFiltersForRun({
+          lifecycleState: QueryStateReaders.getLifecycleState(),
+          queryStateReaders: QueryStateReaders,
+          services
+        });
         // Temporarily use the stacked table state for payload building so generated
         // split-column names are never sent to the backend.
         wasSplitPreferred = services.isSplitColumnsActive();
@@ -215,7 +221,7 @@ if (execDom.runBtn) {
           services.setSplitColumnsMode(false);
         }
 
-        if (services.hasPostFilters?.()) {
+        if (services.hasPostFilters?.() && !preservePostFiltersForRun) {
           services.clearPostFilters({ refreshView: false, notify: true, resetScroll: false });
         }
 
