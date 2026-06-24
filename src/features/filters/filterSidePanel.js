@@ -11,12 +11,13 @@ import {
 } from './filterValueUi.js';
 import { appServices } from '../../core/appServices.js';
 import { appUiActions, registerAppUiActionDependencies } from '../../core/appUiActions.js';
-import { AppState, QueryChangeManager, QueryStateReaders } from './filterQueryState.js';
+import { QueryChangeManager, QueryStateReaders } from './filterQueryState.js';
 import { QueryStateSubscriptions } from '../../core/queryStateSubscriptions.js';
 import { showToastMessage } from '../../core/toast.js';
 import { OperatorLabels } from '../../core/formatting/operatorLabels.js';
 import { Icons } from '../../core/icons.js';
 import { SharedFieldPicker } from '../../ui/field-picker/fieldPicker.js';
+import { openQueryFilterEditor } from '../../ui/filter-editor/queryFilterEditor.js';
 import { fieldDefs } from './fieldDefs.js';
 import { beginPanelArrangeMode, clearPanelArrangeMode, isPanelArrangeModeActive } from './panelArrange.js';
 import { createFilterSidePanelReorderActions } from './filterSidePanelReorderActions.js';
@@ -239,25 +240,8 @@ const FilterSidePanel = (function () {
         return currentViewMode === 'both' || currentViewMode === 'filters';
     }
 
-    function isMobileFilterEditorViewport() {
-        return typeof window !== 'undefined'
-            && typeof window.matchMedia === 'function'
-            && window.matchMedia('(max-width: 1180px), (hover: none) and (pointer: coarse)').matches;
-    }
-
-    function openBubbleForField(field) {
+    function openFilterEditorForField(field, options = {}) {
         if (!field) {
-            return;
-        }
-
-        const overlay = DOM.overlay;
-        if (AppState.selectedField === field && overlay?.classList.contains('show')) {
-            services.renderConditionList(field);
-            const operatorSelect = document.getElementById('condition-operator-select');
-            const conditionInput = DOM.conditionInput;
-            if (!isMobileFilterEditorViewport()) {
-                (operatorSelect || conditionInput)?.focus();
-            }
             return;
         }
 
@@ -265,33 +249,7 @@ const FilterSidePanel = (function () {
             appUiActions.closeMobileFilterPanel();
         }
 
-        const bubble = Array.from(document.querySelectorAll('.bubble')).find(
-            b => b.textContent.trim() === field && !b.classList.contains('bubble-disabled')
-        );
-        if (bubble) {
-            bubble.click();
-            return;
-        }
-
-        if (AppState.currentCategory !== 'All') {
-            AppState.currentCategory = 'All';
-            services.rerenderBubbles();
-            const rerenderedBubble = Array.from(document.querySelectorAll('.bubble')).find(
-                b => b.textContent.trim() === field && !b.classList.contains('bubble-disabled')
-            );
-            if (rerenderedBubble) {
-                rerenderedBubble.click();
-                return;
-            }
-        }
-
-        const queryInput = DOM?.queryInput || document.getElementById('query-input');
-        if (queryInput) {
-            queryInput.value = field;
-            queryInput.dispatchEvent(new Event('input', { bubbles: true }));
-            queryInput.focus();
-            queryInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
+        openQueryFilterEditor(field, options);
     }
 
     function openDisplayFieldPicker(insertAt = -1) {
@@ -631,7 +589,7 @@ const FilterSidePanel = (function () {
             editBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
             editBtn.addEventListener('click', e => {
                 e.stopPropagation();
-                openBubbleForField(field);
+                openFilterEditorForField(field, { filterIndex: idx });
             });
 
             const delBtn = document.createElement('button');
@@ -660,8 +618,8 @@ const FilterSidePanel = (function () {
 
         const addCondBtn = document.createElement('button');
         addCondBtn.className = 'fp-add-cond-btn';
-        addCondBtn.textContent = 'Edit filter';
-        addCondBtn.addEventListener('click', () => openBubbleForField(field));
+        addCondBtn.textContent = 'Add filter';
+        addCondBtn.addEventListener('click', () => openFilterEditorForField(field, { filterIndex: -1 }));
         group.appendChild(addCondBtn);
 
         return group;

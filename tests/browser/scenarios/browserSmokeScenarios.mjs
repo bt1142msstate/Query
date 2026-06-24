@@ -2243,25 +2243,26 @@ async function expectMobileFilterEditorSheet(page) {
   const filterGroup = page.locator('.fp-field-group', { hasText: 'Smoke Title' }).first();
   await filterGroup.waitFor({ state: 'visible', timeout: 5000 });
   await filterGroup.locator('.fp-edit-btn').first().click();
-  await page.locator('#filter-card.show').waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('.query-filter-editor-modal').waitFor({ state: 'visible', timeout: 5000 });
   await page.waitForFunction(() => !document.body.classList.contains('mobile-filter-panel-open'), null, { timeout: 5000 });
 
-  const metrics = await page.locator('#filter-card.show').evaluate(card => {
+  const metrics = await page.locator('.query-filter-editor-modal').evaluate(card => {
     const rect = card.getBoundingClientRect();
-    const close = card.querySelector('#filter-card-close-btn');
+    const close = card.querySelector('.form-mode-field-picker-close');
     const closeRect = close?.getBoundingClientRect();
-    const operator = card.querySelector('#condition-operator-select');
-    const input = card.querySelector('#condition-input');
-    const conditionPanel = card.querySelector('#condition-panel');
-    const clone = document.querySelector('.mobile-bubble-editor-clone');
+    const operator = card.querySelector('.form-mode-operator-select');
+    const input = card.querySelector('.form-mode-text-input');
+    const control = card.querySelector('.query-filter-editor-control');
     const active = document.activeElement;
     return {
       activeElementId: active?.id || '',
+      activeElementClass: String(active?.className || ''),
       activeElementTag: active?.tagName || '',
       bottom: rect.bottom,
       closeHeight: closeRect?.height || 0,
       closeWidth: closeRect?.width || 0,
-      conditionPanelVisible: conditionPanel ? window.getComputedStyle(conditionPanel).display !== 'none' : false,
+      controlVisible: control ? window.getComputedStyle(control).display !== 'none' : false,
+      legacyFilterCardVisible: document.querySelector('#filter-card')?.classList.contains('show') || false,
       inputFontSize: input ? Number.parseFloat(window.getComputedStyle(input).fontSize || '0') : 16,
       left: rect.left,
       mobilePanelOpen: document.body.classList.contains('mobile-filter-panel-open'),
@@ -2269,34 +2270,34 @@ async function expectMobileFilterEditorSheet(page) {
       right: rect.right,
       top: rect.top,
       viewportHeight: window.innerHeight,
-      viewportWidth: window.innerWidth,
-      zoomCloneDisplay: clone ? window.getComputedStyle(clone).display : ''
+      viewportWidth: window.innerWidth
     };
   });
 
   if (
     metrics.mobilePanelOpen
+    || metrics.legacyFilterCardVisible
     || metrics.left < 4
     || metrics.right > metrics.viewportWidth - 4
-    || metrics.top < 48
+    || metrics.top < 4
     || metrics.bottom > metrics.viewportHeight - 4
     || metrics.closeWidth < 44
     || metrics.closeHeight < 44
-    || !metrics.conditionPanelVisible
+    || !metrics.controlVisible
     || metrics.operatorFontSize < 16
     || metrics.inputFontSize < 16
-    || metrics.zoomCloneDisplay !== 'none'
-    || ['condition-input', 'condition-input-2', 'condition-operator-select'].includes(metrics.activeElementId)
+    || metrics.activeElementClass.includes('form-mode-text-input')
+    || metrics.activeElementClass.includes('form-mode-operator-select')
   ) {
-    throw new Error(`Mobile filter editor should open as a contained sheet without focus zoom: ${JSON.stringify(metrics)}`);
+    throw new Error(`Mobile filter editor should open as a form-style contained sheet without focus zoom: ${JSON.stringify(metrics)}`);
   }
 
   await expectNoHorizontalOverflow(page, 'Mobile filter editor sheet');
-  await expectMobileEditableFocusContained(page, '#filter-card.show #condition-input', '#filter-card', 'Mobile filter value input');
-  await page.locator('#filter-card-close-btn').click();
+  await expectMobileEditableFocusContained(page, '.query-filter-editor-modal .form-mode-text-input', '.query-filter-editor-modal', 'Mobile filter value input');
+  await page.locator('.query-filter-editor-modal .form-mode-field-picker-close').click();
   await page.waitForFunction(() => {
-    return !document.querySelector('#filter-card')?.classList.contains('show')
-      && !document.querySelector('#overlay')?.classList.contains('show')
+    return !document.querySelector('.query-filter-editor-modal')
+      && !document.querySelector('#filter-card')?.classList.contains('show')
       && !document.querySelector('.active-bubble, .bubble-clone');
   }, null, { timeout: 5000 });
 }

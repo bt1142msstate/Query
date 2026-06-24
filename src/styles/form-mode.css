@@ -866,6 +866,39 @@
   margin-top: 0.65rem;
 }
 
+.query-filter-editor-body {
+  overflow: auto;
+}
+
+.query-filter-editor-control {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.query-filter-editor-row {
+  margin: 0;
+}
+
+.query-filter-editor-footer {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.query-filter-editor-status {
+  min-width: 0;
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.query-filter-editor-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-shrink: 0;
+}
+
 .form-mode-field-picker-list-panel,
 .form-mode-field-picker-details {
   display: flex;

@@ -1,8 +1,5 @@
-import { appServices } from '../../core/appServices.js';
 import { QueryChangeManager, QueryStateReaders } from '../../core/queryState.js';
 import { showToastMessage } from '../../core/toast.js';
-import { VisibilityUtils } from '../../core/visibility.js';
-import { DOM } from '../../core/domCache.js';
 import { fieldDefs, isFieldBuildable, loadFieldDefinitions, removeDynamicField } from '../../features/filters/fieldDefs.js';
 import { renderBuildableFieldPreview } from './buildableFieldPreview.js';
 import {
@@ -14,13 +11,13 @@ import {
   buildNextDisplayedFieldsForPicker,
   parseFieldPickerInsertAt
 } from './fieldPickerQuerySelection.js';
+import { openQueryFilterEditor } from '../filter-editor/queryFilterEditor.js';
 
 function createQueryFieldPickerIntegration(options) {
   const {
     openSharedFieldPicker,
     getFieldPickerOptionsFromDefinitions
   } = options;
-  const services = appServices;
   const { getDisplayedFields, getFilterGroupForField } = QueryStateReaders;
 
   function replaceDisplayedFieldSelection(fieldName, nextChecked, insertAt, source) {
@@ -73,54 +70,6 @@ function createQueryFieldPickerIntegration(options) {
     }
 
     return createQueryFilterPreview(container, fieldName, context);
-  }
-
-  function openQueryFilterEditor(fieldName) {
-    const fieldDef = fieldDefs && fieldDefs.get(fieldName);
-    if (!fieldDef || !services.bubble || typeof services.bubble.Bubble !== 'function') {
-      return false;
-    }
-    const bubble = new services.bubble.Bubble(fieldDef).getElement();
-    const overlay = DOM?.overlay || document.getElementById('overlay');
-    const conditionPanel = services.bubble?.getConditionPanelElement ? services.bubble.getConditionPanelElement() : null;
-    const inputWrapper = services.getBubbleInputWrapperElement();
-    let filterCard = services.getBubbleFilterCardElement();
-
-    if (filterCard && !DOM?.filterCard) {
-      document.body.appendChild(filterCard);
-      filterCard.offsetHeight;
-    }
-    if (filterCard) {
-      services.prepareBubbleFilterCardForOpen(filterCard);
-    }
-
-    if (overlay) {
-      overlay.classList.add('show');
-    }
-    VisibilityUtils.acquireRaisedUi('bubble-editor');
-
-    services.buildBubbleConditionPanel(bubble);
-
-    if (filterCard) {
-      const titleEl = services.getBubbleFilterCardTitleElement(filterCard);
-      if (titleEl) titleEl.textContent = fieldName;
-    }
-
-    services.renderConditionList(fieldName);
-
-    if (conditionPanel) {
-      conditionPanel.classList.add('show');
-    }
-    if (filterCard) {
-      if (!services.markBubbleFilterCardOpen(filterCard, { scrollReadyDelay: 240 })) {
-        filterCard.classList.add('show', 'content-ready');
-      }
-    }
-    if (inputWrapper && getFilterGroupForField(fieldName)) {
-      inputWrapper.classList.add('show');
-    }
-
-    return true;
   }
 
   async function openQueryFieldPicker(pickerOptions = {}) {
@@ -189,7 +138,7 @@ function createQueryFieldPickerIntegration(options) {
         return {
           close: true,
           afterClose: () => {
-            openQueryFilterEditor(fieldName);
+            openQueryFilterEditor(fieldName, { filterIndex: -1 });
           }
         };
       },
