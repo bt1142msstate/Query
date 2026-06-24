@@ -3410,7 +3410,101 @@ async function exerciseZeroResultQueryWorkflow(page, queryApiStub) {
   await seedLoadedResults(page);
   await page.evaluate(async () => {
     const { appServices } = await import('./src/core/appServices.js');
+    const { QueryChangeManager, QueryStateReaders } = await import('./src/core/queryState.js');
     const { QueryUI } = await import('./src/ui/queryUI.js');
+    window.__browserSmokeGetLifecycleState = () => QueryStateReaders.getLifecycleState();
+    QueryChangeManager.setLifecycleState({
+      lastExecutedQueryState: QueryStateReaders.getSerializableState(),
+      hasLoadedResultSet: true,
+      queryRunning: false
+    }, { source: 'BrowserSmoke.seedRefreshablePostFilterState', silent: true });
+    appServices.replacePostFilters({
+      'Smoke Branch': {
+        logic: 'all',
+        filters: [
+          { cond: 'equals', val: 'Main', vals: ['Main'] }
+        ]
+      }
+    }, { refreshView: true, notify: true, resetScroll: true });
+    QueryUI.updateButtonStates();
+  });
+  await expectPostFilterStats(page, {
+    filteredRows: 2,
+    hasPostFilters: true,
+    totalRows: 3
+  }, 'Desktop refresh pre-run post filter state');
+
+  queryApiStub.enqueue([
+    {
+      action: 'run',
+      body: buildJsonlResultStream({
+        queryId: 'browser-smoke-refresh-post-filter',
+        rows: [
+          ['Alpha refresh', 'Main', 'Open'],
+          ['Beta refresh', 'East', 'Closed'],
+          ['Gamma refresh', 'Main', 'Open']
+        ]
+      }),
+      contentType: 'application/x-ndjson; charset=utf-8',
+      queryId: 'browser-smoke-refresh-post-filter',
+      rawColumns: smokeResultHeaders
+    }
+  ]);
+
+  const refreshRunRequestCountBefore = queryApiStub.countAction('run');
+  const refreshRunButtonState = await page.locator('#run-query-btn').evaluate(button => ({
+    ariaLabel: button.getAttribute('aria-label') || '',
+    disabled: button.disabled,
+    tooltip: button.getAttribute('data-tooltip') || ''
+  }));
+  const refreshLifecycleBeforeClick = await page.evaluate(async () => {
+    const { QueryStateReaders } = await import('./src/core/queryState.js');
+    return QueryStateReaders.getLifecycleState();
+  });
+  await page.locator('#run-query-btn').click();
+  await page.waitForFunction(() => {
+    const lifecycle = window.__browserSmokeGetLifecycleState?.();
+    if (!lifecycle) return false;
+    return lifecycle.queryRunning === false
+      && lifecycle.hasLoadedResultSet === true
+      && lifecycle.currentQueryId === 'browser-smoke-refresh-post-filter';
+  }, null, { timeout: 10000 });
+  const refreshRunRequestsAfter = queryApiStub.getRequests('run');
+  const refreshRunRequestCountAfter = refreshRunRequestsAfter.length;
+  const refreshLifecycleAfterClick = await page.evaluate(async () => {
+    const { QueryStateReaders } = await import('./src/core/queryState.js');
+    return QueryStateReaders.getLifecycleState();
+  });
+  if (refreshRunRequestCountAfter !== refreshRunRequestCountBefore + 1) {
+    throw new Error(`Refreshing the same query should issue exactly one backend run: ${JSON.stringify({
+      after: refreshRunRequestCountAfter,
+      before: refreshRunRequestCountBefore,
+      latestRun: refreshRunRequestsAfter.at(-1)?.payload || null,
+      lifecycleAfterClick: refreshLifecycleAfterClick,
+      lifecycleBeforeClick: refreshLifecycleBeforeClick,
+      runButton: refreshRunButtonState
+    })}`);
+  }
+  const refreshPostFilterRun = refreshRunRequestsAfter.at(-1)?.payload || {};
+  if (JSON.stringify(refreshPostFilterRun).includes('postFilter') || JSON.stringify(refreshPostFilterRun).includes('PostFilter')) {
+    throw new Error(`Post filters should not be sent to the backend during refresh: ${JSON.stringify(refreshPostFilterRun)}`);
+  }
+  await expectPostFilterStats(page, {
+    filteredRows: 2,
+    hasPostFilters: true,
+    totalRows: 3
+  }, 'Desktop post-filter state after refreshing same query');
+
+  await seedLoadedResults(page);
+  await page.evaluate(async () => {
+    const { appServices } = await import('./src/core/appServices.js');
+    const { QueryChangeManager } = await import('./src/core/queryState.js');
+    const { QueryUI } = await import('./src/ui/queryUI.js');
+    QueryChangeManager.setLifecycleState({
+      lastExecutedQueryState: null,
+      hasLoadedResultSet: true,
+      queryRunning: false
+    }, { source: 'BrowserSmoke.seedChangedPostFilterState', silent: true });
     appServices.replacePostFilters({
       'Smoke Branch': {
         logic: 'all',
