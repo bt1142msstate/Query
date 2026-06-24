@@ -6,7 +6,7 @@ This project is a static browser app organized as feature-oriented ES modules. T
 
 - It solves a real workflow with complex state, async execution, virtualized data display, export, overlays, and editable forms.
 - It uses native browser ES modules and declares `"type": "module"` for Node-side tooling.
-- It has executable guardrails for module specifiers, forbidden browser globals, query-state access, module reachability, import cycles, layer boundaries, coupling/modularity budgets, unit-tested business logic, and browser smoke behavior.
+- It has executable guardrails for module specifiers, forbidden browser globals, query-state access, module reachability, import cycles, layer boundaries, coupling/modularity budgets, folder cohesion, Git-history change coupling, cognitive complexity, unit-tested business logic, and browser smoke behavior.
 - Query history is split into grouping/search, backend status mapping, request mapping, row rendering, detail rendering, view metadata, and coordinator modules.
 - Query templates are split into repository, payload, collection, state, category-view, list-view, and coordinator modules.
 - It documents the intended module boundaries and known legacy areas.
@@ -155,7 +155,11 @@ The architecture rules are executable, versioned, and run in CI.
 
 `tests/architecture/couplingModularityFitness.mjs` adds a metrics-oriented gate over the same source graph. It tracks average fan-out, maximum non-entrypoint fan-out, entrypoint fan-out, maximum fan-in, large-coordinator count, large high-fan-out coordinator count, and worker-inclusive import cycles. The budgets live in `config/architectureRules.cjs`; if a future change makes a coordinator too broad or turns a shared module into a hub, CI fails with the exact module names.
 
-`tests/architecture/maintainabilityFitness.mjs` adds layer-aware maintainability budgets using standard ESLint rule semantics for maximum module lines, function length, cyclomatic complexity, nesting depth, and parameter count. These are intentionally measured by layer because a public component wrapper, a stateful feature coordinator, and a low-level library module do not carry the same risk profile.
+`tests/architecture/maintainabilityFitness.mjs` adds layer-aware maintainability budgets using standard ESLint rule semantics for maximum module lines, function length, cyclomatic complexity, nesting depth, and parameter count. It also runs a local cognitive-complexity approximation over parsed JavaScript functions so deeply nested or hard-to-follow control flow is visible even when basic cyclomatic complexity still passes. These are intentionally measured by layer because a public component wrapper, a stateful feature coordinator, and a low-level library module do not carry the same risk profile.
+
+`tests/architecture/cohesionFitness.mjs` checks folder-level separation of concerns. It measures external imports per module, incoming external imports per module, and internal import ratio for architectural folders such as `src/features/table/virtual-table`, `src/ui/field-picker`, and `src/lib/workbook-export`.
+
+The same cohesion test also runs a Git-history change-coupling analysis. Bulk refactor commits are skipped, and high-confidence cross-folder file pairs are budgeted so files that repeatedly change together are surfaced as candidates for a clearer boundary. GitHub Actions fetches full history for the normal test workflow so this check has enough data in CI.
 
 For a human-readable scorecard, run:
 
@@ -174,7 +178,7 @@ npm test
 That runs:
 
 - `npm run lint`: syntax, globals, module rules, query-state boundaries.
-- `npm run test:architecture`: architecture fitness checks, coupling/modularity budgets, maintainability budgets, legacy module budgets, forbidden browser globals, import graph reachability, import cycles, layer boundaries, canonical ES module specifiers, cache-stable import paths, and the hardcoded-field integration guard.
+- `npm run test:architecture`: architecture fitness checks, coupling/modularity budgets, folder cohesion budgets, Git-history change-coupling budgets, maintainability and cognitive-complexity budgets, legacy module budgets, forbidden browser globals, import graph reachability, import cycles, layer boundaries, canonical ES module specifiers, cache-stable import paths, and the hardcoded-field integration guard.
 - `npm run test:unit`: focused pure-logic tests for query-history status, request mapping, row output, backend payload contracts, and table transforms.
 - `npm run test:browser`: Playwright smoke test for runtime behavior and key UI styling.
 

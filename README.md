@@ -196,7 +196,7 @@ Canonical layout decision: application source lives in `src/`. We are not using 
 - Native browser ES modules with `"type": "module"` in Node tooling
 - Feature-oriented folder structure with ES modules, explicit dependency registration for cross-feature services/actions, and enforced module boundaries
 - Public reusable component entrypoints for the mounted virtual table, table data projection, column drag/drop, workbook export, date input, and tooltips
-- ESLint, architecture fitness checks, coupling/modularity metrics, layer-aware maintainability budgets, and Playwright browser smoke tests
+- ESLint, architecture fitness checks, coupling/modularity metrics, folder cohesion and change-coupling checks, layer-aware maintainability/cognitive-complexity budgets, and Playwright browser smoke tests
 - Tailwind CSS and AutoNumeric are loaded from CDNs in `index.html`
 - Custom browser-side XLSX export with worker support for larger workbooks
 
@@ -245,7 +245,7 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md) for current status, completed milestone
 npm test
 ```
 
-Runs the cache-busting manifest check, lint, Node test-runner architecture checks, focused unit tests, and desktop/mobile browser smoke tests. The architecture suite includes module-specifier checks, coupling/modularity budgets, maintainability budgets, and the hardcoded-field integration guard.
+Runs the cache-busting manifest check, lint, Node test-runner architecture checks, focused unit tests, and desktop/mobile browser smoke tests. The architecture suite includes module-specifier checks, coupling/modularity budgets, folder cohesion, Git-history change coupling, cognitive-complexity budgets, maintainability budgets, and the hardcoded-field integration guard.
 
 Individual checks:
 

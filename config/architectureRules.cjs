@@ -116,6 +116,16 @@ const couplingModularityBudgets = {
 };
 
 const maintainabilityBudgets = {
+  maxCognitiveComplexityByLayer: {
+    components: 25,
+    core: 110,
+    filters: 110,
+    history: 35,
+    lib: 35,
+    table: 55,
+    templates: 45,
+    ui: 45
+  },
   maxDepthByLayer: {
     components: 5,
     core: 6,
@@ -159,6 +169,24 @@ const maintainabilityBudgets = {
   }
 };
 
+const folderModularityBudgets = {
+  ignoredFolders: ['src/appModules.js'],
+  maxExternalImportsPerModule: 7,
+  maxIncomingExternalImportsPerModule: 12,
+  maxLowCohesionFolderCount: 0,
+  minImportsForCohesionCheck: 8,
+  minInternalImportRatio: 0.03,
+  minModulesForCohesionCheck: 3
+};
+
+const changeCouplingBudgets = {
+  commitLimit: 300,
+  highConfidenceThreshold: 0.9,
+  maxCrossFolderHighConfidencePairs: 4,
+  maxFilesPerCommit: 25,
+  minCoChanges: 4
+};
+
 const forbiddenWindowMemberReads = new Map([
   ['AppState', 'Import from src/core/queryState.js instead of reading AppState from window'],
   ['AppServices', 'Import from src/core/appServices.js instead of reading app service facade from window'],
@@ -186,7 +214,7 @@ const forbiddenWindowMemberReads = new Map([
   ['SearchUI', 'Import from src/ui/controls/searchUI.js instead of reading search helpers from window'],
   ['SelectorControls', 'Import from src/ui/controls/selectorControls.js instead of reading selector controls from window'],
   ['SharedFieldPicker', 'Import from src/ui/field-picker/fieldPicker.js instead of reading shared field picker from window'],
-  ['TableBuilder', 'Import from src/features/table/virtual-table/tableBuilder.js instead of reading table builder helpers from window'],
+  ['TableBuilder', 'Import from src/lib/virtual-table/tableBuilder.js instead of reading table builder helpers from window'],
   ['TextMeasurement', 'Import from src/core/textMeasurement.js instead of reading text measurement helpers from window'],
   ['TooltipManager', 'Import from src/core/formatting/tooltipFormatters.js for formatting or src/ui/tooltips.js for tooltip behavior instead of reading tooltip helpers from window'],
   ['VisibilityUtils', 'Import from src/core/visibility.js instead of reading visibility helpers from window'],
@@ -259,8 +287,10 @@ const moduleBoundaryRules = [
 ];
 
 module.exports = {
+  changeCouplingBudgets,
   forbiddenWindowMemberReads,
   couplingModularityBudgets,
+  folderModularityBudgets,
   legacyLargeModuleBudgets,
   maintainabilityBudgets,
   maxModuleLines,
