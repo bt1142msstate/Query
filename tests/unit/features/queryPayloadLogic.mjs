@@ -29,6 +29,7 @@ test('query payload', async () => {
   fieldDefs.set('Never Date', { name: 'Never Date', type: 'date', filters: ['never', 'before'] });
   fieldDefs.set('Equal Never Date', { name: 'Equal Never Date', type: 'date', filters: ['equals'] });
   fieldDefs.set('Backend Date', { name: 'Backend Date', type: 'date', filters: ['before'] });
+  fieldDefs.set('Catalog Key', { name: 'Catalog Key', filters: ['equals'], allowValueList: true });
   fieldDefs.set('Search Key', { name: 'Search Key', filters: ['equals'], allowValueList: true });
   fieldDefs.set('Synthetic Field', { name: 'Synthetic Field', builder: { outputFieldIdTemplate: 'Synthetic{value}', inputs: [] }, filters: ['equals'] });
   fieldDefs.set('MARC 590', {
@@ -148,4 +149,21 @@ test('query payload', async () => {
     ],
     display_fields: ['Title', 'MARC 590', 'Record Date']
   });
+
+  const uploadedCatalogKeys = Array.from({ length: 815 }, (_value, index) => String(808410 + index));
+  QueryChangeManager.setQueryState({
+    displayedFields: ['Catalog Key', 'Title'],
+    activeFilters: {
+      'Catalog Key': {
+        filters: [{ cond: 'equals', val: uploadedCatalogKeys.join('\n') }]
+      }
+    }
+  }, { source: 'QueryPayloadLogic.bulkCatalogKeys' });
+
+  const bulkKeyPayload = buildBackendQueryPayload('Bulk Catalog Keys');
+  assert.equal(bulkKeyPayload.filters.length, 1);
+  assert.equal(bulkKeyPayload.filters[0].field, 'Catalog Key');
+  assert.equal(bulkKeyPayload.filters[0].operator, '=');
+  assert.deepEqual(bulkKeyPayload.filters[0].value, uploadedCatalogKeys);
+  assert.deepEqual(bulkKeyPayload.display_fields, ['Catalog Key', 'Title']);
 });
