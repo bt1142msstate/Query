@@ -1,11 +1,12 @@
 import { ClipboardUtils } from '../../../core/clipboard.js';
-import { appServices, registerDragDropService } from '../../../core/appServices.js';
+import { appServices, registerDragDropService } from '../tableServices.js';
 import { Icons } from '../../../core/icons.js';
-import { QueryStateReaders, getBaseFieldName } from '../../../core/queryState.js';
-import { showToastMessage } from '../../../core/toast.js';
+import { QueryStateReaders, getBaseFieldName } from '../tableQueryState.js';
+import { showToastMessage } from '../tableToast.js';
 import { getDuplicateGroups, restoreFieldWithDuplicates } from './columnManager.js';
 import { createColumnResizeController } from './columnResizeController.js';
 import { clearColumnDragArrangeStatus, showColumnDragArrangeStatus } from './dragDropArrangeStatus.js';
+import { createDropAnchorController } from './dragDropAnchorController.js';
 import { dragDropColumnOps } from './dragDropColumns.js';
 import { createDragDropHeaderActions } from './dragDropHeaderActions.js';
 import { createDragDropHeaderInsertAffordance } from './dragDropHeaderInsertAffordance.js';
@@ -15,12 +16,10 @@ import { SharedFieldPicker } from '../../../ui/field-picker/fieldPicker.js';
 import {
   getClosestVisibleHeaderByX,
   getDragScrollContainer,
-  getDropIndicatorViewportRect,
   getOutsideDropViewportOptions,
   isPointerNearDropViewport,
   isPointerWithinDropViewport
 } from '../../../lib/drag-drop/dragDropViewport.js';
-import { getDropAnchorLayout } from '../../../lib/drag-drop/dragDropAnchorLayout.js';
 let DragDropInteractions;
 (function initializeDragDropInteractions() {
   var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders), getLifecycleState = QueryStateReaders.getLifecycleState.bind(QueryStateReaders), services = appServices;
@@ -44,10 +43,6 @@ let DragDropInteractions;
   function isSupportedTableDrag(event) {
     return hasDragType(event, TABLE_COLUMN_DRAG_MIME);
   }
-  const dropAnchor = document.createElement('div');
-  dropAnchor.className = 'drop-anchor';
-  document.body.appendChild(dropAnchor);
-
   function getColumnResizeState() {
     return services.getColumnResizeState?.() || { active: false, fieldName: '' };
   }
@@ -111,63 +106,16 @@ let DragDropInteractions;
     isDragging: () => document.body.classList.contains('dragging-cursor')
   });
 
-  function positionDropAnchor(rect, table, clientX, colIndex) {
-    const viewportRect = getDropIndicatorViewportRect(table);
-    const layout = getDropAnchorLayout({
-      columnRect: rect,
-      viewportRect,
-      clientX,
-      colIndex,
-      draggedIndex: dragDropManager.activeDragIndex,
-      dragGroupIndices: dragDropManager.activeDragGroupIndices,
-      displayedFields: getDisplayedFields(),
-      getBaseFieldName,
-      scrollX: window.scrollX,
-      scrollY: window.scrollY
-    });
-    if (!layout.visible) {
-      clearDropAnchor(table);
-      return false;
-    }
-
-    highlightDropTargetColumn(table, colIndex);
-    dropAnchor.classList.add('vertical');
-    dropAnchor.style.width = layout.width + 'px';
-    dropAnchor.style.height = layout.height + 'px';
-    dropAnchor.style.left = layout.left + 'px';
-    dropAnchor.style.top = layout.top + 'px';
-    dropAnchor.style.display = 'block';
-    return true;
-  }
-
-  function clearDropTargetColumn(root = document) {
-    const scope = root || document;
-    scope.querySelectorAll('.th-drag-over, .query-table-column-drop-target').forEach(el => {
-      el.classList.remove('th-drag-over', 'query-table-column-drop-target');
-    });
-  }
-
-  function highlightDropTargetColumn(table, colIndex) {
-    if (!table || !Number.isInteger(colIndex)) {
-      return;
-    }
-
-    clearDropTargetColumn(table);
-    table.querySelectorAll(`[data-col-index="${colIndex}"]`).forEach(cell => {
-      cell.classList.add('query-table-column-drop-target');
-    });
-
-    const targetHeader = table.querySelector(`thead th[data-col-index="${colIndex}"]`);
-    if (targetHeader && !targetHeader.classList.contains('th-dragging')) {
-      targetHeader.classList.add('th-drag-over');
-    }
-  }
-
-  function clearDropAnchor(root = document) {
-    dropAnchor.classList.remove('vertical');
-    dropAnchor.style.display = 'none';
-    clearDropTargetColumn(root);
-  }
+  const dropAnchorController = createDropAnchorController({
+    document,
+    window,
+    getDisplayedFields,
+    getBaseFieldName,
+    getActiveDragIndex: () => dragDropManager.activeDragIndex,
+    getActiveDragGroupIndices: () => dragDropManager.activeDragGroupIndices
+  });
+  const positionDropAnchor = dropAnchorController.position;
+  const clearDropAnchor = dropAnchorController.clear;
 
   const dragDropManager = {
     hoverTh: null,

@@ -38,51 +38,26 @@ export function createQueryHistoryResultsLoader({
       return false;
     }
 
-    queryChangeManager.setLifecycleState({
-      currentQueryId: query.id,
-      hasPartialResults: false,
-      hasLoadedResultSet: false
-    }, { source: 'QueryHistory.loadQueryResults.start', silent: true });
-
-    if (options.restore !== true) {
-      forgetOpenedHistoryResult({ clearUrl: true });
-    }
-
-    historyResultProgress.start(query, { render: renderQueries });
+    beginHistoryResultLoad({ historyResultProgress, options, query, queryChangeManager, renderQueries });
     const notificationPermission = options.notify === false ? null : prepareHistoryResultLoadNotification();
-
-    showToastMessage(
-      options.restore ? 'Restoring last opened results...' : (query.running ? 'Fetching live results...' : 'Fetching results...'),
-      'info'
-    );
+    showHistoryResultStartToast({ options, query, showToastMessage });
 
     try {
-      const { response, streamError, jsonPayload } = await historyResultProgress.fetchResults(queryId);
+      const { rows, streamError, tableRows } = await fetchAndBuildHistoryRows({
+        historyResultProgress,
+        query,
+        queryId,
+        queryStateReaders
+      });
       if (!isLatestLoad()) {
         return false;
       }
 
-      const rows = buildHistoryResultRows({
-        response,
-        jsonPayload,
-        displayedFields: queryStateReaders?.getDisplayedFields?.() || [],
-        fallbackColumns: query.jsonConfig ? query.jsonConfig.DesiredColumnOrder : []
-      });
-
       console.log(`Loaded ${rows.objectRows.length} rows from history`);
-      const tableRows = buildTableRowsFromObjectRows(rows.headers, rows.objectRows);
       const incomingViewState = options.viewState || readResultViewStateFromLocation(options.location, { queryId });
 
-      if (query.running) {
-        query.resultCount = rows.objectRows.length;
-        renderQueries();
-      }
-
-      queryChangeManager.setLifecycleState({
-        currentQueryId: query.id,
-        hasPartialResults: Boolean(query.running),
-        hasLoadedResultSet: true
-      }, { source: 'QueryHistory.loadQueryResults', silent: true });
+      updateRunningHistoryQueryCount({ query, renderQueries, rowCount: rows.objectRows.length });
+      markHistoryResultLoaded({ query, queryChangeManager });
 
       if (services.table) {
         await hydrateHistoryResultTable({
@@ -100,37 +75,27 @@ export function createQueryHistoryResultsLoader({
 
       uiActions.updateTableResultsLip();
       if (options.remember !== false) {
-        const viewState = buildCurrentResultViewState({ queryStateReaders, services, uiState });
-        const resultViewParam = options.resultViewParam === undefined
-          ? encodeResultViewState(viewState)
-          : options.resultViewParam;
-        rememberOpenedHistoryResult(query.id, {
-          resultViewParam,
-          updateUrl: true
-        });
-        await writeCachedHistoryResultSnapshot({
+        await rememberHistoryResultSnapshot({
           query,
-          queryId: query.id,
+          queryStateReaders,
+          resultViewParam: options.resultViewParam,
+          services,
           headers: rows.headers,
           rows: tableRows,
-          viewState
+          uiState
         });
       }
 
-      showToastMessage(streamError
-        ? `Connection ended early. Loaded ${rows.objectRows.length} partial results.`
-        : (query.running
-          ? `Loaded ${rows.objectRows.length} partial results from running query.`
-          : `Loaded ${rows.objectRows.length} results.`), streamError ? 'warning' : 'success');
-      if (options.notify !== false) {
-        notifyHistoryResultLoadComplete({
-          permissionPromise: notificationPermission,
-          query,
-          queryId,
-          rowCount: rows.objectRows.length,
-          streamError
-        });
-      }
+      completeHistoryResultLoad({
+        notifyHistoryResultLoadComplete,
+        notificationPermission,
+        options,
+        query,
+        queryId,
+        rowCount: rows.objectRows.length,
+        showToastMessage,
+        streamError
+      });
 
       services.closeAllModals();
       syncHistoryResultWorkspaceLayout({ services, uiActions });
@@ -151,6 +116,108 @@ export function createQueryHistoryResultsLoader({
       }
     }
   };
+}
+
+function beginHistoryResultLoad({ historyResultProgress, options, query, queryChangeManager, renderQueries }) {
+  queryChangeManager.setLifecycleState({
+    currentQueryId: query.id,
+    hasPartialResults: false,
+    hasLoadedResultSet: false
+  }, { source: 'QueryHistory.loadQueryResults.start', silent: true });
+
+  if (options.restore !== true) {
+    forgetOpenedHistoryResult({ clearUrl: true });
+  }
+
+  historyResultProgress.start(query, { render: renderQueries });
+}
+
+async function fetchAndBuildHistoryRows({ historyResultProgress, query, queryId, queryStateReaders }) {
+  const { response, streamError, jsonPayload } = await historyResultProgress.fetchResults(queryId);
+  const rows = buildHistoryResultRows({
+    response,
+    jsonPayload,
+    displayedFields: queryStateReaders?.getDisplayedFields?.() || [],
+    fallbackColumns: query.jsonConfig ? query.jsonConfig.DesiredColumnOrder : []
+  });
+  return {
+    rows,
+    streamError,
+    tableRows: buildTableRowsFromObjectRows(rows.headers, rows.objectRows)
+  };
+}
+
+function showHistoryResultStartToast({ options, query, showToastMessage }) {
+  showToastMessage(
+    options.restore ? 'Restoring last opened results...' : (query.running ? 'Fetching live results...' : 'Fetching results...'),
+    'info'
+  );
+}
+
+function updateRunningHistoryQueryCount({ query, renderQueries, rowCount }) {
+  if (!query.running) {
+    return;
+  }
+  query.resultCount = rowCount;
+  renderQueries();
+}
+
+function markHistoryResultLoaded({ query, queryChangeManager }) {
+  queryChangeManager.setLifecycleState({
+    currentQueryId: query.id,
+    hasPartialResults: Boolean(query.running),
+    hasLoadedResultSet: true
+  }, { source: 'QueryHistory.loadQueryResults', silent: true });
+}
+
+async function rememberHistoryResultSnapshot({
+  headers,
+  query,
+  queryStateReaders,
+  resultViewParam,
+  rows,
+  services,
+  uiState
+}) {
+  const viewState = buildCurrentResultViewState({ queryStateReaders, services, uiState });
+  rememberOpenedHistoryResult(query.id, {
+    resultViewParam: resultViewParam === undefined ? encodeResultViewState(viewState) : resultViewParam,
+    updateUrl: true
+  });
+  await writeCachedHistoryResultSnapshot({
+    query,
+    queryId: query.id,
+    headers,
+    rows,
+    viewState
+  });
+}
+
+function completeHistoryResultLoad({
+  notificationPermission,
+  notifyHistoryResultLoadComplete,
+  options,
+  query,
+  queryId,
+  rowCount,
+  showToastMessage,
+  streamError
+}) {
+  showToastMessage(streamError
+    ? `Connection ended early. Loaded ${rowCount} partial results.`
+    : (query.running
+      ? `Loaded ${rowCount} partial results from running query.`
+      : `Loaded ${rowCount} results.`), streamError ? 'warning' : 'success');
+  if (options.notify === false) {
+    return;
+  }
+  notifyHistoryResultLoadComplete({
+    permissionPromise: notificationPermission,
+    query,
+    queryId,
+    rowCount,
+    streamError
+  });
 }
 
 export function buildHistoryResultRows({

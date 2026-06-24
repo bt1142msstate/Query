@@ -1,6 +1,6 @@
 import { QueryStateSubscriptions } from '../../../core/queryStateSubscriptions.js';
 import { appServices } from '../../../core/appServices.js';
-import { AppState, QueryChangeManager, QueryStateReaders } from '../../../core/queryState.js';
+import { AppState, QueryChangeManager, QueryStateReaders } from '../filterQueryState.js';
 import { showToastMessage } from '../../../core/toast.js';
 import { VisibilityUtils } from '../../../core/visibility.js';
 import { registerBubbleInteractionService } from './bubble.js';

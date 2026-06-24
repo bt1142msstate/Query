@@ -1,7 +1,7 @@
-import { appServices } from '../../../core/appServices.js';
+import { appServices } from '../tableServices.js';
 import { registerAppUiActionDependencies } from '../../../core/appUiActions.js';
-import { showToastMessage } from '../../../core/toast.js';
-import { QueryStateReaders } from '../../../core/queryState.js';
+import { showToastMessage } from '../tableToast.js';
+import { QueryStateReaders } from '../tableQueryState.js';
 import { VisibilityUtils } from '../../../core/visibility.js';
 import { QueryUI } from '../../../ui/queryUI.js';
 import { fieldDefs } from '../../filters/fieldDefs.js';

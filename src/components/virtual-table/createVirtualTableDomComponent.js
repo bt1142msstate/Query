@@ -1,9 +1,13 @@
-import { TableBuilder } from '../../lib/virtual-table/tableBuilder.js';
-import { calculateOptimalColumnWidths as calculateMeasuredOptimalColumnWidths } from '../../lib/virtual-table/tableColumnWidthCalculation.js';
-import { createTableColumnLayoutController } from '../../lib/virtual-table/tableColumnLayout.js';
-import { createTableScrollbarController } from '../../lib/virtual-table/tableScrollbar.js';
-import { createVirtualTableEmptyRow, createVirtualTableRow } from '../../lib/virtual-table/virtualTableRows.js';
-import { DEFAULT_FULL_RENDER_ROW_LIMIT, createVirtualRenderPlan } from '../../lib/virtual-table/virtualizer.js';
+import {
+  DEFAULT_FULL_RENDER_ROW_LIMIT,
+  TableBuilder,
+  calculateOptimalColumnWidths as calculateMeasuredOptimalColumnWidths,
+  createTableColumnLayoutController,
+  createTableScrollbarController,
+  createVirtualRenderPlan,
+  createVirtualTableEmptyRow,
+  createVirtualTableRow
+} from './virtualTableComponentRuntime.js';
 import { createVirtualTableComponent } from './createVirtualTableComponent.js';
 
 const DEFAULT_ROW_HEIGHT = 42;
@@ -394,40 +398,23 @@ function createVirtualTableDomComponent(options = {}) {
     scrollbar.scheduleSync({ refreshGeometry: true });
   }
 
-  function render(options = {}) {
-    if (!doc || !viewport) {
-      return { projection: projection || project(), renderPlan: null };
-    }
-
+  function getRenderContext(options = {}) {
     const currentProjection = options.project === false ? (projection || project()) : project();
     const tableData = currentProjection.tableData;
     const displayedFields = headlessTable.displayedFields;
     const currentTable = ensureMountedTable();
     if (!currentTable || !tbody) {
-      return { projection: currentProjection, renderPlan: null };
+      return { currentProjection, currentTable: null, displayedFields, tableData };
     }
 
     renderHeader(displayedFields);
     const layout = columnLayout.syncRenderedColumnLayout(currentTable, displayedFields, { syncBody: false });
     scrollbar.attach(viewport);
+    return { currentProjection, currentTable, displayedFields, layout, tableData };
+  }
 
-    if (!displayedFields.length || !normalizeRows(tableData.rows).length) {
-      renderEmptyBody(displayedFields, options.emptyMessage || 'No rows to display.');
-      return { projection: currentProjection, renderPlan: null };
-    }
-
-    const renderPlan = createVirtualRenderPlan({
-      rowCount: tableData.rows.length,
-      scrollTop: viewport.scrollTop || tableScrollTop,
-      containerHeight: viewport.clientHeight,
-      headerHeight: Math.ceil(currentTable.querySelector('thead')?.getBoundingClientRect().height || rowHeight),
-      rowHeight,
-      fullRenderRowLimit,
-      scrollDelta: options.scrollDelta ?? pendingScrollDelta
-    });
+  function applyRenderPlanStyles(currentTable, renderPlan) {
     const shouldRenderAllRows = !renderPlan.virtualized;
-    const fragment = doc.createDocumentFragment();
-
     currentTable.style.height = '';
     tbody.classList.toggle('query-table-virtual-body', !shouldRenderAllRows);
     tbody.style.height = shouldRenderAllRows ? '' : `${renderPlan.totalHeight}px`;
@@ -436,11 +423,11 @@ function createVirtualTableDomComponent(options = {}) {
     if (!shouldRenderAllRows && Math.abs(viewport.scrollTop - renderPlan.scrollTop) > 1) {
       viewport.scrollTop = renderPlan.scrollTop;
     }
+    return shouldRenderAllRows;
+  }
 
-    tableScrollTop = renderPlan.scrollTop;
-    lastRenderedScrollTop = renderPlan.scrollTop;
-    pendingScrollDelta = 0;
-
+  function buildRenderedRowsFragment({ displayedFields, layout, renderPlan, shouldRenderAllRows, tableData }) {
+    const fragment = doc.createDocumentFragment();
     for (let rowIndex = renderPlan.start; rowIndex < renderPlan.end; rowIndex += 1) {
       fragment.appendChild(createVirtualTableRow({
         rowData: tableData.rows[rowIndex],
@@ -461,6 +448,39 @@ function createVirtualTableDomComponent(options = {}) {
         document: doc
       }));
     }
+    return fragment;
+  }
+
+  function render(options = {}) {
+    if (!doc || !viewport) {
+      return { projection: projection || project(), renderPlan: null };
+    }
+
+    const { currentProjection, currentTable, displayedFields, layout, tableData } = getRenderContext(options);
+    if (!currentTable || !tbody) {
+      return { projection: currentProjection, renderPlan: null };
+    }
+
+    if (!displayedFields.length || !normalizeRows(tableData.rows).length) {
+      renderEmptyBody(displayedFields, options.emptyMessage || 'No rows to display.');
+      return { projection: currentProjection, renderPlan: null };
+    }
+
+    const renderPlan = createVirtualRenderPlan({
+      rowCount: tableData.rows.length,
+      scrollTop: viewport.scrollTop || tableScrollTop,
+      containerHeight: viewport.clientHeight,
+      headerHeight: Math.ceil(currentTable.querySelector('thead')?.getBoundingClientRect().height || rowHeight),
+      rowHeight,
+      fullRenderRowLimit,
+      scrollDelta: options.scrollDelta ?? pendingScrollDelta
+    });
+    const shouldRenderAllRows = applyRenderPlanStyles(currentTable, renderPlan);
+
+    tableScrollTop = renderPlan.scrollTop;
+    lastRenderedScrollTop = renderPlan.scrollTop;
+    pendingScrollDelta = 0;
+    const fragment = buildRenderedRowsFragment({ displayedFields, layout, renderPlan, shouldRenderAllRows, tableData });
 
     tbody.replaceChildren(fragment);
     columnLayout.syncRenderedColumnLayout(currentTable, displayedFields);

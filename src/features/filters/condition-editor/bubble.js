@@ -6,7 +6,7 @@
 import { mapUiCondToFieldOperator } from '../queryPayload.js';
 import { formatFieldDefinitionTooltipHTML, formatStandardFilterTooltipHTML } from '../../../core/formatting/tooltipFormatters.js';
 import { registerBubbleService } from '../../../core/appServices.js';
-import { AppState, QueryStateReaders } from '../../../core/queryState.js';
+import { AppState, QueryStateReaders } from '../filterQueryState.js';
 import { VisibilityUtils } from '../../../core/visibility.js';
 import { filteredDefs, isFieldBackendFilterable, isFieldBuildable, shouldFieldHavePurpleStylingBase } from '../fieldDefs.js';
 import { DOM } from '../../../core/domCache.js';

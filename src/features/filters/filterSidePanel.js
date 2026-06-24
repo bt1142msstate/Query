@@ -11,7 +11,7 @@ import {
 } from './filterValueUi.js';
 import { appServices } from '../../core/appServices.js';
 import { appUiActions, registerAppUiActionDependencies } from '../../core/appUiActions.js';
-import { AppState, QueryChangeManager, QueryStateReaders } from '../../core/queryState.js';
+import { AppState, QueryChangeManager, QueryStateReaders } from './filterQueryState.js';
 import { QueryStateSubscriptions } from '../../core/queryStateSubscriptions.js';
 import { showToastMessage } from '../../core/toast.js';
 import { OperatorLabels } from '../../core/formatting/operatorLabels.js';

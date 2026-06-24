@@ -1,4 +1,4 @@
-import { getBaseFieldName } from '../../../core/queryState.js';
+import { getBaseFieldName } from '../tableQueryState.js';
 import { clearHeaderArrangeStatus, showHeaderArrangeStatus } from '../../../ui/headerArrangeStatus.js';
 
 function getHeaderFieldLabel(th) {

@@ -3,7 +3,7 @@ import { appUiActions } from '../../core/appUiActions.js';
 import { MoneyUtils } from '../../core/formatting/moneyUtils.js';
 import { OperatorSelectUtils } from '../../core/operatorSelectUtils.js';
 import { ValueFormatting } from '../../core/formatting/valueFormatting.js';
-import { AppState, QueryChangeManager, QueryStateReaders } from '../../core/queryState.js';
+import { AppState, QueryChangeManager, QueryStateReaders } from './filterQueryState.js';
 import { SelectorControls } from '../../ui/controls/selectorControls.js';
 import {
   fieldDefs,
@@ -51,6 +51,19 @@ import {
     resolveBackendOperators,
     resolveOperatorConditions
 } from './condition-editor/filterConditionPanelBuilder.js';
+import {
+    getConditionFromControl,
+    getConditionOperatorSelect,
+    getFilterBetweenLabelElement,
+    getFilterConditionInput2Element,
+    getFilterConditionInputElement,
+    getFilterConditionPanelElement,
+    getFilterErrorLabelElement,
+    getFilterInputWrapperElement,
+    getFilterQueryInputElement,
+    isControlVisible,
+    isMobileFilterEditorViewport
+} from './filterManagerDom.js';
 
 /**
  * FilterPill UI component class
@@ -58,34 +71,6 @@ import {
  * (Moved from queryUI.js)
  */
 var appState = AppState, services = appServices, uiActions = appUiActions;
-function getFilterConditionPanelElement() {
-    return DOM?.conditionPanel || document.getElementById('condition-panel');
-}
-
-function getFilterInputWrapperElement() {
-    return DOM?.inputWrapper || document.getElementById('condition-input-wrapper');
-}
-
-function getFilterConditionInputElement() {
-    return DOM?.conditionInput || document.getElementById('condition-input');
-}
-
-function getFilterConditionInput2Element() {
-    return DOM?.conditionInput2 || document.getElementById('condition-input-2');
-}
-
-function getFilterBetweenLabelElement() {
-    return DOM?.betweenLabel || document.getElementById('between-label');
-}
-
-function getFilterQueryInputElement() {
-    return DOM?.queryInput || document.getElementById('query-input');
-}
-
-function getFilterErrorLabelElement() {
-    return DOM?.filterError || document.getElementById('filter-error');
-}
-
 function getActiveFilterFieldName() {
     const activeBubble = document.querySelector('.active-bubble') || document.querySelector('.bubble-clone');
     if (activeBubble) {
@@ -110,12 +95,6 @@ function getActiveFilterFieldName() {
     return String(titleEl?.textContent || '').trim();
 }
 
-function isMobileFilterEditorViewport() {
-    return typeof window !== 'undefined'
-        && typeof window.matchMedia === 'function'
-        && window.matchMedia('(max-width: 1180px), (hover: none) and (pointer: coarse)').matches;
-}
-
 function setConditionInputVisible(input, visible) {
     setConditionInputVisibleAdapter(input, visible, CustomDatePicker);
 }
@@ -133,22 +112,6 @@ function syncDatePickerNeverAvailability(cond) {
         getFilterConditionInputElement(),
         getFilterConditionInput2Element()
     ], cond);
-}
-
-function getConditionOperatorSelect(conditionPanel = null) {
-    const panel = conditionPanel || getFilterConditionPanelElement();
-    return panel ? panel.querySelector('#condition-operator-select') : null;
-}
-
-function getConditionFromControl(control) {
-    if (!control) return '';
-    if (control.dataset && control.dataset.cond) {
-        return String(control.dataset.cond).trim().toLowerCase();
-    }
-    if (typeof control.value === 'string') {
-        return String(control.value).trim().toLowerCase();
-    }
-    return '';
 }
 
 function createConditionOperatorPicker(conditions, handler) {
@@ -638,10 +601,6 @@ function handleConditionBtnClick(e) {
 /**
  * Handles filter confirmation action
  */
-function isControlVisible(control) {
-    return Boolean(control && control.style.display !== 'none');
-}
-
 function getFilterConfirmContext() {
     const bubble = document.querySelector('.active-bubble') || document.querySelector('.bubble-clone');
     const conditionPanel = getFilterConditionPanelElement();

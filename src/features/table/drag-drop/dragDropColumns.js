@@ -2,7 +2,7 @@
  * Shared column-operation helpers for drag/drop interactions.
  * Keeps structural column changes separate from pointer and drag orchestration.
  */
-import { appServices } from '../../../core/appServices.js';
+import { appServices } from '../tableServices.js';
 import { appUiActions } from '../../../core/appUiActions.js';
 import {
   AppState,
@@ -10,7 +10,7 @@ import {
   QueryChangeManager,
   QueryStateReaders,
   registerQueryStateRuntimeAccessors
-} from '../../../core/queryState.js';
+} from '../tableQueryState.js';
 import { CellDisplayFormatting } from '../../../core/formatting/cellDisplayFormatting.js';
 import { QueryTableView } from '../../../ui/queryTableView.js';
 import { buildDisplayedFieldRemoval } from '../../../lib/virtual-table/splitColumnFields.js';

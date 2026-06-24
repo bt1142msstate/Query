@@ -1,6 +1,6 @@
-import { appServices } from '../../../core/appServices.js';
+import { appServices } from '../tableServices.js';
 import { appUiActions, registerAppUiActionDependencies } from '../../../core/appUiActions.js';
-import { showToastMessage } from '../../../core/toast.js';
+import { showToastMessage } from '../tableToast.js';
 
 const DUPLICATE_ROW_COLLAPSE_STORAGE_KEY = 'query-project.duplicate-row-collapse';
 const SHOW_ALL_VALUE = 'show-all';

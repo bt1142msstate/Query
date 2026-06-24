@@ -1,8 +1,7 @@
-import { appServices, registerTableService } from '../../../core/appServices.js';
+import { appServices, registerTableService } from '../tableServices.js';
 import { appUiActions } from '../../../core/appUiActions.js';
-import { QueryChangeManager, QueryStateReaders } from '../../../core/queryState.js';
-import { cloneResultCellValue } from '../../../core/resultCellValues.js';
-import { showToastMessage } from '../../../core/toast.js';
+import { QueryChangeManager, QueryStateReaders } from '../tableQueryState.js';
+import { showToastMessage } from '../tableToast.js';
 import { TableBuilder } from '../../../lib/virtual-table/tableBuilder.js';
 import { TextMeasurement } from '../../../core/textMeasurement.js';
 import { ValueFormatting } from '../../../core/formatting/valueFormatting.js';
@@ -33,29 +32,20 @@ import {
   cloneDuplicateRowGroups,
   createEmptyDuplicateCollapseStats
 } from '../../../lib/virtual-table/virtualTableDuplicateCollapse.js';
+import {
+  cloneSplitColumnGroups,
+  cloneSplitColumnParent,
+  cloneSplitColumnSourceMap,
+  cloneTableData,
+  createEmptyVirtualTableData
+} from './virtualTableDataSnapshots.js';
 import { createVirtualTablePostFilterController } from './virtualTablePostFilters.js';
 import { DEFAULT_FULL_RENDER_ROW_LIMIT, createVirtualRenderPlan } from '../../../lib/virtual-table/virtualizer.js';
 let VirtualTable;
 (function initializeVirtualTable() {
-let virtualTableData = {
-  headers: [],
-  rows: [],
-  columnMap: new Map(),
-  duplicateRowGroups: [],
-  splitColumnGroups: new Map(),
-  splitColumnParent: new Map(),
-  splitColumnSourceMap: new Map()
-};
+let virtualTableData = createEmptyVirtualTableData();
 
-let baseViewData = {
-  headers: [],
-  rows: [],
-  columnMap: new Map(),
-  duplicateRowGroups: [],
-  splitColumnGroups: new Map(),
-  splitColumnParent: new Map(),
-  splitColumnSourceMap: new Map()
-};
+let baseViewData = createEmptyVirtualTableData();
 
 let rawTableData = null;
 let splitViewData = null;
@@ -104,30 +94,6 @@ const postFilters = createVirtualTablePostFilterController({
   getDisplayedFields: () => getDisplayedFields(),
   getFieldType
 });
-function cloneTableData(data) {
-  return {
-    headers: Array.isArray(data?.headers) ? [...data.headers] : [],
-    rows: Array.isArray(data?.rows) ? data.rows.map(row => Array.isArray(row) ? row.map(cloneResultCellValue) : row) : [],
-    columnMap: data?.columnMap instanceof Map ? new Map(data.columnMap) : new Map(),
-    duplicateRowGroups: cloneDuplicateRowGroups(data?.duplicateRowGroups),
-    splitColumnGroups: cloneSplitColumnGroups(data?.splitColumnGroups),
-    splitColumnParent: cloneSplitColumnParent(data?.splitColumnParent),
-    splitColumnSourceMap: cloneSplitColumnSourceMap(data?.splitColumnSourceMap)
-  };
-}
-
-function cloneSplitColumnGroups(groups) {
-  return groups instanceof Map ? new Map(Array.from(groups.entries()).map(([field, children]) => [field, [...children]])) : new Map();
-}
-
-function cloneSplitColumnParent(parentMap) {
-  return parentMap instanceof Map ? new Map(parentMap) : new Map();
-}
-
-function cloneSplitColumnSourceMap(sourceMap) {
-  return sourceMap instanceof Map ? new Map(sourceMap) : new Map();
-}
-
 function syncVirtualTableStructureFromBaseViewData() {
   virtualTableData = {
     headers: Array.isArray(baseViewData?.headers) ? [...baseViewData.headers] : [],
@@ -671,24 +637,8 @@ function measureRowHeight(table, fields) {
 }
 
 function clearVirtualTableData() {
-  virtualTableData = {
-    headers: [],
-    rows: [],
-    columnMap: new Map(),
-    duplicateRowGroups: [],
-    splitColumnGroups: new Map(),
-    splitColumnParent: new Map(),
-    splitColumnSourceMap: new Map()
-  };
-  baseViewData = {
-    headers: [],
-    rows: [],
-    columnMap: new Map(),
-    duplicateRowGroups: [],
-    splitColumnGroups: new Map(),
-    splitColumnParent: new Map(),
-    splitColumnSourceMap: new Map()
-  };
+  virtualTableData = createEmptyVirtualTableData();
+  baseViewData = createEmptyVirtualTableData();
   splitViewData = null;
   tableDataGeneration += 1;
   duplicateCollapseToastSignature = '';
