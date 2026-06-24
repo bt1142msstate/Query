@@ -376,7 +376,6 @@
 :root[data-theme-resolved="dark"] .form-mode-field-picker-modal,
 :root[data-theme-resolved="dark"] .form-mode-popup-list-popup,
 :root[data-theme-resolved="dark"] #filter-panel-content,
-:root[data-theme-resolved="dark"] #filter-card,
 :root[data-theme-resolved="dark"] .post-filter-dialog {
   border-color: var(--theme-border);
   background:
@@ -460,8 +459,6 @@
 :root[data-theme-resolved="dark"] .form-mode-popup-list-popup-header,
 :root[data-theme-resolved="dark"] #filter-panel-header,
 :root[data-theme-resolved="dark"] .fp-field-header,
-:root[data-theme-resolved="dark"] #filter-card-header,
-:root[data-theme-resolved="dark"] #condition-input-wrapper.show,
 :root[data-theme-resolved="dark"] .post-filter-dialog__header,
 :root[data-theme-resolved="dark"] .post-filter-dialog__footer {
   border-color: var(--theme-border);
@@ -510,8 +507,6 @@
 :root[data-theme-resolved="dark"] .form-mode-field-picker-category-select,
 :root[data-theme-resolved="dark"] .form-mode-field-picker-search-field .app-search-input,
 :root[data-theme-resolved="dark"] select.form-mode-operator-select,
-:root[data-theme-resolved="dark"] .condition-field,
-:root[data-theme-resolved="dark"] .condition-operator-select,
 :root[data-theme-resolved="dark"] .list-paste-input,
 :root[data-theme-resolved="dark"] .post-filter-field__select,
 :root[data-theme-resolved="dark"] .post-filter-field__input,
@@ -530,7 +525,6 @@
 :root[data-theme-resolved="dark"] .app-search-input::placeholder,
 :root[data-theme-resolved="dark"] .search-wrapper input[type="search"]::placeholder,
 :root[data-theme-resolved="dark"] .form-mode-text-input::placeholder,
-:root[data-theme-resolved="dark"] .condition-field::placeholder,
 :root[data-theme-resolved="dark"] .post-filter-field__input::placeholder {
   color: rgba(148, 163, 184, 0.72);
 }
@@ -540,8 +534,6 @@
 :root[data-theme-resolved="dark"] .search-wrapper input[type="search"]:focus,
 :root[data-theme-resolved="dark"] .form-mode-text-input:focus,
 :root[data-theme-resolved="dark"] select.form-mode-operator-select:focus,
-:root[data-theme-resolved="dark"] .condition-field:focus,
-:root[data-theme-resolved="dark"] .condition-operator-select:focus,
 :root[data-theme-resolved="dark"] .post-filter-field__select:focus,
 :root[data-theme-resolved="dark"] .post-filter-field__input:focus {
   border-color: var(--theme-accent);
@@ -557,13 +549,6 @@
   background-size: 1rem;
 }
 
-:root[data-theme-resolved="dark"] .condition-operator-select {
-  background-image: linear-gradient(45deg, transparent 50%, #cbd5e1 50%), linear-gradient(135deg, #cbd5e1 50%, transparent 50%);
-  background-position: calc(100% - 1.15rem) calc(50% - 0.12rem), calc(100% - 0.82rem) calc(50% - 0.12rem);
-  background-repeat: no-repeat;
-  background-size: 0.42rem 0.42rem, 0.42rem 0.42rem;
-}
-
 :root[data-theme-resolved="dark"] select.form-mode-operator-select:hover {
   background-color: rgba(30, 41, 59, 0.98);
   border-color: rgba(56, 189, 248, 0.42);
@@ -571,7 +556,6 @@
 
 :root[data-theme-resolved="dark"] .form-mode-field-picker-category-select option,
 :root[data-theme-resolved="dark"] select.form-mode-operator-select option,
-:root[data-theme-resolved="dark"] .condition-operator-select option,
 :root[data-theme-resolved="dark"] .post-filter-field__select option,
 :root[data-theme-resolved="dark"] .post-filter-group__logic-select option {
   background: #0f172a;
@@ -587,7 +571,6 @@
 
 :root[data-theme-resolved="dark"] .panel-close-button,
 :root[data-theme-resolved="dark"] .filter-panel-mobile-close,
-:root[data-theme-resolved="dark"] .filter-card-close,
 :root[data-theme-resolved="dark"] .form-mode-field-picker-close,
 :root[data-theme-resolved="dark"] .post-filter-dialog__close,
 :root[data-theme-resolved="dark"] .form-mode-field-remove,
@@ -601,7 +584,6 @@
 
 :root[data-theme-resolved="dark"] .panel-close-button:hover,
 :root[data-theme-resolved="dark"] .filter-panel-mobile-close:hover,
-:root[data-theme-resolved="dark"] .filter-card-close:hover,
 :root[data-theme-resolved="dark"] .form-mode-field-picker-close:hover,
 :root[data-theme-resolved="dark"] .post-filter-dialog__close:hover,
 :root[data-theme-resolved="dark"] .fp-display-btn:hover,

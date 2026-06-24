@@ -2,12 +2,10 @@
  * Thin service facade over major subsystem globals.
  * Keeps consumers from coupling directly to implementation-specific globals.
  */
-import { AppState, registerQueryStateRuntimeAccessors } from './queryState.js';
+import { registerQueryStateRuntimeAccessors } from './queryState.js';
 
 let appServices;
-let bubbleService = null;
 let dragDropService = null;
-let filterService = null;
 let formModeService = null;
 let modalService = null;
 let queryExecutionService = null;
@@ -15,16 +13,8 @@ let queryHistoryService = null;
 let queryTemplatesService = null;
 let tableService = null;
 
-function registerBubbleService(service) {
-  bubbleService = service && typeof service === 'object' ? service : null;
-}
-
 function registerDragDropService(service) {
   dragDropService = service && typeof service === 'object' ? service : null;
-}
-
-function registerFilterService(service) {
-  filterService = service && typeof service === 'object' ? service : null;
 }
 
 function registerFormModeService(service) {
@@ -52,12 +42,6 @@ function registerTableService(service) {
 }
 
 (function initializeAppServices() {
-  const appState = AppState;
-
-  function getBubbleService() {
-    return bubbleService;
-  }
-
   function getTableService() {
     return tableService;
   }
@@ -72,102 +56,6 @@ function registerTableService(service) {
 
   function getQueryHistoryService() {
     return queryHistoryService;
-  }
-
-  function rerenderBubbles() {
-    const bubble = getBubbleService();
-    bubble?.safeRenderBubbles?.();
-  }
-
-  function renderBubbles() {
-    getBubbleService()?.renderBubbles?.();
-  }
-
-  function applyBubbleStyling(target) {
-    getBubbleService()?.applyCorrectBubbleStyling?.(target);
-  }
-
-  function initializeBubbles() {
-    getBubbleService()?.initializeBubbles?.();
-  }
-
-  function resetActiveBubbles() {
-    getBubbleService()?.resetActiveBubbles?.();
-  }
-
-  function resetBubbleEditorUi(options = {}) {
-    getBubbleService()?.resetEditorUi?.(options);
-  }
-
-  function updateBubbleScrollBar() {
-    getBubbleService()?.updateScrollBar?.();
-  }
-
-  function getBubbleFilterCardElement() {
-    return getBubbleService()?.getFilterCardElement?.() || null;
-  }
-
-  function getBubbleOverlayElement() {
-    return getBubbleService()?.getOverlayElement?.() || null;
-  }
-
-  function getBubbleConditionPanelElement() {
-    return getBubbleService()?.getConditionPanelElement?.() || null;
-  }
-
-  function getBubbleInputWrapperElement() {
-    return getBubbleService()?.getInputWrapperElement?.() || null;
-  }
-
-  function getBubbleFilterCardTitleElement(filterCard) {
-    return getBubbleService()?.getFilterCardTitleElement?.(filterCard) || null;
-  }
-
-  function prepareBubbleFilterCardForOpen(filterCard) {
-    return getBubbleService()?.prepareFilterCardForOpen?.(filterCard) || null;
-  }
-
-  function markBubbleFilterCardOpen(filterCard, options = {}) {
-    return getBubbleService()?.markFilterCardOpen?.(filterCard, options) || null;
-  }
-
-  function buildBubbleConditionPanel(bubble) {
-    return filterService?.buildBubbleConditionPanel?.(bubble);
-  }
-
-  function bubbleDebugLog(eventName, payload = {}) {
-    getBubbleService()?.bubbleDebugLog?.(eventName, payload);
-  }
-
-  function createBubblePopParticles(bubbleClone) {
-    getBubbleService()?.createBubblePopParticles?.(bubbleClone);
-  }
-
-  function getBubbleMaxStartRow() {
-    return Number(getBubbleService()?.getBubbleMaxStartRow?.() || 0);
-  }
-
-  function applyBubbleScrollRow(nextRow, options = {}) {
-    return Number(getBubbleService()?.applyBubbleScrollRow?.(nextRow, options) || 0);
-  }
-
-  function resetBubbleScroll() {
-    const bubble = getBubbleService();
-    if (bubble?.resetBubbleScroll) {
-      bubble.resetBubbleScroll();
-      return;
-    }
-
-    appState.scrollRow = 0;
-  }
-
-  function scrollBubblesByRows(deltaRows) {
-    const bubble = getBubbleService();
-    if (!bubble?.scrollBubblesByRows) {
-      return false;
-    }
-
-    return Boolean(bubble.scrollBubblesByRows(deltaRows));
   }
 
   function closeAllModals() {
@@ -449,14 +337,6 @@ function registerTableService(service) {
     return getTableService()?.setDuplicateRowCollapseMode?.(nextValue, options);
   }
 
-  function renderConditionList(fieldName) {
-    filterService?.renderConditionList?.(fieldName);
-  }
-
-  function handleFilterConfirm(event) {
-    filterService?.handleFilterConfirm?.(event);
-  }
-
   function clearCurrentQuery(options = {}) {
     return queryExecutionService?.clearCurrentQuery?.(options);
   }
@@ -494,9 +374,6 @@ function registerTableService(service) {
   }
 
   appServices = Object.freeze({
-    get bubble() {
-      return getBubbleService();
-    },
     get table() {
       return getTableService();
     },
@@ -506,27 +383,6 @@ function registerTableService(service) {
     get modal() {
       return getModalService();
     },
-    rerenderBubbles,
-    renderBubbles,
-    applyBubbleStyling,
-    initializeBubbles,
-    resetActiveBubbles,
-    resetBubbleEditorUi,
-    resetBubbleScroll,
-    scrollBubblesByRows,
-    updateBubbleScrollBar,
-    getBubbleFilterCardElement,
-    getBubbleOverlayElement,
-    getBubbleConditionPanelElement,
-    getBubbleInputWrapperElement,
-    getBubbleFilterCardTitleElement,
-    prepareBubbleFilterCardForOpen,
-    markBubbleFilterCardOpen,
-    buildBubbleConditionPanel,
-    bubbleDebugLog,
-    createBubblePopParticles,
-    getBubbleMaxStartRow,
-    applyBubbleScrollRow,
     closeAllModals,
     lockModalInput,
     isModalInputLocked,
@@ -590,8 +446,6 @@ function registerTableService(service) {
     setSplitColumnsMode,
     isDuplicateRowCollapseActive,
     setDuplicateRowCollapseMode,
-    renderConditionList,
-    handleFilterConfirm,
     clearCurrentQuery,
     isFormModeActive,
     isFormModeLimitedView,
@@ -608,9 +462,7 @@ function registerTableService(service) {
 
 export {
   appServices,
-  registerBubbleService,
   registerDragDropService,
-  registerFilterService,
   registerFormModeService,
   registerModalService,
   registerQueryExecutionService,

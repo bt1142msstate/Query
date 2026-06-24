@@ -162,7 +162,7 @@ Canonical layout decision: application source lives in `src/`. We are not using 
 | `src/lib/virtual-table/` | Virtualizer, column layout, scrollbar, row projection, sort, split-column transforms, multi-value cells, and duplicate collapse |
 | `src/lib/drag-drop/` | Drag/drop math, auto-scroll viewport helpers, resize target detection, and drop-anchor layout |
 | `src/lib/workbook-export/` | XLSX Blob generation, workbook sheets, ZIP writing, and worker-safe export internals |
-| `src/features/filters/` | Filter workflows, payload logic, buildable field helpers, and condition editor |
+| `src/features/filters/` | Filter side panel, payload logic, buildable field helpers, and field warning metadata |
 | `src/features/history/` | Query history rendering, request mapping, status grouping, and detail overlays |
 | `src/features/table/` | App-specific result table wiring, context menu, virtual-table coordination, post filters, and Excel export workflow |
 | `src/features/table/drag-drop/` | Stateful column drag/drop services, duplicate column restoration, resize coordination, and app state sync |

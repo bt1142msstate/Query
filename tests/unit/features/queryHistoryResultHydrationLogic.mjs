@@ -11,7 +11,6 @@ test('history result hydration marks restored displayed fields as the executed b
   await hydrateHistoryResultTable({
     headers: ['Title', 'Status'],
     rows: [['Example title', 'Open']],
-    appState: { scrollRow: 10 },
     queryStateReaders: {
       getDisplayedFields() {
         return displayedFields;
@@ -43,12 +42,10 @@ test('history result hydration marks restored displayed fields as the executed b
         return false;
       },
       replacePostFilters() {},
-      rerenderBubbles() {},
       renderVirtualTable() {},
       setVirtualTableData(data) {
         virtualTableData = data;
       },
-      updateBubbleScrollBar() {}
     },
     uiState: {},
     uiActions: {

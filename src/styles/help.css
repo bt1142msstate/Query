@@ -24,7 +24,7 @@
 }
 
 body.modal-panel-open .modal-panel:not(.hidden) {
-  z-index: calc(var(--z-filter-card) + 2);
+  z-index: calc(var(--z-floating-panel-base) + 2);
 }
 
 .modal-panel > div:not(:first-child),

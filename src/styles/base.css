@@ -63,11 +63,8 @@
   --z-bubble: 10050;
   --z-dialog-backdrop: 10060;
   --z-dialog-surface: 10061;
-  --z-filter-card: 10055;
-  --z-condition-panel: 10060;
-  --z-condition-input: 10065;
-  --z-condition-list: 10070;
-  --z-filter-error: 10075;
+  --z-floating-panel-base: 10055;
+  --z-mobile-menu: 10060;
   --z-floating-picker: 10070;
   --z-popup-backdrop: 10080;
   --z-popup-surface: 10081;
@@ -463,7 +460,6 @@ body.app-starting {
 }
 
 body.app-starting #query-app-shell,
-body.app-starting #filter-card,
 body.app-starting #overlay {
   visibility: hidden;
   opacity: 0;
@@ -888,7 +884,7 @@ body.header-arrange-status-active #header-overlay-title {
   background: rgba(255, 255, 255, 0.97);
   backdrop-filter: blur(12px);
   overflow-y: auto;
-  z-index: var(--z-condition-panel);
+  z-index: var(--z-mobile-menu);
 }
 
 #mobile-menu-dropdown.show {
@@ -1081,12 +1077,7 @@ body.header-arrange-status-active #header-overlay-title {
     margin-bottom: 0;
   }
 
-  #category-bar,
-  #mobile-category-selector {
-    order: 20;
-  }
-
-  #field-bubble-stage {
+  #form-mode-stage {
     order: 30;
     width: 100%;
   }
@@ -1107,7 +1098,7 @@ body.header-arrange-status-active #header-overlay-title {
     gap: 0.85rem;
   }
 
-  body.form-mode-active #field-bubble-stage {
+  body.form-mode-active #form-mode-stage {
     order: 10;
   }
 

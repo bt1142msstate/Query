@@ -9,8 +9,8 @@ function getFormModePresentationState(state = {}) {
   };
 }
 
-function getBubbleStageElement(documentRef) {
-  return documentRef.getElementById('bubble-container')?.closest('.flex.items-start.justify-center') || null;
+function getFormModeStageElement(documentRef) {
+  return documentRef.getElementById('form-mode-stage');
 }
 
 function removeModeToggleButton(state) {
@@ -35,18 +35,16 @@ function syncFormModePresentation({
 
   const presentation = getFormModePresentationState(state);
   const querySearchBlock = documentRef.getElementById('query-input')?.closest('.mb-6') || null;
-  const categoryBar = documentRef.getElementById('category-bar');
-  const mobileCategorySelector = documentRef.getElementById('mobile-category-selector');
-  const bubbleStage = getBubbleStageElement(documentRef);
+  const formModeStage = getFormModeStageElement(documentRef);
   const hiddenControlIds = ['toggle-json', 'toggle-queries'];
 
   documentRef.body?.classList.toggle('form-mode-active', presentation.isFormMode);
 
-  [querySearchBlock, categoryBar, mobileCategorySelector].filter(Boolean).forEach(node => {
+  [querySearchBlock].filter(Boolean).forEach(node => {
     node.classList.toggle('form-mode-hidden', presentation.isFormMode);
   });
 
-  bubbleStage?.classList.toggle('form-mode-stage-active', presentation.isFormMode);
+  formModeStage?.classList.toggle('form-mode-stage-active', presentation.isFormMode);
   state.formHost?.classList.toggle('hidden', !presentation.isFormMode);
   state.formCard?.classList.toggle('hidden', !presentation.isFormMode);
 

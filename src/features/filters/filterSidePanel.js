@@ -85,7 +85,6 @@ const FilterSidePanel = (function () {
         }
 
         uiActions.updateQueryJson();
-        services.renderConditionList(field);
         update();
     }
 
@@ -603,7 +602,6 @@ const FilterSidePanel = (function () {
                     source: 'FilterSidePanel.removeFilter'
                 });
                 uiActions.updateQueryJson();
-                services.renderConditionList(field);
                 update();
             });
 

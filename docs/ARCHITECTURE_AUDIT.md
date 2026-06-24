@@ -15,7 +15,7 @@ The module graph is appropriately split for the current raw JavaScript architect
 - Kept `src/core/` for app-wide state, services, lifecycle, backend/query execution, backend-driven field metadata, browser primitives, and startup glue.
 - Added `src/lib/` for reusable, framework-free virtual-table, drag/drop, and workbook-export internals that can be used by app features, public components, scripts, and tests without importing app feature coordinators.
 - Grouped product workflows under `src/features/`: filters, history, table, and templates.
-- Added `src/features/filters/condition-editor/` for condition editor layout, input adapters, panel UI, and bubble-shaped field controls; the standalone bubble builder mode has been retired, so there is no top-level `bubbles/` feature folder.
+- Kept filter payload/state helpers under `src/features/filters/`, moved shared query filter editing to `src/ui/filter-editor/`, and kept form-mode field selection in `src/ui/field-picker/` and `src/ui/form-mode/`.
 - Kept `src/features/table/drag-drop/`, `src/features/table/export/`, `src/features/table/post-filters/`, `src/features/table/virtual-table/`, `src/ui/field-picker/`, and `src/ui/form-mode/` subfolders because those areas have enough internal workflow complexity to justify subfolders.
 
 ## Consolidation Completed
@@ -41,7 +41,7 @@ The module graph is appropriately split for the current raw JavaScript architect
 ## Modules That Should Not Be Split Further Right Now
 
 - `src/ui/form-mode/formMode.js`
-- `src/features/filters/filterManager.js`
+- `src/features/filters/filterSidePanel.js`
 - `src/features/history/queryHistory.js`
 - `src/features/table/drag-drop/dragDropInteractions.js`
 - `src/features/table/contextMenu.js`

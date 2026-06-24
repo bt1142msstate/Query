@@ -2262,7 +2262,6 @@ async function expectMobileFilterEditorSheet(page) {
       closeHeight: closeRect?.height || 0,
       closeWidth: closeRect?.width || 0,
       controlVisible: control ? window.getComputedStyle(control).display !== 'none' : false,
-      legacyFilterCardVisible: document.querySelector('#filter-card')?.classList.contains('show') || false,
       inputFontSize: input ? Number.parseFloat(window.getComputedStyle(input).fontSize || '0') : 16,
       left: rect.left,
       mobilePanelOpen: document.body.classList.contains('mobile-filter-panel-open'),
@@ -2276,7 +2275,6 @@ async function expectMobileFilterEditorSheet(page) {
 
   if (
     metrics.mobilePanelOpen
-    || metrics.legacyFilterCardVisible
     || metrics.left < 4
     || metrics.right > metrics.viewportWidth - 4
     || metrics.top < 4
@@ -2297,8 +2295,6 @@ async function expectMobileFilterEditorSheet(page) {
   await page.locator('.query-filter-editor-modal .form-mode-field-picker-close').click();
   await page.waitForFunction(() => {
     return !document.querySelector('.query-filter-editor-modal')
-      && !document.querySelector('#filter-card')?.classList.contains('show')
-      && !document.querySelector('.active-bubble, .bubble-clone');
   }, null, { timeout: 5000 });
 }
 
@@ -2498,7 +2494,7 @@ async function exerciseProjectedDuplicateCollapse(page) {
 
 async function exerciseCoreFilterStateInteraction(page) {
   await page.evaluate(async () => {
-    const { AppState, QueryChangeManager } = await import('./src/core/queryState.js');
+    const { QueryChangeManager } = await import('./src/core/queryState.js');
     const { FilterSidePanel } = await import('./src/features/filters/filterSidePanel.js');
     const { fieldDefs, fieldDefsArray, filteredDefs } = await import('./src/features/filters/fieldDefs.js');
     const smokeFields = [
@@ -2523,7 +2519,6 @@ async function exerciseCoreFilterStateInteraction(page) {
     });
     fieldDefsArray.unshift(...smokeFields);
     filteredDefs.splice(0, filteredDefs.length, ...smokeFields);
-    AppState.currentCategory = 'All';
 
     QueryChangeManager.setQueryState({
       displayedFields: [],

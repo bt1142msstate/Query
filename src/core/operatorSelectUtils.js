@@ -39,33 +39,8 @@ function createSelect(operators, options = {}) {
   return select;
 }
 
-function createLabeledPicker(operators, options = {}) {
-  const {
-    label = 'Condition',
-    wrapperClassName = 'condition-operator-picker',
-    labelClassName = 'condition-operator-label',
-    ...selectOptions
-  } = options;
-
-  const wrapper = document.createElement('label');
-  if (wrapperClassName) {
-    wrapper.className = wrapperClassName;
-  }
-
-  const labelEl = document.createElement('span');
-  if (labelClassName) {
-    labelEl.className = labelClassName;
-  }
-  labelEl.textContent = label;
-
-  wrapper.appendChild(labelEl);
-  wrapper.appendChild(createSelect(operators, selectOptions));
-  return wrapper;
-}
-
 const OperatorSelectUtils = Object.freeze({
-  createLabeledPicker,
   createSelect
 });
 
-export { OperatorSelectUtils, createLabeledPicker, createSelect };
+export { OperatorSelectUtils, createSelect };

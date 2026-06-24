@@ -6,7 +6,7 @@ test('workspace layout observer resyncs when an existing form card is revealed b
   moduleUrl.searchParams.set('test', String(Date.now()));
   const { initializeWorkspaceLayoutObservers } = await import(moduleUrl.href);
 
-  const formStage = { id: 'field-bubble-stage' };
+  const formStage = { id: 'form-mode-stage' };
   const formCard = { id: 'form-mode-card' };
   const observedMutations = [];
   const observedResizeTargets = [];
@@ -40,7 +40,7 @@ test('workspace layout observer resyncs when an existing form card is revealed b
   const documentRef = {
     body: { id: 'page-body' },
     getElementById(id) {
-      if (id === 'field-bubble-stage') return formStage;
+      if (id === 'form-mode-stage') return formStage;
       if (id === 'form-mode-card') return formCard;
       return null;
     }
@@ -104,7 +104,7 @@ test('workspace layout observer ignores body-only mutations in mobile layout', a
   moduleUrl.searchParams.set('test', `mobile-${Date.now()}`);
   const { initializeWorkspaceLayoutObservers } = await import(moduleUrl.href);
 
-  const formStage = { id: 'field-bubble-stage' };
+  const formStage = { id: 'form-mode-stage' };
   const formCard = { id: 'form-mode-card' };
   const animationFrameCallbacks = [];
   let mutationCallback = null;
@@ -127,7 +127,7 @@ test('workspace layout observer ignores body-only mutations in mobile layout', a
   const documentRef = {
     body: { id: 'page-body' },
     getElementById(id) {
-      if (id === 'field-bubble-stage') return formStage;
+      if (id === 'form-mode-stage') return formStage;
       if (id === 'form-mode-card') return formCard;
       return null;
     }

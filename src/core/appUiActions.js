@@ -9,7 +9,6 @@ import { updateQueryJson as updateJsonPreview } from '../ui/jsonViewerUI.js';
 
 let appUiActions;
 const actionDependencies = {
-  conditionEditorLayout: null,
   filterSidePanel: null,
   postFilterSystem: null,
   queryBuilderShell: null,
@@ -64,10 +63,6 @@ function registerAppUiActionDependencies(dependencies = {}) {
 
   function updateTableResultsLip() {
     actionDependencies.queryUi?.updateTableResultsLip?.();
-  }
-
-  function positionInputWrapper() {
-    actionDependencies.conditionEditorLayout?.positionInputWrapper?.();
   }
 
   function startTableQueryAnimation() {
@@ -147,16 +142,11 @@ function registerAppUiActionDependencies(dependencies = {}) {
   }
 
   function prepareForQueryClear(options = {}) {
-    const previousSelectedField = String(options.previousSelectedField || '').trim();
     const services = getServices();
+    void options;
 
     services?.closeAllModals?.();
     services?.clearInsertAffordance?.({ immediate: true });
-    services?.resetActiveBubbles?.();
-    services?.resetBubbleEditorUi?.({
-      clearPanelContent: true,
-      clearConditionListSelection: !previousSelectedField
-    });
 
     closePostFilters();
 
@@ -164,15 +154,8 @@ function registerAppUiActionDependencies(dependencies = {}) {
   }
 
   function finalizeQueryClear(options = {}) {
-    const previousSelectedField = String(options.previousSelectedField || '').trim();
-    const services = getServices();
     const dom = DOM;
-
-    if (previousSelectedField) {
-      services.renderConditionList(previousSelectedField);
-    } else {
-      document.getElementById('bubble-cond-list')?.replaceChildren();
-    }
+    void options;
 
     if (dom?.tableNameInput) {
       dom.tableNameInput.value = '';
@@ -189,7 +172,6 @@ function registerAppUiActionDependencies(dependencies = {}) {
       dom.clearSearchBtn.classList.add('hidden');
     }
 
-    services?.resetBubbleScroll?.();
     updateButtonStates();
   }
 
@@ -200,7 +182,6 @@ function registerAppUiActionDependencies(dependencies = {}) {
     updateRunButtonIcon,
     updateQueryJson,
     updateTableResultsLip,
-    positionInputWrapper,
     startTableQueryAnimation,
     updateTableQueryAnimationProgress,
     endTableQueryAnimation,

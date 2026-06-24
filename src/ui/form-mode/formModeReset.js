@@ -189,7 +189,6 @@ async function preserveLoadedBaselineResultsForReset({
   await uiActions?.showExampleTable?.(renderFields, {
     syncQueryState: false
   });
-  services?.rerenderBubbles?.();
   uiActions?.updateTableResultsLip?.();
   uiActions?.updateButtonStates?.();
   uiActions?.syncTableViewportHeight?.();
