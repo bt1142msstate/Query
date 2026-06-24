@@ -38,6 +38,19 @@ import {
     showFilterError as showPanelFilterError,
     showConditionPanelNote as showPanelNote
 } from './condition-editor/filterConditionPanelUi.js';
+import {
+    createConditionListPasteInput,
+    createConditionValueSelector,
+    focusBuildableInputWhenReady,
+    getPreferredLiteralValues,
+    hideConditionSelectControls,
+    insertBuildableInputs,
+    parseBubbleListValues,
+    resetConditionPanel,
+    removeConditionSelectControls,
+    resolveBackendOperators,
+    resolveOperatorConditions
+} from './condition-editor/filterConditionPanelBuilder.js';
 
 /**
  * FilterPill UI component class
@@ -199,7 +212,7 @@ function showConditionPanelNote(options) {
     });
 }
 
-function buildBubbleConditionPanel(bubble) {
+function getConditionPanelContext(bubble) {
     const conditionPanel = getFilterConditionPanelElement();
     const inputWrapper = getFilterInputWrapperElement();
     const conditionInput = getFilterConditionInputElement();
@@ -216,198 +229,156 @@ function buildBubbleConditionPanel(bubble) {
         filterCard.dataset.fieldName = appState.selectedField;
     }
     const type = bubble.dataset.type || 'string';
-    let listValues = null;
-    let hasValuePairs = false;
-
-    try {
-        if (bubble.dataset.values) {
-            const parsedValues = JSON.parse(bubble.dataset.values);
-            if (parsedValues.length > 0) {
-                if (typeof parsedValues[0] === 'object' && parsedValues[0].Name && parsedValues[0].RawValue) {
-                    hasValuePairs = true;
-                    listValues = parsedValues.sort((a, b) => a.Name.localeCompare(b.Name, undefined, { numeric: true, sensitivity: 'base' }));
-                } else {
-                    listValues = parsedValues.sort((a, b) => a.toString().localeCompare(b.toString(), undefined, { numeric: true, sensitivity: 'base' }));
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Error parsing values:', error);
-    }
-
-    const perBubble = bubble.dataset.filters ? JSON.parse(bubble.dataset.filters) : null;
+    const { hasValuePairs, listValues } = parseBubbleListValues(bubble.dataset.values);
     const fieldDefInfo = fieldDefs ? fieldDefs.get(appState.selectedField) : null;
     const isBuildable = isFieldBuildable(fieldDefInfo);
-    const backendOperators = typeof getFieldFilterOperators === 'function'
-        ? getFieldFilterOperators(fieldDefInfo)
-        : ((perBubble && perBubble.length > 0)
-            ? perBubble.map(label => String(label).split(' ')[0].toLowerCase())
-            : []);
-    let operatorConditions = [];
-    conditionPanel.innerHTML = '';
-    removeConditionPanelNote();
+    const backendOperators = resolveBackendOperators({
+        bubble,
+        fieldDefInfo,
+        getFieldFilterOperators
+    });
+    const operatorConditions = resolveOperatorConditions(backendOperators);
 
-    document.querySelectorAll('.dynamic-input-group').forEach(el => el.remove());
+    return {
+        backendOperators,
+        bubble,
+        conditionInput,
+        conditionPanel,
+        confirmBtn,
+        fieldDefInfo,
+        filterCard,
+        hasValuePairs,
+        inputWrapper,
+        isBuildable,
+        listValues,
+        operatorConditions,
+        type
+    };
+}
 
-    if (isBuildable) {
-        const builderInputs = getFieldBuilderInputs(fieldDefInfo);
-        if (builderInputs.length) {
-            [...builderInputs].reverse().forEach(input => {
-                const group = document.createElement('div');
-                group.className = 'dynamic-input-group buildable-input-group';
+function showDisplayOnlyConditionPanel(context) {
+    setConditionInputVisible(context.conditionInput, false);
+    const conditionInput2 = getFilterConditionInput2Element();
+    const betweenLabel = getFilterBetweenLabelElement();
+    if (conditionInput2) setConditionInputVisible(conditionInput2, false);
+    if (betweenLabel) betweenLabel.style.display = 'none';
+    hideConditionSelectControls(document);
+    context.confirmBtn.style.display = 'none';
+    showConditionPanelNote({
+        kicker: 'Display Only',
+        title: 'This field cannot be filtered',
+        body: 'The backend does not expose any valid filter operators for this field, so no filter input is available here.',
+        hint: 'You can still add it as a results column and use it in the table output.'
+    });
+    renderConditionList(appState.selectedField);
+}
 
-                const label = document.createElement('label');
-                const inputId = input.id || input.name || input.key || '';
-                label.textContent = input.label || inputId;
-                label.className = 'dynamic-label buildable-input-label';
+function configureBuildableConditionPanel(context) {
+    insertBuildableInputs({
+        conditionInput: context.conditionInput,
+        document,
+        getFieldBuilderInputs,
+        inputWrapper: context.inputWrapper,
+        isOptionalBuilderInput,
+        fieldDefInfo: context.fieldDefInfo
+    });
+    const operatorConditions = context.backendOperators.length > 0
+        ? context.backendOperators
+        : ['contains', 'starts', 'equals', 'does_not_equal'];
+    context.conditionPanel.appendChild(createConditionOperatorPicker(operatorConditions, buildableConditionBtnHandler));
+    return operatorConditions;
+}
 
-                const inputEl = document.createElement('input');
-                inputEl.type = input.type || 'text';
-                if (input.pattern) inputEl.pattern = input.pattern;
-                if (input.placeholder) inputEl.placeholder = input.placeholder;
-                inputEl.dataset.inputId = inputId;
-                inputEl.dataset.errorMsg = input.error_msg || input.errorMessage || 'Invalid input';
-                inputEl.dataset.optional = isOptionalBuilderInput(input) ? 'true' : 'false';
-                inputEl.required = inputEl.dataset.optional !== 'true';
-                inputEl.className = 'dynamic-builder-input condition-field buildable-field-input';
+function configureListValueConditionPanel(context) {
+    const fieldDef = fieldDefs.get(appState.selectedField);
+    removeConditionSelectControls(document);
+    const currentLiteralValues = getPreferredLiteralValues({
+        fieldName: appState.selectedField,
+        getFilterGroupForField,
+        getPreferredCondition,
+        operatorConditions: context.operatorConditions,
+        supportsListSelectorCondition
+    });
+    const { hideConfirm, selector } = createConditionValueSelector({
+        SelectorControls,
+        confirmBtn: context.confirmBtn,
+        currentLiteralValues,
+        fieldDef,
+        hasValuePairs: context.hasValuePairs,
+        listValues: context.listValues
+    });
+    context.inputWrapper.insertBefore(selector, context.confirmBtn);
+    setConditionInputVisible(context.conditionInput, false);
+    if (hideConfirm) {
+        context.confirmBtn.style.display = 'none';
+    }
+}
 
-                group.appendChild(label);
-                group.appendChild(inputEl);
+function configureListPasteConditionPanel(context) {
+    const currentLiteralValues = getPreferredLiteralValues({
+        fieldName: appState.selectedField,
+        getFilterGroupForField,
+        getPreferredCondition,
+        operatorConditions: context.operatorConditions,
+        supportsListSelectorCondition
+    });
+    const listInput = createConditionListPasteInput({ SelectorControls, currentLiteralValues });
+    context.inputWrapper.insertBefore(listInput, context.confirmBtn);
+    setConditionInputVisible(context.conditionInput, false);
+}
 
-                const refNode = conditionInput;
-                if (refNode && inputWrapper) {
-                    inputWrapper.insertBefore(group, refNode.nextSibling);
-                }
-            });
-        }
+function configurePlainConditionPanel(context) {
+    hideConditionSelectControls(document);
+    configureInputsForType(context.type);
 
-        operatorConditions = backendOperators.length > 0
-            ? backendOperators
-            : ['contains', 'starts', 'equals', 'does_not_equal'];
-        conditionPanel.appendChild(createConditionOperatorPicker(operatorConditions, buildableConditionBtnHandler));
+    if (isListPasteField(context.fieldDefInfo)) {
+        configureListPasteConditionPanel(context);
     } else {
-        if (backendOperators.length === 0) {
-            operatorConditions = [];
-        } else if (listValues && listValues.length && backendOperators.length > 0) {
-            operatorConditions = backendOperators;
-        } else {
-            operatorConditions = backendOperators;
-        }
+        setConditionInputVisible(context.conditionInput, true);
+    }
+    context.confirmBtn.style.display = '';
+}
 
-        // No applicable conditions for this field — hide the input area entirely
-        // so an empty select and stray value input are never shown to the user.
+function applyPreferredCondition(context, operatorConditions) {
+    const operatorSelect = context.conditionPanel.querySelector('#condition-operator-select');
+    const preferredCondition = getPreferredCondition(operatorConditions, appState.selectedField);
+    if (!operatorSelect || !preferredCondition) {
+        return;
+    }
+
+    operatorSelect.value = preferredCondition;
+    handleConditionBtnClick({
+        currentTarget: operatorSelect,
+        stopPropagation() {},
+        preventDefault() {}
+    });
+}
+
+function buildBubbleConditionPanel(bubble) {
+    const context = getConditionPanelContext(bubble);
+    if (!context) return;
+
+    resetConditionPanel({ context, document, removeConditionPanelNote });
+    let operatorConditions = context.operatorConditions;
+    if (context.isBuildable) {
+        operatorConditions = configureBuildableConditionPanel(context);
+    } else {
         if (operatorConditions.length === 0) {
-            if (conditionInput) setConditionInputVisible(conditionInput, false);
-            const conditionInput2 = getFilterConditionInput2Element();
-            const betweenLabel = getFilterBetweenLabelElement();
-            const existingSelect = document.getElementById('condition-select');
-            const existingContainer = document.getElementById('condition-select-container');
-            if (conditionInput2) setConditionInputVisible(conditionInput2, false);
-            if (betweenLabel) betweenLabel.style.display = 'none';
-            if (existingSelect) existingSelect.style.display = 'none';
-            if (existingContainer && existingContainer.parentNode) existingContainer.parentNode.removeChild(existingContainer);
-            if (confirmBtn) confirmBtn.style.display = 'none';
-            showConditionPanelNote({
-                kicker: 'Display Only',
-                title: 'This field cannot be filtered',
-                body: 'The backend does not expose any valid filter operators for this field, so no filter input is available here.',
-                hint: 'You can still add it as a results column and use it in the table output.'
-            });
-            renderConditionList(appState.selectedField);
+            showDisplayOnlyConditionPanel(context);
             return;
         }
 
-        conditionPanel.appendChild(createConditionOperatorPicker(operatorConditions, handleConditionBtnClick));
-
-        if (listValues && listValues.length) {
-            const fieldDef = fieldDefs.get(appState.selectedField);
-            const isMultiSelect = fieldDef && fieldDef.multiSelect;
-            const shouldGroupValues = Boolean(fieldDef && fieldDef.groupValues);
-            const isBooleanField = Boolean(fieldDef && fieldDef.type === 'boolean');
-            const existingSelect = document.getElementById('condition-select');
-            const existingContainer = document.getElementById('condition-select-container');
-            if (existingSelect) existingSelect.parentNode.removeChild(existingSelect);
-            if (existingContainer) existingContainer.parentNode.removeChild(existingContainer);
-
-            let currentLiteralValues = [];
-            const selectedFieldFilters = getFilterGroupForField(appState.selectedField);
-            const listCondition = getPreferredCondition(operatorConditions, appState.selectedField);
-            if (selectedFieldFilters && supportsListSelectorCondition(listCondition)) {
-                const filter = selectedFieldFilters.filters.find(f => String(f.cond || '').trim().toLowerCase() === listCondition);
-                if (filter) {
-                    currentLiteralValues = filter.val.split(',').map(v => v.trim());
-                }
-            }
-
-            const hasDashes = hasValuePairs
-                ? listValues.some(val => val.Name.includes('-'))
-                : listValues.some(val => val.includes('-'));
-
-            const selector = isBooleanField && listValues.length === 2
-                ? SelectorControls.createBooleanPillSelector(listValues, currentLiteralValues[0] || '', {
-                    onChange: () => {
-                        confirmBtn.click();
-                    }
-                })
-                : SelectorControls.createGroupedSelector(listValues, isMultiSelect, currentLiteralValues, {
-                    enableGrouping: shouldGroupValues && hasDashes
-                });
-            inputWrapper.insertBefore(selector, confirmBtn);
-            setConditionInputVisible(conditionInput, false);
-            if (isBooleanField && listValues.length === 2) {
-                confirmBtn.style.display = 'none';
-            }
+        context.conditionPanel.appendChild(createConditionOperatorPicker(operatorConditions, handleConditionBtnClick));
+        if (context.listValues && context.listValues.length) {
+            configureListValueConditionPanel(context);
         } else {
-            const existingSelect = document.getElementById('condition-select');
-            const existingContainer = document.getElementById('condition-select-container');
-            if (existingSelect) existingSelect.style.display = 'none';
-            if (existingContainer) existingContainer.parentNode.removeChild(existingContainer);
-            configureInputsForType(type);
-
-            if (isListPasteField(fieldDefInfo)) {
-                let currentLiteralValues = [];
-                const selectedFieldFilters = getFilterGroupForField(appState.selectedField);
-                const listCondition = getPreferredCondition(operatorConditions, appState.selectedField);
-                if (selectedFieldFilters && supportsListSelectorCondition(listCondition)) {
-                    const filter = selectedFieldFilters.filters.find(f => String(f.cond || '').trim().toLowerCase() === listCondition);
-                    if (filter) {
-                        currentLiteralValues = String(filter.val).split(',').map(v => v.trim()).filter(Boolean);
-                    }
-                }
-
-                const listInput = SelectorControls.createListPasteInput(currentLiteralValues, {
-                    placeholder: 'Paste one key per line',
-                    hint: 'Paste keys one per line, paste comma-separated keys, or upload a text/CSV file.'
-                });
-                inputWrapper.insertBefore(listInput, confirmBtn);
-                setConditionInputVisible(conditionInput, false);
-            } else {
-                setConditionInputVisible(conditionInput, true);
-            }
-            confirmBtn.style.display = '';
+            configurePlainConditionPanel(context);
         }
     }
 
     renderConditionList(appState.selectedField);
-
-    const operatorSelect = conditionPanel.querySelector('#condition-operator-select');
-    const preferredCondition = getPreferredCondition(operatorConditions, appState.selectedField);
-    if (operatorSelect && preferredCondition) {
-        operatorSelect.value = preferredCondition;
-        handleConditionBtnClick({
-            currentTarget: operatorSelect,
-            stopPropagation() {},
-            preventDefault() {}
-        });
-    }
-
-    if (isBuildable) {
-        setTimeout(() => {
-            if (isMobileFilterEditorViewport()) return;
-            const firstInput = document.querySelector('.dynamic-builder-input');
-            if (firstInput) firstInput.focus();
-        }, 300);
-    }
+    applyPreferredCondition(context, operatorConditions);
+    if (context.isBuildable) focusBuildableInputWhenReady({ document, isMobileFilterEditorViewport });
 }
 
 var getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
@@ -667,196 +638,236 @@ function handleConditionBtnClick(e) {
 /**
  * Handles filter confirmation action
  */
-function handleFilterConfirm(e) {
-    e.stopPropagation();
-    
-    // Dependencies
+function isControlVisible(control) {
+    return Boolean(control && control.style.display !== 'none');
+}
+
+function getFilterConfirmContext() {
     const bubble = document.querySelector('.active-bubble') || document.querySelector('.bubble-clone');
-    
     const conditionPanel = getFilterConditionPanelElement();
     const conditionInput = getFilterConditionInputElement();
     const conditionInput2 = getFilterConditionInput2Element();
     const sel = document.getElementById('condition-select');
     const selContainer = document.getElementById('condition-select-container');
-    if (!conditionPanel || !conditionInput || !conditionInput2) return;
-    
+    if (!conditionPanel || !conditionInput || !conditionInput2) return null;
+
     const field = (bubble && (bubble.dataset.filterFor || bubble.textContent.trim())) || appState.selectedField;
-    if (!field) return;
+    if (!field) return null;
 
     const cond = getSelectedCondition(conditionPanel);
-    let val = conditionInput.value.trim();
-    let val2 = conditionInput2.value.trim();
-    if (cond === 'never') {
-        val = 'NEVER';
-        val2 = '';
-    }
-    
     const fieldDef = fieldDefs.get(field);
     const fieldType = (bubble && bubble.dataset.type) || (fieldDef && fieldDef.type) || 'string';
-    const numberFormat = ValueFormatting.getNumberFormat(field) || '';
-    if (fieldType === 'money' || fieldType === 'number') {
-        const allowDecimal = fieldType === 'money' || (fieldType === 'number' && numberFormat === 'decimal');
+
+    return {
+        bubble,
+        conditionInput,
+        conditionInput2,
+        conditionPanel,
+        cond,
+        field,
+        fieldDef,
+        fieldType,
+        isBuildable: isFieldBuildable(fieldDef),
+        sel,
+        selContainer
+    };
+}
+
+function getConfirmValues(context) {
+    let val = context.conditionInput.value.trim();
+    let val2 = context.conditionInput2.value.trim();
+    if (context.cond === 'never') {
+        return { val: 'NEVER', val2: '' };
+    }
+
+    if (context.fieldType === 'money' || context.fieldType === 'number') {
+        const numberFormat = ValueFormatting.getNumberFormat(context.field) || '';
+        const allowDecimal = context.fieldType === 'money' || (context.fieldType === 'number' && numberFormat === 'decimal');
         val = MoneyUtils.sanitizeInputValue(val, { allowDecimal });
         val2 = MoneyUtils.sanitizeInputValue(val2, { allowDecimal });
     }
-    const isBuildable = isFieldBuildable(fieldDef);
+    return { val, val2 };
+}
 
-    // Special handling for buildable fields
-    if (isBuildable) {
-        handleBuildableFieldConfirm(fieldDef, cond, val);
+function hasMissingConfirmValue(context, values) {
+    if (context.cond === 'between') {
+        return values.val === '' || values.val2 === '';
+    }
+    if (context.cond === 'never') {
+        return false;
+    }
+
+    const isTextInputEmpty = isConditionInputVisible(context.conditionInput) && values.val === '';
+    const isSelectEmpty = isControlVisible(context.sel) && context.sel.value === '';
+    const isContainerEmpty = isControlVisible(context.selContainer)
+        && context.selContainer.getSelectedValues().length === 0;
+    return isTextInputEmpty || isSelectEmpty || isContainerEmpty;
+}
+
+function validateDateConfirmValues(context, values, tintInputs) {
+    if (context.fieldType !== 'date' || context.cond === 'never') {
+        return true;
+    }
+
+    const hasInvalidPrimaryDate = values.val && (!CustomDatePicker || !CustomDatePicker.isValidDateValue(values.val));
+    const hasInvalidSecondaryDate = context.cond === 'between' && values.val2 && (!CustomDatePicker || !CustomDatePicker.isValidDateValue(values.val2));
+    if (hasInvalidPrimaryDate || hasInvalidSecondaryDate) {
+        showFilterError('Enter a date or Never', tintInputs);
+        return false;
+    }
+
+    const dateLogicMessage = getDateFilterValidationMessage({
+        cond: context.cond,
+        val: context.cond === 'between' ? `${values.val}|${values.val2}` : values.val
+    }, context.field, {
+        getComparableDateValue
+    });
+    if (dateLogicMessage) {
+        showFilterError(dateLogicMessage, tintInputs);
+        return false;
+    }
+    return true;
+}
+
+function validateConfirmValues(context, values) {
+    if (!context.cond || context.cond === 'display') {
+        return true;
+    }
+
+    const tintInputs = [context.conditionInput, context.conditionInput2];
+    if (!context.isBuildable && typeof isFieldBackendFilterable === 'function' && !isFieldBackendFilterable(context.fieldDef)) {
+        showFilterError('This field is not filterable in the backend.', []);
+        return false;
+    }
+    if (hasMissingConfirmValue(context, values)) {
+        showFilterError(context.cond === 'between' ? 'Please enter both values' : 'Please enter a value', tintInputs);
+        return false;
+    }
+    return validateDateConfirmValues(context, values, tintInputs);
+}
+
+function normalizeBetweenConfirmValues(context, values) {
+    if (context.cond !== 'between') {
+        return values;
+    }
+    if (context.fieldType !== 'number' && context.fieldType !== 'money') {
+        return values;
+    }
+
+    const firstValue = parseFloat(values.val);
+    const secondValue = parseFloat(values.val2);
+    if (firstValue === secondValue) {
+        showFilterError('Between values must be different', [context.conditionInput, context.conditionInput2]);
+        return null;
+    }
+    if (firstValue <= secondValue) {
+        return values;
+    }
+
+    context.conditionInput.value = values.val2;
+    context.conditionInput2.value = values.val;
+    return {
+        val: context.conditionInput.value.trim(),
+        val2: context.conditionInput2.value.trim()
+    };
+}
+
+function getConfirmFilterValue(context, values) {
+    if (context.cond === 'between') {
+        return `${values.val}|${values.val2}`;
+    }
+    if (isControlVisible(context.selContainer)) {
+        return context.selContainer.getSelectedValues().join(',');
+    }
+    if (!isControlVisible(context.sel)) {
+        return values.val;
+    }
+    return context.sel.multiple
+        ? Array.from(context.sel.selectedOptions).map(option => option.value).join(',')
+        : context.sel.value;
+}
+
+function shouldReplaceListFilterCondition(context, filterValue) {
+    return Boolean(
+        supportsListSelectorCondition(context.cond)
+        && filterValue !== ''
+        && (isControlVisible(context.selContainer) || isControlVisible(context.sel))
+    );
+}
+
+function applyBackendFilter(context, values) {
+    if (!context.cond || context.cond === 'display') {
+        return true;
+    }
+
+    try {
+        const filterValue = getConfirmFilterValue(context, values);
+        const shouldReplaceExistingListCondition = shouldReplaceListFilterCondition(context, filterValue);
+        const existingSet = getFilterGroupForField(context.field) || { filters: [] };
+        const contradictionSet = shouldReplaceExistingListCondition
+            ? {
+                ...existingSet,
+                filters: existingSet.filters.filter(existingFilter => existingFilter.cond !== context.cond)
+            }
+            : existingSet;
+        const newFilterObj = { cond: context.cond, val: filterValue };
+        const conflictMsg = getContradictionMessage(contradictionSet, newFilterObj, context.fieldType, context.field, {
+            getComparableDateValue
+        });
+        if (conflictMsg) {
+            showFilterError(conflictMsg, [context.conditionInput, context.conditionInput2]);
+            return false;
+        }
+
+        if (filterValue !== '') {
+            console.log(`Applying filter for ${context.field}: ${context.cond} ${filterValue}`);
+            QueryChangeManager.upsertFilter(context.field, newFilterObj, {
+                replaceByCond: shouldReplaceExistingListCondition,
+                source: 'FilterManager.applyFilter'
+            });
+            document.querySelectorAll('.bubble').forEach(b => {
+                if (b.textContent.trim() === context.field) {
+                    services.applyBubbleStyling(b);
+                }
+            });
+            renderConditionList(context.field);
+        }
+        return true;
+    } catch (error) {
+        console.error('Error applying filter:', error);
+        showFilterError('Error applying filter: ' + error.message, []);
+        return false;
+    }
+}
+
+function applyDisplayCondition(context) {
+    if (context.cond === 'show') {
+        services.restoreFieldWithDuplicates(context.field);
+    } else if ((context.cond === 'hide' || context.cond === 'display') && getDisplayedFields().includes(context.field)) {
+        QueryChangeManager.hideField(context.field, {
+            source: 'FilterManager.hideField'
+        });
+    }
+}
+
+function handleFilterConfirm(e) {
+    e.stopPropagation();
+    const context = getFilterConfirmContext();
+    if (!context) return;
+
+    const values = getConfirmValues(context);
+    if (context.isBuildable) {
+        handleBuildableFieldConfirm(context.fieldDef, context.cond, values.val);
         finalizeConfirmAction();
         return;
     }
 
-    // Validation
-    if (cond && cond !== 'display') {
-        if (!isBuildable && typeof isFieldBackendFilterable === 'function' && !isFieldBackendFilterable(fieldDef)) {
-            showFilterError('This field is not filterable in the backend.', []);
-            return;
-        }
+    if (!validateConfirmValues(context, values)) return;
+    const normalizedValues = normalizeBetweenConfirmValues(context, values);
+    if (!normalizedValues) return;
+    if (!applyBackendFilter(context, normalizedValues)) return;
 
-        const tintInputs = [conditionInput, conditionInput2];
-        
-        if (cond === 'between' && (val === '' || val2 === '')) {
-            showFilterError('Please enter both values', tintInputs);
-            return;
-        }
-        
-        if (cond !== 'between' && cond !== 'never') {
-            const isTextInputVisible = isConditionInputVisible(conditionInput);
-            const isTextInputEmpty = val === '';
-            const isSelectVisible = sel && sel.style.display !== 'none';
-            const isSelectEmpty = isSelectVisible && sel.value === '';
-            const isContainerVisible = selContainer && selContainer.style.display !== 'none';
-            const isContainerEmpty = isContainerVisible && selContainer.getSelectedValues().length === 0;
-
-            if ((isTextInputVisible && isTextInputEmpty) ||
-                (isSelectVisible && isSelectEmpty) ||
-                (isContainerVisible && isContainerEmpty)) {
-                showFilterError('Please enter a value', tintInputs);
-                return;
-            }
-        }
-
-        if (fieldType === 'date' && cond !== 'never') {
-            const hasInvalidPrimaryDate = val && (!CustomDatePicker || !CustomDatePicker.isValidDateValue(val));
-            const hasInvalidSecondaryDate = cond === 'between' && val2 && (!CustomDatePicker || !CustomDatePicker.isValidDateValue(val2));
-            if (hasInvalidPrimaryDate || hasInvalidSecondaryDate) {
-                showFilterError('Enter a date or Never', tintInputs);
-                return;
-            }
-
-            const dateLogicMessage = getDateFilterValidationMessage({
-                cond,
-                val: cond === 'between' ? `${val}|${val2}` : val
-            }, field, {
-                getComparableDateValue
-            });
-            if (dateLogicMessage) {
-                showFilterError(dateLogicMessage, tintInputs);
-                return;
-            }
-        }
-    }
-
-    // Between Validation: Value Order
-    if (cond === 'between') {
-        const type = fieldType;
-        let a = val, b = val2;
-        if (type === 'number' || type === 'money') {
-            a = parseFloat(a); b = parseFloat(b);
-        }
-        
-        if ((type === 'number' || type === 'money') && a === b) {
-            showFilterError('Between values must be different', [conditionInput, conditionInput2]);
-            return;
-        }
-        if ((type === 'number' || type === 'money') && a > b) {
-            // Swap values
-            conditionInput.value = val2;
-            conditionInput2.value = val;
-            val = conditionInput.value.trim();
-            val2 = conditionInput2.value.trim();
-        }
-    }
-
-    // Applying logic
-    if (cond && cond !== 'display') {
-        try {
-            const isContainerVisible = selContainer && selContainer.style.display !== 'none';
-            const isSelectVisible = sel && sel.style.display !== 'none';
-            
-            let filterValue = val;
-            
-            if (cond === 'between') {
-                filterValue = `${val}|${val2}`;
-            } else if (isContainerVisible && selContainer) {
-                filterValue = selContainer.getSelectedValues().join(',');
-            } else if (isSelectVisible && sel) {
-                if (sel.multiple) {
-                    filterValue = Array.from(sel.selectedOptions).map(o => o.value).join(',');
-                } else {
-                    filterValue = sel.value;
-                }
-            }
-
-            const newFilterObj = { cond, val: filterValue };
-            const existingSet = getFilterGroupForField(field) || { filters: [] };
-            const shouldReplaceExistingListCondition = Boolean(
-                supportsListSelectorCondition(cond) &&
-                filterValue !== '' &&
-                ((isContainerVisible && selContainer) || (isSelectVisible && sel))
-            );
-            const contradictionSet = shouldReplaceExistingListCondition
-                ? {
-                    ...existingSet,
-                    filters: existingSet.filters.filter(existingFilter => existingFilter.cond !== cond)
-                }
-                : existingSet;
-            
-            // Check for contradictions
-            const conflictMsg = getContradictionMessage(contradictionSet, newFilterObj, fieldType, field, {
-                getComparableDateValue
-            });
-            if (conflictMsg) {
-                showFilterError(conflictMsg, [conditionInput, conditionInput2]);
-                return;
-            }
-
-            if (filterValue !== '') {
-                console.log(`Applying filter for ${field}: ${cond} ${filterValue}`);
-                QueryChangeManager.upsertFilter(field, { cond, val: filterValue }, {
-                    replaceByCond: shouldReplaceExistingListCondition,
-                    source: 'FilterManager.applyFilter'
-                });
-
-                // Update UI state
-                document.querySelectorAll('.bubble').forEach(b => {
-                    if (b.textContent.trim() === field) {
-                        services.applyBubbleStyling(b);
-                    }
-                });
-                
-                renderConditionList(field);
-                
-            }
-        } catch (error) {
-            console.error('Error applying filter:', error);
-            showFilterError('Error applying filter: ' + error.message, []);
-            return;
-        }
-    }
-
-    // Logic for "display", "show", "hide" buttons
-    if (cond === 'display' || cond === 'show' || cond === 'hide') {
-        if (cond === 'show') {
-            services.restoreFieldWithDuplicates(field);
-        } else if ((cond === 'hide' || cond === 'display') && getDisplayedFields().includes(field)) {
-            QueryChangeManager.hideField(field, {
-                source: 'FilterManager.hideField'
-            });
-        }
-    }
+    applyDisplayCondition(context);
 
     finalizeConfirmAction();
 }

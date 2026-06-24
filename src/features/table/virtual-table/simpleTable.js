@@ -4,6 +4,10 @@
  */
 import { normalizeUiConfigFilters } from '../../filters/queryPayload.js';
 import { parseDateValue } from '../../../core/formatting/dateValues.js';
+import {
+    concatenateTableGroups,
+    expandTableRowsIntoColumns
+} from './simpleTableGrouping.js';
 
 // Enum for GroupMethod
 const GroupMethod = {
@@ -401,99 +405,20 @@ class SimpleTable {
      * Expand duplicate values into separate columns
      */
     expandRowsIntoColumns(groupByField, allowDuplicateFields) {
-        const groupColIndex = this.fieldIndexMap.get(groupByField);
-        if (groupColIndex === undefined) return;
-
-        // Build a map: key -> list-of-lists (column -> values)
-        const keyData = new Map();
-
-        for (let row = 1; row < this.rawTable.length; row++) {
-            const key = String(this.rawTable[row][groupColIndex] || '');
-            if (!keyData.has(key)) {
-                keyData.set(key, Array.from({ length: this.width }, () => []));
-            }
-            const colLists = keyData.get(key);
-            for (let col = 0; col < this.width; col++) {
-                const val = String(this.rawTable[row][col] || '');
-                if (val) {
-                    const fieldName = this.rawTable[0][col];
-                    const dupAllowed = allowDuplicateFields.has(fieldName);
-                    // Only allow multiple values for fields in allowDuplicateFields
-                    if (col === groupColIndex) {
-                        if (!colLists[col].includes(val)) {
-                            colLists[col].push(val);
-                        }
-                    } else if (dupAllowed) {
-                        // Always push, even if duplicate
-                        colLists[col].push(val);
-                    } else {
-                        // Only push the first unique value
-                        if (colLists[col].length === 0) {
-                            colLists[col].push(val);
-                        }
-                    }
-                }
-            }
-        }
-
-        // Determine max duplicates per column (only expand if allowed)
-        const maxDupByCol = Array.from({ length: this.width }, (_, col) => {
-            if (col === groupColIndex) return 1;
-            const fieldName = this.rawTable[0][col];
-            if (!allowDuplicateFields.has(fieldName)) return 1;
-            let max = 1;
-            for (const colLists of keyData.values()) {
-                max = Math.max(max, colLists[col].length);
-            }
-            return max;
+        const grouped = expandTableRowsIntoColumns({
+            allowDuplicateFields,
+            fieldIndexMap: this.fieldIndexMap,
+            getOrdinal: value => this.getOrdinal(value),
+            groupByField,
+            rawTable: this.rawTable,
+            tableColumnTypes: this.tableColumnTypes
         });
+        if (!grouped) return;
 
-        // Build new headers and column types
-        const newHeaders = [];
-        const newColumnTypes = [];
-        for (let col = 0; col < this.width; col++) {
-            const baseHeader = this.rawTable[0][col];
-            const colType = this.tableColumnTypes[col];
-            if (col === groupColIndex) {
-                newHeaders.push(baseHeader);
-                newColumnTypes.push(colType);
-            } else if (allowDuplicateFields.has(baseHeader)) {
-                for (let k = 0; k < maxDupByCol[col]; k++) {
-                    newHeaders.push(k === 0 ? baseHeader : `${this.getOrdinal(k + 1)} ${baseHeader}`);
-                    newColumnTypes.push(colType);
-                }
-            } else {
-                newHeaders.push(baseHeader);
-                newColumnTypes.push(colType);
-            }
-        }
-
-        // Build new table
-        const newWidth = newHeaders.length;
-        const newHeight = keyData.size;
-        const newTable = [];
-        newTable.push(newHeaders);
-        for (const [key, colLists] of keyData) {
-            const newRow = [];
-            for (let col = 0; col < this.width; col++) {
-                if (col === groupColIndex) {
-                    newRow.push(key);
-                } else if (allowDuplicateFields.has(this.rawTable[0][col])) {
-                    const maxCount = maxDupByCol[col];
-                    for (let k = 0; k < maxCount; k++) {
-                        newRow.push(colLists[col][k] || '');
-                    }
-                } else {
-                    newRow.push(colLists[col][0] || '');
-                }
-            }
-            newTable.push(newRow);
-        }
-
-        this.rawTable = newTable;
-        this.tableColumnTypes = newColumnTypes;
-        this.width = newWidth;
-        this.height = newHeight;
+        this.rawTable = grouped.rawTable;
+        this.tableColumnTypes = grouped.tableColumnTypes;
+        this.width = grouped.width;
+        this.height = grouped.height;
         this.buildFieldIndexMap();
     }
 
@@ -501,60 +426,16 @@ class SimpleTable {
      * Concatenate group values with commas
      */
     concatenateGroup(groupByField, allowDuplicateFields) {
-        const groupColIndex = this.fieldIndexMap.get(groupByField);
-        if (groupColIndex === undefined) return;
+        const grouped = concatenateTableGroups({
+            allowDuplicateFields,
+            fieldIndexMap: this.fieldIndexMap,
+            groupByField,
+            rawTable: this.rawTable
+        });
+        if (!grouped) return;
 
-        const keyRowMap = new Map();
-        const groupedDataRows = [];
-
-        for (let row = 1; row < this.rawTable.length; row++) {
-            const key = String(this.rawTable[row][groupColIndex] || '');
-
-            if (!keyRowMap.has(key)) {
-                // First time seeing this key - copy row as-is
-                const newRow = [...this.rawTable[row]];
-                keyRowMap.set(key, groupedDataRows.length);
-                groupedDataRows.push(newRow);
-            } else {
-                // Merge with existing row
-                const existingRowIdx = keyRowMap.get(key);
-                const existingRow = groupedDataRows[existingRowIdx];
-
-                for (let col = 0; col < this.width; col++) {
-                    if (col === groupColIndex) continue; // Don't touch the key column
-
-                    const existingValue = String(existingRow[col] || '');
-                    const newValue = String(this.rawTable[row][col] || '');
-
-                    if (!newValue) continue;
-
-                    if (!existingValue) {
-                        existingRow[col] = newValue;
-                    } else {
-                        const fieldName = this.rawTable[0][col];
-                        const dupAllowed = allowDuplicateFields.has(fieldName);
-                        
-                        if (dupAllowed) {
-                            // Always append, even if duplicate
-                            existingRow[col] = `${existingValue}, ${newValue}`;
-                        } else {
-                            // Append only if distinct (case-insensitive)
-                            const items = existingValue.split(',').map(s => s.trim()).filter(s => s);
-                            if (!items.some(item => item.toLowerCase() === newValue.toLowerCase())) {
-                                existingRow[col] = `${existingValue}, ${newValue}`;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Rebuild table with header + grouped rows
-        this.height = groupedDataRows.length;
-        const newTable = [this.rawTable[0]]; // Keep header
-        newTable.push(...groupedDataRows);
-
-        this.rawTable = newTable;
+        this.height = grouped.height;
+        this.rawTable = grouped.rawTable;
     }
 
     /**

@@ -548,8 +548,7 @@ let PostFilterSystem;
     services.replacePostFilters(snapshot, options);
   }
 
-  function addFilter() {
-    const elements = getElements();
+  function getAddFilterContext(elements) {
     if (!elements.fieldSelect || !elements.operatorSelect || !elements.valueInput || !elements.valueInput2) return;
 
     const field = String(elements.fieldSelect.value || '').trim();
@@ -557,7 +556,6 @@ let PostFilterSystem;
     const logic = elements.logicSelect ? String(elements.logicSelect.value || 'all').trim().toLowerCase() : 'all';
     let value = String(elements.valueInput.value || '').trim();
     let value2 = String(elements.valueInput2.value || '').trim();
-    let selectedValues = [];
     const fieldType = getFieldType(field);
     const numberFormat = getNumberFormat(field);
 
@@ -571,38 +569,76 @@ let PostFilterSystem;
       value2 = MoneyUtils.sanitizeInputValue(value2, { allowDecimal });
     }
 
-    if (fieldType === 'date' && !isNoValuePostFilterOperator(cond)) {
-      const message = getPostFilterDateValidationMessage({ cond, customDatePicker: CustomDatePicker, field, value, value2 });
-      if (message) {
-        showToastMessage(message, 'warning');
-        return;
-      }
+    return {
+      cond,
+      elements,
+      field,
+      fieldType,
+      logic,
+      value,
+      value2
+    };
+  }
+
+  function validatePostFilterDateInput(context) {
+    if (context.fieldType !== 'date' || isNoValuePostFilterOperator(context.cond)) {
+      return true;
     }
 
-    if (isNoValuePostFilterOperator(cond)) {
-      value = '';
-      value2 = '';
-    } else if (usesValuePickerOperator(cond) && equalsValueControl && typeof equalsValueControl.getSelectedValues === 'function') {
-      selectedValues = equalsValueControl.getSelectedValues()
-        .map(entry => String(entry || ''))
-        .filter(entry => entry || isBlankSentinel(entry));
+    const message = getPostFilterDateValidationMessage({
+      cond: context.cond,
+      customDatePicker: CustomDatePicker,
+      field: context.field,
+      value: context.value,
+      value2: context.value2
+    });
+    if (message) {
+      showToastMessage(message, 'warning');
+      return false;
+    }
+    return true;
+  }
 
+  function getSelectedPostFilterValues() {
+    if (!equalsValueControl || typeof equalsValueControl.getSelectedValues !== 'function') {
+      return [];
+    }
+
+    return equalsValueControl.getSelectedValues()
+      .map(entry => String(entry || ''))
+      .filter(entry => entry || isBlankSentinel(entry));
+  }
+
+  function buildPostFilterValue(context) {
+    if (isNoValuePostFilterOperator(context.cond)) {
+      return { ok: true, selectedValues: [], value: '' };
+    }
+
+    if (usesValuePickerOperator(context.cond)) {
+      const selectedValues = getSelectedPostFilterValues();
       if (!selectedValues.length) {
         showToastMessage('Choose one or more loaded values for the post filter.', 'warning');
-        return;
+        return { ok: false };
       }
-    } else if (cond === 'between') {
-      if (!value || !value2) {
-        showToastMessage('Enter both values for a between filter.', 'warning');
-        return;
-      }
-      value = `${value}|${value2}`;
-    } else if (!value && !isBlankSentinel(value)) {
-      showToastMessage('Enter a value for the post filter.', 'warning');
-      return;
+      return { ok: true, selectedValues, value: selectedValues[0] };
     }
 
-    const snapshot = getPostFilterSnapshot();
+    if (context.cond === 'between') {
+      if (!context.value || !context.value2) {
+        showToastMessage('Enter both values for a between filter.', 'warning');
+        return { ok: false };
+      }
+      return { ok: true, selectedValues: [], value: `${context.value}|${context.value2}` };
+    }
+
+    if (!context.value && !isBlankSentinel(context.value)) {
+      showToastMessage('Enter a value for the post filter.', 'warning');
+      return { ok: false };
+    }
+    return { ok: true, selectedValues: [], value: context.value };
+  }
+
+  function preparePostFilterGroup(snapshot, field, logic) {
     if (!snapshot[field]) {
       snapshot[field] = { logic: 'all', filters: [] };
     }
@@ -611,60 +647,95 @@ let PostFilterSystem;
       snapshot[field].logic = logic === 'any' ? 'any' : 'all';
     }
 
-    if (usesValuePickerOperator(cond) && selectedValues.length) {
-      const nextValuesKey = selectedValues.join('\u001F');
-      const existingSameCond = snapshot[field].filters.find(filter => String(filter?.cond || '').toLowerCase() === cond);
-      const existingSameCondKey = existingSameCond
-        ? (Array.isArray(existingSameCond.vals) && existingSameCond.vals.length
-          ? existingSameCond.vals.map(entry => String(entry || '')).join('\u001F')
-          : String(existingSameCond.val || ''))
-        : '';
+    return snapshot[field];
+  }
 
-      if (existingSameCondKey === nextValuesKey) {
-        showToastMessage('That post filter is already active.', 'info');
-        return;
-      }
+  function getSelectedValuesKey(values) {
+    return values.map(entry => String(entry || '')).join('\u001F');
+  }
 
-      snapshot[field].filters = snapshot[field].filters.filter(filter => String(filter?.cond || '').toLowerCase() !== cond);
-      snapshot[field].filters.push({
-        cond,
-        val: selectedValues[0],
-        vals: selectedValues
-      });
-
-      if (snapshot[field].filters.length === 1) {
-        snapshot[field].logic = 'all';
-      }
-
-      writeSnapshot(snapshot, { refreshView: true, notify: true, resetScroll: true });
-      renderSummary();
-      renderFilterList();
-      syncValueInputs();
-      updateToolbarButton();
-      showToastMessage('Post filter applied.', 'success');
-      return;
+  function getExistingValuePickerFilterKey(filter) {
+    if (!filter) {
+      return '';
     }
 
-    const alreadyExists = snapshot[field].filters.some(filter => filter.cond === cond && filter.val === value);
+    return Array.isArray(filter.vals) && filter.vals.length
+      ? getSelectedValuesKey(filter.vals)
+      : String(filter.val || '');
+  }
+
+  function applyValuePickerFilterToSnapshot(snapshot, context, prepared) {
+    const group = preparePostFilterGroup(snapshot, context.field, context.logic);
+    const nextValuesKey = getSelectedValuesKey(prepared.selectedValues);
+    const existingSameCond = group.filters.find(filter => String(filter?.cond || '').toLowerCase() === context.cond);
+    if (getExistingValuePickerFilterKey(existingSameCond) === nextValuesKey) {
+      showToastMessage('That post filter is already active.', 'info');
+      return false;
+    }
+
+    group.filters = group.filters.filter(filter => String(filter?.cond || '').toLowerCase() !== context.cond);
+    group.filters.push({
+      cond: context.cond,
+      val: prepared.value,
+      vals: prepared.selectedValues
+    });
+
+    if (group.filters.length === 1) {
+      group.logic = 'all';
+    }
+    return true;
+  }
+
+  function applyScalarFilterToSnapshot(snapshot, context, prepared) {
+    const group = preparePostFilterGroup(snapshot, context.field, context.logic);
+    const alreadyExists = group.filters.some(filter => filter.cond === context.cond && filter.val === prepared.value);
     if (alreadyExists) {
       showToastMessage('That post filter is already active.', 'info');
-      return;
+      return false;
     }
 
-    snapshot[field].filters.push({ cond, val: value });
-    if (snapshot[field].filters.length === 1) {
-      snapshot[field].logic = 'all';
+    group.filters.push({ cond: context.cond, val: prepared.value });
+    if (group.filters.length === 1) {
+      group.logic = 'all';
     }
-    writeSnapshot(snapshot, { refreshView: true, notify: true, resetScroll: true });
+    return true;
+  }
 
-    elements.valueInput.value = '';
-    elements.valueInput2.value = '';
+  function renderAppliedPostFilter(clearInputs) {
+    const elements = getElements();
+    if (clearInputs) {
+      elements.valueInput.value = '';
+      elements.valueInput2.value = '';
+    }
+
     renderSummary();
     renderFilterList();
     syncValueInputs();
     updateToolbarButton();
-
     showToastMessage('Post filter applied.', 'success');
+  }
+
+  function addFilter() {
+    const elements = getElements();
+    const context = getAddFilterContext(elements);
+    if (!context) return;
+
+    if (!validatePostFilterDateInput(context)) return;
+
+    const prepared = buildPostFilterValue(context);
+    if (!prepared.ok) return;
+
+    const snapshot = getPostFilterSnapshot();
+    const usesPicker = usesValuePickerOperator(context.cond) && prepared.selectedValues.length > 0;
+    const didApply = usesPicker
+      ? applyValuePickerFilterToSnapshot(snapshot, context, prepared)
+      : applyScalarFilterToSnapshot(snapshot, context, prepared);
+    if (!didApply) {
+      return;
+    }
+
+    writeSnapshot(snapshot, { refreshView: true, notify: true, resetScroll: true });
+    renderAppliedPostFilter(!usesPicker);
   }
 
   function removeFilter(field, index) {
