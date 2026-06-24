@@ -182,6 +182,108 @@ function getDateFilterValidationMessage(filter, fieldLabel, options = {}) {
   return null;
 }
 
+function buildContradictionFilterContext(filter, fieldType, getComparableDateValue) {
+  const values = getComparableFilterValues(filter, fieldType, getComparableDateValue);
+  return {
+    cond: filter.cond,
+    filter,
+    high: Math.max(...values),
+    label: getFilterPhrase(filter),
+    low: Math.min(...values),
+    range: getFilterRange(filter, fieldType, getComparableDateValue),
+    values
+  };
+}
+
+function hasNeverContradiction(existingContext, newContext) {
+  return (
+    newContext.cond === 'never' && existingContext.cond !== 'never'
+  ) || (
+    existingContext.cond === 'never' && newContext.cond !== 'never'
+  );
+}
+
+function hasRangeContradiction(existingContext, newContext) {
+  return Boolean(
+    newContext.range
+    && existingContext.range
+    && !filterRangesOverlap(newContext.range, existingContext.range)
+  );
+}
+
+function hasNewEqualsContradiction(existingContext, newContext) {
+  if (newContext.cond !== 'equals') {
+    return false;
+  }
+
+  const newValue = newContext.values[0];
+  const existingValue = existingContext.values[0];
+  if (existingContext.cond === 'does_not_equal') return newValue === existingValue;
+  if (existingContext.cond === 'equals') return newValue !== existingValue;
+  if (existingContext.cond === 'greater') return newValue <= existingValue;
+  if (existingContext.cond === 'less') return newValue >= existingValue;
+  if (existingContext.cond === 'between') return newValue < existingContext.low || newValue > existingContext.high;
+  return false;
+}
+
+function hasExistingEqualsContradiction(existingContext, newContext) {
+  if (existingContext.cond !== 'equals') {
+    return false;
+  }
+
+  const existingValue = existingContext.values[0];
+  const newValue = newContext.values[0];
+  if (newContext.cond === 'does_not_equal') return existingValue === newValue;
+  if (newContext.cond === 'greater') return existingValue <= newValue;
+  if (newContext.cond === 'less') return existingValue >= newValue;
+  if (newContext.cond === 'between') return existingValue < newContext.low || existingValue > newContext.high;
+  return false;
+}
+
+function hasNewGreaterContradiction(existingContext, newContext) {
+  if (newContext.cond !== 'greater') {
+    return false;
+  }
+
+  const newValue = newContext.values[0];
+  if (existingContext.cond === 'less') return newValue >= existingContext.values[0];
+  if (existingContext.cond === 'between') return newValue >= existingContext.high;
+  return false;
+}
+
+function hasNewLessContradiction(existingContext, newContext) {
+  if (newContext.cond !== 'less') {
+    return false;
+  }
+
+  const newValue = newContext.values[0];
+  if (existingContext.cond === 'greater') return newValue <= existingContext.values[0];
+  if (existingContext.cond === 'between') return newValue <= existingContext.low;
+  return false;
+}
+
+function hasNewBetweenContradiction(existingContext, newContext) {
+  if (newContext.cond !== 'between') {
+    return false;
+  }
+
+  const existingValue = existingContext.values[0];
+  if (existingContext.cond === 'greater') return newContext.high <= existingValue;
+  if (existingContext.cond === 'less') return newContext.low >= existingValue;
+  if (existingContext.cond === 'between') return existingContext.high < newContext.low || existingContext.low > newContext.high;
+  return false;
+}
+
+function hasContradiction(existingContext, newContext) {
+  return hasNeverContradiction(existingContext, newContext)
+    || hasRangeContradiction(existingContext, newContext)
+    || hasNewEqualsContradiction(existingContext, newContext)
+    || hasExistingEqualsContradiction(existingContext, newContext)
+    || hasNewGreaterContradiction(existingContext, newContext)
+    || hasNewLessContradiction(existingContext, newContext)
+    || hasNewBetweenContradiction(existingContext, newContext);
+}
+
 function getContradictionMessage(existing, newFilter, fieldType, fieldLabel, options = {}) {
   if (!existing || !Array.isArray(existing.filters)) return null;
 
@@ -189,57 +291,12 @@ function getContradictionMessage(existing, newFilter, fieldType, fieldLabel, opt
     ? options.getComparableDateValue
     : getDefaultComparableDateValue;
 
-  const newLabel = getFilterPhrase(newFilter);
-  if (newFilter.cond === 'never' && existing.filters.some(filter => filter.cond !== 'never')) {
-    return `${fieldLabel} cannot ${newLabel} and ${getFilterPhrase(existing.filters.find(filter => filter.cond !== 'never'))}`;
-  }
-
-  const newValues = getComparableFilterValues(newFilter, fieldType, getComparableDateValue);
-  const newLow = Math.min(...newValues);
-  const newHigh = Math.max(...newValues);
+  const newContext = buildContradictionFilterContext(newFilter, fieldType, getComparableDateValue);
 
   for (const filter of existing.filters) {
-    const filterLabel = getFilterPhrase(filter);
-    const message = `${fieldLabel} cannot ${newLabel} and ${filterLabel}`;
-    if (filter.cond === 'never' && newFilter.cond !== 'never') return message;
-    const filterValues = getComparableFilterValues(filter, fieldType, getComparableDateValue);
-    const low = Math.min(...filterValues);
-    const high = Math.max(...filterValues);
-    const newRange = getFilterRange(newFilter, fieldType, getComparableDateValue);
-    const existingRange = getFilterRange(filter, fieldType, getComparableDateValue);
-    if (newRange && existingRange && !filterRangesOverlap(newRange, existingRange)) {
-      return message;
-    }
-
-    if (newFilter.cond === 'equals') {
-      if (filter.cond === 'does_not_equal' && newValues[0] === filterValues[0]) return message;
-      if (filter.cond === 'equals' && newValues[0] !== filterValues[0]) return message;
-      if (filter.cond === 'greater' && newValues[0] <= filterValues[0]) return message;
-      if (filter.cond === 'less' && newValues[0] >= filterValues[0]) return message;
-      if (filter.cond === 'between' && (newValues[0] < low || newValues[0] > high)) return message;
-    }
-
-    if (filter.cond === 'equals') {
-      if (newFilter.cond === 'does_not_equal' && filterValues[0] === newValues[0]) return message;
-      if (newFilter.cond === 'greater' && filterValues[0] <= newValues[0]) return message;
-      if (newFilter.cond === 'less' && filterValues[0] >= newValues[0]) return message;
-      if (newFilter.cond === 'between' && (filterValues[0] < newLow || filterValues[0] > newHigh)) return message;
-    }
-
-    if (newFilter.cond === 'greater') {
-      if (filter.cond === 'less' && newValues[0] >= filterValues[0]) return message;
-      if (filter.cond === 'between' && newValues[0] >= high) return message;
-    }
-
-    if (newFilter.cond === 'less') {
-      if (filter.cond === 'greater' && newValues[0] <= filterValues[0]) return message;
-      if (filter.cond === 'between' && newValues[0] <= low) return message;
-    }
-
-    if (newFilter.cond === 'between') {
-      if (filter.cond === 'greater' && newHigh <= filterValues[0]) return message;
-      if (filter.cond === 'less' && newLow >= filterValues[0]) return message;
-      if (filter.cond === 'between' && (high < newLow || low > newHigh)) return message;
+    const existingContext = buildContradictionFilterContext(filter, fieldType, getComparableDateValue);
+    if (hasContradiction(existingContext, newContext)) {
+      return `${fieldLabel} cannot ${newContext.label} and ${existingContext.label}`;
     }
   }
 
