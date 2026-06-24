@@ -26,6 +26,7 @@ The module graph is appropriately split for the current raw JavaScript architect
 - Split mobile table drawer/action-bar behavior into `src/ui/mobileTableControls.js`, reducing `src/ui/queryUI.js` to table/run-state coordination.
 - Split browser workbook export orchestration from workbook generation, so the background worker imports `src/lib/workbook-export/workbookBuilder.js` instead of the browser wrapper.
 - Moved reusable virtual-table, drag/drop, and workbook-export internals from `src/features/table/` to `src/lib/`, then tightened component boundaries so `src/components/` no longer depends on feature modules.
+- Split field-picker option policy into `src/ui/field-picker/fieldPickerOptionState.js`, keeping badges, displayability, buildability, local dynamic state, warnings, and status text out of the modal coordinator.
 
 ## Modules That Should Stay Split
 
@@ -52,5 +53,5 @@ These files are still relatively large, but their current role is coordination: 
 ## Guardrails
 
 - `npm test` runs lint, Node test-runner architecture checks, unit tests, and browser smoke coverage. Module-specifier checks are part of the architecture suite.
-- The architecture fitness tests enforce reachability from `src/appModules.js`, explicit `.js` imports, no import cycles, layer boundaries, coupling/modularity budgets, maintainability budgets, no app `window.*` bridge exports, no former bridge reads, and no unused production dependencies.
+- The architecture fitness tests enforce reachability from `src/appModules.js`, explicit `.js` imports, no import cycles, layer boundaries, coupling/modularity budgets, folder cohesion budgets, Git-history change-coupling budgets, maintainability and cognitive-complexity budgets, no app `window.*` bridge exports, no former bridge reads, and no unused production dependencies.
 - `config/architectureRules.cjs` has no legacy large-module exceptions.

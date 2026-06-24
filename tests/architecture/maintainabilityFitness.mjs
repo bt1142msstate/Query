@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
+import { collectCognitiveComplexity } from '../../scripts/lib/architectureMetrics.mjs';
 import { buildModuleGraph } from '../../scripts/lib/moduleGraph.mjs';
 
 function groupModulesByLayer(modules) {
@@ -105,6 +106,16 @@ test('maintainability budgets by layer', async () => {
     ruleConfig: ['error', { max: maintainabilityBudgets.maxParams }],
     ruleId: 'max-params'
   }));
+
+  const cognitiveResults = await collectCognitiveComplexity({ rootDir, modules });
+  cognitiveResults.forEach(result => {
+    const maxCognitiveComplexity = maintainabilityBudgets.maxCognitiveComplexityByLayer[result.layer];
+    if (maxCognitiveComplexity && result.complexity > maxCognitiveComplexity) {
+      failures.push(
+        `${result.path}:${result.line}: ${result.layer} cognitive-complexity budget failed: ${result.functionName} scored ${result.complexity}, budget ${maxCognitiveComplexity}`
+      );
+    }
+  });
 
   if (failures.length > 0) {
     throw new Error(`Maintainability fitness check failed:\n${failures.map(failure => `- ${failure}`).join('\n')}`);

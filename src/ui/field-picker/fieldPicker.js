@@ -6,13 +6,18 @@ import { createFieldPickerModal } from './fieldPickerModal.js';
 import { getFieldPickerOptionsFromDefinitions } from './fieldPickerOptions.js';
 import { initializeSearchInputs } from '../controls/searchUI.js';
 import { VirtualList } from '../controls/virtualList.js';
-import { fieldDefs, isFieldBuildable, isLocalDynamicField } from '../../features/filters/fieldDefs.js';
-import { getFieldPerformanceWarning } from '../../features/filters/fieldWarnings.js';
+import {
+  buildFieldPickerOptionBadges,
+  buildFieldPickerStatusText,
+  getFieldPerformanceWarning,
+  isOptionBuildable,
+  isOptionDisplayable,
+  isOptionLocalDynamic,
+  normalizePickerState
+} from './fieldPickerOptionState.js';
 let SharedFieldPicker;
 
 (function() {
-  const normalizePickerState = state => ({ display: Boolean(state && state.display), filter: Boolean(state && state.filter) });
-
   async function openSharedFieldPicker(config = {}) {
     if (typeof config.beforeOpen === 'function') {
       await config.beforeOpen();
@@ -168,22 +173,6 @@ let SharedFieldPicker;
       return normalizePickerState(getFieldState(selectedFieldName));
     }
 
-    function isOptionDisplayable(option) {
-      return !(option && option.displayable === false);
-    }
-
-    function isOptionBuildable(option) {
-      if (!option) return false;
-      if (option.buildable) return true;
-      return typeof isFieldBuildable === 'function'
-        ? isFieldBuildable(fieldDefs?.get(option.name) || option)
-        : false;
-    }
-
-    function isOptionLocalDynamic(option) {
-      return Boolean(option && (option.localDynamic || (typeof isLocalDynamicField === 'function' && isLocalDynamicField(option.name))));
-    }
-
     function syncChoiceInputs() {
       const state = getSelectedState();
       const selected = options.find(option => option.name === selectedFieldName) || null;
@@ -208,27 +197,15 @@ let SharedFieldPicker;
         const option = options.find(candidate => candidate.name === fieldName) || null;
         button.classList.toggle('is-display-disabled', !isOptionDisplayable(option));
 
-        const state = normalizePickerState(getFieldState(fieldName));
-        const badges = [];
-        if (allowDisplay && state.display) {
-          badges.push(`<span class="form-mode-field-picker-badge">${labels.displayBadge}</span>`);
-        }
-        if (allowFilter && state.filter) {
-          badges.push(`<span class="form-mode-field-picker-badge">${labels.filterBadge}</span>`);
-        }
-        if (allowDisplay && !isOptionDisplayable(option)) {
-          badges.push('<span class="form-mode-field-picker-badge form-mode-field-picker-badge--muted">Build first</span>');
-        }
-        if (isOptionLocalDynamic(option)) {
-          badges.push('<span class="form-mode-field-picker-badge form-mode-field-picker-badge--local">Built</span>');
-        }
-        if (getFieldPerformanceWarning(option)) {
-          badges.push('<span class="form-mode-field-picker-badge form-mode-field-picker-badge--warning">May take longer</span>');
-        }
-
         const badgesEl = button.querySelector('.form-mode-field-picker-option-badges');
         if (badgesEl) {
-          badgesEl.innerHTML = badges.join('');
+          badgesEl.innerHTML = buildFieldPickerOptionBadges({
+            allowDisplay,
+            allowFilter,
+            labels,
+            option,
+            state: getFieldState(fieldName)
+          });
         }
       });
     }
@@ -380,47 +357,16 @@ let SharedFieldPicker;
         return;
       }
 
-      const state = getSelectedState();
-      const statusParts = [];
-      if (allowDisplay) {
-        if (!isOptionDisplayable(selected)) {
-          statusParts.push('Create this field before displaying it');
-        } else if (displayChoice) {
-          if (displayChoice.checked && !state.display) {
-            statusParts.push(`Will ${labels.displayChoice.toLowerCase()}`);
-          } else if (!displayChoice.checked && state.display) {
-            statusParts.push(`Will remove ${labels.displayChoice.toLowerCase()}`);
-          } else if (state.display) {
-            statusParts.push(labels.displayBadge);
-          }
-        } else if (state.display) {
-          statusParts.push(labels.displayBadge);
-        }
-      }
-
-      if (allowFilter && filterChoice) {
-        if (selected.filterable === false) {
-          statusParts.push('Backend filtering unavailable');
-        } else if (filterChoice.checked && !state.filter) {
-          statusParts.push(`Will ${labels.filterChoice.toLowerCase()}`);
-        } else if (!filterChoice.checked && state.filter) {
-          statusParts.push(`Will remove ${labels.filterChoice.toLowerCase()}`);
-        } else if (state.filter) {
-          statusParts.push(labels.filterBadge);
-        }
-      } else if (allowFilter && autoAddFilterFromPreview && isOptionDisplayable(selected)) {
-        if (selected.filterable === false) {
-          statusParts.push('Backend filtering unavailable');
-        } else if (state.filter) {
-          statusParts.push(labels.filterBadge);
-        } else {
-          statusParts.push('Enter a filter value to add it');
-        }
-      }
-
-      statusEl.textContent = statusParts.length > 0
-        ? statusParts.join(' • ')
-        : 'No changes for this field.';
+      statusEl.textContent = buildFieldPickerStatusText({
+        allowDisplay,
+        allowFilter,
+        autoAddFilterFromPreview,
+        displayChoice,
+        filterChoice,
+        labels,
+        selected,
+        state: getSelectedState()
+      });
     }
 
     function showPerformanceWarningToast(option, action) {
@@ -649,24 +595,6 @@ let SharedFieldPicker;
         button.setAttribute('data-tooltip-html', option.tooltipHtml);
       }
 
-      const state = normalizePickerState(getFieldState(option.name));
-      const badges = [];
-      if (allowDisplay && state.display) {
-        badges.push(`<span class="form-mode-field-picker-badge">${labels.displayBadge}</span>`);
-      }
-      if (allowFilter && state.filter) {
-        badges.push(`<span class="form-mode-field-picker-badge">${labels.filterBadge}</span>`);
-      }
-      if (allowDisplay && !isOptionDisplayable(option)) {
-        badges.push('<span class="form-mode-field-picker-badge form-mode-field-picker-badge--muted">Build first</span>');
-      }
-      if (isOptionLocalDynamic(option)) {
-        badges.push('<span class="form-mode-field-picker-badge form-mode-field-picker-badge--local">Built</span>');
-      }
-      if (getFieldPerformanceWarning(option)) {
-        badges.push('<span class="form-mode-field-picker-badge form-mode-field-picker-badge--warning">May take longer</span>');
-      }
-
       const nameSpan = document.createElement('span');
       nameSpan.className = 'form-mode-field-picker-option-name';
       nameSpan.textContent = option.name;
@@ -686,7 +614,13 @@ let SharedFieldPicker;
 
       const badgesSpan = document.createElement('span');
       badgesSpan.className = 'form-mode-field-picker-option-badges';
-      badgesSpan.innerHTML = badges.join('');
+      badgesSpan.innerHTML = buildFieldPickerOptionBadges({
+        allowDisplay,
+        allowFilter,
+        labels,
+        option,
+        state: getFieldState(option.name)
+      });
 
       button.innerHTML = '';
       button.appendChild(nameSpan);
