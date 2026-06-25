@@ -44,4 +44,4 @@ function get(operator, fallback = 'Equals') {
 
 const OperatorLabels = Object.freeze({ get });
 
-export { OperatorLabels, get };
+export { OperatorLabels };

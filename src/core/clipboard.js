@@ -109,9 +109,5 @@ const ClipboardUtils = Object.freeze({
 });
 
 export {
-  ClipboardUtils,
-  bindCopyButton,
-  copy,
-  copyFromSource,
-  copyWithFallback
+  ClipboardUtils
 };

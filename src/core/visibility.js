@@ -102,10 +102,5 @@ const VisibilityUtils = Object.freeze({
 });
 
 export {
-  VisibilityUtils,
-  acquireRaisedUi,
-  hide,
-  isVisible,
-  releaseRaisedUi,
-  show
+  VisibilityUtils
 };

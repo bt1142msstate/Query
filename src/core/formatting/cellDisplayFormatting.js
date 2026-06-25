@@ -47,7 +47,5 @@ const CellDisplayFormatting = Object.freeze({
 });
 
 export {
-  CellDisplayFormatting,
-  formatCellDisplay,
-  getMultiValueDisplayValues
+  CellDisplayFormatting
 };

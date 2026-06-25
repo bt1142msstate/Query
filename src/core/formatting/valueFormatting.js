@@ -160,12 +160,5 @@ const ValueFormatting = Object.freeze({
 });
 
 export {
-  ValueFormatting,
-  formatDateDisplay,
-  formatDelimitedValue,
-  formatNumberDisplay,
-  formatValueByType,
-  getFieldDefinition,
-  getFieldType,
-  getNumberFormat
+  ValueFormatting
 };
