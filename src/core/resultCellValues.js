@@ -153,6 +153,5 @@ export {
   getNonBlankCellValueParts,
   hasMultipleCellValues,
   isBlankCellValue,
-  normalizeResultCellValue,
-  normalizeResultScalar
+  normalizeResultCellValue
 };

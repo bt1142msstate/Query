@@ -141,8 +141,6 @@ function forgetDynamicFieldDefinition(fieldName) {
 export {
   DYNAMIC_FIELD_STORAGE_KEY,
   forgetDynamicFieldDefinition,
-  normalizeStoredDynamicField,
   readStoredDynamicFields,
-  rememberDynamicFieldDefinition,
-  writeStoredDynamicFields
+  rememberDynamicFieldDefinition
 };

@@ -284,22 +284,10 @@ async function postText(payload, options = {}) {
 }
 
 const backendApi = Object.freeze({
-  API_URL,
-  API_URL_PARAM_NAMES,
-  API_URL_STORAGE_KEY,
-  DEFAULT_API_URL,
-  assertNotRateLimited,
   buildHttpError,
-  buildRateLimitMessage,
-  configureApiUrl,
-  formatRetryDelay,
-  getApiUrl,
   parseJsonResponse,
   postJson,
-  postText,
-  request,
-  resetApiUrl,
-  resolveConfiguredApiUrl
+  request
 });
 
 export {
