@@ -50,6 +50,15 @@ const fields = [
     multiValue: true
   },
   {
+    name: 'Staff Note',
+    label: 'Staff Note',
+    type: 'string',
+    category: 'Notes',
+    desc: 'Example staff-only multi-value note field',
+    filters: ['contains', 'equals', 'does_not_equal'],
+    multiValue: true
+  },
+  {
     name: 'Local Metadata Field',
     label: 'Local Metadata Field',
     type: 'string',
@@ -88,6 +97,7 @@ const rows = [
     'Due Date': 'NEVER',
     'Local Metadata 590$a': ['Local history', 'Special collection'],
     'Public Note': ['Display copy', 'Ask at service desk'],
+    'Staff Note': ['Review condition before transfer'],
     Status: 'Available',
     Title: 'A Field Guide to Local History'
   },
@@ -96,6 +106,7 @@ const rows = [
     'Due Date': '2026-07-15',
     'Local Metadata 590$a': ['Donation copy'],
     'Public Note': ['New shelf'],
+    'Staff Note': ['Gift plate requested', 'Route to cataloging'],
     Status: 'Checked Out',
     Title: 'Modern Archives Handbook'
   },
@@ -104,6 +115,7 @@ const rows = [
     'Due Date': '2026-06-30',
     'Local Metadata 590$a': [],
     'Public Note': [],
+    'Staff Note': [],
     Status: 'Missing',
     Title: 'Digital Records Basics'
   }
@@ -235,7 +247,7 @@ function getRequestedColumns(payload) {
     : Array.isArray(payload.displayFields)
       ? payload.displayFields
       : [];
-  return requested.length ? requested : ['Title', 'Branch', 'Status', 'Due Date', 'Public Note'];
+  return requested.length ? requested : ['Title', 'Branch', 'Status', 'Due Date', 'Public Note', 'Staff Note'];
 }
 
 function getFilteredRows(payload) {
