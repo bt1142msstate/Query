@@ -6,7 +6,7 @@ The current checked-in endpoint remains the default example/testing backend. New
 
 The easiest user-facing path is the in-app **API Settings** panel. It saves a compatible API URL in the browser, can test `get_fields`, can run a compatibility report, and can build a launch link that includes only the API override.
 
-For non-browser workflows, the CLI in [`docs/CLI.md`](CLI.md) talks to the same backend contract. It can list fields, run query JSON configs, apply local post filters, and export JSONL, JSON, CSV, or XLSX. That gives deployments a scriptable path for scheduled reports without adding a separate API.
+For non-browser workflows, the CLI in [`docs/CLI.md`](CLI.md) talks to the same backend contract and uses the same payload/result/export modules as the app. It can list fields, run compatibility checks, inspect status, cancel runs, export saved results, list templates, run query JSON configs, apply local post filters, and export JSONL, JSON, CSV, or XLSX. That gives deployments a scriptable path for scheduled reports without adding a separate API.
 
 ## Recommended Contract
 

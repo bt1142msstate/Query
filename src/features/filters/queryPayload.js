@@ -176,6 +176,28 @@ function getNormalizedDisplayedFields(fields = getDisplayedFields()) {
     .filter((field, index, array) => array.indexOf(field) === index);
 }
 
+function getConfigDisplayedFields(input = {}) {
+  if (Array.isArray(input)) return input;
+  if (!input || typeof input !== 'object') return [];
+  return input.DesiredColumnOrder
+    || input.displayFields
+    || input.display_fields
+    || input.fields
+    || input.columns
+    || [];
+}
+
+function getFirstConfiguredDisplayedFields(...inputs) {
+  for (const input of inputs) {
+    const fields = getConfigDisplayedFields(input);
+    if (fields.length) {
+      return fields;
+    }
+  }
+
+  return [];
+}
+
 function normalizeUiConfigFilters(input, options = {}) {
   if (!input) return [];
 
@@ -189,7 +211,9 @@ function normalizeUiConfigFilters(input, options = {}) {
     let values = filter.Values;
     if (!Array.isArray(values)) {
       if (values === undefined || values === null) {
-        values = filter.value !== undefined ? [filter.value] : [];
+        values = Array.isArray(filter.value)
+          ? filter.value
+          : (filter.value !== undefined ? [filter.value] : []);
       } else {
         values = [values];
       }
@@ -214,11 +238,48 @@ function normalizeUiConfigFilters(input, options = {}) {
     return input.Filters.map(normalizeFilter).filter(Boolean);
   }
 
+  if (Array.isArray(input.filters)) {
+    return input.filters.map(normalizeFilter).filter(Boolean);
+  }
+
   if (Array.isArray(input.FilterGroups)) {
     return input.FilterGroups.flatMap(group => (group.Filters || []).map(normalizeFilter).filter(Boolean));
   }
 
+  if (Array.isArray(input.filterGroups)) {
+    return input.filterGroups.flatMap(group => (group.filters || group.Filters || []).map(normalizeFilter).filter(Boolean));
+  }
+
   return [];
+}
+
+function buildActiveFiltersFromUiConfigFilters(filters, {
+  resolveFieldName: resolveName = resolveFieldName
+} = {}) {
+  const nextActiveFilters = {};
+
+  filters.forEach(filter => {
+    const fieldName = typeof resolveName === 'function'
+      ? resolveName(filter.FieldName)
+      : filter.FieldName;
+    const uiCond = mapFieldOperatorToUiCond(filter.FieldOperator);
+    const valueGlue = uiCond === 'between' ? '|' : ',';
+
+    if (!fieldName) {
+      return;
+    }
+
+    if (!nextActiveFilters[fieldName]) {
+      nextActiveFilters[fieldName] = { filters: [] };
+    }
+
+    nextActiveFilters[fieldName].filters.push({
+      cond: uiCond,
+      val: (filter.Values || []).join(valueGlue)
+    });
+  });
+
+  return nextActiveFilters;
 }
 
 function buildQueryUiConfig() {
@@ -232,10 +293,10 @@ function buildQueryUiConfig() {
   return query;
 }
 
-function buildBackendFilters() {
+function buildBackendFiltersFromActiveFilters(activeFilters = getActiveFilters()) {
   const filters = [];
 
-  Object.entries(getActiveFilters()).forEach(([fieldName, filterGroup]) => {
+  Object.entries(activeFilters || {}).forEach(([fieldName, filterGroup]) => {
     const canonicalFieldName = getCanonicalPayloadFieldName(fieldName);
     const fieldDef = fieldDefs.get(canonicalFieldName);
     if (isFieldBuildable(fieldDef)) return;
@@ -275,10 +336,19 @@ function buildBackendFilters() {
   return filters;
 }
 
-function buildBackendQueryPayload(queryName = '') {
+function buildBackendFilters() {
+  return buildBackendFiltersFromActiveFilters(getActiveFilters());
+}
+
+function buildBackendQueryPayloadFromParts({
+  activeFilters = getActiveFilters(),
+  displayFields = getDisplayedFields(),
+  name = '',
+  payload = {}
+} = {}) {
   const standardDisplayFields = [];
 
-  getNormalizedDisplayedFields().forEach(field => {
+  getNormalizedDisplayedFields(displayFields).forEach(field => {
     const canonicalFieldName = getCanonicalPayloadFieldName(field);
 
     if (canonicalFieldName && !standardDisplayFields.includes(canonicalFieldName)) {
@@ -286,22 +356,59 @@ function buildBackendQueryPayload(queryName = '') {
     }
   });
 
-  const payload = {
+  return {
+    ...(payload && typeof payload === 'object' ? payload : {}),
     action: 'run',
-    name: queryName || undefined,
+    name: name || payload?.name || undefined,
     result_format: 'jsonl',
-    filters: buildBackendFilters(),
+    filters: buildBackendFiltersFromActiveFilters(activeFilters),
     display_fields: standardDisplayFields
   };
+}
 
-  return payload;
+function buildBackendQueryPayload(queryName = '') {
+  return buildBackendQueryPayloadFromParts({
+    activeFilters: getActiveFilters(),
+    displayFields: getDisplayedFields(),
+    name: queryName
+  });
+}
+
+function buildBackendQueryPayloadFromConfig(config = {}, options = {}) {
+  const source = config && typeof config === 'object' ? config : {};
+  const payload = source.payload && typeof source.payload === 'object' ? source.payload : {};
+  const uiConfig = source.ui_config || source.uiConfig || source;
+  const filterInputs = [
+    payload.filters,
+    uiConfig,
+    uiConfig === source ? null : source.filters
+  ].filter(Boolean);
+  const normalizedFilters = filterInputs.flatMap(input => normalizeUiConfigFilters(input, {
+    trackAliases: Boolean(options.trackAliases)
+  }));
+  const activeFilters = buildActiveFiltersFromUiConfigFilters(normalizedFilters);
+  const displayFields = options.displayFields?.length
+    ? options.displayFields
+    : getFirstConfiguredDisplayedFields(uiConfig, source, payload);
+
+  return buildBackendQueryPayloadFromParts({
+    activeFilters,
+    displayFields,
+    name: options.name || source.name || payload.name || '',
+    payload
+  });
 }
 
 export {
+  buildActiveFiltersFromUiConfigFilters,
   buildBackendFilters,
+  buildBackendFiltersFromActiveFilters,
   buildBackendQueryPayload,
+  buildBackendQueryPayloadFromConfig,
+  buildBackendQueryPayloadFromParts,
   buildQueryUiConfig,
   formatFieldOperatorForDisplay,
+  getConfigDisplayedFields,
   getNormalizedDisplayedFields,
   mapFieldOperatorToUiCond,
   mapUiCondToFieldOperator,

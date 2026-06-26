@@ -1,5 +1,5 @@
 {
-  "version": "9ef0840f6d849a26",
+  "version": "b8bf302823186e93",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -30,7 +30,7 @@
     "src/core/domCache.js": "6b65742fd5817619",
     "src/core/domReady.js": "f385624460b061da",
     "src/core/dynamicFieldStorage.js": "1ff73616e74c57db",
-    "src/core/fieldDefs.js": "ef0b156f6dc69664",
+    "src/core/fieldDefs.js": "c4bc6374ae014650",
     "src/core/formatting/cellDisplayFormatting.js": "be7e1f92547161d8",
     "src/core/formatting/dataFormatters.js": "01cc0a530b21639c",
     "src/core/formatting/dateValues.js": "8346afd2fe520d11",
@@ -73,7 +73,7 @@
     "src/features/filters/filterSidePanelReorderActions.js": "78d880d4c9905064",
     "src/features/filters/filterValueUi.js": "1754a150e044d281",
     "src/features/filters/panelArrange.js": "5c2179d5ba4cb3a5",
-    "src/features/filters/queryPayload.js": "26e9cbba03e25dc2",
+    "src/features/filters/queryPayload.js": "6a1f22392a604c0f",
     "src/features/history/controller/queryHistoryController.js": "6fe23129e30dc16a",
     "src/features/history/controller/queryHistoryRuntime.js": "d050b86d0a2602e8",
     "src/features/history/queryHistory.js": "f1bd267b4e396728",

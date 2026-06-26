@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import { rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 import {
   applyPostFilters,
@@ -7,7 +10,9 @@ import {
   parseCliArgs,
   parseFilterArgument,
   parsePostFilterArgument,
-  runQuery
+  runResultsCommand,
+  runQuery,
+  runTemplatesCommand
 } from '../../../scripts/lib/queryCli.mjs';
 
 const jsonlHeaders = { 'Content-Type': 'application/x-ndjson; charset=utf-8' };
@@ -50,7 +55,27 @@ test('query CLI parses flags and builds backend run payloads', () => {
   assert.deepEqual(payload.filters, [
     { field: 'Format', operator: '=', value: 'MARC' },
     { field: 'Item Library', operator: '=', value: 'MSU-GRANT' },
-    { field: 'Bill Count', operator: 'greater', value: '2' }
+    { field: 'Bill Count', operator: '>', value: '2' }
+  ]);
+});
+
+test('query CLI builds UI-config payloads through shared query payload helpers', () => {
+  const payload = buildRunPayload({
+    name: 'Template Config',
+    ui_config: {
+      DesiredColumnOrder: ['Title', 'Record Date'],
+      Filters: [
+        { FieldName: 'Title', FieldOperator: 'Contains', Values: ['Grant'] },
+        { FieldName: 'Record Date', FieldOperator: 'Between', Values: ['1/2/2026', '1/5/2026'] }
+      ]
+    }
+  });
+
+  assert.deepEqual(payload.display_fields, ['Title', 'Record Date']);
+  assert.deepEqual(payload.filters, [
+    { field: 'Title', operator: '=', value: '*Grant*' },
+    { field: 'Record Date', operator: '>=', value: '1/2/2026' },
+    { field: 'Record Date', operator: '<=', value: '1/5/2026' }
   ]);
 });
 
@@ -98,4 +123,66 @@ test('query CLI applies the same post-filter shape used by the table', () => {
   assert.deepEqual(filtered, [
     ['Grant Alpha', ['One', 'Two']]
   ]);
+});
+
+test('query CLI exports saved results through the shared result parser path', async () => {
+  const originalFetch = globalThis.fetch;
+  const requests = [];
+
+  globalThis.fetch = async (_apiUrl, init = {}) => {
+    const payload = JSON.parse(init.body || '{}');
+    requests.push(payload);
+    if (payload.action === 'get_fields') {
+      return Response.json({ fields: [{ name: 'Title', type: 'string' }] });
+    }
+    assert.equal(payload.action, 'get_results');
+    assert.equal(payload.query_id, 'query-123');
+    return new Response([
+      JSON.stringify({ type: 'meta', version: 1, format: 'jsonl', query_id: 'query-123', columns: ['Title'] }),
+      JSON.stringify({ type: 'row', values: ['Saved title'] }),
+      JSON.stringify({ type: 'done', rows: 1 })
+    ].join('\n'), { headers: jsonlHeaders });
+  };
+
+  const outputPath = join(tmpdir(), `query-cli-saved-result-${Date.now()}.json`);
+  try {
+    const result = await runResultsCommand({
+      'api-url': 'https://example.test/query',
+      'query-id': 'query-123',
+      format: 'json',
+      output: outputPath
+    });
+    assert.equal(result.rows, 1);
+    assert.deepEqual(requests.map(request => request.action), ['get_fields', 'get_results']);
+  } finally {
+    globalThis.fetch = originalFetch;
+    await rm(outputPath, { force: true });
+  }
+});
+
+test('query CLI lists templates through the shared template repository', async () => {
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async (_apiUrl, init = {}) => {
+    const payload = JSON.parse(init.body || '{}');
+    assert.equal(payload.action, 'list_templates');
+    return Response.json({
+      templates: [
+        { id: 'template-1', name: 'Saved Query', pinned: true, categories: [{ id: 'cat-1', name: 'Reports' }] }
+      ]
+    });
+  };
+
+  const outputPath = join(tmpdir(), `query-cli-templates-${Date.now()}.json`);
+  try {
+    const result = await runTemplatesCommand({
+      'api-url': 'https://example.test/query',
+      json: true,
+      output: outputPath
+    });
+    assert.equal(result.count, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+    await rm(outputPath, { force: true });
+  }
 });
