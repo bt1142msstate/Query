@@ -14,6 +14,7 @@ Current stage goals:
 - Remove reliance on the project-owned example API for the public live default.
 - Keep the browser app buildless and static while keeping API configuration first-class.
 - Keep the native JSONL API contract as the recommended path while documenting optional adapter patterns for systems that need translation.
+- Make private deployment sign-in and authorization guidance clear for libraries using existing institutional credentials.
 - Keep every new workflow covered by focused unit tests or realistic browser smoke tests.
 - Continue small cohesion reviews, but only split modules where there is a real ownership boundary.
 
@@ -70,6 +71,7 @@ The completed stages above are limited to work that is actually implemented or g
 | Minimal backend example | Complete: `examples/minimal-backend/` demonstrates `get_fields`, `run`, JSONL streaming, CORS, status, and cancel |
 | One-command local demo | Complete: `npm run demo` starts the static frontend and minimal backend |
 | Deployment recipes | Complete: same-origin proxy, CORS, cookie/session auth, GitHub Pages, internal hosting, and secret-handling guidance |
+| Authentication guide | Complete: documented same-origin sessions, OIDC/SAML/CAS integration points, secure cookie policy, authorization checks, and protected-data deployment rules |
 | Adapter examples | Complete at the sketch level: Node/Express, Python/FastAPI, legacy text output, and SQL/reporting API translation patterns |
 | Streaming JSONL result support | Complete |
 | Dynamic/buildable fields | Complete from the frontend contract side |
@@ -99,6 +101,7 @@ Stage 4 is done when:
 - The public live deployment no longer defaults to the project-owned example API.
 - The README clearly routes new users through local setup, API setup, and deployment choices.
 - `docs/INTEGRATION.md` includes enough contract detail and minimal examples for a developer to implement the compatible backend without reading app internals.
+- `docs/AUTH.md` explains how to use existing institutional credentials through a backend/proxy session model without exposing secrets in the static frontend.
 - The roadmap clearly distinguishes the recommended native JSONL backend from optional adapter examples for deployments whose existing systems need a translation layer.
 - API Settings can run a compatibility report against a configured backend.
 - The test gate still passes with cache-busting enforcement, architecture rules, unit tests, and browser smoke coverage.

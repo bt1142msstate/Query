@@ -287,6 +287,7 @@ async function requestJson(apiUrl, payload, options = {}) {
   try {
     const response = await fetch(apiUrl, {
       body: JSON.stringify(payload),
+      credentials: 'same-origin',
       headers: {
         'Content-Type': 'application/json'
       },
@@ -350,6 +351,7 @@ async function requestText(apiUrl, payload, options = {}) {
   try {
     const response = await fetch(apiUrl, {
       body: JSON.stringify(payload),
+      credentials: 'same-origin',
       headers: {
         Accept: 'application/x-ndjson, text/plain;q=0.9, */*;q=0.1',
         'Content-Type': 'application/json'

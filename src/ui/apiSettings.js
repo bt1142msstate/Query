@@ -201,6 +201,7 @@ async function postJsonToApiUrl(apiUrl, payload, options = {}) {
   try {
     const response = await fetch(apiUrl, {
       body: JSON.stringify(payload),
+      credentials: 'same-origin',
       headers: {
         'Content-Type': 'application/json'
       },

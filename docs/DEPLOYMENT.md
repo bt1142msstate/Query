@@ -19,6 +19,8 @@ Then set the app API URL to:
 
 This avoids most CORS complexity and keeps authentication cookies on one origin.
 
+For private deployments with sign-in or existing institutional credentials, follow [`docs/AUTH.md`](AUTH.md). The short version is: keep sign-in, tokens, library-system credentials, and authorization checks on the backend or reverse proxy; point the frontend at a same-origin route such as `/api/query`.
+
 ## Same-Origin Reverse Proxy
 
 Put the static site and API behind the same public origin. A reverse proxy can route:
@@ -74,6 +76,8 @@ For internal deployments, prefer a normal server-side session:
 4. The API validates the session before running actions.
 
 Do not put data-system passwords, API keys, or long-lived tokens into the API Settings URL.
+
+For OIDC, SAML/Shibboleth, CAS, LDAP-backed identity providers, or institutional SSO, terminate sign-in in the backend, reverse proxy, or identity-aware gateway. The browser app should only call the authenticated same-origin Query API route after sign-in.
 
 ## Avoid API Keys In Browser URLs
 
