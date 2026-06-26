@@ -1,0 +1,126 @@
+{
+  "name": "query-api-mcp-tools",
+  "description": "MCP-shaped tool definitions for wrapping a compatible Query API. The MCP server should keep the API URL, auth, retry policy, and request signing outside model-controlled arguments.",
+  "tools": [
+    {
+      "name": "query_api_get_fields",
+      "title": "Get Query Fields",
+      "description": "Discover canonical fields, descriptions, supported filters, value lists, warnings, and dynamic field builders.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "query_api_run",
+      "title": "Run Query",
+      "description": "Run a query and stream JSONL events. Use canonical field names from get_fields.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": ["string", "null"],
+            "description": "Human-readable query name, or null."
+          },
+          "display_fields": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "filters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": { "type": "string" },
+                "operator": { "type": "string", "enum": ["=", "!=", ">", "<", ">=", "<="] },
+                "value": {
+                  "anyOf": [
+                    { "type": "string" },
+                    { "type": "number" },
+                    { "type": "integer" },
+                    { "type": "boolean" },
+                    { "type": "null" },
+                    {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          { "type": "string" },
+                          { "type": "number" },
+                          { "type": "integer" },
+                          { "type": "boolean" },
+                          { "type": "null" }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "required": ["field", "operator", "value"],
+              "additionalProperties": false
+            }
+          },
+          "limit": {
+            "type": ["integer", "null"],
+            "minimum": 1
+          },
+          "max_rows": {
+            "type": ["integer", "null"],
+            "minimum": 1
+          }
+        },
+        "required": ["name", "display_fields", "filters", "limit", "max_rows"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "query_api_get_status",
+      "title": "Get Query Status",
+      "description": "Read status for running and recently completed queries.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "query_api_cancel",
+      "title": "Cancel Query",
+      "description": "Cancel a running query. The agent should ask for user confirmation before using this tool.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query_id": { "type": "string" }
+        },
+        "required": ["query_id"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "query_api_get_results",
+      "title": "Get Saved Query Results",
+      "description": "Load saved results for a completed query as JSONL events.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query_id": { "type": "string" }
+        },
+        "required": ["query_id"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "query_api_list_templates",
+      "title": "List Query Templates",
+      "description": "List saved query templates when the backend supports template actions.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    }
+  ]
+}

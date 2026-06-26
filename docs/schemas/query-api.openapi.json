@@ -1,0 +1,330 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Query API",
+    "version": "1.0.0",
+    "description": "Single-endpoint API for field discovery, query execution, query status, cancellation, saved results, and templates. Query results stream as JSON Lines."
+  },
+  "servers": [
+    {
+      "url": "https://your.example.org/query-api",
+      "description": "Replace with your deployed Query API endpoint."
+    }
+  ],
+  "paths": {
+    "/query-api": {
+      "post": {
+        "operationId": "queryApiAction",
+        "summary": "Send a Query API action",
+        "description": "Send one JSON action payload. The run and get_results actions return application/x-ndjson streams; other actions return JSON.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  { "$ref": "#/components/schemas/GetFieldsRequest" },
+                  { "$ref": "#/components/schemas/RunRequest" },
+                  { "$ref": "#/components/schemas/StatusRequest" },
+                  { "$ref": "#/components/schemas/CancelRequest" },
+                  { "$ref": "#/components/schemas/GetResultsRequest" },
+                  { "$ref": "#/components/schemas/ListTemplatesRequest" }
+                ]
+              },
+              "examples": {
+                "getFields": {
+                  "summary": "Discover available fields",
+                  "value": { "action": "get_fields" }
+                },
+                "run": {
+                  "summary": "Run a small query",
+                  "value": {
+                    "action": "run",
+                    "name": "Agent sample query",
+                    "result_format": "jsonl",
+                    "display_fields": ["Title", "Public Note"],
+                    "filters": [
+                      { "field": "Title", "operator": "=", "value": "*grant*" }
+                    ],
+                    "limit": 25,
+                    "max_rows": 25
+                  }
+                },
+                "status": {
+                  "summary": "Read query status",
+                  "value": { "action": "status" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "JSON response for metadata/actions, or JSONL stream for run/get_results.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    { "$ref": "#/components/schemas/GetFieldsResponse" },
+                    { "$ref": "#/components/schemas/StatusResponse" },
+                    { "$ref": "#/components/schemas/TemplatesResponse" },
+                    { "$ref": "#/components/schemas/GenericJsonResponse" }
+                  ]
+                }
+              },
+              "application/x-ndjson": {
+                "schema": {
+                  "type": "string",
+                  "description": "Newline-delimited JSON events. First event must be meta; row events contain ordered values; final event must be done."
+                },
+                "examples": {
+                  "stream": {
+                    "summary": "JSONL result stream",
+                    "value": "{\"type\":\"meta\",\"version\":1,\"format\":\"jsonl\",\"query_id\":\"query-1\",\"columns\":[\"Title\",\"Public Note\"]}\n{\"type\":\"row\",\"values\":[\"Example title\",[\"First note\",\"Second note\"]]}\n{\"type\":\"done\",\"rows\":1}\n"
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" },
+          "429": { "$ref": "#/components/responses/Error" },
+          "500": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    }
+  },
+  "components": {
+    "responses": {
+      "Error": {
+        "description": "Error response.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Scalar": {
+        "type": ["string", "number", "integer", "boolean", "null"]
+      },
+      "CellValue": {
+        "oneOf": [
+          { "$ref": "#/components/schemas/Scalar" },
+          {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Scalar" }
+          },
+          {
+            "type": "object",
+            "properties": {
+              "value": { "$ref": "#/components/schemas/Scalar" },
+              "values": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/Scalar" }
+              }
+            },
+            "additionalProperties": true
+          }
+        ]
+      },
+      "FieldDefinition": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "description": "Canonical field name used in display_fields and filters." },
+          "label": { "type": "string" },
+          "desc": { "type": "string" },
+          "description": { "type": "string" },
+          "category": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "array", "items": { "type": "string" } }
+            ]
+          },
+          "type": { "type": "string", "examples": ["string", "date", "number", "money", "boolean"] },
+          "filters": { "type": "array", "items": { "type": "string" } },
+          "values": { "type": "array", "items": { "$ref": "#/components/schemas/Scalar" } },
+          "aliases": { "type": "array", "items": { "type": "string" } },
+          "allowValueList": { "type": "boolean" },
+          "multiValue": { "type": "boolean" },
+          "builder": { "$ref": "#/components/schemas/FieldBuilder" }
+        },
+        "additionalProperties": true
+      },
+      "FieldBuilder": {
+        "type": "object",
+        "properties": {
+          "outputFieldIdTemplate": { "type": "string" },
+          "displayLabelTemplate": { "type": "string" },
+          "matchPattern": { "type": "string" },
+          "inputs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "label": { "type": "string" },
+                "type": { "type": "string" },
+                "pattern": { "type": "string" },
+                "optional": { "type": "boolean" },
+                "options": { "type": "array" }
+              },
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      },
+      "BackendFilter": {
+        "type": "object",
+        "required": ["field", "operator", "value"],
+        "properties": {
+          "field": { "type": "string" },
+          "operator": { "type": "string", "enum": ["=", "!=", ">", "<", ">=", "<="] },
+          "value": {
+            "oneOf": [
+              { "$ref": "#/components/schemas/Scalar" },
+              { "type": "array", "items": { "$ref": "#/components/schemas/Scalar" } }
+            ]
+          }
+        },
+        "additionalProperties": true
+      },
+      "GetFieldsRequest": {
+        "type": "object",
+        "required": ["action"],
+        "properties": {
+          "action": { "const": "get_fields" }
+        },
+        "additionalProperties": true
+      },
+      "GetFieldsResponse": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/FieldDefinition" }
+          }
+        },
+        "additionalProperties": true
+      },
+      "RunRequest": {
+        "type": "object",
+        "required": ["action", "result_format", "display_fields", "filters"],
+        "properties": {
+          "action": { "const": "run" },
+          "name": { "type": "string" },
+          "result_format": { "const": "jsonl" },
+          "display_fields": { "type": "array", "items": { "type": "string" } },
+          "filters": { "type": "array", "items": { "$ref": "#/components/schemas/BackendFilter" } },
+          "limit": { "type": "integer", "minimum": 1 },
+          "max_rows": { "type": "integer", "minimum": 1 },
+          "compatibility_check": { "type": "boolean" }
+        },
+        "additionalProperties": true
+      },
+      "StatusRequest": {
+        "type": "object",
+        "required": ["action"],
+        "properties": {
+          "action": { "const": "status" }
+        },
+        "additionalProperties": true
+      },
+      "StatusResponse": {
+        "type": "object",
+        "properties": {
+          "queries": {
+            "oneOf": [
+              { "type": "array", "items": { "$ref": "#/components/schemas/QueryStatus" } },
+              {
+                "type": "object",
+                "additionalProperties": { "$ref": "#/components/schemas/QueryStatus" }
+              }
+            ]
+          }
+        },
+        "additionalProperties": true
+      },
+      "QueryStatus": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "query_id": { "type": "string" },
+          "name": { "type": "string" },
+          "status": { "type": "string" },
+          "row_count": { "type": "integer", "minimum": 0 },
+          "result_count": { "type": "integer", "minimum": 0 },
+          "error": { "type": "string" }
+        },
+        "additionalProperties": true
+      },
+      "CancelRequest": {
+        "type": "object",
+        "required": ["action", "query_id"],
+        "properties": {
+          "action": { "const": "cancel" },
+          "query_id": { "type": "string" },
+          "id": { "type": "string" }
+        },
+        "additionalProperties": true
+      },
+      "GetResultsRequest": {
+        "type": "object",
+        "required": ["action", "query_id", "result_format"],
+        "properties": {
+          "action": { "const": "get_results" },
+          "query_id": { "type": "string" },
+          "id": { "type": "string" },
+          "result_format": { "const": "jsonl" }
+        },
+        "additionalProperties": true
+      },
+      "ListTemplatesRequest": {
+        "type": "object",
+        "required": ["action"],
+        "properties": {
+          "action": { "const": "list_templates" }
+        },
+        "additionalProperties": true
+      },
+      "TemplatesResponse": {
+        "type": "object",
+        "properties": {
+          "templates": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Template" }
+          }
+        },
+        "additionalProperties": true
+      },
+      "Template": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "ui_config": { "type": "object", "additionalProperties": true },
+          "categories": { "type": "array" },
+          "pinned": { "type": "boolean" }
+        },
+        "additionalProperties": true
+      },
+      "GenericJsonResponse": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": { "type": "string" },
+          "retry_after_seconds": { "type": "number", "minimum": 0 },
+          "error_details": { "type": "object", "additionalProperties": true }
+        },
+        "additionalProperties": true
+      }
+    }
+  }
+}

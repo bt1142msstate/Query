@@ -1,0 +1,144 @@
+[
+  {
+    "type": "function",
+    "name": "query_api_get_fields",
+    "description": "Discover canonical Query API fields, field descriptions, filter support, value lists, warnings, and dynamic field builders. Call this before building a query.",
+    "strict": true,
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  {
+    "type": "function",
+    "name": "query_api_run",
+    "description": "Run a Query API request and return JSONL events. Use only canonical field names from query_api_get_fields. For previews, pass small limit and max_rows values.",
+    "strict": true,
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": ["string", "null"],
+          "description": "Human-readable query name, or null when no stable name is needed."
+        },
+        "display_fields": {
+          "type": "array",
+          "description": "Canonical fields to display, in output order.",
+          "items": { "type": "string" }
+        },
+        "filters": {
+          "type": "array",
+          "description": "Backend filters to apply before streaming results.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "field": {
+                "type": "string",
+                "description": "Canonical field name returned by query_api_get_fields."
+              },
+              "operator": {
+                "type": "string",
+                "enum": ["=", "!=", ">", "<", ">=", "<="]
+              },
+              "value": {
+                "anyOf": [
+                  { "type": "string" },
+                  { "type": "number" },
+                  { "type": "integer" },
+                  { "type": "boolean" },
+                  { "type": "null" },
+                  {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        { "type": "string" },
+                        { "type": "number" },
+                        { "type": "integer" },
+                        { "type": "boolean" },
+                        { "type": "null" }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            "required": ["field", "operator", "value"],
+            "additionalProperties": false
+          }
+        },
+        "limit": {
+          "type": ["integer", "null"],
+          "description": "Optional preview limit. Use null for full runs.",
+          "minimum": 1
+        },
+        "max_rows": {
+          "type": ["integer", "null"],
+          "description": "Optional maximum rows hint. Use null for full runs.",
+          "minimum": 1
+        }
+      },
+      "required": ["name", "display_fields", "filters", "limit", "max_rows"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "type": "function",
+    "name": "query_api_get_status",
+    "description": "Read status for running and recently completed queries.",
+    "strict": true,
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  {
+    "type": "function",
+    "name": "query_api_cancel",
+    "description": "Cancel a running query by query_id. Ask the user for confirmation before calling this tool.",
+    "strict": true,
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "query_id": {
+          "type": "string",
+          "description": "Query ID returned by a run or status response."
+        }
+      },
+      "required": ["query_id"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "type": "function",
+    "name": "query_api_get_results",
+    "description": "Load saved results for a completed query as JSONL events.",
+    "strict": true,
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "query_id": {
+          "type": "string",
+          "description": "Query ID for saved results."
+        }
+      },
+      "required": ["query_id"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "type": "function",
+    "name": "query_api_list_templates",
+    "description": "List saved query templates when the backend supports template actions.",
+    "strict": true,
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    }
+  }
+]

@@ -1,0 +1,3 @@
+{"type":"meta","version":1,"format":"jsonl","query_id":"query-1","columns":["Title","Public Note"]}
+{"type":"row","values":["Example title",["First note","Second note"]]}
+{"type":"done","rows":1}

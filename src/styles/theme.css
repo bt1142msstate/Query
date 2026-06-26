@@ -235,6 +235,13 @@
   color: var(--theme-text);
 }
 
+:root[data-theme-resolved="dark"] #example-table .query-table-multi-value-trigger,
+:root[data-theme-resolved="dark"] #example-table .query-table-truncated-trigger {
+  border-color: rgba(148, 163, 184, 0.24) !important;
+  background: rgba(15, 23, 42, 0.86) !important;
+  color: var(--theme-text) !important;
+}
+
 :root[data-theme-resolved="dark"] .query-table-multi-value-trigger:hover,
 :root[data-theme-resolved="dark"] .query-table-truncated-trigger:hover,
 :root[data-theme-resolved="dark"] .query-table-truncated-trigger:focus-visible {
