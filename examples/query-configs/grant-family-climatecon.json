@@ -1,0 +1,51 @@
+{
+  "name": "Grant Family Book Collection Report",
+  "tableName": "Grant Family Climatecon",
+  "displayFields": [
+    "Item Id",
+    "Catalog Key",
+    "Call Number",
+    "Title",
+    "Author",
+    "Format",
+    "Item Type",
+    "Item Library",
+    "Home Location",
+    "Current Location",
+    "MARC 590"
+  ],
+  "filters": [
+    {
+      "field": "Item Library",
+      "operator": "=",
+      "value": "MSU-GRANT"
+    },
+    {
+      "field": "Home Location",
+      "operator": "=",
+      "value": "CLIMATECON"
+    },
+    {
+      "field": "Current Location",
+      "operator": "=",
+      "value": "CLIMATECON"
+    },
+    {
+      "field": "Item Type",
+      "operator": "=",
+      "value": ["BOOK", "PAMPHLET"]
+    },
+    {
+      "field": "MARC 590",
+      "operator": "=",
+      "value": [
+        "*MSU -- Grant Family Book Collection*",
+        "*MSU--Grant Family Book Collection*"
+      ]
+    }
+  ],
+  "export": {
+    "format": "xlsx",
+    "output": "../Reports/Grant Family Book Collection - Climatecon.xlsx"
+  }
+}
