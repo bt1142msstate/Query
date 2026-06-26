@@ -83,6 +83,8 @@ http://127.0.0.1:8787/query-api
 
 For a new backend, start with [`docs/INTEGRATION.md`](docs/INTEGRATION.md). The minimum integration is `POST` JSON actions for `get_fields` and `run`; history, cancellation, saved templates, and saved-result loading are optional extensions.
 
+For private deployments that need sign-in, existing institutional credentials, or protected library-system data, use [`docs/AUTH.md`](docs/AUTH.md). The recommended pattern is a same-origin authenticated API route such as `/api/query`, with OIDC/SAML/CAS or another identity provider handled by the backend or reverse proxy.
+
 For AI agents and tool-calling integrations, start with [`docs/AI_API.md`](docs/AI_API.md). It includes the recommended MCP wrapper shape, strict function-tool examples, OpenAPI import notes, and agent workflow rules.
 
 For reusing pieces of the frontend in another site, start with [`docs/COMPONENTS.md`](docs/COMPONENTS.md). The supported public entrypoints are under `src/components/`; outside sites should use those instead of importing directly from feature internals.
@@ -187,6 +189,7 @@ Canonical layout decision: application source lives in `src/`. We are not using 
 | `src/styles/app.css` | Stylesheet entrypoint that imports the feature CSS files |
 | `config/` | Shared architecture contracts for forbidden browser globals and module boundaries |
 | `docs/ARCHITECTURE.md` | Frontend architecture notes, quality gates, and refactor plan |
+| `docs/AUTH.md` | Sign-in, SSO, session, authorization, and secure deployment guide |
 | `docs/CLI.md` | Command-line field discovery, query execution, and export workflow |
 | `docs/COMPONENTS.md` | Reusable component entrypoints and integration examples |
 | `docs/AI_API.md` | AI agent, MCP, strict function-tool, and OpenAPI integration guide |

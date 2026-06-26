@@ -1,5 +1,5 @@
 {
-  "version": "d3da58f4a92ef9a6",
+  "version": "56af72306788f1d1",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -23,7 +23,7 @@
     "src/core/appServices.js": "f119e3257c71f94e",
     "src/core/appStartupEvents.js": "ade9ac58fb5c38e5",
     "src/core/appUiActions.js": "6d81c4f6bb73a17f",
-    "src/core/backendApi.js": "ef2483de720526fc",
+    "src/core/backendApi.js": "1c773382e6943148",
     "src/core/backgroundTaskNotifications.js": "9f23ed0c3a09a030",
     "src/core/bootstrap.js": "6550fd6a729866a6",
     "src/core/clipboard.js": "5a21793ae38601a7",
@@ -185,8 +185,8 @@
     "src/styles/theme.css": "d400d5a040173a4f",
     "src/styles/tokens.css": "d20a2992e5150f85",
     "src/styles/tooltips.css": "ef1ac9877dc6bbdb",
-    "src/ui/apiCompatibility.js": "650125d9c6d0b03e",
-    "src/ui/apiSettings.js": "8bfaa867a2b426fc",
+    "src/ui/apiCompatibility.js": "ce9ef861d35e3843",
+    "src/ui/apiSettings.js": "86923fbc39f10534",
     "src/ui/controls/customDatePicker.js": "88e4eb3245ac256c",
     "src/ui/controls/searchUI.js": "9d46afc995531905",
     "src/ui/controls/selectorControls.js": "4695a3b3504c427a",

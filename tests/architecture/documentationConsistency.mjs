@@ -15,6 +15,7 @@ test('documentation consistency', async () => {
     architecture,
     integration,
     testReadme,
+    authGuide,
     aiApiGuide,
     queryApiSchemaText,
     queryApiOpenApiText,
@@ -28,6 +29,7 @@ test('documentation consistency', async () => {
     readFile(resolve(rootDir, 'docs/ARCHITECTURE.md'), 'utf8'),
     readFile(resolve(rootDir, 'docs/INTEGRATION.md'), 'utf8'),
     readFile(resolve(rootDir, 'tests/README.md'), 'utf8'),
+    readFile(resolve(rootDir, 'docs/AUTH.md'), 'utf8'),
     readFile(resolve(rootDir, 'docs/AI_API.md'), 'utf8'),
     readFile(resolve(rootDir, 'docs/schemas/query-api.schema.json'), 'utf8'),
     readFile(resolve(rootDir, 'docs/schemas/query-api.openapi.json'), 'utf8'),
@@ -48,6 +50,7 @@ test('documentation consistency', async () => {
   assert.match(readme, /## 🚀 Quick Start: Run and Connect a Backend/u);
   assert.match(readme, /Canonical layout decision: application source lives in `src\/`/u);
   assert.match(readme, /docs\/schemas\/query-api\.schema\.json/u);
+  assert.match(readme, /docs\/AUTH\.md/u);
   assert.match(readme, /docs\/AI_API\.md/u);
   assert.match(readme, /docs\/schemas\/query-api\.openapi\.json/u);
   assert.match(architecture, /## Canonical Source Layout/u);
@@ -55,8 +58,15 @@ test('documentation consistency', async () => {
   assert.match(integration, /## Recommended Contract/u);
   assert.match(integration, /## Fastest Setup Path/u);
   assert.match(integration, /docs\/schemas\/query-api\.schema\.json/u);
+  assert.match(integration, /docs\/AUTH\.md/u);
   assert.match(integration, /docs\/AI_API\.md/u);
   assert.match(integration, /docs\/schemas\/query-api\.openapi\.json/u);
+  assert.match(authGuide, /## Recommended Pattern/u);
+  assert.match(authGuide, /same-origin authenticated backend-for-frontend/u);
+  assert.match(authGuide, /OpenID Connect/u);
+  assert.match(authGuide, /SAML/u);
+  assert.match(authGuide, /CAS/u);
+  assert.match(authGuide, /credentials: "same-origin"/u);
   assert.match(aiApiGuide, /## Modern AI Integration Targets/u);
   assert.match(aiApiGuide, /MCP adapter/u);
   assert.match(aiApiGuide, /Strict function tools/u);
@@ -115,10 +125,12 @@ test('documentation consistency', async () => {
 
   const quickStartIndex = readme.indexOf('## 🚀 Quick Start: Run and Connect a Backend');
   const integrationLinkIndex = readme.indexOf('docs/INTEGRATION.md');
+  const authGuideLinkIndex = readme.indexOf('docs/AUTH.md');
   const aiGuideLinkIndex = readme.indexOf('docs/AI_API.md');
   const featuresIndex = readme.indexOf('## 💻 Features');
   assert.ok(quickStartIndex !== -1 && featuresIndex !== -1 && quickStartIndex < featuresIndex);
   assert.ok(integrationLinkIndex !== -1 && integrationLinkIndex < featuresIndex);
+  assert.ok(authGuideLinkIndex !== -1 && authGuideLinkIndex < featuresIndex);
   assert.ok(aiGuideLinkIndex !== -1 && aiGuideLinkIndex < featuresIndex);
 });
 

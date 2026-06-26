@@ -100,3 +100,31 @@ test('backend api times out pending requests', async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+test('backend api uses same-origin credential policy', async () => {
+  installBrowserConfig({
+    href: 'https://app.example.test/index.html',
+    search: ''
+  });
+  const credentialModule = await import(`../../../src/core/backendApi.js?case=credentials-${Date.now()}`);
+  const originalFetch = globalThis.fetch;
+  let capturedOptions = null;
+
+  credentialModule.configureApiUrl('/api/query', { persist: false });
+  globalThis.fetch = async (_url, options = {}) => {
+    capturedOptions = options;
+    return new Response('{}', {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      status: 200
+    });
+  };
+
+  try {
+    await credentialModule.postJson({ action: 'get_fields' });
+    assert.equal(capturedOptions.credentials, 'same-origin');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

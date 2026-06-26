@@ -213,6 +213,7 @@ async function request(payload, options = {}) {
         'Content-Type': 'application/json',
         ...headers
       },
+      credentials: 'same-origin',
       keepalive,
       body: JSON.stringify(payload),
       ...(controller ? { signal: controller.signal } : {})
