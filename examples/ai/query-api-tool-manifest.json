@@ -1,0 +1,89 @@
+{
+  "name": "query-api-tools",
+  "description": "Provider-neutral tool descriptions for agents that call a compatible Query API. All tools map to the same backend URL with different action payloads.",
+  "endpoint": {
+    "method": "POST",
+    "url": "https://your.example.org/query-api",
+    "contentType": "application/json"
+  },
+  "tools": [
+    {
+      "name": "get_fields",
+      "description": "Discover canonical fields, filter operators, value lists, aliases, warnings, and dynamic field builders.",
+      "body": {
+        "action": "get_fields"
+      }
+    },
+    {
+      "name": "run_query",
+      "description": "Run a query and stream JSONL result events. Use canonical field names from get_fields.",
+      "bodySchema": {
+        "type": "object",
+        "required": ["display_fields", "filters"],
+        "properties": {
+          "display_fields": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "filters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["field", "operator", "value"],
+              "properties": {
+                "field": { "type": "string" },
+                "operator": { "type": "string", "enum": ["=", "!=", ">", "<", ">=", "<="] },
+                "value": {}
+              }
+            }
+          },
+          "name": { "type": "string" },
+          "limit": { "type": "integer", "minimum": 1 },
+          "max_rows": { "type": "integer", "minimum": 1 }
+        }
+      },
+      "bodyTemplate": {
+        "action": "run",
+        "result_format": "jsonl",
+        "display_fields": "{{display_fields}}",
+        "filters": "{{filters}}",
+        "name": "{{name}}",
+        "limit": "{{limit}}",
+        "max_rows": "{{max_rows}}"
+      }
+    },
+    {
+      "name": "get_status",
+      "description": "Read running/completed query status.",
+      "body": {
+        "action": "status"
+      }
+    },
+    {
+      "name": "cancel_query",
+      "description": "Cancel a running query. Ask the user before calling this.",
+      "bodyTemplate": {
+        "action": "cancel",
+        "query_id": "{{query_id}}",
+        "id": "{{query_id}}"
+      }
+    },
+    {
+      "name": "get_results",
+      "description": "Load saved query results as a JSONL stream.",
+      "bodyTemplate": {
+        "action": "get_results",
+        "query_id": "{{query_id}}",
+        "id": "{{query_id}}",
+        "result_format": "jsonl"
+      }
+    },
+    {
+      "name": "list_templates",
+      "description": "List saved query templates.",
+      "body": {
+        "action": "list_templates"
+      }
+    }
+  ]
+}

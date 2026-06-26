@@ -1,0 +1,15 @@
+{
+  "action": "run",
+  "name": "Agent sample query",
+  "result_format": "jsonl",
+  "display_fields": ["Title", "Public Note"],
+  "filters": [
+    {
+      "field": "Title",
+      "operator": "=",
+      "value": "*grant*"
+    }
+  ],
+  "limit": 25,
+  "max_rows": 25
+}

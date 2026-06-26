@@ -8,6 +8,8 @@ The easiest user-facing path is the in-app **API Settings** panel. It saves a co
 
 For non-browser workflows, the CLI in [`docs/CLI.md`](CLI.md) talks to the same backend contract and uses the same payload/result/export modules as the app. It can list fields, run compatibility checks, inspect status, cancel runs, export saved results, list templates, run query JSON configs, apply local post filters, and export JSONL, JSON, CSV, or XLSX. That gives deployments a scriptable path for scheduled reports without adding a separate API.
 
+For AI agents, tool-calling systems, and workflow automation, start with [`docs/AI_API.md`](AI_API.md). It keeps this same JSONL backend contract but shows how to expose it as MCP tools, strict model function tools, or OpenAPI-importable actions.
+
 ## Recommended Contract
 
 For new integrations, keep the backend adapter small and boring:
@@ -18,7 +20,7 @@ For new integrations, keep the backend adapter small and boring:
 4. Stream result events as JSONL with one `meta` event, zero or more `row` events, and a final `done` event.
 5. Add query IDs, history, cancellation, saved results, and templates only when your deployment needs those panels.
 
-The machine-readable schema is [`docs/schemas/query-api.schema.json`](schemas/query-api.schema.json). It uses JSON Schema draft 2020-12 and intentionally allows extra properties so a backend can include deployment-specific metadata without forking the frontend.
+The machine-readable schema is [`docs/schemas/query-api.schema.json`](schemas/query-api.schema.json). It uses JSON Schema draft 2020-12 and intentionally allows extra properties so a backend can include deployment-specific metadata without forking the frontend. An OpenAPI 3.1 description for documentation and AI/tool importers lives at [`docs/schemas/query-api.openapi.json`](schemas/query-api.openapi.json).
 
 ## Fastest Setup Path
 
@@ -199,6 +201,8 @@ Use [`docs/schemas/query-api.schema.json`](schemas/query-api.schema.json) as the
 - optional cancellation, saved-result loading, template payloads, and error responses
 
 The schema is permissive by design outside the core stream protocol. Required fields are limited to the contract the frontend needs, while `additionalProperties` allows backend-specific IDs, timing data, diagnostics, auth context, or deployment metadata. JSONL examples in this guide are validated in the architecture test suite against the `jsonlEvent` schema definition.
+
+For AI integrations, use [`docs/AI_API.md`](AI_API.md) with [`docs/schemas/query-api.openapi.json`](schemas/query-api.openapi.json). The AI-facing examples keep endpoint selection and credentials outside model-controlled arguments while still using the same `get_fields`, `run`, `status`, `cancel`, `get_results`, and `list_templates` actions.
 
 ## Required Core Actions
 

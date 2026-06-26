@@ -83,6 +83,8 @@ http://127.0.0.1:8787/query-api
 
 For a new backend, start with [`docs/INTEGRATION.md`](docs/INTEGRATION.md). The minimum integration is `POST` JSON actions for `get_fields` and `run`; history, cancellation, saved templates, and saved-result loading are optional extensions.
 
+For AI agents and tool-calling integrations, start with [`docs/AI_API.md`](docs/AI_API.md). It includes the recommended MCP wrapper shape, strict function-tool examples, OpenAPI import notes, and agent workflow rules.
+
 For reusing pieces of the frontend in another site, start with [`docs/COMPONENTS.md`](docs/COMPONENTS.md). The supported public entrypoints are under `src/components/`; outside sites should use those instead of importing directly from feature internals.
 
 For command-line workflows and repeatable report configs, use [`docs/CLI.md`](docs/CLI.md). The CLI uses the same backend JSONL contract and shared payload/result/export modules as the browser app:
@@ -108,7 +110,7 @@ The recommended backend contract is intentionally small:
 }
 ```
 
-Backends stream results as JSON Lines events using `Content-Type: application/x-ndjson`. The machine-readable contract lives at [`docs/schemas/query-api.schema.json`](docs/schemas/query-api.schema.json), and the full setup guide is [`docs/INTEGRATION.md`](docs/INTEGRATION.md).
+Backends stream results as JSON Lines events using `Content-Type: application/x-ndjson`. The machine-readable contract lives at [`docs/schemas/query-api.schema.json`](docs/schemas/query-api.schema.json), the OpenAPI description for AI/tool import lives at [`docs/schemas/query-api.openapi.json`](docs/schemas/query-api.openapi.json), and the full setup guide is [`docs/INTEGRATION.md`](docs/INTEGRATION.md).
 
 The checked-in default endpoint in `src/core/backendApi.js` is an example/testing integration, not the intended production backend for the public live site. Real deployments should provide their own compatible API URL or same-origin API route.
 
@@ -187,12 +189,15 @@ Canonical layout decision: application source lives in `src/`. We are not using 
 | `docs/ARCHITECTURE.md` | Frontend architecture notes, quality gates, and refactor plan |
 | `docs/CLI.md` | Command-line field discovery, query execution, and export workflow |
 | `docs/COMPONENTS.md` | Reusable component entrypoints and integration examples |
+| `docs/AI_API.md` | AI agent, MCP, strict function-tool, and OpenAPI integration guide |
 | `docs/INTEGRATION.md` | Backend integration contract, streaming JSONL results, and deployment options |
 | `docs/DEPLOYMENT.md` | Deployment recipes for same-origin proxying, CORS, auth, GitHub Pages, and internal hosting |
 | `docs/PROJECT_HISTORY.md` | Non-redundant build history and backend work summary |
 | `docs/ROADMAP.md` | Current project status, completed milestones, and remaining roadmap items |
 | `docs/schemas/query-api.schema.json` | Machine-readable JSON Schema for the recommended backend contract |
+| `docs/schemas/query-api.openapi.json` | OpenAPI 3.1 description for API docs and AI/tool importers |
 | `examples/adapters/` | Adapter sketches for translating existing systems into the JSONL contract |
+| `examples/ai/` | Agent prompts, strict tool schemas, MCP-shaped tool definitions, and JSONL examples |
 | `examples/minimal-backend/` | Dependency-free JSONL backend example for local integration testing |
 | `examples/query-configs/` | Repeatable CLI query/export config examples |
 | `tests/architecture/` | Architecture fitness and module-specifier checks |
