@@ -20,7 +20,7 @@ A single-page app for building queries, applying filters, reviewing results, and
 | **Query history** | Live status tracking — reload, rerun, cancel, or inspect past runs |
 | **Query templates** | Save, categorize, pin, search, and reapply reusable query setups |
 | **Query JSON** | Inspect the exact payload being sent to the backend |
-| **CLI exports** | Run backend queries and export JSONL, JSON, CSV, or XLSX from terminal configs |
+| **CLI workflows** | Run compatibility checks, inspect status, export saved results, list templates, run queries, and export JSONL/JSON/CSV/XLSX from terminal configs |
 | **API Settings** | Connect a compatible backend from the app without editing source files |
 | **Post filters** | Apply result-only filters without sending them to the backend |
 | **Results table** | Virtualized large-table rendering with resize, sort, post-filter, and Excel export support |
@@ -85,7 +85,7 @@ For a new backend, start with [`docs/INTEGRATION.md`](docs/INTEGRATION.md). The 
 
 For reusing pieces of the frontend in another site, start with [`docs/COMPONENTS.md`](docs/COMPONENTS.md). The supported public entrypoints are under `src/components/`; outside sites should use those instead of importing directly from feature internals.
 
-For command-line exports and repeatable report configs, use [`docs/CLI.md`](docs/CLI.md). The CLI uses the same backend JSONL contract as the browser app:
+For command-line workflows and repeatable report configs, use [`docs/CLI.md`](docs/CLI.md). The CLI uses the same backend JSONL contract and shared payload/result/export modules as the browser app:
 
 ```bash
 npm run query:run -- --config examples/query-configs/grant-family-climatecon.json

@@ -12,6 +12,7 @@ test('query payload', async () => {
   const {
     buildBackendFilters,
     buildBackendQueryPayload,
+    buildBackendQueryPayloadFromConfig,
     buildQueryUiConfig,
     formatFieldOperatorForDisplay,
     getNormalizedDisplayedFields,
@@ -111,6 +112,14 @@ test('query payload', async () => {
     { FieldName: 'Record Date', FieldOperator: 'Between', Values: ['1/1/2026|1/2/2026'] }
   ]);
 
+  assert.deepEqual(normalizeUiConfigFilters({
+    filters: [
+      { field: 'Catalog Key', operator: '=', value: ['A', 'B'] }
+    ]
+  }), [
+    { FieldName: 'Catalog Key', FieldOperator: '=', Values: ['A', 'B'] }
+  ]);
+
   assert.deepEqual(buildBackendFilters(), [
     { field: 'Title', operator: '=', value: '*needle*' },
     { field: 'Search Key', operator: '=', value: ['A', 'B', 'C'] },
@@ -166,4 +175,31 @@ test('query payload', async () => {
   assert.equal(bulkKeyPayload.filters[0].operator, '=');
   assert.deepEqual(bulkKeyPayload.filters[0].value, uploadedCatalogKeys);
   assert.deepEqual(bulkKeyPayload.display_fields, ['Catalog Key', 'Title']);
+
+  assert.deepEqual(buildBackendQueryPayloadFromConfig({
+    name: 'Config Payload',
+    ui_config: {
+      DesiredColumnOrder: ['Old Title', 'Record Date', 'Synthetic Field'],
+      Filters: [
+        { FieldName: 'Old Title', FieldOperator: 'Contains', Values: ['grant'] },
+        { FieldName: 'Record Date', FieldOperator: 'Between', Values: ['1/2/2026', '1/5/2026'] },
+        { FieldName: 'Catalog Key', FieldOperator: 'Equals', Values: uploadedCatalogKeys }
+      ]
+    },
+    payload: {
+      limit: 5
+    }
+  }), {
+    action: 'run',
+    name: 'Config Payload',
+    result_format: 'jsonl',
+    limit: 5,
+    filters: [
+      { field: 'Title', operator: '=', value: '*grant*' },
+      { field: 'Record Date', operator: '>=', value: '20260102' },
+      { field: 'Record Date', operator: '<=', value: '20260105' },
+      { field: 'Catalog Key', operator: '=', value: uploadedCatalogKeys }
+    ],
+    display_fields: ['Title', 'Record Date']
+  });
 });

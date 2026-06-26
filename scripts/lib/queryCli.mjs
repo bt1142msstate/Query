@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import process from 'node:process';
+import { replaceFieldDefinitions } from '../../src/core/fieldDefs.js';
 import { createWorkbookBlob } from '../../src/lib/workbook-export/workbookExport.js';
 import { parseQueryResultPayload } from '../../src/core/queryResultParser.js';
 import { buildResultTableRowsFromObjectRows } from '../../src/core/queryResultRows.js';
@@ -10,7 +11,11 @@ import {
   serializeResultJsonl
 } from '../../src/core/queryResultSerialization.js';
 import { createStreamedQueryResultReader } from '../../src/core/queryStream.js';
+import { buildBackendQueryPayloadFromConfig } from '../../src/features/filters/queryPayload.js';
 import { createVirtualTablePostFilterController } from '../../src/features/table/virtual-table/virtualTablePostFilters.js';
+import { createQueryTemplateRepository } from '../../src/features/templates/data/queryTemplateRepository.js';
+import { normalizeTemplate } from '../../src/features/templates/data/queryTemplateModels.js';
+import { runApiCompatibilityCheck } from '../../src/ui/apiCompatibility.js';
 
 const DEFAULT_API_URL = 'https://mlp.sirsi.net/uhtbin/query_api.pl';
 const SUPPORTED_FORMATS = new Set(['csv', 'json', 'jsonl', 'xlsx']);
@@ -52,6 +57,11 @@ function parseCliArgs(argv = []) {
 function printUsage(stream = process.stdout) {
   stream.write(`Usage:
   npm run query:fields -- [--api-url URL] [--search text] [--json] [--output fields.json]
+  npm run query:compat -- [--api-url URL] [--json]
+  npm run query:status -- [--api-url URL] [--json]
+  npm run query:cancel -- --query-id QUERY_ID
+  npm run query:results -- --query-id QUERY_ID [--format xlsx|csv|json|jsonl] [--output results.xlsx]
+  npm run query:templates -- [--json]
   npm run query:run -- --config query.json [--format xlsx|csv|json|jsonl] [--output report.xlsx]
   npm run query:run -- --display "Title,Item Id" --filter "Item Library=MSU-GRANT" --format csv --output report.csv
 
@@ -206,11 +216,9 @@ function getOutputPath(config = {}, options = {}, format = 'xlsx') {
 }
 
 function buildRunPayload(config = {}, options = {}) {
-  const payload = {
-    ...(config.payload && typeof config.payload === 'object' ? config.payload : {}),
-    action: 'run',
-    result_format: 'jsonl'
-  };
+  const payload = config.payload && typeof config.payload === 'object'
+    ? { ...config.payload }
+    : {};
 
   const displayFields = normalizeDisplayFields(
     options.display
@@ -219,13 +227,15 @@ function buildRunPayload(config = {}, options = {}) {
     || config.display_fields
     || payload.display_fields
   );
-  if (displayFields.length) payload.display_fields = displayFields;
 
   const filters = [
+    ...normalizeArray(payload.filters),
     ...normalizeArray(config.filters),
     ...normalizeArray(options.filter).map(parseFilterArgument)
   ];
-  if (filters.length) payload.filters = filters;
+  delete payload.filters;
+  delete payload.display_fields;
+  delete payload.displayFields;
 
   const name = options.name || config.name || payload.name;
   if (name) payload.name = String(name);
@@ -237,7 +247,15 @@ function buildRunPayload(config = {}, options = {}) {
     payload.max_rows = Number(options['max-rows'] || config.maxRows || config.max_rows);
   }
 
-  return payload;
+  return buildBackendQueryPayloadFromConfig({
+    ...config,
+    displayFields: displayFields.length ? displayFields : config.displayFields,
+    filters,
+    payload
+  }, {
+    displayFields: displayFields.length ? displayFields : undefined,
+    name
+  });
 }
 
 async function postJson(apiUrl, payload) {
@@ -251,6 +269,15 @@ async function postJson(apiUrl, payload) {
     throw new Error(`API request failed with HTTP ${response.status}: ${text.slice(0, 500)}`);
   }
   return JSON.parse(text);
+}
+
+function getResultDisplayFields(payload, options = {}) {
+  return normalizeDisplayFields(
+    options.displayFields
+    || options.display
+    || payload.display_fields
+    || payload.displayFields
+  );
 }
 
 async function runQuery(apiUrl, payload, options = {}) {
@@ -279,8 +306,8 @@ async function runQuery(apiUrl, payload, options = {}) {
   const parsedResults = parseQueryResultPayload({
     response,
     jsonPayload: streamedPayload.jsonPayload,
-    displayedFields: payload.display_fields || payload.displayFields || [],
-    fallbackColumns: payload.display_fields || payload.displayFields || []
+    displayedFields: getResultDisplayFields(payload, options),
+    fallbackColumns: getResultDisplayFields(payload, options)
   });
   const meta = streamedPayload.jsonlEvents.find(event => event.type === 'meta') || {};
   const done = [...streamedPayload.jsonlEvents].reverse().find(event => event.type === 'done') || {};
@@ -312,6 +339,12 @@ async function getFieldDefinitions(apiUrl, options = {}) {
   if (options.skipFields) return [];
   const payload = await postJson(apiUrl, { action: 'get_fields' });
   return Array.isArray(payload) ? payload : (Array.isArray(payload.fields) ? payload.fields : []);
+}
+
+async function loadCliFieldDefinitions(apiUrl, options = {}) {
+  const fields = await getFieldDefinitions(apiUrl, options);
+  replaceFieldDefinitions(fields, { restoreDynamicFields: false });
+  return fields;
 }
 
 function applyPostFilters(rows, columns, postFilters, fieldTypes) {
@@ -405,6 +438,15 @@ async function writeOutput({ apiUrl, columns, config, done, fieldTypes, format, 
   await writeFile(outputPath, text);
 }
 
+async function writeTextOutput({ outputPath = '', text }) {
+  if (outputPath) {
+    await mkdir(dirname(outputPath), { recursive: true });
+    await writeFile(outputPath, text);
+  } else {
+    process.stdout.write(text);
+  }
+}
+
 function summarizeFields(fields, search = '') {
   const normalizedSearch = String(search || '').trim().toLowerCase();
   return fields
@@ -440,7 +482,7 @@ function formatFieldTable(fields) {
 
 async function runFieldsCommand(options = {}) {
   const apiUrl = getApiUrl({}, options);
-  const fields = await getFieldDefinitions(apiUrl);
+  const fields = await loadCliFieldDefinitions(apiUrl);
   const summarized = summarizeFields(fields, options.search);
   const outputPath = options.output ? resolve(String(options.output)) : '';
   const output = options.json
@@ -455,17 +497,197 @@ async function runFieldsCommand(options = {}) {
   return { apiUrl, count: summarized.length, outputPath };
 }
 
+function formatCompatibilityTable(result) {
+  const rows = result.checks || [];
+  const statusWidth = Math.max(6, ...rows.map(row => String(row.status || '').length));
+  const labelWidth = Math.max(5, ...rows.map(row => String(row.label || '').length));
+  const lines = rows.map(row => {
+    return `${String(row.status || '').padEnd(statusWidth)}  ${String(row.label || '').padEnd(labelWidth)}  ${row.detail || ''}`.trimEnd();
+  });
+  const summary = result.summary || {};
+  return [
+    `Compatibility: ${summary.supported || 0} supported, ${summary.warning || 0} warning, ${summary.missing || 0} missing, ${summary.failed || 0} failed`,
+    ...lines
+  ].join('\n') + '\n';
+}
+
+async function runCompatCommand(options = {}) {
+  const apiUrl = getApiUrl({}, options);
+  const result = await runApiCompatibilityCheck(apiUrl, {
+    limit: Number(options.limit) || undefined,
+    maxFields: Number(options['max-fields']) || undefined,
+    maxRows: Number(options['max-rows']) || undefined,
+    timeoutMs: Number(options.timeout) || undefined
+  });
+  const outputPath = options.output ? resolve(String(options.output)) : '';
+  const output = options.json
+    ? `${JSON.stringify({ apiUrl, ...result }, null, 2)}\n`
+    : formatCompatibilityTable(result);
+  await writeTextOutput({ outputPath, text: output });
+  return { apiUrl, outputPath, summary: result.summary };
+}
+
+function getQueryId(options = {}, config = {}) {
+  const queryId = String(
+    options['query-id']
+    || options.queryId
+    || options.id
+    || config.queryId
+    || config.query_id
+    || config.id
+    || ''
+  ).trim();
+  if (!queryId) {
+    throw new Error('A query id is required. Use --query-id QUERY_ID.');
+  }
+  return queryId;
+}
+
+function formatStatusTable(data) {
+  const queries = Array.isArray(data?.queries)
+    ? data.queries
+    : (Array.isArray(data) ? data : []);
+  if (!queries.length) {
+    return `${JSON.stringify(data, null, 2)}\n`;
+  }
+
+  const headers = ['Status', 'Rows', 'Name', 'ID'];
+  const rows = queries.map(query => [
+    query.status || (query.running ? 'running' : ''),
+    query.resultCount ?? query.result_count ?? query.rows ?? '',
+    query.name || '',
+    query.id || query.query_id || ''
+  ]);
+  const widths = headers.map((header, index) => Math.min(48, Math.max(
+    header.length,
+    ...rows.map(row => String(row[index] || '').length)
+  )));
+  const renderRow = row => row.map((cell, index) => String(cell || '').slice(0, widths[index]).padEnd(widths[index])).join('  ').trimEnd();
+  return `${renderRow(headers)}\n${renderRow(widths.map(width => '-'.repeat(width)))}\n${rows.map(renderRow).join('\n')}\n`;
+}
+
+async function runStatusCommand(options = {}) {
+  const apiUrl = getApiUrl({}, options);
+  const data = await postJson(apiUrl, { action: 'status' });
+  const outputPath = options.output ? resolve(String(options.output)) : '';
+  const output = options.json ? `${JSON.stringify({ apiUrl, data }, null, 2)}\n` : formatStatusTable(data);
+  await writeTextOutput({ outputPath, text: output });
+  return { apiUrl, outputPath };
+}
+
+async function runCancelCommand(options = {}) {
+  const apiUrl = getApiUrl({}, options);
+  const queryId = getQueryId(options);
+  const data = await postJson(apiUrl, { action: 'cancel', id: queryId, query_id: queryId });
+  const outputPath = options.output ? resolve(String(options.output)) : '';
+  const output = `${JSON.stringify({ apiUrl, queryId, data }, null, 2)}\n`;
+  await writeTextOutput({ outputPath, text: output });
+  return { apiUrl, outputPath, queryId };
+}
+
+async function runResultsCommand(options = {}) {
+  const config = await readConfig(options.config);
+  const apiUrl = getApiUrl(config, options);
+  const format = normalizeFormat(config, options);
+  const outputPath = getOutputPath(config, options, format);
+  const queryId = getQueryId(options, config);
+  const fields = await loadCliFieldDefinitions(apiUrl);
+  const fieldTypes = getPostFilterFieldTypeMap(fields);
+  const displayFields = normalizeDisplayFields(
+    options.display
+    || options['display-fields']
+    || config.displayFields
+    || config.display_fields
+  );
+  const result = await runQuery(apiUrl, {
+    action: 'get_results',
+    id: queryId,
+    query_id: queryId,
+    result_format: 'jsonl'
+  }, {
+    displayFields,
+    verbose: Boolean(options.verbose)
+  });
+  if (!result.columns.length) {
+    throw new Error('Saved result stream did not include meta.columns.');
+  }
+  const cliPostFilters = normalizeArray(options['post-filter']).map(parsePostFilterArgument);
+  const postFilters = normalizePostFilters(config.postFilters || config.post_filters, cliPostFilters);
+  const rows = applyPostFilters(result.rows, result.columns, postFilters, fieldTypes);
+  await writeOutput({
+    apiUrl,
+    columns: result.columns,
+    config,
+    done: result.done,
+    fieldTypes,
+    format,
+    outputPath,
+    payload: {
+      action: 'get_results',
+      query_id: queryId
+    },
+    rows
+  });
+  return {
+    apiUrl,
+    columns: result.columns,
+    outputPath,
+    queryId,
+    rows: rows.length
+  };
+}
+
+function normalizeTemplateListResponse(data) {
+  if (Array.isArray(data)) return data;
+  return data?.templates || data?.items || data?.results || [];
+}
+
+function formatTemplateTable(templates = []) {
+  const normalizedTemplates = templates.map(normalizeTemplate);
+  if (!normalizedTemplates.length) {
+    return 'No templates found.\n';
+  }
+  const headers = ['Name', 'Pinned', 'Categories', 'Updated'];
+  const rows = normalizedTemplates.map(template => [
+    template.name,
+    template.pinned ? 'yes' : '',
+    (template.categories || []).map(category => category.name).join(', '),
+    template.updatedAt || ''
+  ]);
+  const widths = headers.map((header, index) => Math.min(48, Math.max(
+    header.length,
+    ...rows.map(row => String(row[index] || '').length)
+  )));
+  const renderRow = row => row.map((cell, index) => String(cell || '').slice(0, widths[index]).padEnd(widths[index])).join('  ').trimEnd();
+  return `${renderRow(headers)}\n${renderRow(widths.map(width => '-'.repeat(width)))}\n${rows.map(renderRow).join('\n')}\n`;
+}
+
+async function runTemplatesCommand(options = {}) {
+  const apiUrl = getApiUrl({}, options);
+  const repository = createQueryTemplateRepository({
+    postJson: async payload => ({ data: await postJson(apiUrl, payload) })
+  });
+  const data = await repository.listTemplates();
+  const templates = normalizeTemplateListResponse(data);
+  const outputPath = options.output ? resolve(String(options.output)) : '';
+  const output = options.json
+    ? `${JSON.stringify({ apiUrl, templates }, null, 2)}\n`
+    : formatTemplateTable(templates);
+  await writeTextOutput({ outputPath, text: output });
+  return { apiUrl, count: templates.length, outputPath };
+}
+
 async function runRunCommand(options = {}) {
   const config = await readConfig(options.config);
   const apiUrl = getApiUrl(config, options);
   const format = normalizeFormat(config, options);
   const outputPath = getOutputPath(config, options, format);
+  const fields = await loadCliFieldDefinitions(apiUrl);
   const payload = buildRunPayload(config, options);
   const cliPostFilters = normalizeArray(options['post-filter']).map(parsePostFilterArgument);
   const postFilters = normalizePostFilters(config.postFilters || config.post_filters, cliPostFilters);
   config.postFilters = postFilters;
 
-  const fields = await getFieldDefinitions(apiUrl, { skipFields: format !== 'xlsx' && !Object.keys(postFilters).length });
   const fieldTypes = getPostFilterFieldTypeMap(fields);
   const result = await runQuery(apiUrl, payload, { verbose: Boolean(options.verbose) });
   if (!result.columns.length) {
@@ -505,6 +727,39 @@ async function main(argv = process.argv.slice(2)) {
     }
     return result;
   }
+  if (command === 'compat') {
+    const result = await runCompatCommand(options);
+    if (result.outputPath) {
+      process.stdout.write(`Wrote compatibility report to ${result.outputPath}\n`);
+    }
+    return result;
+  }
+  if (command === 'status') {
+    const result = await runStatusCommand(options);
+    if (result.outputPath) {
+      process.stdout.write(`Wrote query status to ${result.outputPath}\n`);
+    }
+    return result;
+  }
+  if (command === 'cancel') {
+    const result = await runCancelCommand(options);
+    if (result.outputPath) {
+      process.stdout.write(`Wrote cancellation response to ${result.outputPath}\n`);
+    }
+    return result;
+  }
+  if (command === 'results') {
+    const result = await runResultsCommand(options);
+    process.stdout.write(`Wrote ${result.rows.toLocaleString()} saved result row(s) to ${result.outputPath}\n`);
+    return result;
+  }
+  if (command === 'templates') {
+    const result = await runTemplatesCommand(options);
+    if (result.outputPath) {
+      process.stdout.write(`Wrote ${result.count} template(s) to ${result.outputPath}\n`);
+    }
+    return result;
+  }
   if (command === 'run') {
     const result = await runRunCommand(options);
     process.stdout.write(`Wrote ${result.rows.toLocaleString()} row(s) to ${result.outputPath}\n`);
@@ -518,12 +773,18 @@ export {
   applyPostFilters,
   buildRunPayload,
   getApiUrl,
+  loadCliFieldDefinitions,
   main,
   normalizePostFilters,
   parseCliArgs,
   parseFilterArgument,
   parsePostFilterArgument,
+  runCompatCommand,
+  runCancelCommand,
   runFieldsCommand,
   runQuery,
-  runRunCommand
+  runResultsCommand,
+  runRunCommand,
+  runStatusCommand,
+  runTemplatesCommand
 };

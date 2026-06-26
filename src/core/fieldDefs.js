@@ -130,6 +130,42 @@ function restoreStoredDynamicFields() {
   });
 }
 
+function replaceFieldDefinitions(nextFieldDefsArray, options = {}) {
+  fieldDefsArray = Array.isArray(nextFieldDefsArray) ? [...nextFieldDefsArray] : [];
+
+  fieldDefs.clear();
+  fieldAliases.clear();
+  backendFieldNames.clear();
+  localDynamicFieldNames.clear();
+
+  fieldDefsArray.forEach(field => {
+    if (!field?.name) return;
+    backendFieldNames.add(field.name);
+    fieldDefs.set(field.name, field);
+  });
+  fieldDefsArray.forEach(field => {
+    if (!field?.name) return;
+    const aliases = Array.isArray(field.aliases) ? field.aliases : [];
+    aliases.forEach(alias => {
+      const normalizedAlias = typeof alias === 'string' ? alias.trim() : '';
+      if (!normalizedAlias || fieldDefs.has(normalizedAlias) || fieldAliases.has(normalizedAlias)) {
+        return;
+      }
+
+      fieldAliases.set(normalizedAlias, field.name);
+      fieldDefs.set(normalizedAlias, field);
+    });
+  });
+
+  filteredDefs = [...fieldDefsArray];
+  if (options.restoreDynamicFields !== false) {
+    restoreStoredDynamicFields();
+  }
+
+  isFieldsLoaded = options.markLoaded === false ? isFieldsLoaded : true;
+  return fieldDefsArray;
+}
+
 registerQueryStateRuntimeAccessors({
   resolveFieldName,
   getFieldDefinition(fieldName) {
@@ -151,38 +187,13 @@ async function fetchFieldDefinitions() {
             showToastMessage("Warning: " + errorMsg, "warning");
         }
         
-        fieldDefsArray = Array.isArray(data) ? [...data] : (data.fields ? [...data.fields] : []);
+        const loadedFieldDefs = Array.isArray(data) ? data : (data.fields ? data.fields : []);
         
-        if (fieldDefsArray.length === 0) {
+        if (loadedFieldDefs.length === 0) {
            console.warn("Received empty field definitions", data);
         }
 
-        // Initialize helper map and filter array
-        fieldDefs.clear();
-        fieldAliases.clear();
-        backendFieldNames.clear();
-        localDynamicFieldNames.clear();
-        fieldDefsArray.forEach(field => {
-          backendFieldNames.add(field.name);
-          fieldDefs.set(field.name, field);
-        });
-        fieldDefsArray.forEach(field => {
-          const aliases = Array.isArray(field.aliases) ? field.aliases : [];
-          aliases.forEach(alias => {
-            const normalizedAlias = typeof alias === 'string' ? alias.trim() : '';
-            if (!normalizedAlias || fieldDefs.has(normalizedAlias) || fieldAliases.has(normalizedAlias)) {
-              return;
-            }
-
-            fieldAliases.set(normalizedAlias, field.name);
-            fieldDefs.set(normalizedAlias, field);
-          });
-        });
-        filteredDefs = [...fieldDefsArray];
-        restoreStoredDynamicFields();
-
-        isFieldsLoaded = true;
-        return fieldDefsArray;
+        return replaceFieldDefinitions(loadedFieldDefs, { restoreDynamicFields: true });
     } catch (e) {
         if (e?.isRateLimited) {
             return [];
@@ -476,6 +487,7 @@ export {
   loadFieldDefinitions,
   registerDynamicField,
   removeDynamicField,
+  replaceFieldDefinitions,
   resolveFieldName,
   shouldFieldHavePurpleStyling,
   shouldFieldHavePurpleStylingBase,

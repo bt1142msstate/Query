@@ -12,6 +12,36 @@ List backend fields:
 npm run query:fields -- --search location
 ```
 
+Run the same backend compatibility report used by API Settings:
+
+```bash
+npm run query:compat
+```
+
+Inspect running/completed query status:
+
+```bash
+npm run query:status
+```
+
+Cancel a running query by id:
+
+```bash
+npm run query:cancel -- --query-id query_123
+```
+
+Export a saved history result by id using the same workbook/CSV/JSON/JSONL paths as a fresh run:
+
+```bash
+npm run query:results -- --query-id query_123 --format xlsx --output ../Reports/saved-result.xlsx
+```
+
+List saved templates:
+
+```bash
+npm run query:templates
+```
+
 Run a query config and export a workbook:
 
 ```bash
@@ -69,6 +99,24 @@ Configs are plain JSON. They map closely to the request payload shown by the app
 }
 ```
 
+The CLI also accepts the app's template/history UI config shape, which means saved templates can be used directly:
+
+```json
+{
+  "name": "Template-based report",
+  "ui_config": {
+    "DesiredColumnOrder": ["Item Id", "Title", "Public Note"],
+    "Filters": [
+      { "FieldName": "Title", "FieldOperator": "Contains", "Values": ["Grant"] }
+    ]
+  },
+  "export": {
+    "format": "xlsx",
+    "output": "../Reports/template-report.xlsx"
+  }
+}
+```
+
 Supported export formats:
 
 | Format | Output |
@@ -77,6 +125,8 @@ Supported export formats:
 | `csv` | Comma-separated rows with multi-value cells numbered on separate lines |
 | `json` | Object rows keyed by output column |
 | `jsonl` | JSON Lines `meta`, `row`, and `done` events |
+
+The `run` and `results` commands support the same export formats and post-filter syntax.
 
 ## Filters And Post Filters
 
@@ -96,7 +146,8 @@ For anything repeatable, prefer a JSON config. It is easier to review, commit, a
 
 ## Notes
 
-- The CLI uses the same JSONL stream reader, result parser, row normalization, post-filter controller, and workbook exporter that the browser uses.
+- The CLI uses the same field registry, UI-config filter normalization, backend payload builder, JSONL stream reader, result parser, row normalization, post-filter controller, API compatibility checker, template repository, and workbook exporter that the browser uses.
 - JSONL exports are regenerated from parsed output so requested column order, local post filters, and multi-value cells stay consistent across formats.
+- CLI runs load backend field metadata before building payloads, matching the interface path for aliases, date normalization, dynamic fields, and list-valued key filters.
 - XLSX exports include a run details sheet unless `export.includeRunDetails` is set to `false`.
 - The CLI does not store credentials. Use same-origin proxies, normal authenticated sessions, or server-side credentials for private deployments.
