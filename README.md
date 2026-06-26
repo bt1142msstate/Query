@@ -20,6 +20,7 @@ A single-page app for building queries, applying filters, reviewing results, and
 | **Query history** | Live status tracking — reload, rerun, cancel, or inspect past runs |
 | **Query templates** | Save, categorize, pin, search, and reapply reusable query setups |
 | **Query JSON** | Inspect the exact payload being sent to the backend |
+| **CLI exports** | Run backend queries and export JSONL, JSON, CSV, or XLSX from terminal configs |
 | **API Settings** | Connect a compatible backend from the app without editing source files |
 | **Post filters** | Apply result-only filters without sending them to the backend |
 | **Results table** | Virtualized large-table rendering with resize, sort, post-filter, and Excel export support |
@@ -83,6 +84,12 @@ http://127.0.0.1:8787/query-api
 For a new backend, start with [`docs/INTEGRATION.md`](docs/INTEGRATION.md). The minimum integration is `POST` JSON actions for `get_fields` and `run`; history, cancellation, saved templates, and saved-result loading are optional extensions.
 
 For reusing pieces of the frontend in another site, start with [`docs/COMPONENTS.md`](docs/COMPONENTS.md). The supported public entrypoints are under `src/components/`; outside sites should use those instead of importing directly from feature internals.
+
+For command-line exports and repeatable report configs, use [`docs/CLI.md`](docs/CLI.md). The CLI uses the same backend JSONL contract as the browser app:
+
+```bash
+npm run query:run -- --config examples/query-configs/grant-family-climatecon.json
+```
 
 If your system does not already speak this contract, use an adapter or proxy backend. The repository includes adapter sketches in [`examples/adapters/`](examples/adapters/) for Node/Express, Python/FastAPI, legacy delimited output, and SQL/reporting APIs.
 
@@ -178,6 +185,7 @@ Canonical layout decision: application source lives in `src/`. We are not using 
 | `src/styles/app.css` | Stylesheet entrypoint that imports the feature CSS files |
 | `config/` | Shared architecture contracts for forbidden browser globals and module boundaries |
 | `docs/ARCHITECTURE.md` | Frontend architecture notes, quality gates, and refactor plan |
+| `docs/CLI.md` | Command-line field discovery, query execution, and export workflow |
 | `docs/COMPONENTS.md` | Reusable component entrypoints and integration examples |
 | `docs/INTEGRATION.md` | Backend integration contract, streaming JSONL results, and deployment options |
 | `docs/DEPLOYMENT.md` | Deployment recipes for same-origin proxying, CORS, auth, GitHub Pages, and internal hosting |
@@ -186,6 +194,7 @@ Canonical layout decision: application source lives in `src/`. We are not using 
 | `docs/schemas/query-api.schema.json` | Machine-readable JSON Schema for the recommended backend contract |
 | `examples/adapters/` | Adapter sketches for translating existing systems into the JSONL contract |
 | `examples/minimal-backend/` | Dependency-free JSONL backend example for local integration testing |
+| `examples/query-configs/` | Repeatable CLI query/export config examples |
 | `tests/architecture/` | Architecture fitness and module-specifier checks |
 | `tests/unit/` | Focused pure-logic unit tests grouped by `components/`, `core/`, `features/`, and `ui/` |
 | `tests/browser/` | Playwright browser smoke coverage |

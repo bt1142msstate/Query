@@ -1,5 +1,9 @@
 import { normalizeResultViewState } from '../../../core/resultViewState.js';
-import { cloneResultCellValue, normalizeResultCellValue } from '../../../core/resultCellValues.js';
+import {
+  buildResultTableRowsFromObjectRows,
+  normalizeResultHeaders,
+  normalizeResultTableRows
+} from '../../../core/queryResultRows.js';
 
 const HISTORY_RESULT_CACHE_DB_NAME = 'query-history-result-cache';
 const HISTORY_RESULT_CACHE_STORE_NAME = 'resultSnapshots';
@@ -22,28 +26,9 @@ function normalizeQueryId(queryId) {
   return String(queryId || '').trim();
 }
 
-function normalizeHeaders(headers) {
-  return Array.isArray(headers)
-    ? headers.map(header => String(header || '').trim()).filter(Boolean)
-    : [];
-}
-
-function normalizeCellValue(value) {
-  return cloneResultCellValue(normalizeResultCellValue(value));
-}
-
-function buildTableRowsFromObjectRows(headers, objectRows) {
-  const rows = Array.isArray(objectRows) ? objectRows : [];
-  return rows.map(row => headers.map(header => normalizeCellValue(row?.[header])));
-}
-
-function normalizeTableRows(headers, rows, objectRows) {
-  const sourceRows = Array.isArray(rows) ? rows : buildTableRowsFromObjectRows(headers, objectRows);
-  return sourceRows.map(row => {
-    const cells = Array.isArray(row) ? row : [];
-    return headers.map((_, index) => normalizeCellValue(cells[index]));
-  });
-}
+const normalizeHeaders = normalizeResultHeaders;
+const buildTableRowsFromObjectRows = buildResultTableRowsFromObjectRows;
+const normalizeTableRows = normalizeResultTableRows;
 
 function serializeQueryForCache(query, queryId, rowCount) {
   const source = query && typeof query === 'object' ? query : {};

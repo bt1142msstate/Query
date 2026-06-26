@@ -5,6 +5,7 @@
 import { BackendApi } from './backendApi.js';
 import { notifyBackgroundTaskComplete, prepareBackgroundTaskNotification } from './backgroundTaskNotifications.js';
 import { parseQueryResultPayload } from './queryResultParser.js';
+import { buildResultTableRowsFromObjectRows } from './queryResultRows.js';
 import { AppState, QueryChangeManager, QueryStateReaders } from './queryState.js';
 import { assertQueryRunStreamResponse } from './queryRunResponse.js';
 import { shouldPreservePostFiltersForRun } from './queryExecutionPostFilters.js';
@@ -308,6 +309,7 @@ if (execDom.runBtn) {
         });
         const headers = parsedResults.headers;
         const rows = parsedResults.objectRows;
+        const tableRows = buildResultTableRowsFromObjectRows(headers, rows);
 
         console.log(`Received ${rows.length} rows`);
         updateLiveQueryProgress(rows.length, { startTime: queryStartedAt });
@@ -339,7 +341,7 @@ if (execDom.runBtn) {
 
           const newTableData = {
             headers: headers,
-            rows: rows.map(r => headers.map(h => r[h])),
+            rows: tableRows,
             columnMap: columnMap
           };
 
@@ -357,7 +359,7 @@ if (execDom.runBtn) {
           query: currentHistoryQuery,
           queryId: QueryStateReaders.getLifecycleState().currentQueryId,
           headers,
-          rows: services.getRawTableData?.()?.rows || rows.map(row => headers.map(header => row[header]))
+          rows: services.getRawTableData?.()?.rows || tableRows
         });
 
         const completionMessage = streamedPayload.partial
