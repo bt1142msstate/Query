@@ -1,6 +1,7 @@
 import { getFieldValueDisplayMap } from './fieldValueMaps.js';
 import { escapeHtml } from './html.js';
 import { OperatorLabels } from './operatorLabels.js';
+import { getFieldAccessState } from '../fieldAccess.js';
 import { fieldDefs, getFieldFilterOperators, isFieldBackendFilterable, resolveFieldName } from '../fieldDefs.js';
 
 const FIELD_OPERATOR_TO_UI_COND = {
@@ -186,6 +187,7 @@ function formatFieldDefinitionTooltipHTML(fieldDef, options = {}) {
   const filterOperators = typeof getFieldFilterOperators === 'function'
     ? getFieldFilterOperators(fieldDef)
     : (Array.isArray(fieldDef.filters) ? fieldDef.filters : []);
+  const accessState = getFieldAccessState(fieldDef);
   const typeLabel = (() => {
     if (normalizedType === 'money' || normalizedNumberFormat === 'currency') return 'Money';
     if (normalizedType === 'date') return 'Date';
@@ -215,6 +217,13 @@ function formatFieldDefinitionTooltipHTML(fieldDef, options = {}) {
   if (typeLabel) {
     html += '<span class="tt-field-definition-badge data-type">' + escapeHtml(typeLabel) + '</span>';
   }
+  if (!accessState.authorized) {
+    html += '<span class="tt-field-definition-badge restricted">Sign in required</span>';
+  } else if (accessState.sensitive) {
+    html += '<span class="tt-field-definition-badge restricted">Sensitive</span>';
+  } else if (accessState.requiresAuth) {
+    html += '<span class="tt-field-definition-badge restricted">Protected</span>';
+  }
   html += '<span class="tt-field-definition-badge ' + (isFilterable ? 'filterable' : 'display-only') + '">';
   html += isFilterable ? 'Filterable' : 'Display only';
   html += '</span>';
@@ -227,6 +236,14 @@ function formatFieldDefinitionTooltipHTML(fieldDef, options = {}) {
 
   if (descValue) {
     html += '<div class="tt-field-definition-desc">' + escapeHtml(descValue) + '</div>';
+  }
+
+  if (!accessState.authorized && accessState.message) {
+    html += '<div class="tt-field-definition-desc">' + escapeHtml(accessState.message) + '</div>';
+  }
+
+  if (accessState.requiredScopes.length > 0) {
+    html += '<div class="tt-field-definition-desc">Required access: ' + escapeHtml(accessState.requiredScopes.join(', ')) + '</div>';
   }
 
   if (filterOperators.length > 0) {

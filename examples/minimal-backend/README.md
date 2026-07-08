@@ -43,6 +43,6 @@ Environment variables:
 | `PORT` | `8787` | Local server port |
 | `API_PATH` | `/query-api` | API route path |
 
-This example is not a production backend. Real deployments should add authentication, authorization, rate limiting, logging, and a data adapter for the target system.
+This example is not a production backend. Real deployments should add authentication, authorization, rate limiting, logging, and a data adapter for the target system. The sample `Staff Note` field is marked with `sensitive`, `requiresAuth`, and `requiredScopes` metadata to demonstrate the frontend contract; a production backend must still enforce that access server-side.
 
 The example honors `compatibility_check`, `limit`, and `max_rows` hints so the API Settings compatibility report can run quickly.

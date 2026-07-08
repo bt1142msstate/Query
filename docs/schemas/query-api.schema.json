@@ -80,6 +80,42 @@
         "allowValueList": { "type": "boolean" },
         "multiSelect": { "type": "boolean" },
         "groupValues": { "type": "boolean" },
+        "sensitive": {
+          "type": "boolean",
+          "description": "Marks a field as sensitive or staff-only. This is a UI hint only; backend authorization must still enforce access."
+        },
+        "requiresAuth": {
+          "type": "boolean",
+          "description": "Marks a field as requiring an authenticated backend session."
+        },
+        "authRequired": {
+          "type": "boolean",
+          "description": "Alias for requiresAuth."
+        },
+        "authorized": {
+          "type": "boolean",
+          "description": "If false, the frontend disables display/filter actions for this field until the backend reports access."
+        },
+        "requiredScopes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Optional backend-defined roles/scopes/groups required for this field."
+        },
+        "authMessage": {
+          "type": "string",
+          "description": "Optional user-facing explanation when access is denied or sign-in is needed."
+        },
+        "accessMessage": {
+          "type": "string",
+          "description": "Alias for authMessage."
+        },
+        "access": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "object", "additionalProperties": true }
+          ],
+          "description": "Optional structured access metadata. Common string values are restricted, protected, sensitive, denied, or unauthorized."
+        },
         "parts": {
           "type": "integer",
           "minimum": 1,

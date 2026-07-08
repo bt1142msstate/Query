@@ -61,3 +61,55 @@ test('field picker option state normalizes badges and status text', () => {
     'Will remove display in results • Enter a filter value to add it'
   );
 });
+
+test('field picker option state labels sensitive and denied fields', () => {
+  const sensitiveBadges = buildFieldPickerOptionBadges({
+    allowDisplay: true,
+    allowFilter: true,
+    labels,
+    option: {
+      access: {
+        authorized: true,
+        requiredScopes: ['reports:sensitive'],
+        requiresAuth: true,
+        sensitive: true
+      },
+      displayable: true,
+      name: 'Checkout User Name'
+    },
+    state: { display: false, filter: false }
+  });
+  assert.match(sensitiveBadges, /Sensitive/);
+
+  const denied = {
+    access: {
+      authorized: false,
+      message: 'Sign in with an authorized staff account.'
+    },
+    displayable: false,
+    filterable: false,
+    name: 'Checkout User Name'
+  };
+  const deniedBadges = buildFieldPickerOptionBadges({
+    allowDisplay: true,
+    allowFilter: true,
+    labels,
+    option: denied,
+    state: { display: false, filter: false }
+  });
+  assert.match(deniedBadges, /Sign in/);
+  assert.equal(isOptionDisplayable(denied), false);
+  assert.equal(
+    buildFieldPickerStatusText({
+      allowDisplay: true,
+      allowFilter: true,
+      autoAddFilterFromPreview: true,
+      displayChoice: { checked: true },
+      filterChoice: { checked: true },
+      labels,
+      selected: denied,
+      state: { display: false, filter: false }
+    }),
+    'Sign in with an authorized staff account.'
+  );
+});

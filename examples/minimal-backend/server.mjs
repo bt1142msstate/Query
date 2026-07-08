@@ -56,7 +56,11 @@ const fields = [
     category: 'Notes',
     desc: 'Example staff-only multi-value note field',
     filters: ['contains', 'equals', 'does_not_equal'],
-    multiValue: true
+    multiValue: true,
+    sensitive: true,
+    requiresAuth: true,
+    authorized: true,
+    requiredScopes: ['reports:sensitive']
   },
   {
     name: 'Local Metadata Field',

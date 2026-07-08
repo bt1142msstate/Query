@@ -10,6 +10,7 @@ import {
   buildFieldPickerOptionBadges,
   buildFieldPickerStatusText,
   getFieldPerformanceWarning,
+  getOptionUnavailableMessage,
   isOptionBuildable,
   isOptionDisplayable,
   isOptionLocalDynamic,
@@ -459,7 +460,7 @@ let SharedFieldPicker;
 
       const selected = optionsListFind(fieldName);
       if (nextChecked && !isOptionDisplayable(selected)) {
-        showToastMessage(`${fieldName} must be created before it can be displayed.`, 'warning');
+        showToastMessage(getOptionUnavailableMessage(selected) || `${fieldName} must be created before it can be displayed.`, 'warning');
         renderList();
         syncChoiceInputs();
         syncDetails();
@@ -497,6 +498,8 @@ let SharedFieldPicker;
 
       const selected = optionsListFind(fieldName);
       if (selected && selected.filterable === false) {
+        const message = getOptionUnavailableMessage(selected) || 'This field is not available for backend filtering.';
+        showToastMessage(message, 'warning');
         syncChoiceInputs();
         syncDetails();
         return;
@@ -566,7 +569,7 @@ let SharedFieldPicker;
           syncDetails();
           return true;
         }
-        showToastMessage(`${fieldName} must be created before it can be displayed.`, 'warning');
+        showToastMessage(getOptionUnavailableMessage(selected) || `${fieldName} must be created before it can be displayed.`, 'warning');
         return true;
       }
 

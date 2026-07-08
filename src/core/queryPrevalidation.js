@@ -2,6 +2,8 @@ import { showToastMessage } from './toast.js';
 import { getComparableValue } from './formatting/dateValues.js';
 import { MoneyUtils } from './formatting/moneyUtils.js';
 import { ValueFormatting } from './formatting/valueFormatting.js';
+import { fieldDefs } from './fieldDefs.js';
+import { getFieldAccessState } from './fieldAccess.js';
 import { registerQueryStateRuntimeAccessors } from './queryState.js';
 import { buildNextState, normalizeFieldFilters } from './queryPrevalidationState.js';
 
@@ -306,6 +308,31 @@ function validateActiveFilters(nextState) {
   return { accepted: true };
 }
 
+function validateFieldAccess(nextState) {
+  const displayedFields = Array.isArray(nextState?.displayedFields) ? nextState.displayedFields : [];
+  const activeFilters = nextState?.activeFilters && typeof nextState.activeFilters === 'object'
+    ? nextState.activeFilters
+    : {};
+  const candidates = [
+    ...displayedFields,
+    ...Object.keys(activeFilters)
+  ];
+
+  for (const fieldName of candidates) {
+    const fieldDef = fieldDefs.get(fieldName);
+    if (!fieldDef) continue;
+    const access = getFieldAccessState(fieldDef);
+    if (!access.authorized) {
+      return {
+        accepted: false,
+        message: access.message || `${describeField(fieldName)} requires sign-in or additional access.`
+      };
+    }
+  }
+
+  return { accepted: true };
+}
+
 function shouldBypassPrevalidation(meta) {
   return Boolean(meta?.skipPrevalidation || meta?.prevalidate === false);
 }
@@ -331,6 +358,12 @@ function notifyRejection(result, meta) {
 function validateQueryChange(change) {
   if (!change || shouldBypassPrevalidation(change.meta)) {
     return { accepted: true };
+  }
+
+  const accessResult = validateFieldAccess(change.nextState);
+  if (!accessResult.accepted) {
+    notifyRejection(accessResult, change.meta);
+    return accessResult;
   }
 
   const result = validateActiveFilters(change.nextState);

@@ -1,6 +1,6 @@
 import { getBaseFieldName, QueryStateReaders } from './filterQueryState.js';
 import { toBackendDateValue } from '../../core/formatting/dateValues.js';
-import { fieldDefs, isFieldBackendFilterable, isFieldBuildable, resolveFieldName } from './fieldDefs.js';
+import { fieldDefs, isFieldBackendFilterable, isFieldBuildable, isFieldDisplayable, resolveFieldName } from './fieldDefs.js';
 import { getDateFilterValidationMessage } from './filterConditionLogic.js';
 
 const FIELD_OPERATOR_TO_UI_COND = {
@@ -171,7 +171,7 @@ function getNormalizedDisplayedFields(fields = getDisplayedFields()) {
     .map(field => getCanonicalPayloadFieldName(field))
     .filter(field => {
       const def = fieldDefs.get(field);
-      return !isFieldBuildable(def);
+      return !isFieldBuildable(def) && (!def || isFieldDisplayable(def));
     })
     .filter((field, index, array) => array.indexOf(field) === index);
 }

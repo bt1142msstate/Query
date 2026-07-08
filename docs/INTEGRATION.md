@@ -260,7 +260,42 @@ Supported field metadata:
 | `groupValues` | Lets the UI group selector values with dashed labels |
 | `parts` | Optional backend-specific segment hint for fields that are assembled from multiple backend values |
 | `numberFormat` or `numericFormat` | `integer`, `decimal`, `year`, or `currency` style hints |
+| `sensitive` | UI hint that the field may expose protected/staff-only information |
+| `requiresAuth` or `authRequired` | UI hint that the field needs an authenticated backend session |
+| `authorized` | Set to `false` when the backend wants to show the field but prevent use until sign-in or stronger access |
+| `requiredScopes` | Optional backend-defined scopes, roles, or groups needed for the field |
+| `authMessage` or `accessMessage` | Optional user-facing explanation shown when a field is unavailable |
+| `access` | Optional string or object for deployment-specific access metadata |
 | `builder` | Defines dynamic/buildable fields |
+
+### Sensitive And Auth-Gated Fields
+
+The frontend can display badges and disable controls for protected fields, but it is not the security boundary. Backends must enforce authorization for every `get_fields`, `run`, `status`, `cancel`, `get_results`, template, and export action.
+
+Recommended behavior:
+
+- If the user is not signed in, either omit sensitive fields from `get_fields` or return them with `authorized: false`.
+- If a signed-in user can use a sensitive field, return `sensitive: true`, `requiresAuth: true`, and any useful `requiredScopes`.
+- If a user sends an unauthorized field manually in `display_fields` or `filters`, reject the request server-side with HTTP `401` or `403`.
+- If saved results can contain sensitive columns, protect `get_results` and history/status metadata too; knowing a `query_id` must not be enough to retrieve protected data.
+
+Example:
+
+```json
+{
+  "name": "Checkout User Name",
+  "type": "string",
+  "category": "User",
+  "filters": ["equals"],
+  "sensitive": true,
+  "requiresAuth": true,
+  "authorized": false,
+  "requiredScopes": ["reports:sensitive"],
+  "authMessage": "Sign in with an authorized staff account to use checkout user fields."
+}
+```
+
+The included Sirsi backend helper marks checkout-user fields as sensitive and denies them unless the backend request context includes `reports:sensitive` or an administrator intentionally enables the sensitive-report bypass. The static frontend only reads the metadata and shows the right badges/messages; it does not decide who is allowed.
 
 ### Buildable Fields
 
