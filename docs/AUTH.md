@@ -73,6 +73,38 @@ At minimum, the backend should enforce:
 
 Do not rely on hidden frontend controls to protect data. The backend must reject unauthorized fields, filters, result IDs, and template actions.
 
+## Sensitive Field Metadata
+
+The API contract supports field-level metadata so the UI can label sensitive fields and avoid letting users add fields they are not authorized to use. This is only a convenience layer; the backend remains responsible for enforcement.
+
+Recommended `get_fields` metadata for protected fields:
+
+```json
+{
+  "name": "Checkout User Name",
+  "type": "string",
+  "category": "User",
+  "filters": ["equals"],
+  "sensitive": true,
+  "requiresAuth": true,
+  "authorized": false,
+  "requiredScopes": ["reports:sensitive"],
+  "authMessage": "Sign in with an authorized staff account to use checkout user fields."
+}
+```
+
+Use `authorized: false` when a user can see that a field exists but cannot use it yet. For fully hidden fields, omit them from `get_fields` until the authenticated user has access. Either way, the backend must reject unauthorized `display_fields` and `filters` in `run` requests, because hand-edited JSON can bypass UI controls.
+
+The sample Sirsi backend helper follows a default-deny model for fields marked `sensitive`, `requiresAuth`, or `requiredScopes`. A deployment can grant access by instantiating the command creator with the required scope, or by setting trusted backend environment context before handling a request:
+
+```text
+QUERY_API_AUTH_SCOPES=reports:sensitive
+```
+
+For emergency/internal deployments only, `QUERY_API_ALLOW_SENSITIVE_REPORTS=1` allows all sensitive report fields. Treat that as an administrative bypass, not normal user auth.
+
+If an SSO gateway or reverse proxy sets per-request headers, only trust them after the proxy strips spoofed incoming headers and runs on the same trusted network path. The backend supports `QUERY_API_TRUST_PROXY_AUTH_HEADERS=1` with `X-Query-API-Scopes`, but this should be enabled only behind a controlled proxy.
+
 ## Frontend Behavior
 
 The app's API requests use `credentials: "same-origin"`. This intentionally supports the recommended same-origin session model and avoids sending cookies to arbitrary cross-origin API URLs configured in API Settings.

@@ -32,6 +32,12 @@ test('query payload', async () => {
   fieldDefs.set('Backend Date', { name: 'Backend Date', type: 'date', filters: ['before'] });
   fieldDefs.set('Catalog Key', { name: 'Catalog Key', filters: ['equals'], allowValueList: true });
   fieldDefs.set('Search Key', { name: 'Search Key', filters: ['equals'], allowValueList: true });
+  fieldDefs.set('Checkout User Name', {
+    name: 'Checkout User Name',
+    filters: ['equals'],
+    authorized: false,
+    authMessage: 'Sign in with an authorized staff account.'
+  });
   fieldDefs.set('Synthetic Field', { name: 'Synthetic Field', builder: { outputFieldIdTemplate: 'Synthetic{value}', inputs: [] }, filters: ['equals'] });
   fieldDefs.set('MARC 590', {
     name: 'MARC 590',
@@ -183,7 +189,8 @@ test('query payload', async () => {
       Filters: [
         { FieldName: 'Old Title', FieldOperator: 'Contains', Values: ['grant'] },
         { FieldName: 'Record Date', FieldOperator: 'Between', Values: ['1/2/2026', '1/5/2026'] },
-        { FieldName: 'Catalog Key', FieldOperator: 'Equals', Values: uploadedCatalogKeys }
+        { FieldName: 'Catalog Key', FieldOperator: 'Equals', Values: uploadedCatalogKeys },
+        { FieldName: 'Checkout User Name', FieldOperator: 'Equals', Values: ['Binding'] }
       ]
     },
     payload: {
@@ -201,5 +208,21 @@ test('query payload', async () => {
       { field: 'Catalog Key', operator: '=', value: uploadedCatalogKeys }
     ],
     display_fields: ['Title', 'Record Date']
+  });
+
+  assert.deepEqual(buildBackendQueryPayloadFromConfig({
+    name: 'Unauthorized Config Payload',
+    ui_config: {
+      DesiredColumnOrder: ['Title', 'Checkout User Name'],
+      Filters: [
+        { FieldName: 'Checkout User Name', FieldOperator: 'Equals', Values: ['Binding'] }
+      ]
+    }
+  }), {
+    action: 'run',
+    name: 'Unauthorized Config Payload',
+    result_format: 'jsonl',
+    filters: [],
+    display_fields: ['Title']
   });
 });

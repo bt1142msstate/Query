@@ -633,6 +633,19 @@
   color: #cbd5e1;
 }
 
+:root[data-theme-resolved="dark"] .form-mode-field-picker-badge--protected,
+:root[data-theme-resolved="dark"] .form-mode-field-picker-badge--sensitive {
+  border-color: rgba(192, 132, 252, 0.28);
+  background: rgba(88, 28, 135, 0.34);
+  color: #e9d5ff;
+}
+
+:root[data-theme-resolved="dark"] .form-mode-field-picker-badge--restricted {
+  border-color: rgba(248, 113, 113, 0.32);
+  background: rgba(127, 29, 29, 0.32);
+  color: #fecaca;
+}
+
 :root[data-theme-resolved="dark"] .form-mode-field-picker-warning {
   border-color: rgba(245, 158, 11, 0.32);
   background: rgba(120, 53, 15, 0.24);
@@ -1647,6 +1660,15 @@
 
 :root[data-theme-resolved="light"] .form-mode-field-picker-badge--muted {
   background: #e2e8f0 !important;
+}
+
+:root[data-theme-resolved="light"] .form-mode-field-picker-badge--protected,
+:root[data-theme-resolved="light"] .form-mode-field-picker-badge--sensitive {
+  color: #6d28d9;
+}
+
+:root[data-theme-resolved="light"] .form-mode-field-picker-badge--restricted {
+  color: #b91c1c;
 }
 
 :root[data-theme-resolved="light"] .api-settings-status-text[data-tone="success"],

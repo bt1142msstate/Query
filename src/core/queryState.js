@@ -552,6 +552,28 @@ function normalizeManagerMeta(meta = {}, fallbackSource) {
   };
 }
 
+function validateManagerStoreChange(storeMethodName, args, meta) {
+  const prevalidation = getPrevalidation();
+  if (
+    !prevalidatedManagerMethods.has(storeMethodName)
+    || !prevalidation
+    || typeof prevalidation.buildNextState !== 'function'
+    || typeof prevalidation.validateQueryChange !== 'function'
+  ) {
+    return { accepted: true };
+  }
+
+  const currentState = getQueryStateSnapshot();
+  const nextState = prevalidation.buildNextState(currentState, storeMethodName, args);
+  return prevalidation.validateQueryChange({
+    operation: storeMethodName,
+    args,
+    currentState,
+    nextState,
+    meta
+  });
+}
+
 const queryStateReaderMethodNames = Object.freeze([
   'getSnapshot',
   'getLifecycleState',
@@ -567,7 +589,9 @@ const queryStateReaderMethodNames = Object.freeze([
 ]);
 
 const prevalidatedManagerMethods = new Set([
+  'addDisplayedField',
   'replaceActiveFilters',
+  'replaceDisplayedFields',
   'upsertFilter',
   'removeFilter',
   'setQueryState'
@@ -582,25 +606,9 @@ function createManagerStoreMethod(storeMethodName, requiredArgCount, fallbackSou
     }
 
     const meta = args[requiredArgCount];
-    const prevalidation = getPrevalidation();
-    if (
-      prevalidatedManagerMethods.has(storeMethodName)
-      && prevalidation
-      && typeof prevalidation.buildNextState === 'function'
-      && typeof prevalidation.validateQueryChange === 'function'
-    ) {
-      const nextState = prevalidation.buildNextState(getQueryStateSnapshot(), storeMethodName, args);
-      const validationResult = prevalidation.validateQueryChange({
-        operation: storeMethodName,
-        args,
-        currentState: getQueryStateSnapshot(),
-        nextState,
-        meta
-      });
-
-      if (validationResult && validationResult.accepted === false) {
-        return false;
-      }
+    const validationResult = validateManagerStoreChange(storeMethodName, args, meta);
+    if (validationResult && validationResult.accepted === false) {
+      return false;
     }
 
     return queryStateStore[storeMethodName](...args);
@@ -616,7 +624,14 @@ function showManagedField(fieldName, options = {}) {
   const columnOps = getColumnOps();
   if (typeof columnOps?.addColumn === 'function') return columnOps.addColumn(normalizedField, options);
 
-  return queryStateStore.addDisplayedField(normalizedField, normalizeManagerMeta(options, 'QueryChangeManager.showField'));
+  const meta = normalizeManagerMeta(options, 'QueryChangeManager.showField');
+  const args = [normalizedField, meta];
+  const validationResult = validateManagerStoreChange('addDisplayedField', args, meta);
+  if (validationResult && validationResult.accepted === false) {
+    return false;
+  }
+
+  return queryStateStore.addDisplayedField(...args);
 }
 
 function hideManagedField(fieldName, options = {}) {

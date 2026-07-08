@@ -4,6 +4,12 @@
  * @module FieldDefs
  */
 import { BackendApi } from './backendApi.js';
+import {
+  getFieldAccessState,
+  isFieldAccessAuthorized,
+  isFieldAuthRequired,
+  isFieldSensitive
+} from './fieldAccess.js';
 import { QueryStateReaders, registerQueryStateRuntimeAccessors } from './queryState.js';
 import { showToastMessage } from './toast.js';
 import {
@@ -246,6 +252,10 @@ function getFieldFilterOperators(fieldOrName) {
     return [];
   }
 
+  if (!isFieldAccessAuthorized(fieldDef)) {
+    return [];
+  }
+
   const configured = Array.isArray(fieldDef.filters)
     ? fieldDef.filters
     : (Array.isArray(fieldDef.operators) ? fieldDef.operators : []);
@@ -279,7 +289,11 @@ function isFieldBuildable(fieldOrName) {
 }
 
 function isFieldDisplayable(fieldOrName) {
-  return !isFieldBuildable(fieldOrName);
+  const fieldDef = typeof fieldOrName === 'string'
+    ? fieldDefs.get(fieldOrName)
+    : fieldOrName;
+
+  return !isFieldBuildable(fieldDef) && isFieldAccessAuthorized(fieldDef);
 }
 
 function getFieldBuilderInputs(fieldOrName) {
@@ -380,8 +394,16 @@ function registerDynamicField(fieldName, opts = {}) {
     'operators',
     'parts',
     'fieldWarning',
+    'access',
+    'accessGranted',
+    'accessMessage',
+    'authMessage',
+    'authRequired',
     'performanceWarning',
+    'requiredScopes',
+    'requiresAuth',
     'retrievalWarning',
+    'sensitive',
     'values'
   ].forEach(key => {
     if (opts[key] !== undefined) {
@@ -478,11 +500,15 @@ export {
   fieldDefsArray,
   filteredDefs,
   getFieldBuilderInputs,
+  getFieldAccessState,
   getFieldFilterOperators,
   hasLoadedFieldDefinitions,
+  isFieldAccessAuthorized,
+  isFieldAuthRequired,
   isFieldBuildable,
   isFieldBackendFilterable,
   isFieldDisplayable,
+  isFieldSensitive,
   isLocalDynamicField,
   loadFieldDefinitions,
   registerDynamicField,

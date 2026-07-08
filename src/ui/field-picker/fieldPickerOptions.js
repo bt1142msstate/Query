@@ -2,6 +2,7 @@ import { formatFieldDefinitionTooltipHTML } from '../../core/formatting/tooltipF
 import {
   fieldDefs,
   fieldDefsArray,
+  getFieldAccessState,
   isFieldBackendFilterable,
   isFieldBuildable,
   isFieldDisplayable,
@@ -17,6 +18,7 @@ export function getFieldPickerOptionsFromDefinitions() {
   return source
     .filter(fieldDef => fieldDef && fieldDef.name)
     .map(fieldDef => ({
+      access: getFieldAccessState(fieldDef),
       name: String(fieldDef.name),
       type: String(fieldDef.type || 'text'),
       filterable: typeof isFieldBackendFilterable === 'function'

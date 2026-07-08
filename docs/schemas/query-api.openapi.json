@@ -148,6 +148,19 @@
           "aliases": { "type": "array", "items": { "type": "string" } },
           "allowValueList": { "type": "boolean" },
           "multiValue": { "type": "boolean" },
+          "sensitive": { "type": "boolean", "description": "UI hint for sensitive or staff-only fields. Backend authorization must enforce access." },
+          "requiresAuth": { "type": "boolean", "description": "Marks a field as requiring an authenticated backend session." },
+          "authRequired": { "type": "boolean", "description": "Alias for requiresAuth." },
+          "authorized": { "type": "boolean", "description": "If false, clients should disable display/filter actions for this field." },
+          "requiredScopes": { "type": "array", "items": { "type": "string" } },
+          "authMessage": { "type": "string" },
+          "accessMessage": { "type": "string" },
+          "access": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "object", "additionalProperties": true }
+            ]
+          },
           "builder": { "$ref": "#/components/schemas/FieldBuilder" }
         },
         "additionalProperties": true

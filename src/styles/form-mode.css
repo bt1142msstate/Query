@@ -1044,6 +1044,17 @@
   color: #92400e;
 }
 
+.form-mode-field-picker-badge--protected,
+.form-mode-field-picker-badge--sensitive {
+  background: rgba(168, 85, 247, 0.14);
+  color: #6d28d9;
+}
+
+.form-mode-field-picker-badge--restricted {
+  background: rgba(239, 68, 68, 0.14);
+  color: #b91c1c;
+}
+
 .form-mode-field-picker-badge--local {
   background: rgba(20, 184, 166, 0.14);
   color: #0f766e;
