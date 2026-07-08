@@ -1,0 +1,40 @@
+{
+  "name": "Architecture Binding Department Checkouts",
+  "tableName": "Architecture Binding Checkouts",
+  "displayFields": [
+    "Checkout User ID",
+    "Checkout User Name",
+    "Checkout Date",
+    "Checkout Due Date",
+    "Checkout Renewed Date",
+    "Checkout Overdue",
+    "Checkout Renewals",
+    "Checkout Library",
+    "Checkout Current Location",
+    "Item Id",
+    "Item Key",
+    "Catalog Key",
+    "Call Number",
+    "Title",
+    "Author",
+    "Format",
+    "Item Type",
+    "Item Library",
+    "Home Location",
+    "Current Location",
+    "Charge Count",
+    "Date Last Charged",
+    "Date Last Discharged"
+  ],
+  "filters": [
+    {
+      "field": "Checkout User ID",
+      "operator": "=",
+      "value": "000009015"
+    }
+  ],
+  "export": {
+    "format": "xlsx",
+    "output": "../Reports/Architecture Binding Checkouts/Architecture Binding Department Checkouts.xlsx"
+  }
+}
