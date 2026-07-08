@@ -280,7 +280,7 @@ export function createTableScrollbarController(options = {}) {
     const host = (hostSelector ? container.closest(hostSelector) : null) || container.parentElement || container;
     const existingTrack = host.querySelector(scrollbarSelector);
     if (elements?.container === container && existingTrack) {
-      scheduleSync({ refreshGeometry: true });
+      scheduleSync();
       return;
     }
 

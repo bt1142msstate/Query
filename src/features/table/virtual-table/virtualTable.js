@@ -325,6 +325,9 @@ function sortTableBy(fieldName) {
 }
 
 function renderVirtualTable(options = {}) {
+  const renderStartedAt = typeof performance !== 'undefined' && typeof performance.now === 'function'
+    ? performance.now()
+    : 0;
   const displayedFields = getDisplayedFields();
   if (!tableScrollContainer || !displayedFields.length) return;
   tableScrollbar.attach(tableScrollContainer);
@@ -339,7 +342,9 @@ function renderVirtualTable(options = {}) {
   const tbody = table.querySelector('tbody');
   if (!tbody) return;
   const syncInteractions = options.syncInteractions !== false;
-  const columnLayout = tableColumnLayout.syncRenderedColumnLayout(table, displayedFields, { syncBody: false });
+  const columnLayout = options.syncColumnLayout === false
+    ? tableColumnLayout.getRenderedColumnLayout(displayedFields)
+    : tableColumnLayout.syncRenderedColumnLayout(table, displayedFields, { syncBody: false });
   const nextBody = document.createDocumentFragment();
   
   if (syncInteractions) {
@@ -418,8 +423,17 @@ function renderVirtualTable(options = {}) {
   }
   
   tbody.replaceChildren(nextBody);
+  const renderDurationMs = renderStartedAt > 0
+    ? performance.now() - renderStartedAt
+    : 0;
   document.dispatchEvent(typeof CustomEvent === 'function'
-    ? new CustomEvent('query-table-body-rendered')
+    ? new CustomEvent('query-table-body-rendered', {
+        detail: {
+          renderDurationMs,
+          renderedRows: Math.max(0, end - start),
+          virtualized: renderPlan.virtualized
+        }
+      })
     : new Event('query-table-body-rendered'));
   
   if (syncInteractions) {
@@ -438,6 +452,7 @@ function scheduleVirtualTableRender() {
         renderVirtualTable({
           scrollDelta: pendingScrollDelta,
           scrollbarDragging: tableScrollbar.isDragging?.() === true,
+          syncColumnLayout: false,
           syncInteractions: false
         });
       } finally {

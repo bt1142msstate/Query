@@ -1,5 +1,5 @@
 {
-  "version": "56af72306788f1d1",
+  "version": "337ec854eea5dba1",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -128,7 +128,7 @@
     "src/features/table/virtual-table/duplicateRowsToggleUi.js": "206824a8b071118b",
     "src/features/table/virtual-table/simpleTable.js": "425057a806492470",
     "src/features/table/virtual-table/simpleTableGrouping.js": "e37248f1e99ee82e",
-    "src/features/table/virtual-table/virtualTable.js": "bbe2858474fa2887",
+    "src/features/table/virtual-table/virtualTable.js": "70da0b0110a83310",
     "src/features/table/virtual-table/virtualTableDataSnapshots.js": "c106867e3821f233",
     "src/features/table/virtual-table/virtualTablePostFilterOptions.js": "6caaf82945836676",
     "src/features/table/virtual-table/virtualTablePostFilters.js": "bab060ee1c91077b",
@@ -156,7 +156,7 @@
     "src/lib/virtual-table/tableBuilder.js": "38a9895d48fc0bae",
     "src/lib/virtual-table/tableColumnLayout.js": "ad958634d767e250",
     "src/lib/virtual-table/tableColumnWidthCalculation.js": "f9c159f1f6391651",
-    "src/lib/virtual-table/tableScrollbar.js": "35f4fc0ae84d0368",
+    "src/lib/virtual-table/tableScrollbar.js": "e0b38336477a29b9",
     "src/lib/virtual-table/tableSort.js": "ba992f93694a3eb8",
     "src/lib/virtual-table/virtualizer.js": "db3525d2eb06556b",
     "src/lib/virtual-table/virtualTableDuplicateCollapse.js": "3345a6285729be85",

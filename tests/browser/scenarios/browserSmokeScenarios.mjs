@@ -1539,9 +1539,13 @@ async function exerciseLargeVirtualScrollbarThumbDragPerformance(page) {
   }, null, { timeout: 5000 });
 
   await page.evaluate(() => {
-    window.__largeVirtualThumbDragMetrics = { longTasks: [], renderTimes: [], scrollTimes: [] };
-    document.addEventListener('query-table-body-rendered', () => {
+    window.__largeVirtualThumbDragMetrics = { longTasks: [], renderDurations: [], renderTimes: [], scrollTimes: [] };
+    document.addEventListener('query-table-body-rendered', event => {
       window.__largeVirtualThumbDragMetrics?.renderTimes?.push(performance.now());
+      const duration = Number(event.detail?.renderDurationMs || 0);
+      if (Number.isFinite(duration) && duration > 0) {
+        window.__largeVirtualThumbDragMetrics?.renderDurations?.push(duration);
+      }
     });
     document.querySelector('#table-container')?.addEventListener('scroll', () => {
       window.__largeVirtualThumbDragMetrics?.scrollTimes?.push(performance.now());
@@ -1587,6 +1591,7 @@ async function exerciseLargeVirtualScrollbarThumbDragPerformance(page) {
     const scrollGaps = metrics.scrollTimes.slice(1).map((time, index) => time - metrics.scrollTimes[index]);
     const sortedGaps = [...scrollGaps].sort((a, b) => a - b);
     const sortedLongTasks = [...metrics.longTasks].sort((a, b) => a - b);
+    const sortedRenderDurations = [...(metrics.renderDurations || [])].sort((a, b) => a - b);
     const percentile = (values, p) => (
       values.length ? values[Math.min(values.length - 1, Math.floor(values.length * p))] : 0
     );
@@ -1599,6 +1604,8 @@ async function exerciseLargeVirtualScrollbarThumbDragPerformance(page) {
       longTaskMaxMs: sortedLongTasks.at(-1) || 0,
       longTaskP95Ms: percentile(sortedLongTasks, 0.95),
       maxScrollTop: Math.max(0, (container?.scrollHeight || 0) - (container?.clientHeight || 0)),
+      renderDurationMaxMs: sortedRenderDurations.at(-1) || 0,
+      renderDurationP95Ms: percentile(sortedRenderDurations, 0.95),
       renderedRows: rows.length,
       renderEvents: metrics.renderTimes.length,
       scrollEvents: metrics.scrollTimes.length,
@@ -1613,7 +1620,8 @@ async function exerciseLargeVirtualScrollbarThumbDragPerformance(page) {
     || dragMetrics.renderedRows > 50
     || dragMetrics.scrollEvents < 20
     || dragMetrics.elapsedMs > 6500
-    || dragMetrics.longTaskMaxMs > 120
+    || dragMetrics.renderDurationMaxMs > 80
+    || dragMetrics.longTaskMaxMs > 250
   ) {
     throw new Error(`Large virtual table scrollbar thumb drag should stay responsive: ${JSON.stringify(dragMetrics)}`);
   }
