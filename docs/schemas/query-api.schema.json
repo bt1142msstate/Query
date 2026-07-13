@@ -590,7 +590,6 @@
         "id": { "type": "string" },
         "name": { "type": "string" },
         "description": { "type": "string" },
-        "svg": { "type": "string" },
         "categories": {
           "type": "array",
           "items": {

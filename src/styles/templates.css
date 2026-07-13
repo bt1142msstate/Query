@@ -195,9 +195,7 @@
 }
 
 .pinned-template-bubble__svg .template-default-icon,
-.pinned-template-bubble__svg .template-blueprint-icon,
-.template-svg-preview .template-default-icon,
-.template-svg-preview .template-blueprint-icon {
+.pinned-template-bubble__svg .template-blueprint-icon {
   box-sizing: border-box;
   background: #ffffff;
   border-radius: 24%;
@@ -206,12 +204,6 @@
 .pinned-template-bubble__svg .template-default-icon,
 .pinned-template-bubble__svg .template-blueprint-icon {
   padding: 0.24rem;
-}
-
-.template-svg-preview .template-default-icon,
-.template-svg-preview .template-blueprint-icon {
-  padding: 0.7rem;
-  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.18);
 }
 
 .templates-panel-shell::before,
@@ -909,23 +901,6 @@
   max-height: 16rem;
 }
 
-.template-svg-preview {
-  min-height: 10rem;
-  border-radius: 1.1rem;
-  border: 1px solid rgba(72, 214, 255, 0.22);
-  background: rgba(3, 9, 18, 0.92);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-}
-
-.template-svg-preview svg {
-  width: min(15rem, 100%);
-  height: auto;
-  max-height: 12rem;
-}
-
 .templates-field input::placeholder,
 .templates-field textarea::placeholder,
 .templates-category-form input::placeholder {
@@ -1401,10 +1376,6 @@
   .templates-field textarea {
     min-height: 5.5rem;
     max-height: 9rem;
-  }
-
-  .template-svg-preview {
-    min-height: 7rem;
   }
 
   .template-category-assignment {

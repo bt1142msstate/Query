@@ -1,6 +1,6 @@
 # Authentication And Access Control Guide
 
-This project is a static frontend with a swappable backend. The frontend should not collect library-system passwords, store API keys, or hold long-lived access tokens. Authentication and authorization should live in the backend adapter, reverse proxy, or an identity-aware gateway.
+The static frontend must not collect library-system passwords, store API keys, or contain long-lived access tokens. Authentication and authorization are enforced by the Sirsi CGI backend together with Apache or a trusted identity gateway.
 
 ## Recommended Pattern
 
@@ -8,169 +8,94 @@ Use a same-origin authenticated backend-for-frontend:
 
 ```text
 https://reports.example.org/          -> static frontend
-https://reports.example.org/api/query -> authenticated Query API adapter
+https://reports.example.org/api/query -> authenticated Sirsi Query API
 ```
 
-Flow:
+The frontend calls `/api/query` with `credentials: "same-origin"`. Apache or the identity gateway authenticates the browser session and supplies a verified CGI `REMOTE_USER`; the frontend never receives data-system credentials.
 
-1. User opens the app.
-2. The server, proxy, or API checks for a valid session.
-3. If unauthenticated, it redirects to the organization's existing sign-in system.
-4. The identity provider authenticates the user with existing credentials.
-5. The backend creates a server-side session and sets a secure session cookie.
-6. The browser calls `/api/query`; the backend validates the session and authorizes the query before touching the library system.
+Use the organization's existing OpenID Connect (OIDC), SAML/Shibboleth, CAS, or directory-backed gateway. Do not copy a client-supplied identity header into `REMOTE_USER`. The web server must establish that value only after successful authentication.
 
-The app should use `/api/query` in API Settings. The browser sends only a same-origin session cookie; data-system credentials stay server-side.
+## Current Backend Enforcement
 
-## Existing Sign-In Options
+`QUERY_API_AUTH_MODE` defaults to `required`. CGI access succeeds through one of two paths:
 
-Use the identity system the library or institution already has:
+| Method | Use | Requirement |
+| --- | --- | --- |
+| `REMOTE_USER` | Browser users behind Apache or a trusted gateway | The web tier authenticates the request and sets a valid CGI `REMOTE_USER` |
+| Bearer token | CLI or a controlled service client | `Authorization: Bearer ...` must match server-side `QUERY_API_BEARER_TOKEN`, which must contain at least 32 characters |
 
-| Existing system | Recommended integration |
-| --- | --- |
-| Microsoft Entra ID, Google Workspace, Okta, Auth0, Keycloak | OpenID Connect authorization code flow handled by the backend or gateway |
-| Shibboleth, InCommon, institutional SSO | SAML handled by a service provider, reverse proxy, or gateway |
-| CAS | CAS handled by the backend or gateway |
-| LDAP or Active Directory | Prefer an IdP/gateway that talks to LDAP/AD; do not send LDAP passwords from the browser to the static app |
-| VPN or intranet-only deployments | Still use app/API sessions for user attribution and access control when reports expose private data |
+`QUERY_API_AUTH_MODE=off` is a local-development bypass that grants administrator access. Never enable it on a production route.
 
-The frontend does not need a provider-specific SDK for these flows. It only needs a same-origin API URL after sign-in.
+### Configuration
 
-## Cookie And Session Requirements
-
-Use server-side sessions or a token-mediating backend. Do not expose refresh tokens or data-system credentials to browser JavaScript.
-
-Recommended cookie settings:
-
-```http
-Set-Cookie: query_session=<opaque-id>; Path=/; HttpOnly; Secure; SameSite=Lax
+```text
+QUERY_API_AUTH_MODE=required
+QUERY_API_AUTHORIZED_USERS=<optional comma-separated REMOTE_USER allowlist>
+QUERY_API_ADMIN_USERS=<comma-separated REMOTE_USER administrator allowlist>
+QUERY_API_ALLOWED_ORIGINS=<exact comma-separated origins, only when cross-origin is required>
 ```
 
-Use `SameSite=Strict` when the sign-in flow and user workflows do not require cross-site redirects back into a state-changing request. Use `SameSite=None; Secure` only when a real cross-site embedded or separate-domain requirement exists.
+Bearer service-client configuration:
 
-Session requirements:
+```text
+QUERY_API_BEARER_TOKEN=<random server-side secret of at least 32 characters>
+QUERY_API_BEARER_ROLE=user
+```
 
-- Generate high-entropy opaque session IDs.
-- Rotate the session after login.
-- Expire idle and absolute sessions.
-- Store user identity, roles, and data-system access server-side.
-- Add CSRF protection for authenticated cookie-backed state-changing endpoints.
-- Log user id, action, query id, duration, row count, and errors server-side.
+Set `QUERY_API_BEARER_ROLE=admin` only for a separately controlled client that requires privileged operations. Keep the token outside the repository, frontend, URL, logs, and web-readable files.
 
 ## Authorization Rules
 
-Authentication says who the user is. Authorization says what that user can query.
+The backend enforces authorization independently of visible frontend controls.
 
-At minimum, the backend should enforce:
+| Access | Operations |
+| --- | --- |
+| Authenticated user | Field metadata, query execution, status/history for owned queries, results for owned queries, and template/category reads |
+| Administrator | All user operations, cancellation, template/category create/update/delete/reorder, all query history/results, and `Staff Note` display or filtering |
 
-- deny by default
-- least privilege by role or group
-- per-action checks for `get_fields`, `run`, `status`, `cancel`, `get_results`, and templates
-- row, location, library, or collection scoping when a user should not see every result
-- server-side field allowlists for sensitive fields
-- rate limits, query timeouts, and max row/export limits
-- audit logs for report access and export generation
+Non-admin users cannot retrieve another principal's result by guessing a query id. `Staff Note` is omitted from their field metadata and rejected if submitted in hand-edited query JSON.
 
-Do not rely on hidden frontend controls to protect data. The backend must reject unauthorized fields, filters, result IDs, and template actions.
+Client-supplied template `svg` and `bubble_svg` values are rejected. Legacy SVG fields are not returned to the browser.
 
-## Sensitive Field Metadata
+## Browser And CSRF Boundary
 
-The API contract supports field-level metadata so the UI can label sensitive fields and avoid letting users add fields they are not authorized to use. This is only a convenience layer; the backend remains responsible for enforcement.
+The API accepts state-changing actions only through JSON POST requests. Requests are limited to `application/json`, exact bounded `Content-Length`, and a 1 MiB body. A cross-origin browser request must match a full origin in `QUERY_API_ALLOWED_ORIGINS`; wildcard CORS is not supported.
 
-Recommended `get_fields` metadata for protected fields:
-
-```json
-{
-  "name": "Checkout User Name",
-  "type": "string",
-  "category": "User",
-  "filters": ["equals"],
-  "sensitive": true,
-  "requiresAuth": true,
-  "authorized": false,
-  "requiredScopes": ["reports:sensitive"],
-  "authMessage": "Sign in with an authorized staff account to use checkout user fields."
-}
-```
-
-Use `authorized: false` when a user can see that a field exists but cannot use it yet. For fully hidden fields, omit them from `get_fields` until the authenticated user has access. Either way, the backend must reject unauthorized `display_fields` and `filters` in `run` requests, because hand-edited JSON can bypass UI controls.
-
-The sample Sirsi backend helper follows a default-deny model for fields marked `sensitive`, `requiresAuth`, or `requiredScopes`. A deployment can grant access by instantiating the command creator with the required scope, or by setting trusted backend environment context before handling a request:
-
-```text
-QUERY_API_AUTH_SCOPES=reports:sensitive
-```
-
-For emergency/internal deployments only, `QUERY_API_ALLOW_SENSITIVE_REPORTS=1` allows all sensitive report fields. Treat that as an administrative bypass, not normal user auth.
-
-If an SSO gateway or reverse proxy sets per-request headers, only trust them after the proxy strips spoofed incoming headers and runs on the same trusted network path. The backend supports `QUERY_API_TRUST_PROXY_AUTH_HEADERS=1` with `X-Query-API-Scopes`, but this should be enabled only behind a controlled proxy.
+Same-origin deployment is preferred. When authentication uses cookies, configure them with `HttpOnly`, `Secure`, and an appropriate `SameSite` value. The gateway must not expose an authenticated CGI route through a second origin that bypasses the backend's origin check.
 
 ## Frontend Behavior
 
-The app's API requests use `credentials: "same-origin"`. This intentionally supports the recommended same-origin session model and avoids sending cookies to arbitrary cross-origin API URLs configured in API Settings.
-
-Recommended API Settings value for private deployments:
+The app intentionally sends credentials only to its own origin. Recommended API Settings value:
 
 ```text
 /api/query
 ```
 
-Avoid:
+Do not put secrets in API Settings or `?api_url=`:
 
 ```text
 https://api.example.org/query-api?token=secret
 ```
 
-If a deployment truly requires a separate API origin, prefer putting a same-origin proxy in front of it:
+For a separate API origin, prefer a same-origin reverse proxy. The existing browser frontend does not inject bearer credentials into requests.
 
-```text
-https://reports.example.org/api/query -> https://api.example.org/query-api
-```
-
-If you intentionally build a cross-origin credentialed deployment, you must change both the frontend credential policy and the backend CORS policy deliberately. Do not use wildcard CORS with credentials.
-
-## Optional Auth Status Endpoint
-
-A deployment can add a small authenticated status route outside the Query API contract:
-
-```http
-GET /api/session
-```
-
-Example response:
-
-```json
-{
-  "authenticated": true,
-  "user": {
-    "id": "jane.doe",
-    "displayName": "Jane Doe",
-    "roles": ["reports"]
-  },
-  "expiresAt": "2026-06-26T22:30:00Z"
-}
-```
-
-This is useful for showing "signed in as..." in a deployment shell. It is optional; the core Query API remains `POST` JSON actions plus JSONL streams.
-
-## Deployment Checklist
+## Deployment Checks
 
 - Serve the frontend and API over HTTPS.
-- Prefer same-origin `/api/query`.
-- Put sign-in in the backend, proxy, or identity gateway.
-- Use existing institutional credentials through OIDC, SAML, CAS, or an IdP-backed directory.
-- Keep secrets, refresh tokens, and library-system credentials server-side.
-- Set session cookies with `HttpOnly`, `Secure`, and an appropriate `SameSite` value.
-- Enforce backend authorization for fields, filters, result IDs, templates, exports, and cancellation.
-- Add CSRF protection for cookie-backed authenticated actions.
-- Add rate limits, query timeouts, max result limits, and audit logs.
-- Run API Settings compatibility checks after sign-in.
+- Verify the identity layer sets `REMOTE_USER` only after sign-in.
+- Confirm an unauthenticated POST returns `401`.
+- Confirm a normal user can run a query but receives `403` for an admin-only action and `Staff Note`.
+- Confirm only configured administrators can mutate templates or cancel queries.
+- Confirm non-admin users cannot list or retrieve another user's query.
+- Confirm an unlisted Origin receives `403` and no wildcard CORS header.
+- Keep rate limits, query timeouts, row limits, private runtime storage, and audit logging enabled.
+- Run the API compatibility checks after authentication is active.
+
+The collocated Sirsi backend source includes `SECURITY_AUDIT.md` with the complete audit and production gate.
 
 ## References
 
 - [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
-- [OWASP Session Management Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html)
 - [OWASP Authorization Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html)
-- [OAuth 2.0 for Browser-Based Apps](https://datatracker.ietf.org/doc/draft-ietf-oauth-browser-based-apps/)
-- [OpenID Connect Core](https://openid.net/specs/openid-connect-core-1_0.html)
-- [Shibboleth Service Provider](https://www.shibboleth.net/products/service-provider/) and [Apereo CAS](https://apereo.github.io/cas/)
+- [OWASP Session Management Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html)
+- [OWASP CSRF Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html)

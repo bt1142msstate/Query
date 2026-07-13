@@ -56,11 +56,6 @@ function renderTemplateInputs({ elements, selected, state, restricted }) {
     restricted,
     saving
   });
-  setReadOnlyInput(elements.svgInput, {
-    value: state.draft?.svg ?? selected.svg ?? '',
-    restricted,
-    saving
-  });
 }
 
 function renderTemplateActionButtons({ elements, isNew, restricted, selected, state }) {
@@ -89,7 +84,6 @@ export function renderTemplateDetailView({
   selected,
   restricted,
   isNew,
-  getTemplateSvgMarkup,
   buildTemplateDetailMeta,
   renderCategoryAssignment,
   renderValidation
@@ -112,10 +106,6 @@ export function renderTemplateDetailView({
   }
 
   renderTemplateInputs({ elements, selected, state, restricted });
-
-  if (elements.svgPreview) {
-    elements.svgPreview.innerHTML = getTemplateSvgMarkup(state.draft ?? selected);
-  }
 
   renderCategoryAssignment();
 

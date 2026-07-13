@@ -125,7 +125,6 @@ import { escapeHtml } from '../../core/formatting/html.js';
     const elements = getElements();
     state.draft.name = String(elements.nameInput?.value || '').trim();
     state.draft.description = String(elements.descriptionInput?.value || '').trim();
-    state.draft.svg = String(elements.svgInput?.value || '').trim();
     syncDraftCategoriesFromInputs();
   }
 
@@ -645,7 +644,6 @@ import { escapeHtml } from '../../core/formatting/html.js';
       selected: getSelectedTemplate(),
       restricted: isRestrictedMode(),
       isNew: state.selectedId === NEW_TEMPLATE_ID,
-      getTemplateSvgMarkup,
       buildTemplateDetailMeta,
       renderCategoryAssignment,
       renderValidation
@@ -722,17 +720,6 @@ import { escapeHtml } from '../../core/formatting/html.js';
     elements.descriptionInput?.addEventListener('input', () => {
       syncDraftFromInputs();
       renderValidation([]);
-      if (elements.svgPreview && state.draft) {
-        elements.svgPreview.innerHTML = getTemplateSvgMarkup(state.draft);
-      }
-    });
-
-    elements.svgInput?.addEventListener('input', () => {
-      syncDraftFromInputs();
-      renderValidation([]);
-      if (elements.svgPreview && state.draft) {
-        elements.svgPreview.innerHTML = getTemplateSvgMarkup(state.draft);
-      }
     });
 
     elements.categoryFilter?.addEventListener('change', event => {

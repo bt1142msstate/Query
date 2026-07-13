@@ -45,7 +45,6 @@ function normalizeTemplate(rawTemplate, index) {
   const uiConfig = rawTemplate?.ui_config || rawTemplate?.jsonConfig || rawTemplate?.config || null;
   const name = String(rawTemplate?.name || rawTemplate?.template_name || '').trim();
   const description = String(rawTemplate?.description || '').trim();
-  const svg = String(rawTemplate?.svg || rawTemplate?.bubble_svg || '').trim();
   const id = getTemplateId(rawTemplate) || `template-${index}`;
   const categories = Array.isArray(rawTemplate?.categories)
     ? normalizeCategoryList(rawTemplate.categories)
@@ -55,7 +54,6 @@ function normalizeTemplate(rawTemplate, index) {
     id,
     name,
     description,
-    svg,
     categories,
     uiConfig,
     pinned: Boolean(rawTemplate?.pinned),
@@ -74,7 +72,6 @@ function cloneTemplate(template) {
     id: template.id,
     name: template.name,
     description: template.description,
-    svg: template.svg,
     categories: template.categories ? JSON.parse(JSON.stringify(template.categories)) : [],
     uiConfig: template.uiConfig ? JSON.parse(JSON.stringify(template.uiConfig)) : null,
     pinned: Boolean(template.pinned),
@@ -82,27 +79,6 @@ function cloneTemplate(template) {
     createdAt: template.createdAt,
     updatedAt: template.updatedAt
   };
-}
-
-function sanitizeSvgMarkup(rawSvg) {
-  const normalized = String(rawSvg || '').trim();
-  if (!normalized) {
-    return '';
-  }
-
-  const withoutHeader = normalized
-    .replace(/<\?xml[\s\S]*?\?>/gi, '')
-    .replace(/<!--[\s\S]*?-->/g, '')
-    .trim();
-
-  if (!/^<svg[\s\S]*<\/svg>$/i.test(withoutHeader)) {
-    return '';
-  }
-
-  return withoutHeader
-    .replace(/\son\w+=(["']).*?\1/gi, '')
-    .replace(/\son\w+=([^\s>]+)/gi, '')
-    .replace(/<script[\s\S]*?<\/script>/gi, '');
 }
 
 function formatTimestamp(value) {
@@ -123,6 +99,5 @@ export {
   formatTimestamp,
   normalizeCategory,
   normalizeCategoryList,
-  normalizeTemplate,
-  sanitizeSvgMarkup
+  normalizeTemplate
 };

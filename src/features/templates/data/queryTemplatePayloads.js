@@ -1,4 +1,3 @@
-import { sanitizeSvgMarkup } from './queryTemplateModels.js';
 import { getAssignedCategoriesForPayload } from './queryTemplateState.js';
 
 function getTemplatePinOrder(template) {
@@ -9,7 +8,6 @@ function buildTemplateMutationPayload(template, categories = [], uiConfig = null
   return {
     name: template?.name || '',
     description: template?.description || '',
-    svg: sanitizeSvgMarkup(template?.svg),
     categories: getAssignedCategoriesForPayload(template, categories),
     ui_config: uiConfig,
     pinned: Boolean(template?.pinned),
@@ -29,7 +27,6 @@ function buildPinTemplatePayload({ template, nextPinned = false, nextPinOrder } 
   return {
     name: template?.name || '',
     description: template?.description || '',
-    svg: sanitizeSvgMarkup(template?.svg),
     categories: Array.isArray(template?.categories) ? template.categories : [],
     ui_config: template?.uiConfig || null,
     pinned: Boolean(nextPinned),

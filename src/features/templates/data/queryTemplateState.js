@@ -121,7 +121,6 @@ function createTemplateDraftFromConfig(uiConfig) {
     id: '',
     name: '',
     description: '',
-    svg: '',
     categories: [],
     uiConfig,
     pinned: false,

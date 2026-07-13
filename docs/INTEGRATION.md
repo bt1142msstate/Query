@@ -521,7 +521,7 @@ Templates are optional. If your deployment does not support them, the main query
 | Action | Request fields | Expected response |
 | --- | --- | --- |
 | `list_templates` | none | `{ "templates": [...], "categories": [...] }` |
-| `create_template` | `name`, `description`, `svg`, `categories`, `ui_config`, `pinned`, `pin_order` | saved template object or `{ "template": {...} }` |
+| `create_template` | `name`, `description`, `categories`, `ui_config`, `pinned`, `pin_order` | saved template object or `{ "template": {...} }` |
 | `update_template` | `template_id` plus the create fields | saved template object or `{ "template": {...} }` |
 | `delete_template` | `template_id`, optional `name` | success object |
 | `reorder_pinned_templates` | `template_ids` | optional `{ "templates": [...] }` |
@@ -536,7 +536,6 @@ Template objects may use either camelCase or snake_case for common keys:
   "id": "template-1",
   "name": "Monthly report",
   "description": "Reusable report",
-  "svg": "<svg></svg>",
   "categories": [
     { "id": "cat-1", "name": "Reports", "description": "" }
   ],
