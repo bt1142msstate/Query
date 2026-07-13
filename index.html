@@ -48,6 +48,14 @@
     <span id="header-overlay-title" class="hidden" aria-live="polite" aria-atomic="true"></span>
     <span id="header-arrange-status" class="header-arrange-status hidden" aria-live="polite" aria-atomic="true"></span>
     <div id="header-controls" class="flex gap-2">
+      <button id="auth-session-button"
+              class="auth-session-button p-2 rounded-full bg-white hover:bg-gray-100 text-black focus:outline-none transition-colors border border-gray-200"
+              type="button" aria-label="Staff sign in" data-tooltip="Staff sign in" data-tooltip-delay="0">
+        <svg viewBox="0 0 24 24" class="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="8" r="4"></circle>
+          <path d="M4.5 21a7.5 7.5 0 0 1 15 0"></path>
+        </svg>
+      </button>
       <button id="run-query-btn"
         class="p-2 rounded-full bg-green-500 hover:bg-green-600 text-white focus:outline-none transition-colors"
         aria-label="Run query" data-tooltip="Run Query" data-tooltip-delay="0">
@@ -172,6 +180,19 @@
       <div id="mobile-menu-items"></div>
     </div>
   </div>
+  <dialog id="auth-session-dialog" class="auth-dialog">
+    <button class="auth-dialog__close" type="button" data-auth-close aria-label="Close">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+    </button>
+    <h2>Staff sign in</h2>
+    <p id="auth-session-status" aria-live="polite"></p>
+    <form id="auth-session-form">
+      <label>NetID<input name="username" autocomplete="username" required maxlength="64"></label>
+      <label>Password<input name="password" type="password" autocomplete="current-password" required maxlength="1024"></label>
+      <button type="submit">Sign in</button>
+    </form>
+    <button id="auth-session-signout" class="hidden" type="button">Sign out</button>
+  </dialog>
 
   <section id="app-startup-status"
            class="app-startup-status"

@@ -1,5 +1,6 @@
 import { formatDuration } from './formatting/dataFormatters.js';
 import { showToastMessage } from './toast.js';
+import { getAuthorizationHeaders } from './authSession.js';
 
 const DEFAULT_API_URL = 'https://mlp.sirsi.net/uhtbin/query_api.pl';
 const API_URL = DEFAULT_API_URL;
@@ -211,6 +212,7 @@ async function request(payload, options = {}) {
       method,
       headers: {
         'Content-Type': 'application/json',
+        ...getAuthorizationHeaders(),
         ...headers
       },
       credentials: 'same-origin',
