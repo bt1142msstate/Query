@@ -43,7 +43,7 @@ passwordForm?.addEventListener('submit', async event => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${session.token}`
+        'X-Query-Session': session.token
       },
       body: JSON.stringify({
         action: 'change_password',
@@ -112,7 +112,7 @@ signout?.addEventListener('click', async () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.token}`
+          'X-Query-Session': session.token
         },
         body: JSON.stringify({ action: 'logout' })
       });

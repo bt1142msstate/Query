@@ -3,7 +3,7 @@ let session = null;
 try { session = JSON.parse(globalThis.sessionStorage?.getItem(AUTH_KEY) || 'null'); } catch (_) { session = null; }
 
 function getAuthorizationHeaders() {
-  return session?.token ? { Authorization: `Bearer ${session.token}` } : {};
+  return session?.token ? { 'X-Query-Session': session.token } : {};
 }
 function getSession() { return session; }
 function setSession(value) {
