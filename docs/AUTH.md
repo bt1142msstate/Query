@@ -1,101 +1,49 @@
 # Authentication And Access Control Guide
 
-The static frontend must not collect library-system passwords, store API keys, or contain long-lived access tokens. Authentication and authorization are enforced by the Sirsi CGI backend together with Apache or a trusted identity gateway.
+The public API remains available for non-sensitive library queries. Staff sign-in unlocks protected fields and administrative operations; the backend enforces those permissions independently of frontend controls.
 
-## Recommended Pattern
+## Current Sirsi-Local Authentication
 
-Use a same-origin authenticated backend-for-frontend:
+The GitHub Pages frontend signs in against the Sirsi CGI API over HTTPS. The backend verifies a locally provisioned password hash and returns an opaque, revocable bearer session:
 
-```text
-https://reports.example.org/          -> static frontend
-https://reports.example.org/api/query -> authenticated Sirsi Query API
-```
+- Passwords are stored only as per-user PBKDF2-SHA256 hashes with unique salts and 210,000 iterations.
+- Session tokens expire after eight hours and are stored server-side only as SHA-256 token hashes.
+- The browser keeps its raw token in `sessionStorage`, so it is removed when the browser session ends and is never placed in a URL or repository.
+- Login attempts are limited to five per five minutes per client, followed by a 15-minute block.
+- Login, logout, and staff API actions are recorded in the private request audit trail without passwords or tokens.
+- Account and session files live outside the CGI document tree under `/software/apache/MLP/query-auth` with private permissions.
 
-The frontend calls `/api/query` with `credentials: "same-origin"`. Apache or the identity gateway authenticates the browser session and supplies a verified CGI `REMOTE_USER`; the frontend never receives data-system credentials.
-
-Use the organization's existing OpenID Connect (OIDC), SAML/Shibboleth, CAS, or directory-backed gateway. Do not copy a client-supplied identity header into `REMOTE_USER`. The web server must establish that value only after successful authentication.
-
-## Current Backend Enforcement
-
-`QUERY_API_AUTH_MODE` defaults to `required`. CGI access succeeds through one of two paths:
-
-| Method | Use | Requirement |
-| --- | --- | --- |
-| `REMOTE_USER` | Browser users behind Apache or a trusted gateway | The web tier authenticates the request and sets a valid CGI `REMOTE_USER` |
-| Bearer token | CLI or a controlled service client | `Authorization: Bearer ...` must match server-side `QUERY_API_BEARER_TOKEN`, which must contain at least 32 characters |
-
-`QUERY_API_AUTH_MODE=off` is a local-development bypass that grants administrator access. Never enable it on a production route.
-
-### Configuration
-
-```text
-QUERY_API_AUTH_MODE=required
-QUERY_API_AUTHORIZED_USERS=<optional comma-separated REMOTE_USER allowlist>
-QUERY_API_ADMIN_USERS=<comma-separated REMOTE_USER administrator allowlist>
-QUERY_API_ALLOWED_ORIGINS=<exact comma-separated origins, only when cross-origin is required>
-```
-
-Bearer service-client configuration:
-
-```text
-QUERY_API_BEARER_TOKEN=<random server-side secret of at least 32 characters>
-QUERY_API_BEARER_ROLE=user
-```
-
-Set `QUERY_API_BEARER_ROLE=admin` only for a separately controlled client that requires privileged operations. Keep the token outside the repository, frontend, URL, logs, and web-readable files.
+The initial administrators are `bt1142` and `alw3`. Account provisioning is performed through the secure local password prompt; plaintext passwords must never enter source, logs, shell arguments, job files, chat, or the clipboard.
 
 ## Authorization Rules
 
-The backend enforces authorization independently of visible frontend controls.
-
 | Access | Operations |
 | --- | --- |
-| Authenticated user | Field metadata, query execution, status/history for owned queries, results for owned queries, and template/category reads |
-| Administrator | All user operations, cancellation, template/category create/update/delete/reorder, all query history/results, and `Staff Note` display or filtering |
+| Public | Public field metadata, public-field query execution, status/results, and template/category reads |
+| Administrator | Public operations plus protected fields, cancellation, template/category mutation, and administrative history/results |
 
-Non-admin users cannot retrieve another principal's result by guessing a query id. `Staff Note` is omitted from their field metadata and rejected if submitted in hand-edited query JSON.
+Protected fields include staff notes and internal created/modified metadata. Public clients receive `403` if they submit a protected field manually.
 
-Client-supplied template `svg` and `bubble_svg` values are rejected. Legacy SVG fields are not returned to the browser.
+## Request Boundary
 
-## Browser And CSRF Boundary
+The API accepts state-changing actions only through bounded JSON POST requests. Cross-origin requests must match an exact configured origin; wildcard CORS is not supported. The public API intentionally remains cross-origin accessible for ordinary non-sensitive queries.
 
-The API accepts state-changing actions only through JSON POST requests. Requests are limited to `application/json`, exact bounded `Content-Length`, and a 1 MiB body. A cross-origin browser request must match a full origin in `QUERY_API_ALLOWED_ORIGINS`; wildcard CORS is not supported.
+Staff requests use `Authorization: Bearer <opaque-session-token>`. The server accepts locally issued sessions before checking optional trusted-gateway or controlled service credentials. Never put a bearer token in API Settings, query parameters, logs, or shared links.
 
-Same-origin deployment is preferred. When authentication uses cookies, configure them with `HttpOnly`, `Secure`, and an appropriate `SameSite` value. The gateway must not expose an authenticated CGI route through a second origin that bypasses the backend's origin check.
+## Account Operations
 
-## Frontend Behavior
-
-The app intentionally sends credentials only to its own origin. Recommended API Settings value:
-
-```text
-/api/query
-```
-
-Do not put secrets in API Settings or `?api_url=`:
-
-```text
-https://api.example.org/query-api?token=secret
-```
-
-For a separate API origin, prefer a same-origin reverse proxy. The existing browser frontend does not inject bearer credentials into requests.
+- Provision or replace hashes using the reviewed secure account helper.
+- Disable an account in server-side account state when access should be suspended.
+- Replacing an account password invalidates its old password; clear existing sessions during credential rotation.
+- Do not manually edit a hash, reuse another account's salt, or create plaintext recovery fields.
 
 ## Deployment Checks
 
-- Serve the frontend and API over HTTPS.
-- Verify the identity layer sets `REMOTE_USER` only after sign-in.
-- Confirm an unauthenticated POST returns `401`.
-- Confirm a normal user can run a query but receives `403` for an admin-only action and `Staff Note`.
-- Confirm only configured administrators can mutate templates or cancel queries.
-- Confirm non-admin users cannot list or retrieve another user's query.
-- Confirm an unlisted Origin receives `403` and no wildcard CORS header.
-- Keep rate limits, query timeouts, row limits, private runtime storage, and audit logging enabled.
-- Run the API compatibility checks after authentication is active.
+- Confirm public ordinary queries still work without signing in.
+- Confirm public protected-field requests return `403`.
+- Confirm both administrator accounts can sign in, call `whoami`, reach a protected action, sign out, and cannot reuse the revoked token.
+- Confirm invalid credentials return the same generic response for known and unknown usernames.
+- Confirm account, session, lock, rate-limit, and audit files have private permissions.
+- Keep HTTPS, timeouts, row limits, private runtime storage, and rate limits enabled.
 
-The collocated Sirsi backend source includes `SECURITY_AUDIT.md` with the complete audit and production gate.
-
-## References
-
-- [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
-- [OWASP Authorization Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html)
-- [OWASP Session Management Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html)
-- [OWASP CSRF Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html)
+The collocated Sirsi backend source includes `SECURITY_AUDIT.md` and focused authentication tests.
