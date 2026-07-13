@@ -741,6 +741,7 @@ body.raised-ui-open #table-shell.table-shell-expanded {
 .auth-dialog button { border:1px solid #9ca3af; border-radius:4px; padding:8px 12px; }
 .auth-dialog .auth-dialog__close { float:right; display:grid; place-items:center; padding:6px; border:0; }
 .auth-dialog p { min-height:24px; color:#4b5563; }
+.auth-dialog__secondary { margin-top:12px; }
 [data-theme-resolved="dark"] .auth-dialog { border-color:#475569; color:#f8fafc; background:#111827; }
 [data-theme-resolved="dark"] .auth-dialog p { color:#cbd5e1; }
 
