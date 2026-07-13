@@ -28,7 +28,7 @@ Protected fields include staff notes and internal created/modified metadata. Pub
 
 The API accepts state-changing actions only through bounded JSON POST requests. Cross-origin requests must match an exact configured origin; wildcard CORS is not supported. The public API intentionally remains cross-origin accessible for ordinary non-sensitive queries.
 
-Staff requests use `Authorization: Bearer <opaque-session-token>`. The server accepts locally issued sessions before checking optional trusted-gateway or controlled service credentials. Never put a bearer token in API Settings, query parameters, logs, or shared links.
+Staff browser requests use `X-Query-Session: <opaque-session-token>` because the production CGI host does not forward the standard authorization header. Controlled service clients may still use configured standard bearer authentication. Never put either token in API Settings, query parameters, logs, or shared links.
 
 ## Account Operations
 
