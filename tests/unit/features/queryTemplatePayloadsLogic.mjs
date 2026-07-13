@@ -35,7 +35,6 @@ test('query template payloads', async () => {
   }), {
     name: 'Branch report',
     description: 'Daily branch report',
-    svg: '<svg><path d="M0 0"/></svg>',
     categories: [categories[1]],
     ui_config: currentConfig,
     pinned: true,
@@ -50,7 +49,6 @@ test('query template payloads', async () => {
   }), {
     name: 'Branch report',
     description: 'Daily branch report',
-    svg: '<svg><path d="M0 0"/></svg>',
     categories: [categories[1]],
     ui_config: fallbackConfig,
     pinned: false,
@@ -70,7 +68,6 @@ test('query template payloads', async () => {
   }), {
     name: 'Pinned template',
     description: 'Pin me',
-    svg: '<svg><circle /></svg>',
     categories,
     ui_config: currentConfig,
     pinned: true,
@@ -82,4 +79,6 @@ test('query template payloads', async () => {
     nextPinned: false,
     nextPinOrder: 4
   }).pin_order, undefined);
+
+  assert.equal('svg' in buildCreateTemplatePayload({ draft, categories, uiConfig: currentConfig }), false);
 });

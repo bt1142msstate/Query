@@ -50,16 +50,13 @@ test('query template detail view', async () => {
     pinBtn: el(),
     refreshBtn: el(),
     saveBtn: el(),
-    svgInput: el(),
-    svgPreview: el(),
     useBtn: el()
   };
   const state = {
     detailOverlayOpen: true,
     draft: {
       name: 'Draft Name',
-      description: 'Draft Description',
-      svg: '<svg></svg>'
+      description: 'Draft Description'
     },
     loading: false,
     saving: false
@@ -76,7 +73,6 @@ test('query template detail view', async () => {
     },
     restricted: false,
     isNew: false,
-    getTemplateSvgMarkup: template => template.svg || 'fallback',
     buildTemplateDetailMeta: () => 'meta text',
     renderCategoryAssignment: () => {
       categoryAssignmentRendered = true;
@@ -90,7 +86,6 @@ test('query template detail view', async () => {
   assert.equal(elements.detailMode.textContent, 'Editable Template');
   assert.equal(elements.detailTitle.textContent, 'Saved Name');
   assert.equal(elements.nameInput.value, 'Draft Name');
-  assert.equal(elements.svgPreview.innerHTML, '<svg></svg>');
   assert.equal(elements.meta.textContent, 'meta text');
   assert.equal(elements.pinBtn.textContent, 'Pin Template');
   assert.equal(elements.saveBtn.textContent, 'Save Changes');
@@ -113,7 +108,6 @@ test('query template detail view', async () => {
     },
     restricted: false,
     isNew: true,
-    getTemplateSvgMarkup: template => template.svg || 'fallback',
     buildTemplateDetailMeta: () => 'new template meta',
     renderCategoryAssignment: () => {},
     renderValidation: () => {}
@@ -129,7 +123,6 @@ test('query template detail view', async () => {
     selected: null,
     restricted: true,
     isNew: false,
-    getTemplateSvgMarkup: () => '',
     buildTemplateDetailMeta: () => '',
     renderCategoryAssignment: () => {
       categoryAssignmentRendered = true;

@@ -59,7 +59,6 @@ test('query template state', async () => {
     id: '',
     name: '',
     description: '',
-    svg: '',
     categories: [],
     uiConfig,
     pinned: false,

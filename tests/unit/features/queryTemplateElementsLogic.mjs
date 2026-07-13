@@ -39,8 +39,6 @@ test('query template elements', async () => {
       'detailTitle',
       'nameInput',
       'descriptionInput',
-      'svgInput',
-      'svgPreview',
       'validation',
       'meta',
       'useBtn',

@@ -21,8 +21,6 @@ function getQueryTemplateElements(documentRef = document) {
     detailTitle: el('templates-detail-title'),
     nameInput: el('template-name-input'),
     descriptionInput: el('template-description-input'),
-    svgInput: el('template-svg-input'),
-    svgPreview: el('template-svg-preview'),
     validation: el('templates-validation'),
     meta: el('templates-meta'),
     useBtn: el('template-use-btn'),

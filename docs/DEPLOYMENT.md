@@ -21,6 +21,8 @@ This avoids most CORS complexity and keeps authentication cookies on one origin.
 
 For private deployments with sign-in or existing institutional credentials, follow [`docs/AUTH.md`](AUTH.md). The short version is: keep sign-in, tokens, library-system credentials, and authorization checks on the backend or reverse proxy; point the frontend at a same-origin route such as `/api/query`.
 
+The current Sirsi CGI backend fails closed by default. Before installing a hardened backend release, configure a trusted Apache/gateway `REMOTE_USER` path and `QUERY_API_ADMIN_USERS`, then verify the `401`/`403`/authorized response matrix in staging. Do not deploy first and enable authentication afterward.
+
 ## Same-Origin Reverse Proxy
 
 Put the static site and API behind the same public origin. A reverse proxy can route:
@@ -64,7 +66,7 @@ Access-Control-Allow-Headers: Content-Type
 Access-Control-Expose-Headers: X-Query-Id, X-Raw-Columns
 ```
 
-If the API uses cookies, also configure credentials and SameSite policy carefully. Do not use wildcard origins with credentialed requests.
+For the Sirsi CGI backend, list each exact frontend origin in `QUERY_API_ALLOWED_ORIGINS`. It emits the requesting origin only after an exact match and never emits a wildcard. If the API uses cookies, also configure credentials and SameSite policy carefully.
 
 ## Cookie Or Session Auth
 
@@ -138,5 +140,7 @@ Recommended controls:
 - Multi-value cells are JSON arrays when multiple values exist.
 - Optional actions are either implemented or intentionally reported as missing.
 - CORS or same-origin routing is configured.
+- Trusted `REMOTE_USER` authentication and the administrator allowlist are configured before the hardened CGI is installed.
+- Unauthenticated, normal-user, administrator, cross-owner, and disallowed-origin checks produce the expected `401`, `403`, `200`, or `404` response.
 - Secrets are server-side only.
 - `npm test` passes before publishing frontend changes.
