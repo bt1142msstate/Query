@@ -191,7 +191,13 @@
       <label>Password<input name="password" type="password" autocomplete="current-password" required maxlength="1024"></label>
       <button type="submit">Sign in</button>
     </form>
-    <button id="auth-session-signout" class="hidden" type="button">Sign out</button>
+    <form id="auth-password-form" class="hidden">
+      <label>Current password<input name="current_password" type="password" autocomplete="current-password" required maxlength="1024"></label>
+      <label>New password<input name="new_password" type="password" autocomplete="new-password" required minlength="14" maxlength="1024"></label>
+      <label>Confirm new password<input name="confirm_password" type="password" autocomplete="new-password" required minlength="14" maxlength="1024"></label>
+      <button type="submit">Change password</button>
+    </form>
+    <button id="auth-session-signout" class="hidden auth-dialog__secondary" type="button">Sign out</button>
   </dialog>
 
   <section id="app-startup-status"
