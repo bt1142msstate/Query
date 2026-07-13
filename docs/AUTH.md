@@ -11,7 +11,7 @@ The GitHub Pages frontend signs in against the Sirsi CGI API over HTTPS. The bac
 - The browser keeps its raw token in `sessionStorage`, so it is removed when the browser session ends and is never placed in a URL or repository.
 - Login attempts are limited to five per five minutes per client, followed by a 15-minute block.
 - Login, logout, and staff API actions are recorded in the private request audit trail without passwords or tokens.
-- Account and session files live outside the CGI document tree under `/software/apache/MLP/query-auth` with private permissions.
+- Account and session files live outside the CGI document tree under `/software/MLP/APIwork/Playground/QueryBackend/auth` with private permissions.
 
 The initial administrators are `bt1142` and `alw3`. Account provisioning is performed through the secure local password prompt; plaintext passwords must never enter source, logs, shell arguments, job files, chat, or the clipboard.
 
