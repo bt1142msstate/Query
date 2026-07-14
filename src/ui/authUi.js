@@ -24,6 +24,13 @@ function concealPasswords() {
   });
 }
 
+function clearPasswordFields() {
+  concealPasswords();
+  dialog?.querySelectorAll('input[type="password"], .auth-password-control input').forEach(input => {
+    input.value = '';
+  });
+}
+
 function render() {
   const session = getSession();
   button?.setAttribute('aria-label', session ? `Signed in as ${session.username}` : 'Staff sign in');
@@ -38,7 +45,7 @@ function render() {
 }
 
 button?.addEventListener('click', () => {
-  concealPasswords();
+  clearPasswordFields();
   render();
   dialog?.showModal();
 });
@@ -101,15 +108,16 @@ passwordForm?.addEventListener('submit', async event => {
 });
 
 dialog?.querySelector('[data-auth-close]')?.addEventListener('click', () => {
-  concealPasswords();
+  clearPasswordFields();
   dialog.close();
 });
 dialog?.addEventListener('click', event => {
   if (event.target === dialog) {
-    concealPasswords();
+    clearPasswordFields();
     dialog.close();
   }
 });
+dialog?.addEventListener('close', clearPasswordFields);
 
 form?.addEventListener('submit', async event => {
   event.preventDefault();
