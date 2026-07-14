@@ -1246,6 +1246,10 @@ async function runSmokeTest() {
 
     await mobilePage.locator('#mobile-menu-toggle').click();
     await mobilePage.locator('#mobile-menu-dropdown.show').waitFor({ state: 'visible', timeout: 5000 });
+    const mobileMenuExpanded = await mobilePage.locator('#mobile-menu-toggle').getAttribute('aria-expanded');
+    if (mobileMenuExpanded !== 'true') {
+      throw new Error(`Mobile menu toggle should report its open state: aria-expanded=${mobileMenuExpanded}`);
+    }
     await expectControlsNonSelectable(mobilePage, '#mobile-menu-dropdown', 'Mobile menu controls');
     const mobileMenuMetrics = await mobilePage.locator('#mobile-menu-dropdown.show').evaluate(element => {
       const rect = element.getBoundingClientRect();
@@ -1547,6 +1551,11 @@ async function runSmokeTest() {
 
     await seedLoadedResults(mobilePage);
     await mobilePage.locator('#table-with-filter').waitFor({ state: 'visible', timeout: 5000 });
+    await expectLightSurface(mobilePage, '#mobile-builder-toggle', 'Light mobile builder toggle');
+    await applySmokeTheme(mobilePage, 'dark');
+    await expectDarkSurface(mobilePage, '#mobile-table-action-bar', 'Dark mobile table action bar');
+    await expectReadableDarkText(mobilePage, '#mobile-table-action-bar', 'Dark mobile table action controls');
+    await applySmokeTheme(mobilePage, 'light');
     await expectDestructiveFlameAnimation(mobilePage, '[data-mobile-table-action-target="clear-query-btn"]', 'Mobile clear query action');
     const mobileResultsLayout = await mobilePage.evaluate(() => {
       const visibleTop = selector => {
