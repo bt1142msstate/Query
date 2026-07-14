@@ -11,9 +11,10 @@ const signout = document.getElementById('auth-session-signout');
 const headerSignout = document.getElementById('auth-header-signout');
 const historyButton = document.getElementById('toggle-queries');
 const closeButton = dialog?.querySelector('[data-auth-close]');
+let restoringPersistentSession = false;
 
 function openRequiredSignIn() {
-  if (getSession() || !dialog || dialog.open) return;
+  if (restoringPersistentSession || getSession() || !dialog || dialog.open) return;
   clearPasswordFields();
   dialog.showModal();
   form?.querySelector('input[name="username"]')?.focus();
@@ -58,11 +59,41 @@ function render() {
   if (status) {
     status.textContent = session
       ? `Signed in as ${session.username}${demoMode ? ' using sample data' : ''}.`
+      : restoringPersistentSession
+        ? 'Checking your saved sign-in...'
       : demoMode
         ? 'Demo account: demo / library'
         : 'Sign in to access Library Item Reports.';
   }
-  if (!session) queueMicrotask(openRequiredSignIn);
+  if (!session && !restoringPersistentSession) queueMicrotask(openRequiredSignIn);
+}
+
+async function restorePersistentSession() {
+  if (getSession() || isDemoApiUrl(getApiUrl())) return false;
+  restoringPersistentSession = true;
+  render();
+  try {
+    const response = await queryFetch(getApiUrl(), {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'whoami' })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload.authenticated || !payload.username) return false;
+    setSession({
+      cookieSession: true,
+      username: payload.username,
+      role: payload.role || 'user'
+    });
+    globalThis.location?.reload();
+    return true;
+  } catch (_) {
+    return false;
+  } finally {
+    restoringPersistentSession = false;
+    render();
+  }
 }
 
 button?.addEventListener('click', () => {
@@ -144,7 +175,7 @@ dialog?.addEventListener('cancel', event => {
 });
 dialog?.addEventListener('close', () => {
   clearPasswordFields();
-  if (!getSession()) queueMicrotask(openRequiredSignIn);
+  if (!getSession() && !restoringPersistentSession) queueMicrotask(openRequiredSignIn);
 });
 
 form?.addEventListener('submit', async event => {
@@ -203,4 +234,6 @@ signout?.addEventListener('click', signOut);
 headerSignout?.addEventListener('click', signOut);
 
 globalThis.addEventListener?.('query-auth:changed', render);
-render();
+restorePersistentSession().then(restored => {
+  if (!restored) render();
+});

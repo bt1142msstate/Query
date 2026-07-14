@@ -7,7 +7,7 @@ function getAuthorizationHeaders() {
 }
 function getSession() { return session; }
 function setSession(value) {
-  session = value?.token ? value : null;
+  session = value?.token || value?.cookieSession ? value : null;
   try { session ? globalThis.sessionStorage?.setItem(AUTH_KEY, JSON.stringify(session)) : globalThis.sessionStorage?.removeItem(AUTH_KEY); } catch (_) {}
   if (typeof globalThis.CustomEvent === 'function') {
     globalThis.dispatchEvent?.(new CustomEvent('query-auth:changed', { detail: session }));

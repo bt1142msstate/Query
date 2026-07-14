@@ -1,5 +1,5 @@
 {
-  "version": "2c6da12c0dc9c451",
+  "version": "70cbe6d316f3e3c4",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -24,7 +24,7 @@
     "src/core/appServices.js": "f119e3257c71f94e",
     "src/core/appStartupEvents.js": "ade9ac58fb5c38e5",
     "src/core/appUiActions.js": "6d81c4f6bb73a17f",
-    "src/core/authSession.js": "dc532a2aeab0ff8a",
+    "src/core/authSession.js": "4d6254f3745e1549",
     "src/core/backendApi.js": "7f79808481961b78",
     "src/core/backgroundTaskNotifications.js": "9f23ed0c3a09a030",
     "src/core/bootstrap.js": "6550fd6a729866a6",
@@ -191,7 +191,7 @@
     "src/styles/tooltips.css": "aa8cda3318209500",
     "src/ui/apiCompatibility.js": "16cdc3b712a801d7",
     "src/ui/apiSettings.js": "03a4438a4e2e6417",
-    "src/ui/authUi.js": "c7be21e843861dbb",
+    "src/ui/authUi.js": "b6ccee7153d89a6c",
     "src/ui/controls/customDatePicker.js": "88e4eb3245ac256c",
     "src/ui/controls/searchUI.js": "9d46afc995531905",
     "src/ui/controls/selectorControls.js": "b83bf2921722db44",
