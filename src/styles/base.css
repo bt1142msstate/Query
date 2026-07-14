@@ -738,6 +738,14 @@ body.raised-ui-open #table-shell.table-shell-expanded {
 .auth-dialog h2 { margin:0 0 16px; font-size:1.25rem; }
 .auth-dialog label { display:grid; gap:6px; margin:12px 0; font-weight:600; }
 .auth-dialog input { border:1px solid #9ca3af; border-radius:4px; padding:10px; color:var(--theme-text-strong,#111827); background:var(--theme-panel-bg-raised,#fff); caret-color:currentColor; }
+.auth-password-control { position:relative; display:block; }
+.auth-password-control input { width:100%; padding-right:44px; }
+.auth-dialog .auth-password-toggle { position:absolute; top:50%; right:5px; display:grid; width:34px; height:34px; padding:0; place-items:center; border:0; border-radius:4px; background:transparent; transform:translateY(-50%); }
+.auth-password-toggle:hover { background:rgba(100,116,139,.12); }
+.auth-password-toggle svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.auth-password-eye-off { display:none; }
+.auth-password-control--visible .auth-password-eye { display:none; }
+.auth-password-control--visible .auth-password-eye-off { display:block; }
 .auth-dialog input::placeholder { color:var(--theme-text-muted,#64748b); }
 .auth-dialog button { border:1px solid #9ca3af; border-radius:4px; padding:8px 12px; color:var(--theme-text-strong,#111827); background:var(--theme-panel-bg-raised,#f8fafc); }
 .auth-dialog form button[type="submit"] { color:#fff; border-color:#2563eb; background:#2563eb; }
