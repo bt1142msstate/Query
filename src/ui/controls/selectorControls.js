@@ -181,9 +181,9 @@ function createGroupedSelector(values, isMultiSelect, currentValues = [], option
     const literal = typeof value === 'object'
       ? (value.RawValue ?? value.Value ?? value.value ?? value.Name ?? value.Display)
       : value;
-    const explicitGroup = typeof value === 'object' ? (value.Group || value.group || '') : '';
+    const explicitGroup = typeof value === 'object' ? (value.Group || value.group || value.Metadata?.system_name || '') : '';
     const description = typeof value === 'object'
-      ? (value.Description || value.description || value.Desc || value.desc || '')
+      ? (value.Description || value.description || value.Desc || value.desc || value.Metadata?.description || '')
       : '';
     const displayText = String(display);
     const derivedGroup = enableGrouping && !explicitGroup && displayText.includes('-')
@@ -196,7 +196,7 @@ function createGroupedSelector(values, isMultiSelect, currentValues = [], option
       literal: String(literal),
       description: String(description || '').trim(),
       group,
-      searchText: `${String(displayText)} ${String(literal)}`.toLowerCase()
+      searchText: `${String(displayText)} ${String(literal)} ${String(value?.SearchText || '')} ${String(description || '')}`.toLowerCase()
     };
   }
 
