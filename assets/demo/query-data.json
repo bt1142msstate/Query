@@ -1,0 +1,32 @@
+{
+  "fields": [
+    { "name": "Item Id", "label": "Item ID", "type": "string", "category": "Item", "desc": "Unique identifier for the sample item.", "filters": ["equals", "contains"] },
+    { "name": "Title", "label": "Title", "type": "string", "category": "Bibliographic", "desc": "Title of the sample catalog record.", "filters": ["contains", "equals", "starts", "does_not_equal"] },
+    { "name": "Author", "label": "Author", "type": "string", "category": "Bibliographic", "desc": "Primary creator associated with the title.", "filters": ["contains", "equals", "starts"] },
+    { "name": "Library", "label": "Library", "type": "string", "category": "Item", "desc": "Branch that owns the sample item.", "filters": ["equals", "does_not_equal"], "values": [
+      { "RawValue": "CENTRAL", "DisplayValue": "Central Library", "Description": "Main demonstration library with general and research collections." },
+      { "RawValue": "EAST", "DisplayValue": "East Branch", "Description": "Neighborhood demonstration branch serving the east district." },
+      { "RawValue": "WEST", "DisplayValue": "West Branch", "Description": "Neighborhood demonstration branch serving the west district." }
+    ] },
+    { "name": "Current Location", "label": "Current Location", "type": "string", "category": "Item", "desc": "Current shelving or processing location.", "filters": ["equals", "does_not_equal"], "values": ["STACKS", "NEW_BOOKS", "DISPLAY", "MENDING"] },
+    { "name": "Status", "label": "Status", "type": "string", "category": "Circulation", "desc": "Current circulation status.", "filters": ["equals", "does_not_equal"], "values": ["AVAILABLE", "CHECKED_OUT", "MISSING"] },
+    { "name": "Due Date", "label": "Due Date", "type": "date", "category": "Circulation", "desc": "Due date for checked-out items; NEVER means no active due date.", "filters": ["equals", "before", "after", "between", "never"] },
+    { "name": "Item Type", "label": "Item Type", "type": "string", "category": "Item", "desc": "Circulation policy type assigned to the item.", "filters": ["equals", "does_not_equal"], "values": ["BOOK", "DVD", "REFERENCE"] },
+    { "name": "Public Note", "label": "Public Note", "type": "string", "category": "Notes", "desc": "Public-facing notes; a record may contain multiple values.", "filters": ["contains", "equals"], "multiValue": true }
+  ],
+  "defaultColumns": ["Item Id", "Title", "Author", "Library", "Status"],
+  "rows": [
+    ["100001", "A Field Guide to Local History", "Morgan Ellis", "CENTRAL", "DISPLAY", "AVAILABLE", "NEVER", "BOOK", ["Local history display", "Ask at the service desk"]],
+    ["100002", "Modern Archives Handbook", "Jordan Lee", "EAST", "STACKS", "CHECKED_OUT", "2026-08-03", "BOOK", ["Second edition"]],
+    ["100003", "Digital Records Basics", "Casey Nguyen", "WEST", "MENDING", "MISSING", "NEVER", "BOOK", []],
+    ["100004", "Community Oral History", "Avery Johnson", "CENTRAL", "NEW_BOOKS", "AVAILABLE", "NEVER", "BOOK", ["Includes online resources"]],
+    ["100005", "Introduction to Metadata", "Riley Patel", "EAST", "STACKS", "AVAILABLE", "NEVER", "BOOK", []],
+    ["100006", "Public Library Planning", "Taylor Brooks", "WEST", "STACKS", "CHECKED_OUT", "2026-07-29", "BOOK", ["Library use only after 6 PM"]],
+    ["100007", "Preserving Family Photographs", "Cameron Diaz", "CENTRAL", "STACKS", "AVAILABLE", "NEVER", "BOOK", []],
+    ["100008", "The Accessible Library", "Skyler Martin", "EAST", "DISPLAY", "AVAILABLE", "NEVER", "BOOK", ["Accessibility collection"]],
+    ["100009", "Research Methods in Practice", "Drew Wilson", "CENTRAL", "STACKS", "CHECKED_OUT", "2026-08-12", "BOOK", []],
+    ["100010", "Library Technology Today", "Reese Clark", "WEST", "NEW_BOOKS", "AVAILABLE", "NEVER", "DVD", ["Companion media included"]],
+    ["100011", "Mississippi Writers Reader", "Jamie Carter", "CENTRAL", "STACKS", "AVAILABLE", "NEVER", "REFERENCE", ["In-library use"]],
+    ["100012", "Designing Better Service Desks", "Alexis Moore", "EAST", "STACKS", "AVAILABLE", "NEVER", "BOOK", []]
+  ]
+}

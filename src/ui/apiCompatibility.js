@@ -1,3 +1,5 @@
+import { queryFetch } from '../core/mockQueryBackend.js';
+
 const DEFAULT_COMPATIBILITY_TIMEOUT_MS = 30000;
 const DEFAULT_TEXT_LIMIT = 512 * 1024;
 const OPTIONAL_ACTIONS = [
@@ -285,7 +287,7 @@ async function requestJson(apiUrl, payload, options = {}) {
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(apiUrl, {
+    const response = await queryFetch(apiUrl, {
       body: JSON.stringify(payload),
       credentials: 'same-origin',
       headers: {
@@ -349,7 +351,7 @@ async function requestText(apiUrl, payload, options = {}) {
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(apiUrl, {
+    const response = await queryFetch(apiUrl, {
       body: JSON.stringify(payload),
       credentials: 'same-origin',
       headers: {
