@@ -325,7 +325,7 @@ class ModalManager {
     iconShell.className = 'mobile-menu-icon';
     iconShell.innerHTML = button.innerHTML;
     iconShell.querySelectorAll('[id]').forEach(node => node.removeAttribute('id'));
-    iconShell.querySelectorAll('.theme-toggle-label').forEach(node => node.remove());
+    iconShell.querySelectorAll('.theme-toggle-label, .auth-header-signout-label').forEach(node => node.remove());
     item.appendChild(iconShell);
 
     const label = document.createElement('span');
