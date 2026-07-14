@@ -356,6 +356,13 @@ async function runSmokeTest() {
   try {
     browser = await chromium.launch({ headless: true });
     page = await browser.newPage();
+    await page.addInitScript(() => {
+      sessionStorage.setItem('query-project.session', JSON.stringify({
+        token: 'browser-smoke-session',
+        username: 'browser-smoke',
+        role: 'admin'
+      }));
+    });
     attachFailureListeners(page, failures, port);
 
     await stubExternalAssets(page);
@@ -1176,6 +1183,11 @@ async function runSmokeTest() {
       isMobile: true,
       viewport: { width: 1180, height: 820 }
     });
+    await tabletPage.addInitScript(() => {
+      sessionStorage.setItem('query-project.session', JSON.stringify({
+        token: 'browser-smoke-session', username: 'browser-smoke', role: 'admin'
+      }));
+    });
     attachFailureListeners(tabletPage, failures, port);
     await stubExternalAssets(tabletPage);
     const tabletQueryApiStub = await installQueryApiStub(tabletPage);
@@ -1189,6 +1201,11 @@ async function runSmokeTest() {
       isMobile: true,
       viewport: { width: 820, height: 1180 }
     });
+    await tabletPortraitPage.addInitScript(() => {
+      sessionStorage.setItem('query-project.session', JSON.stringify({
+        token: 'browser-smoke-session', username: 'browser-smoke', role: 'admin'
+      }));
+    });
     attachFailureListeners(tabletPortraitPage, failures, port);
     await stubExternalAssets(tabletPortraitPage);
     const tabletPortraitQueryApiStub = await installQueryApiStub(tabletPortraitPage);
@@ -1200,6 +1217,11 @@ async function runSmokeTest() {
     const mobilePage = await browser.newPage({
       isMobile: true,
       viewport: { width: 390, height: 844 }
+    });
+    await mobilePage.addInitScript(() => {
+      sessionStorage.setItem('query-project.session', JSON.stringify({
+        token: 'browser-smoke-session', username: 'browser-smoke', role: 'admin'
+      }));
     });
     attachFailureListeners(mobilePage, failures, port);
     await stubExternalAssets(mobilePage);
@@ -1964,6 +1986,22 @@ async function runSmokeTest() {
     await mobilePage.locator('#export-cancel-btn').click();
     await expectMobileScrollLockReleased(mobilePage, 'Mobile export dialog');
     await cleanupMobilePageScroll(mobilePage);
+
+    const signedOutPage = await browser.newPage();
+    await signedOutPage.addInitScript(() => {
+      sessionStorage.removeItem('query-project.session');
+    });
+    attachFailureListeners(signedOutPage, failures, port);
+    await stubExternalAssets(signedOutPage);
+    await installQueryApiStub(signedOutPage);
+    await signedOutPage.goto(baseUrl, { waitUntil: 'load', timeout: 15000 });
+    await waitForAppReady(signedOutPage, failures);
+    await signedOutPage.locator('#toggle-queries.hidden').waitFor({ state: 'attached', timeout: 5000 });
+    const signedOutHistoryVisible = await signedOutPage.locator('#toggle-queries').isVisible();
+    if (signedOutHistoryVisible) {
+      throw new Error('Query History control must remain hidden until the user signs in');
+    }
+    await signedOutPage.close();
 
     if (failures.length > 0) {
       throw new Error(`Browser smoke test failed:\n${failures.map(failure => `- ${failure}`).join('\n')}`);

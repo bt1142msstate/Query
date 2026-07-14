@@ -49,7 +49,8 @@ function syncFormModePresentation({
   state.formCard?.classList.toggle('hidden', !presentation.isFormMode);
 
   hiddenControlIds.forEach(id => {
-    documentRef.getElementById(id)?.classList.toggle('hidden', presentation.isLimitedView);
+    const requiresSession = id === 'toggle-queries' && !getSession();
+    documentRef.getElementById(id)?.classList.toggle('hidden', presentation.isLimitedView || requiresSession);
   });
 
   removeModeToggleButton(state);
@@ -66,3 +67,4 @@ export {
   resolveRequestedFormViewMode,
   syncFormModePresentation
 };
+import { getSession } from '../../core/authSession.js';

@@ -1337,3 +1337,6 @@ body.header-arrange-status-active #header-overlay-title {
     min-width: 0;
   }
 }
+#toggle-queries.hidden {
+  display: none !important;
+}

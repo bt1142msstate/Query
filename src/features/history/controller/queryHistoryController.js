@@ -25,6 +25,7 @@ import { mapStatusPayloadToHistoryRows } from '../status/queryHistoryStatusMappe
 import { formatColumnsTooltip, formatHistoryFiltersTooltip } from '../view/queryHistoryTooltips.js';
 import { notifyHistoryResultLoadComplete, prepareHistoryResultLoadNotification } from '../status/queryHistoryNotifications.js';
 import { rememberOpenedHistoryResult, shouldRestoreOpenedHistoryResult } from '../results/queryHistoryResultSession.js';
+import { getSession } from '../../../core/authSession.js';
 import {
   classifyQueryStatus,
   getPreferredHistorySection as getPreferredHistorySectionForCounts
@@ -607,6 +608,10 @@ let queryHistoryInitialized = false;
 
 // Initialize query history functionality
 onDOMReady(() => {
+  if (!getSession()) {
+    return;
+  }
+
   openedHistoryResultRestoreController = createOpenedHistoryResultRestoreController({
     appState: AppState,
     getHistoryQueryById,
