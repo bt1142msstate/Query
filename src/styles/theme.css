@@ -88,6 +88,17 @@
   box-shadow: var(--qp-sys-shadow-surface);
 }
 
+:root[data-theme-resolved="dark"] #table-shell.table-shell-expanded #table-top-bar {
+  border-color: rgba(148, 163, 184, 0.2);
+  background: linear-gradient(135deg, rgba(51, 65, 85, 0.98), rgba(30, 41, 59, 0.98));
+  box-shadow: 0 1px 0 rgba(148, 163, 184, 0.14), 0 12px 28px rgba(2, 8, 23, 0.34);
+}
+
+:root[data-theme-resolved="dark"] #table-shell.table-shell-expanded #table-zoom-controls {
+  border-color: rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.78);
+}
+
 :root[data-theme-resolved="dark"] #table-name-input {
   background: var(--qp-sys-color-input-background) !important;
   color: var(--theme-text-strong) !important;
