@@ -1082,6 +1082,17 @@ body.header-arrange-status-active #header-overlay-title {
     border-color: rgba(94, 234, 212, 0.28);
   }
 
+  #mobile-menu-dropdown .mobile-menu-item[data-source-control-id="auth-header-signout"] {
+    border-color: rgba(248, 113, 113, 0.42);
+    color: #fff;
+    background: rgba(185, 28, 28, 0.82);
+  }
+
+  #mobile-menu-dropdown .mobile-menu-item[data-source-control-id="auth-header-signout"]:hover,
+  #mobile-menu-dropdown .mobile-menu-item[data-source-control-id="auth-header-signout"]:focus-visible {
+    background: rgba(220, 38, 38, 0.92);
+  }
+
   #mobile-menu-dropdown .mobile-menu-item:hover,
   #mobile-menu-dropdown .mobile-menu-item:focus-visible {
     background: rgba(69, 235, 255, 0.12);
