@@ -6,6 +6,25 @@ import { createListPasteInput, parseListInputValues } from './selectorListPasteI
 
 const MOBILE_SELECTOR_QUERY = '(max-width: 1180px), (hover: none) and (pointer: coarse)';
 
+function getSelectorValueDescription(value) {
+  if (!value || typeof value !== 'object') {
+    return '';
+  }
+
+  const metadata = value.Metadata || value.metadata || {};
+  return String(
+    value.Description
+    || value.description
+    || value.Desc
+    || value.desc
+    || metadata.Description
+    || metadata.description
+    || metadata.Desc
+    || metadata.desc
+    || ''
+  ).trim();
+}
+
 function isMobileSelectorViewport() {
   return Boolean(window.matchMedia?.(MOBILE_SELECTOR_QUERY).matches);
 }
@@ -22,9 +41,7 @@ function createBooleanPillSelector(values, currentValue = '', options = {}) {
     const literal = typeof value === 'object'
       ? (value.RawValue ?? value.Value ?? value.value ?? value.Name ?? value.Display)
       : value;
-    const description = typeof value === 'object'
-      ? (value.Description || value.description || value.Desc || value.desc || '')
-      : '';
+    const description = getSelectorValueDescription(value);
 
     return {
       display: String(display),
@@ -54,6 +71,7 @@ function createBooleanPillSelector(values, currentValue = '', options = {}) {
       button.setAttribute('aria-pressed', selectedValue === option.literal ? 'true' : 'false');
       if (option.description) {
         button.setAttribute('data-tooltip', option.description);
+        button.setAttribute('data-tooltip-intent', 'delayed');
       }
       if (selectedValue === option.literal) {
         button.classList.add('active');
@@ -182,9 +200,7 @@ function createGroupedSelector(values, isMultiSelect, currentValues = [], option
       ? (value.RawValue ?? value.Value ?? value.value ?? value.Name ?? value.Display)
       : value;
     const explicitGroup = typeof value === 'object' ? (value.Group || value.group || value.Metadata?.system_name || '') : '';
-    const description = typeof value === 'object'
-      ? (value.Description || value.description || value.Desc || value.desc || value.Metadata?.description || '')
-      : '';
+    const description = getSelectorValueDescription(value);
     const displayText = String(display);
     const derivedGroup = enableGrouping && !explicitGroup && displayText.includes('-')
       ? displayText.split('-')[0].trim()
@@ -428,6 +444,7 @@ function createGroupedSelector(values, isMultiSelect, currentValues = [], option
     }
     if (option.description) {
       optionItem.setAttribute('data-tooltip', option.description);
+      optionItem.setAttribute('data-tooltip-intent', 'delayed');
     }
 
     const input = document.createElement('input');
@@ -458,7 +475,9 @@ function createGroupedSelector(values, isMultiSelect, currentValues = [], option
     labelText.style.flex = '1 1 auto';
     labelText.style.minWidth = '0';
     labelText.addEventListener('mouseover', function() {
-      if (this.offsetWidth < this.scrollWidth) {
+      if (option.description) {
+        this.removeAttribute('data-tooltip');
+      } else if (this.offsetWidth < this.scrollWidth) {
         this.setAttribute('data-tooltip', this.dataset.rawText);
       } else {
         this.removeAttribute('data-tooltip');
@@ -742,5 +761,6 @@ export {
   createGroupedSelector,
   createListPasteInput,
   createPopupListControl,
-  parseListInputValues
+  parseListInputValues,
+  getSelectorValueDescription
 };
