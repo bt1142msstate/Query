@@ -1,8 +1,13 @@
 import { formatDuration } from './formatting/dataFormatters.js';
 import { showToastMessage } from './toast.js';
 import { getAuthorizationHeaders } from './authSession.js';
+import { queryFetch } from './mockQueryBackend.js';
 
-const DEFAULT_API_URL = 'https://mlp.sirsi.net/uhtbin/query_api.pl';
+const GITHUB_DEMO_HOST = 'bt1142msstate.github.io';
+const REAL_API_URL = 'https://mlp.sirsi.net/uhtbin/query_api.pl';
+const DEFAULT_API_URL = globalThis.location?.hostname === GITHUB_DEMO_HOST
+  ? new URL('./demo-api', globalThis.location.href).href
+  : REAL_API_URL;
 const API_URL = DEFAULT_API_URL;
 const API_URL_STORAGE_KEY = 'query-project.api-url';
 const API_URL_PARAM_NAMES = ['api_url', 'query_api_url'];
@@ -208,7 +213,7 @@ async function request(payload, options = {}) {
 
   let response;
   try {
-    response = await fetch(getApiUrl(), {
+    response = await queryFetch(getApiUrl(), {
       method,
       headers: {
         'Content-Type': 'application/json',
@@ -298,6 +303,7 @@ export {
   API_URL_PARAM_NAMES,
   API_URL_STORAGE_KEY,
   DEFAULT_API_URL,
+  REAL_API_URL,
   assertNotRateLimited,
   backendApi as BackendApi,
   buildHttpError,

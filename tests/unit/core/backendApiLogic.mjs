@@ -11,6 +11,7 @@ function installBrowserConfig({ href = 'https://app.example.test/index.html', se
     configurable: true,
     value: {
       href,
+      hostname: new URL(href).hostname,
       search
     }
   });
@@ -33,6 +34,13 @@ function installBrowserConfig({ href = 'https://app.example.test/index.html', se
 
   return storage;
 }
+
+test('GitHub Pages defaults to the browser-local demonstration backend', async () => {
+  installBrowserConfig({ href: 'https://bt1142msstate.github.io/Query/' });
+  const module = await import(`../../../src/core/backendApi.js?case=github-demo-${Date.now()}`);
+  assert.equal(module.DEFAULT_API_URL, 'https://bt1142msstate.github.io/Query/demo-api');
+  assert.equal(module.getApiUrl(), module.DEFAULT_API_URL);
+});
 
 test('backend api', async () => {
   const searchStorage = installBrowserConfig({

@@ -69,6 +69,8 @@ http://127.0.0.1:4173/index.html?api_url=https://your.example.org/query-api
 
 The app defaults to the checked-in public example/testing endpoint. Valid API URL overrides from the settings screen, `?api_url=...`, or `?query_api_url=...` are stored in `localStorage` under `query-project.api-url`.
 
+The GitHub Pages deployment defaults to a browser-local sample catalog and the shared demonstration account `demo` / `library`. It does not contain or request production library data. Use API Settings or an `api_url` launch parameter to connect the hosted frontend to any compatible HTTP(S) backend without redeploying the static site. The Sirsi-hosted deployment continues to default to its real authenticated backend.
+
 To run the minimal local example backend:
 
 ```bash

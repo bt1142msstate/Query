@@ -62,7 +62,17 @@ test('api settings helpers expose connection mode and field extraction', async (
     module.getApiConnectionMode('https://mlp.sirsi.net/uhtbin/query_api.pl'),
     {
       isDefault: true,
-      label: 'Public default'
+      label: 'Default endpoint'
+    }
+  );
+  assert.deepEqual(
+    module.getApiConnectionMode(
+      'https://bt1142msstate.github.io/Query/demo-api',
+      'https://bt1142msstate.github.io/Query/demo-api'
+    ),
+    {
+      isDefault: true,
+      label: 'Sample data demo'
     }
   );
   assert.deepEqual(

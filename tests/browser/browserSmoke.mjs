@@ -1062,10 +1062,10 @@ async function runSmokeTest() {
     if (
       initialApiSettings.current !== initialApiSettings.defaultUrl
       || initialApiSettings.inputValue !== initialApiSettings.defaultUrl
-      || initialApiSettings.mode !== 'Public default'
+      || initialApiSettings.mode !== 'Default endpoint'
       || initialApiSettings.stored !== null
     ) {
-      throw new Error(`API settings should start on the public default: ${JSON.stringify(initialApiSettings)}`);
+      throw new Error(`API settings should start on the site default: ${JSON.stringify(initialApiSettings)}`);
     }
     await page.locator('#api-settings-test-btn').click();
     await page.waitForFunction(() => /Connected\. Loaded \d+ fields\./u.test(document.querySelector('#api-settings-status')?.textContent || ''), null, { timeout: 5000 });
@@ -1155,10 +1155,10 @@ async function runSmokeTest() {
     });
     if (
       resetApiSettings.current !== resetApiSettings.defaultUrl
-      || resetApiSettings.mode !== 'Public default'
+      || resetApiSettings.mode !== 'Default endpoint'
       || resetApiSettings.stored !== null
     ) {
-      throw new Error(`API settings should reset to the public default: ${JSON.stringify(resetApiSettings)}`);
+      throw new Error(`API settings should reset to the site default: ${JSON.stringify(resetApiSettings)}`);
     }
     await page.locator('#api-settings-panel .collapse-btn').click();
     await page.locator('#api-settings-panel.hidden').waitFor({ state: 'attached', timeout: 5000 });
@@ -2011,6 +2011,44 @@ async function runSmokeTest() {
       throw new Error(`Signed-out application must remain behind the required sign-in dialog: ${JSON.stringify(signedOutLockState)}`);
     }
     await signedOutPage.close();
+
+    const demoPage = await browser.newPage();
+    await demoPage.addInitScript(() => {
+      if (!sessionStorage.getItem('demo-smoke-initialized')) {
+        sessionStorage.removeItem('query-project.session');
+        localStorage.removeItem('query-project.api-url');
+        sessionStorage.setItem('demo-smoke-initialized', '1');
+      }
+    });
+    await stubExternalAssets(demoPage);
+    const demoApiUrl = `http://127.0.0.1:${port}/demo-api`;
+    await demoPage.goto(`${baseUrl}?api_url=${encodeURIComponent(demoApiUrl)}`, { waitUntil: 'load', timeout: 15000 });
+    await demoPage.locator('#auth-session-dialog[open]').waitFor({ state: 'visible', timeout: 5000 });
+    await demoPage.locator('#auth-session-form input[name="username"]').fill('demo');
+    await demoPage.locator('#auth-session-form input[name="password"]').fill('library');
+    await Promise.all([
+      demoPage.waitForNavigation({ waitUntil: 'load', timeout: 15000 }),
+      demoPage.locator('#auth-session-form button[type="submit"]').click()
+    ]);
+    await demoPage.locator('#query-app-shell').waitFor({ state: 'visible', timeout: 10000 });
+    attachFailureListeners(demoPage, failures, port);
+    const demoContract = await demoPage.evaluate(async () => {
+      const { postJson, postText } = await import('./src/core/backendApi.js');
+      const fields = await postJson({ action: 'get_fields' });
+      const result = await postText({
+        action: 'run',
+        display_fields: ['Title', 'Library'],
+        filters: [{ field: 'Library', operator: '=', value: 'EAST' }]
+      });
+      return {
+        fieldCount: fields.data.fields.length,
+        result: result.text
+      };
+    });
+    if (demoContract.fieldCount < 5 || !demoContract.result.includes('Modern Archives Handbook')) {
+      throw new Error(`Browser-local demo backend did not complete its signed-in query flow: ${JSON.stringify(demoContract)}`);
+    }
+    await demoPage.close();
 
     if (failures.length > 0) {
       throw new Error(`Browser smoke test failed:\n${failures.map(failure => `- ${failure}`).join('\n')}`);

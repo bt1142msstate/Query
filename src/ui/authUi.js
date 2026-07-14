@@ -1,5 +1,6 @@
 import { getApiUrl } from '../core/backendApi.js';
 import { clearSession, getSession, setSession } from '../core/authSession.js';
+import { isDemoApiUrl, queryFetch } from '../core/mockQueryBackend.js';
 
 const button = document.getElementById('auth-session-button');
 const dialog = document.getElementById('auth-session-dialog');
@@ -43,18 +44,23 @@ function clearPasswordFields() {
 
 function render() {
   const session = getSession();
+  const demoMode = isDemoApiUrl(getApiUrl());
   button?.setAttribute('aria-label', session ? `Signed in as ${session.username}` : 'Staff sign in');
   button?.setAttribute('data-tooltip', session ? `Signed in: ${session.username}` : 'Staff sign in');
   button?.classList.toggle('auth-session-button--active', Boolean(session));
   form?.classList.toggle('hidden', Boolean(session));
-  passwordForm?.classList.toggle('hidden', !session);
+  passwordForm?.classList.toggle('hidden', !session || demoMode);
   signout?.classList.toggle('hidden', !session);
   headerSignout?.classList.toggle('hidden', !session);
   historyButton?.classList.toggle('hidden', !session);
   closeButton?.classList.toggle('hidden', !session);
   document.body?.classList.toggle('query-auth-required', !session);
   if (status) {
-    status.textContent = session ? `Signed in as ${session.username}.` : 'Sign in to access Library Item Reports.';
+    status.textContent = session
+      ? `Signed in as ${session.username}${demoMode ? ' using sample data' : ''}.`
+      : demoMode
+        ? 'Demo account: demo / library'
+        : 'Sign in to access Library Item Reports.';
   }
   if (!session) queueMicrotask(openRequiredSignIn);
 }
@@ -94,7 +100,7 @@ passwordForm?.addEventListener('submit', async event => {
   submit.disabled = true;
   status.textContent = 'Changing password...';
   try {
-    const response = await fetch(getApiUrl(), {
+    const response = await queryFetch(getApiUrl(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -148,7 +154,7 @@ form?.addEventListener('submit', async event => {
   submit.disabled = true;
   status.textContent = 'Signing in...';
   try {
-    const response = await fetch(getApiUrl(), {
+    const response = await queryFetch(getApiUrl(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -177,7 +183,7 @@ async function signOut() {
   const session = getSession();
   try {
     if (session?.token) {
-      await fetch(getApiUrl(), {
+      await queryFetch(getApiUrl(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

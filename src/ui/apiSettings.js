@@ -6,6 +6,7 @@ import {
   normalizeApiUrl,
   resetApiUrl
 } from '../core/backendApi.js';
+import { isDemoApiUrl, queryFetch } from '../core/mockQueryBackend.js';
 import { ClipboardUtils } from '../core/clipboard.js';
 import { showToastMessage } from '../core/toast.js';
 import { runApiCompatibilityCheck, summarizeCompatibilityChecks } from './apiCompatibility.js';
@@ -85,7 +86,9 @@ function getApiConnectionMode(apiUrl, defaultApiUrl = DEFAULT_API_URL, currentHr
 
   return {
     isDefault,
-    label: isDefault ? 'Public default' : 'Custom endpoint'
+    label: isDefault
+      ? (isDemoApiUrl(normalizedApiUrl) ? 'Sample data demo' : 'Default endpoint')
+      : 'Custom endpoint'
   };
 }
 
@@ -199,7 +202,7 @@ async function postJsonToApiUrl(apiUrl, payload, options = {}) {
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(apiUrl, {
+    const response = await queryFetch(apiUrl, {
       body: JSON.stringify(payload),
       credentials: 'same-origin',
       headers: {
@@ -338,8 +341,8 @@ function handleReset() {
   resetApiUrl();
   sync();
   showReloadPrompt(buildPageUrlWithoutApiParams(globalThis.location?.href || 'http://localhost/'));
-  setStatus('Public default restored. Reload fields to refresh metadata.', 'success');
-  showToastMessage('Public default API restored.', 'success');
+  setStatus('Site default restored. Reload fields to refresh metadata.', 'success');
+  showToastMessage('Site default API restored.', 'success');
 }
 
 function handleReload() {
