@@ -83,7 +83,7 @@ http://127.0.0.1:8787/query-api
 
 For a new backend, start with [`docs/INTEGRATION.md`](docs/INTEGRATION.md). The minimum integration is `POST` JSON actions for `get_fields` and `run`; history, cancellation, saved templates, and saved-result loading are optional extensions.
 
-For private deployments that need sign-in, existing institutional credentials, or protected library-system data, use [`docs/AUTH.md`](docs/AUTH.md). The recommended pattern is a same-origin authenticated API route such as `/api/query`, with OIDC/SAML/CAS or another identity provider handled by the backend or reverse proxy.
+The MLP deployment requires sign-in for the complete Query Project; only login and identity checks are public. See [`docs/AUTH.md`](docs/AUTH.md). Other deployments can use a same-origin authenticated API route such as `/api/query`, with OIDC/SAML/CAS or another identity provider handled by the backend or reverse proxy.
 
 For AI agents and tool-calling integrations, start with [`docs/AI_API.md`](docs/AI_API.md). It includes the recommended MCP wrapper shape, strict function-tool examples, OpenAPI import notes, and agent workflow rules.
 

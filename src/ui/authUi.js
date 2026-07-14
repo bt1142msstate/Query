@@ -9,6 +9,14 @@ const status = document.getElementById('auth-session-status');
 const signout = document.getElementById('auth-session-signout');
 const headerSignout = document.getElementById('auth-header-signout');
 const historyButton = document.getElementById('toggle-queries');
+const closeButton = dialog?.querySelector('[data-auth-close]');
+
+function openRequiredSignIn() {
+  if (getSession() || !dialog || dialog.open) return;
+  clearPasswordFields();
+  dialog.showModal();
+  form?.querySelector('input[name="username"]')?.focus();
+}
 
 function concealPasswords() {
   dialog?.querySelectorAll('.auth-password-control').forEach(control => {
@@ -43,9 +51,12 @@ function render() {
   signout?.classList.toggle('hidden', !session);
   headerSignout?.classList.toggle('hidden', !session);
   historyButton?.classList.toggle('hidden', !session);
+  closeButton?.classList.toggle('hidden', !session);
+  document.body?.classList.toggle('query-auth-required', !session);
   if (status) {
-    status.textContent = session ? `Signed in as ${session.username}.` : '';
+    status.textContent = session ? `Signed in as ${session.username}.` : 'Sign in to access Library Item Reports.';
   }
+  if (!session) queueMicrotask(openRequiredSignIn);
 }
 
 button?.addEventListener('click', () => {
@@ -112,16 +123,23 @@ passwordForm?.addEventListener('submit', async event => {
 });
 
 dialog?.querySelector('[data-auth-close]')?.addEventListener('click', () => {
+  if (!getSession()) return;
   clearPasswordFields();
   dialog.close();
 });
 dialog?.addEventListener('click', event => {
-  if (event.target === dialog) {
+  if (event.target === dialog && getSession()) {
     clearPasswordFields();
     dialog.close();
   }
 });
-dialog?.addEventListener('close', clearPasswordFields);
+dialog?.addEventListener('cancel', event => {
+  if (!getSession()) event.preventDefault();
+});
+dialog?.addEventListener('close', () => {
+  clearPasswordFields();
+  if (!getSession()) queueMicrotask(openRequiredSignIn);
+});
 
 form?.addEventListener('submit', async event => {
   event.preventDefault();
