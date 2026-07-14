@@ -24,6 +24,8 @@ Inspect running/completed query status:
 npm run query:status
 ```
 
+History status and saved-result retrieval require authentication on the MLP deployment. The CLI does not inherit a browser session automatically.
+
 Cancel a running query by id:
 
 ```bash
