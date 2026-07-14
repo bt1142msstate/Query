@@ -7,8 +7,10 @@ The MLP Query Project requires staff sign-in before any query feature is availab
 The GitHub Pages frontend signs in against the Sirsi CGI API over HTTPS. The backend verifies a locally provisioned password hash and returns an opaque, revocable bearer session:
 
 - Passwords are stored only as per-user PBKDF2-SHA256 hashes with unique salts and 210,000 iterations.
-- Session tokens expire after eight hours and are stored server-side only as SHA-256 token hashes.
-- The browser keeps its raw token in `sessionStorage`, so it is removed when the browser session ends and is never placed in a URL or repository.
+- Same-origin production login sets a `__Host-QuerySession` cookie with `Secure`, `HttpOnly`, `SameSite=Strict`, `Path=/`, and a 30-day maximum age. JavaScript cannot read the persistent cookie.
+- Persistent sessions have a server-enforced seven-day inactivity timeout and a 30-day absolute lifetime. Activity refreshes the idle deadline at most once every five minutes.
+- Session tokens are stored server-side only as SHA-256 token hashes. The browser may keep the active tab's compatibility token in `sessionStorage`, but it is removed with the browser session and is never placed in a URL or repository.
+- On a later browser launch, the frontend calls `whoami` with the cookie, restores only username/role metadata, and confirms the account before enabling the application.
 - Login attempts are limited to five per five minutes per client, followed by a 15-minute block.
 - Login, logout, and staff API actions are recorded in the private request audit trail without passwords or tokens.
 - Account and session files live outside the CGI document tree under `/software/MLP/APIwork/Playground/QueryBackend/auth` with private permissions.
@@ -36,6 +38,7 @@ Staff browser requests use `X-Query-Session: <opaque-session-token>` because the
 - Provision or replace hashes using the reviewed secure account helper.
 - Disable an account in server-side account state when access should be suspended.
 - Replacing an account password invalidates its old password; clear existing sessions during credential rotation.
+- Sign-out and successful password changes revoke the server session and expire the persistent cookie immediately.
 - Do not manually edit a hash, reuse another account's salt, or create plaintext recovery fields.
 
 ## Deployment Checks
