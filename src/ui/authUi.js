@@ -7,6 +7,7 @@ const form = document.getElementById('auth-session-form');
 const passwordForm = document.getElementById('auth-password-form');
 const status = document.getElementById('auth-session-status');
 const signout = document.getElementById('auth-session-signout');
+const headerSignout = document.getElementById('auth-header-signout');
 
 function concealPasswords() {
   dialog?.querySelectorAll('.auth-password-control').forEach(control => {
@@ -39,6 +40,7 @@ function render() {
   form?.classList.toggle('hidden', Boolean(session));
   passwordForm?.classList.toggle('hidden', !session);
   signout?.classList.toggle('hidden', !session);
+  headerSignout?.classList.toggle('hidden', !session);
   if (status) {
     status.textContent = session ? `Signed in as ${session.username}.` : '';
   }
@@ -151,7 +153,7 @@ form?.addEventListener('submit', async event => {
   }
 });
 
-signout?.addEventListener('click', async () => {
+async function signOut() {
   const session = getSession();
   try {
     if (session?.token) {
@@ -166,10 +168,13 @@ signout?.addEventListener('click', async () => {
     }
   } finally {
     clearSession();
-    dialog.close();
+    if (dialog?.open) dialog.close();
     globalThis.location?.reload();
   }
-});
+}
+
+signout?.addEventListener('click', signOut);
+headerSignout?.addEventListener('click', signOut);
 
 globalThis.addEventListener?.('query-auth:changed', render);
 render();

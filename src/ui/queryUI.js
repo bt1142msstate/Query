@@ -433,6 +433,7 @@ function updateRunButtonIcon(validationError) {
   if (!runIcon || !refreshIcon || !stopIcon || !runBtn) return;
 
   if (getLifecycleState().queryRunning) {
+    runBtn.dataset.queryActionMode = 'stop';
     runIcon.classList.add('hidden');
     refreshIcon.classList.add('hidden');
     stopIcon.classList.remove('hidden');
@@ -449,6 +450,7 @@ function updateRunButtonIcon(validationError) {
   stopIcon.classList.add('hidden');
 
   if (validationError) {
+    runBtn.dataset.queryActionMode = 'run';
     runIcon.classList.remove('hidden');
     refreshIcon.classList.add('hidden');
     runBtn.disabled = true;
@@ -458,6 +460,7 @@ function updateRunButtonIcon(validationError) {
   }
 
   if (getDisplayedFields().length === 0) {
+    runBtn.dataset.queryActionMode = 'run';
     runIcon.classList.remove('hidden');
     refreshIcon.classList.add('hidden');
     runBtn.disabled = true;
@@ -473,6 +476,7 @@ function updateRunButtonIcon(validationError) {
     hasLoadedResultSet: getLifecycleState().hasLoadedResultSet === true,
     queryChanged: QueryStateReaders.hasQueryChanged()
   });
+  runBtn.dataset.queryActionMode = actionState.mode;
 
   if (actionState.icon === 'run') {
     runIcon.classList.remove('hidden');
