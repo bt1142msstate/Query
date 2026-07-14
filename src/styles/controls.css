@@ -1233,9 +1233,13 @@ input[type="search"]:-webkit-autofill,
   color: black;
 }
 
-#run-query-btn:hover #refresh-icon {
-  animation: rotate 1s linear infinite;
+#run-query-btn[data-query-action-mode="refresh"]:is(:hover, :focus-visible) #refresh-icon:not(.hidden) {
+  animation: runRefreshRotate 1s linear infinite;
   transform-origin: center;
+}
+
+@keyframes runRefreshRotate {
+  to { transform: rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1243,6 +1247,10 @@ input[type="search"]:-webkit-autofill,
   #toggle-json:is(:hover, :focus-visible) .json-nodes,
   #toggle-help:is(:hover, :focus-visible) .help-question-mark,
   #toggle-help:is(:hover, :focus-visible) .help-question-dot {
+    animation: none;
+  }
+
+  #run-query-btn[data-query-action-mode="refresh"]:is(:hover, :focus-visible) #refresh-icon:not(.hidden) {
     animation: none;
   }
 
