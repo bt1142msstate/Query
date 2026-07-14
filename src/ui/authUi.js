@@ -8,6 +8,7 @@ const passwordForm = document.getElementById('auth-password-form');
 const status = document.getElementById('auth-session-status');
 const signout = document.getElementById('auth-session-signout');
 const headerSignout = document.getElementById('auth-header-signout');
+const historyButton = document.getElementById('toggle-queries');
 
 function concealPasswords() {
   dialog?.querySelectorAll('.auth-password-control').forEach(control => {
@@ -41,6 +42,7 @@ function render() {
   passwordForm?.classList.toggle('hidden', !session);
   signout?.classList.toggle('hidden', !session);
   headerSignout?.classList.toggle('hidden', !session);
+  historyButton?.classList.toggle('hidden', !session);
   if (status) {
     status.textContent = session ? `Signed in as ${session.username}.` : '';
   }
