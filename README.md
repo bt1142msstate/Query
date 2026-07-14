@@ -17,7 +17,7 @@ A single-page app for building queries, applying filters, reviewing results, and
 | --- | --- |
 | **Core query builder** | Add display fields, search field metadata, and apply filter conditions |
 | **Shared form workflow** | URL-driven guided forms for focused reporting workflows |
-| **Query history** | Live status tracking — reload, rerun, cancel, or inspect past runs |
+| **Query history** | Signed-in live status tracking — reload, rerun, cancel, or inspect past runs |
 | **Query templates** | Save, categorize, pin, search, and reapply reusable query setups |
 | **Query JSON** | Inspect the exact payload being sent to the backend |
 | **CLI workflows** | Run compatibility checks, inspect status, export saved results, list templates, run queries, and export JSONL/JSON/CSV/XLSX from terminal configs |
@@ -124,7 +124,7 @@ The default view. Add fields through the shared field picker, browse by category
 
 ### 📜 Query History
 
-Tracks every query run in the session with live status badges: `running`, `complete`, `failed`, and `cancelled`. Completed queries can be reloaded or rerun; running queries can be cancelled mid-execution. The history panel polls for live status updates and keeps the last 50 queries in memory.
+Signed-in users can track query runs with live status badges: `running`, `complete`, `failed`, and `cancelled`. Completed queries can be reloaded or rerun; running queries can be cancelled when the account has permission. The History control, status polling, and saved-result restoration are unavailable while signed out. Normal users see account-scoped history, while administrators can inspect all history.
 
 ### 📚 Query Templates
 

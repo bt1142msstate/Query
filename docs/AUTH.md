@@ -19,8 +19,9 @@ The initial administrators are `bt1142` and `alw3`. Account provisioning is perf
 
 | Access | Operations |
 | --- | --- |
-| Public | Public field metadata, public-field query execution, status/results, and template/category reads |
-| Administrator | Public operations plus protected fields, cancellation, template/category mutation, and administrative history/results |
+| Public | Public field metadata, public-field query execution, login/identity checks, and template/category reads |
+| Signed-in user | Public operations plus account-scoped query history and saved-result retrieval |
+| Administrator | Signed-in operations plus protected fields, cancellation, template/category mutation, and history/results across accounts |
 
 Protected fields include staff notes and internal created/modified metadata. Public clients receive `403` if they submit a protected field manually.
 
