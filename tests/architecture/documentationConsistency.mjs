@@ -61,12 +61,12 @@ test('documentation consistency', async () => {
   assert.match(integration, /docs\/AUTH\.md/u);
   assert.match(integration, /docs\/AI_API\.md/u);
   assert.match(integration, /docs\/schemas\/query-api\.openapi\.json/u);
-  assert.match(authGuide, /## Recommended Pattern/u);
-  assert.match(authGuide, /same-origin authenticated backend-for-frontend/u);
-  assert.match(authGuide, /OpenID Connect/u);
-  assert.match(authGuide, /SAML/u);
-  assert.match(authGuide, /CAS/u);
-  assert.match(authGuide, /credentials: "same-origin"/u);
+  assert.match(authGuide, /## Current Sirsi-Local Authentication/u);
+  assert.match(authGuide, /PBKDF2-SHA256/u);
+  assert.match(authGuide, /opaque, revocable bearer session/u);
+  assert.match(authGuide, /X-Query-Session/u);
+  assert.match(authGuide, /sessionStorage/u);
+  assert.match(authGuide, /## Authorization Rules/u);
   assert.match(aiApiGuide, /## Modern AI Integration Targets/u);
   assert.match(aiApiGuide, /MCP adapter/u);
   assert.match(aiApiGuide, /Strict function tools/u);
