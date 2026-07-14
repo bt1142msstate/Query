@@ -1,6 +1,6 @@
 # Authentication And Access Control Guide
 
-The public API remains available for non-sensitive library queries. Staff sign-in unlocks protected fields and administrative operations; the backend enforces those permissions independently of frontend controls.
+The MLP Query Project requires staff sign-in before any query feature is available. Only login and identity checks are accepted without a session; the backend enforces that boundary independently of frontend controls.
 
 ## Current Sirsi-Local Authentication
 
@@ -19,15 +19,15 @@ The initial administrators are `bt1142` and `alw3`. Account provisioning is perf
 
 | Access | Operations |
 | --- | --- |
-| Public | Public field metadata, public-field query execution, login/identity checks, and template/category reads |
-| Signed-in user | Public operations plus account-scoped query history and saved-result retrieval |
+| Signed out | Login and identity checks only |
+| Signed-in user | Field metadata, public-field query execution, template/category reads, and account-scoped query history and saved-result retrieval |
 | Administrator | Signed-in operations plus protected fields, cancellation, template/category mutation, and history/results across accounts |
 
-Protected fields include staff notes and internal created/modified metadata. Public clients receive `403` if they submit a protected field manually.
+Protected fields include staff notes and internal created/modified metadata. They remain restricted to authorized administrators even after sign-in.
 
 ## Request Boundary
 
-The API accepts state-changing actions only through bounded JSON POST requests. Cross-origin requests must match an exact configured origin; wildcard CORS is not supported. The public API intentionally remains cross-origin accessible for ordinary non-sensitive queries.
+The API accepts actions only through bounded JSON POST requests. Cross-origin requests must match an exact configured origin; wildcard CORS is not supported. An allowed origin does not bypass authentication.
 
 Staff browser requests use `X-Query-Session: <opaque-session-token>` because the production CGI host does not forward the standard authorization header. Controlled service clients may still use configured standard bearer authentication. Never put either token in API Settings, query parameters, logs, or shared links.
 
@@ -40,8 +40,8 @@ Staff browser requests use `X-Query-Session: <opaque-session-token>` because the
 
 ## Deployment Checks
 
-- Confirm public ordinary queries still work without signing in.
-- Confirm public protected-field requests return `403`.
+- Confirm unsigned `login` and `whoami` requests work while `get_fields`, `run`, templates, history, and result retrieval return `403`.
+- Confirm signed-in ordinary queries work and protected fields remain authorization-gated.
 - Confirm both administrator accounts can sign in, call `whoami`, reach a protected action, sign out, and cannot reuse the revoked token.
 - Confirm invalid credentials return the same generic response for known and unknown usernames.
 - Confirm account, session, lock, rate-limit, and audit files have private permissions.

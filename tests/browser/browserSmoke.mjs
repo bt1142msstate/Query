@@ -2001,6 +2001,15 @@ async function runSmokeTest() {
     if (signedOutHistoryVisible) {
       throw new Error('Query History control must remain hidden until the user signs in');
     }
+    await signedOutPage.locator('#auth-session-dialog[open]').waitFor({ state: 'visible', timeout: 5000 });
+    const signedOutLockState = await signedOutPage.evaluate(() => ({
+      authRequired: document.body.classList.contains('query-auth-required'),
+      appVisible: Boolean(document.querySelector('#query-app-shell')?.getBoundingClientRect().width),
+      closeVisible: Boolean(document.querySelector('[data-auth-close]')?.getBoundingClientRect().width)
+    }));
+    if (!signedOutLockState.authRequired || signedOutLockState.appVisible || signedOutLockState.closeVisible) {
+      throw new Error(`Signed-out application must remain behind the required sign-in dialog: ${JSON.stringify(signedOutLockState)}`);
+    }
     await signedOutPage.close();
 
     if (failures.length > 0) {

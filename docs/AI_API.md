@@ -24,6 +24,7 @@ All three targets call the same backend contract. They are not alternate result 
 6. Preserve array cell values as multi-value fields.
 7. Use `status`, `cancel`, `get_results`, and `list_templates` only if the compatibility report says they are supported.
 8. Do not put API keys or credentials in browser URLs or prompts. Use a same-origin proxy or authenticated session.
+9. The MLP deployment accepts only `login` and `whoami` without a session. Field discovery, templates, query execution, history, and saved-result retrieval require authentication.
 
 ## Machine-Readable Files
 

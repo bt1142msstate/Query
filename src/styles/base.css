@@ -454,6 +454,23 @@ body#page-body {
   margin-left: auto;
 }
 
+body.query-auth-required #query-app-shell,
+body.query-auth-required #header-controls,
+body.query-auth-required #mobile-menu-toggle,
+body.query-auth-required #mobile-menu-dropdown,
+body.query-auth-required #app-startup-status,
+body.query-auth-required #overlay {
+  display: none !important;
+}
+
+body.query-auth-required {
+  overflow: hidden;
+}
+
+body.query-auth-required .auth-dialog__close {
+  display: none !important;
+}
+
 body.app-starting {
   overflow: hidden;
   background: radial-gradient(ellipse at bottom, #1e3a8a 0%, #0f172a 60%, #000 100%);

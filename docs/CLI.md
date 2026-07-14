@@ -152,4 +152,4 @@ For anything repeatable, prefer a JSON config. It is easier to review, commit, a
 - JSONL exports are regenerated from parsed output so requested column order, local post filters, and multi-value cells stay consistent across formats.
 - CLI runs load backend field metadata before building payloads, matching the interface path for aliases, date normalization, dynamic fields, and list-valued key filters.
 - XLSX exports include a run details sheet unless `export.includeRunDetails` is set to `false`.
-- The CLI does not store credentials. Use same-origin proxies, normal authenticated sessions, or server-side credentials for private deployments.
+- The CLI does not store credentials or inherit the browser's session. The MLP deployment requires an authenticated session for every CLI query action; use an approved authenticated proxy or service-session mechanism and never embed credentials in configs, arguments, or URLs.
