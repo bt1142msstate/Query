@@ -1712,6 +1712,50 @@
   .theme-toggle-label {
     display: none;
   }
+
+  :root[data-theme-resolved="light"] .mobile-builder-toggle {
+    border-color: rgba(148, 163, 184, 0.3);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.98));
+    background-color: #f8fafc;
+    color: #0f172a;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
+
+  :root[data-theme-resolved="light"] .mobile-builder-toggle-summary {
+    color: #475569;
+  }
+
+  :root[data-theme-resolved="light"] .mobile-builder-toggle-icon {
+    background: #e0f2fe;
+    color: #0369a1;
+  }
+
+  :root[data-theme-resolved="dark"] body.has-query-columns:not(.table-expanded-open) #mobile-table-action-bar,
+  :root[data-theme-resolved="dark"] body.has-loaded-data:not(.table-expanded-open) #mobile-table-action-bar {
+    border-color: rgba(125, 211, 252, 0.18);
+    background: rgba(8, 18, 32, 0.96);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  :root[data-theme-resolved="dark"] #mobile-table-action-bar .mobile-table-action,
+  :root[data-theme-resolved="dark"] #mobile-table-action-bar .mobile-table-action-icon,
+  :root[data-theme-resolved="dark"] #mobile-table-action-bar .mobile-table-action-label {
+    color: #dffcff;
+  }
+
+  :root[data-theme-resolved="dark"] #mobile-table-action-bar .mobile-table-action:not(:disabled):hover,
+  :root[data-theme-resolved="dark"] #mobile-table-action-bar .mobile-table-action:not(:disabled):focus-visible,
+  :root[data-theme-resolved="dark"] #mobile-table-action-bar .mobile-table-action.is-active {
+    border-color: rgba(56, 189, 248, 0.34);
+    background: rgba(14, 116, 144, 0.22);
+    color: #bae6fd;
+  }
+
+  :root[data-theme-resolved="dark"] #mobile-table-action-bar .mobile-table-action-danger,
+  :root[data-theme-resolved="dark"] #mobile-table-action-bar .mobile-table-action-danger .mobile-table-action-icon,
+  :root[data-theme-resolved="dark"] #mobile-table-action-bar .mobile-table-action-danger .mobile-table-action-label {
+    color: #fca5a5;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

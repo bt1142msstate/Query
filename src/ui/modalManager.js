@@ -103,6 +103,11 @@ class ModalManager {
     }
   }
 
+  syncMobileMenuToggle(isOpen) {
+    const toggle = DOM?.mobileMenuToggle || document.getElementById('mobile-menu-toggle');
+    toggle?.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  }
+
   /**
    * Toggles a side panel by ID
    * @param {string} panelId - The ID of the panel
@@ -134,6 +139,7 @@ class ModalManager {
     if (panelId === 'mobile-menu-dropdown') {
       this.rebuildMobileMenu();
       panel.classList.add('show');
+      this.syncMobileMenuToggle(true);
     }
     // Force reflow for animation if needed (though existing CSS seems to use hidden class)
     // Existing styles might rely on removing hidden to show.
@@ -169,6 +175,7 @@ class ModalManager {
 
     if (panelId === 'mobile-menu-dropdown') {
       panel.classList.remove('show');
+      this.syncMobileMenuToggle(false);
     }
     panel.classList.add('hidden');
     
@@ -204,6 +211,7 @@ class ModalManager {
         }
         if (pid === 'mobile-menu-dropdown') {
           p.classList.remove('show');
+          this.syncMobileMenuToggle(false);
         }
         p.classList.add('hidden');
         VisibilityUtils.releaseRaisedUi(`panel:${pid}`);
