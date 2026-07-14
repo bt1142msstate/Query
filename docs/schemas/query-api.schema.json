@@ -7,6 +7,23 @@
     "scalar": {
       "type": ["string", "number", "integer", "boolean", "null"]
     },
+    "selectorValue": {
+      "oneOf": [
+        { "$ref": "#/$defs/scalar" },
+        {
+          "type": "object",
+          "properties": {
+            "RawValue": { "$ref": "#/$defs/scalar", "description": "Exact value sent back in a query filter." },
+            "Name": { "type": "string", "description": "User-facing value label." },
+            "Description": { "type": "string", "description": "Value help text shown after a delayed hover." },
+            "Group": { "type": "string", "description": "Optional selector group label." },
+            "SearchText": { "type": "string", "description": "Additional text used when searching selector values." },
+            "Metadata": { "type": "object", "additionalProperties": true }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
     "cellValue": {
       "oneOf": [
         { "$ref": "#/$defs/scalar" },
@@ -71,7 +88,7 @@
         },
         "values": {
           "type": "array",
-          "items": { "$ref": "#/$defs/scalar" }
+          "items": { "$ref": "#/$defs/selectorValue" }
         },
         "aliases": {
           "type": "array",

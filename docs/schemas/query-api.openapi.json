@@ -108,6 +108,23 @@
       "Scalar": {
         "type": ["string", "number", "integer", "boolean", "null"]
       },
+      "SelectorValue": {
+        "oneOf": [
+          { "$ref": "#/components/schemas/Scalar" },
+          {
+            "type": "object",
+            "properties": {
+              "RawValue": { "$ref": "#/components/schemas/Scalar" },
+              "Name": { "type": "string" },
+              "Description": { "type": "string" },
+              "Group": { "type": "string" },
+              "SearchText": { "type": "string" },
+              "Metadata": { "type": "object", "additionalProperties": true }
+            },
+            "additionalProperties": true
+          }
+        ]
+      },
       "CellValue": {
         "oneOf": [
           { "$ref": "#/components/schemas/Scalar" },
@@ -144,7 +161,7 @@
           },
           "type": { "type": "string", "examples": ["string", "date", "number", "money", "boolean"] },
           "filters": { "type": "array", "items": { "type": "string" } },
-          "values": { "type": "array", "items": { "$ref": "#/components/schemas/Scalar" } },
+          "values": { "type": "array", "items": { "$ref": "#/components/schemas/SelectorValue" } },
           "aliases": { "type": "array", "items": { "type": "string" } },
           "allowValueList": { "type": "boolean" },
           "multiValue": { "type": "boolean" },

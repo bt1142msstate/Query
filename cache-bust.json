@@ -1,5 +1,5 @@
 {
-  "version": "8afdcb1c3d18ca9b",
+  "version": "672b714b6d19bfb8",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -192,7 +192,7 @@
     "src/ui/authUi.js": "a3df8970d9718492",
     "src/ui/controls/customDatePicker.js": "88e4eb3245ac256c",
     "src/ui/controls/searchUI.js": "9d46afc995531905",
-    "src/ui/controls/selectorControls.js": "0a02db7d33fe80cf",
+    "src/ui/controls/selectorControls.js": "b83bf2921722db44",
     "src/ui/controls/selectorListPasteInput.js": "4e7f16d036dfd795",
     "src/ui/controls/tableNameInput.js": "2eca874e0f334f58",
     "src/ui/controls/virtualList.js": "bd7a8d24c7c48493",

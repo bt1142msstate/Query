@@ -253,7 +253,7 @@ Supported field metadata:
 | `category` | String or string array for grouping in the picker |
 | `type` | `string`, `date`, `number`, `money`, `boolean`, or another backend-defined text type |
 | `filters` or `operators` | Backend-supported filter operators for the field |
-| `values` | Optional selector values for dropdown/pill controls |
+| `values` | Optional scalar or descriptive object values for dropdown/pill controls |
 | `aliases` | Old or alternate names that should resolve to this field |
 | `allowValueList` | Allows comma/newline values for equality filters; the frontend sends bulk lists as `value` arrays |
 | `multiSelect` | Allows selecting multiple values from `values` |
@@ -267,6 +267,8 @@ Supported field metadata:
 | `authMessage` or `accessMessage` | Optional user-facing explanation shown when a field is unavailable |
 | `access` | Optional string or object for deployment-specific access metadata |
 | `builder` | Defines dynamic/buildable fields |
+
+Selector values may be scalars or objects. Descriptive objects use `RawValue` for the exact filter value, `Name` for the visible label, `Description` for delayed hover help, `Group` for grouping, `SearchText` for matching, and optional structured `Metadata`. Lowercase aliases are also accepted. Libraries use this generic contract, but it is available to every field with enumerated values.
 
 ### Sensitive And Auth-Gated Fields
 
