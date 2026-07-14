@@ -733,6 +733,25 @@ body.raised-ui-open #table-shell.table-shell-expanded {
 }
 .auth-session-button { position:relative; }
 .auth-session-button--active::after { content:""; position:absolute; right:1px; bottom:1px; width:8px; height:8px; border:2px solid white; border-radius:50%; background:#16a34a; }
+.auth-header-signout {
+  display: inline-flex;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.8rem;
+  align-items: center;
+  gap: 0.42rem;
+  border: 1px solid #b91c1c;
+  border-radius: 4px;
+  color: #fff;
+  background: #dc2626;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+.auth-header-signout:hover { border-color:#991b1b; background:#b91c1c; }
+.auth-header-signout:focus-visible { outline:2px solid #fff; outline-offset:2px; }
+.auth-header-signout svg { width:1.1rem; height:1.1rem; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+.auth-header-signout.hidden { display:none; }
 .auth-dialog { width:min(420px,calc(100vw - 32px)); padding:24px; border:1px solid #d1d5db; border-radius:8px; color:var(--theme-text-strong,#111827); background:var(--theme-panel-bg,#fff); box-shadow:var(--qp-sys-shadow-surface-raised,0 24px 70px rgba(15,23,42,.16)); }
 .auth-dialog::backdrop { background:rgba(0,0,0,.55); }
 .auth-dialog h2 { margin:0 0 16px; font-size:1.25rem; }
