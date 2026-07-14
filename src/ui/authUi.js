@@ -8,6 +8,22 @@ const passwordForm = document.getElementById('auth-password-form');
 const status = document.getElementById('auth-session-status');
 const signout = document.getElementById('auth-session-signout');
 
+function concealPasswords() {
+  dialog?.querySelectorAll('.auth-password-control').forEach(control => {
+    const input = control.querySelector('input');
+    const toggle = control.querySelector('.auth-password-toggle');
+    if (input) input.type = 'password';
+    control.classList.remove('auth-password-control--visible');
+    if (toggle) {
+      const label = toggle.dataset.hiddenLabel || toggle.getAttribute('aria-label') || 'Show password';
+      toggle.dataset.hiddenLabel = label;
+      toggle.setAttribute('aria-label', label);
+      toggle.setAttribute('title', label);
+      toggle.setAttribute('aria-pressed', 'false');
+    }
+  });
+}
+
 function render() {
   const session = getSession();
   button?.setAttribute('aria-label', session ? `Signed in as ${session.username}` : 'Staff sign in');
@@ -22,8 +38,25 @@ function render() {
 }
 
 button?.addEventListener('click', () => {
+  concealPasswords();
   render();
   dialog?.showModal();
+});
+
+dialog?.addEventListener('click', event => {
+  const toggle = event.target.closest?.('.auth-password-toggle');
+  if (!toggle) return;
+  const control = toggle.closest('.auth-password-control');
+  const input = control?.querySelector('input');
+  if (!input) return;
+  if (!toggle.dataset.hiddenLabel) toggle.dataset.hiddenLabel = toggle.getAttribute('aria-label') || 'Show password';
+  const visible = input.type === 'password';
+  input.type = visible ? 'text' : 'password';
+  control.classList.toggle('auth-password-control--visible', visible);
+  const label = visible ? 'Hide password' : toggle.dataset.hiddenLabel;
+  toggle.setAttribute('aria-label', label);
+  toggle.setAttribute('title', label);
+  toggle.setAttribute('aria-pressed', String(visible));
 });
 
 passwordForm?.addEventListener('submit', async event => {
@@ -56,6 +89,7 @@ passwordForm?.addEventListener('submit', async event => {
       throw new Error(payload.error || 'Password change failed.');
     }
     passwordForm.reset();
+    concealPasswords();
     clearSession();
     render();
     status.textContent = 'Password changed. Sign in again with the new password.';
@@ -66,9 +100,13 @@ passwordForm?.addEventListener('submit', async event => {
   }
 });
 
-dialog?.querySelector('[data-auth-close]')?.addEventListener('click', () => dialog.close());
+dialog?.querySelector('[data-auth-close]')?.addEventListener('click', () => {
+  concealPasswords();
+  dialog.close();
+});
 dialog?.addEventListener('click', event => {
   if (event.target === dialog) {
+    concealPasswords();
     dialog.close();
   }
 });
@@ -95,6 +133,7 @@ form?.addEventListener('submit', async event => {
     }
     setSession(payload);
     form.reset();
+    concealPasswords();
     dialog.close();
     globalThis.location?.reload();
   } catch (error) {
