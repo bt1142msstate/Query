@@ -39,7 +39,11 @@ const FIELD_OPERATOR_TO_UI_COND = {
   OnOrBefore: 'on_or_before',
   on_or_before: 'on_or_before',
   OnOrAfter: 'on_or_after',
-  on_or_after: 'on_or_after'
+  on_or_after: 'on_or_after',
+  IsBlank: 'is_blank',
+  is_blank: 'is_blank',
+  HasValue: 'has_value',
+  has_value: 'has_value'
 };
 
 const UI_COND_TO_FIELD_OPERATOR = {
@@ -60,7 +64,9 @@ const UI_COND_TO_FIELD_OPERATOR = {
   starts: 'Contains',
   starts_with: 'Contains',
   does_not_contain: 'DoesNotContain',
-  doesnotcontain: 'DoesNotContain'
+  doesnotcontain: 'DoesNotContain',
+  is_blank: 'IsBlank',
+  has_value: 'HasValue'
 };
 
 const UI_FILTER_TO_BACKEND = {
@@ -78,8 +84,11 @@ const UI_FILTER_TO_BACKEND = {
   starts: [{ operator: '=', valueTransform: value => `${value}*` }],
   starts_with: [{ operator: '=', valueTransform: value => `${value}*` }],
   contains: [{ operator: '=', valueTransform: value => `*${value}*` }],
-  does_not_contain: [{ operator: '!=', valueTransform: value => `*${value}*` }]
+  does_not_contain: [{ operator: '!=', valueTransform: value => `*${value}*` }],
+  is_blank: [{ operator: '=', valueTransform: () => '' }],
+  has_value: [{ operator: '!=', valueTransform: () => '' }]
 };
+const VALUE_FREE_FILTERS = new Set(['is_blank', 'has_value', 'never']);
 const getDisplayedFields = QueryStateReaders.getDisplayedFields.bind(QueryStateReaders);
 const getActiveFilters = QueryStateReaders.getActiveFilters.bind(QueryStateReaders);
 
@@ -119,6 +128,10 @@ function formatFieldOperatorForDisplay(operator) {
       return 'on or before';
     case 'on_or_after':
       return 'on or after';
+    case 'is_blank':
+      return 'is blank';
+    case 'has_value':
+      return 'has value';
     default:
       return String(operator || '');
   }
@@ -303,7 +316,7 @@ function buildBackendFiltersFromActiveFilters(activeFilters = getActiveFilters()
     if (fieldDef && !isFieldBackendFilterable(fieldDef)) return;
 
     (filterGroup?.filters || []).forEach(filter => {
-      if (filter.val === '') return;
+      if (filter.val === '' && !VALUE_FREE_FILTERS.has(String(filter.cond || '').trim())) return;
       if (fieldDef?.type === 'date' && getDateFilterValidationMessage(filter, canonicalFieldName)) {
         return;
       }

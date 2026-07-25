@@ -12,6 +12,7 @@ import {
 } from '../field-picker/fieldPickerQueryPreview.js';
 
 const EDITOR_RAISED_UI_KEY = 'query-filter-editor';
+const VALUE_FREE_FILTERS = new Set(['is_blank', 'has_value', 'never']);
 
 function cloneActiveFiltersSnapshot(activeFilters = {}) {
   return Object.fromEntries(
@@ -35,6 +36,10 @@ function hasEditorValues(previewState) {
     : [];
   const operator = String(previewState?.operator || '').trim().toLowerCase();
 
+  if (VALUE_FREE_FILTERS.has(operator)) {
+    return true;
+  }
+
   if (operator === 'between') {
     return Boolean(values[0] || values[1]);
   }
@@ -47,6 +52,10 @@ function buildFilterValueFromPreview(previewState) {
     ? previewState.values.map(value => String(value ?? '').trim())
     : [];
   const operator = String(previewState?.operator || '').trim().toLowerCase();
+
+  if (VALUE_FREE_FILTERS.has(operator)) {
+    return '';
+  }
 
   if (operator === 'between') {
     return `${values[0] || ''}|${values[1] || ''}`;
