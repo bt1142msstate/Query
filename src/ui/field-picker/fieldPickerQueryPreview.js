@@ -237,6 +237,10 @@ function readQueryPreviewFilterValues(filter) {
       .slice(0, 2);
   }
 
+  if (['is_blank', 'has_value'].includes(String(filter.cond || '').toLowerCase())) {
+    return [];
+  }
+
   return splitQueryPreviewValues(filter.val || '');
 }
 

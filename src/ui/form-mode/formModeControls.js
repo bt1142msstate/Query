@@ -65,6 +65,8 @@ import { createFormModeDateInputState } from './formModeDateInput.js';
       .filter((operator, index, list) => list.indexOf(operator) === index);
 
     const preferredOrder = [
+      'is_blank',
+      'has_value',
       'contains',
       'starts',
       'equals',
@@ -400,11 +402,13 @@ import { createFormModeDateInputState } from './formModeDateInput.js';
     const activeOperator = operatorOverride || inputSpec.operator;
     const { values } = parseFieldOptions(fieldDef, inputSpec, normalizeOperatorForField);
 
-    if (activeOperator === 'never') {
+    if (activeOperator === 'never' || activeOperator === 'is_blank' || activeOperator === 'has_value') {
       const control = document.createElement('div');
       control.className = 'form-mode-text-input form-mode-static-value';
-      control.textContent = 'Never';
-      control.getFormValues = () => ['NEVER'];
+      control.textContent = activeOperator === 'never'
+        ? 'Never'
+        : (activeOperator === 'is_blank' ? 'No value required' : 'Any nonblank value');
+      control.getFormValues = () => activeOperator === 'never' ? ['NEVER'] : [];
       control.setFormValues = () => {};
       control.focusInput = () => {};
       return control;

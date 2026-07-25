@@ -80,8 +80,12 @@ test('query payload', async () => {
 
   assert.equal(mapFieldOperatorToUiCond('DoesNotEqual'), 'does_not_equal');
   assert.equal(mapFieldOperatorToUiCond('Never'), 'never');
+  assert.equal(mapFieldOperatorToUiCond('IsBlank'), 'is_blank');
+  assert.equal(mapFieldOperatorToUiCond('HasValue'), 'has_value');
   assert.equal(mapUiCondToFieldOperator('on_or_after'), 'GreaterThanOrEqual');
   assert.equal(mapUiCondToFieldOperator('never'), 'Never');
+  assert.equal(mapUiCondToFieldOperator('is_blank'), 'IsBlank');
+  assert.equal(mapUiCondToFieldOperator('has_value'), 'HasValue');
   assert.equal(formatFieldOperatorForDisplay('LessThanOrEqual'), '<=');
   assert.equal(formatFieldOperatorForDisplay('Never'), 'never');
   assert.equal(isValidDateValue('Never'), true);
