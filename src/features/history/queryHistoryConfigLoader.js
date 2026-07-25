@@ -53,7 +53,8 @@ export function createQueryHistoryConfigLoader({
   normalizeUiConfigFilters,
   registerDynamicField,
   resolveFieldName,
-  resolveSpecialPayloadFieldNames
+  resolveSpecialPayloadFieldNames,
+  setMarcFilterLogic
 }) {
   return function loadQueryConfig(query) {
     if (!query || !query.jsonConfig) return false;
@@ -82,6 +83,12 @@ export function createQueryHistoryConfigLoader({
     }
 
     const filters = normalizeUiConfigFilters(query.jsonConfig, { trackAliases: true });
+    const marcFilterLogic = query.jsonConfig.MarcFilterLogic
+      || query.jsonConfig.marc_filter_logic
+      || query.request?.marc_filter_logic;
+    if (typeof setMarcFilterLogic === 'function') {
+      setMarcFilterLogic(marcFilterLogic);
+    }
     const desiredColumns = Array.isArray(query.jsonConfig.DesiredColumnOrder)
       ? query.jsonConfig.DesiredColumnOrder.map(fieldName => (
           typeof resolveFieldName === 'function'

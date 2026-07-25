@@ -142,6 +142,7 @@ test('query payload', async () => {
 
   assert.deepEqual(buildQueryUiConfig(), {
     DesiredColumnOrder: ['Title', 'MARC 590', 'Record Date'],
+    MarcFilterLogic: 'all',
     Filters: [
       { field: 'Title', operator: '=', value: '*needle*' },
       { field: 'Search Key', operator: '=', value: ['A', 'B', 'C'] },
@@ -157,6 +158,7 @@ test('query payload', async () => {
     action: 'run',
     name: 'Smoke Query',
     result_format: 'jsonl',
+    marc_filter_logic: 'all',
     filters: [
       { field: 'Title', operator: '=', value: '*needle*' },
       { field: 'Search Key', operator: '=', value: ['A', 'B', 'C'] },
@@ -204,6 +206,7 @@ test('query payload', async () => {
     action: 'run',
     name: 'Config Payload',
     result_format: 'jsonl',
+    marc_filter_logic: 'all',
     limit: 5,
     filters: [
       { field: 'Title', operator: '=', value: '*grant*' },
@@ -226,6 +229,7 @@ test('query payload', async () => {
     action: 'run',
     name: 'Unauthorized Config Payload',
     result_format: 'jsonl',
+    marc_filter_logic: 'all',
     filters: [],
     display_fields: ['Title']
   });

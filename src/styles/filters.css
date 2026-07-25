@@ -962,3 +962,52 @@ body.fp-arrange-mode-active {
     backdrop-filter: blur(12px);
   }
 }
+/* MARC filters can be combined independently from ordinary library/location filters. */
+.fp-marc-logic {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.65rem 0 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color, #d8dee9);
+  border-radius: 0.5rem;
+  background: var(--surface-subtle, #f8fafc);
+}
+
+.fp-marc-logic__copy {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.fp-marc-logic__copy strong {
+  font-size: 0.78rem;
+}
+
+.fp-marc-logic__copy small {
+  color: var(--text-muted, #64748b);
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
+.fp-marc-logic__select {
+  min-width: 7.25rem;
+  padding: 0.45rem 1.8rem 0.45rem 0.55rem;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 0.4rem;
+  background: var(--surface-color, #fff);
+  color: var(--text-color, #111827);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+@media (max-width: 520px) {
+  .fp-marc-logic {
+    grid-template-columns: 1fr;
+  }
+
+  .fp-marc-logic__select {
+    width: 100%;
+  }
+}
