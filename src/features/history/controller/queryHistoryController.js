@@ -45,6 +45,7 @@ import {
   registerDynamicField,
   registerQueryHistoryService,
   resolveFieldName,
+  setMarcFilterLogic,
   showToastMessage,
   waitForFormModeReady
 } from './queryHistoryRuntime.js';
@@ -328,7 +329,8 @@ const loadQueryConfig = createQueryHistoryConfigLoader({
   normalizeUiConfigFilters,
   registerDynamicField,
   resolveFieldName,
-  resolveSpecialPayloadFieldNames
+  resolveSpecialPayloadFieldNames,
+  setMarcFilterLogic
 });
 
 const loadQueryResults = createQueryHistoryResultsLoader({

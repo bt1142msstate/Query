@@ -13,7 +13,8 @@ export {
 } from '../../../core/queryState.js';
 export {
   mapFieldOperatorToUiCond,
-  normalizeUiConfigFilters
+  normalizeUiConfigFilters,
+  setMarcFilterLogic
 } from '../../filters/queryPayload.js';
 export {
   registerDynamicField,

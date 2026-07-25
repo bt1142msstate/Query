@@ -23,6 +23,11 @@ import { beginPanelArrangeMode, clearPanelArrangeMode, isPanelArrangeModeActive 
 import { createFilterSidePanelReorderActions } from './filterSidePanelReorderActions.js';
 import { QueryTableView } from '../../ui/queryTableView.js';
 import { DOM } from '../../core/domCache.js';
+import {
+    countActiveMarcFilters,
+    getMarcFilterLogic,
+    setMarcFilterLogic
+} from './marcFilterLogic.js';
 
 const FilterSidePanel = (function () {
     const services = appServices;
@@ -630,6 +635,36 @@ const FilterSidePanel = (function () {
         const totalFilters = filterEntries.reduce((sum, [, data]) => sum + data.filters.length, 0);
 
         wrapper.appendChild(createSectionHeader('Filters', totalFilters, totalFilters === 1 ? 'active filter' : 'active filters'));
+
+        if (countActiveMarcFilters(getActiveFilters()) >= 2) {
+            const logicControl = document.createElement('label');
+            logicControl.className = 'fp-marc-logic';
+
+            const labelGroup = document.createElement('span');
+            labelGroup.className = 'fp-marc-logic__copy';
+            labelGroup.innerHTML = `
+                <strong>MARC conditions</strong>
+                <small>Require every MARC condition or at least one.</small>
+            `;
+
+            const select = document.createElement('select');
+            select.className = 'fp-marc-logic__select';
+            select.setAttribute('aria-label', 'Bibliographic condition matching');
+            select.innerHTML = `
+                <option value="all">Match all</option>
+                <option value="any">Match any</option>
+            `;
+            select.value = getMarcFilterLogic();
+            select.addEventListener('change', () => {
+                setMarcFilterLogic(select.value, { source: 'FilterSidePanel.marcFilterLogic' });
+                uiActions.updateQueryJson();
+                uiActions.updateRunQueryButtonState?.();
+            });
+
+            logicControl.appendChild(labelGroup);
+            logicControl.appendChild(select);
+            wrapper.appendChild(logicControl);
+        }
 
         if (filterEntries.length === 0) {
             const empty = document.createElement('div');

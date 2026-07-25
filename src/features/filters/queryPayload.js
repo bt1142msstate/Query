@@ -2,6 +2,7 @@ import { getBaseFieldName, QueryStateReaders } from './filterQueryState.js';
 import { toBackendDateValue } from '../../core/formatting/dateValues.js';
 import { fieldDefs, isFieldBackendFilterable, isFieldBuildable, isFieldDisplayable, resolveFieldName } from './fieldDefs.js';
 import { getDateFilterValidationMessage } from './filterConditionLogic.js';
+import { getMarcFilterLogic, setMarcFilterLogic } from './marcFilterLogic.js';
 
 const FIELD_OPERATOR_TO_UI_COND = {
   Equals: 'equals',
@@ -300,7 +301,8 @@ function buildQueryUiConfig() {
 
   const query = {
     DesiredColumnOrder: getNormalizedDisplayedFields(),
-    Filters: backendFilters.map(filter => ({ ...filter }))
+    Filters: backendFilters.map(filter => ({ ...filter })),
+    MarcFilterLogic: getMarcFilterLogic()
   };
 
   return query;
@@ -374,6 +376,7 @@ function buildBackendQueryPayloadFromParts({
     action: 'run',
     name: name || payload?.name || undefined,
     result_format: 'jsonl',
+    marc_filter_logic: payload?.marc_filter_logic || getMarcFilterLogic(),
     filters: buildBackendFiltersFromActiveFilters(activeFilters),
     display_fields: standardDisplayFields
   };
@@ -425,5 +428,6 @@ export {
   getNormalizedDisplayedFields,
   mapFieldOperatorToUiCond,
   mapUiCondToFieldOperator,
-  normalizeUiConfigFilters
+  normalizeUiConfigFilters,
+  setMarcFilterLogic
 };
