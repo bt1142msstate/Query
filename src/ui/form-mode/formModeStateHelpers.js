@@ -74,8 +74,9 @@ import { DOM } from '../../core/domCache.js';
     const normalizedValues = Array.isArray(values)
       ? values.map(value => String(value ?? '').trim()).filter(value => value !== '')
       : [];
+    const valueFreeOperator = ['is_blank', 'has_value', 'never'].includes(operator);
 
-    if (!fieldName || normalizedValues.length === 0) {
+    if (!fieldName || (normalizedValues.length === 0 && !valueFreeOperator)) {
       return;
     }
 
@@ -85,7 +86,9 @@ import { DOM } from '../../core/domCache.js';
 
     targetFilters[fieldName].filters.push({
       cond: operator,
-      val: operator === 'between' ? normalizedValues.slice(0, 2).join('|') : normalizedValues.join(',')
+      val: valueFreeOperator
+        ? ''
+        : (operator === 'between' ? normalizedValues.slice(0, 2).join('|') : normalizedValues.join(','))
     });
   }
 

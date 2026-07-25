@@ -79,6 +79,19 @@ test('form mode state helpers', async () => {
 
   assert.deepEqual(beforeNeverFilters, {});
 
+  const blankMarcFilters = buildActiveFilters({
+    lockedFilters: [
+      { field: 'MARC 521', operator: 'is_blank', values: null },
+      { field: 'MARC 526', operator: 'has_value', values: [] }
+    ],
+    inputs: []
+  }, {}, () => [], supportsMultipleValues, interpolateValue);
+
+  assert.deepEqual(blankMarcFilters, {
+    'MARC 521': { filters: [{ cond: 'is_blank', val: '' }] },
+    'MARC 526': { filters: [{ cond: 'has_value', val: '' }] }
+  });
+
   const validationControls = new Map([
     ['checkout-date-between', { classList: { toggle() {} } }]
   ]);

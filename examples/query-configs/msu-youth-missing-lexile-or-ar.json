@@ -1,0 +1,66 @@
+{
+  "name": "MSU Youth Items Missing Lexile or AR Tags",
+  "payload": {
+    "marc_filter_logic": "any"
+  },
+  "ui_config": {
+    "DesiredColumnOrder": [
+      "Catalog Key",
+      "Item Id",
+      "Item Key",
+      "Title",
+      "Author",
+      "Call Number",
+      "Item Library",
+      "Home Location",
+      "Current Location",
+      "MARC 521",
+      "MARC 526"
+    ],
+    "Filters": [
+      {
+        "FieldName": "Item Library",
+        "FieldOperator": "Equals",
+        "Values": [
+          "MSU-MAIN",
+          "MSU-ARCH",
+          "MSU-VETMED",
+          "MSU-ARC5TH",
+          "MSU-MER",
+          "MSU-RCU",
+          "MSU-MEM",
+          "MSU-KRESS",
+          "MSU-GRANT",
+          "MSU-OMAC",
+          "MSU-COBB"
+        ]
+      },
+      {
+        "FieldName": "Home Location",
+        "FieldOperator": "Equals",
+        "Values": [
+          "ERJUV",
+          "JUV-AWARD",
+          "JUV-FIC",
+          "JUVENILE",
+          "YAAUDBK",
+          "YOUNGADULT"
+        ]
+      },
+      {
+        "FieldName": "MARC 521",
+        "FieldOperator": "IsBlank",
+        "Values": []
+      },
+      {
+        "FieldName": "MARC 526",
+        "FieldOperator": "IsBlank",
+        "Values": []
+      }
+    ]
+  },
+  "export": {
+    "format": "xlsx",
+    "output": "Reports/MSU-Youth-Items-Missing-Lexile-or-AR-Tags.xlsx"
+  }
+}
