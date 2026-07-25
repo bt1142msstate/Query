@@ -1,5 +1,5 @@
 {
-  "version": "0139f5c562fe434c",
+  "version": "e4fa5489f237770d",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -230,7 +230,7 @@
     "src/ui/form-mode/formModeSpec.js": "75c5f48e0d2db430",
     "src/ui/form-mode/formModeSpecMutations.js": "fcea2032430f08ca",
     "src/ui/form-mode/formModeState.js": "b94a9ed635ae076a",
-    "src/ui/form-mode/formModeStateHelpers.js": "9a60fd409a87bec9",
+    "src/ui/form-mode/formModeStateHelpers.js": "b11b440061680dd3",
     "src/ui/form-mode/formModeTableNameSync.js": "0edbb1b5a732f736",
     "src/ui/headerArrangeStatus.js": "6bec478879294e3e",
     "src/ui/jsonViewerUI.js": "1a37ffc6f599822b",
