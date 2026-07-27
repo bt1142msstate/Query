@@ -7,6 +7,7 @@ function buildInteractiveFormModeCard(options) {
     fieldDefs,
     mountFormModeCard,
     createFormModeEmptyState,
+    createFormModeFixedCriteriaState,
     getVisibleFormInputs,
     normalizeOperatorForField,
     createFormControl,
@@ -51,9 +52,14 @@ function buildInteractiveFormModeCard(options) {
 
   const fieldsWrap = mountedCard.fieldsWrap;
   const visibleInputs = getVisibleFormInputs(state.spec.inputs);
+  const lockedFilterCount = Array.isArray(state.spec.lockedFilters)
+    ? state.spec.lockedFilters.length
+    : 0;
 
   if (visibleInputs.length === 0) {
-    fieldsWrap.appendChild(createFormModeEmptyState(document));
+    fieldsWrap.appendChild(lockedFilterCount > 0
+      ? createFormModeFixedCriteriaState(document, lockedFilterCount)
+      : createFormModeEmptyState(document));
   }
 
   visibleInputs.forEach(inputSpec => {

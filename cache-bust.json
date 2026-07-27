@@ -1,5 +1,5 @@
 {
-  "version": "687f370df117e13e",
+  "version": "5fed22e1351cb2ae",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -210,9 +210,9 @@
     "src/ui/field-picker/fieldPickerQuerySelection.js": "56af597e3e74de70",
     "src/ui/field-picker/fieldPickerSearch.js": "3ee7aca8505a6e52",
     "src/ui/filter-editor/queryFilterEditor.js": "2c74f5d12d3f67b0",
-    "src/ui/form-mode/formMode.js": "44f5940d81e06e48",
-    "src/ui/form-mode/formModeCard.js": "8e34154fc173e459",
-    "src/ui/form-mode/formModeCardBuilder.js": "789c19e6ace1e996",
+    "src/ui/form-mode/formMode.js": "172a94fe26552b16",
+    "src/ui/form-mode/formModeCard.js": "f2a51fcb02deb8bb",
+    "src/ui/form-mode/formModeCardBuilder.js": "f142916516c83d63",
     "src/ui/form-mode/formModeControls.js": "ce0cb516c6920165",
     "src/ui/form-mode/formModeDateInput.js": "f08093e5d0548828",
     "src/ui/form-mode/formModeFieldPicker.js": "a6825b92b2a9fbb6",

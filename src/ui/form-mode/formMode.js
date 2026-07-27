@@ -15,7 +15,7 @@ import {
   registerFormModeService,
   showToastMessage
 } from './formModeRuntime.js';
-import { createFormModeEmptyState, getVisibleFormInputs, mountFormModeCard } from './formModeCard.js';
+import { createFormModeEmptyState, createFormModeFixedCriteriaState, getVisibleFormInputs, mountFormModeCard } from './formModeCard.js';
 import { buildInteractiveFormModeCard } from './formModeCardBuilder.js';
 import { FormModeControls as formModeControls } from './formModeControls.js';
 import { cloneSpec, decodeSpec, encodeSpec, getInputParamKeys, interpolateValue, normalizeSpec, resolveLimitedView, splitListValues } from './formModeSpec.js';
@@ -662,6 +662,7 @@ let QueryFormMode;
       fieldDefs,
       mountFormModeCard,
       createFormModeEmptyState,
+      createFormModeFixedCriteriaState,
       getVisibleFormInputs,
       normalizeOperatorForField,
       createFormControl,

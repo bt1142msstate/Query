@@ -1,12 +1,11 @@
 {
-  "name": "MSU Offsite Journal Titles",
+  "name": "MSU Offsite Journal MARC Holdings",
   "ui_config": {
     "DesiredColumnOrder": [
       "Catalog Key",
-      "Flexible Key",
       "Title",
-      "MARC 852",
-      "MARC 866"
+      "Author",
+      "MARC Holdings"
     ],
     "Filters": [
       {
@@ -55,6 +54,6 @@
   },
   "export": {
     "format": "xlsx",
-    "output": "Reports/MSU-Offsite-Journal-Titles.xlsx"
+    "output": "Reports/MSU-Offsite-Journal-MARC-Holdings.xlsx"
   }
 }
