@@ -50,6 +50,14 @@ Run a query config and export a workbook:
 npm run query:run -- --config examples/query-configs/grant-family-climatecon.json
 ```
 
+Run the MLP offsite-journal title report with live MARC holdings:
+
+```bash
+npm run query:run -- --config examples/query-configs/msu-offsite-journals.json
+```
+
+`MARC Holdings` is a backend-provided, multi-value field in the MLP deployment. The frontend and CLI treat it like any other field; deployments that do not expose that field should omit or replace it in their own configuration.
+
 Override output format or path:
 
 ```bash
