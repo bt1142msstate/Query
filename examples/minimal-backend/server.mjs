@@ -69,6 +69,13 @@ const fields = [
     category: 'Dynamic',
     desc: 'Example buildable field. The frontend renders inputs from this metadata.',
     filters: ['contains', 'equals', 'does_not_equal'],
+    filterGroup: {
+      id: 'local_metadata_fields',
+      label: 'Local metadata conditions',
+      description: 'Choose whether every related metadata condition or at least one must match.',
+      defaultLogic: 'all',
+      minConditions: 2
+    },
     builder: {
       outputFieldIdTemplate: 'Local Metadata {code}${subfield}',
       displayLabelTemplate: 'Local Metadata {code}${subfield}',

@@ -24,10 +24,10 @@ import { createFilterSidePanelReorderActions } from './filterSidePanelReorderAct
 import { QueryTableView } from '../../ui/queryTableView.js';
 import { DOM } from '../../core/domCache.js';
 import {
-    countActiveMarcFilters,
-    getMarcFilterLogic,
-    setMarcFilterLogic
-} from './marcFilterLogic.js';
+    collectActiveFilterGroups,
+    getFilterGroupLogic,
+    setFilterGroupLogic
+} from './filterGroupLogic.js';
 
 const FilterSidePanel = (function () {
     const services = appServices;
@@ -636,27 +636,33 @@ const FilterSidePanel = (function () {
 
         wrapper.appendChild(createSectionHeader('Filters', totalFilters, totalFilters === 1 ? 'active filter' : 'active filters'));
 
-        if (countActiveMarcFilters(getActiveFilters()) >= 2) {
+        collectActiveFilterGroups(getActiveFilters())
+          .filter(group => group.conditionCount >= group.minConditions)
+          .forEach(filterGroup => {
             const logicControl = document.createElement('label');
-            logicControl.className = 'fp-marc-logic';
+            logicControl.className = 'fp-group-logic';
 
             const labelGroup = document.createElement('span');
-            labelGroup.className = 'fp-marc-logic__copy';
-            labelGroup.innerHTML = `
-                <strong>MARC conditions</strong>
-                <small>Require every MARC condition or at least one.</small>
-            `;
+            labelGroup.className = 'fp-group-logic__copy';
+            const strong = document.createElement('strong');
+            strong.textContent = filterGroup.label;
+            const small = document.createElement('small');
+            small.textContent = filterGroup.description;
+            labelGroup.appendChild(strong);
+            labelGroup.appendChild(small);
 
             const select = document.createElement('select');
-            select.className = 'fp-marc-logic__select';
-            select.setAttribute('aria-label', 'Bibliographic condition matching');
+            select.className = 'fp-group-logic__select';
+            select.setAttribute('aria-label', `${filterGroup.label} matching`);
             select.innerHTML = `
                 <option value="all">Match all</option>
                 <option value="any">Match any</option>
             `;
-            select.value = getMarcFilterLogic();
+            select.value = getFilterGroupLogic(filterGroup);
             select.addEventListener('change', () => {
-                setMarcFilterLogic(select.value, { source: 'FilterSidePanel.marcFilterLogic' });
+                setFilterGroupLogic(filterGroup.id, select.value, {
+                    source: 'FilterSidePanel.filterGroupLogic'
+                });
                 uiActions.updateQueryJson();
                 uiActions.updateRunQueryButtonState?.();
             });
@@ -664,7 +670,7 @@ const FilterSidePanel = (function () {
             logicControl.appendChild(labelGroup);
             logicControl.appendChild(select);
             wrapper.appendChild(logicControl);
-        }
+          });
 
         if (filterEntries.length === 0) {
             const empty = document.createElement('div');

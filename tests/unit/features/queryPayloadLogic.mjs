@@ -41,11 +41,21 @@ test('query payload', async () => {
   fieldDefs.set('Synthetic Field', { name: 'Synthetic Field', builder: { outputFieldIdTemplate: 'Synthetic{value}', inputs: [] }, filters: ['equals'] });
   fieldDefs.set('MARC 590', {
     name: 'MARC 590',
-    filters: ['equals', 'contains']
+    filters: ['equals', 'contains'],
+    filterGroup: {
+      id: 'bibliographic_fields',
+      label: 'Bibliographic field conditions',
+      defaultLogic: 'all'
+    }
   });
   fieldDefs.set('MARC 590$a', {
     name: 'MARC 590$a',
-    filters: ['equals', 'contains']
+    filters: ['equals', 'contains'],
+    filterGroup: {
+      id: 'bibliographic_fields',
+      label: 'Bibliographic field conditions',
+      defaultLogic: 'all'
+    }
   });
 
   QueryChangeManager.setQueryState({
@@ -142,7 +152,9 @@ test('query payload', async () => {
 
   assert.deepEqual(buildQueryUiConfig(), {
     DesiredColumnOrder: ['Title', 'MARC 590', 'Record Date'],
-    MarcFilterLogic: 'all',
+    FilterGroupLogic: {
+      bibliographic_fields: 'all'
+    },
     Filters: [
       { field: 'Title', operator: '=', value: '*needle*' },
       { field: 'Search Key', operator: '=', value: ['A', 'B', 'C'] },
@@ -158,7 +170,9 @@ test('query payload', async () => {
     action: 'run',
     name: 'Smoke Query',
     result_format: 'jsonl',
-    marc_filter_logic: 'all',
+    filter_group_logic: {
+      bibliographic_fields: 'all'
+    },
     filters: [
       { field: 'Title', operator: '=', value: '*needle*' },
       { field: 'Search Key', operator: '=', value: ['A', 'B', 'C'] },
@@ -206,7 +220,6 @@ test('query payload', async () => {
     action: 'run',
     name: 'Config Payload',
     result_format: 'jsonl',
-    marc_filter_logic: 'all',
     limit: 5,
     filters: [
       { field: 'Title', operator: '=', value: '*grant*' },
@@ -229,7 +242,6 @@ test('query payload', async () => {
     action: 'run',
     name: 'Unauthorized Config Payload',
     result_format: 'jsonl',
-    marc_filter_logic: 'all',
     filters: [],
     display_fields: ['Title']
   });

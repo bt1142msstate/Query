@@ -912,6 +912,14 @@ input[type="search"]:-webkit-autofill,
   color: #1e293b;
 }
 
+.group-selection-label {
+  flex: 0 0 auto;
+  color: var(--color-gray-500);
+  font-size: 0.68rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .group-count {
   display: inline-flex;
   align-items: center;

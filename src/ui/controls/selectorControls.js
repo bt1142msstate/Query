@@ -130,6 +130,8 @@ function escapeSelectorControlHtml(value) {
 
 function createGroupedSelector(values, isMultiSelect, currentValues = [], options = {}) {
   const enableGrouping = options.enableGrouping !== false;
+  const groupSelectionLabel = String(options.groupSelectionLabel || '').trim();
+  const groupSelectionDescription = String(options.groupSelectionDescription || '').trim();
   const containerId = Object.prototype.hasOwnProperty.call(options, 'containerId')
     ? options.containerId
     : 'condition-select-container';
@@ -374,6 +376,15 @@ function createGroupedSelector(values, isMultiSelect, currentValues = [], option
       groupCheckbox.type = 'checkbox';
       groupCheckbox.className = 'group-checkbox';
       groupCheckbox.dataset.group = row.groupName;
+      groupCheckbox.setAttribute(
+        'aria-label',
+        groupSelectionLabel
+          ? `${groupSelectionLabel}: ${row.groupName}`
+          : `Select all ${row.groupName} options`
+      );
+      if (groupSelectionDescription) {
+        groupCheckbox.title = groupSelectionDescription;
+      }
 
       const groupOptions = row.groupEntry.options;
       const checkedCount = groupOptions.filter(option => selectedValues.has(option.literal)).length;
@@ -413,6 +424,17 @@ function createGroupedSelector(values, isMultiSelect, currentValues = [], option
       }
     });
     header.appendChild(groupLabel);
+
+    if (groupSelectionLabel) {
+      const groupActionLabel = document.createElement('span');
+      groupActionLabel.className = 'group-selection-label';
+      groupActionLabel.textContent = groupSelectionLabel;
+      if (groupSelectionDescription) {
+        groupActionLabel.setAttribute('data-tooltip', groupSelectionDescription);
+        groupActionLabel.setAttribute('data-tooltip-intent', 'delayed');
+      }
+      header.appendChild(groupActionLabel);
+    }
 
     const visibleCount = row.groupEntry.options.filter(option => !searchTerm || option.searchText.includes(searchTerm)).length;
     const groupCount = document.createElement('span');

@@ -224,6 +224,10 @@ function buildUiConfigFromRequest(request, dependencies = getDefaultRequestMappe
     Filters: []
   };
 
+  if (request.filter_group_logic && typeof request.filter_group_logic === 'object') {
+    uiConfig.FilterGroupLogic = { ...request.filter_group_logic };
+  }
+
   if (Array.isArray(request.filters)) {
     request.filters.forEach(filter => {
       uiConfig.Filters.push({
@@ -267,6 +271,13 @@ function mergeUiConfigWithRequest(uiConfig, request, dependencies = getDefaultRe
 
   if (!baseUiConfig.Filters.length && requestUiConfig.Filters.length) {
     baseUiConfig.Filters = requestUiConfig.Filters.map(filter => ({ ...filter }));
+  }
+
+  if (
+    (!baseUiConfig.FilterGroupLogic || !Object.keys(baseUiConfig.FilterGroupLogic).length)
+    && requestUiConfig.FilterGroupLogic
+  ) {
+    baseUiConfig.FilterGroupLogic = { ...requestUiConfig.FilterGroupLogic };
   }
 
   return baseUiConfig;

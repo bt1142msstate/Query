@@ -267,6 +267,7 @@ Supported field metadata:
 | `authMessage` or `accessMessage` | Optional user-facing explanation shown when a field is unavailable |
 | `access` | Optional string or object for deployment-specific access metadata |
 | `builder` | Defines dynamic/buildable fields |
+| `filterGroup` | Optional backend-defined group metadata for related fields that can use independent `all`/`any` matching |
 
 Selector values may be scalars or objects. Descriptive objects use `RawValue` for the exact filter value, `Name` for the visible label, `Description` for delayed hover help, `Group` for grouping, `SearchText` for matching, and optional structured `Metadata`. Lowercase aliases are also accepted. Libraries use this generic contract, but it is available to every field with enumerated values.
 
@@ -335,6 +336,32 @@ Use buildable field metadata when users need to create dynamic output fields fro
   }
 }
 ```
+
+Related buildable fields can declare a generic filter group. The client renders the label, help text, and match control from this metadata; it does not inspect field names or know what kind of backend data the fields represent.
+
+```json
+{
+  "filterGroup": {
+    "id": "local_metadata",
+    "label": "Local metadata conditions",
+    "description": "Choose whether every related condition or at least one must match.",
+    "defaultLogic": "all",
+    "minConditions": 2
+  }
+}
+```
+
+When a query uses fields in that group, the client sends:
+
+```json
+{
+  "filter_group_logic": {
+    "local_metadata": "any"
+  }
+}
+```
+
+Backends own the field-family semantics and must validate supported group IDs and apply the requested logic. Frontends treat every group uniformly.
 
 If a user enters `LOCAL` and leaves the optional subfield blank, the frontend creates and displays `Custom LOCAL`. If the user enters subfield `a`, it creates `Custom LOCAL$a`.
 
