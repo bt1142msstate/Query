@@ -1993,7 +1993,7 @@ async function runSmokeTest() {
     });
     attachFailureListeners(signedOutPage, failures, port);
     await stubExternalAssets(signedOutPage);
-    await installQueryApiStub(signedOutPage);
+    const signedOutApiStub = await installQueryApiStub(signedOutPage);
     await signedOutPage.goto(baseUrl, { waitUntil: 'load', timeout: 15000 });
     await waitForAppReady(signedOutPage, failures);
     await signedOutPage.locator('#toggle-queries.hidden').waitFor({ state: 'attached', timeout: 5000 });
@@ -2010,6 +2010,42 @@ async function runSmokeTest() {
     if (!signedOutLockState.authRequired || signedOutLockState.appVisible || signedOutLockState.closeVisible) {
       throw new Error(`Signed-out application must remain behind the required sign-in dialog: ${JSON.stringify(signedOutLockState)}`);
     }
+    signedOutApiStub.enqueue({
+      action: 'login',
+      body: JSON.stringify({
+        error: 'Too many requests from this IP. Temporarily blocked.',
+        retry_after_seconds: 2,
+        block_until_epoch: Math.ceil(Date.now() / 1000) + 2
+      }),
+      contentType: 'application/json; charset=utf-8',
+      status: 429
+    });
+    const failuresBeforeExpectedRateLimit = failures.length;
+    await signedOutPage.locator('#auth-session-form input[name="username"]').fill('rate-limit-smoke');
+    await signedOutPage.locator('#auth-session-form input[name="password"]').fill('not-a-real-password');
+    await signedOutPage.locator('#auth-session-form button[type="submit"]').click();
+    await signedOutPage.locator('#auth-rate-limit:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+    const rateLimitState = await signedOutPage.evaluate(() => ({
+      countdown: document.querySelector('#auth-rate-limit-countdown')?.textContent || '',
+      disabled: document.querySelector('#auth-session-form button[type="submit"]')?.disabled,
+      passwordLength: document.querySelector('#auth-session-form input[name="password"]')?.value.length
+    }));
+    if (!/^Try again in \d+:\d{2}\.$/u.test(rateLimitState.countdown)
+      || !rateLimitState.disabled
+      || rateLimitState.passwordLength !== 0) {
+      throw new Error(`Sign-in lockout must show a countdown, disable submission, and clear the password: ${JSON.stringify(rateLimitState)}`);
+    }
+    await signedOutPage.locator('#auth-session-form button[type="submit"]:not(:disabled)').waitFor({
+      state: 'visible',
+      timeout: 5000
+    });
+    if (await signedOutPage.locator('#auth-rate-limit').isVisible()) {
+      throw new Error('Sign-in lockout panel should hide when the retry deadline expires');
+    }
+    const expectedRateLimitFailures = failures
+      .splice(failuresBeforeExpectedRateLimit)
+      .filter(failure => !failure.includes('429') || !failure.includes('query_api.pl'));
+    failures.push(...expectedRateLimitFailures);
     await signedOutPage.close();
 
     const demoPage = await browser.newPage();
