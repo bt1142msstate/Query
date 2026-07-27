@@ -89,6 +89,14 @@ function getFormModeEmptyStateHtml() {
   `;
 }
 
+function getFormModeFixedCriteriaStateHtml(count) {
+  const criteriaLabel = count === 1 ? 'criterion' : 'criteria';
+  return `
+    <strong>Ready to run.</strong>
+    <p>This saved report uses ${count} fixed ${criteriaLabel} shown in the Filters panel. Click "Run Form" to refresh the results.</p>
+  `;
+}
+
 function getVisibleFormInputs(inputs = []) {
   return (Array.isArray(inputs) ? inputs : []).filter(inputSpec => !inputSpec.hidden);
 }
@@ -125,6 +133,13 @@ function createFormModeEmptyState(documentRef) {
   return emptyState;
 }
 
+function createFormModeFixedCriteriaState(documentRef, count) {
+  const fixedState = documentRef.createElement('div');
+  fixedState.className = 'form-mode-empty-state';
+  fixedState.innerHTML = getFormModeFixedCriteriaStateHtml(count);
+  return fixedState;
+}
+
 function mountFormModeCard(documentRef) {
   const host = ensureFormModeHost(documentRef);
   if (!host) {
@@ -157,8 +172,10 @@ function mountFormModeCard(documentRef) {
 export {
   FORM_MODE_CARD_SELECTORS,
   createFormModeEmptyState,
+  createFormModeFixedCriteriaState,
   getFormModeCardHtml,
   getFormModeEmptyStateHtml,
+  getFormModeFixedCriteriaStateHtml,
   getVisibleFormInputs,
   mountFormModeCard
 };

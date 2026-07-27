@@ -3,6 +3,7 @@ import {
   FORM_MODE_CARD_SELECTORS,
   getFormModeCardHtml,
   getFormModeEmptyStateHtml,
+  getFormModeFixedCriteriaStateHtml,
   getVisibleFormInputs
 } from '../../../src/ui/form-mode/formModeCard.js';
 import test from 'node:test';
@@ -25,6 +26,11 @@ test('form mode card', async () => {
   const emptyStateHtml = getFormModeEmptyStateHtml();
   assert.equal(emptyStateHtml.includes('No filters yet.'), true);
   assert.equal(emptyStateHtml.includes('Add Filter'), true);
+
+  const fixedCriteriaHtml = getFormModeFixedCriteriaStateHtml(6);
+  assert.equal(fixedCriteriaHtml.includes('Ready to run.'), true);
+  assert.equal(fixedCriteriaHtml.includes('6 fixed criteria'), true);
+  assert.equal(fixedCriteriaHtml.includes('Run Form'), true);
 
   const visibleInputs = getVisibleFormInputs([
     { key: 'visible-a', hidden: false },
