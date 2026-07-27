@@ -191,6 +191,11 @@
     </button>
     <h2>Staff sign in</h2>
     <p id="auth-session-status" aria-live="polite"></p>
+    <div id="auth-rate-limit" class="auth-rate-limit hidden" role="status" aria-live="polite">
+      <strong>Sign-in temporarily paused</strong>
+      <span id="auth-rate-limit-countdown"></span>
+      <progress id="auth-rate-limit-progress" max="1" value="0" aria-label="Time remaining before sign-in is available"></progress>
+    </div>
     <form id="auth-session-form">
       <label>NetID<input name="username" autocomplete="username" required maxlength="64"></label>
       <label>Password<span class="auth-password-control"><input name="password" type="password" autocomplete="current-password" required maxlength="1024"><button class="auth-password-toggle" type="button" aria-label="Show password" title="Show password"><svg class="auth-password-eye" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.75"/></svg><svg class="auth-password-eye-off" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10.6 6.15A10.8 10.8 0 0 1 12 6c6 0 9.5 6 9.5 6a17.5 17.5 0 0 1-2.2 2.8M6.2 6.2C3.85 8 2.5 12 2.5 12s3.5 6 9.5 6c1.6 0 3-.42 4.2-1.05M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></button></span></label>

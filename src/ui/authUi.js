@@ -1,6 +1,11 @@
-import { getApiUrl } from '../core/backendApi.js';
+import { getApiUrl, postJson } from '../core/backendApi.js';
 import { clearSession, getSession, setSession } from '../core/authSession.js';
 import { isDemoApiUrl, queryFetch } from '../core/mockQueryBackend.js';
+import {
+  formatSignInRetryCountdown,
+  getRateLimitDeadline,
+  getRemainingSeconds
+} from './authRateLimit.js';
 
 const button = document.getElementById('auth-session-button');
 const dialog = document.getElementById('auth-session-dialog');
@@ -11,7 +16,67 @@ const signout = document.getElementById('auth-session-signout');
 const headerSignout = document.getElementById('auth-header-signout');
 const historyButton = document.getElementById('toggle-queries');
 const closeButton = dialog?.querySelector('[data-auth-close]');
+const rateLimitPanel = document.getElementById('auth-rate-limit');
+const rateLimitCountdown = document.getElementById('auth-rate-limit-countdown');
+const rateLimitProgress = document.getElementById('auth-rate-limit-progress');
 let restoringPersistentSession = false;
+let loginRateLimitDeadline = 0;
+let loginRateLimitDuration = 0;
+let loginRateLimitTimer = 0;
+
+function loginSubmitButton() {
+  return form?.querySelector('[type="submit"]') || null;
+}
+
+function clearLoginRateLimit() {
+  if (loginRateLimitTimer) {
+    clearInterval(loginRateLimitTimer);
+    loginRateLimitTimer = 0;
+  }
+  loginRateLimitDeadline = 0;
+  loginRateLimitDuration = 0;
+  rateLimitPanel?.classList.add('hidden');
+  if (rateLimitCountdown) rateLimitCountdown.textContent = '';
+  if (rateLimitProgress) {
+    rateLimitProgress.value = 0;
+    rateLimitProgress.max = 1;
+  }
+}
+
+function renderLoginRateLimit() {
+  const remaining = getRemainingSeconds(loginRateLimitDeadline);
+  const submit = loginSubmitButton();
+  if (remaining <= 0) {
+    clearLoginRateLimit();
+    if (submit) submit.disabled = false;
+    if (status) status.textContent = 'You can try signing in again.';
+    return;
+  }
+
+  rateLimitPanel?.classList.remove('hidden');
+  if (rateLimitCountdown) {
+    rateLimitCountdown.textContent = `Try again in ${formatSignInRetryCountdown(remaining)}.`;
+  }
+  if (rateLimitProgress) {
+    rateLimitProgress.max = Math.max(1, loginRateLimitDuration);
+    rateLimitProgress.value = remaining;
+  }
+  if (submit) submit.disabled = true;
+}
+
+function startLoginRateLimit(error) {
+  clearLoginRateLimit();
+  loginRateLimitDeadline = getRateLimitDeadline(error);
+  const remaining = getRemainingSeconds(loginRateLimitDeadline);
+  if (remaining <= 0) return false;
+  loginRateLimitDuration = remaining;
+
+  clearPasswordFields();
+  if (status) status.textContent = 'Too many unsuccessful sign-in attempts.';
+  renderLoginRateLimit();
+  loginRateLimitTimer = setInterval(renderLoginRateLimit, 250);
+  return true;
+}
 
 function openRequiredSignIn() {
   if (restoringPersistentSession || getSession() || !dialog || dialog.open) return;
@@ -181,32 +246,36 @@ dialog?.addEventListener('close', () => {
 form?.addEventListener('submit', async event => {
   event.preventDefault();
   const submit = form.querySelector('[type="submit"]');
+  if (getRemainingSeconds(loginRateLimitDeadline) > 0) {
+    renderLoginRateLimit();
+    return;
+  }
   const values = new FormData(form);
   submit.disabled = true;
   status.textContent = 'Signing in...';
   try {
-    const response = await queryFetch(getApiUrl(), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'login',
-        username: String(values.get('username') || '').trim(),
-        password: String(values.get('password') || '')
-      })
+    const { data: payload } = await postJson({
+      action: 'login',
+      username: String(values.get('username') || '').trim(),
+      password: String(values.get('password') || '')
+    }, {
+      notifyOnRateLimit: false
     });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok || !payload.token) {
+    if (!payload.token) {
       throw new Error(payload.error || 'Sign in failed.');
     }
+    clearLoginRateLimit();
     setSession(payload);
     form.reset();
     concealPasswords();
     dialog.close();
     globalThis.location?.reload();
   } catch (error) {
-    status.textContent = error.message || 'Sign in failed.';
+    if (!error?.isRateLimited || !startLoginRateLimit(error)) {
+      status.textContent = error.message || 'Sign in failed.';
+    }
   } finally {
-    submit.disabled = false;
+    submit.disabled = getRemainingSeconds(loginRateLimitDeadline) > 0;
   }
 });
 
