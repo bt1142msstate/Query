@@ -2,7 +2,11 @@ import { getBaseFieldName, QueryStateReaders } from './filterQueryState.js';
 import { toBackendDateValue } from '../../core/formatting/dateValues.js';
 import { fieldDefs, isFieldBackendFilterable, isFieldBuildable, isFieldDisplayable, resolveFieldName } from './fieldDefs.js';
 import { getDateFilterValidationMessage } from './filterConditionLogic.js';
-import { getMarcFilterLogic, setMarcFilterLogic } from './marcFilterLogic.js';
+import {
+  getFilterGroupLogicPayload,
+  restoreFilterGroupLogic,
+  setFilterGroupLogic
+} from './filterGroupLogic.js';
 
 const FIELD_OPERATOR_TO_UI_COND = {
   Equals: 'equals',
@@ -298,11 +302,12 @@ function buildActiveFiltersFromUiConfigFilters(filters, {
 
 function buildQueryUiConfig() {
   const backendFilters = buildBackendFilters();
+  const filterGroupLogic = getFilterGroupLogicPayload(getActiveFilters());
 
   const query = {
     DesiredColumnOrder: getNormalizedDisplayedFields(),
     Filters: backendFilters.map(filter => ({ ...filter })),
-    MarcFilterLogic: getMarcFilterLogic()
+    FilterGroupLogic: filterGroupLogic
   };
 
   return query;
@@ -362,6 +367,10 @@ function buildBackendQueryPayloadFromParts({
   payload = {}
 } = {}) {
   const standardDisplayFields = [];
+  const filterGroupLogic = getFilterGroupLogicPayload(activeFilters);
+  const configuredFilterGroupLogic = Object.keys(filterGroupLogic).length
+    ? filterGroupLogic
+    : (payload?.filter_group_logic || {});
 
   getNormalizedDisplayedFields(displayFields).forEach(field => {
     const canonicalFieldName = getCanonicalPayloadFieldName(field);
@@ -376,7 +385,9 @@ function buildBackendQueryPayloadFromParts({
     action: 'run',
     name: name || payload?.name || undefined,
     result_format: 'jsonl',
-    marc_filter_logic: payload?.marc_filter_logic || getMarcFilterLogic(),
+    ...(Object.keys(configuredFilterGroupLogic).length
+      ? { filter_group_logic: configuredFilterGroupLogic }
+      : {}),
     filters: buildBackendFiltersFromActiveFilters(activeFilters),
     display_fields: standardDisplayFields
   };
@@ -406,6 +417,7 @@ function buildBackendQueryPayloadFromConfig(config = {}, options = {}) {
   const displayFields = options.displayFields?.length
     ? options.displayFields
     : getFirstConfiguredDisplayedFields(uiConfig, source, payload);
+  restoreFilterGroupLogic([uiConfig, source, payload]);
 
   return buildBackendQueryPayloadFromParts({
     activeFilters,
@@ -429,5 +441,6 @@ export {
   mapFieldOperatorToUiCond,
   mapUiCondToFieldOperator,
   normalizeUiConfigFilters,
-  setMarcFilterLogic
+  restoreFilterGroupLogic,
+  setFilterGroupLogic
 };

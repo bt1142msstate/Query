@@ -1,0 +1,60 @@
+{
+  "name": "MSU Offsite Journal Titles",
+  "ui_config": {
+    "DesiredColumnOrder": [
+      "Catalog Key",
+      "Flexible Key",
+      "Title",
+      "MARC 852",
+      "MARC 866"
+    ],
+    "Filters": [
+      {
+        "FieldName": "Item Library",
+        "FieldOperator": "Equals",
+        "Values": [
+          "MSU-ARCH",
+          "MSU-ARC5TH",
+          "MSU-COBB",
+          "MSU-VETMED",
+          "MSU-RCU",
+          "MSU-MEM",
+          "MSU-MAIN",
+          "MSU-OMAC",
+          "MSU-KRESS",
+          "MSU-MER",
+          "MSU-GRANT"
+        ]
+      },
+      {
+        "FieldName": "Home Location",
+        "FieldOperator": "Equals",
+        "Values": ["OFFSITE"]
+      },
+      {
+        "FieldName": "Call Number Shadowed",
+        "FieldOperator": "Equals",
+        "Values": ["N"]
+      },
+      {
+        "FieldName": "Item Shadowed",
+        "FieldOperator": "Equals",
+        "Values": ["N"]
+      },
+      {
+        "FieldName": "Catalog Shadowed",
+        "FieldOperator": "Equals",
+        "Values": ["0"]
+      },
+      {
+        "FieldName": "Item Type",
+        "FieldOperator": "Equals",
+        "Values": ["JOURNAL"]
+      }
+    ]
+  },
+  "export": {
+    "format": "xlsx",
+    "output": "Reports/MSU-Offsite-Journal-Titles.xlsx"
+  }
+}

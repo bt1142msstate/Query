@@ -178,7 +178,8 @@
               { "type": "object", "additionalProperties": true }
             ]
           },
-          "builder": { "$ref": "#/components/schemas/FieldBuilder" }
+          "builder": { "$ref": "#/components/schemas/FieldBuilder" },
+          "filterGroup": { "$ref": "#/components/schemas/FilterGroup" }
         },
         "additionalProperties": true
       },
@@ -203,6 +204,19 @@
               "additionalProperties": true
             }
           }
+        },
+        "additionalProperties": true
+      },
+      "FilterGroup": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[A-Za-z0-9_.-]{1,64}$" },
+          "label": { "type": "string" },
+          "description": { "type": "string" },
+          "defaultLogic": { "type": "string", "enum": ["all", "any"] },
+          "minConditions": { "type": "integer", "minimum": 2 },
+          "legacyPayloadKeys": { "type": "array", "items": { "type": "string" } }
         },
         "additionalProperties": true
       },
@@ -248,6 +262,10 @@
           "result_format": { "const": "jsonl" },
           "display_fields": { "type": "array", "items": { "type": "string" } },
           "filters": { "type": "array", "items": { "$ref": "#/components/schemas/BackendFilter" } },
+          "filter_group_logic": {
+            "type": "object",
+            "additionalProperties": { "type": "string", "enum": ["all", "any"] }
+          },
           "limit": { "type": "integer", "minimum": 1 },
           "max_rows": { "type": "integer", "minimum": 1 },
           "compatibility_check": { "type": "boolean" }

@@ -150,7 +150,8 @@
             }
           ]
         },
-        "builder": { "$ref": "#/$defs/fieldBuilder" }
+        "builder": { "$ref": "#/$defs/fieldBuilder" },
+        "filterGroup": { "$ref": "#/$defs/filterGroup" }
       },
       "additionalProperties": true
     },
@@ -192,6 +193,31 @@
           "type": "array",
           "minItems": 1,
           "items": { "$ref": "#/$defs/builderInput" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "filterGroup": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]{1,64}$"
+        },
+        "label": { "type": "string" },
+        "description": { "type": "string" },
+        "defaultLogic": {
+          "type": "string",
+          "enum": ["all", "any"]
+        },
+        "minConditions": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "legacyPayloadKeys": {
+          "type": "array",
+          "items": { "type": "string" }
         }
       },
       "additionalProperties": true
@@ -302,6 +328,13 @@
         "filters": {
           "type": "array",
           "items": { "$ref": "#/$defs/backendFilter" }
+        },
+        "filter_group_logic": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "enum": ["all", "any"]
+          }
         }
       },
       "additionalProperties": true

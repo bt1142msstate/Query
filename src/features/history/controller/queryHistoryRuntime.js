@@ -14,7 +14,7 @@ export {
 export {
   mapFieldOperatorToUiCond,
   normalizeUiConfigFilters,
-  setMarcFilterLogic
+  restoreFilterGroupLogic
 } from '../../filters/queryPayload.js';
 export {
   registerDynamicField,

@@ -394,6 +394,8 @@ function registerDynamicField(fieldName, opts = {}) {
     'operators',
     'parts',
     'fieldWarning',
+    'filterGroup',
+    'filter_group',
     'access',
     'accessGranted',
     'accessMessage',

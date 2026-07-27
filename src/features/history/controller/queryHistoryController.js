@@ -44,8 +44,8 @@ import {
   onDOMReady,
   registerDynamicField,
   registerQueryHistoryService,
+  restoreFilterGroupLogic,
   resolveFieldName,
-  setMarcFilterLogic,
   showToastMessage,
   waitForFormModeReady
 } from './queryHistoryRuntime.js';
@@ -330,7 +330,7 @@ const loadQueryConfig = createQueryHistoryConfigLoader({
   registerDynamicField,
   resolveFieldName,
   resolveSpecialPayloadFieldNames,
-  setMarcFilterLogic
+  restoreFilterGroupLogic
 });
 
 const loadQueryResults = createQueryHistoryResultsLoader({

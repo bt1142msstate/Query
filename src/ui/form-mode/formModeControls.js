@@ -382,6 +382,8 @@ import { createFormModeDateInputState } from './formModeDateInput.js';
     if (SelectorControls.createGroupedSelector) {
       const selector = SelectorControls.createGroupedSelector(values, isMultiSelect, initialValues, {
         enableGrouping: shouldGroupValues && hasDashes,
+        groupSelectionLabel: fieldDef?.groupSelectionLabel || fieldDef?.group_selection_label || '',
+        groupSelectionDescription: fieldDef?.groupSelectionDescription || fieldDef?.group_selection_description || '',
         containerId: null
       });
       return createPopupListControl(

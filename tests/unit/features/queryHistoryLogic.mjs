@@ -90,10 +90,12 @@ test('query history', async () => {
       { field: 'alias', operator: '=', value: '*needle*' },
       { field: 'Price', operator: '>=', value: 10 }
     ],
-    special_fields: [{ tag: '999', subfield: 'a' }]
+    special_fields: [{ tag: '999', subfield: 'a' }],
+    filter_group_logic: { metadata_fields: 'any' }
   }, mapperDependencies);
 
   assert.deepEqual(requestConfig.DesiredColumnOrder, ['Resolved Alias', 'Title', 'MARC 999$a']);
+  assert.deepEqual(requestConfig.FilterGroupLogic, { metadata_fields: 'any' });
   assert.deepEqual(requestConfig.Filters, [
     { FieldName: 'Resolved Alias', FieldOperator: 'Contains', Values: ['*needle*'] },
     { FieldName: 'Price', FieldOperator: 'GreaterThanOrEqual', Values: [10] }
@@ -104,11 +106,13 @@ test('query history', async () => {
     Filters: [{ FieldName: 'Existing', FieldOperator: 'Equals', Values: ['1'] }],
   }, {
     display_fields: ['alias'],
-    filters: [{ field: 'alias', operator: '=', value: '2' }]
+    filters: [{ field: 'alias', operator: '=', value: '2' }],
+    filter_group_logic: { metadata_fields: 'all' }
   }, mapperDependencies);
 
   assert.deepEqual(mergedConfig.DesiredColumnOrder, ['Existing', 'Resolved Alias']);
   assert.deepEqual(mergedConfig.Filters, [{ FieldName: 'Existing', FieldOperator: 'Equals', Values: ['1'] }]);
+  assert.deepEqual(mergedConfig.FilterGroupLogic, { metadata_fields: 'all' });
 
   assert.deepEqual(buildHistoryActiveFilters([
     { FieldName: 'alias', FieldOperator: 'Equals', Values: ['A', 'B'] },

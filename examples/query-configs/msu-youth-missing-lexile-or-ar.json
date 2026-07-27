@@ -1,9 +1,14 @@
 {
   "name": "MSU Youth Items Missing Lexile or AR Tags",
   "payload": {
-    "marc_filter_logic": "any"
+    "filter_group_logic": {
+      "bibliographic_fields": "any"
+    }
   },
   "ui_config": {
+    "FilterGroupLogic": {
+      "bibliographic_fields": "any"
+    },
     "DesiredColumnOrder": [
       "Catalog Key",
       "Item Id",
