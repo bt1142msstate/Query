@@ -15,6 +15,9 @@ test('form mode card', async () => {
   });
 
   assert.equal(cardHtml.includes('Run Form'), true);
+  assert.equal(cardHtml.includes('Form only'), true);
+  assert.equal(cardHtml.includes('Form + table'), true);
+  assert.equal(cardHtml.includes('aria-label="Workspace view"'), true);
   assert.equal(cardHtml.includes('id="form-mode-reset"'), true);
   assert.equal(cardHtml.includes('Original form'), true);
   assert.equal(cardHtml.includes('Last shared link'), true);

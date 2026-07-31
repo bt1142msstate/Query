@@ -1296,6 +1296,58 @@ async function exerciseEditableFormUrlRefresh(page, failures) {
     throw new Error(`Refreshing an editable form URL should stay editable in core mode, while Share remains limited: ${JSON.stringify(refreshedState)}`);
   }
 
+  await page.locator('#form-mode-focus-form').click();
+  await page.waitForFunction(() => document.body.classList.contains('form-workspace-focused'), null, { timeout: 5000 });
+  const focusedWorkspace = await page.evaluate(() => {
+    const card = document.getElementById('form-mode-card');
+    const fields = document.getElementById('form-mode-fields');
+    const focusButton = document.getElementById('form-mode-focus-form');
+    const showTableButton = document.getElementById('form-mode-show-table');
+    const tableWorkspace = document.getElementById('table-with-filter');
+    const cardRect = card?.getBoundingClientRect();
+    const focusRect = focusButton?.getBoundingClientRect();
+    return {
+      cardHeight: cardRect?.height || 0,
+      cardWidth: cardRect?.width || 0,
+      fieldsColumns: fields ? getComputedStyle(fields).gridTemplateColumns.trim().split(/\s+/).length : 0,
+      focusButtonPressed: focusButton?.getAttribute('aria-pressed'),
+      focusControlVisible: Boolean(focusRect && focusRect.width > 0 && focusRect.height > 0),
+      showTableButtonPressed: showTableButton?.getAttribute('aria-pressed'),
+      scrollTop: window.scrollY,
+      tableDisplay: tableWorkspace ? getComputedStyle(tableWorkspace).display : '',
+      viewportHeight: window.innerHeight,
+      viewportWidth: window.innerWidth
+    };
+  });
+
+  if (
+    focusedWorkspace.tableDisplay !== 'none'
+    || focusedWorkspace.focusButtonPressed !== 'true'
+    || focusedWorkspace.showTableButtonPressed !== 'false'
+    || !focusedWorkspace.focusControlVisible
+    || focusedWorkspace.scrollTop > 1
+    || focusedWorkspace.fieldsColumns !== 1
+    || focusedWorkspace.cardHeight < Math.min(620, focusedWorkspace.viewportHeight * 0.68)
+    || focusedWorkspace.cardWidth > Math.min(984, focusedWorkspace.viewportWidth) + 2
+  ) {
+    throw new Error(`Form-only workspace should hide the table and use a tall single-column form: ${JSON.stringify(focusedWorkspace)}`);
+  }
+
+  await page.locator('#form-mode-show-table').click();
+  await page.waitForFunction(() => !document.body.classList.contains('form-workspace-focused'), null, { timeout: 5000 });
+  const restoredWorkspace = await page.evaluate(() => ({
+    focusButtonPressed: document.getElementById('form-mode-focus-form')?.getAttribute('aria-pressed'),
+    showTableButtonPressed: document.getElementById('form-mode-show-table')?.getAttribute('aria-pressed'),
+    tableDisplay: getComputedStyle(document.getElementById('table-with-filter')).display
+  }));
+  if (
+    restoredWorkspace.tableDisplay === 'none'
+    || restoredWorkspace.focusButtonPressed !== 'false'
+    || restoredWorkspace.showTableButtonPressed !== 'true'
+  ) {
+    throw new Error(`Form-and-table workspace should restore the table in one action: ${JSON.stringify(restoredWorkspace)}`);
+  }
+
   const cleanUrl = new URL(page.url());
   cleanUrl.search = '';
   cleanUrl.hash = '';

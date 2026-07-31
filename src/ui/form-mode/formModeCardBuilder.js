@@ -24,6 +24,8 @@ function buildInteractiveFormModeCard(options) {
     saveCurrentFormAsSharedBaseline,
     buildCurrentShareUrl,
     syncShareUi,
+    setWorkspaceFocused,
+    syncWorkspacePresentation,
     showToastMessage,
     clipboardUtils = ClipboardUtils,
     cleanupControls
@@ -38,12 +40,14 @@ function buildInteractiveFormModeCard(options) {
 
   state.formHost = mountedCard.host;
   state.formCard = mountedCard.card;
+  state.focusFormBtn = mountedCard.focusFormBtn;
   state.validationEl = mountedCard.validationEl;
   state.runBtn = mountedCard.runBtn;
   state.copyBtn = mountedCard.copyBtn;
   state.shareMenu = mountedCard.shareMenu;
   state.shareMenuShell = mountedCard.shareMenuShell;
   state.shareResultsBtn = mountedCard.shareResultsBtn;
+  state.showTableBtn = mountedCard.showTableBtn;
   state.resetBtn = mountedCard.resetBtn;
   state.resetMenu = mountedCard.resetMenu;
   state.resetMenuShell = mountedCard.resetMenuShell;
@@ -100,6 +104,13 @@ function buildInteractiveFormModeCard(options) {
       console.error('Failed to open field picker:', error);
       showToastMessage('Failed to open the field picker.', 'error');
     });
+  });
+
+  mountedCard.focusFormBtn?.addEventListener('click', () => {
+    setWorkspaceFocused(true);
+  });
+  mountedCard.showTableBtn?.addEventListener('click', () => {
+    setWorkspaceFocused(false);
   });
 
   function hideOpenTooltips() {
@@ -213,6 +224,7 @@ function buildInteractiveFormModeCard(options) {
   });
 
   syncShareUi();
+  syncWorkspacePresentation();
   return mountedCard;
 }
 

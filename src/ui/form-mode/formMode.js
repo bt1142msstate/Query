@@ -35,6 +35,7 @@ import { syncFormModeResultBaseline } from './formModeResultBaseline.js';
 import { resolveCurrentShareResultQueryId, syncFormModeShareUi } from './formModeShareState.js';
 import { openFormModeFieldPicker } from './formModeFieldPicker.js';
 import { createInitialFormModeState } from './formModeState.js';
+import { setFormModeWorkspaceFocused, syncFormModeWorkspacePresentation } from './formModeWorkspace.js';
 
 let QueryFormMode;
 
@@ -627,6 +628,23 @@ let QueryFormMode;
       uiActions,
       queryTableView: QueryTableView
     });
+    syncWorkspacePresentation();
+  }
+
+  function syncWorkspacePresentation() {
+    return syncFormModeWorkspacePresentation({
+      state,
+      document,
+      refreshLayout: refreshWorkspaceLayout
+    });
+  }
+
+  function setWorkspaceFocused(focused) {
+    return setFormModeWorkspaceFocused({
+      state,
+      document,
+      refreshLayout: refreshWorkspaceLayout
+    }, focused);
   }
 
   async function setViewMode(nextMode, options = {}) {
@@ -679,6 +697,8 @@ let QueryFormMode;
       saveCurrentFormAsSharedBaseline,
       buildCurrentShareUrl,
       syncShareUi,
+      setWorkspaceFocused,
+      syncWorkspacePresentation,
       syncValidationUi,
       showToastMessage,
       cleanupControls() {
@@ -831,6 +851,10 @@ let QueryFormMode;
     isLimitedView() {
       return state.active && state.limitedView;
     },
+    isWorkspaceFocused() {
+      return state.active && state.workspaceFocused;
+    },
+    setWorkspaceFocused,
     getValidationError,
     buildCurrentShareUrl,
     syncResultBaselineFromCurrentQuery
