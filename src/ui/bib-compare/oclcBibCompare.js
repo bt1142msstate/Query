@@ -10,6 +10,10 @@ import {
   searchInputMetadata,
   summaryValue
 } from './bibCompareFormat.js';
+import {
+  downloadBibRecord,
+  FORMATS
+} from './bibRecordDownload.js';
 
 const FILTERS = [
   { id: 'differences', label: 'Differences', count: 'differences' },
@@ -217,13 +221,41 @@ function summaryRow(label, value) {
   return row;
 }
 
-function buildSummaryPanel(title, summary, source) {
+function buildDownloadMenu(record, summary, source) {
+  const menu = createElement('details', 'bib-compare-download-menu');
+  const trigger = createElement('summary', 'bib-compare-download-trigger');
+  trigger.setAttribute('aria-label', `Download ${source === 'local' ? 'Symphony' : 'WorldCat'} bibliographic record`);
+  trigger.innerHTML = `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3v12M7.5 10.5 12 15l4.5-4.5M5 20h14"/>
+    </svg>
+    <span>Download</span>
+  `;
+  const options = createElement('div', 'bib-compare-download-options');
+  options.setAttribute('role', 'menu');
+  Object.entries(FORMATS).forEach(([format, metadata]) => {
+    const button = createElement('button', '', metadata.label);
+    button.type = 'button';
+    button.dataset.bibDownload = format;
+    button.dataset.bibSource = source;
+    button.setAttribute('role', 'menuitem');
+    options.appendChild(button);
+  });
+  menu.append(trigger, options);
+  menu._bibRecord = record;
+  menu._bibSummary = summary;
+  return menu;
+}
+
+function buildSummaryPanel(title, summary, source, record) {
   const panel = createElement('article', `bib-compare-summary-panel bib-compare-summary-panel--${source}`);
   const heading = createElement('div', 'bib-compare-summary-heading');
-  heading.append(
+  const headingText = createElement('div', 'bib-compare-summary-heading-text');
+  headingText.append(
     createElement('span', 'bib-compare-source-label', source === 'local' ? 'Symphony' : 'OCLC WorldCat'),
     createElement('h2', '', title)
   );
+  heading.append(headingText, buildDownloadMenu(record, summary, source));
   const list = createElement('dl', 'bib-compare-summary-list');
   list.append(
     summaryRow(source === 'local' ? 'Catalog key' : 'OCLC number', source === 'local' ? summary?.catalog_key : summary?.oclc_number),
@@ -245,14 +277,16 @@ function renderSummaries(payload) {
   container.appendChild(buildSummaryPanel(
     summaryValue(local.title, 'Untitled local record'),
     local,
-    'local'
+    'local',
+    payload?.local?.record
   ));
   if (payload?.worldcat?.summary) {
     const worldcat = payload.worldcat.summary;
     container.appendChild(buildSummaryPanel(
       summaryValue(worldcat.title, 'Untitled WorldCat record'),
       worldcat,
-      'worldcat'
+      'worldcat',
+      payload?.worldcat?.record
     ));
   } else {
     const waiting = createElement('article', 'bib-compare-summary-panel bib-compare-summary-panel--waiting');
@@ -520,6 +554,28 @@ function bindWorkspaceEvents(workspace) {
     state.filter = button.dataset.bibFilter;
     renderFilterButtons();
     renderFieldRows();
+  });
+  workspace.querySelector('[data-bib-summaries]')?.addEventListener('click', event => {
+    const button = event.target.closest?.('[data-bib-download]');
+    if (!button) return;
+    const menu = button.closest('.bib-compare-download-menu');
+    try {
+      const filename = downloadBibRecord({
+        record: menu?._bibRecord,
+        summary: menu?._bibSummary,
+        source: button.dataset.bibSource,
+        format: button.dataset.bibDownload
+      });
+      if (menu) menu.open = false;
+      showToastMessage(`${filename} downloaded.`, 'success');
+    } catch (error) {
+      showToastMessage(error.message || 'The bibliographic record could not be downloaded.', 'error');
+    }
+  });
+  workspace.addEventListener('click', event => {
+    workspace.querySelectorAll('.bib-compare-download-menu[open]').forEach(menu => {
+      if (!menu.contains(event.target)) menu.open = false;
+    });
   });
 }
 

@@ -1,5 +1,5 @@
 {
-  "version": "1df97584bc6a9fde",
+  "version": "8deb7e62b0886aa0",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -177,9 +177,9 @@
     "src/lib/workbook-export/workbookXmlUtils.js": "2cc0fcdda2a1d411",
     "src/lib/workbook-export/xlsxZipWriter.js": "5f4c1f6e98fbcb06",
     "src/styles/api-settings.css": "7c6ff2277eb40a47",
-    "src/styles/app.css": "2da4195083c5d3af",
+    "src/styles/app.css": "5a25286d5f360a82",
     "src/styles/base.css": "c4ca07d10bc6c19a",
-    "src/styles/bib-compare.css": "bf44de3f98338c49",
+    "src/styles/bib-compare.css": "03e9aa1e3724a441",
     "src/styles/controls.css": "5372b30b175cd1e7",
     "src/styles/filters.css": "9e7297e65dd68a3c",
     "src/styles/form-mode.css": "0936f86fb2963599",
@@ -197,7 +197,8 @@
     "src/ui/authRateLimit.js": "2bb2f84fabf36940",
     "src/ui/authUi.js": "435aa126ddfe7a09",
     "src/ui/bib-compare/bibCompareFormat.js": "27d3f6661599bb83",
-    "src/ui/bib-compare/oclcBibCompare.js": "ecac5e6be7b305d1",
+    "src/ui/bib-compare/bibRecordDownload.js": "4090953c96434d2d",
+    "src/ui/bib-compare/oclcBibCompare.js": "5d1445855c59acf4",
     "src/ui/controls/customDatePicker.js": "88e4eb3245ac256c",
     "src/ui/controls/searchUI.js": "9d46afc995531905",
     "src/ui/controls/selectorControls.js": "bfcb8b0a6aba4bd4",
