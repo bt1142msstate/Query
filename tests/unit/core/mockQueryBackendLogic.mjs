@@ -9,6 +9,10 @@ globalThis.fetch = async url => {
     const data = await readFile(new URL('../../../assets/demo/query-data.json', import.meta.url), 'utf8');
     return Response.json(JSON.parse(data));
   }
+  if (String(url).endsWith('/assets/demo/oclc-bib-data.json')) {
+    const data = await readFile(new URL('../../../assets/demo/oclc-bib-data.json', import.meta.url), 'utf8');
+    return Response.json(JSON.parse(data));
+  }
   return originalFetch(url);
 };
 
@@ -55,4 +59,30 @@ test('demo backend exposes sample fields and filtered JSONL rows after sign-in',
 test('demo endpoint detection is limited to the explicit path', () => {
   assert.equal(isDemoApiUrl('https://bt1142msstate.github.io/Query/demo-api'), true);
   assert.equal(isDemoApiUrl('https://example.org/query-api'), false);
+});
+
+test('demo backend supports authenticated local bib lookup and WorldCat comparison', async () => {
+  const searchResponse = await handleDemoQueryRequest({
+    body: JSON.stringify({
+      action: 'search_bibs',
+      lookup_type: 'title',
+      query: 'hat full of sky'
+    }),
+    headers: authHeaders
+  });
+  const search = await searchResponse.json();
+  assert.equal(search.returned, 1);
+  assert.equal(search.results[0].catalog_key, '923278');
+
+  const compareResponse = await handleDemoQueryRequest({
+    body: JSON.stringify({
+      action: 'compare_oclc_bib',
+      catalog_key: '923278'
+    }),
+    headers: authHeaders
+  });
+  const comparison = await compareResponse.json();
+  assert.equal(comparison.selection.oclc_number, '54005706');
+  assert.equal(comparison.match.confidence, 'linked');
+  assert.equal(comparison.comparison.counts.differences, 4);
 });

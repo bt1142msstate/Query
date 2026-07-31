@@ -9,6 +9,7 @@ import { QueryBuilderShell } from '../ui/queryBuilderShell.js';
 import { QueryFormMode } from '../ui/form-mode/formMode.js';
 import { QueryUI } from '../ui/queryUI.js';
 import { TableNameInput } from '../ui/controls/tableNameInput.js';
+import { OclcBibCompare } from '../ui/bib-compare/oclcBibCompare.js';
 
 (function initializeAppBootstrap() {
   function runInitializer(label, initializer) {
@@ -30,6 +31,7 @@ import { TableNameInput } from '../ui/controls/tableNameInput.js';
     runInitializer('API settings', ApiSettings?.initialize);
     runInitializer('query builder shell', QueryBuilderShell?.initialize);
     runInitializer('form mode', QueryFormMode?.initialize);
+    runInitializer('WorldCat bibliographic comparison', OclcBibCompare?.initialize);
   }
 
   onDOMReady(bootstrap);

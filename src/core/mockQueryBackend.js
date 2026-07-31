@@ -2,6 +2,7 @@ const DEMO_API_PATH = '/demo-api';
 const DEMO_TOKEN = 'query-project-demo-session';
 
 let dataPromise = null;
+let bibDataPromise = null;
 
 function loadDemoData() {
   if (!dataPromise) {
@@ -12,6 +13,17 @@ function loadDemoData() {
     });
   }
   return dataPromise;
+}
+
+function loadDemoBibData() {
+  if (!bibDataPromise) {
+    const url = new URL('../../assets/demo/oclc-bib-data.json', import.meta.url);
+    bibDataPromise = globalThis.fetch(url).then(response => {
+      if (!response.ok) throw new Error('The sample bibliographic records could not be loaded.');
+      return response.json();
+    });
+  }
+  return bibDataPromise;
 }
 
 function isDemoApiUrl(url) {
@@ -67,6 +79,42 @@ function runQuery(payload, data) {
   });
 }
 
+function searchDemoBibs(payload, data) {
+  const query = String(payload.query || '').trim().toLocaleLowerCase();
+  const lookupType = payload.lookup_type || 'title';
+  const limit = Math.max(1, Math.min(Number(payload.limit || 20), 25));
+  const records = (data.records || []).filter(record => {
+    const summary = record.local?.summary || {};
+    if (lookupType === 'catalog_key') return String(summary.catalog_key || '') === query;
+    if (lookupType === 'item_id') {
+      return (record.item_ids || []).some(itemId => String(itemId).toLocaleLowerCase() === query);
+    }
+    return [
+      summary.title,
+      summary.creator,
+      summary.isbn?.join(' ')
+    ].some(value => String(value || '').toLocaleLowerCase().includes(query));
+  }).slice(0, limit);
+
+  return {
+    lookup: { type: lookupType, query: payload.query || '' },
+    results: records.map(record => structuredClone(record.local.summary)),
+    returned: records.length,
+    truncated: 0
+  };
+}
+
+function compareDemoBib(payload, data) {
+  const record = (data.records || []).find(candidate => (
+    String(candidate.local?.summary?.catalog_key || '') === String(payload.catalog_key || '')
+  ));
+  if (!record) return null;
+  if (payload.oclc_number && String(payload.oclc_number) !== String(record.selection?.oclc_number || '')) {
+    return null;
+  }
+  return structuredClone(record);
+}
+
 async function handleDemoQueryRequest(options = {}) {
   let payload = {};
   try { payload = JSON.parse(String(options.body || '{}')); } catch (_) { return json({ error: 'Invalid JSON request.' }, 400); }
@@ -92,6 +140,17 @@ async function handleDemoQueryRequest(options = {}) {
     case 'status': return json({ queries: {} });
     case 'list': return json({ queries: [] });
     case 'list_templates': return json({ categories: [], templates: [] });
+    case 'search_bibs': {
+      const bibData = await loadDemoBibData();
+      return json(searchDemoBibs(payload, bibData));
+    }
+    case 'compare_oclc_bib': {
+      const bibData = await loadDemoBibData();
+      const comparison = compareDemoBib(payload, bibData);
+      return comparison
+        ? json(comparison)
+        : json({ error: 'The sample bibliographic record was not found.' }, 404);
+    }
     case 'cancel': return json({ ok: true });
     case 'get_results': return json({ error: 'No saved demo result was found.' }, 404);
     default: return json({ error: `The demo backend does not support ${payload.action || 'this action'}.` }, 400);
