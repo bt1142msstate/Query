@@ -510,12 +510,35 @@ function openWorkspace() {
   if (!getSession()) {
     document.getElementById('auth-session-button')?.click();
     showToastMessage('Sign in before comparing bibliographic records.', 'info');
-    return;
+    return false;
   }
   const workspace = ensureWorkspace();
   if (!workspace.open) workspace.showModal();
   document.body.classList.add('bib-compare-open');
   query('[data-bib-query]')?.focus();
+  return true;
+}
+
+function openForLookup(lookup = {}) {
+  const lookupType = ['catalog_key', 'item_id', 'title'].includes(lookup.lookupType)
+    ? lookup.lookupType
+    : '';
+  const lookupQuery = String(lookup.query || '').trim();
+  if (!lookupType || !lookupQuery || !openWorkspace()) return false;
+
+  const lookupSelect = query('[data-bib-lookup-type]');
+  const lookupInput = query('[data-bib-query]');
+  if (lookupSelect) lookupSelect.value = lookupType;
+  updateSearchInput();
+  if (lookupInput) lookupInput.value = lookupQuery;
+
+  if (lookupType === 'catalog_key') {
+    setSearchStatus(`Opening catalog record ${lookupQuery}...`);
+    loadComparison(lookupQuery);
+  } else {
+    runSearch();
+  }
+  return true;
 }
 
 function bindWorkspaceEvents(workspace) {
@@ -588,6 +611,7 @@ function initialize() {
 const OclcBibCompare = Object.freeze({
   initialize,
   open: openWorkspace,
+  openForLookup,
   close: closeWorkspace
 });
 

@@ -512,7 +512,7 @@ async function runSmokeTest() {
     await exerciseEditableFormUrlRefresh(page, failures);
     await exerciseFormModeResetMenuPreservesResults(page, queryApiStub);
     await exerciseLegacyFormUrlCanonicalization(page, baseUrl, failures);
-    await exerciseDesktopResultsWorkflow(page);
+    await exerciseDesktopResultsWorkflow(page, queryApiStub);
     await exerciseZeroResultQueryWorkflow(page, queryApiStub);
     await exerciseJsonResultPayloadWorkflow(page, queryApiStub);
     await exerciseVirtualTableScrollInteraction(page);
