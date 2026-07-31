@@ -13,6 +13,8 @@ import { VisibilityUtils } from '../../core/visibility.js';
 import { SharedFieldPicker } from '../../ui/field-picker/fieldPicker.js';
 import { createTableContextPreview } from './contextMenuPreview.js';
 import { openCollapsedRowsViewer } from './virtual-table/collapsedRowsViewer.js';
+import { OclcBibCompare } from '../../ui/bib-compare/oclcBibCompare.js';
+import { resolveBibCompareLookup } from '../../ui/bib-compare/bibCompareLaunch.js';
 
 (() => {
   let menuEl = null;
@@ -151,6 +153,15 @@ import { openCollapsedRowsViewer } from './virtual-table/collapsedRowsViewer.js'
     <rect x="2" y="2.5" width="12" height="3" rx="1"/>
     <rect x="2" y="6.5" width="12" height="3" rx="1"/>
     <rect x="2" y="10.5" width="12" height="3" rx="1"/>
+  </svg>`;
+
+  const BIB_COMPARE_ICON = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="1" y="2" width="5" height="12" rx="1"/>
+    <rect x="10" y="2" width="5" height="12" rx="1"/>
+    <path d="M5 6h6"/>
+    <path d="m9.5 4.5 1.5 1.5-1.5 1.5"/>
+    <path d="M11 10H5"/>
+    <path d="m6.5 8.5-1.5 1.5 1.5 1.5"/>
   </svg>`;
 
   const {
@@ -449,6 +460,9 @@ import { openCollapsedRowsViewer } from './virtual-table/collapsedRowsViewer.js'
     const filterLabel = filterField ? truncateMenuHint(filterField) : colLabel;
 
     const hasRow = !isNaN(rowIndex);
+    const bibCompareLookup = hasRow
+      ? resolveBibCompareLookup(fields, getRowValues(rowIndex))
+      : null;
     const collapsedRowGroup = hasRow ? getCollapsedRowGroup(rowIndex) : null;
     const hasCollapsedRowGroup = Boolean(collapsedRowGroup);
     const isHeaderTarget = Boolean(headerCell && !bodyCell);
@@ -549,7 +563,18 @@ import { openCollapsedRowsViewer } from './virtual-table/collapsedRowsViewer.js'
               successMessage: `Row copied \u2014 ${vals.length} value${vals.length !== 1 ? 's' : ''}`
             });
           }
-        }
+        },
+        ...(bibCompareLookup ? [{
+          icon: BIB_COMPARE_ICON,
+          label: 'Compare in WorldCat',
+          hint: truncateMenuHint(bibCompareLookup.hint),
+          preview() {
+            return hasRow ? previewRow(tr) : null;
+          },
+          run() {
+            OclcBibCompare.openForLookup(bibCompareLookup);
+          }
+        }] : [])
       ] : []),
       {
         icon:  COL_ICON,

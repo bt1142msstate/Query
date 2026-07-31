@@ -1,5 +1,5 @@
 {
-  "version": "a6a3e55005fedcb9",
+  "version": "e930fd0a4c901f78",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -104,7 +104,7 @@
     "src/features/history/view/queryHistoryRows.js": "bd5e6d71bbd1647a",
     "src/features/history/view/queryHistoryTooltips.js": "e8823ba1d844643d",
     "src/features/history/view/queryHistoryViewHelpers.js": "689ea8490cf4a5ac",
-    "src/features/table/contextMenu.js": "7363e4cb6375fd2f",
+    "src/features/table/contextMenu.js": "960252d2c248ca7d",
     "src/features/table/contextMenuPreview.js": "647d0446a7ab46b2",
     "src/features/table/drag-drop/columnManager.js": "3cfe04dd5c964186",
     "src/features/table/drag-drop/columnResizeController.js": "f9623a02aad91c76",
@@ -197,8 +197,9 @@
     "src/ui/authRateLimit.js": "2bb2f84fabf36940",
     "src/ui/authUi.js": "435aa126ddfe7a09",
     "src/ui/bib-compare/bibCompareFormat.js": "27d3f6661599bb83",
+    "src/ui/bib-compare/bibCompareLaunch.js": "4797b2990683b83c",
     "src/ui/bib-compare/bibRecordDownload.js": "4090953c96434d2d",
-    "src/ui/bib-compare/oclcBibCompare.js": "5d1445855c59acf4",
+    "src/ui/bib-compare/oclcBibCompare.js": "5fa65c9231241f16",
     "src/ui/controls/customDatePicker.js": "88e4eb3245ac256c",
     "src/ui/controls/searchUI.js": "9d46afc995531905",
     "src/ui/controls/selectorControls.js": "bfcb8b0a6aba4bd4",

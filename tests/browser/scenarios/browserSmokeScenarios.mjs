@@ -2887,8 +2887,59 @@ async function exerciseTableBuildableDisplayField(page) {
   await page.locator('.form-mode-field-picker-modal').waitFor({ state: 'detached', timeout: 5000 });
 }
 
-async function exerciseDesktopResultsWorkflow(page) {
+async function exerciseDesktopResultsWorkflow(page, queryApiStub) {
   await exerciseProjectedDuplicateCollapse(page);
+  const demoBibData = JSON.parse(await readFile(
+    new URL('../../../assets/demo/oclc-bib-data.json', import.meta.url),
+    'utf8'
+  ));
+  queryApiStub.enqueue({
+    action: 'compare_oclc_bib',
+    body: JSON.stringify(demoBibData.records[0]),
+    contentType: 'application/json; charset=utf-8'
+  });
+  await page.evaluate(async () => {
+    const { appServices } = await import('./src/core/appServices.js');
+    const { QueryChangeManager } = await import('./src/core/queryState.js');
+    const { QueryTableView } = await import('./src/ui/queryTableView.js');
+    const headers = ['Catalog Key', 'Title'];
+    const rows = [['923278', 'A hat full of sky : a novel /']];
+    QueryChangeManager.replaceDisplayedFields(headers, { source: 'BrowserSmoke.bibCompareContextMenu' });
+    QueryChangeManager.setLifecycleState(
+      { hasLoadedResultSet: true, queryRunning: false },
+      { source: 'BrowserSmoke.bibCompareContextMenu', silent: true }
+    );
+    appServices.setVirtualTableData({
+      headers,
+      rows,
+      columnMap: new Map(headers.map((field, index) => [field, index]))
+    });
+    await QueryTableView.showExampleTable(headers, { syncQueryState: false });
+    appServices.renderVirtualTable();
+  });
+  await openDesktopTableContextMenu(
+    page,
+    '#example-table tbody tr[data-row-index="0"] td[data-col-index="1"]',
+    'Desktop bibliographic row'
+  );
+  const compareAction = page.locator('.tcm.tcm--visible .tcm-item', { hasText: 'Compare in WorldCat' });
+  await compareAction.waitFor({ state: 'visible', timeout: 5000 });
+  const compareActionHint = (await compareAction.locator('.tcm-hint').textContent())?.trim();
+  if (compareActionHint !== 'Catalog 923278') {
+    throw new Error(`WorldCat context action should identify the clicked row catalog: ${compareActionHint}`);
+  }
+  await compareAction.click();
+  await page.locator('#bib-compare-workspace[open]').waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('[data-bib-content]:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+  await page.waitForFunction(() => {
+    const workspace = document.querySelector('#bib-compare-workspace');
+    return workspace?.querySelector('[data-bib-lookup-type]')?.value === 'catalog_key'
+      && workspace?.querySelector('[data-bib-query]')?.value === '923278'
+      && workspace?.textContent?.includes('A hat full of sky');
+  }, null, { timeout: 5000 });
+  await page.locator('#bib-compare-workspace [data-bib-close]').click();
+  await page.locator('#bib-compare-workspace:not([open])').waitFor({ state: 'attached', timeout: 5000 });
+
   await seedLoadedResults(page);
   await expectResultsCount(page, '3', 'Desktop seeded results');
   await expectDestructiveFlameAnimation(page, '#clear-query-btn', 'Desktop clear query button');
