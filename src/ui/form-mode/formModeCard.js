@@ -3,6 +3,7 @@ const FORM_MODE_CARD_SELECTORS = Object.freeze({
   cleanCopyBtn: '#form-mode-copy-clean',
   copyBtn: '#form-mode-copy',
   fieldsWrap: '#form-mode-fields',
+  focusFormBtn: '#form-mode-focus-form',
   resetBtn: '#form-mode-reset',
   resetMenu: '#form-mode-reset-options',
   resetMenuShell: '#form-mode-reset-menu',
@@ -12,65 +13,84 @@ const FORM_MODE_CARD_SELECTORS = Object.freeze({
   shareMenu: '#form-mode-share-options',
   shareMenuShell: '#form-mode-share-menu',
   shareResultsBtn: '#form-mode-share-results',
+  showTableBtn: '#form-mode-show-table',
   validationEl: '#form-mode-validation'
 });
 
 function getFormModeCardHtml() {
   return `
     <div class="form-mode-header">
-      <div>
+      <div class="form-mode-header-copy">
         <h2 class="form-mode-title" data-form-mode-title></h2>
         <p class="form-mode-description hidden" data-form-mode-description></p>
       </div>
-      <div class="form-mode-actions">
-        <button type="button" id="form-mode-add-field" class="form-mode-btn form-mode-btn-secondary">+ Add Field</button>
-        <button type="button" id="form-mode-run" class="form-mode-btn form-mode-btn-primary">Run Form</button>
-        <div id="form-mode-reset-menu" class="form-mode-reset-menu">
+      <div class="form-mode-header-tools">
+        <div class="form-mode-workspace-toggle" role="group" aria-label="Workspace view">
           <button type="button"
-                  id="form-mode-reset"
-                  class="form-mode-btn form-mode-reset-trigger"
-                  aria-haspopup="menu"
-                  aria-expanded="false"
-                  aria-controls="form-mode-reset-options"
-                  data-tooltip="Choose which saved form state to restore.">
-            Reset
+                  id="form-mode-focus-form"
+                  class="form-mode-workspace-option"
+                  aria-pressed="false"
+                  data-tooltip="Give the form the full workspace and hide the results table.">
+            Form only
           </button>
-          <div id="form-mode-reset-options"
-               class="form-mode-reset-options hidden"
-               role="menu"
-               aria-labelledby="form-mode-reset">
-            <button type="button" id="form-mode-reset-original" class="form-mode-reset-option" role="menuitem">
-              <span>Original form</span>
-              <small>Restore the form as it first opened, including its results when available.</small>
-            </button>
-            <button type="button" id="form-mode-reset-shared" class="form-mode-reset-option" role="menuitem">
-              <span>Last shared link</span>
-              <small>Restore the last link you copied, including shared results when that link had results.</small>
-            </button>
-          </div>
+          <button type="button"
+                  id="form-mode-show-table"
+                  class="form-mode-workspace-option"
+                  aria-pressed="true"
+                  data-tooltip="Show the form and results table together.">
+            Form + table
+          </button>
         </div>
-        <div id="form-mode-share-menu" class="form-mode-share-menu">
-          <button type="button"
-                  id="form-mode-copy"
-                  class="form-mode-btn form-mode-share-trigger"
-                  aria-haspopup="menu"
-                  aria-expanded="false"
-                  aria-controls="form-mode-share-options"
-                  data-tooltip="Choose whether to share the current results or the form only.">
-            Share
-          </button>
-          <div id="form-mode-share-options"
-               class="form-mode-share-options hidden"
-               role="menu"
-               aria-labelledby="form-mode-copy">
-            <button type="button" id="form-mode-share-results" class="form-mode-share-option" role="menuitem">
-              <span>Results link</span>
-              <small>Open this form with the current result set and table view.</small>
+        <div class="form-mode-actions">
+          <button type="button" id="form-mode-add-field" class="form-mode-btn form-mode-btn-secondary">+ Add Field</button>
+          <button type="button" id="form-mode-run" class="form-mode-btn form-mode-btn-primary">Run Form</button>
+          <div id="form-mode-reset-menu" class="form-mode-reset-menu">
+            <button type="button"
+                    id="form-mode-reset"
+                    class="form-mode-btn form-mode-reset-trigger"
+                    aria-haspopup="menu"
+                    aria-expanded="false"
+                    aria-controls="form-mode-reset-options"
+                    data-tooltip="Choose which saved form state to restore.">
+              Reset
             </button>
-            <button type="button" id="form-mode-copy-clean" class="form-mode-share-option" role="menuitem">
-              <span>Form link</span>
-              <small>Open an editable form without loading the current results.</small>
+            <div id="form-mode-reset-options"
+                 class="form-mode-reset-options hidden"
+                 role="menu"
+                 aria-labelledby="form-mode-reset">
+              <button type="button" id="form-mode-reset-original" class="form-mode-reset-option" role="menuitem">
+                <span>Original form</span>
+                <small>Restore the form as it first opened, including its results when available.</small>
+              </button>
+              <button type="button" id="form-mode-reset-shared" class="form-mode-reset-option" role="menuitem">
+                <span>Last shared link</span>
+                <small>Restore the last link you copied, including shared results when that link had results.</small>
+              </button>
+            </div>
+          </div>
+          <div id="form-mode-share-menu" class="form-mode-share-menu">
+            <button type="button"
+                    id="form-mode-copy"
+                    class="form-mode-btn form-mode-share-trigger"
+                    aria-haspopup="menu"
+                    aria-expanded="false"
+                    aria-controls="form-mode-share-options"
+                    data-tooltip="Choose whether to share the current results or the form only.">
+              Share
             </button>
+            <div id="form-mode-share-options"
+                 class="form-mode-share-options hidden"
+                 role="menu"
+                 aria-labelledby="form-mode-copy">
+              <button type="button" id="form-mode-share-results" class="form-mode-share-option" role="menuitem">
+                <span>Results link</span>
+                <small>Open this form with the current result set and table view.</small>
+              </button>
+              <button type="button" id="form-mode-copy-clean" class="form-mode-share-option" role="menuitem">
+                <span>Form link</span>
+                <small>Open an editable form without loading the current results.</small>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -155,6 +175,7 @@ function mountFormModeCard(documentRef) {
     cleanCopyBtn: card.querySelector(FORM_MODE_CARD_SELECTORS.cleanCopyBtn),
     copyBtn: card.querySelector(FORM_MODE_CARD_SELECTORS.copyBtn),
     fieldsWrap: card.querySelector(FORM_MODE_CARD_SELECTORS.fieldsWrap),
+    focusFormBtn: card.querySelector(FORM_MODE_CARD_SELECTORS.focusFormBtn),
     host,
     resetBtn: card.querySelector(FORM_MODE_CARD_SELECTORS.resetBtn),
     resetMenu: card.querySelector(FORM_MODE_CARD_SELECTORS.resetMenu),
@@ -165,6 +186,7 @@ function mountFormModeCard(documentRef) {
     shareMenu: card.querySelector(FORM_MODE_CARD_SELECTORS.shareMenu),
     shareMenuShell: card.querySelector(FORM_MODE_CARD_SELECTORS.shareMenuShell),
     shareResultsBtn: card.querySelector(FORM_MODE_CARD_SELECTORS.shareResultsBtn),
+    showTableBtn: card.querySelector(FORM_MODE_CARD_SELECTORS.showTableBtn),
     validationEl: card.querySelector(FORM_MODE_CARD_SELECTORS.validationEl)
   };
 }
