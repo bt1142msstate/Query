@@ -151,6 +151,8 @@ A URL-driven workflow for guided reports. Pass a JSON spec via the `?spec=` para
 
 Results render in a virtualized table that only draws the visible viewport plus an overscan buffer for smooth performance with large datasets. Export to Excel with the download button — multi-value fields can be rendered as stacked lines in one cell or expanded into separate numbered columns using the split-columns toggle.
 
+The authenticated **WorldCat Bib Compare** workspace can download either the Symphony or WorldCat bibliographic record from its summary card. Available client-side formats are binary MARC (`.mrc`), MARCXML (`.xml`), readable MARC text (`.mrk`), and JSON.
+
 The table also supports sorting, expand/collapse layout, manual column resizing with live row/header alignment, a draggable scrollbar thumb, and post filters that only affect the loaded result set. Post filters are intentionally client-side and are cleared between query runs.
 
 The virtual table is also exposed as a reusable ES module component in `src/components/`: hosts can either mount the DOM-backed table with its packaged virtual scroller or use the headless projection/render-plan API in their own framework. Column drag/drop, XLSX generation, the custom date picker, and the tooltip system have public component entrypoints too.
