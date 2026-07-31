@@ -1,0 +1,877 @@
+.bib-compare-workspace {
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--qp-sys-color-on-surface);
+  background: var(--qp-sys-color-background);
+}
+
+.bib-compare-workspace::backdrop {
+  background: rgba(2, 8, 23, 0.62);
+}
+
+.bib-compare-open {
+  overflow: hidden;
+}
+
+.bib-compare-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: 100%;
+  height: 100%;
+  background: var(--qp-sys-color-background);
+}
+
+.bib-compare-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  min-height: 5.5rem;
+  padding: 1rem 1.4rem;
+  border-bottom: 1px solid var(--qp-sys-color-outline);
+  background: var(--qp-sys-color-surface);
+}
+
+.bib-compare-heading {
+  min-width: 0;
+}
+
+.bib-compare-heading h1,
+.bib-compare-heading p,
+.bib-compare-form-heading h2,
+.bib-compare-form-heading p,
+.bib-compare-fields-toolbar h2,
+.bib-compare-fields-toolbar p,
+.bib-compare-candidate-band h2,
+.bib-compare-candidate-band p,
+.bib-compare-match-band p,
+.bib-compare-empty h2,
+.bib-compare-empty p {
+  margin: 0;
+}
+
+.bib-compare-heading h1 {
+  color: var(--qp-sys-color-on-surface-strong);
+  font-size: 1.35rem;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.bib-compare-heading p {
+  margin-top: 0.25rem;
+  color: var(--qp-sys-color-on-surface-variant);
+  font-size: 0.88rem;
+}
+
+.bib-compare-eyebrow,
+.bib-compare-source-label {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: var(--qp-sys-color-primary);
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.bib-compare-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex: 0 0 auto;
+}
+
+.bib-compare-readonly {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.8rem;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--qp-sys-color-outline);
+  border-radius: 999px;
+  color: var(--qp-sys-color-on-surface-variant);
+  background: var(--qp-sys-color-surface-container);
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.bib-compare-icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid var(--qp-sys-color-outline);
+  border-radius: 50%;
+  color: var(--qp-sys-color-on-surface);
+  background: var(--qp-sys-color-surface-container);
+}
+
+.bib-compare-icon-button:hover,
+.bib-compare-icon-button:focus-visible {
+  border-color: var(--qp-sys-color-primary);
+  color: var(--qp-sys-color-primary);
+  outline: 3px solid var(--qp-sys-color-focus-ring);
+}
+
+.bib-compare-icon-button svg,
+.bib-compare-primary-button svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.bib-compare-layout {
+  display: grid;
+  grid-template-columns: minmax(17rem, 21rem) minmax(0, 1fr);
+  min-height: 0;
+}
+
+.bib-compare-search {
+  min-width: 0;
+  overflow-y: auto;
+  padding: 1.25rem;
+  border-right: 1px solid var(--qp-sys-color-outline);
+  background: var(--qp-sys-color-surface-container);
+}
+
+.bib-compare-search-form {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.bib-compare-form-heading {
+  margin-bottom: 0.35rem;
+}
+
+.bib-compare-form-heading h2,
+.bib-compare-fields-toolbar h2,
+.bib-compare-candidate-band h2 {
+  color: var(--qp-sys-color-on-surface-strong);
+  font-size: 1rem;
+  font-weight: 750;
+}
+
+.bib-compare-form-heading p,
+.bib-compare-fields-toolbar p,
+.bib-compare-candidate-band p {
+  margin-top: 0.2rem;
+  color: var(--qp-sys-color-on-surface-variant);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.bib-compare-label {
+  color: var(--qp-sys-color-on-surface);
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.bib-compare-search select,
+.bib-compare-search input,
+.bib-compare-candidate-controls select,
+.bib-compare-oclc-form input {
+  width: 100%;
+  min-height: 2.65rem;
+  padding: 0.58rem 0.7rem;
+  border: 1px solid var(--qp-sys-color-input-border);
+  border-radius: 6px;
+  color: var(--qp-sys-color-on-surface);
+  background: var(--qp-sys-color-input-background);
+  font-size: 0.88rem;
+}
+
+.bib-compare-search select:focus,
+.bib-compare-search input:focus,
+.bib-compare-candidate-controls select:focus,
+.bib-compare-oclc-form input:focus {
+  border-color: var(--qp-sys-color-primary);
+  outline: 3px solid var(--qp-sys-color-focus-ring);
+}
+
+.bib-compare-search-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+}
+
+.bib-compare-primary-button,
+.bib-compare-oclc-form button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 2.65rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--qp-sys-color-primary);
+  border-radius: 6px;
+  color: var(--qp-sys-color-on-primary);
+  background: var(--qp-sys-color-primary);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.bib-compare-primary-button:hover:not(:disabled),
+.bib-compare-primary-button:focus-visible:not(:disabled),
+.bib-compare-oclc-form button:hover,
+.bib-compare-oclc-form button:focus-visible {
+  filter: brightness(1.08);
+  outline: 3px solid var(--qp-sys-color-focus-ring);
+}
+
+.bib-compare-primary-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.bib-compare-search-status {
+  min-height: 2.5rem;
+  margin: 1rem 0 0.6rem;
+  padding: 0.65rem 0.7rem;
+  border-left: 3px solid var(--qp-sys-color-outline-strong);
+  color: var(--qp-sys-color-on-surface-variant);
+  background: var(--qp-sys-color-surface-container-high);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.bib-compare-search-status[data-tone="success"] {
+  border-left-color: var(--qp-sys-color-success);
+}
+
+.bib-compare-search-status[data-tone="error"] {
+  border-left-color: var(--qp-sys-color-danger);
+  color: var(--qp-sys-color-danger);
+}
+
+.bib-compare-result-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.bib-compare-result {
+  display: grid;
+  gap: 0.25rem;
+  width: 100%;
+  min-width: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--qp-sys-color-list-row-border);
+  border-radius: 6px;
+  color: var(--qp-sys-color-on-surface);
+  background: var(--qp-sys-color-list-row);
+  text-align: left;
+}
+
+.bib-compare-result:hover,
+.bib-compare-result:focus-visible,
+.bib-compare-result.is-selected {
+  border-color: var(--qp-sys-color-primary);
+  background: var(--qp-sys-color-state-selected);
+  outline: none;
+}
+
+.bib-compare-result-title,
+.bib-compare-result-creator,
+.bib-compare-result-identifiers {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bib-compare-result-title {
+  color: var(--qp-sys-color-on-surface-strong);
+  font-size: 0.85rem;
+}
+
+.bib-compare-result-creator {
+  color: var(--qp-sys-color-on-surface);
+  font-size: 0.77rem;
+}
+
+.bib-compare-result-identifiers {
+  color: var(--qp-sys-color-on-surface-variant);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.68rem;
+}
+
+.bib-compare-main {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background: var(--qp-sys-color-background);
+}
+
+.bib-compare-empty {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  min-height: 100%;
+  padding: 2rem;
+  color: var(--qp-sys-color-on-surface-variant);
+  text-align: center;
+}
+
+.bib-compare-empty svg {
+  width: 3.2rem;
+  height: 3.2rem;
+  margin-bottom: 1rem;
+  fill: none;
+  stroke: var(--qp-sys-color-primary);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.bib-compare-empty h2 {
+  color: var(--qp-sys-color-on-surface-strong);
+  font-size: 1.15rem;
+}
+
+.bib-compare-empty p {
+  max-width: 34rem;
+  margin-top: 0.45rem;
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.bib-compare-content {
+  position: relative;
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.bib-compare-progress {
+  position: sticky;
+  top: 0.5rem;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: fit-content;
+  margin: 0 auto;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--qp-sys-color-outline);
+  border-radius: 6px;
+  color: var(--qp-sys-color-on-surface);
+  background: var(--qp-sys-color-surface-overlay);
+  box-shadow: var(--qp-sys-shadow-surface);
+  font-size: 0.8rem;
+}
+
+.bib-compare-spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--qp-sys-color-outline);
+  border-top-color: var(--qp-sys-color-primary);
+  border-radius: 50%;
+  animation: bib-compare-spin 0.8s linear infinite;
+}
+
+@keyframes bib-compare-spin {
+  to { transform: rotate(360deg); }
+}
+
+.bib-compare-record-summaries {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.bib-compare-summary-panel {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--qp-sys-color-outline);
+  border-top: 3px solid var(--qp-sys-color-primary);
+  border-radius: 8px;
+  background: var(--qp-sys-color-surface);
+}
+
+.bib-compare-summary-panel--worldcat {
+  border-top-color: var(--qp-sys-color-success);
+}
+
+.bib-compare-summary-panel--waiting {
+  display: grid;
+  align-content: start;
+  color: var(--qp-sys-color-on-surface-variant);
+}
+
+.bib-compare-summary-heading h2,
+.bib-compare-summary-panel--waiting h2 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--qp-sys-color-on-surface-strong);
+  font-size: 1rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.bib-compare-summary-panel--waiting p {
+  margin: 0.65rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.bib-compare-summary-list {
+  display: grid;
+  grid-template-columns: minmax(5.5rem, auto) minmax(0, 1fr);
+  gap: 0.42rem 0.75rem;
+  margin: 0.85rem 0 0;
+}
+
+.bib-compare-summary-row {
+  display: contents;
+}
+
+.bib-compare-summary-row dt {
+  color: var(--qp-sys-color-on-surface-variant);
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.bib-compare-summary-row dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--qp-sys-color-on-surface);
+  font-size: 0.77rem;
+}
+
+.bib-compare-match-band,
+.bib-compare-candidate-band {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--qp-sys-color-outline);
+  border-radius: 8px;
+  background: var(--qp-sys-color-surface-container);
+}
+
+.bib-compare-match-band > div {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.bib-compare-match-band strong {
+  color: var(--qp-sys-color-on-surface-strong);
+  font-size: 0.88rem;
+}
+
+.bib-compare-match-band p {
+  max-width: 42rem;
+  color: var(--qp-sys-color-on-surface-variant);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  text-align: right;
+}
+
+.bib-compare-match-chip,
+.bib-compare-field-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.55rem;
+  padding: 0.18rem 0.48rem;
+  border: 1px solid var(--qp-sys-color-outline);
+  border-radius: 999px;
+  color: var(--qp-sys-color-on-surface);
+  background: var(--qp-sys-color-surface-container-high);
+  font-size: 0.66rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.bib-compare-match-band[data-confidence="linked"] .bib-compare-match-chip,
+.bib-compare-match-band[data-confidence="strong"] .bib-compare-match-chip {
+  border-color: var(--qp-sys-color-success);
+  color: var(--qp-sys-color-success);
+  background: var(--qp-sys-color-success-container);
+}
+
+.bib-compare-candidate-controls {
+  display: grid;
+  grid-template-columns: minmax(14rem, 1fr) minmax(13rem, 0.7fr);
+  gap: 0.65rem;
+  width: min(48rem, 65%);
+}
+
+.bib-compare-oclc-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+}
+
+.bib-compare-fields {
+  min-width: 0;
+  border: 1px solid var(--qp-sys-color-outline);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--qp-sys-color-surface);
+}
+
+.bib-compare-fields-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--qp-sys-color-outline);
+  background: var(--qp-sys-color-surface-container);
+}
+
+.bib-compare-filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.bib-compare-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2rem;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--qp-sys-color-outline);
+  border-radius: 6px;
+  color: var(--qp-sys-color-on-surface);
+  background: var(--qp-sys-color-surface);
+  font-size: 0.7rem;
+  font-weight: 750;
+}
+
+.bib-compare-filter strong {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.25rem;
+  min-height: 1.25rem;
+  padding: 0 0.22rem;
+  border-radius: 999px;
+  color: var(--qp-sys-color-on-surface-variant);
+  background: var(--qp-sys-color-surface-container-high);
+  font-size: 0.64rem;
+}
+
+.bib-compare-filter:hover,
+.bib-compare-filter:focus-visible,
+.bib-compare-filter.is-active {
+  border-color: var(--qp-sys-color-primary);
+  color: var(--qp-sys-color-primary);
+  background: var(--qp-sys-color-primary-container);
+  outline: none;
+}
+
+.bib-compare-field-header,
+.bib-compare-field-row {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(12rem, 1fr) minmax(12rem, 1fr) 7rem;
+  min-width: 42rem;
+}
+
+.bib-compare-field-header {
+  color: var(--qp-sys-color-on-surface-variant);
+  background: var(--qp-sys-color-surface-container-high);
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.bib-compare-field-header span {
+  padding: 0.55rem 0.7rem;
+  border-right: 1px solid var(--qp-sys-color-outline);
+}
+
+.bib-compare-field-list {
+  overflow-x: auto;
+}
+
+.bib-compare-field-row {
+  border-top: 1px solid var(--qp-sys-color-outline);
+  background: var(--qp-sys-color-surface);
+}
+
+.bib-compare-field-row:first-child {
+  border-top: 0;
+}
+
+.bib-compare-field-row[data-status="changed"] {
+  box-shadow: inset 3px 0 0 var(--qp-sys-color-warning);
+}
+
+.bib-compare-field-row[data-status="local_only"] {
+  box-shadow: inset 3px 0 0 var(--qp-sys-color-info);
+}
+
+.bib-compare-field-row[data-status="worldcat_only"] {
+  box-shadow: inset 3px 0 0 var(--qp-sys-color-success);
+}
+
+.bib-compare-field-tag,
+.bib-compare-field-value,
+.bib-compare-field-row > .bib-compare-field-status {
+  min-width: 0;
+  padding: 0.65rem 0.7rem;
+  border-right: 1px solid var(--qp-sys-color-outline);
+}
+
+.bib-compare-field-tag {
+  display: grid;
+  align-content: start;
+  gap: 0.2rem;
+}
+
+.bib-compare-field-tag strong {
+  color: var(--qp-sys-color-on-surface-strong);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+}
+
+.bib-compare-field-tag span {
+  color: var(--qp-sys-color-on-surface-variant);
+  font-size: 0.64rem;
+}
+
+.bib-compare-field-value {
+  display: grid;
+  align-content: start;
+  gap: 0.25rem;
+  overflow-wrap: anywhere;
+  color: var(--qp-sys-color-on-surface);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.bib-compare-field-value strong {
+  color: var(--qp-sys-color-on-surface-variant);
+  font-size: 0.65rem;
+  font-weight: 750;
+}
+
+.bib-compare-field-value.is-empty {
+  color: var(--qp-sys-color-on-surface-variant);
+  font-family: inherit;
+  font-style: italic;
+}
+
+.bib-compare-field-row > .bib-compare-field-status {
+  align-self: start;
+  justify-self: start;
+  margin: 0.65rem 0.7rem;
+  padding: 0.18rem 0.48rem;
+  border-right: 0;
+}
+
+.bib-compare-field-row[data-status="changed"] > .bib-compare-field-status {
+  color: var(--qp-sys-color-warning);
+  background: var(--qp-sys-color-warning-container);
+}
+
+.bib-compare-field-row[data-status="local_only"] > .bib-compare-field-status {
+  color: var(--qp-sys-color-info);
+  background: var(--qp-sys-color-info-container);
+}
+
+.bib-compare-field-row[data-status="worldcat_only"] > .bib-compare-field-status {
+  color: var(--qp-sys-color-success);
+  background: var(--qp-sys-color-success-container);
+}
+
+.bib-compare-field-list-empty {
+  padding: 2rem;
+  color: var(--qp-sys-color-on-surface-variant);
+  text-align: center;
+  font-size: 0.82rem;
+}
+
+.bib-compare-workspace .hidden {
+  display: none !important;
+}
+
+@media (max-width: 980px) {
+  .bib-compare-layout {
+    grid-template-columns: minmax(15rem, 18rem) minmax(0, 1fr);
+  }
+
+  .bib-compare-record-summaries {
+    grid-template-columns: 1fr;
+  }
+
+  .bib-compare-match-band,
+  .bib-compare-candidate-band,
+  .bib-compare-fields-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .bib-compare-match-band p {
+    max-width: none;
+    text-align: left;
+  }
+
+  .bib-compare-candidate-controls {
+    width: 100%;
+  }
+
+  .bib-compare-filter-group {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
+  .bib-compare-header {
+    min-height: 4.75rem;
+    padding: 0.75rem 0.85rem;
+  }
+
+  .bib-compare-heading h1 {
+    font-size: 1.08rem;
+  }
+
+  .bib-compare-heading p,
+  .bib-compare-readonly {
+    display: none;
+  }
+
+  .bib-compare-layout {
+    display: block;
+    overflow-y: auto;
+  }
+
+  .bib-compare-search {
+    max-height: none;
+    overflow: visible;
+    padding: 0.9rem;
+    border-right: 0;
+    border-bottom: 1px solid var(--qp-sys-color-outline);
+  }
+
+  .bib-compare-result-list {
+    grid-template-columns: 1fr;
+    max-height: 13rem;
+    overflow-y: auto;
+  }
+
+  .bib-compare-main {
+    min-height: 25rem;
+    overflow: visible;
+  }
+
+  .bib-compare-content {
+    padding: 0.9rem;
+  }
+
+  .bib-compare-candidate-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .bib-compare-fields-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
+  .bib-compare-field-header {
+    display: none;
+  }
+
+  .bib-compare-field-row {
+    grid-template-columns: 1fr;
+    min-width: 0;
+    padding: 0.75rem;
+  }
+
+  .bib-compare-field-tag {
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    padding: 0 0 0.55rem;
+    border-right: 0;
+  }
+
+  .bib-compare-field-tag span {
+    display: none;
+  }
+
+  .bib-compare-field-value {
+    position: relative;
+    padding: 1.65rem 0.65rem 0.65rem;
+    border: 1px solid var(--qp-sys-color-outline);
+    border-radius: 6px;
+  }
+
+  .bib-compare-field-value + .bib-compare-field-value {
+    margin-top: 0.55rem;
+  }
+
+  .bib-compare-field-value::before {
+    position: absolute;
+    top: 0.42rem;
+    left: 0.65rem;
+    color: var(--qp-sys-color-on-surface-variant);
+    font-family: inherit;
+    font-size: 0.62rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .bib-compare-field-value--local::before {
+    content: "Symphony";
+  }
+
+  .bib-compare-field-value--worldcat::before {
+    content: "WorldCat";
+  }
+
+  .bib-compare-field-row > .bib-compare-field-status {
+    grid-row: 1;
+    grid-column: 1;
+    justify-self: end;
+    margin: 0 0 0.55rem;
+  }
+}
+
+@media (max-width: 430px) {
+  .bib-compare-search-input-row,
+  .bib-compare-oclc-form {
+    grid-template-columns: 1fr;
+  }
+
+  .bib-compare-primary-button,
+  .bib-compare-oclc-form button {
+    width: 100%;
+  }
+
+  .bib-compare-summary-list {
+    grid-template-columns: 1fr;
+    gap: 0.1rem;
+  }
+
+  .bib-compare-summary-row dd {
+    margin-bottom: 0.4rem;
+  }
+
+  .bib-compare-filter {
+    flex: 1 1 auto;
+    justify-content: space-between;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bib-compare-spinner {
+    animation-duration: 1.8s;
+  }
+}

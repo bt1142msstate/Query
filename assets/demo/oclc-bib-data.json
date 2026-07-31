@@ -1,0 +1,281 @@
+{
+  "records": [
+    {
+      "item_ids": [
+        "32276003001044"
+      ],
+      "local": {
+        "summary": {
+          "catalog_key": "923278",
+          "control_number": "a923278",
+          "oclc_number": "54005706",
+          "title": "A hat full of sky : a novel /",
+          "creator": "Pratchett, Terry.",
+          "edition": "1st Harper Trophy ed.",
+          "publication": "New York : HarperTrophy, 2005.",
+          "isbn": [
+            "9780060586607"
+          ],
+          "issn": []
+        },
+        "record": {
+          "leader": "00000cam a2200000 a 4500",
+          "fields": []
+        }
+      },
+      "worldcat": {
+        "summary": {
+          "catalog_key": "",
+          "control_number": "54005706",
+          "oclc_number": "54005706",
+          "title": "A hat full of sky : a novel /",
+          "creator": "Pratchett, Terry.",
+          "edition": "1st Harper Trophy ed.",
+          "publication": "New York : HarperTrophy, 2005.",
+          "isbn": [
+            "9780060586607"
+          ],
+          "issn": []
+        },
+        "record": {
+          "leader": "00000cam a2200000 i 4500",
+          "fields": []
+        }
+      },
+      "selection": {
+        "oclc_number": "54005706",
+        "method": "local_035"
+      },
+      "match": {
+        "confidence": "linked",
+        "reason": "The local record directly identifies this OCLC record in MARC 035.",
+        "linked_oclc": 1,
+        "title_match": 1,
+        "isbn_match": 1,
+        "isbn_overlap": [
+          "9780060586607"
+        ]
+      },
+      "comparison": {
+        "counts": {
+          "all": 9,
+          "same": 5,
+          "changed": 2,
+          "local_only": 1,
+          "worldcat_only": 1,
+          "differences": 4
+        },
+        "rows": [
+          {
+            "tag": "LDR",
+            "status": "changed",
+            "local": {
+              "control": 1,
+              "data": "00000cam a2200000 a 4500"
+            },
+            "worldcat": {
+              "control": 1,
+              "data": "00000cam a2200000 i 4500"
+            }
+          },
+          {
+            "tag": "001",
+            "status": "changed",
+            "local": {
+              "control": 1,
+              "data": "a923278"
+            },
+            "worldcat": {
+              "control": 1,
+              "data": "54005706"
+            }
+          },
+          {
+            "tag": "020",
+            "status": "same",
+            "local": {
+              "control": 0,
+              "indicator1": " ",
+              "indicator2": " ",
+              "subfields": [
+                {
+                  "code": "a",
+                  "value": "9780060586607"
+                }
+              ]
+            },
+            "worldcat": {
+              "control": 0,
+              "indicator1": " ",
+              "indicator2": " ",
+              "subfields": [
+                {
+                  "code": "a",
+                  "value": "9780060586607"
+                }
+              ]
+            }
+          },
+          {
+            "tag": "100",
+            "status": "same",
+            "local": {
+              "control": 0,
+              "indicator1": "1",
+              "indicator2": " ",
+              "subfields": [
+                {
+                  "code": "a",
+                  "value": "Pratchett, Terry."
+                }
+              ]
+            },
+            "worldcat": {
+              "control": 0,
+              "indicator1": "1",
+              "indicator2": " ",
+              "subfields": [
+                {
+                  "code": "a",
+                  "value": "Pratchett, Terry."
+                }
+              ]
+            }
+          },
+          {
+            "tag": "245",
+            "status": "same",
+            "local": {
+              "control": 0,
+              "indicator1": "1",
+              "indicator2": "2",
+              "subfields": [
+                {
+                  "code": "a",
+                  "value": "A hat full of sky :"
+                },
+                {
+                  "code": "b",
+                  "value": "a novel /"
+                }
+              ]
+            },
+            "worldcat": {
+              "control": 0,
+              "indicator1": "1",
+              "indicator2": "2",
+              "subfields": [
+                {
+                  "code": "a",
+                  "value": "A hat full of sky :"
+                },
+                {
+                  "code": "b",
+                  "value": "a novel /"
+                }
+              ]
+            }
+          },
+          {
+            "tag": "250",
+            "status": "same",
+            "local": {
+              "control": 0,
+              "indicator1": " ",
+              "indicator2": " ",
+              "subfields": [
+                {
+                  "code": "a",
+                  "value": "1st Harper Trophy ed."
+                }
+              ]
+            },
+            "worldcat": {
+              "control": 0,
+              "indicator1": " ",
+              "indicator2": " ",
+              "subfields": [
+                {
+                  "code": "a",
+                  "value": "1st Harper Trophy ed."
+                }
+              ]
+            }
+          },
+          {
+            "tag": "526",
+            "status": "same",
+            "local": {
+              "control": 0,
+              "indicator1": "0",
+              "indicator2": " ",
+              "subfields": [
+                {
+                  "code": "a",
+                  "value": "Accelerated Reader"
+                },
+                {
+                  "code": "c",
+                  "value": "5.7"
+                }
+              ]
+            },
+            "worldcat": {
+              "control": 0,
+              "indicator1": "0",
+              "indicator2": " ",
+              "subfields": [
+                {
+                  "code": "a",
+                  "value": "Accelerated Reader"
+                },
+                {
+                  "code": "c",
+                  "value": "5.7"
+                }
+              ]
+            }
+          },
+          {
+            "tag": "590",
+            "status": "local_only",
+            "local": {
+              "control": 0,
+              "indicator1": " ",
+              "indicator2": " ",
+              "subfields": [
+                {
+                  "code": "a",
+                  "value": "Local processing note."
+                }
+              ]
+            },
+            "worldcat": null
+          },
+          {
+            "tag": "650",
+            "status": "worldcat_only",
+            "local": null,
+            "worldcat": {
+              "control": 0,
+              "indicator1": " ",
+              "indicator2": "0",
+              "subfields": [
+                {
+                  "code": "a",
+                  "value": "Fantasy fiction."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "candidates": [],
+      "needs_selection": 0,
+      "source": {
+        "name": "OCLC WorldCat Metadata API",
+        "read_only": 1
+      }
+    }
+  ]
+}
