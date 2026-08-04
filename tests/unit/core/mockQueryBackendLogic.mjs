@@ -86,3 +86,21 @@ test('demo backend supports authenticated local bib lookup and WorldCat comparis
   assert.equal(comparison.match.confidence, 'linked');
   assert.equal(comparison.comparison.counts.differences, 4);
 });
+
+test('demo backend resolves mixed bulk bibliographic identifiers', async () => {
+  const response = await handleDemoQueryRequest({
+    body: JSON.stringify({
+      action: 'resolve_oclc_bibs_bulk',
+      entries: [
+        { lookup_type: 'catalog_key', query: '923278' },
+        { lookup_type: 'isbn', query: '9780060586607' },
+        { lookup_type: 'title', query: 'missing title' }
+      ]
+    }),
+    headers: authHeaders
+  });
+  const payload = await response.json();
+  assert.equal(payload.counts.resolved, 2);
+  assert.equal(payload.counts.not_found, 1);
+  assert.equal(payload.results[0].selection.oclc_number, '54005706');
+});

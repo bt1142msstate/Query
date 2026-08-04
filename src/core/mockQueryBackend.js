@@ -89,6 +89,10 @@ function searchDemoBibs(payload, data) {
     if (lookupType === 'item_id') {
       return (record.item_ids || []).some(itemId => String(itemId).toLocaleLowerCase() === query);
     }
+    if (lookupType === 'isbn') {
+      const normalized = query.replace(/[\s-]+/gu, '');
+      return (summary.isbn || []).some(isbn => String(isbn).replace(/[\s-]+/gu, '') === normalized);
+    }
     return [
       summary.title,
       summary.creator,
@@ -102,6 +106,47 @@ function searchDemoBibs(payload, data) {
     returned: records.length,
     truncated: 0
   };
+}
+
+function resolveDemoBibsBulk(payload, data) {
+  const results = (payload.entries || []).map((entry, index) => {
+    const search = searchDemoBibs({ ...entry, limit: 10 }, data);
+    if (search.results.length !== 1) {
+      return {
+        index,
+        input: entry.query,
+        lookup_type: entry.lookup_type,
+        status: search.results.length ? 'review' : 'not_found',
+        local_candidates: search.results,
+        reason: search.results.length
+          ? 'More than one local record matched this input.'
+          : 'No local bibliographic record matched this input.'
+      };
+    }
+    const comparison = compareDemoBib({ catalog_key: search.results[0].catalog_key }, data);
+    return {
+      index,
+      input: entry.query,
+      lookup_type: entry.lookup_type,
+      status: comparison?.needs_selection ? 'review' : 'resolved',
+      local: structuredClone(comparison.local.summary),
+      ...(comparison?.worldcat ? {
+        worldcat: structuredClone(comparison.worldcat.summary),
+        selection: structuredClone(comparison.selection),
+        match: structuredClone(comparison.match),
+        review: structuredClone(comparison.review || {}),
+        comparison_counts: structuredClone(comparison.comparison.counts)
+      } : {
+        candidates: structuredClone(comparison?.candidates || []),
+        reason: 'No single strong WorldCat match was found.'
+      })
+    };
+  });
+  const counts = results.reduce((summary, result) => {
+    summary[result.status] = (summary[result.status] || 0) + 1;
+    return summary;
+  }, { resolved: 0, review: 0, not_found: 0, failed: 0 });
+  return { results, counts, returned: results.length };
 }
 
 function compareDemoBib(payload, data) {
@@ -150,6 +195,10 @@ async function handleDemoQueryRequest(options = {}) {
       return comparison
         ? json(comparison)
         : json({ error: 'The sample bibliographic record was not found.' }, 404);
+    }
+    case 'resolve_oclc_bibs_bulk': {
+      const bibData = await loadDemoBibData();
+      return json(resolveDemoBibsBulk(payload, bibData));
     }
     case 'cancel': return json({ ok: true });
     case 'get_results': return json({ error: 'No saved demo result was found.' }, 404);

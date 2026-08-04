@@ -13,6 +13,7 @@
           "creator": "Pratchett, Terry.",
           "edition": "1st Harper Trophy ed.",
           "publication": "New York : HarperTrophy, 2005.",
+          "physical_description": "278 pages ; 20 cm",
           "isbn": [
             "9780060586607"
           ],
@@ -32,6 +33,7 @@
           "creator": "Pratchett, Terry.",
           "edition": "1st Harper Trophy ed.",
           "publication": "New York : HarperTrophy, 2005.",
+          "physical_description": "278 pages ; 20 cm",
           "isbn": [
             "9780060586607"
           ],
@@ -54,7 +56,21 @@
         "isbn_match": 1,
         "isbn_overlap": [
           "9780060586607"
-        ]
+        ],
+        "creator_match": 1,
+        "edition_match": 1,
+        "publication_year_match": 1,
+        "physical_description_match": 1,
+        "identity_conflict": 0,
+        "hydration_ready": 1
+      },
+      "review": {
+        "hydration_ready": 1,
+        "local_521_count": 0,
+        "local_526_count": 0,
+        "worldcat_521_count": 0,
+        "worldcat_526_count": 2,
+        "identity_conflict": 0
       },
       "comparison": {
         "counts": {

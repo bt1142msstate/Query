@@ -148,6 +148,33 @@
   gap: 0.65rem;
 }
 
+.bib-compare-mode {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  padding: 0.25rem;
+  border: 1px solid var(--qp-sys-color-outline);
+  border-radius: 7px;
+  background: var(--qp-sys-color-surface-container-high);
+}
+
+.bib-compare-mode button {
+  min-height: 2.2rem;
+  border: 0;
+  border-radius: 5px;
+  color: var(--qp-sys-color-on-surface-variant);
+  background: transparent;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.bib-compare-mode button.is-active {
+  color: var(--qp-sys-color-on-surface-strong);
+  background: var(--qp-sys-color-surface);
+  box-shadow: var(--qp-sys-shadow-surface);
+}
+
 .bib-compare-form-heading {
   margin-bottom: 0.35rem;
 }
@@ -177,6 +204,7 @@
 
 .bib-compare-search select,
 .bib-compare-search input,
+.bib-compare-search textarea,
 .bib-compare-candidate-controls select,
 .bib-compare-oclc-form input {
   width: 100%;
@@ -191,10 +219,207 @@
 
 .bib-compare-search select:focus,
 .bib-compare-search input:focus,
+.bib-compare-search textarea:focus,
 .bib-compare-candidate-controls select:focus,
 .bib-compare-oclc-form input:focus {
   border-color: var(--qp-sys-color-primary);
   outline: 3px solid var(--qp-sys-color-focus-ring);
+}
+
+.bib-compare-search textarea {
+  min-height: 11rem;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.bib-bulk-file-row {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.bib-bulk-file-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 2.45rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--qp-sys-color-outline);
+  border-radius: 6px;
+  color: var(--qp-sys-color-on-surface);
+  background: var(--qp-sys-color-surface);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.bib-bulk-file-button:hover,
+.bib-bulk-file-button:focus-within {
+  border-color: var(--qp-sys-color-primary);
+  color: var(--qp-sys-color-primary);
+  outline: 2px solid var(--qp-sys-color-focus-ring);
+}
+
+.bib-bulk-file-button svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.bib-bulk-column {
+  display: grid;
+  gap: 0.3rem;
+  color: var(--qp-sys-color-on-surface-variant);
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.bib-bulk-panel {
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+  min-height: 100%;
+  padding: 1.25rem;
+}
+
+.bib-bulk-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.bib-bulk-header h2,
+.bib-bulk-header p {
+  margin: 0;
+}
+
+.bib-bulk-header h2 {
+  color: var(--qp-sys-color-on-surface-strong);
+  font-size: 1.15rem;
+}
+
+.bib-bulk-header p {
+  margin-top: 0.25rem;
+  color: var(--qp-sys-color-on-surface-variant);
+  font-size: 0.8rem;
+}
+
+.bib-bulk-cancel,
+.bib-bulk-open {
+  min-height: 2.15rem;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid var(--qp-sys-color-outline);
+  border-radius: 6px;
+  color: var(--qp-sys-color-on-surface);
+  background: var(--qp-sys-color-surface-container);
+  font-size: 0.74rem;
+  font-weight: 750;
+}
+
+.bib-bulk-progress {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.8rem;
+  border: 1px solid var(--qp-sys-color-outline);
+  border-radius: 7px;
+  background: var(--qp-sys-color-surface);
+}
+
+.bib-bulk-progress > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--qp-sys-color-on-surface-variant);
+  font-size: 0.76rem;
+}
+
+.bib-bulk-progress progress {
+  width: 100%;
+  accent-color: var(--qp-sys-color-primary);
+}
+
+.bib-bulk-progress progress::-webkit-progress-bar {
+  border-radius: 999px;
+  background: var(--qp-sys-color-surface-container-high);
+}
+
+.bib-bulk-progress progress::-webkit-progress-value {
+  border-radius: 999px;
+  background: var(--qp-sys-color-primary);
+}
+
+.bib-bulk-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.bib-bulk-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  padding: 0.7rem;
+  border-left: 3px solid var(--qp-sys-color-outline-strong);
+  background: var(--qp-sys-color-surface-container);
+}
+
+.bib-bulk-stat[data-status="resolved"] { border-left-color: var(--qp-sys-color-success); }
+.bib-bulk-stat[data-status="failed"] { border-left-color: var(--qp-sys-color-danger); }
+.bib-bulk-stat strong { color: var(--qp-sys-color-on-surface-strong); font-size: 1.1rem; }
+.bib-bulk-stat span { color: var(--qp-sys-color-on-surface-variant); font-size: 0.72rem; }
+
+.bib-bulk-results {
+  display: grid;
+  align-content: start;
+  border: 1px solid var(--qp-sys-color-outline);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--qp-sys-color-surface);
+}
+
+.bib-bulk-result {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1.4fr) minmax(11rem, 1fr) auto auto;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 0;
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid var(--qp-sys-color-outline);
+}
+
+.bib-bulk-result:last-child { border-bottom: 0; }
+.bib-bulk-result-identity,
+.bib-bulk-result-local { display: grid; gap: 0.2rem; min-width: 0; }
+.bib-bulk-result-identity strong,
+.bib-bulk-result-identity span,
+.bib-bulk-result-local span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bib-bulk-result-identity strong { color: var(--qp-sys-color-on-surface-strong); font-size: 0.82rem; }
+.bib-bulk-result-identity span,
+.bib-bulk-result-local span { color: var(--qp-sys-color-on-surface-variant); font-size: 0.72rem; }
+
+.bib-bulk-status {
+  padding: 0.22rem 0.48rem;
+  border: 1px solid var(--qp-sys-color-outline);
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.bib-bulk-result[data-status="resolved"] .bib-bulk-status {
+  border-color: var(--qp-sys-color-success);
+  color: var(--qp-sys-color-success);
+  background: var(--qp-sys-color-success-container);
+}
+
+.bib-bulk-result[data-status="failed"] .bib-bulk-status {
+  border-color: var(--qp-sys-color-danger);
+  color: var(--qp-sys-color-danger);
 }
 
 .bib-compare-search-input-row {
@@ -865,6 +1090,12 @@
   .bib-compare-content {
     padding: 0.9rem;
   }
+
+  .bib-bulk-panel { padding: 0.9rem; }
+  .bib-bulk-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bib-bulk-result { grid-template-columns: minmax(0, 1fr) auto; }
+  .bib-bulk-result-local { grid-column: 1 / -1; grid-row: 2; }
+  .bib-bulk-open { grid-column: 2; grid-row: 2; }
 
   .bib-compare-candidate-controls {
     grid-template-columns: 1fr;

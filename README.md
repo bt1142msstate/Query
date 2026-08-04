@@ -151,7 +151,9 @@ A URL-driven workflow for guided reports. Pass a JSON spec via the `?spec=` para
 
 Results render in a virtualized table that only draws the visible viewport plus an overscan buffer for smooth performance with large datasets. Export to Excel with the download button — multi-value fields can be rendered as stacked lines in one cell or expanded into separate numbered columns using the split-columns toggle.
 
-The authenticated **WorldCat Bib Compare** workspace can download either the Symphony or WorldCat bibliographic record from its summary card. Available client-side formats are binary MARC (`.mrc`), MARCXML (`.xml`), readable MARC text (`.mrk`), and JSON.
+The authenticated **WorldCat Bib Compare** workspace supports single-record and bulk review. Bulk mode accepts pasted values or text/CSV/TSV files, imports a selected file column, and resolves up to 500 unique catalog keys, item IDs, ISBNs, or titles in bounded 25-record requests. Direct and uniquely strong matches complete automatically; ambiguous local titles or WorldCat editions remain marked for review and never block the rest of the batch.
+
+The comparer reports edition evidence from title/responsibility, ISBN, edition statement, publication year, and physical description before describing a record as hydration-ready. MARC 521 and 526 counts are shown separately because a general audience note is not automatically Lexile data. Either the Symphony or WorldCat record can be downloaded from its summary card as binary MARC (`.mrc`), MARCXML (`.xml`), readable MARC text (`.mrk`), or JSON. The workspace is read-only and does not execute catalog hydration.
 
 The table also supports sorting, expand/collapse layout, manual column resizing with live row/header alignment, a draggable scrollbar thumb, and post filters that only affect the loaded result set. Post filters are intentionally client-side and are cleared between query runs.
 
