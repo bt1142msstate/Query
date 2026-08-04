@@ -20,7 +20,17 @@ test('bulk WorldCat review workbook includes identity and generic MARC evidence'
       physical_description: '278 pages ; 20 cm',
       isbn: ['9780060586607']
     },
-    selection: { method: 'unique_exact_edition' },
+    selection: {
+      method: 'best_exact_edition_record',
+      exact_candidate_count: 2,
+      utility: {
+        score: 91,
+        encoding_level: 'blank (full)',
+        authentication_codes: ['pcc'],
+        core_elements: ['title', 'creator', 'subject access'],
+        parts: { encoding_completeness: 30, authenticated_cataloging: 20 }
+      }
+    },
     match: {
       confidence: 'strong',
       title_match: 1,
@@ -51,6 +61,10 @@ test('bulk WorldCat review workbook includes identity and generic MARC evidence'
   assert.equal(state.sourceData.dataRows[0][0], '9780060586607');
   const valueFor = field => state.sourceData.dataRows[0][state.sourceData.displayedFields.indexOf(field)];
   assert.equal(valueFor('Exact Edition Verified'), 'Yes');
+  assert.equal(valueFor('Exact Edition Candidates'), 2);
+  assert.equal(valueFor('Selected Utility Score'), 91);
+  assert.equal(valueFor('Authentication Codes'), 'pcc');
+  assert.equal(valueFor('Utility Score Breakdown'), 'encoding completeness: 30; authenticated cataloging: 20');
   assert.equal(valueFor('WorldCat 526 Count'), 2);
   assert.equal(valueFor('WorldCat-only MARC Tags'), '505 (1); 650 (3)');
 
@@ -62,6 +76,8 @@ test('bulk WorldCat review workbook includes identity and generic MARC evidence'
   const workbookText = new TextDecoder().decode(await blob.arrayBuffer());
   assert.equal(filename, 'WorldCat-Bulk-Review.xlsx');
   assert.match(workbookText, /Exact Edition Verified/u);
+  assert.match(workbookText, /Selected Utility Score/u);
+  assert.match(workbookText, /best_exact_edition_record/u);
   assert.match(workbookText, /WorldCat 526 Count/u);
   assert.match(workbookText, /WorldCat-only MARC Tags/u);
   assert.match(workbookText, /505 \(1\); 650 \(3\)/u);
