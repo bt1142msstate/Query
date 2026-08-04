@@ -2940,45 +2940,50 @@ async function exerciseDesktopResultsWorkflow(page, queryApiStub) {
   await page.locator('#bib-compare-workspace [data-bib-close]').click();
   await page.locator('#bib-compare-workspace:not([open])').waitFor({ state: 'attached', timeout: 5000 });
 
-  queryApiStub.enqueue({
+  [
+    {
+      index: 0,
+      input: '923278',
+      lookup_type: 'catalog_key',
+      status: 'resolved',
+      local: demoBibData.records[0].local.summary,
+      worldcat: demoBibData.records[0].worldcat.summary,
+      selection: demoBibData.records[0].selection,
+      match: demoBibData.records[0].match,
+      review: demoBibData.records[0].review
+    },
+    {
+      index: 0,
+      input: '9780060586607',
+      lookup_type: 'isbn',
+      status: 'resolved',
+      local: demoBibData.records[0].local.summary,
+      worldcat: demoBibData.records[0].worldcat.summary,
+      selection: demoBibData.records[0].selection,
+      match: demoBibData.records[0].match,
+      review: demoBibData.records[0].review
+    },
+    {
+      index: 0,
+      input: 'Missing title',
+      lookup_type: 'title',
+      status: 'not_found',
+      reason: 'No local bibliographic record matched this input.'
+    }
+  ].forEach(result => queryApiStub.enqueue({
     action: 'resolve_oclc_bibs_bulk',
     body: JSON.stringify({
-      returned: 3,
-      counts: { resolved: 2, review: 0, not_found: 1, failed: 0 },
-      results: [
-        {
-          index: 0,
-          input: '923278',
-          lookup_type: 'catalog_key',
-          status: 'resolved',
-          local: demoBibData.records[0].local.summary,
-          worldcat: demoBibData.records[0].worldcat.summary,
-          selection: demoBibData.records[0].selection,
-          match: demoBibData.records[0].match,
-          review: demoBibData.records[0].review
-        },
-        {
-          index: 1,
-          input: '9780060586607',
-          lookup_type: 'isbn',
-          status: 'resolved',
-          local: demoBibData.records[0].local.summary,
-          worldcat: demoBibData.records[0].worldcat.summary,
-          selection: demoBibData.records[0].selection,
-          match: demoBibData.records[0].match,
-          review: demoBibData.records[0].review
-        },
-        {
-          index: 2,
-          input: 'Missing title',
-          lookup_type: 'title',
-          status: 'not_found',
-          reason: 'No local bibliographic record matched this input.'
-        }
-      ]
+      returned: 1,
+      counts: {
+        resolved: result.status === 'resolved' ? 1 : 0,
+        review: 0,
+        not_found: result.status === 'not_found' ? 1 : 0,
+        failed: 0
+      },
+      results: [result]
     }),
     contentType: 'application/json; charset=utf-8'
-  });
+  }));
   await page.locator('#toggle-bib-compare').click();
   await page.locator('#bib-compare-workspace [data-bib-mode="bulk"]').click();
   await page.locator('#bib-compare-workspace [data-bib-bulk-values]').fill('923278\n978-0-06-058660-7\nMissing title');
