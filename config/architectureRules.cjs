@@ -260,7 +260,7 @@ const moduleBoundaryRules = [
   },
   {
     prefix: 'src/ui/',
-    allowedLayers: ['core', 'filters', 'ui']
+    allowedLayers: ['components', 'core', 'filters', 'ui']
   },
   {
     prefix: 'src/features/table/',
