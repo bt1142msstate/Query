@@ -2995,6 +2995,20 @@ async function exerciseDesktopResultsWorkflow(page, queryApiStub) {
   if (bulkState.matched !== '2' || bulkState.missing !== '1' || !bulkState.isbnText || bulkState.overflow) {
     throw new Error(`Bulk WorldCat comparison should resolve mixed pasted identifiers cleanly: ${JSON.stringify(bulkState)}`);
   }
+  const workbookDownloadPromise = page.waitForEvent('download');
+  await page.locator('#bib-compare-workspace [data-bib-bulk-download]').click();
+  const workbookDownload = await workbookDownloadPromise;
+  const workbookPath = await workbookDownload.path();
+  const workbookBytes = workbookPath ? await readFile(workbookPath) : Buffer.alloc(0);
+  const workbookText = new TextDecoder().decode(workbookBytes);
+  if (
+    workbookDownload.suggestedFilename() !== 'WorldCat-Bulk-Review.xlsx'
+    || workbookBytes.subarray(0, 2).toString() !== 'PK'
+    || !workbookText.includes('Exact Edition Verified')
+    || !workbookText.includes('WorldCat 526 Count')
+  ) {
+    throw new Error('Bulk WorldCat review should download a complete Excel workbook.');
+  }
   await page.locator('#bib-compare-workspace [data-bib-close]').click();
 
   await seedLoadedResults(page);

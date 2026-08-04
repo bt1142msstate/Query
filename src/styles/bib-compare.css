@@ -310,6 +310,7 @@
 }
 
 .bib-bulk-cancel,
+.bib-bulk-download,
 .bib-bulk-open {
   min-height: 2.15rem;
   padding: 0.4rem 0.65rem;
@@ -319,6 +320,18 @@
   background: var(--qp-sys-color-surface-container);
   font-size: 0.74rem;
   font-weight: 750;
+}
+
+.bib-bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.bib-bulk-download {
+  background: var(--qp-sys-color-primary);
+  border-color: var(--qp-sys-color-primary);
+  color: var(--qp-sys-color-on-primary);
 }
 
 .bib-bulk-progress {

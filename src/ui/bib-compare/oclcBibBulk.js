@@ -1,4 +1,5 @@
 import { postJson } from '../../core/backendApi.js';
+import { createWorkbookExportComponent } from '../../components/workbook-export/index.js';
 import {
   buildBulkEntries,
   parseInputFile,
@@ -8,12 +9,116 @@ import {
 
 const MAX_ENTRIES = 500;
 const CHUNK_SIZE = 25;
+const bulkWorkbookExporter = createWorkbookExportComponent();
 const STATUS_LABELS = {
   resolved: 'Matched',
   review: 'Review',
   not_found: 'Not found',
   failed: 'Failed'
 };
+
+const REVIEW_FIELDS = [
+  'Input',
+  'Lookup Type',
+  'Status',
+  'Local Record Key',
+  'Local Title',
+  'Local Creator',
+  'Local Edition',
+  'Local Publication',
+  'Local Physical Description',
+  'Local ISBN',
+  'WorldCat OCLC Number',
+  'WorldCat Title',
+  'WorldCat Creator',
+  'WorldCat Edition',
+  'WorldCat Publication',
+  'WorldCat Physical Description',
+  'WorldCat ISBN',
+  'Selection Method',
+  'Match Confidence',
+  'Title Match',
+  'Creator Match',
+  'Edition Match',
+  'Publication Year Match',
+  'Physical Description Match',
+  'Exact Edition Verified',
+  'Local 521 Count',
+  'Local 526 Count',
+  'WorldCat 521 Count',
+  'WorldCat 526 Count',
+  'Identity Conflict',
+  'Review Note'
+];
+
+function yesNo(value) {
+  if (value === undefined || value === null) return '';
+  return value ? 'Yes' : 'No';
+}
+
+function joinValues(values) {
+  return Array.isArray(values) ? values.filter(Boolean).join('; ') : (values || '');
+}
+
+function bulkResultToWorkbookRow(result) {
+  const local = result.local || {};
+  const worldcat = result.worldcat || {};
+  const selection = result.selection || {};
+  const match = result.match || {};
+  const review = result.review || {};
+  return [
+    result.original || result.input || '',
+    String(result.lookup_type || '').replaceAll('_', ' '),
+    STATUS_LABELS[result.status] || result.status || 'Review',
+    local.catalog_key || '',
+    local.title || '',
+    local.creator || '',
+    local.edition || '',
+    local.publication || '',
+    local.physical_description || '',
+    joinValues(local.isbn),
+    worldcat.oclc_number || selection.oclc_number || '',
+    worldcat.title || '',
+    worldcat.creator || '',
+    worldcat.edition || '',
+    worldcat.publication || '',
+    worldcat.physical_description || '',
+    joinValues(worldcat.isbn),
+    selection.method || '',
+    match.confidence || '',
+    yesNo(match.title_match),
+    yesNo(match.creator_match),
+    yesNo(match.edition_match),
+    yesNo(match.publication_year_match),
+    yesNo(match.physical_description_match),
+    yesNo(review.hydration_ready),
+    review.local_521_count ?? '',
+    review.local_526_count ?? '',
+    review.worldcat_521_count ?? '',
+    review.worldcat_526_count ?? '',
+    yesNo(review.identity_conflict),
+    result.reason || ''
+  ];
+}
+
+function buildBulkReviewWorkbookState(results) {
+  const rows = (results || []).map(bulkResultToWorkbookRow);
+  const columnMap = new Map(REVIEW_FIELDS.map((field, index) => [field, index]));
+  return {
+    groupingCandidates: [],
+    rowCount: rows.length,
+    sourceData: {
+      dataRows: rows,
+      displayedFields: [...REVIEW_FIELDS],
+      fieldTypeMap: new Map(REVIEW_FIELDS.map(field => [
+        field,
+        field.endsWith(' Count') ? 'number' : 'string'
+      ])),
+      virtualData: { columnMap }
+    },
+    tableName: 'WorldCat Bulk Review'
+  };
+}
 
 function chunkEntries(entries, chunkSize = CHUNK_SIZE) {
   const size = Math.max(1, Number(chunkSize) || CHUNK_SIZE);
@@ -40,7 +145,10 @@ function bulkMarkup() {
           <h2>Bulk WorldCat matches</h2>
           <p>Strong matches resolve automatically. Ambiguous records remain available for review.</p>
         </div>
-        <button class="bib-bulk-cancel hidden" type="button" data-bib-bulk-cancel>Cancel</button>
+        <div class="bib-bulk-actions">
+          <button class="bib-bulk-download hidden" type="button" data-bib-bulk-download>Download Excel</button>
+          <button class="bib-bulk-cancel hidden" type="button" data-bib-bulk-cancel>Cancel</button>
+        </div>
       </header>
       <div class="bib-bulk-progress hidden" data-bib-bulk-progress role="status" aria-live="polite">
         <div><span data-bib-bulk-progress-text>Preparing records...</span><strong data-bib-bulk-progress-count>0 / 0</strong></div>
@@ -71,6 +179,7 @@ function createBulkController({ workspace, openComparison, setSearchStatus, show
   const progressCount = workspace.querySelector('[data-bib-bulk-progress-count]');
   const progressBar = workspace.querySelector('[data-bib-bulk-progress-bar]');
   const cancelButton = workspace.querySelector('[data-bib-bulk-cancel]');
+  const downloadButton = workspace.querySelector('[data-bib-bulk-download]');
   let requestId = 0;
   let results = [];
 
@@ -115,6 +224,7 @@ function createBulkController({ workspace, openComparison, setSearchStatus, show
       resultsElement.appendChild(row);
     });
     renderStats();
+    downloadButton.classList.toggle('hidden', results.length === 0);
   }
 
   function setProgress(completed, total, message) {
@@ -169,6 +279,32 @@ function createBulkController({ workspace, openComparison, setSearchStatus, show
     cancelButton.classList.add('hidden');
     setSearchStatus('Bulk matching stopped. Completed results are still available.', 'empty');
     showToastMessage('Bulk matching stopped.', 'info');
+  });
+  downloadButton.addEventListener('click', async () => {
+    if (!results.length || downloadButton.disabled) return;
+    downloadButton.disabled = true;
+    try {
+      await bulkWorkbookExporter.download({
+        config: {
+          mode: 'single',
+          runDetailsRows: [
+            ['Review', 'Purpose', 'Read-only local and WorldCat bibliographic comparison'],
+            ['Review', 'Important', 'Exact-edition evidence does not authorize record changes'],
+            ['Review', 'Audience fields', '521 is general audience data; 526 is reading-program information']
+          ]
+        },
+        helpers: {
+          progress: { update() {} },
+          async yieldToBrowser() {}
+        },
+        state: buildBulkReviewWorkbookState(results)
+      });
+      showToastMessage('WorldCat review workbook downloaded.', 'success');
+    } catch (error) {
+      setSearchStatus(error.message || 'The review workbook could not be created.', 'error');
+    } finally {
+      downloadButton.disabled = false;
+    }
   });
   resultsElement.addEventListener('click', event => {
     const button = event.target.closest?.('[data-catalog-key]');
@@ -230,4 +366,4 @@ function initializeBulkForm({ workspace, controller, setSearchStatus }) {
   });
 }
 
-export { chunkEntries, createBulkController, initializeBulkForm };
+export { buildBulkReviewWorkbookState, chunkEntries, createBulkController, initializeBulkForm };
