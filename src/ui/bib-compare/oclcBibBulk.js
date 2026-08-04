@@ -41,6 +41,12 @@ const REVIEW_FIELDS = [
   'Local-only MARC Tags',
   'WorldCat-only MARC Tags',
   'Selection Method',
+  'Exact Edition Candidates',
+  'Selected Utility Score',
+  'Encoding Level',
+  'Authentication Codes',
+  'Core Elements Present',
+  'Utility Score Breakdown',
   'Match Confidence',
   'Title Match',
   'Creator Match',
@@ -74,6 +80,14 @@ function formatTagCounts(counts) {
     .join('; ');
 }
 
+function formatScoreParts(parts) {
+  if (!parts || typeof parts !== 'object') return '';
+  return Object.entries(parts)
+    .filter(([, points]) => Number.isFinite(Number(points)))
+    .map(([name, points]) => `${name.replaceAll('_', ' ')}: ${Number(points)}`)
+    .join('; ');
+}
+
 function bulkResultToWorkbookRow(result) {
   const local = result.local || {};
   const worldcat = result.worldcat || {};
@@ -82,6 +96,7 @@ function bulkResultToWorkbookRow(result) {
   const review = result.review || {};
   const fieldSummary = result.field_summary || {};
   const differenceTags = fieldSummary.difference_tags || {};
+  const utility = selection.utility || {};
   return [
     result.original || result.input || '',
     String(result.lookup_type || '').replaceAll('_', ' '),
@@ -106,6 +121,12 @@ function bulkResultToWorkbookRow(result) {
     formatTagCounts(differenceTags.local_only),
     formatTagCounts(differenceTags.worldcat_only),
     selection.method || '',
+    selection.exact_candidate_count ?? '',
+    utility.score ?? '',
+    utility.encoding_level || '',
+    joinValues(utility.authentication_codes),
+    joinValues(utility.core_elements),
+    formatScoreParts(utility.parts),
     match.confidence || '',
     yesNo(match.title_match),
     yesNo(match.creator_match),
@@ -311,7 +332,8 @@ function createBulkController({ workspace, openComparison, setSearchStatus, show
           runDetailsRows: [
             ['Review', 'Purpose', 'Read-only local and WorldCat bibliographic comparison'],
             ['Review', 'Important', 'Exact-edition evidence does not authorize record changes'],
-            ['Review', 'Candidate selection', 'OCLC bibliographic matching and edition identity are evaluated before field content'],
+            ['Review', 'Candidate selection', 'Edition identity is verified first; record usefulness ranks only verified exact-edition candidates'],
+            ['Review', 'Usefulness score', 'Encoding completeness, authenticated cataloging, descriptive coverage, access points, notes, and usable field breadth'],
             ['Review', 'Field coverage', 'Tag inventories cover every field; 521 and 526 are only two possible review targets']
           ]
         },
