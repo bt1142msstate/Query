@@ -2940,6 +2940,63 @@ async function exerciseDesktopResultsWorkflow(page, queryApiStub) {
   await page.locator('#bib-compare-workspace [data-bib-close]').click();
   await page.locator('#bib-compare-workspace:not([open])').waitFor({ state: 'attached', timeout: 5000 });
 
+  queryApiStub.enqueue({
+    action: 'resolve_oclc_bibs_bulk',
+    body: JSON.stringify({
+      returned: 3,
+      counts: { resolved: 2, review: 0, not_found: 1, failed: 0 },
+      results: [
+        {
+          index: 0,
+          input: '923278',
+          lookup_type: 'catalog_key',
+          status: 'resolved',
+          local: demoBibData.records[0].local.summary,
+          worldcat: demoBibData.records[0].worldcat.summary,
+          selection: demoBibData.records[0].selection,
+          match: demoBibData.records[0].match,
+          review: demoBibData.records[0].review
+        },
+        {
+          index: 1,
+          input: '9780060586607',
+          lookup_type: 'isbn',
+          status: 'resolved',
+          local: demoBibData.records[0].local.summary,
+          worldcat: demoBibData.records[0].worldcat.summary,
+          selection: demoBibData.records[0].selection,
+          match: demoBibData.records[0].match,
+          review: demoBibData.records[0].review
+        },
+        {
+          index: 2,
+          input: 'Missing title',
+          lookup_type: 'title',
+          status: 'not_found',
+          reason: 'No local bibliographic record matched this input.'
+        }
+      ]
+    }),
+    contentType: 'application/json; charset=utf-8'
+  });
+  await page.locator('#toggle-bib-compare').click();
+  await page.locator('#bib-compare-workspace [data-bib-mode="bulk"]').click();
+  await page.locator('#bib-compare-workspace [data-bib-bulk-values]').fill('923278\n978-0-06-058660-7\nMissing title');
+  await page.locator('#bib-compare-workspace [data-bib-bulk-form] [type="submit"]').click();
+  await page.waitForFunction(() => (
+    document.querySelectorAll('#bib-compare-workspace .bib-bulk-result').length === 3
+  ), null, { timeout: 5000 });
+  const bulkState = await page.locator('#bib-compare-workspace').evaluate(workspace => ({
+    matched: workspace.querySelector('.bib-bulk-stat[data-status="resolved"] strong')?.textContent,
+    missing: workspace.querySelector('.bib-bulk-stat[data-status="not_found"] strong')?.textContent,
+    isbnText: [...workspace.querySelectorAll('.bib-bulk-result-identity span')].some(element => element.textContent?.includes('978-0-06-058660-7')),
+    overflow: workspace.scrollWidth > workspace.clientWidth
+  }));
+  if (bulkState.matched !== '2' || bulkState.missing !== '1' || !bulkState.isbnText || bulkState.overflow) {
+    throw new Error(`Bulk WorldCat comparison should resolve mixed pasted identifiers cleanly: ${JSON.stringify(bulkState)}`);
+  }
+  await page.locator('#bib-compare-workspace [data-bib-close]').click();
+
   await seedLoadedResults(page);
   await expectResultsCount(page, '3', 'Desktop seeded results');
   await expectDestructiveFlameAnimation(page, '#clear-query-btn', 'Desktop clear query button');

@@ -82,6 +82,11 @@ function searchInputMetadata(lookupType) {
       label: 'Item ID',
       placeholder: 'Scan or enter item ID',
       inputMode: 'text'
+    },
+    isbn: {
+      label: 'ISBN',
+      placeholder: 'Enter ISBN-10 or ISBN-13',
+      inputMode: 'numeric'
     }
   };
   return metadata[lookupType] || metadata.title;

@@ -14,6 +14,7 @@ import {
   downloadBibRecord,
   FORMATS
 } from './bibRecordDownload.js';
+import { createBulkController, initializeBulkForm } from './oclcBibBulk.js';
 
 const FILTERS = [
   { id: 'differences', label: 'Differences', count: 'differences' },
@@ -30,6 +31,8 @@ const state = {
   selectedCatalogKey: '',
   comparison: null,
   filter: 'differences',
+  mode: 'single',
+  bulkController: null,
   searchRequest: 0,
   compareRequest: 0
 };
@@ -60,7 +63,11 @@ function workspaceMarkup() {
 
       <div class="bib-compare-layout">
         <aside class="bib-compare-search" aria-label="Find a local bibliographic record">
-          <form class="bib-compare-search-form" data-bib-search-form>
+          <div class="bib-compare-mode" role="group" aria-label="Comparison mode">
+            <button type="button" class="is-active" data-bib-mode="single" aria-pressed="true">Single</button>
+            <button type="button" data-bib-mode="bulk" aria-pressed="false">Bulk</button>
+          </div>
+          <form class="bib-compare-search-form" data-bib-search-form data-bib-single-form>
             <div class="bib-compare-form-heading">
               <h2>Find local record</h2>
               <p>Search the live Symphony catalog first.</p>
@@ -70,6 +77,7 @@ function workspaceMarkup() {
               <option value="title">Title</option>
               <option value="catalog_key">Catalog key</option>
               <option value="item_id">Item ID</option>
+              <option value="isbn">ISBN</option>
             </select>
             <label class="bib-compare-label" data-bib-query-label for="bib-lookup-query">Title</label>
             <div class="bib-compare-search-input-row">
@@ -79,6 +87,37 @@ function workspaceMarkup() {
                 <span>Search</span>
               </button>
             </div>
+          </form>
+          <form class="bib-compare-search-form hidden" data-bib-bulk-form>
+            <div class="bib-compare-form-heading">
+              <h2>Match a list</h2>
+              <p>Paste one value per line or import a text, CSV, or TSV file.</p>
+            </div>
+            <label class="bib-compare-label" for="bib-bulk-type">Values are</label>
+            <select id="bib-bulk-type" data-bib-bulk-type>
+              <option value="auto">Auto detect</option>
+              <option value="catalog_key">Catalog keys</option>
+              <option value="item_id">Item IDs or barcodes</option>
+              <option value="isbn">ISBNs</option>
+              <option value="title">Titles</option>
+            </select>
+            <label class="bib-compare-label" for="bib-bulk-values">Values</label>
+            <textarea id="bib-bulk-values" data-bib-bulk-values rows="9" placeholder="One value per line" required></textarea>
+            <div class="bib-bulk-file-row">
+              <label class="bib-bulk-file-button" for="bib-bulk-file">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7.5 8.5 12 4l4.5 4.5M5 20h14"/></svg>
+                <span>Import file</span>
+              </label>
+              <input class="sr-only" id="bib-bulk-file" data-bib-bulk-file type="file" accept=".txt,.csv,.tsv,text/plain,text/csv,text/tab-separated-values">
+              <label class="bib-bulk-column hidden" data-bib-file-column-wrap>
+                <span>Column</span>
+                <select data-bib-file-column></select>
+              </label>
+            </div>
+            <button class="bib-compare-primary-button" type="submit">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7h12M8 12h12M8 17h12M4 7h.01M4 12h.01M4 17h.01"/></svg>
+              <span>Match records</span>
+            </button>
           </form>
           <div class="bib-compare-search-status" data-bib-search-status role="status" aria-live="polite">
             Search by title, catalog key, or item ID.
@@ -156,8 +195,35 @@ function ensureWorkspace() {
   document.body.appendChild(dialog);
   state.workspace = dialog;
   bindWorkspaceEvents(dialog);
+  state.bulkController = createBulkController({
+    workspace: dialog,
+    openComparison: catalogKey => {
+      setMode('single');
+      loadComparison(catalogKey);
+    },
+    setSearchStatus,
+    showToastMessage
+  });
+  initializeBulkForm({ workspace: dialog, controller: state.bulkController, setSearchStatus });
   renderFilterButtons();
   return dialog;
+}
+
+function setMode(mode) {
+  state.mode = mode === 'bulk' ? 'bulk' : 'single';
+  query('[data-bib-single-form]')?.classList.toggle('hidden', state.mode !== 'single');
+  query('[data-bib-bulk-form]')?.classList.toggle('hidden', state.mode !== 'bulk');
+  query('[data-bib-empty]')?.classList.toggle('hidden', state.mode === 'bulk' || Boolean(state.comparison));
+  query('[data-bib-content]')?.classList.toggle('hidden', state.mode === 'bulk' || !state.comparison);
+  state.bulkController?.setVisible(state.mode === 'bulk');
+  state.workspace?.querySelectorAll('[data-bib-mode]').forEach(button => {
+    const active = button.dataset.bibMode === state.mode;
+    button.classList.toggle('is-active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+  setSearchStatus(state.mode === 'bulk'
+    ? 'Auto detect supports catalog keys, item IDs, ISBNs, and titles.'
+    : 'Search by title, catalog key, item ID, or ISBN.');
 }
 
 function query(selector) {
@@ -189,7 +255,9 @@ function updateSearchInput() {
     input.inputMode = metadata.inputMode;
     input.pattern = type === 'catalog_key'
       ? '[0-9]{1,12}'
-      : (type === 'item_id' ? '[A-Za-z0-9_.-]{1,128}' : '');
+      : (type === 'item_id'
+          ? '[A-Za-z0-9_.-]{1,128}'
+          : (type === 'isbn' ? '(?:[0-9Xx][ -]?){10,17}' : ''));
   }
 }
 
@@ -262,6 +330,7 @@ function buildSummaryPanel(title, summary, source, record) {
     summaryRow('Creator', summary?.creator),
     summaryRow('Edition', summary?.edition),
     summaryRow('Publication', summary?.publication),
+    summaryRow('Physical description', summary?.physical_description),
     summaryRow('ISBN', formatIdentifierList(summary?.isbn)),
     summaryRow('ISSN', formatIdentifierList(summary?.issn))
   );
@@ -310,7 +379,11 @@ function renderMatch(payload) {
   query('[data-bib-match-title]').textContent = match.title_match
     ? 'Record identity aligns'
     : 'Record identity needs review';
-  query('[data-bib-match-reason]').textContent = match.reason || '';
+  const review = payload?.review;
+  const enrichment = review
+    ? ` WorldCat fields: ${Number(review.worldcat_521_count || 0)} audience (521), ${Number(review.worldcat_526_count || 0)} reading-program (526). ${review.hydration_ready ? 'Exact-edition checks align.' : 'Review exact-edition evidence before hydration.'}`
+    : '';
+  query('[data-bib-match-reason]').textContent = `${match.reason || ''}${enrichment}`;
 }
 
 function candidateOption(candidate) {
@@ -320,7 +393,10 @@ function candidateOption(candidate) {
     `OCLC ${candidate.oclc_number || 'unknown'}`,
     candidate.title,
     candidate.creator,
-    candidate.date
+    candidate.date,
+    candidate.edition,
+    candidate.specific_format || candidate.format,
+    formatIdentifierList(candidate.isbn) === 'Not present' ? '' : `ISBN ${formatIdentifierList(candidate.isbn)}`
   ].map(value => String(value || '').trim()).filter(Boolean);
   option.textContent = parts.join(' | ');
   return option;
@@ -520,7 +596,7 @@ function openWorkspace() {
 }
 
 function openForLookup(lookup = {}) {
-  const lookupType = ['catalog_key', 'item_id', 'title'].includes(lookup.lookupType)
+  const lookupType = ['catalog_key', 'item_id', 'isbn', 'title'].includes(lookup.lookupType)
     ? lookup.lookupType
     : '';
   const lookupQuery = String(lookup.query || '').trim();
@@ -551,6 +627,10 @@ function bindWorkspaceEvents(workspace) {
     closeWorkspace();
   });
   workspace.querySelector('[data-bib-lookup-type]')?.addEventListener('change', updateSearchInput);
+  workspace.querySelector('.bib-compare-mode')?.addEventListener('click', event => {
+    const button = event.target.closest?.('[data-bib-mode]');
+    if (button) setMode(button.dataset.bibMode);
+  });
   workspace.querySelector('[data-bib-search-form]')?.addEventListener('submit', event => {
     event.preventDefault();
     runSearch();
