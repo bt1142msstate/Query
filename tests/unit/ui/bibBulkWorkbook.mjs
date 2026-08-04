@@ -3,7 +3,7 @@ import test from 'node:test';
 import { createWorkbookBlob } from '../../../src/lib/workbook-export/workbookExport.js';
 import { buildBulkReviewWorkbookState } from '../../../src/ui/bib-compare/oclcBibBulk.js';
 
-test('bulk WorldCat review workbook includes identity and audience evidence', async () => {
+test('bulk WorldCat review workbook includes identity and generic MARC evidence', async () => {
   const state = buildBulkReviewWorkbookState([{
     input: '9780060586607',
     lookup_type: 'isbn',
@@ -29,6 +29,14 @@ test('bulk WorldCat review workbook includes identity and audience evidence', as
       publication_year_match: 1,
       physical_description_match: 1
     },
+    field_summary: {
+      local_tags: { '001': 1, '245': 1 },
+      worldcat_tags: { '001': 1, '245': 1, '505': 1, '650': 3 },
+      difference_tags: {
+        changed: { '245': 1 },
+        worldcat_only: { '505': 1, '650': 3 }
+      }
+    },
     review: {
       hydration_ready: 1,
       local_521_count: 0,
@@ -41,8 +49,10 @@ test('bulk WorldCat review workbook includes identity and audience evidence', as
 
   assert.equal(state.rowCount, 1);
   assert.equal(state.sourceData.dataRows[0][0], '9780060586607');
-  assert.equal(state.sourceData.dataRows[0][24], 'Yes');
-  assert.equal(state.sourceData.dataRows[0][28], 2);
+  const valueFor = field => state.sourceData.dataRows[0][state.sourceData.displayedFields.indexOf(field)];
+  assert.equal(valueFor('Exact Edition Verified'), 'Yes');
+  assert.equal(valueFor('WorldCat 526 Count'), 2);
+  assert.equal(valueFor('WorldCat-only MARC Tags'), '505 (1); 650 (3)');
 
   const { blob, filename } = await createWorkbookBlob({
     config: { mode: 'single', runDetailsRows: [] },
@@ -53,5 +63,7 @@ test('bulk WorldCat review workbook includes identity and audience evidence', as
   assert.equal(filename, 'WorldCat-Bulk-Review.xlsx');
   assert.match(workbookText, /Exact Edition Verified/u);
   assert.match(workbookText, /WorldCat 526 Count/u);
+  assert.match(workbookText, /WorldCat-only MARC Tags/u);
+  assert.match(workbookText, /505 \(1\); 650 \(3\)/u);
   assert.match(workbookText, /278 pages ; 20 cm/u);
 });

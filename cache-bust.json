@@ -1,5 +1,5 @@
 {
-  "version": "d9a35072e8da6805",
+  "version": "d87c83550a078210",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -200,7 +200,7 @@
     "src/ui/bib-compare/bibCompareFormat.js": "8516c9b9dde7ad66",
     "src/ui/bib-compare/bibCompareLaunch.js": "4797b2990683b83c",
     "src/ui/bib-compare/bibRecordDownload.js": "4090953c96434d2d",
-    "src/ui/bib-compare/oclcBibBulk.js": "5a5b5e337775e75f",
+    "src/ui/bib-compare/oclcBibBulk.js": "a355c984c7ab7e85",
     "src/ui/bib-compare/oclcBibCompare.js": "87df23e24435507f",
     "src/ui/controls/customDatePicker.js": "88e4eb3245ac256c",
     "src/ui/controls/searchUI.js": "9d46afc995531905",

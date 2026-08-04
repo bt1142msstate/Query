@@ -35,6 +35,11 @@ const REVIEW_FIELDS = [
   'WorldCat Publication',
   'WorldCat Physical Description',
   'WorldCat ISBN',
+  'Local MARC Tags',
+  'WorldCat MARC Tags',
+  'Changed MARC Tags',
+  'Local-only MARC Tags',
+  'WorldCat-only MARC Tags',
   'Selection Method',
   'Match Confidence',
   'Title Match',
@@ -60,12 +65,23 @@ function joinValues(values) {
   return Array.isArray(values) ? values.filter(Boolean).join('; ') : (values || '');
 }
 
+function formatTagCounts(counts) {
+  if (!counts || typeof counts !== 'object') return '';
+  return Object.entries(counts)
+    .filter(([tag, count]) => /^\d{3}$/u.test(tag) && Number(count) > 0)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([tag, count]) => `${tag} (${Number(count).toLocaleString()})`)
+    .join('; ');
+}
+
 function bulkResultToWorkbookRow(result) {
   const local = result.local || {};
   const worldcat = result.worldcat || {};
   const selection = result.selection || {};
   const match = result.match || {};
   const review = result.review || {};
+  const fieldSummary = result.field_summary || {};
+  const differenceTags = fieldSummary.difference_tags || {};
   return [
     result.original || result.input || '',
     String(result.lookup_type || '').replaceAll('_', ' '),
@@ -84,6 +100,11 @@ function bulkResultToWorkbookRow(result) {
     worldcat.publication || '',
     worldcat.physical_description || '',
     joinValues(worldcat.isbn),
+    formatTagCounts(fieldSummary.local_tags),
+    formatTagCounts(fieldSummary.worldcat_tags),
+    formatTagCounts(differenceTags.changed),
+    formatTagCounts(differenceTags.local_only),
+    formatTagCounts(differenceTags.worldcat_only),
     selection.method || '',
     match.confidence || '',
     yesNo(match.title_match),
@@ -290,7 +311,8 @@ function createBulkController({ workspace, openComparison, setSearchStatus, show
           runDetailsRows: [
             ['Review', 'Purpose', 'Read-only local and WorldCat bibliographic comparison'],
             ['Review', 'Important', 'Exact-edition evidence does not authorize record changes'],
-            ['Review', 'Audience fields', '521 is general audience data; 526 is reading-program information']
+            ['Review', 'Candidate selection', 'OCLC bibliographic matching and edition identity are evaluated before field content'],
+            ['Review', 'Field coverage', 'Tag inventories cover every field; 521 and 526 are only two possible review targets']
           ]
         },
         helpers: {
