@@ -45,8 +45,8 @@ test('large mixed lists are deduplicated and split into bounded requests', () =>
   const entries = buildBulkEntries(values, 'catalog_key');
   const chunks = chunkEntries(entries);
   assert.equal(entries.length, 500);
-  assert.equal(chunks.length, 20);
-  assert.ok(chunks.every(chunk => chunk.length === 25));
+  assert.equal(chunks.length, 500);
+  assert.ok(chunks.every(chunk => chunk.length === 1));
   assert.deepEqual(chunks.flat(), entries);
 });
 

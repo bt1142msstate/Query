@@ -8,7 +8,7 @@ import {
 } from './bibBulkInput.js';
 
 const MAX_ENTRIES = 500;
-const CHUNK_SIZE = 25;
+const CHUNK_SIZE = 1;
 const bulkWorkbookExporter = createWorkbookExportComponent();
 const STATUS_LABELS = {
   resolved: 'Matched',
