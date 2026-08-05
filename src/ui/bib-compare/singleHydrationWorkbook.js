@@ -9,6 +9,7 @@ function tagCounts(record) {
 }
 
 function singleReviewResult(payload) {
+  const external = payload?.external || payload?.worldcat || {};
   const differenceTags = { changed: {}, local_only: {}, worldcat_only: {} };
   (payload?.comparison?.rows || []).forEach(row => {
     if (!differenceTags[row.status] || !/^\d{3}$/u.test(String(row.tag || ''))) return;
@@ -19,13 +20,15 @@ function singleReviewResult(payload) {
     lookup_type: 'catalog_key',
     status: payload?.review?.recommended ? 'resolved' : 'review',
     local: payload?.local?.summary || {},
+    source: payload?.source || {},
+    external: external.summary || {},
     worldcat: payload?.worldcat?.summary || {},
     selection: payload?.selection || {},
     match: payload?.match || {},
     review: payload?.review || {},
     field_summary: {
       local_tags: tagCounts(payload?.local?.record),
-      worldcat_tags: tagCounts(payload?.worldcat?.record),
+      worldcat_tags: tagCounts(external.record),
       difference_tags: differenceTags
     }
   };

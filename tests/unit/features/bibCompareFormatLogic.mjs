@@ -45,7 +45,7 @@ test('bibliographic field values are formatted without markup', () => {
 });
 
 test('bibliographic UI labels and fallbacks are concise', () => {
-  assert.equal(comparisonStatusLabel('worldcat_only'), 'WorldCat only');
+  assert.equal(comparisonStatusLabel('worldcat_only'), 'Source only');
   assert.equal(matchConfidenceLabel('linked'), 'Linked record');
   assert.equal(matchConfidenceLabel('oclc_resolved'), 'OCLC resolved');
   assert.equal(summaryValue(''), 'Not present');

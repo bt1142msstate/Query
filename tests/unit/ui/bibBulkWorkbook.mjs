@@ -84,12 +84,12 @@ test('bulk hydration review workbook includes identity and generic MARC evidence
   assert.equal(valueFor('Selected Utility Score'), 91);
   assert.equal(valueFor('Authentication Codes'), 'pcc');
   assert.equal(valueFor('Utility Score Breakdown'), 'encoding completeness: 30; authenticated cataloging: 20');
-  assert.equal(valueFor('WorldCat 526 Count'), 2);
+  assert.equal(valueFor('Source 526 Count'), 2);
   assert.equal(valueFor('Hydration Advice'), 'recommended');
   assert.equal(valueFor('Overall Confidence'), 96);
   assert.equal(valueFor('Requested Fields'), '521; 526');
   assert.equal(valueFor('Confidence Policy Version'), '1.0');
-  assert.equal(valueFor('WorldCat-only MARC Tags'), '505 (1); 650 (3)');
+  assert.equal(valueFor('Source-only MARC Tags'), '505 (1); 650 (3)');
 
   const { blob, filename } = await createWorkbookBlob({
     config: { mode: 'single', runDetailsRows: [] },
@@ -97,12 +97,12 @@ test('bulk hydration review workbook includes identity and generic MARC evidence
     state
   });
   const workbookText = new TextDecoder().decode(await blob.arrayBuffer());
-  assert.equal(filename, 'OCLC-Hydration-Review.xlsx');
+  assert.equal(filename, 'Hydration-Review.xlsx');
   assert.match(workbookText, /Exact Edition Verified/u);
   assert.match(workbookText, /Selected Utility Score/u);
   assert.match(workbookText, /best_exact_edition_record/u);
-  assert.match(workbookText, /WorldCat 526 Count/u);
-  assert.match(workbookText, /WorldCat-only MARC Tags/u);
+  assert.match(workbookText, /Source 526 Count/u);
+  assert.match(workbookText, /Source-only MARC Tags/u);
   assert.match(workbookText, /Hydration Advice/u);
   assert.match(workbookText, /Requested Fields/u);
   assert.match(workbookText, /505 \(1\); 650 \(3\)/u);

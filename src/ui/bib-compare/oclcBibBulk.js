@@ -7,8 +7,8 @@ import {
   valuesFromColumn
 } from './bibBulkInput.js';
 import { fieldEvidenceSummary } from './fieldEvidenceReview.js';
+import { bibliographicSource, sourceReviewCount } from './bibSource.js';
 
-const MAX_ENTRIES = 500;
 const CHUNK_SIZE = 1;
 const bulkWorkbookExporter = createWorkbookExportComponent();
 const STATUS_LABELS = {
@@ -29,18 +29,20 @@ const REVIEW_FIELDS = [
   'Local Publication',
   'Local Physical Description',
   'Local ISBN',
-  'WorldCat OCLC Number',
-  'WorldCat Title',
-  'WorldCat Creator',
-  'WorldCat Edition',
-  'WorldCat Publication',
-  'WorldCat Physical Description',
-  'WorldCat ISBN',
+  'Source',
+  'Source Role',
+  'Source Identifier',
+  'Source Title',
+  'Source Creator',
+  'Source Edition',
+  'Source Publication',
+  'Source Physical Description',
+  'Source ISBN',
   'Local MARC Tags',
-  'WorldCat MARC Tags',
+  'Source MARC Tags',
   'Changed MARC Tags',
   'Local-only MARC Tags',
-  'WorldCat-only MARC Tags',
+  'Source-only MARC Tags',
   'Selection Method',
   'Exact Edition Candidates',
   'Selected Utility Score',
@@ -57,8 +59,8 @@ const REVIEW_FIELDS = [
   'Exact Edition Verified',
   'Local 521 Count',
   'Local 526 Count',
-  'WorldCat 521 Count',
-  'WorldCat 526 Count',
+  'Source 521 Count',
+  'Source 526 Count',
   'Identity Conflict',
   'Hydration Advice',
   'Overall Confidence',
@@ -105,7 +107,8 @@ function formatScoreParts(parts) {
 
 function bulkResultToWorkbookRow(result) {
   const local = result.local || {};
-  const worldcat = result.worldcat || {};
+  const source = bibliographicSource(result);
+  const external = result.external || result.worldcat || {};
   const selection = result.selection || {};
   const match = result.match || {};
   const review = result.review || {};
@@ -124,13 +127,15 @@ function bulkResultToWorkbookRow(result) {
     local.publication || '',
     local.physical_description || '',
     joinValues(local.isbn),
-    worldcat.oclc_number || selection.oclc_number || '',
-    worldcat.title || '',
-    worldcat.creator || '',
-    worldcat.edition || '',
-    worldcat.publication || '',
-    worldcat.physical_description || '',
-    joinValues(worldcat.isbn),
+    source.label,
+    source.role,
+    source.identifier,
+    external.title || '',
+    external.creator || '',
+    external.edition || '',
+    external.publication || '',
+    external.physical_description || '',
+    joinValues(external.isbn),
     formatTagCounts(fieldSummary.local_tags),
     formatTagCounts(fieldSummary.worldcat_tags),
     formatTagCounts(differenceTags.changed),
@@ -152,8 +157,8 @@ function bulkResultToWorkbookRow(result) {
     yesNo(review.hydration_ready),
     review.local_521_count ?? '',
     review.local_526_count ?? '',
-    review.worldcat_521_count ?? '',
-    review.worldcat_526_count ?? '',
+    sourceReviewCount(review, '521'),
+    sourceReviewCount(review, '526'),
     yesNo(review.identity_conflict),
     String(review.advice || '').replaceAll('_', ' '),
     review.overall_score ?? '',
@@ -188,7 +193,7 @@ function buildBulkReviewWorkbookState(results) {
       ])),
       virtualData: { columnMap }
     },
-    tableName: 'OCLC Hydration Review'
+    tableName: 'Hydration Review'
   };
 }
 
@@ -223,7 +228,7 @@ function bulkMarkup() {
         <div>
           <span class="bib-compare-eyebrow">Batch review</span>
           <h2>Bulk hydration review</h2>
-          <p>Strong WorldCat matches resolve automatically. Ambiguous records remain available for review.</p>
+          <p>OCLC is checked first. Exact Library of Congress records are used only as a fallback.</p>
         </div>
         <div class="bib-bulk-actions">
           <button class="bib-bulk-download" type="button" data-bib-bulk-download disabled data-tooltip="Available after at least one record has been reviewed">Download Excel review</button>
@@ -293,9 +298,10 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
       const confidence = Number.isFinite(Number(result.review?.overall_score))
         ? ` · ${Number(result.review.overall_score)}/100${advice ? ` ${advice}` : ''}`
         : '';
+      const source = bibliographicSource(result);
       local.append(
         createElement('span', '', result.local?.catalog_key ? `Catalog ${result.local.catalog_key}` : 'No single local record'),
-        createElement('span', '', result.worldcat?.oclc_number ? `OCLC ${result.worldcat.oclc_number}${confidence}` : (result.reason || 'Match needs review'))
+        createElement('span', '', source.identifier ? `${source.identifierLabel} ${source.identifier}${confidence}` : (result.reason || 'Match needs review'))
       );
       const chip = createElement('span', 'bib-bulk-status', STATUS_LABELS[result.status] || 'Review');
       row.append(identity, local, chip);
@@ -335,7 +341,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
     results = [];
     renderResults();
     setVisible(true);
-    setProgress(0, entries.length, 'Resolving local and WorldCat records...');
+    setProgress(0, entries.length, 'Resolving OCLC and Library of Congress records...');
     let completed = 0;
     for (const chunk of chunkEntries(entries)) {
       if (currentRequest !== requestId) return;
@@ -358,7 +364,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
       }
       renderResults();
       completed += chunk.length;
-      setProgress(completed, entries.length, 'Resolving local and WorldCat records...');
+      setProgress(completed, entries.length, 'Resolving OCLC and Library of Congress records...');
     }
     if (currentRequest !== requestId) return;
     const counts = statusCounts(results);
@@ -398,7 +404,8 @@ async function downloadHydrationReviewWorkbook(results) {
     config: {
       mode: 'single',
       runDetailsRows: [
-        ['Review', 'Purpose', 'Read-only local and WorldCat bibliographic comparison'],
+        ['Review', 'Purpose', 'Read-only local and external bibliographic comparison'],
+        ['Review', 'Source order', 'OCLC WorldCat primary; exact Library of Congress LCCN fallback'],
         ['Review', 'Important', 'Exact-edition evidence does not authorize record changes'],
         ['Review', 'Candidate selection', 'Edition identity is verified first; record usefulness ranks only verified exact-edition candidates'],
         ['Review', 'Usefulness score', 'Encoding completeness, authenticated cataloging, descriptive coverage, access points, notes, and usable field breadth'],
@@ -457,16 +464,11 @@ function initializeBulkForm({ workspace, controller, setSearchStatus }) {
       textarea.focus();
       return;
     }
-    if (entries.length > MAX_ENTRIES) {
-      setSearchStatus(`Use ${MAX_ENTRIES.toLocaleString()} or fewer unique values at a time.`, 'error');
-      return;
-    }
     controller.run(entries);
   });
 }
 
 export {
-  MAX_ENTRIES,
   buildBulkResolvePayload,
   buildBulkReviewWorkbookState,
   chunkEntries,

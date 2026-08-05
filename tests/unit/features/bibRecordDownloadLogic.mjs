@@ -70,6 +70,11 @@ test('download filenames identify source, record number, title, and format', () 
     format: 'marcxml'
   }), 'worldcat-oclc-54005706-a-hat-full-of-sky.xml');
   assert.equal(buildBibDownloadFilename({
+    source: 'loc',
+    summary: { lccn: ['2004012345'], title: 'A hat full of sky /' },
+    format: 'marcxml'
+  }), 'library-of-congress-lccn-2004012345-a-hat-full-of-sky.xml');
+  assert.equal(buildBibDownloadFilename({
     source: 'hydrated',
     summary: { catalog_key: '923278', title: 'A hat full of sky /' },
     format: 'marc'
