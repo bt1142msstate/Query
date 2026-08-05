@@ -378,7 +378,7 @@ async function exerciseTableHeaderResponsiveRegions(page) {
   });
   await page.waitForTimeout(50);
 
-  const compactTableNameMetrics = await page.evaluate(() => {
+  const fullWidthTableNameMetrics = await page.evaluate(() => {
     const input = document.querySelector('#table-name-input');
     const nameShell = document.querySelector('#table-name-shell');
     const inputRect = input?.getBoundingClientRect();
@@ -392,12 +392,12 @@ async function exerciseTableHeaderResponsiveRegions(page) {
   });
 
   if (
-    compactTableNameMetrics.value !== 'Short'
-    || compactTableNameMetrics.inputWidth < 120
-    || compactTableNameMetrics.inputWidth > 170
-    || compactTableNameMetrics.inputWidth > compactTableNameMetrics.shellWidth * 0.5
+    fullWidthTableNameMetrics.value !== 'Short'
+    || fullWidthTableNameMetrics.inputStyleWidth
+    || fullWidthTableNameMetrics.inputWidth < fullWidthTableNameMetrics.shellWidth - 2
+    || fullWidthTableNameMetrics.inputWidth > fullWidthTableNameMetrics.shellWidth + 2
   ) {
-    throw new Error(`Short table names should render as compact controls instead of filling the header slot: ${JSON.stringify(compactTableNameMetrics)}`);
+    throw new Error(`Table names should fill the available header slot without crowding the toolbar: ${JSON.stringify(fullWidthTableNameMetrics)}`);
   }
 
   await page.evaluate(() => {

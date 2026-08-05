@@ -20,22 +20,6 @@ let TableNameInput;
     document.documentElement.style.setProperty('--header-height', `${header.offsetHeight}px`);
   }
 
-  function measureInputWidth(input, maxWidth) {
-    const temp = document.createElement('span');
-    temp.style.visibility = 'hidden';
-    temp.style.position = 'absolute';
-    temp.style.fontSize = getComputedStyle(input).fontSize;
-    temp.style.fontFamily = getComputedStyle(input).fontFamily;
-    temp.style.fontWeight = getComputedStyle(input).fontWeight;
-    temp.style.padding = getComputedStyle(input).padding;
-    temp.textContent = input.value || input.placeholder;
-    document.body.appendChild(temp);
-
-    const textWidth = temp.offsetWidth + 18;
-    document.body.removeChild(temp);
-    return Math.max(132, Math.min(maxWidth, textWidth));
-  }
-
   function bindTableNameInput() {
     const tableNameInput = dom.tableNameInput;
     if (!tableNameInput) {
@@ -44,18 +28,7 @@ let TableNameInput;
 
     tableNameInput.placeholder = 'No name';
 
-    function autoResizeInput() {
-      const toolbarWidth = dom.tableToolbar ? dom.tableToolbar.offsetWidth : 0;
-      const maxWidth = dom.tableTopBar
-        ? Math.max(180, Math.min(520, dom.tableTopBar.offsetWidth - toolbarWidth - 64))
-        : 400;
-      tableNameInput.style.width = `${measureInputWidth(tableNameInput, maxWidth)}px`;
-    }
-
-    autoResizeInput();
-
     tableNameInput.addEventListener('input', () => {
-      autoResizeInput();
       uiActions.updateQueryJson();
     });
 
@@ -66,8 +39,6 @@ let TableNameInput;
     tableNameInput.addEventListener('focus', () => {
       tableNameInput.classList.remove('error');
     });
-
-    window.addEventListener('resize', autoResizeInput);
   }
 
   function initialize() {
