@@ -566,7 +566,7 @@ import { resolveBibCompareLookup } from '../../ui/bib-compare/bibCompareLaunch.j
         },
         ...(bibCompareLookup ? [{
           icon: BIB_COMPARE_ICON,
-          label: 'Compare in WorldCat',
+          label: 'Open in Hydration',
           hint: truncateMenuHint(bibCompareLookup.hint),
           preview() {
             return hasRow ? previewRow(tr) : null;

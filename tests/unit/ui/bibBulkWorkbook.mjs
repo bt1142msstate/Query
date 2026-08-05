@@ -13,7 +13,7 @@ test('bulk WorldCat requests carry selected hydration fields without mutating en
   assert.equal(entries[0].original, '978-0-06-058660-7');
 });
 
-test('bulk WorldCat review workbook includes identity and generic MARC evidence', async () => {
+test('bulk hydration review workbook includes identity and generic MARC evidence', async () => {
   const state = buildBulkReviewWorkbookState([{
     input: '9780060586607',
     lookup_type: 'isbn',
@@ -97,7 +97,7 @@ test('bulk WorldCat review workbook includes identity and generic MARC evidence'
     state
   });
   const workbookText = new TextDecoder().decode(await blob.arrayBuffer());
-  assert.equal(filename, 'WorldCat-Bulk-Review.xlsx');
+  assert.equal(filename, 'OCLC-Hydration-Review.xlsx');
   assert.match(workbookText, /Exact Edition Verified/u);
   assert.match(workbookText, /Selected Utility Score/u);
   assert.match(workbookText, /best_exact_edition_record/u);
