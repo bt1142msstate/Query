@@ -1546,15 +1546,32 @@
   gap: 0.2rem;
 }
 
-.bib-compare-field-tag strong {
+.bib-marc-tag-info,
+.bib-field-evidence-title {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+  border-radius: 4px;
+  cursor: help;
+  outline: none;
+}
+
+.bib-marc-tag-info:focus-visible,
+.bib-field-evidence-title:focus-visible {
+  box-shadow: 0 0 0 2px var(--qp-sys-color-primary);
+}
+
+.bib-compare-field-tag strong,
+.bib-marc-tag-info strong {
   color: var(--qp-sys-color-on-surface-strong);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.82rem;
 }
 
-.bib-compare-field-tag span {
+.bib-compare-field-tag .bib-marc-tag-info > span {
   color: var(--qp-sys-color-on-surface-variant);
   font-size: 0.64rem;
+  line-height: 1.3;
 }
 
 .bib-compare-field-value {
@@ -1772,8 +1789,10 @@
     border-right: 0;
   }
 
-  .bib-compare-field-tag span {
-    display: none;
+  .bib-compare-field-tag .bib-marc-tag-info {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: baseline;
+    gap: 0.5rem;
   }
 
   .bib-compare-field-value {
