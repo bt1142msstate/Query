@@ -16,6 +16,7 @@ import {
   FORMATS
 } from './bibRecordDownload.js';
 import { createBulkController, initializeBulkForm } from './oclcBibBulk.js';
+import { createHydrationRankingGuide, hydrationRankingGuideMarkup } from './hydrationRankingGuide.js';
 
 const FILTERS = [
   { id: 'differences', label: 'Differences', count: 'differences' },
@@ -38,7 +39,7 @@ const state = {
   targetTags: [],
   targetPlanValid: true,
   targetTimer: null,
-  rankingReturnFocus: null,
+  rankingGuide: null,
   searchRequest: 0,
   compareRequest: 0
 };
@@ -236,44 +237,7 @@ function workspaceMarkup() {
         </main>
       </div>
 
-      <section class="bib-compare-ranking-guide hidden" data-bib-ranking-guide role="dialog" aria-modal="true" aria-labelledby="bib-ranking-title">
-        <div class="bib-compare-ranking-panel">
-          <header class="bib-compare-ranking-header">
-            <div>
-              <span class="bib-compare-eyebrow">Selection policy</span>
-              <h2 id="bib-ranking-title">How hydration ranking works</h2>
-              <p>Requested fields help choose between safe matches. They never make a different edition safe.</p>
-            </div>
-            <button class="bib-compare-icon-button" type="button" data-bib-ranking-close aria-label="Close ranking explanation" title="Close">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
-            </button>
-          </header>
-          <ol class="bib-compare-ranking-steps">
-            <li>
-              <span>1</span>
-              <div><h3>Find the likely WorldCat record</h3><p>Hydration first checks a trusted OCLC number already on the local record. Otherwise it sends the complete local MARC record to OCLC's best-match service, with a bounded search as fallback.</p></div>
-            </li>
-            <li>
-              <span>2</span>
-              <div><h3>Confirm that it is the same item</h3><p>Title, identifiers, format, creator, edition, publication details, language, pagination, and dimensions are compared. A meaningful conflict stops automatic hydration.</p></div>
-            </li>
-            <li>
-              <span>3</span>
-              <div><h3>Check the fields you want</h3><p>After identity passes, the system checks whether the WorldCat record contains the requested eligible fields. Those fields can improve ranking only among records that already match the same edition.</p></div>
-            </li>
-            <li>
-              <span>4</span>
-              <div><h3>Give a clear recommendation</h3><p>The interface reports record identity, requested-field suitability, and an overall policy score. These are decision aids, not statistical probabilities or OCLC confidence values.</p></div>
-            </li>
-          </ol>
-          <div class="bib-compare-ranking-decisions" aria-label="Hydration recommendation meanings">
-            <div data-advice="recommended"><strong>Recommended</strong><p>The identity threshold passes, all requested fields are available and eligible, and overall confidence is at least 80.</p></div>
-            <div data-advice="review"><strong>Review</strong><p>The match is plausible, but partial field coverage or stricter edition-sensitive evidence needs staff judgment.</p></div>
-            <div data-advice="do_not_hydrate"><strong>Do not hydrate</strong><p>Identity or overall confidence is below 80, records conflict, fields are protected, or none of the requested fields is available.</p></div>
-          </div>
-          <p class="bib-compare-ranking-threshold">All-field and edition-sensitive plans require identity 90. Standard selected-field plans require identity 80.</p>
-        </div>
-      </section>
+      ${hydrationRankingGuideMarkup()}
     </div>
   `;
 }
@@ -287,6 +251,7 @@ function ensureWorkspace() {
   dialog.innerHTML = workspaceMarkup();
   document.body.appendChild(dialog);
   state.workspace = dialog;
+  state.rankingGuide = createHydrationRankingGuide(dialog);
   bindWorkspaceEvents(dialog);
   state.bulkController = createBulkController({
     workspace: dialog,
@@ -782,29 +747,8 @@ async function runSearch() {
 
 function closeWorkspace() {
   if (!state.workspace?.open) return;
-  closeRankingGuide();
+  state.rankingGuide?.close();
   state.workspace.close();
-}
-
-function openRankingGuide() {
-  const guide = query('[data-bib-ranking-guide]');
-  if (!guide) return;
-  state.rankingReturnFocus = document.activeElement;
-  query('.bib-compare-header').inert = true;
-  query('.bib-compare-layout').inert = true;
-  guide.classList.remove('hidden');
-  guide.querySelector('[data-bib-ranking-close]')?.focus();
-}
-
-function closeRankingGuide() {
-  const guide = query('[data-bib-ranking-guide]');
-  if (!guide || guide.classList.contains('hidden')) return false;
-  guide.classList.add('hidden');
-  query('.bib-compare-header').inert = false;
-  query('.bib-compare-layout').inert = false;
-  state.rankingReturnFocus?.focus?.();
-  state.rankingReturnFocus = null;
-  return true;
 }
 
 function openWorkspace() {
@@ -844,17 +788,12 @@ function openForLookup(lookup = {}) {
 
 function bindWorkspaceEvents(workspace) {
   workspace.querySelector('[data-bib-close]')?.addEventListener('click', closeWorkspace);
-  workspace.querySelector('[data-bib-ranking-open]')?.addEventListener('click', openRankingGuide);
-  workspace.querySelector('[data-bib-ranking-close]')?.addEventListener('click', closeRankingGuide);
-  workspace.querySelector('[data-bib-ranking-guide]')?.addEventListener('click', event => {
-    if (event.target.matches('[data-bib-ranking-guide]')) closeRankingGuide();
-  });
   workspace.addEventListener('close', () => {
     document.body.classList.remove('bib-compare-open');
   });
   workspace.addEventListener('cancel', event => {
     event.preventDefault();
-    if (closeRankingGuide()) return;
+    if (state.rankingGuide?.close()) return;
     closeWorkspace();
   });
   workspace.querySelector('[data-bib-lookup-type]')?.addEventListener('change', updateSearchInput);
