@@ -1,7 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createWorkbookBlob } from '../../../src/lib/workbook-export/workbookExport.js';
-import { buildBulkReviewWorkbookState } from '../../../src/ui/bib-compare/oclcBibBulk.js';
+import { buildBulkResolvePayload, buildBulkReviewWorkbookState } from '../../../src/ui/bib-compare/oclcBibBulk.js';
+
+test('bulk WorldCat requests carry selected hydration fields without mutating entries', () => {
+  const entries = [{ lookup_type: 'isbn', query: '9780060586607', original: '978-0-06-058660-7' }];
+  assert.deepEqual(buildBulkResolvePayload(entries, ['521', '526']), {
+    action: 'resolve_oclc_bibs_bulk',
+    entries: [{ lookup_type: 'isbn', query: '9780060586607' }],
+    target_tags: ['521', '526']
+  });
+  assert.equal(entries[0].original, '978-0-06-058660-7');
+});
 
 test('bulk WorldCat review workbook includes identity and generic MARC evidence', async () => {
   const state = buildBulkReviewWorkbookState([{
@@ -53,7 +63,16 @@ test('bulk WorldCat review workbook includes identity and generic MARC evidence'
       local_526_count: 0,
       worldcat_521_count: 1,
       worldcat_526_count: 2,
-      identity_conflict: 0
+      identity_conflict: 0,
+      advice: 'recommended',
+      overall_score: 96,
+      identity_score: 95,
+      target_field_score: 100,
+      mode: 'selected_fields',
+      requested_tags: ['521', '526'],
+      missing_tags: [],
+      blocked_tags: [],
+      scoring_version: '1.0'
     }
   }]);
 
@@ -66,6 +85,10 @@ test('bulk WorldCat review workbook includes identity and generic MARC evidence'
   assert.equal(valueFor('Authentication Codes'), 'pcc');
   assert.equal(valueFor('Utility Score Breakdown'), 'encoding completeness: 30; authenticated cataloging: 20');
   assert.equal(valueFor('WorldCat 526 Count'), 2);
+  assert.equal(valueFor('Hydration Advice'), 'recommended');
+  assert.equal(valueFor('Overall Confidence'), 96);
+  assert.equal(valueFor('Requested Fields'), '521; 526');
+  assert.equal(valueFor('Confidence Policy Version'), '1.0');
   assert.equal(valueFor('WorldCat-only MARC Tags'), '505 (1); 650 (3)');
 
   const { blob, filename } = await createWorkbookBlob({
@@ -80,6 +103,8 @@ test('bulk WorldCat review workbook includes identity and generic MARC evidence'
   assert.match(workbookText, /best_exact_edition_record/u);
   assert.match(workbookText, /WorldCat 526 Count/u);
   assert.match(workbookText, /WorldCat-only MARC Tags/u);
+  assert.match(workbookText, /Hydration Advice/u);
+  assert.match(workbookText, /Requested Fields/u);
   assert.match(workbookText, /505 \(1\); 650 \(3\)/u);
   assert.match(workbookText, /278 pages ; 20 cm/u);
 });

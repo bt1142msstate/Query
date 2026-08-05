@@ -123,7 +123,10 @@ function resolveDemoBibsBulk(payload, data) {
           : 'No local bibliographic record matched this input.'
       };
     }
-    const comparison = compareDemoBib({ catalog_key: search.results[0].catalog_key }, data);
+    const comparison = compareDemoBib({
+      catalog_key: search.results[0].catalog_key,
+      target_tags: payload.target_tags
+    }, data);
     return {
       index,
       input: entry.query,
@@ -157,7 +160,50 @@ function compareDemoBib(payload, data) {
   if (payload.oclc_number && String(payload.oclc_number) !== String(record.selection?.oclc_number || '')) {
     return null;
   }
-  return structuredClone(record);
+  const comparison = structuredClone(record);
+  const requestedTags = [...new Set((payload.target_tags || []).map(String))];
+  const worldcatTags = new Set([
+    ...(comparison.worldcat?.record?.fields || []).map(field => field.tag),
+    ...(comparison.comparison?.rows || []).filter(row => row.worldcat).map(row => row.tag)
+  ]);
+  const blocked = requestedTags.filter(tag => /^(?:001|003|005|035|040|049|59\d|69\d|8[5-9]\d|9\d\d)$/u.test(tag));
+  const missing = requestedTags.filter(tag => !worldcatTags.has(tag));
+  const fields = requestedTags.map(tag => ({
+    tag,
+    available: worldcatTags.has(tag) ? 1 : 0,
+    hydration_allowed: worldcatTags.has(tag) && !blocked.includes(tag) ? 1 : 0,
+    risk: blocked.includes(tag) ? 'blocked' : (['250', '264', '300', '505', '520', '521', '526', '856'].includes(tag) ? 'high' : 'standard')
+  }));
+  const targetScore = requestedTags.length
+    ? Math.round(100 * fields.filter(field => field.hydration_allowed).length / requestedTags.length)
+    : 100;
+  const advice = blocked.length
+    ? 'do_not_hydrate'
+    : (missing.length ? 'review' : 'recommended');
+  comparison.review = {
+    ...(comparison.review || {}),
+    mode: requestedTags.length ? 'selected_fields' : 'all_fields',
+    requested_tags: requestedTags,
+    identity_score: 98,
+    target_field_score: targetScore,
+    overall_score: requestedTags.length ? Math.min(98, Math.round((98 * 0.8) + (targetScore * 0.2))) : 98,
+    confidence_band: 'high',
+    advice,
+    reason: advice === 'recommended'
+      ? 'The record identity and requested-field coverage meet the hydration thresholds.'
+      : (advice === 'do_not_hydrate'
+          ? 'One or more requested fields are local or control fields that should not be copied from WorldCat.'
+          : 'The selected WorldCat record does not contain every requested field.'),
+    recommended: advice === 'recommended' ? 1 : 0,
+    identity_threshold: requestedTags.some(tag => fields.find(field => field.tag === tag)?.risk === 'high') ? 90 : 80,
+    overall_threshold: 80,
+    fields,
+    missing_tags: missing,
+    blocked_tags: blocked,
+    high_risk_tags: fields.filter(field => field.risk === 'high').map(field => field.tag),
+    scoring_version: '1.0-demo'
+  };
+  return comparison;
 }
 
 async function handleDemoQueryRequest(options = {}) {

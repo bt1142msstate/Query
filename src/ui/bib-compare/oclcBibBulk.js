@@ -59,6 +59,14 @@ const REVIEW_FIELDS = [
   'WorldCat 521 Count',
   'WorldCat 526 Count',
   'Identity Conflict',
+  'Hydration Advice',
+  'Overall Confidence',
+  'Record Identity Confidence',
+  'Requested Field Suitability',
+  'Requested Fields',
+  'Missing Requested Fields',
+  'Blocked Requested Fields',
+  'Confidence Policy Version',
   'Review Note'
 ];
 
@@ -139,6 +147,14 @@ function bulkResultToWorkbookRow(result) {
     review.worldcat_521_count ?? '',
     review.worldcat_526_count ?? '',
     yesNo(review.identity_conflict),
+    String(review.advice || '').replaceAll('_', ' '),
+    review.overall_score ?? '',
+    review.identity_score ?? '',
+    review.mode === 'all_fields' ? 'General' : (review.target_field_score ?? ''),
+    joinValues(review.requested_tags),
+    joinValues(review.missing_tags),
+    joinValues(review.blocked_tags),
+    review.scoring_version || '',
     result.reason || ''
   ];
 }
@@ -169,6 +185,14 @@ function chunkEntries(entries, chunkSize = CHUNK_SIZE) {
     chunks.push(entries.slice(offset, offset + size));
   }
   return chunks;
+}
+
+function buildBulkResolvePayload(entries, targetTags = []) {
+  return {
+    action: 'resolve_oclc_bibs_bulk',
+    entries: (entries || []).map(({ lookup_type, query }) => ({ lookup_type, query })),
+    ...(targetTags.length ? { target_tags: [...targetTags] } : {})
+  };
 }
 
 function createElement(tag, className, text) {
@@ -209,7 +233,7 @@ function statusCounts(results) {
   }, { resolved: 0, review: 0, not_found: 0, failed: 0 });
 }
 
-function createBulkController({ workspace, openComparison, setSearchStatus, showToastMessage }) {
+function createBulkController({ workspace, getTargetTags, openComparison, setSearchStatus, showToastMessage }) {
   const template = document.createElement('template');
   template.innerHTML = bulkMarkup().trim();
   workspace.querySelector('.bib-compare-main').appendChild(template.content);
@@ -251,9 +275,13 @@ function createBulkController({ workspace, openComparison, setSearchStatus, show
         createElement('span', '', `${result.lookup_type.replaceAll('_', ' ')}: ${result.original || result.input}`)
       );
       const local = createElement('div', 'bib-bulk-result-local');
+      const advice = String(result.review?.advice || '').replaceAll('_', ' ');
+      const confidence = Number.isFinite(Number(result.review?.overall_score))
+        ? ` · ${Number(result.review.overall_score)}/100${advice ? ` ${advice}` : ''}`
+        : '';
       local.append(
         createElement('span', '', result.local?.catalog_key ? `Catalog ${result.local.catalog_key}` : 'No single local record'),
-        createElement('span', '', result.worldcat?.oclc_number ? `OCLC ${result.worldcat.oclc_number}` : (result.reason || 'Match needs review'))
+        createElement('span', '', result.worldcat?.oclc_number ? `OCLC ${result.worldcat.oclc_number}${confidence}` : (result.reason || 'Match needs review'))
       );
       const chip = createElement('span', 'bib-bulk-status', STATUS_LABELS[result.status] || 'Review');
       row.append(identity, local, chip);
@@ -280,6 +308,11 @@ function createBulkController({ workspace, openComparison, setSearchStatus, show
   }
 
   async function run(entries) {
+    const targetTags = getTargetTags?.();
+    if (!Array.isArray(targetTags)) {
+      setSearchStatus('Enter at least one valid three-digit MARC field for the hydration plan.', 'error');
+      return;
+    }
     const currentRequest = ++requestId;
     results = [];
     renderResults();
@@ -289,10 +322,10 @@ function createBulkController({ workspace, openComparison, setSearchStatus, show
     for (const chunk of chunkEntries(entries)) {
       if (currentRequest !== requestId) return;
       try {
-        const { data } = await postJson({
-          action: 'resolve_oclc_bibs_bulk',
-          entries: chunk.map(({ lookup_type, query }) => ({ lookup_type, query }))
-        }, { timeoutMs: 180000 });
+        const { data } = await postJson(
+          buildBulkResolvePayload(chunk, targetTags),
+          { timeoutMs: 180000 }
+        );
         const returned = Array.isArray(data.results) ? data.results : [];
         returned.forEach((result, index) => {
           results.push({ ...result, original: chunk[index]?.original || chunk[index]?.query });
@@ -410,4 +443,4 @@ function initializeBulkForm({ workspace, controller, setSearchStatus }) {
   });
 }
 
-export { buildBulkReviewWorkbookState, chunkEntries, createBulkController, initializeBulkForm };
+export { buildBulkResolvePayload, buildBulkReviewWorkbookState, chunkEntries, createBulkController, initializeBulkForm };

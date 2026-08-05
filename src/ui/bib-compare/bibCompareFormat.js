@@ -44,6 +44,7 @@ function comparisonStatusLabel(status) {
 function matchConfidenceLabel(confidence) {
   const labels = {
     linked: 'Linked record',
+    oclc_resolved: 'OCLC resolved',
     strong: 'Strong match',
     possible: 'Possible match',
     review: 'Review match'
