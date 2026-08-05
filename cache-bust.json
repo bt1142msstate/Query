@@ -1,5 +1,5 @@
 {
-  "version": "d8b65991a414fddb",
+  "version": "d176ef1091d16b4f",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -204,8 +204,9 @@
     "src/ui/bib-compare/currentQueryHydration.js": "b33215038651d2b3",
     "src/ui/bib-compare/fieldEvidenceReview.js": "6a096275967f7b3b",
     "src/ui/bib-compare/hydrationRankingGuide.js": "ab84a98097e04179",
+    "src/ui/bib-compare/hydrationRateLimit.js": "e066dfb9590b13ff",
     "src/ui/bib-compare/marcTagInfo.js": "1bef25c1bc0cdab7",
-    "src/ui/bib-compare/oclcBibBulk.js": "caa31afb7ee7b632",
+    "src/ui/bib-compare/oclcBibBulk.js": "4fc6d389ec6f6971",
     "src/ui/bib-compare/oclcBibCompare.js": "6e5eb28ea0714a68",
     "src/ui/bib-compare/singleHydrationWorkbook.js": "5fb966a59877496c",
     "src/ui/controls/customDatePicker.js": "88e4eb3245ac256c",

@@ -8,8 +8,9 @@ import {
 } from './bibBulkInput.js';
 import { fieldEvidenceSummary } from './fieldEvidenceReview.js';
 import { bibliographicSource, sourceReviewCount } from './bibSource.js';
+import { waitForHydrationRetry } from './hydrationRateLimit.js';
 
-const CHUNK_SIZE = 1;
+const CHUNK_SIZE = 25;
 const bulkWorkbookExporter = createWorkbookExportComponent();
 const STATUS_LABELS = {
   resolved: 'Matched',
@@ -345,23 +346,40 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
     let completed = 0;
     for (const chunk of chunkEntries(entries)) {
       if (currentRequest !== requestId) return;
-      try {
-        const { data } = await postJson(
-          buildBulkResolvePayload(chunk, targetTags),
-          { timeoutMs: 180000 }
-        );
-        const returned = Array.isArray(data.results) ? data.results : [];
-        returned.forEach((result, index) => {
-          results.push({ ...result, original: chunk[index]?.original || chunk[index]?.query });
-        });
-      } catch (error) {
-        chunk.forEach(entry => results.push({
-          ...entry,
-          input: entry.query,
-          status: 'failed',
-          reason: error.message || 'This batch could not be resolved.'
-        }));
+      let chunkComplete = false;
+      while (!chunkComplete && currentRequest === requestId) {
+        try {
+          const { data } = await postJson(
+            buildBulkResolvePayload(chunk, targetTags),
+            { timeoutMs: 600000, notifyOnRateLimit: false }
+          );
+          const returned = Array.isArray(data.results) ? data.results : [];
+          returned.forEach((result, index) => {
+            results.push({ ...result, original: chunk[index]?.original || chunk[index]?.query });
+          });
+          chunkComplete = true;
+        } catch (error) {
+          if (error?.isRateLimited) {
+            setSearchStatus('Hydration is paused by the request limit. Completed records are preserved.', 'warning');
+            const shouldRetry = await waitForHydrationRetry({
+              error,
+              isCurrent: () => currentRequest === requestId,
+              onTick: ({ message }) => setProgress(completed, entries.length, message)
+            });
+            if (!shouldRetry) return;
+            setProgress(completed, entries.length, 'Request limit cleared. Retrying the same records...');
+            continue;
+          }
+          chunk.forEach(entry => results.push({
+            ...entry,
+            input: entry.query,
+            status: 'failed',
+            reason: error.message || 'This batch could not be resolved.'
+          }));
+          chunkComplete = true;
+        }
       }
+      if (currentRequest !== requestId) return;
       renderResults();
       completed += chunk.length;
       setProgress(completed, entries.length, 'Resolving OCLC and Library of Congress records...');
