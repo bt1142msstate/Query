@@ -174,7 +174,7 @@ function buildBulkReviewWorkbookState(results) {
       ])),
       virtualData: { columnMap }
     },
-    tableName: 'WorldCat Bulk Review'
+    tableName: 'OCLC Hydration Review'
   };
 }
 
@@ -208,8 +208,8 @@ function bulkMarkup() {
       <header class="bib-bulk-header">
         <div>
           <span class="bib-compare-eyebrow">Batch review</span>
-          <h2>Bulk WorldCat matches</h2>
-          <p>Strong matches resolve automatically. Ambiguous records remain available for review.</p>
+          <h2>Bulk hydration review</h2>
+          <p>Strong WorldCat matches resolve automatically. Ambiguous records remain available for review.</p>
         </div>
         <div class="bib-bulk-actions">
           <button class="bib-bulk-download hidden" type="button" data-bib-bulk-download>Download Excel</button>
@@ -376,7 +376,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
         },
         state: buildBulkReviewWorkbookState(results)
       });
-      showToastMessage('WorldCat review workbook downloaded.', 'success');
+      showToastMessage('Hydration review workbook downloaded.', 'success');
     } catch (error) {
       setSearchStatus(error.message || 'The review workbook could not be created.', 'error');
     } finally {

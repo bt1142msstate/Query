@@ -2922,7 +2922,7 @@ async function exerciseDesktopResultsWorkflow(page, queryApiStub) {
     '#example-table tbody tr[data-row-index="0"] td[data-col-index="1"]',
     'Desktop bibliographic row'
   );
-  const compareAction = page.locator('.tcm.tcm--visible .tcm-item', { hasText: 'Compare in WorldCat' });
+  const compareAction = page.locator('.tcm.tcm--visible .tcm-item', { hasText: 'Open in Hydration' });
   await compareAction.waitFor({ state: 'visible', timeout: 5000 });
   const compareActionHint = (await compareAction.locator('.tcm-hint').textContent())?.trim();
   if (compareActionHint !== 'Catalog 923278') {
@@ -2930,6 +2930,56 @@ async function exerciseDesktopResultsWorkflow(page, queryApiStub) {
   }
   await compareAction.click();
   await page.locator('#bib-compare-workspace[open]').waitFor({ state: 'visible', timeout: 5000 });
+  const hydrationSurface = await page.locator('#bib-compare-workspace').evaluate(workspace => ({
+    title: workspace.querySelector('.bib-compare-heading h1')?.textContent?.trim(),
+    ariaLabel: workspace.getAttribute('aria-label'),
+    toolbarDrop: Boolean(document.querySelector('#toggle-bib-compare .hydration-drop-icon'))
+  }));
+  if (
+    hydrationSurface.title !== 'Hydration'
+    || hydrationSurface.ariaLabel !== 'OCLC record hydration'
+    || !hydrationSurface.toolbarDrop
+  ) {
+    throw new Error(`Hydration should use the renamed accessible surface and drop icon: ${JSON.stringify(hydrationSurface)}`);
+  }
+  const rankingOpen = page.locator('#bib-compare-workspace [data-bib-ranking-open]');
+  await rankingOpen.click();
+  await page.locator('#bib-compare-workspace [data-bib-ranking-guide]:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+  const rankingGuide = await page.locator('#bib-compare-workspace').evaluate(workspace => {
+    const guide = workspace.querySelector('[data-bib-ranking-guide]');
+    return {
+      stepCount: guide?.querySelectorAll('.bib-compare-ranking-steps > li').length,
+      decisionCount: guide?.querySelectorAll('.bib-compare-ranking-decisions > div').length,
+      explainsIdentityFirst: guide?.textContent?.includes('Confirm that it is the same item'),
+      explainsRequestedFields: guide?.textContent?.includes('Check the fields you want'),
+      explainsPolicyScore: guide?.textContent?.includes('not statistical probabilities'),
+      headerInert: workspace.querySelector('.bib-compare-header')?.inert,
+      layoutInert: workspace.querySelector('.bib-compare-layout')?.inert,
+      focusedClose: document.activeElement?.matches?.('[data-bib-ranking-close]')
+    };
+  });
+  if (
+    rankingGuide.stepCount !== 4
+    || rankingGuide.decisionCount !== 3
+    || !rankingGuide.explainsIdentityFirst
+    || !rankingGuide.explainsRequestedFields
+    || !rankingGuide.explainsPolicyScore
+    || !rankingGuide.headerInert
+    || !rankingGuide.layoutInert
+    || !rankingGuide.focusedClose
+  ) {
+    throw new Error(`Hydration ranking guide should explain and isolate the four-stage policy: ${JSON.stringify(rankingGuide)}`);
+  }
+  await page.keyboard.press('Escape');
+  const rankingClosed = await page.locator('#bib-compare-workspace').evaluate(workspace => ({
+    hidden: workspace.querySelector('[data-bib-ranking-guide]')?.classList.contains('hidden'),
+    headerInert: workspace.querySelector('.bib-compare-header')?.inert,
+    layoutInert: workspace.querySelector('.bib-compare-layout')?.inert,
+    focusRestored: document.activeElement?.matches?.('[data-bib-ranking-open]')
+  }));
+  if (!rankingClosed.hidden || rankingClosed.headerInert || rankingClosed.layoutInert || !rankingClosed.focusRestored) {
+    throw new Error(`Closing the hydration guide should restore the workspace: ${JSON.stringify(rankingClosed)}`);
+  }
   await page.locator('[data-bib-content]:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
   await page.waitForFunction(() => {
     const workspace = document.querySelector('#bib-compare-workspace');
@@ -3007,12 +3057,12 @@ async function exerciseDesktopResultsWorkflow(page, queryApiStub) {
   const workbookBytes = workbookPath ? await readFile(workbookPath) : Buffer.alloc(0);
   const workbookText = new TextDecoder().decode(workbookBytes);
   if (
-    workbookDownload.suggestedFilename() !== 'WorldCat-Bulk-Review.xlsx'
+    workbookDownload.suggestedFilename() !== 'OCLC-Hydration-Review.xlsx'
     || workbookBytes.subarray(0, 2).toString() !== 'PK'
     || !workbookText.includes('Exact Edition Verified')
     || !workbookText.includes('WorldCat 526 Count')
   ) {
-    throw new Error('Bulk WorldCat review should download a complete Excel workbook.');
+    throw new Error('Bulk hydration review should download a complete Excel workbook.');
   }
   await page.locator('#bib-compare-workspace [data-bib-close]').click();
 

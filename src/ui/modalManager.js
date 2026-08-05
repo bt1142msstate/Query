@@ -26,7 +26,7 @@ class ModalManager {
       'toggle-json': 'JSON',
       'toggle-queries': 'Queries',
       'toggle-templates': 'Templates',
-      'toggle-bib-compare': 'WorldCat Compare',
+      'toggle-bib-compare': 'Hydration',
       'toggle-api-settings': 'API Settings',
       'theme-toggle': 'Theme',
       'toggle-help': 'Help'
