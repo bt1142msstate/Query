@@ -254,10 +254,11 @@
 }
 
 :root[data-theme-resolved="dark"] .query-table-multi-value-trigger:hover,
+:root[data-theme-resolved="dark"] .query-table-multi-value-trigger:focus-visible,
 :root[data-theme-resolved="dark"] .query-table-truncated-trigger:hover,
 :root[data-theme-resolved="dark"] .query-table-truncated-trigger:focus-visible {
   border-color: rgba(56, 189, 248, 0.32);
-  background: rgba(14, 165, 233, 0.12);
+  background: #10283b;
 }
 
 :root[data-theme-resolved="dark"] .query-table-multi-value-primary,

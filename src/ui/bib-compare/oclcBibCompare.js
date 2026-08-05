@@ -33,6 +33,10 @@ const state = {
   filter: 'differences',
   mode: 'single',
   bulkController: null,
+  targetMode: 'all',
+  targetTags: [],
+  targetPlanValid: true,
+  targetTimer: null,
   searchRequest: 0,
   compareRequest: 0
 };
@@ -119,6 +123,26 @@ function workspaceMarkup() {
               <span>Match records</span>
             </button>
           </form>
+          <section class="bib-compare-hydration-plan" aria-labelledby="bib-hydration-heading">
+            <div class="bib-compare-form-heading">
+              <h2 id="bib-hydration-heading">Hydration plan</h2>
+            </div>
+            <div class="bib-compare-segmented" role="radiogroup" aria-label="Hydration field scope">
+              <label>
+                <input type="radio" name="bib-hydration-mode" value="all" data-bib-target-mode checked>
+                <span>All eligible fields</span>
+              </label>
+              <label>
+                <input type="radio" name="bib-hydration-mode" value="selected" data-bib-target-mode>
+                <span>Selected fields</span>
+              </label>
+            </div>
+            <div class="bib-compare-target-entry hidden" data-bib-target-entry>
+              <label class="bib-compare-label" for="bib-target-tags">Requested MARC fields</label>
+              <input id="bib-target-tags" data-bib-target-tags inputmode="numeric" autocomplete="off" maxlength="199" placeholder="521, 526">
+              <p data-bib-target-status role="status" aria-live="polite"></p>
+            </div>
+          </section>
           <div class="bib-compare-search-status" data-bib-search-status role="status" aria-live="polite">
             Search by title, catalog key, or item ID.
           </div>
@@ -146,6 +170,23 @@ function workspaceMarkup() {
                 <strong data-bib-match-title>Record match</strong>
               </div>
               <p data-bib-match-reason></p>
+            </section>
+
+            <section class="bib-compare-confidence hidden" data-bib-confidence>
+              <div class="bib-compare-confidence-heading">
+                <div>
+                  <span class="bib-compare-advice" data-bib-advice>Review</span>
+                  <h2>Hydration confidence</h2>
+                </div>
+                <p data-bib-confidence-reason></p>
+              </div>
+              <div class="bib-compare-score-grid">
+                <div><span>Overall</span><strong data-bib-overall-score>--</strong></div>
+                <div><span>Record identity</span><strong data-bib-identity-score>--</strong></div>
+                <div><span>Requested fields</span><strong data-bib-target-score>--</strong></div>
+              </div>
+              <p class="bib-compare-score-note">Transparent policy score, not a statistical probability.</p>
+              <div class="bib-compare-target-results" data-bib-target-results></div>
             </section>
 
             <section class="bib-compare-candidate-band hidden" data-bib-candidate-band>
@@ -197,6 +238,12 @@ function ensureWorkspace() {
   bindWorkspaceEvents(dialog);
   state.bulkController = createBulkController({
     workspace: dialog,
+    getTargetTags: () => {
+      updateTargetPlan({ reload: false });
+      return state.targetPlanValid
+        ? (state.targetMode === 'selected' ? state.targetTags : [])
+        : null;
+    },
     openComparison: catalogKey => {
       setMode('single');
       loadComparison(catalogKey);
@@ -386,6 +433,38 @@ function renderMatch(payload) {
   query('[data-bib-match-reason]').textContent = `${match.reason || ''}${enrichment}`;
 }
 
+function adviceLabel(advice) {
+  return {
+    recommended: 'Recommended',
+    review: 'Review first',
+    do_not_hydrate: 'Do not hydrate'
+  }[advice] || 'Review first';
+}
+
+function renderHydrationConfidence(payload) {
+  const panel = query('[data-bib-confidence]');
+  const assessment = payload?.review;
+  panel?.classList.toggle('hidden', !assessment?.scoring_version);
+  if (!panel || !assessment?.scoring_version) return;
+  panel.dataset.advice = assessment.advice || 'review';
+  query('[data-bib-advice]').textContent = adviceLabel(assessment.advice);
+  query('[data-bib-confidence-reason]').textContent = assessment.reason || '';
+  query('[data-bib-overall-score]').textContent = `${Number(assessment.overall_score || 0)}/100`;
+  query('[data-bib-identity-score]').textContent = `${Number(assessment.identity_score || 0)}/100`;
+  query('[data-bib-target-score]').textContent = assessment.mode === 'all_fields'
+    ? 'General'
+    : `${Number(assessment.target_field_score || 0)}/100`;
+
+  const results = query('[data-bib-target-results]');
+  results?.replaceChildren();
+  (assessment.fields || []).forEach(field => {
+    const item = createElement('span', 'bib-compare-target-result');
+    item.dataset.status = field.hydration_allowed ? 'available' : (field.available ? 'blocked' : 'missing');
+    item.textContent = `${field.tag} ${field.hydration_allowed ? 'available' : (field.available ? 'blocked' : 'missing')}`;
+    results?.appendChild(item);
+  });
+}
+
 function candidateOption(candidate) {
   const option = document.createElement('option');
   option.value = candidate.oclc_number || '';
@@ -502,6 +581,7 @@ function renderComparison(payload) {
   query('[data-bib-content]')?.classList.remove('hidden');
   renderSummaries(payload);
   renderMatch(payload);
+  renderHydrationConfidence(payload);
   renderCandidates(payload);
   const hasComparison = Boolean(payload?.comparison?.rows);
   query('[data-bib-fields]')?.classList.toggle('hidden', !hasComparison);
@@ -510,6 +590,11 @@ function renderComparison(payload) {
 }
 
 async function loadComparison(catalogKey, oclcNumber = '') {
+  updateTargetPlan({ reload: false });
+  if (!state.targetPlanValid) {
+    setSearchStatus('Enter at least one valid three-digit MARC field for the hydration plan.', 'error');
+    return;
+  }
   const requestId = ++state.compareRequest;
   state.selectedCatalogKey = String(catalogKey || '');
   renderSearchResults();
@@ -520,6 +605,7 @@ async function loadComparison(catalogKey, oclcNumber = '') {
     const { data } = await postJson({
       action: 'compare_oclc_bib',
       catalog_key: state.selectedCatalogKey,
+      ...(state.targetMode === 'selected' ? { target_tags: state.targetTags } : {}),
       ...(oclcNumber ? { oclc_number: String(oclcNumber) } : {})
     }, { timeoutMs: 45000 });
     if (requestId !== state.compareRequest) return;
@@ -534,6 +620,45 @@ async function loadComparison(catalogKey, oclcNumber = '') {
   } finally {
     if (requestId === state.compareRequest) setBusy('');
   }
+}
+
+function parsedTargetTags(value) {
+  const tokens = String(value || '').split(/[\s,;]+/u).map(token => token.trim()).filter(Boolean);
+  if (!tokens.length) return { tags: [], error: '' };
+  if (tokens.some(token => !/^\d{3}$/u.test(token))) {
+    return { tags: [], error: 'Each field must be a three-digit MARC tag.' };
+  }
+  return { tags: [...new Set(tokens)].slice(0, 50), error: '' };
+}
+
+function updateTargetPlan({ reload = true } = {}) {
+  const selectedMode = query('[data-bib-target-mode]:checked')?.value || 'all';
+  state.targetMode = selectedMode;
+  query('[data-bib-target-entry]')?.classList.toggle('hidden', selectedMode !== 'selected');
+  const status = query('[data-bib-target-status]');
+  if (selectedMode === 'all') {
+    state.targetTags = [];
+    state.targetPlanValid = true;
+    if (status) status.textContent = '';
+  } else {
+    const parsed = parsedTargetTags(query('[data-bib-target-tags]')?.value);
+    if (status) {
+      status.textContent = parsed.error || (parsed.tags.length ? `${parsed.tags.length} field${parsed.tags.length === 1 ? '' : 's'} selected` : 'Enter at least one field.');
+      status.dataset.tone = parsed.error || !parsed.tags.length ? 'error' : '';
+    }
+    state.targetPlanValid = !parsed.error && parsed.tags.length > 0;
+    if (!state.targetPlanValid) {
+      state.targetTags = [];
+      return;
+    }
+    state.targetTags = parsed.tags;
+  }
+  if (reload && state.selectedCatalogKey) loadComparison(state.selectedCatalogKey);
+}
+
+function scheduleTargetPlanUpdate() {
+  clearTimeout(state.targetTimer);
+  state.targetTimer = setTimeout(() => updateTargetPlan(), 450);
 }
 
 async function runSearch() {
@@ -631,6 +756,10 @@ function bindWorkspaceEvents(workspace) {
     const button = event.target.closest?.('[data-bib-mode]');
     if (button) setMode(button.dataset.bibMode);
   });
+  workspace.querySelectorAll('[data-bib-target-mode]').forEach(input => {
+    input.addEventListener('change', () => updateTargetPlan());
+  });
+  workspace.querySelector('[data-bib-target-tags]')?.addEventListener('input', scheduleTargetPlanUpdate);
   workspace.querySelector('[data-bib-search-form]')?.addEventListener('submit', event => {
     event.preventDefault();
     runSearch();

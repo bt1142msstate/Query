@@ -85,6 +85,23 @@ test('demo backend supports authenticated local bib lookup and WorldCat comparis
   assert.equal(comparison.selection.oclc_number, '54005706');
   assert.equal(comparison.match.confidence, 'linked');
   assert.equal(comparison.comparison.counts.differences, 4);
+  assert.equal(comparison.review.advice, 'recommended');
+  assert.equal(comparison.review.identity_score, 98);
+  assert.equal(comparison.review.mode, 'all_fields');
+
+  const targetedResponse = await handleDemoQueryRequest({
+    body: JSON.stringify({
+      action: 'compare_oclc_bib',
+      catalog_key: '923278',
+      target_tags: ['521', '526']
+    }),
+    headers: authHeaders
+  });
+  const targeted = await targetedResponse.json();
+  assert.equal(targeted.review.mode, 'selected_fields');
+  assert.equal(targeted.review.target_field_score, 50);
+  assert.equal(targeted.review.advice, 'review');
+  assert.deepEqual(targeted.review.missing_tags, ['521']);
 });
 
 test('demo backend resolves mixed bulk bibliographic identifiers', async () => {
@@ -103,4 +120,20 @@ test('demo backend resolves mixed bulk bibliographic identifiers', async () => {
   assert.equal(payload.counts.resolved, 2);
   assert.equal(payload.counts.not_found, 1);
   assert.equal(payload.results[0].selection.oclc_number, '54005706');
+  assert.equal(payload.results[0].review.advice, 'recommended');
+});
+
+test('demo bulk comparison applies selected hydration fields', async () => {
+  const response = await handleDemoQueryRequest({
+    body: JSON.stringify({
+      action: 'resolve_oclc_bibs_bulk',
+      entries: [{ lookup_type: 'catalog_key', query: '923278' }],
+      target_tags: ['521', '526']
+    }),
+    headers: authHeaders
+  });
+  const payload = await response.json();
+  assert.equal(payload.results[0].review.advice, 'review');
+  assert.equal(payload.results[0].review.target_field_score, 50);
+  assert.deepEqual(payload.results[0].review.requested_tags, ['521', '526']);
 });
