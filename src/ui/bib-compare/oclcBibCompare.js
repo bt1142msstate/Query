@@ -1,23 +1,13 @@
 import { postJson } from '../../core/backendApi.js';
 import { getSession } from '../../core/authSession.js';
 import { showToastMessage } from '../../core/toast.js';
-import {
-  comparisonStatusLabel,
-  fieldLines,
-  filterComparisonRows,
-  formatIdentifierList,
-  matchConfidenceLabel,
-  searchInputMetadata,
-  summaryValue
-} from './bibCompareFormat.js';
-import {
-  buildHydratedBibRecord,
-  downloadBibRecord,
-  FORMATS
-} from './bibRecordDownload.js';
+import { comparisonStatusLabel, fieldLines, filterComparisonRows, formatIdentifierList, matchConfidenceLabel, searchInputMetadata, summaryValue } from './bibCompareFormat.js';
+import { buildHydratedBibRecord, downloadBibRecord, FORMATS } from './bibRecordDownload.js';
 import { createBulkController, initializeBulkForm } from './oclcBibBulk.js';
 import { fieldEvidenceDownloadReady, renderFieldEvidenceReview } from './fieldEvidenceReview.js';
 import { createHydrationRankingGuide, hydrationRankingGuideMarkup } from './hydrationRankingGuide.js';
+import { createMarcTagInfo } from './marcTagInfo.js';
+import { bindSingleHydrationExcel } from './singleHydrationWorkbook.js';
 
 const FILTERS = [
   { id: 'differences', label: 'Differences', count: 'differences' },
@@ -197,6 +187,9 @@ function workspaceMarkup() {
               <div class="bib-compare-target-results" data-bib-target-results></div>
               <section class="bib-field-evidence-review hidden" data-bib-field-evidence></section>
               <div class="bib-compare-hydrated-download">
+                <button type="button" data-bib-excel-download disabled>
+                  <span>Download Excel review</span>
+                </button>
                 <button type="button" data-bib-hydrated-download disabled>
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M5 20h14"/></svg>
                   <span>Download hydrated bib</span>
@@ -479,7 +472,11 @@ function renderHydrationConfidence(payload) {
   (assessment.fields || []).forEach(field => {
     const item = createElement('span', 'bib-compare-target-result');
     item.dataset.status = field.hydration_allowed ? 'available' : (field.available ? 'blocked' : 'missing');
-    item.textContent = `${field.tag} ${field.hydration_allowed ? 'available' : (field.available ? 'blocked' : 'missing')}`;
+    const stateLabel = field.hydration_allowed ? 'available' : (field.available ? 'blocked' : 'missing');
+    item.textContent = `${field.tag} ${field.label || 'Bibliographic Field'}: ${stateLabel}`;
+    item.tabIndex = 0;
+    item.setAttribute('data-tooltip', `${field.tag} - ${field.label || 'Bibliographic Field'}. ${field.description || ''}`.trim());
+    item.setAttribute('data-tooltip-intent', 'instant');
     results?.appendChild(item);
   });
   renderFieldEvidenceReview(query('[data-bib-field-evidence]'), assessment.field_evidence);
@@ -603,10 +600,7 @@ function renderFieldRows() {
     const item = createElement('article', 'bib-compare-field-row');
     item.dataset.status = row.status || 'review';
     const tag = createElement('div', 'bib-compare-field-tag');
-    tag.append(
-      createElement('strong', '', row.tag || '---'),
-      createElement('span', '', comparisonStatusLabel(row.status))
-    );
+    tag.appendChild(createMarcTagInfo(row));
     const status = createElement('span', 'bib-compare-field-status', comparisonStatusLabel(row.status));
     item.append(
       tag,
@@ -636,6 +630,8 @@ function renderComparison(payload) {
   query('[data-bib-fields]')?.classList.toggle('hidden', !hasComparison);
   renderFilterButtons();
   if (hasComparison) renderFieldRows();
+  const excelButton = query('[data-bib-excel-download]');
+  if (excelButton) excelButton.disabled = !payload?.local?.summary;
 }
 
 async function loadComparison(catalogKey, oclcNumber = '') {
@@ -875,6 +871,7 @@ function bindWorkspaceEvents(workspace) {
       showToastMessage(error.message || 'The hydration candidate could not be downloaded.', 'error');
     }
   });
+  bindSingleHydrationExcel({ workspace, getPayload: () => state.comparison, notify: showToastMessage });
   workspace.addEventListener('click', event => {
     workspace.querySelectorAll('.bib-compare-download-menu[open]').forEach(menu => {
       if (!menu.contains(event.target)) menu.open = false;

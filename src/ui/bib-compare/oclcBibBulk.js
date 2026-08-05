@@ -226,7 +226,7 @@ function bulkMarkup() {
           <p>Strong WorldCat matches resolve automatically. Ambiguous records remain available for review.</p>
         </div>
         <div class="bib-bulk-actions">
-          <button class="bib-bulk-download hidden" type="button" data-bib-bulk-download>Download Excel</button>
+          <button class="bib-bulk-download" type="button" data-bib-bulk-download disabled data-tooltip="Available after at least one record has been reviewed">Download Excel review</button>
           <button class="bib-bulk-cancel hidden" type="button" data-bib-bulk-cancel>Cancel</button>
         </div>
       </header>
@@ -308,7 +308,11 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
       resultsElement.appendChild(row);
     });
     renderStats();
-    downloadButton.classList.toggle('hidden', results.length === 0);
+    downloadButton.disabled = results.length === 0;
+    downloadButton.setAttribute(
+      'data-tooltip',
+      results.length ? 'Download the completed hydration review as Excel' : 'Available after at least one record has been reviewed'
+    );
   }
 
   function setProgress(completed, total, message) {
@@ -373,23 +377,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
     if (!results.length || downloadButton.disabled) return;
     downloadButton.disabled = true;
     try {
-      await bulkWorkbookExporter.download({
-        config: {
-          mode: 'single',
-          runDetailsRows: [
-            ['Review', 'Purpose', 'Read-only local and WorldCat bibliographic comparison'],
-            ['Review', 'Important', 'Exact-edition evidence does not authorize record changes'],
-            ['Review', 'Candidate selection', 'Edition identity is verified first; record usefulness ranks only verified exact-edition candidates'],
-            ['Review', 'Usefulness score', 'Encoding completeness, authenticated cataloging, descriptive coverage, access points, notes, and usable field breadth'],
-            ['Review', 'Field coverage', 'Tag inventories cover every field; 521 and 526 are only two possible review targets']
-          ]
-        },
-        helpers: {
-          progress: { update() {} },
-          async yieldToBrowser() {}
-        },
-        state: buildBulkReviewWorkbookState(results)
-      });
+      await downloadHydrationReviewWorkbook(results);
       showToastMessage('Hydration review workbook downloaded.', 'success');
     } catch (error) {
       setSearchStatus(error.message || 'The review workbook could not be created.', 'error');
@@ -403,6 +391,26 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
   });
 
   return { run, setVisible };
+}
+
+async function downloadHydrationReviewWorkbook(results) {
+  return bulkWorkbookExporter.download({
+    config: {
+      mode: 'single',
+      runDetailsRows: [
+        ['Review', 'Purpose', 'Read-only local and WorldCat bibliographic comparison'],
+        ['Review', 'Important', 'Exact-edition evidence does not authorize record changes'],
+        ['Review', 'Candidate selection', 'Edition identity is verified first; record usefulness ranks only verified exact-edition candidates'],
+        ['Review', 'Usefulness score', 'Encoding completeness, authenticated cataloging, descriptive coverage, access points, notes, and usable field breadth'],
+        ['Review', 'Field coverage', 'Tag inventories cover every field; requested fields are reviewed independently']
+      ]
+    },
+    helpers: {
+      progress: { update() {} },
+      async yieldToBrowser() {}
+    },
+    state: buildBulkReviewWorkbookState(results)
+  });
 }
 
 function initializeBulkForm({ workspace, controller, setSearchStatus }) {
@@ -457,4 +465,11 @@ function initializeBulkForm({ workspace, controller, setSearchStatus }) {
   });
 }
 
-export { buildBulkResolvePayload, buildBulkReviewWorkbookState, chunkEntries, createBulkController, initializeBulkForm };
+export {
+  buildBulkResolvePayload,
+  buildBulkReviewWorkbookState,
+  chunkEntries,
+  createBulkController,
+  downloadHydrationReviewWorkbook,
+  initializeBulkForm
+};

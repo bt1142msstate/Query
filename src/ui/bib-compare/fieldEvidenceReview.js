@@ -58,17 +58,15 @@ function buildEvidenceItem(field, recordProvenance) {
   const item = createElement('article', 'bib-field-evidence-item');
   item.dataset.tone = metadata.tone;
   const heading = createElement('div', 'bib-field-evidence-item-heading');
-  const title = createElement('div', 'bib-field-evidence-title');
-  title.append(
-    createElement('strong', '', String(field?.tag || '---')),
-    createElement('span', '', field?.label || 'Bibliographic field')
-  );
+  const title = createMarcTagInfo(field, 'bib-field-evidence-title');
   heading.append(title, createElement('span', 'bib-field-evidence-status', metadata.label));
   item.append(heading, createElement('p', 'bib-field-evidence-reason', field?.reason || 'Review this field before use.'));
 
   const details = createElement('details', 'bib-field-evidence-details');
   details.appendChild(createElement('summary', '', 'Evidence details'));
   appendMetadata(details, 'Selection path', field?.source_path_label);
+  appendMetadata(details, 'Field definition', field?.description);
+  appendMetadata(details, 'Definition source', field?.standard);
   appendMetadata(details, 'Local comparison', RELATIONSHIP[field?.local_relationship] || field?.local_relationship);
   appendMetadata(details, 'Field attribution', field?.field_attribution);
   appendMetadata(details, 'Cataloging agencies', recordProvenance?.cataloging_agencies);
@@ -112,3 +110,4 @@ export {
   fieldEvidenceSummary,
   renderFieldEvidenceReview
 };
+import { createMarcTagInfo } from './marcTagInfo.js';
