@@ -3036,6 +3036,33 @@ async function exerciseDesktopResultsWorkflow(page, queryApiStub) {
   }));
   await page.locator('#toggle-bib-compare').click();
   await page.locator('#bib-compare-workspace [data-bib-mode="bulk"]').click();
+  queryApiStub.enqueue({
+    action: 'resolve_oclc_bibs_bulk',
+    body: JSON.stringify({
+      returned: 1,
+      counts: { resolved: 1, review: 0, not_found: 0, failed: 0 },
+      results: [{
+        index: 0,
+        input: '923278',
+        lookup_type: 'catalog_key',
+        status: 'resolved',
+        local: demoBibData.records[0].local.summary,
+        worldcat: demoBibData.records[0].worldcat.summary,
+        selection: demoBibData.records[0].selection,
+        match: demoBibData.records[0].match,
+        review: demoBibData.records[0].review
+      }]
+    }),
+    contentType: 'application/json; charset=utf-8'
+  });
+  const currentQueryButton = page.locator('#bib-compare-workspace [data-bib-current-query]');
+  if (await currentQueryButton.isDisabled()) {
+    throw new Error('Hydration should enable the current-query source for loaded results.');
+  }
+  await currentQueryButton.click();
+  await page.waitForFunction(() => (
+    document.querySelectorAll('#bib-compare-workspace .bib-bulk-result').length === 1
+  ), null, { timeout: 5000 });
   await page.locator('#bib-compare-workspace [data-bib-bulk-values]').fill('923278\n978-0-06-058660-7\nMissing title');
   await page.locator('#bib-compare-workspace [data-bib-bulk-form] [type="submit"]').click();
   await page.waitForFunction(() => (

@@ -39,6 +39,26 @@ function buildJsonlResultStream({
 
 const smokeFieldDefinitions = [
   {
+    name: 'Catalog Key',
+    category: 'Catalog',
+    desc: 'Smoke-test bibliographic key',
+    filters: ['equals'],
+    type: 'string',
+    recordLookupType: 'catalog_key',
+    recordLookupPriority: 1,
+    recordLookupScope: 'bibliographic'
+  },
+  {
+    name: 'Title',
+    category: 'Catalog',
+    desc: 'Smoke-test bibliographic title',
+    filters: ['contains', 'equals'],
+    type: 'string',
+    recordLookupType: 'title',
+    recordLookupPriority: 3,
+    recordLookupScope: 'bibliographic'
+  },
+  {
     name: 'Smoke Title',
     category: 'Smoke',
     desc: 'Smoke-test title field',

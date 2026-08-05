@@ -1882,3 +1882,57 @@
     animation-duration: 1.8s;
   }
 }
+.bib-current-query-button {
+  align-items: center;
+  background: color-mix(in srgb, var(--qp-sys-color-primary) 12%, var(--qp-sys-color-surface));
+  border: 1px solid color-mix(in srgb, var(--qp-sys-color-primary) 42%, var(--qp-sys-color-outline));
+  border-radius: 6px;
+  color: var(--qp-sys-color-on-surface-strong);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-weight: 650;
+  gap: 9px;
+  justify-content: center;
+  min-height: 42px;
+  padding: 9px 12px;
+  width: 100%;
+}
+
+.bib-current-query-button svg {
+  fill: none;
+  height: 19px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+  width: 19px;
+}
+
+.bib-current-query-button:disabled {
+  cursor: not-allowed;
+  opacity: .52;
+}
+
+.bib-current-query-note {
+  color: var(--qp-sys-color-on-surface-variant);
+  font-size: 12px;
+  margin: -5px 0 2px;
+}
+
+.bib-bulk-source-divider {
+  align-items: center;
+  color: var(--qp-sys-color-on-surface-variant);
+  display: flex;
+  font-size: 11px;
+  gap: 9px;
+  text-transform: uppercase;
+}
+
+.bib-bulk-source-divider::before,
+.bib-bulk-source-divider::after {
+  background: var(--qp-sys-color-outline);
+  content: '';
+  flex: 1;
+  height: 1px;
+}

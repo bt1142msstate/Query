@@ -767,6 +767,22 @@ function setDuplicateRowCollapseMode(active, options = {}) {
   return duplicateRowCollapseActive;
 }
 
+function filterDetachedTableData(tableData, options = {}) {
+  const snapshot = options.postFilters || {};
+  if (!Object.keys(snapshot).length) return tableData;
+  const detachedView = options.splitColumns
+    ? buildExpandedMultiValueTable(tableData, { lazyRows: true })
+    : tableData;
+  const detachedFilters = createVirtualTablePostFilterController({
+    getBaseViewData: () => detachedView,
+    getDisplayedFields: () => detachedView.headers,
+    getFieldType
+  });
+  detachedFilters.assign(snapshot);
+  detachedFilters.sanitizeForCurrentView();
+  return { ...detachedView, rows: detachedFilters.getFilteredRows() };
+}
+
 VirtualTable = {
   // State
   get virtualTableData() { return virtualTableData; },
@@ -808,6 +824,7 @@ VirtualTable = {
   syncProjectionFromQueryState,
   setSplitColumnsMode,
   setDuplicateRowCollapseMode,
+  filterDetachedTableData,
   expandMultiValueColumns,
   getFilterActionFieldName: fieldName => getSplitFieldParentName(fieldName, baseViewData),
   getPostFilterActionFields: fields => getPostFilterActionFieldsForTable(fields, baseViewData),
