@@ -11,6 +11,7 @@ import {
   summaryValue
 } from './bibCompareFormat.js';
 import {
+  buildHydratedBibRecord,
   downloadBibRecord,
   FORMATS
 } from './bibRecordDownload.js';
@@ -192,6 +193,13 @@ function workspaceMarkup() {
               </div>
               <p class="bib-compare-score-note">Transparent policy score, not a statistical probability.</p>
               <div class="bib-compare-target-results" data-bib-target-results></div>
+              <div class="bib-compare-hydrated-download">
+                <button type="button" data-bib-hydrated-download disabled>
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M5 20h14"/></svg>
+                  <span>Download hydrated bib</span>
+                </button>
+                <p data-bib-hydrated-download-status>This read-only candidate never changes Symphony.</p>
+              </div>
             </section>
 
             <section class="bib-compare-candidate-band hidden" data-bib-candidate-band>
@@ -507,6 +515,32 @@ function renderHydrationConfidence(payload) {
     item.textContent = `${field.tag} ${field.hydration_allowed ? 'available' : (field.available ? 'blocked' : 'missing')}`;
     results?.appendChild(item);
   });
+
+  const downloadButton = query('[data-bib-hydrated-download]');
+  const downloadStatus = query('[data-bib-hydrated-download-status]');
+  const approvedTags = (assessment.fields || [])
+    .filter(field => field.hydration_allowed)
+    .map(field => String(field.tag || ''))
+    .filter(tag => /^\d{3}$/u.test(tag));
+  const isSelectedPlan = assessment.mode === 'selected_fields';
+  const canDownload = assessment.advice === 'recommended'
+    && isSelectedPlan
+    && approvedTags.length > 0
+    && Boolean(payload?.local?.record?.fields?.length)
+    && Boolean(payload?.worldcat?.record?.fields?.length);
+  if (downloadButton) {
+    downloadButton.disabled = !canDownload;
+    downloadButton.dataset.bibHydrationTags = canDownload ? approvedTags.join(',') : '';
+  }
+  if (downloadStatus) {
+    downloadStatus.textContent = canDownload
+      ? `Builds a read-only candidate using approved WorldCat ${approvedTags.join(', ')} fields. Nothing is sent to Symphony.`
+      : !isSelectedPlan
+        ? 'Choose Selected fields to create a bounded candidate. Nothing is sent to Symphony.'
+        : assessment.advice !== 'recommended'
+          ? 'A candidate is available only when the selected-field assessment is Recommended.'
+          : 'The complete local and WorldCat records are required before a candidate can be downloaded.';
+  }
 }
 
 function candidateOption(candidate) {
@@ -874,6 +908,26 @@ function bindWorkspaceEvents(workspace) {
       showToastMessage(`${filename} downloaded.`, 'success');
     } catch (error) {
       showToastMessage(error.message || 'The bibliographic record could not be downloaded.', 'error');
+    }
+  });
+  workspace.querySelector('[data-bib-hydrated-download]')?.addEventListener('click', event => {
+    const button = event.currentTarget;
+    const tags = String(button.dataset.bibHydrationTags || '').split(',').filter(Boolean);
+    try {
+      const record = buildHydratedBibRecord({
+        localRecord: state.comparison?.local?.record,
+        worldcatRecord: state.comparison?.worldcat?.record,
+        tags
+      });
+      const filename = downloadBibRecord({
+        record,
+        summary: state.comparison?.local?.summary,
+        source: 'hydrated',
+        format: 'marc'
+      });
+      showToastMessage(`${filename} downloaded for review. No catalog changes were made.`, 'success');
+    } catch (error) {
+      showToastMessage(error.message || 'The hydration candidate could not be downloaded.', 'error');
     }
   });
   workspace.addEventListener('click', event => {

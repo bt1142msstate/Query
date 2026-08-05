@@ -1196,6 +1196,64 @@
   gap: 0.35rem;
 }
 
+.bib-compare-hydrated-download {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.8rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--qp-sys-color-outline);
+}
+
+.bib-compare-hydrated-download button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 0.42rem;
+  min-height: 2.25rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--qp-sys-color-primary);
+  border-radius: 6px;
+  color: var(--qp-sys-color-on-primary);
+  background: var(--qp-sys-color-primary);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.bib-compare-hydrated-download button:hover:not(:disabled),
+.bib-compare-hydrated-download button:focus-visible:not(:disabled) {
+  background: var(--qp-sys-color-primary-strong);
+  outline: 2px solid var(--qp-sys-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.bib-compare-hydrated-download button:disabled {
+  border-color: var(--qp-sys-color-outline);
+  color: var(--qp-sys-color-on-surface-muted);
+  background: var(--qp-sys-color-surface-container);
+  cursor: not-allowed;
+}
+
+.bib-compare-hydrated-download svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.bib-compare-hydrated-download p {
+  margin: 0;
+  color: var(--qp-sys-color-on-surface-variant);
+  font-size: 0.7rem;
+  line-height: 1.4;
+  text-align: right;
+}
+
 .bib-compare-score-note {
   color: var(--qp-sys-color-on-surface-variant);
   font-size: 0.68rem;
@@ -1506,6 +1564,15 @@
   .bib-bulk-open { grid-column: 2; grid-row: 2; }
   .bib-compare-score-grid {
     grid-template-columns: 1fr;
+  }
+
+  .bib-compare-hydrated-download {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .bib-compare-hydrated-download p {
+    text-align: left;
   }
 
   .bib-compare-ranking-guide {

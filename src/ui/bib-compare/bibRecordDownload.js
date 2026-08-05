@@ -41,6 +41,62 @@ function normalizedRecord(record) {
   };
 }
 
+function cloneField(field) {
+  return {
+    ...field,
+    ...(Array.isArray(field?.subfields)
+      ? { subfields: field.subfields.map(subfield => ({ ...subfield })) }
+      : {})
+  };
+}
+
+function isProtectedHydrationTag(tag) {
+  const number = Number(tag);
+  return number < 10
+    || ['035', '040', '049'].includes(tag)
+    || (number >= 590 && number <= 599)
+    || (number >= 690 && number <= 699)
+    || (number >= 850 && number <= 899)
+    || number >= 900;
+}
+
+function buildHydratedBibRecord({ localRecord, worldcatRecord, tags }) {
+  const local = normalizedRecord(localRecord);
+  const worldcat = normalizedRecord(worldcatRecord);
+  const requestedTags = [...new Set((tags || []).map(tag => String(tag || '').trim()))]
+    .filter(tag => /^\d{3}$/u.test(tag));
+  if (!local.fields.length || !worldcat.fields.length) {
+    throw new Error('Both complete bibliographic records are required to build a hydration candidate.');
+  }
+  if (!requestedTags.length) {
+    throw new Error('Choose specific eligible fields before downloading a hydration candidate.');
+  }
+  const blockedTag = requestedTags.find(isProtectedHydrationTag);
+  if (blockedTag) {
+    throw new Error(`Protected field ${blockedTag} cannot be hydrated.`);
+  }
+
+  const selectedFields = worldcat.fields
+    .filter(field => requestedTags.includes(String(field.tag)) && !field.control)
+    .map(cloneField);
+  const availableTags = new Set(selectedFields.map(field => String(field.tag)));
+  const missingTags = requestedTags.filter(tag => !availableTags.has(tag));
+  if (missingTags.length) {
+    throw new Error(`WorldCat does not contain the selected field${missingTags.length === 1 ? '' : 's'}: ${missingTags.join(', ')}.`);
+  }
+
+  const outputFields = local.fields
+    .filter(field => !availableTags.has(String(field.tag)))
+    .map(cloneField);
+  selectedFields.forEach(field => {
+    const tagNumber = Number(field.tag);
+    const insertAt = outputFields.findIndex(existing => Number(existing.tag) > tagNumber);
+    if (insertAt < 0) outputFields.push(field);
+    else outputFields.splice(insertAt, 0, field);
+  });
+  return { leader: local.leader, fields: outputFields };
+}
+
 function xmlEscape(value) {
   return safeText(value)
     .replace(/&/gu, '&amp;')
@@ -183,7 +239,7 @@ function filenamePart(value, fallback) {
 }
 
 function buildBibDownloadFilename({ source, summary, format }) {
-  const sourceName = source === 'worldcat' ? 'worldcat' : 'symphony';
+  const sourceName = source === 'worldcat' ? 'worldcat' : (source === 'hydrated' ? 'hydrated' : 'symphony');
   const identifier = source === 'worldcat'
     ? `oclc-${filenamePart(summary?.oclc_number, 'record')}`
     : `catalog-${filenamePart(summary?.catalog_key, 'record')}`;
@@ -204,7 +260,9 @@ function serializeBibRecord({ record, summary, source, format }) {
       return recordToMrk(record);
     case 'json':
       return `${JSON.stringify({
-        source: source === 'worldcat' ? 'OCLC WorldCat' : 'Symphony',
+      source: source === 'worldcat'
+        ? 'OCLC WorldCat'
+        : (source === 'hydrated' ? 'Hydration candidate' : 'Symphony'),
         summary: summary || {},
         record: normalizedRecord(record)
       }, null, 2)}\n`;
@@ -231,6 +289,7 @@ function downloadBibRecord(options) {
 export {
   FORMATS,
   buildBibDownloadFilename,
+  buildHydratedBibRecord,
   downloadBibRecord,
   recordToMarc,
   recordToMarcxml,
