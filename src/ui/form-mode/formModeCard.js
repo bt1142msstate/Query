@@ -4,6 +4,7 @@ const FORM_MODE_CARD_SELECTORS = Object.freeze({
   copyBtn: '#form-mode-copy',
   fieldsWrap: '#form-mode-fields',
   focusFormBtn: '#form-mode-focus-form',
+  nameInput: '[data-form-mode-name-input]',
   resetBtn: '#form-mode-reset',
   resetMenu: '#form-mode-reset-options',
   resetMenuShell: '#form-mode-reset-menu',
@@ -21,7 +22,18 @@ function getFormModeCardHtml() {
   return `
     <div class="form-mode-header">
       <div class="form-mode-header-copy">
-        <h2 class="form-mode-title" data-form-mode-title></h2>
+        <h2 class="sr-only" data-form-mode-title-heading></h2>
+        <label class="form-mode-name-shell">
+          <span class="sr-only">Form name</span>
+          <input type="text"
+                 class="form-mode-title-input"
+                 data-form-mode-name-input
+                 aria-label="Form name"
+                 placeholder="No name"
+                 maxlength="120"
+                 autocomplete="off"
+                 spellcheck="false">
+        </label>
         <p class="form-mode-description hidden" data-form-mode-description></p>
       </div>
       <div class="form-mode-header-tools">
@@ -41,8 +53,11 @@ function getFormModeCardHtml() {
             Form + table
           </button>
         </div>
-        <div class="form-mode-actions">
-          <button type="button" id="form-mode-add-field" class="form-mode-btn form-mode-btn-secondary">+ Add Field</button>
+      </div>
+    </div>
+    <div class="form-mode-command-bar">
+      <button type="button" id="form-mode-add-field" class="form-mode-btn form-mode-btn-secondary">+ Add Field</button>
+      <div class="form-mode-actions">
           <button type="button" id="form-mode-run" class="form-mode-btn form-mode-btn-primary">Run Form</button>
           <div id="form-mode-reset-menu" class="form-mode-reset-menu">
             <button type="button"
@@ -92,7 +107,6 @@ function getFormModeCardHtml() {
               </button>
             </div>
           </div>
-        </div>
       </div>
     </div>
     <div class="form-mode-body">
@@ -177,6 +191,7 @@ function mountFormModeCard(documentRef) {
     fieldsWrap: card.querySelector(FORM_MODE_CARD_SELECTORS.fieldsWrap),
     focusFormBtn: card.querySelector(FORM_MODE_CARD_SELECTORS.focusFormBtn),
     host,
+    nameInput: card.querySelector(FORM_MODE_CARD_SELECTORS.nameInput),
     resetBtn: card.querySelector(FORM_MODE_CARD_SELECTORS.resetBtn),
     resetMenu: card.querySelector(FORM_MODE_CARD_SELECTORS.resetMenu),
     resetMenuShell: card.querySelector(FORM_MODE_CARD_SELECTORS.resetMenuShell),

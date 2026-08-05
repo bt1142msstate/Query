@@ -26,6 +26,7 @@ function buildInteractiveFormModeCard(options) {
     syncShareUi,
     setWorkspaceFocused,
     syncWorkspacePresentation,
+    tableNameInput,
     showToastMessage,
     clipboardUtils = ClipboardUtils,
     cleanupControls
@@ -40,6 +41,7 @@ function buildInteractiveFormModeCard(options) {
 
   state.formHost = mountedCard.host;
   state.formCard = mountedCard.card;
+  state.formNameInput = mountedCard.nameInput;
   state.focusFormBtn = mountedCard.focusFormBtn;
   state.validationEl = mountedCard.validationEl;
   state.runBtn = mountedCard.runBtn;
@@ -59,6 +61,15 @@ function buildInteractiveFormModeCard(options) {
   const lockedFilterCount = Array.isArray(state.spec.lockedFilters)
     ? state.spec.lockedFilters.length
     : 0;
+
+  const syncFormName = event => {
+    if (!mountedCard.nameInput || !tableNameInput) return;
+    tableNameInput.value = mountedCard.nameInput.value;
+    const EventConstructor = document.defaultView?.Event || Event;
+    tableNameInput.dispatchEvent(new EventConstructor(event.type, { bubbles: true }));
+  };
+  mountedCard.nameInput?.addEventListener('input', syncFormName);
+  mountedCard.nameInput?.addEventListener('change', syncFormName);
 
   if (visibleInputs.length === 0) {
     fieldsWrap.appendChild(lockedFilterCount > 0

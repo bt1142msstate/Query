@@ -1298,6 +1298,12 @@ async function exerciseEditableFormUrlRefresh(page, failures) {
 
   await page.locator('#form-mode-focus-form').click();
   await page.waitForFunction(() => document.body.classList.contains('form-workspace-focused'), null, { timeout: 5000 });
+  await page.locator('[data-form-mode-name-input]').fill('Editable form name');
+  await page.waitForFunction(() => {
+    const url = new URL(window.location.href);
+    return document.getElementById('table-name-input')?.value === 'Editable form name'
+      && url.searchParams.get('tableName') === 'Editable form name';
+  }, null, { timeout: 5000 });
   const focusedWorkspace = await page.evaluate(() => {
     const card = document.getElementById('form-mode-card');
     const fields = document.getElementById('form-mode-fields');
@@ -1309,6 +1315,7 @@ async function exerciseEditableFormUrlRefresh(page, failures) {
     return {
       cardHeight: cardRect?.height || 0,
       cardWidth: cardRect?.width || 0,
+      formName: document.querySelector('[data-form-mode-name-input]')?.value || '',
       fieldsColumns: fields ? getComputedStyle(fields).gridTemplateColumns.trim().split(/\s+/).length : 0,
       focusButtonPressed: focusButton?.getAttribute('aria-pressed'),
       focusControlVisible: Boolean(focusRect && focusRect.width > 0 && focusRect.height > 0),
@@ -1326,11 +1333,12 @@ async function exerciseEditableFormUrlRefresh(page, failures) {
     || focusedWorkspace.showTableButtonPressed !== 'false'
     || !focusedWorkspace.focusControlVisible
     || focusedWorkspace.scrollTop > 1
-    || focusedWorkspace.fieldsColumns !== 1
-    || focusedWorkspace.cardHeight < Math.min(620, focusedWorkspace.viewportHeight * 0.68)
-    || focusedWorkspace.cardWidth > Math.min(984, focusedWorkspace.viewportWidth) + 2
+    || focusedWorkspace.formName !== 'Editable form name'
+    || focusedWorkspace.fieldsColumns !== (focusedWorkspace.viewportWidth > 1180 ? 2 : 1)
+    || focusedWorkspace.cardHeight < Math.min(480, focusedWorkspace.viewportHeight * 0.5)
+    || focusedWorkspace.cardWidth > Math.min(1124, focusedWorkspace.viewportWidth) + 2
   ) {
-    throw new Error(`Form-only workspace should hide the table and use a tall single-column form: ${JSON.stringify(focusedWorkspace)}`);
+    throw new Error(`Form-only workspace should hide the table and use a balanced editable form: ${JSON.stringify(focusedWorkspace)}`);
   }
 
   await page.locator('#form-mode-show-table').click();

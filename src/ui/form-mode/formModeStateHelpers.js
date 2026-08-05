@@ -131,11 +131,14 @@ import { DOM } from '../../core/domCache.js';
   function updateHeaderCopy(formCard, spec, bindings, interpolateValue) {
     if (!formCard) return;
 
-    const titleEl = formCard.querySelector('[data-form-mode-title]');
+    const titleEl = formCard.querySelector('[data-form-mode-name-input]');
+    const titleHeading = formCard.querySelector('[data-form-mode-title-heading]');
     const descriptionEl = formCard.querySelector('[data-form-mode-description]');
 
     if (titleEl) {
-      titleEl.textContent = interpolateValue(spec.title || '', bindings).trim() || 'No name';
+      const resolvedTitle = interpolateValue(spec.title || '', bindings).trim();
+      if (titleEl.value !== resolvedTitle) titleEl.value = resolvedTitle;
+      if (titleHeading) titleHeading.textContent = resolvedTitle || 'No name';
     }
 
     if (descriptionEl) {
