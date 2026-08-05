@@ -200,6 +200,7 @@
     "src/ui/bib-compare/bibCompareFormat.js": "a3824d8b7c6d9471",
     "src/ui/bib-compare/bibCompareLaunch.js": "4797b2990683b83c",
     "src/ui/bib-compare/bibRecordDownload.js": "91d0ee50794e4a5a",
+    "src/ui/bib-compare/hydrationRankingGuide.js": "a0e1a1644671b28a",
     "src/ui/bib-compare/oclcBibBulk.js": "7156fd834cfd7eb6",
     "src/ui/bib-compare/oclcBibCompare.js": "f38a581ca0cdc1d8",
     "src/ui/controls/customDatePicker.js": "88e4eb3245ac256c",
@@ -260,7 +261,6 @@
     "src/ui/themeToggle.js": "ff16927ad15e4df6",
     "src/ui/toast.js": "cbf5e5e1abd48fd4",
     "src/ui/tooltips.js": "b521563ea680b277",
-    "src/ui/workspaceLayoutObservers.js": "5de600f51a0c69d5",
-    "src/ui/bib-compare/hydrationRankingGuide.js": "a0e1a1644671b28a"
+    "src/ui/workspaceLayoutObservers.js": "5de600f51a0c69d5"
   }
 }
