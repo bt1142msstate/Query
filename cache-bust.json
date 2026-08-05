@@ -1,5 +1,5 @@
 {
-  "version": "043ba94b144dfe6d",
+  "version": "083483a3b9095b2d",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -177,8 +177,8 @@
     "src/lib/workbook-export/workbookXmlUtils.js": "2cc0fcdda2a1d411",
     "src/lib/workbook-export/xlsxZipWriter.js": "5f4c1f6e98fbcb06",
     "src/styles/api-settings.css": "7c6ff2277eb40a47",
-    "src/styles/app.css": "7554c2471a56bf93",
-    "src/styles/base.css": "c4ca07d10bc6c19a",
+    "src/styles/app.css": "4c1144dd958c3408",
+    "src/styles/base.css": "e3e09a6d7ff1ef0c",
     "src/styles/bib-compare.css": "47bea8ff96797645",
     "src/styles/controls.css": "5372b30b175cd1e7",
     "src/styles/filters.css": "9e7297e65dd68a3c",
