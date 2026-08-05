@@ -180,6 +180,29 @@ function compareDemoBib(payload, data) {
   const advice = blocked.length
     ? 'do_not_hydrate'
     : (missing.length ? 'review' : 'recommended');
+  const evidenceFields = fields.map(field => {
+    const status = !field.hydration_allowed
+      ? 'not_appropriate'
+      : (['521', '526'].includes(field.tag) ? 'strong' : 'supported');
+    return {
+      tag: field.tag,
+      label: field.tag === '521' ? 'Target audience note' : (field.tag === '526' ? 'Study program information' : `Field ${field.tag}`),
+      status,
+      reason: status === 'strong'
+        ? 'The field is structurally valid, attributed, and attached to an identity-safe WorldCat record.'
+        : (status === 'supported'
+            ? 'The field is structurally valid and attached to an identity-safe WorldCat record.'
+            : 'This field is missing or is not eligible for WorldCat hydration.'),
+      download_allowed: ['strong', 'supported'].includes(status) ? 1 : 0,
+      local_count: 0,
+      worldcat_count: field.available ? 1 : 0,
+      local_relationship: 'missing_locally',
+      source_path: 'local_035',
+      source_path_label: 'Existing local OCLC link',
+      field_attribution: field.tag === '526' ? ['Accelerated Reader AR'] : [],
+      structure: { valid: field.available ? 1 : 0, issues: [] }
+    };
+  });
   comparison.review = {
     ...(comparison.review || {}),
     mode: requestedTags.length ? 'selected_fields' : 'all_fields',
@@ -201,6 +224,21 @@ function compareDemoBib(payload, data) {
     missing_tags: missing,
     blocked_tags: blocked,
     high_risk_tags: fields.filter(field => field.risk === 'high').map(field => field.tag),
+    field_evidence: {
+      applicable: evidenceFields.length ? 1 : 0,
+      ready_for_candidate_download: evidenceFields.length && evidenceFields.every(field => field.download_allowed) ? 1 : 0,
+      score_effect: 'none',
+      version: '1.0-demo',
+      fields: evidenceFields,
+      needs_review_tags: [],
+      conflicting_tags: [],
+      not_appropriate_tags: evidenceFields.filter(field => field.status === 'not_appropriate').map(field => field.tag),
+      already_present_tags: [],
+      record_provenance: {
+        cataloging_agencies: ['DLC', 'OCLCO'],
+        authentication_codes: ['pcc']
+      }
+    },
     scoring_version: '1.0-demo'
   };
   return comparison;

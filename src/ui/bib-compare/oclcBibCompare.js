@@ -16,6 +16,7 @@ import {
   FORMATS
 } from './bibRecordDownload.js';
 import { createBulkController, initializeBulkForm } from './oclcBibBulk.js';
+import { fieldEvidenceDownloadReady, renderFieldEvidenceReview } from './fieldEvidenceReview.js';
 import { createHydrationRankingGuide, hydrationRankingGuideMarkup } from './hydrationRankingGuide.js';
 
 const FILTERS = [
@@ -194,6 +195,7 @@ function workspaceMarkup() {
               </div>
               <p class="bib-compare-score-note">Transparent policy score, not a statistical probability.</p>
               <div class="bib-compare-target-results" data-bib-target-results></div>
+              <section class="bib-field-evidence-review hidden" data-bib-field-evidence></section>
               <div class="bib-compare-hydrated-download">
                 <button type="button" data-bib-hydrated-download disabled>
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M5 20h14"/></svg>
@@ -480,6 +482,7 @@ function renderHydrationConfidence(payload) {
     item.textContent = `${field.tag} ${field.hydration_allowed ? 'available' : (field.available ? 'blocked' : 'missing')}`;
     results?.appendChild(item);
   });
+  renderFieldEvidenceReview(query('[data-bib-field-evidence]'), assessment.field_evidence);
 
   const downloadButton = query('[data-bib-hydrated-download]');
   const downloadStatus = query('[data-bib-hydrated-download-status]');
@@ -491,6 +494,7 @@ function renderHydrationConfidence(payload) {
   const canDownload = assessment.advice === 'recommended'
     && isSelectedPlan
     && approvedTags.length > 0
+    && fieldEvidenceDownloadReady(assessment.field_evidence)
     && Boolean(payload?.local?.record?.fields?.length)
     && Boolean(payload?.worldcat?.record?.fields?.length);
   if (downloadButton) {
@@ -504,6 +508,8 @@ function renderHydrationConfidence(payload) {
         ? 'Choose Selected fields to create a bounded candidate. Nothing is sent to Symphony.'
         : assessment.advice !== 'recommended'
           ? 'A candidate is available only when the selected-field assessment is Recommended.'
+          : !fieldEvidenceDownloadReady(assessment.field_evidence)
+            ? 'Field evidence requires review before a hydrated candidate can be downloaded.'
           : 'The complete local and WorldCat records are required before a candidate can be downloaded.';
   }
 }
