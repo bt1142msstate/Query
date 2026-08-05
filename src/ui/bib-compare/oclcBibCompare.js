@@ -9,14 +9,7 @@ import { createHydrationRankingGuide, hydrationRankingGuideMarkup } from './hydr
 import { createMarcTagInfo } from './marcTagInfo.js';
 import { bindSingleHydrationExcel } from './singleHydrationWorkbook.js';
 import { createCurrentQueryHydrationSource, currentQuerySourceMarkup } from './currentQueryHydration.js';
-
-const FILTERS = [
-  { id: 'differences', label: 'Differences', count: 'differences' },
-  { id: 'all', label: 'All fields', count: 'all' },
-  { id: 'local_only', label: 'Local only', count: 'local_only' },
-  { id: 'worldcat_only', label: 'WorldCat only', count: 'worldcat_only' },
-  { id: 'same', label: 'Same', count: 'same' }
-];
+import { BIB_COMPARISON_FILTERS as FILTERS, bibliographicSource } from './bibSource.js';
 const state = {
   initialized: false,
   workspace: null,
@@ -46,9 +39,9 @@ function workspaceMarkup() {
     <div class="bib-compare-shell">
       <header class="bib-compare-header">
         <div class="bib-compare-heading">
-          <span class="bib-compare-eyebrow">OCLC record enrichment</span>
+          <span class="bib-compare-eyebrow">Bibliographic record enrichment</span>
           <h1>Hydration</h1>
-          <p>Find a trustworthy WorldCat record and review fields that can improve the local record.</p>
+          <p>Check OCLC first, then use an exact Library of Congress fallback when available.</p>
         </div>
         <div class="bib-compare-header-actions">
           <span class="bib-compare-readonly">Read only</span>
@@ -151,7 +144,7 @@ function workspaceMarkup() {
           <section class="bib-compare-empty" data-bib-empty>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v16H6.5A2.5 2.5 0 0 0 4 21.5zM20 5.5A2.5 2.5 0 0 0 17.5 3H13v16h4.5a2.5 2.5 0 0 1 2.5 2.5z"/></svg>
             <h2>Select a local record</h2>
-            <p>The comparison will use its MARC 035 OCLC number when available, then show every matching and different field.</p>
+            <p>OCLC is primary. If it has no acceptable match, an exact MARC 010 Library of Congress record can be used.</p>
           </section>
 
           <section class="bib-compare-content hidden" data-bib-content aria-live="polite">
@@ -223,7 +216,7 @@ function workspaceMarkup() {
               <div class="bib-compare-field-header" aria-hidden="true">
                 <span>Tag</span>
                 <span>Symphony</span>
-                <span>WorldCat</span>
+                <span data-bib-source-column>External source</span>
                 <span>Status</span>
               </div>
               <div class="bib-compare-field-list" data-bib-field-list></div>
@@ -241,7 +234,7 @@ function ensureWorkspace() {
   const dialog = document.createElement('dialog');
   dialog.id = 'bib-compare-workspace';
   dialog.className = 'bib-compare-workspace';
-  dialog.setAttribute('aria-label', 'OCLC record hydration');
+  dialog.setAttribute('aria-label', 'Bibliographic record hydration');
   dialog.innerHTML = workspaceMarkup();
   document.body.appendChild(dialog);
   state.workspace = dialog;
@@ -351,10 +344,10 @@ function summaryRow(label, value) {
   return row;
 }
 
-function buildDownloadMenu(record, summary, source) {
+function buildDownloadMenu(record, summary, source, sourceLabel = '', downloadSource = source) {
   const menu = createElement('details', 'bib-compare-download-menu');
   const trigger = createElement('summary', 'bib-compare-download-trigger');
-  trigger.setAttribute('aria-label', `Download ${source === 'local' ? 'Symphony' : 'WorldCat'} bibliographic record`);
+  trigger.setAttribute('aria-label', `Download ${source === 'local' ? 'Symphony' : sourceLabel || 'external'} bibliographic record`);
   trigger.innerHTML = `
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M12 3v12M7.5 10.5 12 15l4.5-4.5M5 20h14"/>
@@ -367,7 +360,7 @@ function buildDownloadMenu(record, summary, source) {
     const button = createElement('button', '', metadata.label);
     button.type = 'button';
     button.dataset.bibDownload = format;
-    button.dataset.bibSource = source;
+    button.dataset.bibSource = downloadSource;
     button.setAttribute('role', 'menuitem');
     options.appendChild(button);
   });
@@ -377,18 +370,18 @@ function buildDownloadMenu(record, summary, source) {
   return menu;
 }
 
-function buildSummaryPanel(title, summary, source, record) {
+function buildSummaryPanel(title, summary, source, record, sourceMetadata = null) {
   const panel = createElement('article', `bib-compare-summary-panel bib-compare-summary-panel--${source}`);
   const heading = createElement('div', 'bib-compare-summary-heading');
   const headingText = createElement('div', 'bib-compare-summary-heading-text');
   headingText.append(
-    createElement('span', 'bib-compare-source-label', source === 'local' ? 'Symphony' : 'OCLC WorldCat'),
+    createElement('span', 'bib-compare-source-label', source === 'local' ? 'Symphony' : sourceMetadata?.label || 'External source'),
     createElement('h2', '', title)
   );
-  heading.append(headingText, buildDownloadMenu(record, summary, source));
+  heading.append(headingText, buildDownloadMenu(record, summary, source, sourceMetadata?.label, sourceMetadata?.code || source));
   const list = createElement('dl', 'bib-compare-summary-list');
   list.append(
-    summaryRow(source === 'local' ? 'Catalog key' : 'OCLC number', source === 'local' ? summary?.catalog_key : summary?.oclc_number),
+    summaryRow(source === 'local' ? 'Catalog key' : sourceMetadata?.identifierLabel || 'Source identifier', source === 'local' ? summary?.catalog_key : sourceMetadata?.identifier),
     summaryRow('Creator', summary?.creator),
     summaryRow('Edition', summary?.edition),
     summaryRow('Publication', summary?.publication),
@@ -411,18 +404,20 @@ function renderSummaries(payload) {
     'local',
     payload?.local?.record
   ));
-  if (payload?.worldcat?.summary) {
-    const worldcat = payload.worldcat.summary;
+  const source = bibliographicSource(payload);
+  if (source.record?.summary) {
+    const worldcat = source.record.summary;
     container.appendChild(buildSummaryPanel(
-      summaryValue(worldcat.title, 'Untitled WorldCat record'),
+      summaryValue(worldcat.title, `Untitled ${source.label} record`),
       worldcat,
       'worldcat',
-      payload?.worldcat?.record
+      source.record?.record,
+      source
     ));
   } else {
     const waiting = createElement('article', 'bib-compare-summary-panel bib-compare-summary-panel--waiting');
     waiting.append(
-      createElement('span', 'bib-compare-source-label', 'OCLC WorldCat'),
+      createElement('span', 'bib-compare-source-label', 'OCLC WorldCat primary'),
       createElement('h2', '', 'Match needed'),
       createElement('p', '', 'Choose a candidate or enter an OCLC number to load the WorldCat record.')
     );
@@ -442,8 +437,9 @@ function renderMatch(payload) {
     ? 'Record identity aligns'
     : 'Record identity needs review';
   const review = payload?.review;
+  const source = bibliographicSource(payload);
   const enrichment = review
-    ? ` WorldCat fields: ${Number(review.worldcat_521_count || 0)} audience (521), ${Number(review.worldcat_526_count || 0)} reading-program (526). ${review.hydration_ready ? 'Exact-edition checks align.' : 'Review exact-edition evidence before hydration.'}`
+    ? ` ${source.shortLabel} fields: ${Number(review.source_521_count ?? review.worldcat_521_count ?? 0)} audience (521), ${Number(review.source_526_count ?? review.worldcat_526_count ?? 0)} reading-program (526). ${review.hydration_ready ? 'Exact-edition checks align.' : 'Review exact-edition evidence before hydration.'}`
     : '';
   query('[data-bib-match-reason]').textContent = `${match.reason || ''}${enrichment}`;
 }
@@ -459,6 +455,7 @@ function adviceLabel(advice) {
 function renderHydrationConfidence(payload) {
   const panel = query('[data-bib-confidence]');
   const assessment = payload?.review;
+  const source = bibliographicSource(payload);
   panel?.classList.toggle('hidden', !assessment?.scoring_version);
   if (!panel || !assessment?.scoring_version) return;
   panel.dataset.advice = assessment.advice || 'review';
@@ -496,21 +493,21 @@ function renderHydrationConfidence(payload) {
     && approvedTags.length > 0
     && fieldEvidenceDownloadReady(assessment.field_evidence)
     && Boolean(payload?.local?.record?.fields?.length)
-    && Boolean(payload?.worldcat?.record?.fields?.length);
+    && Boolean(source.record?.record?.fields?.length);
   if (downloadButton) {
     downloadButton.disabled = !canDownload;
     downloadButton.dataset.bibHydrationTags = canDownload ? approvedTags.join(',') : '';
   }
   if (downloadStatus) {
     downloadStatus.textContent = canDownload
-      ? `Builds a read-only candidate using approved WorldCat ${approvedTags.join(', ')} fields. Nothing is sent to Symphony.`
+      ? `Builds a read-only candidate using approved ${source.label} ${approvedTags.join(', ')} fields. Nothing is sent to Symphony.`
       : !isSelectedPlan
         ? 'Choose Selected fields to create a bounded candidate. Nothing is sent to Symphony.'
         : assessment.advice !== 'recommended'
           ? 'A candidate is available only when the selected-field assessment is Recommended.'
           : !fieldEvidenceDownloadReady(assessment.field_evidence)
             ? 'Field evidence requires review before a hydrated candidate can be downloaded.'
-          : 'The complete local and WorldCat records are required before a candidate can be downloaded.';
+          : 'The complete local and external records are required before a candidate can be downloaded.';
   }
 }
 
@@ -623,6 +620,9 @@ function renderFieldRows() {
 
 function renderComparison(payload) {
   state.comparison = payload;
+  const source = bibliographicSource(payload);
+  const sourceColumn = query('[data-bib-source-column]');
+  if (sourceColumn) sourceColumn.textContent = source.shortLabel;
   query('[data-bib-empty]')?.classList.add('hidden');
   query('[data-bib-content]')?.classList.remove('hidden');
   renderSummaries(payload);
@@ -646,7 +646,7 @@ async function loadComparison(catalogKey, oclcNumber = '') {
   const requestId = ++state.compareRequest;
   state.selectedCatalogKey = String(catalogKey || '');
   renderSearchResults();
-  setBusy('Loading the Symphony and WorldCat records...');
+  setBusy('Loading Symphony, OCLC, and fallback records...');
   query('[data-bib-empty]')?.classList.add('hidden');
   query('[data-bib-content]')?.classList.remove('hidden');
   try {
@@ -861,7 +861,7 @@ function bindWorkspaceEvents(workspace) {
     try {
       const record = buildHydratedBibRecord({
         localRecord: state.comparison?.local?.record,
-        worldcatRecord: state.comparison?.worldcat?.record,
+        worldcatRecord: bibliographicSource(state.comparison).record?.record,
         tags
       });
       const filename = downloadBibRecord({

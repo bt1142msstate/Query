@@ -82,7 +82,7 @@ function buildHydratedBibRecord({ localRecord, worldcatRecord, tags }) {
   const availableTags = new Set(selectedFields.map(field => String(field.tag)));
   const missingTags = requestedTags.filter(tag => !availableTags.has(tag));
   if (missingTags.length) {
-    throw new Error(`WorldCat does not contain the selected field${missingTags.length === 1 ? '' : 's'}: ${missingTags.join(', ')}.`);
+    throw new Error(`The external record does not contain the selected field${missingTags.length === 1 ? '' : 's'}: ${missingTags.join(', ')}.`);
   }
 
   const outputFields = local.fields
@@ -239,10 +239,12 @@ function filenamePart(value, fallback) {
 }
 
 function buildBibDownloadFilename({ source, summary, format }) {
-  const sourceName = source === 'worldcat' ? 'worldcat' : (source === 'hydrated' ? 'hydrated' : 'symphony');
-  const identifier = source === 'worldcat'
-    ? `oclc-${filenamePart(summary?.oclc_number, 'record')}`
-    : `catalog-${filenamePart(summary?.catalog_key, 'record')}`;
+  const sourceName = source === 'loc' ? 'library-of-congress' : (source === 'worldcat' ? 'worldcat' : (source === 'hydrated' ? 'hydrated' : 'symphony'));
+  const identifier = source === 'loc'
+    ? `lccn-${filenamePart(Array.isArray(summary?.lccn) ? summary.lccn[0] : summary?.lccn, 'record')}`
+    : (source === 'worldcat'
+        ? `oclc-${filenamePart(summary?.oclc_number, 'record')}`
+        : `catalog-${filenamePart(summary?.catalog_key, 'record')}`);
   const title = filenamePart(summary?.title, 'untitled');
   return `${sourceName}-${identifier}-${title}.${FORMATS[format]?.extension || 'json'}`;
 }
@@ -260,9 +262,11 @@ function serializeBibRecord({ record, summary, source, format }) {
       return recordToMrk(record);
     case 'json':
       return `${JSON.stringify({
-      source: source === 'worldcat'
-        ? 'OCLC WorldCat'
-        : (source === 'hydrated' ? 'Hydration candidate' : 'Symphony'),
+      source: source === 'loc'
+        ? 'Library of Congress'
+        : (source === 'worldcat'
+            ? 'OCLC WorldCat'
+            : (source === 'hydrated' ? 'Hydration candidate' : 'Symphony')),
         summary: summary || {},
         record: normalizedRecord(record)
       }, null, 2)}\n`;

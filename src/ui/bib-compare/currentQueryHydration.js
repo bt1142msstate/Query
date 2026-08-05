@@ -8,7 +8,6 @@ import { QueryStateReaders } from '../../core/queryState.js';
 import { createStreamedQueryResultReader } from '../../core/queryStream.js';
 import { buildBackendQueryPayloadFromParts } from '../../features/filters/queryPayload.js';
 import { getNonBlankCellValueParts } from '../../core/resultCellValues.js';
-import { MAX_ENTRIES } from './oclcBibBulk.js';
 
 const readStreamedQueryResult = createStreamedQueryResultReader();
 
@@ -85,9 +84,6 @@ function createTableData(headers, objectRows) {
 
 function validateEntryCount(entries) {
   if (!entries.length) throw new Error('The current query has no records to hydrate.');
-  if (entries.length > MAX_ENTRIES) {
-    throw new Error(`The current query contains ${entries.length.toLocaleString()} records. Narrow it to ${MAX_ENTRIES.toLocaleString()} or fewer before hydration.`);
-  }
   return entries;
 }
 

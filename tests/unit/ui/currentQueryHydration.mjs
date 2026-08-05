@@ -52,7 +52,8 @@ test('auxiliary query preserves executed filters and adds the missing lookup fie
   assert.equal(payload.filters.length, 1);
 });
 
-test('rejects empty and oversized current-query sources', () => {
+test('rejects empty current-query sources and accepts large complete results', () => {
   assert.throws(() => validateEntryCount([]), /no records/i);
-  assert.throws(() => validateEntryCount(Array.from({ length: 501 }, (_, index) => index)), /500 or fewer/i);
+  const largeResult = Array.from({ length: 1500 }, (_, index) => index);
+  assert.equal(validateEntryCount(largeResult), largeResult);
 });

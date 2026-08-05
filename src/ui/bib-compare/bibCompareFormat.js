@@ -36,7 +36,7 @@ function comparisonStatusLabel(status) {
     same: 'Same',
     changed: 'Different',
     local_only: 'Local only',
-    worldcat_only: 'WorldCat only'
+    worldcat_only: 'Source only'
   };
   return labels[status] || 'Review';
 }

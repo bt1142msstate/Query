@@ -15,19 +15,19 @@ function hydrationRankingGuideMarkup() {
         <ol class="bib-compare-ranking-steps">
           <li>
             <span>1</span>
-            <div><h3>Find the likely WorldCat record</h3><p>Hydration first checks a trusted OCLC number already on the local record. Otherwise it sends the complete local MARC record to OCLC's best-match service, with a bounded search as fallback.</p></div>
+            <div><h3>Try OCLC first</h3><p>Hydration checks a trusted local OCLC number, then OCLC's best-match service and a bounded WorldCat search. OCLC remains the primary source.</p></div>
           </li>
           <li>
             <span>2</span>
-            <div><h3>Confirm that it is the same item</h3><p>Title, identifiers, format, creator, edition, publication details, language, pagination, and dimensions are compared. A meaningful conflict stops automatic hydration.</p></div>
+            <div><h3>Use LC only as fallback</h3><p>If OCLC has no acceptable edition match, Hydration may retrieve the exact Library of Congress record identified by the local MARC 010 LCCN. It never guesses by title over an insecure connection.</p></div>
           </li>
           <li>
             <span>3</span>
-            <div><h3>Check the fields you want</h3><p>After identity passes, the system checks whether the WorldCat record contains the requested eligible fields. Those fields can improve ranking only among records that already match the same edition.</p></div>
+            <div><h3>Confirm that it is the same item</h3><p>Title, identifiers, format, creator, edition, publication details, language, pagination, and dimensions are compared. A meaningful conflict stops automatic hydration.</p></div>
           </li>
           <li>
             <span>4</span>
-            <div><h3>Give a clear recommendation</h3><p>The interface reports record identity, requested-field suitability, and an overall policy score. These are decision aids, not statistical probabilities or OCLC confidence values.</p></div>
+            <div><h3>Check the fields you want</h3><p>Only after identity passes does the system evaluate requested fields and report a recommendation. Scores are decision aids, not statistical probabilities or vendor confidence values.</p></div>
           </li>
         </ol>
         <div class="bib-compare-ranking-decisions" aria-label="Hydration recommendation meanings">
