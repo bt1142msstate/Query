@@ -55,6 +55,14 @@
   max-width: 100%;
 }
 
+.form-mode-command-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
 .form-mode-workspace-toggle {
   display: inline-grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -109,11 +117,42 @@
   background: rgba(204, 251, 241, 0.9);
 }
 
-.form-mode-title {
+.form-mode-name-shell {
+  display: block;
+  width: min(100%, 34rem);
+}
+
+.form-mode-title-input {
+  display: block;
+  width: 100%;
+  min-width: 0;
   margin: 0;
+  padding: 0.28rem 0.45rem;
+  border: 1px solid transparent;
+  border-radius: 0.55rem;
+  background: transparent;
+  color: #0f172a;
   font-size: 1.4rem;
   font-weight: 700;
-  color: #0f172a;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-mode-title-input:hover {
+  border-color: rgba(148, 163, 184, 0.38);
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.form-mode-title-input:focus {
+  border-color: rgba(15, 118, 110, 0.52);
+  outline: none;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.14);
+}
+
+.form-mode-title-input::placeholder {
+  color: #94a3b8;
 }
 
 .form-mode-description {
@@ -272,6 +311,8 @@
 }
 
 .form-mode-field {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   padding: 0.85rem;
   border-radius: 0.95rem;
@@ -370,6 +411,7 @@
 
 .form-mode-control {
   min-width: 0;
+  margin-top: auto;
 }
 
 .form-mode-control .custom-date-input--form {
@@ -481,23 +523,146 @@ body.form-workspace-focused #form-mode-host {
 }
 
 body.form-workspace-focused .form-mode-card {
-  width: min(100%, 980px);
-  height: calc(100vh - var(--header-height) - 2.5rem);
-  height: calc(100dvh - var(--header-height) - 2.5rem);
-  min-height: 28rem;
-  max-height: none;
+  width: min(100%, 1120px);
+  height: auto;
+  min-height: min(34rem, calc(100dvh - var(--header-height) - 2.5rem));
+  max-height: calc(100dvh - var(--header-height) - 2.5rem);
+  padding: 0;
   margin-bottom: 1rem;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+body.form-workspace-focused .form-mode-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 0;
+  padding: 0.85rem 1rem;
+  background: #10243e;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+body.form-workspace-focused .form-mode-header-copy {
+  flex: 1 1 auto;
+  width: auto;
+  text-align: left;
+}
+
+body.form-workspace-focused .form-mode-name-shell {
+  width: min(100%, 42rem);
+  margin: 0;
+}
+
+body.form-workspace-focused .form-mode-title-input {
+  min-height: 2rem;
+  padding: 0.2rem 0.4rem;
+  border-color: rgba(255, 255, 255, 0.2);
+  border-radius: 0.35rem;
+  background: rgba(2, 6, 23, 0.18);
+  color: #f8fafc;
+  font-size: 1.05rem;
+  text-align: left;
+}
+
+body.form-workspace-focused .form-mode-title-input:hover {
+  border-color: rgba(255, 255, 255, 0.42);
+  background: rgba(2, 6, 23, 0.3);
+}
+
+body.form-workspace-focused .form-mode-title-input:focus {
+  border-color: #2dd4bf;
+  background: rgba(2, 6, 23, 0.46);
+  color: #fff;
+}
+
+body.form-workspace-focused .form-mode-header-tools {
+  display: block;
+  flex: 0 0 auto;
+  width: auto;
+}
+
+body.form-workspace-focused .form-mode-description {
+  margin-top: 0.18rem;
+  color: #cbd5e1;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+body.form-workspace-focused .form-mode-workspace-toggle {
+  border-color: rgba(255, 255, 255, 0.2);
+  border-radius: 0.4rem;
+  background: rgba(2, 6, 23, 0.34);
+}
+
+body.form-workspace-focused .form-mode-workspace-option {
+  min-height: 2rem;
+  border-radius: 0.28rem;
+  color: #cbd5e1;
+}
+
+body.form-workspace-focused .form-mode-workspace-option:hover {
+  color: #fff;
+}
+
+body.form-workspace-focused .form-mode-workspace-option[aria-pressed="true"],
+body.form-workspace-focused .form-mode-workspace-option.is-active {
+  border-color: transparent;
+  background: #0f8f8c;
+  color: #fff;
+  box-shadow: none;
+}
+
+body.form-workspace-focused .form-mode-command-bar {
+  width: 100%;
+  margin: 0;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--theme-border);
+  background: var(--theme-panel-bg);
+}
+
+body.form-workspace-focused .form-mode-btn {
+  min-height: 2.25rem;
+  padding: 0.48rem 0.82rem;
+  border-radius: 0.4rem;
+  font-size: 0.82rem;
+}
+
+body.form-workspace-focused .form-mode-btn:hover:not(:disabled) {
+  transform: none;
 }
 
 body.form-workspace-focused .form-mode-body {
   flex: 1 1 auto;
+  padding: 0.85rem;
+  overflow-x: hidden;
 }
 
 body.form-workspace-focused .form-mode-fields {
-  grid-template-columns: minmax(0, 1fr);
-  width: min(100%, 760px);
+  width: 100%;
   min-width: 0;
   margin-inline: auto;
+  gap: 0.75rem;
+}
+
+body.form-workspace-focused .form-mode-field {
+  border-radius: 0.5rem;
+  background: var(--theme-panel-bg-soft);
+  box-shadow: none;
+}
+
+body.form-workspace-focused .form-mode-field-remove {
+  border-radius: 0.4rem;
+}
+
+@media (min-width: 900px) {
+  body.form-workspace-focused .form-mode-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body.form-workspace-focused .form-mode-field {
+    min-height: 10.25rem;
+  }
 }
 
 @media (max-width: 1180px) {
@@ -517,6 +682,10 @@ body.form-workspace-focused .form-mode-fields {
 
   .form-mode-header-tools {
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .form-mode-command-bar {
     align-items: stretch;
   }
 
@@ -551,7 +720,7 @@ body.form-workspace-focused .form-mode-fields {
     margin-bottom: 0.8rem;
   }
 
-  .form-mode-title {
+  .form-mode-title-input {
     font-size: 1.25rem;
     line-height: 1.2;
   }
@@ -630,16 +799,106 @@ body.form-workspace-focused .form-mode-fields {
   }
 
   body.form-workspace-focused .form-mode-card {
-    height: calc(100vh - var(--header-height) - 1rem);
-    height: calc(100dvh - var(--header-height) - 1rem);
+    height: auto;
     min-height: 24rem;
-    max-height: none;
+    max-height: calc(100dvh - var(--header-height) - 1rem);
     margin-bottom: 0;
+  }
+
+  body.form-workspace-focused .form-mode-header {
+    flex-direction: row;
+  }
+
+  body.form-workspace-focused .form-mode-header-copy,
+  body.form-workspace-focused .form-mode-header-tools,
+  body.form-workspace-focused .form-mode-workspace-toggle {
+    width: auto;
+  }
+
+  body.form-workspace-focused .form-mode-header-tools {
+    flex: 0 0 auto;
+  }
+
+  body.form-workspace-focused .form-mode-command-bar {
+    display: flex;
+  }
+
+  body.form-workspace-focused .form-mode-actions {
+    display: flex;
+    width: auto;
+  }
+
+  body.form-workspace-focused .form-mode-btn,
+  body.form-workspace-focused .form-mode-reset-menu,
+  body.form-workspace-focused .form-mode-share-menu {
+    flex: 0 0 auto;
+    width: auto;
+  }
+
+  body.form-workspace-focused #form-mode-run {
+    order: 0;
   }
 
   body.form-workspace-focused .mobile-builder-toggle,
   body.form-workspace-focused #mobile-table-preferences {
     display: none !important;
+  }
+}
+
+@media (min-width: 900px) {
+  body.form-workspace-focused .form-mode-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  body.form-workspace-focused .form-mode-card {
+    max-height: none;
+  }
+
+  body.form-workspace-focused .form-mode-header {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 0.8rem;
+  }
+
+  body.form-workspace-focused .form-mode-header-tools,
+  body.form-workspace-focused .form-mode-workspace-toggle,
+  body.form-workspace-focused .form-mode-name-shell {
+    width: 100%;
+  }
+
+  body.form-workspace-focused .form-mode-command-bar {
+    display: grid;
+    grid-template-columns: 1fr;
+    padding: 0.7rem 0.8rem;
+  }
+
+  body.form-workspace-focused .form-mode-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  body.form-workspace-focused #form-mode-add-field,
+  body.form-workspace-focused #form-mode-run {
+    width: 100%;
+  }
+
+  body.form-workspace-focused #form-mode-run {
+    grid-column: 1 / -1;
+    order: -1;
+  }
+
+  body.form-workspace-focused .form-mode-reset-menu,
+  body.form-workspace-focused .form-mode-share-menu,
+  body.form-workspace-focused .form-mode-reset-trigger,
+  body.form-workspace-focused .form-mode-share-trigger {
+    width: 100%;
+  }
+
+  body.form-workspace-focused .form-mode-body {
+    padding: 0.7rem;
   }
 }
 

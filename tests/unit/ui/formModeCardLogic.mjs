@@ -11,7 +11,10 @@ import test from 'node:test';
 test('form mode card', async () => {
   const cardHtml = getFormModeCardHtml();
   Object.values(FORM_MODE_CARD_SELECTORS).forEach(selector => {
-    assert.equal(cardHtml.includes(selector.slice(1)), true, `${selector} should exist in the form card shell`);
+    const selectorToken = selector.startsWith('#')
+      ? `id="${selector.slice(1)}"`
+      : selector.slice(1, -1);
+    assert.equal(cardHtml.includes(selectorToken), true, `${selector} should exist in the form card shell`);
   });
 
   assert.equal(cardHtml.includes('Run Form'), true);
@@ -24,7 +27,9 @@ test('form mode card', async () => {
   assert.equal(cardHtml.includes('id="form-mode-share-options"'), true);
   assert.equal(cardHtml.includes('Results link'), true);
   assert.equal(cardHtml.includes('Form link'), true);
-  assert.equal(cardHtml.includes('data-form-mode-title'), true);
+  assert.equal(cardHtml.includes('data-form-mode-title-heading'), true);
+  assert.equal(cardHtml.includes('data-form-mode-name-input'), true);
+  assert.equal(cardHtml.includes('aria-label="Form name"'), true);
 
   const emptyStateHtml = getFormModeEmptyStateHtml();
   assert.equal(emptyStateHtml.includes('No filters yet.'), true);

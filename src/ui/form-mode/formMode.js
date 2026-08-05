@@ -699,6 +699,7 @@ let QueryFormMode;
       syncShareUi,
       setWorkspaceFocused,
       syncWorkspacePresentation,
+      tableNameInput: DOM && DOM.tableNameInput,
       syncValidationUi,
       showToastMessage,
       cleanupControls() {
