@@ -1,7 +1,7 @@
 {
   "fields": [
-    { "name": "Item Id", "label": "Item ID", "type": "string", "category": "Item", "desc": "Unique identifier for the sample item.", "filters": ["equals", "contains"] },
-    { "name": "Title", "label": "Title", "type": "string", "category": "Bibliographic", "desc": "Title of the sample catalog record.", "filters": ["contains", "equals", "starts", "does_not_equal"] },
+    { "name": "Item Id", "label": "Item ID", "type": "string", "category": "Item", "desc": "Unique identifier for the sample item.", "filters": ["equals", "contains"], "recordLookupType": "item_id", "recordLookupPriority": 2, "recordLookupScope": "bibliographic" },
+    { "name": "Title", "label": "Title", "type": "string", "category": "Bibliographic", "desc": "Title of the sample catalog record.", "filters": ["contains", "equals", "starts", "does_not_equal"], "recordLookupType": "title", "recordLookupPriority": 3, "recordLookupScope": "bibliographic" },
     { "name": "Author", "label": "Author", "type": "string", "category": "Bibliographic", "desc": "Primary creator associated with the title.", "filters": ["contains", "equals", "starts"] },
     { "name": "Library", "label": "Library", "type": "string", "category": "Item", "desc": "Branch that owns the sample item.", "filters": ["equals", "does_not_equal"], "values": [
       { "RawValue": "CENTRAL", "DisplayValue": "Central Library", "Description": "Main demonstration library with general and research collections." },

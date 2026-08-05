@@ -337,6 +337,10 @@ function registerTableService(service) {
     return getTableService()?.setDuplicateRowCollapseMode?.(nextValue, options);
   }
 
+  function filterDetachedTableData(tableData, options = {}) {
+    return getTableService()?.filterDetachedTableData?.(tableData, options) || tableData;
+  }
+
   function clearCurrentQuery(options = {}) {
     return queryExecutionService?.clearCurrentQuery?.(options);
   }
@@ -446,6 +450,7 @@ function registerTableService(service) {
     setSplitColumnsMode,
     isDuplicateRowCollapseActive,
     setDuplicateRowCollapseMode,
+    filterDetachedTableData,
     clearCurrentQuery,
     isFormModeActive,
     isFormModeLimitedView,

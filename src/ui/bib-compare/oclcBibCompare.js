@@ -8,6 +8,7 @@ import { fieldEvidenceDownloadReady, renderFieldEvidenceReview } from './fieldEv
 import { createHydrationRankingGuide, hydrationRankingGuideMarkup } from './hydrationRankingGuide.js';
 import { createMarcTagInfo } from './marcTagInfo.js';
 import { bindSingleHydrationExcel } from './singleHydrationWorkbook.js';
+import { createCurrentQueryHydrationSource, currentQuerySourceMarkup } from './currentQueryHydration.js';
 
 const FILTERS = [
   { id: 'differences', label: 'Differences', count: 'differences' },
@@ -16,7 +17,6 @@ const FILTERS = [
   { id: 'worldcat_only', label: 'WorldCat only', count: 'worldcat_only' },
   { id: 'same', label: 'Same', count: 'same' }
 ];
-
 const state = {
   initialized: false,
   workspace: null,
@@ -31,17 +31,16 @@ const state = {
   targetPlanValid: true,
   targetTimer: null,
   rankingGuide: null,
+  currentQuerySource: null,
   searchRequest: 0,
   compareRequest: 0
 };
-
 function createElement(tagName, className, text) {
   const element = document.createElement(tagName);
   if (className) element.className = className;
   if (text !== undefined) element.textContent = text;
   return element;
 }
-
 function workspaceMarkup() {
   return `
     <div class="bib-compare-shell">
@@ -91,6 +90,7 @@ function workspaceMarkup() {
               <h2>Match a list</h2>
               <p>Paste one value per line or import a text, CSV, or TSV file.</p>
             </div>
+            ${currentQuerySourceMarkup()}
             <label class="bib-compare-label" for="bib-bulk-type">Values are</label>
             <select id="bib-bulk-type" data-bib-bulk-type>
               <option value="auto">Auto detect</option>
@@ -236,7 +236,6 @@ function workspaceMarkup() {
     </div>
   `;
 }
-
 function ensureWorkspace() {
   if (state.workspace) return state.workspace;
   const dialog = document.createElement('dialog');
@@ -263,11 +262,16 @@ function ensureWorkspace() {
     setSearchStatus,
     showToastMessage
   });
+  state.currentQuerySource = createCurrentQueryHydrationSource({
+    workspace: dialog,
+    controller: state.bulkController,
+    setSearchStatus,
+    showToastMessage
+  });
   initializeBulkForm({ workspace: dialog, controller: state.bulkController, setSearchStatus });
   renderFilterButtons();
   return dialog;
 }
-
 function setMode(mode) {
   state.mode = mode === 'bulk' ? 'bulk' : 'single';
   query('[data-bib-single-form]')?.classList.toggle('hidden', state.mode !== 'single');
@@ -275,6 +279,7 @@ function setMode(mode) {
   query('[data-bib-empty]')?.classList.toggle('hidden', state.mode === 'bulk' || Boolean(state.comparison));
   query('[data-bib-content]')?.classList.toggle('hidden', state.mode === 'bulk' || !state.comparison);
   state.bulkController?.setVisible(state.mode === 'bulk');
+  if (state.mode === 'bulk') state.currentQuerySource?.refresh();
   state.workspace?.querySelectorAll('[data-bib-mode]').forEach(button => {
     const active = button.dataset.bibMode === state.mode;
     button.classList.toggle('is-active', active);
@@ -284,11 +289,9 @@ function setMode(mode) {
     ? 'Auto detect supports catalog keys, item IDs, ISBNs, and titles.'
     : 'Search by title, catalog key, item ID, or ISBN.');
 }
-
 function query(selector) {
   return state.workspace?.querySelector(selector) || null;
 }
-
 function setBusy(message = '') {
   const progress = query('[data-bib-progress]');
   const text = query('[data-bib-progress-text]');
@@ -760,6 +763,7 @@ function openWorkspace() {
     return false;
   }
   const workspace = ensureWorkspace();
+  state.currentQuerySource?.refresh();
   if (!workspace.open) workspace.showModal();
   document.body.classList.add('bib-compare-open');
   query('[data-bib-query]')?.focus();

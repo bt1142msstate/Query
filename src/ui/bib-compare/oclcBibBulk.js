@@ -466,6 +466,7 @@ function initializeBulkForm({ workspace, controller, setSearchStatus }) {
 }
 
 export {
+  MAX_ENTRIES,
   buildBulkResolvePayload,
   buildBulkReviewWorkbookState,
   chunkEntries,
