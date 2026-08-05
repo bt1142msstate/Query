@@ -1,5 +1,5 @@
 {
-  "version": "8daea1d4c303a535",
+  "version": "f09237e26653fc90",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-180.png": "0138531e3c9193c9",
@@ -177,7 +177,7 @@
     "src/lib/workbook-export/workbookXmlUtils.js": "2cc0fcdda2a1d411",
     "src/lib/workbook-export/xlsxZipWriter.js": "5f4c1f6e98fbcb06",
     "src/styles/api-settings.css": "7c6ff2277eb40a47",
-    "src/styles/app.css": "ca13bd78eb064cd5",
+    "src/styles/app.css": "ad8749d36cbc5247",
     "src/styles/base.css": "e3e09a6d7ff1ef0c",
     "src/styles/bib-compare.css": "2ac1c5320244576c",
     "src/styles/controls.css": "5372b30b175cd1e7",
@@ -187,7 +187,7 @@
     "src/styles/history.css": "638c1523e9f2f60f",
     "src/styles/interaction.css": "57124a9332ac9605",
     "src/styles/site-update.css": "b16b51ef4c7bd942",
-    "src/styles/table.css": "dd8096dc3b6be1ab",
+    "src/styles/table.css": "f31cbb5f26ddca19",
     "src/styles/templates.css": "1c0a1594bedc65b9",
     "src/styles/theme.css": "54af0a91d477cc85",
     "src/styles/tokens.css": "d20a2992e5150f85",
