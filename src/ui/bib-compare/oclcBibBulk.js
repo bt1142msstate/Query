@@ -6,6 +6,7 @@ import {
   splitPastedValues,
   valuesFromColumn
 } from './bibBulkInput.js';
+import { fieldEvidenceSummary } from './fieldEvidenceReview.js';
 
 const MAX_ENTRIES = 500;
 const CHUNK_SIZE = 1;
@@ -67,6 +68,12 @@ const REVIEW_FIELDS = [
   'Missing Requested Fields',
   'Blocked Requested Fields',
   'Confidence Policy Version',
+  'Field Evidence Summary',
+  'Field Evidence Ready',
+  'Fields Needing Review',
+  'Conflicting Fields',
+  'Already-present Fields',
+  'Field Evidence Policy Version',
   'Review Note'
 ];
 
@@ -105,6 +112,7 @@ function bulkResultToWorkbookRow(result) {
   const fieldSummary = result.field_summary || {};
   const differenceTags = fieldSummary.difference_tags || {};
   const utility = selection.utility || {};
+  const fieldEvidence = review.field_evidence || {};
   return [
     result.original || result.input || '',
     String(result.lookup_type || '').replaceAll('_', ' '),
@@ -155,6 +163,12 @@ function bulkResultToWorkbookRow(result) {
     joinValues(review.missing_tags),
     joinValues(review.blocked_tags),
     review.scoring_version || '',
+    fieldEvidenceSummary(fieldEvidence),
+    yesNo(fieldEvidence.ready_for_candidate_download),
+    joinValues(fieldEvidence.needs_review_tags),
+    joinValues(fieldEvidence.conflicting_tags),
+    joinValues(fieldEvidence.already_present_tags),
+    fieldEvidence.version || '',
     result.reason || ''
   ];
 }
