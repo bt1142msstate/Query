@@ -4,6 +4,7 @@ import { HistoryResultProgress } from '../results/queryHistoryResultProgress.js'
 import { createQueryHistoryResultsLoader } from '../results/queryHistoryResultsLoader.js';
 import { createOpenedHistoryResultRestoreController } from '../results/queryHistoryResultRestore.js';
 import { createOpenedResultViewStatePersistence } from '../results/queryHistoryResultViewPersistence.js';
+import { createHistoryRunActions } from '../actions/queryHistoryRunActions.js';
 import {
   updateHistoryPollingMeta
 } from '../view/queryHistoryRenderHelpers.js';
@@ -62,6 +63,11 @@ let lastHistoryRenderKey = '';
 const historyDependencies = createQueryHistoryDependencies(normalizeUiConfigFilters);
 let openedHistoryResultRestoreController = null;
 let openedResultViewStatePersistence = null;
+const historyRunActions = createHistoryRunActions({
+  getQueryById: getHistoryQueryById,
+  updateHistoryQuery,
+  showToastMessage
+});
 
 function getFieldSearchValue() {
   return DOM.queryInput?.value || '';
@@ -358,6 +364,7 @@ const loadQueryResults = createQueryHistoryResultsLoader({
  * @param {Element} scope
  */
 function bindHistoryTableButtons(scope) {
+  historyRunActions.bind(scope);
   scope.querySelectorAll('.history-expand-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();

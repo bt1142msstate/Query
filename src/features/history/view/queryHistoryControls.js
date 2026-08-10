@@ -180,6 +180,10 @@ function sortHistoryQueries(queries, sortKey = DEFAULT_HISTORY_VIEW_OPTIONS.sort
   return (Array.isArray(queries) ? queries : [])
     .map((query, index) => ({ query, index }))
     .sort((left, right) => {
+      const pinComparison = compareNumbers(right.query?.pinned ? 1 : 0, left.query?.pinned ? 1 : 0);
+      if (pinComparison !== 0) {
+        return pinComparison;
+      }
       let comparison = 0;
 
       if (normalizedSortKey === 'oldest') {

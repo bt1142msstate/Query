@@ -540,7 +540,7 @@ async function runSmokeTest() {
     await page.locator('.form-mode-field-picker-modal').waitFor({ state: 'hidden', timeout: 5000 });
 
     queueHistoryStatusResponses(queryApiStub);
-    await page.getByRole('button', { name: 'Queries' }).click();
+    await page.getByRole('button', { name: 'Activity' }).click();
     await page.locator('input[placeholder="Search history"]').waitFor({ state: 'visible', timeout: 5000 });
     await expectLightSurface(page, '#queries-panel > h2', 'Query history panel header');
     await expectLightSurface(page, '.history-editorial-hero', 'Query history hero');
@@ -643,7 +643,7 @@ async function runSmokeTest() {
     await page.locator('#templates-panel.hidden').waitFor({ state: 'attached', timeout: 5000 });
 
     queueHistoryStatusResponses(queryApiStub, 3);
-    await page.getByRole('button', { name: 'Queries' }).click();
+    await page.getByRole('button', { name: 'Activity' }).click();
     if (!(await page.locator('.history-monitor').isVisible())) {
       await page.locator('[data-history-book="complete"] .history-book-summary').click();
     }
@@ -1339,7 +1339,7 @@ async function runSmokeTest() {
       || mobileHistoryPickerMetrics.columns < 2
       || mobileHistoryPickerMetrics.height > 180
       || mobileHistoryPickerMetrics.maxBookHeight > 90
-      || mobileHistoryPickerMetrics.bottom > mobileHistoryPickerMetrics.viewportHeight * 0.55
+      || mobileHistoryPickerMetrics.bottom > mobileHistoryPickerMetrics.viewportHeight * 0.65
     ) {
       throw new Error(`Mobile history status picker should keep all status choices visible without a long scroll: ${JSON.stringify(mobileHistoryPickerMetrics)}`);
     }

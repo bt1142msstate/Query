@@ -55,6 +55,7 @@ test('query history status mapper', async () => {
       '102': {
         kind: 'hydration',
         created_by: 'alw3',
+        pinned: true,
         name: 'Hydration review',
         status: 'hydration_running',
         start_time: '2026-05-24 12:00:10',
@@ -87,6 +88,7 @@ test('query history status mapper', async () => {
   assert.deepEqual(rows.map(row => row.id), ['102', '101', '100', '099']);
   assert.equal(rows[0].kind, 'hydration');
   assert.equal(rows[0].createdBy, 'alw3');
+  assert.equal(rows[0].pinned, true);
   assert.equal(rows[0].running, true);
   assert.equal(rows[0].resultCount, 25);
   assert.equal(rows[0].jsonConfig, null);

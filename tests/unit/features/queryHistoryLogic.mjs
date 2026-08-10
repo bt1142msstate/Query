@@ -166,6 +166,9 @@ test('query history', async () => {
   assert.doesNotMatch(rowHtml, /<path d="M6 3h8l4 4v14H6z"/u);
   assert.match(rowHtml, /history-actions-cell/u);
   assert.match(rowHtml, /history-actions-group/u);
+  assert.match(rowHtml, /history-pin-btn/u);
+  assert.match(rowHtml, /history-rename-btn/u);
+  assert.match(rowHtml, /aria-label="Pin run"/u);
   assert.match(rowHtml, /history-results-icon/u);
   assert.match(rowHtml, /history-row-metric-label">Last run/u);
   assert.match(rowHtml, /history-row-metric-label">Duration/u);
@@ -177,6 +180,14 @@ test('query history', async () => {
   assert.doesNotMatch(rowHtml, /margin-left:4px/u);
   assert.match(rowHtml, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/u);
   assert.doesNotMatch(rowHtml, /<script>alert/u);
+
+  const pinnedRowHtml = createQueriesTableRowHtml({
+    id: 'Q2', name: 'Pinned run', pinned: true, status: 'complete', resultCount: 1,
+    startTime: '2026-01-01T00:00:00.000Z', endTime: '2026-01-01T00:00:01.000Z',
+    jsonConfig: { DesiredColumnOrder: [], Filters: [] }
+  });
+  assert.match(pinnedRowHtml, /history-pin-btn is-pinned/u);
+  assert.match(pinnedRowHtml, /aria-label="Unpin run"/u);
 
   const runningRowHtml = createQueriesTableRowHtml({
     id: 'Q2',

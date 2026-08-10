@@ -2945,7 +2945,7 @@ async function exerciseDesktopResultsWorkflow(page, queryApiStub) {
   }));
   if (
     hydrationSurface.title !== 'Hydration'
-    || hydrationSurface.ariaLabel !== 'OCLC record hydration'
+    || hydrationSurface.ariaLabel !== 'Bibliographic record hydration'
     || !hydrationSurface.toolbarDrop
   ) {
     throw new Error(`Hydration should use the renamed accessible surface and drop icon: ${JSON.stringify(hydrationSurface)}`);
@@ -2998,7 +2998,26 @@ async function exerciseDesktopResultsWorkflow(page, queryApiStub) {
   await page.locator('#bib-compare-workspace [data-bib-close]').click();
   await page.locator('#bib-compare-workspace:not([open])').waitFor({ state: 'attached', timeout: 5000 });
 
-  [
+  queryApiStub.enqueue({
+    action: 'resolve_oclc_bibs_bulk',
+    body: JSON.stringify({
+      returned: 1,
+      counts: { resolved: 1, review: 0, not_found: 0, failed: 0 },
+      results: [{
+        index: 0,
+        input: '923278',
+        lookup_type: 'catalog_key',
+        status: 'resolved',
+        local: demoBibData.records[0].local.summary,
+        worldcat: demoBibData.records[0].worldcat.summary,
+        selection: demoBibData.records[0].selection,
+        match: demoBibData.records[0].match,
+        review: demoBibData.records[0].review
+      }]
+    }),
+    contentType: 'application/json; charset=utf-8'
+  });
+  const bulkHydrationResults = [
     {
       index: 0,
       input: '923278',
@@ -3028,41 +3047,23 @@ async function exerciseDesktopResultsWorkflow(page, queryApiStub) {
       status: 'not_found',
       reason: 'No local bibliographic record matched this input.'
     }
-  ].forEach(result => queryApiStub.enqueue({
-    action: 'resolve_oclc_bibs_bulk',
-    body: JSON.stringify({
-      returned: 1,
-      counts: {
-        resolved: result.status === 'resolved' ? 1 : 0,
-        review: 0,
-        not_found: result.status === 'not_found' ? 1 : 0,
-        failed: 0
-      },
-      results: [result]
-    }),
-    contentType: 'application/json; charset=utf-8'
-  }));
-  await page.locator('#toggle-bib-compare').click();
-  await page.locator('#bib-compare-workspace [data-bib-mode="bulk"]').click();
+  ];
   queryApiStub.enqueue({
     action: 'resolve_oclc_bibs_bulk',
     body: JSON.stringify({
-      returned: 1,
-      counts: { resolved: 1, review: 0, not_found: 0, failed: 0 },
-      results: [{
-        index: 0,
-        input: '923278',
-        lookup_type: 'catalog_key',
-        status: 'resolved',
-        local: demoBibData.records[0].local.summary,
-        worldcat: demoBibData.records[0].worldcat.summary,
-        selection: demoBibData.records[0].selection,
-        match: demoBibData.records[0].match,
-        review: demoBibData.records[0].review
-      }]
+      returned: bulkHydrationResults.length,
+      counts: {
+        resolved: 2,
+        review: 0,
+        not_found: 1,
+        failed: 0
+      },
+      results: bulkHydrationResults
     }),
     contentType: 'application/json; charset=utf-8'
   });
+  await page.locator('#toggle-bib-compare').click();
+  await page.locator('#bib-compare-workspace [data-bib-mode="bulk"]').click();
   const currentQueryButton = page.locator('#bib-compare-workspace [data-bib-current-query]');
   if (await currentQueryButton.isDisabled()) {
     throw new Error('Hydration should enable the current-query source for loaded results.');
@@ -3092,10 +3093,10 @@ async function exerciseDesktopResultsWorkflow(page, queryApiStub) {
   const workbookBytes = workbookPath ? await readFile(workbookPath) : Buffer.alloc(0);
   const workbookText = new TextDecoder().decode(workbookBytes);
   if (
-    workbookDownload.suggestedFilename() !== 'OCLC-Hydration-Review.xlsx'
+    workbookDownload.suggestedFilename() !== 'Hydration-Review.xlsx'
     || workbookBytes.subarray(0, 2).toString() !== 'PK'
     || !workbookText.includes('Exact Edition Verified')
-    || !workbookText.includes('WorldCat 526 Count')
+    || !workbookText.includes('Source 526 Count')
   ) {
     throw new Error('Bulk hydration review should download a complete Excel workbook.');
   }
