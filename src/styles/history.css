@@ -1232,6 +1232,85 @@
   text-transform: uppercase;
 }
 
+.history-name-header {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.history-query-name {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.history-run-controls {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 0.2rem;
+}
+
+.history-pin-btn,
+.history-rename-btn,
+.history-rename-save,
+.history-rename-cancel {
+  display: inline-flex;
+  width: 1.75rem;
+  height: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(124, 239, 255, 0.18);
+  border-radius: 50%;
+  color: rgba(188, 224, 232, 0.72);
+  background: rgba(6, 19, 31, 0.7);
+}
+
+.history-pin-btn:hover,
+.history-rename-btn:hover,
+.history-rename-save:hover,
+.history-rename-cancel:hover,
+.history-pin-btn.is-pinned {
+  border-color: rgba(124, 239, 255, 0.55);
+  color: #7cefff;
+  background: rgba(20, 119, 139, 0.28);
+}
+
+.history-pin-btn svg,
+.history-rename-btn svg,
+.history-rename-save svg,
+.history-rename-cancel svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.history-pin-btn.is-pinned svg {
+  fill: currentColor;
+}
+
+.history-rename-form {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.history-rename-input {
+  width: min(20rem, 100%);
+  min-width: 8rem;
+  height: 2rem;
+  padding: 0 0.55rem;
+  border: 1px solid rgba(124, 239, 255, 0.58);
+  border-radius: 5px;
+  color: #f1fcff;
+  background: rgba(4, 15, 27, 0.96);
+}
+
 .history-meta-line {
   display: flex;
   flex-wrap: wrap;

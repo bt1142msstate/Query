@@ -35,6 +35,7 @@ function mapServerQueryToHistoryRow(serverQuery, dependencies = {}) {
     id: serverQuery.id,
     kind,
     createdBy: serverQuery.created_by || '',
+    pinned: Boolean(serverQuery.pinned),
     name: serverQuery.name || (request ? request.name : 'Unknown Query'),
     status: serverQuery.status,
     statusBucket,

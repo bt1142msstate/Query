@@ -323,6 +323,17 @@ async function handleDemoQueryRequest(options = {}) {
       run.metadata.end_time = new Date().toISOString();
       return json({ run_id: payload.run_id, metadata: run.metadata });
     }
+    case 'update_history_run': {
+      const run = demoHydrationRuns.get(payload.query_id);
+      if (!run) return json({ error: 'History run not found.' }, 404);
+      if (typeof payload.name === 'string' && payload.name.trim()) run.metadata.name = payload.name.trim();
+      if (typeof payload.pinned === 'boolean') run.metadata.pinned = payload.pinned;
+      return json({
+        query_id: payload.query_id,
+        name: run.metadata.name,
+        pinned: Boolean(run.metadata.pinned)
+      });
+    }
     case 'cancel': return json({ ok: true });
     case 'get_results': return json({ error: 'No saved demo result was found.' }, 404);
     default: return json({ error: `The demo backend does not support ${payload.action || 'this action'}.` }, 400);

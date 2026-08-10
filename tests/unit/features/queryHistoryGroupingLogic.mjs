@@ -127,5 +127,7 @@ test('query history grouping', async () => {
   assert.deepEqual(nameSortedGroups.complete.map(query => query.id), ['100', '103']);
   assert.deepEqual(nameSortedGroups.failed.map(query => query.id), ['102']);
   assert.deepEqual(nameSortedGroups.running.map(query => query.id), ['104']);
+  const pinnedGroups = groupHistoryQueries(queries.map(query => ({ ...query, pinned: query.id === '100' })));
+  assert.deepEqual(pinnedGroups.complete.map(query => query.id), ['100', '103']);
   assert.equal(getHistorySortLabel({ sortKey: 'most_results' }), 'Most results');
 });

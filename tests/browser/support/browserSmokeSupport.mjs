@@ -292,6 +292,25 @@ function buildDefaultQueryApiResponse(payload) {
         body: JSON.stringify({ queries: {} }),
         contentType: 'application/json; charset=utf-8'
       };
+    case 'start_hydration_run':
+      return {
+        body: JSON.stringify({ run_id: 'query_1786380000_12345678' }),
+        contentType: 'application/json; charset=utf-8'
+      };
+    case 'finish_hydration_run':
+      return {
+        body: JSON.stringify({ run_id: payload.run_id, status: payload.status }),
+        contentType: 'application/json; charset=utf-8'
+      };
+    case 'update_history_run':
+      return {
+        body: JSON.stringify({
+          query_id: payload.query_id,
+          ...(payload.name ? { name: payload.name } : {}),
+          ...(typeof payload.pinned === 'boolean' ? { pinned: payload.pinned } : {})
+        }),
+        contentType: 'application/json; charset=utf-8'
+      };
     case 'cancel':
       return {
         body: JSON.stringify({ ok: true }),

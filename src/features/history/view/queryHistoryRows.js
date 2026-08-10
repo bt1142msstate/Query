@@ -196,6 +196,12 @@ function createQueriesTableRowHtml(query, options = {}) {
   const durationCell = buildHistoryRowMetricHtml('Duration', duration);
 
   const reasonSummary = buildHistoryReasonSummaryHtml(query);
+  const pinLabel = query.pinned ? 'Unpin run' : 'Pin run';
+  const nameControls = `
+    <div class="history-run-controls">
+      <button type="button" class="history-pin-btn${query.pinned ? ' is-pinned' : ''}" data-query-id="${queryId}" aria-label="${pinLabel}" data-tooltip="${pinLabel}" aria-pressed="${query.pinned ? 'true' : 'false'}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17v5M7 3h10l-2 7 3 3v2H6v-2l3-3-2-7Z"/></svg></button>
+      <button type="button" class="history-rename-btn" data-query-id="${queryId}" aria-label="Rename run" data-tooltip="Rename run"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4ZM13.5 6.5l4 4"/></svg></button>
+    </div>`;
 
   const metaPills = [`<span class="history-inline-pill history-query-id subtle">${queryId}</span>`];
   if (query.kind === 'hydration') {
@@ -217,7 +223,7 @@ function createQueriesTableRowHtml(query, options = {}) {
   const nameCell = `
     <div class="history-name-cell">
       <div class="history-name-block">
-        <span class="history-query-name">${escapeHistoryText(query.name || query.id)}</span>
+        <div class="history-name-header"><span class="history-query-name">${escapeHistoryText(query.name || query.id)}</span>${nameControls}</div>
         <div class="history-meta-line">${metaPills.join('')}</div>
         ${query.running ? buildHistoryProgressHtml(query.progress) : ''}
       </div>
