@@ -4,7 +4,7 @@
  */
 function classifyQueryStatus(status) {
   const normalized = String(status || '').toLowerCase();
-  if (normalized === 'running') return 'running';
+  if (normalized === 'running' || normalized === 'hydration_running') return 'running';
   if (normalized === 'complete') return 'complete';
   if (normalized === 'canceled' || normalized === 'cancelled') return 'canceled';
   if (normalized === 'failed') return 'failed';

@@ -207,11 +207,12 @@ function chunkEntries(entries, chunkSize = CHUNK_SIZE) {
   return chunks;
 }
 
-function buildBulkResolvePayload(entries, targetTags = []) {
+function buildBulkResolvePayload(entries, targetTags = [], persistence = {}) {
   return {
     action: 'resolve_oclc_bibs_bulk',
     entries: (entries || []).map(({ lookup_type, query }) => ({ lookup_type, query })),
-    ...(targetTags.length ? { target_tags: [...targetTags] } : {})
+    ...(targetTags.length ? { target_tags: [...targetTags] } : {}),
+    ...(persistence.runId ? { run_id: persistence.runId, batch_id: persistence.batchId } : {})
   };
 }
 
@@ -268,6 +269,23 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
   const downloadButton = workspace.querySelector('[data-bib-bulk-download]');
   let requestId = 0;
   let results = [];
+  let activeRunId = '';
+
+  async function finishRun(status, error = '') {
+    if (!activeRunId) return true;
+    const runId = activeRunId;
+    try {
+      await postJson({
+        action: 'finish_hydration_run', run_id: runId, status,
+        ...(error ? { error: String(error).slice(0, 500) } : {})
+      });
+      if (activeRunId === runId) activeRunId = '';
+      return true;
+    } catch (finishError) {
+      console.warn('Hydration history finalization failed', finishError);
+      return false;
+    }
+  }
 
   function setVisible(visible) {
     panel.classList.toggle('hidden', !visible);
@@ -338,19 +356,42 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
       setSearchStatus('Enter at least one valid three-digit MARC field for the hydration plan.', 'error');
       return;
     }
+    if (activeRunId && !await finishRun('canceled')) {
+      setSearchStatus('The previous saved run could not be finalized. Try again before starting another run.', 'error');
+      return;
+    }
     const currentRequest = ++requestId;
     results = [];
     renderResults();
     setVisible(true);
     setProgress(0, entries.length, 'Resolving OCLC and Library of Congress records...');
+    try {
+      const { data } = await postJson({
+        action: 'start_hydration_run',
+        name: `Hydration review - ${new Date().toLocaleString()}`,
+        total: entries.length,
+        target_tags: targetTags,
+        source_description: 'Bulk hydration review'
+      });
+      activeRunId = data.run_id || '';
+      if (!activeRunId) throw new Error('The saved Hydration run did not return an identifier.');
+    } catch (error) {
+      setSearchStatus(error.message || 'The Hydration run could not be saved.', 'error');
+      return;
+    }
     let completed = 0;
-    for (const chunk of chunkEntries(entries)) {
+    const chunks = chunkEntries(entries);
+    for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex += 1) {
+      const chunk = chunks[chunkIndex];
       if (currentRequest !== requestId) return;
       let chunkComplete = false;
       while (!chunkComplete && currentRequest === requestId) {
         try {
           const { data } = await postJson(
-            buildBulkResolvePayload(chunk, targetTags),
+            buildBulkResolvePayload(chunk, targetTags, {
+              runId: activeRunId,
+              batchId: `batch_${String(chunkIndex).padStart(8, '0')}`
+            }),
             { timeoutMs: 600000, notifyOnRateLimit: false }
           );
           const returned = Array.isArray(data.results) ? data.results : [];
@@ -370,13 +411,12 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
             setProgress(completed, entries.length, 'Request limit cleared. Retrying the same records...');
             continue;
           }
-          chunk.forEach(entry => results.push({
-            ...entry,
-            input: entry.query,
-            status: 'failed',
-            reason: error.message || 'This batch could not be resolved.'
-          }));
-          chunkComplete = true;
+          const message = error.message || 'This batch could not be resolved.';
+          setSearchStatus(`${message} Completed batches remain available in Shared History.`, 'error');
+          setProgress(completed, entries.length, 'Hydration stopped. Completed records were saved.');
+          cancelButton.classList.add('hidden');
+          await finishRun('failed', message);
+          return;
         }
       }
       if (currentRequest !== requestId) return;
@@ -389,6 +429,39 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
     setProgress(entries.length, entries.length, `${counts.resolved.toLocaleString()} matched automatically; ${counts.review.toLocaleString()} need review.`);
     cancelButton.classList.add('hidden');
     setSearchStatus(`${entries.length.toLocaleString()} inputs processed. ${counts.resolved.toLocaleString()} matched automatically.`, 'success');
+    await finishRun('complete');
+  }
+
+  async function loadSavedRun(runId) {
+    const currentRequest = ++requestId;
+    results = [];
+    activeRunId = '';
+    setVisible(true);
+    setProgress(0, 1, 'Loading saved Hydration results...');
+    let offset = 0;
+    let metadata = null;
+    try {
+      while (currentRequest === requestId) {
+        const { data } = await postJson({
+          action: 'get_hydration_run', run_id: runId, offset, limit: 1000
+        }, { timeoutMs: 60000 });
+        metadata = data.metadata || metadata;
+        results.push(...(Array.isArray(data.results) ? data.results : []));
+        renderResults();
+        offset = Number(data.next_offset || results.length);
+        const total = Number(data.total || results.length);
+        setProgress(results.length, total, 'Loading saved Hydration results...');
+        if (!data.has_more) break;
+      }
+      if (currentRequest !== requestId) return;
+      const total = Number(metadata?.hydration_total || results.length);
+      const counts = statusCounts(results);
+      setProgress(results.length, total, `Saved run loaded. ${results.length.toLocaleString()} completed records are available.`);
+      cancelButton.classList.add('hidden');
+      setSearchStatus(`Saved Hydration run loaded. ${counts.resolved.toLocaleString()} matched automatically; ${counts.review.toLocaleString()} need review.`, 'success');
+    } catch (error) {
+      setSearchStatus(error.message || 'The saved Hydration run could not be loaded.', 'error');
+    }
   }
 
   cancelButton.addEventListener('click', () => {
@@ -396,6 +469,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
     cancelButton.classList.add('hidden');
     setSearchStatus('Bulk matching stopped. Completed results are still available.', 'empty');
     showToastMessage('Bulk matching stopped.', 'info');
+    finishRun('canceled');
   });
   downloadButton.addEventListener('click', async () => {
     if (!results.length || downloadButton.disabled) return;
@@ -414,7 +488,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
     if (button?.dataset.catalogKey) openComparison(button.dataset.catalogKey);
   });
 
-  return { run, setVisible };
+  return { loadSavedRun, run, setVisible };
 }
 
 async function downloadHydrationReviewWorkbook(results) {

@@ -137,3 +137,32 @@ test('demo bulk comparison applies selected hydration fields', async () => {
   assert.equal(payload.results[0].review.target_field_score, 50);
   assert.deepEqual(payload.results[0].review.requested_tags, ['521', '526']);
 });
+
+test('demo hydration runs persist into shared history and reopen without resolving again', async () => {
+  const started = await handleDemoQueryRequest({
+    body: JSON.stringify({ action: 'start_hydration_run', name: 'Demo hydration', total: 1, target_tags: ['526'] }),
+    headers: authHeaders
+  });
+  const run = await started.json();
+  await handleDemoQueryRequest({
+    body: JSON.stringify({
+      action: 'resolve_oclc_bibs_bulk', run_id: run.run_id, batch_id: 'batch_00000000',
+      entries: [{ lookup_type: 'catalog_key', query: '923278' }], target_tags: ['526']
+    }),
+    headers: authHeaders
+  });
+  await handleDemoQueryRequest({
+    body: JSON.stringify({ action: 'finish_hydration_run', run_id: run.run_id, status: 'complete' }),
+    headers: authHeaders
+  });
+
+  const history = await (await handleDemoQueryRequest({ body: JSON.stringify({ action: 'status' }), headers: authHeaders })).json();
+  assert.equal(history.queries[run.run_id].kind, 'hydration');
+  assert.equal(history.queries[run.run_id].hydration_completed, 1);
+  const saved = await (await handleDemoQueryRequest({
+    body: JSON.stringify({ action: 'get_hydration_run', run_id: run.run_id, offset: 0, limit: 1000 }),
+    headers: authHeaders
+  })).json();
+  assert.equal(saved.results.length, 1);
+  assert.equal(saved.results[0].local.catalog_key, '923278');
+});

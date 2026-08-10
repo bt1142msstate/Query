@@ -76,28 +76,28 @@ function buildHistoryPanelView({
       count: runningCount,
       rows: runningRows,
       tableHead: HISTORY_TABLE_HEADS.running,
-      emptyMessage: 'No running queries right now.'
+      emptyMessage: 'No running activity right now.'
     },
     {
       key: 'complete',
       count: doneCount,
       rows: doneRows,
       tableHead: HISTORY_TABLE_HEADS.complete,
-      emptyMessage: 'No completed queries yet.'
+      emptyMessage: 'No completed activity yet.'
     },
     {
       key: 'failed',
       count: failedCount,
       rows: failedRows,
       tableHead: HISTORY_TABLE_HEADS.failed,
-      emptyMessage: 'No failed or interrupted queries.'
+      emptyMessage: 'No failed or interrupted activity.'
     },
     {
       key: 'canceled',
       count: cancelledCount,
       rows: cancelledRows,
       tableHead: HISTORY_TABLE_HEADS.canceled,
-      emptyMessage: 'No cancelled queries yet.'
+      emptyMessage: 'No cancelled activity yet.'
     }
   ];
   const historyMonitor = buildHistoryMonitor(openSection, sections);
@@ -106,7 +106,7 @@ function buildHistoryPanelView({
   const content = `
     <section class="history-editorial-hero">
       <div class="history-editorial-copy">
-        <h3 class="history-editorial-title">Query History</h3>
+        <h3 class="history-editorial-title">Shared History</h3>
         <p class="history-editorial-subtitle">${escapeHistoryText(historySubtitle)}</p>
       </div>
       <div class="history-editorial-meta">

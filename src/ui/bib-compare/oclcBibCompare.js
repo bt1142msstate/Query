@@ -10,6 +10,7 @@ import { createMarcTagInfo } from './marcTagInfo.js';
 import { bindSingleHydrationExcel } from './singleHydrationWorkbook.js';
 import { createCurrentQueryHydrationSource, currentQuerySourceMarkup } from './currentQueryHydration.js';
 import { BIB_COMPARISON_FILTERS as FILTERS, bibliographicSource } from './bibSource.js';
+import { installHydrationHistoryBridge } from './hydrationHistoryBridge.js';
 const state = {
   initialized: false,
   workspace: null,
@@ -50,7 +51,6 @@ function workspaceMarkup() {
           </button>
         </div>
       </header>
-
       <div class="bib-compare-layout">
         <aside class="bib-compare-search" aria-label="Find a local bibliographic record">
           <div class="bib-compare-mode" role="group" aria-label="Comparison mode">
@@ -887,6 +887,7 @@ function initialize() {
   if (state.initialized) return;
   state.initialized = true;
   document.getElementById('toggle-bib-compare')?.addEventListener('click', openWorkspace);
+  installHydrationHistoryBridge({ openWorkspace, setMode, getController: () => state.bulkController });
 }
 
 const OclcBibCompare = Object.freeze({

@@ -3,6 +3,7 @@ const DEMO_TOKEN = 'query-project-demo-session';
 
 let dataPromise = null;
 let bibDataPromise = null;
+const demoHydrationRuns = new Map();
 
 function loadDemoData() {
   if (!dataPromise) {
@@ -266,7 +267,7 @@ async function handleDemoQueryRequest(options = {}) {
     case 'change_password': return json({ error: 'The shared demo password cannot be changed.' }, 403);
     case 'get_fields': return json({ fields: data.fields || [] });
     case 'run': return runQuery(payload, data);
-    case 'status': return json({ queries: {} });
+    case 'status': return json({ queries: Object.fromEntries([...demoHydrationRuns].map(([id, run]) => [id, run.metadata])) });
     case 'list': return json({ queries: [] });
     case 'list_templates': return json({ categories: [], templates: [] });
     case 'search_bibs': {
@@ -282,7 +283,45 @@ async function handleDemoQueryRequest(options = {}) {
     }
     case 'resolve_oclc_bibs_bulk': {
       const bibData = await loadDemoBibData();
-      return json(resolveDemoBibsBulk(payload, bibData));
+      const resolved = resolveDemoBibsBulk(payload, bibData);
+      const run = demoHydrationRuns.get(payload.run_id);
+      if (run && payload.batch_id && !run.batches.has(payload.batch_id)) {
+        run.batches.add(payload.batch_id);
+        run.results.push(...structuredClone(resolved.results));
+        run.metadata.hydration_completed = run.results.length;
+        run.metadata.row_count = run.results.length;
+      }
+      return json(resolved);
+    }
+    case 'start_hydration_run': {
+      const runId = `query_${Math.floor(Date.now() / 1000)}_${String(Math.floor(Math.random() * 1e8)).padStart(8, '0')}`;
+      const metadata = {
+        kind: 'hydration', created_by: 'demo', name: payload.name,
+        status: 'hydration_running', start_time: new Date().toISOString(),
+        hydration_total: payload.total, hydration_completed: 0, row_count: 0,
+        target_tags: payload.target_tags || []
+      };
+      demoHydrationRuns.set(runId, { metadata, results: [], batches: new Set() });
+      return json({ run_id: runId, metadata });
+    }
+    case 'get_hydration_run': {
+      const run = demoHydrationRuns.get(payload.run_id);
+      if (!run) return json({ error: 'Hydration run not found.' }, 404);
+      const offset = Number(payload.offset || 0);
+      const limit = Number(payload.limit || 500);
+      const results = run.results.slice(offset, offset + limit);
+      return json({
+        run_id: payload.run_id, metadata: run.metadata, results, offset,
+        next_offset: offset + results.length, total: run.results.length,
+        has_more: offset + results.length < run.results.length
+      });
+    }
+    case 'finish_hydration_run': {
+      const run = demoHydrationRuns.get(payload.run_id);
+      if (!run) return json({ error: 'Hydration run not found.' }, 404);
+      run.metadata.status = payload.status;
+      run.metadata.end_time = new Date().toISOString();
+      return json({ run_id: payload.run_id, metadata: run.metadata });
     }
     case 'cancel': return json({ ok: true });
     case 'get_results': return json({ error: 'No saved demo result was found.' }, 404);

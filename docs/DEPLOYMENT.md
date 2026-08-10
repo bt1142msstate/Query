@@ -141,6 +141,6 @@ Recommended controls:
 - Optional actions are either implemented or intentionally reported as missing.
 - CORS or same-origin routing is configured.
 - Trusted `REMOTE_USER` authentication and the administrator allowlist are configured before the hardened CGI is installed.
-- Unauthenticated, normal-user, administrator, cross-owner, and disallowed-origin checks produce the expected `401`, `403`, `200`, or `404` response.
+- Unauthenticated, normal-user, administrator, authenticated shared-history, and disallowed-origin checks produce the expected `401`, `403`, or `200` response. Shared result retrieval must remain unavailable without authentication.
 - Secrets are server-side only.
 - `npm test` passes before publishing frontend changes.

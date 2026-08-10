@@ -51,6 +51,18 @@ test('query history status mapper', async () => {
             candidate_rows: 42
           }
         }
+      },
+      '102': {
+        kind: 'hydration',
+        created_by: 'alw3',
+        name: 'Hydration review',
+        status: 'hydration_running',
+        start_time: '2026-05-24 12:00:10',
+        hydration_total: 100,
+        hydration_completed: 25,
+        hydration_counts: { resolved: 20, review: 5 },
+        target_tags: ['521', '526'],
+        request: { action: 'hydration' }
       }
     }
   };
@@ -58,7 +70,7 @@ test('query history status mapper', async () => {
   const rows = mapStatusPayloadToHistoryRows(payload, {
     now,
     classifyQueryStatus(status) {
-      if (status === 'running') return 'running';
+      if (status === 'running' || status === 'hydration_running') return 'running';
       if (status === 'complete') return 'complete';
       if (status === 'canceled') return 'canceled';
       return 'failed';
@@ -72,13 +84,20 @@ test('query history status mapper', async () => {
     mapperDependencies: {}
   });
 
-  assert.deepEqual(rows.map(row => row.id), ['101', '100', '099']);
-  assert.equal(rows[0].name, 'Running query');
+  assert.deepEqual(rows.map(row => row.id), ['102', '101', '100', '099']);
+  assert.equal(rows[0].kind, 'hydration');
+  assert.equal(rows[0].createdBy, 'alw3');
   assert.equal(rows[0].running, true);
-  assert.equal(rows[0].duration, '30s...');
-  assert.equal(rows[0].resultCount, '-');
-  assert.equal(rows[0].jsonConfig.source, 'ui_config');
-  assert.deepEqual(rows[0].progress, {
+  assert.equal(rows[0].resultCount, 25);
+  assert.equal(rows[0].jsonConfig, null);
+  assert.deepEqual(rows[0].targetTags, ['521', '526']);
+
+  assert.equal(rows[1].name, 'Running query');
+  assert.equal(rows[1].running, true);
+  assert.equal(rows[1].duration, '30s...');
+  assert.equal(rows[1].resultCount, '-');
+  assert.equal(rows[1].jsonConfig.source, 'ui_config');
+  assert.deepEqual(rows[1].progress, {
     schemaVersion: 1,
     stage: 'loading_dynamic_fields',
     label: 'Loading requested field values',
@@ -95,16 +114,16 @@ test('query history status mapper', async () => {
     updatedEpoch: null
   });
 
-  assert.equal(rows[1].name, 'Completed from request');
-  assert.equal(rows[1].running, false);
-  assert.equal(rows[1].failed, false);
-  assert.equal(rows[1].duration, '60s');
-  assert.equal(rows[1].resultCount, 12);
-  assert.equal(rows[1].jsonConfig.source, 'request');
+  assert.equal(rows[2].name, 'Completed from request');
+  assert.equal(rows[2].running, false);
+  assert.equal(rows[2].failed, false);
+  assert.equal(rows[2].duration, '60s');
+  assert.equal(rows[2].resultCount, 12);
+  assert.equal(rows[2].jsonConfig.source, 'request');
 
-  assert.equal(rows[2].failed, true);
-  assert.equal(rows[2].error, 'Backend disconnected');
-  assert.deepEqual(rows[2].errorDetails, {
+  assert.equal(rows[3].failed, true);
+  assert.equal(rows[3].error, 'Backend disconnected');
+  assert.deepEqual(rows[3].errorDetails, {
     schemaVersion: 1,
     stage: 'loading_dynamic_fields',
     component: 'marc_enrichment',
@@ -119,7 +138,7 @@ test('query history status mapper', async () => {
       candidate_rows: 42
     }
   });
-  assert.equal(rows[2].jsonConfig, null);
+  assert.equal(rows[3].jsonConfig, null);
 
   assert.deepEqual(mapStatusPayloadToHistoryRows(null), []);
 });
