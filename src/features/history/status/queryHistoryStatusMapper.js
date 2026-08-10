@@ -22,9 +22,10 @@ function mapServerQueryToHistoryRow(serverQuery, dependencies = {}) {
     now = Date.now()
   } = dependencies;
 
+  const kind = serverQuery?.kind === 'hydration' ? 'hydration' : 'query';
   const request = serverQuery?.request || null;
   const statusBucket = classifyQueryStatus(serverQuery?.status);
-  const jsonConfig = buildHistoryJsonConfig(request, {
+  const jsonConfig = kind === 'hydration' ? null : buildHistoryJsonConfig(request, {
     buildUiConfigFromRequest,
     mapperDependencies,
     mergeUiConfigWithRequest
@@ -32,19 +33,26 @@ function mapServerQueryToHistoryRow(serverQuery, dependencies = {}) {
 
   return {
     id: serverQuery.id,
+    kind,
+    createdBy: serverQuery.created_by || '',
     name: serverQuery.name || (request ? request.name : 'Unknown Query'),
     status: serverQuery.status,
     statusBucket,
     launchMode: serverQuery.launch_mode || '',
     deliveryMode: serverQuery.delivery_mode || '',
-    running: serverQuery.status === 'running',
+    running: serverQuery.status === 'running' || serverQuery.status === 'hydration_running',
     cancelled: serverQuery.status === 'canceled',
     failed: statusBucket !== 'running' && statusBucket !== 'complete' && statusBucket !== 'canceled',
     startTime: serverQuery.start_time,
     endTime: serverQuery.end_time || '-',
     duration: getHistoryQueryDuration(serverQuery, now),
     jsonConfig,
-    resultCount: serverQuery.row_count !== undefined ? serverQuery.row_count : (serverQuery.start_time && serverQuery.end_time ? '?' : '-'),
+    resultCount: serverQuery.hydration_completed !== undefined
+      ? serverQuery.hydration_completed
+      : (serverQuery.row_count !== undefined ? serverQuery.row_count : (serverQuery.start_time && serverQuery.end_time ? '?' : '-')),
+    hydrationTotal: serverQuery.hydration_total,
+    hydrationCounts: serverQuery.hydration_counts || null,
+    targetTags: Array.isArray(serverQuery.target_tags) ? serverQuery.target_tags : [],
     errorDetails: normalizeBackendErrorDetails(serverQuery.error_details || serverQuery.errorDetails),
     progress: normalizeBackendProgress(serverQuery.progress),
     error: serverQuery.error || serverQuery.warning || ''

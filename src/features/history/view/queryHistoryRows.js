@@ -147,6 +147,13 @@ function buildHistoryReasonSummaryHtml(query) {
 
 function buildHistoryRowActions(query, options = {}) {
   const queryId = escapeHistoryText(query.id);
+  if (query.kind === 'hydration') {
+    const canOpen = Number(query.resultCount || 0) > 0;
+    const openBtn = canOpen
+      ? `<button class="open-hydration-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" tabindex="-1" data-query-id="${queryId}" data-tooltip="Open saved Hydration review" aria-label="Open saved Hydration review"><svg class="history-results-icon w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5c-.8 2.2-6 7.4-6 11.8a6 6 0 0 0 12 0c0-4.4-5.2-9.6-6-11.8Z"/></svg><span class="history-action-label">Open</span></button>`
+      : '';
+    return { loadBtn: openBtn, previewBtn: openBtn, rerunBtn: '', stopBtn: '', templateBtn: '' };
+  }
   const isLoading = options.activeHistoryResultLoadQueryId === query.id;
   const loadAttrs = isLoading ? ' disabled aria-busy="true"' : '';
   const loadClass = isLoading ? ' is-loading' : '';
@@ -190,7 +197,13 @@ function createQueriesTableRowHtml(query, options = {}) {
 
   const reasonSummary = buildHistoryReasonSummaryHtml(query);
 
-  const metaPills = [`<span class="history-inline-pill subtle">${queryId}</span>`];
+  const metaPills = [`<span class="history-inline-pill history-query-id subtle">${queryId}</span>`];
+  if (query.kind === 'hydration') {
+    metaPills.push('<span class="history-inline-pill">Hydration</span>');
+  }
+  if (query.createdBy) {
+    metaPills.push(`<span class="history-inline-pill subtle">${escapeHistoryText(query.createdBy)}</span>`);
+  }
   if (!query.running && query.resultCount !== undefined && query.resultCount !== '-' && query.resultCount !== '?') {
     metaPills.push(`<span class="history-inline-pill">${Number(query.resultCount).toLocaleString()} rows</span>`);
   }
@@ -210,7 +223,9 @@ function createQueriesTableRowHtml(query, options = {}) {
       </div>
     </div>`;
   const statusCell = `<span class="${statusMeta.badgeClass}">${statusMeta.label}</span>`;
-  const detailsCell = buildHistoryExpandButton(query.id, isExpanded, columns.length, filters.length);
+  const detailsCell = query.kind === 'hydration'
+    ? `<span class="history-inline-pill subtle">${escapeHistoryText((query.targetTags || []).length ? `Fields ${(query.targetTags || []).join(', ')}` : 'All eligible fields')}</span>`
+    : buildHistoryExpandButton(query.id, isExpanded, columns.length, filters.length);
 
   if (query.running) {
     return `
@@ -233,7 +248,7 @@ function createQueriesTableRowHtml(query, options = {}) {
         <td class="history-details-cell px-4 py-2 text-xs text-center">${detailsCell}</td>
         <td class="history-date-cell px-4 py-2 text-xs text-center">${dateCell}</td>
         <td class="history-duration-cell px-4 py-2 text-xs text-center">${durationCell}</td>
-        <td class="history-actions-cell px-4 py-2 text-xs text-center">${buildHistoryActionGroup([templateBtn, rerunBtn])}</td>
+        <td class="history-actions-cell px-4 py-2 text-xs text-center">${buildHistoryActionGroup(query.kind === 'hydration' ? [loadBtn] : [templateBtn, rerunBtn])}</td>
       </tr>
     `;
   }
@@ -247,7 +262,7 @@ function createQueriesTableRowHtml(query, options = {}) {
         <td class="history-date-cell px-4 py-2 text-xs text-center">${dateCell}</td>
         <td class="history-duration-cell px-4 py-2 text-xs text-center">${durationCell}</td>
         <td class="history-issue-cell px-4 py-2 text-xs text-center">${reasonSummary}</td>
-        <td class="history-actions-cell px-4 py-2 text-xs text-center">${buildHistoryActionGroup([templateBtn, rerunBtn])}</td>
+        <td class="history-actions-cell px-4 py-2 text-xs text-center">${buildHistoryActionGroup(query.kind === 'hydration' ? [loadBtn] : [templateBtn, rerunBtn])}</td>
       </tr>
     `;
   }

@@ -151,6 +151,8 @@ function getHistorySearchTerm() {
 function getHistoryViewOptionsFromControls() {
   return normalizeHistoryViewOptions({
     statusFilter: getHistoryControlElement('queries-status-filter')?.value,
+    scopeFilter: getHistoryControlElement('queries-scope-filter')?.value,
+    currentPrincipal: getSession()?.username,
     resultFilter: getHistoryControlElement('queries-result-filter')?.value,
     durationFilter: getHistoryControlElement('queries-duration-filter')?.value,
     sortKey: getHistoryControlElement('queries-sort')?.value
@@ -370,6 +372,17 @@ function bindHistoryTableButtons(scope) {
       e.stopPropagation();
       closeHistoryDetailsOverlay();
       loadQueryResults(btn.getAttribute('data-query-id'));
+    });
+  });
+
+  scope.querySelectorAll('.open-hydration-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      closeHistoryDetailsOverlay();
+      appServices.closeModalPanel('queries-panel');
+      window.dispatchEvent(new CustomEvent('query:open-hydration-run', {
+        detail: { runId: btn.getAttribute('data-query-id') }
+      }));
     });
   });
 
@@ -650,6 +663,7 @@ onDOMReady(() => {
 
   [
     'queries-status-filter',
+    'queries-scope-filter',
     'queries-result-filter',
     'queries-duration-filter',
     'queries-sort'

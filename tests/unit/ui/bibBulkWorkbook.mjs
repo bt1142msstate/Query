@@ -13,6 +13,20 @@ test('bulk WorldCat requests carry selected hydration fields without mutating en
   assert.equal(entries[0].original, '978-0-06-058660-7');
 });
 
+test('bulk WorldCat requests can be attached to an idempotent saved run batch', () => {
+  assert.deepEqual(buildBulkResolvePayload(
+    [{ lookup_type: 'catalog_key', query: '923278' }],
+    ['521'],
+    { runId: 'query_1786400000_12345678', batchId: 'batch_00000000' }
+  ), {
+    action: 'resolve_oclc_bibs_bulk',
+    entries: [{ lookup_type: 'catalog_key', query: '923278' }],
+    target_tags: ['521'],
+    run_id: 'query_1786400000_12345678',
+    batch_id: 'batch_00000000'
+  });
+});
+
 test('bulk hydration review workbook includes identity and generic MARC evidence', async () => {
   const state = buildBulkReviewWorkbookState([{
     input: '9780060586607',

@@ -10,6 +10,7 @@ test('query history grouping', async () => {
   const queries = [
     {
       id: '104',
+      createdBy: 'bt1142',
       name: 'Running patrons',
       running: true,
       resultCount: 12,
@@ -18,6 +19,7 @@ test('query history grouping', async () => {
     },
     {
       id: '103',
+      createdBy: 'alw3',
       name: 'Completed titles',
       status: 'complete',
       resultCount: 1200,
@@ -88,6 +90,12 @@ test('query history grouping', async () => {
   const completedGroups = groupHistoryQueries(queries, '', { statusFilter: 'complete' });
   assert.equal(completedGroups.visibleCount, 2);
   assert.deepEqual(completedGroups.complete.map(query => query.id), ['103', '100']);
+
+  const myGroups = groupHistoryQueries(queries, '', {
+    scopeFilter: 'mine', currentPrincipal: 'bt1142'
+  });
+  assert.equal(myGroups.visibleCount, 1);
+  assert.deepEqual(myGroups.running.map(query => query.id), ['104']);
 
   const hasRowsGroups = groupHistoryQueries(queries, '', { resultFilter: 'has_results' });
   assert.equal(hasRowsGroups.visibleCount, 3);

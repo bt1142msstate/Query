@@ -209,6 +209,20 @@ test('query history', async () => {
   assert.match(runningRowHtml, /Preparing additional result fields - 250 \/ 1,000 records/u);
   assert.match(runningRowHtml, /Candidate Rows/u);
 
+  const hydrationRowHtml = createQueriesTableRowHtml({
+    id: 'query_1786400000_12345678', kind: 'hydration', createdBy: 'alw3',
+    name: 'Hydration review', status: 'complete', resultCount: 25,
+    startTime: '2026-01-01T00:00:00.000Z', endTime: '2026-01-01T00:01:00.000Z',
+    targetTags: ['521', '526'], jsonConfig: null
+  }, {
+    dependencies: { formatDuration: seconds => `${seconds}s`, normalizeUiConfigFilters: () => [] }
+  });
+  assert.match(hydrationRowHtml, /Hydration/u);
+  assert.match(hydrationRowHtml, /alw3/u);
+  assert.match(hydrationRowHtml, /Fields 521, 526/u);
+  assert.match(hydrationRowHtml, /open-hydration-btn/u);
+  assert.doesNotMatch(hydrationRowHtml, /template-query-btn|rerun-query-btn/u);
+
   const failedQuery = {
     id: 'Q3',
     name: 'Failed diagnostics',

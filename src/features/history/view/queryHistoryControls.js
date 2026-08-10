@@ -22,6 +22,11 @@ const HISTORY_DURATION_FILTER_OPTIONS = Object.freeze([
   { value: 'over_30m', label: 'Over 30 minutes' }
 ]);
 
+const HISTORY_SCOPE_FILTER_OPTIONS = Object.freeze([
+  { value: 'all', label: 'All staff' },
+  { value: 'mine', label: 'My runs' }
+]);
+
 const HISTORY_SORT_OPTIONS = Object.freeze([
   { value: 'newest', label: 'Newest first' },
   { value: 'oldest', label: 'Oldest first' },
@@ -33,6 +38,7 @@ const HISTORY_SORT_OPTIONS = Object.freeze([
 
 const DEFAULT_HISTORY_VIEW_OPTIONS = Object.freeze({
   statusFilter: 'all',
+  scopeFilter: 'all',
   resultFilter: 'all',
   durationFilter: 'all',
   sortKey: 'newest'
@@ -50,6 +56,8 @@ function getHistoryOptionLabel(options, value) {
 function normalizeHistoryViewOptions(options = {}) {
   return {
     statusFilter: getOptionValue(HISTORY_STATUS_FILTER_OPTIONS, options.statusFilter, DEFAULT_HISTORY_VIEW_OPTIONS.statusFilter),
+    scopeFilter: getOptionValue(HISTORY_SCOPE_FILTER_OPTIONS, options.scopeFilter, DEFAULT_HISTORY_VIEW_OPTIONS.scopeFilter),
+    currentPrincipal: String(options.currentPrincipal || '').trim().toLowerCase(),
     resultFilter: getOptionValue(HISTORY_RESULT_FILTER_OPTIONS, options.resultFilter, DEFAULT_HISTORY_VIEW_OPTIONS.resultFilter),
     durationFilter: getOptionValue(HISTORY_DURATION_FILTER_OPTIONS, options.durationFilter, DEFAULT_HISTORY_VIEW_OPTIONS.durationFilter),
     sortKey: getOptionValue(HISTORY_SORT_OPTIONS, options.sortKey, DEFAULT_HISTORY_VIEW_OPTIONS.sortKey)
@@ -118,6 +126,11 @@ function getHistoryQueryDurationMs(query, now = Date.now()) {
 function queryMatchesHistoryFilters(query, options = {}, now = Date.now()) {
   const normalizedOptions = normalizeHistoryViewOptions(options);
   const status = getHistoryQueryStatus(query);
+
+  if (normalizedOptions.scopeFilter === 'mine'
+      && String(query?.createdBy || '').trim().toLowerCase() !== normalizedOptions.currentPrincipal) {
+    return false;
+  }
 
   if (normalizedOptions.statusFilter !== 'all' && status !== normalizedOptions.statusFilter) {
     return false;
@@ -216,6 +229,9 @@ function getHistoryActiveFilterLabel(options = {}) {
   if (normalized.statusFilter !== DEFAULT_HISTORY_VIEW_OPTIONS.statusFilter) {
     active.push(`status: ${getHistoryOptionLabel(HISTORY_STATUS_FILTER_OPTIONS, normalized.statusFilter)}`);
   }
+  if (normalized.scopeFilter !== DEFAULT_HISTORY_VIEW_OPTIONS.scopeFilter) {
+    active.push(`scope: ${getHistoryOptionLabel(HISTORY_SCOPE_FILTER_OPTIONS, normalized.scopeFilter)}`);
+  }
   if (normalized.resultFilter !== DEFAULT_HISTORY_VIEW_OPTIONS.resultFilter) {
     active.push(`results: ${getHistoryOptionLabel(HISTORY_RESULT_FILTER_OPTIONS, normalized.resultFilter)}`);
   }
@@ -265,15 +281,15 @@ function buildHistoryVisibleMetaDetail(searchTerm, viewOptions) {
 function buildHistoryEmptyCriteriaMessage(searchTerm, viewOptions) {
   const activeFilterLabel = getHistoryActiveFilterLabel(viewOptions);
   if (searchTerm && activeFilterLabel) {
-    return `No queries found matching "${searchTerm}" with the selected filters.`;
+    return `No activity found matching "${searchTerm}" with the selected filters.`;
   }
   if (searchTerm) {
-    return `No queries found matching "${searchTerm}".`;
+    return `No activity found matching "${searchTerm}".`;
   }
   if (activeFilterLabel) {
-    return 'No queries match the selected history filters.';
+    return 'No activity matches the selected history filters.';
   }
-  return 'No query history is available yet.';
+  return 'No shared history is available yet.';
 }
 
 export {
@@ -283,6 +299,7 @@ export {
   DEFAULT_HISTORY_VIEW_OPTIONS,
   HISTORY_DURATION_FILTER_OPTIONS,
   HISTORY_RESULT_FILTER_OPTIONS,
+  HISTORY_SCOPE_FILTER_OPTIONS,
   HISTORY_SORT_OPTIONS,
   HISTORY_STATUS_FILTER_OPTIONS,
   getHistoryActiveFilterLabel,
