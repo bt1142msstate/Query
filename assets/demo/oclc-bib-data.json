@@ -72,6 +72,33 @@
         "worldcat_526_count": 2,
         "identity_conflict": 0
       },
+      "candidates": [
+        {
+          "oclc_number": "54005706",
+          "title": "A hat full of sky : a novel /",
+          "creator": "Pratchett, Terry.",
+          "date": "2005",
+          "edition": "1st Harper Trophy ed.",
+          "format": "Book",
+          "isbn": ["9780060586607"],
+          "match_score": 98,
+          "match_confidence_band": "high",
+          "match_reason": "The title, creator, edition, and ISBN align with the local record."
+        },
+        {
+          "oclc_number": "777000111",
+          "title": "A hat full of sky /",
+          "creator": "Pratchett, Terry.",
+          "date": "2004",
+          "edition": "First edition",
+          "format": "Book",
+          "isbn": ["0060586605"],
+          "match_score": 62,
+          "match_confidence_band": "low",
+          "validation_rejected": 1,
+          "match_reason": "The title and creator are similar, but the edition details conflict and need review."
+        }
+      ],
       "comparison": {
         "counts": {
           "all": 9,
@@ -286,7 +313,6 @@
           }
         ]
       },
-      "candidates": [],
       "needs_selection": 0,
       "source": {
         "name": "OCLC WorldCat Metadata API",

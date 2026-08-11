@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  candidateConfidenceBand,
+  candidateScore,
   mergeCandidateRecords,
   selectedCandidateNumber,
   selectedCandidateSummary
@@ -19,6 +21,18 @@ test('candidate navigation retains prior matches and updates repeated metadata',
   assert.deepEqual(merged.map(candidate => candidate.oclc_number), ['111', '222']);
   assert.equal(merged[1].title, 'Second title');
   assert.equal(merged[1].edition, 'Second edition');
+});
+
+test('candidate navigation keeps low-confidence matches and ranks scored records highest', () => {
+  const merged = mergeCandidateRecords([
+    { oclc_number: '333', title: 'Low match', match_score: 38, match_confidence_band: 'low' },
+    { oclc_number: '111', title: 'Strong match', match_score: 91, match_confidence_band: 'high' },
+    { oclc_number: '222', title: 'Reviewed match', match_score: 95, overall_score: 84, confidence_band: 'good' }
+  ]);
+
+  assert.deepEqual(merged.map(candidate => candidate.oclc_number), ['111', '222', '333']);
+  assert.deepEqual(candidateScore(merged[1]), { value: 84, kind: 'overall' });
+  assert.equal(candidateConfidenceBand(merged[2]), 'low');
 });
 
 test('selected WorldCat record can be reconstructed when a follow-up omits candidates', () => {
@@ -44,6 +58,11 @@ test('selected WorldCat record can be reconstructed when a follow-up omits candi
     date: '',
     edition: 'First edition',
     specific_format: '',
-    isbn: ['9780060586607']
+    isbn: ['9780060586607'],
+    overall_score: null,
+    identity_score: null,
+    confidence_band: '',
+    advice: '',
+    score_reason: ''
   });
 });

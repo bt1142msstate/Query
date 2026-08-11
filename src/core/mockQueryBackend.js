@@ -158,10 +158,39 @@ function compareDemoBib(payload, data) {
     String(candidate.local?.summary?.catalog_key || '') === String(payload.catalog_key || '')
   ));
   if (!record) return null;
-  if (payload.oclc_number && String(payload.oclc_number) !== String(record.selection?.oclc_number || '')) {
+  const requestedCandidate = payload.oclc_number
+    ? (record.candidates || []).find(candidate => String(candidate.oclc_number || '') === String(payload.oclc_number))
+    : null;
+  if (payload.oclc_number && !requestedCandidate
+      && String(payload.oclc_number) !== String(record.selection?.oclc_number || '')) {
     return null;
   }
   const comparison = structuredClone(record);
+  if (requestedCandidate && String(requestedCandidate.oclc_number) !== String(comparison.selection?.oclc_number || '')) {
+    comparison.selection = {
+      oclc_number: String(requestedCandidate.oclc_number),
+      method: 'staff_selection'
+    };
+    comparison.worldcat.summary = {
+      ...comparison.worldcat.summary,
+      ...structuredClone(requestedCandidate),
+      publication: requestedCandidate.date || comparison.worldcat.summary.publication
+    };
+    comparison.match = {
+      confidence: requestedCandidate.match_confidence || 'possible',
+      reason: requestedCandidate.match_reason || 'This candidate needs staff review.',
+      hydration_ready: requestedCandidate.validation_rejected ? 0 : 1,
+      identity_conflict: requestedCandidate.validation_rejected ? 1 : 0
+    };
+    comparison.review = {
+      ...comparison.review,
+      identity_score: requestedCandidate.match_score,
+      overall_score: requestedCandidate.match_score,
+      confidence_band: requestedCandidate.match_confidence_band || 'review',
+      advice: requestedCandidate.validation_rejected ? 'do_not_hydrate' : 'review',
+      reason: requestedCandidate.match_reason || 'This candidate needs staff review.'
+    };
+  }
   const requestedTags = [...new Set((payload.target_tags || []).map(String))];
   const worldcatTags = new Set([
     ...(comparison.worldcat?.record?.fields || []).map(field => field.tag),
@@ -178,7 +207,11 @@ function compareDemoBib(payload, data) {
   const targetScore = requestedTags.length
     ? Math.round(100 * fields.filter(field => field.hydration_allowed).length / requestedTags.length)
     : 100;
-  const advice = blocked.length
+  const identityScore = Number(comparison.review?.identity_score) || 98;
+  const identityRejected = Boolean(comparison.match?.identity_conflict || !comparison.match?.hydration_ready);
+  const advice = identityRejected
+    ? 'do_not_hydrate'
+    : blocked.length
     ? 'do_not_hydrate'
     : (missing.length ? 'review' : 'recommended');
   const evidenceFields = fields.map(field => {
@@ -208,12 +241,16 @@ function compareDemoBib(payload, data) {
     ...(comparison.review || {}),
     mode: requestedTags.length ? 'selected_fields' : 'all_fields',
     requested_tags: requestedTags,
-    identity_score: 98,
+    identity_score: identityScore,
     target_field_score: targetScore,
-    overall_score: requestedTags.length ? Math.min(98, Math.round((98 * 0.8) + (targetScore * 0.2))) : 98,
-    confidence_band: 'high',
+    overall_score: requestedTags.length
+      ? Math.min(identityScore, Math.round((identityScore * 0.8) + (targetScore * 0.2)))
+      : identityScore,
+    confidence_band: comparison.review?.confidence_band || 'high',
     advice,
-    reason: advice === 'recommended'
+    reason: identityRejected
+      ? (comparison.review?.reason || 'Record identity does not meet the minimum safe hydration threshold.')
+      : advice === 'recommended'
       ? 'The record identity and requested-field coverage meet the hydration thresholds.'
       : (advice === 'do_not_hydrate'
           ? 'One or more requested fields are local or control fields that should not be copied from WorldCat.'

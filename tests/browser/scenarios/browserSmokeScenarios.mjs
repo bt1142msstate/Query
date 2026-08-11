@@ -3004,7 +3004,9 @@ async function exerciseDesktopResultsWorkflow(page, queryApiStub) {
       date: '2005',
       edition: '1st Harper Trophy ed.',
       format: 'Book',
-      isbn: ['9780060586607']
+      isbn: ['9780060586607'],
+      match_score: 96,
+      match_confidence_band: 'high'
     },
     {
       oclc_number: '777000111',
@@ -3013,7 +3015,10 @@ async function exerciseDesktopResultsWorkflow(page, queryApiStub) {
       date: '2004',
       edition: 'First edition',
       format: 'Book',
-      isbn: ['0060586605']
+      isbn: ['0060586605'],
+      match_score: 42,
+      match_confidence_band: 'low',
+      validation_rejected: 1
     }
   ];
   const candidatePromptPayload = {
@@ -3059,14 +3064,22 @@ async function exerciseDesktopResultsWorkflow(page, queryApiStub) {
     const { OclcBibCompare } = await import('./src/ui/bib-compare/oclcBibCompare.js');
     OclcBibCompare.openForLookup({ lookupType: 'catalog_key', query: '923278' });
   });
-  const candidateSelect = page.locator('#bib-compare-workspace [data-bib-candidate-select]');
-  await candidateSelect.waitFor({ state: 'visible', timeout: 5000 });
-  await candidateSelect.selectOption('54005706');
+  const candidateTrigger = page.locator('#bib-compare-workspace [data-bib-candidate-trigger]');
+  await candidateTrigger.waitFor({ state: 'visible', timeout: 5000 });
+  await candidateTrigger.click();
+  const candidateOptions = page.locator('#bib-compare-workspace [data-bib-candidate-option]');
+  if (await candidateOptions.count() !== 2) throw new Error('The custom candidate picker should include every confidence level.');
+  const lowCandidate = page.locator('#bib-compare-workspace [data-bib-candidate-option="777000111"]');
+  if (!await lowCandidate.textContent().then(text => text.includes('42% match'))) {
+    throw new Error('The low-confidence candidate should remain visible with its preliminary score.');
+  }
+  await page.locator('#bib-compare-workspace [data-bib-candidate-option="54005706"]').click();
   await page.waitForFunction(() => {
     const select = document.querySelector('#bib-compare-workspace [data-bib-candidate-select]');
     return select?.value === '54005706' && select.options.length === 3;
   }, null, { timeout: 5000 });
-  await candidateSelect.selectOption('777000111');
+  await candidateTrigger.click();
+  await page.locator('#bib-compare-workspace [data-bib-candidate-option="777000111"]').click();
   await page.waitForFunction(() => {
     const workspace = document.querySelector('#bib-compare-workspace');
     const select = workspace?.querySelector('[data-bib-candidate-select]');
