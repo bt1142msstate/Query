@@ -582,7 +582,7 @@ async function expectDarkSurface(page, selector, label) {
   });
 
   if (theme.backgroundLuma > 90 || theme.textLuma < 120) {
-    throw new Error(`${label} is not using the dark surface theme`);
+    throw new Error(`${label} is not using the dark surface theme: ${JSON.stringify(theme)}`);
   }
 }
 

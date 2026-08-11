@@ -11,10 +11,13 @@ import { bindSingleHydrationExcel } from './singleHydrationWorkbook.js';
 import { createCurrentQueryHydrationSource, currentQuerySourceMarkup } from './currentQueryHydration.js';
 import { BIB_COMPARISON_FILTERS as FILTERS, bibliographicSource } from './bibSource.js';
 import { installHydrationHistoryBridge } from './hydrationHistoryBridge.js';
+import { mergeCandidateRecords } from './bibCandidateNavigation.js';
+import { renderCandidateNavigation } from './bibCandidateNavigationView.js';
 const state = {
   initialized: false,
   workspace: null,
   searchResults: [],
+  candidateSets: new Map(),
   selectedCatalogKey: '',
   comparison: null,
   filter: 'differences',
@@ -193,8 +196,8 @@ function workspaceMarkup() {
 
             <section class="bib-compare-candidate-band hidden" data-bib-candidate-band>
               <div>
-                <h2>Choose a WorldCat record</h2>
-                <p>The local record does not identify one unambiguous WorldCat match.</p>
+                <h2>WorldCat matches</h2>
+                <p data-bib-candidate-description>Choose a record to compare. You can switch matches at any time.</p>
               </div>
               <div class="bib-compare-candidate-controls">
                 <select data-bib-candidate-select aria-label="WorldCat candidate"></select>
@@ -511,44 +514,6 @@ function renderHydrationConfidence(payload) {
   }
 }
 
-function candidateOption(candidate) {
-  const option = document.createElement('option');
-  option.value = candidate.oclc_number || '';
-  const parts = [
-    `OCLC ${candidate.oclc_number || 'unknown'}`,
-    candidate.title,
-    candidate.creator,
-    candidate.date,
-    candidate.edition,
-    candidate.specific_format || candidate.format,
-    formatIdentifierList(candidate.isbn) === 'Not present' ? '' : `ISBN ${formatIdentifierList(candidate.isbn)}`
-  ].map(value => String(value || '').trim()).filter(Boolean);
-  option.textContent = parts.join(' | ');
-  return option;
-}
-
-function renderCandidates(payload) {
-  const band = query('[data-bib-candidate-band]');
-  const select = query('[data-bib-candidate-select]');
-  const candidates = Array.isArray(payload?.candidates) ? payload.candidates : [];
-  const selected = payload?.selection?.oclc_number || '';
-  const shouldShow = Boolean(payload?.needs_selection || candidates.length);
-  band?.classList.toggle('hidden', !shouldShow);
-  if (!select || !shouldShow) return;
-
-  select.replaceChildren();
-  const prompt = document.createElement('option');
-  prompt.value = '';
-  prompt.textContent = candidates.length
-    ? 'Select a WorldCat candidate'
-    : 'No automatic candidates found';
-  select.appendChild(prompt);
-  candidates.forEach(candidate => select.appendChild(candidateOption(candidate)));
-  if (selected && Array.from(select.options).some(option => option.value === selected)) {
-    select.value = selected;
-  }
-}
-
 function renderFilterButtons() {
   const container = query('[data-bib-filters]');
   if (!container) return;
@@ -628,7 +593,12 @@ function renderComparison(payload) {
   renderSummaries(payload);
   renderMatch(payload);
   renderHydrationConfidence(payload);
-  renderCandidates(payload);
+  renderCandidateNavigation({
+    payload,
+    catalogKey: state.selectedCatalogKey,
+    candidateSets: state.candidateSets,
+    root: state.workspace
+  });
   const hasComparison = Boolean(payload?.comparison?.rows);
   query('[data-bib-fields]')?.classList.toggle('hidden', !hasComparison);
   renderFilterButtons();
@@ -645,6 +615,13 @@ async function loadComparison(catalogKey, oclcNumber = '') {
   }
   const requestId = ++state.compareRequest;
   state.selectedCatalogKey = String(catalogKey || '');
+  if (oclcNumber) {
+    const existing = state.candidateSets.get(state.selectedCatalogKey) || [];
+    state.candidateSets.set(state.selectedCatalogKey, mergeCandidateRecords(existing, [{
+      oclc_number: String(oclcNumber),
+      title: 'Manually selected WorldCat record'
+    }]));
+  }
   renderSearchResults();
   setBusy('Loading Symphony, OCLC, and fallback records...');
   query('[data-bib-empty]')?.classList.add('hidden');

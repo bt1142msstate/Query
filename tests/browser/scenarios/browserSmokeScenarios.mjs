@@ -2995,6 +2995,86 @@ async function exerciseDesktopResultsWorkflow(page, queryApiStub) {
       && workspace?.querySelector('[data-bib-query]')?.value === '923278'
       && workspace?.textContent?.includes('A hat full of sky');
   }, null, { timeout: 5000 });
+
+  const candidateChoices = [
+    {
+      oclc_number: '54005706',
+      title: 'A hat full of sky : a novel /',
+      creator: 'Pratchett, Terry.',
+      date: '2005',
+      edition: '1st Harper Trophy ed.',
+      format: 'Book',
+      isbn: ['9780060586607']
+    },
+    {
+      oclc_number: '777000111',
+      title: 'A hat full of sky /',
+      creator: 'Pratchett, Terry.',
+      date: '2004',
+      edition: 'First edition',
+      format: 'Book',
+      isbn: ['0060586605']
+    }
+  ];
+  const candidatePromptPayload = {
+    ...structuredClone(demoBibData.records[0]),
+    worldcat: null,
+    comparison: null,
+    match: null,
+    review: null,
+    selection: null,
+    needs_selection: 1,
+    candidates: candidateChoices
+  };
+  const selectedFirstPayload = {
+    ...structuredClone(demoBibData.records[0]),
+    candidates: [],
+    needs_selection: 0
+  };
+  const selectedSecondPayload = structuredClone(selectedFirstPayload);
+  selectedSecondPayload.selection = { oclc_number: '777000111', method: 'staff_selection' };
+  selectedSecondPayload.worldcat.summary = {
+    ...selectedSecondPayload.worldcat.summary,
+    oclc_number: '777000111',
+    title: 'A hat full of sky /',
+    edition: 'First edition'
+  };
+
+  queryApiStub.enqueue({
+    action: 'compare_oclc_bib',
+    body: JSON.stringify(candidatePromptPayload),
+    contentType: 'application/json; charset=utf-8'
+  });
+  queryApiStub.enqueue({
+    action: 'compare_oclc_bib',
+    body: JSON.stringify(selectedFirstPayload),
+    contentType: 'application/json; charset=utf-8'
+  });
+  queryApiStub.enqueue({
+    action: 'compare_oclc_bib',
+    body: JSON.stringify(selectedSecondPayload),
+    contentType: 'application/json; charset=utf-8'
+  });
+  await page.evaluate(async () => {
+    const { OclcBibCompare } = await import('./src/ui/bib-compare/oclcBibCompare.js');
+    OclcBibCompare.openForLookup({ lookupType: 'catalog_key', query: '923278' });
+  });
+  const candidateSelect = page.locator('#bib-compare-workspace [data-bib-candidate-select]');
+  await candidateSelect.waitFor({ state: 'visible', timeout: 5000 });
+  await candidateSelect.selectOption('54005706');
+  await page.waitForFunction(() => {
+    const select = document.querySelector('#bib-compare-workspace [data-bib-candidate-select]');
+    return select?.value === '54005706' && select.options.length === 3;
+  }, null, { timeout: 5000 });
+  await candidateSelect.selectOption('777000111');
+  await page.waitForFunction(() => {
+    const workspace = document.querySelector('#bib-compare-workspace');
+    const select = workspace?.querySelector('[data-bib-candidate-select]');
+    return select?.value === '777000111'
+      && select.options.length === 3
+      && workspace?.querySelector('[data-bib-candidate-description]')?.textContent?.includes('2 possible records');
+  }, null, { timeout: 5000 });
+
   await page.locator('#bib-compare-workspace [data-bib-close]').click();
   await page.locator('#bib-compare-workspace:not([open])').waitFor({ state: 'attached', timeout: 5000 });
 
