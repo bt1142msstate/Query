@@ -12,7 +12,7 @@ import { createCurrentQueryHydrationSource, currentQuerySourceMarkup } from './c
 import { BIB_COMPARISON_FILTERS as FILTERS, bibliographicSource } from './bibSource.js';
 import { installHydrationHistoryBridge } from './hydrationHistoryBridge.js';
 import { mergeCandidateRecords } from './bibCandidateNavigation.js';
-import { renderCandidateNavigation } from './bibCandidateNavigationView.js';
+import { bindCandidateNavigation, renderCandidateNavigation } from './bibCandidateNavigationView.js';
 const state = {
   initialized: false,
   workspace: null,
@@ -200,7 +200,17 @@ function workspaceMarkup() {
                 <p data-bib-candidate-description>Choose a record to compare. You can switch matches at any time.</p>
               </div>
               <div class="bib-compare-candidate-controls">
-                <select data-bib-candidate-select aria-label="WorldCat candidate"></select>
+                <div class="bib-candidate-picker" data-bib-candidate-picker>
+                  <button class="bib-candidate-trigger" type="button" data-bib-candidate-trigger aria-haspopup="listbox" aria-expanded="false" aria-controls="bib-candidate-menu">
+                    <span>
+                      <strong data-bib-candidate-selected-title>Select a WorldCat match</strong>
+                      <small data-bib-candidate-selected-meta>All confidence levels are available</small>
+                    </span>
+                    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>
+                  </button>
+                  <div class="bib-candidate-menu hidden" id="bib-candidate-menu" data-bib-candidate-menu role="listbox" aria-label="WorldCat candidates" hidden></div>
+                  <select class="sr-only" data-bib-candidate-select aria-label="WorldCat candidate" tabindex="-1"></select>
+                </div>
                 <form class="bib-compare-oclc-form" data-bib-oclc-form>
                   <input data-bib-oclc-input inputmode="numeric" pattern="[0-9]{1,15}" maxlength="15" placeholder="OCLC number" aria-label="OCLC number">
                   <button type="submit">Compare</button>
@@ -630,6 +640,7 @@ async function loadComparison(catalogKey, oclcNumber = '') {
     const { data } = await postJson({
       action: 'compare_oclc_bib',
       catalog_key: state.selectedCatalogKey,
+      include_candidates: true,
       ...(state.targetMode === 'selected' ? { target_tags: state.targetTags } : {}),
       ...(oclcNumber ? { oclc_number: String(oclcNumber) } : {})
     }, { timeoutMs: 45000 });
@@ -796,10 +807,10 @@ function bindWorkspaceEvents(workspace) {
     const result = event.target.closest?.('[data-catalog-key]');
     if (result?.dataset.catalogKey) loadComparison(result.dataset.catalogKey);
   });
-  workspace.querySelector('[data-bib-candidate-select]')?.addEventListener('change', event => {
-    const oclcNumber = event.target.value;
-    if (oclcNumber && state.selectedCatalogKey) {
-      loadComparison(state.selectedCatalogKey, oclcNumber);
+  bindCandidateNavigation({
+    root: workspace,
+    onSelect: oclcNumber => {
+      if (state.selectedCatalogKey) loadComparison(state.selectedCatalogKey, oclcNumber);
     }
   });
   workspace.querySelector('[data-bib-oclc-form]')?.addEventListener('submit', event => {
