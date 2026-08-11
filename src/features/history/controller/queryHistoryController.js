@@ -261,19 +261,27 @@ async function fetchQueryStatus() {
  * @param {string} queryId - The ID of the query to cancel
  */
 async function cancelQuery(queryId) {
+  const query = getHistoryQueryById(queryId);
+  const isHydration = query?.kind === 'hydration';
   try {
-    const { response } = await BackendApi.postJson({ action: 'cancel', query_id: queryId });
+    const payload = isHydration
+      ? { action: 'cancel_hydration_run', run_id: queryId }
+      : { action: 'cancel', query_id: queryId };
+    const { response } = await BackendApi.postJson(payload);
     
     if (response.ok) {
       const lifecycleState = QueryStateReaders?.getLifecycleState?.();
       const isActiveLocalQuery = lifecycleState?.queryRunning
         && String(lifecycleState.currentQueryId || '') === String(queryId || '');
-      const q = exampleQueries.find(q => q.id === queryId);
+      const q = getHistoryQueryById(queryId);
       if (q) {
         q.running = false;
         q.cancelled = true;
         q.status = 'canceled';
         renderQueries();
+      }
+      if (isHydration) {
+        window.dispatchEvent(new CustomEvent('query:hydration-run-canceled', { detail: { runId: queryId } }));
       }
       if (isActiveLocalQuery) {
         QueryChangeManager?.setLifecycleState?.(
@@ -284,7 +292,7 @@ async function cancelQuery(queryId) {
         uiActions.updateButtonStates();
         uiActions.endTableQueryAnimation();
       }
-      showToastMessage(`Query ${queryId} cancelled`, 'info');
+      showToastMessage(isHydration ? 'Hydration run canceled' : `Query ${queryId} cancelled`, 'info');
     } else {
       showToastMessage('Failed to cancel query', 'error');
     }
@@ -429,11 +437,12 @@ function bindHistoryTableButtons(scope) {
     btn.addEventListener('click', e => {
       e.stopPropagation();
       const id = btn.getAttribute('data-query-id');
+      const isHydration = getHistoryQueryById(id)?.kind === 'hydration';
       const toastElement = showToastMessage({
-        message: 'Cancel this running query?',
+        message: isHydration ? 'Cancel this Hydration run? Completed records will be preserved.' : 'Cancel this running query?',
         type: 'warning',
         duration: 0,
-        action: { label: 'Cancel Query', onClick: () => cancelQuery(id) }
+        action: { label: isHydration ? 'Cancel Hydration' : 'Cancel Query', onClick: () => cancelQuery(id) }
       });
       if (!toastElement) {
         cancelQuery(id);

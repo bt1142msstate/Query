@@ -218,6 +218,17 @@ test('query history', async () => {
 
   assert.match(runningRowHtml, /Loading requested field values/u);
   assert.match(runningRowHtml, /Preparing additional result fields - 250 \/ 1,000 records/u);
+
+  const runningHydrationHtml = createQueriesTableRowHtml({
+    id: 'query_1786400000_12345678', kind: 'hydration', name: 'Hydration review',
+    status: 'hydration_running', running: true, resultCount: 25,
+    startTime: '2026-01-01T00:00:00.000Z',
+    jsonConfig: { DesiredColumnOrder: [], Filters: [] }
+  });
+  assert.match(runningHydrationHtml, /open-hydration-btn/u);
+  assert.match(runningHydrationHtml, /stop-query-btn/u);
+  assert.match(runningHydrationHtml, /Cancel Hydration run/u);
+  assert.match(runningHydrationHtml, /history-action-label">Cancel/u);
   assert.match(runningRowHtml, /Candidate Rows/u);
 
   const hydrationRowHtml = createQueriesTableRowHtml({

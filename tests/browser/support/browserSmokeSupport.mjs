@@ -574,10 +574,10 @@ async function expectDarkSurface(page, selector, label) {
     const style = window.getComputedStyle(element);
     const [backgroundRed = 255, backgroundGreen = 255, backgroundBlue = 255] = readChannels(style.backgroundColor);
     const [textRed = 0, textGreen = 0, textBlue = 0] = readChannels(style.color);
-
     return {
       backgroundLuma: (backgroundRed + backgroundGreen + backgroundBlue) / 3,
-      textLuma: (textRed + textGreen + textBlue) / 3
+      textLuma: (textRed + textGreen + textBlue) / 3,
+      resolvedTheme: document.documentElement.dataset.themeResolved || ''
     };
   });
 

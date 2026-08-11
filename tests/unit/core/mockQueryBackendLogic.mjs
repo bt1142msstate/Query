@@ -166,3 +166,37 @@ test('demo hydration runs persist into shared history and reopen without resolvi
   assert.equal(saved.results.length, 1);
   assert.equal(saved.results[0].local.catalog_key, '923278');
 });
+
+test('demo hydration cancellation preserves results and rejects late batches', async () => {
+  const started = await handleDemoQueryRequest({
+    body: JSON.stringify({ action: 'start_hydration_run', name: 'Cancelable hydration', total: 2 }),
+    headers: authHeaders
+  });
+  const run = await started.json();
+  await handleDemoQueryRequest({
+    body: JSON.stringify({
+      action: 'resolve_oclc_bibs_bulk', run_id: run.run_id, batch_id: 'batch_00000000',
+      entries: [{ lookup_type: 'catalog_key', query: '923278' }]
+    }),
+    headers: authHeaders
+  });
+  const canceled = await handleDemoQueryRequest({
+    body: JSON.stringify({ action: 'cancel_hydration_run', run_id: run.run_id }),
+    headers: authHeaders
+  });
+  assert.equal(canceled.status, 200);
+  const lateBatch = await handleDemoQueryRequest({
+    body: JSON.stringify({
+      action: 'resolve_oclc_bibs_bulk', run_id: run.run_id, batch_id: 'batch_00000001',
+      entries: [{ lookup_type: 'isbn', query: '9780060586607' }]
+    }),
+    headers: authHeaders
+  });
+  assert.equal(lateBatch.status, 409);
+  const saved = await (await handleDemoQueryRequest({
+    body: JSON.stringify({ action: 'get_hydration_run', run_id: run.run_id }),
+    headers: authHeaders
+  })).json();
+  assert.equal(saved.metadata.status, 'canceled');
+  assert.equal(saved.total, 1);
+});
