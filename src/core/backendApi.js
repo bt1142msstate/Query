@@ -199,6 +199,7 @@ async function request(payload, options = {}) {
     headers = {},
     keepalive = false,
     notifyOnRateLimit = true,
+    signal = null,
     timeoutMs = 0
   } = options;
 
@@ -206,9 +207,21 @@ async function request(payload, options = {}) {
   const shouldTimeout = Number.isFinite(timeoutValue)
     && timeoutValue > 0
     && typeof AbortController !== 'undefined';
-  const controller = shouldTimeout ? new AbortController() : null;
+  const canAbort = typeof AbortController !== 'undefined';
+  const controller = canAbort && (shouldTimeout || signal) ? new AbortController() : null;
+  let timedOut = false;
+  const abortFromCaller = () => controller?.abort();
+  if (signal?.aborted) {
+    abortFromCaller();
+  } else {
+    signal?.addEventListener?.('abort', abortFromCaller, { once: true });
+  }
   const timeoutId = controller
-    ? setTimeout(() => controller.abort(), timeoutValue)
+    && shouldTimeout
+    ? setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+      }, timeoutValue)
     : null;
 
   let response;
@@ -223,10 +236,10 @@ async function request(payload, options = {}) {
       credentials: 'same-origin',
       keepalive,
       body: JSON.stringify(payload),
-      ...(controller ? { signal: controller.signal } : {})
+      ...((controller?.signal || signal) ? { signal: controller?.signal || signal } : {})
     });
   } catch (error) {
-    if (controller?.signal?.aborted) {
+    if (timedOut) {
       throw buildTimeoutError(timeoutValue);
     }
     throw error;
@@ -234,6 +247,7 @@ async function request(payload, options = {}) {
     if (timeoutId) {
       clearTimeout(timeoutId);
     }
+    signal?.removeEventListener?.('abort', abortFromCaller);
   }
 
   await assertNotRateLimited(response, { notify: notifyOnRateLimit });

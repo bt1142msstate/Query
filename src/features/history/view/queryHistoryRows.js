@@ -152,7 +152,10 @@ function buildHistoryRowActions(query, options = {}) {
     const openBtn = canOpen
       ? `<button class="open-hydration-btn inline-flex items-center justify-center p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-blue-600" tabindex="-1" data-query-id="${queryId}" data-tooltip="Open saved Hydration review" aria-label="Open saved Hydration review"><svg class="history-results-icon w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5c-.8 2.2-6 7.4-6 11.8a6 6 0 0 0 12 0c0-4.4-5.2-9.6-6-11.8Z"/></svg><span class="history-action-label">Open</span></button>`
       : '';
-    return { loadBtn: openBtn, previewBtn: openBtn, rerunBtn: '', stopBtn: '', templateBtn: '' };
+    const stopBtn = query.running
+      ? `<button class="stop-query-btn inline-flex items-center justify-center p-1 rounded-full bg-red-100 hover:bg-red-200 text-red-600" tabindex="-1" data-query-id="${queryId}" data-tooltip="Cancel Hydration run" aria-label="Cancel Hydration run"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg><span class="history-action-label">Cancel</span></button>`
+      : '';
+    return { loadBtn: openBtn, previewBtn: openBtn, rerunBtn: '', stopBtn, templateBtn: '' };
   }
   const isLoading = options.activeHistoryResultLoadQueryId === query.id;
   const loadAttrs = isLoading ? ' disabled aria-busy="true"' : '';

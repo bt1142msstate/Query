@@ -322,6 +322,9 @@ async function handleDemoQueryRequest(options = {}) {
       const bibData = await loadDemoBibData();
       const resolved = resolveDemoBibsBulk(payload, bibData);
       const run = demoHydrationRuns.get(payload.run_id);
+      if (run && run.metadata.status !== 'hydration_running') {
+        return json({ error: 'Hydration run is no longer active.' }, 409);
+      }
       if (run && payload.batch_id && !run.batches.has(payload.batch_id)) {
         run.batches.add(payload.batch_id);
         run.results.push(...structuredClone(resolved.results));
@@ -358,6 +361,16 @@ async function handleDemoQueryRequest(options = {}) {
       if (!run) return json({ error: 'Hydration run not found.' }, 404);
       run.metadata.status = payload.status;
       run.metadata.end_time = new Date().toISOString();
+      return json({ run_id: payload.run_id, metadata: run.metadata });
+    }
+    case 'cancel_hydration_run': {
+      const run = demoHydrationRuns.get(payload.run_id);
+      if (!run) return json({ error: 'Hydration run not found.' }, 404);
+      if (run.metadata.status !== 'hydration_running' && run.metadata.status !== 'canceled') {
+        return json({ error: 'Hydration run is already finalized.' }, 409);
+      }
+      run.metadata.status = 'canceled';
+      run.metadata.end_time ||= new Date().toISOString();
       return json({ run_id: payload.run_id, metadata: run.metadata });
     }
     case 'update_history_run': {

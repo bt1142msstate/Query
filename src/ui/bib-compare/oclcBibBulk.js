@@ -270,6 +270,8 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
   let requestId = 0;
   let results = [];
   let activeRunId = '';
+  let activeRequestController = null;
+  let activeTotal = 0;
 
   async function finishRun(status, error = '') {
     if (!activeRunId) return true;
@@ -341,7 +343,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
   }
 
   function setProgress(completed, total, message) {
-    const active = completed < total;
+    const active = completed < total && Boolean(activeRunId);
     progress.classList.toggle('hidden', !total);
     cancelButton.classList.toggle('hidden', !active);
     progressText.textContent = message;
@@ -356,12 +358,13 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
       setSearchStatus('Enter at least one valid three-digit MARC field for the hydration plan.', 'error');
       return;
     }
-    if (activeRunId && !await finishRun('canceled')) {
+    if (activeRunId && !await cancelRun({ notify: false })) {
       setSearchStatus('The previous saved run could not be finalized. Try again before starting another run.', 'error');
       return;
     }
     const currentRequest = ++requestId;
     results = [];
+    activeTotal = entries.length;
     renderResults();
     setVisible(true);
     setProgress(0, entries.length, 'Resolving OCLC and Library of Congress records...');
@@ -375,6 +378,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
       });
       activeRunId = data.run_id || '';
       if (!activeRunId) throw new Error('The saved Hydration run did not return an identifier.');
+      setProgress(0, entries.length, 'Resolving OCLC and Library of Congress records...');
     } catch (error) {
       setSearchStatus(error.message || 'The Hydration run could not be saved.', 'error');
       return;
@@ -387,19 +391,23 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
       let chunkComplete = false;
       while (!chunkComplete && currentRequest === requestId) {
         try {
+          activeRequestController = new AbortController();
           const { data } = await postJson(
             buildBulkResolvePayload(chunk, targetTags, {
               runId: activeRunId,
               batchId: `batch_${String(chunkIndex).padStart(8, '0')}`
             }),
-            { timeoutMs: 600000, notifyOnRateLimit: false }
+            { timeoutMs: 600000, notifyOnRateLimit: false, signal: activeRequestController.signal }
           );
+          activeRequestController = null;
           const returned = Array.isArray(data.results) ? data.results : [];
           returned.forEach((result, index) => {
             results.push({ ...result, original: chunk[index]?.original || chunk[index]?.query });
           });
           chunkComplete = true;
         } catch (error) {
+          activeRequestController = null;
+          if (currentRequest !== requestId || error?.name === 'AbortError') return;
           if (error?.isRateLimited) {
             setSearchStatus('Hydration is paused by the request limit. Completed records are preserved.', 'warning');
             const shouldRetry = await waitForHydrationRetry({
@@ -436,6 +444,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
     const currentRequest = ++requestId;
     results = [];
     activeRunId = '';
+    activeTotal = 0;
     setVisible(true);
     setProgress(0, 1, 'Loading saved Hydration results...');
     let offset = 0;
@@ -455,21 +464,50 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
       }
       if (currentRequest !== requestId) return;
       const total = Number(metadata?.hydration_total || results.length);
+      const running = metadata?.status === 'hydration_running';
+      activeRunId = running ? runId : '';
+      activeTotal = total;
       const counts = statusCounts(results);
       setProgress(results.length, total, `Saved run loaded. ${results.length.toLocaleString()} completed records are available.`);
-      cancelButton.classList.add('hidden');
+      cancelButton.classList.toggle('hidden', !running);
       setSearchStatus(`Saved Hydration run loaded. ${counts.resolved.toLocaleString()} matched automatically; ${counts.review.toLocaleString()} need review.`, 'success');
     } catch (error) {
       setSearchStatus(error.message || 'The saved Hydration run could not be loaded.', 'error');
     }
   }
 
-  cancelButton.addEventListener('click', () => {
+  async function cancelRun({ notify = true } = {}) {
+    const runId = activeRunId;
+    if (!runId) return true;
     requestId += 1;
+    activeRequestController?.abort();
+    activeRequestController = null;
     cancelButton.classList.add('hidden');
-    setSearchStatus('Bulk matching stopped. Completed results are still available.', 'empty');
-    showToastMessage('Bulk matching stopped.', 'info');
-    finishRun('canceled');
+    try {
+      await postJson({ action: 'cancel_hydration_run', run_id: runId });
+      if (activeRunId === runId) activeRunId = '';
+      setProgress(results.length, activeTotal, 'Hydration canceled. Completed records were preserved.');
+      setSearchStatus('Hydration canceled. Completed results are still available.', 'empty');
+      if (notify) showToastMessage('Hydration canceled.', 'info');
+      window.dispatchEvent(new CustomEvent('query:hydration-run-canceled', { detail: { runId } }));
+      return true;
+    } catch (error) {
+      setSearchStatus(error.message || 'The Hydration run could not be canceled.', 'error');
+      if (activeRunId === runId) cancelButton.classList.remove('hidden');
+      return false;
+    }
+  }
+
+  cancelButton.addEventListener('click', () => cancelRun());
+  window.addEventListener('query:hydration-run-canceled', event => {
+    if (!activeRunId || event.detail?.runId !== activeRunId) return;
+    requestId += 1;
+    activeRequestController?.abort();
+    activeRequestController = null;
+    activeRunId = '';
+    cancelButton.classList.add('hidden');
+    setProgress(results.length, activeTotal, 'Hydration canceled. Completed records were preserved.');
+    setSearchStatus('Hydration canceled. Completed results are still available.', 'empty');
   });
   downloadButton.addEventListener('click', async () => {
     if (!results.length || downloadButton.disabled) return;
@@ -488,7 +526,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
     if (button?.dataset.catalogKey) openComparison(button.dataset.catalogKey);
   });
 
-  return { loadSavedRun, run, setVisible };
+  return { cancel: cancelRun, loadSavedRun, run, setVisible };
 }
 
 async function downloadHydrationReviewWorkbook(results) {

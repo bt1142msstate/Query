@@ -109,6 +109,36 @@ test('backend api times out pending requests', async () => {
   }
 });
 
+test('backend api preserves caller cancellation instead of reporting a timeout', async () => {
+  installBrowserConfig({ href: 'https://app.example.test/index.html', search: '' });
+  const module = await import(`../../../src/core/backendApi.js?case=caller-abort-${Date.now()}`);
+  const originalFetch = globalThis.fetch;
+  module.configureApiUrl('https://backend.example.test/query', { persist: false });
+  globalThis.fetch = async (_url, options = {}) => new Promise((_resolve, reject) => {
+    options.signal?.addEventListener('abort', () => {
+      const error = new Error('The operation was aborted.');
+      error.name = 'AbortError';
+      reject(error);
+    }, { once: true });
+  });
+
+  const controller = new AbortController();
+  try {
+    const pending = module.postJson(
+      { action: 'resolve_oclc_bibs_bulk' },
+      { signal: controller.signal, timeoutMs: 60000 }
+    );
+    controller.abort();
+    await assert.rejects(pending, error => {
+      assert.equal(error.name, 'AbortError');
+      assert.equal(error.isTimeout, undefined);
+      return true;
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('backend api uses same-origin credential policy', async () => {
   installBrowserConfig({
     href: 'https://app.example.test/index.html',
