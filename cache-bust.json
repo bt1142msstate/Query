@@ -1,5 +1,5 @@
 {
-  "version": "7e63d8d6ea8350ca",
+  "version": "0c4a01d12369dd52",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-16.png": "6645731d86da1071",
@@ -10,8 +10,11 @@
     "assets/branding/query-project-icon-concept-v1.png": "858a446a983edf6c",
     "assets/demo/oclc-bib-data.json": "43b904031368c02f",
     "assets/demo/query-data.json": "ad69f2b8cc629f92",
+    "assets/favicon-16.png": "b92bb6b912d17f44",
+    "assets/favicon-32.png": "c9b411f8fdc302f2",
+    "assets/favicon.svg": "8596af3b51a53409",
     "backgroundNotificationServiceWorker.js": "2f8933df91d32a1a",
-    "index.html": "91633027a18bc55e",
+    "index.html": "2eebad54d0ae2cca",
     "site.webmanifest": "7641f91a81ee63a2",
     "src/appModules.js": "636ca568618babb0",
     "src/components/date-picker/index.js": "c9a9363a3fdae5ee",
