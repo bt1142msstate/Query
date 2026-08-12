@@ -27,6 +27,55 @@ test('bulk WorldCat requests can be attached to an idempotent saved run batch', 
   });
 });
 
+test('spreadsheet matching sends normalized row metadata through its dedicated action', () => {
+  const entry = {
+    metadata: { title: 'A Hat Full of Sky', isbns: ['9780060586607'], years: ['2004'] },
+    original: 'A Hat Full of Sky'
+  };
+  assert.deepEqual(buildBulkResolvePayload(
+    [entry],
+    ['521'],
+    { runId: 'query_1786400000_12345678', batchId: 'batch_00000000' },
+    'spreadsheet'
+  ), {
+    action: 'resolve_spreadsheet_bibs_bulk',
+    entries: [{ metadata: entry.metadata }],
+    target_tags: ['521'],
+    run_id: 'query_1786400000_12345678',
+    batch_id: 'batch_00000000'
+  });
+});
+
+test('spreadsheet source metadata remains visible in the Excel review', () => {
+  const state = buildBulkReviewWorkbookState([{
+    input: 'A Hat Full of Sky',
+    lookup_type: 'spreadsheet',
+    status: 'resolved',
+    input_metadata: {
+      row_label: 'Acquisitions row 14',
+      title: 'A Hat Full of Sky',
+      creators: ['Pratchett, Terry'],
+      isbns: ['9780060586607'],
+      publisher: 'HarperCollins',
+      years: ['2004'],
+      languages: ['eng'],
+      format: 'book'
+    },
+    worldcat: { oclc_number: '54005706', title: 'A hat full of sky : a novel /' },
+    selection: { source: 'oclc', oclc_number: '54005706' },
+    review: { advice: 'recommended' }
+  }]);
+  const valueFor = field => state.sourceData.dataRows[0][state.sourceData.displayedFields.indexOf(field)];
+  assert.equal(valueFor('Spreadsheet Row'), 'Acquisitions row 14');
+  assert.equal(valueFor('Spreadsheet Title'), 'A Hat Full of Sky');
+  assert.equal(valueFor('Spreadsheet Creators'), 'Pratchett, Terry');
+  assert.equal(valueFor('Spreadsheet ISBN'), '9780060586607');
+  assert.equal(valueFor('Spreadsheet Publisher'), 'HarperCollins');
+  assert.equal(valueFor('Spreadsheet Publication Years'), '2004');
+  assert.equal(valueFor('Spreadsheet Languages'), 'eng');
+  assert.equal(valueFor('Spreadsheet Format'), 'book');
+});
+
 test('bulk hydration review workbook includes identity and generic MARC evidence', async () => {
   const state = buildBulkReviewWorkbookState([{
     input: '9780060586607',

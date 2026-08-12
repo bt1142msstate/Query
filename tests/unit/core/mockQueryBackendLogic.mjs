@@ -138,6 +138,67 @@ test('demo bulk comparison applies selected hydration fields', async () => {
   assert.deepEqual(payload.results[0].review.requested_tags, ['521', '526']);
 });
 
+test('demo backend matches spreadsheet metadata and retrieves the selected MARC record', async () => {
+  const response = await handleDemoQueryRequest({
+    body: JSON.stringify({
+      action: 'resolve_spreadsheet_bibs_bulk',
+      entries: [{
+        metadata: {
+          row_label: 'Spreadsheet row 2',
+          title: 'A Hat Full of Sky',
+          creators: ['Pratchett, Terry'],
+          isbns: ['9780060586607'],
+          years: ['2004']
+        }
+      }]
+    }),
+    headers: authHeaders
+  });
+  const payload = await response.json();
+  assert.equal(payload.counts.resolved, 1);
+  assert.equal(payload.results[0].lookup_type, 'spreadsheet');
+  assert.equal(payload.results[0].input_metadata.row_label, 'Spreadsheet row 2');
+  assert.equal(payload.results[0].local.catalog_key, '');
+  assert.equal(payload.results[0].selection.oclc_number, '54005706');
+
+  const retrievedResponse = await handleDemoQueryRequest({
+    body: JSON.stringify({
+      action: 'retrieve_external_bibs_bulk',
+      records: [{ source: 'oclc', identifier: '54005706' }]
+    }),
+    headers: authHeaders
+  });
+  const retrieved = await retrievedResponse.json();
+  assert.equal(retrieved.returned, 1);
+  assert.equal(retrieved.records[0].status, 'resolved');
+  assert.equal(retrieved.records[0].record.leader, '00000cam a2200000 i 4500');
+});
+
+test('demo spreadsheet matching persists in shared Hydration history', async () => {
+  const started = await handleDemoQueryRequest({
+    body: JSON.stringify({ action: 'start_hydration_run', name: 'Spreadsheet MARC', total: 1 }),
+    headers: authHeaders
+  });
+  const run = await started.json();
+  const resolved = await handleDemoQueryRequest({
+    body: JSON.stringify({
+      action: 'resolve_spreadsheet_bibs_bulk',
+      run_id: run.run_id,
+      batch_id: 'batch_00000000',
+      entries: [{ metadata: { title: 'A Hat Full of Sky', isbns: ['9780060586607'] } }]
+    }),
+    headers: authHeaders
+  });
+  assert.equal(resolved.status, 200);
+  const saved = await (await handleDemoQueryRequest({
+    body: JSON.stringify({ action: 'get_hydration_run', run_id: run.run_id }),
+    headers: authHeaders
+  })).json();
+  assert.equal(saved.total, 1);
+  assert.equal(saved.results[0].lookup_type, 'spreadsheet');
+  assert.equal(saved.results[0].input_metadata.title, 'A Hat Full of Sky');
+});
+
 test('demo hydration runs persist into shared history and reopen without resolving again', async () => {
   const started = await handleDemoQueryRequest({
     body: JSON.stringify({ action: 'start_hydration_run', name: 'Demo hydration', total: 1, target_tags: ['526'] }),

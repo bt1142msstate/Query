@@ -3212,22 +3212,31 @@ async function exerciseDesktopResultsWorkflow(page, queryApiStub) {
   await page.locator('#bib-compare-workspace [data-bib-mode="bulk"]').click();
   await importHydrationExcelFixture(page);
   await page.waitForFunction(() => (
-    document.querySelector('#bib-bulk-values')?.value === 'A Hat Full of Sky\nWintersmith'
+    document.querySelector('[data-bib-bulk-source]')?.value === 'spreadsheet'
+      && document.querySelectorAll('[data-bib-spreadsheet-mapping-list] select').length === 3
   ), null, { timeout: 5000 });
   const excelImportState = await page.locator('#bib-compare-workspace').evaluate(workspace => ({
     worksheets: [...workspace.querySelectorAll('[data-bib-file-sheet] option')].map(option => option.textContent),
     columns: [...workspace.querySelectorAll('[data-bib-file-column] option')].map(option => option.textContent),
+    workflow: workspace.querySelector('[data-bib-bulk-source]')?.value,
+    mappings: [...workspace.querySelectorAll('[data-bib-spreadsheet-mapping-list] select')].map(select => select.value),
     type: workspace.querySelector('[data-bib-bulk-type]')?.value,
     sheetSelectorVisible: !workspace.querySelector('[data-bib-file-sheet-wrap]')?.classList.contains('hidden')
   }));
   if (
     JSON.stringify(excelImportState.worksheets) !== JSON.stringify(['Records', 'Catalog Keys'])
     || JSON.stringify(excelImportState.columns) !== JSON.stringify(['Title', 'ISBN', 'Catalog Key'])
+    || excelImportState.workflow !== 'spreadsheet'
+    || JSON.stringify(excelImportState.mappings) !== JSON.stringify(['title', 'isbns', ''])
     || excelImportState.type !== 'auto'
     || !excelImportState.sheetSelectorVisible
   ) {
-    throw new Error(`Hydration should import Excel worksheets and columns without forcing a lookup type: ${JSON.stringify(excelImportState)}`);
+    throw new Error(`Hydration should import and map bibliographic spreadsheet columns automatically: ${JSON.stringify(excelImportState)}`);
   }
+  await page.locator('#bib-compare-workspace [data-bib-bulk-source]').selectOption('local');
+  await page.waitForFunction(() => (
+    document.querySelector('#bib-bulk-values')?.value === 'A Hat Full of Sky\nWintersmith'
+  ));
   await page.locator('#bib-compare-workspace [data-bib-file-sheet]').selectOption('1');
   await page.waitForFunction(() => document.querySelector('#bib-bulk-values')?.value === '923278');
   await page.locator('#bib-compare-workspace [data-bib-file-sheet]').selectOption('0');

@@ -2,6 +2,44 @@ const ISBN_HEADER = /^(?:isbn|isbn10|isbn13|standard number)$/iu;
 const CATALOG_HEADER = /^(?:catalog(?: key)?|bib(?: key| id)?|title key)$/iu;
 const ITEM_HEADER = /^(?:item(?: id)?|barcode)$/iu;
 const TITLE_HEADER = /^(?:title|name)$/iu;
+const METADATA_HEADER_PATTERNS = Object.freeze([
+  ['title', /^(?:title|book title|journal title|name)$/iu],
+  ['creators', /^(?:author|authors|creator|creators|personal author|corporate author)$/iu],
+  ['isbns', /^(?:isbn|isbn 10|isbn 13|isbn10|isbn13|standard number)$/iu],
+  ['issns', /^(?:issn|issns)$/iu],
+  ['lccns', /^(?:lccn|library of congress control number)$/iu],
+  ['oclc_numbers', /^(?:oclc|oclc number|oclc no|worldcat|worldcat number)$/iu],
+  ['standard_numbers', /^(?:identifier|identifiers|standard identifier|standard identifiers|upc|ean)$/iu],
+  ['edition', /^(?:edition|edition statement)$/iu],
+  ['publisher', /^(?:publisher|publisher name)$/iu],
+  ['publication_place', /^(?:place|publication place|place of publication)$/iu],
+  ['years', /^(?:year|date|publication year|publication date|date published)$/iu],
+  ['languages', /^(?:language|language code|marc language)$/iu],
+  ['format', /^(?:format|material format|material type|type)$/iu],
+  ['physical_description', /^(?:physical description|extent|pagination)$/iu],
+  ['series', /^(?:series|series title)$/iu],
+  ['row_label', /^(?:row id|source id|local id|reference)$/iu]
+]);
+
+const SPREADSHEET_FIELDS = Object.freeze([
+  { value: '', label: 'Ignore column' },
+  { value: 'title', label: 'Bibliographic title' },
+  { value: 'creators', label: 'Creator / author' },
+  { value: 'isbns', label: 'ISBN' },
+  { value: 'issns', label: 'ISSN' },
+  { value: 'lccns', label: 'LCCN' },
+  { value: 'oclc_numbers', label: 'OCLC number' },
+  { value: 'standard_numbers', label: 'Other standard number' },
+  { value: 'edition', label: 'Edition' },
+  { value: 'publisher', label: 'Publisher' },
+  { value: 'publication_place', label: 'Publication place' },
+  { value: 'years', label: 'Publication year' },
+  { value: 'languages', label: 'Language (MARC code)' },
+  { value: 'format', label: 'Material format' },
+  { value: 'physical_description', label: 'Physical description' },
+  { value: 'series', label: 'Series' },
+  { value: 'row_label', label: 'Source row label' }
+]);
 
 function normalizeHeader(value) {
   return String(value || '').trim().toLocaleLowerCase().replaceAll('_', ' ').replace(/\s+/gu, ' ');
@@ -56,6 +94,11 @@ function headerType(header) {
   return '';
 }
 
+function spreadsheetFieldForHeader(header) {
+  const normalized = normalizeHeader(header);
+  return METADATA_HEADER_PATTERNS.find(([, pattern]) => pattern.test(normalized))?.[0] || '';
+}
+
 function parseInputFile(text, filename = '') {
   const delimiter = detectDelimiter(text, filename);
   const rows = delimiter
@@ -73,9 +116,55 @@ function inputDataFromRows(rows) {
     recognized ? String(first[index] || `Column ${index + 1}`).trim() : `Column ${index + 1}`
   ));
   return {
-    columns: headers.map((label, index) => ({ index, label, type: headerType(label) })),
+    columns: headers.map((label, index) => ({
+      index,
+      label,
+      type: headerType(label),
+      spreadsheetField: spreadsheetFieldForHeader(label)
+    })),
     rows: recognized ? rows.slice(1) : rows
   };
+}
+
+function splitIdentifierValues(value) {
+  return String(value || '').split(/[;,|\n]+/u).map(part => part.trim()).filter(Boolean);
+}
+
+function valuesForRole(value, role) {
+  const text = String(value || '').trim();
+  if (!text) return [];
+  if (['isbns', 'issns', 'lccns', 'oclc_numbers', 'standard_numbers', 'series'].includes(role)) {
+    return splitIdentifierValues(text);
+  }
+  if (role === 'years') return [...text.matchAll(/\b(?:18|19|20)\d{2}\b/gu)].map(match => match[0]);
+  if (role === 'languages') return splitIdentifierValues(text).map(part => part.toLowerCase());
+  return [text];
+}
+
+function buildSpreadsheetEntries(fileData, mappings = {}) {
+  const repeatable = new Set([
+    'creators', 'isbns', 'issns', 'lccns', 'oclc_numbers', 'standard_numbers',
+    'years', 'languages', 'series'
+  ]);
+  const entries = [];
+  (fileData?.rows || []).forEach((row, rowIndex) => {
+    const metadata = {};
+    (fileData?.columns || []).forEach(column => {
+      const role = mappings[column.index] ?? column.spreadsheetField ?? '';
+      if (!role) return;
+      const values = valuesForRole(row[column.index], role);
+      if (!values.length) return;
+      if (repeatable.has(role)) metadata[role] = [...(metadata[role] || []), ...values];
+      else if (!metadata[role]) [metadata[role]] = values;
+    });
+    if (!metadata.row_label) metadata.row_label = `Row ${rowIndex + 2}`;
+    const hasIdentifier = ['isbns', 'issns', 'lccns', 'oclc_numbers', 'standard_numbers']
+      .some(role => metadata[role]?.length);
+    if (metadata.title || hasIdentifier) {
+      entries.push({ metadata, original: metadata.title || metadata.row_label });
+    }
+  });
+  return entries;
 }
 
 function valuesFromColumn(fileData, columnIndex) {
@@ -134,11 +223,14 @@ function buildBulkEntries(values, selectedType = 'auto') {
 
 export {
   buildBulkEntries,
+  buildSpreadsheetEntries,
   detectLookupType,
   inputDataFromRows,
   isValidIsbn,
   parseDelimitedRows,
   parseInputFile,
+  SPREADSHEET_FIELDS,
+  spreadsheetFieldForHeader,
   splitPastedValues,
   valuesFromColumn
 };

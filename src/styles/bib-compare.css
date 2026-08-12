@@ -302,6 +302,66 @@
   font-weight: 750;
 }
 
+.bib-spreadsheet-mapping {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  border: 1px solid var(--qp-sys-color-outline);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--qp-sys-color-primary) 5%, var(--qp-sys-color-surface));
+}
+
+.bib-spreadsheet-mapping.hidden { display: none; }
+
+.bib-spreadsheet-mapping-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.bib-spreadsheet-mapping-heading strong {
+  color: var(--qp-sys-color-on-surface-strong);
+  font-size: 0.78rem;
+}
+
+.bib-spreadsheet-mapping-heading span,
+.bib-spreadsheet-mapping > p {
+  margin: 0;
+  color: var(--qp-sys-color-on-surface-variant);
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+.bib-spreadsheet-mapping-list {
+  display: grid;
+  gap: 0.42rem;
+  max-height: 17rem;
+  overflow: auto;
+}
+
+.bib-spreadsheet-mapping-row {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.bib-spreadsheet-mapping-row > span {
+  overflow: hidden;
+  color: var(--qp-sys-color-on-surface);
+  font-size: 0.7rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bib-spreadsheet-mapping-row select {
+  min-width: 0;
+  min-height: 2rem;
+  padding: 0.3rem 0.42rem;
+  font-size: 0.7rem;
+}
+
 .bib-bulk-panel {
   display: grid;
   align-content: start;
@@ -349,6 +409,7 @@
 .bib-bulk-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.55rem;
 }
 
@@ -1977,7 +2038,7 @@
   .bib-bulk-panel { padding: 0.9rem; }
   .bib-bulk-header { align-items: stretch; flex-direction: column; }
   .bib-bulk-actions { width: 100%; }
-  .bib-bulk-download { flex: 1; }
+  .bib-bulk-download { flex: 1 1 8rem; }
   .bib-bulk-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .bib-bulk-filterbar { align-items: stretch; flex-direction: column; }
   .bib-bulk-filters { grid-auto-flow: initial; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
