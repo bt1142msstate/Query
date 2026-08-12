@@ -8,6 +8,7 @@ import {
   getBackendProgressCounterItems
 } from '../../../core/queryProgress.js';
 import { getQueryStatusMeta } from './queryHistoryViewHelpers.js';
+import { estimateHydrationEta } from '../../../core/hydrationEta.js';
 
 const HISTORY_TABLE_HEADS = Object.freeze({
   running: `
@@ -104,8 +105,8 @@ function buildHistoryRowMetricHtml(label, value) {
     </span>`;
 }
 
-function buildHistoryProgressHtml(progress) {
-  if (!progress) {
+function buildHistoryProgressHtml(progress, etaText = '', queryId = '') {
+  if (!progress && !etaText) {
     return '';
   }
 
@@ -120,7 +121,7 @@ function buildHistoryProgressHtml(progress) {
     `)
     .join('');
 
-  if (!summary && !detail && !counters) {
+  if (!summary && !detail && !counters && !etaText) {
     return '';
   }
 
@@ -128,8 +129,19 @@ function buildHistoryProgressHtml(progress) {
     <div class="history-progress-line" role="status" aria-live="polite">
       ${summary ? `<span class="history-progress-title">${escapeHistoryText(summary)}</span>` : ''}
       ${detail ? `<span class="history-progress-detail">${escapeHistoryText(detail)}</span>` : ''}
+      ${etaText ? `<span class="history-progress-eta" data-history-hydration-eta="${escapeHistoryText(queryId)}">${escapeHistoryText(etaText)}</span>` : ''}
       ${counters ? `<span class="history-progress-counters">${counters}</span>` : ''}
     </div>`;
+}
+
+function getHistoryHydrationEta(query, dependencies) {
+  if (query.kind !== 'hydration' || !query.running) return '';
+  return estimateHydrationEta({
+    completed: query.resultCount,
+    total: query.hydrationTotal,
+    startedAt: query.startTime,
+    now: typeof dependencies.now === 'function' ? dependencies.now() : Date.now()
+  }).text;
 }
 
 function buildHistoryReasonSummaryHtml(query) {
@@ -197,6 +209,7 @@ function createQueriesTableRowHtml(query, options = {}) {
   const dateLabel = query.running ? 'Started' : 'Last run';
   const dateCell = buildHistoryRowMetricHtml(dateLabel, rowDate);
   const durationCell = buildHistoryRowMetricHtml('Duration', duration);
+  const hydrationEta = getHistoryHydrationEta(query, dependencies);
 
   const reasonSummary = buildHistoryReasonSummaryHtml(query);
   const pinLabel = query.pinned ? 'Unpin run' : 'Pin run';
@@ -228,7 +241,7 @@ function createQueriesTableRowHtml(query, options = {}) {
       <div class="history-name-block">
         <div class="history-name-header"><span class="history-query-name">${escapeHistoryText(query.name || query.id)}</span>${nameControls}</div>
         <div class="history-meta-line">${metaPills.join('')}</div>
-        ${query.running ? buildHistoryProgressHtml(query.progress) : ''}
+        ${query.running ? buildHistoryProgressHtml(query.progress, hydrationEta, query.id) : ''}
       </div>
     </div>`;
   const statusCell = `<span class="${statusMeta.badgeClass}">${statusMeta.label}</span>`;

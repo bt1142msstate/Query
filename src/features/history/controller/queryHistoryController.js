@@ -50,6 +50,7 @@ import {
   showToastMessage,
   waitForFormModeReady
 } from './queryHistoryRuntime.js';
+import { estimateHydrationEta } from '../../../core/hydrationEta.js';
 /* ---------- Query history state and renderer ---------- */
 let exampleQueries = [];
 let queryDurationUpdateInterval = null;
@@ -487,6 +488,16 @@ function updateRunningDurationsInPlace() {
     if (isNaN(start.getTime())) return;
     const seconds = Math.max(0, Math.floor((Date.now() - start) / 1000));
     cell.textContent = formatDuration(seconds);
+    if (q.kind === 'hydration') {
+      const eta = list.querySelector(`[data-history-hydration-eta="${q.id}"]`);
+      if (eta) {
+        eta.textContent = estimateHydrationEta({
+          completed: q.resultCount,
+          total: q.hydrationTotal,
+          startedAt: q.startTime
+        }).text;
+      }
+    }
   });
 }
 

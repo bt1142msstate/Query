@@ -222,13 +222,18 @@ test('query history', async () => {
   const runningHydrationHtml = createQueriesTableRowHtml({
     id: 'query_1786400000_12345678', kind: 'hydration', name: 'Hydration review',
     status: 'hydration_running', running: true, resultCount: 25,
+    hydrationTotal: 100,
     startTime: '2026-01-01T00:00:00.000Z',
+    progress: { stage: 'hydration', current: 25, total: 100, unit: 'records' },
     jsonConfig: { DesiredColumnOrder: [], Filters: [] }
+  }, {
+    dependencies: { now: () => new Date('2026-01-01T00:01:00.000Z').getTime() }
   });
   assert.match(runningHydrationHtml, /open-hydration-btn/u);
   assert.match(runningHydrationHtml, /stop-query-btn/u);
   assert.match(runningHydrationHtml, /Cancel Hydration run/u);
   assert.match(runningHydrationHtml, /history-action-label">Cancel/u);
+  assert.match(runningHydrationHtml, /ETA: about 3 min remaining/u);
   assert.match(runningRowHtml, /Candidate Rows/u);
 
   const hydrationRowHtml = createQueriesTableRowHtml({
