@@ -9,6 +9,7 @@ import {
 import { fieldEvidenceSummary } from './fieldEvidenceReview.js';
 import { bibliographicSource, sourceReviewCount } from './bibSource.js';
 import { waitForHydrationRetry } from './hydrationRateLimit.js';
+import { estimateHydrationEta, parseHydrationTimestamp } from '../../core/hydrationEta.js';
 
 const CHUNK_SIZE = 25;
 const bulkWorkbookExporter = createWorkbookExportComponent();
@@ -240,6 +241,7 @@ function bulkMarkup() {
       <div class="bib-bulk-progress hidden" data-bib-bulk-progress role="status" aria-live="polite">
         <div><span data-bib-bulk-progress-text>Preparing records...</span><strong data-bib-bulk-progress-count>0 / 0</strong></div>
         <progress data-bib-bulk-progress-bar value="0" max="1"></progress>
+        <span class="bib-bulk-progress-eta hidden" data-bib-bulk-progress-eta></span>
       </div>
       <div class="bib-bulk-stats" data-bib-bulk-stats></div>
       <div class="bib-bulk-results" data-bib-bulk-results></div>
@@ -265,6 +267,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
   const progressText = workspace.querySelector('[data-bib-bulk-progress-text]');
   const progressCount = workspace.querySelector('[data-bib-bulk-progress-count]');
   const progressBar = workspace.querySelector('[data-bib-bulk-progress-bar]');
+  const progressEta = workspace.querySelector('[data-bib-bulk-progress-eta]');
   const cancelButton = workspace.querySelector('[data-bib-bulk-cancel]');
   const downloadButton = workspace.querySelector('[data-bib-bulk-download]');
   let requestId = 0;
@@ -272,6 +275,34 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
   let activeRunId = '';
   let activeRequestController = null;
   let activeTotal = 0;
+  let activeStartedAt = null;
+  let progressSnapshot = { completed: 0, total: 0 };
+  let progressEtaTimer = null;
+
+  function stopProgressEtaTimer() {
+    if (!progressEtaTimer) return;
+    clearInterval(progressEtaTimer);
+    progressEtaTimer = null;
+  }
+
+  function renderProgressEta(active) {
+    if (!progressEta) return;
+    const estimate = active
+      ? estimateHydrationEta({ ...progressSnapshot, startedAt: activeStartedAt })
+      : { text: '' };
+    progressEta.textContent = estimate.text || '';
+    progressEta.classList.toggle('hidden', !estimate.text);
+  }
+
+  function syncProgressEtaTimer(active) {
+    if (!active) {
+      stopProgressEtaTimer();
+      return;
+    }
+    if (!progressEtaTimer) {
+      progressEtaTimer = setInterval(() => renderProgressEta(true), 1000);
+    }
+  }
 
   async function finishRun(status, error = '') {
     if (!activeRunId) return true;
@@ -344,12 +375,15 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
 
   function setProgress(completed, total, message) {
     const active = completed < total && Boolean(activeRunId);
+    progressSnapshot = { completed, total };
     progress.classList.toggle('hidden', !total);
     cancelButton.classList.toggle('hidden', !active);
     progressText.textContent = message;
     progressCount.textContent = `${completed.toLocaleString()} / ${total.toLocaleString()}`;
     progressBar.max = Math.max(1, total);
     progressBar.value = completed;
+    renderProgressEta(active);
+    syncProgressEtaTimer(active);
   }
 
   async function run(entries) {
@@ -365,6 +399,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
     const currentRequest = ++requestId;
     results = [];
     activeTotal = entries.length;
+    activeStartedAt = Date.now();
     renderResults();
     setVisible(true);
     setProgress(0, entries.length, 'Resolving OCLC and Library of Congress records...');
@@ -378,6 +413,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
       });
       activeRunId = data.run_id || '';
       if (!activeRunId) throw new Error('The saved Hydration run did not return an identifier.');
+      activeStartedAt = parseHydrationTimestamp(data.metadata?.start_time) || activeStartedAt;
       setProgress(0, entries.length, 'Resolving OCLC and Library of Congress records...');
     } catch (error) {
       setSearchStatus(error.message || 'The Hydration run could not be saved.', 'error');
@@ -421,9 +457,9 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
           }
           const message = error.message || 'This batch could not be resolved.';
           setSearchStatus(`${message} Completed batches remain available in Shared History.`, 'error');
-          setProgress(completed, entries.length, 'Hydration stopped. Completed records were saved.');
           cancelButton.classList.add('hidden');
           await finishRun('failed', message);
+          setProgress(completed, entries.length, 'Hydration stopped. Completed records were saved.');
           return;
         }
       }
@@ -445,6 +481,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
     results = [];
     activeRunId = '';
     activeTotal = 0;
+    activeStartedAt = null;
     setVisible(true);
     setProgress(0, 1, 'Loading saved Hydration results...');
     let offset = 0;
@@ -467,6 +504,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
       const running = metadata?.status === 'hydration_running';
       activeRunId = running ? runId : '';
       activeTotal = total;
+      activeStartedAt = parseHydrationTimestamp(metadata?.start_time);
       const counts = statusCounts(results);
       setProgress(results.length, total, `Saved run loaded. ${results.length.toLocaleString()} completed records are available.`);
       cancelButton.classList.toggle('hidden', !running);

@@ -390,6 +390,13 @@
   background: var(--qp-sys-color-primary);
 }
 
+.bib-bulk-progress-eta {
+  color: var(--qp-sys-color-primary);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+}
+
 .bib-bulk-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
