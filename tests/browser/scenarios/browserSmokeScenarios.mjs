@@ -3182,11 +3182,29 @@ async function exerciseDesktopResultsWorkflow(page, queryApiStub) {
   ), null, { timeout: 5000 });
   const bulkState = await page.locator('#bib-compare-workspace').evaluate(workspace => ({
     matched: workspace.querySelector('.bib-bulk-stat[data-status="resolved"] strong')?.textContent,
+    matchRate: workspace.querySelector('.bib-bulk-match-rate')?.textContent,
     missing: workspace.querySelector('.bib-bulk-stat[data-status="not_found"] strong')?.textContent,
+    filterCounts: Object.fromEntries([...workspace.querySelectorAll('[data-bib-bulk-filter]')].map(button => [
+      button.dataset.bibBulkFilter,
+      button.querySelector('strong')?.textContent
+    ])),
+    activeFilter: workspace.querySelector('[data-bib-bulk-filter][aria-pressed="true"]')?.dataset.bibBulkFilter,
+    firstStatus: workspace.querySelector('.bib-bulk-result')?.dataset.status,
+    progressSummary: workspace.querySelector('[data-bib-bulk-progress-text]')?.textContent,
     isbnText: [...workspace.querySelectorAll('.bib-bulk-result-identity span')].some(element => element.textContent?.includes('978-0-06-058660-7')),
     overflow: workspace.scrollWidth > workspace.clientWidth
   }));
-  if (bulkState.matched !== '2' || bulkState.missing !== '1' || !bulkState.isbnText || bulkState.overflow) {
+  if (
+    bulkState.matched !== '2'
+    || bulkState.matchRate !== '66.7% matched'
+    || bulkState.missing !== '1'
+    || JSON.stringify(bulkState.filterCounts) !== JSON.stringify({ all: '3', review: '1', matched: '2' })
+    || bulkState.activeFilter !== 'all'
+    || bulkState.firstStatus !== 'not_found'
+    || bulkState.progressSummary !== '2 matched automatically; 1 need review.'
+    || !bulkState.isbnText
+    || bulkState.overflow
+  ) {
     throw new Error(`Bulk WorldCat comparison should resolve mixed pasted identifiers cleanly: ${JSON.stringify(bulkState)}`);
   }
   const workbookDownloadPromise = page.waitForEvent('download');

@@ -19,6 +19,13 @@ const STATUS_LABELS = {
   not_found: 'Not found',
   failed: 'Failed'
 };
+const RESULT_FILTERS = new Set(['all', 'review', 'matched']);
+const RESULT_STATUS_PRIORITY = {
+  review: 0,
+  not_found: 1,
+  failed: 2,
+  resolved: 3
+};
 
 const REVIEW_FIELDS = [
   'Input',
@@ -244,6 +251,20 @@ function bulkMarkup() {
         <span class="bib-bulk-progress-eta hidden" data-bib-bulk-progress-eta></span>
       </div>
       <div class="bib-bulk-stats" data-bib-bulk-stats></div>
+      <div class="bib-bulk-filterbar hidden" data-bib-bulk-filterbar>
+        <span>Show records</span>
+        <div class="bib-bulk-filters" role="group" aria-label="Filter hydration results">
+          <button type="button" class="is-active" data-bib-bulk-filter="all" aria-pressed="true">
+            <span>All</span><strong data-bib-bulk-filter-count="all">0</strong>
+          </button>
+          <button type="button" data-bib-bulk-filter="review" aria-pressed="false">
+            <span>Needs review</span><strong data-bib-bulk-filter-count="review">0</strong>
+          </button>
+          <button type="button" data-bib-bulk-filter="matched" aria-pressed="false">
+            <span>Matched</span><strong data-bib-bulk-filter-count="matched">0</strong>
+          </button>
+        </div>
+      </div>
       <div class="bib-bulk-results" data-bib-bulk-results></div>
     </section>
   `;
@@ -256,6 +277,35 @@ function statusCounts(results) {
   }, { resolved: 0, review: 0, not_found: 0, failed: 0 });
 }
 
+function hydrationReviewCount(counts) {
+  return (counts?.review || 0) + (counts?.not_found || 0) + (counts?.failed || 0);
+}
+
+function formatHydrationMatchRate(results) {
+  const total = results?.length || 0;
+  if (!total) return '0%';
+  const percentage = (statusCounts(results).resolved / total) * 100;
+  const digits = Number.isInteger(percentage) ? 0 : 1;
+  return `${percentage.toFixed(digits)}%`;
+}
+
+function hydrationResultGroup(result) {
+  return result?.status === 'resolved' ? 'matched' : 'review';
+}
+
+function filterAndSortHydrationResults(results, filter = 'all') {
+  const normalizedFilter = RESULT_FILTERS.has(filter) ? filter : 'all';
+  return (results || [])
+    .map((result, index) => ({ result, index }))
+    .filter(({ result }) => normalizedFilter === 'all' || hydrationResultGroup(result) === normalizedFilter)
+    .sort((left, right) => {
+      const leftPriority = RESULT_STATUS_PRIORITY[left.result?.status] ?? RESULT_STATUS_PRIORITY.review;
+      const rightPriority = RESULT_STATUS_PRIORITY[right.result?.status] ?? RESULT_STATUS_PRIORITY.review;
+      return leftPriority - rightPriority || left.index - right.index;
+    })
+    .map(({ result }) => result);
+}
+
 function createBulkController({ workspace, getTargetTags, openComparison, setSearchStatus, showToastMessage }) {
   const template = document.createElement('template');
   template.innerHTML = bulkMarkup().trim();
@@ -263,6 +313,8 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
   const panel = workspace.querySelector('[data-bib-bulk-panel]');
   const resultsElement = workspace.querySelector('[data-bib-bulk-results]');
   const statsElement = workspace.querySelector('[data-bib-bulk-stats]');
+  const filterbar = workspace.querySelector('[data-bib-bulk-filterbar]');
+  const filterButtons = [...workspace.querySelectorAll('[data-bib-bulk-filter]')];
   const progress = workspace.querySelector('[data-bib-bulk-progress]');
   const progressText = workspace.querySelector('[data-bib-bulk-progress-text]');
   const progressCount = workspace.querySelector('[data-bib-bulk-progress-count]');
@@ -272,6 +324,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
   const downloadButton = workspace.querySelector('[data-bib-bulk-download]');
   let requestId = 0;
   let results = [];
+  let activeResultFilter = 'all';
   let activeRunId = '';
   let activeRequestController = null;
   let activeTotal = 0;
@@ -331,13 +384,37 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
       const item = createElement('div', 'bib-bulk-stat');
       item.dataset.status = status;
       item.append(createElement('strong', '', String(counts[status])), createElement('span', '', label));
+      if (status === 'resolved') {
+        item.appendChild(createElement('small', 'bib-bulk-match-rate', `${formatHydrationMatchRate(results)} matched`));
+      }
       statsElement.appendChild(item);
+    });
+  }
+
+  function renderFilters() {
+    const counts = statusCounts(results);
+    const filterCounts = {
+      all: results.length,
+      review: hydrationReviewCount(counts),
+      matched: counts.resolved
+    };
+    filterbar.classList.toggle('hidden', results.length === 0);
+    filterButtons.forEach(button => {
+      const filter = button.dataset.bibBulkFilter;
+      const active = filter === activeResultFilter;
+      const count = filterCounts[filter] || 0;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', String(active));
+      button.setAttribute('aria-label', `${button.querySelector('span')?.textContent || filter}: ${count.toLocaleString()} records`);
+      const countElement = button.querySelector(`[data-bib-bulk-filter-count="${filter}"]`);
+      if (countElement) countElement.textContent = count.toLocaleString();
     });
   }
 
   function renderResults() {
     resultsElement.replaceChildren();
-    results.forEach(result => {
+    const visibleResults = filterAndSortHydrationResults(results, activeResultFilter);
+    visibleResults.forEach(result => {
       const row = createElement('article', 'bib-bulk-result');
       row.dataset.status = result.status;
       const identity = createElement('div', 'bib-bulk-result-identity');
@@ -365,7 +442,15 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
       }
       resultsElement.appendChild(row);
     });
+    if (results.length && !visibleResults.length) {
+      resultsElement.appendChild(createElement(
+        'p',
+        'bib-bulk-empty',
+        activeResultFilter === 'matched' ? 'No records were matched automatically.' : 'No records need review.'
+      ));
+    }
     renderStats();
+    renderFilters();
     downloadButton.disabled = results.length === 0;
     downloadButton.setAttribute(
       'data-tooltip',
@@ -398,6 +483,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
     }
     const currentRequest = ++requestId;
     results = [];
+    activeResultFilter = 'all';
     activeTotal = entries.length;
     activeStartedAt = Date.now();
     renderResults();
@@ -470,15 +556,17 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
     }
     if (currentRequest !== requestId) return;
     const counts = statusCounts(results);
-    setProgress(entries.length, entries.length, `${counts.resolved.toLocaleString()} matched automatically; ${counts.review.toLocaleString()} need review.`);
+    const reviewCount = hydrationReviewCount(counts);
+    setProgress(entries.length, entries.length, `${counts.resolved.toLocaleString()} matched automatically; ${reviewCount.toLocaleString()} need review.`);
     cancelButton.classList.add('hidden');
-    setSearchStatus(`${entries.length.toLocaleString()} inputs processed. ${counts.resolved.toLocaleString()} matched automatically.`, 'success');
+    setSearchStatus(`${entries.length.toLocaleString()} inputs processed. ${counts.resolved.toLocaleString()} matched automatically (${formatHydrationMatchRate(results)}); ${reviewCount.toLocaleString()} need review.`, 'success');
     await finishRun('complete');
   }
 
   async function loadSavedRun(runId) {
     const currentRequest = ++requestId;
     results = [];
+    activeResultFilter = 'all';
     activeRunId = '';
     activeTotal = 0;
     activeStartedAt = null;
@@ -508,7 +596,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
       const counts = statusCounts(results);
       setProgress(results.length, total, `Saved run loaded. ${results.length.toLocaleString()} completed records are available.`);
       cancelButton.classList.toggle('hidden', !running);
-      setSearchStatus(`Saved Hydration run loaded. ${counts.resolved.toLocaleString()} matched automatically; ${counts.review.toLocaleString()} need review.`, 'success');
+      setSearchStatus(`Saved Hydration run loaded. ${counts.resolved.toLocaleString()} matched automatically (${formatHydrationMatchRate(results)}); ${hydrationReviewCount(counts).toLocaleString()} need review.`, 'success');
     } catch (error) {
       setSearchStatus(error.message || 'The saved Hydration run could not be loaded.', 'error');
     }
@@ -537,6 +625,13 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
   }
 
   cancelButton.addEventListener('click', () => cancelRun());
+  filterbar.addEventListener('click', event => {
+    const button = event.target.closest?.('[data-bib-bulk-filter]');
+    const filter = button?.dataset.bibBulkFilter;
+    if (!RESULT_FILTERS.has(filter) || filter === activeResultFilter) return;
+    activeResultFilter = filter;
+    renderResults();
+  });
   window.addEventListener('query:hydration-run-canceled', event => {
     if (!activeRunId || event.detail?.runId !== activeRunId) return;
     requestId += 1;
@@ -642,5 +737,9 @@ export {
   chunkEntries,
   createBulkController,
   downloadHydrationReviewWorkbook,
+  filterAndSortHydrationResults,
+  formatHydrationMatchRate,
+  hydrationResultGroup,
+  hydrationReviewCount,
   initializeBulkForm
 };

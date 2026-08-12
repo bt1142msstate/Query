@@ -416,6 +416,83 @@
 .bib-bulk-stat[data-status="failed"] { border-left-color: var(--qp-sys-color-danger); }
 .bib-bulk-stat strong { color: var(--qp-sys-color-on-surface-strong); font-size: 1.1rem; }
 .bib-bulk-stat span { color: var(--qp-sys-color-on-surface-variant); font-size: 0.72rem; }
+.bib-bulk-match-rate {
+  margin-left: auto;
+  color: var(--qp-sys-color-success);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.bib-bulk-filterbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.bib-bulk-filterbar > span {
+  color: var(--qp-sys-color-on-surface-variant);
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.bib-bulk-filters {
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(max-content, 1fr);
+  gap: 0.18rem;
+  padding: 0.2rem;
+  border: 1px solid var(--qp-sys-color-outline);
+  border-radius: 999px;
+  background: var(--qp-sys-color-surface-container);
+}
+
+.bib-bulk-filters button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2rem;
+  padding: 0.3rem 0.65rem;
+  border: 0;
+  border-radius: 999px;
+  color: var(--qp-sys-color-on-surface-variant);
+  background: transparent;
+  font-size: 0.72rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.bib-bulk-filters button:hover {
+  color: var(--qp-sys-color-on-surface-strong);
+  background: var(--qp-sys-color-surface-container-high);
+}
+
+.bib-bulk-filters button:focus-visible {
+  outline: 2px solid var(--qp-sys-color-focus-ring);
+  outline-offset: 1px;
+}
+
+.bib-bulk-filters button.is-active {
+  color: var(--qp-sys-color-on-primary);
+  background: var(--qp-sys-color-primary);
+}
+
+.bib-bulk-filters strong {
+  display: inline-flex;
+  min-width: 1.35rem;
+  min-height: 1.35rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  color: inherit;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  font-size: 0.64rem;
+  font-variant-numeric: tabular-nums;
+}
 
 .bib-bulk-results {
   display: grid;
@@ -437,6 +514,13 @@
 }
 
 .bib-bulk-result:last-child { border-bottom: 0; }
+.bib-bulk-empty {
+  margin: 0;
+  padding: 1.4rem 1rem;
+  color: var(--qp-sys-color-on-surface-variant);
+  font-size: 0.78rem;
+  text-align: center;
+}
 .bib-bulk-result-identity,
 .bib-bulk-result-local { display: grid; gap: 0.2rem; min-width: 0; }
 .bib-bulk-result-identity strong,
@@ -1891,7 +1975,13 @@
   }
 
   .bib-bulk-panel { padding: 0.9rem; }
+  .bib-bulk-header { align-items: stretch; flex-direction: column; }
+  .bib-bulk-actions { width: 100%; }
+  .bib-bulk-download { flex: 1; }
   .bib-bulk-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bib-bulk-filterbar { align-items: stretch; flex-direction: column; }
+  .bib-bulk-filters { grid-auto-flow: initial; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
+  .bib-bulk-filters button { min-width: 0; padding-inline: 0.4rem; }
   .bib-bulk-result { grid-template-columns: minmax(0, 1fr) auto; }
   .bib-bulk-result-local { grid-column: 1 / -1; grid-row: 2; }
   .bib-bulk-open { grid-column: 2; grid-row: 2; }
