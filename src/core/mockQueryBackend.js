@@ -153,6 +153,66 @@ function resolveDemoBibsBulk(payload, data) {
   return { results, counts, returned: results.length };
 }
 
+function resolveDemoSpreadsheetBibs(payload, data) {
+  const results = (payload.entries || []).map((entry, index) => {
+    const metadata = entry.metadata || {};
+    const normalizedIsbns = new Set((metadata.isbns || []).map(value => String(value).replace(/[\s-]+/gu, '')));
+    const oclcNumbers = new Set((metadata.oclc_numbers || []).map(String));
+    const normalizedTitle = String(metadata.title || '').trim().toLocaleLowerCase();
+    const record = (data.records || []).find(candidate => {
+      const summary = candidate.worldcat?.summary || {};
+      if (oclcNumbers.has(String(summary.oclc_number || ''))) return true;
+      if ((summary.isbn || []).some(isbn => normalizedIsbns.has(String(isbn).replace(/[\s-]+/gu, '')))) return true;
+      return normalizedTitle && String(summary.title || '').trim().toLocaleLowerCase().startsWith(normalizedTitle);
+    });
+    if (!record) {
+      return {
+        index,
+        input: metadata.title || metadata.row_label || `Spreadsheet row ${index + 1}`,
+        input_metadata: structuredClone(metadata),
+        lookup_type: 'spreadsheet',
+        status: 'not_found',
+        reason: 'No exact sample WorldCat record matched this spreadsheet row.'
+      };
+    }
+    const comparison = compareDemoBib({
+      catalog_key: record.local.summary.catalog_key,
+      target_tags: payload.target_tags
+    }, data);
+    return {
+      index,
+      input: metadata.title || metadata.row_label || `Spreadsheet row ${index + 1}`,
+      input_metadata: structuredClone(metadata),
+      lookup_type: 'spreadsheet',
+      status: comparison?.needs_selection ? 'review' : 'resolved',
+      local: { ...structuredClone(comparison.local.summary), catalog_key: '' },
+      worldcat: structuredClone(comparison.worldcat.summary),
+      source: { code: 'oclc', role: 'primary', read_only: true },
+      selection: { ...structuredClone(comparison.selection), source: 'oclc' },
+      match: structuredClone(comparison.match),
+      review: structuredClone(comparison.review || {}),
+      comparison_counts: structuredClone(comparison.comparison.counts)
+    };
+  });
+  const counts = results.reduce((summary, result) => {
+    summary[result.status] = (summary[result.status] || 0) + 1;
+    return summary;
+  }, { resolved: 0, review: 0, not_found: 0, failed: 0 });
+  return { results, counts, returned: results.length };
+}
+
+function saveDemoHydrationBatch(payload, resolved) {
+  const run = demoHydrationRuns.get(payload.run_id);
+  if (run && run.metadata.status !== 'hydration_running') return false;
+  if (run && payload.batch_id && !run.batches.has(payload.batch_id)) {
+    run.batches.add(payload.batch_id);
+    run.results.push(...structuredClone(resolved.results));
+    run.metadata.hydration_completed = run.results.length;
+    run.metadata.row_count = run.results.length;
+  }
+  return true;
+}
+
 function compareDemoBib(payload, data) {
   const record = (data.records || []).find(candidate => (
     String(candidate.local?.summary?.catalog_key || '') === String(payload.catalog_key || '')
@@ -321,17 +381,32 @@ async function handleDemoQueryRequest(options = {}) {
     case 'resolve_oclc_bibs_bulk': {
       const bibData = await loadDemoBibData();
       const resolved = resolveDemoBibsBulk(payload, bibData);
-      const run = demoHydrationRuns.get(payload.run_id);
-      if (run && run.metadata.status !== 'hydration_running') {
+      if (!saveDemoHydrationBatch(payload, resolved)) {
         return json({ error: 'Hydration run is no longer active.' }, 409);
       }
-      if (run && payload.batch_id && !run.batches.has(payload.batch_id)) {
-        run.batches.add(payload.batch_id);
-        run.results.push(...structuredClone(resolved.results));
-        run.metadata.hydration_completed = run.results.length;
-        run.metadata.row_count = run.results.length;
+      return json(resolved);
+    }
+    case 'resolve_spreadsheet_bibs_bulk': {
+      const bibData = await loadDemoBibData();
+      const resolved = resolveDemoSpreadsheetBibs(payload, bibData);
+      if (!saveDemoHydrationBatch(payload, resolved)) {
+        return json({ error: 'Hydration run is no longer active.' }, 409);
       }
       return json(resolved);
+    }
+    case 'retrieve_external_bibs_bulk': {
+      const bibData = await loadDemoBibData();
+      const records = (payload.records || []).map((request, index) => {
+        const matched = (bibData.records || []).find(record => (
+          request.source === 'oclc'
+            ? String(record.worldcat?.summary?.oclc_number || '') === String(request.identifier || '')
+            : (record.worldcat?.summary?.lccn || []).includes(request.identifier)
+        ));
+        return matched
+          ? { index, source: request.source, identifier: request.identifier, status: 'resolved', record: structuredClone(matched.worldcat.record) }
+          : { index, source: request.source, identifier: request.identifier, status: 'failed', error: 'The sample record was not found.' };
+      });
+      return json({ records, returned: records.length });
     }
     case 'start_hydration_run': {
       const runId = `query_${Math.floor(Date.now() / 1000)}_${String(Math.floor(Math.random() * 1e8)).padStart(8, '0')}`;

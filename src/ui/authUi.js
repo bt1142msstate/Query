@@ -11,6 +11,9 @@ const button = document.getElementById('auth-session-button');
 const dialog = document.getElementById('auth-session-dialog');
 const form = document.getElementById('auth-session-form');
 const passwordForm = document.getElementById('auth-password-form');
+const profileForm = document.getElementById('auth-profile-form');
+const forgotForm = document.getElementById('auth-forgot-form');
+const forgotButton = document.getElementById('auth-forgot-button');
 const status = document.getElementById('auth-session-status');
 const signout = document.getElementById('auth-session-signout');
 const headerSignout = document.getElementById('auth-header-signout');
@@ -111,11 +114,14 @@ function clearPasswordFields() {
 function render() {
   const session = getSession();
   const demoMode = isDemoApiUrl(getApiUrl());
-  button?.setAttribute('aria-label', session ? `Signed in as ${session.username}` : 'Staff sign in');
-  button?.setAttribute('data-tooltip', session ? `Signed in: ${session.username}` : 'Staff sign in');
+  const identity = session?.display_name || session?.username;
+  button?.setAttribute('aria-label', session ? `Signed in as ${identity}` : 'Staff sign in');
+  button?.setAttribute('data-tooltip', session ? `Signed in: ${identity}` : 'Staff sign in');
   button?.classList.toggle('auth-session-button--active', Boolean(session));
   form?.classList.toggle('hidden', Boolean(session));
   passwordForm?.classList.toggle('hidden', !session || demoMode);
+  profileForm?.classList.toggle('hidden', !session || demoMode);
+  forgotButton?.classList.toggle('hidden', Boolean(session));
   signout?.classList.toggle('hidden', !session);
   headerSignout?.classList.toggle('hidden', !session);
   historyButton?.classList.toggle('hidden', !session);
@@ -123,7 +129,7 @@ function render() {
   document.body?.classList.toggle('query-auth-required', !session);
   if (status) {
     status.textContent = session
-      ? `Signed in as ${session.username}${demoMode ? ' using sample data' : ''}.`
+      ? `Signed in as ${identity}${demoMode ? ' using sample data' : ''}.`
       : restoringPersistentSession
         ? 'Checking your saved sign-in...'
       : demoMode
@@ -149,7 +155,9 @@ async function restorePersistentSession() {
     setSession({
       cookieSession: true,
       username: payload.username,
-      role: payload.role || 'user'
+      role: payload.role || 'user',
+      display_name: payload.display_name || payload.username,
+      email: payload.email || ''
     });
     globalThis.location?.reload();
     return true;
@@ -164,7 +172,66 @@ async function restorePersistentSession() {
 button?.addEventListener('click', () => {
   clearPasswordFields();
   render();
+  const session = getSession();
+  if (session && profileForm) {
+    profileForm.elements.display_name.value = session.display_name || session.username || '';
+    profileForm.elements.username.value = session.username || '';
+    profileForm.elements.email.value = session.email || '';
+  }
   dialog?.showModal();
+});
+
+function sessionHeaders(session) {
+  return session?.token ? { 'X-Query-Session': session.token } : {};
+}
+
+forgotButton?.addEventListener('click', () => {
+  form?.classList.add('hidden');
+  forgotForm?.classList.remove('hidden');
+  status.textContent = 'Password recovery';
+  forgotForm?.elements.email?.focus();
+});
+forgotForm?.querySelector('[data-forgot-back]')?.addEventListener('click', () => {
+  forgotForm.classList.add('hidden');
+  form?.classList.remove('hidden');
+  status.textContent = 'Sign in to access Library Item Reports.';
+});
+forgotForm?.addEventListener('submit', async event => {
+  event.preventDefault();
+  const submit = forgotForm.querySelector('[type="submit"]');
+  submit.disabled = true;
+  try {
+    const { data } = await postJson({ action: 'request_password_reset', email: String(new FormData(forgotForm).get('email') || '').trim() });
+    status.textContent = data.message || 'If that email matches an account, a reset link has been sent.';
+    forgotForm.reset();
+  } catch (error) {
+    status.textContent = error.message || 'Password recovery could not be started.';
+  } finally { submit.disabled = false; }
+});
+
+profileForm?.addEventListener('submit', async event => {
+  event.preventDefault();
+  const session = getSession();
+  const submit = profileForm.querySelector('[type="submit"]');
+  const values = new FormData(profileForm);
+  submit.disabled = true;
+  status.textContent = 'Saving profile...';
+  try {
+    const response = await queryFetch(getApiUrl(), {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', ...sessionHeaders(session) },
+      body: JSON.stringify({ action: 'update_profile', display_name: String(values.get('display_name') || '').trim(), username: String(values.get('username') || '').trim(), email: String(values.get('email') || '').trim(), current_password: String(values.get('current_password') || '') })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload.profile) throw new Error(payload.error || 'Profile update failed.');
+    profileForm.elements.current_password.value = '';
+    if (payload.sessions_revoked) {
+      clearSession(); render(); status.textContent = 'Profile saved. Sign in again with your username.';
+    } else {
+      setSession({ ...session, ...payload.profile }); render(); status.textContent = 'Profile saved.';
+    }
+  } catch (error) { status.textContent = error.message || 'Profile update failed.'; }
+  finally { submit.disabled = false; }
 });
 
 dialog?.addEventListener('click', event => {
@@ -200,7 +267,7 @@ passwordForm?.addEventListener('submit', async event => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Query-Session': session.token
+        ...sessionHeaders(session)
       },
       body: JSON.stringify({
         action: 'change_password',

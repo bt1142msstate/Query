@@ -2,16 +2,23 @@ import { postJson } from '../../core/backendApi.js';
 import { createWorkbookExportComponent } from '../../components/workbook-export/index.js';
 import {
   buildBulkEntries,
+  buildSpreadsheetEntries,
   inputDataFromRows,
   parseInputFile,
+  SPREADSHEET_FIELDS,
   splitPastedValues,
   valuesFromColumn
 } from './bibBulkInput.js';
 import { isXlsxFile, parseXlsxWorkbook } from './xlsxWorkbookInput.js';
-import { fieldEvidenceSummary } from './fieldEvidenceReview.js';
-import { bibliographicSource, sourceReviewCount } from './bibSource.js';
+import { bibliographicSource } from './bibSource.js';
 import { waitForHydrationRetry } from './hydrationRateLimit.js';
 import { estimateHydrationEta, parseHydrationTimestamp } from '../../core/hydrationEta.js';
+import { buildBulkReviewWorkbookState } from './bibBulkReviewWorkbook.js';
+import {
+  downloadableExternalRequests,
+  downloadBatchBibRecords,
+  retrieveBatchBibRecords
+} from './bibBatchDownload.js';
 
 const CHUNK_SIZE = 25;
 const bulkWorkbookExporter = createWorkbookExportComponent();
@@ -29,185 +36,6 @@ const RESULT_STATUS_PRIORITY = {
   resolved: 3
 };
 
-const REVIEW_FIELDS = [
-  'Input',
-  'Lookup Type',
-  'Status',
-  'Local Record Key',
-  'Local Title',
-  'Local Creator',
-  'Local Edition',
-  'Local Publication',
-  'Local Physical Description',
-  'Local ISBN',
-  'Source',
-  'Source Role',
-  'Source Identifier',
-  'Source Title',
-  'Source Creator',
-  'Source Edition',
-  'Source Publication',
-  'Source Physical Description',
-  'Source ISBN',
-  'Local MARC Tags',
-  'Source MARC Tags',
-  'Changed MARC Tags',
-  'Local-only MARC Tags',
-  'Source-only MARC Tags',
-  'Selection Method',
-  'Exact Edition Candidates',
-  'Selected Utility Score',
-  'Encoding Level',
-  'Authentication Codes',
-  'Core Elements Present',
-  'Utility Score Breakdown',
-  'Match Confidence',
-  'Title Match',
-  'Creator Match',
-  'Edition Match',
-  'Publication Year Match',
-  'Physical Description Match',
-  'Exact Edition Verified',
-  'Local 521 Count',
-  'Local 526 Count',
-  'Source 521 Count',
-  'Source 526 Count',
-  'Identity Conflict',
-  'Hydration Advice',
-  'Overall Confidence',
-  'Record Identity Confidence',
-  'Requested Field Suitability',
-  'Requested Fields',
-  'Missing Requested Fields',
-  'Blocked Requested Fields',
-  'Confidence Policy Version',
-  'Field Evidence Summary',
-  'Field Evidence Ready',
-  'Fields Needing Review',
-  'Conflicting Fields',
-  'Already-present Fields',
-  'Field Evidence Policy Version',
-  'Review Note'
-];
-
-function yesNo(value) {
-  if (value === undefined || value === null) return '';
-  return value ? 'Yes' : 'No';
-}
-
-function joinValues(values) {
-  return Array.isArray(values) ? values.filter(Boolean).join('; ') : (values || '');
-}
-
-function formatTagCounts(counts) {
-  if (!counts || typeof counts !== 'object') return '';
-  return Object.entries(counts)
-    .filter(([tag, count]) => /^\d{3}$/u.test(tag) && Number(count) > 0)
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([tag, count]) => `${tag} (${Number(count).toLocaleString()})`)
-    .join('; ');
-}
-
-function formatScoreParts(parts) {
-  if (!parts || typeof parts !== 'object') return '';
-  return Object.entries(parts)
-    .filter(([, points]) => Number.isFinite(Number(points)))
-    .map(([name, points]) => `${name.replaceAll('_', ' ')}: ${Number(points)}`)
-    .join('; ');
-}
-
-function bulkResultToWorkbookRow(result) {
-  const local = result.local || {};
-  const source = bibliographicSource(result);
-  const external = result.external || result.worldcat || {};
-  const selection = result.selection || {};
-  const match = result.match || {};
-  const review = result.review || {};
-  const fieldSummary = result.field_summary || {};
-  const differenceTags = fieldSummary.difference_tags || {};
-  const utility = selection.utility || {};
-  const fieldEvidence = review.field_evidence || {};
-  return [
-    result.original || result.input || '',
-    String(result.lookup_type || '').replaceAll('_', ' '),
-    STATUS_LABELS[result.status] || result.status || 'Review',
-    local.catalog_key || '',
-    local.title || '',
-    local.creator || '',
-    local.edition || '',
-    local.publication || '',
-    local.physical_description || '',
-    joinValues(local.isbn),
-    source.label,
-    source.role,
-    source.identifier,
-    external.title || '',
-    external.creator || '',
-    external.edition || '',
-    external.publication || '',
-    external.physical_description || '',
-    joinValues(external.isbn),
-    formatTagCounts(fieldSummary.local_tags),
-    formatTagCounts(fieldSummary.worldcat_tags),
-    formatTagCounts(differenceTags.changed),
-    formatTagCounts(differenceTags.local_only),
-    formatTagCounts(differenceTags.worldcat_only),
-    selection.method || '',
-    selection.exact_candidate_count ?? '',
-    utility.score ?? '',
-    utility.encoding_level || '',
-    joinValues(utility.authentication_codes),
-    joinValues(utility.core_elements),
-    formatScoreParts(utility.parts),
-    match.confidence || '',
-    yesNo(match.title_match),
-    yesNo(match.creator_match),
-    yesNo(match.edition_match),
-    yesNo(match.publication_year_match),
-    yesNo(match.physical_description_match),
-    yesNo(review.hydration_ready),
-    review.local_521_count ?? '',
-    review.local_526_count ?? '',
-    sourceReviewCount(review, '521'),
-    sourceReviewCount(review, '526'),
-    yesNo(review.identity_conflict),
-    String(review.advice || '').replaceAll('_', ' '),
-    review.overall_score ?? '',
-    review.identity_score ?? '',
-    review.mode === 'all_fields' ? 'General' : (review.target_field_score ?? ''),
-    joinValues(review.requested_tags),
-    joinValues(review.missing_tags),
-    joinValues(review.blocked_tags),
-    review.scoring_version || '',
-    fieldEvidenceSummary(fieldEvidence),
-    yesNo(fieldEvidence.ready_for_candidate_download),
-    joinValues(fieldEvidence.needs_review_tags),
-    joinValues(fieldEvidence.conflicting_tags),
-    joinValues(fieldEvidence.already_present_tags),
-    fieldEvidence.version || '',
-    result.reason || ''
-  ];
-}
-
-function buildBulkReviewWorkbookState(results) {
-  const rows = (results || []).map(bulkResultToWorkbookRow);
-  const columnMap = new Map(REVIEW_FIELDS.map((field, index) => [field, index]));
-  return {
-    groupingCandidates: [],
-    rowCount: rows.length,
-    sourceData: {
-      dataRows: rows,
-      displayedFields: [...REVIEW_FIELDS],
-      fieldTypeMap: new Map(REVIEW_FIELDS.map(field => [
-        field,
-        field.endsWith(' Count') ? 'number' : 'string'
-      ])),
-      virtualData: { columnMap }
-    },
-    tableName: 'Hydration Review'
-  };
-}
-
 function chunkEntries(entries, chunkSize = CHUNK_SIZE) {
   const size = Math.max(1, Number(chunkSize) || CHUNK_SIZE);
   const chunks = [];
@@ -217,10 +45,13 @@ function chunkEntries(entries, chunkSize = CHUNK_SIZE) {
   return chunks;
 }
 
-function buildBulkResolvePayload(entries, targetTags = [], persistence = {}) {
+function buildBulkResolvePayload(entries, targetTags = [], persistence = {}, mode = 'local') {
+  const spreadsheetMode = mode === 'spreadsheet';
   return {
-    action: 'resolve_oclc_bibs_bulk',
-    entries: (entries || []).map(({ lookup_type, query }) => ({ lookup_type, query })),
+    action: spreadsheetMode ? 'resolve_spreadsheet_bibs_bulk' : 'resolve_oclc_bibs_bulk',
+    entries: spreadsheetMode
+      ? (entries || []).map(({ metadata }) => ({ metadata }))
+      : (entries || []).map(({ lookup_type, query }) => ({ lookup_type, query })),
     ...(targetTags.length ? { target_tags: [...targetTags] } : {}),
     ...(persistence.runId ? { run_id: persistence.runId, batch_id: persistence.batchId } : {})
   };
@@ -243,6 +74,8 @@ function bulkMarkup() {
           <p>OCLC is checked first. Exact Library of Congress records are used only as a fallback.</p>
         </div>
         <div class="bib-bulk-actions">
+          <button class="bib-bulk-download" type="button" data-bib-bulk-marc disabled data-tooltip="Available for recommended matches">Download MARC</button>
+          <button class="bib-bulk-download" type="button" data-bib-bulk-marcxml disabled data-tooltip="Available for recommended matches">Download MARCXML</button>
           <button class="bib-bulk-download" type="button" data-bib-bulk-download disabled data-tooltip="Available after at least one record has been reviewed">Download Excel review</button>
           <button class="bib-bulk-cancel hidden" type="button" data-bib-bulk-cancel>Cancel</button>
         </div>
@@ -324,6 +157,8 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
   const progressEta = workspace.querySelector('[data-bib-bulk-progress-eta]');
   const cancelButton = workspace.querySelector('[data-bib-bulk-cancel]');
   const downloadButton = workspace.querySelector('[data-bib-bulk-download]');
+  const marcButton = workspace.querySelector('[data-bib-bulk-marc]');
+  const marcxmlButton = workspace.querySelector('[data-bib-bulk-marcxml]');
   let requestId = 0;
   let results = [];
   let activeResultFilter = 'all';
@@ -333,6 +168,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
   let activeStartedAt = null;
   let progressSnapshot = { completed: 0, total: 0 };
   let progressEtaTimer = null;
+  let activeInputMode = 'local';
 
   function stopProgressEtaTimer() {
     if (!progressEtaTimer) return;
@@ -422,7 +258,9 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
       const identity = createElement('div', 'bib-bulk-result-identity');
       identity.append(
         createElement('strong', '', result.local?.title || result.original || result.input),
-        createElement('span', '', `${result.lookup_type.replaceAll('_', ' ')}: ${result.original || result.input}`)
+        createElement('span', '', result.lookup_type === 'spreadsheet'
+          ? `Spreadsheet evidence: ${result.input_metadata?.row_label || result.original || result.input}`
+          : `${result.lookup_type.replaceAll('_', ' ')}: ${result.original || result.input}`)
       );
       const local = createElement('div', 'bib-bulk-result-local');
       const advice = String(result.review?.advice || '').replaceAll('_', ' ');
@@ -431,7 +269,9 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
         : '';
       const source = bibliographicSource(result);
       local.append(
-        createElement('span', '', result.local?.catalog_key ? `Catalog ${result.local.catalog_key}` : 'No single local record'),
+        createElement('span', '', result.lookup_type === 'spreadsheet'
+          ? 'Matched directly from spreadsheet metadata'
+          : (result.local?.catalog_key ? `Catalog ${result.local.catalog_key}` : 'No single local record')),
         createElement('span', '', source.identifier ? `${source.identifierLabel} ${source.identifier}${confidence}` : (result.reason || 'Match needs review'))
       );
       const chip = createElement('span', 'bib-bulk-status', STATUS_LABELS[result.status] || 'Review');
@@ -454,6 +294,14 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
     renderStats();
     renderFilters();
     downloadButton.disabled = results.length === 0;
+    const downloadableCount = downloadableExternalRequests(results).length;
+    marcButton.disabled = downloadableCount === 0;
+    marcxmlButton.disabled = downloadableCount === 0;
+    for (const button of [marcButton, marcxmlButton]) {
+      button.setAttribute('data-tooltip', downloadableCount
+        ? `Download ${downloadableCount.toLocaleString()} recommended matched record${downloadableCount === 1 ? '' : 's'}`
+        : 'No recommended matches are available yet');
+    }
     downloadButton.setAttribute(
       'data-tooltip',
       results.length ? 'Download the completed hydration review as Excel' : 'Available after at least one record has been reviewed'
@@ -473,7 +321,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
     syncProgressEtaTimer(active);
   }
 
-  async function run(entries) {
+  async function run(entries, options = {}) {
     const targetTags = getTargetTags?.();
     if (!Array.isArray(targetTags)) {
       setSearchStatus('Enter at least one valid three-digit MARC field for the hydration plan.', 'error');
@@ -484,6 +332,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
       return;
     }
     const currentRequest = ++requestId;
+    activeInputMode = options.mode === 'spreadsheet' ? 'spreadsheet' : 'local';
     results = [];
     activeResultFilter = 'all';
     activeTotal = entries.length;
@@ -497,7 +346,9 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
         name: `Hydration review - ${new Date().toLocaleString()}`,
         total: entries.length,
         target_tags: targetTags,
-        source_description: 'Bulk hydration review'
+        source_description: activeInputMode === 'spreadsheet'
+          ? 'Spreadsheet cataloging review'
+          : 'Bulk hydration review'
       });
       activeRunId = data.run_id || '';
       if (!activeRunId) throw new Error('The saved Hydration run did not return an identifier.');
@@ -520,7 +371,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
             buildBulkResolvePayload(chunk, targetTags, {
               runId: activeRunId,
               batchId: `batch_${String(chunkIndex).padStart(8, '0')}`
-            }),
+            }, activeInputMode),
             { timeoutMs: 600000, notifyOnRateLimit: false, signal: activeRequestController.signal }
           );
           activeRequestController = null;
@@ -656,6 +507,36 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
       downloadButton.disabled = false;
     }
   });
+  async function downloadMarcBatch(format, button) {
+    if (button.disabled) return;
+    for (const candidate of [marcButton, marcxmlButton, downloadButton]) candidate.disabled = true;
+    try {
+      const total = downloadableExternalRequests(results).length;
+      setProgress(0, total, `Preparing ${format === 'marcxml' ? 'MARCXML' : 'MARC'} records...`);
+      const batch = await retrieveBatchBibRecords(results, {
+        onProgress: ({ completed, total: batchTotal }) => setProgress(
+          completed,
+          batchTotal,
+          'Retrieving selected external records...'
+        )
+      });
+      downloadBatchBibRecords(batch.records, format);
+      const suffix = batch.failures.length
+        ? ` ${batch.failures.length.toLocaleString()} record(s) could not be retrieved.`
+        : '';
+      setSearchStatus(
+        `${batch.records.length.toLocaleString()} matched record(s) downloaded.${suffix}`,
+        batch.failures.length ? 'warning' : 'success'
+      );
+    } catch (error) {
+      setSearchStatus(error.message || 'The MARC download could not be created.', 'error');
+    } finally {
+      renderResults();
+      setProgress(results.length, results.length, 'Download preparation finished.');
+    }
+  }
+  marcButton.addEventListener('click', () => downloadMarcBatch('marc', marcButton));
+  marcxmlButton.addEventListener('click', () => downloadMarcBatch('marcxml', marcxmlButton));
   resultsElement.addEventListener('click', event => {
     const button = event.target.closest?.('[data-catalog-key]');
     if (button?.dataset.catalogKey) openComparison(button.dataset.catalogKey);
@@ -692,8 +573,59 @@ function initializeBulkForm({ workspace, controller, setSearchStatus }) {
   const fileInput = workspace.querySelector('[data-bib-bulk-file]');
   const sheetSelect = workspace.querySelector('[data-bib-file-sheet]');
   const columnSelect = workspace.querySelector('[data-bib-file-column]');
+  const sourceSelect = workspace.querySelector('[data-bib-bulk-source]');
+  const mappingPanel = workspace.querySelector('[data-bib-spreadsheet-mapping]');
+  const mappingList = workspace.querySelector('[data-bib-spreadsheet-mapping-list]');
+  const rowCount = workspace.querySelector('[data-bib-spreadsheet-row-count]');
+  const submitLabel = workspace.querySelector('[data-bib-bulk-submit-label]');
   let fileData = null;
   let workbookData = null;
+  let spreadsheetMappings = {};
+  let workflowSelectedByUser = false;
+
+  function spreadsheetMode() {
+    return sourceSelect.value === 'spreadsheet';
+  }
+
+  function syncInputMode() {
+    const spreadsheet = spreadsheetMode();
+    workspace.querySelectorAll('[data-bib-local-input]').forEach(element => {
+      element.classList.toggle('hidden', spreadsheet);
+    });
+    mappingPanel.classList.toggle('hidden', !spreadsheet || !fileData);
+    workspace.querySelector('[data-bib-file-column-wrap]')?.classList.toggle(
+      'hidden',
+      spreadsheet || (fileData?.columns.length || 0) < 2
+    );
+    submitLabel.textContent = spreadsheet ? 'Match spreadsheet rows' : 'Match records';
+  }
+
+  function renderSpreadsheetMappings() {
+    mappingList.replaceChildren();
+    spreadsheetMappings = {};
+    for (const column of fileData?.columns || []) {
+      const mappingRow = document.createElement('label');
+      mappingRow.className = 'bib-spreadsheet-mapping-row';
+      const name = document.createElement('span');
+      name.textContent = column.label;
+      const select = document.createElement('select');
+      select.dataset.columnIndex = String(column.index);
+      for (const field of SPREADSHEET_FIELDS) {
+        const option = document.createElement('option');
+        option.value = field.value;
+        option.textContent = field.label;
+        select.appendChild(option);
+      }
+      select.value = column.spreadsheetField || '';
+      spreadsheetMappings[column.index] = select.value;
+      select.addEventListener('change', () => {
+        spreadsheetMappings[column.index] = select.value;
+      });
+      mappingRow.append(name, select);
+      mappingList.appendChild(mappingRow);
+    }
+    rowCount.textContent = `${(fileData?.rows.length || 0).toLocaleString()} data rows`;
+  }
 
   function applyFileColumn() {
     if (!fileData) return;
@@ -715,8 +647,16 @@ function initializeBulkForm({ workspace, controller, setSearchStatus }) {
       || fileData.columns.find(column => column.type)
       || fileData.columns[0];
     if (preferred) columnSelect.value = String(preferred.index);
-    workspace.querySelector('[data-bib-file-column-wrap]')?.classList.toggle('hidden', fileData.columns.length < 2);
-    applyFileColumn();
+    renderSpreadsheetMappings();
+    if (!workflowSelectedByUser && fileData.columns.filter(column => column.spreadsheetField).length >= 2) {
+      sourceSelect.value = 'spreadsheet';
+    }
+    syncInputMode();
+    if (spreadsheetMode()) {
+      setSearchStatus(`${fileData.rows.length.toLocaleString()} spreadsheet rows loaded. Review the column mapping, then match.`, 'success');
+    } else {
+      applyFileColumn();
+    }
   }
 
   function applyWorkbookSheet() {
@@ -729,6 +669,7 @@ function initializeBulkForm({ workspace, controller, setSearchStatus }) {
   fileInput.addEventListener('change', async () => {
     const file = fileInput.files?.[0];
     if (!file) return;
+    workflowSelectedByUser = false;
     setSearchStatus(`Reading ${file.name}...`, 'empty');
     try {
       workbookData = isXlsxFile(file) ? await parseXlsxWorkbook(await file.arrayBuffer()) : null;
@@ -760,16 +701,35 @@ function initializeBulkForm({ workspace, controller, setSearchStatus }) {
   });
   sheetSelect.addEventListener('change', applyWorkbookSheet);
   columnSelect.addEventListener('change', applyFileColumn);
+  sourceSelect.addEventListener('change', () => {
+    workflowSelectedByUser = true;
+    syncInputMode();
+    if (!spreadsheetMode() && fileData) applyFileColumn();
+  });
   form.addEventListener('submit', event => {
     event.preventDefault();
+    if (spreadsheetMode()) {
+      if (!fileData) {
+        setSearchStatus('Import an Excel, CSV, or TSV file before matching spreadsheet rows.', 'error');
+        return;
+      }
+      const entries = buildSpreadsheetEntries(fileData, spreadsheetMappings);
+      if (!entries.length) {
+        setSearchStatus('Map a title or standard identifier column before matching.', 'error');
+        return;
+      }
+      controller.run(entries, { mode: 'spreadsheet' });
+      return;
+    }
     const entries = buildBulkEntries(splitPastedValues(textarea.value), typeSelect.value);
     if (!entries.length) {
       setSearchStatus('Paste values or choose a text, CSV, TSV, or Excel file first.', 'error');
       textarea.focus();
       return;
     }
-    controller.run(entries);
+    controller.run(entries, { mode: 'local' });
   });
+  syncInputMode();
 }
 
 export {

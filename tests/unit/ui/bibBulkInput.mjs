@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   buildBulkEntries,
+  buildSpreadsheetEntries,
   detectLookupType,
   inputDataFromRows,
   isValidIsbn,
@@ -70,4 +71,34 @@ test('Excel input helpers recognize workbooks, sparse columns, and typed headers
   ]);
   assert.deepEqual(data.columns.map(column => column.type), ['title', 'isbn', '', 'catalog_key']);
   assert.deepEqual(valuesFromColumn(data, 3), ['923278']);
+});
+
+test('spreadsheet cataloging maps a complete row into bibliographic evidence', () => {
+  const data = inputDataFromRows([
+    ['Title', 'Author', 'ISBN', 'Publisher', 'Publication Year', 'Language Code', 'Format'],
+    ['A Hat Full of Sky', 'Pratchett, Terry', '978-0-06-058660-7', 'HarperCollins', '2004', 'eng', 'book']
+  ]);
+  const entries = buildSpreadsheetEntries(data);
+  assert.equal(entries.length, 1);
+  assert.deepEqual(entries[0].metadata, {
+    title: 'A Hat Full of Sky',
+    creators: ['Pratchett, Terry'],
+    isbns: ['978-0-06-058660-7'],
+    publisher: 'HarperCollins',
+    years: ['2004'],
+    languages: ['eng'],
+    format: 'book',
+    row_label: 'Row 2'
+  });
+});
+
+test('spreadsheet cataloging ignores empty rows and accepts identifier-only rows', () => {
+  const data = inputDataFromRows([
+    ['OCLC Number', 'Title', 'Notes'],
+    ['54005706', '', 'review'],
+    ['', '', 'nothing searchable']
+  ]);
+  const entries = buildSpreadsheetEntries(data);
+  assert.equal(entries.length, 1);
+  assert.deepEqual(entries[0].metadata.oclc_numbers, ['54005706']);
 });

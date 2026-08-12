@@ -214,6 +214,20 @@
       <label>NetID<input name="username" autocomplete="username" required maxlength="64"></label>
       <label>Password<span class="auth-password-control"><input name="password" type="password" autocomplete="current-password" required maxlength="1024"><button class="auth-password-toggle" type="button" aria-label="Show password" title="Show password"><svg class="auth-password-eye" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.75"/></svg><svg class="auth-password-eye-off" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10.6 6.15A10.8 10.8 0 0 1 12 6c6 0 9.5 6 9.5 6a17.5 17.5 0 0 1-2.2 2.8M6.2 6.2C3.85 8 2.5 12 2.5 12s3.5 6 9.5 6c1.6 0 3-.42 4.2-1.05M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></button></span></label>
       <button type="submit">Sign in</button>
+      <button id="auth-forgot-button" class="auth-dialog__link" type="button">Forgot password?</button>
+    </form>
+    <form id="auth-forgot-form" class="hidden">
+      <p class="auth-dialog__note">Enter the recovery email on your staff account. If it matches, we’ll send a one-time link that expires in 30 minutes.</p>
+      <label>Recovery email<input name="email" type="email" autocomplete="email" required maxlength="254"></label>
+      <div class="auth-dialog__actions"><button type="button" data-forgot-back>Back</button><button type="submit">Send reset link</button></div>
+    </form>
+    <form id="auth-profile-form" class="hidden">
+      <h3>Account profile</h3>
+      <label>Display name<input name="display_name" autocomplete="name" required maxlength="80"></label>
+      <label>Username<input name="username" autocomplete="username" required maxlength="64" pattern="[A-Za-z0-9_.-]+"></label>
+      <label>Recovery email<input name="email" type="email" autocomplete="email" required maxlength="254"></label>
+      <label>Current password <small>Required when changing username or email</small><span class="auth-password-control"><input name="current_password" type="password" autocomplete="current-password" maxlength="1024"><button class="auth-password-toggle" type="button" aria-label="Show current password" title="Show current password"><svg class="auth-password-eye" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.75"/></svg><svg class="auth-password-eye-off" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10.6 6.15A10.8 10.8 0 0 1 12 6c6 0 9.5 6 9.5 6a17.5 17.5 0 0 1-2.2 2.8M6.2 6.2C3.85 8 2.5 12 2.5 12s3.5 6 9.5 6c1.6 0 3-.42 4.2-1.05M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></button></span></label>
+      <button type="submit">Save profile</button>
     </form>
     <form id="auth-password-form" class="hidden">
       <label>Current password<span class="auth-password-control"><input name="current_password" type="password" autocomplete="current-password" required maxlength="1024"><button class="auth-password-toggle" type="button" aria-label="Show current password" title="Show current password"><svg class="auth-password-eye" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.75"/></svg><svg class="auth-password-eye-off" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10.6 6.15A10.8 10.8 0 0 1 12 6c6 0 9.5 6 9.5 6a17.5 17.5 0 0 1-2.2 2.8M6.2 6.2C3.85 8 2.5 12 2.5 12s3.5 6 9.5 6c1.6 0 3-.42 4.2-1.05M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></button></span></label>

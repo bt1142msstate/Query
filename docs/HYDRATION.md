@@ -8,7 +8,8 @@ The repository includes the reusable browser behavior for:
 
 - local-record lookup by title, catalog key, item ID/barcode, or ISBN;
 - pasted lists and text, CSV, TSV, and `.xlsx` workbook imports;
-- worksheet and lookup-column selection performed locally in the browser;
+- worksheet selection plus automatic, editable spreadsheet-column mapping performed locally in the browser;
+- spreadsheet-to-MARC matching from title, creator, identifiers, edition, publication, language, format, physical-description, and series evidence;
 - complete-query handoff when the backend identifies a suitable bibliographic key;
 - cancelable, restartable bulk review in bounded request batches;
 - candidate navigation, confidence evidence, field-level comparison, and review filtering;
@@ -31,7 +32,13 @@ A production adapter remains responsible for:
 - redacting secrets and sensitive operational data from errors and telemetry;
 - authorizing, backing up, executing, and verifying any catalog write as a separate workflow.
 
-The public frontend never needs an OCLC key or secret. An institution can replace the backend implementation while preserving the documented JSON actions and response shapes used by `search_bibs`, `compare_oclc_bib`, and `resolve_oclc_bibs_bulk`.
+The public frontend never needs an OCLC key or secret. An institution can replace the backend implementation while preserving the documented JSON actions and response shapes used by `search_bibs`, `compare_oclc_bib`, `resolve_oclc_bibs_bulk`, `resolve_spreadsheet_bibs_bulk`, and `retrieve_external_bibs_bulk`.
+
+## Spreadsheet Cataloging
+
+The **Spreadsheet metadata to MARC** workflow is intended for acquisition lists and other metadata spreadsheets that do not already identify a Symphony record. The browser recognizes common column names and lets staff correct every mapping before the run. It sends only normalized mapped cells, not the workbook file.
+
+Each row must contain a title or standard identifier. The backend builds bounded matching evidence, runs the same identity-first OCLC selection and Library of Congress fallback used by Hydration, and returns a compact review result. A recommended result can be retrieved as the provider's full authoritative record and downloaded in a multi-record `.mrc` file or MARCXML collection. The system never manufactures an unresolved MARC record from spreadsheet text, never treats metadata richness as proof of identity, and never writes the result to the ILS. The Excel review retains both the original mapped metadata and the matching evidence for audit.
 
 ## Provider Policy
 

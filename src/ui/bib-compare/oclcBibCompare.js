@@ -13,6 +13,7 @@ import { BIB_COMPARISON_FILTERS as FILTERS, bibliographicSource } from './bibSou
 import { installHydrationHistoryBridge } from './hydrationHistoryBridge.js';
 import { mergeCandidateRecords } from './bibCandidateNavigation.js';
 import { bindCandidateNavigation, renderCandidateNavigation } from './bibCandidateNavigationView.js';
+import { createElement, summaryRow as createSummaryRow } from './bibCompareDom.js';
 const state = {
   initialized: false,
   workspace: null,
@@ -32,12 +33,6 @@ const state = {
   searchRequest: 0,
   compareRequest: 0
 };
-function createElement(tagName, className, text) {
-  const element = document.createElement(tagName);
-  if (className) element.className = className;
-  if (text !== undefined) element.textContent = text;
-  return element;
-}
 function workspaceMarkup() {
   return `
     <div class="bib-compare-shell">
@@ -87,16 +82,21 @@ function workspaceMarkup() {
               <p>Paste one value per line or import a text, CSV, TSV, or Excel file.</p>
             </div>
             ${currentQuerySourceMarkup()}
-            <label class="bib-compare-label" for="bib-bulk-type">Values are</label>
-            <select id="bib-bulk-type" data-bib-bulk-type>
+            <label class="bib-compare-label" for="bib-bulk-source">Workflow</label>
+            <select id="bib-bulk-source" data-bib-bulk-source>
+              <option value="local">Match existing Symphony records</option>
+              <option value="spreadsheet">Spreadsheet metadata to MARC</option>
+            </select>
+            <label class="bib-compare-label" for="bib-bulk-type" data-bib-local-input>Values are</label>
+            <select id="bib-bulk-type" data-bib-bulk-type data-bib-local-input>
               <option value="auto">Auto detect</option>
               <option value="catalog_key">Catalog keys</option>
               <option value="item_id">Item IDs or barcodes</option>
               <option value="isbn">ISBNs</option>
               <option value="title">Titles</option>
             </select>
-            <label class="bib-compare-label" for="bib-bulk-values">Values</label>
-            <textarea id="bib-bulk-values" data-bib-bulk-values rows="9" placeholder="One value per line" required></textarea>
+            <label class="bib-compare-label" for="bib-bulk-values" data-bib-local-input>Values</label>
+            <textarea id="bib-bulk-values" data-bib-bulk-values data-bib-local-input rows="9" placeholder="One value per line"></textarea>
             <div class="bib-bulk-file-row">
               <label class="bib-bulk-file-button" for="bib-bulk-file"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7.5 8.5 12 4l4.5 4.5M5 20h14"/></svg><span>Import file</span></label>
               <input class="sr-only" id="bib-bulk-file" data-bib-bulk-file type="file" accept=".txt,.csv,.tsv,.xlsx,text/plain,text/csv,text/tab-separated-values,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
@@ -106,9 +106,17 @@ function workspaceMarkup() {
                 <select data-bib-file-column></select>
               </label>
             </div>
+            <section class="bib-spreadsheet-mapping hidden" data-bib-spreadsheet-mapping>
+              <div class="bib-spreadsheet-mapping-heading">
+                <strong>Map spreadsheet columns</strong>
+                <span data-bib-spreadsheet-row-count>No rows loaded</span>
+              </div>
+              <p>Use title plus as many edition identifiers and descriptive details as the sheet provides.</p>
+              <div class="bib-spreadsheet-mapping-list" data-bib-spreadsheet-mapping-list></div>
+            </section>
             <button class="bib-compare-primary-button" type="submit">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7h12M8 12h12M8 17h12M4 7h.01M4 12h.01M4 17h.01"/></svg>
-              <span>Match records</span>
+              <span data-bib-bulk-submit-label>Match records</span>
             </button>
           </form>
           <section class="bib-compare-hydration-plan" aria-labelledby="bib-hydration-heading">
@@ -350,14 +358,8 @@ function renderSearchResults() {
 }
 
 function summaryRow(label, value) {
-  const row = createElement('div', 'bib-compare-summary-row');
-  row.append(
-    createElement('dt', '', label),
-    createElement('dd', '', summaryValue(value))
-  );
-  return row;
+  return createSummaryRow(label, value, summaryValue);
 }
-
 function buildDownloadMenu(record, summary, source, sourceLabel = '', downloadSource = source) {
   const menu = createElement('details', 'bib-compare-download-menu');
   const trigger = createElement('summary', 'bib-compare-download-trigger');
