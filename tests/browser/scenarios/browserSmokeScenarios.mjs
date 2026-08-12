@@ -167,6 +167,49 @@ async function readWorkbookDownloadEntries(download) {
   return readWorkbookZipEntries(workbookBytes);
 }
 
+async function importHydrationExcelFixture(page) {
+  await page.locator('#bib-bulk-file').evaluate(async input => {
+    const { createZipBlob, ZIP_MIME_TYPE } = await import(new URL(
+      'src/lib/workbook-export/xlsxZipWriter.js',
+      document.baseURI
+    ).href);
+    const workbook = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+      <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+        xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+        <sheets>
+          <sheet name="Records" sheetId="1" r:id="rId1"/>
+          <sheet name="Catalog Keys" sheetId="2" r:id="rId2"/>
+        </sheets>
+      </workbook>`;
+    const relationships = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+      <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+        <Relationship Id="rId1" Target="worksheets/sheet1.xml"/>
+        <Relationship Id="rId2" Target="worksheets/sheet2.xml"/>
+      </Relationships>`;
+    const firstSheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+      <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>
+        <row r="1"><c r="A1" t="inlineStr"><is><t>Title</t></is></c><c r="B1" t="inlineStr"><is><t>ISBN</t></is></c><c r="C1" t="inlineStr"><is><t>Catalog Key</t></is></c></row>
+        <row r="2"><c r="A2" t="inlineStr"><is><t>A Hat Full of Sky</t></is></c><c r="B2"><v>9780060586607</v></c><c r="C2"><v>923278</v></c></row>
+        <row r="3"><c r="A3" t="inlineStr"><is><t>Wintersmith</t></is></c><c r="B3"><v>9780060890315</v></c><c r="C3"><v>923279</v></c></row>
+      </sheetData></worksheet>`;
+    const secondSheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+      <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>
+        <row r="1"><c r="A1" t="inlineStr"><is><t>Catalog Key</t></is></c></row>
+        <row r="2"><c r="A2"><v>923278</v></c></row>
+      </sheetData></worksheet>`;
+    const blob = await createZipBlob([
+      { path: 'xl/workbook.xml', chunks: [workbook] },
+      { path: 'xl/_rels/workbook.xml.rels', chunks: [relationships] },
+      { path: 'xl/worksheets/sheet1.xml', chunks: [firstSheet] },
+      { path: 'xl/worksheets/sheet2.xml', chunks: [secondSheet] }
+    ], { mimeType: ZIP_MIME_TYPE });
+    const transfer = new DataTransfer();
+    transfer.items.add(new File([blob], 'hydration-records.xlsx', { type: ZIP_MIME_TYPE }));
+    input.files = transfer.files;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+}
+
 async function exerciseLiveResponsiveResize(page) {
   await page.setViewportSize({ width: 1280, height: 900 });
   await waitForResponsiveResize(page, false);
@@ -3167,6 +3210,31 @@ async function exerciseDesktopResultsWorkflow(page, queryApiStub) {
   });
   await page.locator('#toggle-bib-compare').click();
   await page.locator('#bib-compare-workspace [data-bib-mode="bulk"]').click();
+  await importHydrationExcelFixture(page);
+  await page.waitForFunction(() => (
+    document.querySelector('#bib-bulk-values')?.value === 'A Hat Full of Sky\nWintersmith'
+  ), null, { timeout: 5000 });
+  const excelImportState = await page.locator('#bib-compare-workspace').evaluate(workspace => ({
+    worksheets: [...workspace.querySelectorAll('[data-bib-file-sheet] option')].map(option => option.textContent),
+    columns: [...workspace.querySelectorAll('[data-bib-file-column] option')].map(option => option.textContent),
+    type: workspace.querySelector('[data-bib-bulk-type]')?.value,
+    sheetSelectorVisible: !workspace.querySelector('[data-bib-file-sheet-wrap]')?.classList.contains('hidden')
+  }));
+  if (
+    JSON.stringify(excelImportState.worksheets) !== JSON.stringify(['Records', 'Catalog Keys'])
+    || JSON.stringify(excelImportState.columns) !== JSON.stringify(['Title', 'ISBN', 'Catalog Key'])
+    || excelImportState.type !== 'auto'
+    || !excelImportState.sheetSelectorVisible
+  ) {
+    throw new Error(`Hydration should import Excel worksheets and columns without forcing a lookup type: ${JSON.stringify(excelImportState)}`);
+  }
+  await page.locator('#bib-compare-workspace [data-bib-file-sheet]').selectOption('1');
+  await page.waitForFunction(() => document.querySelector('#bib-bulk-values')?.value === '923278');
+  await page.locator('#bib-compare-workspace [data-bib-file-sheet]').selectOption('0');
+  await page.locator('#bib-compare-workspace [data-bib-file-column]').selectOption('1');
+  await page.waitForFunction(() => (
+    document.querySelector('#bib-bulk-values')?.value === '9780060586607\n9780060890315'
+  ));
   const currentQueryButton = page.locator('#bib-compare-workspace [data-bib-current-query]');
   if (await currentQueryButton.isDisabled()) {
     throw new Error('Hydration should enable the current-query source for loaded results.');

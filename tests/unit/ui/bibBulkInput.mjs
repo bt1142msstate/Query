@@ -4,10 +4,12 @@ import test from 'node:test';
 import {
   buildBulkEntries,
   detectLookupType,
+  inputDataFromRows,
   isValidIsbn,
   parseInputFile,
   valuesFromColumn
 } from '../../../src/ui/bib-compare/bibBulkInput.js';
+import { columnIndexFromReference, isXlsxFile } from '../../../src/ui/bib-compare/xlsxWorkbookInput.js';
 import { chunkEntries } from '../../../src/ui/bib-compare/oclcBibBulk.js';
 
 test('bulk input detects and normalizes ISBNs without confusing catalog keys', () => {
@@ -55,4 +57,17 @@ test('file parser preserves quoted line breaks and supports headerless text', ()
   assert.deepEqual(valuesFromColumn(csv, 0), ['A title\nwith subtitle']);
   const text = parseInputFile('923278\n923279\n', 'keys.txt');
   assert.deepEqual(valuesFromColumn(text, 0), ['923278', '923279']);
+});
+
+test('Excel input helpers recognize workbooks, sparse columns, and typed headers', () => {
+  assert.equal(isXlsxFile({ name: 'records.xlsx', type: '' }), true);
+  assert.equal(isXlsxFile({ name: 'records.csv', type: 'text/csv' }), false);
+  assert.equal(columnIndexFromReference('A2'), 0);
+  assert.equal(columnIndexFromReference('AA1048576'), 26);
+  const data = inputDataFromRows([
+    ['Title', 'ISBN', '', 'Catalog Key'],
+    ['A Hat Full of Sky', '9780060586607', '', '923278']
+  ]);
+  assert.deepEqual(data.columns.map(column => column.type), ['title', 'isbn', '', 'catalog_key']);
+  assert.deepEqual(valuesFromColumn(data, 3), ['923278']);
 });

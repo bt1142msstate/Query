@@ -61,7 +61,11 @@ function parseInputFile(text, filename = '') {
   const rows = delimiter
     ? parseDelimitedRows(text, delimiter)
     : String(text || '').replace(/^\uFEFF/u, '').split(/\r?\n/u).filter(line => line.trim()).map(line => [line]);
-  if (!rows.length) return { columns: [], rows: [] };
+  return inputDataFromRows(rows);
+}
+
+function inputDataFromRows(rows) {
+  if (!rows?.length) return { columns: [], rows: [] };
   const width = Math.max(...rows.map(row => row.length));
   const first = rows[0];
   const recognized = first.some(header => headerType(header));
@@ -131,6 +135,7 @@ function buildBulkEntries(values, selectedType = 'auto') {
 export {
   buildBulkEntries,
   detectLookupType,
+  inputDataFromRows,
   isValidIsbn,
   parseDelimitedRows,
   parseInputFile,
