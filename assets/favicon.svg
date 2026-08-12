@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-labelledby="title desc">
+  <title id="title">Library Query</title>
+  <desc id="desc">A bold search symbol optimized for browser tabs.</desc>
+  <rect width="32" height="32" rx="5" fill="#fff"/>
+  <path
+    fill="#050505"
+    fill-rule="evenodd"
+    d="M14.25 3.25a11 11 0 1 0 6.74 19.7l5.63 5.63a2.15 2.15 0 0 0 3.04-3.04l-5.63-5.63a11 11 0 0 0-9.78-16.66Zm0 5a6 6 0 1 0 0 12 6 6 0 0 0 0-12Z"
+  />
+</svg>
