@@ -1784,23 +1784,31 @@ async function closeMobileTableContextMenu(page) {
 }
 
 async function openDesktopTableContextMenu(page, selector, label) {
-  const target = page.locator(selector).first();
-  await target.waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('.tcm').waitFor({ state: 'detached', timeout: 5000 }).catch(() => {});
-  await target.evaluate(element => {
-    const rect = element.getBoundingClientRect();
-    const clientX = rect.left + Math.min(Math.max(rect.width / 2, 8), Math.max(rect.width - 8, 8));
-    const clientY = rect.top + Math.min(Math.max(rect.height / 2, 8), Math.max(rect.height - 8, 8));
-    element.dispatchEvent(new MouseEvent('contextmenu', {
-      bubbles: true,
-      button: 2,
-      buttons: 2,
-      cancelable: true,
-      clientX,
-      clientY
-    }));
-  });
-  await page.locator('.tcm.tcm--visible').waitFor({ state: 'visible', timeout: 5000 });
+  let opened = false;
+  for (let attempt = 0; attempt < 2 && !opened; attempt += 1) {
+    const target = page.locator(selector).first();
+    await target.waitFor({ state: 'visible', timeout: 5000 });
+    if (attempt === 0) {
+      await target.click({ button: 'right' });
+    } else {
+      await target.evaluate(element => {
+        const rect = element.getBoundingClientRect();
+        element.dispatchEvent(new MouseEvent('contextmenu', {
+          bubbles: true,
+          button: 2,
+          buttons: 2,
+          cancelable: true,
+          clientX: rect.left + Math.max(8, rect.width / 2),
+          clientY: rect.top + Math.max(8, rect.height / 2)
+        }));
+      });
+    }
+    opened = await page.locator('.tcm.tcm--visible').waitFor({ state: 'visible', timeout: 2500 })
+      .then(() => true)
+      .catch(() => false);
+  }
+  if (!opened) throw new Error(`${label} should open the table context menu`);
   const menuItems = await page.locator('.tcm.tcm--visible .tcm-item').count();
   if (menuItems <= 0) {
     throw new Error(`${label} should open the table context menu with visible actions`);
