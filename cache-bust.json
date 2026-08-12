@@ -1,5 +1,5 @@
 {
-  "version": "441228afca980799",
+  "version": "ae1714ac0bec250d",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-16.png": "6645731d86da1071",
@@ -204,7 +204,7 @@
     "src/ui/apiSettings.js": "03a4438a4e2e6417",
     "src/ui/authRateLimit.js": "2bb2f84fabf36940",
     "src/ui/authUi.js": "435aa126ddfe7a09",
-    "src/ui/bib-compare/bibBulkInput.js": "6a44810c38bf7963",
+    "src/ui/bib-compare/bibBulkInput.js": "b7f2ee7eb75b581d",
     "src/ui/bib-compare/bibCandidateNavigation.js": "ae381d819567053f",
     "src/ui/bib-compare/bibCandidateNavigationView.js": "26c705afccfe65e8",
     "src/ui/bib-compare/bibCompareFormat.js": "a3640783c967c3d9",
@@ -217,9 +217,10 @@
     "src/ui/bib-compare/hydrationRankingGuide.js": "ab84a98097e04179",
     "src/ui/bib-compare/hydrationRateLimit.js": "e066dfb9590b13ff",
     "src/ui/bib-compare/marcTagInfo.js": "1bef25c1bc0cdab7",
-    "src/ui/bib-compare/oclcBibBulk.js": "18e8c8fb73e75ac6",
-    "src/ui/bib-compare/oclcBibCompare.js": "fb51fd92d47a06d1",
+    "src/ui/bib-compare/oclcBibBulk.js": "6c4ee449cdba4586",
+    "src/ui/bib-compare/oclcBibCompare.js": "487b9c95bb24b626",
     "src/ui/bib-compare/singleHydrationWorkbook.js": "5fb966a59877496c",
+    "src/ui/bib-compare/xlsxWorkbookInput.js": "afd1fe0c11d74fcb",
     "src/ui/controls/customDatePicker.js": "88e4eb3245ac256c",
     "src/ui/controls/searchUI.js": "9d46afc995531905",
     "src/ui/controls/selectorControls.js": "bfcb8b0a6aba4bd4",

@@ -84,7 +84,7 @@ function workspaceMarkup() {
           <form class="bib-compare-search-form hidden" data-bib-bulk-form>
             <div class="bib-compare-form-heading">
               <h2>Match a list</h2>
-              <p>Paste one value per line or import a text, CSV, or TSV file.</p>
+              <p>Paste one value per line or import a text, CSV, TSV, or Excel file.</p>
             </div>
             ${currentQuerySourceMarkup()}
             <label class="bib-compare-label" for="bib-bulk-type">Values are</label>
@@ -98,11 +98,9 @@ function workspaceMarkup() {
             <label class="bib-compare-label" for="bib-bulk-values">Values</label>
             <textarea id="bib-bulk-values" data-bib-bulk-values rows="9" placeholder="One value per line" required></textarea>
             <div class="bib-bulk-file-row">
-              <label class="bib-bulk-file-button" for="bib-bulk-file">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7.5 8.5 12 4l4.5 4.5M5 20h14"/></svg>
-                <span>Import file</span>
-              </label>
-              <input class="sr-only" id="bib-bulk-file" data-bib-bulk-file type="file" accept=".txt,.csv,.tsv,text/plain,text/csv,text/tab-separated-values">
+              <label class="bib-bulk-file-button" for="bib-bulk-file"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7.5 8.5 12 4l4.5 4.5M5 20h14"/></svg><span>Import file</span></label>
+              <input class="sr-only" id="bib-bulk-file" data-bib-bulk-file type="file" accept=".txt,.csv,.tsv,.xlsx,text/plain,text/csv,text/tab-separated-values,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+              <label class="bib-bulk-column hidden" data-bib-file-sheet-wrap><span>Worksheet</span><select data-bib-file-sheet></select></label>
               <label class="bib-bulk-column hidden" data-bib-file-column-wrap>
                 <span>Column</span>
                 <select data-bib-file-column></select>

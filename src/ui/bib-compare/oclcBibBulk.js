@@ -2,10 +2,12 @@ import { postJson } from '../../core/backendApi.js';
 import { createWorkbookExportComponent } from '../../components/workbook-export/index.js';
 import {
   buildBulkEntries,
+  inputDataFromRows,
   parseInputFile,
   splitPastedValues,
   valuesFromColumn
 } from './bibBulkInput.js';
+import { isXlsxFile, parseXlsxWorkbook } from './xlsxWorkbookInput.js';
 import { fieldEvidenceSummary } from './fieldEvidenceReview.js';
 import { bibliographicSource, sourceReviewCount } from './bibSource.js';
 import { waitForHydrationRetry } from './hydrationRateLimit.js';
@@ -688,22 +690,20 @@ function initializeBulkForm({ workspace, controller, setSearchStatus }) {
   const textarea = workspace.querySelector('[data-bib-bulk-values]');
   const typeSelect = workspace.querySelector('[data-bib-bulk-type]');
   const fileInput = workspace.querySelector('[data-bib-bulk-file]');
+  const sheetSelect = workspace.querySelector('[data-bib-file-sheet]');
   const columnSelect = workspace.querySelector('[data-bib-file-column]');
   let fileData = null;
+  let workbookData = null;
 
   function applyFileColumn() {
     if (!fileData) return;
     const values = valuesFromColumn(fileData, Number(columnSelect.value || 0));
     textarea.value = values.join('\n');
     const column = fileData.columns[Number(columnSelect.value || 0)];
-    if (typeSelect.value === 'auto' && column?.type) typeSelect.value = column.type;
     setSearchStatus(`${values.length.toLocaleString()} values imported from ${column?.label || 'the selected column'}.`, 'success');
   }
 
-  fileInput.addEventListener('change', async () => {
-    const file = fileInput.files?.[0];
-    if (!file) return;
-    fileData = parseInputFile(await file.text(), file.name);
+  function applyParsedFileData() {
     columnSelect.replaceChildren();
     fileData.columns.forEach(column => {
       const option = document.createElement('option');
@@ -717,13 +717,54 @@ function initializeBulkForm({ workspace, controller, setSearchStatus }) {
     if (preferred) columnSelect.value = String(preferred.index);
     workspace.querySelector('[data-bib-file-column-wrap]')?.classList.toggle('hidden', fileData.columns.length < 2);
     applyFileColumn();
+  }
+
+  function applyWorkbookSheet() {
+    if (!workbookData) return;
+    const sheet = workbookData.sheets[Number(sheetSelect.value || 0)];
+    fileData = inputDataFromRows(sheet?.rows || []);
+    applyParsedFileData();
+  }
+
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+    setSearchStatus(`Reading ${file.name}...`, 'empty');
+    try {
+      workbookData = isXlsxFile(file) ? await parseXlsxWorkbook(await file.arrayBuffer()) : null;
+      sheetSelect.replaceChildren();
+      if (workbookData) {
+        workbookData.sheets.forEach((sheet, index) => {
+          const option = document.createElement('option');
+          option.value = String(index);
+          option.textContent = sheet.name;
+          sheetSelect.appendChild(option);
+        });
+        workspace.querySelector('[data-bib-file-sheet-wrap]')?.classList.toggle('hidden', workbookData.sheets.length < 2);
+        applyWorkbookSheet();
+      } else {
+        workspace.querySelector('[data-bib-file-sheet-wrap]')?.classList.add('hidden');
+        fileData = parseInputFile(await file.text(), file.name);
+        applyParsedFileData();
+      }
+    } catch (error) {
+      fileData = null;
+      workbookData = null;
+      textarea.value = '';
+      workspace.querySelector('[data-bib-file-sheet-wrap]')?.classList.add('hidden');
+      workspace.querySelector('[data-bib-file-column-wrap]')?.classList.add('hidden');
+      setSearchStatus(error.message || 'The selected file could not be imported.', 'error');
+    } finally {
+      fileInput.value = '';
+    }
   });
+  sheetSelect.addEventListener('change', applyWorkbookSheet);
   columnSelect.addEventListener('change', applyFileColumn);
   form.addEventListener('submit', event => {
     event.preventDefault();
     const entries = buildBulkEntries(splitPastedValues(textarea.value), typeSelect.value);
     if (!entries.length) {
-      setSearchStatus('Paste values or choose a text, CSV, or TSV file first.', 'error');
+      setSearchStatus('Paste values or choose a text, CSV, TSV, or Excel file first.', 'error');
       textarea.focus();
       return;
     }
