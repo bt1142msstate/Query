@@ -261,6 +261,14 @@
   background: #10283b;
 }
 
+:root[data-theme-resolved="dark"] #example-table .query-table-multi-value-trigger:hover,
+:root[data-theme-resolved="dark"] #example-table .query-table-multi-value-trigger:focus-visible,
+:root[data-theme-resolved="dark"] #example-table .query-table-truncated-trigger:hover,
+:root[data-theme-resolved="dark"] #example-table .query-table-truncated-trigger:focus-visible {
+  border-color: rgba(56, 189, 248, 0.32) !important;
+  background: #10283b !important;
+}
+
 :root[data-theme-resolved="dark"] .query-table-multi-value-primary,
 :root[data-theme-resolved="dark"] .query-table-truncated-text {
   color: var(--theme-text-strong);
