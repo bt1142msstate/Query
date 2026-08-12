@@ -2950,6 +2950,16 @@ async function exerciseDesktopResultsWorkflow(page, queryApiStub) {
   ) {
     throw new Error(`Hydration should use the renamed accessible surface and drop icon: ${JSON.stringify(hydrationSurface)}`);
   }
+  const allFieldsScopeNote = (await page.locator('#bib-compare-workspace [data-bib-target-scope-note]').textContent())?.trim();
+  if (!allFieldsScopeNote?.includes('All eligible fields are compared')) {
+    throw new Error(`Hydration should explain the all-fields comparison scope: ${allFieldsScopeNote}`);
+  }
+  await page.locator('#bib-compare-workspace .bib-compare-segmented span', { hasText: 'Selected fields' }).click();
+  await page.locator('#bib-compare-workspace [data-bib-target-tags]').fill('521, 526');
+  await page.waitForFunction(() => document.querySelector('#bib-compare-workspace [data-bib-target-scope-note]')?.textContent?.includes(
+    'Only MARC 521, 526 will be replaced in the downloaded candidate. Every other local field stays unchanged.'
+  ), null, { timeout: 5000 });
+  await page.locator('#bib-compare-workspace .bib-compare-segmented span', { hasText: 'All eligible fields' }).click();
   const rankingOpen = page.locator('#bib-compare-workspace [data-bib-ranking-open]');
   await rankingOpen.click();
   await page.locator('#bib-compare-workspace [data-bib-ranking-guide]:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });

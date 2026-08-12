@@ -1,5 +1,5 @@
 {
-  "version": "f1544c24d73dfb69",
+  "version": "f1337781cc1477cc",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-16.png": "6645731d86da1071",
@@ -181,9 +181,9 @@
     "src/lib/workbook-export/workbookXmlUtils.js": "2cc0fcdda2a1d411",
     "src/lib/workbook-export/xlsxZipWriter.js": "5f4c1f6e98fbcb06",
     "src/styles/api-settings.css": "7c6ff2277eb40a47",
-    "src/styles/app.css": "89fdfd45ff7a4c83",
+    "src/styles/app.css": "2458bf4b7153b804",
     "src/styles/base.css": "e3e09a6d7ff1ef0c",
-    "src/styles/bib-compare.css": "dcd99208d08570f4",
+    "src/styles/bib-compare.css": "c5d961ca766deea2",
     "src/styles/controls.css": "5372b30b175cd1e7",
     "src/styles/filters.css": "9e7297e65dd68a3c",
     "src/styles/form-mode.css": "7f332bdcf58c2df0",
@@ -214,7 +214,7 @@
     "src/ui/bib-compare/hydrationRateLimit.js": "e066dfb9590b13ff",
     "src/ui/bib-compare/marcTagInfo.js": "1bef25c1bc0cdab7",
     "src/ui/bib-compare/oclcBibBulk.js": "ffa7a1892b370f86",
-    "src/ui/bib-compare/oclcBibCompare.js": "075cfbea5ddb60c8",
+    "src/ui/bib-compare/oclcBibCompare.js": "fb51fd92d47a06d1",
     "src/ui/bib-compare/singleHydrationWorkbook.js": "5fb966a59877496c",
     "src/ui/controls/customDatePicker.js": "88e4eb3245ac256c",
     "src/ui/controls/searchUI.js": "9d46afc995531905",

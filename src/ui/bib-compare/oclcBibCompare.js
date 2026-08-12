@@ -131,6 +131,9 @@ function workspaceMarkup() {
                 <span>Selected fields</span>
               </label>
             </div>
+            <p class="bib-compare-target-scope-note" data-bib-target-scope-note>
+              All eligible fields are compared. Choose Selected fields to build a bounded Hydration candidate.
+            </p>
             <div class="bib-compare-target-entry hidden" data-bib-target-entry>
               <label class="bib-compare-label" for="bib-target-tags">Requested MARC fields</label>
               <input id="bib-target-tags" data-bib-target-tags inputmode="numeric" autocomplete="off" maxlength="199" placeholder="521, 526">
@@ -672,12 +675,21 @@ function updateTargetPlan({ reload = true } = {}) {
   state.targetMode = selectedMode;
   query('[data-bib-target-entry]')?.classList.toggle('hidden', selectedMode !== 'selected');
   const status = query('[data-bib-target-status]');
+  const scopeNote = query('[data-bib-target-scope-note]');
   if (selectedMode === 'all') {
     state.targetTags = [];
     state.targetPlanValid = true;
     if (status) status.textContent = '';
+    if (scopeNote) {
+      scopeNote.textContent = 'All eligible fields are compared. Choose Selected fields to build a bounded Hydration candidate.';
+    }
   } else {
     const parsed = parsedTargetTags(query('[data-bib-target-tags]')?.value);
+    if (scopeNote) {
+      scopeNote.textContent = parsed.tags.length && !parsed.error
+        ? `Only MARC ${parsed.tags.join(', ')} will be replaced in the downloaded candidate. Every other local field stays unchanged.`
+        : 'Only the MARC tags entered below will be replaced in the downloaded candidate. Every other local field stays unchanged.';
+    }
     if (status) {
       status.textContent = parsed.error || (parsed.tags.length ? `${parsed.tags.length} field${parsed.tags.length === 1 ? '' : 's'} selected` : 'Enter at least one field.');
       status.dataset.tone = parsed.error || !parsed.tags.length ? 'error' : '';
