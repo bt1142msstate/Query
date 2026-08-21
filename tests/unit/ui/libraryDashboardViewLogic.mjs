@@ -41,3 +41,17 @@ test('dashboard intro names the selected aggregate scope when labels are absent'
   assert.match(html, /<small>BOOK<\/small>/);
   assert.doesNotMatch(html, /<strong>All MLP libraries<\/strong>/);
 });
+
+test('collection and patron views label unavailable or non-applicable dimensions plainly', () => {
+  const dashboard = normalizeLibraryDashboard({
+    scope: { library: 'MSU-GRANT', item_type: 'BOOK', active_window_days: 90 },
+    collection: { items: 17_916 }
+  });
+
+  const collectionHtml = renderLibraryDashboard(dashboard, 'collection');
+  assert.match(collectionHtml, /Distinct-title aggregate not available/);
+  assert.doesNotMatch(collectionHtml, />0 distinct titles</);
+
+  const patronHtml = renderLibraryDashboard(dashboard, 'patrons');
+  assert.match(patronHtml, /Item type does not apply to patrons/);
+});
