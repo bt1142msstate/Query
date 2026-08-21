@@ -1,16 +1,16 @@
 /* Modular stylesheet hub */
 @import url("./tokens.css?v=d20a2992e5150f85");
-@import url("./base.css?v=5cfaded5c870c8d3");
+@import url("./base.css?v=8a925806001990b6");
 @import url("./help.css?v=1e75cc7af857e66a");
 @import url("./filters.css?v=9e7297e65dd68a3c");
 @import url("./form-mode.css?v=7f332bdcf58c2df0");
-@import url("./table.css?v=30f437983462092e");
+@import url("./table.css?v=8bc187669db70079");
 @import url("./controls.css?v=5372b30b175cd1e7");
-@import url("./history.css?v=8c72fe1aa89098fa");
+@import url("./history.css?v=64598bfd565a29af");
 @import url("./templates.css?v=1c0a1594bedc65b9");
-@import url("./api-settings.css?v=7c6ff2277eb40a47");
+@import url("./api-settings.css?v=c5f76b60fb8684bb");
 @import url("./site-update.css?v=b16b51ef4c7bd942");
 @import url("./tooltips.css?v=aa8cda3318209500");
 @import url("./interaction.css?v=57124a9332ac9605");
-@import url("./bib-compare.css?v=c79e9f3084f62619");
+@import url("./bib-compare.css?v=144f2a1093e00dcf");
 @import url("./theme.css?v=1a78e7eb470d0cf6");

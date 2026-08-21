@@ -172,7 +172,7 @@ function createQueryFieldPickerIntegration(options) {
     addFieldBtn.addEventListener('click', () => {
       openQueryFieldPicker().catch(error => {
         console.error('Failed to open query field picker:', error);
-        showToastMessage('Failed to open the field picker.', 'error');
+        showToastMessage('The field picker could not be opened. Close the panel and try again.', 'error');
       });
     });
   }

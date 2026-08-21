@@ -149,7 +149,7 @@ function buildHistoryReasonSummaryHtml(query) {
     return '<span class="text-gray-400">None</span>';
   }
 
-  const detailSummary = formatBackendErrorSummary(query.errorDetails);
+  const detailSummary = query.error || formatBackendErrorSummary(query.errorDetails);
   return `
     <span class="history-reason-summary">
       <span class="history-reason-icon">Issue</span>

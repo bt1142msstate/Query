@@ -1,4 +1,5 @@
 import { BackendApi } from '../../../core/backendApi.js';
+import { getClientErrorMessage } from '../../../core/clientErrorMessages.js';
 
 function createIconButton(className, label, svg) {
   const button = document.createElement('button');
@@ -67,7 +68,7 @@ function createHistoryRunActions({ getQueryById, updateHistoryQuery, showToastMe
       } catch (error) {
         input.disabled = false;
         save.disabled = false;
-        showToastMessage(error.message || 'The run could not be renamed.', 'error');
+        showToastMessage(getClientErrorMessage(error, { fallback: 'The run could not be renamed. Try again.' }), 'error');
         input.focus();
       }
     });
@@ -101,7 +102,7 @@ function createHistoryRunActions({ getQueryById, updateHistoryQuery, showToastMe
           showToastMessage(pinned ? 'Run pinned.' : 'Run unpinned.', 'success');
         } catch (error) {
           button.disabled = false;
-          showToastMessage(error.message || 'The pin could not be updated.', 'error');
+          showToastMessage(getClientErrorMessage(error, { fallback: 'The pin could not be updated. Try again.' }), 'error');
         }
       });
     });

@@ -673,9 +673,12 @@ async function clearQueryManagerState(meta = {}) {
   queryStateStore.resetState(normalizedMeta);
 
   uiActions?.finalizeQueryClear?.();
+  await Promise.resolve(getServices()?.forgetOpenedHistoryResult?.()).catch(error => {
+    console.warn('Failed to clear remembered report state:', error);
+  });
 
   if (!suppressToast) {
-    showToastMessage('Query cleared.', 'info');
+    showToastMessage('Report cleared.', 'info');
   }
 
   return true;

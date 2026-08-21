@@ -20,7 +20,7 @@ import { OclcBibCompare } from '../ui/bib-compare/oclcBibCompare.js';
     Promise.resolve(initializer()).catch(error => {
       console.error(`Failed to initialize ${label}:`, error);
       if (showToastMessage) {
-        showToastMessage(`Failed to initialize ${label}.`, 'error');
+        showToastMessage(`${label} could not be started. Refresh the page and try again.`, 'error');
       }
     });
   }

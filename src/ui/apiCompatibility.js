@@ -1,4 +1,5 @@
 import { queryFetch } from '../core/mockQueryBackend.js';
+import { getClientErrorMessage } from '../core/clientErrorMessages.js';
 
 const DEFAULT_COMPATIBILITY_TIMEOUT_MS = 30000;
 const DEFAULT_TEXT_LIMIT = 512 * 1024;
@@ -273,12 +274,16 @@ function summarizeCompatibilityChecks(checks = []) {
   return summary;
 }
 
-function getRequestErrorDetail(error) {
+function getRawRequestErrorDetail(error) {
   if (error?.name === 'AbortError') {
     return 'Request timed out.';
   }
 
   return error?.message || 'Request failed.';
+}
+
+function getRequestErrorDetail(error) {
+  return getClientErrorMessage(error, { fallback: 'The check could not be completed. Check the API address and try again.' });
 }
 
 async function requestJson(apiUrl, payload, options = {}) {
@@ -291,7 +296,8 @@ async function requestJson(apiUrl, payload, options = {}) {
       body: JSON.stringify(payload),
       credentials: 'same-origin',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
       },
       method: 'POST',
       signal: controller.signal
@@ -356,7 +362,8 @@ async function requestText(apiUrl, payload, options = {}) {
       credentials: 'same-origin',
       headers: {
         Accept: 'application/x-ndjson, text/plain;q=0.9, */*;q=0.1',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
       },
       method: 'POST',
       signal: controller.signal
@@ -396,6 +403,15 @@ async function probeOptionalAction(apiUrl, actionConfig, options = {}) {
       actionConfig.supportedDetail()
     );
   } catch (error) {
+    const rawErrorDetail = getRawRequestErrorDetail(error);
+    if (actionConfig.recognizedErrorPattern?.test(rawErrorDetail)) {
+      return createCompatibilityCheck(
+        `optional-${actionConfig.id}`,
+        actionConfig.label,
+        'supported',
+        'Endpoint recognized the action; a real query id is needed for a live workflow check.'
+      );
+    }
     return createCompatibilityCheck(
       `optional-${actionConfig.id}`,
       actionConfig.label,
@@ -442,8 +458,8 @@ async function runApiCompatibilityCheck(apiUrl, options = {}) {
     const { text, truncated } = await requestText(apiUrl, runPayload, options);
     const { errors, events, ignoredTruncatedLine } = parseJsonlEvents(text, { truncated });
     if (errors.length) {
-      checks.push(createCompatibilityCheck('jsonl-stream', 'JSONL stream', 'failed', errors.slice(0, 2).join(' ')));
-      checks.push(createCompatibilityCheck('jsonl-order', 'Event order', 'failed', 'Stream contained invalid JSON lines.'));
+      checks.push(createCompatibilityCheck('jsonl-stream', 'JSONL stream', 'failed', 'The server returned query results in a format this version cannot read.'));
+      checks.push(createCompatibilityCheck('jsonl-order', 'Event order', 'failed', 'The result stream could not be read in the expected order.'));
       checks.push(createCompatibilityCheck('multi-values', 'Multi-value arrays', 'warning', 'No valid rows were available to inspect.'));
     } else {
       checks.push(...validateJsonlEvents(events, { ignoredTruncatedLine, truncated }));
@@ -451,7 +467,7 @@ async function runApiCompatibilityCheck(apiUrl, options = {}) {
   } catch (error) {
     const detail = getRequestErrorDetail(error);
     checks.push(createCompatibilityCheck('jsonl-stream', 'JSONL stream', 'failed', detail));
-    checks.push(createCompatibilityCheck('jsonl-order', 'Event order', 'failed', 'Run action did not return a valid JSONL stream.'));
+    checks.push(createCompatibilityCheck('jsonl-order', 'Event order', 'failed', 'The query did not return a readable result stream.'));
     checks.push(createCompatibilityCheck('multi-values', 'Multi-value arrays', 'warning', 'No run stream was available to inspect.'));
   }
 

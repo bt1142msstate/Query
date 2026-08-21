@@ -145,6 +145,39 @@ test('api compatibility treats query-id-required optional actions as recognized'
   }
 });
 
+test('api compatibility recognizes query-id-required actions returned as HTTP errors', async () => {
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async (_url, options) => {
+    const payload = JSON.parse(options.body);
+    if (payload.action === 'get_fields') {
+      return new Response(JSON.stringify({ fields: [{ name: 'Title' }] }), { status: 200 });
+    }
+    if (payload.action === 'run') {
+      return new Response([
+        JSON.stringify({ type: 'meta', version: 1, format: 'jsonl', columns: ['Title'] }),
+        JSON.stringify({ type: 'done', rows: 0 })
+      ].join('\n'), { status: 200 });
+    }
+    if (payload.action === 'cancel') {
+      return new Response(JSON.stringify({ error: 'Query not found' }), { status: 404 });
+    }
+    if (payload.action === 'get_results') {
+      return new Response(JSON.stringify({ error: 'JSONL result file not found for query ID' }), { status: 400 });
+    }
+    return new Response(JSON.stringify({ ok: true }), { status: 200 });
+  };
+
+  try {
+    const result = await runApiCompatibilityCheck('https://example.test/query-api');
+    const byId = new Map(result.checks.map(check => [check.id, check]));
+    assert.equal(byId.get('optional-cancel').status, 'supported');
+    assert.equal(byId.get('optional-get_results').status, 'supported');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('api compatibility summary tracks supported, warning, missing, and failed checks', () => {
   const summary = summarizeCompatibilityChecks([
     { status: 'supported' },

@@ -2,6 +2,11 @@ import assert from 'node:assert/strict';
 import { Buffer } from 'node:buffer';
 import test from 'node:test';
 import {
+  RESTORE_LAST_REPORT_PREFERENCE_STORAGE_KEY,
+  setRestoreLastReportPreference,
+  shouldRestoreLastReport
+} from '../../../src/core/queryPreferences.js';
+import {
   OPENED_HISTORY_RESULT_STORAGE_KEY,
   OPENED_HISTORY_RESULT_URL_PARAM,
   forgetOpenedHistoryResult,
@@ -38,6 +43,7 @@ function encodeFormSpecForUrl(spec) {
 
 test('query history result session remembers and clears the last opened result id', () => {
   const storage = createMemoryStorage();
+  setRestoreLastReportPreference(true, storage);
 
   assert.equal(rememberOpenedHistoryResult('  query-123  ', { storage }), true);
   assert.equal(JSON.parse(storage.getItem(OPENED_HISTORY_RESULT_STORAGE_KEY)).queryId, 'query-123');
@@ -53,6 +59,7 @@ test('query history result session remembers and clears the last opened result i
 
 test('query history result session skips limited shared form URLs only', () => {
   const storage = createMemoryStorage();
+  setRestoreLastReportPreference(true, storage);
   rememberOpenedHistoryResult('query-123', { storage });
 
   assert.equal(hasSharedFormUrl({ search: '?form=abc&limited=1' }), true);
@@ -83,6 +90,7 @@ test('query history result session skips limited shared form URLs only', () => {
 
 test('query history result session can sync the result id into the browser url', () => {
   const storage = createMemoryStorage();
+  setRestoreLastReportPreference(true, storage);
   const replacements = [];
   const history = {
     replaceState(_state, _title, url) {
@@ -146,4 +154,49 @@ test('query history result session can sync the result id into the browser url',
   const clearedUrl = new URL(replacements.at(-1));
   assert.equal(clearedUrl.searchParams.has(OPENED_HISTORY_RESULT_URL_PARAM), false);
   assert.equal(clearedUrl.searchParams.has('resultView'), false);
+});
+
+test('last report restore is opt-in while explicit result links still restore', () => {
+  const storage = createMemoryStorage();
+  const replacements = [];
+  const history = {
+    replaceState(_state, _title, url) {
+      replacements.push(url);
+    }
+  };
+
+  assert.equal(shouldRestoreLastReport(storage), false);
+  assert.equal(storage.getItem(RESTORE_LAST_REPORT_PREFERENCE_STORAGE_KEY), null);
+  assert.equal(rememberOpenedHistoryResult('query-default-off', {
+    history,
+    storage,
+    updateUrl: true,
+    url: 'https://example.test/query/'
+  }), false);
+  assert.equal(storage.getItem(OPENED_HISTORY_RESULT_STORAGE_KEY), null);
+  assert.equal(replacements.length, 0);
+  assert.equal(shouldRestoreOpenedHistoryResult({
+    location: { search: '' },
+    storage
+  }), false);
+  assert.equal(shouldRestoreOpenedHistoryResult({
+    location: { search: '?result=shared-query' },
+    storage
+  }), true);
+
+  setRestoreLastReportPreference(true, storage);
+  assert.equal(shouldRestoreLastReport(storage), true);
+  assert.equal(rememberOpenedHistoryResult('query-opted-in', {
+    history,
+    storage,
+    updateUrl: true,
+    url: 'https://example.test/query/'
+  }), true);
+  assert.equal(JSON.parse(storage.getItem(OPENED_HISTORY_RESULT_STORAGE_KEY)).queryId, 'query-opted-in');
+  assert.equal(new URL(replacements.at(-1)).searchParams.get('result'), 'query-opted-in');
+
+  setRestoreLastReportPreference(false, storage);
+  forgetOpenedHistoryResult({ storage });
+  assert.equal(shouldRestoreLastReport(storage), false);
+  assert.equal(shouldRestoreOpenedHistoryResult({ location: { search: '' }, storage }), false);
 });

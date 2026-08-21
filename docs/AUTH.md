@@ -1,6 +1,6 @@
 # Authentication And Access Control Guide
 
-The MLP Query Project requires staff sign-in before any query feature is available. Only login and identity checks are accepted without a session; the backend enforces that boundary independently of frontend controls.
+The MLP Query Project requires staff sign-in before any query feature is available. Only login, identity checks, and the one-time CLI authorization exchange are accepted without a session; the backend enforces that boundary independently of frontend controls. Creating a CLI authorization code requires an authenticated same-origin browser cookie.
 
 ## Current Sirsi-Local Authentication
 
@@ -15,7 +15,7 @@ The GitHub Pages frontend signs in against the Sirsi CGI API over HTTPS. The bac
 - Login, logout, and staff API actions are recorded in the private request audit trail without passwords or tokens.
 - Account and session files live outside the CGI document tree under `/software/MLP/APIwork/Playground/QueryBackend/auth` with private permissions.
 
-The initial administrators are `bt1142` and `alw3`. Account provisioning is performed through the secure local password prompt; plaintext passwords must never enter source, logs, shell arguments, job files, chat, or the clipboard.
+The approved administrators are `bt1142` and `alw3`; no other staff account should carry the `admin` role. Local-session administrator authorization also checks this fixed username roster, so an accidentally elevated account record does not gain privileged API access. This role is the server-side boundary for Close Dates changes, schedules, application configuration, template mutation, cancellations, and other privileged operations. Command Center provisioning sends an opaque setup link with an administrator-selected lifetime, followed by a separate six-digit email code that expires after 10 minutes. Plaintext or temporary passwords, invitation tokens, and verification codes must never enter source, logs, shell arguments, job files, chat, or the clipboard.
 
 ## Authorization Rules
 
@@ -33,9 +33,15 @@ The API accepts actions only through bounded JSON POST requests. Cross-origin re
 
 Staff browser requests use `X-Query-Session: <opaque-session-token>` because the production CGI host does not forward the standard authorization header. Controlled service clients may still use configured standard bearer authentication. Never put either token in API Settings, query parameters, logs, or shared links.
 
+The preferred interactive path is `query:pair`. The CLI binds a temporary listener to IPv4 loopback, creates a random state value and S256 PKCE challenge, and opens the Query Website over HTTPS. A signed-in user must explicitly approve the request. The browser then receives a 120-second, single-use authorization code and sends it to the exact `127.0.0.1` callback; the CLI validates state, exchanges the code with its private verifier, and stores the resulting independent session in macOS Keychain. Only a hash of the temporary code is stored server-side, and the code is consumed even when an exchange fails.
+
+This follows the native-app loopback redirect and PKCE security pattern while avoiding cookie extraction. The browser password, persistent cookie, compatibility token, authorization code, verifier, and resulting CLI token are never placed in repository files or CLI output. `query:login --password-stdin` remains a fallback when browser pairing is unavailable. `query:whoami` verifies the active identity, and `query:logout` revokes the backend session and removes the Keychain entry.
+
 ## Account Operations
 
-- Provision or replace hashes using the reviewed secure account helper.
+- Use Command Center Staff access to create, edit, invite, disable, restore, or delete standard accounts.
+- Invitation-link choices are 30 minutes, 24 hours, 7 days, 30 days, or non-expiring. Opening the link is not sufficient: password creation requires a separate six-digit code sent to the account's registered email and valid for 10 minutes.
+- Resending an invitation revokes the account's prior onboarding link. Disabling, renaming, or deleting an account also revokes onboarding state.
 - Disable an account in server-side account state when access should be suspended.
 - Replacing an account password invalidates its old password; clear existing sessions during credential rotation.
 - Sign-out and successful password changes revoke the server session and expire the persistent cookie immediately.
@@ -43,7 +49,8 @@ Staff browser requests use `X-Query-Session: <opaque-session-token>` because the
 
 ## Deployment Checks
 
-- Confirm unsigned `login` and `whoami` requests work while `get_fields`, `run`, templates, history, and result retrieval return `403`.
+- Confirm unsigned `login`, `whoami`, and `exchange_cli_authorization` requests reach their handlers while `authorize_cli`, `get_fields`, `run`, templates, history, and result retrieval return `403` without a session.
+- Confirm `authorize_cli` accepts only an authenticated local browser session and an S256 challenge; confirm each code expires after 120 seconds, cannot be replayed, and cannot be redeemed with a different verifier.
 - Confirm signed-in ordinary queries work and protected fields remain authorization-gated.
 - Confirm both administrator accounts can sign in, call `whoami`, reach a protected action, sign out, and cannot reuse the revoked token.
 - Confirm invalid credentials return the same generic response for known and unknown usernames.

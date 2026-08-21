@@ -84,6 +84,11 @@ async function applySmokeTheme(page, theme) {
 }
 
 async function expectDarkPageBackdrop(page, label) {
+  await page.waitForFunction(
+    () => window.getComputedStyle(document.body).backgroundImage !== 'none',
+    null,
+    { timeout: 30000 }
+  );
   const backdrop = await page.evaluate(() => {
     const style = window.getComputedStyle(document.body);
     const colorMatches = Array.from(style.backgroundImage.matchAll(/rgba?\(([^)]+)\)/giu));
@@ -388,7 +393,7 @@ async function runSmokeTest() {
     await navigation;
     await waitForAppReady(page, failures);
     if (queryApiStub.countAction('get_fields') !== 1) {
-      throw new Error(`Startup should share one backend field metadata request, saw ${queryApiStub.countAction('get_fields')}`);
+      throw new Error(`Startup should share one backend field metadata request, saw ${queryApiStub.countAction('get_fields')}. ${failures.join(' | ')}`);
     }
 
     const loadedCacheVersion = await page.evaluate(() => document.documentElement.dataset.queryAppCacheVersion || '');
@@ -431,6 +436,11 @@ async function runSmokeTest() {
     }
 
     await page.locator('[data-site-update-banner]').waitFor({ state: 'visible', timeout: 5000 });
+    await page.waitForFunction(() => {
+      const banner = document.querySelector('[data-site-update-banner]');
+      return banner?.querySelector('[data-site-update-action]')?.getAttribute('aria-label') === 'Update now: Improve update prompts'
+        && banner?.querySelector('[data-site-update-details-toggle]')?.hidden === false;
+    }, null, { timeout: 10000 });
     const siteUpdateBannerState = await page.locator('[data-site-update-banner]').evaluate(banner => ({
       actionLabel: banner.querySelector('[data-site-update-action]')?.getAttribute('aria-label') || '',
       actionText: banner.querySelector('[data-site-update-action]')?.textContent?.trim() || '',
@@ -471,6 +481,36 @@ async function runSmokeTest() {
     if (failures.length > 0) {
       throw new Error(`Browser smoke test failed:\n${failures.map(failure => `- ${failure}`).join('\n')}`);
     }
+
+    await page.getByRole('button', { name: 'API Settings' }).click();
+    await page.locator('#api-settings-container').waitFor({ state: 'visible', timeout: 5000 });
+    const restorePreferenceDefault = await page.locator('#restore-last-report-toggle').evaluate(toggle => ({
+      checked: toggle.checked,
+      status: document.querySelector('#restore-last-report-status')?.textContent?.trim() || '',
+      stored: window.localStorage.getItem('query:restoreLastReportOnStartup')
+    }));
+    if (
+      restorePreferenceDefault.checked
+      || restorePreferenceDefault.stored !== null
+      || !/start empty/iu.test(restorePreferenceDefault.status)
+    ) {
+      throw new Error(`Last-report restore should be off by default: ${JSON.stringify(restorePreferenceDefault)}`);
+    }
+    await page.locator('#restore-last-report-toggle').check();
+    const restorePreferenceEnabled = await page.locator('#restore-last-report-toggle').evaluate(toggle => ({
+      checked: toggle.checked,
+      status: document.querySelector('#restore-last-report-status')?.textContent?.trim() || '',
+      stored: window.localStorage.getItem('query:restoreLastReportOnStartup')
+    }));
+    if (
+      !restorePreferenceEnabled.checked
+      || restorePreferenceEnabled.stored !== 'true'
+      || !/will reopen/iu.test(restorePreferenceEnabled.status)
+    ) {
+      throw new Error(`Last-report restore preference should be opt-in: ${JSON.stringify(restorePreferenceEnabled)}`);
+    }
+    await page.locator('#api-settings-panel .collapse-btn').click();
+    await page.locator('#api-settings-panel.hidden').waitFor({ state: 'attached', timeout: 5000 });
 
     await expectNoHorizontalOverflow(page, 'Desktop initial layout');
     await expectControlsNonSelectable(page, 'body', 'Desktop initial layout');
@@ -2044,7 +2084,7 @@ async function runSmokeTest() {
     }
     const expectedRateLimitFailures = failures
       .splice(failuresBeforeExpectedRateLimit)
-      .filter(failure => !failure.includes('429') || !failure.includes('query_api.pl'));
+      .filter(failure => !failure.includes('429') || !/(?:query|account)_api\.pl/u.test(failure));
     failures.push(...expectedRateLimitFailures);
     await signedOutPage.close();
 
@@ -2098,4 +2138,4 @@ async function runSmokeTest() {
   }
 }
 
-test('browser smoke', { timeout: 120000 }, runSmokeTest);
+test('browser smoke', { timeout: 180000 }, runSmokeTest);

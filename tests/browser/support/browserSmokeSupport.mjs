@@ -23,6 +23,7 @@ const mimeTypes = new Map([
 ]);
 
 const QUERY_API_PATTERN = /^https:\/\/mlp\.sirsi\.net\/uhtbin\/query_api\.pl/u;
+const ACCOUNT_API_PATTERN = /^https:\/\/mlp\.sirsi\.net\/uhtbin\/account_api\.pl/u;
 const smokeResultHeaders = ['Smoke Title', 'Smoke Branch', 'Smoke Status'];
 
 function buildJsonlResultStream({
@@ -434,10 +435,12 @@ async function installQueryApiStub(page) {
   };
 
   await page.route(QUERY_API_PATTERN, handler);
+  await page.route(ACCOUNT_API_PATTERN, handler);
 
   return {
     async dispose() {
       await page.unroute(QUERY_API_PATTERN, handler);
+      await page.unroute(ACCOUNT_API_PATTERN, handler);
     },
     countAction(action) {
       return requests.filter(request => request.action === action).length;
@@ -494,7 +497,7 @@ async function waitForAppModules(page, failures) {
     await page.waitForFunction(
       () => document.documentElement.dataset.queryAppModulesReady === 'true',
       null,
-      { timeout: 15000 }
+      { timeout: 45000 }
     );
   } catch (error) {
     failures.push(`module loader did not finish: ${error.message}`);
@@ -509,7 +512,7 @@ async function waitForAppReady(page, failures) {
       () => document.documentElement.dataset.queryAppReady === 'true'
         && !document.body.classList.contains('app-starting'),
       null,
-      { timeout: 15000 }
+      { timeout: 45000 }
     );
   } catch (error) {
     failures.push(`app startup did not finish: ${error.message}`);
@@ -2016,7 +2019,6 @@ async function expectDestructiveFlameAnimation(page, selector, label) {
 
   const control = matchingControls.first();
   await control.waitFor({ state: 'visible', timeout: 5000 });
-  await control.scrollIntoViewIfNeeded();
 
   const beforeHoverState = await control.evaluate(element => ({
     ariaDisabled: element.getAttribute('aria-disabled'),

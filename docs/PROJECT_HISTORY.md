@@ -2,6 +2,14 @@
 
 This is a non-redundant summary of the work represented by the repository commit history through the current release. It groups repeated fixes and polish passes by outcome instead of repeating every individual commit message.
 
+## 2026-08-13 Call Number delimiter repair
+
+- Confirmed that some Symphony `selcallnum` rows contain an additional pipe inside the Call Number portion even though pipe is also the selector-output field delimiter.
+- Fixed the production backend parser so extra selector parts are rejoined into the semantic Call Number field instead of being attached to the final output field and shifting intervening columns.
+- Made the repair independent of display-field order; Call Number can be first, middle, or last without changing parsing behavior.
+- Added focused coverage for one and multiple embedded pipes, blank following fields, expanded selector tokens, ordinary call numbers, catalog-key filtering, and reordered fields. The complete backend suite passed 821 tests before deployment.
+- Re-ran the 44,796-row MSU Unshadowed Ebooks report and verified all 102 previously shifted rows, library/shadow/title integrity, and the final Excel sort order.
+
 ## Foundation
 
 - Created the static single-page application entrypoint and moved the app to `index.html` for GitHub Pages hosting.

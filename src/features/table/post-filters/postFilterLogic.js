@@ -46,7 +46,10 @@ function isNoValuePostFilterOperator(cond) {
     'does_not_have_multiple_values',
     'not_multiple_values',
     'single_value',
-    'is_single_value'
+    'is_single_value',
+    'has_number_sequence_marker',
+    'has_roman_numeral_sequence_marker',
+    'has_alphabetic_sequence_marker'
   ].includes(normalized);
 }
 

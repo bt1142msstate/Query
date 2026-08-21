@@ -81,6 +81,11 @@
     gap: 0.35rem;
     min-width: 0;
   }
+
+  #clear-query-btn {
+    grid-column: span 2;
+    justify-self: end;
+  }
 }
 
 .mobile-table-action-bar {
@@ -156,6 +161,16 @@
 
 .table-toolbar-btn-icon {
   min-width: 0;
+}
+
+.table-toolbar-btn-clear {
+  width: auto;
+  min-width: 3.65rem;
+  padding: 0 0.75rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.02em;
 }
 
 #table-add-field-btn {
@@ -3385,6 +3400,11 @@ body.post-filter-overlay-open {
 
   #table-shell.table-shell-expanded {
     inset: calc(var(--header-height) + 0.75rem) 0.75rem 0.75rem;
+  }
+
+  #clear-query-btn {
+    grid-column: span 2;
+    justify-self: end;
   }
 }
 

@@ -1,4 +1,5 @@
 import { downloadHydrationReviewWorkbook } from './oclcBibBulk.js';
+import { getClientErrorMessage } from '../../core/clientErrorMessages.js';
 
 function tagCounts(record) {
   return (record?.fields || []).reduce((counts, field) => {
@@ -44,7 +45,7 @@ function bindSingleHydrationExcel({ workspace, getPayload, notify }) {
       await downloadHydrationReviewWorkbook([singleReviewResult(payload)]);
       notify('Hydration review workbook downloaded.', 'success');
     } catch (error) {
-      notify(error.message || 'The review workbook could not be created.', 'error');
+      notify(getClientErrorMessage(error, { fallback: 'The review workbook could not be created. Try again.' }), 'error');
     } finally {
       button.disabled = false;
     }

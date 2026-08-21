@@ -239,6 +239,23 @@ test('virtual table post filters', async () => {
   assert.equal(doesCellMatchPostFilter('20240101\x1F20250101', 'date', { cond: 'after', val: '20241231' }), true);
   assert.equal(doesCellMatchPostFilter('20240101\x1F20250101', 'date', { cond: 'does_not_equal', val: '20250101' }), false);
 
+  assert.equal(doesCellMatchPostFilter('The 5th Horseman', 'text', { cond: 'has_number_sequence_marker' }), true);
+  assert.equal(doesCellMatchPostFilter('One for the Money', 'text', { cond: 'has_number_sequence_marker' }), true);
+  assert.equal(doesCellMatchPostFilter('The twenty-nine steps', 'text', { cond: 'has_number_sequence_marker' }), true);
+  assert.equal(doesCellMatchPostFilter('One thousand white women', 'text', { cond: 'has_number_sequence_marker' }), true);
+  assert.equal(doesCellMatchPostFilter('A quiet place', 'text', { cond: 'has_number_sequence_marker' }), false);
+  assert.equal(doesCellMatchPostFilter('Act IV', 'text', { cond: 'has_roman_numeral_sequence_marker' }), true);
+  assert.equal(doesCellMatchPostFilter('Book V', 'text', { cond: 'has_roman_numeral_sequence_marker' }), true);
+  assert.equal(doesCellMatchPostFilter('Pride v. prejudice', 'text', { cond: 'has_roman_numeral_sequence_marker' }), false);
+  assert.equal(doesCellMatchPostFilter('Orphan X', 'text', { cond: 'has_roman_numeral_sequence_marker' }), false);
+  assert.equal(doesCellMatchPostFilter('Civil twilight', 'text', { cond: 'has_roman_numeral_sequence_marker' }), false);
+  assert.equal(doesCellMatchPostFilter('I, Robot', 'text', { cond: 'has_roman_numeral_sequence_marker' }), false);
+  assert.equal(doesCellMatchPostFilter('A novel / V.C. Andrews', 'text', { cond: 'has_roman_numeral_sequence_marker' }), false);
+  assert.equal(doesCellMatchPostFilter('A is for Alibi', 'text', { cond: 'has_alphabetic_sequence_marker' }), true);
+  assert.equal(doesCellMatchPostFilter('X', 'text', { cond: 'has_alphabetic_sequence_marker' }), true);
+  assert.equal(doesCellMatchPostFilter('A quiet place', 'text', { cond: 'has_alphabetic_sequence_marker' }), false);
+  assert.equal(doesCellMatchPostFilter('G-man', 'text', { cond: 'has_alphabetic_sequence_marker' }), false);
+
   const compactMultiValueData = {
     headers: ['Title', 'Public Note'],
     rows: [

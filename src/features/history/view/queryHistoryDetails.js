@@ -60,18 +60,21 @@ function buildHistoryIssueMarkup(reason, errorDetails) {
 
   const detailsMarkup = detailItems.length
     ? `
-      <dl class="history-error-details-list">
-        ${detailItems.map(item => `
-          <div class="history-error-details-item">
-            <dt>${escapeHistoryText(item.label)}</dt>
-            <dd>${escapeHistoryText(item.value)}</dd>
-          </div>
-        `).join('')}
-      </dl>`
+      <details class="history-error-technical-details">
+        <summary>Technical details for support</summary>
+        <dl class="history-error-details-list">
+          ${detailItems.map(item => `
+            <div class="history-error-details-item">
+              <dt>${escapeHistoryText(item.label)}</dt>
+              <dd>${escapeHistoryText(item.value)}</dd>
+            </div>
+          `).join('')}
+        </dl>
+      </details>`
     : '';
 
   return `
-    ${reason ? `<p class="history-details-issue">${escapeHistoryText(reason)}</p>` : ''}
+    ${reason ? `<p class="history-details-issue">${escapeHistoryText(reason)}</p>` : '<p class="history-details-issue">The query could not be completed. Try it again or contact support.</p>'}
     ${detailsMarkup}`;
 }
 
