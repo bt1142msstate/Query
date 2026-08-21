@@ -13,6 +13,21 @@ function formatPercent(value) {
   return Number.isFinite(number) ? `${Math.round(number * 100)}%` : '—';
 }
 
+function comparisonDetail(metric, noun) {
+  if (!metric?.comparison_available) return 'Previous-period comparison unavailable';
+  const previous = Number(metric[`previous_${noun}`] || 0);
+  const change = Number(metric[`${noun.slice(0, -1)}_change`] || 0);
+  const rate = metric[`${noun.slice(0, -1)}_change_rate`];
+  const direction = change > 0 ? 'up' : change < 0 ? 'down' : 'unchanged';
+  const rateText = Number.isFinite(Number(rate)) ? ` (${formatPercent(Math.abs(Number(rate)))})` : '';
+  return `${direction === 'unchanged' ? 'Unchanged' : `${direction} ${formatNumber(Math.abs(change))}${rateText}`} vs ${formatNumber(previous)} previously`;
+}
+
+function periodComparisonDetail(metric, noun) {
+  const comparison = comparisonDetail(metric, noun);
+  return metric?.period_label ? `${metric.period_label} · ${comparison}` : comparison;
+}
+
 function formatMoney(value) {
   return moneyFormatter.format(Number(value || 0));
 }
@@ -100,8 +115,8 @@ function renderOverview(data) {
   const circulationUnavailable = '<p class="kpi-chart-empty">Period circulation data is not available for this scope.</p>';
   return `${dashboardIntro(data, 'What is being used—and where to act', 'A combined view of circulation demand, collection performance, and community reach. Every number keeps its source and time basis visible.')}
     <section class="kpi-cards kpi-cards--six" aria-label="Key library indicators">
-      ${metricCard('Checkouts', hasCirculation ? formatNumber(circ.checkouts) : '—', circ.period_label || (hasCirculation ? 'Selected reporting period' : 'Period transaction feed not available'), hasCirculation ? 'success' : '')}
-      ${metricCard('Renewals', hasCirculation ? formatNumber(circ.renewals) : '—', hasCirculation ? `${formatPercent(circ.renewal_share)} of circulation activity` : 'Period transaction feed not available')}
+      ${metricCard('Checkouts', hasCirculation ? formatNumber(circ.checkouts) : '—', hasCirculation ? periodComparisonDetail(circ, 'checkouts') : 'Period transaction feed not available', hasCirculation ? 'success' : '')}
+      ${metricCard('Renewals', hasCirculation ? formatNumber(circ.renewals) : '—', hasCirculation ? periodComparisonDetail(circ, 'renewals') : 'Period transaction feed not available')}
       ${metricCard('Current items', hasCollection ? formatNumber(collection.items) : '—', hasCollection ? (collection.titles ? `${formatNumber(collection.titles)} titles represented` : 'Actual current item records') : 'Current item snapshot not available')}
       ${metricCard('Used recently', hasCollection ? formatPercent(collection.recent_use_rate) : '—', hasCollection ? `${formatNumber(collection.used_recently)} items used in the selected window` : 'Current item snapshot not available', hasCollection ? 'success' : '')}
       ${metricCard('Active patrons', hasPatrons ? formatNumber(patrons.active) : '—', hasPatrons ? `${formatPercent(patrons.active_rate)} of current patrons` : 'Patron aggregate not available')}
@@ -158,7 +173,9 @@ function renderPatrons(data) {
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Home library</h4><p>Registered patrons by assigned library.</p></div></div>${rankedBars(data.patronLibraryBreakdown, 'patrons')}</article>
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>User profile</h4><p>Aggregated patron profile distribution.</p></div></div>${rankedBars(data.patronProfileBreakdown, 'patrons')}</article>
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Age groups</h4><p>Derived from usable birth dates; unknown values remain visible.</p></div></div>${rankedBars(data.patronAgeBands, 'patrons')}</article>
-      <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Geographic reach</h4><p>Top ZIP or service-area groups after privacy suppression.</p></div></div>${rankedBars(data.patronGeoBreakdown, 'patrons')}</article>
+      <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>ZIP3 reach</h4><p>Broad postal areas; exact ZIP codes and addresses are never returned.</p></div></div>${rankedBars(data.patronGeoBreakdown, 'patrons')}</article>
+      <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Cities served</h4><p>Top city and state groups after privacy suppression.</p></div></div>${rankedBars(data.patronCityBreakdown, 'patrons')}</article>
+      <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>States served</h4><p>Registered patrons by state after privacy suppression.</p></div></div>${rankedBars(data.patronStateBreakdown, 'patrons')}</article>
     </section>${sourceNotes(data)}`;
 }
 
