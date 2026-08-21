@@ -49,6 +49,7 @@ function normalizeLibraryDashboard(payload = {}) {
     patronStateBreakdown: normalizeSeries(data.patron_state_breakdown),
     opportunities: Array.isArray(data.opportunities) ? data.opportunities : [],
     filters: {
+      systems: Array.isArray(data.filters?.systems) ? data.filters.systems : [],
       libraries: Array.isArray(data.filters?.libraries) ? data.filters.libraries : [],
       itemTypes: Array.isArray(data.filters?.item_types) ? data.filters.item_types : [],
       calendarPeriods: Array.isArray(data.filters?.calendar_periods) ? data.filters.calendar_periods : [],
