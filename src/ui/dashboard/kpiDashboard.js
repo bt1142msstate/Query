@@ -1,8 +1,9 @@
 import { BackendApi } from '../../core/backendApi.js';
 import { appServices } from '../../core/appServices.js';
 import { getClientErrorMessage } from '../../core/clientErrorMessages.js';
-import { ALL_LIBRARY_SYSTEMS_LABEL, buildLibraryScopeGroups, systemCodeForLibraryScope } from '../../core/libraryScopes.js';
+import { ALL_LIBRARY_SYSTEMS_LABEL, buildLibraryScopeSelectorValues, systemCodeForLibraryScope } from '../../core/libraryScopes.js';
 import { onDOMReady } from '../../core/domReady.js';
+import { SelectorControls } from '../controls/selectorControls.js';
 import { libraryDashboardHasData, normalizeLibraryDashboard } from './libraryDashboardModel.js';
 import { downloadLibraryDashboardCsv } from './libraryDashboardExport.js';
 import { normalizeDashboardRuns, summarizeDashboardRuns } from './kpiDashboardModel.js';
@@ -47,18 +48,37 @@ function replaceOptions(select, baseLabel, options, selected) {
   select.value = normalized.some(option => option.value === selected) ? selected : 'all';
 }
 
-function replaceLibraryOptions(select, systems, libraries, selected) {
-  if (!select) return;
-  const groups = buildLibraryScopeGroups(systems, libraries);
-  const options = groups.flatMap(group => group.options);
-  const all = new Option(ALL_LIBRARY_SYSTEMS_LABEL, 'all');
-  select.replaceChildren(all, ...groups.map(group => {
-    const element = document.createElement('optgroup');
-    element.label = group.label;
-    element.append(...group.options.map(option => new Option(option.label, option.value)));
-    return element;
-  }));
-  select.value = options.some(option => option.value === selected) ? selected : 'all';
+function selectedLibraryScope(control) {
+  const selected = control?.getSelectedValues?.() || [];
+  return selected[0] || 'all';
+}
+
+function replaceLibraryOptions(container, systems, libraries, selected) {
+  if (!container) return;
+  const values = buildLibraryScopeSelectorValues(systems, libraries);
+  const validSelection = values.some(option => option.RawValue === selected) ? [selected] : [];
+  const signature = JSON.stringify(values.map(option => [option.RawValue, option.Display, option.Group]));
+  if (container.dataset.optionsSignature === signature && container.getSelectedValues) {
+    container.setSelectedValues(validSelection);
+    return;
+  }
+
+  container.querySelector('.form-mode-popup-list-control')?._cleanupPopup?.();
+  const selector = SelectorControls.createGroupedSelector(values, false, validSelection, {
+    enableGrouping: true,
+    allSelectionLabel: ALL_LIBRARY_SYSTEMS_LABEL,
+    allSelectionDescription: 'Include every library system.',
+    containerId: null
+  });
+  const popup = SelectorControls.createPopupListControl(
+    selector,
+    'Library or system',
+    ALL_LIBRARY_SYSTEMS_LABEL
+  );
+  container.replaceChildren(popup);
+  container.dataset.optionsSignature = signature;
+  container.getSelectedValues = () => popup.getSelectedValues();
+  container.setSelectedValues = valuesToSet => popup.setSelectedValues(valuesToSet);
 }
 
 function syncFilterOptions(elements) {
@@ -67,7 +87,7 @@ function syncFilterOptions(elements) {
     elements.library,
     libraryData.filters.systems,
     libraryData.filters.libraries,
-    elements.library?.value || 'all'
+    selectedLibraryScope(elements.library)
   );
   replaceOptions(elements.itemType, 'All item types', libraryData.filters.itemTypes, elements.itemType?.value || 'all');
   syncPeriodOptions(elements);
@@ -76,7 +96,7 @@ function syncFilterOptions(elements) {
 function syncPeriodOptions(elements) {
   if (!elements.period || !libraryData) return;
   const selected = elements.period.value || '365';
-  const library = elements.library?.value || 'all';
+  const library = selectedLibraryScope(elements.library);
   const system = systemCodeForLibraryScope(library);
   const rolling = [
     { value: '90', label: 'Last 90 days' },
@@ -139,7 +159,7 @@ function requestPayload(elements) {
   const reportingPeriod = elements.period?.value || '365';
   return {
     action: 'library_dashboard',
-    library: elements.library?.value || 'all',
+    library: selectedLibraryScope(elements.library),
     item_type: elements.itemType?.value || 'all',
     active_window_days: /^\d+$/.test(reportingPeriod) ? Number(reportingPeriod) : 365,
     reporting_period: reportingPeriod

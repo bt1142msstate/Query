@@ -519,8 +519,8 @@ async function runSmokeTest() {
       cardValues: Array.from(panel.querySelectorAll('.kpi-card__value')).map(node => node.textContent.trim()),
       chartCount: panel.querySelectorAll('.kpi-chart-card').length,
       opportunityRows: panel.querySelectorAll('.kpi-opportunity-table tbody tr').length,
-      libraryOptions: Array.from(panel.querySelectorAll('#kpi-dashboard-library option')).map(option => option.value),
-      libraryGroups: Array.from(panel.querySelectorAll('#kpi-dashboard-library optgroup')).map(group => group.label),
+      librarySelection: panel.querySelector('#kpi-dashboard-library')?.getSelectedValues?.() || [],
+      librarySummary: panel.querySelector('#kpi-dashboard-library .form-mode-popup-list-summary')?.textContent?.trim() || '',
       exportVisible: !panel.querySelector('#kpi-dashboard-export')?.classList.contains('hidden'),
       comparisonText: panel.querySelector('.kpi-card')?.textContent || '',
       selectedTab: panel.querySelector('[data-kpi-view][aria-selected="true"]')?.dataset.kpiView || ''
@@ -531,10 +531,8 @@ async function runSmokeTest() {
       || dashboardState.cardValues[2] !== '2,813,442'
       || dashboardState.chartCount !== 6
       || dashboardState.opportunityRows !== 1
-      || !dashboardState.libraryOptions.includes('system:MSU')
-      || !dashboardState.libraryOptions.includes('MSU-MAIN')
-      || !dashboardState.libraryGroups.includes('Library systems')
-      || !dashboardState.libraryGroups.includes('Item libraries')
+      || dashboardState.librarySelection.length !== 0
+      || dashboardState.librarySummary !== 'All library systems'
       || !dashboardState.exportVisible
       || !/up 38,119/iu.test(dashboardState.comparisonText)
       || dashboardState.selectedTab !== 'overview'
@@ -558,7 +556,15 @@ async function runSmokeTest() {
     }
     await page.locator('#kpi-dashboard-window').selectOption('cy:2026');
     await page.waitForFunction(() => document.querySelector('#kpi-dashboard-content .kpi-card')?.textContent?.includes('Calendar Year 2026 to date'));
-    await page.locator('#kpi-dashboard-library').selectOption('system:MSU');
+    await page.locator('#kpi-dashboard-library .form-mode-popup-list-trigger').click();
+    const libraryDialog = page.getByRole('dialog', { name: 'Library or system' });
+    if (!await libraryDialog.getByRole('button', { name: 'All library systems' }).count()) {
+      throw new Error('Dashboard should reuse the grouped selector and expose the all-systems choice.');
+    }
+    await libraryDialog.getByPlaceholder('Search options...').fill('Mississippi State University');
+    await libraryDialog.getByText('Mississippi State University', { exact: true }).click();
+    await libraryDialog.getByRole('button', { name: 'Done' }).click();
+    await page.waitForFunction(() => document.querySelector('#kpi-dashboard-library')?.getSelectedValues?.()[0] === 'system:MSU');
     await page.waitForFunction(() => Array.from(document.querySelectorAll('#kpi-dashboard-window option')).some(option => option.value === 'fy:MSU:2027'));
     if (!await page.locator('#kpi-dashboard-window optgroup[label="Fiscal years"]').count()) {
       throw new Error('Dashboard should expose fiscal years as a distinct reporting-period group after choosing a system.');
@@ -2071,7 +2077,7 @@ async function runSmokeTest() {
     await mobilePage.locator('#post-filter-value-picker-host .form-mode-popup-list-trigger').click();
     await mobilePage.locator('.form-mode-popup-list-popup:not([hidden])').waitFor({ state: 'visible', timeout: 5000 });
     await expectElementWithinViewport(mobilePage, '.form-mode-popup-list-popup:not([hidden])', 'Mobile popup list picker');
-    await expectLightInput(mobilePage, '.form-mode-popup-list-popup input[type="search"]', 'Mobile popup list search input');
+    await expectLightInput(mobilePage, '.form-mode-popup-list-popup:not([hidden]) input[type="search"]', 'Mobile popup list search input');
     const popupAutoFocus = await mobilePage.locator('.form-mode-popup-list-popup:not([hidden])').evaluate(popup => {
       const active = document.activeElement;
       return {
@@ -2083,10 +2089,10 @@ async function runSmokeTest() {
     if (!popupAutoFocus.popupFocused || ['INPUT', 'TEXTAREA', 'SELECT'].includes(popupAutoFocus.activeTag)) {
       throw new Error(`Mobile popup list should open without auto-focusing a text control: ${JSON.stringify(popupAutoFocus)}`);
     }
-    await expectMobileEditableFocusContained(mobilePage, '.form-mode-popup-list-popup input[type="search"]', '.form-mode-popup-list-popup-body', 'Mobile popup list search input');
-    await expectMinimumTapTarget(mobilePage, '.form-mode-popup-list-done', 'Mobile popup list done control');
+    await expectMobileEditableFocusContained(mobilePage, '.form-mode-popup-list-popup:not([hidden]) input[type="search"]', '.form-mode-popup-list-popup:not([hidden]) .form-mode-popup-list-popup-body', 'Mobile popup list search input');
+    await expectMinimumTapTarget(mobilePage, '.form-mode-popup-list-popup:not([hidden]) .form-mode-popup-list-done', 'Mobile popup list done control');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile popup list picker');
-    await mobilePage.locator('.form-mode-popup-list-done').click();
+    await mobilePage.locator('.form-mode-popup-list-popup:not([hidden]) .form-mode-popup-list-done').click();
     await mobilePage.locator('#post-filter-done-btn').click();
     await expectMobileScrollLockReleased(mobilePage, 'Mobile post filter dialog');
     await cleanupMobilePageScroll(mobilePage);
