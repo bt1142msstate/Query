@@ -4,6 +4,7 @@
  * @module FieldDefs
  */
 import { BackendApi } from './backendApi.js';
+import { getSession } from './authSession.js';
 import {
   getFieldAccessState,
   isFieldAccessAuthorized,
@@ -217,6 +218,8 @@ async function fetchFieldDefinitions() {
 }
 
 async function loadFieldDefinitions() {
+    const session = getSession();
+    if (!session?.token && !session?.cookieSession) return fieldDefsArray;
     if (isFieldsLoaded) return fieldDefsArray;
     if (fieldDefinitionsLoadPromise) return fieldDefinitionsLoadPromise;
 
