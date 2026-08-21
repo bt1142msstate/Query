@@ -34,7 +34,7 @@ The private MLP environment owns:
 
 `library_dashboard` returns a JSON object with `schema_version: 1`. Its principal groups are:
 
-- `circulation`: period checkouts, renewals, in-house use, holds, and demand ratios;
+- `circulation`: period checkouts, renewals, in-house use, holds, demand ratios, a plain reporting-period label, and coverage boundaries;
 - `collection`: current items and titles, lifetime checkout and renewal counters, recent-use rate, never-used items, item age, and price coverage;
 - `patrons`: current, active, newly registered, currently borrowing, currently holding, and soon-expiring patron counts;
 - `circulation_trend`: reporting-period transaction points;
@@ -50,9 +50,11 @@ The UI must treat absent groups as unavailable, not as zero. Every production re
 
 The circulation transaction baseline follows the established BLUEcloud contract:
 
-- checkouts: `Charge Item Part B`;
-- renewals: `Renew Item`;
+- checkouts: ordinary and reserve item checkouts, counted as items or pieces circulated;
+- renewals: ordinary and reserve item renewals;
 - patron renewals (`Renew User Part B`) are excluded.
+
+`circulation.period_label` names the requested or effective reporting period. `coverage_complete`, `coverage_start`, and `coverage_end` distinguish a complete 90-, 365-, or 730-day window from a shorter retained-history window. The interface preserves that label instead of converting it to a numeric placeholder. Demand rankings are ordered by the selected period's checkout volume.
 
 Current holdings come from current item records. Item creation transactions must not be labeled as holdings. Lifetime item checkout/renewal counters must not be plotted as historical monthly transactions.
 
@@ -66,7 +68,7 @@ The client automatically refreshes the aggregate response while the dashboard is
 - item snapshots on a bounded recurring schedule;
 - patron aggregates on a bounded recurring schedule.
 
-The production snapshot stores each item scope, patron scope, and ranking once. Requested dashboard views are materialized from those compact dimensions, so activity-window and cross-filter responses do not duplicate the same breakdowns thousands of times. The same current library and item-type counts inform the Query smart planner: exact policy filters with smaller estimated candidate sets are safely evaluated first, while query meaning remains unchanged.
+The production snapshot stores each item scope, patron scope, and reporting-window transaction scope once. Requested dashboard views are materialized from those compact dimensions, so activity-window and cross-filter responses do not duplicate full source records. The same current library and item-type counts inform the Query smart planner: exact policy filters with smaller estimated candidate sets are safely evaluated first, while query meaning remains unchanged.
 
 Short server-side caching is intentional. It prevents multiple open browser tabs from launching duplicate full-catalog or full-patron scans while keeping the displayed data current. A response is stale when its source-specific age exceeds the backend policy; the server should return the last verified snapshot with an explicit stale warning rather than silently presenting it as current.
 

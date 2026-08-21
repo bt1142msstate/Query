@@ -6,13 +6,15 @@ test('library dashboard normalizes aggregate groups and filter metadata', () => 
   const dashboard = normalizeLibraryDashboard({
     schema_version: 1,
     collection: { items: '120', titles: 90 },
-    circulation: { checkouts: '45' },
+    circulation: { checkouts: '45', period_label: 'Recent 90 days', coverage_complete: true },
     patrons: { total: 32 },
     library_breakdown: [{ label: 'Main', checkouts: '30' }],
     filters: { libraries: [{ value: 'MAIN', label: 'Main' }], item_types: ['BOOK'] }
   });
   assert.equal(dashboard.collection.items, 120);
   assert.equal(dashboard.circulation.checkouts, 45);
+  assert.equal(dashboard.circulation.period_label, 'Recent 90 days');
+  assert.equal(dashboard.circulation.coverage_complete, true);
   assert.equal(dashboard.libraryBreakdown[0].checkouts, 30);
   assert.equal(dashboard.filters.libraries[0].value, 'MAIN');
   assert.deepEqual(dashboard.availability, { circulation: true, collection: true, patrons: true });

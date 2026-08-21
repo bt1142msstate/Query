@@ -34,8 +34,12 @@ function metricCard(label, value, detail, tone = '') {
 
 function rankedBars(items, key, emptyText = 'No data is available for this breakdown.') {
   if (!items.length) return `<p class="kpi-chart-empty">${escapeHtml(emptyText)}</p>`;
-  const maximum = Math.max(1, ...items.map(item => Number(item[key] || item.value || 0)));
-  return `<ol class="kpi-ranking">${items.slice(0, 10).map(item => {
+  const ranked = [...items].sort((left, right) =>
+    Number(right[key] || right.value || 0) - Number(left[key] || left.value || 0)
+    || String(left.label || left.code || '').localeCompare(String(right.label || right.code || ''))
+  );
+  const maximum = Math.max(1, ...ranked.map(item => Number(item[key] || item.value || 0)));
+  return `<ol class="kpi-ranking">${ranked.slice(0, 10).map(item => {
     const value = Number(item[key] || item.value || 0);
     return `<li>
       <span class="kpi-ranking__label" title="${escapeHtml(item.label || item.code || 'Unknown')}">${escapeHtml(item.label || item.code || 'Unknown')}</span>

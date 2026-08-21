@@ -30,6 +30,21 @@ test('overview renders demand rankings when the transaction aggregate is availab
   assert.match(html, /kpi-ranking__label[^>]*>BOOK</);
 });
 
+test('demand rankings put the highest period activity first', () => {
+  const dashboard = normalizeLibraryDashboard({
+    circulation: { checkouts: 45, period_label: 'Recent 90 days' },
+    collection: { items: 120 },
+    library_breakdown: [
+      { label: 'Lower', checkouts: 5 },
+      { label: 'Higher', checkouts: 40 }
+    ]
+  });
+
+  const html = renderLibraryDashboard(dashboard, 'overview');
+  assert.ok(html.indexOf('>Higher</span>') < html.indexOf('>Lower</span>'));
+  assert.match(html, /Recent 90 days/);
+});
+
 test('dashboard intro names the selected aggregate scope when labels are absent', () => {
   const dashboard = normalizeLibraryDashboard({
     scope: { library: 'MSU-GRANT', item_type: 'BOOK', active_window_days: 90 },

@@ -4,7 +4,11 @@ function finiteNumber(value) {
 }
 
 function normalizeMetricGroup(group = {}) {
-  return Object.fromEntries(Object.entries(group || {}).map(([key, value]) => [key, finiteNumber(value)]));
+  return Object.fromEntries(Object.entries(group || {}).map(([key, value]) => {
+    if (typeof value === 'boolean') return [key, value];
+    if (typeof value === 'string' && value.trim() && !Number.isFinite(Number(value))) return [key, value];
+    return [key, finiteNumber(value)];
+  }));
 }
 
 function normalizeSeries(series = []) {
