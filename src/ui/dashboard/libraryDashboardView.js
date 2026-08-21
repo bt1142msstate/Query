@@ -116,9 +116,12 @@ function renderOverview(data) {
 function renderCollection(data) {
   const collection = data.collection;
   const circ = data.circulation;
+  const titleDetail = Object.prototype.hasOwnProperty.call(collection, 'titles')
+    ? `${formatNumber(collection.titles)} distinct titles`
+    : 'Distinct-title aggregate not available';
   return `${dashboardIntro(data, 'Collection performance', 'Actual current holdings, lifetime item use, recent use, demand, age, and collection-development opportunities—not item-creation transactions mislabeled as holdings.')}
     <section class="kpi-cards kpi-cards--six" aria-label="Collection indicators">
-      ${metricCard('Items', formatNumber(collection.items), `${formatNumber(collection.titles)} distinct titles`)}
+      ${metricCard('Items', formatNumber(collection.items), titleDetail)}
       ${metricCard('Lifetime checkouts', formatNumber(collection.lifetime_checkouts), `${Number(collection.checkouts_per_item || 0).toFixed(1)} per current item`, 'success')}
       ${metricCard('Lifetime renewals', formatNumber(collection.lifetime_renewals), 'Stored on current item records')}
       ${metricCard('In-house uses', formatNumber(collection.in_house_uses), 'Recorded use without checkout')}
@@ -137,7 +140,8 @@ function renderCollection(data) {
 function renderPatrons(data) {
   const patrons = data.patrons;
   const available = data.availability?.patrons;
-  return `${dashboardIntro(data, 'Patron reach and engagement', 'Understand who the libraries serve, where registered users are based, and how recently they have interacted—using aggregated, privacy-protected measures.')}
+  const patronData = { ...data, scope: { ...data.scope, item_type_label: 'Item type does not apply to patrons' } };
+  return `${dashboardIntro(patronData, 'Patron reach and engagement', 'Understand who the libraries serve, where registered users are based, and how recently they have interacted—using aggregated, privacy-protected measures.')}
     <section class="kpi-cards kpi-cards--six" aria-label="Patron indicators">
       ${metricCard('Current patrons', available ? formatNumber(patrons.total) : '—', available ? 'User records in the selected library scope' : 'Patron aggregate not available')}
       ${metricCard('Active patrons', available ? formatNumber(patrons.active) : '—', available ? `${formatPercent(patrons.active_rate)} active in the selected window` : 'Patron aggregate not available', available ? 'success' : '')}

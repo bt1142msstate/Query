@@ -57,6 +57,11 @@ function syncViewChrome(elements) {
     tab.tabIndex = selected ? 0 : -1;
   });
   elements.toolbar?.classList.toggle('hidden', currentView === 'operations');
+  if (elements.itemType) {
+    elements.itemType.disabled = currentView === 'patrons';
+    if (currentView === 'patrons') elements.itemType.title = 'Item type does not apply to patron aggregates.';
+    else elements.itemType.removeAttribute('title');
+  }
 }
 
 function render() {
