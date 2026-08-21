@@ -561,6 +561,10 @@ async function runSmokeTest() {
     }
     await page.locator('#kpi-dashboard-window').selectOption('fy:MSU:2027');
     await page.waitForFunction(() => document.querySelector('#kpi-dashboard-content .kpi-card')?.textContent?.includes('FY 2027 to date'));
+    const fiscalLabel = await page.locator('#kpi-dashboard-window option:checked').textContent();
+    if (!/FY 2027.*Jul 1, 2026.*Aug 21, 2026/u.test(fiscalLabel || '')) {
+      throw new Error(`Fiscal-year choice should display its actual calendar-date span: ${fiscalLabel}`);
+    }
     if (process.env.QUERY_DASHBOARD_SCREENSHOT_PATH) {
       await page.setViewportSize({ width: 1440, height: 1200 });
       await page.screenshot({ path: process.env.QUERY_DASHBOARD_SCREENSHOT_PATH, fullPage: false });
