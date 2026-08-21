@@ -5,6 +5,7 @@ function finiteNumber(value) {
 
 function normalizeMetricGroup(group = {}) {
   return Object.fromEntries(Object.entries(group || {}).map(([key, value]) => {
+    if (value === null) return [key, null];
     if (typeof value === 'boolean') return [key, value];
     if (typeof value === 'string' && value.trim() && !Number.isFinite(Number(value))) return [key, value];
     return [key, finiteNumber(value)];
@@ -44,10 +45,14 @@ function normalizeLibraryDashboard(payload = {}) {
     patronProfileBreakdown: normalizeSeries(data.patron_profile_breakdown),
     patronAgeBands: normalizeSeries(data.patron_age_bands),
     patronGeoBreakdown: normalizeSeries(data.patron_geo_breakdown),
+    patronCityBreakdown: normalizeSeries(data.patron_city_breakdown),
+    patronStateBreakdown: normalizeSeries(data.patron_state_breakdown),
     opportunities: Array.isArray(data.opportunities) ? data.opportunities : [],
     filters: {
       libraries: Array.isArray(data.filters?.libraries) ? data.filters.libraries : [],
-      itemTypes: Array.isArray(data.filters?.item_types) ? data.filters.item_types : []
+      itemTypes: Array.isArray(data.filters?.item_types) ? data.filters.item_types : [],
+      fiscalPeriodsBySystem: data.filters?.fiscal_periods_by_system && typeof data.filters.fiscal_periods_by_system === 'object'
+        ? data.filters.fiscal_periods_by_system : {}
     },
     sources: Array.isArray(data.sources) ? data.sources : [],
     notes: Array.isArray(data.notes) ? data.notes : [],
