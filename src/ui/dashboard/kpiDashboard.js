@@ -65,8 +65,19 @@ function syncPeriodOptions(elements) {
   ];
   const fiscal = Array.isArray(libraryData.filters.fiscalPeriodsBySystem?.[system])
     ? libraryData.filters.fiscalPeriodsBySystem[system] : [];
-  const options = [...rolling, ...fiscal.map(period => ({ value: period.value, label: period.label }))];
-  elements.period.replaceChildren(...options.map(option => new Option(option.label, option.value)));
+  const calendar = Array.isArray(libraryData.filters.calendarPeriods) ? libraryData.filters.calendarPeriods : [];
+  const groups = [
+    { label: 'Rolling periods', options: rolling },
+    { label: 'Calendar years', options: calendar },
+    { label: 'Fiscal years', options: fiscal }
+  ].filter(group => group.options.length > 0);
+  const options = groups.flatMap(group => group.options);
+  elements.period.replaceChildren(...groups.map(group => {
+    const element = document.createElement('optgroup');
+    element.label = group.label;
+    element.append(...group.options.map(option => new Option(option.label, option.value)));
+    return element;
+  }));
   elements.period.value = options.some(option => option.value === selected) ? selected : '365';
 }
 

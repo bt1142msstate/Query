@@ -89,11 +89,24 @@ test('demo library dashboard demonstrates comparisons, fiscal periods, and priva
   assert.equal(payload.scope.reporting_period, reportingPeriod);
   assert.equal(payload.circulation.comparison_available, true);
   assert.equal(payload.circulation.fiscal_system, 'MSU');
+  assert.match(payload.circulation.period_label, /^FY \d{4}.*\([A-Z][a-z]{2} \d{1,2}, \d{4}–[A-Z][a-z]{2} \d{1,2}, \d{4}\)$/u);
+  assert.match(initial.filters.fiscal_periods_by_system.MSU[0].date_span, /^[A-Z][a-z]{2} \d{1,2}, \d{4}–[A-Z][a-z]{2} \d{1,2}, \d{4}$/u);
   assert.ok(payload.filters.fiscal_periods_by_system.MSU.length >= 3);
   assert.ok(payload.patron_geo_breakdown.every(row => /xx$|unknown$/u.test(row.label)));
   assert.ok(payload.patron_city_breakdown.length > 0);
   assert.ok(payload.patron_state_breakdown.length > 0);
   assert.equal(JSON.stringify(payload).includes('street_address'), false);
+
+  const calendarPeriod = initial.filters.calendar_periods[0].value;
+  const calendarResponse = await handleDemoQueryRequest({
+    body: JSON.stringify({ action: 'library_dashboard', library: 'all', reporting_period: calendarPeriod }),
+    headers: authHeaders
+  });
+  const calendarPayload = await calendarResponse.json();
+  assert.equal(calendarPayload.scope.reporting_period, calendarPeriod);
+  assert.equal(calendarPayload.circulation.period_type, 'calendar');
+  assert.equal(calendarPayload.circulation.calendar_year, Number(calendarPeriod.split(':')[1]));
+  assert.match(calendarPayload.circulation.period_label, /^Calendar Year \d{4}/u);
 });
 
 test('demo backend supports authenticated local bib lookup and WorldCat comparison', async () => {
