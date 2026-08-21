@@ -76,6 +76,25 @@ function demoFiscalPeriods(system, startMonth, source, now = new Date()) {
   });
 }
 
+function demoCalendarPeriods(now = new Date()) {
+  const currentYear = now.getUTCFullYear();
+  const compact = (year, month, day) => `${year}${String(month).padStart(2, '0')}${String(day).padStart(2, '0')}`;
+  return [0, 1, 2].map(offset => {
+    const calendarYear = currentYear - offset;
+    const current = offset === 0;
+    return {
+      value: `cy:${calendarYear}`,
+      label: current ? `Calendar Year ${calendarYear} to date` : `Calendar Year ${calendarYear}`,
+      calendar_year: calendarYear,
+      start: compact(calendarYear, 1, 1),
+      end: current ? compact(currentYear, now.getUTCMonth() + 1, now.getUTCDate()) : compact(calendarYear, 12, 31),
+      previous_start: compact(calendarYear - 1, 1, 1),
+      previous_end: current ? compact(calendarYear - 1, now.getUTCMonth() + 1, now.getUTCDate()) : compact(calendarYear - 1, 12, 31),
+      current_to_date: current
+    };
+  });
+}
+
 function buildDemoLibraryDashboard(payload = {}, data = {}) {
   const library = payload.library || 'all';
   const itemType = payload.item_type || 'all';
@@ -107,7 +126,10 @@ function buildDemoLibraryDashboard(payload = {}, data = {}) {
     FRL: demoFiscalPeriods('FRL', 10, 'https://www.imls.gov/research-evaluation/surveys/public-libraries-survey-pls'),
     LILS: demoFiscalPeriods('LILS', 10, 'https://www.imls.gov/research-evaluation/surveys/public-libraries-survey-pls')
   };
+  const calendarPeriods = demoCalendarPeriods();
   const fiscalPeriod = Object.values(fiscalPeriodsBySystem).flat().find(period => period.value === reportingPeriod);
+  const calendarPeriod = calendarPeriods.find(period => period.value === reportingPeriod);
+  const namedPeriod = fiscalPeriod || calendarPeriod;
   const currentCheckouts = scaled(880229);
   const currentRenewals = scaled(487605);
   const previousCheckouts = scaled(842110);
@@ -120,6 +142,7 @@ function buildDemoLibraryDashboard(payload = {}, data = {}) {
       { value: 'LILS', label: 'Lee-Itawamba Library System' }
     ],
     item_types: ['BOOK', 'EBOOK', 'DVD', 'AUDIOBOOK', 'KIT'],
+    calendar_periods: calendarPeriods,
     fiscal_periods_by_system: fiscalPeriodsBySystem
   };
   return {
@@ -140,9 +163,11 @@ function buildDemoLibraryDashboard(payload = {}, data = {}) {
       checkout_change_rate: previousCheckouts ? (currentCheckouts - previousCheckouts) / previousCheckouts : null,
       renewal_change_rate: previousRenewals ? (currentRenewals - previousRenewals) / previousRenewals : null,
       comparison_available: true, comparison_coverage_complete: true,
-      comparison_period_label: fiscalPeriod ? 'Previous fiscal year equivalent' : 'Previous equivalent period',
+      comparison_period_label: fiscalPeriod ? 'Previous fiscal year equivalent' : calendarPeriod ? 'Previous calendar year equivalent' : 'Previous equivalent period',
       in_house_uses: scaled(61240), holds: scaled(121843), renewal_share: 0.356, holds_per_100_items: 4.3,
-      period_label: fiscalPeriod?.label || 'Illustrative 12-month reporting period',
+      period_label: namedPeriod?.label || 'Illustrative 12-month reporting period',
+      period_type: fiscalPeriod ? 'fiscal' : calendarPeriod ? 'calendar' : 'rolling',
+      calendar_year: calendarPeriod?.calendar_year,
       fiscal_year: fiscalPeriod?.fiscal_year, fiscal_system: fiscalPeriod?.system
     },
     collection: {
