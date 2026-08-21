@@ -51,6 +51,7 @@ function normalizeLibraryDashboard(payload = {}) {
     filters: {
       libraries: Array.isArray(data.filters?.libraries) ? data.filters.libraries : [],
       itemTypes: Array.isArray(data.filters?.item_types) ? data.filters.item_types : [],
+      calendarPeriods: Array.isArray(data.filters?.calendar_periods) ? data.filters.calendar_periods : [],
       fiscalPeriodsBySystem: data.filters?.fiscal_periods_by_system && typeof data.filters.fiscal_periods_by_system === 'object'
         ? data.filters.fiscal_periods_by_system : {}
     },
