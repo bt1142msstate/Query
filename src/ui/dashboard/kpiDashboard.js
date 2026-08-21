@@ -1,6 +1,7 @@
 import { BackendApi } from '../../core/backendApi.js';
 import { appServices } from '../../core/appServices.js';
 import { getClientErrorMessage } from '../../core/clientErrorMessages.js';
+import { ALL_LIBRARY_SYSTEMS_LABEL, buildLibraryScopeGroups, systemCodeForLibraryScope } from '../../core/libraryScopes.js';
 import { onDOMReady } from '../../core/domReady.js';
 import { libraryDashboardHasData, normalizeLibraryDashboard } from './libraryDashboardModel.js';
 import { downloadLibraryDashboardCsv } from './libraryDashboardExport.js';
@@ -46,9 +47,28 @@ function replaceOptions(select, baseLabel, options, selected) {
   select.value = normalized.some(option => option.value === selected) ? selected : 'all';
 }
 
+function replaceLibraryOptions(select, systems, libraries, selected) {
+  if (!select) return;
+  const groups = buildLibraryScopeGroups(systems, libraries);
+  const options = groups.flatMap(group => group.options);
+  const all = new Option(ALL_LIBRARY_SYSTEMS_LABEL, 'all');
+  select.replaceChildren(all, ...groups.map(group => {
+    const element = document.createElement('optgroup');
+    element.label = group.label;
+    element.append(...group.options.map(option => new Option(option.label, option.value)));
+    return element;
+  }));
+  select.value = options.some(option => option.value === selected) ? selected : 'all';
+}
+
 function syncFilterOptions(elements) {
   if (!libraryData) return;
-  replaceOptions(elements.library, 'All MLP libraries', libraryData.filters.libraries, elements.library?.value || 'all');
+  replaceLibraryOptions(
+    elements.library,
+    libraryData.filters.systems,
+    libraryData.filters.libraries,
+    elements.library?.value || 'all'
+  );
   replaceOptions(elements.itemType, 'All item types', libraryData.filters.itemTypes, elements.itemType?.value || 'all');
   syncPeriodOptions(elements);
 }
@@ -57,7 +77,7 @@ function syncPeriodOptions(elements) {
   if (!elements.period || !libraryData) return;
   const selected = elements.period.value || '365';
   const library = elements.library?.value || 'all';
-  const system = library === 'all' ? '' : String(library).split('-')[0].toUpperCase();
+  const system = systemCodeForLibraryScope(library);
   const rolling = [
     { value: '90', label: 'Last 90 days' },
     { value: '365', label: 'Last 12 months' },
