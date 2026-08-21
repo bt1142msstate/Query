@@ -288,7 +288,61 @@ function buildDefaultQueryApiResponse(payload) {
         body: JSON.stringify(smokeTemplateResponse),
         contentType: 'application/json; charset=utf-8'
       };
+    case 'library_dashboard':
+      return {
+        body: JSON.stringify({
+          schema_version: 1,
+          generated_at: new Date().toISOString(),
+          scope: { library_label: 'All MLP libraries', item_type_label: 'All item types' },
+          circulation: { checkouts: 880229, renewals: 487605, renewal_share: 0.356, holds: 121843, holds_per_100_items: 4.3 },
+          collection: { items: 2813442, titles: 1601291, lifetime_checkouts: 12844308, lifetime_renewals: 5160244, in_house_uses: 843108, used_recently: 947835, recent_use_rate: 0.337, never_used: 1023995, never_used_rate: 0.364, checkouts_per_item: 4.6, total_value: 42850300, price_coverage: 0.71 },
+          patrons: { total: 618420, active: 183804, active_rate: 0.297, new: 42640, with_charges: 74482, with_holds: 18814, expiring_soon: 29711 },
+          circulation_trend: [{ label: 'Jul', checkouts: 66892, renewals: 35911 }, { label: 'Aug', checkouts: 74822, renewals: 39844 }],
+          library_breakdown: [{ label: 'MMRLS', checkouts: 208144 }, { label: 'MSU', checkouts: 30717 }],
+          item_type_breakdown: [{ label: 'Books', checkouts: 544810 }, { label: 'Ebooks', checkouts: 94220 }],
+          use_bands: [{ label: 'Never used', items: 1023995 }, { label: '1–2 checkouts', items: 731400 }],
+          age_bands: [{ label: 'Under 1 year', items: 81340 }, { label: '20+ years', items: 714820 }],
+          patron_library_breakdown: [{ label: 'MMRLS', patrons: 146820 }, { label: 'MSU', patrons: 31220 }],
+          patron_profile_breakdown: [{ label: 'Adult', patrons: 359140 }, { label: 'Juvenile', patrons: 143880 }],
+          patron_age_bands: [{ label: '18–24', patrons: 62330 }, { label: '25–44', patrons: 157880 }],
+          patron_geo_breakdown: [{ label: 'Tupelo area', patrons: 49220 }, { label: 'Other / unknown', patrons: 420700 }],
+          opportunities: [{ label: 'Older items with no recorded use', count: 618220, detail: 'Created more than five years ago with zero lifetime checkouts.' }],
+          filters: { libraries: [{ value: 'MSU', label: 'Mississippi State University' }], item_types: ['BOOK', 'EBOOK'] },
+          privacy: { suppression_threshold: 10 },
+          sources: [{ label: 'Current item snapshot', detail: 'Aggregated test data.' }]
+        }),
+        contentType: 'application/json; charset=utf-8'
+      };
+    case 'query_plan':
+      return {
+        body: JSON.stringify({
+          ok: true,
+          data: {
+            schema_version: 1,
+            strategy: 'selective_first_v1',
+            changed: false,
+            order: [],
+            eta: { available: false, confidence: 'insufficient_history', sample_size: 0, label: 'Not enough comparable run history for an ETA yet.' },
+            aggregate_basis: { available: true, label: 'Current private collection aggregates' }
+          }
+        }),
+        contentType: 'application/json; charset=utf-8'
+      };
     case 'status':
+      if (payload.dashboard) {
+        const now = Date.now();
+        const iso = daysAgo => new Date(now - (daysAgo * 86400000)).toISOString();
+        return {
+          body: JSON.stringify({
+            queries: {
+              'dashboard-smoke-1': { name: 'Items by Library', created_by: 'anita', status: 'complete', start_time: iso(1), end_time: new Date(now - 86400000 + 120000).toISOString(), row_count: 100 },
+              'dashboard-smoke-2': { name: 'Hydration review', created_by: 'brandon', kind: 'hydration', status: 'complete', start_time: iso(2), end_time: new Date(now - (2 * 86400000) + 180000).toISOString(), hydration_completed: 25, hydration_counts: { resolved: 20, review: 4, not_found: 1, failed: 0 } },
+              'dashboard-smoke-3': { name: 'Items by Library', created_by: 'anita', status: 'failed', start_time: iso(3), end_time: new Date(now - (3 * 86400000) + 60000).toISOString(), row_count: 0 }
+            }
+          }),
+          contentType: 'application/json; charset=utf-8'
+        };
+      }
       return {
         body: JSON.stringify({ queries: {} }),
         contentType: 'application/json; charset=utf-8'

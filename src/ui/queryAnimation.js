@@ -74,6 +74,9 @@ function updateTableQueryBubbleMetrics(bubble, metrics = {}) {
   if (metrics.progress !== undefined) {
     bubble._queryProgress = normalizeBackendProgress(metrics.progress);
   }
+  if (metrics.planning !== undefined) {
+    bubble._queryPlanning = metrics.planning && typeof metrics.planning === 'object' ? metrics.planning : null;
+  }
 
   const metricsRoot = bubble._hud || bubble;
   const elapsedValue = metricsRoot.querySelector('[data-query-elapsed-value]');
@@ -81,6 +84,7 @@ function updateTableQueryBubbleMetrics(bubble, metrics = {}) {
   const progressRoot = metricsRoot.querySelector('[data-query-progress]');
   const progressSummary = metricsRoot.querySelector('[data-query-progress-summary]');
   const progressDetail = metricsRoot.querySelector('[data-query-progress-detail]');
+  const planningDetail = metricsRoot.querySelector('[data-query-planning-detail]');
   if (elapsedValue) {
     const startTime = Number.isFinite(bubble._queryStartTime) ? bubble._queryStartTime : Date.now();
     elapsedValue.textContent = formatQueryBubbleElapsed((Date.now() - startTime) / 1000);
@@ -97,6 +101,14 @@ function updateTableQueryBubbleMetrics(bubble, metrics = {}) {
     if (progressDetail) {
       progressDetail.textContent = progress ? formatBackendProgressDetail(progress) : '';
     }
+  }
+  if (planningDetail) {
+    const label = bubble._queryPlanning?.eta?.label || '';
+    const aggregateNote = bubble._queryPlanning?.aggregate_basis?.available
+      ? ' Filter order uses current collection totals.'
+      : '';
+    planningDetail.textContent = `${label}${aggregateNote}`;
+    planningDetail.hidden = !label;
   }
 }
 
@@ -138,6 +150,7 @@ function startTableQueryAnimation() {
     <div class="table-query-bubble-progress" data-query-progress hidden>
       <span class="table-query-bubble-progress-summary" data-query-progress-summary></span>
       <span class="table-query-bubble-progress-detail" data-query-progress-detail></span>
+      <span class="table-query-bubble-progress-detail" data-query-planning-detail hidden></span>
     </div>
   `;
 
@@ -183,6 +196,7 @@ function startTableQueryAnimation() {
   bubble.appendChild(stopOverlay);
   bubble._queryStartTime = Date.now();
   bubble._resultCount = 0;
+  bubble._queryPlanning = null;
   bubble._hud = hudNode;
 
   const rect = tableContainer.getBoundingClientRect();

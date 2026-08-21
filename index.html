@@ -109,6 +109,18 @@
           <path class="hydration-drop-icon__shine" d="M9 8.5c-1.1 1.6-1.8 3.2-1.8 4.7 0 .8.2 1.5.5 2.1"/>
         </svg>
       </button>
+      <button id="toggle-kpi-dashboard"
+              class="p-2 rounded-full bg-white hover:bg-gray-100 text-black focus:outline-none transition-colors border border-gray-200"
+              type="button"
+              aria-label="Dashboard"
+              data-mobile-menu-label="Dashboard"
+              data-tooltip="Dashboard"
+              data-tooltip-delay="0">
+        <svg viewBox="0 0 24 24" class="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 19V9m5 10V5m5 14v-7m5 7V3" />
+          <path d="M3 19.5h18" />
+        </svg>
+      </button>
       <button id="toggle-queries"
               class="p-2 rounded-full bg-white hover:bg-gray-100 text-black focus:outline-none transition-colors border border-gray-200"
               aria-label="Activity" data-tooltip="Show Shared History" data-tooltip-delay="0">
@@ -798,6 +810,40 @@
         </div>
       </div>
     </div><!-- end queries-panel -->
+
+    <!-- KPI DASHBOARD PANEL -->
+    <div id="kpi-dashboard-panel" class="w-full modal-panel hidden">
+      <h2 class="mt-8 mb-0 px-3 py-2 font-semibold flex items-center justify-between">
+        <span class="kpi-dashboard-heading">
+          <strong>Dashboard</strong>
+          <span>Collection use, circulation, patrons, and service demand.</span>
+        </span>
+        <button class="collapse-btn p-1.5 rounded focus:outline-none transition-colors ml-2" data-target="kpi-dashboard-panel" aria-label="Close">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5" aria-hidden="true">
+            <line x1="4" y1="4" x2="16" y2="16" />
+            <line x1="16" y1="4" x2="4" y2="16" />
+          </svg>
+        </button>
+      </h2>
+      <div id="kpi-dashboard-shell">
+        <div class="kpi-dashboard-tabs" role="tablist" aria-label="Dashboard views">
+          <button type="button" role="tab" aria-selected="true" data-kpi-view="overview">Overview</button>
+          <button type="button" role="tab" aria-selected="false" data-kpi-view="collection">Collection</button>
+          <button type="button" role="tab" aria-selected="false" data-kpi-view="patrons">Patrons</button>
+          <button type="button" role="tab" aria-selected="false" data-kpi-view="operations">Query activity</button>
+        </div>
+        <div class="kpi-dashboard-toolbar" aria-label="Dashboard filters">
+          <label for="kpi-dashboard-library"><span>Library</span><select id="kpi-dashboard-library"><option value="all">All MLP libraries</option></select></label>
+          <label for="kpi-dashboard-item-type"><span>Item type</span><select id="kpi-dashboard-item-type"><option value="all">All item types</option></select></label>
+          <label for="kpi-dashboard-window"><span>Active use</span><select id="kpi-dashboard-window"><option value="90">Last 90 days</option><option value="365" selected>Last 12 months</option><option value="730">Last 24 months</option></select></label>
+          <button id="kpi-dashboard-refresh" class="kpi-dashboard-refresh" type="button">Refresh</button>
+        </div>
+        <div id="kpi-dashboard-loading" class="kpi-dashboard-state hidden" role="status"><strong>Loading dashboard</strong><p>Summarizing collection, circulation, and patron activity...</p></div>
+        <div id="kpi-dashboard-error" class="kpi-dashboard-state hidden" role="alert"><strong>Dashboard unavailable</strong><p id="kpi-dashboard-error-message">The dashboard could not be loaded. Try refreshing it.</p></div>
+        <div id="kpi-dashboard-empty" class="kpi-dashboard-state hidden"><strong>No data in this view</strong><p>Try all libraries or all item types.</p></div>
+        <div id="kpi-dashboard-content" class="hidden"></div>
+      </div>
+    </div><!-- end kpi-dashboard-panel -->
 
     <!-- TEMPLATES PANEL -->
     <div id="templates-panel" class="w-full modal-panel hidden">

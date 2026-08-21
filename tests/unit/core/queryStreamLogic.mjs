@@ -35,15 +35,17 @@ test('query stream', async () => {
 
   {
     const progress = [];
+    const metadata = [];
     const readStreamedQueryResult = createStreamedQueryResultReader();
     const result = await readStreamedQueryResult(createChunkedResponse([
-      '{"type":"meta","version":1,"format":"jsonl","query_id":"jsonl-smoke","columns":["Title","Public Note"]}\n',
+      '{"type":"meta","version":1,"format":"jsonl","query_id":"jsonl-smoke","columns":["Title","Public Note"],"planning":{"eta":{"label":"Usually 4–8 seconds."}}}\n',
       '{"type":"row","values":["Alpha",["One","Two"]]}\n',
       '{"type":"progress","rows":1,"message":"One row"}\n',
       '{"type":"row","values":["Beta","Only"]}\n',
       '{"type":"done","rows":2}\n'
     ], { 'Content-Type': 'application/x-ndjson; charset=utf-8' }), {
-      onProgress: rowCount => progress.push(rowCount)
+      onProgress: rowCount => progress.push(rowCount),
+      onMeta: event => metadata.push(event)
     });
 
     assert.equal(result.source, 'jsonl');
@@ -58,6 +60,7 @@ test('query stream', async () => {
     assert.equal(result.partial, false);
     assert.equal(result.streamError, null);
     assert.deepEqual(progress, [1, 2]);
+    assert.equal(metadata[0].planning.eta.label, 'Usually 4–8 seconds.');
   }
 
   {

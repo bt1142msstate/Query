@@ -21,6 +21,7 @@ const status = document.getElementById('auth-session-status');
 const signout = document.getElementById('auth-session-signout');
 const headerSignout = document.getElementById('auth-header-signout');
 const historyButton = document.getElementById('toggle-queries');
+const dashboardButton = document.getElementById('toggle-kpi-dashboard');
 const closeButton = dialog?.querySelector('[data-auth-close]');
 const rateLimitPanel = document.getElementById('auth-rate-limit');
 const rateLimitCountdown = document.getElementById('auth-rate-limit-countdown');
@@ -153,6 +154,7 @@ function render() {
   signout?.classList.toggle('hidden', !session);
   headerSignout?.classList.toggle('hidden', !session);
   historyButton?.classList.toggle('hidden', !session);
+  dashboardButton?.classList.toggle('hidden', !session);
   closeButton?.classList.toggle('hidden', !session);
   document.body?.classList.toggle('query-auth-required', !session);
   if (status) {
