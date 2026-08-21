@@ -104,7 +104,7 @@ function demoCalendarPeriods(now = new Date()) {
 function buildDemoLibraryDashboard(payload = {}, data = {}) {
   const library = payload.library || 'all';
   const itemType = payload.item_type || 'all';
-  const scopeFactor = library === 'all' ? 1 : 0.08;
+  const scopeFactor = library === 'all' ? 1 : library.startsWith('system:') ? 0.25 : 0.08;
   const typeFactor = itemType === 'all' ? 1 : 0.22;
   const factor = scopeFactor * typeFactor;
   const reportingPeriod = String(payload.reporting_period || payload.active_window_days || 365);
@@ -141,11 +141,17 @@ function buildDemoLibraryDashboard(payload = {}, data = {}) {
   const previousCheckouts = scaled(842110);
   const previousRenewals = scaled(469220);
   const filters = {
+    systems: [
+      { value: 'system:MSU', code: 'MSU', label: 'Mississippi State University' },
+      { value: 'system:MMRLS', code: 'MMRLS', label: 'Mid-Mississippi Regional Library System' },
+      { value: 'system:FRL', code: 'FRL', label: 'First Regional Library' },
+      { value: 'system:LILS', code: 'LILS', label: 'Lee-Itawamba Library System' }
+    ],
     libraries: [
-      { value: 'MSU', label: 'Mississippi State University' },
-      { value: 'MMRLS', label: 'Mid-Mississippi Regional Library System' },
-      { value: 'FRL', label: 'First Regional Library' },
-      { value: 'LILS', label: 'Lee-Itawamba Library System' }
+      { value: 'MSU-MAIN', label: 'MSU Main Library' },
+      { value: 'MMRLS-CARTHAGE', label: 'MMRLS Carthage' },
+      { value: 'FRL-HERNANDO', label: 'First Regional Hernando' },
+      { value: 'LILS-TUPELO', label: 'Lee-Itawamba Tupelo' }
     ],
     item_types: ['BOOK', 'EBOOK', 'DVD', 'AUDIOBOOK', 'KIT'],
     calendar_periods: calendarPeriods,
@@ -157,7 +163,7 @@ function buildDemoLibraryDashboard(payload = {}, data = {}) {
     sample_data: true,
     scope: {
       library,
-      library_label: library === 'all' ? 'All MLP libraries' : (filters.libraries.find(entry => entry.value === library)?.label || library),
+      library_label: library === 'all' ? 'All MLP libraries' : ([...filters.systems, ...filters.libraries].find(entry => entry.value === library)?.label || library),
       item_type: itemType,
       item_type_label: itemType === 'all' ? 'All item types' : itemType,
       active_window_days: Number(payload.active_window_days || 365),
