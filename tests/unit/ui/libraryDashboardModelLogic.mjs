@@ -10,6 +10,7 @@ test('library dashboard normalizes aggregate groups and filter metadata', () => 
     patrons: { total: 32 },
     library_breakdown: [{ label: 'Main', checkouts: '30' }],
     filters: {
+      systems: [{ value: 'system:MAIN', label: 'Main System' }],
       libraries: [{ value: 'MAIN', label: 'Main' }],
       item_types: ['BOOK'],
       calendar_periods: [{ value: 'cy:2026', label: 'Calendar Year 2026 to date' }]
@@ -21,6 +22,7 @@ test('library dashboard normalizes aggregate groups and filter metadata', () => 
   assert.equal(dashboard.circulation.coverage_complete, true);
   assert.equal(dashboard.libraryBreakdown[0].checkouts, 30);
   assert.equal(dashboard.filters.libraries[0].value, 'MAIN');
+  assert.equal(dashboard.filters.systems[0].value, 'system:MAIN');
   assert.equal(dashboard.filters.calendarPeriods[0].value, 'cy:2026');
   assert.deepEqual(dashboard.availability, { circulation: true, collection: true, patrons: true });
   assert.equal(libraryDashboardHasData(dashboard), true);
