@@ -65,7 +65,7 @@ function opportunityTable(items) {
     <td><strong>${escapeHtml(item.label || 'Review items')}</strong></td>
     <td>${formatNumber(item.count)}</td>
     <td>${escapeHtml(item.detail || '')}</td>
-    <td>${item.query ? `<button type="button" class="kpi-drilldown" data-kpi-query="${escapeHtml(JSON.stringify(item.query))}">Open report</button>` : ''}</td>
+    <td>${item.query && Number(item.count) > 0 ? `<button type="button" class="kpi-drilldown" data-kpi-query="${escapeHtml(JSON.stringify(item.query))}">Open report</button>` : ''}</td>
   </tr>`).join('')}</tbody></table></div>`;
 }
 
