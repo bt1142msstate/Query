@@ -102,7 +102,8 @@
   backdrop-filter: blur(12px);
 }
 
-.kpi-dashboard-toolbar label {
+.kpi-dashboard-toolbar label,
+.kpi-dashboard-filter {
   display: grid;
   gap: 0.28rem;
   color: var(--theme-text-muted);
@@ -110,6 +111,17 @@
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+.kpi-dashboard-library-selector,
+.kpi-dashboard-library-selector .form-mode-popup-list-control {
+  min-width: 0;
+  width: 100%;
+}
+
+.kpi-dashboard-library-selector .form-mode-popup-list-trigger {
+  min-height: 2.55rem;
+  width: 100%;
 }
 
 .kpi-dashboard-toolbar select,

@@ -79,7 +79,7 @@ function printUsage(stream = process.stdout) {
   npm run query:api -- --action ACTION [--payload request.json|-] [--set key=value] [--output response.json]
   npm run query:compat -- [--api-url URL] [--json]
   npm run query:status -- [--api-url URL] [--json]
-  npm run query:dashboard -- [--library CODE] [--item-type CODE] [--active-window-days 90|365|730] [--output dashboard.json]
+  npm run query:dashboard -- [--library CODE] [--item-type CODE] [--active-window-days 90|365|730] [--reporting-period PERIOD] [--output dashboard.json]
   npm run query:plan -- --config query.json [--output plan.json]
   npm run query:cancel -- --query-id QUERY_ID
   npm run query:results -- --query-id QUERY_ID [--format xlsx|csv|json|jsonl] [--output results.xlsx] [--include-duplicates]
@@ -935,6 +935,7 @@ async function runDashboardCommand(options = {}) {
     library: String(options.library || 'all'),
     item_type: String(options['item-type'] || options.itemType || 'all'),
     active_window_days: Number(options['active-window-days'] || options.activeWindowDays || 365),
+    reporting_period: String(options['reporting-period'] || options.reportingPeriod || options['active-window-days'] || options.activeWindowDays || 365),
     force_refresh: Boolean(options.refresh)
   };
   const data = await postJson(apiUrl, payload, options);
