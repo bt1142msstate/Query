@@ -3,6 +3,7 @@ import { appServices } from '../../core/appServices.js';
 import { getClientErrorMessage } from '../../core/clientErrorMessages.js';
 import { onDOMReady } from '../../core/domReady.js';
 import { libraryDashboardHasData, normalizeLibraryDashboard } from './libraryDashboardModel.js';
+import { downloadLibraryDashboardCsv } from './libraryDashboardExport.js';
 import { normalizeDashboardRuns, summarizeDashboardRuns } from './kpiDashboardModel.js';
 import { renderLibraryDashboard } from './libraryDashboardView.js';
 import { renderDashboard as renderOperationsDashboard } from './kpiDashboardView.js';
@@ -21,13 +22,14 @@ function getElements() {
     empty: document.getElementById('kpi-dashboard-empty'),
     error: document.getElementById('kpi-dashboard-error'),
     errorMessage: document.getElementById('kpi-dashboard-error-message'),
+    export: document.getElementById('kpi-dashboard-export'),
     itemType: document.getElementById('kpi-dashboard-item-type'),
     library: document.getElementById('kpi-dashboard-library'),
     loading: document.getElementById('kpi-dashboard-loading'),
     refresh: document.getElementById('kpi-dashboard-refresh'),
     tabs: [...document.querySelectorAll('[data-kpi-view]')],
     toolbar: document.querySelector('.kpi-dashboard-toolbar'),
-    window: document.getElementById('kpi-dashboard-window')
+    period: document.getElementById('kpi-dashboard-window')
   };
 }
 
@@ -48,6 +50,24 @@ function syncFilterOptions(elements) {
   if (!libraryData) return;
   replaceOptions(elements.library, 'All MLP libraries', libraryData.filters.libraries, elements.library?.value || 'all');
   replaceOptions(elements.itemType, 'All item types', libraryData.filters.itemTypes, elements.itemType?.value || 'all');
+  syncPeriodOptions(elements);
+}
+
+function syncPeriodOptions(elements) {
+  if (!elements.period || !libraryData) return;
+  const selected = elements.period.value || '365';
+  const library = elements.library?.value || 'all';
+  const system = library === 'all' ? '' : String(library).split('-')[0].toUpperCase();
+  const rolling = [
+    { value: '90', label: 'Last 90 days' },
+    { value: '365', label: 'Last 12 months' },
+    { value: '730', label: 'Last 24 months' }
+  ];
+  const fiscal = Array.isArray(libraryData.filters.fiscalPeriodsBySystem?.[system])
+    ? libraryData.filters.fiscalPeriodsBySystem[system] : [];
+  const options = [...rolling, ...fiscal.map(period => ({ value: period.value, label: period.label }))];
+  elements.period.replaceChildren(...options.map(option => new Option(option.label, option.value)));
+  elements.period.value = options.some(option => option.value === selected) ? selected : '365';
 }
 
 function syncViewChrome(elements) {
@@ -85,11 +105,13 @@ function render() {
 }
 
 function requestPayload(elements) {
+  const reportingPeriod = elements.period?.value || '365';
   return {
     action: 'library_dashboard',
     library: elements.library?.value || 'all',
     item_type: elements.itemType?.value || 'all',
-    active_window_days: Number(elements.window?.value || 365)
+    active_window_days: /^\d+$/.test(reportingPeriod) ? Number(reportingPeriod) : 365,
+    reporting_period: reportingPeriod
   };
 }
 
@@ -161,7 +183,14 @@ function openOpportunityQuery(button) {
 onDOMReady(() => {
   const elements = getElements();
   elements.refresh?.addEventListener('click', () => loadDashboard({ force: true }));
-  [elements.library, elements.itemType, elements.window].forEach(control => control?.addEventListener('change', () => loadDashboard()));
+  elements.export?.addEventListener('click', () => {
+    if (libraryData && currentView !== 'operations') downloadLibraryDashboardCsv(libraryData, currentView);
+  });
+  elements.library?.addEventListener('change', () => {
+    syncPeriodOptions(getElements());
+    loadDashboard();
+  });
+  [elements.itemType, elements.period].forEach(control => control?.addEventListener('change', () => loadDashboard()));
   elements.tabs.forEach(tab => tab.addEventListener('click', () => {
     currentView = tab.dataset.kpiView || 'overview';
     syncViewChrome(getElements());
