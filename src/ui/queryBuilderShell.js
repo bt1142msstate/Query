@@ -11,6 +11,7 @@ import {
 import { QueryChangeManager } from '../core/queryState.js';
 import { appServices } from '../core/appServices.js';
 import { appUiActions, registerAppUiActionDependencies } from '../core/appUiActions.js';
+import { getSession } from '../core/authSession.js';
 import { DOM } from '../core/domCache.js';
 import { StartupStatus } from './startupStatus.js';
 
@@ -35,6 +36,10 @@ let QueryBuilderShell;
 
   function handleOverlayClick() {
     services.closeAllModals();
+  }
+
+  function hasAuthenticatedSession(session = getSession()) {
+    return Boolean(session?.token || session?.cookieSession);
   }
 
   async function initializeBuilderState() {
@@ -99,7 +104,19 @@ let QueryBuilderShell;
     });
 
     initializeBuilderState();
-    loadDynamicFields();
+    if (hasAuthenticatedSession()) {
+      loadDynamicFields();
+    } else {
+      StartupStatus.update({
+        title: 'Sign in to continue',
+        detail: 'Field controls will load after your account is verified.'
+      });
+      StartupStatus.complete({ delay: 180 });
+    }
+
+    globalThis.addEventListener?.('query-auth:changed', event => {
+      if (hasAuthenticatedSession(event.detail) && !hasLoadedFieldDefinitions()) void loadDynamicFields();
+    });
   }
 
   QueryBuilderShell = Object.freeze({
