@@ -89,6 +89,8 @@ test('demo library dashboard demonstrates comparisons, fiscal periods, and priva
   assert.equal(payload.scope.reporting_period, reportingPeriod);
   assert.equal(payload.circulation.comparison_available, true);
   assert.equal(payload.circulation.fiscal_system, 'MSU');
+  assert.match(payload.circulation.period_label, /^FY \d{4}.*\([A-Z][a-z]{2} \d{1,2}, \d{4}–[A-Z][a-z]{2} \d{1,2}, \d{4}\)$/u);
+  assert.match(initial.filters.fiscal_periods_by_system.MSU[0].date_span, /^[A-Z][a-z]{2} \d{1,2}, \d{4}–[A-Z][a-z]{2} \d{1,2}, \d{4}$/u);
   assert.ok(payload.filters.fiscal_periods_by_system.MSU.length >= 3);
   assert.ok(payload.patron_geo_breakdown.every(row => /xx$|unknown$/u.test(row.label)));
   assert.ok(payload.patron_city_breakdown.length > 0);
