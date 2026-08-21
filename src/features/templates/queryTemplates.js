@@ -1,4 +1,5 @@
 import { BackendApi } from '../../core/backendApi.js';
+import { getSession } from '../../core/authSession.js';
 import { onDOMReady } from '../../core/domReady.js';
 import { showToastMessage } from '../../core/toast.js';
 import { getClientErrorMessage } from '../../core/clientErrorMessages.js';
@@ -195,6 +196,10 @@ import { escapeHtml } from '../../core/formatting/html.js';
   }
 
   async function refreshTemplates(options = {}) {
+    if (!getSession()?.token && !getSession()?.cookieSession) {
+      render();
+      return;
+    }
     const force = options.force === true;
     if (state.loading) {
       return;
