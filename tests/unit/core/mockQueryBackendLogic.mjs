@@ -75,13 +75,13 @@ test('demo dashboard status includes clearly marked sample operational activity'
 
 test('demo library dashboard demonstrates comparisons, fiscal periods, and privacy-safe geography', async () => {
   const initialResponse = await handleDemoQueryRequest({
-    body: JSON.stringify({ action: 'library_dashboard', library: 'MSU' }),
+    body: JSON.stringify({ action: 'library_dashboard', library: 'system:MSU' }),
     headers: authHeaders
   });
   const initial = await initialResponse.json();
   const reportingPeriod = initial.filters.fiscal_periods_by_system.MSU[0].value;
   const response = await handleDemoQueryRequest({
-    body: JSON.stringify({ action: 'library_dashboard', library: 'MSU', reporting_period: reportingPeriod }),
+    body: JSON.stringify({ action: 'library_dashboard', library: 'system:MSU', reporting_period: reportingPeriod }),
     headers: authHeaders
   });
   const payload = await response.json();
@@ -89,6 +89,8 @@ test('demo library dashboard demonstrates comparisons, fiscal periods, and priva
   assert.equal(payload.scope.reporting_period, reportingPeriod);
   assert.equal(payload.circulation.comparison_available, true);
   assert.equal(payload.circulation.fiscal_system, 'MSU');
+  assert.equal(payload.scope.library, 'system:MSU');
+  assert.ok(payload.filters.systems.some(system => system.value === 'system:MSU'));
   assert.match(payload.circulation.period_label, /^FY \d{4}.*\([A-Z][a-z]{2} \d{1,2}, \d{4}–[A-Z][a-z]{2} \d{1,2}, \d{4}\)$/u);
   assert.match(initial.filters.fiscal_periods_by_system.MSU[0].date_span, /^[A-Z][a-z]{2} \d{1,2}, \d{4}–[A-Z][a-z]{2} \d{1,2}, \d{4}$/u);
   assert.ok(payload.filters.fiscal_periods_by_system.MSU.length >= 3);
