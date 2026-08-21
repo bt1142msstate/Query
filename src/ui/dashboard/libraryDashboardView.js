@@ -91,6 +91,7 @@ function renderOverview(data) {
   const hasCirculation = data.availability?.circulation;
   const hasCollection = data.availability?.collection;
   const hasPatrons = data.availability?.patrons;
+  const circulationUnavailable = '<p class="kpi-chart-empty">Period circulation data is not available for this scope.</p>';
   return `${dashboardIntro(data, 'What is being used—and where to act', 'A combined view of circulation demand, collection performance, and community reach. Every number keeps its source and time basis visible.')}
     <section class="kpi-cards kpi-cards--six" aria-label="Key library indicators">
       ${metricCard('Checkouts', hasCirculation ? formatNumber(circ.checkouts) : '—', circ.period_label || (hasCirculation ? 'Selected reporting period' : 'Period transaction feed not available'), hasCirculation ? 'success' : '')}
@@ -102,8 +103,8 @@ function renderOverview(data) {
     </section>
     <section class="kpi-dashboard__grid">
       <article class="kpi-chart-card kpi-chart-card--wide"><div class="kpi-chart-card__heading"><div><h4>Circulation trend</h4><p>Transactions by period; checkout and renewal definitions match the Analytics circulation contract.</p></div></div>${stackedTrend(data.circulationTrend)}</article>
-      <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Demand by library</h4><p>Checkouts for the highest-use libraries in scope.</p></div></div>${rankedBars(data.libraryBreakdown, 'checkouts')}</article>
-      <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Demand by item type</h4><p>Checkout volume reveals which formats patrons are choosing.</p></div></div>${rankedBars(data.itemTypeBreakdown, 'checkouts')}</article>
+      <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Demand by library</h4><p>Checkouts for the highest-use libraries in scope.</p></div></div>${hasCirculation ? rankedBars(data.libraryBreakdown, 'checkouts') : circulationUnavailable}</article>
+      <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Demand by item type</h4><p>Checkout volume reveals which formats patrons are choosing.</p></div></div>${hasCirculation ? rankedBars(data.itemTypeBreakdown, 'checkouts') : circulationUnavailable}</article>
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Patrons by home library</h4><p>Aggregated patron reach; small groups are suppressed.</p></div></div>${rankedBars(data.patronLibraryBreakdown, 'patrons')}</article>
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Collection use</h4><p>Items grouped by recorded use, including never-used and high-use material.</p></div></div>${rankedBars(data.useBands, 'items')}</article>
       <article class="kpi-chart-card kpi-chart-card--full"><div class="kpi-chart-card__heading"><div><h4>Recommended follow-up</h4><p>Actionable groups that can open as an exact Query report.</p></div></div>${opportunityTable(data.opportunities)}</article>
