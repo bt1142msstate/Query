@@ -40,7 +40,9 @@ The private MLP environment owns:
 - `circulation_trend`: reporting-period transaction points;
 - `library_breakdown` and `item_type_breakdown`: comparable scoped aggregates;
 - `use_bands` and `age_bands`: current-collection distributions;
-- `patron_*_breakdown`: privacy-suppressed home-library, profile, age-band, and geographic aggregates;
+- `patron_*_breakdown`: privacy-suppressed home-library, profile, age-band, ZIP3, city/state, and state aggregates; exact addresses and full ZIP codes are never returned;
+- `previous_*`, `*_change`, and `*_change_rate`: the immediately preceding equivalent period when retained-log coverage is complete;
+- `filters.fiscal_periods_by_system`: current fiscal year-to-date and completed fiscal years using each MLP system's documented reporting calendar;
 - `opportunities`: aggregate action groups with optional backend-generated Query configurations;
 - `freshness`, `sources`, and `notes`: exact lineage, update times, and limitations.
 
@@ -71,6 +73,12 @@ The client automatically refreshes the aggregate response while the dashboard is
 The production snapshot stores each item scope, patron scope, and reporting-window transaction scope once. Requested dashboard views are materialized from those compact dimensions, so activity-window and cross-filter responses do not duplicate full source records. The same current library and item-type counts inform the Query smart planner: exact policy filters with smaller estimated candidate sets are safely evaluated first, while query meaning remains unchanged.
 
 Short server-side caching is intentional. It prevents multiple open browser tabs from launching duplicate full-catalog or full-patron scans while keeping the displayed data current. A response is stale when its source-specific age exceeds the backend policy; the server should return the last verified snapshot with an explicit stale warning rather than silently presenting it as current.
+
+The Export button downloads the active Overview, Collection, or Patrons view as an Excel-compatible UTF-8 CSV. It includes scope, freshness, current and previous-period measures, visible breakdowns, source definitions, and notes.
+
+Frequent refreshes may run in `--fast` mode, which reuses the last verified item, patron, and privacy-suppressed geography aggregates while rebuilding circulation. A full refresh remains the reconciliation path for holdings and patron changes.
+
+Fiscal-year research uses primary sources. Public-system reporting dates are October 1 through September 30 in the FY 2024 IMLS Public Libraries Survey; Columbus-Lowndes bylaws and a First Regional audit independently confirm that calendar. Delta State, East Mississippi Community College, Hinds Community College, Mississippi Delta Community College, Mississippi State, and Mississippi University for Women use July 1 through June 30 according to institutional policies or audited financial statements. Source URLs travel with the fiscal-period metadata.
 
 ## Privacy
 
