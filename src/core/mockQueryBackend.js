@@ -52,6 +52,12 @@ function demoFiscalPeriods(system, startMonth, source, now = new Date()) {
   const month = now.getUTCMonth() + 1;
   const currentFiscalYear = month >= startMonth ? year + 1 : year;
   const compact = (dateYear, dateMonth, dateDay) => `${dateYear}${String(dateMonth).padStart(2, '0')}${String(dateDay).padStart(2, '0')}`;
+  const shiftYear = value => {
+    const shiftedYear = Number(value.slice(0, 4)) - 1;
+    const shiftedMonth = Number(value.slice(4, 6));
+    const shiftedDay = Math.min(Number(value.slice(6, 8)), new Date(Date.UTC(shiftedYear, shiftedMonth, 0)).getUTCDate());
+    return compact(shiftedYear, shiftedMonth, shiftedDay);
+  };
   return [0, 1, 2].map(offset => {
     const fiscalYear = currentFiscalYear - offset;
     const startYear = fiscalYear - 1;
@@ -64,8 +70,7 @@ function demoFiscalPeriods(system, startMonth, source, now = new Date()) {
       value: `fy:${system}:${fiscalYear}`,
       label: current ? `FY ${fiscalYear} to date` : `FY ${fiscalYear}`,
       system, fiscal_year: fiscalYear, start, end,
-      previous_start: `${Number(start.slice(0, 4)) - 1}${start.slice(4)}`,
-      previous_end: `${Number(end.slice(0, 4)) - 1}${end.slice(4)}`,
+      previous_start: shiftYear(start), previous_end: shiftYear(end),
       current_to_date: current, start_month: startMonth, source
     };
   });
