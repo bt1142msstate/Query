@@ -8,6 +8,7 @@ import { SelectorControls } from '../controls/selectorControls.js';
 import { fieldDefs, getFieldFilterOperators, isFieldBackendFilterable } from '../../features/filters/fieldDefs.js';
 import { CustomDatePicker } from '../controls/customDatePicker.js';
 import { createFormModeDateInputState } from './formModeDateInput.js';
+import { ALL_LIBRARY_SYSTEMS_LABEL } from '../../core/libraryScopes.js';
 
   function parseFieldOptions(fieldDef, inputSpec, normalizeOperatorForField) {
     const source = Array.isArray(inputSpec.options) && inputSpec.options.length > 0
@@ -382,6 +383,8 @@ import { createFormModeDateInputState } from './formModeDateInput.js';
     if (SelectorControls.createGroupedSelector) {
       const selector = SelectorControls.createGroupedSelector(values, isMultiSelect, initialValues, {
         enableGrouping: shouldGroupValues && hasDashes,
+        allSelectionLabel: fieldDef?.allSelectionLabel || fieldDef?.all_selection_label || (shouldGroupValues ? ALL_LIBRARY_SYSTEMS_LABEL : ''),
+        allSelectionDescription: fieldDef?.allSelectionDescription || fieldDef?.all_selection_description || '',
         groupSelectionLabel: fieldDef?.groupSelectionLabel || fieldDef?.group_selection_label || '',
         groupSelectionDescription: fieldDef?.groupSelectionDescription || fieldDef?.group_selection_description || '',
         containerId: null
@@ -389,7 +392,7 @@ import { createFormModeDateInputState } from './formModeDateInput.js';
       return createPopupListControl(
         selector,
         inputSpec.label || (fieldDef && fieldDef.name) || 'Select values',
-        inputSpec.placeholder || (isMultiSelect ? 'Click to select values…' : 'Click to select a value…')
+        inputSpec.placeholder || fieldDef?.allSelectionLabel || fieldDef?.all_selection_label || (isMultiSelect ? 'Click to select values…' : 'Click to select a value…')
       );
     }
 
