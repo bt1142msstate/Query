@@ -1,5 +1,5 @@
 {
-  "version": "0ac40cd6da330e26",
+  "version": "512de215e15f2828",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-16.png": "6645731d86da1071",
@@ -55,7 +55,7 @@
     "src/core/hydrationEta.js": "250ec4ee2633be0f",
     "src/core/icons.js": "51f534abf118b7e1",
     "src/core/mobileScrollLock.js": "d197a1dc4a683409",
-    "src/core/mockQueryBackend.js": "609f156b2011c09f",
+    "src/core/mockQueryBackend.js": "a69b05dccb087495",
     "src/core/operatorSelectUtils.js": "4986a94dce50dcd9",
     "src/core/queryErrorDetails.js": "5c26531918b7a2c8",
     "src/core/queryExecution.js": "5fddde4c241c8699",
