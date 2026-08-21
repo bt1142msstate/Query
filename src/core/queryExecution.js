@@ -13,6 +13,7 @@ import { createStreamedQueryResultReader } from './queryStream.js';
 import { appServices, registerQueryExecutionService } from './appServices.js';
 import { appUiActions } from './appUiActions.js';
 import { showToastMessage } from './toast.js';
+import { getClientErrorMessage } from './clientErrorMessages.js';
 import { buildBackendQueryPayload, buildQueryUiConfig } from '../features/filters/queryPayload.js';
 import { DOM } from './domCache.js';
 import { ensureTableName } from '../ui/queryUI.js';
@@ -160,7 +161,7 @@ if (execDom.clearQueryBtn) {
   execDom.clearQueryBtn.addEventListener('click', () => {
     QueryChangeManager.clearQuery().catch(error => {
       console.error('Failed to clear query:', error);
-      showToastMessage('Failed to clear query.', 'error');
+      showToastMessage('The report could not be cleared. Refresh the page and try again.', 'error');
     });
   });
 }
@@ -397,16 +398,19 @@ if (execDom.runBtn) {
 
         console.error('Query execution failed:', error);
 
+        const failureMessage = getClientErrorMessage(error, {
+          fallback: 'The query could not be completed. Check your selections and try again.'
+        });
+
         // Mark as failed in history
         updateQueryHistoryEntry(QueryStateReaders.getLifecycleState().currentQueryId, {
           running: false,
           status: 'failed',
           failed: true,
-          error: error.message,
+          error: failureMessage,
           endTime: new Date().toISOString()
         });
 
-        const failureMessage = 'Query execution failed: ' + error.message;
         notifyQueryTaskComplete({ message: failureMessage, permissionPromise: completionNotification, queryId: QueryStateReaders.getLifecycleState().currentQueryId, title: 'Query failed' });
         showToastMessage(failureMessage, 'error');
       } finally {

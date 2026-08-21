@@ -12,6 +12,7 @@ import {
 } from './fieldAccess.js';
 import { QueryStateReaders, registerQueryStateRuntimeAccessors } from './queryState.js';
 import { showToastMessage } from './toast.js';
+import { getClientErrorMessage } from './clientErrorMessages.js';
 import {
   forgetDynamicFieldDefinition,
   readStoredDynamicFields,
@@ -190,7 +191,7 @@ async function fetchFieldDefinitions() {
         if (data.error) {
             errorMsg = data.error;
             console.error("Backend reported an issue when loading fields:", errorMsg);
-            showToastMessage("Warning: " + errorMsg, "warning");
+            showToastMessage(getClientErrorMessage(new Error(errorMsg), { fallback: 'Some field settings could not be loaded.' }), "warning");
         }
         
         const loadedFieldDefs = Array.isArray(data) ? data : (data.fields ? data.fields : []);
@@ -210,7 +211,7 @@ async function fetchFieldDefinitions() {
             return [];
         }
         console.error("Failed to load backend field mappings.", e);
-        showToastMessage("Could not load field settings from backend", "error");
+        showToastMessage(getClientErrorMessage(e, { fallback: 'The field list could not be loaded. Check API Settings and try again.' }), "error");
         return [];
     }
 }

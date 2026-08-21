@@ -1,4 +1,5 @@
 import { normalizeCategory, normalizeCategoryList } from '../data/queryTemplateModels.js';
+import { getClientErrorMessage } from '../../../core/clientErrorMessages.js';
 import {
   removeCategoryFromTemplates,
   replaceCategoryInTemplates,
@@ -97,7 +98,7 @@ export function createQueryTemplateCategoryActions({
       if (error?.isRateLimited) {
         return;
       }
-      renderValidation([error.message]);
+      renderValidation([getClientErrorMessage(error, { fallback: 'The category could not be saved. Check its name and try again.' })]);
     } finally {
       state.saving = false;
       render();
@@ -142,7 +143,7 @@ export function createQueryTemplateCategoryActions({
       if (error?.isRateLimited) {
         return;
       }
-      renderValidation([error.message]);
+      renderValidation([getClientErrorMessage(error, { fallback: 'The category could not be deleted. Try again.' })]);
     } finally {
       state.saving = false;
       render();

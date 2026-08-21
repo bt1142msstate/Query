@@ -27,6 +27,9 @@
     ["100009", "Research Methods in Practice", "Drew Wilson", "CENTRAL", "STACKS", "CHECKED_OUT", "2026-08-12", "BOOK", []],
     ["100010", "Library Technology Today", "Reese Clark", "WEST", "NEW_BOOKS", "AVAILABLE", "NEVER", "DVD", ["Companion media included"]],
     ["100011", "Mississippi Writers Reader", "Jamie Carter", "CENTRAL", "STACKS", "AVAILABLE", "NEVER", "REFERENCE", ["In-library use"]],
-    ["100012", "Designing Better Service Desks", "Alexis Moore", "EAST", "STACKS", "AVAILABLE", "NEVER", "BOOK", []]
+    ["100012", "Designing Better Service Desks", "Alexis Moore", "EAST", "STACKS", "AVAILABLE", "NEVER", "BOOK", []],
+    ["100013", "The 5th Archive", "Morgan Ellis", "CENTRAL", "STACKS", "AVAILABLE", "NEVER", "BOOK", ["Sequence-filter sample"]],
+    ["100014", "Records. Volume IV", "Jordan Lee", "EAST", "STACKS", "AVAILABLE", "NEVER", "BOOK", ["Sequence-filter sample"]],
+    ["100015", "A is for Archives", "Casey Nguyen", "WEST", "DISPLAY", "AVAILABLE", "NEVER", "BOOK", ["Sequence-filter sample"]]
   ]
 }

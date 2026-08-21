@@ -9,6 +9,11 @@ import {
 import { isDemoApiUrl, queryFetch } from '../core/mockQueryBackend.js';
 import { ClipboardUtils } from '../core/clipboard.js';
 import { showToastMessage } from '../core/toast.js';
+import { getClientErrorMessage } from '../core/clientErrorMessages.js';
+import {
+  setRestoreLastReportPreference,
+  shouldRestoreLastReport
+} from '../core/queryPreferences.js';
 import { runApiCompatibilityCheck, summarizeCompatibilityChecks } from './apiCompatibility.js';
 
 const DEFAULT_TEST_TIMEOUT_MS = 10000;
@@ -100,6 +105,8 @@ function getElements() {
     input: document.getElementById('api-settings-url-input'),
     launchUrl: document.getElementById('api-settings-launch-url'),
     mode: document.getElementById('api-settings-mode'),
+    restoreLastReportStatus: document.getElementById('restore-last-report-status'),
+    restoreLastReportToggle: document.getElementById('restore-last-report-toggle'),
     compatibilityButton: document.getElementById('api-settings-compatibility-btn'),
     compatibilityResults: document.getElementById('api-compatibility-results'),
     compatibilitySummary: document.getElementById('api-compatibility-summary'),
@@ -171,7 +178,9 @@ function sync() {
     input,
     launchUrl,
     mode,
-    reloadButton
+    reloadButton,
+    restoreLastReportStatus,
+    restoreLastReportToggle
   } = getElements();
   const apiUrl = getApiUrl();
   const connectionMode = getApiConnectionMode(apiUrl);
@@ -193,6 +202,15 @@ function sync() {
   }
   if (reloadButton && !pendingReloadHref) {
     reloadButton.classList.add('hidden');
+  }
+  const restoreEnabled = shouldRestoreLastReport();
+  if (restoreLastReportToggle) {
+    restoreLastReportToggle.checked = restoreEnabled;
+  }
+  if (restoreLastReportStatus) {
+    restoreLastReportStatus.textContent = restoreEnabled
+      ? 'The last opened report will reopen on refresh and future visits in this browser.'
+      : 'Reports start empty after refresh and on future visits.';
   }
 }
 
@@ -245,11 +263,8 @@ function extractFields(data) {
 }
 
 function getConnectionErrorMessage(error) {
-  if (error?.name === 'AbortError') {
-    return 'Connection test timed out.';
-  }
-
-  return error?.message || 'Connection test failed.';
+  if (error?.name === 'AbortError') return 'The connection test took too long. Check the address and try again.';
+  return getClientErrorMessage(error, { fallback: 'The connection test did not work. Check the address and try again.' });
 }
 
 function getCompatibilityStatusLabel(status) {
@@ -355,6 +370,19 @@ function handleReload() {
   globalThis.location?.reload?.();
 }
 
+function handleRestoreLastReportPreference(event) {
+  const enabled = event?.currentTarget?.checked === true;
+  setRestoreLastReportPreference(enabled);
+  if (!enabled) {
+    globalThis.dispatchEvent?.(new CustomEvent('query:restore-last-report-disabled'));
+  }
+  sync();
+  showToastMessage(
+    enabled ? 'Last-report restore enabled.' : 'Reports will now start empty.',
+    'success'
+  );
+}
+
 async function handleCopyLaunchLink() {
   const href = updateLaunchUrl();
   const copied = await ClipboardUtils.copy(href, {
@@ -455,6 +483,7 @@ function bindEvents() {
     input,
     reloadButton,
     resetButton,
+    restoreLastReportToggle,
     saveButton,
     testButton
   } = getElements();
@@ -465,6 +494,7 @@ function bindEvents() {
   });
   saveButton?.addEventListener('click', handleSave);
   resetButton?.addEventListener('click', handleReset);
+  restoreLastReportToggle?.addEventListener('change', handleRestoreLastReportPreference);
   reloadButton?.addEventListener('click', handleReload);
   copyLinkButton?.addEventListener('click', handleCopyLaunchLink);
   compatibilityButton?.addEventListener('click', handleCompatibilityCheck);

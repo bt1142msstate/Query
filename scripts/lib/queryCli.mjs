@@ -3,6 +3,11 @@ import { dirname, resolve } from 'node:path';
 import process from 'node:process';
 import { replaceFieldDefinitions } from '../../src/core/fieldDefs.js';
 import { createWorkbookBlob } from '../../src/lib/workbook-export/workbookExport.js';
+import {
+  buildGroupingCandidates,
+  getCellExportValue,
+  getGroupingDisplayValue
+} from '../../src/lib/workbook-export/workbookExportData.js';
 import { parseQueryResultPayload } from '../../src/core/queryResultParser.js';
 import { buildResultTableRowsFromObjectRows } from '../../src/core/queryResultRows.js';
 import {
@@ -13,9 +18,19 @@ import {
 import { createStreamedQueryResultReader } from '../../src/core/queryStream.js';
 import { buildBackendQueryPayloadFromConfig } from '../../src/features/filters/queryPayload.js';
 import { createVirtualTablePostFilterController } from '../../src/features/table/virtual-table/virtualTablePostFilters.js';
+import { collapseDuplicateProjectedRows } from '../../src/lib/virtual-table/virtualTableDuplicateCollapse.js';
+import { sortRowsByColumn } from '../../src/lib/virtual-table/tableSort.js';
 import { createQueryTemplateRepository } from '../../src/features/templates/data/queryTemplateRepository.js';
 import { normalizeTemplate } from '../../src/features/templates/data/queryTemplateModels.js';
 import { runApiCompatibilityCheck } from '../../src/ui/apiCompatibility.js';
+import {
+  clearCliSession,
+  getCliAuthorizationHeaders,
+  getCliSession,
+  readSecretFromStdin,
+  saveCliSession
+} from './queryCliAuth.mjs';
+import { pairCliSession } from './queryCliPairing.mjs';
 
 const DEFAULT_API_URL = 'https://mlp.sirsi.net/uhtbin/query_api.pl';
 const SUPPORTED_FORMATS = new Set(['csv', 'json', 'jsonl', 'xlsx']);
@@ -57,16 +72,22 @@ function parseCliArgs(argv = []) {
 function printUsage(stream = process.stdout) {
   stream.write(`Usage:
   npm run query:fields -- [--api-url URL] [--search text] [--json] [--output fields.json]
+  npm run query:login -- --username USERNAME --password-stdin
+  npm run query:pair -- [--browser-url https://mlp.sirsi.net/query/]
+  npm run query:whoami -- [--api-url URL]
+  npm run query:logout -- [--api-url URL]
+  npm run query:api -- --action ACTION [--payload request.json|-] [--set key=value] [--output response.json]
   npm run query:compat -- [--api-url URL] [--json]
   npm run query:status -- [--api-url URL] [--json]
   npm run query:cancel -- --query-id QUERY_ID
-  npm run query:results -- --query-id QUERY_ID [--format xlsx|csv|json|jsonl] [--output results.xlsx]
+  npm run query:results -- --query-id QUERY_ID [--format xlsx|csv|json|jsonl] [--output results.xlsx] [--include-duplicates]
   npm run query:templates -- [--json]
   npm run query:run -- --config query.json [--format xlsx|csv|json|jsonl] [--output report.xlsx]
   npm run query:run -- --display "Title,Item Id" --filter "Item Library=MSU-GRANT" --format csv --output report.csv
 
 Environment:
   QUERY_API_URL or LIVE_API_URL can provide the API URL. Defaults to ${DEFAULT_API_URL}
+  QUERY_SESSION_TOKEN can provide an approved ephemeral session without storing it.
 
 Config shape:
   {
@@ -75,7 +96,12 @@ Config shape:
     "displayFields": ["Item Id", "Title"],
     "filters": [{ "field": "Title", "operator": "=", "value": "*Grant*" }],
     "postFilters": { "Title": { "filters": [{ "cond": "contains", "val": "Grant" }] } },
-    "export": { "format": "xlsx", "output": "Reports/report.xlsx" }
+    "export": {
+      "format": "xlsx",
+      "output": "Reports/report.xlsx",
+      "groupField": "Item Library",
+      "includeOverviewSheet": true
+    }
   }
 `);
 }
@@ -258,10 +284,13 @@ function buildRunPayload(config = {}, options = {}) {
   });
 }
 
-async function postJson(apiUrl, payload) {
+async function postJson(apiUrl, payload, options = {}) {
+  const authorizationHeaders = options.auth === false
+    ? {}
+    : await getCliAuthorizationHeaders(apiUrl, options);
   const response = await fetch(apiUrl, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authorizationHeaders },
     body: JSON.stringify(payload)
   });
   const text = await response.text();
@@ -281,9 +310,10 @@ function getResultDisplayFields(payload, options = {}) {
 }
 
 async function runQuery(apiUrl, payload, options = {}) {
+  const authorizationHeaders = await getCliAuthorizationHeaders(apiUrl, options);
   const response = await fetch(apiUrl, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authorizationHeaders },
     body: JSON.stringify(payload)
   });
   if (!response.ok) {
@@ -337,7 +367,7 @@ function normalizeFieldType(type) {
 
 async function getFieldDefinitions(apiUrl, options = {}) {
   if (options.skipFields) return [];
-  const payload = await postJson(apiUrl, { action: 'get_fields' });
+  const payload = await postJson(apiUrl, { action: 'get_fields' }, options);
   return Array.isArray(payload) ? payload : (Array.isArray(payload.fields) ? payload.fields : []);
 }
 
@@ -361,6 +391,48 @@ function applyPostFilters(rows, columns, postFilters, fieldTypes) {
   return controller.getFilteredRows();
 }
 
+function shouldCollapseDuplicateRows(config = {}, options = {}) {
+  if (options['include-duplicates'] === true || options.includeDuplicates === true) return false;
+  const configured = config.export?.collapseDuplicateRows
+    ?? config.export?.collapse_duplicate_rows
+    ?? config.collapseDuplicateRows
+    ?? config.collapse_duplicate_rows;
+  return configured !== false;
+}
+
+function collapseRowsForExport(rows, columns, config = {}, options = {}) {
+  if (!shouldCollapseDuplicateRows(config, options)) return rows;
+  return collapseDuplicateProjectedRows({
+    rows,
+    displayedFields: columns,
+    columnMap: new Map(columns.map((field, index) => [field, index]))
+  }).rows;
+}
+
+function sortRowsForExport(rows, columns, fieldTypes, config = {}) {
+  const criteria = normalizeArray(config.export?.sort || config.sort)
+    .map(value => {
+      if (typeof value === 'string') {
+        const [field, direction = 'asc'] = value.split(':');
+        return { field: field.trim(), direction: direction.trim().toLowerCase() };
+      }
+      return {
+        field: String(value?.field || '').trim(),
+        direction: String(value?.direction || 'asc').trim().toLowerCase()
+      };
+    })
+    .filter(value => value.field);
+  if (!criteria.length) return rows;
+
+  const sortedRows = [...rows];
+  [...criteria].reverse().forEach(({ field, direction }) => {
+    const columnIndex = columns.indexOf(field);
+    if (columnIndex < 0) throw new Error(`Export sort field "${field}" is not one of the exported columns.`);
+    sortRowsByColumn(sortedRows, columnIndex, fieldTypes.get(field) || 'string', direction === 'desc' ? 'desc' : 'asc');
+  });
+  return sortedRows;
+}
+
 function createSourceData(columns, rows, fieldTypes) {
   return {
     dataRows: rows.map(row => row.map(value => Array.isArray(value) ? value.join(MULTI_VALUE_SEPARATOR) : value)),
@@ -372,19 +444,42 @@ function createSourceData(columns, rows, fieldTypes) {
   };
 }
 
-function buildRunDetailsRows({ apiUrl, config, done, fieldCount, format, outputPath, payload, rowCount }) {
-  const filters = Array.isArray(payload.filters) ? payload.filters : [];
-  return [
+function formatPostFilterSummary(postFilters = {}) {
+  return Object.entries(postFilters)
+    .map(([field, value]) => {
+      const joiner = String(value?.logic || 'all').toLowerCase() === 'any' ? ' OR ' : ' AND ';
+      const filters = normalizeArray(value?.filters).map(filter => {
+        const condition = String(filter?.cond || '').replace(/_/gu, ' ').trim();
+        const values = normalizeArray(filter?.vals ?? filter?.val).filter(item => item !== '').join(', ');
+        return values ? `${condition}: ${values}` : condition;
+      }).filter(Boolean);
+      return filters.length ? `${field}: ${filters.join(joiner)}` : '';
+    })
+    .filter(Boolean)
+    .join('\n');
+}
+
+function buildRunDetailsRows({ apiUrl, config, done, fieldCount, format, outputPath, payload, postFilteredRowCount, rowCount }) {
+  const filters = Array.isArray(payload.filters) && payload.filters.length
+    ? payload.filters
+    : normalizeArray(config.filters);
+  const duplicateRowsCollapsed = Math.max(0, Number(postFilteredRowCount || 0) - Number(rowCount || 0));
+  const rows = [
     ['CLI Export', 'Name', String(payload.name || config.name || config.tableName || 'Query export')],
     ['CLI Export', 'Generated', new Date().toLocaleString()],
     ['CLI Export', 'Format', format],
     ['CLI Export', 'Output', outputPath],
     ['Source', 'API URL', apiUrl],
     ['Query', 'Rows Exported', String(rowCount)],
-    ['Query', 'Done Event Rows', String(done?.rows ?? '')],
+    ['Query', 'Raw Result Rows', String(done?.rows ?? '')],
+    ['Query', 'Rows Matching Post Filters', String(postFilteredRowCount ?? rowCount)],
+    ['Query', 'Duplicate Rows Collapsed', String(duplicateRowsCollapsed)],
     ['Query', 'Displayed Fields', String(fieldCount)],
     ['Query', 'Filters', filters.map((filter, index) => `${index + 1}. ${filter.field} ${filter.operator || '='} ${formatFilterValue(filter.value)}`).join('\n') || '(none)']
   ];
+  const postFilterSummary = formatPostFilterSummary(config.postFilters || config.post_filters);
+  if (postFilterSummary) rows.push(['Query', 'Post Filters', postFilterSummary]);
+  return rows;
 }
 
 function formatFilterValue(value) {
@@ -393,7 +488,7 @@ function formatFilterValue(value) {
   return String(value ?? '');
 }
 
-async function writeXlsx({ apiUrl, columns, config, done, fieldTypes, format, outputPath, payload, rows }) {
+async function writeXlsx({ apiUrl, columns, config, done, fieldTypes, format, outputPath, payload, postFilteredRowCount, rows }) {
   const sourceData = createSourceData(columns, rows, fieldTypes);
   const runDetailsRows = config.export?.includeRunDetails === false
     ? []
@@ -405,12 +500,38 @@ async function writeXlsx({ apiUrl, columns, config, done, fieldTypes, format, ou
       format,
       outputPath,
       payload,
+      postFilteredRowCount,
       rowCount: rows.length
     });
+  const groupField = String(config.export?.groupField || config.export?.group_field || '').trim();
+  const grouped = Boolean(groupField);
+  if (grouped && !columns.includes(groupField)) {
+    throw new Error(`Excel grouping field "${groupField}" is not one of the exported columns.`);
+  }
+  let groupingCandidates = grouped ? buildGroupingCandidates(sourceData) : [];
+  const configuredGroupValues = normalizeArray(config.export?.groupValues || config.export?.group_values)
+    .map(getGroupingDisplayValue)
+    .filter(Boolean);
+  if (grouped && configuredGroupValues.length) {
+    const fieldIndex = columns.indexOf(groupField);
+    const columnIndex = sourceData.virtualData.columnMap.get(groupField);
+    const counts = new Map(configuredGroupValues.map(value => [value, 0]));
+    rows.forEach(row => {
+      const label = getGroupingDisplayValue(getCellExportValue(row[columnIndex], fieldTypes.get(groupField)));
+      counts.set(label, (counts.get(label) || 0) + 1);
+    });
+    groupingCandidates = [{ counts, distinctCount: counts.size, field: groupField, index: fieldIndex }];
+  }
   const { blob } = await createWorkbookBlob({
-    config: { mode: 'single', runDetailsRows },
+    config: {
+      groupField,
+      includeMasterSheet: Boolean(config.export?.includeMasterSheet ?? config.export?.include_master_sheet),
+      includeOverviewSheet: Boolean(config.export?.includeOverviewSheet ?? config.export?.include_overview_sheet),
+      mode: grouped ? 'grouped' : 'single',
+      runDetailsRows
+    },
     state: {
-      groupingCandidates: [],
+      groupingCandidates,
       rowCount: rows.length,
       sourceData,
       tableName: config.tableName || config.table_name || payload.name || 'Query Export'
@@ -419,10 +540,10 @@ async function writeXlsx({ apiUrl, columns, config, done, fieldTypes, format, ou
   await writeFile(outputPath, Buffer.from(await blob.arrayBuffer()));
 }
 
-async function writeOutput({ apiUrl, columns, config, done, fieldTypes, format, outputPath, payload, rows }) {
+async function writeOutput({ apiUrl, columns, config, done, fieldTypes, format, outputPath, payload, postFilteredRowCount, rows }) {
   await mkdir(dirname(outputPath), { recursive: true });
   if (format === 'xlsx') {
-    await writeXlsx({ apiUrl, columns, config, done, fieldTypes, format, outputPath, payload, rows });
+    await writeXlsx({ apiUrl, columns, config, done, fieldTypes, format, outputPath, payload, postFilteredRowCount, rows });
     return;
   }
 
@@ -482,7 +603,7 @@ function formatFieldTable(fields) {
 
 async function runFieldsCommand(options = {}) {
   const apiUrl = getApiUrl({}, options);
-  const fields = await loadCliFieldDefinitions(apiUrl);
+  const fields = await loadCliFieldDefinitions(apiUrl, options);
   const summarized = summarizeFields(fields, options.search);
   const outputPath = options.output ? resolve(String(options.output)) : '';
   const output = options.json
@@ -513,7 +634,9 @@ function formatCompatibilityTable(result) {
 
 async function runCompatCommand(options = {}) {
   const apiUrl = getApiUrl({}, options);
+  const headers = await getCliAuthorizationHeaders(apiUrl, options);
   const result = await runApiCompatibilityCheck(apiUrl, {
+    headers,
     limit: Number(options.limit) || undefined,
     maxFields: Number(options['max-fields']) || undefined,
     maxRows: Number(options['max-rows']) || undefined,
@@ -568,7 +691,7 @@ function formatStatusTable(data) {
 
 async function runStatusCommand(options = {}) {
   const apiUrl = getApiUrl({}, options);
-  const data = await postJson(apiUrl, { action: 'status' });
+  const data = await postJson(apiUrl, { action: 'status' }, options);
   const outputPath = options.output ? resolve(String(options.output)) : '';
   const output = options.json ? `${JSON.stringify({ apiUrl, data }, null, 2)}\n` : formatStatusTable(data);
   await writeTextOutput({ outputPath, text: output });
@@ -578,7 +701,7 @@ async function runStatusCommand(options = {}) {
 async function runCancelCommand(options = {}) {
   const apiUrl = getApiUrl({}, options);
   const queryId = getQueryId(options);
-  const data = await postJson(apiUrl, { action: 'cancel', id: queryId, query_id: queryId });
+  const data = await postJson(apiUrl, { action: 'cancel', id: queryId, query_id: queryId }, options);
   const outputPath = options.output ? resolve(String(options.output)) : '';
   const output = `${JSON.stringify({ apiUrl, queryId, data }, null, 2)}\n`;
   await writeTextOutput({ outputPath, text: output });
@@ -591,7 +714,7 @@ async function runResultsCommand(options = {}) {
   const format = normalizeFormat(config, options);
   const outputPath = getOutputPath(config, options, format);
   const queryId = getQueryId(options, config);
-  const fields = await loadCliFieldDefinitions(apiUrl);
+  const fields = await loadCliFieldDefinitions(apiUrl, options);
   const fieldTypes = getPostFilterFieldTypeMap(fields);
   const displayFields = normalizeDisplayFields(
     options.display
@@ -605,6 +728,7 @@ async function runResultsCommand(options = {}) {
     query_id: queryId,
     result_format: 'jsonl'
   }, {
+    ...options,
     displayFields,
     verbose: Boolean(options.verbose)
   });
@@ -613,7 +737,9 @@ async function runResultsCommand(options = {}) {
   }
   const cliPostFilters = normalizeArray(options['post-filter']).map(parsePostFilterArgument);
   const postFilters = normalizePostFilters(config.postFilters || config.post_filters, cliPostFilters);
-  const rows = applyPostFilters(result.rows, result.columns, postFilters, fieldTypes);
+  const postFilteredRows = applyPostFilters(result.rows, result.columns, postFilters, fieldTypes);
+  const collapsedRows = collapseRowsForExport(postFilteredRows, result.columns, config, options);
+  const rows = sortRowsForExport(collapsedRows, result.columns, fieldTypes, config);
   await writeOutput({
     apiUrl,
     columns: result.columns,
@@ -626,6 +752,7 @@ async function runResultsCommand(options = {}) {
       action: 'get_results',
       query_id: queryId
     },
+    postFilteredRowCount: postFilteredRows.length,
     rows
   });
   return {
@@ -665,7 +792,7 @@ function formatTemplateTable(templates = []) {
 async function runTemplatesCommand(options = {}) {
   const apiUrl = getApiUrl({}, options);
   const repository = createQueryTemplateRepository({
-    postJson: async payload => ({ data: await postJson(apiUrl, payload) })
+    postJson: async payload => ({ data: await postJson(apiUrl, payload, options) })
   });
   const data = await repository.listTemplates();
   const templates = normalizeTemplateListResponse(data);
@@ -682,18 +809,20 @@ async function runRunCommand(options = {}) {
   const apiUrl = getApiUrl(config, options);
   const format = normalizeFormat(config, options);
   const outputPath = getOutputPath(config, options, format);
-  const fields = await loadCliFieldDefinitions(apiUrl);
+  const fields = await loadCliFieldDefinitions(apiUrl, options);
   const payload = buildRunPayload(config, options);
   const cliPostFilters = normalizeArray(options['post-filter']).map(parsePostFilterArgument);
   const postFilters = normalizePostFilters(config.postFilters || config.post_filters, cliPostFilters);
   config.postFilters = postFilters;
 
   const fieldTypes = getPostFilterFieldTypeMap(fields);
-  const result = await runQuery(apiUrl, payload, { verbose: Boolean(options.verbose) });
+  const result = await runQuery(apiUrl, payload, { ...options, verbose: Boolean(options.verbose) });
   if (!result.columns.length) {
     throw new Error('Query stream did not include meta.columns.');
   }
-  const rows = applyPostFilters(result.rows, result.columns, postFilters, fieldTypes);
+  const postFilteredRows = applyPostFilters(result.rows, result.columns, postFilters, fieldTypes);
+  const collapsedRows = collapseRowsForExport(postFilteredRows, result.columns, config, options);
+  const rows = sortRowsForExport(collapsedRows, result.columns, fieldTypes, config);
   await writeOutput({
     apiUrl,
     columns: result.columns,
@@ -703,6 +832,7 @@ async function runRunCommand(options = {}) {
     format,
     outputPath,
     payload,
+    postFilteredRowCount: postFilteredRows.length,
     rows
   });
   return {
@@ -712,6 +842,157 @@ async function runRunCommand(options = {}) {
     outputPath,
     rows: rows.length
   };
+}
+
+function parseSetArgument(raw) {
+  const text = String(raw || '');
+  const equalIndex = text.indexOf('=');
+  if (equalIndex <= 0) {
+    throw new Error(`Invalid --set value "${raw}". Use key=value.`);
+  }
+  const key = text.slice(0, equalIndex).trim();
+  const valueText = text.slice(equalIndex + 1).trim();
+  if (!key) throw new Error('A --set key cannot be blank.');
+  let value = valueText;
+  try {
+    value = JSON.parse(valueText);
+  } catch (_error) {
+    // Plain strings intentionally remain strings.
+  }
+  return { key, value };
+}
+
+async function readStdinText(stream = process.stdin) {
+  const chunks = [];
+  for await (const chunk of stream) chunks.push(chunk);
+  return Buffer.concat(chunks.map(chunk => Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))).toString('utf8');
+}
+
+async function buildApiPayload(options = {}) {
+  let payload = {};
+  if (options.payload) {
+    const payloadText = options.payload === '-'
+      ? await readStdinText(options.stdin || process.stdin)
+      : await readFile(resolve(String(options.payload)), 'utf8');
+    payload = JSON.parse(payloadText);
+  } else if (options.data) {
+    payload = JSON.parse(String(options.data));
+  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new Error('API payload must be a JSON object.');
+  }
+  for (const entry of normalizeArray(options.set)) {
+    const { key, value } = parseSetArgument(entry);
+    payload[key] = value;
+  }
+  const action = String(options.action || payload.action || '').trim();
+  if (!action) throw new Error('An API action is required. Use --action ACTION or include action in --payload.');
+  if (action === 'login') {
+    throw new Error('Use query:login for sign-in so the session token is never printed or written as API output.');
+  }
+  return { ...payload, action };
+}
+
+async function runApiCommand(options = {}) {
+  const apiUrl = getApiUrl({}, options);
+  const payload = await buildApiPayload(options);
+  const headers = await getCliAuthorizationHeaders(apiUrl, options);
+  const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json, application/x-ndjson, application/octet-stream;q=0.8, */*;q=0.5',
+      'Content-Type': 'application/json',
+      ...headers
+    },
+    body: JSON.stringify(payload)
+  });
+  const buffer = Buffer.from(await response.arrayBuffer());
+  if (!response.ok) {
+    throw new Error(`API request failed with HTTP ${response.status}: ${buffer.toString('utf8').slice(0, 500)}`);
+  }
+  const contentType = response.headers.get('content-type') || '';
+  let output = buffer;
+  if (!options.raw && /(?:application\/json|\+json)/iu.test(contentType)) {
+    output = Buffer.from(`${JSON.stringify(JSON.parse(buffer.toString('utf8') || '{}'), null, 2)}\n`);
+  }
+  const outputPath = options.output ? resolve(String(options.output)) : '';
+  if (outputPath) {
+    await mkdir(dirname(outputPath), { recursive: true });
+    await writeFile(outputPath, output);
+  } else {
+    process.stdout.write(output);
+    if (output.length && output[output.length - 1] !== 10) process.stdout.write('\n');
+  }
+  return { action: payload.action, apiUrl, bytes: output.length, contentType, outputPath };
+}
+
+async function runLoginCommand(options = {}) {
+  const apiUrl = getApiUrl({}, options);
+  const username = String(options.username || '').trim();
+  if (!username) throw new Error('A username is required. Use --username USERNAME.');
+  if (!options['password-stdin']) {
+    throw new Error('For safety, passwords are accepted only through --password-stdin.');
+  }
+  const password = await readSecretFromStdin(options.stdin || process.stdin);
+  if (!password) throw new Error('The password read from stdin was blank.');
+  const data = await postJson(apiUrl, { action: 'login', username, password }, { ...options, auth: false });
+  if (!data.token) throw new Error(data.error || 'Sign in failed.');
+  await saveCliSession(apiUrl, data, options);
+  const identity = data.display_name || data.username || username;
+  process.stdout.write(`Signed in as ${identity}. Session saved in macOS Keychain.\n`);
+  return { apiUrl, role: data.role || '', username: data.username || username };
+}
+
+async function runPairCommand(options = {}) {
+  const apiUrl = getApiUrl({}, options);
+  let existingSession = null;
+  try {
+    existingSession = await getCliSession(apiUrl, options);
+  } catch (_error) {
+    await clearCliSession(apiUrl, options);
+  }
+  if (existingSession?.token) {
+    try {
+      const identity = await postJson(apiUrl, { action: 'whoami' }, options);
+      if (identity.authenticated) {
+        process.stdout.write(`Already paired as ${identity.display_name || identity.username}.\n`);
+        return { apiUrl, alreadyPaired: true, username: identity.username || '' };
+      }
+    } catch (_error) {
+      // An invalid or expired saved session can be replaced by browser pairing.
+    }
+  }
+  process.stdout.write('Opening the Query Website to authorize this CLI session...\n');
+  const session = await pairCliSession({
+    ...options,
+    apiUrl,
+    browserUrl: options['browser-url'] || options.browserUrl,
+    timeoutMs: Number(options.timeout) > 0 ? Number(options.timeout) * 1000 : undefined
+  });
+  const identity = session.display_name || session.username;
+  process.stdout.write(`Paired as ${identity}. Session saved in macOS Keychain.\n`);
+  return { apiUrl, alreadyPaired: false, role: session.role || '', username: session.username || '' };
+}
+
+async function runWhoamiCommand(options = {}) {
+  const apiUrl = getApiUrl({}, options);
+  const data = await postJson(apiUrl, { action: 'whoami' }, options);
+  const outputPath = options.output ? resolve(String(options.output)) : '';
+  const output = `${JSON.stringify(data, null, 2)}\n`;
+  await writeTextOutput({ outputPath, text: output });
+  return { apiUrl, authenticated: Boolean(data.authenticated), outputPath, username: data.username || '' };
+}
+
+async function runLogoutCommand(options = {}) {
+  const apiUrl = getApiUrl({}, options);
+  const session = await getCliSession(apiUrl, options);
+  try {
+    if (session?.token) await postJson(apiUrl, { action: 'logout' }, options);
+  } finally {
+    await clearCliSession(apiUrl, options);
+  }
+  process.stdout.write('Signed out and removed the saved Query CLI session.\n');
+  return { apiUrl };
 }
 
 async function main(argv = process.argv.slice(2)) {
@@ -725,6 +1006,15 @@ async function main(argv = process.argv.slice(2)) {
     if (result.outputPath) {
       process.stdout.write(`Wrote ${result.count} field(s) to ${result.outputPath}\n`);
     }
+    return result;
+  }
+  if (command === 'login') return runLoginCommand(options);
+  if (command === 'pair') return runPairCommand(options);
+  if (command === 'whoami') return runWhoamiCommand(options);
+  if (command === 'logout') return runLogoutCommand(options);
+  if (command === 'api') {
+    const result = await runApiCommand(options);
+    if (result.outputPath) process.stdout.write(`Wrote ${result.action} response to ${result.outputPath}\n`);
     return result;
   }
   if (command === 'compat') {
@@ -771,6 +1061,8 @@ async function main(argv = process.argv.slice(2)) {
 export {
   DEFAULT_API_URL,
   applyPostFilters,
+  collapseRowsForExport,
+  buildApiPayload,
   buildRunPayload,
   getApiUrl,
   loadCliFieldDefinitions,
@@ -779,12 +1071,19 @@ export {
   parseCliArgs,
   parseFilterArgument,
   parsePostFilterArgument,
+  parseSetArgument,
+  runApiCommand,
   runCompatCommand,
   runCancelCommand,
   runFieldsCommand,
   runQuery,
+  runLoginCommand,
+  runLogoutCommand,
+  runPairCommand,
   runResultsCommand,
   runRunCommand,
   runStatusCommand,
-  runTemplatesCommand
+  runTemplatesCommand,
+  runWhoamiCommand,
+  sortRowsForExport
 };

@@ -295,14 +295,14 @@ async function cancelQuery(queryId) {
       }
       showToastMessage(isHydration ? 'Hydration run canceled' : `Query ${queryId} cancelled`, 'info');
     } else {
-      showToastMessage('Failed to cancel query', 'error');
+      showToastMessage('The query could not be canceled. Refresh and try again.', 'error');
     }
   } catch (e) {
     if (e?.isRateLimited) {
       return;
     }
     console.error('Error cancelling query:', e);
-    showToastMessage('Error cancelling query', 'error');
+    showToastMessage('The query could not be canceled. Refresh and try again.', 'error');
   }
 }
 

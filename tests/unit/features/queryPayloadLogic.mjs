@@ -245,4 +245,30 @@ test('query payload', async () => {
     filters: [],
     display_fields: ['Title']
   });
+
+  fieldDefs.set('Home Location', { name: 'Home Location', filters: ['equals'] });
+  fieldDefs.set('Item Type', { name: 'Item Type', filters: ['equals'] });
+  fieldDefs.set('Item Shadowed', { name: 'Item Shadowed', filters: ['equals'] });
+  QueryChangeManager.setQueryState({
+    displayedFields: ['Title', 'Home Location', 'Item Type'],
+    activeFilters: {
+      'Home Location': { filters: [{ cond: 'equals', val: 'ONLINE' }] },
+      'Item Shadowed': { filters: [{ cond: 'equals', val: 'N' }] }
+    }
+  }, { source: 'QueryPayloadLogic.ebookFilterMutation' });
+  QueryChangeManager.removeFilter('Home Location', { source: 'QueryPayloadLogic.removeHomeLocation' });
+  QueryChangeManager.upsertFilter('Item Type', { cond: 'equals', val: 'EBOOK' }, {
+    source: 'QueryPayloadLogic.addItemType'
+  });
+
+  assert.deepEqual(buildBackendQueryPayload('Ebook Filter Mutation'), {
+    action: 'run',
+    name: 'Ebook Filter Mutation',
+    result_format: 'jsonl',
+    filters: [
+      { field: 'Item Shadowed', operator: '=', value: 'N' },
+      { field: 'Item Type', operator: '=', value: 'EBOOK' }
+    ],
+    display_fields: ['Title', 'Home Location', 'Item Type']
+  });
 });

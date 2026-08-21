@@ -20,7 +20,7 @@ A single-page app for building queries, applying filters, reviewing results, and
 | **Query history** | Signed-in live status tracking — reload, rerun, cancel, or inspect past runs |
 | **Query templates** | Save, categorize, pin, search, and reapply reusable query setups |
 | **Query JSON** | Inspect the exact payload being sent to the backend |
-| **CLI workflows** | Run compatibility checks, inspect status, export saved results, list templates, run queries, and export JSONL/JSON/CSV/XLSX from terminal configs |
+| **CLI workflows** | Sign in securely, run and export reports, manage query lifecycle operations, and invoke the full authenticated backend action surface from terminal configs |
 | **API Settings** | Connect a compatible backend from the app without editing source files |
 | **Post filters** | Apply result-only filters without sending them to the backend |
 | **Results table** | Virtualized large-table rendering with resize, sort, post-filter, and Excel export support |
@@ -97,6 +97,16 @@ For command-line workflows and repeatable report configs, use [`docs/CLI.md`](do
 npm run query:run -- --config examples/query-configs/grant-family-climatecon.json
 ```
 
+Dedicated commands cover common report workflows. `npm run query:api -- --payload request.json` provides forward-compatible access to interface backend actions such as template mutation, history updates, and OCLC/Hydration operations.
+
+For production use on a Mac with an existing Query Website sign-in, run `npm run query:pair`. The browser asks for explicit approval and grants the CLI its own Keychain-backed session without copying the browser cookie or asking for the password again.
+
+## Plain-language errors
+
+The browser and CLI pass failures through one shared classifier before showing them to staff. Messages explain the problem and, when possible, the next action for authentication, permissions, validation, missing data, capacity, timeouts, connectivity, provider failures, malformed responses, and unexpected server errors. Raw commands, filesystem paths, stack traces, response bodies, and protocol details are not shown as the primary error. Query History keeps useful backend diagnostics in a collapsed **Technical details for support** section.
+
+When adding a new failure path, use `src/core/clientErrorMessages.js` instead of displaying `error.message` directly. See [`docs/ERROR_HANDLING.md`](docs/ERROR_HANDLING.md) for the rules and test coverage.
+
 If your system does not already speak this contract, use an adapter or proxy backend. The repository includes adapter sketches in [`examples/adapters/`](examples/adapters/) for Node/Express, Python/FastAPI, legacy delimited output, and SQL/reporting APIs.
 
 The recommended backend contract is intentionally small:
@@ -122,11 +132,13 @@ The checked-in default endpoint in `src/core/backendApi.js` is an example/testin
 
 ### 🔍 Core Query Builder
 
-The default view. Add fields through the shared field picker, browse by category, or search by field name and description. Active fields appear in the Display & Filters panel, where display order and filter conditions can be edited. Conditions support `equals`, `contains`, `between`, `before/after`, `starts with`, empty/non-empty post filters, date `Never`, and more.
+The default view. Add fields through the shared field picker, browse by category, or search by field name and description. Active fields appear in the Display & Filters panel, where display order and filter conditions can be edited. Conditions support `equals`, `contains`, `between`, `before/after`, `starts with`, empty/non-empty post filters, date `Never`, and more. The table toolbar's **Clear** action removes the complete report state, including loaded rows, fields, filters, report name, search text, result URL state, and remembered result cache.
 
 ### 📜 Query History
 
 Signed-in users can track query runs with live status badges: `running`, `complete`, `failed`, and `cancelled`. Completed queries can be reloaded or rerun; running queries can be cancelled when the account has permission. The History control, status polling, and saved-result restoration are unavailable while signed out. Normal users see account-scoped history, while administrators can inspect all history.
+
+Reports start empty after a refresh or a new visit. Users who prefer the previous behavior can enable **Restore last report** under API Settings → Browser preferences. Explicit shared result links continue to open their requested result whether or not that browser preference is enabled.
 
 ### 📚 Query Templates
 
@@ -159,7 +171,7 @@ Hydration's browser interface is open source and intended for adoption by other 
 
 The comparer reports edition evidence from title/responsibility, ISBN, edition statement, publication year, and physical description before describing a record as hydration-ready. When multiple WorldCat records match, their selector remains available after comparison begins so staff can switch candidates without repeating the local-record search. MARC 521 and 526 counts are shown separately because a general audience note is not automatically Lexile data. The Symphony record and the selected OCLC or Library of Congress record can be downloaded from their summary cards as binary MARC (`.mrc`), MARCXML (`.xml`), readable MARC text (`.mrk`), or JSON. The workspace is read-only and does not execute catalog hydration.
 
-The table also supports sorting, expand/collapse layout, manual column resizing with live row/header alignment, a draggable scrollbar thumb, and post filters that only affect the loaded result set. Post filters are intentionally client-side and are cleared between query runs.
+The table also supports sorting, expand/collapse layout, manual column resizing with live row/header alignment, a draggable scrollbar thumb, and post filters that only affect the loaded result set. Text post filters include candidate finders for numeric or spelled-out number markers, Roman numeral markers, and alphabetic series markers such as `A is for ...`. Post filters are intentionally client-side and are cleared between query runs.
 
 The virtual table is also exposed as a reusable ES module component in `src/components/`: hosts can either mount the DOM-backed table with its packaged virtual scroller or use the headless projection/render-plan API in their own framework. Column drag/drop, XLSX generation, the custom date picker, and the tooltip system have public component entrypoints too.
 

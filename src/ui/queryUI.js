@@ -628,13 +628,20 @@ function updateClearQueryButtonState(tableName, tableNameInput) {
     Array.isArray(services.getVirtualTableData()?.rows) &&
     services.getVirtualTableData().rows.length > 0
   );
-  const canClear = hasTableName || hasQueryText || hasFields || hasFilters || hasConfiguredPayload || hasData;
-  const isQueryRunning = getLifecycleState().queryRunning;
+  const lifecycleState = getLifecycleState();
+  const canClear = hasTableName
+    || hasQueryText
+    || hasFields
+    || hasFilters
+    || hasConfiguredPayload
+    || hasData
+    || lifecycleState.hasLoadedResultSet;
+  const isQueryRunning = lifecycleState.queryRunning;
 
   clearQueryBtn.disabled = isQueryRunning || !canClear;
   clearQueryBtn.classList.toggle('opacity-50', clearQueryBtn.disabled);
   clearQueryBtn.classList.toggle('cursor-not-allowed', clearQueryBtn.disabled);
-  clearQueryBtn.setAttribute('data-tooltip', isQueryRunning ? 'Stop the running query before clearing' : (clearQueryBtn.disabled ? 'Nothing to clear' : 'Clear current query'));
+  clearQueryBtn.setAttribute('data-tooltip', isQueryRunning ? 'Stop the running query before clearing' : (clearQueryBtn.disabled ? 'Nothing to clear' : 'Clear report'));
 }
 
 function baseUpdateButtonStates() {

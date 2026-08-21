@@ -7,6 +7,7 @@ import { appUiActions, registerAppUiActionDependencies } from '../core/appUiActi
 import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 import { DOM } from '../core/domCache.js';
+import { getClientErrorMessage } from '../core/clientErrorMessages.js';
 
 let QueryTableView;
 
@@ -355,12 +356,17 @@ let QueryTableView;
       });
     } catch (error) {
       console.error('Error setting up virtual table:', error);
-      container.innerHTML = `
-        <div class="p-6 text-center">
-          <div class="text-red-600 font-semibold mb-2">Error Loading Data</div>
-          <div class="text-gray-600">Failed to initialize table view.</div>
-          <div class="text-sm text-gray-500 mt-2">${error.message}</div>
-        </div>`;
+      const message = getClientErrorMessage(error, { fallback: 'The results table could not be displayed. Refresh the page and try again.' });
+      const wrapper = document.createElement('div');
+      wrapper.className = 'p-6 text-center';
+      const title = document.createElement('div');
+      title.className = 'text-red-600 font-semibold mb-2';
+      title.textContent = 'Results could not be displayed';
+      const detail = document.createElement('div');
+      detail.className = 'text-sm text-gray-500 mt-2';
+      detail.textContent = message;
+      wrapper.append(title, detail);
+      container.replaceChildren(wrapper);
       return;
     }
 

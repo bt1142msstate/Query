@@ -91,7 +91,16 @@ let PostFilterSystem;
       return ['equals', 'does_not_equal', ...noValueOperators];
     }
 
-    return ['contains', 'starts', 'equals', 'does_not_equal', ...noValueOperators];
+    return [
+      'contains',
+      'starts',
+      'equals',
+      'does_not_equal',
+      'has_number_sequence_marker',
+      'has_roman_numeral_sequence_marker',
+      'has_alphabetic_sequence_marker',
+      ...noValueOperators
+    ];
   }
 
   function usesValuePickerOperator(cond) {

@@ -760,7 +760,7 @@ let DragDropInteractions;
     headerInsertAffordance.clear();
     SharedFieldPicker.openQueryFieldPicker({ insertAt }).catch(error => {
       console.error('Failed to open insert field picker:', error);
-      showToastMessage('Failed to open the field picker.', 'error');
+      showToastMessage('The field picker could not be opened. Close the panel and try again.', 'error');
     });
   });
 

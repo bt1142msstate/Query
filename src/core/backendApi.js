@@ -152,7 +152,7 @@ function buildRateLimitMessage(payload = {}) {
   const waitMessage = retryAfterSeconds > 0
     ? `Try again in ${formatRetryDelay(retryAfterSeconds)}.`
     : 'Try again shortly.';
-  return `${payload.error || 'Too many requests from this IP.'} ${waitMessage}`;
+  return `Too many requests were made. ${waitMessage}`;
 }
 
 async function parseJsonResponse(response) {

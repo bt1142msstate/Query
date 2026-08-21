@@ -401,6 +401,18 @@ function splitSourceSheets(baseName, rowCount, usedNames, getUniqueSheetName) {
 
 function splitGroupSheets(label, count, rowIndexes, usedNames, getUniqueSheetName) {
   const sheets = [];
+  if (count === 0) {
+    sheets.push({
+      dataRowCount: 0,
+      groupLabel: label,
+      groupRowIndexes: rowIndexes,
+      groupSkip: 0,
+      groupTake: 0,
+      kind: 'group',
+      name: getUniqueSheetName(label, usedNames)
+    });
+    return sheets;
+  }
   let part = 1;
   for (let skip = 0; skip < count; skip += EXCEL_MAX_DATA_ROWS_PER_SHEET) {
     const take = Math.min(EXCEL_MAX_DATA_ROWS_PER_SHEET, count - skip);
@@ -542,11 +554,11 @@ function buildColumnXml(widths) {
 }
 
 function buildWorksheetStart(columns, dataRowCount, widths) {
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>${buildColumnXml(widths)}<sheetData>${buildHeaderRow(columns)}`;
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>${buildColumnXml(widths)}<sheetData>${buildHeaderRow(columns)}`;
 }
 
 function buildWorksheetEnd(columns, dataRowCount) {
-  return '</sheetData><tableParts count="1"><tablePart r:id="rId1"/></tableParts></worksheet>';
+  return '</sheetData><pageMargins left="0.25" right="0.25" top="0.5" bottom="0.5" header="0.2" footer="0.2"/><pageSetup paperSize="1" orientation="landscape" fitToWidth="1" fitToHeight="0"/><tableParts count="1"><tablePart r:id="rId1"/></tableParts></worksheet>';
 }
 
 function buildSafeTableName(name, index) {

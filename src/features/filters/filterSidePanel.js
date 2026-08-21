@@ -270,7 +270,7 @@ const FilterSidePanel = (function () {
             insertAt: Number.isInteger(normalizedInsertAt) ? normalizedInsertAt : -1
         }).catch(error => {
             console.error('Failed to open side panel field picker:', error);
-            showToastMessage('Failed to open the field picker.', 'error');
+            showToastMessage('The field picker could not be opened. Close the panel and try again.', 'error');
         });
     }
 

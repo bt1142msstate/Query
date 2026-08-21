@@ -113,7 +113,7 @@ function buildInteractiveFormModeCard(options) {
   mountedCard.addFieldBtn.addEventListener('click', () => {
     openFieldPicker().catch(error => {
       console.error('Failed to open field picker:', error);
-      showToastMessage('Failed to open the field picker.', 'error');
+      showToastMessage('The field picker could not be opened. Close the panel and try again.', 'error');
     });
   });
 

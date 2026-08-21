@@ -4,6 +4,40 @@ The browser app is not the only way to get data out of the query project. The re
 
 Use it when you want repeatable reports, scheduled jobs, shell scripts, or quick exports without opening the UI.
 
+The CLI is the preferred automation surface. Its dedicated commands cover common report workflows, while `query:api` exposes the complete authenticated backend action surface used by the interface. This means newly deployed backend actions can be used from the CLI before a specialized convenience command exists.
+
+## Sign In
+
+Production actions require a staff session. When the Query Website is already signed in on this Mac, pair the CLI with that browser session:
+
+```bash
+npm run query:pair
+```
+
+The command opens `https://mlp.sirsi.net/query/` and shows an **Authorize Query CLI** confirmation. Approval creates a separate, revocable CLI session and returns it through a short-lived loopback callback protected by a one-time code, state validation, and PKCE. It does not read, copy, or expose the browser cookie or password.
+
+If the browser session has expired, sign in normally on the Query Website and then approve the CLI. Password-based CLI login remains a fallback for machines without an available browser session; it accepts the password without placing it in shell arguments or history:
+
+```bash
+read -rs QUERY_CLI_PASSWORD
+printf '%s' "$QUERY_CLI_PASSWORD" | npm run query:login -- --username bt1142 --password-stdin
+unset QUERY_CLI_PASSWORD
+```
+
+On macOS, the CLI's opaque session is stored in Keychain under `MLP Query Project CLI session`. The CLI never prints it. Confirm the active identity before production work:
+
+```bash
+npm run query:whoami
+```
+
+Sign out and revoke/remove the saved session:
+
+```bash
+npm run query:logout
+```
+
+Controlled service environments may provide an approved ephemeral session through `QUERY_SESSION_TOKEN`. Never put a password or session token in a command argument, query config, URL, output file, log, or repository.
+
 ## Commands
 
 List backend fields:
@@ -24,7 +58,23 @@ Inspect running/completed query status:
 npm run query:status
 ```
 
-History status and saved-result retrieval require authentication on the MLP deployment. The CLI does not inherit a browser session automatically.
+History status and saved-result retrieval require authentication on the MLP deployment. The CLI never scrapes browser storage; `query:pair` lets the signed-in browser explicitly approve a separate CLI session.
+
+Invoke any backend action with a reviewed JSON payload:
+
+```bash
+npm run query:api -- --payload request.json --output response.json
+```
+
+Or provide the action and safe, non-secret top-level values directly:
+
+```bash
+npm run query:api -- --action update_history_run \
+  --set query_id=query_123 \
+  --set pinned=true
+```
+
+`--payload -` reads JSON from stdin. `--raw` preserves the response bytes without JSON pretty-printing. JSONL and other response types are preserved automatically. The generic command refuses the `login` action so a returned session token cannot accidentally be printed or written; use `query:login` instead.
 
 Cancel a running query by id:
 
@@ -63,6 +113,29 @@ Override output format or path:
 ```bash
 npm run query:run -- --config examples/query-configs/grant-family-climatecon.json --format csv --output ../Reports/grant-family.csv
 ```
+
+Split an Excel report into worksheets by an exported field:
+
+```json
+{
+  "displayFields": ["Title", "Author", "Item Library"],
+  "export": {
+    "format": "xlsx",
+    "output": "../Reports/sequenced-titles.xlsx",
+    "groupField": "Item Library",
+    "groupValues": ["LILS-BKM", "LILS-ITA", "LILS-LEE"],
+    "sort": [{ "field": "Author", "direction": "asc" }, { "field": "Title", "direction": "asc" }],
+    "includeOverviewSheet": true,
+    "includeMasterSheet": false
+  }
+}
+```
+
+The grouping field must be included in `displayFields`. Optional `groupValues` preserves a worksheet for every requested group even when one has zero matching rows. Grouped workbooks use the same sheet-name sanitizing, overview, run-details, and row-splitting behavior as the interface exporter.
+
+As in the interface, exports collapse rows that are exact duplicates across the displayed columns. Set `export.collapseDuplicateRows` to `false`, or pass `--include-duplicates`, when every repeated source row must be retained.
+
+Optional `export.sort` accepts one or more displayed fields. Multiple fields are applied in order, so the example sorts primarily by author and then by title.
 
 Run a small query directly from flags:
 
@@ -156,8 +229,12 @@ For anything repeatable, prefer a JSON config. It is easier to review, commit, a
 
 ## Notes
 
-- The CLI uses the same field registry, UI-config filter normalization, backend payload builder, JSONL stream reader, result parser, row normalization, post-filter controller, API compatibility checker, template repository, and workbook exporter that the browser uses.
+- The CLI uses the same field registry, UI-config filter normalization, backend payload builder, JSONL stream reader, result parser, row normalization, post-filter controller, duplicate-row collapse, API compatibility checker, template repository, and workbook exporter that the browser uses.
 - JSONL exports are regenerated from parsed output so requested column order, local post filters, and multi-value cells stay consistent across formats.
 - CLI runs load backend field metadata before building payloads, matching the interface path for aliases, date normalization, dynamic fields, and list-valued key filters.
 - XLSX exports include a run details sheet unless `export.includeRunDetails` is set to `false`.
-- The CLI does not store credentials or inherit the browser's session. The MLP deployment requires an authenticated session for every CLI query action; use an approved authenticated proxy or service-session mechanism and never embed credentials in configs, arguments, or URLs.
+- XLSX configs can set `export.groupField` to create one worksheet per value, with optional `includeOverviewSheet` and `includeMasterSheet` controls.
+- The CLI does not copy the browser's session. `query:pair` uses browser approval, a loopback callback, state validation, a short-lived single-use authorization code, and S256 PKCE to create an independent session. On macOS it stores that opaque, revocable session in Keychain. `query:login --password-stdin` remains a password-safe fallback.
+- Dedicated report commands provide local behavior shared with the interface: field discovery, UI-config normalization, JSONL parsing, post-filters, and CSV/JSON/JSONL/XLSX export.
+- `query:api` provides backend parity for authentication-safe profile actions, template/category mutation, history metadata, query lifecycle actions, OCLC comparison/search, Hydration lifecycle operations, bulk resolution, and future backend actions. Large or complex requests should use reviewed payload files.
+- Browser presentation behavior such as opening dialogs, arranging visible panels, or rendering an interactive table is intentionally not reproduced in a terminal. The underlying data operation is available through a dedicated command or `query:api`.

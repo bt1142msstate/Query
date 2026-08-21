@@ -1,4 +1,5 @@
 import { postJson } from '../../core/backendApi.js';
+import { getClientErrorMessage } from '../../core/clientErrorMessages.js';
 import { createWorkbookExportComponent } from '../../components/workbook-export/index.js';
 import {
   buildBulkEntries,
@@ -69,9 +70,9 @@ function bulkMarkup() {
     <section class="bib-bulk-panel hidden" data-bib-bulk-panel>
       <header class="bib-bulk-header">
         <div>
-          <span class="bib-compare-eyebrow">Batch review</span>
-          <h2>Bulk hydration review</h2>
-          <p>OCLC is checked first. Exact Library of Congress records are used only as a fallback.</p>
+          <span class="bib-compare-eyebrow">List review</span>
+          <h2>List review</h2>
+          <p>Each item is matched to Symphony, then checked against WorldCat or an exact Library of Congress record.</p>
         </div>
         <div class="bib-bulk-actions">
           <button class="bib-bulk-download" type="button" data-bib-bulk-marc disabled data-tooltip="Available for recommended matches">Download MARC</button>
@@ -80,6 +81,10 @@ function bulkMarkup() {
           <button class="bib-bulk-cancel hidden" type="button" data-bib-bulk-cancel>Cancel</button>
         </div>
       </header>
+      <div class="bib-bulk-start" data-bib-bulk-empty>
+        <h3>Start with a list</h3>
+        <p>Paste values, import a file, or use the current query. Records needing review will appear first.</p>
+      </div>
       <div class="bib-bulk-progress hidden" data-bib-bulk-progress role="status" aria-live="polite">
         <div><span data-bib-bulk-progress-text>Preparing records...</span><strong data-bib-bulk-progress-count>0 / 0</strong></div>
         <progress data-bib-bulk-progress-bar value="0" max="1"></progress>
@@ -155,6 +160,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
   const progressCount = workspace.querySelector('[data-bib-bulk-progress-count]');
   const progressBar = workspace.querySelector('[data-bib-bulk-progress-bar]');
   const progressEta = workspace.querySelector('[data-bib-bulk-progress-eta]');
+  const emptyState = workspace.querySelector('[data-bib-bulk-empty]');
   const cancelButton = workspace.querySelector('[data-bib-bulk-cancel]');
   const downloadButton = workspace.querySelector('[data-bib-bulk-download]');
   const marcButton = workspace.querySelector('[data-bib-bulk-marc]');
@@ -306,6 +312,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
       'data-tooltip',
       results.length ? 'Download the completed hydration review as Excel' : 'Available after at least one record has been reviewed'
     );
+    emptyState?.classList.toggle('hidden', results.length > 0 || progressSnapshot.total > 0);
   }
 
   function setProgress(completed, total, message) {
@@ -319,6 +326,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
     progressBar.value = completed;
     renderProgressEta(active);
     syncProgressEtaTimer(active);
+    emptyState?.classList.toggle('hidden', total > 0 || results.length > 0);
   }
 
   async function run(entries, options = {}) {
@@ -355,7 +363,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
       activeStartedAt = parseHydrationTimestamp(data.metadata?.start_time) || activeStartedAt;
       setProgress(0, entries.length, 'Resolving OCLC and Library of Congress records...');
     } catch (error) {
-      setSearchStatus(error.message || 'The Hydration run could not be saved.', 'error');
+      setSearchStatus(getClientErrorMessage(error, { fallback: 'The Hydration run could not be saved. Try again.' }), 'error');
       return;
     }
     let completed = 0;
@@ -394,7 +402,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
             setProgress(completed, entries.length, 'Request limit cleared. Retrying the same records...');
             continue;
           }
-          const message = error.message || 'This batch could not be resolved.';
+          const message = getClientErrorMessage(error, { fallback: 'This batch could not be resolved. Try it again.' });
           setSearchStatus(`${message} Completed batches remain available in Shared History.`, 'error');
           cancelButton.classList.add('hidden');
           await finishRun('failed', message);
@@ -451,7 +459,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
       cancelButton.classList.toggle('hidden', !running);
       setSearchStatus(`Saved Hydration run loaded. ${counts.resolved.toLocaleString()} matched automatically (${formatHydrationMatchRate(results)}); ${hydrationReviewCount(counts).toLocaleString()} need review.`, 'success');
     } catch (error) {
-      setSearchStatus(error.message || 'The saved Hydration run could not be loaded.', 'error');
+      setSearchStatus(getClientErrorMessage(error, { fallback: 'The saved Hydration run could not be loaded. Try again.' }), 'error');
     }
   }
 
@@ -471,7 +479,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
       window.dispatchEvent(new CustomEvent('query:hydration-run-canceled', { detail: { runId } }));
       return true;
     } catch (error) {
-      setSearchStatus(error.message || 'The Hydration run could not be canceled.', 'error');
+      setSearchStatus(getClientErrorMessage(error, { fallback: 'The Hydration run could not be canceled. Refresh and try again.' }), 'error');
       if (activeRunId === runId) cancelButton.classList.remove('hidden');
       return false;
     }
@@ -502,7 +510,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
       await downloadHydrationReviewWorkbook(results);
       showToastMessage('Hydration review workbook downloaded.', 'success');
     } catch (error) {
-      setSearchStatus(error.message || 'The review workbook could not be created.', 'error');
+      setSearchStatus(getClientErrorMessage(error, { fallback: 'The review workbook could not be created. Try again.' }), 'error');
     } finally {
       downloadButton.disabled = false;
     }
@@ -529,7 +537,7 @@ function createBulkController({ workspace, getTargetTags, openComparison, setSea
         batch.failures.length ? 'warning' : 'success'
       );
     } catch (error) {
-      setSearchStatus(error.message || 'The MARC download could not be created.', 'error');
+      setSearchStatus(getClientErrorMessage(error, { fallback: 'The MARC download could not be created. Try again.' }), 'error');
     } finally {
       renderResults();
       setProgress(results.length, results.length, 'Download preparation finished.');
@@ -597,7 +605,7 @@ function initializeBulkForm({ workspace, controller, setSearchStatus }) {
       'hidden',
       spreadsheet || (fileData?.columns.length || 0) < 2
     );
-    submitLabel.textContent = spreadsheet ? 'Match spreadsheet rows' : 'Match records';
+    submitLabel.textContent = spreadsheet ? 'Review spreadsheet rows' : 'Review records';
   }
 
   function renderSpreadsheetMappings() {
@@ -694,7 +702,7 @@ function initializeBulkForm({ workspace, controller, setSearchStatus }) {
       textarea.value = '';
       workspace.querySelector('[data-bib-file-sheet-wrap]')?.classList.add('hidden');
       workspace.querySelector('[data-bib-file-column-wrap]')?.classList.add('hidden');
-      setSearchStatus(error.message || 'The selected file could not be imported.', 'error');
+      setSearchStatus(getClientErrorMessage(error, { fallback: 'The selected file could not be imported. Check the file and try again.' }), 'error');
     } finally {
       fileInput.value = '';
     }

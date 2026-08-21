@@ -1,6 +1,7 @@
 import { postJson } from '../../core/backendApi.js';
 import { getSession } from '../../core/authSession.js';
 import { showToastMessage } from '../../core/toast.js';
+import { getClientErrorMessage } from '../../core/clientErrorMessages.js';
 import { comparisonStatusLabel, fieldLines, filterComparisonRows, formatIdentifierList, matchConfidenceLabel, searchInputMetadata, summaryValue } from './bibCompareFormat.js';
 import { buildHydratedBibRecord, downloadBibRecord, FORMATS } from './bibRecordDownload.js';
 import { createBulkController, initializeBulkForm } from './oclcBibBulk.js';
@@ -29,21 +30,19 @@ const state = {
   targetPlanValid: true,
   targetTimer: null,
   rankingGuide: null,
-  currentQuerySource: null,
-  searchRequest: 0,
-  compareRequest: 0
+  currentQuerySource: null, searchRequest: 0, compareRequest: 0
 };
 function workspaceMarkup() {
   return `
     <div class="bib-compare-shell">
       <header class="bib-compare-header">
         <div class="bib-compare-heading">
-          <span class="bib-compare-eyebrow">Bibliographic record enrichment</span>
+          <span class="bib-compare-eyebrow">Record comparison</span>
           <h1>Hydration</h1>
-          <p>Check OCLC first, then use an exact Library of Congress fallback when available.</p>
+          <p>Compare a Symphony record with trusted WorldCat or Library of Congress records. Nothing changes in Symphony.</p>
         </div>
         <div class="bib-compare-header-actions">
-          <span class="bib-compare-readonly">Read only</span>
+          <span class="bib-compare-readonly">Review only</span>
           <button class="bib-compare-icon-button" type="button" data-bib-close aria-label="Close Hydration" title="Close">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
           </button>
@@ -52,13 +51,13 @@ function workspaceMarkup() {
       <div class="bib-compare-layout">
         <aside class="bib-compare-search" aria-label="Find a local bibliographic record">
           <div class="bib-compare-mode" role="group" aria-label="Comparison mode">
-            <button type="button" class="is-active" data-bib-mode="single" aria-pressed="true">Single</button>
-            <button type="button" data-bib-mode="bulk" aria-pressed="false">Bulk</button>
+            <button type="button" class="is-active" data-bib-mode="single" aria-pressed="true">One record</button>
+            <button type="button" data-bib-mode="bulk" aria-pressed="false">List or file</button>
           </div>
           <form class="bib-compare-search-form" data-bib-search-form data-bib-single-form>
             <div class="bib-compare-form-heading">
-              <h2>Find local record</h2>
-              <p>Search the live Symphony catalog first.</p>
+              <h2>Find one Symphony record</h2>
+              <p>Search by title or identifier, then choose the record to review.</p>
             </div>
             <label class="bib-compare-label" for="bib-lookup-type">Search by</label>
             <select id="bib-lookup-type" data-bib-lookup-type>
@@ -78,16 +77,16 @@ function workspaceMarkup() {
           </form>
           <form class="bib-compare-search-form hidden" data-bib-bulk-form>
             <div class="bib-compare-form-heading">
-              <h2>Match a list</h2>
-              <p>Paste one value per line or import a text, CSV, TSV, or Excel file.</p>
+              <h2>Review a list</h2>
+              <p>Paste values, import a file, or use the current query.</p>
             </div>
             ${currentQuerySourceMarkup()}
-            <label class="bib-compare-label" for="bib-bulk-source">Workflow</label>
+            <label class="bib-compare-label" for="bib-bulk-source">What are you starting with?</label>
             <select id="bib-bulk-source" data-bib-bulk-source>
-              <option value="local">Match existing Symphony records</option>
-              <option value="spreadsheet">Spreadsheet metadata to MARC</option>
+              <option value="local">Symphony identifiers or titles</option>
+              <option value="spreadsheet">Spreadsheet book details</option>
             </select>
-            <label class="bib-compare-label" for="bib-bulk-type" data-bib-local-input>Values are</label>
+            <label class="bib-compare-label" for="bib-bulk-type" data-bib-local-input>Type of values</label>
             <select id="bib-bulk-type" data-bib-bulk-type data-bib-local-input>
               <option value="auto">Auto detect</option>
               <option value="catalog_key">Catalog keys</option>
@@ -95,7 +94,7 @@ function workspaceMarkup() {
               <option value="isbn">ISBNs</option>
               <option value="title">Titles</option>
             </select>
-            <label class="bib-compare-label" for="bib-bulk-values" data-bib-local-input>Values</label>
+            <label class="bib-compare-label" for="bib-bulk-values" data-bib-local-input>Paste values</label>
             <textarea id="bib-bulk-values" data-bib-bulk-values data-bib-local-input rows="9" placeholder="One value per line"></textarea>
             <div class="bib-bulk-file-row">
               <label class="bib-bulk-file-button" for="bib-bulk-file"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7.5 8.5 12 4l4.5 4.5M5 20h14"/></svg><span>Import file</span></label>
@@ -116,32 +115,32 @@ function workspaceMarkup() {
             </section>
             <button class="bib-compare-primary-button" type="submit">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7h12M8 12h12M8 17h12M4 7h.01M4 12h.01M4 17h.01"/></svg>
-              <span data-bib-bulk-submit-label>Match records</span>
+              <span data-bib-bulk-submit-label>Review records</span>
             </button>
           </form>
           <section class="bib-compare-hydration-plan" aria-labelledby="bib-hydration-heading">
             <div class="bib-compare-form-heading bib-compare-plan-heading">
-              <h2 id="bib-hydration-heading">Hydration plan</h2>
+              <h2 id="bib-hydration-heading">Review options</h2>
               <button type="button" class="bib-compare-ranking-button" data-bib-ranking-open>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.8 9a2.3 2.3 0 0 1 4.4.9c0 1.8-2.2 2-2.2 3.6M12 17.4h.01"/></svg>
-                <span>How ranking works</span>
+                <span>Scoring help</span>
               </button>
             </div>
-            <div class="bib-compare-segmented" role="radiogroup" aria-label="Hydration field scope">
+            <div class="bib-compare-segmented" role="radiogroup" aria-label="Review mode">
               <label>
                 <input type="radio" name="bib-hydration-mode" value="all" data-bib-target-mode checked>
-                <span>All eligible fields</span>
+                <span>Review all fields</span>
               </label>
               <label>
                 <input type="radio" name="bib-hydration-mode" value="selected" data-bib-target-mode>
-                <span>Selected fields</span>
+                <span>Create candidate</span>
               </label>
             </div>
             <p class="bib-compare-target-scope-note" data-bib-target-scope-note>
-              All eligible fields are compared. Choose Selected fields to build a bounded Hydration candidate.
+              Review all eligible fields. Choose Create candidate only when you know which MARC fields to copy.
             </p>
             <div class="bib-compare-target-entry hidden" data-bib-target-entry>
-              <label class="bib-compare-label" for="bib-target-tags">Requested MARC fields</label>
+              <label class="bib-compare-label" for="bib-target-tags">MARC fields to copy (3-digit tags)</label>
               <input id="bib-target-tags" data-bib-target-tags inputmode="numeric" autocomplete="off" maxlength="199" placeholder="521, 526">
               <p data-bib-target-status role="status" aria-live="polite"></p>
             </div>
@@ -155,8 +154,8 @@ function workspaceMarkup() {
         <main class="bib-compare-main">
           <section class="bib-compare-empty" data-bib-empty>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v16H6.5A2.5 2.5 0 0 0 4 21.5zM20 5.5A2.5 2.5 0 0 0 17.5 3H13v16h4.5a2.5 2.5 0 0 1 2.5 2.5z"/></svg>
-            <h2>Select a local record</h2>
-            <p>OCLC is primary. If it has no acceptable match, an exact MARC 010 Library of Congress record can be used.</p>
+            <h2>Start with a Symphony record</h2>
+            <p>Search on the left. Hydration will choose the best external match, check the edition, and explain what needs review.</p>
           </section>
 
           <section class="bib-compare-content hidden" data-bib-content aria-live="polite">
@@ -179,16 +178,16 @@ function workspaceMarkup() {
               <div class="bib-compare-confidence-heading">
                 <div>
                   <span class="bib-compare-advice" data-bib-advice>Review</span>
-                  <h2>Hydration confidence</h2>
+                  <h2>Recommendation</h2>
                 </div>
                 <p data-bib-confidence-reason></p>
               </div>
               <div class="bib-compare-score-grid">
-                <div><span>Overall</span><strong data-bib-overall-score>--</strong></div>
-                <div><span>Record identity</span><strong data-bib-identity-score>--</strong></div>
-                <div><span>Requested fields</span><strong data-bib-target-score>--</strong></div>
+                <div><span>Overall match</span><strong data-bib-overall-score>--</strong></div>
+                <div><span>Same-record check</span><strong data-bib-identity-score>--</strong></div>
+                <div><span>Selected field coverage</span><strong data-bib-target-score>--</strong></div>
               </div>
-              <p class="bib-compare-score-note">Transparent policy score, not a statistical probability.</p>
+              <p class="bib-compare-score-note">Rule-based review score—not a probability.</p>
               <div class="bib-compare-target-results" data-bib-target-results></div>
               <section class="bib-field-evidence-review hidden" data-bib-field-evidence></section>
               <div class="bib-compare-hydrated-download">
@@ -197,7 +196,7 @@ function workspaceMarkup() {
                 </button>
                 <button type="button" data-bib-hydrated-download disabled>
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M5 20h14"/></svg>
-                  <span>Download hydrated bib</span>
+                  <span>Download candidate MARC</span>
                 </button>
                 <p data-bib-hydrated-download-status>This read-only candidate never changes Symphony.</p>
               </div>
@@ -205,8 +204,8 @@ function workspaceMarkup() {
 
             <section class="bib-compare-candidate-band hidden" data-bib-candidate-band>
               <div>
-                <h2>WorldCat matches</h2>
-                <p data-bib-candidate-description>Choose a record to compare. You can switch matches at any time.</p>
+                <h2>Alternative WorldCat matches</h2>
+                <p data-bib-candidate-description>The best match is selected. Change it only if the record above is not the right edition.</p>
               </div>
               <div class="bib-compare-candidate-controls">
                 <div class="bib-candidate-picker" data-bib-candidate-picker>
@@ -230,7 +229,7 @@ function workspaceMarkup() {
             <section class="bib-compare-fields hidden" data-bib-fields>
               <div class="bib-compare-fields-toolbar">
                 <div>
-                  <h2>MARC fields</h2>
+                  <h2>Field-by-field differences</h2>
                   <p data-bib-field-summary></p>
                 </div>
                 <div class="bib-compare-filter-group" data-bib-filters role="group" aria-label="Filter MARC field comparison"></div>
@@ -293,6 +292,7 @@ function setMode(mode) {
   query('[data-bib-bulk-form]')?.classList.toggle('hidden', state.mode !== 'bulk');
   query('[data-bib-empty]')?.classList.toggle('hidden', state.mode === 'bulk' || Boolean(state.comparison));
   query('[data-bib-content]')?.classList.toggle('hidden', state.mode === 'bulk' || !state.comparison);
+  query('[data-bib-results]')?.classList.toggle('hidden', state.mode === 'bulk');
   state.bulkController?.setVisible(state.mode === 'bulk');
   if (state.mode === 'bulk') state.currentQuerySource?.refresh();
   state.workspace?.querySelectorAll('[data-bib-mode]').forEach(button => {
@@ -450,22 +450,22 @@ function renderMatch(payload) {
   band.dataset.confidence = match.confidence || 'review';
   query('[data-bib-match-chip]').textContent = matchConfidenceLabel(match.confidence);
   query('[data-bib-match-title]').textContent = match.title_match
-    ? 'Record identity aligns'
-    : 'Record identity needs review';
+    ? 'Same record likely'
+    : 'Check record identity';
   const review = payload?.review;
   const source = bibliographicSource(payload);
   const enrichment = review
-    ? ` ${source.shortLabel} fields: ${Number(review.source_521_count ?? review.worldcat_521_count ?? 0)} audience (521), ${Number(review.source_526_count ?? review.worldcat_526_count ?? 0)} reading-program (526). ${review.hydration_ready ? 'Exact-edition checks align.' : 'Review exact-edition evidence before hydration.'}`
+    ? ` ${source.shortLabel} includes ${Number(review.source_521_count ?? review.worldcat_521_count ?? 0)} audience notes (MARC 521) and ${Number(review.source_526_count ?? review.worldcat_526_count ?? 0)} reading-program notes (MARC 526). ${review.hydration_ready ? 'Edition details align.' : 'Check the edition details before using this record.'}`
     : '';
   query('[data-bib-match-reason]').textContent = `${match.reason || ''}${enrichment}`;
 }
 
 function adviceLabel(advice) {
   return {
-    recommended: 'Recommended',
-    review: 'Review first',
-    do_not_hydrate: 'Do not hydrate'
-  }[advice] || 'Review first';
+    recommended: 'Good match',
+    review: 'Check carefully',
+    do_not_hydrate: 'Do not use'
+  }[advice] || 'Check carefully';
 }
 
 function renderHydrationConfidence(payload) {
@@ -518,9 +518,9 @@ function renderHydrationConfidence(payload) {
     downloadStatus.textContent = canDownload
       ? `Builds a read-only candidate using approved ${source.label} ${approvedTags.join(', ')} fields. Nothing is sent to Symphony.`
       : !isSelectedPlan
-        ? 'Choose Selected fields to create a bounded candidate. Nothing is sent to Symphony.'
+        ? 'Choose Create candidate and enter the MARC fields to copy. Nothing is sent to Symphony.'
         : assessment.advice !== 'recommended'
-          ? 'A candidate is available only when the selected-field assessment is Recommended.'
+          ? 'A candidate can be downloaded only after the selected fields receive a Good match recommendation.'
           : !fieldEvidenceDownloadReady(assessment.field_evidence)
             ? 'Field evidence requires review before a hydrated candidate can be downloaded.'
           : 'The complete local and external records are required before a candidate can be downloaded.';
@@ -571,7 +571,7 @@ function renderFieldRows() {
   const rows = filterComparisonRows(comparison.rows, state.filter);
   const counts = comparison.counts || {};
   if (summary) {
-    summary.textContent = `${Number(counts.differences || 0).toLocaleString()} differences across ${Number(counts.all || 0).toLocaleString()} aligned fields.`;
+    summary.textContent = `${Number(counts.differences || 0).toLocaleString()} fields differ across ${Number(counts.all || 0).toLocaleString()} compared fields.`;
   }
 
   rows.forEach(row => {
@@ -652,8 +652,8 @@ async function loadComparison(catalogKey, oclcNumber = '') {
     renderComparison(data);
   } catch (error) {
     if (requestId !== state.compareRequest) return;
-    showToastMessage(error.message || 'The records could not be compared.', 'error');
-    setSearchStatus(error.message || 'The records could not be compared.', 'error');
+    const message = getClientErrorMessage(error, { fallback: 'The records could not be compared. Try again.' });
+    showToastMessage(message, 'error'); setSearchStatus(message, 'error');
     query('[data-bib-empty]')?.classList.remove('hidden');
     query('[data-bib-content]')?.classList.add('hidden');
   } finally {
@@ -681,14 +681,14 @@ function updateTargetPlan({ reload = true } = {}) {
     state.targetPlanValid = true;
     if (status) status.textContent = '';
     if (scopeNote) {
-      scopeNote.textContent = 'All eligible fields are compared. Choose Selected fields to build a bounded Hydration candidate.';
+      scopeNote.textContent = 'Review all eligible fields. Choose Create candidate only when you know which MARC fields to copy.';
     }
   } else {
     const parsed = parsedTargetTags(query('[data-bib-target-tags]')?.value);
     if (scopeNote) {
       scopeNote.textContent = parsed.tags.length && !parsed.error
-        ? `Only MARC ${parsed.tags.join(', ')} will be replaced in the downloaded candidate. Every other local field stays unchanged.`
-        : 'Only the MARC tags entered below will be replaced in the downloaded candidate. Every other local field stays unchanged.';
+        ? `Only MARC ${parsed.tags.join(', ')} will be copied into the downloaded candidate. Every other Symphony field stays unchanged.`
+        : 'Only the MARC tags below are copied into the downloaded candidate. Every other Symphony field stays unchanged.';
     }
     if (status) {
       status.textContent = parsed.error || (parsed.tags.length ? `${parsed.tags.length} field${parsed.tags.length === 1 ? '' : 's'} selected` : 'Enter at least one field.');
@@ -744,7 +744,7 @@ async function runSearch() {
     if (requestId !== state.searchRequest) return;
     state.searchResults = [];
     renderSearchResults();
-    setSearchStatus(error.message || 'The catalog search failed.', 'error');
+    setSearchStatus(getClientErrorMessage(error, { fallback: 'The catalog search could not be completed. Check the search and try again.' }), 'error');
   } finally {
     if (submit) submit.disabled = false;
   }
@@ -852,7 +852,7 @@ function bindWorkspaceEvents(workspace) {
       if (menu) menu.open = false;
       showToastMessage(`${filename} downloaded.`, 'success');
     } catch (error) {
-      showToastMessage(error.message || 'The bibliographic record could not be downloaded.', 'error');
+      showToastMessage(getClientErrorMessage(error, { fallback: 'The bibliographic record could not be downloaded. Try again.' }), 'error');
     }
   });
   workspace.querySelector('[data-bib-hydrated-download]')?.addEventListener('click', event => {
@@ -872,7 +872,7 @@ function bindWorkspaceEvents(workspace) {
       });
       showToastMessage(`${filename} downloaded for review. No catalog changes were made.`, 'success');
     } catch (error) {
-      showToastMessage(error.message || 'The hydration candidate could not be downloaded.', 'error');
+      showToastMessage(getClientErrorMessage(error, { fallback: 'The Hydration candidate could not be downloaded. Try again.' }), 'error');
     }
   });
   bindSingleHydrationExcel({ workspace, getPayload: () => state.comparison, notify: showToastMessage });
