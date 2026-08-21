@@ -1,5 +1,5 @@
 {
-  "version": "969cdb8dc567be69",
+  "version": "5be459fb48f09ce6",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-16.png": "6645731d86da1071",
@@ -42,7 +42,7 @@
     "src/core/domReady.js": "f385624460b061da",
     "src/core/dynamicFieldStorage.js": "1ff73616e74c57db",
     "src/core/fieldAccess.js": "2b23c13ba7c64dc6",
-    "src/core/fieldDefs.js": "d2591627fb51e4b4",
+    "src/core/fieldDefs.js": "b83155408257c564",
     "src/core/formatting/cellDisplayFormatting.js": "be7e1f92547161d8",
     "src/core/formatting/dataFormatters.js": "01cc0a530b21639c",
     "src/core/formatting/dateValues.js": "8346afd2fe520d11",
@@ -158,7 +158,7 @@
     "src/features/templates/data/queryTemplateRepository.js": "76b24ebd79844cf5",
     "src/features/templates/data/queryTemplateState.js": "cfea7d82eb831bfe",
     "src/features/templates/data/queryTemplateUiConfig.js": "89542ddf66e29e9f",
-    "src/features/templates/queryTemplates.js": "948b2105fb218318",
+    "src/features/templates/queryTemplates.js": "93c038712414291f",
     "src/features/templates/view/queryTemplateDetailView.js": "6e2a8355b61e2e79",
     "src/features/templates/view/queryTemplateElements.js": "1eeb873c56db8d39",
     "src/features/templates/view/queryTemplateListView.js": "2f4f1ac2cd5440d4",
@@ -282,7 +282,7 @@
     "src/ui/mobileTableControls.js": "7cdf395901b8c776",
     "src/ui/modalManager.js": "35da15fad2658581",
     "src/ui/queryAnimation.js": "a39c12407a8bb1d3",
-    "src/ui/queryBuilderShell.js": "fce746ac4656510c",
+    "src/ui/queryBuilderShell.js": "61b3e9bacc2468f1",
     "src/ui/queryTableView.js": "8ef5bf8101a16ffc",
     "src/ui/queryUI.js": "c82dc41c880a00b2",
     "src/ui/siteUpdate.js": "195b5eabf5a54404",

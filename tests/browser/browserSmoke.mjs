@@ -2110,6 +2110,9 @@ async function runSmokeTest() {
       throw new Error('Query History control must remain hidden until the user signs in');
     }
     await signedOutPage.locator('#auth-session-dialog[open]').waitFor({ state: 'visible', timeout: 5000 });
+    if (signedOutApiStub.countAction('get_fields') !== 0 || signedOutApiStub.countAction('list_templates') !== 0) {
+      throw new Error(`Signed-out startup must not request protected data before authentication: ${JSON.stringify(signedOutApiStub.getRequests())}`);
+    }
     const signedOutLockState = await signedOutPage.evaluate(() => ({
       authRequired: document.body.classList.contains('query-auth-required'),
       appVisible: Boolean(document.querySelector('#query-app-shell')?.getBoundingClientRect().width),
