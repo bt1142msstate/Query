@@ -13,9 +13,28 @@ function buildLibraryScopeGroups(systems = [], libraries = []) {
   ].filter(group => group.options.length > 0);
 }
 
+function buildLibraryScopeSelectorValues(systems = [], libraries = []) {
+  const systemOptions = normalizeLibraryScopeOptions(systems).map(option => ({
+    RawValue: option.value,
+    Display: option.label,
+    Group: 'Library systems'
+  }));
+  const libraryOptions = normalizeLibraryScopeOptions(libraries).map(option => ({
+    RawValue: option.value,
+    Display: option.label,
+    Group: systemCodeForLibraryScope(option.value) || 'Item libraries'
+  }));
+  return [...systemOptions, ...libraryOptions];
+}
+
 function systemCodeForLibraryScope(scope = '') {
   const normalized = String(scope || '').replace(/^system:/u, '');
   return normalized && normalized !== 'all' ? normalized.split('-')[0].toUpperCase() : '';
 }
 
-export { ALL_LIBRARY_SYSTEMS_LABEL, buildLibraryScopeGroups, systemCodeForLibraryScope };
+export {
+  ALL_LIBRARY_SYSTEMS_LABEL,
+  buildLibraryScopeGroups,
+  buildLibraryScopeSelectorValues,
+  systemCodeForLibraryScope
+};
