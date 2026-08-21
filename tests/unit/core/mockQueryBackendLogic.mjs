@@ -73,6 +73,29 @@ test('demo dashboard status includes clearly marked sample operational activity'
   assert.ok(Object.values(payload.queries).some(run => run.status === 'failed'));
 });
 
+test('demo library dashboard demonstrates comparisons, fiscal periods, and privacy-safe geography', async () => {
+  const initialResponse = await handleDemoQueryRequest({
+    body: JSON.stringify({ action: 'library_dashboard', library: 'MSU' }),
+    headers: authHeaders
+  });
+  const initial = await initialResponse.json();
+  const reportingPeriod = initial.filters.fiscal_periods_by_system.MSU[0].value;
+  const response = await handleDemoQueryRequest({
+    body: JSON.stringify({ action: 'library_dashboard', library: 'MSU', reporting_period: reportingPeriod }),
+    headers: authHeaders
+  });
+  const payload = await response.json();
+  assert.equal(payload.sample_data, true);
+  assert.equal(payload.scope.reporting_period, reportingPeriod);
+  assert.equal(payload.circulation.comparison_available, true);
+  assert.equal(payload.circulation.fiscal_system, 'MSU');
+  assert.ok(payload.filters.fiscal_periods_by_system.MSU.length >= 3);
+  assert.ok(payload.patron_geo_breakdown.every(row => /xx$|unknown$/u.test(row.label)));
+  assert.ok(payload.patron_city_breakdown.length > 0);
+  assert.ok(payload.patron_state_breakdown.length > 0);
+  assert.equal(JSON.stringify(payload).includes('street_address'), false);
+});
+
 test('demo backend supports authenticated local bib lookup and WorldCat comparison', async () => {
   const searchResponse = await handleDemoQueryRequest({
     body: JSON.stringify({
