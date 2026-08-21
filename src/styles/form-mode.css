@@ -27,7 +27,7 @@
   box-shadow: 0 20px 45px rgba(15, 23, 42, 0.12);
   display: flex;
   flex-direction: column;
-  max-height: min(30vh, 240px);
+  max-height: none;
   overflow: visible;
   min-width: 0;
 }
@@ -275,8 +275,7 @@
 
 .form-mode-body {
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: auto;
+  overflow: visible;
   padding-right: 0.15rem;
 }
 
@@ -526,11 +525,11 @@ body.form-workspace-focused .form-mode-card {
   width: min(100%, 1120px);
   height: auto;
   min-height: min(34rem, calc(100dvh - var(--header-height) - 2.5rem));
-  max-height: calc(100dvh - var(--header-height) - 2.5rem);
+  max-height: none;
   padding: 0;
   margin-bottom: 1rem;
   border-radius: 0.5rem;
-  overflow: hidden;
+  overflow: visible;
 }
 
 body.form-workspace-focused .form-mode-header {
@@ -633,9 +632,9 @@ body.form-workspace-focused .form-mode-btn:hover:not(:disabled) {
 }
 
 body.form-workspace-focused .form-mode-body {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   padding: 0.85rem;
-  overflow-x: hidden;
+  overflow: visible;
 }
 
 body.form-workspace-focused .form-mode-fields {
@@ -783,7 +782,7 @@ body.form-workspace-focused .form-mode-field-remove {
   }
 
   .form-mode-body {
-    overflow-x: hidden;
+    overflow: visible;
     padding-right: 0;
   }
 
@@ -801,7 +800,7 @@ body.form-workspace-focused .form-mode-field-remove {
   body.form-workspace-focused .form-mode-card {
     height: auto;
     min-height: 24rem;
-    max-height: calc(100dvh - var(--header-height) - 1rem);
+    max-height: none;
     margin-bottom: 0;
   }
 
