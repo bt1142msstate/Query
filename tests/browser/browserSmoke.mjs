@@ -548,8 +548,17 @@ async function runSmokeTest() {
     if (!exportText.startsWith('\uFEFFSection,Label,Metric,Value') || !exportText.includes('previous_checkouts')) {
       throw new Error('Dashboard export should include the UTF-8 header and prior-period metrics.');
     }
+    const reportingPeriodGroups = await page.locator('#kpi-dashboard-window optgroup').evaluateAll(groups => groups.map(group => group.label));
+    if (!reportingPeriodGroups.includes('Calendar years') || !reportingPeriodGroups.includes('Rolling periods')) {
+      throw new Error(`Dashboard should separate calendar-year and rolling choices: ${JSON.stringify(reportingPeriodGroups)}`);
+    }
+    await page.locator('#kpi-dashboard-window').selectOption('cy:2026');
+    await page.waitForFunction(() => document.querySelector('#kpi-dashboard-content .kpi-card')?.textContent?.includes('Calendar Year 2026 to date'));
     await page.locator('#kpi-dashboard-library').selectOption('MSU');
     await page.waitForFunction(() => Array.from(document.querySelectorAll('#kpi-dashboard-window option')).some(option => option.value === 'fy:MSU:2027'));
+    if (!await page.locator('#kpi-dashboard-window optgroup[label="Fiscal years"]').count()) {
+      throw new Error('Dashboard should expose fiscal years as a distinct reporting-period group after choosing a system.');
+    }
     await page.locator('#kpi-dashboard-window').selectOption('fy:MSU:2027');
     await page.waitForFunction(() => document.querySelector('#kpi-dashboard-content .kpi-card')?.textContent?.includes('FY 2027 to date'));
     if (process.env.QUERY_DASHBOARD_SCREENSHOT_PATH) {
