@@ -29,3 +29,15 @@ test('overview renders demand rankings when the transaction aggregate is availab
   assert.match(html, /kpi-ranking__label[^>]*>Main</);
   assert.match(html, /kpi-ranking__label[^>]*>BOOK</);
 });
+
+test('dashboard intro names the selected aggregate scope when labels are absent', () => {
+  const dashboard = normalizeLibraryDashboard({
+    scope: { library: 'MSU-GRANT', item_type: 'BOOK', active_window_days: 90 },
+    collection: { items: 17_916 }
+  });
+
+  const html = renderLibraryDashboard(dashboard, 'overview');
+  assert.match(html, /<strong>MSU-GRANT<\/strong>/);
+  assert.match(html, /<small>BOOK<\/small>/);
+  assert.doesNotMatch(html, /<strong>All MLP libraries<\/strong>/);
+});
