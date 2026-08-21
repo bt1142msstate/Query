@@ -315,18 +315,20 @@ test('dashboard CLI requests the same scoped aggregate used by the interface', a
   const outputPath = join(tmpdir(), `query-cli-dashboard-${Date.now()}.json`);
   try {
     const result = await runDashboardCommand({
-      library: 'MSU',
+      library: 'system:MSU',
       'item-type': 'EBOOK',
       'active-window-days': '90',
+      'reporting-period': 'fy:MSU:2027',
       output: outputPath,
       'api-url': 'https://example.test/query',
       sessionStore: { read: async () => ({ token: 'test-session-token' }) }
     });
     assert.deepEqual(payload, {
       action: 'library_dashboard',
-      library: 'MSU',
+      library: 'system:MSU',
       item_type: 'EBOOK',
       active_window_days: 90,
+      reporting_period: 'fy:MSU:2027',
       force_refresh: false
     });
     assert.equal(result.schemaVersion, 1);
