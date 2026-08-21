@@ -13,7 +13,9 @@ import {
   parseFilterArgument,
   parsePostFilterArgument,
   runApiCommand,
+  runDashboardCommand,
   runLoginCommand,
+  runPlanCommand,
   runResultsCommand,
   runQuery,
   runRunCommand,
@@ -297,6 +299,64 @@ test('generic API command reaches newer backend actions with JSON payloads and a
       run_id: 'hydration-1',
       status: 'running'
     });
+  } finally {
+    globalThis.fetch = originalFetch;
+    await rm(outputPath, { force: true });
+  }
+});
+
+test('dashboard CLI requests the same scoped aggregate used by the interface', async () => {
+  const originalFetch = globalThis.fetch;
+  let payload;
+  globalThis.fetch = async (_apiUrl, init = {}) => {
+    payload = JSON.parse(init.body || '{}');
+    return Response.json({ schema_version: 1, collection: { items: 12 } });
+  };
+  const outputPath = join(tmpdir(), `query-cli-dashboard-${Date.now()}.json`);
+  try {
+    const result = await runDashboardCommand({
+      library: 'MSU',
+      'item-type': 'EBOOK',
+      'active-window-days': '90',
+      output: outputPath,
+      'api-url': 'https://example.test/query',
+      sessionStore: { read: async () => ({ token: 'test-session-token' }) }
+    });
+    assert.deepEqual(payload, {
+      action: 'library_dashboard',
+      library: 'MSU',
+      item_type: 'EBOOK',
+      active_window_days: 90,
+      force_refresh: false
+    });
+    assert.equal(result.schemaVersion, 1);
+    assert.equal(JSON.parse(await readFile(outputPath, 'utf8')).collection.items, 12);
+  } finally {
+    globalThis.fetch = originalFetch;
+    await rm(outputPath, { force: true });
+  }
+});
+
+test('smart-plan CLI sends the same query payload without running it', async () => {
+  const originalFetch = globalThis.fetch;
+  let payload;
+  const outputPath = join(tmpdir(), `query-cli-plan-${Date.now()}.json`);
+  globalThis.fetch = async (_apiUrl, init = {}) => {
+    payload = JSON.parse(init.body || '{}');
+    return Response.json({ strategy: 'selective_first_v1', changed: true, eta: { available: false } });
+  };
+  try {
+    const result = await runPlanCommand({
+      display: 'Title,Item Id',
+      filter: ['Title=*history*', 'Catalog Key=12345'],
+      output: outputPath,
+      'api-url': 'https://example.test/query',
+      sessionStore: { read: async () => ({ token: 'test-session-token' }) }
+    });
+    assert.equal(payload.action, 'query_plan');
+    assert.deepEqual(payload.display_fields, ['Title', 'Item Id']);
+    assert.equal(payload.filters.some(filter => filter.field === 'Catalog Key'), true);
+    assert.equal(result.changed, true);
   } finally {
     globalThis.fetch = originalFetch;
     await rm(outputPath, { force: true });

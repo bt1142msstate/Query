@@ -79,6 +79,8 @@ function printUsage(stream = process.stdout) {
   npm run query:api -- --action ACTION [--payload request.json|-] [--set key=value] [--output response.json]
   npm run query:compat -- [--api-url URL] [--json]
   npm run query:status -- [--api-url URL] [--json]
+  npm run query:dashboard -- [--library CODE] [--item-type CODE] [--active-window-days 90|365|730] [--output dashboard.json]
+  npm run query:plan -- --config query.json [--output plan.json]
   npm run query:cancel -- --query-id QUERY_ID
   npm run query:results -- --query-id QUERY_ID [--format xlsx|csv|json|jsonl] [--output results.xlsx] [--include-duplicates]
   npm run query:templates -- [--json]
@@ -926,6 +928,31 @@ async function runApiCommand(options = {}) {
   return { action: payload.action, apiUrl, bytes: output.length, contentType, outputPath };
 }
 
+async function runDashboardCommand(options = {}) {
+  const apiUrl = getApiUrl({}, options);
+  const payload = {
+    action: 'library_dashboard',
+    library: String(options.library || 'all'),
+    item_type: String(options['item-type'] || options.itemType || 'all'),
+    active_window_days: Number(options['active-window-days'] || options.activeWindowDays || 365),
+    force_refresh: Boolean(options.refresh)
+  };
+  const data = await postJson(apiUrl, payload, options);
+  const outputPath = options.output ? resolve(String(options.output)) : '';
+  await writeTextOutput({ outputPath, text: `${JSON.stringify(data, null, 2)}\n` });
+  return { apiUrl, outputPath, schemaVersion: Number(data.schema_version || 0) };
+}
+
+async function runPlanCommand(options = {}) {
+  const config = await readConfig(options.config);
+  const apiUrl = getApiUrl(config, options);
+  const payload = { ...buildRunPayload(config, options), action: 'query_plan' };
+  const data = await postJson(apiUrl, payload, options);
+  const outputPath = options.output ? resolve(String(options.output)) : '';
+  await writeTextOutput({ outputPath, text: `${JSON.stringify(data, null, 2)}\n` });
+  return { apiUrl, outputPath, changed: Boolean(data.changed), eta: data.eta || {} };
+}
+
 async function runLoginCommand(options = {}) {
   const apiUrl = getApiUrl({}, options);
   const username = String(options.username || '').trim();
@@ -1017,6 +1044,16 @@ async function main(argv = process.argv.slice(2)) {
     if (result.outputPath) process.stdout.write(`Wrote ${result.action} response to ${result.outputPath}\n`);
     return result;
   }
+  if (command === 'dashboard') {
+    const result = await runDashboardCommand(options);
+    if (result.outputPath) process.stdout.write(`Wrote dashboard snapshot to ${result.outputPath}\n`);
+    return result;
+  }
+  if (command === 'plan') {
+    const result = await runPlanCommand(options);
+    if (result.outputPath) process.stdout.write(`Wrote smart query plan to ${result.outputPath}\n`);
+    return result;
+  }
   if (command === 'compat') {
     const result = await runCompatCommand(options);
     if (result.outputPath) {
@@ -1075,11 +1112,13 @@ export {
   runApiCommand,
   runCompatCommand,
   runCancelCommand,
+  runDashboardCommand,
   runFieldsCommand,
   runQuery,
   runLoginCommand,
   runLogoutCommand,
   runPairCommand,
+  runPlanCommand,
   runResultsCommand,
   runRunCommand,
   runStatusCommand,

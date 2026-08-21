@@ -18,6 +18,7 @@ A single-page app for building queries, applying filters, reviewing results, and
 | **Core query builder** | Add display fields, search field metadata, and apply filter conditions |
 | **Shared form workflow** | URL-driven guided forms for focused reporting workflows |
 | **Query history** | Signed-in live status tracking — reload, rerun, cancel, or inspect past runs |
+| **Library intelligence dashboard** | Live, privacy-safe collection, circulation, patron, demand, and collection-development KPIs with branch/item-type filters, source freshness, and Query drill-downs; Query activity remains an administrative view |
 | **Query templates** | Save, categorize, pin, search, and reapply reusable query setups |
 | **Query JSON** | Inspect the exact payload being sent to the backend |
 | **CLI workflows** | Sign in securely, run and export reports, manage query lifecycle operations, and invoke the full authenticated backend action surface from terminal configs |

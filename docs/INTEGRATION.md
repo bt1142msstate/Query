@@ -498,6 +498,21 @@ Response:
 
 Recognized statuses include `running`, `complete`, `failed`, and `canceled`.
 
+The signed-in dashboard uses a dedicated, privacy-safe aggregate endpoint for library intelligence:
+
+```json
+{
+  "action": "library_dashboard",
+  "library": "all",
+  "item_type": "all",
+  "active_window_days": 365
+}
+```
+
+The response contract is documented in [LIBRARY_DASHBOARD.md](LIBRARY_DASHBOARD.md). Backends should return only aggregates, independently timestamp each source, suppress small patron groups, and never send raw patron records. The public interface automatically refreshes while open and may request a fresh verified snapshot; private backends decide the safe refresh cadence and may serve a short-lived cache.
+
+The secondary **Query activity** tab still summarizes `status` with `{ "dashboard": true }`. For accurate operational cards, provide `name`, `created_by`, `status`, `start_time`, `end_time`, and `row_count` when known. Hydration runs may additionally provide `kind: "hydration"`, `hydration_completed`, `hydration_total`, and `hydration_counts` with `resolved`, `review`, `not_found`, and `failed` counts. Backends remain responsible for history retention, authorization, and whether staff identities are appropriate to expose.
+
 Running queries may include a backend-neutral `progress` object. The frontend treats this as a generic status contract and does not assume anything about the backend's query engine, database, or enrichment tools.
 
 Recommended progress fields:
