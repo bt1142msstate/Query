@@ -164,6 +164,9 @@ function processJsonLineEvent(line, state, readOptions = {}) {
     if (Array.isArray(columns) && columns.length) {
       state.columns = columns;
     }
+    if (typeof readOptions.onMeta === 'function') {
+      readOptions.onMeta(event);
+    }
     return;
   }
 

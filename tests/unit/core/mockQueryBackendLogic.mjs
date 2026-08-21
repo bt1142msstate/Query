@@ -61,6 +61,18 @@ test('demo endpoint detection is limited to the explicit path', () => {
   assert.equal(isDemoApiUrl('https://example.org/query-api'), false);
 });
 
+test('demo dashboard status includes clearly marked sample operational activity', async () => {
+  const response = await handleDemoQueryRequest({
+    body: JSON.stringify({ action: 'status', dashboard: true }),
+    headers: authHeaders
+  });
+  const payload = await response.json();
+  assert.equal(payload.sample_data, true);
+  assert.ok(Object.keys(payload.queries).length >= 15);
+  assert.ok(Object.values(payload.queries).some(run => run.kind === 'hydration'));
+  assert.ok(Object.values(payload.queries).some(run => run.status === 'failed'));
+});
+
 test('demo backend supports authenticated local bib lookup and WorldCat comparison', async () => {
   const searchResponse = await handleDemoQueryRequest({
     body: JSON.stringify({

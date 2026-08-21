@@ -12,9 +12,10 @@ class ModalManager {
   constructor() {
     this.initialized = false;
     this.overlay = DOM?.overlay || document.getElementById('overlay');
-    this.panels = ['json-panel', 'queries-panel', 'templates-panel', 'api-settings-panel', 'help-panel', 'mobile-menu-dropdown'];
+    this.panels = ['json-panel', 'kpi-dashboard-panel', 'queries-panel', 'templates-panel', 'api-settings-panel', 'help-panel', 'mobile-menu-dropdown'];
     this.panelTitles = {
       'json-panel': 'Query JSON',
+      'kpi-dashboard-panel': 'Dashboard',
       'queries-panel': 'Queries',
       'templates-panel': 'Templates',
       'api-settings-panel': 'API Settings',
@@ -24,6 +25,7 @@ class ModalManager {
     this.mobileMenuLabelMap = {
       'run-query-btn': 'Run Query',
       'toggle-json': 'JSON',
+      'toggle-kpi-dashboard': 'Dashboard',
       'toggle-queries': 'Queries',
       'toggle-templates': 'Templates',
       'toggle-bib-compare': 'Hydration',
@@ -156,6 +158,8 @@ class ModalManager {
       appServices.startHistoryDurationUpdates();
     } else if (panelId === 'templates-panel') {
       appServices.openQueryTemplatesPanel();
+    } else if (panelId === 'kpi-dashboard-panel') {
+      window.dispatchEvent(new CustomEvent('query-dashboard:open'));
     }
     
     // Accessibility
@@ -258,6 +262,7 @@ class ModalManager {
     // Desktop: Bind click events to the toggle buttons
     const panelToggles = {
       'toggle-json': 'json-panel',
+      'toggle-kpi-dashboard': 'kpi-dashboard-panel',
       'toggle-queries': 'queries-panel',
       'toggle-templates': 'templates-panel',
       'toggle-api-settings': 'api-settings-panel',

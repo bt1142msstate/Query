@@ -512,6 +512,39 @@ async function runSmokeTest() {
     await page.locator('#api-settings-panel .collapse-btn').click();
     await page.locator('#api-settings-panel.hidden').waitFor({ state: 'attached', timeout: 5000 });
 
+    await page.getByRole('button', { name: 'Dashboard' }).click();
+    await page.locator('#kpi-dashboard-content:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+    const dashboardState = await page.locator('#kpi-dashboard-panel').evaluate(panel => ({
+      cardValues: Array.from(panel.querySelectorAll('.kpi-card__value')).map(node => node.textContent.trim()),
+      chartCount: panel.querySelectorAll('.kpi-chart-card').length,
+      opportunityRows: panel.querySelectorAll('.kpi-opportunity-table tbody tr').length,
+      libraryOptions: Array.from(panel.querySelectorAll('#kpi-dashboard-library option')).map(option => option.value),
+      selectedTab: panel.querySelector('[data-kpi-view][aria-selected="true"]')?.dataset.kpiView || ''
+    }));
+    if (
+      dashboardState.cardValues[0] !== '880,229'
+      || dashboardState.cardValues[1] !== '487,605'
+      || dashboardState.cardValues[2] !== '2,813,442'
+      || dashboardState.chartCount !== 6
+      || dashboardState.opportunityRows !== 1
+      || !dashboardState.libraryOptions.includes('MSU')
+      || dashboardState.selectedTab !== 'overview'
+    ) {
+      throw new Error(`Dashboard should reconcile library metrics, charts, filters, and opportunities: ${JSON.stringify(dashboardState)}`);
+    }
+    await expectNoHorizontalOverflow(page, 'Desktop KPI dashboard');
+    if (process.env.QUERY_DASHBOARD_SCREENSHOT_PATH) {
+      await page.setViewportSize({ width: 1440, height: 1200 });
+      await page.screenshot({ path: process.env.QUERY_DASHBOARD_SCREENSHOT_PATH, fullPage: false });
+      await page.setViewportSize({ width: 1280, height: 720 });
+    }
+    await page.locator('[data-kpi-view="patrons"]').click();
+    await page.waitForFunction(() => document.querySelector('#kpi-dashboard-content .kpi-card__value')?.textContent?.trim() === '618,420');
+    await page.locator('[data-kpi-view="operations"]').click();
+    await page.waitForFunction(() => document.querySelector('#kpi-dashboard-content .kpi-card__value')?.textContent?.trim() === '3');
+    await page.locator('#kpi-dashboard-panel .collapse-btn').click();
+    await page.locator('#kpi-dashboard-panel.hidden').waitFor({ state: 'attached', timeout: 5000 });
+
     await expectNoHorizontalOverflow(page, 'Desktop initial layout');
     await expectControlsNonSelectable(page, 'body', 'Desktop initial layout');
     await applySmokeTheme(page, 'dark');
@@ -1328,7 +1361,7 @@ async function runSmokeTest() {
     const mobileMenuLabels = await mobilePage.locator('#mobile-menu-dropdown .mobile-menu-item').evaluateAll(items => {
       return items.map(item => (item.textContent || '').trim().replace(/\s+/gu, ' '));
     });
-    ['Run Query', 'JSON', 'Queries', 'Templates', 'Theme', 'Help'].forEach(expectedLabel => {
+    ['Run Query', 'JSON', 'Dashboard', 'Queries', 'Templates', 'Theme', 'Help'].forEach(expectedLabel => {
       if (!mobileMenuLabels.some(label => label.includes(expectedLabel))) {
         throw new Error(`Mobile menu is missing "${expectedLabel}": ${JSON.stringify(mobileMenuLabels)}`);
       }
@@ -1338,6 +1371,21 @@ async function runSmokeTest() {
       throw new Error(`Mobile theme item should not duplicate the icon label: ${JSON.stringify(mobileMenuLabels)}`);
     }
     await expectNoHorizontalOverflow(mobilePage, 'Mobile menu');
+    await mobilePage.locator('[data-source-control-id="toggle-kpi-dashboard"]').click();
+    await mobilePage.locator('#kpi-dashboard-content:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+    await expectElementWithinViewport(mobilePage, '#kpi-dashboard-panel', 'Mobile KPI dashboard panel');
+    await expectNoHorizontalOverflow(mobilePage, 'Mobile KPI dashboard panel');
+    const mobileDashboardCards = await mobilePage.locator('#kpi-dashboard-panel .kpi-card').count();
+    if (mobileDashboardCards !== 6) {
+      throw new Error(`Mobile KPI dashboard should preserve all six summary cards: ${mobileDashboardCards}`);
+    }
+    if (process.env.QUERY_DASHBOARD_SCREENSHOT_PATH) {
+      const mobileScreenshotPath = process.env.QUERY_DASHBOARD_SCREENSHOT_PATH.replace(/(\.[^.]+)$/u, '-mobile$1');
+      await mobilePage.screenshot({ path: mobileScreenshotPath, fullPage: false });
+    }
+    await mobilePage.locator('#kpi-dashboard-panel .collapse-btn').click();
+    await mobilePage.locator('#mobile-menu-toggle').click();
+    await mobilePage.locator('#mobile-menu-dropdown.show').waitFor({ state: 'visible', timeout: 5000 });
     queueHistoryStatusResponses(mobileQueryApiStub);
     await mobilePage.locator('[data-source-control-id="toggle-queries"]').click();
     await mobilePage.locator('#queries-search').waitFor({ state: 'visible', timeout: 5000 });
@@ -1901,6 +1949,7 @@ async function runSmokeTest() {
       throw new Error('Mobile run action is disabled after seeding display fields');
     }
     mobileQueryApiStub.enqueue({
+      action: 'run',
       body: buildJsonlResultStream({
         queryId: 'mobile-run-smoke',
         rows: [['Mobile run result', 'Main', 'Open']]
