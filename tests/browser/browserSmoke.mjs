@@ -969,6 +969,11 @@ async function runSmokeTest() {
         return {
           filterPanel: readRect('#filter-side-panel'),
           formCard: readRect('#form-mode-card'),
+          formCardClientHeight: document.querySelector('#form-mode-card')?.clientHeight || 0,
+          formCardScrollHeight: document.querySelector('#form-mode-card')?.scrollHeight || 0,
+          formBodyClientHeight: document.querySelector('.form-mode-body')?.clientHeight || 0,
+          formBodyOverflowY: window.getComputedStyle(document.querySelector('.form-mode-body')).overflowY,
+          formBodyScrollHeight: document.querySelector('.form-mode-body')?.scrollHeight || 0,
           pageOverflowY: Math.max(
             0,
             document.documentElement.scrollHeight - document.documentElement.clientHeight,
@@ -982,9 +987,8 @@ async function runSmokeTest() {
 
       if (
         restoredResultLayout.formCard?.height > 0
-        && restoredResultLayout.formCard.bottom <= restoredResultLayout.viewportHeight - 8
-        && restoredResultLayout.viewportHeight - restoredResultLayout.formCard.bottom <= 42
-        && restoredResultLayout.pageOverflowY <= 1
+        && restoredResultLayout.formCardScrollHeight <= restoredResultLayout.formCardClientHeight + 1
+        && restoredResultLayout.formBodyScrollHeight <= restoredResultLayout.formBodyClientHeight + 1
       ) {
         break;
       }
@@ -1053,13 +1057,15 @@ async function runSmokeTest() {
     if (
       !restoredResultLayout.formCard
       || !restoredResultLayout.tableWithFilter
-      || restoredResultLayout.formCard.bottom > restoredResultLayout.viewportHeight + 1
-      || restoredResultLayout.viewportHeight - restoredResultLayout.formCard.bottom > 42
-      || restoredResultLayout.pageOverflowY > 1
+      || restoredResultLayout.formCard.height <= 240
+      || restoredResultLayout.formCardScrollHeight > restoredResultLayout.formCardClientHeight + 1
+      || restoredResultLayout.formBodyScrollHeight > restoredResultLayout.formBodyClientHeight + 1
+      || ['auto', 'scroll'].includes(restoredResultLayout.formBodyOverflowY)
+      || restoredResultLayout.pageOverflowY <= 1
       || (restoredResultLayout.filterPanel?.height > 0
         && Math.abs(restoredResultLayout.tableWithFilter.height - restoredResultLayout.filterPanel.height) > 2)
     ) {
-      throw new Error(`Reloaded result layout should keep the table row and lower form panel within the viewport: ${JSON.stringify(restoredResultLayout)}`);
+      throw new Error(`Reloaded result layout should grow the form with the document instead of creating a nested vertical scroller: ${JSON.stringify(restoredResultLayout)}`);
     }
 
     const getResultsRequestsBeforeRememberedReload = queryApiStub.countAction('get_results');
