@@ -58,6 +58,10 @@ function demoFiscalPeriods(system, startMonth, source, now = new Date()) {
     const shiftedDay = Math.min(Number(value.slice(6, 8)), new Date(Date.UTC(shiftedYear, shiftedMonth, 0)).getUTCDate());
     return compact(shiftedYear, shiftedMonth, shiftedDay);
   };
+  const displayDate = value => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${months[Number(value.slice(4, 6)) - 1]} ${Number(value.slice(6, 8))}, ${value.slice(0, 4)}`;
+  };
   return [0, 1, 2].map(offset => {
     const fiscalYear = currentFiscalYear - offset;
     const startYear = fiscalYear - 1;
@@ -66,12 +70,14 @@ function demoFiscalPeriods(system, startMonth, source, now = new Date()) {
     const current = offset === 0;
     const start = compact(startYear, startMonth, 1);
     const end = current ? compact(year, month, now.getUTCDate()) : compact(fiscalYear, endMonth, endDay);
+    const dateSpan = `${displayDate(start)}–${displayDate(end)}`;
     return {
       value: `fy:${system}:${fiscalYear}`,
-      label: current ? `FY ${fiscalYear} to date` : `FY ${fiscalYear}`,
+      label: current ? `FY ${fiscalYear} to date (${dateSpan})` : `FY ${fiscalYear} (${dateSpan})`,
       system, fiscal_year: fiscalYear, start, end,
       previous_start: shiftYear(start), previous_end: shiftYear(end),
-      current_to_date: current, start_month: startMonth, source
+      current_to_date: current, start_month: startMonth,
+      start_label: displayDate(start), end_label: displayDate(end), date_span: dateSpan, source
     };
   });
 }
