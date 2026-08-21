@@ -1,4 +1,5 @@
 import { createServer } from 'node:http';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { chromium } from 'playwright';
 
@@ -519,6 +520,8 @@ async function runSmokeTest() {
       chartCount: panel.querySelectorAll('.kpi-chart-card').length,
       opportunityRows: panel.querySelectorAll('.kpi-opportunity-table tbody tr').length,
       libraryOptions: Array.from(panel.querySelectorAll('#kpi-dashboard-library option')).map(option => option.value),
+      exportVisible: !panel.querySelector('#kpi-dashboard-export')?.classList.contains('hidden'),
+      comparisonText: panel.querySelector('.kpi-card')?.textContent || '',
       selectedTab: panel.querySelector('[data-kpi-view][aria-selected="true"]')?.dataset.kpiView || ''
     }));
     if (
@@ -528,11 +531,27 @@ async function runSmokeTest() {
       || dashboardState.chartCount !== 6
       || dashboardState.opportunityRows !== 1
       || !dashboardState.libraryOptions.includes('MSU')
+      || !dashboardState.exportVisible
+      || !/up 38,119/iu.test(dashboardState.comparisonText)
       || dashboardState.selectedTab !== 'overview'
     ) {
       throw new Error(`Dashboard should reconcile library metrics, charts, filters, and opportunities: ${JSON.stringify(dashboardState)}`);
     }
     await expectNoHorizontalOverflow(page, 'Desktop KPI dashboard');
+    const exportDownloadPromise = page.waitForEvent('download');
+    await page.locator('#kpi-dashboard-export').click();
+    const exportDownload = await exportDownloadPromise;
+    if (!/^MLP-KPI-overview-all-\d{4}-\d{2}-\d{2}\.csv$/u.test(exportDownload.suggestedFilename())) {
+      throw new Error(`Dashboard export should use a scoped Excel-compatible filename: ${exportDownload.suggestedFilename()}`);
+    }
+    const exportText = await readFile(await exportDownload.path(), 'utf8');
+    if (!exportText.startsWith('\uFEFFSection,Label,Metric,Value') || !exportText.includes('previous_checkouts')) {
+      throw new Error('Dashboard export should include the UTF-8 header and prior-period metrics.');
+    }
+    await page.locator('#kpi-dashboard-library').selectOption('MSU');
+    await page.waitForFunction(() => Array.from(document.querySelectorAll('#kpi-dashboard-window option')).some(option => option.value === 'fy:MSU:2027'));
+    await page.locator('#kpi-dashboard-window').selectOption('fy:MSU:2027');
+    await page.waitForFunction(() => document.querySelector('#kpi-dashboard-content .kpi-card')?.textContent?.includes('FY 2027 to date'));
     if (process.env.QUERY_DASHBOARD_SCREENSHOT_PATH) {
       await page.setViewportSize({ width: 1440, height: 1200 });
       await page.screenshot({ path: process.env.QUERY_DASHBOARD_SCREENSHOT_PATH, fullPage: false });

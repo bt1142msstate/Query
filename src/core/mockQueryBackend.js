@@ -47,12 +47,42 @@ function buildDemoDashboardQueries(now = Date.now()) {
   ]);
 }
 
+function demoFiscalPeriods(system, startMonth, source, now = new Date()) {
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth() + 1;
+  const currentFiscalYear = month >= startMonth ? year + 1 : year;
+  const compact = (dateYear, dateMonth, dateDay) => `${dateYear}${String(dateMonth).padStart(2, '0')}${String(dateDay).padStart(2, '0')}`;
+  const shiftYear = value => {
+    const shiftedYear = Number(value.slice(0, 4)) - 1;
+    const shiftedMonth = Number(value.slice(4, 6));
+    const shiftedDay = Math.min(Number(value.slice(6, 8)), new Date(Date.UTC(shiftedYear, shiftedMonth, 0)).getUTCDate());
+    return compact(shiftedYear, shiftedMonth, shiftedDay);
+  };
+  return [0, 1, 2].map(offset => {
+    const fiscalYear = currentFiscalYear - offset;
+    const startYear = fiscalYear - 1;
+    const endMonth = startMonth - 1;
+    const endDay = new Date(Date.UTC(fiscalYear, endMonth, 0)).getUTCDate();
+    const current = offset === 0;
+    const start = compact(startYear, startMonth, 1);
+    const end = current ? compact(year, month, now.getUTCDate()) : compact(fiscalYear, endMonth, endDay);
+    return {
+      value: `fy:${system}:${fiscalYear}`,
+      label: current ? `FY ${fiscalYear} to date` : `FY ${fiscalYear}`,
+      system, fiscal_year: fiscalYear, start, end,
+      previous_start: shiftYear(start), previous_end: shiftYear(end),
+      current_to_date: current, start_month: startMonth, source
+    };
+  });
+}
+
 function buildDemoLibraryDashboard(payload = {}, data = {}) {
   const library = payload.library || 'all';
   const itemType = payload.item_type || 'all';
   const scopeFactor = library === 'all' ? 1 : 0.08;
   const typeFactor = itemType === 'all' ? 1 : 0.22;
   const factor = scopeFactor * typeFactor;
+  const reportingPeriod = String(payload.reporting_period || payload.active_window_days || 365);
   const scaled = value => Math.round(value * factor);
   const scaleRows = (rows, keys) => rows.map(row => ({
     ...row,
@@ -71,6 +101,17 @@ function buildDemoLibraryDashboard(payload = {}, data = {}) {
     ['Books', 544810, 290442, 1864300], ['DVD / Blu-ray', 123440, 36110, 184220], ['Ebooks', 94220, 73310, 371800],
     ['Audiobooks', 72510, 48330, 168440], ['Juvenile kits', 28940, 10082, 69220], ['Other', 16420, 8331, 155462]
   ].map(([label, checkouts, renewals, items]) => ({ label, checkouts, renewals, items }));
+  const fiscalPeriodsBySystem = {
+    MSU: demoFiscalPeriods('MSU', 7, 'https://www.osp.msstate.edu/faq'),
+    MMRLS: demoFiscalPeriods('MMRLS', 10, 'https://www.imls.gov/research-evaluation/surveys/public-libraries-survey-pls'),
+    FRL: demoFiscalPeriods('FRL', 10, 'https://www.imls.gov/research-evaluation/surveys/public-libraries-survey-pls'),
+    LILS: demoFiscalPeriods('LILS', 10, 'https://www.imls.gov/research-evaluation/surveys/public-libraries-survey-pls')
+  };
+  const fiscalPeriod = Object.values(fiscalPeriodsBySystem).flat().find(period => period.value === reportingPeriod);
+  const currentCheckouts = scaled(880229);
+  const currentRenewals = scaled(487605);
+  const previousCheckouts = scaled(842110);
+  const previousRenewals = scaled(469220);
   const filters = {
     libraries: [
       { value: 'MSU', label: 'Mississippi State University' },
@@ -78,7 +119,8 @@ function buildDemoLibraryDashboard(payload = {}, data = {}) {
       { value: 'FRL', label: 'First Regional Library' },
       { value: 'LILS', label: 'Lee-Itawamba Library System' }
     ],
-    item_types: ['BOOK', 'EBOOK', 'DVD', 'AUDIOBOOK', 'KIT']
+    item_types: ['BOOK', 'EBOOK', 'DVD', 'AUDIOBOOK', 'KIT'],
+    fiscal_periods_by_system: fiscalPeriodsBySystem
   };
   return {
     schema_version: 1,
@@ -89,11 +131,19 @@ function buildDemoLibraryDashboard(payload = {}, data = {}) {
       library_label: library === 'all' ? 'All MLP libraries' : (filters.libraries.find(entry => entry.value === library)?.label || library),
       item_type: itemType,
       item_type_label: itemType === 'all' ? 'All item types' : itemType,
-      active_window_days: Number(payload.active_window_days || 365)
+      active_window_days: Number(payload.active_window_days || 365),
+      reporting_period: reportingPeriod
     },
     circulation: {
-      checkouts: scaled(880229), renewals: scaled(487605), in_house_uses: scaled(61240), holds: scaled(121843),
-      renewal_share: 0.356, holds_per_100_items: 4.3, period_label: 'Illustrative 12-month reporting period'
+      checkouts: currentCheckouts, renewals: currentRenewals, previous_checkouts: previousCheckouts, previous_renewals: previousRenewals,
+      checkout_change: currentCheckouts - previousCheckouts, renewal_change: currentRenewals - previousRenewals,
+      checkout_change_rate: previousCheckouts ? (currentCheckouts - previousCheckouts) / previousCheckouts : null,
+      renewal_change_rate: previousRenewals ? (currentRenewals - previousRenewals) / previousRenewals : null,
+      comparison_available: true, comparison_coverage_complete: true,
+      comparison_period_label: fiscalPeriod ? 'Previous fiscal year equivalent' : 'Previous equivalent period',
+      in_house_uses: scaled(61240), holds: scaled(121843), renewal_share: 0.356, holds_per_100_items: 4.3,
+      period_label: fiscalPeriod?.label || 'Illustrative 12-month reporting period',
+      fiscal_year: fiscalPeriod?.fiscal_year, fiscal_system: fiscalPeriod?.system
     },
     collection: {
       items: scaled(2813442), titles: scaled(1601291), lifetime_checkouts: scaled(12844308), lifetime_renewals: scaled(5160244),
@@ -128,8 +178,16 @@ function buildDemoLibraryDashboard(payload = {}, data = {}) {
       { label: '25–44', patrons: 157880 }, { label: '45–64', patrons: 131440 }, { label: '65+', patrons: 72920 }, { label: 'Unknown', patrons: 91620 }
     ], ['patrons']),
     patron_geo_breakdown: scaleRows([
-      { label: 'Tupelo area', patrons: 49220 }, { label: 'DeSoto County', patrons: 43880 }, { label: 'Rankin County', patrons: 39210 },
-      { label: 'Lowndes County', patrons: 34190 }, { label: 'Oktibbeha County', patrons: 31220 }, { label: 'Other / unknown', patrons: 420700 }
+      { label: '388xx', patrons: 49220 }, { label: '386xx', patrons: 43880 }, { label: '390xx', patrons: 39210 },
+      { label: '397xx', patrons: 34190 }, { label: '395xx', patrons: 31220 }, { label: 'Other / unknown', patrons: 420700 }
+    ], ['patrons']),
+    patron_city_breakdown: scaleRows([
+      { label: 'Tupelo, MS', patrons: 42910 }, { label: 'Columbus, MS', patrons: 31180 }, { label: 'Starkville, MS', patrons: 29440 },
+      { label: 'Southaven, MS', patrons: 26320 }, { label: 'Oxford, MS', patrons: 24210 }, { label: 'Other / unknown', patrons: 464360 }
+    ], ['patrons']),
+    patron_state_breakdown: scaleRows([
+      { label: 'Mississippi', patrons: 564880 }, { label: 'Alabama', patrons: 17420 }, { label: 'Tennessee', patrons: 15110 },
+      { label: 'Other / unknown', patrons: 21010 }
     ], ['patrons']),
     opportunities: (data.dashboardOpportunities || []).map(entry => ({ ...entry, count: scaled(entry.baseCount) })),
     filters,
@@ -137,7 +195,8 @@ function buildDemoLibraryDashboard(payload = {}, data = {}) {
     sources: [
       { label: 'Circulation transactions', detail: 'Checkout and renewal counts follow the established BLUEcloud Analytics command definitions.' },
       { label: 'Current item snapshot', detail: 'Query item fields provide actual holdings, lifetime use, last use, item age, holds, and price.' },
-      { label: 'Patron snapshot', detail: 'Sirsi user data is aggregated before display; no names, IDs, addresses, or individual records are returned.' }
+      { label: 'Patron snapshot', detail: 'Sirsi user data is aggregated before display; no names, IDs, addresses, or individual records are returned.' },
+      { label: 'Fiscal-year definitions', detail: 'Illustrative periods follow the same system-specific reporting calendars used by the production dashboard.' }
     ],
     notes: ['Sample values demonstrate the dashboard contract and are not production MLP totals. Lifetime item counters and reporting-period transaction counts are shown separately.']
   };
