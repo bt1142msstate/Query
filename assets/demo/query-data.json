@@ -15,6 +15,44 @@
     { "name": "Public Note", "label": "Public Note", "type": "string", "category": "Notes", "desc": "Public-facing notes; a record may contain multiple values.", "filters": ["contains", "equals"], "multiValue": true }
   ],
   "defaultColumns": ["Item Id", "Title", "Author", "Library", "Status"],
+  "dashboardOpportunities": [
+    {
+      "label": "Older items with no recorded use",
+      "baseCount": 618220,
+      "detail": "Created more than five years ago with zero lifetime checkouts.",
+      "query": {
+        "name": "Older items with no use",
+        "filters": [
+          { "FieldName": "Item Date Created", "FieldOperator": "<", "Values": ["2021-01-01"] },
+          { "FieldName": "Total Checkouts", "FieldOperator": "=", "Values": ["0"] }
+        ],
+        "display_fields": ["Title", "Author", "Item Id", "Item Library", "Item Type", "Item Date Created", "Total Checkouts"]
+      }
+    },
+    {
+      "label": "High-use items with active holds",
+      "baseCount": 14270,
+      "detail": "Strong demand may justify added copies or format changes.",
+      "query": {
+        "name": "High-use items with holds",
+        "filters": [
+          { "FieldName": "Total Checkouts", "FieldOperator": ">", "Values": ["25"] },
+          { "FieldName": "Copy Hold Count", "FieldOperator": ">", "Values": ["0"] }
+        ],
+        "display_fields": ["Title", "Item Id", "Item Library", "Item Type", "Total Checkouts", "Copy Hold Count"]
+      }
+    },
+    {
+      "label": "Items without a usable price",
+      "baseCount": 815898,
+      "detail": "Improving price coverage makes collection-value measures more reliable.",
+      "query": {
+        "name": "Items missing price",
+        "filters": [{ "FieldName": "Price", "FieldOperator": "=", "Values": ["0"] }],
+        "display_fields": ["Title", "Item Id", "Item Library", "Item Type", "Price"]
+      }
+    }
+  ],
   "rows": [
     ["100001", "A Field Guide to Local History", "Morgan Ellis", "CENTRAL", "DISPLAY", "AVAILABLE", "NEVER", "BOOK", ["Local history display", "Ask at the service desk"]],
     ["100002", "Modern Archives Handbook", "Jordan Lee", "EAST", "STACKS", "CHECKED_OUT", "2026-08-03", "BOOK", ["Second edition"]],

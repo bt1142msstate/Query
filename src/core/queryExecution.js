@@ -79,7 +79,8 @@ function updateLiveQueryProgress(resultCount, options = {}) {
   uiActions.updateTableQueryAnimationProgress({
     resultCount,
     startTime: options.startTime,
-    progress: options.progress
+    progress: options.progress,
+    planning: options.planning
   });
 
   updateQueryHistoryEntry(QueryStateReaders.getLifecycleState().currentQueryId, {
@@ -246,6 +247,18 @@ if (execDom.runBtn) {
         const payload = buildBackendQueryPayload(queryName);
         const historyConfig = buildQueryUiConfig();
 
+        let initialPlanning = null;
+        try {
+          const planningResponse = await BackendApi.postJson(
+            { ...payload, action: 'query_plan' },
+            { timeoutMs: 2500, notifyOnRateLimit: false }
+          );
+          initialPlanning = planningResponse.data?.data || planningResponse.data || null;
+          updateLiveQueryProgress(0, { startTime: queryStartedAt, planning: initialPlanning });
+        } catch (planningError) {
+          console.warn('Query estimate is not available; continuing with the query.', planningError);
+        }
+
         console.log('Sending query payload:', payload);
 
         const response = await BackendApi.request(payload, { keepalive: true });
@@ -275,9 +288,16 @@ if (execDom.runBtn) {
 
         showToastMessage('Connected — streaming results…', 'info');
         const streamedPayload = await readStreamedQueryResult(response, {
-          onProgress: rowCount => {
+          onMeta: event => {
             if (!QueryStateReaders.getLifecycleState().queryRunning) return;
-            updateLiveQueryProgress(rowCount, { startTime: queryStartedAt });
+            updateLiveQueryProgress(0, { startTime: queryStartedAt, planning: event?.planning });
+          },
+          onProgress: (rowCount, eventInfo = {}) => {
+            if (!QueryStateReaders.getLifecycleState().queryRunning) return;
+            updateLiveQueryProgress(rowCount, {
+              startTime: queryStartedAt,
+              progress: eventInfo.progress?.progress || eventInfo.progress
+            });
           }
         });
         // If user stopped mid-stream, show whatever was received as partial results

@@ -5,6 +5,144 @@ let dataPromise = null;
 let bibDataPromise = null;
 const demoHydrationRuns = new Map();
 
+function buildDemoDashboardQueries(now = Date.now()) {
+  const iso = (daysAgo, minuteOffset = 0) => new Date(now - (daysAgo * 86400000) - (minuteOffset * 60000)).toISOString();
+  const completed = (id, name, createdBy, daysAgo, rows, durationMinutes, extra = {}) => [id, {
+    name,
+    created_by: createdBy,
+    status: 'complete',
+    start_time: iso(daysAgo, durationMinutes),
+    end_time: iso(daysAgo),
+    row_count: rows,
+    ...extra
+  }];
+  return Object.fromEntries([
+    completed('demo-dashboard-01', 'Items by Library', 'anita', 1, 18420, 4),
+    completed('demo-dashboard-02', 'MSU Unshadowed Ebooks', 'anita', 2, 44796, 13),
+    completed('demo-dashboard-03', 'Monthly Circulation Review', 'brandon', 3, 8210, 7),
+    completed('demo-dashboard-04', 'Items by Library', 'juanitta', 4, 17982, 5),
+    completed('demo-dashboard-05', 'Missing Item Inventory', 'brandon', 6, 1320, 3),
+    completed('demo-dashboard-06', 'Items by Library', 'anita', 8, 18105, 4),
+    completed('demo-dashboard-07', 'Collection Age Review', 'juanitta', 10, 6220, 9),
+    completed('demo-dashboard-08', 'MSU Unshadowed Ebooks', 'anita', 12, 44831, 12),
+    completed('demo-dashboard-09', 'Monthly Circulation Review', 'brandon', 15, 7960, 6),
+    completed('demo-dashboard-10', 'Items by Library', 'juanitta', 18, 17604, 4),
+    completed('demo-dashboard-11', 'Collection Age Review', 'anita', 21, 6044, 8),
+    completed('demo-dashboard-12', 'Missing Item Inventory', 'brandon', 25, 1188, 3),
+    completed('demo-dashboard-h1', 'Hydration: Juvenile Fiction', 'anita', 5, 42, 9, {
+      kind: 'hydration',
+      hydration_completed: 42,
+      hydration_total: 45,
+      hydration_counts: { resolved: 34, review: 5, not_found: 2, failed: 1 }
+    }),
+    completed('demo-dashboard-h2', 'Hydration: Ebook Cleanup', 'brandon', 14, 28, 6, {
+      kind: 'hydration',
+      hydration_completed: 28,
+      hydration_total: 30,
+      hydration_counts: { resolved: 23, review: 3, not_found: 2, failed: 0 }
+    }),
+    ['demo-dashboard-f1', { name: 'Large Shelf List', created_by: 'juanitta', status: 'failed', start_time: iso(7, 2), end_time: iso(7), row_count: 0 }],
+    ['demo-dashboard-c1', { name: 'Items by Library', created_by: 'brandon', status: 'canceled', start_time: iso(17, 1), end_time: iso(17), row_count: 0 }],
+    ['demo-dashboard-r1', { name: 'Active Holds Review', created_by: 'anita', status: 'running', start_time: iso(0, 2), row_count: 640 }]
+  ]);
+}
+
+function buildDemoLibraryDashboard(payload = {}, data = {}) {
+  const library = payload.library || 'all';
+  const itemType = payload.item_type || 'all';
+  const scopeFactor = library === 'all' ? 1 : 0.08;
+  const typeFactor = itemType === 'all' ? 1 : 0.22;
+  const factor = scopeFactor * typeFactor;
+  const scaled = value => Math.round(value * factor);
+  const scaleRows = (rows, keys) => rows.map(row => ({
+    ...row,
+    ...Object.fromEntries(keys.map(key => [key, scaled(row[key])]))
+  }));
+  const circulationTrend = [
+    ['Sep', 74210, 39142], ['Oct', 78144, 41820], ['Nov', 70110, 37796], ['Dec', 56201, 34211],
+    ['Jan', 75390, 40318], ['Feb', 76831, 41005], ['Mar', 81105, 44192], ['Apr', 79220, 42773],
+    ['May', 69224, 37430], ['Jun', 63880, 35188], ['Jul', 66892, 35911], ['Aug', 74822, 39844]
+  ].map(([label, checkouts, renewals]) => ({ label, checkouts: scaled(checkouts), renewals: scaled(renewals) }));
+  const libraryRows = [
+    ['MMRLS', 208144, 128831, 602844], ['First Regional', 171220, 93204, 477880], ['Lee-Itawamba', 126410, 74408, 318600],
+    ['Columbus-Lowndes', 106822, 55812, 283112], ['MSU', 30717, 12389, 248220], ['Jackson-Hinds', 94210, 50884, 291774]
+  ].map(([label, checkouts, renewals, items]) => ({ label, checkouts, renewals, items }));
+  const typeRows = [
+    ['Books', 544810, 290442, 1864300], ['DVD / Blu-ray', 123440, 36110, 184220], ['Ebooks', 94220, 73310, 371800],
+    ['Audiobooks', 72510, 48330, 168440], ['Juvenile kits', 28940, 10082, 69220], ['Other', 16420, 8331, 155462]
+  ].map(([label, checkouts, renewals, items]) => ({ label, checkouts, renewals, items }));
+  const filters = {
+    libraries: [
+      { value: 'MSU', label: 'Mississippi State University' },
+      { value: 'MMRLS', label: 'Mid-Mississippi Regional Library System' },
+      { value: 'FRL', label: 'First Regional Library' },
+      { value: 'LILS', label: 'Lee-Itawamba Library System' }
+    ],
+    item_types: ['BOOK', 'EBOOK', 'DVD', 'AUDIOBOOK', 'KIT']
+  };
+  return {
+    schema_version: 1,
+    generated_at: new Date().toISOString(),
+    sample_data: true,
+    scope: {
+      library,
+      library_label: library === 'all' ? 'All MLP libraries' : (filters.libraries.find(entry => entry.value === library)?.label || library),
+      item_type: itemType,
+      item_type_label: itemType === 'all' ? 'All item types' : itemType,
+      active_window_days: Number(payload.active_window_days || 365)
+    },
+    circulation: {
+      checkouts: scaled(880229), renewals: scaled(487605), in_house_uses: scaled(61240), holds: scaled(121843),
+      renewal_share: 0.356, holds_per_100_items: 4.3, period_label: 'Illustrative 12-month reporting period'
+    },
+    collection: {
+      items: scaled(2813442), titles: scaled(1601291), lifetime_checkouts: scaled(12844308), lifetime_renewals: scaled(5160244),
+      in_house_uses: scaled(843108), used_recently: scaled(947835), recent_use_rate: 0.337, never_used: scaled(1023995),
+      never_used_rate: 0.364, checkouts_per_item: 4.6, total_value: scaled(42850300), price_coverage: 0.71
+    },
+    patrons: {
+      total: scaled(618420), active: scaled(183804), active_rate: 0.297, new: scaled(42640), with_charges: scaled(74482),
+      with_holds: scaled(18814), expiring_soon: scaled(29711), new_period_label: 'Registered in the last 12 months'
+    },
+    circulation_trend: circulationTrend,
+    library_breakdown: scaleRows(libraryRows, ['checkouts', 'renewals', 'items']),
+    item_type_breakdown: scaleRows(typeRows, ['checkouts', 'renewals', 'items']),
+    use_bands: scaleRows([
+      { label: 'Never used', items: 1023995 }, { label: '1–2 checkouts', items: 731400 }, { label: '3–9 checkouts', items: 688220 },
+      { label: '10–24 checkouts', items: 269117 }, { label: '25+ checkouts', items: 100710 }
+    ], ['items']),
+    age_bands: scaleRows([
+      { label: 'Under 1 year', items: 81340 }, { label: '1–4 years', items: 443210 }, { label: '5–9 years', items: 562870 },
+      { label: '10–19 years', items: 911202 }, { label: '20+ years', items: 714820 }
+    ], ['items']),
+    patron_library_breakdown: scaleRows([
+      { label: 'MMRLS', patrons: 146820 }, { label: 'First Regional', patrons: 112440 }, { label: 'Lee-Itawamba', patrons: 78310 },
+      { label: 'Columbus-Lowndes', patrons: 72120 }, { label: 'Jackson-Hinds', patrons: 68670 }, { label: 'MSU', patrons: 31220 }
+    ], ['patrons']),
+    patron_profile_breakdown: scaleRows([
+      { label: 'Adult', patrons: 359140 }, { label: 'Juvenile', patrons: 143880 }, { label: 'Student', patrons: 51110 },
+      { label: 'Faculty / staff', patrons: 19340 }, { label: 'Other profiles', patrons: 44950 }
+    ], ['patrons']),
+    patron_age_bands: scaleRows([
+      { label: 'Under 13', patrons: 48110 }, { label: '13–17', patrons: 54120 }, { label: '18–24', patrons: 62330 },
+      { label: '25–44', patrons: 157880 }, { label: '45–64', patrons: 131440 }, { label: '65+', patrons: 72920 }, { label: 'Unknown', patrons: 91620 }
+    ], ['patrons']),
+    patron_geo_breakdown: scaleRows([
+      { label: 'Tupelo area', patrons: 49220 }, { label: 'DeSoto County', patrons: 43880 }, { label: 'Rankin County', patrons: 39210 },
+      { label: 'Lowndes County', patrons: 34190 }, { label: 'Oktibbeha County', patrons: 31220 }, { label: 'Other / unknown', patrons: 420700 }
+    ], ['patrons']),
+    opportunities: (data.dashboardOpportunities || []).map(entry => ({ ...entry, count: scaled(entry.baseCount) })),
+    filters,
+    privacy: { suppression_threshold: 10 },
+    sources: [
+      { label: 'Circulation transactions', detail: 'Checkout and renewal counts follow the established BLUEcloud Analytics command definitions.' },
+      { label: 'Current item snapshot', detail: 'Query item fields provide actual holdings, lifetime use, last use, item age, holds, and price.' },
+      { label: 'Patron snapshot', detail: 'Sirsi user data is aggregated before display; no names, IDs, addresses, or individual records are returned.' }
+    ],
+    notes: ['Sample values demonstrate the dashboard contract and are not production MLP totals. Lifetime item counters and reporting-period transaction counts are shown separately.']
+  };
+}
+
 function loadDemoData() {
   if (!dataPromise) {
     const url = new URL('../../assets/demo/query-data.json', import.meta.url);
@@ -70,7 +208,20 @@ function runQuery(payload, data) {
   const resultRows = rows.filter(row => (payload.filters || []).every(filter => matchesFilter(row, filter))).slice(0, limit);
   const queryId = `demo-${Date.now()}`;
   const events = [
-    { type: 'meta', version: 1, format: 'jsonl', query_id: queryId, columns },
+    {
+      type: 'meta', version: 1, format: 'jsonl', query_id: queryId, columns,
+      planning: {
+        strategy: 'selective_first_v1',
+        eta: {
+          available: true,
+          method: 'aggregate_calibrated_history',
+          confidence: 'low',
+          sample_size: 18,
+          estimated_candidates: resultRows.length,
+          label: `Estimated 1–3 seconds from the sample aggregate scope and 18 successful runs.`
+        }
+      }
+    },
     ...resultRows.map(row => ({ type: 'row', values: columns.map(column => row[column] ?? '') })),
     { type: 'done', rows: resultRows.length }
   ];
@@ -364,7 +515,38 @@ async function handleDemoQueryRequest(options = {}) {
     case 'change_password': return json({ error: 'The shared demo password cannot be changed.' }, 403);
     case 'get_fields': return json({ fields: data.fields || [] });
     case 'run': return runQuery(payload, data);
-    case 'status': return json({ queries: Object.fromEntries([...demoHydrationRuns].map(([id, run]) => [id, run.metadata])) });
+    case 'query_plan': return json({
+      ok: true,
+      data: {
+        schema_version: 1,
+        strategy: 'selective_first_v1',
+        changed: false,
+        order: (payload.filters || []).map((filter, index) => ({
+          field: filter.field,
+          operator: filter.operator || '=',
+          original_position: index + 1,
+          planned_position: index + 1,
+          reason: 'Sample smart plan'
+        })),
+        eta: {
+          available: true,
+          method: 'aggregate_calibrated_history',
+          confidence: 'low',
+          sample_size: 18,
+          estimated_candidates: 120,
+          label: 'Estimated 1–3 seconds from the sample aggregate scope and 18 successful runs.'
+        },
+        aggregate_basis: { available: true, label: 'Current private collection aggregates' }
+      }
+    });
+    case 'library_dashboard': return json(buildDemoLibraryDashboard(payload, data));
+    case 'status': return json({
+      queries: {
+        ...(payload.dashboard ? buildDemoDashboardQueries() : {}),
+        ...Object.fromEntries([...demoHydrationRuns].map(([id, run]) => [id, run.metadata]))
+      },
+      sample_data: Boolean(payload.dashboard)
+    });
     case 'list': return json({ queries: [] });
     case 'list_templates': return json({ categories: [], templates: [] });
     case 'search_bibs': {

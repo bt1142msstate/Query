@@ -35,6 +35,7 @@ import './ui/modalManager.js';
 import './features/filters/filterValueUi.js';
 import './features/filters/filterSidePanel.js';
 import './features/history/queryHistory.js';
+import './ui/dashboard/kpiDashboard.js';
 import './ui/bib-compare/oclcBibCompare.js';
 import './features/templates/queryTemplates.js';
 import './features/table/drag-drop/columnManager.js';
