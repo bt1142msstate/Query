@@ -1,5 +1,4 @@
 import { performance } from 'node:perf_hooks';
-import { parsePipeDelimitedRow } from '../src/core/formatting/dataFormatters.js';
 import { parseQueryResultPayload } from '../src/core/queryResultParser.js';
 import { buildExpandedMultiValueTable } from '../src/lib/virtual-table/splitColumnExpansion.js';
 import { sortRowsByColumn } from '../src/lib/virtual-table/tableSort.js';
@@ -169,15 +168,7 @@ function parseHistoryResultTable({ queryInfo, response, text }) {
     };
   }
 
-  const headers = rawColumns.length ? rawColumns : displayedFields;
-  const lines = String(text || '').split(/\r?\n/u).filter(line => line.trim().length > 0);
-  return {
-    headers,
-    rows: lines.map(line => {
-      const row = parsePipeDelimitedRow(line, headers);
-      return headers.map(header => row[header] ?? '');
-    })
-  };
+  throw new Error('Saved benchmark results must use the supported JSON result format.');
 }
 
 function buildColumnMap(headers) {
