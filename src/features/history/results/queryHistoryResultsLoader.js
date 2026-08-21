@@ -7,6 +7,7 @@ import {
 } from '../../../core/resultViewState.js';
 import { buildTableRowsFromObjectRows, writeCachedHistoryResultSnapshot } from './queryHistoryResultCache.js';
 import { forgetOpenedHistoryResult, rememberOpenedHistoryResult } from './queryHistoryResultSession.js';
+import { getClientErrorMessage } from '../../../core/clientErrorMessages.js';
 
 export function createQueryHistoryResultsLoader({
   historyResultProgress,
@@ -106,7 +107,7 @@ export function createQueryHistoryResultsLoader({
         return false;
       }
       console.error('Failed to load results:', error);
-      showToastMessage(`Failed to load results: ${error.message}`, 'error');
+      showToastMessage(getClientErrorMessage(error, { fallback: 'The saved results could not be loaded. Try again.' }), 'error');
       return false;
     } finally {
       if (isLatestLoad()) {

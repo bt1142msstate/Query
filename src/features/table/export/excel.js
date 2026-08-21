@@ -1,6 +1,7 @@
 import { appServices } from '../tableServices.js';
 import { registerAppUiActionDependencies } from '../../../core/appUiActions.js';
 import { showToastMessage } from '../tableToast.js';
+import { getClientErrorMessage } from '../../../core/clientErrorMessages.js';
 import { QueryStateReaders } from '../tableQueryState.js';
 import { VisibilityUtils } from '../../../core/visibility.js';
 import { QueryUI } from '../../../ui/queryUI.js';
@@ -383,7 +384,7 @@ import {
         updateExportSummary(elements);
         renderGroupingOptions(elements);
         updateExportModeUI(elements);
-        showToastMessage('Could not prepare grouped export options', 'error');
+        showToastMessage(getClientErrorMessage(error, { fallback: 'The grouped export options could not be prepared. Close the download window and try again.' }), 'error');
       }
     }, 0);
   }
@@ -407,7 +408,7 @@ import {
           console.error('Failed to prepare export options', error);
           exportOverlayPreparing = false;
           updateExportModeUI(elements);
-          showToastMessage('Could not prepare the Excel export options', 'error');
+          showToastMessage(getClientErrorMessage(error, { fallback: 'The Excel options could not be prepared. Close the download window and try again.' }), 'error');
           return;
         }
         if (hydrationId !== exportOverlayHydrationId) {
@@ -443,7 +444,7 @@ import {
       }
       runWorkbookExport({ mode: 'single' }).catch(error => {
         console.error('Failed to export workbook', error);
-        showToastMessage('Could not generate the Excel file', 'error');
+        showToastMessage(getClientErrorMessage(error, { fallback: 'The Excel file could not be created. Try again, or export fewer rows.' }), 'error');
       });
       return;
     }
@@ -591,7 +592,7 @@ import {
       );
     } catch (error) {
       console.error('Failed to export workbook', error);
-      showToastMessage('Could not generate the Excel file', 'error');
+      showToastMessage(getClientErrorMessage(error, { fallback: 'The Excel file could not be created. Try again, or export fewer rows.' }), 'error');
     } finally {
       exportInProgress = false;
       ExcelExportProgress.setBusy(elements, false);

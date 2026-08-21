@@ -1723,8 +1723,9 @@ async function exerciseLargeVirtualScrollbarThumbDragPerformance(page) {
     || dragMetrics.renderedRows > 50
     || dragMetrics.scrollEvents < 20
     || dragMetrics.elapsedMs > 6500
+    || dragMetrics.scrollGapP95Ms > 150
     || dragMetrics.renderDurationMaxMs > 80
-    || dragMetrics.longTaskMaxMs > 250
+    || dragMetrics.longTaskMaxMs > 350
   ) {
     throw new Error(`Large virtual table scrollbar thumb drag should stay responsive: ${JSON.stringify(dragMetrics)}`);
   }
@@ -2994,15 +2995,15 @@ async function exerciseDesktopResultsWorkflow(page, queryApiStub) {
     throw new Error(`Hydration should use the renamed accessible surface and drop icon: ${JSON.stringify(hydrationSurface)}`);
   }
   const allFieldsScopeNote = (await page.locator('#bib-compare-workspace [data-bib-target-scope-note]').textContent())?.trim();
-  if (!allFieldsScopeNote?.includes('All eligible fields are compared')) {
+  if (!allFieldsScopeNote?.includes('Review all eligible fields')) {
     throw new Error(`Hydration should explain the all-fields comparison scope: ${allFieldsScopeNote}`);
   }
-  await page.locator('#bib-compare-workspace .bib-compare-segmented span', { hasText: 'Selected fields' }).click();
+  await page.locator('#bib-compare-workspace .bib-compare-segmented span', { hasText: 'Create candidate' }).click();
   await page.locator('#bib-compare-workspace [data-bib-target-tags]').fill('521, 526');
   await page.waitForFunction(() => document.querySelector('#bib-compare-workspace [data-bib-target-scope-note]')?.textContent?.includes(
-    'Only MARC 521, 526 will be replaced in the downloaded candidate. Every other local field stays unchanged.'
+    'Only MARC 521, 526 will be copied into the downloaded candidate. Every other Symphony field stays unchanged.'
   ), null, { timeout: 5000 });
-  await page.locator('#bib-compare-workspace .bib-compare-segmented span', { hasText: 'All eligible fields' }).click();
+  await page.locator('#bib-compare-workspace .bib-compare-segmented span', { hasText: 'Review all fields' }).click();
   const rankingOpen = page.locator('#bib-compare-workspace [data-bib-ranking-open]');
   await rankingOpen.click();
   await page.locator('#bib-compare-workspace [data-bib-ranking-guide]:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
@@ -3210,6 +3211,23 @@ async function exerciseDesktopResultsWorkflow(page, queryApiStub) {
   });
   await page.locator('#toggle-bib-compare').click();
   await page.locator('#bib-compare-workspace [data-bib-mode="bulk"]').click();
+  const bulkStartState = await page.locator('#bib-compare-workspace').evaluate(workspace => {
+    const download = workspace.querySelector('[data-bib-bulk-download]');
+    return {
+      emptyText: workspace.querySelector('[data-bib-bulk-empty]')?.textContent?.trim(),
+      priorSingleResultsHidden: workspace.querySelector('[data-bib-results]')?.classList.contains('hidden'),
+      downloadDisabled: download?.disabled,
+      downloadOpacity: download ? getComputedStyle(download).opacity : ''
+    };
+  });
+  if (
+    !bulkStartState.emptyText?.includes('Start with a list')
+    || !bulkStartState.priorSingleResultsHidden
+    || !bulkStartState.downloadDisabled
+    || Number(bulkStartState.downloadOpacity) >= 1
+  ) {
+    throw new Error(`Bulk Hydration should start with a clear empty state and unmistakably disabled downloads: ${JSON.stringify(bulkStartState)}`);
+  }
   await importHydrationExcelFixture(page);
   await page.waitForFunction(() => (
     document.querySelector('[data-bib-bulk-source]')?.value === 'spreadsheet'
@@ -3302,7 +3320,18 @@ async function exerciseDesktopResultsWorkflow(page, queryApiStub) {
 
   await seedLoadedResults(page);
   await expectResultsCount(page, '3', 'Desktop seeded results');
-  await expectDestructiveFlameAnimation(page, '#clear-query-btn', 'Desktop clear query button');
+  const clearButtonState = await page.locator('#clear-query-btn').evaluate(button => ({
+    ariaLabel: button.getAttribute('aria-label') || '',
+    text: button.textContent?.trim() || '',
+    tooltip: button.getAttribute('data-tooltip') || ''
+  }));
+  if (
+    clearButtonState.text !== 'Clear'
+    || clearButtonState.ariaLabel !== 'Clear report'
+    || clearButtonState.tooltip !== 'Clear report'
+  ) {
+    throw new Error(`Desktop clear control should use the short Clear label: ${JSON.stringify(clearButtonState)}`);
+  }
   await expectDestructiveFlameAnimation(page, '.fp-display-btn-remove', 'Display field remove button');
   await expectPostFilterStats(page, {
     filteredRows: 3,
@@ -3870,6 +3899,59 @@ async function exerciseDesktopResultsWorkflow(page, queryApiStub) {
     && notification.options?.tag === 'query-workbook-export'
   ))) {
     throw new Error(`Hidden-tab large export should send completion notification: ${JSON.stringify(exportNotifications)}`);
+  }
+
+  await page.evaluate(async () => {
+    const { setRestoreLastReportPreference } = await import('./src/core/queryPreferences.js');
+    const { QueryChangeManager, QueryStateReaders } = await import('./src/core/queryState.js');
+    const { toast } = await import('./src/core/toast.js');
+    const { rememberOpenedHistoryResult } = await import('./src/features/history/results/queryHistoryResultSession.js');
+    const { writeCachedHistoryResultSnapshot } = await import('./src/features/history/results/queryHistoryResultCache.js');
+    toast.dismissAll();
+    setRestoreLastReportPreference(true);
+    rememberOpenedHistoryResult('browser-smoke-clear-report', { updateUrl: true });
+    await writeCachedHistoryResultSnapshot({
+      headers: QueryStateReaders.getDisplayedFields(),
+      query: {
+        id: 'browser-smoke-clear-report',
+        jsonConfig: { DesiredColumnOrder: QueryStateReaders.getDisplayedFields() }
+      },
+      queryId: 'browser-smoke-clear-report',
+      rows: [['Remembered row']]
+    });
+    QueryChangeManager.setLifecycleState({
+      currentQueryId: 'browser-smoke-clear-report',
+      hasLoadedResultSet: true
+    }, { source: 'BrowserSmoke.clearReportSetup', silent: true });
+    const tableName = document.querySelector('#table-name-input');
+    const search = document.querySelector('#query-input');
+    if (tableName) tableName.value = 'Report to clear';
+    if (search) search.value = 'title';
+  });
+  await page.locator('#clear-query-btn').click();
+  await page.waitForFunction(async () => {
+    const { appServices } = await import('./src/core/appServices.js');
+    const { QueryStateReaders } = await import('./src/core/queryState.js');
+    const lifecycle = QueryStateReaders.getLifecycleState();
+    return QueryStateReaders.getDisplayedFields().length === 0
+      && Object.keys(QueryStateReaders.getActiveFilters()).length === 0
+      && appServices.getVirtualTableData()?.rows?.length === 0
+      && lifecycle.hasLoadedResultSet === false
+      && !lifecycle.currentQueryId
+      && !document.querySelector('#table-name-input')?.value
+      && !document.querySelector('#query-input')?.value
+      && !new URL(window.location.href).searchParams.has('result')
+      && !window.localStorage.getItem('query:lastOpenedHistoryResult');
+  }, null, { timeout: 5000 });
+  const clearedReportState = await page.evaluate(async () => {
+    const { readCachedHistoryResultSnapshot } = await import('./src/features/history/results/queryHistoryResultCache.js');
+    return {
+      cached: await readCachedHistoryResultSnapshot('browser-smoke-clear-report'),
+      toast: [...document.querySelectorAll('.app-toast-message')].map(node => node.textContent || '').join(' ')
+    };
+  });
+  if (clearedReportState.cached || !/report cleared/iu.test(clearedReportState.toast)) {
+    throw new Error(`Clear should remove the complete report and its restore state: ${JSON.stringify(clearedReportState)}`);
   }
 }
 

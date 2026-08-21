@@ -1,3 +1,5 @@
+import { getClientErrorMessage } from './clientErrorMessages.js';
+
 let toastImplementation = null;
 
 function normalizeToastImplementation(implementation = {}) {
@@ -23,8 +25,11 @@ function registerToastImplementation(implementation = {}) {
   return toast;
 }
 
-function showToastMessage(...args) {
-  return toastImplementation?.show?.(...args) ?? null;
+function showToastMessage(message, type, ...args) {
+  const displayMessage = type === 'error'
+    ? getClientErrorMessage(message instanceof Error ? message : new Error(String(message || '')))
+    : message;
+  return toastImplementation?.show?.(displayMessage, type, ...args) ?? null;
 }
 
 function dismissToastMessage(...args) {

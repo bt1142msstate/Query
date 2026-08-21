@@ -1,4 +1,5 @@
-import { getApiUrl, postJson } from '../core/backendApi.js';
+import { getApiUrl } from '../core/backendApi.js';
+import { resolveAccountApiUrl } from '../core/authApiUrl.js';
 import { clearSession, getSession, setSession } from '../core/authSession.js';
 import { isDemoApiUrl, queryFetch } from '../core/mockQueryBackend.js';
 import {
@@ -14,6 +15,8 @@ const passwordForm = document.getElementById('auth-password-form');
 const profileForm = document.getElementById('auth-profile-form');
 const forgotForm = document.getElementById('auth-forgot-form');
 const forgotButton = document.getElementById('auth-forgot-button');
+const codeForm = document.getElementById('auth-code-form');
+const codeButton = document.getElementById('auth-code-button');
 const status = document.getElementById('auth-session-status');
 const signout = document.getElementById('auth-session-signout');
 const headerSignout = document.getElementById('auth-header-signout');
@@ -26,6 +29,30 @@ let restoringPersistentSession = false;
 let loginRateLimitDeadline = 0;
 let loginRateLimitDuration = 0;
 let loginRateLimitTimer = 0;
+function getAccountApiUrl() {
+  return resolveAccountApiUrl(getApiUrl());
+}
+
+function getClientErrorMessage(error, { fallback }) {
+  return error?.message || fallback;
+}
+
+async function postAccountJson(payload) {
+  const response = await queryFetch(getAccountApiUrl(), { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(data.error || `Request failed (${response.status})`);
+    error.status = response.status;
+    error.payload = data;
+    if (response.status === 429) {
+      error.name = 'RateLimitError';
+      error.isRateLimited = true;
+      error.retryAfterSeconds = Number(data.retry_after_seconds || data.retry_after || 0);
+    }
+    throw error;
+  }
+  return { response, data };
+}
 
 function loginSubmitButton() {
   return form?.querySelector('[type="submit"]') || null;
@@ -122,6 +149,7 @@ function render() {
   passwordForm?.classList.toggle('hidden', !session || demoMode);
   profileForm?.classList.toggle('hidden', !session || demoMode);
   forgotButton?.classList.toggle('hidden', Boolean(session));
+  codeButton?.classList.toggle('hidden', Boolean(session));
   signout?.classList.toggle('hidden', !session);
   headerSignout?.classList.toggle('hidden', !session);
   historyButton?.classList.toggle('hidden', !session);
@@ -144,7 +172,7 @@ async function restorePersistentSession() {
   restoringPersistentSession = true;
   render();
   try {
-    const response = await queryFetch(getApiUrl(), {
+    const response = await queryFetch(getAccountApiUrl(), {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
@@ -201,11 +229,53 @@ forgotForm?.addEventListener('submit', async event => {
   const submit = forgotForm.querySelector('[type="submit"]');
   submit.disabled = true;
   try {
-    const { data } = await postJson({ action: 'request_password_reset', email: String(new FormData(forgotForm).get('email') || '').trim() });
+    const { data } = await postAccountJson({ action: 'request_password_reset', email: String(new FormData(forgotForm).get('email') || '').trim() });
     status.textContent = data.message || 'If that email matches an account, a reset link has been sent.';
     forgotForm.reset();
   } catch (error) {
-    status.textContent = error.message || 'Password recovery could not be started.';
+    status.textContent = getClientErrorMessage(error, { fallback: 'Password recovery could not be started. Try again.' });
+  } finally { submit.disabled = false; }
+});
+
+codeButton?.addEventListener('click', () => {
+  form?.classList.add('hidden');
+  forgotForm?.classList.add('hidden');
+  codeForm?.classList.remove('hidden');
+  status.textContent = 'Sign in with an email code';
+  codeForm?.elements.email?.focus();
+});
+codeForm?.querySelector('[data-code-back]')?.addEventListener('click', () => {
+  codeForm.classList.add('hidden');
+  form?.classList.remove('hidden');
+  status.textContent = 'Sign in to access Library Item Reports.';
+});
+codeForm?.querySelector('[data-code-send]')?.addEventListener('click', async event => {
+  const send = event.currentTarget;
+  const email = String(new FormData(codeForm).get('email') || '').trim();
+  if (!email) { status.textContent = 'Enter your recovery email.'; return; }
+  send.disabled = true;
+  try {
+    const { data } = await postAccountJson({ action: 'request_login_code', email });
+    codeForm.querySelector('[data-code-field]')?.classList.remove('hidden');
+    codeForm.elements.code.required = true;
+    codeForm.querySelector('[data-code-complete]')?.classList.remove('hidden');
+    status.textContent = data.message || 'If that email matches an account, a sign-in code has been sent.';
+    codeForm.elements.code.focus();
+  } catch (error) {
+    status.textContent = getClientErrorMessage(error, { fallback: 'A sign-in code could not be sent. Try again.' });
+  } finally { send.disabled = false; }
+});
+codeForm?.addEventListener('submit', async event => {
+  event.preventDefault();
+  const submit = codeForm.querySelector('[data-code-complete]');
+  const values = new FormData(codeForm);
+  submit.disabled = true;
+  try {
+    const { data } = await postAccountJson({ action: 'login_with_code', email: String(values.get('email') || '').trim(), code: String(values.get('code') || '').trim() });
+    setSession({ cookieSession: true, ...data });
+    globalThis.location?.reload();
+  } catch (error) {
+    status.textContent = getClientErrorMessage(error, { fallback: 'That code is invalid or expired.' });
   } finally { submit.disabled = false; }
 });
 
@@ -217,7 +287,7 @@ profileForm?.addEventListener('submit', async event => {
   submit.disabled = true;
   status.textContent = 'Saving profile...';
   try {
-    const response = await queryFetch(getApiUrl(), {
+    const response = await queryFetch(getAccountApiUrl(), {
       method: 'POST', credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', ...sessionHeaders(session) },
       body: JSON.stringify({ action: 'update_profile', display_name: String(values.get('display_name') || '').trim(), username: String(values.get('username') || '').trim(), email: String(values.get('email') || '').trim(), current_password: String(values.get('current_password') || '') })
@@ -230,7 +300,7 @@ profileForm?.addEventListener('submit', async event => {
     } else {
       setSession({ ...session, ...payload.profile }); render(); status.textContent = 'Profile saved.';
     }
-  } catch (error) { status.textContent = error.message || 'Profile update failed.'; }
+  } catch (error) { status.textContent = getClientErrorMessage(error, { fallback: 'Your profile could not be saved. Check the entries and try again.' }); }
   finally { submit.disabled = false; }
 });
 
@@ -263,7 +333,7 @@ passwordForm?.addEventListener('submit', async event => {
   submit.disabled = true;
   status.textContent = 'Changing password...';
   try {
-    const response = await queryFetch(getApiUrl(), {
+    const response = await queryFetch(getAccountApiUrl(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -285,7 +355,7 @@ passwordForm?.addEventListener('submit', async event => {
     render();
     status.textContent = 'Password changed. Sign in again with the new password.';
   } catch (error) {
-    status.textContent = error.message || 'Password change failed.';
+    status.textContent = getClientErrorMessage(error, { fallback: 'Your password could not be changed. Check the entries and try again.' });
   } finally {
     submit.disabled = false;
   }
@@ -321,7 +391,7 @@ form?.addEventListener('submit', async event => {
   submit.disabled = true;
   status.textContent = 'Signing in...';
   try {
-    const { data: payload } = await postJson({
+    const { data: payload } = await postAccountJson({
       action: 'login',
       username: String(values.get('username') || '').trim(),
       password: String(values.get('password') || '')
@@ -339,7 +409,7 @@ form?.addEventListener('submit', async event => {
     globalThis.location?.reload();
   } catch (error) {
     if (!error?.isRateLimited || !startLoginRateLimit(error)) {
-      status.textContent = error.message || 'Sign in failed.';
+      status.textContent = getClientErrorMessage(error, { fallback: 'Sign in did not work. Check your username and password and try again.' });
     }
   } finally {
     submit.disabled = getRemainingSeconds(loginRateLimitDeadline) > 0;
@@ -350,7 +420,7 @@ async function signOut() {
   const session = getSession();
   try {
     if (session?.token) {
-      await queryFetch(getApiUrl(), {
+      await queryFetch(getAccountApiUrl(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -8,6 +8,7 @@ import { QueryStateReaders } from '../../core/queryState.js';
 import { createStreamedQueryResultReader } from '../../core/queryStream.js';
 import { buildBackendQueryPayloadFromParts } from '../../features/filters/queryPayload.js';
 import { getNonBlankCellValueParts } from '../../core/resultCellValues.js';
+import { getClientErrorMessage } from '../../core/clientErrorMessages.js';
 
 const readStreamedQueryResult = createStreamedQueryResultReader();
 
@@ -168,8 +169,9 @@ function createCurrentQueryHydrationSource({
       );
       await controller.run(entries);
     } catch (error) {
-      setSearchStatus(error.message || 'The current query could not be prepared for Hydration.', 'error');
-      showToastMessage(error.message || 'The current query could not be prepared for Hydration.', 'error');
+      const message = getClientErrorMessage(error, { fallback: 'The current query could not be prepared for Hydration. Try again.' });
+      setSearchStatus(message, 'error');
+      showToastMessage(message, 'error');
     } finally {
       running = false;
       refresh();

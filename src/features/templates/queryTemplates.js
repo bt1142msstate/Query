@@ -1,6 +1,7 @@
 import { BackendApi } from '../../core/backendApi.js';
 import { onDOMReady } from '../../core/domReady.js';
 import { showToastMessage } from '../../core/toast.js';
+import { getClientErrorMessage } from '../../core/clientErrorMessages.js';
 import { VisibilityUtils } from '../../core/visibility.js';
 import { buildQueryUiConfig } from '../filters/queryPayload.js';
 import { appServices, registerQueryTemplatesService } from '../../core/appServices.js';
@@ -225,7 +226,7 @@ import { escapeHtml } from '../../core/formatting/html.js';
       state.categories = [];
       state.selectedId = '';
       state.draft = null;
-      showToastMessage(`Failed to load templates: ${error.message}`, 'error');
+      showToastMessage(getClientErrorMessage(error, { fallback: 'Templates could not be loaded. Try again.' }), 'error');
     } finally {
       state.loading = false;
       render();
@@ -358,7 +359,7 @@ import { escapeHtml } from '../../core/formatting/html.js';
       if (error?.isRateLimited) {
         return;
       }
-      renderValidation([error.message]);
+      renderValidation([getClientErrorMessage(error, { fallback: 'The template could not be saved. Check its details and try again.' })]);
     } finally {
       state.saving = false;
       render();
@@ -403,7 +404,7 @@ import { escapeHtml } from '../../core/formatting/html.js';
       if (error?.isRateLimited) {
         return;
       }
-      renderValidation([error.message]);
+      renderValidation([getClientErrorMessage(error, { fallback: 'The template could not be updated. Check its details and try again.' })]);
     } finally {
       state.saving = false;
       render();
@@ -439,7 +440,7 @@ import { escapeHtml } from '../../core/formatting/html.js';
       if (error?.isRateLimited) {
         return;
       }
-      renderValidation([error.message]);
+      renderValidation([getClientErrorMessage(error, { fallback: 'The template could not be deleted. Try again.' })]);
     } finally {
       state.saving = false;
       render();
@@ -504,7 +505,7 @@ import { escapeHtml } from '../../core/formatting/html.js';
       if (error?.isRateLimited) {
         return;
       }
-      renderValidation([error.message]);
+      renderValidation([getClientErrorMessage(error, { fallback: 'The pin could not be updated. Try again.' })]);
     } finally {
       state.saving = false;
       render();
@@ -545,7 +546,7 @@ import { escapeHtml } from '../../core/formatting/html.js';
       if (error?.isRateLimited) {
         return;
       }
-      showToastMessage(`Failed to reorder pinned templates: ${error.message}`, 'error');
+      showToastMessage(getClientErrorMessage(error, { fallback: 'The pinned templates could not be reordered. Try again.' }), 'error');
     } finally {
       state.saving = false;
       state.draggedPinnedId = '';

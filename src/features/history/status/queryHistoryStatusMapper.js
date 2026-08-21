@@ -1,5 +1,6 @@
 import { normalizeBackendErrorDetails } from '../../../core/queryErrorDetails.js';
 import { normalizeBackendProgress } from '../../../core/queryProgress.js';
+import { getClientErrorMessage } from '../../../core/clientErrorMessages.js';
 
 export function mapStatusPayloadToHistoryRows(payload, dependencies = {}) {
   const queries = payload?.queries;
@@ -56,7 +57,12 @@ function mapServerQueryToHistoryRow(serverQuery, dependencies = {}) {
     targetTags: Array.isArray(serverQuery.target_tags) ? serverQuery.target_tags : [],
     errorDetails: normalizeBackendErrorDetails(serverQuery.error_details || serverQuery.errorDetails),
     progress: normalizeBackendProgress(serverQuery.progress),
-    error: serverQuery.error || serverQuery.warning || ''
+    error: serverQuery.error || serverQuery.warning
+      ? getClientErrorMessage({
+          message: serverQuery.error || serverQuery.warning,
+          payload: { error_details: serverQuery.error_details || serverQuery.errorDetails }
+        }, { fallback: 'The query could not be completed. Try it again or contact support.' })
+      : ''
   };
 }
 

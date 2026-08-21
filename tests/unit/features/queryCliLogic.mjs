@@ -1,18 +1,24 @@
 import assert from 'node:assert/strict';
-import { rm } from 'node:fs/promises';
+import { readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { Readable } from 'node:stream';
 import test from 'node:test';
 import {
   applyPostFilters,
   buildRunPayload,
+  collapseRowsForExport,
   normalizePostFilters,
   parseCliArgs,
   parseFilterArgument,
   parsePostFilterArgument,
+  runApiCommand,
+  runLoginCommand,
   runResultsCommand,
   runQuery,
-  runTemplatesCommand
+  runRunCommand,
+  runTemplatesCommand,
+  sortRowsForExport
 } from '../../../scripts/lib/queryCli.mjs';
 
 const jsonlHeaders = { 'Content-Type': 'application/x-ndjson; charset=utf-8' };
@@ -125,6 +131,30 @@ test('query CLI applies the same post-filter shape used by the table', () => {
   ]);
 });
 
+test('query CLI collapses duplicate visible rows by default with an opt-out', () => {
+  const rows = [
+    ['One for the Money', 'Evanovich, Janet', 'LILS-LEE'],
+    ['One for the Money', 'Evanovich, Janet', 'LILS-LEE'],
+    ['Two for the Dough', 'Evanovich, Janet', 'LILS-LEE']
+  ];
+  const columns = ['Title', 'Author', 'Item Library'];
+
+  assert.deepEqual(collapseRowsForExport(rows, columns), [rows[0], rows[2]]);
+  assert.equal(collapseRowsForExport(rows, columns, {}, { 'include-duplicates': true }).length, 3);
+  assert.equal(collapseRowsForExport(rows, columns, { export: { collapseDuplicateRows: false } }).length, 3);
+});
+
+test('query CLI applies stable multi-field export sorting', () => {
+  const rows = [
+    ['Two for the Dough', 'Evanovich, Janet'],
+    ['The 5th Horseman', 'Patterson, James'],
+    ['One for the Money', 'Evanovich, Janet']
+  ];
+  assert.deepEqual(sortRowsForExport(rows, ['Title', 'Author'], new Map(), {
+    export: { sort: [{ field: 'Author' }, { field: 'Title' }] }
+  }), [rows[2], rows[0], rows[1]]);
+});
+
 test('query CLI exports saved results through the shared result parser path', async () => {
   const originalFetch = globalThis.fetch;
   const requests = [];
@@ -183,6 +213,144 @@ test('query CLI lists templates through the shared template repository', async (
     assert.equal(result.count, 1);
   } finally {
     globalThis.fetch = originalFetch;
+    await rm(outputPath, { force: true });
+  }
+});
+
+test('query CLI applies an approved session to report requests', async () => {
+  const originalFetch = globalThis.fetch;
+  const requests = [];
+  globalThis.fetch = async (_apiUrl, init = {}) => {
+    requests.push(init);
+    return new Response([
+      JSON.stringify({ type: 'meta', version: 1, format: 'jsonl', columns: ['Title'] }),
+      JSON.stringify({ type: 'done', rows: 0 })
+    ].join('\n'), { headers: jsonlHeaders });
+  };
+  try {
+    await runQuery('https://example.test/query', { action: 'run', display_fields: ['Title'] }, {
+      sessionStore: {
+        read: async () => ({ token: 'test-session-token' })
+      }
+    });
+    assert.equal(requests[0].headers['X-Query-Session'], 'test-session-token');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('query CLI sign-in stores the returned session without printing the token', async () => {
+  const originalFetch = globalThis.fetch;
+  let storedSession;
+  globalThis.fetch = async (_apiUrl, init = {}) => {
+    const payload = JSON.parse(init.body || '{}');
+    assert.deepEqual(payload, { action: 'login', username: 'bt1142', password: 'not-logged' });
+    assert.equal(init.headers['X-Query-Session'], undefined);
+    return Response.json({ token: 'opaque-session-token', username: 'bt1142', role: 'admin' });
+  };
+  try {
+    const result = await runLoginCommand({
+      'api-url': 'https://example.test/query',
+      'password-stdin': true,
+      stdin: Readable.from(['not-logged\n']),
+      username: 'bt1142',
+      sessionStore: {
+        write: async (_apiUrl, session) => {
+          storedSession = session;
+          return session;
+        }
+      }
+    });
+    assert.equal(result.username, 'bt1142');
+    assert.equal(storedSession.token, 'opaque-session-token');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('generic API command reaches newer backend actions with JSON payloads and auth', async () => {
+  const originalFetch = globalThis.fetch;
+  let request;
+  globalThis.fetch = async (_apiUrl, init = {}) => {
+    request = init;
+    return Response.json({ run_id: 'hydration-1', status: 'running' });
+  };
+  const outputPath = join(tmpdir(), `query-cli-api-${Date.now()}.json`);
+  try {
+    const result = await runApiCommand({
+      action: 'start_hydration_run',
+      output: outputPath,
+      set: ['name="CLI review"', 'records=[{"title":"Example"}]'],
+      'api-url': 'https://example.test/query',
+      sessionStore: {
+        read: async () => ({ token: 'test-session-token' })
+      }
+    });
+    assert.equal(result.action, 'start_hydration_run');
+    assert.equal(request.headers['X-Query-Session'], 'test-session-token');
+    assert.deepEqual(JSON.parse(request.body), {
+      action: 'start_hydration_run',
+      name: 'CLI review',
+      records: [{ title: 'Example' }]
+    });
+    assert.deepEqual(JSON.parse(await readFile(outputPath, 'utf8')), {
+      run_id: 'hydration-1',
+      status: 'running'
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+    await rm(outputPath, { force: true });
+  }
+});
+
+test('query CLI can split Excel output into sheets by an exported field', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_apiUrl, init = {}) => {
+    const payload = JSON.parse(init.body || '{}');
+    if (payload.action === 'get_fields') {
+      return Response.json({
+        fields: [
+          { name: 'Title', type: 'string' },
+          { name: 'Item Library', type: 'string' }
+        ]
+      });
+    }
+    assert.equal(payload.action, 'run');
+    return new Response([
+      JSON.stringify({ type: 'meta', version: 1, format: 'jsonl', columns: ['Title', 'Item Library'] }),
+      JSON.stringify({ type: 'row', values: ['One for the money', 'Main Branch'] }),
+      JSON.stringify({ type: 'row', values: ['2nd chance', 'East Branch'] }),
+      JSON.stringify({ type: 'done', rows: 2 })
+    ].join('\n'), { headers: jsonlHeaders });
+  };
+  const outputPath = join(tmpdir(), `query-cli-grouped-${Date.now()}.xlsx`);
+  const configPath = join(tmpdir(), `query-cli-grouped-${Date.now()}.json`);
+  try {
+    await writeFile(configPath, JSON.stringify({
+      displayFields: ['Title', 'Item Library'],
+      export: {
+        format: 'xlsx',
+        groupField: 'Item Library',
+        groupValues: ['Main Branch', 'East Branch', 'North Branch'],
+        includeOverviewSheet: true,
+        output: outputPath
+      }
+    }));
+    const result = await runRunCommand({
+      'api-url': 'https://example.test/query',
+      config: configPath,
+      sessionStore: { read: async () => ({ token: 'test-session-token' }) }
+    });
+    assert.equal(result.rows, 2);
+    const workbookText = new TextDecoder().decode(await readFile(outputPath));
+    assert.match(workbookText, /Overview/u);
+    assert.match(workbookText, /East Branch/u);
+    assert.match(workbookText, /Main Branch/u);
+    assert.match(workbookText, /North Branch/u);
+    assert.match(workbookText, /fitToWidth="1"/u);
+  } finally {
+    globalThis.fetch = originalFetch;
+    await rm(configPath, { force: true });
     await rm(outputPath, { force: true });
   }
 });

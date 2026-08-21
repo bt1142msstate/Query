@@ -3,6 +3,7 @@ import {
   normalizeResultQueryUrl,
   RESULT_QUERY_URL_PARAM
 } from '../../../core/queryResultUrl.js';
+import { shouldRestoreLastReport } from '../../../core/queryPreferences.js';
 
 const OPENED_HISTORY_RESULT_STORAGE_KEY = 'query:lastOpenedHistoryResult';
 const OPENED_HISTORY_RESULT_URL_PARAM = RESULT_QUERY_URL_PARAM;
@@ -49,6 +50,14 @@ function syncOpenedHistoryResultUrl(queryId, options = {}) {
     return false;
   }
 
+  if (
+    options.clearUrl !== true
+    && options.forceUrl !== true
+    && !shouldRestoreLastReport(options.storage)
+  ) {
+    return false;
+  }
+
   try {
     const historyRef = options.history || globalThis.window?.history || globalThis.history;
     const currentUrl = options.url || globalThis.window?.location?.href || globalThis.location?.href;
@@ -78,15 +87,16 @@ function rememberOpenedHistoryResult(queryId, options = {}) {
     return false;
   }
 
-  if (storage) {
+  const restoreEnabled = shouldRestoreLastReport(storage);
+  if (storage && restoreEnabled) {
     storage.setItem(OPENED_HISTORY_RESULT_STORAGE_KEY, JSON.stringify({
       queryId: normalizedQueryId,
       savedAt: Date.now(),
       version: OPENED_HISTORY_RESULT_STORAGE_VERSION
     }));
   }
-  syncOpenedHistoryResultUrl(normalizedQueryId, options);
-  return Boolean(storage || options.updateUrl === true);
+  const urlSynced = syncOpenedHistoryResultUrl(normalizedQueryId, options);
+  return Boolean((storage && restoreEnabled) || urlSynced);
 }
 
 function forgetOpenedHistoryResult(options = {}) {
@@ -161,8 +171,14 @@ function shouldRestoreOpenedHistoryResult(options = {}) {
     return true;
   }
 
-  return !hasLimitedSharedFormUrl(options.location) && Boolean(readOpenedHistoryResult(options));
+  return shouldRestoreLastReport(options.storage)
+    && !hasLimitedSharedFormUrl(options.location)
+    && Boolean(readOpenedHistoryResult(options));
 }
+
+globalThis.addEventListener?.('query:restore-last-report-disabled', () => {
+  forgetOpenedHistoryResult({ clearUrl: true });
+});
 
 export {
   OPENED_HISTORY_RESULT_STORAGE_KEY,

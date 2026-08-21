@@ -19,6 +19,11 @@ import {
   getLazyExpandedRowsSourceRows
 } from '../../../lib/virtual-table/splitColumnExpansion.js';
 import { buildFieldOptions, cloneOptions } from './virtualTablePostFilterOptions.js';
+import {
+  hasAlphabeticSequenceMarker,
+  hasNumberSequenceMarker,
+  hasRomanNumeralSequenceMarker
+} from '../post-filters/postFilterSequenceMarkers.js';
 
 const SERIALIZED_MULTI_VALUE_SEPARATOR = '\x1F';
 
@@ -271,6 +276,18 @@ function compilePostFilterPredicate(filter, type) {
     return withPredicateRank(rawCellValue => !hasMultipleCellValues(rawCellValue), 1);
   }
 
+  if (cond === 'has_number_sequence_marker') {
+    return withPredicateRank(rawCellValue => someOriginalTextCellValue(rawCellValue, hasNumberSequenceMarker), 2);
+  }
+
+  if (cond === 'has_roman_numeral_sequence_marker') {
+    return withPredicateRank(rawCellValue => someOriginalTextCellValue(rawCellValue, hasRomanNumeralSequenceMarker), 2);
+  }
+
+  if (cond === 'has_alphabetic_sequence_marker') {
+    return withPredicateRank(rawCellValue => someOriginalTextCellValue(rawCellValue, hasAlphabeticSequenceMarker), 2);
+  }
+
   if (cond === 'equals' && filterValues.length > 1) {
     return withPredicateRank(compileSelectionPredicate(filterValues, type, true), 2);
   }
@@ -443,6 +460,15 @@ function someTextCellValue(rawValue, predicate) {
     }
   }
   return sawValue ? false : predicate('');
+}
+function someOriginalTextCellValue(rawValue, predicate) {
+  const scalar = getScalarCellText(rawValue);
+  if (scalar !== null) {
+    return predicate(scalar);
+  }
+
+  const parts = getRawCellValueParts(rawValue);
+  return parts.some(value => predicate(String(value ?? '').trim()));
 }
 function everyTextCellValue(rawValue, predicate) {
   const scalar = getScalarCellText(rawValue);

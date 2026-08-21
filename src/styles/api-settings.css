@@ -158,6 +158,69 @@
   margin: 0.2rem 0 0;
 }
 
+.api-settings-preference-header {
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+
+.api-settings-toggle {
+  align-items: center;
+  color: #f8fafc;
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 0.65rem;
+  min-height: 44px;
+}
+
+.api-settings-toggle input {
+  height: 1px;
+  opacity: 0;
+  position: absolute;
+  width: 1px;
+}
+
+.api-settings-toggle-track {
+  background: #334155;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  border-radius: 999px;
+  display: inline-flex;
+  padding: 0.18rem;
+  transition: background 0.18s ease, border-color 0.18s ease;
+  width: 2.55rem;
+}
+
+.api-settings-toggle-track > span {
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.32);
+  display: block;
+  height: 1rem;
+  transform: translateX(0);
+  transition: transform 0.18s ease;
+  width: 1rem;
+}
+
+.api-settings-toggle input:checked + .api-settings-toggle-track {
+  background: #0f766e;
+  border-color: #2dd4bf;
+}
+
+.api-settings-toggle input:checked + .api-settings-toggle-track > span {
+  transform: translateX(1.1rem);
+}
+
+.api-settings-toggle input:focus-visible + .api-settings-toggle-track {
+  outline: 3px solid rgba(45, 212, 191, 0.35);
+  outline-offset: 3px;
+}
+
+.api-settings-toggle-label {
+  font-size: 0.82rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
 #api-settings-url-input {
   background: #020617;
   border: 1px solid rgba(45, 212, 191, 0.34);

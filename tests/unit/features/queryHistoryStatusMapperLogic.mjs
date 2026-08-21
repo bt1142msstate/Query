@@ -124,7 +124,7 @@ test('query history status mapper', async () => {
   assert.equal(rows[2].jsonConfig.source, 'request');
 
   assert.equal(rows[3].failed, true);
-  assert.equal(rows[3].error, 'Backend disconnected');
+  assert.equal(rows[3].error, 'The library system could not finish this request. Try again; if it continues, contact support.');
   assert.deepEqual(rows[3].errorDetails, {
     schemaVersion: 1,
     stage: 'loading_dynamic_fields',

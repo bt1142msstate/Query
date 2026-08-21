@@ -801,6 +801,8 @@ body.raised-ui-open #table-shell.table-shell-expanded {
 .auth-dialog button { border:1px solid #9ca3af; border-radius:4px; padding:8px 12px; color:var(--theme-text-strong,#111827); background:var(--theme-panel-bg-raised,#f8fafc); }
 .auth-dialog form button[type="submit"] { color:#fff; border-color:#2563eb; background:#2563eb; }
 .auth-dialog form button[type="submit"]:hover:not(:disabled) { background:#1d4ed8; }
+.auth-dialog .auth-dialog__primary { color:#fff; border-color:#2563eb; background:#2563eb; }
+.auth-dialog .auth-dialog__primary:hover:not(:disabled) { background:#1d4ed8; }
 .auth-dialog button:focus-visible, .auth-dialog input:focus-visible { outline:2px solid #60a5fa; outline-offset:2px; }
 .auth-dialog button:disabled { cursor:wait; opacity:.62; }
 .auth-dialog .auth-dialog__close { float:right; display:grid; place-items:center; padding:6px; border:0; }

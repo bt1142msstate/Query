@@ -1,8 +1,8 @@
 const BIB_COMPARISON_FILTERS = Object.freeze([
-  { id: 'differences', label: 'Differences', count: 'differences' },
-  { id: 'all', label: 'All fields', count: 'all' },
-  { id: 'local_only', label: 'Local only', count: 'local_only' },
-  { id: 'worldcat_only', label: 'Source only', count: 'worldcat_only' },
+  { id: 'differences', label: 'Changed', count: 'differences' },
+  { id: 'all', label: 'All', count: 'all' },
+  { id: 'local_only', label: 'Only in Symphony', count: 'local_only' },
+  { id: 'worldcat_only', label: 'Only in source', count: 'worldcat_only' },
   { id: 'same', label: 'Same', count: 'same' }
 ]);
 

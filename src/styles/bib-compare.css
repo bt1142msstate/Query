@@ -419,6 +419,43 @@
   color: var(--qp-sys-color-on-primary);
 }
 
+.bib-bulk-download:disabled {
+  border-color: var(--qp-sys-color-outline);
+  color: var(--qp-sys-color-on-surface-variant);
+  background: var(--qp-sys-color-surface-container);
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.bib-bulk-start {
+  display: grid;
+  place-items: center;
+  min-height: 13rem;
+  padding: 2rem;
+  border: 1px dashed var(--qp-sys-color-outline);
+  border-radius: 8px;
+  text-align: center;
+  background: var(--qp-sys-color-surface);
+}
+
+.bib-bulk-start h3,
+.bib-bulk-start p {
+  margin: 0;
+}
+
+.bib-bulk-start h3 {
+  color: var(--qp-sys-color-on-surface-strong);
+  font-size: 1.05rem;
+}
+
+.bib-bulk-start p {
+  max-width: 32rem;
+  margin-top: 0.4rem;
+  color: var(--qp-sys-color-on-surface-variant);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
 .bib-bulk-progress {
   display: grid;
   gap: 0.45rem;

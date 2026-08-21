@@ -280,7 +280,8 @@ test('query history', async () => {
     }
   });
 
-  assert.match(failedRowHtml, /Marc Enrichment - Catalogdump Failed/u);
+  assert.match(failedRowHtml, /Backend failed/u);
+  assert.doesNotMatch(failedRowHtml, /Catalogdump Failed|catalogdump -ka/u);
 
   const failedDetailsHtml = buildHistoryDetailsOverlayHtml(failedQuery, {
     normalizeUiConfigFilters: () => [],
@@ -290,6 +291,7 @@ test('query history', async () => {
   assert.match(failedDetailsHtml, /Check catalogdump permissions\./u);
   assert.match(failedDetailsHtml, /catalogdump -ka -z -om/u);
   assert.match(failedDetailsHtml, /Candidate Rows/u);
+  assert.match(failedDetailsHtml, /Technical details for support/u);
 
   const longDetailsHtml = buildHistoryDetailsOverlayHtml({
     id: 'Q4',
