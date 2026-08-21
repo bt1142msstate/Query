@@ -11,6 +11,8 @@ let currentView = 'overview';
 let libraryData = null;
 let operationRuns = [];
 let loading = false;
+let pendingLoad = false;
+let pendingForce = false;
 const AUTO_REFRESH_MS = 5 * 60 * 1000;
 
 function getElements() {
@@ -99,7 +101,11 @@ async function loadLibraryDashboard({ force = false } = {}) {
 }
 
 async function loadDashboard({ force = false } = {}) {
-  if (loading) return;
+  if (loading) {
+    pendingLoad = true;
+    pendingForce = pendingForce || Boolean(force);
+    return;
+  }
   const elements = getElements();
   loading = true;
   elements.refresh?.setAttribute('aria-busy', 'true');
@@ -122,6 +128,12 @@ async function loadDashboard({ force = false } = {}) {
     elements.refresh?.removeAttribute('aria-busy');
     if (elements.refresh) elements.refresh.disabled = false;
     setVisible(elements.loading, false);
+    if (pendingLoad) {
+      const forceNextLoad = pendingForce;
+      pendingLoad = false;
+      pendingForce = false;
+      void loadDashboard({ force: forceNextLoad });
+    }
   }
 }
 

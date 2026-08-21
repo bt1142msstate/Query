@@ -1,5 +1,5 @@
 {
-  "version": "93b342149fa8157a",
+  "version": "2bd189d2a1f33513",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-16.png": "6645731d86da1071",
@@ -236,11 +236,11 @@
     "src/ui/controls/selectorListPasteInput.js": "4e7f16d036dfd795",
     "src/ui/controls/tableNameInput.js": "b6fc884c36961de3",
     "src/ui/controls/virtualList.js": "bd7a8d24c7c48493",
-    "src/ui/dashboard/kpiDashboard.js": "a38968457c3d0c17",
+    "src/ui/dashboard/kpiDashboard.js": "3e8777dd46e3ee7b",
     "src/ui/dashboard/kpiDashboardModel.js": "fa4c42b18c1245e5",
     "src/ui/dashboard/kpiDashboardView.js": "82508c550975ada6",
     "src/ui/dashboard/libraryDashboardModel.js": "b7798cb959dc03ac",
-    "src/ui/dashboard/libraryDashboardView.js": "7d8b9d9b07ee73f5",
+    "src/ui/dashboard/libraryDashboardView.js": "ac1e8fe5b48b220a",
     "src/ui/field-picker/buildableFieldPreview.js": "8abd486bb0a87fe2",
     "src/ui/field-picker/fieldPicker.js": "526a1bf934f5dd74",
     "src/ui/field-picker/fieldPickerModal.js": "e14c2173b1a2cc42",

@@ -70,8 +70,10 @@ function opportunityTable(items) {
 }
 
 function dashboardIntro(data, title, description) {
-  const scope = data.scope?.library_label || 'All MLP libraries';
-  const itemType = data.scope?.item_type_label || 'All item types';
+  const libraryCode = data.scope?.library || 'all';
+  const itemTypeCode = data.scope?.item_type || 'all';
+  const scope = data.scope?.library_label || (libraryCode === 'all' ? 'All MLP libraries' : libraryCode);
+  const itemType = data.scope?.item_type_label || (itemTypeCode === 'all' ? 'All item types' : itemTypeCode);
   const freshnessLabel = data.freshness?.stale ? 'Snapshot is older than expected' : 'Verified aggregate snapshot';
   return `<section class="kpi-dashboard__intro" aria-labelledby="kpi-dashboard-title"><div>
     <span class="kpi-dashboard__eyebrow">Library intelligence</span>${data.isSampleData ? '<span class="kpi-dashboard__sample">Sample data</span>' : ''}
