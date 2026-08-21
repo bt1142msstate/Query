@@ -132,6 +132,8 @@ function createGroupedSelector(values, isMultiSelect, currentValues = [], option
   const enableGrouping = options.enableGrouping !== false;
   const groupSelectionLabel = String(options.groupSelectionLabel || '').trim();
   const groupSelectionDescription = String(options.groupSelectionDescription || '').trim();
+  const allSelectionLabel = String(options.allSelectionLabel || '').trim();
+  const allSelectionDescription = String(options.allSelectionDescription || '').trim();
   const containerId = Object.prototype.hasOwnProperty.call(options, 'containerId')
     ? options.containerId
     : 'condition-select-container';
@@ -164,6 +166,21 @@ function createGroupedSelector(values, isMultiSelect, currentValues = [], option
   searchWrapper.appendChild(searchInput);
   initializeSearchInputs(searchWrapper);
   container.appendChild(searchWrapper);
+
+  let allSelectionButton = null;
+  if (allSelectionLabel) {
+    allSelectionButton = document.createElement('button');
+    allSelectionButton.type = 'button';
+    allSelectionButton.className = 'group-header selector-all-option';
+    allSelectionButton.textContent = allSelectionLabel;
+    allSelectionButton.title = allSelectionDescription;
+    allSelectionButton.addEventListener('click', () => {
+      selectedValues.clear();
+      container.dispatchEvent(new Event('change', { bubbles: true }));
+      rebuildVisibleRows();
+    });
+    container.appendChild(allSelectionButton);
+  }
 
   const optionsContainer = document.createElement('div');
   optionsContainer.className = 'grouped-options-container grouped-options-container--virtualized';
@@ -288,6 +305,11 @@ function createGroupedSelector(values, isMultiSelect, currentValues = [], option
     const searchTerm = searchInput.value.toLowerCase().trim();
     visibleRows = [];
     optionIndex.clear();
+    if (allSelectionButton) {
+      const selected = selectedValues.size === 0;
+      allSelectionButton.classList.toggle('is-selected', selected);
+      allSelectionButton.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    }
 
     topLevelEntries
       .slice()

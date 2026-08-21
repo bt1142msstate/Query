@@ -520,6 +520,7 @@ async function runSmokeTest() {
       chartCount: panel.querySelectorAll('.kpi-chart-card').length,
       opportunityRows: panel.querySelectorAll('.kpi-opportunity-table tbody tr').length,
       libraryOptions: Array.from(panel.querySelectorAll('#kpi-dashboard-library option')).map(option => option.value),
+      libraryGroups: Array.from(panel.querySelectorAll('#kpi-dashboard-library optgroup')).map(group => group.label),
       exportVisible: !panel.querySelector('#kpi-dashboard-export')?.classList.contains('hidden'),
       comparisonText: panel.querySelector('.kpi-card')?.textContent || '',
       selectedTab: panel.querySelector('[data-kpi-view][aria-selected="true"]')?.dataset.kpiView || ''
@@ -530,7 +531,10 @@ async function runSmokeTest() {
       || dashboardState.cardValues[2] !== '2,813,442'
       || dashboardState.chartCount !== 6
       || dashboardState.opportunityRows !== 1
-      || !dashboardState.libraryOptions.includes('MSU')
+      || !dashboardState.libraryOptions.includes('system:MSU')
+      || !dashboardState.libraryOptions.includes('MSU-MAIN')
+      || !dashboardState.libraryGroups.includes('Library systems')
+      || !dashboardState.libraryGroups.includes('Item libraries')
       || !dashboardState.exportVisible
       || !/up 38,119/iu.test(dashboardState.comparisonText)
       || dashboardState.selectedTab !== 'overview'
@@ -554,7 +558,7 @@ async function runSmokeTest() {
     }
     await page.locator('#kpi-dashboard-window').selectOption('cy:2026');
     await page.waitForFunction(() => document.querySelector('#kpi-dashboard-content .kpi-card')?.textContent?.includes('Calendar Year 2026 to date'));
-    await page.locator('#kpi-dashboard-library').selectOption('MSU');
+    await page.locator('#kpi-dashboard-library').selectOption('system:MSU');
     await page.waitForFunction(() => Array.from(document.querySelectorAll('#kpi-dashboard-window option')).some(option => option.value === 'fy:MSU:2027'));
     if (!await page.locator('#kpi-dashboard-window optgroup[label="Fiscal years"]').count()) {
       throw new Error('Dashboard should expose fiscal years as a distinct reporting-period group after choosing a system.');
