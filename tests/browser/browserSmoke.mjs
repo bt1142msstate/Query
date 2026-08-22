@@ -561,10 +561,22 @@ async function runSmokeTest() {
     if (!await libraryDialog.getByRole('button', { name: 'All library systems' }).count()) {
       throw new Error('Dashboard should reuse the grouped selector and expose the all-systems choice.');
     }
+    const initialLibrarySelectorText = await libraryDialog.textContent();
     await libraryDialog.getByPlaceholder('Search options...').fill('Mississippi State University');
-    await libraryDialog.getByText('Mississippi State University', { exact: true }).click();
+    const wholeSystemCheckbox = libraryDialog.getByRole('checkbox', { name: 'Entire system: Mississippi State University' });
+    if (!await wholeSystemCheckbox.count()) {
+      const selectorState = await libraryDialog.evaluate(dialog => ({
+        text: dialog.textContent,
+        checkboxLabels: Array.from(dialog.querySelectorAll('input[type="checkbox"]')).map(input => input.getAttribute('aria-label'))
+      }));
+      throw new Error(`Dashboard should expose the same entire-system checkbox action as the main Item Library selector: initial=${JSON.stringify(initialLibrarySelectorText)} filtered=${JSON.stringify(selectorState)}`);
+    }
+    await wholeSystemCheckbox.check();
     await libraryDialog.getByRole('button', { name: 'Done' }).click();
-    await page.waitForFunction(() => document.querySelector('#kpi-dashboard-library')?.getSelectedValues?.()[0] === 'system:MSU');
+    await page.waitForFunction(() => {
+      const values = document.querySelector('#kpi-dashboard-library')?.getSelectedValues?.() || [];
+      return values.length === 2 && values.includes('MSU-MAIN') && values.includes('MSU-MERIDIAN');
+    });
     await page.waitForFunction(() => Array.from(document.querySelectorAll('#kpi-dashboard-window option')).some(option => option.value === 'fy:MSU:2027'));
     if (!await page.locator('#kpi-dashboard-window optgroup[label="Fiscal years"]').count()) {
       throw new Error('Dashboard should expose fiscal years as a distinct reporting-period group after choosing a system.');

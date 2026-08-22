@@ -79,7 +79,7 @@ function printUsage(stream = process.stdout) {
   npm run query:api -- --action ACTION [--payload request.json|-] [--set key=value] [--output response.json]
   npm run query:compat -- [--api-url URL] [--json]
   npm run query:status -- [--api-url URL] [--json]
-  npm run query:dashboard -- [--library CODE] [--item-type CODE] [--active-window-days 90|365|730] [--reporting-period PERIOD] [--output dashboard.json]
+  npm run query:dashboard -- [--library CODE | --libraries CODE,CODE] [--item-type CODE] [--active-window-days 90|365|730] [--reporting-period PERIOD] [--output dashboard.json]
   npm run query:plan -- --config query.json [--output plan.json]
   npm run query:cancel -- --query-id QUERY_ID
   npm run query:results -- --query-id QUERY_ID [--format xlsx|csv|json|jsonl] [--output results.xlsx] [--include-duplicates]
@@ -930,6 +930,11 @@ async function runApiCommand(options = {}) {
 
 async function runDashboardCommand(options = {}) {
   const apiUrl = getApiUrl({}, options);
+  const libraries = (Array.isArray(options.libraries) ? options.libraries : [options.libraries])
+    .filter(value => value !== undefined && value !== null)
+    .flatMap(value => String(value).split(','))
+    .map(value => value.trim())
+    .filter(Boolean);
   const payload = {
     action: 'library_dashboard',
     library: String(options.library || 'all'),
@@ -938,6 +943,7 @@ async function runDashboardCommand(options = {}) {
     reporting_period: String(options['reporting-period'] || options.reportingPeriod || options['active-window-days'] || options.activeWindowDays || 365),
     force_refresh: Boolean(options.refresh)
   };
+  if (libraries.length) payload.libraries = [...new Set(libraries)];
   const data = await postJson(apiUrl, payload, options);
   const outputPath = options.output ? resolve(String(options.output)) : '';
   await writeTextOutput({ outputPath, text: `${JSON.stringify(data, null, 2)}\n` });

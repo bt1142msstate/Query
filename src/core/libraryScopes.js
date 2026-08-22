@@ -14,17 +14,15 @@ function buildLibraryScopeGroups(systems = [], libraries = []) {
 }
 
 function buildLibraryScopeSelectorValues(systems = [], libraries = []) {
-  const systemOptions = normalizeLibraryScopeOptions(systems).map(option => ({
-    RawValue: option.value,
-    Display: option.label,
-    Group: 'Library systems'
-  }));
+  const systemLabels = new Map(normalizeLibraryScopeOptions(systems).map(option => [
+    systemCodeForLibraryScope(option.value), option.label
+  ]));
   const libraryOptions = normalizeLibraryScopeOptions(libraries).map(option => ({
     RawValue: option.value,
     Display: option.label,
-    Group: systemCodeForLibraryScope(option.value) || 'Item libraries'
+    Group: systemLabels.get(systemCodeForLibraryScope(option.value)) || systemCodeForLibraryScope(option.value) || 'Item libraries'
   }));
-  return [...systemOptions, ...libraryOptions];
+  return libraryOptions;
 }
 
 function systemCodeForLibraryScope(scope = '') {

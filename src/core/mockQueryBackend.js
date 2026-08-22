@@ -103,8 +103,11 @@ function demoCalendarPeriods(now = new Date()) {
 
 function buildDemoLibraryDashboard(payload = {}, data = {}) {
   const library = payload.library || 'all';
+  const selectedLibraries = Array.isArray(payload.libraries) ? payload.libraries : [];
   const itemType = payload.item_type || 'all';
-  const scopeFactor = library === 'all' ? 1 : library.startsWith('system:') ? 0.25 : 0.08;
+  const scopeFactor = selectedLibraries.length
+    ? Math.min(1, selectedLibraries.length * 0.08)
+    : library === 'all' ? 1 : library.startsWith('system:') ? 0.25 : 0.08;
   const typeFactor = itemType === 'all' ? 1 : 0.22;
   const factor = scopeFactor * typeFactor;
   const reportingPeriod = String(payload.reporting_period || payload.active_window_days || 365);
@@ -149,6 +152,7 @@ function buildDemoLibraryDashboard(payload = {}, data = {}) {
     ],
     libraries: [
       { value: 'MSU-MAIN', label: 'MSU Main Library' },
+      { value: 'MSU-MERIDIAN', label: 'MSU Meridian Library' },
       { value: 'MMRLS-CARTHAGE', label: 'MMRLS Carthage' },
       { value: 'FRL-HERNANDO', label: 'First Regional Hernando' },
       { value: 'LILS-TUPELO', label: 'Lee-Itawamba Tupelo' }
@@ -163,7 +167,9 @@ function buildDemoLibraryDashboard(payload = {}, data = {}) {
     sample_data: true,
     scope: {
       library,
-      library_label: library === 'all' ? 'All MLP libraries' : ([...filters.systems, ...filters.libraries].find(entry => entry.value === library)?.label || library),
+      library_label: selectedLibraries.length
+        ? `${selectedLibraries.length} selected libraries`
+        : library === 'all' ? 'All MLP libraries' : ([...filters.systems, ...filters.libraries].find(entry => entry.value === library)?.label || library),
       item_type: itemType,
       item_type_label: itemType === 'all' ? 'All item types' : itemType,
       active_window_days: Number(payload.active_window_days || 365),
