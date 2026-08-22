@@ -331,8 +331,9 @@ function createGroupedSelector(values, isMultiSelect, currentValues = [], option
           return;
         }
 
+        const groupMatches = Boolean(searchTerm) && entry.name.toLowerCase().includes(searchTerm);
         const matchedOptions = sortOptions(entry.options).filter(option => {
-          return !searchTerm || option.searchText.includes(searchTerm);
+          return !searchTerm || groupMatches || option.searchText.includes(searchTerm);
         });
 
         if (!matchedOptions.length) {
@@ -344,6 +345,7 @@ function createGroupedSelector(values, isMultiSelect, currentValues = [], option
           type: 'group',
           groupName: entry.name,
           groupEntry: entry,
+          matchedOptions,
           height: GROUP_HEADER_HEIGHT
         });
 
@@ -458,7 +460,9 @@ function createGroupedSelector(values, isMultiSelect, currentValues = [], option
       header.appendChild(groupActionLabel);
     }
 
-    const visibleCount = row.groupEntry.options.filter(option => !searchTerm || option.searchText.includes(searchTerm)).length;
+    const visibleCount = Array.isArray(row.matchedOptions)
+      ? row.matchedOptions.length
+      : row.groupEntry.options.filter(option => !searchTerm || option.searchText.includes(searchTerm)).length;
     const groupCount = document.createElement('span');
     groupCount.className = 'group-count';
     groupCount.textContent = String(visibleCount);

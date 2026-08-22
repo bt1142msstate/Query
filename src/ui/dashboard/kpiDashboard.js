@@ -48,15 +48,15 @@ function replaceOptions(select, baseLabel, options, selected) {
   select.value = normalized.some(option => option.value === selected) ? selected : 'all';
 }
 
-function selectedLibraryScope(control) {
-  const selected = control?.getSelectedValues?.() || [];
-  return selected[0] || 'all';
+function selectedLibraryScopes(control) {
+  return control?.getSelectedValues?.() || [];
 }
 
 function replaceLibraryOptions(container, systems, libraries, selected) {
   if (!container) return;
   const values = buildLibraryScopeSelectorValues(systems, libraries);
-  const validSelection = values.some(option => option.RawValue === selected) ? [selected] : [];
+  const available = new Set(values.map(option => option.RawValue));
+  const validSelection = (Array.isArray(selected) ? selected : []).filter(value => available.has(value));
   const signature = JSON.stringify(values.map(option => [option.RawValue, option.Display, option.Group]));
   if (container.dataset.optionsSignature === signature && container.getSelectedValues) {
     container.setSelectedValues(validSelection);
@@ -64,10 +64,12 @@ function replaceLibraryOptions(container, systems, libraries, selected) {
   }
 
   container.querySelector('.form-mode-popup-list-control')?._cleanupPopup?.();
-  const selector = SelectorControls.createGroupedSelector(values, false, validSelection, {
+  const selector = SelectorControls.createGroupedSelector(values, true, validSelection, {
     enableGrouping: true,
     allSelectionLabel: ALL_LIBRARY_SYSTEMS_LABEL,
     allSelectionDescription: 'Include every library system.',
+    groupSelectionLabel: 'Entire system',
+    groupSelectionDescription: 'Select every library in this system.',
     containerId: null
   });
   const popup = SelectorControls.createPopupListControl(
@@ -87,7 +89,7 @@ function syncFilterOptions(elements) {
     elements.library,
     libraryData.filters.systems,
     libraryData.filters.libraries,
-    selectedLibraryScope(elements.library)
+    selectedLibraryScopes(elements.library)
   );
   replaceOptions(elements.itemType, 'All item types', libraryData.filters.itemTypes, elements.itemType?.value || 'all');
   syncPeriodOptions(elements);
@@ -96,8 +98,9 @@ function syncFilterOptions(elements) {
 function syncPeriodOptions(elements) {
   if (!elements.period || !libraryData) return;
   const selected = elements.period.value || '365';
-  const library = selectedLibraryScope(elements.library);
-  const system = systemCodeForLibraryScope(library);
+  const selectedLibraries = selectedLibraryScopes(elements.library);
+  const selectedSystems = new Set(selectedLibraries.map(systemCodeForLibraryScope).filter(Boolean));
+  const system = selectedSystems.size === 1 ? [...selectedSystems][0] : '';
   const rolling = [
     { value: '90', label: 'Last 90 days' },
     { value: '365', label: 'Last 12 months' },
@@ -157,13 +160,25 @@ function render() {
 
 function requestPayload(elements) {
   const reportingPeriod = elements.period?.value || '365';
-  return {
+  const libraries = selectedLibraryScopes(elements.library);
+  const selectedSystems = new Set(libraries.map(systemCodeForLibraryScope).filter(Boolean));
+  const selectedSystem = selectedSystems.size === 1 ? [...selectedSystems][0] : '';
+  const systemLibraryCount = selectedSystem
+    ? (libraryData?.filters?.libraries || []).filter(option => {
+      const value = typeof option === 'string' ? option : option.value ?? option.code;
+      return systemCodeForLibraryScope(value) === selectedSystem;
+    }).length
+    : 0;
+  const wholeSystemSelected = libraries.length > 1 && libraries.length === systemLibraryCount;
+  const payload = {
     action: 'library_dashboard',
-    library: selectedLibraryScope(elements.library),
+    library: wholeSystemSelected ? `system:${selectedSystem}` : libraries.length === 1 ? libraries[0] : 'all',
     item_type: elements.itemType?.value || 'all',
     active_window_days: /^\d+$/.test(reportingPeriod) ? Number(reportingPeriod) : 365,
     reporting_period: reportingPeriod
   };
+  if (libraries.length > 1 && !wholeSystemSelected) payload.libraries = libraries;
+  return payload;
 }
 
 async function loadOperations() {
