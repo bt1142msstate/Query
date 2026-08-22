@@ -550,12 +550,24 @@ async function runSmokeTest() {
     if (!exportText.startsWith('\uFEFFSection,Label,Metric,Value') || !exportText.includes('previous_checkouts')) {
       throw new Error('Dashboard export should include the UTF-8 header and prior-period metrics.');
     }
-    const reportingPeriodGroups = await page.locator('#kpi-dashboard-window optgroup').evaluateAll(groups => groups.map(group => group.label));
-    if (!reportingPeriodGroups.includes('Calendar years') || !reportingPeriodGroups.includes('Rolling periods')) {
-      throw new Error(`Dashboard should separate calendar-year and rolling choices: ${JSON.stringify(reportingPeriodGroups)}`);
+    await page.locator('#kpi-dashboard-window .kpi-period-trigger').click();
+    const periodDialog = page.getByRole('dialog', { name: 'Choose reporting period' });
+    const periodTabs = await periodDialog.getByRole('tab').allTextContents();
+    if (JSON.stringify(periodTabs) !== JSON.stringify(['Rolling', 'Calendar year', 'Fiscal year', 'Custom'])) {
+      throw new Error(`Dashboard should expose the structured reporting-period choices: ${JSON.stringify(periodTabs)}`);
     }
-    await page.locator('#kpi-dashboard-window').selectOption('cy:2026');
+    await periodDialog.getByRole('tab', { name: 'Calendar year' }).click();
+    await periodDialog.getByRole('radio', { name: /Calendar Year 2026 to date/u }).click();
+    await periodDialog.getByRole('button', { name: 'Apply' }).click();
     await page.waitForFunction(() => document.querySelector('#kpi-dashboard-content .kpi-card')?.textContent?.includes('Calendar Year 2026 to date'));
+    await page.locator('#kpi-dashboard-window .kpi-period-trigger').click();
+    const comparisonLabel = await periodDialog.locator('[data-comparison="previous"]').textContent();
+    if (comparisonLabel?.trim() !== 'Same period last year') {
+      throw new Error(`Calendar-year comparison should be explicit: ${comparisonLabel}`);
+    }
+    await periodDialog.getByRole('radio', { name: 'None' }).click();
+    await periodDialog.getByRole('button', { name: 'Apply' }).click();
+    await page.waitForFunction(() => document.querySelector('#kpi-dashboard-content .kpi-card')?.textContent?.includes('Comparison turned off'));
     await page.locator('#kpi-dashboard-library .form-mode-popup-list-trigger').click();
     const libraryDialog = page.getByRole('dialog', { name: 'Library or system' });
     if (!await libraryDialog.getByRole('button', { name: 'All library systems' }).count()) {
@@ -577,13 +589,14 @@ async function runSmokeTest() {
       const values = document.querySelector('#kpi-dashboard-library')?.getSelectedValues?.() || [];
       return values.length === 2 && values.includes('MSU-MAIN') && values.includes('MSU-MERIDIAN');
     });
-    await page.waitForFunction(() => Array.from(document.querySelectorAll('#kpi-dashboard-window option')).some(option => option.value === 'fy:MSU:2027'));
-    if (!await page.locator('#kpi-dashboard-window optgroup[label="Fiscal years"]').count()) {
-      throw new Error('Dashboard should expose fiscal years as a distinct reporting-period group after choosing a system.');
-    }
-    await page.locator('#kpi-dashboard-window').selectOption('fy:MSU:2027');
+    await page.locator('#kpi-dashboard-window .kpi-period-trigger').click();
+    await periodDialog.getByRole('tab', { name: 'Fiscal year' }).click();
+    const fiscalOption = periodDialog.getByRole('radio', { name: /FY 2027 to date/u });
+    if (!await fiscalOption.count()) throw new Error('Dashboard should expose fiscal years after choosing one system.');
+    await fiscalOption.click();
+    await periodDialog.getByRole('button', { name: 'Apply' }).click();
     await page.waitForFunction(() => document.querySelector('#kpi-dashboard-content .kpi-card')?.textContent?.includes('FY 2027 to date'));
-    const fiscalLabel = await page.locator('#kpi-dashboard-window option:checked').textContent();
+    const fiscalLabel = await page.locator('#kpi-dashboard-window .kpi-period-trigger').textContent();
     if (!/FY 2027.*Jul 1, 2026.*Aug 21, 2026/u.test(fiscalLabel || '')) {
       throw new Error(`Fiscal-year choice should display its actual calendar-date span: ${fiscalLabel}`);
     }

@@ -13,7 +13,8 @@ function formatPercent(value) {
   return Number.isFinite(number) ? `${Math.round(number * 100)}%` : '—';
 }
 
-function comparisonDetail(metric, noun) {
+function comparisonDetail(metric, noun, comparisonMode = 'previous') {
+  if (comparisonMode === 'none') return 'Comparison turned off';
   if (!metric?.comparison_available) return 'Previous-period comparison unavailable';
   const previous = Number(metric[`previous_${noun}`] || 0);
   const change = Number(metric[`${noun.slice(0, -1)}_change`] || 0);
@@ -23,8 +24,8 @@ function comparisonDetail(metric, noun) {
   return `${direction === 'unchanged' ? 'Unchanged' : `${direction} ${formatNumber(Math.abs(change))}${rateText}`} vs ${formatNumber(previous)} previously`;
 }
 
-function periodComparisonDetail(metric, noun) {
-  const comparison = comparisonDetail(metric, noun);
+function periodComparisonDetail(metric, noun, comparisonMode = 'previous') {
+  const comparison = comparisonDetail(metric, noun, comparisonMode);
   return metric?.period_label ? `${metric.period_label} · ${comparison}` : comparison;
 }
 
@@ -115,8 +116,8 @@ function renderOverview(data) {
   const circulationUnavailable = '<p class="kpi-chart-empty">Period circulation data is not available for this scope.</p>';
   return `${dashboardIntro(data, 'What is being used—and where to act', 'A combined view of circulation demand, collection performance, and community reach. Every number keeps its source and time basis visible.')}
     <section class="kpi-cards kpi-cards--six" aria-label="Key library indicators">
-      ${metricCard('Checkouts', hasCirculation ? formatNumber(circ.checkouts) : '—', hasCirculation ? periodComparisonDetail(circ, 'checkouts') : 'Period transaction feed not available', hasCirculation ? 'success' : '')}
-      ${metricCard('Renewals', hasCirculation ? formatNumber(circ.renewals) : '—', hasCirculation ? periodComparisonDetail(circ, 'renewals') : 'Period transaction feed not available')}
+      ${metricCard('Checkouts', hasCirculation ? formatNumber(circ.checkouts) : '—', hasCirculation ? periodComparisonDetail(circ, 'checkouts', data.scope?.comparison_mode) : 'Period transaction feed not available', hasCirculation ? 'success' : '')}
+      ${metricCard('Renewals', hasCirculation ? formatNumber(circ.renewals) : '—', hasCirculation ? periodComparisonDetail(circ, 'renewals', data.scope?.comparison_mode) : 'Period transaction feed not available')}
       ${metricCard('Current items', hasCollection ? formatNumber(collection.items) : '—', hasCollection ? (collection.titles ? `${formatNumber(collection.titles)} titles represented` : 'Actual current item records') : 'Current item snapshot not available')}
       ${metricCard('Used recently', hasCollection ? formatPercent(collection.recent_use_rate) : '—', hasCollection ? `${formatNumber(collection.used_recently)} items used in the selected window` : 'Current item snapshot not available', hasCollection ? 'success' : '')}
       ${metricCard('Active patrons', hasPatrons ? formatNumber(patrons.active) : '—', hasPatrons ? `${formatPercent(patrons.active_rate)} of current patrons` : 'Patron aggregate not available')}

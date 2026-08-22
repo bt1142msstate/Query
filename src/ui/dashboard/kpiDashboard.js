@@ -9,6 +9,7 @@ import { downloadLibraryDashboardCsv } from './libraryDashboardExport.js';
 import { normalizeDashboardRuns, summarizeDashboardRuns } from './kpiDashboardModel.js';
 import { renderLibraryDashboard } from './libraryDashboardView.js';
 import { renderDashboard as renderOperationsDashboard } from './kpiDashboardView.js';
+import { createReportingPeriodPicker } from './reportingPeriodPicker.js';
 
 let currentView = 'overview';
 let libraryData = null;
@@ -16,6 +17,7 @@ let operationRuns = [];
 let loading = false;
 let pendingLoad = false;
 let pendingForce = false;
+let periodComparison = 'previous';
 const AUTO_REFRESH_MS = 5 * 60 * 1000;
 
 function getElements() {
@@ -123,31 +125,23 @@ function syncFilterOptions(elements) {
 
 function syncPeriodOptions(elements) {
   if (!elements.period || !libraryData) return;
-  const selected = elements.period.value || '365';
+  const picker = elements.period._reportingPeriodPicker || createReportingPeriodPicker(elements.period, { value: '365' });
   const selectedLibraries = selectedLibraryScopes(elements.library);
   const selectedSystems = new Set(selectedLibraries.map(systemCodeForLibraryScope).filter(Boolean));
   const system = selectedSystems.size === 1 ? [...selectedSystems][0] : '';
-  const rolling = [
-    { value: '90', label: 'Last 90 days' },
-    { value: '365', label: 'Last 12 months' },
-    { value: '730', label: 'Last 24 months' }
-  ];
   const fiscal = Array.isArray(libraryData.filters.fiscalPeriodsBySystem?.[system])
     ? libraryData.filters.fiscalPeriodsBySystem[system] : [];
   const calendar = Array.isArray(libraryData.filters.calendarPeriods) ? libraryData.filters.calendarPeriods : [];
-  const groups = [
-    { label: 'Rolling periods', options: rolling },
-    { label: 'Calendar years', options: calendar },
-    { label: 'Fiscal years', options: fiscal }
-  ].filter(group => group.options.length > 0);
-  const options = groups.flatMap(group => group.options);
-  elements.period.replaceChildren(...groups.map(group => {
-    const element = document.createElement('optgroup');
-    element.label = group.label;
-    element.append(...group.options.map(option => new Option(option.label, option.value)));
-    return element;
-  }));
-  elements.period.value = options.some(option => option.value === selected) ? selected : '365';
+  picker.setOptions({
+    calendar,
+    fiscal,
+    fiscalAvailable: selectedSystems.size === 1 && fiscal.length > 0,
+    fiscalMessage: selectedSystems.size > 1
+      ? 'The selected libraries use more than one fiscal calendar.'
+      : 'Select a library or an entire system so its fiscal year can be identified.',
+    metrics: libraryData.circulation
+  });
+  periodComparison = picker.comparison;
 }
 
 function syncViewChrome(elements) {
@@ -181,12 +175,13 @@ function render() {
       range: '30', now, refreshedAt: now, isSampleData: Boolean(libraryData?.isSampleData)
     });
   } else {
+    libraryData.scope.comparison_mode = periodComparison;
     elements.content.innerHTML = renderLibraryDashboard(libraryData, currentView);
   }
 }
 
 function requestPayload(elements) {
-  const reportingPeriod = elements.period?.value || '365';
+  const reportingPeriod = elements.period?._reportingPeriodPicker?.value || '365';
   const libraries = selectedLibraryScopes(elements.library);
   const itemTypes = selectedItemTypes(elements.itemType);
   const selectedSystems = new Set(libraries.map(systemCodeForLibraryScope).filter(Boolean));
@@ -285,7 +280,13 @@ onDOMReady(() => {
     syncPeriodOptions(getElements());
     loadDashboard();
   });
-  [elements.itemType, elements.period].forEach(control => control?.addEventListener('change', () => loadDashboard()));
+  elements.itemType?.addEventListener('change', () => loadDashboard());
+  elements.period?.addEventListener('change', event => {
+    periodComparison = event.detail?.comparison === 'none' ? 'none' : 'previous';
+    const loadedPeriod = libraryData?.scope?.reporting_period;
+    if (loadedPeriod && loadedPeriod === event.detail?.value) render();
+    else loadDashboard();
+  });
   elements.tabs.forEach(tab => tab.addEventListener('click', () => {
     currentView = tab.dataset.kpiView || 'overview';
     syncViewChrome(getElements());
