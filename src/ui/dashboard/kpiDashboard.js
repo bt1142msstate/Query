@@ -39,16 +39,11 @@ function setVisible(element, visible) {
   element?.classList.toggle('hidden', !visible);
 }
 
-function replaceOptions(select, baseLabel, options, selected) {
-  if (!select) return;
-  const normalized = options.map(option => typeof option === 'string'
-    ? { value: option, label: option }
-    : { value: option.value ?? option.code, label: option.label ?? option.name ?? option.code });
-  select.replaceChildren(new Option(baseLabel, 'all'), ...normalized.map(option => new Option(option.label, option.value)));
-  select.value = normalized.some(option => option.value === selected) ? selected : 'all';
+function selectedLibraryScopes(control) {
+  return control?.getSelectedValues?.() || [];
 }
 
-function selectedLibraryScopes(control) {
+function selectedItemTypes(control) {
   return control?.getSelectedValues?.() || [];
 }
 
@@ -81,6 +76,37 @@ function replaceLibraryOptions(container, systems, libraries, selected) {
   container.dataset.optionsSignature = signature;
   container.getSelectedValues = () => popup.getSelectedValues();
   container.setSelectedValues = valuesToSet => popup.setSelectedValues(valuesToSet);
+  container.setDisabled = (disabled, description) => popup.setDisabled(disabled, description);
+}
+
+function replaceItemTypeOptions(container, itemTypes, selected) {
+  if (!container) return;
+  const values = (Array.isArray(itemTypes) ? itemTypes : []).map(option => {
+    const value = typeof option === 'string' ? option : option.value ?? option.code;
+    const label = typeof option === 'string' ? option : option.label ?? option.name ?? option.code;
+    return { Name: label, RawValue: value };
+  });
+  const available = new Set(values.map(option => option.RawValue));
+  const validSelection = (Array.isArray(selected) ? selected : []).filter(value => available.has(value));
+  const signature = JSON.stringify(values.map(option => [option.RawValue, option.Name]));
+  if (container.dataset.optionsSignature === signature && container.getSelectedValues) {
+    container.setSelectedValues(validSelection);
+    return;
+  }
+
+  container.querySelector('.form-mode-popup-list-control')?._cleanupPopup?.();
+  const selector = SelectorControls.createGroupedSelector(values, true, validSelection, {
+    enableGrouping: false,
+    allSelectionLabel: 'All item types',
+    allSelectionDescription: 'Include every item type.',
+    containerId: null
+  });
+  const popup = SelectorControls.createPopupListControl(selector, 'Item type', 'All item types');
+  container.replaceChildren(popup);
+  container.dataset.optionsSignature = signature;
+  container.getSelectedValues = () => popup.getSelectedValues();
+  container.setSelectedValues = valuesToSet => popup.setSelectedValues(valuesToSet);
+  container.setDisabled = (disabled, description) => popup.setDisabled(disabled, description);
 }
 
 function syncFilterOptions(elements) {
@@ -91,7 +117,7 @@ function syncFilterOptions(elements) {
     libraryData.filters.libraries,
     selectedLibraryScopes(elements.library)
   );
-  replaceOptions(elements.itemType, 'All item types', libraryData.filters.itemTypes, elements.itemType?.value || 'all');
+  replaceItemTypeOptions(elements.itemType, libraryData.filters.itemTypes, selectedItemTypes(elements.itemType));
   syncPeriodOptions(elements);
 }
 
@@ -132,9 +158,10 @@ function syncViewChrome(elements) {
   });
   elements.toolbar?.classList.toggle('hidden', currentView === 'operations');
   if (elements.itemType) {
-    elements.itemType.disabled = currentView === 'patrons';
-    if (currentView === 'patrons') elements.itemType.title = 'Item type does not apply to patron aggregates.';
-    else elements.itemType.removeAttribute('title');
+    elements.itemType.setDisabled?.(
+      currentView === 'patrons',
+      currentView === 'patrons' ? 'Item type does not apply to patron aggregates.' : ''
+    );
   }
 }
 
@@ -161,6 +188,7 @@ function render() {
 function requestPayload(elements) {
   const reportingPeriod = elements.period?.value || '365';
   const libraries = selectedLibraryScopes(elements.library);
+  const itemTypes = selectedItemTypes(elements.itemType);
   const selectedSystems = new Set(libraries.map(systemCodeForLibraryScope).filter(Boolean));
   const selectedSystem = selectedSystems.size === 1 ? [...selectedSystems][0] : '';
   const systemLibraryCount = selectedSystem
@@ -173,11 +201,12 @@ function requestPayload(elements) {
   const payload = {
     action: 'library_dashboard',
     library: wholeSystemSelected ? `system:${selectedSystem}` : libraries.length === 1 ? libraries[0] : 'all',
-    item_type: elements.itemType?.value || 'all',
+    item_type: itemTypes.length === 1 ? itemTypes[0] : 'all',
     active_window_days: /^\d+$/.test(reportingPeriod) ? Number(reportingPeriod) : 365,
     reporting_period: reportingPeriod
   };
   if (libraries.length > 1 && !wholeSystemSelected) payload.libraries = libraries;
+  if (itemTypes.length > 1) payload.item_types = itemTypes;
   return payload;
 }
 

@@ -293,7 +293,16 @@ function buildDefaultQueryApiResponse(payload) {
         body: JSON.stringify({
           schema_version: 1,
           generated_at: new Date().toISOString(),
-          scope: { library: payload.library || 'all', library_label: payload.library === 'system:MSU' ? 'Mississippi State University' : 'All MLP libraries', item_type_label: 'All item types', reporting_period: payload.reporting_period || '365' },
+          scope: {
+            library: payload.library || 'all',
+            library_label: payload.library === 'system:MSU' ? 'Mississippi State University' : 'All MLP libraries',
+            item_type: Array.isArray(payload.item_types) && payload.item_types.length > 1 ? 'selection' : payload.item_type || 'all',
+            item_types: Array.isArray(payload.item_types) ? payload.item_types : undefined,
+            item_type_label: Array.isArray(payload.item_types) && payload.item_types.length > 1
+              ? `${payload.item_types.length} selected item types`
+              : payload.item_type && payload.item_type !== 'all' ? payload.item_type : 'All item types',
+            reporting_period: payload.reporting_period || '365'
+          },
           circulation: { checkouts: 880229, renewals: 487605, previous_checkouts: 842110, previous_renewals: 469220, checkout_change: 38119, renewal_change: 18385, checkout_change_rate: 0.045, renewal_change_rate: 0.039, comparison_available: true, comparison_coverage_complete: true, period_label: payload.reporting_period === 'fy:MSU:2027' ? 'FY 2027 to date (Jul 1, 2026–Aug 21, 2026)' : payload.reporting_period === 'cy:2026' ? 'Calendar Year 2026 to date' : 'Recent 365 days', renewal_share: 0.356, holds: 121843, holds_per_100_items: 4.3 },
           collection: { items: 2813442, titles: 1601291, lifetime_checkouts: 12844308, lifetime_renewals: 5160244, in_house_uses: 843108, used_recently: 947835, recent_use_rate: 0.337, never_used: 1023995, never_used_rate: 0.364, checkouts_per_item: 4.6, total_value: 42850300, price_coverage: 0.71 },
           patrons: { total: 618420, active: 183804, active_rate: 0.297, new: 42640, with_charges: 74482, with_holds: 18814, expiring_soon: 29711 },

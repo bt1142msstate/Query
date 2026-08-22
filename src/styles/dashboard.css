@@ -114,12 +114,15 @@
 }
 
 .kpi-dashboard-library-selector,
-.kpi-dashboard-library-selector .form-mode-popup-list-control {
+.kpi-dashboard-library-selector .form-mode-popup-list-control,
+.kpi-dashboard-item-type-selector,
+.kpi-dashboard-item-type-selector .form-mode-popup-list-control {
   min-width: 0;
   width: 100%;
 }
 
-.kpi-dashboard-library-selector .form-mode-popup-list-trigger {
+.kpi-dashboard-library-selector .form-mode-popup-list-trigger,
+.kpi-dashboard-item-type-selector .form-mode-popup-list-trigger {
   min-height: 2.55rem;
   width: 100%;
 }

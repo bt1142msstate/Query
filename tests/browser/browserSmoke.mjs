@@ -587,6 +587,23 @@ async function runSmokeTest() {
     if (!/FY 2027.*Jul 1, 2026.*Aug 21, 2026/u.test(fiscalLabel || '')) {
       throw new Error(`Fiscal-year choice should display its actual calendar-date span: ${fiscalLabel}`);
     }
+    await page.locator('#kpi-dashboard-item-type .form-mode-popup-list-trigger').click();
+    const itemTypeDialog = page.getByRole('dialog', { name: 'Item type' });
+    if (!await itemTypeDialog.getByRole('button', { name: 'All item types' }).count()) {
+      throw new Error('Dashboard should reuse the shared selector and expose the all-item-types choice.');
+    }
+    await itemTypeDialog.locator('.option-item[data-value="BOOK"] label').click();
+    await itemTypeDialog.locator('.option-item[data-value="EBOOK"] label').click();
+    await itemTypeDialog.getByRole('button', { name: 'Done' }).click();
+    await page.waitForFunction(() => {
+      const values = document.querySelector('#kpi-dashboard-item-type')?.getSelectedValues?.() || [];
+      return values.length === 2 && values.includes('BOOK') && values.includes('EBOOK');
+    });
+    await page.waitForFunction(() => document.querySelector('#kpi-dashboard-content')?.textContent?.includes('2 selected item types'));
+    const itemTypeRequest = queryApiStub.getRequests('library_dashboard').at(-1)?.payload;
+    if (JSON.stringify(itemTypeRequest?.item_types) !== JSON.stringify(['BOOK', 'EBOOK'])) {
+      throw new Error(`Dashboard should send every selected item type through the shared aggregate request: ${JSON.stringify(itemTypeRequest)}`);
+    }
     if (process.env.QUERY_DASHBOARD_SCREENSHOT_PATH) {
       await page.setViewportSize({ width: 1440, height: 1200 });
       await page.screenshot({ path: process.env.QUERY_DASHBOARD_SCREENSHOT_PATH, fullPage: false });
@@ -594,6 +611,9 @@ async function runSmokeTest() {
     }
     await page.locator('[data-kpi-view="patrons"]').click();
     await page.waitForFunction(() => document.querySelector('#kpi-dashboard-content .kpi-card__value')?.textContent?.trim() === '618,420');
+    if (!await page.locator('#kpi-dashboard-item-type .form-mode-popup-list-trigger').isDisabled()) {
+      throw new Error('Dashboard should disable the shared Item type selector when item type does not apply to patron aggregates.');
+    }
     await page.locator('[data-kpi-view="operations"]').click();
     await page.waitForFunction(() => document.querySelector('#kpi-dashboard-content .kpi-card__value')?.textContent?.trim() === '3');
     await page.locator('#kpi-dashboard-panel .collapse-btn').click();

@@ -690,6 +690,7 @@ function createPopupListControl(innerControl, label, placeholder) {
   }
 
   function openPopup() {
+    if (trigger.disabled) return;
     VisibilityUtils.show([backdrop, popup], {
       ariaHidden: false,
       raisedUiKey
@@ -782,6 +783,16 @@ function createPopupListControl(innerControl, label, placeholder) {
 
   wrapper.setFormValues = function(valuesToSet) {
     wrapper.setSelectedValues(valuesToSet);
+  };
+
+  wrapper.setDisabled = function(disabled, description = '') {
+    const isDisabled = Boolean(disabled);
+    trigger.disabled = isDisabled;
+    wrapper.classList.toggle('is-disabled', isDisabled);
+    wrapper.setAttribute('aria-disabled', isDisabled ? 'true' : 'false');
+    if (description) wrapper.title = description;
+    else wrapper.removeAttribute('title');
+    if (isDisabled && !popup.hidden) closePopup();
   };
 
   wrapper.focusInput = function() {
