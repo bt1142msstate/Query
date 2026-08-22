@@ -339,6 +339,26 @@ test('dashboard CLI requests the same scoped aggregate used by the interface', a
   }
 });
 
+test('dashboard CLI accepts comma-separated multi-library scope', async () => {
+  const originalFetch = globalThis.fetch;
+  let payload;
+  globalThis.fetch = async (_apiUrl, init = {}) => {
+    payload = JSON.parse(init.body || '{}');
+    return Response.json({ schema_version: 1 });
+  };
+  try {
+    await runDashboardCommand({
+      libraries: 'MSU-MAIN, MSU-MERIDIAN,MSU-MAIN',
+      'api-url': 'https://example.test/query',
+      sessionStore: { read: async () => ({ token: 'test-session-token' }) }
+    });
+    assert.deepEqual(payload.libraries, ['MSU-MAIN', 'MSU-MERIDIAN']);
+    assert.equal(payload.library, 'all');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('smart-plan CLI sends the same query payload without running it', async () => {
   const originalFetch = globalThis.fetch;
   let payload;
