@@ -247,7 +247,18 @@
 .kpi-period-comparison > strong { color: var(--theme-text-muted); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; }
 .kpi-period-comparison > div { display: grid; grid-template-columns: 1fr 1fr; padding: 0.2rem; border-radius: 0.72rem; background: var(--theme-surface-subtle); }
 .kpi-period-summary { margin-top: 0.75rem; padding: 0.65rem 0.75rem; border-left: 3px solid var(--theme-accent); background: var(--theme-accent-soft); color: var(--theme-text-strong); font-size: 0.76rem; font-weight: 700; line-height: 1.4; }
-.kpi-period-actions { display: flex; justify-content: flex-end; gap: 0.55rem; margin-top: 0.9rem; }
+.kpi-period-actions {
+  position: sticky;
+  bottom: -1rem;
+  z-index: 2;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  margin: 0.9rem -1rem -1rem;
+  padding: 0.75rem 1rem 1rem;
+  border-top: 1px solid var(--theme-border);
+  background: var(--theme-panel-bg-raised);
+}
 .kpi-period-actions button { min-height: 2.3rem; padding: 0.45rem 0.85rem; border: 1px solid var(--theme-border); border-radius: 0.65rem; background: transparent; color: var(--theme-text-strong); font-size: 0.78rem; font-weight: 800; }
 .kpi-period-actions .kpi-period-apply { border-color: var(--theme-accent); background: var(--theme-accent); color: var(--theme-accent-contrast, white); }
 .kpi-period-actions .kpi-period-apply:disabled { opacity: 0.45; }

@@ -554,6 +554,12 @@ async function runSmokeTest() {
     const periodDialog = page.getByRole('dialog', { name: 'Choose circulation period' });
     const periodFitsViewport = await periodDialog.evaluate(dialog => dialog.getBoundingClientRect().bottom <= window.innerHeight);
     if (!periodFitsViewport) throw new Error('Dashboard period picker should keep its actions inside the visible viewport.');
+    const periodActionsVisible = await periodDialog.getByRole('button', { name: 'Apply' }).evaluate(button => {
+      const buttonRect = button.getBoundingClientRect();
+      const dialogRect = button.closest('[role="dialog"]').getBoundingClientRect();
+      return buttonRect.top >= dialogRect.top && buttonRect.bottom <= dialogRect.bottom;
+    });
+    if (!periodActionsVisible) throw new Error('Dashboard period actions should remain visible inside the picker.');
     const periodTabs = await periodDialog.getByRole('tab').allTextContents();
     if (periodTabs.length !== 4 || !/Custom\s*Later/u.test(periodTabs[3] || '')) {
       throw new Error(`Dashboard should expose the structured reporting-period choices: ${JSON.stringify(periodTabs)}`);
