@@ -1,7 +1,7 @@
 import { BackendApi } from '../../core/backendApi.js';
 import { appServices } from '../../core/appServices.js';
 import { getClientErrorMessage } from '../../core/clientErrorMessages.js';
-import { ALL_LIBRARY_SYSTEMS_LABEL, buildLibraryScopeSelectorValues, systemCodeForLibraryScope } from '../../core/libraryScopes.js';
+import { ALL_LIBRARY_SYSTEMS_LABEL, buildLibraryScopeSelectorValues, summarizeLibraryScopeSelection, systemCodeForLibraryScope } from '../../core/libraryScopes.js';
 import { onDOMReady } from '../../core/domReady.js';
 import { SelectorControls } from '../controls/selectorControls.js';
 import { libraryDashboardHasData, normalizeLibraryDashboard } from './libraryDashboardModel.js';
@@ -69,6 +69,9 @@ function replaceLibraryOptions(container, systems, libraries, selected) {
     groupSelectionDescription: 'Select every library in this system.',
     containerId: null
   });
+  selector.getSelectedDisplayValues = () => summarizeLibraryScopeSelection(
+    selector.getSelectedValues(), systems, libraries
+  );
   const popup = SelectorControls.createPopupListControl(
     selector,
     'Library or system',
@@ -197,6 +200,9 @@ function requestPayload(elements) {
     action: 'library_dashboard',
     library: wholeSystemSelected ? `system:${selectedSystem}` : libraries.length === 1 ? libraries[0] : 'all',
     item_type: itemTypes.length === 1 ? itemTypes[0] : 'all',
+    // Collection-use and patron snapshots retain rolling activity windows separately
+    // from the transaction reporting period. Named calendar/fiscal periods therefore
+    // use the documented 12-month activity window until those sources retain exact dates.
     active_window_days: /^\d+$/.test(reportingPeriod) ? Number(reportingPeriod) : 365,
     reporting_period: reportingPeriod
   };

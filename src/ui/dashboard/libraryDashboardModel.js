@@ -59,6 +59,7 @@ function normalizeLibraryDashboard(payload = {}) {
     sources: Array.isArray(data.sources) ? data.sources : [],
     notes: Array.isArray(data.notes) ? data.notes : [],
     privacy: data.privacy || {},
+    serviceCoverage: Array.isArray(data.service_coverage) ? data.service_coverage : [],
     availability: {
       circulation: hasMetric(data.circulation, 'checkouts'),
       collection: hasMetric(data.collection, 'items'),

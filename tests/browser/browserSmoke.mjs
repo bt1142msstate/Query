@@ -551,10 +551,13 @@ async function runSmokeTest() {
       throw new Error('Dashboard export should include the UTF-8 header and prior-period metrics.');
     }
     await page.locator('#kpi-dashboard-window .kpi-period-trigger').click();
-    const periodDialog = page.getByRole('dialog', { name: 'Choose reporting period' });
+    const periodDialog = page.getByRole('dialog', { name: 'Choose circulation period' });
     const periodTabs = await periodDialog.getByRole('tab').allTextContents();
-    if (JSON.stringify(periodTabs) !== JSON.stringify(['Rolling', 'Calendar year', 'Fiscal year', 'Custom'])) {
+    if (periodTabs.length !== 4 || !/Custom\s*Later/u.test(periodTabs[3] || '')) {
       throw new Error(`Dashboard should expose the structured reporting-period choices: ${JSON.stringify(periodTabs)}`);
+    }
+    if (await periodDialog.getByRole('tab', { name: /Custom/u }).isEnabled()) {
+      throw new Error('Unavailable custom dates should be visibly disabled before staff select them.');
     }
     await periodDialog.getByRole('tab', { name: 'Calendar year' }).click();
     await periodDialog.getByRole('radio', { name: /Calendar Year 2026 to date/u }).click();
@@ -589,6 +592,10 @@ async function runSmokeTest() {
       const values = document.querySelector('#kpi-dashboard-library')?.getSelectedValues?.() || [];
       return values.length === 2 && values.includes('MSU-MAIN') && values.includes('MSU-MERIDIAN');
     });
+    const wholeSystemSummary = await page.locator('#kpi-dashboard-library .form-mode-popup-list-summary').textContent();
+    if (wholeSystemSummary?.trim() !== 'Mississippi State University') {
+      throw new Error(`Whole-system scope should keep its system label in the closed selector: ${wholeSystemSummary}`);
+    }
     await page.locator('#kpi-dashboard-window .kpi-period-trigger').click();
     await periodDialog.getByRole('tab', { name: 'Fiscal year' }).click();
     const fiscalOption = periodDialog.getByRole('radio', { name: /FY 2027 to date/u });

@@ -25,6 +25,25 @@ function buildLibraryScopeSelectorValues(systems = [], libraries = []) {
   return libraryOptions;
 }
 
+function summarizeLibraryScopeSelection(selected = [], systems = [], libraries = []) {
+  const selectedValues = (Array.isArray(selected) ? selected : []).map(String);
+  if (!selectedValues.length) return [];
+
+  const selectedSet = new Set(selectedValues);
+  const normalizedLibraries = normalizeLibraryScopeOptions(libraries);
+  const wholeSystem = normalizeLibraryScopeOptions(systems).find(system => {
+    const code = systemCodeForLibraryScope(system.value);
+    const systemLibraries = normalizedLibraries.filter(library => systemCodeForLibraryScope(library.value) === code);
+    return systemLibraries.length > 0
+      && systemLibraries.length === selectedSet.size
+      && systemLibraries.every(library => selectedSet.has(String(library.value)));
+  });
+  if (wholeSystem) return [wholeSystem.label];
+
+  const labels = new Map(normalizedLibraries.map(option => [String(option.value), option.label]));
+  return selectedValues.map(value => labels.get(value) || value);
+}
+
 function systemCodeForLibraryScope(scope = '') {
   const normalized = String(scope || '').replace(/^system:/u, '');
   return normalized && normalized !== 'all' ? normalized.split('-')[0].toUpperCase() : '';
@@ -34,5 +53,6 @@ export {
   ALL_LIBRARY_SYSTEMS_LABEL,
   buildLibraryScopeGroups,
   buildLibraryScopeSelectorValues,
+  summarizeLibraryScopeSelection,
   systemCodeForLibraryScope
 };

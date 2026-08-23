@@ -16,6 +16,7 @@ test('dashboard CSV rows include scope, comparisons, breakdowns, and sources', (
   assert.deepEqual(rows[0], ['Section', 'Label', 'Metric', 'Value']);
   assert.ok(rows.some(row => row[0] === 'circulation' && row[2] === 'previous_checkouts' && row[3] === 80));
   assert.ok(rows.some(row => row[0] === 'Patron ZIP3' && row[1] === '397xx' && row[3] === 12));
+  assert.ok(rows.some(row => row[0] === 'Scope' && row[1] === 'Collection and patron activity window' && row[3] === 365));
   assert.ok(rows.some(row => row[0] === 'Source' && row[1] === 'Transactions'));
 });
 

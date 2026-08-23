@@ -70,3 +70,41 @@ test('collection and patron views label unavailable or non-applicable dimensions
   const patronHtml = renderLibraryDashboard(dashboard, 'patrons');
   assert.match(patronHtml, /Item type does not apply to patrons/);
 });
+
+test('named circulation periods keep collection and patron activity windows explicit', () => {
+  const dashboard = normalizeLibraryDashboard({
+    scope: { library: 'system:MSU', item_type: 'all', active_window_days: 365 },
+    circulation: { checkouts: 45, period_label: 'FY 2027 to date' },
+    collection: { items: 120, used_recently: 30, recent_use_rate: 0.25 },
+    patrons: { total: 100, active: 20, active_rate: 0.2, new: 5, new_period_label: 'Registered in the last 365 days' }
+  });
+
+  const overview = renderLibraryDashboard(dashboard, 'overview');
+  assert.match(overview, /FY 2027 to date/);
+  assert.match(overview, /Last 12 months · 30 items with recorded use/);
+  assert.match(overview, /Last 12 months · 20% of current patrons/);
+  assert.doesNotMatch(overview, /used in the selected window/);
+});
+
+test('patron breakdowns state coverage and dashboard source gaps remain visible', () => {
+  const dashboard = normalizeLibraryDashboard({
+    scope: { active_window_days: 365 },
+    circulation: { checkouts: 10 },
+    collection: { items: 20 },
+    patrons: { total: 100, active: 10, active_rate: 0.1, new: 2 },
+    patron_profile_breakdown: [
+      { label: 'Adult', patrons: 70 },
+      { label: 'Other / suppressed', patrons: 20 }
+    ],
+    privacy: { suppression_threshold: 10 }
+  });
+
+  const patronHtml = renderLibraryDashboard(dashboard, 'patrons');
+  assert.match(patronHtml, /Coverage: 90 of 100 patrons \(90%\)/);
+  assert.match(patronHtml, /10 patrons are missing, invalid, or suppressed/);
+
+  const overviewHtml = renderLibraryDashboard(dashboard, 'overview');
+  assert.match(overviewHtml, /Library service coverage/);
+  assert.match(overviewHtml, /4 connected · 7 need a source/);
+  assert.match(overviewHtml, /Electronic resources/);
+});

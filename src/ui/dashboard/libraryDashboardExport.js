@@ -14,7 +14,8 @@ function buildLibraryDashboardExportRows(data, view = 'overview') {
   rows.push(
     ['Scope', 'Library', 'value', data.scope?.library_label || data.scope?.library || 'all'],
     ['Scope', 'Item type', 'value', data.scope?.item_type_label || data.scope?.item_type || 'all'],
-    ['Scope', 'Reporting period', 'value', data.circulation?.period_label || `${data.scope?.active_window_days || 365} days`],
+    ['Scope', 'Circulation period', 'value', data.circulation?.period_label || `${data.scope?.active_window_days || 365} days`],
+    ['Scope', 'Collection and patron activity window', 'days', data.scope?.active_window_days || 365],
     ['Freshness', 'Generated', 'timestamp', data.generatedAt || '']
   );
   const groups = view === 'collection' ? ['collection', 'circulation']

@@ -66,13 +66,13 @@ function createReportingPeriodPicker(container, options = {}) {
       <small class="kpi-period-trigger__dates"></small>
       <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
     </button>
-    <div class="kpi-period-popover hidden" role="dialog" aria-modal="false" aria-label="Choose reporting period">
-      <div class="kpi-period-popover__heading"><div><strong>Reporting period</strong><span>Choose the time span used throughout this dashboard.</span></div><button type="button" class="kpi-period-close" aria-label="Close reporting period picker">×</button></div>
+    <div class="kpi-period-popover hidden" role="dialog" aria-modal="false" aria-label="Choose circulation period">
+      <div class="kpi-period-popover__heading"><div><strong>Circulation period</strong><span>Controls checkouts, renewals, trends, and demand rankings. Other cards show their own time basis.</span></div><button type="button" class="kpi-period-close" aria-label="Close circulation period picker">×</button></div>
       <div class="kpi-period-tabs" role="tablist" aria-label="Period type">
         <button type="button" role="tab" data-period-type="rolling">Rolling</button>
         <button type="button" role="tab" data-period-type="calendar">Calendar year</button>
         <button type="button" role="tab" data-period-type="fiscal">Fiscal year</button>
-        <button type="button" role="tab" data-period-type="custom">Custom</button>
+        <button type="button" role="tab" data-period-type="custom" aria-disabled="true" disabled title="Custom dates are not available yet"><span>Custom</span><small>Later</small></button>
       </div>
       <div class="kpi-period-options" role="radiogroup" aria-label="Available reporting periods"></div>
       <div class="kpi-period-comparison"><strong>Comparison</strong><div role="radiogroup" aria-label="Comparison period"><button type="button" role="radio" data-comparison="previous"></button><button type="button" role="radio" data-comparison="none">None</button></div></div>

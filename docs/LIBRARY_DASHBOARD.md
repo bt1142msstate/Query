@@ -44,6 +44,7 @@ The private MLP environment owns:
 - `previous_*`, `*_change`, and `*_change_rate`: the immediately preceding equivalent period when retained-log coverage is complete;
 - `filters.fiscal_periods_by_system`: current fiscal year-to-date and completed fiscal years using each MLP system's documented reporting calendar;
 - `opportunities`: aggregate action groups with optional backend-generated Query configurations;
+- `service_coverage`: optional source-connection metadata for visits, programs, technology, electronic resources, ILL, acquisitions/budget, and hold fulfillment; absent metrics remain visibly unavailable rather than being estimated;
 - `freshness`, `sources`, and `notes`: exact lineage, update times, and limitations.
 
 The UI must treat absent groups as unavailable, not as zero. Every production response should describe the time basis of each source independently.
@@ -62,6 +63,10 @@ Current holdings come from current item records. Item creation transactions must
 
 An active patron is a current user whose last-activity date falls inside the selected activity window. The response must state the window. Age groups are derived only from usable birth dates, and unknown dates remain a visible category.
 
+The circulation period and the collection/patron activity window are separate dimensions. Calendar-year and fiscal-year choices control checkouts, renewals, transaction trends, and demand rankings. Current collection measures remain point-in-time or lifetime measures, while recent collection use and patron activity use the explicit `scope.active_window_days` rolling window. The interface must display these time bases independently and must not claim that a named circulation period changes aggregates that the source snapshot cannot calculate for that exact period.
+
+Patron breakdowns must display their coverage against the scoped patron total. Returned groups can exclude missing, invalid, or privacy-suppressed values and the visual ranking can show only its highest-volume groups, so a chart must not imply that its visible bars represent every patron.
+
 ## Live-data behavior
 
 The client automatically refreshes the aggregate response while the dashboard is open and displays the server-generated timestamp. Production adapters may refresh at different safe cadences:
@@ -72,7 +77,7 @@ The client automatically refreshes the aggregate response while the dashboard is
 
 The production snapshot stores each item scope, patron scope, and reporting-window transaction scope once. Requested dashboard views are materialized from those compact dimensions, so activity-window and cross-filter responses do not duplicate full source records. The same current library and item-type counts inform the Query smart planner: exact policy filters with smaller estimated candidate sets are safely evaluated first, while query meaning remains unchanged.
 
-Short server-side caching is intentional. It prevents multiple open browser tabs from launching duplicate full-catalog or full-patron scans while keeping the displayed data current. A response is stale when its source-specific age exceeds the backend policy; the server should return the last verified snapshot with an explicit stale warning rather than silently presenting it as current.
+Short server-side caching is intentional. It prevents multiple open browser tabs from launching duplicate full-catalog or full-patron scans while keeping the displayed data current. A response is stale when its source-specific age exceeds the backend policy; the server should return the last verified snapshot with an explicit stale warning rather than silently presenting it as current. The response includes both `freshness.age_seconds` and `freshness.stale_after_seconds` so the interface can explain how old the snapshot is and what refresh cadence was expected.
 
 The Export button downloads the active Overview, Collection, or Patrons view as an Excel-compatible UTF-8 CSV. It includes scope, freshness, current and previous-period measures, visible breakdowns, source definitions, and notes.
 
