@@ -1487,6 +1487,26 @@ async function runSmokeTest() {
     if (mobileDashboardCards !== 6) {
       throw new Error(`Mobile KPI dashboard should preserve all six summary cards: ${mobileDashboardCards}`);
     }
+    await mobilePage.locator('#kpi-dashboard-window .kpi-period-trigger').click();
+    const mobilePeriodDialog = mobilePage.getByRole('dialog', { name: 'Choose circulation period' });
+    const mobilePeriodMetrics = await mobilePeriodDialog.evaluate(dialog => {
+      const dialogRect = dialog.getBoundingClientRect();
+      const applyRect = dialog.querySelector('.kpi-period-apply').getBoundingClientRect();
+      return {
+        dialogTop: dialogRect.top,
+        dialogBottom: dialogRect.bottom,
+        applyTop: applyRect.top,
+        applyBottom: applyRect.bottom,
+        viewportHeight: window.innerHeight
+      };
+    });
+    if (mobilePeriodMetrics.dialogTop < 0
+      || mobilePeriodMetrics.dialogBottom > mobilePeriodMetrics.viewportHeight
+      || mobilePeriodMetrics.applyTop < mobilePeriodMetrics.dialogTop
+      || mobilePeriodMetrics.applyBottom > mobilePeriodMetrics.dialogBottom) {
+      throw new Error(`Mobile period picker should keep its heading and actions visible: ${JSON.stringify(mobilePeriodMetrics)}`);
+    }
+    await mobilePeriodDialog.getByRole('button', { name: 'Cancel' }).click();
     if (process.env.QUERY_DASHBOARD_SCREENSHOT_PATH) {
       const mobileScreenshotPath = process.env.QUERY_DASHBOARD_SCREENSHOT_PATH.replace(/(\.[^.]+)$/u, '-mobile$1');
       await mobilePage.screenshot({ path: mobileScreenshotPath, fullPage: false });

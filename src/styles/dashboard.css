@@ -903,6 +903,7 @@
   .kpi-dashboard-toolbar {
     position: static;
     grid-template-columns: 1fr 1fr;
+    backdrop-filter: none;
   }
 
   .kpi-dashboard-refresh {
