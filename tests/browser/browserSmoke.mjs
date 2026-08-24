@@ -530,7 +530,7 @@ async function runSmokeTest() {
       || dashboardState.cardValues[1] !== '487,605'
       || dashboardState.cardValues[2] !== '2,813,442'
       || dashboardState.chartCount !== 6
-      || dashboardState.opportunityRows !== 1
+      || dashboardState.opportunityRows !== 3
       || dashboardState.librarySelection.length !== 0
       || dashboardState.librarySummary !== 'All library systems'
       || !dashboardState.exportVisible
@@ -631,6 +631,37 @@ async function runSmokeTest() {
     const itemTypeRequest = queryApiStub.getRequests('library_dashboard').at(-1)?.payload;
     if (JSON.stringify(itemTypeRequest?.item_types) !== JSON.stringify(['BOOK', 'EBOOK'])) {
       throw new Error(`Dashboard should send every selected item type through the shared aggregate request: ${JSON.stringify(itemTypeRequest)}`);
+    }
+    const expectedDrilldowns = [
+      { label: 'Older items with no recorded use', name: 'Older items with no use', fields: ['Item Library', 'Item Type', 'Item Date Created', 'Total Checkouts'] },
+      { label: 'High-use items with active holds', name: 'High-use items with holds', fields: ['Item Library', 'Item Type', 'Total Checkouts', 'Copy Hold Count'] },
+      { label: 'Items without a usable price', name: 'Items without a usable price', fields: ['Item Library', 'Item Type', 'Price'] }
+    ];
+    for (const expected of expectedDrilldowns) {
+      const drilldownButton = page.locator('#kpi-dashboard-content .kpi-opportunity-table tbody tr')
+        .filter({ hasText: expected.label })
+        .getByRole('button', { name: 'Open report' });
+      await drilldownButton.click();
+      const drilldownState = await page.evaluate(async () => {
+        const [{ QueryStateReaders }, { buildBackendQueryPayload }] = await Promise.all([
+          import('./src/core/queryState.js'),
+          import('./src/features/filters/queryPayload.js')
+        ]);
+        return {
+          payload: buildBackendQueryPayload(document.getElementById('table-name-input')?.value || ''),
+          activeFilters: QueryStateReaders.getActiveFilters(),
+          displayedFields: QueryStateReaders.getDisplayedFields()
+        };
+      });
+      if (drilldownState.payload.name !== expected.name
+        || JSON.stringify(drilldownState.payload.filters.map(filter => filter.field)) !== JSON.stringify(expected.fields)
+        || drilldownState.payload.filters.some(filter => filter.value === '' || filter.value == null)
+        || JSON.stringify(drilldownState.payload.filters[0]?.value) !== JSON.stringify(['MSU-MAIN', 'MSU-MERIDIAN'])
+        || !drilldownState.displayedFields.length) {
+        throw new Error(`Dashboard drilldown should load a complete runnable query: ${expected.name} ${JSON.stringify(drilldownState)}`);
+      }
+      await page.getByRole('button', { name: 'Dashboard' }).click();
+      await page.locator('#kpi-dashboard-content:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
     }
     if (process.env.QUERY_DASHBOARD_SCREENSHOT_PATH) {
       await page.setViewportSize({ width: 1440, height: 1200 });

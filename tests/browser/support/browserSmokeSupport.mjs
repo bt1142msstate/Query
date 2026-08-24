@@ -96,6 +96,65 @@ const smokeFieldDefinitions = [
     type: 'date'
   },
   {
+    name: 'Item Library',
+    category: 'Item',
+    desc: 'Smoke-test item library field',
+    filters: ['equals', 'does_not_equal'],
+    type: 'string',
+    allowValueList: true
+  },
+  {
+    name: 'Item Type',
+    category: 'Item',
+    desc: 'Smoke-test item type field',
+    filters: ['equals', 'does_not_equal'],
+    type: 'string',
+    allowValueList: true
+  },
+  {
+    name: 'Item Date Created',
+    category: 'Item',
+    desc: 'Smoke-test item creation date',
+    filters: ['equals', 'before', 'after', 'on_or_before', 'on_or_after', 'between', 'never'],
+    type: 'date'
+  },
+  {
+    name: 'Total Checkouts',
+    category: 'Metrics',
+    desc: 'Smoke-test lifetime checkout count',
+    filters: ['greater', 'less', 'equals', 'does_not_equal', 'between'],
+    type: 'number'
+  },
+  {
+    name: 'Copy Hold Count',
+    category: 'Metrics',
+    desc: 'Smoke-test copy hold count',
+    filters: ['greater', 'less', 'equals', 'does_not_equal', 'between'],
+    type: 'number'
+  },
+  {
+    name: 'Price',
+    category: 'Item',
+    desc: 'Smoke-test item price',
+    filters: ['greater', 'less', 'equals', 'does_not_equal', 'between'],
+    type: 'money'
+  },
+  {
+    name: 'Author',
+    category: 'Catalog',
+    desc: 'Smoke-test author',
+    filters: ['contains', 'equals'],
+    type: 'string'
+  },
+  {
+    name: 'Item Id',
+    category: 'Item',
+    desc: 'Smoke-test item identifier',
+    filters: ['equals'],
+    type: 'string',
+    allowValueList: true
+  },
+  {
     name: 'Public Note',
     category: 'Smoke',
     desc: 'Smoke-test multi-value public note field',
@@ -317,7 +376,52 @@ function buildDefaultQueryApiResponse(payload) {
           patron_geo_breakdown: [{ label: '388xx', patrons: 49220 }, { label: 'Other / unknown', patrons: 420700 }],
           patron_city_breakdown: [{ label: 'Tupelo, MS', patrons: 49220 }, { label: 'Other / unknown', patrons: 420700 }],
           patron_state_breakdown: [{ label: 'Mississippi', patrons: 582400 }, { label: 'Other / unknown', patrons: 36020 }],
-          opportunities: [{ label: 'Older items with no recorded use', count: 618220, detail: 'Created more than five years ago with zero lifetime checkouts.' }],
+          opportunities: [
+            {
+              label: 'Older items with no recorded use',
+              count: 618220,
+              detail: 'Created more than five years ago with zero lifetime checkouts.',
+              query: {
+                name: 'Older items with no use',
+                filters: [
+                  ...(payload.library === 'system:MSU' ? [{ FieldName: 'Item Library', FieldOperator: '=', Values: ['MSU-MAIN', 'MSU-MERIDIAN'] }] : []),
+                  ...(Array.isArray(payload.item_types) ? [{ FieldName: 'Item Type', FieldOperator: '=', Values: payload.item_types }] : []),
+                  { FieldName: 'Item Date Created', FieldOperator: '<=', Values: ['2021-08-22'] },
+                  { FieldName: 'Total Checkouts', FieldOperator: '=', Values: ['0'] }
+                ],
+                display_fields: ['Title', 'Author', 'Item Id', 'Item Library', 'Item Type', 'Item Date Created', 'Total Checkouts']
+              }
+            },
+            {
+              label: 'High-use items with active holds',
+              count: 14270,
+              detail: 'Strong demand may justify added copies or format changes.',
+              query: {
+                name: 'High-use items with holds',
+                filters: [
+                  ...(payload.library === 'system:MSU' ? [{ FieldName: 'Item Library', FieldOperator: '=', Values: ['MSU-MAIN', 'MSU-MERIDIAN'] }] : []),
+                  ...(Array.isArray(payload.item_types) ? [{ FieldName: 'Item Type', FieldOperator: '=', Values: payload.item_types }] : []),
+                  { FieldName: 'Total Checkouts', FieldOperator: '>', Values: ['24'] },
+                  { FieldName: 'Copy Hold Count', FieldOperator: '>', Values: ['0'] }
+                ],
+                display_fields: ['Title', 'Item Id', 'Item Library', 'Item Type', 'Total Checkouts', 'Copy Hold Count']
+              }
+            },
+            {
+              label: 'Items without a usable price',
+              count: 815898,
+              detail: 'Improving price coverage makes collection-value measures more reliable.',
+              query: {
+                name: 'Items without a usable price',
+                filters: [
+                  ...(payload.library === 'system:MSU' ? [{ FieldName: 'Item Library', FieldOperator: '=', Values: ['MSU-MAIN', 'MSU-MERIDIAN'] }] : []),
+                  ...(Array.isArray(payload.item_types) ? [{ FieldName: 'Item Type', FieldOperator: '=', Values: payload.item_types }] : []),
+                  { FieldName: 'Price', FieldOperator: '<', Values: ['0.01'] }
+                ],
+                display_fields: ['Title', 'Item Id', 'Item Library', 'Item Type', 'Price']
+              }
+            }
+          ],
           filters: { systems: [{ value: 'system:MSU', code: 'MSU', label: 'Mississippi State University' }], libraries: [{ value: 'MSU-MAIN', label: 'MSU Main Library' }, { value: 'MSU-MERIDIAN', label: 'MSU Meridian Library' }], item_types: ['BOOK', 'EBOOK'], calendar_periods: [{ value: 'cy:2026', label: 'Calendar Year 2026 to date', start: '20260101', end: '20260821' }, { value: 'cy:2025', label: 'Calendar Year 2025', start: '20250101', end: '20251231' }], fiscal_periods_by_system: { MSU: [{ value: 'fy:MSU:2027', label: 'FY 2027 to date (Jul 1, 2026–Aug 21, 2026)', date_span: 'Jul 1, 2026–Aug 21, 2026', start: '20260701', end: '20260821' }, { value: 'fy:MSU:2026', label: 'FY 2026 (Jul 1, 2025–Jun 30, 2026)', date_span: 'Jul 1, 2025–Jun 30, 2026', start: '20250701', end: '20260630' }] } },
           privacy: { suppression_threshold: 10 },
           sources: [{ label: 'Current item snapshot', detail: 'Aggregated test data.' }]
