@@ -47,6 +47,29 @@ function formatDate(value) {
     : 'Not available';
 }
 
+function sourceUpdatedAt(data, source) {
+  const availabilityKey = { transactions: 'circulation', items: 'collection', patrons: 'patrons' }[source];
+  const status = data.sourceStatus?.[source];
+  if (!status && !data.availability?.[availabilityKey]) return null;
+  return status?.completed_at || data.generatedAt || null;
+}
+
+function sourceFreshnessLines(data) {
+  const circulationAt = sourceUpdatedAt(data, 'transactions');
+  const collectionAt = sourceUpdatedAt(data, 'items');
+  const patronsAt = sourceUpdatedAt(data, 'patrons');
+  const lines = circulationAt
+    ? [`<small><strong>Circulation</strong> updated ${escapeHtml(formatDate(circulationAt))}</small>`]
+    : [];
+  if (collectionAt && patronsAt && collectionAt === patronsAt) {
+    lines.push(`<small><strong>Collection and patrons</strong> updated ${escapeHtml(formatDate(collectionAt))}</small>`);
+  } else {
+    if (collectionAt) lines.push(`<small><strong>Collection</strong> updated ${escapeHtml(formatDate(collectionAt))}</small>`);
+    if (patronsAt) lines.push(`<small><strong>Patrons</strong> updated ${escapeHtml(formatDate(patronsAt))}</small>`);
+  }
+  return lines.join('');
+}
+
 function metricCard(label, value, detail, tone = '') {
   return `<article class="kpi-card ${tone ? `kpi-card--${tone}` : ''}">
     <span class="kpi-card__label">${escapeHtml(label)}</span>
@@ -118,7 +141,7 @@ function dashboardIntro(data, title, description) {
   return `<section class="kpi-dashboard__intro" aria-labelledby="kpi-dashboard-title"><div>
     <span class="kpi-dashboard__eyebrow">Library intelligence</span>${data.isSampleData ? '<span class="kpi-dashboard__sample">Sample data</span>' : ''}
     <h3 id="kpi-dashboard-title">${escapeHtml(title)}</h3><p>${escapeHtml(description)}</p>
-  </div><div class="kpi-dashboard__freshness${data.freshness?.stale ? ' kpi-dashboard__freshness--stale' : ''}"><span>Updated ${escapeHtml(formatDate(data.generatedAt))}</span><strong>${escapeHtml(scope)}</strong><small>${escapeHtml(itemType)}</small><small><strong>${escapeHtml(freshnessLabel)}</strong>${freshnessDetail ? ` · ${escapeHtml(freshnessDetail)}` : ''}</small>${data.freshness?.stale ? '<small>Refresh requests a new verified aggregate snapshot.</small>' : ''}</div></section>`;
+  </div><div class="kpi-dashboard__freshness${data.freshness?.stale ? ' kpi-dashboard__freshness--stale' : ''}"><strong>${escapeHtml(scope)}</strong><small>${escapeHtml(itemType)}</small>${sourceFreshnessLines(data)}<small><strong>${escapeHtml(freshnessLabel)}</strong>${freshnessDetail ? ` · ${escapeHtml(freshnessDetail)}` : ''}</small>${data.freshness?.stale ? '<small>Refresh requests a new verified aggregate snapshot.</small>' : ''}</div></section>`;
 }
 
 function patronCoverageText(series, patrons, privacy) {

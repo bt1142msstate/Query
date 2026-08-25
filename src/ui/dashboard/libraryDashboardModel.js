@@ -32,6 +32,7 @@ function normalizeLibraryDashboard(payload = {}) {
     isSampleData: Boolean(data.sample_data),
     scope: data.scope || { library: 'all', item_type: 'all', active_window_days: 365 },
     freshness: data.freshness || {},
+    sourceStatus: data.source_status && typeof data.source_status === 'object' ? data.source_status : {},
     coverage: data.coverage || {},
     circulation: normalizeMetricGroup(data.circulation),
     collection: normalizeMetricGroup(data.collection),
