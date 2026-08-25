@@ -55,17 +55,23 @@ function sourceUpdatedAt(data, source) {
 }
 
 function sourceFreshnessLines(data) {
+  const sourceLine = (source, label) => {
+    const updatedAt = sourceUpdatedAt(data, source);
+    if (!updatedAt) return '';
+    const freshness = data.freshness?.sources?.[source];
+    const status = freshness?.stale ? ' · behind schedule' : '';
+    return `<small><strong>${escapeHtml(label)}</strong> updated ${escapeHtml(formatDate(updatedAt))}${escapeHtml(status)}</small>`;
+  };
   const circulationAt = sourceUpdatedAt(data, 'transactions');
   const collectionAt = sourceUpdatedAt(data, 'items');
   const patronsAt = sourceUpdatedAt(data, 'patrons');
-  const lines = circulationAt
-    ? [`<small><strong>Circulation</strong> updated ${escapeHtml(formatDate(circulationAt))}</small>`]
-    : [];
+  const lines = circulationAt ? [sourceLine('transactions', 'Circulation')] : [];
   if (collectionAt && patronsAt && collectionAt === patronsAt) {
-    lines.push(`<small><strong>Collection and patrons</strong> updated ${escapeHtml(formatDate(collectionAt))}</small>`);
+    const behind = data.freshness?.sources?.items?.stale || data.freshness?.sources?.patrons?.stale;
+    lines.push(`<small><strong>Collection and patrons</strong> updated ${escapeHtml(formatDate(collectionAt))}${behind ? ' · behind schedule' : ''}</small>`);
   } else {
-    if (collectionAt) lines.push(`<small><strong>Collection</strong> updated ${escapeHtml(formatDate(collectionAt))}</small>`);
-    if (patronsAt) lines.push(`<small><strong>Patrons</strong> updated ${escapeHtml(formatDate(patronsAt))}</small>`);
+    if (collectionAt) lines.push(sourceLine('items', 'Collection'));
+    if (patronsAt) lines.push(sourceLine('patrons', 'Patrons'));
   }
   return lines.join('');
 }
@@ -133,15 +139,15 @@ function dashboardIntro(data, title, description) {
     if (seconds < 86400) return `${Math.round(seconds / 3600)}h`;
     return `${Math.round(seconds / 86400)}d`;
   };
-  const freshnessLabel = data.freshness?.stale ? 'Refresh is behind schedule' : 'Verified aggregate snapshot';
+  const freshnessLabel = data.freshness?.stale ? 'One or more source refreshes are behind schedule' : 'Sources are within their refresh schedules';
   const freshnessDetail = [
-    Number.isFinite(ageSeconds) ? `Last verified ${compactDuration(ageSeconds)} ago` : '',
-    Number.isFinite(staleAfterSeconds) ? `expected within ${compactDuration(staleAfterSeconds)}` : ''
+    Number.isFinite(ageSeconds) ? `Response assembled ${compactDuration(ageSeconds)} ago` : '',
+    Number.isFinite(staleAfterSeconds) ? `response expected within ${compactDuration(staleAfterSeconds)}` : ''
   ].filter(Boolean).join(' · ');
   return `<section class="kpi-dashboard__intro" aria-labelledby="kpi-dashboard-title"><div>
     <span class="kpi-dashboard__eyebrow">Library intelligence</span>${data.isSampleData ? '<span class="kpi-dashboard__sample">Sample data</span>' : ''}
     <h3 id="kpi-dashboard-title">${escapeHtml(title)}</h3><p>${escapeHtml(description)}</p>
-  </div><div class="kpi-dashboard__freshness${data.freshness?.stale ? ' kpi-dashboard__freshness--stale' : ''}"><strong>${escapeHtml(scope)}</strong><small>${escapeHtml(itemType)}</small>${sourceFreshnessLines(data)}<small><strong>${escapeHtml(freshnessLabel)}</strong>${freshnessDetail ? ` · ${escapeHtml(freshnessDetail)}` : ''}</small>${data.freshness?.stale ? '<small>Refresh requests a new verified aggregate snapshot.</small>' : ''}</div></section>`;
+  </div><div class="kpi-dashboard__freshness${data.freshness?.stale ? ' kpi-dashboard__freshness--stale' : ''}"><strong>${escapeHtml(scope)}</strong><small>${escapeHtml(itemType)}</small>${sourceFreshnessLines(data)}<small><strong>${escapeHtml(freshnessLabel)}</strong>${freshnessDetail ? ` · ${escapeHtml(freshnessDetail)}` : ''}</small>${data.freshness?.stale ? '<small>Refresh will keep the last verified values visible while the delayed source catches up.</small>' : ''}</div></section>`;
 }
 
 function patronCoverageText(series, patrons, privacy) {
@@ -178,20 +184,23 @@ function renderOverview(data) {
   const hasPatrons = data.availability?.patrons;
   const circulationUnavailable = '<p class="kpi-chart-empty">Period circulation data is not available for this scope.</p>';
   const activityWindow = activityWindowLabel(data.scope?.active_window_days);
+  const patronScopeNote = data.scope?.item_type && data.scope.item_type !== 'all'
+    ? ' · item type does not apply'
+    : '';
   return `${dashboardIntro(data, 'What is being used—and where to act', 'A combined view of circulation demand, collection performance, and community reach. Every number keeps its source and time basis visible.')}
     <section class="kpi-cards kpi-cards--six" aria-label="Key library indicators">
       ${metricCard('Checkouts', hasCirculation ? formatNumber(circ.checkouts) : '—', hasCirculation ? periodComparisonDetail(circ, 'checkouts', data.scope?.comparison_mode) : 'Period transaction feed not available', hasCirculation ? 'success' : '')}
       ${metricCard('Renewals', hasCirculation ? formatNumber(circ.renewals) : '—', hasCirculation ? periodComparisonDetail(circ, 'renewals', data.scope?.comparison_mode) : 'Period transaction feed not available')}
       ${metricCard('Current items', hasCollection ? formatNumber(collection.items) : '—', hasCollection ? (collection.titles ? `${formatNumber(collection.titles)} titles represented` : 'Actual current item records') : 'Current item snapshot not available')}
       ${metricCard('Used recently', hasCollection ? formatPercent(collection.recent_use_rate) : '—', hasCollection ? `${activityWindow} · ${formatNumber(collection.used_recently)} items with recorded use` : 'Current item snapshot not available', hasCollection ? 'success' : '')}
-      ${metricCard('Active patrons', hasPatrons ? formatNumber(patrons.active) : '—', hasPatrons ? `${activityWindow} · ${formatPercent(patrons.active_rate)} of current patrons` : 'Patron aggregate not available')}
-      ${metricCard('New patrons', hasPatrons ? formatNumber(patrons.new) : '—', hasPatrons ? (patrons.new_period_label || 'Created in the selected period') : 'Patron aggregate not available')}
+      ${metricCard('Active patrons', hasPatrons ? formatNumber(patrons.active) : '—', hasPatrons ? `${activityWindow} · ${formatPercent(patrons.active_rate)} of current patrons${patronScopeNote}` : 'Patron aggregate not available')}
+      ${metricCard('New patrons', hasPatrons ? formatNumber(patrons.new) : '—', hasPatrons ? `${patrons.new_period_label || 'Created in the selected period'}${patronScopeNote}` : 'Patron aggregate not available')}
     </section>
     <section class="kpi-dashboard__grid">
       <article class="kpi-chart-card kpi-chart-card--wide"><div class="kpi-chart-card__heading"><div><h4>Circulation trend</h4><p>Transactions by period; checkout and renewal definitions match the Analytics circulation contract.</p></div></div>${stackedTrend(data.circulationTrend)}</article>
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Demand by library</h4><p>Checkouts for the highest-use libraries in scope.</p></div></div>${hasCirculation ? rankedBars(data.libraryBreakdown, 'checkouts') : circulationUnavailable}</article>
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Demand by item type</h4><p>Checkout volume reveals which formats patrons are choosing.</p></div></div>${hasCirculation ? rankedBars(data.itemTypeBreakdown, 'checkouts') : circulationUnavailable}</article>
-      <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Patrons by home library</h4><p>Aggregated patron reach; small groups are suppressed.</p></div></div>${rankedBars(data.patronLibraryBreakdown, 'patrons')}</article>
+      <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Patrons by home library</h4><p>Aggregated patron reach; small groups are suppressed.${patronScopeNote}</p></div></div>${rankedBars(data.patronLibraryBreakdown, 'patrons')}</article>
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Collection use</h4><p>Items grouped by recorded use, including never-used and high-use material.</p></div></div>${rankedBars(data.useBands, 'items')}</article>
       <article class="kpi-chart-card kpi-chart-card--full"><div class="kpi-chart-card__heading"><div><h4>Recommended follow-up</h4><p>Actionable groups that can open as an exact Query report.</p></div></div>${opportunityTable(data.opportunities)}</article>
     </section>${serviceCoverageSection(data)}${sourceNotes(data)}`;

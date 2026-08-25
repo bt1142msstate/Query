@@ -57,42 +57,40 @@ test('dashboard intro names the selected aggregate scope when labels are absent'
   assert.doesNotMatch(html, /<strong>All MLP libraries<\/strong>/);
 });
 
-test('dashboard intro distinguishes hourly circulation freshness from full-rebuild sources', () => {
+test('dashboard intro shows each source timestamp and identifies the delayed source plainly', () => {
   const dashboard = normalizeLibraryDashboard({
-    generated_at: '2026-08-24T22:46:41Z',
+    generated_at: '2026-08-25T12:17:05Z',
+    scope: { library: 'all', item_type: 'all', active_window_days: 365 },
+    collection: { items: 120 },
+    circulation: { checkouts: 45 },
+    patrons: { total: 32 },
     source_status: {
-      transactions: { status: 'complete', completed_at: '2026-08-24T22:46:40Z' },
-      items: { status: 'reused', completed_at: '2026-08-24T08:10:00Z' },
-      patrons: { status: 'reused', completed_at: '2026-08-24T08:10:00Z' }
+      transactions: { completed_at: '2026-08-25T12:17:05Z' },
+      items: { completed_at: '2026-08-25T07:49:57Z' },
+      patrons: { completed_at: '2026-08-25T07:50:13Z' }
     },
-    collection: { items: 120 }
+    freshness: {
+      stale: true,
+      sources: {
+        transactions: { stale: false },
+        items: { stale: true },
+        patrons: { stale: false }
+      }
+    }
   });
 
   const html = renderLibraryDashboard(dashboard, 'overview');
-  assert.match(html, /<strong>Circulation<\/strong> updated Aug 24, 2026/);
-  assert.match(html, /<strong>Collection and patrons<\/strong> updated Aug 24, 2026/);
-  assert.doesNotMatch(html, /<span>Updated/);
-});
-
-test('dashboard intro keeps collection and patron timestamps separate when they differ', () => {
-  const dashboard = normalizeLibraryDashboard({
-    generated_at: '2026-08-24T22:46:41Z',
-    source_status: {
-      items: { completed_at: '2026-08-24T08:10:00Z' },
-      patrons: { completed_at: '2026-08-23T08:10:00Z' }
-    },
-    collection: { items: 120 }
-  });
-
-  const html = renderLibraryDashboard(dashboard, 'overview');
-  assert.match(html, /<strong>Collection<\/strong> updated Aug 24, 2026/);
-  assert.match(html, /<strong>Patrons<\/strong> updated Aug 23, 2026/);
+  assert.match(html, /Circulation<\/strong> updated/);
+  assert.match(html, /Collection<\/strong> updated[^<]*behind schedule/);
+  assert.match(html, /Patrons<\/strong> updated/);
+  assert.match(html, /One or more source refreshes are behind schedule/);
 });
 
 test('collection and patron views label unavailable or non-applicable dimensions plainly', () => {
   const dashboard = normalizeLibraryDashboard({
     scope: { library: 'MSU-GRANT', item_type: 'BOOK', active_window_days: 90 },
-    collection: { items: 17_916 }
+    collection: { items: 17_916 },
+    patrons: { total: 100, active: 12, active_rate: 0.12, new: 4 }
   });
 
   const collectionHtml = renderLibraryDashboard(dashboard, 'collection');
@@ -101,6 +99,9 @@ test('collection and patron views label unavailable or non-applicable dimensions
 
   const patronHtml = renderLibraryDashboard(dashboard, 'patrons');
   assert.match(patronHtml, /Item type does not apply to patrons/);
+
+  const overviewHtml = renderLibraryDashboard(dashboard, 'overview');
+  assert.equal((overviewHtml.match(/item type does not apply/g) || []).length, 3);
 });
 
 test('named circulation periods keep collection and patron activity windows explicit', () => {

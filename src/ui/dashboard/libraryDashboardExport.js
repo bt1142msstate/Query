@@ -18,6 +18,12 @@ function buildLibraryDashboardExportRows(data, view = 'overview') {
     ['Scope', 'Collection and patron activity window', 'days', data.scope?.active_window_days || 365],
     ['Freshness', 'Generated', 'timestamp', data.generatedAt || '']
   );
+  for (const [source, label] of [['transactions', 'Circulation'], ['items', 'Collection'], ['patrons', 'Patrons']]) {
+    const freshness = data.freshness?.sources?.[source] || {};
+    const status = data.sourceStatus?.[source] || {};
+    const completedAt = freshness.completed_at || status.completed_at;
+    if (completedAt) rows.push(['Freshness', label, freshness.stale ? 'behind schedule' : 'verified', completedAt]);
+  }
   const groups = view === 'collection' ? ['collection', 'circulation']
     : view === 'patrons' ? ['patrons'] : ['circulation', 'collection', 'patrons'];
   groups.forEach(group => Object.entries(data[group] || {}).forEach(([metric, value]) => {

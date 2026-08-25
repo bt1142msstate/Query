@@ -87,6 +87,13 @@ function getAccessErrorInfo({ error, rawText, status, delay }) {
   if (status === 410 || /\b(?:query|result|template|category|record|run) not found\b|no saved results|result file not found/iu.test(rawText)) {
     return { category: 'not_found', message: 'That item could not be found. It may have been removed or may no longer be available.', retryable: false };
   }
+  if (status === 404 && /dashboard view.*(?:still being prepared|not (?:yet )?available)|(?:still being prepared|next dashboard refresh)/iu.test(rawText)) {
+    return {
+      category: 'dashboard_preparing',
+      message: 'That dashboard view is still being prepared. Try again after the next dashboard refresh.',
+      retryable: true
+    };
+  }
   if (status === 404) {
     return { category: 'api_not_found', message: 'The Query service could not be found at this address. Check the API address and try again.', retryable: false };
   }

@@ -1,5 +1,5 @@
 {
-  "version": "03543124eea2a011",
+  "version": "7a4f5965baa713ed",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-16.png": "6645731d86da1071",
@@ -36,7 +36,7 @@
     "src/core/backendApi.js": "1935107b3653657c",
     "src/core/backgroundTaskNotifications.js": "9f23ed0c3a09a030",
     "src/core/bootstrap.js": "80fe89e3a5baabc8",
-    "src/core/clientErrorMessages.js": "aa0ec306562e0e2f",
+    "src/core/clientErrorMessages.js": "ffebe015d9e0355d",
     "src/core/clipboard.js": "5a21793ae38601a7",
     "src/core/domCache.js": "6b65742fd5817619",
     "src/core/domReady.js": "f385624460b061da",
@@ -241,9 +241,9 @@
     "src/ui/dashboard/kpiDashboardModel.js": "fa4c42b18c1245e5",
     "src/ui/dashboard/kpiDashboardView.js": "82508c550975ada6",
     "src/ui/dashboard/libraryDashboardCoverage.js": "d2da9d84bf50899f",
-    "src/ui/dashboard/libraryDashboardExport.js": "693e94762b966b30",
+    "src/ui/dashboard/libraryDashboardExport.js": "ae9057c966126624",
     "src/ui/dashboard/libraryDashboardModel.js": "34c866b3a028dbe2",
-    "src/ui/dashboard/libraryDashboardView.js": "4a48d4a09ac8f074",
+    "src/ui/dashboard/libraryDashboardView.js": "c6debdb8b5e1ae1f",
     "src/ui/dashboard/reportingPeriodPicker.js": "334aea95b73dee72",
     "src/ui/field-picker/buildableFieldPreview.js": "8abd486bb0a87fe2",
     "src/ui/field-picker/fieldPicker.js": "526a1bf934f5dd74",

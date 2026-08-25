@@ -5,6 +5,7 @@ import { buildLibraryDashboardExportRows } from '../../../src/ui/dashboard/libra
 test('dashboard CSV rows include scope, comparisons, breakdowns, and sources', () => {
   const rows = buildLibraryDashboardExportRows({
     generatedAt: '2026-08-21T12:00:00Z',
+    freshness: { sources: { transactions: { completed_at: '2026-08-21T11:59:00Z', stale: false } } },
     scope: { library: 'MSU', item_type: 'BOOK', active_window_days: 365 },
     circulation: { checkouts: 100, previous_checkouts: 80, checkout_change: 20, period_label: 'Recent 365 days' },
     collection: { items: 50 },
@@ -18,6 +19,7 @@ test('dashboard CSV rows include scope, comparisons, breakdowns, and sources', (
   assert.ok(rows.some(row => row[0] === 'Patron ZIP3' && row[1] === '397xx' && row[3] === 12));
   assert.ok(rows.some(row => row[0] === 'Scope' && row[1] === 'Collection and patron activity window' && row[3] === 365));
   assert.ok(rows.some(row => row[0] === 'Source' && row[1] === 'Transactions'));
+  assert.ok(rows.some(row => row[0] === 'Freshness' && row[1] === 'Circulation' && row[2] === 'verified' && row[3] === '2026-08-21T11:59:00Z'));
 });
 
 test('patron export omits collection metrics', () => {

@@ -23,6 +23,7 @@ const scenarios = [
   ['bad credentials', errorWith('Invalid username or password'), 'The username or password is incorrect. Check it and try again.'],
   ['bad current password', errorWith('The current password is incorrect'), 'The current password is incorrect. Check it and try again.'],
   ['missing query', errorWith('Query not found', { status: 404 }), 'That item could not be found. It may have been removed or may no longer be available.'],
+  ['dashboard view preparing', errorWith('That dashboard view is still being prepared. Try again after the next dashboard refresh.', { status: 404 }), 'That dashboard view is still being prepared. Try again after the next dashboard refresh.'],
   ['missing API route', errorWith('HTTP 404 Not Found', { status: 404 }), 'The Query service could not be found at this address. Check the API address and try again.'],
   ['removed item', errorWith('Gone', { status: 410 }), 'That item could not be found. It may have been removed or may no longer be available.'],
   ['stale update', errorWith('Stale version conflict', { status: 409 }), 'This information changed before your update was saved. Refresh and try again.'],
