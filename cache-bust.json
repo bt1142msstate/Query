@@ -1,5 +1,5 @@
 {
-  "version": "556e0e33a4d2dd13",
+  "version": "620804a06d67d4c1",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-16.png": "6645731d86da1071",
@@ -240,10 +240,10 @@
     "src/ui/dashboard/kpiDashboard.js": "55a7adaaf847950b",
     "src/ui/dashboard/kpiDashboardModel.js": "fa4c42b18c1245e5",
     "src/ui/dashboard/kpiDashboardView.js": "82508c550975ada6",
-    "src/ui/dashboard/libraryDashboardCoverage.js": "d2da9d84bf50899f",
+    "src/ui/dashboard/libraryDashboardCoverage.js": "ba9e61d94c9af271",
     "src/ui/dashboard/libraryDashboardExport.js": "ae9057c966126624",
-    "src/ui/dashboard/libraryDashboardModel.js": "1c036eaacc95d14e",
-    "src/ui/dashboard/libraryDashboardView.js": "63676db31c2a28ad",
+    "src/ui/dashboard/libraryDashboardModel.js": "237c98c1c1b5d332",
+    "src/ui/dashboard/libraryDashboardView.js": "6f86add644395314",
     "src/ui/dashboard/reportingPeriodPicker.js": "334aea95b73dee72",
     "src/ui/field-picker/buildableFieldPreview.js": "8abd486bb0a87fe2",
     "src/ui/field-picker/fieldPicker.js": "526a1bf934f5dd74",

@@ -43,6 +43,8 @@ function normalizeLibraryDashboard(payload = {}) {
     itemTypeBreakdown: normalizeSeries(data.item_type_breakdown),
     useBands: normalizeSeries(data.use_bands),
     ageBands: normalizeSeries(data.age_bands),
+    homeLocationBreakdown: normalizeSeries(data.home_location_breakdown),
+    currentLocationBreakdown: normalizeSeries(data.current_location_breakdown),
     patronLibraryBreakdown: normalizeSeries(data.patron_library_breakdown),
     patronProfileBreakdown: normalizeSeries(data.patron_profile_breakdown),
     patronAgeBands: normalizeSeries(data.patron_age_bands),

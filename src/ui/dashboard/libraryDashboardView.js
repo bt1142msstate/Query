@@ -99,10 +99,16 @@ function metricCard(label, value, detail, tone = '', definition = null) {
 
 function breakdownTable(items, { patronColumns = true } = {}) {
   if (!items.length) return '<p class="kpi-chart-empty">No system or branch totals are available for this scope.</p>';
-  const headers = ['System', 'Branch', 'Items', 'Checkouts', 'Renewals'];
+  const headers = ['System', 'Branch', 'Titles', 'Items', 'Checkouts', 'Renewals', 'Turnover', 'Used recently', 'Never used', 'Open holds', 'Inventory coverage', 'Unavailable', 'Missing / lost', 'In transit'];
   if (patronColumns) headers.push('Current patrons', 'Active patrons', 'Expired', 'Unknown expiry');
   const patronValue = (item, key) => item.patron_suppressed ? '<span title="Below the privacy threshold">Suppressed</span>' : formatNumber(item[key]);
-  const row = item => `<tr><td>${escapeHtml(item.system || item.label || 'Unassigned')}</td><td>${escapeHtml(item.system ? item.label : `${formatNumber(item.branches)} branches`)}</td><td>${formatNumber(item.items)}</td><td>${formatNumber(item.checkouts)}</td><td>${formatNumber(item.renewals)}</td>${patronColumns ? `<td>${patronValue(item, 'patrons')}</td><td>${patronValue(item, 'active_patrons')}</td><td>${patronValue(item, 'expired_patrons')}</td><td>${patronValue(item, 'expiration_unknown')}</td>` : ''}</tr>`;
+  const row = item => {
+    const items = Number(item.items || 0);
+    const turnover = items ? (Number(item.checkouts || 0) + Number(item.renewals || 0)) / items : 0;
+    const inventoryCoverage = items ? Number(item.inventoried || 0) / items : 0;
+    const branchCount = Number(item.branches || 0);
+    return `<tr><td>${escapeHtml(item.system || item.label || 'Unassigned')}</td><td>${escapeHtml(item.system ? item.label : `${formatNumber(branchCount)} ${branchCount === 1 ? 'branch' : 'branches'}`)}</td><td>${Object.prototype.hasOwnProperty.call(item, 'titles') ? formatNumber(item.titles) : '—'}</td><td>${formatNumber(item.items)}</td><td>${formatNumber(item.checkouts)}</td><td>${formatNumber(item.renewals)}</td><td>${turnover.toFixed(2)}</td><td>${formatNumber(item.used_recently)}</td><td>${formatNumber(item.never_used)}</td><td>${formatNumber(item.holds)}</td><td>${formatPercent(inventoryCoverage)}</td><td>${formatNumber(item.unavailable_items)}</td><td>${formatNumber(item.missing_lost_items)}</td><td>${formatNumber(item.in_transit_items)}</td>${patronColumns ? `<td>${patronValue(item, 'patrons')}</td><td>${patronValue(item, 'active_patrons')}</td><td>${patronValue(item, 'expired_patrons')}</td><td>${patronValue(item, 'expiration_unknown')}</td>` : ''}</tr>`;
+  };
   return `<div class="kpi-recent-table-wrap"><table class="kpi-recent-table kpi-breakdown-table"><thead><tr>${headers.map(header => `<th>${escapeHtml(header)}</th>`).join('')}</tr></thead><tbody>${items.map(row).join('')}</tbody></table></div>`;
 }
 
@@ -110,7 +116,7 @@ function systemBranchBreakdown(data) {
   const systems = data.systemBreakdown || [];
   const branches = data.libraryBreakdown || [];
   return `<section class="kpi-chart-card kpi-chart-card--full" aria-labelledby="kpi-system-branch-title">
-    <div class="kpi-chart-card__heading"><div><h4 id="kpi-system-branch-title">System and branch totals</h4><p>Complete totals at the most granular available library level. Patron values use current-account eligibility; small patron groups remain privacy-suppressed.</p></div></div>
+    <div class="kpi-chart-card__heading"><div><h4 id="kpi-system-branch-title">System and branch totals</h4><p>Collection totals use each item's owning branch, circulation uses the transaction branch, and patrons use their assigned branch. Patron values use current-account eligibility; small patron groups remain privacy-suppressed.</p></div></div>
     ${systems.length ? `<h5>System totals</h5>${breakdownTable(systems)}` : ''}
     <details class="kpi-breakdown-details"><summary>All ${formatNumber(branches.length)} branch totals</summary>${breakdownTable(branches)}</details>
   </section>`;
@@ -207,6 +213,15 @@ function sourceNotes(data) {
   return `<details class="kpi-methodology"><summary>Definitions, sources, and privacy</summary><div>${data.sources.map(source => `<p><strong>${escapeHtml(source.label || source.name || 'Source')}:</strong> ${escapeHtml(source.detail || '')}</p>`).join('')}${data.notes.map(note => `<p>${escapeHtml(note)}</p>`).join('')}${data.privacy?.suppression_threshold ? `<p>Patron groups smaller than ${formatNumber(data.privacy.suppression_threshold)} are suppressed.</p>` : ''}</div></details>`;
 }
 
+function dimensionSemantics() {
+  return `<details class="kpi-methodology"><summary>What “library” means in each section</summary><div>
+    <p><strong>Collection:</strong> the owning branch stored on the current item record.</p>
+    <p><strong>Circulation:</strong> the branch recorded as the transaction library when the checkout or renewal occurred.</p>
+    <p><strong>Patrons:</strong> the patron account's assigned User Library. Item-type choices do not change patron counts.</p>
+    <p><strong>Location:</strong> the home value is the item's normal shelving policy; the current value is its present workflow or shelving policy at snapshot time.</p>
+  </div></details>`;
+}
+
 function renderOverview(data) {
   const circ = data.circulation;
   const collection = data.collection;
@@ -236,7 +251,7 @@ function renderOverview(data) {
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Collection use</h4><p>Items grouped by recorded use, including never-used and high-use material.</p></div></div>${rankedBars(data.useBands, 'items')}</article>
       ${systemBranchBreakdown(data)}
       <article class="kpi-chart-card kpi-chart-card--full"><div class="kpi-chart-card__heading"><div><h4>Recommended follow-up</h4><p>Actionable groups that can open as an exact Query report.</p></div></div>${opportunityTable(data.opportunities)}</article>
-    </section>${serviceCoverageSection(data)}${sourceNotes(data)}`;
+    </section>${serviceCoverageSection(data)}${dimensionSemantics()}${sourceNotes(data)}`;
 }
 
 function renderCollection(data) {
@@ -248,21 +263,26 @@ function renderCollection(data) {
   const activityWindow = activityWindowLabel(data.scope?.active_window_days);
   return `${dashboardIntro(data, 'Collection performance', 'Actual current holdings, lifetime item use, recent use, demand, age, and collection-development opportunities—not item-creation transactions mislabeled as holdings.')}
     <section class="kpi-cards kpi-cards--six" aria-label="Collection indicators">
+      ${metricCard('Titles', Object.prototype.hasOwnProperty.call(collection, 'titles') ? formatNumber(collection.titles) : '—', Object.prototype.hasOwnProperty.call(collection, 'titles') ? 'Exact distinct catalog records represented' : 'Exact total unavailable for a combined custom scope', '', data.metricDefinitions.titles)}
       ${metricCard('Items', formatNumber(collection.items), titleDetail, '', data.metricDefinitions.items)}
+      ${metricCard('Period turnover', Number(circ.turnover || 0).toFixed(2), 'Checkouts + renewals per current item', 'success', data.metricDefinitions.turnover)}
       ${metricCard('Lifetime checkouts', formatNumber(collection.lifetime_checkouts), `${Number(collection.checkouts_per_item || 0).toFixed(1)} per current item`, 'success')}
-      ${metricCard('Lifetime renewals', formatNumber(collection.lifetime_renewals), 'Stored on current item records')}
       ${metricCard('In-house uses', formatNumber(collection.in_house_uses), 'Recorded use without checkout')}
       ${metricCard('Never used', formatNumber(collection.never_used), `${formatPercent(collection.never_used_rate)} of current items`, collection.never_used_rate > 0.35 ? 'active' : '')}
-      ${metricCard('Collection value', formatMoney(collection.total_value), `${formatPercent(collection.price_coverage)} of items have a usable price`)}
     </section>
     <section class="kpi-dashboard__grid">
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Use distribution</h4><p>Lifetime checkout bands across current items.</p></div></div>${rankedBars(data.useBands, 'items')}</article>
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Collection age</h4><p>Current items by creation-date band.</p></div></div>${rankedBars(data.ageBands, 'items')}</article>
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Hold pressure</h4><p>Demand indicators for copies and titles currently in scope.</p></div></div>${metricCard('Open holds', formatNumber(circ.holds), `${Number(circ.holds_per_100_items || 0).toFixed(1)} per 100 items`)}</article>
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Recently used</h4><p>Items with a recorded last-use date in the ${activityWindow.toLowerCase()}.</p></div></div>${metricCard('Recent-use rate', formatPercent(collection.recent_use_rate), `${activityWindow} · ${formatNumber(collection.used_recently)} of ${formatNumber(collection.items)} items`)}</article>
+      <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Inventory coverage</h4><p>Current records with a usable recorded inventory date.</p></div></div>${metricCard('Inventoried', formatPercent(collection.inventory_coverage), `${formatNumber(collection.inventoried)} inventoried · ${formatNumber(collection.never_inventoried)} without a date`, '', data.metricDefinitions.inventory_coverage)}</article>
+      <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Availability snapshot</h4><p>Current-location workflow states at the last item refresh.</p></div></div>${metricCard('Unavailable', formatNumber(collection.unavailable_items), `${formatPercent(collection.unavailable_rate)} of items · ${formatNumber(collection.missing_lost_items)} missing/lost · ${formatNumber(collection.in_transit_items)} in transit`)}</article>
+      <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Current locations</h4><p>Where items are now, including circulation and workflow locations.</p></div></div>${rankedBars(data.currentLocationBreakdown, 'items')}</article>
+      <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Home locations</h4><p>Normal shelving or collection location stored on each item.</p></div></div>${rankedBars(data.homeLocationBreakdown, 'items')}</article>
+      <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Collection value</h4><p>Value is only as complete as item price data.</p></div></div>${metricCard('Recorded value', formatMoney(collection.total_value), `${formatPercent(collection.price_coverage)} of items have a usable price`)}</article>
       <article class="kpi-chart-card kpi-chart-card--full"><div class="kpi-chart-card__heading"><div><h4>Collection-development queue</h4><p>Open the underlying records to review, sort, or export them.</p></div></div>${opportunityTable(data.opportunities)}</article>
       ${systemBranchBreakdown(data)}
-    </section>${sourceNotes(data)}`;
+    </section>${dimensionSemantics()}${sourceNotes(data)}`;
 }
 
 function renderPatrons(data) {

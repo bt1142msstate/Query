@@ -138,8 +138,31 @@ test('patron breakdowns state coverage and dashboard source gaps remain visible'
 
   const overviewHtml = renderLibraryDashboard(dashboard, 'overview');
   assert.match(overviewHtml, /Library service coverage/);
-  assert.match(overviewHtml, /4 connected · 7 need a source/);
+  assert.match(overviewHtml, /4 connected · 9 need a source/);
   assert.match(overviewHtml, /Electronic resources/);
+});
+
+test('collection view explains and renders inventory, location, availability, and turnover metrics', () => {
+  const dashboard = normalizeLibraryDashboard({
+    circulation: { checkouts: 100, renewals: 25, turnover: 1.25 },
+    collection: {
+      titles: 70, items: 100, inventoried: 80, never_inventoried: 20,
+      inventory_coverage: 0.8, unavailable_items: 12, unavailable_rate: 0.12,
+      missing_lost_items: 3, in_transit_items: 4
+    },
+    home_location_breakdown: [{ label: 'STACKS', items: 90 }],
+    current_location_breakdown: [{ label: 'CHECKEDOUT', items: 12 }]
+  });
+  const html = renderLibraryDashboard(dashboard, 'collection');
+  assert.match(html, /Exact distinct catalog records represented/);
+  assert.match(html, /Period turnover/);
+  assert.match(html, /Inventory coverage/);
+  assert.match(html, /Current locations/);
+  assert.match(html, /CHECKEDOUT/);
+  assert.match(html, /Home locations/);
+  assert.match(html, /STACKS/);
+  assert.match(html, /3 missing\/lost · 4 in transit/);
+  assert.match(html, /What “library” means in each section/);
 });
 
 test('patron view explains eligibility, reconciles source records, and protects small branch totals', () => {

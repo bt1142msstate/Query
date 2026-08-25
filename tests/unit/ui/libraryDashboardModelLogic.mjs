@@ -13,6 +13,8 @@ test('library dashboard normalizes aggregate groups and filter metadata', () => 
     metric_definitions: { current_patrons: { calculation: 'Unexpired accounts.' } },
     system_breakdown: [{ label: 'MAIN', items: '120', patrons: '32' }],
     library_breakdown: [{ label: 'Main', checkouts: '30' }],
+    home_location_breakdown: [{ label: 'STACKS', items: '80' }],
+    current_location_breakdown: [{ label: 'CHECKEDOUT', items: '25' }],
     filters: {
       systems: [{ value: 'system:MAIN', label: 'Main System' }],
       libraries: [{ value: 'MAIN', label: 'Main' }],
@@ -26,6 +28,8 @@ test('library dashboard normalizes aggregate groups and filter metadata', () => 
   assert.equal(dashboard.circulation.coverage_complete, true);
   assert.equal(dashboard.libraryBreakdown[0].checkouts, 30);
   assert.equal(dashboard.systemBreakdown[0].items, 120);
+  assert.equal(dashboard.homeLocationBreakdown[0].items, 80);
+  assert.equal(dashboard.currentLocationBreakdown[0].items, 25);
   assert.equal(dashboard.metricDefinitions.current_patrons.calculation, 'Unexpired accounts.');
   assert.equal(dashboard.filters.libraries[0].value, 'MAIN');
   assert.equal(dashboard.filters.systems[0].value, 'system:MAIN');
