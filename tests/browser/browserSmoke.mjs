@@ -673,8 +673,19 @@ async function runSmokeTest() {
     if (!await page.locator('#kpi-dashboard-item-type .form-mode-popup-list-trigger').isDisabled()) {
       throw new Error('Dashboard should disable the shared Item type selector when item type does not apply to patron aggregates.');
     }
+    const statusRequestsBeforeOperations = queryApiStub.getRequests('status').length;
     await page.locator('[data-kpi-view="operations"]').click();
     await page.waitForFunction(() => document.querySelector('#kpi-dashboard-content .kpi-card__value')?.textContent?.trim() === '3');
+    if (queryApiStub.getRequests('status').length <= statusRequestsBeforeOperations) {
+      throw new Error('Opening Query activity should refresh its retained activity instead of reusing a stale in-memory summary.');
+    }
+    await page.locator('[data-kpi-view="overview"]').click();
+    const statusRequestsBeforeReopen = queryApiStub.getRequests('status').length;
+    await page.locator('[data-kpi-view="operations"]').click();
+    await page.waitForTimeout(100);
+    if (queryApiStub.getRequests('status').length <= statusRequestsBeforeReopen) {
+      throw new Error('Reopening Query activity should request a fresh retained-activity summary.');
+    }
     await page.locator('#kpi-dashboard-panel .collapse-btn').click();
     await page.locator('#kpi-dashboard-panel.hidden').waitFor({ state: 'attached', timeout: 5000 });
 

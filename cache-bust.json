@@ -1,5 +1,5 @@
 {
-  "version": "e76ecd41699a7642",
+  "version": "03543124eea2a011",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-16.png": "6645731d86da1071",
@@ -237,7 +237,7 @@
     "src/ui/controls/selectorListPasteInput.js": "4e7f16d036dfd795",
     "src/ui/controls/tableNameInput.js": "b6fc884c36961de3",
     "src/ui/controls/virtualList.js": "bd7a8d24c7c48493",
-    "src/ui/dashboard/kpiDashboard.js": "9a761597d5b8f93c",
+    "src/ui/dashboard/kpiDashboard.js": "55a7adaaf847950b",
     "src/ui/dashboard/kpiDashboardModel.js": "fa4c42b18c1245e5",
     "src/ui/dashboard/kpiDashboardView.js": "82508c550975ada6",
     "src/ui/dashboard/libraryDashboardCoverage.js": "d2da9d84bf50899f",

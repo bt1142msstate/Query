@@ -296,7 +296,7 @@ onDOMReady(() => {
   elements.tabs.forEach(tab => tab.addEventListener('click', () => {
     currentView = tab.dataset.kpiView || 'overview';
     syncViewChrome(getElements());
-    if ((currentView === 'operations' && !operationRuns.length) || (currentView !== 'operations' && !libraryData)) loadDashboard();
+    if (currentView === 'operations' || !libraryData) loadDashboard();
     else render();
   }));
   elements.content?.addEventListener('click', event => {
@@ -306,7 +306,7 @@ onDOMReady(() => {
   window.addEventListener('query-dashboard:open', () => loadDashboard());
   window.setInterval(() => {
     const panel = document.getElementById('kpi-dashboard-panel');
-    if (panel && !panel.classList.contains('hidden') && currentView !== 'operations') loadDashboard();
+    if (panel && !panel.classList.contains('hidden')) loadDashboard();
   }, AUTO_REFRESH_MS);
 });
 
