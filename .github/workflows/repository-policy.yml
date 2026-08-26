@@ -1,0 +1,26 @@
+name: Repository Policy
+
+on:
+  push:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+  release:
+    types: [created, edited, published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  policy:
+    name: Repository policy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout complete history
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Enforce repository attribution policy
+        run: node scripts/checkRepositoryPolicy.mjs

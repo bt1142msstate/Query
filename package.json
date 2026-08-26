@@ -19,6 +19,7 @@
     "benchmark:workbook": "node scripts/benchmarkWorkbookExport.mjs",
     "cache:bust": "node scripts/updateCacheBusting.mjs",
     "cache:bust:check": "node scripts/updateCacheBusting.mjs --check",
+    "check:repository-policy": "node scripts/checkRepositoryPolicy.mjs",
     "demo": "node scripts/runDemo.mjs",
     "example:backend": "node examples/minimal-backend/server.mjs",
     "architecture:metrics": "node scripts/reportArchitectureMetrics.mjs",
