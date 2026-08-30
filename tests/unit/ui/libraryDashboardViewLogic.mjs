@@ -138,6 +138,54 @@ test('patron breakdowns state coverage and dashboard source gaps remain visible'
 
   const overviewHtml = renderLibraryDashboard(dashboard, 'overview');
   assert.match(overviewHtml, /Library service coverage/);
-  assert.match(overviewHtml, /4 connected · 7 need a source/);
+  assert.match(overviewHtml, /4 connected · 9 need a source/);
   assert.match(overviewHtml, /Electronic resources/);
+});
+
+test('collection view explains and renders inventory, location, availability, and turnover metrics', () => {
+  const dashboard = normalizeLibraryDashboard({
+    circulation: { checkouts: 100, renewals: 25, turnover: 1.25 },
+    collection: {
+      titles: 70, items: 100, inventoried: 80, never_inventoried: 20,
+      inventory_coverage: 0.8, unavailable_items: 12, unavailable_rate: 0.12,
+      missing_lost_items: 3, in_transit_items: 4
+    },
+    home_location_breakdown: [{ label: 'STACKS', items: 90 }],
+    current_location_breakdown: [{ label: 'CHECKEDOUT', items: 12 }]
+  });
+  const html = renderLibraryDashboard(dashboard, 'collection');
+  assert.match(html, /Exact distinct catalog records represented/);
+  assert.match(html, /Period turnover/);
+  assert.match(html, /Inventory coverage/);
+  assert.match(html, /Current locations/);
+  assert.match(html, /CHECKEDOUT/);
+  assert.match(html, /Home locations/);
+  assert.match(html, /STACKS/);
+  assert.match(html, /3 missing\/lost · 4 in transit/);
+  assert.match(html, /What “library” means in each section/);
+});
+
+test('patron view explains eligibility, reconciles source records, and protects small branch totals', () => {
+  const dashboard = normalizeLibraryDashboard({
+    patrons: {
+      total: 80, records_total: 100, expired: 15, expiration_unknown: 5,
+      never_expires: 10, expired_with_charges: 2, eligibility_rate: 0.8,
+      active: 20, active_rate: 0.25, new: 4,
+      eligibility_label: 'Expiration is today or later, or privileges never expire'
+    },
+    metric_definitions: {
+      current_patrons: { calculation: 'Unexpired or NEVER.', source: 'Patron snapshot', grain: 'Patron account', time_basis: 'Snapshot' }
+    },
+    system_breakdown: [{ label: 'MLP', branches: 1, patron_suppressed: true, items: 5 }],
+    library_breakdown: [{ label: 'TINY', system: 'MLP', patron_suppressed: true, items: 5 }]
+  });
+  const html = renderLibraryDashboard(dashboard, 'patrons');
+  assert.match(html, /Account eligibility reconciliation/);
+  assert.match(html, /All patron records/);
+  assert.match(html, />100</);
+  assert.match(html, /Unknown expiration/);
+  assert.match(html, /How calculated/);
+  assert.match(html, /System and branch totals/);
+  assert.match(html, /Suppressed/);
+  assert.match(html, /not presented as current-patron geography/);
 });

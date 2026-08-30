@@ -38,13 +38,14 @@ The private MLP environment owns:
 - `collection`: current items and titles, lifetime checkout and renewal counters, recent-use rate, never-used items, item age, and price coverage;
 - `patrons`: current, active, newly registered, currently borrowing, currently holding, and soon-expiring patron counts;
 - `circulation_trend`: reporting-period transaction points;
-- `library_breakdown` and `item_type_breakdown`: comparable scoped aggregates;
+- `system_breakdown`, `library_breakdown`, and `item_type_breakdown`: complete comparable totals at consortium, system, branch, and item-type grain;
 - `use_bands` and `age_bands`: current-collection distributions;
 - `patron_*_breakdown`: privacy-suppressed home-library, profile, age-band, ZIP3, city/state, and state aggregates; exact addresses and full ZIP codes are never returned;
 - `previous_*`, `*_change`, and `*_change_rate`: the immediately preceding equivalent period when retained-log coverage is complete;
 - `filters.fiscal_periods_by_system`: current fiscal year-to-date and completed fiscal years using each MLP system's documented reporting calendar;
 - `opportunities`: aggregate action groups with optional backend-generated Query configurations;
 - `service_coverage`: optional source-connection metadata for visits, programs, technology, electronic resources, ILL, acquisitions/budget, and hold fulfillment; absent metrics remain visibly unavailable rather than being estimated;
+- `metric_definitions`: calculation, public-safe source fields, source, grain, and time basis for each KPI;
 - `freshness`, `sources`, and `notes`: exact lineage, update times, and limitations.
 
 The UI must treat absent groups as unavailable, not as zero. Every production response should describe the time basis of each source independently.
@@ -61,11 +62,13 @@ The circulation transaction baseline follows the established BLUEcloud contract:
 
 Current holdings come from current item records. Item creation transactions must not be labeled as holdings. Lifetime item checkout/renewal counters must not be plotted as historical monthly transactions.
 
-An active patron is a current user whose last-activity date falls inside the selected activity window. The response must state the window. Age groups are derived only from usable birth dates, and unknown dates remain a visible category.
+`patrons.total` means **current patrons**, not every historical user row. A current patron has a privilege-expiration date on or after the snapshot date or an explicit `NEVER` expiration. Expired accounts and blank/unreadable expiration values are excluded. `patrons.records_total`, `patrons.expired`, and `patrons.expiration_unknown` reconcile the source population so exclusions remain visible and auditable. `patrons.never_expires` is a subset of current patrons. An active patron is a current patron whose last-activity date falls inside the selected activity window. New registrations, current loans, current holds, profile, and age measures also use current patrons. The response must state the window. Age groups are derived only from usable birth dates, and unknown dates remain a visible category.
+
+Patron geography is built from a separate privacy-safe address aggregate. Until that source carries privilege expiration, geography is explicitly labeled as an all-record source and must not be described as current-patron geography.
 
 The circulation period and the collection/patron activity window are separate dimensions. Calendar-year and fiscal-year choices control checkouts, renewals, transaction trends, and demand rankings. Current collection measures remain point-in-time or lifetime measures, while recent collection use and patron activity use the explicit `scope.active_window_days` rolling window. The interface must display these time bases independently and must not claim that a named circulation period changes aggregates that the source snapshot cannot calculate for that exact period.
 
-Patron breakdowns must display their coverage against the scoped patron total. Returned groups can exclude missing, invalid, or privacy-suppressed values and the visual ranking can show only its highest-volume groups, so a chart must not imply that its visible bars represent every patron.
+Current-patron breakdowns must display their coverage against the scoped current-patron total. Geography coverage uses the all-record audit denominator. Returned groups can exclude missing, invalid, or privacy-suppressed values and the visual ranking can show only its highest-volume groups, so a chart must not imply that its visible bars represent every patron. Complete branch/system tables remain available below summary charts; patron values below the privacy threshold are labeled `Suppressed`, never rendered as zero.
 
 ## Live-data behavior
 
