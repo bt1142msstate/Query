@@ -189,7 +189,6 @@ async function restorePersistentSession() {
       display_name: payload.display_name || payload.username,
       email: payload.email || ''
     });
-    globalThis.location?.reload();
     return true;
   } catch (_) {
     return false;
