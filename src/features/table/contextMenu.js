@@ -1,7 +1,7 @@
 /**
  * Table Context Menu
  * Right-click menu on table cells and headers.
- * Options: Copy Cell, Copy Row (tab-separated), Copy Column (newline-separated).
+ * Options include record inspection, copy, filtering, sorting, and column actions.
  */
 import { ClipboardUtils } from '../../core/clipboard.js';
 import { appServices } from './tableServices.js';
@@ -15,6 +15,8 @@ import { createTableContextPreview } from './contextMenuPreview.js';
 import { openCollapsedRowsViewer } from './virtual-table/collapsedRowsViewer.js';
 import { OclcBibCompare } from '../../ui/bib-compare/oclcBibCompare.js';
 import { resolveBibCompareLookup } from '../../ui/bib-compare/bibCompareLaunch.js';
+import { buildRecordDetailsModel } from './recordDetailsModel.js';
+import { openRecordDetails } from './recordDetailsDialog.js';
 
 (() => {
   let menuEl = null;
@@ -163,6 +165,8 @@ import { resolveBibCompareLookup } from '../../ui/bib-compare/bibCompareLaunch.j
     <path d="M11 10H5"/>
     <path d="m6.5 8.5-1.5 1.5 1.5 1.5"/>
   </svg>`;
+
+  const RECORD_DETAILS_ICON = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 1.5h7l3 3V14a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 3 14V1.5z"/><path d="M10 1.5V5h3"/><path d="M5.5 8h5M5.5 10.5h5M5.5 13h3"/></svg>`;
 
   const {
     previewCell,
@@ -463,6 +467,8 @@ import { resolveBibCompareLookup } from '../../ui/bib-compare/bibCompareLaunch.j
     const bibCompareLookup = hasRow
       ? resolveBibCompareLookup(fields, getRowValues(rowIndex))
       : null;
+    const virtualTableData = getVT();
+    const recordDetails = hasRow ? buildRecordDetailsModel({ headers: virtualTableData?.headers || [], row: virtualTableData?.rows?.[rowIndex] || [], displayedFields: fields }) : null;
     const collapsedRowGroup = hasRow ? getCollapsedRowGroup(rowIndex) : null;
     const hasCollapsedRowGroup = Boolean(collapsedRowGroup);
     const isHeaderTarget = Boolean(headerCell && !bodyCell);
@@ -532,6 +538,22 @@ import { resolveBibCompareLookup } from '../../ui/bib-compare/bibCompareLaunch.j
               group: collapsedRowGroup,
               headers: vt?.headers || [],
               trigger: bodyCell
+            });
+          }
+        }] : []),
+        ...(recordDetails?.fields?.length ? [{
+          icon: RECORD_DETAILS_ICON,
+          label: 'View Record Details',
+          hint: recordDetails.kind.label,
+          preview() {
+            return hasRow ? previewRow(tr) : null;
+          },
+          run() {
+            openRecordDetails({
+              record: recordDetails,
+              trigger: bodyCell,
+              bibLookup: bibCompareLookup,
+              onOpenBib: lookup => OclcBibCompare.openForLookup(lookup)
             });
           }
         }] : []),
