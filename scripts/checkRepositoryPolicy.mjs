@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const BLOCKED_TERMS = Object.freeze([
@@ -92,7 +92,7 @@ export function checkRepositoryPolicy() {
   const trackedPaths = runGit(['ls-files', '-z']).split('\0').filter(Boolean);
   for (const path of trackedPaths) {
     if (containsBlockedTerm(path)) violations.push(`Tracked path: ${path}`);
-    if (bufferContainsBlockedTerm(readFileSync(path))) violations.push(`Tracked file: ${path}`);
+    if (existsSync(path) && bufferContainsBlockedTerm(readFileSync(path))) violations.push(`Tracked file: ${path}`);
   }
 
   const range = revisionRange(event);

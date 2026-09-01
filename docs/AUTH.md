@@ -58,3 +58,12 @@ This follows the native-app loopback redirect and PKCE security pattern while av
 - Keep HTTPS, timeouts, row limits, private runtime storage, and rate limits enabled.
 
 The collocated Sirsi backend source includes `SECURITY_AUDIT.md` and focused authentication tests.
+
+## Sirsi Operations Is A Separate High-Privilege Boundary
+
+The Sirsi Operations API is not part of ordinary Query or Command Center authorization. It is an administrative deployment and server-operation surface, so every request must independently satisfy both of these conditions:
+
+- the existing Query CLI session identifies Brandon's authorized administrator account (`bt1142`); and
+- Brandon's approved Mac produces a fresh signature with its hardware-bound Secure Enclave key.
+
+Neither factor is sufficient by itself. This additional device requirement applies only to the fixed Sirsi Operations endpoint. Query building, dashboards, hydration, Command Center, account administration, and other normal application actions continue to use their existing account and role checks and do not require the Mac device key.
