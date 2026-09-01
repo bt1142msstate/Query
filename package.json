@@ -30,6 +30,7 @@
     "query:cancel": "node scripts/queryCli.mjs cancel",
     "query:compat": "node scripts/queryCli.mjs compat",
     "query:dashboard": "node scripts/queryCli.mjs dashboard",
+    "query:deploy:capabilities": "node scripts/queryDeployCli.mjs capabilities",
     "query:fields": "node scripts/queryCli.mjs fields",
     "query:login": "node scripts/queryCli.mjs login",
     "query:logout": "node scripts/queryCli.mjs logout",
