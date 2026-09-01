@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 import process from 'node:process';
+import { writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { getCliAuthorizationHeaders } from './lib/queryCliAuth.mjs';
 import { applyDeployment, getDeploymentStatus, postDeploymentAction, prepareDeployment } from './lib/queryDeployClient.mjs';
+import { enrollDeploymentDevice } from './lib/queryDeployAuth.mjs';
 
 const DEFAULT_DEPLOY_URL = 'https://mlp.sirsi.net/uhtbin/deployment_api.pl';
 const DEFAULT_QUERY_URL = 'https://mlp.sirsi.net/uhtbin/query_api.pl';
@@ -25,6 +28,17 @@ async function main() {
   const options = parseOptions(tokens);
   const deployUrl = String(options['deploy-url'] || process.env.QUERY_DEPLOY_URL || DEFAULT_DEPLOY_URL);
   const queryApiUrl = String(options['api-url'] || process.env.QUERY_API_URL || DEFAULT_QUERY_URL);
+  if (command === 'enroll') {
+    const output = resolve(String(options['public-key-output'] || ''));
+    if (!options['public-key-output']) throw new Error('Enrollment requires --public-key-output PATH.');
+    const enrollment = await enrollDeploymentDevice(deployUrl, {
+      keyId: String(options['key-id'] || 'brandons-mac'),
+      replace: options.replace === 'true'
+    });
+    await writeFile(output, enrollment.publicKeyPem, { flag: 'wx', mode: 0o644 });
+    process.stdout.write(`Saved the non-secret deployment public key to ${output}.\n`);
+    return;
+  }
   const sessionHeaders = await getCliAuthorizationHeaders(queryApiUrl);
   if (!sessionHeaders['X-Query-Session']) throw new Error('Pair the Query CLI first with npm run query:pair.');
   if (command === 'capabilities') {
@@ -54,7 +68,7 @@ async function main() {
     process.stdout.write(`${JSON.stringify(release, null, 2)}\n`);
     return;
   }
-  throw new Error('Use capabilities, prepare, apply, or status.');
+  throw new Error('Use enroll, capabilities, prepare, apply, or status.');
 }
 
 main().catch(error => {

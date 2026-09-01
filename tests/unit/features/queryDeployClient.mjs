@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { generateKeyPairSync } from 'node:crypto';
 import { prepareDeployment, applyDeployment } from '../../../scripts/lib/queryDeployClient.mjs';
 
 function jsonResponse(data, status = 200) {
@@ -12,6 +13,12 @@ function jsonResponse(data, status = 200) {
     async text() { return JSON.stringify(data); }
   };
 }
+
+const privateKeyPem = generateKeyPairSync('ec', {
+  namedCurve: 'prime256v1',
+  privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+  publicKeyEncoding: { type: 'spki', format: 'pem' }
+}).privateKey;
 
 test('deployment client separates signed preparation from production mutation', async () => {
   const root = await mkdtemp(join(tmpdir(), 'query-deploy-client-'));
@@ -30,7 +37,7 @@ test('deployment client separates signed preparation from production mutation', 
     if (payload.action === 'preflight') return jsonResponse({ release: { release_id: payload.release_id, state: 'preflighted' } });
     return jsonResponse({ release: { release_id: payload.release_id, state: payload.action } });
   };
-  const device = { keyId: 'brandons-mac', secretHex: '24'.repeat(32) };
+  const device = { keyId: 'brandons-mac', privateKeyPem };
   const prepared = await prepareDeployment({
     deployUrl: 'https://mlp.sirsi.net/uhtbin/deployment_api.pl',
     target: 'query-frontend', archivePath,
@@ -58,7 +65,7 @@ test('deployment client refuses a target the server has not enabled', async () =
     deployUrl: 'https://mlp.sirsi.net/uhtbin/deployment_api.pl',
     target: 'query-backend', archivePath,
     sessionHeaders: { 'X-Query-Session': 'session' },
-    device: { keyId: 'brandons-mac', secretHex: '24'.repeat(32) },
+    device: { keyId: 'brandons-mac', privateKeyPem },
     fetchImpl: async () => jsonResponse({ capabilities: { guarded_targets: ['query-frontend'] } })
   }), /does not yet support/u);
 });

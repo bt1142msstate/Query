@@ -31,6 +31,7 @@
     "query:compat": "node scripts/queryCli.mjs compat",
     "query:dashboard": "node scripts/queryCli.mjs dashboard",
     "query:deploy:capabilities": "node scripts/queryDeployCli.mjs capabilities",
+    "query:deploy:enroll": "node scripts/queryDeployCli.mjs enroll",
     "query:deploy:prepare": "node scripts/queryDeployCli.mjs prepare",
     "query:deploy:apply": "node scripts/queryDeployCli.mjs apply",
     "query:deploy:status": "node scripts/queryDeployCli.mjs status",

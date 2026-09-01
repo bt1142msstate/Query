@@ -1,4 +1,4 @@
-import { createHmac, createHash, randomBytes } from 'node:crypto';
+import { createHash, createSign, generateKeyPairSync, randomBytes } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import process from 'node:process';
@@ -6,10 +6,10 @@ import process from 'node:process';
 const KEYCHAIN_SERVICE = 'org.mlp.query-project.deploy-device';
 const KEYCHAIN_HELPER = fileURLToPath(new URL('./queryCliKeychain.swift', import.meta.url));
 
-function runKeychain(operation, account) {
+function runKeychain(operation, account, input = '') {
   return new Promise((resolve, reject) => {
     const child = spawn('/usr/bin/swift', [KEYCHAIN_HELPER, operation, account, KEYCHAIN_SERVICE], {
-      stdio: ['ignore', 'pipe', 'pipe']
+      stdio: ['pipe', 'pipe', 'pipe']
     });
     const stdout = [];
     const stderr = [];
@@ -21,6 +21,8 @@ function runKeychain(operation, account) {
       stdout: Buffer.concat(stdout).toString('utf8'),
       stderr: Buffer.concat(stderr).toString('utf8')
     }));
+    if (input) child.stdin.write(input);
+    child.stdin.end();
   });
 }
 
@@ -45,11 +47,39 @@ export async function readDeploymentDevice(apiUrl, options = {}) {
   if (result.code !== 0) throw new Error(`Could not read the deployment credential from Keychain: ${result.stderr.trim() || 'Keychain helper failed'}`);
   const record = JSON.parse(result.stdout);
   const keyId = String(record.key_id || '').trim().toLowerCase();
-  const secretHex = String(record.secret_hex || '').trim().toLowerCase();
-  if (!/^[a-z0-9][a-z0-9._-]{2,63}$/u.test(keyId) || !/^[a-f0-9]{64}$/u.test(secretHex)) {
+  const privateKeyPem = String(record.private_key_pem || '').trim();
+  if (!/^[a-z0-9][a-z0-9._-]{2,63}$/u.test(keyId)
+    || !/^-----BEGIN PRIVATE KEY-----[\s\S]+-----END PRIVATE KEY-----$/u.test(privateKeyPem)) {
     throw new Error('The saved deployment credential is invalid.');
   }
-  return { keyId, secretHex };
+  return { keyId, privateKeyPem };
+}
+
+export async function enrollDeploymentDevice(apiUrl, options = {}) {
+  if (process.platform !== 'darwin' && !options.keychainStore) {
+    throw new Error('Query deployment enrollment requires macOS Keychain.');
+  }
+  const keyId = String(options.keyId || 'brandons-mac').trim().toLowerCase();
+  if (!/^[a-z0-9][a-z0-9._-]{2,63}$/u.test(keyId)) throw new Error('Deployment key ID is invalid.');
+  if (!options.replace) {
+    const existing = options.keychainStore
+      ? await options.keychainStore.read(apiUrl)
+      : await runKeychain('read', apiUrl);
+    if (existing && existing.code !== 44) throw new Error('This Mac already has a deployment credential. Use explicit replacement only during key rotation.');
+  }
+  const { privateKey, publicKey } = generateKeyPairSync('ec', {
+    namedCurve: 'prime256v1',
+    privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+    publicKeyEncoding: { type: 'spki', format: 'pem' }
+  });
+  const record = JSON.stringify({ key_id: keyId, private_key_pem: privateKey });
+  const result = options.keychainStore
+    ? await options.keychainStore.write(apiUrl, record)
+    : await runKeychain('write', apiUrl, record);
+  if (result?.code !== undefined && result.code !== 0) {
+    throw new Error(`Could not save the deployment credential in Keychain: ${result.stderr?.trim() || 'Keychain helper failed'}`);
+  }
+  return { keyId, publicKeyPem: publicKey };
 }
 
 export async function buildDeploymentHeaders({ apiUrl, body, sessionHeaders = {}, now = Date.now(), nonce, device }) {
@@ -62,7 +92,10 @@ export async function buildDeploymentHeaders({ apiUrl, body, sessionHeaders = {}
   const timestamp = String(Math.floor(now / 1000));
   const requestNonce = nonce || randomBytes(32).toString('hex');
   const canonical = canonicalDeploymentRequest({ path: url.pathname, timestamp, nonce: requestNonce, body });
-  const signature = createHmac('sha256', Buffer.from(credential.secretHex, 'hex')).update(canonical, 'utf8').digest('hex');
+  const signer = createSign('SHA256');
+  signer.update(canonical, 'utf8');
+  signer.end();
+  const signature = signer.sign(credential.privateKeyPem).toString('base64');
   return {
     ...sessionHeaders,
     'X-Query-Deploy-Key': credential.keyId,
