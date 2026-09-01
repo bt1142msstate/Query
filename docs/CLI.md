@@ -240,3 +240,25 @@ For anything repeatable, prefer a JSON config. It is easier to review, commit, a
 - Dedicated report commands provide local behavior shared with the interface: field discovery, UI-config normalization, JSONL parsing, post-filters, and CSV/JSON/JSONL/XLSX export.
 - `query:api` provides backend parity for authentication-safe profile actions, template/category mutation, history metadata, query lifecycle actions, OCLC comparison/search, Hydration lifecycle operations, bulk resolution, and future backend actions. Large or complex requests should use reviewed payload files.
 - Browser presentation behavior such as opening dialogs, arranging visible panels, or rendering an interactive table is intentionally not reproduced in a terminal. The underlying data operation is available through a dedicated command or `query:api`.
+
+## Sirsi Operations Commands
+
+The `sirsi:ops:*` commands are a separate, high-privilege administrative workflow for approved Sirsi server work. They reuse the CLI's paired account session, but also require a fresh signature from Brandon's enrolled Secure Enclave key. This hardware-backed factor is intentionally not required by ordinary Query, dashboard, hydration, or Command Center commands.
+
+Preparing an operation uploads and validates it without running it:
+
+```bash
+npm run sirsi:ops:capabilities
+npm run sirsi:ops:prepare -- --archive /absolute/path/operation.tar.gz
+```
+
+Execution and rollback are explicit, separate actions using the operation ID returned by prepare:
+
+```bash
+npm run sirsi:ops:execute -- --operation-id 0123456789abcdef0123456789abcdef
+npm run sirsi:ops:status -- --operation-id 0123456789abcdef0123456789abcdef
+npm run sirsi:ops:output -- --operation-id 0123456789abcdef0123456789abcdef
+npm run sirsi:ops:rollback -- --operation-id 0123456789abcdef0123456789abcdef
+```
+
+The endpoint hostname and path are fixed in the client. The commands do not accept an alternate deployment host, export the private key, or bypass the server's account, policy, baseline, backup, audit, and replay protections.

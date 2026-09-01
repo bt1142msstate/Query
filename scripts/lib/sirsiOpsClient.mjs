@@ -104,3 +104,30 @@ export async function rollbackSirsiOperation({ apiUrl, operationId, sessionHeade
   });
   return response.operation;
 }
+
+export async function getSirsiOperationOutput({ apiUrl, operationId, stream = 'stdout', sessionHeaders, device, fetchImpl = fetch }) {
+  const id = validateOperationId(operationId);
+  if (!['stdout', 'stderr'].includes(stream)) throw new Error('Output stream must be stdout or stderr.');
+  const chunks = [];
+  let offset = 0;
+  while (true) {
+    const response = await postSirsiOperationsAction({
+      apiUrl,
+      payload: { action: 'output', operation_id: id, stream, offset },
+      sessionHeaders, device, fetchImpl
+    });
+    const output = response.output;
+    if (!output || output.stream !== stream || output.offset !== offset
+      || !Number.isSafeInteger(output.bytes) || output.bytes < 0
+      || !Number.isSafeInteger(output.next_offset) || output.next_offset !== offset + output.bytes
+      || typeof output.data_base64 !== 'string') {
+      throw new Error('Sirsi operations server returned invalid output metadata.');
+    }
+    const chunk = Buffer.from(output.data_base64, 'base64');
+    if (chunk.length !== output.bytes) throw new Error('Sirsi operations output length did not match its metadata.');
+    chunks.push(chunk);
+    offset = output.next_offset;
+    if (output.eof) return Buffer.concat(chunks);
+    if (output.bytes === 0 || offset > 1024 * 1024) throw new Error('Sirsi operations output exceeded its allowed size.');
+  }
+}

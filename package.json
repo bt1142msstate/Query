@@ -34,6 +34,7 @@
     "sirsi:ops:enroll": "node scripts/sirsiOpsCli.mjs enroll",
     "sirsi:ops:prepare": "node scripts/sirsiOpsCli.mjs prepare",
     "sirsi:ops:execute": "node scripts/sirsiOpsCli.mjs execute",
+    "sirsi:ops:output": "node scripts/sirsiOpsCli.mjs output",
     "sirsi:ops:status": "node scripts/sirsiOpsCli.mjs status",
     "sirsi:ops:rollback": "node scripts/sirsiOpsCli.mjs rollback",
     "query:fields": "node scripts/queryCli.mjs fields",

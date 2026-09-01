@@ -4,7 +4,12 @@ import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createSign, generateKeyPairSync } from 'node:crypto';
-import { executeSirsiOperation, prepareSirsiOperation, rollbackSirsiOperation } from '../../../scripts/lib/sirsiOpsClient.mjs';
+import {
+  executeSirsiOperation,
+  getSirsiOperationOutput,
+  prepareSirsiOperation,
+  rollbackSirsiOperation
+} from '../../../scripts/lib/sirsiOpsClient.mjs';
 
 function jsonResponse(data, status = 200) {
   return {
@@ -92,4 +97,25 @@ test('client refuses malformed profiles, unsupported profiles, and malformed ope
     apiUrl: 'https://mlp.sirsi.net/uhtbin/sirsi_ops_api.pl',
     operationId: 'not-valid', sessionHeaders: {}, device
   }), /32 lowercase/u);
+});
+
+test('operation output is reassembled from bounded authenticated chunks', async () => {
+  const source = Buffer.from('first chunk\nsecond chunk\n');
+  const fetchImpl = async (_url, request) => {
+    const payload = JSON.parse(request.body);
+    const chunk = source.subarray(payload.offset, Math.min(payload.offset + 7, source.length));
+    return jsonResponse({ output: {
+      stream: payload.stream,
+      offset: payload.offset,
+      bytes: chunk.length,
+      data_base64: chunk.toString('base64'),
+      next_offset: payload.offset + chunk.length,
+      eof: payload.offset + chunk.length >= source.length
+    } });
+  };
+  const output = await getSirsiOperationOutput({
+    apiUrl: 'https://mlp.sirsi.net/uhtbin/sirsi_ops_api.pl',
+    operationId: 'fa'.repeat(16), stream: 'stdout', sessionHeaders: {}, device, fetchImpl
+  });
+  assert.deepEqual(output, source);
 });

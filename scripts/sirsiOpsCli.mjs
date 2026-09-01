@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import { getCliAuthorizationHeaders } from './lib/queryCliAuth.mjs';
 import {
   executeSirsiOperation,
+  getSirsiOperationOutput,
   getSirsiOperationStatus,
   postSirsiOperationsAction,
   prepareSirsiOperation,
@@ -60,6 +61,13 @@ async function main() {
     return;
   }
   const operationId = String(options['operation-id'] || '');
+  if (command === 'output') {
+    const output = await getSirsiOperationOutput({
+      apiUrl, operationId, stream: String(options.stream || 'stdout'), sessionHeaders
+    });
+    process.stdout.write(output);
+    return;
+  }
   const actions = {
     execute: executeSirsiOperation,
     status: getSirsiOperationStatus,
@@ -70,7 +78,7 @@ async function main() {
     process.stdout.write(`${JSON.stringify(operation, null, 2)}\n`);
     return;
   }
-  throw new Error('Use enroll, capabilities, prepare, execute, status, or rollback.');
+  throw new Error('Use enroll, capabilities, prepare, execute, status, output, or rollback.');
 }
 
 main().catch(error => {
