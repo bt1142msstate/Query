@@ -3,10 +3,16 @@ import process from 'node:process';
 import { writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { getCliAuthorizationHeaders } from './lib/queryCliAuth.mjs';
-import { applyDeployment, getDeploymentStatus, postDeploymentAction, prepareDeployment } from './lib/queryDeployClient.mjs';
-import { enrollDeploymentDevice } from './lib/queryDeployAuth.mjs';
+import {
+  executeSirsiOperation,
+  getSirsiOperationStatus,
+  postSirsiOperationsAction,
+  prepareSirsiOperation,
+  rollbackSirsiOperation
+} from './lib/sirsiOpsClient.mjs';
+import { enrollSirsiOperationsDevice } from './lib/sirsiOpsAuth.mjs';
 
-const DEFAULT_DEPLOY_URL = 'https://mlp.sirsi.net/uhtbin/deployment_api.pl';
+const DEFAULT_OPS_URL = 'https://mlp.sirsi.net/uhtbin/sirsi_ops_api.pl';
 const DEFAULT_QUERY_URL = 'https://mlp.sirsi.net/uhtbin/query_api.pl';
 
 function parseOptions(tokens) {
@@ -26,49 +32,45 @@ function parseOptions(tokens) {
 async function main() {
   const [command = 'capabilities', ...tokens] = process.argv.slice(2);
   const options = parseOptions(tokens);
-  const deployUrl = String(options['deploy-url'] || process.env.QUERY_DEPLOY_URL || DEFAULT_DEPLOY_URL);
-  const queryApiUrl = String(options['api-url'] || process.env.QUERY_API_URL || DEFAULT_QUERY_URL);
+  const apiUrl = String(options['ops-url'] || process.env.SIRSI_OPS_URL || DEFAULT_OPS_URL);
+  const queryApiUrl = String(options['query-api-url'] || process.env.QUERY_API_URL || DEFAULT_QUERY_URL);
   if (command === 'enroll') {
-    const output = resolve(String(options['public-key-output'] || ''));
     if (!options['public-key-output']) throw new Error('Enrollment requires --public-key-output PATH.');
-    const enrollment = await enrollDeploymentDevice(deployUrl, {
-      keyId: String(options['key-id'] || 'brandons-mac'),
-      replace: options.replace === 'true'
-    });
+    const output = resolve(String(options['public-key-output']));
+    const enrollment = await enrollSirsiOperationsDevice({ replace: options.replace === 'true' });
     await writeFile(output, enrollment.publicKeyPem, { flag: 'wx', mode: 0o644 });
-    process.stdout.write(`Saved the non-secret deployment public key to ${output}.\n`);
+    process.stdout.write(`Enrolled this Mac with a hardware-bound key and saved its non-secret public key to ${output}.\n`);
     return;
   }
   const sessionHeaders = await getCliAuthorizationHeaders(queryApiUrl);
   if (!sessionHeaders['X-Query-Session']) throw new Error('Pair the Query CLI first with npm run query:pair.');
   if (command === 'capabilities') {
-    const result = await postDeploymentAction({ deployUrl, payload: { action: 'capabilities' }, sessionHeaders });
+    const result = await postSirsiOperationsAction({ apiUrl, payload: { action: 'capabilities' }, sessionHeaders });
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     return;
   }
   if (command === 'prepare') {
-    const archivePath = String(options.archive || '');
-    const target = String(options.target || '');
-    if (!archivePath) throw new Error('Prepare requires --archive PATH.');
-    const release = await prepareDeployment({
-      deployUrl, target, archivePath, sessionHeaders,
+    if (!options.archive) throw new Error('Prepare requires --archive PATH.');
+    if (!options.profile) throw new Error('Prepare requires --profile NAME.');
+    const operation = await prepareSirsiOperation({
+      apiUrl, profile: options.profile, archivePath: options.archive, sessionHeaders,
       onProgress: ({ received, total }) => process.stderr.write(`Uploaded ${received} of ${total} bytes.\n`)
     });
-    process.stdout.write(`${JSON.stringify(release, null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify(operation, null, 2)}\n`);
     return;
   }
-  const releaseId = String(options['release-id'] || '');
-  if (command === 'apply') {
-    const release = await applyDeployment({ deployUrl, releaseId, sessionHeaders });
-    process.stdout.write(`${JSON.stringify(release, null, 2)}\n`);
+  const operationId = String(options['operation-id'] || '');
+  const actions = {
+    execute: executeSirsiOperation,
+    status: getSirsiOperationStatus,
+    rollback: rollbackSirsiOperation
+  };
+  if (actions[command]) {
+    const operation = await actions[command]({ apiUrl, operationId, sessionHeaders });
+    process.stdout.write(`${JSON.stringify(operation, null, 2)}\n`);
     return;
   }
-  if (command === 'status') {
-    const release = await getDeploymentStatus({ deployUrl, releaseId, sessionHeaders });
-    process.stdout.write(`${JSON.stringify(release, null, 2)}\n`);
-    return;
-  }
-  throw new Error('Use enroll, capabilities, prepare, apply, or status.');
+  throw new Error('Use enroll, capabilities, prepare, execute, status, or rollback.');
 }
 
 main().catch(error => {
