@@ -6,7 +6,7 @@ Use it when you want repeatable reports, scheduled jobs, shell scripts, or quick
 
 The CLI is the preferred automation surface. Its dedicated commands cover common report workflows, while `query:api` exposes the complete authenticated backend action surface used by the interface. This means newly deployed backend actions can be used from the CLI before a specialized convenience command exists.
 
-Use `npm run query:plan -- --config query.json` to see the backend's selective-first filter order and an evidence-backed ETA range before running a report. The runtime applies the same safe ordering automatically. The browser shows a cold-start ETA as soon as a form is runnable, using current collection/policy aggregates and field-cost classes; comparable prior runs are optional calibration and are never required for an estimate.
+Use `npm run query:plan -- --config query.json` to see the backend's selective-first filter order and an evidence-backed ETA range before running a report. The runtime applies the same safe ordering automatically. The browser shows a cold-start ETA as soon as a form is runnable, using current collection/policy aggregates and field-cost classes; comparable prior runs are optional calibration and are never required for an estimate. **Smart order** is on by default in the results toolbar. Select it to switch to **Off** when the displayed filter order must be preserved; the preference stays on this browser until it is turned back on.
 
 ## Sign In
 
@@ -167,6 +167,7 @@ Configs are plain JSON. They map closely to the request payload shown by the app
 {
   "name": "Report name",
   "tableName": "Worksheet name",
+  "smartQueryEnabled": true,
   "displayFields": ["Item Id", "Title", "MARC 590"],
   "filters": [
     { "field": "Item Library", "operator": "=", "value": "MSU-GRANT" }
@@ -183,6 +184,8 @@ Configs are plain JSON. They map closely to the request payload shown by the app
   }
 }
 ```
+
+`smartQueryEnabled` defaults to `true`. Set it to `false` only when a repeatable CLI/configured report must keep its authored backend-filter order. The query meaning and result set are unchanged either way; this controls only the safe execution order.
 
 The CLI also accepts the app's template/history UI config shape, which means saved templates can be used directly:
 

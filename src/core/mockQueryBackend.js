@@ -1,6 +1,5 @@
 const DEMO_API_PATH = '/demo-api';
 const DEMO_TOKEN = 'query-project-demo-session';
-
 let dataPromise = null;
 let bibDataPromise = null;
 const demoHydrationRuns = new Map();
@@ -665,14 +664,14 @@ async function handleDemoQueryRequest(options = {}) {
       ok: true,
       data: {
         schema_version: 1,
-        strategy: 'selective_first_v1',
+        strategy: payload.smart_query_enabled === false ? 'manual_order_v1' : 'selective_first_v1',
         changed: false,
         order: (payload.filters || []).map((filter, index) => ({
           field: filter.field,
           operator: filter.operator || '=',
           original_position: index + 1,
           planned_position: index + 1,
-          reason: 'Sample smart plan'
+          reason: payload.smart_query_enabled === false ? 'Original order preserved' : 'Sample smart plan'
         })),
         eta: {
           available: true,
@@ -682,7 +681,8 @@ async function handleDemoQueryRequest(options = {}) {
           estimated_candidates: 120,
           label: 'Likely 1–3 seconds from the current sample aggregate and field costs.'
         },
-        aggregate_basis: { available: true, label: 'Current private collection aggregates' }
+        aggregate_basis: { available: true, label: 'Current private collection aggregates' },
+        explanation: payload.smart_query_enabled === false ? 'Smart ordering is off. Filters will run in the order shown.' : 'Smart ordering is on. Selective filters run first without changing query meaning.'
       }
     });
     case 'library_dashboard': return json(buildDemoLibraryDashboard(payload, data));

@@ -317,10 +317,17 @@
         <div id="table-shell" class="mb-6">
           <div id="table-top-bar">
             <div id="table-info-bar">
-              <div id="planning-badge" aria-live="polite" aria-label="Planning mode active">
-                <span class="planning-badge-dot" aria-hidden="true"></span>
-                <span>Planning</span>
-              </div>
+              <button id="planning-badge"
+                      type="button"
+                      aria-pressed="true"
+                      aria-label="Smart filter ordering on. Click to preserve the displayed filter order.">
+                <svg class="planning-badge-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 7h11"></path><path d="m12 4 3 3-3 3"></path>
+                  <path d="M20 17H9"></path><path d="m12 14-3 3 3 3"></path>
+                </svg>
+                <span>Smart order</span>
+                <span class="planning-badge-state" data-smart-query-state>On</span>
+              </button>
               <div id="query-plan-preview" class="query-plan-preview" data-query-plan-preview data-query-plan-preview-compact data-state="waiting" role="status" aria-live="polite">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 7v5l3 2"></path></svg>
                 <span data-query-plan-preview-label>ETA · add a display field</span>

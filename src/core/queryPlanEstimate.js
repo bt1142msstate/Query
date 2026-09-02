@@ -68,7 +68,7 @@ function secondsBand(candidateCount, displayFields, filterCount) {
   const filterPenalty = filterCount >= 7 ? 1 : 0;
   band = Math.min(6, band + outputPenalty + filterPenalty);
   return [
-    [1, 5], [2, 10], [5, 20], [15, 60], [60, 240], [180, 720], [600, 1800]
+    [1, 5], [2, 8], [3, 15], [5, 30], [10, 90], [45, 300], [180, 900]
   ][band];
 }
 
@@ -86,7 +86,19 @@ function estimateColdStartQueryPlan(payload = {}, aggregate = null) {
   const universe = liveUniverse || DEFAULT_ITEM_UNIVERSE;
   const aggregateCounts = filters.map(filter => exactAggregateCount(filter, aggregate)).filter(value => Number.isFinite(value));
   const structuralCounts = filters.map(filter => Math.max(1, Math.round(universe * structuralRatio(filter))));
-  const candidateCount = Math.min(universe, ...(aggregateCounts.length ? aggregateCounts : structuralCounts.length ? structuralCounts : [universe]));
+  const itemLibraryFilter = filters.find(filter => /^(?:item library|call number library)$/iu.test(String(filter?.field || '')));
+  const itemTypeFilter = filters.find(filter => /^item type$/iu.test(String(filter?.field || '')));
+  const libraryCount = exactAggregateCount(itemLibraryFilter, aggregate);
+  const itemTypeCount = exactAggregateCount(itemTypeFilter, aggregate);
+  const combinedAggregateCount = Number.isFinite(libraryCount) && Number.isFinite(itemTypeCount)
+    ? Math.max(1, Math.round((libraryCount * itemTypeCount) / universe))
+    : aggregateCounts.length ? Math.min(...aggregateCounts) : null;
+  const candidateCount = Math.min(
+    universe,
+    ...(Number.isFinite(combinedAggregateCount)
+      ? [combinedAggregateCount]
+      : structuralCounts.length ? structuralCounts : [universe])
+  );
   const rangeSeconds = secondsBand(candidateCount, displayFields, filters.length);
   const exactAggregate = aggregateCounts.length > 0;
   const basis = liveUniverse
@@ -114,12 +126,29 @@ function estimateColdStartQueryPlan(payload = {}, aggregate = null) {
   };
 }
 
+function normalizedBackendEta(eta = {}) {
+  if (!eta?.available) return null;
+  const minimum = finitePositive(eta.lower_seconds ?? eta.minimum_seconds);
+  const maximum = finitePositive(eta.upper_seconds ?? eta.maximum_seconds);
+  if (!minimum || !maximum) return null;
+  const rangeSeconds = [Math.max(1, Math.floor(minimum)), Math.max(Math.ceil(maximum), Math.floor(minimum) + 1)];
+  return {
+    ...eta,
+    method: eta.method || 'backend_calibrated_model',
+    requires_comparable_history: false,
+    range_seconds: rangeSeconds,
+    label: `${durationLabel(rangeSeconds)} · calibrated from production throughput`
+  };
+}
+
 function mergeQueryPlanEstimate(payload, backendPlan = null, aggregate = null) {
   const coldStart = estimateColdStartQueryPlan(payload, aggregate);
   const source = backendPlan && typeof backendPlan === 'object' ? backendPlan : {};
+  const backendEta = normalizedBackendEta(source.eta);
   return {
     ...source,
-    ...coldStart,
+    eta: backendEta || coldStart.eta,
+    aggregate_basis: source.aggregate_basis?.available ? source.aggregate_basis : coldStart.aggregate_basis,
     order: Array.isArray(source.order) ? source.order : [],
     changed: Boolean(source.changed),
     explanation: source.explanation || 'The safest selective filters are evaluated first without changing query meaning.',
@@ -131,7 +160,8 @@ function queryPlanSignature(payload = {}) {
   return JSON.stringify({
     display_fields: payload.display_fields || [],
     filters: payload.filters || [],
-    filter_group_logic: payload.filter_group_logic || {}
+    filter_group_logic: payload.filter_group_logic || {},
+    smart_query_enabled: payload.smart_query_enabled !== false
   });
 }
 

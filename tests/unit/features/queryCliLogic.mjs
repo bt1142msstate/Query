@@ -406,6 +406,12 @@ test('smart-plan CLI sends the same query payload without running it', async () 
   globalThis.fetch = async (_apiUrl, init = {}) => {
     const payload = JSON.parse(init.body || '{}');
     payloads.push(payload);
+    if (payload.action === 'get_fields') {
+      return Response.json({ fields: [
+        { name: 'Title', type: 'string', filters: ['contains'] },
+        { name: 'Item Id', type: 'string', filters: ['equals'], allowValueList: true }
+      ] });
+    }
     if (payload.action === 'library_dashboard') {
       return Response.json({ collection: { items: 3_000_000 } });
     }

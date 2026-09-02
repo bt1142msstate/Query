@@ -3,8 +3,11 @@ import { Buffer } from 'node:buffer';
 import test from 'node:test';
 import {
   RESTORE_LAST_REPORT_PREFERENCE_STORAGE_KEY,
+  SMART_FILTER_ORDERING_PREFERENCE_STORAGE_KEY,
   setRestoreLastReportPreference,
-  shouldRestoreLastReport
+  setSmartFilterOrderingPreference,
+  shouldRestoreLastReport,
+  shouldUseSmartFilterOrdering
 } from '../../../src/core/queryPreferences.js';
 import {
   OPENED_HISTORY_RESULT_STORAGE_KEY,
@@ -40,6 +43,19 @@ function encodeFormSpecForUrl(spec) {
     .replace(/\//gu, '_')
     .replace(/=+$/gu, '');
 }
+
+test('smart filter ordering defaults on and stores only the opt-out', () => {
+  const storage = createMemoryStorage();
+  assert.equal(shouldUseSmartFilterOrdering(storage), true);
+
+  assert.equal(setSmartFilterOrderingPreference(false, storage), true);
+  assert.equal(storage.getItem(SMART_FILTER_ORDERING_PREFERENCE_STORAGE_KEY), 'false');
+  assert.equal(shouldUseSmartFilterOrdering(storage), false);
+
+  assert.equal(setSmartFilterOrderingPreference(true, storage), true);
+  assert.equal(storage.getItem(SMART_FILTER_ORDERING_PREFERENCE_STORAGE_KEY), null);
+  assert.equal(shouldUseSmartFilterOrdering(storage), true);
+});
 
 test('query history result session remembers and clears the last opened result id', () => {
   const storage = createMemoryStorage();

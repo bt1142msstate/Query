@@ -2,6 +2,7 @@ import { getBaseFieldName, QueryStateReaders } from './filterQueryState.js';
 import { toBackendDateValue } from '../../core/formatting/dateValues.js';
 import { fieldDefs, isFieldBackendFilterable, isFieldBuildable, isFieldDisplayable, resolveFieldName } from './fieldDefs.js';
 import { getDateFilterValidationMessage } from './filterConditionLogic.js';
+import { shouldUseSmartFilterOrdering } from '../../core/queryPreferences.js';
 import {
   getFilterGroupLogicPayload,
   restoreFilterGroupLogic,
@@ -371,6 +372,9 @@ function buildBackendQueryPayloadFromParts({
   const configuredFilterGroupLogic = Object.keys(filterGroupLogic).length
     ? filterGroupLogic
     : (payload?.filter_group_logic || {});
+  const smartQueryEnabled = Object.prototype.hasOwnProperty.call(payload || {}, 'smart_query_enabled')
+    ? Boolean(payload.smart_query_enabled)
+    : shouldUseSmartFilterOrdering();
 
   getNormalizedDisplayedFields(displayFields).forEach(field => {
     const canonicalFieldName = getCanonicalPayloadFieldName(field);
@@ -385,6 +389,7 @@ function buildBackendQueryPayloadFromParts({
     action: 'run',
     name: name || payload?.name || undefined,
     result_format: 'jsonl',
+    ...(smartQueryEnabled ? {} : { smart_query_enabled: false }),
     ...(Object.keys(configuredFilterGroupLogic).length
       ? { filter_group_logic: configuredFilterGroupLogic }
       : {}),
@@ -403,7 +408,11 @@ function buildBackendQueryPayload(queryName = '') {
 
 function buildBackendQueryPayloadFromConfig(config = {}, options = {}) {
   const source = config && typeof config === 'object' ? config : {};
-  const payload = source.payload && typeof source.payload === 'object' ? source.payload : {};
+  const configuredPayload = source.payload && typeof source.payload === 'object' ? source.payload : {};
+  const explicitSmartPreference = source.smart_query_enabled ?? source.smartQueryEnabled;
+  const payload = explicitSmartPreference === undefined
+    ? configuredPayload
+    : { ...configuredPayload, smart_query_enabled: Boolean(explicitSmartPreference) };
   const uiConfig = source.ui_config || source.uiConfig || source;
   const filterInputs = [
     payload.filters,

@@ -56,14 +56,35 @@ test('a cold-start query ETA is visible before Run without comparable history', 
     const preview = await page.evaluate(() => ({
       eta: document.querySelector('#query-plan-preview')?.textContent?.trim(),
       runLabel: document.querySelector('#form-mode-run')?.textContent?.trim(),
-      runEnabled: !document.querySelector('#form-mode-run')?.disabled
+      runEnabled: !document.querySelector('#form-mode-run')?.disabled,
+      smartOrdering: document.querySelector('#planning-badge')?.getAttribute('aria-pressed'),
+      smartOrderingLabel: document.querySelector('[data-smart-query-state]')?.textContent?.trim()
     }));
     assert.match(preview.eta || '', /^ETA · Likely \d+–\d+\+? (?:sec|min)$/u);
     assert.match(preview.runLabel || '', /^Run · \d+–\d+\+? (?:sec|min)$/u);
     assert.equal(preview.runEnabled, true);
+    assert.equal(preview.smartOrdering, 'true');
+    assert.equal(preview.smartOrderingLabel, 'On');
     assert.equal(api.countAction('run'), 0);
     assert.equal(api.countAction('query_plan'), 1);
     assert.ok(api.countAction('library_dashboard') >= 1);
+
+    assert.equal(api.getRequests('query_plan').at(-1)?.payload?.smart_query_enabled, undefined);
+    await page.locator('#planning-badge').click();
+    await page.waitForFunction(() => document.querySelector('#planning-badge')?.getAttribute('aria-pressed') === 'false');
+    await page.waitForFunction(() => window.localStorage.getItem('query:smartFilterOrderingEnabled') === 'false');
+    await page.waitForTimeout(900);
+    assert.equal(api.getRequests('query_plan').at(-1)?.payload?.smart_query_enabled, false);
+    assert.equal(await page.locator('[data-smart-query-state]').textContent(), 'Off');
+
+    await page.reload({ waitUntil: 'load' });
+    await waitForAppReady(page, failures);
+    await page.waitForFunction(() => document.querySelector('#planning-badge')?.getAttribute('aria-pressed') === 'false');
+    assert.equal(await page.locator('[data-smart-query-state]').textContent(), 'Off');
+    await page.locator('#planning-badge').click();
+    await page.waitForFunction(() => document.querySelector('#planning-badge')?.getAttribute('aria-pressed') === 'true');
+    assert.equal(await page.evaluate(() => window.localStorage.getItem('query:smartFilterOrderingEnabled')), null);
+    assert.equal(await page.locator('[data-smart-query-state]').textContent(), 'On');
     assert.deepEqual(failures, []);
   } finally {
     await browser?.close();

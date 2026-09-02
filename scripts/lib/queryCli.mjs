@@ -969,6 +969,7 @@ async function runDashboardCommand(options = {}) {
 async function runPlanCommand(options = {}) {
   const config = await readConfig(options.config);
   const apiUrl = getApiUrl(config, options);
+  await loadCliFieldDefinitions(apiUrl, options);
   const payload = { ...buildRunPayload(config, options), action: 'query_plan' };
   const aggregatePromise = postJson(apiUrl, {
     action: 'library_dashboard', library: 'all', item_type: 'all', active_window_days: 365, reporting_period: '365'

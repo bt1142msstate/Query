@@ -41,10 +41,25 @@ test('unavailable backend history cannot suppress the aggregate ETA', () => {
   assert.equal(plan.eta.estimated_candidates, 50000);
 });
 
+test('a calibrated backend estimate replaces the immediate cold-start band', () => {
+  const plan = mergeQueryPlanEstimate({
+    display_fields: ['Title'], filters: [{ field: 'Item Type', operator: '=', value: 'EBOOK' }]
+  }, {
+    changed: false,
+    eta: { available: true, method: 'aggregate_calibrated_history', lower_seconds: 4.2, upper_seconds: 12.8, sample_size: 38 },
+    aggregate_basis: { available: true, label: 'Current private collection aggregates' }
+  }, aggregate);
+  assert.deepEqual(plan.eta.range_seconds, [4, 13]);
+  assert.match(plan.eta.label, /^Likely 4–13 sec/u);
+  assert.equal(plan.eta.requires_comparable_history, false);
+  assert.equal(plan.aggregate_basis.label, 'Current private collection aggregates');
+});
+
 test('plan signatures ignore run names but change with query meaning', () => {
   const left = { name: 'One', display_fields: ['Title'], filters: [] };
   const renamed = { ...left, name: 'Two' };
   const changed = { ...left, filters: [{ field: 'Item Type', operator: '=', value: 'BOOK' }] };
   assert.equal(queryPlanSignature(left), queryPlanSignature(renamed));
   assert.notEqual(queryPlanSignature(left), queryPlanSignature(changed));
+  assert.notEqual(queryPlanSignature(left), queryPlanSignature({ ...left, smart_query_enabled: false }));
 });

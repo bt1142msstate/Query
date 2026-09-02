@@ -4,6 +4,10 @@ import { QueryStateReaders } from '../core/queryState.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 import { buildBackendQueryPayload } from '../features/filters/queryPayload.js';
 import { estimateColdStartQueryPlan, mergeQueryPlanEstimate, queryPlanSignature } from '../core/queryPlanEstimate.js';
+import {
+  setSmartFilterOrderingPreference,
+  shouldUseSmartFilterOrdering
+} from '../core/queryPreferences.js';
 
 const PLAN_DEBOUNCE_MS = 350;
 const AGGREGATE_TTL_MS = 15 * 60 * 1000;
@@ -14,6 +18,33 @@ let aggregateCache = null;
 let aggregateCachedAt = 0;
 let aggregatePromise = null;
 let cachedPlan = null;
+
+function syncSmartOrderingToggle() {
+  const toggle = document.getElementById('planning-badge');
+  if (!toggle) return;
+  const enabled = shouldUseSmartFilterOrdering();
+  toggle.dataset.enabled = enabled ? 'true' : 'false';
+  toggle.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+  toggle.setAttribute('aria-label', `Smart filter ordering ${enabled ? 'on' : 'off'}. Click to ${enabled ? 'preserve the displayed filter order' : 'automatically use the fastest safe filter order'}.`);
+  toggle.title = enabled
+    ? 'Smart ordering is on. Query meaning stays the same; selective filters run first.'
+    : 'Smart ordering is off. Filters run in the order shown.';
+  const state = toggle.querySelector('[data-smart-query-state]');
+  if (state) state.textContent = enabled ? 'On' : 'Off';
+}
+
+function initializeSmartOrderingToggle() {
+  const toggle = document.getElementById('planning-badge');
+  if (!toggle || toggle.dataset.bound === 'true') return;
+  toggle.dataset.bound = 'true';
+  toggle.addEventListener('click', () => {
+    setSmartFilterOrderingPreference(!shouldUseSmartFilterOrdering());
+    cachedPlan = null;
+    syncSmartOrderingToggle();
+    scheduleQueryPlanPreview();
+  });
+  syncSmartOrderingToggle();
+}
 
 function previewElements() {
   return [...document.querySelectorAll('[data-query-plan-preview]')];
@@ -108,5 +139,6 @@ function scheduleQueryPlanPreview() {
 QueryStateSubscriptions.subscribe(scheduleQueryPlanPreview, { displayedFields: true, activeFilters: true });
 window.addEventListener('query-auth:changed', scheduleQueryPlanPreview);
 window.addEventListener('query-app:ready', scheduleQueryPlanPreview);
+initializeSmartOrderingToggle();
 
-export { getCachedQueryPlan, scheduleQueryPlanPreview };
+export { getCachedQueryPlan, initializeSmartOrderingToggle, scheduleQueryPlanPreview, syncSmartOrderingToggle };
