@@ -3,9 +3,11 @@ import test from 'node:test';
 
 import {
   buildRecordDetailsModel,
+  buildRecordDetailsModelFromResponse,
   flattenRecordValue,
   inferRecordKind,
-  normalizeRecordFieldName
+  normalizeRecordFieldName,
+  resolveRecordDetailsLookup
 } from '../../../src/features/table/recordDetailsModel.js';
 
 test('record details classifies item rows and preserves all returned fields', () => {
@@ -40,4 +42,40 @@ test('record details normalizes aliases and safely flattens multi-value data', (
   assert.equal(normalizeRecordFieldName('Catalog Key (ID)'), 'catalogkeyid');
   assert.deepEqual(flattenRecordValue(['One', ['Two', 3], null]), ['One', 'Two', '3', '']);
   assert.deepEqual(flattenRecordValue({ status: 'available' }), ['{"status":"available"}']);
+});
+
+test('record details selects the strongest exact identifier for an on-demand lookup', () => {
+  assert.deepEqual(
+    resolveRecordDetailsLookup(
+      ['Catalog Key', 'Item ID', 'Item Key'],
+      ['923278', '32276003001044', '448812']
+    ),
+    { lookupType: 'item_key', lookupValue: '448812' }
+  );
+  assert.deepEqual(
+    resolveRecordDetailsLookup(['Title', 'Catalog Key'], ['A title', '923278']),
+    { lookupType: 'catalog_key', lookupValue: '923278' }
+  );
+  assert.equal(resolveRecordDetailsLookup(['Title'], ['A title']), null);
+});
+
+test('record details builds a complete model from the backend field response', () => {
+  const model = buildRecordDetailsModelFromResponse({
+    kind: { key: 'item', label: 'Item record' },
+    source_row_count: 1,
+    fields: [
+      { name: 'Title', category: 'Catalog', description: 'Title statement', values: ['A title'] },
+      { name: 'Item Id', category: 'Item', description: 'Barcode', values: ['32276003001044'] },
+      { name: 'Staff Note', category: 'Item', description: 'Private note', values: [''] }
+    ]
+  }, ['Title']);
+
+  assert.equal(model.kind.key, 'item');
+  assert.equal(model.totalCount, 3);
+  assert.equal(model.nonEmptyCount, 2);
+  assert.equal(model.fields[0].category, 'Catalog');
+  assert.equal(model.fields[0].description, 'Title statement');
+  assert.equal(model.fields[0].isDisplayed, true);
+  assert.equal(model.fields[2].isEmpty, true);
+  assert.match(model.scopeText, /Loaded all 3 fields available/u);
 });

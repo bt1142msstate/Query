@@ -898,7 +898,22 @@ async function buildApiPayload(options = {}) {
 async function runApiCommand(options = {}) {
   const apiUrl = getApiUrl({}, options);
   const payload = await buildApiPayload(options);
-  const headers = await getCliAuthorizationHeaders(apiUrl, options);
+  const authApiUrl = String(options['auth-api-url'] || options.authApiUrl || apiUrl).trim();
+  let requestOrigin;
+  let authOrigin;
+  try {
+    requestOrigin = new URL(apiUrl).origin;
+    authOrigin = new URL(authApiUrl).origin;
+  } catch (_error) {
+    throw new Error('API and authentication URLs must be valid HTTPS URLs.');
+  }
+  if (!apiUrl.startsWith('https://') || !authApiUrl.startsWith('https://')) {
+    throw new Error('API and authentication URLs must use HTTPS.');
+  }
+  if (requestOrigin !== authOrigin) {
+    throw new Error('Refusing to send a Query CLI session to a different origin.');
+  }
+  const headers = await getCliAuthorizationHeaders(authApiUrl, options);
   const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
@@ -925,7 +940,7 @@ async function runApiCommand(options = {}) {
     process.stdout.write(output);
     if (output.length && output[output.length - 1] !== 10) process.stdout.write('\n');
   }
-  return { action: payload.action, apiUrl, bytes: output.length, contentType, outputPath };
+  return { action: payload.action, apiUrl, authApiUrl, bytes: output.length, contentType, outputPath };
 }
 
 async function runDashboardCommand(options = {}) {

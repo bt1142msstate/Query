@@ -55,7 +55,7 @@ const ZIP_LOCAL_FILE_HEADER = 0x04034b50;
 const ZIP_CENTRAL_FILE_HEADER = 0x02014b50;
 const ZIP_END_OF_CENTRAL_DIRECTORY = 0x06054b50;
 
-function decodeEntities(value = '') {
+function parseXmlEntities(value = '') {
   return String(value).replace(/&([^;]+);/gu, (match, entity) => XML_ENTITIES.get(entity) || match);
 }
 
@@ -122,7 +122,7 @@ function extractZipEntryText(workbookEntries, path) {
 function getWorkbookSheetId(workbookEntries, sheetName) {
   const workbookXml = extractZipEntryText(workbookEntries, 'xl/workbook.xml');
   for (const match of workbookXml.matchAll(/<sheet\b[^>]*name="([^"]+)"[^>]*sheetId="(\d+)"/gu)) {
-    if (decodeEntities(match[1]) === sheetName) {
+    if (parseXmlEntities(match[1]) === sheetName) {
       return Number(match[2]);
     }
   }
@@ -131,7 +131,7 @@ function getWorkbookSheetId(workbookEntries, sheetName) {
 
 function getTableColumns(tableXml) {
   return [...tableXml.matchAll(/<tableColumn\b[^>]*name="([^"]*)"/gu)]
-    .map(match => decodeEntities(match[1]));
+    .map(match => parseXmlEntities(match[1]));
 }
 
 function parseSheetRows(sheetXml) {
@@ -140,7 +140,7 @@ function parseSheetRows(sheetXml) {
     .map(rowMatch => [...rowMatch[1].matchAll(/<c\b([^>]*)>([\s\S]*?)<\/c>/gu)].map(cellMatch => {
       const cellBody = cellMatch[2];
       const textMatch = cellBody.match(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/u);
-      if (textMatch) return decodeEntities(textMatch[1]);
+      if (textMatch) return parseXmlEntities(textMatch[1]);
       const valueMatch = cellBody.match(/<v>([\s\S]*?)<\/v>/u);
       if (!valueMatch) return '';
       const numericValue = Number(valueMatch[1]);
@@ -2941,6 +2941,52 @@ async function exerciseTableBuildableDisplayField(page) {
 
 async function exerciseDesktopResultsWorkflow(page, queryApiStub) {
   await exerciseProjectedDuplicateCollapse(page);
+  await page.evaluate(async () => {
+    const { appServices } = await import('./src/core/appServices.js');
+    const { QueryChangeManager } = await import('./src/core/queryState.js');
+    const { QueryTableView } = await import('./src/ui/queryTableView.js');
+    const headers = ['Item Id', 'Title'];
+    const rows = [['100001', 'Smoke Test Title']];
+    QueryChangeManager.replaceDisplayedFields(headers, { source: 'BrowserSmoke.recordDetailsContextMenu' });
+    QueryChangeManager.setLifecycleState(
+      { hasLoadedResultSet: true, queryRunning: false },
+      { source: 'BrowserSmoke.recordDetailsContextMenu', silent: true }
+    );
+    appServices.setVirtualTableData({
+      headers,
+      rows,
+      columnMap: new Map(headers.map((field, index) => [field, index]))
+    });
+    await QueryTableView.showExampleTable(headers, { syncQueryState: false });
+    appServices.renderVirtualTable();
+  });
+  await openDesktopTableContextMenu(
+    page,
+    '#example-table tbody tr[data-row-index="0"] td[data-col-index="1"]',
+    'Desktop item row'
+  );
+  const detailsAction = page.locator('.tcm.tcm--visible .tcm-item', { hasText: 'View Record Details' });
+  await detailsAction.waitFor({ state: 'visible', timeout: 5000 });
+  await detailsAction.click();
+  await page.locator('.record-details-dialog[open]:not(.record-details-dialog--loading)').waitFor({ state: 'visible', timeout: 5000 });
+  const recordDetailsMetrics = await page.locator('.record-details-dialog[open]').evaluate(dialog => ({
+    fieldCount: dialog.querySelectorAll('[data-record-details-field]').length,
+    hasNonTableField: [...dialog.querySelectorAll('.record-details-field__name strong')]
+      .some(field => field.textContent?.trim() === 'Current Location'),
+    scope: dialog.querySelector('.record-details-scope')?.textContent?.trim() || '',
+    status: dialog.querySelector('.record-details-visible-status')?.textContent?.trim() || ''
+  }));
+  if (
+    recordDetailsMetrics.fieldCount !== 7
+    || !recordDetailsMetrics.hasNonTableField
+    || !recordDetailsMetrics.scope.includes('Loaded all 7 fields')
+    || recordDetailsMetrics.status !== '7 of 7 fields'
+  ) {
+    throw new Error(`Record details should load complete backend fields beyond the table columns: ${JSON.stringify(recordDetailsMetrics)}`);
+  }
+  await page.locator('.record-details-close').click();
+  await page.locator('.record-details-dialog').waitFor({ state: 'detached', timeout: 5000 });
+
   const demoBibData = JSON.parse(await readFile(
     new URL('../../../assets/demo/oclc-bib-data.json', import.meta.url),
     'utf8'

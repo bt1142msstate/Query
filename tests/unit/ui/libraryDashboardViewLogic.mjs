@@ -141,3 +141,28 @@ test('patron breakdowns state coverage and dashboard source gaps remain visible'
   assert.match(overviewHtml, /4 connected · 7 need a source/);
   assert.match(overviewHtml, /Electronic resources/);
 });
+
+test('patron view explains eligibility, reconciles source records, and protects small branch totals', () => {
+  const dashboard = normalizeLibraryDashboard({
+    patrons: {
+      total: 80, records_total: 100, expired: 15, expiration_unknown: 5,
+      never_expires: 10, expired_with_charges: 2, eligibility_rate: 0.8,
+      active: 20, active_rate: 0.25, new: 4,
+      eligibility_label: 'Expiration is today or later, or privileges never expire'
+    },
+    metric_definitions: {
+      current_patrons: { calculation: 'Unexpired or NEVER.', source: 'Patron snapshot', grain: 'Patron account', time_basis: 'Snapshot' }
+    },
+    system_breakdown: [{ label: 'MLP', branches: 1, patron_suppressed: true, items: 5 }],
+    library_breakdown: [{ label: 'TINY', system: 'MLP', patron_suppressed: true, items: 5 }]
+  });
+  const html = renderLibraryDashboard(dashboard, 'patrons');
+  assert.match(html, /Account eligibility reconciliation/);
+  assert.match(html, /All patron records/);
+  assert.match(html, />100</);
+  assert.match(html, /Unknown expiration/);
+  assert.match(html, /How calculated/);
+  assert.match(html, /System and branch totals/);
+  assert.match(html, /Suppressed/);
+  assert.match(html, /not presented as current-patron geography/);
+});

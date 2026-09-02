@@ -529,7 +529,7 @@ async function runSmokeTest() {
       dashboardState.cardValues[0] !== '880,229'
       || dashboardState.cardValues[1] !== '487,605'
       || dashboardState.cardValues[2] !== '2,813,442'
-      || dashboardState.chartCount !== 6
+      || dashboardState.chartCount !== 7
       || dashboardState.opportunityRows !== 3
       || dashboardState.librarySelection.length !== 0
       || dashboardState.librarySummary !== 'All library systems'

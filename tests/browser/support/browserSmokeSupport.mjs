@@ -347,6 +347,24 @@ function buildDefaultQueryApiResponse(payload) {
         body: JSON.stringify(smokeTemplateResponse),
         contentType: 'application/json; charset=utf-8'
       };
+    case 'record_details':
+      return {
+        body: JSON.stringify({
+          kind: { key: 'item', label: 'Item record' },
+          lookup: { type: payload.lookup_type, field: 'Item Id', value: payload.lookup_value },
+          source_row_count: 1,
+          fields: [
+            { name: 'Item Id', category: 'Item', description: 'Unique item identifier.', values: [String(payload.lookup_value || '100001')] },
+            { name: 'Title', category: 'Catalog', description: 'Title statement.', values: ['Smoke Test Title'] },
+            { name: 'Author', category: 'Catalog', description: 'Primary creator.', values: ['Smoke Author'] },
+            { name: 'Library', category: 'Item', description: 'Owning branch.', values: ['MAIN'] },
+            { name: 'Status', category: 'Circulation', description: 'Current circulation status.', values: ['AVAILABLE'] },
+            { name: 'Current Location', category: 'Item', description: 'Current shelving location.', values: ['STACKS'] },
+            { name: 'Public Note', category: 'Notes', description: 'Public note.', values: ['Complete-record smoke value'] }
+          ]
+        }),
+        contentType: 'application/json; charset=utf-8'
+      };
     case 'library_dashboard':
       return {
         body: JSON.stringify({

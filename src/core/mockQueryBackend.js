@@ -333,6 +333,32 @@ function runQuery(payload, data) {
   });
 }
 
+function loadDemoRecordDetails(payload, data) {
+  const fields = data.fields || [];
+  const lookupDefinition = fields.find(field => field.recordLookupType === payload.lookup_type);
+  if (!lookupDefinition) return null;
+  const lookupIndex = fields.indexOf(lookupDefinition);
+  if (lookupIndex < 0) return null;
+  const row = (data.rows || []).find(values => String(values[lookupIndex] ?? '') === String(payload.lookup_value ?? ''));
+  if (!row) return null;
+  const kind = payload.lookup_type.startsWith('item_')
+    ? { key: 'item', label: 'Item record' }
+    : payload.lookup_type === 'call_number_key'
+      ? { key: 'call_number', label: 'Call number record' }
+      : { key: 'bibliographic', label: 'Bibliographic record' };
+  return {
+    kind,
+    lookup: { type: payload.lookup_type, field: lookupDefinition.name, value: payload.lookup_value },
+    fields: fields.map((field, index) => ({
+      name: field.name,
+      category: field.category || 'Other',
+      description: field.desc || '',
+      values: Array.isArray(row[index]) ? row[index] : [String(row[index] ?? '')]
+    })),
+    source_row_count: 1
+  };
+}
+
 function searchDemoBibs(payload, data) {
   const query = String(payload.query || '').trim().toLocaleLowerCase();
   const lookupType = payload.lookup_type || 'title';
@@ -617,6 +643,12 @@ async function handleDemoQueryRequest(options = {}) {
     case 'change_password': return json({ error: 'The shared demo password cannot be changed.' }, 403);
     case 'get_fields': return json({ fields: data.fields || [] });
     case 'run': return runQuery(payload, data);
+    case 'record_details': {
+      const details = loadDemoRecordDetails(payload, data);
+      return details
+        ? json(details)
+        : json({ error: 'The selected record was not found.' }, 404);
+    }
     case 'query_plan': return json({
       ok: true,
       data: {
