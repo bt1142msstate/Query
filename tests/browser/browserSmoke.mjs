@@ -632,6 +632,19 @@ async function runSmokeTest() {
     if (JSON.stringify(itemTypeRequest?.item_types) !== JSON.stringify(['BOOK', 'EBOOK'])) {
       throw new Error(`Dashboard should send every selected item type through the shared aggregate request: ${JSON.stringify(itemTypeRequest)}`);
     }
+    await page.locator('#kpi-dashboard-content .kpi-chart-card')
+      .filter({ hasText: 'Demand by library' })
+      .getByRole('button', { name: 'MSU-MAIN' })
+      .click();
+    await page.waitForFunction(() => document.querySelector('#kpi-dashboard-library')?.getSelectedValues?.()?.length === 1
+      && document.querySelector('#kpi-dashboard-library')?.getSelectedValues?.()?.[0] === 'MSU-MAIN');
+    const backToPreviousScope = page.getByRole('button', { name: 'Back to previous dashboard scope' });
+    await backToPreviousScope.waitFor({ state: 'visible', timeout: 5000 });
+    await backToPreviousScope.click();
+    await page.waitForFunction(() => {
+      const values = document.querySelector('#kpi-dashboard-library')?.getSelectedValues?.() || [];
+      return values.length === 2 && values.includes('MSU-MAIN') && values.includes('MSU-MERIDIAN');
+    });
     const expectedDrilldowns = [
       { label: 'Older items with no recorded use', name: 'Older items with no use', fields: ['Item Library', 'Item Type', 'Item Date Created', 'Total Checkouts'] },
       { label: 'High-use items with active holds', name: 'High-use items with holds', fields: ['Item Library', 'Item Type', 'Total Checkouts', 'Copy Hold Count'] },
