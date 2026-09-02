@@ -10,6 +10,7 @@ import {
 } from '../../src/lib/workbook-export/workbookExportData.js';
 import { parseQueryResultPayload } from '../../src/core/queryResultParser.js';
 import { buildResultTableRowsFromObjectRows } from '../../src/core/queryResultRows.js';
+import { mergeQueryPlanEstimate } from '../../src/core/queryPlanEstimate.js';
 import {
   serializeResultCsv,
   serializeResultJson,
@@ -969,7 +970,11 @@ async function runPlanCommand(options = {}) {
   const config = await readConfig(options.config);
   const apiUrl = getApiUrl(config, options);
   const payload = { ...buildRunPayload(config, options), action: 'query_plan' };
-  const data = await postJson(apiUrl, payload, options);
+  const aggregatePromise = postJson(apiUrl, {
+    action: 'library_dashboard', library: 'all', item_type: 'all', active_window_days: 365, reporting_period: '365'
+  }, options).catch(() => null);
+  const backendPlan = await postJson(apiUrl, payload, options);
+  const data = mergeQueryPlanEstimate(payload, backendPlan, await aggregatePromise);
   const outputPath = options.output ? resolve(String(options.output)) : '';
   await writeTextOutput({ outputPath, text: `${JSON.stringify(data, null, 2)}\n` });
   return { apiUrl, outputPath, changed: Boolean(data.changed), eta: data.eta || {} };

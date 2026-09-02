@@ -712,6 +712,17 @@ async function runSmokeTest() {
         || !drilldownState.displayedFields.length) {
         throw new Error(`Dashboard drilldown should load a complete runnable query: ${expected.name} ${JSON.stringify(drilldownState)}`);
       }
+      await page.waitForFunction(() => document.querySelector('#query-plan-preview')?.dataset.state === 'ready');
+      const preRunEta = await page.evaluate(() => ({
+        table: document.querySelector('#query-plan-preview')?.textContent?.trim() || '',
+        formRun: document.querySelector('#form-mode-run')?.textContent?.trim() || '',
+        ranQueries: document.querySelectorAll('[data-query-row]').length
+      }));
+      if (!/^ETA · Likely /u.test(preRunEta.table)
+        || !/^Run · \d+–\d+\+? (?:sec|min)$/u.test(preRunEta.formRun)
+        || /history|successful runs/iu.test(`${preRunEta.table} ${preRunEta.formRun}`)) {
+        throw new Error(`A history-independent ETA should be visible in both query workspaces before Run: ${JSON.stringify(preRunEta)}`);
+      }
       await page.getByRole('button', { name: 'Dashboard' }).click();
       await page.locator('#kpi-dashboard-content:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
     }

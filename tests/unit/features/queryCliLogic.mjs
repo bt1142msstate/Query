@@ -401,10 +401,14 @@ test('dashboard CLI accepts comma-separated multi-library scope', async () => {
 
 test('smart-plan CLI sends the same query payload without running it', async () => {
   const originalFetch = globalThis.fetch;
-  let payload;
+  const payloads = [];
   const outputPath = join(tmpdir(), `query-cli-plan-${Date.now()}.json`);
   globalThis.fetch = async (_apiUrl, init = {}) => {
-    payload = JSON.parse(init.body || '{}');
+    const payload = JSON.parse(init.body || '{}');
+    payloads.push(payload);
+    if (payload.action === 'library_dashboard') {
+      return Response.json({ collection: { items: 3_000_000 } });
+    }
     return Response.json({ strategy: 'selective_first_v1', changed: true, eta: { available: false } });
   };
   try {
@@ -415,10 +419,13 @@ test('smart-plan CLI sends the same query payload without running it', async () 
       'api-url': 'https://example.test/query',
       sessionStore: { read: async () => ({ token: 'test-session-token' }) }
     });
-    assert.equal(payload.action, 'query_plan');
-    assert.deepEqual(payload.display_fields, ['Title', 'Item Id']);
-    assert.equal(payload.filters.some(filter => filter.field === 'Catalog Key'), true);
+    const planPayload = payloads.find(payload => payload.action === 'query_plan');
+    assert.deepEqual(planPayload.display_fields, ['Title', 'Item Id']);
+    assert.equal(planPayload.filters.some(filter => filter.field === 'Catalog Key'), true);
+    assert.equal(payloads.some(payload => payload.action === 'library_dashboard'), true);
     assert.equal(result.changed, true);
+    assert.equal(result.eta.available, true);
+    assert.equal(result.eta.requires_comparable_history, false);
   } finally {
     globalThis.fetch = originalFetch;
     await rm(outputPath, { force: true });

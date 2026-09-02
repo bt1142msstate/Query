@@ -17,6 +17,7 @@ import { getClientErrorMessage } from './clientErrorMessages.js';
 import { buildBackendQueryPayload, buildQueryUiConfig } from '../features/filters/queryPayload.js';
 import { DOM } from './domCache.js';
 import { ensureTableName } from '../ui/queryUI.js';
+import { getCachedQueryPlan } from '../ui/queryPlanPreview.js';
 
 const execDom = DOM;
 const appState = AppState;
@@ -247,17 +248,28 @@ if (execDom.runBtn) {
         const payload = buildBackendQueryPayload(queryName);
         const historyConfig = buildQueryUiConfig();
 
-        let initialPlanning = null;
-        try {
-          const planningResponse = await BackendApi.postJson(
-            { ...payload, action: 'query_plan' },
-            { timeoutMs: 2500, notifyOnRateLimit: false }
-          );
-          initialPlanning = planningResponse.data?.data || planningResponse.data || null;
-          updateLiveQueryProgress(0, { startTime: queryStartedAt, planning: initialPlanning });
-        } catch (planningError) {
-          console.warn('Query estimate is not available; continuing with the query.', planningError);
+        const immediateEstimate = getCachedQueryPlan(payload);
+        let initialPlanning = getCachedQueryPlan(payload, { requireBackend: true });
+        if (!initialPlanning) {
+          try {
+            const planningResponse = await BackendApi.postJson(
+              { ...payload, action: 'query_plan' },
+              { timeoutMs: 2500, notifyOnRateLimit: false }
+            );
+            initialPlanning = planningResponse.data?.data || planningResponse.data || null;
+          } catch (planningError) {
+            console.warn('Query estimate is not available; continuing with the query.', planningError);
+          }
         }
+        if (immediateEstimate?.eta?.available) {
+          initialPlanning = {
+            ...(initialPlanning || {}),
+            ...(initialPlanning?.eta?.available ? { history_calibration: initialPlanning.eta } : {}),
+            eta: immediateEstimate.eta,
+            aggregate_basis: immediateEstimate.aggregate_basis
+          };
+        }
+        updateLiveQueryProgress(0, { startTime: queryStartedAt, planning: initialPlanning });
 
         console.log('Sending query payload:', payload);
 

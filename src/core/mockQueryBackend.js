@@ -328,11 +328,11 @@ function runQuery(payload, data) {
         strategy: 'selective_first_v1',
         eta: {
           available: true,
-          method: 'aggregate_calibrated_history',
+          method: 'aggregate_cost_model_v1',
           confidence: 'low',
-          sample_size: 18,
+          sample_size: 0, requires_comparable_history: false,
           estimated_candidates: resultRows.length,
-          label: `Estimated 1–3 seconds from the sample aggregate scope and 18 successful runs.`
+          label: 'Likely 1–3 seconds from the current sample aggregate and field costs.'
         }
       }
     },
@@ -676,11 +676,11 @@ async function handleDemoQueryRequest(options = {}) {
         })),
         eta: {
           available: true,
-          method: 'aggregate_calibrated_history',
+          method: 'aggregate_cost_model_v1',
           confidence: 'low',
-          sample_size: 18,
+          sample_size: 0, requires_comparable_history: false,
           estimated_candidates: 120,
-          label: 'Estimated 1–3 seconds from the sample aggregate scope and 18 successful runs.'
+          label: 'Likely 1–3 seconds from the current sample aggregate and field costs.'
         },
         aggregate_basis: { available: true, label: 'Current private collection aggregates' }
       }

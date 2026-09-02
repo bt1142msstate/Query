@@ -6,7 +6,7 @@ Use it when you want repeatable reports, scheduled jobs, shell scripts, or quick
 
 The CLI is the preferred automation surface. Its dedicated commands cover common report workflows, while `query:api` exposes the complete authenticated backend action surface used by the interface. This means newly deployed backend actions can be used from the CLI before a specialized convenience command exists.
 
-Use `npm run query:plan -- --config query.json` to see the backend's selective-first filter order and an evidence-backed ETA range before running a report. The runtime applies the same safe ordering automatically. An ETA is shown only after at least three comparable successful runs; otherwise the plan says that more history is needed.
+Use `npm run query:plan -- --config query.json` to see the backend's selective-first filter order and an evidence-backed ETA range before running a report. The runtime applies the same safe ordering automatically. The browser shows a cold-start ETA as soon as a form is runnable, using current collection/policy aggregates and field-cost classes; comparable prior runs are optional calibration and are never required for an estimate.
 
 ## Sign In
 
