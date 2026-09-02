@@ -44,6 +44,24 @@ test('Sirsi operations requests bind account session, fixed endpoint, body, time
   assert.equal(verifier.verify(keys.publicKey, Buffer.from(headers['X-Sirsi-Ops-Signature'], 'base64')), true);
 });
 
+test('the independent recovery endpoint uses the same hardware-bound request signature', async () => {
+  const body = JSON.stringify({ action: 'capabilities' });
+  const nonce = 'cd'.repeat(32);
+  const timestamp = '1788291000';
+  const canonical = canonicalSirsiOperationsRequest({
+    path: '/uhtbin/sirsi_ops_recovery.pl', timestamp, nonce, body
+  });
+  const headers = await buildSirsiOperationsHeaders({
+    apiUrl: 'https://mlp.sirsi.net/uhtbin/sirsi_ops_recovery.pl',
+    body, now: 1788291000000, nonce, device,
+    sessionHeaders: { 'X-Query-Session': 'session-value' }
+  });
+  const verifier = createVerify('SHA256');
+  verifier.update(canonical, 'utf8');
+  verifier.end();
+  assert.equal(verifier.verify(keys.publicKey, Buffer.from(headers['X-Sirsi-Ops-Signature'], 'base64')), true);
+});
+
 test('Sirsi operations signing refuses alternate hosts, paths, query strings, and plaintext HTTP', async () => {
   for (const apiUrl of [
     'http://mlp.sirsi.net/uhtbin/sirsi_ops_api.pl',

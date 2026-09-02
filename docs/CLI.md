@@ -265,6 +265,16 @@ npm run sirsi:ops:outputs -- --operation-id 0123456789abcdef0123456789abcdef --s
 npm run sirsi:ops:rollback -- --operation-id 0123456789abcdef0123456789abcdef
 ```
 
+The primary service can deploy its own reviewed updates. Before a self-update, verify the independent recovery channel; if the new primary release cannot answer afterward, use that channel to inspect and roll back the completed operation:
+
+```bash
+npm run sirsi:ops:recovery-capabilities
+npm run sirsi:ops:recovery-status -- --operation-id 0123456789abcdef0123456789abcdef
+npm run sirsi:ops:recovery-rollback -- --operation-id 0123456789abcdef0123456789abcdef
+```
+
+The recovery endpoint cannot upload or execute work and cannot change other applications. Update recovery files only through a separate recovery-only `managed-release` while the primary endpoint is healthy; never mix primary and recovery files in one routine release. A deployment-service self-update remains a direct HTTPS workflow; Windows App is only a bootstrap fallback when both direct endpoints are unavailable.
+
 Use `sirsi:ops:outputs` when retrieving more than one operation stream. It batches as many as eight stdout/stderr streams into each hardware-signed request, shares a bounded 640 KiB response budget across active streams, paginates automatically, and writes each stream to a private local file. This is faster and produces less authentication traffic than launching one output command per stream.
 
 Use `managed-release` for guarded file deployment and `script-operation` only for bounded diagnostics supported by the live capabilities response. The archive must contain `sirsi-operation.json` plus its narrow payload and must not exceed the reported 25 MiB limit. Preparing validates and plans but does not execute.

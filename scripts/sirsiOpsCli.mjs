@@ -15,6 +15,7 @@ import {
 import { enrollSirsiOperationsDevice } from './lib/sirsiOpsAuth.mjs';
 
 const DEFAULT_OPS_URL = 'https://mlp.sirsi.net/uhtbin/sirsi_ops_api.pl';
+const DEFAULT_RECOVERY_URL = 'https://mlp.sirsi.net/uhtbin/sirsi_ops_recovery.pl';
 const DEFAULT_QUERY_URL = 'https://mlp.sirsi.net/uhtbin/query_api.pl';
 
 function parseOptions(tokens) {
@@ -49,6 +50,7 @@ async function main() {
   const [command = 'capabilities', ...tokens] = process.argv.slice(2);
   const options = parseOptions(tokens);
   const apiUrl = String(options['ops-url'] || process.env.SIRSI_OPS_URL || DEFAULT_OPS_URL);
+  const recoveryUrl = String(options['recovery-url'] || process.env.SIRSI_OPS_RECOVERY_URL || DEFAULT_RECOVERY_URL);
   const queryApiUrl = String(options['query-api-url'] || process.env.QUERY_API_URL || DEFAULT_QUERY_URL);
   if (command === 'enroll') {
     if (!options['public-key-output']) throw new Error('Enrollment requires --public-key-output PATH.');
@@ -60,6 +62,23 @@ async function main() {
   }
   const sessionHeaders = await getCliAuthorizationHeaders(queryApiUrl);
   if (!sessionHeaders['X-Query-Session']) throw new Error('Pair the Query CLI first with npm run query:pair.');
+  if (command === 'recovery-capabilities') {
+    const result = await postSirsiOperationsAction({
+      apiUrl: recoveryUrl, payload: { action: 'capabilities' }, sessionHeaders
+    });
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    return;
+  }
+  if (command === 'recovery-status' || command === 'recovery-rollback') {
+    const operationId = oneOption(options, 'operation-id');
+    const result = await postSirsiOperationsAction({
+      apiUrl: recoveryUrl,
+      payload: { action: command === 'recovery-status' ? 'status' : 'rollback', operation_id: operationId },
+      sessionHeaders
+    });
+    process.stdout.write(`${JSON.stringify(result.operation, null, 2)}\n`);
+    return;
+  }
   if (command === 'capabilities') {
     const result = await postSirsiOperationsAction({ apiUrl, payload: { action: 'capabilities' }, sessionHeaders });
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
@@ -111,7 +130,7 @@ async function main() {
     process.stdout.write(`${JSON.stringify(operation, null, 2)}\n`);
     return;
   }
-  throw new Error('Use enroll, capabilities, prepare, execute, status, output, outputs, or rollback.');
+  throw new Error('Use enroll, capabilities, prepare, execute, status, output, outputs, rollback, recovery-capabilities, recovery-status, or recovery-rollback.');
 }
 
 main().catch(error => {

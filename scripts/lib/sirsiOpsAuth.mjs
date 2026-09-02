@@ -5,6 +5,7 @@ import process from 'node:process';
 
 const DEVICE_KEY_ID = 'brandons-mac';
 const DEVICE_HELPER = fileURLToPath(new URL('./sirsiOpsDevice.swift', import.meta.url));
+const APPROVED_PATHS = new Set(['/uhtbin/sirsi_ops_api.pl', '/uhtbin/sirsi_ops_recovery.pl']);
 
 function runDeviceHelper(operation, input = '', options = {}) {
   return new Promise((resolve, reject) => {
@@ -32,7 +33,7 @@ export function canonicalSirsiOperationsRequest({ method = 'POST', path, timesta
   const normalizedTimestamp = String(timestamp || '').trim();
   const normalizedNonce = String(nonce || '').trim().toLowerCase();
   if (normalizedMethod !== 'POST') throw new Error('Sirsi operations requests must use POST.');
-  if (normalizedPath !== '/uhtbin/sirsi_ops_api.pl') throw new Error('Sirsi operations requests must use the fixed API path.');
+  if (!APPROVED_PATHS.has(normalizedPath)) throw new Error('Sirsi operations requests must use an approved fixed path.');
   if (!/^\d{10}$/u.test(normalizedTimestamp)) throw new Error('Sirsi operations request timestamp is invalid.');
   if (!/^[a-f0-9]{64}$/u.test(normalizedNonce)) throw new Error('Sirsi operations request nonce is invalid.');
   const bodyHash = createHash('sha256').update(String(body || ''), 'utf8').digest('hex');
@@ -71,8 +72,8 @@ async function signWithDevice(canonical, options = {}) {
 export async function buildSirsiOperationsHeaders({ apiUrl, body, sessionHeaders = {}, now = Date.now(), nonce, device }) {
   const url = new URL(apiUrl);
   if (url.protocol !== 'https:' || url.hostname !== 'mlp.sirsi.net' || url.port
-    || url.pathname !== '/uhtbin/sirsi_ops_api.pl' || url.search || url.hash) {
-    throw new Error('Sirsi operations API URL must be the fixed HTTPS /uhtbin/sirsi_ops_api.pl endpoint.');
+    || !APPROVED_PATHS.has(url.pathname) || url.search || url.hash) {
+    throw new Error('Sirsi operations API URL must use an approved fixed HTTPS endpoint.');
   }
   const timestamp = String(Math.floor(now / 1000));
   const requestNonce = nonce || randomBytes(32).toString('hex');
