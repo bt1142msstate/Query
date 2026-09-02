@@ -30,3 +30,17 @@ test('patron export omits collection metrics', () => {
   }, 'patrons');
   assert.equal(rows.some(row => row[0] === 'collection'), false);
 });
+
+test('collection export includes material and location breakdowns', () => {
+  const rows = buildLibraryDashboardExportRows({
+    scope: {}, circulation: {}, collection: { items: 50 }, patrons: {},
+    useBands: [], ageBands: [],
+    itemTypeBreakdown: [{ label: 'BOOK', items: 40 }],
+    homeLocationBreakdown: [{ label: 'STACKS', items: 35 }],
+    currentLocationBreakdown: [{ label: 'CHECKEDOUT', items: 5 }],
+    sources: [], notes: []
+  }, 'collection');
+  assert.ok(rows.some(row => row[0] === 'Item types' && row[1] === 'BOOK'));
+  assert.ok(rows.some(row => row[0] === 'Home locations' && row[1] === 'STACKS'));
+  assert.ok(rows.some(row => row[0] === 'Current locations' && row[1] === 'CHECKEDOUT'));
+});

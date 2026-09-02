@@ -189,13 +189,17 @@ function buildDemoLibraryDashboard(payload = {}, data = {}) {
       fiscal_year: fiscalPeriod?.fiscal_year, fiscal_system: fiscalPeriod?.system
     },
     collection: {
-      items: scaled(2813442), titles: scaled(1601291), lifetime_checkouts: scaled(12844308), lifetime_renewals: scaled(5160244),
-      in_house_uses: scaled(843108), used_recently: scaled(947835), recent_use_rate: 0.337, never_used: scaled(1023995),
-      never_used_rate: 0.364, checkouts_per_item: 4.6, total_value: scaled(42850300), price_coverage: 0.71
+      items: scaled(2813442), titles: scaled(1601291), lifetime_checkouts: scaled(12844308), lifetime_renewals: scaled(5160244), in_house_uses: scaled(843108), used_recently: scaled(947835), recent_use_rate: 0.337, never_used: scaled(1023995),
+      never_used_rate: 0.364, checkouts_per_item: 4.6, total_value: scaled(42850300), price_coverage: 0.71,
+      inventoried: scaled(2194485), inventoried_last_365_days: scaled(416220), inventoried_last_730_days: scaled(782910),
+      never_inventoried: scaled(618957), inventory_coverage: 0.78, unavailable_items: scaled(214640), unavailable_rate: 0.076,
+      missing_lost_items: scaled(42870), in_transit_items: scaled(3810)
     },
     patrons: {
-      total: scaled(618420), active: scaled(183804), active_rate: 0.297, new: scaled(42640), with_charges: scaled(74482),
-      with_holds: scaled(18814), expiring_soon: scaled(29711), new_period_label: 'Registered in the last 12 months'
+      total: scaled(618420), active: scaled(183804), active_rate: 0.297, new: scaled(42640), with_charges: scaled(74482), with_holds: scaled(18814),
+      expiring_soon: scaled(29711), new_period_label: 'Registered in the last 12 months', records_total: scaled(704200), expired: scaled(74210), expiration_unknown: scaled(11570), never_expires: scaled(2840),
+      expired_with_charges: scaled(1240), eligibility_rate: 0.878,
+      eligibility_label: 'Expiration is today or later, or privileges never expire'
     },
     circulation_trend: circulationTrend,
     library_breakdown: scaleRows(libraryRows, ['checkouts', 'renewals', 'items']),
@@ -207,6 +211,14 @@ function buildDemoLibraryDashboard(payload = {}, data = {}) {
     age_bands: scaleRows([
       { label: 'Under 1 year', items: 81340 }, { label: '1–4 years', items: 443210 }, { label: '5–9 years', items: 562870 },
       { label: '10–19 years', items: 911202 }, { label: '20+ years', items: 714820 }
+    ], ['items']),
+    home_location_breakdown: scaleRows([
+      { label: 'STACKS', items: 1048220 }, { label: 'FICTION', items: 524810 }, { label: 'NONFICTION', items: 489130 }, { label: 'JUVENILE', items: 337420 },
+      { label: 'EASY', items: 193862 }, { label: 'LARGEPRNT', items: 111000 }, { label: 'OTHER', items: 109000 }
+    ], ['items']),
+    current_location_breakdown: scaleRows([
+      { label: 'STACKS', items: 901440 }, { label: 'CHECKEDOUT', items: 721330 }, { label: 'FICTION', items: 417220 }, { label: 'NONFICTION', items: 382810 },
+      { label: 'JUVENILE', items: 331962 }, { label: 'MISSING / LOST', items: 42870 }, { label: 'INTRANSIT', items: 3810 }, { label: 'OTHER', items: 12000 }
     ], ['items']),
     patron_library_breakdown: scaleRows([
       { label: 'MMRLS', patrons: 146820 }, { label: 'First Regional', patrons: 112440 }, { label: 'Lee-Itawamba', patrons: 78310 },

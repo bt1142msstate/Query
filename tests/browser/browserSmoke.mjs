@@ -523,6 +523,7 @@ async function runSmokeTest() {
       librarySummary: panel.querySelector('#kpi-dashboard-library .form-mode-popup-list-summary')?.textContent?.trim() || '',
       exportVisible: !panel.querySelector('#kpi-dashboard-export')?.classList.contains('hidden'),
       comparisonText: panel.querySelector('.kpi-card')?.textContent || '',
+      directorSignals: panel.querySelectorAll('.kpi-director-briefing__grid button').length,
       selectedTab: panel.querySelector('[data-kpi-view][aria-selected="true"]')?.dataset.kpiView || ''
     }));
     if (
@@ -536,24 +537,45 @@ async function runSmokeTest() {
       || dashboardState.librarySummary !== 'All library systems'
       || !dashboardState.exportVisible
       || !/up 38,119/iu.test(dashboardState.comparisonText)
+      || dashboardState.directorSignals !== 4
       || dashboardState.selectedTab !== 'overview'
     ) {
       throw new Error(`Dashboard should reconcile library metrics, charts, filters, and opportunities: ${JSON.stringify(dashboardState)}`);
     }
-    await page.locator('[data-kpi-view="collection"]').click();
+    await page.locator('[data-kpi-scroll-target="kpi-circulation-trend"]').click();
+    await page.locator('[data-kpi-view="overview"]').press('ArrowRight');
+    if (await page.locator('[data-kpi-view="collection"]').getAttribute('aria-selected') !== 'true') {
+      throw new Error('Dashboard tabs should activate the next view with ArrowRight.');
+    }
     await page.waitForFunction(() => document.querySelector('#kpi-dashboard-content')?.textContent?.includes('Inventory and availability health'));
+    const collectionScrollTop = await page.locator('#kpi-dashboard-shell').evaluate(shell => shell.scrollTop);
+    if (collectionScrollTop > 1) throw new Error(`Dashboard view changes should start at the new view heading: ${collectionScrollTop}`);
     const directorCollectionState = await page.locator('#kpi-dashboard-content').evaluate(content => ({
       healthCards: content.querySelectorAll('.kpi-health-grid .kpi-card').length,
       headers: [...content.querySelectorAll('.kpi-breakdown-table th')].map(header => header.textContent.trim()),
       hasInventoryCoverage: content.textContent.includes('Inventory coverage'),
-      hasMissingLost: content.textContent.includes('Missing or lost')
+      hasMissingLost: content.textContent.includes('Missing or lost'),
+      hasItemTypes: content.textContent.includes('Collection by item type'),
+      hasHomeLocations: content.textContent.includes('Home locations'),
+      hasCurrentLocations: content.textContent.includes('Current locations')
     }));
     if (directorCollectionState.healthCards !== 6
       || !directorCollectionState.hasInventoryCoverage
       || !directorCollectionState.hasMissingLost
+      || !directorCollectionState.hasItemTypes
+      || !directorCollectionState.hasHomeLocations
+      || !directorCollectionState.hasCurrentLocations
       || !directorCollectionState.headers.includes('Collection value')
       || !directorCollectionState.headers.includes('In transit')) {
       throw new Error(`Collection view should expose director-level stewardship and risk measures: ${JSON.stringify(directorCollectionState)}`);
+    }
+    await page.locator('[data-kpi-view="patrons"]').click();
+    const patronsChrome = await page.locator('#kpi-dashboard-panel').evaluate(panel => ({
+      itemTypeHidden: panel.querySelector('.kpi-dashboard-item-type-filter')?.classList.contains('hidden'),
+      patronsVisible: panel.querySelector('#kpi-dashboard-content')?.textContent?.includes('Patron reach and engagement')
+    }));
+    if (!patronsChrome.itemTypeHidden || !patronsChrome.patronsVisible) {
+      throw new Error(`Patron view should hide the inapplicable item-type filter: ${JSON.stringify(patronsChrome)}`);
     }
     await page.locator('[data-kpi-view="overview"]').click();
     await expectNoHorizontalOverflow(page, 'Desktop KPI dashboard');

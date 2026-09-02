@@ -283,6 +283,10 @@
   opacity: 0.62;
 }
 
+.kpi-dashboard-toolbar--patrons {
+  grid-template-columns: minmax(11rem, 1fr) minmax(17rem, 1.35fr) auto auto;
+}
+
 .kpi-dashboard-state {
   margin: 1rem;
   padding: 2rem;
@@ -395,6 +399,51 @@
 
 .kpi-cards--four {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.kpi-director-briefing {
+  padding: 1rem;
+  border: 1px solid var(--theme-border);
+  border-radius: 1rem;
+  background: var(--theme-panel-bg);
+  box-shadow: var(--qp-sys-shadow-surface);
+}
+
+.kpi-director-briefing__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-top: 0.8rem;
+}
+
+.kpi-director-briefing__grid button {
+  display: grid;
+  gap: 0.35rem;
+  min-height: 7.2rem;
+  padding: 0.85rem;
+  border: 1px solid var(--theme-border);
+  border-radius: 0.8rem;
+  background: var(--theme-panel-bg-soft);
+  color: var(--theme-text-strong);
+  text-align: left;
+}
+
+.kpi-director-briefing__grid button:hover,
+.kpi-director-briefing__grid button:focus-visible {
+  border-color: var(--theme-accent);
+  background: var(--theme-accent-soft);
+}
+
+.kpi-director-briefing__grid span {
+  color: var(--theme-text-muted);
+  font-size: 0.76rem;
+  line-height: 1.42;
+}
+
+.kpi-director-briefing__grid small {
+  align-self: end;
+  color: var(--theme-accent);
+  font-weight: 800;
 }
 
 .kpi-card,
@@ -1005,7 +1054,10 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .kpi-director-briefing__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
   .kpi-dashboard-toolbar { grid-template-columns: repeat(3, minmax(0, 1fr)) auto auto; }
+  .kpi-dashboard-toolbar--patrons { grid-template-columns: repeat(2, minmax(0, 1fr)) auto auto; }
 }
 
 @media (max-width: 760px) {
@@ -1017,6 +1069,7 @@
     grid-template-columns: 1fr 1fr;
     backdrop-filter: none;
   }
+  .kpi-dashboard-toolbar--patrons { grid-template-columns: 1fr 1fr; }
 
   .kpi-dashboard-refresh {
     align-self: stretch;
@@ -1056,7 +1109,8 @@
 
 @media (max-width: 460px) {
   .kpi-dashboard-toolbar,
-  .kpi-cards {
+  .kpi-cards,
+  .kpi-director-briefing__grid {
     grid-template-columns: 1fr;
   }
 

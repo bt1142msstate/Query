@@ -233,6 +233,35 @@ function sourceNotes(data) {
   return `<details class="kpi-methodology"><summary>Definitions, sources, and privacy</summary><div>${data.sources.map(source => `<p><strong>${escapeHtml(source.label || source.name || 'Source')}:</strong> ${escapeHtml(source.detail || '')}</p>`).join('')}${data.notes.map(note => `<p>${escapeHtml(note)}</p>`).join('')}${data.privacy?.suppression_threshold ? `<p>Patron groups smaller than ${formatNumber(data.privacy.suppression_threshold)} are suppressed.</p>` : ''}</div></details>`;
 }
 
+function totalCirculationDefinition(data) {
+  return data.metricDefinitions.total_circulation || {
+    calculation: 'Checkout transactions plus renewal transactions in the selected circulation period.',
+    source: 'Circulation transaction aggregate',
+    grain: 'Transaction',
+    time_basis: data.circulation?.period_label || 'Selected circulation period'
+  };
+}
+
+function directorBriefing(data) {
+  const circ = data.circulation || {};
+  const collection = data.collection || {};
+  const patrons = data.patrons || {};
+  const activity = Number(circ.activity || 0) || Number(circ.checkouts || 0) + Number(circ.renewals || 0);
+  const checkoutChange = circ.comparison_available
+    ? comparisonDetail(circ, 'checkouts', data.scope?.comparison_mode)
+    : 'Previous-period comparison unavailable';
+  const signals = [
+    ['Circulation', data.availability?.circulation ? `${formatNumber(activity)} total · checkouts ${checkoutChange.toLowerCase()}` : 'Circulation aggregate is not available for this scope', '#kpi-circulation-trend'],
+    ['Collection use', data.availability?.collection ? `${formatPercent(collection.recent_use_rate)} used recently · ${formatPercent(collection.never_used_rate)} never used` : 'Collection aggregate is not available for this scope', 'collection'],
+    ['Collection readiness', data.availability?.collection ? `${formatPercent(collection.inventory_coverage)} inventory coverage · ${formatPercent(collection.price_coverage)} price coverage` : 'Collection aggregate is not available for this scope', 'collection'],
+    ['Patron engagement', data.availability?.patrons ? `${formatPercent(patrons.active_rate)} of current patrons active · ${formatNumber(patrons.new)} new` : 'Patron aggregate is not available for this scope', 'patrons']
+  ];
+  return `<section class="kpi-director-briefing" aria-labelledby="kpi-director-briefing-title">
+    <div class="kpi-chart-card__heading"><div><h4 id="kpi-director-briefing-title">Director briefing</h4><p>A compact decision view; open a topic for its definitions, breakdowns, and follow-up reports.</p></div></div>
+    <div class="kpi-director-briefing__grid">${signals.map(([label, detail, destination]) => `<button type="button" ${destination.startsWith('#') ? `data-kpi-scroll-target="${escapeHtml(destination.slice(1))}"` : `data-kpi-jump-view="${escapeHtml(destination)}"`}><strong>${escapeHtml(label)}</strong><span>${escapeHtml(detail)}</span><small>Explore →</small></button>`).join('')}</div>
+  </section>`;
+}
+
 function renderOverview(data) {
   const circ = data.circulation;
   const collection = data.collection;
@@ -249,15 +278,16 @@ function renderOverview(data) {
     <section class="kpi-cards kpi-cards--four" aria-label="Key library indicators">
       ${metricCard('Checkouts', hasCirculation ? formatNumber(circ.checkouts) : '—', hasCirculation ? periodComparisonDetail(circ, 'checkouts', data.scope?.comparison_mode) : 'Period transaction feed not available', hasCirculation ? 'success' : '', data.metricDefinitions.checkouts)}
       ${metricCard('Renewals', hasCirculation ? formatNumber(circ.renewals) : '—', hasCirculation ? periodComparisonDetail(circ, 'renewals', data.scope?.comparison_mode) : 'Period transaction feed not available', '', data.metricDefinitions.renewals)}
-      ${metricCard('Total circulation', hasCirculation ? formatNumber(Number(circ.activity || 0) || Number(circ.checkouts || 0) + Number(circ.renewals || 0)) : '—', hasCirculation ? `${circ.period_label || 'Selected period'} · checkouts plus renewals` : 'Period transaction feed not available', '', data.metricDefinitions.turnover)}
+      ${metricCard('Total circulation', hasCirculation ? formatNumber(Number(circ.activity || 0) || Number(circ.checkouts || 0) + Number(circ.renewals || 0)) : '—', hasCirculation ? `${circ.period_label || 'Selected period'} · checkouts plus renewals` : 'Period transaction feed not available', '', totalCirculationDefinition(data))}
       ${metricCard('Current items', hasCollection ? formatNumber(collection.items) : '—', hasCollection ? (collection.titles ? `${formatNumber(collection.titles)} titles represented` : 'Actual current item records') : 'Current item snapshot not available', '', data.metricDefinitions.items)}
       ${metricCard('Used recently', hasCollection ? formatPercent(collection.recent_use_rate) : '—', hasCollection ? `${activityWindow} · ${formatNumber(collection.used_recently)} items with recorded use` : 'Current item snapshot not available', hasCollection ? 'success' : '', data.metricDefinitions.used_recently)}
       ${metricCard('Current patrons', hasPatrons ? formatNumber(patrons.total) : '—', hasPatrons ? (patrons.eligibility_label || 'Unexpired or non-expiring accounts') : 'Patron aggregate not available', '', data.metricDefinitions.current_patrons)}
       ${metricCard('Active patrons', hasPatrons ? formatNumber(patrons.active) : '—', hasPatrons ? `${activityWindow} · ${formatPercent(patrons.active_rate)} of current patrons${patronScopeNote}` : 'Patron aggregate not available', '', data.metricDefinitions.active_patrons)}
       ${metricCard('New patrons', hasPatrons ? formatNumber(patrons.new) : '—', hasPatrons ? `${patrons.new_period_label || 'Created in the selected period'}${patronScopeNote}` : 'Patron aggregate not available', '', data.metricDefinitions.new_patrons)}
     </section>
+    ${directorBriefing(data)}
     <section class="kpi-dashboard__grid">
-      <article class="kpi-chart-card kpi-chart-card--wide"><div class="kpi-chart-card__heading"><div><h4>Circulation trend</h4><p>Transactions by period; checkout and renewal definitions match the Analytics circulation contract.</p></div></div>${stackedTrend(data.circulationTrend)}</article>
+      <article id="kpi-circulation-trend" class="kpi-chart-card kpi-chart-card--wide" tabindex="-1"><div class="kpi-chart-card__heading"><div><h4>Circulation trend</h4><p>Transactions by period; checkout and renewal definitions match the Analytics circulation contract.</p></div></div>${stackedTrend(data.circulationTrend)}</article>
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Demand by library</h4><p>Select a library to see every KPI for that branch.</p></div></div>${hasCirculation ? rankedBars(data.libraryBreakdown, 'checkouts', undefined, 'branch') : circulationUnavailable}</article>
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Demand by item type</h4><p>Select a format to see every applicable KPI for that item type.</p></div></div>${hasCirculation ? rankedBars(data.itemTypeBreakdown, 'checkouts', undefined, 'item-type') : circulationUnavailable}</article>
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Patrons by home library</h4><p>Select a library to see its privacy-protected patron totals.${patronScopeNote}</p></div></div>${rankedBars(data.patronLibraryBreakdown, 'patrons', undefined, 'branch')}</article>
@@ -286,6 +316,9 @@ function renderCollection(data) {
     <section class="kpi-dashboard__grid">
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Use distribution</h4><p>Lifetime checkout bands across current items.</p></div></div>${rankedBars(data.useBands, 'items')}</article>
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Collection age</h4><p>Current items by creation-date band.</p></div></div>${rankedBars(data.ageBands, 'items')}</article>
+      <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Collection by item type</h4><p>Current holdings by material type; select one to narrow the dashboard.</p></div></div>${rankedBars(data.itemTypeBreakdown, 'items', 'No item-type breakdown is available for this scope.', 'item-type')}</article>
+      <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Home locations</h4><p>Largest assigned shelving and ownership locations.</p></div></div>${rankedBars(data.homeLocationBreakdown, 'items', 'No home-location breakdown is available for this scope.')}</article>
+      <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Current locations</h4><p>Where items are currently recorded, including temporary and exception locations.</p></div></div>${rankedBars(data.currentLocationBreakdown, 'items', 'No current-location breakdown is available for this scope.')}</article>
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Hold pressure</h4><p>Demand indicators for copies and titles currently in scope.</p></div></div>${metricCard('Open holds', formatNumber(circ.holds), `${Number(circ.holds_per_100_items || 0).toFixed(1)} per 100 items`)}</article>
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Recently used</h4><p>Items with a recorded last-use date in the ${activityWindow.toLowerCase()}.</p></div></div>${metricCard('Recent-use rate', formatPercent(collection.recent_use_rate), `${activityWindow} · ${formatNumber(collection.used_recently)} of ${formatNumber(collection.items)} items`)}</article>
       <article class="kpi-chart-card kpi-chart-card--full"><div class="kpi-chart-card__heading"><div><h4>Inventory and availability health</h4><p>Current operational risks and inventory coverage for the selected collection.</p></div></div>

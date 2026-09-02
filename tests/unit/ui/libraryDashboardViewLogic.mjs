@@ -196,6 +196,8 @@ test('director views surface circulation, patron, inventory, risk, and stewardsh
       unavailable_items: 25, unavailable_rate: 0.125, missing_lost_items: 10,
       in_transit_items: 5, price_coverage: 0.9, total_value: 4000
     },
+    home_location_breakdown: [{ label: 'STACKS', items: 120 }],
+    current_location_breakdown: [{ label: 'CHECKEDOUT', items: 30 }],
     patrons: { total: 50, active: 25, new: 8 },
     system_breakdown: [{ label: 'MSU', branches: 1, items: 200, titles: 150, checkouts: 80, renewals: 20, holds: 4, inventoried: 160, missing_lost_items: 10, unavailable_items: 25, in_transit_items: 5, total_value: 4000, patron_records: 80, patrons: 50, active_patrons: 25, expired_patrons: 25, expiration_unknown: 5 }],
     library_breakdown: [{ label: 'MSU-MAIN', system: 'MSU', items: 200 }]
@@ -203,6 +205,9 @@ test('director views surface circulation, patron, inventory, risk, and stewardsh
 
   const overview = renderLibraryDashboard(dashboard, 'overview');
   assert.match(overview, /Total circulation/);
+  assert.match(overview, /Director briefing/);
+  assert.match(overview, /data-kpi-scroll-target="kpi-circulation-trend"/);
+  assert.match(overview, /id="kpi-circulation-trend"/);
   assert.match(overview, />100</);
   assert.match(overview, /Current patrons/);
   assert.match(overview, /Turnover/);
@@ -213,6 +218,11 @@ test('director views surface circulation, patron, inventory, risk, and stewardsh
   assert.match(collection, /Inventoried recently/);
   assert.match(collection, /Missing or lost/);
   assert.match(collection, /Collection value/);
+  assert.match(collection, /Collection by item type/);
+  assert.match(collection, /Home locations/);
+  assert.match(collection, /Current locations/);
+  assert.match(collection, /STACKS/);
+  assert.match(collection, /CHECKEDOUT/);
 
   const patrons = renderLibraryDashboard(dashboard, 'patrons');
   assert.match(patrons, /All patron records/);

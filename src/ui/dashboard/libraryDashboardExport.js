@@ -30,7 +30,7 @@ function buildLibraryDashboardExportRows(data, view = 'overview') {
     rows.push([group, group, metric, value]);
   }));
   const series = view === 'collection'
-    ? [['Use bands', data.useBands, ['items']], ['Age bands', data.ageBands, ['items']]]
+    ? [['Use bands', data.useBands, ['items']], ['Age bands', data.ageBands, ['items']], ['Item types', data.itemTypeBreakdown, ['items', 'checkouts', 'renewals', 'holds']], ['Home locations', data.homeLocationBreakdown, ['items']], ['Current locations', data.currentLocationBreakdown, ['items']]]
     : view === 'patrons'
       ? [['Home library', data.patronLibraryBreakdown, ['patrons']], ['Profile', data.patronProfileBreakdown, ['patrons']], ['Age groups', data.patronAgeBands, ['patrons']], ['ZIP3 geography', data.patronGeoBreakdown, ['patrons']], ['City geography', data.patronCityBreakdown, ['patrons']], ['State geography', data.patronStateBreakdown, ['patrons']]]
       : [['Circulation trend', data.circulationTrend, ['checkouts', 'renewals']], ['Library demand', data.libraryBreakdown, ['items', 'checkouts', 'renewals', 'patrons']], ['Item type demand', data.itemTypeBreakdown, ['items', 'checkouts', 'renewals']], ['Patron ZIP3', data.patronGeoBreakdown, ['patrons']], ['Patron cities', data.patronCityBreakdown, ['patrons']], ['Patron states', data.patronStateBreakdown, ['patrons']]];

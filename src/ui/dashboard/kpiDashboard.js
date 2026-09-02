@@ -3,6 +3,7 @@ import { appServices } from '../../core/appServices.js';
 import { getClientErrorMessage } from '../../core/clientErrorMessages.js';
 import { ALL_LIBRARY_SYSTEMS_LABEL, buildLibraryScopeSelectorValues, summarizeLibraryScopeSelection, systemCodeForLibraryScope } from '../../core/libraryScopes.js';
 import { onDOMReady } from '../../core/domReady.js';
+import { toast } from '../../core/toast.js';
 import { SelectorControls } from '../controls/selectorControls.js';
 import { libraryDashboardHasData, normalizeLibraryDashboard } from './libraryDashboardModel.js';
 import { downloadLibraryDashboardCsv } from './libraryDashboardExport.js';
@@ -29,9 +30,11 @@ function getElements() {
     errorMessage: document.getElementById('kpi-dashboard-error-message'),
     export: document.getElementById('kpi-dashboard-export'),
     itemType: document.getElementById('kpi-dashboard-item-type'),
+    itemTypeFilter: document.querySelector('.kpi-dashboard-item-type-filter'),
     library: document.getElementById('kpi-dashboard-library'),
     loading: document.getElementById('kpi-dashboard-loading'),
     refresh: document.getElementById('kpi-dashboard-refresh'),
+    shell: document.getElementById('kpi-dashboard-shell'),
     tabs: [...document.querySelectorAll('[data-kpi-view]')],
     toolbar: document.querySelector('.kpi-dashboard-toolbar'),
     period: document.getElementById('kpi-dashboard-window')
@@ -155,12 +158,14 @@ function syncViewChrome(elements) {
     tab.tabIndex = selected ? 0 : -1;
   });
   elements.toolbar?.classList.toggle('hidden', currentView === 'operations');
+  elements.toolbar?.classList.toggle('kpi-dashboard-toolbar--patrons', currentView === 'patrons');
   if (elements.itemType) {
     elements.itemType.setDisabled?.(
       currentView === 'patrons',
       currentView === 'patrons' ? 'Item type does not apply to patron aggregates.' : ''
     );
   }
+  elements.itemTypeFilter?.classList.toggle('hidden', currentView === 'patrons');
 }
 
 function render() {
@@ -341,10 +346,23 @@ onDOMReady(() => {
     else loadDashboard();
   });
   elements.tabs.forEach(tab => tab.addEventListener('click', () => {
-    currentView = tab.dataset.kpiView || 'overview';
+    const nextView = tab.dataset.kpiView || 'overview';
+    if (nextView !== currentView) elements.shell?.scrollTo({ top: 0, left: 0 });
+    currentView = nextView;
     syncViewChrome(getElements());
     if (currentView === 'operations' || !libraryData) loadDashboard();
     else render();
+  }));
+  elements.tabs.forEach((tab, index) => tab.addEventListener('keydown', event => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const lastIndex = elements.tabs.length - 1;
+    const nextIndex = event.key === 'Home' ? 0
+      : event.key === 'End' ? lastIndex
+        : event.key === 'ArrowRight' ? (index + 1) % elements.tabs.length
+          : (index - 1 + elements.tabs.length) % elements.tabs.length;
+    elements.tabs[nextIndex].focus();
+    elements.tabs[nextIndex].click();
   }));
   elements.content?.addEventListener('click', event => {
     const button = event.target.closest('[data-kpi-query]');
@@ -352,8 +370,23 @@ onDOMReady(() => {
     const scopeButton = event.target.closest('[data-kpi-scope-kind]');
     if (scopeButton) applyDashboardScope(scopeButton);
     if (event.target.closest('[data-kpi-back-scope]')) restoreDashboardScope();
+    const jump = event.target.closest('[data-kpi-jump-view]');
+    if (jump) {
+      const destination = elements.tabs.find(tab => tab.dataset.kpiView === jump.dataset.kpiJumpView);
+      destination?.click();
+      destination?.focus();
+    }
+    const scrollControl = event.target.closest('[data-kpi-scroll-target]');
+    if (scrollControl) {
+      const target = document.getElementById(scrollControl.dataset.kpiScrollTarget || '');
+      target?.scrollIntoView({ block: 'start' });
+      target?.focus({ preventScroll: true });
+    }
   });
-  window.addEventListener('query-dashboard:open', () => loadDashboard());
+  window.addEventListener('query-dashboard:open', () => {
+    toast.dismissAll();
+    loadDashboard();
+  });
   window.setInterval(() => {
     const panel = document.getElementById('kpi-dashboard-panel');
     if (panel && !panel.classList.contains('hidden')) loadDashboard();

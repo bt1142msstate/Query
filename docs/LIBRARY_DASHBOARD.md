@@ -40,6 +40,7 @@ The private MLP environment owns:
 - `circulation_trend`: reporting-period transaction points;
 - `library_breakdown` and `item_type_breakdown`: comparable scoped aggregates;
 - `use_bands` and `age_bands`: current-collection distributions;
+- `home_location_breakdown` and `current_location_breakdown`: current holdings by assigned and present Symphony location;
 - `patron_*_breakdown`: privacy-suppressed home-library, profile, age-band, ZIP3, city/state, and state aggregates; exact addresses and full ZIP codes are never returned;
 - `previous_*`, `*_change`, and `*_change_rate`: the immediately preceding equivalent period when retained-log coverage is complete;
 - `filters.fiscal_periods_by_system`: current fiscal year-to-date and completed fiscal years using each MLP system's documented reporting calendar;
@@ -48,6 +49,8 @@ The private MLP environment owns:
 - `freshness`, `sources`, and `notes`: exact lineage, update times, and limitations.
 
 The UI must treat absent groups as unavailable, not as zero. Every production response should describe the time basis of each source independently.
+
+The Overview begins with a director briefing that summarizes circulation momentum, collection use and record readiness, and patron engagement. Each briefing item opens the corresponding detailed view rather than duplicating its full analysis. Dashboard tabs support both pointer use and standard Left/Right/Home/End keyboard navigation; non-applicable filters are removed from the active view.
 
 ## Definitions
 
