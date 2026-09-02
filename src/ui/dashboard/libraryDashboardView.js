@@ -97,12 +97,24 @@ function metricCard(label, value, detail, tone = '', definition = null) {
   </article>`;
 }
 
-function breakdownTable(items, { patronColumns = true } = {}) {
+function drillButton(label, kind, value, className = 'kpi-drilldown') {
+  if (!kind || !value) return '';
+  return `<button type="button" class="${className}" data-kpi-scope-kind="${escapeHtml(kind)}" data-kpi-scope-value="${escapeHtml(value)}">${escapeHtml(label)}</button>`;
+}
+
+function breakdownTable(items, { patronColumns = true, level = 'branch' } = {}) {
   if (!items.length) return '<p class="kpi-chart-empty">No system or branch totals are available for this scope.</p>';
   const headers = ['System', 'Branch', 'Items', 'Checkouts', 'Renewals'];
   if (patronColumns) headers.push('Current patrons', 'Active patrons', 'Expired', 'Unknown expiry');
+  headers.push('Details');
   const patronValue = (item, key) => item.patron_suppressed ? '<span title="Below the privacy threshold">Suppressed</span>' : formatNumber(item[key]);
-  const row = item => `<tr><td>${escapeHtml(item.system || item.label || 'Unassigned')}</td><td>${escapeHtml(item.system ? item.label : `${formatNumber(item.branches)} branches`)}</td><td>${formatNumber(item.items)}</td><td>${formatNumber(item.checkouts)}</td><td>${formatNumber(item.renewals)}</td>${patronColumns ? `<td>${patronValue(item, 'patrons')}</td><td>${patronValue(item, 'active_patrons')}</td><td>${patronValue(item, 'expired_patrons')}</td><td>${patronValue(item, 'expiration_unknown')}</td>` : ''}</tr>`;
+  const row = item => {
+    const value = item.label || '';
+    const action = value && value !== 'Unassigned'
+      ? drillButton(level === 'system' ? 'View system' : 'View branch', level, value)
+      : '';
+    return `<tr><td>${escapeHtml(item.system || item.label || 'Unassigned')}</td><td>${escapeHtml(item.system ? item.label : `${formatNumber(item.branches)} branches`)}</td><td>${formatNumber(item.items)}</td><td>${formatNumber(item.checkouts)}</td><td>${formatNumber(item.renewals)}</td>${patronColumns ? `<td>${patronValue(item, 'patrons')}</td><td>${patronValue(item, 'active_patrons')}</td><td>${patronValue(item, 'expired_patrons')}</td><td>${patronValue(item, 'expiration_unknown')}</td>` : ''}<td>${action}</td></tr>`;
+  };
   return `<div class="kpi-recent-table-wrap"><table class="kpi-recent-table kpi-breakdown-table"><thead><tr>${headers.map(header => `<th>${escapeHtml(header)}</th>`).join('')}</tr></thead><tbody>${items.map(row).join('')}</tbody></table></div>`;
 }
 
@@ -110,13 +122,13 @@ function systemBranchBreakdown(data) {
   const systems = data.systemBreakdown || [];
   const branches = data.libraryBreakdown || [];
   return `<section class="kpi-chart-card kpi-chart-card--full" aria-labelledby="kpi-system-branch-title">
-    <div class="kpi-chart-card__heading"><div><h4 id="kpi-system-branch-title">System and branch totals</h4><p>Complete totals at the most granular available library level. Patron values use current-account eligibility; small patron groups remain privacy-suppressed.</p></div></div>
-    ${systems.length ? `<h5>System totals</h5>${breakdownTable(systems)}` : ''}
-    <details class="kpi-breakdown-details"><summary>All ${formatNumber(branches.length)} branch totals</summary>${breakdownTable(branches)}</details>
+    <div class="kpi-chart-card__heading"><div><h4 id="kpi-system-branch-title">System and branch totals</h4><p>Choose a system or branch to narrow every dashboard measure to that scope. Patron values use current-account eligibility; small groups remain privacy-suppressed.</p></div></div>
+    ${systems.length ? `<h5>System totals</h5>${breakdownTable(systems, { level: 'system' })}` : ''}
+    <details class="kpi-breakdown-details"><summary>All ${formatNumber(branches.length)} branch totals</summary>${breakdownTable(branches, { level: 'branch' })}</details>
   </section>`;
 }
 
-function rankedBars(items, key, emptyText = 'No data is available for this breakdown.') {
+function rankedBars(items, key, emptyText = 'No data is available for this breakdown.', drillKind = '') {
   if (!items.length) return `<p class="kpi-chart-empty">${escapeHtml(emptyText)}</p>`;
   const ranked = [...items].sort((left, right) =>
     Number(right[key] || right.value || 0) - Number(left[key] || left.value || 0)
@@ -127,7 +139,7 @@ function rankedBars(items, key, emptyText = 'No data is available for this break
   return `<ol class="kpi-ranking">${visible.map(item => {
     const value = Number(item[key] || item.value || 0);
     return `<li>
-      <span class="kpi-ranking__label" title="${escapeHtml(item.label || item.code || 'Unknown')}">${escapeHtml(item.label || item.code || 'Unknown')}</span>
+      ${drillKind ? drillButton(item.label || item.code || 'Unknown', drillKind, item.code || item.label, 'kpi-ranking__label kpi-ranking__drill') : `<span class="kpi-ranking__label" title="${escapeHtml(item.label || item.code || 'Unknown')}">${escapeHtml(item.label || item.code || 'Unknown')}</span>`}
       <span class="kpi-ranking__track"><span style="width:${(value / maximum) * 100}%"></span></span>
       <strong>${formatNumber(value)}</strong>
     </li>`;
@@ -176,7 +188,7 @@ function dashboardIntro(data, title, description) {
     Number.isFinite(ageSeconds) ? `Response assembled ${compactDuration(ageSeconds)} ago` : '',
     Number.isFinite(staleAfterSeconds) ? `response expected within ${compactDuration(staleAfterSeconds)}` : ''
   ].filter(Boolean).join(' · ');
-  return `<section class="kpi-dashboard__intro" aria-labelledby="kpi-dashboard-title"><div>
+  return `${data.canGoBack ? '<div class="kpi-drillback"><button type="button" data-kpi-back-scope>← Back to previous dashboard scope</button><span>Filters and reporting period stay intact while you explore.</span></div>' : ''}<section class="kpi-dashboard__intro" aria-labelledby="kpi-dashboard-title"><div>
     <span class="kpi-dashboard__eyebrow">Library intelligence</span>${data.isSampleData ? '<span class="kpi-dashboard__sample">Sample data</span>' : ''}
     <h3 id="kpi-dashboard-title">${escapeHtml(title)}</h3><p>${escapeHtml(description)}</p>
   </div><div class="kpi-dashboard__freshness${data.freshness?.stale ? ' kpi-dashboard__freshness--stale' : ''}"><strong>${escapeHtml(scope)}</strong><small>${escapeHtml(itemType)}</small>${sourceFreshnessLines(data)}<small><strong>${escapeHtml(freshnessLabel)}</strong>${freshnessDetail ? ` · ${escapeHtml(freshnessDetail)}` : ''}</small>${data.freshness?.stale ? '<small>Refresh will keep the last verified values visible while the delayed source catches up.</small>' : ''}</div></section>`;
@@ -230,9 +242,9 @@ function renderOverview(data) {
     </section>
     <section class="kpi-dashboard__grid">
       <article class="kpi-chart-card kpi-chart-card--wide"><div class="kpi-chart-card__heading"><div><h4>Circulation trend</h4><p>Transactions by period; checkout and renewal definitions match the Analytics circulation contract.</p></div></div>${stackedTrend(data.circulationTrend)}</article>
-      <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Demand by library</h4><p>Checkouts for the highest-use libraries in scope.</p></div></div>${hasCirculation ? rankedBars(data.libraryBreakdown, 'checkouts') : circulationUnavailable}</article>
-      <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Demand by item type</h4><p>Checkout volume reveals which formats patrons are choosing.</p></div></div>${hasCirculation ? rankedBars(data.itemTypeBreakdown, 'checkouts') : circulationUnavailable}</article>
-      <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Patrons by home library</h4><p>Aggregated patron reach; small groups are suppressed.${patronScopeNote}</p></div></div>${rankedBars(data.patronLibraryBreakdown, 'patrons')}</article>
+      <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Demand by library</h4><p>Select a library to see every KPI for that branch.</p></div></div>${hasCirculation ? rankedBars(data.libraryBreakdown, 'checkouts', undefined, 'branch') : circulationUnavailable}</article>
+      <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Demand by item type</h4><p>Select a format to see every applicable KPI for that item type.</p></div></div>${hasCirculation ? rankedBars(data.itemTypeBreakdown, 'checkouts', undefined, 'item-type') : circulationUnavailable}</article>
+      <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Patrons by home library</h4><p>Select a library to see its privacy-protected patron totals.${patronScopeNote}</p></div></div>${rankedBars(data.patronLibraryBreakdown, 'patrons', undefined, 'branch')}</article>
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Collection use</h4><p>Items grouped by recorded use, including never-used and high-use material.</p></div></div>${rankedBars(data.useBands, 'items')}</article>
       ${systemBranchBreakdown(data)}
       <article class="kpi-chart-card kpi-chart-card--full"><div class="kpi-chart-card__heading"><div><h4>Recommended follow-up</h4><p>Actionable groups that can open as an exact Query report.</p></div></div>${opportunityTable(data.opportunities)}</article>
@@ -288,7 +300,7 @@ function renderPatrons(data) {
           ${metricCard('Unknown expiration', available ? formatNumber(patrons.expiration_unknown) : '—', 'Excluded from current; review source values', patrons.expiration_unknown > 0 ? 'active' : '')}
         </div>
       </article>
-      <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Home library</h4><p>Registered patrons by assigned library.</p><p class="kpi-chart-coverage">${escapeHtml(patronCoverageText(data.patronLibraryBreakdown, patrons, data.privacy))}</p></div></div>${rankedBars(data.patronLibraryBreakdown, 'patrons')}</article>
+      <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Home library</h4><p>Select a library to inspect its privacy-protected patron totals.</p><p class="kpi-chart-coverage">${escapeHtml(patronCoverageText(data.patronLibraryBreakdown, patrons, data.privacy))}</p></div></div>${rankedBars(data.patronLibraryBreakdown, 'patrons', undefined, 'branch')}</article>
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>User profile</h4><p>Aggregated patron profile distribution.</p><p class="kpi-chart-coverage">${escapeHtml(patronCoverageText(data.patronProfileBreakdown, patrons, data.privacy))}</p></div></div>${rankedBars(data.patronProfileBreakdown, 'patrons')}</article>
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Age groups</h4><p>Derived from usable birth dates; unknown values remain visible.</p><p class="kpi-chart-coverage">${escapeHtml(patronCoverageText(data.patronAgeBands, patrons, data.privacy))}</p></div></div>${rankedBars(data.patronAgeBands, 'patrons')}</article>
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>ZIP3 reach</h4><p>Broad postal areas from the separate all-record geography aggregate; exact ZIP codes and addresses are never returned.</p><p class="kpi-chart-coverage">${escapeHtml(patronCoverageText(data.patronGeoBreakdown, { total: patrons.records_total }, data.privacy))}</p></div></div>${rankedBars(data.patronGeoBreakdown, 'patrons')}</article>

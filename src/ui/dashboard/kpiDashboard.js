@@ -18,6 +18,7 @@ let loading = false;
 let pendingLoad = false;
 let pendingForce = false;
 let periodComparison = 'previous';
+const scopeHistory = [];
 const AUTO_REFRESH_MS = 5 * 60 * 1000;
 
 function getElements() {
@@ -179,6 +180,7 @@ function render() {
     });
   } else {
     libraryData.scope.comparison_mode = periodComparison;
+    libraryData.canGoBack = scopeHistory.length > 0;
     elements.content.innerHTML = renderLibraryDashboard(libraryData, currentView);
   }
 }
@@ -276,6 +278,51 @@ function openOpportunityQuery(button) {
   }
 }
 
+function optionValue(option) {
+  return typeof option === 'string' ? option : option?.value ?? option?.code ?? option?.RawValue ?? '';
+}
+
+function applyDashboardScope(button) {
+  if (!libraryData) return;
+  const kind = button.dataset.kpiScopeKind || '';
+  const value = button.dataset.kpiScopeValue || '';
+  if (!kind || !value) return;
+  const elements = getElements();
+  const libraries = selectedLibraryScopes(elements.library);
+  const itemTypes = selectedItemTypes(elements.itemType);
+  let nextLibraries = libraries;
+  let nextItemTypes = itemTypes;
+  if (kind === 'system') {
+    nextLibraries = libraryData.filters.libraries
+      .map(optionValue)
+      .filter(code => systemCodeForLibraryScope(code) === value);
+  } else if (kind === 'branch') {
+    nextLibraries = [value];
+  } else if (kind === 'item-type') {
+    nextItemTypes = [value];
+  }
+  if (!nextLibraries.length && kind !== 'item-type') return;
+  if (JSON.stringify(nextLibraries) === JSON.stringify(libraries)
+    && JSON.stringify(nextItemTypes) === JSON.stringify(itemTypes)) return;
+  scopeHistory.push({ libraries, itemTypes, view: currentView });
+  elements.library?.setSelectedValues?.(nextLibraries);
+  elements.itemType?.setSelectedValues?.(nextItemTypes);
+  syncPeriodOptions(elements);
+  void loadDashboard();
+}
+
+function restoreDashboardScope() {
+  const previous = scopeHistory.pop();
+  if (!previous) return;
+  const elements = getElements();
+  currentView = previous.view || currentView;
+  elements.library?.setSelectedValues?.(previous.libraries || []);
+  elements.itemType?.setSelectedValues?.(previous.itemTypes || []);
+  syncPeriodOptions(elements);
+  syncViewChrome(elements);
+  void loadDashboard();
+}
+
 onDOMReady(() => {
   const elements = getElements();
   elements.refresh?.addEventListener('click', () => loadDashboard({ force: true }));
@@ -302,6 +349,9 @@ onDOMReady(() => {
   elements.content?.addEventListener('click', event => {
     const button = event.target.closest('[data-kpi-query]');
     if (button) openOpportunityQuery(button);
+    const scopeButton = event.target.closest('[data-kpi-scope-kind]');
+    if (scopeButton) applyDashboardScope(scopeButton);
+    if (event.target.closest('[data-kpi-back-scope]')) restoreDashboardScope();
   });
   window.addEventListener('query-dashboard:open', () => loadDashboard());
   window.setInterval(() => {

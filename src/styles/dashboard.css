@@ -660,6 +660,52 @@
   text-align: right;
 }
 
+.kpi-ranking__drill {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--theme-accent);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 0.18rem;
+}
+
+.kpi-ranking__drill:hover,
+.kpi-ranking__drill:focus-visible {
+  text-decoration-color: currentColor;
+}
+
+.kpi-drillback {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 0.8rem;
+  align-items: center;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--theme-accent) 34%, var(--theme-border));
+  border-radius: 0.8rem;
+  background: var(--theme-accent-soft);
+}
+
+.kpi-drillback button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--theme-accent);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.kpi-drillback span {
+  color: var(--theme-text-muted);
+  font-size: 0.72rem;
+}
+
 .kpi-service-coverage {
   padding: 1rem;
   border: 1px solid var(--theme-border);

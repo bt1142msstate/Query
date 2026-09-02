@@ -41,7 +41,7 @@ test('demand rankings put the highest period activity first', () => {
   });
 
   const html = renderLibraryDashboard(dashboard, 'overview');
-  assert.ok(html.indexOf('>Higher</span>') < html.indexOf('>Lower</span>'));
+  assert.ok(html.indexOf('>Higher</button>') < html.indexOf('>Lower</button>'));
   assert.match(html, /Recent 90 days/);
 });
 
@@ -165,4 +165,24 @@ test('patron view explains eligibility, reconciles source records, and protects 
   assert.match(html, /System and branch totals/);
   assert.match(html, /Suppressed/);
   assert.match(html, /not presented as current-patron geography/);
+});
+
+test('dashboard breakdowns expose reversible system, branch, and item-type drill-downs', () => {
+  const dashboard = normalizeLibraryDashboard({
+    circulation: { checkouts: 45 },
+    collection: { items: 120 },
+    patrons: { total: 32 },
+    system_breakdown: [{ label: 'MSU', branches: 2, items: 120 }],
+    library_breakdown: [{ label: 'MSU-MAIN', system: 'MSU', items: 100, checkouts: 40 }],
+    item_type_breakdown: [{ label: 'BOOK', items: 90, checkouts: 35 }],
+    patron_library_breakdown: [{ label: 'MSU-MAIN', patrons: 30 }]
+  });
+  dashboard.canGoBack = true;
+
+  const html = renderLibraryDashboard(dashboard, 'overview');
+  assert.match(html, /data-kpi-scope-kind="system" data-kpi-scope-value="MSU">View system/);
+  assert.match(html, /data-kpi-scope-kind="branch" data-kpi-scope-value="MSU-MAIN">View branch/);
+  assert.match(html, /data-kpi-scope-kind="item-type" data-kpi-scope-value="BOOK">BOOK/);
+  assert.match(html, /data-kpi-back-scope/);
+  assert.match(html, /Back to previous dashboard scope/);
 });
