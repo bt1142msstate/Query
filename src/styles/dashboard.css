@@ -393,6 +393,10 @@
   grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
+.kpi-cards--four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .kpi-card,
 .kpi-chart-card {
   border: 1px solid var(--theme-border);
@@ -473,6 +477,10 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.75rem;
+}
+
+.kpi-health-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .kpi-breakdown-details {

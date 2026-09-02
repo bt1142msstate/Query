@@ -528,7 +528,8 @@ async function runSmokeTest() {
     if (
       dashboardState.cardValues[0] !== '880,229'
       || dashboardState.cardValues[1] !== '487,605'
-      || dashboardState.cardValues[2] !== '2,813,442'
+      || dashboardState.cardValues[2] !== '1,367,834'
+      || dashboardState.cardValues[3] !== '2,813,442'
       || dashboardState.chartCount !== 7
       || dashboardState.opportunityRows !== 3
       || dashboardState.librarySelection.length !== 0
@@ -539,6 +540,22 @@ async function runSmokeTest() {
     ) {
       throw new Error(`Dashboard should reconcile library metrics, charts, filters, and opportunities: ${JSON.stringify(dashboardState)}`);
     }
+    await page.locator('[data-kpi-view="collection"]').click();
+    await page.waitForFunction(() => document.querySelector('#kpi-dashboard-content')?.textContent?.includes('Inventory and availability health'));
+    const directorCollectionState = await page.locator('#kpi-dashboard-content').evaluate(content => ({
+      healthCards: content.querySelectorAll('.kpi-health-grid .kpi-card').length,
+      headers: [...content.querySelectorAll('.kpi-breakdown-table th')].map(header => header.textContent.trim()),
+      hasInventoryCoverage: content.textContent.includes('Inventory coverage'),
+      hasMissingLost: content.textContent.includes('Missing or lost')
+    }));
+    if (directorCollectionState.healthCards !== 6
+      || !directorCollectionState.hasInventoryCoverage
+      || !directorCollectionState.hasMissingLost
+      || !directorCollectionState.headers.includes('Collection value')
+      || !directorCollectionState.headers.includes('In transit')) {
+      throw new Error(`Collection view should expose director-level stewardship and risk measures: ${JSON.stringify(directorCollectionState)}`);
+    }
+    await page.locator('[data-kpi-view="overview"]').click();
     await expectNoHorizontalOverflow(page, 'Desktop KPI dashboard');
     const exportDownloadPromise = page.waitForEvent('download');
     await page.locator('#kpi-dashboard-export').click();
@@ -1539,8 +1556,8 @@ async function runSmokeTest() {
     await expectElementWithinViewport(mobilePage, '#kpi-dashboard-panel', 'Mobile KPI dashboard panel');
     await expectNoHorizontalOverflow(mobilePage, 'Mobile KPI dashboard panel');
     const mobileDashboardCards = await mobilePage.locator('#kpi-dashboard-panel .kpi-card').count();
-    if (mobileDashboardCards !== 6) {
-      throw new Error(`Mobile KPI dashboard should preserve all six summary cards: ${mobileDashboardCards}`);
+    if (mobileDashboardCards !== 8) {
+      throw new Error(`Mobile KPI dashboard should preserve all eight summary cards: ${mobileDashboardCards}`);
     }
     await mobilePage.locator('#kpi-dashboard-window .kpi-period-trigger').click();
     const mobilePeriodDialog = mobilePage.getByRole('dialog', { name: 'Choose circulation period' });

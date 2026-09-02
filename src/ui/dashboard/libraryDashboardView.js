@@ -102,10 +102,18 @@ function drillButton(label, kind, value, className = 'kpi-drilldown') {
   return `<button type="button" class="${className}" data-kpi-scope-kind="${escapeHtml(kind)}" data-kpi-scope-value="${escapeHtml(value)}">${escapeHtml(label)}</button>`;
 }
 
-function breakdownTable(items, { patronColumns = true, level = 'branch' } = {}) {
+function percentage(numerator, denominator) {
+  const total = Number(denominator || 0);
+  return total > 0 ? formatPercent(Number(numerator || 0) / total) : '—';
+}
+
+function breakdownTable(items, { mode = 'overview', level = 'branch' } = {}) {
   if (!items.length) return '<p class="kpi-chart-empty">No system or branch totals are available for this scope.</p>';
-  const headers = ['System', 'Branch', 'Items', 'Checkouts', 'Renewals'];
-  if (patronColumns) headers.push('Current patrons', 'Active patrons', 'Expired', 'Unknown expiry');
+  const headers = mode === 'collection'
+    ? ['System', 'Branch', 'Titles', 'Items', 'Used recently', 'Never used', 'Open holds', 'Missing / lost', 'Unavailable', 'In transit', 'Inventory coverage', 'Collection value']
+    : mode === 'patrons'
+      ? ['System', 'Branch', 'All patron records', 'Current patrons', 'Active patrons', 'Expired', 'Unknown expiry']
+      : ['System', 'Branch', 'Items', 'Checkouts', 'Renewals', 'Total circulation', 'Turnover', 'Open holds'];
   headers.push('Details');
   const patronValue = (item, key) => item.patron_suppressed ? '<span title="Below the privacy threshold">Suppressed</span>' : formatNumber(item[key]);
   const row = item => {
@@ -113,18 +121,24 @@ function breakdownTable(items, { patronColumns = true, level = 'branch' } = {}) 
     const action = value && value !== 'Unassigned'
       ? drillButton(level === 'system' ? 'View system' : 'View branch', level, value)
       : '';
-    return `<tr><td>${escapeHtml(item.system || item.label || 'Unassigned')}</td><td>${escapeHtml(item.system ? item.label : `${formatNumber(item.branches)} branches`)}</td><td>${formatNumber(item.items)}</td><td>${formatNumber(item.checkouts)}</td><td>${formatNumber(item.renewals)}</td>${patronColumns ? `<td>${patronValue(item, 'patrons')}</td><td>${patronValue(item, 'active_patrons')}</td><td>${patronValue(item, 'expired_patrons')}</td><td>${patronValue(item, 'expiration_unknown')}</td>` : ''}<td>${action}</td></tr>`;
+    const identity = `<td>${escapeHtml(item.system || item.label || 'Unassigned')}</td><td>${escapeHtml(item.system ? item.label : `${formatNumber(item.branches)} branches`)}</td>`;
+    const metrics = mode === 'collection'
+      ? `<td>${formatNumber(item.titles)}</td><td>${formatNumber(item.items)}</td><td>${formatNumber(item.used_recently)}</td><td>${formatNumber(item.never_used)}</td><td>${formatNumber(item.holds)}</td><td>${formatNumber(item.missing_lost_items)}</td><td>${formatNumber(item.unavailable_items)}</td><td>${formatNumber(item.in_transit_items)}</td><td>${percentage(item.inventoried, item.items)}</td><td>${formatMoney(item.total_value)}</td>`
+      : mode === 'patrons'
+        ? `<td>${patronValue(item, 'patron_records')}</td><td>${patronValue(item, 'patrons')}</td><td>${patronValue(item, 'active_patrons')}</td><td>${patronValue(item, 'expired_patrons')}</td><td>${patronValue(item, 'expiration_unknown')}</td>`
+        : `<td>${formatNumber(item.items)}</td><td>${formatNumber(item.checkouts)}</td><td>${formatNumber(item.renewals)}</td><td>${formatNumber(Number(item.checkouts || 0) + Number(item.renewals || 0))}</td><td>${Number(item.items || 0) > 0 ? Number((Number(item.checkouts || 0) + Number(item.renewals || 0)) / Number(item.items)).toFixed(2) : '—'}</td><td>${formatNumber(item.holds)}</td>`;
+    return `<tr>${identity}${metrics}<td>${action}</td></tr>`;
   };
   return `<div class="kpi-recent-table-wrap"><table class="kpi-recent-table kpi-breakdown-table"><thead><tr>${headers.map(header => `<th>${escapeHtml(header)}</th>`).join('')}</tr></thead><tbody>${items.map(row).join('')}</tbody></table></div>`;
 }
 
-function systemBranchBreakdown(data) {
+function systemBranchBreakdown(data, mode = 'overview') {
   const systems = data.systemBreakdown || [];
   const branches = data.libraryBreakdown || [];
   return `<section class="kpi-chart-card kpi-chart-card--full" aria-labelledby="kpi-system-branch-title">
-    <div class="kpi-chart-card__heading"><div><h4 id="kpi-system-branch-title">System and branch totals</h4><p>Choose a system or branch to narrow every dashboard measure to that scope. Patron values use current-account eligibility; small groups remain privacy-suppressed.</p></div></div>
-    ${systems.length ? `<h5>System totals</h5>${breakdownTable(systems, { level: 'system' })}` : ''}
-    <details class="kpi-breakdown-details"><summary>All ${formatNumber(branches.length)} branch totals</summary>${breakdownTable(branches, { level: 'branch' })}</details>
+    <div class="kpi-chart-card__heading"><div><h4 id="kpi-system-branch-title">System and branch totals</h4><p>Choose a system or branch to narrow every dashboard measure to that scope.${mode === 'patrons' ? ' Small patron groups remain privacy-suppressed.' : ''}</p></div></div>
+    ${systems.length ? `<h5>System totals</h5>${breakdownTable(systems, { mode, level: 'system' })}` : ''}
+    <details class="kpi-breakdown-details"><summary>All ${formatNumber(branches.length)} branch totals</summary>${breakdownTable(branches, { mode, level: 'branch' })}</details>
   </section>`;
 }
 
@@ -232,11 +246,13 @@ function renderOverview(data) {
     ? ' · item type does not apply'
     : '';
   return `${dashboardIntro(data, 'What is being used—and where to act', 'A combined view of circulation demand, collection performance, and community reach. Every number keeps its source and time basis visible.')}
-    <section class="kpi-cards kpi-cards--six" aria-label="Key library indicators">
+    <section class="kpi-cards kpi-cards--four" aria-label="Key library indicators">
       ${metricCard('Checkouts', hasCirculation ? formatNumber(circ.checkouts) : '—', hasCirculation ? periodComparisonDetail(circ, 'checkouts', data.scope?.comparison_mode) : 'Period transaction feed not available', hasCirculation ? 'success' : '', data.metricDefinitions.checkouts)}
       ${metricCard('Renewals', hasCirculation ? formatNumber(circ.renewals) : '—', hasCirculation ? periodComparisonDetail(circ, 'renewals', data.scope?.comparison_mode) : 'Period transaction feed not available', '', data.metricDefinitions.renewals)}
+      ${metricCard('Total circulation', hasCirculation ? formatNumber(Number(circ.activity || 0) || Number(circ.checkouts || 0) + Number(circ.renewals || 0)) : '—', hasCirculation ? `${circ.period_label || 'Selected period'} · checkouts plus renewals` : 'Period transaction feed not available', '', data.metricDefinitions.turnover)}
       ${metricCard('Current items', hasCollection ? formatNumber(collection.items) : '—', hasCollection ? (collection.titles ? `${formatNumber(collection.titles)} titles represented` : 'Actual current item records') : 'Current item snapshot not available', '', data.metricDefinitions.items)}
       ${metricCard('Used recently', hasCollection ? formatPercent(collection.recent_use_rate) : '—', hasCollection ? `${activityWindow} · ${formatNumber(collection.used_recently)} items with recorded use` : 'Current item snapshot not available', hasCollection ? 'success' : '', data.metricDefinitions.used_recently)}
+      ${metricCard('Current patrons', hasPatrons ? formatNumber(patrons.total) : '—', hasPatrons ? (patrons.eligibility_label || 'Unexpired or non-expiring accounts') : 'Patron aggregate not available', '', data.metricDefinitions.current_patrons)}
       ${metricCard('Active patrons', hasPatrons ? formatNumber(patrons.active) : '—', hasPatrons ? `${activityWindow} · ${formatPercent(patrons.active_rate)} of current patrons${patronScopeNote}` : 'Patron aggregate not available', '', data.metricDefinitions.active_patrons)}
       ${metricCard('New patrons', hasPatrons ? formatNumber(patrons.new) : '—', hasPatrons ? `${patrons.new_period_label || 'Created in the selected period'}${patronScopeNote}` : 'Patron aggregate not available', '', data.metricDefinitions.new_patrons)}
     </section>
@@ -246,7 +262,7 @@ function renderOverview(data) {
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Demand by item type</h4><p>Select a format to see every applicable KPI for that item type.</p></div></div>${hasCirculation ? rankedBars(data.itemTypeBreakdown, 'checkouts', undefined, 'item-type') : circulationUnavailable}</article>
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Patrons by home library</h4><p>Select a library to see its privacy-protected patron totals.${patronScopeNote}</p></div></div>${rankedBars(data.patronLibraryBreakdown, 'patrons', undefined, 'branch')}</article>
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Collection use</h4><p>Items grouped by recorded use, including never-used and high-use material.</p></div></div>${rankedBars(data.useBands, 'items')}</article>
-      ${systemBranchBreakdown(data)}
+      ${systemBranchBreakdown(data, 'overview')}
       <article class="kpi-chart-card kpi-chart-card--full"><div class="kpi-chart-card__heading"><div><h4>Recommended follow-up</h4><p>Actionable groups that can open as an exact Query report.</p></div></div>${opportunityTable(data.opportunities)}</article>
     </section>${serviceCoverageSection(data)}${sourceNotes(data)}`;
 }
@@ -272,8 +288,18 @@ function renderCollection(data) {
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Collection age</h4><p>Current items by creation-date band.</p></div></div>${rankedBars(data.ageBands, 'items')}</article>
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Hold pressure</h4><p>Demand indicators for copies and titles currently in scope.</p></div></div>${metricCard('Open holds', formatNumber(circ.holds), `${Number(circ.holds_per_100_items || 0).toFixed(1)} per 100 items`)}</article>
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Recently used</h4><p>Items with a recorded last-use date in the ${activityWindow.toLowerCase()}.</p></div></div>${metricCard('Recent-use rate', formatPercent(collection.recent_use_rate), `${activityWindow} · ${formatNumber(collection.used_recently)} of ${formatNumber(collection.items)} items`)}</article>
+      <article class="kpi-chart-card kpi-chart-card--full"><div class="kpi-chart-card__heading"><div><h4>Inventory and availability health</h4><p>Current operational risks and inventory coverage for the selected collection.</p></div></div>
+        <div class="kpi-patron-reconciliation kpi-health-grid">
+          ${metricCard('Inventory coverage', formatPercent(collection.inventory_coverage), `${formatNumber(collection.inventoried)} of ${formatNumber(collection.items)} items have an inventory date`, '', data.metricDefinitions.inventory_coverage)}
+          ${metricCard('Inventoried recently', formatNumber(collection.inventoried_last_365_days), 'Inventory date recorded in the last 12 months')}
+          ${metricCard('Unavailable', formatNumber(collection.unavailable_items), `${formatPercent(collection.unavailable_rate)} of current items`, collection.unavailable_rate > 0.2 ? 'active' : '')}
+          ${metricCard('Missing or lost', formatNumber(collection.missing_lost_items), `${percentage(collection.missing_lost_items, collection.items)} of current items`, collection.missing_lost_items > 0 ? 'active' : '')}
+          ${metricCard('In transit', formatNumber(collection.in_transit_items), 'Items currently assigned an in-transit location')}
+          ${metricCard('Price coverage', formatPercent(collection.price_coverage), `${formatMoney(collection.total_value)} recorded collection value`)}
+        </div>
+      </article>
       <article class="kpi-chart-card kpi-chart-card--full"><div class="kpi-chart-card__heading"><div><h4>Collection-development queue</h4><p>Open the underlying records to review, sort, or export them.</p></div></div>${opportunityTable(data.opportunities)}</article>
-      ${systemBranchBreakdown(data)}
+      ${systemBranchBreakdown(data, 'collection')}
     </section>${sourceNotes(data)}`;
 }
 
@@ -306,7 +332,7 @@ function renderPatrons(data) {
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>ZIP3 reach</h4><p>Broad postal areas from the separate all-record geography aggregate; exact ZIP codes and addresses are never returned.</p><p class="kpi-chart-coverage">${escapeHtml(patronCoverageText(data.patronGeoBreakdown, { total: patrons.records_total }, data.privacy))}</p></div></div>${rankedBars(data.patronGeoBreakdown, 'patrons')}</article>
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>Cities served</h4><p>All-record geography source after privacy suppression; this is not presented as current-patron geography.</p><p class="kpi-chart-coverage">${escapeHtml(patronCoverageText(data.patronCityBreakdown, { total: patrons.records_total }, data.privacy))}</p></div></div>${rankedBars(data.patronCityBreakdown, 'patrons')}</article>
       <article class="kpi-chart-card"><div class="kpi-chart-card__heading"><div><h4>States served</h4><p>All-record geography source after privacy suppression.</p><p class="kpi-chart-coverage">${escapeHtml(patronCoverageText(data.patronStateBreakdown, { total: patrons.records_total }, data.privacy))}</p></div></div>${rankedBars(data.patronStateBreakdown, 'patrons')}</article>
-      ${systemBranchBreakdown(data)}
+      ${systemBranchBreakdown(data, 'patrons')}
     </section>${metricDefinition(data.metricDefinitions.patron_geography)}${sourceNotes(data)}`;
 }
 
