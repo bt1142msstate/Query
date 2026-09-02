@@ -23,6 +23,8 @@ For private deployments with sign-in or existing institutional credentials, foll
 
 The current Sirsi CGI backend fails closed by default. Before installing a hardened backend release, configure a trusted Apache/gateway `REMOTE_USER` path and `QUERY_API_ADMIN_USERS`, then verify the `401`/`403`/authorized response matrix in staging. Do not deploy first and enable authentication afterward.
 
+For the maintained MLP Sirsi deployment, use the hardware-bound `sirsi:ops:*` workflow documented in [`docs/CLI.md`](CLI.md). It reaches the fixed Operations API directly from the approved Mac; Windows App and the workstation bridge are not prerequisites. Prepare and review the guarded operation before explicit execution, then verify deployed hashes and behavior or use the recorded rollback path.
+
 ## Same-Origin Reverse Proxy
 
 Put the static site and API behind the same public origin. A reverse proxy can route:

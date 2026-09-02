@@ -249,7 +249,7 @@ Preparing an operation uploads and validates it without running it:
 
 ```bash
 npm run sirsi:ops:capabilities
-npm run sirsi:ops:prepare -- --archive /absolute/path/operation.tar.gz
+npm run sirsi:ops:prepare -- --profile managed-release --archive /absolute/path/operation.tar.gz
 ```
 
 Execution and rollback are explicit, separate actions using the operation ID returned by prepare:
@@ -261,4 +261,6 @@ npm run sirsi:ops:output -- --operation-id 0123456789abcdef0123456789abcdef
 npm run sirsi:ops:rollback -- --operation-id 0123456789abcdef0123456789abcdef
 ```
 
-The endpoint hostname and path are fixed in the client. The commands do not accept an alternate deployment host, export the private key, or bypass the server's account, policy, baseline, backup, audit, and replay protections.
+Use `managed-release` for guarded file deployment and `script-operation` only for bounded diagnostics supported by the live capabilities response. The archive must contain `sirsi-operation.json` plus its narrow payload and must not exceed the reported 25 MiB limit. Preparing validates and plans but does not execute.
+
+The endpoint hostname and path are fixed in the client. The commands do not accept an alternate deployment host, export the private key, or bypass the server's account, policy, baseline, backup, audit, and replay protections. A Git push and a Sirsi deployment are separate actions.
