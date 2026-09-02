@@ -305,6 +305,46 @@ test('generic API command reaches newer backend actions with JSON payloads and a
   }
 });
 
+test('generic API command can reuse the Query session for a same-origin protected app', async () => {
+  const originalFetch = globalThis.fetch;
+  let requestedUrl;
+  let storedSessionUrl;
+  let request;
+  globalThis.fetch = async (apiUrl, init = {}) => {
+    requestedUrl = apiUrl;
+    request = init;
+    return Response.json({ status: 'idle' });
+  };
+  try {
+    const result = await runApiCommand({
+      action: 'ssn_status',
+      'api-url': 'https://mlp.sirsi.net/uhtbin/ssn_api.pl',
+      'auth-api-url': 'https://mlp.sirsi.net/uhtbin/query_api.pl',
+      sessionStore: {
+        read: async apiUrl => {
+          storedSessionUrl = apiUrl;
+          return { token: 'test-session-token' };
+        }
+      }
+    });
+    assert.equal(requestedUrl, 'https://mlp.sirsi.net/uhtbin/ssn_api.pl');
+    assert.equal(storedSessionUrl, 'https://mlp.sirsi.net/uhtbin/query_api.pl');
+    assert.equal(request.headers['X-Query-Session'], 'test-session-token');
+    assert.equal(result.authApiUrl, 'https://mlp.sirsi.net/uhtbin/query_api.pl');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('generic API command refuses to reuse a session across origins', async () => {
+  await assert.rejects(() => runApiCommand({
+    action: 'ssn_status',
+    'api-url': 'https://other.example/uhtbin/ssn_api.pl',
+    'auth-api-url': 'https://mlp.sirsi.net/uhtbin/query_api.pl',
+    sessionStore: { read: async () => ({ token: 'must-not-be-read' }) }
+  }), /different origin/u);
+});
+
 test('dashboard CLI requests the same scoped aggregate used by the interface', async () => {
   const originalFetch = globalThis.fetch;
   let payload;

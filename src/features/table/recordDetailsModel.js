@@ -6,6 +6,13 @@ const IDENTIFIER_FIELDS = new Map([
   ['isbn', 'ISBN'], ['issn', 'ISSN']
 ]);
 
+const RECORD_LOOKUP_FIELDS = Object.freeze([
+  { lookupType: 'item_key', aliases: ['itemkey'] },
+  { lookupType: 'item_id', aliases: ['itemid', 'itembarcode', 'barcode'] },
+  { lookupType: 'call_number_key', aliases: ['callnumberkey', 'callkey'] },
+  { lookupType: 'catalog_key', aliases: ['catalogkey', 'catalogid', 'bibkey'] }
+]);
+
 function normalizeRecordFieldName(value) {
   return String(value || '').toLocaleLowerCase().replace(/[^a-z0-9]+/gu, '');
 }
@@ -39,6 +46,43 @@ function firstFieldValue(fields, aliases) {
   const normalizedAliases = new Set(aliases.map(normalizeRecordFieldName));
   const match = fields.find(field => normalizedAliases.has(field.normalizedName) && !field.isEmpty);
   return match?.values?.[0] || '';
+}
+
+function resolveRecordDetailsLookup(headers = [], row = []) {
+  const values = new Map();
+  (Array.isArray(headers) ? headers : []).forEach((header, index) => {
+    const normalized = normalizeRecordFieldName(header);
+    const value = flattenRecordValue(Array.isArray(row) ? row[index] : '')
+      .map(candidate => candidate.trim())
+      .find(Boolean);
+    if (normalized && value && !values.has(normalized)) values.set(normalized, value);
+  });
+  for (const definition of RECORD_LOOKUP_FIELDS) {
+    const alias = definition.aliases.find(candidate => values.has(candidate));
+    if (alias) return { lookupType: definition.lookupType, lookupValue: values.get(alias) };
+  }
+  return null;
+}
+
+function buildRecordDetailsModelFromResponse(payload = {}, displayedFields = []) {
+  const responseFields = Array.isArray(payload.fields) ? payload.fields : [];
+  const headers = responseFields.map(field => field?.name || '');
+  const row = responseFields.map(field => Array.isArray(field?.values) ? field.values : [field?.value ?? '']);
+  const model = buildRecordDetailsModel({ headers, row, displayedFields });
+  const responseKind = payload.kind && typeof payload.kind === 'object' ? payload.kind : null;
+  return {
+    ...model,
+    fields: model.fields.map((field, index) => ({
+      ...field,
+      category: String(responseFields[index]?.category || 'Other'),
+      description: String(responseFields[index]?.description || '')
+    })),
+    kind: responseKind?.key && responseKind?.label
+      ? { key: String(responseKind.key), label: String(responseKind.label) }
+      : model.kind,
+    sourceRowCount: Math.max(1, Number(payload.source_row_count) || 1),
+    scopeText: `Loaded all ${model.totalCount.toLocaleString()} fields available for this ${String(responseKind?.label || model.kind.label).toLocaleLowerCase()}; ${model.nonEmptyCount.toLocaleString()} contain data.`
+  };
 }
 
 function buildRecordDetailsModel({ headers = [], row = [], displayedFields = [] } = {}) {
@@ -77,4 +121,11 @@ function buildRecordDetailsModel({ headers = [], row = [], displayedFields = [] 
   };
 }
 
-export { buildRecordDetailsModel, flattenRecordValue, inferRecordKind, normalizeRecordFieldName };
+export {
+  buildRecordDetailsModel,
+  buildRecordDetailsModelFromResponse,
+  flattenRecordValue,
+  inferRecordKind,
+  normalizeRecordFieldName,
+  resolveRecordDetailsLookup
+};

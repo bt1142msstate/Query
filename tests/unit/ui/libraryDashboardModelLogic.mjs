@@ -10,6 +10,8 @@ test('library dashboard normalizes aggregate groups and filter metadata', () => 
     patrons: { total: 32 },
     source_status: { items: { status: 'reused', completed_at: '2026-08-25T07:49:57Z' } },
     service_coverage: [{ id: 'visits', connected: true }],
+    metric_definitions: { current_patrons: { calculation: 'Unexpired accounts.' } },
+    system_breakdown: [{ label: 'MAIN', items: '120', patrons: '32' }],
     library_breakdown: [{ label: 'Main', checkouts: '30' }],
     filters: {
       systems: [{ value: 'system:MAIN', label: 'Main System' }],
@@ -23,6 +25,8 @@ test('library dashboard normalizes aggregate groups and filter metadata', () => 
   assert.equal(dashboard.circulation.period_label, 'Recent 90 days');
   assert.equal(dashboard.circulation.coverage_complete, true);
   assert.equal(dashboard.libraryBreakdown[0].checkouts, 30);
+  assert.equal(dashboard.systemBreakdown[0].items, 120);
+  assert.equal(dashboard.metricDefinitions.current_patrons.calculation, 'Unexpired accounts.');
   assert.equal(dashboard.filters.libraries[0].value, 'MAIN');
   assert.equal(dashboard.filters.systems[0].value, 'system:MAIN');
   assert.equal(dashboard.filters.calendarPeriods[0].value, 'cy:2026');

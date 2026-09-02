@@ -310,6 +310,27 @@
         }
       ]
     },
+    "recordDetailsRequest": {
+      "type": "object",
+      "required": ["action", "lookup_type", "lookup_value"],
+      "properties": {
+        "action": { "const": "record_details" },
+        "lookup_type": { "type": "string", "enum": ["item_id", "item_key", "call_number_key", "catalog_key"] },
+        "lookup_value": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "recordDetailsResponse": {
+      "type": "object",
+      "required": ["kind", "lookup", "fields", "source_row_count"],
+      "properties": {
+        "kind": { "type": "object", "required": ["key", "label"], "properties": { "key": { "type": "string" }, "label": { "type": "string" } }, "additionalProperties": true },
+        "lookup": { "type": "object", "required": ["type", "field", "value"], "properties": { "type": { "type": "string" }, "field": { "type": "string" }, "value": { "type": "string" } }, "additionalProperties": true },
+        "fields": { "type": "array", "items": { "type": "object", "required": ["name", "values"], "properties": { "name": { "type": "string" }, "category": { "type": "string" }, "description": { "type": "string" }, "values": { "type": "array", "items": { "$ref": "#/$defs/scalar" } } }, "additionalProperties": true } },
+        "source_row_count": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": true
+    },
     "runRequest": {
       "type": "object",
       "required": ["action", "display_fields", "filters"],
@@ -659,6 +680,8 @@
   "anyOf": [
     { "$ref": "#/$defs/getFieldsRequest" },
     { "$ref": "#/$defs/getFieldsResponse" },
+    { "$ref": "#/$defs/recordDetailsRequest" },
+    { "$ref": "#/$defs/recordDetailsResponse" },
     { "$ref": "#/$defs/runRequest" },
     { "$ref": "#/$defs/queryResult" },
     { "$ref": "#/$defs/jsonlEvent" },

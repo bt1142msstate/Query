@@ -56,6 +56,20 @@ test('demo backend exposes sample fields and filtered JSONL rows after sign-in',
   assert.equal(events.at(-1).type, 'done');
 });
 
+test('demo backend loads complete record details beyond displayed query columns', async () => {
+  const response = await handleDemoQueryRequest({
+    body: JSON.stringify({ action: 'record_details', lookup_type: 'item_id', lookup_value: '100001' }),
+    headers: authHeaders
+  });
+  const payload = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(payload.kind.key, 'item');
+  assert.equal(payload.lookup.value, '100001');
+  assert.equal(payload.fields.length, 9);
+  assert.equal(payload.fields.find(field => field.name === 'Current Location').values[0], 'DISPLAY');
+  assert.deepEqual(payload.fields.find(field => field.name === 'Public Note').values, ['Local history display', 'Ask at the service desk']);
+});
+
 test('demo endpoint detection is limited to the explicit path', () => {
   assert.equal(isDemoApiUrl('https://bt1142msstate.github.io/Query/demo-api'), true);
   assert.equal(isDemoApiUrl('https://example.org/query-api'), false);

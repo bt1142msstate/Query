@@ -37,8 +37,11 @@ function buildFieldRow(field) {
   row.dataset.searchText = `${field.name} ${field.values.join(' ')}`.toLocaleLowerCase();
   row.dataset.blank = field.isEmpty ? 'true' : 'false';
   if (field.isIdentifier) row.dataset.identifier = 'true';
-  const term = element('dt', 'record-details-field__name', field.name);
+  const term = element('dt', 'record-details-field__name');
+  term.appendChild(element('strong', '', field.name));
+  if (field.category) term.appendChild(element('small', 'record-details-field__category', field.category));
   if (field.isDisplayed) term.appendChild(element('span', 'record-details-field__badge', 'In table'));
+  if (field.description) term.title = field.description;
   const description = element('dd', 'record-details-field__value');
   if (field.isEmpty) description.appendChild(element('em', 'record-details-field__blank', 'Blank'));
   else field.values.forEach(value => description.appendChild(element('span', 'record-details-value', value)));
@@ -66,7 +69,7 @@ function openRecordDetails({ record, trigger = null, bibLookup = null, onOpenBib
   const summary = element('section', 'record-details-summary');
   summary.append(
     buildIdentifierStrip(record),
-    element('p', 'record-details-scope', `Showing all ${record.totalCount.toLocaleString()} fields returned for this row; ${record.nonEmptyCount.toLocaleString()} contain data.`)
+    element('p', 'record-details-scope', record.scopeText || `Showing ${record.totalCount.toLocaleString()} loaded fields; ${record.nonEmptyCount.toLocaleString()} contain data.`)
   );
   const toolbar = element('div', 'record-details-toolbar');
   const searchLabel = element('label', 'record-details-search');
@@ -135,4 +138,24 @@ function openRecordDetails({ record, trigger = null, bibLookup = null, onOpenBib
   return true;
 }
 
-export { closeActiveRecordDetails, openRecordDetails };
+function openRecordDetailsLoading({ trigger = null } = {}) {
+  closeActiveRecordDetails();
+  const dialog = element('dialog', 'record-details-dialog record-details-dialog--loading');
+  dialog.setAttribute('aria-label', 'Loading complete record details');
+  const shell = element('div', 'record-details-shell record-details-loading');
+  const spinner = element('span', 'record-details-loading__spinner');
+  spinner.setAttribute('aria-hidden', 'true');
+  shell.append(spinner, element('strong', '', 'Loading complete record details…'), element('p', '', 'Retrieving every field available for this record.'));
+  dialog.appendChild(shell);
+  document.body.appendChild(dialog);
+  activeDialog = dialog;
+  dialog.addEventListener('close', () => {
+    if (activeDialog === dialog) activeDialog = null;
+    dialog.remove();
+    trigger?.focus?.({ preventScroll: true });
+  }, { once: true });
+  dialog.showModal();
+  return true;
+}
+
+export { closeActiveRecordDetails, openRecordDetails, openRecordDetailsLoading };

@@ -38,6 +38,7 @@ function normalizeLibraryDashboard(payload = {}) {
     collection: normalizeMetricGroup(data.collection),
     patrons: normalizeMetricGroup(data.patrons),
     circulationTrend: normalizeSeries(data.circulation_trend),
+    systemBreakdown: normalizeSeries(data.system_breakdown),
     libraryBreakdown: normalizeSeries(data.library_breakdown),
     itemTypeBreakdown: normalizeSeries(data.item_type_breakdown),
     useBands: normalizeSeries(data.use_bands),
@@ -58,6 +59,7 @@ function normalizeLibraryDashboard(payload = {}) {
         ? data.filters.fiscal_periods_by_system : {}
     },
     sources: Array.isArray(data.sources) ? data.sources : [],
+    metricDefinitions: data.metric_definitions && typeof data.metric_definitions === 'object' ? data.metric_definitions : {},
     notes: Array.isArray(data.notes) ? data.notes : [],
     privacy: data.privacy || {},
     serviceCoverage: Array.isArray(data.service_coverage) ? data.service_coverage : [],

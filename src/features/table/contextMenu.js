@@ -15,8 +15,8 @@ import { createTableContextPreview } from './contextMenuPreview.js';
 import { openCollapsedRowsViewer } from './virtual-table/collapsedRowsViewer.js';
 import { OclcBibCompare } from '../../ui/bib-compare/oclcBibCompare.js';
 import { resolveBibCompareLookup } from '../../ui/bib-compare/bibCompareLaunch.js';
-import { buildRecordDetailsModel } from './recordDetailsModel.js';
-import { openRecordDetails } from './recordDetailsDialog.js';
+import { buildRecordDetailsModel, resolveRecordDetailsLookup } from './recordDetailsModel.js';
+import { createRecordDetailsAction } from './recordDetailsAction.js';
 
 (() => {
   let menuEl = null;
@@ -165,8 +165,6 @@ import { openRecordDetails } from './recordDetailsDialog.js';
     <path d="M11 10H5"/>
     <path d="m6.5 8.5-1.5 1.5 1.5 1.5"/>
   </svg>`;
-
-  const RECORD_DETAILS_ICON = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 1.5h7l3 3V14a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 3 14V1.5z"/><path d="M10 1.5V5h3"/><path d="M5.5 8h5M5.5 10.5h5M5.5 13h3"/></svg>`;
 
   const {
     previewCell,
@@ -468,7 +466,10 @@ import { openRecordDetails } from './recordDetailsDialog.js';
       ? resolveBibCompareLookup(fields, getRowValues(rowIndex))
       : null;
     const virtualTableData = getVT();
-    const recordDetails = hasRow ? buildRecordDetailsModel({ headers: virtualTableData?.headers || [], row: virtualTableData?.rows?.[rowIndex] || [], displayedFields: fields }) : null;
+    const recordHeaders = virtualTableData?.headers || [];
+    const recordRow = virtualTableData?.rows?.[rowIndex] || [];
+    const recordDetails = hasRow ? buildRecordDetailsModel({ headers: recordHeaders, row: recordRow, displayedFields: fields }) : null;
+    const recordLookup = hasRow ? resolveRecordDetailsLookup(recordHeaders, recordRow) : null;
     const collapsedRowGroup = hasRow ? getCollapsedRowGroup(rowIndex) : null;
     const hasCollapsedRowGroup = Boolean(collapsedRowGroup);
     const isHeaderTarget = Boolean(headerCell && !bodyCell);
@@ -541,22 +542,14 @@ import { openRecordDetails } from './recordDetailsDialog.js';
             });
           }
         }] : []),
-        ...(recordDetails?.fields?.length ? [{
-          icon: RECORD_DETAILS_ICON,
-          label: 'View Record Details',
-          hint: recordDetails.kind.label,
-          preview() {
-            return hasRow ? previewRow(tr) : null;
-          },
-          run() {
-            openRecordDetails({
-              record: recordDetails,
-              trigger: bodyCell,
-              bibLookup: bibCompareLookup,
-              onOpenBib: lookup => OclcBibCompare.openForLookup(lookup)
-            });
-          }
-        }] : []),
+        ...[createRecordDetailsAction({
+          bodyCell,
+          fields,
+          recordDetails,
+          recordLookup,
+          bibCompareLookup,
+          preview: () => hasRow ? previewRow(tr) : null
+        })].filter(Boolean),
         {
           icon:  CELL_ICON,
           label: 'Copy Cell',

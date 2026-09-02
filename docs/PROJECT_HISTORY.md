@@ -56,6 +56,7 @@ This is a non-redundant summary of the work represented by the repository commit
 
 ## Results Table
 
+- Added an on-demand complete record-details view for result rows. It resolves an exact item, call-number, or catalog identifier and retrieves every concrete field authorized for that record scope, including blank and non-displayed fields, without bloating ordinary query results.
 - Added virtualized result rendering so large result sets render only the visible rows plus an overscan buffer.
 - Added native and custom table scrolling behavior, including a draggable scrollbar thumb.
 - Fixed scroll boundaries so the table cannot scroll above headers or below the result range.
