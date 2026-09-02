@@ -25,6 +25,8 @@ The current Sirsi CGI backend fails closed by default. Before installing a harde
 
 For the maintained MLP Sirsi deployment, use the hardware-bound `sirsi:ops:*` workflow documented in [`docs/CLI.md`](CLI.md). It reaches the fixed Operations API directly from the approved Mac; Windows App and the workstation bridge are not prerequisites. Prepare and review the guarded operation before explicit execution, then verify deployed hashes and behavior or use the recorded rollback path.
 
+Use neutral, purpose-based names for every authored deployment artifact. Assistant, chatbot, and AI vendor/product names must not appear in filenames, directories, branches, commits, operation or job names, manifests, descriptions, comments, UI text, logs, summaries, archives, metadata, generated artifacts, or deployed paths. Run `npm run check:repository-policy` and inspect the final package listing before release. Do not rewrite legitimate library records, user-entered data, historical security audits, or vendor documentation to satisfy this naming rule.
+
 ## Same-Origin Reverse Proxy
 
 Put the static site and API behind the same public origin. A reverse proxy can route:
