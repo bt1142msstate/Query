@@ -610,7 +610,7 @@ async function installQueryApiStub(page) {
     }
 
     const payload = parseQueryApiPayload(request);
-    requests.push({ action: payload.action || '', payload });
+    requests.push({ action: payload.action || '', payload, headers: request.headers() });
     const queuedResponseIndex = queuedResponses.findIndex(response => {
       const actionMatches = !response.action || response.action === payload.action;
       if (!actionMatches) {

@@ -26,6 +26,7 @@ class ModalManager {
       'run-query-btn': 'Run Query',
       'toggle-json': 'JSON',
       'toggle-kpi-dashboard': 'Dashboard',
+      'toggle-library-user-admin': 'Users',
       'toggle-queries': 'Queries',
       'toggle-templates': 'Templates',
       'toggle-bib-compare': 'Hydration',
