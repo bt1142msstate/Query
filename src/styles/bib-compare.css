@@ -29,24 +29,10 @@
 
 .hydration-drop-icon {
   overflow: visible;
-}
-
-.hydration-drop-icon__body {
-  fill: #38bdf8;
-  stroke: #0369a1;
-  stroke-width: 1.15;
-  stroke-linejoin: round;
-}
-
-.hydration-drop-icon__shade {
-  fill: #0284c7;
-  opacity: 0.88;
-}
-
-.hydration-drop-icon__shine {
   fill: none;
-  stroke: #e0f2fe;
-  stroke-width: 1.35;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
   stroke-linecap: round;
 }
 

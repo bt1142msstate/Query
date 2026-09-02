@@ -120,12 +120,20 @@ test('a cold-start query ETA is visible before Run without comparable history', 
       const overlay = document.querySelector('#query-plan-overlay');
       const preview = document.querySelector('#query-plan-preview');
       const table = document.querySelector('#table-container');
+      const hydrationIcon = document.querySelector('#toggle-bib-compare .hydration-drop-icon');
       const previewRect = preview?.getBoundingClientRect();
       const tableRect = table?.getBoundingClientRect();
+      const smartOrderingStyle = smartOrdering ? window.getComputedStyle(smartOrdering) : null;
+      const hydrationStyle = hydrationIcon ? window.getComputedStyle(hydrationIcon) : null;
       return {
         smartOrderingParent: smartOrdering?.parentElement?.id || '',
         smartOrderingInHeader: headerControls?.contains(smartOrdering) === true,
         previewInOverlay: overlay?.contains(preview) === true,
+        smartOrderingBackground: smartOrderingStyle?.backgroundColor || '',
+        smartOrderingColor: smartOrderingStyle?.color || '',
+        hydrationPathCount: hydrationIcon?.querySelectorAll('path').length || 0,
+        hydrationFill: hydrationStyle?.fill || '',
+        hydrationStroke: hydrationStyle?.stroke || '',
         previewCenterOffsetX: previewRect && tableRect
           ? Math.abs((previewRect.left + previewRect.width / 2) - (tableRect.left + tableRect.width / 2))
           : Infinity,
@@ -137,6 +145,11 @@ test('a cold-start query ETA is visible before Run without comparable history', 
     assert.equal(placement.smartOrderingParent, 'header-controls');
     assert.equal(placement.smartOrderingInHeader, true);
     assert.equal(placement.previewInOverlay, true);
+    assert.equal(placement.smartOrderingBackground, 'rgb(255, 255, 255)');
+    assert.equal(placement.smartOrderingColor, 'rgb(17, 24, 39)');
+    assert.equal(placement.hydrationPathCount, 1);
+    assert.equal(placement.hydrationFill, 'none');
+    assert.equal(placement.hydrationStroke, 'rgb(0, 0, 0)');
     assert.ok(placement.previewCenterOffsetX < 2);
     assert.ok(placement.previewCenterOffsetY < 2);
 
