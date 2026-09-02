@@ -152,6 +152,14 @@ test('a cold-start query ETA is visible before Run without comparable history', 
     await page.keyboard.press('Escape');
     assert.equal(await page.locator('#query-plan-details').getAttribute('class'), 'query-plan-details hidden');
 
+    await page.setViewportSize({ width: 900, height: 700 });
+    await page.locator('#mobile-menu-toggle').click();
+    const mobileSmartOrdering = page.locator('[data-source-control-id="planning-badge"]');
+    await mobileSmartOrdering.waitFor({ state: 'visible' });
+    assert.equal(await mobileSmartOrdering.getAttribute('aria-label'), 'Smart ordering');
+    await page.keyboard.press('Escape');
+    await page.setViewportSize({ width: 1280, height: 720 });
+
     assert.equal(api.getRequests('query_plan').at(-1)?.payload?.smart_query_enabled, undefined);
     await page.locator('#planning-badge').click();
     await page.waitForFunction(() => document.querySelector('#planning-badge')?.getAttribute('aria-pressed') === 'false');
