@@ -7,6 +7,7 @@ import { createSign, generateKeyPairSync } from 'node:crypto';
 import {
   executeSirsiOperation,
   getSirsiOperationOutput,
+  getSirsiOperationOutputs,
   prepareSirsiOperation,
   rollbackSirsiOperation
 } from '../../../scripts/lib/sirsiOpsClient.mjs';
@@ -118,4 +119,35 @@ test('operation output is reassembled from bounded authenticated chunks', async 
     operationId: 'fa'.repeat(16), stream: 'stdout', sessionHeaders: {}, device, fetchImpl
   });
   assert.deepEqual(output, source);
+});
+
+test('multiple operation streams are fetched together in bounded authenticated batches', async () => {
+  const sources = {
+    stdout: Buffer.alloc(400_000, 1),
+    stderr: Buffer.alloc(90_000, 2)
+  };
+  const actions = [];
+  const fetchImpl = async (_url, request) => {
+    const payload = JSON.parse(request.body);
+    actions.push(payload.action);
+    assert.equal(payload.action, 'outputs');
+    assert.ok(payload.outputs.reduce((sum, output) => sum + output.max_bytes, 0) <= 640 * 1024);
+    return jsonResponse({ outputs: payload.outputs.map(output => {
+      const source = sources[output.stream];
+      const chunk = source.subarray(output.offset, Math.min(output.offset + output.max_bytes, source.length));
+      return {
+        operation_id: output.operation_id, stream: output.stream, offset: output.offset,
+        bytes: chunk.length, data_base64: chunk.toString('base64'),
+        next_offset: output.offset + chunk.length, eof: output.offset + chunk.length >= source.length
+      };
+    }) });
+  };
+  const operationId = 'bc'.repeat(16);
+  const results = await getSirsiOperationOutputs({
+    apiUrl: 'https://mlp.sirsi.net/uhtbin/sirsi_ops_api.pl',
+    outputs: [{ operationId, stream: 'stdout' }, { operationId, stream: 'stderr' }],
+    sessionHeaders: {}, device, fetchImpl
+  });
+  assert.equal(actions.length, 2);
+  assert.deepEqual(results.map(result => result.data), [sources.stdout, sources.stderr]);
 });

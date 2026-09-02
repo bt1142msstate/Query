@@ -4,6 +4,9 @@ import { buildSirsiOperationsHeaders } from './sirsiOpsAuth.mjs';
 
 const CHUNK_BYTES = 384 * 1024;
 const MAX_ARCHIVE_BYTES = 25 * 1024 * 1024;
+const MAX_OUTPUT_BYTES = 1024 * 1024;
+const MAX_OUTPUT_BATCH_BYTES = 640 * 1024;
+const MAX_OUTPUT_BATCH_ENTRIES = 8;
 
 function validateProfile(profile) {
   const value = String(profile || '').trim().toLowerCase();
@@ -128,6 +131,60 @@ export async function getSirsiOperationOutput({ apiUrl, operationId, stream = 's
     chunks.push(chunk);
     offset = output.next_offset;
     if (output.eof) return Buffer.concat(chunks);
-    if (output.bytes === 0 || offset > 1024 * 1024) throw new Error('Sirsi operations output exceeded its allowed size.');
+    if (output.bytes === 0 || offset > MAX_OUTPUT_BYTES) throw new Error('Sirsi operations output exceeded its allowed size.');
   }
+}
+
+export async function getSirsiOperationOutputs({ apiUrl, outputs, sessionHeaders, device, fetchImpl = fetch }) {
+  if (!Array.isArray(outputs) || outputs.length < 1 || outputs.length > MAX_OUTPUT_BATCH_ENTRIES) {
+    throw new Error('Outputs must contain 1 to 8 operation streams.');
+  }
+  const states = outputs.map((output, index) => {
+    const operationId = validateOperationId(output?.operationId);
+    const stream = String(output?.stream || 'stdout');
+    if (!['stdout', 'stderr'].includes(stream)) throw new Error('Output stream must be stdout or stderr.');
+    return { index, operationId, stream, offset: 0, chunks: [], done: false };
+  });
+  while (states.some(state => !state.done)) {
+    const active = states.filter(state => !state.done);
+    const maxBytes = Math.floor(MAX_OUTPUT_BATCH_BYTES / active.length);
+    const response = await postSirsiOperationsAction({
+      apiUrl,
+      payload: {
+        action: 'outputs',
+        outputs: active.map(state => ({
+          operation_id: state.operationId,
+          stream: state.stream,
+          offset: state.offset,
+          max_bytes: maxBytes
+        }))
+      },
+      sessionHeaders, device, fetchImpl
+    });
+    if (!Array.isArray(response.outputs) || response.outputs.length !== active.length) {
+      throw new Error('Sirsi operations server returned invalid batched output metadata.');
+    }
+    response.outputs.forEach((output, activeIndex) => {
+      const state = active[activeIndex];
+      if (!output || output.operation_id !== state.operationId || output.stream !== state.stream
+        || output.offset !== state.offset || !Number.isSafeInteger(output.bytes) || output.bytes < 0
+        || !Number.isSafeInteger(output.next_offset) || output.next_offset !== state.offset + output.bytes
+        || typeof output.data_base64 !== 'string') {
+        throw new Error('Sirsi operations server returned invalid batched output metadata.');
+      }
+      const chunk = Buffer.from(output.data_base64, 'base64');
+      if (chunk.length !== output.bytes) throw new Error('Sirsi operations output length did not match its metadata.');
+      state.chunks.push(chunk);
+      state.offset = output.next_offset;
+      state.done = Boolean(output.eof);
+      if (!state.done && (output.bytes === 0 || state.offset > MAX_OUTPUT_BYTES)) {
+        throw new Error('Sirsi operations output exceeded its allowed size.');
+      }
+    });
+  }
+  return states.sort((left, right) => left.index - right.index).map(state => ({
+    operationId: state.operationId,
+    stream: state.stream,
+    data: Buffer.concat(state.chunks)
+  }));
 }

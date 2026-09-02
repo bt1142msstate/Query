@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 import process from 'node:process';
-import { writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
 import { getCliAuthorizationHeaders } from './lib/queryCliAuth.mjs';
 import {
   executeSirsiOperation,
   getSirsiOperationOutput,
+  getSirsiOperationOutputs,
   getSirsiOperationStatus,
   postSirsiOperationsAction,
   prepareSirsiOperation,
@@ -25,9 +26,23 @@ function parseOptions(tokens) {
     const key = token.slice(2, equal >= 0 ? equal : undefined);
     const value = equal >= 0 ? token.slice(equal + 1) : tokens[++index];
     if (!key || value === undefined || String(value).startsWith('--')) throw new Error(`Option --${key || '?'} needs a value.`);
-    options[key] = value;
+    if (key === 'operation-id' || key === 'stream') {
+      if (!Array.isArray(options[key])) options[key] = [];
+      options[key].push(value);
+    } else {
+      options[key] = value;
+    }
   }
   return options;
+}
+
+function oneOption(options, key, fallback = '') {
+  const value = options[key];
+  if (Array.isArray(value)) {
+    if (value.length !== 1) throw new Error(`Option --${key} may only be used once for this command.`);
+    return String(value[0]);
+  }
+  return String(value === undefined ? fallback : value);
 }
 
 async function main() {
@@ -60,10 +75,28 @@ async function main() {
     process.stdout.write(`${JSON.stringify(operation, null, 2)}\n`);
     return;
   }
-  const operationId = String(options['operation-id'] || '');
+  if (command === 'outputs') {
+    const operationIds = Array.isArray(options['operation-id']) ? options['operation-id'] : [];
+    const streams = Array.isArray(options.stream) && options.stream.length ? options.stream : ['stdout'];
+    if (!operationIds.length) throw new Error('Outputs requires at least one --operation-id ID.');
+    if (!options['output-directory']) throw new Error('Outputs requires --output-directory PATH.');
+    const requests = operationIds.flatMap(operationId => streams.map(stream => ({ operationId, stream })));
+    const outputDirectory = resolve(String(options['output-directory']));
+    await mkdir(outputDirectory, { recursive: true, mode: 0o700 });
+    const results = await getSirsiOperationOutputs({ apiUrl, outputs: requests, sessionHeaders });
+    const written = [];
+    for (const result of results) {
+      const outputPath = join(outputDirectory, `${result.operationId}.${result.stream}`);
+      await writeFile(outputPath, result.data, { mode: 0o600 });
+      written.push({ operation_id: result.operationId, stream: result.stream, bytes: result.data.length, path: outputPath });
+    }
+    process.stdout.write(`${JSON.stringify({ outputs: written }, null, 2)}\n`);
+    return;
+  }
+  const operationId = oneOption(options, 'operation-id');
   if (command === 'output') {
     const output = await getSirsiOperationOutput({
-      apiUrl, operationId, stream: String(options.stream || 'stdout'), sessionHeaders
+      apiUrl, operationId, stream: oneOption(options, 'stream', 'stdout'), sessionHeaders
     });
     process.stdout.write(output);
     return;
@@ -78,7 +111,7 @@ async function main() {
     process.stdout.write(`${JSON.stringify(operation, null, 2)}\n`);
     return;
   }
-  throw new Error('Use enroll, capabilities, prepare, execute, status, output, or rollback.');
+  throw new Error('Use enroll, capabilities, prepare, execute, status, output, outputs, or rollback.');
 }
 
 main().catch(error => {

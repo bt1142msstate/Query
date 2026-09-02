@@ -261,8 +261,11 @@ Execution and rollback are explicit, separate actions using the operation ID ret
 npm run sirsi:ops:execute -- --operation-id 0123456789abcdef0123456789abcdef
 npm run sirsi:ops:status -- --operation-id 0123456789abcdef0123456789abcdef
 npm run sirsi:ops:output -- --operation-id 0123456789abcdef0123456789abcdef
+npm run sirsi:ops:outputs -- --operation-id 0123456789abcdef0123456789abcdef --stream stdout --stream stderr --output-directory /private/tmp/sirsi-operation-output
 npm run sirsi:ops:rollback -- --operation-id 0123456789abcdef0123456789abcdef
 ```
+
+Use `sirsi:ops:outputs` when retrieving more than one operation stream. It batches as many as eight stdout/stderr streams into each hardware-signed request, shares a bounded 640 KiB response budget across active streams, paginates automatically, and writes each stream to a private local file. This is faster and produces less authentication traffic than launching one output command per stream.
 
 Use `managed-release` for guarded file deployment and `script-operation` only for bounded diagnostics supported by the live capabilities response. The archive must contain `sirsi-operation.json` plus its narrow payload and must not exceed the reported 25 MiB limit. Preparing validates and plans but does not execute.
 
