@@ -5,6 +5,7 @@ import {
   DATE_INPUT_PATTERN,
   HOVER_SHOW_DELAY_MS,
   INSTANT_TOOLTIP_DELAY_MS,
+  SelectorControls,
   Tooltips,
   buildFilterTooltipHtml,
   VIRTUAL_TABLE_DOM_COMPONENT_CSS,
@@ -143,6 +144,9 @@ test('date picker and tooltip component entrypoints expose browser-safe APIs', (
   assert.equal(typeof Tooltips.attach, 'function');
   assert.equal(typeof Tooltips.forceHide, 'function');
   assert.match(buildFilterTooltipHtml([{ field: 'Title', operator: 'Equals', value: 'Alpha' }]), /Title/u);
+  assert.equal(typeof SelectorControls.createGroupedSelector, 'function');
+  assert.equal(typeof SelectorControls.createPopupListControl, 'function');
+  assert.equal(typeof SelectorControls.createBooleanPillSelector, 'function');
 });
 
 test('tooltip timing policy keeps affordances instant and dense lists delayed', () => {

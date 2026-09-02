@@ -1,5 +1,5 @@
 {
-  "version": "c6e9908259f80000",
+  "version": "fc3ad670c454f702",
   "generatedBy": "scripts/updateCacheBusting.mjs",
   "assets": {
     "assets/app-icon-16.png": "6645731d86da1071",
@@ -20,7 +20,8 @@
     "src/components/date-picker/index.js": "c9a9363a3fdae5ee",
     "src/components/drag-drop/createColumnDragDropComponent.js": "57df0946d0cc37c8",
     "src/components/drag-drop/index.js": "bac3702e826d76b2",
-    "src/components/index.js": "f711d0b0c2181409",
+    "src/components/fieldControls.js": "8652531698c99c5b",
+    "src/components/index.js": "3938582eb447b38b",
     "src/components/tooltips/index.js": "862d805577be5b57",
     "src/components/virtual-table/createVirtualTableComponent.js": "058ecf6bcca2f93a",
     "src/components/virtual-table/createVirtualTableDomComponent.js": "a1603cd5351afd4f",
