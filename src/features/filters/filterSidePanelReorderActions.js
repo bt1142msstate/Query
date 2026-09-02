@@ -5,6 +5,7 @@ function createFilterSidePanelReorderActions({
   QueryTableView,
   createDisplaySection,
   getActiveFilterFields,
+  onManualFilterReorder,
   services,
   uiActions
 } = {}) {
@@ -204,10 +205,12 @@ function createFilterSidePanelReorderActions({
     const nextOrder = order.slice();
     const [draggedField] = nextOrder.splice(fromIndex, 1);
     nextOrder.splice(toIndex, 0, draggedField);
+    const disabledSmartOrdering = onManualFilterReorder?.() === true;
 
     applyOptimisticFilterListOrder(nextOrder);
     QueryChangeManager?.reorderFilterGroups?.(nextOrder, {
-      source
+      source,
+      ...(disabledSmartOrdering ? { toast: false } : {})
     });
     uiActions?.updateQueryJson?.();
     uiActions?.updateFilterSidePanel?.();

@@ -14,6 +14,10 @@ import { appUiActions, registerAppUiActionDependencies } from '../../core/appUiA
 import { QueryChangeManager, QueryStateReaders } from './filterQueryState.js';
 import { QueryStateSubscriptions } from '../../core/queryStateSubscriptions.js';
 import { showToastMessage } from '../../core/toast.js';
+import {
+    setSmartFilterOrderingPreference,
+    shouldUseSmartFilterOrdering
+} from '../../core/queryPreferences.js';
 import { OperatorLabels } from '../../core/formatting/operatorLabels.js';
 import { Icons } from '../../core/icons.js';
 import { SharedFieldPicker } from '../../ui/field-picker/fieldPicker.js';
@@ -309,6 +313,16 @@ const FilterSidePanel = (function () {
         return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true"><path d="m8 7 4-4 4 4"/><path d="M12 3v18"/><path d="m8 17 4 4 4-4"/></svg>';
     }
 
+    function disableSmartOrderingForManualMove() {
+        if (!shouldUseSmartFilterOrdering()) return false;
+        setSmartFilterOrderingPreference(false);
+        window.dispatchEvent(new CustomEvent('query-smart-ordering:changed', {
+            detail: { source: 'manual-filter-reorder' }
+        }));
+        showToastMessage('Smart ordering is off. Using your filter order.', 'info', 2200);
+        return true;
+    }
+
     const reorderActions = createFilterSidePanelReorderActions({
         DOM,
         QueryChangeManager,
@@ -316,6 +330,7 @@ const FilterSidePanel = (function () {
         QueryTableView,
         createDisplaySection,
         getActiveFilterFields,
+        onManualFilterReorder: disableSmartOrderingForManualMove,
         services,
         uiActions
     });

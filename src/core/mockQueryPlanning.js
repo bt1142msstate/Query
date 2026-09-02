@@ -1,15 +1,34 @@
+function demoFilterPriority(filter = {}) {
+  const field = String(filter.field || '').trim();
+  const operator = String(filter.operator || '=').trim();
+  const value = String(filter.value || '').trim();
+  if (/\b(?:barcode|id|key)\b/iu.test(field) && operator === '=' && !value.includes('*')) return 0;
+  if (operator === '=' && !value.includes('*')) return 1;
+  if (['>', '>=', '<', '<='].includes(operator)) return 2;
+  return 3;
+}
+
 function buildDemoQueryPlan(payload = {}) {
   const enabled = payload.smart_query_enabled !== false;
+  const originalFilters = Array.isArray(payload.filters) ? payload.filters : [];
+  const plannedFilters = enabled
+    ? originalFilters.slice().sort((left, right) => (
+      demoFilterPriority(left) - demoFilterPriority(right)
+      || String(left.field || '').localeCompare(String(right.field || ''))
+    ))
+    : originalFilters.slice();
+  const changed = plannedFilters.some((filter, index) => filter !== originalFilters[index]);
   return {
     ok: true,
     data: {
       schema_version: 2,
       strategy: enabled ? 'cost_based_routes_v2' : 'manual_order_v2',
-      changed: false,
-      order: (payload.filters || []).map((filter, index) => ({
+      changed: enabled && changed,
+      filters: plannedFilters,
+      order: plannedFilters.map((filter, index) => ({
         field: filter.field,
         operator: filter.operator || '=',
-        original_position: index + 1,
+        original_position: originalFilters.indexOf(filter) + 1,
         planned_position: index + 1,
         reason: enabled ? 'Sample complete-route estimate' : 'Original order preserved'
       })),

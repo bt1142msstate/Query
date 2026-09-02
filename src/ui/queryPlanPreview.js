@@ -1,9 +1,14 @@
 import { BackendApi } from '../core/backendApi.js';
 import { getSession } from '../core/authSession.js';
-import { QueryStateReaders } from '../core/queryState.js';
+import { QueryChangeManager, QueryStateReaders } from '../core/queryState.js';
 import { QueryStateSubscriptions } from '../core/queryStateSubscriptions.js';
 import { buildBackendQueryPayload } from '../features/filters/queryPayload.js';
 import { estimateColdStartQueryPlan, mergeQueryPlanEstimate, queryPlanSignature } from '../core/queryPlanEstimate.js';
+import {
+  areFilterFieldOrdersEqual,
+  buildPlannedFilterFieldOrder,
+  getActiveFilterFieldNames
+} from '../core/queryPlanOrdering.js';
 import {
   setSmartFilterOrderingPreference,
   shouldUseSmartFilterOrdering
@@ -44,6 +49,21 @@ function initializeSmartOrderingToggle() {
     scheduleQueryPlanPreview();
   });
   syncSmartOrderingToggle();
+}
+
+function applySmartFilterOrder(plan) {
+  if (!shouldUseSmartFilterOrdering()) return false;
+  const activeFilters = QueryStateReaders.getActiveFilters();
+  const currentOrder = getActiveFilterFieldNames(activeFilters);
+  const plannedOrder = buildPlannedFilterFieldOrder(plan, activeFilters);
+  if (plannedOrder.length < 2 || areFilterFieldOrdersEqual(currentOrder, plannedOrder)) {
+    return false;
+  }
+
+  return QueryChangeManager.reorderFilterGroups(plannedOrder, {
+    source: 'QueryPlanPreview.applySmartFilterOrder',
+    toast: false
+  }) === true;
 }
 
 function previewElements() {
@@ -194,7 +214,10 @@ async function refreshPreview(payload, requestRevision, signal) {
     ? planResult.value.data?.data || planResult.value.data || null
     : null;
   const aggregate = aggregateResult.status === 'fulfilled' ? aggregateResult.value : aggregateCache;
-  const plan = cachePlan(payload, mergeQueryPlanEstimate(payload, backendPlan, aggregate), planResult.status === 'fulfilled');
+  const plan = mergeQueryPlanEstimate(payload, backendPlan, aggregate);
+  const orderChanged = planResult.status === 'fulfilled' && applySmartFilterOrder(plan);
+  const effectivePayload = orderChanged ? buildBackendQueryPayload() : payload;
+  cachePlan(effectivePayload, plan, planResult.status === 'fulfilled');
   renderPreview('ready', `ETA · ${plan.eta.label}`, plan.explanation, plan);
 }
 
@@ -222,9 +245,13 @@ function scheduleQueryPlanPreview() {
   }, PLAN_DEBOUNCE_MS);
 }
 
-QueryStateSubscriptions.subscribe(scheduleQueryPlanPreview, { displayedFields: true, activeFilters: true });
+QueryStateSubscriptions.subscribe(event => {
+  if (event?.meta?.source === 'QueryPlanPreview.applySmartFilterOrder') return;
+  scheduleQueryPlanPreview();
+}, { displayedFields: true, activeFilters: true });
 window.addEventListener('query-auth:changed', scheduleQueryPlanPreview);
 window.addEventListener('query-app:ready', scheduleQueryPlanPreview);
+window.addEventListener('query-smart-ordering:changed', syncSmartOrderingToggle);
 initializeSmartOrderingToggle();
 
 const previewButton = document.getElementById('query-plan-preview');

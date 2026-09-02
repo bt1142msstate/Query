@@ -14,6 +14,46 @@ import {
   waitForAppReady
 } from './support/browserSmokeSupport.mjs';
 
+function buildPlannedOrderResponse(fields) {
+  return {
+    action: 'query_plan',
+    body: JSON.stringify({
+      ok: true,
+      data: {
+        schema_version: 2,
+        strategy: 'cost_based_routes_v2',
+        changed: true,
+        order: fields.map((field, index) => ({
+          field,
+          original_position: fields.length - index,
+          planned_position: index + 1,
+          reason: 'Planner test route cost'
+        })),
+        eta: {
+          available: true,
+          method: 'stage_cost_model_v2',
+          confidence: 'medium',
+          requires_comparable_history: false,
+          expected_candidates: 12,
+          expected_scanned_records: 100,
+          expected_output_rows: 12,
+          expected_output_bytes: 2400,
+          p50_seconds: 1,
+          p80_seconds: 2,
+          p90_seconds: 3,
+          basis: 'Planner browser test',
+          stages: [{ id: 'selector_scan', label: 'Selector scan', p50_seconds: 1 }],
+          warnings: [],
+          label: 'Likely 1–2 sec'
+        },
+        route: { selected: ['selcatalog', 'selitem'], alternatives_compared: 2 },
+        explanation: 'The planner selected the lowest-cost route.'
+      }
+    }),
+    contentType: 'application/json; charset=utf-8'
+  };
+}
+
 test('a cold-start query ETA is visible before Run without comparable history', { timeout: 30000 }, async () => {
   const server = createServer(serveStaticFile);
   const port = await listen(server);
@@ -97,6 +137,84 @@ test('a cold-start query ETA is visible before Run without comparable history', 
     await page.waitForFunction(() => document.querySelector('#planning-badge')?.getAttribute('aria-pressed') === 'true');
     assert.equal(await page.evaluate(() => window.localStorage.getItem('query:smartFilterOrderingEnabled')), null);
     assert.equal(await page.locator('[data-smart-query-state]').textContent(), 'On');
+    assert.deepEqual(failures, []);
+  } finally {
+    await browser?.close();
+    await closeServer(server);
+  }
+});
+
+test('smart ordering visibly arranges filters and a manual move turns it off', { timeout: 30000 }, async () => {
+  const server = createServer(serveStaticFile);
+  const port = await listen(server);
+  const failures = [];
+  let browser;
+
+  try {
+    browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage();
+    await page.addInitScript(() => {
+      sessionStorage.setItem('query-project.session', JSON.stringify({
+        token: 'smart-order-session', username: 'smart-order', role: 'admin'
+      }));
+    });
+    attachFailureListeners(page, failures, port);
+    await stubExternalAssets(page);
+    const api = await installQueryApiStub(page);
+    api.enqueue(buildPlannedOrderResponse(['Catalog Key', 'Copy Hold Count', 'Total Checkouts']));
+    const form = encodeFormSpecForUrl({
+      title: 'Smart filter order',
+      queryName: 'Smart filter order',
+      columns: ['Title', 'Item Id'],
+      inputs: [
+        { key: 'total-checkouts', field: 'Total Checkouts', source: 'query-filter', label: 'Total Checkouts', operator: 'greater', required: false, multiple: false, hidden: false, type: 'number', defaultValue: '1' },
+        { key: 'copy-holds', field: 'Copy Hold Count', source: 'query-filter', label: 'Copy Hold Count', operator: 'greater', required: false, multiple: false, hidden: false, type: 'number', defaultValue: '0' },
+        { key: 'catalog-key', field: 'Catalog Key', source: 'query-filter', label: 'Catalog Key', operator: 'equals', required: false, multiple: false, hidden: false, type: 'text', defaultValue: '12345' }
+      ],
+      lockedFilters: []
+    });
+    await page.goto(`http://127.0.0.1:${port}/index.html?form=${form}`, { waitUntil: 'load' });
+    await waitForAppReady(page, failures);
+    await page.waitForFunction(() => {
+      const names = Array.from(document.querySelectorAll('.fp-filter-list > .fp-field-group'))
+        .map(group => group.dataset.field);
+      return names.join('|') === 'Catalog Key|Copy Hold Count|Total Checkouts';
+    }, null, { timeout: 7000 });
+
+    assert.equal(await page.locator('#planning-badge').getAttribute('aria-pressed'), 'true');
+    assert.equal(api.countAction('query_plan'), 1);
+    assert.deepEqual(await page.locator('.form-mode-field .form-mode-label').allTextContents(), [
+      'Catalog Key',
+      'Copy Hold Count',
+      'Total Checkouts'
+    ]);
+
+    await page.locator('.fp-field-group[data-field="Total Checkouts"] .fp-filter-order-btn-up').click();
+    await page.waitForFunction(() => {
+      const names = Array.from(document.querySelectorAll('.fp-filter-list > .fp-field-group'))
+        .map(group => group.dataset.field);
+      return names.join('|') === 'Catalog Key|Total Checkouts|Copy Hold Count'
+        && document.querySelector('#planning-badge')?.getAttribute('aria-pressed') === 'false';
+    }, null, { timeout: 7000 });
+    assert.equal(await page.evaluate(() => localStorage.getItem('query:smartFilterOrderingEnabled')), 'false');
+    assert.match(await page.locator('#toast-container').textContent(), /Smart ordering is off/u);
+    assert.deepEqual(await page.locator('.form-mode-field .form-mode-label').allTextContents(), [
+      'Catalog Key',
+      'Total Checkouts',
+      'Copy Hold Count'
+    ]);
+    await page.waitForTimeout(900);
+    assert.equal(api.getRequests('query_plan').at(-1)?.payload?.smart_query_enabled, false);
+
+    api.enqueue(buildPlannedOrderResponse(['Catalog Key', 'Copy Hold Count', 'Total Checkouts']));
+    await page.locator('#planning-badge').click();
+    await page.waitForFunction(() => {
+      const names = Array.from(document.querySelectorAll('.fp-filter-list > .fp-field-group'))
+        .map(group => group.dataset.field);
+      return names.join('|') === 'Catalog Key|Copy Hold Count|Total Checkouts'
+        && document.querySelector('#planning-badge')?.getAttribute('aria-pressed') === 'true';
+    }, null, { timeout: 7000 });
+    assert.equal(await page.evaluate(() => localStorage.getItem('query:smartFilterOrderingEnabled')), null);
     assert.deepEqual(failures, []);
   } finally {
     await browser?.close();
