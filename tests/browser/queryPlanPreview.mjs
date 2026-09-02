@@ -69,6 +69,18 @@ test('a cold-start query ETA is visible before Run without comparable history', 
     assert.equal(api.countAction('query_plan'), 1);
     assert.ok(api.countAction('library_dashboard') >= 1);
 
+    await page.locator('#query-plan-preview').click();
+    await page.locator('#query-plan-details:not(.hidden)').waitFor({ state: 'visible' });
+    const details = await page.locator('#query-plan-details').textContent();
+    assert.match(details || '', /P50/u);
+    assert.match(details || '', /P80/u);
+    assert.match(details || '', /P90/u);
+    assert.match(details || '', /Records scanned/u);
+    assert.match(details || '', /Selector scan/u);
+    assert.match(details || '', /medium confidence/u);
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('#query-plan-details').getAttribute('class'), 'query-plan-details hidden');
+
     assert.equal(api.getRequests('query_plan').at(-1)?.payload?.smart_query_enabled, undefined);
     await page.locator('#planning-badge').click();
     await page.waitForFunction(() => document.querySelector('#planning-badge')?.getAttribute('aria-pressed') === 'false');

@@ -452,20 +452,34 @@ function buildDefaultQueryApiResponse(payload) {
         body: JSON.stringify({
           ok: true,
           data: {
-            schema_version: 1,
-            strategy: 'selective_first_v1',
+            schema_version: 2,
+            strategy: 'cost_based_routes_v2',
             changed: false,
             order: [],
             eta: {
               available: true,
-              method: 'aggregate_cost_model_v1',
-              confidence: 'low',
+              method: 'stage_cost_model_v2',
+              confidence: 'medium',
               sample_size: 0,
               requires_comparable_history: false,
               estimated_candidates: 120,
-              label: 'Likely 1–3 seconds from current aggregate and field costs.'
+              expected_candidates: 120,
+              expected_scanned_records: 1_000,
+              expected_output_rows: 120,
+              expected_output_bytes: 24_000,
+              p50_seconds: 1,
+              p80_seconds: 3,
+              p90_seconds: 5,
+              lower_seconds: 1,
+              upper_seconds: 3,
+              basis: 'Private statistics and measured hardware constants',
+              stages: [{ id: 'selector_scan', label: 'Selector scan', p50_seconds: 1 }],
+              warnings: [],
+              label: 'Likely 1–3 seconds'
             },
-            aggregate_basis: { available: true, label: 'Current private collection aggregates' }
+            route: { selected: ['selitem'], alternatives_compared: 1 },
+            aggregate_basis: { available: true, label: 'Planner statistics snapshot' },
+            explanation: 'The planner compared complete Sirsi route costs.'
           }
         }),
         contentType: 'application/json; charset=utf-8'

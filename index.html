@@ -328,10 +328,11 @@
                 <span>Smart order</span>
                 <span class="planning-badge-state" data-smart-query-state>On</span>
               </button>
-              <div id="query-plan-preview" class="query-plan-preview" data-query-plan-preview data-query-plan-preview-compact data-state="waiting" role="status" aria-live="polite">
+              <button id="query-plan-preview" type="button" class="query-plan-preview" data-query-plan-preview data-query-plan-preview-compact data-state="waiting" aria-live="polite" aria-expanded="false" aria-controls="query-plan-details">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 7v5l3 2"></path></svg>
                 <span data-query-plan-preview-label>ETA · add a display field</span>
-              </div>
+              </button>
+              <section id="query-plan-details" class="query-plan-details hidden" aria-label="Query estimate details"></section>
               <div id="partial-results-badge" aria-live="polite" aria-label="Partial results">
                 <span class="partial-results-badge-dot" aria-hidden="true"></span>
                 <span>Partial</span>

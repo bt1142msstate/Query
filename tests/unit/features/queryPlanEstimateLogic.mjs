@@ -20,6 +20,9 @@ test('cold-start ETA uses exact aggregate counts without comparable query histor
   assert.equal(plan.eta.available, true);
   assert.equal(plan.eta.requires_comparable_history, false);
   assert.equal(plan.eta.sample_size, 0);
+  assert.equal(plan.strategy, 'client_stage_prior_v2');
+  assert.ok(plan.eta.p50_seconds <= plan.eta.p80_seconds);
+  assert.ok(plan.eta.p80_seconds <= plan.eta.p90_seconds);
   assert.equal(plan.eta.estimated_candidates, 8000);
   assert.match(plan.eta.label, /current collection aggregate and exact policy totals/u);
 });
@@ -41,17 +44,18 @@ test('unavailable backend history cannot suppress the aggregate ETA', () => {
   assert.equal(plan.eta.estimated_candidates, 50000);
 });
 
-test('a calibrated backend estimate replaces the immediate cold-start band', () => {
+test('a backend stage-cost estimate replaces the immediate cold-start band', () => {
   const plan = mergeQueryPlanEstimate({
     display_fields: ['Title'], filters: [{ field: 'Item Type', operator: '=', value: 'EBOOK' }]
   }, {
     changed: false,
-    eta: { available: true, method: 'aggregate_calibrated_history', lower_seconds: 4.2, upper_seconds: 12.8, sample_size: 38 },
+    eta: { available: true, method: 'stage_cost_model_v2', p50_seconds: 4.2, p80_seconds: 12.8, p90_seconds: 19.4, sample_size: 0 },
     aggregate_basis: { available: true, label: 'Current private collection aggregates' }
   }, aggregate);
   assert.deepEqual(plan.eta.range_seconds, [4, 13]);
   assert.match(plan.eta.label, /^Likely 4–13 sec/u);
   assert.equal(plan.eta.requires_comparable_history, false);
+  assert.equal(plan.eta.p90_seconds, 19.4);
   assert.equal(plan.aggregate_basis.label, 'Current private collection aggregates');
 });
 

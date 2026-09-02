@@ -104,18 +104,24 @@ function estimateColdStartQueryPlan(payload = {}, aggregate = null) {
   const basis = liveUniverse
     ? exactAggregate ? 'current collection aggregate and exact policy totals' : 'current collection aggregate and field-cost model'
     : 'cold-start system-size and field-cost model';
+  const [p50Seconds, p80Seconds] = rangeSeconds;
   return {
-    schema_version: 1,
-    strategy: 'selective_first_v1',
+    schema_version: 2,
+    strategy: 'client_stage_prior_v2',
     eta: {
       available: true,
-      method: 'aggregate_cost_model_v1',
+      method: 'client_stage_prior_v2',
       confidence: exactAggregate ? 'medium' : 'low',
       sample_size: 0,
       requires_comparable_history: false,
+      p50_seconds: p50Seconds,
+      p80_seconds: p80Seconds,
+      p90_seconds: Math.ceil(p80Seconds * (exactAggregate ? 1.4 : 1.8)),
+      expected_candidates: candidateCount,
       estimated_candidates: candidateCount,
       range_seconds: rangeSeconds,
-      label: `${durationLabel(rangeSeconds)} · ${basis}`
+      label: `${durationLabel(rangeSeconds)} · ${basis}`,
+      basis
     },
     aggregate_basis: {
       available: Boolean(liveUniverse),
@@ -128,8 +134,8 @@ function estimateColdStartQueryPlan(payload = {}, aggregate = null) {
 
 function normalizedBackendEta(eta = {}) {
   if (!eta?.available) return null;
-  const minimum = finitePositive(eta.lower_seconds ?? eta.minimum_seconds);
-  const maximum = finitePositive(eta.upper_seconds ?? eta.maximum_seconds);
+  const minimum = finitePositive(eta.p50_seconds ?? eta.lower_seconds ?? eta.minimum_seconds);
+  const maximum = finitePositive(eta.p80_seconds ?? eta.upper_seconds ?? eta.maximum_seconds);
   if (!minimum || !maximum) return null;
   const rangeSeconds = [Math.max(1, Math.floor(minimum)), Math.max(Math.ceil(maximum), Math.floor(minimum) + 1)];
   return {
@@ -137,7 +143,7 @@ function normalizedBackendEta(eta = {}) {
     method: eta.method || 'backend_calibrated_model',
     requires_comparable_history: false,
     range_seconds: rangeSeconds,
-    label: `${durationLabel(rangeSeconds)} · calibrated from production throughput`
+    label: eta.label || `${durationLabel(rangeSeconds)} · ${eta.basis || 'backend stage-cost model'}`
   };
 }
 
@@ -151,7 +157,7 @@ function mergeQueryPlanEstimate(payload, backendPlan = null, aggregate = null) {
     aggregate_basis: source.aggregate_basis?.available ? source.aggregate_basis : coldStart.aggregate_basis,
     order: Array.isArray(source.order) ? source.order : [],
     changed: Boolean(source.changed),
-    explanation: source.explanation || 'The safest selective filters are evaluated first without changing query meaning.',
+    explanation: source.explanation || 'This immediate estimate uses current collection aggregates while the backend compares complete Sirsi route costs.',
     ...(source.eta?.available ? { history_calibration: source.eta } : {})
   };
 }

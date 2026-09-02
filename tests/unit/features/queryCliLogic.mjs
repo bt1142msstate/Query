@@ -415,7 +415,7 @@ test('smart-plan CLI sends the same query payload without running it', async () 
     if (payload.action === 'library_dashboard') {
       return Response.json({ collection: { items: 3_000_000 } });
     }
-    return Response.json({ strategy: 'selective_first_v1', changed: true, eta: { available: false } });
+    return Response.json({ strategy: 'cost_based_routes_v2', changed: true, eta: { available: false } });
   };
   try {
     const result = await runPlanCommand({
