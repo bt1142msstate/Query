@@ -83,6 +83,20 @@
         </svg>
       </button>
 
+      <button id="planning-badge"
+              type="button"
+              aria-pressed="true"
+              aria-label="Smart filter ordering on. Click to preserve the displayed filter order."
+              data-mobile-menu-label="Smart ordering"
+              data-tooltip="Smart filter ordering" data-tooltip-delay="0">
+        <svg class="planning-badge-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 7h11"></path><path d="m12 4 3 3-3 3"></path>
+          <path d="M20 17H9"></path><path d="m12 14-3 3 3 3"></path>
+        </svg>
+        <span class="planning-badge-label">Smart order</span>
+        <span class="planning-badge-state" data-smart-query-state>On</span>
+      </button>
+
       <button id="toggle-json"
               class="p-2 rounded-full bg-white hover:bg-gray-100 text-black focus:outline-none transition-colors border border-gray-200"
               data-tooltip="Show Query JSON" data-tooltip-delay="0">
@@ -317,22 +331,6 @@
         <div id="table-shell" class="mb-6">
           <div id="table-top-bar">
             <div id="table-info-bar">
-              <button id="planning-badge"
-                      type="button"
-                      aria-pressed="true"
-                      aria-label="Smart filter ordering on. Click to preserve the displayed filter order.">
-                <svg class="planning-badge-icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M4 7h11"></path><path d="m12 4 3 3-3 3"></path>
-                  <path d="M20 17H9"></path><path d="m12 14-3 3 3 3"></path>
-                </svg>
-                <span>Smart order</span>
-                <span class="planning-badge-state" data-smart-query-state>On</span>
-              </button>
-              <button id="query-plan-preview" type="button" class="query-plan-preview" data-query-plan-preview data-query-plan-preview-compact data-state="waiting" aria-live="polite" aria-expanded="false" aria-controls="query-plan-details">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 7v5l3 2"></path></svg>
-                <span data-query-plan-preview-label>ETA · add a display field</span>
-              </button>
-              <section id="query-plan-details" class="query-plan-details hidden" aria-label="Query estimate details"></section>
               <div id="partial-results-badge" aria-live="polite" aria-label="Partial results">
                 <span class="partial-results-badge-dot" aria-hidden="true"></span>
                 <span>Partial</span>
@@ -536,6 +534,13 @@
               <thead></thead>
               <tbody></tbody>
             </table>
+              <div id="query-plan-overlay">
+                <button id="query-plan-preview" type="button" class="query-plan-preview" data-query-plan-preview data-query-plan-preview-compact data-state="waiting" aria-live="polite" aria-expanded="false" aria-controls="query-plan-details">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 7v5l3 2"></path></svg>
+                  <span data-query-plan-preview-label>ETA · add a display field</span>
+                </button>
+                <section id="query-plan-details" class="query-plan-details hidden" aria-label="Query estimate details"></section>
+              </div>
               <div id="placeholder-message"
                    class="py-8 absolute inset-0 flex items-center justify-center text-center text-gray-500 italic pointer-events-none"
                    data-empty-table-message>

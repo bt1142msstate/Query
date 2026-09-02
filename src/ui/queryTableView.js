@@ -39,6 +39,12 @@ let QueryTableView;
     return 'Add a field to show your first column';
   }
 
+  function preserveQueryPlanOverlay(container, replacement) {
+    const overlay = container?.querySelector('#query-plan-overlay');
+    if (!container) return;
+    container.replaceChildren(replacement, ...(overlay ? [overlay] : []));
+  }
+
   function syncEmptyTableMessage() {
     const message = getEmptyTableMessage();
     document.querySelectorAll('[data-empty-table-message], #placeholder-message').forEach(node => {
@@ -75,18 +81,20 @@ let QueryTableView;
     const container = dom.tableContainer;
     const placeholderHeight = 400;
     if (container) {
+      const table = document.createElement('table');
+      table.id = 'example-table';
+      table.className = 'min-w-full divide-y divide-gray-200 bg-white';
+      table.innerHTML = `
+        <thead>
+          <tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" colspan="1" data-empty-table-message>
+            ${getEmptyTableMessage()}
+          </th></tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200"></tbody>`;
       container.classList.remove('table-container-hidden');
       container.style.minHeight = `${placeholderHeight}px`;
       container.style.height = `${placeholderHeight}px`;
-      container.innerHTML = `
-        <table id="example-table" class="min-w-full divide-y divide-gray-200 bg-white">
-          <thead>
-            <tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" colspan="1" data-empty-table-message>
-              ${getEmptyTableMessage()}
-            </th></tr>
-          </thead>
-          <tbody class="divide-y divide-gray-200"></tbody>
-        </table>`;
+      preserveQueryPlanOverlay(container, table);
 
       restoreEmptyTableDropTarget(container);
     }
@@ -345,7 +353,7 @@ let QueryTableView;
 
     table.appendChild(thead);
     table.appendChild(tbody);
-    container.replaceChildren(table);
+    preserveQueryPlanOverlay(container, table);
 
     try {
       await services.setupVirtualTable(container, renderFields, {
@@ -366,7 +374,7 @@ let QueryTableView;
       detail.className = 'text-sm text-gray-500 mt-2';
       detail.textContent = message;
       wrapper.append(title, detail);
-      container.replaceChildren(wrapper);
+      preserveQueryPlanOverlay(container, wrapper);
       return;
     }
 

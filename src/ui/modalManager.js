@@ -339,7 +339,7 @@ class ModalManager {
     iconShell.className = 'mobile-menu-icon';
     iconShell.innerHTML = button.innerHTML;
     iconShell.querySelectorAll('[id]').forEach(node => node.removeAttribute('id'));
-    iconShell.querySelectorAll('.theme-toggle-label, .auth-header-signout-label').forEach(node => node.remove());
+    iconShell.querySelectorAll('.theme-toggle-label, .auth-header-signout-label, .planning-badge-label, .planning-badge-state').forEach(node => node.remove());
     if (iconShell.children.length > 0 || iconShell.textContent.trim()) {
       item.appendChild(iconShell);
     }

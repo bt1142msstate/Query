@@ -114,6 +114,32 @@ test('a cold-start query ETA is visible before Run without comparable history', 
     assert.equal(api.countAction('query_plan'), 1);
     assert.ok(api.countAction('library_dashboard') >= 1);
 
+    const placement = await page.evaluate(() => {
+      const headerControls = document.querySelector('#header-controls');
+      const smartOrdering = document.querySelector('#planning-badge');
+      const overlay = document.querySelector('#query-plan-overlay');
+      const preview = document.querySelector('#query-plan-preview');
+      const table = document.querySelector('#table-container');
+      const previewRect = preview?.getBoundingClientRect();
+      const tableRect = table?.getBoundingClientRect();
+      return {
+        smartOrderingParent: smartOrdering?.parentElement?.id || '',
+        smartOrderingInHeader: headerControls?.contains(smartOrdering) === true,
+        previewInOverlay: overlay?.contains(preview) === true,
+        previewCenterOffsetX: previewRect && tableRect
+          ? Math.abs((previewRect.left + previewRect.width / 2) - (tableRect.left + tableRect.width / 2))
+          : Infinity,
+        previewCenterOffsetY: previewRect && tableRect
+          ? Math.abs((previewRect.top + previewRect.height / 2) - (tableRect.top + tableRect.height / 2))
+          : Infinity
+      };
+    });
+    assert.equal(placement.smartOrderingParent, 'header-controls');
+    assert.equal(placement.smartOrderingInHeader, true);
+    assert.equal(placement.previewInOverlay, true);
+    assert.ok(placement.previewCenterOffsetX < 2);
+    assert.ok(placement.previewCenterOffsetY < 2);
+
     await page.locator('#query-plan-preview').click();
     await page.locator('#query-plan-details:not(.hidden)').waitFor({ state: 'visible' });
     const details = await page.locator('#query-plan-details').textContent();
