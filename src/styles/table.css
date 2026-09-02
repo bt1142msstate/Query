@@ -496,6 +496,52 @@
 .query-plan-details-metric strong,
 .query-plan-details-metric small { display: block; }
 .query-plan-details-basis { margin: 0.55rem 0; font-size: 0.75rem; line-height: 1.4; }
+.query-plan-order-explanation {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--theme-border);
+}
+.query-plan-order-explanation-title { margin: 0; font-size: 0.82rem; }
+.query-plan-order-explanation p {
+  margin: 0.28rem 0 0.55rem;
+  color: var(--theme-text-muted);
+  font-size: 0.73rem;
+  line-height: 1.4;
+}
+.query-plan-order-explanation ol {
+  display: grid;
+  gap: 0.42rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: query-plan-order;
+}
+.query-plan-order-explanation li {
+  display: grid;
+  grid-template-columns: 1.55rem minmax(0, 1fr);
+  column-gap: 0.5rem;
+  counter-increment: query-plan-order;
+}
+.query-plan-order-explanation li::before {
+  display: grid;
+  width: 1.4rem;
+  height: 1.4rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--theme-panel-bg-soft);
+  color: var(--theme-text-muted);
+  content: counter(query-plan-order);
+  font-size: 0.68rem;
+  font-weight: 800;
+  grid-row: 1 / span 2;
+}
+.query-plan-order-explanation li strong { font-size: 0.76rem; }
+.query-plan-order-explanation li span {
+  color: var(--theme-text-muted);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
 .query-plan-details-stages { margin-top: 0.65rem; }
 .query-plan-details-stage { padding: 0.3rem 0; border-top: 1px solid var(--theme-border); font-size: 0.74rem; }
 .query-plan-details-warning { margin-top: 0.55rem; color: var(--theme-danger-text); font-size: 0.75rem; }

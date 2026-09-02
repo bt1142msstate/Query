@@ -15,6 +15,11 @@ import {
 } from './support/browserSmokeSupport.mjs';
 
 function buildPlannedOrderResponse(fields) {
+  const evidenceByField = {
+    'Catalog Key': { reason: 'bounded record identifiers', estimated_share: 0 },
+    'Copy Hold Count': { reason: 'equi-depth private histogram', estimated_share: 0.08 },
+    'Total Checkouts': { reason: 'equi-depth private histogram', estimated_share: 0.35 }
+  };
   return {
     action: 'query_plan',
     body: JSON.stringify({
@@ -27,7 +32,7 @@ function buildPlannedOrderResponse(fields) {
           field,
           original_position: fields.length - index,
           planned_position: index + 1,
-          reason: 'Planner test route cost'
+          ...(evidenceByField[field] || { reason: 'complete route cost' })
         })),
         eta: {
           available: true,
@@ -188,6 +193,15 @@ test('smart ordering visibly arranges filters and a manual move turns it off', {
       'Copy Hold Count',
       'Total Checkouts'
     ]);
+
+    await page.locator('#query-plan-preview').click();
+    const explanation = await page.locator('.query-plan-order-explanation').textContent();
+    assert.match(explanation || '', /Why this order\?/u);
+    assert.match(explanation || '', /complete valid routes/u);
+    assert.match(explanation || '', /Catalog Key.*exact record key/us);
+    assert.match(explanation || '', /Copy Hold Count.*8% of records/us);
+    assert.match(explanation || '', /Total Checkouts.*35% of records/us);
+    await page.keyboard.press('Escape');
 
     await page.locator('.fp-field-group[data-field="Total Checkouts"] .fp-filter-order-btn-up').click();
     await page.waitForFunction(() => {

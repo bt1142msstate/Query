@@ -13,6 +13,7 @@ import {
   setSmartFilterOrderingPreference,
   shouldUseSmartFilterOrdering
 } from '../core/queryPreferences.js';
+import { buildOrderExplanation } from '../core/queryPlanOrderExplanation.js';
 
 const PLAN_DEBOUNCE_MS = 350;
 const AGGREGATE_TTL_MS = 15 * 60 * 1000;
@@ -104,6 +105,34 @@ function appendMetric(grid, label, value) {
   grid.append(metric);
 }
 
+function appendOrderExplanation(panel, plan) {
+  const explanation = buildOrderExplanation(plan);
+  if (!explanation) return;
+
+  const section = document.createElement('section');
+  section.className = 'query-plan-order-explanation';
+  const heading = document.createElement('h3');
+  heading.className = 'query-plan-order-explanation-title';
+  heading.textContent = explanation.title;
+  const summary = document.createElement('p');
+  summary.textContent = explanation.summary;
+  section.append(heading, summary);
+  if (explanation.items.length) {
+    const list = document.createElement('ol');
+    explanation.items.forEach(item => {
+      const row = document.createElement('li');
+      const field = document.createElement('strong');
+      field.textContent = item.field;
+      const detail = document.createElement('span');
+      detail.textContent = item.detail;
+      row.append(field, detail);
+      list.append(row);
+    });
+    section.append(list);
+  }
+  panel.append(section);
+}
+
 function renderPlanDetails(plan = null) {
   const panel = document.getElementById('query-plan-details');
   if (!panel) return;
@@ -134,6 +163,7 @@ function renderPlanDetails(plan = null) {
   const route = Array.isArray(plan.route?.selected) ? plan.route.selected.join(' → ') : '';
   basis.textContent = [plan.eta.basis, route ? `Route: ${route}` : '', plan.explanation].filter(Boolean).join(' · ');
   panel.append(header, grid, basis);
+  appendOrderExplanation(panel, plan);
   const stages = Array.isArray(plan.eta.stages) ? plan.eta.stages : [];
   if (stages.length) {
     const stageList = document.createElement('div');
